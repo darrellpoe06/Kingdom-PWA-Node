@@ -63,7 +63,10 @@
 #        camera's folder; the clip name grammar is the only accepted shape.
 #   GET  /snap/<id>.jpg?w=&h=          bearer OR ticket. One JPEG frame. On a
 #        miss the JSON names the cause: frame-timeout (504, after_s), no-frame
-#        (go2rtc's status + its scrubbed detail), go2rtc-unreachable (502).
+#        (go2rtc's status + its scrubbed detail), go2rtc-unreachable (502), or
+#        resting (503, retry_in, detail: the last reason) once a camera has
+#        missed BREAKER_FAILS times in a row -- it is left alone for
+#        BREAKER_REST_SECONDS so go2rtc's effort goes to cameras that answer.
 #   GET  /live/<id>.mp4?t=             ticket. Progressive MP4 (Chrome, Edge,
 #                                      Firefox, Android). Ends itself at
 #                                      LIVE_MAX_SECONDS; the app may re-open.
@@ -124,7 +127,7 @@ UPSTREAM_DEFAULT = "http://127.0.0.1:1984"
 # /health, but their defaults no longer cut a family member off: 12 live
 # views (a 3x4 wall) and no clock (0 = a view runs until the viewer leaves).
 # The home link's real bandwidth is measured by the app, not pre-empted here.
-MAX_LIVE = int(os.environ.get("CAMS_MAX_LIVE", "12"))
+MAX_LIVE = int(os.environ.get("CAMS_MAX_LIVE", "32"))  # DR-0776: live in every tile; one per camera, and then some
 LIVE_MAX_SECONDS = float(os.environ.get("CAMS_LIVE_MAX_SECONDS", "0"))  # 0 = no clock
 MAX_SNAP_INFLIGHT = int(os.environ.get("CAMS_MAX_SNAP_INFLIGHT", "6"))
 SNAP_TIMEOUT = float(os.environ.get("CAMS_SNAP_TIMEOUT", "12"))
@@ -166,6 +169,81 @@ CODE_SHA = code_sha()
 RESTART_MIN_SECONDS = float(os.environ.get("CAMS_RESTART_MIN_SECONDS", "60"))
 RESTART_STATE = {"last": 0.0}
 RESTART_LOCK = threading.Lock()
+
+# THE LINK IS MEASURED, NOT PRE-EMPTED (DR-0776; Darrell: "Live views... all
+# the time"). Every byte this process hands to a live viewer (MP4 bodies and
+# HLS segments) is counted in a 10 s window, so /health can say how many live
+# streams are open and how many bits per second are crossing the Funnel right
+# now. The tab shows the number; a cap, if one is ever needed, is set from it.
+# A CAMERA THAT KEEPS FAILING IS RESTED (DR-0776). Measured 2026-10-07: 20+
+# cameras at the other house, each snapshot attempt a 10 s discovery timeout
+# inside go2rtc, retried every sweep by every open tab; a local camera's frame
+# took 242 s to arrive. go2rtc's effort must go to the cameras that answer.
+# After BREAKER_FAILS consecutive misses a camera's snapshots answer at once
+# with 503 "resting" (naming the last reason and the seconds left) for
+# BREAKER_REST_SECONDS; one probe is allowed when the rest ends; a success
+# clears it. Live views are never blocked by the breaker (a person asked).
+BREAKER_FAILS = int(os.environ.get("CAMS_BREAKER_FAILS", "3"))
+BREAKER_REST_SECONDS = float(os.environ.get("CAMS_BREAKER_REST_SECONDS", "300"))
+BREAKER_LOCK = threading.Lock()
+BREAKERS = {}  # cam -> {"fails": n, "until": monotonic, "last": reason, "probing": bool}
+
+
+def breaker_check(cam, now=None):
+    """-> None when the camera may be tried, else {"retry_in": s, "last": reason}."""
+    now = now if now is not None else time.monotonic()
+    with BREAKER_LOCK:
+        b = BREAKERS.get(cam)
+        if not b or b["fails"] < BREAKER_FAILS:
+            return None
+        if now >= b["until"]:
+            if b.get("probing"):
+                return {"retry_in": 5, "last": b["last"]}
+            b["probing"] = True  # one probe goes through
+            return None
+        return {"retry_in": int(b["until"] - now) + 1, "last": b["last"]}
+
+
+def breaker_note(cam, ok, reason="", now=None):
+    now = now if now is not None else time.monotonic()
+    with BREAKER_LOCK:
+        if ok:
+            BREAKERS.pop(cam, None)
+            return
+        b = BREAKERS.setdefault(cam, {"fails": 0, "until": 0.0, "last": "", "probing": False})
+        b["fails"] += 1
+        b["last"] = (reason or "")[:120]
+        b["probing"] = False
+        if b["fails"] >= BREAKER_FAILS:
+            b["until"] = now + BREAKER_REST_SECONDS
+
+
+def breaker_snapshot():
+    with BREAKER_LOCK:
+        return {"resting": sorted(c for c, b in BREAKERS.items() if b["fails"] >= BREAKER_FAILS)}
+
+
+LIVE_STATS_LOCK = threading.Lock()
+LIVE_STATS = {"open": 0, "samples": []}  # samples: (monotonic, bytes)
+LIVE_WINDOW_SECONDS = 10.0
+
+
+def live_note(nbytes, delta_open=0, now=None):
+    now = now if now is not None else time.monotonic()
+    with LIVE_STATS_LOCK:
+        LIVE_STATS["open"] = max(0, LIVE_STATS["open"] + delta_open)
+        if nbytes:
+            LIVE_STATS["samples"].append((now, nbytes))
+        cutoff = now - LIVE_WINDOW_SECONDS
+        LIVE_STATS["samples"] = [(t, n) for (t, n) in LIVE_STATS["samples"] if t >= cutoff]
+
+
+def live_snapshot(now=None):
+    now = now if now is not None else time.monotonic()
+    with LIVE_STATS_LOCK:
+        cutoff = now - LIVE_WINDOW_SECONDS
+        total = sum(n for (t, n) in LIVE_STATS["samples"] if t >= cutoff)
+        return {"live_open": LIVE_STATS["open"], "live_bytes_per_s": int(total / LIVE_WINDOW_SECONDS)}
 
 # WYZE SIGN-IN FROM THE APP (2026-10-07; Darrell: "Is that the easiest way to
 # build it so I don't have to do much work for it to work right away?" -- no,
@@ -726,9 +804,12 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
                     count = len(parsed) if isinstance(parsed, dict) else 0
                 except ValueError:
                     count = 0
-                return self._json(200, {"ok": True, "go2rtc": version, "streams": count, "forwarder": CODE_SHA,
-                                        "on_disk": code_sha(),
-                                        "max_live": max_live, "live_max_seconds": int(live_max_seconds)})
+                out = {"ok": True, "go2rtc": version, "streams": count, "forwarder": CODE_SHA,
+                       "on_disk": code_sha(),
+                       "max_live": max_live, "live_max_seconds": int(live_max_seconds)}
+                out.update(live_snapshot())
+                out.update(breaker_snapshot())
+                return self._json(200, out)
             except (urllib.error.URLError, OSError, ValueError):
                 return self._json(502, {"ok": False, "error": "go2rtc-unreachable", "upstream": upstream})
 
@@ -742,6 +823,9 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
             return self._json(200, {"cameras": cams, "count": len(cams)})
 
         def _snap(self, cam, query):
+            rest = breaker_check(cam)
+            if rest:
+                return self._json(503, {"error": "resting", "retry_in": rest["retry_in"], "detail": rest["last"]})
             if not snap_gate.acquire(blocking=False):
                 return self._json(503, {"error": "busy", "max_inflight": max_snap})
             try:
@@ -756,17 +840,22 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
                 except urllib.error.HTTPError as e:
                     # go2rtc answered, and said why (its body is the error text).
                     detail = scrub_text(e.read(2048).decode("utf-8", "replace").strip(), 300)
+                    breaker_note(cam, False, detail)
                     return self._json(e.code if 400 <= e.code < 600 else 502, {"error": "no-frame", "upstream_status": e.code, "detail": detail})
                 except socket.timeout:
+                    breaker_note(cam, False, "no answer in %d s" % int(snap_timeout))
                     return self._json(504, {"error": "frame-timeout", "after_s": int(snap_timeout)})
                 except urllib.error.URLError as e:
                     if isinstance(getattr(e, "reason", None), socket.timeout):
+                        breaker_note(cam, False, "no answer in %d s" % int(snap_timeout))
                         return self._json(504, {"error": "frame-timeout", "after_s": int(snap_timeout)})
                     return self._json(502, {"error": "go2rtc-unreachable", "detail": scrub_text(getattr(e, "reason", e), 200)})
                 except (OSError, ValueError) as e:
                     return self._json(502, {"error": "go2rtc-unreachable", "detail": scrub_text(e, 200)})
                 if not body:
+                    breaker_note(cam, False, "empty frame")
                     return self._json(502, {"error": "no-frame", "detail": "go2rtc answered an empty frame"})
+                breaker_note(cam, True)
                 return self._bytes(status, ctype or "image/jpeg", body)
             finally:
                 snap_gate.release()
@@ -921,6 +1010,7 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
                 return self._json(e.code if 400 <= e.code < 600 else 502, {"error": "no-segment", "upstream_status": e.code})
             except (urllib.error.URLError, OSError, ValueError):
                 return self._json(502, {"error": "go2rtc-unreachable"})
+            live_note(len(body))
             return self._bytes(status, ctype, body)
 
         def _live_mp4(self, cam):
@@ -934,6 +1024,7 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
                     return self._json(e.code if 400 <= e.code < 600 else 502, {"error": "no-stream", "upstream_status": e.code})
                 except (urllib.error.URLError, OSError, ValueError):
                     return self._json(502, {"error": "go2rtc-unreachable"})
+                live_note(0, delta_open=+1)
                 with r:
                     self.send_response(r.status)
                     self.send_header("Content-Type", r.headers.get("Content-Type", "video/mp4"))
@@ -957,8 +1048,11 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
                             if not chunk:
                                 break
                             self.wfile.write(chunk)
+                            live_note(len(chunk))
                     except (BrokenPipeError, ConnectionResetError, OSError):
                         pass  # the viewer left, or the source went silent past the timeout
+                    finally:
+                        live_note(0, delta_open=-1)
             finally:
                 live_gate.release()
 
@@ -1329,7 +1423,18 @@ def _selftest():
     s, _h, d = call("GET", "/health")
     j = json.loads(d.decode("utf-8"))
     check(j.get("max_live") == 2 and j.get("live_max_seconds") == 1, "/health reports the caps this instance runs with (the defaults are 12 and 0 = no clock)")
-    check(MAX_LIVE == 12 and LIVE_MAX_SECONDS == 0, "the shipped defaults do not cut a viewer off: 12 live, no clock")
+    check(MAX_LIVE == 32 and LIVE_MAX_SECONDS == 0, "the shipped defaults do not cut a viewer off: 32 live (one per camera and then some), no clock")
+    live_note(0, now=0.0)
+    LIVE_STATS["samples"] = []
+    live_note(5000, now=100.0); live_note(5000, now=104.0); live_note(99999, now=80.0)
+    snap = live_snapshot(now=105.0)
+    check(snap["live_bytes_per_s"] == 1000 and snap["live_open"] == 0, "live traffic is a 10 s window: 10,000 bytes in the window -> 1000 B/s, the old sample dropped (%r)" % snap)
+    live_note(0, delta_open=+1, now=105.0)
+    check(live_snapshot(now=105.0)["live_open"] == 1, "an open live stream is counted")
+    live_note(0, delta_open=-1, now=105.0)
+    s, _h, d = call("GET", "/health")
+    j = json.loads(d.decode("utf-8"))
+    check("live_open" in j and "live_bytes_per_s" in j, "/health carries the live count and the measured bytes per second")
 
     print("=== 8e. recorded loops (DR-0775): settings, the clips on disk, ticketed playback with Range ===")
     s, _h, d = call("GET", "/recording")
@@ -1380,6 +1485,32 @@ def _selftest():
     check(s == 200 and json.loads(d.decode("utf-8"))["expires_in"] == TICKET_TTL_SECONDS, "...and never less than the default")
     import shutil as _sh
     _sh.rmtree(rec_tmp, ignore_errors=True)
+
+    print("=== 8f. a camera that keeps failing is rested (the breaker), live never blocked ===")
+    BREAKERS.clear()
+    codes = []
+    for _ in range(BREAKER_FAILS):
+        s, _h, d = call("GET", "/snap/err_cam.jpg", auth=B); codes.append(s)
+    check(codes == [500] * BREAKER_FAILS, "the first %d misses reach go2rtc (%r)" % (BREAKER_FAILS, codes))
+    s, _h, d = call("GET", "/snap/err_cam.jpg", auth=B)
+    j = json.loads(d.decode("utf-8"))
+    check(s == 503 and j.get("error") == "resting" and j.get("retry_in", 0) > 0 and "i/o timeout" in j.get("detail", ""), "the next miss is answered at once: resting, seconds left, the last reason (%r)" % j)
+    seen_before = len([q for q in seen["queries"] if "err_cam" in q])
+    call("GET", "/snap/err_cam.jpg", auth=B)
+    check(len([q for q in seen["queries"] if "err_cam" in q]) == seen_before, "while resting, nothing reaches go2rtc for that camera")
+    s, _h, d = call("GET", "/health")
+    check("err_cam" in json.loads(d.decode("utf-8")).get("resting", []), "/health lists the cameras at rest")
+    with BREAKER_LOCK:
+        BREAKERS["err_cam"]["until"] = time.monotonic() - 1
+    s, _h, d = call("GET", "/snap/err_cam.jpg", auth=B)
+    check(s == 500, "when the rest ends, ONE probe goes through to go2rtc")
+    s, _h, d = call("GET", "/snap/err_cam.jpg", auth=B)
+    check(s == 503 and json.loads(d.decode("utf-8")).get("error") == "resting", "...and a failed probe rests it again")
+    s, _h, d = call("POST", "/ticket", json.dumps({"camera": "err_cam"}).encode(), auth=B)
+    check(s == 200, "a live ticket is never blocked by the breaker (a person asked)")
+    BREAKERS.clear()
+    s, _h, d = call("GET", "/snap/front_yard.jpg", auth=B)
+    check(s == 200 and "front_yard" not in breaker_snapshot()["resting"], "a camera that answers is never rested")
 
     print("=== 9. a DARK go2rtc reads as 502 everywhere, never as this process's own 200 ===")
     fake.shutdown(); fake.server_close()

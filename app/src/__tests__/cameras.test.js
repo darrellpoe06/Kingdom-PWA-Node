@@ -17,6 +17,7 @@ import {
   humanizeCameraError, classifySnapError, explainWhy, fetchWhy, whyUrl, skipFailedFrame, runLimited,
   WALL_KEY, loadWall, saveWall, wallLimit, WALL_MAX_DEFAULT, SNAP_CONCURRENCY, LIVE_RECONNECT_MAX,
   recordingUrl, recListUrl, recClipUrl, fetchRecording, saveRecording, fetchClips, clipParts, groupClipsByDay, diskForecast, RETENTION_CHOICES, CLIP_TICKET_TTL,
+  LIVE_TILES_KEY, loadLiveTiles, saveLiveTiles, liveTileBudget, liveTrafficLine,
 } from '../lib/cameras.js';
 
 describe('the road: every URL is same-origin under /cams', () => {
@@ -36,15 +37,29 @@ describe('the road: every URL is same-origin under /cams', () => {
   });
 });
 
-describe('pickLiveMode asks the device, not the user agent', () => {
-  it('HLS when the <video> says it can play it (Safari / iOS / Fire TV)', () => {
-    expect(pickLiveMode((t) => (t === 'application/vnd.apple.mpegurl' ? 'probably' : ''))).toBe('hls');
-    expect(pickLiveMode(() => 'maybe')).toBe('hls');
+describe('pickLiveMode: MP4 everywhere, HLS only where MP4 live cannot play (Apple engines)', () => {
+  const yesHls = (t) => (t === 'application/vnd.apple.mpegurl' ? 'probably' : '');
+  const IPHONE = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1';
+  const IPAD = 'Mozilla/5.0 (iPad; CPU OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/118.0 Mobile/15E148 Safari/604.1';
+  const MAC_SAFARI = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15';
+  const MAC_CHROME = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0 Safari/537.36';
+  const SAMSUNG = 'Mozilla/5.0 (Linux; Android 14; SAMSUNG SM-X910) AppleWebKit/537.36 (KHTML, like Gecko) SamsungBrowser/24.0 Chrome/117.0 Mobile Safari/537.36';
+  const ANDROID_CHROME = 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Mobile Safari/537.36';
+  const FIRE_TV = 'Mozilla/5.0 (Linux; Android 9; AFTKA) AppleWebKit/537.36 (KHTML, like Gecko) Silk/120 like Chrome/120 Safari/537.36';
+  it('Apple engines get HLS when their <video> says it can play it', () => {
+    expect(pickLiveMode(yesHls, IPHONE)).toBe('hls');
+    expect(pickLiveMode(yesHls, IPAD)).toBe('hls');
+    expect(pickLiveMode(yesHls, MAC_SAFARI)).toBe('hls');
+    expect(pickLiveMode(() => '', IPHONE)).toBe('mp4');
   });
-  it('MP4 everywhere else, including when there is no <video> to ask', () => {
-    expect(pickLiveMode(() => '')).toBe('mp4');
-    expect(pickLiveMode(null)).toBe('mp4');
-    expect(pickLiveMode(() => { throw new Error('no video'); })).toBe('mp4');
+  it('everyone else gets MP4 even when the device claims HLS (Samsung Internet ended HLS views at 6 s and 28 s, 2026-10-07)', () => {
+    expect(pickLiveMode(yesHls, SAMSUNG)).toBe('mp4');
+    expect(pickLiveMode(() => 'maybe', ANDROID_CHROME)).toBe('mp4');
+    expect(pickLiveMode(yesHls, MAC_CHROME)).toBe('mp4');
+    expect(pickLiveMode(yesHls, FIRE_TV)).toBe('mp4');
+    expect(pickLiveMode(() => '', '')).toBe('mp4');
+    expect(pickLiveMode(null, SAMSUNG)).toBe('mp4');
+    expect(pickLiveMode(() => { throw new Error('no video'); }, IPHONE)).toBe('mp4');
   });
 });
 
@@ -302,6 +317,8 @@ describe('humanizeCameraError + classifySnapError', () => {
     expect(classifySnapError({ status: 500, body: { error: 'no-frame', detail: 'wyze: only DTLS cameras are supported' } })).toBe('firmware has no DTLS');
     expect(classifySnapError({ status: 500, body: { error: 'no-frame', detail: 'wyze: K10002 failed' } })).toBe('camera refused the sign-in');
     expect(classifySnapError({ status: 503, body: { error: 'busy' } })).toBe('NAS busy, next sweep');
+    expect(classifySnapError({ status: 503, body: { error: 'resting', retry_in: 290, detail: 'wyze: connect failed: discovery timeout' } })).toBe('resting 5 min after repeated misses (NAS cannot reach it on its network)');
+    expect(classifySnapError({ status: 503, body: { error: 'resting', retry_in: 60, detail: 'wyze: only DTLS cameras are supported' } })).toBe('resting 1 min after repeated misses (only DTLS cameras are supported)');
     expect(classifySnapError({ status: 502, body: { error: 'go2rtc-unreachable' } })).toBe('restreamer dark');
     expect(classifySnapError({ status: 401, body: { error: 'unauthorized' } })).toBe('family key refused');
     expect(classifySnapError({ status: 500, body: { error: 'no-frame', detail: 'wyze: strange' } })).toBe('wyze: strange');
@@ -438,5 +455,33 @@ describe('recorded loops: urls, clips, grouping, the measured forecast', () => {
     const clips = await fetchClips('a', 'tok', async () => ({ status: 200, json: async () => ({ clips: [{ name: '2026-10-07T06-40-00.mp4', bytes: 5, start: 1 }, { name: 'evil/../x.mp4', bytes: 1, start: 2 }] }) }));
     expect(clips.ok).toBe(true);
     expect(clips.clips.map((c) => c.name)).toEqual(['2026-10-07T06-40-00.mp4']);
+  });
+});
+
+// DR-0776: live in every tile, the link measured.
+describe('live tiles: the default, the device choice, the budget and the traffic line', () => {
+  const mem = () => { const m = new Map(); return { getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), removeItem: (k) => m.delete(k) }; };
+  it('defaults to on, remembers off, and tolerates a broken store', () => {
+    const st = mem();
+    expect(loadLiveTiles(st)).toBe(true);
+    saveLiveTiles(false, st);
+    expect(st.getItem(LIVE_TILES_KEY)).toBe('0');
+    expect(loadLiveTiles(st)).toBe(false);
+    saveLiveTiles(true, st);
+    expect(loadLiveTiles(st)).toBe(true);
+    const broken = { getItem: () => { throw new Error('no'); }, setItem: () => { throw new Error('no'); } };
+    expect(loadLiveTiles(broken)).toBe(true);
+    expect(saveLiveTiles(true, broken)).toBe(false);
+  });
+  it('the live-tile budget is the NAS cap minus the wall, never negative, 32 when the NAS does not say', () => {
+    expect(liveTileBudget({ max_live: 32 }, 4)).toBe(28);
+    expect(liveTileBudget({ max_live: 2 }, 5)).toBe(0);
+    expect(liveTileBudget(null, 0)).toBe(32);
+  });
+  it('the traffic line is the measured number, in the unit that reads', () => {
+    expect(liveTrafficLine({ live_open: 1, live_bytes_per_s: 125000 })).toBe('1 live stream · 1.0 Mbit/s through the Funnel');
+    expect(liveTrafficLine({ live_open: 3, live_bytes_per_s: 5000 })).toBe('3 live streams · 40 kbit/s through the Funnel');
+    expect(liveTrafficLine({ live_open: 0, live_bytes_per_s: 0 })).toBe('0 live streams · 0 bit/s through the Funnel');
+    expect(liveTrafficLine({ ok: true })).toBe('');
   });
 });

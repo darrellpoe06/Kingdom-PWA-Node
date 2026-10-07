@@ -57,10 +57,18 @@ export function liveUrl(id, mode, ticket) {
     : `${CAMS_BASE}/live/${cam}.mp4?${t}`;
 }
 
-// Ask the device, not the user agent. `canPlayType` is the <video> element's
-// own answer ('probably' | 'maybe' | ''). Safari and iOS answer for HLS;
-// Chrome/Firefox answer '' and get progressive MP4.
-export function pickLiveMode(canPlayType) {
+// Which live road a device gets. Progressive MP4 is the default everywhere:
+// one HTTP stream, no playlist polling, no session to expire. HLS is used
+// ONLY where MP4 live cannot play at all: Apple's engines (Safari, every iOS
+// browser, which must use WebKit). Measured 2026-10-07 (DR-0776): Samsung
+// Internet answers 'maybe' to HLS and its native player then ended the view
+// at 6 s and at 28 s with no NAS reason, while MP4 ran. The earlier rule
+// ("ask the device, not the user agent") stands for CAN-play; which road is
+// RELIABLE is answered by the one engine family that has no MP4-live choice.
+export function pickLiveMode(canPlayType, userAgent = null) {
+  const ua = String(userAgent != null ? userAgent : (typeof navigator !== 'undefined' && navigator.userAgent) || '');
+  const apple = /iPhone|iPad|iPod/i.test(ua) || (/Safari\//.test(ua) && !/Chrome\/|Chromium\/|CriOS\/|FxiOS\/|Edg\/|SamsungBrowser\/|OPR\//.test(ua) && /Macintosh/.test(ua));
+  if (!apple) return 'mp4';
   try {
     const a = typeof canPlayType === 'function' ? canPlayType('application/vnd.apple.mpegurl') : '';
     return a ? 'hls' : 'mp4';
@@ -416,6 +424,7 @@ export function humanizeCameraError(text, host = '') {
 export function classifySnapError({ status, body } = {}) {
   const err = body && typeof body.error === 'string' ? body.error : '';
   if (status === 504 || err === 'frame-timeout') return `no answer in ${Number.isFinite(Number(body && body.after_s)) ? body.after_s : 12} s`;
+  if (err === 'resting') return `resting ${Math.max(1, Math.round((Number(body && body.retry_in) || 300) / 60))} min after repeated misses${body && body.detail ? ` (${humanizeCameraError(body.detail).kind === 'other-network' ? 'NAS cannot reach it on its network' : String(body.detail).replace(/^wyze:\s*/i, '').slice(0, 60)})` : ''}`;
   if (status === 503 || err === 'busy') return 'NAS busy, next sweep';
   if (status === 401) return 'family key refused';
   if (err === 'go2rtc-unreachable') return 'restreamer dark';
@@ -584,4 +593,36 @@ export function diskForecast(recStatus) {
     line: recording === 0 ? 'No camera is recording.'
       : measured === 0 ? `${recording} recording · under an hour of clips so far, the rate is not measured yet.`
       : `${recording} recording · about ${formatBytes(perDay)} a day${measured < recording ? ` (measured on ${measured})` : ''} · the ${Math.round(budget / 1e9)} GB budget holds about ${Math.max(1, Math.round(daysAtBudget))} day${Math.round(daysAtBudget) === 1 ? '' : 's'} at this rate` };
+}
+
+// LIVE IN EVERY TILE (DR-0776; Darrell 2026-10-07: "Live views... all the
+// time... I should see the seconds moving and wind blowing"). The tiles are
+// live players by default; a snapshot is the fallback for a camera that has
+// no picture yet (so its tile can still show the reason and notice recovery).
+// The choice is kept per device. The NAS's live cap bounds how many tiles
+// may be live at once; the rest fall back to snapshots and the tab says so.
+export const LIVE_TILES_KEY = 'poetech.cameras.live-tiles.v1';
+export function loadLiveTiles(storage = null) {
+  const st = storage || (() => { try { return globalThis.localStorage || null; } catch { return null; } })();
+  if (!st) return true;
+  try { const v = st.getItem(LIVE_TILES_KEY); return v == null ? true : v === '1'; } catch { return true; }
+}
+export function saveLiveTiles(on, storage = null) {
+  const st = storage || (() => { try { return globalThis.localStorage || null; } catch { return null; } })();
+  if (!st) return false;
+  try { st.setItem(LIVE_TILES_KEY, on ? '1' : '0'); return true; } catch { return false; }
+}
+/** How many tiles may be live at once given the NAS's cap and what the wall already uses. */
+export function liveTileBudget(health, wallCount = 0) {
+  const cap = Number(health && health.max_live);
+  const n = Number.isFinite(cap) && cap > 0 ? cap : 32;
+  return Math.max(0, n - (Number(wallCount) || 0));
+}
+/** The live traffic line from /health: open streams and measured bits per second through the Funnel. */
+export function liveTrafficLine(health) {
+  if (!health || !Number.isFinite(Number(health.live_bytes_per_s))) return '';
+  const bps = Number(health.live_bytes_per_s) * 8;
+  const open = Number(health.live_open) || 0;
+  const rate = bps >= 1e6 ? `${(bps / 1e6).toFixed(1)} Mbit/s` : bps >= 1e3 ? `${Math.round(bps / 1e3)} kbit/s` : `${Math.round(bps)} bit/s`;
+  return `${open} live stream${open === 1 ? '' : 's'} · ${rate} through the Funnel`;
 }
