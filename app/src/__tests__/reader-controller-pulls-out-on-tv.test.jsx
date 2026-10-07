@@ -35,6 +35,7 @@ vi.mock('../lib/use-read-aloud.js', () => ({
     claimAudio: () => {}, setRate: () => {},
     catalog: [{ id: 'sys', label: 'System voice', group: 'Default', usable: true }],
     voiceId: 'sys', setVoiceId: () => {}, currentItem: { id: 'sys', ai: false },
+    pitch: 1, setPitch: () => {}, stepPitch: () => {}, voiceShapes: {},
   }),
 }));
 
@@ -82,10 +83,13 @@ describe('the decision — measured, not guessed', () => {
     // and the sticky header too, or a rail covers its tab row (the CI probe).
     expect(SRC('poe-financial-mvp-v28.jsx')).toMatch(/<main className="w-full /);
     expect(SRC('poe-financial-mvp-v28.jsx')).toMatch(/<header [^>]*data-read-skip/);
-    expect(RAIL_WIDTH_REM).toBeGreaterThanOrEqual(13);
-    // A 960px TV (60rem): two rails of (60 - 32) / 2 = 14rem leave the Word 32rem.
+    // NARROWED to one column of bottom-bar buttons (DR-0800): wide enough for
+    // a 2.75rem square and its word, nowhere near the old 15rem of prose.
+    expect(RAIL_WIDTH_REM).toBeGreaterThanOrEqual(5);
+    expect(RAIL_WIDTH_REM).toBeLessThanOrEqual(8);
+    // A 960px TV (60rem): two 6.5rem rails leave the Word 47rem, not 32.
     expect(WORD_MIN_REM).toBe(32);
-    expect(RAIL_WIDTH_CSS).toBe('calc(min(15rem, (100vw - 32rem) / 2) * var(--ts-chrome-scale, 1))');
+    expect(RAIL_WIDTH_CSS).toBe('calc(min(6.5rem, (100vw - 32rem) / 2) * var(--ts-chrome-scale, 1))');
     expect(railWidth()).toBe(RAIL_WIDTH_CSS);
     expect(mainInset()).toBe(`calc(${RAIL_WIDTH_CSS} + 1.5rem)`);
     const css = SRC('index.css');
@@ -193,16 +197,27 @@ describe('the real reader', () => {
     expect(document.documentElement.getAttribute(RAILS_ATTR), '<main> makes room').toBe('sides');
     expect(left.className).toMatch(/\bfixed\b.*\bleft-2\b/);
     expect(right.className).toMatch(/\bfixed\b.*\bright-2\b/);
-    // What the Firestick never showed is on the right rail.
-    expect(right.querySelector('[aria-label="Reading speed"]')).toBeTruthy();
-    expect(right.querySelector('[data-testid="reader-follow-options"]')).toBeTruthy();
-    expect(right.querySelector('[data-testid="reader-text-size"]')).toBeTruthy();
-    // The header and the play controls are on the left.
-    expect(left.querySelector('[data-testid="tts-header-top"]')).toBeTruthy();
-    expect(left.querySelector('[data-testid="reader-controller-toggle"]').textContent).toMatch(/Tall/);
-    expect(left.querySelector('[data-testid="reader-fullscreen"]')).toBeTruthy();
-    // Nothing is duplicated: one speed group in the whole document.
-    expect(document.querySelectorAll('[aria-label="Reading speed"]')).toHaveLength(1);
+    // What the Firestick never showed is on the right rail, now as one
+    // bottom-bar button each (DR-0800): speed, colors, highlight, where the
+    // sentence sits, the Word, and keeping it on this device.
+    for (const id of ['speed', 'colors', 'highlight', 'place', 'word']) {
+      expect(right.querySelector(`[data-testid="reader-rail-${id}"]`), id).toBeTruthy();
+    }
+    // The ones the bottom bar already carries are NOT repeated on a rail.
+    for (const id of ['read', 'follow', 'back', 'pause', 'next', 'window', 'top', 'size']) {
+      expect(rails.querySelector(`[data-testid="reader-rail-${id}"]`), `${id} is in the bar, not the rail`).toBeNull();
+    }
+    // The play side is on the left.
+    expect(left.querySelector('[data-testid="reader-rail-panel"]')).toBeTruthy();
+    expect(left.querySelector('[data-testid="reader-rail-full"]')).toBeTruthy();
+    // No prose, no section headings, no chip rows: the old panel's groups are gone.
+    expect(rails.querySelector('[data-testid="reader-follow-options"]')).toBeNull();
+    expect(rails.querySelector('[aria-label="Reading speed"]')).toBeNull();
+    expect(rails.querySelector('[data-testid="reader-text-size"]')).toBeNull();
+    // Every rail button is one of the bar's own squares.
+    const buttons = [...rails.querySelectorAll('button')];
+    expect(buttons.length).toBeGreaterThanOrEqual(6);
+    for (const b of buttons) expect(b.className, b.dataset.testid).toMatch(/min-h-\[2\.75rem\]/);
   });
 
   it('on a TV page with nothing to read (the Create station, the Learn tree) there are no rails and the page keeps its width; opening the reader brings them', async () => {
@@ -224,14 +239,14 @@ describe('the real reader', () => {
     expect(panel.getAttribute('data-layout')).toBe('tall');
     expect(panel.className).toContain('w-[16.25em]');
     expect(document.querySelector('[data-testid="reader-rails"]')).toBeNull();
-    expect(panel.querySelector('[data-testid="reader-fullscreen"]')).toBeNull();
+    expect(panel.querySelector('[data-testid="reader-rail-full"]')).toBeNull();
     expect(panel.querySelector('[aria-label="Reading speed"]')).toBeTruthy();
   });
 
   it('one header tap flips rails to column and back, and the choice is kept on this device', async () => {
     document.documentElement.setAttribute('data-device', 'tv');
     const el = await mount();
-    await act(async () => { document.querySelector('[data-testid="reader-controller-toggle"]').click(); });
+    await act(async () => { document.querySelector('[data-testid="reader-rail-panel"]').click(); });
     expect(document.querySelector('[data-testid="reader-rails"]')).toBeNull();
     expect(document.documentElement.getAttribute(RAILS_ATTR), 'the room is given back').toBeNull();
     expect(localStorage.getItem(CONTROLLER_KEY)).toBe('tall');
@@ -246,7 +261,7 @@ describe('the real reader', () => {
   it('full screen: the rails go, the html attribute is set, a faint mark brings them back; Esc does too', async () => {
     document.documentElement.setAttribute('data-device', 'tv');
     await mount();
-    await act(async () => { document.querySelector('[data-testid="reader-fullscreen"]').click(); });
+    await act(async () => { document.querySelector('[data-testid="reader-rail-full"]').click(); });
     expect(document.documentElement.getAttribute(FULLSCREEN_ATTR)).toBe('true');
     expect(document.querySelector('[data-testid="reader-rails"]')).toBeNull();
     expect(document.documentElement.getAttribute(RAILS_ATTR), 'full width for the Word').toBeNull();
@@ -257,7 +272,7 @@ describe('the real reader', () => {
     expect(document.documentElement.getAttribute(FULLSCREEN_ATTR)).toBeNull();
     expect(document.querySelector('[data-testid="reader-rails"]')).toBeTruthy();
     // And the keyboard / remote way out.
-    await act(async () => { document.querySelector('[data-testid="reader-fullscreen"]').click(); });
+    await act(async () => { document.querySelector('[data-testid="reader-rail-full"]').click(); });
     expect(document.querySelector('[data-testid="reader-rails"]')).toBeNull();
     await act(async () => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); });
     expect(document.querySelector('[data-testid="reader-rails"]')).toBeTruthy();

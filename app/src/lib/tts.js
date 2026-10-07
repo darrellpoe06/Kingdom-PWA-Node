@@ -783,6 +783,22 @@ export function useTextToSpeech() {
     setPrefs((prev) => { const next = { ...prev, rate: clampRate(r) }; saveTTSPrefs(next); return next; });
   }, []);
 
+  // PITCH, THE SAME WAY AS RATE (DR-0801). The engine has always carried a
+  // pitch and applied it to the live utterance; nothing exposed a way to set
+  // one, so the saved pref could never change. Darrell: "different pitches...
+  // to get a unique voice that has the right sound for each individual."
+  const setPitch = useCallback((pitch) => {
+    const eng = engineRef.current;
+    if (!eng) return;
+    eng.setPitch(pitch);
+    setPrefs((prev) => {
+      const n = Number(pitch);
+      const next = { ...prev, pitch: Number.isFinite(n) ? n : DEFAULT_PITCH };
+      saveTTSPrefs(next);
+      return next;
+    });
+  }, []);
+
   const setVoiceURI = useCallback((uri) => {
     const eng = engineRef.current;
     if (!eng) return;
@@ -807,7 +823,8 @@ export function useTextToSpeech() {
     // -> sentence without the engine handing back the text).
     segmentIndex: state.segmentIndex || 0,
     segmentCount: state.segmentCount || 0,
-    speak, pause, resume, stop, setRate, setVoiceURI,
+    pitch: prefs.pitch,
+    speak, pause, resume, stop, setRate, setPitch, setVoiceURI,
     // Register the follow-along word-boundary listener (cb(segmentIndex,
     // charIndex, charLength)); pass null to clear. Boundary support varies by
     // device engine — the segmentIndex state above is the guaranteed floor.
