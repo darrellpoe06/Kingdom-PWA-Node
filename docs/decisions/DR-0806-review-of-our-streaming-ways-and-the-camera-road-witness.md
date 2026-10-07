@@ -1,4 +1,4 @@
-# DR-0804 — Review of our streaming ways: every source, every browser road, every transport; what we have, what works where, what is next — and the camera road's witness after every change
+# DR-0806 — Review of our streaming ways: every source, every browser road, every transport; what we have, what works where, what is next — and the camera road's witness after every change
 
 - **Status:** accepted
 - **Tier:** A for the witness (a read-only workflow against the NAS and a rolling issue); the review itself decides nothing that moves without its own record
@@ -15,11 +15,11 @@
 | source | in the app today | works where | note |
 | --- | --- | --- | --- |
 | Wyze (`wyze://`, native P2P, DTLS) | sign-in once (DR-0770); 31 streams | the camera's own LAN or a routed subnet; **23 of 31 resting** at 22:49 UTC: the 805 house (10.0.0.x) and the 192.168.4/7/11.x cameras time out on discovery from the NAS at 192.168.1.26; two report "only DTLS cameras are supported" (firmware, Gwell models) | the SD substream (`subtype=sd`) is now a twin per camera (DR-0799) |
-| Ring (`ring:`) | sign-in in the app (DR-0803) | wherever Ring's cloud reaches | two-way audio supported by go2rtc |
-| ONVIF / RTSP / RTSPS / RTMP | the add form (DR-0803) | the NAS's network; UniFi Protect speaks rtsps | the sovereign PoE backbone of DR-0050 |
+| Ring (`ring:`) | sign-in in the app (DR-0805) | wherever Ring's cloud reaches | two-way audio supported by go2rtc |
+| ONVIF / RTSP / RTSPS / RTMP | the add form (DR-0805) | the NAS's network; UniFi Protect speaks rtsps | the sovereign PoE backbone of DR-0050 |
 | HTTP snapshot / MJPEG | the add form | anywhere the NAS can fetch | frames only |
 | HomeKit (`homekit://`) | not in the app | needs pairing on go2rtc's own HomeKit page; a device pairs with one ecosystem | next, when a HomeKit camera is in the house |
-| Google Nest (`nest:`) | not built | WebRTC Nest cameras only, through Google Device Access | not until someone can verify it (DR-0803) |
+| Google Nest (`nest:`) | not built | WebRTC Nest cameras only, through Google Device Access | not until someone can verify it (DR-0805) |
 | Google sign-in to Wyze/Ring | not a road the makers offer | — | set the maker's own password once; said on the forms |
 
 **Browser roads (NAS → the screen), what go2rtc offers and what we use:**
@@ -37,7 +37,7 @@
 
 | transport | today | measured | note |
 | --- | --- | --- | --- |
-| Cloudflare Pages Function → Tailscale Funnel → forwarder | the only road | 16 live streams, 2.03 MB/s (≈16 Mbit/s) leaving the house at 22:49 UTC; a 12 s ticket POST timed out under it (DR-0802) | every stream, even for a Firestick in the same room, goes out and back over the home upload |
+| Cloudflare Pages Function → Tailscale Funnel → forwarder | the only road | 16 live streams, 2.03 MB/s (≈16 Mbit/s) leaving the house at 22:49 UTC; a 12 s ticket POST timed out under it (DR-0804) | every stream, even for a Firestick in the same room, goes out and back over the home upload |
 | LAN-direct origin (Caddy on the NAS; the app tries it first at home) | **no** | — | removes the upload bottleneck for every device at home; the next transport record |
 | cameras on other subnets (192.168.4/7/11.x, the 805 house at 10.0.0.x) | unreachable from the NAS | 23 resting | a route from the NAS or a restreamer placed on that network |
 

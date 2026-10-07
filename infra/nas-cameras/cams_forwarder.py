@@ -1456,7 +1456,7 @@ def start_stream_sampler(upstream, every=None, health=None, health_file=None):
 
 
 # =============================================================================
-# ANY CAMERA, FROM THE APP, TESTED ON THE SPOT (DR-0803; Darrell 2026-10-07:
+# ANY CAMERA, FROM THE APP, TESTED ON THE SPOT (DR-0805; Darrell 2026-10-07:
 # "Build the other options... so I can set up rstp... and all other options
 # so I can verify they work!!!!!!!!", "Ring... etc... all pathways for our
 # home cameras... Even Google login options"). The Setup tab used to say
@@ -1924,7 +1924,7 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
                 return set()
 
         def _stream_add(self, body):
-            """A camera of any kind go2rtc speaks, from the app (DR-0803): registered, persisted, and probed once."""
+            """A camera of any kind go2rtc speaks, from the app (DR-0805): registered, persisted, and probed once."""
             name = str(body.get("name") or "").strip()
             url = str(body.get("url") or "").strip()
             if not name or not CAMERA_ID.match(name):
@@ -3514,7 +3514,7 @@ def _selftest():
     check(j["stream_health"]["cameras"] == 2 and j["stream_health"]["interval_s"] == 15 and j["stream_health"]["drops_1h"] == 1, "/health's stream_health summary: cameras seen, the interval, drops in the hour")
     check(sample_streams_once("http://127.0.0.1:1", health=StreamHealth(), twins=False) == "unreachable", "a dark go2rtc is 'unreachable', never a sample")
 
-    print("=== 8m. any camera from the app, tested on the spot (DR-0803): add, probe, remove; Ring signs in through go2rtc ===")
+    print("=== 8m. any camera from the app, tested on the spot (DR-0805): add, probe, remove; Ring signs in through go2rtc ===")
     check(source_check("rtsp://admin:pw@192.168.1.60/live") == (True, "") and source_check("onvif://u:p@192.168.1.5") == (True, "") and source_check("http://192.168.1.9/snap.jpg") == (True, ""), "rtsp, onvif and http sources pass the check")
     check(source_check("exec:rm -rf /")[1] == "scheme-not-allowed" and source_check("ffmpeg:cam#raw=-i x")[1] == "scheme-not-allowed" and source_check("file:///etc/passwd")[1] == "scheme-not-allowed" and source_check("")[1] == "empty-or-long", "exec, ffmpeg#raw, file and empty are refused before they reach go2rtc")
     s, _h, d = call("POST", "/streams", json.dumps({"name": "garage_rtsp", "url": "rtsp://admin:SECRET@192.168.1.60/live"}).encode())

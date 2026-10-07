@@ -807,7 +807,7 @@ describe('Cameras surface', () => {
     }
   });
 
-  it('a recording is watched in place at any size (DR-0802): Watch plays the tier from the NAS once made, nothing is saved, one ticket serves the clip, and a slow ticket is said in words', async () => {
+  it('a recording is watched in place at any size (DR-0804): Watch plays the tier from the NAS once made, nothing is saved, one ticket serves the clip, and a slow ticket is said in words', async () => {
     const now = Math.floor(Date.now() / 1000);
     const plan = {
       list: { cameras: [{ id: 'front_yard', name: 'front yard', kind: 'wyze' }], count: 1 },
@@ -865,7 +865,7 @@ describe('Cameras surface', () => {
     expect(container.querySelector('[data-testid="recording-note"]').textContent).toBe('Could not open the clip: Could not get a playback ticket: the NAS did not answer in 15 s (the link is busy or the camera service is down).');
   });
 
-  it('any camera from the app, tested on the spot (DR-0803): the boxes build the line, the NAS adds and probes it, Test and Remove work, and Ring signs in with its code', async () => {
+  it('any camera from the app, tested on the spot (DR-0805): the boxes build the line, the NAS adds and probes it, Test and Remove work, and Ring signs in with its code', async () => {
     const plan = { list: { cameras: [{ id: 'front_yard', name: 'front yard', kind: 'wyze' }], count: 1 } };
     const { fetchImpl } = makeFetch(plan);
     vi.stubGlobal('fetch', fetchImpl);

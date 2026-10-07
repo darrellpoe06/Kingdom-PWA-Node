@@ -1,4 +1,4 @@
-# DR-0802 — A recording is watched in place, at any size; the clip ticket waits longer and says why when it fails
+# DR-0804 — A recording is watched in place, at any size; the clip ticket waits longer and says why when it fails
 
 - **Status:** accepted
 - **Tier:** A (the Recordings panel's play path and the sizes menu; no new road on the NAS)
@@ -18,7 +18,7 @@ SHOULD: a person taps a clip and watches it from the NAS, at the original size o
 | --- | --- | --- |
 | the message (before) | "signal is aborted without reason" — the DOMException of `AbortController.abort()` with no reason, i.e. the 12 s timeout | the screenshot; `fetchWithTimeout` |
 | the link at that moment | 16 live streams open, 2.03 MB/s leaving the house | cams-diag run 37698554749 |
-| Watch at a size (after) | the sizes menu's Watch asks the NAS without `dl=1`, waits through 202 while the file is made, then plays `…?t=&size=small` in place; no anchor click, no new ticket | `cameras-render.test.jsx` (DR-0802 case) |
+| Watch at a size (after) | the sizes menu's Watch asks the NAS without `dl=1`, waits through 202 while the file is made, then plays `…?t=&size=small` in place; no anchor click, no new ticket | `cameras-render.test.jsx` (DR-0804 case) |
 | the ticket (after) | 15 s bound, one retry after a timeout, the same ticket reused for play, sizes and download for an hour less a margin | `cameras.test.js` (`clipTicket`) |
 | the failure (after) | "Could not open the clip: Could not get a playback ticket: the NAS did not answer in 15 s (the link is busy or the camera service is down)." | both suites |
 

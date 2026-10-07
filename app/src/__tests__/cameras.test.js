@@ -1021,7 +1021,7 @@ describe('a live tile stays live (DR-0799)', () => {
   });
 });
 
-describe('a recording is watched, not downloaded (DR-0802)', () => {
+describe('a recording is watched, not downloaded (DR-0804)', () => {
   const json = (status, body) => ({ ok: status >= 200 && status < 300, status, json: async () => body, headers: { get: () => null } });
   it('the play URL carries the size and no download header; waitForClipSize can ask without dl', async () => {
     expect(recClipPlayUrl('c', '2026-10-07T06-40-00.mp4', 'T', 'small')).toBe('/cams/rec/c/2026-10-07T06-40-00.mp4?t=T&size=small');
@@ -1056,7 +1056,7 @@ describe('a recording is watched, not downloaded (DR-0802)', () => {
   });
 });
 
-describe('any camera from the app, tested on the spot (DR-0803)', () => {
+describe('any camera from the app, tested on the spot (DR-0805)', () => {
   const json = (status, body) => ({ ok: status >= 200 && status < 300, status, json: async () => body, headers: { get: () => null } });
   it('the kinds and their boxes; a name becomes the NAS\'s stream id', () => {
     expect(ADD_KINDS.map((k) => k.id)).toEqual(['rtsp', 'onvif', 'http', 'url']);
