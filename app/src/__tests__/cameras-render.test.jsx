@@ -514,6 +514,48 @@ describe('Cameras surface', () => {
     expect(container.querySelector('[data-testid="wall-garage"]')).toBeNull();
   });
 
+  it('the full-size window (DR-0788): the view\'s cameras fill the screen in the fitted grid, Smaller leaves a margin and is kept with the view, Esc closes, and each camera holds one slot', async () => {
+    const { fetchImpl, calls } = makeFetch({ list: { cameras: [
+      { id: 'front_yard', name: 'front yard', kind: 'wyze' },
+      { id: 'garage', name: 'garage', kind: 'rtsp' },
+    ], count: 2 } });
+    vi.stubGlobal('fetch', fetchImpl);
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 1024 });
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 768 });
+    await mount();
+    await act(async () => { await new Promise((r) => setTimeout(r, 20)); });
+    expect(container.querySelector('[data-testid="view-window-open"]'), 'no window button on an empty view').toBeNull();
+    await click(buttons().find((b) => b.getAttribute('aria-label') === 'Add front yard to the view'));
+    await click(buttons().find((b) => b.getAttribute('aria-label') === 'Add garage to the view'));
+    await act(async () => { await new Promise((r) => setTimeout(r, 20)); });
+    const ticketsBefore = calls.filter((c) => c.url === '/cams/ticket').length;
+    await click(container.querySelector('[data-testid="view-window-open"]'));
+    await act(async () => { await new Promise((r) => setTimeout(r, 20)); });
+    const win = container.querySelector('[data-testid="view-window"]');
+    expect(win, 'the window').toBeTruthy();
+    // 1024×768 less the bar and gaps, two 16:9 tiles: one column of two is the larger tile.
+    expect(win.getAttribute('data-cols')).toBe('1');
+    expect(win.getAttribute('data-scale')).toBe('100');
+    expect([...win.querySelectorAll('[data-window-cam]')].map((el) => el.getAttribute('data-window-cam'))).toEqual(['front_yard', 'garage']);
+    expect(win.querySelector('[data-testid="window-front_yard"] video')).toBeTruthy();
+    expect(win.querySelector('[data-testid="window-garage"] video')).toBeTruthy();
+    // The in-page grid steps aside, so each camera holds ONE live slot (two new tickets, not four tiles).
+    expect(container.querySelector('[data-testid^="view-v"]')).toBeNull();
+    expect(calls.filter((c) => c.url === '/cams/ticket').length).toBe(ticketsBefore + 2);
+    const grid = win.querySelector('[data-testid="view-window-grid"]');
+    const widthBefore = grid.style.gridTemplateColumns;
+    await click(container.querySelector('[data-testid="view-window-smaller"]'));
+    expect(container.querySelector('[data-testid="view-window"]').getAttribute('data-scale')).toBe('95');
+    expect(container.querySelector('[data-testid="view-window-grid"]').style.gridTemplateColumns).not.toBe(widthBefore);
+    expect(JSON.parse(localStorage.getItem(VIEWS_KEY)).views[0].scale).toBe(0.95);
+    expect(container.querySelector('[data-testid="view-window-size"]').textContent).toMatch(/2 cameras · 1 across · 95%/);
+    await click(container.querySelector('[data-testid="view-window-fit"]'));
+    expect(container.querySelector('[data-testid="view-window"]').getAttribute('data-scale')).toBe('100');
+    await act(async () => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); });
+    expect(container.querySelector('[data-testid="view-window"]')).toBeNull();
+    expect(container.querySelector('[data-testid^="view-v"]'), 'the in-page grid is back').toBeTruthy();
+  });
+
   it('a blank tile names its real cause and Why? brings the NAS\'s explanation in plain words (DR-0774)', async () => {
     const { fetchImpl, calls } = makeFetch({
       list: { cameras: [{ id: 'east_north_cam', name: 'east north cam', kind: 'wyze' }], count: 1 },

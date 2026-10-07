@@ -38,6 +38,7 @@ import { supabase } from '../lib/supabase.js';
 import { QRCodeSVG } from 'qrcode.react';
 import { confirmThen } from '../lib/confirm-action.js';
 import { setReadTarget, clearReadTarget, requestRead } from '../lib/read-target.js';
+import { enterFullScreen, exitFullScreen, leavesFullScreen } from '../lib/reader-controller.js';
 import {
   SNAPSHOT_INTERVAL_MS, FETCH_TIMEOUT_MS, LIVE_FIRST_FRAME_TIMEOUT_MS,
   healthUrl, listUrl, ticketUrl, snapUrl, liveUrl,
@@ -48,6 +49,7 @@ import {
   SNAP_CONCURRENCY, LIVE_RECONNECT_MAX, LIVE_RECONNECT_DELAY_MS, runLimited, skipFailedFrame,
   classifySnapError, fetchWhy,
   loadViews, saveViews, activeView, addToView, removeFromView, moveInView, setViewLayout, renameView, addView, deleteView, viewCols, viewGridClass, indexAtPoint, VIEW_LAYOUTS,
+  fitGrid, clampScale, setViewScale, VIEW_SCALE_STEP, VIEW_SCALE_MIN, VIEW_SCALE_MAX,
   RETENTION_CHOICES, CLIP_TICKET_TTL, fetchRecording, saveRecording, fetchClips, recClipUrl, clipParts, groupClipsByDay, diskForecast,
   loadLiveTiles, saveLiveTiles, liveTileBudget, liveTrafficLine,
   fetchDevices, runDeviceAction, setupWyzeAgain, wyzeKept, garagesFor, ACTION_REARM_MS,
@@ -558,7 +560,7 @@ function AccessChip({ access, onLeave }) {
   );
 }
 
-function LiveVideo({ cam, token, liveMax, onClose, compact = false, testId = 'live-view', now }) {
+function LiveVideo({ cam, token, liveMax, onClose, compact = false, bare = false, testId = 'live-view', now }) {
   const [st, setSt] = useState({ mode: '', src: '', startedAt: Date.now(), firstFrameMs: null, stalls: 0, ended: false, error: '', opening: true, reconnects: 0, exhausted: false });
   const [road, setRoadRaw] = useState(() => loadLiveRoad());
   const setRoad = (r) => { saveLiveRoad(r); setRoadRaw(r); };
@@ -636,6 +638,22 @@ function LiveVideo({ cam, token, liveMax, onClose, compact = false, testId = 'li
     : st.exhausted ? `Stopped after ${LIVE_RECONNECT_MAX} reconnects: ${st.error}. Press Resume to try again.`
     : st.ended ? `Reconnecting (${st.error})...`
     : st.error || 'No stream.';
+  // BARE (DR-0788): the picture and the camera's name, nothing else — the
+  // shape a tile takes inside the full-size window.
+  if (bare) {
+    return (
+      <div className="relative bg-black w-full h-full overflow-hidden" data-testid={testId}>
+        {st.src && !st.ended ? (
+          <video ref={(el) => { timers.current.video = el; }} key={st.src} src={st.src} autoPlay muted playsInline className="w-full h-full object-contain"
+            onLoadedData={onLoadedData} onWaiting={onWaiting} onEnded={onEnded} onError={onError} />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-white text-xs p-4 text-center" data-testid={`${testId}-status`}>{status}</div>
+        )}
+        <div className="absolute left-1 top-1 px-1.5 py-0.5 bg-black/60 text-white text-[0.6875rem] truncate max-w-[90%]">{cam.name}{st.reconnects > 0 ? ` · reconnected ${st.reconnects}×` : ''}</div>
+        {st.exhausted ? <button type="button" className={`absolute right-1 bottom-1 ${btnDark} focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={() => open(0)}>Resume</button> : null}
+      </div>
+    );
+  }
   return (
     <div className={`${compact ? '' : 'col-span-full '}bg-white border border-[#1A1815] ${compact ? 'p-2' : 'p-3 sm:p-4'}`} data-testid={testId}>
       <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -676,6 +694,68 @@ function LiveVideo({ cam, token, liveMax, onClose, compact = false, testId = 'li
         {st.exhausted ? <button type="button" className={`${btnDark} focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={() => open(0)}>Resume</button> : null}
       </div>
       {!compact ? <div className="mt-1 text-[0.625rem] text-[#5A5751]" data-testid={`${testId}-roads`}>{roadLine(loadRoadStats(), 'mp4')} · {roadLine(loadRoadStats(), 'hls')} · frames every 5 s always work</div> : null}
+    </div>
+  );
+}
+
+// THE FULL-SIZE WINDOW (DR-0788). The active view's cameras fill the whole
+// screen in the grid that gives each 16:9 tile the most area (lib fitGrid),
+// at the size the viewer sets: 100% is the fit, smaller leaves a margin for a
+// TV that cuts its edges; the size is kept with the view. Real full screen is
+// asked of the browser where it allows it; Back, Esc or Close leaves. The
+// in-page grid is not rendered while the window is open, so each camera
+// holds one live slot, not two.
+const WINDOW_BAR_PX = 56;
+const WINDOW_GAP_PX = 6;
+function ViewWindow({ view, cams, token, liveMax, now, onClose, onScale }) {
+  const [size, setSize] = useState(() => ({ w: typeof window !== 'undefined' ? window.innerWidth : 0, h: typeof window !== 'undefined' ? window.innerHeight : 0 }));
+  useEffect(() => {
+    const on = () => setSize({ w: window.innerWidth, h: window.innerHeight });
+    window.addEventListener('resize', on);
+    return () => window.removeEventListener('resize', on);
+  }, []);
+  const scale = clampScale(view.scale);
+  useEffect(() => {
+    const d = typeof document !== 'undefined' ? document : null;
+    enterFullScreen(d);
+    const onKey = (e) => {
+      if (!e) return;
+      if (leavesFullScreen(e.key)) { e.preventDefault(); onClose(); }
+      else if (e.key === '+' || e.key === '=') onScale(scale + VIEW_SCALE_STEP);
+      else if (e.key === '-' || e.key === '_') onScale(scale - VIEW_SCALE_STEP);
+    };
+    // The browser's own exit (Back on a remote) is honoured as ours.
+    const onChange = () => { if (d && !d.fullscreenElement && !d.webkitFullscreenElement) onClose(); };
+    if (d) { d.addEventListener('keydown', onKey); d.addEventListener('fullscreenchange', onChange); d.addEventListener('webkitfullscreenchange', onChange); }
+    return () => {
+      if (d) { d.removeEventListener('keydown', onKey); d.removeEventListener('fullscreenchange', onChange); d.removeEventListener('webkitfullscreenchange', onChange); }
+      exitFullScreen(d);
+    };
+  }, [onClose, onScale, scale]);
+  const fit = fitGrid({ count: cams.length, width: Math.max(0, size.w - 2 * WINDOW_GAP_PX), height: Math.max(0, size.h - WINDOW_BAR_PX - 2 * WINDOW_GAP_PX), gap: WINDOW_GAP_PX });
+  const tileW = Math.floor(fit.tileW * scale);
+  const tileH = Math.floor(fit.tileH * scale);
+  const pct = Math.round(scale * 100);
+  const bar = 'px-3 min-h-[40px] text-[0.6875rem] uppercase tracking-wider border border-white/40 text-white hover:bg-white hover:text-black disabled:opacity-40';
+  const ring = 'focus:outline focus:outline-2 focus:outline-[#B85838]';
+  return (
+    <div className="fixed inset-0 z-[90] bg-black text-white flex flex-col" data-testid="view-window" data-cols={fit.cols} data-scale={pct} role="dialog" aria-label={`${view.name} — full-size window`}>
+      <div className="flex-1 min-h-0 flex items-center justify-center overflow-hidden">
+        <div style={{ display: 'grid', gridTemplateColumns: `repeat(${fit.cols}, ${tileW}px)`, gridAutoRows: `${tileH}px`, gap: `${WINDOW_GAP_PX}px` }} data-testid="view-window-grid">
+          {cams.map((cam) => (
+            <div key={cam.id} style={{ width: tileW, height: tileH }} data-window-cam={cam.id}>
+              <LiveVideo cam={cam} token={token} liveMax={liveMax} bare testId={`window-${cam.id}`} now={now} />
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="flex items-center justify-center gap-2 py-2 flex-wrap" style={{ minHeight: WINDOW_BAR_PX }} data-testid="view-window-bar">
+        <button type="button" className={`${bar} ${ring} focus:outline focus:outline-2`} onClick={() => onScale(scale - VIEW_SCALE_STEP)} disabled={scale <= VIEW_SCALE_MIN} aria-label="Smaller — leave more room at the edges" data-testid="view-window-smaller">− Smaller</button>
+        <span className="text-[0.6875rem] tabular-nums" aria-live="polite" data-testid="view-window-size">{cams.length} camera{cams.length === 1 ? '' : 's'} · {fit.cols} across · {pct}%</span>
+        <button type="button" className={`${bar} ${ring} focus:outline focus:outline-2`} onClick={() => onScale(scale + VIEW_SCALE_STEP)} disabled={scale >= VIEW_SCALE_MAX} aria-label="Bigger — fill more of the screen" data-testid="view-window-bigger">+ Bigger</button>
+        {scale !== 1 ? <button type="button" className={`${bar} ${ring} focus:outline focus:outline-2`} onClick={() => onScale(1)} data-testid="view-window-fit">Fit</button> : null}
+        <button type="button" className={`${bar} ${ring} focus:outline focus:outline-2`} onClick={onClose} aria-label="Close the window (Back or Esc also does)" data-testid="view-window-close">Close</button>
+      </div>
     </div>
   );
 }
@@ -986,6 +1066,9 @@ export default function Cameras() {
   const view = activeView(views);
   const wall = useMemo(() => (view ? view.cameras : []), [view]); // the active view's cameras (the tiles read this)
   const [renaming, setRenaming] = useState(false);
+  const [windowOpen, setWindowOpen] = useState(false);
+  const closeWindow = useCallback(() => setWindowOpen(false), []);
+  const scaleWindow = useCallback((sc) => { if (view) setViews((st) => setViewScale(st, view.id, sc)); }, [view]);
   const [newName, setNewName] = useState('');
   const [drag, setDrag] = useState('');             // the camera being dragged in the view
   const viewGridRef = useRef(null);
@@ -1257,6 +1340,7 @@ export default function Cameras() {
                       {VIEW_LAYOUTS.map((l) => <option key={String(l)} value={String(l)}>{l === 'auto' ? 'Auto' : `${l} across`}</option>)}
                     </select>
                   </label>
+                  {view.cameras.length ? <button type="button" className={`${btnDark} focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={() => setWindowOpen(true)} aria-label="Open this view as one full-size window" data-testid="view-window-open">⤢ Window</button> : null}
                   {renaming ? (
                     <form className="inline-flex items-center gap-1" onSubmit={(e) => { e.preventDefault(); setViews((st) => renameView(st, view.id, newName)); setRenaming(false); }}>
                       <input className={`${inputCls} w-40 min-h-[36px] py-1`} value={newName} onChange={(e) => setNewName(e.target.value)} aria-label="Name this view" data-testid="view-name" />
@@ -1268,7 +1352,12 @@ export default function Cameras() {
                 </div>
               ) : null}
             </div>
-            {view && wallCams.length ? (
+            {view && wallCams.length && windowOpen ? (
+              <>
+                <p className="text-[0.6875rem] text-[#5A5751]" data-testid="view-window-note">{view.name} is open as one full-size window.</p>
+                <ViewWindow view={view} cams={wallCams} token={token} liveMax={liveMax} now={now} onClose={closeWindow} onScale={scaleWindow} />
+              </>
+            ) : view && wallCams.length ? (
               <div ref={viewGridRef} className={`grid ${viewGridClass(viewCols(view.layout, wallCams.length))} gap-3`} data-testid={`view-${view.id}`} data-cols={viewCols(view.layout, wallCams.length)}>
                 {wallCams.map((cam, i) => (
                   <div key={cam.id} data-view-cam={cam.id} className={drag === cam.id ? 'opacity-70 ring-2 ring-[#B85838]' : ''}>
