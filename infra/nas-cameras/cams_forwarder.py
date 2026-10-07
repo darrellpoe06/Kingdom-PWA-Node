@@ -80,6 +80,16 @@
 #        the clip's length, never more than the original.
 #        &dl=1                           Content-Disposition: attachment, named
 #        <camera>-<time>-<size>.mp4, so a phone saves it.
+#   POST /streams {name, url[, replace]}  owner. Any camera go2rtc speaks (rtsp,
+#        rtsps, rtmp, onvif, http, ring, nest, ...; never exec/ffmpeg#raw):
+#        registered (PUT; the config when go2rtc refuses, DR-0789), then ONE
+#        frame probed: {ok, id, kind, registered, persisted, probe:{status, ok,
+#        ms, bytes, error?}}. 400 bad-camera-id | scheme-not-allowed; 409 name-taken.
+#   GET  /streams/<id>/test            bearer or grant. The probe alone.
+#   DELETE /streams/<id>               owner. Out of go2rtc and the config, with its twins.
+#   POST /setup/ring {email,password[,code]}  owner. go2rtc's own /api/ring;
+#        409 needs-2fa {prompt} until the code is given; then every Ring
+#        camera registered: {ok, added, cameras:[{id,name,registered}]}.
 #   GET  /streams/health               bearer or grant (its cameras). The stream
 #        health log (DR-0798): per camera the last hour from go2rtc's own numbers
 #        -- kbps now and average while watched, up%, drops (producer-gone,
@@ -1445,6 +1455,78 @@ def start_stream_sampler(upstream, every=None, health=None, health_file=None):
     return t
 
 
+# =============================================================================
+# ANY CAMERA, FROM THE APP, TESTED ON THE SPOT (DR-0803; Darrell 2026-10-07:
+# "Build the other options... so I can set up rstp... and all other options
+# so I can verify they work!!!!!!!!", "Ring... etc... all pathways for our
+# home cameras... Even Google login options"). The Setup tab used to say
+# "one line in go2rtc.yaml by hand" for every system but Wyze. Now the app
+# builds the source line (RTSP/RTMP, ONVIF, HTTP/MJPEG, any URL go2rtc
+# speaks), the NAS registers it in go2rtc and in the config (DR-0787/0789),
+# probes ONE frame and answers with the result, so the person sees "works"
+# or go2rtc's own reason before leaving the form. Ring signs in through
+# go2rtc's own /api/ring (email, password, the 2FA code it asks for) and
+# every camera it lists is registered. A GOOGLE SIGN-IN (Darrell: "Even
+# Google login options so passwords work using Google") is not a road the
+# camera makers' APIs offer: Wyze and Ring take their own email + password
+# (+ a 2FA code); an account created through Google must have a password set
+# once in that maker's own app, and then this sign-in works. Nest/Google Home
+# cameras (go2rtc's nest: source) are not built here: nobody in the house has
+# one to verify against (DR-0076). Credentials ride to go2rtc only; they are
+# never logged and never answered back.
+# =============================================================================
+STREAM_SCHEMES = ("rtsp", "rtsps", "rtmp", "rtmps", "onvif", "http", "https", "ring", "nest", "wyze", "homekit", "hass", "dvrip", "tapo", "kasa", "isapi", "gopro", "roborock", "webrtc", "webtorrent", "ivideon", "bubble", "expr")
+FORBIDDEN_SOURCE = re.compile(r"(?i)^(exec|ffmpeg|echo):|#raw=|#exec")
+
+
+def source_check(url):
+    """Is this a source line go2rtc may be handed from the app? Answers (ok, reason)."""
+    u = str(url or "").strip()
+    if not u or len(u) > 2048:
+        return False, "empty-or-long"
+    if FORBIDDEN_SOURCE.search(u):
+        return False, "scheme-not-allowed"
+    scheme = u.split(":", 1)[0].lower()
+    if scheme not in STREAM_SCHEMES:
+        return False, "scheme-not-allowed"
+    if "\n" in u or "\r" in u:
+        return False, "bad-characters"
+    return True, ""
+
+
+def remove_stream_entry(config_path, name):
+    """Take one stream's line (and its indented continuation) out of go2rtc.yaml's streams block, every other byte kept."""
+    try:
+        with open(config_path, "r", encoding="utf-8") as fh:
+            lines = fh.read().split("\n")
+    except OSError:
+        return False
+    out = []
+    i = 0
+    removed = False
+    in_streams = False
+    while i < len(lines):
+        line = lines[i]
+        if re.match(r"^streams:", line):
+            in_streams = True
+            out.append(line)
+            i += 1
+            continue
+        if in_streams and line and not line[0] in " \t" and not line.lstrip().startswith("#"):
+            in_streams = False
+        if in_streams and re.match(r"^\s{2}%s:" % re.escape(name), line):
+            removed = True
+            i += 1
+            while i < len(lines) and (lines[i].startswith("    ") or lines[i].startswith("\t\t")):
+                i += 1
+            continue
+        out.append(line)
+        i += 1
+    if removed:
+        write_config_atomically(config_path, "\n".join(out))
+    return removed
+
+
 # --- The handler -------------------------------------------------------------
 def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_SECONDS,
                  max_snap=MAX_SNAP_INFLIGHT, snap_timeout=SNAP_TIMEOUT, segment_timeout=SEGMENT_TIMEOUT,
@@ -1604,6 +1686,14 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
                     return self._json(401, {"error": "unauthorized"})
                 return self._rec_clip(cam, clip, query)
 
+            m = re.match(r"^/streams/([^/]+)/test$", path)
+            if m:
+                cam = m.group(1)
+                if not CAMERA_ID.match(cam):
+                    return self._json(400, {"error": "bad-camera-id"})
+                if not self._viewer():
+                    return self._json(401, {"error": "unauthorized"})
+                return self._json(200, {"id": cam, "probe": self._probe(cam)})
             m = re.match(r"^/why/([^/]+)$", path)
             if m:
                 cam = m.group(1)
@@ -1725,7 +1815,7 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
                 if rec is None:
                     return self._json(404, {"error": "not-found"})
                 return self._json(200, {"ok": True, "grant": grant_public(gm.group(1), rec)})
-            if path not in ("/ticket", "/setup/wyze", "/setup/wyze/again", "/restart", "/action", "/grants"):
+            if path not in ("/ticket", "/setup/wyze", "/setup/wyze/again", "/restart", "/action", "/grants", "/streams", "/setup/ring"):
                 return self._json(404, {"error": "not-found"})
             # The owner's roads (the family bearer) and the roads a grant may
             # also take (/ticket for its cameras, /action when it includes the
@@ -1743,7 +1833,7 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
                 length = int(self.headers.get("Content-Length") or 0)
             except ValueError:
                 length = 0
-            if length <= 0 or length > (SETUP_MAX_BODY if path == "/setup/wyze" else MAX_BODY):
+            if length <= 0 or length > (SETUP_MAX_BODY if path in ("/setup/wyze", "/setup/ring", "/streams") else MAX_BODY):
                 return self._json(400, {"error": "body-required"})
             try:
                 body = json.loads(self.rfile.read(length).decode("utf-8"))
@@ -1751,6 +1841,10 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
                 return self._json(400, {"error": "bad-json"})
             if path == "/setup/wyze":
                 return self._setup_wyze(body if isinstance(body, dict) else {})
+            if path == "/streams":
+                return self._stream_add(body if isinstance(body, dict) else {})
+            if path == "/setup/ring":
+                return self._setup_ring(body if isinstance(body, dict) else {})
             if path == "/grants":
                 return self._grant_make(body if isinstance(body, dict) else {})
             if path == "/action":
@@ -1774,6 +1868,151 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
             return self._json(200, {"ticket": mint_ticket(token, cam, ttl=ttl), "expires_in": ttl, "camera": cam})
 
         # -- handlers -------------------------------------------------------
+        def do_DELETE(self):
+            raw_path, _, _query = self.path.partition("?")
+            path = strip_prefix(raw_path)
+            m = re.match(r"^/streams/([^/]+)$", path)
+            if not m:
+                return self._json(404, {"error": "not-found"})
+            if not self._authed():
+                return self._json(401, {"error": "unauthorized"})
+            cam = m.group(1)
+            if not CAMERA_ID.match(cam):
+                return self._json(400, {"error": "bad-camera-id"})
+            return self._stream_remove(cam)
+
+        def _probe(self, cam, timeout=None):
+            """One frame from go2rtc, timed: {status, ok, ms, bytes, error?}. go2rtc's own words on a miss."""
+            t0 = time.time()
+            limit = min(timeout or snap_timeout, 15.0)
+            try:
+                status, _c, body = self._get_upstream("/api/frame.jpeg?src=" + urllib.parse.quote(cam), limit, limit=4 * 1024 * 1024)
+                return {"status": status, "ok": bool(body), "ms": int((time.time() - t0) * 1000), "bytes": len(body or b"")}
+            except urllib.error.HTTPError as e:
+                return {"status": e.code, "ok": False, "error": scrub_text(e.read(2048).decode("utf-8", "replace").strip(), 300), "ms": int((time.time() - t0) * 1000), "bytes": 0}
+            except socket.timeout:
+                return {"status": 0, "ok": False, "error": "no frame in %d s" % int(limit), "timeout": True, "ms": int((time.time() - t0) * 1000), "bytes": 0}
+            except urllib.error.URLError as e:
+                if isinstance(getattr(e, "reason", None), socket.timeout):
+                    return {"status": 0, "ok": False, "error": "no frame in %d s" % int(limit), "timeout": True, "ms": int((time.time() - t0) * 1000), "bytes": 0}
+                return {"status": 0, "ok": False, "error": scrub_text(getattr(e, "reason", e), 200), "ms": int((time.time() - t0) * 1000), "bytes": 0}
+            except (OSError, ValueError) as e:
+                return {"status": 0, "ok": False, "error": scrub_text(e, 200), "ms": int((time.time() - t0) * 1000), "bytes": 0}
+
+        def _register(self, name, url):
+            """PUT one stream into go2rtc; when it refuses (DR-0789), write the config line directly. Answers (registered, persisted, detail)."""
+            q = urllib.parse.urlencode([("name", name), ("src", url)])
+            put = urllib.request.Request(upstream + "/api/streams?" + q, method="PUT")
+            try:
+                with urllib.request.urlopen(put, timeout=SETUP_TIMEOUT) as r:
+                    r.read(4096)
+                return True, True, ""
+            except urllib.error.HTTPError as e:
+                detail = scrub_text(e.read(1024).decode("utf-8", "replace").strip(), 200)
+                if write_stream_entry(GO2RTC_YAML_PATH, name, url):
+                    return False, True, "go2rtc refused the PUT (HTTP %d: %s); written to the config; it loads on the next restart" % (e.code, detail)
+                return False, False, "go2rtc refused the PUT (HTTP %d: %s)" % (e.code, detail)
+            except (urllib.error.URLError, OSError):
+                return False, False, "go2rtc-unreachable"
+
+        def _existing_ids(self):
+            try:
+                _s, _c, streams = self._get_upstream("/api/streams", HEALTH_TIMEOUT, limit=4 * 1024 * 1024)
+                parsed = json.loads(streams.decode("utf-8"))
+                return set(parsed.keys()) if isinstance(parsed, dict) else set()
+            except (urllib.error.URLError, OSError, ValueError):
+                return set()
+
+        def _stream_add(self, body):
+            """A camera of any kind go2rtc speaks, from the app (DR-0803): registered, persisted, and probed once."""
+            name = str(body.get("name") or "").strip()
+            url = str(body.get("url") or "").strip()
+            if not name or not CAMERA_ID.match(name):
+                return self._json(400, {"error": "bad-camera-id"})
+            if is_twin(name):
+                return self._json(400, {"error": "reserved-name"})
+            ok, why = source_check(url)
+            if not ok:
+                return self._json(400, {"error": why})
+            existing = self._existing_ids()
+            if name in existing and not body.get("replace"):
+                return self._json(409, {"error": "name-taken", "id": name})
+            registered, persisted, detail = self._register(name, url)
+            if not registered and not persisted:
+                return self._json(502, {"error": detail or "go2rtc-unreachable", "id": name})
+            probe = self._probe(name) if registered else {"status": 0, "ok": False, "error": "not loaded yet (config written; restart the camera service)", "ms": 0, "bytes": 0}
+            return self._json(200, {"ok": True, "id": name, "kind": kind_of(url), "registered": registered, "persisted": persisted, "detail": detail, "probe": probe})
+
+        def _stream_remove(self, cam):
+            """Take a stream out of go2rtc and the config, with its twins."""
+            removed = []
+            for name in (cam, twin_of(cam), sd_of(cam)):
+                gone = False
+                req = urllib.request.Request(upstream + "/api/streams?" + urllib.parse.urlencode([("src", name)]), method="DELETE")
+                try:
+                    with urllib.request.urlopen(req, timeout=HEALTH_TIMEOUT) as r:
+                        r.read(1024)
+                    gone = True
+                except urllib.error.HTTPError:
+                    gone = False
+                except (urllib.error.URLError, OSError):
+                    return self._json(502, {"error": "go2rtc-unreachable"})
+                if remove_stream_entry(GO2RTC_YAML_PATH, name):
+                    gone = True
+                if gone:
+                    removed.append(name)
+            return self._json(200, {"ok": True, "removed": removed})
+
+        def _setup_ring(self, body):
+            """Ring signs in through go2rtc's own /api/ring (email, password, the 2FA code it asks for); every camera it lists is registered."""
+            email = str(body.get("email") or "").strip()
+            password = str(body.get("password") or "")
+            code = str(body.get("code") or "").strip()
+            if not email or "@" not in email or not password:
+                return self._json(400, {"error": "missing-field", "field": "email" if not email or "@" not in email else "password"})
+            if not SETUP_LOCK.acquire(blocking=False):
+                return self._json(409, {"error": "setup-in-progress"})
+            try:
+                params = [("email", email), ("password", password)]
+                if code:
+                    params.append(("code", code))
+                try:
+                    with urllib.request.urlopen(upstream + "/api/ring?" + urllib.parse.urlencode(params), timeout=SETUP_TIMEOUT) as r:
+                        raw = r.read(4 * 1024 * 1024)
+                except urllib.error.HTTPError as e:
+                    detail = scrub_text(e.read(2048).decode("utf-8", "replace").strip().replace(password, "***"), 300)
+                    if e.code in (401, 403):
+                        return self._json(401, {"error": "ring-sign-in-refused", "detail": detail})
+                    return self._json(502, {"error": "ring-error", "upstream_status": e.code, "detail": detail})
+                except (urllib.error.URLError, OSError):
+                    return self._json(502, {"error": "go2rtc-unreachable"})
+                try:
+                    doc = json.loads(raw.decode("utf-8"))
+                except ValueError:
+                    return self._json(502, {"error": "ring-error", "detail": "go2rtc answered no JSON"})
+                if isinstance(doc, dict) and doc.get("needs_2fa"):
+                    return self._json(409, {"error": "needs-2fa", "prompt": scrub_text(doc.get("prompt") or "Enter the code Ring sent you", 200)})
+                sources = doc.get("sources") if isinstance(doc, dict) else None
+                existing = self._existing_ids()
+                out = []
+                added = 0
+                for src in sources or []:
+                    if not isinstance(src, dict) or not src.get("url"):
+                        continue
+                    label = str(src.get("name") or "ring")
+                    is_snap = label.lower().endswith(" snapshot") or "&snapshot" in str(src.get("url"))
+                    if is_snap:
+                        continue  # the frame road serves snapshots; one stream per camera
+                    name = stream_name_for(label, existing)
+                    registered, persisted, detail = self._register(name, str(src.get("url")))
+                    existing.add(name)
+                    if registered or persisted:
+                        added += 1
+                    out.append({"id": name, "name": label, "registered": registered, "persisted": persisted, "detail": detail})
+                return self._json(200, {"ok": True, "added": added, "cameras": out})
+            finally:
+                SETUP_LOCK.release()
+
         def _restart(self):
             now = now_fn()
             with RESTART_LOCK:
@@ -2368,6 +2607,18 @@ def _selftest():
                     "garage": {"producers": [{"url": "rtsp://admin:SECRET@192.168.1.60/live"}], "consumers": []},
                     "bad id/with slash": {"producers": [], "consumers": []},
                 }).encode("utf-8"))
+            if path == "/api/ring":
+                q = urllib.parse.parse_qs(query)
+                seen["ring_query"] = {k: v[0] for k, v in q.items()}
+                if q.get("password", [""])[0] == "wrong":
+                    return self._send(401, "text/plain", b"ring: authentication failed")
+                if not q.get("code", [""])[0]:
+                    return self._send(200, "application/json", b'{"needs_2fa": true, "prompt": "Please enter the code sent to +1 (***) ***-1234"}')
+                return self._send(200, "application/json", json.dumps({"sources": [
+                    {"name": "Front Door", "url": "ring:?camera_id=11&device_id=22&refresh_token=RINGSECRET"},
+                    {"name": "Front Door Snapshot", "url": "ring:?camera_id=11&device_id=22&refresh_token=RINGSECRET&snapshot"},
+                    {"name": "Driveway", "url": "ring:?camera_id=33&device_id=44&refresh_token=RINGSECRET"},
+                ]}).encode("utf-8"))
             if path == "/api/frame.jpeg":
                 q = urllib.parse.parse_qs(query)
                 if q.get("src", [""])[0] == "err_cam":
@@ -2418,6 +2669,13 @@ def _selftest():
                 {"name": "Front Yard", "info": "HL_CAM4 | AA:BB | 192.168.1.50", "url": "wyze://192.168.1.50?uid=ABC&enr=ENRSECRET&mac=AA:BB&model=HL_CAM4&dtls=true"},
                 {"name": "Garage Cam!", "info": "WYZEC1-JZ | CC:DD | 192.168.1.51", "url": "wyze://192.168.1.51?uid=DEF&enr=ENRSECRET2&mac=CC:DD&model=WYZEC1-JZ"},
             ]}).encode("utf-8"))
+
+        def do_DELETE(self):
+            path, _, query = self.path.partition("?")
+            if path != "/api/streams":
+                return self._send(404, "text/plain", b"nope")
+            seen.setdefault("deletes", []).append(urllib.parse.parse_qs(query).get("src", [""])[0])
+            return self._send(200, "application/json", b"{}")
 
         def do_PUT(self):
             path, _, query = self.path.partition("?")
@@ -3255,6 +3513,60 @@ def _selftest():
     j = json.loads(d.decode("utf-8"))
     check(j["stream_health"]["cameras"] == 2 and j["stream_health"]["interval_s"] == 15 and j["stream_health"]["drops_1h"] == 1, "/health's stream_health summary: cameras seen, the interval, drops in the hour")
     check(sample_streams_once("http://127.0.0.1:1", health=StreamHealth(), twins=False) == "unreachable", "a dark go2rtc is 'unreachable', never a sample")
+
+    print("=== 8m. any camera from the app, tested on the spot (DR-0803): add, probe, remove; Ring signs in through go2rtc ===")
+    check(source_check("rtsp://admin:pw@192.168.1.60/live") == (True, "") and source_check("onvif://u:p@192.168.1.5") == (True, "") and source_check("http://192.168.1.9/snap.jpg") == (True, ""), "rtsp, onvif and http sources pass the check")
+    check(source_check("exec:rm -rf /")[1] == "scheme-not-allowed" and source_check("ffmpeg:cam#raw=-i x")[1] == "scheme-not-allowed" and source_check("file:///etc/passwd")[1] == "scheme-not-allowed" and source_check("")[1] == "empty-or-long", "exec, ffmpeg#raw, file and empty are refused before they reach go2rtc")
+    s, _h, d = call("POST", "/streams", json.dumps({"name": "garage_rtsp", "url": "rtsp://admin:SECRET@192.168.1.60/live"}).encode())
+    check(s == 401, "adding a camera needs the owner's bearer")
+    seen.pop("puts", None); seen["put_refuses"] = False
+    s, _h, d = call("POST", "/streams", json.dumps({"name": "bad id!", "url": "rtsp://x"}).encode(), auth=B)
+    check(s == 400 and b"bad-camera-id" in d, "a name outside the grammar is refused")
+    s, _h, d = call("POST", "/streams", json.dumps({"name": "front_yard_sd", "url": "rtsp://x"}).encode(), auth=B)
+    check(s == 400 and b"reserved-name" in d, "a twin's name is reserved")
+    s, _h, d = call("POST", "/streams", json.dumps({"name": "evil", "url": "exec:touch /tmp/x"}).encode(), auth=B)
+    check(s == 400 and b"scheme-not-allowed" in d and not seen.get("puts"), "a forbidden source never reaches go2rtc")
+    s, _h, d = call("POST", "/streams", json.dumps({"name": "front_yard", "url": "rtsp://admin:S@192.168.1.60/live"}).encode(), auth=B)
+    check(s == 409 and b"name-taken" in d, "a name go2rtc already has is refused unless replace is asked")
+    s, _h, d = call("POST", "/streams", json.dumps({"name": "garage_rtsp", "url": "rtsp://admin:SECRET@192.168.1.60/live"}).encode(), auth=B)
+    j = json.loads(d.decode("utf-8"))
+    check(s == 200 and j["ok"] is True and j["id"] == "garage_rtsp" and j["kind"] == "rtsp" and j["registered"] is True and j["persisted"] is True and seen.get("puts") == [("garage_rtsp", "rtsp://admin:SECRET@192.168.1.60/live")], "an rtsp camera is PUT into go2rtc (name + source) and answered as registered and persisted")
+    check(j["probe"]["ok"] is True and j["probe"]["status"] == 200 and j["probe"]["bytes"] > 0 and isinstance(j["probe"]["ms"], int) and "SECRET" not in d.decode("utf-8"), "one frame is probed and its size and time answered; the password never comes back")
+    s, _h, d = call("POST", "/streams", json.dumps({"name": "err_cam", "url": "rtsp://admin:SECRET@192.168.1.77/live", "replace": True}).encode(), auth=B)
+    j = json.loads(d.decode("utf-8"))
+    check(s == 200 and j["probe"]["ok"] is False and j["probe"]["status"] == 500 and "connect failed" in j["probe"]["error"] and "SECRET" not in j["probe"]["error"], "a camera go2rtc cannot reach is registered and its probe carries go2rtc's own reason, scrubbed")
+    s, _h, d = call("GET", "/streams/garage_rtsp/test")
+    check(s == 401, "the test needs a viewer")
+    s, _h, d = call("GET", "/streams/garage_rtsp/test", auth=B)
+    j = json.loads(d.decode("utf-8"))
+    check(s == 200 and j["id"] == "garage_rtsp" and j["probe"]["ok"] is True, "GET /streams/<id>/test probes again")
+    twin_cfg2 = os.path.join(rec_tmp, "go2rtc-remove.yaml")
+    with open(twin_cfg2, "w") as fh:
+        fh.write("api:\n  listen: \"127.0.0.1:1984\"\nstreams:\n  front_yard: wyze://x?enr=S\n  garage_rtsp: rtsp://admin:S@192.168.1.60/live\n  garage_rtsp_sd:\n    - rtsp://a\n    - rtsp://b\n  porch: rtsp://p\nwyze:\n  email: x\n")
+    check(remove_stream_entry(twin_cfg2, "garage_rtsp_sd") is True and remove_stream_entry(twin_cfg2, "garage_rtsp") is True and remove_stream_entry(twin_cfg2, "nope") is False, "a stream line (and its indented list) is taken out of the config; a missing name is False")
+    with open(twin_cfg2) as fh:
+        left = fh.read()
+    check("garage_rtsp" not in left and "  front_yard: wyze://x?enr=S\n" in left and "  porch: rtsp://p\n" in left and "wyze:\n  email: x\n" in left, "every other line is kept exactly")
+    seen.pop("deletes", None)
+    s, _h, d = call("DELETE", "/streams/garage_rtsp")
+    check(s == 401, "removing needs the owner")
+    s, _h, d = call("DELETE", "/streams/garage_rtsp", auth=B)
+    j = json.loads(d.decode("utf-8"))
+    check(s == 200 and j["ok"] is True and "garage_rtsp" in j["removed"] and seen.get("deletes", [])[:3] == ["garage_rtsp", "garage_rtsp_h264", "garage_rtsp_sd"], "DELETE takes the stream and its twins out of go2rtc")
+    seen.pop("puts", None)
+    s, _h, d = call("POST", "/setup/ring", json.dumps({"email": "me@example.com", "password": "pw"}).encode())
+    check(s == 401, "the Ring sign-in needs the owner")
+    s, _h, d = call("POST", "/setup/ring", json.dumps({"email": "me@example.com", "password": "pw"}).encode(), auth=B)
+    j = json.loads(d.decode("utf-8"))
+    check(s == 409 and j["error"] == "needs-2fa" and "code" in j["prompt"].lower() and seen["ring_query"] == {"email": "me@example.com", "password": "pw"}, "without a code Ring asks for its 2FA code: 409 needs-2fa with Ring's own prompt")
+    s, _h, d = call("POST", "/setup/ring", json.dumps({"email": "me@example.com", "password": "wrong", "code": "123456"}).encode(), auth=B)
+    check(s == 401 and b"ring-sign-in-refused" in d, "a refused Ring sign-in is 401 in Ring's words")
+    s, _h, d = call("POST", "/setup/ring", json.dumps({"email": "me@example.com", "password": "pw", "code": "123456"}).encode(), auth=B)
+    j = json.loads(d.decode("utf-8"))
+    check(s == 200 and j["ok"] is True and j["added"] == 2 and [c["id"] for c in j["cameras"]] == ["front_door", "driveway"] and seen["ring_query"].get("code") == "123456", "with the code every Ring camera is registered (one stream per camera; the snapshot source is the frame road)")
+    check(seen.get("puts") == [("front_door", "ring:?camera_id=11&device_id=22&refresh_token=RINGSECRET"), ("driveway", "ring:?camera_id=33&device_id=44&refresh_token=RINGSECRET")] and "RINGSECRET" not in d.decode("utf-8"), "the ring: sources go to go2rtc with their refresh token, and the token never comes back to the app")
+    s, _h, d = call("POST", "/setup/ring", json.dumps({"email": "nope", "password": "pw"}).encode(), auth=B)
+    check(s == 400 and b"missing-field" in d, "a bad email is refused before any call")
 
     print("=== 9. a DARK go2rtc reads as 502 everywhere, never as this process's own 200 ===")
     fake.shutdown(); fake.server_close()

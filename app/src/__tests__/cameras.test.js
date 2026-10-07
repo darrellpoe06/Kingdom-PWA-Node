@@ -28,6 +28,8 @@ import {
   CLIP_SIZE_TIERS, recClipSizesUrl, recClipDownloadUrl, clipDownloadName, clipTierLine, fetchClipSizes, waitForClipSize,
   streamHealthUrl, fetchStreamHealth, deviceCanPlayHevc, liveStreamId, twinOf, streamHealthLine, dropKindText, dropLines,
   sdOf, wantsSd, liveEdge, liveEdgeDecision, freezeStep, tendLiveVideo, FREEZE_SECONDS, LIVE_LAG_SEEK_S, LIVE_LAG_RATE_S, LIVE_CATCHUP_RATE, LIVE_EDGE_MARGIN_S,
+  recClipPlayUrl, humanizeFetchError, clipTicket, CLIP_TICKET_TIMEOUT_MS,
+  ADD_KINDS, GOOGLE_SIGN_IN_NOTE, streamIdFrom, buildSourceUrl, sourceProblem, maskSource, probeLine, addStream, testStream, removeStream, setupRing, streamsUrl, streamTestUrl, streamRemoveUrl, ringSetupUrl,
 } from '../lib/cameras.js';
 
 describe('the road: every URL is same-origin under /cams', () => {
@@ -1016,5 +1018,102 @@ describe('a live tile stays live (DR-0799)', () => {
     r = tendLiveVideo(paused, r.memo, { nowMs: 20000 });
     expect(r.frozen).toBe(false); expect(paused.currentTime).toBe(1); expect(r.action).toBe('none');
     expect(tendLiveVideo(null, null)).toMatchObject({ frozen: false, action: 'none' });
+  });
+});
+
+describe('a recording is watched, not downloaded (DR-0802)', () => {
+  const json = (status, body) => ({ ok: status >= 200 && status < 300, status, json: async () => body, headers: { get: () => null } });
+  it('the play URL carries the size and no download header; waitForClipSize can ask without dl', async () => {
+    expect(recClipPlayUrl('c', '2026-10-07T06-40-00.mp4', 'T', 'small')).toBe('/cams/rec/c/2026-10-07T06-40-00.mp4?t=T&size=small');
+    expect(recClipPlayUrl('c', '2026-10-07T06-40-00.mp4', 'T', 'original')).toBe('/cams/rec/c/2026-10-07T06-40-00.mp4?t=T');
+    const f = vi.fn(async () => ({ ok: true, status: 206, json: async () => ({}), headers: { get: () => null } }));
+    const r = await waitForClipSize('c', '2026-10-07T06-40-00.mp4', 'T', 'medium', { fetchImpl: f, dl: false });
+    expect(r).toEqual({ ok: true, url: '/cams/rec/c/2026-10-07T06-40-00.mp4?t=T&size=medium' });
+    expect(f.mock.calls[0][0]).toBe('/cams/rec/c/2026-10-07T06-40-00.mp4?t=T&size=medium');
+  });
+  it('a timed-out fetch is said in words with the seconds, never "signal is aborted without reason"', () => {
+    const abort = Object.assign(new Error('signal is aborted without reason'), { name: 'AbortError' });
+    expect(humanizeFetchError(abort, 15000)).toBe('the NAS did not answer in 15 s (the link is busy or the camera service is down)');
+    expect(humanizeFetchError(new TypeError('Failed to fetch'))).toBe('the camera road did not answer');
+    expect(humanizeFetchError(new Error('ticket HTTP 500'))).toBe('ticket HTTP 500');
+  });
+  it('clipTicket waits longer than a frame fetch, tries once more after a timeout, and names a refusal plainly', async () => {
+    expect(CLIP_TICKET_TIMEOUT_MS).toBeGreaterThan(FETCH_TIMEOUT_MS);
+    let n = 0;
+    const flaky = vi.fn(async () => { n += 1; if (n === 1) throw Object.assign(new Error('signal is aborted without reason'), { name: 'AbortError' }); return json(200, { ticket: 'tk', expires_in: 3600 }); });
+    const r = await clipTicket('front_yard', 'tok', { fetchImpl: flaky });
+    expect(r).toEqual({ ok: true, ticket: 'tk' });
+    expect(flaky).toHaveBeenCalledTimes(2);
+    expect(JSON.parse(flaky.mock.calls[0][1].body)).toEqual({ camera: 'front_yard', ttl: 3600 });
+    const dead = await clipTicket('front_yard', 'tok', { fetchImpl: vi.fn(async () => { throw Object.assign(new Error('signal is aborted without reason'), { name: 'AbortError' }); }), timeoutMs: 15000 });
+    expect(dead.ok).toBe(false);
+    expect(dead.message).toBe('Could not get a playback ticket: the NAS did not answer in 15 s (the link is busy or the camera service is down).');
+    expect((await clipTicket('c', 'tok', { fetchImpl: vi.fn(async () => json(401, {})) })).message).toMatch(/family key.*refused/);
+    expect((await clipTicket('c', 'tok', { fetchImpl: vi.fn(async () => json(503, {})) })).message).toMatch(/live slots/);
+    const once = vi.fn(async () => json(500, {}));
+    expect((await clipTicket('c', 'tok', { fetchImpl: once })).message).toBe('The camera road answered HTTP 500.');
+    expect(once).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('any camera from the app, tested on the spot (DR-0803)', () => {
+  const json = (status, body) => ({ ok: status >= 200 && status < 300, status, json: async () => body, headers: { get: () => null } });
+  it('the kinds and their boxes; a name becomes the NAS\'s stream id', () => {
+    expect(ADD_KINDS.map((k) => k.id)).toEqual(['rtsp', 'onvif', 'http', 'url']);
+    expect(ADD_KINDS[0].fields).toEqual(['name', 'host', 'port', 'user', 'password', 'path']);
+    expect(streamIdFrom('Garage Door (east)')).toBe('garage_door_east');
+    expect(streamIdFrom('  Front  ')).toBe('front');
+    expect(streamIdFrom('!!!')).toBe('');
+    expect(GOOGLE_SIGN_IN_NOTE).toMatch(/Google or Apple.*own email and password.*Set a password/);
+  });
+  it('the source line is built from the boxes; the password is hidden in the preview; a forbidden source is named', () => {
+    expect(buildSourceUrl('rtsp', { host: '192.168.1.60', user: 'admin', password: 'p@ss w', path: 'live' })).toBe('rtsp://admin:p%40ss%20w@192.168.1.60/live');
+    expect(buildSourceUrl('rtsp', { host: '192.168.1.60', port: '7447', scheme: 'rtsps', path: '/abc' })).toBe('rtsps://192.168.1.60:7447/abc');
+    expect(buildSourceUrl('rtsp', { host: '' })).toBe('');
+    expect(buildSourceUrl('onvif', { host: '192.168.1.5', port: '2020', user: 'u', password: 'p' })).toBe('onvif://u:p@192.168.1.5:2020');
+    expect(buildSourceUrl('http', { url: ' http://u:p@192.168.1.9/snap.jpg ' })).toBe('http://u:p@192.168.1.9/snap.jpg');
+    expect(buildSourceUrl('url', { url: 'tapo://admin:pw@192.168.1.7' })).toBe('tapo://admin:pw@192.168.1.7');
+    expect(maskSource('rtsp://admin:secret@192.168.1.60/live')).toBe('rtsp://admin:***@192.168.1.60/live');
+    expect(maskSource('wyze://192.168.1.50?uid=ABC&enr=SECRET&dtls=true')).toBe('wyze://192.168.1.50?uid=ABC&enr=***&dtls=true');
+    expect(sourceProblem('rtsp://x')).toBe('');
+    expect(sourceProblem('exec:rm -rf /')).toMatch(/not allowed/);
+    expect(sourceProblem('ffmpeg:cam#raw=-i x')).toMatch(/not allowed/);
+    expect(sourceProblem('file:///etc/passwd')).toBe('the NAS does not speak file://');
+    expect(sourceProblem('')).toBe('empty');
+  });
+  it('the probe in words', () => {
+    expect(probeLine({ ok: true, bytes: 48 * 1024, ms: 1234 })).toBe(`works: a ${formatBytes(48 * 1024)} picture in 1.2 s`);
+    expect(probeLine({ ok: false, status: 500, error: 'streams: wyze: connect failed: discovery timeout' })).toBe('no picture: streams: wyze: connect failed: discovery timeout');
+    expect(probeLine({ ok: false, timeout: true, error: 'no frame in 15 s' })).toBe('no picture: no frame in 15 s');
+    expect(probeLine(null)).toBe('not tested yet');
+  });
+  it('addStream posts name and source with the bearer and reads the probe; refusals are said plainly', async () => {
+    expect(streamsUrl()).toBe('/cams/streams'); expect(streamTestUrl('a b')).toBe('/cams/streams/a%20b/test'); expect(streamRemoveUrl('x')).toBe('/cams/streams/x'); expect(ringSetupUrl()).toBe('/cams/setup/ring');
+    const f = vi.fn(async () => json(200, { ok: true, id: 'garage', kind: 'rtsp', registered: true, persisted: true, detail: '', probe: { ok: true, status: 200, ms: 900, bytes: 40000 } }));
+    const r = await addStream({ name: 'garage', url: 'rtsp://admin:pw@192.168.1.60/live' }, 'tok', f);
+    expect(r).toMatchObject({ ok: true, id: 'garage', kind: 'rtsp', registered: true, persisted: true });
+    expect(r.probe.ok).toBe(true);
+    expect(f.mock.calls[0][0]).toBe('/cams/streams');
+    expect(f.mock.calls[0][1].headers.Authorization).toBe('Bearer tok');
+    expect(JSON.parse(f.mock.calls[0][1].body)).toEqual({ name: 'garage', url: 'rtsp://admin:pw@192.168.1.60/live', replace: false });
+    expect((await addStream({ name: 'g', url: 'exec:x' }, 'tok', vi.fn(async () => json(400, { error: 'scheme-not-allowed' })))).message).toMatch(/not allowed/);
+    const taken = await addStream({ name: 'front_yard', url: 'rtsp://x' }, 'tok', vi.fn(async () => json(409, { error: 'name-taken', id: 'front_yard' })));
+    expect(taken.taken).toBe(true); expect(taken.message).toMatch(/already there/);
+    expect((await addStream({ name: 'g', url: 'rtsp://x' }, 'tok', vi.fn(async () => json(404, {})))).message).toMatch(/older camera service/);
+    expect((await testStream('garage', 'tok', vi.fn(async () => json(200, { id: 'garage', probe: { ok: false, status: 500, error: 'x' } })))).probe.ok).toBe(false);
+    const del = vi.fn(async () => json(200, { ok: true, removed: ['garage', 'garage_sd'] }));
+    expect((await removeStream('garage', 'tok', del)).removed).toEqual(['garage', 'garage_sd']);
+    expect(del.mock.calls[0][1].method).toBe('DELETE');
+  });
+  it('Ring: the first try asks for the code, the code adds the cameras, a refusal carries the Google note', async () => {
+    const f = vi.fn(async (url, opts) => { const b = JSON.parse(opts.body); return b.code ? json(200, { ok: true, added: 2, cameras: [{ id: 'front_door', name: 'Front Door' }, { id: 'driveway', name: 'Driveway' }] }) : json(409, { error: 'needs-2fa', prompt: 'Please enter the code sent to +1 (***) ***-1234' }); });
+    const first = await setupRing({ email: 'me@example.com', password: 'pw' }, 'tok', f);
+    expect(first).toEqual({ kind: 'needs-code', prompt: 'Please enter the code sent to +1 (***) ***-1234' });
+    expect(JSON.parse(f.mock.calls[0][1].body)).toEqual({ email: 'me@example.com', password: 'pw', code: '' });
+    const second = await setupRing({ email: 'me@example.com', password: 'pw', code: '123456' }, 'tok', f);
+    expect(second.kind).toBe('ok'); expect(second.added).toBe(2); expect(second.cameras.map((c) => c.name)).toEqual(['Front Door', 'Driveway']);
+    const refused = await setupRing({ email: 'me@example.com', password: 'bad', code: '1' }, 'tok', vi.fn(async () => json(401, { error: 'ring-sign-in-refused', detail: 'authentication failed' })));
+    expect(refused.kind).toBe('refused'); expect(refused.message).toMatch(/Ring refused the sign-in: authentication failed/); expect(refused.message).toContain(GOOGLE_SIGN_IN_NOTE);
+    expect((await setupRing({ email: 'a@b.c', password: 'p' }, 'tok', vi.fn(async () => json(404, {})))).message).toMatch(/older camera service/);
   });
 });

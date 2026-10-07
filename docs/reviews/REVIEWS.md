@@ -14,6 +14,14 @@
 
 ## Records
 
+### REV-0256 · Review our streaming ways — every source, every browser road, every transport; what we have, what works where, what is next
+- **Date:** 2026-10-07
+- **Surface:** infra/nas-cameras (go2rtc 1.9.14 + cams_forwarder.py) · app/src/components/Cameras.jsx · app/functions (the /cams transport) · .github/workflows/camera-health.yml (new) · the stream health log (DR-0798)
+- **Type:** orchestration (DR-0108 Ways review)
+- **Status:** logged
+- **Findings:** Darrell 2026-10-07: "Review all options for streaming that we may or may not have currently that could also work... make sure we have all best options available"; "ways that updates don't break the connections and if they do we fix them expedited". Measured (cams-diag run 37698554749, go2rtc's v1.9.14 source): 31 Wyze streams, 23 resting — the 805 house (10.0.0.x) and the 192.168.4/7/11.x cameras time out on discovery from the NAS at 192.168.1.26, two Gwell models lack DTLS; 16 live streams open and 2.03 MB/s leaving the house over the Funnel for devices in the same house; two browser roads in use (progressive MP4, HLS) and two not (MSE over WebSocket, WebRTC); Ring/ONVIF/RTSP/HTTP had no in-app road (now DR-0803), HomeKit and Nest none; a Google sign-in is not a road the makers' APIs offer. No witness proved the cameras after a change. Decided in DR-0804: the camera-health witness after every deploy with `priority:cameras` on regression (fix-now); the next roads in order — MSE/WebSocket, a LAN-direct origin (which opens WebRTC), a route to the other subnets. re-review 2026-10-14.
+- **Source:** docs/decisions/DR-0804-review-of-our-streaming-ways-and-the-camera-road-witness.md
+
 ### REV-0255 · Comprehensive review — the lesson pipeline end to end: one session carries both lanes, the lock never comes home, and "Published" arrives before the lesson
 - **Date:** 2026-09-29
 - **Surface:** the in-app lesson door (OneVoiceInput, VoiceLessonRecorder, LessonInbox) · agent_inbox (hosted mirror) · infra/nas-lesson-voice · the two lesson Routines (trig_01KnByrzx8yYCURwfRKUrvTq, trig_01DAcB2dKRE5vuKAtT2NWbLw) · the delivery lane (ci.yml, auto-merge.yml, keep-prs-current.yml, deploy-cloudflare-pages.yml, site-health.yml) · app/src/components/GovernanceQueue.jsx · app/src/lib/governance-queue-parse.js (new) · app/src/lib/ari-integrity-guard.js · CLAUDE.md
