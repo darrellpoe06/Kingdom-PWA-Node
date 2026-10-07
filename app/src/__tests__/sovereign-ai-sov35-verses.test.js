@@ -480,15 +480,28 @@ describe('sov35 — the new players quotes its whole spine verbatim, Word first'
       expect(L().levels[b].length, b).toBeGreaterThan(2500);
       expect(L().levels[b].slice(0, 90), b).toContain('The new players:');
       expect(L().levels[b], b).toContain('TALK ABOUT IT TOGETHER.');
-      expect(hasAllThree({ lesson: L().levels[b] }), `${b} band carries all three directions`).toBe(true);
     }
     expect(L().lesson).toContain('TALK ABOUT IT TOGETHER.');
+    // hasAllThree is the MODULE-level gate, and it is asserted on the module.
     expect(hasAllThree(L())).toBe(true);
     const own = ownPrompts(L());
     expect(own.parents).toMatch(/Parents, ask your child/);
     expect(own.children).toMatch(/ask your mom, dad or grandparent/);
     expect(own.friends).toBeTruthy();
-    expect(L().lesson).toMatch(/Friends, tell one friend this week/);
+    // PER BAND, the three directions are asserted on the SENTENCE TEXT, never
+    // by calling ownPrompts or hasAllThree on a single band. ownPrompts
+    // searches each direction in a different place by design — parents to
+    // children only in the adult prose and the senior band — so feeding it one
+    // band is an instrument that cannot see what this check is for, and
+    // feeding a band in as `lesson` only works by accident of that shape. The
+    // literal sentence can always be seen. This is the shape
+    // living-lessons-l215-verses.test.js uses, and all five surfaces carry all
+    // three, so a band that drops one is caught by name.
+    for (const [where, t] of [['lesson', L().lesson], ...FULL_BANDS.map((b) => [b, L().levels[b]])]) {
+      expect(t, `${where}: parents to children`).toMatch(/Parents, ask your child/);
+      expect(t, `${where}: children to parents`).toMatch(/Children, ask your mom, dad or grandparent/);
+      expect(t, `${where}: friend to friend`).toMatch(/Friends, tell one friend this week/);
+    }
     // the skill and the rhythm ride every close
     for (const t of [L().lesson, ...FULL_BANDS.map((b) => L().levels[b])]) {
       expect(t).toMatch(/listen all the way to the end|listen all the way through|Listen all the way/);
@@ -547,6 +560,18 @@ describe('sov35 — proven-to-catch: the gate fails on a drifted verse, an unatt
     const cut = { ...L(), levels: { child: strip(L().levels.child), youth: strip(L().levels.youth), teen: strip(L().levels.teen), senior: strip(L().levels.senior) } };
     expect(ownPrompts(cut).children).toBe('');
     expect(hasAllThree(cut)).toBe(false);
+  });
+
+  it('ONE band quietly dropping ONE direction is caught by name — the case hasAllThree on the module cannot see', () => {
+    // The youth band loses only its friend-to-friend line. The module still
+    // carries all three somewhere, so the module-level gate stays green; the
+    // per-band sentence check is what names the band that lost it.
+    const cut = L().levels.youth.replace(/Friends, tell one friend this week/, 'Friends, something vague');
+    const drifted = { ...L(), levels: { ...L().levels, youth: cut } };
+    expect(hasAllThree(drifted), 'the module-level gate cannot see a single band losing one line').toBe(true);
+    const missing = [['lesson', drifted.lesson], ...FULL_BANDS.map((b) => [b, drifted.levels[b]])]
+      .filter(([, t]) => !/Friends, tell one friend this week/.test(t)).map(([w]) => w);
+    expect(missing).toEqual(['youth']);
   });
 
   it('week 35 missing, or filed out of order in either direction, is caught — while a later sibling week is not', () => {
