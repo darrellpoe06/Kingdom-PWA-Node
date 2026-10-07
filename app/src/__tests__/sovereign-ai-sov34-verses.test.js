@@ -272,19 +272,25 @@ function unattributedQuotes(mod) {
   const nonScripture = (mod.lesson.match(/"[^"]+"/g) || []).filter((q) => !isWord(q));
   return { nonScripture, bad: nonScripture.filter((q) => !SOV34_ALLOWED.includes(q)) };
 }
-// Week 34 is the LAST week, and it follows the highest week already present —
-// 34 after 32 while 33 is held in flight, 34 after 33 once that lane lands.
-// Asserted as "last, and higher than every other week", so neither state is a
-// red build and a week inserted out of order still fails.
+// Week 34 follows every week already present and precedes every later one —
+// 34 after 32 while 33 was held in flight, 34 after 33 once that lane landed.
+// It was ALSO asserted to be LAST, until week 35 (the new players) landed.
+// "Last" was never the property this gate wanted; it was a proxy for it while
+// 34 happened to be the newest week, and a proxy that makes the next lesson's
+// merge red is the wrong proxy. The real property is the ORDER, asserted in
+// both directions, so a later sibling week is not a red build while a week
+// filed out of order still fails.
 function orderProblem(modules) {
   const at = modules.findIndex((w) => w.id === SOV34_ID);
   if (at < 1) return 'sov34 missing';
-  if (at !== modules.length - 1) return `sov34 is at ${at}, not last`;
   const n = (m) => Number((/^sov(\d+)-/.exec(m.id) || [])[1]);
   const mine = n(modules[at]);
   if (mine !== 34) return `sov34 parses as week ${mine}`;
   for (const other of modules.slice(0, at)) {
     if (!(n(other) < mine)) return `week ${n(other)} is not before week ${mine}`;
+  }
+  for (const other of modules.slice(at + 1)) {
+    if (!(n(other) > mine)) return `week ${n(other)} is not after week ${mine}`;
   }
   return null;
 }
@@ -479,13 +485,15 @@ describe('sov34 — proven-to-catch: the gate fails on a drifted verse, an unatt
     expect(ownPrompts(cut).children).toBe('');
     expect(hasAllThree(cut)).toBe(false);
   });
-  it('week 34 landing anywhere but last, or after a higher week, is caught', () => {
+  it('week 34 missing, or filed out of order in either direction, is caught — while a genuinely later week is not', () => {
     expect(orderProblem(SOVEREIGN_AI_MODULES.filter((w) => w.id !== SOV34_ID))).toBe('sov34 missing');
-    const shuffled = [...SOVEREIGN_AI_MODULES];
-    shuffled.splice(shuffled.length - 1, 0, { id: 'sov99-a-week-from-the-future' });
-    expect(orderProblem(shuffled)).toMatch(/week 99 is not before week 34/);
-    const notLast = [...SOVEREIGN_AI_MODULES, { id: 'sov35-a-later-week' }];
-    expect(orderProblem(notLast)).toMatch(/not last/);
+    const earlierTooHigh = [...SOVEREIGN_AI_MODULES];
+    earlierTooHigh.splice(earlierTooHigh.findIndex((w) => w.id === SOV34_ID), 0, { id: 'sov99-a-week-from-the-future' });
+    expect(orderProblem(earlierTooHigh)).toMatch(/week 99 is not before week 34/);
+    const laterTooLow = [...SOVEREIGN_AI_MODULES, { id: 'sov5-a-duplicated-week' }];
+    expect(orderProblem(laterTooLow)).toMatch(/week 5 is not after week 34/);
+    // Week 35 landing after week 34 is the normal case, not a defect.
+    expect(orderProblem([...SOVEREIGN_AI_MODULES, { id: 'sov36-a-sibling-lane' }])).toBeNull();
   });
   it('a band that stops naming its lesson, or falls under a full reading, is caught', () => {
     const thin = 'The bounded answer: pick the answers first. TALK ABOUT IT TOGETHER.';
