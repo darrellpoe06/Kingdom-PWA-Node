@@ -109,7 +109,7 @@ if [ -s "$WYZE_ENV" ]; then
     fi
   fi
 else
-  echo "  no $WYZE_ENV yet -- Wyze cameras wait on that one secret; every other system works now"
+  echo "  no $WYZE_ENV yet -- Wyze cameras wait on the sign-in: type it once in the app's Cameras tab (or place this file); every other system works now"
 fi
 
 echo "== cameras install: compose up (pinned image; no-op when current) =="

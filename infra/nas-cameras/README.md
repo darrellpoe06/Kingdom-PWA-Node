@@ -16,13 +16,32 @@ The app's same-origin transport is `app/functions/cams/[[path]].js`; the surface
 is `app/src/components/Cameras.jsx` (family-only). Recorded in
 `infra/nas-transport/RECORDED-STATE.md` (the `/cams` row).
 
-## The two steps only Darrell can take (a secret value only he holds)
+## The one step only Darrell can take (a secret value only he holds)
 
 Everything else self-deploys. Wyze cameras additionally need his Wyze sign-in,
 because go2rtc lists the account's cameras from Wyze's cloud ONCE (then streams
 them locally over P2P). Nothing in the repo ever holds these values.
 
-**Step 1 -- place the Wyze secrets on the NAS.** Get an API ID + API Key from
+**The easy way (2026-10-07): type it once, in the app.** Open the Cameras tab
+(family), fill in Wyze email, password, API ID and API Key (the two keys come
+from the Wyze developer portal: Wyze account > API Key), press *Sign in and add
+my cameras*. The app hands the four values over the locked `/cams` road to
+`cams_forwarder.py` (`POST /setup/wyze`, family bearer), which hands them to
+go2rtc's OWN sign-in (`POST /api/wyze`, verified in go2rtc 1.9.14 source:
+`internal/wyze/wyze.go` logs in, writes the account into `go2rtc.yaml`, and
+answers the account's cameras) and registers each camera as a stream
+(`PUT /api/streams`, also persisted by go2rtc). The cameras appear in the tab
+on its next refresh (seconds). The browser keeps nothing; the forwarder writes
+nothing and logs nothing; one sign-in runs at a time (a second is told 409).
+An API key signs in without a 2FA prompt. The selftest (`--selftest`, section
+8b) proves: no bearer -> nothing sent; a Wyze refusal is said plainly; a
+re-run leaves registered cameras as they are; no source url, enr, password or
+key leaves in the answer; a dark go2rtc -> 502.
+
+**The terminal way** (still works; the app's empty state shows it behind
+"Prefer a terminal?"):
+
+**Step 1 (terminal) -- place the Wyze secrets on the NAS.** Get an API ID + API Key from
 the Wyze developer portal (Wyze account > API Key). Then, from anywhere in
 PowerShell (the values go in the quotes; the file lands root-readable only):
 
@@ -34,7 +53,7 @@ ssh dpoe@192.168.1.26 "sudo mkdir -p /volume1/PoeTech/secrets; printf 'WYZE_EMAI
 The next services-sync cycle (within 15 minutes) adds the `wyze:` sign-in block
 to go2rtc's config. The installer prints `wyze: block added`.
 
-**Step 2 -- load the cameras, once.** go2rtc's WebUI lists the account's cameras
+**Step 2 (terminal) -- load the cameras, once.** go2rtc's WebUI lists the account's cameras
 and writes one `wyze://` stream line per camera into its config. The WebUI is
 loopback-only on the NAS by design, so reach it through an SSH tunnel from the
 desktop, then open http://localhost:1984 in the browser, **Add > Wyze**, pick

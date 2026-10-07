@@ -11,6 +11,7 @@ import {
   healthUrl, listUrl, ticketUrl, snapUrl, liveUrl, pickLiveMode,
   parseCameraList, kindLabel, groupByKind, KINDS, classifyServiceState,
   formatAge, formatBytes, fetchWithTimeout, authHeaders, setupCommands, isAscii,
+  validateWyzeSetup, classifySetupResult, setupWyze,
 } from '../lib/cameras.js';
 
 describe('the road: every URL is same-origin under /cams', () => {
@@ -159,5 +160,56 @@ describe('the two his-hand steps are paste-ready from anywhere (CLAUDE.md law)',
   it('isAscii tells a smart quote from a plain one', () => {
     expect(isAscii('plain "ascii" text\n')).toBe(true);
     expect(isAscii('an em\u2014dash')).toBe(false);
+  });
+});
+
+// WYZE SIGN-IN FROM THE APP (2026-10-07): the form is checked before anything
+// is sent, and the NAS's every answer becomes one honest sentence.
+describe('validateWyzeSetup', () => {
+  it('names the missing fields, refuses a non-email, accepts a full form', () => {
+    expect(validateWyzeSetup({}).missing).toEqual(['email', 'password', 'api_id', 'api_key']);
+    expect(validateWyzeSetup({ email: 'd@x.org', password: 'p', api_id: 'a' }).message).toBe('Fill in API Key.');
+    expect(validateWyzeSetup({ email: 'nope', password: 'p', api_id: 'a', api_key: 'k' }).message).toMatch(/email address/);
+    expect(validateWyzeSetup({ email: ' d@x.org ', password: 'p', api_id: 'a', api_key: 'k' }).ok).toBe(true);
+  });
+});
+
+describe('classifySetupResult', () => {
+  it('a good sign-in counts added and already-here, and names units the restreamer cannot stream yet', () => {
+    const r = classifySetupResult({ status: 200, body: { ok: true, added: 1, cameras: [
+      { id: 'front_yard', name: 'Front Yard', model: 'HL_CAM4', dtls: true, registered: true, existing: true },
+      { id: 'garage_cam', name: 'Garage Cam', model: 'WYZEC1-JZ', dtls: false, registered: true, existing: false },
+    ] } });
+    expect(r.kind).toBe('ok');
+    expect(r.message).toBe('Signed in. 1 camera added, 1 already here.');
+    expect(r.unsupported).toEqual(['Garage Cam']);
+  });
+  it('an account with no cameras is a signed-in zero, with the NAS\'s note', () => {
+    const r = classifySetupResult({ status: 200, body: { ok: true, added: 0, cameras: [], note: 'signed in; this Wyze account lists no cameras' } });
+    expect(r.kind).toBe('ok');
+    expect(r.message).toMatch(/lists no cameras/);
+  });
+  it('Wyze refusing, the family key refused, busy, a dark restreamer and a network failure each say what happened', () => {
+    expect(classifySetupResult({ status: 401, body: { error: 'wyze-sign-in-refused' } }).kind).toBe('refused');
+    expect(classifySetupResult({ status: 401, body: { error: 'unauthorized' } }).kind).toBe('unauthorized');
+    expect(classifySetupResult({ status: 409, body: { error: 'setup-in-progress' } }).kind).toBe('busy');
+    expect(classifySetupResult({ status: 502, body: { error: 'go2rtc-unreachable' } }).message).toMatch(/restreamer on the NAS is dark/);
+    expect(classifySetupResult({ status: 400, body: { error: 'missing-field', field: 'api_key' } }).message).toMatch(/api key is missing/);
+    expect(classifySetupResult({ networkError: true }).kind).toBe('unreachable');
+  });
+});
+
+describe('setupWyze', () => {
+  it('posts the four values with the family bearer to /cams/setup/wyze and never throws', async () => {
+    const calls = [];
+    const fetchImpl = async (url, opts) => { calls.push({ url, opts }); return { status: 200, json: async () => ({ ok: true, added: 2, cameras: [] }) }; };
+    const r = await setupWyze({ email: ' d@x.org ', password: 'pw', api_id: ' id ', api_key: ' key ' }, 'tok', fetchImpl);
+    expect(r.kind).toBe('ok');
+    expect(calls[0].url).toBe('/cams/setup/wyze');
+    expect(calls[0].opts.method).toBe('POST');
+    expect(calls[0].opts.headers.Authorization).toBe('Bearer tok');
+    expect(JSON.parse(calls[0].opts.body)).toEqual({ email: 'd@x.org', password: 'pw', api_id: 'id', api_key: 'key' });
+    expect((await setupWyze({ email: 'd@x.org', password: 'pw', api_id: 'id', api_key: 'key' }, 'tok', async () => { throw new TypeError('Failed to fetch'); })).kind).toBe('unreachable');
+    expect((await setupWyze({ email: '' }, 'tok', fetchImpl)).kind).toBe('invalid');
   });
 });

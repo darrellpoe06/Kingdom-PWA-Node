@@ -33,6 +33,8 @@ export const SNAPSHOT_WIDTH = 640;
 export function healthUrl() { return `${CAMS_BASE}/health`; }
 export function listUrl() { return `${CAMS_BASE}/list`; }
 export function ticketUrl() { return `${CAMS_BASE}/ticket`; }
+export function setupUrl() { return `${CAMS_BASE}/setup/wyze`; }
+export const SETUP_TIMEOUT_MS = 75000; // Wyze's cloud listing + go2rtc's persist; the NAS gives it 60 s
 
 export function snapUrl(id, { w = SNAPSHOT_WIDTH, ticket = '' } = {}) {
   const q = [`w=${Math.max(16, Math.min(1920, Number(w) || SNAPSHOT_WIDTH))}`];
@@ -162,6 +164,69 @@ export async function fetchWithTimeout(url, opts = {}, ms = FETCH_TIMEOUT_MS, fe
 
 export function authHeaders(token) {
   return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+// WYZE SIGN-IN FROM THE APP (2026-10-07; Darrell: "Is that the easiest way
+// to build it so I don't have to do much work for it to work right away?").
+// The four values are the only thing the repo cannot supply. They are typed
+// ONCE, here, and handed over the locked road to go2rtc's own sign-in on the
+// NAS (infra/nas-cameras/cams_forwarder.py POST /setup/wyze), which keeps the
+// account and lists and registers the cameras itself. Nothing is kept in the
+// browser. The PowerShell steps below remain as the road for a terminal.
+export const WYZE_FIELDS = Object.freeze([
+  { key: 'email', label: 'Wyze email', type: 'email', autoComplete: 'username', hint: 'The email you sign in to the Wyze app with.' },
+  { key: 'password', label: 'Wyze password', type: 'password', autoComplete: 'current-password', hint: 'Used once to sign in; the NAS keeps it, this browser does not.' },
+  { key: 'api_id', label: 'API ID', type: 'text', autoComplete: 'off', hint: 'From the Wyze developer portal (Wyze account > API Key).' },
+  { key: 'api_key', label: 'API Key', type: 'password', autoComplete: 'off', hint: 'From the same page. An API key signs in without a 2FA prompt.' },
+]);
+
+/** Pure: which fields are missing, before anything is sent. */
+export function validateWyzeSetup(fields) {
+  const f = fields || {};
+  const missing = WYZE_FIELDS.filter((d) => !String(f[d.key] || '').trim()).map((d) => d.key);
+  if (missing.length) return { ok: false, missing, message: `Fill in ${missing.map((k) => WYZE_FIELDS.find((d) => d.key === k).label).join(', ')}.` };
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(f.email).trim())) return { ok: false, missing: ['email'], message: 'That does not look like an email address.' };
+  return { ok: true, missing: [], message: '' };
+}
+
+/** Pure: the NAS's answer -> what the screen says. */
+export function classifySetupResult({ status, body, networkError } = {}) {
+  if (networkError) return { kind: 'unreachable', message: 'The NAS could not be reached. The cameras road is down or this device is offline.' };
+  const b = body || {};
+  if (status === 200 && b.ok) {
+    const cams = Array.isArray(b.cameras) ? b.cameras : [];
+    const added = Number(b.added) || 0;
+    const existing = cams.filter((c) => c && c.existing).length;
+    const unsupported = cams.filter((c) => c && c.dtls === false).map((c) => c.name);
+    if (!cams.length) return { kind: 'ok', added: 0, cameras: [], unsupported: [], message: b.note ? `Signed in. ${b.note.charAt(0).toUpperCase()}${b.note.slice(1)}.` : 'Signed in. No cameras were listed.' };
+    const parts = [`Signed in. ${added} camera${added === 1 ? '' : 's'} added`];
+    if (existing) parts.push(`${existing} already here`);
+    return { kind: 'ok', added, cameras: cams, unsupported, message: `${parts.join(', ')}.` };
+  }
+  if (status === 401 && b.error === 'wyze-sign-in-refused') return { kind: 'refused', message: 'Wyze refused the sign-in. Check the email, password, API ID and API Key; the key must be the one from the developer portal.' };
+  if (status === 401) return { kind: 'unauthorized', message: 'This device\'s family key was refused by the NAS. Sign in to the app again, then retry.' };
+  if (status === 400) return { kind: 'invalid', message: b.field ? `The NAS says ${String(b.field).replace('_', ' ')} is missing.` : 'The NAS could not read the form.' };
+  if (status === 409) return { kind: 'busy', message: 'Another sign-in is already running on the NAS. Wait a moment and look again.' };
+  if (status === 502) return { kind: 'unreachable', message: b.error === 'go2rtc-unreachable' ? 'The restreamer on the NAS is dark; the sign-in could not be handed to it.' : `Wyze could not be reached from the NAS${b.detail ? ` (${b.detail})` : ''}.` };
+  return { kind: 'error', message: `The NAS answered HTTP ${status || '?'}.` };
+}
+
+/** POST the four values to the NAS; resolves to classifySetupResult's shape. Never throws. */
+export async function setupWyze(fields, token, fetchImpl = globalThis.fetch) {
+  const v = validateWyzeSetup(fields);
+  if (!v.ok) return { kind: 'invalid', message: v.message };
+  try {
+    const res = await fetchWithTimeout(setupUrl(), {
+      method: 'POST',
+      headers: { ...authHeaders(token), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: fields.email.trim(), password: fields.password, api_id: fields.api_id.trim(), api_key: fields.api_key.trim() }),
+    }, SETUP_TIMEOUT_MS, fetchImpl);
+    let body = null;
+    try { body = await res.json(); } catch { body = null; }
+    return classifySetupResult({ status: res.status, body });
+  } catch {
+    return classifySetupResult({ networkError: true });
+  }
 }
 
 // The two his-hand steps, paste-ready, from anywhere (CLAUDE.md: every block

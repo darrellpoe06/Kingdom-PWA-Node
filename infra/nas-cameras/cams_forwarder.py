@@ -36,6 +36,12 @@
 #                                      the source scheme; the URL itself NEVER
 #                                      leaves (it carries credentials).
 #   POST /ticket  {"camera": id}       bearer. {ticket, expires_in, camera}.
+#   POST /setup/wyze {email,password,api_id,api_key}  bearer. Hands the sign-in
+#        to go2rtc's own /api/wyze (which persists the account and lists the
+#        cameras), registers each camera as a stream (PUT /api/streams,
+#        persisted by go2rtc). {ok, added, cameras:[{id,name,model,dtls,
+#        registered,existing}]} -- never a source url. 401 wyze-sign-in-refused
+#        when Wyze says no; 409 while another setup runs; 502 go2rtc dark.
 #   GET  /snap/<id>.jpg?w=&h=          bearer OR ticket. One JPEG frame.
 #   GET  /live/<id>.mp4?t=             ticket. Progressive MP4 (Chrome, Edge,
 #                                      Firefox, Android). Ends itself at
@@ -89,6 +95,22 @@ CHUNK = 64 * 1024
 MAX_BODY = 4096
 
 CAMERA_ID = re.compile(r"^[A-Za-z0-9_.-]{1,64}$")
+
+# WYZE SIGN-IN FROM THE APP (2026-10-07; Darrell: "Is that the easiest way to
+# build it so I don't have to do much work for it to work right away?" -- no,
+# it was not). The two PowerShell steps (place wyze.env; tunnel to the WebUI
+# and click Add > Wyze) are replaced by ONE form in the Cameras tab. The
+# forwarder hands the four values to go2rtc's OWN sign-in (POST /api/wyze,
+# verified in go2rtc 1.9.14 source: it logs in, writes the account into
+# go2rtc.yaml itself, and answers the account's cameras as sources), then
+# registers each camera as a stream (PUT /api/streams, which go2rtc also
+# persists). Nothing is written by this process; the password crosses it once
+# and is never logged or stored. Bearer-locked like every other door; one
+# setup at a time (a second is told 409, never stacked).
+SETUP_MAX_BODY = 8192
+SETUP_TIMEOUT = float(os.environ.get("CAMS_SETUP_TIMEOUT", "60"))
+SETUP_LOCK = threading.Lock()
+WYZE_FIELDS = ("email", "password", "api_id", "api_key")
 HLS_FILES = ("playlist.m3u8", "init.mp4", "segment.m4s", "segment.ts")
 PREFIX = "/cams"
 
@@ -230,6 +252,42 @@ def rewrite_playlist(text, ticket, at_root):
     return "\n".join(out) + ("\n" if text.endswith("\n") else "")
 
 
+def stream_name_for(nickname, taken):
+    """A camera's Wyze nickname -> a stream id the app can address (CAMERA_ID),
+    lower-cased, unique against the names already in go2rtc."""
+    base = re.sub(r"[^A-Za-z0-9_.-]+", "_", str(nickname or "").strip()).strip("_.-").lower()[:48] or "camera"
+    name, n = base, 2
+    while name in taken:
+        name = "%s_%d" % (base, n)
+        n += 1
+    return name
+
+
+def wyze_cameras_from(doc):
+    """go2rtc's /api/wyze answer ({"sources":[{name,info,url}]}) ->
+    [{name, url, model, dtls}]. `info` is "MODEL | MAC | IP". Pure."""
+    if isinstance(doc, (bytes, bytearray)):
+        try:
+            doc = json.loads(doc.decode("utf-8"))
+        except (ValueError, UnicodeDecodeError):
+            return []
+    items = doc.get("sources") if isinstance(doc, dict) else None
+    out = []
+    for src in items or []:
+        if not isinstance(src, dict) or not src.get("url"):
+            continue
+        url = str(src["url"])
+        info = str(src.get("info") or "")
+        q = urllib.parse.parse_qs(urllib.parse.urlsplit(url).query)
+        out.append({
+            "name": str(src.get("name") or "").strip() or "Camera",
+            "url": url,
+            "model": info.split("|")[0].strip() if info else "",
+            "dtls": q.get("dtls", [""])[0] == "true",
+        })
+    return out
+
+
 def upstream_query(query, drop=("t",)):
     pairs = urllib.parse.parse_qsl(query, keep_blank_values=True)
     kept = [(k, v) for (k, v) in pairs if k not in drop]
@@ -339,7 +397,7 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
         def do_POST(self):
             raw_path, _, _query = self.path.partition("?")
             path = strip_prefix(raw_path)
-            if path != "/ticket":
+            if path not in ("/ticket", "/setup/wyze"):
                 return self._json(404, {"error": "not-found"})
             if not self._authed():
                 return self._json(401, {"error": "unauthorized"})
@@ -347,18 +405,88 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
                 length = int(self.headers.get("Content-Length") or 0)
             except ValueError:
                 length = 0
-            if length <= 0 or length > MAX_BODY:
+            if length <= 0 or length > (SETUP_MAX_BODY if path == "/setup/wyze" else MAX_BODY):
                 return self._json(400, {"error": "body-required"})
             try:
                 body = json.loads(self.rfile.read(length).decode("utf-8"))
             except (ValueError, UnicodeDecodeError):
                 return self._json(400, {"error": "bad-json"})
+            if path == "/setup/wyze":
+                return self._setup_wyze(body if isinstance(body, dict) else {})
             cam = body.get("camera") if isinstance(body, dict) else None
             if not isinstance(cam, str) or not CAMERA_ID.match(cam):
                 return self._json(400, {"error": "bad-camera-id"})
             return self._json(200, {"ticket": mint_ticket(token, cam), "expires_in": TICKET_TTL_SECONDS, "camera": cam})
 
         # -- handlers -------------------------------------------------------
+        def _setup_wyze(self, body):
+            fields = {}
+            for k in WYZE_FIELDS:
+                v = body.get(k)
+                if not isinstance(v, str) or not v.strip() or len(v) > 256:
+                    return self._json(400, {"error": "missing-field", "field": k})
+                fields[k] = v.strip()
+            if "@" not in fields["email"]:
+                return self._json(400, {"error": "bad-email"})
+            if not SETUP_LOCK.acquire(blocking=False):
+                return self._json(409, {"error": "setup-in-progress"})
+            try:
+                secret = fields["password"]
+
+                def scrub(text):
+                    return (text or "").replace(secret, "***").replace(fields["api_key"], "***")[:300]
+
+                data = urllib.parse.urlencode(fields).encode("utf-8")
+                req = urllib.request.Request(upstream + "/api/wyze", data=data, method="POST",
+                                             headers={"Content-Type": "application/x-www-form-urlencoded"})
+                try:
+                    with urllib.request.urlopen(req, timeout=SETUP_TIMEOUT) as r:
+                        raw = r.read(4 * 1024 * 1024)
+                except urllib.error.HTTPError as e:
+                    detail = scrub(e.read(2048).decode("utf-8", "replace").strip())
+                    if e.code == 401:
+                        return self._json(401, {"error": "wyze-sign-in-refused", "detail": detail})
+                    if e.code == 404:
+                        # go2rtc answers "no sources" when the sign-in worked but the account lists no camera.
+                        return self._json(200, {"ok": True, "added": 0, "cameras": [], "note": "signed in; this Wyze account lists no cameras"})
+                    return self._json(502, {"error": "wyze-error", "upstream_status": e.code, "detail": detail})
+                except (urllib.error.URLError, OSError):
+                    return self._json(502, {"error": "go2rtc-unreachable"})
+                cams = wyze_cameras_from(raw)
+                existing = set()
+                try:
+                    _s, _c, streams = self._get_upstream("/api/streams", HEALTH_TIMEOUT, limit=4 * 1024 * 1024)
+                    parsed = json.loads(streams.decode("utf-8"))
+                    if isinstance(parsed, dict):
+                        existing = set(parsed.keys())
+                except (urllib.error.URLError, OSError, ValueError):
+                    existing = set()
+                out = []
+                added = 0
+                for cam in cams:
+                    slug = stream_name_for(cam["name"], set())
+                    if slug in existing:
+                        # Already registered (a re-run): left exactly as it is.
+                        out.append({"id": slug, "name": cam["name"], "model": cam["model"], "dtls": cam["dtls"], "registered": True, "existing": True})
+                        continue
+                    name = stream_name_for(cam["name"], existing)
+                    q = urllib.parse.urlencode([("name", name), ("src", cam["url"])])
+                    put = urllib.request.Request(upstream + "/api/streams?" + q, method="PUT")
+                    ok = True
+                    try:
+                        with urllib.request.urlopen(put, timeout=HEALTH_TIMEOUT) as r:
+                            r.read(4096)
+                    except (urllib.error.HTTPError, urllib.error.URLError, OSError):
+                        ok = False
+                    if ok:
+                        existing.add(name)
+                        added += 1
+                    out.append({"id": name, "name": cam["name"], "model": cam["model"], "dtls": cam["dtls"], "registered": ok, "existing": False})
+                # The source URLs (they carry the camera's enr secret) never leave this process.
+                return self._json(200, {"ok": True, "added": added, "cameras": out})
+            finally:
+                SETUP_LOCK.release()
+
         def _health(self):
             # Pass go2rtc's OWN answer through; a 200 from this process about
             # ITSELF would read "up" over a dark restreamer (the DR-0440 class).
@@ -541,6 +669,30 @@ def _selftest():
                 return self._send(200, "video/mp4", b"INIT")
             return self._send(404, "text/plain", b"nope")
 
+        def do_POST(self):
+            path, _, _q = self.path.partition("?")
+            n = int(self.headers.get("Content-Length") or 0)
+            form = urllib.parse.parse_qs(self.rfile.read(n).decode("utf-8"))
+            if path != "/api/wyze":
+                return self._send(404, "text/plain", b"nope")
+            seen["wyze_form"] = {k: v[0] for k, v in form.items()}
+            if form.get("password", [""])[0] == "wrong":
+                return self._send(401, "application/json", b'{"error":"auth","message":"bad credentials"}')
+            if form.get("email", [""])[0] == "empty@example.com":
+                return self._send(404, "text/plain", b"no sources")
+            return self._send(200, "application/json", json.dumps({"sources": [
+                {"name": "Front Yard", "info": "HL_CAM4 | AA:BB | 192.168.1.50", "url": "wyze://192.168.1.50?uid=ABC&enr=ENRSECRET&mac=AA:BB&model=HL_CAM4&dtls=true"},
+                {"name": "Garage Cam!", "info": "WYZEC1-JZ | CC:DD | 192.168.1.51", "url": "wyze://192.168.1.51?uid=DEF&enr=ENRSECRET2&mac=CC:DD&model=WYZEC1-JZ"},
+            ]}).encode("utf-8"))
+
+        def do_PUT(self):
+            path, _, query = self.path.partition("?")
+            if path != "/api/streams":
+                return self._send(404, "text/plain", b"nope")
+            q = urllib.parse.parse_qs(query)
+            seen.setdefault("puts", []).append((q.get("name", [""])[0], q.get("src", [""])[0]))
+            return self._send(200, "application/json", b"{}")
+
     fake = ThreadingHTTPServer(("127.0.0.1", 0), FakeGo2rtc)
     fake.daemon_threads = True
     fake.handle_error = lambda request, client_address: None  # a viewer hanging up mid-stream is normal, not a traceback
@@ -687,6 +839,43 @@ def _selftest():
     s, _h, _d = call("POST", "/ticket", b"", auth=B)
     check(s == 400, "empty ticket body -> 400")
 
+    print("=== 8b. /setup/wyze: the sign-in from the app, locked, scrubbed, idempotent ===")
+    check(stream_name_for("Front Yard", set()) == "front_yard" and stream_name_for("Garage Cam!", {"garage_cam"}) == "garage_cam_2" and stream_name_for("", set()) == "camera", "a nickname becomes an addressable, unique, lower-case stream id")
+    cams = wyze_cameras_from(json.dumps({"sources": [{"name": "A", "info": "HL_CAM4 | M | 1.2.3.4", "url": "wyze://1.2.3.4?uid=x&dtls=true"}, {"name": "B", "url": "wyze://1.2.3.5?uid=y"}, {"bogus": 1}]}).encode())
+    check([c["model"] for c in cams] == ["HL_CAM4", ""] and [c["dtls"] for c in cams] == [True, False], "sources are read: model from info, dtls from the url, junk skipped")
+    good = json.dumps({"email": "d@example.com", "password": "pw-secret", "api_id": "id1", "api_key": "key-secret"}).encode()
+    s, _h, _d = call("POST", "/setup/wyze", good)
+    check(s == 401, "no bearer -> 401 (the sign-in never reaches go2rtc)")
+    check("wyze_form" not in seen, "an unauthenticated setup sent nothing upstream")
+    s, _h, d = call("POST", "/setup/wyze", json.dumps({"email": "d@example.com", "password": "x", "api_id": "id1"}).encode(), auth=B)
+    check(s == 400 and b"api_key" in d, "a missing field is named, 400")
+    s, _h, d = call("POST", "/setup/wyze", json.dumps({"email": "nope", "password": "x", "api_id": "a", "api_key": "b"}).encode(), auth=B)
+    check(s == 400 and b"bad-email" in d, "a non-email is refused before anything is sent")
+    s, _h, d = call("POST", "/setup/wyze", json.dumps({"email": "d@example.com", "password": "wrong", "api_id": "id1", "api_key": "k"}).encode(), auth=B)
+    check(s == 401 and b"wyze-sign-in-refused" in d, "Wyze refusing the sign-in is said plainly (401), not swallowed")
+    s, _h, d = call("POST", "/setup/wyze", json.dumps({"email": "empty@example.com", "password": "p", "api_id": "id1", "api_key": "k"}).encode(), auth=B)
+    j = json.loads(d.decode("utf-8"))
+    check(s == 200 and j.get("ok") is True and j.get("added") == 0 and "no cameras" in j.get("note", ""), "an account with no cameras is a signed-in 200 with zero added, honestly noted")
+    seen.pop("puts", None)
+    s, _h, d = call("POST", "/setup/wyze", good, auth=B)
+    j = json.loads(d.decode("utf-8"))
+    check(s == 200 and j.get("ok") is True, "a good sign-in -> 200 ok")
+    check(seen.get("wyze_form", {}).get("password") == "pw-secret" and seen["wyze_form"].get("api_key") == "key-secret" and seen["wyze_form"].get("api_id") == "id1", "the four values reach go2rtc's own sign-in as a form")
+    ids = [c["id"] for c in j.get("cameras", [])]
+    check(ids == ["front_yard", "garage_cam"], "cameras are answered by their stream ids (%r)" % ids)
+    check(j.get("added") == 1 and j["cameras"][0].get("existing") is True and j["cameras"][1].get("registered") is True, "a camera already registered is left as it is; the new one is added (idempotent re-run)")
+    check(seen.get("puts") == [("garage_cam", "wyze://192.168.1.51?uid=DEF&enr=ENRSECRET2&mac=CC:DD&model=WYZEC1-JZ")], "exactly the new camera is PUT to go2rtc with its exact source url")
+    check(b"ENRSECRET" not in d and b"wyze://" not in d and b"pw-secret" not in d and b"key-secret" not in d, "no source url, enr, password or api key leaves in the answer")
+    check(j["cameras"][0].get("dtls") is True and j["cameras"][1].get("dtls") is False and j["cameras"][1].get("model") == "WYZEC1-JZ", "dtls and model are reported so the app can say which units the restreamer supports")
+    SETUP_LOCK.acquire()
+    try:
+        s, _h, d = call("POST", "/setup/wyze", good, auth=B)
+        check(s == 409 and b"setup-in-progress" in d, "a second setup while one is in flight is told 409, never stacked")
+    finally:
+        SETUP_LOCK.release()
+    s, _h, _d = call("POST", "/setup/wyze", b"x" * (SETUP_MAX_BODY + 1), auth=B)
+    check(s == 400, "an oversized setup body -> 400")
+
     print("=== 9. a DARK go2rtc reads as 502 everywhere, never as this process's own 200 ===")
     fake.shutdown(); fake.server_close()
     s, _h, d = call("GET", "/health")
@@ -695,6 +884,8 @@ def _selftest():
     check(s == 502, "go2rtc down -> /list 502")
     s, _h, d = call("GET", "/snap/front_yard.jpg", auth=B)
     check(s == 502, "go2rtc down -> /snap 502")
+    s, _h, d = call("POST", "/setup/wyze", good, auth=B)
+    check(s == 502 and b"go2rtc-unreachable" in d, "go2rtc down -> /setup/wyze 502")
 
     print("=== 10. bearer_ok never accepts an empty expected token ===")
     check(not bearer_ok("Bearer ", ""), "empty expected token matches nothing")
