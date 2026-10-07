@@ -15,8 +15,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   parseWaiting, decide, formatComment, lastRungKeys, waitingKeys, ringsToday, MARKER, MAX_PER_DAY,
-  milestone, progressOf, formatStatus, parseVersions, parsePrs, humanSeconds,
-} from '../../../scripts/lesson-inbox-bell.mjs';
+  milestone, progressOf, formatStatus, parseVersions, parsePrs, humanSeconds, staleAlarms } from '../../../scripts/lesson-inbox-bell.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = join(HERE, '..', '..', '..');
@@ -55,6 +54,27 @@ describe('the bell decides (waiting-set diff, never a body)', () => {
     expect(decide(mirrored, [body]).post).toBe(false);
     const failed = parseWaiting(line(A, ['lesson', 'build:claimed@2026-09-30T12:01:00Z', 'build:failed@2026-09-30T12:09:00Z', 'build-failed']));
     expect(decide(failed, [body]).post).toBe(true);
+  });
+
+  it('PROVEN TO CATCH (DR-0771): a stale alarm on a waiting row is new news, the comment names it, a handed-back row keeps both counts', () => {
+    const base = { id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', created_by: 'c2a6c39a-ae99-4ff7-83c6-b927e2e7f1cc', created_at: '2026-10-04T13:50:31Z' };
+    const quiet = [{ ...base, tags: ['lesson', 'voice'] }];
+    const first = decide(quiet, [], { now: Date.parse('2026-10-07T04:00:00Z') });
+    expect(first.post).toBe(true);
+    const rang = [{ body: formatComment(quiet, first.keys), created_at: '2026-10-04T13:51:00Z' }];
+    expect(decide(quiet, rang, { now: Date.parse('2026-10-07T04:00:00Z') }).post).toBe(false);
+    // 0252 writes the alarm FIELD on the row: the milestone changes, the bell rings again.
+    const alarmed = [{ ...base, tags: ['lesson', 'voice', 'stale-alarm@2026-10-07T04:00:00Z'] }];
+    expect(milestone(alarmed[0].tags)).toBe('waiting#s1');
+    const again = decide(alarmed, rang, { now: Date.parse('2026-10-07T04:00:10Z') });
+    expect(again.post, 'the alarm tag did not ring the bell').toBe(true);
+    const body = formatComment(alarmed, again.keys, { now: Date.parse('2026-10-07T04:00:10Z') });
+    expect(body).toMatch(/1 past the stale alarm/);
+    expect(body).toMatch(/ALARM rang 1× \(last 2026-10-07T04:00:00Z\), waited 62 h/);
+    // A second alarm is news again; a handed-back row carries both counts.
+    expect(milestone(['lesson', 'stale-alarm@2026-10-07T04:00:00Z', 'stale-alarm@2026-10-08T04:00:00Z'])).toBe('waiting#s2');
+    expect(milestone(['lesson', 'build:claimed@2026-10-04T14:04:36Z', 'build:failed@2026-10-04T14:04:44Z', 'stale-alarm@2026-10-07T04:00:00Z'])).toBe('waiting#b2#s1');
+    expect(staleAlarms(['lesson', 'stale-alarm@2026-10-08T04:00:00Z', 'stale-alarm@2026-10-07T04:00:00Z', 'stale-alarm@nope'])).toEqual(['2026-10-07T04:00:00Z', '2026-10-08T04:00:00Z']);
   });
 
   it('PROVEN TO CATCH: no body ever reaches the comment, even if one were in the input', () => {

@@ -1350,7 +1350,63 @@ class BellTests(unittest.TestCase):
         self.assertEqual(m(["lesson", "lesson-captured", "build:duplicate@2026-10-01T01:01:00Z"]), "captured")
         self.assertEqual(m(["lesson", "lesson-captured", "lesson-published"]), "shipped")
         self.assertEqual(m(["lesson", c, "build:failed@2026-10-01T01:30:00Z", "build-failed"]), "waiting#b2")
+        # DR-0771: an alarmed row is new news; a handed-back AND alarmed row carries both.
+        self.assertEqual(m(["lesson", "stale-alarm@2026-10-07T04:00:00Z"]), "waiting#s1")
+        self.assertEqual(m(["lesson", "stale-alarm@2026-10-07T04:00:00Z", "stale-alarm@2026-10-08T04:00:00Z"]), "waiting#s2")
+        self.assertEqual(m(["lesson", c, "build:failed@2026-10-01T01:30:00Z", "stale-alarm@2026-10-07T04:00:00Z"]), "waiting#b2#s1")
+        self.assertNotEqual(lb.bell_key(self.A, ["lesson"]), lb.bell_key(self.A, ["lesson", "stale-alarm@2026-10-07T04:00:00Z"]))
         self.assertEqual(lb.job_of("stage:" + self.A), ("stage", self.A))
+
+    def test_the_stale_sweep_alarms_through_0252_rings_the_bell_and_keeps_its_spacing(self):
+        offered, calls = [], []
+
+        class B:
+            def ring(self, rid, tags):
+                offered.append((rid, list(tags)))
+
+        class Db(FakeDb):
+            def row_tags(self, rid):
+                return list(self.rows[rid]["tags"]) if rid in self.rows else None
+
+            def stale_sweep(self, first, repeat):
+                calls.append((first, repeat))
+                out = []
+                for r in self.rows.values():
+                    if lb.bell_waits(r["tags"]) and not any(t.startswith("stale-alarm@") for t in r["tags"]):
+                        r["tags"].append("stale-alarm@2026-10-07T04:00:00Z")
+                        out.append({"id": r["id"], "created_by": "c", "waited_hours": 5, "alarm_no": 1})
+                return out
+        A = self.A
+        clock = {"t": 1000.0}
+        db = Db([row(A, TEACHING)])
+        svc = lb.Service(db, data_dir=tempfile.mkdtemp(), ready=lambda: (False, {"state": "waiting on a writer"}),
+                         kill=lambda: (False, ""), log=lambda *_: None, bell=B(), clock=lambda: clock["t"],
+                         stale_first_hours=4, stale_repeat_hours=24, stale_sweep_seconds=900)
+        self.assertEqual([a["id"] for a in svc.sweep_stale()], [A])       # the first wake sweeps
+        self.assertEqual(calls, [(4, 24)])                                 # the configured windows reach 0252
+        self.assertEqual(offered, [(A, ["lesson", "stale-alarm@2026-10-07T04:00:00Z"])])  # the bell hears the NEW milestone
+        self.assertEqual(lb.bell_milestone(offered[0][1]), "waiting#s1")
+        clock["t"] += 100
+        self.assertEqual(svc.sweep_stale(), [])                            # inside the spacing: no call at all
+        self.assertEqual(len(calls), 1)
+        clock["t"] += 900
+        svc.sweep_stale()
+        self.assertEqual(len(calls), 2)                                    # past the spacing: asked again (0252 dedupes)
+        self.assertEqual(svc.sweep_stale(force=True), [])                  # nothing new to alarm
+
+    def test_the_stale_sweep_never_stops_the_service_when_0252_is_not_applied(self):
+        said = []
+
+        class Db(FakeDb):
+            def stale_sweep(self, first, repeat):
+                raise RuntimeError("function lesson_inbox_stale_sweep does not exist")
+        svc = lb.Service(Db([row(self.A, TEACHING)]), data_dir=tempfile.mkdtemp(), kill=lambda: (False, ""),
+                         log=lambda *a: said.append(" ".join(str(x) for x in a)), bell=None, clock=lambda: 5000.0)
+        self.assertEqual(svc.sweep_stale(force=True), [])
+        self.assertEqual(svc.sweep_stale(force=True), [])
+        self.assertEqual(len([x for x in said if "lesson-stale" in x]), 1)   # said once, not every wake
+        plain = lb.Service(FakeDb([]), data_dir=tempfile.mkdtemp(), kill=lambda: (False, ""), log=lambda *_: None)
+        self.assertEqual(plain.sweep_stale(force=True), [])                  # a db without the method: nothing, quietly
 
     def test_a_build_milestone_notifies_the_id_only(self):
         notes = []
@@ -1444,6 +1500,7 @@ class BellTests(unittest.TestCase):
         src = inspect.getsource(lb.Service.listen_forever)
         self.assertIn("self.bell.flush()", src)
         self.assertIn("self.bell.wait_seconds()", src)
+        self.assertIn("self.sweep_stale()", src)   # DR-0771: the stale alarm rides every wake of the loop
         self.assertIn("Service(None, bell=bell)", inspect.getsource(lb.main))
 
     def test_the_service_rings_a_waiting_row_and_the_sweep_reoffers_never_when_stopped(self):

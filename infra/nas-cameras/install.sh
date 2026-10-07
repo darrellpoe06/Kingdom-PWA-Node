@@ -147,9 +147,21 @@ if [ ! -f "$UNIT" ] || ! cmp -s "$TMPU" "$UNIT"; then
   echo "  unit written"
 fi
 rm -f "$TMPU"
+# THE RUNNING PROCESS MUST FOLLOW THE CODE (2026-10-07, DR-0770 landing).
+# This used to restart the forwarder only when the UNIT changed, so a merge
+# that changed cams_forwarder.py left the OLD process serving: the app's new
+# Wyze sign-in (POST /setup/wyze) answered 404 from the NAS an hour after the
+# merge, with the new file already on disk. The lesson builder's installer
+# had the right pattern all along (a code sha beside the service); same here.
+CODE_SHA="$(sha256sum < "$SRC/cams_forwarder.py" | cut -c1-16)"
+STAMP="$DATA/.forwarder.code.sha"
+if [ "$(cat "$STAMP" 2>/dev/null)" != "$CODE_SHA" ]; then
+  NEED_RESTART=1
+  echo "  forwarder code changed ($CODE_SHA) -- restarting the service so the running process follows the code"
+fi
 $SUDO systemctl enable poetech-cams >/dev/null 2>&1 || true
 if [ "$NEED_RESTART" = "1" ]; then
-  $SUDO systemctl restart poetech-cams
+  $SUDO systemctl restart poetech-cams && echo "$CODE_SHA" | $SUDO tee "$STAMP" >/dev/null
 else
   $SUDO systemctl is-active --quiet poetech-cams || $SUDO systemctl restart poetech-cams || true
 fi

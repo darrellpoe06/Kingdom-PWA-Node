@@ -695,7 +695,10 @@ jobs:
           psql -v ON_ERROR_STOP=1 -q -f scripts/lesson-share-ci-smoke.sql | tee "$RUNNER_TEMP/smoke.txt"
           grep -q 'every wall held' "$RUNNER_TEMP/smoke.txt"
 
-  # EVERY ARRIVAL COUNTED, THE CLOSED-APP HALF, ON A REAL POSTGRESQL (DR-0728).
+  # EVERY ARRIVAL COUNTED, THE CLOSED-APP HALF, ON A REAL POSTGRESQL (DR-0728),
+  # AND THE STALE-ROW ALARM (DR-0771): 0252's sweep alarms exactly the root row
+  # past the first window, once per repeat window, pushes its own person with no
+  # lesson text, and leaves transcripts, young, captured and canary rows alone.
   # 0246 applies twice (idempotent), then the smoke proves: a lesson row gaining
   # `awaiting-review` or `lesson-published` enqueues ONE push_outbox row for its
   # one person (one per teaching per event, keyed lesson:<row>:<event>); an
@@ -722,12 +725,13 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install postgresql-client
         run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client > /dev/null
-      - name: 0246 applies, twice (idempotent), and the enqueue is exactly one per teaching per event
+      - name: 0246 and 0252 apply, twice (idempotent); the enqueue is one per teaching per event; a stale row alarms once per window
         run: |
           set -euo pipefail
           psql -v ON_ERROR_STOP=1 -q -f scripts/curriculum-ci-bootstrap.sql
           psql -v ON_ERROR_STOP=1 -q -f scripts/arrivals-ci-bootstrap.sql
           for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0246-every-arrival-is-counted-a-lesson-ready-or-published-enqueues-a-push.sql; done
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0252-a-lesson-that-waits-too-long-rings-again-and-pushes-its-person.sql; done
           psql -v ON_ERROR_STOP=1 -q -f scripts/arrivals-ci-smoke.sql | tee "$RUNNER_TEMP/smoke.txt"
           grep -q 'every wall held' "$RUNNER_TEMP/smoke.txt"
 

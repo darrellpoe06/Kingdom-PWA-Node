@@ -409,6 +409,10 @@ const NODES = [
       { res: 'db:agent_inbox#lesson-published', token: '"lesson-published"' },
       // DR-0725: the same notification, and each build milestone, rings the lesson inbox bell.
       { res: 'event:lesson-waiting', token: 'BELL_EVENT = "lesson-waiting"' },
+      // DR-0771: a row waiting past the window is alarmed through 0252's sweep: the row
+      // gains stale-alarm@<time> (the bell's new milestone) and its person gets one push.
+      { res: 'db:agent_inbox#stale-alarm', token: 'lesson_inbox_stale_sweep' },
+      { res: 'db:push_outbox', file: 'infra/supabase/migrations-auto/0252-a-lesson-that-waits-too-long-rings-again-and-pushes-its-person.sql', token: 'INSERT INTO public.push_outbox' },
     ],
     seeds: ['learn', 'lesson-inbox', 'lesson-inbox-bell'],
   }),
@@ -452,6 +456,7 @@ const NODES = [
     reads: [
       { res: 'event:lesson-waiting', token: 'types: [lesson-waiting]' },
       { res: 'db:agent_inbox#lesson', file: 'scripts/lesson-inbox-progress.sql', token: 'FROM public.agent_inbox' },
+      { res: 'db:agent_inbox#stale-alarm', file: 'scripts/lesson-inbox-bell.mjs', token: 'staleAlarms' },
       { res: 'db:lesson_versions', file: 'scripts/lesson-builder-versions.sql', token: 'FROM public.lesson_versions' },
     ],
     writes: [{ res: 'gh:lesson-bell', token: 'BELL_PR' }],
