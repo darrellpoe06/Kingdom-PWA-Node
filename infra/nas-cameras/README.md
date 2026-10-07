@@ -118,6 +118,10 @@ it in a URL.
 | `GET /cams/grants` | owner (family bearer) | who has access: `[{id, name, cameras, actions, created, expires, revoked, last_used}]`, never a token or salt (DR-0778) |
 | `POST /cams/grants {name, cameras:"*"\|[ids], days, actions}` | owner | a per-person grant: `{id, token, link_path}`, the token shown this once; the holder's device opens `link_path + token` and sends the token as its bearer from then on |
 | `POST /cams/grants/<id>/revoke` | owner | the holder is out on their next request |
+| `POST /cams/pair` | anyone (throttled) | a six-letter code for a screen with no key: `{code, watch, expires_in, link_path}`; shown as a QR and as letters (DR-0778) |
+| `GET /cams/pair/<code>?w=<watch>` | the screen | `waiting`, or `approved` + the grant token ONCE, or 404 expired |
+| `POST /cams/pair/<code>/approve {name, cameras, days, actions}` | owner | lets the screen in as an ordinary grant |
+| `GET /cams/pair` | owner | the codes waiting |
 | `POST /cams/action {mac, action}` | family bearer, or a grant that includes the doors | one cloud action, no video in the path: `garage` (= `garage_door_trigger`, the Wyze app's own call), `siren_on/off`, `power_on/off`; 429 inside 3 s, 409 offline (DR-0777) |
 | `GET/PUT /cams/recording` | family bearer | which cameras record, their retention, the disk budget, the recorder's status (DR-0775) |
 | `GET /cams/rec/<id>` | family bearer | the camera's clips on disk `[{name, bytes, start}]` |

@@ -33,6 +33,9 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { SectionTitle } from './shared.jsx';
 import { bridgeToken } from '../lib/nas-photos.js';
+import { provisionBridgeToken } from '../lib/bridge-provision.js';
+import { supabase } from '../lib/supabase.js';
+import { QRCodeSVG } from 'qrcode.react';
 import { setReadTarget, clearReadTarget, requestRead } from '../lib/read-target.js';
 import {
   SNAPSHOT_INTERVAL_MS, FETCH_TIMEOUT_MS, LIVE_FIRST_FRAME_TIMEOUT_MS,
@@ -47,6 +50,7 @@ import {
   loadLiveTiles, saveLiveTiles, liveTileBudget, liveTrafficLine,
   fetchDevices, runDeviceAction, setupWyzeAgain, wyzeKept, garagesFor, ACTION_REARM_MS,
   cameraCredential, saveGrantToken, fetchGrants, createGrant, revokeGrant, grantLine, grantState, grantLink, GRANT_DAYS_CHOICES,
+  startPairing, pollPairing, approvePairing, pairLink, readPairParam, stripPairParam, normalizePairCode, PAIR_TIMING,
 } from '../lib/cameras.js';
 
 // THE STEPS CAN BE HEARD (2026-10-07; Darrell: "possible tutorial... Ari
@@ -323,8 +327,9 @@ function AddAgain({ token, onAdded }) {
 // a LINK, shown once: opening it on a phone gives that device access, nothing
 // typed, no password ever handed over. Every grant is listed here with when
 // it was last used; Take back ends it on its next request.
-function AccessPanel({ token, cameras }) {
+function AccessPanel({ token, cameras, onCode }) {
   const [grants, setGrants] = useState(null);
+  const [codeIn, setCodeIn] = useState('');
   const [linkPath, setLinkPath] = useState(undefined);
   const [name, setName] = useState('');
   const [all, setAll] = useState(true);
@@ -370,6 +375,13 @@ function AccessPanel({ token, cameras }) {
         <button type="button" className={`${btnGhost} focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={() => setOpen((v) => !v)} data-testid="access-give-toggle">{open ? 'Hide' : 'Give someone access'}</button>
       </div>
       <p className="text-xs text-[#5A5751] mt-1">Your family and anyone you choose, inside the house or out. You hand them a link, never a password; you take it back here whenever you want, and their link stops that moment.</p>
+      <form className="mt-2 flex items-end gap-2 flex-wrap" onSubmit={(e) => { e.preventDefault(); const c = normalizePairCode(codeIn); if (c && onCode) onCode(c); else setNote('A code is six letters or numbers, as the screen shows it.'); }} data-testid="pair-code-form">
+        <label className="block">
+          <span className={labelCls}>A screen shows a code? Type it</span>
+          <input className={`${inputCls} uppercase tracking-widest w-40`} value={codeIn} onChange={(e) => setCodeIn(e.target.value)} maxLength={8} placeholder="ABC234" aria-label="The six-letter code a screen shows" data-testid="pair-code-input" />
+        </label>
+        <button type="submit" className={`${btnGhost} focus:outline focus:outline-2 focus:outline-[#B85838]`} data-testid="pair-code-go">Let it in</button>
+      </form>
       {open ? (
         <form onSubmit={make} className="mt-3 border-t border-[#E8E4DC] pt-3 grid gap-2" data-testid="access-form" aria-busy={busy}>
           <label className="block">
@@ -429,6 +441,103 @@ function AccessPanel({ token, cameras }) {
         </ul>
       ) : grants ? <p className="text-xs text-[#5A5751] mt-3">Nobody but the family yet.</p> : null}
     </section>
+  );
+}
+
+// THE SCREEN'S SIDE (DR-0778; Darrell, from the Firestick: "use a qrcode to
+// type into the Firestick"). A device with no key asks the NAS for a code,
+// shows it as a QR and as six letters, and polls until the owner's phone lets
+// it in; then it stores the grant and the cameras open. Nothing typed here.
+export function PairScreen({ onPaired }) {
+  const [pair, setPair] = useState(null);
+  const [note, setNote] = useState('');
+  const [left, setLeft] = useState(0);
+  const alive = useRef(true);
+  const begin = useCallback(async () => {
+    setNote('');
+    const r = await startPairing();
+    if (!alive.current) return;
+    if (r.ok) { setPair(r); setLeft(r.expiresIn); } else { setPair(null); setNote(r.message); if (r.retry) setTimeout(() => { if (alive.current) begin(); }, PAIR_TIMING.pollMs); }
+  }, []);
+  useEffect(() => { alive.current = true; begin(); return () => { alive.current = false; }; }, [begin]);
+  useEffect(() => {
+    if (!pair) return undefined;
+    let stop = false;
+    const tick = async () => {
+      if (stop) return;
+      const r = await pollPairing(pair.code, pair.watch);
+      if (stop) return;
+      if (r.status === 'approved') { saveGrantToken(r.token); if (onPaired) onPaired(r.token); return; }
+      if (r.status === 'expired') { setPair(null); setNote('That code ran out. Here is a fresh one.'); begin(); return; }
+      setLeft((n) => Math.max(0, n - PAIR_TIMING.pollMs / 1000));
+      setTimeout(tick, PAIR_TIMING.pollMs);
+    };
+    const t = setTimeout(tick, PAIR_TIMING.pollMs);
+    return () => { stop = true; clearTimeout(t); };
+  }, [pair, begin, onPaired]);
+  const origin = typeof window !== 'undefined' && window.location ? window.location.origin : '';
+  const link = pair ? pairLink(pair.code, origin, pair.linkPath) : '';
+  return (
+    <div className="mt-3 border-t border-[#E8E4DC] pt-3" data-testid="pair-screen">
+      <div className={labelCls}>Let this screen in from your phone</div>
+      <p className="text-xs text-[#5A5751] mt-1 mb-2">Nothing to type here. Scan the code with your phone, or open Cameras on your phone and enter the six letters under Who can see the cameras. The owner approves it there, and this screen opens on its own.</p>
+      {pair ? (
+        <div className="flex items-center gap-5 flex-wrap">
+          <div className="bg-white p-2 inline-block" aria-hidden="true"><QRCodeSVG value={link} size={168} /></div>
+          <div>
+            <div className="text-4xl font-semibold tracking-[0.3em] text-[#1A1815]" data-testid="pair-code" aria-label={`Pairing code ${pair.code.split('').join(' ')}`}>{pair.code}</div>
+            <div className="text-xs text-[#5A5751] mt-1">Waiting for the owner's phone · code good for about {Math.ceil(left / 60)} min</div>
+            <code className="block text-[0.625rem] break-all mt-1 text-[#5A5751]">{link}</code>
+          </div>
+        </div>
+      ) : <p className="text-xs text-[#5A5751]" data-testid="pair-note">{note || 'Asking the NAS for a code...'}</p>}
+      {pair && note ? <p className="text-xs text-[#B85838] mt-1" data-testid="pair-note">{note}</p> : null}
+    </div>
+  );
+}
+
+// THE PHONE'S SIDE: the owner read a code off a screen (by QR or by eye) and
+// lets it in as a grant it can take back later like any other.
+export function ApprovePairing({ code, token, onDone, cameras }) {
+  const [name, setName] = useState('TV');
+  const [doors, setDoors] = useState(false);
+  const [all, setAll] = useState(true);
+  const [picked, setPicked] = useState([]);
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState(null);
+  const go = async (e) => {
+    e.preventDefault();
+    if (busy) return;
+    setBusy(true); setResult(null);
+    const r = await approvePairing(code, { name: name.trim() || 'TV', cameras: all ? '*' : picked, days: 0, actions: doors }, token);
+    setBusy(false); setResult(r);
+    if (r.ok && onDone) onDone(r);
+  };
+  return (
+    <form onSubmit={go} className="mb-4 border border-[#B85838] bg-[#B85838]/5 p-3 grid gap-2" data-testid="approve-pairing" aria-busy={busy}>
+      <div className={labelCls}>A screen is asking to see the cameras · code {code}</div>
+      <p className="text-xs text-[#5A5751]">Let it in and it gets its own access, listed under Who can see the cameras, where you can take it back any time.</p>
+      <label className="block">
+        <span className={labelCls}>What to call it</span>
+        <input className={inputCls} value={name} onChange={(e) => setName(e.target.value)} aria-label="What to call this screen" data-testid="approve-name" disabled={busy} />
+      </label>
+      <div className="flex items-center gap-3 flex-wrap text-sm">
+        <label className="inline-flex items-center gap-1"><input type="radio" name="approve-cams" checked={all} onChange={() => setAll(true)} disabled={busy} /> every camera</label>
+        <label className="inline-flex items-center gap-1"><input type="radio" name="approve-cams" checked={!all} onChange={() => setAll(false)} disabled={busy} /> only these</label>
+      </div>
+      {!all ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 text-sm">
+          {(cameras || []).map((c) => (
+            <label key={c.id} className="inline-flex items-center gap-1 min-h-[36px]"><input type="checkbox" checked={picked.includes(c.id)} onChange={(e) => setPicked((p) => (e.target.checked ? [...p, c.id] : p.filter((x) => x !== c.id)))} disabled={busy} /> {c.name}</label>
+          ))}
+        </div>
+      ) : null}
+      <label className="inline-flex items-center gap-2 text-sm min-h-[36px]"><input type="checkbox" checked={doors} onChange={(e) => setDoors(e.target.checked)} disabled={busy} data-testid="approve-doors" /> The doors too</label>
+      <div className="flex items-center gap-3 flex-wrap">
+        <button type="submit" className={btnDark} disabled={busy || (!all && picked.length === 0)} data-testid="approve-go">{busy ? 'Letting it in…' : 'Let this screen in'}</button>
+        {result ? <span className={`text-sm ${result.ok ? 'text-[#2F6B3A]' : 'text-[#B85838]'}`} role="status" aria-live="polite" data-testid="approve-result">{result.message}</span> : null}
+      </div>
+    </form>
   );
 }
 
@@ -792,10 +901,22 @@ export default function Cameras() {
   // The owner's device holds the family bearer; a device the owner handed a
   // link to holds a grant (DR-0778). Either opens the road; only the owner's
   // changes the NAS (setup, restart, recording, who has access).
+  // THE KEY PROVISIONS ITSELF HERE TOO (2026-10-07; the Firestick on the wall
+  // read "no family key yet" while signed in: DR-0613's RPC was called only by
+  // the Photos, Taxes and Gallery screens, so a device that opened Cameras
+  // first never asked). A signed-in family device asks the moment it lands.
+  const [credTick, setCredTick] = useState(0);
   const cred = cameraCredential({ bridge: bridgeToken() });
   const token = cred.token;
   const isOwner = cred.kind === 'owner';
+  useEffect(() => {
+    if (token) return undefined;
+    let live = true;
+    provisionBridgeToken(supabase).then((r) => { if (live && r === 'provisioned') setCredTick((n) => n + 1); });
+    return () => { live = false; };
+  }, [token, credTick]);
   const [access, setAccess] = useState(null);      // the grant's own description, from /list
+  const [pairCode, setPairCode] = useState(() => (typeof window !== 'undefined' ? readPairParam(window.location) : '')); // a screen's code to approve (DR-0778)
   const [health, setHealth] = useState(null);       // forwarder /health JSON (+status), or {status, error}
   const [list, setList] = useState({ status: 0, cameras: [], at: 0, networkError: false, loaded: false });
   const [frames, setFrames] = useState({});          // id -> {url, at, ms, bytes, error, errorAt}
@@ -951,6 +1072,7 @@ export default function Cameras() {
         </div>
       </div>
       {!isOwner && token ? <AccessChip access={access} onLeave={() => { saveGrantToken(''); try { window.location.reload(); } catch { /* fine */ } }} /> : null}
+      {isOwner && pairCode ? <ApprovePairing code={pairCode} token={token} cameras={list.cameras} onDone={() => { try { stripPairParam(window.location, window.history); } catch { /* fine */ } setTimeout(() => setPairCode(''), 4000); }} /> : null}
       {token && health && health.status ? (
         <div className="mb-3 flex items-center gap-3 flex-wrap">
           {isOwner ? <ServiceRestart token={token} health={health} onDone={load} /> : null}
@@ -973,6 +1095,7 @@ export default function Cameras() {
             Nothing from the cameras is sent to this device until then.
           </p>
           {health && !roadUp ? <p className="text-xs text-[#B85838] mt-2">Separately: the camera road is not answering right now ({health.status || 'no response'}).</p> : null}
+          {roadUp ? <PairScreen onPaired={() => setCredTick((n) => n + 1)} /> : null}
         </div>
       )}
 
@@ -1106,7 +1229,7 @@ export default function Cameras() {
           ))}
 
           {isOwner ? <div className="mb-4"><RecordingPanel token={token} cameras={list.cameras} /></div> : null}
-          {isOwner ? <div className="mb-4"><AccessPanel token={token} cameras={list.cameras} /></div> : null}
+          {isOwner ? <div className="mb-4"><AccessPanel token={token} cameras={list.cameras} onCode={(c) => setPairCode(c)} /></div> : null}
 
           {isOwner ? (
             <div className={card}>

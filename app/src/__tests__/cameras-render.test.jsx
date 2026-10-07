@@ -9,7 +9,7 @@ import { createRoot } from 'react-dom/client';
 import Cameras from '../components/Cameras.jsx';
 import { SURFACES, surfaceById } from '../surfaces.js';
 import { CHAT_BRIDGE_TOKEN_KEY } from '../lib/nas-photos.js';
-import { WYZE_DRAFT_KEY, WALL_KEY, LIVE_RECONNECT_MAX, LIVE_RECONNECT_DELAY_MS, formatBytes, LIVE_TILES_KEY, GRANT_KEY } from '../lib/cameras.js';
+import { WYZE_DRAFT_KEY, WALL_KEY, LIVE_RECONNECT_MAX, LIVE_RECONNECT_DELAY_MS, formatBytes, LIVE_TILES_KEY, GRANT_KEY, PAIR_TIMING } from '../lib/cameras.js';
 import { getReadTarget, subscribeRead } from '../lib/read-target.js';
 
 const TOKEN = 'family-test-token';
@@ -52,6 +52,9 @@ function makeFetch(plan) {
     if (u === '/cams/grants' && (opts.method || 'GET') === 'GET') return jsonResponse(plan.grantsStatus ?? 200, plan.grants ?? { grants: [], link_path: '/poetech-app/?view=cameras&cams-grant=' });
     if (u === '/cams/grants' && opts.method === 'POST') { const b = JSON.parse(opts.body); return jsonResponse(200, { ok: true, id: 'abcdefabcdef', token: 'g.abcdefabcdef.' + '1'.repeat(32), link_path: '/poetech-app/?view=cameras&cams-grant=', grant: { id: 'abcdefabcdef', name: b.name, cameras: b.cameras, actions: b.actions, created: 1, expires: 0, revoked: 0, last_used: 0 } }); }
     if (/^\/cams\/grants\/[a-f0-9]{12}\/revoke$/.test(u)) return jsonResponse(200, { ok: true });
+    if (u === '/cams/pair' && opts.method === 'POST') return jsonResponse(plan.pairStatus ?? 200, plan.pair ?? { code: 'ABC234', watch: 'w'.repeat(32), expires_in: 600, link_path: '/poetech-app/?view=cameras&cams-pair=' });
+    if (/^\/cams\/pair\/[A-Z2-9]{6}\?w=/.test(u)) { plan.polls = (plan.polls || 0) + 1; return plan.pairApproved && plan.polls >= plan.pairApproved ? jsonResponse(200, { status: 'approved', token: 'g.abcdefabcdef.' + '4'.repeat(32) }) : jsonResponse(200, { status: 'waiting' }); }
+    if (/^\/cams\/pair\/[A-Z2-9]{6}\/approve$/.test(u)) { plan.approved = JSON.parse(opts.body); return jsonResponse(plan.approveStatus ?? 200, plan.approve ?? { ok: true, grant: { id: 'abcdefabcdef', name: JSON.parse(opts.body).name } }); }
     return jsonResponse(404, { error: 'not-found' });
   });
   return { fetchImpl, calls };
@@ -638,6 +641,65 @@ describe('Cameras surface', () => {
     await act(async () => { await new Promise((r) => setTimeout(r, 10)); });
     expect(container.querySelector('[data-testid="grant-ended"]').textContent).toMatch(/This access has ended/);
     try { localStorage.removeItem(GRANT_KEY); } catch { /* fine */ }
+  });
+
+  it('a screen with no key shows a six-letter code and a QR, polls the NAS, and opens the cameras when the owner lets it in (DR-0778, the Firestick)', async () => {
+    try { localStorage.removeItem(CHAT_BRIDGE_TOKEN_KEY); localStorage.removeItem(GRANT_KEY); } catch { /* fine */ }
+    const plan = { pairApproved: 2, list: { cameras: [{ id: 'front_yard', name: 'front yard', kind: 'wyze' }], count: 1, access: { name: 'TV', expires: 0, actions: false } } };
+    const { fetchImpl, calls } = makeFetch(plan);
+    vi.stubGlobal('fetch', fetchImpl);
+    PAIR_TIMING.pollMs = 25;
+    try {
+      await mount();
+      await act(async () => { await new Promise((r) => setTimeout(r, 15)); });
+      expect(container.textContent).toMatch(/This device has no family key yet/);
+      expect(container.querySelector('[data-testid="pair-code"]').textContent).toBe('ABC234');
+      expect(container.querySelector('[data-testid="pair-screen"] svg')).toBeTruthy();
+      expect(container.textContent).toMatch(/\/poetech-app\/\?view=cameras&cams-pair=ABC234/);
+      expect(calls.filter((c) => c.url === '/cams/pair' && c.opts.method === 'POST')).toHaveLength(1);
+      expect(calls.filter((c) => c.url.startsWith('/cams/snap/') || c.url === '/cams/list')).toHaveLength(0);
+      await act(async () => { await new Promise((r) => setTimeout(r, 120)); });
+      expect(plan.polls).toBeGreaterThanOrEqual(2);
+      expect(localStorage.getItem(GRANT_KEY)).toBe('g.abcdefabcdef.' + '4'.repeat(32));
+      await act(async () => { await new Promise((r) => setTimeout(r, 30)); });
+      const list = calls.find((c) => c.url === '/cams/list');
+      expect(list && list.opts.headers.Authorization).toBe('Bearer g.abcdefabcdef.' + '4'.repeat(32));
+      expect(container.querySelector('[data-testid="pair-screen"]')).toBeNull();
+    } finally {
+      PAIR_TIMING.pollMs = 3000;
+      try { localStorage.removeItem(GRANT_KEY); } catch { /* fine */ }
+    }
+  });
+
+  it('the owner\'s phone opens the screen\'s QR link (?cams-pair=) and lets it in as a grant; a code can also be typed under Who can see the cameras', async () => {
+    const plan = { list: { cameras: [{ id: 'front_yard', name: 'front yard', kind: 'wyze' }], count: 1 } };
+    const { fetchImpl, calls } = makeFetch(plan);
+    vi.stubGlobal('fetch', fetchImpl);
+    window.history.replaceState(null, '', '/poetech-app/?view=cameras&cams-pair=abc234');
+    try {
+      await mount();
+      await act(async () => { await new Promise((r) => setTimeout(r, 10)); });
+      const form = container.querySelector('[data-testid="approve-pairing"]');
+      expect(form).toBeTruthy();
+      expect(form.textContent).toMatch(/code ABC234/);
+      await act(async () => { container.querySelector('[data-testid="approve-doors"]').click(); });
+      await act(async () => { form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); });
+      await act(async () => { await new Promise((r) => setTimeout(r, 10)); });
+      const approve = calls.find((c) => /\/cams\/pair\/ABC234\/approve$/.test(c.url));
+      expect(approve).toBeTruthy();
+      expect(approve.opts.headers.Authorization).toBe(`Bearer ${TOKEN}`);
+      expect(plan.approved).toEqual({ name: 'TV', cameras: '*', days: 0, actions: true });
+      expect(container.querySelector('[data-testid="approve-result"]').textContent).toMatch(/Done\. The screen has its access as TV/);
+      expect(window.location.search).not.toMatch(/cams-pair/);
+      // typing a code by eye
+      const input = container.querySelector('[data-testid="pair-code-input"]');
+      await act(async () => { const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set; setter.call(input, 'xyz789'); input.dispatchEvent(new Event('input', { bubbles: true })); });
+      await act(async () => { container.querySelector('[data-testid="pair-code-form"]').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); });
+      await act(async () => { await new Promise((r) => setTimeout(r, 10)); });
+      expect([...container.querySelectorAll('[data-testid="approve-pairing"]')].some((f) => /code XYZ789/.test(f.textContent))).toBe(true);
+    } finally {
+      window.history.replaceState(null, '', '/');
+    }
   });
 
   it('is registered as a family-only, hidden-when-denied top-level surface', () => {

@@ -20,6 +20,7 @@ import {
   LIVE_TILES_KEY, loadLiveTiles, saveLiveTiles, liveTileBudget, liveTrafficLine,
   streamNameFor, parseDevices, classifyDevicesResult, classifyActionResult, fetchDevices, runDeviceAction, setupWyzeAgain, garagesFor, wyzeKept,
   GRANT_KEY, GRANT_DAYS_CHOICES, adoptGrantFromUrl, grantToken, saveGrantToken, cameraCredential, parseGrants, grantState, grantLine, grantLink, fetchGrants, createGrant, revokeGrant,
+  normalizePairCode, readPairParam, pairLink, startPairing, pollPairing, approvePairing, PAIR_POLL_MS,
 } from '../lib/cameras.js';
 
 describe('the road: every URL is same-origin under /cams', () => {
@@ -622,5 +623,44 @@ describe('access grants: the link on the device, the credential, the owner\'s li
     expect((await createGrant({ name: 'x' }, 'tok', async () => ({ status: 401, json: async () => ({}) }))).message).toMatch(/Only the owner/);
     expect((await revokeGrant('zz', 'tok', async () => ({ status: 404, json: async () => ({}) }))).message).toMatch(/not found/);
     expect((await revokeGrant('a', 'tok', async () => { throw new TypeError('x'); })).message).toMatch(/did not answer/);
+  });
+});
+
+// DR-0778: a screen pairs with the owner's phone by a code.
+describe('screen pairing: the code, the QR link, the poll, the approval', () => {
+  it('normalizes a code read off a TV: case, spaces, and the letters the alphabet left out', () => {
+    expect(normalizePairCode(' abc 234 ')).toBe('ABC234');
+    expect(normalizePairCode('abc2340')).toBe('');
+    expect(normalizePairCode('ab')).toBe('');
+    expect(readPairParam({ href: 'https://poetech.us/poetech-app/?view=cameras&cams-pair=xyz789' })).toBe('XYZ789');
+    expect(readPairParam({ href: 'https://poetech.us/poetech-app/?view=cameras' })).toBe('');
+    expect(pairLink('ABC234', 'https://poetech.us')).toBe('https://poetech.us/poetech-app/?view=cameras&cams-pair=ABC234');
+    expect(PAIR_POLL_MS).toBe(3000);
+  });
+  it('startPairing / pollPairing / approvePairing speak to the forwarder and say every state', async () => {
+    const calls = [];
+    const f = async (url, opts = {}) => {
+      calls.push({ url, opts });
+      if (url === '/cams/pair') return { status: 200, json: async () => ({ code: 'ABC234', watch: 'w'.repeat(32), expires_in: 600, link_path: '/poetech-app/?view=cameras&cams-pair=' }) };
+      if (url.startsWith('/cams/pair/ABC234?w=')) return { status: 200, json: async () => ({ status: 'approved', token: 'g.abcdefabcdef.' + '5'.repeat(32) }) };
+      if (url === '/cams/pair/ABC234/approve') return { status: 200, json: async () => ({ ok: true, grant: { id: 'x', name: 'TV' } }) };
+      return { status: 404, json: async () => ({}) };
+    };
+    const st = await startPairing(f);
+    expect(st).toMatchObject({ ok: true, code: 'ABC234', expiresIn: 600 });
+    expect(calls[0].opts.method).toBe('POST');
+    expect(calls[0].opts.headers).toBeUndefined(); // no key on the screen
+    const pl = await pollPairing('ABC234', 'w'.repeat(32), f);
+    expect(pl).toEqual({ status: 'approved', token: 'g.abcdefabcdef.' + '5'.repeat(32) });
+    const ap = await approvePairing('ABC234', { name: 'TV', actions: true }, 'tok', f);
+    expect(ap.ok).toBe(true);
+    expect(JSON.parse(calls[2].opts.body)).toEqual({ name: 'TV', cameras: '*', days: 0, actions: true });
+    expect(calls[2].opts.headers.Authorization).toBe('Bearer tok');
+    expect((await startPairing(async () => ({ status: 429, json: async () => ({ error: 'pair-too-soon' }) }))).retry).toBe(true);
+    expect((await startPairing(async () => ({ status: 404, json: async () => ({}) }))).message).toMatch(/older camera service/);
+    expect((await pollPairing('ABC234', 'w', async () => ({ status: 404, json: async () => ({ status: 'expired' }) }))).status).toBe('expired');
+    expect((await pollPairing('ABC234', 'w', async () => ({ status: 200, json: async () => ({ status: 'waiting' }) }))).status).toBe('waiting');
+    expect((await approvePairing('ABC234', { name: 'TV' }, 'tok', async () => ({ status: 404, json: async () => ({ error: 'no-such-code' }) }))).message).toMatch(/not waiting/);
+    expect((await approvePairing('ABC234', { name: 'TV' }, 'tok', async () => { throw new TypeError('x'); })).message).toMatch(/Nothing was approved/);
   });
 });

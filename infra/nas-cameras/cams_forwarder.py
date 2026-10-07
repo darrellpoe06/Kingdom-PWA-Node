@@ -99,6 +99,15 @@
 #   POST /grants {name, cameras:"*"|[ids], days, actions}  owner. {id, token,
 #        link_path} -- the only time the token is shown; the app makes the link.
 #   POST /grants/<id>/revoke           owner. The holder is out on the next request.
+#   POST /pair                         open, throttled. A SCREEN with no key asks
+#        for a six-letter code: {code, watch, expires_in, link_path}. It shows
+#        the code as a QR (link_path + code) and polls GET /pair/<code>?w=watch
+#        ("waiting" | "approved" + the grant token, ONCE | 404 expired). The
+#        owner's phone opens the QR or types the code and POST
+#        /pair/<code>/approve {name, cameras, days, actions} (owner) mints the
+#        grant the screen receives. GET /pair (owner) lists the codes waiting.
+#        Nothing is typed on the TV (Darrell: "use a qrcode to type into the
+#        Firestick"). Codes live PAIR_TTL_SECONDS in memory. DR-0778.
 #   GET  /snap/<id>.jpg?w=&h=          bearer OR ticket. One JPEG frame. On a
 #        miss the JSON names the cause: frame-timeout (504, after_s), no-frame
 #        (go2rtc's status + its scrubbed detail), go2rtc-unreachable (502), or
@@ -478,6 +487,79 @@ def grant_public(gid, rec):
     return {k: rec.get(k) for k in ("name", "cameras", "actions", "created", "expires", "revoked", "last_used")} | {"id": gid} if sys.version_info >= (3, 9) else dict({k: rec.get(k) for k in ("name", "cameras", "actions", "created", "expires", "revoked", "last_used")}, id=gid)
 
 
+# --- pairing a screen with the owner's phone (DR-0778; Darrell: "I also would
+# like to use a qrcode to type into the Firestick"). The screen asks for a
+# CODE (no key needed), shows it as a QR and as six letters, and polls with a
+# private watch token. The owner's phone opens the QR (or types the code),
+# approves it as a grant, and the next poll hands the screen its grant ONCE.
+# Pending codes live in memory for PAIR_TTL_SECONDS; nothing is written until
+# the owner approves, and then only the grant record (above).
+PAIR_TTL_SECONDS = float(os.environ.get("CAMS_PAIR_TTL", "600"))
+PAIR_MIN_INTERVAL = float(os.environ.get("CAMS_PAIR_MIN_INTERVAL", "2"))  # new codes per process, at most one per this many seconds
+PAIR_MAX_PENDING = 50
+PAIR_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"  # no 0/O/1/I: read off a TV across a room
+PAIR_CODE = re.compile(r"^[A-Z2-9]{6}$")
+PAIR_LINK_PATH = "/poetech-app/?view=cameras&cams-pair="
+PAIR_LOCK = threading.Lock()
+PAIRINGS = {}  # code -> {"watch", "created", "expires", "token", "grant"}
+PAIR_STATE = {"last": 0.0}
+
+
+def pair_sweep(now):
+    for code in [c for c, p in PAIRINGS.items() if now >= p["expires"]]:
+        PAIRINGS.pop(code, None)
+
+
+def pair_start(now):
+    """A new code for a screen -> (code, watch, expires_in) or None when throttled."""
+    with PAIR_LOCK:
+        pair_sweep(now)
+        if now - PAIR_STATE["last"] < PAIR_MIN_INTERVAL or len(PAIRINGS) >= PAIR_MAX_PENDING:
+            return None
+        PAIR_STATE["last"] = now
+        rnd = os.urandom(6)
+        code = "".join(PAIR_ALPHABET[b % len(PAIR_ALPHABET)] for b in rnd)
+        while code in PAIRINGS:
+            code = "".join(PAIR_ALPHABET[b % len(PAIR_ALPHABET)] for b in os.urandom(6))
+        watch = hashlib.sha256(os.urandom(16)).hexdigest()[:32]
+        PAIRINGS[code] = {"watch": watch, "created": now, "expires": now + PAIR_TTL_SECONDS, "token": None, "grant": None}
+        return code, watch, int(PAIR_TTL_SECONDS)
+
+
+def pair_poll(code, watch, now):
+    """The screen's poll -> ("waiting"|"approved"|"expired", token-or-None). An
+    approved pairing is handed over ONCE and forgotten."""
+    with PAIR_LOCK:
+        pair_sweep(now)
+        p = PAIRINGS.get(code)
+        if not p or not hmac.compare_digest(str(watch or ""), p["watch"]):
+            return "expired", None
+        if p["token"]:
+            PAIRINGS.pop(code, None)
+            return "approved", p["token"]
+        return "waiting", None
+
+
+def pair_approve(code, token, grant_public_rec, now):
+    """The owner's approval: the grant waits for the screen's next poll."""
+    with PAIR_LOCK:
+        pair_sweep(now)
+        p = PAIRINGS.get(code)
+        if not p:
+            return False
+        if p["token"]:
+            return False  # already approved once
+        p["token"] = token
+        p["grant"] = grant_public_rec
+        return True
+
+
+def pair_pending(now):
+    with PAIR_LOCK:
+        pair_sweep(now)
+        return sorted([{"code": c, "created": int(p["created"]), "expires": int(p["expires"]), "approved": bool(p["token"])} for c, p in PAIRINGS.items()], key=lambda x: x["created"])
+
+
 def grants_list(path=None):
     doc = grants_load(path)
     out = [grant_public(gid, rec) for gid, rec in doc["grants"].items() if isinstance(rec, dict)]
@@ -845,6 +927,20 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
                     return self._json(401, {"error": "unauthorized"})
                 return self._json(200, {"grants": grants_list(grants_path), "link_path": GRANT_LINK_PATH})
 
+            if path == "/pair":
+                if not self._authed():
+                    return self._json(401, {"error": "unauthorized"})
+                return self._json(200, {"pending": pair_pending(now_fn()), "link_path": PAIR_LINK_PATH})
+
+            pm = re.match(r"^/pair/([A-Z2-9]{6})$", path)
+            if pm:
+                w = urllib.parse.parse_qs(query).get("w", [""])[0]
+                status, tok = pair_poll(pm.group(1), w, now_fn())
+                out = {"status": status}
+                if tok:
+                    out["token"] = tok
+                return self._json(200 if status != "expired" else 404, out)
+
             if path == "/recording":
                 if not self._authed():
                     return self._json(401, {"error": "unauthorized"})
@@ -946,6 +1042,43 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
         def do_POST(self):
             raw_path, _, _query = self.path.partition("?")
             path = strip_prefix(raw_path)
+            if path == "/pair":
+                # The screen asks for a code. No key needed: the code opens nothing
+                # until the owner approves it, and it dies in PAIR_TTL_SECONDS.
+                started = pair_start(now_fn())
+                if not started:
+                    return self._json(429, {"error": "pair-too-soon", "retry_in": int(PAIR_MIN_INTERVAL) + 1})
+                code, watch, ttl = started
+                return self._json(200, {"code": code, "watch": watch, "expires_in": ttl, "link_path": PAIR_LINK_PATH})
+            pam = re.match(r"^/pair/([A-Z2-9]{6})/approve$", path)
+            if pam:
+                if not self._authed():
+                    return self._json(401, {"error": "unauthorized"})
+                try:
+                    length = int(self.headers.get("Content-Length") or 0)
+                except ValueError:
+                    length = 0
+                body = {}
+                if 0 < length <= MAX_BODY:
+                    try:
+                        body = json.loads(self.rfile.read(length).decode("utf-8"))
+                    except (ValueError, UnicodeDecodeError):
+                        return self._json(400, {"error": "bad-json"})
+                if not isinstance(body, dict):
+                    body = {}
+                body.setdefault("name", "A screen (%s)" % pam.group(1))
+                fields, err = grant_normalize(body)
+                if err:
+                    return self._json(400, {"error": err})
+                with PAIR_LOCK:
+                    pending = pam.group(1) in PAIRINGS and not PAIRINGS[pam.group(1)]["token"] and now_fn() < PAIRINGS[pam.group(1)]["expires"]
+                if not pending:
+                    return self._json(404, {"error": "no-such-code", "detail": "the code expired, was already used, or was never shown; ask the screen for a new one"})
+                gid, tok, rec = grant_mint(token, fields, now_fn(), grants_path)
+                if not pair_approve(pam.group(1), tok, grant_public(gid, rec), now_fn()):
+                    grant_revoke(gid, now_fn(), grants_path)
+                    return self._json(404, {"error": "no-such-code"})
+                return self._json(200, {"ok": True, "grant": grant_public(gid, rec)})
             gm = re.match(r"^/grants/([a-f0-9]{12})/revoke$", path)
             if gm:
                 if not self._authed():
@@ -1078,13 +1211,18 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
                     existing = set()
                 out = []
                 added = 0
+                persisted = 0
                 for cam in cams:
                     slug = stream_name_for(cam["name"], set())
-                    if slug in existing:
-                        # Already registered (a re-run): left exactly as it is.
-                        out.append({"id": slug, "name": cam["name"], "model": cam["model"], "dtls": cam["dtls"], "registered": True, "existing": True})
-                        continue
-                    name = stream_name_for(cam["name"], existing)
+                    was_there = slug in existing
+                    # ALWAYS PUT, even for a camera go2rtc already lists (DR-0779).
+                    # Measured 2026-10-07 (cams-diag run 37625766143): go2rtc's own
+                    # /api/wyze registers the cameras IN MEMORY as it lists them, so
+                    # every one read as "existing" here, this PUT was skipped, and
+                    # go2rtc.yaml kept `streams: {}` -- the 07:31 CDT container
+                    # recreate came back with zero cameras. PUT /api/streams is the
+                    # call that writes the config (app.PatchConfig); it is idempotent.
+                    name = slug if was_there else stream_name_for(cam["name"], existing)
                     q = urllib.parse.urlencode([("name", name), ("src", cam["url"])])
                     put = urllib.request.Request(upstream + "/api/streams?" + q, method="PUT")
                     ok = True
@@ -1094,11 +1232,13 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
                     except (urllib.error.HTTPError, urllib.error.URLError, OSError):
                         ok = False
                     if ok:
-                        existing.add(name)
-                        added += 1
-                    out.append({"id": name, "name": cam["name"], "model": cam["model"], "dtls": cam["dtls"], "registered": ok, "existing": False})
+                        persisted += 1
+                        if not was_there:
+                            existing.add(name)
+                            added += 1
+                    out.append({"id": name, "name": cam["name"], "model": cam["model"], "dtls": cam["dtls"], "registered": ok or was_there, "existing": was_there, "persisted": ok})
                 # The source URLs (they carry the camera's enr secret) never leave this process.
-                return self._json(200, {"ok": True, "added": added, "cameras": out, "again": again})
+                return self._json(200, {"ok": True, "added": added, "persisted": persisted, "cameras": out, "again": again})
             finally:
                 SETUP_LOCK.release()
 
@@ -1799,7 +1939,7 @@ def _selftest():
     ids = [c["id"] for c in j.get("cameras", [])]
     check(ids == ["front_yard", "garage_cam"], "cameras are answered by their stream ids (%r)" % ids)
     check(j.get("added") == 1 and j["cameras"][0].get("existing") is True and j["cameras"][1].get("registered") is True, "a camera already registered is left as it is; the new one is added (idempotent re-run)")
-    check(seen.get("puts") == [("garage_cam", "wyze://192.168.1.51?uid=DEF&enr=ENRSECRET2&mac=CC:DD&model=WYZEC1-JZ")], "exactly the new camera is PUT to go2rtc with its exact source url")
+    check(("garage_cam", "wyze://192.168.1.51?uid=DEF&enr=ENRSECRET2&mac=CC:DD&model=WYZEC1-JZ") in seen["puts"] and ("front_yard", "wyze://192.168.1.50?uid=ABC&enr=ENRSECRET&mac=AA:BB&model=HL_CAM4&dtls=true") in seen["puts"] and len(seen["puts"]) == 2, "every camera is PUT to go2rtc with its exact source url -- the new one AND the one already in memory, so the config on disk carries both (DR-0779)")
     check(b"ENRSECRET" not in d and b"wyze://" not in d and b"pw-secret" not in d and b"key-secret" not in d, "no source url, enr, password or api key leaves in the answer")
     check(j["cameras"][0].get("dtls") is True and j["cameras"][1].get("dtls") is False and j["cameras"][1].get("model") == "WYZEC1-JZ", "dtls and model are reported so the app can say which units the restreamer supports")
     SETUP_LOCK.acquire()
@@ -1996,7 +2136,8 @@ def _selftest():
     forms_before = dict(seen.get("wyze_form") or {})
     s, _h, d = call("POST", "/setup/wyze/again", auth=B)
     j = json.loads(d.decode("utf-8"))
-    check(s == 200 and j["ok"] and j.get("again") is True and len(j["cameras"]) == 2 and all(c["existing"] or c["registered"] for c in j["cameras"]), "the re-add signs in with the KEPT values: a camera still in go2rtc is left as it is, a missing one is registered again (nothing lost, nothing typed) (%r)" % [(c["id"], c["existing"]) for c in j["cameras"]])
+    check(s == 200 and j["ok"] and j.get("again") is True and len(j["cameras"]) == 2 and all(c["existing"] or c["registered"] for c in j["cameras"]), "the re-add signs in with the KEPT values: a camera still in go2rtc is kept, a missing one is registered again (nothing lost, nothing typed) (%r)" % [(c["id"], c["existing"]) for c in j["cameras"]])
+    check(j["persisted"] == 2 and ("front_yard", "wyze://192.168.1.50?uid=ABC&enr=ENRSECRET&mac=AA:BB&model=HL_CAM4&dtls=true") in seen["puts"], "a camera go2rtc already lists is PUT anyway, so the config on disk carries it (DR-0779: the 07:31 loss)")
     check(seen["wyze_form"]["email"] == "d@example.com" and seen["wyze_form"]["password"] == "pw-secret" and forms_before != {} , "go2rtc received the kept sign-in, not an empty form")
     check(len(persisted) == kept_n, "a re-add from the kept values writes the secrets file again: never (still %d)" % len(persisted))
     heal["creds"] = None
@@ -2107,6 +2248,51 @@ def _selftest():
     check(grant_check("", ga["token"], clock["now"], gp) is None, "an empty secret admits nobody")
     s, _h, d = call("GET", "/grants", auth=B)
     check(any(g["last_used"] > 0 for g in json.loads(d.decode("utf-8"))["grants"]), "the owner sees when a grant was last used")
+
+    print("=== 8i. a screen pairs with the owner's phone by a code (DR-0778): no key typed on the TV ===")
+    PAIR_STATE["last"] = 0.0
+    s, _h, d = call("POST", "/pair")
+    pj = json.loads(d.decode("utf-8"))
+    check(s == 200 and PAIR_CODE.match(pj.get("code", "")) and len(pj.get("watch", "")) == 32 and pj["expires_in"] == int(PAIR_TTL_SECONDS) and pj["link_path"] == PAIR_LINK_PATH, "a screen with no key asks for a code and gets six readable letters, a private watch token, and the link path for the QR (%r)" % pj.get("code"))
+    s, _h, d = call("POST", "/pair")
+    check(s == 429 and b"pair-too-soon" in d, "a second code inside the throttle is refused (nobody floods the table)")
+    code, watch = pj["code"], pj["watch"]
+    s, _h, d = call("GET", "/pair/%s?w=%s" % (code, watch))
+    check(s == 200 and json.loads(d.decode("utf-8")) == {"status": "waiting"}, "the screen polls: waiting")
+    s, _h, d = call("GET", "/pair/%s?w=%s" % (code, "0" * 32))
+    check(s == 404, "a poll without the screen's own watch token learns nothing")
+    s, _h, d = call("GET", "/pair/ZZZZZZ?w=" + watch)
+    check(s == 404, "an unknown code is expired")
+    s, _h, d = call("GET", "/pair")
+    check(s == 401, "the pending list needs the owner")
+    s, _h, d = call("GET", "/pair", auth=B)
+    check(s == 200 and [p["code"] for p in json.loads(d.decode("utf-8"))["pending"]] == [code], "the owner sees the code that is waiting")
+    s, _h, d = call("POST", "/pair/%s/approve" % code, json.dumps({"name": "Living room TV"}).encode())
+    check(s == 401, "approving needs the owner's bearer")
+    s, _h, d = call("POST", "/pair/%s/approve" % code, json.dumps({"name": "Living room TV"}).encode(), auth="Bearer " + ga["token"])
+    check(s == 401, "a grant holder cannot approve a screen")
+    s, _h, d = call("POST", "/pair/ABCDEF/approve", json.dumps({"name": "x"}).encode(), auth=B)
+    check(s == 404 and b"no-such-code" in d, "approving a code that was never shown -> 404")
+    gl_before = len(grants_list(gp))
+    s, _h, d = call("POST", "/pair/%s/approve" % code, json.dumps({"name": "Living room TV", "cameras": "*", "days": 0, "actions": False}).encode(), auth=B)
+    aj = json.loads(d.decode("utf-8"))
+    check(s == 200 and aj["ok"] and aj["grant"]["name"] == "Living room TV" and "token" not in aj and len(grants_list(gp)) == gl_before + 1, "the owner approves: a grant is made and listed; the phone never sees the token (the screen gets it)")
+    s, _h, d = call("POST", "/pair/%s/approve" % code, json.dumps({"name": "again"}).encode(), auth=B)
+    check(s == 404, "a code is approved once")
+    s, _h, d = call("GET", "/pair/%s?w=%s" % (code, watch))
+    hj = json.loads(d.decode("utf-8"))
+    check(s == 200 and hj["status"] == "approved" and GRANT_TOKEN.match(hj.get("token", "")), "the screen's next poll hands it the grant")
+    s, _h, d = call("GET", "/list", auth="Bearer " + hj["token"])
+    check(s == 200 and json.loads(d.decode("utf-8"))["access"]["name"] == "Living room TV", "...and the screen opens the cameras with it, nothing typed on the TV")
+    s, _h, d = call("GET", "/pair/%s?w=%s" % (code, watch))
+    check(s == 404, "the token is handed over ONCE; the code is gone")
+    PAIR_STATE["last"] = 0.0
+    s, _h, d = call("POST", "/pair")
+    pj2 = json.loads(d.decode("utf-8"))
+    clock["now"] += PAIR_TTL_SECONDS + 1
+    s, _h, d = call("GET", "/pair/%s?w=%s" % (pj2["code"], pj2["watch"]))
+    check(s == 404, "a code nobody approved dies on the clock")
+    clock["now"] -= PAIR_TTL_SECONDS + 1
 
     print("=== 9. a DARK go2rtc reads as 502 everywhere, never as this process's own 200 ===")
     fake.shutdown(); fake.server_close()

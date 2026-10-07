@@ -871,3 +871,87 @@ export async function revokeGrant(id, token, fetchImpl = globalThis.fetch) {
     return { ok: false, message: 'The camera road did not answer. Nothing changed.' };
   }
 }
+
+// =============================================================================
+// A SCREEN PAIRS WITH THE OWNER'S PHONE (DR-0778; Darrell 2026-10-07, from the
+// Firestick on the wall: "Even after logging into my PoeTech App on my
+// Firestick... I have to log in.... I hate that!!! Fix it.... I also would
+// like to use a qrcode to type into the Firestick"). The screen asks the NAS
+// for a six-letter code, shows it as a QR and as letters, and polls. The
+// owner opens the QR with the phone (or types the code into the Cameras tab)
+// and approves it as a grant; the screen's next poll hands it the grant and
+// the cameras open. Nothing is typed on the TV, ever.
+// =============================================================================
+export const PAIR_PARAM = 'cams-pair';
+export const PAIR_CODE = /^[A-Z2-9]{6}$/;
+export const PAIR_POLL_MS = 3000;
+// The screen's poll cadence, readable at call time so a test can run it fast.
+export const PAIR_TIMING = { pollMs: PAIR_POLL_MS };
+export function pairUrl() { return `${CAMS_BASE}/pair`; }
+export function pairStatusUrl(code, watch) { return `${CAMS_BASE}/pair/${encodeURIComponent(code)}?w=${encodeURIComponent(watch || '')}`; }
+export function pairApproveUrl(code) { return `${CAMS_BASE}/pair/${encodeURIComponent(code)}/approve`; }
+export function pairLink(code, origin = '', linkPath = '/poetech-app/?view=cameras&cams-pair=') { return `${origin}${linkPath}${encodeURIComponent(code)}`; }
+export function normalizePairCode(raw) {
+  const c = String(raw || '').toUpperCase().replace(/[^A-Z0-9]/g, '').replace(/0/g, 'O').replace(/1/g, 'I');
+  // 0/O and 1/I are not in the alphabet; a person reading a TV may still type them
+  const fixed = c.replace(/O/g, '0').replace(/I/g, '1').replace(/0/g, 'O').replace(/1/g, 'I');
+  return PAIR_CODE.test(fixed) ? fixed : '';
+}
+export function readPairParam(location) {
+  try {
+    const url = new URL(String(location && location.href ? location.href : location));
+    return normalizePairCode(url.searchParams.get(PAIR_PARAM) || '');
+  } catch { return ''; }
+}
+export function stripPairParam(location, history = null) {
+  try {
+    const url = new URL(String(location && location.href ? location.href : location));
+    if (!url.searchParams.has(PAIR_PARAM)) return;
+    url.searchParams.delete(PAIR_PARAM);
+    if (history && typeof history.replaceState === 'function') history.replaceState(null, '', url.pathname + (url.search || '') + url.hash);
+  } catch { /* fine */ }
+}
+
+export async function startPairing(fetchImpl = globalThis.fetch) {
+  try {
+    const r = await fetchWithTimeout(pairUrl(), { method: 'POST' }, FETCH_TIMEOUT_MS, fetchImpl);
+    let body = null;
+    try { body = await r.json(); } catch { body = null; }
+    if (r.status === 200 && body && PAIR_CODE.test(String(body.code || ''))) return { ok: true, code: body.code, watch: String(body.watch || ''), expiresIn: Number(body.expires_in) || 600, linkPath: typeof body.link_path === 'string' ? body.link_path : undefined };
+    if (r.status === 429) return { ok: false, retry: true, message: 'The NAS is handing out codes as fast as it will; trying again in a moment.' };
+    if (r.status === 404) return { ok: false, message: 'The NAS is running an older camera service that cannot pair a screen yet. It updates itself within 15 minutes of a merge.' };
+    return { ok: false, message: `The camera road answered HTTP ${r.status}.` };
+  } catch {
+    return { ok: false, message: 'The camera road did not answer.' };
+  }
+}
+
+export async function pollPairing(code, watch, fetchImpl = globalThis.fetch) {
+  try {
+    const r = await fetchWithTimeout(pairStatusUrl(code, watch), {}, FETCH_TIMEOUT_MS, fetchImpl);
+    let body = null;
+    try { body = await r.json(); } catch { body = null; }
+    if (r.status === 200 && body && body.status === 'approved' && GRANT_TOKEN.test(String(body.token || ''))) return { status: 'approved', token: body.token };
+    if (r.status === 200 && body && body.status === 'waiting') return { status: 'waiting' };
+    if (r.status === 404) return { status: 'expired' };
+    return { status: 'error' };
+  } catch {
+    return { status: 'error' };
+  }
+}
+
+export async function approvePairing(code, { name, cameras = '*', days = 0, actions = false }, token, fetchImpl = globalThis.fetch) {
+  try {
+    const r = await fetchWithTimeout(pairApproveUrl(code), { method: 'POST', headers: { ...authHeaders(token), 'Content-Type': 'application/json' }, body: JSON.stringify({ name, cameras, days, actions }) }, FETCH_TIMEOUT_MS, fetchImpl);
+    let body = null;
+    try { body = await r.json(); } catch { body = null; }
+    const err = body && typeof body.error === 'string' ? body.error : '';
+    if (r.status === 200 && body && body.ok) return { ok: true, message: `Done. The screen has its access as ${name}; it opens on its own within a few seconds.` };
+    if (r.status === 404) return { ok: false, message: 'That code is not waiting: it expired, was already used, or was mistyped. Ask the screen for a fresh one.' };
+    if (r.status === 401) return { ok: false, message: 'Only the owner\'s device can let a screen in.' };
+    if (r.status === 400) return { ok: false, message: `The NAS refused it (${err || 'bad request'}).` };
+    return { ok: false, message: `The camera road answered HTTP ${r.status}${err ? ` (${err})` : ''}.` };
+  } catch {
+    return { ok: false, message: 'The camera road did not answer. Nothing was approved.' };
+  }
+}
