@@ -42,6 +42,12 @@ Proven to catch: a counting backend fails the suite if a `put` scans again or an
 - The Firestick's own numbers are not in hand yet: the measurement ships with this record and the next reading on the TV writes them into the panel's last-trip line. re-review 2026-10-14: read that line (or the feedback it rides with) and close or re-aim.
 - The joined-file step (DR-0718) still decodes on the main thread once per reading when every piece is on the device; it is a single stall, not a growing one. re-review 2026-10-21 against the measured waits.
 
+## Verification after merge
+
+- The counting-backend suite `the-reader-does-not-slow-down-over-time.test.js` (12) and `voice-clips-kept-on-device.test.js` (9) green on the merged head; the CI pin of `AHEAD_CONCURRENCY` to `VOICE_LITE_MAX_INFLIGHT` holds.
+- On the Firestick: read a long lesson to the end in the NAS voice; the Read Aloud panel's last-trip line now ends with the waits between sentences (typical, longest and where, how many fetched while waiting). That line is the measurement this record was missing.
+- re-review 2026-10-14: read that line (or the feedback it rides with) — a typical wait under 0.5 s and no growth from the first sentences to the last closes this; growth re-aims at the joined-file decode or the NAS.
+
 ## Impact
 
 Unresolved: on the Firestick the pause between sentences grew with every sentence saved and every lesson kept. Resolved: a save costs one write and no scan; a read costs one read; the NAS is never told busy by our own fetch-ahead; and every reading now carries the size of its own pauses.

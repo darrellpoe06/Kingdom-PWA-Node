@@ -224,6 +224,7 @@ describe('storage honesty', () => {
     await cache.put('held', fakeBlob(1000), { pin: 'lesson|adult' });
     await cache.put('casual', fakeBlob(1000));
     await cache.put('casual2', fakeBlob(1000));
+    await cache.flush(); // a put schedules the eviction, never waits on it (DR-0786)
     expect(await cache.has('held')).toBe(true);
     expect(await cache.has('casual')).toBe(false);
   });

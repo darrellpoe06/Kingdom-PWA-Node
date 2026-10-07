@@ -39,6 +39,13 @@ Proven to catch: the decision is tested on real numbers (1920/1280/390/1024/1440
 - The flattening is by CSS over a class name (`.overflow-y-auto`). A list styled another way on a TV would still be a box; the named opt-out and the dock chips are the net. re-review 2026-10-21 with a Firestick walk of Church → Learn, Books, Properties.
 - The rails' inset narrows every page on a TV, not only lessons, while the reader is supported. One tap on ⇕ Tall gives the full width back and is remembered. re-review 2026-10-21 with the same walk.
 
+## Verification after merge
+
+- On the Firestick: open a lesson, start Read Aloud. The two rails are on screen with no opening; Speed, Voice, Colors and Follow along are on the right rail; the Word is narrowed between them, not covered. ⤢ Full screen leaves only the Word and the voice; Back brings the rails back.
+- Church → Learn on the Firestick: OCTOBER 2026 lists all seven lessons at full height; ▼ Down in the bar walks the page.
+- Tests: `reader-controller-pulls-out-on-tv.test.jsx` (12), `lesson-lists-reach-the-whole-list-on-a-tv.test.jsx` (7), the sixteen reader-panel suites (144) — all green on the merged head.
+- re-review 2026-10-21: a Firestick walk of Church → Learn, Books, Properties for any list still boxed, and whether the rails' inset on non-lesson pages should narrow to lessons only.
+
 ## Impact
 
 Unresolved: on the TV the reader could not reach Speed, Voice, Follow along or Colors, and could not reach lessons past the fourth. Resolved: every control is on the two sides of the screen, always, with the Word uncovered between them; full screen leaves only the Word and the voice; every lesson list is the page's own height and the page is walked by two chips or the pointer's edge; nothing changes on a phone, tablet or laptop lid.
