@@ -47,10 +47,12 @@ import {
   WYZE_FIELDS, setupWyze, WYZE_API_KEY_HELP_URL, WYZE_API_KEY_STEPS,
   serviceCodeState, restartService, loadWyzeDraft, saveWyzeDraft, clearWyzeDraft,
   SNAP_CONCURRENCY, LIVE_RECONNECT_MAX, LIVE_RECONNECT_DELAY_MS, runLimited, skipFailedFrame,
-  classifySnapError, fetchWhy, groupCameraFaults, faultSummaryLine,
+  classifySnapError, fetchWhy, groupCameraFaults, faultSummaryLine, wyzeSaysFor, wyzeSaysLine,
   loadViews, saveViews, activeView, addToView, removeFromView, moveInView, setViewLayout, renameView, addView, deleteView, viewCols, viewGridClass, indexAtPoint, VIEW_LAYOUTS,
   fitGrid, clampScale, setViewScale, VIEW_SCALE_STEP, VIEW_SCALE_MIN, VIEW_SCALE_MAX, toggleFocus, focusIn, shownCount,
   CLIP_SIZE_TIERS, fetchClipSizes, waitForClipSize, clipDownloadName, clipTierLine, fetchStreamHealth, STREAM_HEALTH_POLL_MS, liveStreamId, streamHealthLine, dropLines,
+  clipTicket, recClipPlayUrl,
+  ADD_KINDS, GOOGLE_SIGN_IN_NOTE, streamIdFrom, buildSourceUrl, sourceProblem, maskSource, probeLine, addStream, testStream, removeStream, setupRing,
   tendLiveVideo, LIVE_TEND_MS, FREEZE_SECONDS,
   RETENTION_CHOICES, CLIP_TICKET_TTL, fetchRecording, saveRecording, fetchClips, recClipUrl, clipParts, groupClipsByDay, diskForecast,
   loadLiveTiles, saveLiveTiles, liveTileBudget, liveTrafficLine,
@@ -130,6 +132,7 @@ function WyzeSetup({ token, onAdded }) {
       <p className="text-xs text-[#5A5751] mt-1 mb-2">
         One-time step for the person who owns the Wyze account. Everyone else in the family only opens this tab. The NAS signs in with these four values, keeps them, and lists your cameras. What you type stays on this device until the NAS accepts it, so a reload never makes you type it again; then it is erased here.
       </p>
+      <p className="text-xs text-[#5A5751] mb-2" data-testid="google-sign-in-note">{GOOGLE_SIGN_IN_NOTE}</p>
       {restored ? <p className="text-xs text-[#2F6B3A] mb-2" data-testid="wyze-draft-restored">Your earlier entries are still here. Press Sign in and add my cameras when the camera service is ready.</p> : null}
       <ol className="text-xs text-[#1A1815] list-decimal pl-5 mb-2 space-y-0.5" data-testid="wyze-key-steps">
         {WYZE_API_KEY_STEPS.map((step) => <li key={step}>{step}</li>)}
@@ -222,6 +225,130 @@ function ServiceRestart({ token, health, onDone }) {
       <button type="button" className={`${btnGhost} focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={go} disabled={busy} data-testid="service-restart-button">{busy ? 'Restarting…' : code === 'behind' ? 'Update the camera service now' : 'Restart the camera service'}</button>
       {result ? <span className={`text-[0.6875rem] ${tone}`} role="status" aria-live="polite" data-testid="service-restart-result">{result.message}</span> : null}
     </div>
+  );
+}
+
+// ANY CAMERA, FROM THE APP, TESTED ON THE SPOT (DR-0805). The boxes build the
+// source line (the password hidden in the preview), the NAS registers it and
+// probes one frame, and the answer is shown here before the form is left:
+// "works: a 48 KB picture in 1.2 s", or go2rtc's own reason. Test probes
+// again; Remove takes it out of go2rtc and the config.
+export function AddCamera({ token, onChanged }) {
+  const [kind, setKind] = useState('rtsp');
+  const [f, setF] = useState({ name: '', host: '', port: '', user: '', password: '', path: '', url: '', scheme: 'rtsp' });
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState(null);
+  const [added, setAdded] = useState([]); // [{id, kind, probe}] this session
+  const spec = ADD_KINDS.find((k) => k.id === kind) || ADD_KINDS[0];
+  const url = buildSourceUrl(kind, f);
+  const id = streamIdFrom(f.name);
+  const problem = url ? sourceProblem(url) : '';
+  const set = (k) => (e) => setF((p) => ({ ...p, [k]: e.target.value }));
+  const submit = async (e, replace = false) => {
+    if (e) e.preventDefault();
+    if (busy || !id || !url || problem) return;
+    setBusy(true); setResult(null);
+    const r = await addStream({ name: id, url, replace }, token);
+    setBusy(false);
+    setResult(r);
+    if (r.ok) {
+      setAdded((a) => [{ id: r.id, kind: r.kind, probe: r.probe, registered: r.registered, persisted: r.persisted, detail: r.detail }, ...a.filter((x) => x.id !== r.id)]);
+      setF((p) => ({ ...p, name: '', password: '' }));
+      if (onChanged) onChanged();
+    }
+  };
+  const retest = async (sid) => {
+    const r = await testStream(sid, token);
+    setAdded((a) => a.map((x) => (x.id === sid ? { ...x, probe: r.ok ? r.probe : { ok: false, error: r.message } } : x)));
+  };
+  const remove = async (sid) => {
+    const r = await removeStream(sid, token);
+    if (r.ok) { setAdded((a) => a.filter((x) => x.id !== sid)); if (onChanged) onChanged(); }
+    else setResult({ ok: false, message: r.message });
+  };
+  const box = 'border border-[#B8B4AC] bg-white text-[#1A1815] text-sm px-2 min-h-[36px] w-full focus:outline focus:outline-2 focus:outline-[#B85838]';
+  return (
+    <form onSubmit={submit} className="mt-3 border-t border-[#E8E4DC] pt-3" data-testid="add-camera" aria-busy={busy}>
+      <div className={labelCls}>Add a camera and test it</div>
+      <p className="text-xs text-[#5A5751] mt-1 mb-2">Pick the kind, fill the boxes, press Add. The NAS registers it, asks it for one picture, and tells you here whether it works. Nothing is typed into a file.</p>
+      <div className="flex flex-wrap gap-1 mb-2" role="tablist" aria-label="Kind of camera">
+        {ADD_KINDS.map((k) => (
+          <button key={k.id} type="button" role="tab" aria-selected={kind === k.id} className={`${chipCls} min-h-[36px] px-2 ${kind === k.id ? 'border-[#B85838] text-[#B85838]' : 'border-[#B8B4AC] text-[#1A1815]'} focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={() => { setKind(k.id); setResult(null); }} data-testid={`add-kind-${k.id}`}>{k.label}</button>
+        ))}
+      </div>
+      <p className="text-[0.625rem] text-[#5A5751] mb-2">{spec.hint}</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <label className="text-xs text-[#5A5751]">Name<input className={box} value={f.name} onChange={set('name')} placeholder="garage" autoComplete="off" data-testid="add-name" /></label>
+        {spec.fields.includes('host') ? <label className="text-xs text-[#5A5751]">Camera IP or host<input className={box} value={f.host} onChange={set('host')} placeholder="192.168.1.60" autoComplete="off" data-testid="add-host" /></label> : null}
+        {spec.fields.includes('port') ? <label className="text-xs text-[#5A5751]">Port (blank = usual)<input className={box} value={f.port} onChange={set('port')} placeholder={kind === 'onvif' ? '80' : '554'} inputMode="numeric" autoComplete="off" data-testid="add-port" /></label> : null}
+        {spec.fields.includes('user') ? <label className="text-xs text-[#5A5751]">User<input className={box} value={f.user} onChange={set('user')} autoComplete="off" data-testid="add-user" /></label> : null}
+        {spec.fields.includes('password') ? <label className="text-xs text-[#5A5751]">Password<input className={box} type="password" value={f.password} onChange={set('password')} autoComplete="new-password" data-testid="add-password" /></label> : null}
+        {spec.fields.includes('path') ? <label className="text-xs text-[#5A5751]">Path<input className={box} value={f.path} onChange={set('path')} placeholder="/live" autoComplete="off" data-testid="add-path" /></label> : null}
+        {kind === 'rtsp' ? <label className="text-xs text-[#5A5751]">Protocol<select className={box} value={f.scheme} onChange={set('scheme')} data-testid="add-scheme"><option value="rtsp">rtsp</option><option value="rtsps">rtsps (UniFi Protect)</option><option value="rtmp">rtmp</option><option value="rtmps">rtmps</option></select></label> : null}
+        {spec.fields.includes('url') ? <label className="text-xs text-[#5A5751] sm:col-span-2">Source line<input className={box} value={f.url} onChange={set('url')} placeholder={kind === 'http' ? 'http://user:pass@192.168.1.9/snap.jpg' : 'rtsp://user:pass@192.168.1.9/live'} autoComplete="off" data-testid="add-url" /></label> : null}
+      </div>
+      <div className="mt-2 text-[0.6875rem] font-mono break-all text-[#5A5751]" data-testid="add-preview">{id || 'name'}: {url ? maskSource(url) : '…'}</div>
+      {problem ? <div className="text-xs text-[#B85838] mt-1" data-testid="add-problem">{problem}</div> : null}
+      <div className="mt-2 flex items-center gap-2 flex-wrap">
+        <button type="submit" className={`${btnDark} focus:outline focus:outline-2 focus:outline-[#B85838]`} disabled={busy || !id || !url || !!problem} data-testid="add-submit">{busy ? 'Adding and testing...' : 'Add and test'}</button>
+        {result && !result.ok && result.taken ? <button type="button" className={`${btnGhost} focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={() => submit(null, true)} data-testid="add-replace">Replace it</button> : null}
+      </div>
+      {result ? (
+        <div className={`mt-2 text-xs ${result.ok && result.probe && result.probe.ok ? 'text-[#2F6B3A]' : 'text-[#B85838]'}`} role="status" aria-live="polite" data-testid="add-result">
+          {result.ok ? <>{result.id} added{result.registered ? '' : ' to the config (it loads on the next restart)'} · {probeLine(result.probe)}{result.detail ? ` · ${result.detail}` : ''}</> : result.message}
+        </div>
+      ) : null}
+      {added.length ? (
+        <ul className="mt-2 divide-y divide-[#E8E4DC]" data-testid="added-list">
+          {added.map((a) => (
+            <li key={a.id} className="py-1 flex items-center justify-between gap-2 text-xs">
+              <span className="min-w-0 truncate"><span className="font-semibold">{a.id}</span> · {a.kind} · <span className={a.probe && a.probe.ok ? 'text-[#2F6B3A]' : 'text-[#B85838]'}>{probeLine(a.probe)}</span></span>
+              <span className="flex items-center gap-1 shrink-0">
+                <button type="button" className={`${btnGhost} focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={() => retest(a.id)} data-testid={`added-test-${a.id}`}>Test</button>
+                <button type="button" className={`${btnGhost} focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={confirmThen(`Remove ${a.id} from the NAS?`, () => remove(a.id))} data-testid={`added-remove-${a.id}`}>Remove</button>
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </form>
+  );
+}
+
+// RING, SIGNED IN THROUGH THE NAS (DR-0805): email and password go to go2rtc's
+// own Ring road; Ring answers with a 2FA code request first, the code is
+// typed here, and every camera Ring lists is registered. A Google-created
+// account needs its own Ring password set once (GOOGLE_SIGN_IN_NOTE).
+export function RingSetup({ token, onAdded }) {
+  const [f, setF] = useState({ email: '', password: '', code: '' });
+  const [busy, setBusy] = useState(false);
+  const [r, setR] = useState(null);
+  const box = 'border border-[#B8B4AC] bg-white text-[#1A1815] text-sm px-2 min-h-[36px] w-full focus:outline focus:outline-2 focus:outline-[#B85838]';
+  const submit = async (e) => {
+    e.preventDefault();
+    if (busy) return;
+    setBusy(true);
+    const res = await setupRing(f, token);
+    setBusy(false);
+    setR(res);
+    if (res.kind === 'ok') { setF({ email: '', password: '', code: '' }); if (onAdded) onAdded(res); }
+  };
+  return (
+    <form onSubmit={submit} className="mt-3 border-t border-[#E8E4DC] pt-3" data-testid="ring-setup" aria-busy={busy}>
+      <div className={labelCls}>Sign in to Ring once, here</div>
+      <p className="text-xs text-[#5A5751] mt-1 mb-2">The NAS signs in to Ring with your email and password and lists your cameras. Ring sends a code the first time; type it below and press again. {GOOGLE_SIGN_IN_NOTE}</p>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+        <label className="text-xs text-[#5A5751]">Ring email<input className={box} type="email" value={f.email} onChange={(e) => setF((p) => ({ ...p, email: e.target.value }))} autoComplete="off" data-testid="ring-email" /></label>
+        <label className="text-xs text-[#5A5751]">Ring password<input className={box} type="password" value={f.password} onChange={(e) => setF((p) => ({ ...p, password: e.target.value }))} autoComplete="new-password" data-testid="ring-password" /></label>
+        <label className="text-xs text-[#5A5751]">Code Ring sent (after the first try)<input className={box} value={f.code} onChange={(e) => setF((p) => ({ ...p, code: e.target.value }))} inputMode="numeric" autoComplete="one-time-code" data-testid="ring-code" /></label>
+      </div>
+      <button type="submit" className={`${btnDark} mt-2 focus:outline focus:outline-2 focus:outline-[#B85838]`} disabled={busy || !f.email || !f.password} data-testid="ring-submit">{busy ? 'Signing in...' : (r && r.kind === 'needs-code' ? 'Send the code and add my cameras' : 'Sign in and add my Ring cameras')}</button>
+      {r ? (
+        <div className={`mt-2 text-xs ${r.kind === 'ok' ? 'text-[#2F6B3A]' : r.kind === 'needs-code' ? 'text-[#1A1815]' : 'text-[#B85838]'}`} role="status" aria-live="polite" data-testid="ring-result">
+          {r.kind === 'ok' ? `${r.added} Ring camera${r.added === 1 ? '' : 's'} added: ${r.cameras.map((c) => c.name).join(', ') || 'none listed'}.` : r.kind === 'needs-code' ? `Ring asks for its code: ${r.prompt}` : r.message}
+        </div>
+      ) : null}
+    </form>
   );
 }
 
@@ -895,8 +1022,9 @@ function TileLive({ cam, token, liveMax, now, onFailed, sd = false }) {
 
 // WHY IS THIS TILE BLANK? (DR-0774). The NAS's /why answer, in plain words,
 // with go2rtc's own lines underneath for anyone who wants the raw truth.
-function WhyPanel({ cam, token, onHide, health = null }) {
+function WhyPanel({ cam, token, onHide, health = null, devices = null }) {
   const [r, setR] = useState(null);
+  const says = wyzeSaysLine(wyzeSaysFor(devices, cam.id)); // DR-0807: Wyze's own word, off vs out of reach
   const drops = health ? dropLines(health.events, cam.id) : [];
   const hl = health && health.cameras ? health.cameras[cam.id] : null;
   useEffect(() => { let on = true; fetchWhy(cam.id, token).then((x) => { if (on) setR(x); }); return () => { on = false; }; }, [cam.id, token]);
@@ -907,6 +1035,7 @@ function WhyPanel({ cam, token, onHide, health = null }) {
         <>
           <div className={`font-semibold ${ex.kind === 'ok' ? 'text-[#2F6B3A]' : 'text-[#B85838]'}`}>{ex.headline}</div>
           {ex.lines.map((l) => <div key={l} className="text-[#5A5751] mt-0.5">{l}</div>)}
+          {says && ex.kind !== 'ok' ? <div className="text-[#1A1815] mt-0.5" data-testid={`why-wyze-${cam.id}`}>{says}</div> : null}
           {ex.log && ex.log.length ? (
             <details className="mt-1"><summary className="text-[#5A5751] cursor-pointer">What the restreamer logged</summary>
               <pre className="text-[0.625rem] whitespace-pre-wrap break-all mt-1">{ex.log.slice(-6).join('\n')}</pre>
@@ -1036,20 +1165,15 @@ function RecordingPanel({ token, cameras, r, pick, setPick }) {
   // DOWNLOAD BY SIZE (DR-0797): the menu opens on a clip, shows every tier with
   // its size (measured when made, estimated before), and the chosen one is
   // fetched from the NAS -- made first when it has to be -- then saved.
-  const [menu, setMenu] = useState(null);     // { name, ticket, sizes } for the clip whose Download menu is open
-  const [making, setMaking] = useState(null); // { name, size, state, position } while the NAS makes a tier
+  const [menu, setMenu] = useState(null);     // { name, ticket, sizes } for the clip whose sizes menu is open
+  const [making, setMaking] = useState(null); // { name, size, state, position, watch } while the NAS makes a tier
   const openMenu = async (id, name) => {
     if (menu && menu.name === name) { setMenu(null); return; }
-    try {
-      const r = await fetchWithTimeout(ticketUrl(), { method: 'POST', headers: { ...authHeaders(token), 'Content-Type': 'application/json' }, body: JSON.stringify({ camera: id, ttl: CLIP_TICKET_TTL }) }, FETCH_TIMEOUT_MS);
-      if (!r.ok) throw new Error(`ticket HTTP ${r.status}`);
-      const { ticket } = await r.json();
-      setMenu({ name, ticket, sizes: null });
-      const sizes = await fetchClipSizes(id, name, ticket);
-      setMenu((m) => (m && m.name === name ? { ...m, sizes: sizes.ok ? sizes : null } : m));
-    } catch (e) {
-      setNote(`Could not read the clip's sizes: ${String((e && e.message) || e)}`);
-    }
+    const t = await ticketFor(id);
+    if (!t.ok) { setNote(`Could not read the clip's sizes: ${t.message}`); return; }
+    setMenu({ name, ticket: t.ticket, sizes: null });
+    const sizes = await fetchClipSizes(id, name, t.ticket);
+    setMenu((m) => (m && m.name === name ? { ...m, sizes: sizes.ok ? sizes : null } : m));
   };
   const download = async (id, name, size, retry = false) => {
     if (!menu || menu.name !== name) return;
@@ -1067,15 +1191,30 @@ function RecordingPanel({ token, cameras, r, pick, setPick }) {
     const sizes = await fetchClipSizes(id, name, menu.ticket);
     setMenu((m) => (m && m.name === name ? { ...m, sizes: sizes.ok ? sizes : m.sizes, failed: '' } : m));
   };
-  const play = async (id, name) => {
-    try {
-      const r = await fetchWithTimeout(ticketUrl(), { method: 'POST', headers: { ...authHeaders(token), 'Content-Type': 'application/json' }, body: JSON.stringify({ camera: id, ttl: CLIP_TICKET_TTL }) }, FETCH_TIMEOUT_MS);
-      if (!r.ok) throw new Error(`ticket HTTP ${r.status}`);
-      const { ticket } = await r.json();
-      setPlaying({ cam: id, name, src: recClipUrl(id, name, ticket) });
-    } catch (e) {
-      setNote(`Could not open the clip: ${String((e && e.message) || e)}`);
-    }
+  // ONE TICKET PER CAMERA, KEPT (DR-0804): a clip ticket lives an hour; the
+  // play, the menu and a download all use the one this camera already has.
+  const ticketRef = useRef({ cam: '', ticket: '', at: 0 });
+  const ticketFor = async (id) => {
+    const t = ticketRef.current;
+    if (t.cam === id && t.ticket && Date.now() - t.at < (CLIP_TICKET_TTL - 600) * 1000) return { ok: true, ticket: t.ticket };
+    const r = await clipTicket(id, token);
+    if (r.ok) ticketRef.current = { cam: id, ticket: r.ticket, at: Date.now() };
+    return r;
+  };
+  // WATCH, NOT DOWNLOAD (DR-0804; Darrell 2026-10-07: "Users should be able to
+  // just watch a stream from a recording... no need to download... all
+  // options"). A clip plays in place at any size: the original at once, a
+  // tier the moment the NAS has made it (its place in line shown meanwhile).
+  const play = async (id, name, size = 'original') => {
+    setNote('');
+    const t = await ticketFor(id);
+    if (!t.ok) { setNote(`Could not open the clip: ${t.message}`); return; }
+    if (!size || size === 'original') { setPlaying({ cam: id, name, size: 'original', src: recClipUrl(id, name, t.ticket) }); return; }
+    setMaking({ name, size, state: 'asking', position: 0, watch: true });
+    const r = await waitForClipSize(id, name, t.ticket, size, { dl: false, onProgress: (p) => setMaking((m) => (m && m.name === name ? { ...m, ...p } : m)) });
+    setMaking(null);
+    if (!r.ok) { setNote(`Could not open the clip at that size: ${r.message}`); if (r.failed) setMenu((m) => (m ? { ...m, failed: size } : m)); return; }
+    setPlaying({ cam: id, name, size, src: recClipPlayUrl(id, name, t.ticket, size) });
   };
 
   const camsWithClips = status ? Object.entries(status.cameras || {}).filter(([, v]) => v && v.clips > 0).map(([k]) => k) : [];
@@ -1145,8 +1284,9 @@ function RecordingPanel({ token, cameras, r, pick, setPick }) {
               {!clips.loading && clips.ok === false ? <div className="text-xs text-[#B85838] mt-1">The clip list did not come back.</div> : null}
               {!clips.loading && clips.ok !== false && !clips.days.length ? <div className="text-xs text-[#5A5751] mt-1">No clips on disk for this camera.</div> : null}
               {playing ? (
-                <div className="mt-2 bg-black aspect-video w-full" data-testid="clip-player">
-                  <video key={playing.src} src={playing.src} controls autoPlay playsInline className="w-full h-full" />
+                <div className="mt-2" data-testid="clip-player" data-size={playing.size || 'original'}>
+                  <div className="bg-black aspect-video w-full"><video key={playing.src} src={playing.src} controls autoPlay playsInline className="w-full h-full" /></div>
+                  <div className="text-[0.625rem] text-[#5A5751] mt-1">Playing {clipParts(playing.name).time} · {(CLIP_SIZE_TIERS.find((t) => t.key === (playing.size || 'original')) || {}).label || 'Original'} · from the NAS, nothing saved here. Press ↓ on a clip for other sizes or a download.</div>
                 </div>
               ) : null}
               {clips.days.map((d) => (
@@ -1156,14 +1296,14 @@ function RecordingPanel({ token, cameras, r, pick, setPick }) {
                     {d.clips.map((c) => (
                       <span key={c.name} className="inline-flex items-stretch">
                         <button type="button" className={`${chipCls} ${playing && playing.name === c.name ? 'border-[#B85838] text-[#B85838]' : 'border-[#B8B4AC] text-[#1A1815]'} min-h-[36px] px-2 focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={() => play(pick, c.name)} aria-label={`Play the clip from ${clipParts(c.name).time}`}>{clipParts(c.name).time} · {formatBytes(c.bytes)}</button>
-                        <button type="button" className={`${chipCls} border-l-0 ${menu && menu.name === c.name ? 'border-[#B85838] text-[#B85838]' : 'border-[#B8B4AC] text-[#5A5751]'} min-h-[36px] px-2 focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={() => openMenu(pick, c.name)} aria-label={`Download the clip from ${clipParts(c.name).time} at a size you choose`} aria-expanded={!!(menu && menu.name === c.name)} data-testid={`clip-download-${c.name}`}>↓</button>
+                        <button type="button" className={`${chipCls} border-l-0 ${menu && menu.name === c.name ? 'border-[#B85838] text-[#B85838]' : 'border-[#B8B4AC] text-[#5A5751]'} min-h-[36px] px-2 focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={() => openMenu(pick, c.name)} aria-label={`Watch or download the clip from ${clipParts(c.name).time} at a size you choose`} aria-expanded={!!(menu && menu.name === c.name)} data-testid={`clip-download-${c.name}`}>↓</button>
                       </span>
                     ))}
                   </div>
                   {menu && d.clips.some((c) => c.name === menu.name) ? (
                     <div className="mt-2 border border-[#E8E4DC] p-2 text-xs text-[#1A1815]" data-testid="clip-download-menu">
-                      <div className={labelCls}>Download {clipParts(menu.name).time} · {menu.sizes && menu.sizes.seconds ? `${Math.round(menu.sizes.seconds / 60)} min` : ''}</div>
-                      <p className="text-[0.625rem] text-[#5A5751] mt-1">Record keeps clips on the NAS only; a download brings one to this device. Each size is the best picture that fits it; nothing is upscaled. A size not made yet is made on the NAS first (about a minute per ten).</p>
+                      <div className={labelCls}>Sizes · {clipParts(menu.name).time} · {menu.sizes && menu.sizes.seconds ? `${Math.round(menu.sizes.seconds / 60)} min` : ''}</div>
+                      <p className="text-[0.625rem] text-[#5A5751] mt-1">Watch plays the clip here from the NAS at that size; Download brings it to this device. Record keeps clips on the NAS only. Each size is the best picture that fits it; nothing is upscaled. A size not made yet is made on the NAS first (about a minute per ten), and plays or saves the moment it is ready.</p>
                       {!menu.sizes ? <div className="text-[#5A5751] mt-1">Reading the sizes...</div> : null}
                       <ul className="mt-1 divide-y divide-[#E8E4DC]">
                         {CLIP_SIZE_TIERS.map((tier) => {
@@ -1174,7 +1314,10 @@ function RecordingPanel({ token, cameras, r, pick, setPick }) {
                           return (
                             <li key={tier.key} className="flex items-center justify-between gap-2 py-1">
                               <span className="min-w-0 truncate" data-testid={`clip-tier-${tier.key}`}>{clipTierLine(tier, menu.sizes)}{mine ? ` · ${making.state === 'queued' ? `in line (${making.position})` : making.state === 'making' ? 'being made on the NAS...' : 'asking the NAS...'}` : ''}</span>
-                              <button type="button" className={`${btnGhost} shrink-0 focus:outline focus:outline-2 focus:outline-[#B85838]`} disabled={!!busy} onClick={() => download(pick, menu.name, tier.key, failed)} aria-label={`Download ${tier.label}`} data-testid={`clip-get-${tier.key}`}>{failed ? 'Try again' : mine ? 'Working...' : 'Download'}</button>
+                              <span className="flex items-center gap-1 shrink-0">
+                                <button type="button" className={`${btnGhost} focus:outline focus:outline-2 focus:outline-[#B85838]`} disabled={!!busy} onClick={() => play(pick, menu.name, tier.key)} aria-label={`Watch ${tier.label}`} data-testid={`clip-watch-${tier.key}`}>{mine && making.watch ? 'Opening...' : 'Watch'}</button>
+                                <button type="button" className={`${btnGhost} focus:outline focus:outline-2 focus:outline-[#B85838]`} disabled={!!busy} onClick={() => download(pick, menu.name, tier.key, failed)} aria-label={`Download ${tier.label}`} data-testid={`clip-get-${tier.key}`}>{failed ? 'Try again' : mine && !making.watch ? 'Working...' : 'Download'}</button>
+                              </span>
                             </li>
                           );
                         })}
@@ -1548,7 +1691,7 @@ export default function Cameras() {
               causes, nobody should have to press it 27 times to find that
               out. This adds up what the tiles already know, biggest first. */}
           {(() => {
-            const sum = groupCameraFaults(list.cameras, frames);
+            const sum = groupCameraFaults(list.cameras, frames, devicesState && devicesState.devices);
             const line = faultSummaryLine(sum);
             if (!line) return null;
             return (
@@ -1602,7 +1745,7 @@ export default function Cameras() {
                             <button type="button" onClick={() => setLiveId(isLive ? '' : cam.id)} className={`${btnGhost} focus:outline focus:outline-2 focus:outline-[#B85838]`}>{isLive ? 'Close' : 'Big'}</button>
                           </div>
                         </div>
-                        {why === cam.id ? <WhyPanel cam={cam} token={token} onHide={() => setWhy('')} health={streamHealth} /> : null}
+                        {why === cam.id ? <WhyPanel cam={cam} token={token} onHide={() => setWhy('')} health={streamHealth} devices={devicesState && devicesState.devices} /> : null}
                       </div>
                       {isLive ? <LiveVideo key={`live-${cam.id}`} cam={cam} token={token} liveMax={liveMax} now={now} onClose={() => setLiveId('')} /> : null}
                     </React.Fragment>
@@ -1626,6 +1769,8 @@ export default function Cameras() {
           <p className="text-xs text-[#5A5751] mt-1">The service, the live-tile switch, another camera system, or a different Wyze account. Nothing here is needed day to day.</p>
           <button type="button" className={`${btnGhost} mt-2 focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={() => setShowAdd((v) => !v)}>{showAdd ? 'Hide' : 'Add a system you own'}</button>
           {showAdd && <KindsHelp />}
+          {showAdd && <AddCamera token={token} onChanged={() => { load(); }} />}
+          {showAdd && <RingSetup token={token} onAdded={() => { load(); }} />}
           <details className="mt-3">
             <summary className="text-xs text-[#B85838] cursor-pointer min-h-[36px] inline-flex items-center">Sign in to a different Wyze account</summary>
             <WyzeSetup token={token} onAdded={() => { load(); }} />

@@ -13,7 +13,7 @@
 // supported". Every tile already had a Why? button and plain words behind it.
 // Nothing added them up. This is the gate on the adding up.
 import { describe, it, expect } from 'vitest';
-import { groupCameraFaults, faultSummaryLine, humanizeCameraError, FAULT_LABELS } from '../lib/cameras.js';
+import { groupCameraFaults, faultSummaryLine, humanizeCameraError, FAULT_LABELS, wyzeSaysFor, wyzeSaysLine, parseDevices } from '../lib/cameras.js';
 
 // The real shape of that night, named as the diagnostic named them.
 const THE_805 = ['805_apt_4', '805_back_door', '805_basement', '805_front_office_view', '805_front_outside',
@@ -96,5 +96,69 @@ describe('the wall adds itself up', () => {
     expect(groupCameraFaults(null, null).total).toBe(0);
     expect(faultSummaryLine()).toBe('');
     expect(faultSummaryLine({ groups: [] })).toBe('');
+  });
+});
+
+// DR-0807. Darrell 2026-10-07, the Wyze app open beside ours, 805 North
+// "Device Offline" since 09-28 while 805 Porch, Hallway and Basement were
+// live there: "Some are actually down and others have been on continuously."
+// Our wall said one thing about all ten. Wyze's own word tells them apart.
+describe('Wyze\'s own word tells OFF from out-of-reach (DR-0807)', () => {
+  const devices = parseDevices({ devices: [
+    { mac: 'N1', nickname: '805 North', online: false, stream: '805_north' },
+    { mac: 'B1', nickname: '805 Basement', online: true, stream: '805_basement' },
+    { mac: 'P1', nickname: '805 Porch Cam', online: true, stream: '805_porch_cam' },
+    { mac: 'K1', nickname: 'Kitchen 2', online: true, stream: 'kitchen_2' },
+  ] });
+
+  it('a camera Wyze reports offline is counted as off at the camera, not as out of reach', () => {
+    const { cameras, frames } = theRealWall();
+    const s = groupCameraFaults(cameras, frames, devices);
+    const off = s.groups.find((g) => g.kind === 'wyze-offline');
+    expect(off.count).toBe(1);
+    expect(off.names).toEqual(['805_north']);
+    const on = s.groups.find((g) => g.kind === 'other-network-on');
+    expect(on.count).toBe(2);
+    expect(on.names.sort()).toEqual(['805_basement', '805_porch_cam']);
+    const unknown = s.groups.find((g) => g.kind === 'other-network');
+    expect(unknown.count).toBe(7); // the seven 805 cameras Wyze has no word on stay where they were
+    expect(s.groups.find((g) => g.kind === 'firmware').count).toBe(17); // a DTLS refusal is not a reach problem; Wyze online changes nothing
+    expect(s.down).toBe(27);
+  });
+
+  it('the sentence names the three states apart', () => {
+    const { cameras, frames } = theRealWall();
+    const line = faultSummaryLine(groupCameraFaults(cameras, frames, devices));
+    expect(line).toContain('17 firmware has no DTLS yet');
+    expect(line).toContain('7 on a network the NAS cannot reach');
+    expect(line).toContain('2 on (Wyze sees them), but on a network the NAS cannot reach');
+    expect(line).toContain('1 off at the camera itself (Wyze reports them offline too)');
+  });
+
+  it('without the devices list nothing changes (the DR-0803 fixture holds)', () => {
+    const { cameras, frames } = theRealWall();
+    expect(groupCameraFaults(cameras, frames)).toEqual(groupCameraFaults(cameras, frames, null));
+    expect(groupCameraFaults(cameras, frames).groups.map((g) => g.kind)).toEqual(['firmware', 'other-network']);
+  });
+
+  it('wyzeSaysFor: true, false, or null when Wyze has no device on that stream', () => {
+    expect(wyzeSaysFor(devices, '805_north')).toBe(false);
+    expect(wyzeSaysFor(devices, 'kitchen_2')).toBe(true);
+    expect(wyzeSaysFor(devices, 'front')).toBe(null);
+    expect(wyzeSaysFor(null, '805_north')).toBe(null);
+    expect(wyzeSaysFor(devices, '')).toBe(null);
+  });
+
+  it('the tile line: off says check power and Wi-Fi; on says only the NAS lacks a road; none says nothing', () => {
+    expect(wyzeSaysLine(false)).toMatch(/offline.*power and Wi-Fi/);
+    expect(wyzeSaysLine(true)).toMatch(/online.*Only the NAS has no road/);
+    expect(wyzeSaysLine(null)).toBe('');
+  });
+
+  it('every label is plain words, no log word leaks', () => {
+    for (const k of ['wyze-offline', 'other-network-on']) {
+      expect(FAULT_LABELS[k]).toBeTruthy();
+      expect(FAULT_LABELS[k]).not.toMatch(/timeout|dtls|discovery|conn_state/i);
+    }
   });
 });

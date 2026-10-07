@@ -442,12 +442,34 @@ export function humanizeCameraError(text, host = '') {
 /** The one-line name of each cause, for a wall summary. */
 export const FAULT_LABELS = Object.freeze({
   'other-network': 'on a network the NAS cannot reach',
+  'other-network-on': 'on (Wyze sees them), but on a network the NAS cannot reach',
+  'wyze-offline': 'off at the camera itself (Wyze reports them offline too)',
   firmware: 'firmware has no DTLS yet',
   auth: 'the camera refused the sign-in',
   missing: 'no stream by that name any more',
   asleep: 'asleep, off, or not answering',
   unknown: 'no reason given',
 });
+
+/**
+ * What Wyze's cloud says about the camera behind a stream id: true online,
+ * false offline, null when Wyze has no device paired to that stream (a camera
+ * of another make, or the devices list has not loaded). `devices` is the
+ * parsed /devices list (parseDevices), each carrying its `stream` id.
+ */
+export function wyzeSaysFor(devices, id) {
+  if (!Array.isArray(devices) || !id) return null;
+  const d = devices.find((x) => x && x.stream === id);
+  if (!d || typeof d.online !== 'boolean') return null;
+  return d.online;
+}
+
+/** The one line a tile's Why? adds from Wyze's own word; '' when Wyze has none. */
+export function wyzeSaysLine(says) {
+  if (says === false) return 'Wyze itself reports this camera offline: it is down at the camera, not only out of the NAS\'s reach. Check its power and Wi-Fi where it hangs.';
+  if (says === true) return 'Wyze sees this camera online: it is on, and the Wyze app can show it through Wyze\'s own relay. Only the NAS has no road to it.';
+  return '';
+}
 
 /**
  * Add the wall up: how many cameras are showing a picture, and how many are
@@ -457,7 +479,7 @@ export const FAULT_LABELS = Object.freeze({
  * Pure, and honest about what it was given: a camera with no frame record yet
  * is neither live nor down — it is still being asked.
  */
-export function groupCameraFaults(cameras = [], frames = {}) {
+export function groupCameraFaults(cameras = [], frames = {}, devices = []) {
   const list = Array.isArray(cameras) ? cameras : [];
   const by = new Map();
   let live = 0;
@@ -468,7 +490,13 @@ export function groupCameraFaults(cameras = [], frames = {}) {
     if (!f) { waiting += 1; continue; }
     if (f.url && !f.error) { live += 1; continue; }
     if (!f.error) { waiting += 1; continue; }
-    const { kind } = humanizeCameraError(f.error);
+    let { kind } = humanizeCameraError(f.error);
+    // DR-0807: Wyze's own word tells a camera that is OFF from one that is on
+    // but out of the NAS's reach. Darrell 2026-10-07, the Wyze app open beside
+    // ours: "Some are actually down and others have been on continuously."
+    const says = wyzeSaysFor(devices, id);
+    if (says === false) kind = 'wyze-offline';
+    else if (says === true && kind === 'other-network') kind = 'other-network-on';
     if (!by.has(kind)) by.set(kind, []);
     by.get(kind).push((cam && cam.name) || id);
   }
@@ -1303,10 +1331,47 @@ export const CLIP_SIZE_TIERS = Object.freeze([
 export const CLIP_MAKE_POLL_MS = 3000;
 export const CLIP_MAKE_MAX_WAIT_MS = 15 * 60 * 1000;
 export function recClipSizesUrl(id, name, ticket) { return `${recClipUrl(id, name, ticket)}&sizes=1`; }
-export function recClipDownloadUrl(id, name, ticket, size, { retry = false } = {}) {
+export function recClipDownloadUrl(id, name, ticket, size, { retry = false, dl = true } = {}) {
   const base = recClipUrl(id, name, ticket);
   const tier = size && size !== 'original' ? `&size=${encodeURIComponent(size)}` : '';
-  return `${base}${tier}&dl=1${retry ? '&retry=1' : ''}`;
+  return `${base}${tier}${dl ? '&dl=1' : ''}${retry ? '&retry=1' : ''}`;
+}
+/** The same clip at a size, to WATCH in place: no download header (DR-0804). */
+export function recClipPlayUrl(id, name, ticket, size) {
+  return recClipDownloadUrl(id, name, ticket, size, { dl: false });
+}
+/** A fetch failure in words a person can act on: a timeout names the seconds and the likely cause. */
+export function humanizeFetchError(e, ms = FETCH_TIMEOUT_MS) {
+  const name = e && (e.name || '');
+  const msg = String((e && e.message) || e || '');
+  if (name === 'AbortError' || /aborted/i.test(msg)) return `the NAS did not answer in ${Math.round(ms / 1000)} s (the link is busy or the camera service is down)`;
+  if (/Failed to fetch|NetworkError|Load failed/i.test(msg)) return 'the camera road did not answer';
+  return msg || 'unknown error';
+}
+export const CLIP_TICKET_TIMEOUT_MS = 15000;
+/**
+ * A playback ticket for a camera's clips: a longer bound than a frame fetch
+ * (a busy link makes even a small POST slow), one retry on a timeout, and a
+ * plain message when it fails (DR-0804). Resolves {ok:true, ticket} or
+ * {ok:false, message}.
+ */
+export async function clipTicket(id, token, { fetchImpl = globalThis.fetch, timeoutMs = CLIP_TICKET_TIMEOUT_MS, tries = 2, ttl = CLIP_TICKET_TTL } = {}) {
+  let last = null;
+  for (let i = 0; i < Math.max(1, tries); i += 1) {
+    try {
+      const r = await fetchWithTimeout(ticketUrl(), { method: 'POST', headers: { ...authHeaders(token), 'Content-Type': 'application/json' }, body: JSON.stringify({ camera: id, ttl }) }, timeoutMs, fetchImpl);
+      if (r.status === 401) return { ok: false, message: 'The family key on this device was refused. Sign in to the app again.' };
+      if (r.status === 503) return { ok: false, message: 'The NAS has all its live slots in use; close a view and try again.' };
+      if (!r.ok) return { ok: false, message: `The camera road answered HTTP ${r.status}.` };
+      const body = await r.json();
+      if (!body || !body.ticket) return { ok: false, message: 'The NAS sent no ticket.' };
+      return { ok: true, ticket: body.ticket };
+    } catch (e) {
+      last = e;
+      if (!(e && (e.name === 'AbortError' || /aborted/i.test(String(e.message || ''))))) break;
+    }
+  }
+  return { ok: false, message: `Could not get a playback ticket: ${humanizeFetchError(last, timeoutMs)}.` };
 }
 /** The file a phone saves: camera-time-size.mp4 (the NAS names it the same). */
 export function clipDownloadName(id, name, size) {
@@ -1342,9 +1407,9 @@ export async function fetchClipSizes(id, name, ticket, fetchImpl = globalThis.fe
  * otherwise. `onProgress({state, position})` says where it is in the line.
  * Explicit timeouts throughout (the make is bounded; so is the wait).
  */
-export async function waitForClipSize(id, name, ticket, size, { fetchImpl = globalThis.fetch, onProgress = null, pollMs = CLIP_MAKE_POLL_MS, maxWaitMs = CLIP_MAKE_MAX_WAIT_MS, sleep = (ms) => new Promise((r) => setTimeout(r, ms)), retry = false } = {}) {
-  const url = recClipDownloadUrl(id, name, ticket, size, { retry });
-  const plain = recClipDownloadUrl(id, name, ticket, size);
+export async function waitForClipSize(id, name, ticket, size, { fetchImpl = globalThis.fetch, onProgress = null, pollMs = CLIP_MAKE_POLL_MS, maxWaitMs = CLIP_MAKE_MAX_WAIT_MS, sleep = (ms) => new Promise((r) => setTimeout(r, ms)), retry = false, dl = true } = {}) {
+  const url = recClipDownloadUrl(id, name, ticket, size, { retry, dl });
+  const plain = recClipDownloadUrl(id, name, ticket, size, { dl });
   const started = Date.now();
   let first = true;
   while (Date.now() - started <= maxWaitMs) {
@@ -1521,4 +1586,131 @@ export function tendLiveVideo(video, memo, { mode = 'mp4', nowMs = Date.now() } 
     } catch { /* a device fact */ }
   }
   return { memo: next, frozen, lag: decision.lag, action: decision.action };
+}
+
+// =============================================================================
+// ANY CAMERA, FROM THE APP, TESTED ON THE SPOT (DR-0805; Darrell 2026-10-07:
+// "Build the other options... so I can set up rstp... and all other options
+// so I can verify they work!!!!!!!!", "Ring... etc... all pathways for our
+// home cameras"). The Setup tab said "one line in go2rtc.yaml by hand" for
+// every system but Wyze. Now the app builds the source line from a few boxes
+// (the password never shown back), the NAS registers it and probes ONE frame,
+// and the answer -- a picture's size and time, or go2rtc's own reason -- is
+// shown before the form is left. Ring signs in through go2rtc's own road
+// (email, password, the 2FA code Ring sends). A Google sign-in is not a road
+// the camera makers' APIs offer (see GOOGLE_SIGN_IN_NOTE).
+// =============================================================================
+export const GOOGLE_SIGN_IN_NOTE = 'Signed up with Google or Apple? Wyze and Ring only take their own email and password here (plus a 2FA code). Set a password for that account once in its own app, then sign in here with it.';
+export const ADD_KINDS = Object.freeze([
+  Object.freeze({ id: 'rtsp', label: 'RTSP / RTMP', fields: ['name', 'host', 'port', 'user', 'password', 'path'], hint: 'Any camera or NVR that already streams: UniFi Protect (rtsps), Reolink, Amcrest, Hikvision, Dahua, a Blue Iris or Frigate restream. Port 554 is the usual one; the path is what the maker documents (for example /live or /h264Preview_01_main).' }),
+  Object.freeze({ id: 'onvif', label: 'ONVIF', fields: ['name', 'host', 'port', 'user', 'password'], hint: 'The sovereign PoE backbone (DR-0050): the NAS asks the camera for its own stream links. The camera must be on a network the NAS reaches (the NAS is on 192.168.1.x). Port is usually 80, 8000 or 2020.' }),
+  Object.freeze({ id: 'http', label: 'HTTP snapshot / MJPEG', fields: ['name', 'url'], hint: 'A JPEG snapshot or MJPEG URL the camera already serves, with any sign-in inside the URL (http://user:pass@host/snap.jpg).' }),
+  Object.freeze({ id: 'url', label: 'Any source line', fields: ['name', 'url'], hint: 'A go2rtc source line as its documentation writes it (rtsp://, rtsps://, rtmp://, onvif://, http://, homekit://, tapo://, dvrip://, isapi://, ...). Never exec: or ffmpeg# raw arguments; the NAS refuses those.' }),
+]);
+export const ADD_SCHEMES = Object.freeze(['rtsp', 'rtsps', 'rtmp', 'rtmps', 'onvif', 'http', 'https', 'ring', 'nest', 'wyze', 'homekit', 'hass', 'dvrip', 'tapo', 'kasa', 'isapi', 'gopro', 'roborock', 'webrtc', 'webtorrent', 'ivideon', 'bubble', 'expr']);
+/** A camera's name as the NAS addresses it: the stream id grammar, lower-cased. */
+export function streamIdFrom(name) {
+  return String(name || '').trim().replace(/[^A-Za-z0-9_.-]+/g, '_').replace(/^[_.-]+|[_.-]+$/g, '').toLowerCase().slice(0, 48);
+}
+const enc = (v) => encodeURIComponent(String(v || '').trim());
+/** The source line go2rtc is handed, built from the form's boxes; '' when a needed box is empty. */
+export function buildSourceUrl(kind, f = {}) {
+  const host = String(f.host || '').trim();
+  const port = String(f.port || '').trim();
+  const user = String(f.user || '').trim();
+  const pass = String(f.password || '');
+  const auth = user ? `${enc(user)}${pass ? `:${enc(pass)}` : ''}@` : '';
+  const hp = port ? `${host}:${port}` : host;
+  if (kind === 'rtsp') {
+    if (!host) return '';
+    const scheme = (f.scheme === 'rtsps' || f.scheme === 'rtmp' || f.scheme === 'rtmps') ? f.scheme : 'rtsp';
+    let path = String(f.path || '').trim();
+    if (path && !path.startsWith('/')) path = `/${path}`;
+    return `${scheme}://${auth}${hp}${path}`;
+  }
+  if (kind === 'onvif') return host ? `onvif://${auth}${hp}` : '';
+  if (kind === 'http' || kind === 'url') return String(f.url || '').trim();
+  return '';
+}
+/** Is a source line one the NAS will accept? Answers '' or the reason. */
+export function sourceProblem(url) {
+  const u = String(url || '').trim();
+  if (!u) return 'empty';
+  if (/^(exec|ffmpeg|echo):|#raw=|#exec/i.test(u)) return 'that kind of source is not allowed from the app';
+  const scheme = u.split(':', 1)[0].toLowerCase();
+  if (!ADD_SCHEMES.includes(scheme)) return `the NAS does not speak ${scheme}://`;
+  return '';
+}
+/** The source line with its password hidden, for the preview. */
+export function maskSource(url) {
+  return String(url || '').replace(/:\/\/([^/@\s]+):([^@\s]+)@/, '://$1:***@').replace(/([?&](password|pass|pwd|token|refresh_token|enr|key|secret)=)[^&\s]*/gi, '$1***');
+}
+export function streamsUrl() { return `${CAMS_BASE}/streams`; }
+export function streamTestUrl(id) { return `${CAMS_BASE}/streams/${encodeURIComponent(id)}/test`; }
+export function streamRemoveUrl(id) { return `${CAMS_BASE}/streams/${encodeURIComponent(id)}`; }
+export function ringSetupUrl() { return `${CAMS_BASE}/setup/ring`; }
+/** One frame's probe, in words. */
+export function probeLine(p) {
+  if (!p) return 'not tested yet';
+  if (p.ok) return `works: a ${formatBytes(p.bytes || 0)} picture in ${((Number(p.ms) || 0) / 1000).toFixed(1)} s`;
+  if (p.timeout) return `no picture: ${p.error || 'the camera did not answer'}`;
+  return `no picture: ${p.error || `HTTP ${p.status}`}`;
+}
+export async function addStream({ name, url, replace = false }, token, fetchImpl = globalThis.fetch) {
+  try {
+    const r = await fetchWithTimeout(streamsUrl(), { method: 'POST', headers: { ...authHeaders(token), 'Content-Type': 'application/json' }, body: JSON.stringify({ name, url, replace }) }, SETUP_TIMEOUT_MS, fetchImpl);
+    let body = null;
+    try { body = await r.json(); } catch { body = null; }
+    if (r.status === 200 && body && body.ok) return { ok: true, id: body.id, kind: body.kind, registered: !!body.registered, persisted: !!body.persisted, detail: body.detail || '', probe: body.probe || null };
+    if (r.status === 400) {
+      const e = body && body.error;
+      return { ok: false, message: e === 'bad-camera-id' ? 'The name must be letters, digits, dots, dashes or underscores.' : e === 'scheme-not-allowed' ? 'That kind of source is not allowed from the app.' : e === 'reserved-name' ? 'That name ends like a twin the NAS makes itself; choose another.' : `The NAS refused it (${e || 'bad request'}).` };
+    }
+    if (r.status === 409) return { ok: false, taken: true, message: `A camera named ${body && body.id ? body.id : name} is already there. Choose another name, or replace it.` };
+    if (r.status === 401) return { ok: false, message: 'The family key on this device was refused.' };
+    if (r.status === 404) return { ok: false, message: 'The NAS runs an older camera service without this road yet. It updates itself within 15 minutes of a merge.' };
+    return { ok: false, message: `The camera road answered HTTP ${r.status}${body && body.error ? ` (${body.error})` : ''}.` };
+  } catch (e) {
+    return { ok: false, message: `The camera road did not answer: ${humanizeFetchError(e, SETUP_TIMEOUT_MS)}.` };
+  }
+}
+export async function testStream(id, token, fetchImpl = globalThis.fetch) {
+  try {
+    const r = await fetchWithTimeout(streamTestUrl(id), { headers: authHeaders(token) }, RECORDING_TIMEOUT_MS + 5000, fetchImpl);
+    let body = null;
+    try { body = await r.json(); } catch { body = null; }
+    if (r.status === 200 && body) return { ok: true, probe: body.probe || null };
+    return { ok: false, message: r.status === 404 ? 'The NAS runs an older camera service without this road yet.' : `The camera road answered HTTP ${r.status}.` };
+  } catch (e) {
+    return { ok: false, message: `The camera road did not answer: ${humanizeFetchError(e, RECORDING_TIMEOUT_MS + 5000)}.` };
+  }
+}
+export async function removeStream(id, token, fetchImpl = globalThis.fetch) {
+  try {
+    const r = await fetchWithTimeout(streamRemoveUrl(id), { method: 'DELETE', headers: authHeaders(token) }, RECORDING_TIMEOUT_MS, fetchImpl);
+    let body = null;
+    try { body = await r.json(); } catch { body = null; }
+    if (r.status === 200 && body && body.ok) return { ok: true, removed: body.removed || [] };
+    return { ok: false, message: r.status === 401 ? 'Only the owner can remove a camera.' : r.status === 404 ? 'The NAS runs an older camera service without this road yet.' : `The camera road answered HTTP ${r.status}.` };
+  } catch (e) {
+    return { ok: false, message: `The camera road did not answer: ${humanizeFetchError(e)}.` };
+  }
+}
+/** Ring: email + password, then the 2FA code Ring sends; the NAS registers every camera it lists. */
+export async function setupRing({ email, password, code = '' }, token, fetchImpl = globalThis.fetch) {
+  try {
+    const r = await fetchWithTimeout(ringSetupUrl(), { method: 'POST', headers: { ...authHeaders(token), 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password, code }) }, SETUP_TIMEOUT_MS, fetchImpl);
+    let body = null;
+    try { body = await r.json(); } catch { body = null; }
+    if (r.status === 200 && body && body.ok) return { kind: 'ok', added: Number(body.added) || 0, cameras: Array.isArray(body.cameras) ? body.cameras : [] };
+    if (r.status === 409 && body && body.error === 'needs-2fa') return { kind: 'needs-code', prompt: body.prompt || 'Enter the code Ring sent you.' };
+    if (r.status === 409) return { kind: 'error', message: 'Another setup is running on the NAS; try again in a moment.' };
+    if (r.status === 401 && body && body.error === 'ring-sign-in-refused') return { kind: 'refused', message: `Ring refused the sign-in${body.detail ? `: ${body.detail}` : ''}. ${GOOGLE_SIGN_IN_NOTE}` };
+    if (r.status === 401) return { kind: 'error', message: 'The family key on this device was refused.' };
+    if (r.status === 400) return { kind: 'error', message: `A box is missing or wrong (${(body && body.field) || 'email'}).` };
+    if (r.status === 404) return { kind: 'error', message: 'The NAS runs an older camera service without the Ring road yet. It updates itself within 15 minutes of a merge.' };
+    return { kind: 'error', message: `The camera road answered HTTP ${r.status}${body && body.error ? ` (${body.error})` : ''}.` };
+  } catch (e) {
+    return { kind: 'error', message: `The camera road did not answer: ${humanizeFetchError(e, SETUP_TIMEOUT_MS)}.` };
+  }
 }

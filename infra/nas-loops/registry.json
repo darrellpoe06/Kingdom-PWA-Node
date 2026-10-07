@@ -38,9 +38,9 @@
       "script": "services-sync.sh",
       "enabled": true,
       "schedule": "every 15 minutes",
-      "max_calls_per_day": 96,
+      "max_calls_per_day": 120,
       "timeout_seconds": 600,
-      "description": "The self-deploy loop (DR-0236): run every enabled idempotent installer in services.json from the fresh repo mirror, so merging a service to main IS its NAS deploy -- install/repair/start with no human hand. First service: scribe. Installers no-op when already done; a failure fails the run loudly (ntfy). Ships inert (needs LOOPS_ARMED + a DSM entry). Cycle-wide timeout bounds ALL installers together (run.mjs kills the tree), so cheap stamp-gated riders are registered first in services.json and cannot be starved by a slow sibling -- the 2026-08-06 ways-review finding."
+      "description": "CAP 120, NOT 96 (2026-10-07, DR-0806): the clock alone fires 96/day, so a cap of 96 left zero room -- three hand-fired one-shots (nas-clock also_run_once) that day spent the clock's own slots and services-sync read HOLD(daily call cap reached) from 22:55 UTC, leaving the camera forwarder running 13-hour-old code while new code sat on disk (cams-diag 37702488586: forwarder 2171a723, on_disk d45dc35c). 96 clock + 24 hands is the budget; the UTC-day counter still resets at midnight. The self-deploy loop (DR-0236): run every enabled idempotent installer in services.json from the fresh repo mirror, so merging a service to main IS its NAS deploy -- install/repair/start with no human hand. First service: scribe. Installers no-op when already done; a failure fails the run loudly (ntfy). Ships inert (needs LOOPS_ARMED + a DSM entry). Cycle-wide timeout bounds ALL installers together (run.mjs kills the tree), so cheap stamp-gated riders are registered first in services.json and cannot be starved by a slow sibling -- the 2026-08-06 ways-review finding."
     },
     {
       "name": "funnel-watchdog",
