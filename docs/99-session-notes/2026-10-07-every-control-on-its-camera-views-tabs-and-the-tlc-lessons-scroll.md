@@ -30,3 +30,7 @@
 ## For Darrell and Christina
 
 Cameras: the top row is now Live · Recordings · Who can see · Setup. On Live, every camera has its own Record, + View and Big. Press + View on the cameras you want, then drag the ⠿ handle (or the arrows) to order them while they play, and pick how many across. TLC lessons: a Steps / Scroll pair sits above every lesson; Scroll shows the whole lesson at once and stays chosen on that device.
+
+## Later — click a camera to make it the largest, click again to put it back (DR-0795)
+
+Darrell, Firestick, a view open: *"Clicking inside the image of one camera makes it largest size... click again it goes to the previous position."* The live picture is now a button in a view and in the full-size window: the clicked camera is laid out alone (one column; in the window `fitGrid` for one tile, the bar naming it), the other tiles stay mounted and hidden so their streams keep running, and the second click puts every tile back where it was with no new ticket. Enter from a remote does the same. `cameras.test.js` 77 · `cameras-render.test.jsx` 30.
