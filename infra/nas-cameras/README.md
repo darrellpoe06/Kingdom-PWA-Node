@@ -23,9 +23,13 @@ because go2rtc lists the account's cameras from Wyze's cloud ONCE (then streams
 them locally over P2P). Nothing in the repo ever holds these values.
 
 **The easy way (2026-10-07): type it once, in the app.** Open the Cameras tab
-(family), fill in Wyze email, password, API ID and API Key (the two keys come
-from the Wyze developer portal: Wyze account > API Key), press *Sign in and add
-my cameras*. The app hands the four values over the locked `/cams` road to
+(family), fill in Wyze email, password, API ID and API Key, press *Sign in and
+add my cameras*. The two keys are made ONCE on the Wyze Developer API Console,
+not in the Wyze app and not on my.wyze.com: Wyze's own page is
+https://support.wyze.com/hc/en-us/articles/16129834216731 (go2rtc's Wyze README
+points to the same one); the form links to it and lists the four steps. This is
+a one-time step for the person who owns the Wyze account; every other family
+member only opens the tab. The app hands the four values over the locked `/cams` road to
 `cams_forwarder.py` (`POST /setup/wyze`, family bearer), which hands them to
 go2rtc's OWN sign-in (`POST /api/wyze`, verified in go2rtc 1.9.14 source:
 `internal/wyze/wyze.go` logs in, writes the account into `go2rtc.yaml`, and

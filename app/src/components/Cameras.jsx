@@ -38,7 +38,7 @@ import {
   healthUrl, listUrl, ticketUrl, snapUrl, liveUrl, pickLiveMode,
   parseCameraList, groupByKind, KINDS, classifyServiceState,
   formatAge, formatBytes, fetchWithTimeout, authHeaders, setupCommands,
-  WYZE_FIELDS, setupWyze,
+  WYZE_FIELDS, setupWyze, WYZE_API_KEY_HELP_URL, WYZE_API_KEY_STEPS,
 } from '../lib/cameras.js';
 
 const card = 'bg-white border border-[#1A1815] p-4 sm:p-5';
@@ -84,7 +84,14 @@ function WyzeSetup({ token, onAdded }) {
     <form onSubmit={submit} data-testid="wyze-setup" className="mt-3 border-t border-[#E8E4DC] pt-3" aria-busy={busy}>
       <div className={labelCls}>Sign in to Wyze once, here</div>
       <p className="text-xs text-[#5A5751] mt-1 mb-2">
-        Get an API ID and API Key from the Wyze developer portal (Wyze account, API Key). The NAS signs in with them, keeps them, and lists your cameras. Nothing is kept in this browser.
+        One-time step for the person who owns the Wyze account. Everyone else in the family only opens this tab. The NAS signs in with these four values, keeps them, and lists your cameras. Nothing is kept in this browser.
+      </p>
+      <ol className="text-xs text-[#1A1815] list-decimal pl-5 mb-2 space-y-0.5" data-testid="wyze-key-steps">
+        {WYZE_API_KEY_STEPS.map((step) => <li key={step}>{step}</li>)}
+      </ol>
+      <p className="text-xs mb-3">
+        <a href={WYZE_API_KEY_HELP_URL} target="_blank" rel="noopener noreferrer" className="text-[#B85838] underline font-semibold min-h-[36px] inline-flex items-center focus:outline focus:outline-2 focus:outline-[#B85838]" data-testid="wyze-key-link">Open the Wyze API key page</a>
+        <span className="text-[#5A5751]"> (not in the Wyze app, not on my.wyze.com)</span>
       </p>
       <div className="grid gap-2 sm:grid-cols-2">
         {WYZE_FIELDS.map((d) => (

@@ -176,8 +176,26 @@ export function authHeaders(token) {
 export const WYZE_FIELDS = Object.freeze([
   { key: 'email', label: 'Wyze email', type: 'email', autoComplete: 'username', hint: 'The email you sign in to the Wyze app with.' },
   { key: 'password', label: 'Wyze password', type: 'password', autoComplete: 'current-password', hint: 'Used once to sign in; the NAS keeps it, this browser does not.' },
-  { key: 'api_id', label: 'API ID', type: 'text', autoComplete: 'off', hint: 'From the Wyze developer portal (Wyze account > API Key).' },
-  { key: 'api_key', label: 'API Key', type: 'password', autoComplete: 'off', hint: 'From the same page. An API key signs in without a 2FA prompt.' },
+  { key: 'api_id', label: 'API ID', type: 'text', autoComplete: 'off', hint: 'Made once on the Wyze Developer API Console (the link above). It is NOT in the Wyze app or on my.wyze.com.' },
+  { key: 'api_key', label: 'API Key', type: 'password', autoComplete: 'off', hint: 'Shown once beside the API ID when you create it; copy both then. The key signs in without the 2FA code prompt.' },
+]);
+
+// WHERE THE KEY COMES FROM (2026-10-07; Darrell, on his phone at my.wyze.com:
+// "Not finding an api key... again... is this best for elderly users?"). The
+// key is not on my.wyze.com and not in the Wyze app: it is made once on the
+// Wyze Developer API Console, which Wyze's own article names (and go2rtc's
+// Wyze README points to the same article). The form links straight there and
+// says so, so nobody hunts. This is a ONE-TIME STEWARD step: the person who
+// owns the Wyze account types it once; every other family member only opens
+// the Cameras tab. go2rtc's Wyze sign-in requires the key (verified in its
+// source: "api_key and api_id required"), so the step cannot be removed, only
+// made plain.
+export const WYZE_API_KEY_HELP_URL = 'https://support.wyze.com/hc/en-us/articles/16129834216731';
+export const WYZE_API_KEY_STEPS = Object.freeze([
+  'Open the Wyze API key page (the link below) and sign in with the same Wyze email and password.',
+  'Press Create an API Key and give it any name, like PoeTech.',
+  'Copy the API ID and the API Key it shows. The key is shown once.',
+  'Come back here, fill in the four boxes, press Sign in and add my cameras.',
 ]);
 
 /** Pure: which fields are missing, before anything is sent. */

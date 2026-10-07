@@ -106,6 +106,13 @@ describe('Cameras surface', () => {
     const form = container.querySelector('[data-testid="wyze-setup"]');
     expect(form).not.toBeNull();
     expect([...form.querySelectorAll('input')].map((i) => i.getAttribute('aria-label'))).toEqual(['Wyze email', 'Wyze password', 'API ID', 'API Key']);
+    // 2026-10-07: the key is NOT on my.wyze.com; the form links straight to Wyze's own page and says so, in steps.
+    const link = form.querySelector('[data-testid="wyze-key-link"]');
+    expect(link.getAttribute('href')).toBe('https://support.wyze.com/hc/en-us/articles/16129834216731');
+    expect(link.getAttribute('target')).toBe('_blank');
+    expect(form.querySelectorAll('[data-testid="wyze-key-steps"] li')).toHaveLength(4);
+    expect(form.textContent).toMatch(/not in the Wyze app, not on my\.wyze\.com/);
+    expect(form.textContent).toMatch(/One-time step for the person who owns the Wyze account/);
     expect(container.querySelectorAll('pre')).toHaveLength(0);
     await click(buttons().find((b) => /Prefer a terminal\?/.test(b.textContent)));
     const pres = [...container.querySelectorAll('pre')].map((p) => p.textContent);
