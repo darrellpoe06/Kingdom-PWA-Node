@@ -1727,7 +1727,7 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
         return { icon: <UiIcon name="volume" />, word: talking ? 'Thinking' : 'Talk', disabled: talking, title: 'Talk about this — Ari says what is on this screen', onClick: talkAbout };
       case 'awake':
         if (!awake.supported) return null;
-        return { icon: '☀', word: awake.enabled ? 'Screen on' : 'Screen off', on: awake.enabled, title: 'Keep the screen on while it reads', onClick: () => awake.setEnabled(!awake.enabled) };
+        return { icon: '◎', word: awake.enabled ? 'Screen on' : 'Screen off', on: awake.enabled, title: 'Keep the screen on while it reads', onClick: () => awake.setEnabled(!awake.enabled) };
       case 'panel':
         return { icon: '⇕', word: 'Panel', title: controllerToggleTitle(controller), onClick: flipController };
       case 'full':
@@ -1758,7 +1758,7 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
     return (
       <button type="button" onClick={spec.onClick} disabled={spec.disabled} data-testid={`reader-rail-${id}`} title={spec.title} aria-label={spec.title}
         aria-pressed={typeof spec.on === 'boolean' ? spec.on : undefined}
-        className={`${spec.on ? DOCK_BTN_ON : DOCK_BTN} w-full disabled:opacity-50`}>
+        className={`${spec.on ? DOCK_BTN_ON : DOCK_BTN} w-full disabled:opacity-50 focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]`}>
         <span aria-hidden="true" className={DOCK_ICON}>{spec.icon}</span>
         <span className={DOCK_LABEL}>{spec.word}</span>
       </button>
