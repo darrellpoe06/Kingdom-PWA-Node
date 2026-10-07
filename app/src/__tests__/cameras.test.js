@@ -27,6 +27,7 @@ import {
   toggleFocus, focusIn, shownCount,
   CLIP_SIZE_TIERS, recClipSizesUrl, recClipDownloadUrl, clipDownloadName, clipTierLine, fetchClipSizes, waitForClipSize,
   streamHealthUrl, fetchStreamHealth, deviceCanPlayHevc, liveStreamId, twinOf, streamHealthLine, dropKindText, dropLines,
+  sdOf, wantsSd, liveEdge, liveEdgeDecision, freezeStep, tendLiveVideo, FREEZE_SECONDS, LIVE_LAG_SEEK_S, LIVE_LAG_RATE_S, LIVE_CATCHUP_RATE, LIVE_EDGE_MARGIN_S,
 } from '../lib/cameras.js';
 
 describe('the road: every URL is same-origin under /cams', () => {
@@ -854,8 +855,8 @@ describe('one camera largest on a click, back on the second (DR-0796)', () => {
 describe('clip downloads by size (DR-0797)', () => {
   const json = (status, body, headers = {}) => ({ ok: status >= 200 && status < 300, status, json: async () => body, headers: { get: (k) => headers[k.toLowerCase()] || null } });
   it('the tiers: original, large 1080p, medium 720p, small 480p; the URLs carry the ticket, the size, dl=1 and retry=1 only when asked', () => {
-    expect(CLIP_SIZE_TIERS.map((t) => t.key)).toEqual(['original', 'large', 'medium', 'small']);
-    expect(CLIP_SIZE_TIERS.map((t) => t.height)).toEqual([null, 1080, 720, 480]);
+    expect(CLIP_SIZE_TIERS.map((t) => t.key)).toEqual(['original', 'uhd', 'xlarge', 'large', 'medium', 'small']);
+    expect(CLIP_SIZE_TIERS.map((t) => t.height)).toEqual([null, 2160, 1440, 1080, 720, 480]);
     expect(recClipSizesUrl('front_yard', '2026-10-07T06-40-00.mp4', 'T')).toBe('/cams/rec/front_yard/2026-10-07T06-40-00.mp4?t=T&sizes=1');
     expect(recClipDownloadUrl('front_yard', '2026-10-07T06-40-00.mp4', 'T', 'small')).toBe('/cams/rec/front_yard/2026-10-07T06-40-00.mp4?t=T&size=small&dl=1');
     expect(recClipDownloadUrl('front_yard', '2026-10-07T06-40-00.mp4', 'T', 'original')).toBe('/cams/rec/front_yard/2026-10-07T06-40-00.mp4?t=T&dl=1');
@@ -950,5 +951,70 @@ describe('the stream health log (DR-0798)', () => {
     expect(lines[1]).toMatch(/sent nothing/);
     expect(dropLines(events, 'zzz')).toEqual([]);
     expect(dropLines(null, 'a')).toEqual([]);
+  });
+});
+
+describe('a live tile stays live (DR-0799)', () => {
+  const ranges = (...pairs) => ({ length: pairs.length, start: (i) => pairs[i][0], end: (i) => pairs[i][1] });
+  it('a grid tile wants the SD twin when the NAS keeps one; the camera made largest, or alone, wants HD', () => {
+    expect(sdOf('front_yard')).toBe('front_yard_sd');
+    expect(wantsSd({ shown: 4, picked: false })).toBe(true);
+    expect(wantsSd({ shown: 4, picked: true })).toBe(false);
+    expect(wantsSd({ shown: 1 })).toBe(false);
+    expect(liveStreamId({ id: 'c', sd: true }, () => 'probably', { sd: true })).toBe('c_sd');
+    expect(liveStreamId({ id: 'c', sd: false }, () => 'probably', { sd: true })).toBe('c');
+    expect(liveStreamId({ id: 'c', sd: true, h264: true }, () => '', { sd: false })).toBe('c_h264');
+    expect(liveStreamId({ id: 'c', sd: true, h264: true }, () => '', { sd: true })).toBe('c_sd');
+  });
+  it('the live edge is the end of what arrived (mp4) or what is seekable (HLS)', () => {
+    expect(liveEdge({ buffered: ranges([0, 12.5]), seekable: ranges([0, 20]) }, 'mp4')).toBe(12.5);
+    expect(liveEdge({ buffered: ranges([0, 12.5]), seekable: ranges([0, 20]) }, 'hls')).toBe(20);
+    expect(liveEdge({ buffered: ranges(), seekable: ranges([0, 20]) }, 'mp4')).toBe(20);
+    expect(liveEdge({ buffered: ranges(), seekable: ranges() }, 'mp4')).toBeNull();
+    expect(liveEdge(null)).toBeNull();
+  });
+  it('the decision: far behind jumps to the edge, a little behind runs faster, caught up runs at 1x again', () => {
+    expect(liveEdgeDecision({ currentTime: 10, edge: 10 + LIVE_LAG_SEEK_S + 1 })).toEqual({ action: 'seek', to: 10 + LIVE_LAG_SEEK_S + 1 - LIVE_EDGE_MARGIN_S, lag: LIVE_LAG_SEEK_S + 1 });
+    expect(liveEdgeDecision({ currentTime: 10, edge: 10 + LIVE_LAG_RATE_S + 0.5 })).toEqual({ action: 'rate', rate: LIVE_CATCHUP_RATE, lag: LIVE_LAG_RATE_S + 0.5 });
+    expect(liveEdgeDecision({ currentTime: 10, edge: 10.4, playbackRate: LIVE_CATCHUP_RATE })).toEqual({ action: 'rate', rate: 1, lag: expect.closeTo(0.4, 5) });
+    expect(liveEdgeDecision({ currentTime: 10, edge: 10.4, playbackRate: 1 })).toEqual({ action: 'none', lag: expect.closeTo(0.4, 5) });
+    expect(liveEdgeDecision({ currentTime: 10, edge: null })).toEqual({ action: 'none', lag: null });
+    expect(liveEdgeDecision({ currentTime: 12, edge: 10 }).lag).toBe(0);
+  });
+  it('the freeze watch counts the seconds a position has not moved; moving, pausing or ending resets it', () => {
+    let m = freezeStep(null, { currentTime: 1 }, 0);
+    expect(m.frozenFor).toBe(0);
+    m = freezeStep(m, { currentTime: 1 }, 2000);
+    expect(m.frozenFor).toBe(2);
+    m = freezeStep(m, { currentTime: 1 }, 6500);
+    expect(m.frozenFor).toBe(6.5);
+    m = freezeStep(m, { currentTime: 1.5 }, 8000);
+    expect(m.frozenFor).toBe(0);
+    m = freezeStep(m, { currentTime: 1.5, paused: true }, 20000);
+    expect(m.frozenFor).toBe(0);
+    m = freezeStep(freezeStep(null, { currentTime: 3 }, 0), { currentTime: 3, ended: true }, 9000);
+    expect(m.frozenFor).toBe(0);
+  });
+  it('tendLiveVideo writes the element only as the decision says, and names a freeze at 6 s', () => {
+    const el = { currentTime: 10, paused: false, ended: false, readyState: 4, playbackRate: 1, buffered: ranges([0, 15]), seekable: ranges() };
+    let r = tendLiveVideo(el, null, { mode: 'mp4', nowMs: 0 });
+    expect(r.action).toBe('seek'); expect(el.currentTime).toBe(14.5); expect(r.frozen).toBe(false);
+    el.buffered = ranges([0, 16]);
+    r = tendLiveVideo(el, r.memo, { mode: 'mp4', nowMs: 2000 });
+    expect(r.action).toBe('rate'); expect(el.playbackRate).toBe(LIVE_CATCHUP_RATE);
+    el.currentTime = 15.8;
+    r = tendLiveVideo(el, r.memo, { mode: 'mp4', nowMs: 4000 });
+    expect(r.action).toBe('rate'); expect(el.playbackRate).toBe(1);
+    // the picture stops: the same currentTime for FREEZE_SECONDS
+    el.playbackRate = 1;
+    r = tendLiveVideo(el, r.memo, { mode: 'mp4', nowMs: 6000 });
+    r = tendLiveVideo(el, r.memo, { mode: 'mp4', nowMs: 6000 + FREEZE_SECONDS * 1000 });
+    expect(r.frozen).toBe(true);
+    // a paused element is never frozen and never written
+    const paused = { currentTime: 1, paused: true, ended: false, readyState: 4, playbackRate: 1, buffered: ranges([0, 50]), seekable: ranges() };
+    r = tendLiveVideo(paused, null, { nowMs: 0 });
+    r = tendLiveVideo(paused, r.memo, { nowMs: 20000 });
+    expect(r.frozen).toBe(false); expect(paused.currentTime).toBe(1); expect(r.action).toBe('none');
+    expect(tendLiveVideo(null, null)).toMatchObject({ frozen: false, action: 'none' });
   });
 });

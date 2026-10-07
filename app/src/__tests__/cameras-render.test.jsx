@@ -593,37 +593,47 @@ describe('Cameras surface', () => {
     expect(grid().getAttribute('data-focused')).toBe('garage');
     expect(container.querySelector('[data-view-cam="garage"]').getAttribute('data-focused')).toBe('true');
     expect(container.querySelector('[data-view-cam="front_yard"]').className).toMatch(/\bhidden\b/);
-    expect(container.querySelector('[data-testid="wall-front_yard"] video'), 'the hidden tile keeps its stream').toBe(frontVideo);
+    // the hidden tile gives its stream back (DR-0799): no <video>, its status says why, the same ticket count
+    expect(container.querySelector('[data-testid="wall-front_yard"] video'), 'a hidden tile holds no stream').toBeNull();
+    expect(container.querySelector('[data-testid="wall-front_yard-status"]').textContent).toBe('Paused while another camera is the largest.');
+    expect(frontVideo.getAttribute('src')).toBeNull();
+    expect(calls.filter((c) => c.url === '/cams/ticket').length).toBe(ticketsBefore);
     expect(container.querySelector('[data-testid="wall-garage-picture"]').getAttribute('aria-pressed')).toBe('true');
-    // the second click: back to two across, nothing hidden, no new ticket was asked
+    // the second click: back to two across, nothing hidden, the hidden tile re-opens in its place (one new ticket, for it)
     await click(container.querySelector('[data-testid="wall-garage-picture"]'));
+    await act(async () => { await new Promise((r) => setTimeout(r, 20)); });
     expect(grid().getAttribute('data-cols')).toBe('2');
     expect(grid().getAttribute('data-focused')).toBeNull();
     expect(container.querySelector('[data-view-cam="front_yard"]').className).not.toMatch(/\bhidden\b/);
     expect([...container.querySelectorAll('[data-view-cam]')].map((el) => el.getAttribute('data-view-cam'))).toEqual(['front_yard', 'garage']);
-    expect(calls.filter((c) => c.url === '/cams/ticket').length).toBe(ticketsBefore);
+    expect(container.querySelector('[data-testid="wall-front_yard"] video')).toBeTruthy();
+    const reopened = calls.filter((c) => c.url === '/cams/ticket').slice(ticketsBefore).map((c) => JSON.parse(c.opts.body).camera);
+    expect(reopened).toEqual(['front_yard']);
     // Enter from a remote does the same as a click
     await act(async () => { container.querySelector('[data-testid="wall-front_yard-picture"]').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); });
     expect(grid().getAttribute('data-focused')).toBe('front_yard');
     await act(async () => { container.querySelector('[data-testid="wall-front_yard-picture"]').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); });
+    await act(async () => { await new Promise((r) => setTimeout(r, 20)); });
     expect(grid().getAttribute('data-focused')).toBeNull();
     // THE WINDOW. The same gesture on a window tile: one tile fills the fitted area, the bar says so, the other tile is hidden and kept.
     await click(container.querySelector('[data-testid="view-window-open"]'));
     await act(async () => { await new Promise((r) => setTimeout(r, 20)); });
     const win = () => container.querySelector('[data-testid="view-window"]');
     expect(win().getAttribute('data-cols')).toBe('1');
-    const winGarageVideo = win().querySelector('[data-testid="window-garage"] video');
+    expect(win().querySelector('[data-testid="window-garage"] video')).toBeTruthy();
     const rowsBefore = win().querySelector('[data-testid="view-window-grid"]').style.gridAutoRows;
     await click(win().querySelector('[data-testid="window-front_yard"]'));
     expect(win().getAttribute('data-focused')).toBe('front_yard');
     expect(win().querySelector('[data-window-cam="front_yard"]').getAttribute('data-focused')).toBe('true');
     expect(win().querySelector('[data-window-cam="garage"]').className).toMatch(/\bhidden\b/);
-    expect(win().querySelector('[data-testid="window-garage"] video')).toBe(winGarageVideo);
+    expect(win().querySelector('[data-testid="window-garage"] video'), 'the hidden window tile gives its stream back').toBeNull();
     expect(win().querySelector('[data-testid="view-window-grid"]').style.gridAutoRows, 'one tile is fitted larger than two were').not.toBe(rowsBefore);
     expect(container.querySelector('[data-testid="view-window-size"]').textContent).toMatch(/front yard · largest · click it again to put it back/);
     await click(win().querySelector('[data-testid="window-front_yard"]'));
+    await act(async () => { await new Promise((r) => setTimeout(r, 20)); });
     expect(win().getAttribute('data-focused')).toBeNull();
     expect(win().querySelector('[data-window-cam="garage"]').className).not.toMatch(/\bhidden\b/);
+    expect(win().querySelector('[data-testid="window-garage"] video'), 'it re-opens in its place').toBeTruthy();
     expect(win().querySelector('[data-testid="view-window-grid"]').style.gridAutoRows).toBe(rowsBefore);
     expect(container.querySelector('[data-testid="view-window-size"]').textContent).toMatch(/2 cameras · 1 across · 100%/);
     await act(async () => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); });
@@ -735,6 +745,61 @@ describe('Cameras surface', () => {
       expect(clicked).toEqual([{ href: '/cams/rec/front_yard/2026-10-07T06-40-00.mp4?t=9999999999.abcdef&dl=1', download: 'front_yard-2026-10-07T06-40-00-original.mp4' }]);
     } finally {
       HTMLAnchorElement.prototype.click = origClick;
+    }
+  });
+
+  it('a live tile stays live (DR-0799): a grid asks for the SD twin and the one made largest asks for HD; a frozen picture reconnects after 6 s', async () => {
+    try { localStorage.removeItem(LIVE_TILES_KEY); } catch { /* fine */ }
+    const { fetchImpl, calls } = makeFetch({
+      list: { cameras: [{ id: 'front_yard', name: 'front yard', kind: 'wyze', sd: true }, { id: 'garage', name: 'garage', kind: 'wyze', sd: true }], count: 2 },
+      health: { ok: true, go2rtc: '1.9.14', streams: 2, live_max_seconds: 0, max_live: 32, live_open: 0, live_bytes_per_s: 0 },
+    });
+    vi.stubGlobal('fetch', fetchImpl);
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 1024 });
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 768 });
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      await mount();
+      await act(async () => { await new Promise((r) => setTimeout(r, 30)); });
+      // the all-cameras tiles (two of them) ask for the SD twins
+      const tiles = calls.filter((c) => c.url === '/cams/ticket').map((c) => JSON.parse(c.opts.body).camera).sort();
+      expect(tiles).toEqual(['front_yard_sd', 'garage_sd']);
+      // the window: both tiles SD; the one made largest re-opens as HD; put back, SD again
+      await click(buttons().find((b) => b.getAttribute('aria-label') === 'Add front yard to the view'));
+      await click(buttons().find((b) => b.getAttribute('aria-label') === 'Add garage to the view'));
+      await act(async () => { await new Promise((r) => setTimeout(r, 20)); });
+      await click(container.querySelector('[data-testid="view-window-open"]'));
+      await act(async () => { await new Promise((r) => setTimeout(r, 30)); });
+      const win = () => container.querySelector('[data-testid="view-window"]');
+      expect(win().querySelector('[data-testid="window-front_yard"] video').getAttribute('src')).toMatch(/\/cams\/live\/front_yard_sd/);
+      const before = calls.filter((c) => c.url === '/cams/ticket').length;
+      await click(win().querySelector('[data-testid="window-front_yard"]'));
+      await act(async () => { await new Promise((r) => setTimeout(r, 30)); });
+      expect(win().querySelector('[data-testid="window-front_yard"] video').getAttribute('src')).toMatch(/\/cams\/live\/front_yard[./]/);
+      expect(calls.filter((c) => c.url === '/cams/ticket').slice(before).map((c) => JSON.parse(c.opts.body).camera)).toEqual(['front_yard']);
+      await click(win().querySelector('[data-testid="window-front_yard"]'));
+      await act(async () => { await new Promise((r) => setTimeout(r, 30)); });
+      expect(win().querySelector('[data-testid="window-front_yard"] video').getAttribute('src')).toMatch(/\/cams\/live\/front_yard_sd/);
+      expect(win().querySelector('[data-testid="window-garage"] video').getAttribute('src')).toMatch(/\/cams\/live\/garage_sd/);
+      // a frozen picture: currentTime stops moving for 6 s -> the tile reconnects with a new ticket and says why
+      const v = win().querySelector('[data-testid="window-garage"] video');
+      Object.defineProperty(v, 'currentTime', { configurable: true, writable: true, value: 10 });
+      Object.defineProperty(v, 'paused', { configurable: true, get: () => false });
+      Object.defineProperty(v, 'readyState', { configurable: true, get: () => 4 });
+      const ticketsBeforeFreeze = calls.filter((c) => c.url === '/cams/ticket').length;
+      await act(async () => { vi.advanceTimersByTime(2100); });
+      await act(async () => { vi.advanceTimersByTime(2100); });
+      await act(async () => { vi.advanceTimersByTime(2100); });
+      await act(async () => { vi.advanceTimersByTime(2100); });
+      await act(async () => { await new Promise((r) => setTimeout(r, 30)); });
+      await act(async () => { vi.advanceTimersByTime(LIVE_RECONNECT_DELAY_MS + 50); });
+      await act(async () => { await new Promise((r) => setTimeout(r, 30)); });
+      const after = calls.filter((c) => c.url === '/cams/ticket').slice(ticketsBeforeFreeze).map((c) => JSON.parse(c.opts.body).camera);
+      expect(after, 'the frozen tile asked for a new ticket').toEqual(['garage_sd']);
+      expect(win().querySelector('[data-testid="window-garage"]').textContent).toMatch(/reconnected 1×/);
+      await act(async () => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); });
+    } finally {
+      vi.useRealTimers();
     }
   });
 

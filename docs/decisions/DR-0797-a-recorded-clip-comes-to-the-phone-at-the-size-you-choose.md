@@ -17,7 +17,7 @@ SHOULD: Record keeps clips on the NAS (DR-0775) and nothing on the phone; a pers
 | what | measured | basis |
 | --- | --- | --- |
 | where Record writes | the NAS recordings folder only (`cams_recorder.py` `ffmpeg … -c copy -f segment /recordings/<cam>/…`) | the recorder's own argv, selftest 2 |
-| the tiers | small 480p CRF 30 (est. 600 kb/s), medium 720p CRF 26 (1.5 Mb/s), large 1080p CRF 23 (3 Mb/s); never upscaled (`scale=-2:'min(H,ih)'`) | `transcode_argv`, selftest 8k |
+| the tiers | small 480p CRF 30 (est. 600 kb/s), medium 720p CRF 26 (1.5 Mb/s), large 1080p CRF 23 (3 Mb/s), extra large 1440p / 2.5K CRF 21 (6 Mb/s), ultra 2160p / 4K CRF 20 (12 Mb/s); never upscaled (`scale=-2:'min(H,ih)'`) — Darrell, same day: *"4k for those types if possible so 2k or 3k... larger size options too"* | `transcode_argv`, selftest 8k |
 | an estimate | the tier's rate × the clip's seconds, never above the original: 600 s → small 45 MB; medium/large capped at a 100 MB original | `estimate_sizes`, selftest 8k |
 | a clip's seconds | to the next clip's start (600), the newest to now (120) | `clip_seconds`, selftest 8k |
 | the first ask | 202 `{status: queued, position: 1, retry_in: 3}`; then 200 `video/mp4` with `Content-Disposition: attachment; filename="front_yard-2026-10-07T06-40-00-small.mp4"`; the `.part` renamed away | selftest 8k |
@@ -31,7 +31,7 @@ SHOULD: Record keeps clips on the NAS (DR-0775) and nothing on the phone; a pers
 ## Decision
 
 1. **Record stays NAS-only.** Nothing changes in the recorder; a clip reaches a phone only when a person asks for it from the Recordings panel.
-2. **Four sizes, each the best picture that fits.** Original as recorded; Large 1080p; Medium 720p; Small 480p — the tier's height is a ceiling, never a stretch, so a 1080p camera's Large is its full picture in a smaller file and a 720p camera's Large is 720p.
+2. **Six sizes, each the best picture that fits.** Original as recorded; Ultra 2160p / 4K; Extra large 1440p / 2.5K; Large 1080p; Medium 720p; Small 480p — the tier's height is a ceiling, never a stretch, so a 1080p camera's Large, Extra large and Ultra are all its full picture (at three quality settings) and a 2.5K camera's Ultra is 2.5K.
 3. **Made once, on the NAS, by the container's own ffmpeg** (the recorder's, DR-0775), one at a time, into `<recordings>/.derived/<camera>/<time>.<size>.mp4` through a `.part`; served with Range like the original; `dl=1` adds the file name so the phone saves it.
 4. **Honest while it works.** A size not yet made answers 202 with its place in the line; the app shows "in line (n)" / "being made on the NAS…" and downloads when the NAS says 200. A failure is ffmpeg's own words, scrubbed, and stays until Try again.
 5. **Its own brakes.** `CAMS_DERIVED_BUDGET_GB` (2) prunes the oldest derived file first; a derived file whose source was pruned is an orphan and goes; stale `.part` files go; `CAMS_TRANSCODE_TIMEOUT` (900 s) bounds a run. The single worker is the lock.

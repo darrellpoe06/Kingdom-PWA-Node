@@ -90,6 +90,8 @@ export function parseCameraList(json) {
       kind: typeof c.kind === 'string' ? c.kind : 'unknown',
       // The NAS keeps an H.264 twin for this camera (it sends only H.265; DR-0798).
       h264: c.h264 === true,
+      // The NAS keeps an SD twin (the camera's own substream) for grids of tiles (DR-0799).
+      sd: c.sd === true,
     });
   }
   return out.sort((a, b) => a.name.localeCompare(b.name));
@@ -1228,6 +1230,8 @@ export function indexAtPoint(boxes, x, y) {
 // =============================================================================
 export const CLIP_SIZE_TIERS = Object.freeze([
   Object.freeze({ key: 'original', label: 'Original', height: null }),
+  Object.freeze({ key: 'uhd', label: 'Ultra (2160p / 4K)', height: 2160 }),
+  Object.freeze({ key: 'xlarge', label: 'Extra large (1440p / 2.5K)', height: 1440 }),
   Object.freeze({ key: 'large', label: 'Large (1080p)', height: 1080 }),
   Object.freeze({ key: 'medium', label: 'Medium (720p)', height: 720 }),
   Object.freeze({ key: 'small', label: 'Small (480p)', height: 480 }),
@@ -1338,10 +1342,21 @@ export function deviceCanPlayHevc(canPlayType) {
   }
   return false;
 }
-/** The stream this device should open for a camera: its H.264 twin when the camera has one and this device cannot decode H.265. */
-export function liveStreamId(cam, canPlayType) {
+export const SD_SUFFIX = '_sd';
+export function sdOf(id) { return `${id}${SD_SUFFIX}`; }
+/**
+ * The stream this device should open for a camera: the SD twin for a tile in
+ * a grid (when the NAS keeps one), else the H.264 twin when the camera sends
+ * only H.265 and this device cannot decode it, else the camera's own.
+ */
+export function liveStreamId(cam, canPlayType, { sd = false } = {}) {
   if (!cam || !cam.id) return '';
+  if (sd && cam.sd) return sdOf(cam.id);
   return cam.h264 && !deviceCanPlayHevc(canPlayType) ? twinOf(cam.id) : cam.id;
+}
+/** A grid tile wants the SD substream; the one camera made largest, or a single camera, wants HD. */
+export function wantsSd({ shown = 1, picked = false } = {}) {
+  return !picked && Number(shown) > 1;
 }
 const fmtKbps = (k) => (k >= 1000 ? `${(k / 1000).toFixed(1)} Mb/s` : `${Math.round(k)} kb/s`);
 /** One short line under a tile from the camera's hour of health; '' when nothing was ever watched. */
@@ -1365,4 +1380,81 @@ export function dropLines(events, camId, limit = 6) {
   if (!Array.isArray(events)) return [];
   return events.filter((e) => e && e.camera === camId).slice(-limit).reverse()
     .map((e) => `${Number.isFinite(e.at) ? new Date(e.at * 1000).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : ''} · ${dropKindText(e.kind)}`.replace(/^ · /, ''));
+}
+
+// =============================================================================
+// A LIVE TILE STAYS LIVE (DR-0799; Darrell 2026-10-07, the Firestick window,
+// two cameras whose own clocks had stopped at 17:08:3x: "Cameras in the window
+// don't stay live... the seconds timers show they are not live.... why?!!!!!
+// Fix it!!!!!!"). Measured against the player as it was: a tile reconnected
+// only when the stream ENDED or ERRORED. A picture that silently stopped --
+// the element starved of bytes, or a decoder that fell behind -- stayed
+// frozen for ever, and a picture that stalled and resumed stayed BEHIND the
+// live edge by the length of the stall, and fell further behind with each
+// one. Nothing watched the one number that says "live": the play position
+// moving, and how far it trails the edge of what has arrived. Now every tile
+// is tended every LIVE_TEND_MS: a position that has not moved for
+// FREEZE_SECONDS is a freeze and the tile reconnects (a new ticket, the same
+// road); a position more than LIVE_LAG_SEEK_S behind the edge jumps to the
+// edge; a smaller lag is run down at LIVE_CATCHUP_RATE until it is gone.
+// Pure decisions here, proven in plain tests; the element is only touched by
+// tendLiveVideo.
+// =============================================================================
+export const LIVE_TEND_MS = 2000;
+export const FREEZE_SECONDS = 6;
+export const LIVE_LAG_SEEK_S = 3;
+export const LIVE_LAG_RATE_S = 1;
+export const LIVE_CATCHUP_RATE = 1.08;
+export const LIVE_EDGE_MARGIN_S = 0.5;
+
+/** Where "now" is on this element: the end of what has arrived (mp4) or of what is seekable (HLS). */
+export function liveEdge(video, mode = 'mp4') {
+  const endOf = (ranges) => { try { return ranges && ranges.length ? ranges.end(ranges.length - 1) : null; } catch { return null; } };
+  const buffered = endOf(video && video.buffered);
+  const seekable = endOf(video && video.seekable);
+  if (mode === 'hls') return Number.isFinite(seekable) ? seekable : buffered;
+  return Number.isFinite(buffered) ? buffered : seekable;
+}
+
+/** What to do about the distance from the play position to the live edge. */
+export function liveEdgeDecision({ currentTime, edge, playbackRate = 1 }) {
+  if (!Number.isFinite(currentTime) || !Number.isFinite(edge)) return { action: 'none', lag: null };
+  const lag = Math.max(0, edge - currentTime);
+  if (lag > LIVE_LAG_SEEK_S) return { action: 'seek', to: Math.max(0, edge - LIVE_EDGE_MARGIN_S), lag };
+  if (lag > LIVE_LAG_RATE_S) return { action: 'rate', rate: LIVE_CATCHUP_RATE, lag };
+  if (Math.abs(Number(playbackRate) - 1) > 0.001) return { action: 'rate', rate: 1, lag };
+  return { action: 'none', lag };
+}
+
+/**
+ * One step of the freeze watch. `memo` is {lastTime, since, frozenFor}; a
+ * position that moved, a pause, or the end resets it; a position that has not
+ * moved counts the seconds since it last did.
+ */
+export function freezeStep(memo, { currentTime, paused = false, ended = false }, nowMs) {
+  const t = Number(currentTime);
+  if (paused || ended || !Number.isFinite(t)) return { lastTime: Number.isFinite(t) ? t : null, since: nowMs, frozenFor: 0 };
+  if (!memo || memo.lastTime == null || t !== memo.lastTime) return { lastTime: t, since: nowMs, frozenFor: 0 };
+  return { lastTime: t, since: memo.since, frozenFor: Math.max(0, (nowMs - memo.since) / 1000) };
+}
+
+/**
+ * Tend one live element: watch for a freeze and keep it at the live edge.
+ * Returns the next memo plus {frozen, lag, action}. Only here is the element
+ * written (currentTime, playbackRate), and only when the decision says so.
+ */
+export function tendLiveVideo(video, memo, { mode = 'mp4', nowMs = Date.now() } = {}) {
+  if (!video) return { memo, frozen: false, lag: null, action: 'none' };
+  const state = { currentTime: Number(video.currentTime), paused: !!video.paused, ended: !!video.ended };
+  const next = freezeStep(memo, state, nowMs);
+  const frozen = next.frozenFor >= FREEZE_SECONDS;
+  let decision = { action: 'none', lag: null };
+  if (!frozen && !state.paused && !state.ended && Number(video.readyState) >= 2) {
+    decision = liveEdgeDecision({ currentTime: state.currentTime, edge: liveEdge(video, mode), playbackRate: video.playbackRate });
+    try {
+      if (decision.action === 'seek') video.currentTime = decision.to;
+      else if (decision.action === 'rate') video.playbackRate = decision.rate;
+    } catch { /* a device fact */ }
+  }
+  return { memo: next, frozen, lag: decision.lag, action: decision.action };
 }
