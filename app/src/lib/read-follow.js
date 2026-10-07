@@ -818,3 +818,29 @@ export function paragraphJumpTarget(starts, current, dir) {
   }
   return idx < starts.length - 1 ? starts[idx + 1] : null;
 }
+
+/**
+ * TAP BACK AGAIN TO KEEP WALKING BACK (Darrell 2026-10-07: "Can't go back
+ * using the back button... it can't be pushed again before it reads the exact
+ * same paragraph"). Back first re-listens the paragraph the voice is in; the
+ * promise since 2026-08-15 was that a SECOND tap walks to the one before. But
+ * the second tap was judged by where the voice IS, and a fast voice is past
+ * the paragraph's first sentence within a second (at 3x, every sentence is
+ * about a second), while a NAS voice spends seconds preparing — so by the
+ * time a listener could tap again, Back re-listened the same paragraph. Every
+ * time. The way out was never reachable.
+ *
+ * The rule a music player uses: a Back pressed within a short window of the
+ * previous Back is "the one before THAT", judged from where the previous Back
+ * LANDED, not from where the voice has wandered since. Pure; `now` injected.
+ *   starts   paragraph starts (segment indexes)
+ *   current  the voice's absolute segment now
+ *   lastBack {at, target} of the previous Back, or null
+ */
+export const BACK_AGAIN_MS = 4000;
+export function paragraphBackTarget(starts, current, lastBack, now = Date.now(), windowMs = BACK_AGAIN_MS) {
+  const again = lastBack && Number.isFinite(lastBack.at) && Number.isFinite(lastBack.target)
+    && (now - lastBack.at) >= 0 && (now - lastBack.at) < windowMs;
+  if (again) return paragraphJumpTarget(starts, lastBack.target, -1);
+  return paragraphJumpTarget(starts, current, -1);
+}

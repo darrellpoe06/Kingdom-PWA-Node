@@ -22,7 +22,7 @@ import {
   buildFollowMap, wordRange, highlightSegment, highlightWord,
   clearReadingHighlights, followRange, rangeFor,
   segmentIndexAtDomPoint, alignSegments, segmentIndexAtFraction, startIndexForFraction,
-  paragraphStarts, paragraphJumpTarget,
+  paragraphStarts, paragraphJumpTarget, paragraphBackTarget,
 } from '../lib/read-follow.js';
 import { segmentText } from '../lib/tts.js';
 import { readFromPoint } from '../lib/read-from-here.js';
@@ -244,6 +244,23 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
     standInWhy,
     myVoice,
   } = useReadAloud({ isOwner });
+  // A JUMP IN FLIGHT IS A READING IN FLIGHT (2026-10-07; Darrell: "can't be
+  // pushed again before it reads the exact same paragraph"). Between a step
+  // and the voice's first word — seconds, on the NAS voice — isReading is
+  // false, and every reading-only surface (the bar, the pill, the step
+  // buttons) used to fold away and come back only once the new paragraph was
+  // already being read. This state keeps them on screen for that window.
+  // State, not the ref, so the render sees it; cleared when the voice speaks,
+  // by Stop, or by a 20 s backstop so a read that never starts cannot leave
+  // the bar claiming a reading forever (DR-0076: the surface says what is).
+  const [jumpLive, setJumpLive] = useState(false);
+  useEffect(() => { if (isReading) setJumpLive(false); }, [isReading]);
+  useEffect(() => {
+    if (!jumpLive) return undefined;
+    const t = setTimeout(() => setJumpLive(false), 20000);
+    return () => clearTimeout(t);
+  }, [jumpLive]);
+  const live = isReading || jumpLive;
 
   // THE SCREEN STAYS ON WHILE IT READS (DR-0439; Darrell 2026-09-16: his phone
   // goes black at 10 minutes and cuts the lesson). One shared wake-lock holder
@@ -516,7 +533,7 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
     if (seg && seg.text) rememberSentence(st.base + idx, seg.text);
   }, [cloudProgress, cloudPiece, isReading, deviceRead, rememberSentence]);
   // Reading over (or never started) → the full card comes back next open.
-  useEffect(() => { if (!isReading) setMinimized(false); }, [isReading]);
+  useEffect(() => { if (!isReading && !jumpLive) setMinimized(false); }, [isReading, jumpLive]);
   // PLAY MEANS READ IT. A Play press records a want (read-target.js) and this
   // starts that lesson's reading the moment its target registers -- which is
   // usually a frame or two later, because pressing Play also opens the lesson
@@ -719,6 +736,9 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
   // unsupported-device early return — so hook order never varies.
   const jumpingRef = useRef(false);
   useEffect(() => { if (isReading) jumpingRef.current = false; }, [isReading]);
+  // The previous Back's landing, for "tap again" (see jumpParagraph). A ref,
+  // declared up here with jumpingRef so hook order never varies.
+  const lastBackRef = useRef(null);
   // THE HEADSET'S, THE CAR'S AND THE LOCK SCREEN'S SKIP BUTTONS step one
   // paragraph, exactly as the bar's ↪¶ and ↩¶ do. Reached through a ref: the
   // step is defined below the unsupported-device early return.
@@ -1035,6 +1055,7 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
 
   const readTargetNow = async (t, { continuing = false, startFraction = null, startSentence = null, resumePlace = null } = {}) => {
     if (!t) return;
+    lastBackRef.current = null; // a new read closes the Back-again window
     // THE SPEAKER INSIDE AN OPEN LESSON (DR-0702; Darrell 2026-09-30: "the
     // reader should be asking me to read it from the beginning because I
     // pushed the speaker while inside the lesson... it only works after I hit
@@ -1176,6 +1197,8 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
     runRef.current = null;
     setRunInfo(null);
     jumpingRef.current = false;
+    setJumpLive(false);
+    lastBackRef.current = null;
     stop();
   };
 
@@ -1204,22 +1227,40 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
     // A jump can flicker the engine through a not-reading render; the guard
     // keeps the hands-free run from mistaking that for "the piece ended".
     jumpingRef.current = true;
+    setJumpLive(true);
     beginRun({ ...pageFollowState(f.follow, idx), paraStarts, owner: f.owner });
     read(f.follow.text.slice(seg.start));
   };
+  // BACK, TAPPED AGAIN, KEEPS WALKING BACK (2026-10-07; lib/read-follow.js
+  // paragraphBackTarget). A Back within BACK_AGAIN_MS of the previous Back is
+  // judged from where that Back LANDED, so a fast voice already into the
+  // paragraph's second sentence, or a NAS voice still preparing, cannot turn
+  // every second tap into the same paragraph again. Forward, Top and a new
+  // read all close the window.
   const jumpParagraph = (dir) => {
     const f = followRef.current;
     if (!f || !f.follow) return;
     if (!f.paraStarts) f.paraStarts = paragraphStarts(f.follow);
-    const target = paragraphJumpTarget(f.paraStarts, currentGlobalSegment(), dir);
+    const now = Date.now();
+    const target = dir < 0
+      ? paragraphBackTarget(f.paraStarts, currentGlobalSegment(), lastBackRef.current, now)
+      : paragraphJumpTarget(f.paraStarts, currentGlobalSegment(), dir);
+    lastBackRef.current = dir < 0 && target != null ? { at: now, target } : null;
     if (target != null) jumpToSegment(target);
   };
   const jumpTop = () => {
     const f = followRef.current;
+    lastBackRef.current = null;
     try { window.scrollTo({ top: 0, behavior: motionBehavior() }); } catch (_) { /* best-effort */ }
     if (f && f.follow && isReading) jumpToSegment(0);
   };
-  const canJump = isReading && !!(followRef.current && followRef.current.follow);
+  // THE STEPS STAY ON SCREEN WHILE A STEP IS IN FLIGHT (2026-10-07). A jump
+  // restarts the voice, and the NAS voice takes seconds to answer; isReading
+  // is false for all of them, and `canJump` used to follow it — so Back and
+  // Next VANISHED the moment they were tapped and came back only once the
+  // new paragraph was already being read. That is the "can't be pushed again
+  // before it reads" in his words. A jump in flight is a reading in flight.
+  const canJump = live && !!(followRef.current && followRef.current.follow);
   jumpParaRef.current = jumpParagraph;
   // ▶ Continue after the screen went dark: resume a pause, else re-speak from
   // the held sentence when a follow map exists, else start the page read.
@@ -1634,7 +1675,7 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
       {scrollTopBtn}
       {!docked && backToVoice}
       {floatEl}
-      {supported && !floatState.floating && (isOpen && minimized && isReading ? (docked ? null : pillEl)
+      {supported && !floatState.floating && (isOpen && minimized && live ? (docked ? null : pillEl)
       : isOpen ? (
         /* THE PANEL IS CHROME, NOT READING TEXT (Pattern 2b; Darrell 2026-07-27:
            "The sizes of text makes the talk section not useful" — at A+++/A44
@@ -2022,7 +2063,7 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
             </p>
           ) : null}
         </div>
-      ) : docked ? null : isReading ? miniBarEl : (
+      ) : docked ? null : live ? miniBarEl : (
         <div className="flex items-end gap-2" data-testid="reader-idle-row">
           <TextSizeQuick dim={!revealFab} />
           {fab}
@@ -2039,7 +2080,7 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
       {docked && createPortal(
         <div className="tts-controls tts-docked flex items-center gap-[4px]" data-testid="reader-docked">
           {backToVoice}
-          {supported && !floatState.floating && (isOpen && minimized && isReading ? pillEl : isOpen ? null : isReading ? miniBarEl : fab)}
+          {supported && !floatState.floating && (isOpen && minimized && live ? pillEl : isOpen ? null : live ? miniBarEl : fab)}
         </div>,
         dockSlot,
       )}

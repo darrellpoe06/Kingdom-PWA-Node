@@ -102,6 +102,12 @@ export function createClipQueue({ chunks, fetchClip, audio, rate = 1, onProgress
   let stopped = false;
   let finished = false;
   let speed = rate;
+  // THE VOICE MAY HAVE SPOKEN THE PIECE FASTER ALREADY (2026-10-07). A piece
+  // answers {url, speed}: the pace the NAS voice spoke it at (1 when it did
+  // not say). The element then stretches only the remainder — rate / that
+  // pace — so a 2x reading spoken at 2x plays at 1x, words intact, while a
+  // saved 1x piece is stretched exactly as before.
+  let pieceSpeed = 1;
   let joined = null;            // { url, offsets, duration } now playing
   let pendingJoin = null;       // takes over at the next piece boundary
 
@@ -117,8 +123,10 @@ export function createClipQueue({ chunks, fetchClip, audio, rate = 1, onProgress
   };
 
   const applyRate = () => {
-    try { audio.defaultPlaybackRate = speed; } catch (_) { /* a device fact */ }
-    try { audio.playbackRate = speed; } catch (_) { /* a device fact */ }
+    const sp = Number.isFinite(pieceSpeed) && pieceSpeed > 0 ? pieceSpeed : 1;
+    const want = Math.round((speed / sp) * 1000) / 1000;
+    try { audio.defaultPlaybackRate = want; } catch (_) { /* a device fact */ }
+    try { audio.playbackRate = want; } catch (_) { /* a device fact */ }
     for (const key of ['preservesPitch', 'mozPreservesPitch', 'webkitPreservesPitch']) {
       try { if (key in audio) audio[key] = true; } catch (_) { /* a device fact */ }
     }
@@ -163,6 +171,7 @@ export function createClipQueue({ chunks, fetchClip, audio, rate = 1, onProgress
   const startPiece = (i, got) => {
     if (!got || got.error || !got.url) return Promise.resolve(fallBack(i, got && got.error));
     index = i;
+    pieceSpeed = Number(got.speed) > 0 ? Number(got.speed) : 1;
     if (i > 0) release(i - 1);
     for (let k = 1; k <= PREFETCH_AHEAD; k++) want(i + k); // prefetch while this one plays
     try { audio.src = got.url; } catch (_) { /* fake */ }
@@ -177,6 +186,7 @@ export function createClipQueue({ chunks, fetchClip, audio, rate = 1, onProgress
     joined = pendingJoin; pendingJoin = null;
     for (const k of [...urls.keys()]) release(k);
     index = i;
+    pieceSpeed = 1; // a joined reading is the saved 1x pieces
     const at = joined.offsets[i] || 0;
     try { audio.src = joined.url; } catch (_) { /* fake */ }
     try { audio.currentTime = at; } catch (_) { /* before metadata: re-applied below */ }
