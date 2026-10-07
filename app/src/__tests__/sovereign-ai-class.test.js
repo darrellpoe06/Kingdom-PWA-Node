@@ -29,9 +29,15 @@ describe('curriculum shape', () => {
     // week in, so the hold cannot quietly become a permanent gap. 33 WAS held
     // here for Sovereign A.I. week 33 (Peace, peace; when there is no peace,
     // DR-0761) while week 34 (the bounded answer, DR-0760) was being written in
-    // parallel. Week 33 merged first, so the entry is deleted, which is exactly
+    // parallel. Week 33 merged first, so the entry was deleted, which is exactly
     // what this assertion forces: it fails once a held number is no longer
-    // missing. The list is empty, and a gap that is not recorded here fails.
+    // missing, and a gap that is not recorded here fails.
+    // 35 WAS HELD here, recorded 2026-10-07, while Sovereign A.I. week 35 (the
+    // new players, DR-0791) was written on a parallel branch and week 36 (the
+    // pile the machine made, DR-0792) was written here. Week 35 merged first,
+    // so the entry is DELETED in the merge that brought it in -- which is
+    // exactly what this assertion forces: it fails the moment a held number is
+    // no longer missing, so a hold cannot quietly become a permanent gap.
     const HELD_IN_FLIGHT = [];
     const weeks = SOVEREIGN_AI_MODULES.map((m) => Number(m.id.match(/^sov(\d+)-/)?.[1]));
     // Strictly ascending: a doubled or misfiled week still fails.
@@ -61,6 +67,7 @@ describe('curriculum shape', () => {
     expect(ids).toContain('sov32-the-im-fine-problem-and-the-one-who-looketh-on-the-heart'); // the transcript hears the words, Yahweh hears the heart; Hannah and Eli; groanings the Spirit carries; our own voices marked on our own machine (forwarded 2026-10-01)
     expect(ids).toContain('sov31-whose-errand-does-your-agent-carry'); // one Mediator; Abraham's servant; no man can serve two masters; the owner answers for what he sets loose (forwarded 2026-09-29)
     expect(ids).toContain('sov30-the-watcher-the-agent-cannot-see-and-the-door-with-no-hidden-hatch'); // one door, the watcher out of reach, quarantine that looks again (forwarded 2026-09-29) // agents chase the goal, not your rules; Yahweh sets the bound; proved before trusted (forwarded 2026-09-28)
+    expect(ids).toContain('sov36-the-pile-the-machine-made-and-the-labourers-who-must-prove-it'); // the pile the machine made: 722 manuscripts carried as a claim with the publisher's own caveat, the proving that is the work, Job 28, chaff and tares, what a machine-checked proof cannot settle (forwarded 2026-10-07)
     expect(ids).toContain('sov28-holding-the-hand-of-the-process-until-it-is-finished'); // not just flagged - analyzed, fixed and done; nothing discarded (spoken 2026-09-24) // disaster recovery that has been restored; the Word is not our data (forwarded 2026-09-24)
   });
   it('every module id is unique and prefixed sov*', () => {
