@@ -52,7 +52,7 @@ import FloatingReader from './FloatingReader.jsx';
 import { loadFloat, saveFloat, clampRect, avoidRects, defaultRect } from '../lib/float-geometry.js';
 import { loadFollowPrefs, saveFollowPrefs } from '../lib/reader-follow-prefs.js';
 import { useDeviceClass } from '../lib/use-device-class.js';
-import { loadControllerPref, saveControllerPref, controllerLayout, flippedControllerPref, controllerToggleLabel, controllerToggleTitle, railWidth, markRails, enterFullScreen, exitFullScreen, leavesFullScreen, FULLSCREEN_ATTR } from '../lib/reader-controller.js';
+import { loadControllerPref, saveControllerPref, controllerLayout, flippedControllerPref, controllerToggleLabel, controllerToggleTitle, railWidth, railButtonIds, nextInCycle, railWord, markRails, enterFullScreen, exitFullScreen, leavesFullScreen, FULLSCREEN_ATTR } from '../lib/reader-controller.js';
 import { deviceClipCache, rememberReadingKeys, recallReadingKeys, formatSaved, loadCapMb, saveCapMb, CAP_CHOICES_MB } from '../lib/clip-cache.js';
 // THE ONE LESSON LANDING (lib/learn-open.js, DR-0642): opens a lesson at a
 // saved sentence, scrolls it under the top bars and marks it. Read through a
@@ -1685,6 +1685,86 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
     return () => markRails(d, false);
   }, [railsOn, supported, floatState.floating]);
 
+  // THE SIDE BUTTONS (DR-0796). Darrell on the Firestick: "the user just needs
+  // the functions to look like the buttons below... just the missing ones...
+  // in the small side spaces... until we say full screen." So each rail
+  // control is one bottom-bar button — the same DOCK_BTN square, an icon and
+  // ONE word — and a control with more than two settings cycles: the word IS
+  // the setting it is on, a tap moves to the next, which is what a remote's
+  // D-pad can drive. lib/reader-controller.js decides WHICH ids stand here
+  // (that side's functions minus everything the bar already carries); this
+  // decides what each one looks like and does. The tall panel is untouched:
+  // every chip, list and line of prose still lives there for a mouse.
+  const railSpec = (id) => {
+    const levels = (target && target.setLevel && Array.isArray(target.levels) && target.levels.length > 0) ? target.levels : null;
+    const themeNow = THEMES.find((t) => t.key === theme) || THEMES[0];
+    const rateNow = RATE_STEPS.find((s) => Math.abs(rate - s.value) < 0.001) || RATE_STEPS[0];
+    const usable = catalog.filter((c) => c.usable);
+    const voiceNow = usable.find((c) => c.id === voiceId) || usable[0];
+    const offlineReady = !!(target && usesNasVoice && typeof saveForListening === 'function');
+    switch (id) {
+      case 'level':
+        if (!levels) return null;
+        return {
+          icon: <UiIcon name="users" />,
+          word: railWord((levels.find((b) => b.id === target.level) || levels[0]).label),
+          title: 'Who is learning — tap for the next one; the reading keeps its place',
+          onClick: () => pickLevel(nextInCycle(levels.map((b) => b.id), target.level)),
+        };
+      case 'start':
+        if (!target || isReading) return null;
+        return { icon: '▶', word: 'Start', title: `Read ${target.label} from the beginning`, onClick: () => readTargetNow(target, { startSentence: 0 }) };
+      case 'resume':
+        if (!target || !resumeOffer || isReading) return null;
+        return { icon: '▶', word: 'Resume', title: resumeOffer.label, onClick: () => readTargetNow(target, resumeOffer.opts) };
+      case 'tap':
+        if (isReading) return null;
+        return { icon: <UiIcon name="pin" />, word: armed ? 'Cancel' : 'Tap', on: armed, title: armed ? 'Now tap the word to start from — or tap here to stand down' : 'Start where I tap: the next word you tap is where reading begins', onClick: () => setArmed(!armed) };
+      case 'stop':
+        if (!isReading) return null;
+        return { icon: '⏹', word: 'Stop', title: 'Stop reading', onClick: stopAll };
+      case 'talk':
+        return { icon: <UiIcon name="volume" />, word: talking ? 'Thinking' : 'Talk', disabled: talking, title: 'Talk about this — Ari says what is on this screen', onClick: talkAbout };
+      case 'awake':
+        if (!awake.supported) return null;
+        return { icon: '☀', word: awake.enabled ? 'Screen on' : 'Screen off', on: awake.enabled, title: 'Keep the screen on while it reads', onClick: () => awake.setEnabled(!awake.enabled) };
+      case 'panel':
+        return { icon: '⇕', word: 'Panel', title: controllerToggleTitle(controller), onClick: flipController };
+      case 'full':
+        return { icon: '⤢', word: 'Full', title: 'Full screen — only the Word and the voice; Back, Esc or the corner mark brings the controls back', onClick: goFullScreen };
+      case 'speed':
+        return { icon: '⏱', word: rateNow.label, title: `Speed: ${rate.toFixed(1)}× — tap for the next`, onClick: () => setRate((RATE_STEPS.find((s) => s.value === nextInCycle(RATE_STEPS.map((s2) => s2.value), rateNow.value)) || RATE_STEPS[0]).value) };
+      case 'voice':
+        if (usable.length < 2 || !voiceNow) return null;
+        return { icon: <UiIcon name="volume" />, word: railWord(voiceNow.label), title: `Voice: ${voiceNow.label} — tap for the next`, onClick: () => setVoiceId(nextInCycle(usable.map((c) => c.id), voiceNow.id)) };
+      case 'colors':
+        return { icon: '◐', word: railWord(themeNow.label), title: `Colors: ${themeNow.label} — tap for the next; dark reads easier at night`, onClick: () => setTheme(nextInCycle(THEMES.map((t) => t.key), themeNow.key)) };
+      case 'highlight':
+        return { icon: '▮', word: followPrefs.highlight === 'off' ? 'No light' : 'Lit', on: followPrefs.highlight !== 'off', title: 'Light the sentence being read', onClick: () => setHighlight(followPrefs.highlight === 'off' ? 'sentence' : 'off') };
+      case 'place':
+        return { icon: '↕', word: followPrefs.place === 'centre' ? 'Centre' : 'Top', title: 'Where the spoken sentence sits on the screen', onClick: () => setPlace(followPrefs.place === 'centre' ? 'top' : 'centre') };
+      case 'word':
+        return { icon: <UiIcon name="book" />, word: showWord ? 'Word on' : 'Word off', on: showWord, title: showWord ? 'Hide the Word — read without the verses open' : 'Show the Word — open every verse', onClick: toggleShowTheWord };
+      case 'offline':
+        if (!offlineReady) return null;
+        return { icon: '⤓', word: 'Keep', title: `Save ${target.label} for listening offline`, onClick: saveOffline };
+      default:
+        return null;
+    }
+  };
+  const RailButton = ({ id }) => {
+    const spec = railSpec(id);
+    if (!spec) return null;
+    return (
+      <button type="button" onClick={spec.onClick} disabled={spec.disabled} data-testid={`reader-rail-${id}`} title={spec.title} aria-label={spec.title}
+        aria-pressed={typeof spec.on === 'boolean' ? spec.on : undefined}
+        className={`${spec.on ? DOCK_BTN_ON : DOCK_BTN} w-full disabled:opacity-50`}>
+        <span aria-hidden="true" className={DOCK_ICON}>{spec.icon}</span>
+        <span className={DOCK_LABEL}>{spec.word}</span>
+      </button>
+    );
+  };
+
   // THE PANEL'S TWO HALVES (DR-0785). The same JSX in both shapes: stacked in
   // the corner column (tall), or one on each side of the Word (sides). Written
   // as functions so a half is only evaluated where it is rendered.
@@ -2160,14 +2240,15 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
           the Word. The open panel above stays a panel. The wrapper keeps
           .tts-controls so the reading engine still counts it as the
           reader's own chrome (never read aloud, never a tap-to-start). */}
-      {/* THE RAILS: the two halves on the two sides of the Word (DR-0785). */}
+      {/* THE RAILS: the bottom bar's own buttons, standing up the two sides of
+          the Word (DR-0785, re-cut DR-0796). Only what the bar does not have. */}
       {supported && !floatState.floating && railsOn && typeof document !== 'undefined' && createPortal(
         <div className="tts-controls print:hidden" data-testid="reader-rails" data-layout="sides" style={{ fontSize: 'calc(1rem * var(--ts-chrome-scale, 1))' }}>
-          <div data-testid="reader-rail-left" className="fixed top-2 bottom-14 left-2 z-[80] overflow-y-auto bg-white border-2 border-[#1A1815] p-[0.75em] shadow-lg" style={{ width: railWidth() }}>
-            {renderRailLeft()}
+          <div data-testid="reader-rail-left" role="group" aria-label="Reading controls — the voice" className="fixed top-2 bottom-14 left-2 z-[80] overflow-y-auto flex flex-col items-stretch gap-[4px]" style={{ width: railWidth() }}>
+            {railButtonIds('left').map((id) => <RailButton key={id} id={id} />)}
           </div>
-          <div data-testid="reader-rail-right" className="fixed top-2 bottom-14 right-2 z-[80] overflow-y-auto bg-white border-2 border-[#1A1815] p-[0.75em] shadow-lg" style={{ width: railWidth() }}>
-            {renderRailRight()}
+          <div data-testid="reader-rail-right" role="group" aria-label="Reading controls — how it sounds and looks" className="fixed top-2 bottom-14 right-2 z-[80] overflow-y-auto flex flex-col items-stretch gap-[4px]" style={{ width: railWidth() }}>
+            {railButtonIds('right').map((id) => <RailButton key={id} id={id} />)}
           </div>
         </div>,
         document.body,
