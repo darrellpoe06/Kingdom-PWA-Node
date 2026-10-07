@@ -564,8 +564,18 @@ export const PLACE_SLACK = 12;
 // the sentence had LEFT the band, and then only far enough to bring its
 // bottom edge back inside — so every next sentence landed on the bottom edge.
 export const TOP_GAP = 14;
+// A MANUAL JUMP KEEPS THE SCREEN STILL (2026-10-07, DR-0790; Darrell: "Reader
+// screen jumps and moves everytime a user selected the prev/next buttons...
+// it makes it difficult to refind your place"). Back / Next restart the voice
+// at the paragraph before or after, and the follow then PLACED that
+// sentence at the top of the band — the whole page lurched under a reader
+// who had just looked at where the voice was. `mode: 'reveal'` keeps the
+// chosen place out of it: the page moves only when the sentence is hidden or
+// off the fold, and then by the least that shows it. The reader stays in
+// reveal until a move was genuinely needed; then the chosen place resumes.
+export const FOLLOW_MODES = Object.freeze(['place', 'reveal']);
 export function readingScrollDelta({
-  rangeTop = 0, rangeBottom = 0, topInset = 0, bottomInset = 0, viewportHeight = 0, margin = 24, place, lineHeight = 0,
+  rangeTop = 0, rangeBottom = 0, topInset = 0, bottomInset = 0, viewportHeight = 0, margin = 24, place, lineHeight = 0, mode = 'place',
 } = {}) {
   const vh = Number(viewportHeight) || 0;
   if (!vh) return 0;
@@ -575,7 +585,7 @@ export function readingScrollDelta({
   const restTop = safeTop + margin;          // first line that is genuinely readable
   const restBottom = vh - (Number(bottomInset) || 0) - margin;
 
-  if (place === 'top' || place === 'centre') {
+  if ((place === 'top' || place === 'centre') && mode !== 'reveal') {
     const height = Math.max(0, bottom - top);
     const line = Math.max(0, Number(lineHeight) || 0);
     let target;
@@ -664,12 +674,12 @@ export function scrollContainerFor(el, win = (typeof window !== 'undefined' ? wi
   return null;
 }
 
-export function followRange(range, { place } = {}) {
-  if (!range) return;
+export function followRange(range, { place, mode = 'place' } = {}) {
+  if (!range) return 0;
   try {
     const win = typeof window !== 'undefined' ? window : null;
     const doc = typeof document !== 'undefined' ? document : null;
-    if (!win) return;
+    if (!win) return 0;
     // The RANGE's own box — the sentence — not the paragraph that contains it.
     const rect = typeof range.getBoundingClientRect === 'function' ? range.getBoundingClientRect() : null;
     const usable = rect && (rect.height > 0 || rect.width > 0);
@@ -679,8 +689,8 @@ export function followRange(range, { place } = {}) {
       const el = range.startContainer && (range.startContainer.nodeType === 1
         ? range.startContainer
         : range.startContainer.parentElement);
-      if (el && el.scrollIntoView) el.scrollIntoView({ block: 'center', behavior: motionBehavior() });
-      return;
+      if (el && el.scrollIntoView) el.scrollIntoView({ block: mode === 'reveal' ? 'nearest' : 'center', behavior: motionBehavior() });
+      return 0;
     }
     const textEl = range.startContainer && (range.startContainer.nodeType === 1
       ? range.startContainer
@@ -708,11 +718,12 @@ export function followRange(range, { place } = {}) {
         margin: readingMargin(textEl, win),
         place,
         lineHeight,
+        mode,
       });
-      if (!inner) return;
+      if (!inner) return 0;
       if (typeof container.scrollBy === 'function') container.scrollBy({ top: inner, behavior: motionBehavior() });
       else container.scrollTop += inner;
-      return;
+      return inner;
     }
     const delta = readingScrollDelta({
       rangeTop: rect.top,
@@ -723,10 +734,12 @@ export function followRange(range, { place } = {}) {
       margin: readingMargin(textEl, win),
       place,
       lineHeight,
+      mode,
     });
-    if (!delta) return;
+    if (!delta) return 0;
     if (typeof win.scrollBy === 'function') win.scrollBy({ top: delta, behavior: motionBehavior() });
-  } catch (_) { /* scrolling is best-effort */ }
+    return delta;
+  } catch (_) { return 0; /* scrolling is best-effort */ }
 }
 
 // =============================================================================
