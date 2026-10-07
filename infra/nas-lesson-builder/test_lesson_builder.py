@@ -707,10 +707,36 @@ class Gates(unittest.TestCase):
         quiet["levels"] = {b: t.replace(TALK, "") for b, t in quiet["levels"].items()}
         g = gates.gate_version(quiet, self.module(quiet), CORPUS, lw.schema_problems)
         self.assertFalse(g["talk_together"]["passed"])
-        self.assertEqual(sorted(g["talk_together"]["missing"]), ["children", "friends", "parents"])
+        missing = g["talk_together"]["missing"]
+        # the three directions, absent from the module as a whole
+        self.assertEqual(sorted(x for x in missing if ":" not in x), ["children", "friends", "parents"])
+        # and every place a reader reads, named one by one (DR-0795)
+        self.assertEqual(
+            sorted(x for x in missing if ":" in x),
+            ["child: no parents + children + friends",
+             "lesson: no parents + children + friends",
+             "senior: no parents + children + friends",
+             "teen: no parents + children + friends",
+             "youth: no parents + children + friends"])
         self.assertFalse(g["passed"])
         full = gates.gate_version(make_lesson(), self.module(), CORPUS, lw.schema_problems)
         self.assertTrue(full["talk_together"]["passed"], json.dumps(full["talk_together"]))
+
+    def test_PROVEN_TO_CATCH_one_short_band_fails_though_the_module_as_a_whole_reads_full(self):
+        """DR-0795: strip the friend line from the teen band ALONE. The pooled
+        module still carries all three (the other bands have them), so the old
+        module-level gate passed it; the per-place check names the teen band."""
+        one = make_lesson()
+        friend_line = [s for s in TALK.split(". ") if "friend" in s.lower()]
+        self.assertTrue(friend_line, "the fixture's talk block has a friend line to strip")
+        levels = dict(one["levels"])
+        levels["teen"] = levels["teen"].replace(friend_line[0] + ". ", "").replace(friend_line[0], "")
+        one["levels"] = levels
+        mod = self.module(one)
+        self.assertEqual(gates.talk_together_gate(mod)[1], ["teen: no friends"])
+        g = gates.gate_version(one, mod, CORPUS, lw.schema_problems)
+        self.assertFalse(g["talk_together"]["passed"])
+        self.assertFalse(g["passed"])
 
     def test_PROVEN_TO_CATCH_one_changed_word_fails_the_verse_gate(self):
         g = gates.gate_version(make_lesson(drift=True), self.module(make_lesson(drift=True)), CORPUS, lw.schema_problems)

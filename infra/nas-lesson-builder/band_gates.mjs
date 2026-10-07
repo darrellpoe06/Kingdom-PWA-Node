@@ -17,8 +17,9 @@ import {
 } from '../../scripts/reading-level.mjs';
 import { measureDifferentiation, DIFF_CEILING } from '../../scripts/band-differentiation.mjs';
 import { namesItsLesson } from '../../scripts/title-in-narrative.mjs';
-// TALK ABOUT IT TOGETHER (DR-0733): every new lesson carries its own three prompts.
-import { ownPrompts } from '../../app/src/lib/talk-together.js';
+// TALK ABOUT IT TOGETHER (DR-0733): every new lesson carries its own three prompts,
+// and (DR-0795) carries them in EVERY band it ships, not only pooled across the module.
+import { ownPrompts, placesMissingDirections } from '../../app/src/lib/talk-together.js';
 
 export function gateDraft(module) {
   const scan = scanQuotedVerses([module], quotedTexts);
@@ -52,7 +53,14 @@ export function gateDraft(module) {
 
   const own = ownPrompts(module);
   const missingTalk = ['parents', 'children', 'friends'].filter((k) => !own[k]);
-  const talkTogether = { passed: missingTalk.length === 0, missing: missingTalk };
+  // A reader reads ONE band, so the module-wide pool is not enough: each place
+  // the reader meets (the lesson prose and every band present) is counted.
+  const shortPlaces = placesMissingDirections(module);
+  const talkTogether = {
+    passed: missingTalk.length === 0 && shortPlaces.length === 0,
+    missing: missingTalk,
+    shortPlaces: shortPlaces.map((p) => `${p.place}: no ${p.missing.join(' + ')}`),
+  };
 
   const passed = [verse, quotation, fullLevels, readingLevel, differentiation, title, talkTogether].every((g) => g.passed);
   return { passed, verse, quotation, fullLevels, readingLevel, differentiation, title, talkTogether };
