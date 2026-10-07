@@ -547,12 +547,15 @@ html[data-reader-fullscreen="true"] .tts-docked {
    The reader's rails — <main> makes room for them (DR-0785)
    =============================================================================
    On a TV the Read Aloud controls sit on the two sides of the screen
-   (lib/reader-controller.js, 15em each in the reader's chrome em). <main> is
-   full width, so while the rails are on it is inset by the same width plus a
-   gap on each side: the Word's column narrows between the rails rather than
-   being covered at its edges. The number here IS RAIL_WIDTH_EM; a test pins
+   (lib/reader-controller.js: 15rem each, or less on a narrow TV so the Word
+   keeps 32rem; scaled with the chrome size). <main> and the shell header are
+   full width, so while the rails are on both are inset by the rail plus a gap
+   on each side: the Word's column and the header's tab rows narrow between the
+   rails rather than being covered at their edges (the CI layout probe caught a
+   rail over the tab row). The expression here IS RAIL_WIDTH_CSS; a test pins
    the two together. */
-html[data-reader-rails="sides"] main {
-  padding-left: calc(15em * var(--ts-chrome-scale, 1) + 1.5rem) !important;
-  padding-right: calc(15em * var(--ts-chrome-scale, 1) + 1.5rem) !important;
+html[data-reader-rails="sides"] main,
+html[data-reader-rails="sides"] header[data-read-skip] {
+  padding-left: calc(calc(min(15rem, (100vw - 32rem) / 2) * var(--ts-chrome-scale, 1)) + 1.5rem) !important;
+  padding-right: calc(calc(min(15rem, (100vw - 32rem) / 2) * var(--ts-chrome-scale, 1)) + 1.5rem) !important;
 }

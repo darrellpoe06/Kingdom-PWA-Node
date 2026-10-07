@@ -23,7 +23,7 @@ import { createRoot } from 'react-dom/client';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
-  CONTROLLER_KEY, WIDE_MIN_WIDTH, WIDE_FLOOR_WIDTH, RAIL_WIDTH_EM, RAILS_ATTR, FULLSCREEN_ATTR,
+  CONTROLLER_KEY, SIDES_MIN_WIDTH, TV_FLOOR_WIDTH, RAIL_WIDTH_CSS, RAIL_WIDTH_REM, WORD_MIN_REM, RAILS_ATTR, FULLSCREEN_ATTR,
   controllerLayout, loadControllerPref, saveControllerPref, flippedControllerPref, controllerToggleLabel,
   normalizeControllerPref, railWidth, mainInset, markRails, enterFullScreen, exitFullScreen, leavesFullScreen,
 } from '../lib/reader-controller.js';
@@ -39,28 +39,29 @@ vi.mock('../lib/use-read-aloud.js', () => ({
 }));
 
 import TTSControl from '../components/TTSControl.jsx';
+import { setReadTarget, clearReadTarget } from '../lib/read-target.js';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 const SRC = (rel) => readFileSync(join(process.cwd(), 'src', rel), 'utf8');
 
 describe('the decision — measured, not guessed', () => {
-  it('a TV gets the rails; a phone, tablet and laptop keep the column', () => {
+  it('a TV gets the rails; a phone, tablet and laptop keep the column, however wide', () => {
     expect(controllerLayout({ deviceClass: 'tv', width: 1920 })).toBe('sides');
-    expect(controllerLayout({ deviceClass: 'tv', width: 1280 })).toBe('sides');
+    expect(controllerLayout({ deviceClass: 'tv', width: 960 })).toBe('sides'); // a Firestick’s Silk viewport
+    expect(controllerLayout({ deviceClass: 'tv', width: TV_FLOOR_WIDTH - 1 })).toBe('tall');
     expect(controllerLayout({ deviceClass: 'phone', width: 390 })).toBe('tall');
     expect(controllerLayout({ deviceClass: 'tablet', width: 1024 })).toBe('tall');
     expect(controllerLayout({ deviceClass: 'laptop', width: 1440 })).toBe('tall');
+    // The CI layout probe found rails on a 1920px laptop covering the header’s
+    // tab row: a mouse already reaches every control, so width alone never decides.
+    expect(controllerLayout({ deviceClass: 'laptop', width: 1920 })).toBe('tall');
   });
 
-  it('a genuinely big screen is detected by width alone, at the monitor line', () => {
-    expect(controllerLayout({ deviceClass: 'laptop', width: WIDE_MIN_WIDTH })).toBe('sides');
-    expect(controllerLayout({ deviceClass: 'laptop', width: WIDE_MIN_WIDTH - 1 })).toBe('tall');
-  });
-
-  it('an explicit choice wins — except that the rails need margins', () => {
+  it('an explicit choice wins — except that the rails need room', () => {
     expect(controllerLayout({ pref: 'tall', deviceClass: 'tv', width: 1920 })).toBe('tall');
-    expect(controllerLayout({ pref: 'sides', deviceClass: 'laptop', width: 1200 })).toBe('sides');
-    expect(controllerLayout({ pref: 'sides', deviceClass: 'phone', width: WIDE_FLOOR_WIDTH - 1 })).toBe('tall');
+    expect(controllerLayout({ pref: 'sides', deviceClass: 'laptop', width: SIDES_MIN_WIDTH })).toBe('sides');
+    expect(controllerLayout({ pref: 'sides', deviceClass: 'laptop', width: SIDES_MIN_WIDTH - 1 })).toBe('tall');
+    expect(controllerLayout({ pref: 'sides', deviceClass: 'phone', width: 390 })).toBe('tall');
     // A TV with no measured width (a test, SSR) is still a TV.
     expect(controllerLayout({ deviceClass: 'tv', width: 0 })).toBe('sides');
   });
@@ -75,16 +76,21 @@ describe('the decision — measured, not guessed', () => {
     expect(controllerToggleLabel('tall')).toMatch(/Sides/);
   });
 
-  it('the rails have a width, and <main> is inset by exactly that width while they are on (the Word is narrowed, never covered)', () => {
+  it('the rails have a width that leaves the Word 32rem, and <main> AND the header are inset by exactly that width while they are on', () => {
     // The shell’s <main> is full width (measured: "window 1440, <main> 1440"), so
-    // the rails cannot sit in an empty margin; the page must make the margin.
+    // the rails cannot sit in an empty margin; the page must make the margin —
+    // and the sticky header too, or a rail covers its tab row (the CI probe).
     expect(SRC('poe-financial-mvp-v28.jsx')).toMatch(/<main className="w-full /);
-    expect(RAIL_WIDTH_EM).toBeGreaterThanOrEqual(13);
-    expect(railWidth()).toBe(`${RAIL_WIDTH_EM}em`);
-    expect(mainInset()).toBe(`calc(${RAIL_WIDTH_EM}em * var(--ts-chrome-scale, 1) + 1.5rem)`);
+    expect(SRC('poe-financial-mvp-v28.jsx')).toMatch(/<header [^>]*data-read-skip/);
+    expect(RAIL_WIDTH_REM).toBeGreaterThanOrEqual(13);
+    // A 960px TV (60rem): two rails of (60 - 32) / 2 = 14rem leave the Word 32rem.
+    expect(WORD_MIN_REM).toBe(32);
+    expect(RAIL_WIDTH_CSS).toBe('calc(min(15rem, (100vw - 32rem) / 2) * var(--ts-chrome-scale, 1))');
+    expect(railWidth()).toBe(RAIL_WIDTH_CSS);
+    expect(mainInset()).toBe(`calc(${RAIL_WIDTH_CSS} + 1.5rem)`);
     const css = SRC('index.css');
-    const rule = css.match(/html\[data-reader-rails="sides"\] main \{([^}]*)\}/);
-    expect(rule, 'the inset rule').toBeTruthy();
+    const rule = css.match(/html\[data-reader-rails="sides"\] main,\s*html\[data-reader-rails="sides"\] header\[data-read-skip\] \{([^}]*)\}/);
+    expect(rule, 'the inset rule, for main and the header').toBeTruthy();
     expect(rule[1]).toContain(`padding-left: ${mainInset()} !important`);
     expect(rule[1]).toContain(`padding-right: ${mainInset()} !important`);
     expect(RAILS_ATTR).toBe('data-reader-rails');
@@ -137,7 +143,10 @@ describe('the real reader', () => {
   let container, root;
   const setWidth = (w) => Object.defineProperty(window, 'innerWidth', { configurable: true, value: w });
 
-  async function mount() {
+  const LESSON = 'test-lesson-on-screen';
+  async function mount({ lesson = true, open = true } = {}) {
+    // A lesson on screen registers a read target; the rails stand beside it.
+    if (lesson) setReadTarget(LESSON, { label: 'this lesson', text: 'Yahweh asked Moses a question once. It was just a stick.' });
     container = document.createElement('div');
     document.body.appendChild(container);
     await act(async () => {
@@ -145,10 +154,12 @@ describe('the real reader', () => {
       root.render(createElement(TTSControl, {}));
     });
     // On a phone the panel starts collapsed to the floating button; open it
-    // the way a reader does. On a TV the rails need no opening.
-    const fab = [...container.querySelectorAll('button')]
-      .find((b) => /read-aloud controls/i.test(b.getAttribute('aria-label') || ''));
-    if (fab) await act(async () => { fab.click(); });
+    // the way a reader does. On a TV beside a lesson the rails need no opening.
+    if (open) {
+      const fab = [...container.querySelectorAll('button')]
+        .find((b) => /read-aloud controls/i.test(b.getAttribute('aria-label') || ''));
+      if (fab) await act(async () => { fab.click(); });
+    }
     return container;
   }
 
@@ -163,20 +174,22 @@ describe('the real reader', () => {
     if (root) await act(async () => { root.unmount(); });
     if (container && container.parentNode) container.parentNode.removeChild(container);
     root = null; container = null;
+    clearReadTarget(LESSON);
     document.documentElement.removeAttribute('data-device');
     document.documentElement.removeAttribute(FULLSCREEN_ATTR);
   });
 
-  it('on a TV the rails are there without opening anything: play on the left, Speed and Voice on the right', async () => {
+  it('on a TV beside a lesson the rails are there without opening anything: play on the left, Speed and Voice on the right', async () => {
     document.documentElement.setAttribute('data-device', 'tv');
-    const el = await mount();
+    const el = await mount({ open: false });
     expect(el.querySelector('[data-testid="reader-panel"]'), 'no corner panel').toBeNull();
     const rails = document.querySelector('[data-testid="reader-rails"]');
     expect(rails, 'the rails').toBeTruthy();
     const left = rails.querySelector('[data-testid="reader-rail-left"]');
     const right = rails.querySelector('[data-testid="reader-rail-right"]');
-    expect(left.style.width).toBe(railWidth());
-    expect(right.style.width).toBe(railWidth());
+    // jsdom normalises the calc; the rail carries the width, and it is the one expression.
+    expect(left.style.width.replace(/\s+/g, '')).toContain('100vw');
+    expect(right.style.width.replace(/\s+/g, '')).toContain('var(--ts-chrome-scale,1)');
     expect(document.documentElement.getAttribute(RAILS_ATTR), '<main> makes room').toBe('sides');
     expect(left.className).toMatch(/\bfixed\b.*\bleft-2\b/);
     expect(right.className).toMatch(/\bfixed\b.*\bright-2\b/);
@@ -190,6 +203,18 @@ describe('the real reader', () => {
     expect(left.querySelector('[data-testid="reader-fullscreen"]')).toBeTruthy();
     // Nothing is duplicated: one speed group in the whole document.
     expect(document.querySelectorAll('[aria-label="Reading speed"]')).toHaveLength(1);
+  });
+
+  it('on a TV page with nothing to read (the Create station, the Learn tree) there are no rails and the page keeps its width; opening the reader brings them', async () => {
+    document.documentElement.setAttribute('data-device', 'tv');
+    const el = await mount({ lesson: false, open: false });
+    expect(document.querySelector('[data-testid="reader-rails"]')).toBeNull();
+    expect(document.documentElement.getAttribute(RAILS_ATTR)).toBeNull();
+    const fab = [...el.querySelectorAll('button')].find((b) => /read-aloud controls/i.test(b.getAttribute('aria-label') || ''));
+    expect(fab, 'the ordinary button').toBeTruthy();
+    await act(async () => { fab.click(); });
+    expect(document.querySelector('[data-testid="reader-rails"]')).toBeTruthy();
+    expect(document.documentElement.getAttribute(RAILS_ATTR)).toBe('sides');
   });
 
   it('on a phone the panel stays the column in the corner, with Close and no full-screen button', async () => {

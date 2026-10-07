@@ -1636,6 +1636,12 @@ def _selftest():
                 return self._send(200, "application/json", json.dumps({
                     "producers": [{"url": "wyze://192.168.1.77?uid=ABC&enr=SRCSECRET&dtls=true", "type": "wyze", "state": "connecting"}] if sid == "err_cam" else [{"url": "wyze://192.168.1.50?uid=ABC&enr=SECRET&mac=AA&model=HL_CAM4&dtls=true", "type": "wyze", "state": "playing", "medias": ["video"]}],
                     "consumers": []}).encode("utf-8"))
+            if path == "/api/config":
+                if "config_streams" not in seen:
+                    return self._send(404, "text/plain", b"no config api")
+                names = seen["config_streams"]
+                body = "api:\n  listen: \":1984\"\nstreams:" + (" {}\n" if not names else "\n" + "".join("  %s: wyze://x?enr=S\n" % n for n in names)) + "wyze:\n  email: x\n"
+                return self._send(200, "text/plain", body.encode("utf-8"))
             if path == "/api/streams" and seen.get("empty_streams"):
                 return self._send(200, "application/json", b"{}")
             if path == "/api/streams":
@@ -2294,6 +2300,21 @@ def _selftest():
     check(s == 404, "a code nobody approved dies on the clock")
     clock["now"] -= PAIR_TTL_SECONDS + 1
 
+    print("=== 8j. what memory holds, the config must hold (DR-0787): the self-heal writes the streams the file lacks ===")
+    check(config_stream_names("api:\n  listen: :1984\nstreams: {}\nwyze:\n  email: x\n") == set(), "`streams: {}` defines no stream")
+    check(config_stream_names("streams:\n  front_yard: wyze://a\n  \"back door\": rtsp://b\n  # note\nwyze:\n  email: x\n") == {"front_yard", "back door"}, "the defined ids are the keys under streams:, quoted or not, comments skipped")
+    seen.pop("puts", None); seen["config_streams"] = []
+    r = self_heal_once("http://127.0.0.1:%d" % fp, port, token, log=lambda *_a: None)
+    put_names = sorted(n for n, _u in seen.get("puts", []))
+    check(r == "wrote-3" and put_names == ["doorbell", "front_yard", "garage"], "memory holds 4, the config 0: the three with a source url are PUT with go2rtc's own url, the one without is skipped (%s, %s)" % (r, put_names))
+    check(("front_yard", "wyze://192.168.1.50?uid=ABC&enr=SECRET&mac=AA&model=HL_CAM4&dtls=true") in seen.get("puts", []), "the PUT carries the exact source url go2rtc reported, so the config matches memory")
+    seen.pop("puts", None); seen["config_streams"] = ["front_yard", "doorbell", "garage", "bad id/with slash"]
+    r = self_heal_once("http://127.0.0.1:%d" % fp, port, token, log=lambda *_a: None)
+    check(r == "has-streams" and not seen.get("puts"), "when the config already defines every stream, nothing is written (%s)" % r)
+    seen.pop("puts", None); del seen["config_streams"]
+    r = self_heal_once("http://127.0.0.1:%d" % fp, port, token, log=lambda *_a: None)
+    check(r == "has-streams" and not seen.get("puts"), "a go2rtc without /api/config is left alone, never guessed at (%s)" % r)
+
     print("=== 9. a DARK go2rtc reads as 502 everywhere, never as this process's own 200 ===")
     fake.shutdown(); fake.server_close()
     s, _h, d = call("GET", "/health")
@@ -2318,16 +2339,78 @@ def _selftest():
     print("\nALL CAMS FORWARDER CHECKS PASSED.")
 
 
+def config_stream_names(text):
+    """The stream ids a go2rtc.yaml DEFINES: the keys indented under the
+    top-level `streams:` block. `streams: {}` defines none. No yaml library on
+    the box, so this reads the shape the way cams-diag does."""
+    names = set()
+    inside = False
+    for line in str(text or "").splitlines():
+        if not line.strip() or line.lstrip().startswith("#"):
+            continue
+        if not line[0].isspace():
+            inside = line.startswith("streams:")
+            continue
+        if inside:
+            m = re.match(r"^\s+([^\s#][^:]*?):", line)
+            if m:
+                names.add(m.group(1).strip().strip("\"'"))
+    return names
+
+
+def persist_missing_streams(upstream, streams, log=print):
+    """WHAT MEMORY HOLDS, THE CONFIG MUST HOLD (DR-0787). Measured 2026-10-07
+    (cams-diag run 37639442649, after the DR-0779 fix shipped): /health said
+    31 streams, and go2rtc.yaml said `streams defined: 0`. The 31 lived in
+    go2rtc's memory from a /api/wyze listing made BEFORE the fix; nothing
+    ever wrote them, and the self-heal re-adds only when memory is EMPTY --
+    so the next container recreate would have come back with zero cameras,
+    the exact 07:31 loss, again. Now every self-heal tick reads go2rtc's
+    own config (/api/config) and PUTs each stream memory holds that the
+    file does not, with the source url go2rtc itself reports; PUT writes
+    the config (app.PatchConfig) and is idempotent. The urls never leave
+    this process. Returns 'written', 'config-unreadable' or 'wrote-N'."""
+    base = upstream.rstrip("/")
+    try:
+        with urllib.request.urlopen(base + "/api/config", timeout=HEALTH_TIMEOUT) as r:
+            text = r.read(2 * 1024 * 1024).decode("utf-8", "replace")
+    except (urllib.error.URLError, OSError, ValueError):
+        return "config-unreadable"
+    defined = config_stream_names(text)
+    missing = [sid for sid in streams if sid not in defined]
+    if not missing:
+        return "written"
+    wrote = 0
+    for sid in missing:
+        info = streams.get(sid) if isinstance(streams, dict) else None
+        prods = (info or {}).get("producers") or []
+        url = prods[0].get("url") if prods and isinstance(prods[0], dict) else None
+        if not url:
+            continue
+        q = urllib.parse.urlencode([("name", sid), ("src", url)])
+        put = urllib.request.Request(base + "/api/streams?" + q, method="PUT")
+        try:
+            with urllib.request.urlopen(put, timeout=HEALTH_TIMEOUT) as r:
+                r.read(4096)
+            wrote += 1
+        except (urllib.error.HTTPError, urllib.error.URLError, OSError):
+            pass
+    log("self-heal: %d stream(s) lived in go2rtc's memory only; wrote %d of them to its config (DR-0787)" % (len(missing), wrote))
+    return "wrote-%d" % wrote
+
+
 def self_heal_once(upstream, port, token, log=print):
     """If go2rtc lists ZERO streams and a Wyze sign-in is kept, re-add the
-    cameras through this process's own /setup/wyze/again. Returns what it did."""
+    cameras through this process's own /setup/wyze/again. If it lists streams
+    its config does not define, write them (DR-0787). Returns what it did."""
     try:
         with urllib.request.urlopen(upstream.rstrip("/") + "/api/streams", timeout=HEALTH_TIMEOUT) as r:
             parsed = json.loads(r.read(4 * 1024 * 1024).decode("utf-8"))
     except (urllib.error.URLError, OSError, ValueError):
         return "go2rtc-unreachable"
     if isinstance(parsed, dict) and len(parsed) > 0:
-        return "has-streams"
+        wrote = persist_missing_streams(upstream, parsed, log=log)
+        return wrote if wrote.startswith("wrote-") else "has-streams"
     if _wyze is None or not _wyze.load_credentials():
         return "no-credentials"
     req = urllib.request.Request("http://127.0.0.1:%d/setup/wyze/again" % port, data=b"", method="POST",

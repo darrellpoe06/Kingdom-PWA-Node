@@ -438,7 +438,6 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
       try { document.documentElement.removeAttribute(FULLSCREEN_ATTR); } catch { /* ignore */ }
     };
   }, [fullScreen]);
-  const railsOn = controller === 'sides' && !fullScreen;
   const prefsRef = useRef(followPrefs);
   const setFollowPref = (key, value) => {
     const next = saveFollowPrefs({ ...prefsRef.current, [key]: value });
@@ -1664,6 +1663,12 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
         </div>
   );
 
+  // THE RAILS STAND BESIDE THE WORD, NOT ON EVERY PAGE. A read target (a
+  // lesson on screen), an open reader or a live reading brings them; the
+  // Create station, the Learn tree and every other page keep their full
+  // width and the ordinary button. The CI layout probe caught the first cut
+  // squeezing the Create station to 512px on a 960px TV with nobody reading.
+  const railsOn = controller === 'sides' && !fullScreen && (!!target || isOpen || isReading);
   // <main> makes room for the rails while they are on (index.css), so the
   // Word narrows between them instead of being covered at its edges.
   useEffect(() => {

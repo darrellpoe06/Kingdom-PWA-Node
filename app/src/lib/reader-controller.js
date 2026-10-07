@@ -33,9 +33,11 @@
 // remote's Back brings it all back.
 //
 // WHO DECIDES. 'auto' (the default) reads the measured device class: a TV
-// (device-roles / device-link isTvClass) or any screen at least WIDE_MIN_WIDTH
-// px gets the rails; a phone, tablet or ordinary laptop keeps the tall column.
-// One tap in the panel header flips it, and the choice is kept on the device
+// (device-roles / device-link isTvClass) gets the rails; a phone, tablet or
+// laptop keeps the tall column — a mouse and a wheel already reach every
+// control, and the CI layout probe showed rails on a 1920px laptop covering
+// the header's tab row. One tap in the panel header flips it on any screen
+// wide enough (SIDES_MIN_WIDTH), and the choice is kept on the device
 // ('sides' / 'tall'), as reader-follow-prefs keeps its three.
 //
 // Storage can be missing or throw (private window, a TV browser): every read
@@ -43,20 +45,25 @@
 export const CONTROLLER_KEY = 'poetech.reader.controller.v1';
 export const CONTROLLER_MODES = Object.freeze(['auto', 'sides', 'tall']);
 export const CONTROLLER_LAYOUTS = Object.freeze(['sides', 'tall']);
-/** A screen this wide is a monitor or a TV, never a laptop lid or a tablet. */
-export const WIDE_MIN_WIDTH = 1600;
-/** Below this there is no margin for a rail, so the rails are never chosen. */
-export const WIDE_FLOOR_WIDTH = 900;
+/** A chosen 'sides' on a phone, tablet or laptop needs at least this much width. */
+export const SIDES_MIN_WIDTH = 1280;
+/** A TV narrower than this (CSS px) cannot hold two rails and the Word; the column it is. */
+export const TV_FLOOR_WIDTH = 900;
 /**
- * Each rail's width, in the reader's own chrome em (1rem × --ts-chrome-scale):
- * room for the five speed chips and the voice list. The shell's <main> is
- * FULL width (measured, ChurchLearn.jsx: "window 1440, <main> 1440"), so the
- * rails do not sit in empty margin — index.css gives <main> this much inset on
- * each side while RAILS_ATTR holds, and the Word's column narrows between them
- * instead of being covered. The number lives here and in index.css; a test
- * pins the two together.
+ * Each rail's width: 15rem (room for the five speed chips and the voice list),
+ * or less on a narrow TV — a Firestick's Silk reports 960 CSS px, and two
+ * 15rem rails would leave the Word 480px — so the rail shrinks to keep at
+ * least 32rem for the Word; the whole thing scales with the reader's chrome
+ * size. The shell's <main> is FULL width (measured, ChurchLearn.jsx: "window
+ * 1440, <main> 1440"), so the rails do not sit in empty margin — index.css
+ * gives <main> AND the shell header this much inset on each side while
+ * RAILS_ATTR holds, and the Word's column narrows between them instead of
+ * being covered. The one expression lives here and in index.css; a test pins
+ * the two together.
  */
-export const RAIL_WIDTH_EM = 15;
+export const RAIL_WIDTH_REM = 15;
+export const WORD_MIN_REM = 32;
+export const RAIL_WIDTH_CSS = `calc(min(${RAIL_WIDTH_REM}rem, (100vw - ${WORD_MIN_REM}rem) / 2) * var(--ts-chrome-scale, 1))`;
 /** The html attribute index.css reads to inset <main> for the rails. */
 export const RAILS_ATTR = 'data-reader-rails';
 /** The html attribute index.css reads to hide the dock, the header and the rails. */
@@ -104,13 +111,12 @@ export function saveControllerPref(mode, storage) {
  */
 export function controllerLayout({ pref = 'auto', deviceClass = 'phone', width = 0 } = {}) {
   const w = Number(width) || 0;
-  const roomy = w <= 0 ? deviceClass === 'tv' : w >= WIDE_FLOOR_WIDTH;
+  const tv = deviceClass === 'tv';
+  const roomy = tv ? (w <= 0 || w >= TV_FLOOR_WIDTH) : w >= SIDES_MIN_WIDTH;
   const p = normalizeControllerPref(pref);
   if (p === 'tall') return 'tall';
   if (p === 'sides') return roomy ? 'sides' : 'tall';
-  if (deviceClass === 'tv') return roomy ? 'sides' : 'tall';
-  if (w >= WIDE_MIN_WIDTH) return 'sides';
-  return 'tall';
+  return tv && roomy ? 'sides' : 'tall';
 }
 
 /** The pref a header tap sets: the opposite of what is on screen, said plainly. */
@@ -129,14 +135,14 @@ export function controllerToggleTitle(layout) {
     : 'Sides — every control on the two sides of the screen, always there (made for a TV)';
 }
 
-/** Each rail's width, as the rail's own style (its font-size is the chrome scale). */
+/** Each rail's width, as the rail's own inline style. */
 export function railWidth() {
-  return `${RAIL_WIDTH_EM}em`;
+  return RAIL_WIDTH_CSS;
 }
 
-/** The inset index.css gives <main> on each side while the rails are on — the same width plus the gap. */
+/** The inset index.css gives <main> and the header on each side while the rails are on — the rail plus the gap. */
 export function mainInset() {
-  return `calc(${RAIL_WIDTH_EM}em * var(--ts-chrome-scale, 1) + 1.5rem)`;
+  return `calc(${RAIL_WIDTH_CSS} + 1.5rem)`;
 }
 
 /** Mark the page so <main> makes room for the rails (index.css). Never throws. */
