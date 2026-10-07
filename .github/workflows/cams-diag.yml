@@ -78,6 +78,8 @@ jobs:
           SUDO=""; sudo -n true 2>/dev/null && SUDO="sudo -n"
           echo "=== forwarder /health (127.0.0.1:8773) ==="
           curl -s -m 8 http://127.0.0.1:8773/health | scrub; echo
+          echo "=== stream-health.json (the forwarder's sampler, DR-0798; last hour per camera) ==="
+          if [ -f /volume1/docker/go2rtc/stream-health.json ]; then head -c 6000 /volume1/docker/go2rtc/stream-health.json | scrub; echo; else echo "(no stream-health.json yet: the forwarder on this box predates DR-0798 or has not sampled)"; fi
           echo "=== go2rtc /api ==="
           curl -s -m 8 http://127.0.0.1:1984/api | scrub | head -c 400; echo
           echo "=== go2rtc streams: id, kind, host, state (never a url) ==="

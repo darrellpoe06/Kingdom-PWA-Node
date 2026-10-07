@@ -126,6 +126,9 @@ it in a URL.
 | `GET/PUT /cams/recording` | family bearer | which cameras record, their retention, the disk budget, the recorder's status (DR-0775) |
 | `GET /cams/rec/<id>` | family bearer | the camera's clips on disk `[{name, bytes, start}]` |
 | `GET /cams/rec/<id>/<clip>.mp4?t=` | ticket | the clip, with Range (206) so the player can seek |
+| `GET /cams/rec/<id>/<clip>.mp4?t=&size=small\|medium\|large[&dl=1][&retry=1]` | ticket | the clip at that size (480p / 720p / 1080p, never upscaled), made once by the container's ffmpeg into `.derived/`; 202 `{status, position}` while it is made; `dl=1` names the saved file (DR-0797) |
+| `GET /cams/rec/<id>/<clip>.mp4?t=&sizes=1` | ticket | `{original, seconds, tiers:{size:{label, height, estimate, state, bytes?}}}` |
+| `GET /cams/streams/health` | family bearer or grant | the stream health log (DR-0798): per camera the last hour from go2rtc's numbers (kbps, up%, drops while watched, codecs, hevc_only, twin) and the last 50 drop events; sampled every `CAMS_STREAM_SAMPLE_SECONDS` (15); a camera that sends only H.265 gets an `<id>_h264` twin |
 
 The app picks HLS when the device's `<video>` says it can play
 `application/vnd.apple.mpegurl`, else MP4 -- no player library, the browser's own
