@@ -15,6 +15,14 @@ DR-0770 put the Wyze sign-in in the Cameras tab. An hour after it merged the for
 1. The only ways to make the NAS run its new code were a terminal (PowerShell, ConnectBot) or waiting for the 15-minute services-sync. Darrell refused both, rightly: the agent has a route (the tailnet runner, `nas-clock.yml also_run_once`) and the app should have one too.
 2. The sign-in form kept its four values only in React state. A deploy, a reload or a PWA relaunch erased them before the NAS ever accepted them, so he typed them twice and was asked for a third time.
 
+## What was measured
+
+- The Cameras form on his tablet: fields filled, result "The NAS answered HTTP 404" (screenshot, 2026-10-07), an hour after PR #1984 merged DR-0770; `install.sh` restarted `poetech-cams` only when the unit file changed (`cmp -s "$TMPU" "$UNIT"`), so the new `cams_forwarder.py` sat on disk unserved.
+- `WyzeSetup` kept `fields` in `useState` only and cleared them on `r.kind === 'ok'`; the deploy of PR #1985 (merged 04:43:56 UTC) reloaded the PWA and the form came back empty (screenshot 11:44 local, old copy of the form, four empty boxes).
+- nas-clock run 37573061542 (dispatched 04:46:24 UTC with `also_run_once=true`): mirror at 45a055cc, `services-sync: all services synced`, exit 0 in 73,582 ms, calls 21/96.
+- site-health run 37573386665: every probe 200, then `infra/nas-cameras/cams_forwarder.py: No such file or directory` at the compare added in #1985; incident #1986 filed with an empty reason.
+- His tinyCam Pro grid (three screenshots): two properties, a dozen named cameras, several tiles "P2P camera offline".
+
 ## How others do it (asked, answered with evidence)
 
 tinyCam Pro, docker-wyze-bridge and go2rtc's `wyze:` source all take the same road: sign in to Wyze's cloud with email, password, API ID and API Key, get the camera list, then pull video from each camera over Wyze's P2P (TUTK) protocol, on the LAN when the camera is local and relayed when it is not. Wyze's own forum documents the P2P/TUTK live-view design and tinyCam's cloud-account add; docker-wyze-bridge's README states the API ID/Key requirement and that its TUTK path is go2rtc's built-in `wyze://` source. So the NAS already does what tinyCam does. What failed on 2026-10-07 was not the method; it was a process that had not been restarted. Darrell's tinyCam grid (two properties, a dozen cameras, several "P2P camera offline") is the shape the Cameras tab already draws: a snapshot grid, full motion in place.
