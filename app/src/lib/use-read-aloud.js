@@ -542,15 +542,22 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     trip().setPieces(chunks.length);
     // The NAS takes two syntheses at once and answers a third with 503 busy:
     // that is a wait, not a failure, so a busy piece is asked again shortly.
-    // The pace this reading asks the voice for, pinned for the reading (a
-    // speed change mid-reading is the remainder on the element; the next read
-    // — a jump, the next lesson — re-pins at the new pace).
-    const speed = voiceSpeedFor(rateRef.current);
-    const speakPiece = async (t, timeoutMs) => {
-      let got = await synthesizeLite({ text: toSpokenForm(t), voice, speed, timeoutMs });
+    // THE PACE THIS READING ASKS THE VOICE FOR (DR-0791; Darrell 2026-10-07:
+    // "Why does the male voice sound like it's slowing down while it's
+    // talking? Not able to correctly enunciate words"). The pace was pinned
+    // once for the whole reading; a speed change mid-reading left the ELEMENT
+    // to stretch every later piece, and a stretch below 1x (1.5x pieces at a
+    // 1x rate = 0.667x) is exactly a voice that slows and slurs. Now the pace
+    // follows the speed chip: the queue asks the voice again at the new pace
+    // from the next sentence (lib/clip-queue.js setRate), and each pace has
+    // its own pieces, keys and source.
+    const paceFor = (r) => voiceSpeedFor(r);
+    const pinned = paceFor(rateRef.current);
+    const speakPiece = async (t, timeoutMs, sp) => {
+      let got = await synthesizeLite({ text: toSpokenForm(t), voice, speed: sp, timeoutMs });
       for (let tries = 0; got.error === 'voice-lite-503' && tries < 4; tries++) {
         await new Promise((r) => setTimeout(r, 600 * (tries + 1)));
-        got = await synthesizeLite({ text: toSpokenForm(t), voice, speed, timeoutMs });
+        got = await synthesizeLite({ text: toSpokenForm(t), voice, speed: sp, timeoutMs });
       }
       // The source keeps the blob and makes its own URL for the player.
       if (got.url) { try { URL.revokeObjectURL(got.url); } catch (_) { /* ignore */ } }
@@ -560,50 +567,72 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     // everything it needs for quality without needing to reconnect with the
     // nas?"). A piece played once is kept on the device (lib/clip-cache.js):
     // a replay, a resume, a jump or a dropped connection plays from here.
-    // The 1x pieces are what a download saves and what joins into one file;
-    // a reading at another pace streams its own pieces under their own keys.
+    // The 1x pieces are what a download saves; a reading at another pace
+    // streams and keeps its own pieces under their own keys.
     const savedKeys = chunks.map((c) => clipKey({ voice, text: toSpokenForm(c.text) }));
-    const keys = speed === 1 ? savedKeys : chunks.map((c) => clipKey({ voice, text: toSpokenForm(c.text), speed }));
+    const keysFor = (sp) => (sp === 1 ? savedKeys : chunks.map((c) => clipKey({ voice, text: toSpokenForm(c.text), speed: sp })));
+    const keys = keysFor(pinned);
     const cache = deviceClipCache();
-    const source = createClipSource({
-      keys,
-      cache,
-      fetchBlob: (i, timeoutMs) => speakPiece(chunks[i].text, timeoutMs),
-      makeUrl: (b) => URL.createObjectURL(b),
-    });
+    const sources = new Map();
+    const sourceFor = (sp) => {
+      if (!sources.has(sp)) {
+        sources.set(sp, createClipSource({
+          keys: keysFor(sp),
+          cache,
+          fetchBlob: (i, timeoutMs) => speakPiece(chunks[i].text, timeoutMs, sp),
+          makeUrl: (b) => URL.createObjectURL(b),
+        }));
+      }
+      return sources.get(sp);
+    };
     // A SAVED READING PLAYS AS ONE FILE (DR-0718; Darrell 2026-10-01: "it
-    // stops each time on the downloaded version"). When every piece is on
-    // the device, they are joined into one WAV and played start to finish
-    // with nothing between sentences: no fetch, no network, no swap. A join
-    // that cannot be made plays piece by piece as before.
+    // stops each time on the downloaded version"). When every piece of a
+    // reading is on the device, they are joined into one WAV and played
+    // start to finish with nothing between sentences: no fetch, no network,
+    // no swap. A join that cannot be made plays piece by piece as before.
     // THE TRIP SAYS WHETHER IT PLAYED AS ONE FILE (DR-0746; Darrell 2026-10-02,
     // a saved lesson: "Still turns off when in the background!!!"). Whether the
     // join was made, and if not which piece was missing or why, is the one
     // fact that tells a background stop apart from a piece-by-piece read; it
     // was never written down. Now the trip carries it, and the trip rides
     // with his feedback (DR-0744).
-    const joinFromDevice = async () => {
+    // THE JOIN CARRIES ITS PACE (DR-0791): pieces spoken at the reading's pace
+    // join into a file the element plays at 1x; the saved 1x pieces join into
+    // a file the element must stretch, so that join is the LAST resort — taken
+    // only when the NAS voice cannot be reached for the pace's own pieces.
+    const joinFromDevice = async (sp, { stretched = false } = {}) => {
+      const ks = keysFor(sp);
+      const t0 = Date.now();
       // The first piece answers for a reading that is not saved, quickly.
-      const head = await cache.get(savedKeys[0]).catch(() => null);
-      if (!head) { trip().note('join-missed', { reason: 'not-saved' }); return null; }
-      const blobs = [head, ...await Promise.all(savedKeys.slice(1).map((k) => cache.get(k).catch(() => null)))];
+      const head = await cache.get(ks[0]).catch(() => null);
+      if (!head) { trip().note('join-missed', { reason: 'not-saved', speed: sp }); return null; }
+      const blobs = [head, ...await Promise.all(ks.slice(1).map((k) => cache.get(k).catch(() => null)))];
       const missing = blobs.findIndex((b) => !b);
-      if (missing >= 0) { trip().note('join-missed', { reason: 'missing-piece', i: missing, of: savedKeys.length }); return null; }
+      if (missing >= 0) { trip().note('join-missed', { reason: 'missing-piece', i: missing, of: ks.length, speed: sp }); return null; }
       const j = await joinClipBlobs(blobs);
-      if (!j) { trip().note('join-missed', { reason: 'not-joinable', of: savedKeys.length, bytes: blobs.reduce((n, b) => n + (b.size || 0), 0) }); return null; }
-      trip().note('join', { pieces: savedKeys.length, bytes: j.blob.size, seconds: Math.round(j.duration || 0) });
-      return { url: URL.createObjectURL(j.blob), offsets: j.offsets, duration: j.duration };
+      if (!j) { trip().note('join-missed', { reason: 'not-joinable', of: ks.length, bytes: blobs.reduce((n, b) => n + (b.size || 0), 0), speed: sp }); return null; }
+      trip().note('join', { pieces: ks.length, bytes: j.blob.size, seconds: Math.round(j.duration || 0), speed: sp, stretched, buildMs: Date.now() - t0 });
+      return { url: URL.createObjectURL(j.blob), offsets: j.offsets, duration: j.duration, speed: sp };
     };
-    const whole = await joinFromDevice();
+    // The pace's own pieces, all on the device: one file, nothing stretched.
+    let whole = await joinFromDevice(pinned);
     // SUPERSEDED WHILE THE JOIN WAS BUILT: this read no longer owns the voice.
     if (!currentGen(gen)) { if (whole) { try { URL.revokeObjectURL(whole.url); } catch (_) { /* ignore */ } } return false; }
     // The first piece decides: if the NAS voice cannot answer it in time, the
     // device voice speaks instead and the road is not asked again for a while.
     // From the device if it is kept there, else from the NAS (and then kept).
-    const first = whole ? null : await source.clip(0, LITE_FIRST_TIMEOUT_MS);
+    let first = whole ? null : await sourceFor(pinned).clip(0, LITE_FIRST_TIMEOUT_MS);
     if (!currentGen(gen)) {
       for (const u of [whole && whole.url, first && first.url]) { if (u) { try { URL.revokeObjectURL(u); } catch (_) { /* ignore */ } } }
       return false;
+    }
+    // THE LAST RESORT (DR-0791): the pace's first piece could not be had, but
+    // the reading is saved at 1x — it plays as one file, stretched by the
+    // element, rather than handing a saved lesson to the device voice.
+    if (first && (first.error || !first.url) && pinned !== 1) {
+      const saved = await joinFromDevice(1, { stretched: true });
+      if (!currentGen(gen)) { if (saved) { try { URL.revokeObjectURL(saved.url); } catch (_) { /* ignore */ } } return false; }
+      if (saved) { whole = saved; first = null; }
     }
     // The reason is KEPT (DR-0654): the notice names what the NAS voice said.
     if (first && (first.error || !first.url)) { liteMissRef.current = first.error || 'voice-lite-empty'; markLiteVoiceMiss(liteMissRef.current); return false; }
@@ -615,12 +644,17 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
       chunks,
       audio: a,
       rate: rateRef.current,
+      paceFor,
       // Each piece says the pace the voice spoke it at, so the element
-      // stretches only the remainder (lib/clip-queue.js).
-      fetchClip: (t, i) => {
-        if (i === 0 && first && !served) { served = true; return Promise.resolve({ ...first, speed }); }
-        return source.clip(i).then((r) => (r && r.url ? { ...r, speed } : r));
+      // stretches only the remainder (lib/clip-queue.js); the queue names the
+      // pace to ask for, which follows the speed chip (DR-0791).
+      fetchClip: (t, i, sp) => {
+        const at = Number(sp) > 0 ? Number(sp) : pinned;
+        if (i === 0 && first && !served && at === pinned) { served = true; return Promise.resolve({ ...first, speed: at }); }
+        return sourceFor(at).clip(i).then((r) => (r && r.url ? { ...r, speed: at } : r));
       },
+      // The pace of every piece, measured (DR-0791): the trip says it in one line.
+      onPace: (d) => { if (queueRef.current === q) trip().note('pace', d); },
       revoke: (u) => { try { URL.revokeObjectURL(u); } catch (_) { /* ignore */ } },
       onProgress: (f) => setCloudProgress(f),
       // The lock screen and the car show where in the lesson the voice is.
@@ -683,10 +717,14 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     if (!whole && ok && queueRef.current === q) {
       const signal = { aborted: false };
       aheadRef.current = signal;
-      source.ahead({ concurrency: AHEAD_CONCURRENCY, signal, onProgress: (p) => { if (aheadRef.current === signal) setOffline({ ...p, keys, voice }); } })
+      sourceFor(pinned).ahead({ concurrency: AHEAD_CONCURRENCY, signal, onProgress: (p) => { if (aheadRef.current === signal) setOffline({ ...p, keys, voice }); } })
         .then(async (res) => {
           if (signal.aborted || queueRef.current !== q || !res || res.saved < res.total) return;
-          const j = await joinFromDevice();
+          // The speed chip moved since: these pieces are at the old pace, and a
+          // joined file at the old pace would be stretched. The reading stays
+          // piece by piece at the pace it is asking for now.
+          if (q.pace !== pinned) return;
+          const j = await joinFromDevice(pinned);
           if (!j) return;
           if (queueRef.current !== q || !q.join(j)) { try { URL.revokeObjectURL(j.url); } catch (_) { /* ignore */ } }
         })
@@ -843,10 +881,13 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
   const playMyVoice = useCallback(async (clean, { voice, personKey, referenceDataUri, gen = readGenRef.current }) => {
     const chunks = chunkForClips(clean);
     if (!chunks.length || typeof Audio === 'undefined') return { error: 'empty-text' };
-    const speed = voiceSpeedFor(rateRef.current); // the pace the studio speaks this reading at
-    const speakPiece = (t, timeoutMs) => synthesizeSpeech({
-      text: toSpokenForm(t), voiceId: voice.id, personKey, referenceDataUri, timeoutMs, speed,
-    }).then((r) => (r && r.url ? { ...r, speed } : r));
+    // The pace the studio speaks this reading at; it follows the speed chip
+    // from the next sentence on (DR-0791), as the NAS stand-in's does.
+    const paceFor = (r) => voiceSpeedFor(r);
+    const pinned = paceFor(rateRef.current);
+    const speakPiece = (t, timeoutMs, sp = pinned) => synthesizeSpeech({
+      text: toSpokenForm(t), voiceId: voice.id, personKey, referenceDataUri, timeoutMs, speed: sp,
+    }).then((r) => (r && r.url ? { ...r, speed: sp } : r));
     const first = await speakPiece(chunks[0].text, speakTimeoutFor(studioHealth));
     // An XTTS clone takes its time; a jump made while it worked owns the voice now.
     if (!currentGen(gen)) return { error: 'superseded' };
@@ -858,13 +899,16 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
       chunks,
       audio: a,
       rate: rateRef.current,
-      fetchClip: (t, i) => {
-        if (i === 0 && !served) { served = true; return Promise.resolve(first); }
-        return speakPiece(t, SPEAK_TIMEOUT_MS);
+      paceFor,
+      fetchClip: (t, i, sp) => {
+        const at = Number(sp) > 0 ? Number(sp) : pinned;
+        if (i === 0 && !served && at === pinned) { served = true; return Promise.resolve(first); }
+        return speakPiece(t, SPEAK_TIMEOUT_MS, at);
       },
       revoke: (u) => { try { URL.revokeObjectURL(u); } catch (_) { /* ignore */ } },
       onProgress: (f) => setCloudProgress(f),
       onPiece: (i) => { if (queueRef.current === q) setCloudPiece(i); },
+      onPace: (d) => { if (queueRef.current === q) trip().note('pace', d); },
       onEnd: () => { if (queueRef.current === q) { queueRef.current = null; audioRef.current = null; setCloudPlaying(false); setCloudPaused(false); setCloudProgress(0); setCloudPiece(-1); } },
       onFallback: (rest, _i, reason) => {
         if (queueRef.current !== q) return;

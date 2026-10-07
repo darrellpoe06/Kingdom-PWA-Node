@@ -97,8 +97,18 @@ export function overallFraction(chunks, index, pieceFraction) {
  * element plays THAT from the next piece boundary to the end, so the phone
  * holds one long, continuous play with nothing between sentences at all.
  */
-export function createClipQueue({ chunks, fetchClip, audio, rate = 1, onProgress, onPiece, onEnd, onFallback, onPosition, revoke, now = () => Date.now() }) {
+export function createClipQueue({ chunks, fetchClip, audio, rate = 1, onProgress, onPiece, onEnd, onFallback, onPosition, onPace, paceFor, revoke, now = () => Date.now() }) {
   const urls = new Map();       // index -> Promise<{url}|{error}>
+  // THE VOICE IS ASKED AGAIN AT THE NEW PACE (2026-10-07, DR-0791; Darrell:
+  // "Why does the male voice sound like it's slowing down while it's
+  // talking? Not able to correctly enunciate words"). A reading pinned its
+  // pace once; a speed change mid-reading then left the ELEMENT to stretch
+  // every later piece — and a stretch below 1x (1.5x pieces at a 1x rate =
+  // 0.667) is a drawl that smears the words. Now `paceFor(rate)` names the
+  // pace the voice should speak at, the pieces not yet playing are asked for
+  // again at that pace, and the element stretches only the piece already on
+  // it. `fetchClip(text, i, pace)` receives the pace to ask for.
+  let pace = typeof paceFor === 'function' ? paceFor(rate) : null;
   // THE PAUSE IS MEASURED (2026-10-07, DR-0786; Darrell: "longer pauses...
   // over time... why?"). From the moment one piece ends (or play is asked)
   // to the moment the next is on the element: that is the silence the
@@ -117,11 +127,32 @@ export function createClipQueue({ chunks, fetchClip, audio, rate = 1, onProgress
   let pieceSpeed = 1;
   let joined = null;            // { url, offsets, duration } now playing
   let pendingJoin = null;       // takes over at the next piece boundary
+  // THE PACE IS MEASURED (DR-0791): for every piece, how long the clip was,
+  // how long the device took to play it, and what the element was set to.
+  // The trip turns these into one line, so "it slows down" is a number.
+  let playFrom = null;          // when the piece on the element started playing
+  let pausedOnce = false;       // a pause inside the piece: its wall time is not a measure
+  const listening = [];
+  const listen = (ev, fn) => {
+    try {
+      if (typeof audio.addEventListener === 'function') { audio.addEventListener(ev, fn); listening.push([ev, fn]); }
+    } catch (_) { /* a fake */ }
+  };
+  // The end of a clip fires 'pause' too (paused goes true before 'ended'):
+  // that is not a pause the listener made, and `ended` says so.
+  listen('pause', () => { if (!stopped && playFrom != null && !audio.ended) pausedOnce = true; });
+  const reportPace = (i, clipS, from) => {
+    if (!onPace || i < 0 || i >= chunks.length) return;
+    const wallMs = from != null ? Math.max(0, now() - from) : null;
+    let rateNow = speed;
+    try { const got = Number(audio.playbackRate); if (Number.isFinite(got) && got > 0) rateNow = got; } catch (_) { /* a fake */ }
+    onPace({ i, chars: String(chunks[i].text || '').length, clipS: Number.isFinite(clipS) && clipS > 0 ? clipS : null, wallMs, paused: pausedOnce, playbackRate: rateNow, pieceSpeed });
+  };
 
   const want = (i) => {
     if (i < 0 || i >= chunks.length) return null;
     if (!urls.has(i)) {
-      const p = Promise.resolve().then(() => fetchClip(chunks[i].text, i))
+      const p = Promise.resolve().then(() => fetchClip(chunks[i].text, i, pace))
         .catch((e) => ({ error: (e && e.message) || 'fetch-failed' }))
         .then((r) => { if (urls.get(i) === p) ready.set(i, r); return r; });
       urls.set(i, p);
@@ -185,9 +216,10 @@ export function createClipQueue({ chunks, fetchClip, audio, rate = 1, onProgress
     for (let k = 1; k <= PREFETCH_AHEAD; k++) want(i + k); // prefetch while this one plays
     try { audio.src = got.url; } catch (_) { /* fake */ }
     applyRate();
+    playFrom = null; pausedOnce = false;
     if (onPiece) onPiece(i, { waitMs, inHand });
     if (onProgress) onProgress(overallFraction(chunks, i, 0));
-    return playNow(i);
+    return playNow(i).then((ok) => { if (ok && index === i && playFrom == null) playFrom = now(); return ok; });
   };
 
   // The joined file takes over from piece i to the end.
@@ -195,7 +227,7 @@ export function createClipQueue({ chunks, fetchClip, audio, rate = 1, onProgress
     joined = pendingJoin; pendingJoin = null;
     for (const k of [...urls.keys()]) release(k);
     index = i;
-    pieceSpeed = 1; // a joined reading is the saved 1x pieces
+    pieceSpeed = joined.speed; // the pace the joined pieces were spoken at (1 for a saved 1x reading)
     const at = joined.offsets[i] || 0;
     try { audio.src = joined.url; } catch (_) { /* fake */ }
     try { audio.currentTime = at; } catch (_) { /* before metadata: re-applied below */ }
@@ -214,9 +246,10 @@ export function createClipQueue({ chunks, fetchClip, audio, rate = 1, onProgress
     applyRate();
     const joinedWait = waitFrom != null ? Math.max(0, now() - waitFrom) : 0;
     waitFrom = null;
+    playFrom = null; pausedOnce = false;
     if (onPiece) onPiece(i, { waitMs: joinedWait, inHand: true });
     if (onProgress) onProgress(overallFraction(chunks, i, 0));
-    return playNow(i);
+    return playNow(i).then((ok) => { if (ok && playFrom == null) playFrom = now(); return ok; });
   };
 
   const playAt = (i) => {
@@ -233,7 +266,15 @@ export function createClipQueue({ chunks, fetchClip, audio, rate = 1, onProgress
   // inside this event whether the screen is on, off, or behind another app.
   audio.onended = () => {
     if (stopped) return;
-    if (joined) { finish(); return; }
+    if (joined) {
+      const start = joined.offsets[index] || 0;
+      reportPace(index, joined.duration - start, playFrom);
+      finish();
+      return;
+    }
+    let clipS = null;
+    try { const d = Number(audio.duration); if (Number.isFinite(d) && d > 0) clipS = d; } catch (_) { /* a fake */ }
+    reportPace(index, clipS, playFrom);
     waitFrom = now();
     playAt(index + 1);
   };
@@ -243,7 +284,13 @@ export function createClipQueue({ chunks, fetchClip, audio, rate = 1, onProgress
     if (joined) {
       if (!Number.isFinite(t)) return;
       const p = pieceAt(joined.offsets, t);
-      if (p !== index) { index = p; if (onPiece) onPiece(p, { waitMs: 0, inHand: true }); }
+      if (p !== index) {
+        // The piece just left: its length is the gap between offsets.
+        if (p === index + 1) reportPace(index, (joined.offsets[p] || 0) - (joined.offsets[index] || 0), playFrom);
+        playFrom = now(); pausedOnce = false;
+        index = p;
+        if (onPiece) onPiece(p, { waitMs: 0, inHand: true });
+      }
       if (onProgress) onProgress(overallFraction(chunks, p, pieceFractionAt(joined.offsets, joined.duration, p, t)));
       if (onPosition) onPosition({ duration: joined.duration, position: t, playbackRate: speed });
       return;
@@ -258,6 +305,8 @@ export function createClipQueue({ chunks, fetchClip, audio, rate = 1, onProgress
     start() { if (!pendingJoin) want(0); return playAt(0); },
     stop() {
       stopped = true;
+      for (const [ev, fn] of listening) { try { audio.removeEventListener(ev, fn); } catch (_) { /* ignore */ } }
+      listening.length = 0;
       try { audio.pause(); } catch (_) { /* ignore */ }
       for (const i of [...urls.keys()]) release(i);
       releaseJoin(joined); releaseJoin(pendingJoin);
@@ -266,15 +315,34 @@ export function createClipQueue({ chunks, fetchClip, audio, rate = 1, onProgress
     /**
      * Hand the queue the whole reading as one file. It takes over at the next
      * piece boundary (or from the start, if nothing has played yet).
-     * @param {{url:string, offsets:number[], duration:number}} j
+     * `speed` is the pace its pieces were spoken at (1, a saved 1x reading,
+     * when it does not say); the element stretches only the remainder.
+     * @param {{url:string, offsets:number[], duration:number, speed?:number}} j
      */
     join(j) {
       if (stopped || joined || !j || !j.url || !Array.isArray(j.offsets) || j.offsets.length !== chunks.length) return false;
       releaseJoin(pendingJoin);
-      pendingJoin = { url: j.url, offsets: j.offsets, duration: Number(j.duration) || 0 };
+      pendingJoin = { url: j.url, offsets: j.offsets, duration: Number(j.duration) || 0, speed: Number(j.speed) > 0 ? Number(j.speed) : 1 };
       return true;
     },
-    setRate(r) { speed = r; applyRate(); },
+    /**
+     * A new speed. The piece on the element takes the remainder at once; when
+     * the voice's pace for this speed differs from the one the pending pieces
+     * were asked at, those pieces are dropped and asked for again at the new
+     * pace, so from the next sentence on the element stretches nothing.
+     */
+    setRate(r) {
+      speed = r;
+      const next = typeof paceFor === 'function' ? paceFor(r) : pace;
+      if (next !== pace && !joined) {
+        pace = next;
+        for (const k of [...urls.keys()]) { if (k > index) release(k); }
+        if (index >= 0) { for (let k = 1; k <= PREFETCH_AHEAD; k++) want(index + k); }
+      }
+      applyRate();
+    },
+    /** The pace the voice is asked for now (null when the caller gave no paceFor). */
+    get pace() { return pace; },
     get index() { return index; },
     get stopped() { return stopped; },
     /** True once the reading plays as one joined file. */
