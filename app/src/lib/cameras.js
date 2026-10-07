@@ -35,6 +35,7 @@ export function listUrl() { return `${CAMS_BASE}/list`; }
 export function ticketUrl() { return `${CAMS_BASE}/ticket`; }
 export function setupUrl() { return `${CAMS_BASE}/setup/wyze`; }
 export function restartUrl() { return `${CAMS_BASE}/restart`; }
+export function whyUrl(id) { return `${CAMS_BASE}/why/${encodeURIComponent(id)}`; }
 export const RESTART_TIMEOUT_MS = 15000;
 export const SETUP_TIMEOUT_MS = 75000; // Wyze's cloud listing + go2rtc's persist; the NAS gives it 60 s
 
@@ -357,4 +358,120 @@ export async function restartService(token, fetchImpl = globalThis.fetch) {
   } catch {
     return classifyRestartResult({ networkError: true });
   }
+}
+
+// =============================================================================
+// SIGHT, NOT A STATUS (DR-0774; Darrell 2026-10-07: "the feed needs to be able
+// to give us sight", "I need multiple views... different cameras together",
+// "Let's not build in undermining constraints"). What follows is the app's
+// half of that: the frame sweep runs several cameras at once and stops
+// hammering a camera that just failed; a blank tile names its REAL cause in
+// plain words and can ask the NAS why; a live view reconnects itself instead
+// of going black; and a wall shows several live cameras together.
+// =============================================================================
+export const SNAP_CONCURRENCY = 3;            // frames in flight from this device at once (the NAS allows 6)
+export const SNAP_RETRY_FAILED_MS = 30000;    // a camera that just failed is tried again after this, not every sweep
+export const LIVE_RECONNECT_MAX = 6;          // a live view that ends on its own is re-opened this many times...
+export const LIVE_RECONNECT_DELAY_MS = 1500;  // ...this soon; then it offers Resume
+export const WALL_KEY = 'poetech.cameras.wall.v1';
+export const WALL_MAX_DEFAULT = 6;            // the wall's size when the NAS does not say (its max_live wins)
+
+/** Run `fn` over `items` with at most `limit` in flight; order of start preserved. */
+export async function runLimited(items, limit, fn) {
+  const queue = [...items];
+  const n = Math.max(1, Math.min(limit, queue.length));
+  const workers = Array.from({ length: n }, async () => {
+    while (queue.length) {
+      const item = queue.shift();
+      await fn(item);
+    }
+  });
+  await Promise.all(workers);
+}
+
+/** True when a frame record says this camera failed recently enough to leave it alone this sweep. */
+export function skipFailedFrame(frame, now = Date.now(), retryMs = SNAP_RETRY_FAILED_MS) {
+  return !!(frame && frame.error && Number.isFinite(frame.errorAt) && now - frame.errorAt < retryMs);
+}
+
+/** go2rtc's own error text -> plain words, with the class it belongs to. */
+export function humanizeCameraError(text, host = '') {
+  const t = String(text || '');
+  const where = host ? ` (the NAS tried ${host})` : '';
+  if (/i\/o timeout|connect failed|no route to host|network is unreachable|connection refused|deadline exceeded/i.test(t)) {
+    return { kind: 'other-network', text: `The NAS cannot reach this camera on its own network${where}. The restreamer speaks to cameras on the network it sits on; a camera at the other house needs a relay or a box there.` };
+  }
+  if (/only DTLS|dtls/i.test(t)) return { kind: 'firmware', text: 'This camera\'s firmware has no DTLS, so the restreamer cannot talk to it yet. A firmware update from the Wyze app may add it.' };
+  if (/av login failed|K10001|K10002|auth|unauthori[sz]ed|enr/i.test(t)) return { kind: 'auth', text: 'The camera refused the restreamer\'s sign-in. Redo the Wyze sign-in in this tab so the keys are fresh.' };
+  if (/no sources|not found|404/i.test(t)) return { kind: 'missing', text: 'The restreamer has no stream by this name any more. Refresh the list.' };
+  if (/no answer in \d+ s|timeout/i.test(t)) return { kind: 'asleep', text: `${t.replace(/^wyze:\s*/i, '')}. The camera may be asleep, powered off, or at the other house.` };
+  if (!t) return { kind: 'unknown', text: 'The restreamer gave no reason.' };
+  return { kind: 'unknown', text: t.replace(/^wyze:\s*/i, '') };
+}
+
+/** A failed /snap answer (status + JSON body) -> the short reason a tile shows. */
+export function classifySnapError({ status, body } = {}) {
+  const err = body && typeof body.error === 'string' ? body.error : '';
+  if (status === 504 || err === 'frame-timeout') return `no answer in ${Number.isFinite(Number(body && body.after_s)) ? body.after_s : 12} s`;
+  if (status === 503 || err === 'busy') return 'NAS busy, next sweep';
+  if (status === 401) return 'family key refused';
+  if (err === 'go2rtc-unreachable') return 'restreamer dark';
+  if (err === 'no-frame') {
+    const h = humanizeCameraError(body && body.detail);
+    return h.kind === 'unknown' && body && body.detail ? String(body.detail).slice(0, 80) : h.kind === 'other-network' ? 'NAS cannot reach it on its network' : h.kind === 'firmware' ? 'firmware has no DTLS' : h.kind === 'auth' ? 'camera refused the sign-in' : h.kind === 'missing' ? 'no such stream now' : `HTTP ${status}`;
+  }
+  return `HTTP ${status || 0}`;
+}
+
+/** The NAS's /why answer -> what the person reads. */
+export function explainWhy(why) {
+  if (!why || typeof why !== 'object') return { kind: 'unknown', headline: 'No answer from the NAS.', lines: [] };
+  const host = Array.isArray(why.producers) && why.producers[0] && why.producers[0].host ? why.producers[0].host : '';
+  const state = Array.isArray(why.producers) && why.producers[0] && why.producers[0].state ? String(why.producers[0].state) : '';
+  const probe = why.probe || {};
+  const lines = [];
+  if (host) lines.push(`Camera address the NAS uses: ${host}${state ? ` · restreamer state: ${state}` : ''}`);
+  if (probe.ok) {
+    lines.push(`A fresh frame just came back in ${Number.isFinite(probe.ms) ? probe.ms : '?'} ms.`);
+    return { kind: 'ok', headline: 'This camera answers now. The tile fills on the next sweep.', lines, log: why.log || [] };
+  }
+  const h = humanizeCameraError(probe.error || (why.log || []).find((l) => /error|failed|timeout/i.test(l)) || '', host);
+  if (probe.timeout) lines.push(`The NAS asked for one frame and heard nothing for ${Math.round((probe.ms || 0) / 1000)} s.`);
+  else if (probe.error) lines.push(`The restreamer said: ${probe.error}`);
+  return { kind: h.kind, headline: h.text, lines, log: why.log || [] };
+}
+
+export async function fetchWhy(id, token, fetchImpl = globalThis.fetch) {
+  try {
+    const r = await fetchWithTimeout(whyUrl(id), { headers: authHeaders(token) }, 30000, fetchImpl);
+    let body = null;
+    try { body = await r.json(); } catch { body = null; }
+    if (r.status !== 200) return { ok: false, status: r.status, explanation: { kind: 'unknown', headline: r.status === 404 ? 'The NAS runs an older camera service that cannot explain yet. It updates itself within 15 minutes of a merge.' : `The camera road answered HTTP ${r.status}.`, lines: [], log: [] } };
+    return { ok: true, status: 200, why: body, explanation: explainWhy(body) };
+  } catch {
+    return { ok: false, status: 0, explanation: { kind: 'unknown', headline: 'The camera road did not answer.', lines: [], log: [] } };
+  }
+}
+
+/** The wall (which cameras to watch together), kept per device. */
+export function loadWall(storage = null) {
+  const st = storage || (() => { try { return globalThis.localStorage || null; } catch { return null; } })();
+  if (!st) return [];
+  try {
+    const raw = st.getItem(WALL_KEY);
+    const arr = raw ? JSON.parse(raw) : [];
+    return Array.isArray(arr) ? arr.filter((x) => typeof x === 'string' && CAMERA_ID.test(x)) : [];
+  } catch { return []; }
+}
+export function saveWall(ids, storage = null) {
+  const st = storage || (() => { try { return globalThis.localStorage || null; } catch { return null; } })();
+  if (!st) return false;
+  try {
+    if (!ids || !ids.length) st.removeItem(WALL_KEY); else st.setItem(WALL_KEY, JSON.stringify(ids));
+    return true;
+  } catch { return false; }
+}
+export function wallLimit(health) {
+  const n = Number(health && health.max_live);
+  return Number.isFinite(n) && n > 0 ? Math.min(n, 12) : WALL_MAX_DEFAULT;
 }

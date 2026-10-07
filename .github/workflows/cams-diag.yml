@@ -1,0 +1,120 @@
+# cams-diag — the team's EYE on the camera road, from the NAS itself (DR-0774).
+#
+# The cloud sandbox has no route to the NAS and the Funnel exposes only the
+# forwarder's allowlisted paths, so when a tile says "no frame" the agent could
+# only guess. This workflow joins the tailnet (the same ephemeral runner the
+# clock installer uses), SSHes to the NAS as dpoe, and prints what go2rtc
+# itself says: its streams (kind + host, never a url), its recent log, the
+# container's log, the forwarder's /health, and one timed frame probe for a
+# named camera. Every line is scrubbed of enr/password/key/token values before
+# it reaches the run log. Read-only: it changes nothing on the box.
+name: cams-diag
+
+on:
+  workflow_dispatch:
+    inputs:
+      camera:
+        description: 'A stream id to probe with one timed frame request (e.g. front_door_view). Empty = no probe.'
+        type: string
+        default: ''
+      log_lines:
+        description: 'How many recent go2rtc log lines to print'
+        type: string
+        default: '120'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cams-diag
+  cancel-in-progress: false
+
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check secrets (no-op with instructions when absent)
+        id: gate
+        env:
+          TS: ${{ secrets.TS_AUTHKEY != '' }}
+          KEY: ${{ secrets.NAS_SSH_KEY != '' }}
+        run: |
+          if [ "$TS" != "true" ] || [ "$KEY" != "true" ]; then
+            echo "NOT CONFIGURED: add repo secrets TS_AUTHKEY (Reusable + Ephemeral) and NAS_SSH_KEY, then re-dispatch."
+            echo "go=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "go=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Join the tailnet (ephemeral)
+        if: steps.gate.outputs.go == 'true'
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+
+      - name: Verify the tailnet actually joined
+        if: steps.gate.outputs.go == 'true'
+        run: |
+          if ! tailscale status --peers=false >/dev/null 2>&1; then
+            echo "::error::Tailnet join FAILED — TS_AUTHKEY invalid or consumed (needs Reusable + Ephemeral)."
+            exit 1
+          fi
+
+      - name: What go2rtc says (read-only, scrubbed)
+        if: steps.gate.outputs.go == 'true'
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+          CAMERA: ${{ inputs.camera }}
+          LOG_LINES: ${{ inputs.log_lines }}
+        run: |
+          umask 077
+          printf '%s\n' "$NAS_SSH_KEY" > /tmp/nas_key
+          SSH="ssh -i /tmp/nas_key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 dpoe@poetech.tail5a2f35.ts.net"
+          $SSH "CAMERA='$CAMERA' LOG_LINES='$LOG_LINES' sh -s" <<'EOS'
+          PATH=/usr/local/bin:/opt/bin:/usr/bin:/bin:$PATH; export PATH
+          # Scrub every credential-shaped value before anything is printed.
+          scrub() { sed -E 's/([?&"]?(enr|password|pass|pwd|token|api_key|key|refresh_token|access_token|secret)[=:"]+)[^&" ]*/\1***/Ig; s#://[^/@ ]+@#://***@#g'; }
+          SUDO=""; sudo -n true 2>/dev/null && SUDO="sudo -n"
+          echo "=== forwarder /health (127.0.0.1:8773) ==="
+          curl -s -m 8 http://127.0.0.1:8773/health | scrub; echo
+          echo "=== go2rtc /api ==="
+          curl -s -m 8 http://127.0.0.1:1984/api | scrub | head -c 400; echo
+          echo "=== go2rtc streams: id, kind, host, state (never a url) ==="
+          curl -s -m 10 http://127.0.0.1:1984/api/streams | python3 -c '
+          import json,sys
+          from urllib.parse import urlsplit
+          d=json.load(sys.stdin)
+          for k in sorted(d, key=str.lower):
+              e=d[k] or {}
+              for p in (e.get("producers") or []):
+                  u=str(p.get("url",""))
+                  try: host=urlsplit(u).hostname or ""
+                  except Exception: host=""
+                  print("%-40s %-6s %-16s state=%s medias=%s" % (k, u.split(":",1)[0], host, p.get("state",""), len(p.get("medias") or [])))
+              if not e.get("producers"): print("%-40s (no producers)" % k)
+          ' 2>&1 | scrub
+          echo "=== go2rtc /api/log (last $LOG_LINES lines, scrubbed) ==="
+          curl -s -m 10 http://127.0.0.1:1984/api/log | tail -n "${LOG_LINES:-120}" | scrub
+          echo "=== docker logs poetech-go2rtc (last 80 lines, scrubbed) ==="
+          DOCKER=""
+          for CAND in docker /usr/local/bin/docker /var/packages/ContainerManager/target/usr/bin/docker; do
+            command -v "$CAND" >/dev/null 2>&1 || continue
+            if "$CAND" ps >/dev/null 2>&1; then DOCKER="$CAND"; break; fi
+            if $SUDO "$CAND" ps >/dev/null 2>&1; then DOCKER="$SUDO $CAND"; break; fi
+          done
+          if [ -n "$DOCKER" ]; then $DOCKER logs --tail 80 poetech-go2rtc 2>&1 | scrub; else echo "(docker not runnable by this user)"; fi
+          echo "=== forwarder journal (last 40 lines) ==="
+          $SUDO journalctl -u poetech-cams -n 40 --no-pager 2>&1 | scrub || true
+          echo "=== NAS network: which LAN is this box on (the restreamer reaches only THIS LAN) ==="
+          ip -4 addr show 2>/dev/null | grep -E "inet " | grep -v 127.0.0.1 || ifconfig 2>/dev/null | grep "inet " | grep -v 127.0.0.1
+          if [ -n "$CAMERA" ]; then
+            echo "=== one timed frame probe: $CAMERA ==="
+            curl -s -m 20 -o /tmp/probe.jpg -w 'HTTP %{http_code} in %{time_total}s, %{size_download} bytes\n' "http://127.0.0.1:1984/api/frame.jpeg?src=$CAMERA" || echo "probe failed/timed out"
+            head -c 300 /tmp/probe.jpg 2>/dev/null | scrub | strings | head -5; rm -f /tmp/probe.jpg
+            echo "=== forwarder /why/$CAMERA (bearer from the box's own secret file) ==="
+            TOK="$(cat /volume1/PoeTech/secrets/chat-bridge-token.txt 2>/dev/null || $SUDO cat /volume1/PoeTech/secrets/chat-bridge-token.txt 2>/dev/null)"
+            if [ -n "$TOK" ]; then curl -s -m 25 -H "Authorization: Bearer $TOK" "http://127.0.0.1:8773/why/$CAMERA" | scrub; echo; else echo "(token file unreadable by this user)"; fi
+          fi
+          echo "=== done ==="
+          EOS
