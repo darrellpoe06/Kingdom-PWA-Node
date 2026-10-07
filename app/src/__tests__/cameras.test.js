@@ -19,6 +19,10 @@ import {
   recordingUrl, recListUrl, recClipUrl, fetchRecording, saveRecording, fetchClips, clipParts, groupClipsByDay, diskForecast, RETENTION_CHOICES, CLIP_TICKET_TTL,
   LIVE_TILES_KEY, loadLiveTiles, saveLiveTiles, liveTileBudget, liveTrafficLine,
   streamNameFor, parseDevices, classifyDevicesResult, classifyActionResult, fetchDevices, runDeviceAction, setupWyzeAgain, garagesFor, wyzeKept,
+  GRANT_KEY, GRANT_DAYS_CHOICES, adoptGrantFromUrl, grantToken, saveGrantToken, cameraCredential, parseGrants, grantState, grantLine, grantLink, fetchGrants, createGrant, revokeGrant,
+  normalizePairCode, readPairParam, pairLink, startPairing, pollPairing, approvePairing, PAIR_POLL_MS,
+  LIVE_ROADS, loadLiveRoad, saveLiveRoad, loadRoadStats, recordRoadResult, roadScore, chooseLiveRoad, roadLine, LIVE_ROAD_KEY,
+  VIEWS_KEY, VIEW_LAYOUTS, loadViews, saveViews, activeView, addToView, removeFromView, moveInView, setViewLayout, renameView, addView, deleteView, viewCols, viewGridClass, indexAtPoint,
 } from '../lib/cameras.js';
 
 describe('the road: every URL is same-origin under /cams', () => {
@@ -513,6 +517,7 @@ describe('doors: devices, the garage action, the kept sign-in', () => {
     expect(classifyDevicesResult({ status: 401, body: { error: 'wyze-sign-in-refused' } }).kind).toBe('refused');
     expect(classifyDevicesResult({ status: 401, body: {} }).kind).toBe('unauthorized');
     expect(classifyDevicesResult({ status: 404 }).kind).toBe('old-service');
+    expect(classifyDevicesResult({ status: 403, body: { error: 'no-actions' } }).kind).toBe('no-actions');
     expect(classifyDevicesResult({ status: 502, body: { error: 'unreachable' } }).message).toMatch(/Wyze's cloud did not answer/);
     expect(classifyDevicesResult({ networkError: true }).kind).toBe('unreachable');
   });
@@ -554,5 +559,230 @@ describe('doors: devices, the garage action, the kept sign-in', () => {
     expect(wyzeKept({ wyze_cloud: 'ready' })).toBe(true);
     expect(wyzeKept({ wyze_cloud: 'no-credentials' })).toBe(false);
     expect(wyzeKept({ ok: true })).toBe(false);
+  });
+});
+
+// DR-0778: access is given and taken back, never a password.
+describe('access grants: the link on the device, the credential, the owner\'s list', () => {
+  const mem = () => { const m = new Map(); return { getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), removeItem: (k) => m.delete(k) }; };
+  const TOK = 'g.0123456789ab.' + 'f'.repeat(32);
+  it('a grant link is adopted on boot: stored on the device, taken out of the address; junk is ignored', () => {
+    const st = mem();
+    const replaced = [];
+    const history = { replaceState: (_s, _t, url) => replaced.push(url) };
+    expect(adoptGrantFromUrl({ href: `https://poetech.us/poetech-app/?view=cameras&cams-grant=${TOK}#x` }, st, history)).toBe(TOK);
+    expect(st.getItem(GRANT_KEY)).toBe(TOK);
+    expect(replaced).toEqual(['/poetech-app/?view=cameras#x']);
+    expect(adoptGrantFromUrl({ href: 'https://poetech.us/poetech-app/?cams-grant=not-a-token' }, mem(), history)).toBe('');
+    expect(adoptGrantFromUrl({ href: 'https://poetech.us/poetech-app/?view=cameras' }, mem(), history)).toBe('');
+    expect(grantToken(st)).toBe(TOK);
+    expect(saveGrantToken('', st)).toBe(true);
+    expect(grantToken(st)).toBe('');
+    expect(saveGrantToken('garbage', st)).toBe(false);
+  });
+  it('the credential is the family bearer first, the grant second, nothing third', () => {
+    const st = mem();
+    expect(cameraCredential({ bridge: 'fam', storage: st })).toEqual({ token: 'fam', kind: 'owner' });
+    saveGrantToken(TOK, st);
+    expect(cameraCredential({ bridge: '', storage: st })).toEqual({ token: TOK, kind: 'grant' });
+    expect(cameraCredential({ bridge: '', storage: mem() })).toEqual({ token: '', kind: 'none' });
+  });
+  it('parseGrants / grantState / grantLine / grantLink read the owner\'s list in plain words', () => {
+    const now = 1_800_000_000_000;
+    const gs = parseGrants({ grants: [
+      { id: 'a', name: 'Christina', cameras: '*', actions: true, created: 1, expires: 0, revoked: 0, last_used: now / 1000 - 60 },
+      { id: 'b', name: 'Neighbor', cameras: ['front_yard'], actions: false, created: 2, expires: now / 1000 - 10, revoked: 0, last_used: 0 },
+      { id: 'c', name: 'Old', cameras: ['x', 'y'], created: 3, revoked: 5 },
+      { nope: true },
+    ] });
+    expect(gs.map((g) => g.id)).toEqual(['a', 'b', 'c']);
+    expect(grantState(gs[0], now)).toBe('live');
+    expect(grantState(gs[1], now)).toBe('expired');
+    expect(grantState(gs[2], now)).toBe('revoked');
+    expect(grantLine(gs[0], now)).toBe('every camera · until taken back · doors too · last used 1 m ago');
+    expect(grantLine(gs[1], now)).toMatch(/^1 camera · until .* · expired$/);
+    expect(grantLine(gs[2], now)).toBe('2 cameras · until taken back · revoked');
+    expect(grantLink(TOK, 'https://poetech.us')).toBe(`https://poetech.us/poetech-app/?view=cameras&cams-grant=${TOK}`);
+    expect(GRANT_DAYS_CHOICES).toEqual([0, 1, 7, 30, 365]);
+  });
+  it('fetchGrants / createGrant / revokeGrant speak to the forwarder with the owner\'s bearer and say every failure', async () => {
+    const calls = [];
+    const f = async (url, opts = {}) => {
+      calls.push({ url, opts });
+      if (url === '/cams/grants' && (opts.method || 'GET') === 'GET') return { status: 200, json: async () => ({ grants: [{ id: 'a', name: 'C', cameras: '*' }], link_path: '/poetech-app/?view=cameras&cams-grant=' }) };
+      if (url === '/cams/grants') return { status: 200, json: async () => ({ ok: true, id: 'a', token: TOK, link_path: '/poetech-app/?view=cameras&cams-grant=' }) };
+      return { status: 200, json: async () => ({ ok: true }) };
+    };
+    const l = await fetchGrants('tok', f);
+    expect(l.ok).toBe(true); expect(l.grants).toHaveLength(1); expect(calls[0].opts.headers.Authorization).toBe('Bearer tok');
+    const c = await createGrant({ name: 'Christina', cameras: '*', days: 0, actions: true }, 'tok', f);
+    expect(c.ok).toBe(true); expect(c.token).toBe(TOK);
+    expect(JSON.parse(calls[1].opts.body)).toEqual({ name: 'Christina', cameras: '*', days: 0, actions: true });
+    const r = await revokeGrant('a', 'tok', f);
+    expect(r.ok).toBe(true); expect(calls[2].url).toBe('/cams/grants/a/revoke'); expect(calls[2].opts.method).toBe('POST');
+    expect((await fetchGrants('tok', async () => ({ status: 404, json: async () => ({}) }))).message).toMatch(/older camera service/);
+    expect((await createGrant({ name: '' }, 'tok', async () => ({ status: 400, json: async () => ({ error: 'missing-name' }) }))).message).toMatch(/Give the access a name/);
+    expect((await createGrant({ name: 'x' }, 'tok', async () => ({ status: 401, json: async () => ({}) }))).message).toMatch(/Only the owner/);
+    expect((await revokeGrant('zz', 'tok', async () => ({ status: 404, json: async () => ({}) }))).message).toMatch(/not found/);
+    expect((await revokeGrant('a', 'tok', async () => { throw new TypeError('x'); })).message).toMatch(/did not answer/);
+  });
+});
+
+// DR-0778: a screen pairs with the owner's phone by a code.
+describe('screen pairing: the code, the QR link, the poll, the approval', () => {
+  it('normalizes a code read off a TV: case, spaces, and the letters the alphabet left out', () => {
+    expect(normalizePairCode(' abc 234 ')).toBe('ABC234');
+    expect(normalizePairCode('abc2340')).toBe('');
+    expect(normalizePairCode('ab')).toBe('');
+    expect(readPairParam({ href: 'https://poetech.us/poetech-app/?view=cameras&cams-pair=xyz789' })).toBe('XYZ789');
+    expect(readPairParam({ href: 'https://poetech.us/poetech-app/?view=cameras' })).toBe('');
+    expect(pairLink('ABC234', 'https://poetech.us')).toBe('https://poetech.us/poetech-app/?view=cameras&cams-pair=ABC234');
+    expect(PAIR_POLL_MS).toBe(3000);
+  });
+  it('startPairing / pollPairing / approvePairing speak to the forwarder and say every state', async () => {
+    const calls = [];
+    const f = async (url, opts = {}) => {
+      calls.push({ url, opts });
+      if (url === '/cams/pair') return { status: 200, json: async () => ({ code: 'ABC234', watch: 'w'.repeat(32), expires_in: 600, link_path: '/poetech-app/?view=cameras&cams-pair=' }) };
+      if (url.startsWith('/cams/pair/ABC234?w=')) return { status: 200, json: async () => ({ status: 'approved', token: 'g.abcdefabcdef.' + '5'.repeat(32) }) };
+      if (url === '/cams/pair/ABC234/approve') return { status: 200, json: async () => ({ ok: true, grant: { id: 'x', name: 'TV' } }) };
+      return { status: 404, json: async () => ({}) };
+    };
+    const st = await startPairing(f);
+    expect(st).toMatchObject({ ok: true, code: 'ABC234', expiresIn: 600 });
+    expect(calls[0].opts.method).toBe('POST');
+    expect(calls[0].opts.headers).toBeUndefined(); // no key on the screen
+    const pl = await pollPairing('ABC234', 'w'.repeat(32), f);
+    expect(pl).toEqual({ status: 'approved', token: 'g.abcdefabcdef.' + '5'.repeat(32) });
+    const ap = await approvePairing('ABC234', { name: 'TV', actions: true }, 'tok', f);
+    expect(ap.ok).toBe(true);
+    expect(JSON.parse(calls[2].opts.body)).toEqual({ name: 'TV', cameras: '*', days: 0, actions: true });
+    expect(calls[2].opts.headers.Authorization).toBe('Bearer tok');
+    expect((await startPairing(async () => ({ status: 429, json: async () => ({ error: 'pair-too-soon' }) }))).retry).toBe(true);
+    expect((await startPairing(async () => ({ status: 404, json: async () => ({}) }))).message).toMatch(/older camera service/);
+    expect((await pollPairing('ABC234', 'w', async () => ({ status: 404, json: async () => ({ status: 'expired' }) }))).status).toBe('expired');
+    expect((await pollPairing('ABC234', 'w', async () => ({ status: 200, json: async () => ({ status: 'waiting' }) }))).status).toBe('waiting');
+    expect((await approvePairing('ABC234', { name: 'TV' }, 'tok', async () => ({ status: 404, json: async () => ({ error: 'no-such-code' }) }))).message).toMatch(/not waiting/);
+    expect((await approvePairing('ABC234', { name: 'TV' }, 'tok', async () => { throw new TypeError('x'); })).message).toMatch(/Nothing was approved/);
+  });
+});
+
+// DR-0782: the live road is chosen from what worked on this device.
+describe('the live road: Auto from the record, a pin honoured, a failed road swapped', () => {
+  const mem = () => { const m = new Map(); return { getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), removeItem: (k) => m.delete(k) }; };
+  const chromeUA = 'Mozilla/5.0 (Linux; Android 14; SM-X900) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130 Safari/537.36';
+  const iosUA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1';
+  it('the preference is remembered on the device and junk reads as Auto', () => {
+    const st = mem();
+    expect(loadLiveRoad(st)).toBe('auto');
+    expect(saveLiveRoad('hls', st)).toBe(true);
+    expect(st.getItem(LIVE_ROAD_KEY)).toBe('hls');
+    expect(loadLiveRoad(st)).toBe('hls');
+    expect(saveLiveRoad('rtsp', st)).toBe(false);
+    expect(LIVE_ROADS).toEqual(['auto', 'mp4', 'hls']);
+  });
+  it('a pinned road is itself; Auto with nothing measured is the device default (MP4 everywhere but Apple)', () => {
+    expect(chooseLiveRoad({ pref: 'hls', userAgent: chromeUA })).toBe('hls');
+    expect(chooseLiveRoad({ pref: 'mp4', userAgent: iosUA })).toBe('mp4');
+    expect(chooseLiveRoad({ pref: 'auto', userAgent: chromeUA })).toBe('mp4');
+    expect(chooseLiveRoad({ pref: 'auto', userAgent: iosUA, canPlayType: () => 'maybe' })).toBe('hls');
+  });
+  it('the record is written per road and Auto reads it: a road that keeps failing loses to one that opened', () => {
+    const st = mem();
+    recordRoadResult('mp4', { ok: false }, st);
+    recordRoadResult('mp4', { ok: false }, st);
+    recordRoadResult('mp4', { ok: false }, st);
+    recordRoadResult('hls', { ok: true, firstFrameMs: 1800, stalls: 1 }, st);
+    const stats = loadRoadStats(st);
+    expect(stats.mp4.tries).toBe(3); expect(stats.mp4.failed).toBe(3);
+    expect(stats.hls.ok).toBe(1); expect(stats.hls.firstFrameMs).toEqual([1800]);
+    expect(roadScore(stats.mp4)).toBeLessThan(roadScore(stats.hls));
+    expect(chooseLiveRoad({ pref: 'auto', stats, userAgent: chromeUA })).toBe('hls');
+    expect(roadLine(stats, 'hls')).toBe('HLS · 1 of 1 opened · first picture 1.8 s · 1 stall');
+    expect(roadLine(stats, 'mp4')).toBe('MP4 · 0 of 3 opened');
+    expect(roadLine({}, 'mp4')).toBe('MP4 · not tried here yet');
+    expect(recordRoadResult('rtsp', { ok: true }, st)).toBeNull();
+  });
+  it('under Auto, the road that just failed is swapped for the other on the reconnect', () => {
+    expect(chooseLiveRoad({ pref: 'auto', userAgent: chromeUA, avoid: 'mp4' })).toBe('hls');
+    expect(chooseLiveRoad({ pref: 'auto', userAgent: chromeUA, avoid: 'hls' })).toBe('mp4');
+    expect(chooseLiveRoad({ pref: 'mp4', userAgent: chromeUA, avoid: 'mp4' })).toBe('mp4'); // a pin is a pin
+  });
+  it('a good measured default keeps its place; the other road must be clearly better to win', () => {
+    const st = mem();
+    recordRoadResult('mp4', { ok: true, firstFrameMs: 900 }, st);
+    recordRoadResult('hls', { ok: true, firstFrameMs: 1000 }, st);
+    expect(chooseLiveRoad({ pref: 'auto', stats: loadRoadStats(st), userAgent: chromeUA })).toBe('mp4');
+  });
+});
+
+// DR-0783: views, several, ordered, laid out; the wall becomes the first view.
+describe('views: the cameras you want, in the order you want, as many views as you want', () => {
+  const mem = () => { const m = new Map(); return { getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), removeItem: (k) => m.delete(k) }; };
+  it('with nothing saved, the old wall becomes "My view" so nobody loses what they had', () => {
+    const st = mem();
+    saveWall(['front_yard', 'garage'], st);
+    const s = loadViews(st);
+    expect(s.views).toHaveLength(1);
+    expect(s.views[0].name).toBe('My view');
+    expect(s.views[0].cameras).toEqual(['front_yard', 'garage']);
+    expect(s.views[0].layout).toBe('auto');
+    expect(s.active).toBe(s.views[0].id);
+    expect(loadViews(mem()).views[0].cameras).toEqual([]);
+  });
+  it('add, move (live reorder), remove, layout, rename, new view, delete view; saved and read back; junk dropped', () => {
+    const st = mem();
+    let s = loadViews(st);
+    const id = s.active;
+    s = addToView(s, id, 'a'); s = addToView(s, id, 'b'); s = addToView(s, id, 'c'); s = addToView(s, id, 'b');
+    expect(activeView(s).cameras).toEqual(['a', 'b', 'c']);
+    s = moveInView(s, id, 'c', 0);
+    expect(activeView(s).cameras).toEqual(['c', 'a', 'b']);
+    s = moveInView(s, id, 'c', 99);
+    expect(activeView(s).cameras).toEqual(['a', 'b', 'c']);
+    s = moveInView(s, id, 'zzz', 0);
+    expect(activeView(s).cameras).toEqual(['a', 'b', 'c']);
+    s = removeFromView(s, id, 'b');
+    expect(activeView(s).cameras).toEqual(['a', 'c']);
+    s = setViewLayout(s, id, 3);
+    expect(activeView(s).layout).toBe(3);
+    s = setViewLayout(s, id, 'bogus');
+    expect(activeView(s).layout).toBe('auto');
+    s = renameView(s, id, '  Front of the house  ');
+    expect(activeView(s).name).toBe('Front of the house');
+    s = addView(s, 'Back');
+    expect(s.views).toHaveLength(2);
+    expect(activeView(s).name).toBe('Back');
+    expect(activeView(s).cameras).toEqual([]);
+    saveViews(s, st);
+    const back = loadViews(st);
+    expect(back.views.map((v) => v.name)).toEqual(['Front of the house', 'Back']);
+    expect(back.active).toBe(s.active);
+    s = deleteView(s, s.active);
+    expect(s.views).toHaveLength(1);
+    expect(activeView(s).name).toBe('Front of the house');
+    s = deleteView(s, s.active);
+    expect(s.views).toHaveLength(1);
+    expect(activeView(s).name).toBe('My view');
+    st.setItem(VIEWS_KEY, JSON.stringify({ views: [{ id: 'x', name: 'Odd', cameras: ['ok', '../bad', 7], layout: '2' }, 'junk'], active: 'nope' }));
+    const odd = loadViews(st);
+    expect(odd.views).toHaveLength(1);
+    expect(odd.views[0].cameras).toEqual(['ok']);
+    expect(odd.views[0].layout).toBe(2);
+    expect(odd.active).toBe('x');
+  });
+  it('auto layout fits the count; a chosen layout is itself; the pointer finds the tile it is over', () => {
+    expect(viewCols('auto', 1)).toBe(1);
+    expect(viewCols('auto', 4)).toBe(2);
+    expect(viewCols('auto', 6)).toBe(3);
+    expect(viewCols('auto', 12)).toBe(4);
+    expect(viewCols(1, 9)).toBe(1);
+    expect(viewCols(4, 2)).toBe(4);
+    expect(viewGridClass(3)).toMatch(/xl:grid-cols-3/);
+    expect(VIEW_LAYOUTS).toEqual(['auto', 1, 2, 3, 4]);
+    const boxes = [{ id: 'a', left: 0, top: 0, right: 100, bottom: 100 }, { id: 'b', left: 110, top: 0, right: 210, bottom: 100 }];
+    expect(indexAtPoint(boxes, 50, 50)).toBe(0);
+    expect(indexAtPoint(boxes, 150, 20)).toBe(1);
+    expect(indexAtPoint(boxes, 500, 500)).toBe(-1);
   });
 });

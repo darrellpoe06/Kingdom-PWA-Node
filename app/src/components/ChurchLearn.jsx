@@ -1545,6 +1545,7 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
         stageExtra={stageLevelRow}
         onAllUnits={onAllUnits}
         onStartOver={onStartOver}
+        flowSwitch={false}
       />
 
       {/* The chat with the local tutor — a conversation, not part of the

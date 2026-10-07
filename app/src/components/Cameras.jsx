@@ -33,19 +33,27 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { SectionTitle } from './shared.jsx';
 import { bridgeToken } from '../lib/nas-photos.js';
+import { provisionBridgeToken } from '../lib/bridge-provision.js';
+import { supabase } from '../lib/supabase.js';
+import { QRCodeSVG } from 'qrcode.react';
+import { confirmThen } from '../lib/confirm-action.js';
 import { setReadTarget, clearReadTarget, requestRead } from '../lib/read-target.js';
 import {
   SNAPSHOT_INTERVAL_MS, FETCH_TIMEOUT_MS, LIVE_FIRST_FRAME_TIMEOUT_MS,
-  healthUrl, listUrl, ticketUrl, snapUrl, liveUrl, pickLiveMode,
+  healthUrl, listUrl, ticketUrl, snapUrl, liveUrl,
   parseCameraList, groupByKind, KINDS, classifyServiceState,
   formatAge, formatBytes, fetchWithTimeout, authHeaders, setupCommands,
   WYZE_FIELDS, setupWyze, WYZE_API_KEY_HELP_URL, WYZE_API_KEY_STEPS,
   serviceCodeState, restartService, loadWyzeDraft, saveWyzeDraft, clearWyzeDraft,
   SNAP_CONCURRENCY, LIVE_RECONNECT_MAX, LIVE_RECONNECT_DELAY_MS, runLimited, skipFailedFrame,
-  classifySnapError, fetchWhy, loadWall, saveWall, wallLimit,
+  classifySnapError, fetchWhy,
+  loadViews, saveViews, activeView, addToView, removeFromView, moveInView, setViewLayout, renameView, addView, deleteView, viewCols, viewGridClass, indexAtPoint, VIEW_LAYOUTS,
   RETENTION_CHOICES, CLIP_TICKET_TTL, fetchRecording, saveRecording, fetchClips, recClipUrl, clipParts, groupClipsByDay, diskForecast,
   loadLiveTiles, saveLiveTiles, liveTileBudget, liveTrafficLine,
   fetchDevices, runDeviceAction, setupWyzeAgain, wyzeKept, garagesFor, ACTION_REARM_MS,
+  cameraCredential, saveGrantToken, fetchGrants, createGrant, revokeGrant, grantLine, grantState, grantLink, GRANT_DAYS_CHOICES,
+  startPairing, pollPairing, approvePairing, pairLink, readPairParam, stripPairParam, normalizePairCode, PAIR_TIMING,
+  LIVE_ROADS, roadLabel, loadLiveRoad, saveLiveRoad, loadRoadStats, recordRoadResult, chooseLiveRoad, roadLine,
 } from '../lib/cameras.js';
 
 // THE STEPS CAN BE HEARD (2026-10-07; Darrell: "possible tutorial... Ari
@@ -53,6 +61,8 @@ import {
 // so the floating reader (and the Hear the steps button) reads them aloud,
 // highlighted in place, for anyone who would rather listen than read.
 const WYZE_READ_OWNER = 'cameras-wyze-setup';
+export const CAMS_TAB_KEY = 'poetech.cameras.tab.v1';
+const CAMS_TABS = Object.freeze([['live', 'Live'], ['recordings', 'Recordings'], ['access', 'Who can see'], ['setup', 'Setup']]);
 export function wyzeSetupReading() {
   return [
     'Sign in to Wyze once, here. This is a one-time step for the person who owns the Wyze account. Everyone else in the family only opens this tab.',
@@ -274,7 +284,7 @@ export function GarageButton({ device, token, compact = false }) {
 function Doors({ garages, devicesState, token }) {
   if (!devicesState) return null;
   if (devicesState.kind === 'ok' && garages.length === 0) return null;
-  if (devicesState.kind === 'no-credentials' || devicesState.kind === 'old-service' || devicesState.kind === 'unauthorized') return null;
+  if (['no-credentials', 'old-service', 'unauthorized', 'no-actions'].includes(devicesState.kind)) return null;
   return (
     <section className="mb-4" data-testid="doors">
       <div className={labelCls}>Doors · {garages.length}</div>
@@ -314,10 +324,247 @@ function AddAgain({ token, onAdded }) {
   );
 }
 
+// WHO CAN SEE THE CAMERAS (DR-0778; Darrell 2026-10-07: "My wife and family
+// should also have access to my cameras... unless I say no... One time setup
+// for owners and they can give access to who they want.... inside or out";
+// "we never give a password just access and no access whenever the owner
+// wants to"). The owner's device makes a per-person grant on the NAS and gets
+// a LINK, shown once: opening it on a phone gives that device access, nothing
+// typed, no password ever handed over. Every grant is listed here with when
+// it was last used; Take back ends it on its next request.
+function AccessPanel({ token, cameras, onCode }) {
+  const [grants, setGrants] = useState(null);
+  const [codeIn, setCodeIn] = useState('');
+  const [linkPath, setLinkPath] = useState(undefined);
+  const [name, setName] = useState('');
+  const [all, setAll] = useState(true);
+  const [picked, setPicked] = useState([]);
+  const [days, setDays] = useState(0);
+  const [doors, setDoors] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [made, setMade] = useState(null);
+  const [note, setNote] = useState('');
+  const [copied, setCopied] = useState(false);
+  const [open, setOpen] = useState(false);
+  const load = useCallback(async () => {
+    const r = await fetchGrants(token);
+    setGrants(r.ok ? r.grants : []);
+    if (r.linkPath) setLinkPath(r.linkPath);
+    if (!r.ok) setNote(r.message);
+  }, [token]);
+  useEffect(() => { load(); }, [load]);
+  const make = async (e) => {
+    e.preventDefault();
+    if (busy) return;
+    setBusy(true); setMade(null); setNote(''); setCopied(false);
+    const r = await createGrant({ name: name.trim(), cameras: all ? '*' : picked, days, actions: doors }, token);
+    setBusy(false);
+    if (r.ok) { setMade(r); setName(''); setPicked([]); setAll(true); setDoors(false); load(); } else setNote(r.message);
+  };
+  const takeBack = async (g) => {
+    const r = await revokeGrant(g.id, token);
+    setNote(r.message);
+    load();
+  };
+  const origin = typeof window !== 'undefined' && window.location ? window.location.origin : '';
+  const link = made ? grantLink(made.token, origin, linkPath || made.linkPath) : '';
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(link); setCopied(true); } catch { setCopied(false); }
+  };
+  const live = (grants || []).filter((g) => grantState(g) === 'live');
+  const past = (grants || []).filter((g) => grantState(g) !== 'live');
+  return (
+    <section className={card} data-testid="access-panel">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div className={labelCls}>Who can see the cameras · {grants == null ? '…' : `${live.length} with access`}</div>
+        <button type="button" className={`${btnGhost} focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={() => setOpen((v) => !v)} data-testid="access-give-toggle">{open ? 'Hide' : 'Give someone access'}</button>
+      </div>
+      <p className="text-xs text-[#5A5751] mt-1">Your family and anyone you choose, inside the house or out. You hand them a link, never a password; you take it back here whenever you want, and their link stops that moment.</p>
+      <form className="mt-2 flex items-end gap-2 flex-wrap" onSubmit={(e) => { e.preventDefault(); const c = normalizePairCode(codeIn); if (c && onCode) onCode(c); else setNote('A code is six letters or numbers, as the screen shows it.'); }} data-testid="pair-code-form">
+        <label className="block">
+          <span className={labelCls}>A screen shows a code? Type it</span>
+          <input className={`${inputCls} uppercase tracking-widest w-40`} value={codeIn} onChange={(e) => setCodeIn(e.target.value)} maxLength={8} placeholder="ABC234" aria-label="The six-letter code a screen shows" data-testid="pair-code-input" />
+        </label>
+        <button type="submit" className={`${btnGhost} focus:outline focus:outline-2 focus:outline-[#B85838]`} data-testid="pair-code-go">Let it in</button>
+      </form>
+      {open ? (
+        <form onSubmit={make} className="mt-3 border-t border-[#E8E4DC] pt-3 grid gap-2" data-testid="access-form" aria-busy={busy}>
+          <label className="block">
+            <span className={labelCls}>Whose access is this</span>
+            <input className={inputCls} value={name} onChange={(e) => setName(e.target.value)} placeholder="Christina" required aria-label="Whose access is this" data-testid="grant-name" disabled={busy} />
+          </label>
+          <div>
+            <span className={labelCls}>Which cameras</span>
+            <div className="flex items-center gap-3 flex-wrap mt-1 text-sm">
+              <label className="inline-flex items-center gap-1"><input type="radio" name="grant-cams" checked={all} onChange={() => setAll(true)} disabled={busy} /> every camera</label>
+              <label className="inline-flex items-center gap-1"><input type="radio" name="grant-cams" checked={!all} onChange={() => setAll(false)} disabled={busy} /> only these</label>
+            </div>
+            {!all ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 mt-1 text-sm" data-testid="grant-pick">
+                {cameras.map((c) => (
+                  <label key={c.id} className="inline-flex items-center gap-1 min-h-[36px]">
+                    <input type="checkbox" checked={picked.includes(c.id)} onChange={(e) => setPicked((p) => (e.target.checked ? [...p, c.id] : p.filter((x) => x !== c.id)))} disabled={busy} /> {c.name}
+                  </label>
+                ))}
+              </div>
+            ) : null}
+          </div>
+          <label className="block">
+            <span className={labelCls}>How long</span>
+            <select className={inputCls} value={days} onChange={(e) => setDays(Number(e.target.value))} aria-label="How long" data-testid="grant-days" disabled={busy}>
+              {GRANT_DAYS_CHOICES.map((d) => <option key={d} value={d}>{d === 0 ? 'Until I take it back' : d === 1 ? 'One day' : d === 365 ? 'One year' : `${d} days`}</option>)}
+            </select>
+          </label>
+          <label className="inline-flex items-center gap-2 text-sm min-h-[36px]"><input type="checkbox" checked={doors} onChange={(e) => setDoors(e.target.checked)} disabled={busy} data-testid="grant-doors" /> The doors too (they can open the garage)</label>
+          <div className="flex items-center gap-3 flex-wrap">
+            <button type="submit" className={`${btnDark} focus:outline focus:outline-2 focus:outline-[#B85838]`} disabled={busy || (!all && picked.length === 0)} data-testid="grant-make">{busy ? 'Making the link…' : 'Make the link'}</button>
+          </div>
+        </form>
+      ) : null}
+      {made ? (
+        <div className="mt-3 border border-[#5A6E3D] bg-[#5A6E3D]/5 p-3" role="status" aria-live="polite" data-testid="grant-made">
+          <div className="text-sm text-[#2F6B3A]">{made.message}</div>
+          <code className="block text-[0.6875rem] break-all mt-1 text-[#1A1815]" data-testid="grant-link">{link}</code>
+          <div className="flex items-center gap-3 mt-2 flex-wrap">
+            <button type="button" className={`${btnGhost} focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={copy} data-testid="grant-copy">{copied ? 'Copied' : 'Copy the link'}</button>
+            <span className="text-xs text-[#5A5751]">Text it or hand the phone over; opening it gives that device access. It is shown this once.</span>
+          </div>
+        </div>
+      ) : null}
+      {note ? <p className="text-xs mt-2 text-[#B85838]" role="status" data-testid="access-note">{note}</p> : null}
+      {grants && grants.length ? (
+        <ul className="mt-3 divide-y divide-[#E8E4DC]" data-testid="grant-list">
+          {[...live, ...past].map((g) => (
+            <li key={g.id} className="py-2 flex items-center justify-between gap-2 flex-wrap" data-testid={`grant-row-${g.id}`}>
+              <div className="min-w-0">
+                <div className="text-sm font-semibold text-[#1A1815] truncate">{g.name}</div>
+                <div className="text-[0.625rem] text-[#5A5751]">{grantLine(g)}</div>
+              </div>
+              {grantState(g) === 'live' ? <button type="button" className={`${btnGhost} focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={() => takeBack(g)} aria-label={`Take back ${g.name}'s access`} data-testid={`grant-revoke-${g.id}`}>Take back</button> : null}
+            </li>
+          ))}
+        </ul>
+      ) : grants ? <p className="text-xs text-[#5A5751] mt-3">Nobody but the family yet.</p> : null}
+    </section>
+  );
+}
+
+// THE SCREEN'S SIDE (DR-0778; Darrell, from the Firestick: "use a qrcode to
+// type into the Firestick"). A device with no key asks the NAS for a code,
+// shows it as a QR and as six letters, and polls until the owner's phone lets
+// it in; then it stores the grant and the cameras open. Nothing typed here.
+export function PairScreen({ onPaired }) {
+  const [pair, setPair] = useState(null);
+  const [note, setNote] = useState('');
+  const [left, setLeft] = useState(0);
+  const alive = useRef(true);
+  const begin = useCallback(async () => {
+    setNote('');
+    const r = await startPairing();
+    if (!alive.current) return;
+    if (r.ok) { setPair(r); setLeft(r.expiresIn); } else { setPair(null); setNote(r.message); if (r.retry) setTimeout(() => { if (alive.current) begin(); }, PAIR_TIMING.pollMs); }
+  }, []);
+  useEffect(() => { alive.current = true; begin(); return () => { alive.current = false; }; }, [begin]);
+  useEffect(() => {
+    if (!pair) return undefined;
+    let stop = false;
+    const tick = async () => {
+      if (stop) return;
+      const r = await pollPairing(pair.code, pair.watch);
+      if (stop) return;
+      if (r.status === 'approved') { saveGrantToken(r.token); if (onPaired) onPaired(r.token); return; }
+      if (r.status === 'expired') { setPair(null); setNote('That code ran out. Here is a fresh one.'); begin(); return; }
+      setLeft((n) => Math.max(0, n - PAIR_TIMING.pollMs / 1000));
+      setTimeout(tick, PAIR_TIMING.pollMs);
+    };
+    const t = setTimeout(tick, PAIR_TIMING.pollMs);
+    return () => { stop = true; clearTimeout(t); };
+  }, [pair, begin, onPaired]);
+  const origin = typeof window !== 'undefined' && window.location ? window.location.origin : '';
+  const link = pair ? pairLink(pair.code, origin, pair.linkPath) : '';
+  return (
+    <div className="mt-3 border-t border-[#E8E4DC] pt-3" data-testid="pair-screen">
+      <div className={labelCls}>Let this screen in from your phone</div>
+      <p className="text-xs text-[#5A5751] mt-1 mb-2">Nothing to type here. Scan the code with your phone, or open Cameras on your phone and enter the six letters under Who can see the cameras. The owner approves it there, and this screen opens on its own.</p>
+      {pair ? (
+        <div className="flex items-center gap-5 flex-wrap">
+          <div className="bg-white p-2 inline-block" aria-hidden="true"><QRCodeSVG value={link} size={168} /></div>
+          <div>
+            <div className="text-4xl font-semibold tracking-[0.3em] text-[#1A1815]" data-testid="pair-code" aria-label={`Pairing code ${pair.code.split('').join(' ')}`}>{pair.code}</div>
+            <div className="text-xs text-[#5A5751] mt-1">Waiting for the owner's phone · code good for about {Math.ceil(left / 60)} min</div>
+            <code className="block text-[0.625rem] break-all mt-1 text-[#5A5751]">{link}</code>
+          </div>
+        </div>
+      ) : <p className="text-xs text-[#5A5751]" data-testid="pair-note">{note || 'Asking the NAS for a code...'}</p>}
+      {pair && note ? <p className="text-xs text-[#B85838] mt-1" data-testid="pair-note">{note}</p> : null}
+    </div>
+  );
+}
+
+// THE PHONE'S SIDE: the owner read a code off a screen (by QR or by eye) and
+// lets it in as a grant it can take back later like any other.
+export function ApprovePairing({ code, token, onDone, cameras }) {
+  const [name, setName] = useState('TV');
+  const [doors, setDoors] = useState(false);
+  const [all, setAll] = useState(true);
+  const [picked, setPicked] = useState([]);
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState(null);
+  const go = async (e) => {
+    e.preventDefault();
+    if (busy) return;
+    setBusy(true); setResult(null);
+    const r = await approvePairing(code, { name: name.trim() || 'TV', cameras: all ? '*' : picked, days: 0, actions: doors }, token);
+    setBusy(false); setResult(r);
+    if (r.ok && onDone) onDone(r);
+  };
+  return (
+    <form onSubmit={go} className="mb-4 border border-[#B85838] bg-[#B85838]/5 p-3 grid gap-2" data-testid="approve-pairing" aria-busy={busy}>
+      <div className={labelCls}>A screen is asking to see the cameras · code {code}</div>
+      <p className="text-xs text-[#5A5751]">Let it in and it gets its own access, listed under Who can see the cameras, where you can take it back any time.</p>
+      <label className="block">
+        <span className={labelCls}>What to call it</span>
+        <input className={inputCls} value={name} onChange={(e) => setName(e.target.value)} aria-label="What to call this screen" data-testid="approve-name" disabled={busy} />
+      </label>
+      <div className="flex items-center gap-3 flex-wrap text-sm">
+        <label className="inline-flex items-center gap-1"><input type="radio" name="approve-cams" checked={all} onChange={() => setAll(true)} disabled={busy} /> every camera</label>
+        <label className="inline-flex items-center gap-1"><input type="radio" name="approve-cams" checked={!all} onChange={() => setAll(false)} disabled={busy} /> only these</label>
+      </div>
+      {!all ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 text-sm">
+          {(cameras || []).map((c) => (
+            <label key={c.id} className="inline-flex items-center gap-1 min-h-[36px]"><input type="checkbox" checked={picked.includes(c.id)} onChange={(e) => setPicked((p) => (e.target.checked ? [...p, c.id] : p.filter((x) => x !== c.id)))} disabled={busy} /> {c.name}</label>
+          ))}
+        </div>
+      ) : null}
+      <label className="inline-flex items-center gap-2 text-sm min-h-[36px]"><input type="checkbox" checked={doors} onChange={(e) => setDoors(e.target.checked)} disabled={busy} data-testid="approve-doors" /> The doors too</label>
+      <div className="flex items-center gap-3 flex-wrap">
+        <button type="submit" className={`${btnDark} focus:outline focus:outline-2 focus:outline-[#B85838]`} disabled={busy || (!all && picked.length === 0)} data-testid="approve-go">{busy ? 'Letting it in…' : 'Let this screen in'}</button>
+        {result ? <span className={`text-sm ${result.ok ? 'text-[#2F6B3A]' : 'text-[#B85838]'}`} role="status" aria-live="polite" data-testid="approve-result">{result.message}</span> : null}
+      </div>
+    </form>
+  );
+}
+
+// What a grant holder's device sees at the top: whose access, how long, the doors.
+function AccessChip({ access, onLeave }) {
+  if (!access) return null;
+  const until = access.expires ? `until ${new Date(access.expires * 1000).toLocaleDateString()}` : 'until the owner takes it back';
+  return (
+    <div className="mb-3 flex items-center gap-3 flex-wrap text-[0.6875rem]" data-testid="access-chip">
+      <span className={chip.ok}>Access given to {access.name} · {until}{access.actions ? ' · doors too' : ''}</span>
+      <button type="button" className={`${btnGhost} focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={onLeave} data-testid="access-leave">Remove this access from this device</button>
+    </div>
+  );
+}
+
 function LiveVideo({ cam, token, liveMax, onClose, compact = false, testId = 'live-view', now }) {
   const [st, setSt] = useState({ mode: '', src: '', startedAt: Date.now(), firstFrameMs: null, stalls: 0, ended: false, error: '', opening: true, reconnects: 0, exhausted: false });
+  const [road, setRoadRaw] = useState(() => loadLiveRoad());
+  const setRoad = (r) => { saveLiveRoad(r); setRoadRaw(r); };
   const timers = useRef({ first: null, reopen: null, video: null });
   const alive = useRef(true);
+  const lastFailed = useRef('');
 
   const open = useCallback(async (reconnects) => {
     clearTimeout(timers.current.first);
@@ -328,7 +575,8 @@ function LiveVideo({ cam, token, liveMax, onClose, compact = false, testId = 'li
       const { ticket } = await r.json();
       if (!alive.current) return;
       const probe = typeof document !== 'undefined' ? document.createElement('video') : null;
-      const mode = pickLiveMode(probe && typeof probe.canPlayType === 'function' ? (t) => probe.canPlayType(t) : null);
+      const mode = chooseLiveRoad({ pref: road, stats: loadRoadStats(), canPlayType: probe && typeof probe.canPlayType === 'function' ? (t) => probe.canPlayType(t) : null, avoid: lastFailed.current });
+      lastFailed.current = '';
       const startedAt = Date.now();
       setSt((p) => ({ ...p, mode, src: liveUrl(cam.id, mode, ticket), startedAt, firstFrameMs: null, stalls: 0, ended: false, error: '', opening: false }));
       timers.current.first = setTimeout(() => {
@@ -340,7 +588,7 @@ function LiveVideo({ cam, token, liveMax, onClose, compact = false, testId = 'li
       if (!alive.current) return;
       setSt((p) => ({ ...p, opening: false, error: String((e && e.message) || e) }));
     }
-  }, [cam.id, token]);
+  }, [cam.id, token, road]);
 
   useEffect(() => {
     alive.current = true;
@@ -354,10 +602,15 @@ function LiveVideo({ cam, token, liveMax, onClose, compact = false, testId = 'li
     };
   }, [open]);
 
-  // The stream ended or broke without the viewer closing it: come back.
+  // The stream ended or broke without the viewer closing it: come back. The
+  // road's record is written (DR-0782) and, under Auto, a road that failed to
+  // open is swapped for the other on the way back.
   const endedOnItsOwn = useCallback((reason) => {
     setSt((p) => {
       if (p.ended) return p;
+      const opened = p.firstFrameMs != null;
+      recordRoadResult(p.mode, { ok: opened, firstFrameMs: p.firstFrameMs, stalls: p.stalls });
+      if (!opened) lastFailed.current = p.mode;
       const n = p.reconnects;
       if (n < LIVE_RECONNECT_MAX) {
         clearTimeout(timers.current.reopen);
@@ -368,7 +621,12 @@ function LiveVideo({ cam, token, liveMax, onClose, compact = false, testId = 'li
     });
   }, [open]);
 
-  const onLoadedData = () => setSt((p) => (p.firstFrameMs == null ? { ...p, firstFrameMs: Date.now() - p.startedAt, error: '' } : p));
+  const onLoadedData = () => setSt((p) => {
+    if (p.firstFrameMs != null) return p;
+    const ms = Date.now() - p.startedAt;
+    recordRoadResult(p.mode, { ok: true, firstFrameMs: ms, stalls: 0 }); // the road opened: that is the record Auto reads next time
+    return { ...p, firstFrameMs: ms, error: '' };
+  });
   const onWaiting = () => setSt((p) => ({ ...p, stalls: (p.stalls || 0) + 1 }));
   const onEnded = () => endedOnItsOwn(liveMax > 0 && (Date.now() - st.startedAt) >= (liveMax - 2) * 1000 ? `the NAS clock ended it at ${liveMax} s` : 'the stream ended on its own');
   const onError = () => endedOnItsOwn(st.firstFrameMs == null ? 'the browser could not open this stream' : 'the stream broke');
@@ -386,7 +644,15 @@ function LiveVideo({ cam, token, liveMax, onClose, compact = false, testId = 'li
           <div className={`${compact ? 'text-sm' : 'text-base'} font-semibold text-[#1A1815] truncate`}>{cam.name}</div>
         </div>
         <div className="flex items-center gap-2">
-          {st.mode && !compact ? <span className={chip.muted}>{st.mode === 'hls' ? 'HLS · this device plays it natively' : 'MP4 · this device plays it natively'}</span> : null}
+          {!compact ? (
+            <label className="inline-flex items-center gap-1 text-[0.625rem] text-[#5A5751]">
+              <span>Road</span>
+              <select className="border border-[#B8B4AC] bg-white text-[#1A1815] text-[0.6875rem] px-1 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]" value={road} onChange={(e) => setRoad(e.target.value)} aria-label="Which live road this device uses" data-testid={`${testId}-road`}>
+                {LIVE_ROADS.map((r) => <option key={r} value={r}>{roadLabel(r)}</option>)}
+              </select>
+            </label>
+          ) : null}
+          {st.mode && !compact ? <span className={chip.muted} title={roadLine(loadRoadStats(), st.mode)} data-testid={`${testId}-mode`}>{road === 'auto' ? `Auto chose ${roadLabel(st.mode)}` : `${roadLabel(st.mode)} · pinned`}</span> : null}
           <button type="button" onClick={onClose} className={`${compact ? btnGhost : btnDark} focus:outline focus:outline-2 focus:outline-[#B85838]`}>{compact ? 'Remove' : 'Close'}</button>
         </div>
       </div>
@@ -409,6 +675,7 @@ function LiveVideo({ cam, token, liveMax, onClose, compact = false, testId = 'li
         </div>
         {st.exhausted ? <button type="button" className={`${btnDark} focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={() => open(0)}>Resume</button> : null}
       </div>
+      {!compact ? <div className="mt-1 text-[0.625rem] text-[#5A5751]" data-testid={`${testId}-roads`}>{roadLine(loadRoadStats(), 'mp4')} · {roadLine(loadRoadStats(), 'hls')} · frames every 5 s always work</div> : null}
     </div>
   );
 }
@@ -431,7 +698,7 @@ function TileLive({ cam, token, liveMax, now, onFailed }) {
       const { ticket } = await r.json();
       if (!alive.current) return;
       const probe = typeof document !== 'undefined' ? document.createElement('video') : null;
-      const mode = pickLiveMode(probe && typeof probe.canPlayType === 'function' ? (t) => probe.canPlayType(t) : null);
+      const mode = chooseLiveRoad({ pref: loadLiveRoad(), stats: loadRoadStats(), canPlayType: probe && typeof probe.canPlayType === 'function' ? (t) => probe.canPlayType(t) : null });
       setSt((p) => ({ ...p, src: liveUrl(cam.id, mode, ticket), startedAt: Date.now() }));
       timers.current.first = setTimeout(() => {
         setSt((p) => (p.firstFrameMs == null && !p.ended && p.src) ? { ...p, error: 'no picture' } : p);
@@ -506,33 +773,33 @@ function WhyPanel({ cam, token, onHide }) {
 // from the recorder's own status file on the NAS: clips, bytes, oldest and
 // newest, disk free, and a rate MEASURED from real clips, never a nominal
 // bitrate. Clips play through the same ticketed road as live video.
-function RecordingPanel({ token, cameras, onSaved }) {
+// THE RECORDER'S STATE, LIFTED (DR-0783; Darrell: "Record should be with the
+// camera you want to do that with"). One read of /recording serves the tiles
+// (each camera's Record and keep sit on its own tile) and the panel below
+// (the budget, the disk line, the clips). Nothing here is painted: every
+// value is the recorder's own file.
+function useRecording(token) {
   const [rec, setRec] = useState(null);          // fetchRecording result
   const [saving, setSaving] = useState(false);
   const [note, setNote] = useState('');
   const [budget, setBudget] = useState('');
-  const [pick, setPick] = useState('');          // camera whose clips are listed
-  const [clips, setClips] = useState({ loading: false, days: [] });
-  const [playing, setPlaying] = useState(null);  // {cam, name, src}
   const reload = useCallback(async () => {
+    if (!token) return;
     const r = await fetchRecording(token);
     setRec(r);
     if (r.ok) setBudget(String(r.config.disk_budget_gb));
   }, [token]);
   useEffect(() => { reload(); }, [reload]);
-  // The status file is refreshed by the recorder every loop; re-read it while the panel is open.
+  // The status file is refreshed by the recorder every loop; re-read it while the tab is open.
   useEffect(() => { const t = setInterval(reload, 30000); return () => clearInterval(t); }, [reload]);
-
   const cfg = rec && rec.ok ? rec.config : null;
   const status = rec && rec.ok ? rec.recStatus : null;
-  const forecast = diskForecast(status);
-
   const save = async (next) => {
     if (saving) return;
     setSaving(true); setNote('');
     const r = await saveRecording(next, token);
     setSaving(false);
-    if (r.ok) { setNote('Saved. The recorder on the NAS follows within ten seconds.'); setRec((p) => (p && p.ok ? { ...p, config: r.config } : p)); if (onSaved) onSaved(r.config); }
+    if (r.ok) { setNote('Saved. The recorder on the NAS follows within ten seconds.'); setRec((p) => (p && p.ok ? { ...p, config: r.config } : p)); }
     else setNote(r.message);
   };
   const toggle = (cam) => {
@@ -551,13 +818,44 @@ function RecordingPanel({ token, cameras, onSaved }) {
     if (!Number.isFinite(n) || n < 5) { setNote('The budget is in GB, 5 or more.'); return; }
     save({ ...cfg, disk_budget_gb: n });
   };
-  const openClips = async (id) => {
-    setPick(id); setPlaying(null);
-    if (!id) { setClips({ loading: false, days: [] }); return; }
+  const camState = (id) => ({ cfg: cfg ? (cfg.cameras[id] || { enabled: false, retention_days: 14 }) : null, status: status && status.cameras ? status.cameras[id] : null });
+  return { rec, cfg, status, saving, note, setNote, budget, setBudget, reload, toggle, setRetention, saveBudget, camState };
+}
+
+// RECORD ON THE TILE (DR-0783): the switch, the keep, the state, beside the
+// camera it belongs to. The panel below keeps the budget and the clips.
+function TileRecord({ cam, r, onClips }) {
+  const { cfg: c, status: st } = r.camState(cam.id);
+  if (!c) return null;
+  return (
+    <div className="flex items-center gap-1 flex-wrap" data-testid={`tile-record-${cam.id}`}>
+      <button type="button" className={`${c.enabled ? 'text-[0.625rem] uppercase tracking-wider font-semibold min-h-[36px] px-2 bg-[#B85838] text-white' : btnGhost} focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={() => r.toggle(cam)} disabled={r.saving} aria-pressed={c.enabled} aria-label={`${c.enabled ? 'Stop recording' : 'Record'} ${cam.name}`} data-testid={`record-${cam.id}`}>{c.enabled ? '● Recording' : 'Record'}</button>
+      {c.enabled ? (
+        <select className="border border-[#B8B4AC] bg-white text-[#1A1815] text-[0.6875rem] px-1 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]" value={c.retention_days} onChange={(e) => r.setRetention(cam, e.target.value)} disabled={r.saving} aria-label={`How long to keep ${cam.name}`} data-testid={`keep-${cam.id}`}>
+          {RETENTION_CHOICES.map((d) => <option key={d} value={d}>{d === 1 ? 'keep 1 day' : d >= 365 ? 'keep 1 year' : `keep ${d} days`}</option>)}
+        </select>
+      ) : null}
+      {st && st.clips ? <button type="button" className={`${btnGhost} focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={() => onClips(cam.id)} aria-label={`Show clips of ${cam.name}`}>{st.clips} clip{st.clips === 1 ? '' : 's'}</button> : null}
+      {st && c.enabled && !st.recording ? <span className="text-[0.625rem] text-[#B85838]">not recording yet</span> : null}
+    </div>
+  );
+}
+
+function RecordingPanel({ token, cameras, r, pick, setPick }) {
+  const { rec, cfg, status, saving, note, setNote, budget, setBudget, reload, saveBudget } = r;
+  const [clips, setClips] = useState({ loading: false, days: [] });
+  const [playing, setPlaying] = useState(null);  // {cam, name, src}
+  const forecast = diskForecast(status);
+  // A tile's Clips button sets `pick`; the list is read whenever it changes.
+  useEffect(() => {
+    let on = true;
+    setPlaying(null);
+    if (!pick) { setClips({ loading: false, days: [] }); return undefined; }
     setClips({ loading: true, days: [] });
-    const r = await fetchClips(id, token);
-    setClips({ loading: false, days: groupClipsByDay(r.clips), ok: r.ok });
-  };
+    fetchClips(pick, token).then((res) => { if (on) setClips({ loading: false, days: groupClipsByDay(res.clips), ok: res.ok }); });
+    return () => { on = false; };
+  }, [pick, token]);
+  const openClips = (id) => setPick(id);
   const play = async (id, name) => {
     try {
       const r = await fetchWithTimeout(ticketUrl(), { method: 'POST', headers: { ...authHeaders(token), 'Content-Type': 'application/json' }, body: JSON.stringify({ camera: id, ttl: CLIP_TICKET_TTL }) }, FETCH_TIMEOUT_MS);
@@ -600,8 +898,9 @@ function RecordingPanel({ token, cameras, onSaved }) {
             <button type="button" className={`${btnGhost} focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={saveBudget} disabled={saving}>Save budget</button>
             {note ? <span className={`${/Saved/.test(note) ? 'text-[#2F6B3A]' : 'text-[#B85838]'}`} role="status" aria-live="polite" data-testid="recording-note">{note}</span> : null}
           </div>
-          <ul className="mt-3 divide-y divide-[#E8E4DC]" data-testid="recording-cameras">
-            {cameras.map((cam) => {
+          <p className="text-[0.625rem] text-[#5A5751] mt-3">Record and keep sit on each camera&apos;s tile. Listed here: the cameras switched on or holding clips.</p>
+          <ul className="mt-1 divide-y divide-[#E8E4DC]" data-testid="recording-cameras">
+            {cameras.filter((cam) => (cfg.cameras[cam.id] && cfg.cameras[cam.id].enabled) || (status && status.cameras && status.cameras[cam.id] && status.cameras[cam.id].clips > 0)).map((cam) => {
               const c = cfg.cameras[cam.id] || { enabled: false, retention_days: 14 };
               const st = status && status.cameras ? status.cameras[cam.id] : null;
               return (
@@ -616,12 +915,12 @@ function RecordingPanel({ token, cameras, onSaved }) {
                   <div className="flex items-center gap-2 shrink-0">
                     {c.enabled ? (
                       <label className="text-[0.625rem] text-[#5A5751] flex items-center gap-1">keep
-                        <select className={`${inputCls} min-h-[36px] py-1 w-auto`} value={c.retention_days} onChange={(e) => setRetention(cam, e.target.value)} disabled={saving} aria-label={`How long to keep ${cam.name}`}>
+                        <select className={`${inputCls} min-h-[36px] py-1 w-auto`} value={c.retention_days} onChange={(e) => r.setRetention(cam, e.target.value)} disabled={saving} aria-label={`How long to keep ${cam.name}`}>
                           {RETENTION_CHOICES.map((d) => <option key={d} value={d}>{d === 1 ? '1 day' : d >= 365 ? '1 year' : `${d} days`}</option>)}
                         </select>
                       </label>
                     ) : null}
-                    <button type="button" className={`${c.enabled ? btnDark : btnGhost} focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={() => toggle(cam)} disabled={saving} aria-pressed={c.enabled} aria-label={`${c.enabled ? 'Stop recording' : 'Record'} ${cam.name}`}>{c.enabled ? 'Recording' : 'Record'}</button>
+                    <button type="button" className={`${c.enabled ? btnDark : btnGhost} focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={() => r.toggle(cam)} disabled={saving} aria-pressed={c.enabled} aria-label={`${c.enabled ? 'Stop recording' : 'Record'} ${cam.name}`}>{c.enabled ? 'Recording' : 'Record'}</button>
                     {st && st.clips ? <button type="button" className={`${btnGhost} focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={() => openClips(pick === cam.id ? '' : cam.id)} aria-label={`Show clips of ${cam.name}`}>{pick === cam.id ? 'Hide clips' : 'Clips'}</button> : null}
                   </div>
                 </li>
@@ -659,12 +958,44 @@ function RecordingPanel({ token, cameras, onSaved }) {
 }
 
 export default function Cameras() {
-  const token = bridgeToken();
+  // The owner's device holds the family bearer; a device the owner handed a
+  // link to holds a grant (DR-0778). Either opens the road; only the owner's
+  // changes the NAS (setup, restart, recording, who has access).
+  // THE KEY PROVISIONS ITSELF HERE TOO (2026-10-07; the Firestick on the wall
+  // read "no family key yet" while signed in: DR-0613's RPC was called only by
+  // the Photos, Taxes and Gallery screens, so a device that opened Cameras
+  // first never asked). A signed-in family device asks the moment it lands.
+  const [credTick, setCredTick] = useState(0);
+  const cred = cameraCredential({ bridge: bridgeToken() });
+  const token = cred.token;
+  const isOwner = cred.kind === 'owner';
+  useEffect(() => {
+    if (token) return undefined;
+    let live = true;
+    provisionBridgeToken(supabase).then((r) => { if (live && r === 'provisioned') setCredTick((n) => n + 1); });
+    return () => { live = false; };
+  }, [token, credTick]);
+  const [access, setAccess] = useState(null);      // the grant's own description, from /list
+  const [pairCode, setPairCode] = useState(() => (typeof window !== 'undefined' ? readPairParam(window.location) : '')); // a screen's code to approve (DR-0778)
   const [health, setHealth] = useState(null);       // forwarder /health JSON (+status), or {status, error}
   const [list, setList] = useState({ status: 0, cameras: [], at: 0, networkError: false, loaded: false });
   const [frames, setFrames] = useState({});          // id -> {url, at, ms, bytes, error, errorAt}
   const [liveId, setLiveId] = useState('');          // the one in-place live view (tap a tile)
-  const [wall, setWallRaw] = useState(() => loadWall()); // ids watched together
+  const [views, setViewsRaw] = useState(() => loadViews()); // DR-0783: named, ordered, laid-out views; the old wall is the first
+  const setViews = (fn) => setViewsRaw((st) => { const next = typeof fn === 'function' ? fn(st) : fn; saveViews(next); return next; });
+  const view = activeView(views);
+  const wall = useMemo(() => (view ? view.cameras : []), [view]); // the active view's cameras (the tiles read this)
+  const [renaming, setRenaming] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [drag, setDrag] = useState('');             // the camera being dragged in the view
+  const viewGridRef = useRef(null);
+  const [pick, setPick] = useState('');             // camera whose clips are listed (set from a tile)
+  const recordingRef = useRef(null);
+  // TABS INSIDE THE TAB (DR-0783; Darrell: "the recordings should be on the
+  // recordings tab... scrolling down to see something that could be in the
+  // next tab is a real issue"). Live is the default; the rest are one tap.
+  const [tab, setTabRaw] = useState(() => { try { return localStorage.getItem(CAMS_TAB_KEY) || 'live'; } catch { return 'live'; } });
+  const setTab = (t) => { try { localStorage.setItem(CAMS_TAB_KEY, t); } catch { /* fine */ } setTabRaw(t); };
   const [liveTiles, setLiveTilesRaw] = useState(() => loadLiveTiles()); // DR-0776: every tile a live player
   const setLiveTiles = (on) => { saveLiveTiles(on); setLiveTilesRaw(on); };
   const [why, setWhy] = useState('');                // tile whose Why? panel is open
@@ -673,7 +1004,7 @@ export default function Cameras() {
   const [showShell, setShowShell] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   const framesRef = useRef({});
-  const setWall = (fn) => setWallRaw((w) => { const next = typeof fn === 'function' ? fn(w) : fn; saveWall(next); return next; });
+  const recording = useRecording(isOwner ? token : '');
 
   // Clock for the "N s ago" lines (one per second, UI only).
   useEffect(() => { const t = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(t); }, []);
@@ -697,6 +1028,7 @@ export default function Cameras() {
       let body = null;
       try { body = await r.json(); } catch { body = null; }
       setList({ status: r.status, cameras: r.status === 200 ? parseCameraList(body) : [], at: Date.now(), networkError: false, loaded: true });
+      setAccess(r.status === 200 && body && body.access && typeof body.access === 'object' ? body.access : null);
     } catch {
       setList({ status: 0, cameras: [], at: Date.now(), networkError: true, loaded: true });
     }
@@ -793,7 +1125,6 @@ export default function Cameras() {
   const roadUp = !!(health && health.status === 200);
   const groups = groupByKind(list.cameras);
   const liveMax = health && Number.isFinite(Number(health.live_max_seconds)) ? Number(health.live_max_seconds) : 0;
-  const wallMax = wallLimit(health);
   const byId = useMemo(() => Object.fromEntries(list.cameras.map((c) => [c.id, c])), [list.cameras]);
   const wallCams = wall.map((id) => byId[id]).filter(Boolean);
   const garages = useMemo(() => garagesFor(devicesState && devicesState.devices, list.cameras), [devicesState, list.cameras]);
@@ -805,7 +1136,7 @@ export default function Cameras() {
 
   return (
     <div>
-      <SectionTitle eyebrow="Your cameras, from your own server · live in every tile · tap one for the big view · watch several together on the wall · record what you choose, for as long as you choose">Cameras</SectionTitle>
+      <SectionTitle eyebrow="Your cameras, from your own server · live in every tile · every control on its camera · your views, in your order, as many as you want">Cameras</SectionTitle>
       <div className="flex items-center justify-between gap-3 flex-wrap mb-3 text-[0.6875rem] text-[#5A5751]">
         <div>{roadChip}</div>
         <div className="flex items-center gap-2">
@@ -813,15 +1144,24 @@ export default function Cameras() {
           <button type="button" onClick={load} className={`${btnGhost}`}>Refresh</button>
         </div>
       </div>
-      {token && health && health.status ? (
+      {!isOwner && token ? <AccessChip access={access} onLeave={() => { saveGrantToken(''); try { window.location.reload(); } catch { /* fine */ } }} /> : null}
+      {isOwner && pairCode ? <ApprovePairing code={pairCode} token={token} cameras={list.cameras} onDone={() => { try { stripPairParam(window.location, window.history); } catch { /* fine */ } setTimeout(() => setPairCode(''), 4000); }} /> : null}
+      {token && state === 'ready' ? (
+        <div className="mb-3 flex items-center gap-1 flex-wrap" role="tablist" aria-label="Cameras sections" data-testid="cams-tabs">
+          {CAMS_TABS.filter(([k]) => isOwner || k === 'live').map(([k, label]) => (
+            <button key={k} type="button" role="tab" aria-selected={tab === k} className={`${tab === k ? 'bg-[#B85838] text-white' : 'bg-white text-[#1A1815] border border-[#B8B4AC]'} text-[0.625rem] uppercase tracking-wider px-3 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={() => setTab(k)} data-testid={`cams-tab-${k}`}>{label}</button>
+          ))}
+          {liveTrafficLine(health) ? <span className={`${chip.muted} ml-auto`} data-testid="live-traffic">{liveTrafficLine(health)}</span> : null}
+        </div>
+      ) : null}
+      {token && health && health.status && (state !== 'ready' || tab === 'setup') ? (
         <div className="mb-3 flex items-center gap-3 flex-wrap">
-          <ServiceRestart token={token} health={health} onDone={load} />
+          {isOwner ? <ServiceRestart token={token} health={health} onDone={load} /> : null}
           <button type="button" className={`${btnGhost} focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={() => setLiveTiles(!liveTiles)} aria-pressed={liveTiles} data-testid="live-tiles-toggle">{liveTiles ? 'Live in every tile · on' : 'Live in every tile · off (frames every 5 s)'}</button>
-          {liveTrafficLine(health) ? <span className={chip.muted} data-testid="live-traffic">{liveTrafficLine(health)}</span> : null}
         </div>
       ) : null}
 
-      {token ? <Doors garages={garages} devicesState={devicesState} token={token} /> : null}
+      {token && (state !== 'ready' || tab === 'live') ? <Doors garages={garages} devicesState={devicesState} token={token} /> : null}
 
       {state === 'loading' && (
         <div className={card}><p className="text-sm text-[#5A5751]">Reading the camera road...</p></div>
@@ -835,13 +1175,21 @@ export default function Cameras() {
             Nothing from the cameras is sent to this device until then.
           </p>
           {health && !roadUp ? <p className="text-xs text-[#B85838] mt-2">Separately: the camera road is not answering right now ({health.status || 'no response'}).</p> : null}
+          {roadUp ? <PairScreen onPaired={() => setCredTick((n) => n + 1)} /> : null}
         </div>
       )}
 
-      {state === 'unauthorized' && (
+      {state === 'unauthorized' && isOwner && (
         <div className={card}>
           <div className={labelCls}>The family key on this device was refused</div>
           <p className="text-sm mt-1">The NAS said no to this device&apos;s key (HTTP {list.status}). It was rotated or this copy is stale; sign out and in as family to provision the current one.</p>
+        </div>
+      )}
+      {state === 'unauthorized' && !isOwner && (
+        <div className={card} data-testid="grant-ended">
+          <div className={labelCls}>This access has ended</div>
+          <p className="text-sm mt-1">The owner took it back, or its time ran out (HTTP {list.status}). Ask the owner for a new link if you still need it.</p>
+          <button type="button" className={`${btnGhost} mt-2 focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={() => { saveGrantToken(''); try { window.location.reload(); } catch { /* fine */ } }}>Remove it from this device</button>
         </div>
       )}
 
@@ -863,7 +1211,13 @@ export default function Cameras() {
         </div>
       )}
 
-      {state === 'empty' && (
+      {state === 'empty' && !isOwner && (
+        <div className={card}>
+          <div className={labelCls}>No cameras for this access right now</div>
+          <p className="text-sm mt-1">The owner&apos;s camera service lists nothing this access may see. Nothing to do here; it fills in when the owner&apos;s cameras are back.</p>
+        </div>
+      )}
+      {state === 'empty' && isOwner && (
         <div className={card}>
           <div className={labelCls}>The restreamer is up and has no cameras yet</div>
           <p className="text-sm mt-1">
@@ -884,23 +1238,60 @@ export default function Cameras() {
         </div>
       )}
 
-      {state === 'ready' && (
+      {state === 'ready' && tab === 'live' && (
         <>
-          {/* THE WALL (DR-0774; Darrell: "I need multiple views... different cameras together"). */}
-          <section className="mb-4" data-testid="camera-wall">
+          {/* VIEWS (DR-0783; Darrell: "My views should be able to have and reorder the view live while it is still actively streaming... see 4 with each other or 6"). */}
+          <section className="mb-4" data-testid="camera-views">
             <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
-              <div className={labelCls}>Watch together · {wallCams.length} of {wallMax}</div>
-              <div className="flex items-center gap-2 text-[0.6875rem] text-[#5A5751]">
-                {wallCams.length ? <button type="button" className={`${btnGhost} focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={() => setWall([])}>Clear the wall</button> : <span>Press Wall + on any camera to watch several live at once.</span>}
+              <div className="flex items-center gap-1 flex-wrap" role="tablist" aria-label="Your views">
+                {views.views.map((v) => (
+                  <button key={v.id} type="button" role="tab" aria-selected={v.id === views.active} className={`${v.id === views.active ? 'bg-[#1A1815] text-white' : 'bg-white text-[#1A1815] border border-[#B8B4AC]'} text-[0.625rem] uppercase tracking-wider px-2 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={() => { setRenaming(false); setViews((st) => ({ ...st, active: v.id })); }} data-testid={`view-tab-${v.id}`}>{v.name} · {v.cameras.length}</button>
+                ))}
+                <button type="button" className={`${btnGhost} focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={() => setViews((st) => addView(st))} data-testid="view-new">+ New view</button>
               </div>
+              {view ? (
+                <div className="flex items-center gap-2 text-[0.6875rem] text-[#5A5751] flex-wrap">
+                  <label className="inline-flex items-center gap-1">
+                    <span>Across</span>
+                    <select className="border border-[#B8B4AC] bg-white text-[#1A1815] text-[0.6875rem] px-1 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]" value={String(view.layout)} onChange={(e) => setViews((st) => setViewLayout(st, view.id, e.target.value === 'auto' ? 'auto' : Number(e.target.value)))} aria-label="How many cameras across" data-testid="view-layout">
+                      {VIEW_LAYOUTS.map((l) => <option key={String(l)} value={String(l)}>{l === 'auto' ? 'Auto' : `${l} across`}</option>)}
+                    </select>
+                  </label>
+                  {renaming ? (
+                    <form className="inline-flex items-center gap-1" onSubmit={(e) => { e.preventDefault(); setViews((st) => renameView(st, view.id, newName)); setRenaming(false); }}>
+                      <input className={`${inputCls} w-40 min-h-[36px] py-1`} value={newName} onChange={(e) => setNewName(e.target.value)} aria-label="Name this view" data-testid="view-name" />
+                      <button type="submit" className={`${btnGhost} focus:outline focus:outline-2 focus:outline-[#B85838]`}>Save</button>
+                    </form>
+                  ) : <button type="button" className={`${btnGhost} focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={() => { setNewName(view.name); setRenaming(true); }} data-testid="view-rename">Rename</button>}
+                  {view.cameras.length ? <button type="button" className={`${btnGhost} focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={confirmThen(`Clear every camera from the view ${view.name}? The cameras themselves are untouched.`, () => setViews((st) => ({ ...st, views: st.views.map((v) => (v.id === view.id ? { ...v, cameras: [] } : v)) })))}>Clear</button> : null}
+                  {views.views.length > 1 ? <button type="button" className={`${btnGhost} focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={confirmThen(`Delete the view ${view.name}? The cameras themselves are untouched.`, () => setViews((st) => deleteView(st, view.id)))} aria-label={`Delete the view ${view.name}`} data-testid="view-delete">Delete view</button> : null}
+                </div>
+              ) : null}
             </div>
-            {wallCams.length ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
-                {wallCams.map((cam) => (
-                  <LiveVideo key={cam.id} cam={cam} token={token} liveMax={liveMax} compact testId={`wall-${cam.id}`} now={now} onClose={() => setWall((w) => w.filter((x) => x !== cam.id))} />
+            {view && wallCams.length ? (
+              <div ref={viewGridRef} className={`grid ${viewGridClass(viewCols(view.layout, wallCams.length))} gap-3`} data-testid={`view-${view.id}`} data-cols={viewCols(view.layout, wallCams.length)}>
+                {wallCams.map((cam, i) => (
+                  <div key={cam.id} data-view-cam={cam.id} className={drag === cam.id ? 'opacity-70 ring-2 ring-[#B85838]' : ''}>
+                    <div className="flex items-center justify-between gap-1 mb-1 text-[0.625rem] text-[#5A5751]">
+                      <button type="button" className="cursor-grab touch-none min-h-[36px] px-2 text-base leading-none focus:outline focus:outline-2 focus:outline-[#B85838]" aria-label={`Drag ${cam.name} to another place in the view`} title="Drag to reorder"
+                        onPointerDown={(e) => { try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* fine */ } setDrag(cam.id); }}
+                        onPointerMove={(e) => {
+                          if (drag !== cam.id || !viewGridRef.current) return;
+                          const boxes = [...viewGridRef.current.querySelectorAll('[data-view-cam]')].map((el) => { const b = el.getBoundingClientRect(); return { id: el.getAttribute('data-view-cam'), left: b.left, top: b.top, right: b.right, bottom: b.bottom }; });
+                          const idx = indexAtPoint(boxes, e.clientX, e.clientY);
+                          if (idx >= 0 && boxes[idx].id !== cam.id) setViews((st) => moveInView(st, view.id, cam.id, idx));
+                        }}
+                        onPointerUp={() => setDrag('')} onPointerCancel={() => setDrag('')}>⠿</button>
+                      <span className="flex items-center gap-1">
+                        <button type="button" className={`${btnGhost} focus:outline focus:outline-2 focus:outline-[#B85838]`} disabled={i === 0} onClick={() => setViews((st) => moveInView(st, view.id, cam.id, i - 1))} aria-label={`Move ${cam.name} earlier`} data-testid={`view-left-${cam.id}`}>◀</button>
+                        <button type="button" className={`${btnGhost} focus:outline focus:outline-2 focus:outline-[#B85838]`} disabled={i === wallCams.length - 1} onClick={() => setViews((st) => moveInView(st, view.id, cam.id, i + 1))} aria-label={`Move ${cam.name} later`} data-testid={`view-right-${cam.id}`}>▶</button>
+                      </span>
+                    </div>
+                    <LiveVideo cam={cam} token={token} liveMax={liveMax} compact testId={`wall-${cam.id}`} now={now} onClose={() => setViews((st) => removeFromView(st, view.id, cam.id))} />
+                  </div>
                 ))}
               </div>
-            ) : null}
+            ) : <p className="text-[0.6875rem] text-[#5A5751]">Press + View on any camera to add it here. Drag the handle, or use the arrows, to put them in your order while they stream; pick how many across.</p>}
           </section>
 
           {groups.map((g) => (
@@ -914,7 +1305,6 @@ export default function Cameras() {
                   const fresh = f && f.url;
                   const isLive = liveId === cam.id;
                   const onWall = wall.includes(cam.id);
-                  const wallFull = !onWall && wall.length >= wallMax;
                   const tileLive = liveTileIds.has(cam.id);
                   return (
                     <React.Fragment key={cam.id}>
@@ -937,11 +1327,12 @@ export default function Cameras() {
                               {f && f.error && !tileLive ? <span className="text-[#B85838]" data-testid={`reason-${cam.id}`}> · {f.error}</span> : null}
                             </div>
                           </div>
-                          <div className="flex items-center gap-1 shrink-0">
+                          <div className="flex items-center gap-1 shrink-0 flex-wrap justify-end">
                             {garageByCamera[cam.id] ? <GarageButton device={garageByCamera[cam.id]} token={token} compact /> : null}
+                            {isOwner ? <TileRecord cam={cam} r={recording} onClips={(id) => { setPick(id); setTab('recordings'); }} /> : null}
                             {f && f.error ? <button type="button" className={`${btnGhost} focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={() => setWhy(why === cam.id ? '' : cam.id)} aria-label={`Why does ${cam.name} show no frame?`}>Why?</button> : null}
-                            <button type="button" className={`${btnGhost} focus:outline focus:outline-2 focus:outline-[#B85838]`} disabled={wallFull} onClick={() => setWall((w) => (onWall ? w.filter((x) => x !== cam.id) : [...w, cam.id]))} aria-label={onWall ? `Remove ${cam.name} from the wall` : `Add ${cam.name} to the wall`} title={wallFull ? `The wall holds ${wallMax} at once` : ''}>{onWall ? 'Wall −' : 'Wall +'}</button>
-                            <button type="button" onClick={() => setLiveId(isLive ? '' : cam.id)} className={`${btnGhost}`}>{isLive ? 'Close' : 'Live'}</button>
+                            <button type="button" className={`${btnGhost} focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={() => setViews((st) => (onWall ? removeFromView(st, st.active, cam.id) : addToView(st, st.active, cam.id)))} aria-label={onWall ? `Remove ${cam.name} from the view` : `Add ${cam.name} to the view`}>{onWall ? '− View' : '+ View'}</button>
+                            <button type="button" onClick={() => setLiveId(isLive ? '' : cam.id)} className={`${btnGhost} focus:outline focus:outline-2 focus:outline-[#B85838]`}>{isLive ? 'Close' : 'Big'}</button>
                           </div>
                         </div>
                         {why === cam.id ? <WhyPanel cam={cam} token={token} onHide={() => setWhy('')} /> : null}
@@ -954,14 +1345,26 @@ export default function Cameras() {
             </section>
           ))}
 
-          <div className="mb-4"><RecordingPanel token={token} cameras={list.cameras} /></div>
-
-          <div className={card}>
-            <button type="button" className={`${btnGhost}`} onClick={() => setShowAdd((v) => !v)}>{showAdd ? 'Hide' : 'Add a system you own'}</button>
-            {showAdd && <KindsHelp />}
-          </div>
         </>
       )}
+      {state === 'ready' && isOwner && tab === 'recordings' ? (
+        <div className="mb-4" ref={recordingRef}><RecordingPanel token={token} cameras={list.cameras} r={recording} pick={pick} setPick={setPick} /></div>
+      ) : null}
+      {state === 'ready' && isOwner && tab === 'access' ? (
+        <div className="mb-4"><AccessPanel token={token} cameras={list.cameras} onCode={(c) => { setPairCode(c); setTab('live'); }} /></div>
+      ) : null}
+      {state === 'ready' && isOwner && tab === 'setup' ? (
+        <div className={card}>
+          <div className={labelCls}>Setup</div>
+          <p className="text-xs text-[#5A5751] mt-1">The service, the live-tile switch, another camera system, or a different Wyze account. Nothing here is needed day to day.</p>
+          <button type="button" className={`${btnGhost} mt-2 focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={() => setShowAdd((v) => !v)}>{showAdd ? 'Hide' : 'Add a system you own'}</button>
+          {showAdd && <KindsHelp />}
+          <details className="mt-3">
+            <summary className="text-xs text-[#B85838] cursor-pointer min-h-[36px] inline-flex items-center">Sign in to a different Wyze account</summary>
+            <WyzeSetup token={token} onAdded={() => { load(); }} />
+          </details>
+        </div>
+      ) : null}
     </div>
   );
 }

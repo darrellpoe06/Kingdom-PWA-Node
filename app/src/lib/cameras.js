@@ -673,6 +673,7 @@ export function classifyDevicesResult({ status, body, networkError } = {}) {
   if (status === 503 && err === 'no-credentials') return { kind: 'no-credentials', devices: [], message: 'The NAS has no Wyze sign-in kept yet. Sign in once in this tab and the doors appear here.' };
   if (status === 401 && err === 'wyze-sign-in-refused') return { kind: 'refused', devices: [], message: 'Wyze refused the kept sign-in. Sign in again once in this tab.' };
   if (status === 401) return { kind: 'unauthorized', devices: [], message: 'The family key on this device was refused.' };
+  if (status === 403) return { kind: 'no-actions', devices: [], message: 'This access does not include the doors.' };
   if (status === 404) return { kind: 'old-service', devices: [], message: 'The NAS is running an older camera service without the doors yet. It updates itself within 15 minutes of a merge.' };
   if (status === 502 || status === 503) return { kind: 'wyze-down', devices: [], message: `Wyze's cloud did not answer the NAS${err ? ` (${err})` : ''}.` };
   return { kind: 'error', devices: [], message: `The camera road answered HTTP ${status}${err ? ` (${err})` : ''}.` };
@@ -739,4 +740,410 @@ export function wyzeKept(health) {
 export function garagesFor(devices, cameras) {
   const ids = new Set((cameras || []).map((c) => c.id));
   return (devices || []).filter((d) => d.garage).map((d) => ({ ...d, cameraId: ids.has(d.stream) ? d.stream : '' }));
+}
+
+// =============================================================================
+// ACCESS IS GIVEN AND TAKEN BACK, NEVER A PASSWORD (DR-0778; Darrell
+// 2026-10-07: "My wife and family should also have access to my cameras...
+// unless I say no... One time setup for owners and they can give access to
+// who they want.... inside or out", and: "we never give a password just
+// access and no access whenever the owner wants to"). The owner's device
+// (the family bearer) mints a per-person GRANT on the NAS: a name, which
+// cameras, how long (or until taken back), doors or not. The grant is a link;
+// opening it on a phone gives THAT device access, nothing typed. The holder's
+// device sends the grant as its bearer; the NAS admits it to its cameras only.
+// Revoke here and the link dies on its next request.
+// =============================================================================
+export const GRANT_KEY = 'poetech.cameras.grant.v1';
+export const GRANT_PARAM = 'cams-grant';
+export const GRANT_TOKEN = /^g\.[a-f0-9]{12}\.[a-f0-9]{32}$/;
+export const GRANT_DAYS_CHOICES = Object.freeze([0, 1, 7, 30, 365]);
+export function grantsUrl() { return `${CAMS_BASE}/grants`; }
+export function grantRevokeUrl(id) { return `${CAMS_BASE}/grants/${encodeURIComponent(id)}/revoke`; }
+
+function grantStorage(storage) {
+  if (storage) return storage;
+  try { return globalThis.localStorage || null; } catch { return null; }
+}
+
+export function grantToken(storage = null) {
+  const st = grantStorage(storage);
+  try { const v = (st && st.getItem(GRANT_KEY)) || ''; return GRANT_TOKEN.test(v) ? v : ''; } catch { return ''; }
+}
+
+export function saveGrantToken(token, storage = null) {
+  const st = grantStorage(storage);
+  try {
+    if (!token) st.removeItem(GRANT_KEY); else if (GRANT_TOKEN.test(token)) st.setItem(GRANT_KEY, token); else return false;
+    return true;
+  } catch { return false; }
+}
+
+// On boot: a `?cams-grant=` in the address is stored on this device and taken
+// out of the address (so a shared screenshot or history entry does not carry
+// it). Returns the token adopted, or ''.
+export function adoptGrantFromUrl(location, storage = null, history = null) {
+  try {
+    const url = new URL(String(location && location.href ? location.href : location));
+    const tok = url.searchParams.get(GRANT_PARAM) || '';
+    if (!tok) return '';
+    if (!GRANT_TOKEN.test(tok)) return '';
+    saveGrantToken(tok, storage);
+    url.searchParams.delete(GRANT_PARAM);
+    if (history && typeof history.replaceState === 'function') history.replaceState(null, '', url.pathname + (url.search || '') + url.hash);
+    return tok;
+  } catch { return ''; }
+}
+
+// The credential this device sends: the family bearer (owner) first, a grant second.
+export function cameraCredential({ bridge = '', storage = null } = {}) {
+  if (bridge) return { token: bridge, kind: 'owner' };
+  const g = grantToken(storage);
+  if (g) return { token: g, kind: 'grant' };
+  return { token: '', kind: 'none' };
+}
+
+export function parseGrants(json) {
+  const list = json && Array.isArray(json.grants) ? json.grants : [];
+  return list.filter((g) => g && typeof g.id === 'string').map((g) => ({
+    id: g.id, name: String(g.name || ''), cameras: g.cameras === '*' ? '*' : (Array.isArray(g.cameras) ? g.cameras.filter((c) => typeof c === 'string') : []),
+    actions: g.actions === true, created: Number(g.created) || 0, expires: Number(g.expires) || 0, revoked: Number(g.revoked) || 0, lastUsed: Number(g.last_used) || 0,
+  }));
+}
+
+export function grantState(g, nowMs = Date.now()) {
+  if (g.revoked) return 'revoked';
+  if (g.expires && nowMs / 1000 >= g.expires) return 'expired';
+  return 'live';
+}
+
+export function grantLine(g, nowMs = Date.now()) {
+  const cams = g.cameras === '*' ? 'every camera' : `${g.cameras.length} camera${g.cameras.length === 1 ? '' : 's'}`;
+  const until = g.expires ? `until ${new Date(g.expires * 1000).toLocaleDateString()}` : 'until taken back';
+  const doors = g.actions ? ' · doors too' : '';
+  const used = g.lastUsed ? ` · last used ${formatAge(Math.max(0, nowMs - g.lastUsed * 1000))}` : ' · never used yet';
+  const st = grantState(g, nowMs);
+  return `${cams} · ${until}${doors}${st === 'live' ? used : ` · ${st}`}`;
+}
+
+export function grantLink(token, origin = '', linkPath = '/poetech-app/?view=cameras&cams-grant=') {
+  return `${origin}${linkPath}${encodeURIComponent(token)}`;
+}
+
+export async function fetchGrants(token, fetchImpl = globalThis.fetch) {
+  try {
+    const r = await fetchWithTimeout(grantsUrl(), { headers: authHeaders(token) }, FETCH_TIMEOUT_MS, fetchImpl);
+    let body = null;
+    try { body = await r.json(); } catch { body = null; }
+    if (r.status === 200) return { ok: true, grants: parseGrants(body), linkPath: body && typeof body.link_path === 'string' ? body.link_path : undefined, message: '' };
+    if (r.status === 404) return { ok: false, grants: [], message: 'The NAS is running an older camera service without access grants yet. It updates itself within 15 minutes of a merge.' };
+    if (r.status === 401) return { ok: false, grants: [], message: 'Only the owner\'s device can see who has access.' };
+    return { ok: false, grants: [], message: `The camera road answered HTTP ${r.status}.` };
+  } catch {
+    return { ok: false, grants: [], message: 'The camera road did not answer.' };
+  }
+}
+
+export async function createGrant({ name, cameras = '*', days = 0, actions = false }, token, fetchImpl = globalThis.fetch) {
+  try {
+    const r = await fetchWithTimeout(grantsUrl(), { method: 'POST', headers: { ...authHeaders(token), 'Content-Type': 'application/json' }, body: JSON.stringify({ name, cameras, days, actions }) }, FETCH_TIMEOUT_MS, fetchImpl);
+    let body = null;
+    try { body = await r.json(); } catch { body = null; }
+    const err = body && typeof body.error === 'string' ? body.error : '';
+    if (r.status === 200 && body && body.token) return { ok: true, id: body.id, token: body.token, linkPath: body.link_path || undefined, message: `Access made for ${name}. Share the link below; it is shown once.` };
+    if (r.status === 400) return { ok: false, message: err === 'missing-name' ? 'Give the access a name (whose it is).' : err === 'bad-cameras' ? 'Pick at least one camera, or every camera.' : `The NAS refused it (${err || 'bad request'}).` };
+    if (r.status === 401) return { ok: false, message: 'Only the owner\'s device can give access.' };
+    if (r.status === 404) return { ok: false, message: 'The NAS is running an older camera service without access grants yet.' };
+    return { ok: false, message: `The camera road answered HTTP ${r.status}${err ? ` (${err})` : ''}.` };
+  } catch {
+    return { ok: false, message: 'The camera road did not answer. Nothing was made.' };
+  }
+}
+
+export async function revokeGrant(id, token, fetchImpl = globalThis.fetch) {
+  try {
+    const r = await fetchWithTimeout(grantRevokeUrl(id), { method: 'POST', headers: authHeaders(token) }, FETCH_TIMEOUT_MS, fetchImpl);
+    if (r.status === 200) return { ok: true, message: 'Taken back. That link no longer opens anything.' };
+    if (r.status === 404) return { ok: false, message: 'That access was not found on the NAS.' };
+    if (r.status === 401) return { ok: false, message: 'Only the owner\'s device can take access back.' };
+    return { ok: false, message: `The camera road answered HTTP ${r.status}.` };
+  } catch {
+    return { ok: false, message: 'The camera road did not answer. Nothing changed.' };
+  }
+}
+
+// =============================================================================
+// A SCREEN PAIRS WITH THE OWNER'S PHONE (DR-0778; Darrell 2026-10-07, from the
+// Firestick on the wall: "Even after logging into my PoeTech App on my
+// Firestick... I have to log in.... I hate that!!! Fix it.... I also would
+// like to use a qrcode to type into the Firestick"). The screen asks the NAS
+// for a six-letter code, shows it as a QR and as letters, and polls. The
+// owner opens the QR with the phone (or types the code into the Cameras tab)
+// and approves it as a grant; the screen's next poll hands it the grant and
+// the cameras open. Nothing is typed on the TV, ever.
+// =============================================================================
+export const PAIR_PARAM = 'cams-pair';
+export const PAIR_CODE = /^[A-Z2-9]{6}$/;
+export const PAIR_POLL_MS = 3000;
+// The screen's poll cadence, readable at call time so a test can run it fast.
+export const PAIR_TIMING = { pollMs: PAIR_POLL_MS };
+export function pairUrl() { return `${CAMS_BASE}/pair`; }
+export function pairStatusUrl(code, watch) { return `${CAMS_BASE}/pair/${encodeURIComponent(code)}?w=${encodeURIComponent(watch || '')}`; }
+export function pairApproveUrl(code) { return `${CAMS_BASE}/pair/${encodeURIComponent(code)}/approve`; }
+export function pairLink(code, origin = '', linkPath = '/poetech-app/?view=cameras&cams-pair=') { return `${origin}${linkPath}${encodeURIComponent(code)}`; }
+export function normalizePairCode(raw) {
+  const c = String(raw || '').toUpperCase().replace(/[^A-Z0-9]/g, '').replace(/0/g, 'O').replace(/1/g, 'I');
+  // 0/O and 1/I are not in the alphabet; a person reading a TV may still type them
+  const fixed = c.replace(/O/g, '0').replace(/I/g, '1').replace(/0/g, 'O').replace(/1/g, 'I');
+  return PAIR_CODE.test(fixed) ? fixed : '';
+}
+export function readPairParam(location) {
+  try {
+    const url = new URL(String(location && location.href ? location.href : location));
+    return normalizePairCode(url.searchParams.get(PAIR_PARAM) || '');
+  } catch { return ''; }
+}
+export function stripPairParam(location, history = null) {
+  try {
+    const url = new URL(String(location && location.href ? location.href : location));
+    if (!url.searchParams.has(PAIR_PARAM)) return;
+    url.searchParams.delete(PAIR_PARAM);
+    if (history && typeof history.replaceState === 'function') history.replaceState(null, '', url.pathname + (url.search || '') + url.hash);
+  } catch { /* fine */ }
+}
+
+export async function startPairing(fetchImpl = globalThis.fetch) {
+  try {
+    const r = await fetchWithTimeout(pairUrl(), { method: 'POST' }, FETCH_TIMEOUT_MS, fetchImpl);
+    let body = null;
+    try { body = await r.json(); } catch { body = null; }
+    if (r.status === 200 && body && PAIR_CODE.test(String(body.code || ''))) return { ok: true, code: body.code, watch: String(body.watch || ''), expiresIn: Number(body.expires_in) || 600, linkPath: typeof body.link_path === 'string' ? body.link_path : undefined };
+    if (r.status === 429) return { ok: false, retry: true, message: 'The NAS is handing out codes as fast as it will; trying again in a moment.' };
+    if (r.status === 404) return { ok: false, message: 'The NAS is running an older camera service that cannot pair a screen yet. It updates itself within 15 minutes of a merge.' };
+    return { ok: false, message: `The camera road answered HTTP ${r.status}.` };
+  } catch {
+    return { ok: false, message: 'The camera road did not answer.' };
+  }
+}
+
+export async function pollPairing(code, watch, fetchImpl = globalThis.fetch) {
+  try {
+    const r = await fetchWithTimeout(pairStatusUrl(code, watch), {}, FETCH_TIMEOUT_MS, fetchImpl);
+    let body = null;
+    try { body = await r.json(); } catch { body = null; }
+    if (r.status === 200 && body && body.status === 'approved' && GRANT_TOKEN.test(String(body.token || ''))) return { status: 'approved', token: body.token };
+    if (r.status === 200 && body && body.status === 'waiting') return { status: 'waiting' };
+    if (r.status === 404) return { status: 'expired' };
+    return { status: 'error' };
+  } catch {
+    return { status: 'error' };
+  }
+}
+
+export async function approvePairing(code, { name, cameras = '*', days = 0, actions = false }, token, fetchImpl = globalThis.fetch) {
+  try {
+    const r = await fetchWithTimeout(pairApproveUrl(code), { method: 'POST', headers: { ...authHeaders(token), 'Content-Type': 'application/json' }, body: JSON.stringify({ name, cameras, days, actions }) }, FETCH_TIMEOUT_MS, fetchImpl);
+    let body = null;
+    try { body = await r.json(); } catch { body = null; }
+    const err = body && typeof body.error === 'string' ? body.error : '';
+    if (r.status === 200 && body && body.ok) return { ok: true, message: `Done. The screen has its access as ${name}; it opens on its own within a few seconds.` };
+    if (r.status === 404) return { ok: false, message: 'That code is not waiting: it expired, was already used, or was mistyped. Ask the screen for a fresh one.' };
+    if (r.status === 401) return { ok: false, message: 'Only the owner\'s device can let a screen in.' };
+    if (r.status === 400) return { ok: false, message: `The NAS refused it (${err || 'bad request'}).` };
+    return { ok: false, message: `The camera road answered HTTP ${r.status}${err ? ` (${err})` : ''}.` };
+  } catch {
+    return { ok: false, message: 'The camera road did not answer. Nothing was approved.' };
+  }
+}
+
+
+// =============================================================================
+// THE LIVE ROAD IS CHOSEN FROM WHAT WORKED (Darrell 2026-10-07: "All options...
+// HLS... what works consistently... or a mixture so we can choose what seems
+// to be the best option at that time?"). A browser has exactly two live roads
+// from the restreamer: progressive MP4 and HLS (RTSP and the camera's own IP
+// are roads for apps like tinyCam, not for a browser). Frames every 5 s are
+// the third, always-works road. This device remembers how each live road did
+// (first picture, stalls, failures) and Auto picks the better record; the
+// person can pin a road instead. A road that fails under Auto is swapped for
+// the other on the next reconnect, so the mixture chooses itself.
+// =============================================================================
+export const LIVE_ROADS = Object.freeze(['auto', 'mp4', 'hls']);
+export const LIVE_ROAD_KEY = 'poetech.cameras.live-road.v1';
+export const LIVE_ROAD_STATS_KEY = 'poetech.cameras.live-road-stats.v1';
+export function roadLabel(road) {
+  return road === 'mp4' ? 'MP4' : road === 'hls' ? 'HLS' : 'Auto';
+}
+function roadStore(storage) {
+  if (storage) return storage;
+  try { return globalThis.localStorage || null; } catch { return null; }
+}
+export function loadLiveRoad(storage = null) {
+  try { const v = roadStore(storage).getItem(LIVE_ROAD_KEY) || ''; return LIVE_ROADS.includes(v) ? v : 'auto'; } catch { return 'auto'; }
+}
+export function saveLiveRoad(road, storage = null) {
+  if (!LIVE_ROADS.includes(road)) return false;
+  try { roadStore(storage).setItem(LIVE_ROAD_KEY, road); return true; } catch { return false; }
+}
+export function loadRoadStats(storage = null) {
+  try {
+    const j = JSON.parse(roadStore(storage).getItem(LIVE_ROAD_STATS_KEY) || '{}');
+    return j && typeof j === 'object' ? j : {};
+  } catch { return {}; }
+}
+// One measured outcome for a road: {ok: boolean, firstFrameMs, stalls}.
+export function recordRoadResult(mode, { ok, firstFrameMs = null, stalls = 0 } = {}, storage = null) {
+  if (mode !== 'mp4' && mode !== 'hls') return null;
+  const all = loadRoadStats(storage);
+  const r = all[mode] || { tries: 0, ok: 0, failed: 0, firstFrameMs: [], stalls: 0 };
+  r.tries += 1;
+  if (ok) r.ok += 1; else r.failed += 1;
+  if (Number.isFinite(firstFrameMs)) r.firstFrameMs = [...(r.firstFrameMs || []), Math.round(firstFrameMs)].slice(-10);
+  r.stalls = (r.stalls || 0) + (Number(stalls) || 0);
+  r.at = Date.now();
+  all[mode] = r;
+  try { roadStore(storage).setItem(LIVE_ROAD_STATS_KEY, JSON.stringify(all)); } catch { /* fine */ }
+  return r;
+}
+export function roadScore(r) {
+  if (!r || !r.tries) return null;
+  const okRate = r.ok / r.tries;
+  const ff = (r.firstFrameMs || []);
+  const median = ff.length ? [...ff].sort((a, b) => a - b)[Math.floor(ff.length / 2)] : 5000;
+  // success first, then speed to the first picture, then stalls per try
+  return okRate * 100 - median / 1000 - (r.stalls / r.tries) * 2;
+}
+// Auto: the better measured road; with nothing measured, the device's default
+// (pickLiveMode). A pinned road is itself. `avoid` is the road that just failed.
+export function chooseLiveRoad({ pref = 'auto', stats = {}, canPlayType = null, userAgent = null, avoid = '' } = {}) {
+  if (pref === 'mp4' || pref === 'hls') return pref;
+  const base = pickLiveMode(canPlayType, userAgent);
+  const other = base === 'mp4' ? 'hls' : 'mp4';
+  if (avoid) return avoid === base ? other : base;
+  const a = roadScore(stats[base]); const b = roadScore(stats[other]);
+  if (a == null && b == null) return base;
+  if (a == null) return b > 60 ? other : base;
+  if (b == null) return a < 50 ? other : base;
+  return b > a + 5 ? other : base;
+}
+export function roadLine(stats, mode) {
+  const r = stats && stats[mode];
+  if (!r || !r.tries) return `${roadLabel(mode)} · not tried here yet`;
+  const ff = (r.firstFrameMs || []);
+  const median = ff.length ? [...ff].sort((a, b) => a - b)[Math.floor(ff.length / 2)] : null;
+  return `${roadLabel(mode)} · ${r.ok} of ${r.tries} opened${median != null ? ` · first picture ${(median / 1000).toFixed(1)} s` : ''}${r.stalls ? ` · ${r.stalls} stall${r.stalls === 1 ? '' : 's'}` : ''}`;
+}
+
+// =============================================================================
+// VIEWS: THE CAMERAS YOU WANT, IN THE ORDER YOU WANT, AS MANY AS YOU WANT
+// (DR-0783; Darrell 2026-10-07: "the Wall sucks!!!! My views should be able
+// to have and reorder the view live while it is still actively streaming",
+// "Views should be able to drag whichever cameras they want to use... or see
+// 4 with each other or 6... liberation of options"). A view is a named,
+// ordered list of cameras with its own layout (how many across). There can
+// be several; one is active. The wall of DR-0774 becomes the first view, so
+// nobody loses what they had. Kept per device, like the wall was; a view
+// carried to every device by the database is the next step.
+// =============================================================================
+export const VIEWS_KEY = 'poetech.cameras.views.v1';
+export const VIEW_LAYOUTS = Object.freeze(['auto', 1, 2, 3, 4]);
+export const VIEW_NAME_MAX = 40;
+function viewStore(storage) {
+  if (storage) return storage;
+  try { return globalThis.localStorage || null; } catch { return null; }
+}
+function newViewId() {
+  try { return 'v' + Math.random().toString(36).slice(2, 8); } catch { return 'v' + Date.now().toString(36); }
+}
+export function makeView(name = 'My view', cameras = [], layout = 'auto') {
+  return { id: newViewId(), name: String(name || 'My view').slice(0, VIEW_NAME_MAX), cameras: cameras.filter((x) => typeof x === 'string' && CAMERA_ID.test(x)), layout: VIEW_LAYOUTS.includes(layout) ? layout : 'auto' };
+}
+function cleanView(v) {
+  if (!v || typeof v !== 'object' || typeof v.id !== 'string') return null;
+  return {
+    id: v.id,
+    name: String(v.name || 'View').slice(0, VIEW_NAME_MAX),
+    cameras: Array.isArray(v.cameras) ? [...new Set(v.cameras.filter((x) => typeof x === 'string' && CAMERA_ID.test(x)))] : [],
+    layout: VIEW_LAYOUTS.includes(v.layout) ? v.layout : (VIEW_LAYOUTS.includes(Number(v.layout)) ? Number(v.layout) : 'auto'),
+  };
+}
+// {views: [...], active: id}. With nothing saved, the old wall (if any) becomes "My view".
+export function loadViews(storage = null) {
+  const st = viewStore(storage);
+  try {
+    const raw = st && st.getItem(VIEWS_KEY);
+    if (raw) {
+      const j = JSON.parse(raw);
+      const views = (Array.isArray(j.views) ? j.views : []).map(cleanView).filter(Boolean);
+      if (views.length) return { views, active: views.some((v) => v.id === j.active) ? j.active : views[0].id };
+    }
+  } catch { /* fall through to a fresh start */ }
+  const wall = loadWall(st);
+  const first = makeView('My view', wall);
+  return { views: [first], active: first.id };
+}
+export function saveViews(state, storage = null) {
+  const st = viewStore(storage);
+  if (!st) return false;
+  try { st.setItem(VIEWS_KEY, JSON.stringify({ views: state.views.map(cleanView).filter(Boolean), active: state.active })); return true; } catch { return false; }
+}
+export function activeView(state) {
+  return (state.views || []).find((v) => v.id === state.active) || state.views[0] || null;
+}
+function updateView(state, id, fn) {
+  return { ...state, views: state.views.map((v) => (v.id === id ? fn(v) : v)) };
+}
+export function addToView(state, id, cameraId) {
+  return updateView(state, id, (v) => (v.cameras.includes(cameraId) ? v : { ...v, cameras: [...v.cameras, cameraId] }));
+}
+export function removeFromView(state, id, cameraId) {
+  return updateView(state, id, (v) => ({ ...v, cameras: v.cameras.filter((c) => c !== cameraId) }));
+}
+// Move a camera to a new position (live: the players keep their keys, so the streams keep running).
+export function moveInView(state, id, cameraId, toIndex) {
+  return updateView(state, id, (v) => {
+    const from = v.cameras.indexOf(cameraId);
+    if (from < 0) return v;
+    const next = v.cameras.filter((c) => c !== cameraId);
+    const at = Math.max(0, Math.min(next.length, Number(toIndex)));
+    next.splice(at, 0, cameraId);
+    return { ...v, cameras: next };
+  });
+}
+export function setViewLayout(state, id, layout) {
+  const l = VIEW_LAYOUTS.includes(layout) ? layout : (VIEW_LAYOUTS.includes(Number(layout)) ? Number(layout) : 'auto');
+  return updateView(state, id, (v) => ({ ...v, layout: l }));
+}
+export function renameView(state, id, name) {
+  return updateView(state, id, (v) => ({ ...v, name: String(name || v.name).trim().slice(0, VIEW_NAME_MAX) || v.name }));
+}
+export function addView(state, name = '') {
+  const v = makeView(name || `View ${state.views.length + 1}`);
+  return { views: [...state.views, v], active: v.id };
+}
+export function deleteView(state, id) {
+  const views = state.views.filter((v) => v.id !== id);
+  if (!views.length) { const v = makeView('My view'); return { views: [v], active: v.id }; }
+  return { views, active: state.active === id ? views[0].id : state.active };
+}
+// How many across: a chosen number, or for auto a shape that fits the count
+// (1 alone, 2 for two to four, 3 for five to nine, 4 beyond).
+export function viewCols(layout, count) {
+  if (layout !== 'auto') return Number(layout) || 1;
+  const n = Number(count) || 0;
+  if (n <= 1) return 1;
+  if (n <= 4) return 2;
+  if (n <= 9) return 3;
+  return 4;
+}
+export function viewGridClass(cols) {
+  return { 1: 'grid-cols-1', 2: 'grid-cols-1 sm:grid-cols-2', 3: 'grid-cols-1 sm:grid-cols-2 xl:grid-cols-3', 4: 'grid-cols-2 lg:grid-cols-3 xl:grid-cols-4' }[cols] || 'grid-cols-1 sm:grid-cols-2';
+}
+// The index a pointer is over, given the tiles' boxes [{id, left, top, right, bottom}].
+export function indexAtPoint(boxes, x, y) {
+  for (let i = 0; i < boxes.length; i += 1) {
+    const b = boxes[i];
+    if (x >= b.left && x <= b.right && y >= b.top && y <= b.bottom) return i;
+  }
+  return -1;
 }

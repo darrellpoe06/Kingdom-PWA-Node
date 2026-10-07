@@ -6,6 +6,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import {
   activateWorker, applyUpdate, wireUpdates, startUpdateChecks, isUpdateStuck, UPDATE_CHECK_MS,
+  compareBuild, fetchLiveBuild, watchLiveBuild, BUILD_BEHIND_EVENT, UPDATE_STUCK_EVENT as STUCK_EVT, BUILD_JSON_PATH,
   UPDATE_EVENT, UPDATED_EVENT, UPDATE_STUCK_EVENT,
 } from '../lib/sw-update.js';
 
@@ -364,5 +365,90 @@ describe('startUpdateChecks — long-lived PWA re-checks for new builds', () => 
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+// DR-0781: the server is asked which build is live; "latest" is a measurement.
+describe('watchLiveBuild — the server names the live build, and a device behind it is brought forward', () => {
+  const liveJson = (sha) => async (url, opts) => ({ ok: true, json: async () => ({ sha, time: '2026-10-07T12:59:00Z' }), url, opts });
+  it('compareBuild: same is latest, different is behind, dev or unreadable is unknown (never latest)', () => {
+    expect(compareBuild('10b6419', { sha: '10b6419' })).toBe('latest');
+    expect(compareBuild('847ec24', { sha: '10b6419' })).toBe('behind');
+    expect(compareBuild('847ec24', null)).toBe('unknown');
+    expect(compareBuild('dev', { sha: '10b6419' })).toBe('unknown');
+    expect(compareBuild('', { sha: '10b6419' })).toBe('unknown');
+  });
+  it('fetchLiveBuild asks with cache: no-store and a cache-busting query, and reads sha + time; a miss is null', async () => {
+    const calls = [];
+    const f = async (url, opts) => { calls.push({ url, opts }); return { ok: true, json: async () => ({ sha: 'abc1234', time: 't' }) }; };
+    expect(await fetchLiveBuild(f, BUILD_JSON_PATH, 42)).toEqual({ sha: 'abc1234', time: 't' });
+    expect(calls[0].url).toBe('/poetech-app/build.json?b=42');
+    expect(calls[0].opts.cache).toBe('no-store');
+    expect(await fetchLiveBuild(async () => ({ ok: false }))).toBeNull();
+    expect(await fetchLiveBuild(async () => { throw new Error('offline'); })).toBeNull();
+    expect(await fetchLiveBuild(async () => ({ ok: true, json: async () => ({}) }))).toBeNull();
+  });
+  it('same sha: nothing is said and nothing is done', async () => {
+    const reg = makeRegistration();
+    const w = win();
+    w.document = { visibilityState: 'visible' };
+    const timers = [];
+    const h = watchLiveBuild(reg, w, { buildSha: '10b6419', fetchImpl: liveJson('10b6419'), setTimeout: (fn, ms) => timers.push({ fn, ms }), setInterval: () => 0 });
+    await new Promise((r) => setTimeout(r, 5));
+    expect(h.state.last).toBe('latest');
+    expect(dispatchedTypes(w)).not.toContain(BUILD_BEHIND_EVENT);
+    expect(reg.updateCount).toBe(0);
+    expect(timers).toHaveLength(0);
+  });
+  it('behind: the event fires, the worker is asked to update, and when no worker appears ONE guarded reload brings the device forward', async () => {
+    const reg = makeRegistration();
+    const w = win();
+    w.document = { visibilityState: 'visible' };
+    const timers = [];
+    const h = watchLiveBuild(reg, w, { buildSha: '847ec24', fetchImpl: liveJson('10b6419'), setTimeout: (fn, ms) => timers.push({ fn, ms }), setInterval: () => 0, reloadAfterMs: 8000 });
+    await new Promise((r) => setTimeout(r, 5));
+    expect(h.state.last).toBe('behind');
+    expect(dispatchedTypes(w)).toContain(BUILD_BEHIND_EVENT);
+    expect(reg.updateCount).toBe(1);
+    expect(timers).toHaveLength(1);
+    expect(timers[0].ms).toBe(8000);
+    timers[0].fn();
+    expect(w.reloads).toBe(1);
+    expect(w.sessionStorage.getItem('poetech:sw-reloading')).toBeTruthy();
+    // a second check in the same page life never arms a second reload
+    await h.check();
+    expect(timers).toHaveLength(1);
+    expect(w.reloads).toBe(1);
+  });
+  it('behind, but a new worker appeared in time: the worker path owns the reload, this one stands down', async () => {
+    const reg = makeRegistration();
+    const w = win();
+    w.document = { visibilityState: 'visible' };
+    const timers = [];
+    watchLiveBuild(reg, w, { buildSha: '847ec24', fetchImpl: liveJson('10b6419'), setTimeout: (fn, ms) => timers.push({ fn, ms }), setInterval: () => 0 });
+    await new Promise((r) => setTimeout(r, 5));
+    reg.waiting = makeWorker('installed');
+    timers[0].fn();
+    expect(w.reloads).toBe(0);
+  });
+  it('reloaded for the server\'s verdict and STILL on the old build: says stuck instead of spinning', async () => {
+    const w = win();
+    w.document = { visibilityState: 'visible' };
+    w.sessionStorage.setItem('poetech:sw-reloading', String(Date.now()));
+    w.__pwaBehindSha = '10b6419';
+    const reg = makeRegistration();
+    watchLiveBuild(reg, w, { buildSha: '847ec24', fetchImpl: liveJson('10b6419'), setTimeout: () => { throw new Error('must not arm'); }, setInterval: () => 0 });
+    await new Promise((r) => setTimeout(r, 5));
+    expect(dispatchedTypes(w)).toContain(STUCK_EVT);
+    expect(w.__pwaUpdateStuck).toBe(true);
+    expect(w.reloads).toBe(0);
+  });
+  it('unreadable (offline / an older deploy without build.json): unknown, never latest, nothing done', async () => {
+    const reg = makeRegistration();
+    const w = win();
+    const h = watchLiveBuild(reg, w, { buildSha: '847ec24', fetchImpl: async () => ({ ok: false }), setTimeout: () => { throw new Error('must not arm'); }, setInterval: () => 0 });
+    await new Promise((r) => setTimeout(r, 5));
+    expect(h.state.last).toBe('unknown');
+    expect(w.reloads).toBe(0);
   });
 });

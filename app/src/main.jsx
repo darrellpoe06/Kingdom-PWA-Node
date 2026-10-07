@@ -3,7 +3,8 @@ import ReactDOM from 'react-dom/client';
 import { storage } from './shims/storage.js';
 import './index.css';
 import { ErrorBoundary } from './components/ErrorBoundary.jsx';
-import { wireUpdates, startUpdateChecks } from './lib/sw-update.js';
+import { wireUpdates, startUpdateChecks, watchLiveBuild } from './lib/sw-update.js';
+import { adoptGrantFromUrl } from './lib/cameras.js';
 import { wireChunkHeal } from './lib/chunk-reload-heal.js';
 import { showBootFallback } from './lib/boot-fallback.js';
 import { installGlobalErrorCapture } from './lib/error-journal.js';
@@ -140,6 +141,9 @@ captureInstallPrompt(window);
 //                 TV's QR, functions/link.js) lands here. Also re-entered when a
 //                 Google full-page redirect dropped the query: the code was
 //                 stashed in sessionStorage first (lib/device-link.js).
+// A camera access link (DR-0778): `?cams-grant=` is stored on this device and
+// taken out of the address before anything else reads it.
+try { adoptGrantFromUrl(window.location, window.localStorage, window.history); } catch (_) { /* no storage: the gate says so */ }
 const __params = new URLSearchParams(window.location.search);
 const __linkCode = __params.get('link') || (() => {
   // Only a return FROM Google (a token in the hash, or a PKCE ?code=) may
@@ -388,5 +392,7 @@ if (!__standalone && !isNativeShell(window) && 'serviceWorker' in navigator) {
     } catch (err) {
       console.warn('Service worker registration failed:', err);
     }
+    // The server is asked which build is live, whatever the worker did (DR-0781).
+    try { watchLiveBuild(window.__pwaReg || null, window); } catch (_) { /* never blocks boot */ }
   });
 }

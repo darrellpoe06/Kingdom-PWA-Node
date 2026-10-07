@@ -49,4 +49,4 @@ Unresolved: a door that waits on a stream it does not need; a sign-in that can b
 
 - What emptied go2rtc's config at 07:31 CDT: read from the next cams-diag (config shape) and recorded. Until then the self-heal is the cover. `re-review: 2026-10-08`.
 - Per-person camera grants and time-boxed outside links, owner-given and owner-revoked, no password ever shared: DR-0778.
-- The LAN-direct HTTPS road named by DR-0776: DR-0779.
+- The LAN-direct HTTPS road named by DR-0776: its own record when it is built (DR-0779 went to the go2rtc config fix found the same hour).

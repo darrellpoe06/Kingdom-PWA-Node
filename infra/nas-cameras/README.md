@@ -105,7 +105,7 @@ it in a URL.
 | Call | Who may | Returns |
 |---|---|---|
 | `GET /cams/health` | anyone | go2rtc's own version + stream count, the running forwarder's sha and the on-disk sha, the live cap and clock, or 502 when dark |
-| `GET /cams/list` | family bearer | `[{id, name, kind}]` -- never a source URL |
+| `GET /cams/list` | family bearer, or a grant (its cameras only, plus `access`) | `[{id, name, kind}]` -- never a source URL |
 | `POST /cams/ticket {camera, ttl?}` | family bearer | a ticket for that one camera: 90 s by default, up to 3600 s for a recorded clip |
 | `GET /cams/snap/<id>.jpg?w=640` | bearer or ticket | one JPEG frame; on a miss the JSON names the cause (`frame-timeout` 504, go2rtc's own scrubbed error, `go2rtc-unreachable`) |
 | `GET /cams/why/<id>` | family bearer | why a camera has no picture: producers (kind, host, state; never a url), go2rtc's log lines for the stream, one timed probe (DR-0774) |
@@ -115,7 +115,14 @@ it in a URL.
 | `POST /cams/setup/wyze/again` | family bearer | re-adds the cameras from the sign-in the NAS KEPT, nothing typed (DR-0777); the forwarder also does this itself when go2rtc comes back with zero streams |
 | `POST /cams/restart` | family bearer | restarts the forwarder from the file on disk (DR-0772) |
 | `GET /cams/devices` | family bearer | the Wyze account's cameras over Wyze's own cloud (`wyze_cloud.py`): mac, nickname, online, `garage` (controller dongle present), the go2rtc stream id it pairs with (DR-0777) |
-| `POST /cams/action {mac, action}` | family bearer | one cloud action, no video in the path: `garage` (= `garage_door_trigger`, the Wyze app's own call), `siren_on/off`, `power_on/off`; 429 inside 3 s, 409 offline (DR-0777) |
+| `GET /cams/grants` | owner (family bearer) | who has access: `[{id, name, cameras, actions, created, expires, revoked, last_used}]`, never a token or salt (DR-0778) |
+| `POST /cams/grants {name, cameras:"*"\|[ids], days, actions}` | owner | a per-person grant: `{id, token, link_path}`, the token shown this once; the holder's device opens `link_path + token` and sends the token as its bearer from then on |
+| `POST /cams/grants/<id>/revoke` | owner | the holder is out on their next request |
+| `POST /cams/pair` | anyone (throttled) | a six-letter code for a screen with no key: `{code, watch, expires_in, link_path}`; shown as a QR and as letters (DR-0778) |
+| `GET /cams/pair/<code>?w=<watch>` | the screen | `waiting`, or `approved` + the grant token ONCE, or 404 expired |
+| `POST /cams/pair/<code>/approve {name, cameras, days, actions}` | owner | lets the screen in as an ordinary grant |
+| `GET /cams/pair` | owner | the codes waiting |
+| `POST /cams/action {mac, action}` | family bearer, or a grant that includes the doors | one cloud action, no video in the path: `garage` (= `garage_door_trigger`, the Wyze app's own call), `siren_on/off`, `power_on/off`; 429 inside 3 s, 409 offline (DR-0777) |
 | `GET/PUT /cams/recording` | family bearer | which cameras record, their retention, the disk budget, the recorder's status (DR-0775) |
 | `GET /cams/rec/<id>` | family bearer | the camera's clips on disk `[{name, bytes, start}]` |
 | `GET /cams/rec/<id>/<clip>.mp4?t=` | ticket | the clip, with Range (206) so the player can seek |
