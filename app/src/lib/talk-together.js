@@ -73,8 +73,17 @@ export const TALK_TOGETHER_METHOD = {
 
 // The three directions, found in a lesson's own words. A sentence counts for a
 // direction when it addresses the one side toward the other.
-const PARENTS_TO_CHILDREN = /\b(parents?|mom|dad|mother|father|grown-?ups?|guardians?)\b[^.!?]{0,90}\b(ask|talk|discuss|read|share|sit|teach|listen)\b[^.!?]{0,80}\b(child|children|kids?|son|daughter|young|family)\b/i;
-const CHILDREN_TO_PARENTS = /\b(ask|tell|talk (?:to|with)|share with|read (?:this |it )?(?:to|with)|discuss (?:this |it )?with|show)\b[^.!?]{0,50}\b(?:your|a) (?:parents?|mom|dad|mother|father|grown-?up|grandparents?|grandma|grandpa|family)\b/i;
+//
+// WIDENED 2026-10-07 (DR-0795), after measuring the elder band. The senior band
+// speaks TO the grandparent, so it names the elder side two ways the first
+// pattern missed: by the grandparent's own name ("Grandparents, ask the children")
+// and in the second person, where the reader IS the elder ("Ask your
+// grandchildren what this shows them"). ll207 and ll208 both carried the
+// direction in substance and were counted short; the instrument was the thing
+// that was short. Likewise the upward ask was written "Ask your OWN parents"
+// (ll208's senior band) and the pattern required "your parents" adjacent.
+const PARENTS_TO_CHILDREN = /\b(parents?|grandparents?|grandmas?|grandpas?|grandmothers?|grandfathers?|mom|dad|mother|father|grown-?ups?|guardians?)\b[^.!?]{0,90}\b(ask|talk|discuss|read|share|sit|teach|listen)\b[^.!?]{0,80}\b(child|children|kids?|son|daughter|grandchild|grandchildren|grandkids?|young|family)\b|\b(ask|tell|talk with|teach|listen to|read with|sit with|share with|discuss with)\b[^.!?]{0,60}\byour (?:child|children|kids?|son|daughter|grandchild|grandchildren|grandkids?)\b/i;
+const CHILDREN_TO_PARENTS = /\b(ask|tell|talk (?:to|with)|share with|read (?:this |it )?(?:to|with)|discuss (?:this |it )?with|show)\b[^.!?]{0,50}\b(?:your|a)(?: own| dear)? (?:parents?|mom|dad|mother|father|grown-?up|grandparents?|grandma|grandpa|family|elder)\b/i;
 const FRIEND_TO_FRIEND = /\b(friends?|one another|each other|a brother or sister|someone you trust|relationship to relationship)\b[^.!?]{0,90}\b(ask|tell|talk|discuss|share|sharpen|pray|listen|read)\b|\b(ask|tell|talk (?:to|with)|share with|pray with|read (?:this |it )?with)\b[^.!?]{0,40}\b(?:a|your) (?:friend|brother or sister in Christ|neighbou?r)\b/i;
 
 const sentencesOf = (text) => String(text || '').split(/(?<=[.!?])\s+/);
@@ -103,6 +112,58 @@ export function ownPrompts(module) {
 export function hasAllThree(module) {
   const o = ownPrompts(module);
   return !!(o.parents && o.children && o.friends);
+}
+
+// EVERY BAND, NOT ONLY THE MODULE (DR-0795). `hasAllThree` pools the whole
+// module, so one band can carry the friend line and another the parent line and
+// the module reads whole while a reader who only ever sees the teen band is sent
+// nowhere. A reader reads ONE band. So the directions are counted where that
+// reader meets them: in the band text itself.
+export const TALK_PLACES = ['lesson', 'child', 'youth', 'teen', 'adult', 'senior'];
+
+const textAt = (module, place) => {
+  const m = module || {};
+  const t = place === 'lesson' ? m.lesson : (m.levels || {})[place];
+  return typeof t === 'string' ? t : '';
+};
+
+/** Which of the three directions this one piece of text does NOT send you in. */
+export function missingDirections(text) {
+  const sentences = sentencesOf(text);
+  const found = (re) => sentences.some((s) => re.test(s));
+  const gaps = [];
+  if (!found(PARENTS_TO_CHILDREN)) gaps.push('parents');
+  if (!found(CHILDREN_TO_PARENTS)) gaps.push('children');
+  if (!found(FRIEND_TO_FRIEND)) gaps.push('friends');
+  return gaps;
+}
+
+/**
+ * Every place a reader actually reads (the lesson prose and each band present),
+ * with the directions it is short of. Empty means every band sends the reader
+ * in all three directions in the lesson's own words.
+ */
+export function placesMissingDirections(module) {
+  const out = [];
+  for (const place of TALK_PLACES) {
+    const text = textAt(module, place);
+    if (!text) continue;
+    const gaps = missingDirections(text);
+    if (gaps.length) out.push({ place, missing: gaps });
+  }
+  return out;
+}
+
+/** True when the lesson AND every band it carries send the reader all three ways. */
+export function hasAllThreeEverywhere(module) {
+  return placesMissingDirections(module).length === 0;
+}
+
+/** How many of a catalog's lessons are whole in every band (not only pooled). */
+export function everyBandCoverage(modules = []) {
+  let whole = 0;
+  for (const m of modules) if (hasAllThreeEverywhere(m)) whole += 1;
+  return { lessons: modules.length, whole };
 }
 
 /** The three prompts a lesson card shows. `own` marks the lesson's own words. */

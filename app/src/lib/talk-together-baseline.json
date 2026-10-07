@@ -1,6 +1,7 @@
 {
-  "_about": "Ratchet for DR-0733. Measured 2026-10-01 over every registered course with ownPrompts(): lessons that carry their OWN prompts in all three directions (parents to children, children to parents, friend to friend). The number may only rise; every lesson added on or after 2026-10-01 must carry all three.",
-  "measured": "2026-10-01",
-  "lessons": 593,
-  "all": 0
+  "_about": "Ratchet for DR-0733 and DR-0795. Measured over every registered course: `lessons` is the catalog's size, `all` is how many carry their OWN prompts in all three directions when the whole module is pooled (talkTogetherCoverage), and `everyBand` is how many are whole in EVERY place a reader actually reads - the lesson prose and each band present (everyBandCoverage). Every number may only rise. Every lesson added on or after 2026-10-01 must carry all three in every band it ships.",
+  "measured": "2026-10-07",
+  "lessons": 609,
+  "all": 14,
+  "everyBand": 14
 }
