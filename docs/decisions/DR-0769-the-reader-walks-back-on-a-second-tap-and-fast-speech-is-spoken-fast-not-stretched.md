@@ -20,6 +20,10 @@ Two reports in one sentence, both about the reader on a fast voice. DR-0764 had 
 - **Why fast speech mumbled, NAS voice.** Every clip (Piper on `/voice-lite`, XTTS in the studio) was synthesized at 1x and sped up in the browser with `playbackRate` and pitch preservation. That is a time-stretch, and a time-stretch at 2x and beyond smears consonants. The words were right; the audio was mangled after the fact. Neither server accepted a pace: `voice_lite_server.py` ran piper with model and output only; `server.py` called `tts_to_file` with no `speed`.
 - **Why fast speech mumbled, device voice.** `tts.js` speaks one clause-sized segment per utterance (so a speed change can restart the current one). At speed, every utterance costs the engine an onset (Chrome's queue gap; on Android the first syllable clipped while the engine ramps), and at 3x a 60-character clause is about a second long, so fast speech became a run of swallowed starts.
 
+## Impact
+
+Reading at speed, hands-free — the car, the kitchen, the screen off — could not be walked backwards from the bar at all: the one button that re-listens vanished for the seconds the voice took to restart and, once back, only ever re-read the same paragraph. And the default voice (the NAS, DR-0382) at 2x and above sounded like a stretched recording rather than a person speaking quickly, on every lesson, for every listener who had turned the speed up. Both land on the listener's best setup (a saved lesson in the NAS voice at speed), which is exactly where the reader is used most.
+
 ## Decision
 
 1. **A jump in flight is a reading in flight.** `jumpLive` (state) is set by every jump, cleared when the voice speaks, by Stop, or by a 20 s backstop so a read that never starts cannot leave the bar claiming a reading (DR-0076). `live = isReading || jumpLive` gates the bar, the pill, the step row and `canJump`.
