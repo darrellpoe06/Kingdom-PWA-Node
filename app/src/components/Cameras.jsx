@@ -79,7 +79,7 @@ function WyzeSetup({ token, onAdded }) {
       if (onAdded) onAdded(r);
     }
   };
-  const tone = result ? (result.kind === 'ok' ? 'text-[#2F6B3A]' : 'text-[#8A2E1F]') : '';
+  const tone = result ? (result.kind === 'ok' ? 'text-[#2F6B3A]' : 'text-[#B85838]') : '';
   return (
     <form onSubmit={submit} data-testid="wyze-setup" className="mt-3 border-t border-[#E8E4DC] pt-3" aria-busy={busy}>
       <div className={labelCls}>Sign in to Wyze once, here</div>
