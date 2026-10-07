@@ -14,6 +14,8 @@ import {
   validateWyzeSetup, classifySetupResult, setupWyze,
   serviceCodeState, classifyRestartResult, restartService, restartUrl,
   WYZE_DRAFT_KEY, loadWyzeDraft, saveWyzeDraft, clearWyzeDraft,
+  humanizeCameraError, classifySnapError, explainWhy, fetchWhy, whyUrl, skipFailedFrame, runLimited,
+  WALL_KEY, loadWall, saveWall, wallLimit, WALL_MAX_DEFAULT, SNAP_CONCURRENCY, LIVE_RECONNECT_MAX,
 } from '../lib/cameras.js';
 
 describe('the road: every URL is same-origin under /cams', () => {
@@ -276,5 +278,106 @@ describe('the Wyze draft survives a reload', () => {
     expect(loadWyzeDraft(broken)).toEqual({ email: '', password: '', api_id: '', api_key: '' });
     expect(saveWyzeDraft({ email: 'a' }, broken)).toBe(false);
     expect(() => clearWyzeDraft(broken)).not.toThrow();
+  });
+});
+
+// DR-0774: sight, not a status. A blank tile names its real cause; the NAS explains on request.
+describe('humanizeCameraError + classifySnapError', () => {
+  it('classes go2rtc\'s own error text into plain words, with the host the NAS tried', () => {
+    const t = humanizeCameraError('wyze: connect failed: dial udp 192.168.1.77:0: i/o timeout', '192.168.1.77');
+    expect(t.kind).toBe('other-network');
+    expect(t.text).toMatch(/cannot reach this camera on its own network \(the NAS tried 192\.168\.1\.77\)/);
+    expect(t.text).toMatch(/other house/);
+    expect(humanizeCameraError('wyze: only DTLS cameras are supported').kind).toBe('firmware');
+    expect(humanizeCameraError('wyze: av login failed: bad enr').kind).toBe('auth');
+    expect(humanizeCameraError('no sources').kind).toBe('missing');
+    expect(humanizeCameraError('no answer in 12 s').kind).toBe('asleep');
+    expect(humanizeCameraError('').kind).toBe('unknown');
+    expect(humanizeCameraError('wyze: something odd').text).toBe('something odd');
+  });
+  it('a failed frame is a short true reason on the tile, never a bare 502', () => {
+    expect(classifySnapError({ status: 504, body: { error: 'frame-timeout', after_s: 12 } })).toBe('no answer in 12 s');
+    expect(classifySnapError({ status: 500, body: { error: 'no-frame', detail: 'wyze: connect failed: dial udp 192.168.1.77:0: i/o timeout' } })).toBe('NAS cannot reach it on its network');
+    expect(classifySnapError({ status: 500, body: { error: 'no-frame', detail: 'wyze: only DTLS cameras are supported' } })).toBe('firmware has no DTLS');
+    expect(classifySnapError({ status: 500, body: { error: 'no-frame', detail: 'wyze: K10002 failed' } })).toBe('camera refused the sign-in');
+    expect(classifySnapError({ status: 503, body: { error: 'busy' } })).toBe('NAS busy, next sweep');
+    expect(classifySnapError({ status: 502, body: { error: 'go2rtc-unreachable' } })).toBe('restreamer dark');
+    expect(classifySnapError({ status: 401, body: { error: 'unauthorized' } })).toBe('family key refused');
+    expect(classifySnapError({ status: 500, body: { error: 'no-frame', detail: 'wyze: strange' } })).toBe('wyze: strange');
+    expect(classifySnapError({ status: 418, body: null })).toBe('HTTP 418');
+  });
+});
+
+describe('explainWhy + fetchWhy', () => {
+  it('reads the NAS\'s /why answer into a headline, lines and the raw log', () => {
+    const ex = explainWhy({ id: 'x', producers: [{ kind: 'wyze', host: '192.168.1.77', state: 'connecting' }], probe: { status: 500, ok: false, error: 'wyze: connect failed: dial udp 192.168.1.77:0: i/o timeout', ms: 1200 }, log: ['06:40 warn connect failed'] });
+    expect(ex.kind).toBe('other-network');
+    expect(ex.headline).toMatch(/the NAS tried 192\.168\.1\.77/);
+    expect(ex.lines[0]).toMatch(/Camera address the NAS uses: 192\.168\.1\.77 · restreamer state: connecting/);
+    expect(ex.lines[1]).toMatch(/The restreamer said: wyze: connect failed/);
+    expect(ex.log).toEqual(['06:40 warn connect failed']);
+    const ok = explainWhy({ id: 'y', producers: [{ kind: 'wyze', host: '192.168.1.50', state: 'playing' }], probe: { status: 200, ok: true, ms: 800 }, log: [] });
+    expect(ok.kind).toBe('ok');
+    expect(ok.headline).toMatch(/answers now/);
+    const t = explainWhy({ id: 'z', producers: [], probe: { status: 0, ok: false, timeout: true, error: 'no answer in 12 s', ms: 12000 }, log: [] });
+    expect(t.kind).toBe('asleep');
+    expect(t.lines[0]).toMatch(/heard nothing for 12 s/);
+    expect(explainWhy(null).kind).toBe('unknown');
+  });
+  it('fetchWhy asks /cams/why/<id> with the bearer and names an older service (404) or a dark road', async () => {
+    const calls = [];
+    const r = await fetchWhy('front_yard', 'tok', async (url, opts) => { calls.push({ url, opts }); return { status: 200, json: async () => ({ id: 'front_yard', producers: [], probe: { ok: true, status: 200, ms: 5 }, log: [] }) }; });
+    expect(calls[0].url).toBe(whyUrl('front_yard'));
+    expect(calls[0].url).toBe('/cams/why/front_yard');
+    expect(calls[0].opts.headers.Authorization).toBe('Bearer tok');
+    expect(r.ok).toBe(true);
+    expect(r.explanation.kind).toBe('ok');
+    const old = await fetchWhy('x', 'tok', async () => ({ status: 404, json: async () => ({ error: 'not-found' }) }));
+    expect(old.ok).toBe(false);
+    expect(old.explanation.headline).toMatch(/older camera service/);
+    const dark = await fetchWhy('x', 'tok', async () => { throw new TypeError('Failed to fetch'); });
+    expect(dark.explanation.headline).toMatch(/did not answer/);
+  });
+});
+
+describe('the sweep: several at once, a failed camera rested', () => {
+  it('skipFailedFrame rests a camera that failed inside the window and not after it', () => {
+    const now = 1_000_000;
+    expect(skipFailedFrame({ error: 'x', errorAt: now - 1000 }, now)).toBe(true);
+    expect(skipFailedFrame({ error: 'x', errorAt: now - 40000 }, now)).toBe(false);
+    expect(skipFailedFrame({ url: 'blob:', error: '' }, now)).toBe(false);
+    expect(skipFailedFrame(undefined, now)).toBe(false);
+  });
+  it('runLimited keeps at most `limit` in flight and finishes every item', async () => {
+    let inflight = 0; let peak = 0; const done = [];
+    await runLimited([1, 2, 3, 4, 5, 6, 7], 3, async (n) => {
+      inflight += 1; peak = Math.max(peak, inflight);
+      await new Promise((r) => setTimeout(r, 5));
+      inflight -= 1; done.push(n);
+    });
+    expect(peak).toBe(3);
+    expect(done.sort((a, b) => a - b)).toEqual([1, 2, 3, 4, 5, 6, 7]);
+    expect(SNAP_CONCURRENCY).toBeGreaterThan(1);
+    expect(LIVE_RECONNECT_MAX).toBeGreaterThan(0);
+  });
+});
+
+describe('the wall: which cameras to watch together, kept per device', () => {
+  const mem = () => { const m = new Map(); return { getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), removeItem: (k) => m.delete(k), size: () => m.size }; };
+  it('saves and loads ids, drops junk, and the empty wall removes the key', () => {
+    const st = mem();
+    expect(loadWall(st)).toEqual([]);
+    saveWall(['front_yard', 'garage'], st);
+    expect(JSON.parse(st.getItem(WALL_KEY))).toEqual(['front_yard', 'garage']);
+    st.setItem(WALL_KEY, JSON.stringify(['ok_cam', 'bad id/with slash', 7]));
+    expect(loadWall(st)).toEqual(['ok_cam']);
+    saveWall([], st);
+    expect(st.size()).toBe(0);
+  });
+  it('the wall\'s size follows the NAS\'s live cap, never above 12, and has a default when the NAS does not say', () => {
+    expect(wallLimit({ max_live: 12 })).toBe(12);
+    expect(wallLimit({ max_live: 40 })).toBe(12);
+    expect(wallLimit({ max_live: 2 })).toBe(2);
+    expect(wallLimit(null)).toBe(WALL_MAX_DEFAULT);
   });
 });

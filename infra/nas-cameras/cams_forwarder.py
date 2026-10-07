@@ -46,7 +46,13 @@
 #        then this process exits 3 and systemd (Restart=on-failure) starts it
 #        again from the file on disk. 429 restart-too-soon inside 60 s of the
 #        last one. The in-app "Restart the camera service" button (DR-0772).
-#   GET  /snap/<id>.jpg?w=&h=          bearer OR ticket. One JPEG frame.
+#   GET  /why/<id>                     bearer. WHY a camera has no picture, from
+#        go2rtc's own mouth: {id, probe:{status,error,ms}, producers:[{kind,
+#        host,...no url}], log:[scrubbed recent lines naming this stream]}.
+#        (DR-0774: a tile that says only "HTTP 502" gives no sight.)
+#   GET  /snap/<id>.jpg?w=&h=          bearer OR ticket. One JPEG frame. On a
+#        miss the JSON names the cause: frame-timeout (504, after_s), no-frame
+#        (go2rtc's status + its scrubbed detail), go2rtc-unreachable (502).
 #   GET  /live/<id>.mp4?t=             ticket. Progressive MP4 (Chrome, Edge,
 #                                      Firefox, Android). Ends itself at
 #                                      LIVE_MAX_SECONDS; the app may re-open.
@@ -58,10 +64,9 @@
 #
 # Brakes (request-driven -- nothing happens until a browser asks -- but a public
 # door still needs bounds, and the Funnel is "a funnel, not a hose"):
-#   * MAX_LIVE concurrent live streams; the (N+1)th gets 503 at once.
-#   * LIVE_MAX_SECONDS per live stream; then the forwarder closes it. The app
-#     says so and offers to resume. A phone left on a bench cannot stream the
-#     front yard through the Funnel all night.
+#   * MAX_LIVE concurrent live streams (default 12); the (N+1)th gets 503.
+#   * LIVE_MAX_SECONDS per live stream, default 0 = no clock (DR-0774): a view
+#     runs until the viewer leaves. Set it only if the home link measures short.
 #   * MAX_SNAP_INFLIGHT concurrent snapshots; SNAP_TIMEOUT / SEGMENT_TIMEOUT.
 #
 # Run:
@@ -76,6 +81,7 @@ import hmac
 import json
 import os
 import re
+import socket
 import sys
 import threading
 import time
@@ -87,8 +93,14 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 TOKEN_FILE_DEFAULT = "/volume1/PoeTech/secrets/chat-bridge-token.txt"
 UPSTREAM_DEFAULT = "http://127.0.0.1:1984"
 
-MAX_LIVE = int(os.environ.get("CAMS_MAX_LIVE", "2"))
-LIVE_MAX_SECONDS = float(os.environ.get("CAMS_LIVE_MAX_SECONDS", "300"))
+# THE CAPS ARE NOT THE PRODUCT (Darrell 2026-10-07: "Let's not build in
+# undermining constraints... we want to build the best pipelines"). The live
+# cap and the per-view clock stay as MECHANISMS, measured and reported in
+# /health, but their defaults no longer cut a family member off: 12 live
+# views (a 3x4 wall) and no clock (0 = a view runs until the viewer leaves).
+# The home link's real bandwidth is measured by the app, not pre-empted here.
+MAX_LIVE = int(os.environ.get("CAMS_MAX_LIVE", "12"))
+LIVE_MAX_SECONDS = float(os.environ.get("CAMS_LIVE_MAX_SECONDS", "0"))  # 0 = no clock
 MAX_SNAP_INFLIGHT = int(os.environ.get("CAMS_MAX_SNAP_INFLIGHT", "6"))
 SNAP_TIMEOUT = float(os.environ.get("CAMS_SNAP_TIMEOUT", "12"))
 SEGMENT_TIMEOUT = float(os.environ.get("CAMS_SEGMENT_TIMEOUT", "20"))
@@ -248,6 +260,70 @@ def camera_list(streams_json):
     return out
 
 
+# WHAT MAY LEAVE IN A DIAGNOSTIC (DR-0774). go2rtc's log and stream info carry
+# the source url, which carries the camera's enr secret and, for other kinds,
+# passwords and tokens. The scrubber removes every credential-shaped value and
+# keeps what explains a failure: the scheme, the host the NAS tried, the error.
+SECRET_PARAMS = ("enr", "password", "pass", "pwd", "token", "api_key", "key", "refresh_token", "access_token", "secret")
+
+
+def scrub_text(text, limit=400):
+    t = str(text or "")
+    for k in SECRET_PARAMS:
+        t = re.sub(r"(?i)([?&]%s=)[^&\s\"']*" % re.escape(k), r"\1***", t)
+        t = re.sub(r"(?i)(\"%s\"\s*:\s*\")[^\"]*" % re.escape(k), r"\1***", t)
+    t = re.sub(r"://([^/@\s]+)@", "://***@", t)  # user:pass@host
+    return t[:limit]
+
+
+def producer_summary(entry):
+    """go2rtc stream info -> producers without their url: kind, host, and
+    whatever state fields go2rtc reports (never the url itself)."""
+    out = []
+    producers = entry.get("producers") if isinstance(entry, dict) else None
+    if not isinstance(producers, list):
+        return out
+    for p in producers:
+        if not isinstance(p, dict):
+            continue
+        url = str(p.get("url") or "")
+        host = ""
+        try:
+            host = urllib.parse.urlsplit(url).hostname or ""
+        except ValueError:
+            host = ""
+        item = {"kind": kind_of(url), "host": host}
+        for k in ("type", "state", "remote_addr", "medias", "receivers", "recv", "bytes_recv"):
+            if k in p and k != "url":
+                v = p[k]
+                item[k] = v if isinstance(v, (int, float, str, bool)) or v is None else (len(v) if isinstance(v, (list, dict)) else str(v))
+        out.append(item)
+    return out
+
+
+def log_lines_for(jsonl, stream_id, limit=20):
+    """go2rtc GET /api/log (jsonlines) -> the last `limit` lines that name
+    this stream or its source kind, scrubbed. A line is kept as text."""
+    lines = []
+    needle = stream_id.lower()
+    for raw in (jsonl or "").splitlines():
+        raw = raw.strip()
+        if not raw:
+            continue
+        low = raw.lower()
+        if needle in low or "wyze" in low or "error" in low:
+            try:
+                j = json.loads(raw)
+                txt = " ".join(str(j.get(k)) for k in ("time", "level", "message") if j.get(k) is not None)
+                for k, v in j.items():
+                    if k not in ("time", "level", "message") and isinstance(v, (str, int, float)):
+                        txt += " %s=%s" % (k, v)
+            except ValueError:
+                txt = raw
+            lines.append(scrub_text(txt, 300))
+    return lines[-limit:]
+
+
 def rewrite_playlist(text, ticket, at_root):
     """Carry the ticket onto every media/playlist URL in an m3u8 body and make
     the URLs relative to where the CLIENT fetched this playlist from.
@@ -385,6 +461,15 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
                 if not self._authed():
                     return self._json(401, {"error": "unauthorized"})
                 return self._list()
+
+            m = re.match(r"^/why/([^/]+)$", path)
+            if m:
+                cam = m.group(1)
+                if not CAMERA_ID.match(cam):
+                    return self._json(400, {"error": "bad-camera-id"})
+                if not self._authed():
+                    return self._json(401, {"error": "unauthorized"})
+                return self._why(cam)
 
             m = re.match(r"^/snap/([^/]+)\.jpg$", path)
             if m:
@@ -587,14 +672,59 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
                 try:
                     status, ctype, body = self._get_upstream("/api/frame.jpeg?" + urllib.parse.urlencode(params), snap_timeout)
                 except urllib.error.HTTPError as e:
-                    return self._json(e.code if 400 <= e.code < 600 else 502, {"error": "no-frame", "upstream_status": e.code})
-                except (urllib.error.URLError, OSError, ValueError):
-                    return self._json(502, {"error": "go2rtc-unreachable"})
+                    # go2rtc answered, and said why (its body is the error text).
+                    detail = scrub_text(e.read(2048).decode("utf-8", "replace").strip(), 300)
+                    return self._json(e.code if 400 <= e.code < 600 else 502, {"error": "no-frame", "upstream_status": e.code, "detail": detail})
+                except socket.timeout:
+                    return self._json(504, {"error": "frame-timeout", "after_s": int(snap_timeout)})
+                except urllib.error.URLError as e:
+                    if isinstance(getattr(e, "reason", None), socket.timeout):
+                        return self._json(504, {"error": "frame-timeout", "after_s": int(snap_timeout)})
+                    return self._json(502, {"error": "go2rtc-unreachable", "detail": scrub_text(getattr(e, "reason", e), 200)})
+                except (OSError, ValueError) as e:
+                    return self._json(502, {"error": "go2rtc-unreachable", "detail": scrub_text(e, 200)})
                 if not body:
-                    return self._json(502, {"error": "no-frame"})
+                    return self._json(502, {"error": "no-frame", "detail": "go2rtc answered an empty frame"})
                 return self._bytes(status, ctype or "image/jpeg", body)
             finally:
                 snap_gate.release()
+
+        def _why(self, cam):
+            """Why does this camera give no picture? Ask go2rtc three ways and
+            pass its answers through, scrubbed: the stream's producers (kind,
+            host, state), its recent log lines naming the stream, and one short
+            frame probe whose error text is go2rtc's own."""
+            out = {"id": cam, "producers": [], "log": [], "probe": {}}
+            try:
+                _s, _c, info = self._get_upstream("/api/streams?src=" + urllib.parse.quote(cam), HEALTH_TIMEOUT, limit=1024 * 1024)
+                parsed = json.loads(info.decode("utf-8"))
+                entry = parsed.get(cam) if isinstance(parsed, dict) and cam in parsed else parsed
+                out["producers"] = producer_summary(entry if isinstance(entry, dict) else {})
+            except urllib.error.HTTPError as e:
+                out["stream_error"] = "go2rtc HTTP %d: %s" % (e.code, scrub_text(e.read(1024).decode("utf-8", "replace"), 200))
+            except (urllib.error.URLError, OSError, ValueError):
+                return self._json(502, {"error": "go2rtc-unreachable"})
+            try:
+                _s, _c, logs = self._get_upstream("/api/log", HEALTH_TIMEOUT, limit=2 * 1024 * 1024)
+                out["log"] = log_lines_for(logs.decode("utf-8", "replace"), cam)
+            except (urllib.error.HTTPError, urllib.error.URLError, OSError):
+                out["log"] = []
+            t0 = time.time()
+            try:
+                status, _c, body = self._get_upstream("/api/frame.jpeg?src=" + urllib.parse.quote(cam), min(snap_timeout, 15.0), limit=65536)
+                out["probe"] = {"status": status, "ok": bool(body), "ms": int((time.time() - t0) * 1000)}
+            except urllib.error.HTTPError as e:
+                out["probe"] = {"status": e.code, "ok": False, "error": scrub_text(e.read(2048).decode("utf-8", "replace").strip(), 300), "ms": int((time.time() - t0) * 1000)}
+            except socket.timeout:
+                out["probe"] = {"status": 0, "ok": False, "error": "no answer in %d s" % int(min(snap_timeout, 15.0)), "timeout": True, "ms": int((time.time() - t0) * 1000)}
+            except urllib.error.URLError as e:
+                if isinstance(getattr(e, "reason", None), socket.timeout):
+                    out["probe"] = {"status": 0, "ok": False, "error": "no answer in %d s" % int(min(snap_timeout, 15.0)), "timeout": True, "ms": int((time.time() - t0) * 1000)}
+                else:
+                    out["probe"] = {"status": 0, "ok": False, "error": scrub_text(getattr(e, "reason", e), 200), "ms": int((time.time() - t0) * 1000)}
+            except (OSError, ValueError) as e:
+                out["probe"] = {"status": 0, "ok": False, "error": scrub_text(e, 200), "ms": int((time.time() - t0) * 1000)}
+            return self._json(200, out)
 
         def _playlist(self, cam, query, up, at_root):
             t = urllib.parse.parse_qs(query).get("t", [""])[0]
@@ -645,8 +775,8 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
                     read = getattr(r, "read1", None) or r.read
                     try:
                         while True:
-                            if time.monotonic() - started >= live_max_seconds:
-                                break  # the brake: a live view ends itself; the app may re-open
+                            if live_max_seconds > 0 and time.monotonic() - started >= live_max_seconds:
+                                break  # the optional clock: a live view ends itself; the app re-opens
                             chunk = read(CHUNK)
                             if not chunk:
                                 break
@@ -688,6 +818,16 @@ def _selftest():
             seen["queries"].append(self.path)
             if path == "/api":
                 return self._send(200, "application/json", b'{"version":"1.9.14-test","host":"nas"}')
+            if path == "/api/log":
+                return self._send(200, "application/jsonlines", (
+                    '{"time":"2026-10-07T06:40:00Z","level":"warn","message":"[wyze] connect failed: dial udp 192.168.1.77:0: i/o timeout","url":"wyze://192.168.1.77?uid=ABC&enr=LOGSECRET&dtls=true","stream":"err_cam"}\n'
+                    '{"time":"2026-10-07T06:40:01Z","level":"debug","message":"[hls] new session","stream":"front_yard"}\n'
+                    '{"time":"2026-10-07T06:40:02Z","level":"info","message":"[api] listen addr=:1984"}\n').encode("utf-8"))
+            if path == "/api/streams" and urllib.parse.parse_qs(query).get("src", [""])[0]:
+                sid = urllib.parse.parse_qs(query)["src"][0]
+                return self._send(200, "application/json", json.dumps({
+                    "producers": [{"url": "wyze://192.168.1.77?uid=ABC&enr=SRCSECRET&dtls=true", "type": "wyze", "state": "connecting"}] if sid == "err_cam" else [{"url": "wyze://192.168.1.50?uid=ABC&enr=SECRET&mac=AA&model=HL_CAM4&dtls=true", "type": "wyze", "state": "playing", "medias": ["video"]}],
+                    "consumers": []}).encode("utf-8"))
             if path == "/api/streams":
                 return self._send(200, "application/json", json.dumps({
                     "front_yard": {"producers": [{"url": "wyze://192.168.1.50?uid=ABC&enr=SECRET&mac=AA&model=HL_CAM4&dtls=true"}], "consumers": []},
@@ -697,6 +837,11 @@ def _selftest():
                 }).encode("utf-8"))
             if path == "/api/frame.jpeg":
                 q = urllib.parse.parse_qs(query)
+                if q.get("src", [""])[0] == "err_cam":
+                    return self._send(500, "text/plain", b"wyze: connect failed: dial udp 192.168.1.77:0: i/o timeout wyze://192.168.1.77?uid=ABC&enr=BODYSECRET")
+                if q.get("src", [""])[0] == "slow_cam":
+                    time.sleep(1.6)
+                    return self._send(200, "image/jpeg", b"\xff\xd8late\xff\xd9")
                 if q.get("src", [""])[0] == "dark_cam":
                     return self._send(500, "text/plain", b"source not ready")
                 return self._send(200, "image/jpeg", b"\xff\xd8JPEG-" + q.get("src", [""])[0].encode() + b"-w" + q.get("w", ["0"])[0].encode())
@@ -958,6 +1103,42 @@ def _selftest():
     check(s == 200 and exits == [3, 3], "after the window a restart is allowed again")
     s, _h, d = call("POST", "/restart", json.dumps({"x": 1}).encode(), auth=B)
     check(s == 429, "a body changes nothing: the route takes none")
+
+    print("=== 8d. a blank tile can say WHY (DR-0774): honest snap causes and GET /why ===")
+    s, _h, d = call("GET", "/snap/err_cam.jpg", auth=B)
+    j = json.loads(d.decode("utf-8"))
+    check(s == 500 and j.get("error") == "no-frame" and "i/o timeout" in j.get("detail", ""), "go2rtc's own error text reaches the app on a failed frame (%r)" % j.get("detail"))
+    check(b"BODYSECRET" not in d and b"enr=" not in d or b"enr=***" in d, "the enr secret in go2rtc's error text is scrubbed")
+    fwd2 = ThreadingHTTPServer(("127.0.0.1", 0), make_handler(
+        "http://127.0.0.1:%d" % fp, token, max_live=2, live_max_seconds=1.0, max_snap=1, snap_timeout=1.0, segment_timeout=5))
+    fwd2.daemon_threads = True
+    fwd2.handle_error = lambda request, client_address: None
+    port2 = fwd2.server_address[1]
+    threading.Thread(target=fwd2.serve_forever, daemon=True).start()
+    c2 = HTTPConnection("127.0.0.1", port2, timeout=8)
+    c2.request("GET", "/snap/slow_cam.jpg", headers={"Authorization": B})
+    r2 = c2.getresponse(); d2 = r2.read(); c2.close()
+    j2 = json.loads(d2.decode("utf-8"))
+    check(r2.status == 504 and j2.get("error") == "frame-timeout" and j2.get("after_s") == 1, "a camera that does not answer in time is a 504 frame-timeout naming the seconds, never 'go2rtc unreachable' (%r)" % j2)
+    fwd2.shutdown()
+    s, _h, d = call("GET", "/why/err_cam")
+    check(s == 401, "no bearer -> /why 401")
+    s, _h, d = call("GET", "/why/bad%20id", auth=B)
+    check(s in (400, 404), "a malformed id never reaches go2rtc")
+    s, _h, d = call("GET", "/why/err_cam", auth=B)
+    j = json.loads(d.decode("utf-8"))
+    check(s == 200 and j.get("id") == "err_cam", "GET /why/<id> -> 200 for the stream")
+    check(j.get("producers") and j["producers"][0].get("kind") == "wyze" and j["producers"][0].get("host") == "192.168.1.77" and j["producers"][0].get("state") == "connecting" and "url" not in j["producers"][0], "producers are summarized: kind, host, state, never the url")
+    check(any("i/o timeout" in line for line in j.get("log", [])) and not any("front_yard" in line and "hls" in line for line in j.get("log", [])), "the log lines naming this stream (and wyze/error lines) come through; another stream's chatter does not")
+    check(j.get("probe", {}).get("status") == 500 and "i/o timeout" in j["probe"].get("error", ""), "the probe carries go2rtc's own error text")
+    check(b"LOGSECRET" not in d and b"SRCSECRET" not in d and b"BODYSECRET" not in d, "no enr secret leaves in any part of /why")
+    s, _h, d = call("GET", "/why/front_yard", auth=B)
+    j = json.loads(d.decode("utf-8"))
+    check(s == 200 and j.get("probe", {}).get("ok") is True and j["producers"][0].get("state") == "playing", "a healthy camera's /why says so: probe ok, producer playing")
+    s, _h, d = call("GET", "/health")
+    j = json.loads(d.decode("utf-8"))
+    check(j.get("max_live") == 2 and j.get("live_max_seconds") == 1, "/health reports the caps this instance runs with (the defaults are 12 and 0 = no clock)")
+    check(MAX_LIVE == 12 and LIVE_MAX_SECONDS == 0, "the shipped defaults do not cut a viewer off: 12 live, no clock")
 
     print("=== 9. a DARK go2rtc reads as 502 everywhere, never as this process's own 200 ===")
     fake.shutdown(); fake.server_close()

@@ -9,7 +9,7 @@ import { createRoot } from 'react-dom/client';
 import Cameras from '../components/Cameras.jsx';
 import { SURFACES, surfaceById } from '../surfaces.js';
 import { CHAT_BRIDGE_TOKEN_KEY } from '../lib/nas-photos.js';
-import { WYZE_DRAFT_KEY } from '../lib/cameras.js';
+import { WYZE_DRAFT_KEY, WALL_KEY, LIVE_RECONNECT_MAX, LIVE_RECONNECT_DELAY_MS } from '../lib/cameras.js';
 import { getReadTarget, subscribeRead } from '../lib/read-target.js';
 
 const TOKEN = 'family-test-token';
@@ -28,14 +28,18 @@ function makeFetch(plan) {
   const fetchImpl = vi.fn(async (url, opts = {}) => {
     calls.push({ url: String(url), opts });
     const u = String(url);
-    if (u === '/cams/health') return jsonResponse(plan.healthStatus ?? 200, plan.health ?? { ok: true, go2rtc: '1.9.14', streams: 2, live_max_seconds: 300 });
+    if (u === '/cams/health') return jsonResponse(plan.healthStatus ?? 200, plan.health ?? { ok: true, go2rtc: '1.9.14', streams: 2, live_max_seconds: 0, max_live: 12 });
     if (u === '/cams/list') {
       if (plan.listThrows) throw new TypeError('Failed to fetch');
       return jsonResponse(plan.listStatus ?? 200, plan.list ?? { cameras: [], count: 0 });
     }
     if (u.startsWith('/cams/snap/')) {
+      const id = decodeURIComponent(u.slice('/cams/snap/'.length).split('.jpg')[0]);
+      const fail = plan.snapFail && plan.snapFail[id];
+      if (fail) return jsonResponse(fail.status, fail.body);
       return { ok: true, status: 200, blob: async () => new Blob(['jpegbytes'], { type: 'image/jpeg' }), json: async () => ({}) };
     }
+    if (u.startsWith('/cams/why/')) return jsonResponse(plan.whyStatus ?? 200, plan.why ?? { id: 'x', producers: [{ kind: 'wyze', host: '192.168.1.77', state: 'connecting' }], probe: { status: 500, ok: false, error: 'wyze: connect failed: dial udp 192.168.1.77:0: i/o timeout', ms: 900 }, log: ['06:40 warn [wyze] connect failed: i/o timeout'] });
     if (u === '/cams/ticket') return jsonResponse(plan.ticketStatus ?? 200, { ticket: '9999999999.abcdef', expires_in: 90, camera: JSON.parse(opts.body).camera });
     if (u === '/cams/setup/wyze') return jsonResponse(plan.setupStatus ?? 200, plan.setup ?? { ok: true, added: 1, cameras: [{ id: 'front_yard', name: 'Front Yard', model: 'HL_CAM4', dtls: true, registered: true, existing: false }] });
     if (u === '/cams/restart') return jsonResponse(plan.restartStatus ?? 200, plan.restart ?? { ok: true, restarting: true, running: 'aaaa', on_disk: 'bbbb', changed: true });
@@ -58,7 +62,7 @@ describe('Cameras surface', () => {
   });
   afterEach(() => {
     act(() => root.unmount()); container.remove();
-    try { localStorage.removeItem(CHAT_BRIDGE_TOKEN_KEY); localStorage.removeItem(WYZE_DRAFT_KEY); } catch { /* fine */ }
+    try { localStorage.removeItem(CHAT_BRIDGE_TOKEN_KEY); localStorage.removeItem(WYZE_DRAFT_KEY); localStorage.removeItem(WALL_KEY); } catch { /* fine */ }
     vi.unstubAllGlobals();
   });
 
@@ -305,17 +309,88 @@ describe('Cameras surface', () => {
     expect(container.querySelector('[data-testid="live-view"]')).toBeFalsy();
   });
 
-  it('when the NAS ends the live view, the screen says why and offers Resume', async () => {
-    const { fetchImpl } = makeFetch({ list: { cameras: [{ id: 'front_yard', name: 'front yard', kind: 'wyze' }], count: 1 } });
+  it('a live view that ends on its own reconnects itself (a new ticket, the count shown) and offers Resume only after the last try (DR-0774)', async () => {
+    const { fetchImpl, calls } = makeFetch({ list: { cameras: [{ id: 'front_yard', name: 'front yard', kind: 'wyze' }], count: 1 } });
+    vi.stubGlobal('fetch', fetchImpl);
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      await mount();
+      await act(async () => { await new Promise((r) => setTimeout(r, 20)); });
+      await click(buttons().find((b) => b.textContent === 'Live'));
+      let video = container.querySelector('video');
+      await act(async () => { video.dispatchEvent(new Event('loadeddata')); });
+      const ticketsBefore = calls.filter((c) => c.url === '/cams/ticket').length;
+      await act(async () => { video.dispatchEvent(new Event('ended')); });
+      expect(container.querySelector('[data-testid="live-view-status"]').textContent).toMatch(/Reconnecting \(the stream ended on its own\)/);
+      expect(buttons().some((b) => b.textContent === 'Resume')).toBe(false);
+      await act(async () => { await vi.advanceTimersByTimeAsync(LIVE_RECONNECT_DELAY_MS + 50); });
+      expect(calls.filter((c) => c.url === '/cams/ticket').length).toBe(ticketsBefore + 1);
+      video = container.querySelector('video');
+      expect(video).toBeTruthy();
+      expect(container.querySelector('[data-testid="live-view-reconnects"]').textContent).toBe('reconnected 1×');
+      // and it never says the NAS stopped it at a clock the NAS does not run (live_max_seconds 0)
+      expect(container.textContent).not.toMatch(/stops each live view at/);
+      for (let i = 1; i < LIVE_RECONNECT_MAX; i += 1) {
+        await act(async () => { container.querySelector('video').dispatchEvent(new Event('error')); });
+        await act(async () => { await vi.advanceTimersByTimeAsync(LIVE_RECONNECT_DELAY_MS + 50); });
+      }
+      await act(async () => { container.querySelector('video').dispatchEvent(new Event('error')); });
+      expect(container.querySelector('[data-testid="live-view-status"]').textContent).toMatch(new RegExp(`Stopped after ${LIVE_RECONNECT_MAX} reconnects`));
+      expect(buttons().some((b) => b.textContent === 'Resume')).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('the wall shows several cameras live together, each with its own ticket, and Remove / Clear take them down (DR-0774)', async () => {
+    const { fetchImpl, calls } = makeFetch({ list: { cameras: [
+      { id: 'front_yard', name: 'front yard', kind: 'wyze' },
+      { id: 'garage', name: 'garage', kind: 'rtsp' },
+    ], count: 2 } });
     vi.stubGlobal('fetch', fetchImpl);
     await mount();
     await act(async () => { await new Promise((r) => setTimeout(r, 20)); });
-    await click(buttons().find((b) => b.textContent === 'Live'));
-    const video = container.querySelector('video');
-    await act(async () => { video.dispatchEvent(new Event('loadeddata')); });
-    await act(async () => { video.dispatchEvent(new Event('ended')); });
-    expect(container.textContent).toMatch(/Live view ended after \d+ s \(the NAS stops each live view at 300 s to protect the home link\)/);
-    expect(buttons().some((b) => b.textContent === 'Resume')).toBe(true);
+    expect(container.querySelector('[data-testid="camera-wall"]').textContent).toMatch(/Watch together · 0 of 12/);
+    await click(buttons().find((b) => b.getAttribute('aria-label') === 'Add front yard to the wall'));
+    await click(buttons().find((b) => b.getAttribute('aria-label') === 'Add garage to the wall'));
+    await act(async () => { await new Promise((r) => setTimeout(r, 20)); });
+    expect(container.querySelector('[data-testid="wall-front_yard"] video')).toBeTruthy();
+    expect(container.querySelector('[data-testid="wall-garage"] video')).toBeTruthy();
+    const tickets = calls.filter((c) => c.url === '/cams/ticket').map((c) => JSON.parse(c.opts.body).camera);
+    expect(tickets).toEqual(['front_yard', 'garage']);
+    expect(JSON.parse(localStorage.getItem(WALL_KEY))).toEqual(['front_yard', 'garage']);
+    expect(container.querySelector('[data-testid="camera-wall"]').textContent).toMatch(/Watch together · 2 of 12/);
+    // a camera on the wall is not also polled for a snapshot (the live view IS the frame)
+    const snapsBefore = calls.filter((c) => c.url.startsWith('/cams/snap/')).length;
+    await act(async () => { await new Promise((r) => setTimeout(r, 30)); });
+    expect(calls.filter((c) => c.url.startsWith('/cams/snap/')).length).toBe(snapsBefore);
+    await click(buttons().find((b) => b.getAttribute('aria-label') === 'Remove garage from the wall'));
+    expect(container.querySelector('[data-testid="wall-garage"]')).toBeNull();
+    await click(buttons().find((b) => b.textContent === 'Clear the wall'));
+    expect(container.querySelector('[data-testid="wall-front_yard"]')).toBeNull();
+    expect(localStorage.getItem(WALL_KEY)).toBeNull();
+  });
+
+  it('a blank tile names its real cause and Why? brings the NAS\'s explanation in plain words (DR-0774)', async () => {
+    const { fetchImpl, calls } = makeFetch({
+      list: { cameras: [{ id: 'east_north_cam', name: 'east north cam', kind: 'wyze' }], count: 1 },
+      snapFail: { east_north_cam: { status: 504, body: { error: 'frame-timeout', after_s: 12 } } },
+    });
+    vi.stubGlobal('fetch', fetchImpl);
+    await mount();
+    await act(async () => { await new Promise((r) => setTimeout(r, 30)); });
+    expect(container.querySelector('[data-testid="reason-east_north_cam"]').textContent).toMatch(/no answer in 12 s/);
+    expect(container.textContent).not.toMatch(/HTTP 502/);
+    await click(buttons().find((b) => b.textContent === 'Why?'));
+    await act(async () => { await new Promise((r) => setTimeout(r, 20)); });
+    const why = calls.find((c) => c.url === '/cams/why/east_north_cam');
+    expect(why.opts.headers.Authorization).toBe(`Bearer ${TOKEN}`);
+    const panel = container.querySelector('[data-testid="why-panel"]');
+    expect(panel.textContent).toMatch(/cannot reach this camera on its own network \(the NAS tried 192\.168\.1\.77\)/);
+    expect(panel.textContent).toMatch(/other house/);
+    expect(panel.textContent).toMatch(/connect failed: i\/o timeout/);
+    await click(buttons().find((b) => b.textContent === 'Hide'));
+    expect(container.querySelector('[data-testid="why-panel"]')).toBeNull();
   });
 
   it('is registered as a family-only, hidden-when-denied top-level surface', () => {
