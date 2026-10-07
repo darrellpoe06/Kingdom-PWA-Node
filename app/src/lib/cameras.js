@@ -585,3 +585,35 @@ export function diskForecast(recStatus) {
       : measured === 0 ? `${recording} recording · under an hour of clips so far, the rate is not measured yet.`
       : `${recording} recording · about ${formatBytes(perDay)} a day${measured < recording ? ` (measured on ${measured})` : ''} · the ${Math.round(budget / 1e9)} GB budget holds about ${Math.max(1, Math.round(daysAtBudget))} day${Math.round(daysAtBudget) === 1 ? '' : 's'} at this rate` };
 }
+
+// LIVE IN EVERY TILE (DR-0776; Darrell 2026-10-07: "Live views... all the
+// time... I should see the seconds moving and wind blowing"). The tiles are
+// live players by default; a snapshot is the fallback for a camera that has
+// no picture yet (so its tile can still show the reason and notice recovery).
+// The choice is kept per device. The NAS's live cap bounds how many tiles
+// may be live at once; the rest fall back to snapshots and the tab says so.
+export const LIVE_TILES_KEY = 'poetech.cameras.live-tiles.v1';
+export function loadLiveTiles(storage = null) {
+  const st = storage || (() => { try { return globalThis.localStorage || null; } catch { return null; } })();
+  if (!st) return true;
+  try { const v = st.getItem(LIVE_TILES_KEY); return v == null ? true : v === '1'; } catch { return true; }
+}
+export function saveLiveTiles(on, storage = null) {
+  const st = storage || (() => { try { return globalThis.localStorage || null; } catch { return null; } })();
+  if (!st) return false;
+  try { st.setItem(LIVE_TILES_KEY, on ? '1' : '0'); return true; } catch { return false; }
+}
+/** How many tiles may be live at once given the NAS's cap and what the wall already uses. */
+export function liveTileBudget(health, wallCount = 0) {
+  const cap = Number(health && health.max_live);
+  const n = Number.isFinite(cap) && cap > 0 ? cap : 32;
+  return Math.max(0, n - (Number(wallCount) || 0));
+}
+/** The live traffic line from /health: open streams and measured bits per second through the Funnel. */
+export function liveTrafficLine(health) {
+  if (!health || !Number.isFinite(Number(health.live_bytes_per_s))) return '';
+  const bps = Number(health.live_bytes_per_s) * 8;
+  const open = Number(health.live_open) || 0;
+  const rate = bps >= 1e6 ? `${(bps / 1e6).toFixed(1)} Mbit/s` : bps >= 1e3 ? `${Math.round(bps / 1e3)} kbit/s` : `${Math.round(bps)} bit/s`;
+  return `${open} live stream${open === 1 ? '' : 's'} · ${rate} through the Funnel`;
+}

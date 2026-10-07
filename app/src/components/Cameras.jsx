@@ -44,6 +44,7 @@ import {
   SNAP_CONCURRENCY, LIVE_RECONNECT_MAX, LIVE_RECONNECT_DELAY_MS, runLimited, skipFailedFrame,
   classifySnapError, fetchWhy, loadWall, saveWall, wallLimit,
   RETENTION_CHOICES, CLIP_TICKET_TTL, fetchRecording, saveRecording, fetchClips, recClipUrl, clipParts, groupClipsByDay, diskForecast,
+  loadLiveTiles, saveLiveTiles, liveTileBudget, liveTrafficLine,
 } from '../lib/cameras.js';
 
 // THE STEPS CAN BE HEARD (2026-10-07; Darrell: "possible tutorial... Ari
@@ -328,6 +329,69 @@ function LiveVideo({ cam, token, liveMax, onClose, compact = false, testId = 'li
   );
 }
 
+// A TILE THAT IS LIVE (DR-0776). The same reconnecting player as LiveVideo,
+// stripped to the picture: no header, no Close. When it has given up (the
+// camera never answered through all its reconnects) it tells the tab, which
+// drops the tile back to the snapshot road so the reason shows and recovery
+// is noticed on the next sweep.
+function TileLive({ cam, token, liveMax, now, onFailed }) {
+  const [st, setSt] = useState({ src: '', startedAt: Date.now(), firstFrameMs: null, ended: false, reconnects: 0, exhausted: false, error: '' });
+  const timers = useRef({ first: null, reopen: null, video: null });
+  const alive = useRef(true);
+  const open = useCallback(async (reconnects) => {
+    clearTimeout(timers.current.first);
+    setSt((p) => ({ ...p, ended: false, src: '', firstFrameMs: null, startedAt: Date.now(), reconnects, exhausted: false, error: '' }));
+    try {
+      const r = await fetchWithTimeout(ticketUrl(), { method: 'POST', headers: { ...authHeaders(token), 'Content-Type': 'application/json' }, body: JSON.stringify({ camera: cam.id }) }, FETCH_TIMEOUT_MS);
+      if (!r.ok) throw new Error(r.status === 503 ? 'the NAS has all its live slots in use' : `ticket HTTP ${r.status}`);
+      const { ticket } = await r.json();
+      if (!alive.current) return;
+      const probe = typeof document !== 'undefined' ? document.createElement('video') : null;
+      const mode = pickLiveMode(probe && typeof probe.canPlayType === 'function' ? (t) => probe.canPlayType(t) : null);
+      setSt((p) => ({ ...p, src: liveUrl(cam.id, mode, ticket), startedAt: Date.now() }));
+      timers.current.first = setTimeout(() => {
+        setSt((p) => (p.firstFrameMs == null && !p.ended && p.src) ? { ...p, error: 'no picture' } : p);
+      }, LIVE_FIRST_FRAME_TIMEOUT_MS);
+    } catch (e) {
+      if (!alive.current) return;
+      setSt((p) => ({ ...p, error: String((e && e.message) || e) }));
+    }
+  }, [cam.id, token]);
+  useEffect(() => {
+    alive.current = true;
+    open(0);
+    const t = timers.current;
+    return () => { alive.current = false; clearTimeout(t.first); clearTimeout(t.reopen); const v = t.video; if (v) { try { v.pause(); v.removeAttribute('src'); v.load(); } catch { /* fine */ } } };
+  }, [open]);
+  const endedOnItsOwn = useCallback((reason) => {
+    setSt((p) => {
+      if (p.ended) return p;
+      if (p.reconnects < LIVE_RECONNECT_MAX) {
+        clearTimeout(timers.current.reopen);
+        timers.current.reopen = setTimeout(() => { if (alive.current) open(p.reconnects + 1); }, LIVE_RECONNECT_DELAY_MS);
+        return { ...p, ended: true, error: reason };
+      }
+      if (onFailed) setTimeout(() => onFailed(`live view gave up: ${reason}`), 0);
+      return { ...p, ended: true, error: reason, exhausted: true };
+    });
+  }, [open, onFailed]);
+  const elapsed = Math.max(0, Math.round(((now || Date.now()) - st.startedAt) / 1000));
+  return (
+    <div className="aspect-video bg-black relative" data-testid={`tile-live-${cam.id}`}>
+      {st.src && !st.ended ? (
+        <video ref={(el) => { timers.current.video = el; }} key={st.src} src={st.src} autoPlay muted playsInline className="w-full h-full object-cover"
+          onLoadedData={() => setSt((p) => (p.firstFrameMs == null ? { ...p, firstFrameMs: Date.now() - p.startedAt, error: '' } : p))}
+          onEnded={() => endedOnItsOwn(liveMax > 0 && elapsed >= liveMax - 2 ? 'the NAS clock' : 'stream ended')}
+          onError={() => endedOnItsOwn(st.firstFrameMs == null ? 'could not open' : 'stream broke')} />
+      ) : (
+        <div className="absolute inset-0 flex items-center justify-center text-white/80 text-xs p-3 text-center">{st.exhausted ? `Gave up: ${st.error}` : st.ended ? 'Reconnecting...' : st.error || 'Opening live...'}</div>
+      )}
+      {st.firstFrameMs == null && st.src && !st.ended && !st.error ? <div className="absolute bottom-1 left-1 text-[0.5625rem] text-white/70">waiting for the first picture</div> : null}
+      {st.reconnects > 0 ? <div className="absolute top-1 right-1 text-[0.5625rem] text-white/80 bg-black/50 px-1">reconnected {st.reconnects}×</div> : null}
+    </div>
+  );
+}
+
 // WHY IS THIS TILE BLANK? (DR-0774). The NAS's /why answer, in plain words,
 // with go2rtc's own lines underneath for anyone who wants the raw truth.
 function WhyPanel({ cam, token, onHide }) {
@@ -517,6 +581,8 @@ export default function Cameras() {
   const [frames, setFrames] = useState({});          // id -> {url, at, ms, bytes, error, errorAt}
   const [liveId, setLiveId] = useState('');          // the one in-place live view (tap a tile)
   const [wall, setWallRaw] = useState(() => loadWall()); // ids watched together
+  const [liveTiles, setLiveTilesRaw] = useState(() => loadLiveTiles()); // DR-0776: every tile a live player
+  const setLiveTiles = (on) => { saveLiveTiles(on); setLiveTilesRaw(on); };
   const [why, setWhy] = useState('');                // tile whose Why? panel is open
   const [showAdd, setShowAdd] = useState(false);
   const [showShell, setShowShell] = useState(false);
@@ -563,7 +629,29 @@ export default function Cameras() {
   // ago" on every tile). Now SNAP_CONCURRENCY frames are in flight at once
   // and a camera that just failed is left alone for SNAP_RETRY_FAILED_MS, so
   // the cameras that answer keep their five-second cadence.
-  const liveIds = useMemo(() => new Set([liveId, ...wall].filter(Boolean)), [liveId, wall]);
+  // DR-0776: with live tiles on, every camera that has not failed is a live
+  // player, up to the NAS's cap minus the wall; failed ones keep the snapshot
+  // road (so the reason shows and recovery is noticed), as do any past the cap.
+  // Keyed by a string so the Set's identity only changes when its CONTENTS do:
+  // a Set rebuilt on every frame update would restart the sweep effect on
+  // every frame (a loop the first draft of this fell into).
+  const failedKey = useMemo(() => Object.entries(frames).filter(([, f]) => f && f.error).map(([id]) => id).sort().join(','), [frames]);
+  const maxLive = health && Number.isFinite(Number(health.max_live)) ? Number(health.max_live) : 0;
+  const liveTileKey = useMemo(() => {
+    if (!liveTiles || state !== 'ready') return '';
+    const failed = new Set(failedKey ? failedKey.split(',') : []);
+    const budget = liveTileBudget({ max_live: maxLive }, wall.length);
+    const out = [];
+    for (const cam of list.cameras) {
+      if (out.length >= budget) break;
+      if (wall.includes(cam.id) || cam.id === liveId || failed.has(cam.id)) continue;
+      out.push(cam.id);
+    }
+    return out.join(',');
+  }, [liveTiles, state, maxLive, wall, liveId, list.cameras, failedKey]);
+  const liveTileIds = useMemo(() => new Set(liveTileKey ? liveTileKey.split(',') : []), [liveTileKey]);
+  const liveKey = useMemo(() => [liveId, ...wall, ...(liveTileKey ? liveTileKey.split(',') : [])].filter(Boolean).sort().join(','), [liveId, wall, liveTileKey]);
+  const liveIds = useMemo(() => new Set(liveKey ? liveKey.split(',') : []), [liveKey]);
   useEffect(() => {
     if (state !== 'ready' || typeof document === 'undefined') return undefined;
     let stop = false;
@@ -627,7 +715,7 @@ export default function Cameras() {
 
   return (
     <div>
-      <SectionTitle eyebrow="Your cameras, from your own server · snapshots every 5 s while this tab is open · tap one for full motion · watch several together · record what you choose, for as long as you choose">Cameras</SectionTitle>
+      <SectionTitle eyebrow="Your cameras, from your own server · live in every tile · tap one for the big view · watch several together on the wall · record what you choose, for as long as you choose">Cameras</SectionTitle>
       <div className="flex items-center justify-between gap-3 flex-wrap mb-3 text-[0.6875rem] text-[#5A5751]">
         <div>{roadChip}</div>
         <div className="flex items-center gap-2">
@@ -636,7 +724,11 @@ export default function Cameras() {
         </div>
       </div>
       {token && health && health.status ? (
-        <div className="mb-3"><ServiceRestart token={token} health={health} onDone={load} /></div>
+        <div className="mb-3 flex items-center gap-3 flex-wrap">
+          <ServiceRestart token={token} health={health} onDone={load} />
+          <button type="button" className={`${btnGhost} focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={() => setLiveTiles(!liveTiles)} aria-pressed={liveTiles} data-testid="live-tiles-toggle">{liveTiles ? 'Live in every tile · on' : 'Live in every tile · off (frames every 5 s)'}</button>
+          {liveTrafficLine(health) ? <span className={chip.muted} data-testid="live-traffic">{liveTrafficLine(health)}</span> : null}
+        </div>
       ) : null}
 
       {state === 'loading' && (
@@ -727,21 +819,26 @@ export default function Cameras() {
                   const isLive = liveId === cam.id;
                   const onWall = wall.includes(cam.id);
                   const wallFull = !onWall && wall.length >= wallMax;
+                  const tileLive = liveTileIds.has(cam.id);
                   return (
                     <React.Fragment key={cam.id}>
                       <div className={`bg-white border ${isLive ? 'border-[#B85838]' : 'border-[#1A1815]'}`}>
+                        {tileLive ? (
+                          <TileLive cam={cam} token={token} liveMax={liveMax} now={now} onFailed={(reason) => { framesRef.current = { ...framesRef.current, [cam.id]: { ...(framesRef.current[cam.id] || {}), error: reason, errorAt: Date.now() } }; setFrames(framesRef.current); }} />
+                        ) : (
                         <button type="button" onClick={() => setLiveId(isLive ? '' : cam.id)} className="block w-full text-left min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]" aria-label={isLive ? `Close live view of ${cam.name}` : `Open live view of ${cam.name}`}>
                           <div className="aspect-video bg-[#1A1815] flex items-center justify-center overflow-hidden">
                             {fresh ? <img src={f.url} alt={`${cam.name}, latest frame`} className="w-full h-full object-cover" />
                               : <span className="text-white/80 text-xs p-3 text-center">{f && f.error ? 'No frame yet from this camera' : 'Fetching the first frame...'}</span>}
                           </div>
                         </button>
+                        )}
                         <div className="p-2 flex items-center justify-between gap-2">
                           <div className="min-w-0">
                             <div className="text-sm font-semibold text-[#1A1815] truncate">{cam.name}</div>
                             <div className="text-[0.625rem] text-[#5A5751]">
-                              {fresh ? <>frame {formatAge(Math.max(0, now - f.at))} · {f.ms} ms · {formatBytes(f.bytes)}</> : <>&nbsp;</>}
-                              {f && f.error ? <span className="text-[#B85838]" data-testid={`reason-${cam.id}`}> · {f.error}</span> : null}
+                              {tileLive ? <span className="text-[#2F6B3A]">live</span> : fresh ? <>frame {formatAge(Math.max(0, now - f.at))} · {f.ms} ms · {formatBytes(f.bytes)}</> : <>&nbsp;</>}
+                              {f && f.error && !tileLive ? <span className="text-[#B85838]" data-testid={`reason-${cam.id}`}> · {f.error}</span> : null}
                             </div>
                           </div>
                           <div className="flex items-center gap-1 shrink-0">

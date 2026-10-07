@@ -124,7 +124,7 @@ UPSTREAM_DEFAULT = "http://127.0.0.1:1984"
 # /health, but their defaults no longer cut a family member off: 12 live
 # views (a 3x4 wall) and no clock (0 = a view runs until the viewer leaves).
 # The home link's real bandwidth is measured by the app, not pre-empted here.
-MAX_LIVE = int(os.environ.get("CAMS_MAX_LIVE", "12"))
+MAX_LIVE = int(os.environ.get("CAMS_MAX_LIVE", "32"))  # DR-0776: live in every tile; one per camera, and then some
 LIVE_MAX_SECONDS = float(os.environ.get("CAMS_LIVE_MAX_SECONDS", "0"))  # 0 = no clock
 MAX_SNAP_INFLIGHT = int(os.environ.get("CAMS_MAX_SNAP_INFLIGHT", "6"))
 SNAP_TIMEOUT = float(os.environ.get("CAMS_SNAP_TIMEOUT", "12"))
@@ -166,6 +166,33 @@ CODE_SHA = code_sha()
 RESTART_MIN_SECONDS = float(os.environ.get("CAMS_RESTART_MIN_SECONDS", "60"))
 RESTART_STATE = {"last": 0.0}
 RESTART_LOCK = threading.Lock()
+
+# THE LINK IS MEASURED, NOT PRE-EMPTED (DR-0776; Darrell: "Live views... all
+# the time"). Every byte this process hands to a live viewer (MP4 bodies and
+# HLS segments) is counted in a 10 s window, so /health can say how many live
+# streams are open and how many bits per second are crossing the Funnel right
+# now. The tab shows the number; a cap, if one is ever needed, is set from it.
+LIVE_STATS_LOCK = threading.Lock()
+LIVE_STATS = {"open": 0, "samples": []}  # samples: (monotonic, bytes)
+LIVE_WINDOW_SECONDS = 10.0
+
+
+def live_note(nbytes, delta_open=0, now=None):
+    now = now if now is not None else time.monotonic()
+    with LIVE_STATS_LOCK:
+        LIVE_STATS["open"] = max(0, LIVE_STATS["open"] + delta_open)
+        if nbytes:
+            LIVE_STATS["samples"].append((now, nbytes))
+        cutoff = now - LIVE_WINDOW_SECONDS
+        LIVE_STATS["samples"] = [(t, n) for (t, n) in LIVE_STATS["samples"] if t >= cutoff]
+
+
+def live_snapshot(now=None):
+    now = now if now is not None else time.monotonic()
+    with LIVE_STATS_LOCK:
+        cutoff = now - LIVE_WINDOW_SECONDS
+        total = sum(n for (t, n) in LIVE_STATS["samples"] if t >= cutoff)
+        return {"live_open": LIVE_STATS["open"], "live_bytes_per_s": int(total / LIVE_WINDOW_SECONDS)}
 
 # WYZE SIGN-IN FROM THE APP (2026-10-07; Darrell: "Is that the easiest way to
 # build it so I don't have to do much work for it to work right away?" -- no,
@@ -726,9 +753,11 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
                     count = len(parsed) if isinstance(parsed, dict) else 0
                 except ValueError:
                     count = 0
-                return self._json(200, {"ok": True, "go2rtc": version, "streams": count, "forwarder": CODE_SHA,
-                                        "on_disk": code_sha(),
-                                        "max_live": max_live, "live_max_seconds": int(live_max_seconds)})
+                out = {"ok": True, "go2rtc": version, "streams": count, "forwarder": CODE_SHA,
+                       "on_disk": code_sha(),
+                       "max_live": max_live, "live_max_seconds": int(live_max_seconds)}
+                out.update(live_snapshot())
+                return self._json(200, out)
             except (urllib.error.URLError, OSError, ValueError):
                 return self._json(502, {"ok": False, "error": "go2rtc-unreachable", "upstream": upstream})
 
@@ -921,6 +950,7 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
                 return self._json(e.code if 400 <= e.code < 600 else 502, {"error": "no-segment", "upstream_status": e.code})
             except (urllib.error.URLError, OSError, ValueError):
                 return self._json(502, {"error": "go2rtc-unreachable"})
+            live_note(len(body))
             return self._bytes(status, ctype, body)
 
         def _live_mp4(self, cam):
@@ -934,6 +964,7 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
                     return self._json(e.code if 400 <= e.code < 600 else 502, {"error": "no-stream", "upstream_status": e.code})
                 except (urllib.error.URLError, OSError, ValueError):
                     return self._json(502, {"error": "go2rtc-unreachable"})
+                live_note(0, delta_open=+1)
                 with r:
                     self.send_response(r.status)
                     self.send_header("Content-Type", r.headers.get("Content-Type", "video/mp4"))
@@ -957,8 +988,11 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
                             if not chunk:
                                 break
                             self.wfile.write(chunk)
+                            live_note(len(chunk))
                     except (BrokenPipeError, ConnectionResetError, OSError):
                         pass  # the viewer left, or the source went silent past the timeout
+                    finally:
+                        live_note(0, delta_open=-1)
             finally:
                 live_gate.release()
 
@@ -1329,7 +1363,18 @@ def _selftest():
     s, _h, d = call("GET", "/health")
     j = json.loads(d.decode("utf-8"))
     check(j.get("max_live") == 2 and j.get("live_max_seconds") == 1, "/health reports the caps this instance runs with (the defaults are 12 and 0 = no clock)")
-    check(MAX_LIVE == 12 and LIVE_MAX_SECONDS == 0, "the shipped defaults do not cut a viewer off: 12 live, no clock")
+    check(MAX_LIVE == 32 and LIVE_MAX_SECONDS == 0, "the shipped defaults do not cut a viewer off: 32 live (one per camera and then some), no clock")
+    live_note(0, now=0.0)
+    LIVE_STATS["samples"] = []
+    live_note(5000, now=100.0); live_note(5000, now=104.0); live_note(99999, now=80.0)
+    snap = live_snapshot(now=105.0)
+    check(snap["live_bytes_per_s"] == 1000 and snap["live_open"] == 0, "live traffic is a 10 s window: 10,000 bytes in the window -> 1000 B/s, the old sample dropped (%r)" % snap)
+    live_note(0, delta_open=+1, now=105.0)
+    check(live_snapshot(now=105.0)["live_open"] == 1, "an open live stream is counted")
+    live_note(0, delta_open=-1, now=105.0)
+    s, _h, d = call("GET", "/health")
+    j = json.loads(d.decode("utf-8"))
+    check("live_open" in j and "live_bytes_per_s" in j, "/health carries the live count and the measured bytes per second")
 
     print("=== 8e. recorded loops (DR-0775): settings, the clips on disk, ticketed playback with Range ===")
     s, _h, d = call("GET", "/recording")

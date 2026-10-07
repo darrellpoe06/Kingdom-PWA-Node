@@ -17,6 +17,7 @@ import {
   humanizeCameraError, classifySnapError, explainWhy, fetchWhy, whyUrl, skipFailedFrame, runLimited,
   WALL_KEY, loadWall, saveWall, wallLimit, WALL_MAX_DEFAULT, SNAP_CONCURRENCY, LIVE_RECONNECT_MAX,
   recordingUrl, recListUrl, recClipUrl, fetchRecording, saveRecording, fetchClips, clipParts, groupClipsByDay, diskForecast, RETENTION_CHOICES, CLIP_TICKET_TTL,
+  LIVE_TILES_KEY, loadLiveTiles, saveLiveTiles, liveTileBudget, liveTrafficLine,
 } from '../lib/cameras.js';
 
 describe('the road: every URL is same-origin under /cams', () => {
@@ -438,5 +439,33 @@ describe('recorded loops: urls, clips, grouping, the measured forecast', () => {
     const clips = await fetchClips('a', 'tok', async () => ({ status: 200, json: async () => ({ clips: [{ name: '2026-10-07T06-40-00.mp4', bytes: 5, start: 1 }, { name: 'evil/../x.mp4', bytes: 1, start: 2 }] }) }));
     expect(clips.ok).toBe(true);
     expect(clips.clips.map((c) => c.name)).toEqual(['2026-10-07T06-40-00.mp4']);
+  });
+});
+
+// DR-0776: live in every tile, the link measured.
+describe('live tiles: the default, the device choice, the budget and the traffic line', () => {
+  const mem = () => { const m = new Map(); return { getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), removeItem: (k) => m.delete(k) }; };
+  it('defaults to on, remembers off, and tolerates a broken store', () => {
+    const st = mem();
+    expect(loadLiveTiles(st)).toBe(true);
+    saveLiveTiles(false, st);
+    expect(st.getItem(LIVE_TILES_KEY)).toBe('0');
+    expect(loadLiveTiles(st)).toBe(false);
+    saveLiveTiles(true, st);
+    expect(loadLiveTiles(st)).toBe(true);
+    const broken = { getItem: () => { throw new Error('no'); }, setItem: () => { throw new Error('no'); } };
+    expect(loadLiveTiles(broken)).toBe(true);
+    expect(saveLiveTiles(true, broken)).toBe(false);
+  });
+  it('the live-tile budget is the NAS cap minus the wall, never negative, 32 when the NAS does not say', () => {
+    expect(liveTileBudget({ max_live: 32 }, 4)).toBe(28);
+    expect(liveTileBudget({ max_live: 2 }, 5)).toBe(0);
+    expect(liveTileBudget(null, 0)).toBe(32);
+  });
+  it('the traffic line is the measured number, in the unit that reads', () => {
+    expect(liveTrafficLine({ live_open: 1, live_bytes_per_s: 125000 })).toBe('1 live stream · 1.0 Mbit/s through the Funnel');
+    expect(liveTrafficLine({ live_open: 3, live_bytes_per_s: 5000 })).toBe('3 live streams · 40 kbit/s through the Funnel');
+    expect(liveTrafficLine({ live_open: 0, live_bytes_per_s: 0 })).toBe('0 live streams · 0 bit/s through the Funnel');
+    expect(liveTrafficLine({ ok: true })).toBe('');
   });
 });

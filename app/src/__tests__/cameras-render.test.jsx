@@ -9,7 +9,7 @@ import { createRoot } from 'react-dom/client';
 import Cameras from '../components/Cameras.jsx';
 import { SURFACES, surfaceById } from '../surfaces.js';
 import { CHAT_BRIDGE_TOKEN_KEY } from '../lib/nas-photos.js';
-import { WYZE_DRAFT_KEY, WALL_KEY, LIVE_RECONNECT_MAX, LIVE_RECONNECT_DELAY_MS, formatBytes } from '../lib/cameras.js';
+import { WYZE_DRAFT_KEY, WALL_KEY, LIVE_RECONNECT_MAX, LIVE_RECONNECT_DELAY_MS, formatBytes, LIVE_TILES_KEY } from '../lib/cameras.js';
 import { getReadTarget, subscribeRead } from '../lib/read-target.js';
 
 const TOKEN = 'family-test-token';
@@ -56,6 +56,10 @@ describe('Cameras surface', () => {
   beforeEach(() => {
     container = document.createElement('div'); document.body.appendChild(container); root = createRoot(container);
     try { localStorage.setItem(CHAT_BRIDGE_TOKEN_KEY, TOKEN); } catch { /* jsdom has it */ }
+    // Most cases below exercise the snapshot road, the in-place live view and the
+    // wall; live-in-every-tile (DR-0776, the default) has its own case and is
+    // switched off here so each road is tested on its own.
+    try { localStorage.setItem(LIVE_TILES_KEY, '0'); } catch { /* fine */ }
     if (!URL.createObjectURL) URL.createObjectURL = () => 'blob:test';
     if (!URL.revokeObjectURL) URL.revokeObjectURL = () => {};
     // jsdom's media element has no decoder; Close calls pause()/load() on the
@@ -65,7 +69,7 @@ describe('Cameras surface', () => {
   });
   afterEach(() => {
     act(() => root.unmount()); container.remove();
-    try { localStorage.removeItem(CHAT_BRIDGE_TOKEN_KEY); localStorage.removeItem(WYZE_DRAFT_KEY); localStorage.removeItem(WALL_KEY); } catch { /* fine */ }
+    try { localStorage.removeItem(CHAT_BRIDGE_TOKEN_KEY); localStorage.removeItem(WYZE_DRAFT_KEY); localStorage.removeItem(WALL_KEY); localStorage.removeItem(LIVE_TILES_KEY); } catch { /* fine */ }
     vi.unstubAllGlobals();
   });
 
@@ -314,6 +318,31 @@ describe('Cameras surface', () => {
     await act(async () => { await new Promise((r) => setTimeout(r, 30)); });
     expect(container.querySelector('[data-testid="recording-panel"]').textContent).toMatch(/older camera service without the recorder yet/);
     expect(container.querySelector('[data-testid="recording-cameras"]')).toBeNull();
+  });
+
+  it('live in every tile is the default (DR-0776): each camera tile is a live player with its own ticket, no snapshots are polled for them, the toggle falls back to frames, and the header shows the measured Funnel traffic', async () => {
+    try { localStorage.removeItem(LIVE_TILES_KEY); } catch { /* fine */ }
+    const { fetchImpl, calls } = makeFetch({
+      list: { cameras: [{ id: 'front_yard', name: 'front yard', kind: 'wyze' }, { id: 'garage', name: 'garage', kind: 'rtsp' }], count: 2 },
+      health: { ok: true, go2rtc: '1.9.14', streams: 2, live_max_seconds: 0, max_live: 32, live_open: 2, live_bytes_per_s: 250000 },
+    });
+    vi.stubGlobal('fetch', fetchImpl);
+    await mount();
+    await act(async () => { await new Promise((r) => setTimeout(r, 30)); });
+    expect(container.querySelector('[data-testid="tile-live-front_yard"] video')).toBeTruthy();
+    expect(container.querySelector('[data-testid="tile-live-garage"] video')).toBeTruthy();
+    const tickets = calls.filter((c) => c.url === '/cams/ticket').map((c) => JSON.parse(c.opts.body).camera).sort();
+    expect(tickets).toEqual(['front_yard', 'garage']);
+    expect(calls.filter((c) => c.url.startsWith('/cams/snap/')).length).toBe(0);
+    expect(container.querySelector('[data-testid="live-traffic"]').textContent).toBe('2 live streams · 2.0 Mbit/s through the Funnel');
+    expect(container.textContent).toMatch(/Live in every tile · on/);
+    // off: tiles go back to frames every 5 s and the choice is kept on the device
+    await click(container.querySelector('[data-testid="live-tiles-toggle"]'));
+    await act(async () => { await new Promise((r) => setTimeout(r, 30)); });
+    expect(container.querySelector('[data-testid="tile-live-front_yard"]')).toBeNull();
+    expect(calls.filter((c) => c.url.startsWith('/cams/snap/')).length).toBeGreaterThanOrEqual(2);
+    expect(localStorage.getItem(LIVE_TILES_KEY)).toBe('0');
+    expect(container.textContent).toMatch(/Live in every tile · off/);
   });
 
   it('lists the restreamer\'s cameras grouped by kind, fetches each frame with the bearer, shows measured freshness', async () => {
