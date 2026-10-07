@@ -21,7 +21,7 @@ import {
 } from './reading-voice.js';
 import { mergeVoiceCatalog, canCloneVoice, isVoiceEntitled, resolveVoiceProvider, KIND, SYSTEM_VOICE } from './voice-registry.js';
 import { buildStandInAssignments, resolveVoiceURIForId, standInPitch } from './voice-assignment.js';
-// A VOICE KEEPS ITS OWN PITCH (DR-0797): picking a voice brings back the
+// A VOICE KEEPS ITS OWN PITCH (DR-0801): picking a voice brings back the
 // sound shaped for it, so one engine voice can be several readers.
 import { loadVoiceShapes, saveVoiceShape, shapeFor, clampPitch, nextPitch, DEFAULT_PITCH as SHAPE_DEFAULT_PITCH } from './voice-shape.js';
 import { loadPersonaVoiceMap } from './persona-voice-prefs.js';
@@ -202,7 +202,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
   // 1x pieces and is stretched exactly as before.
   const audioSpeedRef = useRef(1);
 
-  // THE SHAPE KEPT FOR EACH VOICE (DR-0797). Pitch belongs to the VOICE, not
+  // THE SHAPE KEPT FOR EACH VOICE (DR-0801). Pitch belongs to the VOICE, not
   // to the device: pick a voice and the pitch shaped onto it comes back, so a
   // device that offers one engine voice still offers several readers.
   const [voiceShapes, setVoiceShapes] = useState(() => loadVoiceShapes());
@@ -1239,7 +1239,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     }
     const cid = catalogIdOf(voiceId);
     // A cast stand-in sets its own pitch to tell characters apart; everything
-    // else reads at the pitch shaped onto the chosen voice (DR-0797).
+    // else reads at the pitch shaped onto the chosen voice (DR-0801).
     const castPitch = cid ? standInPitch(fullCatalog, liveAssignments, cid) : undefined;
     const shaped = shapeFor(voiceId, loadVoiceShapes()).pitch;
     const pitch = Number.isFinite(Number(castPitch))

@@ -1,4 +1,4 @@
-# DR-0796 — The side spaces carry the bottom bar's own buttons, and only what the bar is missing
+# DR-0800 — The side spaces carry the bottom bar's own buttons, and only what the bar is missing
 
 - **Status:** accepted
 - **Tier:** A (the shape of the TV rails; the tall panel, the voice, the highlight and full screen are unchanged)

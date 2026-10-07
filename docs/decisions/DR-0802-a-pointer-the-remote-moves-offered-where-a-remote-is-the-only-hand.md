@@ -1,11 +1,11 @@
-# DR-0798 — A pointer the remote moves, offered where a remote is the only hand
+# DR-0802 — A pointer the remote moves, offered where a remote is the only hand
 
 - **Status:** accepted
 - **Tier:** A (an option, off by default, drawing nothing until it is switched on and woken)
 - **Type:** feature
 - **Date:** 2026-10-07
 - **Scope:** `app/src/lib/remote-pointer.js` (new), `app/src/components/RemotePointer.jsx` (new), `app/src/components/TTSControl.jsx` (the pref, the toggle on the left rail, the mount), `app/src/lib/reader-controller.js` (`pointer` joins the left rail), test `a-pointer-for-a-remote.test.jsx`
-- **Principles:** DR-0796 (a rail control is one bar button), DR-0785 (the TV is a real device we build for), DR-0076, DR-0075
+- **Principles:** DR-0800 (a rail control is one bar button), DR-0785 (the TV is a real device we build for), DR-0076, DR-0075
 - **Grounds:** Darrell 2026-10-07: *"Make sure the app has a hovering pointer option for devices that use a remote... make sense?"*
 
 ## Context
@@ -34,7 +34,7 @@ Unresolved: on a remote-driven screen with no pointer of its own, parts of the a
 2. **Arrows move it, holding ramps it, OK presses what is under it.** The arithmetic is pure and tested on real numbers; the component owns the clock and the document.
 3. **It never takes a key that belongs to something else.** With the focus in an input, a textarea, a select or anything contenteditable, every key passes straight through. Enter before the pointer is woken is left to the page. Escape, Back and GoBack put it away.
 4. **A press focuses before it clicks**, so a control that reads its own focus — and the person watching — both know what was pressed, and nothing is pressed at all when there is no control under the pointer.
-5. **It lives on the left rail** as one bar button whose word says its state (DR-0796), beside Full screen.
+5. **It lives on the left rail** as one bar button whose word says its state (DR-0800), beside Full screen.
 
 Proven to catch (DR-0076): switched off, no pointer is drawn and an arrow does nothing; typing in an input, a textarea or a select keeps its own arrows and its own Enter; Enter before the pointer is up is left to the page; the pointer never leaves the screen in any of the four directions, including on a screen whose size we were never told; a span inside a button presses the button, a bare page presses nothing, and a document that cannot be asked presses nothing; a storage that throws on read and on write is survived.
 

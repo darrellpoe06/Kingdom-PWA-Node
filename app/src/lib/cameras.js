@@ -39,6 +39,7 @@ export function whyUrl(id) { return `${CAMS_BASE}/why/${encodeURIComponent(id)}`
 export function recordingUrl() { return `${CAMS_BASE}/recording`; }
 export function recListUrl(id) { return `${CAMS_BASE}/rec/${encodeURIComponent(id)}`; }
 export function recClipUrl(id, name, ticket) { return `${CAMS_BASE}/rec/${encodeURIComponent(id)}/${encodeURIComponent(name)}?t=${encodeURIComponent(ticket || '')}`; }
+export function streamHealthUrl() { return `${CAMS_BASE}/streams/health`; }
 export const RESTART_TIMEOUT_MS = 15000;
 export const SETUP_TIMEOUT_MS = 75000; // Wyze's cloud listing + go2rtc's persist; the NAS gives it 60 s
 
@@ -87,6 +88,10 @@ export function parseCameraList(json) {
       id: c.id,
       name: typeof c.name === 'string' && c.name.trim() ? c.name.trim() : c.id.replace(/[_-]+/g, ' '),
       kind: typeof c.kind === 'string' ? c.kind : 'unknown',
+      // The NAS keeps an H.264 twin for this camera (it sends only H.265; DR-0798).
+      h264: c.h264 === true,
+      // The NAS keeps an SD twin (the camera's own substream) for grids of tiles (DR-0799).
+      sd: c.sd === true,
     });
   }
   return out.sort((a, b) => a.name.localeCompare(b.name));
@@ -1047,6 +1052,23 @@ export function roadLine(stats, mode) {
 // =============================================================================
 export const VIEWS_KEY = 'poetech.cameras.views.v1';
 export const VIEW_LAYOUTS = Object.freeze(['auto', 1, 2, 3, 4]);
+// ONE CAMERA, LARGEST, ON A CLICK (DR-0796; Darrell 2026-10-07: "Clicking
+// inside the image of one camera makes it largest size... click again it goes
+// to the previous position"). A view or the full-size window keeps one
+// focused camera id: that tile takes the whole area, the others stay mounted
+// and hidden (their streams keep running, so the way back is instant), and
+// the second click restores every tile to exactly where it was.
+export function toggleFocus(current, id) {
+  return current === id ? '' : String(id || '');
+}
+/** The focused id, or '' when it names no camera in the view. */
+export function focusIn(cams, focused) {
+  return focused && Array.isArray(cams) && cams.some((c) => c && c.id === focused) ? focused : '';
+}
+/** How many tiles the grid lays out: one when a camera is focused, else all. */
+export function shownCount(cams, focused) {
+  return focusIn(cams, focused) ? 1 : (Array.isArray(cams) ? cams.length : 0);
+}
 export const VIEW_NAME_MAX = 40;
 function viewStore(storage) {
   if (storage) return storage;
@@ -1192,4 +1214,247 @@ export function indexAtPoint(boxes, x, y) {
     if (x >= b.left && x <= b.right && y >= b.top && y <= b.bottom) return i;
   }
   return -1;
+}
+
+// =============================================================================
+// CLIP DOWNLOADS BY SIZE (DR-0797; Darrell 2026-10-07: "Pushing record only
+// records to the nas... not to the cellphone correct... options to download
+// based on size and the ability to give smaller to large size files with
+// their best resolutions"). Correct: Record writes to the NAS only (DR-0775);
+// a clip reaches a phone only when it is asked for. A clip can be asked for
+// at one of three sizes besides the original -- each the best picture that
+// fits (480p / 720p / 1080p, never upscaled) -- and the NAS makes that file
+// once with its own ffmpeg, answering 202 while it works. The estimate shown
+// before the file exists is the tier's rate for the clip's length, never more
+// than the original; once made, the real bytes replace it.
+// =============================================================================
+export const CLIP_SIZE_TIERS = Object.freeze([
+  Object.freeze({ key: 'original', label: 'Original', height: null }),
+  Object.freeze({ key: 'uhd', label: 'Ultra (2160p / 4K)', height: 2160 }),
+  Object.freeze({ key: 'xlarge', label: 'Extra large (1440p / 2.5K)', height: 1440 }),
+  Object.freeze({ key: 'large', label: 'Large (1080p)', height: 1080 }),
+  Object.freeze({ key: 'medium', label: 'Medium (720p)', height: 720 }),
+  Object.freeze({ key: 'small', label: 'Small (480p)', height: 480 }),
+]);
+export const CLIP_MAKE_POLL_MS = 3000;
+export const CLIP_MAKE_MAX_WAIT_MS = 15 * 60 * 1000;
+export function recClipSizesUrl(id, name, ticket) { return `${recClipUrl(id, name, ticket)}&sizes=1`; }
+export function recClipDownloadUrl(id, name, ticket, size, { retry = false } = {}) {
+  const base = recClipUrl(id, name, ticket);
+  const tier = size && size !== 'original' ? `&size=${encodeURIComponent(size)}` : '';
+  return `${base}${tier}&dl=1${retry ? '&retry=1' : ''}`;
+}
+/** The file a phone saves: camera-time-size.mp4 (the NAS names it the same). */
+export function clipDownloadName(id, name, size) {
+  const stem = String(name || '').replace(/\.mp4$/, '');
+  return `${id}-${stem}-${size && size !== 'original' ? size : 'original'}.mp4`;
+}
+/** One line per tier for the menu: the label and the size it is or is expected to be. */
+export function clipTierLine(tier, sizes) {
+  if (!tier) return '';
+  if (tier.key === 'original') return `${tier.label} · ${sizes && Number.isFinite(sizes.original) ? formatBytes(sizes.original) : 'as recorded'}`;
+  const row = sizes && sizes.tiers ? sizes.tiers[tier.key] : null;
+  if (!row) return tier.label;
+  if (row.state === 'ready' && Number.isFinite(row.bytes)) return `${tier.label} · ${formatBytes(row.bytes)} · ready`;
+  if (row.state === 'making') return `${tier.label} · about ${formatBytes(row.estimate)} · being made now`;
+  if (row.state === 'queued') return `${tier.label} · about ${formatBytes(row.estimate)} · in line (${row.position})`;
+  if (row.state === 'failed') return `${tier.label} · could not be made: ${row.error || 'ffmpeg failed'}`;
+  return `${tier.label} · about ${formatBytes(row.estimate)}`;
+}
+export async function fetchClipSizes(id, name, ticket, fetchImpl = globalThis.fetch) {
+  try {
+    const r = await fetchWithTimeout(recClipSizesUrl(id, name, ticket), {}, RECORDING_TIMEOUT_MS, fetchImpl);
+    let body = null;
+    try { body = await r.json(); } catch { body = null; }
+    if (r.status !== 200 || !body) return { ok: false, status: r.status };
+    return { ok: true, status: 200, original: Number(body.original) || 0, seconds: Number(body.seconds) || 0, tiers: body.tiers || {}, downloadName: body.download_name || '' };
+  } catch {
+    return { ok: false, status: 0 };
+  }
+}
+/**
+ * Ask the NAS for a clip at a size and wait until it is ready: resolves
+ * {ok:true, url} when the ticketed URL answers 200, {ok:false, message}
+ * otherwise. `onProgress({state, position})` says where it is in the line.
+ * Explicit timeouts throughout (the make is bounded; so is the wait).
+ */
+export async function waitForClipSize(id, name, ticket, size, { fetchImpl = globalThis.fetch, onProgress = null, pollMs = CLIP_MAKE_POLL_MS, maxWaitMs = CLIP_MAKE_MAX_WAIT_MS, sleep = (ms) => new Promise((r) => setTimeout(r, ms)), retry = false } = {}) {
+  const url = recClipDownloadUrl(id, name, ticket, size, { retry });
+  const plain = recClipDownloadUrl(id, name, ticket, size);
+  const started = Date.now();
+  let first = true;
+  while (Date.now() - started <= maxWaitMs) {
+    let r;
+    try {
+      // HEAD would be enough, but the forwarder answers GET; Range 0-0 keeps the probe to one byte.
+      r = await fetchWithTimeout(first ? url : plain, { headers: { Range: 'bytes=0-0' } }, RECORDING_TIMEOUT_MS, fetchImpl);
+    } catch {
+      return { ok: false, message: 'The camera road did not answer.' };
+    }
+    first = false;
+    if (r.status === 200 || r.status === 206) return { ok: true, url: plain };
+    let body;
+    try { body = await r.json(); } catch { body = null; }
+    if (r.status === 202) {
+      if (onProgress) onProgress({ state: (body && body.status) || 'queued', position: Number(body && body.position) || 0 });
+      await sleep(Number(body && body.retry_in) > 0 ? Math.min(pollMs, Number(body.retry_in) * 1000) : pollMs);
+      continue;
+    }
+    if (r.status === 500) return { ok: false, message: `The NAS could not make that size: ${(body && body.detail) || 'ffmpeg failed'}.`, failed: true };
+    if (r.status === 401) return { ok: false, message: 'The playback ticket ran out; press Download again.' };
+    if (r.status === 404) return { ok: false, message: 'That clip is no longer on the NAS.' };
+    return { ok: false, message: `The camera road answered HTTP ${r.status}.` };
+  }
+  return { ok: false, message: 'The NAS is still making that file; try again in a minute.' };
+}
+
+// =============================================================================
+// THE STREAM HEALTH LOG (DR-0798; Darrell 2026-10-07: "Are there some type of
+// logs we can use to make the cameras stream more continuous?... based on the
+// information cameras provided can we make sure we optimize the videos
+// streams"). The NAS samples go2rtc's own numbers every few seconds and
+// keeps an hour per camera: bits per second while watched, up%, every drop
+// while someone watched (a producer gone, bytes frozen, a producer
+// restarted), the codecs the camera sends. The app shows it on the tile and
+// uses the one fact that decides a road: a camera that sends only H.265 has an
+// H.264 twin on the NAS, and a device whose <video> cannot decode H.265 plays
+// the twin instead of a blank tile.
+// =============================================================================
+export const STREAM_HEALTH_POLL_MS = 15000;
+export const TWIN_SUFFIX = '_h264';
+export function twinOf(id) { return `${id}${TWIN_SUFFIX}`; }
+export async function fetchStreamHealth(token, fetchImpl = globalThis.fetch) {
+  try {
+    const r = await fetchWithTimeout(streamHealthUrl(), { headers: authHeaders(token) }, FETCH_TIMEOUT_MS, fetchImpl);
+    let body = null;
+    try { body = await r.json(); } catch { body = null; }
+    if (r.status !== 200 || !body || typeof body !== 'object') return { ok: false, status: r.status, cameras: {}, events: [] };
+    return { ok: true, status: 200, cameras: body.cameras || {}, events: Array.isArray(body.events) ? body.events : [], sampledAt: Number(body.sampled_at) || null, intervalS: Number(body.interval_s) || null };
+  } catch {
+    return { ok: false, status: 0, cameras: {}, events: [] };
+  }
+}
+/** Can this device's <video> decode H.265? Asked of the element, never a UA sniff. */
+export function deviceCanPlayHevc(canPlayType) {
+  if (typeof canPlayType !== 'function') return true; // no probe: assume the camera's own stream
+  for (const t of ['video/mp4; codecs="hvc1.1.6.L93.B0"', 'video/mp4; codecs="hev1.1.6.L93.B0"']) {
+    try { if (canPlayType(t)) return true; } catch { /* a device fact */ }
+  }
+  return false;
+}
+export const SD_SUFFIX = '_sd';
+export function sdOf(id) { return `${id}${SD_SUFFIX}`; }
+/**
+ * The stream this device should open for a camera: the SD twin for a tile in
+ * a grid (when the NAS keeps one), else the H.264 twin when the camera sends
+ * only H.265 and this device cannot decode it, else the camera's own.
+ */
+export function liveStreamId(cam, canPlayType, { sd = false } = {}) {
+  if (!cam || !cam.id) return '';
+  if (sd && cam.sd) return sdOf(cam.id);
+  return cam.h264 && !deviceCanPlayHevc(canPlayType) ? twinOf(cam.id) : cam.id;
+}
+/** A grid tile wants the SD substream; the one camera made largest, or a single camera, wants HD. */
+export function wantsSd({ shown = 1, picked = false } = {}) {
+  return !picked && Number(shown) > 1;
+}
+const fmtKbps = (k) => (k >= 1000 ? `${(k / 1000).toFixed(1)} Mb/s` : `${Math.round(k)} kb/s`);
+/** One short line under a tile from the camera's hour of health; '' when nothing was ever watched. */
+export function streamHealthLine(h) {
+  if (!h || typeof h !== 'object') return '';
+  const parts = [];
+  if (Number.isFinite(h.kbps)) parts.push(fmtKbps(h.kbps));
+  if (Array.isArray(h.codecs) && h.codecs.length) parts.push(h.codecs.join('+') + (h.hevc_only ? (h.twin ? ' · H264 twin' : ' · H265 only') : ''));
+  if (Number.isFinite(h.up_pct)) parts.push(`up ${h.up_pct}%`);
+  if (Number.isFinite(h.drops_1h)) parts.push(h.drops_1h === 0 ? 'no drops this hour' : `${h.drops_1h} drop${h.drops_1h === 1 ? '' : 's'} this hour`);
+  return parts.join(' · ');
+}
+export function dropKindText(kind) {
+  if (kind === 'producer-gone') return 'the camera\'s connection to the NAS dropped while someone watched';
+  if (kind === 'bytes-frozen') return 'the camera sent nothing for a whole sample while someone watched';
+  if (kind === 'producer-restarted') return 'the camera reconnected to the NAS (its counter started over)';
+  return String(kind || 'a drop');
+}
+/** The last drops for one camera, newest first, in words with the time. */
+export function dropLines(events, camId, limit = 6) {
+  if (!Array.isArray(events)) return [];
+  return events.filter((e) => e && e.camera === camId).slice(-limit).reverse()
+    .map((e) => `${Number.isFinite(e.at) ? new Date(e.at * 1000).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : ''} · ${dropKindText(e.kind)}`.replace(/^ · /, ''));
+}
+
+// =============================================================================
+// A LIVE TILE STAYS LIVE (DR-0799; Darrell 2026-10-07, the Firestick window,
+// two cameras whose own clocks had stopped at 17:08:3x: "Cameras in the window
+// don't stay live... the seconds timers show they are not live.... why?!!!!!
+// Fix it!!!!!!"). Measured against the player as it was: a tile reconnected
+// only when the stream ENDED or ERRORED. A picture that silently stopped --
+// the element starved of bytes, or a decoder that fell behind -- stayed
+// frozen for ever, and a picture that stalled and resumed stayed BEHIND the
+// live edge by the length of the stall, and fell further behind with each
+// one. Nothing watched the one number that says "live": the play position
+// moving, and how far it trails the edge of what has arrived. Now every tile
+// is tended every LIVE_TEND_MS: a position that has not moved for
+// FREEZE_SECONDS is a freeze and the tile reconnects (a new ticket, the same
+// road); a position more than LIVE_LAG_SEEK_S behind the edge jumps to the
+// edge; a smaller lag is run down at LIVE_CATCHUP_RATE until it is gone.
+// Pure decisions here, proven in plain tests; the element is only touched by
+// tendLiveVideo.
+// =============================================================================
+export const LIVE_TEND_MS = 2000;
+export const FREEZE_SECONDS = 6;
+export const LIVE_LAG_SEEK_S = 3;
+export const LIVE_LAG_RATE_S = 1;
+export const LIVE_CATCHUP_RATE = 1.08;
+export const LIVE_EDGE_MARGIN_S = 0.5;
+
+/** Where "now" is on this element: the end of what has arrived (mp4) or of what is seekable (HLS). */
+export function liveEdge(video, mode = 'mp4') {
+  const endOf = (ranges) => { try { return ranges && ranges.length ? ranges.end(ranges.length - 1) : null; } catch { return null; } };
+  const buffered = endOf(video && video.buffered);
+  const seekable = endOf(video && video.seekable);
+  if (mode === 'hls') return Number.isFinite(seekable) ? seekable : buffered;
+  return Number.isFinite(buffered) ? buffered : seekable;
+}
+
+/** What to do about the distance from the play position to the live edge. */
+export function liveEdgeDecision({ currentTime, edge, playbackRate = 1 }) {
+  if (!Number.isFinite(currentTime) || !Number.isFinite(edge)) return { action: 'none', lag: null };
+  const lag = Math.max(0, edge - currentTime);
+  if (lag > LIVE_LAG_SEEK_S) return { action: 'seek', to: Math.max(0, edge - LIVE_EDGE_MARGIN_S), lag };
+  if (lag > LIVE_LAG_RATE_S) return { action: 'rate', rate: LIVE_CATCHUP_RATE, lag };
+  if (Math.abs(Number(playbackRate) - 1) > 0.001) return { action: 'rate', rate: 1, lag };
+  return { action: 'none', lag };
+}
+
+/**
+ * One step of the freeze watch. `memo` is {lastTime, since, frozenFor}; a
+ * position that moved, a pause, or the end resets it; a position that has not
+ * moved counts the seconds since it last did.
+ */
+export function freezeStep(memo, { currentTime, paused = false, ended = false }, nowMs) {
+  const t = Number(currentTime);
+  if (paused || ended || !Number.isFinite(t)) return { lastTime: Number.isFinite(t) ? t : null, since: nowMs, frozenFor: 0 };
+  if (!memo || memo.lastTime == null || t !== memo.lastTime) return { lastTime: t, since: nowMs, frozenFor: 0 };
+  return { lastTime: t, since: memo.since, frozenFor: Math.max(0, (nowMs - memo.since) / 1000) };
+}
+
+/**
+ * Tend one live element: watch for a freeze and keep it at the live edge.
+ * Returns the next memo plus {frozen, lag, action}. Only here is the element
+ * written (currentTime, playbackRate), and only when the decision says so.
+ */
+export function tendLiveVideo(video, memo, { mode = 'mp4', nowMs = Date.now() } = {}) {
+  if (!video) return { memo, frozen: false, lag: null, action: 'none' };
+  const state = { currentTime: Number(video.currentTime), paused: !!video.paused, ended: !!video.ended };
+  const next = freezeStep(memo, state, nowMs);
+  const frozen = next.frozenFor >= FREEZE_SECONDS;
+  let decision = { action: 'none', lag: null };
+  if (!frozen && !state.paused && !state.ended && Number(video.readyState) >= 2) {
+    decision = liveEdgeDecision({ currentTime: state.currentTime, edge: liveEdge(video, mode), playbackRate: video.playbackRate });
+    try {
+      if (decision.action === 'seek') video.currentTime = decision.to;
+      else if (decision.action === 'rate') video.playbackRate = decision.rate;
+    } catch { /* a device fact */ }
+  }
+  return { memo: next, frozen, lag: decision.lag, action: decision.action };
 }

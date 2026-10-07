@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 // =============================================================================
-// A pointer the D-pad moves, for a screen driven by a remote (DR-0798)
+// A pointer the D-pad moves, for a screen driven by a remote (DR-0802)
 // =============================================================================
 // Darrell 2026-10-07: "Make sure the app has a hovering pointer option for
 // devices that use a remote... make sense?"

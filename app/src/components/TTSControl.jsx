@@ -53,7 +53,7 @@ import { loadFloat, saveFloat, clampRect, avoidRects, defaultRect } from '../lib
 import { loadFollowPrefs, saveFollowPrefs } from '../lib/reader-follow-prefs.js';
 import { useDeviceClass } from '../lib/use-device-class.js';
 import { PITCH_STEPS, pitchStep } from '../lib/voice-shape.js';
-// A POINTER FOR A REMOTE (DR-0798): an option, off by default, offered on a TV.
+// A POINTER FOR A REMOTE (DR-0802): an option, off by default, offered on a TV.
 import RemotePointer from './RemotePointer.jsx';
 import { loadPointerPref, savePointerPref } from '../lib/remote-pointer.js';
 import { loadControllerPref, saveControllerPref, controllerLayout, flippedControllerPref, controllerToggleLabel, controllerToggleTitle, railWidth, railButtonIds, nextInCycle, railWord, markRails, enterFullScreen, exitFullScreen, leavesFullScreen, FULLSCREEN_ATTR } from '../lib/reader-controller.js';
@@ -226,7 +226,7 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
   const [talkSource, setTalkSource] = useState('');
   const {
     supported, isReading, isPaused, rate, read, pause, resume, stop, setRate, claimAudio,
-    // THE SOUND SHAPED ONTO THIS VOICE (DR-0797): pitch is kept per voice.
+    // THE SOUND SHAPED ONTO THIS VOICE (DR-0801): pitch is kept per voice.
     pitch, setPitch, stepPitch,
     catalog, voiceId, setVoiceId, currentItem,
     segmentIndex, setBoundaryHandler, deviceRead, cloudProgress, cloudPiece,
@@ -1693,7 +1693,7 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
     return () => markRails(d, false);
   }, [railsOn, supported, floatState.floating]);
 
-  // THE SIDE BUTTONS (DR-0796). Darrell on the Firestick: "the user just needs
+  // THE SIDE BUTTONS (DR-0800). Darrell on the Firestick: "the user just needs
   // the functions to look like the buttons below... just the missing ones...
   // in the small side spaces... until we say full screen." So each rail
   // control is one bottom-bar button — the same DOCK_BTN square, an icon and
@@ -1739,7 +1739,7 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
       case 'panel':
         return { icon: '⇕', word: 'Panel', title: controllerToggleTitle(controller), onClick: flipController };
       case 'pointer':
-        // DR-0798. Off by default because a Silk browser drives a pointer of
+        // DR-0802. Off by default because a Silk browser drives a pointer of
         // its own and two would fight; on, the D-pad moves ours and OK clicks.
         return { icon: '◉', word: pointerOn ? 'Pointer on' : 'Pointer', on: pointerOn, title: pointerOn ? 'The pointer is on: the arrows move it, OK presses what is under it, Back puts it away' : 'Show a pointer the remote can move, for a screen with no pointer of its own', onClick: flipPointer };
       case 'full':
@@ -1747,7 +1747,7 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
       case 'speed':
         return { icon: '⏱', word: rateNow.label, title: `Speed: ${rate.toFixed(1)}× — tap for the next`, onClick: () => setRate((RATE_STEPS.find((s) => s.value === nextInCycle(RATE_STEPS.map((s2) => s2.value), rateNow.value)) || RATE_STEPS[0]).value) };
       case 'pitch': {
-        // THE SOUND OF THIS VOICE (DR-0797). One button, five named steps, the
+        // THE SOUND OF THIS VOICE (DR-0801). One button, five named steps, the
         // word IS the step. The pitch is kept per voice, so picking a voice
         // brings its own sound back.
         const step = pitchStep(pitch);
@@ -2120,7 +2120,7 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
             </div>
           </div>
 
-          {/* THE SOUND OF THIS VOICE (DR-0797). Darrell 2026-10-07: "Can we
+          {/* THE SOUND OF THIS VOICE (DR-0801). Darrell 2026-10-07: "Can we
               choose different male and female voices... different pitches...
               to get a unique voice that has the right sound for each
               individual?" The Web Speech API has no gender field - male and
@@ -2292,7 +2292,7 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
           .tts-controls so the reading engine still counts it as the
           reader's own chrome (never read aloud, never a tap-to-start). */}
       {/* THE RAILS: the bottom bar's own buttons, standing up the two sides of
-          the Word (DR-0785, re-cut DR-0796). Only what the bar does not have. */}
+          the Word (DR-0785, re-cut DR-0800). Only what the bar does not have. */}
       {supported && !floatState.floating && railsOn && typeof document !== 'undefined' && createPortal(
         <div className="tts-controls print:hidden" data-testid="reader-rails" data-layout="sides" style={{ fontSize: 'calc(1rem * var(--ts-chrome-scale, 1))' }}>
           <div data-testid="reader-rail-left" role="group" aria-label="Reading controls — the voice" className="fixed top-2 bottom-14 left-2 z-[80] overflow-y-auto flex flex-col items-stretch gap-[4px]" style={{ width: railWidth() }}>
@@ -2304,7 +2304,7 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
         </div>,
         document.body,
       )}
-      {/* THE POINTER A REMOTE MOVES (DR-0798). Draws nothing until it is
+      {/* THE POINTER A REMOTE MOVES (DR-0802). Draws nothing until it is
           switched on AND woken, so every other device pays nothing. */}
       <RemotePointer on={pointerOn} />
       {/* FULL SCREEN: only the Word and the voice. A faint mark brings the controls back. */}

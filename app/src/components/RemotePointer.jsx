@@ -1,5 +1,5 @@
 // =============================================================================
-// RemotePointer — the pointer a D-pad moves, drawn on the page (DR-0798)
+// RemotePointer — the pointer a D-pad moves, drawn on the page (DR-0802)
 // =============================================================================
 // Darrell 2026-10-07: "Make sure the app has a hovering pointer option for
 // devices that use a remote... make sense?"
@@ -9,7 +9,7 @@
 // it listens for arrow keys, moves the dot, ramps while a key is held, and
 // clicks what is under it on Enter. It renders nothing at all when the
 // option is off, so a phone and a laptop never pay for it.
-import { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import {
   TICK_MS, movePointer, readKey, startAt, targetAt,

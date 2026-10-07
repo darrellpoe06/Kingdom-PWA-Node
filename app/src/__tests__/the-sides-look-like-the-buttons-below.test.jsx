@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 // =============================================================================
 // The small side spaces carry the bottom bar's own buttons, and only what the
-// bar is missing (DR-0796)
+// bar is missing (DR-0800)
 // =============================================================================
 // Darrell, on the Firestick, looking at the first cut of the rails
 // (2026-10-07): "The sides are larger and not like the buttons below... the
@@ -34,7 +34,7 @@ vi.mock('../lib/use-read-aloud.js', () => ({
     claimAudio: () => {}, setRate: () => {},
     catalog: [{ id: 'sys', label: 'System voice', group: 'Default', usable: true }],
     voiceId: 'sys', setVoiceId: () => {}, currentItem: { id: 'sys', ai: false },
-    // DR-0797: the pitch shaped onto the chosen voice, and the one-tap cycle.
+    // DR-0801: the pitch shaped onto the chosen voice, and the one-tap cycle.
     pitch: 1, setPitch: () => {}, stepPitch: () => {}, voiceShapes: {},
   }),
 }));

@@ -1,11 +1,11 @@
-# DR-0797 — Every voice keeps its own pitch, so one voice is several readers
+# DR-0801 — Every voice keeps its own pitch, so one voice is several readers
 
 - **Status:** accepted
 - **Tier:** A (a control added and a per-voice memory; the engine, the catalog and the Scripture cast's own pitches are unchanged)
 - **Type:** feature
 - **Date:** 2026-10-07
 - **Scope:** `app/src/lib/voice-shape.js` (new), `app/src/lib/tts.js` (`setPitch` exposed from `useTts`, the pref persisted as rate already was), `app/src/lib/use-read-aloud.js` (`pitch`, `setPitch`, `stepPitch`; a voice's shape applied when it is picked and on every read), `app/src/components/TTSControl.jsx` (the five steps in the tall panel; one cycling button in the TV rail), `app/src/lib/reader-controller.js` (`pitch` joins the right rail), test `a-voice-you-shape.test.jsx`
-- **Principles:** DR-0796 (a rail control is one cycling bar button), DR-0721 (my own voice, said plainly), DR-0076 (measure, don't claim), DR-0075
+- **Principles:** DR-0800 (a rail control is one cycling bar button), DR-0721 (my own voice, said plainly), DR-0076 (measure, don't claim), DR-0075
 - **Grounds:** Darrell 2026-10-07, on the Firestick: *"Can we choose different male and female voices... different pitches... or even a pitch and other voice kpi sliders to get a unique voice that has the right sound for each individual?"* and, in the same breath, *"I only see one option other than my own that doesn't work yet until the 4070 does something... correct?"*
 
 ## Context
@@ -31,7 +31,7 @@ Unresolved: the only way to change how a reading sounded was to pick a different
 ## Decision
 
 1. **Pitch is a setting, and it belongs to the voice.** `voice-shape.js` keeps `{ pitch }` per voice id on the device. Picking a voice brings its shape back; shaping a voice back to Natural forgets it rather than storing a default.
-2. **Five named steps, not a slider.** Deepest · Deeper · Natural · Lighter · Highest. A remote's D-pad cannot drag a slider; it can land on a chip, and it can tap one button that cycles. The tall panel shows all five; the TV rail shows one button whose word IS the step (DR-0796).
+2. **Five named steps, not a slider.** Deepest · Deeper · Natural · Lighter · Highest. A remote's D-pad cannot drag a slider; it can land on a chip, and it can tap one button that cycles. The tall panel shows all five; the TV rail shows one button whose word IS the step (DR-0800).
 3. **The engine is asked, not reimplemented.** `useTts` now exposes `setPitch` exactly as it exposes `setRate` — it sets the live engine, which restarts the current sentence, and persists the pref. A read uses the shaped pitch unless a cast stand-in has set its own.
 4. **What cannot be done is said, not implied.** Male and female are not a setting we can offer: the Web Speech API has no gender, and the voices a device lists are the voices there are. This record is where that is written down.
 

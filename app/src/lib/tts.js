@@ -783,7 +783,7 @@ export function useTextToSpeech() {
     setPrefs((prev) => { const next = { ...prev, rate: clampRate(r) }; saveTTSPrefs(next); return next; });
   }, []);
 
-  // PITCH, THE SAME WAY AS RATE (DR-0797). The engine has always carried a
+  // PITCH, THE SAME WAY AS RATE (DR-0801). The engine has always carried a
   // pitch and applied it to the live utterance; nothing exposed a way to set
   // one, so the saved pref could never change. Darrell: "different pitches...
   // to get a unique voice that has the right sound for each individual."
