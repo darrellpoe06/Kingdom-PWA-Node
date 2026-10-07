@@ -352,6 +352,14 @@ describe('our voice keeps the bindings', () => {
       expect(t).toContain('so we all get healthy together, until we see that Yahweh has been right');
     }
   });
+
+  it('all three directions are on the lesson AND on every band, not only on the module as a whole', () => {
+    for (const [where, t] of [['lesson', L().lesson], ...FULL_BANDS.map((b) => [b, L().levels[b]])]) {
+      expect(t, `${where}: parents to children`).toMatch(/Parents(?: and grandparents)?, ask (?:your children|the children)/);
+      expect(t, `${where}: children to parents`).toMatch(/Ask your mom, dad or grandparent/);
+      expect(t, `${where}: friend to friend`).toMatch(/Friends, tell each other/);
+    }
+  });
 });
 
 describe('the register is ordered, and measured rather than asserted', () => {
