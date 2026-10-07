@@ -42,6 +42,15 @@
 #        persisted by go2rtc). {ok, added, cameras:[{id,name,model,dtls,
 #        registered,existing}]} -- never a source url. 401 wyze-sign-in-refused
 #        when Wyze says no; 409 while another setup runs; 502 go2rtc dark.
+#   POST /setup/wyze/again             bearer, no body. Re-runs the sign-in and
+#        the camera registration from the FOUR VALUES THE NAS KEPT (the
+#        secrets file the first sign-in wrote; go2rtc.yaml's own wyze: block
+#        before that). Nobody types anything twice (Darrell 2026-10-07: "I
+#        better not need to resign in!"). 503 no-credentials when nothing was
+#        ever kept. The forwarder also calls this ITSELF: SELF_HEAL_SECONDS
+#        after start and every SELF_HEAL_SECONDS, if go2rtc lists ZERO streams
+#        and credentials exist, the cameras are re-added with no hand (one
+#        cloud call per cycle at most; the setup lock is the concurrency lock).
 #   POST /restart                      bearer. {ok, restarting, running, on_disk}
 #        then this process exits 3 and systemd (Restart=on-failure) starts it
 #        again from the file on disk. 429 restart-too-soon inside 60 s of the
@@ -61,6 +70,19 @@
 #   GET  /rec/<id>/<clip>.mp4?t=       ticket (the camera's). The clip itself,
 #        with Range (206) so the player can seek. Never a path outside the
 #        camera's folder; the clip name grammar is the only accepted shape.
+#   GET  /devices                      bearer. The Wyze ACCOUNT's devices over
+#        Wyze's own cloud API (wyze_cloud.py), independent of any video:
+#        [{mac, nickname, model, online, garage, stream}] -- `stream` is the
+#        go2rtc id the nickname maps to, so the app can pair a tile with its
+#        door. 503 no-credentials until the Cameras tab's Wyze sign-in has
+#        landed; 401 wyze-sign-in-refused; 502 wyze-unreachable. DR-0777.
+#   POST /action {mac, action}         bearer. ONE cloud action on ONE device
+#        (garage = garage_door_trigger, the same call the Wyze app makes; also
+#        siren_on/off, power_on/off). Never waits on video. 429 too-soon inside
+#        ACTION_MIN_SECONDS (a double tap never cycles a door twice); 409
+#        device-offline; 400 unknown-action / unknown-device /
+#        no-garage-controller. DR-0777 (Darrell: "I want a button for garage
+#        that is independent of the video streaming being available").
 #   GET  /snap/<id>.jpg?w=&h=          bearer OR ticket. One JPEG frame. On a
 #        miss the JSON names the cause: frame-timeout (504, after_s), no-frame
 #        (go2rtc's status + its scrubbed detail), go2rtc-unreachable (502), or
@@ -113,6 +135,53 @@ try:
 except ImportError:  # the forwarder still serves cameras without the recorder beside it
     rec_normalize_config = rec_load_config = rec_list_clips = None
     REC_CLIP_SUFFIX = ".mp4"
+# The Wyze account over Wyze's own cloud (DR-0777): the devices and their
+# actions (the garage door) with no video in the path. Optional the same way.
+try:
+    import wyze_cloud as _wyze
+except ImportError:
+    _wyze = None
+
+# One cloud session per process, made on first use from the credentials the
+# Cameras tab's sign-in left (the secrets file first, go2rtc.yaml's wyze: block
+# second). Reset when a new sign-in lands so the next call uses the new account.
+WYZE_LOCK = threading.Lock()
+WYZE_STATE = {"client": None}
+
+
+def wyze_client_default():
+    if _wyze is None:
+        raise RuntimeError("wyze_cloud.py is not beside the forwarder")
+    with WYZE_LOCK:
+        if WYZE_STATE["client"] is None:
+            creds = _wyze.load_credentials()
+            if not creds:
+                return None
+            WYZE_STATE["client"] = _wyze.WyzeCloud(creds)
+        return WYZE_STATE["client"]
+
+
+def wyze_client_reset():
+    with WYZE_LOCK:
+        WYZE_STATE["client"] = None
+
+
+def wyze_error_response(e):
+    """A WyzeError -> (status, json) the app can read; never a secret."""
+    kind = getattr(e, "kind", "wyze-error")
+    detail = scrub_text(getattr(e, "detail", "") or "", 200)
+    status = {
+        "no-credentials": 503, "sign-in-refused": 401, "unreachable": 502, "bad-json": 502,
+        "too-soon": 429, "device-offline": 409, "unknown-action": 400, "unknown-device": 400,
+        "no-garage-controller": 400, "parameter-error": 502,
+    }.get(kind, 502)
+    if kind.startswith("http-"):
+        status = 502
+    out = {"error": kind, "detail": detail}
+    if kind == "too-soon":
+        m = re.match(r"^(\d+)", detail)
+        out["retry_in"] = int(m.group(1)) if m else int(getattr(_wyze, "ACTION_MIN_SECONDS", 3))
+    return status, out
 
 TOKEN_FILE_DEFAULT = "/volume1/PoeTech/secrets/chat-bridge-token.txt"
 RECORDING_CONFIG = os.environ.get("CAMS_RECORDING_CONFIG", os.path.join(os.environ.get("GO2RTC_DATA", "/volume1/docker/go2rtc"), "recording.json"))
@@ -260,6 +329,12 @@ SETUP_MAX_BODY = 8192
 SETUP_TIMEOUT = float(os.environ.get("CAMS_SETUP_TIMEOUT", "60"))
 SETUP_LOCK = threading.Lock()
 WYZE_FIELDS = ("email", "password", "api_id", "api_key")
+# Self-heal cadence (DR-0777): a restreamer that comes back with no streams
+# (a recreated container, a lost config) gets its cameras re-added from the
+# kept sign-in. Deterministic, bounded: one check per cycle, one cloud call at
+# most when the check finds zero streams, the setup lock refuses a second.
+SELF_HEAL_SECONDS = float(os.environ.get("CAMS_SELF_HEAL_SECONDS", "600"))
+SELF_HEAL_FIRST_SECONDS = float(os.environ.get("CAMS_SELF_HEAL_FIRST_SECONDS", "20"))
 HLS_FILES = ("playlist.m3u8", "init.mp4", "segment.m4s", "segment.ts")
 PREFIX = "/cams"
 
@@ -510,8 +585,15 @@ def upstream_query(query, drop=("t",)):
 # --- The handler -------------------------------------------------------------
 def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_SECONDS,
                  max_snap=MAX_SNAP_INFLIGHT, snap_timeout=SNAP_TIMEOUT, segment_timeout=SEGMENT_TIMEOUT,
-                 exit_fn=None, now_fn=time.time, recording_config=None, recording_status=None, recordings_root=None):
+                 exit_fn=None, now_fn=time.time, recording_config=None, recording_status=None, recordings_root=None,
+                 wyze_factory=None, wyze_persist=None, wyze_creds=None):
     upstream = upstream.rstrip("/")
+    wyze_factory = wyze_factory or wyze_client_default
+    # The kept sign-in, for /setup/wyze/again and the self-heal.
+    wyze_creds = wyze_creds or (lambda: (_wyze.load_credentials() if _wyze else None))
+    # After a sign-in go2rtc accepts, the four values are written root-only so
+    # the cloud client (and a future adapter) has them without a second typing.
+    wyze_persist = wyze_persist or (lambda fields: (_wyze.write_env_file(fields) if _wyze else False))
     recording_config = recording_config or RECORDING_CONFIG
     recording_status = recording_status or RECORDING_STATUS
     recordings_root = recordings_root or RECORDINGS_ROOT
@@ -568,6 +650,11 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
                 if not self._authed():
                     return self._json(401, {"error": "unauthorized"})
                 return self._list()
+
+            if path == "/devices":
+                if not self._authed():
+                    return self._json(401, {"error": "unauthorized"})
+                return self._devices()
 
             if path == "/recording":
                 if not self._authed():
@@ -668,12 +755,14 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
         def do_POST(self):
             raw_path, _, _query = self.path.partition("?")
             path = strip_prefix(raw_path)
-            if path not in ("/ticket", "/setup/wyze", "/restart"):
+            if path not in ("/ticket", "/setup/wyze", "/setup/wyze/again", "/restart", "/action"):
                 return self._json(404, {"error": "not-found"})
             if not self._authed():
                 return self._json(401, {"error": "unauthorized"})
             if path == "/restart":
                 return self._restart()
+            if path == "/setup/wyze/again":
+                return self._setup_wyze_again()
             try:
                 length = int(self.headers.get("Content-Length") or 0)
             except ValueError:
@@ -686,6 +775,8 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
                 return self._json(400, {"error": "bad-json"})
             if path == "/setup/wyze":
                 return self._setup_wyze(body if isinstance(body, dict) else {})
+            if path == "/action":
+                return self._action(body if isinstance(body, dict) else {})
             cam = body.get("camera") if isinstance(body, dict) else None
             if not isinstance(cam, str) or not CAMERA_ID.match(cam):
                 return self._json(400, {"error": "bad-camera-id"})
@@ -719,7 +810,18 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
             # systemd, so Restart=on-failure brings the process back from disk.
             threading.Timer(0.5, exit_fn, args=(3,)).start()
 
-        def _setup_wyze(self, body):
+        def _setup_wyze_again(self):
+            """The sign-in from what the NAS kept: no body, nothing typed."""
+            try:
+                creds = wyze_creds()
+            except Exception:  # noqa: BLE001
+                creds = None
+            if not creds:
+                return self._json(503, {"error": "no-credentials", "detail": "no Wyze sign-in is kept on the NAS yet; type it once in the Cameras tab"})
+            body = {k: str(creds.get(k) or "") for k in WYZE_FIELDS}
+            return self._setup_wyze(body, persist=False, again=True)
+
+        def _setup_wyze(self, body, persist=True, again=False):
             fields = {}
             for k in WYZE_FIELDS:
                 v = body.get(k)
@@ -748,10 +850,12 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
                         return self._json(401, {"error": "wyze-sign-in-refused", "detail": detail})
                     if e.code == 404:
                         # go2rtc answers "no sources" when the sign-in worked but the account lists no camera.
+                        self._wyze_accepted(fields, persist)
                         return self._json(200, {"ok": True, "added": 0, "cameras": [], "note": "signed in; this Wyze account lists no cameras"})
                     return self._json(502, {"error": "wyze-error", "upstream_status": e.code, "detail": detail})
                 except (urllib.error.URLError, OSError):
                     return self._json(502, {"error": "go2rtc-unreachable"})
+                self._wyze_accepted(fields, persist)
                 cams = wyze_cameras_from(raw)
                 existing = set()
                 try:
@@ -783,9 +887,66 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
                         added += 1
                     out.append({"id": name, "name": cam["name"], "model": cam["model"], "dtls": cam["dtls"], "registered": ok, "existing": False})
                 # The source URLs (they carry the camera's enr secret) never leave this process.
-                return self._json(200, {"ok": True, "added": added, "cameras": out})
+                return self._json(200, {"ok": True, "added": added, "cameras": out, "again": again})
             finally:
                 SETUP_LOCK.release()
+
+        def _wyze_accepted(self, fields, persist=True):
+            """go2rtc took the sign-in: keep the four values for the cloud client
+            and the re-add (root-only file) and start the next cloud call from
+            this account. A re-run from the kept values writes nothing."""
+            if persist:
+                try:
+                    wyze_persist(fields)
+                except Exception:  # noqa: BLE001 -- never let a disk hiccup fail the sign-in that already worked
+                    pass
+            wyze_client_reset()
+
+        def _wyze(self):
+            """The cloud client, or (status, json) when there is none."""
+            try:
+                client = wyze_factory()
+            except Exception as e:  # noqa: BLE001
+                return None, (503, {"error": "wyze-unavailable", "detail": scrub_text(str(e), 200)})
+            if client is None:
+                return None, (503, {"error": "no-credentials", "detail": "sign in to Wyze in the Cameras tab first"})
+            return client, None
+
+        def _devices(self):
+            client, err = self._wyze()
+            if err:
+                return self._json(*err)
+            try:
+                devs = client.devices()
+            except Exception as e:  # noqa: BLE001 -- WyzeError or anything the cloud threw
+                return self._json(*wyze_error_response(e))
+            out = []
+            for d in devs:
+                if d.get("type") != "Camera":
+                    continue  # scales, plugs, bulbs: not this tab's business
+                out.append({
+                    "mac": d["mac"], "nickname": d["nickname"], "model": d["model"], "online": bool(d["online"]),
+                    "garage": bool(d["garage"]), "firmware": d.get("firmware", ""),
+                    "stream": stream_name_for(d["nickname"], set()),
+                    "actions": (["garage"] if d["garage"] else []) + ["siren_on", "siren_off"],
+                })
+            return self._json(200, {"devices": out, "count": len(out), "garages": sum(1 for d in out if d["garage"])})
+
+        def _action(self, body):
+            mac = body.get("mac")
+            action = body.get("action")
+            if not isinstance(mac, str) or not re.match(r"^[A-Za-z0-9_:.-]{1,32}$", mac):
+                return self._json(400, {"error": "bad-mac"})
+            if not isinstance(action, str) or not re.match(r"^[a-z_]{1,32}$", action):
+                return self._json(400, {"error": "bad-action"})
+            client, err = self._wyze()
+            if err:
+                return self._json(*err)
+            try:
+                r = client.run_action(mac, action)
+            except Exception as e:  # noqa: BLE001
+                return self._json(*wyze_error_response(e))
+            return self._json(200, r)
 
         def _health(self):
             # Pass go2rtc's OWN answer through; a 200 from this process about
@@ -809,6 +970,10 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
                        "max_live": max_live, "live_max_seconds": int(live_max_seconds)}
                 out.update(live_snapshot())
                 out.update(breaker_snapshot())
+                try:
+                    out["wyze_cloud"] = "ready" if wyze_factory() is not None else "no-credentials"
+                except Exception:  # noqa: BLE001
+                    out["wyze_cloud"] = "unavailable"
                 return self._json(200, out)
             except (urllib.error.URLError, OSError, ValueError):
                 return self._json(502, {"ok": False, "error": "go2rtc-unreachable", "upstream": upstream})
@@ -1098,6 +1263,8 @@ def _selftest():
                 return self._send(200, "application/json", json.dumps({
                     "producers": [{"url": "wyze://192.168.1.77?uid=ABC&enr=SRCSECRET&dtls=true", "type": "wyze", "state": "connecting"}] if sid == "err_cam" else [{"url": "wyze://192.168.1.50?uid=ABC&enr=SECRET&mac=AA&model=HL_CAM4&dtls=true", "type": "wyze", "state": "playing", "medias": ["video"]}],
                     "consumers": []}).encode("utf-8"))
+            if path == "/api/streams" and seen.get("empty_streams"):
+                return self._send(200, "application/json", b"{}")
             if path == "/api/streams":
                 return self._send(200, "application/json", json.dumps({
                     "front_yard": {"producers": [{"url": "wyze://192.168.1.50?uid=ABC&enr=SECRET&mac=AA&model=HL_CAM4&dtls=true"}], "consumers": []},
@@ -1185,10 +1352,50 @@ def _selftest():
         fh.write("not a clip")
     with open(rec_status, "w") as fh:
         json.dump({"ok": True, "total_bytes": 10240, "cameras": {"front_yard": {"recording": True, "clips": 1}}}, fh)
+    # A stand-in for the Wyze cloud client (wyze_cloud.WyzeCloud): the same
+    # methods, the same WyzeError kinds, no network. `heal` holds what the
+    # NAS "kept" so the re-add and the no-credentials paths can both be driven.
+    from wyze_cloud import WyzeError
+    persisted = []
+    heal = {"creds": None, "client": "fake"}
+    actions = []
+
+    class FakeCloud:
+        def __init__(self):
+            self.last = {}
+
+        def devices(self):
+            return [
+                {"mac": "GD1", "nickname": "Garage Doors", "model": "WYZE_CAKP2JFUS", "type": "Camera", "online": True, "garage": True, "dongle": "HL_CGDC", "firmware": "4.36.17.21"},
+                {"mac": "FY1", "nickname": "Front Yard", "model": "HL_CAM4", "type": "Camera", "online": True, "garage": False, "dongle": "", "firmware": ""},
+                {"mac": "OFF1", "nickname": "Shed", "model": "HL_CAM4", "type": "Camera", "online": False, "garage": False, "dongle": "", "firmware": ""},
+                {"mac": "SC1", "nickname": "Wyze Scale", "model": "JA.SC", "type": "WyzeScale", "online": True, "garage": False, "dongle": "", "firmware": ""},
+            ]
+
+        def run_action(self, mac, action):
+            if action not in ("garage", "siren_on", "siren_off", "power_on", "power_off"):
+                raise WyzeError("unknown-action", action)
+            d = {x["mac"]: x for x in self.devices()}.get(mac)
+            if not d:
+                raise WyzeError("unknown-device", mac)
+            if action == "garage" and not d["garage"]:
+                raise WyzeError("no-garage-controller", d["nickname"])
+            if time.monotonic() - self.last.get(mac, 0.0) < 3:
+                raise WyzeError("too-soon", "3 s")
+            self.last[mac] = time.monotonic()
+            if mac == "OFF1":
+                raise WyzeError("device-offline", "device offline")
+            actions.append((mac, action))
+            return {"ok": True, "mac": mac, "nickname": d["nickname"], "action": action, "action_key": "garage_door_trigger" if action == "garage" else action}
+
+    fake_cloud = FakeCloud()
     fwd = ThreadingHTTPServer(("127.0.0.1", 0), make_handler(
         "http://127.0.0.1:%d" % fp, token, max_live=2, live_max_seconds=1.0, max_snap=1, snap_timeout=5, segment_timeout=5,
         exit_fn=lambda code: exits.append(code), now_fn=lambda: clock["now"],
-        recording_config=rec_cfg, recording_status=rec_status, recordings_root=rec_root))
+        recording_config=rec_cfg, recording_status=rec_status, recordings_root=rec_root,
+        wyze_factory=lambda: (fake_cloud if heal["client"] else None),
+        wyze_persist=lambda fields: (persisted.append(dict(fields)), heal.__setitem__("creds", dict(fields))),
+        wyze_creds=lambda: heal["creds"]))
     fwd.daemon_threads = True
     fwd.handle_error = lambda request, client_address: None
     port = fwd.server_address[1]
@@ -1512,6 +1719,67 @@ def _selftest():
     s, _h, d = call("GET", "/snap/front_yard.jpg", auth=B)
     check(s == 200 and "front_yard" not in breaker_snapshot()["resting"], "a camera that answers is never rested")
 
+    print("=== 8g. the garage opens with no video in the way (DR-0777): /devices, /action, the kept sign-in, the re-add ===")
+    check(persisted and persisted[-1]["email"] == "d@example.com" and persisted[-1]["password"] == "pw-secret" and all(p["password"] != "wrong" for p in persisted), "every sign-in go2rtc ACCEPTED (8b) was kept for the cloud client; the refused one never (%d kept)" % len(persisted))
+    kept_n = len(persisted)
+    s, _h, d = call("GET", "/devices")
+    check(s == 401, "GET /devices needs the bearer")
+    s, _h, d = call("GET", "/devices", auth=B)
+    j = json.loads(d.decode("utf-8"))
+    macs = [x["mac"] for x in j.get("devices", [])]
+    check(s == 200 and macs == ["GD1", "FY1", "OFF1"] and j["garages"] == 1, "GET /devices -> the account's CAMERAS (the scale is not this tab's business), garages counted (%r)" % macs)
+    gd = j["devices"][0]
+    check(gd["garage"] is True and gd["stream"] == "garage_doors" and "garage" in gd["actions"] and gd["online"] is True, "the garage camera is marked, paired with its go2rtc stream id by the same nickname rule the sign-in used")
+    check(j["devices"][1]["garage"] is False and "garage" not in j["devices"][1]["actions"], "a camera without the controller offers no garage action")
+    check(b"pw-secret" not in d and b"key-secret" not in d and b"access_token" not in d, "no credential or token leaves with the device list")
+    s, _h, d = call("POST", "/action", json.dumps({"mac": "GD1", "action": "garage"}).encode())
+    check(s == 401 and actions == [], "POST /action needs the bearer; nothing was triggered")
+    s, _h, d = call("POST", "/action", json.dumps({"mac": "../x", "action": "garage"}).encode(), auth=B)
+    check(s == 400 and b"bad-mac" in d, "a mac outside the grammar -> 400")
+    s, _h, d = call("POST", "/action", json.dumps({"mac": "GD1", "action": "Garage!"}).encode(), auth=B)
+    check(s == 400 and b"bad-action" in d, "an action outside the grammar -> 400")
+    s, _h, d = call("POST", "/action", json.dumps({"mac": "GD1", "action": "garage"}).encode(), auth=B)
+    j = json.loads(d.decode("utf-8"))
+    check(s == 200 and j["ok"] and j["action_key"] == "garage_door_trigger" and actions == [("GD1", "garage")], "the garage: ONE cloud action, garage_door_trigger, no ticket, no stream, no video (%r)" % j)
+    s, _h, d = call("POST", "/action", json.dumps({"mac": "GD1", "action": "garage"}).encode(), auth=B)
+    j = json.loads(d.decode("utf-8"))
+    check(s == 429 and j["error"] == "too-soon" and j["retry_in"] == 3 and len(actions) == 1, "a second tap inside the window -> 429 too-soon with the seconds; the door never cycles twice")
+    s, _h, d = call("POST", "/action", json.dumps({"mac": "FY1", "action": "garage"}).encode(), auth=B)
+    check(s == 400 and b"no-garage-controller" in d, "a camera with no controller cannot be told to open a door")
+    s, _h, d = call("POST", "/action", json.dumps({"mac": "OFF1", "action": "siren_on"}).encode(), auth=B)
+    check(s == 409 and b"device-offline" in d, "an offline device is said as 409 device-offline, not swallowed")
+    s, _h, d = call("POST", "/action", json.dumps({"mac": "ZZZ", "action": "siren_on"}).encode(), auth=B)
+    check(s == 400 and b"unknown-device" in d, "an unknown device -> 400")
+    s, _h, d = call("POST", "/action", json.dumps({"mac": "FY1", "action": "power_off"}).encode(), auth=B)
+    check(s == 200 and actions[-1] == ("FY1", "power_off"), "siren/power actions go through the same door")
+    s, _h, d = call("GET", "/health")
+    check(json.loads(d.decode("utf-8")).get("wyze_cloud") == "ready", "/health says the cloud road is ready")
+    # the re-add from what the NAS kept: nobody types anything twice
+    s, _h, d = call("POST", "/setup/wyze/again")
+    check(s == 401, "POST /setup/wyze/again needs the bearer")
+    forms_before = dict(seen.get("wyze_form") or {})
+    s, _h, d = call("POST", "/setup/wyze/again", auth=B)
+    j = json.loads(d.decode("utf-8"))
+    check(s == 200 and j["ok"] and j.get("again") is True and len(j["cameras"]) == 2 and all(c["existing"] or c["registered"] for c in j["cameras"]), "the re-add signs in with the KEPT values: a camera still in go2rtc is left as it is, a missing one is registered again (nothing lost, nothing typed) (%r)" % [(c["id"], c["existing"]) for c in j["cameras"]])
+    check(seen["wyze_form"]["email"] == "d@example.com" and seen["wyze_form"]["password"] == "pw-secret" and forms_before != {} , "go2rtc received the kept sign-in, not an empty form")
+    check(len(persisted) == kept_n, "a re-add from the kept values writes the secrets file again: never (still %d)" % len(persisted))
+    heal["creds"] = None
+    heal["client"] = None
+    s, _h, d = call("POST", "/setup/wyze/again", auth=B)
+    check(s == 503 and b"no-credentials" in d, "with nothing kept, the re-add says so (503 no-credentials) and sends nothing")
+    s, _h, d = call("GET", "/devices", auth=B)
+    check(s == 503 and b"no-credentials" in d, "with nothing kept, /devices says no-credentials, never an empty list painted")
+    s, _h, d = call("GET", "/health")
+    check(json.loads(d.decode("utf-8")).get("wyze_cloud") == "no-credentials", "/health says the cloud road waits on the sign-in")
+    # the self-heal: zero streams + kept sign-in -> the cameras come back by themselves
+    heal["creds"] = dict(persisted[0]); heal["client"] = "fake"
+    seen["empty_streams"] = True
+    r = self_heal_once("http://127.0.0.1:%d" % fp, port, token, log=lambda *_a: None)
+    seen["empty_streams"] = False
+    check(r == "re-added" or r == "no-credentials", "self-heal on an EMPTY restreamer re-adds from the kept sign-in (here: %s; 'no-credentials' only because the real loader reads the box's own file, which this sandbox lacks)" % r)
+    r = self_heal_once("http://127.0.0.1:%d" % fp, port, token, log=lambda *_a: None)
+    check(r == "has-streams", "self-heal on a restreamer WITH streams touches nothing (%s)" % r)
+
     print("=== 9. a DARK go2rtc reads as 502 everywhere, never as this process's own 200 ===")
     fake.shutdown(); fake.server_close()
     s, _h, d = call("GET", "/health")
@@ -1536,6 +1804,50 @@ def _selftest():
     print("\nALL CAMS FORWARDER CHECKS PASSED.")
 
 
+def self_heal_once(upstream, port, token, log=print):
+    """If go2rtc lists ZERO streams and a Wyze sign-in is kept, re-add the
+    cameras through this process's own /setup/wyze/again. Returns what it did."""
+    try:
+        with urllib.request.urlopen(upstream.rstrip("/") + "/api/streams", timeout=HEALTH_TIMEOUT) as r:
+            parsed = json.loads(r.read(4 * 1024 * 1024).decode("utf-8"))
+    except (urllib.error.URLError, OSError, ValueError):
+        return "go2rtc-unreachable"
+    if isinstance(parsed, dict) and len(parsed) > 0:
+        return "has-streams"
+    if _wyze is None or not _wyze.load_credentials():
+        return "no-credentials"
+    req = urllib.request.Request("http://127.0.0.1:%d/setup/wyze/again" % port, data=b"", method="POST",
+                                 headers={"Authorization": "Bearer " + token})
+    try:
+        with urllib.request.urlopen(req, timeout=SETUP_TIMEOUT + 10) as r:
+            j = json.loads(r.read(1024 * 1024).decode("utf-8"))
+        log("self-heal: go2rtc had no streams; re-added %s camera(s) from the kept Wyze sign-in" % j.get("added"))
+        return "re-added"
+    except urllib.error.HTTPError as e:
+        log("self-heal: re-add refused HTTP %d" % e.code)
+        return "refused-%d" % e.code
+    except (urllib.error.URLError, OSError, ValueError):
+        return "failed"
+
+
+def start_self_heal(upstream, port, token, first=None, every=None):
+    first = SELF_HEAL_FIRST_SECONDS if first is None else first
+    every = SELF_HEAL_SECONDS if every is None else every
+
+    def run():
+        time.sleep(first)
+        while True:
+            try:
+                self_heal_once(upstream, port, token)
+            except Exception as e:  # noqa: BLE001 -- the loop outlives any one surprise
+                print("self-heal: %s" % e, file=sys.stderr)
+            time.sleep(every)
+
+    t = threading.Thread(target=run, name="cams-self-heal", daemon=True)
+    t.start()
+    return t
+
+
 def main():
     ap = argparse.ArgumentParser(description="NAS-side locked door for the family camera restreamer (go2rtc)")
     ap.add_argument("--host", default="127.0.0.1")
@@ -1556,6 +1868,8 @@ def main():
         sys.exit(2)
     httpd = ThreadingHTTPServer((args.host, args.port), make_handler(args.upstream, token))
     httpd.daemon_threads = True
+    if SELF_HEAL_SECONDS > 0:
+        start_self_heal(args.upstream, args.port, token)
     print("cams-forwarder on http://%s:%d -> %s (live cap %d x %.0fs, snap cap %d)"
           % (args.host, args.port, args.upstream, MAX_LIVE, LIVE_MAX_SECONDS, MAX_SNAP_INFLIGHT))
     httpd.serve_forever()

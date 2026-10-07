@@ -42,5 +42,5 @@ The app is served from poetech.us over HTTPS. A browser on that page may not cal
 
 ## Follow-ups
 
-- DR-0777: the LAN-direct HTTPS road, chosen automatically at home.
+- DR-0779: the LAN-direct HTTPS road, chosen automatically at home. (Correction 2026-10-07, same session: this record first named it DR-0777; that number went to the garage action and the kept sign-in, built first because the door is a daily need and the sign-in was lost that morning. The road itself is unchanged.)
 - The Funnel number on the OpsBoard beside the uptime strip. `re-review: 2026-10-21`.

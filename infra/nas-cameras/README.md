@@ -112,7 +112,10 @@ it in a URL.
 | `GET /cams/live/<id>.mp4?t=` | ticket | progressive MP4 (Chrome / Edge / Firefox / Android) |
 | `GET /cams/live/<id>/index.m3u8?t=` | ticket | HLS/fMP4 (Safari, iOS, Fire TV); the ticket rides every segment line |
 | `POST /cams/setup/wyze` | family bearer | the Wyze sign-in from the app (DR-0770) |
+| `POST /cams/setup/wyze/again` | family bearer | re-adds the cameras from the sign-in the NAS KEPT, nothing typed (DR-0777); the forwarder also does this itself when go2rtc comes back with zero streams |
 | `POST /cams/restart` | family bearer | restarts the forwarder from the file on disk (DR-0772) |
+| `GET /cams/devices` | family bearer | the Wyze account's cameras over Wyze's own cloud (`wyze_cloud.py`): mac, nickname, online, `garage` (controller dongle present), the go2rtc stream id it pairs with (DR-0777) |
+| `POST /cams/action {mac, action}` | family bearer | one cloud action, no video in the path: `garage` (= `garage_door_trigger`, the Wyze app's own call), `siren_on/off`, `power_on/off`; 429 inside 3 s, 409 offline (DR-0777) |
 | `GET/PUT /cams/recording` | family bearer | which cameras record, their retention, the disk budget, the recorder's status (DR-0775) |
 | `GET /cams/rec/<id>` | family bearer | the camera's clips on disk `[{name, bytes, start}]` |
 | `GET /cams/rec/<id>/<clip>.mp4?t=` | ticket | the clip, with Range (206) so the player can seek |

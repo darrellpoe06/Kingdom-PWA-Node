@@ -316,6 +316,15 @@ jobs:
       - name: cams recorder selftest
         working-directory: infra/nas-cameras
         run: python3 cams_recorder.py --selftest
+      # The garage opens with no video in the way (DR-0777): the Wyze cloud
+      # client. Proven-to-catch -- fails if the login stops sending the API
+      # key headers or the triple-md5 password, if a device without the garage
+      # dongle can be told to open a door, if a double tap cycles a door twice,
+      # if an expired token is not refreshed once and retried, or if the
+      # credential readers invent values.
+      - name: wyze cloud selftest
+        working-directory: infra/nas-cameras
+        run: python3 wyze_cloud.py --selftest
       # Sovereign review-queue server selftest (DR-0218 zero-n8n / DR-0076): the
       # byte-faithful port of wf-review-feed + wf-review-action. Proven-to-catch:
       # fails if the dismissed-filter, id path-containment, or status-write

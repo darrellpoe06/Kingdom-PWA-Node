@@ -626,3 +626,117 @@ export function liveTrafficLine(health) {
   const rate = bps >= 1e6 ? `${(bps / 1e6).toFixed(1)} Mbit/s` : bps >= 1e3 ? `${Math.round(bps / 1e3)} kbit/s` : `${Math.round(bps)} bit/s`;
   return `${open} live stream${open === 1 ? '' : 's'} · ${rate} through the Funnel`;
 }
+
+// =============================================================================
+// THE DOOR OPENS WITHOUT THE VIDEO (DR-0777; Darrell 2026-10-07: "I open the
+// garage doors through the camera that supports the switch... I want that
+// functionality inside the PoeTech too", and: "sometimes I don't need to see
+// to open the door... it still has to wait for video... why... I want a button
+// for garage that is independent of the video streaming being available").
+// The Wyze app does not open the door through the video either: it sends one
+// cloud action to the camera's device record. The NAS does the same through
+// Wyze's own cloud (wyze_cloud.py) with the sign-in it kept; the button here
+// needs no ticket, no stream, no frame. A tap is one POST; the answer is said.
+// =============================================================================
+export function devicesUrl() { return `${CAMS_BASE}/devices`; }
+export function actionUrl() { return `${CAMS_BASE}/action`; }
+export function setupAgainUrl() { return `${CAMS_BASE}/setup/wyze/again`; }
+export const ACTION_TIMEOUT_MS = 20000;
+export const ACTION_REARM_MS = 3000; // the NAS refuses a second trigger inside its window; the button rests as long
+
+// A nickname -> the stream id the NAS gives it (the same rule as
+// cams_forwarder.stream_name_for, so a device pairs with its tile).
+export function streamNameFor(nickname) {
+  const base = String(nickname || '').trim().replace(/[^A-Za-z0-9_.-]+/g, '_').replace(/^[_.-]+|[_.-]+$/g, '').toLowerCase().slice(0, 48);
+  return base || 'camera';
+}
+
+export function parseDevices(json) {
+  const list = json && Array.isArray(json.devices) ? json.devices : [];
+  return list
+    .filter((d) => d && typeof d.mac === 'string' && d.mac)
+    .map((d) => ({
+      mac: d.mac,
+      nickname: String(d.nickname || d.mac),
+      model: String(d.model || ''),
+      online: d.online === true,
+      garage: d.garage === true,
+      stream: typeof d.stream === 'string' && d.stream ? d.stream : streamNameFor(d.nickname),
+      actions: Array.isArray(d.actions) ? d.actions.filter((a) => typeof a === 'string') : [],
+    }));
+}
+
+export function classifyDevicesResult({ status, body, networkError } = {}) {
+  if (networkError) return { kind: 'unreachable', devices: [], message: 'The camera road did not answer.' };
+  const err = body && typeof body.error === 'string' ? body.error : '';
+  if (status === 200) return { kind: 'ok', devices: parseDevices(body), message: '' };
+  if (status === 503 && err === 'no-credentials') return { kind: 'no-credentials', devices: [], message: 'The NAS has no Wyze sign-in kept yet. Sign in once in this tab and the doors appear here.' };
+  if (status === 401 && err === 'wyze-sign-in-refused') return { kind: 'refused', devices: [], message: 'Wyze refused the kept sign-in. Sign in again once in this tab.' };
+  if (status === 401) return { kind: 'unauthorized', devices: [], message: 'The family key on this device was refused.' };
+  if (status === 404) return { kind: 'old-service', devices: [], message: 'The NAS is running an older camera service without the doors yet. It updates itself within 15 minutes of a merge.' };
+  if (status === 502 || status === 503) return { kind: 'wyze-down', devices: [], message: `Wyze's cloud did not answer the NAS${err ? ` (${err})` : ''}.` };
+  return { kind: 'error', devices: [], message: `The camera road answered HTTP ${status}${err ? ` (${err})` : ''}.` };
+}
+
+export async function fetchDevices(token, fetchImpl = globalThis.fetch) {
+  try {
+    const r = await fetchWithTimeout(devicesUrl(), { headers: authHeaders(token) }, ACTION_TIMEOUT_MS, fetchImpl);
+    let body = null;
+    try { body = await r.json(); } catch { body = null; }
+    return classifyDevicesResult({ status: r.status, body });
+  } catch {
+    return classifyDevicesResult({ networkError: true });
+  }
+}
+
+export function classifyActionResult({ status, body, networkError } = {}, action = 'garage') {
+  const what = action === 'garage' ? 'The door was told to move' : `Sent: ${action.replace(/_/g, ' ')}`;
+  if (networkError) return { kind: 'unreachable', message: 'The camera road did not answer. Nothing was sent to the door.' };
+  const err = body && typeof body.error === 'string' ? body.error : '';
+  if (status === 200 && body && body.ok) return { kind: 'ok', message: `${what}. Wyze accepted it${body.nickname ? ` for ${body.nickname}` : ''}.` };
+  if (status === 429) return { kind: 'too-soon', message: `Sent a moment ago. The door is never told twice at once; try again in ${Number.isFinite(Number(body && body.retry_in)) ? body.retry_in : 3} s.` };
+  if (status === 409) return { kind: 'offline', message: 'Wyze says this camera is offline, so its door cannot be reached right now.' };
+  if (status === 503 && err === 'no-credentials') return { kind: 'no-credentials', message: 'The NAS has no Wyze sign-in kept. Sign in once in this tab.' };
+  if (status === 401 && err === 'wyze-sign-in-refused') return { kind: 'refused', message: 'Wyze refused the kept sign-in. Sign in again once in this tab.' };
+  if (status === 401) return { kind: 'unauthorized', message: 'The family key on this device was refused.' };
+  if (status === 400 && err === 'no-garage-controller') return { kind: 'no-controller', message: 'This camera has no garage controller on it.' };
+  if (status === 404) return { kind: 'old-service', message: 'The NAS is running an older camera service without the doors yet.' };
+  return { kind: 'error', message: `Wyze did not take it: HTTP ${status}${err ? ` (${err})` : ''}.` };
+}
+
+export async function runDeviceAction(mac, action, token, fetchImpl = globalThis.fetch) {
+  try {
+    const r = await fetchWithTimeout(actionUrl(), { method: 'POST', headers: { ...authHeaders(token), 'Content-Type': 'application/json' }, body: JSON.stringify({ mac, action }) }, ACTION_TIMEOUT_MS, fetchImpl);
+    let body = null;
+    try { body = await r.json(); } catch { body = null; }
+    return classifyActionResult({ status: r.status, body }, action);
+  } catch {
+    return classifyActionResult({ networkError: true }, action);
+  }
+}
+
+// THE SIGN-IN IS NEVER TYPED TWICE (Darrell 2026-10-07: "I better not need to
+// resign in!"). When the restreamer comes back with no cameras but the NAS
+// kept the sign-in, one press (or the NAS by itself) re-adds them.
+export async function setupWyzeAgain(token, fetchImpl = globalThis.fetch) {
+  try {
+    const r = await fetchWithTimeout(setupAgainUrl(), { method: 'POST', headers: authHeaders(token) }, SETUP_TIMEOUT_MS, fetchImpl);
+    let body = null;
+    try { body = await r.json(); } catch { body = null; }
+    if (r.status === 503) return { kind: 'no-credentials', cameras: [], message: 'The NAS has no Wyze sign-in kept yet, so the four values are needed once below.' };
+    if (r.status === 404) return { kind: 'old-service', cameras: [], message: 'The NAS is running an older camera service that cannot re-add on its own yet.' };
+    return classifySetupResult({ status: r.status, body });
+  } catch {
+    return classifySetupResult({ networkError: true });
+  }
+}
+
+export function wyzeKept(health) {
+  return !!(health && health.wyze_cloud === 'ready');
+}
+
+// Pair each garage device with its tile, if the tile exists.
+export function garagesFor(devices, cameras) {
+  const ids = new Set((cameras || []).map((c) => c.id));
+  return (devices || []).filter((d) => d.garage).map((d) => ({ ...d, cameraId: ids.has(d.stream) ? d.stream : '' }));
+}

@@ -18,6 +18,7 @@ import {
   WALL_KEY, loadWall, saveWall, wallLimit, WALL_MAX_DEFAULT, SNAP_CONCURRENCY, LIVE_RECONNECT_MAX,
   recordingUrl, recListUrl, recClipUrl, fetchRecording, saveRecording, fetchClips, clipParts, groupClipsByDay, diskForecast, RETENTION_CHOICES, CLIP_TICKET_TTL,
   LIVE_TILES_KEY, loadLiveTiles, saveLiveTiles, liveTileBudget, liveTrafficLine,
+  streamNameFor, parseDevices, classifyDevicesResult, classifyActionResult, fetchDevices, runDeviceAction, setupWyzeAgain, garagesFor, wyzeKept,
 } from '../lib/cameras.js';
 
 describe('the road: every URL is same-origin under /cams', () => {
@@ -483,5 +484,75 @@ describe('live tiles: the default, the device choice, the budget and the traffic
     expect(liveTrafficLine({ live_open: 3, live_bytes_per_s: 5000 })).toBe('3 live streams · 40 kbit/s through the Funnel');
     expect(liveTrafficLine({ live_open: 0, live_bytes_per_s: 0 })).toBe('0 live streams · 0 bit/s through the Funnel');
     expect(liveTrafficLine({ ok: true })).toBe('');
+  });
+});
+
+// DR-0777: the door opens with no video in the way; the sign-in is never typed twice.
+describe('doors: devices, the garage action, the kept sign-in', () => {
+  it('a nickname maps to the same stream id the NAS gives it', () => {
+    expect(streamNameFor('Garage Doors')).toBe('garage_doors');
+    expect(streamNameFor('  Front Yard! ')).toBe('front_yard');
+    expect(streamNameFor('')).toBe('camera');
+    expect(streamNameFor('x'.repeat(80))).toHaveLength(48);
+  });
+  it('parseDevices keeps only well-formed records and pairs by stream', () => {
+    const d = parseDevices({ devices: [
+      { mac: 'GD1', nickname: 'Garage Doors', model: 'WYZE_CAKP2JFUS', online: true, garage: true, stream: 'garage_doors', actions: ['garage', 'siren_on'] },
+      { mac: 'FY1', nickname: 'Front Yard', online: false, garage: false },
+      { nickname: 'no mac' }, 'junk',
+    ] });
+    expect(d.map((x) => x.mac)).toEqual(['GD1', 'FY1']);
+    expect(d[0].garage).toBe(true);
+    expect(d[1].stream).toBe('front_yard');
+    expect(d[1].actions).toEqual([]);
+    expect(parseDevices(null)).toEqual([]);
+  });
+  it('classifyDevicesResult says each state plainly', () => {
+    expect(classifyDevicesResult({ status: 200, body: { devices: [{ mac: 'a', nickname: 'A', garage: true }] } }).devices).toHaveLength(1);
+    expect(classifyDevicesResult({ status: 503, body: { error: 'no-credentials' } }).kind).toBe('no-credentials');
+    expect(classifyDevicesResult({ status: 401, body: { error: 'wyze-sign-in-refused' } }).kind).toBe('refused');
+    expect(classifyDevicesResult({ status: 401, body: {} }).kind).toBe('unauthorized');
+    expect(classifyDevicesResult({ status: 404 }).kind).toBe('old-service');
+    expect(classifyDevicesResult({ status: 502, body: { error: 'unreachable' } }).message).toMatch(/Wyze's cloud did not answer/);
+    expect(classifyDevicesResult({ networkError: true }).kind).toBe('unreachable');
+  });
+  it('classifyActionResult: accepted, too soon, offline, no controller, refused, old service', () => {
+    expect(classifyActionResult({ status: 200, body: { ok: true, nickname: 'Garage Doors' } })).toEqual({ kind: 'ok', message: 'The door was told to move. Wyze accepted it for Garage Doors.' });
+    expect(classifyActionResult({ status: 429, body: { error: 'too-soon', retry_in: 2 } }).message).toMatch(/never told twice.*2 s/);
+    expect(classifyActionResult({ status: 409, body: { error: 'device-offline' } }).kind).toBe('offline');
+    expect(classifyActionResult({ status: 400, body: { error: 'no-garage-controller' } }).kind).toBe('no-controller');
+    expect(classifyActionResult({ status: 401, body: { error: 'wyze-sign-in-refused' } }).kind).toBe('refused');
+    expect(classifyActionResult({ status: 503, body: { error: 'no-credentials' } }).kind).toBe('no-credentials');
+    expect(classifyActionResult({ status: 404 }).kind).toBe('old-service');
+    expect(classifyActionResult({ status: 500, body: { error: 'wyze-code-9' } }).message).toMatch(/HTTP 500 \(wyze-code-9\)/);
+    expect(classifyActionResult({ networkError: true }).message).toMatch(/Nothing was sent/);
+    expect(classifyActionResult({ status: 200, body: { ok: true } }, 'siren_on').message).toMatch(/^Sent: siren on/);
+  });
+  it('fetchDevices / runDeviceAction / setupWyzeAgain speak to the forwarder with the bearer; no ticket, no stream', async () => {
+    const calls = [];
+    const f = async (url, opts = {}) => { calls.push({ url, opts }); return { status: 200, json: async () => (url === '/cams/action' ? { ok: true, nickname: 'G' } : url === '/cams/devices' ? { devices: [{ mac: 'GD1', nickname: 'G', garage: true }] } : { ok: true, added: 2, cameras: [{ id: 'a', name: 'A', registered: true }, { id: 'b', name: 'B', existing: true }], again: true }) }; };
+    const d = await fetchDevices('tok', f);
+    expect(d.kind).toBe('ok');
+    expect(calls[0].url).toBe('/cams/devices');
+    expect(calls[0].opts.headers.Authorization).toBe('Bearer tok');
+    const a = await runDeviceAction('GD1', 'garage', 'tok', f);
+    expect(a.kind).toBe('ok');
+    expect(calls[1].url).toBe('/cams/action');
+    expect(calls[1].opts.method).toBe('POST');
+    expect(JSON.parse(calls[1].opts.body)).toEqual({ mac: 'GD1', action: 'garage' });
+    const again = await setupWyzeAgain('tok', f);
+    expect(again.kind).toBe('ok');
+    expect(calls[2].url).toBe('/cams/setup/wyze/again');
+    expect(calls.some((c) => c.url === '/cams/ticket' || c.url.startsWith('/cams/live/'))).toBe(false);
+    expect((await setupWyzeAgain('tok', async () => ({ status: 503, json: async () => ({ error: 'no-credentials' }) }))).kind).toBe('no-credentials');
+    expect((await setupWyzeAgain('tok', async () => ({ status: 404, json: async () => ({}) }))).kind).toBe('old-service');
+  });
+  it('garagesFor pairs each garage device with its tile when the tile exists; wyzeKept reads /health', () => {
+    const g = garagesFor([{ mac: 'GD1', garage: true, stream: 'garage_doors' }, { mac: 'X', garage: true, stream: 'other_house' }, { mac: 'FY', garage: false, stream: 'front_yard' }], [{ id: 'garage_doors' }, { id: 'front_yard' }]);
+    expect(g.map((x) => [x.mac, x.cameraId])).toEqual([['GD1', 'garage_doors'], ['X', '']]);
+    expect(garagesFor(null, null)).toEqual([]);
+    expect(wyzeKept({ wyze_cloud: 'ready' })).toBe(true);
+    expect(wyzeKept({ wyze_cloud: 'no-credentials' })).toBe(false);
+    expect(wyzeKept({ ok: true })).toBe(false);
   });
 });

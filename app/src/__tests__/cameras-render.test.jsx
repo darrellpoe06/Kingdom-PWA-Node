@@ -46,6 +46,9 @@ function makeFetch(plan) {
     if (u === '/cams/ticket') return jsonResponse(plan.ticketStatus ?? 200, { ticket: '9999999999.abcdef', expires_in: 90, camera: JSON.parse(opts.body).camera });
     if (u === '/cams/setup/wyze') return jsonResponse(plan.setupStatus ?? 200, plan.setup ?? { ok: true, added: 1, cameras: [{ id: 'front_yard', name: 'Front Yard', model: 'HL_CAM4', dtls: true, registered: true, existing: false }] });
     if (u === '/cams/restart') return jsonResponse(plan.restartStatus ?? 200, plan.restart ?? { ok: true, restarting: true, running: 'aaaa', on_disk: 'bbbb', changed: true });
+    if (u === '/cams/devices') return jsonResponse(plan.devicesStatus ?? 200, plan.devices ?? { devices: [], count: 0, garages: 0 });
+    if (u === '/cams/action') { const b = JSON.parse(opts.body); return jsonResponse(plan.actionStatus ?? 200, plan.action ?? { ok: true, mac: b.mac, nickname: 'Garage Doors', action: b.action, action_key: 'garage_door_trigger' }); }
+    if (u === '/cams/setup/wyze/again') return jsonResponse(plan.againStatus ?? 200, plan.again ?? { ok: true, added: 2, again: true, cameras: [{ id: 'front_yard', name: 'Front Yard', registered: true, existing: false }, { id: 'garage_doors', name: 'Garage Doors', registered: true, existing: true }] });
     return jsonResponse(404, { error: 'not-found' });
   });
   return { fetchImpl, calls };
@@ -484,6 +487,91 @@ describe('Cameras surface', () => {
     expect(panel.textContent).toMatch(/connect failed: i\/o timeout/);
     await click(buttons().find((b) => b.textContent === 'Hide'));
     expect(container.querySelector('[data-testid="why-panel"]')).toBeNull();
+  });
+
+  it('the garage opens with no video in the way (DR-0777): the Doors strip stands when the restreamer is dark, one tap is one POST /cams/action, the answer is said, the button rests', async () => {
+    const { fetchImpl, calls } = makeFetch({
+      healthStatus: 502, health: { ok: false, error: 'go2rtc-unreachable' },
+      listStatus: 502, list: { error: 'go2rtc-unreachable' },
+      devices: { devices: [
+        { mac: 'GD1', nickname: 'Garage Doors', model: 'WYZE_CAKP2JFUS', online: true, garage: true, stream: 'garage_doors', actions: ['garage', 'siren_on', 'siren_off'] },
+        { mac: 'FY1', nickname: 'Front Yard', model: 'HL_CAM4', online: true, garage: false, stream: 'front_yard', actions: ['siren_on', 'siren_off'] },
+      ], count: 2, garages: 1 },
+    });
+    vi.stubGlobal('fetch', fetchImpl);
+    await mount();
+    await act(async () => { await new Promise((r) => setTimeout(r, 10)); });
+    expect(container.textContent).toMatch(/The camera road is not answering/);
+    const doors = container.querySelector('[data-testid="doors"]');
+    expect(doors).toBeTruthy();
+    expect(doors.textContent).toMatch(/Doors · 1/);
+    expect(container.querySelector('[data-testid="garage-button-FY1"]')).toBeNull();
+    const btn = container.querySelector('[data-testid="garage-button-GD1"]');
+    expect(btn.textContent).toBe('Garage · Garage Doors');
+    await click(btn);
+    await act(async () => { await new Promise((r) => setTimeout(r, 10)); });
+    const action = calls.filter((c) => c.url === '/cams/action');
+    expect(action).toHaveLength(1);
+    expect(JSON.parse(action[0].opts.body)).toEqual({ mac: 'GD1', action: 'garage' });
+    expect(action[0].opts.headers.Authorization).toBe(`Bearer ${TOKEN}`);
+    expect(calls.filter((c) => c.url === '/cams/ticket' || c.url.startsWith('/cams/live/') || c.url.startsWith('/cams/snap/'))).toHaveLength(0);
+    expect(container.querySelector('[data-testid="garage-result-GD1"]').textContent).toBe('The door was told to move. Wyze accepted it for Garage Doors.');
+    expect(btn.disabled).toBe(true);
+    expect(btn.textContent).toBe('Sent');
+    await click(btn);
+    expect(calls.filter((c) => c.url === '/cams/action')).toHaveLength(1);
+  });
+
+  it('a garage camera\'s own tile carries the Garage button beside Why?, and a Wyze refusal is said on it', async () => {
+    const { fetchImpl } = makeFetch({
+      list: { cameras: [{ id: 'garage_doors', name: 'garage doors', kind: 'wyze' }, { id: 'front_yard', name: 'front yard', kind: 'wyze' }], count: 2 },
+      devices: { devices: [{ mac: 'GD1', nickname: 'Garage Doors', online: false, garage: true, stream: 'garage_doors', actions: ['garage'] }], count: 1, garages: 1 },
+      actionStatus: 409, action: { error: 'device-offline', detail: 'device offline' },
+    });
+    vi.stubGlobal('fetch', fetchImpl);
+    await mount();
+    await act(async () => { await new Promise((r) => setTimeout(r, 10)); });
+    const compact = [...container.querySelectorAll('[data-testid="garage-button-GD1"]')];
+    expect(compact).toHaveLength(2); // the strip and the tile
+    const onTile = compact.find((b) => b.textContent === 'Garage');
+    expect(onTile).toBeTruthy();
+    await click(onTile);
+    await act(async () => { await new Promise((r) => setTimeout(r, 10)); });
+    const results = [...container.querySelectorAll('[data-testid="garage-result-GD1"]')].map((e) => e.textContent);
+    expect(results).toContain('Wyze says this camera is offline, so its door cannot be reached right now.');
+  });
+
+  it('nobody types the sign-in twice: an empty restreamer with the sign-in kept on the NAS offers Add my cameras again first, one press re-adds and reloads (2026-10-07 "I better not need to resign in!")', async () => {
+    const { fetchImpl, calls } = makeFetch({
+      health: { ok: true, go2rtc: '1.9.14', streams: 0, live_max_seconds: 0, max_live: 32, wyze_cloud: 'ready' },
+      list: { cameras: [], count: 0 },
+    });
+    vi.stubGlobal('fetch', fetchImpl);
+    await mount();
+    await act(async () => { await new Promise((r) => setTimeout(r, 10)); });
+    expect(container.textContent).toMatch(/your Wyze sign-in is already here\. Nothing to type/);
+    const again = container.querySelector('[data-testid="wyze-add-again-button"]');
+    expect(again).toBeTruthy();
+    expect(container.querySelector('[data-testid="wyze-setup"]')).toBeTruthy(); // a different account is still possible
+    const listsBefore = calls.filter((c) => c.url === '/cams/list').length;
+    await click(again);
+    await act(async () => { await new Promise((r) => setTimeout(r, 10)); });
+    const posted = calls.filter((c) => c.url === '/cams/setup/wyze/again');
+    expect(posted).toHaveLength(1);
+    expect(posted[0].opts.method).toBe('POST');
+    expect(posted[0].opts.body).toBeUndefined();
+    expect(container.querySelector('[data-testid="wyze-add-again-result"]').textContent).toMatch(/2/);
+    expect(calls.filter((c) => c.url === '/cams/list').length).toBe(listsBefore + 1);
+  });
+
+  it('an empty restreamer on a NAS with NO kept sign-in shows the form only, as before', async () => {
+    const { fetchImpl } = makeFetch({ health: { ok: true, go2rtc: '1.9.14', streams: 0, wyze_cloud: 'no-credentials' }, list: { cameras: [], count: 0 }, devicesStatus: 503, devices: { error: 'no-credentials' } });
+    vi.stubGlobal('fetch', fetchImpl);
+    await mount();
+    await act(async () => { await new Promise((r) => setTimeout(r, 10)); });
+    expect(container.querySelector('[data-testid="wyze-add-again"]')).toBeNull();
+    expect(container.querySelector('[data-testid="doors"]')).toBeNull();
+    expect(container.textContent).toMatch(/you never type it again/);
   });
 
   it('is registered as a family-only, hidden-when-denied top-level surface', () => {

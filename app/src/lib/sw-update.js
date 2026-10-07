@@ -345,9 +345,14 @@ export async function checkForLatest(registration, opts = {}) {
 // Proactively ask the browser to re-check for a new worker. The browser only
 // checks on navigation / ~24h by default, so a long-lived installed PWA (iOS
 // home-screen especially) can sit on an old build for days without this. Safe
-// + idempotent: update() is a no-op when nothing changed. Checks on wire, and
-// whenever the app regains visibility / focus.
-export function startUpdateChecks(registration, win, nav) {
+// + idempotent: update() is a no-op when nothing changed. Checks on wire,
+// whenever the app regains visibility / focus, AND on a clock while visible:
+// a tablet left on the camera wall (DR-0776) never blurs or refocuses, so the
+// focus/visibility checks alone left it on the 05:45 build for an hour after
+// three deploys (Darrell 2026-10-07, screenshot). UPDATE_CHECK_MS is the
+// longest such a device now runs behind.
+export const UPDATE_CHECK_MS = 10 * 60 * 1000;
+export function startUpdateChecks(registration, win, nav, opts = {}) {
   if (!registration || typeof registration.update !== 'function') return;
   const check = () => {
     try { registration.update(); } catch (_) { /* noop */ }
@@ -360,6 +365,14 @@ export function startUpdateChecks(registration, win, nav) {
         const doc = win.document;
         if (!doc || doc.visibilityState === 'visible') check();
       });
+    }
+    const every = typeof opts.everyMs === 'number' ? opts.everyMs : UPDATE_CHECK_MS;
+    const setI = (win && typeof win.setInterval === 'function') ? win.setInterval.bind(win) : (typeof setInterval === 'function' ? setInterval : null);
+    if (every > 0 && setI) {
+      setI(() => {
+        const doc = win && win.document;
+        if (!doc || doc.visibilityState === 'visible') check();
+      }, every);
     }
   } catch (_) {
     /* noop */

@@ -3,9 +3,9 @@
 // takes over, the page reloads to the new build EXACTLY ONCE, with no reload
 // loop, and never a spurious reload on first install. Locked here against the
 // pure wiring in lib/sw-update.js (node-env; no real browser needed).
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
-  activateWorker, applyUpdate, wireUpdates, startUpdateChecks, isUpdateStuck,
+  activateWorker, applyUpdate, wireUpdates, startUpdateChecks, isUpdateStuck, UPDATE_CHECK_MS,
   UPDATE_EVENT, UPDATED_EVENT, UPDATE_STUCK_EVENT,
 } from '../lib/sw-update.js';
 
@@ -342,5 +342,27 @@ describe('startUpdateChecks — long-lived PWA re-checks for new builds', () => 
   });
   it('is null-safe when update() is unavailable', () => {
     expect(() => startUpdateChecks({}, win(), makeNavigator())).not.toThrow();
+  });
+  it('re-checks on a clock while visible, so a tablet that never refocuses (the camera wall) still takes a new build (2026-10-07)', () => {
+    vi.useFakeTimers();
+    try {
+      const reg = makeRegistration();
+      const w = win();
+      w.document = { visibilityState: 'visible' };
+      w.setInterval = (fn, ms) => setInterval(fn, ms);
+      startUpdateChecks(reg, w, makeNavigator());
+      expect(reg.updateCount).toBe(1);
+      vi.advanceTimersByTime(UPDATE_CHECK_MS);
+      expect(reg.updateCount).toBe(2);
+      vi.advanceTimersByTime(UPDATE_CHECK_MS * 2);
+      expect(reg.updateCount).toBe(4);
+      // hidden: the clock does not ask (visibility regain asks instead)
+      w.document.visibilityState = 'hidden';
+      vi.advanceTimersByTime(UPDATE_CHECK_MS);
+      expect(reg.updateCount).toBe(4);
+      expect(UPDATE_CHECK_MS).toBe(10 * 60 * 1000);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

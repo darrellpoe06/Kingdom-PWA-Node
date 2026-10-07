@@ -160,7 +160,8 @@ rm -f "$TMPU"
 # had the right pattern all along (a code sha beside the service); same here.
 # The forwarder imports cams_recorder.py (the recording config + clip helpers),
 # so a change in EITHER file restarts it.
-CODE_SHA="$(cat "$SRC/cams_forwarder.py" "$SRC/cams_recorder.py" | sha256sum | cut -c1-16)"
+# ...and wyze_cloud.py (the devices + the garage action over Wyze's cloud, DR-0777).
+CODE_SHA="$(cat "$SRC/cams_forwarder.py" "$SRC/cams_recorder.py" "$SRC/wyze_cloud.py" | sha256sum | cut -c1-16)"
 STAMP="$DATA/.forwarder.code.sha"
 if [ "$(cat "$STAMP" 2>/dev/null)" != "$CODE_SHA" ]; then
   NEED_RESTART=1
