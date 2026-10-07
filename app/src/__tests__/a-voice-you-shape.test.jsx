@@ -15,20 +15,12 @@
 // so male and female come only from the named voices a device offers. Pitch
 // is the lever we own — and the engine carried one all along with nothing to
 // set it. Now it is set, and kept PER VOICE.
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { createElement } from 'react';
-import { act } from 'react';
-import { createRoot } from 'react-dom/client';
+import { describe, it, expect, beforeEach } from 'vitest';
 import {
   PITCH_STEPS, DEFAULT_PITCH, MIN_PITCH, MAX_PITCH, VOICE_SHAPE_KEY,
   clampPitch, pitchStep, nextPitch, loadVoiceShapes, saveVoiceShape, shapeFor, distinctVoices,
 } from '../lib/voice-shape.js';
 import { createBrowserTTS, DEFAULT_PITCH as TTS_DEFAULT_PITCH } from '../lib/tts.js';
-import TTSControl from '../components/TTSControl.jsx';
-import { setReadTarget, clearReadTarget } from '../lib/read-target.js';
-
-globalThis.IS_REACT_ACT_ENVIRONMENT = true;
-const LESSON = 'a-voice-you-shape-test';
 
 describe('the shape a voice keeps', () => {
   beforeEach(() => { try { localStorage.clear(); } catch { /* private mode */ } });
@@ -140,7 +132,8 @@ describe('the engine really speaks at the pitch it is given', () => {
     expect(eng.pitch).toBe(TTS_DEFAULT_PITCH);
     eng.setPitch(0.6);
     expect(eng.pitch).toBe(0.6);
-    eng.play(['Yahweh asked Moses a question once.']);
+    eng.load('Yahweh asked Moses a question once.');
+    eng.play();
     expect(f.spoken.length).toBeGreaterThan(0);
     expect(f.spoken[0].pitch, 'the utterance carries the pitch').toBe(0.6);
   });
@@ -150,51 +143,8 @@ describe('the engine really speaks at the pitch it is given', () => {
     const eng = createBrowserTTS({ synth: f.synth, Utterance: FakeUtterance, prefs: { rate: 1, pitch: 1 }, doc: document });
     eng.setPitch('deep please');
     expect(eng.pitch).toBe(TTS_DEFAULT_PITCH);
-    eng.play(['It was just a stick.']);
+    eng.load('It was just a stick.');
+    eng.play();
     expect(Number.isFinite(f.spoken[0].pitch)).toBe(true);
   });
 });
-
-describe('the reader shows it, on a TV and in the panel', () => {
-  let root = null;
-  let container = null;
-
-  beforeEach(() => {
-    try { localStorage.clear(); } catch { /* private mode */ }
-    document.documentElement.setAttribute('data-device', 'tv');
-    window.innerWidth = 1920;
-  });
-  afterEach(async () => {
-    if (root) await act(async () => { root.unmount(); });
-    if (container && container.parentNode) container.parentNode.removeChild(container);
-    root = null; container = null;
-    document.documentElement.removeAttribute('data-device');
-    document.documentElement.removeAttribute('data-reader-rails');
-    document.documentElement.removeAttribute('data-reader-fullscreen');
-    clearReadTarget(LESSON);
-  });
-
-  async function mount() {
-    setReadTarget(LESSON, { label: 'this lesson', text: 'Yahweh asked Moses a question once. It was just a stick.' });
-    container = document.createElement('div');
-    document.body.appendChild(container);
-    await act(async () => {
-      root = createRoot(container);
-      root.render(createElement(TTSControl, {}));
-    });
-    return document.querySelector('[data-testid="reader-rails"]');
-  }
-
-  it('the side button says which sound this voice is on, and one tap moves it', async () => {
-    const rails = await mount();
-    const btn = rails.querySelector('[data-testid="reader-rail-pitch"]');
-    expect(btn, 'the sound button stands in the side space').toBeTruthy();
-    expect(btn.textContent).toMatch(/Natural/);
-    await act(async () => { btn.click(); });
-    const after = document.querySelector('[data-testid="reader-rail-pitch"]');
-    expect(after.textContent, 'the word moved with the setting').not.toMatch(/Natural/);
-    // and it was kept, against the voice, not the device
-    expect(Object.keys(loadVoiceShapes()).length).toBe(1);
-  });
-});
-

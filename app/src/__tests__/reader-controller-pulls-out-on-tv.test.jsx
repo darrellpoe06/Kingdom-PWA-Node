@@ -35,6 +35,7 @@ vi.mock('../lib/use-read-aloud.js', () => ({
     claimAudio: () => {}, setRate: () => {},
     catalog: [{ id: 'sys', label: 'System voice', group: 'Default', usable: true }],
     voiceId: 'sys', setVoiceId: () => {}, currentItem: { id: 'sys', ai: false },
+    pitch: 1, setPitch: () => {}, stepPitch: () => {}, voiceShapes: {},
   }),
 }));
 

@@ -50,6 +50,10 @@ export const PITCH_STEPS = Object.freeze([
 ]);
 
 export function clampPitch(p) {
+  // null, undefined and '' are "nothing was said", not zero. Number(null) is 0,
+  // which would silently clamp a missing pitch to the DEEPEST voice there is —
+  // caught by the gate the first time it ran.
+  if (p == null || p === '') return DEFAULT_PITCH;
   const n = Number(p);
   if (!Number.isFinite(n)) return DEFAULT_PITCH;
   return Math.min(MAX_PITCH, Math.max(MIN_PITCH, n));
