@@ -24,7 +24,7 @@ import { buildStandInAssignments, resolveVoiceURIForId, standInPitch } from './v
 import { loadPersonaVoiceMap } from './persona-voice-prefs.js';
 import { isVoiceServiceReady, synthesizeSpeech, activeVoiceEndpoint, builtInVoiceSupport, voiceServiceHealth, probeVoiceService, speakTimeoutFor, mayAttemptStudio, isStudioRoadProblem, synthesizeLite, mayTryLiteVoice, markLiteVoiceMiss, isPlayRefusal, liteVoiceReasonText, LITE_FIRST_TIMEOUT_MS, SPEAK_TIMEOUT_MS, voiceSpeedFor, residualRate } from './voice-service.js';
 import { chunkForClips, createClipQueue } from './clip-queue.js';
-import { clipKey, createClipSource, deviceClipCache } from './clip-cache.js';
+import { clipKey, createClipSource, deviceClipCache, AHEAD_CONCURRENCY } from './clip-cache.js';
 import { joinClipBlobs } from './joined-clip.js';
 import { loadReference, blobToDataUri } from './voice-reference.js';
 import { loadVoiceProfiles } from './voice-sync.js';
@@ -625,7 +625,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
       onProgress: (f) => setCloudProgress(f),
       // The lock screen and the car show where in the lesson the voice is.
       onPosition: (pos) => { try { if (queueRef.current === q && bgRef.current) bgRef.current.setPosition(pos); } catch (_) { /* ignore */ } },
-      onPiece: (i) => { if (queueRef.current === q) { setCloudPiece(i); trip().note('piece', { i }); } },
+      onPiece: (i, w) => { if (queueRef.current === q) { setCloudPiece(i); trip().note('piece', { i, ...(w || {}) }); } },
       onEnd: () => { if (queueRef.current === q) { queueRef.current = null; audioRef.current = null; setCloudPlaying(false); setCloudPaused(false); setCloudProgress(0); setCloudPiece(-1); trip().end('ended'); } },
       // A piece that cannot be had: the rest of the reading continues in the
       // device voice rather than stopping (and the panel says which voice).
@@ -673,7 +673,9 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     if (whole) q.join(whole);
     const ok = await q.start();
     // CACHE-AHEAD: with the first piece playing, the rest of the reading comes
-    // down three at a time (the NAS answers a piece in about a second), so the
+    // down two at a time — the NAS voice's own cap, so no request of ours is
+    // ever answered 503 busy by our own fetch-ahead (DR-0786; the NAS answers
+    // a piece in about a second), so the
     // whole reading is on the device within a minute or two and the rest of it
     // no longer needs the NAS. Stopped with the reading. Once all of it is
     // here, the reading moves onto ONE joined file at the next sentence
@@ -681,7 +683,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     if (!whole && ok && queueRef.current === q) {
       const signal = { aborted: false };
       aheadRef.current = signal;
-      source.ahead({ concurrency: 3, signal, onProgress: (p) => { if (aheadRef.current === signal) setOffline({ ...p, keys, voice }); } })
+      source.ahead({ concurrency: AHEAD_CONCURRENCY, signal, onProgress: (p) => { if (aheadRef.current === signal) setOffline({ ...p, keys, voice }); } })
         .then(async (res) => {
           if (signal.aborted || queueRef.current !== q || !res || res.saved < res.total) return;
           const j = await joinFromDevice();
@@ -785,7 +787,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
   }, []);
 
   // SAVE A READING FOR LISTENING OFFLINE (DR-0659). The same pieces, the same
-  // keys and the same NAS call the player uses, fetched ahead three at a time
+  // keys and the same NAS call the player uses, fetched ahead two at a time (the NAS's own cap)
   // without playing anything. Resolves with { saved, total, bytes, failed }.
   const liteKeysFor = useCallback((text) => {
     const voice = liteVoiceFor();
@@ -812,7 +814,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
       },
       makeUrl: (b) => URL.createObjectURL(b),
     });
-    const res = await source.ahead({ concurrency: 3, onProgress, signal });
+    const res = await source.ahead({ concurrency: AHEAD_CONCURRENCY, onProgress, signal });
     return { ...res, keys, voice };
   }, [liteKeysFor]);
   /** How much of this reading is on the device: { saved, total, bytes }. */

@@ -75,7 +75,9 @@ export function overallFraction(chunks, index, pieceFraction) {
  * @param {object}   o.audio       ONE audio element (or a fake with the same shape)
  * @param {number}   [o.rate]
  * @param {Function} [o.onProgress] (fraction of the whole reading)
- * @param {Function} [o.onPiece]    (index) when a piece starts playing
+ * @param {Function} [o.onPiece]    (index, {waitMs, inHand}) when a piece starts playing: how long the
+ *                                  listener waited for it after the last one ended, and whether it was
+ *                                  already in hand (else fetched/read while they waited)
  * @param {Function} [o.onEnd]      () when the last piece finished
  * @param {Function} [o.onFallback] (restText, index) a piece could not be had
  * @param {Function} [o.onPosition] ({duration, position, playbackRate}) while a joined reading plays
@@ -95,8 +97,13 @@ export function overallFraction(chunks, index, pieceFraction) {
  * element plays THAT from the next piece boundary to the end, so the phone
  * holds one long, continuous play with nothing between sentences at all.
  */
-export function createClipQueue({ chunks, fetchClip, audio, rate = 1, onProgress, onPiece, onEnd, onFallback, onPosition, revoke }) {
+export function createClipQueue({ chunks, fetchClip, audio, rate = 1, onProgress, onPiece, onEnd, onFallback, onPosition, revoke, now = () => Date.now() }) {
   const urls = new Map();       // index -> Promise<{url}|{error}>
+  // THE PAUSE IS MEASURED (2026-10-07, DR-0786; Darrell: "longer pauses...
+  // over time... why?"). From the moment one piece ends (or play is asked)
+  // to the moment the next is on the element: that is the silence the
+  // listener hears, and whether the piece was in hand says where it came from.
+  let waitFrom = null;
   const ready = new Map();      // index -> the settled answer, for a swap with no await
   let index = -1;
   let stopped = false;
@@ -168,15 +175,17 @@ export function createClipQueue({ chunks, fetchClip, audio, rate = 1, onProgress
   // Swap a piece in. SYNCHRONOUS up to play(): called from 'ended' with the
   // answer already in hand, the next sentence is on the element before the
   // event returns.
-  const startPiece = (i, got) => {
+  const startPiece = (i, got, inHand = false) => {
     if (!got || got.error || !got.url) return Promise.resolve(fallBack(i, got && got.error));
+    const waitMs = waitFrom != null ? Math.max(0, now() - waitFrom) : 0;
+    waitFrom = null;
     index = i;
     pieceSpeed = Number(got.speed) > 0 ? Number(got.speed) : 1;
     if (i > 0) release(i - 1);
     for (let k = 1; k <= PREFETCH_AHEAD; k++) want(i + k); // prefetch while this one plays
     try { audio.src = got.url; } catch (_) { /* fake */ }
     applyRate();
-    if (onPiece) onPiece(i);
+    if (onPiece) onPiece(i, { waitMs, inHand });
     if (onProgress) onProgress(overallFraction(chunks, i, 0));
     return playNow(i);
   };
@@ -203,18 +212,21 @@ export function createClipQueue({ chunks, fetchClip, audio, rate = 1, onProgress
       }
     } catch (_) { /* ignore */ }
     applyRate();
-    if (onPiece) onPiece(i);
+    const joinedWait = waitFrom != null ? Math.max(0, now() - waitFrom) : 0;
+    waitFrom = null;
+    if (onPiece) onPiece(i, { waitMs: joinedWait, inHand: true });
     if (onProgress) onProgress(overallFraction(chunks, i, 0));
     return playNow(i);
   };
 
   const playAt = (i) => {
     if (stopped) return Promise.resolve(false);
+    if (waitFrom == null) waitFrom = now();
     if (i >= chunks.length) return Promise.resolve(finish());
     if (pendingJoin) return startJoined(i);
-    if (ready.has(i)) return startPiece(i, ready.get(i)); // in hand: no await at all
+    if (ready.has(i)) return startPiece(i, ready.get(i), true); // in hand: no await at all
     const p = want(i);
-    return p.then((got) => (stopped ? false : (pendingJoin ? startJoined(i) : startPiece(i, got))));
+    return p.then((got) => (stopped ? false : (pendingJoin ? startJoined(i) : startPiece(i, got, false))));
   };
 
   // No timer and no visibility gate: the next piece goes on the element
@@ -222,6 +234,7 @@ export function createClipQueue({ chunks, fetchClip, audio, rate = 1, onProgress
   audio.onended = () => {
     if (stopped) return;
     if (joined) { finish(); return; }
+    waitFrom = now();
     playAt(index + 1);
   };
   audio.ontimeupdate = () => {
@@ -230,7 +243,7 @@ export function createClipQueue({ chunks, fetchClip, audio, rate = 1, onProgress
     if (joined) {
       if (!Number.isFinite(t)) return;
       const p = pieceAt(joined.offsets, t);
-      if (p !== index) { index = p; if (onPiece) onPiece(p); }
+      if (p !== index) { index = p; if (onPiece) onPiece(p, { waitMs: 0, inHand: true }); }
       if (onProgress) onProgress(overallFraction(chunks, p, pieceFractionAt(joined.offsets, joined.duration, p, t)));
       if (onPosition) onPosition({ duration: joined.duration, position: t, playbackRate: speed });
       return;

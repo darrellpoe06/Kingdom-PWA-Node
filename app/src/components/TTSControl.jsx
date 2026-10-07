@@ -51,6 +51,8 @@ import { openReadingSource, registerReadingOpener } from '../lib/reading-source.
 import FloatingReader from './FloatingReader.jsx';
 import { loadFloat, saveFloat, clampRect, avoidRects, defaultRect } from '../lib/float-geometry.js';
 import { loadFollowPrefs, saveFollowPrefs } from '../lib/reader-follow-prefs.js';
+import { useDeviceClass } from '../lib/use-device-class.js';
+import { loadControllerPref, saveControllerPref, controllerLayout, flippedControllerPref, controllerToggleLabel, controllerToggleTitle, railWidth, markRails, enterFullScreen, exitFullScreen, leavesFullScreen, FULLSCREEN_ATTR } from '../lib/reader-controller.js';
 import { deviceClipCache, rememberReadingKeys, recallReadingKeys, formatSaved, loadCapMb, saveCapMb, CAP_CHOICES_MB } from '../lib/clip-cache.js';
 // THE ONE LESSON LANDING (lib/learn-open.js, DR-0642): opens a lesson at a
 // saved sentence, scrolls it under the top bars and marks it. Read through a
@@ -398,6 +400,44 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
   // device; read through a ref inside the per-sentence effects so a change
   // takes hold on the very next sentence without re-running them.
   const [followPrefs, setFollowPrefs] = useState(() => loadFollowPrefs());
+  // THE CONTROLS ON THE SIDES OF A TV (2026-10-07, DR-0785; Darrell on the
+  // Firestick: "it doesn't show all control options... maybe we need to pull
+  // out the controller for TV?" then "put the other reader options on the
+  // sides in the black space... so all options are always there... unless we
+  // go to full screen"). A Firestick's pointer scrolls only the page, never a
+  // 260px box, so on a TV the same panel is split across the two margins
+  // beside the Word's column: play on the left rail, how-it-sounds-and-looks
+  // on the right — always there, no opening, no scroll. 'auto' follows the
+  // measured device class; one tap in the header flips it and the choice is
+  // kept on this device. Full screen takes the rails, dock and header away
+  // (index.css reads the html attribute) until Back, Esc or the corner mark.
+  // lib/reader-controller.js.
+  const deviceClass = useDeviceClass();
+  const [controllerPref, setControllerPref] = useState(() => loadControllerPref());
+  const controller = controllerLayout({ pref: controllerPref, deviceClass, width: typeof window !== 'undefined' ? window.innerWidth : 0 });
+  const flipController = useCallback(() => {
+    setControllerPref(saveControllerPref(flippedControllerPref(controller)));
+  }, [controller]);
+  const [fullScreen, setFullScreen] = useState(false);
+  const goFullScreen = useCallback(() => { setFullScreen(true); enterFullScreen(typeof document !== 'undefined' ? document : null); }, []);
+  const leaveFullScreen = useCallback(() => { setFullScreen(false); exitFullScreen(typeof document !== 'undefined' ? document : null); }, []);
+  useEffect(() => {
+    if (typeof document === 'undefined') return undefined;
+    if (!fullScreen) { try { document.documentElement.removeAttribute(FULLSCREEN_ATTR); } catch { /* ignore */ } return undefined; }
+    try { document.documentElement.setAttribute(FULLSCREEN_ATTR, 'true'); } catch { /* ignore */ }
+    // The browser's own exit (Back on the remote, Esc) is honoured as ours.
+    const onChange = () => { if (!document.fullscreenElement && !document.webkitFullscreenElement) setFullScreen(false); };
+    const onKey = (e) => { if (e && leavesFullScreen(e.key)) setFullScreen(false); };
+    document.addEventListener('fullscreenchange', onChange);
+    document.addEventListener('webkitfullscreenchange', onChange);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('fullscreenchange', onChange);
+      document.removeEventListener('webkitfullscreenchange', onChange);
+      document.removeEventListener('keydown', onKey);
+      try { document.documentElement.removeAttribute(FULLSCREEN_ATTR); } catch { /* ignore */ }
+    };
+  }, [fullScreen]);
   const prefsRef = useRef(followPrefs);
   const setFollowPref = (key, value) => {
     const next = saveFollowPrefs({ ...prefsRef.current, [key]: value });
@@ -1623,76 +1663,25 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
         </div>
   );
 
-  return (
-    // THE READER MUST OUTRANK A FULL-SCREEN PRESENTING SURFACE.
-    //
-    // Darrell 2026-08-31, from the live presenter console: "we dont have control
-    // over the voice... the controls dont show on the screen to even have a
-    // chance of adjustment."
-    //
-    // This control sat at z-40 while Presenter.jsx paints its console at
-    // zIndex 60 and its on-screen presenting mode at zIndex 70. So on exactly
-    // the surface that offers a "Read it aloud" button, pressing it started a
-    // reading whose voice, speed, pause and stop controls were painted
-    // UNDERNEATH the overlay — audible, and unreachable. A speaker standing in
-    // front of a room could start the reader and then could not adjust or stop
-    // it.
-    //
-    // 80 is the deliberate slot: above the presenting overlays (60/70) so the
-    // reader stays reachable wherever it can be started, and still below the
-    // true modal layer — HelpWalkthrough (110), Modal/Lightbox (120) — which
-    // must keep covering it.
-    <div className="tts-controls fixed bottom-4 right-4 z-[80] print:hidden flex flex-col items-end gap-2">
-      {/* THE FAILURE THE ENGINE ALREADY DETECTED, finally shown. Fire TV is the
-          case that exposed it: Silk exposes speechSynthesis and
-          SpeechSynthesisUtterance, so isTTSSupported() answers true, but the
-          device carries no voice engine — getVoices() stays empty, the
-          utterance produces no audio, and the watchdog flips `failed`. Every
-          piece worked except the last one. role="status" so a screen reader
-          announces it, and it sits ABOVE the panel so it cannot be missed. */}
-      {/* A NOTICE MAY NOT SIT ON THE WORD (Darrell 2026-09-22): "these types
-          of words covering the Word and perspectives being explained are not
-          wanted." And 2026-09-23, when the same box came back with an HTTP
-          404 in it: "Popup's?!!!" The notice used to be its own floating box
-          in this fixed stack, painted over the prose by construction. It is
-          no longer rendered here at all: it lives inside the open panel (below,
-          under the header), and while the panel is a pill or a button it is a
-          small mark on that pill or button. See the panel for the block. */}
-      {interrupted && (
-        <div role="status" data-testid="reading-interrupted" className="bg-white border-2 border-[#1A1815] shadow-lg px-[0.75em] py-[0.5em] flex items-center flex-wrap justify-end gap-[0.5em]" style={{ fontSize: 'calc(1rem * var(--ts-chrome-scale, 1))' }}>
-          <span className="text-[0.75em] text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>The screen went dark and the reading stopped.</span>
-          <button type="button" onClick={continueReading} className="px-[0.625em] py-[0.375em] min-h-[2.75em] text-[0.75em] uppercase tracking-wider border-2 border-[#1A1815] bg-[#1A1815] text-white hover:bg-[#B85838] hover:border-[#B85838] font-semibold whitespace-nowrap focus:outline focus:outline-2 focus:outline-[#B85838]">▶ Continue</button>
-          <button type="button" onClick={() => setInterrupted(false)} aria-label="Dismiss" className="px-[0.5em] py-[0.375em] text-[0.75em] border-2 border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">×</button>
-        </div>
-      )}
-      {offersReturn(ret) && (
-        <div role="status" data-testid="reading-way-back" className="bg-white border-2 border-[#1A1815] shadow-lg px-[0.75em] py-[0.5em] flex items-center flex-wrap justify-end gap-[0.5em]" style={{ fontSize: 'calc(1rem * var(--ts-chrome-scale, 1))' }}>
-          <span className="text-[0.75em] text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{returnLabel(ret)}</span>
-          <button type="button" onClick={takeMeBack} data-testid="reading-way-back-go" className="px-[0.625em] py-[0.375em] min-h-[2.75em] text-[0.75em] uppercase tracking-wider border-2 border-[#1A1815] bg-[#1A1815] text-white hover:bg-[#B85838] hover:border-[#B85838] font-semibold whitespace-nowrap focus:outline focus:outline-2 focus:outline-[#B85838]">↩ Take me back</button>
-          <button type="button" onClick={() => setRet(RETURN_IDLE)} aria-label="Dismiss" className="px-[0.5em] py-[0.375em] text-[0.75em] border-2 border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">×</button>
-        </div>
-      )}
-      {scrollTopBtn}
-      {!docked && backToVoice}
-      {floatEl}
-      {supported && !floatState.floating && (isOpen && minimized && live ? (docked ? null : pillEl)
-      : isOpen ? (
-        /* THE PANEL IS CHROME, NOT READING TEXT (Pattern 2b; Darrell 2026-07-27:
-           "The sizes of text makes the talk section not useful" — at A+++/A44
-           the rem-based labels ballooned inside the fixed 260px box: buttons
-           wrapped to three lines, the five speed chips crushed together, and
-           the panel clipped off-screen). Fix, same law as the collapsed FAB's
-           ts-chrome-region: the panel's font-size is the CAPPED chrome size
-           (1rem × --ts-chrome-scale = the capped chrome multiplier — ~1.1x at
-           A+++, ~1.4x at A44, exactly 1x at Normal), and EVERYTHING inside is
-           sized in em so text, padding, and the box grow together, bounded.
-           Width is em too (16.25em = 260px at Normal) so the panel widens in
-           step with its own capped text; max-h + scroll keep it on-screen at
-           any size instead of clipping controls off the top. */
-        <div
-          className="bg-white border-2 border-[#1A1815] p-[0.75em] shadow-lg w-[16.25em] max-w-[calc(100vw-2rem)] max-h-[calc(100dvh-7rem)] overflow-y-auto"
-          style={{ fontSize: 'calc(1rem * var(--ts-chrome-scale, 1))' }}
-        >
+  // THE RAILS STAND BESIDE THE WORD, NOT ON EVERY PAGE. A read target (a
+  // lesson on screen), an open reader or a live reading brings them; the
+  // Create station, the Learn tree and every other page keep their full
+  // width and the ordinary button. The CI layout probe caught the first cut
+  // squeezing the Create station to 512px on a 960px TV with nobody reading.
+  const railsOn = controller === 'sides' && !fullScreen && (!!target || isOpen || isReading);
+  // <main> makes room for the rails while they are on (index.css), so the
+  // Word narrows between them instead of being covered at its edges.
+  useEffect(() => {
+    const d = typeof document !== 'undefined' ? document : null;
+    markRails(d, railsOn && supported && !floatState.floating);
+    return () => markRails(d, false);
+  }, [railsOn, supported, floatState.floating]);
+
+  // THE PANEL'S TWO HALVES (DR-0785). The same JSX in both shapes: stacked in
+  // the corner column (tall), or one on each side of the Word (sides). Written
+  // as functions so a half is only evaluated where it is rendered.
+  const renderRailLeft = () => (
+    <>
           <div className="flex items-baseline justify-between mb-[0.75em]">
             <div>
               <div className="text-[0.5625em] uppercase tracking-[0.25em] text-[#B85838] font-semibold">🔊 Read Aloud</div>
@@ -1711,10 +1700,15 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
                   re-seeks the voice when a reading is actually running, so for
                   a reader using their eyes this is a plain scroll home. */}
               <button type="button" onClick={jumpTop} data-testid="tts-header-top" aria-label="Back to the top of the lesson" title="Back to the top" className="text-[0.625em] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">↑ Top</button>
+              <button type="button" onClick={flipController} data-testid="reader-controller-toggle" aria-label={controllerToggleTitle(controller)} title={controllerToggleTitle(controller)} className="text-[0.625em] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">{controllerToggleLabel(controller)}</button>
               {isReading && (
                 <button type="button" onClick={() => setMinimized(true)} aria-label="Collapse to the reading pill — keeps reading" className="text-[0.625em] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">⌄ Smaller</button>
               )}
+              {controller === 'sides' ? (
+                <button type="button" onClick={goFullScreen} data-testid="reader-fullscreen" title="Full screen — only the Word and the voice; Back, Esc or the corner mark brings the controls back" aria-label="Full screen — only the Word and the voice" className="text-[0.625em] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">⤢ Full screen</button>
+              ) : (
               <button type="button" onClick={close} title={isReading ? 'Closes the panel — the reading keeps going' : 'Close'} className="text-[0.625em] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">× Close</button>
+              )}
             </div>
           </div>
 
@@ -1855,6 +1849,10 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
             )}
           </div>
 
+    </>
+  );
+  const renderRailRight = () => (
+    <>
           {/* HOW IT LOOKS — text size and theme, reachable while READING (DR-0524).
               Darrell, on his phone in L179: "Can't change the text side nor etc
               on o cellphone reader fix it." Both controls existed only in the
@@ -2062,6 +2060,83 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
               {tripSummary(lastTrip())}
             </p>
           ) : null}
+    </>
+  );
+
+  return (
+    // THE READER MUST OUTRANK A FULL-SCREEN PRESENTING SURFACE.
+    //
+    // Darrell 2026-08-31, from the live presenter console: "we dont have control
+    // over the voice... the controls dont show on the screen to even have a
+    // chance of adjustment."
+    //
+    // This control sat at z-40 while Presenter.jsx paints its console at
+    // zIndex 60 and its on-screen presenting mode at zIndex 70. So on exactly
+    // the surface that offers a "Read it aloud" button, pressing it started a
+    // reading whose voice, speed, pause and stop controls were painted
+    // UNDERNEATH the overlay — audible, and unreachable. A speaker standing in
+    // front of a room could start the reader and then could not adjust or stop
+    // it.
+    //
+    // 80 is the deliberate slot: above the presenting overlays (60/70) so the
+    // reader stays reachable wherever it can be started, and still below the
+    // true modal layer — HelpWalkthrough (110), Modal/Lightbox (120) — which
+    // must keep covering it.
+    <div className="tts-controls fixed bottom-4 right-4 z-[80] print:hidden flex flex-col items-end gap-2">
+      {/* THE FAILURE THE ENGINE ALREADY DETECTED, finally shown. Fire TV is the
+          case that exposed it: Silk exposes speechSynthesis and
+          SpeechSynthesisUtterance, so isTTSSupported() answers true, but the
+          device carries no voice engine — getVoices() stays empty, the
+          utterance produces no audio, and the watchdog flips `failed`. Every
+          piece worked except the last one. role="status" so a screen reader
+          announces it, and it sits ABOVE the panel so it cannot be missed. */}
+      {/* A NOTICE MAY NOT SIT ON THE WORD (Darrell 2026-09-22): "these types
+          of words covering the Word and perspectives being explained are not
+          wanted." And 2026-09-23, when the same box came back with an HTTP
+          404 in it: "Popup's?!!!" The notice used to be its own floating box
+          in this fixed stack, painted over the prose by construction. It is
+          no longer rendered here at all: it lives inside the open panel (below,
+          under the header), and while the panel is a pill or a button it is a
+          small mark on that pill or button. See the panel for the block. */}
+      {interrupted && (
+        <div role="status" data-testid="reading-interrupted" className="bg-white border-2 border-[#1A1815] shadow-lg px-[0.75em] py-[0.5em] flex items-center flex-wrap justify-end gap-[0.5em]" style={{ fontSize: 'calc(1rem * var(--ts-chrome-scale, 1))' }}>
+          <span className="text-[0.75em] text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>The screen went dark and the reading stopped.</span>
+          <button type="button" onClick={continueReading} className="px-[0.625em] py-[0.375em] min-h-[2.75em] text-[0.75em] uppercase tracking-wider border-2 border-[#1A1815] bg-[#1A1815] text-white hover:bg-[#B85838] hover:border-[#B85838] font-semibold whitespace-nowrap focus:outline focus:outline-2 focus:outline-[#B85838]">▶ Continue</button>
+          <button type="button" onClick={() => setInterrupted(false)} aria-label="Dismiss" className="px-[0.5em] py-[0.375em] text-[0.75em] border-2 border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">×</button>
+        </div>
+      )}
+      {offersReturn(ret) && (
+        <div role="status" data-testid="reading-way-back" className="bg-white border-2 border-[#1A1815] shadow-lg px-[0.75em] py-[0.5em] flex items-center flex-wrap justify-end gap-[0.5em]" style={{ fontSize: 'calc(1rem * var(--ts-chrome-scale, 1))' }}>
+          <span className="text-[0.75em] text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{returnLabel(ret)}</span>
+          <button type="button" onClick={takeMeBack} data-testid="reading-way-back-go" className="px-[0.625em] py-[0.375em] min-h-[2.75em] text-[0.75em] uppercase tracking-wider border-2 border-[#1A1815] bg-[#1A1815] text-white hover:bg-[#B85838] hover:border-[#B85838] font-semibold whitespace-nowrap focus:outline focus:outline-2 focus:outline-[#B85838]">↩ Take me back</button>
+          <button type="button" onClick={() => setRet(RETURN_IDLE)} aria-label="Dismiss" className="px-[0.5em] py-[0.375em] text-[0.75em] border-2 border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">×</button>
+        </div>
+      )}
+      {scrollTopBtn}
+      {!docked && backToVoice}
+      {floatEl}
+      {supported && !floatState.floating && (railsOn ? null : isOpen && minimized && live ? (docked ? null : pillEl)
+      : isOpen ? (
+        /* THE PANEL IS CHROME, NOT READING TEXT (Pattern 2b; Darrell 2026-07-27:
+           "The sizes of text makes the talk section not useful" — at A+++/A44
+           the rem-based labels ballooned inside the fixed 260px box: buttons
+           wrapped to three lines, the five speed chips crushed together, and
+           the panel clipped off-screen). Fix, same law as the collapsed FAB's
+           ts-chrome-region: the panel's font-size is the CAPPED chrome size
+           (1rem × --ts-chrome-scale = the capped chrome multiplier — ~1.1x at
+           A+++, ~1.4x at A44, exactly 1x at Normal), and EVERYTHING inside is
+           sized in em so text, padding, and the box grow together, bounded.
+           Width is em too (16.25em = 260px at Normal) so the panel widens in
+           step with its own capped text; max-h + scroll keep it on-screen at
+           any size instead of clipping controls off the top. */
+        <div
+          data-testid="reader-panel"
+          data-layout="tall"
+          className="bg-white border-2 border-[#1A1815] p-[0.75em] shadow-lg w-[16.25em] max-w-[calc(100vw-2rem)] max-h-[calc(100dvh-7rem)] overflow-y-auto"
+          style={{ fontSize: 'calc(1rem * var(--ts-chrome-scale, 1))' }}
+        >
+          {renderRailLeft()}
+          {renderRailRight()}
         </div>
       ) : docked ? null : live ? miniBarEl : (
         <div className="flex items-end gap-2" data-testid="reader-idle-row">
@@ -2077,6 +2152,23 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
           the Word. The open panel above stays a panel. The wrapper keeps
           .tts-controls so the reading engine still counts it as the
           reader's own chrome (never read aloud, never a tap-to-start). */}
+      {/* THE RAILS: the two halves on the two sides of the Word (DR-0785). */}
+      {supported && !floatState.floating && railsOn && typeof document !== 'undefined' && createPortal(
+        <div className="tts-controls print:hidden" data-testid="reader-rails" data-layout="sides" style={{ fontSize: 'calc(1rem * var(--ts-chrome-scale, 1))' }}>
+          <div data-testid="reader-rail-left" className="fixed top-2 bottom-14 left-2 z-[80] overflow-y-auto bg-white border-2 border-[#1A1815] p-[0.75em] shadow-lg" style={{ width: railWidth() }}>
+            {renderRailLeft()}
+          </div>
+          <div data-testid="reader-rail-right" className="fixed top-2 bottom-14 right-2 z-[80] overflow-y-auto bg-white border-2 border-[#1A1815] p-[0.75em] shadow-lg" style={{ width: railWidth() }}>
+            {renderRailRight()}
+          </div>
+        </div>,
+        document.body,
+      )}
+      {/* FULL SCREEN: only the Word and the voice. A faint mark brings the controls back. */}
+      {fullScreen && typeof document !== 'undefined' && createPortal(
+        <button type="button" onClick={leaveFullScreen} data-testid="reader-fullscreen-exit" aria-label="Show the controls again" title="Show the controls again (Back or Esc also does)" className="tts-controls fixed top-2 right-2 z-[80] opacity-40 hover:opacity-100 focus:opacity-100 px-[0.5em] py-[0.25em] text-[0.625em] uppercase tracking-wider border-2 border-[#1A1815] bg-white text-[#1A1815] print:hidden focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]" style={{ fontSize: 'calc(1rem * var(--ts-chrome-scale, 1))' }}>⤡ Controls</button>,
+        document.body,
+      )}
       {docked && createPortal(
         <div className="tts-controls tts-docked flex items-center gap-[4px]" data-testid="reader-docked">
           {backToVoice}
