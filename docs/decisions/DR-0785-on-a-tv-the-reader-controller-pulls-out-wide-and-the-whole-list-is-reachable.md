@@ -1,0 +1,44 @@
+# DR-0785 — On a TV the reader's controls sit on the two sides of the Word, full screen takes them away, and the whole lesson list is reachable
+
+- **Status:** accepted
+- **Tier:** A (layout of existing controls by measured device class; no data, no route, no identity change)
+- **Type:** fix
+- **Date:** 2026-10-07
+- **Scope:** `app/src/lib/reader-controller.js` (new: the sides / tall decision kept on the device, the rail width and `<main>` inset, full screen in and out), `app/src/components/TTSControl.jsx` (the panel split into two rails rendered as functions; the rails portal; the header's ⇔ Sides / ⇕ Tall and ⤢ Full screen; the ⤡ Controls mark), `app/src/lib/tv-paging.js` (new: the page step), `app/src/components/ChromeDock.jsx` (▲ Up / ▼ Down chips on a TV), `app/src/index.css` (a TV flattens inner scroll boxes inside `<main>`; `<main>` is inset while the rails are on; full screen hides the dock, the shell header and the docked bar), tests `reader-controller-pulls-out-on-tv.test.jsx`, `lesson-lists-reach-the-whole-list-on-a-tv.test.jsx`
+- **Principles:** DR-0076 (measured, proven to catch), DR-0219 (SHOULD / ARE / GAPS / CLOSE), DR-0075, DR-0678 (the device class is measured live), the 2026-09-20 TV reader fixes (`tv-reader-fixes.test.jsx`), DR-0099 (a notice may not sit on the Word)
+- **Grounds:** Darrell 2026-10-07, on the Firestick: *"I can't change reading speed nor other items inside the reader tab because it's hard to scroll the reader section... it doesn't show all control options... maybe we need to pull out the controller for TV? And bigger screens when detected or on Firestick"*; then, placing it: *"Maybe put the other reader options on the sides in the black space... so all options are always there... unless we go to full screen then the controls are not there just listen to the app and seeing the Word"*; and in Church → Learn: *"Can't scroll lists of lessons on Firestick... how can we choose from the whole list in a Firestick?!!!"* (screenshot: OCTOBER 2026 · 7, four lessons visible, the box cut at the fourth). Also his two reports that the reading itself works on the TV: *"It does read though!!!!"*, *"Nice!!!!"* (the lit sentence and the docked bar in the screenshot).
+
+## Context
+
+SHOULD: a TV is a first-class reader (2026-09-20: the highlight painted without CSS.highlights, focus reveals its target, the remote drives the app). ARE, measured against the screenshots and the code: the reading works and the sentence is lit. But the Read Aloud panel is one 16.25em column, bottom-right, with `max-height` + `overflow-y: auto`; the Learn tree's lesson list is an `<ol>` with `max-h-[45vh] overflow-y-auto` (the browse-all shelf `max-h-[55vh]`). Fire TV's Silk drives a POINTER with the D-pad and scrolls only the PAGE, when the pointer leans on the screen's edge. An inner scroll box has no edge to lean on; the pointer sails over it. The remote-navigation module (arrow keys → focus → `scrollIntoView`) runs only when Silk sends arrow KEYS, which in pointer mode it does not. GAPS: on the device with the most room the reader saw the fewest controls (Read, Pause, the level; never Speed, Voice, Follow along, Colors) and the fewest lessons (four of seven, no road to the rest).
+
+A premise caught by the test, not after a merge: the first cut assumed "black space" meant an empty margin beside a 1440px column. The shell's `<main>` is full width (ChurchLearn.jsx, measured: "window 1440, `<main>` 1440"); the black space on his screen is the lesson prose's own measure. Rails laid over it would have covered the Word's edges. So the page MAKES the margin: `<main>` is inset by the rail width while the rails are on.
+
+## What was measured
+
+| what | measured | basis |
+| --- | --- | --- |
+| the panel | one column, `w-[16.25em]`, `max-h-[calc(100dvh-7rem)] overflow-y-auto` | `TTSControl.jsx` (the open panel container) |
+| the lesson list | `max-h-[45vh] overflow-y-auto` on `course-lesson-list`; `max-h-[55vh]` on the browse-all shelf | `ChurchLearn.jsx:4677`, `:4895` |
+| inner scroll boxes in components | 40 files carry `overflow-y-auto` | `grep overflow-y-auto src/components` |
+| the TV class | `isTvClass`: a TV user agent, or Silk without touch, or no touch + no fine pointer at ≥ 900px; marked `data-device-class="tv"` at boot | `device-link.js:216`, `device-roles.js`, `main.jsx:64` |
+| `<main>` | `w-full px-3 sm:px-6 lg:px-8` — no max width | `poe-financial-mvp-v28.jsx:4411` |
+| the TV's width | 1920 CSS px (Firestick, Silk) — the column used 260 of them | the screenshot and the class |
+
+## Decision
+
+1. **The controls sit on the two sides on a TV.** `controllerLayout({ pref, deviceClass, width })` → `'sides'` for the `tv` class (and for any screen ≥ `WIDE_MIN_WIDTH` 1600px — a monitor or a TV, never a laptop lid), `'tall'` otherwise. Sides: the same panel JSX is split into two rails rendered as functions — the LEFT rail carries the header, Read / Resume / Start at, Back / Forward / Top, the level and the screen; the RIGHT rail carries text size, colors, Follow along, kept-on-this-device, Speed and Voice. The rails are fixed, `RAIL_WIDTH_EM` 15em each (in the chrome em), ALWAYS there — no opening, no scroll — and `<main>` is inset by the same width plus a gap on each side (`html[data-reader-rails="sides"] main`), so the Word narrows between them and is never covered. Nothing is duplicated (one Speed group in the whole document). A header button (⇔ Sides / ⇕ Tall) flips it; the choice is kept on the device (`poetech.reader.controller.v1`), `auto` by default; an explicit `sides` still needs ≥ 900px. The first cut's word `wide` is read as `sides`.
+2. **Full screen: only the Word and the voice.** ⤢ Full screen on the left rail sets `data-reader-fullscreen` on `<html>` and asks the browser for real full screen where it allows it (best-effort; Silk may refuse and the CSS still does the work). index.css hides the dock, the shell header and the docked reader bar; the rails are not rendered; `<main>` gets its full width back. A faint ⤡ Controls mark in the corner, Esc, or the remote's Back (`GoBack` / `BrowserBack`) brings everything back; the browser's own exit is honoured as ours.
+3. **A TV flattens its inner scroll boxes.** `html[data-device-class="tv"] main .overflow-y-auto:not(.tv-keep-scroll) { max-height: none; overflow-y: visible }` — on a TV the page is the only scroller, which is the one thing the pointer can scroll. Fixed overlays are not in `<main>` and keep theirs; `.tv-keep-scroll` is the named opt-out.
+4. **The dock pages by clicking on a TV.** ▲ Up / ▼ Down chips (`dock-page-up` / `dock-page-down`), shown only for the `tv` class, move the page by `pageStep` = 80% of the viewport height so lines carry over.
+
+Proven to catch: the decision is tested on real numbers (1920/1280/390/1024/1440/1600/1599); the render tests mount the real reader under `data-device="tv"` and see the rails without opening anything, the Speed / Follow / text-size groups on the right rail and the header on the left, `<main>` marked for the inset and un-marked when the rails go, the toggle flipping and saving, full screen setting the attribute, removing the rails and the inset, and the corner mark and Esc restoring them; the CSS inset is matched to `RAIL_WIDTH_EM` in the test; the dock test clicks the chips and measures `scrollBy` 864 / −864 at 1080px, and their absence on a phone; the flatten rule is matched in `index.css` and the two Learn containers are matched by name.
+
+## Not yet (why + re-review)
+
+- The flattening is by CSS over a class name (`.overflow-y-auto`). A list styled another way on a TV would still be a box; the named opt-out and the dock chips are the net. re-review 2026-10-21 with a Firestick walk of Church → Learn, Books, Properties.
+- The rails' inset narrows every page on a TV, not only lessons, while the reader is supported. One tap on ⇕ Tall gives the full width back and is remembered. re-review 2026-10-21 with the same walk.
+
+## Impact
+
+Unresolved: on the TV the reader could not reach Speed, Voice, Follow along or Colors, and could not reach lessons past the fourth. Resolved: every control is on the two sides of the screen, always, with the Word uncovered between them; full screen leaves only the Word and the voice; every lesson list is the page's own height and the page is walked by two chips or the pointer's edge; nothing changes on a phone, tablet or laptop lid.

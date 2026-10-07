@@ -18,6 +18,8 @@
 
 export const TRIPS_KEY = 'poe-reader-trips:v1';
 export const TRIPS_KEPT = 10;
+/** A wait between sentences this long is one the listener notices. */
+export const LONG_WAIT_MS = 1000;
 
 const defaultStorage = () => {
   try { return globalThis.localStorage; } catch { return null; }
@@ -93,7 +95,19 @@ export function createTripLog({ storage = defaultStorage(), now = () => Date.now
     setPieces(n) { if (current) { current.pieces = Number(n) || 0; } },
     note(kind, detail = {}) {
       if (!current) return;
-      if (kind === 'piece') { current.piece = Number(detail.i); return; } // one number, not a row per sentence
+      if (kind === 'piece') { // one number, not a row per sentence — plus the waits, summed (DR-0786)
+        current.piece = Number(detail.i);
+        const wait = Number(detail.waitMs);
+        if (Number.isFinite(wait) && wait >= 0) {
+          const w = current.waits || { n: 0, sumMs: 0, maxMs: 0, maxAt: -1, fetched: 0, long: 0 };
+          w.n += 1; w.sumMs += wait;
+          if (wait > w.maxMs) { w.maxMs = wait; w.maxAt = current.piece; w.maxFetched = detail.inHand === false; }
+          if (detail.inHand === false) w.fetched += 1;
+          if (wait >= LONG_WAIT_MS) w.long += 1;
+          current.waits = w;
+        }
+        return;
+      }
       if (kind === 'voice') current.voice = String(detail.kind || '');
       current.events.push({ ...detail, at: now() - current.startedAt, kind: String(kind) });
       if (current.events.length > 60) current.events.splice(0, current.events.length - 60);
@@ -129,6 +143,21 @@ export function joinMissReason(e) {
   return 'no reason was given';
 }
 
+function fmtSec(ms) {
+  const s = Math.max(0, Number(ms) || 0) / 1000;
+  return s >= 10 ? `${Math.round(s)} s` : `${s.toFixed(1)} s`;
+}
+
+/** The waits between sentences, in one clause (DR-0786): where the silence was and where the piece came from. */
+export function waitsLine(w) {
+  if (!w || !(Number(w.n) > 0)) return '';
+  const typical = fmtSec(w.sumMs / w.n);
+  const from = w.fetched > 0 ? `${w.fetched} of ${w.n} fetched while you waited` : 'every piece already in hand';
+  const longest = w.maxMs > 0 ? `, longest ${fmtSec(w.maxMs)} at sentence ${(Number(w.maxAt) || 0) + 1}${w.maxFetched ? ' (fetched)' : ''}` : '';
+  const long = w.long > 0 ? `, ${w.long} over ${fmtSec(LONG_WAIT_MS)}` : '';
+  return `waits between sentences: typical ${typical}${longest}${long}; ${from}`;
+}
+
 /** One plain line about a trip, for the panel and for a screenshot. */
 export function tripSummary(trip) {
   if (!trip) return '';
@@ -157,6 +186,8 @@ export function tripSummary(trip) {
   if (dark) parts.push(`screen went dark ${fmtSpan(dark.at)} in`);
   if (cameBack) parts.push('picked up again in the dark');
   if (handoff) parts.push(`the phone’s voice took over: ${reasonText(handoff.reason)}`);
+  const waits = waitsLine(trip.waits);
+  if (waits) parts.push(waits);
   return `${parts.join(' · ')}.`;
 }
 
