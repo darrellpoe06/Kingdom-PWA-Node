@@ -23,6 +23,7 @@ import {
   normalizePairCode, readPairParam, pairLink, startPairing, pollPairing, approvePairing, PAIR_POLL_MS,
   LIVE_ROADS, loadLiveRoad, saveLiveRoad, loadRoadStats, recordRoadResult, roadScore, chooseLiveRoad, roadLine, LIVE_ROAD_KEY,
   VIEWS_KEY, VIEW_LAYOUTS, loadViews, saveViews, activeView, addToView, removeFromView, moveInView, setViewLayout, renameView, addView, deleteView, viewCols, viewGridClass, indexAtPoint,
+  fitGrid, clampScale, setViewScale, VIEW_SCALE_MIN, VIEW_SCALE_MAX, VIEW_SCALE_STEP,
 } from '../lib/cameras.js';
 
 describe('the road: every URL is same-origin under /cams', () => {
@@ -784,5 +785,39 @@ describe('views: the cameras you want, in the order you want, as many views as y
     expect(indexAtPoint(boxes, 50, 50)).toBe(0);
     expect(indexAtPoint(boxes, 150, 20)).toBe(1);
     expect(indexAtPoint(boxes, 500, 500)).toBe(-1);
+  });
+});
+
+
+describe('the full-size window (DR-0788): the grid that gives every tile the most area, and a size kept with the view', () => {
+  const memoryStorage = () => { const m = new Map(); return { getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), removeItem: (k) => m.delete(k) }; };
+  it('fits by area on real screens', () => {
+    expect(fitGrid({ count: 6, width: 1920, height: 1080 })).toEqual({ cols: 3, rows: 2, tileW: 640, tileH: 360 });
+    expect(fitGrid({ count: 4, width: 1920, height: 1080 })).toEqual({ cols: 2, rows: 2, tileW: 960, tileH: 540 });
+    expect(fitGrid({ count: 1, width: 1920, height: 1080 })).toEqual({ cols: 1, rows: 1, tileW: 1920, tileH: 1080 });
+    expect(fitGrid({ count: 2, width: 1920, height: 1080 })).toEqual({ cols: 2, rows: 1, tileW: 960, tileH: 540 });
+    // A Firestick's 960×540 Silk viewport with five cameras: three across, two down.
+    expect(fitGrid({ count: 5, width: 960, height: 540 })).toEqual({ cols: 3, rows: 2, tileW: 320, tileH: 180 });
+    // A phone held upright with seven: two across wins over one tall column.
+    expect(fitGrid({ count: 7, width: 1080, height: 1920 })).toMatchObject({ cols: 2, rows: 4 });
+    // The gap is taken out of the room.
+    expect(fitGrid({ count: 2, width: 1000, height: 1000, gap: 10 })).toEqual({ cols: 1, rows: 2, tileW: 880, tileH: 495 });
+    expect(fitGrid({ count: 0, width: 0, height: 0 })).toEqual({ cols: 1, rows: 1, tileW: 0, tileH: 0 });
+  });
+
+  it('the size is clamped to a sane range and kept with the view', () => {
+    expect(clampScale(undefined)).toBe(1);
+    expect(clampScale(2)).toBe(VIEW_SCALE_MAX);
+    expect(clampScale(0.1)).toBe(VIEW_SCALE_MIN);
+    expect(clampScale(0.949)).toBe(0.95);
+    expect(VIEW_SCALE_STEP).toBe(0.05);
+    const st = addView(loadViews(memoryStorage()));
+    const id = st.active;
+    const next = setViewScale(st, id, 0.9);
+    expect(activeView(next).scale).toBe(0.9);
+    // A kept state with no scale (every view saved before this) reads as the fit.
+    const mem = memoryStorage();
+    mem.setItem(VIEWS_KEY, JSON.stringify({ ...next, views: next.views.map((v) => { const { scale, ...rest } = v; return rest; }) }));
+    expect(activeView(loadViews(mem)).scale).toBe(1);
   });
 });

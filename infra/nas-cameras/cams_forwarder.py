@@ -353,6 +353,10 @@ def live_snapshot(now=None):
 SETUP_MAX_BODY = 8192
 SETUP_TIMEOUT = float(os.environ.get("CAMS_SETUP_TIMEOUT", "60"))
 SETUP_LOCK = threading.Lock()
+# go2rtc's own config file on the host (the container sees it as /config/go2rtc.yaml).
+GO2RTC_YAML_PATH = os.environ.get("GO2RTC_YAML", os.path.join(os.environ.get("GO2RTC_DATA", "/volume1/docker/go2rtc"), "go2rtc.yaml"))
+# What the last config-persist pass did (DR-0787 / DR-0789), for /health.
+PERSIST_LAST = {}
 WYZE_FIELDS = ("email", "password", "api_id", "api_key")
 # Self-heal cadence (DR-0777): a restreamer that comes back with no streams
 # (a recreated container, a lost config) gets its cameras re-added from the
@@ -1341,6 +1345,8 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
                 out.update(breaker_snapshot())
                 try:
                     out["wyze_cloud"] = "ready" if wyze_factory() is not None else "no-credentials"
+                    if PERSIST_LAST:
+                        out["config_persist"] = dict(PERSIST_LAST)
                 except Exception:  # noqa: BLE001
                     out["wyze_cloud"] = "unavailable"
                 return self._json(200, out)
@@ -1708,6 +1714,9 @@ def _selftest():
                 return self._send(404, "text/plain", b"nope")
             q = urllib.parse.parse_qs(query)
             seen.setdefault("puts", []).append((q.get("name", [""])[0], q.get("src", [""])[0]))
+            if seen.get("put_refuses"):
+                # The real go2rtc 1.9.14 under `streams: {}`: yaml.Patch inserts under a flow mapping and the result fails validation.
+                return self._send(400, "text/plain", b"yaml: line 8: did not find expected key\n")
             return self._send(200, "application/json", b"{}")
 
     fake = ThreadingHTTPServer(("127.0.0.1", 0), FakeGo2rtc)
@@ -2314,6 +2323,36 @@ def _selftest():
     seen.pop("puts", None); del seen["config_streams"]
     r = self_heal_once("http://127.0.0.1:%d" % fp, port, token, log=lambda *_a: None)
     check(r == "has-streams" and not seen.get("puts"), "a go2rtc without /api/config is left alone, never guessed at (%s)" % r)
+    # DR-0789: go2rtc refuses (the seed's `streams: {}`), so the file is written directly, byte-for-byte otherwise.
+    seed = "api:\n  listen: \"127.0.0.1:1984\"\nrtsp:\n  listen: \"127.0.0.1:8554\"\nwebrtc:\n  listen: \"\"\nlog:\n  level: info\nstreams: {}\nwyze:\n  email: x@y.z\n  api_key: SECRET\n"
+    check(write_streams_block(seed, []) == seed, "nothing to add leaves the file byte for byte")
+    check(write_streams_block("api:\n  listen: x\n", [("a", "rtsp://x")]) is None, "a file with no streams key is never guessed at")
+    out_txt = write_streams_block(seed, [("front_yard", "wyze://192.168.1.50?uid=ABC&enr=SECRET&dtls=true"), ("bad id/with slash", "rtsp://x"), ("garage", "rtsp://admin:S@192.168.1.60/live")])
+    check(out_txt.count("streams:\n  front_yard: \"wyze://192.168.1.50?uid=ABC&enr=SECRET&dtls=true\"\n  garage: \"rtsp://admin:S@192.168.1.60/live\"\nwyze:") == 1 and "{}" not in out_txt, "`streams: {}` becomes the block form with each url double-quoted; an unsafe id is skipped; the wyze: block follows untouched")
+    check(config_stream_names(out_txt) == {"front_yard", "garage"}, "the written block reads back as defined")
+    check(write_streams_block(out_txt, [("front_yard", "wyze://again"), ("doorbell", "ring://x")]).count("front_yard") == 1, "a stream already defined is not written twice")
+    import tempfile
+    with tempfile.TemporaryDirectory() as tmpd:
+        cfgp = os.path.join(tmpd, "go2rtc.yaml")
+        with open(cfgp, "w", encoding="utf-8") as f:
+            f.write(seed)
+        seen.pop("puts", None); seen["config_streams"] = []; seen["put_refuses"] = True
+        r = persist_missing_streams("http://127.0.0.1:%d" % fp, {
+            "front_yard": {"producers": [{"url": "wyze://192.168.1.50?uid=ABC&enr=SECRET&mac=AA&model=HL_CAM4&dtls=true"}]},
+            "doorbell": {"producers": [{"url": "ring://x@y.z?device_id=1&refresh_token=SECRET"}]},
+            "garage": {"producers": [{"url": "rtsp://admin:SECRET@192.168.1.60/live"}]},
+            "bad id/with slash": {"producers": []},
+        }, log=lambda *_a: None, config_path=cfgp)
+        with open(cfgp, encoding="utf-8") as f:
+            after = f.read()
+        check(r == "wrote-3" and len(seen.get("puts", [])) == 3, "go2rtc refused all three PUTs and the three were written into go2rtc.yaml directly (%s)" % r)
+        check(config_stream_names(after) == {"front_yard", "doorbell", "garage"} and after.startswith("api:\n  listen: \"127.0.0.1:1984\"") and after.endswith("wyze:\n  email: x@y.z\n  api_key: SECRET\n"), "the file holds the three under streams: and every other byte is as it was")
+        check(PERSIST_LAST.get("refused", "").startswith("HTTP 400") and PERSIST_LAST.get("direct") == 3 and PERSIST_LAST.get("wrote") == 0, "/health carries what happened: the refusal's status and text, and how many were written directly (%r)" % (PERSIST_LAST,))
+        check(not os.path.exists(cfgp + ".tmp"), "the temp file is renamed into place, not left behind")
+        seen["put_refuses"] = False; seen.pop("puts", None); seen["config_streams"] = []
+        r = persist_missing_streams("http://127.0.0.1:%d" % fp, {"front_yard": {"producers": [{"url": "wyze://x?enr=S"}]}}, log=lambda *_a: None, config_path=cfgp)
+        check(r == "wrote-1" and PERSIST_LAST.get("direct") == 0 and PERSIST_LAST.get("refused") == "", "when go2rtc accepts the PUT nothing is written directly")
+    seen.pop("config_streams", None); seen["put_refuses"] = False
 
     print("=== 9. a DARK go2rtc reads as 502 everywhere, never as this process's own 200 ===")
     fake.shutdown(); fake.server_close()
@@ -2358,7 +2397,52 @@ def config_stream_names(text):
     return names
 
 
-def persist_missing_streams(upstream, streams, log=print):
+def yaml_quote(s):
+    """A YAML double-quoted scalar: a camera source url carries ? & = and may carry anything."""
+    return '"' + str(s).replace("\\", "\\\\").replace('"', '\\"') + '"'
+
+
+def write_streams_block(text, entries):
+    """go2rtc.yaml with `entries` ([(name, url)]) added under its top-level
+    `streams:` block, every other byte untouched. A `streams: {}` line (the seed's
+    flow mapping) becomes the block form, because that is the one shape go2rtc's
+    own patcher cannot add a child to (DR-0789). None when the file has no
+    top-level streams key (then nothing is guessed at)."""
+    lines = str(text or "").split("\n")
+    idx = None
+    for k, l in enumerate(lines):
+        if re.match(r"^streams:\s*(\{\s*\})?\s*(#.*)?$", l):
+            idx = k
+            break
+    if idx is None:
+        return None
+    existing = config_stream_names(text)
+    add = [(n, u) for n, u in entries if n not in existing and re.match(r"^[A-Za-z0-9_][A-Za-z0-9_.-]*$", str(n)) and u]
+    if not add:
+        return text
+    m = re.match(r"^streams:\s*(\{\s*\})?\s*(#.*)?$", lines[idx])
+    head = "streams:" + ("  " + m.group(2) if m.group(2) else "")
+    j = idx + 1
+    while j < len(lines) and (not lines[j].strip() or lines[j][0] in " \t" or lines[j].lstrip().startswith("#")):
+        j += 1
+    block = lines[idx + 1:j]
+    insert = ["  %s: %s" % (n, yaml_quote(u)) for n, u in add]
+    return "\n".join(lines[:idx] + [head] + block + insert + lines[j:])
+
+
+def write_config_atomically(path, text):
+    """Write go2rtc.yaml the way a config must be written: whole, then renamed into place."""
+    tmp = path + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        f.write(text)
+    try:
+        os.chmod(tmp, os.stat(path).st_mode & 0o777)
+    except OSError:
+        pass
+    os.replace(tmp, path)
+
+
+def persist_missing_streams(upstream, streams, log=print, config_path=None):
     """WHAT MEMORY HOLDS, THE CONFIG MUST HOLD (DR-0787). Measured 2026-10-07
     (cams-diag run 37639442649, after the DR-0779 fix shipped): /health said
     31 streams, and go2rtc.yaml said `streams defined: 0`. The 31 lived in
@@ -2379,8 +2463,11 @@ def persist_missing_streams(upstream, streams, log=print):
     defined = config_stream_names(text)
     missing = [sid for sid in streams if sid not in defined]
     if not missing:
+        PERSIST_LAST.update({"at": int(time.time()), "missing": 0, "wrote": 0, "direct": 0, "refused": ""})
         return "written"
     wrote = 0
+    refused = ""
+    failed = []
     for sid in missing:
         info = streams.get(sid) if isinstance(streams, dict) else None
         prods = (info or {}).get("producers") or []
@@ -2393,10 +2480,44 @@ def persist_missing_streams(upstream, streams, log=print):
             with urllib.request.urlopen(put, timeout=HEALTH_TIMEOUT) as r:
                 r.read(4096)
             wrote += 1
-        except (urllib.error.HTTPError, urllib.error.URLError, OSError):
-            pass
-    log("self-heal: %d stream(s) lived in go2rtc's memory only; wrote %d of them to its config (DR-0787)" % (len(missing), wrote))
-    return "wrote-%d" % wrote
+        except urllib.error.HTTPError as e:
+            # THE REFUSAL IS KEPT, NOT SWALLOWED (DR-0789; cams-diag run 37643024375
+            # said "wrote 0 of them" and nothing said why). Scrubbed: never a url.
+            body = ""
+            try:
+                body = e.read(300).decode("utf-8", "replace")
+            except Exception:  # noqa: BLE001
+                body = ""
+            if not refused:
+                refused = "HTTP %d %s" % (e.code, scrub_text(body, 160).strip())
+            failed.append((sid, url))
+        except (urllib.error.URLError, OSError) as e:
+            if not refused:
+                refused = scrub_text(str(e), 160)
+            failed.append((sid, url))
+    # WHEN GO2RTC WILL NOT WRITE ITS OWN FILE, THIS PROCESS DOES (DR-0789). The
+    # seed's `streams: {}` is a flow mapping; go2rtc's text patcher inserts the
+    # new child on the line after the key, which under `{}` is not valid yaml,
+    # so every PUT /api/streams answers 400 and the config never gains a
+    # stream. The forwarder runs on the host beside the file: it adds the
+    # block itself, byte-for-byte otherwise, atomically. go2rtc already holds
+    # the streams in memory; the file is for the next start.
+    direct = 0
+    cfg = config_path or GO2RTC_YAML_PATH
+    if failed and os.path.isfile(cfg):
+        try:
+            with open(cfg, "r", encoding="utf-8") as f:
+                on_disk = f.read()
+            new_text = write_streams_block(on_disk, failed)
+            if new_text is not None and new_text != on_disk:
+                write_config_atomically(cfg, new_text)
+                direct = len([1 for sid, _u in failed if sid in config_stream_names(new_text)])
+        except OSError as e:
+            log("self-heal: could not write go2rtc.yaml directly: %s" % scrub_text(str(e), 160))
+    PERSIST_LAST.update({"at": int(time.time()), "missing": len(missing), "wrote": wrote, "direct": direct, "refused": refused})
+    log("self-heal: %d stream(s) lived in go2rtc's memory only; go2rtc wrote %d of them to its config%s; this process wrote %d into go2rtc.yaml directly (DR-0787, DR-0789)"
+        % (len(missing), wrote, (" (it refused: %s)" % refused) if refused else "", direct))
+    return "wrote-%d" % (wrote + direct)
 
 
 def self_heal_once(upstream, port, token, log=print):

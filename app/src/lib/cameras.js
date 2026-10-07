@@ -1056,7 +1056,7 @@ function newViewId() {
   try { return 'v' + Math.random().toString(36).slice(2, 8); } catch { return 'v' + Date.now().toString(36); }
 }
 export function makeView(name = 'My view', cameras = [], layout = 'auto') {
-  return { id: newViewId(), name: String(name || 'My view').slice(0, VIEW_NAME_MAX), cameras: cameras.filter((x) => typeof x === 'string' && CAMERA_ID.test(x)), layout: VIEW_LAYOUTS.includes(layout) ? layout : 'auto' };
+  return { id: newViewId(), name: String(name || 'My view').slice(0, VIEW_NAME_MAX), cameras: cameras.filter((x) => typeof x === 'string' && CAMERA_ID.test(x)), layout: VIEW_LAYOUTS.includes(layout) ? layout : 'auto', scale: 1 };
 }
 function cleanView(v) {
   if (!v || typeof v !== 'object' || typeof v.id !== 'string') return null;
@@ -1065,6 +1065,7 @@ function cleanView(v) {
     name: String(v.name || 'View').slice(0, VIEW_NAME_MAX),
     cameras: Array.isArray(v.cameras) ? [...new Set(v.cameras.filter((x) => typeof x === 'string' && CAMERA_ID.test(x)))] : [],
     layout: VIEW_LAYOUTS.includes(v.layout) ? v.layout : (VIEW_LAYOUTS.includes(Number(v.layout)) ? Number(v.layout) : 'auto'),
+    scale: clampScale(v.scale),
   };
 }
 // {views: [...], active: id}. With nothing saved, the old wall (if any) becomes "My view".
@@ -1113,6 +1114,51 @@ export function moveInView(state, id, cameraId, toIndex) {
 export function setViewLayout(state, id, layout) {
   const l = VIEW_LAYOUTS.includes(layout) ? layout : (VIEW_LAYOUTS.includes(Number(layout)) ? Number(layout) : 'auto');
   return updateView(state, id, (v) => ({ ...v, layout: l }));
+}
+// THE WINDOW (2026-10-07, DR-0788; Darrell, watching two cameras on the
+// Firestick under the header and the nav: "I should also be able to put my
+// chosen cameras into one full-size window that has all of the ones I chose
+// and fit automatically based on the size of the screen and an adjuster that
+// lets me up or down size so it fits whatever perfectly"). The view's cameras
+// fill the whole screen: the grid that gives every 16:9 tile the most area
+// for this many cameras on this screen, and a size the viewer sets — 100% is
+// the fit; smaller leaves a margin for a TV that cuts its edges (overscan).
+// The size is kept with the view, so the wall remembers it.
+export const VIEW_SCALE_MIN = 0.5;
+export const VIEW_SCALE_MAX = 1;
+export const VIEW_SCALE_STEP = 0.05;
+export function clampScale(s) {
+  const n = Number(s);
+  if (!Number.isFinite(n) || n <= 0) return 1;
+  return Math.min(VIEW_SCALE_MAX, Math.max(VIEW_SCALE_MIN, Math.round(n * 100) / 100));
+}
+/**
+ * The grid that gives `count` tiles of `aspect` the most area inside width ×
+ * height with `gap` px between them: every column count is tried; a tile is
+ * as wide as its column unless the rows would run past the bottom, in which
+ * case the height decides. Pure, so it is tested on real screens.
+ */
+export function fitGrid({ count, width, height, aspect = 16 / 9, gap = 0 } = {}) {
+  const n = Math.max(1, Math.floor(Number(count) || 0));
+  const W = Math.max(0, Number(width) || 0);
+  const H = Math.max(0, Number(height) || 0);
+  const g = Math.max(0, Number(gap) || 0);
+  let best = null;
+  for (let cols = 1; cols <= n; cols += 1) {
+    const rows = Math.ceil(n / cols);
+    let tileW = (W - g * (cols - 1)) / cols;
+    let tileH = tileW / aspect;
+    if (rows * tileH + g * (rows - 1) > H) { tileH = (H - g * (rows - 1)) / rows; tileW = tileH * aspect; }
+    if (tileW <= 0 || tileH <= 0) continue;
+    const area = tileW * tileH;
+    // Equal area, more columns: a wall of cameras reads wider, not taller.
+    if (!best || area > best.area - 0.5) best = { cols, rows, tileW: Math.floor(tileW), tileH: Math.floor(tileH), area };
+  }
+  if (!best) return { cols: 1, rows: n, tileW: 0, tileH: 0 };
+  return { cols: best.cols, rows: best.rows, tileW: best.tileW, tileH: best.tileH };
+}
+export function setViewScale(state, id, scale) {
+  return updateView(state, id, (v) => ({ ...v, scale: clampScale(scale) }));
 }
 export function renameView(state, id, name) {
   return updateView(state, id, (v) => ({ ...v, name: String(name || v.name).trim().slice(0, VIEW_NAME_MAX) || v.name }));
