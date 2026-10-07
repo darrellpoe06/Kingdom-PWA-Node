@@ -4,7 +4,7 @@
 - **Tier:** C by class (a change to the merge lane, DR-0107) carried as the smallest possible edit: one branch prefix added to three existing filters, nothing else in the lane touched; proof per DR-0107 is the next real merge producing a real deploy
 - **Type:** orchestration fix
 - **Date:** 2026-10-07
-- **Scope:** `.github/workflows/auto-merge.yml` (eligibility regex), `.github/workflows/auto-open-pr.yml` (push trigger branches), `.github/workflows/keep-prs-current.yml` (live-PR sweep filter)
+- **Scope:** `.github/workflows/auto-merge.yml` (eligibility regex), `.github/workflows/auto-open-pr.yml` (push trigger branches), `.github/workflows/keep-prs-current.yml` (live-PR sweep filter), `.github/workflows/ci.yml` (push trigger branches)
 - **Principles:** THE-STREAMLINED-DELIVERY-LOOP (DR-0103), DR-0107 (prove the deploy after any lane change), DR-0236 (nothing waits), VERIFICATION-DOCTRINE (DR-0076)
 - **Grounds:** DR-0103's own text: *"The `claude/*` lane was excluded until 2026-07-05 — that exclusion WAS the 'we don't move without pushing' stall; it is fixed and must stay fixed."* The cloud sessions no longer push on `claude/*`.
 
@@ -18,6 +18,7 @@ Claude Code on the web (claude.ai/code) assigns each session a branch named `ccr
 - Auto-merge job 112638331611 on that push: `No eligible PRs awaiting auto-merge.` The filter: `select(.headRefName | test("^(feat|fix|merge|docs|claude)/"))`.
 - The same was true of #1983, #1984 and #1985 today: each merged by hand after green, none by the lane.
 - `auto-open-pr.yml` triggers on `claude/**` but not `ccr-**`; `keep-prs-current.yml` sweeps `startswith("claude/")` only, so a cloud session's PR is also never kept current with main by the lane.
+- Found while proving this record: the lane opened PR #1988 itself (run 37578057609) and then NO CI ran on it. `ci.yml`'s `push` branches were `main, feat/**, fix/**, merge/**, docs/**, claude/**`, and a PR opened with `GITHUB_TOKEN` fires no `pull_request` run, so a `ccr-` PR opened by the lane had one check (the opener) and `mergeable_state: blocked`. Without `ccr-**` in `ci.yml` the lane would open ccr PRs that can never go green. CI was dispatched by hand on that head (ci.yml `workflow_dispatch`) and the prefix added here.
 
 ## Impact
 
@@ -28,7 +29,8 @@ Agreed, verified work waited on a hand for 40 minutes today and would have waite
 1. `auto-merge.yml` eligibility: `^(feat|fix|merge|docs|claude)/|^ccr-`.
 2. `auto-open-pr.yml` push trigger gains `ccr-**`.
 3. `keep-prs-current.yml` sweeps `claude/` or `ccr-` heads.
-4. Nothing else in the lane changes. The `hold` label and branch protection govern exactly as before; a `ccr-` PR labeled `hold` is disarmed by the same reverse pass.
+4. `ci.yml` runs on `push` to `ccr-**` (so a lane-opened ccr PR carries CI on its head, the same way `claude/**` does).
+5. Nothing else in the lane changes. The `hold` label and branch protection govern exactly as before; a `ccr-` PR labeled `hold` is disarmed by the same reverse pass.
 
 ## Verification
 
