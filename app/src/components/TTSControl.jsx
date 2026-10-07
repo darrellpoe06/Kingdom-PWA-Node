@@ -446,12 +446,20 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
     return next;
   };
   const lightSentence = (r) => highlightSegment(prefsRef.current.highlight === 'off' ? null : r);
+  // AFTER BACK / NEXT THE SCREEN STAYS STILL (DR-0790). A manual jump puts
+  // the follow into 'reveal': the page moves only when the sentence is
+  // hidden or off the fold, and by the least that shows it; the first move
+  // that was genuinely needed hands the chosen place back.
+  const settleRef = useRef(false);
+  const jumpingRef = useRef(false); // a jump in flight (declared here: the effect below reads it)
   const scrollToVoice = (r) => {
     if (!prefsRef.current.follow || awayRef.current) return;
-    followRange(r, { place: prefsRef.current.place });
+    const mode = settleRef.current ? 'reveal' : 'place';
+    const moved = followRange(r, { place: prefsRef.current.place, mode });
+    if (settleRef.current && moved) settleRef.current = false;
   };
   useEffect(() => {
-    if (!isReading) { awayRef.current = false; setUserAway(false); return undefined; }
+    if (!isReading) { awayRef.current = false; setUserAway(false); if (!jumpingRef.current) settleRef.current = false; return undefined; }
     if (typeof window === 'undefined') return undefined;
     const away = (e) => {
       if (e && e.type === 'keydown' && !['PageDown', 'PageUp', 'ArrowDown', 'ArrowUp', 'Home', 'End', ' '].includes(e.key)) return;
@@ -774,7 +782,6 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
   // through a not-reading render, which the run-continuation effect below must
   // not mistake for "the piece ended on its own". Declared here — above the
   // unsupported-device early return — so hook order never varies.
-  const jumpingRef = useRef(false);
   useEffect(() => { if (isReading) jumpingRef.current = false; }, [isReading]);
   // The previous Back's landing, for "tap again" (see jumpParagraph). A ref,
   // declared up here with jumpingRef so hook order never varies.
@@ -1267,6 +1274,7 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
     // A jump can flicker the engine through a not-reading render; the guard
     // keeps the hands-free run from mistaking that for "the piece ended".
     jumpingRef.current = true;
+    settleRef.current = true;
     setJumpLive(true);
     beginRun({ ...pageFollowState(f.follow, idx), paraStarts, owner: f.owner });
     read(f.follow.text.slice(seg.start));
