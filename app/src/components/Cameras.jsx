@@ -47,7 +47,7 @@ import {
   WYZE_FIELDS, setupWyze, WYZE_API_KEY_HELP_URL, WYZE_API_KEY_STEPS,
   serviceCodeState, restartService, loadWyzeDraft, saveWyzeDraft, clearWyzeDraft,
   SNAP_CONCURRENCY, LIVE_RECONNECT_MAX, LIVE_RECONNECT_DELAY_MS, runLimited, skipFailedFrame,
-  classifySnapError, fetchWhy,
+  classifySnapError, fetchWhy, groupCameraFaults, faultSummaryLine,
   loadViews, saveViews, activeView, addToView, removeFromView, moveInView, setViewLayout, renameView, addView, deleteView, viewCols, viewGridClass, indexAtPoint, VIEW_LAYOUTS,
   fitGrid, clampScale, setViewScale, VIEW_SCALE_STEP, VIEW_SCALE_MIN, VIEW_SCALE_MAX, toggleFocus, focusIn, shownCount,
   CLIP_SIZE_TIERS, fetchClipSizes, waitForClipSize, clipDownloadName, clipTierLine, fetchStreamHealth, STREAM_HEALTH_POLL_MS, liveStreamId, streamHealthLine, dropLines,
@@ -1542,6 +1542,22 @@ export default function Cameras() {
             ) : <p className="text-[0.6875rem] text-[#5A5751]">Press + View on any camera to add it here. Drag the handle, or use the arrows, to put them in your order while they stream; pick how many across. Click a picture to make it the largest; click it again to put it back.</p>}
           </section>
 
+          {/* ONE LINE OVER THE WHOLE WALL (DR-0803). Darrell: "Non of the 805
+              cameras work!!!!!!!! Why?!!!!!!!!" Every tile already had a Why?
+              button and plain words behind it; with 27 of 31 down for two
+              causes, nobody should have to press it 27 times to find that
+              out. This adds up what the tiles already know, biggest first. */}
+          {(() => {
+            const sum = groupCameraFaults(list.cameras, frames);
+            const line = faultSummaryLine(sum);
+            if (!line) return null;
+            return (
+              <p data-testid="wall-fault-summary" role="status" className="mb-3 text-sm text-[#1A1815] border-l-4 border-[#B85838] pl-2.5">
+                {line}{' '}
+                <span className="text-[#5A5751]">Press Why? on any tile for that camera&apos;s own words.</span>
+              </p>
+            );
+          })()}
           {groups.map((g) => (
             <section key={g.kind} className="mb-4">
               <div className="flex items-center justify-between mb-2">

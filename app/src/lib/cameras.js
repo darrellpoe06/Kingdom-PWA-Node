@@ -425,6 +425,70 @@ export function humanizeCameraError(text, host = '') {
   return { kind: 'unknown', text: t.replace(/^wyze:\s*/i, '') };
 }
 
+// ONE LINE OVER THE WHOLE WALL (DR-0803). Darrell 2026-10-07, at full
+// volume: "Non of the 805 cameras work!!!!!!!! Why?!!!!!!!!" Every tile
+// already carries a Why? button and a plain-words reason, but with 31 streams
+// and 27 of them down for exactly TWO causes, a person had to press Why? 27
+// times to learn what one sentence could say. Measured that evening on the
+// NAS (cams-diag run 37694253134): ten cameras addressed on 10.0.0.x while
+// the NAS sits on 192.168.1.26/24, so go2rtc logged "connect failed:
+// discovery timeout" for every one of them; the rest Wyze-sourced and
+// refused with "only DTLS cameras are supported"; four live. The reasons were
+// all there, one tile at a time, and nothing added them up.
+//
+// A surface never goes blank and never makes a person count (P15, DR-0381):
+// this groups what the tiles already know, by cause, biggest first.
+
+/** The one-line name of each cause, for a wall summary. */
+export const FAULT_LABELS = Object.freeze({
+  'other-network': 'on a network the NAS cannot reach',
+  firmware: 'firmware has no DTLS yet',
+  auth: 'the camera refused the sign-in',
+  missing: 'no stream by that name any more',
+  asleep: 'asleep, off, or not answering',
+  unknown: 'no reason given',
+});
+
+/**
+ * Add the wall up: how many cameras are showing a picture, and how many are
+ * down for each cause, named. `frames` is the id -> {url, error} record the
+ * surface already keeps; `cameras` is the list it already has.
+ *   { total, live, down, groups: [{ kind, label, count, names }] }
+ * Pure, and honest about what it was given: a camera with no frame record yet
+ * is neither live nor down — it is still being asked.
+ */
+export function groupCameraFaults(cameras = [], frames = {}) {
+  const list = Array.isArray(cameras) ? cameras : [];
+  const by = new Map();
+  let live = 0;
+  let waiting = 0;
+  for (const cam of list) {
+    const id = cam && (cam.id || cam.name);
+    const f = id ? frames[id] : null;
+    if (!f) { waiting += 1; continue; }
+    if (f.url && !f.error) { live += 1; continue; }
+    if (!f.error) { waiting += 1; continue; }
+    const { kind } = humanizeCameraError(f.error);
+    if (!by.has(kind)) by.set(kind, []);
+    by.get(kind).push((cam && cam.name) || id);
+  }
+  const groups = [...by.entries()]
+    .map(([kind, names]) => ({ kind, label: FAULT_LABELS[kind] || FAULT_LABELS.unknown, count: names.length, names }))
+    .sort((a, b) => b.count - a.count || a.kind.localeCompare(b.kind));
+  return { total: list.length, live, waiting, down: groups.reduce((n, g) => n + g.count, 0), groups };
+}
+
+/** The sentence the wall shows. Empty when there is nothing down to say. */
+export function faultSummaryLine(summary) {
+  const s = summary || {};
+  const groups = Array.isArray(s.groups) ? s.groups : [];
+  if (!groups.length) return '';
+  const parts = groups.map((g) => `${g.count} ${g.label}`);
+  const last = parts.pop();
+  const joined = parts.length ? `${parts.join(', ')} and ${last}` : last;
+  return `${s.live} of ${s.total} showing a picture. ${joined}.`;
+}
+
 /** A failed /snap answer (status + JSON body) -> the short reason a tile shows. */
 export function classifySnapError({ status, body } = {}) {
   const err = body && typeof body.error === 'string' ? body.error : '';
