@@ -70,6 +70,23 @@
 #   GET  /rec/<id>/<clip>.mp4?t=       ticket (the camera's). The clip itself,
 #        with Range (206) so the player can seek. Never a path outside the
 #        camera's folder; the clip name grammar is the only accepted shape.
+#        &size=small|medium|large       the clip at that size (DR-0797): 480p /
+#        720p / 1080p, never upscaled, made once by the container's ffmpeg and
+#        kept under .derived; 202 {status: queued|making, position} until it is
+#        ready, 500 transcode-failed with ffmpeg's words (&retry=1 tries once
+#        more), 400 bad-size.
+#        &sizes=1                        {original, seconds, tiers:{size:{label,
+#        height, estimate, state, bytes?}}} -- the estimate is the tier's rate for
+#        the clip's length, never more than the original.
+#        &dl=1                           Content-Disposition: attachment, named
+#        <camera>-<time>-<size>.mp4, so a phone saves it.
+#   GET  /streams/health               bearer or grant (its cameras). The stream
+#        health log (DR-0798): per camera the last hour from go2rtc's own numbers
+#        -- kbps now and average while watched, up%, drops (producer-gone,
+#        bytes-frozen, producer-restarted while watched), codecs, hevc_only,
+#        twin, sd -- and the last 50 drop events. Sampled every CAMS_STREAM_SAMPLE_SECONDS.
+#        Every Wyze camera also gets `<id>_sd` (its own substream, DR-0799) for
+#        tiles in a grid; /list hides both twins and marks the camera h264 / sd.
 #   GET  /devices                      bearer. The Wyze ACCOUNT's devices over
 #        Wyze's own cloud API (wyze_cloud.py), independent of any video:
 #        [{mac, nickname, model, online, garage, stream}] -- `stream` is the
@@ -143,6 +160,7 @@ import json
 import os
 import re
 import socket
+import subprocess
 import sys
 import threading
 import time
@@ -156,10 +174,11 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 # and its reader for the tab; the recorder service reconciles to the file.
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 try:
-    from cams_recorder import normalize_config as rec_normalize_config, load_config as rec_load_config, list_clips as rec_list_clips, CLIP_SUFFIX as REC_CLIP_SUFFIX
+    from cams_recorder import normalize_config as rec_normalize_config, load_config as rec_load_config, list_clips as rec_list_clips, CLIP_SUFFIX as REC_CLIP_SUFFIX, SEGMENT_SECONDS as REC_SEGMENT_SECONDS
 except ImportError:  # the forwarder still serves cameras without the recorder beside it
     rec_normalize_config = rec_load_config = rec_list_clips = None
     REC_CLIP_SUFFIX = ".mp4"
+    REC_SEGMENT_SECONDS = 600
 # The Wyze account over Wyze's own cloud (DR-0777): the devices and their
 # actions (the garage door) with no video in the path. Optional the same way.
 try:
@@ -817,13 +836,624 @@ def upstream_query(query, drop=("t",)):
     return urllib.parse.urlencode(kept)
 
 
+# =============================================================================
+# CLIP DOWNLOADS BY SIZE (DR-0797; Darrell 2026-10-07: "Pushing record only
+# records to the nas... not to the cellphone correct... options to download
+# based on size and the ability to give smaller to large size files with their
+# best resolutions"). Correct: the recorder writes to the NAS only (DR-0775);
+# nothing reaches a phone until it asks for a clip. A clip can now be asked for
+# in three sizes besides the original, each the BEST picture that fits its
+# size: Small is 480p, Medium 720p, Large 1080p (never upscaled: a camera that
+# records 1080p gives the same picture for Large and Original, smaller file),
+# at a quality setting per tier. The derived file is made ONCE by the ffmpeg
+# inside the go2rtc container (the recorder's own, DR-0775), kept under
+# <recordings>/.derived/<camera>/, served with Range like the original, and
+# pruned by its own budget (oldest first) and when its source clip is gone.
+# One transcode at a time (the NAS has other work); a request for a file not
+# yet made answers 202 with its place in the line, and the app asks again.
+# =============================================================================
+DERIVED_DIRNAME = ".derived"
+DERIVED_BUDGET_BYTES = int(float(os.environ.get("CAMS_DERIVED_BUDGET_GB", "2")) * 1024 ** 3)
+TRANSCODE_TIMEOUT = float(os.environ.get("CAMS_TRANSCODE_TIMEOUT", "900"))
+GO2RTC_CONTAINER = os.environ.get("CAMS_GO2RTC_CONTAINER", "poetech-go2rtc")
+CONTAINER_RECORDINGS_ROOT = "/recordings"  # the compose bind mount inside the container (DR-0775)
+# (size, {height: the tallest picture this tier gives; crf: x264 quality, lower is finer; bps: the rate the estimate uses})
+CLIP_SIZES = (
+    ("small", {"height": 480, "crf": 30, "bps": 600000, "label": "Small (480p)"}),
+    ("medium", {"height": 720, "crf": 26, "bps": 1500000, "label": "Medium (720p)"}),
+    ("large", {"height": 1080, "crf": 23, "bps": 3000000, "label": "Large (1080p)"}),
+    # Darrell 2026-10-07: "4k for those types if possible so 2k or 3k... larger size options too".
+    # Never upscaled: these tiers give more only for a camera that records that large.
+    ("xlarge", {"height": 1440, "crf": 21, "bps": 6000000, "label": "Extra large (1440p / 2.5K)"}),
+    ("uhd", {"height": 2160, "crf": 20, "bps": 12000000, "label": "Ultra (2160p / 4K)"}),
+)
+CLIP_SIZE_MAP = dict(CLIP_SIZES)
+CLIP_STEM = re.compile(r"^(\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2})\.mp4$")
+
+
+def find_docker():
+    """The docker binary on this box, else None (then ffmpeg must be on PATH)."""
+    import shutil as _shutil
+    for cand in ("docker", "/usr/local/bin/docker", "/var/packages/ContainerManager/target/usr/bin/docker"):
+        found = _shutil.which(cand) if os.sep not in cand else (cand if os.path.isfile(cand) and os.access(cand, os.X_OK) else None)
+        if found:
+            return found
+    return None
+
+
+def derived_name(clip, size):
+    m = CLIP_STEM.match(clip)
+    if not m or size not in CLIP_SIZE_MAP:
+        return None
+    return "%s.%s.mp4" % (m.group(1), size)
+
+
+def derived_path(root, cam, clip, size):
+    """<root>/.derived/<cam>/<stem>.<size>.mp4 -- None when any part fails its grammar."""
+    name = derived_name(clip, size)
+    if not name or not CAMERA_ID.match(cam):
+        return None
+    return os.path.join(root, DERIVED_DIRNAME, cam, name)
+
+
+def download_name(cam, clip, size=None):
+    """The file name a phone saves: <camera>-<time>-<size>.mp4."""
+    m = CLIP_STEM.match(clip)
+    stem = m.group(1) if m else clip.replace(".mp4", "")
+    return "%s-%s-%s.mp4" % (cam, stem, size if size in CLIP_SIZE_MAP else "original")
+
+
+def estimate_sizes(clip_bytes, seconds):
+    """About how big each tier will be: the tier's rate for the clip's length, never more than the original."""
+    out = {}
+    for size, spec in CLIP_SIZES:
+        est = int(max(1.0, float(seconds or 0)) * spec["bps"] / 8)
+        out[size] = min(int(clip_bytes or 0), est) if clip_bytes else est
+    return out
+
+
+def clip_seconds(clips, i, now=None, segment=None):
+    """How long clip i runs: to the next clip's start, or (the newest) to now, within the segment length."""
+    seg = int(segment or REC_SEGMENT_SECONDS or 600)
+    try:
+        start = int(clips[i]["start"])
+    except (IndexError, KeyError, TypeError, ValueError):
+        return seg
+    if i + 1 < len(clips):
+        end = int(clips[i + 1].get("start") or (start + seg))
+    else:
+        end = int(now if now is not None else time.time())
+    return max(1, min(seg, end - start))
+
+
+def transcode_argv(cam, clip, size, docker=None, container=GO2RTC_CONTAINER, container_root=CONTAINER_RECORDINGS_ROOT, host_root=None):
+    """The one ffmpeg command for a tier: scale to the tier's height (never up),
+    x264 at the tier's quality, AAC audio, faststart so a phone plays it as it
+    arrives, written to a .part the worker renames into place when ffmpeg says 0."""
+    spec = CLIP_SIZE_MAP[size]
+    name = derived_name(clip, size)
+    if docker:
+        src = "%s/%s/%s" % (container_root, cam, clip)
+        dst = "%s/%s/%s/%s.part" % (container_root, DERIVED_DIRNAME, cam, name)
+        head = [docker, "exec", "-i", container, "ffmpeg"]
+    else:
+        root = host_root or RECORDINGS_ROOT
+        src = os.path.join(root, cam, clip)
+        dst = os.path.join(root, DERIVED_DIRNAME, cam, name + ".part")
+        head = ["ffmpeg"]
+    return head + ["-nostdin", "-hide_banner", "-loglevel", "error", "-y", "-i", src,
+                   "-vf", "scale=-2:'min(%d,ih)'" % spec["height"],
+                   "-c:v", "libx264", "-preset", "veryfast", "-crf", str(spec["crf"]), "-pix_fmt", "yuv420p",
+                   "-c:a", "aac", "-b:a", "64k", "-movflags", "+faststart", "-f", "mp4", dst]
+
+
+class DerivedStore:
+    """The derived clips: one worker, a line, a budget. `runner(argv)` runs
+    ffmpeg and answers (returncode, stderr_text); the selftest injects one."""
+
+    def __init__(self, root, runner=None, budget=DERIVED_BUDGET_BYTES, docker=None, now=time.time, log=print):
+        self.root = root
+        self.runner = runner or self._run
+        self.budget = int(budget)
+        self.docker = docker
+        self.now = now
+        self.log = log
+        self.lock = threading.Lock()
+        self.queue = []       # [(cam, clip, size)] in order
+        self.current = None   # the one being made
+        self.failed = {}      # key -> error text
+        self.worker = None
+
+    @staticmethod
+    def key(cam, clip, size):
+        return "%s/%s/%s" % (cam, clip, size)
+
+    def path(self, cam, clip, size):
+        return derived_path(self.root, cam, clip, size)
+
+    def status(self, cam, clip, size):
+        """('ready', path) | ('making', None) | ('queued', position) | ('failed', error) | ('absent', None)."""
+        path = self.path(cam, clip, size)
+        if path and os.path.isfile(path):
+            return ("ready", path)
+        k = self.key(cam, clip, size)
+        with self.lock:
+            if self.current == k:
+                return ("making", None)
+            for i, item in enumerate(self.queue):
+                if self.key(*item) == k:
+                    return ("queued", i + 1)
+            if k in self.failed:
+                return ("failed", self.failed[k])
+        return ("absent", None)
+
+    def ask(self, cam, clip, size, retry=False):
+        """Have the tier made if it is not; answers status() afterwards. A tier
+        that failed stays failed (the app shows ffmpeg's words) until asked
+        again with retry=True."""
+        st = self.status(cam, clip, size)
+        if st[0] in ("ready", "making", "queued") or (st[0] == "failed" and not retry):
+            return st
+        if not os.path.isfile(os.path.join(self.root, cam, clip)):
+            return ("no-source", None)
+        k = self.key(cam, clip, size)
+        with self.lock:
+            self.failed.pop(k, None)
+            self.queue.append((cam, clip, size))
+            pos = len(self.queue)
+            # The worker gives itself up under this same lock when the line is
+            # empty, so a job appended here is never stranded behind a worker
+            # that was about to leave.
+            if self.worker is None:
+                self.worker = threading.Thread(target=self._work, name="cams-derive", daemon=True)
+                self.worker.start()
+        return ("queued", pos)
+
+    def _run(self, argv):
+        try:
+            r = subprocess.run(argv, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, timeout=TRANSCODE_TIMEOUT)
+            return r.returncode, (r.stderr or b"").decode("utf-8", "replace")
+        except subprocess.TimeoutExpired:
+            return 124, "ffmpeg took longer than %d s" % int(TRANSCODE_TIMEOUT)
+        except OSError as e:
+            return 127, str(e)
+
+    def _work(self):
+        while True:
+            with self.lock:
+                if not self.queue:
+                    self.current = None
+                    self.worker = None
+                    return
+                cam, clip, size = self.queue.pop(0)
+                k = self.key(cam, clip, size)
+                self.current = k
+            final = self.path(cam, clip, size)
+            part = final + ".part"
+            try:
+                os.makedirs(os.path.dirname(final), exist_ok=True)
+                argv = transcode_argv(cam, clip, size, docker=self.docker, host_root=self.root)
+                rc, err = self.runner(argv)
+                ok = rc == 0 and os.path.isfile(part) and os.path.getsize(part) > 0
+                if ok:
+                    os.replace(part, final)
+                else:
+                    with self.lock:
+                        self.failed[k] = scrub_text(err or ("ffmpeg exit %s" % rc), 300) or ("ffmpeg exit %s" % rc)
+                    try:
+                        os.remove(part)
+                    except OSError:
+                        pass
+            except Exception as e:  # noqa: BLE001 -- one bad clip never stops the line
+                with self.lock:
+                    self.failed[k] = scrub_text(e, 300)
+            try:
+                self.prune()
+            except Exception as e:  # noqa: BLE001
+                self.log("derived prune: %s" % e)
+
+    def files(self):
+        """[(path, bytes, mtime, cam, source_clip)] of every derived file."""
+        out = []
+        base = os.path.join(self.root, DERIVED_DIRNAME)
+        try:
+            cams = os.listdir(base)
+        except OSError:
+            return out
+        for cam in cams:
+            d = os.path.join(base, cam)
+            try:
+                names = os.listdir(d)
+            except OSError:
+                continue
+            for n in names:
+                p = os.path.join(d, n)
+                try:
+                    st = os.stat(p)
+                except OSError:
+                    continue
+                stem = n.split(".")[0]
+                out.append((p, st.st_size, st.st_mtime, cam, stem + ".mp4"))
+        return out
+
+    def prune(self):
+        """Orphans (their source clip is gone) and stale .part files go first; then the oldest until under budget."""
+        removed = 0
+        files = self.files()
+        keep = []
+        for p, size, mtime, cam, src in files:
+            stale_part = p.endswith(".part") and self.now() - mtime > 2 * TRANSCODE_TIMEOUT
+            orphan = not os.path.isfile(os.path.join(self.root, cam, src))
+            if stale_part or (orphan and not p.endswith(".part")):
+                try:
+                    os.remove(p)
+                    removed += 1
+                except OSError:
+                    pass
+            else:
+                keep.append((p, size, mtime))
+        total = sum(k[1] for k in keep)
+        for p, size, _m in sorted(keep, key=lambda k: k[2]):
+            if total <= self.budget:
+                break
+            if p.endswith(".part"):
+                continue
+            try:
+                os.remove(p)
+                total -= size
+                removed += 1
+            except OSError:
+                pass
+        return removed
+
+    def snapshot(self):
+        files = [f for f in self.files() if not f[0].endswith(".part")]
+        with self.lock:
+            return {"budget_bytes": self.budget, "bytes": sum(f[1] for f in files), "files": len(files),
+                    "queue": len(self.queue), "making": self.current, "failed": len(self.failed),
+                    "sizes": [[k, v["label"], v["height"]] for k, v in CLIP_SIZES]}
+
+
+# =============================================================================
+# THE STREAM HEALTH LOG (DR-0798; Darrell 2026-10-07: "Are there some type of
+# logs we can use to make the cameras stream more continuous? ... based on the
+# information cameras provided can we make sure we optimize the videos
+# streams"). go2rtc knows, for every stream, how many bytes each producer has
+# received, whether a producer is connected, how many consumers watch, and
+# which codecs the camera sends (its `medias`). Nobody wrote it down over
+# time. This sampler reads GET /api/streams every STREAM_SAMPLE_SECONDS and
+# keeps, per camera, the last hour: bits per second (byte deltas), whether the
+# picture was flowing while someone watched, and every DROP -- a producer gone,
+# bytes frozen, or a producer restarted (its counter back to 0) while it had a
+# watcher. A camera nobody watches is let go by go2rtc on purpose; that is not
+# a drop and is not counted. The codecs decide one optimization at once: a
+# camera that sends ONLY H.265 gets an H.264 twin (`ffmpeg:<id>#video=h264`,
+# transcoded by go2rtc's own ffmpeg only while watched), and the app plays the
+# twin on a device whose <video> cannot decode H.265. GET /streams/health
+# serves the log to the app; a summary rides /health and a file for cams-diag.
+# =============================================================================
+STREAM_SAMPLE_SECONDS = float(os.environ.get("CAMS_STREAM_SAMPLE_SECONDS", "15"))
+STREAM_HISTORY_SECONDS = 3600.0
+STREAM_HEALTH_FILE = os.environ.get("CAMS_STREAM_HEALTH_FILE", os.path.join(os.path.dirname(GO2RTC_YAML_PATH), "stream-health.json"))
+H264_TWINS = os.environ.get("CAMS_H264_TWINS", "1") != "0"
+TWIN_SUFFIX = "_h264"
+# THE SD TWIN (DR-0799; Darrell 2026-10-07, the Firestick window: "Cameras in
+# the window don't stay live... the seconds timers show they are not live").
+# A Wyze camera has its own substream (go2rtc's wyze source: subtype=sd). Every
+# Wyze camera gets `<id>_sd`, the same source URL with subtype=sd, and the app
+# opens the SD twin for a tile in a grid and the HD stream for the one made
+# largest -- so a Firestick carries several cameras instead of freezing on two.
+SD_SUFFIX = "_sd"
+SD_TWINS = os.environ.get("CAMS_SD_TWINS", "1") != "0"
+TWIN_SUFFIXES = (TWIN_SUFFIX, SD_SUFFIX)
+CODEC_RE = re.compile(r"\b(H264|H265|HEVC|AAC|PCMU|PCMA|PCML|PCM|OPUS|MJPEG|JPEG|AV1|VP8|VP9|FLAC|MP3)\b", re.I)
+
+
+def is_twin(stream_id):
+    return any(str(stream_id or "").endswith(sfx) for sfx in TWIN_SUFFIXES)
+
+
+def base_of(stream_id):
+    """The camera a twin belongs to (itself when it is not a twin)."""
+    sid = str(stream_id or "")
+    for sfx in TWIN_SUFFIXES:
+        if sid.endswith(sfx) and len(sid) > len(sfx):
+            return sid[:-len(sfx)]
+    return sid
+
+
+def twin_of(stream_id):
+    return "%s%s" % (stream_id, TWIN_SUFFIX)
+
+
+def sd_of(stream_id):
+    return "%s%s" % (stream_id, SD_SUFFIX)
+
+
+def sd_source(url):
+    """The same wyze:// source with subtype=sd (replacing subtype=hd when it is there); None for any other kind."""
+    if kind_of(url) != "wyze":
+        return None
+    base, _, frag = str(url).partition("#")
+    if re.search(r"(?i)[?&]subtype=", base):
+        base = re.sub(r"(?i)([?&]subtype=)[^&]*", r"\1sd", base)
+    else:
+        base += ("&" if "?" in base else "?") + "subtype=sd"
+    return base + (("#" + frag) if frag else "")
+
+
+def ensure_sd_twins(upstream, streams, log=print, config_path=None):
+    """Every Wyze camera gets `<id>_sd` (its own substream) in go2rtc: PUT, or the config when go2rtc refuses. Answers the names added."""
+    added = []
+    if not isinstance(streams, dict):
+        return added
+    ids = set(streams.keys())
+    for sid, entry in streams.items():
+        if not CAMERA_ID.match(str(sid)) or is_twin(sid) or sd_of(sid) in ids or not isinstance(entry, dict):
+            continue
+        url = None
+        for p in entry.get("producers") or []:
+            if isinstance(p, dict) and p.get("url"):
+                url = p.get("url")
+                break
+        src = sd_source(url) if url else None
+        if not src:
+            continue
+        name = sd_of(sid)
+        q = urllib.parse.urlencode({"name": name, "src": src})
+        try:
+            req = urllib.request.Request(upstream.rstrip("/") + "/api/streams?" + q, method="PUT")
+            with urllib.request.urlopen(req, timeout=HEALTH_TIMEOUT) as r:
+                r.read(4096)
+            added.append(name)
+            log("stream-health: added %s, the camera's own SD substream, for tiles in a grid" % name)
+        except urllib.error.HTTPError as e:
+            if write_stream_entry(config_path or GO2RTC_YAML_PATH, name, src):
+                added.append(name)
+                log("stream-health: go2rtc refused PUT %s (HTTP %d); wrote it to the config directly (DR-0789)" % (name, e.code))
+            else:
+                log("stream-health: could not add %s (HTTP %d)" % (name, e.code))
+        except (urllib.error.URLError, OSError):
+            log("stream-health: go2rtc unreachable while adding %s" % name)
+    return added
+
+
+def twin_source(stream_id):
+    return "ffmpeg:%s#video=h264" % stream_id
+
+
+def codecs_of(entry):
+    """The codec names in a stream's producer medias ("video, recvonly, H264 ..."), HEVC read as H265."""
+    out = set()
+    producers = entry.get("producers") if isinstance(entry, dict) else None
+    for p in producers or []:
+        medias = p.get("medias") if isinstance(p, dict) else None
+        for m in medias or []:
+            for c in CODEC_RE.findall(str(m)):
+                c = c.upper()
+                out.add("H265" if c == "HEVC" else c)
+    return sorted(out)
+
+
+def producer_bytes(entry):
+    n = 0
+    producers = entry.get("producers") if isinstance(entry, dict) else None
+    for p in producers or []:
+        if isinstance(p, dict):
+            try:
+                n += int(p.get("bytes_recv") or p.get("recv") or 0)
+            except (TypeError, ValueError):
+                pass
+    return n
+
+
+class StreamHealth:
+    """The last hour of every stream, from go2rtc's own numbers. Pure on the
+    inside (the clock is injectable) so it is proven in plain Python."""
+
+    def __init__(self, now=time.time, history=STREAM_HISTORY_SECONDS, interval=STREAM_SAMPLE_SECONDS):
+        self.now = now
+        self.history = float(history)
+        self.interval = float(interval)
+        self.lock = threading.Lock()
+        self.cams = {}
+        self.events = []
+        self.stream_ids = set()
+        self.last_sample_at = None
+
+    def observe(self, streams, t=None):
+        t = float(t if t is not None else self.now())
+        if not isinstance(streams, dict):
+            return
+        with self.lock:
+            self.stream_ids = set(k for k in streams.keys() if CAMERA_ID.match(str(k)))
+            for sid, entry in streams.items():
+                if not CAMERA_ID.match(str(sid)) or not isinstance(entry, dict):
+                    continue
+                c = self.cams.setdefault(sid, {"samples": [], "codecs": set(), "drops": [], "restarts": 0, "first": t, "last_seen": None})
+                producers = entry.get("producers") or []
+                present = bool(producers)
+                b = producer_bytes(entry)
+                watchers = len(entry.get("consumers") or []) if isinstance(entry.get("consumers"), list) else 0
+                c["codecs"].update(codecs_of(entry))
+                last = c["samples"][-1] if c["samples"] else None
+                kind = None
+                if last is not None and last["watchers"] > 0:
+                    if not present:
+                        kind = "producer-gone"
+                    elif b == last["bytes"]:
+                        kind = "bytes-frozen"
+                    elif b < last["bytes"]:
+                        kind = "producer-restarted"
+                        c["restarts"] += 1
+                if kind:
+                    c["drops"].append((t, kind))
+                    self.events.append({"at": t, "camera": sid, "kind": kind})
+                    del self.events[:-100]
+                kbps = None
+                if last is not None and present:
+                    dt = t - last["t"]
+                    delta = (b - last["bytes"]) if b >= last["bytes"] else b
+                    if dt > 0 and delta >= 0:
+                        kbps = int(round(delta * 8.0 / dt / 1000.0))
+                healthy = present and (last is None or b != last["bytes"])
+                c["samples"].append({"t": t, "bytes": b, "present": present, "watchers": watchers, "healthy": healthy, "kbps": kbps, "watched": bool(last is not None and last["watchers"] > 0)})
+                if present:
+                    c["last_seen"] = t
+                cutoff = t - self.history
+                c["samples"] = [x for x in c["samples"] if x["t"] >= cutoff]
+                c["drops"] = [x for x in c["drops"] if x[0] >= cutoff]
+            self.last_sample_at = t
+
+    def camera(self, sid):
+        c = self.cams.get(sid)
+        if not c:
+            return None
+        samples = c["samples"]
+        last = samples[-1] if samples else None
+        # A sample counts as WATCHED when someone held the stream across the interval it closes.
+        watched = [x for x in samples if x.get("watched")]
+        healthy = [x for x in watched if x["healthy"]]
+        rates = [x["kbps"] for x in healthy if x["kbps"] is not None]
+        recent = rates[-1] if rates else None
+        codecs = sorted(c["codecs"])
+        return {
+            "present": bool(last and last["present"]),
+            "watchers": int(last["watchers"]) if last else 0,
+            "kbps": recent,
+            "kbps_avg": int(round(sum(rates) / float(len(rates)))) if rates else None,
+            "watched_samples": len(watched),
+            "up_pct": int(round(100.0 * len(healthy) / len(watched))) if watched else None,
+            "drops_1h": len(c["drops"]),
+            "drop_kinds": sorted(set(k for _t, k in c["drops"])),
+            "restarts": int(c["restarts"]),
+            "codecs": codecs,
+            "hevc_only": ("H265" in codecs) and ("H264" not in codecs),
+            "last_seen": c["last_seen"],
+            "twin": twin_of(sid) if twin_of(sid) in self.stream_ids else None,
+            "sd": sd_of(sid) if sd_of(sid) in self.stream_ids else None,
+        }
+
+    def summary(self):
+        with self.lock:
+            cams = dict((sid, self.camera(sid)) for sid in self.cams if not is_twin(sid))
+            return {"sampled_at": self.last_sample_at, "interval_s": self.interval, "history_s": self.history,
+                    "cameras": cams, "events": list(self.events[-50:]),
+                    "drops_1h_total": sum((v or {}).get("drops_1h", 0) for v in cams.values())}
+
+    def snapshot(self):
+        with self.lock:
+            drops = sum(len(c["drops"]) for c in self.cams.values())
+            return {"interval_s": self.interval, "last_sample_at": self.last_sample_at, "cameras": len([k for k in self.cams if not is_twin(k)]), "drops_1h": drops}
+
+
+STREAM_HEALTH = StreamHealth()
+
+
+def write_stream_entry(config_path, name, url):
+    """One stream line into go2rtc.yaml directly (the DR-0789 road for a PUT go2rtc refuses)."""
+    try:
+        with open(config_path, "r", encoding="utf-8") as fh:
+            text = fh.read()
+    except OSError:
+        return False
+    if name in config_stream_names(text):
+        return True
+    new = write_streams_block(text, [(name, url)])
+    if new is None:
+        return False
+    write_config_atomically(config_path, new)
+    return True
+
+
+def ensure_h264_twins(upstream, stream_ids, summary, log=print, config_path=None):
+    """Every camera that sends ONLY H.265 gets `<id>_h264: ffmpeg:<id>#video=h264`
+    in go2rtc (PUT, or the config file when go2rtc refuses). Answers the names added."""
+    added = []
+    ids = set(stream_ids or [])
+    for sid, c in (summary.get("cameras") or {}).items():
+        if not c or not c.get("hevc_only") or is_twin(sid) or twin_of(sid) in ids:
+            continue
+        name, url = twin_of(sid), twin_source(sid)
+        q = urllib.parse.urlencode({"name": name, "src": url})
+        try:
+            req = urllib.request.Request(upstream.rstrip("/") + "/api/streams?" + q, method="PUT")
+            with urllib.request.urlopen(req, timeout=HEALTH_TIMEOUT) as r:
+                r.read(4096)
+            added.append(name)
+            log("stream-health: %s sends only H.265; added %s so a device without an H.265 decoder can watch" % (sid, name))
+        except urllib.error.HTTPError as e:
+            if write_stream_entry(config_path or GO2RTC_YAML_PATH, name, url):
+                added.append(name)
+                log("stream-health: go2rtc refused PUT %s (HTTP %d); wrote it to the config directly (DR-0789)" % (name, e.code))
+            else:
+                log("stream-health: could not add %s (HTTP %d, and the config could not be written)" % (name, e.code))
+        except (urllib.error.URLError, OSError):
+            log("stream-health: go2rtc unreachable while adding %s" % name)
+    return added
+
+
+def write_health_file(path, summary):
+    try:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        tmp = path + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as fh:
+            json.dump(summary, fh)
+        os.replace(tmp, path)
+        return True
+    except (OSError, TypeError, ValueError):
+        return False
+
+
+def sample_streams_once(upstream, health=None, log=print, health_file=None, twins=None, config_path=None):
+    """One sample: read go2rtc's streams, remember them, write the file, add twins where the codecs say so."""
+    health = health or STREAM_HEALTH
+    twins = H264_TWINS if twins is None else twins
+    try:
+        with urllib.request.urlopen(upstream.rstrip("/") + "/api/streams", timeout=HEALTH_TIMEOUT) as r:
+            streams = json.loads(r.read(4 * 1024 * 1024).decode("utf-8"))
+    except (urllib.error.URLError, OSError, ValueError):
+        return "unreachable"
+    if not isinstance(streams, dict):
+        return "bad-answer"
+    health.observe(streams)
+    summary = health.summary()
+    if health_file:
+        write_health_file(health_file, summary)
+    if twins:
+        ensure_h264_twins(upstream, streams.keys(), summary, log=log, config_path=config_path)
+        if SD_TWINS:
+            ensure_sd_twins(upstream, streams, log=log, config_path=config_path)
+    return "sampled"
+
+
+def start_stream_sampler(upstream, every=None, health=None, health_file=None):
+    every = STREAM_SAMPLE_SECONDS if every is None else every
+    health = health or STREAM_HEALTH
+    health_file = STREAM_HEALTH_FILE if health_file is None else health_file
+
+    def run():
+        while True:
+            try:
+                sample_streams_once(upstream, health=health, health_file=health_file)
+            except Exception as e:  # noqa: BLE001 -- the loop outlives any one surprise
+                print("stream-health: %s" % e, file=sys.stderr)
+            time.sleep(every)
+
+    t = threading.Thread(target=run, name="cams-stream-health", daemon=True)
+    t.start()
+    return t
+
+
 # --- The handler -------------------------------------------------------------
 def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_SECONDS,
                  max_snap=MAX_SNAP_INFLIGHT, snap_timeout=SNAP_TIMEOUT, segment_timeout=SEGMENT_TIMEOUT,
                  exit_fn=None, now_fn=time.time, recording_config=None, recording_status=None, recordings_root=None,
-                 wyze_factory=None, wyze_persist=None, wyze_creds=None, grants_path=None):
+                 wyze_factory=None, wyze_persist=None, wyze_creds=None, grants_path=None,
+                 derived_store=None, stream_health=None):
     upstream = upstream.rstrip("/")
     grants_path = grants_path or GRANTS_FILE
+    stream_health = stream_health or STREAM_HEALTH
     wyze_factory = wyze_factory or wyze_client_default
     # The kept sign-in, for /setup/wyze/again and the self-heal.
     wyze_creds = wyze_creds or (lambda: (_wyze.load_credentials() if _wyze else None))
@@ -833,6 +1463,8 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
     recording_config = recording_config or RECORDING_CONFIG
     recording_status = recording_status or RECORDING_STATUS
     recordings_root = recordings_root or RECORDINGS_ROOT
+    # The derived clips (DR-0797): made by the container's ffmpeg when docker is here, else a PATH ffmpeg.
+    derived_store = derived_store or DerivedStore(recordings_root, docker=find_docker())
     exit_fn = exit_fn or (lambda code: os._exit(code))
     live_gate = threading.BoundedSemaphore(max_live)
     snap_gate = threading.BoundedSemaphore(max_snap)
@@ -949,6 +1581,8 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
                 if not self._authed():
                     return self._json(401, {"error": "unauthorized"})
                 return self._recording_get()
+            if path == "/streams/health":
+                return self._streams_health()
 
             m = re.match(r"^/rec/([^/]+)$", path)
             if m:
@@ -968,7 +1602,7 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
                     return self._json(404, {"error": "not-found"})
                 if not (self._authed() or self._ticketed(cam, query)):
                     return self._json(401, {"error": "unauthorized"})
-                return self._rec_clip(cam, clip)
+                return self._rec_clip(cam, clip, query)
 
             m = re.match(r"^/why/([^/]+)$", path)
             if m:
@@ -1343,6 +1977,8 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
                        "max_live": max_live, "live_max_seconds": int(live_max_seconds)}
                 out.update(live_snapshot())
                 out.update(breaker_snapshot())
+                out["stream_health"] = stream_health.snapshot()
+                out["derived"] = derived_store.snapshot()
                 try:
                     out["wyze_cloud"] = "ready" if wyze_factory() is not None else "no-credentials"
                     if PERSIST_LAST:
@@ -1360,6 +1996,11 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
             except (urllib.error.URLError, OSError, ValueError):
                 return self._json(502, {"error": "go2rtc-unreachable"})
             cams = camera_list(parsed)
+            # An H.264 twin (DR-0798) is not a second camera: it is hidden from
+            # the list and its base camera says it has one.
+            ids = set(c["id"] for c in cams)
+            cams = [dict(c, h264=(twin_of(c["id"]) in ids), sd=(sd_of(c["id"]) in ids)) for c in cams
+                    if not (is_twin(c["id"]) and base_of(c["id"]) in ids)]
             if grant is not None:
                 cams = [c for c in cams if grant_allows(grant, c["id"])]
                 return self._json(200, {"cameras": cams, "count": len(cams),
@@ -1415,7 +2056,8 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
                     status = json.load(fh)
             except (OSError, ValueError):
                 status = None
-            return self._json(200, {"config": cfg, "config_error": err, "status": status, "root": recordings_root})
+            return self._json(200, {"config": cfg, "config_error": err, "status": status, "root": recordings_root,
+                                    "derived": derived_store.snapshot(), "segment_seconds": int(REC_SEGMENT_SECONDS)})
 
         def _recording_put(self, body):
             if rec_normalize_config is None:
@@ -1444,14 +2086,74 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
             if rec_list_clips is None:
                 return self._json(501, {"error": "recorder-absent"})
             clips = rec_list_clips(recordings_root, cam)
-            return self._json(200, {"camera": cam, "clips": clips, "count": len(clips), "bytes": sum(c["bytes"] for c in clips)})
+            now = now_fn()
+            for i, c in enumerate(clips):
+                c["seconds"] = clip_seconds(clips, i, now=now)
+                c["sizes"] = estimate_sizes(c["bytes"], c["seconds"])
+            return self._json(200, {"camera": cam, "clips": clips, "count": len(clips), "bytes": sum(c["bytes"] for c in clips),
+                                    "size_tiers": [[k, v["label"], v["height"]] for k, v in CLIP_SIZES]})
 
-        def _rec_clip(self, cam, clip):
+        def _streams_health(self):
+            # The stream health log (DR-0798): the owner sees every camera, a grant its own.
+            who = self._viewer()
+            if not who:
+                return self._json(401, {"error": "unauthorized"})
+            out = stream_health.summary()
+            if who[0] == "grant":
+                g = who[1]
+                out["cameras"] = dict((k, v) for k, v in out["cameras"].items() if grant_allows(g, k))
+                out["events"] = [e for e in out["events"] if grant_allows(g, e.get("camera"))]
+            return self._json(200, out)
+
+        def _rec_clip(self, cam, clip, query=""):
+            q = urllib.parse.parse_qs(query or "")
+            size = q.get("size", [""])[0]
+            want_download = q.get("dl", [""])[0] == "1"
             # Containment by construction: the camera id and the clip name each
             # pass a strict grammar, and the path is joined under the root.
             path = os.path.join(recordings_root, cam, clip)
             if os.path.commonpath([os.path.abspath(path), os.path.abspath(recordings_root)]) != os.path.abspath(recordings_root):
                 return self._json(404, {"error": "not-found"})
+            if q.get("sizes", [""])[0] == "1":
+                # What each tier would be, and which are already made (DR-0797).
+                try:
+                    original = os.path.getsize(path)
+                except OSError:
+                    return self._json(404, {"error": "not-found"})
+                clips = rec_list_clips(recordings_root, cam) if rec_list_clips else []
+                idx = next((i for i, c in enumerate(clips) if c["name"] == clip), -1)
+                seconds = clip_seconds(clips, idx, now=now_fn()) if idx >= 0 else int(REC_SEGMENT_SECONDS)
+                est = estimate_sizes(original, seconds)
+                tiers = {}
+                for k, spec in CLIP_SIZES:
+                    st, detail = derived_store.status(cam, clip, k)
+                    row = {"label": spec["label"], "height": spec["height"], "estimate": est[k], "state": st}
+                    if st == "ready":
+                        try:
+                            row["bytes"] = os.path.getsize(detail)
+                        except OSError:
+                            row["state"] = "absent"
+                    elif st == "queued":
+                        row["position"] = detail
+                    elif st == "failed":
+                        row["error"] = detail
+                    tiers[k] = row
+                return self._json(200, {"camera": cam, "clip": clip, "original": original, "seconds": seconds, "tiers": tiers,
+                                        "download_name": download_name(cam, clip, None)})
+            if size and size != "original":
+                if size not in CLIP_SIZE_MAP:
+                    return self._json(400, {"error": "bad-size", "sizes": [k for k, _v in CLIP_SIZES]})
+                st, detail = derived_store.ask(cam, clip, size, retry=q.get("retry", [""])[0] == "1")
+                if st == "ready":
+                    return self._serve_mp4(detail, download_name(cam, clip, size) if want_download else None)
+                if st == "no-source":
+                    return self._json(404, {"error": "not-found"})
+                if st == "failed":
+                    return self._json(500, {"error": "transcode-failed", "detail": detail, "size": size})
+                return self._json(202, {"status": st, "size": size, "position": detail if st == "queued" else 0, "retry_in": 3})
+            return self._serve_mp4(path, download_name(cam, clip, None) if want_download else None)
+
+        def _serve_mp4(self, path, attachment_name=None):
             try:
                 size = os.path.getsize(path)
                 fh = open(path, "rb")
@@ -1482,6 +2184,8 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
                 self.send_header("Accept-Ranges", "bytes")
                 self.send_header("Content-Length", str(length))
                 self.send_header("Cache-Control", "private, max-age=3600")
+                if attachment_name:
+                    self.send_header("Content-Disposition", 'attachment; filename="%s"' % attachment_name.replace('"', ""))
                 if partial:
                     self.send_header("Content-Range", "bytes %d-%d/%d" % (start, end, size))
                 self.end_headers()
@@ -1650,6 +2354,13 @@ def _selftest():
                 return self._send(200, "text/plain", body.encode("utf-8"))
             if path == "/api/streams" and seen.get("empty_streams"):
                 return self._send(200, "application/json", b"{}")
+            if path == "/api/streams" and seen.get("with_twin"):
+                return self._send(200, "application/json", json.dumps({
+                    "front_yard": {"producers": [{"url": "wyze://192.168.1.50?uid=ABC&enr=SECRET&mac=AA&model=HL_CAM4&dtls=true", "medias": ["video, recvonly, H265 Main"], "bytes_recv": 4096}], "consumers": [{"type": "mp4"}]},
+                    "front_yard_h264": {"producers": [{"url": "ffmpeg:front_yard#video=h264"}], "consumers": []},
+                    "front_yard_sd": {"producers": [{"url": "wyze://192.168.1.50?uid=ABC&enr=SECRET&mac=AA&model=HL_CAM4&dtls=true&subtype=sd"}], "consumers": []},
+                    "garage": {"producers": [{"url": "rtsp://admin:SECRET@192.168.1.60/live", "medias": ["video, recvonly, H264 High 4.1"], "bytes_recv": 100}], "consumers": []},
+                }).encode("utf-8"))
             if path == "/api/streams":
                 return self._send(200, "application/json", json.dumps({
                     "front_yard": {"producers": [{"url": "wyze://192.168.1.50?uid=ABC&enr=SECRET&mac=AA&model=HL_CAM4&dtls=true"}], "consumers": []},
@@ -1780,13 +2491,27 @@ def _selftest():
             return {"ok": True, "mac": mac, "nickname": d["nickname"], "action": action, "action_key": "garage_door_trigger" if action == "garage" else action}
 
     fake_cloud = FakeCloud()
+    # The derived-clip worker with a stand-in ffmpeg (DR-0797): it writes the
+    # .part the real one would, or fails with a line that carries a secret.
+    fake_ffmpeg = {"fail": False, "argv": []}
+
+    def fake_runner(argv):
+        fake_ffmpeg["argv"].append(list(argv))
+        if fake_ffmpeg["fail"]:
+            return 1, "ffmpeg: Invalid data found when processing input rtsp://admin:SECRET@cam/live"
+        with open(argv[-1], "wb") as fh:
+            fh.write(b"DERIVED-" + os.path.basename(argv[-1]).split(".")[-3].encode() + b"-" * 2000)
+        return 0, ""
+    derived = DerivedStore(rec_root, runner=fake_runner, budget=10 * 1024 * 1024, docker=None, now=lambda: clock["now"], log=lambda *a: None)
+    health_log = StreamHealth(now=lambda: clock["now"], interval=15)
     fwd = ThreadingHTTPServer(("127.0.0.1", 0), make_handler(
         "http://127.0.0.1:%d" % fp, token, max_live=2, live_max_seconds=1.0, max_snap=1, snap_timeout=5, segment_timeout=5,
         exit_fn=lambda code: exits.append(code), now_fn=lambda: clock["now"],
         recording_config=rec_cfg, recording_status=rec_status, recordings_root=rec_root,
         wyze_factory=lambda: (fake_cloud if heal["client"] else None),
         wyze_persist=lambda fields: (persisted.append(dict(fields)), heal.__setitem__("creds", dict(fields))),
-        wyze_creds=lambda: heal["creds"], grants_path=os.path.join(rec_tmp, "camera-grants.json")))
+        wyze_creds=lambda: heal["creds"], grants_path=os.path.join(rec_tmp, "camera-grants.json"),
+        derived_store=derived, stream_health=health_log))
     fwd.daemon_threads = True
     fwd.handle_error = lambda request, client_address: None
     port = fwd.server_address[1]
@@ -2354,6 +3079,183 @@ def _selftest():
         check(r == "wrote-1" and PERSIST_LAST.get("direct") == 0 and PERSIST_LAST.get("refused") == "", "when go2rtc accepts the PUT nothing is written directly")
     seen.pop("config_streams", None); seen["put_refuses"] = False
 
+    print("=== 8k. clip downloads by size (DR-0797): tiers, estimates, made once, served with Range, pruned ===")
+    os.makedirs(os.path.join(rec_root, "front_yard"), exist_ok=True)
+    with open(os.path.join(rec_root, "front_yard", "2026-10-07T06-40-00.mp4"), "wb") as fh:
+        fh.write(bytes(range(256)) * 40)
+    with open(os.path.join(rec_root, "front_yard", "2026-10-07T06-50-00.mp4"), "wb") as fh:
+        fh.write(b"\x01" * 20480)
+    est = estimate_sizes(100 * 1000 * 1000, 600)
+    check(est["small"] == 45000000 and est["medium"] == 100000000 and est["large"] == 100000000, "an estimate is the tier's rate for the length, never more than the original (600 s: small 45 MB; medium/large capped at the 100 MB original)")
+    check(estimate_sizes(0, 60) == {"small": 4500000, "medium": 11250000, "large": 22500000, "xlarge": 45000000, "uhd": 90000000}, "with no original size known, the estimate is the rate alone; 2.5K and 4K tiers are there for cameras that record that large")
+    argv4k = transcode_argv("front_yard", "2026-10-07T06-40-00.mp4", "uhd", docker=None, host_root=rec_root)
+    check(argv4k[argv4k.index("-vf") + 1] == "scale=-2:'min(2160,ih)'" and argv4k[argv4k.index("-crf") + 1] == "20", "uhd = 2160p tall at most (a 1080p camera gives its full picture, never stretched), CRF 20")
+    argv = transcode_argv("front_yard", "2026-10-07T06-40-00.mp4", "small", docker="/usr/local/bin/docker")
+    check(argv[:5] == ["/usr/local/bin/docker", "exec", "-i", GO2RTC_CONTAINER, "ffmpeg"] and argv[len(argv) - argv[::-1].index("-i")] == "/recordings/front_yard/2026-10-07T06-40-00.mp4", "with docker: the container's ffmpeg reads the clip at its container path")
+    check(argv[argv.index("-vf") + 1] == "scale=-2:'min(480,ih)'" and argv[argv.index("-crf") + 1] == "30" and argv[-1] == "/recordings/.derived/front_yard/2026-10-07T06-40-00.small.mp4.part", "small = 480p tall at most (never upscaled), CRF 30, written to a .part under .derived")
+    argv2 = transcode_argv("front_yard", "2026-10-07T06-40-00.mp4", "large", docker=None, host_root=rec_root)
+    check(argv2[0] == "ffmpeg" and argv2[argv2.index("-vf") + 1] == "scale=-2:'min(1080,ih)'" and argv2[argv2.index("-crf") + 1] == "23" and argv2[-1] == os.path.join(rec_root, ".derived", "front_yard", "2026-10-07T06-40-00.large.mp4.part"), "without docker: PATH ffmpeg on host paths; large = 1080p, CRF 23")
+    check("+faststart" in argv and "libx264" in argv and "aac" in argv, "faststart so a phone plays it as it arrives; x264 video, AAC audio")
+    check(derived_path(rec_root, "front_yard", "notes.txt", "small") is None and derived_path(rec_root, "front_yard", "2026-10-07T06-40-00.mp4", "tiny") is None and derived_path(rec_root, "../x", "2026-10-07T06-40-00.mp4", "small") is None, "a derived path exists only for a clip name, a known size and a camera id that pass their grammar")
+    check(download_name("front_yard", "2026-10-07T06-40-00.mp4", "small") == "front_yard-2026-10-07T06-40-00-small.mp4" and download_name("front_yard", "2026-10-07T06-40-00.mp4") == "front_yard-2026-10-07T06-40-00-original.mp4", "the saved file is named camera-time-size")
+    s, _h, d = call("GET", "/rec/front_yard", auth=B)
+    j = json.loads(d.decode("utf-8"))
+    clock["now"] = j["clips"][1]["start"] + 120
+    s, _h, d = call("GET", "/rec/front_yard", auth=B)
+    j = json.loads(d.decode("utf-8"))
+    check(s == 200 and j["clips"][0]["seconds"] == 600 and j["clips"][1]["seconds"] == 120 and j["clips"][0]["sizes"]["small"] == 10240 and j["size_tiers"][0][0] == "small", "the list carries each clip's seconds (to the next clip; the newest to now) and its tier estimates")
+    t = mint_ticket(token, "front_yard")
+    s, _h, d = call("GET", "/rec/front_yard/2026-10-07T06-40-00.mp4?sizes=1&t=" + t)
+    j = json.loads(d.decode("utf-8"))
+    check(s == 200 and j["original"] == 10240 and j["seconds"] == 600 and set(j["tiers"]) == {"small", "medium", "large", "xlarge", "uhd"} and all(v["state"] == "absent" for v in j["tiers"].values()) and j["tiers"]["medium"]["label"] == "Medium (720p)" and j["download_name"].endswith("-original.mp4"), "?sizes=1 names the original, the seconds, and every tier with its estimate and state")
+    s, _h, d = call("GET", "/rec/front_yard/2026-10-07T06-40-00.mp4?size=tiny&t=" + t)
+    check(s == 400 and b"bad-size" in d, "an unknown size -> 400 bad-size")
+    s, _h, d = call("GET", "/rec/front_yard/2026-10-07T06-40-00.mp4?size=small&t=" + t)
+    j = json.loads(d.decode("utf-8"))
+    check(s == 202 and j["status"] in ("queued", "making") and j["size"] == "small" and j["retry_in"] == 3, "the first ask for a size answers 202 with its place in the line")
+    deadline = time.time() + 5
+    while time.time() < deadline:
+        s, h, d = call("GET", "/rec/front_yard/2026-10-07T06-40-00.mp4?size=small&dl=1&t=" + t)
+        if s == 200:
+            break
+        time.sleep(0.05)
+    check(s == 200 and h.get("content-type") == "video/mp4" and d.startswith(b"DERIVED-small") and h.get("content-disposition") == 'attachment; filename="front_yard-2026-10-07T06-40-00-small.mp4"', "once made it is served as video/mp4; dl=1 names the file for the phone")
+    check(os.path.isfile(derived_path(rec_root, "front_yard", "2026-10-07T06-40-00.mp4", "small")) and not os.path.exists(derived_path(rec_root, "front_yard", "2026-10-07T06-40-00.mp4", "small") + ".part"), "the derived file is under .derived and the .part was renamed away")
+    n_runs = len(fake_ffmpeg["argv"])
+    s, h, d = call("GET", "/rec/front_yard/2026-10-07T06-40-00.mp4?size=small&t=" + t, extra={"Range": "bytes=0-7"})
+    check(s == 206 and d == b"DERIVED-" and len(fake_ffmpeg["argv"]) == n_runs, "a second ask serves the kept file (Range works; ffmpeg is not run again)")
+    s, _h, d = call("GET", "/rec/front_yard/2026-10-07T06-40-00.mp4?sizes=1&t=" + t)
+    j = json.loads(d.decode("utf-8"))
+    check(j["tiers"]["small"]["state"] == "ready" and j["tiers"]["small"]["bytes"] == 2000 + len("DERIVED-small") and j["tiers"]["medium"]["state"] == "absent", "?sizes=1 now says small is ready with its real bytes")
+    s, _h, d = call("GET", "/rec/front_yard/2026-10-07T06-40-00.mp4?size=small&t=" + mint_ticket(token, "garage"))
+    check(s == 401, "another camera's ticket never opens a derived clip either")
+    s, _h, d = call("GET", "/rec/front_yard/2026-10-07T07-00-00.mp4?size=small&t=" + t)
+    check(s == 404, "a size of a clip that is not on disk -> 404, nothing queued")
+    fake_ffmpeg["fail"] = True
+    call("GET", "/rec/front_yard/2026-10-07T06-40-00.mp4?size=medium&t=" + t)
+    deadline = time.time() + 5
+    while time.time() < deadline:
+        s, h, d = call("GET", "/rec/front_yard/2026-10-07T06-40-00.mp4?size=medium&t=" + t)
+        if s != 202:
+            break
+        time.sleep(0.05)
+    j = json.loads(d.decode("utf-8"))
+    check(s == 500 and j.get("error") == "transcode-failed" and "Invalid data" in j.get("detail", "") and "SECRET" not in j.get("detail", ""), "ffmpeg's failure reaches the app in its own words, scrubbed of credentials (%s %r)" % (s, d[:160]))
+    fake_ffmpeg["fail"] = False
+    s, _h, d = call("GET", "/rec/front_yard/2026-10-07T06-40-00.mp4?size=medium&t=" + t)
+    check(s == 500, "a failed tier stays failed on a plain ask (the app shows why); it is not re-run behind the viewer's back")
+    call("GET", "/rec/front_yard/2026-10-07T06-40-00.mp4?size=medium&retry=1&t=" + t)
+    deadline = time.time() + 5
+    while time.time() < deadline:
+        s, h, d = call("GET", "/rec/front_yard/2026-10-07T06-40-00.mp4?size=medium&t=" + t)
+        if s == 200:
+            break
+        time.sleep(0.05)
+    check(s == 200 and d.startswith(b"DERIVED-medium"), "a failed tier is tried again on the next ask, and succeeds when ffmpeg does (%s %r)" % (s, d[:60]))
+    s, _h, d = call("GET", "/recording", auth=B)
+    j = json.loads(d.decode("utf-8"))
+    check(j["derived"]["files"] == 2 and j["derived"]["budget_bytes"] == 10 * 1024 * 1024 and j["derived"]["sizes"][2][0] == "large" and j["segment_seconds"] == int(REC_SEGMENT_SECONDS), "GET /recording carries the derived store: files, budget, the tiers, the segment length")
+    derived.budget = 2100
+    removed = derived.prune()
+    check(removed == 1 and len([f for f in derived.files() if not f[0].endswith(".part")]) == 1 and derived.status("front_yard", "2026-10-07T06-40-00.mp4", "medium")[0] == "ready", "over budget, the OLDEST derived file goes first (small, made first); the newest stays")
+    derived.budget = 10 * 1024 * 1024
+    os.remove(os.path.join(rec_root, "front_yard", "2026-10-07T06-40-00.mp4"))
+    removed = derived.prune()
+    check(removed == 1 and derived.status("front_yard", "2026-10-07T06-40-00.mp4", "medium")[0] == "absent", "a derived file whose source clip is gone is an orphan and is removed")
+    s, _h, d = call("GET", "/health")
+    j = json.loads(d.decode("utf-8"))
+    check("derived" in j and "stream_health" in j and j["derived"]["files"] == 0, "/health carries the derived store and the stream health summary")
+
+    print("=== 8l. the stream health log (DR-0798): go2rtc's numbers over time, drops only while watched, codecs, the H.264 twin ===")
+    hl = StreamHealth(now=lambda: 0, interval=15)
+    cam = lambda b, watchers, present=True, medias=("video, recvonly, H265 Main",): {"producers": ([{"url": "wyze://x?enr=S", "bytes_recv": b, "medias": list(medias)}] if present else []), "consumers": [{"type": "mp4"}] * watchers}  # noqa: E731
+    hl.observe({"front_yard": cam(1000, 1)}, t=0)
+    hl.observe({"front_yard": cam(3000, 1)}, t=15)
+    c = hl.camera("front_yard")
+    check(c["kbps"] == 1 and c["up_pct"] == 100 and c["drops_1h"] == 0 and c["codecs"] == ["H265"] and c["hevc_only"] is True and c["present"] is True and c["watchers"] == 1, "two samples: 2000 bytes in 15 s is 1 kbit/s, up 100%, codec H265 only")
+    hl.observe({"front_yard": cam(3000, 1)}, t=30)
+    c = hl.camera("front_yard")
+    check(c["drops_1h"] == 1 and c["drop_kinds"] == ["bytes-frozen"] and c["up_pct"] == 50, "bytes that do not move while someone watches is a drop (bytes-frozen); up falls to 50%")
+    hl.observe({"front_yard": cam(0, 1, present=False)}, t=45)
+    hl.observe({"front_yard": cam(2000, 1)}, t=60)
+    c = hl.camera("front_yard")
+    check(c["drops_1h"] == 2 and c["drop_kinds"] == ["bytes-frozen", "producer-gone"] and c["kbps"] == 1, "a producer gone while watched is a drop (producer-gone); a fresh producer counting from 0 is not one more")
+    hl.observe({"front_yard": cam(1500, 0)}, t=75)
+    c = hl.camera("front_yard")
+    check(c["drops_1h"] == 3 and c["drop_kinds"] == ["bytes-frozen", "producer-gone", "producer-restarted"] and c["restarts"] == 1 and c["present"] is True and c["watchers"] == 0 and c["up_pct"] == 60, "a producer whose count fell back while watched restarted (producer-restarted); up is 3 of 5 watched samples")
+    sm = hl.summary()
+    check(sm["drops_1h_total"] == 3 and len(sm["events"]) == 3 and sm["events"][0]["camera"] == "front_yard" and sm["events"][0]["kind"] == "bytes-frozen" and sm["events"][-1]["kind"] == "producer-restarted" and sm["sampled_at"] == 75 and sm["interval_s"] == 15, "the summary counts the drops and keeps the events in order")
+    hl.observe({"front_yard": cam(1900, 0)}, t=90)
+    c = hl.camera("front_yard")
+    check(c["drops_1h"] == 3 and c["kbps"] == 1 and c["watched_samples"] == 5, "with nobody watching, moving bytes add no drop and the last watched rate stands")
+    hl.observe({"front_yard": cam(0, 0, present=False)}, t=105)
+    check(hl.camera("front_yard")["drops_1h"] == 3 and hl.camera("front_yard")["present"] is False, "a producer let go while NOBODY watches is go2rtc's idle, not a drop")
+    hl.observe({"front_yard": cam(0, 0, present=False)}, t=3700)
+    check(hl.camera("front_yard")["drops_1h"] == 0 and hl.camera("front_yard")["watched_samples"] == 0, "an hour on, the old drops and samples have aged out of the log")
+    check(codecs_of({"producers": [{"medias": ["video, recvonly, H264 High 4.1, H265", "audio, recvonly, PCMU"]}]}) == ["H264", "H265", "PCMU"] and codecs_of({"producers": [{"medias": ["video, recvonly, HEVC"]}]}) == ["H265"] and codecs_of({}) == [], "codecs are read from go2rtc's medias strings; HEVC reads as H265")
+    hl2 = StreamHealth(now=lambda: 0)
+    hl2.observe({"garage": cam(10, 1, medias=("video, recvonly, H264 High 4.1",))}, t=0)
+    hl2.observe({"garage": cam(20, 1, medias=("video, recvonly, H264 High 4.1",))}, t=15)
+    check(hl2.camera("garage")["hevc_only"] is False and hl2.summary()["cameras"]["garage"]["codecs"] == ["H264"], "a camera that sends H264 needs no twin")
+    seen.pop("puts", None); seen["put_refuses"] = False
+    added = ensure_h264_twins("http://127.0.0.1:%d" % fp, ["front_yard", "garage"], hl.summary(), log=lambda *a: None)
+    check(added == ["front_yard_h264"] and seen.get("puts") == [("front_yard_h264", "ffmpeg:front_yard#video=h264")], "a camera that sends ONLY H.265 gets its H.264 twin PUT into go2rtc: ffmpeg:<id>#video=h264")
+    seen.pop("puts", None)
+    added = ensure_h264_twins("http://127.0.0.1:%d" % fp, ["front_yard", "front_yard_h264"], hl.summary(), log=lambda *a: None)
+    check(added == [] and not seen.get("puts"), "a twin that exists is not added twice")
+    twin_cfg = os.path.join(rec_tmp, "go2rtc-twin.yaml")
+    os.makedirs(rec_tmp, exist_ok=True)
+    with open(twin_cfg, "w") as fh:
+        fh.write("api:\n  listen: \"127.0.0.1:1984\"\nstreams: {}\nwyze:\n  email: x\n")
+    seen["put_refuses"] = True
+    added = ensure_h264_twins("http://127.0.0.1:%d" % fp, ["front_yard"], hl.summary(), log=lambda *a: None, config_path=twin_cfg)
+    seen["put_refuses"] = False
+    with open(twin_cfg) as fh:
+        twin_text = fh.read()
+    check(added == ["front_yard_h264"] and "  front_yard_h264: " in twin_text and "ffmpeg:front_yard#video=h264" in twin_text and "streams: {}" not in twin_text and "wyze:" in twin_text, "when go2rtc refuses the PUT (the streams: {} case, DR-0789) the twin is written into the config directly, every other line kept")
+    s, _h, d = call("GET", "/streams/health")
+    check(s == 401, "the stream health log needs the bearer (or a grant)")
+    health_log.observe({"front_yard": cam(1000, 1), "garage": cam(10, 0, medias=("video, recvonly, H264",))}, t=clock["now"])
+    health_log.observe({"front_yard": cam(1000, 1), "garage": cam(10, 0, medias=("video, recvonly, H264",))}, t=clock["now"] + 15)
+    s, _h, d = call("GET", "/streams/health", auth=B)
+    j = json.loads(d.decode("utf-8"))
+    check(s == 200 and j["cameras"]["front_yard"]["drops_1h"] == 1 and j["cameras"]["front_yard"]["hevc_only"] is True and j["cameras"]["garage"]["drops_1h"] == 0 and j["events"][0]["camera"] == "front_yard" and j["interval_s"] == 15, "GET /streams/health: every camera's log and the drop events, from the sampler the handler holds")
+    seen["with_twin"] = True
+    s, _h, d = call("GET", "/list", auth=B)
+    j = json.loads(d.decode("utf-8"))
+    ids = [c["id"] for c in j["cameras"]]
+    check("front_yard_h264" not in ids and "front_yard" in ids and next(c for c in j["cameras"] if c["id"] == "front_yard")["h264"] is True and next(c for c in j["cameras"] if c["id"] == "garage")["h264"] is False, "/list hides the twin and marks its base camera h264: true")
+    hl3 = StreamHealth(now=lambda: 5, interval=15)
+    hf = os.path.join(rec_tmp, "stream-health.json")
+    r = sample_streams_once("http://127.0.0.1:%d" % fp, health=hl3, health_file=hf, twins=False, log=lambda *a: None)
+    with open(hf) as fh:
+        hj = json.load(fh)
+    check(r == "sampled" and "front_yard" in hj["cameras"] and "front_yard_h264" not in hj["cameras"] and hj["cameras"]["front_yard"]["codecs"] == ["H265"] and hj["cameras"]["front_yard"]["twin"] == "front_yard_h264", "one sample reads go2rtc, writes the file for cams-diag, and names a camera's twin")
+    # THE SD TWIN (DR-0799): every Wyze camera's own substream, registered beside it
+    check(sd_source("wyze://192.168.1.50?uid=ABC&enr=S&mac=AA&model=HL_CAM4&dtls=true") == "wyze://192.168.1.50?uid=ABC&enr=S&mac=AA&model=HL_CAM4&dtls=true&subtype=sd", "a wyze source gains subtype=sd")
+    check(sd_source("wyze://192.168.1.50?uid=ABC&subtype=hd&enr=S") == "wyze://192.168.1.50?uid=ABC&subtype=sd&enr=S" and sd_source("wyze://192.168.1.50?uid=ABC#video=h264") == "wyze://192.168.1.50?uid=ABC&subtype=sd#video=h264", "subtype=hd becomes sd; a #fragment is kept after the query")
+    check(sd_source("rtsp://admin:S@192.168.1.60/live") is None and sd_source("ring://x") is None, "only a Wyze source has a substream to ask for")
+    check(base_of("front_yard_sd") == "front_yard" and base_of("front_yard_h264") == "front_yard" and base_of("front_yard") == "front_yard" and is_twin("front_yard_sd") and not is_twin("front_yard"), "a twin knows its camera")
+    seen.pop("puts", None); seen["put_refuses"] = False
+    added = ensure_sd_twins("http://127.0.0.1:%d" % fp, {
+        "front_yard": {"producers": [{"url": "wyze://192.168.1.50?uid=ABC&enr=SECRET&mac=AA&model=HL_CAM4&dtls=true"}], "consumers": []},
+        "front_yard_h264": {"producers": [{"url": "ffmpeg:front_yard#video=h264"}], "consumers": []},
+        "garage": {"producers": [{"url": "rtsp://admin:SECRET@192.168.1.60/live"}], "consumers": []},
+        "porch": {"producers": [{"url": "wyze://192.168.1.52?uid=P&enr=S2"}], "consumers": []},
+        "porch_sd": {"producers": [{"url": "wyze://192.168.1.52?uid=P&enr=S2&subtype=sd"}], "consumers": []},
+    }, log=lambda *a: None)
+    check(added == ["front_yard_sd"] and seen.get("puts") == [("front_yard_sd", "wyze://192.168.1.50?uid=ABC&enr=SECRET&mac=AA&model=HL_CAM4&dtls=true&subtype=sd")], "a Wyze camera without its SD twin gets one PUT (its own URL with subtype=sd); a twin, an rtsp camera, and a camera that has one are left alone")
+    seen["with_twin"] = True
+    s, _h, d = call("GET", "/list", auth=B)
+    j = json.loads(d.decode("utf-8"))
+    fy = next(c for c in j["cameras"] if c["id"] == "front_yard")
+    check("front_yard_sd" not in [c["id"] for c in j["cameras"]] and fy["sd"] is True and fy["h264"] is True and next(c for c in j["cameras"] if c["id"] == "garage")["sd"] is False, "/list hides the SD twin too and marks its camera sd: true")
+    seen["with_twin"] = False
+    s, _h, d = call("GET", "/health")
+    j = json.loads(d.decode("utf-8"))
+    check(j["stream_health"]["cameras"] == 2 and j["stream_health"]["interval_s"] == 15 and j["stream_health"]["drops_1h"] == 1, "/health's stream_health summary: cameras seen, the interval, drops in the hour")
+    check(sample_streams_once("http://127.0.0.1:1", health=StreamHealth(), twins=False) == "unreachable", "a dark go2rtc is 'unreachable', never a sample")
+
     print("=== 9. a DARK go2rtc reads as 502 everywhere, never as this process's own 200 ===")
     fake.shutdown(); fake.server_close()
     s, _h, d = call("GET", "/health")
@@ -2588,6 +3490,8 @@ def main():
     httpd.daemon_threads = True
     if SELF_HEAL_SECONDS > 0:
         start_self_heal(args.upstream, args.port, token)
+    if STREAM_SAMPLE_SECONDS > 0:
+        start_stream_sampler(args.upstream)
     print("cams-forwarder on http://%s:%d -> %s (live cap %d x %.0fs, snap cap %d)"
           % (args.host, args.port, args.upstream, MAX_LIVE, LIVE_MAX_SECONDS, MAX_SNAP_INFLIGHT))
     httpd.serve_forever()
