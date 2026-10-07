@@ -413,7 +413,7 @@ function AccessPanel({ token, cameras, onCode }) {
           </label>
           <label className="inline-flex items-center gap-2 text-sm min-h-[36px]"><input type="checkbox" checked={doors} onChange={(e) => setDoors(e.target.checked)} disabled={busy} data-testid="grant-doors" /> The doors too (they can open the garage)</label>
           <div className="flex items-center gap-3 flex-wrap">
-            <button type="submit" className={btnDark} disabled={busy || (!all && picked.length === 0)} data-testid="grant-make">{busy ? 'Making the link…' : 'Make the link'}</button>
+            <button type="submit" className={`${btnDark} focus:outline focus:outline-2 focus:outline-[#B85838]`} disabled={busy || (!all && picked.length === 0)} data-testid="grant-make">{busy ? 'Making the link…' : 'Make the link'}</button>
           </div>
         </form>
       ) : null}
@@ -535,7 +535,7 @@ export function ApprovePairing({ code, token, onDone, cameras }) {
       ) : null}
       <label className="inline-flex items-center gap-2 text-sm min-h-[36px]"><input type="checkbox" checked={doors} onChange={(e) => setDoors(e.target.checked)} disabled={busy} data-testid="approve-doors" /> The doors too</label>
       <div className="flex items-center gap-3 flex-wrap">
-        <button type="submit" className={btnDark} disabled={busy || (!all && picked.length === 0)} data-testid="approve-go">{busy ? 'Letting it in…' : 'Let this screen in'}</button>
+        <button type="submit" className={`${btnDark} focus:outline focus:outline-2 focus:outline-[#B85838]`} disabled={busy || (!all && picked.length === 0)} data-testid="approve-go">{busy ? 'Letting it in…' : 'Let this screen in'}</button>
         {result ? <span className={`text-sm ${result.ok ? 'text-[#2F6B3A]' : 'text-[#B85838]'}`} role="status" aria-live="polite" data-testid="approve-result">{result.message}</span> : null}
       </div>
     </form>

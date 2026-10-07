@@ -41,6 +41,17 @@
  *               "your administrator".
  *   plain       what the requirement means, in a sentence a member reads.
  */
+// A camera grant stored on this device by a link the owner shared (DR-0778;
+// lib/cameras.js writes it). Read directly so this module stays dependency-free.
+export const CAMERA_GRANT_KEY = 'poetech.cameras.grant.v1';
+export function cameraGrantOnDevice(storage = null) {
+  try {
+    const st = storage || (typeof localStorage !== 'undefined' ? localStorage : null);
+    const v = st ? (st.getItem(CAMERA_GRANT_KEY) || '') : '';
+    return /^g\.[a-f0-9]{12}\.[a-f0-9]{32}$/.test(v);
+  } catch { return false; }
+}
+
 export const REQUIREMENTS = Object.freeze({
   anyone: {
     id: 'anyone',
@@ -95,7 +106,9 @@ export const REQUIREMENTS = Object.freeze({
     id: 'cameras',
     plain: 'For the family, and for anyone the owner gave camera access to.',
     ask: 'the owner of the cameras',
-    holds: (v) => !!v.isFamilyMember || !!v.hasCameraGrant,
+    // The grant is read from the device here, not handed in by the shell: the
+    // shell is frozen (DR-0078) and this is the one place that knows the key.
+    holds: (v) => !!v.isFamilyMember || (v.hasCameraGrant != null ? !!v.hasCameraGrant : !v.reviewerMode && cameraGrantOnDevice()),
   },
   'study-circle': {
     id: 'study-circle',
