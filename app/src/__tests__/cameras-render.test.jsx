@@ -42,6 +42,17 @@ function makeFetch(plan) {
     }
     if (u === '/cams/recording' && (opts.method || 'GET') === 'GET') return jsonResponse(plan.recordingStatus ?? 404, plan.recording ?? { error: 'not-found' });
     if (u === '/cams/recording' && opts.method === 'PUT') { const cfg = JSON.parse(opts.body); return jsonResponse(200, { ok: true, config: cfg }); }
+    if (u === '/cams/streams/health') return jsonResponse(plan.streamHealthStatus ?? 200, plan.streamHealth ?? { sampled_at: 1700000000, interval_s: 15, cameras: {}, events: [] });
+    if (/^\/cams\/rec\/[^/]+\/[^/?]+\?/.test(u)) {
+      const q = new URLSearchParams(u.split('?')[1]);
+      if (q.get('sizes') === '1') return jsonResponse(200, plan.clipSizes ?? { original: 1000, seconds: 600, tiers: { small: { label: 'Small (480p)', height: 480, estimate: 700, state: 'absent' }, medium: { label: 'Medium (720p)', height: 720, estimate: 900, state: 'absent' }, large: { label: 'Large (1080p)', height: 1080, estimate: 1000, state: 'absent' } }, download_name: 'front_yard-2026-10-07T06-40-00-original.mp4' });
+      if (q.get('size')) {
+        plan.sizeAsks = (plan.sizeAsks || 0) + 1;
+        if (plan.sizeAsks < (plan.sizeReadyAt ?? 2)) return jsonResponse(202, { status: plan.sizeAsks === 1 ? 'queued' : 'making', size: q.get('size'), position: plan.sizeAsks === 1 ? 1 : 0, retry_in: 0.001 });
+        return { ok: true, status: 206, json: async () => ({}), blob: async () => new Blob(['mp4']), headers: { get: () => null } };
+      }
+      return { ok: true, status: 200, json: async () => ({}), blob: async () => new Blob(['mp4']), headers: { get: () => null } };
+    }
     if (u.startsWith('/cams/rec/') && u.split('/').length === 4) return jsonResponse(200, plan.clips ?? { camera: 'front_yard', clips: [{ name: '2026-10-07T06-40-00.mp4', bytes: 1000, start: 1 }, { name: '2026-10-07T06-50-00.mp4', bytes: 2000, start: 2 }], count: 2 });
     if (u.startsWith('/cams/why/')) return jsonResponse(plan.whyStatus ?? 200, plan.why ?? { id: 'x', producers: [{ kind: 'wyze', host: '192.168.1.77', state: 'connecting' }], probe: { status: 500, ok: false, error: 'wyze: connect failed: dial udp 192.168.1.77:0: i/o timeout', ms: 900 }, log: ['06:40 warn [wyze] connect failed: i/o timeout'] });
     if (u === '/cams/ticket') return jsonResponse(plan.ticketStatus ?? 200, { ticket: '9999999999.abcdef', expires_in: 90, camera: JSON.parse(opts.body).camera });
@@ -616,6 +627,115 @@ describe('Cameras surface', () => {
     expect(win().querySelector('[data-testid="view-window-grid"]').style.gridAutoRows).toBe(rowsBefore);
     expect(container.querySelector('[data-testid="view-window-size"]').textContent).toMatch(/2 cameras · 1 across · 100%/);
     await act(async () => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); });
+  });
+
+  it('the stream health log on the tile and in Why? (DR-0798): the hour\'s line under a camera, Why? on a camera that dropped, the drops in words', async () => {
+    const { fetchImpl, calls } = makeFetch({
+      list: { cameras: [{ id: 'front_yard', name: 'front yard', kind: 'wyze' }, { id: 'garage', name: 'garage', kind: 'rtsp' }], count: 2 },
+      streamHealth: { sampled_at: 1700000030, interval_s: 15, cameras: {
+        front_yard: { kbps: 1200, kbps_avg: 1100, up_pct: 97, drops_1h: 2, drop_kinds: ['bytes-frozen', 'producer-gone'], codecs: ['H264', 'PCMU'], hevc_only: false, twin: null, present: true, watchers: 1 },
+        garage: { kbps: 640, kbps_avg: 640, up_pct: 100, drops_1h: 0, drop_kinds: [], codecs: ['H265'], hevc_only: true, twin: 'garage_h264', present: true, watchers: 0 },
+      }, events: [{ at: 1700000000, camera: 'front_yard', kind: 'bytes-frozen' }, { at: 1700000015, camera: 'front_yard', kind: 'producer-gone' }] },
+    });
+    vi.stubGlobal('fetch', fetchImpl);
+    await mount();
+    await act(async () => { await new Promise((r) => setTimeout(r, 30)); });
+    expect(calls.find((c) => c.url === '/cams/streams/health').opts.headers.Authorization).toBe(`Bearer ${TOKEN}`);
+    expect(container.querySelector('[data-testid="stream-health-front_yard"]').textContent).toBe('1.2 Mb/s · H264+PCMU · up 97% · 2 drops this hour');
+    expect(container.querySelector('[data-testid="stream-health-garage"]').textContent).toBe('640 kb/s · H265 · H264 twin · up 100% · no drops this hour');
+    // Why? stands on the camera that dropped (its frame is fine, so DR-0774 alone would not show it)
+    const why = buttons().find((b) => b.getAttribute('aria-label') === 'Why does front yard drop?');
+    expect(why, 'Why? on a camera that dropped').toBeTruthy();
+    expect(buttons().find((b) => b.getAttribute('aria-label') === 'Why does garage drop?')).toBeUndefined();
+    await click(why);
+    await act(async () => { await new Promise((r) => setTimeout(r, 20)); });
+    const h = container.querySelector('[data-testid="why-health-front_yard"]');
+    expect(h.textContent).toContain('The last hour: 1.2 Mb/s · H264+PCMU · up 97% · 2 drops this hour');
+    const items = [...h.querySelectorAll('li')].map((li) => li.textContent);
+    expect(items).toHaveLength(2);
+    expect(items[0]).toMatch(/connection to the NAS dropped while someone watched/);
+    expect(items[1]).toMatch(/sent nothing for a whole sample/);
+  });
+
+  it('a camera that sends only H.265 plays its H.264 twin on a device whose <video> cannot decode H.265, and its own stream where it can (DR-0798)', async () => {
+    try { localStorage.removeItem(LIVE_TILES_KEY); } catch { /* fine */ }
+    const { fetchImpl, calls } = makeFetch({
+      list: { cameras: [{ id: 'garage', name: 'garage', kind: 'wyze', h264: true }], count: 1 },
+      health: { ok: true, go2rtc: '1.9.14', streams: 2, live_max_seconds: 0, max_live: 32, live_open: 0, live_bytes_per_s: 0 },
+    });
+    vi.stubGlobal('fetch', fetchImpl);
+    const orig = window.HTMLMediaElement.prototype.canPlayType;
+    window.HTMLMediaElement.prototype.canPlayType = function canPlayType(t) { return /hvc1|hev1/.test(String(t)) ? '' : 'maybe'; };
+    try {
+      await mount();
+      await act(async () => { await new Promise((r) => setTimeout(r, 30)); });
+      const tickets = calls.filter((c) => c.url === '/cams/ticket').map((c) => JSON.parse(c.opts.body).camera);
+      expect(tickets).toEqual(['garage_h264']);
+      expect(container.querySelector('[data-testid="tile-live-garage"] video').getAttribute('src')).toMatch(/\/cams\/live\/garage_h264/);
+    } finally {
+      window.HTMLMediaElement.prototype.canPlayType = orig;
+    }
+    await act(() => root.unmount());
+    container = document.createElement('div'); document.body.appendChild(container); root = createRoot(container);
+    calls.length = 0;
+    window.HTMLMediaElement.prototype.canPlayType = function canPlayType() { return 'probably'; };
+    try {
+      await mount();
+      await act(async () => { await new Promise((r) => setTimeout(r, 30)); });
+      expect(calls.filter((c) => c.url === '/cams/ticket').map((c) => JSON.parse(c.opts.body).camera)).toEqual(['garage']);
+      expect(container.querySelector('[data-testid="tile-live-garage"] video').getAttribute('src')).toMatch(/\/cams\/live\/garage[./]/);
+    } finally {
+      window.HTMLMediaElement.prototype.canPlayType = orig;
+    }
+  });
+
+  it('a clip downloads at the size you choose (DR-0797): the menu names every tier with its size, the NAS makes it (its place in line shown), and the file saves with its name', async () => {
+    const now = Math.floor(Date.now() / 1000);
+    const plan = {
+      list: { cameras: [{ id: 'front_yard', name: 'front yard', kind: 'wyze' }], count: 1 },
+      recordingStatus: 200,
+      recording: { config: { disk_budget_gb: 100, cameras: {} }, status: { ok: true, at: now, disk_budget_gb: 100, total_bytes: 3000, disk_free_bytes: 500e9, cameras: { front_yard: { enabled: false, recording: false, clips: 2, bytes: 3000, oldest: now - 600, newest: now } } }, root: '/volume1/PoeTech/cameras/recordings' },
+      sizeReadyAt: 3,
+    };
+    const { fetchImpl, calls } = makeFetch(plan);
+    vi.stubGlobal('fetch', fetchImpl);
+    const clicked = [];
+    const origClick = HTMLAnchorElement.prototype.click;
+    HTMLAnchorElement.prototype.click = function click() { clicked.push({ href: this.getAttribute('href'), download: this.getAttribute('download') }); };
+    try {
+      await mount();
+      await act(async () => { await new Promise((r) => setTimeout(r, 30)); });
+      await click(buttons().find((b) => b.getAttribute('aria-label') === 'Show clips of front yard'));
+      await act(async () => { await new Promise((r) => setTimeout(r, 20)); });
+      const dl = container.querySelector('[data-testid="clip-download-2026-10-07T06-40-00.mp4"]');
+      expect(dl, 'the ↓ beside the clip').toBeTruthy();
+      await click(dl);
+      await act(async () => { await new Promise((r) => setTimeout(r, 30)); });
+      const ticket = calls.filter((c) => c.url === '/cams/ticket').pop();
+      expect(JSON.parse(ticket.opts.body)).toEqual({ camera: 'front_yard', ttl: 3600 });
+      expect(calls.find((c) => c.url === '/cams/rec/front_yard/2026-10-07T06-40-00.mp4?t=9999999999.abcdef&sizes=1'), 'the sizes are read with the ticket').toBeTruthy();
+      const menu = container.querySelector('[data-testid="clip-download-menu"]');
+      expect(menu.textContent).toContain('Record keeps clips on the NAS only');
+      expect(container.querySelector('[data-testid="clip-tier-original"]').textContent).toBe(`Original · ${formatBytes(1000)}`);
+      expect(container.querySelector('[data-testid="clip-tier-small"]').textContent).toBe(`Small (480p) · about ${formatBytes(700)}`);
+      expect(container.querySelector('[data-testid="clip-tier-large"]').textContent).toBe(`Large (1080p) · about ${formatBytes(1000)}`);
+      await click(container.querySelector('[data-testid="clip-get-small"]'));
+      for (let i = 0; i < 40 && !clicked.length; i += 1) await act(async () => { await new Promise((r) => setTimeout(r, 10)); });
+      const asks = calls.filter((c) => /size=small/.test(c.url));
+      expect(asks.length).toBe(3);
+      expect(asks[0].url).toBe('/cams/rec/front_yard/2026-10-07T06-40-00.mp4?t=9999999999.abcdef&size=small&dl=1');
+      expect(asks[0].opts.headers.Range).toBe('bytes=0-0');
+      expect(clicked).toEqual([{ href: '/cams/rec/front_yard/2026-10-07T06-40-00.mp4?t=9999999999.abcdef&size=small&dl=1', download: 'front_yard-2026-10-07T06-40-00-small.mp4' }]);
+      await act(async () => { await new Promise((r) => setTimeout(r, 20)); });
+      expect(container.querySelector('[data-testid="recording-note"]').textContent).toMatch(/Saving front_yard-2026-10-07T06-40-00-small\.mp4/);
+      // the original needs no making: one ask, one save
+      clicked.length = 0;
+      await click(container.querySelector('[data-testid="clip-get-original"]'));
+      for (let i = 0; i < 40 && !clicked.length; i += 1) await act(async () => { await new Promise((r) => setTimeout(r, 10)); });
+      expect(clicked).toEqual([{ href: '/cams/rec/front_yard/2026-10-07T06-40-00.mp4?t=9999999999.abcdef&dl=1', download: 'front_yard-2026-10-07T06-40-00-original.mp4' }]);
+    } finally {
+      HTMLAnchorElement.prototype.click = origClick;
+    }
   });
 
   it('a blank tile names its real cause and Why? brings the NAS\'s explanation in plain words (DR-0774)', async () => {

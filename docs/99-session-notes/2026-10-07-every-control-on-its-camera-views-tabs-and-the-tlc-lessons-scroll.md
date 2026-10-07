@@ -34,3 +34,11 @@ Cameras: the top row is now Live · Recordings · Who can see · Setup. On Live,
 ## Later — click a camera to make it the largest, click again to put it back (DR-0796)
 
 Darrell, Firestick, a view open: *"Clicking inside the image of one camera makes it largest size... click again it goes to the previous position."* The live picture is now a button in a view and in the full-size window: the clicked camera is laid out alone (one column; in the window `fitGrid` for one tile, the bar naming it), the other tiles stay mounted and hidden so their streams keep running, and the second click puts every tile back where it was with no new ticket. Enter from a remote does the same. `cameras.test.js` 77 · `cameras-render.test.jsx` 30.
+
+## Later — clips at the size you choose, and the stream health log (DR-0797, DR-0798)
+
+Darrell: *"Pushing record only records to the nas... not to the cellphone correct... options to download based on size... smaller to large size files with their best resolutions"* — yes, Record is NAS-only (DR-0775); the ↓ beside every clip now opens Download with Original / Large 1080p / Medium 720p / Small 480p, each the best picture that fits, made once on the NAS by the container's ffmpeg (one worker, a 2 GB budget, orphans pruned; a hand-off race in the worker caught by the selftest and fixed under one lock).
+
+*"Are there some type of logs we can use to make the cameras stream more continuous?... based on the information cameras provided can we make sure we optimize"* — the forwarder now samples go2rtc's `/api/streams` every 15 s and keeps an hour per camera (rate while watched, up%, drops only while watched, codecs), served at `/streams/health`, summarized in `/health`, written to `stream-health.json` for cams-diag; the one road the data decides today is the H.264 twin for a camera that sends only H.265, opened by a device whose `<video>` cannot decode it. The next optimization (Wyze `subtype=sd` for a starving camera) waits on a week of the log: `re-review 2026-10-14`.
+
+- forwarder selftest green (sections 8k, 8l added) · `cameras.test.js` + `cameras-render.test.jsx` green.
