@@ -649,7 +649,7 @@ function LiveVideo({ cam, token, liveMax, onClose, compact = false, bare = false
         ) : (
           <div className="w-full h-full flex items-center justify-center text-white text-xs p-4 text-center" data-testid={`${testId}-status`}>{status}</div>
         )}
-        <div className="absolute left-1 top-1 px-1.5 py-0.5 bg-black/60 text-white text-[0.6875rem] truncate max-w-[90%]">{cam.name}{st.reconnects > 0 ? ` · reconnected ${st.reconnects}×` : ''}</div>
+        <div className="absolute left-1 right-8 top-1 w-fit px-1.5 py-0.5 bg-black/60 text-white text-[0.6875rem] truncate">{cam.name}{st.reconnects > 0 ? ` · reconnected ${st.reconnects}×` : ''}</div>
         {st.exhausted ? <button type="button" className={`absolute right-1 bottom-1 ${btnDark} focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={() => open(0)}>Resume</button> : null}
       </div>
     );
