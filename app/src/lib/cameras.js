@@ -1047,6 +1047,23 @@ export function roadLine(stats, mode) {
 // =============================================================================
 export const VIEWS_KEY = 'poetech.cameras.views.v1';
 export const VIEW_LAYOUTS = Object.freeze(['auto', 1, 2, 3, 4]);
+// ONE CAMERA, LARGEST, ON A CLICK (DR-0796; Darrell 2026-10-07: "Clicking
+// inside the image of one camera makes it largest size... click again it goes
+// to the previous position"). A view or the full-size window keeps one
+// focused camera id: that tile takes the whole area, the others stay mounted
+// and hidden (their streams keep running, so the way back is instant), and
+// the second click restores every tile to exactly where it was.
+export function toggleFocus(current, id) {
+  return current === id ? '' : String(id || '');
+}
+/** The focused id, or '' when it names no camera in the view. */
+export function focusIn(cams, focused) {
+  return focused && Array.isArray(cams) && cams.some((c) => c && c.id === focused) ? focused : '';
+}
+/** How many tiles the grid lays out: one when a camera is focused, else all. */
+export function shownCount(cams, focused) {
+  return focusIn(cams, focused) ? 1 : (Array.isArray(cams) ? cams.length : 0);
+}
 export const VIEW_NAME_MAX = 40;
 function viewStore(storage) {
   if (storage) return storage;

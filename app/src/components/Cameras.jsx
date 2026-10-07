@@ -49,7 +49,7 @@ import {
   SNAP_CONCURRENCY, LIVE_RECONNECT_MAX, LIVE_RECONNECT_DELAY_MS, runLimited, skipFailedFrame,
   classifySnapError, fetchWhy,
   loadViews, saveViews, activeView, addToView, removeFromView, moveInView, setViewLayout, renameView, addView, deleteView, viewCols, viewGridClass, indexAtPoint, VIEW_LAYOUTS,
-  fitGrid, clampScale, setViewScale, VIEW_SCALE_STEP, VIEW_SCALE_MIN, VIEW_SCALE_MAX,
+  fitGrid, clampScale, setViewScale, VIEW_SCALE_STEP, VIEW_SCALE_MIN, VIEW_SCALE_MAX, toggleFocus, focusIn, shownCount,
   RETENTION_CHOICES, CLIP_TICKET_TTL, fetchRecording, saveRecording, fetchClips, recClipUrl, clipParts, groupClipsByDay, diskForecast,
   loadLiveTiles, saveLiveTiles, liveTileBudget, liveTrafficLine,
   fetchDevices, runDeviceAction, setupWyzeAgain, wyzeKept, garagesFor, ACTION_REARM_MS,
@@ -560,7 +560,15 @@ function AccessChip({ access, onLeave }) {
   );
 }
 
-function LiveVideo({ cam, token, liveMax, onClose, compact = false, bare = false, testId = 'live-view', now }) {
+function LiveVideo({ cam, token, liveMax, onClose, compact = false, bare = false, testId = 'live-view', now, onPick = null, picked = false }) {
+  // A click (or Enter / Space from a remote) on the picture hands the tile to
+  // the view, which makes it the largest or puts it back (DR-0796).
+  const pickProps = onPick ? {
+    role: 'button', tabIndex: 0, 'aria-pressed': picked,
+    title: picked ? 'Click to put this camera back where it was' : 'Click to make this camera the largest',
+    onClick: () => onPick(),
+    onKeyDown: (e) => { if (e && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onPick(); } },
+  } : {};
   const [st, setSt] = useState({ mode: '', src: '', startedAt: Date.now(), firstFrameMs: null, stalls: 0, ended: false, error: '', opening: true, reconnects: 0, exhausted: false });
   const [road, setRoadRaw] = useState(() => loadLiveRoad());
   const setRoad = (r) => { saveLiveRoad(r); setRoadRaw(r); };
@@ -642,7 +650,7 @@ function LiveVideo({ cam, token, liveMax, onClose, compact = false, bare = false
   // shape a tile takes inside the full-size window.
   if (bare) {
     return (
-      <div className="relative bg-black w-full h-full overflow-hidden" data-testid={testId}>
+      <div className={`relative bg-black w-full h-full overflow-hidden ${onPick ? 'cursor-pointer focus:outline focus:outline-2 focus:outline-[#B85838]' : ''}`} data-testid={testId} data-picked={picked ? 'true' : undefined} {...pickProps}>
         {st.src && !st.ended ? (
           <video ref={(el) => { timers.current.video = el; }} key={st.src} src={st.src} autoPlay muted playsInline className="w-full h-full object-contain"
             onLoadedData={onLoadedData} onWaiting={onWaiting} onEnded={onEnded} onError={onError} />
@@ -650,7 +658,7 @@ function LiveVideo({ cam, token, liveMax, onClose, compact = false, bare = false
           <div className="w-full h-full flex items-center justify-center text-white text-xs p-4 text-center" data-testid={`${testId}-status`}>{status}</div>
         )}
         <div className="absolute left-1 right-8 top-1 w-fit px-1.5 py-0.5 bg-black/60 text-white text-[0.6875rem] truncate">{cam.name}{st.reconnects > 0 ? ` · reconnected ${st.reconnects}×` : ''}</div>
-        {st.exhausted ? <button type="button" className={`absolute right-1 bottom-1 ${btnDark} focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={() => open(0)}>Resume</button> : null}
+        {st.exhausted ? <button type="button" className={`absolute right-1 bottom-1 ${btnDark} focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={(e) => { e.stopPropagation(); open(0); }}>Resume</button> : null}
       </div>
     );
   }
@@ -674,7 +682,7 @@ function LiveVideo({ cam, token, liveMax, onClose, compact = false, bare = false
           <button type="button" onClick={onClose} className={`${compact ? btnGhost : btnDark} focus:outline focus:outline-2 focus:outline-[#B85838]`}>{compact ? 'Remove' : 'Close'}</button>
         </div>
       </div>
-      <div className="mt-2 bg-black aspect-video w-full flex items-center justify-center">
+      <div className={`mt-2 bg-black aspect-video w-full flex items-center justify-center ${onPick ? 'cursor-pointer focus:outline focus:outline-2 focus:outline-[#B85838]' : ''}`} data-testid={`${testId}-picture`} data-picked={picked ? 'true' : undefined} {...pickProps}>
         {st.src && !st.ended ? (
           <video ref={(el) => { timers.current.video = el; }} key={st.src} src={st.src} autoPlay muted playsInline controls={!compact} className="w-full h-full"
             onLoadedData={onLoadedData} onWaiting={onWaiting} onEnded={onEnded} onError={onError} />
@@ -708,6 +716,9 @@ function LiveVideo({ cam, token, liveMax, onClose, compact = false, bare = false
 const WINDOW_BAR_PX = 56;
 const WINDOW_GAP_PX = 6;
 function ViewWindow({ view, cams, token, liveMax, now, onClose, onScale }) {
+  // The one camera made largest by a click; '' when none (DR-0796).
+  const [focusedRaw, setFocused] = useState('');
+  const focused = focusIn(cams, focusedRaw);
   const [size, setSize] = useState(() => ({ w: typeof window !== 'undefined' ? window.innerWidth : 0, h: typeof window !== 'undefined' ? window.innerHeight : 0 }));
   useEffect(() => {
     const on = () => setSize({ w: window.innerWidth, h: window.innerHeight });
@@ -732,26 +743,28 @@ function ViewWindow({ view, cams, token, liveMax, now, onClose, onScale }) {
       exitFullScreen(d);
     };
   }, [onClose, onScale, scale]);
-  const fit = fitGrid({ count: cams.length, width: Math.max(0, size.w - 2 * WINDOW_GAP_PX), height: Math.max(0, size.h - WINDOW_BAR_PX - 2 * WINDOW_GAP_PX), gap: WINDOW_GAP_PX });
+  const fit = fitGrid({ count: shownCount(cams, focused), width: Math.max(0, size.w - 2 * WINDOW_GAP_PX), height: Math.max(0, size.h - WINDOW_BAR_PX - 2 * WINDOW_GAP_PX), gap: WINDOW_GAP_PX });
   const tileW = Math.floor(fit.tileW * scale);
   const tileH = Math.floor(fit.tileH * scale);
   const pct = Math.round(scale * 100);
   const bar = 'px-3 min-h-[40px] text-[0.6875rem] uppercase tracking-wider border border-white/40 text-white hover:bg-white hover:text-black disabled:opacity-40';
   const ring = 'focus:outline focus:outline-2 focus:outline-[#B85838]';
   return (
-    <div className="fixed inset-0 z-[90] bg-black text-white flex flex-col" data-testid="view-window" data-cols={fit.cols} data-scale={pct} role="dialog" aria-label={`${view.name} — full-size window`}>
+    <div className="fixed inset-0 z-[90] bg-black text-white flex flex-col" data-testid="view-window" data-cols={fit.cols} data-scale={pct} data-focused={focused || undefined} role="dialog" aria-label={`${view.name} — full-size window`}>
       <div className="flex-1 min-h-0 flex items-center justify-center overflow-hidden">
         <div style={{ display: 'grid', gridTemplateColumns: `repeat(${fit.cols}, ${tileW}px)`, gridAutoRows: `${tileH}px`, gap: `${WINDOW_GAP_PX}px` }} data-testid="view-window-grid">
           {cams.map((cam) => (
-            <div key={cam.id} style={{ width: tileW, height: tileH }} data-window-cam={cam.id}>
-              <LiveVideo cam={cam} token={token} liveMax={liveMax} bare testId={`window-${cam.id}`} now={now} />
+            // A tile that is not the focused one stays MOUNTED and hidden, so
+            // its stream keeps running and the second click puts it back at once.
+            <div key={cam.id} style={{ width: tileW, height: tileH }} className={focused && focused !== cam.id ? 'hidden' : ''} data-window-cam={cam.id} data-focused={focused === cam.id ? 'true' : undefined}>
+              <LiveVideo cam={cam} token={token} liveMax={liveMax} bare testId={`window-${cam.id}`} now={now} onPick={() => setFocused((f) => toggleFocus(f, cam.id))} picked={focused === cam.id} />
             </div>
           ))}
         </div>
       </div>
       <div className="flex items-center justify-center gap-2 py-2 flex-wrap" style={{ minHeight: WINDOW_BAR_PX }} data-testid="view-window-bar">
         <button type="button" className={`${bar} ${ring} focus:outline focus:outline-2`} onClick={() => onScale(scale - VIEW_SCALE_STEP)} disabled={scale <= VIEW_SCALE_MIN} aria-label="Smaller — leave more room at the edges" data-testid="view-window-smaller">− Smaller</button>
-        <span className="text-[0.6875rem] tabular-nums" aria-live="polite" data-testid="view-window-size">{cams.length} camera{cams.length === 1 ? '' : 's'} · {fit.cols} across · {pct}%</span>
+        <span className="text-[0.6875rem] tabular-nums" aria-live="polite" data-testid="view-window-size">{focused ? `${(cams.find((c) => c.id === focused) || {}).name || focused} · largest · click it again to put it back` : `${cams.length} camera${cams.length === 1 ? '' : 's'} · ${fit.cols} across · ${pct}%`}</span>
         <button type="button" className={`${bar} ${ring} focus:outline focus:outline-2`} onClick={() => onScale(scale + VIEW_SCALE_STEP)} disabled={scale >= VIEW_SCALE_MAX} aria-label="Bigger — fill more of the screen" data-testid="view-window-bigger">+ Bigger</button>
         {scale !== 1 ? <button type="button" className={`${bar} ${ring} focus:outline focus:outline-2`} onClick={() => onScale(1)} data-testid="view-window-fit">Fit</button> : null}
         <button type="button" className={`${bar} ${ring} focus:outline focus:outline-2`} onClick={onClose} aria-label="Close the window (Back or Esc also does)" data-testid="view-window-close">Close</button>
@@ -1071,6 +1084,7 @@ export default function Cameras() {
   const scaleWindow = useCallback((sc) => { if (view) setViews((st) => setViewScale(st, view.id, sc)); }, [view]);
   const [newName, setNewName] = useState('');
   const [drag, setDrag] = useState('');             // the camera being dragged in the view
+  const [focusedTileRaw, setFocusedTile] = useState(''); // the camera a click made largest in the view (DR-0796)
   const viewGridRef = useRef(null);
   const [pick, setPick] = useState('');             // camera whose clips are listed (set from a tile)
   const recordingRef = useRef(null);
@@ -1358,9 +1372,9 @@ export default function Cameras() {
                 <ViewWindow view={view} cams={wallCams} token={token} liveMax={liveMax} now={now} onClose={closeWindow} onScale={scaleWindow} />
               </>
             ) : view && wallCams.length ? (
-              <div ref={viewGridRef} className={`grid ${viewGridClass(viewCols(view.layout, wallCams.length))} gap-3`} data-testid={`view-${view.id}`} data-cols={viewCols(view.layout, wallCams.length)}>
+              <div ref={viewGridRef} className={`grid ${focusIn(wallCams, focusedTileRaw) ? 'grid-cols-1' : viewGridClass(viewCols(view.layout, wallCams.length))} gap-3`} data-testid={`view-${view.id}`} data-cols={focusIn(wallCams, focusedTileRaw) ? 1 : viewCols(view.layout, wallCams.length)} data-focused={focusIn(wallCams, focusedTileRaw) || undefined}>
                 {wallCams.map((cam, i) => (
-                  <div key={cam.id} data-view-cam={cam.id} className={drag === cam.id ? 'opacity-70 ring-2 ring-[#B85838]' : ''}>
+                  <div key={cam.id} data-view-cam={cam.id} data-focused={focusIn(wallCams, focusedTileRaw) === cam.id ? 'true' : undefined} className={`${drag === cam.id ? 'opacity-70 ring-2 ring-[#B85838]' : ''} ${focusIn(wallCams, focusedTileRaw) && focusIn(wallCams, focusedTileRaw) !== cam.id ? 'hidden' : ''}`}>
                     <div className="flex items-center justify-between gap-1 mb-1 text-[0.625rem] text-[#5A5751]">
                       <button type="button" className="cursor-grab touch-none min-h-[36px] px-2 text-base leading-none focus:outline focus:outline-2 focus:outline-[#B85838]" aria-label={`Drag ${cam.name} to another place in the view`} title="Drag to reorder"
                         onPointerDown={(e) => { try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* fine */ } setDrag(cam.id); }}
@@ -1376,11 +1390,12 @@ export default function Cameras() {
                         <button type="button" className={`${btnGhost} focus:outline focus:outline-2 focus:outline-[#B85838]`} disabled={i === wallCams.length - 1} onClick={() => setViews((st) => moveInView(st, view.id, cam.id, i + 1))} aria-label={`Move ${cam.name} later`} data-testid={`view-right-${cam.id}`}>▶</button>
                       </span>
                     </div>
-                    <LiveVideo cam={cam} token={token} liveMax={liveMax} compact testId={`wall-${cam.id}`} now={now} onClose={() => setViews((st) => removeFromView(st, view.id, cam.id))} />
+                    <LiveVideo cam={cam} token={token} liveMax={liveMax} compact testId={`wall-${cam.id}`} now={now} onClose={() => setViews((st) => removeFromView(st, view.id, cam.id))}
+                      onPick={() => setFocusedTile((f) => toggleFocus(f, cam.id))} picked={focusIn(wallCams, focusedTileRaw) === cam.id} />
                   </div>
                 ))}
               </div>
-            ) : <p className="text-[0.6875rem] text-[#5A5751]">Press + View on any camera to add it here. Drag the handle, or use the arrows, to put them in your order while they stream; pick how many across.</p>}
+            ) : <p className="text-[0.6875rem] text-[#5A5751]">Press + View on any camera to add it here. Drag the handle, or use the arrows, to put them in your order while they stream; pick how many across. Click a picture to make it the largest; click it again to put it back.</p>}
           </section>
 
           {groups.map((g) => (

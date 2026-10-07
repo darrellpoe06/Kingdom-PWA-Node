@@ -556,6 +556,68 @@ describe('Cameras surface', () => {
     expect(container.querySelector('[data-testid^="view-v"]'), 'the in-page grid is back').toBeTruthy();
   });
 
+  it('a click on a picture makes that camera the largest and a second click puts it back, in the view and in the window (DR-0796)', async () => {
+    const { fetchImpl, calls } = makeFetch({ list: { cameras: [
+      { id: 'front_yard', name: 'front yard', kind: 'wyze' },
+      { id: 'garage', name: 'garage', kind: 'rtsp' },
+    ], count: 2 } });
+    vi.stubGlobal('fetch', fetchImpl);
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 1024 });
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 768 });
+    await mount();
+    await act(async () => { await new Promise((r) => setTimeout(r, 20)); });
+    await click(buttons().find((b) => b.getAttribute('aria-label') === 'Add front yard to the view'));
+    await click(buttons().find((b) => b.getAttribute('aria-label') === 'Add garage to the view'));
+    await act(async () => { await new Promise((r) => setTimeout(r, 20)); });
+    // THE VIEW. Two across; a click on the garage picture: one column, garage marked, front yard hidden but still mounted (same <video>).
+    const grid = () => container.querySelector('[data-testid^="view-v"]');
+    expect(grid().getAttribute('data-cols')).toBe('2');
+    const frontVideo = container.querySelector('[data-testid="wall-front_yard"] video');
+    const garagePicture = container.querySelector('[data-testid="wall-garage-picture"]');
+    expect(garagePicture.getAttribute('role')).toBe('button');
+    expect(garagePicture.getAttribute('title')).toMatch(/make this camera the largest/);
+    const ticketsBefore = calls.filter((c) => c.url === '/cams/ticket').length;
+    await click(garagePicture);
+    expect(grid().getAttribute('data-cols')).toBe('1');
+    expect(grid().getAttribute('data-focused')).toBe('garage');
+    expect(container.querySelector('[data-view-cam="garage"]').getAttribute('data-focused')).toBe('true');
+    expect(container.querySelector('[data-view-cam="front_yard"]').className).toMatch(/\bhidden\b/);
+    expect(container.querySelector('[data-testid="wall-front_yard"] video'), 'the hidden tile keeps its stream').toBe(frontVideo);
+    expect(container.querySelector('[data-testid="wall-garage-picture"]').getAttribute('aria-pressed')).toBe('true');
+    // the second click: back to two across, nothing hidden, no new ticket was asked
+    await click(container.querySelector('[data-testid="wall-garage-picture"]'));
+    expect(grid().getAttribute('data-cols')).toBe('2');
+    expect(grid().getAttribute('data-focused')).toBeNull();
+    expect(container.querySelector('[data-view-cam="front_yard"]').className).not.toMatch(/\bhidden\b/);
+    expect([...container.querySelectorAll('[data-view-cam]')].map((el) => el.getAttribute('data-view-cam'))).toEqual(['front_yard', 'garage']);
+    expect(calls.filter((c) => c.url === '/cams/ticket').length).toBe(ticketsBefore);
+    // Enter from a remote does the same as a click
+    await act(async () => { container.querySelector('[data-testid="wall-front_yard-picture"]').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); });
+    expect(grid().getAttribute('data-focused')).toBe('front_yard');
+    await act(async () => { container.querySelector('[data-testid="wall-front_yard-picture"]').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); });
+    expect(grid().getAttribute('data-focused')).toBeNull();
+    // THE WINDOW. The same gesture on a window tile: one tile fills the fitted area, the bar says so, the other tile is hidden and kept.
+    await click(container.querySelector('[data-testid="view-window-open"]'));
+    await act(async () => { await new Promise((r) => setTimeout(r, 20)); });
+    const win = () => container.querySelector('[data-testid="view-window"]');
+    expect(win().getAttribute('data-cols')).toBe('1');
+    const winGarageVideo = win().querySelector('[data-testid="window-garage"] video');
+    const rowsBefore = win().querySelector('[data-testid="view-window-grid"]').style.gridAutoRows;
+    await click(win().querySelector('[data-testid="window-front_yard"]'));
+    expect(win().getAttribute('data-focused')).toBe('front_yard');
+    expect(win().querySelector('[data-window-cam="front_yard"]').getAttribute('data-focused')).toBe('true');
+    expect(win().querySelector('[data-window-cam="garage"]').className).toMatch(/\bhidden\b/);
+    expect(win().querySelector('[data-testid="window-garage"] video')).toBe(winGarageVideo);
+    expect(win().querySelector('[data-testid="view-window-grid"]').style.gridAutoRows, 'one tile is fitted larger than two were').not.toBe(rowsBefore);
+    expect(container.querySelector('[data-testid="view-window-size"]').textContent).toMatch(/front yard · largest · click it again to put it back/);
+    await click(win().querySelector('[data-testid="window-front_yard"]'));
+    expect(win().getAttribute('data-focused')).toBeNull();
+    expect(win().querySelector('[data-window-cam="garage"]').className).not.toMatch(/\bhidden\b/);
+    expect(win().querySelector('[data-testid="view-window-grid"]').style.gridAutoRows).toBe(rowsBefore);
+    expect(container.querySelector('[data-testid="view-window-size"]').textContent).toMatch(/2 cameras · 1 across · 100%/);
+    await act(async () => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); });
+  });
+
   it('a blank tile names its real cause and Why? brings the NAS\'s explanation in plain words (DR-0774)', async () => {
     const { fetchImpl, calls } = makeFetch({
       list: { cameras: [{ id: 'east_north_cam', name: 'east north cam', kind: 'wyze' }], count: 1 },

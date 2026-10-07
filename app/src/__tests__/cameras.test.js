@@ -24,6 +24,7 @@ import {
   LIVE_ROADS, loadLiveRoad, saveLiveRoad, loadRoadStats, recordRoadResult, roadScore, chooseLiveRoad, roadLine, LIVE_ROAD_KEY,
   VIEWS_KEY, VIEW_LAYOUTS, loadViews, saveViews, activeView, addToView, removeFromView, moveInView, setViewLayout, renameView, addView, deleteView, viewCols, viewGridClass, indexAtPoint,
   fitGrid, clampScale, setViewScale, VIEW_SCALE_MIN, VIEW_SCALE_MAX, VIEW_SCALE_STEP,
+  toggleFocus, focusIn, shownCount,
 } from '../lib/cameras.js';
 
 describe('the road: every URL is same-origin under /cams', () => {
@@ -819,5 +820,31 @@ describe('the full-size window (DR-0788): the grid that gives every tile the mos
     const mem = memoryStorage();
     mem.setItem(VIEWS_KEY, JSON.stringify({ ...next, views: next.views.map((v) => { const { scale, ...rest } = v; return rest; }) }));
     expect(activeView(loadViews(mem)).scale).toBe(1);
+  });
+});
+
+describe('one camera largest on a click, back on the second (DR-0796)', () => {
+  const cams = [{ id: 'a', name: 'A' }, { id: 'b', name: 'B' }, { id: 'c', name: 'C' }];
+  it('toggleFocus: a click focuses, the same click again clears, a different camera moves the focus', () => {
+    expect(toggleFocus('', 'a')).toBe('a');
+    expect(toggleFocus('a', 'a')).toBe('');
+    expect(toggleFocus('a', 'b')).toBe('b');
+    expect(toggleFocus('', null)).toBe('');
+  });
+  it('focusIn: a focus that names no camera in the view is nothing (a removed camera never leaves the view stuck on one tile)', () => {
+    expect(focusIn(cams, 'b')).toBe('b');
+    expect(focusIn(cams, 'zzz')).toBe('');
+    expect(focusIn(cams, '')).toBe('');
+    expect(focusIn([], 'a')).toBe('');
+    expect(focusIn(null, 'a')).toBe('');
+  });
+  it('shownCount: one tile is laid out when a camera is focused, else all of them; fitGrid for one tile is one column', () => {
+    expect(shownCount(cams, '')).toBe(3);
+    expect(shownCount(cams, 'c')).toBe(1);
+    expect(shownCount(cams, 'nope')).toBe(3);
+    const one = fitGrid({ count: shownCount(cams, 'c'), width: 1920, height: 1000, gap: 6 });
+    const three = fitGrid({ count: shownCount(cams, ''), width: 1920, height: 1000, gap: 6 });
+    expect(one.cols).toBe(1);
+    expect(one.tileW * one.tileH).toBeGreaterThan(three.tileW * three.tileH);
   });
 });
