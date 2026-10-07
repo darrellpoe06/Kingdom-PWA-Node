@@ -47,6 +47,12 @@
 
 The tables above are the measurement: every row names its basis (go2rtc's v1.9.14 source and README, cams-diag run 37698554749, the records cited). The witness: `camera-health.yml` reads `/health`, `/streams/health`, `/recording` and `/api/streams` on the NAS, probes one frame from every camera that is recording or has a watcher, and compares with the last witness kept in the rolling issue.
 
+**Measured the same evening, after this review was written (cams-diag run 37702488586, 23:28 UTC):**
+
+- go2rtc 1.9.14 **panicked** at 18:25:39 CDT (`nil pointer dereference` in `pkg/mp4.(*Consumer).AddTrack` → `bufio.(*Writer).Write`: an MP4 consumer writing after its HTTP response had closed) and was restarted by docker one second later. Every tile went blank at once; that is the "no video" Darrell saw at 18:26. The DR-0799 freeze watch reconnects each tile within 6 s. A crash class the witness now sees (go2rtc's `streams` count and the probe both drop to zero for a sample). `re-review: 2026-10-14` — check go2rtc's releases after 1.9.14 for the fix before pinning a newer image.
+- The forwarder ran `2171a7233d6efd6f` with `d45dc35c5492ea06` on disk for 13 hours because services-sync was held by its own daily cap (96 of 96, the clock's count) after three hand-fired one-shots. The cap is now 120 (DR-0807 §3). The witness flags forwarder-vs-disk drift as a regression by itself.
+- The road to the 805 cameras: Wyze addresses them at `10.0.0.x`; the NAS has no route there. go2rtc's `wyze:` source is LAN-only. The two roads that work: a tailnet node at 805 advertising `10.0.0.0/24`, or a relay-capable bridge on the NAS (docker-wyze-bridge, `NET_MODE=ANY`, which also speaks to the non-DTLS firmware the other twelve `wyze:` cameras run). Neither can be verified from this session; DR-0807 names them with the re-review date.
+
 ## Decision
 
 1. **The camera road has a witness after every change.** `camera-health.yml` runs after each deploy completes, every 30 minutes, and on dispatch. It keeps its last witness in the rolling `camera-incident` issue and compares: fewer cameras answering, go2rtc listing fewer streams, the forwarder dark, the forwarder running a hash that is not the one on disk, or the sampler silent is a **regression**.

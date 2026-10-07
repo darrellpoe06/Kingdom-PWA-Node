@@ -442,12 +442,34 @@ export function humanizeCameraError(text, host = '') {
 /** The one-line name of each cause, for a wall summary. */
 export const FAULT_LABELS = Object.freeze({
   'other-network': 'on a network the NAS cannot reach',
+  'other-network-on': 'on (Wyze sees them), but on a network the NAS cannot reach',
+  'wyze-offline': 'off at the camera itself (Wyze reports them offline too)',
   firmware: 'firmware has no DTLS yet',
   auth: 'the camera refused the sign-in',
   missing: 'no stream by that name any more',
   asleep: 'asleep, off, or not answering',
   unknown: 'no reason given',
 });
+
+/**
+ * What Wyze's cloud says about the camera behind a stream id: true online,
+ * false offline, null when Wyze has no device paired to that stream (a camera
+ * of another make, or the devices list has not loaded). `devices` is the
+ * parsed /devices list (parseDevices), each carrying its `stream` id.
+ */
+export function wyzeSaysFor(devices, id) {
+  if (!Array.isArray(devices) || !id) return null;
+  const d = devices.find((x) => x && x.stream === id);
+  if (!d || typeof d.online !== 'boolean') return null;
+  return d.online;
+}
+
+/** The one line a tile's Why? adds from Wyze's own word; '' when Wyze has none. */
+export function wyzeSaysLine(says) {
+  if (says === false) return 'Wyze itself reports this camera offline: it is down at the camera, not only out of the NAS\'s reach. Check its power and Wi-Fi where it hangs.';
+  if (says === true) return 'Wyze sees this camera online: it is on, and the Wyze app can show it through Wyze\'s own relay. Only the NAS has no road to it.';
+  return '';
+}
 
 /**
  * Add the wall up: how many cameras are showing a picture, and how many are
@@ -457,7 +479,7 @@ export const FAULT_LABELS = Object.freeze({
  * Pure, and honest about what it was given: a camera with no frame record yet
  * is neither live nor down — it is still being asked.
  */
-export function groupCameraFaults(cameras = [], frames = {}) {
+export function groupCameraFaults(cameras = [], frames = {}, devices = []) {
   const list = Array.isArray(cameras) ? cameras : [];
   const by = new Map();
   let live = 0;
@@ -468,7 +490,13 @@ export function groupCameraFaults(cameras = [], frames = {}) {
     if (!f) { waiting += 1; continue; }
     if (f.url && !f.error) { live += 1; continue; }
     if (!f.error) { waiting += 1; continue; }
-    const { kind } = humanizeCameraError(f.error);
+    let { kind } = humanizeCameraError(f.error);
+    // DR-0807: Wyze's own word tells a camera that is OFF from one that is on
+    // but out of the NAS's reach. Darrell 2026-10-07, the Wyze app open beside
+    // ours: "Some are actually down and others have been on continuously."
+    const says = wyzeSaysFor(devices, id);
+    if (says === false) kind = 'wyze-offline';
+    else if (says === true && kind === 'other-network') kind = 'other-network-on';
     if (!by.has(kind)) by.set(kind, []);
     by.get(kind).push((cam && cam.name) || id);
   }

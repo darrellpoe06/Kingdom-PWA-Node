@@ -47,7 +47,7 @@ import {
   WYZE_FIELDS, setupWyze, WYZE_API_KEY_HELP_URL, WYZE_API_KEY_STEPS,
   serviceCodeState, restartService, loadWyzeDraft, saveWyzeDraft, clearWyzeDraft,
   SNAP_CONCURRENCY, LIVE_RECONNECT_MAX, LIVE_RECONNECT_DELAY_MS, runLimited, skipFailedFrame,
-  classifySnapError, fetchWhy, groupCameraFaults, faultSummaryLine,
+  classifySnapError, fetchWhy, groupCameraFaults, faultSummaryLine, wyzeSaysFor, wyzeSaysLine,
   loadViews, saveViews, activeView, addToView, removeFromView, moveInView, setViewLayout, renameView, addView, deleteView, viewCols, viewGridClass, indexAtPoint, VIEW_LAYOUTS,
   fitGrid, clampScale, setViewScale, VIEW_SCALE_STEP, VIEW_SCALE_MIN, VIEW_SCALE_MAX, toggleFocus, focusIn, shownCount,
   CLIP_SIZE_TIERS, fetchClipSizes, waitForClipSize, clipDownloadName, clipTierLine, fetchStreamHealth, STREAM_HEALTH_POLL_MS, liveStreamId, streamHealthLine, dropLines,
@@ -1022,8 +1022,9 @@ function TileLive({ cam, token, liveMax, now, onFailed, sd = false }) {
 
 // WHY IS THIS TILE BLANK? (DR-0774). The NAS's /why answer, in plain words,
 // with go2rtc's own lines underneath for anyone who wants the raw truth.
-function WhyPanel({ cam, token, onHide, health = null }) {
+function WhyPanel({ cam, token, onHide, health = null, devices = null }) {
   const [r, setR] = useState(null);
+  const says = wyzeSaysLine(wyzeSaysFor(devices, cam.id)); // DR-0807: Wyze's own word, off vs out of reach
   const drops = health ? dropLines(health.events, cam.id) : [];
   const hl = health && health.cameras ? health.cameras[cam.id] : null;
   useEffect(() => { let on = true; fetchWhy(cam.id, token).then((x) => { if (on) setR(x); }); return () => { on = false; }; }, [cam.id, token]);
@@ -1034,6 +1035,7 @@ function WhyPanel({ cam, token, onHide, health = null }) {
         <>
           <div className={`font-semibold ${ex.kind === 'ok' ? 'text-[#2F6B3A]' : 'text-[#B85838]'}`}>{ex.headline}</div>
           {ex.lines.map((l) => <div key={l} className="text-[#5A5751] mt-0.5">{l}</div>)}
+          {says && ex.kind !== 'ok' ? <div className="text-[#1A1815] mt-0.5" data-testid={`why-wyze-${cam.id}`}>{says}</div> : null}
           {ex.log && ex.log.length ? (
             <details className="mt-1"><summary className="text-[#5A5751] cursor-pointer">What the restreamer logged</summary>
               <pre className="text-[0.625rem] whitespace-pre-wrap break-all mt-1">{ex.log.slice(-6).join('\n')}</pre>
@@ -1689,7 +1691,7 @@ export default function Cameras() {
               causes, nobody should have to press it 27 times to find that
               out. This adds up what the tiles already know, biggest first. */}
           {(() => {
-            const sum = groupCameraFaults(list.cameras, frames);
+            const sum = groupCameraFaults(list.cameras, frames, devicesState && devicesState.devices);
             const line = faultSummaryLine(sum);
             if (!line) return null;
             return (
@@ -1743,7 +1745,7 @@ export default function Cameras() {
                             <button type="button" onClick={() => setLiveId(isLive ? '' : cam.id)} className={`${btnGhost} focus:outline focus:outline-2 focus:outline-[#B85838]`}>{isLive ? 'Close' : 'Big'}</button>
                           </div>
                         </div>
-                        {why === cam.id ? <WhyPanel cam={cam} token={token} onHide={() => setWhy('')} health={streamHealth} /> : null}
+                        {why === cam.id ? <WhyPanel cam={cam} token={token} onHide={() => setWhy('')} health={streamHealth} devices={devicesState && devicesState.devices} /> : null}
                       </div>
                       {isLive ? <LiveVideo key={`live-${cam.id}`} cam={cam} token={token} liveMax={liveMax} now={now} onClose={() => setLiveId('')} /> : null}
                     </React.Fragment>
