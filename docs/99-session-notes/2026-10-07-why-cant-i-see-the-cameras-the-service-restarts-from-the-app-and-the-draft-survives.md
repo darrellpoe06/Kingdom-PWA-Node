@@ -25,6 +25,10 @@
 
 - PR #1985 merged 04:43:56 UTC. At 04:46 the agent dispatched `nas-clock.yml` on main with `also_run_once=true` (run 37573061542), which fires services-sync over the tailnet runner; the new installer restarts the forwarder on the code-sha change. The proof is the run's cams install step and `/cams/health` reporting the new sha; recorded in the PR once observed.
 
+## The witness that cried wolf (same session)
+
+`site-health.yml` run 37573386665: `/cams/health -> 200`, then `infra/nas-cameras/cams_forwarder.py: No such file or directory` at the sha compare added this morning (the job never checks out the repo), exit 1, incident #1986 opened with an empty reason. Every probed URL was 200. Fixed in this PR: main's copy is fetched from raw.githubusercontent.com, `on_disk` is read beside `forwarder`, and a fetch miss is a note, not a crash. The next green run closes #1986 itself.
+
 ## For Darrell
 
 Open Cameras. The four values are still in the boxes (and will be after the next deploy, too). Press **Sign in and add my cameras**. If the chip says "camera service behind its code", press **Update the camera service now** first; it is back in about ten seconds.

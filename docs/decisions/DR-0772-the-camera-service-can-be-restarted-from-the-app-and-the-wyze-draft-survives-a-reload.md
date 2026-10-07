@@ -31,6 +31,10 @@ tinyCam Pro, docker-wyze-bridge and go2rtc's `wyze:` source all take the same ro
 
 The camera road's one remaining human step is the Wyze account owner's four values, typed once and never lost. Everything else, including recovering from a stale process, is a tap in the app or an action the agent takes. Honest limits stand: Gwell models (Cam OG, Pan v4, Floodlight Pro) are not yet streamable by go2rtc; a camera tinyCam shows as "P2P camera offline" will be offline here too, and the tab will say so from the restreamer's own answer, not guess.
 
+## A false incident, found and closed in the same session
+
+Run 37573386665 of `site-health.yml`, dispatched to prove the restart, crashed at the forwarder-sha compare I added in #1985: the job has no checkout, so `sha256sum < infra/nas-cameras/cams_forwarder.py` read an empty workspace, the probe step exited 1 before writing its verdict, and the ledger filed incident #1986 as "probe step crashed before reporting" while every probed URL (the app, pages.dev, the backend, `/nas-photos/healthz`, `/cams/health`) had answered 200. A witness that fails on its own bug is the DR-0076 class in reverse: it claims a down site over an up one. The compare now fetches main's copy from GitHub, reads `on_disk` too, and a miss is noted, never fatal. The next passing run closes #1986 by the workflow's own recovery step.
+
 ## Verification
 
 - `cams_forwarder.py --selftest`: all checks green, section 8c new (no bearer → 401 and no exit; a bearer restart → 200 naming both shas, then exit 3 observed; a second tap inside 60 s → 429 with no second exit; allowed again after the window; a body changes nothing); `/health` names `on_disk`.
