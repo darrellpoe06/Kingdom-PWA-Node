@@ -613,6 +613,39 @@ describe('sov36 - proven-to-catch: the gate fails on a drifted verse, an unattri
     // And the real lesson, untouched, still passes - otherwise this is theatre.
     expect(hasAllThree(L())).toBe(true);
   });
+  it('THE PER-BAND CHECK IS NOT THEATRE: one band losing one direction leaves hasAllThree GREEN, and the literal check names the band', () => {
+    // hasAllThree(module) reads the three directions out of DIFFERENT places on
+    // purpose -- parents-to-children from the adult prose plus the senior band,
+    // children-to-parents from the young bands, friend-to-friend from anywhere.
+    // So a single band quietly losing its parents line is invisible to it: the
+    // senior band still carries one and the module still passes. That is the gap
+    // the literal per-surface assertion closes, and this is the proof.
+    const PARENTS = /Parents, ask your child/;
+    const CHILDREN = /[Cc]hildren, ask your mom, dad or grandparent/;
+    const FRIENDS = /Friends, tell one friend this week/;
+    const closeOf = (t) => t.slice(t.indexOf('TALK ABOUT IT TOGETHER.'));
+    // The real lesson: every surface carries all three.
+    for (const [where, t] of [['lesson', L().lesson], ...FULL_BANDS.map((b) => [b, L().levels[b]])]) {
+      const c = closeOf(t);
+      expect(PARENTS.test(c) && CHILDREN.test(c) && FRIENDS.test(c), `${where} carries all three`).toBe(true);
+    }
+    // Now take the parents sentence out of the YOUTH band only.
+    const youthClose = closeOf(L().levels.youth);
+    const parentsSentence = /Parents, ask your child[^.!?]*[.!?]/.exec(youthClose);
+    expect(parentsSentence, 'the youth close has a parents sentence to remove').toBeTruthy();
+    const maimed = {
+      ...L(),
+      levels: { ...L().levels, youth: L().levels.youth.replace(parentsSentence[0], '') },
+    };
+    // The module-level gate does not notice, which is exactly the point.
+    expect(hasAllThree(maimed), 'hasAllThree still passes - it cannot see one band').toBe(true);
+    expect(ownPrompts(maimed).parents, 'and it still finds a parents prompt elsewhere').toBeTruthy();
+    // The literal per-surface check names the band that lost it.
+    const lost = [['lesson', maimed.lesson], ...FULL_BANDS.map((b) => [b, maimed.levels[b]])]
+      .filter(([, t]) => !PARENTS.test(closeOf(t))).map(([where]) => where);
+    expect(lost, 'the per-surface check must name the youth band').toEqual(['youth']);
+  });
+
   it('week 36 missing, or a higher week filed before it, is caught', () => {
     expect(orderProblem(SOVEREIGN_AI_MODULES.filter((w) => w.id !== SOV36_ID))).toBe('sov36 missing');
     const shuffled = [...SOVEREIGN_AI_MODULES];
