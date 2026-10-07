@@ -32,11 +32,13 @@ describe('curriculum shape', () => {
     // parallel. Week 33 merged first, so the entry was deleted, which is exactly
     // what this assertion forces: it fails once a held number is no longer
     // missing, and a gap that is not recorded here fails.
-    // 35 IS HELD, recorded 2026-10-07: Sovereign A.I. week 35 is being written
-    // on a parallel branch while week 36 (the pile the machine made, DR-0792)
-    // lands here. The entry is deleted in the merge that brings week 35 in --
-    // which this assertion forces, because it fails the moment 35 is present.
-    const HELD_IN_FLIGHT = [35];
+    // 35 WAS HELD here, recorded 2026-10-07, while Sovereign A.I. week 35 (the
+    // new players, DR-0791) was written on a parallel branch and week 36 (the
+    // pile the machine made, DR-0792) was written here. Week 35 merged first,
+    // so the entry is DELETED in the merge that brought it in -- which is
+    // exactly what this assertion forces: it fails the moment a held number is
+    // no longer missing, so a hold cannot quietly become a permanent gap.
+    const HELD_IN_FLIGHT = [];
     const weeks = SOVEREIGN_AI_MODULES.map((m) => Number(m.id.match(/^sov(\d+)-/)?.[1]));
     // Strictly ascending: a doubled or misfiled week still fails.
     expect(weeks.every((n, i) => i === 0 || n > weeks[i - 1]), `weeks ascend: ${weeks.join(',')}`).toBe(true);

@@ -272,26 +272,25 @@ function unattributedQuotes(mod) {
   const nonScripture = (mod.lesson.match(/"[^"]+"/g) || []).filter((q) => !isWord(q));
   return { nonScripture, bad: nonScripture.filter((q) => !SOV34_ALLOWED.includes(q)) };
 }
-// Week 34 follows week 33, and every week filed before it parses lower.
-//
-// THIS CHECK USED TO SAY "LAST" (changed 2026-10-07, DR-0792). The original
-// form required sov34 to sit at the END of the series, and its own
-// proven-to-catch asserted that appending a `sov35-` week reports "not last".
-// That was true the day week 34 landed and false the moment any later week was
-// written: week 36 made this file red without week 34 changing by one letter.
-// A gate that fails on correct new work is not a brake, it is a tax -- so the
-// assertion is re-anchored to what week 34 actually promises (it comes directly
-// after week 33, and no higher week is filed before it), which stays true for
-// every later week and still fails on a week put in the wrong place.
+// Week 34 follows every week already present and precedes every later one —
+// 34 after 32 while 33 was held in flight, 34 after 33 once that lane landed.
+// It was ALSO asserted to be LAST, until week 35 (the new players) landed.
+// "Last" was never the property this gate wanted; it was a proxy for it while
+// 34 happened to be the newest week, and a proxy that makes the next lesson's
+// merge red is the wrong proxy. The real property is the ORDER, asserted in
+// both directions, so a later sibling week is not a red build while a week
+// filed out of order still fails.
 function orderProblem(modules) {
   const at = modules.findIndex((w) => w.id === SOV34_ID);
   if (at < 1) return 'sov34 missing';
-  if (!/^sov33-/.test(modules[at - 1].id)) return `week before sov34 is ${modules[at - 1].id}, not sov33`;
   const n = (m) => Number((/^sov(\d+)-/.exec(m.id) || [])[1]);
   const mine = n(modules[at]);
   if (mine !== 34) return `sov34 parses as week ${mine}`;
   for (const other of modules.slice(0, at)) {
     if (!(n(other) < mine)) return `week ${n(other)} is not before week ${mine}`;
+  }
+  for (const other of modules.slice(at + 1)) {
+    if (!(n(other) > mine)) return `week ${n(other)} is not after week ${mine}`;
   }
   return null;
 }
@@ -486,16 +485,15 @@ describe('sov34 — proven-to-catch: the gate fails on a drifted verse, an unatt
     expect(ownPrompts(cut).children).toBe('');
     expect(hasAllThree(cut)).toBe(false);
   });
-  it('week 34 missing, filed after the wrong week, or after a higher week, is caught', () => {
+  it('week 34 missing, or filed out of order in either direction, is caught — while a genuinely later week is not', () => {
     expect(orderProblem(SOVEREIGN_AI_MODULES.filter((w) => w.id !== SOV34_ID))).toBe('sov34 missing');
-    const at = SOVEREIGN_AI_MODULES.findIndex((w) => w.id === SOV34_ID);
-    const wrongPredecessor = [...SOVEREIGN_AI_MODULES];
-    wrongPredecessor.splice(at, 0, { id: 'sov99-a-week-from-the-future' });
-    expect(orderProblem(wrongPredecessor)).toMatch(/week before sov34 is sov99-a-week-from-the-future, not sov33/);
-    const no33 = SOVEREIGN_AI_MODULES.filter((w) => !/^sov33-/.test(w.id));
-    expect(orderProblem(no33)).toMatch(/week before sov34 is .*, not sov33/);
-    // A later week appended is CORRECT work and must stay green (DR-0792).
-    expect(orderProblem([...SOVEREIGN_AI_MODULES, { id: 'sov40-a-later-week' }])).toBeNull();
+    const earlierTooHigh = [...SOVEREIGN_AI_MODULES];
+    earlierTooHigh.splice(earlierTooHigh.findIndex((w) => w.id === SOV34_ID), 0, { id: 'sov99-a-week-from-the-future' });
+    expect(orderProblem(earlierTooHigh)).toMatch(/week 99 is not before week 34/);
+    const laterTooLow = [...SOVEREIGN_AI_MODULES, { id: 'sov5-a-duplicated-week' }];
+    expect(orderProblem(laterTooLow)).toMatch(/week 5 is not after week 34/);
+    // Week 35 landing after week 34 is the normal case, not a defect.
+    expect(orderProblem([...SOVEREIGN_AI_MODULES, { id: 'sov36-a-sibling-lane' }])).toBeNull();
   });
   it('a band that stops naming its lesson, or falls under a full reading, is caught', () => {
     const thin = 'The bounded answer: pick the answers first. TALK ABOUT IT TOGETHER.';
