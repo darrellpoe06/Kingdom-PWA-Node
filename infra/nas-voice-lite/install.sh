@@ -156,9 +156,18 @@ if [ ! -f "$UNIT" ] || ! cmp -s "$TMPU" "$UNIT"; then
   echo "  unit written"
 fi
 rm -f "$TMPU"
+# THE RUNNING PROCESS MUST FOLLOW THE CODE (2026-10-07). The service restarted
+# only when its UNIT changed, so a merge that changed voice_lite_server.py
+# (the pace, DR-0769) left the OLD process serving with the new file on disk.
+CODE_SHA="$(sha256sum < "$SRC/voice_lite_server.py" | cut -c1-16)"
+STAMP="$HOME_DIR/.code.sha"
+if [ "$(cat "$STAMP" 2>/dev/null)" != "$CODE_SHA" ]; then
+  NEED_RESTART=1
+  echo "  server code changed ($CODE_SHA) -- restarting so the running process follows the code"
+fi
 systemctl enable poetech-voice-lite >/dev/null 2>&1 || true
 if [ "$NEED_RESTART" = "1" ]; then
-  systemctl restart poetech-voice-lite
+  systemctl restart poetech-voice-lite && echo "$CODE_SHA" > "$STAMP"
 else
   systemctl is-active --quiet poetech-voice-lite || systemctl restart poetech-voice-lite || true
 fi

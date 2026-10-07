@@ -96,6 +96,23 @@ MAX_BODY = 4096
 
 CAMERA_ID = re.compile(r"^[A-Za-z0-9_.-]{1,64}$")
 
+# THE RUNNING CODE NAMES ITSELF (2026-10-07; Darrell: "how can we say something
+# is proven without explanation that fits the point"). A selftest proves what
+# the code DOES; it cannot prove the NAS RUNS it -- and on 2026-10-07 the NAS
+# served old code for an hour after a merge (the installer restarted only on a
+# unit change). /health now carries the sha of the file that is actually
+# serving, so the outside witness (site-health.yml) and the Cameras tab can
+# compare the running code with main instead of inferring it.
+def code_sha(path=None):
+    try:
+        with open(path or os.path.abspath(__file__), "rb") as fh:
+            return hashlib.sha256(fh.read()).hexdigest()[:16]
+    except OSError:
+        return "unknown"
+
+
+CODE_SHA = code_sha()
+
 # WYZE SIGN-IN FROM THE APP (2026-10-07; Darrell: "Is that the easiest way to
 # build it so I don't have to do much work for it to work right away?" -- no,
 # it was not). The two PowerShell steps (place wyze.env; tunnel to the WebUI
@@ -504,7 +521,7 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
                     count = len(parsed) if isinstance(parsed, dict) else 0
                 except ValueError:
                     count = 0
-                return self._json(200, {"ok": True, "go2rtc": version, "streams": count,
+                return self._json(200, {"ok": True, "go2rtc": version, "streams": count, "forwarder": CODE_SHA,
                                         "max_live": max_live, "live_max_seconds": int(live_max_seconds)})
             except (urllib.error.URLError, OSError, ValueError):
                 return self._json(502, {"ok": False, "error": "go2rtc-unreachable", "upstream": upstream})
@@ -734,6 +751,8 @@ def _selftest():
     s, _h, d = call("GET", "/health")
     j = json.loads(d)
     check(s == 200 and j.get("ok") is True and j.get("go2rtc") == "1.9.14-test" and j.get("streams") == 4, "GET /health -> 200 with go2rtc version + stream count")
+    check(re.match(r"^[0-9a-f]{16}$", str(j.get("forwarder", ""))) is not None and j.get("forwarder") == code_sha(), "GET /health names the sha of the code that is actually serving (the outside witness compares it with main)")
+    check(code_sha("/nonexistent/path") == "unknown", "a file that cannot be read names itself unknown, never a guess")
     s, _h, _d = call("GET", "/cams/health")
     check(s == 200, "GET /cams/health (un-stripped spelling) -> 200 too")
 

@@ -296,7 +296,7 @@ export default function Cameras() {
   const groups = groupByKind(list.cameras);
 
   const roadChip = health == null ? <span className={chip.muted}>checking the road</span>
-    : roadUp ? <span className={chip.ok}>NAS restreamer up{health.go2rtc ? ` · go2rtc ${health.go2rtc}` : ''}{Number.isFinite(Number(health.streams)) ? ` · ${health.streams} stream${Number(health.streams) === 1 ? '' : 's'}` : ''}</span>
+    : roadUp ? <span className={chip.ok}>NAS restreamer up{health.go2rtc ? ` · go2rtc ${health.go2rtc}` : ''}{Number.isFinite(Number(health.streams)) ? ` · ${health.streams} stream${Number(health.streams) === 1 ? '' : 's'}` : ''}{health.forwarder ? ` · forwarder ${health.forwarder}` : ''}</span>
     : <span className={chip.blocked}>{health.status === 502 ? 'restreamer dark' : health.status ? `road HTTP ${health.status}` : 'road unreachable'}</span>;
 
   // The live view, rendered IN PLACE under the tapped tile (a full-width grid

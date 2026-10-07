@@ -88,6 +88,19 @@ SPEED_MIN = 0.5
 SPEED_MAX = 2.0
 
 
+def code_sha(path=None):
+    """The sha of the file actually serving: /health names it so the outside
+    witness can see which code the NAS runs (2026-10-07), not infer it."""
+    try:
+        with open(path or os.path.abspath(__file__), "rb") as fh:
+            return hashlib.sha256(fh.read()).hexdigest()[:16]
+    except OSError:
+        return "unknown"
+
+
+CODE_SHA = code_sha()
+
+
 def clamp_speed(value):
     """The pace the voice is asked to speak at: a number in SPEED_MIN..SPEED_MAX, else 1.0."""
     try:
@@ -292,7 +305,7 @@ def make_handler(engine, token, cache_dir, max_inflight=MAX_INFLIGHT, encoder=No
             voices = engine.available_voices()
             if not voices:
                 return self._json(503, {"ok": False, "error": "piper-not-installed"})
-            return self._json(200, {"ok": True, "voices": voices, "formats": formats})
+            return self._json(200, {"ok": True, "voices": voices, "formats": formats, "code": CODE_SHA})
 
         def do_POST(self):
             path = self.path.split("?", 1)[0]
@@ -411,8 +424,9 @@ def _selftest():
         c.close()
         return out
 
-    s, _, _ = req("GET", "/health", auth=None)
+    s, _, b = req("GET", "/health", auth=None)
     check(s == 200, "health 200 when piper + voices are installed")
+    check(json.loads(b).get("code") == code_sha() and len(code_sha()) == 16, "health names the sha of the code that is serving")
     s, _, _ = req("GET", "/voice-lite/health", auth=None)
     check(s == 200, "prefixed health spelling answers too")
     eng.installed = False
