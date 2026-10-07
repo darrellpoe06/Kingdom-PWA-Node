@@ -955,3 +955,81 @@ export async function approvePairing(code, { name, cameras = '*', days = 0, acti
     return { ok: false, message: 'The camera road did not answer. Nothing was approved.' };
   }
 }
+
+
+// =============================================================================
+// THE LIVE ROAD IS CHOSEN FROM WHAT WORKED (Darrell 2026-10-07: "All options...
+// HLS... what works consistently... or a mixture so we can choose what seems
+// to be the best option at that time?"). A browser has exactly two live roads
+// from the restreamer: progressive MP4 and HLS (RTSP and the camera's own IP
+// are roads for apps like tinyCam, not for a browser). Frames every 5 s are
+// the third, always-works road. This device remembers how each live road did
+// (first picture, stalls, failures) and Auto picks the better record; the
+// person can pin a road instead. A road that fails under Auto is swapped for
+// the other on the next reconnect, so the mixture chooses itself.
+// =============================================================================
+export const LIVE_ROADS = Object.freeze(['auto', 'mp4', 'hls']);
+export const LIVE_ROAD_KEY = 'poetech.cameras.live-road.v1';
+export const LIVE_ROAD_STATS_KEY = 'poetech.cameras.live-road-stats.v1';
+export function roadLabel(road) {
+  return road === 'mp4' ? 'MP4' : road === 'hls' ? 'HLS' : 'Auto';
+}
+function roadStore(storage) {
+  if (storage) return storage;
+  try { return globalThis.localStorage || null; } catch { return null; }
+}
+export function loadLiveRoad(storage = null) {
+  try { const v = roadStore(storage).getItem(LIVE_ROAD_KEY) || ''; return LIVE_ROADS.includes(v) ? v : 'auto'; } catch { return 'auto'; }
+}
+export function saveLiveRoad(road, storage = null) {
+  if (!LIVE_ROADS.includes(road)) return false;
+  try { roadStore(storage).setItem(LIVE_ROAD_KEY, road); return true; } catch { return false; }
+}
+export function loadRoadStats(storage = null) {
+  try {
+    const j = JSON.parse(roadStore(storage).getItem(LIVE_ROAD_STATS_KEY) || '{}');
+    return j && typeof j === 'object' ? j : {};
+  } catch { return {}; }
+}
+// One measured outcome for a road: {ok: boolean, firstFrameMs, stalls}.
+export function recordRoadResult(mode, { ok, firstFrameMs = null, stalls = 0 } = {}, storage = null) {
+  if (mode !== 'mp4' && mode !== 'hls') return null;
+  const all = loadRoadStats(storage);
+  const r = all[mode] || { tries: 0, ok: 0, failed: 0, firstFrameMs: [], stalls: 0 };
+  r.tries += 1;
+  if (ok) r.ok += 1; else r.failed += 1;
+  if (Number.isFinite(firstFrameMs)) r.firstFrameMs = [...(r.firstFrameMs || []), Math.round(firstFrameMs)].slice(-10);
+  r.stalls = (r.stalls || 0) + (Number(stalls) || 0);
+  r.at = Date.now();
+  all[mode] = r;
+  try { roadStore(storage).setItem(LIVE_ROAD_STATS_KEY, JSON.stringify(all)); } catch { /* fine */ }
+  return r;
+}
+export function roadScore(r) {
+  if (!r || !r.tries) return null;
+  const okRate = r.ok / r.tries;
+  const ff = (r.firstFrameMs || []);
+  const median = ff.length ? [...ff].sort((a, b) => a - b)[Math.floor(ff.length / 2)] : 5000;
+  // success first, then speed to the first picture, then stalls per try
+  return okRate * 100 - median / 1000 - (r.stalls / r.tries) * 2;
+}
+// Auto: the better measured road; with nothing measured, the device's default
+// (pickLiveMode). A pinned road is itself. `avoid` is the road that just failed.
+export function chooseLiveRoad({ pref = 'auto', stats = {}, canPlayType = null, userAgent = null, avoid = '' } = {}) {
+  if (pref === 'mp4' || pref === 'hls') return pref;
+  const base = pickLiveMode(canPlayType, userAgent);
+  const other = base === 'mp4' ? 'hls' : 'mp4';
+  if (avoid) return avoid === base ? other : base;
+  const a = roadScore(stats[base]); const b = roadScore(stats[other]);
+  if (a == null && b == null) return base;
+  if (a == null) return b > 60 ? other : base;
+  if (b == null) return a < 50 ? other : base;
+  return b > a + 5 ? other : base;
+}
+export function roadLine(stats, mode) {
+  const r = stats && stats[mode];
+  if (!r || !r.tries) return `${roadLabel(mode)} · not tried here yet`;
+  const ff = (r.firstFrameMs || []);
+  const median = ff.length ? [...ff].sort((a, b) => a - b)[Math.floor(ff.length / 2)] : null;
+  return `${roadLabel(mode)} · ${r.ok} of ${r.tries} opened${median != null ? ` · first picture ${(median / 1000).toFixed(1)} s` : ''}${r.stalls ? ` · ${r.stalls} stall${r.stalls === 1 ? '' : 's'}` : ''}`;
+}

@@ -342,6 +342,118 @@ export async function checkForLatest(registration, opts = {}) {
   return { result: 'latest', pending: null };
 }
 
+// -----------------------------------------------------------------------------
+// THE SERVER IS ASKED WHICH BUILD IS LIVE (2026-10-07, DR-0781). Everything
+// above reacts to a worker the BROWSER discovered. Darrell's tablet sat on
+// build 847EC24 six deploys behind, with the header reading "LATEST", because
+// "latest" only meant "no new worker is waiting here" -- a statement about the
+// device, never a measurement of the server (DR-0076: measure, don't claim).
+// This asks the server: GET build.json (written beside the bundle by
+// vite.config.js, never cached by _headers, fetched with cache: 'no-store' and
+// a cache-busting query) and compares its sha with the build this page runs.
+//   same      -> 'latest'  (a measured statement now)
+//   different -> 'behind'  -> BUILD_BEHIND_EVENT, then the device is brought
+//                forward: registration.update() so the normal seamless path
+//                (new worker -> skip-waiting -> single reload) can run; if no
+//                worker has appeared within BEHIND_RELOAD_MS and the server is
+//                still ahead, ONE guarded reload (the shell is fetched
+//                network-first with no-store, so the reload lands on the new
+//                build even when the worker path is broken). The reload uses
+//                the same sentinel as the worker path, so a loop is detected
+//                the same way and never spins the device.
+//   unreadable -> 'unknown' (offline, 404 on an older deploy): nothing said,
+//                nothing done; "unknown" never reads as "latest" (DR-0125).
+// Checked on wire, on every visibility regain, and every UPDATE_CHECK_MS.
+// -----------------------------------------------------------------------------
+export const BUILD_BEHIND_EVENT = 'poetech:build-behind';
+export const BUILD_JSON_PATH = '/poetech-app/build.json';
+export const BEHIND_RELOAD_MS = 8000;
+
+export function compareBuild(mine, live) {
+  const a = String(mine || '').trim().toLowerCase();
+  const b = live && typeof live.sha === 'string' ? live.sha.trim().toLowerCase() : '';
+  if (!a || !b || a === 'dev' || b === 'dev' || a === '????') return 'unknown';
+  return a === b ? 'latest' : 'behind';
+}
+
+export async function fetchLiveBuild(fetchImpl, path = BUILD_JSON_PATH, now = Date.now()) {
+  const f = fetchImpl || (typeof fetch === 'function' ? fetch : null);
+  if (!f) return null;
+  try {
+    const r = await f(`${path}?b=${now}`, { cache: 'no-store', credentials: 'omit' });
+    if (!r || !r.ok) return null;
+    const j = await r.json();
+    return j && typeof j.sha === 'string' ? { sha: j.sha, time: typeof j.time === 'string' ? j.time : '' } : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+export function watchLiveBuild(registration, win, opts = {}) {
+  const w = win || (typeof window !== 'undefined' ? window : undefined);
+  const mine = typeof opts.buildSha === 'string' ? opts.buildSha : (typeof __BUILD_SHA__ !== 'undefined' ? __BUILD_SHA__ : '');
+  const every = typeof opts.everyMs === 'number' ? opts.everyMs : UPDATE_CHECK_MS;
+  const reloadAfter = typeof opts.reloadAfterMs === 'number' ? opts.reloadAfterMs : BEHIND_RELOAD_MS;
+  const setT = opts.setTimeout || ((w && typeof w.setTimeout === 'function') ? w.setTimeout.bind(w) : (typeof setTimeout === 'function' ? setTimeout : null));
+  const setI = opts.setInterval || ((w && typeof w.setInterval === 'function') ? w.setInterval.bind(w) : (typeof setInterval === 'function' ? setInterval : null));
+  const state = { checks: 0, behind: 0, updates: 0, reloads: 0, last: 'unknown', live: null };
+  // We reloaded for a behind-server verdict last page-life and are STILL on the
+  // same build: reloading again would spin. Say so (the stuck hint) and stop.
+  const justReloaded = readReloading(w) != null;
+  let armed = false;
+
+  const check = async () => {
+    state.checks += 1;
+    const live = await fetchLiveBuild(opts.fetchImpl, opts.path);
+    state.live = live;
+    const verdict = compareBuild(mine, live);
+    state.last = verdict;
+    if (verdict !== 'behind') return verdict;
+    state.behind += 1;
+    dispatch(w, BUILD_BEHIND_EVENT, { live, mine });
+    if (registration && typeof registration.update === 'function') {
+      try { registration.update(); state.updates += 1; } catch (_) { /* noop */ }
+    }
+    if (armed || state.reloads) return verdict;
+    if (justReloaded && mine && w && w.__pwaBehindSha === live.sha) {
+      try { w.__pwaUpdateStuck = true; } catch (_) { /* noop */ }
+      dispatch(w, UPDATE_STUCK_EVENT, { reg: registration });
+      return verdict;
+    }
+    armed = true;
+    if (setT) {
+      setT(() => {
+        // The worker path may have taken over by now (a waiting worker, or the
+        // swap already reloaded us). Only when nothing moved do we reload.
+        const waiting = !!(registration && (registration.waiting || registration.installing));
+        if (waiting) return;
+        state.reloads += 1;
+        try { if (w) w.__pwaBehindSha = live.sha; } catch (_) { /* noop */ }
+        markReloading(w);
+        doReload(w);
+      }, reloadAfter);
+    }
+    return verdict;
+  };
+
+  check();
+  try {
+    if (w && typeof w.addEventListener === 'function') {
+      w.addEventListener('visibilitychange', () => {
+        const doc = w.document;
+        if (!doc || doc.visibilityState === 'visible') check();
+      });
+    }
+    if (every > 0 && setI) {
+      setI(() => {
+        const doc = w && w.document;
+        if (!doc || doc.visibilityState === 'visible') check();
+      }, every);
+    }
+  } catch (_) { /* noop */ }
+  return { state, check };
+}
+
 // Proactively ask the browser to re-check for a new worker. The browser only
 // checks on navigation / ~24h by default, so a long-lived installed PWA (iOS
 // home-screen especially) can sit on an old build for days without this. Safe

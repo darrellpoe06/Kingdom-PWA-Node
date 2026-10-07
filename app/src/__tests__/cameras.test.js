@@ -21,6 +21,7 @@ import {
   streamNameFor, parseDevices, classifyDevicesResult, classifyActionResult, fetchDevices, runDeviceAction, setupWyzeAgain, garagesFor, wyzeKept,
   GRANT_KEY, GRANT_DAYS_CHOICES, adoptGrantFromUrl, grantToken, saveGrantToken, cameraCredential, parseGrants, grantState, grantLine, grantLink, fetchGrants, createGrant, revokeGrant,
   normalizePairCode, readPairParam, pairLink, startPairing, pollPairing, approvePairing, PAIR_POLL_MS,
+  LIVE_ROADS, loadLiveRoad, saveLiveRoad, loadRoadStats, recordRoadResult, roadScore, chooseLiveRoad, roadLine, LIVE_ROAD_KEY,
 } from '../lib/cameras.js';
 
 describe('the road: every URL is same-origin under /cams', () => {
@@ -662,5 +663,54 @@ describe('screen pairing: the code, the QR link, the poll, the approval', () => 
     expect((await pollPairing('ABC234', 'w', async () => ({ status: 200, json: async () => ({ status: 'waiting' }) }))).status).toBe('waiting');
     expect((await approvePairing('ABC234', { name: 'TV' }, 'tok', async () => ({ status: 404, json: async () => ({ error: 'no-such-code' }) }))).message).toMatch(/not waiting/);
     expect((await approvePairing('ABC234', { name: 'TV' }, 'tok', async () => { throw new TypeError('x'); })).message).toMatch(/Nothing was approved/);
+  });
+});
+
+// DR-0782: the live road is chosen from what worked on this device.
+describe('the live road: Auto from the record, a pin honoured, a failed road swapped', () => {
+  const mem = () => { const m = new Map(); return { getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), removeItem: (k) => m.delete(k) }; };
+  const chromeUA = 'Mozilla/5.0 (Linux; Android 14; SM-X900) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130 Safari/537.36';
+  const iosUA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1';
+  it('the preference is remembered on the device and junk reads as Auto', () => {
+    const st = mem();
+    expect(loadLiveRoad(st)).toBe('auto');
+    expect(saveLiveRoad('hls', st)).toBe(true);
+    expect(st.getItem(LIVE_ROAD_KEY)).toBe('hls');
+    expect(loadLiveRoad(st)).toBe('hls');
+    expect(saveLiveRoad('rtsp', st)).toBe(false);
+    expect(LIVE_ROADS).toEqual(['auto', 'mp4', 'hls']);
+  });
+  it('a pinned road is itself; Auto with nothing measured is the device default (MP4 everywhere but Apple)', () => {
+    expect(chooseLiveRoad({ pref: 'hls', userAgent: chromeUA })).toBe('hls');
+    expect(chooseLiveRoad({ pref: 'mp4', userAgent: iosUA })).toBe('mp4');
+    expect(chooseLiveRoad({ pref: 'auto', userAgent: chromeUA })).toBe('mp4');
+    expect(chooseLiveRoad({ pref: 'auto', userAgent: iosUA, canPlayType: () => 'maybe' })).toBe('hls');
+  });
+  it('the record is written per road and Auto reads it: a road that keeps failing loses to one that opened', () => {
+    const st = mem();
+    recordRoadResult('mp4', { ok: false }, st);
+    recordRoadResult('mp4', { ok: false }, st);
+    recordRoadResult('mp4', { ok: false }, st);
+    recordRoadResult('hls', { ok: true, firstFrameMs: 1800, stalls: 1 }, st);
+    const stats = loadRoadStats(st);
+    expect(stats.mp4.tries).toBe(3); expect(stats.mp4.failed).toBe(3);
+    expect(stats.hls.ok).toBe(1); expect(stats.hls.firstFrameMs).toEqual([1800]);
+    expect(roadScore(stats.mp4)).toBeLessThan(roadScore(stats.hls));
+    expect(chooseLiveRoad({ pref: 'auto', stats, userAgent: chromeUA })).toBe('hls');
+    expect(roadLine(stats, 'hls')).toBe('HLS · 1 of 1 opened · first picture 1.8 s · 1 stall');
+    expect(roadLine(stats, 'mp4')).toBe('MP4 · 0 of 3 opened');
+    expect(roadLine({}, 'mp4')).toBe('MP4 · not tried here yet');
+    expect(recordRoadResult('rtsp', { ok: true }, st)).toBeNull();
+  });
+  it('under Auto, the road that just failed is swapped for the other on the reconnect', () => {
+    expect(chooseLiveRoad({ pref: 'auto', userAgent: chromeUA, avoid: 'mp4' })).toBe('hls');
+    expect(chooseLiveRoad({ pref: 'auto', userAgent: chromeUA, avoid: 'hls' })).toBe('mp4');
+    expect(chooseLiveRoad({ pref: 'mp4', userAgent: chromeUA, avoid: 'mp4' })).toBe('mp4'); // a pin is a pin
+  });
+  it('a good measured default keeps its place; the other road must be clearly better to win', () => {
+    const st = mem();
+    recordRoadResult('mp4', { ok: true, firstFrameMs: 900 }, st);
+    recordRoadResult('hls', { ok: true, firstFrameMs: 1000 }, st);
+    expect(chooseLiveRoad({ pref: 'auto', stats: loadRoadStats(st), userAgent: chromeUA })).toBe('mp4');
   });
 });

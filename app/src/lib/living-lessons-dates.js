@@ -235,4 +235,5 @@ export const LIVING_LESSONS_ADDED = {
   'll209-the-step-and-the-wait-the-work-of-your-hands-yahweh-promotes-and-the-wait-is-his': '2026-10-06', // added with the lesson (DR-0755); sent into the app by email by Darrell 2026-10-06 marked Lesson, and authored the same day
   'll210-what-really-drives-innovation-know-the-flock-and-build-what-edifies': '2026-10-06', // added with the lesson (DR-0759); forwarded into the app by email by Darrell 2026-10-06 marked Lesson/s, Word first, and authored the same day
   'll213-a-snag-in-the-theory-what-the-report-establishes-what-is-honestly-open-and-who-framed-the-worlds': '2026-10-06', // added with the lesson (DR-0763); forwarded into the app by email by Darrell 2026-10-06 marked Lesson, and authored the same day
+  'll214-sons-of-yahweh-whom-he-made-whom-he-begot-and-whom-he-adopts': '2026-10-07', // added with the lesson (DR-0780); written into the app by Darrell 2026-10-07 marked Lesson (Psalms 2:7 beside Hebrews 1:5: were the angels not sons?), and authored the same day
 };

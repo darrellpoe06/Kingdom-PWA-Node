@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom/client';
 import { storage } from './shims/storage.js';
 import './index.css';
 import { ErrorBoundary } from './components/ErrorBoundary.jsx';
-import { wireUpdates, startUpdateChecks } from './lib/sw-update.js';
+import { wireUpdates, startUpdateChecks, watchLiveBuild } from './lib/sw-update.js';
 import { adoptGrantFromUrl } from './lib/cameras.js';
 import { wireChunkHeal } from './lib/chunk-reload-heal.js';
 import { showBootFallback } from './lib/boot-fallback.js';
@@ -392,5 +392,7 @@ if (!__standalone && !isNativeShell(window) && 'serviceWorker' in navigator) {
     } catch (err) {
       console.warn('Service worker registration failed:', err);
     }
+    // The server is asked which build is live, whatever the worker did (DR-0781).
+    try { watchLiveBuild(window.__pwaReg || null, window); } catch (_) { /* never blocks boot */ }
   });
 }

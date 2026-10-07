@@ -398,7 +398,7 @@ describe('Cameras surface', () => {
     // jsdom's <video> answers '' to canPlayType, so the device gets MP4 — and the URL carries the ticket as t=
     expect(video.getAttribute('src')).toBe('/cams/live/front_yard.mp4?t=9999999999.abcdef');
     expect(video.hasAttribute('playsinline')).toBe(true);
-    expect(container.textContent).toMatch(/MP4 · this device plays it natively/);
+    expect(container.textContent).toMatch(/Auto chose MP4/);
     expect(container.textContent).toMatch(/waiting for the first picture/);
     // in place: the live row is the next sibling of the tapped tile, inside the same grid
     const liveRow = container.querySelector('[data-testid="live-view"]');

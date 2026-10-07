@@ -39,7 +39,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { setReadTarget, clearReadTarget, requestRead } from '../lib/read-target.js';
 import {
   SNAPSHOT_INTERVAL_MS, FETCH_TIMEOUT_MS, LIVE_FIRST_FRAME_TIMEOUT_MS,
-  healthUrl, listUrl, ticketUrl, snapUrl, liveUrl, pickLiveMode,
+  healthUrl, listUrl, ticketUrl, snapUrl, liveUrl,
   parseCameraList, groupByKind, KINDS, classifyServiceState,
   formatAge, formatBytes, fetchWithTimeout, authHeaders, setupCommands,
   WYZE_FIELDS, setupWyze, WYZE_API_KEY_HELP_URL, WYZE_API_KEY_STEPS,
@@ -51,6 +51,7 @@ import {
   fetchDevices, runDeviceAction, setupWyzeAgain, wyzeKept, garagesFor, ACTION_REARM_MS,
   cameraCredential, saveGrantToken, fetchGrants, createGrant, revokeGrant, grantLine, grantState, grantLink, GRANT_DAYS_CHOICES,
   startPairing, pollPairing, approvePairing, pairLink, readPairParam, stripPairParam, normalizePairCode, PAIR_TIMING,
+  LIVE_ROADS, roadLabel, loadLiveRoad, saveLiveRoad, loadRoadStats, recordRoadResult, chooseLiveRoad, roadLine,
 } from '../lib/cameras.js';
 
 // THE STEPS CAN BE HEARD (2026-10-07; Darrell: "possible tutorial... Ari
@@ -555,8 +556,11 @@ function AccessChip({ access, onLeave }) {
 
 function LiveVideo({ cam, token, liveMax, onClose, compact = false, testId = 'live-view', now }) {
   const [st, setSt] = useState({ mode: '', src: '', startedAt: Date.now(), firstFrameMs: null, stalls: 0, ended: false, error: '', opening: true, reconnects: 0, exhausted: false });
+  const [road, setRoadRaw] = useState(() => loadLiveRoad());
+  const setRoad = (r) => { saveLiveRoad(r); setRoadRaw(r); };
   const timers = useRef({ first: null, reopen: null, video: null });
   const alive = useRef(true);
+  const lastFailed = useRef('');
 
   const open = useCallback(async (reconnects) => {
     clearTimeout(timers.current.first);
@@ -567,7 +571,8 @@ function LiveVideo({ cam, token, liveMax, onClose, compact = false, testId = 'li
       const { ticket } = await r.json();
       if (!alive.current) return;
       const probe = typeof document !== 'undefined' ? document.createElement('video') : null;
-      const mode = pickLiveMode(probe && typeof probe.canPlayType === 'function' ? (t) => probe.canPlayType(t) : null);
+      const mode = chooseLiveRoad({ pref: road, stats: loadRoadStats(), canPlayType: probe && typeof probe.canPlayType === 'function' ? (t) => probe.canPlayType(t) : null, avoid: lastFailed.current });
+      lastFailed.current = '';
       const startedAt = Date.now();
       setSt((p) => ({ ...p, mode, src: liveUrl(cam.id, mode, ticket), startedAt, firstFrameMs: null, stalls: 0, ended: false, error: '', opening: false }));
       timers.current.first = setTimeout(() => {
@@ -579,7 +584,7 @@ function LiveVideo({ cam, token, liveMax, onClose, compact = false, testId = 'li
       if (!alive.current) return;
       setSt((p) => ({ ...p, opening: false, error: String((e && e.message) || e) }));
     }
-  }, [cam.id, token]);
+  }, [cam.id, token, road]);
 
   useEffect(() => {
     alive.current = true;
@@ -593,10 +598,15 @@ function LiveVideo({ cam, token, liveMax, onClose, compact = false, testId = 'li
     };
   }, [open]);
 
-  // The stream ended or broke without the viewer closing it: come back.
+  // The stream ended or broke without the viewer closing it: come back. The
+  // road's record is written (DR-0782) and, under Auto, a road that failed to
+  // open is swapped for the other on the way back.
   const endedOnItsOwn = useCallback((reason) => {
     setSt((p) => {
       if (p.ended) return p;
+      const opened = p.firstFrameMs != null;
+      recordRoadResult(p.mode, { ok: opened, firstFrameMs: p.firstFrameMs, stalls: p.stalls });
+      if (!opened) lastFailed.current = p.mode;
       const n = p.reconnects;
       if (n < LIVE_RECONNECT_MAX) {
         clearTimeout(timers.current.reopen);
@@ -607,7 +617,12 @@ function LiveVideo({ cam, token, liveMax, onClose, compact = false, testId = 'li
     });
   }, [open]);
 
-  const onLoadedData = () => setSt((p) => (p.firstFrameMs == null ? { ...p, firstFrameMs: Date.now() - p.startedAt, error: '' } : p));
+  const onLoadedData = () => setSt((p) => {
+    if (p.firstFrameMs != null) return p;
+    const ms = Date.now() - p.startedAt;
+    recordRoadResult(p.mode, { ok: true, firstFrameMs: ms, stalls: 0 }); // the road opened: that is the record Auto reads next time
+    return { ...p, firstFrameMs: ms, error: '' };
+  });
   const onWaiting = () => setSt((p) => ({ ...p, stalls: (p.stalls || 0) + 1 }));
   const onEnded = () => endedOnItsOwn(liveMax > 0 && (Date.now() - st.startedAt) >= (liveMax - 2) * 1000 ? `the NAS clock ended it at ${liveMax} s` : 'the stream ended on its own');
   const onError = () => endedOnItsOwn(st.firstFrameMs == null ? 'the browser could not open this stream' : 'the stream broke');
@@ -625,7 +640,15 @@ function LiveVideo({ cam, token, liveMax, onClose, compact = false, testId = 'li
           <div className={`${compact ? 'text-sm' : 'text-base'} font-semibold text-[#1A1815] truncate`}>{cam.name}</div>
         </div>
         <div className="flex items-center gap-2">
-          {st.mode && !compact ? <span className={chip.muted}>{st.mode === 'hls' ? 'HLS · this device plays it natively' : 'MP4 · this device plays it natively'}</span> : null}
+          {!compact ? (
+            <label className="inline-flex items-center gap-1 text-[0.625rem] text-[#5A5751]">
+              <span>Road</span>
+              <select className="border border-[#B8B4AC] bg-white text-[#1A1815] text-[0.6875rem] px-1 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]" value={road} onChange={(e) => setRoad(e.target.value)} aria-label="Which live road this device uses" data-testid={`${testId}-road`}>
+                {LIVE_ROADS.map((r) => <option key={r} value={r}>{roadLabel(r)}</option>)}
+              </select>
+            </label>
+          ) : null}
+          {st.mode && !compact ? <span className={chip.muted} title={roadLine(loadRoadStats(), st.mode)} data-testid={`${testId}-mode`}>{road === 'auto' ? `Auto chose ${roadLabel(st.mode)}` : `${roadLabel(st.mode)} · pinned`}</span> : null}
           <button type="button" onClick={onClose} className={`${compact ? btnGhost : btnDark} focus:outline focus:outline-2 focus:outline-[#B85838]`}>{compact ? 'Remove' : 'Close'}</button>
         </div>
       </div>
@@ -648,6 +671,7 @@ function LiveVideo({ cam, token, liveMax, onClose, compact = false, testId = 'li
         </div>
         {st.exhausted ? <button type="button" className={`${btnDark} focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={() => open(0)}>Resume</button> : null}
       </div>
+      {!compact ? <div className="mt-1 text-[0.625rem] text-[#5A5751]" data-testid={`${testId}-roads`}>{roadLine(loadRoadStats(), 'mp4')} · {roadLine(loadRoadStats(), 'hls')} · frames every 5 s always work</div> : null}
     </div>
   );
 }
@@ -670,7 +694,7 @@ function TileLive({ cam, token, liveMax, now, onFailed }) {
       const { ticket } = await r.json();
       if (!alive.current) return;
       const probe = typeof document !== 'undefined' ? document.createElement('video') : null;
-      const mode = pickLiveMode(probe && typeof probe.canPlayType === 'function' ? (t) => probe.canPlayType(t) : null);
+      const mode = chooseLiveRoad({ pref: loadLiveRoad(), stats: loadRoadStats(), canPlayType: probe && typeof probe.canPlayType === 'function' ? (t) => probe.canPlayType(t) : null });
       setSt((p) => ({ ...p, src: liveUrl(cam.id, mode, ticket), startedAt: Date.now() }));
       timers.current.first = setTimeout(() => {
         setSt((p) => (p.firstFrameMs == null && !p.ended && p.src) ? { ...p, error: 'no picture' } : p);
