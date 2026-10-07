@@ -457,6 +457,7 @@ export const HELP = {
       'Full screen (on the left rail) leaves only the Word and the voice; Back on the remote, Esc, or the faint Controls mark in the corner brings the controls back.',
       'On a TV the bottom bar also has Up and Down, which move the page most of a screen per press, and every list opens to its full height so nothing is cut off.',
       'After a reading, the panel says what it did, including the waits between sentences and where the longest one was, so a slow reading comes with its numbers.',
+      'The same line says the pace: what pace the voice spoke at, whether the player stretched it (below 1× slurs words), about how many letters a second you heard, and whether this device took longer to play a sentence than the sentence was. Changing speed mid-reading asks the voice again at the new pace from the next sentence, so nothing is stretched.',
     ],
     why: 'Hearing the words opens the app to people who would rather listen than read — the "hear" half of seeing and hearing, built for every age and ability.',
     section: 'create',

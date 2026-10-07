@@ -20,6 +20,8 @@ export const TRIPS_KEY = 'poe-reader-trips:v1';
 export const TRIPS_KEPT = 10;
 /** A wait between sentences this long is one the listener notices. */
 export const LONG_WAIT_MS = 1000;
+/** A sentence the device took this many times its own length to play was dragged (DR-0794). */
+export const DRAG_RATIO = 1.2;
 
 const defaultStorage = () => {
   try { return globalThis.localStorage; } catch { return null; }
@@ -108,6 +110,31 @@ export function createTripLog({ storage = defaultStorage(), now = () => Date.now
         }
         return;
       }
+      if (kind === 'pace') { // the pace of every piece, summed (DR-0794): one row, not one per sentence
+        const p = current.pace || { n: 0, chars: 0, clipS: 0, timed: 0, wallS: 0, expectS: 0, dragged: 0, worst: 0, worstAt: -1, rateMin: null, rateMax: null, voicePace: null, mixedPace: false };
+        const clipS = Number(detail.clipS);
+        if (Number.isFinite(clipS) && clipS > 0) { p.n += 1; p.chars += Number(detail.chars) || 0; p.clipS += clipS; }
+        const rate = Number(detail.playbackRate);
+        if (Number.isFinite(rate) && rate > 0) {
+          p.rateMin = p.rateMin == null ? rate : Math.min(p.rateMin, rate);
+          p.rateMax = p.rateMax == null ? rate : Math.max(p.rateMax, rate);
+        }
+        const sp = Number(detail.pieceSpeed);
+        if (Number.isFinite(sp) && sp > 0) {
+          if (p.voicePace == null) p.voicePace = sp; else if (p.voicePace !== sp) p.mixedPace = true;
+        }
+        // Wall time counts only a piece that played through unpaused, start to end.
+        const wallMs = Number(detail.wallMs);
+        if (!detail.paused && Number.isFinite(wallMs) && wallMs > 0 && Number.isFinite(clipS) && clipS > 0 && Number.isFinite(rate) && rate > 0) {
+          const expectS = clipS / rate;
+          p.timed += 1; p.wallS += wallMs / 1000; p.expectS += expectS;
+          const ratio = (wallMs / 1000) / expectS;
+          if (ratio > p.worst) { p.worst = ratio; p.worstAt = Number(detail.i); }
+          if (ratio >= DRAG_RATIO) p.dragged += 1;
+        }
+        current.pace = p;
+        return;
+      }
       if (kind === 'voice') current.voice = String(detail.kind || '');
       current.events.push({ ...detail, at: now() - current.startedAt, kind: String(kind) });
       if (current.events.length > 60) current.events.splice(0, current.events.length - 60);
@@ -158,6 +185,37 @@ export function waitsLine(w) {
   return `waits between sentences: typical ${typical}${longest}${long}; ${from}`;
 }
 
+const fmtX = (n) => `${Math.round(Number(n) * 100) / 100}×`;
+
+/**
+ * The pace of a reading, in one clause (DR-0794): the pace the voice spoke
+ * at, what the player did to it, how many letters a second reached the ear,
+ * and whether the device took longer to play the sound than the sound was.
+ */
+export function paceLine(p) {
+  if (!p || !(Number(p.n) > 0)) return '';
+  const parts = [];
+  const voice = p.voicePace != null ? (p.mixedPace ? 'the voice spoke at more than one pace' : `the voice spoke at ${fmtX(p.voicePace)}`) : 'the voice named no pace';
+  let player = '';
+  if (p.rateMin != null) {
+    const steady = Math.abs(p.rateMax - p.rateMin) < 0.005;
+    const one = steady && Math.abs(p.rateMin - 1) < 0.005;
+    player = one ? 'the player stretched nothing' : (steady ? `the player stretched it to ${fmtX(p.rateMin)}` : `the player stretched it between ${fmtX(p.rateMin)} and ${fmtX(p.rateMax)}`);
+    if (p.rateMin < 0.995) player += ' (below 1× slurs the words)';
+  }
+  parts.push(player ? `${voice}, ${player}` : voice);
+  if (p.chars > 0 && p.clipS > 0) {
+    const heard = p.rateMin != null && p.rateMax != null ? (p.chars / p.clipS) * ((p.rateMin + p.rateMax) / 2) : p.chars / p.clipS;
+    parts.push(`about ${Math.round(heard)} letters a second reached the ear`);
+  }
+  if (p.timed > 0 && p.expectS > 0) {
+    const overall = p.wallS / p.expectS;
+    if (p.dragged > 0) parts.push(`the device dragged ${p.dragged} of ${p.timed} sentences past ${fmtX(DRAG_RATIO)} their length (worst ${fmtX(p.worst)} at sentence ${(Number(p.worstAt) || 0) + 1})`);
+    else parts.push(`the device played ${p.timed} sentence${p.timed === 1 ? '' : 's'} in ${fmtX(overall)} their length (no drag)`);
+  }
+  return `pace: ${parts.join('; ')}`;
+}
+
 /** One plain line about a trip, for the panel and for a screenshot. */
 export function tripSummary(trip) {
   if (!trip) return '';
@@ -181,13 +239,15 @@ export function tripSummary(trip) {
   else if (trip.end === 'left') what = `the page was left at ${where}`;
   else what = `${trip.end} at ${where}`;
   const parts = [head, what];
-  if (joined) parts.push(`played as one file (${joined.pieces} pieces${joined.seconds ? `, ${fmtSpan(joined.seconds * 1000)}` : ''})`);
+  if (joined) parts.push(`played as one file (${joined.pieces} pieces${joined.seconds ? `, ${fmtSpan(joined.seconds * 1000)}` : ''}${joined.stretched ? '; the saved 1× pieces, stretched by the player because the NAS voice could not be reached' : ''})`);
   else if (joinMissed) parts.push(`played piece by piece: ${joinMissReason(joinMissed)}`);
   if (dark) parts.push(`screen went dark ${fmtSpan(dark.at)} in`);
   if (cameBack) parts.push('picked up again in the dark');
   if (handoff) parts.push(`the phone’s voice took over: ${reasonText(handoff.reason)}`);
   const waits = waitsLine(trip.waits);
   if (waits) parts.push(waits);
+  const pace = paceLine(trip.pace);
+  if (pace) parts.push(pace);
   return `${parts.join(' · ')}.`;
 }
 
