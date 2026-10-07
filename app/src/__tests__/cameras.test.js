@@ -25,6 +25,8 @@ import {
   VIEWS_KEY, VIEW_LAYOUTS, loadViews, saveViews, activeView, addToView, removeFromView, moveInView, setViewLayout, renameView, addView, deleteView, viewCols, viewGridClass, indexAtPoint,
   fitGrid, clampScale, setViewScale, VIEW_SCALE_MIN, VIEW_SCALE_MAX, VIEW_SCALE_STEP,
   toggleFocus, focusIn, shownCount,
+  CLIP_SIZE_TIERS, recClipSizesUrl, recClipDownloadUrl, clipDownloadName, clipTierLine, fetchClipSizes, waitForClipSize,
+  streamHealthUrl, fetchStreamHealth, deviceCanPlayHevc, liveStreamId, twinOf, streamHealthLine, dropKindText, dropLines,
 } from '../lib/cameras.js';
 
 describe('the road: every URL is same-origin under /cams', () => {
@@ -846,5 +848,107 @@ describe('one camera largest on a click, back on the second (DR-0796)', () => {
     const three = fitGrid({ count: shownCount(cams, ''), width: 1920, height: 1000, gap: 6 });
     expect(one.cols).toBe(1);
     expect(one.tileW * one.tileH).toBeGreaterThan(three.tileW * three.tileH);
+  });
+});
+
+describe('clip downloads by size (DR-0797)', () => {
+  const json = (status, body, headers = {}) => ({ ok: status >= 200 && status < 300, status, json: async () => body, headers: { get: (k) => headers[k.toLowerCase()] || null } });
+  it('the tiers: original, large 1080p, medium 720p, small 480p; the URLs carry the ticket, the size, dl=1 and retry=1 only when asked', () => {
+    expect(CLIP_SIZE_TIERS.map((t) => t.key)).toEqual(['original', 'large', 'medium', 'small']);
+    expect(CLIP_SIZE_TIERS.map((t) => t.height)).toEqual([null, 1080, 720, 480]);
+    expect(recClipSizesUrl('front_yard', '2026-10-07T06-40-00.mp4', 'T')).toBe('/cams/rec/front_yard/2026-10-07T06-40-00.mp4?t=T&sizes=1');
+    expect(recClipDownloadUrl('front_yard', '2026-10-07T06-40-00.mp4', 'T', 'small')).toBe('/cams/rec/front_yard/2026-10-07T06-40-00.mp4?t=T&size=small&dl=1');
+    expect(recClipDownloadUrl('front_yard', '2026-10-07T06-40-00.mp4', 'T', 'original')).toBe('/cams/rec/front_yard/2026-10-07T06-40-00.mp4?t=T&dl=1');
+    expect(recClipDownloadUrl('front_yard', '2026-10-07T06-40-00.mp4', 'T', 'medium', { retry: true })).toBe('/cams/rec/front_yard/2026-10-07T06-40-00.mp4?t=T&size=medium&dl=1&retry=1');
+    expect(clipDownloadName('front_yard', '2026-10-07T06-40-00.mp4', 'small')).toBe('front_yard-2026-10-07T06-40-00-small.mp4');
+    expect(clipDownloadName('front_yard', '2026-10-07T06-40-00.mp4', 'original')).toBe('front_yard-2026-10-07T06-40-00-original.mp4');
+  });
+  it('a tier line says the measured size when made, the estimate before, and the place in line or the failure', () => {
+    const sizes = { original: 60 * 1024 * 1024, tiers: { small: { estimate: 45000000, state: 'absent' }, medium: { estimate: 60 * 1024 * 1024, state: 'queued', position: 2 }, large: { estimate: 1, state: 'ready', bytes: 50 * 1024 * 1024 } } };
+    const tier = (k) => CLIP_SIZE_TIERS.find((t) => t.key === k);
+    expect(clipTierLine(tier('original'), sizes)).toBe('Original · 60.0 MB');
+    expect(clipTierLine(tier('small'), sizes)).toMatch(/^Small \(480p\) · about 42\.9 MB$/);
+    expect(clipTierLine(tier('medium'), sizes)).toMatch(/in line \(2\)$/);
+    expect(clipTierLine(tier('large'), sizes)).toBe('Large (1080p) · 50.0 MB · ready');
+    expect(clipTierLine(tier('small'), { tiers: { small: { state: 'failed', error: 'ffmpeg: Invalid data' } } })).toBe('Small (480p) · could not be made: ffmpeg: Invalid data');
+    expect(clipTierLine(tier('small'), null)).toBe('Small (480p)');
+    expect(clipTierLine(tier('original'), null)).toBe('Original · as recorded');
+  });
+  it('fetchClipSizes reads the NAS\'s answer; a miss is ok:false', async () => {
+    const f = vi.fn(async () => json(200, { original: 10240, seconds: 600, tiers: { small: { estimate: 10240, state: 'absent' } }, download_name: 'front_yard-2026-10-07T06-40-00-original.mp4' }));
+    const r = await fetchClipSizes('front_yard', '2026-10-07T06-40-00.mp4', 'T', f);
+    expect(r).toMatchObject({ ok: true, original: 10240, seconds: 600, downloadName: 'front_yard-2026-10-07T06-40-00-original.mp4' });
+    expect(r.tiers.small.state).toBe('absent');
+    expect(f.mock.calls[0][0]).toBe('/cams/rec/front_yard/2026-10-07T06-40-00.mp4?t=T&sizes=1');
+    expect((await fetchClipSizes('front_yard', 'x.mp4', 'T', vi.fn(async () => json(404, { error: 'not-found' })))).ok).toBe(false);
+  });
+  it('waitForClipSize asks once, waits while the NAS makes the file (202, its place reported), and resolves with the URL when it is 200; retry rides only the first ask', async () => {
+    const answers = [json(202, { status: 'queued', position: 1, retry_in: 3 }), json(202, { status: 'making', position: 0, retry_in: 3 }), json(206, null)];
+    const f = vi.fn(async () => answers.shift());
+    const seen = [];
+    const slept = [];
+    const r = await waitForClipSize('front_yard', '2026-10-07T06-40-00.mp4', 'T', 'small', { fetchImpl: f, retry: true, onProgress: (p) => seen.push(p), pollMs: 50, sleep: async (ms) => { slept.push(ms); } });
+    expect(r).toEqual({ ok: true, url: '/cams/rec/front_yard/2026-10-07T06-40-00.mp4?t=T&size=small&dl=1' });
+    expect(f.mock.calls.map((c) => c[0])).toEqual([
+      '/cams/rec/front_yard/2026-10-07T06-40-00.mp4?t=T&size=small&dl=1&retry=1',
+      '/cams/rec/front_yard/2026-10-07T06-40-00.mp4?t=T&size=small&dl=1',
+      '/cams/rec/front_yard/2026-10-07T06-40-00.mp4?t=T&size=small&dl=1',
+    ]);
+    expect(f.mock.calls[0][1].headers.Range).toBe('bytes=0-0');
+    expect(seen).toEqual([{ state: 'queued', position: 1 }, { state: 'making', position: 0 }]);
+    expect(slept).toEqual([50, 50]);
+  });
+  it('waitForClipSize names a failure in the NAS\'s words, a run-out ticket, a gone clip, and gives up after the wait', async () => {
+    const fail = await waitForClipSize('c', '2026-10-07T06-40-00.mp4', 'T', 'small', { fetchImpl: vi.fn(async () => json(500, { error: 'transcode-failed', detail: 'ffmpeg: Invalid data' })) });
+    expect(fail).toMatchObject({ ok: false, failed: true });
+    expect(fail.message).toMatch(/could not make that size: ffmpeg: Invalid data/);
+    expect((await waitForClipSize('c', '2026-10-07T06-40-00.mp4', 'T', 'small', { fetchImpl: vi.fn(async () => json(401, {})) })).message).toMatch(/ticket ran out/);
+    expect((await waitForClipSize('c', '2026-10-07T06-40-00.mp4', 'T', 'small', { fetchImpl: vi.fn(async () => json(404, {})) })).message).toMatch(/no longer on the NAS/);
+    const forever = vi.fn(async () => json(202, { status: 'making', retry_in: 3 }));
+    const r = await waitForClipSize('c', '2026-10-07T06-40-00.mp4', 'T', 'small', { fetchImpl: forever, maxWaitMs: -1, sleep: async () => {} });
+    expect(r.ok).toBe(false);
+    expect(r.message).toMatch(/still making/);
+  });
+});
+
+describe('the stream health log (DR-0798)', () => {
+  it('the road and the reader: /cams/streams/health with the bearer; a dark road is ok:false with nothing invented', async () => {
+    expect(streamHealthUrl()).toBe('/cams/streams/health');
+    const f = vi.fn(async () => ({ ok: true, status: 200, json: async () => ({ sampled_at: 1700000000, interval_s: 15, cameras: { front_yard: { kbps: 1200 } }, events: [{ at: 1, camera: 'front_yard', kind: 'bytes-frozen' }] }) }));
+    const r = await fetchStreamHealth('tok', f);
+    expect(r.ok).toBe(true); expect(r.cameras.front_yard.kbps).toBe(1200); expect(r.events).toHaveLength(1); expect(r.intervalS).toBe(15);
+    expect(f.mock.calls[0][1].headers.Authorization).toBe('Bearer tok');
+    const dark = await fetchStreamHealth('tok', vi.fn(async () => { throw new TypeError('Failed to fetch'); }));
+    expect(dark).toMatchObject({ ok: false, cameras: {}, events: [] });
+  });
+  it('H.265 is asked of the <video>, never guessed: a camera with a twin plays the twin only where the device cannot decode H.265', () => {
+    expect(deviceCanPlayHevc(() => '')).toBe(false);
+    expect(deviceCanPlayHevc((t) => (/hvc1/.test(t) ? 'probably' : ''))).toBe(true);
+    expect(deviceCanPlayHevc(null)).toBe(true);
+    expect(twinOf('front_yard')).toBe('front_yard_h264');
+    expect(liveStreamId({ id: 'front_yard', h264: true }, () => '')).toBe('front_yard_h264');
+    expect(liveStreamId({ id: 'front_yard', h264: true }, () => 'probably')).toBe('front_yard');
+    expect(liveStreamId({ id: 'front_yard', h264: false }, () => '')).toBe('front_yard');
+    expect(liveStreamId({ id: 'front_yard' }, null)).toBe('front_yard');
+    expect(liveStreamId(null, null)).toBe('');
+  });
+  it('the tile line says the rate, the codecs, up% and the drops; nothing measured is an empty line', () => {
+    expect(streamHealthLine({ kbps: 1200, codecs: ['H264', 'PCMU'], up_pct: 97, drops_1h: 2, hevc_only: false })).toBe('1.2 Mb/s · H264+PCMU · up 97% · 2 drops this hour');
+    expect(streamHealthLine({ kbps: 640, codecs: ['H265'], up_pct: 100, drops_1h: 0, hevc_only: true, twin: 'cam_h264' })).toBe('640 kb/s · H265 · H264 twin · up 100% · no drops this hour');
+    expect(streamHealthLine({ kbps: null, codecs: ['H265'], up_pct: null, drops_1h: 0, hevc_only: true, twin: null })).toBe('H265 · H265 only · no drops this hour');
+    expect(streamHealthLine({ kbps: null, codecs: [], up_pct: null })).toBe('');
+    expect(streamHealthLine(null)).toBe('');
+  });
+  it('drops are said in words, newest first, for one camera only', () => {
+    expect(dropKindText('producer-gone')).toMatch(/connection to the NAS dropped/);
+    expect(dropKindText('bytes-frozen')).toMatch(/sent nothing/);
+    expect(dropKindText('producer-restarted')).toMatch(/reconnected/);
+    const events = [{ at: 1700000000, camera: 'a', kind: 'bytes-frozen' }, { at: 1700000015, camera: 'b', kind: 'producer-gone' }, { at: 1700000030, camera: 'a', kind: 'producer-restarted' }];
+    const lines = dropLines(events, 'a');
+    expect(lines).toHaveLength(2);
+    expect(lines[0]).toMatch(/reconnected/);
+    expect(lines[1]).toMatch(/sent nothing/);
+    expect(dropLines(events, 'zzz')).toEqual([]);
+    expect(dropLines(null, 'a')).toEqual([]);
   });
 });
