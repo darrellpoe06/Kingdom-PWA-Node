@@ -82,7 +82,7 @@ describe('the decision — measured, not guessed', () => {
     // and the sticky header too, or a rail covers its tab row (the CI probe).
     expect(SRC('poe-financial-mvp-v28.jsx')).toMatch(/<main className="w-full /);
     expect(SRC('poe-financial-mvp-v28.jsx')).toMatch(/<header [^>]*data-read-skip/);
-    // NARROWED to one column of bottom-bar buttons (DR-0796): wide enough for
+    // NARROWED to one column of bottom-bar buttons (DR-0800): wide enough for
     // a 2.75rem square and its word, nowhere near the old 15rem of prose.
     expect(RAIL_WIDTH_REM).toBeGreaterThanOrEqual(5);
     expect(RAIL_WIDTH_REM).toBeLessThanOrEqual(8);
@@ -197,7 +197,7 @@ describe('the real reader', () => {
     expect(left.className).toMatch(/\bfixed\b.*\bleft-2\b/);
     expect(right.className).toMatch(/\bfixed\b.*\bright-2\b/);
     // What the Firestick never showed is on the right rail, now as one
-    // bottom-bar button each (DR-0796): speed, colors, highlight, where the
+    // bottom-bar button each (DR-0800): speed, colors, highlight, where the
     // sentence sits, the Word, and keeping it on this device.
     for (const id of ['speed', 'colors', 'highlight', 'place', 'word']) {
       expect(right.querySelector(`[data-testid="reader-rail-${id}"]`), id).toBeTruthy();

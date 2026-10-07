@@ -60,7 +60,7 @@ export const TV_FLOOR_WIDTH = 900;
  * of being covered. The one expression lives here and in index.css; a test
  * pins the two together.
  *
- * NARROWED 2026-10-07 (DR-0796) from 15rem. Darrell, on the Firestick looking
+ * NARROWED 2026-10-07 (DR-0800) from 15rem. Darrell, on the Firestick looking
  * at the first cut: "The sides are larger and not like the buttons below...
  * the user just needs the functions to look like the buttons below... just the
  * missing ones I specified in the small side spaces... until we say full
@@ -202,7 +202,7 @@ export function leavesFullScreen(key) {
 }
 
 // =============================================================================
-// WHAT GOES IN THE SMALL SIDE SPACES (DR-0796)
+// WHAT GOES IN THE SMALL SIDE SPACES (DR-0800)
 // =============================================================================
 // Darrell 2026-10-07, on the Firestick: "The sides are larger and not like the
 // buttons below... the user just needs the functions to look like the buttons

@@ -1685,7 +1685,7 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
     return () => markRails(d, false);
   }, [railsOn, supported, floatState.floating]);
 
-  // THE SIDE BUTTONS (DR-0796). Darrell on the Firestick: "the user just needs
+  // THE SIDE BUTTONS (DR-0800). Darrell on the Firestick: "the user just needs
   // the functions to look like the buttons below... just the missing ones...
   // in the small side spaces... until we say full screen." So each rail
   // control is one bottom-bar button — the same DOCK_BTN square, an icon and
@@ -2241,7 +2241,7 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
           .tts-controls so the reading engine still counts it as the
           reader's own chrome (never read aloud, never a tap-to-start). */}
       {/* THE RAILS: the bottom bar's own buttons, standing up the two sides of
-          the Word (DR-0785, re-cut DR-0796). Only what the bar does not have. */}
+          the Word (DR-0785, re-cut DR-0800). Only what the bar does not have. */}
       {supported && !floatState.floating && railsOn && typeof document !== 'undefined' && createPortal(
         <div className="tts-controls print:hidden" data-testid="reader-rails" data-layout="sides" style={{ fontSize: 'calc(1rem * var(--ts-chrome-scale, 1))' }}>
           <div data-testid="reader-rail-left" role="group" aria-label="Reading controls — the voice" className="fixed top-2 bottom-14 left-2 z-[80] overflow-y-auto flex flex-col items-stretch gap-[4px]" style={{ width: railWidth() }}>

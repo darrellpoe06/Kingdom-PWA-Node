@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 // =============================================================================
 // The small side spaces carry the bottom bar's own buttons, and only what the
-// bar is missing (DR-0796)
+// bar is missing (DR-0800)
 // =============================================================================
 // Darrell, on the Firestick, looking at the first cut of the rails
 // (2026-10-07): "The sides are larger and not like the buttons below... the
