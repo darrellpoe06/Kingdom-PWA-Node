@@ -529,13 +529,17 @@ describe('sov36 - the pile the machine made quotes its whole spine verbatim, Wor
     expect(own.children).toBeTruthy();
     expect(own.friends).toBeTruthy();
     expect(L().lesson).toMatch(/Friends, tell one friend this week/);
-    // and the close of EVERY band carries the children-to-parents direction in
-    // its own words, not only somewhere earlier in the band
-    for (const b of FULL_BANDS) {
-      const close = L().levels[b].slice(L().levels[b].indexOf('TALK ABOUT IT TOGETHER.'));
-      expect(close, `${b} close`).toMatch(/ask your mom, dad or grandparent/);
-      expect(close, `${b} close`).toMatch(/Parents, ask your child|Parents, ask your/);
-      expect(close, `${b} close`).toMatch(/Friends, tell one friend this week/);
+    // ALL THREE DIRECTIONS IN THE CLOSE OF EVERY SURFACE, matched on the
+    // sentence TEXT rather than through ownPrompts. ownPrompts cannot be used to
+    // measure one band in isolation: it searches PARENTS_TO_CHILDREN only in the
+    // adult prose plus the senior band, so handing it a child band under any
+    // other field reports a gap that is in the instrument, not in the lesson.
+    // So the per-surface check is literal, the way L215 does it.
+    for (const [where, t] of [['lesson', L().lesson], ...FULL_BANDS.map((b) => [b, L().levels[b]])]) {
+      const close = t.slice(t.indexOf('TALK ABOUT IT TOGETHER.'));
+      expect(close, `${where}: parents to children`).toMatch(/Parents, ask your child/);
+      expect(close, `${where}: children to parents`).toMatch(/[Cc]hildren, ask your mom, dad or grandparent/);
+      expect(close, `${where}: friend to friend`).toMatch(/Friends, tell one friend this week/);
     }
     // the skill and the rhythm ride every close
     for (const t of [L().lesson, ...FULL_BANDS.map((b) => L().levels[b])]) {
