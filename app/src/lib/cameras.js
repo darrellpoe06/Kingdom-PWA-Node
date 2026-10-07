@@ -1033,3 +1033,117 @@ export function roadLine(stats, mode) {
   const median = ff.length ? [...ff].sort((a, b) => a - b)[Math.floor(ff.length / 2)] : null;
   return `${roadLabel(mode)} · ${r.ok} of ${r.tries} opened${median != null ? ` · first picture ${(median / 1000).toFixed(1)} s` : ''}${r.stalls ? ` · ${r.stalls} stall${r.stalls === 1 ? '' : 's'}` : ''}`;
 }
+
+// =============================================================================
+// VIEWS: THE CAMERAS YOU WANT, IN THE ORDER YOU WANT, AS MANY AS YOU WANT
+// (DR-0783; Darrell 2026-10-07: "the Wall sucks!!!! My views should be able
+// to have and reorder the view live while it is still actively streaming",
+// "Views should be able to drag whichever cameras they want to use... or see
+// 4 with each other or 6... liberation of options"). A view is a named,
+// ordered list of cameras with its own layout (how many across). There can
+// be several; one is active. The wall of DR-0774 becomes the first view, so
+// nobody loses what they had. Kept per device, like the wall was; a view
+// carried to every device by the database is the next step.
+// =============================================================================
+export const VIEWS_KEY = 'poetech.cameras.views.v1';
+export const VIEW_LAYOUTS = Object.freeze(['auto', 1, 2, 3, 4]);
+export const VIEW_NAME_MAX = 40;
+function viewStore(storage) {
+  if (storage) return storage;
+  try { return globalThis.localStorage || null; } catch { return null; }
+}
+function newViewId() {
+  try { return 'v' + Math.random().toString(36).slice(2, 8); } catch { return 'v' + Date.now().toString(36); }
+}
+export function makeView(name = 'My view', cameras = [], layout = 'auto') {
+  return { id: newViewId(), name: String(name || 'My view').slice(0, VIEW_NAME_MAX), cameras: cameras.filter((x) => typeof x === 'string' && CAMERA_ID.test(x)), layout: VIEW_LAYOUTS.includes(layout) ? layout : 'auto' };
+}
+function cleanView(v) {
+  if (!v || typeof v !== 'object' || typeof v.id !== 'string') return null;
+  return {
+    id: v.id,
+    name: String(v.name || 'View').slice(0, VIEW_NAME_MAX),
+    cameras: Array.isArray(v.cameras) ? [...new Set(v.cameras.filter((x) => typeof x === 'string' && CAMERA_ID.test(x)))] : [],
+    layout: VIEW_LAYOUTS.includes(v.layout) ? v.layout : (VIEW_LAYOUTS.includes(Number(v.layout)) ? Number(v.layout) : 'auto'),
+  };
+}
+// {views: [...], active: id}. With nothing saved, the old wall (if any) becomes "My view".
+export function loadViews(storage = null) {
+  const st = viewStore(storage);
+  try {
+    const raw = st && st.getItem(VIEWS_KEY);
+    if (raw) {
+      const j = JSON.parse(raw);
+      const views = (Array.isArray(j.views) ? j.views : []).map(cleanView).filter(Boolean);
+      if (views.length) return { views, active: views.some((v) => v.id === j.active) ? j.active : views[0].id };
+    }
+  } catch { /* fall through to a fresh start */ }
+  const wall = loadWall(st);
+  const first = makeView('My view', wall);
+  return { views: [first], active: first.id };
+}
+export function saveViews(state, storage = null) {
+  const st = viewStore(storage);
+  if (!st) return false;
+  try { st.setItem(VIEWS_KEY, JSON.stringify({ views: state.views.map(cleanView).filter(Boolean), active: state.active })); return true; } catch { return false; }
+}
+export function activeView(state) {
+  return (state.views || []).find((v) => v.id === state.active) || state.views[0] || null;
+}
+function updateView(state, id, fn) {
+  return { ...state, views: state.views.map((v) => (v.id === id ? fn(v) : v)) };
+}
+export function addToView(state, id, cameraId) {
+  return updateView(state, id, (v) => (v.cameras.includes(cameraId) ? v : { ...v, cameras: [...v.cameras, cameraId] }));
+}
+export function removeFromView(state, id, cameraId) {
+  return updateView(state, id, (v) => ({ ...v, cameras: v.cameras.filter((c) => c !== cameraId) }));
+}
+// Move a camera to a new position (live: the players keep their keys, so the streams keep running).
+export function moveInView(state, id, cameraId, toIndex) {
+  return updateView(state, id, (v) => {
+    const from = v.cameras.indexOf(cameraId);
+    if (from < 0) return v;
+    const next = v.cameras.filter((c) => c !== cameraId);
+    const at = Math.max(0, Math.min(next.length, Number(toIndex)));
+    next.splice(at, 0, cameraId);
+    return { ...v, cameras: next };
+  });
+}
+export function setViewLayout(state, id, layout) {
+  const l = VIEW_LAYOUTS.includes(layout) ? layout : (VIEW_LAYOUTS.includes(Number(layout)) ? Number(layout) : 'auto');
+  return updateView(state, id, (v) => ({ ...v, layout: l }));
+}
+export function renameView(state, id, name) {
+  return updateView(state, id, (v) => ({ ...v, name: String(name || v.name).trim().slice(0, VIEW_NAME_MAX) || v.name }));
+}
+export function addView(state, name = '') {
+  const v = makeView(name || `View ${state.views.length + 1}`);
+  return { views: [...state.views, v], active: v.id };
+}
+export function deleteView(state, id) {
+  const views = state.views.filter((v) => v.id !== id);
+  if (!views.length) { const v = makeView('My view'); return { views: [v], active: v.id }; }
+  return { views, active: state.active === id ? views[0].id : state.active };
+}
+// How many across: a chosen number, or for auto a shape that fits the count
+// (1 alone, 2 for two to four, 3 for five to nine, 4 beyond).
+export function viewCols(layout, count) {
+  if (layout !== 'auto') return Number(layout) || 1;
+  const n = Number(count) || 0;
+  if (n <= 1) return 1;
+  if (n <= 4) return 2;
+  if (n <= 9) return 3;
+  return 4;
+}
+export function viewGridClass(cols) {
+  return { 1: 'grid-cols-1', 2: 'grid-cols-1 sm:grid-cols-2', 3: 'grid-cols-1 sm:grid-cols-2 xl:grid-cols-3', 4: 'grid-cols-2 lg:grid-cols-3 xl:grid-cols-4' }[cols] || 'grid-cols-1 sm:grid-cols-2';
+}
+// The index a pointer is over, given the tiles' boxes [{id, left, top, right, bottom}].
+export function indexAtPoint(boxes, x, y) {
+  for (let i = 0; i < boxes.length; i += 1) {
+    const b = boxes[i];
+    if (x >= b.left && x <= b.right && y >= b.top && y <= b.bottom) return i;
+  }
+  return -1;
+}

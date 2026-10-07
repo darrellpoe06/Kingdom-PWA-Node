@@ -112,9 +112,9 @@ describe('the day each lesson was added — a recorded day, and a new lesson joi
     const back = byNum.filter((m, i) => i > 0 && m.added < byNum[i - 1].added).map((m) => m.id);
     expect(back).toEqual([]);
     expect(byNum[0].added).toBe('2026-06-24');
-    // The newest lesson's day: L209 and L210 both joined on 2026-10-06
-    // (DR-0755, DR-0759), so the highest-numbered lesson still carries that day.
-    expect(byNum[byNum.length - 1].added).toBe('2026-10-06'); // L210 (DR-0759)
+    // The newest lesson's day: L214 Sons of Yahweh joined on 2026-10-07
+    // (DR-0780), so the highest-numbered lesson carries that day.
+    expect(byNum[byNum.length - 1].added).toBe('2026-10-07'); // L214 (DR-0780)
   });
 
   it('formats a calendar day without a time-zone shift, and months are labels', () => {

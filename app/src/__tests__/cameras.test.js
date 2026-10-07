@@ -22,6 +22,7 @@ import {
   GRANT_KEY, GRANT_DAYS_CHOICES, adoptGrantFromUrl, grantToken, saveGrantToken, cameraCredential, parseGrants, grantState, grantLine, grantLink, fetchGrants, createGrant, revokeGrant,
   normalizePairCode, readPairParam, pairLink, startPairing, pollPairing, approvePairing, PAIR_POLL_MS,
   LIVE_ROADS, loadLiveRoad, saveLiveRoad, loadRoadStats, recordRoadResult, roadScore, chooseLiveRoad, roadLine, LIVE_ROAD_KEY,
+  VIEWS_KEY, VIEW_LAYOUTS, loadViews, saveViews, activeView, addToView, removeFromView, moveInView, setViewLayout, renameView, addView, deleteView, viewCols, viewGridClass, indexAtPoint,
 } from '../lib/cameras.js';
 
 describe('the road: every URL is same-origin under /cams', () => {
@@ -712,5 +713,76 @@ describe('the live road: Auto from the record, a pin honoured, a failed road swa
     recordRoadResult('mp4', { ok: true, firstFrameMs: 900 }, st);
     recordRoadResult('hls', { ok: true, firstFrameMs: 1000 }, st);
     expect(chooseLiveRoad({ pref: 'auto', stats: loadRoadStats(st), userAgent: chromeUA })).toBe('mp4');
+  });
+});
+
+// DR-0783: views, several, ordered, laid out; the wall becomes the first view.
+describe('views: the cameras you want, in the order you want, as many views as you want', () => {
+  const mem = () => { const m = new Map(); return { getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), removeItem: (k) => m.delete(k) }; };
+  it('with nothing saved, the old wall becomes "My view" so nobody loses what they had', () => {
+    const st = mem();
+    saveWall(['front_yard', 'garage'], st);
+    const s = loadViews(st);
+    expect(s.views).toHaveLength(1);
+    expect(s.views[0].name).toBe('My view');
+    expect(s.views[0].cameras).toEqual(['front_yard', 'garage']);
+    expect(s.views[0].layout).toBe('auto');
+    expect(s.active).toBe(s.views[0].id);
+    expect(loadViews(mem()).views[0].cameras).toEqual([]);
+  });
+  it('add, move (live reorder), remove, layout, rename, new view, delete view; saved and read back; junk dropped', () => {
+    const st = mem();
+    let s = loadViews(st);
+    const id = s.active;
+    s = addToView(s, id, 'a'); s = addToView(s, id, 'b'); s = addToView(s, id, 'c'); s = addToView(s, id, 'b');
+    expect(activeView(s).cameras).toEqual(['a', 'b', 'c']);
+    s = moveInView(s, id, 'c', 0);
+    expect(activeView(s).cameras).toEqual(['c', 'a', 'b']);
+    s = moveInView(s, id, 'c', 99);
+    expect(activeView(s).cameras).toEqual(['a', 'b', 'c']);
+    s = moveInView(s, id, 'zzz', 0);
+    expect(activeView(s).cameras).toEqual(['a', 'b', 'c']);
+    s = removeFromView(s, id, 'b');
+    expect(activeView(s).cameras).toEqual(['a', 'c']);
+    s = setViewLayout(s, id, 3);
+    expect(activeView(s).layout).toBe(3);
+    s = setViewLayout(s, id, 'bogus');
+    expect(activeView(s).layout).toBe('auto');
+    s = renameView(s, id, '  Front of the house  ');
+    expect(activeView(s).name).toBe('Front of the house');
+    s = addView(s, 'Back');
+    expect(s.views).toHaveLength(2);
+    expect(activeView(s).name).toBe('Back');
+    expect(activeView(s).cameras).toEqual([]);
+    saveViews(s, st);
+    const back = loadViews(st);
+    expect(back.views.map((v) => v.name)).toEqual(['Front of the house', 'Back']);
+    expect(back.active).toBe(s.active);
+    s = deleteView(s, s.active);
+    expect(s.views).toHaveLength(1);
+    expect(activeView(s).name).toBe('Front of the house');
+    s = deleteView(s, s.active);
+    expect(s.views).toHaveLength(1);
+    expect(activeView(s).name).toBe('My view');
+    st.setItem(VIEWS_KEY, JSON.stringify({ views: [{ id: 'x', name: 'Odd', cameras: ['ok', '../bad', 7], layout: '2' }, 'junk'], active: 'nope' }));
+    const odd = loadViews(st);
+    expect(odd.views).toHaveLength(1);
+    expect(odd.views[0].cameras).toEqual(['ok']);
+    expect(odd.views[0].layout).toBe(2);
+    expect(odd.active).toBe('x');
+  });
+  it('auto layout fits the count; a chosen layout is itself; the pointer finds the tile it is over', () => {
+    expect(viewCols('auto', 1)).toBe(1);
+    expect(viewCols('auto', 4)).toBe(2);
+    expect(viewCols('auto', 6)).toBe(3);
+    expect(viewCols('auto', 12)).toBe(4);
+    expect(viewCols(1, 9)).toBe(1);
+    expect(viewCols(4, 2)).toBe(4);
+    expect(viewGridClass(3)).toMatch(/xl:grid-cols-3/);
+    expect(VIEW_LAYOUTS).toEqual(['auto', 1, 2, 3, 4]);
+    const boxes = [{ id: 'a', left: 0, top: 0, right: 100, bottom: 100 }, { id: 'b', left: 110, top: 0, right: 210, bottom: 100 }];
+    expect(indexAtPoint(boxes, 50, 50)).toBe(0);
+    expect(indexAtPoint(boxes, 150, 20)).toBe(1);
+    expect(indexAtPoint(boxes, 500, 500)).toBe(-1);
   });
 });

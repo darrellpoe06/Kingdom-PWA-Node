@@ -31,7 +31,7 @@ import { anchorIsRun } from '../lib/verse-refs.js';
 import ShowTheWordToggle from './ShowTheWordToggle.jsx';
 import React, { useState } from 'react';
 import { buildLessonArc } from '../lib/lesson-flow.js';
-import { announceStep } from '../lib/lesson-room.js';
+import { announceStep, useFlowMode, FLOW_MODES, FLOW_WORDS } from '../lib/lesson-room.js';
 import { DEFAULT_AGE_BAND } from '../lib/learn-framework.js';
 
 const SERIF = { fontFamily: '"Fraunces", serif' };
@@ -128,9 +128,39 @@ function StageRail({ segments, current = -1, onJump = null }) {
 // Both doors now stand at the end, full-width and primary: START OVER (part 1
 // again, the place cleared, which is what re-listening needs) and ALL LESSONS.
 // Optional props — a host that passes neither keeps the old footer exactly.
-export function LessonFlowAudience({ arc, renderStage, unitNoun = 'lesson', onComplete = null, initialIndex = 0, onStageChange = null, showAll = false, flush = false, stageExtra = null, onAllUnits = null, onStartOver = null }) {
+// -----------------------------------------------------------------------------
+// STEP BY STEP, OR SCROLL IT ALL, ON EVERY LESSON SURFACE (DR-0784). DR-0749
+// gave the Learn tab's guide a switch between the pager and the whole lesson
+// at once; this flow is used by other doors too (the TLC door's training and
+// lessons among them), and there the switch never existed, so a reader was
+// held to one part at a time (Christina, 2026-10-07: the TLC app needs full
+// scrolling for lessons; Darrell: "the scrolling function should be added to
+// all lessons areas as an option"). The switch now lives in the flow itself,
+// reading the same device-wide choice (lib/lesson-room.js), so one tap on any
+// lesson holds on every lesson. A host that renders its own switch (the Learn
+// guide) passes flowSwitch={false}; showAll from a host still wins.
+// -----------------------------------------------------------------------------
+export function LessonFlowAudience({ arc, renderStage, unitNoun = 'lesson', onComplete = null, initialIndex = 0, onStageChange = null, showAll = false, flush = false, stageExtra = null, onAllUnits = null, onStartOver = null, flowSwitch = true }) {
   const segments = (arc && arc.audienceSegments) || [];
   const [idx, setIdx] = useState(() => Math.max(0, initialIndex));
+  const [flowMode, setFlowMode] = useFlowMode();
+  const everything = showAll || (flowSwitch && flowMode === 'scroll');
+  const flowSwitchRow = flowSwitch ? (
+    <div className="flex items-center justify-end gap-1 mb-2" role="group" aria-label={`How to move through the ${unitNoun}`} data-testid="lesson-flow-mode" data-read-skip>
+      {FLOW_MODES.map((m) => (
+        <button
+          key={m}
+          type="button"
+          onClick={() => setFlowMode(m)}
+          aria-pressed={flowMode === m}
+          data-flow={m}
+          className={`text-[0.625rem] uppercase tracking-wider px-2.5 py-1.5 min-h-[36px] border focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] ${flowMode === m ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#B8B4AC] bg-white text-[#1A1815]'}`}
+        >
+          {FLOW_WORDS[m]}
+        </button>
+      ))}
+    </div>
+  ) : null;
   const firedRef = React.useRef(false);
   // THE PART LANDS UNDER THE CHROME (DR-0749): a move to another part is
   // announced once it has painted, and the lesson space scrolls the part's
@@ -144,9 +174,10 @@ export function LessonFlowAudience({ arc, renderStage, unitNoun = 'lesson', onCo
   if (segments.length === 0) return null;
   const stageBox = flush ? 'border-y border-[#E8E4DC] bg-white py-3' : 'border border-[#E8E4DC] bg-white p-3';
 
-  if (showAll) {
+  if (everything) {
     return (
       <div className="mb-2">
+        {flowSwitchRow}
         <p className="text-[0.625rem] uppercase tracking-wider text-[#B85838] mb-2" data-read-skip>
           Reading the whole {unitNoun} — every part is shown
         </p>
@@ -186,6 +217,7 @@ export function LessonFlowAudience({ arc, renderStage, unitNoun = 'lesson', onCo
 
   return (
     <div className="mb-2">
+      {flowSwitchRow}
       <StageRail segments={segments} current={clamped} onJump={goTo} />
       <ShowTheWordToggle className="mb-2" />
 

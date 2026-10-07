@@ -36,6 +36,7 @@ import { bridgeToken } from '../lib/nas-photos.js';
 import { provisionBridgeToken } from '../lib/bridge-provision.js';
 import { supabase } from '../lib/supabase.js';
 import { QRCodeSVG } from 'qrcode.react';
+import { confirmThen } from '../lib/confirm-action.js';
 import { setReadTarget, clearReadTarget, requestRead } from '../lib/read-target.js';
 import {
   SNAPSHOT_INTERVAL_MS, FETCH_TIMEOUT_MS, LIVE_FIRST_FRAME_TIMEOUT_MS,
@@ -45,7 +46,8 @@ import {
   WYZE_FIELDS, setupWyze, WYZE_API_KEY_HELP_URL, WYZE_API_KEY_STEPS,
   serviceCodeState, restartService, loadWyzeDraft, saveWyzeDraft, clearWyzeDraft,
   SNAP_CONCURRENCY, LIVE_RECONNECT_MAX, LIVE_RECONNECT_DELAY_MS, runLimited, skipFailedFrame,
-  classifySnapError, fetchWhy, loadWall, saveWall, wallLimit,
+  classifySnapError, fetchWhy,
+  loadViews, saveViews, activeView, addToView, removeFromView, moveInView, setViewLayout, renameView, addView, deleteView, viewCols, viewGridClass, indexAtPoint, VIEW_LAYOUTS,
   RETENTION_CHOICES, CLIP_TICKET_TTL, fetchRecording, saveRecording, fetchClips, recClipUrl, clipParts, groupClipsByDay, diskForecast,
   loadLiveTiles, saveLiveTiles, liveTileBudget, liveTrafficLine,
   fetchDevices, runDeviceAction, setupWyzeAgain, wyzeKept, garagesFor, ACTION_REARM_MS,
@@ -59,6 +61,8 @@ import {
 // so the floating reader (and the Hear the steps button) reads them aloud,
 // highlighted in place, for anyone who would rather listen than read.
 const WYZE_READ_OWNER = 'cameras-wyze-setup';
+export const CAMS_TAB_KEY = 'poetech.cameras.tab.v1';
+const CAMS_TABS = Object.freeze([['live', 'Live'], ['recordings', 'Recordings'], ['access', 'Who can see'], ['setup', 'Setup']]);
 export function wyzeSetupReading() {
   return [
     'Sign in to Wyze once, here. This is a one-time step for the person who owns the Wyze account. Everyone else in the family only opens this tab.',
@@ -769,33 +773,33 @@ function WhyPanel({ cam, token, onHide }) {
 // from the recorder's own status file on the NAS: clips, bytes, oldest and
 // newest, disk free, and a rate MEASURED from real clips, never a nominal
 // bitrate. Clips play through the same ticketed road as live video.
-function RecordingPanel({ token, cameras, onSaved }) {
+// THE RECORDER'S STATE, LIFTED (DR-0783; Darrell: "Record should be with the
+// camera you want to do that with"). One read of /recording serves the tiles
+// (each camera's Record and keep sit on its own tile) and the panel below
+// (the budget, the disk line, the clips). Nothing here is painted: every
+// value is the recorder's own file.
+function useRecording(token) {
   const [rec, setRec] = useState(null);          // fetchRecording result
   const [saving, setSaving] = useState(false);
   const [note, setNote] = useState('');
   const [budget, setBudget] = useState('');
-  const [pick, setPick] = useState('');          // camera whose clips are listed
-  const [clips, setClips] = useState({ loading: false, days: [] });
-  const [playing, setPlaying] = useState(null);  // {cam, name, src}
   const reload = useCallback(async () => {
+    if (!token) return;
     const r = await fetchRecording(token);
     setRec(r);
     if (r.ok) setBudget(String(r.config.disk_budget_gb));
   }, [token]);
   useEffect(() => { reload(); }, [reload]);
-  // The status file is refreshed by the recorder every loop; re-read it while the panel is open.
+  // The status file is refreshed by the recorder every loop; re-read it while the tab is open.
   useEffect(() => { const t = setInterval(reload, 30000); return () => clearInterval(t); }, [reload]);
-
   const cfg = rec && rec.ok ? rec.config : null;
   const status = rec && rec.ok ? rec.recStatus : null;
-  const forecast = diskForecast(status);
-
   const save = async (next) => {
     if (saving) return;
     setSaving(true); setNote('');
     const r = await saveRecording(next, token);
     setSaving(false);
-    if (r.ok) { setNote('Saved. The recorder on the NAS follows within ten seconds.'); setRec((p) => (p && p.ok ? { ...p, config: r.config } : p)); if (onSaved) onSaved(r.config); }
+    if (r.ok) { setNote('Saved. The recorder on the NAS follows within ten seconds.'); setRec((p) => (p && p.ok ? { ...p, config: r.config } : p)); }
     else setNote(r.message);
   };
   const toggle = (cam) => {
@@ -814,13 +818,44 @@ function RecordingPanel({ token, cameras, onSaved }) {
     if (!Number.isFinite(n) || n < 5) { setNote('The budget is in GB, 5 or more.'); return; }
     save({ ...cfg, disk_budget_gb: n });
   };
-  const openClips = async (id) => {
-    setPick(id); setPlaying(null);
-    if (!id) { setClips({ loading: false, days: [] }); return; }
+  const camState = (id) => ({ cfg: cfg ? (cfg.cameras[id] || { enabled: false, retention_days: 14 }) : null, status: status && status.cameras ? status.cameras[id] : null });
+  return { rec, cfg, status, saving, note, setNote, budget, setBudget, reload, toggle, setRetention, saveBudget, camState };
+}
+
+// RECORD ON THE TILE (DR-0783): the switch, the keep, the state, beside the
+// camera it belongs to. The panel below keeps the budget and the clips.
+function TileRecord({ cam, r, onClips }) {
+  const { cfg: c, status: st } = r.camState(cam.id);
+  if (!c) return null;
+  return (
+    <div className="flex items-center gap-1 flex-wrap" data-testid={`tile-record-${cam.id}`}>
+      <button type="button" className={`${c.enabled ? 'text-[0.625rem] uppercase tracking-wider font-semibold min-h-[36px] px-2 bg-[#B85838] text-white' : btnGhost} focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={() => r.toggle(cam)} disabled={r.saving} aria-pressed={c.enabled} aria-label={`${c.enabled ? 'Stop recording' : 'Record'} ${cam.name}`} data-testid={`record-${cam.id}`}>{c.enabled ? '● Recording' : 'Record'}</button>
+      {c.enabled ? (
+        <select className="border border-[#B8B4AC] bg-white text-[#1A1815] text-[0.6875rem] px-1 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]" value={c.retention_days} onChange={(e) => r.setRetention(cam, e.target.value)} disabled={r.saving} aria-label={`How long to keep ${cam.name}`} data-testid={`keep-${cam.id}`}>
+          {RETENTION_CHOICES.map((d) => <option key={d} value={d}>{d === 1 ? 'keep 1 day' : d >= 365 ? 'keep 1 year' : `keep ${d} days`}</option>)}
+        </select>
+      ) : null}
+      {st && st.clips ? <button type="button" className={`${btnGhost} focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={() => onClips(cam.id)} aria-label={`Show clips of ${cam.name}`}>{st.clips} clip{st.clips === 1 ? '' : 's'}</button> : null}
+      {st && c.enabled && !st.recording ? <span className="text-[0.625rem] text-[#B85838]">not recording yet</span> : null}
+    </div>
+  );
+}
+
+function RecordingPanel({ token, cameras, r, pick, setPick }) {
+  const { rec, cfg, status, saving, note, setNote, budget, setBudget, reload, saveBudget } = r;
+  const [clips, setClips] = useState({ loading: false, days: [] });
+  const [playing, setPlaying] = useState(null);  // {cam, name, src}
+  const forecast = diskForecast(status);
+  // A tile's Clips button sets `pick`; the list is read whenever it changes.
+  useEffect(() => {
+    let on = true;
+    setPlaying(null);
+    if (!pick) { setClips({ loading: false, days: [] }); return undefined; }
     setClips({ loading: true, days: [] });
-    const r = await fetchClips(id, token);
-    setClips({ loading: false, days: groupClipsByDay(r.clips), ok: r.ok });
-  };
+    fetchClips(pick, token).then((res) => { if (on) setClips({ loading: false, days: groupClipsByDay(res.clips), ok: res.ok }); });
+    return () => { on = false; };
+  }, [pick, token]);
+  const openClips = (id) => setPick(id);
   const play = async (id, name) => {
     try {
       const r = await fetchWithTimeout(ticketUrl(), { method: 'POST', headers: { ...authHeaders(token), 'Content-Type': 'application/json' }, body: JSON.stringify({ camera: id, ttl: CLIP_TICKET_TTL }) }, FETCH_TIMEOUT_MS);
@@ -863,8 +898,9 @@ function RecordingPanel({ token, cameras, onSaved }) {
             <button type="button" className={`${btnGhost} focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={saveBudget} disabled={saving}>Save budget</button>
             {note ? <span className={`${/Saved/.test(note) ? 'text-[#2F6B3A]' : 'text-[#B85838]'}`} role="status" aria-live="polite" data-testid="recording-note">{note}</span> : null}
           </div>
-          <ul className="mt-3 divide-y divide-[#E8E4DC]" data-testid="recording-cameras">
-            {cameras.map((cam) => {
+          <p className="text-[0.625rem] text-[#5A5751] mt-3">Record and keep sit on each camera&apos;s tile. Listed here: the cameras switched on or holding clips.</p>
+          <ul className="mt-1 divide-y divide-[#E8E4DC]" data-testid="recording-cameras">
+            {cameras.filter((cam) => (cfg.cameras[cam.id] && cfg.cameras[cam.id].enabled) || (status && status.cameras && status.cameras[cam.id] && status.cameras[cam.id].clips > 0)).map((cam) => {
               const c = cfg.cameras[cam.id] || { enabled: false, retention_days: 14 };
               const st = status && status.cameras ? status.cameras[cam.id] : null;
               return (
@@ -879,12 +915,12 @@ function RecordingPanel({ token, cameras, onSaved }) {
                   <div className="flex items-center gap-2 shrink-0">
                     {c.enabled ? (
                       <label className="text-[0.625rem] text-[#5A5751] flex items-center gap-1">keep
-                        <select className={`${inputCls} min-h-[36px] py-1 w-auto`} value={c.retention_days} onChange={(e) => setRetention(cam, e.target.value)} disabled={saving} aria-label={`How long to keep ${cam.name}`}>
+                        <select className={`${inputCls} min-h-[36px] py-1 w-auto`} value={c.retention_days} onChange={(e) => r.setRetention(cam, e.target.value)} disabled={saving} aria-label={`How long to keep ${cam.name}`}>
                           {RETENTION_CHOICES.map((d) => <option key={d} value={d}>{d === 1 ? '1 day' : d >= 365 ? '1 year' : `${d} days`}</option>)}
                         </select>
                       </label>
                     ) : null}
-                    <button type="button" className={`${c.enabled ? btnDark : btnGhost} focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={() => toggle(cam)} disabled={saving} aria-pressed={c.enabled} aria-label={`${c.enabled ? 'Stop recording' : 'Record'} ${cam.name}`}>{c.enabled ? 'Recording' : 'Record'}</button>
+                    <button type="button" className={`${c.enabled ? btnDark : btnGhost} focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={() => r.toggle(cam)} disabled={saving} aria-pressed={c.enabled} aria-label={`${c.enabled ? 'Stop recording' : 'Record'} ${cam.name}`}>{c.enabled ? 'Recording' : 'Record'}</button>
                     {st && st.clips ? <button type="button" className={`${btnGhost} focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={() => openClips(pick === cam.id ? '' : cam.id)} aria-label={`Show clips of ${cam.name}`}>{pick === cam.id ? 'Hide clips' : 'Clips'}</button> : null}
                   </div>
                 </li>
@@ -945,7 +981,21 @@ export default function Cameras() {
   const [list, setList] = useState({ status: 0, cameras: [], at: 0, networkError: false, loaded: false });
   const [frames, setFrames] = useState({});          // id -> {url, at, ms, bytes, error, errorAt}
   const [liveId, setLiveId] = useState('');          // the one in-place live view (tap a tile)
-  const [wall, setWallRaw] = useState(() => loadWall()); // ids watched together
+  const [views, setViewsRaw] = useState(() => loadViews()); // DR-0783: named, ordered, laid-out views; the old wall is the first
+  const setViews = (fn) => setViewsRaw((st) => { const next = typeof fn === 'function' ? fn(st) : fn; saveViews(next); return next; });
+  const view = activeView(views);
+  const wall = useMemo(() => (view ? view.cameras : []), [view]); // the active view's cameras (the tiles read this)
+  const [renaming, setRenaming] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [drag, setDrag] = useState('');             // the camera being dragged in the view
+  const viewGridRef = useRef(null);
+  const [pick, setPick] = useState('');             // camera whose clips are listed (set from a tile)
+  const recordingRef = useRef(null);
+  // TABS INSIDE THE TAB (DR-0783; Darrell: "the recordings should be on the
+  // recordings tab... scrolling down to see something that could be in the
+  // next tab is a real issue"). Live is the default; the rest are one tap.
+  const [tab, setTabRaw] = useState(() => { try { return localStorage.getItem(CAMS_TAB_KEY) || 'live'; } catch { return 'live'; } });
+  const setTab = (t) => { try { localStorage.setItem(CAMS_TAB_KEY, t); } catch { /* fine */ } setTabRaw(t); };
   const [liveTiles, setLiveTilesRaw] = useState(() => loadLiveTiles()); // DR-0776: every tile a live player
   const setLiveTiles = (on) => { saveLiveTiles(on); setLiveTilesRaw(on); };
   const [why, setWhy] = useState('');                // tile whose Why? panel is open
@@ -954,7 +1004,7 @@ export default function Cameras() {
   const [showShell, setShowShell] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   const framesRef = useRef({});
-  const setWall = (fn) => setWallRaw((w) => { const next = typeof fn === 'function' ? fn(w) : fn; saveWall(next); return next; });
+  const recording = useRecording(isOwner ? token : '');
 
   // Clock for the "N s ago" lines (one per second, UI only).
   useEffect(() => { const t = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(t); }, []);
@@ -1075,7 +1125,6 @@ export default function Cameras() {
   const roadUp = !!(health && health.status === 200);
   const groups = groupByKind(list.cameras);
   const liveMax = health && Number.isFinite(Number(health.live_max_seconds)) ? Number(health.live_max_seconds) : 0;
-  const wallMax = wallLimit(health);
   const byId = useMemo(() => Object.fromEntries(list.cameras.map((c) => [c.id, c])), [list.cameras]);
   const wallCams = wall.map((id) => byId[id]).filter(Boolean);
   const garages = useMemo(() => garagesFor(devicesState && devicesState.devices, list.cameras), [devicesState, list.cameras]);
@@ -1087,7 +1136,7 @@ export default function Cameras() {
 
   return (
     <div>
-      <SectionTitle eyebrow="Your cameras, from your own server · live in every tile · tap one for the big view · watch several together on the wall · record what you choose, for as long as you choose">Cameras</SectionTitle>
+      <SectionTitle eyebrow="Your cameras, from your own server · live in every tile · every control on its camera · your views, in your order, as many as you want">Cameras</SectionTitle>
       <div className="flex items-center justify-between gap-3 flex-wrap mb-3 text-[0.6875rem] text-[#5A5751]">
         <div>{roadChip}</div>
         <div className="flex items-center gap-2">
@@ -1097,15 +1146,22 @@ export default function Cameras() {
       </div>
       {!isOwner && token ? <AccessChip access={access} onLeave={() => { saveGrantToken(''); try { window.location.reload(); } catch { /* fine */ } }} /> : null}
       {isOwner && pairCode ? <ApprovePairing code={pairCode} token={token} cameras={list.cameras} onDone={() => { try { stripPairParam(window.location, window.history); } catch { /* fine */ } setTimeout(() => setPairCode(''), 4000); }} /> : null}
-      {token && health && health.status ? (
+      {token && state === 'ready' ? (
+        <div className="mb-3 flex items-center gap-1 flex-wrap" role="tablist" aria-label="Cameras sections" data-testid="cams-tabs">
+          {CAMS_TABS.filter(([k]) => isOwner || k === 'live').map(([k, label]) => (
+            <button key={k} type="button" role="tab" aria-selected={tab === k} className={`${tab === k ? 'bg-[#B85838] text-white' : 'bg-white text-[#1A1815] border border-[#B8B4AC]'} text-[0.625rem] uppercase tracking-wider px-3 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={() => setTab(k)} data-testid={`cams-tab-${k}`}>{label}</button>
+          ))}
+          {liveTrafficLine(health) ? <span className={`${chip.muted} ml-auto`} data-testid="live-traffic">{liveTrafficLine(health)}</span> : null}
+        </div>
+      ) : null}
+      {token && health && health.status && (state !== 'ready' || tab === 'setup') ? (
         <div className="mb-3 flex items-center gap-3 flex-wrap">
           {isOwner ? <ServiceRestart token={token} health={health} onDone={load} /> : null}
           <button type="button" className={`${btnGhost} focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={() => setLiveTiles(!liveTiles)} aria-pressed={liveTiles} data-testid="live-tiles-toggle">{liveTiles ? 'Live in every tile · on' : 'Live in every tile · off (frames every 5 s)'}</button>
-          {liveTrafficLine(health) ? <span className={chip.muted} data-testid="live-traffic">{liveTrafficLine(health)}</span> : null}
         </div>
       ) : null}
 
-      {token ? <Doors garages={garages} devicesState={devicesState} token={token} /> : null}
+      {token && (state !== 'ready' || tab === 'live') ? <Doors garages={garages} devicesState={devicesState} token={token} /> : null}
 
       {state === 'loading' && (
         <div className={card}><p className="text-sm text-[#5A5751]">Reading the camera road...</p></div>
@@ -1182,23 +1238,60 @@ export default function Cameras() {
         </div>
       )}
 
-      {state === 'ready' && (
+      {state === 'ready' && tab === 'live' && (
         <>
-          {/* THE WALL (DR-0774; Darrell: "I need multiple views... different cameras together"). */}
-          <section className="mb-4" data-testid="camera-wall">
+          {/* VIEWS (DR-0783; Darrell: "My views should be able to have and reorder the view live while it is still actively streaming... see 4 with each other or 6"). */}
+          <section className="mb-4" data-testid="camera-views">
             <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
-              <div className={labelCls}>Watch together · {wallCams.length} of {wallMax}</div>
-              <div className="flex items-center gap-2 text-[0.6875rem] text-[#5A5751]">
-                {wallCams.length ? <button type="button" className={`${btnGhost} focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={() => setWall([])}>Clear the wall</button> : <span>Press Wall + on any camera to watch several live at once.</span>}
+              <div className="flex items-center gap-1 flex-wrap" role="tablist" aria-label="Your views">
+                {views.views.map((v) => (
+                  <button key={v.id} type="button" role="tab" aria-selected={v.id === views.active} className={`${v.id === views.active ? 'bg-[#1A1815] text-white' : 'bg-white text-[#1A1815] border border-[#B8B4AC]'} text-[0.625rem] uppercase tracking-wider px-2 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={() => { setRenaming(false); setViews((st) => ({ ...st, active: v.id })); }} data-testid={`view-tab-${v.id}`}>{v.name} · {v.cameras.length}</button>
+                ))}
+                <button type="button" className={`${btnGhost} focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={() => setViews((st) => addView(st))} data-testid="view-new">+ New view</button>
               </div>
+              {view ? (
+                <div className="flex items-center gap-2 text-[0.6875rem] text-[#5A5751] flex-wrap">
+                  <label className="inline-flex items-center gap-1">
+                    <span>Across</span>
+                    <select className="border border-[#B8B4AC] bg-white text-[#1A1815] text-[0.6875rem] px-1 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]" value={String(view.layout)} onChange={(e) => setViews((st) => setViewLayout(st, view.id, e.target.value === 'auto' ? 'auto' : Number(e.target.value)))} aria-label="How many cameras across" data-testid="view-layout">
+                      {VIEW_LAYOUTS.map((l) => <option key={String(l)} value={String(l)}>{l === 'auto' ? 'Auto' : `${l} across`}</option>)}
+                    </select>
+                  </label>
+                  {renaming ? (
+                    <form className="inline-flex items-center gap-1" onSubmit={(e) => { e.preventDefault(); setViews((st) => renameView(st, view.id, newName)); setRenaming(false); }}>
+                      <input className={`${inputCls} w-40 min-h-[36px] py-1`} value={newName} onChange={(e) => setNewName(e.target.value)} aria-label="Name this view" data-testid="view-name" />
+                      <button type="submit" className={`${btnGhost} focus:outline focus:outline-2 focus:outline-[#B85838]`}>Save</button>
+                    </form>
+                  ) : <button type="button" className={`${btnGhost} focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={() => { setNewName(view.name); setRenaming(true); }} data-testid="view-rename">Rename</button>}
+                  {view.cameras.length ? <button type="button" className={`${btnGhost} focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={confirmThen(`Clear every camera from the view ${view.name}? The cameras themselves are untouched.`, () => setViews((st) => ({ ...st, views: st.views.map((v) => (v.id === view.id ? { ...v, cameras: [] } : v)) })))}>Clear</button> : null}
+                  {views.views.length > 1 ? <button type="button" className={`${btnGhost} focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={confirmThen(`Delete the view ${view.name}? The cameras themselves are untouched.`, () => setViews((st) => deleteView(st, view.id)))} aria-label={`Delete the view ${view.name}`} data-testid="view-delete">Delete view</button> : null}
+                </div>
+              ) : null}
             </div>
-            {wallCams.length ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
-                {wallCams.map((cam) => (
-                  <LiveVideo key={cam.id} cam={cam} token={token} liveMax={liveMax} compact testId={`wall-${cam.id}`} now={now} onClose={() => setWall((w) => w.filter((x) => x !== cam.id))} />
+            {view && wallCams.length ? (
+              <div ref={viewGridRef} className={`grid ${viewGridClass(viewCols(view.layout, wallCams.length))} gap-3`} data-testid={`view-${view.id}`} data-cols={viewCols(view.layout, wallCams.length)}>
+                {wallCams.map((cam, i) => (
+                  <div key={cam.id} data-view-cam={cam.id} className={drag === cam.id ? 'opacity-70 ring-2 ring-[#B85838]' : ''}>
+                    <div className="flex items-center justify-between gap-1 mb-1 text-[0.625rem] text-[#5A5751]">
+                      <button type="button" className="cursor-grab touch-none min-h-[36px] px-2 text-base leading-none focus:outline focus:outline-2 focus:outline-[#B85838]" aria-label={`Drag ${cam.name} to another place in the view`} title="Drag to reorder"
+                        onPointerDown={(e) => { try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* fine */ } setDrag(cam.id); }}
+                        onPointerMove={(e) => {
+                          if (drag !== cam.id || !viewGridRef.current) return;
+                          const boxes = [...viewGridRef.current.querySelectorAll('[data-view-cam]')].map((el) => { const b = el.getBoundingClientRect(); return { id: el.getAttribute('data-view-cam'), left: b.left, top: b.top, right: b.right, bottom: b.bottom }; });
+                          const idx = indexAtPoint(boxes, e.clientX, e.clientY);
+                          if (idx >= 0 && boxes[idx].id !== cam.id) setViews((st) => moveInView(st, view.id, cam.id, idx));
+                        }}
+                        onPointerUp={() => setDrag('')} onPointerCancel={() => setDrag('')}>⠿</button>
+                      <span className="flex items-center gap-1">
+                        <button type="button" className={`${btnGhost} focus:outline focus:outline-2 focus:outline-[#B85838]`} disabled={i === 0} onClick={() => setViews((st) => moveInView(st, view.id, cam.id, i - 1))} aria-label={`Move ${cam.name} earlier`} data-testid={`view-left-${cam.id}`}>◀</button>
+                        <button type="button" className={`${btnGhost} focus:outline focus:outline-2 focus:outline-[#B85838]`} disabled={i === wallCams.length - 1} onClick={() => setViews((st) => moveInView(st, view.id, cam.id, i + 1))} aria-label={`Move ${cam.name} later`} data-testid={`view-right-${cam.id}`}>▶</button>
+                      </span>
+                    </div>
+                    <LiveVideo cam={cam} token={token} liveMax={liveMax} compact testId={`wall-${cam.id}`} now={now} onClose={() => setViews((st) => removeFromView(st, view.id, cam.id))} />
+                  </div>
                 ))}
               </div>
-            ) : null}
+            ) : <p className="text-[0.6875rem] text-[#5A5751]">Press + View on any camera to add it here. Drag the handle, or use the arrows, to put them in your order while they stream; pick how many across.</p>}
           </section>
 
           {groups.map((g) => (
@@ -1212,7 +1305,6 @@ export default function Cameras() {
                   const fresh = f && f.url;
                   const isLive = liveId === cam.id;
                   const onWall = wall.includes(cam.id);
-                  const wallFull = !onWall && wall.length >= wallMax;
                   const tileLive = liveTileIds.has(cam.id);
                   return (
                     <React.Fragment key={cam.id}>
@@ -1235,11 +1327,12 @@ export default function Cameras() {
                               {f && f.error && !tileLive ? <span className="text-[#B85838]" data-testid={`reason-${cam.id}`}> · {f.error}</span> : null}
                             </div>
                           </div>
-                          <div className="flex items-center gap-1 shrink-0">
+                          <div className="flex items-center gap-1 shrink-0 flex-wrap justify-end">
                             {garageByCamera[cam.id] ? <GarageButton device={garageByCamera[cam.id]} token={token} compact /> : null}
+                            {isOwner ? <TileRecord cam={cam} r={recording} onClips={(id) => { setPick(id); setTab('recordings'); }} /> : null}
                             {f && f.error ? <button type="button" className={`${btnGhost} focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={() => setWhy(why === cam.id ? '' : cam.id)} aria-label={`Why does ${cam.name} show no frame?`}>Why?</button> : null}
-                            <button type="button" className={`${btnGhost} focus:outline focus:outline-2 focus:outline-[#B85838]`} disabled={wallFull} onClick={() => setWall((w) => (onWall ? w.filter((x) => x !== cam.id) : [...w, cam.id]))} aria-label={onWall ? `Remove ${cam.name} from the wall` : `Add ${cam.name} to the wall`} title={wallFull ? `The wall holds ${wallMax} at once` : ''}>{onWall ? 'Wall −' : 'Wall +'}</button>
-                            <button type="button" onClick={() => setLiveId(isLive ? '' : cam.id)} className={`${btnGhost}`}>{isLive ? 'Close' : 'Live'}</button>
+                            <button type="button" className={`${btnGhost} focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={() => setViews((st) => (onWall ? removeFromView(st, st.active, cam.id) : addToView(st, st.active, cam.id)))} aria-label={onWall ? `Remove ${cam.name} from the view` : `Add ${cam.name} to the view`}>{onWall ? '− View' : '+ View'}</button>
+                            <button type="button" onClick={() => setLiveId(isLive ? '' : cam.id)} className={`${btnGhost} focus:outline focus:outline-2 focus:outline-[#B85838]`}>{isLive ? 'Close' : 'Big'}</button>
                           </div>
                         </div>
                         {why === cam.id ? <WhyPanel cam={cam} token={token} onHide={() => setWhy('')} /> : null}
@@ -1252,17 +1345,26 @@ export default function Cameras() {
             </section>
           ))}
 
-          {isOwner ? <div className="mb-4"><RecordingPanel token={token} cameras={list.cameras} /></div> : null}
-          {isOwner ? <div className="mb-4"><AccessPanel token={token} cameras={list.cameras} onCode={(c) => setPairCode(c)} /></div> : null}
-
-          {isOwner ? (
-            <div className={card}>
-              <button type="button" className={`${btnGhost}`} onClick={() => setShowAdd((v) => !v)}>{showAdd ? 'Hide' : 'Add a system you own'}</button>
-              {showAdd && <KindsHelp />}
-            </div>
-          ) : null}
         </>
       )}
+      {state === 'ready' && isOwner && tab === 'recordings' ? (
+        <div className="mb-4" ref={recordingRef}><RecordingPanel token={token} cameras={list.cameras} r={recording} pick={pick} setPick={setPick} /></div>
+      ) : null}
+      {state === 'ready' && isOwner && tab === 'access' ? (
+        <div className="mb-4"><AccessPanel token={token} cameras={list.cameras} onCode={(c) => { setPairCode(c); setTab('live'); }} /></div>
+      ) : null}
+      {state === 'ready' && isOwner && tab === 'setup' ? (
+        <div className={card}>
+          <div className={labelCls}>Setup</div>
+          <p className="text-xs text-[#5A5751] mt-1">The service, the live-tile switch, another camera system, or a different Wyze account. Nothing here is needed day to day.</p>
+          <button type="button" className={`${btnGhost} mt-2 focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={() => setShowAdd((v) => !v)}>{showAdd ? 'Hide' : 'Add a system you own'}</button>
+          {showAdd && <KindsHelp />}
+          <details className="mt-3">
+            <summary className="text-xs text-[#B85838] cursor-pointer min-h-[36px] inline-flex items-center">Sign in to a different Wyze account</summary>
+            <WyzeSetup token={token} onAdded={() => { load(); }} />
+          </details>
+        </div>
+      ) : null}
     </div>
   );
 }

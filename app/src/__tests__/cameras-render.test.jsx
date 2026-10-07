@@ -9,7 +9,8 @@ import { createRoot } from 'react-dom/client';
 import Cameras from '../components/Cameras.jsx';
 import { SURFACES, surfaceById } from '../surfaces.js';
 import { CHAT_BRIDGE_TOKEN_KEY } from '../lib/nas-photos.js';
-import { WYZE_DRAFT_KEY, WALL_KEY, LIVE_RECONNECT_MAX, LIVE_RECONNECT_DELAY_MS, formatBytes, LIVE_TILES_KEY, GRANT_KEY, PAIR_TIMING } from '../lib/cameras.js';
+import { WYZE_DRAFT_KEY, WALL_KEY, LIVE_RECONNECT_MAX, LIVE_RECONNECT_DELAY_MS, formatBytes, LIVE_TILES_KEY, GRANT_KEY, PAIR_TIMING, VIEWS_KEY } from '../lib/cameras.js';
+import { CAMS_TAB_KEY } from '../components/Cameras.jsx';
 import { getReadTarget, subscribeRead } from '../lib/read-target.js';
 
 const TOKEN = 'family-test-token';
@@ -78,7 +79,7 @@ describe('Cameras surface', () => {
   });
   afterEach(() => {
     act(() => root.unmount()); container.remove();
-    try { localStorage.removeItem(CHAT_BRIDGE_TOKEN_KEY); localStorage.removeItem(WYZE_DRAFT_KEY); localStorage.removeItem(WALL_KEY); localStorage.removeItem(LIVE_TILES_KEY); } catch { /* fine */ }
+    try { localStorage.removeItem(CHAT_BRIDGE_TOKEN_KEY); localStorage.removeItem(WYZE_DRAFT_KEY); localStorage.removeItem(WALL_KEY); localStorage.removeItem(LIVE_TILES_KEY); localStorage.removeItem(VIEWS_KEY); localStorage.removeItem(CAMS_TAB_KEY); } catch { /* fine */ }
     vi.unstubAllGlobals();
   });
 
@@ -268,35 +269,35 @@ describe('Cameras surface', () => {
     expect(container.querySelector('[data-testid="service-restart-result"]').textContent).toMatch(/older camera service that cannot restart itself yet/);
   });
 
-  it('recorded loops: Record switches a camera on with a retention, the budget saves, clips list by day and play through a long ticket (DR-0775)', async () => {
+  it('recorded loops (DR-0775, DR-0783): Record and keep sit on the camera\'s tile; the budget and the clips live on the Recordings tab; a clip plays through a long ticket', async () => {
     const now = Math.floor(Date.now() / 1000);
     const { fetchImpl, calls } = makeFetch({
       list: { cameras: [{ id: 'front_yard', name: 'front yard', kind: 'wyze' }], count: 1 },
       recordingStatus: 200,
-      recording: { config: { disk_budget_gb: 100, cameras: {} }, status: { ok: true, at: now, disk_budget_gb: 100, total_bytes: 3000, disk_free_bytes: 500e9, cameras: { front_yard: { enabled: false, recording: false, clips: 2, bytes: 3000, oldest: now - 1200, newest: now - 600, restarts: 0, last_exit: null } } }, root: '/volume1/PoeTech/cameras/recordings' },
+      recording: { config: { disk_budget_gb: 100, cameras: {} }, status: { ok: true, at: now, disk_budget_gb: 100, total_bytes: 3000, disk_free_bytes: 500e9, cameras: { front_yard: { enabled: false, recording: false, clips: 2, bytes: 3000, oldest: now - 600, newest: now } } } },
     });
     vi.stubGlobal('fetch', fetchImpl);
     await mount();
     await act(async () => { await new Promise((r) => setTimeout(r, 30)); });
-    const panel = container.querySelector('[data-testid="recording-panel"]');
-    expect(panel.textContent).toMatch(/No camera is recording\./);
-    expect(panel.textContent).toContain(`On disk: ${formatBytes(3000)} of a 100 GB budget`);
-    expect(panel.textContent).toContain(`2 clips · ${formatBytes(3000)}`);
-    // switch Record on: a PUT with the camera enabled and the default 14 days
+    // Live tab: the tile carries Record and the clip count; nothing of the recorder is below the cameras
+    expect(container.querySelector('[data-testid="recording-panel"]')).toBeNull();
+    expect(container.querySelector('[data-testid="tile-record-front_yard"]').textContent).toMatch(/Record/);
     await click(buttons().find((b) => b.getAttribute('aria-label') === 'Record front yard'));
     await act(async () => { await new Promise((r) => setTimeout(r, 20)); });
     const put = calls.find((c) => c.url === '/cams/recording' && c.opts.method === 'PUT');
     expect(put.opts.headers.Authorization).toBe(`Bearer ${TOKEN}`);
     expect(JSON.parse(put.opts.body)).toEqual({ disk_budget_gb: 100, cameras: { front_yard: { enabled: true, retention_days: 14 } } });
-    expect(container.querySelector('[data-testid="recording-note"]').textContent).toMatch(/Saved/);
-    const sel = panel.querySelector('select');
-    expect(sel.value).toBe('14');
-    // the retention select sends the chosen days
+    const keep = container.querySelector('[data-testid="keep-front_yard"]');
+    expect(keep.value).toBe('14');
     const setter = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set;
-    await act(async () => { setter.call(sel, '30'); sel.dispatchEvent(new Event('change', { bubbles: true })); await new Promise((r) => setTimeout(r, 20)); });
+    await act(async () => { setter.call(keep, '30'); keep.dispatchEvent(new Event('change', { bubbles: true })); await new Promise((r) => setTimeout(r, 20)); });
     const puts = calls.filter((c) => c.url === '/cams/recording' && c.opts.method === 'PUT');
     expect(JSON.parse(puts[puts.length - 1].opts.body).cameras.front_yard.retention_days).toBe(30);
-    // the budget
+    // Recordings tab: the disk line, the budget, the note
+    await click(container.querySelector('[data-testid="cams-tab-recordings"]'));
+    const panel = container.querySelector('[data-testid="recording-panel"]');
+    expect(panel.textContent).toContain(`On disk: ${formatBytes(3000)} of a 100 GB budget`);
+    expect(container.querySelector('[data-testid="recording-note"]').textContent).toMatch(/Saved/);
     const budgetInput = panel.querySelector('input[type="number"]');
     const iset = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
     await act(async () => { iset.call(budgetInput, '250'); budgetInput.dispatchEvent(new Event('input', { bubbles: true })); });
@@ -304,9 +305,11 @@ describe('Cameras surface', () => {
     await act(async () => { await new Promise((r) => setTimeout(r, 20)); });
     const puts2 = calls.filter((c) => c.url === '/cams/recording' && c.opts.method === 'PUT');
     expect(JSON.parse(puts2[puts2.length - 1].opts.body).disk_budget_gb).toBe(250);
-    // clips: listed by day, newest first; a tap mints an hour ticket and plays through /rec
+    // back on Live, the tile's clip count opens the clips on the Recordings tab
+    await click(container.querySelector('[data-testid="cams-tab-live"]'));
     await click(buttons().find((b) => b.getAttribute('aria-label') === 'Show clips of front yard'));
     await act(async () => { await new Promise((r) => setTimeout(r, 20)); });
+    expect(container.querySelector('[data-testid="cams-tab-recordings"]').getAttribute('aria-selected')).toBe('true');
     expect(calls.find((c) => c.url === '/cams/rec/front_yard').opts.headers.Authorization).toBe(`Bearer ${TOKEN}`);
     const clipsBox = container.querySelector('[data-testid="clips"]');
     expect(clipsBox.textContent).toContain(`2026-10-07 · 2 clips · ${formatBytes(3000)}`);
@@ -325,6 +328,7 @@ describe('Cameras surface', () => {
     vi.stubGlobal('fetch', fetchImpl);
     await mount();
     await act(async () => { await new Promise((r) => setTimeout(r, 30)); });
+    await click(container.querySelector('[data-testid="cams-tab-recordings"]'));
     expect(container.querySelector('[data-testid="recording-panel"]').textContent).toMatch(/older camera service without the recorder yet/);
     expect(container.querySelector('[data-testid="recording-cameras"]')).toBeNull();
   });
@@ -344,13 +348,16 @@ describe('Cameras surface', () => {
     expect(tickets).toEqual(['front_yard', 'garage']);
     expect(calls.filter((c) => c.url.startsWith('/cams/snap/')).length).toBe(0);
     expect(container.querySelector('[data-testid="live-traffic"]').textContent).toBe('2 live streams · 2.0 Mbit/s through the Funnel');
+    // off (the switch lives on Setup): tiles go back to frames every 5 s and the choice is kept on the device
+    await click(container.querySelector('[data-testid="cams-tab-setup"]'));
     expect(container.textContent).toMatch(/Live in every tile · on/);
-    // off: tiles go back to frames every 5 s and the choice is kept on the device
     await click(container.querySelector('[data-testid="live-tiles-toggle"]'));
+    await click(container.querySelector('[data-testid="cams-tab-live"]'));
     await act(async () => { await new Promise((r) => setTimeout(r, 30)); });
     expect(container.querySelector('[data-testid="tile-live-front_yard"]')).toBeNull();
     expect(calls.filter((c) => c.url.startsWith('/cams/snap/')).length).toBeGreaterThanOrEqual(2);
     expect(localStorage.getItem(LIVE_TILES_KEY)).toBe('0');
+    await click(container.querySelector('[data-testid="cams-tab-setup"]'));
     expect(container.textContent).toMatch(/Live in every tile · off/);
   });
 
@@ -386,7 +393,7 @@ describe('Cameras surface', () => {
     vi.stubGlobal('fetch', fetchImpl);
     await mount();
     await act(async () => { await new Promise((r) => setTimeout(r, 20)); });
-    const liveBtn = buttons().find((b) => b.textContent === 'Live');
+    const liveBtn = buttons().find((b) => b.textContent === 'Big');
     await click(liveBtn);
     const ticketCall = calls.find((c) => c.url === '/cams/ticket');
     expect(ticketCall).toBeTruthy();
@@ -418,7 +425,7 @@ describe('Cameras surface', () => {
     try {
       await mount();
       await act(async () => { await new Promise((r) => setTimeout(r, 20)); });
-      await click(buttons().find((b) => b.textContent === 'Live'));
+      await click(buttons().find((b) => b.textContent === 'Big'));
       let video = container.querySelector('video');
       await act(async () => { video.dispatchEvent(new Event('loadeddata')); });
       const ticketsBefore = calls.filter((c) => c.url === '/cams/ticket').length;
@@ -444,7 +451,7 @@ describe('Cameras surface', () => {
     }
   });
 
-  it('the wall shows several cameras live together, each with its own ticket, and Remove / Clear take them down (DR-0774)', async () => {
+  it('views (DR-0783): + View adds a camera to the active view, the view streams them live, arrows reorder while they stream, the layout is chosen, a second view is its own, Remove and Clear take them down', async () => {
     const { fetchImpl, calls } = makeFetch({ list: { cameras: [
       { id: 'front_yard', name: 'front yard', kind: 'wyze' },
       { id: 'garage', name: 'garage', kind: 'rtsp' },
@@ -452,25 +459,59 @@ describe('Cameras surface', () => {
     vi.stubGlobal('fetch', fetchImpl);
     await mount();
     await act(async () => { await new Promise((r) => setTimeout(r, 20)); });
-    expect(container.querySelector('[data-testid="camera-wall"]').textContent).toMatch(/Watch together · 0 of 12/);
-    await click(buttons().find((b) => b.getAttribute('aria-label') === 'Add front yard to the wall'));
-    await click(buttons().find((b) => b.getAttribute('aria-label') === 'Add garage to the wall'));
+    const views = container.querySelector('[data-testid="camera-views"]');
+    expect(views.textContent).toMatch(/My view · 0/);
+    expect(views.textContent).toMatch(/Press \+ View on any camera/);
+    await click(buttons().find((b) => b.getAttribute('aria-label') === 'Add front yard to the view'));
+    await click(buttons().find((b) => b.getAttribute('aria-label') === 'Add garage to the view'));
     await act(async () => { await new Promise((r) => setTimeout(r, 20)); });
     expect(container.querySelector('[data-testid="wall-front_yard"] video')).toBeTruthy();
     expect(container.querySelector('[data-testid="wall-garage"] video')).toBeTruthy();
     const tickets = calls.filter((c) => c.url === '/cams/ticket').map((c) => JSON.parse(c.opts.body).camera);
     expect(tickets).toEqual(['front_yard', 'garage']);
-    expect(JSON.parse(localStorage.getItem(WALL_KEY))).toEqual(['front_yard', 'garage']);
-    expect(container.querySelector('[data-testid="camera-wall"]').textContent).toMatch(/Watch together · 2 of 12/);
-    // a camera on the wall is not also polled for a snapshot (the live view IS the frame)
+    const saved = JSON.parse(localStorage.getItem(VIEWS_KEY));
+    expect(saved.views[0].cameras).toEqual(['front_yard', 'garage']);
+    expect(views.textContent).toMatch(/My view · 2/);
+    // a camera in the view is not also polled for a snapshot (the live view IS the frame)
     const snapsBefore = calls.filter((c) => c.url.startsWith('/cams/snap/')).length;
     await act(async () => { await new Promise((r) => setTimeout(r, 30)); });
     expect(calls.filter((c) => c.url.startsWith('/cams/snap/')).length).toBe(snapsBefore);
-    await click(buttons().find((b) => b.getAttribute('aria-label') === 'Remove garage from the wall'));
+    // reorder while streaming: the same two <video> elements, in the new order, no new ticket
+    const grid = container.querySelector('[data-testid^="view-v"]');
+    const order = () => [...grid.querySelectorAll('[data-view-cam]')].map((el) => el.getAttribute('data-view-cam'));
+    expect(order()).toEqual(['front_yard', 'garage']);
+    const vidBefore = container.querySelector('[data-testid="wall-garage"] video');
+    await click(container.querySelector('[data-testid="view-left-garage"]'));
+    expect(order()).toEqual(['garage', 'front_yard']);
+    expect(container.querySelector('[data-testid="wall-garage"] video')).toBe(vidBefore);
+    expect(calls.filter((c) => c.url === '/cams/ticket')).toHaveLength(2);
+    expect(JSON.parse(localStorage.getItem(VIEWS_KEY)).views[0].cameras).toEqual(['garage', 'front_yard']);
+    // layout: auto fits two across; 1 across is one column
+    expect(grid.getAttribute('data-cols')).toBe('2');
+    const layout = container.querySelector('[data-testid="view-layout"]');
+    const sset = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set;
+    await act(async () => { sset.call(layout, '1'); layout.dispatchEvent(new Event('change', { bubbles: true })); });
+    expect(container.querySelector('[data-testid^="view-v"]').getAttribute('data-cols')).toBe('1');
+    // a second view starts empty and is the active one; the first keeps its cameras
+    await click(container.querySelector('[data-testid="view-new"]'));
+    expect(container.querySelector('[data-testid="camera-views"]').textContent).toMatch(/View 2 · 0/);
     expect(container.querySelector('[data-testid="wall-garage"]')).toBeNull();
-    await click(buttons().find((b) => b.textContent === 'Clear the wall'));
+    const tabs = [...container.querySelectorAll('[data-testid^="view-tab-"]')];
+    expect(tabs).toHaveLength(2);
+    await click(tabs[0]);
+    await act(async () => { await new Promise((r) => setTimeout(r, 20)); });
+    expect(container.querySelector('[data-testid="wall-garage"] video')).toBeTruthy();
+    // remove one, clear the rest
+    await click(buttons().find((b) => b.textContent === 'Remove'));
+    expect([...container.querySelectorAll('[data-view-cam]')]).toHaveLength(1);
+    // Clear asks first (a destroying button never acts on one tap)
+    vi.stubGlobal('confirm', vi.fn(() => false));
+    await click(buttons().find((b) => b.textContent === 'Clear'));
+    expect([...container.querySelectorAll('[data-view-cam]')]).toHaveLength(1);
+    vi.stubGlobal('confirm', vi.fn(() => true));
+    await click(buttons().find((b) => b.textContent === 'Clear'));
     expect(container.querySelector('[data-testid="wall-front_yard"]')).toBeNull();
-    expect(localStorage.getItem(WALL_KEY)).toBeNull();
+    expect(container.querySelector('[data-testid="wall-garage"]')).toBeNull();
   });
 
   it('a blank tile names its real cause and Why? brings the NAS\'s explanation in plain words (DR-0774)', async () => {
@@ -588,6 +629,7 @@ describe('Cameras surface', () => {
     vi.stubGlobal('fetch', fetchImpl);
     await mount();
     await act(async () => { await new Promise((r) => setTimeout(r, 10)); });
+    await click(container.querySelector('[data-testid="cams-tab-access"]'));
     const panel = container.querySelector('[data-testid="access-panel"]');
     expect(panel).toBeTruthy();
     expect(panel.textContent).toMatch(/1 with access/);
@@ -691,7 +733,8 @@ describe('Cameras surface', () => {
       expect(plan.approved).toEqual({ name: 'TV', cameras: '*', days: 0, actions: true });
       expect(container.querySelector('[data-testid="approve-result"]').textContent).toMatch(/Done\. The screen has its access as TV/);
       expect(window.location.search).not.toMatch(/cams-pair/);
-      // typing a code by eye
+      // typing a code by eye, on the Who can see tab; the approval lands back on Live
+      await click(container.querySelector('[data-testid="cams-tab-access"]'));
       const input = container.querySelector('[data-testid="pair-code-input"]');
       await act(async () => { const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set; setter.call(input, 'xyz789'); input.dispatchEvent(new Event('input', { bubbles: true })); });
       await act(async () => { container.querySelector('[data-testid="pair-code-form"]').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); });

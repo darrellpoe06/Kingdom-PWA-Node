@@ -114,9 +114,14 @@ function collectProviders() {
 // which is exactly the silent-fallback trap — so a base-relative DATA call
 // needs its own second-level provider (a Function dir/file under
 // functions/poetech-app/), with 'assets' served by the build itself.
+// Files the BUILD itself writes into dist (served at the root, so reached
+// through the /poetech-app/* rewrite): the hashed assets, and build.json —
+// the live build's name (DR-0781), written by vite.config.js closeBundle.
+const BUILT_BY_VITE = new Set(['assets', 'build.json']);
+
 function hasScopedProvider(p) {
   const seg2 = p.split('/').filter(Boolean)[1] || '';
-  if (!seg2 || seg2 === 'assets') return true;
+  if (!seg2 || BUILT_BY_VITE.has(seg2)) return true;
   return existsSync(repo('functions/poetech-app/' + seg2)) || existsSync(repo('functions/poetech-app/' + seg2 + '.js'));
 }
 
@@ -166,6 +171,12 @@ describe('client-path parity — every same-origin path the app calls has a prov
     for (const p of ['/llm/chat', '/reviews/llm-review.json', '/poetech-app/taxes/archive.json', '/taxes/archive.json', '/taxes/upload', '/scribe/session', '/ways/brain.json', '/property-history', '/automation-status', '/wake-orchestrator', '/review-feed']) {
       expect(scanned.some((k) => k === p || k.startsWith(p + '/')), `scanner no longer sees ${p} — if the feature was removed, update this pin; if the extractor broke, fix it`).toBe(true);
     }
+  });
+
+  it('build.json is really written by the build, so counting it as provided is not a claim', () => {
+    const cfg = readFileSync(repo('vite.config.js'), 'utf8');
+    expect(cfg).toMatch(/dist\/build\.json/);
+    expect(cfg).toMatch(/writeFileSync\(buildJsonPath/);
   });
 
   it('every scanned client path has a provider (Function, _redirects, or public asset)', () => {
