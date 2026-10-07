@@ -562,7 +562,7 @@ function AccessChip({ access, onLeave }) {
 
 function LiveVideo({ cam, token, liveMax, onClose, compact = false, bare = false, testId = 'live-view', now, onPick = null, picked = false }) {
   // A click (or Enter / Space from a remote) on the picture hands the tile to
-  // the view, which makes it the largest or puts it back (DR-0795).
+  // the view, which makes it the largest or puts it back (DR-0796).
   const pickProps = onPick ? {
     role: 'button', tabIndex: 0, 'aria-pressed': picked,
     title: picked ? 'Click to put this camera back where it was' : 'Click to make this camera the largest',
@@ -716,7 +716,7 @@ function LiveVideo({ cam, token, liveMax, onClose, compact = false, bare = false
 const WINDOW_BAR_PX = 56;
 const WINDOW_GAP_PX = 6;
 function ViewWindow({ view, cams, token, liveMax, now, onClose, onScale }) {
-  // The one camera made largest by a click; '' when none (DR-0795).
+  // The one camera made largest by a click; '' when none (DR-0796).
   const [focusedRaw, setFocused] = useState('');
   const focused = focusIn(cams, focusedRaw);
   const [size, setSize] = useState(() => ({ w: typeof window !== 'undefined' ? window.innerWidth : 0, h: typeof window !== 'undefined' ? window.innerHeight : 0 }));
@@ -1084,7 +1084,7 @@ export default function Cameras() {
   const scaleWindow = useCallback((sc) => { if (view) setViews((st) => setViewScale(st, view.id, sc)); }, [view]);
   const [newName, setNewName] = useState('');
   const [drag, setDrag] = useState('');             // the camera being dragged in the view
-  const [focusedTileRaw, setFocusedTile] = useState(''); // the camera a click made largest in the view (DR-0795)
+  const [focusedTileRaw, setFocusedTile] = useState(''); // the camera a click made largest in the view (DR-0796)
   const viewGridRef = useRef(null);
   const [pick, setPick] = useState('');             // camera whose clips are listed (set from a tile)
   const recordingRef = useRef(null);

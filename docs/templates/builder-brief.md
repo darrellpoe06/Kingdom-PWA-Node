@@ -27,11 +27,22 @@ LESSONS (when the outcome is a lesson): all four age bands (P60); the lesson AND
   to children, children to parents, friend to friend — each with the skill (ask, listen to
   the end, retell, teach one verse) and the rhythm (once today in one of Deuteronomy 6:7's
   four places; one friend this week); the gate refuses a lesson added on or after
-  2026-10-01 without them (DR-0733, app/src/lib/talk-together.js). anchor.ref names every
+  2026-10-01 without them (DR-0733, app/src/lib/talk-together.js). EVERY BAND, not only the
+  module pooled: a reader reads ONE band, so the lesson's own pinned test asserts the three
+  directions by their literal text on the lesson AND on each band, and the catalog gate names
+  any band that is short (DR-0795, hasAllThreeEverywhere / placesMissingDirections). Prove it
+  catches: strip one band's friend line alone and the per-band check must name that band while
+  hasAllThree(module) still reads green. anchor.ref names every
   verse the lesson stands on, because Search it out derives its links from those references
   and never from typed lists (DR-0734); the close sends the reader back into the text.
   Growth is measured the Word's way, qualitative (fruit, Galatians 5:22) and quantitative
   (occasions and days, Deuteronomy 6:7; Hebrews 3:13), never imported.
+GENERATED FILES (never hand-edited): regenerate app/src/lib/lesson-dates.json with
+  `npm run lesson-dates` and the course-band baseline with
+  `cd app && npx vite-node ../scripts/course-band-baseline-write.mjs`. CI catches a missing
+  lesson-dates entry that a local run does not.
+SESSION NOTE: a lesson note under docs/99-session-notes/ carries a `**Module id:** `ll…``
+  line naming the module it documents (living-lesson-notes-name-their-module gates it).
 REPORT: what changed, the evidence, and anything left with its named blocker.
 ```
 

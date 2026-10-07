@@ -556,7 +556,7 @@ describe('Cameras surface', () => {
     expect(container.querySelector('[data-testid^="view-v"]'), 'the in-page grid is back').toBeTruthy();
   });
 
-  it('a click on a picture makes that camera the largest and a second click puts it back, in the view and in the window (DR-0795)', async () => {
+  it('a click on a picture makes that camera the largest and a second click puts it back, in the view and in the window (DR-0796)', async () => {
     const { fetchImpl, calls } = makeFetch({ list: { cameras: [
       { id: 'front_yard', name: 'front yard', kind: 'wyze' },
       { id: 'garage', name: 'garage', kind: 'rtsp' },

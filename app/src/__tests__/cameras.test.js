@@ -823,7 +823,7 @@ describe('the full-size window (DR-0788): the grid that gives every tile the mos
   });
 });
 
-describe('one camera largest on a click, back on the second (DR-0795)', () => {
+describe('one camera largest on a click, back on the second (DR-0796)', () => {
   const cams = [{ id: 'a', name: 'A' }, { id: 'b', name: 'B' }, { id: 'c', name: 'C' }];
   it('toggleFocus: a click focuses, the same click again clears, a different camera moves the focus', () => {
     expect(toggleFocus('', 'a')).toBe('a');

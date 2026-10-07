@@ -1,4 +1,4 @@
-# DR-0795 — Click a camera to make it the largest; click it again to put it back
+# DR-0796 — Click a camera to make it the largest; click it again to put it back
 
 - **Status:** accepted
 - **Tier:** A (a view-state toggle on the live tiles; no new road, no NAS change, every stream and slot unchanged)
@@ -18,7 +18,7 @@ SHOULD: in a view, or in the full-size window, one camera can be brought to the 
 | --- | --- | --- |
 | a click on a picture (before) | nothing | `LiveVideo` had no handler on the picture |
 | one camera large (before) | layout → 1 across re-lays every tile; undoing it is a second setting | `viewCols(view.layout, …)` |
-| after a click (after) | the view grid is one column with the clicked camera marked; the other tile has `hidden` and keeps the same `<video>` element; no new ticket | `cameras-render.test.jsx` (DR-0795 case) |
+| after a click (after) | the view grid is one column with the clicked camera marked; the other tile has `hidden` and keeps the same `<video>` element; no new ticket | `cameras-render.test.jsx` (DR-0796 case) |
 | the second click (after) | two across again, nothing hidden, the order unchanged, no new ticket | the same case |
 | in the window (after) | `fitGrid` lays out ONE tile (a larger `gridAutoRows`), the bar reads "front yard · largest · click it again to put it back", the hidden tile keeps its `<video>`; the second click restores the rows and the "2 cameras · 1 across · 100%" line | the same case |
 | a remote (after) | Enter on the picture toggles the same way | the same case |
@@ -34,7 +34,7 @@ SHOULD: in a view, or in the full-size window, one camera can be brought to the 
 
 ## Verification after merge
 
-- The DR-0795 cases run in CI (107 camera tests green).
+- The DR-0796 cases run in CI (107 camera tests green).
 - Deploy proof per DR-0107: a real deploy run on the merge SHA.
 - `re-review: 2026-10-21` on the Firestick: a click on a window tile from the remote (Select = Enter) makes it the largest; a second press puts it back.
 

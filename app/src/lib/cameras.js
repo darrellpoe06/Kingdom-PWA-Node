@@ -1047,7 +1047,7 @@ export function roadLine(stats, mode) {
 // =============================================================================
 export const VIEWS_KEY = 'poetech.cameras.views.v1';
 export const VIEW_LAYOUTS = Object.freeze(['auto', 1, 2, 3, 4]);
-// ONE CAMERA, LARGEST, ON A CLICK (DR-0795; Darrell 2026-10-07: "Clicking
+// ONE CAMERA, LARGEST, ON A CLICK (DR-0796; Darrell 2026-10-07: "Clicking
 // inside the image of one camera makes it largest size... click again it goes
 // to the previous position"). A view or the full-size window keeps one
 // focused camera id: that tile takes the whole area, the others stay mounted

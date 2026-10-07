@@ -5,7 +5,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { ownPrompts, hasAllThree, talkTogetherFor, talkTogetherCoverage, mustCarryOwn, TALK_TOGETHER_VERSES, TALK_TOGETHER_AIM, TALK_TOGETHER_METHOD } from '../lib/talk-together.js';
+import { ownPrompts, hasAllThree, talkTogetherFor, talkTogetherCoverage, mustCarryOwn, missingDirections, placesMissingDirections, hasAllThreeEverywhere, everyBandCoverage, TALK_TOGETHER_VERSES, TALK_TOGETHER_AIM, TALK_TOGETHER_METHOD } from '../lib/talk-together.js';
 import { buildCatalogCourseDescriptors } from '../lib/learn-catalog.js';
 import baseline from '../lib/talk-together-baseline.json';
 
@@ -72,5 +72,68 @@ describe('the gate: every new lesson carries its own three, and the catalog neve
     const c = talkTogetherCoverage(modules.map((x) => x.m));
     expect(c.lessons).toBeGreaterThanOrEqual(baseline.lessons);
     expect(c.all).toBeGreaterThanOrEqual(baseline.all);
+  });
+});
+
+// EVERY BAND, NOT ONLY THE MODULE (DR-0795). A reader reads ONE band, so the
+// three directions are counted where that reader meets them.
+describe('the gate: every band sends you to someone, not only the module as a whole', () => {
+  const modules = buildCatalogCourseDescriptors().flatMap((c) => (c.schedule || []).map((s) => ({ m: s.module || s, added: (s.module || s).added || s.added || null }))).filter((x) => x.m && (x.m.lesson || x.m.levels));
+
+  it('a bound lesson is whole in its lesson prose AND in every band it ships', () => {
+    const due = modules.filter((x) => mustCarryOwn(x.added));
+    expect(due.length, 'there are lessons bound by the rule to check').toBeGreaterThanOrEqual(14);
+    const short = due
+      .filter((x) => !hasAllThreeEverywhere(x.m))
+      .map((x) => `${x.m.id}: ${placesMissingDirections(x.m).map((p) => `${p.place} is short of ${p.missing.join(' + ')}`).join('; ')}`);
+    expect(short, 'bound lessons with a band that sends the reader nowhere').toEqual([]);
+  });
+
+  it('the count of lessons whole in every band never falls below the baseline', () => {
+    const c = everyBandCoverage(modules.map((x) => x.m));
+    expect(c.whole).toBeGreaterThanOrEqual(baseline.everyBand);
+  });
+
+  // PROVEN TO CATCH (DR-0076). Each case is a real break the old module-level
+  // gate let through, or a real text the old patterns wrongly called short.
+  describe('proven to catch', () => {
+    // A fixture that IS whole everywhere, so each case below breaks one thing.
+    const three = 'Parents, ask your children what this shows about Yahweh and listen before you teach. Ask your mom, dad or grandparent what it means to them. Tell a friend one thing you saw, and ask what they see.';
+    const WHOLE = { title: 'A Lesson', lesson: three, levels: { child: three, youth: three, teen: three, adult: three, senior: three } };
+    const band = (b, text) => ({ ...WHOLE, levels: { ...WHOLE.levels, [b]: text } });
+
+    it('the fixture is whole in every place before anything is broken', () => {
+      expect(placesMissingDirections(WHOLE)).toEqual([]);
+      expect(hasAllThreeEverywhere(WHOLE)).toBe(true);
+    });
+
+    it('stripping ONE band\'s friend line leaves hasAllThree green and is still caught, by name', () => {
+      const broken = band('teen', 'Talk with your parents about it. Parents, ask your children what they saw.');
+      expect(hasAllThree(broken), 'the module-level gate cannot see it').toBe(true);
+      expect(hasAllThreeEverywhere(broken)).toBe(false);
+      expect(placesMissingDirections(broken)).toEqual([{ place: 'teen', missing: ['friends'] }]);
+    });
+
+    it('a band that carries nothing at all is named with all three missing', () => {
+      const broken = band('child', 'Yahweh made the whole world and He keeps every promise He makes.');
+      expect(placesMissingDirections(broken)).toEqual([{ place: 'child', missing: ['parents', 'children', 'friends'] }]);
+    });
+
+    it('a band that is absent is not a gap - only the bands a lesson ships are counted', () => {
+      const noTeen = { ...WHOLE, levels: { child: WHOLE.levels.child, youth: WHOLE.levels.youth } };
+      expect(placesMissingDirections(noTeen).map((p) => p.place)).not.toContain('teen');
+    });
+
+    it('the senior band names the elder in the second person and counts (ll207, ll208)', () => {
+      expect(missingDirections('Ask your grandchildren what this lesson shows them about Yahweh, and listen before you teach. Ask your own parents, if they are still with you, or an elder you trust, what they looked to. Tell a friend one thing it showed you, and ask what they see.')).toEqual([]);
+    });
+
+    it('the elder named as a grandparent counts too', () => {
+      expect(missingDirections('Grandparents, sit with the children and read it with them.')).not.toContain('parents');
+    });
+
+    it('a sentence that only mentions a family is not a prompt', () => {
+      expect(missingDirections('This lesson is about a family in the days of the kings.')).toEqual(['parents', 'children', 'friends']);
+    });
   });
 });

@@ -323,13 +323,50 @@ def depth_problems(module, spans, floors=None):
 # toward friend. The JS layer (band_gates.mjs, app/src/lib/talk-together.js) is
 # the reference; this mirrors its three patterns so a NAS without node still
 # refuses a draft that sends the reader to no one.
-_TALK_PARENTS = re.compile(r"\b(parents?|mom|dad|mother|father|grown-?ups?|guardians?)\b[^.!?]{0,90}\b(ask|talk|discuss|read|share|sit|teach|listen)\b[^.!?]{0,80}\b(child|children|kids?|son|daughter|young|family)\b", re.I)
-_TALK_CHILDREN = re.compile(r"\b(ask|tell|talk (?:to|with)|share with|read (?:this |it )?(?:to|with)|discuss (?:this |it )?with|show)\b[^.!?]{0,50}\b(?:your|a) (?:parents?|mom|dad|mother|father|grown-?up|grandparents?|grandma|grandpa|family)\b", re.I)
+_TALK_PARENTS = re.compile(r"\b(parents?|grandparents?|grandmas?|grandpas?|grandmothers?|grandfathers?|mom|dad|mother|father|grown-?ups?|guardians?)\b[^.!?]{0,90}\b(ask|talk|discuss|read|share|sit|teach|listen)\b[^.!?]{0,80}\b(child|children|kids?|son|daughter|grandchild|grandchildren|grandkids?|young|family)\b|\b(ask|tell|talk with|teach|listen to|read with|sit with|share with|discuss with)\b[^.!?]{0,60}\byour (?:child|children|kids?|son|daughter|grandchild|grandchildren|grandkids?)\b", re.I)
+_TALK_CHILDREN = re.compile(r"\b(ask|tell|talk (?:to|with)|share with|read (?:this |it )?(?:to|with)|discuss (?:this |it )?with|show)\b[^.!?]{0,50}\b(?:your|a)(?: own| dear)? (?:parents?|mom|dad|mother|father|grown-?up|grandparents?|grandma|grandpa|family|elder)\b", re.I)
 _TALK_FRIENDS = re.compile(r"\b(friends?|one another|each other|a brother or sister|someone you trust|relationship to relationship)\b[^.!?]{0,90}\b(ask|tell|talk|discuss|share|sharpen|pray|listen|read)\b|\b(ask|tell|talk (?:to|with)|share with|pray with|read (?:this |it )?with)\b[^.!?]{0,40}\b(?:a|your) (?:friend|brother or sister in Christ|neighbou?r)\b", re.I)
 
 
+_TALK_SENTENCE = re.compile(r"(?<=[.!?])\s+")
+_TALK_PLACES = ("lesson", "child", "youth", "teen", "adult", "senior")
+
+
+def _missing_directions(text):
+    """Which of the three directions ONE piece of text does not send a reader in."""
+    sentences = _TALK_SENTENCE.split(str(text or ""))
+    missing = []
+    for name, pattern in (("parents", _TALK_PARENTS), ("children", _TALK_CHILDREN), ("friends", _TALK_FRIENDS)):
+        if not any(pattern.search(s) for s in sentences):
+            missing.append(name)
+    return missing
+
+
+def places_missing_directions(module):
+    """Every place a reader actually reads, with the directions it is short of.
+
+    A reader reads ONE band (DR-0795), so pooling the whole module hides a band
+    that sends its reader nowhere. Mirrors placesMissingDirections() in JS.
+    """
+    m = module or {}
+    levels = m.get("levels") or {}
+    out = []
+    for place in _TALK_PLACES:
+        text = m.get("lesson", "") if place == "lesson" else levels.get(place, "")
+        if not isinstance(text, str) or not text:
+            continue
+        gaps = _missing_directions(text)
+        if gaps:
+            out.append((place, gaps))
+    return out
+
+
 def talk_together_gate(module):
-    """(passed, missing): which of the three directions the lesson's own words lack."""
+    """(passed, missing): which of the three directions the lesson's own words lack.
+
+    `missing` names a direction absent from the whole module; a place short of a
+    direction is reported as "band: no x + y" (DR-0795).
+    """
     m = module or {}
     levels = m.get("levels") or {}
     adult = " ".join(str(x) for x in [m.get("lesson", ""), m.get("bigIdea", ""), m.get("inApp", ""), levels.get("senior", "")] + list(((m.get("facilitator") or {}).get("talkingPoints")) or []) + list(m.get("benefits") or []))
@@ -342,6 +379,8 @@ def talk_together_gate(module):
         missing.append("children")
     if not _TALK_FRIENDS.search(everything):
         missing.append("friends")
+    for place, gaps in places_missing_directions(module):
+        missing.append("{}: no {}".format(place, " + ".join(gaps)))
     return (not missing, missing)
 
 
