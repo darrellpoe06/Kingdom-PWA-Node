@@ -23,10 +23,10 @@ Measured 2026-10-07 on the real catalog (608 lessons, 13 bound by the rule — a
 | ll208, senior band | short of parents **and** children | same, plus "Ask your **own** parents" — the pattern required "your parents" adjacent |
 | sov34, lesson prose | short of children | its talk block had Parents and Friends; nothing sent a child upward |
 | ll207 and ll208 after widening the patterns alone | ll208 whole; ll207 still short of children | the instrument was the thing that was short for ll208 |
-| bound lessons whole in every band, after | 13 of 13 | the same measurement on the merged head |
-| the catalog's pooled count | `all` 13 (the baseline said 0) | `talkTogetherCoverage`; the ratchet was never set to the truth |
+| bound lessons whole in every band, after | 13 of 13, and 14 of 14 once sov36 landed mid-flight | the same measurement on the merged head |
+| the catalog's pooled count | `all` 14 of 609 (the baseline said 0) | `talkTogetherCoverage`; the ratchet was never set to the truth |
 
-**Honest uncertainty.** `all` is 13 of 608 because the rule binds only lessons added on or after 2026-10-01; the 595 older lessons are served the standing prompts built from their titles, which is by design (DR-0733) and is not measured as a gap here. Whether those older lessons should be backfilled is not decided by this record.
+**Honest uncertainty.** `all` is 14 of 609 because the rule binds only lessons added on or after 2026-10-01; the 595 older lessons are served the standing prompts built from their titles, which is by design (DR-0733) and is not measured as a gap here. Whether those older lessons should be backfilled is not decided by this record.
 
 ## Impact
 
@@ -46,4 +46,4 @@ Proven to catch (DR-0076), six cases on the JS side and two on the Python side: 
 
 - `talk-together.test.js` 16 green; `living-lessons-l207-verses.test.js` 12 and `sovereign-ai-sov34-verses.test.js` 21 green on the changed content; `builder-brief-template.test.js` 3 green; the NAS builder's Python suite 103 green including the new per-band case.
 - On the live build after deploy: open L207 at Senior and sov34 at Adult, and read the close — the senior is sent to the children, to an elder, and to a friend; the adult is sent all three ways.
-- re-review 2026-10-21: whether the 595 lessons added before 2026-10-01 should carry their own three in every band, or keep the standing prompts. Not decided here, and the ratchet does not force it.
+- re-review 2026-10-21: whether the lessons added before 2026-10-01 should carry their own three in every band, or keep the standing prompts. Not decided here, and the ratchet does not force it.

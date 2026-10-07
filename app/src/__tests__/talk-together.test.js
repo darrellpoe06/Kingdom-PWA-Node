@@ -82,7 +82,7 @@ describe('the gate: every band sends you to someone, not only the module as a wh
 
   it('a bound lesson is whole in its lesson prose AND in every band it ships', () => {
     const due = modules.filter((x) => mustCarryOwn(x.added));
-    expect(due.length, 'there are lessons bound by the rule to check').toBeGreaterThanOrEqual(13);
+    expect(due.length, 'there are lessons bound by the rule to check').toBeGreaterThanOrEqual(14);
     const short = due
       .filter((x) => !hasAllThreeEverywhere(x.m))
       .map((x) => `${x.m.id}: ${placesMissingDirections(x.m).map((p) => `${p.place} is short of ${p.missing.join(' + ')}`).join('; ')}`);
