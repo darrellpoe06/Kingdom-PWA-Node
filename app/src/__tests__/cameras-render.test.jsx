@@ -9,7 +9,7 @@ import { createRoot } from 'react-dom/client';
 import Cameras from '../components/Cameras.jsx';
 import { SURFACES, surfaceById } from '../surfaces.js';
 import { CHAT_BRIDGE_TOKEN_KEY } from '../lib/nas-photos.js';
-import { WYZE_DRAFT_KEY, WALL_KEY, LIVE_RECONNECT_MAX, LIVE_RECONNECT_DELAY_MS } from '../lib/cameras.js';
+import { WYZE_DRAFT_KEY, WALL_KEY, LIVE_RECONNECT_MAX, LIVE_RECONNECT_DELAY_MS, formatBytes } from '../lib/cameras.js';
 import { getReadTarget, subscribeRead } from '../lib/read-target.js';
 
 const TOKEN = 'family-test-token';
@@ -39,6 +39,9 @@ function makeFetch(plan) {
       if (fail) return jsonResponse(fail.status, fail.body);
       return { ok: true, status: 200, blob: async () => new Blob(['jpegbytes'], { type: 'image/jpeg' }), json: async () => ({}) };
     }
+    if (u === '/cams/recording' && (opts.method || 'GET') === 'GET') return jsonResponse(plan.recordingStatus ?? 404, plan.recording ?? { error: 'not-found' });
+    if (u === '/cams/recording' && opts.method === 'PUT') { const cfg = JSON.parse(opts.body); return jsonResponse(200, { ok: true, config: cfg }); }
+    if (u.startsWith('/cams/rec/') && u.split('/').length === 4) return jsonResponse(200, plan.clips ?? { camera: 'front_yard', clips: [{ name: '2026-10-07T06-40-00.mp4', bytes: 1000, start: 1 }, { name: '2026-10-07T06-50-00.mp4', bytes: 2000, start: 2 }], count: 2 });
     if (u.startsWith('/cams/why/')) return jsonResponse(plan.whyStatus ?? 200, plan.why ?? { id: 'x', producers: [{ kind: 'wyze', host: '192.168.1.77', state: 'connecting' }], probe: { status: 500, ok: false, error: 'wyze: connect failed: dial udp 192.168.1.77:0: i/o timeout', ms: 900 }, log: ['06:40 warn [wyze] connect failed: i/o timeout'] });
     if (u === '/cams/ticket') return jsonResponse(plan.ticketStatus ?? 200, { ticket: '9999999999.abcdef', expires_in: 90, camera: JSON.parse(opts.body).camera });
     if (u === '/cams/setup/wyze') return jsonResponse(plan.setupStatus ?? 200, plan.setup ?? { ok: true, added: 1, cameras: [{ id: 'front_yard', name: 'Front Yard', model: 'HL_CAM4', dtls: true, registered: true, existing: false }] });
@@ -250,6 +253,67 @@ describe('Cameras surface', () => {
     await click(btn);
     await act(async () => { await new Promise((r) => setTimeout(r, 20)); });
     expect(container.querySelector('[data-testid="service-restart-result"]').textContent).toMatch(/older camera service that cannot restart itself yet/);
+  });
+
+  it('recorded loops: Record switches a camera on with a retention, the budget saves, clips list by day and play through a long ticket (DR-0775)', async () => {
+    const now = Math.floor(Date.now() / 1000);
+    const { fetchImpl, calls } = makeFetch({
+      list: { cameras: [{ id: 'front_yard', name: 'front yard', kind: 'wyze' }], count: 1 },
+      recordingStatus: 200,
+      recording: { config: { disk_budget_gb: 100, cameras: {} }, status: { ok: true, at: now, disk_budget_gb: 100, total_bytes: 3000, disk_free_bytes: 500e9, cameras: { front_yard: { enabled: false, recording: false, clips: 2, bytes: 3000, oldest: now - 1200, newest: now - 600, restarts: 0, last_exit: null } } }, root: '/volume1/PoeTech/cameras/recordings' },
+    });
+    vi.stubGlobal('fetch', fetchImpl);
+    await mount();
+    await act(async () => { await new Promise((r) => setTimeout(r, 30)); });
+    const panel = container.querySelector('[data-testid="recording-panel"]');
+    expect(panel.textContent).toMatch(/No camera is recording\./);
+    expect(panel.textContent).toContain(`On disk: ${formatBytes(3000)} of a 100 GB budget`);
+    expect(panel.textContent).toContain(`2 clips · ${formatBytes(3000)}`);
+    // switch Record on: a PUT with the camera enabled and the default 14 days
+    await click(buttons().find((b) => b.getAttribute('aria-label') === 'Record front yard'));
+    await act(async () => { await new Promise((r) => setTimeout(r, 20)); });
+    const put = calls.find((c) => c.url === '/cams/recording' && c.opts.method === 'PUT');
+    expect(put.opts.headers.Authorization).toBe(`Bearer ${TOKEN}`);
+    expect(JSON.parse(put.opts.body)).toEqual({ disk_budget_gb: 100, cameras: { front_yard: { enabled: true, retention_days: 14 } } });
+    expect(container.querySelector('[data-testid="recording-note"]').textContent).toMatch(/Saved/);
+    const sel = panel.querySelector('select');
+    expect(sel.value).toBe('14');
+    // the retention select sends the chosen days
+    const setter = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set;
+    await act(async () => { setter.call(sel, '30'); sel.dispatchEvent(new Event('change', { bubbles: true })); await new Promise((r) => setTimeout(r, 20)); });
+    const puts = calls.filter((c) => c.url === '/cams/recording' && c.opts.method === 'PUT');
+    expect(JSON.parse(puts[puts.length - 1].opts.body).cameras.front_yard.retention_days).toBe(30);
+    // the budget
+    const budgetInput = panel.querySelector('input[type="number"]');
+    const iset = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+    await act(async () => { iset.call(budgetInput, '250'); budgetInput.dispatchEvent(new Event('input', { bubbles: true })); });
+    await click(buttons().find((b) => b.textContent === 'Save budget'));
+    await act(async () => { await new Promise((r) => setTimeout(r, 20)); });
+    const puts2 = calls.filter((c) => c.url === '/cams/recording' && c.opts.method === 'PUT');
+    expect(JSON.parse(puts2[puts2.length - 1].opts.body).disk_budget_gb).toBe(250);
+    // clips: listed by day, newest first; a tap mints an hour ticket and plays through /rec
+    await click(buttons().find((b) => b.getAttribute('aria-label') === 'Show clips of front yard'));
+    await act(async () => { await new Promise((r) => setTimeout(r, 20)); });
+    expect(calls.find((c) => c.url === '/cams/rec/front_yard').opts.headers.Authorization).toBe(`Bearer ${TOKEN}`);
+    const clipsBox = container.querySelector('[data-testid="clips"]');
+    expect(clipsBox.textContent).toContain(`2026-10-07 · 2 clips · ${formatBytes(3000)}`);
+    const clipBtns = [...clipsBox.querySelectorAll('button')].filter((b) => /Play the clip/.test(b.getAttribute('aria-label') || ''));
+    expect(clipBtns.map((b) => b.textContent)).toEqual([`06:50 · ${formatBytes(2000)}`, `06:40 · ${formatBytes(1000)}`]);
+    await click(clipBtns[1]);
+    await act(async () => { await new Promise((r) => setTimeout(r, 20)); });
+    const ticket = calls.filter((c) => c.url === '/cams/ticket').pop();
+    expect(JSON.parse(ticket.opts.body)).toEqual({ camera: 'front_yard', ttl: 3600 });
+    const player = container.querySelector('[data-testid="clip-player"] video');
+    expect(player.getAttribute('src')).toBe('/cams/rec/front_yard/2026-10-07T06-40-00.mp4?t=9999999999.abcdef');
+  });
+
+  it('an older NAS without the recorder is said plainly, nothing painted', async () => {
+    const { fetchImpl } = makeFetch({ list: { cameras: [{ id: 'front_yard', name: 'front yard', kind: 'wyze' }], count: 1 } });
+    vi.stubGlobal('fetch', fetchImpl);
+    await mount();
+    await act(async () => { await new Promise((r) => setTimeout(r, 30)); });
+    expect(container.querySelector('[data-testid="recording-panel"]').textContent).toMatch(/older camera service without the recorder yet/);
+    expect(container.querySelector('[data-testid="recording-cameras"]')).toBeNull();
   });
 
   it('lists the restreamer\'s cameras grouped by kind, fetches each frame with the bearer, shows measured freshness', async () => {

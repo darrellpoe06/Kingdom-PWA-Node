@@ -50,6 +50,17 @@
 #        go2rtc's own mouth: {id, probe:{status,error,ms}, producers:[{kind,
 #        host,...no url}], log:[scrubbed recent lines naming this stream]}.
 #        (DR-0774: a tile that says only "HTTP 502" gives no sight.)
+#   GET  /recording                    bearer. {config, status}: which cameras
+#        record, their retention, the disk budget, and the recorder's own
+#        status file (clips, bytes, oldest/newest, disk free). DR-0775.
+#   PUT  /recording {disk_budget_gb, cameras:{id:{enabled,retention_days}}}
+#        bearer. Validated + normalized, written to recording.json; the
+#        recorder service reconciles within its loop. Answers the saved config.
+#   GET  /rec/<id>                     bearer. The camera's clips on disk
+#        [{name, bytes, start}] oldest first, grouped by day by the app.
+#   GET  /rec/<id>/<clip>.mp4?t=       ticket (the camera's). The clip itself,
+#        with Range (206) so the player can seek. Never a path outside the
+#        camera's folder; the clip name grammar is the only accepted shape.
 #   GET  /snap/<id>.jpg?w=&h=          bearer OR ticket. One JPEG frame. On a
 #        miss the JSON names the cause: frame-timeout (504, after_s), no-frame
 #        (go2rtc's status + its scrubbed detail), go2rtc-unreachable (502).
@@ -90,7 +101,21 @@ import urllib.parse
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
+# The recorder's pure helpers (same folder, DR-0775): the config shape and the
+# clips on disk. The forwarder is the recorder's only writer (PUT /recording)
+# and its reader for the tab; the recorder service reconciles to the file.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+try:
+    from cams_recorder import normalize_config as rec_normalize_config, load_config as rec_load_config, list_clips as rec_list_clips, CLIP_SUFFIX as REC_CLIP_SUFFIX
+except ImportError:  # the forwarder still serves cameras without the recorder beside it
+    rec_normalize_config = rec_load_config = rec_list_clips = None
+    REC_CLIP_SUFFIX = ".mp4"
+
 TOKEN_FILE_DEFAULT = "/volume1/PoeTech/secrets/chat-bridge-token.txt"
+RECORDING_CONFIG = os.environ.get("CAMS_RECORDING_CONFIG", os.path.join(os.environ.get("GO2RTC_DATA", "/volume1/docker/go2rtc"), "recording.json"))
+RECORDING_STATUS = os.environ.get("CAMS_RECORDING_STATUS", os.path.join(os.environ.get("GO2RTC_DATA", "/volume1/docker/go2rtc"), "recording.status.json"))
+RECORDINGS_ROOT = os.environ.get("CAMS_RECORDINGS", "/volume1/PoeTech/cameras/recordings")
+CLIP_NAME = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}\.mp4$")
 UPSTREAM_DEFAULT = "http://127.0.0.1:1984"
 
 # THE CAPS ARE NOT THE PRODUCT (Darrell 2026-10-07: "Let's not build in
@@ -106,6 +131,7 @@ SNAP_TIMEOUT = float(os.environ.get("CAMS_SNAP_TIMEOUT", "12"))
 SEGMENT_TIMEOUT = float(os.environ.get("CAMS_SEGMENT_TIMEOUT", "20"))
 LIVE_CONNECT_TIMEOUT = float(os.environ.get("CAMS_LIVE_CONNECT_TIMEOUT", "20"))
 TICKET_TTL_SECONDS = int(os.environ.get("CAMS_TICKET_TTL", "90"))
+TICKET_TTL_MAX = int(os.environ.get("CAMS_TICKET_TTL_MAX", "3600"))  # a recorded clip's playback (DR-0775)
 HEALTH_TIMEOUT = 5.0
 CHUNK = 64 * 1024
 MAX_BODY = 4096
@@ -406,8 +432,11 @@ def upstream_query(query, drop=("t",)):
 # --- The handler -------------------------------------------------------------
 def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_SECONDS,
                  max_snap=MAX_SNAP_INFLIGHT, snap_timeout=SNAP_TIMEOUT, segment_timeout=SEGMENT_TIMEOUT,
-                 exit_fn=None, now_fn=time.time):
+                 exit_fn=None, now_fn=time.time, recording_config=None, recording_status=None, recordings_root=None):
     upstream = upstream.rstrip("/")
+    recording_config = recording_config or RECORDING_CONFIG
+    recording_status = recording_status or RECORDING_STATUS
+    recordings_root = recordings_root or RECORDINGS_ROOT
     exit_fn = exit_fn or (lambda code: os._exit(code))
     live_gate = threading.BoundedSemaphore(max_live)
     snap_gate = threading.BoundedSemaphore(max_snap)
@@ -462,6 +491,31 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
                     return self._json(401, {"error": "unauthorized"})
                 return self._list()
 
+            if path == "/recording":
+                if not self._authed():
+                    return self._json(401, {"error": "unauthorized"})
+                return self._recording_get()
+
+            m = re.match(r"^/rec/([^/]+)$", path)
+            if m:
+                cam = m.group(1)
+                if not CAMERA_ID.match(cam):
+                    return self._json(400, {"error": "bad-camera-id"})
+                if not self._authed():
+                    return self._json(401, {"error": "unauthorized"})
+                return self._rec_list(cam)
+
+            m = re.match(r"^/rec/([^/]+)/([^/]+)$", path)
+            if m:
+                cam, clip = m.group(1), m.group(2)
+                if not CAMERA_ID.match(cam):
+                    return self._json(400, {"error": "bad-camera-id"})
+                if not CLIP_NAME.match(clip):
+                    return self._json(404, {"error": "not-found"})
+                if not (self._authed() or self._ticketed(cam, query)):
+                    return self._json(401, {"error": "unauthorized"})
+                return self._rec_clip(cam, clip)
+
             m = re.match(r"^/why/([^/]+)$", path)
             if m:
                 cam = m.group(1)
@@ -514,6 +568,25 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
 
             return self._json(404, {"error": "not-found"})
 
+        def do_PUT(self):
+            raw_path, _, _query = self.path.partition("?")
+            path = strip_prefix(raw_path)
+            if path != "/recording":
+                return self._json(404, {"error": "not-found"})
+            if not self._authed():
+                return self._json(401, {"error": "unauthorized"})
+            try:
+                length = int(self.headers.get("Content-Length") or 0)
+            except ValueError:
+                length = 0
+            if length <= 0 or length > 64 * 1024:
+                return self._json(400, {"error": "body-required"})
+            try:
+                body = json.loads(self.rfile.read(length).decode("utf-8"))
+            except (ValueError, UnicodeDecodeError):
+                return self._json(400, {"error": "bad-json"})
+            return self._recording_put(body if isinstance(body, dict) else {})
+
         def do_POST(self):
             raw_path, _, _query = self.path.partition("?")
             path = strip_prefix(raw_path)
@@ -538,7 +611,16 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
             cam = body.get("camera") if isinstance(body, dict) else None
             if not isinstance(cam, str) or not CAMERA_ID.match(cam):
                 return self._json(400, {"error": "bad-camera-id"})
-            return self._json(200, {"ticket": mint_ticket(token, cam), "expires_in": TICKET_TTL_SECONDS, "camera": cam})
+            # A recorded clip plays for minutes and the player fetches it in
+            # Range pieces, each checked against the ticket: a 90 s ticket
+            # would cut playback off. `ttl` may ask for up to TICKET_TTL_MAX.
+            ttl = TICKET_TTL_SECONDS
+            try:
+                asked = int(body.get("ttl", TICKET_TTL_SECONDS))
+                ttl = max(TICKET_TTL_SECONDS, min(TICKET_TTL_MAX, asked))
+            except (TypeError, ValueError):
+                ttl = TICKET_TTL_SECONDS
+            return self._json(200, {"ticket": mint_ticket(token, cam, ttl=ttl), "expires_in": ttl, "camera": cam})
 
         # -- handlers -------------------------------------------------------
         def _restart(self):
@@ -688,6 +770,100 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
                 return self._bytes(status, ctype or "image/jpeg", body)
             finally:
                 snap_gate.release()
+
+        # -- recording (DR-0775) -----------------------------------------------
+        def _recording_get(self):
+            if rec_load_config is None:
+                return self._json(501, {"error": "recorder-absent"})
+            cfg, err = rec_load_config(recording_config)
+            status = None
+            try:
+                with open(recording_status, "r", encoding="utf-8") as fh:
+                    status = json.load(fh)
+            except (OSError, ValueError):
+                status = None
+            return self._json(200, {"config": cfg, "config_error": err, "status": status, "root": recordings_root})
+
+        def _recording_put(self, body):
+            if rec_normalize_config is None:
+                return self._json(501, {"error": "recorder-absent"})
+            cfg = rec_normalize_config(body)
+            # Only cameras go2rtc actually has may be enabled: a typo never spawns an ffmpeg.
+            try:
+                _s, _c, streams = self._get_upstream("/api/streams", HEALTH_TIMEOUT, limit=4 * 1024 * 1024)
+                have = set((json.loads(streams.decode("utf-8")) or {}).keys())
+            except (urllib.error.URLError, OSError, ValueError):
+                return self._json(502, {"error": "go2rtc-unreachable"})
+            unknown = sorted(c for c, v in cfg["cameras"].items() if v.get("enabled") and c not in have)
+            if unknown:
+                return self._json(400, {"error": "unknown-camera", "cameras": unknown})
+            tmp = recording_config + ".tmp"
+            try:
+                os.makedirs(os.path.dirname(recording_config) or ".", exist_ok=True)
+                with open(tmp, "w", encoding="utf-8") as fh:
+                    json.dump(cfg, fh, indent=2, sort_keys=True)
+                os.replace(tmp, recording_config)
+            except OSError as e:
+                return self._json(500, {"error": "config-unwritable", "detail": scrub_text(e, 200)})
+            return self._json(200, {"ok": True, "config": cfg})
+
+        def _rec_list(self, cam):
+            if rec_list_clips is None:
+                return self._json(501, {"error": "recorder-absent"})
+            clips = rec_list_clips(recordings_root, cam)
+            return self._json(200, {"camera": cam, "clips": clips, "count": len(clips), "bytes": sum(c["bytes"] for c in clips)})
+
+        def _rec_clip(self, cam, clip):
+            # Containment by construction: the camera id and the clip name each
+            # pass a strict grammar, and the path is joined under the root.
+            path = os.path.join(recordings_root, cam, clip)
+            if os.path.commonpath([os.path.abspath(path), os.path.abspath(recordings_root)]) != os.path.abspath(recordings_root):
+                return self._json(404, {"error": "not-found"})
+            try:
+                size = os.path.getsize(path)
+                fh = open(path, "rb")
+            except OSError:
+                return self._json(404, {"error": "not-found"})
+            with fh:
+                start, end = 0, size - 1
+                rng = self.headers.get("Range", "")
+                m = re.match(r"^bytes=(\d*)-(\d*)$", rng)
+                partial = False
+                if m and size > 0:
+                    a, b = m.group(1), m.group(2)
+                    if a:
+                        start = int(a); end = int(b) if b else size - 1
+                    elif b:
+                        start = max(0, size - int(b))
+                    end = min(end, size - 1)
+                    if start > end or start >= size:
+                        self.send_response(416)
+                        self.send_header("Content-Range", "bytes */%d" % size)
+                        self.send_header("Content-Length", "0")
+                        self.end_headers()
+                        return None
+                    partial = True
+                length = end - start + 1
+                self.send_response(206 if partial else 200)
+                self.send_header("Content-Type", "video/mp4")
+                self.send_header("Accept-Ranges", "bytes")
+                self.send_header("Content-Length", str(length))
+                self.send_header("Cache-Control", "private, max-age=3600")
+                if partial:
+                    self.send_header("Content-Range", "bytes %d-%d/%d" % (start, end, size))
+                self.end_headers()
+                fh.seek(start)
+                left = length
+                try:
+                    while left > 0:
+                        chunk = fh.read(min(CHUNK, left))
+                        if not chunk:
+                            break
+                        self.wfile.write(chunk)
+                        left -= len(chunk)
+                except (BrokenPipeError, ConnectionResetError, OSError):
+                    pass
+            return None
 
         def _why(self, cam):
             """Why does this camera give no picture? Ask go2rtc three ways and
@@ -903,19 +1079,34 @@ def _selftest():
     token = "test-token-" + str(os.getpid())
     exits = []
     clock = {"now": 1_000_000.0}
+    import tempfile
+    rec_tmp = tempfile.mkdtemp(prefix="cams-fwd-rec-")
+    rec_cfg = os.path.join(rec_tmp, "recording.json")
+    rec_status = os.path.join(rec_tmp, "recording.status.json")
+    rec_root = os.path.join(rec_tmp, "recordings")
+    os.makedirs(os.path.join(rec_root, "front_yard"))
+    with open(os.path.join(rec_root, "front_yard", "2026-10-07T06-40-00.mp4"), "wb") as fh:
+        fh.write(bytes(range(256)) * 40)  # 10240 bytes, byte i == i % 256
+    with open(os.path.join(rec_root, "front_yard", "notes.txt"), "w") as fh:
+        fh.write("not a clip")
+    with open(rec_status, "w") as fh:
+        json.dump({"ok": True, "total_bytes": 10240, "cameras": {"front_yard": {"recording": True, "clips": 1}}}, fh)
     fwd = ThreadingHTTPServer(("127.0.0.1", 0), make_handler(
         "http://127.0.0.1:%d" % fp, token, max_live=2, live_max_seconds=1.0, max_snap=1, snap_timeout=5, segment_timeout=5,
-        exit_fn=lambda code: exits.append(code), now_fn=lambda: clock["now"]))
+        exit_fn=lambda code: exits.append(code), now_fn=lambda: clock["now"],
+        recording_config=rec_cfg, recording_status=rec_status, recordings_root=rec_root))
     fwd.daemon_threads = True
     fwd.handle_error = lambda request, client_address: None
     port = fwd.server_address[1]
     threading.Thread(target=fwd.serve_forever, daemon=True).start()
 
-    def call(method, path, body=None, auth=None, read=True):
+    def call(method, path, body=None, auth=None, read=True, extra=None):
         c = HTTPConnection("127.0.0.1", port, timeout=8)
         headers = {"Content-Type": "application/json"}
         if auth is not None:
             headers["Authorization"] = auth
+        if extra:
+            headers.update(extra)
         c.request(method, path, body=body, headers=headers)
         r = c.getresponse()
         data = r.read() if read else b""
@@ -1139,6 +1330,56 @@ def _selftest():
     j = json.loads(d.decode("utf-8"))
     check(j.get("max_live") == 2 and j.get("live_max_seconds") == 1, "/health reports the caps this instance runs with (the defaults are 12 and 0 = no clock)")
     check(MAX_LIVE == 12 and LIVE_MAX_SECONDS == 0, "the shipped defaults do not cut a viewer off: 12 live, no clock")
+
+    print("=== 8e. recorded loops (DR-0775): settings, the clips on disk, ticketed playback with Range ===")
+    s, _h, d = call("GET", "/recording")
+    check(s == 401, "no bearer -> /recording 401")
+    s, _h, d = call("GET", "/recording", auth=B)
+    j = json.loads(d.decode("utf-8"))
+    check(s == 200 and j["config"]["cameras"] == {} and j["status"]["total_bytes"] == 10240 and j["root"] == rec_root, "GET /recording: the default config (nothing records) and the recorder's status file")
+    s, _h, d = call("PUT", "/recording", json.dumps({"disk_budget_gb": 50, "cameras": {"front_yard": {"enabled": True, "retention_days": 7}, "ghost_cam": {"enabled": True}}}).encode(), auth=B)
+    check(s == 400 and b"unknown-camera" in d and b"ghost_cam" in d, "enabling a camera go2rtc does not have is refused by name (a typo never spawns an ffmpeg)")
+    s, _h, d = call("PUT", "/recording", json.dumps({"disk_budget_gb": 50, "cameras": {"front_yard": {"enabled": True, "retention_days": 9999}, "garage": {"enabled": False, "retention_days": 3}}}).encode(), auth=B)
+    j = json.loads(d.decode("utf-8"))
+    check(s == 200 and j["config"]["cameras"]["front_yard"] == {"enabled": True, "retention_days": 365} and j["config"]["cameras"]["garage"]["enabled"] is False, "PUT /recording normalizes (retention clamped) and answers the saved config")
+    with open(rec_cfg) as fh:
+        on_disk = json.load(fh)
+    check(on_disk["disk_budget_gb"] == 50 and on_disk["cameras"]["front_yard"]["enabled"] is True, "the config is on disk for the recorder service to reconcile to")
+    s, _h, d = call("PUT", "/recording", b"{bad", auth=B)
+    check(s == 400, "bad JSON -> 400")
+    s, _h, d = call("PUT", "/recording", b"{}")
+    check(s == 401, "no bearer -> PUT 401")
+    s, _h, d = call("GET", "/rec/front_yard", auth=B)
+    j = json.loads(d.decode("utf-8"))
+    check(s == 200 and j["count"] == 1 and j["clips"][0]["name"] == "2026-10-07T06-40-00.mp4" and j["clips"][0]["bytes"] == 10240 and isinstance(j["clips"][0]["start"], int), "GET /rec/<id> lists the clips (name, bytes, start); the stray notes.txt is not a clip")
+    s, _h, d = call("GET", "/rec/front_yard")
+    check(s == 401, "the list needs the bearer")
+    t = mint_ticket(token, "front_yard")
+    s, h, d = call("GET", "/rec/front_yard/2026-10-07T06-40-00.mp4?t=" + t)
+    check(s == 200 and len(d) == 10240 and h.get("accept-ranges") == "bytes" and h.get("content-type") == "video/mp4", "a camera ticket plays the whole clip (200, Accept-Ranges)")
+    s, h, d = call("GET", "/rec/front_yard/2026-10-07T06-40-00.mp4?t=" + t, extra={"Range": "bytes=256-511"})
+    check(s == 206 and len(d) == 256 and d == bytes(range(256)) and h.get("content-range") == "bytes 256-511/10240", "Range -> 206 with exactly those bytes (the player can seek)")
+    s, h, d = call("GET", "/rec/front_yard/2026-10-07T06-40-00.mp4?t=" + t, extra={"Range": "bytes=-16"})
+    check(s == 206 and len(d) == 16 and h.get("content-range") == "bytes 10224-10239/10240", "a suffix Range works")
+    s, h, d = call("GET", "/rec/front_yard/2026-10-07T06-40-00.mp4?t=" + t, extra={"Range": "bytes=99999-"})
+    check(s == 416, "a Range past the end -> 416")
+    s, _h, d = call("GET", "/rec/front_yard/2026-10-07T06-40-00.mp4?t=" + mint_ticket(token, "garage"))
+    check(s == 401, "another camera's ticket never opens this camera's clips")
+    s, _h, d = call("GET", "/rec/front_yard/notes.txt?t=" + t)
+    check(s == 404, "only the clip-name grammar is served (notes.txt -> 404)")
+    s, _h, d = call("GET", "/rec/front_yard/..%2F..%2Fetc%2Fpasswd?t=" + t)
+    check(s in (400, 404), "a path escape is refused by grammar before any file is touched")
+    s, _h, d = call("GET", "/rec/front_yard/2026-10-07T07-00-00.mp4?t=" + t)
+    check(s == 404, "a clip that is not on disk -> 404")
+    s, _h, d = call("POST", "/ticket", json.dumps({"camera": "front_yard", "ttl": 3600}).encode(), auth=B)
+    j = json.loads(d.decode("utf-8"))
+    check(s == 200 and j["expires_in"] == 3600 and ticket_ok(token, "front_yard", j["ticket"], now=time.time() + 3000), "a playback ticket may ask for up to an hour (a clip plays for minutes in Range pieces)")
+    s, _h, d = call("POST", "/ticket", json.dumps({"camera": "front_yard", "ttl": 999999}).encode(), auth=B)
+    check(s == 200 and json.loads(d.decode("utf-8"))["expires_in"] == TICKET_TTL_MAX, "...and never more than the ceiling")
+    s, _h, d = call("POST", "/ticket", json.dumps({"camera": "front_yard", "ttl": 1}).encode(), auth=B)
+    check(s == 200 and json.loads(d.decode("utf-8"))["expires_in"] == TICKET_TTL_SECONDS, "...and never less than the default")
+    import shutil as _sh
+    _sh.rmtree(rec_tmp, ignore_errors=True)
 
     print("=== 9. a DARK go2rtc reads as 502 everywhere, never as this process's own 200 ===")
     fake.shutdown(); fake.server_close()

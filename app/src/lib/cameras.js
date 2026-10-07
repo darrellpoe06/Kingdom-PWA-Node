@@ -36,6 +36,9 @@ export function ticketUrl() { return `${CAMS_BASE}/ticket`; }
 export function setupUrl() { return `${CAMS_BASE}/setup/wyze`; }
 export function restartUrl() { return `${CAMS_BASE}/restart`; }
 export function whyUrl(id) { return `${CAMS_BASE}/why/${encodeURIComponent(id)}`; }
+export function recordingUrl() { return `${CAMS_BASE}/recording`; }
+export function recListUrl(id) { return `${CAMS_BASE}/rec/${encodeURIComponent(id)}`; }
+export function recClipUrl(id, name, ticket) { return `${CAMS_BASE}/rec/${encodeURIComponent(id)}/${encodeURIComponent(name)}?t=${encodeURIComponent(ticket || '')}`; }
 export const RESTART_TIMEOUT_MS = 15000;
 export const SETUP_TIMEOUT_MS = 75000; // Wyze's cloud listing + go2rtc's persist; the NAS gives it 60 s
 
@@ -474,4 +477,111 @@ export function saveWall(ids, storage = null) {
 export function wallLimit(health) {
   const n = Number(health && health.max_live);
   return Number.isFinite(n) && n > 0 ? Math.min(n, 12) : WALL_MAX_DEFAULT;
+}
+
+// =============================================================================
+// RECORDED LOOPS TO THE NAS (DR-0775; Darrell 2026-10-07: "Recorded loops for
+// however long I want backed up to the nas?"). The recorder service on the
+// NAS copies each enabled camera into ten-minute clips; the owner chooses a
+// retention per camera and one disk budget; the forwarder serves the settings
+// (GET/PUT /recording), the clips (GET /rec/<id>) and playback with Range.
+// Everything shown here is read from the recorder's own status file, never
+// painted.
+// =============================================================================
+export const RETENTION_CHOICES = Object.freeze([1, 3, 7, 14, 30, 90, 180, 365]);
+export const CLIP_TICKET_TTL = 3600;
+export const RECORDING_TIMEOUT_MS = 15000;
+
+export async function fetchRecording(token, fetchImpl = globalThis.fetch) {
+  try {
+    const r = await fetchWithTimeout(recordingUrl(), { headers: authHeaders(token) }, RECORDING_TIMEOUT_MS, fetchImpl);
+    let body = null;
+    try { body = await r.json(); } catch { body = null; }
+    if (r.status === 404 || r.status === 501) return { ok: false, status: r.status, message: 'The NAS runs an older camera service without the recorder yet. It updates itself within 15 minutes of a merge.' };
+    if (r.status !== 200 || !body) return { ok: false, status: r.status, message: `The camera road answered HTTP ${r.status}.` };
+    return { ok: true, status: 200, config: body.config || { disk_budget_gb: 200, cameras: {} }, recStatus: body.status || null, configError: body.config_error || null, root: body.root || '' };
+  } catch {
+    return { ok: false, status: 0, message: 'The camera road did not answer.' };
+  }
+}
+
+export async function saveRecording(config, token, fetchImpl = globalThis.fetch) {
+  try {
+    const r = await fetchWithTimeout(recordingUrl(), { method: 'PUT', headers: { ...authHeaders(token), 'Content-Type': 'application/json' }, body: JSON.stringify(config) }, RECORDING_TIMEOUT_MS, fetchImpl);
+    let body = null;
+    try { body = await r.json(); } catch { body = null; }
+    if (r.status === 200 && body && body.ok) return { ok: true, config: body.config };
+    if (r.status === 400 && body && body.error === 'unknown-camera') return { ok: false, message: `The restreamer has no camera named ${(body.cameras || []).join(', ')}. Refresh the list.` };
+    if (r.status === 401) return { ok: false, message: 'The family key on this device was refused.' };
+    if (r.status === 404 || r.status === 501) return { ok: false, message: 'The NAS runs an older camera service without the recorder yet.' };
+    return { ok: false, message: `The camera road answered HTTP ${r.status}${body && body.error ? ` (${body.error})` : ''}. Nothing was changed.` };
+  } catch {
+    return { ok: false, message: 'The camera road did not answer. Nothing was changed.' };
+  }
+}
+
+export async function fetchClips(id, token, fetchImpl = globalThis.fetch) {
+  try {
+    const r = await fetchWithTimeout(recListUrl(id), { headers: authHeaders(token) }, RECORDING_TIMEOUT_MS, fetchImpl);
+    let body = null;
+    try { body = await r.json(); } catch { body = null; }
+    if (r.status !== 200 || !body) return { ok: false, status: r.status, clips: [] };
+    const clips = Array.isArray(body.clips) ? body.clips.filter((c) => c && typeof c.name === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}\.mp4$/.test(c.name)) : [];
+    return { ok: true, status: 200, clips };
+  } catch {
+    return { ok: false, status: 0, clips: [] };
+  }
+}
+
+/** Clip name 2026-10-07T06-40-00.mp4 -> { day: '2026-10-07', time: '06:40' }. */
+export function clipParts(name) {
+  const m = /^(\d{4}-\d{2}-\d{2})T(\d{2})-(\d{2})-(\d{2})\.mp4$/.exec(String(name || ''));
+  return m ? { day: m[1], time: `${m[2]}:${m[3]}`, seconds: `${m[2]}:${m[3]}:${m[4]}` } : { day: '', time: '', seconds: '' };
+}
+
+/** [{name,bytes,start}] -> [{day, clips:[...newest first], bytes}] newest day first. */
+export function groupClipsByDay(clips) {
+  const days = new Map();
+  for (const c of clips || []) {
+    const { day } = clipParts(c.name);
+    if (!day) continue;
+    if (!days.has(day)) days.set(day, { day, clips: [], bytes: 0 });
+    const d = days.get(day);
+    d.clips.push(c);
+    d.bytes += Number(c.bytes) || 0;
+  }
+  const out = [...days.values()].sort((a, b) => (a.day < b.day ? 1 : -1));
+  for (const d of out) d.clips.sort((a, b) => (b.start || 0) - (a.start || 0));
+  return out;
+}
+
+/**
+ * What the disk is doing, measured from the recorder's status: bytes a day
+ * per recording camera (from its oldest and newest clip), days the budget
+ * holds at that rate, and the plain line the tab shows. Nothing is estimated
+ * from a nominal bitrate; a camera with under an hour of clips says so.
+ */
+export function diskForecast(recStatus) {
+  if (!recStatus || typeof recStatus !== 'object') return null;
+  const cams = recStatus.cameras || {};
+  let perDay = 0;
+  let measured = 0;
+  let recording = 0;
+  for (const c of Object.values(cams)) {
+    if (!c) continue;
+    if (c.recording) recording += 1;
+    const span = (Number(c.newest) || 0) - (Number(c.oldest) || 0);
+    if (c.recording && span >= 3600 && Number(c.bytes) > 0) {
+      perDay += (Number(c.bytes) / span) * 86400;
+      measured += 1;
+    }
+  }
+  const budget = (Number(recStatus.disk_budget_gb) || 0) * 1e9;
+  const total = Number(recStatus.total_bytes) || 0;
+  const free = Number.isFinite(Number(recStatus.disk_free_bytes)) ? Number(recStatus.disk_free_bytes) : null;
+  const daysAtBudget = perDay > 0 ? budget / perDay : null;
+  return { recording, measured, bytesPerDay: perDay, total, budget, free, daysAtBudget,
+    line: recording === 0 ? 'No camera is recording.'
+      : measured === 0 ? `${recording} recording · under an hour of clips so far, the rate is not measured yet.`
+      : `${recording} recording · about ${formatBytes(perDay)} a day${measured < recording ? ` (measured on ${measured})` : ''} · the ${Math.round(budget / 1e9)} GB budget holds about ${Math.max(1, Math.round(daysAtBudget))} day${Math.round(daysAtBudget) === 1 ? '' : 's'} at this rate` };
 }

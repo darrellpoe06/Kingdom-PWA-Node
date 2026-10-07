@@ -428,6 +428,7 @@ export const HELP = {
       'Tap any camera tile for full motion; press Close to take it down. A live view that drops reconnects itself and says how many times.',
       'Press Wall + on several cameras to watch them together in one grid at the top of the tab; Wall − or Clear the wall takes them down.',
       'A tile with no picture names the reason under its name. Press Why? and the NAS answers in plain words from its own log: unreachable on its network (a camera at the other house), firmware without DTLS, a refused sign-in, or asleep.',
+      'Recorded loops: in the Recorded loops panel press Record on a camera and choose how long to keep it (a day to a year). One disk budget rules them all and the oldest clip goes first. Press Clips to play what a camera kept, by day and time.',
       'Any other system you own (Ring, ONVIF, RTSP) is one line in the restreamer\'s config.',
       'If the camera service is behind its code, the tab says so and offers Update the camera service now; one press, no terminal.',
     ],

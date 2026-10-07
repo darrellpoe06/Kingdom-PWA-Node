@@ -16,6 +16,7 @@ import {
   WYZE_DRAFT_KEY, loadWyzeDraft, saveWyzeDraft, clearWyzeDraft,
   humanizeCameraError, classifySnapError, explainWhy, fetchWhy, whyUrl, skipFailedFrame, runLimited,
   WALL_KEY, loadWall, saveWall, wallLimit, WALL_MAX_DEFAULT, SNAP_CONCURRENCY, LIVE_RECONNECT_MAX,
+  recordingUrl, recListUrl, recClipUrl, fetchRecording, saveRecording, fetchClips, clipParts, groupClipsByDay, diskForecast, RETENTION_CHOICES, CLIP_TICKET_TTL,
 } from '../lib/cameras.js';
 
 describe('the road: every URL is same-origin under /cams', () => {
@@ -379,5 +380,63 @@ describe('the wall: which cameras to watch together, kept per device', () => {
     expect(wallLimit({ max_live: 40 })).toBe(12);
     expect(wallLimit({ max_live: 2 })).toBe(2);
     expect(wallLimit(null)).toBe(WALL_MAX_DEFAULT);
+  });
+});
+
+// DR-0775: recorded loops to the NAS, read from the recorder's own status.
+describe('recorded loops: urls, clips, grouping, the measured forecast', () => {
+  it('urls stay under /cams and carry the ticket on a clip', () => {
+    expect(recordingUrl()).toBe('/cams/recording');
+    expect(recListUrl('front_yard')).toBe('/cams/rec/front_yard');
+    expect(recClipUrl('front_yard', '2026-10-07T06-40-00.mp4', '1.ab')).toBe('/cams/rec/front_yard/2026-10-07T06-40-00.mp4?t=1.ab');
+    expect(RETENTION_CHOICES).toContain(14);
+    expect(CLIP_TICKET_TTL).toBe(3600);
+  });
+  it('clipParts and groupClipsByDay: a clip name is its day and time; days newest first, clips newest first', () => {
+    expect(clipParts('2026-10-07T06-40-00.mp4')).toEqual({ day: '2026-10-07', time: '06:40', seconds: '06:40:00' });
+    expect(clipParts('junk').day).toBe('');
+    const days = groupClipsByDay([
+      { name: '2026-10-06T23-50-00.mp4', bytes: 10, start: 100 },
+      { name: '2026-10-07T06-40-00.mp4', bytes: 20, start: 300 },
+      { name: '2026-10-07T06-50-00.mp4', bytes: 30, start: 400 },
+      { name: 'bad.mp4', bytes: 1, start: 1 },
+    ]);
+    expect(days.map((d) => d.day)).toEqual(['2026-10-07', '2026-10-06']);
+    expect(days[0].clips.map((c) => c.name)).toEqual(['2026-10-07T06-50-00.mp4', '2026-10-07T06-40-00.mp4']);
+    expect(days[0].bytes).toBe(50);
+  });
+  it('diskForecast measures the rate from real clips and says when it cannot', () => {
+    const now = 1_800_000_000;
+    const f = diskForecast({ disk_budget_gb: 100, total_bytes: 5e9, disk_free_bytes: 900e9, cameras: {
+      front: { recording: true, bytes: 8.64e9, oldest: now - 86400, newest: now },  // 8.64 GB over a day = 100 kB/s
+      yard: { recording: true, bytes: 1e6, oldest: now - 600, newest: now },         // under an hour: not measured
+      garage: { recording: false, bytes: 5e8, oldest: now - 86400, newest: now - 1000 },
+    } });
+    expect(f.recording).toBe(2);
+    expect(f.measured).toBe(1);
+    expect(Math.round(f.bytesPerDay)).toBe(8.64e9);
+    expect(Math.round(f.daysAtBudget)).toBe(12);
+    expect(f.line).toMatch(/2 recording · about [\d.]+ [MG]B a day \(measured on 1\) · the 100 GB budget holds about 12 days/);
+    expect(diskForecast({ disk_budget_gb: 50, total_bytes: 0, cameras: {} }).line).toBe('No camera is recording.');
+    expect(diskForecast({ disk_budget_gb: 50, total_bytes: 0, cameras: { a: { recording: true, bytes: 10, oldest: now - 10, newest: now } } }).line).toMatch(/not measured yet/);
+    expect(diskForecast(null)).toBeNull();
+  });
+  it('fetchRecording / saveRecording / fetchClips speak to the forwarder with the bearer and name every failure', async () => {
+    const calls = [];
+    const ok = await fetchRecording('tok', async (url, opts) => { calls.push({ url, opts }); return { status: 200, json: async () => ({ config: { disk_budget_gb: 50, cameras: {} }, status: { total_bytes: 1 }, root: '/r' }) }; });
+    expect(calls[0].url).toBe('/cams/recording');
+    expect(calls[0].opts.headers.Authorization).toBe('Bearer tok');
+    expect(ok.ok).toBe(true);
+    expect(ok.config.disk_budget_gb).toBe(50);
+    expect((await fetchRecording('tok', async () => ({ status: 404, json: async () => ({}) }))).message).toMatch(/older camera service/);
+    const put = await saveRecording({ disk_budget_gb: 50, cameras: { a: { enabled: true, retention_days: 7 } } }, 'tok', async (url, opts) => { calls.push({ url, opts }); return { status: 200, json: async () => ({ ok: true, config: { disk_budget_gb: 50, cameras: { a: { enabled: true, retention_days: 7 } } } }) }; });
+    expect(put.ok).toBe(true);
+    expect(calls[1].opts.method).toBe('PUT');
+    expect(JSON.parse(calls[1].opts.body).cameras.a.enabled).toBe(true);
+    expect((await saveRecording({}, 'tok', async () => ({ status: 400, json: async () => ({ error: 'unknown-camera', cameras: ['ghost'] }) }))).message).toMatch(/no camera named ghost/);
+    expect((await saveRecording({}, 'tok', async () => { throw new TypeError('x'); })).message).toMatch(/did not answer/);
+    const clips = await fetchClips('a', 'tok', async () => ({ status: 200, json: async () => ({ clips: [{ name: '2026-10-07T06-40-00.mp4', bytes: 5, start: 1 }, { name: 'evil/../x.mp4', bytes: 1, start: 2 }] }) }));
+    expect(clips.ok).toBe(true);
+    expect(clips.clips.map((c) => c.name)).toEqual(['2026-10-07T06-40-00.mp4']);
   });
 });

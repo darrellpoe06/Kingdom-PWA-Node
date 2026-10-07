@@ -43,6 +43,7 @@ import {
   serviceCodeState, restartService, loadWyzeDraft, saveWyzeDraft, clearWyzeDraft,
   SNAP_CONCURRENCY, LIVE_RECONNECT_MAX, LIVE_RECONNECT_DELAY_MS, runLimited, skipFailedFrame,
   classifySnapError, fetchWhy, loadWall, saveWall, wallLimit,
+  RETENTION_CHOICES, CLIP_TICKET_TTL, fetchRecording, saveRecording, fetchClips, recClipUrl, clipParts, groupClipsByDay, diskForecast,
 } from '../lib/cameras.js';
 
 // THE STEPS CAN BE HEARD (2026-10-07; Darrell: "possible tutorial... Ari
@@ -351,6 +352,164 @@ function WhyPanel({ cam, token, onHide }) {
   );
 }
 
+// RECORDED LOOPS (DR-0775; Darrell: "Recorded loops for however long I want
+// backed up to the nas?"). The owner switches Record on per camera and picks
+// how long to keep; one disk budget rules them all. Everything here is read
+// from the recorder's own status file on the NAS: clips, bytes, oldest and
+// newest, disk free, and a rate MEASURED from real clips, never a nominal
+// bitrate. Clips play through the same ticketed road as live video.
+function RecordingPanel({ token, cameras, onSaved }) {
+  const [rec, setRec] = useState(null);          // fetchRecording result
+  const [saving, setSaving] = useState(false);
+  const [note, setNote] = useState('');
+  const [budget, setBudget] = useState('');
+  const [pick, setPick] = useState('');          // camera whose clips are listed
+  const [clips, setClips] = useState({ loading: false, days: [] });
+  const [playing, setPlaying] = useState(null);  // {cam, name, src}
+  const reload = useCallback(async () => {
+    const r = await fetchRecording(token);
+    setRec(r);
+    if (r.ok) setBudget(String(r.config.disk_budget_gb));
+  }, [token]);
+  useEffect(() => { reload(); }, [reload]);
+  // The status file is refreshed by the recorder every loop; re-read it while the panel is open.
+  useEffect(() => { const t = setInterval(reload, 30000); return () => clearInterval(t); }, [reload]);
+
+  const cfg = rec && rec.ok ? rec.config : null;
+  const status = rec && rec.ok ? rec.recStatus : null;
+  const forecast = diskForecast(status);
+
+  const save = async (next) => {
+    if (saving) return;
+    setSaving(true); setNote('');
+    const r = await saveRecording(next, token);
+    setSaving(false);
+    if (r.ok) { setNote('Saved. The recorder on the NAS follows within ten seconds.'); setRec((p) => (p && p.ok ? { ...p, config: r.config } : p)); if (onSaved) onSaved(r.config); }
+    else setNote(r.message);
+  };
+  const toggle = (cam) => {
+    if (!cfg) return;
+    const cur = cfg.cameras[cam.id] || { enabled: false, retention_days: 14 };
+    save({ ...cfg, cameras: { ...cfg.cameras, [cam.id]: { ...cur, enabled: !cur.enabled } } });
+  };
+  const setRetention = (cam, days) => {
+    if (!cfg) return;
+    const cur = cfg.cameras[cam.id] || { enabled: false, retention_days: 14 };
+    save({ ...cfg, cameras: { ...cfg.cameras, [cam.id]: { ...cur, retention_days: Number(days) } } });
+  };
+  const saveBudget = () => {
+    if (!cfg) return;
+    const n = Number(budget);
+    if (!Number.isFinite(n) || n < 5) { setNote('The budget is in GB, 5 or more.'); return; }
+    save({ ...cfg, disk_budget_gb: n });
+  };
+  const openClips = async (id) => {
+    setPick(id); setPlaying(null);
+    if (!id) { setClips({ loading: false, days: [] }); return; }
+    setClips({ loading: true, days: [] });
+    const r = await fetchClips(id, token);
+    setClips({ loading: false, days: groupClipsByDay(r.clips), ok: r.ok });
+  };
+  const play = async (id, name) => {
+    try {
+      const r = await fetchWithTimeout(ticketUrl(), { method: 'POST', headers: { ...authHeaders(token), 'Content-Type': 'application/json' }, body: JSON.stringify({ camera: id, ttl: CLIP_TICKET_TTL }) }, FETCH_TIMEOUT_MS);
+      if (!r.ok) throw new Error(`ticket HTTP ${r.status}`);
+      const { ticket } = await r.json();
+      setPlaying({ cam: id, name, src: recClipUrl(id, name, ticket) });
+    } catch (e) {
+      setNote(`Could not open the clip: ${String((e && e.message) || e)}`);
+    }
+  };
+
+  const camsWithClips = status ? Object.entries(status.cameras || {}).filter(([, v]) => v && v.clips > 0).map(([k]) => k) : [];
+  return (
+    <div className={card} data-testid="recording-panel">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div>
+          <div className={labelCls}>Recorded loops on the NAS</div>
+          <div className="text-sm text-[#1A1815] mt-1">Switch Record on for a camera and choose how long to keep it. One disk budget rules them all: the oldest clip goes first when it is reached.</div>
+        </div>
+        <button type="button" className={`${btnGhost} focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={reload}>Refresh</button>
+      </div>
+      {!rec ? <div className="text-xs text-[#5A5751] mt-2">Reading the recorder...</div> : null}
+      {rec && !rec.ok ? <div className="text-sm text-[#B85838] mt-2" role="status">{rec.message}</div> : null}
+      {cfg ? (
+        <>
+          <div className="mt-3 text-xs text-[#1A1815]" data-testid="recording-disk">
+            {status ? (
+              <>
+                <div>{forecast ? forecast.line : ''}</div>
+                <div className="text-[#5A5751] mt-0.5">On disk: {formatBytes(status.total_bytes || 0)} of a {Math.round(cfg.disk_budget_gb)} GB budget{Number.isFinite(Number(status.disk_free_bytes)) ? ` · ${formatBytes(status.disk_free_bytes)} free on the volume` : ''}{status.at ? ` · recorder reported ${formatAge(Math.max(0, Date.now() - status.at * 1000))}` : ''}</div>
+                {status.config_error ? <div className="text-[#B85838] mt-0.5">{status.config_error}</div> : null}
+              </>
+            ) : <div className="text-[#5A5751]">The recorder has not reported yet (it starts with the next NAS sync; nothing records until a camera is switched on).</div>}
+          </div>
+          <div className="mt-2 flex items-center gap-2 flex-wrap text-xs">
+            <label className="flex items-center gap-1">
+              <span className={labelCls}>Disk budget (GB)</span>
+              <input className={`${inputCls} w-24 min-h-[36px] py-1`} type="number" min="5" step="1" value={budget} onChange={(e) => setBudget(e.target.value)} aria-label="Disk budget in GB" />
+            </label>
+            <button type="button" className={`${btnGhost} focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={saveBudget} disabled={saving}>Save budget</button>
+            {note ? <span className={`${/Saved/.test(note) ? 'text-[#2F6B3A]' : 'text-[#B85838]'}`} role="status" aria-live="polite" data-testid="recording-note">{note}</span> : null}
+          </div>
+          <ul className="mt-3 divide-y divide-[#E8E4DC]" data-testid="recording-cameras">
+            {cameras.map((cam) => {
+              const c = cfg.cameras[cam.id] || { enabled: false, retention_days: 14 };
+              const st = status && status.cameras ? status.cameras[cam.id] : null;
+              return (
+                <li key={cam.id} className="py-2 flex items-center justify-between gap-2 flex-wrap">
+                  <div className="min-w-0">
+                    <div className="text-sm font-semibold text-[#1A1815] truncate">{cam.name}</div>
+                    <div className="text-[0.625rem] text-[#5A5751]">
+                      {st && st.clips ? <>{st.clips} clip{st.clips === 1 ? '' : 's'} · {formatBytes(st.bytes)}{st.oldest ? ` · since ${new Date(st.oldest * 1000).toLocaleDateString()}` : ''}</> : 'no clips yet'}
+                      {st && c.enabled ? (st.recording ? <span className="text-[#2F6B3A]"> · recording now</span> : <span className="text-[#B85838]"> · switched on, not recording yet{st.last_exit != null ? ` (ffmpeg left with ${st.last_exit}, ${st.restarts} restart${st.restarts === 1 ? '' : 's'})` : ''}</span>) : null}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {c.enabled ? (
+                      <label className="text-[0.625rem] text-[#5A5751] flex items-center gap-1">keep
+                        <select className={`${inputCls} min-h-[36px] py-1 w-auto`} value={c.retention_days} onChange={(e) => setRetention(cam, e.target.value)} disabled={saving} aria-label={`How long to keep ${cam.name}`}>
+                          {RETENTION_CHOICES.map((d) => <option key={d} value={d}>{d === 1 ? '1 day' : d >= 365 ? '1 year' : `${d} days`}</option>)}
+                        </select>
+                      </label>
+                    ) : null}
+                    <button type="button" className={`${c.enabled ? btnDark : btnGhost} focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={() => toggle(cam)} disabled={saving} aria-pressed={c.enabled} aria-label={`${c.enabled ? 'Stop recording' : 'Record'} ${cam.name}`}>{c.enabled ? 'Recording' : 'Record'}</button>
+                    {st && st.clips ? <button type="button" className={`${btnGhost} focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={() => openClips(pick === cam.id ? '' : cam.id)} aria-label={`Show clips of ${cam.name}`}>{pick === cam.id ? 'Hide clips' : 'Clips'}</button> : null}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+          {pick ? (
+            <div className="mt-3 border-t border-[#E8E4DC] pt-3" data-testid="clips">
+              <div className={labelCls}>Clips · {cameras.find((c) => c.id === pick)?.name || pick}</div>
+              {clips.loading ? <div className="text-xs text-[#5A5751] mt-1">Reading the clips...</div> : null}
+              {!clips.loading && clips.ok === false ? <div className="text-xs text-[#B85838] mt-1">The clip list did not come back.</div> : null}
+              {!clips.loading && clips.ok !== false && !clips.days.length ? <div className="text-xs text-[#5A5751] mt-1">No clips on disk for this camera.</div> : null}
+              {playing ? (
+                <div className="mt-2 bg-black aspect-video w-full" data-testid="clip-player">
+                  <video key={playing.src} src={playing.src} controls autoPlay playsInline className="w-full h-full" />
+                </div>
+              ) : null}
+              {clips.days.map((d) => (
+                <details key={d.day} className="mt-2" open={d === clips.days[0]}>
+                  <summary className="text-sm text-[#1A1815] cursor-pointer">{d.day} · {d.clips.length} clip{d.clips.length === 1 ? '' : 's'} · {formatBytes(d.bytes)}</summary>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {d.clips.map((c) => (
+                      <button key={c.name} type="button" className={`${chipCls} ${playing && playing.name === c.name ? 'border-[#B85838] text-[#B85838]' : 'border-[#B8B4AC] text-[#1A1815]'} min-h-[36px] px-2 focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={() => play(pick, c.name)} aria-label={`Play the clip from ${clipParts(c.name).time}`}>{clipParts(c.name).time} · {formatBytes(c.bytes)}</button>
+                    ))}
+                  </div>
+                </details>
+              ))}
+            </div>
+          ) : null}
+          {camsWithClips.length && !pick ? <div className="text-[0.625rem] text-[#5A5751] mt-2">Press Clips on a camera to play what it kept.</div> : null}
+        </>
+      ) : null}
+    </div>
+  );
+}
+
 export default function Cameras() {
   const token = bridgeToken();
   const [health, setHealth] = useState(null);       // forwarder /health JSON (+status), or {status, error}
@@ -468,7 +627,7 @@ export default function Cameras() {
 
   return (
     <div>
-      <SectionTitle eyebrow="Your cameras, from your own server · snapshots every 5 s while this tab is open · tap one for full motion · add several to the wall to watch them together">Cameras</SectionTitle>
+      <SectionTitle eyebrow="Your cameras, from your own server · snapshots every 5 s while this tab is open · tap one for full motion · watch several together · record what you choose, for as long as you choose">Cameras</SectionTitle>
       <div className="flex items-center justify-between gap-3 flex-wrap mb-3 text-[0.6875rem] text-[#5A5751]">
         <div>{roadChip}</div>
         <div className="flex items-center gap-2">
@@ -600,6 +759,8 @@ export default function Cameras() {
               </div>
             </section>
           ))}
+
+          <div className="mb-4"><RecordingPanel token={token} cameras={list.cameras} /></div>
 
           <div className={card}>
             <button type="button" className={`${btnGhost}`} onClick={() => setShowAdd((v) => !v)}>{showAdd ? 'Hide' : 'Add a system you own'}</button>

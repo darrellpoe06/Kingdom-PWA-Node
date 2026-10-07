@@ -104,34 +104,60 @@ it in a URL.
 
 | Call | Who may | Returns |
 |---|---|---|
-| `GET /cams/health` | anyone | go2rtc's own version + stream count, or 502 when dark |
+| `GET /cams/health` | anyone | go2rtc's own version + stream count, the running forwarder's sha and the on-disk sha, the live cap and clock, or 502 when dark |
 | `GET /cams/list` | family bearer | `[{id, name, kind}]` -- never a source URL |
-| `POST /cams/ticket {camera}` | family bearer | a 90 s ticket for that one camera |
-| `GET /cams/snap/<id>.jpg?w=640` | bearer or ticket | one JPEG frame |
+| `POST /cams/ticket {camera, ttl?}` | family bearer | a ticket for that one camera: 90 s by default, up to 3600 s for a recorded clip |
+| `GET /cams/snap/<id>.jpg?w=640` | bearer or ticket | one JPEG frame; on a miss the JSON names the cause (`frame-timeout` 504, go2rtc's own scrubbed error, `go2rtc-unreachable`) |
+| `GET /cams/why/<id>` | family bearer | why a camera has no picture: producers (kind, host, state; never a url), go2rtc's log lines for the stream, one timed probe (DR-0774) |
 | `GET /cams/live/<id>.mp4?t=` | ticket | progressive MP4 (Chrome / Edge / Firefox / Android) |
 | `GET /cams/live/<id>/index.m3u8?t=` | ticket | HLS/fMP4 (Safari, iOS, Fire TV); the ticket rides every segment line |
+| `POST /cams/setup/wyze` | family bearer | the Wyze sign-in from the app (DR-0770) |
+| `POST /cams/restart` | family bearer | restarts the forwarder from the file on disk (DR-0772) |
+| `GET/PUT /cams/recording` | family bearer | which cameras record, their retention, the disk budget, the recorder's status (DR-0775) |
+| `GET /cams/rec/<id>` | family bearer | the camera's clips on disk `[{name, bytes, start}]` |
+| `GET /cams/rec/<id>/<clip>.mp4?t=` | ticket | the clip, with Range (206) so the player can seek |
 
 The app picks HLS when the device's `<video>` says it can play
 `application/vnd.apple.mpegurl`, else MP4 -- no player library, the browser's own
-decoder. Snapshots are the default (one frame every 5 s per camera, a few KB);
-full motion is a tap away and ends itself after 300 s.
+decoder. Snapshots are the default (one frame every 5 s per camera, three in
+flight at once, a failed camera rested 30 s); a tap opens full motion in place
+and a view that drops reconnects itself; **Wall +** watches several cameras
+live together; a blank tile names its cause and **Why?** asks the NAS.
+
+## Recorded loops (DR-0775)
+
+`cams_recorder.py` (poetech-cams-recorder.service) copies every camera the
+owner switches on into ten-minute MP4 segments under
+`/volume1/PoeTech/cameras/recordings/<id>/` using the ffmpeg inside the
+go2rtc container (`docker exec`, stream copy, no transcoding). Retention is
+per camera (1 day to 1 year); ONE disk budget prunes the oldest clip first
+across every camera when it is reached; the clip being written is never
+deleted. The owner steers it from the Cameras tab (Record, keep, budget); the
+forwarder writes `recording.json` beside `go2rtc.yaml` and the recorder
+reconciles within its 10 s loop, restarting a dead ffmpeg with a backoff
+(5 s to 5 min). Status (clips, bytes, oldest, newest, disk free, the running
+code's sha) is in `recording.status.json`, shown in the tab with a rate
+MEASURED from real clips. Selftest: `python3 cams_recorder.py --selftest`.
 
 ## Brakes and witnesses
 
-- **Forwarder**: 2 live streams at once (503 `busy` immediately), 300 s per live
-  view (header `X-Live-Max-Seconds`), 6 snapshots in flight, 12 s / 20 s
-  per-call timeouts, a 4 KB ticket body cap. Request-driven: no timer, no
-  compute until a browser asks.
-- **Selftest** (`python3 cams_forwarder.py --selftest`, 50 checks) gates merge
-  in `ci.yml`. The live time brake failed its first run (a 64 KB blocking read
-  held the check hostage) and was fixed before anything shipped -- the check
-  was proven to catch.
-- **Witness**: `site-health.yml` probes `GET /cams/health` from outside the NAS
-  each run.
-- **Funnel bandwidth** is undisclosed by Tailscale ("a funnel, not a hose";
-  community reports of trouble above a few Mbit/s). Hence snapshots by
-  default, one live view at a time, and the time ceiling. The app shows the
-  measured time-to-first-frame and bytes so the real link is visible, not
+- **Forwarder**: 12 live streams at once by default (503 `busy` beyond), no
+  per-view clock by default (`CAMS_LIVE_MAX_SECONDS=0`; set a number only if
+  the home link measures short), 6 snapshots in flight, 12 s / 20 s per-call
+  timeouts, a 4 KB ticket body cap. Request-driven: no timer, no compute
+  until a browser asks. Darrell 2026-10-07: "Let's not build in undermining
+  constraints"; his link is 1 Gbps fiber, and the one unknown (Funnel relay
+  throughput) is measured in the tab, not pre-empted.
+- **Recorder**: the disk budget is the budget; systemd is the lock; it does
+  nothing until `recording.json` enables a camera.
+- **Selftests** (`cams_forwarder.py --selftest`, `cams_recorder.py --selftest`)
+  gate merge in `ci.yml`, each proven to catch.
+- **Witnesses**: `site-health.yml` probes `GET /cams/health` from outside the
+  NAS each run and compares the running forwarder's sha with main;
+  `cams-diag.yml` (dispatch) prints go2rtc's own streams, log and container
+  log from the NAS over the tailnet, scrubbed (DR-0774).
+- **Funnel bandwidth** is undisclosed by Tailscale. The app shows measured
+  time-to-first-frame and bytes per view so the real link is visible, not
   assumed. re-review: 2026-11-06 with the measured numbers from the app.
 
 ## Verify on the NAS
