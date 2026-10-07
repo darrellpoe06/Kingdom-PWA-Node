@@ -94,6 +94,30 @@ jobs:
                   print("%-40s %-6s %-16s state=%s medias=%s" % (k, u.split(":",1)[0], host, p.get("state",""), len(p.get("medias") or [])))
               if not e.get("producers"): print("%-40s (no producers)" % k)
           ' 2>&1 | scrub
+          echo "=== go2rtc config SHAPE (never a value): files, size, mtime, top-level keys, stream lines, wyze block present ==="
+          DATA=/volume1/docker/go2rtc
+          ls -la "$DATA" 2>/dev/null || $SUDO ls -la "$DATA" 2>/dev/null || echo "(cannot list $DATA)"
+          CFG="$DATA/go2rtc.yaml"
+          if [ -r "$CFG" ] || $SUDO test -r "$CFG"; then
+            $SUDO python3 - "$CFG" <<'PY'
+          import re,sys
+          lines=open(sys.argv[1],encoding="utf-8",errors="replace").read().splitlines()
+          top=[l.split(":")[0] for l in lines if re.match(r"^[A-Za-z_][A-Za-z0-9_-]*:",l)]
+          print("top-level keys:", top)
+          n=0; i=0
+          while i<len(lines) and not lines[i].startswith("streams:"): i+=1
+          if i<len(lines):
+              print("streams line:", lines[i][:40])
+              for l in lines[i+1:]:
+                  if l and not l.startswith((" ","\t")): break
+                  if re.match(r"^\s{2}[^\s#].*:",l): n+=1
+          print("streams defined:", n)
+          print("wyze block present:", any(re.match(r"^wyze:",l) for l in lines))
+          print("total lines:", len(lines))
+          PY
+          else
+            echo "(go2rtc.yaml unreadable)"
+          fi
           echo "=== go2rtc /api/log (last $LOG_LINES lines, scrubbed) ==="
           curl -s -m 10 http://127.0.0.1:1984/api/log | tail -n "${LOG_LINES:-120}" | scrub
           echo "=== docker logs poetech-go2rtc (last 80 lines, scrubbed) ==="

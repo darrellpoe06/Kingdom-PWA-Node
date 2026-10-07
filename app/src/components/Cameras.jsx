@@ -45,6 +45,7 @@ import {
   classifySnapError, fetchWhy, loadWall, saveWall, wallLimit,
   RETENTION_CHOICES, CLIP_TICKET_TTL, fetchRecording, saveRecording, fetchClips, recClipUrl, clipParts, groupClipsByDay, diskForecast,
   loadLiveTiles, saveLiveTiles, liveTileBudget, liveTrafficLine,
+  fetchDevices, runDeviceAction, setupWyzeAgain, wyzeKept, garagesFor, ACTION_REARM_MS,
 } from '../lib/cameras.js';
 
 // THE STEPS CAN BE HEARD (2026-10-07; Darrell: "possible tutorial... Ari
@@ -230,6 +231,89 @@ function KindsHelp() {
 // before the viewer closed it is re-opened after a short pause, up to
 // LIVE_RECONNECT_MAX times, with the count shown; only then does it offer
 // Resume. The optional NAS clock (liveMax > 0) is treated the same way.
+// THE DOOR, WITHOUT THE VIDEO (DR-0777; Darrell 2026-10-07: "I want a button
+// for garage that is independent of the video streaming being available").
+// One tap, one POST to the NAS, one cloud action to the camera's device record
+// (the Wyze app's own garage_door_trigger). No ticket, no stream, no frame is
+// in the path; the button works when the tile is blank. It rests
+// ACTION_REARM_MS after a tap, matching the NAS's own refusal window, so a
+// door is never told twice; the answer is said under the button.
+export function GarageButton({ device, token, compact = false }) {
+  const [busy, setBusy] = useState(false);
+  const [rest, setRest] = useState(false);
+  const [result, setResult] = useState(null);
+  const alive = useRef(true);
+  useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
+  const tap = async () => {
+    if (busy || rest) return;
+    setBusy(true); setResult(null);
+    const r = await runDeviceAction(device.mac, 'garage', token);
+    if (!alive.current) return;
+    setBusy(false); setResult(r);
+    if (r.kind === 'ok' || r.kind === 'too-soon') {
+      setRest(true);
+      setTimeout(() => { if (alive.current) setRest(false); }, ACTION_REARM_MS);
+    }
+  };
+  const tone = result ? (result.kind === 'ok' ? 'text-[#2F6B3A]' : 'text-[#B85838]') : 'text-[#5A5751]';
+  return (
+    <div className={compact ? 'inline-flex flex-col items-start' : 'flex flex-col items-start gap-1'} data-testid={`garage-${device.mac}`}>
+      <button type="button" onClick={tap} disabled={busy || rest} aria-busy={busy}
+        className={`${compact ? btnGhost : btnDark} focus:outline focus:outline-2 focus:outline-[#B85838]`}
+        aria-label={`Open or close the garage door on ${device.nickname}`} data-testid={`garage-button-${device.mac}`}>
+        {busy ? 'Telling the door...' : rest ? 'Sent' : compact ? 'Garage' : `Garage · ${device.nickname}`}
+      </button>
+      {result ? <span className={`text-[0.625rem] ${tone}`} role="status" aria-live="polite" data-testid={`garage-result-${device.mac}`}>{result.message}</span>
+        : !compact ? <span className="text-[0.625rem] text-[#5A5751]">{device.online ? 'One tap moves the door, with or without the picture.' : 'Wyze reports this camera offline; the door may not answer.'}</span> : null}
+    </div>
+  );
+}
+
+// The doors strip: every camera with a garage controller, found through
+// Wyze's cloud (GET /devices), whether or not its stream shows a picture.
+function Doors({ garages, devicesState, token }) {
+  if (!devicesState) return null;
+  if (devicesState.kind === 'ok' && garages.length === 0) return null;
+  if (devicesState.kind === 'no-credentials' || devicesState.kind === 'old-service' || devicesState.kind === 'unauthorized') return null;
+  return (
+    <section className="mb-4" data-testid="doors">
+      <div className={labelCls}>Doors · {garages.length}</div>
+      {devicesState.kind === 'ok' ? (
+        <div className="flex flex-wrap gap-4 mt-2">
+          {garages.map((g) => <GarageButton key={g.mac} device={g} token={token} />)}
+        </div>
+      ) : <p className="text-xs text-[#B85838] mt-1" data-testid="doors-note">{devicesState.message}</p>}
+    </section>
+  );
+}
+
+// NOBODY TYPES THE SIGN-IN TWICE (Darrell 2026-10-07: "I better not need to
+// resign in!"). When the restreamer is empty but the NAS kept the sign-in,
+// one press re-adds every camera the account lists; the NAS also does this
+// by itself within its self-heal cycle.
+function AddAgain({ token, onAdded }) {
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState(null);
+  const go = async () => {
+    if (busy) return;
+    setBusy(true); setResult(null);
+    const r = await setupWyzeAgain(token);
+    setBusy(false); setResult(r);
+    if (r.kind === 'ok' && onAdded) onAdded(r);
+  };
+  return (
+    <div className="mt-3 border border-[#5A6E3D] bg-[#5A6E3D]/5 p-3" data-testid="wyze-add-again">
+      <div className={labelCls}>Your Wyze sign-in is kept on the NAS</div>
+      <p className="text-xs text-[#1A1815] mt-1">Nothing to type. The restreamer came back with no cameras; the NAS re-adds them from the sign-in it kept (and does so itself within ten minutes).</p>
+      <div className="flex items-center gap-3 mt-2 flex-wrap">
+        <button type="button" className={`${btnDark}`} onClick={go} disabled={busy} aria-busy={busy} data-testid="wyze-add-again-button">{busy ? 'Adding your cameras again…' : 'Add my cameras again'}</button>
+        {busy ? <span className="text-xs text-[#5A5751]">Up to a minute: Wyze lists the account, the NAS registers each camera.</span> : null}
+      </div>
+      {result ? <div className={`text-sm mt-2 ${result.kind === 'ok' ? 'text-[#2F6B3A]' : 'text-[#B85838]'}`} role="status" aria-live="polite" data-testid="wyze-add-again-result">{result.message}</div> : null}
+    </div>
+  );
+}
+
 function LiveVideo({ cam, token, liveMax, onClose, compact = false, testId = 'live-view', now }) {
   const [st, setSt] = useState({ mode: '', src: '', startedAt: Date.now(), firstFrameMs: null, stalls: 0, ended: false, error: '', opening: true, reconnects: 0, exhausted: false });
   const timers = useRef({ first: null, reopen: null, video: null });
@@ -584,6 +668,7 @@ export default function Cameras() {
   const [liveTiles, setLiveTilesRaw] = useState(() => loadLiveTiles()); // DR-0776: every tile a live player
   const setLiveTiles = (on) => { saveLiveTiles(on); setLiveTilesRaw(on); };
   const [why, setWhy] = useState('');                // tile whose Why? panel is open
+  const [devicesState, setDevicesState] = useState(null); // DR-0777: the Wyze account's devices (the doors), independent of video
   const [showAdd, setShowAdd] = useState(false);
   const [showShell, setShowShell] = useState(false);
   const [now, setNow] = useState(() => Date.now());
@@ -604,6 +689,9 @@ export default function Cameras() {
       setHealth({ status: 0, ok: false, error: String((e && e.message) || e) });
     }
     if (!token) { setList({ status: 0, cameras: [], at: Date.now(), networkError: false, loaded: true }); return; }
+    // The doors ride their own road (Wyze's cloud through the NAS): asked for
+    // beside the list, never after it, so a dark restreamer leaves them standing.
+    fetchDevices(token).then((d) => setDevicesState(d));
     try {
       const r = await fetchWithTimeout(listUrl(), { headers: authHeaders(token) }, FETCH_TIMEOUT_MS);
       let body = null;
@@ -708,6 +796,8 @@ export default function Cameras() {
   const wallMax = wallLimit(health);
   const byId = useMemo(() => Object.fromEntries(list.cameras.map((c) => [c.id, c])), [list.cameras]);
   const wallCams = wall.map((id) => byId[id]).filter(Boolean);
+  const garages = useMemo(() => garagesFor(devicesState && devicesState.devices, list.cameras), [devicesState, list.cameras]);
+  const garageByCamera = useMemo(() => Object.fromEntries(garages.filter((g) => g.cameraId).map((g) => [g.cameraId, g])), [garages]);
 
   const roadChip = health == null ? <span className={chip.muted}>checking the road</span>
     : roadUp ? <span className={chip.ok}>NAS restreamer up{health.go2rtc ? ` · go2rtc ${health.go2rtc}` : ''}{Number.isFinite(Number(health.streams)) ? ` · ${health.streams} stream${Number(health.streams) === 1 ? '' : 's'}` : ''}{health.forwarder ? ` · forwarder ${health.forwarder}` : ''}</span>
@@ -730,6 +820,8 @@ export default function Cameras() {
           {liveTrafficLine(health) ? <span className={chip.muted} data-testid="live-traffic">{liveTrafficLine(health)}</span> : null}
         </div>
       ) : null}
+
+      {token ? <Doors garages={garages} devicesState={devicesState} token={token} /> : null}
 
       {state === 'loading' && (
         <div className={card}><p className="text-sm text-[#5A5751]">Reading the camera road...</p></div>
@@ -775,8 +867,12 @@ export default function Cameras() {
         <div className={card}>
           <div className={labelCls}>The restreamer is up and has no cameras yet</div>
           <p className="text-sm mt-1">
-            Everything self-deployed. Wyze cameras need the one thing the repo never holds: your Wyze sign-in. Type it once below and the NAS does the rest.
+            {wyzeKept(health)
+              ? 'Everything self-deployed, and your Wyze sign-in is already here. Nothing to type.'
+              : 'Everything self-deployed. Wyze cameras need the one thing the repo never holds: your Wyze sign-in. Type it once below and the NAS keeps it; you never type it again.'}
           </p>
+          {wyzeKept(health) ? <AddAgain token={token} onAdded={() => { load(); }} /> : null}
+          {wyzeKept(health) ? <p className="text-xs text-[#5A5751] mt-3">A different Wyze account? Sign in below and it replaces the kept one.</p> : null}
           <WyzeSetup token={token} onAdded={() => { load(); }} />
           <button type="button" className={`${btnGhost} mt-3`} onClick={() => setShowShell((v) => !v)}>{showShell ? 'Hide' : 'Prefer a terminal?'} the two PowerShell steps</button>
           {showShell ? (<><CopyBlock {...setup.place} /><CopyBlock {...setup.tunnel} /></>) : null}
@@ -842,6 +938,7 @@ export default function Cameras() {
                             </div>
                           </div>
                           <div className="flex items-center gap-1 shrink-0">
+                            {garageByCamera[cam.id] ? <GarageButton device={garageByCamera[cam.id]} token={token} compact /> : null}
                             {f && f.error ? <button type="button" className={`${btnGhost} focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={() => setWhy(why === cam.id ? '' : cam.id)} aria-label={`Why does ${cam.name} show no frame?`}>Why?</button> : null}
                             <button type="button" className={`${btnGhost} focus:outline focus:outline-2 focus:outline-[#B85838]`} disabled={wallFull} onClick={() => setWall((w) => (onWall ? w.filter((x) => x !== cam.id) : [...w, cam.id]))} aria-label={onWall ? `Remove ${cam.name} from the wall` : `Add ${cam.name} to the wall`} title={wallFull ? `The wall holds ${wallMax} at once` : ''}>{onWall ? 'Wall −' : 'Wall +'}</button>
                             <button type="button" onClick={() => setLiveId(isLive ? '' : cam.id)} className={`${btnGhost}`}>{isLive ? 'Close' : 'Live'}</button>
