@@ -84,7 +84,9 @@
 #        health log (DR-0798): per camera the last hour from go2rtc's own numbers
 #        -- kbps now and average while watched, up%, drops (producer-gone,
 #        bytes-frozen, producer-restarted while watched), codecs, hevc_only,
-#        twin -- and the last 50 drop events. Sampled every CAMS_STREAM_SAMPLE_SECONDS.
+#        twin, sd -- and the last 50 drop events. Sampled every CAMS_STREAM_SAMPLE_SECONDS.
+#        Every Wyze camera also gets `<id>_sd` (its own substream, DR-0799) for
+#        tiles in a grid; /list hides both twins and marks the camera h264 / sd.
 #   GET  /devices                      bearer. The Wyze ACCOUNT's devices over
 #        Wyze's own cloud API (wyze_cloud.py), independent of any video:
 #        [{mac, nickname, model, online, garage, stream}] -- `stream` is the
@@ -860,6 +862,10 @@ CLIP_SIZES = (
     ("small", {"height": 480, "crf": 30, "bps": 600000, "label": "Small (480p)"}),
     ("medium", {"height": 720, "crf": 26, "bps": 1500000, "label": "Medium (720p)"}),
     ("large", {"height": 1080, "crf": 23, "bps": 3000000, "label": "Large (1080p)"}),
+    # Darrell 2026-10-07: "4k for those types if possible so 2k or 3k... larger size options too".
+    # Never upscaled: these tiers give more only for a camera that records that large.
+    ("xlarge", {"height": 1440, "crf": 21, "bps": 6000000, "label": "Extra large (1440p / 2.5K)"}),
+    ("uhd", {"height": 2160, "crf": 20, "bps": 12000000, "label": "Ultra (2160p / 4K)"}),
 )
 CLIP_SIZE_MAP = dict(CLIP_SIZES)
 CLIP_STEM = re.compile(r"^(\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2})\.mp4$")
@@ -1131,15 +1137,85 @@ STREAM_HISTORY_SECONDS = 3600.0
 STREAM_HEALTH_FILE = os.environ.get("CAMS_STREAM_HEALTH_FILE", os.path.join(os.path.dirname(GO2RTC_YAML_PATH), "stream-health.json"))
 H264_TWINS = os.environ.get("CAMS_H264_TWINS", "1") != "0"
 TWIN_SUFFIX = "_h264"
+# THE SD TWIN (DR-0799; Darrell 2026-10-07, the Firestick window: "Cameras in
+# the window don't stay live... the seconds timers show they are not live").
+# A Wyze camera has its own substream (go2rtc's wyze source: subtype=sd). Every
+# Wyze camera gets `<id>_sd`, the same source URL with subtype=sd, and the app
+# opens the SD twin for a tile in a grid and the HD stream for the one made
+# largest -- so a Firestick carries several cameras instead of freezing on two.
+SD_SUFFIX = "_sd"
+SD_TWINS = os.environ.get("CAMS_SD_TWINS", "1") != "0"
+TWIN_SUFFIXES = (TWIN_SUFFIX, SD_SUFFIX)
 CODEC_RE = re.compile(r"\b(H264|H265|HEVC|AAC|PCMU|PCMA|PCML|PCM|OPUS|MJPEG|JPEG|AV1|VP8|VP9|FLAC|MP3)\b", re.I)
 
 
 def is_twin(stream_id):
-    return str(stream_id or "").endswith(TWIN_SUFFIX)
+    return any(str(stream_id or "").endswith(sfx) for sfx in TWIN_SUFFIXES)
+
+
+def base_of(stream_id):
+    """The camera a twin belongs to (itself when it is not a twin)."""
+    sid = str(stream_id or "")
+    for sfx in TWIN_SUFFIXES:
+        if sid.endswith(sfx) and len(sid) > len(sfx):
+            return sid[:-len(sfx)]
+    return sid
 
 
 def twin_of(stream_id):
     return "%s%s" % (stream_id, TWIN_SUFFIX)
+
+
+def sd_of(stream_id):
+    return "%s%s" % (stream_id, SD_SUFFIX)
+
+
+def sd_source(url):
+    """The same wyze:// source with subtype=sd (replacing subtype=hd when it is there); None for any other kind."""
+    if kind_of(url) != "wyze":
+        return None
+    base, _, frag = str(url).partition("#")
+    if re.search(r"(?i)[?&]subtype=", base):
+        base = re.sub(r"(?i)([?&]subtype=)[^&]*", r"\1sd", base)
+    else:
+        base += ("&" if "?" in base else "?") + "subtype=sd"
+    return base + (("#" + frag) if frag else "")
+
+
+def ensure_sd_twins(upstream, streams, log=print, config_path=None):
+    """Every Wyze camera gets `<id>_sd` (its own substream) in go2rtc: PUT, or the config when go2rtc refuses. Answers the names added."""
+    added = []
+    if not isinstance(streams, dict):
+        return added
+    ids = set(streams.keys())
+    for sid, entry in streams.items():
+        if not CAMERA_ID.match(str(sid)) or is_twin(sid) or sd_of(sid) in ids or not isinstance(entry, dict):
+            continue
+        url = None
+        for p in entry.get("producers") or []:
+            if isinstance(p, dict) and p.get("url"):
+                url = p.get("url")
+                break
+        src = sd_source(url) if url else None
+        if not src:
+            continue
+        name = sd_of(sid)
+        q = urllib.parse.urlencode({"name": name, "src": src})
+        try:
+            req = urllib.request.Request(upstream.rstrip("/") + "/api/streams?" + q, method="PUT")
+            with urllib.request.urlopen(req, timeout=HEALTH_TIMEOUT) as r:
+                r.read(4096)
+            added.append(name)
+            log("stream-health: added %s, the camera's own SD substream, for tiles in a grid" % name)
+        except urllib.error.HTTPError as e:
+            if write_stream_entry(config_path or GO2RTC_YAML_PATH, name, src):
+                added.append(name)
+                log("stream-health: go2rtc refused PUT %s (HTTP %d); wrote it to the config directly (DR-0789)" % (name, e.code))
+            else:
+                log("stream-health: could not add %s (HTTP %d)" % (name, e.code))
+        except (urllib.error.URLError, OSError):
+            log("stream-health: go2rtc unreachable while adding %s" % name)
+    return added
 
 
 def twin_source(stream_id):
@@ -1255,6 +1331,7 @@ class StreamHealth:
             "hevc_only": ("H265" in codecs) and ("H264" not in codecs),
             "last_seen": c["last_seen"],
             "twin": twin_of(sid) if twin_of(sid) in self.stream_ids else None,
+            "sd": sd_of(sid) if sd_of(sid) in self.stream_ids else None,
         }
 
     def summary(self):
@@ -1345,6 +1422,8 @@ def sample_streams_once(upstream, health=None, log=print, health_file=None, twin
         write_health_file(health_file, summary)
     if twins:
         ensure_h264_twins(upstream, streams.keys(), summary, log=log, config_path=config_path)
+        if SD_TWINS:
+            ensure_sd_twins(upstream, streams, log=log, config_path=config_path)
     return "sampled"
 
 
@@ -1920,8 +1999,8 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
             # An H.264 twin (DR-0798) is not a second camera: it is hidden from
             # the list and its base camera says it has one.
             ids = set(c["id"] for c in cams)
-            cams = [dict(c, h264=(twin_of(c["id"]) in ids)) for c in cams
-                    if not (is_twin(c["id"]) and c["id"][:-len(TWIN_SUFFIX)] in ids)]
+            cams = [dict(c, h264=(twin_of(c["id"]) in ids), sd=(sd_of(c["id"]) in ids)) for c in cams
+                    if not (is_twin(c["id"]) and base_of(c["id"]) in ids)]
             if grant is not None:
                 cams = [c for c in cams if grant_allows(grant, c["id"])]
                 return self._json(200, {"cameras": cams, "count": len(cams),
@@ -2279,6 +2358,7 @@ def _selftest():
                 return self._send(200, "application/json", json.dumps({
                     "front_yard": {"producers": [{"url": "wyze://192.168.1.50?uid=ABC&enr=SECRET&mac=AA&model=HL_CAM4&dtls=true", "medias": ["video, recvonly, H265 Main"], "bytes_recv": 4096}], "consumers": [{"type": "mp4"}]},
                     "front_yard_h264": {"producers": [{"url": "ffmpeg:front_yard#video=h264"}], "consumers": []},
+                    "front_yard_sd": {"producers": [{"url": "wyze://192.168.1.50?uid=ABC&enr=SECRET&mac=AA&model=HL_CAM4&dtls=true&subtype=sd"}], "consumers": []},
                     "garage": {"producers": [{"url": "rtsp://admin:SECRET@192.168.1.60/live", "medias": ["video, recvonly, H264 High 4.1"], "bytes_recv": 100}], "consumers": []},
                 }).encode("utf-8"))
             if path == "/api/streams":
@@ -3007,7 +3087,9 @@ def _selftest():
         fh.write(b"\x01" * 20480)
     est = estimate_sizes(100 * 1000 * 1000, 600)
     check(est["small"] == 45000000 and est["medium"] == 100000000 and est["large"] == 100000000, "an estimate is the tier's rate for the length, never more than the original (600 s: small 45 MB; medium/large capped at the 100 MB original)")
-    check(estimate_sizes(0, 60) == {"small": 4500000, "medium": 11250000, "large": 22500000}, "with no original size known, the estimate is the rate alone")
+    check(estimate_sizes(0, 60) == {"small": 4500000, "medium": 11250000, "large": 22500000, "xlarge": 45000000, "uhd": 90000000}, "with no original size known, the estimate is the rate alone; 2.5K and 4K tiers are there for cameras that record that large")
+    argv4k = transcode_argv("front_yard", "2026-10-07T06-40-00.mp4", "uhd", docker=None, host_root=rec_root)
+    check(argv4k[argv4k.index("-vf") + 1] == "scale=-2:'min(2160,ih)'" and argv4k[argv4k.index("-crf") + 1] == "20", "uhd = 2160p tall at most (a 1080p camera gives its full picture, never stretched), CRF 20")
     argv = transcode_argv("front_yard", "2026-10-07T06-40-00.mp4", "small", docker="/usr/local/bin/docker")
     check(argv[:5] == ["/usr/local/bin/docker", "exec", "-i", GO2RTC_CONTAINER, "ffmpeg"] and argv[len(argv) - argv[::-1].index("-i")] == "/recordings/front_yard/2026-10-07T06-40-00.mp4", "with docker: the container's ffmpeg reads the clip at its container path")
     check(argv[argv.index("-vf") + 1] == "scale=-2:'min(480,ih)'" and argv[argv.index("-crf") + 1] == "30" and argv[-1] == "/recordings/.derived/front_yard/2026-10-07T06-40-00.small.mp4.part", "small = 480p tall at most (never upscaled), CRF 30, written to a .part under .derived")
@@ -3025,7 +3107,7 @@ def _selftest():
     t = mint_ticket(token, "front_yard")
     s, _h, d = call("GET", "/rec/front_yard/2026-10-07T06-40-00.mp4?sizes=1&t=" + t)
     j = json.loads(d.decode("utf-8"))
-    check(s == 200 and j["original"] == 10240 and j["seconds"] == 600 and set(j["tiers"]) == {"small", "medium", "large"} and all(v["state"] == "absent" for v in j["tiers"].values()) and j["tiers"]["medium"]["label"] == "Medium (720p)" and j["download_name"].endswith("-original.mp4"), "?sizes=1 names the original, the seconds, and every tier with its estimate and state")
+    check(s == 200 and j["original"] == 10240 and j["seconds"] == 600 and set(j["tiers"]) == {"small", "medium", "large", "xlarge", "uhd"} and all(v["state"] == "absent" for v in j["tiers"].values()) and j["tiers"]["medium"]["label"] == "Medium (720p)" and j["download_name"].endswith("-original.mp4"), "?sizes=1 names the original, the seconds, and every tier with its estimate and state")
     s, _h, d = call("GET", "/rec/front_yard/2026-10-07T06-40-00.mp4?size=tiny&t=" + t)
     check(s == 400 and b"bad-size" in d, "an unknown size -> 400 bad-size")
     s, _h, d = call("GET", "/rec/front_yard/2026-10-07T06-40-00.mp4?size=small&t=" + t)
@@ -3149,6 +3231,25 @@ def _selftest():
     with open(hf) as fh:
         hj = json.load(fh)
     check(r == "sampled" and "front_yard" in hj["cameras"] and "front_yard_h264" not in hj["cameras"] and hj["cameras"]["front_yard"]["codecs"] == ["H265"] and hj["cameras"]["front_yard"]["twin"] == "front_yard_h264", "one sample reads go2rtc, writes the file for cams-diag, and names a camera's twin")
+    # THE SD TWIN (DR-0799): every Wyze camera's own substream, registered beside it
+    check(sd_source("wyze://192.168.1.50?uid=ABC&enr=S&mac=AA&model=HL_CAM4&dtls=true") == "wyze://192.168.1.50?uid=ABC&enr=S&mac=AA&model=HL_CAM4&dtls=true&subtype=sd", "a wyze source gains subtype=sd")
+    check(sd_source("wyze://192.168.1.50?uid=ABC&subtype=hd&enr=S") == "wyze://192.168.1.50?uid=ABC&subtype=sd&enr=S" and sd_source("wyze://192.168.1.50?uid=ABC#video=h264") == "wyze://192.168.1.50?uid=ABC&subtype=sd#video=h264", "subtype=hd becomes sd; a #fragment is kept after the query")
+    check(sd_source("rtsp://admin:S@192.168.1.60/live") is None and sd_source("ring://x") is None, "only a Wyze source has a substream to ask for")
+    check(base_of("front_yard_sd") == "front_yard" and base_of("front_yard_h264") == "front_yard" and base_of("front_yard") == "front_yard" and is_twin("front_yard_sd") and not is_twin("front_yard"), "a twin knows its camera")
+    seen.pop("puts", None); seen["put_refuses"] = False
+    added = ensure_sd_twins("http://127.0.0.1:%d" % fp, {
+        "front_yard": {"producers": [{"url": "wyze://192.168.1.50?uid=ABC&enr=SECRET&mac=AA&model=HL_CAM4&dtls=true"}], "consumers": []},
+        "front_yard_h264": {"producers": [{"url": "ffmpeg:front_yard#video=h264"}], "consumers": []},
+        "garage": {"producers": [{"url": "rtsp://admin:SECRET@192.168.1.60/live"}], "consumers": []},
+        "porch": {"producers": [{"url": "wyze://192.168.1.52?uid=P&enr=S2"}], "consumers": []},
+        "porch_sd": {"producers": [{"url": "wyze://192.168.1.52?uid=P&enr=S2&subtype=sd"}], "consumers": []},
+    }, log=lambda *a: None)
+    check(added == ["front_yard_sd"] and seen.get("puts") == [("front_yard_sd", "wyze://192.168.1.50?uid=ABC&enr=SECRET&mac=AA&model=HL_CAM4&dtls=true&subtype=sd")], "a Wyze camera without its SD twin gets one PUT (its own URL with subtype=sd); a twin, an rtsp camera, and a camera that has one are left alone")
+    seen["with_twin"] = True
+    s, _h, d = call("GET", "/list", auth=B)
+    j = json.loads(d.decode("utf-8"))
+    fy = next(c for c in j["cameras"] if c["id"] == "front_yard")
+    check("front_yard_sd" not in [c["id"] for c in j["cameras"]] and fy["sd"] is True and fy["h264"] is True and next(c for c in j["cameras"] if c["id"] == "garage")["sd"] is False, "/list hides the SD twin too and marks its camera sd: true")
     seen["with_twin"] = False
     s, _h, d = call("GET", "/health")
     j = json.loads(d.decode("utf-8"))

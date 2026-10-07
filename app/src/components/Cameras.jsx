@@ -51,6 +51,7 @@ import {
   loadViews, saveViews, activeView, addToView, removeFromView, moveInView, setViewLayout, renameView, addView, deleteView, viewCols, viewGridClass, indexAtPoint, VIEW_LAYOUTS,
   fitGrid, clampScale, setViewScale, VIEW_SCALE_STEP, VIEW_SCALE_MIN, VIEW_SCALE_MAX, toggleFocus, focusIn, shownCount,
   CLIP_SIZE_TIERS, fetchClipSizes, waitForClipSize, clipDownloadName, clipTierLine, fetchStreamHealth, STREAM_HEALTH_POLL_MS, liveStreamId, streamHealthLine, dropLines,
+  tendLiveVideo, LIVE_TEND_MS, FREEZE_SECONDS,
   RETENTION_CHOICES, CLIP_TICKET_TTL, fetchRecording, saveRecording, fetchClips, recClipUrl, clipParts, groupClipsByDay, diskForecast,
   loadLiveTiles, saveLiveTiles, liveTileBudget, liveTrafficLine,
   fetchDevices, runDeviceAction, setupWyzeAgain, wyzeKept, garagesFor, ACTION_REARM_MS,
@@ -561,7 +562,7 @@ function AccessChip({ access, onLeave }) {
   );
 }
 
-function LiveVideo({ cam, token, liveMax, onClose, compact = false, bare = false, testId = 'live-view', now, onPick = null, picked = false }) {
+function LiveVideo({ cam, token, liveMax, onClose, compact = false, bare = false, testId = 'live-view', now, onPick = null, picked = false, sd = false, released = false }) {
   // A click (or Enter / Space from a remote) on the picture hands the tile to
   // the view, which makes it the largest or puts it back (DR-0796).
   const pickProps = onPick ? {
@@ -579,7 +580,9 @@ function LiveVideo({ cam, token, liveMax, onClose, compact = false, bare = false
 
   // THE STREAM THIS DEVICE OPENS (DR-0798): the camera's own, or its H.264
   // twin when the camera sends only H.265 and this <video> cannot decode it.
-  const streamId = liveStreamId(cam, typeof document !== 'undefined' ? (t) => { try { return document.createElement('video').canPlayType(t); } catch { return ''; } } : null);
+  // ...and the SD twin for a tile in a grid (DR-0799): the camera's own
+  // substream, so a Firestick carries several cameras at once.
+  const streamId = liveStreamId(cam, typeof document !== 'undefined' ? (t) => { try { return document.createElement('video').canPlayType(t); } catch { return ''; } } : null, { sd });
   const open = useCallback(async (reconnects) => {
     clearTimeout(timers.current.first);
     setSt((p) => ({ ...p, opening: true, ended: false, error: '', src: '', firstFrameMs: null, startedAt: Date.now(), reconnects, exhausted: false }));
@@ -607,15 +610,26 @@ function LiveVideo({ cam, token, liveMax, onClose, compact = false, bare = false
 
   useEffect(() => {
     alive.current = true;
-    open(0);
     const t = timers.current;
+    // RELEASED (DR-0799): a tile hidden behind the one made largest gives its
+    // stream back -- a Firestick cannot decode six HD streams for pictures
+    // nobody sees -- and opens again, on the SD or HD road the layout asks
+    // for, the moment it is shown.
+    if (released) {
+      clearTimeout(t.first); clearTimeout(t.reopen);
+      const v = t.video;
+      if (v) { try { v.pause(); v.removeAttribute('src'); v.load(); } catch { /* fine */ } }
+      setSt((p) => ({ ...p, src: '', opening: false, ended: false, error: '', reconnecting: false }));
+      return () => { alive.current = false; };
+    }
+    open(0);
     return () => {
       alive.current = false;
       clearTimeout(t.first); clearTimeout(t.reopen);
       const v = t.video;
       if (v) { try { v.pause(); v.removeAttribute('src'); v.load(); } catch { /* fine */ } }
     };
-  }, [open]);
+  }, [open, released]);
 
   // The stream ended or broke without the viewer closing it: come back. The
   // road's record is written (DR-0782) and, under Auto, a road that failed to
@@ -636,6 +650,27 @@ function LiveVideo({ cam, token, liveMax, onClose, compact = false, bare = false
     });
   }, [open]);
 
+  // THE TILE IS TENDED (DR-0799): every LIVE_TEND_MS the element is asked
+  // whether its picture still moves and how far it trails the live edge. A
+  // freeze reconnects; a lag is run down or jumped (lib tendLiveVideo).
+  const tendMemo = useRef(null);
+  useEffect(() => {
+    if (!st.src || st.ended || released) return undefined;
+    tendMemo.current = null;
+    const id = setInterval(() => {
+      const v = timers.current.video;
+      if (!v || !alive.current) return;
+      const r = tendLiveVideo(v, tendMemo.current, { mode: st.mode });
+      tendMemo.current = r.memo;
+      if (r.frozen) {
+        tendMemo.current = null;
+        setSt((p) => ({ ...p, stalls: (p.stalls || 0) + 1 }));
+        endedOnItsOwn(`the picture froze for ${FREEZE_SECONDS} s`);
+      }
+    }, LIVE_TEND_MS);
+    return () => clearInterval(id);
+  }, [st.src, st.ended, st.mode, released, endedOnItsOwn]);
+
   const onLoadedData = () => setSt((p) => {
     if (p.firstFrameMs != null) return p;
     const ms = Date.now() - p.startedAt;
@@ -647,7 +682,8 @@ function LiveVideo({ cam, token, liveMax, onClose, compact = false, bare = false
   const onError = () => endedOnItsOwn(st.firstFrameMs == null ? 'the browser could not open this stream' : 'the stream broke');
 
   const elapsed = Math.max(0, Math.round(((now || Date.now()) - st.startedAt) / 1000));
-  const status = st.opening ? 'Asking the NAS for a playback ticket...'
+  const status = released ? 'Paused while another camera is the largest.'
+    : st.opening ? 'Asking the NAS for a playback ticket...'
     : st.exhausted ? `Stopped after ${LIVE_RECONNECT_MAX} reconnects: ${st.error}. Press Resume to try again.`
     : st.ended ? `Reconnecting (${st.error})...`
     : st.error || 'No stream.';
@@ -759,10 +795,11 @@ function ViewWindow({ view, cams, token, liveMax, now, onClose, onScale }) {
       <div className="flex-1 min-h-0 flex items-center justify-center overflow-hidden">
         <div style={{ display: 'grid', gridTemplateColumns: `repeat(${fit.cols}, ${tileW}px)`, gridAutoRows: `${tileH}px`, gap: `${WINDOW_GAP_PX}px` }} data-testid="view-window-grid">
           {cams.map((cam) => (
-            // A tile that is not the focused one stays MOUNTED and hidden, so
-            // its stream keeps running and the second click puts it back at once.
+            // A tile that is not the focused one stays MOUNTED and hidden and
+            // gives its stream back (DR-0799); the second click re-opens it in place.
             <div key={cam.id} style={{ width: tileW, height: tileH }} className={focused && focused !== cam.id ? 'hidden' : ''} data-window-cam={cam.id} data-focused={focused === cam.id ? 'true' : undefined}>
-              <LiveVideo cam={cam} token={token} liveMax={liveMax} bare testId={`window-${cam.id}`} now={now} onPick={() => setFocused((f) => toggleFocus(f, cam.id))} picked={focused === cam.id} />
+              <LiveVideo cam={cam} token={token} liveMax={liveMax} bare testId={`window-${cam.id}`} now={now} onPick={() => setFocused((f) => toggleFocus(f, cam.id))} picked={focused === cam.id}
+                sd={shownCount(cams, focused) > 1} released={!!focused && focused !== cam.id} />
             </div>
           ))}
         </div>
@@ -783,11 +820,11 @@ function ViewWindow({ view, cams, token, liveMax, now, onClose, onScale }) {
 // camera never answered through all its reconnects) it tells the tab, which
 // drops the tile back to the snapshot road so the reason shows and recovery
 // is noticed on the next sweep.
-function TileLive({ cam, token, liveMax, now, onFailed }) {
-  const [st, setSt] = useState({ src: '', startedAt: Date.now(), firstFrameMs: null, ended: false, reconnects: 0, exhausted: false, error: '' });
+function TileLive({ cam, token, liveMax, now, onFailed, sd = false }) {
+  const [st, setSt] = useState({ src: '', startedAt: Date.now(), firstFrameMs: null, ended: false, reconnects: 0, exhausted: false, error: '', mode: '' });
   const timers = useRef({ first: null, reopen: null, video: null });
   const alive = useRef(true);
-  const streamId = liveStreamId(cam, typeof document !== 'undefined' ? (t) => { try { return document.createElement('video').canPlayType(t); } catch { return ''; } } : null);
+  const streamId = liveStreamId(cam, typeof document !== 'undefined' ? (t) => { try { return document.createElement('video').canPlayType(t); } catch { return ''; } } : null, { sd });
   const open = useCallback(async (reconnects) => {
     clearTimeout(timers.current.first);
     setSt((p) => ({ ...p, ended: false, src: '', firstFrameMs: null, startedAt: Date.now(), reconnects, exhausted: false, error: '' }));
@@ -798,7 +835,7 @@ function TileLive({ cam, token, liveMax, now, onFailed }) {
       if (!alive.current) return;
       const probe = typeof document !== 'undefined' ? document.createElement('video') : null;
       const mode = chooseLiveRoad({ pref: loadLiveRoad(), stats: loadRoadStats(), canPlayType: probe && typeof probe.canPlayType === 'function' ? (t) => probe.canPlayType(t) : null });
-      setSt((p) => ({ ...p, src: liveUrl(streamId, mode, ticket), startedAt: Date.now() }));
+      setSt((p) => ({ ...p, src: liveUrl(streamId, mode, ticket), mode, startedAt: Date.now() }));
       timers.current.first = setTimeout(() => {
         setSt((p) => (p.firstFrameMs == null && !p.ended && p.src) ? { ...p, error: 'no picture' } : p);
       }, LIVE_FIRST_FRAME_TIMEOUT_MS);
@@ -825,6 +862,20 @@ function TileLive({ cam, token, liveMax, now, onFailed }) {
       return { ...p, ended: true, error: reason, exhausted: true };
     });
   }, [open, onFailed]);
+  // Tended like every live tile (DR-0799): a frozen picture reconnects, a lag is run down.
+  const tendMemo = useRef(null);
+  useEffect(() => {
+    if (!st.src || st.ended) return undefined;
+    tendMemo.current = null;
+    const id = setInterval(() => {
+      const v = timers.current.video;
+      if (!v || !alive.current) return;
+      const r = tendLiveVideo(v, tendMemo.current, { mode: st.mode });
+      tendMemo.current = r.memo;
+      if (r.frozen) { tendMemo.current = null; endedOnItsOwn(`the picture froze for ${FREEZE_SECONDS} s`); }
+    }, LIVE_TEND_MS);
+    return () => clearInterval(id);
+  }, [st.src, st.ended, st.mode, endedOnItsOwn]);
   const elapsed = Math.max(0, Math.round(((now || Date.now()) - st.startedAt) / 1000));
   return (
     <div className="aspect-video bg-black relative" data-testid={`tile-live-${cam.id}`}>
@@ -1483,7 +1534,8 @@ export default function Cameras() {
                       </span>
                     </div>
                     <LiveVideo cam={cam} token={token} liveMax={liveMax} compact testId={`wall-${cam.id}`} now={now} onClose={() => setViews((st) => removeFromView(st, view.id, cam.id))}
-                      onPick={() => setFocusedTile((f) => toggleFocus(f, cam.id))} picked={focusIn(wallCams, focusedTileRaw) === cam.id} />
+                      onPick={() => setFocusedTile((f) => toggleFocus(f, cam.id))} picked={focusIn(wallCams, focusedTileRaw) === cam.id}
+                      sd={!focusIn(wallCams, focusedTileRaw) && wallCams.length > 1} released={!!focusIn(wallCams, focusedTileRaw) && focusIn(wallCams, focusedTileRaw) !== cam.id} />
                   </div>
                 ))}
               </div>
@@ -1506,7 +1558,7 @@ export default function Cameras() {
                     <React.Fragment key={cam.id}>
                       <div className={`bg-white border ${isLive ? 'border-[#B85838]' : 'border-[#1A1815]'}`}>
                         {tileLive ? (
-                          <TileLive cam={cam} token={token} liveMax={liveMax} now={now} onFailed={(reason) => { framesRef.current = { ...framesRef.current, [cam.id]: { ...(framesRef.current[cam.id] || {}), error: reason, errorAt: Date.now() } }; setFrames(framesRef.current); }} />
+                          <TileLive cam={cam} token={token} liveMax={liveMax} now={now} sd={g.cameras.length > 1} onFailed={(reason) => { framesRef.current = { ...framesRef.current, [cam.id]: { ...(framesRef.current[cam.id] || {}), error: reason, errorAt: Date.now() } }; setFrames(framesRef.current); }} />
                         ) : (
                         <button type="button" onClick={() => setLiveId(isLive ? '' : cam.id)} className="block w-full text-left min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]" aria-label={isLive ? `Close live view of ${cam.name}` : `Open live view of ${cam.name}`}>
                           <div className="aspect-video bg-[#1A1815] flex items-center justify-center overflow-hidden">
