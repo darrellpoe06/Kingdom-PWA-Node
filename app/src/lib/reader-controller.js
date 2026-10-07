@@ -247,6 +247,7 @@ export const RAIL_BUTTONS = Object.freeze([
   { id: 'full', side: 'left' },
   // right: how it sounds and how it looks
   { id: 'speed', side: 'right', cycle: true },
+  { id: 'pitch', side: 'right', cycle: true },
   { id: 'voice', side: 'right', cycle: true },
   { id: 'colors', side: 'right', cycle: true },
   { id: 'highlight', side: 'right', cycle: true },

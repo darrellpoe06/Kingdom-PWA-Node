@@ -21,6 +21,9 @@ import {
 } from './reading-voice.js';
 import { mergeVoiceCatalog, canCloneVoice, isVoiceEntitled, resolveVoiceProvider, KIND, SYSTEM_VOICE } from './voice-registry.js';
 import { buildStandInAssignments, resolveVoiceURIForId, standInPitch } from './voice-assignment.js';
+// A VOICE KEEPS ITS OWN PITCH (DR-0797): picking a voice brings back the
+// sound shaped for it, so one engine voice can be several readers.
+import { loadVoiceShapes, saveVoiceShape, shapeFor, clampPitch, nextPitch, DEFAULT_PITCH as SHAPE_DEFAULT_PITCH } from './voice-shape.js';
 import { loadPersonaVoiceMap } from './persona-voice-prefs.js';
 import { isVoiceServiceReady, synthesizeSpeech, activeVoiceEndpoint, builtInVoiceSupport, voiceServiceHealth, probeVoiceService, speakTimeoutFor, mayAttemptStudio, isStudioRoadProblem, synthesizeLite, mayTryLiteVoice, markLiteVoiceMiss, isPlayRefusal, liteVoiceReasonText, LITE_FIRST_TIMEOUT_MS, SPEAK_TIMEOUT_MS, voiceSpeedFor, residualRate } from './voice-service.js';
 import { chunkForClips, createClipQueue } from './clip-queue.js';
@@ -198,6 +201,28 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
   // carries it per piece (lib/clip-queue.js). A reading saved on the device is
   // 1x pieces and is stretched exactly as before.
   const audioSpeedRef = useRef(1);
+
+  // THE SHAPE KEPT FOR EACH VOICE (DR-0797). Pitch belongs to the VOICE, not
+  // to the device: pick a voice and the pitch shaped onto it comes back, so a
+  // device that offers one engine voice still offers several readers.
+  const [voiceShapes, setVoiceShapes] = useState(() => loadVoiceShapes());
+  const pitch = shapeFor(voiceId, voiceShapes).pitch;
+  /** Shape the voice being used now; kept on this device, applied at once. */
+  const setPitch = useCallback((p) => {
+    const next = clampPitch(p);
+    setVoiceShapes(saveVoiceShape(voiceId, { pitch: next }));
+    if (typeof tts.setPitch === 'function') tts.setPitch(next);
+    return next;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [voiceId]);
+  /** One tap: the next step up, wrapping — what the rail's button does. */
+  const stepPitch = useCallback(() => setPitch(nextPitch(shapeFor(voiceId, loadVoiceShapes()).pitch)), [setPitch, voiceId]);
+  // Picking a voice brings its own pitch with it.
+  useEffect(() => {
+    if (typeof tts.setPitch !== 'function') return;
+    tts.setPitch(shapeFor(voiceId, voiceShapes).pitch);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [voiceId, voiceShapes]);
 
   /** Set the read speed, and carry it to a clip already playing. */
   const setRate = useCallback((r) => {
@@ -1213,7 +1238,13 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
       setNotice('The voice you picked is not on this device, so it is reading in the phone’s default voice. Pick again from the Voice list to change it.');
     }
     const cid = catalogIdOf(voiceId);
-    const pitch = cid ? standInPitch(fullCatalog, liveAssignments, cid) : undefined;
+    // A cast stand-in sets its own pitch to tell characters apart; everything
+    // else reads at the pitch shaped onto the chosen voice (DR-0797).
+    const castPitch = cid ? standInPitch(fullCatalog, liveAssignments, cid) : undefined;
+    const shaped = shapeFor(voiceId, loadVoiceShapes()).pitch;
+    const pitch = Number.isFinite(Number(castPitch))
+      ? castPitch
+      : (Math.abs(shaped - SHAPE_DEFAULT_PITCH) < 0.001 ? undefined : shaped);
     // THE READING KEEPS ITS VOICE (DR-0654). A reading that already chose a
     // device voice keeps it through every jump and hand-off; a new reading
     // pins the voice it starts in, and its gender, so a later hand-over to the
@@ -1271,6 +1302,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     usesNasVoice: isSystemVoiceId(voiceId) || isPersonVoiceId(voiceId),
     liteVoice: liteVoiceFor(),
     voiceId, setVoiceId, catalog, currentItem, notice,
+    pitch, setPitch, stepPitch, voiceShapes,
     standInWhy,
     // My voice, said plainly (DR-0721): { label, status, ready, line, ... } or null.
     myVoice,

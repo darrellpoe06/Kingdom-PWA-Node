@@ -52,6 +52,7 @@ import FloatingReader from './FloatingReader.jsx';
 import { loadFloat, saveFloat, clampRect, avoidRects, defaultRect } from '../lib/float-geometry.js';
 import { loadFollowPrefs, saveFollowPrefs } from '../lib/reader-follow-prefs.js';
 import { useDeviceClass } from '../lib/use-device-class.js';
+import { PITCH_STEPS, pitchStep } from '../lib/voice-shape.js';
 import { loadControllerPref, saveControllerPref, controllerLayout, flippedControllerPref, controllerToggleLabel, controllerToggleTitle, railWidth, railButtonIds, nextInCycle, railWord, markRails, enterFullScreen, exitFullScreen, leavesFullScreen, FULLSCREEN_ATTR } from '../lib/reader-controller.js';
 import { deviceClipCache, rememberReadingKeys, recallReadingKeys, formatSaved, loadCapMb, saveCapMb, CAP_CHOICES_MB } from '../lib/clip-cache.js';
 // THE ONE LESSON LANDING (lib/learn-open.js, DR-0642): opens a lesson at a
@@ -222,6 +223,8 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
   const [talkSource, setTalkSource] = useState('');
   const {
     supported, isReading, isPaused, rate, read, pause, resume, stop, setRate, claimAudio,
+    // THE SOUND SHAPED ONTO THIS VOICE (DR-0797): pitch is kept per voice.
+    pitch, setPitch, stepPitch,
     catalog, voiceId, setVoiceId, currentItem,
     segmentIndex, setBoundaryHandler, deviceRead, cloudProgress, cloudPiece,
     // `notice` WAS NOT TAKEN HERE until 2026-09-20, and that single omission
@@ -1734,6 +1737,13 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
         return { icon: '⤢', word: 'Full', title: 'Full screen — only the Word and the voice; Back, Esc or the corner mark brings the controls back', onClick: goFullScreen };
       case 'speed':
         return { icon: '⏱', word: rateNow.label, title: `Speed: ${rate.toFixed(1)}× — tap for the next`, onClick: () => setRate((RATE_STEPS.find((s) => s.value === nextInCycle(RATE_STEPS.map((s2) => s2.value), rateNow.value)) || RATE_STEPS[0]).value) };
+      case 'pitch': {
+        // THE SOUND OF THIS VOICE (DR-0797). One button, five named steps, the
+        // word IS the step. The pitch is kept per voice, so picking a voice
+        // brings its own sound back.
+        const step = pitchStep(pitch);
+        return { icon: '◢', word: step.label, title: `${step.name} — tap for the next; kept for this voice`, onClick: stepPitch };
+      }
       case 'voice':
         if (usable.length < 2 || !voiceNow) return null;
         return { icon: <UiIcon name="volume" />, word: railWord(voiceNow.label), title: `Voice: ${voiceNow.label} — tap for the next`, onClick: () => setVoiceId(nextInCycle(usable.map((c) => c.id), voiceNow.id)) };
@@ -2096,6 +2106,38 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
                     title={s.name}
                     className={`px-[0.25em] py-[0.5em] text-[0.625em] uppercase tracking-wider border min-h-[2.25em] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838] ${selected ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815]'}`}
                   >{s.label}</button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* THE SOUND OF THIS VOICE (DR-0797). Darrell 2026-10-07: "Can we
+              choose different male and female voices... different pitches...
+              to get a unique voice that has the right sound for each
+              individual?" The Web Speech API has no gender field - male and
+              female come only from which named voices a device offers, and a
+              TV browser offers almost none. Pitch is the lever we own, and
+              the engine has carried one all along (the Scripture cast tells
+              its characters apart with it); nothing ever exposed a control.
+              Kept PER VOICE, so picking a voice brings back the sound shaped
+              for it: one engine voice at five pitches is five readers a
+              listener can tell apart, with no studio and no 4070. */}
+          <div className="mb-[0.5em]" data-testid="reader-pitch">
+            <div className="text-[0.5625em] uppercase tracking-wider text-[#5A5751] mb-[0.25em]">The sound of this voice{currentItem && currentItem.label ? ` — kept for ${currentItem.label}` : ''}</div>
+            <div className="grid grid-cols-5 gap-[0.25em]" role="group" aria-label="The sound of this voice — how high or low it reads">
+              {PITCH_STEPS.map((st) => {
+                const on = Math.abs(pitch - st.value) < 0.001;
+                return (
+                  <button
+                    key={st.value}
+                    type="button"
+                    onClick={() => setPitch(st.value)}
+                    aria-pressed={on}
+                    aria-label={`${st.name}${on ? ' — current' : ''}`}
+                    title={st.name}
+                    data-testid={`reader-pitch-${st.label.toLowerCase()}`}
+                    className={`px-[0.25em] py-[0.5em] min-h-[2.25em] text-[0.5625em] uppercase tracking-wider border leading-none focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838] ${on ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815]'}`}
+                  >{st.label}</button>
                 );
               })}
             </div>
