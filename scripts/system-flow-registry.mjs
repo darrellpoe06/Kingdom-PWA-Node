@@ -925,6 +925,11 @@ const NODES = [
     id: 'nas-clock', name: 'NAS clock', purpose: 'Gives the NAS loop fleet its clock.',
     reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }], writes: [{ res: 'nas:clock', token: 'install-clock.sh' }], seeds: ['services-sync'],
   }),
+  wf('cams-diag.yml', {
+    id: 'cams-diag', name: 'Camera road diagnostics (look, never touch)', purpose: 'What go2rtc itself says about every camera — streams (kind, host, state), its log, the container log, the forwarder’s health and one timed probe with /why — from the NAS over the tailnet, scrubbed (DR-0774).',
+    reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }, { res: 'http:cams', token: '127.0.0.1:8773' }, { res: 'nas:services', token: 'poetech-cams' }],
+    writes: [], seeds: [],
+  }),
   wf('nas-health.yml', {
     id: 'nas-health', name: 'NAS health (look, never touch)', purpose: 'What the NAS is doing right now — GPU, containers, services, and the live tables’ row counts.',
     reads: [{ res: 'nas:services', token: 'systemctl' }, { res: 'db:feedback', token: 'FROM feedback' }, { res: 'db:board_tasks', token: 'FROM board_tasks' }],
