@@ -256,11 +256,21 @@ describe('the merge lanes never touch bell/*', () => {
     expect(branches.some((b) => b === '**' || b.startsWith('*'))).toBe(false);
   });
   it('auto-merge and keep-prs-current select only lane heads', () => {
-    const m = /test\("(\^\([a-z|]+\)\/)"\)/.exec(WF('auto-merge.yml'));
+    // The lane's filter is read as written (one jq test() over headRefName) and
+    // exercised as a regex: lane heads in, the bell's branch out. DR-0773 added
+    // the cloud session's ccr- prefix beside claude/ (the anchor stays on each).
+    const m = /select\(\.headRefName \| test\("([^"]+)"\)\)/.exec(WF('auto-merge.yml'));
     expect(m).toBeTruthy();
-    expect(new RegExp(m[1]).test('bell/lesson-inbox')).toBe(false);
-    expect(new RegExp(m[1]).test('claude/x')).toBe(true);
-    expect(WF('keep-prs-current.yml')).toContain('startswith(\\"claude/\\")');
+    const lane = new RegExp(m[1]);
+    expect(lane.test('bell/lesson-inbox')).toBe(false);
+    expect(lane.test('claude/x')).toBe(true);
+    expect(lane.test('ccr-916ff311-lgoc4v')).toBe(true);
+    expect(lane.test('xccr-anything')).toBe(false);
+    expect(lane.test('main')).toBe(false);
+    const keep = WF('keep-prs-current.yml');
+    expect(keep).toContain('startswith(\\"claude/\\")');
+    expect(keep).toContain('startswith(\\"ccr-\\")');
+    expect(keep).not.toContain('startswith(\\"bell/\\")');
   });
 });
 
