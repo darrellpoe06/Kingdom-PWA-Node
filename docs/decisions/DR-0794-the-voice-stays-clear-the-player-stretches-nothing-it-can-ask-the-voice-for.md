@@ -1,4 +1,4 @@
-# DR-0791 — The voice stays clear: the player stretches nothing it can ask the voice for, and every sentence's pace is measured
+# DR-0794 — The voice stays clear: the player stretches nothing it can ask the voice for, and every sentence's pace is measured
 
 - **Status:** accepted
 - **Tier:** A (the pace the NAS voice and the studio are asked for, and what the one audio element stretches; the same clips, keys and cache; no surface moved)

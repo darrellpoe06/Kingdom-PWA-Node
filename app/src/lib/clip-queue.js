@@ -99,7 +99,7 @@ export function overallFraction(chunks, index, pieceFraction) {
  */
 export function createClipQueue({ chunks, fetchClip, audio, rate = 1, onProgress, onPiece, onEnd, onFallback, onPosition, onPace, paceFor, revoke, now = () => Date.now() }) {
   const urls = new Map();       // index -> Promise<{url}|{error}>
-  // THE VOICE IS ASKED AGAIN AT THE NEW PACE (2026-10-07, DR-0791; Darrell:
+  // THE VOICE IS ASKED AGAIN AT THE NEW PACE (2026-10-07, DR-0794; Darrell:
   // "Why does the male voice sound like it's slowing down while it's
   // talking? Not able to correctly enunciate words"). A reading pinned its
   // pace once; a speed change mid-reading then left the ELEMENT to stretch
@@ -127,7 +127,7 @@ export function createClipQueue({ chunks, fetchClip, audio, rate = 1, onProgress
   let pieceSpeed = 1;
   let joined = null;            // { url, offsets, duration } now playing
   let pendingJoin = null;       // takes over at the next piece boundary
-  // THE PACE IS MEASURED (DR-0791): for every piece, how long the clip was,
+  // THE PACE IS MEASURED (DR-0794): for every piece, how long the clip was,
   // how long the device took to play it, and what the element was set to.
   // The trip turns these into one line, so "it slows down" is a number.
   let playFrom = null;          // when the piece on the element started playing

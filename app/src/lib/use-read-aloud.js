@@ -542,7 +542,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     trip().setPieces(chunks.length);
     // The NAS takes two syntheses at once and answers a third with 503 busy:
     // that is a wait, not a failure, so a busy piece is asked again shortly.
-    // THE PACE THIS READING ASKS THE VOICE FOR (DR-0791; Darrell 2026-10-07:
+    // THE PACE THIS READING ASKS THE VOICE FOR (DR-0794; Darrell 2026-10-07:
     // "Why does the male voice sound like it's slowing down while it's
     // talking? Not able to correctly enunciate words"). The pace was pinned
     // once for the whole reading; a speed change mid-reading left the ELEMENT
@@ -596,7 +596,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     // fact that tells a background stop apart from a piece-by-piece read; it
     // was never written down. Now the trip carries it, and the trip rides
     // with his feedback (DR-0744).
-    // THE JOIN CARRIES ITS PACE (DR-0791): pieces spoken at the reading's pace
+    // THE JOIN CARRIES ITS PACE (DR-0794): pieces spoken at the reading's pace
     // join into a file the element plays at 1x; the saved 1x pieces join into
     // a file the element must stretch, so that join is the LAST resort — taken
     // only when the NAS voice cannot be reached for the pace's own pieces.
@@ -626,7 +626,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
       for (const u of [whole && whole.url, first && first.url]) { if (u) { try { URL.revokeObjectURL(u); } catch (_) { /* ignore */ } } }
       return false;
     }
-    // THE LAST RESORT (DR-0791): the pace's first piece could not be had, but
+    // THE LAST RESORT (DR-0794): the pace's first piece could not be had, but
     // the reading is saved at 1x — it plays as one file, stretched by the
     // element, rather than handing a saved lesson to the device voice.
     if (first && (first.error || !first.url) && pinned !== 1) {
@@ -647,13 +647,13 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
       paceFor,
       // Each piece says the pace the voice spoke it at, so the element
       // stretches only the remainder (lib/clip-queue.js); the queue names the
-      // pace to ask for, which follows the speed chip (DR-0791).
+      // pace to ask for, which follows the speed chip (DR-0794).
       fetchClip: (t, i, sp) => {
         const at = Number(sp) > 0 ? Number(sp) : pinned;
         if (i === 0 && first && !served && at === pinned) { served = true; return Promise.resolve({ ...first, speed: at }); }
         return sourceFor(at).clip(i).then((r) => (r && r.url ? { ...r, speed: at } : r));
       },
-      // The pace of every piece, measured (DR-0791): the trip says it in one line.
+      // The pace of every piece, measured (DR-0794): the trip says it in one line.
       onPace: (d) => { if (queueRef.current === q) trip().note('pace', d); },
       revoke: (u) => { try { URL.revokeObjectURL(u); } catch (_) { /* ignore */ } },
       onProgress: (f) => setCloudProgress(f),
@@ -882,7 +882,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     const chunks = chunkForClips(clean);
     if (!chunks.length || typeof Audio === 'undefined') return { error: 'empty-text' };
     // The pace the studio speaks this reading at; it follows the speed chip
-    // from the next sentence on (DR-0791), as the NAS stand-in's does.
+    // from the next sentence on (DR-0794), as the NAS stand-in's does.
     const paceFor = (r) => voiceSpeedFor(r);
     const pinned = paceFor(rateRef.current);
     const speakPiece = (t, timeoutMs, sp = pinned) => synthesizeSpeech({

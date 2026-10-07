@@ -20,7 +20,7 @@ export const TRIPS_KEY = 'poe-reader-trips:v1';
 export const TRIPS_KEPT = 10;
 /** A wait between sentences this long is one the listener notices. */
 export const LONG_WAIT_MS = 1000;
-/** A sentence the device took this many times its own length to play was dragged (DR-0791). */
+/** A sentence the device took this many times its own length to play was dragged (DR-0794). */
 export const DRAG_RATIO = 1.2;
 
 const defaultStorage = () => {
@@ -110,7 +110,7 @@ export function createTripLog({ storage = defaultStorage(), now = () => Date.now
         }
         return;
       }
-      if (kind === 'pace') { // the pace of every piece, summed (DR-0791): one row, not one per sentence
+      if (kind === 'pace') { // the pace of every piece, summed (DR-0794): one row, not one per sentence
         const p = current.pace || { n: 0, chars: 0, clipS: 0, timed: 0, wallS: 0, expectS: 0, dragged: 0, worst: 0, worstAt: -1, rateMin: null, rateMax: null, voicePace: null, mixedPace: false };
         const clipS = Number(detail.clipS);
         if (Number.isFinite(clipS) && clipS > 0) { p.n += 1; p.chars += Number(detail.chars) || 0; p.clipS += clipS; }
@@ -188,7 +188,7 @@ export function waitsLine(w) {
 const fmtX = (n) => `${Math.round(Number(n) * 100) / 100}×`;
 
 /**
- * The pace of a reading, in one clause (DR-0791): the pace the voice spoke
+ * The pace of a reading, in one clause (DR-0794): the pace the voice spoke
  * at, what the player did to it, how many letters a second reached the ear,
  * and whether the device took longer to play the sound than the sound was.
  */
