@@ -35,6 +35,7 @@ function makeFetch(plan) {
       return { ok: true, status: 200, blob: async () => new Blob(['jpegbytes'], { type: 'image/jpeg' }), json: async () => ({}) };
     }
     if (u === '/cams/ticket') return jsonResponse(plan.ticketStatus ?? 200, { ticket: '9999999999.abcdef', expires_in: 90, camera: JSON.parse(opts.body).camera });
+    if (u === '/cams/setup/wyze') return jsonResponse(plan.setupStatus ?? 200, plan.setup ?? { ok: true, added: 1, cameras: [{ id: 'front_yard', name: 'Front Yard', model: 'HL_CAM4', dtls: true, registered: true, existing: false }] });
     return jsonResponse(404, { error: 'not-found' });
   });
   return { fetchImpl, calls };
@@ -96,11 +97,17 @@ describe('Cameras surface', () => {
     expect(container.textContent).toMatch(/could not reach poetech\.us\/cams at all/);
   });
 
-  it('an empty restreamer shows the two paste-ready setup steps, cd first, and the honest Wyze limits', async () => {
+  it('an empty restreamer shows the in-app Wyze sign-in first, the two paste-ready steps behind "Prefer a terminal?", and the honest Wyze limits', async () => {
     const { fetchImpl } = makeFetch({ list: { cameras: [], count: 0 }, health: { ok: true, go2rtc: '1.9.14', streams: 0 } });
     vi.stubGlobal('fetch', fetchImpl);
     await mount();
     expect(container.textContent).toMatch(/restreamer is up and has no cameras yet/);
+    // The form is the way in: four fields, named, nothing typed into a terminal.
+    const form = container.querySelector('[data-testid="wyze-setup"]');
+    expect(form).not.toBeNull();
+    expect([...form.querySelectorAll('input')].map((i) => i.getAttribute('aria-label'))).toEqual(['Wyze email', 'Wyze password', 'API ID', 'API Key']);
+    expect(container.querySelectorAll('pre')).toHaveLength(0);
+    await click(buttons().find((b) => /Prefer a terminal\?/.test(b.textContent)));
     const pres = [...container.querySelectorAll('pre')].map((p) => p.textContent);
     expect(pres).toHaveLength(2);
     for (const p of pres) expect(p.startsWith('cd C:\\Users\\dpoe\\Kingdom-PWA-Node\n')).toBe(true);
@@ -111,6 +118,49 @@ describe('Cameras surface', () => {
     expect(container.textContent).not.toMatch(/onvif:\/\/user:pass/);
     await click(buttons().find((b) => /how each kind of system is added/.test(b.textContent)));
     expect(container.textContent).toMatch(/onvif:\/\/user:pass@192\.168\.1\.x/);
+  });
+
+  it('the Wyze sign-in posts the four values with the family bearer, names what was added, clears the fields, and reloads the list', async () => {
+    const { fetchImpl, calls } = makeFetch({ list: { cameras: [], count: 0 }, health: { ok: true, go2rtc: '1.9.14', streams: 0 } });
+    vi.stubGlobal('fetch', fetchImpl);
+    await mount();
+    const form = container.querySelector('[data-testid="wyze-setup"]');
+    const set = (label, value) => {
+      const input = form.querySelector(`input[aria-label="${label}"]`);
+      const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+      setter.call(input, value);
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    };
+    await act(async () => { set('Wyze email', 'd@example.com'); set('Wyze password', 'pw-secret'); set('API ID', 'id1'); set('API Key', 'key-secret'); });
+    const listsBefore = calls.filter((c) => c.url === '/cams/list').length;
+    await act(async () => { form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); await new Promise((r) => setTimeout(r, 20)); });
+    const post = calls.find((c) => c.url === '/cams/setup/wyze');
+    expect(post, 'nothing was sent to the NAS').toBeTruthy();
+    expect(post.opts.method).toBe('POST');
+    expect(post.opts.headers.Authorization).toBe(`Bearer ${TOKEN}`);
+    expect(JSON.parse(post.opts.body)).toEqual({ email: 'd@example.com', password: 'pw-secret', api_id: 'id1', api_key: 'key-secret' });
+    const result = container.querySelector('[data-testid="wyze-setup-result"]');
+    expect(result.textContent).toMatch(/Signed in\. 1 camera added\./);
+    expect(result.textContent).toMatch(/Front Yard · HL_CAM4 · added/);
+    // The browser keeps nothing: the fields are cleared the moment the NAS answers.
+    expect([...form.querySelectorAll('input')].every((i) => i.value === '')).toBe(true);
+    expect(calls.filter((c) => c.url === '/cams/list').length).toBeGreaterThan(listsBefore);
+  });
+
+  it('a Wyze refusal is said plainly, and nothing is cleared so the typo can be fixed', async () => {
+    const { fetchImpl } = makeFetch({ list: { cameras: [], count: 0 }, health: { ok: true, go2rtc: '1.9.14', streams: 0 }, setupStatus: 401, setup: { error: 'wyze-sign-in-refused', detail: 'bad credentials' } });
+    vi.stubGlobal('fetch', fetchImpl);
+    await mount();
+    const form = container.querySelector('[data-testid="wyze-setup"]');
+    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+    await act(async () => {
+      for (const [label, v] of [['Wyze email', 'd@example.com'], ['Wyze password', 'wrong'], ['API ID', 'id1'], ['API Key', 'k']]) {
+        const input = form.querySelector(`input[aria-label="${label}"]`); setter.call(input, v); input.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    });
+    await act(async () => { form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); await new Promise((r) => setTimeout(r, 20)); });
+    expect(container.querySelector('[data-testid="wyze-setup-result"]').textContent).toMatch(/Wyze refused the sign-in/);
+    expect(form.querySelector('input[aria-label="Wyze email"]').value).toBe('d@example.com');
   });
 
   it('lists the restreamer\'s cameras grouped by kind, fetches each frame with the bearer, shows measured freshness', async () => {

@@ -38,6 +38,7 @@ import {
   healthUrl, listUrl, ticketUrl, snapUrl, liveUrl, pickLiveMode,
   parseCameraList, groupByKind, KINDS, classifyServiceState,
   formatAge, formatBytes, fetchWithTimeout, authHeaders, setupCommands,
+  WYZE_FIELDS, setupWyze,
 } from '../lib/cameras.js';
 
 const card = 'bg-white border border-[#1A1815] p-4 sm:p-5';
@@ -51,6 +52,78 @@ const chip = {
   blocked: `${chipCls} border-[#B85838] text-[#B85838] bg-[#B85838]/5`,
   muted: `${chipCls} border-[#B8B4AC] text-[#5A5751] bg-white`,
 };
+
+const inputCls = 'w-full border border-[#1A1815] bg-white text-[#1A1815] px-3 py-2 text-sm min-h-[40px] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]';
+
+// WYZE SIGN-IN, ONCE, HERE (2026-10-07; Darrell: "Is that the easiest way to
+// build it so I don't have to do much work for it to work right away?"). The
+// four values are typed once and handed over the locked road to go2rtc's own
+// sign-in on the NAS, which keeps the account and registers every camera it
+// lists. The browser keeps nothing: the fields are cleared the moment the NAS
+// answers. The result names each camera and says plainly which units the
+// restreamer cannot stream yet (non-DTLS firmware), never a guess.
+function WyzeSetup({ token, onAdded }) {
+  const [fields, setFields] = useState({ email: '', password: '', api_id: '', api_key: '' });
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState(null);
+  const submit = async (e) => {
+    e.preventDefault();
+    if (busy) return;
+    setBusy(true);
+    setResult(null);
+    const r = await setupWyze(fields, token);
+    setBusy(false);
+    setResult(r);
+    if (r.kind === 'ok') {
+      setFields({ email: '', password: '', api_id: '', api_key: '' });
+      if (onAdded) onAdded(r);
+    }
+  };
+  const tone = result ? (result.kind === 'ok' ? 'text-[#2F6B3A]' : 'text-[#8A2E1F]') : '';
+  return (
+    <form onSubmit={submit} data-testid="wyze-setup" className="mt-3 border-t border-[#E8E4DC] pt-3" aria-busy={busy}>
+      <div className={labelCls}>Sign in to Wyze once, here</div>
+      <p className="text-xs text-[#5A5751] mt-1 mb-2">
+        Get an API ID and API Key from the Wyze developer portal (Wyze account, API Key). The NAS signs in with them, keeps them, and lists your cameras. Nothing is kept in this browser.
+      </p>
+      <div className="grid gap-2 sm:grid-cols-2">
+        {WYZE_FIELDS.map((d) => (
+          <label key={d.key} className="block">
+            <span className={labelCls}>{d.label}</span>
+            <input
+              className={inputCls}
+              type={d.type}
+              name={d.key}
+              autoComplete={d.autoComplete}
+              value={fields[d.key]}
+              onChange={(e) => setFields((f) => ({ ...f, [d.key]: e.target.value }))}
+              disabled={busy}
+              aria-label={d.label}
+              required
+            />
+            <span className="block text-[0.625rem] text-[#5A5751] mt-0.5">{d.hint}</span>
+          </label>
+        ))}
+      </div>
+      <div className="flex items-center gap-3 mt-3 flex-wrap">
+        <button type="submit" className={`${btnDark}`} disabled={busy}>{busy ? 'Signing in to Wyze and listing cameras…' : 'Sign in and add my cameras'}</button>
+        {busy ? <span className="text-xs text-[#5A5751]">This can take up to a minute: Wyze lists the account, the NAS registers each camera.</span> : null}
+      </div>
+      {result ? (
+        <div className={`text-sm mt-3 ${tone}`} role="status" aria-live="polite" data-testid="wyze-setup-result">
+          <div>{result.message}</div>
+          {Array.isArray(result.cameras) && result.cameras.length ? (
+            <ul className="mt-1 text-xs text-[#1A1815] list-disc pl-5">
+              {result.cameras.map((c) => (
+                <li key={c.id}>{c.name}{c.model ? ` · ${c.model}` : ''}{c.existing ? ' · already here' : c.registered ? ' · added' : ' · the restreamer refused it'}{c.dtls === false ? ' · not yet streamable (needs DTLS firmware)' : ''}</li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
+      ) : null}
+    </form>
+  );
+}
 
 function CopyBlock({ title, text, note }) {
   const [copied, setCopied] = useState(false);
@@ -89,6 +162,7 @@ export default function Cameras() {
   const [frames, setFrames] = useState({});          // id -> {url, at, ms, bytes, error}
   const [live, setLive] = useState(null);            // {id, name, mode, src, startedAt, firstFrameMs, stalls, ended, error, opening}
   const [showAdd, setShowAdd] = useState(false);
+  const [showShell, setShowShell] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   const framesRef = useRef({});
   const videoRef = useRef(null);
@@ -324,10 +398,11 @@ export default function Cameras() {
         <div className={card}>
           <div className={labelCls}>The restreamer is up and has no cameras yet</div>
           <p className="text-sm mt-1">
-            Everything self-deployed. Wyze cameras need the one thing the repo never holds: your Wyze sign-in (email, password, API ID and API Key from the Wyze developer portal). Two steps, once, from anywhere in PowerShell.
+            Everything self-deployed. Wyze cameras need the one thing the repo never holds: your Wyze sign-in. Type it once below and the NAS does the rest.
           </p>
-          <CopyBlock {...setup.place} />
-          <CopyBlock {...setup.tunnel} />
+          <WyzeSetup token={token} onAdded={() => { load(); }} />
+          <button type="button" className={`${btnGhost} mt-3`} onClick={() => setShowShell((v) => !v)}>{showShell ? 'Hide' : 'Prefer a terminal?'} the two PowerShell steps</button>
+          {showShell ? (<><CopyBlock {...setup.place} /><CopyBlock {...setup.tunnel} /></>) : null}
           <p className="text-xs text-[#5A5751] mt-3">
             Honest limits: only Wyze units on DTLS firmware stream this way; Gwell models (Cam OG, Pan v4, Floodlight Pro) are not yet supported by the restreamer. Any other system you own is one line in its config.
           </p>
