@@ -46,10 +46,16 @@ function cyrb53(str, seed = 0) {
   return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36);
 }
 
-/** The key for one clip: voice + model + the exact words sent. */
-export function clipKey({ voice = 'male', model, text }) {
+/**
+ * The key for one clip: voice + model + the exact words sent — and, for a clip
+ * the voice SPOKE at a pace other than 1 (2026-10-07), that pace. The 1x key
+ * is unchanged, so every clip already saved on a device still answers.
+ */
+export function clipKey({ voice = 'male', model, text, speed = 1 }) {
   const m = model || LITE_MODELS[voice] || voice;
-  const s = `${voice}|${m}|${String(text || '').replace(/\s+/g, ' ').trim()}`;
+  const sp = Number(speed);
+  const pace = Number.isFinite(sp) && sp > 0 && sp !== 1 ? `|@${sp}` : '';
+  const s = `${voice}|${m}${pace}|${String(text || '').replace(/\s+/g, ' ').trim()}`;
   return `v1-${cyrb53(s, 1)}${cyrb53(s, 2)}`;
 }
 

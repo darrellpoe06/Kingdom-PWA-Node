@@ -170,6 +170,8 @@ export async function probeVoiceService({ timeoutMs = HEALTH_TIMEOUT_MS, force =
  * caller can fall back to the browser stand-in.
  */
 export async function synthesizeSpeech({
+  // The pace the studio's voice speaks at (see voiceSpeedFor); 1 is not sent.
+  speed = 1,
   text, voiceId, personKey, referenceDataUri, language, signal,
   // The caller is asking for the service's OWN voice rather than a clone of a
   // person. Set by the System-voice read path; never set for a person's voice,
@@ -219,6 +221,7 @@ export async function synthesizeSpeech({
         person_key: personKey || null,
         reference_audio: referenceDataUri || null,
         language: language || 'en',
+        ...(voiceSpeedFor(speed) !== 1 ? { speed: voiceSpeedFor(speed) } : {}),
       }),
       signal: ctrl ? ctrl.signal : signal,
     });
@@ -476,7 +479,32 @@ export async function synthesizeLite({ retries = LITE_RETRIES, retryDelayMs = LI
   return out;
 }
 
-async function synthesizeLiteOnce({ text, voice = 'male', format, timeoutMs = LITE_TIMEOUT_MS, fetchImpl, origin } = {}) {
+// THE PACE THE NAS VOICE IS ASKED TO SPEAK AT (2026-10-07; Darrell: "the
+// voice mumbles at times when on faster speaking especially"). The browser
+// used to stretch every clip to the chosen speed (playbackRate, pitch kept),
+// and a time-stretch at 2x and beyond smears consonants into the mumble he
+// hears. Piper (/voice-lite) and XTTS (the studio) can SPEAK faster instead,
+// and the words stay words; the server clamps to the pace its voice still says
+// clearly (0.5..2.0), and the app stretches only the remainder itself
+// (lib/clip-queue.js). A pace of 1 is not sent, so every cached and saved clip
+// keeps its key and its answer.
+export const VOICE_SPEED_MIN = 0.5;
+export const VOICE_SPEED_MAX = 2.0;
+/** The pace the voice itself is asked for, from the reader's rate. */
+export function voiceSpeedFor(rate) {
+  const n = Number(rate);
+  if (!Number.isFinite(n) || n <= 0) return 1;
+  return Math.round(Math.min(VOICE_SPEED_MAX, Math.max(VOICE_SPEED_MIN, n)) * 1000) / 1000;
+}
+/** What the browser still has to stretch once the voice spoke at `speed`. */
+export function residualRate(rate, speed) {
+  const r = Number(rate); const sp = Number(speed);
+  if (!Number.isFinite(r) || r <= 0) return 1;
+  if (!Number.isFinite(sp) || sp <= 0) return r;
+  return Math.round((r / sp) * 1000) / 1000;
+}
+
+async function synthesizeLiteOnce({ text, voice = 'male', format, speed = 1, timeoutMs = LITE_TIMEOUT_MS, fetchImpl, origin } = {}) {
   const body = String(text || '').trim();
   if (!body) return { error: 'empty-text' };
   const f = fetchImpl || (typeof fetch === 'function' ? fetch : null);
@@ -494,7 +522,7 @@ async function synthesizeLiteOnce({ text, voice = 'male', format, timeoutMs = LI
     const token = bridgeToken();
     if (token) headers.Authorization = `Bearer ${token}`;
     const res = await f(`${base}${LITE_VOICE_PATH}`, {
-      method: 'POST', headers, body: JSON.stringify({ text: body, voice, format: want }), signal: ctrl ? ctrl.signal : undefined,
+      method: 'POST', headers, body: JSON.stringify({ text: body, voice, format: want, ...(voiceSpeedFor(speed) !== 1 ? { speed: voiceSpeedFor(speed) } : {}) }), signal: ctrl ? ctrl.signal : undefined,
     });
     if (!res || !res.ok) return { error: `voice-lite-${res ? res.status : 'no-response'}` };
     const ctype = (res.headers && typeof res.headers.get === 'function' && res.headers.get('Content-Type')) || '';

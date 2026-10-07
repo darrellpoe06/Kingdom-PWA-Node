@@ -26,12 +26,24 @@
 #        the piper binary and at least one voice model are really on disk;
 #        503 otherwise. Open (says nothing worth guarding).
 #   POST /speak,  /voice-lite/speak  -> Authorization: Bearer <family token>.
-#        Body {"text": "...", "voice": "male"|"female", "format": "wav"|"opus"}.
+#        Body {"text": "...", "voice": "male"|"female", "format": "wav"|"opus",
+#              "speed": 0.5..2.0 (the voice SPEAKS at that pace; see SPEED)}.
 #        Returns audio/wav, or audio/ogg; codecs=opus when "opus" was asked
 #        and ffmpeg with libopus is on this box (DR-0747; health lists
 #        "formats"). 401 bad/missing bearer, 400 empty, 413 too long, 503 busy.
 #
 # Cached by sha256(voice + text): a paragraph read twice is synthesized once.
+# A clip at a pace other than 1.0 is cached under its own key (voice + speed +
+# text); the 1.0 key is unchanged so every clip already saved still answers.
+#
+# SPEED (Darrell 2026-10-07: "the voice mumbles at times when on faster
+# speaking especially"). The app used to speed a clip up in the browser --
+# playbackRate with pitch preserved -- which is a time-stretch, and at 2x and
+# beyond a time-stretch smears consonants into exactly the mumble he hears.
+# Piper can simply SPEAK faster: --length_scale is the duration multiplier of
+# the voice itself (0.5 = twice the pace), and the words stay words. The app
+# asks for its pace here (clamped to SPEED_MIN..SPEED_MAX, where Piper is still
+# intelligible) and only stretches the small remainder itself.
 #
 # Brakes (request-driven, not the timer class; a public door still has bounds):
 #   * MAX_INFLIGHT concurrent syntheses; the next gets 503 immediately.
@@ -72,6 +84,26 @@ VOICES = {
 }
 DEFAULT_VOICE = "male"
 
+SPEED_MIN = 0.5
+SPEED_MAX = 2.0
+
+
+def clamp_speed(value):
+    """The pace the voice is asked to speak at: a number in SPEED_MIN..SPEED_MAX, else 1.0."""
+    try:
+        v = float(value)
+    except (TypeError, ValueError):
+        return 1.0
+    if v != v or v <= 0:  # NaN or nonsense
+        return 1.0
+    return round(min(SPEED_MAX, max(SPEED_MIN, v)), 3)
+
+
+def length_scale_for(speed):
+    """Piper's --length_scale is a DURATION multiplier: 2x pace = 0.5."""
+    return round(1.0 / clamp_speed(speed), 4)
+
+
 SPEAK_PATHS = {"/speak", "/voice-lite/speak"}
 HEALTH_PATHS = {"/health", "/voice-lite/health"}
 
@@ -107,19 +139,24 @@ class Piper:
             return []
         return [k for k in VOICES if os.path.isfile(self.model_path(k))]
 
-    def synthesize(self, text, voice, out_path):
+    def synthesize(self, text, voice, out_path, speed=1.0):
         model = self.model_path(voice)
         if not os.path.isfile(model):
             model = self.model_path(DEFAULT_VOICE)
+        args = [self.binary, "--model", model, "--output_file", out_path]
+        if clamp_speed(speed) != 1.0:
+            args += ["--length_scale", str(length_scale_for(speed))]
         subprocess.run(
-            [self.binary, "--model", model, "--output_file", out_path],
+            args,
             input=text.encode("utf-8"), check=True, timeout=SYNTH_TIMEOUT,
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
         )
 
 
-def cache_key(voice, text):
-    return hashlib.sha256((voice + "\n" + text).encode("utf-8")).hexdigest()
+def cache_key(voice, text, speed=1.0):
+    sp = clamp_speed(speed)
+    head = voice if sp == 1.0 else "%s@%s" % (voice, sp)
+    return hashlib.sha256((head + "\n" + text).encode("utf-8")).hexdigest()
 
 
 # LIGHTER CLIPS (DR-0747; Darrell 2026-10-02, "Download every lesson" reading
@@ -282,13 +319,14 @@ def make_handler(engine, token, cache_dir, max_inflight=MAX_INFLIGHT, encoder=No
             want = body.get("format") if body.get("format") in FORMATS else "wav"
             if want == "opus" and not encoder:
                 want = "wav"
+            speed = clamp_speed(body.get("speed", 1.0))
             if not text:
                 return self._json(400, {"error": "text-required"})
             if len(text) > MAX_CHARS:
                 return self._json(413, {"error": "text-too-long", "max": MAX_CHARS})
             if not engine.available_voices():
                 return self._json(503, {"ok": False, "error": "piper-not-installed"})
-            key = cache_key(voice, text)
+            key = cache_key(voice, text, speed)
             out = os.path.join(cache_dir, key + ".wav")
             if os.path.isfile(out) and os.path.getsize(out) > 44:
                 try:
@@ -302,7 +340,7 @@ def make_handler(engine, token, cache_dir, max_inflight=MAX_INFLIGHT, encoder=No
                 fd, tmp = tempfile.mkstemp(suffix=".wav", dir=cache_dir)
                 os.close(fd)
                 try:
-                    engine.synthesize(text, voice, tmp)
+                    engine.synthesize(text, voice, tmp, speed)
                     if os.path.getsize(tmp) <= 44:
                         raise RuntimeError("empty clip")
                     os.replace(tmp, out)
@@ -341,13 +379,15 @@ def _selftest():
             self.installed = True
             self.slow = 0.0
             self.voices_seen = []
+            self.speeds_seen = []
 
         def available_voices(self):
             return list(VOICES) if self.installed else []
 
-        def synthesize(self, text, voice, out_path):
+        def synthesize(self, text, voice, out_path, speed=1.0):
             self.calls += 1
             self.voices_seen.append(voice)
+            self.speeds_seen.append(speed)
             if self.slow:
                 time.sleep(self.slow)
             with open(out_path, "wb") as fh:
@@ -399,6 +439,22 @@ def _selftest():
     check(s == 200 and eng.calls == calls, "the same paragraph is served from the cache, not re-synthesized")
     req("POST", "/speak", {"text": "Unknown voice.", "voice": "robot"})
     check(eng.voices_seen[-1] == DEFAULT_VOICE, "an unknown voice falls back to the default")
+
+    # SPEED: the voice speaks at the asked pace; a pace is its own clip in the
+    # cache; the 1.0 key is the old key; nonsense and out-of-range are clamped.
+    s, _, _ = req("POST", "/speak", {"text": "Quickly now.", "speed": 2})
+    check(s == 200 and eng.speeds_seen[-1] == 2.0, "the asked pace reaches the synthesizer")
+    calls = eng.calls
+    s, _, _ = req("POST", "/speak", {"text": "Quickly now."})
+    check(s == 200 and eng.calls == calls + 1 and eng.speeds_seen[-1] == 1.0, "the same words at normal pace are a different clip, not the fast one")
+    s, _, _ = req("POST", "/speak", {"text": "Quickly now.", "speed": 2.0})
+    check(s == 200 and eng.calls == calls + 1, "the fast clip is served from the cache the second time")
+    check(cache_key("male", "x") == hashlib.sha256(b"male\nx").hexdigest(), "the 1.0 key is the old key: every saved clip still answers")
+    check(cache_key("male", "x", 1.5) != cache_key("male", "x"), "a pace other than 1.0 has its own key")
+    check(clamp_speed(9) == SPEED_MAX and clamp_speed(0.1) == SPEED_MIN and clamp_speed("fast") == 1.0 and clamp_speed(None) == 1.0, "speed is clamped to what Piper says clearly; nonsense is normal pace")
+    check(length_scale_for(2.0) == 0.5 and length_scale_for(0.5) == 2.0 and length_scale_for(1.0) == 1.0, "length_scale is the inverse of the pace")
+    req("POST", "/speak", {"text": "Clamped please.", "speed": 50})
+    check(eng.speeds_seen[-1] == SPEED_MAX, "an out-of-range pace is clamped before it reaches the synthesizer")
 
     # LIGHTER CLIPS (DR-0747): without an encoder, "opus" is answered in WAV and
     # health lists wav alone; with one, the same words come once as Ogg Opus,
