@@ -308,6 +308,14 @@ jobs:
       - name: cams forwarder selftest
         working-directory: infra/nas-cameras
         run: python3 cams_forwarder.py --selftest
+      # Recorded loops to the NAS (DR-0775): proven-to-catch -- fails if a bad
+      # config is not normalized, if a disabled camera keeps recording, if a
+      # dead ffmpeg is restarted without backoff, if retention or the disk
+      # budget stops pruning oldest-first, or if the clip being written is
+      # ever deleted.
+      - name: cams recorder selftest
+        working-directory: infra/nas-cameras
+        run: python3 cams_recorder.py --selftest
       # Sovereign review-queue server selftest (DR-0218 zero-n8n / DR-0076): the
       # byte-faithful port of wf-review-feed + wf-review-action. Proven-to-catch:
       # fails if the dismissed-filter, id path-containment, or status-write

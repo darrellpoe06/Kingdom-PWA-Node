@@ -42,6 +42,10 @@ services:
       - TZ=America/Chicago
     volumes:
       - /volume1/docker/go2rtc:/config:rw
+      # Recorded loops (DR-0775): the recorder runs the container's own ffmpeg
+      # with `docker exec` and writes segments here; the host sees the same
+      # files under /volume1/PoeTech/cameras/recordings for the forwarder.
+      - /volume1/PoeTech/cameras/recordings:/recordings:rw
     # unless-stopped (our NAS convention, boot-persistent): a reboot brings the
     # cameras back by itself.
     restart: unless-stopped

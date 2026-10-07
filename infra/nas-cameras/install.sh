@@ -36,6 +36,8 @@ CFG="$DATA/go2rtc.yaml"
 TOKEN_FILE=/volume1/PoeTech/secrets/chat-bridge-token.txt
 WYZE_ENV=/volume1/PoeTech/secrets/wyze.env
 UNIT=/etc/systemd/system/poetech-cams.service
+RUNIT=/etc/systemd/system/poetech-cams-recorder.service
+RECORDINGS="${CAMS_RECORDINGS:-/volume1/PoeTech/cameras/recordings}"
 PORT=8773
 GO2RTC_API=http://127.0.0.1:1984/api
 
@@ -112,6 +114,9 @@ else
   echo "  no $WYZE_ENV yet -- Wyze cameras wait on the sign-in: type it once in the app's Cameras tab (or place this file); every other system works now"
 fi
 
+echo "== cameras install: recordings folder (DR-0775; the compose file bind-mounts it) =="
+$SUDO mkdir -p "$RECORDINGS" && echo "  $RECORDINGS ready"
+
 echo "== cameras install: compose up (pinned image; no-op when current) =="
 # A first-ever pull can outlast the services-sync ceiling; that run fails
 # LOUDLY and the next cycle resumes the pull and finishes.
@@ -153,7 +158,9 @@ rm -f "$TMPU"
 # Wyze sign-in (POST /setup/wyze) answered 404 from the NAS an hour after the
 # merge, with the new file already on disk. The lesson builder's installer
 # had the right pattern all along (a code sha beside the service); same here.
-CODE_SHA="$(sha256sum < "$SRC/cams_forwarder.py" | cut -c1-16)"
+# The forwarder imports cams_recorder.py (the recording config + clip helpers),
+# so a change in EITHER file restarts it.
+CODE_SHA="$(cat "$SRC/cams_forwarder.py" "$SRC/cams_recorder.py" | sha256sum | cut -c1-16)"
 STAMP="$DATA/.forwarder.code.sha"
 if [ "$(cat "$STAMP" 2>/dev/null)" != "$CODE_SHA" ]; then
   NEED_RESTART=1
@@ -165,6 +172,31 @@ if [ "$NEED_RESTART" = "1" ]; then
 else
   $SUDO systemctl is-active --quiet poetech-cams || $SUDO systemctl restart poetech-cams || true
 fi
+
+echo "== cameras install: recorder unit (DR-0775: recorded loops, owner-chosen retention) =="
+TMPR="$(mktemp)"
+sed -e "s|@PYTHON@|$PY|" -e "s|@SRC@|$SRC|" -e "s|@DATA@|$DATA|" -e "s|@RECORDINGS@|$RECORDINGS|" "$SRC/poetech-cams-recorder.service" > "$TMPR"
+RNEED=0
+if [ ! -f "$RUNIT" ] || ! cmp -s "$TMPR" "$RUNIT"; then
+  $SUDO cp "$TMPR" "$RUNIT"
+  $SUDO systemctl daemon-reload
+  RNEED=1
+  echo "  recorder unit written"
+fi
+rm -f "$TMPR"
+RSHA="$(sha256sum < "$SRC/cams_recorder.py" | cut -c1-16)"
+RSTAMP="$DATA/.recorder.code.sha"
+if [ "$(cat "$RSTAMP" 2>/dev/null)" != "$RSHA" ]; then
+  RNEED=1
+  echo "  recorder code changed ($RSHA) -- restarting"
+fi
+$SUDO systemctl enable poetech-cams-recorder >/dev/null 2>&1 || true
+if [ "$RNEED" = "1" ]; then
+  $SUDO systemctl restart poetech-cams-recorder && echo "$RSHA" | $SUDO tee "$RSTAMP" >/dev/null
+else
+  $SUDO systemctl is-active --quiet poetech-cams-recorder || $SUDO systemctl restart poetech-cams-recorder || true
+fi
+echo "  recorder: $($SUDO systemctl is-active poetech-cams-recorder 2>/dev/null || echo unknown); it records only the cameras recording.json enables (none until the owner switches one on in the Cameras tab)"
 
 echo "== cameras install: the forwarder must answer 200 (it passes go2rtc's own answer through) =="
 sleep 2
