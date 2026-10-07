@@ -46,6 +46,7 @@ import {
   RETENTION_CHOICES, CLIP_TICKET_TTL, fetchRecording, saveRecording, fetchClips, recClipUrl, clipParts, groupClipsByDay, diskForecast,
   loadLiveTiles, saveLiveTiles, liveTileBudget, liveTrafficLine,
   fetchDevices, runDeviceAction, setupWyzeAgain, wyzeKept, garagesFor, ACTION_REARM_MS,
+  cameraCredential, saveGrantToken, fetchGrants, createGrant, revokeGrant, grantLine, grantState, grantLink, GRANT_DAYS_CHOICES,
 } from '../lib/cameras.js';
 
 // THE STEPS CAN BE HEARD (2026-10-07; Darrell: "possible tutorial... Ari
@@ -274,7 +275,7 @@ export function GarageButton({ device, token, compact = false }) {
 function Doors({ garages, devicesState, token }) {
   if (!devicesState) return null;
   if (devicesState.kind === 'ok' && garages.length === 0) return null;
-  if (devicesState.kind === 'no-credentials' || devicesState.kind === 'old-service' || devicesState.kind === 'unauthorized') return null;
+  if (['no-credentials', 'old-service', 'unauthorized', 'no-actions'].includes(devicesState.kind)) return null;
   return (
     <section className="mb-4" data-testid="doors">
       <div className={labelCls}>Doors · {garages.length}</div>
@@ -310,6 +311,135 @@ function AddAgain({ token, onAdded }) {
         {busy ? <span className="text-xs text-[#5A5751]">Up to a minute: Wyze lists the account, the NAS registers each camera.</span> : null}
       </div>
       {result ? <div className={`text-sm mt-2 ${result.kind === 'ok' ? 'text-[#2F6B3A]' : 'text-[#B85838]'}`} role="status" aria-live="polite" data-testid="wyze-add-again-result">{result.message}</div> : null}
+    </div>
+  );
+}
+
+// WHO CAN SEE THE CAMERAS (DR-0778; Darrell 2026-10-07: "My wife and family
+// should also have access to my cameras... unless I say no... One time setup
+// for owners and they can give access to who they want.... inside or out";
+// "we never give a password just access and no access whenever the owner
+// wants to"). The owner's device makes a per-person grant on the NAS and gets
+// a LINK, shown once: opening it on a phone gives that device access, nothing
+// typed, no password ever handed over. Every grant is listed here with when
+// it was last used; Take back ends it on its next request.
+function AccessPanel({ token, cameras }) {
+  const [grants, setGrants] = useState(null);
+  const [linkPath, setLinkPath] = useState(undefined);
+  const [name, setName] = useState('');
+  const [all, setAll] = useState(true);
+  const [picked, setPicked] = useState([]);
+  const [days, setDays] = useState(0);
+  const [doors, setDoors] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [made, setMade] = useState(null);
+  const [note, setNote] = useState('');
+  const [copied, setCopied] = useState(false);
+  const [open, setOpen] = useState(false);
+  const load = useCallback(async () => {
+    const r = await fetchGrants(token);
+    setGrants(r.ok ? r.grants : []);
+    if (r.linkPath) setLinkPath(r.linkPath);
+    if (!r.ok) setNote(r.message);
+  }, [token]);
+  useEffect(() => { load(); }, [load]);
+  const make = async (e) => {
+    e.preventDefault();
+    if (busy) return;
+    setBusy(true); setMade(null); setNote(''); setCopied(false);
+    const r = await createGrant({ name: name.trim(), cameras: all ? '*' : picked, days, actions: doors }, token);
+    setBusy(false);
+    if (r.ok) { setMade(r); setName(''); setPicked([]); setAll(true); setDoors(false); load(); } else setNote(r.message);
+  };
+  const takeBack = async (g) => {
+    const r = await revokeGrant(g.id, token);
+    setNote(r.message);
+    load();
+  };
+  const origin = typeof window !== 'undefined' && window.location ? window.location.origin : '';
+  const link = made ? grantLink(made.token, origin, linkPath || made.linkPath) : '';
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(link); setCopied(true); } catch { setCopied(false); }
+  };
+  const live = (grants || []).filter((g) => grantState(g) === 'live');
+  const past = (grants || []).filter((g) => grantState(g) !== 'live');
+  return (
+    <section className={card} data-testid="access-panel">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div className={labelCls}>Who can see the cameras · {grants == null ? '…' : `${live.length} with access`}</div>
+        <button type="button" className={`${btnGhost} focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={() => setOpen((v) => !v)} data-testid="access-give-toggle">{open ? 'Hide' : 'Give someone access'}</button>
+      </div>
+      <p className="text-xs text-[#5A5751] mt-1">Your family and anyone you choose, inside the house or out. You hand them a link, never a password; you take it back here whenever you want, and their link stops that moment.</p>
+      {open ? (
+        <form onSubmit={make} className="mt-3 border-t border-[#E8E4DC] pt-3 grid gap-2" data-testid="access-form" aria-busy={busy}>
+          <label className="block">
+            <span className={labelCls}>Whose access is this</span>
+            <input className={inputCls} value={name} onChange={(e) => setName(e.target.value)} placeholder="Christina" required aria-label="Whose access is this" data-testid="grant-name" disabled={busy} />
+          </label>
+          <div>
+            <span className={labelCls}>Which cameras</span>
+            <div className="flex items-center gap-3 flex-wrap mt-1 text-sm">
+              <label className="inline-flex items-center gap-1"><input type="radio" name="grant-cams" checked={all} onChange={() => setAll(true)} disabled={busy} /> every camera</label>
+              <label className="inline-flex items-center gap-1"><input type="radio" name="grant-cams" checked={!all} onChange={() => setAll(false)} disabled={busy} /> only these</label>
+            </div>
+            {!all ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 mt-1 text-sm" data-testid="grant-pick">
+                {cameras.map((c) => (
+                  <label key={c.id} className="inline-flex items-center gap-1 min-h-[36px]">
+                    <input type="checkbox" checked={picked.includes(c.id)} onChange={(e) => setPicked((p) => (e.target.checked ? [...p, c.id] : p.filter((x) => x !== c.id)))} disabled={busy} /> {c.name}
+                  </label>
+                ))}
+              </div>
+            ) : null}
+          </div>
+          <label className="block">
+            <span className={labelCls}>How long</span>
+            <select className={inputCls} value={days} onChange={(e) => setDays(Number(e.target.value))} aria-label="How long" data-testid="grant-days" disabled={busy}>
+              {GRANT_DAYS_CHOICES.map((d) => <option key={d} value={d}>{d === 0 ? 'Until I take it back' : d === 1 ? 'One day' : d === 365 ? 'One year' : `${d} days`}</option>)}
+            </select>
+          </label>
+          <label className="inline-flex items-center gap-2 text-sm min-h-[36px]"><input type="checkbox" checked={doors} onChange={(e) => setDoors(e.target.checked)} disabled={busy} data-testid="grant-doors" /> The doors too (they can open the garage)</label>
+          <div className="flex items-center gap-3 flex-wrap">
+            <button type="submit" className={btnDark} disabled={busy || (!all && picked.length === 0)} data-testid="grant-make">{busy ? 'Making the link…' : 'Make the link'}</button>
+          </div>
+        </form>
+      ) : null}
+      {made ? (
+        <div className="mt-3 border border-[#5A6E3D] bg-[#5A6E3D]/5 p-3" role="status" aria-live="polite" data-testid="grant-made">
+          <div className="text-sm text-[#2F6B3A]">{made.message}</div>
+          <code className="block text-[0.6875rem] break-all mt-1 text-[#1A1815]" data-testid="grant-link">{link}</code>
+          <div className="flex items-center gap-3 mt-2 flex-wrap">
+            <button type="button" className={`${btnGhost} focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={copy} data-testid="grant-copy">{copied ? 'Copied' : 'Copy the link'}</button>
+            <span className="text-xs text-[#5A5751]">Text it or hand the phone over; opening it gives that device access. It is shown this once.</span>
+          </div>
+        </div>
+      ) : null}
+      {note ? <p className="text-xs mt-2 text-[#B85838]" role="status" data-testid="access-note">{note}</p> : null}
+      {grants && grants.length ? (
+        <ul className="mt-3 divide-y divide-[#E8E4DC]" data-testid="grant-list">
+          {[...live, ...past].map((g) => (
+            <li key={g.id} className="py-2 flex items-center justify-between gap-2 flex-wrap" data-testid={`grant-row-${g.id}`}>
+              <div className="min-w-0">
+                <div className="text-sm font-semibold text-[#1A1815] truncate">{g.name}</div>
+                <div className="text-[0.625rem] text-[#5A5751]">{grantLine(g)}</div>
+              </div>
+              {grantState(g) === 'live' ? <button type="button" className={`${btnGhost} focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={() => takeBack(g)} aria-label={`Take back ${g.name}'s access`} data-testid={`grant-revoke-${g.id}`}>Take back</button> : null}
+            </li>
+          ))}
+        </ul>
+      ) : grants ? <p className="text-xs text-[#5A5751] mt-3">Nobody but the family yet.</p> : null}
+    </section>
+  );
+}
+
+// What a grant holder's device sees at the top: whose access, how long, the doors.
+function AccessChip({ access, onLeave }) {
+  if (!access) return null;
+  const until = access.expires ? `until ${new Date(access.expires * 1000).toLocaleDateString()}` : 'until the owner takes it back';
+  return (
+    <div className="mb-3 flex items-center gap-3 flex-wrap text-[0.6875rem]" data-testid="access-chip">
+      <span className={chip.ok}>Access given to {access.name} · {until}{access.actions ? ' · doors too' : ''}</span>
+      <button type="button" className={`${btnGhost} focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={onLeave} data-testid="access-leave">Remove this access from this device</button>
     </div>
   );
 }
@@ -659,7 +789,13 @@ function RecordingPanel({ token, cameras, onSaved }) {
 }
 
 export default function Cameras() {
-  const token = bridgeToken();
+  // The owner's device holds the family bearer; a device the owner handed a
+  // link to holds a grant (DR-0778). Either opens the road; only the owner's
+  // changes the NAS (setup, restart, recording, who has access).
+  const cred = cameraCredential({ bridge: bridgeToken() });
+  const token = cred.token;
+  const isOwner = cred.kind === 'owner';
+  const [access, setAccess] = useState(null);      // the grant's own description, from /list
   const [health, setHealth] = useState(null);       // forwarder /health JSON (+status), or {status, error}
   const [list, setList] = useState({ status: 0, cameras: [], at: 0, networkError: false, loaded: false });
   const [frames, setFrames] = useState({});          // id -> {url, at, ms, bytes, error, errorAt}
@@ -697,6 +833,7 @@ export default function Cameras() {
       let body = null;
       try { body = await r.json(); } catch { body = null; }
       setList({ status: r.status, cameras: r.status === 200 ? parseCameraList(body) : [], at: Date.now(), networkError: false, loaded: true });
+      setAccess(r.status === 200 && body && body.access && typeof body.access === 'object' ? body.access : null);
     } catch {
       setList({ status: 0, cameras: [], at: Date.now(), networkError: true, loaded: true });
     }
@@ -813,9 +950,10 @@ export default function Cameras() {
           <button type="button" onClick={load} className={`${btnGhost}`}>Refresh</button>
         </div>
       </div>
+      {!isOwner && token ? <AccessChip access={access} onLeave={() => { saveGrantToken(''); try { window.location.reload(); } catch { /* fine */ } }} /> : null}
       {token && health && health.status ? (
         <div className="mb-3 flex items-center gap-3 flex-wrap">
-          <ServiceRestart token={token} health={health} onDone={load} />
+          {isOwner ? <ServiceRestart token={token} health={health} onDone={load} /> : null}
           <button type="button" className={`${btnGhost} focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={() => setLiveTiles(!liveTiles)} aria-pressed={liveTiles} data-testid="live-tiles-toggle">{liveTiles ? 'Live in every tile · on' : 'Live in every tile · off (frames every 5 s)'}</button>
           {liveTrafficLine(health) ? <span className={chip.muted} data-testid="live-traffic">{liveTrafficLine(health)}</span> : null}
         </div>
@@ -838,10 +976,17 @@ export default function Cameras() {
         </div>
       )}
 
-      {state === 'unauthorized' && (
+      {state === 'unauthorized' && isOwner && (
         <div className={card}>
           <div className={labelCls}>The family key on this device was refused</div>
           <p className="text-sm mt-1">The NAS said no to this device&apos;s key (HTTP {list.status}). It was rotated or this copy is stale; sign out and in as family to provision the current one.</p>
+        </div>
+      )}
+      {state === 'unauthorized' && !isOwner && (
+        <div className={card} data-testid="grant-ended">
+          <div className={labelCls}>This access has ended</div>
+          <p className="text-sm mt-1">The owner took it back, or its time ran out (HTTP {list.status}). Ask the owner for a new link if you still need it.</p>
+          <button type="button" className={`${btnGhost} mt-2 focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={() => { saveGrantToken(''); try { window.location.reload(); } catch { /* fine */ } }}>Remove it from this device</button>
         </div>
       )}
 
@@ -863,7 +1008,13 @@ export default function Cameras() {
         </div>
       )}
 
-      {state === 'empty' && (
+      {state === 'empty' && !isOwner && (
+        <div className={card}>
+          <div className={labelCls}>No cameras for this access right now</div>
+          <p className="text-sm mt-1">The owner&apos;s camera service lists nothing this access may see. Nothing to do here; it fills in when the owner&apos;s cameras are back.</p>
+        </div>
+      )}
+      {state === 'empty' && isOwner && (
         <div className={card}>
           <div className={labelCls}>The restreamer is up and has no cameras yet</div>
           <p className="text-sm mt-1">
@@ -954,12 +1105,15 @@ export default function Cameras() {
             </section>
           ))}
 
-          <div className="mb-4"><RecordingPanel token={token} cameras={list.cameras} /></div>
+          {isOwner ? <div className="mb-4"><RecordingPanel token={token} cameras={list.cameras} /></div> : null}
+          {isOwner ? <div className="mb-4"><AccessPanel token={token} cameras={list.cameras} /></div> : null}
 
-          <div className={card}>
-            <button type="button" className={`${btnGhost}`} onClick={() => setShowAdd((v) => !v)}>{showAdd ? 'Hide' : 'Add a system you own'}</button>
-            {showAdd && <KindsHelp />}
-          </div>
+          {isOwner ? (
+            <div className={card}>
+              <button type="button" className={`${btnGhost}`} onClick={() => setShowAdd((v) => !v)}>{showAdd ? 'Hide' : 'Add a system you own'}</button>
+              {showAdd && <KindsHelp />}
+            </div>
+          ) : null}
         </>
       )}
     </div>

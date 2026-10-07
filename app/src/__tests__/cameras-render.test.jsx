@@ -9,7 +9,7 @@ import { createRoot } from 'react-dom/client';
 import Cameras from '../components/Cameras.jsx';
 import { SURFACES, surfaceById } from '../surfaces.js';
 import { CHAT_BRIDGE_TOKEN_KEY } from '../lib/nas-photos.js';
-import { WYZE_DRAFT_KEY, WALL_KEY, LIVE_RECONNECT_MAX, LIVE_RECONNECT_DELAY_MS, formatBytes, LIVE_TILES_KEY } from '../lib/cameras.js';
+import { WYZE_DRAFT_KEY, WALL_KEY, LIVE_RECONNECT_MAX, LIVE_RECONNECT_DELAY_MS, formatBytes, LIVE_TILES_KEY, GRANT_KEY } from '../lib/cameras.js';
 import { getReadTarget, subscribeRead } from '../lib/read-target.js';
 
 const TOKEN = 'family-test-token';
@@ -49,6 +49,9 @@ function makeFetch(plan) {
     if (u === '/cams/devices') return jsonResponse(plan.devicesStatus ?? 200, plan.devices ?? { devices: [], count: 0, garages: 0 });
     if (u === '/cams/action') { const b = JSON.parse(opts.body); return jsonResponse(plan.actionStatus ?? 200, plan.action ?? { ok: true, mac: b.mac, nickname: 'Garage Doors', action: b.action, action_key: 'garage_door_trigger' }); }
     if (u === '/cams/setup/wyze/again') return jsonResponse(plan.againStatus ?? 200, plan.again ?? { ok: true, added: 2, again: true, cameras: [{ id: 'front_yard', name: 'Front Yard', registered: true, existing: false }, { id: 'garage_doors', name: 'Garage Doors', registered: true, existing: true }] });
+    if (u === '/cams/grants' && (opts.method || 'GET') === 'GET') return jsonResponse(plan.grantsStatus ?? 200, plan.grants ?? { grants: [], link_path: '/poetech-app/?view=cameras&cams-grant=' });
+    if (u === '/cams/grants' && opts.method === 'POST') { const b = JSON.parse(opts.body); return jsonResponse(200, { ok: true, id: 'abcdefabcdef', token: 'g.abcdefabcdef.' + '1'.repeat(32), link_path: '/poetech-app/?view=cameras&cams-grant=', grant: { id: 'abcdefabcdef', name: b.name, cameras: b.cameras, actions: b.actions, created: 1, expires: 0, revoked: 0, last_used: 0 } }); }
+    if (/^\/cams\/grants\/[a-f0-9]{12}\/revoke$/.test(u)) return jsonResponse(200, { ok: true });
     return jsonResponse(404, { error: 'not-found' });
   });
   return { fetchImpl, calls };
@@ -574,12 +577,75 @@ describe('Cameras surface', () => {
     expect(container.textContent).toMatch(/you never type it again/);
   });
 
+  it('who can see the cameras (DR-0778): the owner lists who has access, makes a link shown once with Copy, and takes access back', async () => {
+    const { fetchImpl, calls } = makeFetch({
+      list: { cameras: [{ id: 'front_yard', name: 'front yard', kind: 'wyze' }], count: 1 },
+      grants: { grants: [{ id: '111111111111', name: 'Christina', cameras: '*', actions: true, created: 1, expires: 0, revoked: 0, last_used: 0 }], link_path: '/poetech-app/?view=cameras&cams-grant=' },
+    });
+    vi.stubGlobal('fetch', fetchImpl);
+    await mount();
+    await act(async () => { await new Promise((r) => setTimeout(r, 10)); });
+    const panel = container.querySelector('[data-testid="access-panel"]');
+    expect(panel).toBeTruthy();
+    expect(panel.textContent).toMatch(/1 with access/);
+    expect(container.querySelector('[data-testid="grant-row-111111111111"]').textContent).toMatch(/Christina.*every camera · until taken back · doors too · never used yet/);
+    await click(container.querySelector('[data-testid="access-give-toggle"]'));
+    const nameEl = container.querySelector('[data-testid="grant-name"]');
+    await act(async () => { const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set; setter.call(nameEl, 'Neighbor'); nameEl.dispatchEvent(new Event('input', { bubbles: true })); });
+    await act(async () => { container.querySelector('[data-testid="grant-doors"]').click(); });
+    await act(async () => { container.querySelector('[data-testid="access-form"]').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); });
+    await act(async () => { await new Promise((r) => setTimeout(r, 10)); });
+    const made = calls.filter((c) => c.url === '/cams/grants' && c.opts.method === 'POST');
+    expect(made).toHaveLength(1);
+    expect(JSON.parse(made[0].opts.body)).toEqual({ name: 'Neighbor', cameras: '*', days: 0, actions: true });
+    expect(made[0].opts.headers.Authorization).toBe(`Bearer ${TOKEN}`);
+    const link = container.querySelector('[data-testid="grant-link"]');
+    expect(link.textContent).toMatch(/\/poetech-app\/\?view=cameras&cams-grant=g\.abcdefabcdef\.1{32}$/);
+    expect(container.querySelector('[data-testid="grant-copy"]')).toBeTruthy();
+    await click(container.querySelector('[data-testid="grant-revoke-111111111111"]'));
+    await act(async () => { await new Promise((r) => setTimeout(r, 10)); });
+    expect(calls.filter((c) => c.url === '/cams/grants/111111111111/revoke' && c.opts.method === 'POST')).toHaveLength(1);
+    expect(container.querySelector('[data-testid="access-note"]').textContent).toMatch(/Taken back/);
+  });
+
+  it('a device the owner handed a link to opens the tab with the grant as its bearer, sees whose access it is, and none of the owner\'s controls', async () => {
+    const GRANT = 'g.abcdefabcdef.' + '2'.repeat(32);
+    try { localStorage.removeItem(CHAT_BRIDGE_TOKEN_KEY); localStorage.setItem(GRANT_KEY, GRANT); } catch { /* fine */ }
+    const { fetchImpl, calls } = makeFetch({
+      list: { cameras: [{ id: 'front_yard', name: 'front yard', kind: 'wyze' }], count: 1, access: { name: 'Christina', expires: 0, actions: false } },
+      devicesStatus: 403, devices: { error: 'no-actions' },
+    });
+    vi.stubGlobal('fetch', fetchImpl);
+    await mount();
+    await act(async () => { await new Promise((r) => setTimeout(r, 10)); });
+    const list = calls.find((c) => c.url === '/cams/list');
+    expect(list.opts.headers.Authorization).toBe(`Bearer ${GRANT}`);
+    expect(container.querySelector('[data-testid="access-chip"]').textContent).toMatch(/Access given to Christina · until the owner takes it back/);
+    expect(container.textContent).toMatch(/front yard/);
+    expect(container.querySelector('[data-testid="access-panel"]')).toBeNull();
+    expect(container.querySelector('[data-testid="doors"]')).toBeNull();
+    expect(container.textContent).not.toMatch(/Recorded loops|Restart the camera service|Add a system you own/);
+    expect(calls.filter((c) => c.url === '/cams/grants')).toHaveLength(0);
+    try { localStorage.removeItem(GRANT_KEY); } catch { /* fine */ }
+  });
+
+  it('an ended grant says so on the holder\'s device and offers to remove itself', async () => {
+    const GRANT = 'g.abcdefabcdef.' + '3'.repeat(32);
+    try { localStorage.removeItem(CHAT_BRIDGE_TOKEN_KEY); localStorage.setItem(GRANT_KEY, GRANT); } catch { /* fine */ }
+    const { fetchImpl } = makeFetch({ listStatus: 401, list: { error: 'unauthorized' } });
+    vi.stubGlobal('fetch', fetchImpl);
+    await mount();
+    await act(async () => { await new Promise((r) => setTimeout(r, 10)); });
+    expect(container.querySelector('[data-testid="grant-ended"]').textContent).toMatch(/This access has ended/);
+    try { localStorage.removeItem(GRANT_KEY); } catch { /* fine */ }
+  });
+
   it('is registered as a family-only, hidden-when-denied top-level surface', () => {
     const s = surfaceById['cameras'];
     expect(s).toBeTruthy();
     expect(s.nav).toBe('top');
     expect(s.view).toBe('cameras');
-    expect(s.requires).toBe('family');
+    expect(s.requires).toBe('cameras'); // DR-0778: the family, or a grant the owner gave this device
     expect(s.whenDenied).toBe('hide');
     expect(SURFACES.filter((x) => x.view === 'cameras')).toHaveLength(1);
   });

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback, Suspense } from 'react';
+import { grantToken as cameraGrantToken } from './lib/cameras.js';
 import { SectionTitle, MetricCell, TabScroll, DmUnreadBadge } from './components/shared.jsx';
 // Contextual help — the discrete "?" that explains the current tab/tool (Ari's
 // voice) + the optional first-run roadmap tour. lib/help-content.js is the one
@@ -1246,7 +1247,7 @@ export default function PoeFinancialSystem() {
   // any other view (deep-links included) steers back to the workspace.
   const instanceRoleState = useInstanceRole();
   const isAssistantAcct = !reviewerMode && !isFamilyMember && !!authSession && instanceRoleState.role === 'assistant';
-  const surfaceViewer = { signedIn: !!authSession, isFamilyMember, isChurchStaff, isStudyCircle, capabilities: churchAccess.capabilities, instanceRole: instanceRoleState.role || '', reviewerMode };  // lib/surface-access.js
+  const surfaceViewer = { signedIn: !!authSession, isFamilyMember, isChurchStaff, isStudyCircle, capabilities: churchAccess.capabilities, instanceRole: instanceRoleState.role || '', reviewerMode, hasCameraGrant: !reviewerMode && !!cameraGrantToken() };  // lib/surface-access.js; hasCameraGrant: DR-0778
   useEffect(() => {
     if (isAssistantAcct && !['tlc-assistant', 'messages', 'about'].includes(view)) setView('tlc-assistant');
   }, [isAssistantAcct, view]);

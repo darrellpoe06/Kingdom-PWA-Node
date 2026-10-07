@@ -673,6 +673,7 @@ export function classifyDevicesResult({ status, body, networkError } = {}) {
   if (status === 503 && err === 'no-credentials') return { kind: 'no-credentials', devices: [], message: 'The NAS has no Wyze sign-in kept yet. Sign in once in this tab and the doors appear here.' };
   if (status === 401 && err === 'wyze-sign-in-refused') return { kind: 'refused', devices: [], message: 'Wyze refused the kept sign-in. Sign in again once in this tab.' };
   if (status === 401) return { kind: 'unauthorized', devices: [], message: 'The family key on this device was refused.' };
+  if (status === 403) return { kind: 'no-actions', devices: [], message: 'This access does not include the doors.' };
   if (status === 404) return { kind: 'old-service', devices: [], message: 'The NAS is running an older camera service without the doors yet. It updates itself within 15 minutes of a merge.' };
   if (status === 502 || status === 503) return { kind: 'wyze-down', devices: [], message: `Wyze's cloud did not answer the NAS${err ? ` (${err})` : ''}.` };
   return { kind: 'error', devices: [], message: `The camera road answered HTTP ${status}${err ? ` (${err})` : ''}.` };
@@ -739,4 +740,134 @@ export function wyzeKept(health) {
 export function garagesFor(devices, cameras) {
   const ids = new Set((cameras || []).map((c) => c.id));
   return (devices || []).filter((d) => d.garage).map((d) => ({ ...d, cameraId: ids.has(d.stream) ? d.stream : '' }));
+}
+
+// =============================================================================
+// ACCESS IS GIVEN AND TAKEN BACK, NEVER A PASSWORD (DR-0778; Darrell
+// 2026-10-07: "My wife and family should also have access to my cameras...
+// unless I say no... One time setup for owners and they can give access to
+// who they want.... inside or out", and: "we never give a password just
+// access and no access whenever the owner wants to"). The owner's device
+// (the family bearer) mints a per-person GRANT on the NAS: a name, which
+// cameras, how long (or until taken back), doors or not. The grant is a link;
+// opening it on a phone gives THAT device access, nothing typed. The holder's
+// device sends the grant as its bearer; the NAS admits it to its cameras only.
+// Revoke here and the link dies on its next request.
+// =============================================================================
+export const GRANT_KEY = 'poetech.cameras.grant.v1';
+export const GRANT_PARAM = 'cams-grant';
+export const GRANT_TOKEN = /^g\.[a-f0-9]{12}\.[a-f0-9]{32}$/;
+export const GRANT_DAYS_CHOICES = Object.freeze([0, 1, 7, 30, 365]);
+export function grantsUrl() { return `${CAMS_BASE}/grants`; }
+export function grantRevokeUrl(id) { return `${CAMS_BASE}/grants/${encodeURIComponent(id)}/revoke`; }
+
+function grantStorage(storage) {
+  if (storage) return storage;
+  try { return globalThis.localStorage || null; } catch { return null; }
+}
+
+export function grantToken(storage = null) {
+  const st = grantStorage(storage);
+  try { const v = (st && st.getItem(GRANT_KEY)) || ''; return GRANT_TOKEN.test(v) ? v : ''; } catch { return ''; }
+}
+
+export function saveGrantToken(token, storage = null) {
+  const st = grantStorage(storage);
+  try {
+    if (!token) st.removeItem(GRANT_KEY); else if (GRANT_TOKEN.test(token)) st.setItem(GRANT_KEY, token); else return false;
+    return true;
+  } catch { return false; }
+}
+
+// On boot: a `?cams-grant=` in the address is stored on this device and taken
+// out of the address (so a shared screenshot or history entry does not carry
+// it). Returns the token adopted, or ''.
+export function adoptGrantFromUrl(location, storage = null, history = null) {
+  try {
+    const url = new URL(String(location && location.href ? location.href : location));
+    const tok = url.searchParams.get(GRANT_PARAM) || '';
+    if (!tok) return '';
+    if (!GRANT_TOKEN.test(tok)) return '';
+    saveGrantToken(tok, storage);
+    url.searchParams.delete(GRANT_PARAM);
+    if (history && typeof history.replaceState === 'function') history.replaceState(null, '', url.pathname + (url.search || '') + url.hash);
+    return tok;
+  } catch { return ''; }
+}
+
+// The credential this device sends: the family bearer (owner) first, a grant second.
+export function cameraCredential({ bridge = '', storage = null } = {}) {
+  if (bridge) return { token: bridge, kind: 'owner' };
+  const g = grantToken(storage);
+  if (g) return { token: g, kind: 'grant' };
+  return { token: '', kind: 'none' };
+}
+
+export function parseGrants(json) {
+  const list = json && Array.isArray(json.grants) ? json.grants : [];
+  return list.filter((g) => g && typeof g.id === 'string').map((g) => ({
+    id: g.id, name: String(g.name || ''), cameras: g.cameras === '*' ? '*' : (Array.isArray(g.cameras) ? g.cameras.filter((c) => typeof c === 'string') : []),
+    actions: g.actions === true, created: Number(g.created) || 0, expires: Number(g.expires) || 0, revoked: Number(g.revoked) || 0, lastUsed: Number(g.last_used) || 0,
+  }));
+}
+
+export function grantState(g, nowMs = Date.now()) {
+  if (g.revoked) return 'revoked';
+  if (g.expires && nowMs / 1000 >= g.expires) return 'expired';
+  return 'live';
+}
+
+export function grantLine(g, nowMs = Date.now()) {
+  const cams = g.cameras === '*' ? 'every camera' : `${g.cameras.length} camera${g.cameras.length === 1 ? '' : 's'}`;
+  const until = g.expires ? `until ${new Date(g.expires * 1000).toLocaleDateString()}` : 'until taken back';
+  const doors = g.actions ? ' · doors too' : '';
+  const used = g.lastUsed ? ` · last used ${formatAge(Math.max(0, nowMs - g.lastUsed * 1000))}` : ' · never used yet';
+  const st = grantState(g, nowMs);
+  return `${cams} · ${until}${doors}${st === 'live' ? used : ` · ${st}`}`;
+}
+
+export function grantLink(token, origin = '', linkPath = '/poetech-app/?view=cameras&cams-grant=') {
+  return `${origin}${linkPath}${encodeURIComponent(token)}`;
+}
+
+export async function fetchGrants(token, fetchImpl = globalThis.fetch) {
+  try {
+    const r = await fetchWithTimeout(grantsUrl(), { headers: authHeaders(token) }, FETCH_TIMEOUT_MS, fetchImpl);
+    let body = null;
+    try { body = await r.json(); } catch { body = null; }
+    if (r.status === 200) return { ok: true, grants: parseGrants(body), linkPath: body && typeof body.link_path === 'string' ? body.link_path : undefined, message: '' };
+    if (r.status === 404) return { ok: false, grants: [], message: 'The NAS is running an older camera service without access grants yet. It updates itself within 15 minutes of a merge.' };
+    if (r.status === 401) return { ok: false, grants: [], message: 'Only the owner\'s device can see who has access.' };
+    return { ok: false, grants: [], message: `The camera road answered HTTP ${r.status}.` };
+  } catch {
+    return { ok: false, grants: [], message: 'The camera road did not answer.' };
+  }
+}
+
+export async function createGrant({ name, cameras = '*', days = 0, actions = false }, token, fetchImpl = globalThis.fetch) {
+  try {
+    const r = await fetchWithTimeout(grantsUrl(), { method: 'POST', headers: { ...authHeaders(token), 'Content-Type': 'application/json' }, body: JSON.stringify({ name, cameras, days, actions }) }, FETCH_TIMEOUT_MS, fetchImpl);
+    let body = null;
+    try { body = await r.json(); } catch { body = null; }
+    const err = body && typeof body.error === 'string' ? body.error : '';
+    if (r.status === 200 && body && body.token) return { ok: true, id: body.id, token: body.token, linkPath: body.link_path || undefined, message: `Access made for ${name}. Share the link below; it is shown once.` };
+    if (r.status === 400) return { ok: false, message: err === 'missing-name' ? 'Give the access a name (whose it is).' : err === 'bad-cameras' ? 'Pick at least one camera, or every camera.' : `The NAS refused it (${err || 'bad request'}).` };
+    if (r.status === 401) return { ok: false, message: 'Only the owner\'s device can give access.' };
+    if (r.status === 404) return { ok: false, message: 'The NAS is running an older camera service without access grants yet.' };
+    return { ok: false, message: `The camera road answered HTTP ${r.status}${err ? ` (${err})` : ''}.` };
+  } catch {
+    return { ok: false, message: 'The camera road did not answer. Nothing was made.' };
+  }
+}
+
+export async function revokeGrant(id, token, fetchImpl = globalThis.fetch) {
+  try {
+    const r = await fetchWithTimeout(grantRevokeUrl(id), { method: 'POST', headers: authHeaders(token) }, FETCH_TIMEOUT_MS, fetchImpl);
+    if (r.status === 200) return { ok: true, message: 'Taken back. That link no longer opens anything.' };
+    if (r.status === 404) return { ok: false, message: 'That access was not found on the NAS.' };
+    if (r.status === 401) return { ok: false, message: 'Only the owner\'s device can take access back.' };
+    return { ok: false, message: `The camera road answered HTTP ${r.status}.` };
+  } catch {
+    return { ok: false, message: 'The camera road did not answer. Nothing changed.' };
+  }
 }

@@ -97,7 +97,7 @@ export const SURFACES = [
   // Cameras — the family's cameras from the family's own server (DR-0756).
   // 'hide': the home's cameras are not a visitor's business, and there is no
   // version of asking that ends in yes for someone outside the family.
-  { id: 'cameras',      label: 'Cameras',          nav: 'top', view: 'cameras',      sub: null,          requires: 'family', whenDenied: 'hide', gate: 'family/governor — the home is the family\'s business (DR-0756)', load: () => import('./components/Cameras.jsx') },
+  { id: 'cameras',      label: 'Cameras',          nav: 'top', view: 'cameras',      sub: null,          requires: 'cameras', whenDenied: 'hide', gate: 'family/governor, or a camera grant the owner gave this device (DR-0756, DR-0778)', load: () => import('./components/Cameras.jsx') },
   // Vault — a person's passwords, locked on their device, kept on their own
   // server (DR-0762). 'lock': anyone could legitimately want it; signing in opens it.
   { id: 'vault',        label: 'Vault',            nav: 'top', view: 'vault',        sub: null,          requires: 'signed-in', whenDenied: 'lock', gate: 'any signed-in person — the vault is theirs alone (0251 RLS, DR-0762)', load: () => import('./components/Vault.jsx') },

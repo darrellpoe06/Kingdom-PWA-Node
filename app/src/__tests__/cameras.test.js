@@ -19,6 +19,7 @@ import {
   recordingUrl, recListUrl, recClipUrl, fetchRecording, saveRecording, fetchClips, clipParts, groupClipsByDay, diskForecast, RETENTION_CHOICES, CLIP_TICKET_TTL,
   LIVE_TILES_KEY, loadLiveTiles, saveLiveTiles, liveTileBudget, liveTrafficLine,
   streamNameFor, parseDevices, classifyDevicesResult, classifyActionResult, fetchDevices, runDeviceAction, setupWyzeAgain, garagesFor, wyzeKept,
+  GRANT_KEY, GRANT_DAYS_CHOICES, adoptGrantFromUrl, grantToken, saveGrantToken, cameraCredential, parseGrants, grantState, grantLine, grantLink, fetchGrants, createGrant, revokeGrant,
 } from '../lib/cameras.js';
 
 describe('the road: every URL is same-origin under /cams', () => {
@@ -513,6 +514,7 @@ describe('doors: devices, the garage action, the kept sign-in', () => {
     expect(classifyDevicesResult({ status: 401, body: { error: 'wyze-sign-in-refused' } }).kind).toBe('refused');
     expect(classifyDevicesResult({ status: 401, body: {} }).kind).toBe('unauthorized');
     expect(classifyDevicesResult({ status: 404 }).kind).toBe('old-service');
+    expect(classifyDevicesResult({ status: 403, body: { error: 'no-actions' } }).kind).toBe('no-actions');
     expect(classifyDevicesResult({ status: 502, body: { error: 'unreachable' } }).message).toMatch(/Wyze's cloud did not answer/);
     expect(classifyDevicesResult({ networkError: true }).kind).toBe('unreachable');
   });
@@ -554,5 +556,71 @@ describe('doors: devices, the garage action, the kept sign-in', () => {
     expect(wyzeKept({ wyze_cloud: 'ready' })).toBe(true);
     expect(wyzeKept({ wyze_cloud: 'no-credentials' })).toBe(false);
     expect(wyzeKept({ ok: true })).toBe(false);
+  });
+});
+
+// DR-0778: access is given and taken back, never a password.
+describe('access grants: the link on the device, the credential, the owner\'s list', () => {
+  const mem = () => { const m = new Map(); return { getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), removeItem: (k) => m.delete(k) }; };
+  const TOK = 'g.0123456789ab.' + 'f'.repeat(32);
+  it('a grant link is adopted on boot: stored on the device, taken out of the address; junk is ignored', () => {
+    const st = mem();
+    const replaced = [];
+    const history = { replaceState: (_s, _t, url) => replaced.push(url) };
+    expect(adoptGrantFromUrl({ href: `https://poetech.us/poetech-app/?view=cameras&cams-grant=${TOK}#x` }, st, history)).toBe(TOK);
+    expect(st.getItem(GRANT_KEY)).toBe(TOK);
+    expect(replaced).toEqual(['/poetech-app/?view=cameras#x']);
+    expect(adoptGrantFromUrl({ href: 'https://poetech.us/poetech-app/?cams-grant=not-a-token' }, mem(), history)).toBe('');
+    expect(adoptGrantFromUrl({ href: 'https://poetech.us/poetech-app/?view=cameras' }, mem(), history)).toBe('');
+    expect(grantToken(st)).toBe(TOK);
+    expect(saveGrantToken('', st)).toBe(true);
+    expect(grantToken(st)).toBe('');
+    expect(saveGrantToken('garbage', st)).toBe(false);
+  });
+  it('the credential is the family bearer first, the grant second, nothing third', () => {
+    const st = mem();
+    expect(cameraCredential({ bridge: 'fam', storage: st })).toEqual({ token: 'fam', kind: 'owner' });
+    saveGrantToken(TOK, st);
+    expect(cameraCredential({ bridge: '', storage: st })).toEqual({ token: TOK, kind: 'grant' });
+    expect(cameraCredential({ bridge: '', storage: mem() })).toEqual({ token: '', kind: 'none' });
+  });
+  it('parseGrants / grantState / grantLine / grantLink read the owner\'s list in plain words', () => {
+    const now = 1_800_000_000_000;
+    const gs = parseGrants({ grants: [
+      { id: 'a', name: 'Christina', cameras: '*', actions: true, created: 1, expires: 0, revoked: 0, last_used: now / 1000 - 60 },
+      { id: 'b', name: 'Neighbor', cameras: ['front_yard'], actions: false, created: 2, expires: now / 1000 - 10, revoked: 0, last_used: 0 },
+      { id: 'c', name: 'Old', cameras: ['x', 'y'], created: 3, revoked: 5 },
+      { nope: true },
+    ] });
+    expect(gs.map((g) => g.id)).toEqual(['a', 'b', 'c']);
+    expect(grantState(gs[0], now)).toBe('live');
+    expect(grantState(gs[1], now)).toBe('expired');
+    expect(grantState(gs[2], now)).toBe('revoked');
+    expect(grantLine(gs[0], now)).toBe('every camera · until taken back · doors too · last used 1 m ago');
+    expect(grantLine(gs[1], now)).toMatch(/^1 camera · until .* · expired$/);
+    expect(grantLine(gs[2], now)).toBe('2 cameras · until taken back · revoked');
+    expect(grantLink(TOK, 'https://poetech.us')).toBe(`https://poetech.us/poetech-app/?view=cameras&cams-grant=${TOK}`);
+    expect(GRANT_DAYS_CHOICES).toEqual([0, 1, 7, 30, 365]);
+  });
+  it('fetchGrants / createGrant / revokeGrant speak to the forwarder with the owner\'s bearer and say every failure', async () => {
+    const calls = [];
+    const f = async (url, opts = {}) => {
+      calls.push({ url, opts });
+      if (url === '/cams/grants' && (opts.method || 'GET') === 'GET') return { status: 200, json: async () => ({ grants: [{ id: 'a', name: 'C', cameras: '*' }], link_path: '/poetech-app/?view=cameras&cams-grant=' }) };
+      if (url === '/cams/grants') return { status: 200, json: async () => ({ ok: true, id: 'a', token: TOK, link_path: '/poetech-app/?view=cameras&cams-grant=' }) };
+      return { status: 200, json: async () => ({ ok: true }) };
+    };
+    const l = await fetchGrants('tok', f);
+    expect(l.ok).toBe(true); expect(l.grants).toHaveLength(1); expect(calls[0].opts.headers.Authorization).toBe('Bearer tok');
+    const c = await createGrant({ name: 'Christina', cameras: '*', days: 0, actions: true }, 'tok', f);
+    expect(c.ok).toBe(true); expect(c.token).toBe(TOK);
+    expect(JSON.parse(calls[1].opts.body)).toEqual({ name: 'Christina', cameras: '*', days: 0, actions: true });
+    const r = await revokeGrant('a', 'tok', f);
+    expect(r.ok).toBe(true); expect(calls[2].url).toBe('/cams/grants/a/revoke'); expect(calls[2].opts.method).toBe('POST');
+    expect((await fetchGrants('tok', async () => ({ status: 404, json: async () => ({}) }))).message).toMatch(/older camera service/);
+    expect((await createGrant({ name: '' }, 'tok', async () => ({ status: 400, json: async () => ({ error: 'missing-name' }) }))).message).toMatch(/Give the access a name/);
+    expect((await createGrant({ name: 'x' }, 'tok', async () => ({ status: 401, json: async () => ({}) }))).message).toMatch(/Only the owner/);
+    expect((await revokeGrant('zz', 'tok', async () => ({ status: 404, json: async () => ({}) }))).message).toMatch(/not found/);
+    expect((await revokeGrant('a', 'tok', async () => { throw new TypeError('x'); })).message).toMatch(/did not answer/);
   });
 });

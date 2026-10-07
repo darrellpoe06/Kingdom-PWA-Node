@@ -87,6 +87,16 @@ export const REQUIREMENTS = Object.freeze({
     ask: 'Darrell',
     holds: (v) => !!v.isFamilyMember,
   },
+  // The cameras (DR-0778): the family, OR a person the owner gave access to
+  // by a link (inside the family or out). The grant lives on the device the
+  // link was opened on and dies when the owner takes it back; the NAS, not
+  // this screen, is the wall for what it may see.
+  cameras: {
+    id: 'cameras',
+    plain: 'For the family, and for anyone the owner gave camera access to.',
+    ask: 'the owner of the cameras',
+    holds: (v) => !!v.isFamilyMember || !!v.hasCameraGrant,
+  },
   'study-circle': {
     id: 'study-circle',
     plain: 'For the Study circle.',
