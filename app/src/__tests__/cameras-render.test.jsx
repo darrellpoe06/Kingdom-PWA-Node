@@ -9,6 +9,8 @@ import { createRoot } from 'react-dom/client';
 import Cameras from '../components/Cameras.jsx';
 import { SURFACES, surfaceById } from '../surfaces.js';
 import { CHAT_BRIDGE_TOKEN_KEY } from '../lib/nas-photos.js';
+import { WYZE_DRAFT_KEY } from '../lib/cameras.js';
+import { getReadTarget, subscribeRead } from '../lib/read-target.js';
 
 const TOKEN = 'family-test-token';
 
@@ -36,6 +38,7 @@ function makeFetch(plan) {
     }
     if (u === '/cams/ticket') return jsonResponse(plan.ticketStatus ?? 200, { ticket: '9999999999.abcdef', expires_in: 90, camera: JSON.parse(opts.body).camera });
     if (u === '/cams/setup/wyze') return jsonResponse(plan.setupStatus ?? 200, plan.setup ?? { ok: true, added: 1, cameras: [{ id: 'front_yard', name: 'Front Yard', model: 'HL_CAM4', dtls: true, registered: true, existing: false }] });
+    if (u === '/cams/restart') return jsonResponse(plan.restartStatus ?? 200, plan.restart ?? { ok: true, restarting: true, running: 'aaaa', on_disk: 'bbbb', changed: true });
     return jsonResponse(404, { error: 'not-found' });
   });
   return { fetchImpl, calls };
@@ -55,7 +58,7 @@ describe('Cameras surface', () => {
   });
   afterEach(() => {
     act(() => root.unmount()); container.remove();
-    try { localStorage.removeItem(CHAT_BRIDGE_TOKEN_KEY); } catch { /* fine */ }
+    try { localStorage.removeItem(CHAT_BRIDGE_TOKEN_KEY); localStorage.removeItem(WYZE_DRAFT_KEY); } catch { /* fine */ }
     vi.unstubAllGlobals();
   });
 
@@ -149,8 +152,9 @@ describe('Cameras surface', () => {
     const result = container.querySelector('[data-testid="wyze-setup-result"]');
     expect(result.textContent).toMatch(/Signed in\. 1 camera added\./);
     expect(result.textContent).toMatch(/Front Yard · HL_CAM4 · added/);
-    // The browser keeps nothing: the fields are cleared the moment the NAS answers.
+    // The fields AND the device's draft are erased the moment the NAS accepts.
     expect([...form.querySelectorAll('input')].every((i) => i.value === '')).toBe(true);
+    expect(localStorage.getItem(WYZE_DRAFT_KEY)).toBeNull();
     expect(calls.filter((c) => c.url === '/cams/list').length).toBeGreaterThan(listsBefore);
   });
 
@@ -168,6 +172,80 @@ describe('Cameras surface', () => {
     await act(async () => { form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); await new Promise((r) => setTimeout(r, 20)); });
     expect(container.querySelector('[data-testid="wyze-setup-result"]').textContent).toMatch(/Wyze refused the sign-in/);
     expect(form.querySelector('input[aria-label="Wyze email"]').value).toBe('d@example.com');
+  });
+
+  it('what was typed survives a reload: the draft is kept on the device until the NAS accepts it, and Clear erases it (2026-10-07 "Why am I needing to redo this?!")', async () => {
+    const { fetchImpl } = makeFetch({ list: { cameras: [], count: 0 }, health: { ok: true, go2rtc: '1.9.14', streams: 0 } });
+    vi.stubGlobal('fetch', fetchImpl);
+    await mount();
+    const form = container.querySelector('[data-testid="wyze-setup"]');
+    expect(container.querySelector('[data-testid="wyze-draft-restored"]')).toBeNull();
+    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+    await act(async () => {
+      for (const [label, v] of [['Wyze email', 'd@example.com'], ['Wyze password', 'pw-secret'], ['API ID', 'id1'], ['API Key', 'key-secret']]) {
+        const input = form.querySelector(`input[aria-label="${label}"]`); setter.call(input, v); input.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    });
+    expect(JSON.parse(localStorage.getItem(WYZE_DRAFT_KEY))).toEqual({ email: 'd@example.com', password: 'pw-secret', api_id: 'id1', api_key: 'key-secret' });
+    // The app redeploys under him: unmount, mount again (what a reload does).
+    await act(async () => root.unmount());
+    root = createRoot(container);
+    await mount();
+    const form2 = container.querySelector('[data-testid="wyze-setup"]');
+    expect(form2.querySelector('input[aria-label="Wyze email"]').value).toBe('d@example.com');
+    expect(form2.querySelector('input[aria-label="API Key"]').value).toBe('key-secret');
+    expect(container.querySelector('[data-testid="wyze-draft-restored"]').textContent).toMatch(/earlier entries are still here/);
+    await click(container.querySelector('[data-testid="wyze-clear"]'));
+    expect([...form2.querySelectorAll('input')].every((i) => i.value === '')).toBe(true);
+    expect(localStorage.getItem(WYZE_DRAFT_KEY)).toBeNull();
+  });
+
+  it('the Wyze steps are this screen\'s reading: registered with the form element, and Hear the steps asks the reader for them', async () => {
+    const { fetchImpl } = makeFetch({ list: { cameras: [], count: 0 }, health: { ok: true, go2rtc: '1.9.14', streams: 0 } });
+    vi.stubGlobal('fetch', fetchImpl);
+    const wants = [];
+    const off = subscribeRead((w) => wants.push(w));
+    await mount();
+    const t = getReadTarget();
+    expect(t).not.toBeNull();
+    expect(t.owner).toBe('cameras-wyze-setup');
+    expect(t.elementId).toBe('wyze-setup');
+    expect(document.getElementById('wyze-setup')).not.toBeNull();
+    expect(t.text).toMatch(/Step 1\. Open the Wyze API key page/);
+    expect(t.text).toMatch(/Step 4\. Come back here/);
+    await click(container.querySelector('[data-testid="wyze-hear-steps"]'));
+    expect(wants.some((w) => w && w.owner === 'cameras-wyze-setup' && w.opts && w.opts.startSentence === 0)).toBe(true);
+    off();
+    await act(async () => root.unmount());
+    root = createRoot(container);
+    expect(getReadTarget()).toBeNull();
+  });
+
+  it('the service says when it runs older code than is on disk, and one button restarts it from here (DR-0772)', async () => {
+    const { fetchImpl, calls } = makeFetch({ list: { cameras: [], count: 0 }, health: { ok: true, go2rtc: '1.9.14', streams: 0, forwarder: 'aaaa', on_disk: 'bbbb' } });
+    vi.stubGlobal('fetch', fetchImpl);
+    await mount();
+    expect(container.querySelector('[data-testid="service-behind"]').textContent).toMatch(/running aaaa · on disk bbbb/);
+    const btn = container.querySelector('[data-testid="service-restart-button"]');
+    expect(btn.textContent).toMatch(/Update the camera service now/);
+    await click(btn);
+    await act(async () => { await new Promise((r) => setTimeout(r, 20)); });
+    const post = calls.find((c) => c.url === '/cams/restart');
+    expect(post.opts.method).toBe('POST');
+    expect(post.opts.headers.Authorization).toBe(`Bearer ${TOKEN}`);
+    expect(container.querySelector('[data-testid="service-restart-result"]').textContent).toMatch(/Restarting the camera service on the newer code/);
+  });
+
+  it('a current service shows no behind notice, and an older service that cannot restart is said plainly (404)', async () => {
+    const { fetchImpl } = makeFetch({ list: { cameras: [], count: 0 }, health: { ok: true, go2rtc: '1.9.14', streams: 0, forwarder: 'aaaa', on_disk: 'aaaa' }, restartStatus: 404, restart: { error: 'not-found' } });
+    vi.stubGlobal('fetch', fetchImpl);
+    await mount();
+    expect(container.querySelector('[data-testid="service-behind"]')).toBeNull();
+    const btn = container.querySelector('[data-testid="service-restart-button"]');
+    expect(btn.textContent).toMatch(/Restart the camera service/);
+    await click(btn);
+    await act(async () => { await new Promise((r) => setTimeout(r, 20)); });
+    expect(container.querySelector('[data-testid="service-restart-result"]').textContent).toMatch(/older camera service that cannot restart itself yet/);
   });
 
   it('lists the restreamer\'s cameras grouped by kind, fetches each frame with the bearer, shows measured freshness', async () => {

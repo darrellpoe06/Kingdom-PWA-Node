@@ -34,6 +34,8 @@ export function healthUrl() { return `${CAMS_BASE}/health`; }
 export function listUrl() { return `${CAMS_BASE}/list`; }
 export function ticketUrl() { return `${CAMS_BASE}/ticket`; }
 export function setupUrl() { return `${CAMS_BASE}/setup/wyze`; }
+export function restartUrl() { return `${CAMS_BASE}/restart`; }
+export const RESTART_TIMEOUT_MS = 15000;
 export const SETUP_TIMEOUT_MS = 75000; // Wyze's cloud listing + go2rtc's persist; the NAS gives it 60 s
 
 export function snapUrl(id, { w = SNAPSHOT_WIDTH, ticket = '' } = {}) {
@@ -81,7 +83,7 @@ export function parseCameraList(json) {
 // Systems, as go2rtc names their source schemes. `how` is the one line that
 // adds that kind of system — documentation that lives IN the app (DR-0065).
 export const KINDS = [
-  { id: 'wyze',    label: 'Wyze',        how: 'Signed in once through the NAS restreamer (Add > Wyze); each camera becomes one wyze:// line. Needs DTLS firmware; Gwell models (Cam OG, Pan v4, Floodlight Pro) are not yet supported.' },
+  { id: 'wyze',    label: 'Wyze',        how: 'Signed in once, here in this tab (Sign in to Wyze once); the NAS keeps the account and each camera becomes one wyze:// line, the same P2P road tinyCam and docker-wyze-bridge use. Needs DTLS firmware; Gwell models (Cam OG, Pan v4, Floodlight Pro) are not yet supported.' },
   { id: 'ring',    label: 'Ring',        how: 'Add > Ring on the NAS restreamer signs in and writes one ring:// line per device.' },
   { id: 'onvif',   label: 'ONVIF',       how: 'driveway: onvif://user:pass@192.168.1.x — the sovereign PoE backbone (DR-0050); UniFi Protect speaks this and rtsps.' },
   { id: 'rtsp',    label: 'RTSP / RTMP', how: 'garage: rtsp://user:pass@192.168.1.y/live — anything that already streams.' },
@@ -175,7 +177,7 @@ export function authHeaders(token) {
 // browser. The PowerShell steps below remain as the road for a terminal.
 export const WYZE_FIELDS = Object.freeze([
   { key: 'email', label: 'Wyze email', type: 'email', autoComplete: 'username', hint: 'The email you sign in to the Wyze app with.' },
-  { key: 'password', label: 'Wyze password', type: 'password', autoComplete: 'current-password', hint: 'Used once to sign in; the NAS keeps it, this browser does not.' },
+  { key: 'password', label: 'Wyze password', type: 'password', autoComplete: 'current-password', hint: 'Used once to sign in; the NAS keeps it. Kept on this device only until the NAS accepts it.' },
   { key: 'api_id', label: 'API ID', type: 'text', autoComplete: 'off', hint: 'Made once on the Wyze Developer API Console (the link above). It is NOT in the Wyze app or on my.wyze.com.' },
   { key: 'api_key', label: 'API Key', type: 'password', autoComplete: 'off', hint: 'Shown once beside the API ID when you create it; copy both then. The key signs in without the 2FA code prompt.' },
 ]);
@@ -199,6 +201,47 @@ export const WYZE_API_KEY_STEPS = Object.freeze([
 ]);
 
 /** Pure: which fields are missing, before anything is sent. */
+// THE DRAFT SURVIVES A RELOAD (2026-10-07; Darrell, after the app redeployed
+// under him with four typed values and the NAS's 404 still on screen: "Why am
+// I needing to redo this?!"). The form kept its values only in React state,
+// so a deploy, a tab reload or a PWA relaunch erased them before the NAS ever
+// accepted them. Now the draft is kept on THIS device (the same storage that
+// already holds the family key, a higher-value secret) until the NAS says ok,
+// then erased; Clear erases it by hand. Never sent anywhere but the NAS.
+export const WYZE_DRAFT_KEY = 'poetech.cameras.wyze-draft.v1';
+const EMPTY_WYZE = Object.freeze({ email: '', password: '', api_id: '', api_key: '' });
+function storageOf(storage) {
+  if (storage) return storage;
+  try { return globalThis.localStorage || null; } catch { return null; }
+}
+export function loadWyzeDraft(storage = null) {
+  const st = storageOf(storage);
+  if (!st) return { ...EMPTY_WYZE };
+  try {
+    const raw = st.getItem(WYZE_DRAFT_KEY);
+    const d = raw ? JSON.parse(raw) : null;
+    const out = { ...EMPTY_WYZE };
+    if (d && typeof d === 'object') for (const k of Object.keys(EMPTY_WYZE)) if (typeof d[k] === 'string') out[k] = d[k];
+    return out;
+  } catch { return { ...EMPTY_WYZE }; }
+}
+export function saveWyzeDraft(fields, storage = null) {
+  const st = storageOf(storage);
+  if (!st) return false;
+  try {
+    const d = {};
+    for (const k of Object.keys(EMPTY_WYZE)) d[k] = typeof fields[k] === 'string' ? fields[k] : '';
+    if (!Object.values(d).some(Boolean)) { st.removeItem(WYZE_DRAFT_KEY); return true; }
+    st.setItem(WYZE_DRAFT_KEY, JSON.stringify(d));
+    return true;
+  } catch { return false; }
+}
+export function clearWyzeDraft(storage = null) {
+  const st = storageOf(storage);
+  if (!st) return;
+  try { st.removeItem(WYZE_DRAFT_KEY); } catch { /* fine */ }
+}
+
 export function validateWyzeSetup(fields) {
   const f = fields || {};
   const missing = WYZE_FIELDS.filter((d) => !String(f[d.key] || '').trim()).map((d) => d.key);
@@ -272,4 +315,46 @@ export function isAscii(s) {
     if (n < 32 || n > 126) return false;
   }
   return true;
+}
+
+// THE SERVICE SAYS WHETHER IT RUNS ITS OWN CODE (DR-0772). /health names the
+// sha of the code that is serving (`forwarder`) and the sha of the file on the
+// NAS disk (`on_disk`). Equal: current. Different: the running process is
+// behind the file (the 2026-10-07 hour of 404s), and ONE button fixes it from
+// the app. Either missing: an older forwarder that cannot say -- 'unknown',
+// never a guess.
+export function serviceCodeState(health) {
+  const running = health && typeof health.forwarder === 'string' ? health.forwarder : '';
+  const onDisk = health && typeof health.on_disk === 'string' ? health.on_disk : '';
+  if (!running || !onDisk) return 'unknown';
+  return running === onDisk ? 'current' : 'behind';
+}
+
+export function classifyRestartResult({ status, body, networkError } = {}) {
+  if (networkError) return { kind: 'unreachable', message: 'The camera road did not answer. Nothing was restarted.' };
+  const err = body && typeof body.error === 'string' ? body.error : '';
+  if (status === 200 && body && body.ok) {
+    return {
+      kind: 'ok',
+      changed: body.changed === true,
+      message: body.changed === true
+        ? 'Restarting the camera service on the newer code. It is back in about ten seconds; this screen checks again on its own.'
+        : 'Restarting the camera service. It is back in about ten seconds; this screen checks again on its own.',
+    };
+  }
+  if (status === 429) return { kind: 'too-soon', message: `The service was restarted moments ago. Try again in ${Number.isFinite(Number(body && body.retry_in)) ? body.retry_in : 60} seconds.` };
+  if (status === 401) return { kind: 'unauthorized', message: 'The family key on this device was refused. Paste the current key again (Admin > NAS photos).' };
+  if (status === 404) return { kind: 'old-service', message: 'The NAS is running an older camera service that cannot restart itself yet. It updates itself within 15 minutes of a merge.' };
+  return { kind: 'error', message: `The camera road answered HTTP ${status}${err ? ` (${err})` : ''}. Nothing was restarted.` };
+}
+
+export async function restartService(token, fetchImpl = globalThis.fetch) {
+  try {
+    const r = await fetchWithTimeout(restartUrl(), { method: 'POST', headers: authHeaders(token) }, RESTART_TIMEOUT_MS, fetchImpl);
+    let body = null;
+    try { body = await r.json(); } catch { body = null; }
+    return classifyRestartResult({ status: r.status, body });
+  } catch {
+    return classifyRestartResult({ networkError: true });
+  }
 }

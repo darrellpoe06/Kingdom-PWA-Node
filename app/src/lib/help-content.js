@@ -416,6 +416,22 @@ export const HELP = {
     why: 'Ideas become useful when they take a shareable shape. Making them here keeps the whole flow — from a Note to a finished piece — inside one tool you own.',
     section: 'create',
   },
+  cameras: {
+    title: 'Cameras',
+    tag: 'Your cameras, inside the app, from your own server.',
+    what: 'Cameras shows the family\'s own cameras from the family\'s own NAS: a snapshot of each one every five seconds while the tab is open, and full motion in place when you tap a tile. It works the way tinyCam Pro and the other camera apps work: the NAS signs in to the camera maker once, then pulls video straight from each camera. Nothing goes through a stranger\'s cloud to reach you.',
+    how: [
+      'Open Cameras. If you see the sign-in form, the NAS is up and simply has no cameras yet.',
+      'For Wyze: press Open the Wyze API key page, sign in there with your Wyze email and password, press Create an API Key, and copy the API ID and API Key it shows (the key is shown once).',
+      'Come back, fill in the four boxes (Wyze email, Wyze password, API ID, API Key) and press Sign in and add my cameras. What you typed stays on this device until the NAS accepts it, so a reload never makes you type it again.',
+      'Press Hear the steps to have them read aloud, start to finish.',
+      'Tap any camera tile for full motion; press Close to take it down. Any other system you own (Ring, ONVIF, RTSP) is one line in the restreamer\'s config.',
+      'If the camera service is behind its code, the tab says so and offers Update the camera service now; one press, no terminal.',
+    ],
+    why: 'The home is the family\'s business. Seeing your own doors and yards from the same app that holds your money, your lessons and your church, served by hardware you own, is the whole point of a family operating system.',
+    when: 'Open it when you want to see the house, or once, as the Wyze account owner, to sign in so everyone in the family can.',
+    section: 'start',
+  },
   voice: {
     title: 'Voice',
     tag: 'Listen to anything, in a voice you choose.',

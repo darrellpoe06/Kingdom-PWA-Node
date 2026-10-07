@@ -42,6 +42,10 @@
 #        persisted by go2rtc). {ok, added, cameras:[{id,name,model,dtls,
 #        registered,existing}]} -- never a source url. 401 wyze-sign-in-refused
 #        when Wyze says no; 409 while another setup runs; 502 go2rtc dark.
+#   POST /restart                      bearer. {ok, restarting, running, on_disk}
+#        then this process exits 3 and systemd (Restart=on-failure) starts it
+#        again from the file on disk. 429 restart-too-soon inside 60 s of the
+#        last one. The in-app "Restart the camera service" button (DR-0772).
 #   GET  /snap/<id>.jpg?w=&h=          bearer OR ticket. One JPEG frame.
 #   GET  /live/<id>.mp4?t=             ticket. Progressive MP4 (Chrome, Edge,
 #                                      Firefox, Android). Ends itself at
@@ -112,6 +116,18 @@ def code_sha(path=None):
 
 
 CODE_SHA = code_sha()
+
+# RESTART FROM THE APP (2026-10-07; Darrell: "We also want all functions to be
+# able to work inside the PoeTech App", "You do it!!!!!!!"). /health names the
+# running sha AND the sha of the file on disk; when they differ the service is
+# behind its own code (exactly the 2026-10-07 hour of 404s), and the Cameras
+# tab says so and offers one button. POST /restart answers, then exits 3 so
+# systemd's Restart=on-failure brings the process back from the file on disk.
+# Bearer-locked; one restart per RESTART_MIN_SECONDS (a tapped-twice button
+# never restarts twice); nothing is pulled or written by this route.
+RESTART_MIN_SECONDS = float(os.environ.get("CAMS_RESTART_MIN_SECONDS", "60"))
+RESTART_STATE = {"last": 0.0}
+RESTART_LOCK = threading.Lock()
 
 # WYZE SIGN-IN FROM THE APP (2026-10-07; Darrell: "Is that the easiest way to
 # build it so I don't have to do much work for it to work right away?" -- no,
@@ -313,8 +329,10 @@ def upstream_query(query, drop=("t",)):
 
 # --- The handler -------------------------------------------------------------
 def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_SECONDS,
-                 max_snap=MAX_SNAP_INFLIGHT, snap_timeout=SNAP_TIMEOUT, segment_timeout=SEGMENT_TIMEOUT):
+                 max_snap=MAX_SNAP_INFLIGHT, snap_timeout=SNAP_TIMEOUT, segment_timeout=SEGMENT_TIMEOUT,
+                 exit_fn=None, now_fn=time.time):
     upstream = upstream.rstrip("/")
+    exit_fn = exit_fn or (lambda code: os._exit(code))
     live_gate = threading.BoundedSemaphore(max_live)
     snap_gate = threading.BoundedSemaphore(max_snap)
 
@@ -414,10 +432,12 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
         def do_POST(self):
             raw_path, _, _query = self.path.partition("?")
             path = strip_prefix(raw_path)
-            if path not in ("/ticket", "/setup/wyze"):
+            if path not in ("/ticket", "/setup/wyze", "/restart"):
                 return self._json(404, {"error": "not-found"})
             if not self._authed():
                 return self._json(401, {"error": "unauthorized"})
+            if path == "/restart":
+                return self._restart()
             try:
                 length = int(self.headers.get("Content-Length") or 0)
             except ValueError:
@@ -436,6 +456,24 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
             return self._json(200, {"ticket": mint_ticket(token, cam), "expires_in": TICKET_TTL_SECONDS, "camera": cam})
 
         # -- handlers -------------------------------------------------------
+        def _restart(self):
+            now = now_fn()
+            with RESTART_LOCK:
+                since = now - RESTART_STATE["last"]
+                if RESTART_STATE["last"] and since < RESTART_MIN_SECONDS:
+                    return self._json(429, {"error": "restart-too-soon", "retry_in": int(RESTART_MIN_SECONDS - since) + 1})
+                RESTART_STATE["last"] = now
+            on_disk = code_sha()
+            self._json(200, {"ok": True, "restarting": True, "running": CODE_SHA, "on_disk": on_disk,
+                             "changed": on_disk != CODE_SHA})
+            try:
+                self.wfile.flush()
+            except OSError:
+                pass
+            # Leave after the answer is on the wire; exit 3 is a failure to
+            # systemd, so Restart=on-failure brings the process back from disk.
+            threading.Timer(0.5, exit_fn, args=(3,)).start()
+
         def _setup_wyze(self, body):
             fields = {}
             for k in WYZE_FIELDS:
@@ -522,6 +560,7 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
                 except ValueError:
                     count = 0
                 return self._json(200, {"ok": True, "go2rtc": version, "streams": count, "forwarder": CODE_SHA,
+                                        "on_disk": code_sha(),
                                         "max_live": max_live, "live_max_seconds": int(live_max_seconds)})
             except (urllib.error.URLError, OSError, ValueError):
                 return self._json(502, {"ok": False, "error": "go2rtc-unreachable", "upstream": upstream})
@@ -717,8 +756,11 @@ def _selftest():
     threading.Thread(target=fake.serve_forever, daemon=True).start()
 
     token = "test-token-" + str(os.getpid())
+    exits = []
+    clock = {"now": 1_000_000.0}
     fwd = ThreadingHTTPServer(("127.0.0.1", 0), make_handler(
-        "http://127.0.0.1:%d" % fp, token, max_live=2, live_max_seconds=1.0, max_snap=1, snap_timeout=5, segment_timeout=5))
+        "http://127.0.0.1:%d" % fp, token, max_live=2, live_max_seconds=1.0, max_snap=1, snap_timeout=5, segment_timeout=5,
+        exit_fn=lambda code: exits.append(code), now_fn=lambda: clock["now"]))
     fwd.daemon_threads = True
     fwd.handle_error = lambda request, client_address: None
     port = fwd.server_address[1]
@@ -752,6 +794,7 @@ def _selftest():
     j = json.loads(d)
     check(s == 200 and j.get("ok") is True and j.get("go2rtc") == "1.9.14-test" and j.get("streams") == 4, "GET /health -> 200 with go2rtc version + stream count")
     check(re.match(r"^[0-9a-f]{16}$", str(j.get("forwarder", ""))) is not None and j.get("forwarder") == code_sha(), "GET /health names the sha of the code that is actually serving (the outside witness compares it with main)")
+    check(j.get("on_disk") == code_sha() and j.get("on_disk") == j.get("forwarder"), "GET /health names the sha of the file on disk too (equal here: this process IS its file)")
     check(code_sha("/nonexistent/path") == "unknown", "a file that cannot be read names itself unknown, never a guess")
     s, _h, _d = call("GET", "/cams/health")
     check(s == 200, "GET /cams/health (un-stripped spelling) -> 200 too")
@@ -894,6 +937,27 @@ def _selftest():
         SETUP_LOCK.release()
     s, _h, _d = call("POST", "/setup/wyze", b"x" * (SETUP_MAX_BODY + 1), auth=B)
     check(s == 400, "an oversized setup body -> 400")
+
+    print("=== 8c. /restart: the one button in the app, locked, spaced, and it really leaves ===")
+    s, _h, d = call("POST", "/restart")
+    check(s == 401 and exits == [], "no bearer -> 401 and the process does NOT leave")
+    s, _h, d = call("POST", "/restart", auth=B)
+    j = json.loads(d.decode("utf-8"))
+    check(s == 200 and j.get("ok") is True and j.get("restarting") is True and j.get("running") == CODE_SHA and j.get("on_disk") == code_sha() and j.get("changed") is False, "a bearer restart answers 200 first, naming running + on-disk sha")
+    deadline = time.time() + 3
+    while not exits and time.time() < deadline:
+        time.sleep(0.05)
+    check(exits == [3], "then the process leaves with exit 3 (systemd Restart=on-failure brings it back from disk), got %r" % (exits,))
+    s, _h, d = call("POST", "/restart", auth=B)
+    check(s == 429 and b"restart-too-soon" in d and exits == [3], "a second tap inside %ds -> 429, no second exit" % RESTART_MIN_SECONDS)
+    clock["now"] += RESTART_MIN_SECONDS + 1
+    s, _h, _d = call("POST", "/restart", auth=B)
+    deadline = time.time() + 3
+    while len(exits) < 2 and time.time() < deadline:
+        time.sleep(0.05)
+    check(s == 200 and exits == [3, 3], "after the window a restart is allowed again")
+    s, _h, d = call("POST", "/restart", json.dumps({"x": 1}).encode(), auth=B)
+    check(s == 429, "a body changes nothing: the route takes none")
 
     print("=== 9. a DARK go2rtc reads as 502 everywhere, never as this process's own 200 ===")
     fake.shutdown(); fake.server_close()

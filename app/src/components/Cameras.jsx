@@ -33,13 +33,28 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { SectionTitle } from './shared.jsx';
 import { bridgeToken } from '../lib/nas-photos.js';
+import { setReadTarget, clearReadTarget, requestRead } from '../lib/read-target.js';
 import {
   SNAPSHOT_INTERVAL_MS, FETCH_TIMEOUT_MS, LIVE_FIRST_FRAME_TIMEOUT_MS,
   healthUrl, listUrl, ticketUrl, snapUrl, liveUrl, pickLiveMode,
   parseCameraList, groupByKind, KINDS, classifyServiceState,
   formatAge, formatBytes, fetchWithTimeout, authHeaders, setupCommands,
   WYZE_FIELDS, setupWyze, WYZE_API_KEY_HELP_URL, WYZE_API_KEY_STEPS,
+  serviceCodeState, restartService, loadWyzeDraft, saveWyzeDraft, clearWyzeDraft,
 } from '../lib/cameras.js';
+
+// THE STEPS CAN BE HEARD (2026-10-07; Darrell: "possible tutorial... Ari
+// explains"). The Wyze sign-in registers its steps as this screen's reading,
+// so the floating reader (and the Hear the steps button) reads them aloud,
+// highlighted in place, for anyone who would rather listen than read.
+const WYZE_READ_OWNER = 'cameras-wyze-setup';
+export function wyzeSetupReading() {
+  return [
+    'Sign in to Wyze once, here. This is a one-time step for the person who owns the Wyze account. Everyone else in the family only opens this tab.',
+    ...WYZE_API_KEY_STEPS.map((step, i) => `Step ${i + 1}. ${step}`),
+    'The API key is not in the Wyze app and not on my dot wyze dot com. It is made once on the Wyze Developer API Console, which the link opens.',
+  ].join(' ');
+}
 
 const card = 'bg-white border border-[#1A1815] p-4 sm:p-5';
 const labelCls = 'text-[0.5625rem] uppercase tracking-wider text-[#5A5751]';
@@ -63,7 +78,9 @@ const inputCls = 'w-full border border-[#1A1815] bg-white text-[#1A1815] px-3 py
 // answers. The result names each camera and says plainly which units the
 // restreamer cannot stream yet (non-DTLS firmware), never a guess.
 function WyzeSetup({ token, onAdded }) {
-  const [fields, setFields] = useState({ email: '', password: '', api_id: '', api_key: '' });
+  const [fields, setFieldsRaw] = useState(() => loadWyzeDraft());
+  const setFields = (fn) => setFieldsRaw((f) => { const next = typeof fn === 'function' ? fn(f) : fn; saveWyzeDraft(next); return next; });
+  const restored = useRef(Object.values(loadWyzeDraft()).some(Boolean)).current;
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState(null);
   const submit = async (e) => {
@@ -75,17 +92,26 @@ function WyzeSetup({ token, onAdded }) {
     setBusy(false);
     setResult(r);
     if (r.kind === 'ok') {
-      setFields({ email: '', password: '', api_id: '', api_key: '' });
+      clearWyzeDraft();
+      setFieldsRaw({ email: '', password: '', api_id: '', api_key: '' });
       if (onAdded) onAdded(r);
     }
   };
   const tone = result ? (result.kind === 'ok' ? 'text-[#2F6B3A]' : 'text-[#B85838]') : '';
+  useEffect(() => {
+    setReadTarget(WYZE_READ_OWNER, { label: 'the Wyze sign-in steps', title: 'Sign in to Wyze once', text: wyzeSetupReading(), elementId: 'wyze-setup' });
+    return () => clearReadTarget(WYZE_READ_OWNER);
+  }, []);
   return (
-    <form onSubmit={submit} data-testid="wyze-setup" className="mt-3 border-t border-[#E8E4DC] pt-3" aria-busy={busy}>
-      <div className={labelCls}>Sign in to Wyze once, here</div>
+    <form id="wyze-setup" onSubmit={submit} data-testid="wyze-setup" className="mt-3 border-t border-[#E8E4DC] pt-3" aria-busy={busy}>
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div className={labelCls}>Sign in to Wyze once, here</div>
+        <button type="button" className={`${btnGhost} focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={() => requestRead(WYZE_READ_OWNER, { startSentence: 0 })} data-testid="wyze-hear-steps" aria-label="Hear the steps read aloud">Hear the steps</button>
+      </div>
       <p className="text-xs text-[#5A5751] mt-1 mb-2">
-        One-time step for the person who owns the Wyze account. Everyone else in the family only opens this tab. The NAS signs in with these four values, keeps them, and lists your cameras. Nothing is kept in this browser.
+        One-time step for the person who owns the Wyze account. Everyone else in the family only opens this tab. The NAS signs in with these four values, keeps them, and lists your cameras. What you type stays on this device until the NAS accepts it, so a reload never makes you type it again; then it is erased here.
       </p>
+      {restored ? <p className="text-xs text-[#2F6B3A] mb-2" data-testid="wyze-draft-restored">Your earlier entries are still here. Press Sign in and add my cameras when the camera service is ready.</p> : null}
       <ol className="text-xs text-[#1A1815] list-decimal pl-5 mb-2 space-y-0.5" data-testid="wyze-key-steps">
         {WYZE_API_KEY_STEPS.map((step) => <li key={step}>{step}</li>)}
       </ol>
@@ -114,6 +140,7 @@ function WyzeSetup({ token, onAdded }) {
       </div>
       <div className="flex items-center gap-3 mt-3 flex-wrap">
         <button type="submit" className={`${btnDark}`} disabled={busy}>{busy ? 'Signing in to Wyze and listing cameras…' : 'Sign in and add my cameras'}</button>
+        <button type="button" className={`${btnGhost} focus:outline focus:outline-2 focus:outline-[#B85838]`} disabled={busy} onClick={() => { clearWyzeDraft(); setFieldsRaw({ email: '', password: '', api_id: '', api_key: '' }); }} data-testid="wyze-clear">Clear these from this device</button>
         {busy ? <span className="text-xs text-[#5A5751]">This can take up to a minute: Wyze lists the account, the NAS registers each camera.</span> : null}
       </div>
       {result ? (
@@ -149,10 +176,40 @@ function CopyBlock({ title, text, note }) {
   );
 }
 
+// THE SERVICE, RESTARTED FROM HERE (DR-0772; Darrell: "We also want all
+// functions to be able to work inside the PoeTech App", "You do it!!!!!!!").
+// /health says what code is running and what is on disk; when they differ
+// the notice says so and the one button restarts the service on the newer
+// code. No PowerShell, no ConnectBot. The road re-checks itself after.
+function ServiceRestart({ token, health, onDone }) {
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState(null);
+  const code = serviceCodeState(health);
+  const go = async () => {
+    if (busy) return;
+    setBusy(true);
+    setResult(null);
+    const r = await restartService(token);
+    setBusy(false);
+    setResult(r);
+    if (r.kind === 'ok' && onDone) setTimeout(onDone, 10000);
+  };
+  const tone = result ? (result.kind === 'ok' ? 'text-[#2F6B3A]' : 'text-[#B85838]') : '';
+  return (
+    <div className="flex items-center gap-2 flex-wrap" data-testid="service-restart">
+      {code === 'behind' ? (
+        <span className={chip.wait} data-testid="service-behind">camera service behind its code · running {health.forwarder} · on disk {health.on_disk}</span>
+      ) : null}
+      <button type="button" className={`${btnGhost} focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={go} disabled={busy} data-testid="service-restart-button">{busy ? 'Restarting…' : code === 'behind' ? 'Update the camera service now' : 'Restart the camera service'}</button>
+      {result ? <span className={`text-[0.6875rem] ${tone}`} role="status" aria-live="polite" data-testid="service-restart-result">{result.message}</span> : null}
+    </div>
+  );
+}
+
 function KindsHelp() {
   return (
     <div className="mt-2 text-xs text-[#1A1815]">
-      <p className="text-[#5A5751] mb-2">The restreamer on the NAS speaks each system&apos;s own protocol. A new system is one line in its config (<code>/volume1/docker/go2rtc/go2rtc.yaml</code>, under <code>streams:</code>), or a sign-in in its WebUI; it shows up here on the next refresh.</p>
+      <p className="text-[#5A5751] mb-2">The restreamer on the NAS speaks each system&apos;s own protocol, the same way tinyCam Pro does: sign in once, then pull video straight from each camera. Wyze is the sign-in above; any other system is one line in its config (<code>/volume1/docker/go2rtc/go2rtc.yaml</code>, under <code>streams:</code>); it shows up here on the next refresh.</p>
       <ul className="space-y-1">
         {KINDS.filter((k) => k.how).map((k) => (
           <li key={k.id}><span className="font-semibold">{k.label}</span> — <span className="font-mono text-[0.6875rem] break-all">{k.how}</span></li>
@@ -360,6 +417,9 @@ export default function Cameras() {
           <button type="button" onClick={load} className={`${btnGhost}`}>Refresh</button>
         </div>
       </div>
+      {token && health && health.status ? (
+        <div className="mb-3"><ServiceRestart token={token} health={health} onDone={load} /></div>
+      ) : null}
 
       {state === 'loading' && (
         <div className={card}><div className={labelCls}>Reading the camera road...</div></div>

@@ -12,6 +12,8 @@ import {
   parseCameraList, kindLabel, groupByKind, KINDS, classifyServiceState,
   formatAge, formatBytes, fetchWithTimeout, authHeaders, setupCommands, isAscii,
   validateWyzeSetup, classifySetupResult, setupWyze,
+  serviceCodeState, classifyRestartResult, restartService, restartUrl,
+  WYZE_DRAFT_KEY, loadWyzeDraft, saveWyzeDraft, clearWyzeDraft,
 } from '../lib/cameras.js';
 
 describe('the road: every URL is same-origin under /cams', () => {
@@ -211,5 +213,68 @@ describe('setupWyze', () => {
     expect(JSON.parse(calls[0].opts.body)).toEqual({ email: 'd@x.org', password: 'pw', api_id: 'id', api_key: 'key' });
     expect((await setupWyze({ email: 'd@x.org', password: 'pw', api_id: 'id', api_key: 'key' }, 'tok', async () => { throw new TypeError('Failed to fetch'); })).kind).toBe('unreachable');
     expect((await setupWyze({ email: '' }, 'tok', fetchImpl)).kind).toBe('invalid');
+  });
+});
+
+// DR-0772: the service names the code it runs; the app says when it is behind and restarts it from here.
+describe('serviceCodeState', () => {
+  it('equal shas are current, different are behind, a forwarder that cannot say is unknown (never a guess)', () => {
+    expect(serviceCodeState({ forwarder: 'abc', on_disk: 'abc' })).toBe('current');
+    expect(serviceCodeState({ forwarder: 'abc', on_disk: 'def' })).toBe('behind');
+    expect(serviceCodeState({ forwarder: 'abc' })).toBe('unknown');
+    expect(serviceCodeState(null)).toBe('unknown');
+  });
+});
+
+describe('classifyRestartResult + restartService', () => {
+  it('names each outcome: restarting (on newer code or not), too soon, key refused, an old service, a dark road', () => {
+    expect(classifyRestartResult({ status: 200, body: { ok: true, changed: true } })).toMatchObject({ kind: 'ok', changed: true });
+    expect(classifyRestartResult({ status: 200, body: { ok: true, changed: true } }).message).toMatch(/newer code/);
+    expect(classifyRestartResult({ status: 200, body: { ok: true, changed: false } }).message).not.toMatch(/newer code/);
+    expect(classifyRestartResult({ status: 429, body: { error: 'restart-too-soon', retry_in: 41 } })).toMatchObject({ kind: 'too-soon' });
+    expect(classifyRestartResult({ status: 429, body: { error: 'restart-too-soon', retry_in: 41 } }).message).toMatch(/41 seconds/);
+    expect(classifyRestartResult({ status: 401, body: { error: 'unauthorized' } }).kind).toBe('unauthorized');
+    expect(classifyRestartResult({ status: 404, body: { error: 'not-found' } })).toMatchObject({ kind: 'old-service' });
+    expect(classifyRestartResult({ status: 404, body: { error: 'not-found' } }).message).toMatch(/15 minutes/);
+    expect(classifyRestartResult({ networkError: true }).kind).toBe('unreachable');
+    expect(classifyRestartResult({ status: 500, body: { error: 'x' } }).kind).toBe('error');
+  });
+  it('POSTs to /cams/restart with the family bearer and never throws', async () => {
+    const calls = [];
+    const r = await restartService('tok', async (url, opts) => { calls.push({ url, opts }); return { status: 200, json: async () => ({ ok: true, restarting: true, changed: false }) }; });
+    expect(r.kind).toBe('ok');
+    expect(calls[0].url).toBe(restartUrl());
+    expect(calls[0].url).toBe(`${CAMS_BASE}/restart`);
+    expect(calls[0].opts.method).toBe('POST');
+    expect(calls[0].opts.headers.Authorization).toBe('Bearer tok');
+    expect((await restartService('tok', async () => { throw new TypeError('Failed to fetch'); })).kind).toBe('unreachable');
+  });
+});
+
+// 2026-10-07, Darrell after a redeploy wiped four typed values: "Why am I needing to redo this?!"
+describe('the Wyze draft survives a reload', () => {
+  const mem = () => { const m = new Map(); return { getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), removeItem: (k) => m.delete(k), size: () => m.size }; };
+  it('saves what is typed, loads it back, clears on demand, and an all-empty draft removes the key', () => {
+    const st = mem();
+    expect(loadWyzeDraft(st)).toEqual({ email: '', password: '', api_id: '', api_key: '' });
+    expect(saveWyzeDraft({ email: 'd@x.org', password: 'pw', api_id: 'id', api_key: 'k' }, st)).toBe(true);
+    expect(JSON.parse(st.getItem(WYZE_DRAFT_KEY))).toEqual({ email: 'd@x.org', password: 'pw', api_id: 'id', api_key: 'k' });
+    expect(loadWyzeDraft(st)).toEqual({ email: 'd@x.org', password: 'pw', api_id: 'id', api_key: 'k' });
+    saveWyzeDraft({ email: '', password: '', api_id: '', api_key: '' }, st);
+    expect(st.size()).toBe(0);
+    saveWyzeDraft({ email: 'd@x.org' }, st);
+    clearWyzeDraft(st);
+    expect(st.size()).toBe(0);
+  });
+  it('a corrupt or foreign value never breaks the form', () => {
+    const st = mem();
+    st.setItem(WYZE_DRAFT_KEY, '{not json');
+    expect(loadWyzeDraft(st)).toEqual({ email: '', password: '', api_id: '', api_key: '' });
+    st.setItem(WYZE_DRAFT_KEY, JSON.stringify({ email: 5, api_id: 'ok', bogus: 'x' }));
+    expect(loadWyzeDraft(st)).toEqual({ email: '', password: '', api_id: 'ok', api_key: '' });
+    const broken = { getItem: () => { throw new Error('no storage'); }, setItem: () => { throw new Error('no'); }, removeItem: () => { throw new Error('no'); } };
+    expect(loadWyzeDraft(broken)).toEqual({ email: '', password: '', api_id: '', api_key: '' });
+    expect(saveWyzeDraft({ email: 'a' }, broken)).toBe(false);
+    expect(() => clearWyzeDraft(broken)).not.toThrow();
   });
 });
