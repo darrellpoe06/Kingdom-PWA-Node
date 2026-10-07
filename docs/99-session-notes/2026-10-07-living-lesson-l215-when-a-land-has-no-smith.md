@@ -1,4 +1,8 @@
-# 2026-10-07 — Living Lesson L215: When a Land Has No Smith
+# 2026-10-07 — Living Lesson L215, "When a Land Has No Smith — Count the Cost, Prepare the Field, and Who Gives the Safety"
+
+**Module id:** `ll215-when-a-land-has-no-smith-count-the-cost-prepare-the-field-and-who-gives-the-safety`
+
+**Decision record:** DR-0793.
 
 **What came in.** Darrell forwarded a business newsletter into the app by email (Gmail thread `1a11668e8023cd3e`, 2026-10-07 12:48 UTC) and wrote one word of his own above it: **Lesson**. That one word is the instruction, and it sets the order: the newsletter is material to study, the Word is the teaching, and the Word goes first.
 
