@@ -136,13 +136,14 @@ export default function ProvingOurWays() {
         ) : null}
 
         <table className="mt-3 w-full text-left text-[0.75rem]" data-testid="proving-table">
+          <caption className="sr-only">Every registered function, where it lives, the day it shipped, how many people have used it and whether it has been tried</caption>
           <thead>
             <tr className={labelCls}>
-              <th className="py-1 pr-2 font-semibold">Function</th>
-              <th className="py-1 pr-2 font-semibold">Where</th>
-              <th className="py-1 pr-2 font-semibold">Shipped</th>
-              <th className="py-1 pr-2 font-semibold text-right">People</th>
-              <th className="py-1 font-semibold">State</th>
+              <th scope="col" className="py-1 pr-2 font-semibold">Function</th>
+              <th scope="col" className="py-1 pr-2 font-semibold">Where</th>
+              <th scope="col" className="py-1 pr-2 font-semibold">Shipped</th>
+              <th scope="col" className="py-1 pr-2 font-semibold text-right">People</th>
+              <th scope="col" className="py-1 font-semibold">State</th>
             </tr>
           </thead>
           <tbody>
@@ -199,12 +200,13 @@ export default function ProvingOurWays() {
         <p className="mt-1 text-[0.8125rem] text-[#1A1815]" data-testid="proving-direction">{direction.word}</p>
         {rows.length ? (
           <table className="mt-2 w-full text-left text-[0.75rem]" data-testid="proving-history">
+            <caption className="sr-only">One assessment a day: how many registered functions had been tried, out of how many</caption>
             <thead>
               <tr className={labelCls}>
-                <th className="py-1 pr-2 font-semibold">Day</th>
-                <th className="py-1 pr-2 font-semibold text-right">Tried</th>
-                <th className="py-1 pr-2 font-semibold text-right">Registered</th>
-                <th className="py-1 font-semibold text-right">Share</th>
+                <th scope="col" className="py-1 pr-2 font-semibold">Day</th>
+                <th scope="col" className="py-1 pr-2 font-semibold text-right">Tried</th>
+                <th scope="col" className="py-1 pr-2 font-semibold text-right">Registered</th>
+                <th scope="col" className="py-1 font-semibold text-right">Share</th>
               </tr>
             </thead>
             <tbody>
