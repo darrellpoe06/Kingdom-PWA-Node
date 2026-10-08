@@ -1279,6 +1279,84 @@ export function fitGrid({ count, width, height, aspect = 16 / 9, gap = 0 } = {})
 export function setViewScale(state, id, scale) {
   return updateView(state, id, (v) => ({ ...v, scale: clampScale(scale) }));
 }
+
+// =============================================================================
+// THE WINDOW THAT WAS UP COMES BACK UP, AND THE CONTROLS STOP TAKING THE PICTURE
+// =============================================================================
+// Darrell 2026-10-08, with a photograph of the wall on the television: "The
+// window for bigger images makes big black sections around the bottom and
+// sides... for the controls... can we move the controls so we keep all video
+// capacity also... when reset happens inside the app... bring it back up to the
+// live window that was already up."
+//
+// Two things, and they are separate:
+//
+//   1. THE BAR WAS COSTING THE PICTURE. The window laid out as a column: the
+//      grid, then a 56px bar. fitGrid was handed (height - 56), and because
+//      every tile is 16:9 the lost height costs WIDTH too — four cameras two
+//      across on a 1920x1080 screen dropped from 951px tiles to 907px, leaving
+//      a black band down BOTH sides as well as under the bar. The bar now
+//      floats OVER the picture and the grid gets the whole screen.
+//
+//   2. A RESET LOST THE WINDOW. Whether the window was up lived in React state
+//      only, so a service-worker update, a crash or any reload dropped the
+//      viewer back to the page with the cameras still streaming behind it. The
+//      open window is now remembered, and the one that was up comes back up.
+//
+// CLOSE IS THE SIGNAL. Closing the window clears the memory, so a window the
+// viewer deliberately shut stays shut; only a window that was still up when the
+// app went away comes back. A stale one is dropped as well — a window from
+// yesterday returning unasked is a surprise, not a resume.
+export const WINDOW_KEY = 'poetech.cameras.window.v1';
+export const WINDOW_RESUME_MS = 12 * 60 * 60 * 1000;
+
+/** Remember the window that is up, or forget it when `viewId` is empty. */
+export function saveOpenWindow(viewId, storage = null, at = Date.now()) {
+  const st = viewStore(storage);
+  if (!st) return false;
+  try {
+    if (!viewId) { st.removeItem(WINDOW_KEY); return true; }
+    st.setItem(WINDOW_KEY, JSON.stringify({ viewId: String(viewId), at: Number(at) || 0 }));
+    return true;
+  } catch { return false; }
+}
+
+/** What was remembered: `{ viewId, at }`, or null. */
+export function loadOpenWindow(storage = null) {
+  const st = viewStore(storage);
+  try {
+    const raw = st && st.getItem(WINDOW_KEY);
+    if (!raw) return null;
+    const j = JSON.parse(raw);
+    if (!j || typeof j.viewId !== 'string' || !j.viewId) return null;
+    return { viewId: j.viewId, at: Number(j.at) || 0 };
+  } catch { return null; }
+}
+
+/**
+ * The view whose window should come back up, or '' for none. Pure.
+ * It comes back only when the remembered view still exists and the memory is
+ * fresh; anything else opens nothing.
+ */
+export function windowToResume(state, saved, now = Date.now(), within = WINDOW_RESUME_MS) {
+  if (!saved || !saved.viewId || !state || !Array.isArray(state.views)) return '';
+  if (!state.views.some((v) => v && v.id === saved.viewId)) return '';
+  const age = Number(now) - (Number(saved.at) || 0);
+  if (!Number.isFinite(age) || age < 0 || age > within) return '';
+  return saved.viewId;
+}
+
+// THE BAR SHOWS ITSELF WHEN ASKED AND GETS OUT OF THE WAY (DR-0817). It floats
+// over the picture, so it must not sit there over the picture forever. It shows
+// on open and on any input, and hides again after a quiet spell — except while
+// a remote's focus is inside it, because hiding the thing a D-pad is standing on
+// strands the viewer.
+export const WINDOW_BAR_QUIET_MS = 4000;
+export function barShowing({ lastInputAt = 0, now = Date.now(), focusInBar = false, quiet = WINDOW_BAR_QUIET_MS } = {}) {
+  if (focusInBar) return true;
+  const since = Number(now) - (Number(lastInputAt) || 0);
+  return !Number.isFinite(since) || since < quiet;
+}
 export function renameView(state, id, name) {
   return updateView(state, id, (v) => ({ ...v, name: String(name || v.name).trim().slice(0, VIEW_NAME_MAX) || v.name }));
 }
