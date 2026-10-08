@@ -1549,7 +1549,7 @@ def ensure_bridge_roads(upstream, streams, bridge_cams, lans=None, roads=None, l
     lans = lan_networks() if lans is None else lans
     roads = roads_load(roads_path) if roads is None else roads
     by_mac = dict((c["mac"], c["uri"]) for c in (bridge_cams or []) if c.get("mac") and c.get("uri"))
-    out = {"to_bridge": [], "to_direct": [], "unknown": [], "kept": 0, "known": len(by_mac)}
+    out = {"to_bridge": [], "to_direct": [], "resigned": [], "unknown": [], "kept": 0, "known": len(by_mac)}
     if not isinstance(streams, dict):
         return out
     ids = set(streams.keys())
@@ -1589,6 +1589,23 @@ def ensure_bridge_roads(upstream, streams, bridge_cams, lans=None, roads=None, l
             direct = rec.get("direct")
             back = forced == "direct" or (forced != "bridge" and direct and not bridge_road_wanted(direct, lans)[0])
             if not back or not direct:
+                # Staying on the bridge. The line go2rtc holds must be the line the
+                # bridge accepts TODAY: the second field read (cams-diag 37717592345)
+                # found 805_north already on the bridge road with the line the first
+                # install wrote, before the stream credentials existed, so every
+                # sync "kept" it and go2rtc kept answering "user/pass not provided".
+                # Compared against the RECORD, not the producer URL go2rtc echoes,
+                # so a sync re-signs once and never loops.
+                uri = rec.get("uri") or urllib.parse.urlsplit(url).path.rsplit("/", 1)[-1]
+                want = bridge_source(uri) if uri else None
+                if want and rec.get("bridge") != want:
+                    if not set_stream_source(upstream, sid, want, config_path, log):
+                        continue
+                    set_stream_source(upstream, sd_of(sid), sd_source(want), config_path, log)
+                    roads[sid] = dict(rec, road="bridge", bridge=want, uri=uri, since=rec.get("since") or now, forced=forced)
+                    out["resigned"].append(sid)
+                    log("bridge-road: %s re-signed with the bridge's current stream line" % sid)
+                    continue
                 out["kept"] += 1
                 continue
             if not set_stream_source(upstream, sid, direct, config_path, log):
@@ -4133,6 +4150,22 @@ def _selftest():
     check("poetech:" not in scrub_text(bsrc) and "***@127.0.0.1" in scrub_text(bsrc), "scrub_text masks the bridge credentials wherever a URL is quoted")
     rd_pub = roads_public({"805_north": {"road": "bridge", "bridge": bsrc, "direct": "wyze://10.0.0.180?enr=S", "uri": "805-north", "reason": "other-network"}})
     check("poetech" not in json.dumps(rd_pub) and "8555" not in json.dumps(rd_pub), "the public roads view carries neither URL")
+    # The second field read (cams-diag 37717592345): a camera already on the bridge road with the
+    # unsigned line the first install wrote is RE-SIGNED once, twin included, then left alone.
+    FakeGo2rtcRoads.state["puts"] = []
+    unsigned = "rtsp://127.0.0.1:8555/805-north"
+    streams_unsigned = {"805_north": {"producers": [{"url": unsigned}]}, "805_north_sd": {"producers": [{"url": unsigned + "-sub"}]}}
+    rd = roads_load(br_roads); rd["805_north"] = {"road": "bridge", "bridge": unsigned, "direct": "wyze://10.0.0.180?uid=A&enr=S1&mac=AA:BB:CC:DD:EE:01&model=HL_CAM4&dtls=true", "uri": "805-north", "reason": "other-network", "since": 1234.0, "forced": None}; roads_save(rd, br_roads)
+    res6 = ensure_bridge_roads(rup, streams_unsigned, bc, lans=lans, roads=roads_load(br_roads), log=logs.append, config_path=br_cfg, roads_path=br_roads, now=1700.0)
+    puts = FakeGo2rtcRoads.state["puts"]
+    check(res6["resigned"] == ["805_north"] and res6["to_bridge"] == [] and ("805_north", bsrc) in puts and ("805_north_sd", bsrc + "-sub") in puts, "a bridge road written before the credentials existed is re-signed with them, twin included (%r)" % scrub_text(json.dumps(puts)))
+    rd = roads_load(br_roads)
+    check(rd["805_north"]["bridge"] == bsrc and rd["805_north"]["road"] == "bridge" and rd["805_north"]["since"] == 1234.0 and rd["805_north"]["direct"].startswith("wyze://10.0.0.180") and '  805_north: "%s"' % bsrc in open(br_cfg).read(), "the record keeps its direct line and its since, carries the signed line, and the config follows")
+    FakeGo2rtcRoads.state["puts"] = []
+    res7 = ensure_bridge_roads(rup, {"805_north": {"producers": [{"url": bsrc}]}, "805_north_sd": {"producers": [{"url": bsrc + "-sub"}]}}, bc, lans=lans, roads=roads_load(br_roads), log=logs.append, config_path=br_cfg, roads_path=br_roads, now=1800.0)
+    check(res7["resigned"] == [] and res7["kept"] >= 1 and FakeGo2rtcRoads.state["puts"] == [], "once signed, the next sync keeps it and makes no call")
+    res8 = ensure_bridge_roads(rup, {"805_north": {"producers": [{"url": unsigned}]}}, bc, lans=lans, roads=roads_load(br_roads), log=logs.append, config_path=br_cfg, roads_path=br_roads, now=1900.0)
+    check(res8["resigned"] == [] and FakeGo2rtcRoads.state["puts"] == [], "a producer URL go2rtc echoes without its credentials does not re-sign again: the record is the judge, so there is no loop")
     s, _h, d = call("GET", "/health")
     jb = json.loads(d.decode("utf-8")).get("bridge")
     check(jb and jb["configured"] is True and jb["api"] == BRIDGE_API and jb["last"]["known"] == 3, "/health carries the bridge: configured, its address, the last sync's count")
