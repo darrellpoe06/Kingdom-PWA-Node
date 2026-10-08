@@ -229,12 +229,43 @@ describe('the header is wired to it', () => {
     expect(SRC).toMatch(/if \(!offer\) return null;/);
   });
 
-  it('the header row carries it in both of its shapes, and the shell gates it', () => {
-    expect(NAV, 'the row takes an openers node').toContain('openers');
+  it('the header row mounts it in BOTH of its shapes', () => {
+    expect(NAV).toContain("import OpenerButton from './OpenerButton.jsx'");
     // Both branches: the many-tab row and the one-tab brand row.
-    expect(NAV.match(/\{openers\}/g) || []).toHaveLength(2);
-    expect(SHELL).toContain('<OpenerButton');
-    expect(SHELL, 'family-gated: a church account never sees the house opener').toMatch(/isFamilyMember[^\n]*OpenerButton|OpenerButton[^\n]*isFamilyMember/);
+    expect(NAV.match(/<OpenerButton \/>/g) || []).toHaveLength(2);
+  });
+
+  it('the FROZEN shell is untouched by this feature (DR-0078)', () => {
+    // The monolith budget guard caught the first version of this, which added
+    // 21 lines to the shell for a new feature. The control owns its own read
+    // and the row mounts it, so the shell changed by zero lines.
+    expect(SHELL, 'no opener code belongs in the frozen shell').not.toMatch(/OpenerButton|OpenersPanel|subscribeOpeners/);
+    const panel = readFileSync(join(process.cwd(), 'src/components/DevOps.jsx'), 'utf8');
+    expect(panel, 'the panel lives in a feature module').toContain('OpenersPanel');
+  });
+
+  it('it asks the household record itself, and RLS is the gate (DR-0060)', () => {
+    expect(SRC).toContain('subscribeOpeners');
+    const sync = readFileSync(join(process.cwd(), 'src/lib/openers-sync.js'), 'utf8');
+    expect(sync).toContain("from('household_openers')");
+    // A failed read must NOT read as "this house has none".
+    expect(sync).toMatch(/return null;/);
+    // and the SELECTED COLUMNS never carry the hardware the NAS alone should
+    // know (the prose above them names those only to say they are excluded).
+    const cols = (sync.match(/OPENER_COLUMNS = '([^']+)'/) || [])[1] || '';
+    expect(cols).toBe('id, name, place, kind, enabled, reports');
+    for (const secret of ['url', 'pin', 'topic', 'broker', 'address']) {
+      expect(cols, `columns must not carry ${secret}`).not.toContain(secret);
+    }
+  });
+
+  it('every press is KEPT, with the honest result', () => {
+    // db:opener_presses was an orphan until the flow graph said so: the ledger
+    // existed and nothing wrote to it.
+    expect(SRC).toContain('recordPress(');
+    const sync = readFileSync(join(process.cwd(), 'src/lib/openers-sync.js'), 'utf8');
+    expect(sync).toContain("from('opener_presses').insert");
+    expect(sync, 'the stored result is the one readPressResult read').toContain('result: read.state');
   });
 
   it('it is chrome, so it does not grow with the body text (DR-0816)', () => {

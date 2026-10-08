@@ -69,6 +69,72 @@ purpose and each was caught:
 The suite went green again after each revert. A gate that always passes is
 itself a lie; these four were shown to catch.
 
+**AND THEN THE GATES CAUGHT NINE MORE, WHICH IS THE REAL LESSON OF THIS RECORD.** The
+first push of this work ran only the tests I had written plus lint and a build.
+That is the DR-0076 failure in its most ordinary form: I verified what I had
+thought of. The full gate set found nine defects I had not thought of, and
+every one of them was real.
+
+1. **`monolith-budget-guard`: the frozen shell grew by 21 lines.** DR-0078
+   freezes `poe-financial-mvp-v28.jsx` to bug fixes, and I had put a new
+   feature's state, effect, imports and panel mount straight into it. The fix
+   is not a raised budget. The control now owns its own read and the header row
+   mounts it, and the panel lives in the `DevOps.jsx` feature module, so **the
+   shell changed by zero lines** (5302, holding). This also made the design
+   better: the component asking the household record itself means RLS is the
+   only gate, with no client-side family check standing in for a server one
+   (DR-0060).
+2. **`system-flow-graph`: `db:opener_presses` was an ORPHAN.** This is the one
+   that mattered most. I had written the press ledger, given it RLS, forbidden
+   update and delete on it, and described it in this record as "every press,
+   kept" — and nothing in the code ever inserted a row. The gate called it read
+   by the panel and written by no one, which was exactly true. `recordPress`
+   now writes every press with the result `readPressResult` actually read, so an
+   unanswered press is kept as unanswered. A table nobody writes is a painted
+   number with a schema (DR-0061), and I had shipped one.
+3. **`system-flow-graph`: `service:openers` and both tables had no place in the
+   flow graph.** Now registered as three nodes, because the flow genuinely has
+   three parts: who asks, who acts, and who records.
+4. **`system-flow-graph`: the no-route gate caught `http:openers` as a
+   connection over a route the Funnel does not mount.** Also exactly true, and
+   on purpose. It is now declared with `open: { blocker, reReview }` and
+   recorded in the **UNACTUATED** section of
+   `infra/nas-transport/RECORDED-STATE.md`, which is the honest state of a
+   service that ships disabled. The row says plainly why this is unlike the
+   `/nas-photos` and `/taxes` defects it sits beside: the app is not quietly
+   calling a dark backend, because the header renders no button at all until an
+   opener is registered and armed, so there is nothing to fall through.
+5. **`tenancy-guard`: an instance-scoped table without the overlays.** A
+   migration that creates one must re-run `apply_assistant_scope_overlay()` and
+   `apply_viewer_readonly_overlay()`, or a viewer can write it. On THIS table
+   that means a viewer could arm an opener on somebody's house. Both overlays
+   now run in 0232's order.
+6. **`the-local-app-carries-the-house-address`: `/openers/` was missing from
+   `REHOMED_ROUTES`.** The native shell would not have carried the house
+   address for the new route. Listed.
+
+Plus `legibility-guard`, which needed its health artifact regenerated for the
+new panel. And then the full suite, run properly this time, found **three
+more**:
+
+7. **`american-spelling`: I had written "colour" in our own voice.** One word,
+   in a comment, and the gate is right to refuse it.
+8. **`funnel-actuation-guard`: `/openers` was not declared in the form the
+   guard reads.** I had added a table row inside the UNACTUATED section; the
+   guard looks for that section's own bullet form, `` - `/openers` ... re-review:
+   <date> ``. Writing a declaration in a shape the machine does not read is the
+   same defect as not declaring it, which is the whole point of having a guard
+   rather than a convention.
+9. **`started-by-record`: a disabled service with no recorded why.** DR-0247's
+   waiting-by-default check. A service shipping `enabled: false` has to carry
+   `disabledWhy` and a `reReview` date, and mine carried neither, so it read as
+   agreed work parked on a human start. It now says what is true: the whole
+   road is shipped and verified, the brakes are proven, and what waits is one
+   value only Darrell holds. Two further gates were added to the test in the same pass, so the
+first two findings cannot come back: one asserts the frozen shell contains no
+opener code at all, and one asserts the press is recorded with the honest
+result.
+
 **Also measured:** lint clean at `--max-warnings 0`; `table-a11y-guard` OK with
 all 195 `<th>` carrying scope after the panel's two new tables; the real Vite
 build succeeds with the control in the header.
@@ -141,6 +207,8 @@ cannot report its position never reads as opened.
   two captioned tables.
 - `npx eslint src --max-warnings 0` — clean.
 - A real `vite build` — succeeds.
+- The FULL Vitest suite, every guard, and lint — run before the second push,
+  which is the discipline the first push skipped.
 - Migration 0254 is idempotent by construction (guarded `CREATE TABLE IF NOT
   EXISTS`, `DROP POLICY IF EXISTS` before each `CREATE POLICY`), and applies on
   merge through `db-migrate`, which was observed applying 0253 earlier the same

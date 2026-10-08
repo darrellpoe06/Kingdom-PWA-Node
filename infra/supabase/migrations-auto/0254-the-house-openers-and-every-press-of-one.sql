@@ -137,3 +137,13 @@ CREATE POLICY opener_presses_insert ON opener_presses FOR INSERT
        WHERE o.id = opener_presses.opener_id AND im.user_id = auth.uid() AND i.slug = 'poe-family'
     )
   );
+
+-- ---------------------------------------------------------------------------
+-- THE OVERLAYS, in 0232's order. household_openers is instance-scoped, so the
+-- assistant scope overlay (0130) and the viewer read-only overlay (DR-0241)
+-- have to be re-run or a viewer could WRITE it — which on this table means a
+-- viewer could arm an opener on somebody's house. The tenancy guard catches a
+-- migration that forgets this, and it caught this one.
+-- ---------------------------------------------------------------------------
+SELECT public.apply_assistant_scope_overlay();
+SELECT public.apply_viewer_readonly_overlay();

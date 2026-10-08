@@ -1110,6 +1110,33 @@ const NODES = [
     id: 'transport', name: 'Same-origin transport to the NAS', purpose: 'Every NAS-backed route the app calls rides this proxy.',
     reads: [{ res: 'http:funnel', token: 'Funnel' }], seeds: [],
   }),
+  // THE HOUSE OPENERS (Darrell 2026-10-08; DR-0823). The header presses, the
+  // NAS drives the relay, and the ledger keeps what came back. Three nodes
+  // because the flow really has three: who asks, who acts, and who records.
+  app('app/src/components/OpenerButton.jsx', {
+    id: 'opener-press', name: 'Opener button (the header)',
+    purpose: 'A hold on the header button presses the garage door, or any other registered opener, while a lesson is playing in the car.',
+    reads: [{ res: 'db:household_openers', file: 'app/src/lib/openers-sync.js', token: "from('household_openers')" }],
+    writes: [
+      { res: 'http:openers', file: 'app/src/lib/openers.js', token: 'PRESS_PATH' },
+      { res: 'db:opener_presses', file: 'app/src/lib/openers-sync.js', token: "from('opener_presses').insert" },
+    ],
+    seeds: ['openers-service', 'openers-registry'],
+  }),
+  app('app/src/components/OpenersPanel.jsx', {
+    id: 'openers-registry', name: 'House openers (Dev/Ops)',
+    purpose: 'Register an opener, arm or disarm it, and read the record of every press. An opener that is not armed here puts no button in the header.',
+    reads: [{ res: 'db:opener_presses', token: "from('opener_presses')" }],
+    writes: [{ res: 'db:household_openers', token: "from('household_openers').insert" }],
+    seeds: ['opener-press'],
+  }),
+  rider('service:openers', 'infra/nas-openers/openers.py', {
+    id: 'openers-service', name: 'House openers (the only code that drives a relay)',
+    purpose: 'Resolves an opener id to the real device from a NAS-local devices.json and pulses it, with a per-opener hourly budget, a single-flight lock, and armed-by-record. Ships disabled.',
+    reads: [{ res: 'http:openers', file: 'app/functions/openers/[[path]].js', token: 'openers' }],
+    writes: [{ res: 'relay:opener', file: 'infra/nas-openers/openers.py', token: 'press_device' }],
+    seeds: [],
+  }),
   rider('service:ytzero', 'infra/nas-ytzero/docker-compose.yml', {
     id: 'ytzero', name: 'YT Zero (chosen channels only)', purpose: 'A YouTube inbox of only the channels chosen, on our own box.',
     reads: [{ res: 'yt:channel', file: 'infra/nas-ytzero/README.md', token: 'RSS' }], writes: [{ res: 'nas:ytzero-inbox', file: 'infra/nas-ytzero/README.md', token: 'SQLite' }], seeds: [],
@@ -1336,6 +1363,11 @@ const RESOURCES = {
   'db:contacts': { label: 'a person\u2019s own address book (0247, DR-0736; read by its owner alone)' },
   'db:dm_device_keys': { label: 'the public key of each device a person holds (0249, DR-0737; read by anyone signed in, written by its owner alone)' },
   'file:vcf': { label: 'a phone\u2019s exported contacts file', source: 'The phone\u2019s Contacts app or Google Contacts shares it; the person uploads it in Messages.' },
+  'db:household_openers': { label: 'the openers this household owns, and which are armed (0254, DR-0823)' },
+  'db:opener_presses': { label: 'every press of an opener and what came back', sink: 'A steward reads it in Dev/Ops; it is append-only, with no update or delete policy, so the record of who opened the house and when cannot be tidied away.' },
+  'http:openers': { label: 'a press on its way to the house', route: '/openers',
+    open: { blocker: 'The Funnel mounts nothing at /openers yet, and that is on purpose: this is the only service in the fleet that drives a physical actuator on the family\u2019s house, so it ships disabled in services.json and is armed by hand rather than by a merge (DR-0823). It is recorded in the UNACTUATED section of infra/nas-transport/RECORDED-STATE.md, which is the honest state until Darrell names the opener hardware and fills in devices.json on the NAS.', reReview: '2026-11-08' } },
+  'relay:opener': { label: 'the garage door, or another opener, actually moving', sink: 'The door itself is the end of this flow. Only a device that reports its own position sends anything back, and a press nobody confirmed is recorded as unanswered rather than as opened (DR-0076).' },
 };
 
 // ---------------------------------------------------------------------------

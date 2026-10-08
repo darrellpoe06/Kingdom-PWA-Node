@@ -24,9 +24,21 @@ import {
   describeOpener, HOLD_MS, PRESS_PATH,
 } from '../lib/openers.js';
 import { noteUse } from '../lib/usage-events.js';
+import { subscribeOpeners, recordPress } from '../lib/openers-sync.js';
 
-export default function OpenerButton({ rows = null, fetchImpl = null }) {
-  const openers = openersFrom(rows);
+export default function OpenerButton({ rows = undefined, fetchImpl = null }) {
+  // IT ASKS THE HOUSEHOLD RECORD ITSELF. The shell is frozen (DR-0078), so
+  // this control owns its own read rather than being handed one, and RLS is
+  // the gate that decides whether anything comes back (DR-0060): a church or
+  // premium account gets an empty list and therefore no button, with no
+  // client-side check standing in for a server one. `rows` is still accepted
+  // so a test can hand it a world without a database.
+  const [live, setLive] = useState(null);
+  useEffect(() => {
+    if (rows !== undefined) return undefined;
+    return subscribeOpeners(setLive);
+  }, [rows]);
+  const openers = openersFrom(rows === undefined ? live : rows);
   const [chosen, setChosen] = useState(() => loadLastOpener());
   const offer = openerToOffer(openers, chosen);
 
@@ -62,9 +74,17 @@ export default function OpenerButton({ rows = null, fetchImpl = null }) {
       });
       let payload = null;
       try { payload = await r.json(); } catch { payload = null; }
-      setSaid(readPressResult(r && r.ok ? payload : null).text);
+      const read = readPressResult(r && r.ok ? payload : null);
+      setSaid(read.text);
+      // KEEP THE PRESS. The ledger existed and nothing wrote to it until the
+      // flow graph called db:opener_presses an orphan, which it was. The
+      // recorded result is the HONEST one, so an unanswered press is kept as
+      // unanswered rather than as opened (DR-0076).
+      recordPress(opener, read);
     } catch {
-      setSaid(readPressResult(null).text);
+      const read = readPressResult(null);
+      setSaid(read.text);
+      recordPress(opener, read);
     } finally {
       setSentAt(0);
     }
@@ -146,7 +166,7 @@ export default function OpenerButton({ rows = null, fetchImpl = null }) {
           {openers.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
         </select>
       ) : null}
-      {/* What actually happened, in words, for a driver who cannot read a colour. */}
+      {/* What actually happened, in words, for a driver who cannot read a color. */}
       <span data-testid="opener-said" role="status" aria-live="polite" className="sr-only">{said}</span>
     </div>
   );

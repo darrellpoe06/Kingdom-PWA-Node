@@ -31,6 +31,7 @@ import React from 'react';
 import { TabScroll, NavControls } from './shared.jsx';
 import UiIcon from './UiIcon.jsx';
 import { BrandLockup } from './TextSizeControl.jsx';
+import OpenerButton from './OpenerButton.jsx';
 
 // The one tab, when the list holds exactly one (separators excluded); else null.
 export function loneTab(children) {
@@ -38,7 +39,7 @@ export function loneTab(children) {
   return tabs.length === 1 ? tabs[0] : null;
 }
 
-export default function TopNavRow({ hatch = null, navHistory = {}, collapsed = false, onToggleHeader, brandName = '', brandTagline = '', home = null, openers = null, children }) {
+export default function TopNavRow({ hatch = null, navHistory = {}, collapsed = false, onToggleHeader, brandName = '', brandTagline = '', home = null, children }) {
   const lone = loneTab(children);
   // ONE WAY BACK PER PHONE ROW (DR-0640). When the collapsed row sits inside
   // the one-tab row, its "Show header" button and this chevron do the same
@@ -93,10 +94,12 @@ export default function TopNavRow({ hatch = null, navHistory = {}, collapsed = f
             {/* THE OPENER (Darrell 2026-10-08, driving home with a lesson
                 playing: "the garage door opener button is there for easy
                 access"). Pinned beside the chevron so it never scrolls away
-                with the tabs. Rendered only when the house has a registered
-                opener and the account is family (components/OpenerButton.jsx);
-                a church account never sees it. */}
-            {openers}
+                with the tabs. It asks the household record itself and renders
+                NOTHING unless a real opener is registered and armed, and RLS
+                is the gate that decides that (DR-0060), so no account needs a
+                client-side check to be kept out. The shell is frozen
+                (DR-0078), so the row mounts it rather than being handed it. */}
+            <OpenerButton />
             {chevron}
           </div>
         </nav>
@@ -136,7 +139,7 @@ export default function TopNavRow({ hatch = null, navHistory = {}, collapsed = f
             {home.label} <span aria-hidden="true">→</span>
           </a>
         ) : null}
-        {openers}
+        <OpenerButton />
         {chevron}
       </div>
     </nav>
