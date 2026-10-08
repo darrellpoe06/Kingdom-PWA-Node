@@ -39,6 +39,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { confirmThen } from '../lib/confirm-action.js';
 import { setReadTarget, clearReadTarget, requestRead } from '../lib/read-target.js';
 import { enterFullScreen, exitFullScreen, leavesFullScreen } from '../lib/reader-controller.js';
+import { useScreenAwake } from '../lib/screen-awake.js';
 import {
   SNAPSHOT_INTERVAL_MS, FETCH_TIMEOUT_MS, LIVE_FIRST_FRAME_TIMEOUT_MS,
   healthUrl, listUrl, ticketUrl, snapUrl, liveUrl,
@@ -909,6 +910,12 @@ function ViewWindow({ view, cams, token, liveMax, now, onClose, onScale }) {
     return () => window.removeEventListener('resize', on);
   }, []);
   const scale = clampScale(view.scale);
+  // THE SCREEN DOES NOT GO TO SLEEP WHILE THE WALL IS UP (DR-0817). Darrell
+  // 2026-10-08: "Also needs to keep the window open indefinitely.... as long as
+  // it has power.... and come back up in a power outage... or reset... etc.."
+  // A wall of cameras the television blanks after ten minutes is not up. The
+  // same hold the reader uses, under its own key so neither drops the other's.
+  const awake = useScreenAwake(true, 'camera-window');
   // The floating bar shows itself when asked and gets out of the way. Any key,
   // tap or pointer move wakes it; a quiet spell hides it; it never hides while
   // a remote's focus is standing inside it (barShowing, lib/cameras.js).
@@ -991,6 +998,9 @@ function ViewWindow({ view, cams, token, liveMax, now, onClose, onScale }) {
         <button type="button" className={`${bar} ${ring} focus:outline focus:outline-2`} onClick={() => onScale(scale + VIEW_SCALE_STEP)} disabled={scale >= VIEW_SCALE_MAX} aria-label="Bigger — fill more of the screen" data-testid="view-window-bigger">+ Bigger</button>
         {scale !== 1 ? <button type="button" className={`${bar} ${ring} focus:outline focus:outline-2`} onClick={() => onScale(1)} data-testid="view-window-fit">Fit</button> : null}
         <button type="button" className={`${bar} ${ring} focus:outline focus:outline-2`} onClick={onClose} aria-label="Close the window (Back or Esc also does)" data-testid="view-window-close">Close</button>
+        {/* Said, not hidden: where the browser gives no wake lock we cannot
+            stop the screen sleeping, and the viewer should know which it is. */}
+        {!awake.supported ? <span className="text-[0.625rem] text-white/70" data-testid="view-window-sleep-note">{awake.hint}</span> : null}
       </div>
     </div>
   );
