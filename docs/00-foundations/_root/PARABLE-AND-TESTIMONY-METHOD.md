@@ -23,6 +23,23 @@ after understanding the process").
 Never present a parable as a real event, and never present a testimony that did
 not happen. The label is a promise about truth (DR-0076).
 
+**Said in words, on every surface (DR-0811, 2026-10-07).** A parable is headed
+**"Picture this, a parable — [title]"** and closes with one plain line: *"A
+parable, not a record: an imagined scene that pictures the verse, the way Jesus
+taught (Matthew 13:34). The people and the family in it are not real."* A
+testimony is headed **"A true story, lived — [title] · [source]"** and closes
+with *"this happened, told with [source]'s consent."* The spoken flow and the
+printable notes say the same (`lib/story-truth.js`, one source for all three).
+
+**A parable never wears a real name (DR-0811).** Darrell, reading L40 on a
+tablet: *"This is a story that had my family name in it and it's not actually
+true... if you didn't know me you would believe it."* The people and the family
+in a parable are invented, so a parable never carries the Poe surname, PoeTech,
+Darrell's name, or a living relative's name, and never puts words or deeds into
+a real person's life. What a real person actually said or lived is a
+**testimony** with its source, or it stays out. Gate:
+`parables-never-wear-a-real-name.test.js` over every course file.
+
 ## The algorithm — six steps
 
 1. **NAME the one truth.** Pick ONE verse / one point the story will land. One

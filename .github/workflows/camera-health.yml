@@ -14,6 +14,11 @@
 name: camera-health
 
 on:
+  # workflow_run below never fires in practice: the deploy is itself started by
+  # a GITHUB_TOKEN dispatch and workflow_run from a token-driven run is
+  # suppressed. deploy-cloudflare-pages.yml dispatches this workflow explicitly
+  # after a successful deploy (found 2026-10-08, the first night). Kept so a
+  # human-started deploy still chains.
   workflow_run:
     workflows: ["Deploy (Cloudflare Pages)"]
     types: [completed]
