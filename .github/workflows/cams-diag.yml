@@ -74,7 +74,8 @@ jobs:
           $SSH "CAMERA='$CAMERA' LOG_LINES='$LOG_LINES' sh -s" <<'EOS'
           PATH=/usr/local/bin:/opt/bin:/usr/bin:/bin:$PATH; export PATH
           # Scrub every credential-shaped value before anything is printed.
-          scrub() { sed -E 's/([?&"]?(enr|password|pass|pwd|token|api_key|key|refresh_token|access_token|secret)[=:"]+)[^&" ]*/\1***/Ig; s#://[^/@ ]+@#://***@#g'; }
+          # Masks by NAME and by SHAPE: a 32-hex token is a key whatever it is called (the bridge's access log carries ?api=<key> verbatim; fifth field read, DR-0809).
+          scrub() { sed -E 's/([?&"]?(enr|password|pass|pwd|token|api|api_key|key|refresh_token|access_token|secret)[=:"]+)[^&" ]*/\1***/Ig; s#://[^/@ ]+@#://***@#g; s/\b[0-9a-f]{32}\b/***/g'; }
           SUDO=""; sudo -n true 2>/dev/null && SUDO="sudo -n"
           echo "=== forwarder /health (127.0.0.1:8773) ==="
           curl -s -m 8 http://127.0.0.1:8773/health | scrub; echo
@@ -141,7 +142,7 @@ jobs:
           try: d=json.load(sys.stdin)
           except Exception as e: print("(bridge /api unreadable: %s)" % e); sys.exit(0)
           cams=d.get("cameras") if isinstance(d,dict) else None
-          if not isinstance(cams,dict): print("(no cameras key; keys=%s)" % list(d)[:8] if isinstance(d,dict) else "(not an object)"); sys.exit(0)
+          if not isinstance(cams,dict): print("(no cameras key; keys=%s; error=%r)" % (list(d)[:8], d.get("error")) if isinstance(d,dict) else "(not an object)"); sys.exit(0)
           for k in sorted(cams):
               c=cams[k] if isinstance(cams[k],dict) else {}
               print("%-36s connected=%-5s enabled=%-5s status=%-12s on_demand=%s" % (k, c.get("connected"), c.get("enabled"), c.get("status"), c.get("on_demand")))
@@ -158,6 +159,10 @@ jobs:
             echo "=== forwarder /why/$CAMERA (bearer from the box's own secret file) ==="
             TOK="$(cat /volume1/PoeTech/secrets/chat-bridge-token.txt 2>/dev/null || $SUDO cat /volume1/PoeTech/secrets/chat-bridge-token.txt 2>/dev/null)"
             if [ -n "$TOK" ]; then curl -s -m 25 -H "Authorization: Bearer $TOK" "http://127.0.0.1:8773/why/$CAMERA" | scrub; echo; else echo "(token file unreadable by this user)"; fi
+            echo "=== a 35s stream probe: $CAMERA (bytes received while go2rtc waits up to #timeout=30 for the on-demand camera) ==="
+            curl -s -m 35 -o /dev/null -w 'HTTP %{http_code} in %{time_total}s, %{size_download} bytes\n' "http://127.0.0.1:1984/api/stream.mp4?src=$CAMERA" || echo "stream probe ended/timed out"
+            echo "=== docker logs poetech-wyze-bridge AFTER the probes (last 30 lines, scrubbed): the bridge's reaction to $CAMERA ==="
+            if [ -n "$DOCKER" ]; then $DOCKER logs --tail 30 poetech-wyze-bridge 2>&1 | scrub; fi
           fi
           echo "=== done ==="
           EOS

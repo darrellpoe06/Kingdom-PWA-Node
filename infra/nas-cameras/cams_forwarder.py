@@ -1278,12 +1278,24 @@ def _env_quote(v):
     return '"%s"' % str(v).replace("\\", "\\\\").replace('"', '\\"')
 
 
+# The generation of the bridge's API key. Bumping this number in the repo mints
+# a NEW WB_API on the next --bridge-env (install.sh, every services-sync), the
+# compose project recreates the bridge with it, and the forwarder re-signs every
+# bridge road (the record differs from the line the bridge accepts). Rotation
+# by a committed number: deterministic, idempotent, no hand on the NAS.
+#   gen 1 -> 2 (2026-10-08, DR-0809 fifth field read): the key had been carried
+#   in the forwarder's query string, so the bridge's own access log recorded
+#   it, and cams-diag printed that log into a public Actions run (logs deleted).
+BRIDGE_KEY_GENERATION = 2
+
+
 def bridge_env_sync(src=None, dst=None, creds=None):
     """Derive the bridge's env file from the kept Wyze sign-in. The bridge's names
     (WYZE_EMAIL, WYZE_PASSWORD, API_ID, API_KEY) differ from ours for two of the
     four. WB_API (its API key, which the forwarder presents) and WB_PASSWORD
-    (its web UI) are minted once and kept across re-syncs. Root-only, atomic.
-    Answers "written" | "unchanged" | "no-wyze-env" | "error"."""
+    (its web UI) are minted once and kept across re-syncs, except that WB_API is
+    minted afresh when the file's WB_API_GEN is behind BRIDGE_KEY_GENERATION.
+    Root-only, atomic. Answers "written" | "unchanged" | "no-wyze-env" | "error"."""
     src = src or (_wyze.SECRETS_ENV if _wyze else "/volume1/PoeTech/secrets/wyze.env")
     dst = dst or BRIDGE_ENV
     if creds is None:
@@ -1297,12 +1309,16 @@ def bridge_env_sync(src=None, dst=None, creds=None):
     if not creds or not all(creds.get(k) for k in ("email", "password", "api_id", "api_key")):
         return "no-wyze-env"
     old = read_env_pairs(dst)
-    wb_api = old.get("WB_API") or secrets.token_hex(16)
+    try:
+        old_gen = int(old.get("WB_API_GEN") or 1)
+    except ValueError:
+        old_gen = 1
+    wb_api = old.get("WB_API") if (old.get("WB_API") and old_gen >= BRIDGE_KEY_GENERATION) else secrets.token_hex(16)
     wb_pass = old.get("WB_PASSWORD") or secrets.token_urlsafe(12)
     body = (
         "# The Wyze bridge's sign-in (DR-0809), derived from wyze.env by cams_forwarder.py --bridge-env. Root-only. Edit wyze.env, not this.\n"
-        "WYZE_EMAIL=%s\nWYZE_PASSWORD=%s\nAPI_ID=%s\nAPI_KEY=%s\nWB_API=%s\nWB_PASSWORD=%s\nWB_USERNAME=poetech\n"
-        % (_env_quote(creds["email"]), _env_quote(creds["password"]), _env_quote(creds["api_id"]), _env_quote(creds["api_key"]), _env_quote(wb_api), _env_quote(wb_pass))
+        "WYZE_EMAIL=%s\nWYZE_PASSWORD=%s\nAPI_ID=%s\nAPI_KEY=%s\nWB_API=%s\nWB_API_GEN=%d\nWB_PASSWORD=%s\nWB_USERNAME=poetech\n"
+        % (_env_quote(creds["email"]), _env_quote(creds["password"]), _env_quote(creds["api_id"]), _env_quote(creds["api_key"]), _env_quote(wb_api), BRIDGE_KEY_GENERATION, _env_quote(wb_pass))
     )
     try:
         with open(dst, "r", encoding="utf-8") as fh:
@@ -1338,11 +1354,14 @@ def norm_mac(mac):
 
 
 def bridge_cameras(api=None, key=None, timeout=None):
-    """The bridge's own listing (GET /api, key in header and query) ->
-    [{uri, mac, nickname, connected, enabled, status}]; None when it does not answer."""
+    """The bridge's own listing (GET /api, key in the `api` HEADER only; its
+    web_ui.py accepts header or query, and a query string lands verbatim in the
+    bridge's own access log, which is how the key reached a public Actions run
+    on the fifth field read) -> [{uri, mac, nickname, connected, enabled, status}];
+    None when it does not answer."""
     api = (api or BRIDGE_API).rstrip("/")
     key = bridge_api_key() if key is None else key
-    url = api + "/api" + ("?api=" + urllib.parse.quote(key) if key else "")
+    url = api + "/api"
     req = urllib.request.Request(url, headers={"api": key} if key else {})
     try:
         with urllib.request.urlopen(req, timeout=timeout or BRIDGE_TIMEOUT) as r:
@@ -4044,7 +4063,14 @@ def _selftest():
     be = read_env_pairs(br_env)
     check(be["WYZE_EMAIL"] == "d@example.com" and be["WYZE_PASSWORD"] == "pw-$ecret" and be["API_ID"] == "id1" and be["API_KEY"] == "key-secret" and len(be["WB_API"]) == 32 and be["WB_PASSWORD"], "the bridge's names (API_ID / API_KEY) carry our values; an API key and a web password are minted")
     first_key = be["WB_API"]
-    check(bridge_env_sync(br_wyze_env, br_env) == "unchanged" and read_env_pairs(br_env)["WB_API"] == first_key, "a re-sync changes nothing and keeps the minted key")
+    check(bridge_env_sync(br_wyze_env, br_env) == "unchanged" and read_env_pairs(br_env)["WB_API"] == first_key and read_env_pairs(br_env)["WB_API_GEN"] == str(BRIDGE_KEY_GENERATION), "a re-sync changes nothing, keeps the minted key, and stamps the key generation")
+    # Rotation by committed generation: a file behind BRIDGE_KEY_GENERATION (or without a stamp, as every file before 2026-10-08) gets a NEW key once; the web password stands.
+    old_env = read_env_pairs(br_env)
+    with open(br_env, "w") as fh:
+        fh.write("WB_API=%s\nWB_PASSWORD=%s\nWB_USERNAME=poetech\n" % (first_key, old_env["WB_PASSWORD"]))
+    check(bridge_env_sync(br_wyze_env, br_env) == "written" and read_env_pairs(br_env)["WB_API"] != first_key and len(read_env_pairs(br_env)["WB_API"]) == 32 and read_env_pairs(br_env)["WB_PASSWORD"] == old_env["WB_PASSWORD"] and read_env_pairs(br_env)["WB_API_GEN"] == str(BRIDGE_KEY_GENERATION), "a file without the current generation stamp gets a fresh API key once; the web password is kept")
+    first_key = read_env_pairs(br_env)["WB_API"]
+    check(bridge_env_sync(br_wyze_env, br_env) == "unchanged" and read_env_pairs(br_env)["WB_API"] == first_key, "at the current generation the key stands across re-syncs")
     with open(br_wyze_env, "w") as fh:
         fh.write('WYZE_EMAIL="d@example.com"\nWYZE_PASSWORD="new-pw"\nWYZE_API_ID="id1"\nWYZE_API_KEY="key-secret"\n')
     check(bridge_env_sync(br_wyze_env, br_env) == "written" and read_env_pairs(br_env)["WYZE_PASSWORD"] == "new-pw" and read_env_pairs(br_env)["WB_API"] == first_key, "a changed Wyze password is carried over; the minted key still stands")
@@ -4064,8 +4090,12 @@ def _selftest():
         def log_message(self, *a):
             pass
 
+        leaked = False
+
         def do_GET(self):
             path, _, query = self.path.partition("?")
+            if "api" in urllib.parse.parse_qs(query):
+                FakeBridge.leaked = True
             key = urllib.parse.parse_qs(query).get("api", [""])[0] or self.headers.get("api", "")
             if key != "BRKEY":
                 self.send_response(401); self.end_headers(); return
@@ -4085,6 +4115,7 @@ def _selftest():
     check(bridge_cameras(key="wrong") is None, "the bridge's listing needs its key")
     bc = bridge_cameras(key="BRKEY")
     check(bc is not None and sorted(c["uri"] for c in bc) == ["805-north", "front-cam", "garage-doors"] and next(c for c in bc if c["uri"] == "805-north")["mac"] == "AABBCCDDEE01", "the listing is read by uri with its MAC, never a credential")
+    check(FakeBridge.leaked is False, "the key travels in the api header only, never the query string (the bridge's access log records every query; fifth field read)")
 
     class FakeGo2rtcRoads(BaseHTTPRequestHandler):
         state = {"puts": [], "refuse": False}
