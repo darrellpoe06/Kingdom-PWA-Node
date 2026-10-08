@@ -100,3 +100,30 @@ past what was measured. **re-review: 2026-10-13.**
   except through the workflows, the change reaches the NAS by the services-sync
   manifest, and the proof is one `voice-intake-health` run after the merge.
   **re-review: 2026-10-07** — dispatch it and read the choir-dates line.
+
+## Re-review 2026-10-08 — not yet proven on the NAS, and why
+
+Dispatched `voice-intake-health.yml` (run 37706661019, success) and read the
+choir-dates lines. **The fix has not reached the box yet, so the re-review
+cannot pass — and the same run shows the diagnosis was right.**
+
+| what the run says | reading |
+| --- | --- |
+| `rider-context raised: FileNotFoundError [Errno 2] ... 'yt-dlp'` | the bare name still fails in a cron-like PATH — exactly the failure this record fixes |
+| `[default args] exit 0, stdout: B6aZq8dPRT0 1790524749` and `[--ignore-no-formats-error] exit 0` | a yt-dlp IS installed and answering ("2026.08.19 installed, verified and answering"); only the lookup by name fails |
+| `7GWOQdhced4 exit 0, stdout: 7GWOQdhced4 1791129451` | the one undated row left (`undated rows: 1`) resolves when yt-dlp is called by path |
+| the NAS traceback: `choir_dates_sync.py", line 134 ... RuntimeError("yt-dlp not available (pip install yt-dlp)")` | **the stale copy.** On `main` that raise is at line 217 and reads `no yt-dlp could be started`. The box is running the pre-fix file at `/volume1/PoeTech/repos/Kingdom-PWA-Node/...` |
+| last `ok` sync entries 2026-10-01 and 2026-10-02; `choir-dates.DONE` dated Oct 2 07:39 | the newest choir-dates activity on the box predates the 2026-10-07 merge, so it has not run since |
+
+So nothing here contradicts the fix; the box simply has not pulled it. The
+installer runs the script straight out of the repo clone
+(`choir_dates_install.sh:11-12`, `REPO/infra/church-media-golive`), so the
+proof is one services-sync cycle after that clone advances past the merge.
+
+**re-review: 2026-10-10** — dispatch `voice-intake-health.yml` again and
+check two things, in this order: that the traceback's line number and wording
+have moved to the current file (or no traceback at all), and then that the
+choir-dates line reads healthy rather than DEGRADED. If the clone has still
+not advanced by then, the question stops being about this record and becomes
+"what advances the NAS clone, and how would we know if it stopped" — which is
+a DR-0108 review of that way, not another date on this one.
