@@ -182,7 +182,7 @@ export const BUSINESS_RESEARCH_MODULES = [
       {
         kind: 'parable', tone: 'sober',
         title: 'The Tower on Fifth Street',
-        body: 'A man in the congregation borrowed against his house to open a second store because the first one had a good year. He had not counted the rent on the second lease against the slow months, and he had not read what his first store’s own numbers said about how much of that good year was one contract that would not repeat. The second store closed in fourteen months and the first one went with it. He told Darrell afterward that he had heard the verse about counting the cost a hundred times and had never once sat down and done it. He does it now, on paper, before he believes his own plan.',
+        body: 'A man in the congregation borrowed against his house to open a second store because the first one had a good year. He had not counted the rent on the second lease against the slow months, and he had not read what his first store’s own numbers said about how much of that good year was one contract that would not repeat. The second store closed in fourteen months and the first one went with it. He told the teacher afterward that he had heard the verse about counting the cost a hundred times and had never once sat down and done it. He does it now, on paper, before he believes his own plan.',
       },
     ],
     benefits: [
@@ -277,7 +277,7 @@ export const BUSINESS_RESEARCH_MODULES = [
       {
         kind: 'parable', tone: 'sober',
         title: 'What the Exhibit Said',
-        body: 'A brother who had worked at a video store for nine years asked Darrell whether it was true that the company had been fine until the last minute. Darrell did not answer from memory. He pulled up the exhibit Blockbuster filed on the day it entered chapter 11 and read him the sentence where the company itself listed, among its risks, its ability to continue as a going concern. The brother was quiet for a while. Then he said he wished someone had read him that filing while he still worked there. The record had been public the whole time. Nobody had gone to it.',
+        body: 'A brother who had worked at a video store for nine years asked the teacher whether it was true that the company had been fine until the last minute. The teacher did not answer from memory. He pulled up the exhibit Blockbuster filed on the day it entered chapter 11 and read him the sentence where the company itself listed, among its risks, its ability to continue as a going concern. The brother was quiet for a while. Then he said he wished someone had read him that filing while he still worked there. The record had been public the whole time. Nobody had gone to it.',
       },
     ],
     benefits: [
@@ -554,7 +554,7 @@ export const BUSINESS_RESEARCH_MODULES = [
       {
         kind: 'parable', tone: 'light',
         title: 'The Scale in the Pantry',
-        body: 'Naomi kept a kitchen scale that read a little heavy, and for a year every loaf she baked was slightly under what she thought. She found out when she weighed a bag of flour that said its weight on the label. She did not throw out the scale; she wrote the correction on a piece of tape and stuck it to the base, and every recipe after that was true. Darrell used the tape at the table to explain what a court does with a case: it does not trust the loudest party’s scale. It writes down the standard first, then weighs, then numbers every finding so anyone can check the tape.',
+        body: 'Naomi kept a kitchen scale that read a little heavy, and for a year every loaf she baked was slightly under what she thought. She found out when she weighed a bag of flour that said its weight on the label. She did not throw out the scale; she wrote the correction on a piece of tape and stuck it to the base, and every recipe after that was true. The teacher used the tape at the table to explain what a court does with a case: it does not trust the loudest party’s scale. It writes down the standard first, then weighs, then numbers every finding so anyone can check the tape.',
       },
       {
         kind: 'parable', tone: 'sober',
@@ -647,7 +647,7 @@ export const BUSINESS_RESEARCH_MODULES = [
       {
         kind: 'parable', tone: 'light',
         title: 'The Bulletin Board',
-        body: 'The church kept a printed bulletin that once announced a wrong date for the men’s breakfast, and forty men showed up on the wrong Saturday. The next bulletin did not pretend. It printed the correction in a box at the top with the old date crossed out and the new one beside it, and it kept that box for a month. Attendance at the breakfast went up. Darrell pointed at the box when he taught this lesson: a record that corrects itself in public is more trustworthy than one that never admits a mistake, and a researcher should read the corrections as closely as the announcements.',
+        body: 'The church kept a printed bulletin that once announced a wrong date for the men’s breakfast, and forty men showed up on the wrong Saturday. The next bulletin did not pretend. It printed the correction in a box at the top with the old date crossed out and the new one beside it, and it kept that box for a month. Attendance at the breakfast went up. The teacher pointed at the box when teaching this lesson: a record that corrects itself in public is more trustworthy than one that never admits a mistake, and a researcher should read the corrections as closely as the announcements.',
       },
       {
         kind: 'parable', tone: 'sober',

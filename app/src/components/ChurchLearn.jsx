@@ -76,6 +76,7 @@ import { matrixFor, matrixBlockText, readNextInvitation } from '../lib/scripture
 import CopyButton from './CopyButton.jsx';
 import ShareButton from './ShareButton.jsx';
 import StoryLibrary from './StoryLibrary.jsx';
+import { storyHeading, storyFootnote } from '../lib/story-truth.js';
 import { subscribeSubmissions, reviewSubmission, promoteSubmission } from '../lib/story-library.js';
 import { engagementRowsByAge } from '../lib/learn-engagement.js';
 import { LessonFlowAudience, LessonRunOfShow, TimeFit } from './LessonFlow.jsx';
@@ -1339,8 +1340,8 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
                     {/* The label is a truth commitment: a parable is openly illustrative
                         ("Picture this…"); a testimony claims a real, lived, attributed
                         event ("A true story"). Never blur the two (DR-0076/DR-0215). */}
-                    <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A6E3D] mb-1">
-                      {s.kind === 'testimony' ? 'A true story' : 'Picture this'}{s.title ? ` — ${s.title}` : ''}{s.kind === 'testimony' && s.source ? ` · ${s.source}` : ''}
+                    <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A6E3D] mb-1" data-testid="story-heading">
+                      {storyHeading(s)}
                     </div>
                     {/* THE STORYLINE IS THE PATTERN HE POINTED AT (2026-09-14):
                         clean prose, then "— verse" in green at the foot. The
@@ -1355,6 +1356,9 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
                       className="text-[0.8125rem] text-[#1A1815] leading-relaxed"
                       style={{ fontFamily: '"Fraunces", serif' }}
                     />
+                    {/* A PARABLE IS NEVER A RECORD (DR-0810): said in words under every
+                        story, so no reader takes an imagined family for a real one. */}
+                    <div className="mt-2 text-[0.6875rem] text-[#5A5751]" data-testid="story-footnote">{storyFootnote(s)}</div>
                   </div>
                 ))}
               </div>
