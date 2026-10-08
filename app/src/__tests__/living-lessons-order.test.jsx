@@ -112,10 +112,10 @@ describe('the day each lesson was added — a recorded day, and a new lesson joi
     const back = byNum.filter((m, i) => i > 0 && m.added < byNum[i - 1].added).map((m) => m.id);
     expect(back).toEqual([]);
     expect(byNum[0].added).toBe('2026-06-24');
-    // The newest lesson's day, kept current as lessons land: L221 Owning the
-    // Light Instead of Renting It joined on 2026-10-08 (DR-0821),
+    // The newest lesson's day, kept current as lessons land: L222 The Only
+    // Incorruptible One joined on 2026-10-08 (DR-0822),
     // spoken into the app that day, so the highest-numbered lesson carries it.
-    expect(byNum[byNum.length - 1].added).toBe('2026-10-08'); // L221 (DR-0821)
+    expect(byNum[byNum.length - 1].added).toBe('2026-10-08'); // L222 (DR-0822)
   });
 
   it('formats a calendar day without a time-zone shift, and months are labels', () => {
