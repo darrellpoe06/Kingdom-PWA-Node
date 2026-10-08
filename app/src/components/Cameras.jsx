@@ -50,6 +50,7 @@ import {
   classifySnapError, fetchWhy, groupCameraFaults, faultSummaryLine, wyzeSaysFor, wyzeSaysLine, cameraRoadLine, bridgeLine, setStreamRoad,
   loadViews, saveViews, activeView, addToView, removeFromView, moveInView, setViewLayout, renameView, addView, deleteView, viewCols, viewGridClass, indexAtPoint, VIEW_LAYOUTS,
   fitGrid, clampScale, setViewScale, VIEW_SCALE_STEP, VIEW_SCALE_MIN, VIEW_SCALE_MAX, toggleFocus, focusIn, shownCount,
+  saveOpenWindow, loadOpenWindow, windowToResume, barShowing,
   CLIP_SIZE_TIERS, fetchClipSizes, waitForClipSize, clipDownloadName, clipTierLine, fetchStreamHealth, STREAM_HEALTH_POLL_MS, liveStreamId, streamHealthLine, dropLines,
   clipTicket, recClipPlayUrl,
   ADD_KINDS, GOOGLE_SIGN_IN_NOTE, streamIdFrom, buildSourceUrl, sourceProblem, maskSource, probeLine, addStream, testStream, removeStream, setupRing,
@@ -885,7 +886,17 @@ function LiveVideo({ cam, token, liveMax, onClose, compact = false, bare = false
 // asked of the browser where it allows it; Back, Esc or Close leaves. The
 // in-page grid is not rendered while the window is open, so each camera
 // holds one live slot, not two.
-const WINDOW_BAR_PX = 56;
+// THE CONTROLS STOPPED TAKING THE PICTURE (DR-0817). Darrell 2026-10-08, with a
+// photograph of the wall on the television: "The window for bigger images makes
+// big black sections around the bottom and sides... for the controls... can we
+// move the controls so we keep all video capacity also".
+//
+// He is reading a real cost, not a preference. The window laid out as a column —
+// grid, then a 56px bar — so fitGrid was handed (height - 56). Every tile is
+// 16:9, so height lost costs WIDTH too: four cameras two across at 1920x1080
+// fell from 951x535 tiles to 907x510, and the 88px that went missing in width
+// is the black band he sees down BOTH sides, on top of the strip under the bar.
+// The bar now floats OVER the picture and the grid is handed the whole screen.
 const WINDOW_GAP_PX = 6;
 function ViewWindow({ view, cams, token, liveMax, now, onClose, onScale }) {
   // The one camera made largest by a click; '' when none (DR-0796).
@@ -898,11 +909,31 @@ function ViewWindow({ view, cams, token, liveMax, now, onClose, onScale }) {
     return () => window.removeEventListener('resize', on);
   }, []);
   const scale = clampScale(view.scale);
+  // The floating bar shows itself when asked and gets out of the way. Any key,
+  // tap or pointer move wakes it; a quiet spell hides it; it never hides while
+  // a remote's focus is standing inside it (barShowing, lib/cameras.js).
+  const barRef = useRef(null);
+  const wokeAt = useRef(Date.now());
+  const [barOn, setBarOn] = useState(true);
+  const wake = useCallback(() => { wokeAt.current = Date.now(); setBarOn(true); }, []);
+  useEffect(() => {
+    const t = setInterval(() => {
+      const el = barRef.current;
+      const d = typeof document !== 'undefined' ? document : null;
+      setBarOn(barShowing({
+        lastInputAt: wokeAt.current,
+        now: Date.now(),
+        focusInBar: !!(el && d && d.activeElement && el.contains(d.activeElement)),
+      }));
+    }, 500);
+    return () => clearInterval(t);
+  }, []);
   useEffect(() => {
     const d = typeof document !== 'undefined' ? document : null;
     enterFullScreen(d);
     const onKey = (e) => {
       if (!e) return;
+      wake();
       if (leavesFullScreen(e.key)) { e.preventDefault(); onClose(); }
       else if (e.key === '+' || e.key === '=') onScale(scale + VIEW_SCALE_STEP);
       else if (e.key === '-' || e.key === '_') onScale(scale - VIEW_SCALE_STEP);
@@ -914,15 +945,26 @@ function ViewWindow({ view, cams, token, liveMax, now, onClose, onScale }) {
       if (d) { d.removeEventListener('keydown', onKey); d.removeEventListener('fullscreenchange', onChange); d.removeEventListener('webkitfullscreenchange', onChange); }
       exitFullScreen(d);
     };
-  }, [onClose, onScale, scale]);
-  const fit = fitGrid({ count: shownCount(cams, focused), width: Math.max(0, size.w - 2 * WINDOW_GAP_PX), height: Math.max(0, size.h - WINDOW_BAR_PX - 2 * WINDOW_GAP_PX), gap: WINDOW_GAP_PX });
+  }, [onClose, onScale, scale, wake]);
+  const fit = fitGrid({ count: shownCount(cams, focused), width: Math.max(0, size.w - 2 * WINDOW_GAP_PX), height: Math.max(0, size.h - 2 * WINDOW_GAP_PX), gap: WINDOW_GAP_PX });
   const tileW = Math.floor(fit.tileW * scale);
   const tileH = Math.floor(fit.tileH * scale);
   const pct = Math.round(scale * 100);
   const bar = 'px-3 min-h-[40px] text-[0.6875rem] uppercase tracking-wider border border-white/40 text-white hover:bg-white hover:text-black disabled:opacity-40';
   const ring = 'focus:outline focus:outline-2 focus:outline-[#B85838]';
   return (
-    <div className="fixed inset-0 z-[90] bg-black text-white flex flex-col" data-testid="view-window" data-cols={fit.cols} data-scale={pct} data-focused={focused || undefined} role="dialog" aria-label={`${view.name} — full-size window`}>
+    <div
+      className="fixed inset-0 z-[90] bg-black text-white flex flex-col"
+      data-testid="view-window"
+      data-cols={fit.cols}
+      data-scale={pct}
+      data-focused={focused || undefined}
+      data-bar={barOn ? 'shown' : 'hidden'}
+      onPointerMove={wake}
+      onPointerDown={wake}
+      role="dialog"
+      aria-label={`${view.name} — full-size window`}
+    >
       <div className="flex-1 min-h-0 flex items-center justify-center overflow-hidden">
         <div style={{ display: 'grid', gridTemplateColumns: `repeat(${fit.cols}, ${tileW}px)`, gridAutoRows: `${tileH}px`, gap: `${WINDOW_GAP_PX}px` }} data-testid="view-window-grid">
           {cams.map((cam) => (
@@ -935,7 +977,15 @@ function ViewWindow({ view, cams, token, liveMax, now, onClose, onScale }) {
           ))}
         </div>
       </div>
-      <div className="flex items-center justify-center gap-2 py-2 flex-wrap" style={{ minHeight: WINDOW_BAR_PX }} data-testid="view-window-bar">
+      {/* OVER the picture, never beside it (DR-0817). absolute, so the grid
+          above is laid out against the WHOLE screen; the backdrop keeps the
+          words readable over a bright driveway; pointer-events come back on
+          the bar itself so a hidden bar never swallows a click on a camera. */}
+      <div
+        ref={barRef}
+        className={`absolute inset-x-0 bottom-0 flex items-center justify-center gap-2 py-2 flex-wrap transition-opacity duration-200 bg-black/60 ${barOn ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+        data-testid="view-window-bar"
+        onFocusCapture={wake}>
         <button type="button" className={`${bar} ${ring} focus:outline focus:outline-2`} onClick={() => onScale(scale - VIEW_SCALE_STEP)} disabled={scale <= VIEW_SCALE_MIN} aria-label="Smaller — leave more room at the edges" data-testid="view-window-smaller">− Smaller</button>
         <span className="text-[0.6875rem] tabular-nums" aria-live="polite" data-testid="view-window-size">{focused ? `${(cams.find((c) => c.id === focused) || {}).name || focused} · largest · click it again to put it back` : `${cams.length} camera${cams.length === 1 ? '' : 's'} · ${fit.cols} across · ${pct}%`}</span>
         <button type="button" className={`${bar} ${ring} focus:outline focus:outline-2`} onClick={() => onScale(scale + VIEW_SCALE_STEP)} disabled={scale >= VIEW_SCALE_MAX} aria-label="Bigger — fill more of the screen" data-testid="view-window-bigger">+ Bigger</button>
@@ -1388,8 +1438,23 @@ export default function Cameras() {
   const view = activeView(views);
   const wall = useMemo(() => (view ? view.cameras : []), [view]); // the active view's cameras (the tiles read this)
   const [renaming, setRenaming] = useState(false);
-  const [windowOpen, setWindowOpen] = useState(false);
-  const closeWindow = useCallback(() => setWindowOpen(false), []);
+  // THE WINDOW THAT WAS UP COMES BACK UP (DR-0817). Darrell 2026-10-08: "when
+  // reset happens inside the app... bring it back up to the live window that
+  // was already up." Whether the window was up lived in React state alone, so a
+  // service-worker update, a crash or any reload dropped him back to the page
+  // with the cameras still streaming behind it. It is remembered now, keyed to
+  // the view it was showing. CLOSE is the signal: closing forgets it, so a
+  // window he shut stays shut and only one that was still up comes back. A
+  // memory older than WINDOW_RESUME_MS is dropped too — yesterday's window
+  // appearing unasked is a surprise, not a resume.
+  const [windowOpen, setWindowOpen] = useState(() => !!windowToResume(views, loadOpenWindow()));
+  const openWindow = useCallback((id) => { setWindowOpen(true); saveOpenWindow(id); }, []);
+  const closeWindow = useCallback(() => { setWindowOpen(false); saveOpenWindow(''); }, []);
+  // It comes back on the view it was SHOWING, not on whichever is active.
+  useEffect(() => {
+    const id = windowToResume(views, loadOpenWindow());
+    if (id && views.active !== id) setViews((st) => ({ ...st, active: id }));
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const scaleWindow = useCallback((sc) => { if (view) setViews((st) => setViewScale(st, view.id, sc)); }, [view]);
   const [newName, setNewName] = useState('');
   const [drag, setDrag] = useState('');             // the camera being dragged in the view
@@ -1664,7 +1729,7 @@ export default function Cameras() {
                       {VIEW_LAYOUTS.map((l) => <option key={String(l)} value={String(l)}>{l === 'auto' ? 'Auto' : `${l} across`}</option>)}
                     </select>
                   </label>
-                  {view.cameras.length ? <button type="button" className={`${btnDark} focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={() => setWindowOpen(true)} aria-label="Open this view as one full-size window" data-testid="view-window-open">⤢ Window</button> : null}
+                  {view.cameras.length ? <button type="button" className={`${btnDark} focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={() => openWindow(view.id)} aria-label="Open this view as one full-size window" data-testid="view-window-open">⤢ Window</button> : null}
                   {renaming ? (
                     <form className="inline-flex items-center gap-1" onSubmit={(e) => { e.preventDefault(); setViews((st) => renameView(st, view.id, newName)); setRenaming(false); }}>
                       <input className={`${inputCls} w-40 min-h-[36px] py-1`} value={newName} onChange={(e) => setNewName(e.target.value)} aria-label="Name this view" data-testid="view-name" />

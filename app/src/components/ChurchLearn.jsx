@@ -141,6 +141,34 @@ import { aggregateLearnerRecords } from '../lib/learner-records.js';
 
 const fmtDate = formatClassDate;
 
+// THE STICKY TITLE ROW IS CHROME, SO IT IS CAPPED LIKE CHROME (DR-0816).
+//
+// Darrell 2026-10-08, with a photograph of L218 on the television: "Fix it." The
+// lesson's sticky block — the nav row, the two-line title, the STEP x OF y bar —
+// had grown into the reading. MEASURED at 1280x720, the shape a television
+// browser reports, with the block pinned and the progress bar not even on screen
+// yet: 93px at Normal, 157px at Largest (22% of the screen) and 194px at Big
+// Print 44 (27%), of which THE TITLE ROW ALONE was 38px / 102px / 140px.
+//
+// DR-0438 settled the rule on 2026-09-16, in his own words after three phone
+// screenshots: "the controls should never get bigger." `.ts-chrome-region`
+// enforces it by applying `--ts-chrome-scale` as `zoom`, capping a row's type
+// and its box together, and the lesson's nav row carries it. This row cannot:
+// `zoom` compounds onto the fixed 44px fold button inside it and would render it
+// at 16px, which is the one thing index.css says never to do.
+//
+// So the row takes the SAME cap, applied piece by piece instead of by zoom —
+// the title's type, the button's type, and the row's own vertical padding, the
+// three things that decide its height. Each is `<size> * --ts-chrome-scale`,
+// which is exactly 1 at Normal, so the row is pixel-identical to what shipped
+// there. The 44px tap target keeps its 44px. The two-line clamp, the fold and
+// the handle are untouched (DR-0605, and Darrell 2026-10-02: "don't take away
+// what I've already discussed and firmed up!!!!!"). Only the growth is bounded.
+const capped = (size) => `calc(${size} * var(--ts-chrome-scale, 1))`;
+export const STICKY_TITLE_SIZE = capped('0.875rem');
+export const STICKY_TOGGLE_SIZE = capped('0.75rem');
+export const STICKY_ROW_PAD_Y = capped('0.375rem');
+
 // A friendly label for a launch target so the button reads in plain words.
 // The Council Chamber is the church home's SPEAK section, not the home itself —
 // labeling plain home as the Chamber sent learners to the Worship video
@@ -2509,7 +2537,14 @@ function CourseView({
               firmed up!!!!!"). DR-0749 gives the reading its height back by
               sliding the whole block away on a scroll down, not by shrinking
               the title. */}
-          <div className="border border-[#1A1815] border-b-0 px-2 sm:px-3 py-1.5 flex items-start gap-2" data-testid="lesson-space-title-row">
+          {/* CHROME, AND CAPPED AS CHROME (DR-0816) — see STICKY_TITLE_SIZE
+              above for the measurements and why the cap is applied piece by
+              piece here instead of as a .ts-chrome-region. */}
+          <div
+            className="border border-[#1A1815] border-b-0 px-2 sm:px-3 flex items-start gap-2"
+            style={{ paddingTop: STICKY_ROW_PAD_Y, paddingBottom: STICKY_ROW_PAD_Y }}
+            data-testid="lesson-space-title-row"
+          >
             <h2
               data-testid="lesson-space-title"
               id="lesson-space-title"
@@ -2517,8 +2552,9 @@ function CourseView({
               data-open={titleOpen ? 'true' : 'false'}
               ref={titleRef}
               className={`flex-1 min-w-0 text-[0.875rem] font-semibold text-[#1A1815] leading-snug ${titleOpen ? '' : 'overflow-hidden'}`}
-              style={titleOpen ? { fontFamily: '"Fraunces", serif' } : {
+              style={titleOpen ? { fontFamily: '"Fraunces", serif', fontSize: STICKY_TITLE_SIZE } : {
                 fontFamily: '"Fraunces", serif',
+                fontSize: STICKY_TITLE_SIZE,
                 display: '-webkit-box',
                 WebkitBoxOrient: 'vertical',
                 WebkitLineClamp: 2,
@@ -2536,7 +2572,10 @@ function CourseView({
                 aria-label={titleOpen ? 'Fold the title back to two lines' : 'Show the whole title'}
                 title={titleOpen ? 'Fold the title back to two lines' : 'Show the whole title'}
                 data-testid="lesson-space-title-toggle"
-                className="ts-chrome-region shrink-0 min-h-[44px] min-w-[44px] px-2 text-[0.75rem] font-semibold border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]"
+                /* The 44px target keeps its 44px; only its glyph is capped, or
+                   a 33px chevron makes the box 52px tall on its own. */
+                style={{ fontSize: STICKY_TOGGLE_SIZE }}
+                className="shrink-0 min-h-[44px] min-w-[44px] px-2 text-[0.75rem] font-semibold border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]"
               >
                 {titleOpen ? '▴' : '▾'}
               </button>
@@ -2555,7 +2594,16 @@ function CourseView({
           {liveStep && liveStep.lessonId === focusModule.id && liveStep.total > 1 && (
             <div
               data-testid="lesson-space-progress"
-              className="border border-[#1A1815] px-2 sm:px-3 py-1.5 bg-[#FAF8F4]"
+              /* CHROME, AND CAPPED AS CHROME (DR-0816). This block holds no
+                 fixed-px control — two labels and a 0.5rem bar — so it takes
+                 the region cap itself. Uncapped it was the worst offender in
+                 the stack: its 0.6875rem labels are floored UP to 0.75rem at
+                 Larger and above (index.css), so at Big Print 44 "STEP 1 OF 10"
+                 rendered at 33px and the block stood taller than the nav row.
+                 The bar still spans the full reading width and still cannot
+                 scroll away (Darrell 2026-09-17) — it is the frame that stops
+                 growing, not the thing itself. */
+              className="ts-chrome-region border border-[#1A1815] px-2 sm:px-3 py-1.5 bg-[#FAF8F4]"
             >
               <div className="flex items-baseline justify-between gap-2 mb-1">
                 <span className="text-[0.6875rem] uppercase tracking-wider text-[#5A5751] font-semibold" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
