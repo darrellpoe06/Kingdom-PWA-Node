@@ -1,10 +1,10 @@
-# DR-0811 — A life full of everything: Yahweh is always good, consistency is the key, and His Will is that you prosper as your soul prospers (L216)
+# DR-0812 — A life full of everything: Yahweh is always good, consistency is the key, and His Will is that you prosper as your soul prospers (L216)
 
-**Date:** 2026-10-07 · **Status:** decided; shipped as Living Lesson L216 · **Lane:** Living Lessons · **Pairs with:** DR-0331 (quoting him for meaning), DR-0076 (every verse verbatim), DR-0733 (every lesson sends you to someone), DR-0795 (every band), DR-0810 (a parable is never a record; his testimony is his own)
+**Date:** 2026-10-07 · **Status:** decided; shipped as Living Lesson L216 · **Lane:** Living Lessons · **Pairs with:** DR-0331 (quoting him for meaning), DR-0076 (every verse verbatim), DR-0733 (every lesson sends you to someone), DR-0795 (every band), DR-0811 (a parable is never a record; his testimony is his own)
 
 ## Context
 
-Darrell, 2026-10-07, spoken into the app in the same sitting as his own testimony (DR-0810), and closed, as he closes a teaching meant for the app, with one word: Lesson.
+Darrell, 2026-10-07, spoken into the app in the same sitting as his own testimony (DR-0811), and closed, as he closes a teaching meant for the app, with one word: Lesson.
 
 > I have had a life full of everything... pain to death to Love.... failure... success... etc... Yahweh is always good... He helps us to make it happen whatever that is we need or desire to happen after His Will is done... consistency is key... reading the Word... filling the mind with His Perspectives... no room for lesser mindsets... His Will is for us to prosper as our souls prosper... Lesson...
 

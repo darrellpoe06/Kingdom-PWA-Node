@@ -1,10 +1,10 @@
-# DR-0812 — The Holy Spirit brings a sound mind, not confusion: His clarity, the eyes of the heart, and the Word as the only source (L217)
+# DR-0813 — The Holy Spirit brings a sound mind, not confusion: His clarity, the eyes of the heart, and the Word as the only source (L217)
 
-**Date:** 2026-10-07 · **Status:** decided; shipped as Living Lesson L217 · **Lane:** Living Lessons · **Pairs with:** DR-0331 (quoting him for meaning), DR-0076 (every verse verbatim), DR-0733 (every lesson sends you to someone), DR-0795 (every band), DR-0810 (a parable is never a record; his testimony is his own)
+**Date:** 2026-10-07 · **Status:** decided; shipped as Living Lesson L217 · **Lane:** Living Lessons · **Pairs with:** DR-0331 (quoting him for meaning), DR-0076 (every verse verbatim), DR-0733 (every lesson sends you to someone), DR-0795 (every band), DR-0811 (a parable is never a record; his testimony is his own)
 
 ## Context
 
-Darrell, 2026-10-07, spoken into the app in the same sitting as his own testimony (DR-0810), and closed, as he closes a teaching meant for the app, with one word: Lesson.
+Darrell, 2026-10-07, spoken into the app in the same sitting as his own testimony (DR-0811), and closed, as he closes a teaching meant for the app, with one word: Lesson.
 
 > The Holy Spirit brings a sound mind... not confusion... we get His clarity... and see with our deep parts... our hearts... have eyes... not the 3rd eye fake spiritual stuff... we only source the Word!!!!!!! Lesson
 

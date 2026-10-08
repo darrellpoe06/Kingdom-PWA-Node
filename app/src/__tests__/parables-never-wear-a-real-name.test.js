@@ -1,6 +1,6 @@
 // @vitest-environment node
 // =============================================================================
-// A parable is never a record, and never wears a real name (DR-0810)
+// A parable is never a record, and never wears a real name (DR-0811)
 // =============================================================================
 // Darrell 2026-10-07, L40 open on a tablet: "This is a story that had my family
 // name in it and it's not actually true... however if you didn't know me you
@@ -19,7 +19,7 @@ import { REAL_NAMES, storiesInSource, realNamesInParables, storyHeading, storyFo
 const LIB = join(process.cwd(), 'src', 'lib');
 const courseFiles = () => readdirSync(LIB).filter((f) => f.endsWith('.js') && /kind["']?\s*:\s*["'](parable|testimony)["']/.test(readFileSync(join(LIB, f), 'utf8')));
 
-describe('a parable never wears a real name (DR-0810)', () => {
+describe('a parable never wears a real name (DR-0811)', () => {
   it('no parable in any course carries the family name or Darrell\'s', () => {
     const files = courseFiles();
     expect(files.length).toBeGreaterThan(5);

@@ -1,4 +1,4 @@
-# DR-0810 — A parable is never a record, and never wears a real name; his testimony is his own
+# DR-0811 — A parable is never a record, and never wears a real name; his testimony is his own
 
 **Date:** 2026-10-07 · **Status:** decided · **Lane:** Living Lessons / curriculum · **Pairs with:** DR-0215 (the Parable & Testimony Method), DR-0076 (no claim without evidence), DR-0331 (quoting him for meaning), DR-0190 (provenance)
 

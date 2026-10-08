@@ -159,6 +159,12 @@ def eligibility(row, owners=OWNER_IDS, max_attempts=MAX_ATTEMPTS):
         return False, "a build holds it"
     if "awaiting-review" in tags:
         return False, "its versions wait for Darrell's decision"
+    if "not-a-lesson" in tags:
+        # Decided already: either chosen as a READING at record time (DR-0810)
+        # or judged by a human afterwards (DR-0768). Its words still come back
+        # through Whisper; nothing builds a lesson from it, and nobody is asked
+        # to decide a second time what was already decided.
+        return False, "marked not a lesson"
     if "canary" in tags:
         return False, "canary rows are the Routine's"
     if "voice-failed" in tags:

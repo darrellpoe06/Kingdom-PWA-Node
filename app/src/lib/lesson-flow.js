@@ -271,7 +271,7 @@ export function readAloudTextFromArc(arc) {
         parts.push(`${storyHeading(s)}.`);
         if (s.body) parts.push(s.body);
         if (s.verse) parts.push(s.verse);
-        parts.push(storyFootnote(s)); // DR-0810: the spoken flow says what the story is, too
+        parts.push(storyFootnote(s)); // DR-0811: the spoken flow says what the story is, too
       }
     } else if (seg.kind === 'engage') {
       if ((a.prompts || []).length) parts.push('Questions to think about:', ...a.prompts);

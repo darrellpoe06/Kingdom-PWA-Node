@@ -307,3 +307,30 @@ jobs:
             "https://api.github.com/repos/${{ github.repository }}/actions/workflows/lessons-sync.yml/dispatches" \
             -d '{"ref":"main"}' \
             && echo "lessons-sync dispatched for ${GITHUB_SHA}" | tee -a "$GITHUB_STEP_SUMMARY"
+
+  # ---------------------------------------------------------------------------
+  # THE CAMERA ROAD WITNESS, DISPATCHED (DR-0806; found 2026-10-08). camera-health.yml
+  # declares `workflow_run` on this deploy, and it never fired: this run is
+  # itself started by a GITHUB_TOKEN dispatch, and workflow_run from a
+  # token-driven run is suppressed (the same gap dispatch-lessons-sync closes).
+  # The explicit dispatch is not suppressed. Red here is red on this job alone.
+  # ---------------------------------------------------------------------------
+  dispatch-camera-health:
+    name: dispatch the camera road witness (after a successful deploy)
+    needs: deploy
+    if: ${{ vars.CF_PAGES_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      actions: write
+    steps:
+      - name: Dispatch camera-health.yml on main
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          curl -sS -f -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/workflows/camera-health.yml/dispatches" \
+            -d '{"ref":"main","inputs":{"probe_all":"false"}}' \
+            && echo "camera-health dispatched for ${GITHUB_SHA}" | tee -a "$GITHUB_STEP_SUMMARY"

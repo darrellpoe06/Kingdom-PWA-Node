@@ -12844,7 +12844,7 @@ export const LIVING_LESSONS_MODULES = [
       },
       {
         kind: 'testimony',
-        source: 'Darrell Poe, spoken into the app', // DR-0810: a record of his own teaching, not an imagined scene
+        source: 'Darrell Poe, spoken into the app', // DR-0811: a record of his own teaching, not an imagined scene
         tone: 'serious',
         title: 'The Hedge Nobody Told Him About',
         verse: 'Job 1:10',
@@ -12852,7 +12852,7 @@ export const LIVING_LESSONS_MODULES = [
       },
       {
         kind: 'testimony',
-        source: 'Darrell Poe, spoken into the app', // DR-0810: a record of his own teaching, not an imagined scene
+        source: 'Darrell Poe, spoken into the app', // DR-0811: a record of his own teaching, not an imagined scene
         tone: 'serious',
         title: 'The One Room Where He Is There And It Is Not Mercy',
         verse: 'Psalms 139:8',
@@ -14910,7 +14910,7 @@ export const LIVING_LESSONS_MODULES = [
   // unreferenced (DR-0076). DR-0456.
   {
     id: 'll165-i-always-had-love-gratitude-measured-against-a-real-lack-and-suffering-with-him-before-reigning-with-him',
-    // HIS OWN ACCOUNT, SPOKEN IN 2026-10-07 (DR-0810); consent in his own words the same night: "I don't mind telling people my testimony... the Word says we benefit by telling the truth of our lives." Rendered for meaning, his framing kept (DR-0331). Psalms 68:5 verbatim from app/public/bible/kjv.
+    // HIS OWN ACCOUNT, SPOKEN IN 2026-10-07 (DR-0811); consent in his own words the same night: "I don't mind telling people my testimony... the Word says we benefit by telling the truth of our lives." Rendered for meaning, his framing kept (DR-0331). Psalms 68:5 verbatim from app/public/bible/kjv.
     stories: [{"kind": "testimony", "tone": "solemn", "title": "He Has Covered Me", "body": "I do not know my father. I saw him only a handful of times in my life. I do not say that to diminish him: he was my Uncle Russell's best friend, and the friend of all my uncles, and they respect him still, even though he was not in my life. I do not know what happened to him. It is what it is. And it is one more reason I love Yahweh: He has covered me. Always. My King.", "verse": "Psalms 68:5", "source": "Darrell Poe"}],
     title: 'I Always Had Love — Gratitude Measured Against a Real Lack, and Suffering With Him Before Reigning With Him',
     bigIdea: 'GRATITUDE IS A COUNT YOU MAKE ON PURPOSE AND THEN REFUSE TO UN-SEE, THIRTEEN UNCLES AND AUNTS CAME FROM THE HAND THAT SETS THE SOLITARY IN FAMILIES, THE SPIRIT GIVEN IS NOT FEAR AND THE TWO WORDS THAT VERSE DOES NOT CARRY ARE FOUND IN A SECOND VERSE RATHER THAN PRESSED INTO THE FIRST, SUFFERING WITH HIM COMES BEFORE REIGNING WITH HIM IN AN ORDER NOTHING REVERSES, JOY IS STRENGTH FOR THE MIDDLE AND NOT A WAGE PAID AT THE END, AND WHAT YOU OWE THE PERSON WITH NO CONTACT IS NOT SYMPATHY BUT A SEAT',
@@ -14933,7 +14933,7 @@ export const LIVING_LESSONS_MODULES = [
   // STRICT comparison — whitespace only, never apostrophes (DR-0076). DR-0457.
   {
     id: 'll166-life-is-disrespectful-so-think-on-these-things-self-against-the-servant-king-and-the-one-who-bought-you-twice',
-    // HIS OWN WORD, SPOKEN IN 2026-10-07 (DR-0810), the same night as L165's testimony and under the same consent: "I have had a life full of everything... pain to death to Love... failure... success... Yahweh is always good... consistency is key... reading the Word... filling the mind with His Perspectives... no room for lesser mindsets... His Will is for us to prosper as our souls prosper." Rendered for meaning (DR-0331); both verses verbatim from app/public/bible/kjv.
+    // HIS OWN WORD, SPOKEN IN 2026-10-07 (DR-0811), the same night as L165's testimony and under the same consent: "I have had a life full of everything... pain to death to Love... failure... success... Yahweh is always good... consistency is key... reading the Word... filling the mind with His Perspectives... no room for lesser mindsets... His Will is for us to prosper as our souls prosper." Rendered for meaning (DR-0331); both verses verbatim from app/public/bible/kjv.
     stories: [{"kind": "testimony", "tone": "solemn", "title": "A Life Full of Everything", "body": "I have had a life full of everything: pain, death, Love, failure, success. Yahweh is always good. He helps us make it happen, whatever it is we need or desire to happen, after His Will is done. Consistency is key: reading the Word, filling the mind with His Perspectives, until there is no room for lesser mindsets. His Will is for us to prosper as our souls prosper.", "verse": "Romans 12:2; 3 John 1:2", "source": "Darrell Poe"}],
     title: 'Life Is Disrespectful, So Think On These Things — Self Against the Servant-King, and the One Who Bought You Twice',
     bigIdea: 'THE REASON TO THINK ON WHATSOEVER IS TRUE AND HONEST AND JUST IS NOT THAT IT FEELS PLEASANT BUT THAT LIFE IS SO DISRESPECTFUL THAT AN UNFILTERED MIND BECOMES THE EVIL VERSION OF ITSELF, SELF MEANS SELFISHNESS AND FLESHINESS AND IS DENIED RATHER THAN IMPROVED, EVERY BELIEVER IS A SERVANT AND A KING AT THE SAME TIME BECAUSE THE KING HIMSELF WASHED FEET, YAHWEH PURCHASED US TWICE — ONCE BY MAKING US AND ONCE BY THE BLOOD OF HIS OWN SON — AND BLOOD IN, BLOOD OUT NEEDS ONE CORRECTION: THE BLOOD THAT BROUGHT US IN WAS HIS AND THERE IS NO WAY OUT ON OFFER, SO HUMBLE YOURSELF UNDER THE MIGHTY HAND AND LET THE LIFTING BE HIS WORK IN DUE TIME',
@@ -19924,7 +19924,7 @@ export const LIVING_LESSONS_MODULES = [
   // done... consistency is key... reading the Word... filling the mind with His
   // Perspectives... no room for lesser mindsets... His Will is for us to prosper
   // as our souls prosper... Lesson." (DR-0331) Every quoted span verbatim from
-  // app/public/bible/kjv under a STRICT comparison (DR-0076). DR-0811.
+  // app/public/bible/kjv under a STRICT comparison (DR-0076). DR-0812.
   {
     id: "ll216-a-life-full-of-everything-yahweh-is-always-good-consistency-is-the-key-and-his-will-is-that-you-prosper-as-your-soul-prospers",
     title: "A Life Full of Everything — Yahweh Is Always Good, Consistency Is the Key, and His Will Is That You Prosper as Your Soul Prospers",
@@ -19942,7 +19942,7 @@ export const LIVING_LESSONS_MODULES = [
   // with our deep parts... our hearts... have eyes... not the 3rd eye fake
   // spiritual stuff... we only source the Word!!!!!!! Lesson." (DR-0331) The
   // counterfeit is named as the Word names it (Deuteronomy 18; Isaiah 8). Every
-  // quoted span verbatim from app/public/bible/kjv (DR-0076). DR-0812.
+  // quoted span verbatim from app/public/bible/kjv (DR-0076). DR-0813.
   {
     id: "ll217-the-holy-spirit-brings-a-sound-mind-not-confusion-his-clarity-the-eyes-of-the-heart-and-the-word-as-the-only-source",
     title: "The Holy Spirit Brings a Sound Mind, Not Confusion — His Clarity, the Eyes of the Heart, and the Word as the Only Source",
@@ -19959,7 +19959,7 @@ export const LIVING_LESSONS_MODULES = [
   // Yahweh's Principals and Way... His Way... documented... don't take offense...
   // let Him win... so we win... obviously... Lesson." (DR-0331; his spelling
   // rendered as principles, for meaning). Every quoted span verbatim from
-  // app/public/bible/kjv (DR-0076). DR-0813.
+  // app/public/bible/kjv (DR-0076). DR-0814.
   {
     id: "ll218-do-not-switch-up-on-his-way-yahwehs-principles-documented-no-offense-taken-and-letting-him-win-so-we-win",
     title: "Do Not Switch Up on His Way — Yahweh's Principles Documented, No Offense Taken, and Letting Him Win So We Win",

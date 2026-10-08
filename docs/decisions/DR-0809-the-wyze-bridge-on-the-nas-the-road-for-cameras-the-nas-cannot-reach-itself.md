@@ -28,6 +28,8 @@ The bridge's facts were read from its own source and docs before anything was pi
 - App gate: `cameras.test.js` (road parsed, the lines, the POST) and `cameras-render.test.jsx` (Setup's bridge line from `/health`; Why? names the road and the owner's pick posts as the owner).
 - `re-review: 2026-10-15`: the stream health log for the bridged cameras (up%, drops) decides whether any LAN camera should also ride the bridge, and whether a nightly `nightly` image is worth a pin.
 
+**First field read (2026-10-08 01:43 UTC, cams-diag 37714259877).** The bridge is up on the NAS (a new compose network appeared beside go2rtc's) and the forwarder moved the 805 cameras onto it: `805_north`'s producer is now `kind wyze, host 127.0.0.1`. go2rtc then answered `streams: user/pass not provided` and `wrong response on DESCRIBE` when it pulled the bridge's RTSP: with `WB_AUTH` on, the bridge's streams need its stream credentials, and the bare line carried none. Fixed the same hour: `bridge_source()` signs the line with `WB_USERNAME:WB_PASSWORD` from the bridge's own env; `is_bridge_source()` decides by host and port so a credentialed line is still the bridge road; the credentials never leave the NAS (root-only config and roads file, no URL in `/list`, kind and host only in `/why`, `scrub_text` masks `user:pass@`). Selftest 8n proves each of those. The next read is the proof of the picture.
+
 ## Impact
 
 The 805 cameras, and the twelve the direct road refuses, reach the app the way the Wyze app reaches them, through the NAS, with nothing placed at 805. The direct road stays for every camera it serves well. Not verified from this session: the bridge's relay from THIS NAS to the 805 cameras in the field (the first `cams-diag` after merge is that proof).

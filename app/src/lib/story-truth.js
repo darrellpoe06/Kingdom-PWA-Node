@@ -1,5 +1,5 @@
 // =============================================================================
-// A PARABLE IS NEVER A RECORD (DR-0810; Darrell 2026-10-07, reading L40 on a
+// A PARABLE IS NEVER A RECORD (DR-0811; Darrell 2026-10-07, reading L40 on a
 // tablet: "This is a story that had my family name in it and it's not actually
 // true... however if you didn't know me you would believe it... I want this to
 // be explained so my actual life narrative or my testimony is what it actually

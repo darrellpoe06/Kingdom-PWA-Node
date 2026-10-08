@@ -1,10 +1,10 @@
-# DR-0813 — Do not switch up on His Way: Yahweh's principles documented, no offense taken, and letting Him win so we win (L218)
+# DR-0814 — Do not switch up on His Way: Yahweh's principles documented, no offense taken, and letting Him win so we win (L218)
 
-**Date:** 2026-10-07 · **Status:** decided; shipped as Living Lesson L218 · **Lane:** Living Lessons · **Pairs with:** DR-0331 (quoting him for meaning), DR-0076 (every verse verbatim), DR-0733 (every lesson sends you to someone), DR-0795 (every band), DR-0810 (a parable is never a record; his testimony is his own)
+**Date:** 2026-10-07 · **Status:** decided; shipped as Living Lesson L218 · **Lane:** Living Lessons · **Pairs with:** DR-0331 (quoting him for meaning), DR-0076 (every verse verbatim), DR-0733 (every lesson sends you to someone), DR-0795 (every band), DR-0811 (a parable is never a record; his testimony is his own)
 
 ## Context
 
-Darrell, 2026-10-07, spoken into the app in the same sitting as his own testimony (DR-0810), and closed, as he closes a teaching meant for the app, with one word: Lesson.
+Darrell, 2026-10-07, spoken into the app in the same sitting as his own testimony (DR-0811), and closed, as he closes a teaching meant for the app, with one word: Lesson.
 
 > Don't switch up on Yahweh's Principals and Way... His Way... documented... don't take offense... let Him win... so we win... obviously... Lesson...
 

@@ -1356,7 +1356,7 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
                       className="text-[0.8125rem] text-[#1A1815] leading-relaxed"
                       style={{ fontFamily: '"Fraunces", serif' }}
                     />
-                    {/* A PARABLE IS NEVER A RECORD (DR-0810): said in words under every
+                    {/* A PARABLE IS NEVER A RECORD (DR-0811): said in words under every
                         story, so no reader takes an imagined family for a real one. */}
                     <div className="mt-2 text-[0.6875rem] text-[#5A5751]" data-testid="story-footnote">{storyFootnote(s)}</div>
                   </div>

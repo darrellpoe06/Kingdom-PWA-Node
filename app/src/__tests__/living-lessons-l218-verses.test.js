@@ -10,7 +10,7 @@
 // corpus under a STRICT comparison (whitespace only, never apostrophes), every
 // band must carry the full message in its own register, and the teaching that
 // makes this lesson ITSELF (not a neighbour wearing a new title) is checked per
-// band. DR-0813.
+// band. DR-0814.
 import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
