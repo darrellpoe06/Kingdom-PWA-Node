@@ -8,7 +8,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import {
   CAMS_BASE, SNAPSHOT_INTERVAL_MS, FETCH_TIMEOUT_MS,
-  healthUrl, listUrl, ticketUrl, snapUrl, liveUrl, pickLiveMode,
+  healthUrl, listUrl, ticketUrl, snapUrl, liveUrl, pickLiveMode, cameraRoadLine, bridgeLine, setStreamRoad, streamRoadUrl, ROAD_REASONS,
   parseCameraList, kindLabel, groupByKind, KINDS, classifyServiceState,
   formatAge, formatBytes, fetchWithTimeout, authHeaders, setupCommands, isAscii,
   validateWyzeSetup, classifySetupResult, setupWyze,
@@ -27,7 +27,7 @@ import {
   toggleFocus, focusIn, shownCount,
   CLIP_SIZE_TIERS, recClipSizesUrl, recClipDownloadUrl, clipDownloadName, clipTierLine, fetchClipSizes, waitForClipSize,
   streamHealthUrl, fetchStreamHealth, deviceCanPlayHevc, liveStreamId, twinOf, streamHealthLine, dropKindText, dropLines,
-  sdOf, wantsSd, liveEdge, liveEdgeDecision, freezeStep, tendLiveVideo, FREEZE_SECONDS, LIVE_LAG_SEEK_S, LIVE_LAG_RATE_S, LIVE_CATCHUP_RATE, LIVE_EDGE_MARGIN_S,
+  sdOf, wantsSd, liveEdge, liveEdgeDecision, freezeStep, tendLiveVideo, FREEZE_SECONDS, LIVE_LAG_SEEK_S, LIVE_LAG_RATE_S, LIVE_CATCHUP_RATE, LIVE_CATCHUP_RATE_FAST, LIVE_LAG_RECONNECT_S, LIVE_EDGE_MARGIN_S,
   recClipPlayUrl, humanizeFetchError, clipTicket, CLIP_TICKET_TIMEOUT_MS,
   ADD_KINDS, GOOGLE_SIGN_IN_NOTE, streamIdFrom, buildSourceUrl, sourceProblem, maskSource, probeLine, addStream, testStream, removeStream, setupRing, streamsUrl, streamTestUrl, streamRemoveUrl, ringSetupUrl,
 } from '../lib/cameras.js';
@@ -976,7 +976,12 @@ describe('a live tile stays live (DR-0799)', () => {
     expect(liveEdge(null)).toBeNull();
   });
   it('the decision: far behind jumps to the edge, a little behind runs faster, caught up runs at 1x again', () => {
-    expect(liveEdgeDecision({ currentTime: 10, edge: 10 + LIVE_LAG_SEEK_S + 1 })).toEqual({ action: 'seek', to: 10 + LIVE_LAG_SEEK_S + 1 - LIVE_EDGE_MARGIN_S, lag: LIVE_LAG_SEEK_S + 1 });
+    // HLS is seekable: a large lag jumps. MP4 is a chunked body: it is NEVER seeked (DR-0808).
+    expect(liveEdgeDecision({ currentTime: 10, edge: 10 + LIVE_LAG_SEEK_S + 1, mode: 'hls' })).toEqual({ action: 'seek', to: 10 + LIVE_LAG_SEEK_S + 1 - LIVE_EDGE_MARGIN_S, lag: LIVE_LAG_SEEK_S + 1 });
+    expect(liveEdgeDecision({ currentTime: 10, edge: 10 + LIVE_LAG_SEEK_S + 1, mode: 'mp4' })).toEqual({ action: 'rate', rate: LIVE_CATCHUP_RATE_FAST, lag: LIVE_LAG_SEEK_S + 1 });
+    expect(liveEdgeDecision({ currentTime: 10, edge: 10 + LIVE_LAG_SEEK_S + 1 })).toEqual({ action: 'rate', rate: LIVE_CATCHUP_RATE_FAST, lag: LIVE_LAG_SEEK_S + 1 });
+    expect(liveEdgeDecision({ currentTime: 10, edge: 10 + LIVE_LAG_RECONNECT_S + 1, mode: 'mp4' })).toEqual({ action: 'reconnect', lag: LIVE_LAG_RECONNECT_S + 1 });
+    expect(liveEdgeDecision({ currentTime: 10, edge: 10 + LIVE_LAG_RECONNECT_S + 1, mode: 'hls' }).action).toBe('seek');
     expect(liveEdgeDecision({ currentTime: 10, edge: 10 + LIVE_LAG_RATE_S + 0.5 })).toEqual({ action: 'rate', rate: LIVE_CATCHUP_RATE, lag: LIVE_LAG_RATE_S + 0.5 });
     expect(liveEdgeDecision({ currentTime: 10, edge: 10.4, playbackRate: LIVE_CATCHUP_RATE })).toEqual({ action: 'rate', rate: 1, lag: expect.closeTo(0.4, 5) });
     expect(liveEdgeDecision({ currentTime: 10, edge: 10.4, playbackRate: 1 })).toEqual({ action: 'none', lag: expect.closeTo(0.4, 5) });
@@ -1000,8 +1005,9 @@ describe('a live tile stays live (DR-0799)', () => {
   it('tendLiveVideo writes the element only as the decision says, and names a freeze at 6 s', () => {
     const el = { currentTime: 10, paused: false, ended: false, readyState: 4, playbackRate: 1, buffered: ranges([0, 15]), seekable: ranges() };
     let r = tendLiveVideo(el, null, { mode: 'mp4', nowMs: 0 });
-    expect(r.action).toBe('seek'); expect(el.currentTime).toBe(14.5); expect(r.frozen).toBe(false);
-    el.buffered = ranges([0, 16]);
+    // 5 s behind on MP4: the position is NOT touched (a seek is what looped the same car); the rate runs it down fast
+    expect(r.action).toBe('rate'); expect(el.currentTime).toBe(10); expect(el.playbackRate).toBe(LIVE_CATCHUP_RATE_FAST); expect(r.frozen).toBe(false); expect(r.behind).toBeNull();
+    el.currentTime = 14.2; el.buffered = ranges([0, 16]);
     r = tendLiveVideo(el, r.memo, { mode: 'mp4', nowMs: 2000 });
     expect(r.action).toBe('rate'); expect(el.playbackRate).toBe(LIVE_CATCHUP_RATE);
     el.currentTime = 15.8;
@@ -1018,6 +1024,20 @@ describe('a live tile stays live (DR-0799)', () => {
     r = tendLiveVideo(paused, r.memo, { nowMs: 20000 });
     expect(r.frozen).toBe(false); expect(paused.currentTime).toBe(1); expect(r.action).toBe('none');
     expect(tendLiveVideo(null, null)).toMatchObject({ frozen: false, action: 'none' });
+    // far behind on MP4: no seek, no rate -- the caller is told to open a fresh stream
+    const far = { currentTime: 10, paused: false, ended: false, readyState: 4, playbackRate: 1, buffered: ranges([0, 10 + LIVE_LAG_RECONNECT_S + 2]), seekable: ranges() };
+    r = tendLiveVideo(far, null, { mode: 'mp4', nowMs: 0 });
+    expect(r.action).toBe('reconnect'); expect(r.behind).toBeCloseTo(LIVE_LAG_RECONNECT_S + 2, 5); expect(far.currentTime).toBe(10); expect(far.playbackRate).toBe(1);
+    // the same distance on HLS is a jump to the edge
+    const hls = { currentTime: 10, paused: false, ended: false, readyState: 4, playbackRate: 1, buffered: ranges(), seekable: ranges([0, 30]) };
+    r = tendLiveVideo(hls, null, { mode: 'hls', nowMs: 0 });
+    expect(r.action).toBe('seek'); expect(hls.currentTime).toBe(30 - LIVE_EDGE_MARGIN_S);
+  });
+  it('every reconnection is its own address (DR-0808): the nonce rides the query, the first open carries none', () => {
+    expect(liveUrl('front', 'mp4', 'T')).toBe('/cams/live/front.mp4?t=T');
+    expect(liveUrl('front', 'mp4', 'T', { nonce: 0 })).toBe('/cams/live/front.mp4?t=T');
+    expect(liveUrl('front', 'mp4', 'T', { nonce: 2 })).toBe('/cams/live/front.mp4?t=T&r=2');
+    expect(liveUrl('front', 'hls', 'T', { nonce: 1 })).toBe('/cams/live/front/index.m3u8?t=T&r=1');
   });
 });
 
@@ -1115,5 +1135,42 @@ describe('any camera from the app, tested on the spot (DR-0805)', () => {
     const refused = await setupRing({ email: 'me@example.com', password: 'bad', code: '1' }, 'tok', vi.fn(async () => json(401, { error: 'ring-sign-in-refused', detail: 'authentication failed' })));
     expect(refused.kind).toBe('refused'); expect(refused.message).toMatch(/Ring refused the sign-in: authentication failed/); expect(refused.message).toContain(GOOGLE_SIGN_IN_NOTE);
     expect((await setupRing({ email: 'a@b.c', password: 'p' }, 'tok', vi.fn(async () => json(404, {})))).message).toMatch(/older camera service/);
+  });
+});
+
+// DR-0809. Darrell: "Build the bridge on the NAS so 805 works... make sense?"
+describe('the Wyze bridge road (DR-0809)', () => {
+  it('parseCameraList carries the road, direct unless the NAS says bridge', () => {
+    const out = parseCameraList({ cameras: [{ id: '805_north', kind: 'wyze', road: 'bridge' }, { id: 'front', kind: 'wyze' }, { id: 'odd', kind: 'wyze', road: 'sideways' }] });
+    expect(out.map((c) => [c.id, c.road])).toEqual([['805_north', 'bridge'], ['front', 'direct'], ['odd', 'direct']]);
+  });
+  it('cameraRoadLine says which road and why, in plain words', () => {
+    expect(cameraRoadLine({ road: 'bridge' }, { reason: 'other-network' })).toBe(`Reaches the NAS through the Wyze bridge (Wyze's relay, the road the Wyze app itself uses): ${ROAD_REASONS['other-network']}.`);
+    expect(cameraRoadLine({ road: 'direct' })).toBe('Reaches the NAS on its own network, straight from the camera.');
+    expect(cameraRoadLine({ road: 'bridge' }, { reason: 'something-new' })).toContain(': something-new.');
+  });
+  it('bridgeLine reads /health.bridge honestly: unreported, unconfigured, unsynced, unreachable, up', () => {
+    expect(bridgeLine({})).toMatch(/not reported one yet/);
+    expect(bridgeLine({ bridge: { configured: false } })).toMatch(/waits on the Wyze sign-in/);
+    expect(bridgeLine({ bridge: { configured: true, last: {} } })).toMatch(/not synced the roads yet/);
+    expect(bridgeLine({ bridge: { configured: true, last: { at: 1, reachable: false } } })).toMatch(/not answering on the NAS yet/);
+    expect(bridgeLine({ bridge: { configured: true, last: { at: 1, reachable: true, known: 22, bridged: 12, unknown: ['x'] } } })).toBe('Wyze bridge: up, knows 22 cameras, 12 ride it. 1 the bridge does not list yet.');
+    expect(bridgeLine({ bridge: { configured: true, last: { at: 1, reachable: true, known: 3, bridged: 0, unknown: [] } } })).toBe('Wyze bridge: up, knows 3 cameras, 0 ride it.');
+  });
+  it('setStreamRoad posts the road as the owner and reads the answer or the refusal', async () => {
+    const calls = [];
+    const f = async (url, opts) => { calls.push({ url, opts }); return { ok: true, status: 200, json: async () => ({ ok: true, id: '805_north', road: 'bridge', reason: 'forced', forced: 'bridge' }) }; };
+    const r = await setStreamRoad('805_north', 'bridge', 'T', { fetchImpl: f });
+    expect(r).toEqual({ ok: true, road: 'bridge', reason: 'forced', forced: 'bridge' });
+    expect(calls[0].url).toBe(streamRoadUrl('805_north'));
+    expect(calls[0].opts.method).toBe('POST');
+    expect(calls[0].opts.headers.Authorization).toBe('Bearer T');
+    expect(JSON.parse(calls[0].opts.body)).toEqual({ road: 'bridge' });
+    const refused = async () => ({ ok: false, status: 409, json: async () => ({ error: 'bridge-not-configured' }) });
+    const r2 = await setStreamRoad('805_north', 'bridge', 'T', { fetchImpl: refused });
+    expect(r2.ok).toBe(false); expect(r2.text).toMatch(/sign in on the Setup tab/);
+    const dark = async () => { throw new TypeError('Failed to fetch'); };
+    const r3 = await setStreamRoad('805_north', 'auto', 'T', { fetchImpl: dark });
+    expect(r3.ok).toBe(false); expect(r3.error).toBe('network');
   });
 });

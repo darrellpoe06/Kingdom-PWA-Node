@@ -1,0 +1,47 @@
+# =============================================================================
+# The Wyze bridge beside go2rtc (DR-0809) -- the road for cameras go2rtc's own
+# wyze: source cannot reach (another network, e.g. the 805 house at 10.0.0.x)
+# or refuses (firmware without DTLS). docker-wyze-bridge signs in with the
+# SAME four values the Cameras tab keeps (install.sh derives wyze-bridge.env
+# from wyze.env; cams_forwarder.py --bridge-env) and reaches each camera the
+# way the Wyze app does: LAN, then P2P, then Wyze's relay (NET_MODE=ANY). It
+# connects a camera only while something pulls it (ON_DEMAND) and gives each
+# one an RTSP line go2rtc already speaks; cams_forwarder.py points the right
+# cameras at it (bridge-roads.json) and nothing else changes for the app.
+#
+# Verified before pinning (DR-0076): Docker Hub mrlt8/wyze-bridge tag 2.10.3
+# (2024-09-13, amd64 + arm64) is the newest numbered release; `latest` points
+# at it. PINNED, not :latest. The bridge's env names (WYZE_EMAIL,
+# WYZE_PASSWORD, API_ID, API_KEY), NET_MODE values, ON_DEMAND, SUBSTREAM,
+# WB_AUTH and the `api` key on /api were read from its README, wiki and source
+# (app/wyzebridge/wyze_api.py, config.py, web_ui.py, wyzecam/api_models.py).
+#
+# Access: LOOPBACK ONLY. RTSP 8554 -> 127.0.0.1:8555 (go2rtc listens on 8554
+# itself), API/web 5000 -> 127.0.0.1:8597 (DSM owns 5000). WB_AUTH stays on:
+# the forwarder presents WB_API from the env file. No LAN, no Funnel.
+#
+# This file is ADDED to the compose project only when wyze-bridge.env exists
+# (install.sh), so go2rtc never waits on the Wyze sign-in.
+# =============================================================================
+
+services:
+  wyze-bridge:
+    image: mrlt8/wyze-bridge:2.10.3
+    container_name: poetech-wyze-bridge
+    env_file:
+      - /volume1/PoeTech/secrets/wyze-bridge.env
+    environment:
+      - TZ=America/Chicago
+      - NET_MODE=ANY
+      - ON_DEMAND=True
+      - SUBSTREAM=True
+      - WB_AUTH=True
+      - IGNORE_OFFLINE=False
+      - LOG_LEVEL=info
+    ports:
+      - "127.0.0.1:8555:8554"
+      - "127.0.0.1:8597:5000"
+    volumes:
+      - /volume1/docker/wyze-bridge/tokens:/tokens
+      - /volume1/docker/wyze-bridge/img:/img
+    restart: unless-stopped

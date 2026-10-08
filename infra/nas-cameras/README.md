@@ -133,6 +133,8 @@ it in a URL.
 | `GET /cams/streams/<id>/test` | family bearer or grant | one timed probe of that stream `{id, probe:{ok, ms, producers, medias, error}}` so a new camera is verified on the spot |
 | `DELETE /cams/streams/<id>` | owner | removes the stream and its `_h264` / `_sd` twins from go2rtc and the config |
 | `POST /cams/setup/ring {email, password[, code]}` | owner | signs the NAS into Ring through go2rtc's own `/api/ring`; 409 `needs-2fa` with the prompt, 401 refused, else every Ring camera registered as a stream; the password is used once and never stored or logged |
+| `POST /cams/streams/<id>/road {road}` | owner | `bridge` / `direct` / `auto` (DR-0809): which road a Wyze camera takes into go2rtc. Auto: a camera on a network the NAS cannot reach, or without DTLS firmware, rides the Wyze bridge (docker-wyze-bridge beside go2rtc, relay mode, loopback only) as `rtsp://127.0.0.1:8555/<uri>`; every other Wyze camera stays on go2rtc's own `wyze:` road. 409 `bridge-not-configured` before the Wyze sign-in, `unknown-to-bridge` when the bridge does not list it |
+| `GET /cams/streams/roads` | owner | every camera's road, reason, since, forced; never a URL. `/health.bridge` = {configured, api, rtsp, last:{at, reachable, known, bridged, unknown, moved}}; `/list` carries `road` |
 
 The app picks HLS when the device's `<video>` says it can play
 `application/vnd.apple.mpegurl`, else MP4 -- no player library, the browser's own
@@ -186,3 +188,22 @@ sudo /var/packages/Tailscale/target/bin/tailscale funnel status
 journalctl -u poetech-cams -n 50
 sudo docker logs poetech-go2rtc --tail 50
 ```
+
+## The Wyze bridge (DR-0809)
+
+`docker-compose.bridge.yml` runs `mrlt8/wyze-bridge:2.10.3` beside go2rtc when
+`/volume1/PoeTech/secrets/wyze-bridge.env` exists. `install.sh` derives that file
+from the kept Wyze sign-in with `cams_forwarder.py --bridge-env` (the bridge's
+names `WYZE_EMAIL` / `WYZE_PASSWORD` / `API_ID` / `API_KEY`, plus a minted `WB_API`
+key and web password), root-only; the in-app sign-in refreshes it. The bridge is
+loopback only: RTSP `127.0.0.1:8555`, API `127.0.0.1:8597` (key required).
+`NET_MODE=ANY` (LAN, then P2P, then Wyze's relay), `ON_DEMAND=True` (a camera is
+connected only while go2rtc pulls it), `SUBSTREAM=True` (`<uri>-sub` at SD).
+
+The forwarder's stream sampler syncs the roads every minute (`ensure_bridge_roads`):
+a `wyze://` host outside every network the NAS has (`ip -4 -o addr`, or
+`CAMS_LAN_CIDRS`), or a line without `dtls=true`, is pointed at
+`rtsp://127.0.0.1:8555/<uri>` (matched by MAC against `GET /api` of the bridge),
+its `_sd` twin at `<uri>-sub`; the direct line is kept in `bridge-roads.json`
+(root-only) so the camera is handed back when the NAS can reach it again.
+`cams_forwarder.py --bridge-probe` prints the bridge's camera count and the roads.

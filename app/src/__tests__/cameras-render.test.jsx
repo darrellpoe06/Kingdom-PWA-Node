@@ -43,6 +43,7 @@ function makeFetch(plan) {
     if (u === '/cams/recording' && (opts.method || 'GET') === 'GET') return jsonResponse(plan.recordingStatus ?? 404, plan.recording ?? { error: 'not-found' });
     if (u === '/cams/recording' && opts.method === 'PUT') { const cfg = JSON.parse(opts.body); return jsonResponse(200, { ok: true, config: cfg }); }
     if (u === '/cams/streams/health') return jsonResponse(plan.streamHealthStatus ?? 200, plan.streamHealth ?? { sampled_at: 1700000000, interval_s: 15, cameras: {}, events: [] });
+    { const rm = u.match(/^\/cams\/streams\/([^/]+)\/road$/); if (rm && opts.method === 'POST') { const b = JSON.parse(opts.body); plan.roads = [...(plan.roads || []), [rm[1], b.road]]; return jsonResponse(plan.roadStatus ?? 200, plan.road ?? { ok: true, id: rm[1], road: b.road === 'auto' ? 'bridge' : b.road, reason: b.road === 'auto' ? 'other-network' : 'forced', forced: b.road === 'auto' ? null : b.road }); } }
     if (u === '/cams/streams' && opts.method === 'POST') { const b = JSON.parse(opts.body); plan.added = [...(plan.added || []), b]; return jsonResponse(plan.addStatus ?? 200, plan.add ?? { ok: true, id: b.name, kind: b.url.split(':')[0], registered: true, persisted: true, detail: '', probe: { ok: true, status: 200, ms: 1200, bytes: 48000 } }); }
     if (/^\/cams\/streams\/[^/]+\/test$/.test(u)) return jsonResponse(200, { id: 'x', probe: plan.testProbe ?? { ok: false, status: 500, error: 'streams: connect failed', ms: 300, bytes: 0 } });
     if (/^\/cams\/streams\/[^/]+$/.test(u) && opts.method === 'DELETE') { plan.removed = [...(plan.removed || []), u.split('/').pop()]; return jsonResponse(200, { ok: true, removed: [u.split('/').pop()] }); }
@@ -1158,5 +1159,33 @@ describe('Cameras surface', () => {
     expect(s.requires).toBe('cameras'); // DR-0778: the family, or a grant the owner gave this device
     expect(s.whenDenied).toBe('hide');
     expect(SURFACES.filter((x) => x.view === 'cameras')).toHaveLength(1);
+  });
+
+  it('the Wyze bridge road (DR-0809): Setup says what /health says about the bridge; a Wyze tile\'s Why? names its road and the owner can pick one', async () => {
+    const { fetchImpl, calls } = makeFetch({
+      health: { ok: true, go2rtc: '1.9.14', streams: 2, live_max_seconds: 0, max_live: 32, wyze_cloud: 'ready', bridge: { configured: true, api: 'http://127.0.0.1:8597', last: { at: 1700000000, reachable: true, known: 22, bridged: 12, unknown: ['east_north'] } } },
+      list: { cameras: [{ id: '805_north', name: '805 north', kind: 'wyze', road: 'bridge' }, { id: 'front', name: 'front', kind: 'wyze', road: 'direct' }], count: 2 },
+      snapFail: { '805_north': { status: 504, body: { error: 'frame-timeout', after_s: 12 } } },
+    });
+    vi.stubGlobal('fetch', fetchImpl);
+    await mount();
+    await act(async () => { await new Promise((r) => setTimeout(r, 30)); });
+    await click(container.querySelector('[data-testid="cams-tab-setup"]'));
+    const status = container.querySelector('[data-testid="bridge-status"]');
+    expect(status.textContent).toContain('Wyze bridge: up, knows 22 cameras, 12 ride it. 1 the bridge does not list yet.');
+    await click(container.querySelector('[data-testid="cams-tab-live"]'));
+    await act(async () => { await new Promise((r) => setTimeout(r, 30)); });
+    const why = buttons().find((b) => /Why does 805 north/.test(b.getAttribute('aria-label') || ''));
+    expect(why).toBeTruthy();
+    await click(why);
+    await act(async () => { await new Promise((r) => setTimeout(r, 30)); });
+    expect(container.querySelector('[data-testid="why-road-805_north"]').textContent).toMatch(/through the Wyze bridge/);
+    await click(container.querySelector('[data-testid="road-direct-805_north"]'));
+    await act(async () => { await new Promise((r) => setTimeout(r, 30)); });
+    const roadCall = calls.find((c) => /\/road$/.test(c.url));
+    expect(roadCall.url).toBe('/cams/streams/805_north/road');
+    expect(JSON.parse(roadCall.opts.body)).toEqual({ road: 'direct' });
+    expect(roadCall.opts.headers.Authorization).toBe(`Bearer ${TOKEN}`);
+    expect(container.querySelector('[data-testid="road-result-805_north"]').textContent).toMatch(/Now on the direct road \(your choice\)/);
   });
 });

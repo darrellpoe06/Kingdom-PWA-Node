@@ -97,6 +97,15 @@
 #        twin, sd -- and the last 50 drop events. Sampled every CAMS_STREAM_SAMPLE_SECONDS.
 #        Every Wyze camera also gets `<id>_sd` (its own substream, DR-0799) for
 #        tiles in a grid; /list hides both twins and marks the camera h264 / sd.
+#   POST /streams/<id>/road {road}     owner. "bridge" | "direct" | "auto" (DR-0809):
+#        which road a Wyze camera takes into go2rtc. Auto: a camera on a network
+#        the NAS cannot reach, or one whose firmware has no DTLS, rides the Wyze
+#        bridge (docker-wyze-bridge beside go2rtc, relay mode, loopback only) as
+#        rtsp://127.0.0.1:8555/<uri>; every other Wyze camera stays on go2rtc's
+#        own wyze: road. Answers {ok, id, road, reason}.
+#   GET  /streams/roads                owner. Every camera's road and why, never a URL.
+#        /health carries `bridge`: configured, reachable, cameras it knows, how
+#        many ride it, when it was last synced. /list carries `road` per camera.
 #   GET  /devices                      bearer. The Wyze ACCOUNT's devices over
 #        Wyze's own cloud API (wyze_cloud.py), independent of any video:
 #        [{mac, nickname, model, online, garage, stream}] -- `stream` is the
@@ -169,6 +178,8 @@ import hmac
 import json
 import os
 import re
+import ipaddress
+import secrets
 import socket
 import subprocess
 import sys
@@ -663,7 +674,7 @@ def kind_of(url):
         return "unknown"
     scheme = url.split(":", 1)[0].lower()
     scheme = scheme.split("#", 1)[0]
-    if scheme == "wyze":
+    if scheme == "wyze" or is_bridge_source(url):
         return "wyze"
     if scheme == "ring":
         return "ring"
@@ -699,7 +710,13 @@ def camera_list(streams_json):
                 if isinstance(p, dict) and p.get("url"):
                     kind = kind_of(p.get("url"))
                     break
-        out.append({"id": sid, "name": sid.replace("_", " ").replace("-", " "), "kind": kind})
+        road = "direct"
+        if isinstance(producers, list):
+            for p in producers:
+                if isinstance(p, dict) and is_bridge_source(p.get("url")):
+                    road = "bridge"
+                    break
+        out.append({"id": sid, "name": sid.replace("_", " ").replace("-", " "), "kind": kind, "road": road})
     return out
 
 
@@ -1181,7 +1198,11 @@ def sd_of(stream_id):
 
 
 def sd_source(url):
-    """The same wyze:// source with subtype=sd (replacing subtype=hd when it is there); None for any other kind."""
+    """The same wyze:// source with subtype=sd (replacing subtype=hd when it is there);
+    a bridge road's own `-sub` substream (DR-0809); None for any other kind."""
+    if is_bridge_source(url):
+        u = str(url)
+        return u if u.endswith(BRIDGE_SUB_SUFFIX) else u + BRIDGE_SUB_SUFFIX
     if kind_of(url) != "wyze":
         return None
     base, _, frag = str(url).partition("#")
@@ -1190,6 +1211,394 @@ def sd_source(url):
     else:
         base += ("&" if "?" in base else "?") + "subtype=sd"
     return base + (("#" + frag) if frag else "")
+
+
+# =============================================================================
+# THE WYZE BRIDGE ROAD (DR-0809; Darrell 2026-10-07: "805 we have no video...
+# however the wyze cam app works... why?!!!" and "Build the bridge on the NAS
+# so 805 works"). Measured that night (cams-diag 37702488586): go2rtc's own
+# wyze: source speaks to a camera's LAN address, so the ten 805 cameras at
+# 10.0.0.x -- a network the NAS has no route to -- timed out on discovery, and
+# twelve more were refused with "only DTLS cameras are supported". The Wyze
+# app showed them all, because it rides Wyze's own relay from anywhere.
+#
+# docker-wyze-bridge (mrlt8/wyze-bridge, pinned) runs beside go2rtc on the NAS
+# in relay mode (NET_MODE=ANY: LAN, then P2P, then Wyze's relay), on demand,
+# bound to loopback only: RTSP on 127.0.0.1:8555, its API on 127.0.0.1:8597,
+# API key required. It signs in with the SAME four values the Cameras tab
+# already keeps (wyze.env), copied into its own env file by bridge_env_sync.
+#
+# The road is chosen per camera from the source URL go2rtc already holds --
+# no probing, no waiting on a timeout: a wyze:// host outside every network
+# the NAS sits on, or a wyze:// line without dtls=true, rides the bridge as
+# rtsp://127.0.0.1:8555/<uri>; the camera is matched to the bridge's own
+# listing by MAC. Every other Wyze camera stays on go2rtc's direct road (lower
+# latency, no relay). The owner can force either road per camera, or hand it
+# back to auto. The SD twin of a bridged camera is the bridge's `-sub` stream.
+# Direct URLs (they carry the enr secret) are kept root-only in
+# bridge-roads.json so a camera can be handed back; they never leave the NAS.
+# =============================================================================
+BRIDGE_API = os.environ.get("CAMS_BRIDGE_API", "http://127.0.0.1:8597")
+BRIDGE_RTSP = os.environ.get("CAMS_BRIDGE_RTSP", "rtsp://127.0.0.1:8555")
+BRIDGE_ENV = os.environ.get("CAMS_BRIDGE_ENV", "/volume1/PoeTech/secrets/wyze-bridge.env")
+BRIDGE_ROADS_FILE = os.environ.get("CAMS_BRIDGE_ROADS", os.path.join(os.path.dirname(GO2RTC_YAML_PATH), "bridge-roads.json"))
+BRIDGE_SYNC_EVERY = max(1, int(os.environ.get("CAMS_BRIDGE_SYNC_EVERY", "4")))  # samples between road syncs (4 x 15 s)
+BRIDGE_TIMEOUT = float(os.environ.get("CAMS_BRIDGE_TIMEOUT", "6"))
+BRIDGE_SUB_SUFFIX = "-sub"
+BRIDGE_ROADS = ("bridge", "direct", "auto")
+BRIDGE_LOCK = threading.Lock()
+BRIDGE_LAST = {}  # the last sync, for /health: {at, reachable, known, bridged, unknown, moved}
+_LAN_CACHE = {"at": 0.0, "nets": None}
+LAN_CACHE_SECONDS = 600.0
+
+
+def read_env_pairs(path):
+    """A sh-style env file -> {KEY: value}; {} when unreadable. Quotes stripped."""
+    out = {}
+    try:
+        with open(path, "r", encoding="utf-8") as fh:
+            for line in fh:
+                line = line.strip()
+                if not line or line.startswith("#") or "=" not in line:
+                    continue
+                k, v = line.split("=", 1)
+                k = k.strip().replace("export ", "")
+                v = v.strip()
+                if len(v) >= 2 and v[0] == v[-1] and v[0] in "\"'":
+                    v = v[1:-1].replace('\\"', '"')
+                out[k] = v
+    except OSError:
+        return {}
+    return out
+
+
+def _env_quote(v):
+    return '"%s"' % str(v).replace("\\", "\\\\").replace('"', '\\"')
+
+
+def bridge_env_sync(src=None, dst=None, creds=None):
+    """Derive the bridge's env file from the kept Wyze sign-in. The bridge's names
+    (WYZE_EMAIL, WYZE_PASSWORD, API_ID, API_KEY) differ from ours for two of the
+    four. WB_API (its API key, which the forwarder presents) and WB_PASSWORD
+    (its web UI) are minted once and kept across re-syncs. Root-only, atomic.
+    Answers "written" | "unchanged" | "no-wyze-env" | "error"."""
+    src = src or (_wyze.SECRETS_ENV if _wyze else "/volume1/PoeTech/secrets/wyze.env")
+    dst = dst or BRIDGE_ENV
+    if creds is None:
+        pairs = read_env_pairs(src)
+        creds = dict((k.replace("WYZE_", "").lower(), pairs.get(k, "")) for k in ("WYZE_EMAIL", "WYZE_PASSWORD", "WYZE_API_ID", "WYZE_API_KEY"))
+        if not all(creds.values()) and _wyze is not None:
+            try:
+                creds = _wyze.load_credentials() or creds
+            except Exception:  # noqa: BLE001
+                pass
+    if not creds or not all(creds.get(k) for k in ("email", "password", "api_id", "api_key")):
+        return "no-wyze-env"
+    old = read_env_pairs(dst)
+    wb_api = old.get("WB_API") or secrets.token_hex(16)
+    wb_pass = old.get("WB_PASSWORD") or secrets.token_urlsafe(12)
+    body = (
+        "# The Wyze bridge's sign-in (DR-0809), derived from wyze.env by cams_forwarder.py --bridge-env. Root-only. Edit wyze.env, not this.\n"
+        "WYZE_EMAIL=%s\nWYZE_PASSWORD=%s\nAPI_ID=%s\nAPI_KEY=%s\nWB_API=%s\nWB_PASSWORD=%s\nWB_USERNAME=poetech\n"
+        % (_env_quote(creds["email"]), _env_quote(creds["password"]), _env_quote(creds["api_id"]), _env_quote(creds["api_key"]), _env_quote(wb_api), _env_quote(wb_pass))
+    )
+    try:
+        with open(dst, "r", encoding="utf-8") as fh:
+            if fh.read() == body:
+                return "unchanged"
+    except OSError:
+        pass
+    try:
+        os.makedirs(os.path.dirname(dst) or ".", exist_ok=True)
+        tmp = dst + ".tmp"
+        fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            fh.write(body)
+        os.replace(tmp, dst)
+        return "written"
+    except OSError:
+        return "error"
+
+
+def bridge_configured(path=None):
+    try:
+        return os.path.getsize(path or BRIDGE_ENV) > 0
+    except OSError:
+        return False
+
+
+def bridge_api_key(path=None):
+    return read_env_pairs(path or BRIDGE_ENV).get("WB_API", "")
+
+
+def norm_mac(mac):
+    return re.sub(r"[^0-9A-Fa-f]", "", str(mac or "")).upper()
+
+
+def bridge_cameras(api=None, key=None, timeout=None):
+    """The bridge's own listing (GET /api, key in header and query) ->
+    [{uri, mac, nickname, connected, enabled, status}]; None when it does not answer."""
+    api = (api or BRIDGE_API).rstrip("/")
+    key = bridge_api_key() if key is None else key
+    url = api + "/api" + ("?api=" + urllib.parse.quote(key) if key else "")
+    req = urllib.request.Request(url, headers={"api": key} if key else {})
+    try:
+        with urllib.request.urlopen(req, timeout=timeout or BRIDGE_TIMEOUT) as r:
+            doc = json.loads(r.read(4 * 1024 * 1024).decode("utf-8"))
+    except (urllib.error.URLError, OSError, ValueError):
+        return None
+    cams = doc.get("cameras") if isinstance(doc, dict) else None
+    if not isinstance(cams, dict):
+        return None
+    out = []
+    for uri, c in cams.items():
+        if not isinstance(c, dict) or not re.match(r"^[A-Za-z0-9_.+-]{1,96}$", str(uri)):
+            continue
+        out.append({"uri": str(c.get("name_uri") or uri), "mac": norm_mac(c.get("mac")), "nickname": str(c.get("nickname") or ""),
+                    "connected": bool(c.get("connected")), "enabled": bool(c.get("enabled", True)), "status": str(c.get("status") or "")})
+    return out
+
+
+def is_bridge_source(url):
+    return isinstance(url, str) and url.startswith(BRIDGE_RTSP.rstrip("/") + "/")
+
+
+def bridge_source(uri):
+    return "%s/%s" % (BRIDGE_RTSP.rstrip("/"), uri)
+
+
+def _query_of(url):
+    try:
+        return urllib.parse.parse_qs(urllib.parse.urlsplit(str(url)).query)
+    except ValueError:
+        return {}
+
+
+def mac_of(url):
+    return norm_mac(_query_of(url).get("mac", [""])[0])
+
+
+def host_of(url):
+    try:
+        return urllib.parse.urlsplit(str(url)).hostname or ""
+    except ValueError:
+        return ""
+
+
+def dtls_of(url):
+    return _query_of(url).get("dtls", [""])[0].strip().lower() in ("true", "1", "yes")
+
+
+def lan_networks(now=None, runner=None, env=None):
+    """The networks this NAS sits on (what go2rtc's direct road can reach):
+    CAMS_LAN_CIDRS when set, else `ip -4 -o addr` minus loopback and link-local.
+    Cached LAN_CACHE_SECONDS. A list of ipaddress networks; [] when unknown."""
+    now = time.time() if now is None else now
+    env = os.environ if env is None else env
+    if _LAN_CACHE["nets"] is not None and now - _LAN_CACHE["at"] < LAN_CACHE_SECONDS and runner is None:
+        return _LAN_CACHE["nets"]
+    nets = []
+    override = env.get("CAMS_LAN_CIDRS", "")
+    if override.strip():
+        for part in override.split(","):
+            try:
+                nets.append(ipaddress.ip_network(part.strip(), strict=False))
+            except ValueError:
+                pass
+    else:
+        try:
+            out = (runner or (lambda: subprocess.run(["ip", "-4", "-o", "addr", "show"], capture_output=True, text=True, timeout=3).stdout))()
+        except (OSError, subprocess.SubprocessError):
+            out = ""
+        for m in re.finditer(r"\binet\s+(\d+\.\d+\.\d+\.\d+/\d+)", out or ""):
+            try:
+                n = ipaddress.ip_network(m.group(1), strict=False)
+            except ValueError:
+                continue
+            if n.is_loopback or n.is_link_local:
+                continue
+            nets.append(n)
+    if runner is None:
+        _LAN_CACHE["nets"] = nets
+        _LAN_CACHE["at"] = now
+    return nets
+
+
+def bridge_road_wanted(url, lans):
+    """Does this wyze:// source need the bridge? (wanted, reason). Pure."""
+    if kind_of(url) != "wyze" or is_bridge_source(url):
+        return False, ""
+    host = host_of(url)
+    if host and lans:
+        try:
+            ip = ipaddress.ip_address(host)
+            if not any(ip in n for n in lans):
+                return True, "other-network"
+        except ValueError:
+            pass
+    if not dtls_of(url):
+        return True, "no-dtls"
+    return False, ""
+
+
+def roads_load(path=None):
+    path = path or BRIDGE_ROADS_FILE
+    try:
+        with open(path, "r", encoding="utf-8") as fh:
+            doc = json.load(fh)
+    except (OSError, ValueError):
+        return {}
+    return doc if isinstance(doc, dict) else {}
+
+
+def roads_save(doc, path=None):
+    path = path or BRIDGE_ROADS_FILE
+    try:
+        os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+        tmp = path + ".tmp"
+        fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            json.dump(doc, fh, indent=1)
+        os.replace(tmp, path)
+        return True
+    except OSError:
+        return False
+
+
+def roads_public(doc):
+    """The roads without a URL (direct URLs carry the enr secret)."""
+    out = {}
+    for sid, rec in (doc or {}).items():
+        if isinstance(rec, dict):
+            out[sid] = {"road": rec.get("road") or "direct", "uri": rec.get("uri"), "reason": rec.get("reason"),
+                        "since": rec.get("since"), "forced": rec.get("forced")}
+    return out
+
+
+def set_stream_source(upstream, name, src, config_path=None, log=print, timeout=None):
+    """Make go2rtc's stream `name` read from `src` (PUT replaces the producer),
+    and make the config say the same (go2rtc writes it on a PUT it accepts; when
+    it refuses, DR-0789, the forwarder rewrites the line). Answers True when
+    either the running go2rtc or the config now carries it."""
+    config_path = config_path or GO2RTC_YAML_PATH
+    q = urllib.parse.urlencode([("name", name), ("src", src)])
+    registered = False
+    try:
+        req = urllib.request.Request(upstream.rstrip("/") + "/api/streams?" + q, method="PUT")
+        with urllib.request.urlopen(req, timeout=timeout or HEALTH_TIMEOUT) as r:
+            r.read(4096)
+        registered = True
+    except urllib.error.HTTPError as e:
+        log("bridge-road: go2rtc refused PUT %s (HTTP %d); the config line is rewritten directly (DR-0789)" % (name, e.code))
+    except (urllib.error.URLError, OSError):
+        log("bridge-road: go2rtc unreachable while setting %s" % name)
+        return False
+    # The config must say what memory says (DR-0787): replace the line when it differs.
+    try:
+        with open(config_path, "r", encoding="utf-8") as fh:
+            text = fh.read()
+        cur = re.search(r"^\s{2}%s:\s*(.*)$" % re.escape(name), text, re.M)
+        cur_val = cur.group(1).strip() if cur else None
+        if cur_val is not None and cur_val.strip("'\"") != src:
+            remove_stream_entry(config_path, name)
+        if cur_val is None or cur_val.strip("'\"") != src:
+            write_stream_entry(config_path, name, src)
+    except OSError:
+        pass
+    return True
+
+
+def ensure_bridge_roads(upstream, streams, bridge_cams, lans=None, roads=None, log=print, config_path=None, roads_path=None, now=None, only=None):
+    """Put every Wyze camera on the road that works (DR-0809) and keep the record.
+    streams: go2rtc GET /api/streams. bridge_cams: bridge_cameras(). lans:
+    lan_networks(). roads: the kept record (loaded when None). Answers
+    {to_bridge, to_direct, unknown, kept, known}."""
+    now = time.time() if now is None else now
+    lans = lan_networks() if lans is None else lans
+    roads = roads_load(roads_path) if roads is None else roads
+    by_mac = dict((c["mac"], c["uri"]) for c in (bridge_cams or []) if c.get("mac") and c.get("uri"))
+    out = {"to_bridge": [], "to_direct": [], "unknown": [], "kept": 0, "known": len(by_mac)}
+    if not isinstance(streams, dict):
+        return out
+    ids = set(streams.keys())
+    for sid, entry in sorted(streams.items()):
+        if only and sid != only:
+            continue
+        if not CAMERA_ID.match(str(sid)) or is_twin(sid) or not isinstance(entry, dict):
+            continue
+        url = None
+        for p in entry.get("producers") or []:
+            if isinstance(p, dict) and p.get("url"):
+                url = p.get("url")
+                break
+        if not url:
+            continue
+        rec = roads.get(sid) if isinstance(roads.get(sid), dict) else {}
+        forced = rec.get("forced") if rec.get("forced") in ("bridge", "direct") else None
+        if kind_of(url) == "wyze" and not is_bridge_source(url):
+            wanted, reason = bridge_road_wanted(url, lans)
+            if forced == "direct" or (not wanted and forced != "bridge"):
+                out["kept"] += 1
+                continue
+            uri = by_mac.get(mac_of(url))
+            if not uri:
+                out["unknown"].append(sid)
+                roads[sid] = dict(rec, road="direct", direct=url, reason=reason or "forced", forced=forced, unknown_to_bridge=True)
+                continue
+            new = bridge_source(uri)
+            if not set_stream_source(upstream, sid, new, config_path, log):
+                continue
+            sd_name = sd_of(sid)
+            set_stream_source(upstream, sd_name, sd_source(new), config_path, log)
+            roads[sid] = {"road": "bridge", "direct": url, "bridge": new, "uri": uri, "reason": reason if wanted else "forced", "since": now, "forced": forced}
+            out["to_bridge"].append(sid)
+            log("bridge-road: %s now rides the Wyze bridge as %s (%s)" % (sid, uri, roads[sid]["reason"]))
+        elif is_bridge_source(url):
+            direct = rec.get("direct")
+            back = forced == "direct" or (forced != "bridge" and direct and not bridge_road_wanted(direct, lans)[0])
+            if not back or not direct:
+                out["kept"] += 1
+                continue
+            if not set_stream_source(upstream, sid, direct, config_path, log):
+                continue
+            sd_name = sd_of(sid)
+            if sd_name in ids or True:
+                set_stream_source(upstream, sd_name, sd_source(direct), config_path, log)
+            roads[sid] = dict(rec, road="direct", reason="forced" if forced == "direct" else "reachable-again", since=now, forced=forced)
+            out["to_direct"].append(sid)
+            log("bridge-road: %s is back on go2rtc's direct road" % sid)
+    roads_save(roads, roads_path)
+    with BRIDGE_LOCK:
+        BRIDGE_LAST.clear()
+        BRIDGE_LAST.update({"at": now, "reachable": bridge_cams is not None, "known": len(by_mac),
+                            "bridged": sum(1 for r in roads.values() if isinstance(r, dict) and r.get("road") == "bridge"),
+                            "unknown": list(out["unknown"]), "moved": len(out["to_bridge"]) + len(out["to_direct"])})
+    return out
+
+
+def bridge_snapshot():
+    with BRIDGE_LOCK:
+        last = dict(BRIDGE_LAST)
+    return {"configured": bridge_configured(), "api": BRIDGE_API, "rtsp": BRIDGE_RTSP, "last": last}
+
+
+def sync_bridge_roads(upstream, streams=None, log=print, config_path=None, roads_path=None, only=None):
+    """One sync from live inputs: the bridge's listing, the NAS's networks, go2rtc's streams."""
+    if streams is None:
+        try:
+            with urllib.request.urlopen(upstream.rstrip("/") + "/api/streams", timeout=HEALTH_TIMEOUT) as r:
+                streams = json.loads(r.read(4 * 1024 * 1024).decode("utf-8"))
+        except (urllib.error.URLError, OSError, ValueError):
+            return None
+    cams = bridge_cameras()
+    if cams is None:
+        with BRIDGE_LOCK:
+            BRIDGE_LAST.update({"at": time.time(), "reachable": False})
+        return None
+    return ensure_bridge_roads(upstream, streams, cams, log=log, config_path=config_path, roads_path=roads_path, only=only)
+
+
+_BRIDGE_TICK = {"n": 0}
 
 
 def ensure_sd_twins(upstream, streams, log=print, config_path=None):
@@ -1431,6 +1840,14 @@ def sample_streams_once(upstream, health=None, log=print, health_file=None, twin
     if health_file:
         write_health_file(health_file, summary)
     if twins:
+        # The bridge road first (DR-0809), so a camera moved onto it gets its
+        # `-sub` twin rather than a wyze: subtype=sd twin it cannot reach.
+        _BRIDGE_TICK["n"] += 1
+        if bridge_configured() and _BRIDGE_TICK["n"] % BRIDGE_SYNC_EVERY == 1 % BRIDGE_SYNC_EVERY:
+            try:
+                sync_bridge_roads(upstream, streams=streams, log=log, config_path=config_path)
+            except Exception as e:  # noqa: BLE001 -- the sampler outlives any one surprise
+                log("bridge-road: %s" % e)
         ensure_h264_twins(upstream, streams.keys(), summary, log=log, config_path=config_path)
         if SD_TWINS:
             ensure_sd_twins(upstream, streams, log=log, config_path=config_path)
@@ -1665,6 +2082,10 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
                 return self._recording_get()
             if path == "/streams/health":
                 return self._streams_health()
+            if path == "/streams/roads":
+                if not self._authed():
+                    return self._json(401, {"error": "unauthorized"})
+                return self._json(200, {"roads": roads_public(roads_load()), "bridge": bridge_snapshot()})
 
             m = re.match(r"^/rec/([^/]+)$", path)
             if m:
@@ -1815,7 +2236,7 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
                 if rec is None:
                     return self._json(404, {"error": "not-found"})
                 return self._json(200, {"ok": True, "grant": grant_public(gm.group(1), rec)})
-            if path not in ("/ticket", "/setup/wyze", "/setup/wyze/again", "/restart", "/action", "/grants", "/streams", "/setup/ring"):
+            if path not in ("/ticket", "/setup/wyze", "/setup/wyze/again", "/restart", "/action", "/grants", "/streams", "/setup/ring") and not re.match(r"^/streams/[^/]+/road$", path):
                 return self._json(404, {"error": "not-found"})
             # The owner's roads (the family bearer) and the roads a grant may
             # also take (/ticket for its cameras, /action when it includes the
@@ -1843,6 +2264,9 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
                 return self._setup_wyze(body if isinstance(body, dict) else {})
             if path == "/streams":
                 return self._stream_add(body if isinstance(body, dict) else {})
+            m = re.match(r"^/streams/([^/]+)/road$", path)
+            if m:
+                return self._stream_road(m.group(1), body if isinstance(body, dict) else {})
             if path == "/setup/ring":
                 return self._setup_ring(body if isinstance(body, dict) else {})
             if path == "/grants":
@@ -1914,6 +2338,28 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
                 return False, False, "go2rtc refused the PUT (HTTP %d: %s)" % (e.code, detail)
             except (urllib.error.URLError, OSError):
                 return False, False, "go2rtc-unreachable"
+
+        def _stream_road(self, cam, body):
+            """The owner picks a Wyze camera's road (DR-0809): bridge, direct, or auto; applied at once."""
+            if not CAMERA_ID.match(cam) or is_twin(cam):
+                return self._json(400, {"error": "bad-camera-id"})
+            road = str(body.get("road") or "").strip().lower()
+            if road not in BRIDGE_ROADS:
+                return self._json(400, {"error": "bad-road", "roads": list(BRIDGE_ROADS)})
+            roads = roads_load()
+            rec = roads.get(cam) if isinstance(roads.get(cam), dict) else {}
+            rec["forced"] = None if road == "auto" else road
+            roads[cam] = rec
+            roads_save(roads)
+            if road == "bridge" and not bridge_configured():
+                return self._json(409, {"error": "bridge-not-configured", "detail": "sign in to Wyze in the Cameras tab first; the bridge takes the same sign-in"})
+            res = sync_bridge_roads(upstream, only=cam)
+            if res is None:
+                return self._json(502, {"error": "bridge-unreachable" if bridge_configured() else "bridge-not-configured", "id": cam, "forced": rec["forced"]})
+            now_rec = roads_load().get(cam) or {}
+            if cam in res["unknown"]:
+                return self._json(409, {"error": "unknown-to-bridge", "id": cam, "detail": "the bridge's own listing has no camera with this one's MAC yet; it lists them after its sign-in"})
+            return self._json(200, {"ok": True, "id": cam, "road": now_rec.get("road") or "direct", "reason": now_rec.get("reason"), "forced": now_rec.get("forced"), "moved": res["to_bridge"] + res["to_direct"]})
 
         def _existing_ids(self):
             try:
@@ -2128,6 +2574,10 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
                     wyze_persist(fields)
                 except Exception:  # noqa: BLE001 -- never let a disk hiccup fail the sign-in that already worked
                     pass
+                try:
+                    bridge_env_sync(creds=fields)  # the bridge takes the same sign-in (DR-0809)
+                except Exception:  # noqa: BLE001
+                    pass
             wyze_client_reset()
 
         def _wyze(self):
@@ -2218,6 +2668,7 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
                 out.update(breaker_snapshot())
                 out["stream_health"] = stream_health.snapshot()
                 out["derived"] = derived_store.snapshot()
+                out["bridge"] = bridge_snapshot()
                 try:
                     out["wyze_cloud"] = "ready" if wyze_factory() is not None else "no-credentials"
                     if PERSIST_LAST:
@@ -3514,6 +3965,157 @@ def _selftest():
     check(j["stream_health"]["cameras"] == 2 and j["stream_health"]["interval_s"] == 15 and j["stream_health"]["drops_1h"] == 1, "/health's stream_health summary: cameras seen, the interval, drops in the hour")
     check(sample_streams_once("http://127.0.0.1:1", health=StreamHealth(), twins=False) == "unreachable", "a dark go2rtc is 'unreachable', never a sample")
 
+
+    print("=== 8n. the Wyze bridge road (DR-0809): a camera the NAS cannot reach, or without DTLS, rides the bridge; the owner can force a road ===")
+    global BRIDGE_API, BRIDGE_ENV, BRIDGE_ROADS_FILE
+    br_tmp = tempfile.mkdtemp(prefix="cams-bridge-")
+    br_wyze_env = os.path.join(br_tmp, "wyze.env")
+    br_env = os.path.join(br_tmp, "wyze-bridge.env")
+    with open(br_wyze_env, "w") as fh:
+        fh.write('WYZE_EMAIL="d@example.com"\nWYZE_PASSWORD="pw-$ecret"\nWYZE_API_ID="id1"\nWYZE_API_KEY="key-secret"\n')
+    check(bridge_env_sync(br_wyze_env, br_env) == "written" and (os.stat(br_env).st_mode & 0o777) == 0o600, "--bridge-env derives the bridge's file from wyze.env, root-only")
+    be = read_env_pairs(br_env)
+    check(be["WYZE_EMAIL"] == "d@example.com" and be["WYZE_PASSWORD"] == "pw-$ecret" and be["API_ID"] == "id1" and be["API_KEY"] == "key-secret" and len(be["WB_API"]) == 32 and be["WB_PASSWORD"], "the bridge's names (API_ID / API_KEY) carry our values; an API key and a web password are minted")
+    first_key = be["WB_API"]
+    check(bridge_env_sync(br_wyze_env, br_env) == "unchanged" and read_env_pairs(br_env)["WB_API"] == first_key, "a re-sync changes nothing and keeps the minted key")
+    with open(br_wyze_env, "w") as fh:
+        fh.write('WYZE_EMAIL="d@example.com"\nWYZE_PASSWORD="new-pw"\nWYZE_API_ID="id1"\nWYZE_API_KEY="key-secret"\n')
+    check(bridge_env_sync(br_wyze_env, br_env) == "written" and read_env_pairs(br_env)["WYZE_PASSWORD"] == "new-pw" and read_env_pairs(br_env)["WB_API"] == first_key, "a changed Wyze password is carried over; the minted key still stands")
+    check(bridge_env_sync(os.path.join(br_tmp, "missing.env"), os.path.join(br_tmp, "x.env")) in ("no-wyze-env",) or _wyze is not None, "without a sign-in there is nothing to derive")
+
+    lans = lan_networks(runner=lambda: "1: lo    inet 127.0.0.1/8 scope host lo\n2: eth0    inet 192.168.1.26/24 brd 192.168.1.255 scope global eth0\n3: eth1    inet 169.254.230.34/16 scope global eth1\n4: tun0    inet 10.8.0.1 peer 10.8.0.2/32 scope global tun0\n5: docker0    inet 172.17.0.1/16 scope global docker0\n")
+    check([str(n) for n in lans] == ["192.168.1.0/24", "172.17.0.0/16"], "lan_networks reads the NAS's own addresses, minus loopback, link-local and a point-to-point tunnel (%r)" % [str(n) for n in lans])
+    check(lan_networks(runner=lambda: "", env={"CAMS_LAN_CIDRS": "192.168.1.0/24, 10.0.0.0/24"}) == [ipaddress.ip_network("192.168.1.0/24"), ipaddress.ip_network("10.0.0.0/24")], "CAMS_LAN_CIDRS overrides the probe")
+    check(bridge_road_wanted("wyze://10.0.0.5?uid=A&enr=S&mac=AA:BB:CC:DD:EE:01&model=HL_CAM4&dtls=true", lans) == (True, "other-network"), "a camera at 10.0.0.x, with the NAS on 192.168.1.x, wants the bridge: other-network")
+    check(bridge_road_wanted("wyze://192.168.1.50?uid=A&enr=S&mac=AA:BB:CC:DD:EE:02&model=HL_CAM4&dtls=true", lans) == (False, ""), "a DTLS camera on the NAS's own LAN stays direct")
+    check(bridge_road_wanted("wyze://192.168.1.60?uid=A&enr=S&mac=AA:BB:CC:DD:EE:03&model=WYZEC1-JZ", lans) == (True, "no-dtls"), "a LAN camera without dtls=true wants the bridge: no-dtls")
+    check(bridge_road_wanted("rtsp://u:p@192.168.1.9/live", lans) == (False, "") and bridge_road_wanted(bridge_source("x"), lans) == (False, ""), "an rtsp camera and a bridged one are not asked")
+    check(mac_of("wyze://10.0.0.5?uid=A&mac=aa:bb:cc:dd:ee:01") == "AABBCCDDEE01" and norm_mac("AA22334455bB") == "AA22334455BB" and norm_mac(None) == "", "MACs compare without colons or case")
+    check(sd_source(bridge_source("805-north")) == bridge_source("805-north") + "-sub" and sd_source(bridge_source("805-north-sub")) == bridge_source("805-north-sub") and kind_of(bridge_source("805-north")) == "wyze", "a bridged camera's SD twin is its -sub stream and it is still a Wyze camera")
+
+    class FakeBridge(BaseHTTPRequestHandler):
+        def log_message(self, *a):
+            pass
+
+        def do_GET(self):
+            path, _, query = self.path.partition("?")
+            key = urllib.parse.parse_qs(query).get("api", [""])[0] or self.headers.get("api", "")
+            if key != "BRKEY":
+                self.send_response(401); self.end_headers(); return
+            if path != "/api":
+                self.send_response(404); self.end_headers(); return
+            body = json.dumps({"total": 3, "available": 3, "enabled": 3, "cameras": {
+                "805-north": {"name_uri": "805-north", "nickname": "805 North", "mac": "AABBCCDDEE01", "connected": False, "enabled": True, "status": "stopped", "ip": "10.0.0.180"},
+                "front-cam": {"name_uri": "front-cam", "nickname": "Front Cam", "mac": "AABBCCDDEE03", "connected": True, "enabled": True, "status": "connected", "ip": "192.168.1.60"},
+                "garage-doors": {"name_uri": "garage-doors", "nickname": "Garage Doors", "mac": "AABBCCDDEE02", "connected": False, "enabled": True, "status": "stopped"},
+            }}).encode("utf-8")
+            self.send_response(200); self.send_header("Content-Type", "application/json"); self.send_header("Content-Length", str(len(body))); self.end_headers(); self.wfile.write(body)
+
+    fb = ThreadingHTTPServer(("127.0.0.1", 0), FakeBridge)
+    fb.daemon_threads = True
+    threading.Thread(target=fb.serve_forever, daemon=True).start()
+    BRIDGE_API = "http://127.0.0.1:%d" % fb.server_address[1]
+    check(bridge_cameras(key="wrong") is None, "the bridge's listing needs its key")
+    bc = bridge_cameras(key="BRKEY")
+    check(bc is not None and sorted(c["uri"] for c in bc) == ["805-north", "front-cam", "garage-doors"] and next(c for c in bc if c["uri"] == "805-north")["mac"] == "AABBCCDDEE01", "the listing is read by uri with its MAC, never a credential")
+
+    class FakeGo2rtcRoads(BaseHTTPRequestHandler):
+        state = {"puts": [], "refuse": False}
+
+        def log_message(self, *a):
+            pass
+
+        def do_PUT(self):
+            path, _, query = self.path.partition("?")
+            q = urllib.parse.parse_qs(query)
+            self.state["puts"].append((q.get("name", [""])[0], q.get("src", [""])[0]))
+            if self.state["refuse"]:
+                self.send_response(400); self.end_headers(); return
+            self.send_response(200); self.send_header("Content-Length", "2"); self.end_headers(); self.wfile.write(b"{}")
+
+    fr = ThreadingHTTPServer(("127.0.0.1", 0), FakeGo2rtcRoads)
+    fr.daemon_threads = True
+    threading.Thread(target=fr.serve_forever, daemon=True).start()
+    rup = "http://127.0.0.1:%d" % fr.server_address[1]
+    br_cfg = os.path.join(br_tmp, "go2rtc.yaml")
+    with open(br_cfg, "w") as fh:
+        fh.write('api:\n  listen: "127.0.0.1:1984"\nstreams:\n  805_north: "wyze://10.0.0.180?uid=A&enr=S1&mac=AA:BB:CC:DD:EE:01&model=HL_CAM4&dtls=true"\n  805_north_sd: "wyze://10.0.0.180?uid=A&enr=S1&mac=AA:BB:CC:DD:EE:01&model=HL_CAM4&dtls=true&subtype=sd"\n  front_cam: "wyze://192.168.1.60?uid=A&enr=S3&mac=AA:BB:CC:DD:EE:03&model=WYZEC1-JZ"\n  garage_doors: "wyze://192.168.1.50?uid=A&enr=S2&mac=AA:BB:CC:DD:EE:02&model=HL_CAM4&dtls=true"\n  east_north: "wyze://10.0.0.2?uid=A&enr=S4&mac=AA:BB:CC:DD:EE:09&model=HL_CAM4&dtls=true"\n  back_yard: "rtsp://u:p@192.168.1.9/live"\nwyze:\n  email: x\n')
+    br_roads = os.path.join(br_tmp, "bridge-roads.json")
+    streams_now = {
+        "805_north": {"producers": [{"url": "wyze://10.0.0.180?uid=A&enr=S1&mac=AA:BB:CC:DD:EE:01&model=HL_CAM4&dtls=true"}]},
+        "805_north_sd": {"producers": [{"url": "wyze://10.0.0.180?uid=A&enr=S1&mac=AA:BB:CC:DD:EE:01&model=HL_CAM4&dtls=true&subtype=sd"}]},
+        "front_cam": {"producers": [{"url": "wyze://192.168.1.60?uid=A&enr=S3&mac=AA:BB:CC:DD:EE:03&model=WYZEC1-JZ"}]},
+        "garage_doors": {"producers": [{"url": "wyze://192.168.1.50?uid=A&enr=S2&mac=AA:BB:CC:DD:EE:02&model=HL_CAM4&dtls=true"}]},
+        "east_north": {"producers": [{"url": "wyze://10.0.0.2?uid=A&enr=S4&mac=AA:BB:CC:DD:EE:09&model=HL_CAM4&dtls=true"}]},
+        "back_yard": {"producers": [{"url": "rtsp://u:p@192.168.1.9/live"}]},
+    }
+    logs = []
+    res = ensure_bridge_roads(rup, streams_now, bc, lans=lans, roads={}, log=logs.append, config_path=br_cfg, roads_path=br_roads, now=1234.0)
+    check(res["to_bridge"] == ["805_north", "front_cam"] and res["unknown"] == ["east_north"] and res["kept"] == 1 and res["to_direct"] == [], "the 805 camera (other network) and the no-DTLS camera move to the bridge; the one the bridge does not list is named unknown; the LAN DTLS camera is kept (%r)" % res)
+    puts = FakeGo2rtcRoads.state["puts"]
+    check(("805_north", bridge_source("805-north")) in puts and ("805_north_sd", bridge_source("805-north") + "-sub") in puts and ("front_cam", bridge_source("front-cam")) in puts and ("front_cam_sd", bridge_source("front-cam") + "-sub") in puts, "each moved camera is PUT with the bridge's rtsp line, and its SD twin with the bridge's -sub stream")
+    check(not any(n == "garage_doors" or n == "east_north" or n == "back_yard" for n, _u in puts), "nothing else is touched")
+    cfg_now = open(br_cfg).read()
+    check('  805_north: "%s"' % bridge_source("805-north") in cfg_now and '  805_north_sd: "%s-sub"' % bridge_source("805-north") in cfg_now and "enr=S1" not in cfg_now.split("garage_doors")[0].split("805_north_sd")[0] and '  garage_doors: "wyze://192.168.1.50' in cfg_now and cfg_now.endswith("wyze:\n  email: x\n"), "the config says what memory says: the moved lines rewritten, every other byte kept")
+    check(config_stream_names(cfg_now) == {"805_north", "805_north_sd", "front_cam", "front_cam_sd", "garage_doors", "east_north", "back_yard"}, "the twin that did not exist is added once, nothing is duplicated (%r)" % sorted(config_stream_names(cfg_now)))
+    rd = roads_load(br_roads)
+    check((os.stat(br_roads).st_mode & 0o777) == 0o600 and rd["805_north"]["road"] == "bridge" and rd["805_north"]["reason"] == "other-network" and rd["805_north"]["direct"].startswith("wyze://10.0.0.180") and rd["front_cam"]["reason"] == "no-dtls" and rd["east_north"]["unknown_to_bridge"] is True, "the record is root-only and keeps each camera's direct line, road and reason")
+    pub = roads_public(rd)
+    check("direct" not in json.dumps(pub) or all("enr=" not in json.dumps(v) for v in pub.values()), "the public view of the roads carries no URL")
+    check(all(k in pub["805_north"] for k in ("road", "uri", "reason", "since", "forced")) and pub["805_north"]["uri"] == "805-north", "the public view names road, uri, reason, since, forced")
+    # Second pass: nothing moves again.
+    FakeGo2rtcRoads.state["puts"] = []
+    streams_after = dict(streams_now)
+    streams_after["805_north"] = {"producers": [{"url": bridge_source("805-north")}]}
+    streams_after["805_north_sd"] = {"producers": [{"url": bridge_source("805-north") + "-sub"}]}
+    streams_after["front_cam"] = {"producers": [{"url": bridge_source("front-cam")}]}
+    streams_after["front_cam_sd"] = {"producers": [{"url": bridge_source("front-cam") + "-sub"}]}
+    res2 = ensure_bridge_roads(rup, streams_after, bc, lans=lans, roads=roads_load(br_roads), log=logs.append, config_path=br_cfg, roads_path=br_roads, now=1300.0)
+    check(res2["to_bridge"] == [] and res2["to_direct"] == [] and FakeGo2rtcRoads.state["puts"] == [], "a second sync moves nothing and makes no call")
+    # The owner forces 805_north back to direct: it returns with its kept line, twin included.
+    rd = roads_load(br_roads); rd["805_north"]["forced"] = "direct"; roads_save(rd, br_roads)
+    res3 = ensure_bridge_roads(rup, streams_after, bc, lans=lans, roads=roads_load(br_roads), log=logs.append, config_path=br_cfg, roads_path=br_roads, now=1400.0)
+    puts = FakeGo2rtcRoads.state["puts"]
+    check(res3["to_direct"] == ["805_north"] and ("805_north", "wyze://10.0.0.180?uid=A&enr=S1&mac=AA:BB:CC:DD:EE:01&model=HL_CAM4&dtls=true") in puts and ("805_north_sd", "wyze://10.0.0.180?uid=A&enr=S1&mac=AA:BB:CC:DD:EE:01&model=HL_CAM4&dtls=true&subtype=sd") in puts, "forced direct: the camera and its SD twin get their direct lines back")
+    check(roads_load(br_roads)["805_north"]["road"] == "direct" and roads_load(br_roads)["805_north"]["forced"] == "direct" and '  805_north: "wyze://10.0.0.180' in open(br_cfg).read(), "the record and the config follow")
+    # The owner forces the LAN DTLS camera onto the bridge.
+    rd = roads_load(br_roads); rd["garage_doors"] = {"forced": "bridge"}; roads_save(rd, br_roads)
+    FakeGo2rtcRoads.state["puts"] = []
+    res4 = ensure_bridge_roads(rup, streams_after, bc, lans=lans, roads=roads_load(br_roads), log=logs.append, config_path=br_cfg, roads_path=br_roads, now=1500.0, only="garage_doors")
+    check(res4["to_bridge"] == ["garage_doors"] and roads_load(br_roads)["garage_doors"]["reason"] == "forced" and ("garage_doors", bridge_source("garage-doors")) in FakeGo2rtcRoads.state["puts"], "forced bridge: a reachable camera rides the bridge anyway, named forced")
+    # go2rtc refusing the PUT (DR-0789): the config line is still rewritten.
+    FakeGo2rtcRoads.state["refuse"] = True
+    rd = roads_load(br_roads); rd["805_north"]["forced"] = None; roads_save(rd, br_roads)
+    streams_back = dict(streams_after); streams_back["805_north"] = streams_now["805_north"]; streams_back["805_north_sd"] = streams_now["805_north_sd"]
+    res5 = ensure_bridge_roads(rup, streams_back, bc, lans=lans, roads=roads_load(br_roads), log=logs.append, config_path=br_cfg, roads_path=br_roads, now=1600.0, only="805_north")
+    check(res5["to_bridge"] == ["805_north"] and '  805_north: "%s"' % bridge_source("805-north") in open(br_cfg).read() and any("refused PUT 805_north" in l for l in logs), "when go2rtc refuses the PUT the config line is rewritten and the refusal is logged")
+    FakeGo2rtcRoads.state["refuse"] = False
+    check(set_stream_source("http://127.0.0.1:1", "x", "rtsp://y", br_cfg, logs.append) is False, "a dark go2rtc: nothing is written and False is answered")
+    # Through the handler: /health carries the bridge; /list carries the road; POST road validates; GET roads is owner-only and URL-free.
+    BRIDGE_ENV = br_env
+    BRIDGE_ROADS_FILE = br_roads
+    s, _h, d = call("GET", "/health")
+    jb = json.loads(d.decode("utf-8")).get("bridge")
+    check(jb and jb["configured"] is True and jb["api"] == BRIDGE_API and jb["last"]["known"] == 3, "/health carries the bridge: configured, its address, the last sync's count")
+    s, _h, d = call("GET", "/list", auth=B)
+    check(all(c.get("road") in ("direct", "bridge") for c in json.loads(d.decode("utf-8"))["cameras"]), "/list names every camera's road")
+    s, _h, d = call("POST", "/streams/front_yard/road", json.dumps({"road": "sideways"}).encode(), auth=B)
+    check(s == 400 and b"bad-road" in d, "an unknown road is refused")
+    s, _h, d = call("POST", "/streams/front_yard/road", json.dumps({"road": "bridge"}).encode())
+    check(s == 401, "the road is the owner's to set")
+    s, _h, d = call("POST", "/streams/front_yard_sd/road", json.dumps({"road": "bridge"}).encode(), auth=B)
+    check(s == 400, "a twin has no road of its own")
+    s, _h, d = call("GET", "/streams/roads", auth=B)
+    jr = json.loads(d.decode("utf-8"))
+    check(s == 200 and "roads" in jr and "enr=" not in d.decode("utf-8") and "wyze://" not in d.decode("utf-8"), "GET /streams/roads is owner-only and carries no URL")
+    s, _h, d = call("GET", "/streams/roads")
+    check(s == 401, "and refuses without the key")
+    BRIDGE_ENV = os.path.join(br_tmp, "absent.env")
+    s, _h, d = call("POST", "/streams/front_yard/road", json.dumps({"road": "bridge"}).encode(), auth=B)
+    check(s == 409 and b"bridge-not-configured" in d, "forcing the bridge before the sign-in says what is missing")
+    BRIDGE_ENV = br_env
+    fb.shutdown(); fr.shutdown()
+
     print("=== 8m. any camera from the app, tested on the spot (DR-0805): add, probe, remove; Ring signs in through go2rtc ===")
     check(source_check("rtsp://admin:pw@192.168.1.60/live") == (True, "") and source_check("onvif://u:p@192.168.1.5") == (True, "") and source_check("http://192.168.1.9/snap.jpg") == (True, ""), "rtsp, onvif and http sources pass the check")
     check(source_check("exec:rm -rf /")[1] == "scheme-not-allowed" and source_check("ffmpeg:cam#raw=-i x")[1] == "scheme-not-allowed" and source_check("file:///etc/passwd")[1] == "scheme-not-allowed" and source_check("")[1] == "empty-or-long", "exec, ffmpeg#raw, file and empty are refused before they reach go2rtc")
@@ -3787,9 +4389,21 @@ def main():
     ap.add_argument("--upstream", default=os.environ.get("CAMS_UPSTREAM", UPSTREAM_DEFAULT))
     ap.add_argument("--token-file", default=None)
     ap.add_argument("--selftest", action="store_true")
+    ap.add_argument("--bridge-env", action="store_true", help="derive the Wyze bridge's env file from the kept sign-in (DR-0809); prints written|unchanged|no-wyze-env|error")
+    ap.add_argument("--bridge-probe", action="store_true", help="ask the running bridge for its camera listing (never a credential); prints a count or the failure")
     args = ap.parse_args()
     if args.selftest:
         return _selftest()
+    if args.bridge_env:
+        print("bridge-env: %s (%s)" % (bridge_env_sync(), BRIDGE_ENV))
+        return 0
+    if args.bridge_probe:
+        cams = bridge_cameras()
+        if cams is None:
+            print("bridge: no answer from %s (not up yet, or its API key differs from %s)" % (BRIDGE_API, BRIDGE_ENV))
+            return 1
+        print("bridge: %d cameras known, %d connected now; roads: %s" % (len(cams), sum(1 for c in cams if c["connected"]), json.dumps(roads_public(roads_load()))))
+        return 0
     token = expected_token(args.token_file)
     if not token:
         print("REFUSING TO START: no bearer token. Set CAMS_BRIDGE_TOKEN or populate %s"

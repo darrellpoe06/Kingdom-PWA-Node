@@ -117,10 +117,27 @@ fi
 echo "== cameras install: recordings folder (DR-0775; the compose file bind-mounts it) =="
 $SUDO mkdir -p "$RECORDINGS" && echo "  $RECORDINGS ready"
 
-echo "== cameras install: compose up (pinned image; no-op when current) =="
+echo "== cameras install: the Wyze bridge's own sign-in file (DR-0809; derived from the kept sign-in, root-only) =="
+# The bridge (docker-compose.bridge.yml) takes the SAME four values the
+# Cameras tab keeps, under its own names, plus an API key the forwarder
+# presents. Derived by the forwarder's code so no shell ever parses a secret.
+BRIDGE_ENV=/volume1/PoeTech/secrets/wyze-bridge.env
+BRIDGE_OUT="$($SUDO python3 "$SRC/cams_forwarder.py" --bridge-env 2>&1 || true)"
+echo "  $BRIDGE_OUT"
+COMPOSE_FILES="-f $SRC/docker-compose.yml"
+if $SUDO test -s "$BRIDGE_ENV"; then
+  $SUDO mkdir -p /volume1/docker/wyze-bridge/tokens /volume1/docker/wyze-bridge/img
+  COMPOSE_FILES="$COMPOSE_FILES -f $SRC/docker-compose.bridge.yml"
+  echo "  the bridge joins the compose project (loopback only: rtsp 127.0.0.1:8555, api 127.0.0.1:8597)"
+else
+  echo "  no $BRIDGE_ENV -- the bridge waits on the Wyze sign-in (Cameras tab); go2rtc runs alone"
+fi
+
+echo "== cameras install: compose up (pinned images; no-op when current) =="
 # A first-ever pull can outlast the services-sync ceiling; that run fails
 # LOUDLY and the next cycle resumes the pull and finishes.
-if ! COMPOSE_OUT="$($COMPOSE -f "$SRC/docker-compose.yml" -p poetech-cameras up -d 2>&1)"; then
+# shellcheck disable=SC2086
+if ! COMPOSE_OUT="$($COMPOSE $COMPOSE_FILES -p poetech-cameras up -d 2>&1)"; then
   echo "cameras install: compose up FAILED -- the reason follows" >&2
   echo "$COMPOSE_OUT" >&2
   exit 1
@@ -138,6 +155,20 @@ if [ "$UP" != "1" ]; then
   exit 0
 fi
 echo "  go2rtc answering: $(curl -fsS -m 5 "$GO2RTC_API" 2>/dev/null | head -c 200)"
+
+if $SUDO test -s "$BRIDGE_ENV"; then
+  echo "== cameras install: the Wyze bridge must answer on 127.0.0.1:8597 (DR-0809) =="
+  # Its first start signs in to Wyze and lists the account; give it a minute.
+  # A silent bridge does NOT stop the install: go2rtc's direct road still runs
+  # and the forwarder keeps asking every sync until the bridge answers.
+  BTRIES=0; BUP=0
+  while [ "$BTRIES" -lt 12 ]; do
+    if $SUDO python3 "$SRC/cams_forwarder.py" --bridge-probe >/tmp/poetech-bridge-probe.txt 2>&1; then BUP=1; break; fi
+    BTRIES=$((BTRIES + 1)); sleep 5
+  done
+  cat /tmp/poetech-bridge-probe.txt 2>/dev/null | head -c 600; echo
+  [ "$BUP" = "1" ] || echo "  bridge silent after 60s -- see: $DOCKER logs poetech-wyze-bridge (the forwarder retries each sync)"
+fi
 
 echo "== cameras install: forwarder unit =="
 PY="$(command -v python3 || true)"
