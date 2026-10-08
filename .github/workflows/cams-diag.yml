@@ -135,7 +135,8 @@ jobs:
           if [ -n "$DOCKER" ]; then $DOCKER logs --tail 60 poetech-wyze-bridge 2>&1 | scrub; else echo "(docker not runnable by this user)"; fi
           echo "=== the bridge's own word on each camera (connected / status / enabled; never a credential) ==="
           BENV=/volume1/PoeTech/secrets/wyze-bridge.env
-          WBK="$($SUDO grep -s '^WB_API=' "$BENV" | head -1 | cut -d= -f2-)"
+          # The env file quotes its values (_env_quote); the bridge compares the bare key, so the quotes come off (sixth field read: 401 with them on).
+          WBK="$($SUDO grep -s '^WB_API=' "$BENV" | head -1 | cut -d= -f2- | tr -d '"' | tr -d "'")"
           if [ -n "$WBK" ]; then
             curl -s -m 10 -H "api: $WBK" http://127.0.0.1:8597/api | python3 -c '
           import json,sys
