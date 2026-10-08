@@ -57,14 +57,14 @@ Band weight, against the real adult prose (`scripts/full-levels.mjs`):
 
 | band | prose words | ratio | floor | result |
 |---|---|---|---|---|
-| adult | 1,094 | — | >1,000 | pass |
-| child | 569 | 0.520 | 0.50 | pass |
-| youth | 659 | 0.602 | 0.60 | pass |
-| teen | 752 | 0.687 | 0.60 | pass |
-| senior | 897 | 0.820 | 0.60 | pass |
+| adult | 1,144 | — | >1,000 | pass |
+| child | 619 | 0.541 | 0.50 | pass |
+| youth | 710 | 0.621 | 0.60 | pass |
+| teen | 777 | 0.679 | 0.60 | pass |
+| senior | 922 | 0.806 | 0.60 | pass |
 
 Reading ladder (`scripts/reading-level.mjs`, Flesch-Kincaid on our prose only,
-quoted Scripture excluded): child 1.43, youth 2.96, teen 4.74, senior 5.74.
+quoted Scripture excluded): child 1.38, youth 3.07, teen 4.67, senior 5.63.
 The NEW-lesson child ceiling is 5.0, and the ladder rises.
 
 Structure: `formatLessonText` finds **15 sections** in the adult lesson — the
@@ -97,6 +97,16 @@ written for this lesson, not by reading it over:
    0.522 on the first pass. Both were raised with real teaching — the four
    moves named for children, a worked example of what a gap actually looks
    like for youth — not with filler.
+5. CI found the fifth, and it is the kind of thing a read-through never
+   catches. `every-anchor-is-named-in-the-lesson` failed with "ll220: 2
+   unnamed anchors (allowed 0)": the anchor list carried Proverbs 3:5 and
+   Isaiah 55:8-9, and no band ever taught either one. Listing a verse the
+   lesson does not teach is exactly the defect that gate exists for. Both are
+   now taught in every band, and they are the right verses to carry — Isaiah
+   55:8-9 is the reason the thought stream cannot govern itself (His thoughts
+   are higher by the distance of the heavens from the earth, a difference of
+   kind), and Proverbs 3:5 is the spine of the sibling lesson L219. The fix
+   raised the lesson rather than trimming the list.
 
 ## Impact
 
