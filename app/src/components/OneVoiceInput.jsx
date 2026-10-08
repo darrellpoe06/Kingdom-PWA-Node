@@ -24,7 +24,7 @@ import { readDraft, writeDraft, clearDraft } from '../lib/draft-autosave.js';
 import { relayThought } from '../lib/agent-inbox-sync.js';
 import VoiceLessonRecorder from './VoiceLessonRecorder.jsx';
 import LessonInbox from './LessonInbox.jsx';
-import { sendVoiceLesson, formatClock } from '../lib/lesson-voice.js';
+import { sendVoiceLesson, formatClock, RECORDING_KINDS, RECORDING_KIND_LABELS, DEFAULT_RECORDING_KIND } from '../lib/lesson-voice.js';
 import LessonsForSituation from './LessonsForSituation.jsx';
 import ConversationRecorder from './ConversationRecorder.jsx';
 import { isMicCaptureSupported } from '../lib/workflow-scribe.js';
@@ -85,6 +85,9 @@ export function OneVoiceInput({
   // person on this device; the name is prefilled from their account and is
   // theirs to edit ("Sister Mae", a first name only).
   const [nameOk, setNameOk] = useState(false);
+  // WHAT THIS RECORDING IS (DR-0810): a teaching, or someone reading aloud.
+  // Asked once, before Send, so a reading never arrives needing a hand verdict.
+  const [recordingKind, setRecordingKind] = useState(DEFAULT_RECORDING_KIND);
   const [lessonName, setLessonName] = useState('');
   const nameKey = useRef('poetech:lesson-name-choice:anon');
   useEffect(() => {
@@ -259,7 +262,7 @@ export function OneVoiceInput({
   const sendSpokenLesson = async (t) => {
     setSending(true);
     const note = isSpokenLessonLine(t) ? '' : t;
-    const res = await sendVoiceLesson({ blob: lessonTake.blob, seconds: lessonTake.seconds, note, source: cfg.sourceTag, supabase, relay: relayThought, extraTags: lessonNameTags(nameOk, lessonName) });
+    const res = await sendVoiceLesson({ blob: lessonTake.blob, seconds: lessonTake.seconds, note, kind: recordingKind, source: cfg.sourceTag, supabase, relay: relayThought, extraTags: lessonNameTags(nameOk, lessonName) });
     setSending(false);
     if (!res.ok) {
       setConfirmation(`Not sent (${res.reason}). The recording and your words are still here; send again when signed in.`);
@@ -435,6 +438,37 @@ export function OneVoiceInput({
           state, and the words Whisper wrote. The Notes tab shows it below. */}
       {route === 'lesson' && surface !== 'notes' && <LessonInbox refreshKey={lessonsSeen} />}
       {lessonWords && <LessonsForSituation words={lessonWords} />}
+      {route === 'lesson' && (
+        /* WHAT THIS IS, CHOSEN AT RECORD TIME (DR-0810). DR-0768 dated this:
+           a homework reading arrived as a lesson row, the builder's gate
+           refused it five times, and a human tagged it not-a-lesson by hand.
+           A reading still rides the same road and still gets its words back;
+           it just carries the verdict from the start. */
+        <div className="mt-2" data-testid="recording-kind" role="radiogroup" aria-label="What is this recording?">
+          <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">What is this?</div>
+          <div className="flex flex-wrap gap-1.5">
+            {RECORDING_KINDS.map((k) => {
+              const on = recordingKind === k;
+              const { label, help } = RECORDING_KIND_LABELS[k];
+              return (
+                <button
+                  key={k}
+                  type="button"
+                  role="radio"
+                  aria-checked={on}
+                  title={help}
+                  data-testid={`recording-kind-${k}`}
+                  onClick={() => setRecordingKind(k)}
+                  className={`px-2.5 py-1.5 min-h-[36px] text-[0.75rem] uppercase tracking-wider border-2 font-semibold focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838] ${on ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815]'}`}
+                >{label}</button>
+              );
+            })}
+          </div>
+          <p className="text-[0.6875rem] text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }} data-testid="recording-kind-help">
+            {RECORDING_KIND_LABELS[recordingKind].help}
+          </p>
+        </div>
+      )}
       {route === 'lesson' && cfg.lessonNotice && (
         /* SAID BEFORE THEY SEND (Darrell 2026-09-24): every time, above Send. */
         <p className="text-[0.75rem] text-[#1A1815] mt-2 border-l-2 border-[#B85838] pl-2" style={{ fontFamily: '"Fraunces", serif' }} data-testid="lesson-notice">
