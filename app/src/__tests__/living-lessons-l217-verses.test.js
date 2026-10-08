@@ -163,7 +163,12 @@ describe('L217 — the teaching that makes this lesson itself, per band', () => 
   });
   it("each band forbids the counterfeit with the Word's own names and gives the test", () => {
     for (const b of BANDS) {
-      expect(band(b), `${b} Deuteronomy 18:10-12`).toContain('(Deuteronomy 18:10-12)');
+      // The child band (6-10) carries the same prohibition from Leviticus 19:31:
+      // the Deuteronomy list names a necromancer, which the children's content
+      // screen (living-lessons-age-appropriateness) rightly keeps off a child's
+      // page. The Word's own name for it, in words a child can carry.
+      const forbids = b === 'child' ? '(Leviticus 19:31)' : '(Deuteronomy 18:10-12)';
+      expect(band(b), `${b} ${forbids}`).toContain(forbids);
       expect(band(b), `${b} Isaiah 8:19-20`).toContain('(Isaiah 8:19-20)');
       expect(band(b), `${b} 1 John 4:1`).toContain('(1 John 4:1)');
     }

@@ -26,6 +26,7 @@ Per the standing rule (CLAUDE.md, *Spoken Teachings Are Build Input*), a word he
 2. His own phrases are never dressed as Scripture: the per-lesson gate fails if any of them appears inside quotation marks.
 3. The teaching that makes this lesson itself, rather than a neighbour wearing a new title, is checked per band in `living-lessons-l217-verses.test.js`, so a future edit cannot hollow it.
 4. His spelling and cadence are rendered for meaning (DR-0331); his framing and his order are kept.
+5. The child band (ages 6-10) forbids the counterfeit from Leviticus 19:31 ("Regard not them that have familiar spirits, neither seek after wizards, to be defiled by them: I am the LORD your God") instead of Deuteronomy 18:10-12. The first CI run on the lesson caught it: the children's content screen (`living-lessons-age-appropriateness.test.js`) keeps the word necromancer off a child's page, and the Deuteronomy list carries it. Same prohibition, the Word's own name for it, in words a child can carry; the youth, teen, senior and adult texts keep Deuteronomy 18:10-12 in full.
 
 ## Verification after merge
 
