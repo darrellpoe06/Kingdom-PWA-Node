@@ -1379,15 +1379,21 @@ def is_bridge_source(url):
 
 
 def bridge_stream_auth(path=None):
-    """The bridge's stream credentials: WB_USERNAME / WB_PASSWORD from its env (DR-0809).
-    Measured on the first field read (cams-diag 37714259877): with WB_AUTH on the
-    bridge's RTSP answers "user/pass not provided" to a bare URL, so the line go2rtc
-    is handed carries them. They never leave the NAS: the config and the roads
-    file are root-only, /list carries no URL, /why carries only kind and host, and
+    """The bridge's STREAM credentials (DR-0809): user `wb`, password = WB_API.
+    First field read (cams-diag 37714259877): with WB_AUTH on the bridge's RTSP
+    answers "user/pass not provided" to a bare URL. Third field read (cams-diag
+    37719787818): signed with WB_USERNAME:WB_PASSWORD it answers "wrong user/pass",
+    because those are the WEB UI's credentials. The bridge's own source
+    (app/wyzebridge/mtx_server.py, setup_auth) adds the stream reader as
+    {"user": "wb", "pass": api} where api is WB_API, and its wiki (Authentication)
+    says the same: "username: wb, password: <the API key>". So the line go2rtc is
+    handed is rtsp://wb:<WB_API>@...; the web credentials are never put on a
+    stream URL. They never leave the NAS: the config and the roads file are
+    root-only, /list carries no URL, /why carries only kind and host, and
     scrub_text masks user:pass@ wherever a URL is quoted."""
     env = read_env_pairs(path or BRIDGE_ENV)
-    user, pw = env.get("WB_USERNAME", ""), env.get("WB_PASSWORD", "")
-    return (user, pw) if user and pw else ("", "")
+    api = env.get("WB_API", "")
+    return ("wb", api) if api else ("", "")
 
 
 def bridge_source(uri):
@@ -4145,9 +4151,9 @@ def _selftest():
     BRIDGE_ROADS_FILE = br_roads
     # The bridge's RTSP needs its stream credentials (the first field read answered "user/pass not provided").
     bsrc = bridge_source("805-north")
-    check(bsrc.startswith("rtsp://poetech:") and read_env_pairs(br_env)["WB_PASSWORD"] in urllib.parse.unquote(bsrc) and bsrc.endswith("@127.0.0.1:8555/805-north"), "with the env in place the bridge line carries WB_USERNAME:WB_PASSWORD before the host (%s)" % scrub_text(bsrc))
+    check(bsrc.startswith("rtsp://wb:") and read_env_pairs(br_env)["WB_API"] in urllib.parse.unquote(bsrc) and read_env_pairs(br_env)["WB_PASSWORD"] not in bsrc and "poetech" not in bsrc and bsrc.endswith("@127.0.0.1:8555/805-north"), "with the env in place the bridge line carries wb:<WB_API> before the host, never the web UI's WB_USERNAME:WB_PASSWORD (third field read: those answer wrong user/pass) (%s)" % scrub_text(bsrc))
     check(is_bridge_source(bsrc) and kind_of(bsrc) == "wyze" and sd_source(bsrc) == bsrc + "-sub" and is_bridge_source("rtsp://127.0.0.1:8555/x") and not is_bridge_source("rtsp://u:p@192.168.1.9:8555/x") and not is_bridge_source("rtsp://127.0.0.1:8554/x"), "a credentialed bridge line is still the bridge road (host and port decide), another host or go2rtc's own port is not")
-    check("poetech:" not in scrub_text(bsrc) and "***@127.0.0.1" in scrub_text(bsrc), "scrub_text masks the bridge credentials wherever a URL is quoted")
+    check(read_env_pairs(br_env)["WB_API"] not in scrub_text(bsrc) and "***@127.0.0.1" in scrub_text(bsrc), "scrub_text masks the bridge credentials wherever a URL is quoted")
     rd_pub = roads_public({"805_north": {"road": "bridge", "bridge": bsrc, "direct": "wyze://10.0.0.180?enr=S", "uri": "805-north", "reason": "other-network"}})
     check("poetech" not in json.dumps(rd_pub) and "8555" not in json.dumps(rd_pub), "the public roads view carries neither URL")
     # The second field read (cams-diag 37717592345): a camera already on the bridge road with the
