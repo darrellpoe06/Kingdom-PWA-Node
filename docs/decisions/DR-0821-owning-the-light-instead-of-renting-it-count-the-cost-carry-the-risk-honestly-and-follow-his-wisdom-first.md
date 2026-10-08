@@ -143,6 +143,19 @@ rather than by reading the lesson over:
    same arithmetic in its plainest form, the twenty-year-commitment-on-a-house-
    you-may-move-out-of question, Ecclesiastes 11:6, Proverbs 11:14 quoted rather
    than merely listed, and the steward's standard from 1 Corinthians 4:2.
+6. CI found the sixth, and no local test could have: the curriculum NAS-copy
+   leg reported `DRIFT — 772 lessons in the code, 2 finding(s)`, both on this
+   lesson, on `inApp` and on `content_sha256`. The entry carried
+   `inApp: true`. But `inApp` is not a flag. It is the TEXT of the in-app
+   action prompt (`in_app text`, migration 0242) — the "do this today" the
+   reader is handed inside the app. So the lesson was shipped with a boolean
+   standing where its own call to action belonged, and the only thing that
+   looked at that field was the database copy comparing itself to the code. It
+   now carries the prompt the lesson earns: count the cost of ONE real thing
+   out loud, then the five questions in order (the cash price in writing, the
+   total repayment rather than the rate, the payback at your own rate, what
+   happens if you move, and one person who earns nothing either way,
+   Proverbs 11:14), prayed before signing in the words of James 4:15.
 
 ## Impact
 
