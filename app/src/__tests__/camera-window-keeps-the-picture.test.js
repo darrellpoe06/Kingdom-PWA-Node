@@ -153,8 +153,21 @@ describe('the window is wired to it', () => {
   });
 
   it('opening remembers the window and closing forgets it', () => {
-    expect(SRC).toContain('const openWindow = useCallback((id) => { setWindowOpen(true); saveOpenWindow(id); }');
-    expect(SRC).toContain('const closeWindow = useCallback(() => { setWindowOpen(false); saveOpenWindow(\'\'); }');
+    // The WIRING, not the formatting. This pinned the two lines character for
+    // character until 2026-10-08, when adding one call inside openWindow broke
+    // a test about something else entirely (DR-0819). A pin that fails on a
+    // keystroke is measuring the wrong thing.
+    const body = (name) => {
+      const at = SRC.indexOf(`const ${name} = useCallback(`);
+      expect(at, `${name} exists`).toBeGreaterThan(0);
+      return SRC.slice(at, SRC.indexOf('\n', at));
+    };
+    const open = body('openWindow');
+    expect(open).toContain('setWindowOpen(true)');
+    expect(open).toMatch(/saveOpenWindow\(\s*id\s*\)/);
+    const close = body('closeWindow');
+    expect(close).toContain('setWindowOpen(false)');
+    expect(close).toMatch(/saveOpenWindow\(\s*''\s*\)/);
     expect(SRC).toContain('useState(() => !!windowToResume(views, loadOpenWindow()))');
     expect(SRC).toContain('onClick={() => openWindow(view.id)}');
   });

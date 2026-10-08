@@ -120,6 +120,7 @@ import { isNumberedCourse, ownNumber, inNumberOrder, numberLabel, lessonCountLab
 import { subscribeTextSize } from '../lib/text-size.js';
 import { plainWordsFor, plainWordLine } from '../lib/learn-plain-words.js';
 import { recordUse, recentUsed } from '../lib/ux-signals.js';
+import { noteUse } from '../lib/usage-events.js';
 import { getPlace, getPlaceFor, listPlaces, placeInProgress, placeWhere, recordPlace, finishPlace, clearPlace, getTimeFit, recordTimeFit, refreshPlace, placeIsFinished } from '../lib/learn-resume.js';
 import { unitLabels } from '../lib/learn-units.js';
 import { ContinueOffer, ContinueChip, RowContinue, resolvePlaces } from './LessonContinue.jsx';
@@ -2005,6 +2006,7 @@ function CourseView({
     setFocusId(id);
     savePlace({ lessonId: id });
     recordUse(id);
+    noteUse('lesson.open');
     try { window.scrollTo({ top: 0, behavior: 'auto' }); } catch (e) { /* no-op */ }
   };
   // THE SPEAKER READS THE LESSON YOU ARE IN (DR-0702). Darrell 2026-09-30, on

@@ -40,6 +40,7 @@ import { confirmThen } from '../lib/confirm-action.js';
 import { setReadTarget, clearReadTarget, requestRead } from '../lib/read-target.js';
 import { enterFullScreen, exitFullScreen, leavesFullScreen } from '../lib/reader-controller.js';
 import { useScreenAwake } from '../lib/screen-awake.js';
+import { noteUse } from '../lib/usage-events.js';
 import {
   SNAPSHOT_INTERVAL_MS, FETCH_TIMEOUT_MS, LIVE_FIRST_FRAME_TIMEOUT_MS,
   healthUrl, listUrl, ticketUrl, snapUrl, liveUrl,
@@ -978,7 +979,7 @@ function ViewWindow({ view, cams, token, liveMax, now, onClose, onScale }) {
             // A tile that is not the focused one stays MOUNTED and hidden and
             // gives its stream back (DR-0799); the second click re-opens it in place.
             <div key={cam.id} style={{ width: tileW, height: tileH }} className={focused && focused !== cam.id ? 'hidden' : ''} data-window-cam={cam.id} data-focused={focused === cam.id ? 'true' : undefined}>
-              <LiveVideo cam={cam} token={token} liveMax={liveMax} bare testId={`window-${cam.id}`} now={now} onPick={() => setFocused((f) => toggleFocus(f, cam.id))} picked={focused === cam.id}
+              <LiveVideo cam={cam} token={token} liveMax={liveMax} bare testId={`window-${cam.id}`} now={now} onPick={() => { noteUse('camera.focus'); setFocused((f) => toggleFocus(f, cam.id)); }} picked={focused === cam.id}
                 sd={shownCount(cams, focused) > 1} released={!!focused && focused !== cam.id} />
             </div>
           ))}
@@ -1458,7 +1459,7 @@ export default function Cameras() {
   // memory older than WINDOW_RESUME_MS is dropped too — yesterday's window
   // appearing unasked is a surprise, not a resume.
   const [windowOpen, setWindowOpen] = useState(() => !!windowToResume(views, loadOpenWindow()));
-  const openWindow = useCallback((id) => { setWindowOpen(true); saveOpenWindow(id); }, []);
+  const openWindow = useCallback((id) => { noteUse('camera.window'); setWindowOpen(true); saveOpenWindow(id); }, []);
   const closeWindow = useCallback(() => { setWindowOpen(false); saveOpenWindow(''); }, []);
   // It comes back on the view it was SHOWING, not on whichever is active.
   useEffect(() => {
@@ -1776,7 +1777,7 @@ export default function Cameras() {
                       </span>
                     </div>
                     <LiveVideo cam={cam} token={token} liveMax={liveMax} compact testId={`wall-${cam.id}`} now={now} onClose={() => setViews((st) => removeFromView(st, view.id, cam.id))}
-                      onPick={() => setFocusedTile((f) => toggleFocus(f, cam.id))} picked={focusIn(wallCams, focusedTileRaw) === cam.id}
+                      onPick={() => { noteUse('camera.focus'); setFocusedTile((f) => toggleFocus(f, cam.id)); }} picked={focusIn(wallCams, focusedTileRaw) === cam.id}
                       sd={!focusIn(wallCams, focusedTileRaw) && wallCams.length > 1} released={!!focusIn(wallCams, focusedTileRaw) && focusIn(wallCams, focusedTileRaw) !== cam.id} />
                   </div>
                 ))}
