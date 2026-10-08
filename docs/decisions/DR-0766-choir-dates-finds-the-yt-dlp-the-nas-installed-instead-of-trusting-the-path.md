@@ -127,3 +127,43 @@ choir-dates line reads healthy rather than DEGRADED. If the clone has still
 not advanced by then, the question stops being about this record and becomes
 "what advances the NAS clone, and how would we know if it stopped" — which is
 a DR-0108 review of that way, not another date on this one.
+
+## Correction 2026-10-08 — the clone is NOT stale; I over-claimed
+
+The re-review above says "**the stale copy.** The box is running the pre-fix
+file." **That is wrong, and it was stated as fact from evidence that could not
+carry it.** Corrected here rather than edited away, so the mistake and its
+cause stay readable (DR-0076).
+
+What I actually had was the section the health workflow labels *"choir-dates'
+own last words"* — a `grep … | tail -8` over the retained cron log, which is
+**stored history**, not a current run. Its `events.jsonl` lines are dated
+2026-10-01 and 2026-10-02. I read a remembered failure as a present one.
+
+What settles it, printed by the same workflow and which I had not yet read
+(`voice-intake-health.yml:158-159`, run 37721182390):
+
+```
+=== repo HEAD on the NAS (is the rider the one on main?) ===
+cd114092 2026-10-08T02:35:56+00:00 ...
+```
+
+**The NAS clone was current to within twenty-five minutes of the read.**
+`services-sync` is also firing hard — `calls_today=22`, `35`, `47` against a
+96/day cap, each `armed, lock free` — and nowhere in the log is the loud
+`services-sync: mirror pull FAILED` line that the 2026-08-15 incident put
+there for exactly this case. Nothing is stale. The fix is on the box.
+
+So the open question is not "has the fix arrived" but "**has choir-dates
+succeeded since it arrived**", and that is still unanswered, because the stage
+runs on its own schedule and its newest recorded success is 2026-10-02. One
+thing in the live run is easy to misread the same way I did: the
+`rider-context raised: FileNotFoundError 'yt-dlp'` line is the diagnostic
+deliberately **reproducing the original failing call** in a cron-like PATH. It
+is the reproduction, not a test of the fix.
+
+**re-review: 2026-10-10** (unchanged date, corrected question): read
+`events.jsonl` for a `choir_dates_sync` entry dated after 2026-10-07, or a
+`choir-dates` line in the cron log whose traceback cites the CURRENT line and
+wording. Until one of those exists, this is unproven in both directions — and
+neither "fixed" nor "stale" should be written down again without it.
