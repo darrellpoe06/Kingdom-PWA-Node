@@ -240,4 +240,5 @@ export const LIVING_LESSONS_ADDED = {
   'll216-a-life-full-of-everything-yahweh-is-always-good-consistency-is-the-key-and-his-will-is-that-you-prosper-as-your-soul-prospers': '2026-10-07', // added with the lesson (DR-0812); spoken into the app by Darrell 2026-10-07 and closed with one word, Lesson
   'll217-the-holy-spirit-brings-a-sound-mind-not-confusion-his-clarity-the-eyes-of-the-heart-and-the-word-as-the-only-source': '2026-10-07', // added with the lesson (DR-0813); spoken into the app by Darrell 2026-10-07 and closed with one word, Lesson
   'll218-do-not-switch-up-on-his-way-yahwehs-principles-documented-no-offense-taken-and-letting-him-win-so-we-win': '2026-10-07', // added with the lesson (DR-0814); spoken into the app by Darrell 2026-10-07 and closed with one word, Lesson
+  'll219-prudence-and-leaning-not-on-our-own-understanding-his-knowledge-is-the-highest-authority-in-every-dimension': '2026-10-08', // added with the lesson (DR-0818); spoken into the app by Darrell 2026-10-08 while asking where our evaluation and assessment framework lives, and closed with one word, Lesson
 };
