@@ -130,6 +130,23 @@ jobs:
             if $SUDO "$CAND" ps >/dev/null 2>&1; then DOCKER="$SUDO $CAND"; break; fi
           done
           if [ -n "$DOCKER" ]; then $DOCKER logs --tail 80 poetech-go2rtc 2>&1 | scrub; else echo "(docker not runnable by this user)"; fi
+          echo "=== docker logs poetech-wyze-bridge (last 60 lines, scrubbed; DR-0809) ==="
+          if [ -n "$DOCKER" ]; then $DOCKER logs --tail 60 poetech-wyze-bridge 2>&1 | scrub; else echo "(docker not runnable by this user)"; fi
+          echo "=== the bridge's own word on each camera (connected / status / enabled; never a credential) ==="
+          BENV=/volume1/PoeTech/secrets/wyze-bridge.env
+          WBK="$($SUDO grep -s '^WB_API=' "$BENV" | head -1 | cut -d= -f2-)"
+          if [ -n "$WBK" ]; then
+            curl -s -m 10 -H "api: $WBK" http://127.0.0.1:8597/api | python3 -c '
+          import json,sys
+          try: d=json.load(sys.stdin)
+          except Exception as e: print("(bridge /api unreadable: %s)" % e); sys.exit(0)
+          cams=d.get("cameras") if isinstance(d,dict) else None
+          if not isinstance(cams,dict): print("(no cameras key; keys=%s)" % list(d)[:8] if isinstance(d,dict) else "(not an object)"); sys.exit(0)
+          for k in sorted(cams):
+              c=cams[k] if isinstance(cams[k],dict) else {}
+              print("%-36s connected=%-5s enabled=%-5s status=%-12s on_demand=%s" % (k, c.get("connected"), c.get("enabled"), c.get("status"), c.get("on_demand")))
+          '
+          else echo "(bridge env unreadable by this user)"; fi
           echo "=== forwarder journal (last 40 lines) ==="
           $SUDO journalctl -u poetech-cams -n 40 --no-pager 2>&1 | scrub || true
           echo "=== NAS network: which LAN is this box on (the restreamer reaches only THIS LAN) ==="
