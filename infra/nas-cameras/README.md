@@ -126,9 +126,13 @@ it in a URL.
 | `GET/PUT /cams/recording` | family bearer | which cameras record, their retention, the disk budget, the recorder's status (DR-0775) |
 | `GET /cams/rec/<id>` | family bearer | the camera's clips on disk `[{name, bytes, start}]` |
 | `GET /cams/rec/<id>/<clip>.mp4?t=` | ticket | the clip, with Range (206) so the player can seek |
-| `GET /cams/rec/<id>/<clip>.mp4?t=&size=small\|medium\|large[&dl=1][&retry=1]` | ticket | the clip at that size (480p / 720p / 1080p, never upscaled), made once by the container's ffmpeg into `.derived/`; 202 `{status, position}` while it is made; `dl=1` names the saved file (DR-0797) |
+| `GET /cams/rec/<id>/<clip>.mp4?t=&size=small\|medium\|large\|xlarge\|uhd[&dl=1][&retry=1]` | ticket | the clip at that size (480p / 720p / 1080p / 1440p / 2160p, never upscaled), made once by the container's ffmpeg into `.derived/`; 202 `{status, position}` while it is made; `dl=1` names the saved file (DR-0797) |
 | `GET /cams/rec/<id>/<clip>.mp4?t=&sizes=1` | ticket | `{original, seconds, tiers:{size:{label, height, estimate, state, bytes?}}}` |
 | `GET /cams/streams/health` | family bearer or grant | the stream health log (DR-0798): per camera the last hour from go2rtc's numbers (kbps, up%, drops while watched, codecs, hevc_only, twin) and the last 50 drop events; sampled every `CAMS_STREAM_SAMPLE_SECONDS` (15); a camera that sends only H.265 gets an `<id>_h264` twin |
+| `POST /cams/streams {name, url[, replace]}` | owner | adds a camera you own from the app (DR-0805): the source line is checked against the scheme allow-list (rtsp/rtsps/rtmp/rtmps/onvif/http/https/ring/wyze/... never exec/ffmpeg/#raw), registered with go2rtc and written into `go2rtc.yaml`, then probed once; `{ok, id, kind, registered, persisted, detail, probe}`; 400 bad id/reserved/scheme, 409 name taken unless `replace` |
+| `GET /cams/streams/<id>/test` | family bearer or grant | one timed probe of that stream `{id, probe:{ok, ms, producers, medias, error}}` so a new camera is verified on the spot |
+| `DELETE /cams/streams/<id>` | owner | removes the stream and its `_h264` / `_sd` twins from go2rtc and the config |
+| `POST /cams/setup/ring {email, password[, code]}` | owner | signs the NAS into Ring through go2rtc's own `/api/ring`; 409 `needs-2fa` with the prompt, 401 refused, else every Ring camera registered as a stream; the password is used once and never stored or logged |
 
 The app picks HLS when the device's `<video>` says it can play
 `application/vnd.apple.mpegurl`, else MP4 -- no player library, the browser's own

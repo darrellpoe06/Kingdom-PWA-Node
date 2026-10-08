@@ -132,7 +132,7 @@ export function readKey(key, { target, on = true } = {}) {
 export function targetAt(doc, x, y) {
   const d = doc || (typeof document !== 'undefined' ? document : null);
   if (!d || typeof d.elementFromPoint !== 'function') return null;
-  let el = null;
+  let el;
   try { el = d.elementFromPoint(x, y); } catch { return null; }
   while (el && el !== d.body) {
     const tag = el.tagName;

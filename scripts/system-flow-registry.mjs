@@ -930,6 +930,11 @@ const NODES = [
     reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }, { res: 'http:cams', token: '127.0.0.1:8773' }, { res: 'nas:services', token: 'poetech-cams' }],
     writes: [], seeds: [],
   }),
+  wf('camera-health.yml', {
+    id: 'camera-health', name: 'Camera road witness (DR-0806)', purpose: 'After every deploy and twice an hour: reads the forwarder’s /health, the stream health log and go2rtc’s streams over the tailnet, probes a frame from every recording or watched camera, compares with the last witness kept in the rolling camera-incident issue, and labels a regression priority:cameras so it is fixed first.',
+    reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }, { res: 'http:cams', token: '127.0.0.1:8773' }],
+    writes: [{ res: 'gh:incident', token: 'camera-incident' }], seeds: ['ops-surface'],
+  }),
   wf('nas-health.yml', {
     id: 'nas-health', name: 'NAS health (look, never touch)', purpose: 'What the NAS is doing right now — GPU, containers, services, and the live tables’ row counts.',
     reads: [{ res: 'nas:services', token: 'systemctl' }, { res: 'db:feedback', token: 'FROM feedback' }, { res: 'db:board_tasks', token: 'FROM board_tasks' }],

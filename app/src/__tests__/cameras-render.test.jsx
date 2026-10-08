@@ -43,6 +43,10 @@ function makeFetch(plan) {
     if (u === '/cams/recording' && (opts.method || 'GET') === 'GET') return jsonResponse(plan.recordingStatus ?? 404, plan.recording ?? { error: 'not-found' });
     if (u === '/cams/recording' && opts.method === 'PUT') { const cfg = JSON.parse(opts.body); return jsonResponse(200, { ok: true, config: cfg }); }
     if (u === '/cams/streams/health') return jsonResponse(plan.streamHealthStatus ?? 200, plan.streamHealth ?? { sampled_at: 1700000000, interval_s: 15, cameras: {}, events: [] });
+    if (u === '/cams/streams' && opts.method === 'POST') { const b = JSON.parse(opts.body); plan.added = [...(plan.added || []), b]; return jsonResponse(plan.addStatus ?? 200, plan.add ?? { ok: true, id: b.name, kind: b.url.split(':')[0], registered: true, persisted: true, detail: '', probe: { ok: true, status: 200, ms: 1200, bytes: 48000 } }); }
+    if (/^\/cams\/streams\/[^/]+\/test$/.test(u)) return jsonResponse(200, { id: 'x', probe: plan.testProbe ?? { ok: false, status: 500, error: 'streams: connect failed', ms: 300, bytes: 0 } });
+    if (/^\/cams\/streams\/[^/]+$/.test(u) && opts.method === 'DELETE') { plan.removed = [...(plan.removed || []), u.split('/').pop()]; return jsonResponse(200, { ok: true, removed: [u.split('/').pop()] }); }
+    if (u === '/cams/setup/ring') { const b = JSON.parse(opts.body); plan.ring = [...(plan.ring || []), b]; return b.code ? jsonResponse(200, { ok: true, added: 1, cameras: [{ id: 'front_door', name: 'Front Door', registered: true }] }) : jsonResponse(409, { error: 'needs-2fa', prompt: 'Please enter the code sent to +1 (***) ***-1234' }); }
     if (/^\/cams\/rec\/[^/]+\/[^/?]+\?/.test(u)) {
       const q = new URLSearchParams(u.split('?')[1]);
       if (q.get('sizes') === '1') return jsonResponse(200, plan.clipSizes ?? { original: 1000, seconds: 600, tiers: { small: { label: 'Small (480p)', height: 480, estimate: 700, state: 'absent' }, medium: { label: 'Medium (720p)', height: 720, estimate: 900, state: 'absent' }, large: { label: 'Large (1080p)', height: 1080, estimate: 1000, state: 'absent' } }, download_name: 'front_yard-2026-10-07T06-40-00-original.mp4' });
@@ -801,6 +805,118 @@ describe('Cameras surface', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it('a recording is watched in place at any size (DR-0804): Watch plays the tier from the NAS once made, nothing is saved, one ticket serves the clip, and a slow ticket is said in words', async () => {
+    const now = Math.floor(Date.now() / 1000);
+    const plan = {
+      list: { cameras: [{ id: 'front_yard', name: 'front yard', kind: 'wyze' }], count: 1 },
+      recordingStatus: 200,
+      recording: { config: { disk_budget_gb: 100, cameras: {} }, status: { ok: true, at: now, disk_budget_gb: 100, total_bytes: 3000, disk_free_bytes: 500e9, cameras: { front_yard: { enabled: false, recording: false, clips: 2, bytes: 3000, oldest: now - 600, newest: now } } }, root: '/volume1/PoeTech/cameras/recordings' },
+      sizeReadyAt: 2,
+    };
+    const { fetchImpl, calls } = makeFetch(plan);
+    vi.stubGlobal('fetch', fetchImpl);
+    const clicked = [];
+    const origClick = HTMLAnchorElement.prototype.click;
+    HTMLAnchorElement.prototype.click = function click() { clicked.push(this.getAttribute('href')); };
+    try {
+      await mount();
+      await act(async () => { await new Promise((r) => setTimeout(r, 30)); });
+      await click(buttons().find((b) => b.getAttribute('aria-label') === 'Show clips of front yard'));
+      await act(async () => { await new Promise((r) => setTimeout(r, 20)); });
+      // a tap on the clip plays the original at once, and says it is from the NAS
+      await click([...container.querySelectorAll('button')].find((b) => /Play the clip from 06:40/.test(b.getAttribute('aria-label') || '')));
+      await act(async () => { await new Promise((r) => setTimeout(r, 20)); });
+      const player = () => container.querySelector('[data-testid="clip-player"]');
+      expect(player().getAttribute('data-size')).toBe('original');
+      expect(player().querySelector('video').getAttribute('src')).toBe('/cams/rec/front_yard/2026-10-07T06-40-00.mp4?t=9999999999.abcdef');
+      expect(player().textContent).toMatch(/Playing 06:40 · Original · from the NAS, nothing saved here/);
+      // the sizes menu: Watch on Small plays the small file in place once the NAS has made it; no download, no second ticket
+      const ticketsBefore = calls.filter((c) => c.url === '/cams/ticket').length;
+      await click(container.querySelector('[data-testid="clip-download-2026-10-07T06-40-00.mp4"]'));
+      await act(async () => { await new Promise((r) => setTimeout(r, 30)); });
+      expect(container.querySelector('[data-testid="clip-watch-small"]')).toBeTruthy();
+      await click(container.querySelector('[data-testid="clip-watch-small"]'));
+      for (let i = 0; i < 40 && player().getAttribute('data-size') !== 'small'; i += 1) await act(async () => { await new Promise((r) => setTimeout(r, 10)); });
+      expect(player().getAttribute('data-size')).toBe('small');
+      expect(player().querySelector('video').getAttribute('src')).toBe('/cams/rec/front_yard/2026-10-07T06-40-00.mp4?t=9999999999.abcdef&size=small');
+      expect(player().textContent).toMatch(/Small \(480p\)/);
+      expect(clicked, 'Watch never saves a file').toEqual([]);
+      expect(calls.filter((c) => c.url === '/cams/ticket').length, 'the clip\'s one ticket is reused').toBe(ticketsBefore);
+      expect(calls.filter((c) => /size=small/.test(c.url)).every((c) => !/dl=1/.test(c.url))).toBe(true);
+    } finally {
+      HTMLAnchorElement.prototype.click = origClick;
+    }
+    // a ticket the NAS does not answer in time is said in words, not as "signal is aborted without reason"
+    await act(() => root.unmount());
+    container = document.createElement('div'); document.body.appendChild(container); root = createRoot(container);
+    const slow = vi.fn(async (url, opts = {}) => {
+      if (String(url) === '/cams/ticket') throw Object.assign(new Error('signal is aborted without reason'), { name: 'AbortError' });
+      return fetchImpl(url, opts);
+    });
+    vi.stubGlobal('fetch', slow);
+    await mount();
+    await act(async () => { await new Promise((r) => setTimeout(r, 30)); });
+    await click(buttons().find((b) => b.getAttribute('aria-label') === 'Show clips of front yard'));
+    await act(async () => { await new Promise((r) => setTimeout(r, 20)); });
+    await click([...container.querySelectorAll('button')].find((b) => /Play the clip from 06:40/.test(b.getAttribute('aria-label') || '')));
+    await act(async () => { await new Promise((r) => setTimeout(r, 30)); });
+    expect(container.querySelector('[data-testid="recording-note"]').textContent).toBe('Could not open the clip: Could not get a playback ticket: the NAS did not answer in 15 s (the link is busy or the camera service is down).');
+  });
+
+  it('any camera from the app, tested on the spot (DR-0805): the boxes build the line, the NAS adds and probes it, Test and Remove work, and Ring signs in with its code', async () => {
+    const plan = { list: { cameras: [{ id: 'front_yard', name: 'front yard', kind: 'wyze' }], count: 1 } };
+    const { fetchImpl } = makeFetch(plan);
+    vi.stubGlobal('fetch', fetchImpl);
+    await mount();
+    await act(async () => { await new Promise((r) => setTimeout(r, 20)); });
+    await click(container.querySelector('[data-testid="cams-tab-setup"]'));
+    await click(buttons().find((b) => b.textContent === 'Add a system you own'));
+    const form = container.querySelector('[data-testid="add-camera"]');
+    expect(form, 'the add form').toBeTruthy();
+    expect(container.querySelector('[data-testid="google-sign-in-note"]').textContent, 'the Google note stands on the Wyze form').toContain('Signed up with Google or Apple?');
+    const type = async (sel, value) => { const el = container.querySelector(sel); const setter = Object.getOwnPropertyDescriptor(el.tagName === 'SELECT' ? HTMLSelectElement.prototype : HTMLInputElement.prototype, 'value').set; await act(async () => { setter.call(el, value); el.dispatchEvent(new Event(el.tagName === 'SELECT' ? 'change' : 'input', { bubbles: true })); }); };
+    await type('[data-testid="add-name"]', 'Garage Door');
+    await type('[data-testid="add-host"]', '192.168.1.60');
+    await type('[data-testid="add-user"]', 'admin');
+    await type('[data-testid="add-password"]', 'secret');
+    await type('[data-testid="add-path"]', 'live');
+    expect(container.querySelector('[data-testid="add-preview"]').textContent).toBe('garage_door: rtsp://admin:***@192.168.1.60/live');
+    await click(container.querySelector('[data-testid="add-submit"]'));
+    await act(async () => { await new Promise((r) => setTimeout(r, 30)); });
+    expect(plan.added).toEqual([{ name: 'garage_door', url: 'rtsp://admin:secret@192.168.1.60/live', replace: false }]);
+    expect(container.querySelector('[data-testid="add-result"]').textContent).toBe(`garage_door added · works: a ${formatBytes(48000)} picture in 1.2 s`);
+    expect(container.querySelector('[data-testid="added-list"]').textContent).toContain('garage_door · rtsp · works');
+    // a forbidden line never leaves the device
+    await click(container.querySelector('[data-testid="add-kind-url"]'));
+    await type('[data-testid="add-name"]', 'evil');
+    await type('[data-testid="add-url"]', 'exec:touch /tmp/x');
+    expect(container.querySelector('[data-testid="add-problem"]').textContent).toMatch(/not allowed/);
+    expect(container.querySelector('[data-testid="add-submit"]').disabled).toBe(true);
+    // Test probes again and shows go2rtc's reason; Remove asks first, then takes it out
+    await click(container.querySelector('[data-testid="added-test-garage_door"]'));
+    await act(async () => { await new Promise((r) => setTimeout(r, 30)); });
+    expect(container.querySelector('[data-testid="added-list"]').textContent).toContain('no picture: streams: connect failed');
+    vi.stubGlobal('confirm', vi.fn(() => true));
+    await click(container.querySelector('[data-testid="added-remove-garage_door"]'));
+    await act(async () => { await new Promise((r) => setTimeout(r, 30)); });
+    expect(plan.removed).toEqual(['garage_door']);
+    expect(container.querySelector('[data-testid="added-list"]')).toBeNull();
+    // Ring: the first press asks for the code, the second adds the camera; the Google note is on the form
+    const ring = container.querySelector('[data-testid="ring-setup"]');
+    expect(ring.textContent).toContain('Signed up with Google or Apple?');
+    await type('[data-testid="ring-email"]', 'me@example.com');
+    await type('[data-testid="ring-password"]', 'pw');
+    await click(container.querySelector('[data-testid="ring-submit"]'));
+    await act(async () => { await new Promise((r) => setTimeout(r, 30)); });
+    expect(container.querySelector('[data-testid="ring-result"]').textContent).toBe('Ring asks for its code: Please enter the code sent to +1 (***) ***-1234');
+    expect(container.querySelector('[data-testid="ring-submit"]').textContent).toBe('Send the code and add my cameras');
+    await type('[data-testid="ring-code"]', '123456');
+    await click(container.querySelector('[data-testid="ring-submit"]'));
+    await act(async () => { await new Promise((r) => setTimeout(r, 30)); });
+    expect(plan.ring).toEqual([{ email: 'me@example.com', password: 'pw', code: '' }, { email: 'me@example.com', password: 'pw', code: '123456' }]);
+    expect(container.querySelector('[data-testid="ring-result"]').textContent).toBe('1 Ring camera added: Front Door.');
   });
 
   it('a blank tile names its real cause and Why? brings the NAS\'s explanation in plain words (DR-0774)', async () => {

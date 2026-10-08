@@ -1,0 +1,178 @@
+# camera-health — the camera road's own witness after every deploy (DR-0806).
+#
+# Darrell 2026-10-07: "ways that updates don't break the connections and if
+# they do we fix them expedited based on them being prioritized." A deploy
+# proves the SITE (site-health.yml) but nothing proved the CAMERAS kept
+# answering after the app or the NAS forwarder changed. This workflow joins
+# the tailnet, asks the forwarder on the NAS for /health and /streams/health,
+# probes one frame from every camera that is recording or has a watcher, and
+# compares with the last run kept in the rolling `camera-incident` issue:
+# fewer cameras answering, the forwarder dark, or the sampler silent is a
+# REGRESSION and the issue is opened/updated with the numbers and the label
+# `priority:cameras` -- the signal the lane treats as fix-now. Runs after each
+# deploy completes, every 30 minutes, and on dispatch. Read-only on the box.
+name: camera-health
+
+on:
+  workflow_run:
+    workflows: ["Deploy (Cloudflare Pages)"]
+    types: [completed]
+  schedule:
+    - cron: '7,37 * * * *'
+  workflow_dispatch:
+    inputs:
+      probe_all:
+        description: 'Probe one frame from EVERY stream (slow, 31 cameras), not only the watched/recording ones'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: camera-health
+  cancel-in-progress: false
+
+jobs:
+  witness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check secrets (no-op with instructions when absent)
+        id: gate
+        env:
+          TS: ${{ secrets.TS_AUTHKEY != '' }}
+          KEY: ${{ secrets.NAS_SSH_KEY != '' }}
+        run: |
+          if [ "$TS" != "true" ] || [ "$KEY" != "true" ]; then
+            echo "NOT CONFIGURED: add repo secrets TS_AUTHKEY (Reusable + Ephemeral) and NAS_SSH_KEY."
+            echo "go=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "go=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Join the tailnet (ephemeral)
+        if: steps.gate.outputs.go == 'true'
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+
+      - name: Ask the NAS (read-only, scrubbed)
+        if: steps.gate.outputs.go == 'true'
+        id: nas
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+          PROBE_ALL: ${{ inputs.probe_all }}
+        run: |
+          umask 077
+          printf '%s\n' "$NAS_SSH_KEY" > /tmp/nas_key
+          SSH="ssh -i /tmp/nas_key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 dpoe@poetech.tail5a2f35.ts.net"
+          $SSH "PROBE_ALL='$PROBE_ALL' sh -s" <<'EOS' > /tmp/witness.json || echo '{"reachable": false}' > /tmp/witness.json
+          PATH=/usr/local/bin:/opt/bin:/usr/bin:/bin:$PATH; export PATH
+          TOK="$(cat /volume1/PoeTech/secrets/chat-bridge-token.txt 2>/dev/null || sudo -n cat /volume1/PoeTech/secrets/chat-bridge-token.txt 2>/dev/null)"
+          H="$(curl -s -m 8 http://127.0.0.1:8773/health)"
+          SH="$(curl -s -m 8 -H "Authorization: Bearer $TOK" http://127.0.0.1:8773/streams/health)"
+          REC="$(curl -s -m 8 -H "Authorization: Bearer $TOK" http://127.0.0.1:8773/recording)"
+          STREAMS="$(curl -s -m 10 http://127.0.0.1:1984/api/streams)"
+          python3 - "$PROBE_ALL" <<'PY'
+          import json, os, sys, time, urllib.request
+          probe_all = sys.argv[1] == "true"
+          def load(v):
+              try: return json.loads(v)
+              except Exception: return None
+          health = load(os.environ.get("H", "")) ; sh = load(os.environ.get("SH", "")) ; rec = load(os.environ.get("REC", "")) ; streams = load(os.environ.get("STREAMS", ""))
+          out = {"reachable": True, "at": int(time.time()), "health": None, "streams": 0, "probed": [], "answering": 0, "silent": [], "sampler_age_s": None, "resting": 0}
+          if isinstance(health, dict):
+              out["health"] = {k: health.get(k) for k in ("ok", "go2rtc", "streams", "forwarder", "on_disk", "live_open", "live_bytes_per_s", "max_live")}
+              out["resting"] = len(health.get("resting") or [])
+              shs = health.get("stream_health") or {}
+              if shs.get("last_sample_at"): out["sampler_age_s"] = int(time.time() - float(shs["last_sample_at"]))
+          ids = [k for k in (streams or {}).keys() if not (k.endswith("_sd") or k.endswith("_h264"))] if isinstance(streams, dict) else []
+          out["streams"] = len(ids)
+          want = set()
+          if isinstance(rec, dict):
+              for cid, c in ((rec.get("config") or {}).get("cameras") or {}).items():
+                  if isinstance(c, dict) and c.get("enabled"): want.add(cid)
+          if isinstance(sh, dict):
+              for cid, c in (sh.get("cameras") or {}).items():
+                  if isinstance(c, dict) and (c.get("watchers") or 0) > 0: want.add(cid)
+          targets = ids if probe_all else [i for i in ids if i in want]
+          for cid in sorted(targets):
+              t0 = time.time()
+              try:
+                  with urllib.request.urlopen("http://127.0.0.1:1984/api/frame.jpeg?src=" + urllib.parse.quote(cid), timeout=12) as r:
+                      body = r.read(2 * 1024 * 1024)
+                  ok = len(body) > 0
+                  out["probed"].append({"id": cid, "ok": ok, "ms": int((time.time() - t0) * 1000), "bytes": len(body)})
+              except Exception as e:
+                  out["probed"].append({"id": cid, "ok": False, "ms": int((time.time() - t0) * 1000), "error": str(e)[:120]})
+          out["answering"] = sum(1 for p in out["probed"] if p["ok"])
+          out["silent"] = [p["id"] for p in out["probed"] if not p["ok"]]
+          print(json.dumps(out))
+          PY
+          EOS
+          python3 - <<'PY'
+          import json, re
+          raw = open("/tmp/witness.json").read()
+          # scrub anything credential-shaped before it reaches the log
+          raw = re.sub(r'(?i)([?&"]?(enr|password|pass|pwd|token|api_key|key|refresh_token|access_token|secret)[=:"]+)[^&" ]*', r'\1***', raw)
+          raw = re.sub(r'://[^/@\s]+@', '://***@', raw)
+          try:
+              w = json.loads(raw)
+          except Exception:
+              w = {"reachable": False}
+          print(json.dumps(w, indent=1)[:6000])
+          open("/tmp/witness.json", "w").write(json.dumps(w))
+          PY
+
+      - name: "Judge: a regression against the last witness becomes a prioritized incident"
+        if: steps.gate.outputs.go == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const w = JSON.parse(fs.readFileSync('/tmp/witness.json', 'utf8'));
+            const label = 'camera-incident';
+            const prio = 'priority:cameras';
+            const { owner, repo } = context.repo;
+            for (const name of [label, prio]) {
+              try { await github.rest.issues.getLabel({ owner, repo, name }); }
+              catch { await github.rest.issues.createLabel({ owner, repo, name, color: name === prio ? 'B60205' : 'D93F0B', description: name === prio ? 'Fix now: the family\'s cameras stopped answering after a change (DR-0806)' : 'The rolling camera-road witness ledger (DR-0806)' }); }
+            }
+            const open = await github.rest.issues.listForRepo({ owner, repo, labels: label, state: 'open', per_page: 5 });
+            let issue = open.data.find((i) => i.title.startsWith('Camera road witness'));
+            // the last witness lives in the issue body as a fenced JSON block
+            let last = null;
+            if (issue) { const m = issue.body && issue.body.match(/```json\n([\s\S]*?)\n```/); if (m) { try { last = JSON.parse(m[1]); } catch { last = null; } } }
+            const now = new Date().toISOString();
+            const probedN = (w.probed || []).length;
+            const reasons = [];
+            if (!w.reachable || !w.health || w.health.ok !== true) reasons.push('the forwarder on the NAS did not answer /health');
+            if (w.health && w.health.forwarder && w.health.on_disk && w.health.forwarder !== w.health.on_disk) reasons.push(`the forwarder runs ${w.health.forwarder} but ${w.health.on_disk} is on disk (services-sync did not restart it)`);
+            if (w.sampler_age_s != null && w.sampler_age_s > 120) reasons.push(`the stream sampler is silent (${w.sampler_age_s} s since its last sample)`);
+            if (last && probedN > 0 && w.answering < (last.answering || 0)) reasons.push(`${w.answering} of ${probedN} watched/recording cameras answer a frame; ${last.answering} did last time (${w.silent.join(', ')} silent)`);
+            if (last && (last.streams || 0) > 0 && w.streams < last.streams) reasons.push(`go2rtc lists ${w.streams} cameras; it listed ${last.streams} last time`);
+            const regression = reasons.length > 0;
+            const summary = w.reachable ? `${w.answering}/${probedN} probed cameras answer · ${w.streams} streams · ${w.resting} resting · forwarder ${w.health ? w.health.forwarder : '?'} · live ${w.health ? w.health.live_open : '?'} open, ${w.health ? Math.round((w.health.live_bytes_per_s || 0) * 8 / 1000) : '?'} kb/s` : 'the NAS was not reachable from the runner';
+            const body = [
+              `# Camera road witness (DR-0806)`,
+              ``,
+              `Updated ${now} by \`camera-health.yml\` (run ${context.runId}). The last witness is the JSON below; every run compares itself with it. A regression adds the \`${prio}\` label: fix now, before anything else in the lane.`,
+              ``,
+              `**Now:** ${summary}`,
+              regression ? `\n**REGRESSION:**\n${reasons.map((r) => `- ${r}`).join('\n')}\n` : `\n**No regression against the last witness.**\n`,
+              '```json', JSON.stringify(w), '```',
+              ``, `---`, `_Generated by [Claude Code](https://claude.ai/code)_`,
+            ].join('\n');
+            if (!issue) {
+              issue = (await github.rest.issues.create({ owner, repo, title: 'Camera road witness — the rolling ledger (DR-0806)', body, labels: regression ? [label, prio] : [label] })).data;
+            } else {
+              await github.rest.issues.update({ owner, repo, issue_number: issue.number, body });
+              const has = issue.labels.some((l) => (l.name || l) === prio);
+              if (regression && !has) await github.rest.issues.addLabels({ owner, repo, issue_number: issue.number, labels: [prio] });
+              if (!regression && has) { try { await github.rest.issues.removeLabel({ owner, repo, issue_number: issue.number, name: prio }); } catch {} }
+              if (regression) await github.rest.issues.createComment({ owner, repo, issue_number: issue.number, body: `Regression at ${now} (run ${context.runId}):\n${reasons.map((r) => `- ${r}`).join('\n')}\n\n---\n_Generated by [Claude Code](https://claude.ai/code)_` });
+            }
+            core.summary.addHeading('Camera road witness').addRaw(summary + (regression ? `\n\nREGRESSION: ${reasons.join('; ')}` : '\n\nno regression')).write();
+            if (regression) core.setFailed('camera road regression: ' + reasons.join('; '));
