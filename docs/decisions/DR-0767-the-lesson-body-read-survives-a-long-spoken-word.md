@@ -154,3 +154,41 @@ not this row's failure.
 The sections above now say that. The decision does not change: removing the pipe
 removes the race instead of relying on winning it, and the real read of
 `79c29dc9` on `main` afterwards is the proof that matters.
+
+## Re-review 2026-10-08 — what the five refusals actually were
+
+Read the gate rather than guessing from the truncated bell line.
+`infra/nas-lesson-builder/lesson_writer.py:304-312`:
+
+```
+verdict = obj.get("verdict")
+if verdict not in ("lesson", "test-only", "not-a-lesson"):
+    p.append("verdict must be lesson | test-only | not-a-lesson")
+if verdict != "lesson":
+    return p
+```
+
+**The gate was right, and it was not refusing a correct judgment.** It
+*accepts* `not-a-lesson` — and when the verdict is anything other than
+`lesson` it returns immediately, complaining about nothing else. So the five
+`cli-local structure failed (verdict must be lesson …)` attempts mean the
+writer returned an object whose `verdict` was **absent, or not one of the
+three** — not that it judged the row correctly and was turned away. That is
+worth saying plainly, because the opposite reading is the natural one from
+the truncated message, and it is wrong.
+
+Two things follow, and they are different sizes:
+
+- **This row class cannot recur.** A reading now declares itself at record
+  time and never reaches the builder at all (DR-0810), and a human verdict
+  has had a home since DR-0768. Nothing will hand the writer a child's
+  homework reading again.
+- **Still open, and bigger than this record:** a writer that omits `verdict`
+  burns its whole attempt budget on *any* row, silently, because the bell
+  shows only the first fragment of the gate's complaint and never the
+  writer's own output. Two separate things to fix — the omission, and the
+  truncation that hid it. Neither is this record's subject and neither should
+  be guessed at from here; the writer's raw output lives on the NAS.
+  **re-review: 2026-10-15** — read one failing attempt's full writer output
+  through the NAS road, then decide whether the fix is the prompt, the JSON
+  extraction, or the bell's budget.
