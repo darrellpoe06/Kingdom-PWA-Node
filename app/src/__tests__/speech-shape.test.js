@@ -138,3 +138,89 @@ describe('THE GATE: shaping changes sound, never words', () => {
     expect(wordSequence(clauseSegments(run, 50).join(' '))).toEqual(wordSequence(run));
   });
 });
+
+// =============================================================================
+// A SHOUT DOES NOT STOP AT A COMMA (2026-10-08)
+// =============================================================================
+// Darrell, on lesson L218: "At this exact spot in this lesson... the voice keeps
+// failing and it sounds garbled... can't distinguish the words... It's happening
+// in multiple places in most lessons... a paragraph or a few that don't work
+// well and is incoherent."
+//
+// Located, not guessed. The spot is the utterance "FIRST, DO NOT SWITCH UP."
+// The old run pattern required two or more capitalised words separated by
+// WHITESPACE, so the comma ended the run and FIRST was handed to the engine
+// still shouting — which several engines spell letter by letter. Measured
+// through the real pipeline before the fix: 214 of 215 catalog modules, 3,676
+// places, 13,557 occurrences. After: zero.
+//
+// Each case below fails on the pre-fix code. That is the point of them.
+// =============================================================================
+describe('a shout crosses punctuation, and a lone shouted word is still a shout', () => {
+  it('the L218 utterance is fully softened, comma and all', () => {
+    // The exact string Darrell was listening to when the voice garbled.
+    expect(toSpokenForm('FIRST, DO NOT SWITCH UP.')).toBe('First, do not switch up.');
+  });
+
+  it('a shout crosses a comma, a semicolon, a colon and a dash', () => {
+    expect(softenShouting('NOTICE, TEST; CAPTURE: REDIRECT')).toBe('Notice, test; capture: redirect');
+    expect(softenShouting('EIGHT — PSYOPS, AND KNOWN BY LOVE')).toBe('Eight — psyops, and known by love');
+  });
+
+  it('a whole shouted sentence crosses its own commas', () => {
+    // Real, from the creation lesson: the house style shouts the entire line.
+    // Whitespace-only runs leave "SEA" shouting in the middle of it, because a
+    // lone three-letter token cannot be told from an initialism by length.
+    expect(softenShouting('FIFTH, DAY THREE: LAND, SEA, AND PLANTS.'))
+      .toBe('Fifth, day three: land, sea, and plants.');
+  });
+
+  it('the separators come back EXACTLY — none is turned into a space', () => {
+    // The pre-fix body did split(/\s+/) + join(' '), which was safe only while
+    // whitespace was the only separator. Widening with that body would have
+    // deleted every comma in the run.
+    const out = softenShouting('ONE, TWO;  THREE:   FOUR');
+    expect(out).toBe('One, two;  three:   four');
+  });
+
+  it('a lone shouted word of four letters or more is softened', () => {
+    expect(softenShouting('the TEST is the filter')).toBe('the test is the filter');
+    expect(softenShouting('OCCASION is the word Paul uses')).toBe('Occasion is the word Paul uses');
+  });
+
+  it('a lone shouted SHORT word is softened when it is a word, by name', () => {
+    expect(softenShouting('the Spirit AND the Word')).toBe('the Spirit and the Word');
+    expect(softenShouting('Take ONE real rest')).toBe('Take one real rest');
+    expect(softenShouting('SIX. Ask for a fair check.')).toBe('Six. Ask for a fair check.');
+  });
+
+  it('a real initialism survives, alone and inside a softened run', () => {
+    expect(softenShouting('In 586 BC, AND IN AD 70')).toBe('In 586 BC, and in AD 70');
+    expect(softenShouting('Read the ESV, KJV AND NIV')).toBe('Read the ESV, KJV and NIV');
+    expect(softenShouting('logged to DR-0076 AND THE LEDGER')).toBe('logged to DR-0076 and the ledger');
+    expect(softenShouting('Spiritual intelligence (SI), not ours')).toBe('Spiritual intelligence (SI), not ours');
+    expect(softenShouting('THE NAS IS SOVEREIGN')).toBe('The NAS is sovereign');
+  });
+
+  it('a short token that is neither a listed word nor a known initialism is left alone', () => {
+    // The safe direction: read it as written rather than mangle it.
+    expect(softenShouting('the XYQ reading')).toBe('the XYQ reading');
+  });
+
+  it('a capital is kept only where a sentence opens', () => {
+    expect(softenShouting('THE DIRECTIVE. He named it.')).toBe('The directive. He named it.');
+    expect(softenShouting('He named THE DIRECTIVE today.')).toBe('He named the directive today.');
+  });
+
+  it('the words are unchanged by every one of these', () => {
+    const samples = [
+      'FIRST, DO NOT SWITCH UP.',
+      'NOTICE, TEST; CAPTURE: REDIRECT',
+      'In 586 BC, AND IN AD 70',
+      'SIX. Ask for a fair check.',
+    ];
+    for (const s of samples) {
+      expect(wordSequence(softenShouting(s)), `words changed for: ${s}`).toEqual(wordSequence(s));
+    }
+  });
+});
