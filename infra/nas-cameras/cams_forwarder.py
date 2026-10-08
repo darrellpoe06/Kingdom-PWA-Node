@@ -1201,8 +1201,10 @@ def sd_source(url):
     """The same wyze:// source with subtype=sd (replacing subtype=hd when it is there);
     a bridge road's own `-sub` substream (DR-0809); None for any other kind."""
     if is_bridge_source(url):
-        u = str(url)
-        return u if u.endswith(BRIDGE_SUB_SUFFIX) else u + BRIDGE_SUB_SUFFIX
+        base, _, frag = str(url).partition("#")
+        if not base.endswith(BRIDGE_SUB_SUFFIX):
+            base += BRIDGE_SUB_SUFFIX
+        return base + (("#" + frag) if frag else "")
     if kind_of(url) != "wyze":
         return None
     base, _, frag = str(url).partition("#")
@@ -1396,13 +1398,23 @@ def bridge_stream_auth(path=None):
     return ("wb", api) if api else ("", "")
 
 
+# go2rtc's RTSP client gives a source a few seconds to answer DESCRIBE; the
+# bridge's MediaMTX holds DESCRIBE until the on-demand camera is publishing,
+# up to its runOnDemandStartTimeout of 30s (mtx_server.py), and an 805 camera
+# reached through Wyze's relay takes longer than go2rtc's default. Fourth field
+# read (cams-diag 37722068151): with the right credentials the error became
+# "read tcp 127.0.0.1->127.0.0.1:8555: i/o timeout". go2rtc documents
+# `#timeout=30` on an RTSP source (internal/rtsp/README.md); the road carries it.
+BRIDGE_ROAD_OPTS = "#timeout=30"
+
+
 def bridge_source(uri):
     base = BRIDGE_RTSP.rstrip("/")
     user, pw = bridge_stream_auth()
     if user and pw:
         u = urllib.parse.urlsplit(base)
         base = "%s://%s:%s@%s%s" % (u.scheme, urllib.parse.quote(user, safe=""), urllib.parse.quote(pw, safe=""), u.netloc, u.path.rstrip("/"))
-    return "%s/%s" % (base, uri)
+    return "%s/%s%s" % (base, uri, BRIDGE_ROAD_OPTS)
 
 
 def _query_of(url):
@@ -4046,7 +4058,7 @@ def _selftest():
     check(bridge_road_wanted("wyze://192.168.1.60?uid=A&enr=S&mac=AA:BB:CC:DD:EE:03&model=WYZEC1-JZ", lans) == (True, "no-dtls"), "a LAN camera without dtls=true wants the bridge: no-dtls")
     check(bridge_road_wanted("rtsp://u:p@192.168.1.9/live", lans) == (False, "") and bridge_road_wanted(bridge_source("x"), lans) == (False, ""), "an rtsp camera and a bridged one are not asked")
     check(mac_of("wyze://10.0.0.5?uid=A&mac=aa:bb:cc:dd:ee:01") == "AABBCCDDEE01" and norm_mac("AA22334455bB") == "AA22334455BB" and norm_mac(None) == "", "MACs compare without colons or case")
-    check(sd_source(bridge_source("805-north")) == bridge_source("805-north") + "-sub" and sd_source(bridge_source("805-north-sub")) == bridge_source("805-north-sub") and kind_of(bridge_source("805-north")) == "wyze", "a bridged camera's SD twin is its -sub stream and it is still a Wyze camera")
+    check(sd_source(bridge_source("805-north")) == bridge_source("805-north").replace("#", "-sub#") and bridge_source("805-north").endswith("/805-north#timeout=30") and sd_source(bridge_source("805-north-sub")) == bridge_source("805-north-sub") and kind_of(bridge_source("805-north")) == "wyze", "a bridged camera's SD twin is its -sub stream ahead of go2rtc's #timeout=30, and it is still a Wyze camera")
 
     class FakeBridge(BaseHTTPRequestHandler):
         def log_message(self, *a):
@@ -4108,10 +4120,10 @@ def _selftest():
     res = ensure_bridge_roads(rup, streams_now, bc, lans=lans, roads={}, log=logs.append, config_path=br_cfg, roads_path=br_roads, now=1234.0)
     check(res["to_bridge"] == ["805_north", "front_cam"] and res["unknown"] == ["east_north"] and res["kept"] == 1 and res["to_direct"] == [], "the 805 camera (other network) and the no-DTLS camera move to the bridge; the one the bridge does not list is named unknown; the LAN DTLS camera is kept (%r)" % res)
     puts = FakeGo2rtcRoads.state["puts"]
-    check(("805_north", bridge_source("805-north")) in puts and ("805_north_sd", bridge_source("805-north") + "-sub") in puts and ("front_cam", bridge_source("front-cam")) in puts and ("front_cam_sd", bridge_source("front-cam") + "-sub") in puts, "each moved camera is PUT with the bridge's rtsp line, and its SD twin with the bridge's -sub stream")
+    check(("805_north", bridge_source("805-north")) in puts and ("805_north_sd", sd_source(bridge_source("805-north"))) in puts and ("front_cam", bridge_source("front-cam")) in puts and ("front_cam_sd", sd_source(bridge_source("front-cam"))) in puts, "each moved camera is PUT with the bridge's rtsp line, and its SD twin with the bridge's -sub stream")
     check(not any(n == "garage_doors" or n == "east_north" or n == "back_yard" for n, _u in puts), "nothing else is touched")
     cfg_now = open(br_cfg).read()
-    check('  805_north: "%s"' % bridge_source("805-north") in cfg_now and '  805_north_sd: "%s-sub"' % bridge_source("805-north") in cfg_now and "enr=S1" not in cfg_now.split("garage_doors")[0].split("805_north_sd")[0] and '  garage_doors: "wyze://192.168.1.50' in cfg_now and cfg_now.endswith("wyze:\n  email: x\n"), "the config says what memory says: the moved lines rewritten, every other byte kept")
+    check('  805_north: "%s"' % bridge_source("805-north") in cfg_now and '  805_north_sd: "%s"' % sd_source(bridge_source("805-north")) in cfg_now and "enr=S1" not in cfg_now.split("garage_doors")[0].split("805_north_sd")[0] and '  garage_doors: "wyze://192.168.1.50' in cfg_now and cfg_now.endswith("wyze:\n  email: x\n"), "the config says what memory says: the moved lines rewritten, every other byte kept")
     check(config_stream_names(cfg_now) == {"805_north", "805_north_sd", "front_cam", "front_cam_sd", "garage_doors", "east_north", "back_yard"}, "the twin that did not exist is added once, nothing is duplicated (%r)" % sorted(config_stream_names(cfg_now)))
     rd = roads_load(br_roads)
     check((os.stat(br_roads).st_mode & 0o777) == 0o600 and rd["805_north"]["road"] == "bridge" and rd["805_north"]["reason"] == "other-network" and rd["805_north"]["direct"].startswith("wyze://10.0.0.180") and rd["front_cam"]["reason"] == "no-dtls" and rd["east_north"]["unknown_to_bridge"] is True, "the record is root-only and keeps each camera's direct line, road and reason")
@@ -4122,9 +4134,9 @@ def _selftest():
     FakeGo2rtcRoads.state["puts"] = []
     streams_after = dict(streams_now)
     streams_after["805_north"] = {"producers": [{"url": bridge_source("805-north")}]}
-    streams_after["805_north_sd"] = {"producers": [{"url": bridge_source("805-north") + "-sub"}]}
+    streams_after["805_north_sd"] = {"producers": [{"url": sd_source(bridge_source("805-north"))}]}
     streams_after["front_cam"] = {"producers": [{"url": bridge_source("front-cam")}]}
-    streams_after["front_cam_sd"] = {"producers": [{"url": bridge_source("front-cam") + "-sub"}]}
+    streams_after["front_cam_sd"] = {"producers": [{"url": sd_source(bridge_source("front-cam"))}]}
     res2 = ensure_bridge_roads(rup, streams_after, bc, lans=lans, roads=roads_load(br_roads), log=logs.append, config_path=br_cfg, roads_path=br_roads, now=1300.0)
     check(res2["to_bridge"] == [] and res2["to_direct"] == [] and FakeGo2rtcRoads.state["puts"] == [], "a second sync moves nothing and makes no call")
     # The owner forces 805_north back to direct: it returns with its kept line, twin included.
@@ -4151,8 +4163,8 @@ def _selftest():
     BRIDGE_ROADS_FILE = br_roads
     # The bridge's RTSP needs its stream credentials (the first field read answered "user/pass not provided").
     bsrc = bridge_source("805-north")
-    check(bsrc.startswith("rtsp://wb:") and read_env_pairs(br_env)["WB_API"] in urllib.parse.unquote(bsrc) and read_env_pairs(br_env)["WB_PASSWORD"] not in bsrc and "poetech" not in bsrc and bsrc.endswith("@127.0.0.1:8555/805-north"), "with the env in place the bridge line carries wb:<WB_API> before the host, never the web UI's WB_USERNAME:WB_PASSWORD (third field read: those answer wrong user/pass) (%s)" % scrub_text(bsrc))
-    check(is_bridge_source(bsrc) and kind_of(bsrc) == "wyze" and sd_source(bsrc) == bsrc + "-sub" and is_bridge_source("rtsp://127.0.0.1:8555/x") and not is_bridge_source("rtsp://u:p@192.168.1.9:8555/x") and not is_bridge_source("rtsp://127.0.0.1:8554/x"), "a credentialed bridge line is still the bridge road (host and port decide), another host or go2rtc's own port is not")
+    check(bsrc.startswith("rtsp://wb:") and read_env_pairs(br_env)["WB_API"] in urllib.parse.unquote(bsrc) and read_env_pairs(br_env)["WB_PASSWORD"] not in bsrc and "poetech" not in bsrc and bsrc.endswith("@127.0.0.1:8555/805-north#timeout=30"), "with the env in place the bridge line carries wb:<WB_API> before the host, never the web UI's WB_USERNAME:WB_PASSWORD (third field read: those answer wrong user/pass) (%s)" % scrub_text(bsrc))
+    check(is_bridge_source(bsrc) and kind_of(bsrc) == "wyze" and sd_source(bsrc) == bsrc.replace("/805-north#", "/805-north-sub#") and sd_source(bsrc).endswith("-sub#timeout=30") and is_bridge_source("rtsp://127.0.0.1:8555/x") and not is_bridge_source("rtsp://u:p@192.168.1.9:8555/x") and not is_bridge_source("rtsp://127.0.0.1:8554/x"), "a credentialed bridge line is still the bridge road (host and port decide), another host or go2rtc's own port is not")
     check(read_env_pairs(br_env)["WB_API"] not in scrub_text(bsrc) and "***@127.0.0.1" in scrub_text(bsrc), "scrub_text masks the bridge credentials wherever a URL is quoted")
     rd_pub = roads_public({"805_north": {"road": "bridge", "bridge": bsrc, "direct": "wyze://10.0.0.180?enr=S", "uri": "805-north", "reason": "other-network"}})
     check("poetech" not in json.dumps(rd_pub) and "8555" not in json.dumps(rd_pub), "the public roads view carries neither URL")
@@ -4164,11 +4176,11 @@ def _selftest():
     rd = roads_load(br_roads); rd["805_north"] = {"road": "bridge", "bridge": unsigned, "direct": "wyze://10.0.0.180?uid=A&enr=S1&mac=AA:BB:CC:DD:EE:01&model=HL_CAM4&dtls=true", "uri": "805-north", "reason": "other-network", "since": 1234.0, "forced": None}; roads_save(rd, br_roads)
     res6 = ensure_bridge_roads(rup, streams_unsigned, bc, lans=lans, roads=roads_load(br_roads), log=logs.append, config_path=br_cfg, roads_path=br_roads, now=1700.0)
     puts = FakeGo2rtcRoads.state["puts"]
-    check(res6["resigned"] == ["805_north"] and res6["to_bridge"] == [] and ("805_north", bsrc) in puts and ("805_north_sd", bsrc + "-sub") in puts, "a bridge road written before the credentials existed is re-signed with them, twin included (%r)" % scrub_text(json.dumps(puts)))
+    check(res6["resigned"] == ["805_north"] and res6["to_bridge"] == [] and ("805_north", bsrc) in puts and ("805_north_sd", sd_source(bsrc)) in puts, "a bridge road written before the credentials existed is re-signed with them, twin included (%r)" % scrub_text(json.dumps(puts)))
     rd = roads_load(br_roads)
     check(rd["805_north"]["bridge"] == bsrc and rd["805_north"]["road"] == "bridge" and rd["805_north"]["since"] == 1234.0 and rd["805_north"]["direct"].startswith("wyze://10.0.0.180") and '  805_north: "%s"' % bsrc in open(br_cfg).read(), "the record keeps its direct line and its since, carries the signed line, and the config follows")
     FakeGo2rtcRoads.state["puts"] = []
-    res7 = ensure_bridge_roads(rup, {"805_north": {"producers": [{"url": bsrc}]}, "805_north_sd": {"producers": [{"url": bsrc + "-sub"}]}}, bc, lans=lans, roads=roads_load(br_roads), log=logs.append, config_path=br_cfg, roads_path=br_roads, now=1800.0)
+    res7 = ensure_bridge_roads(rup, {"805_north": {"producers": [{"url": bsrc}]}, "805_north_sd": {"producers": [{"url": sd_source(bsrc)}]}}, bc, lans=lans, roads=roads_load(br_roads), log=logs.append, config_path=br_cfg, roads_path=br_roads, now=1800.0)
     check(res7["resigned"] == [] and res7["kept"] >= 1 and FakeGo2rtcRoads.state["puts"] == [], "once signed, the next sync keeps it and makes no call")
     res8 = ensure_bridge_roads(rup, {"805_north": {"producers": [{"url": unsigned}]}}, bc, lans=lans, roads=roads_load(br_roads), log=logs.append, config_path=br_cfg, roads_path=br_roads, now=1900.0)
     check(res8["resigned"] == [] and FakeGo2rtcRoads.state["puts"] == [], "a producer URL go2rtc echoes without its credentials does not re-sign again: the record is the judge, so there is no loop")
