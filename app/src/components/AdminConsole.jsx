@@ -31,6 +31,7 @@ import { enterReviewerMode } from '../lib/reviewer-mode.jsx';
 import UiIcon from './UiIcon.jsx';
 import QualityProof from './QualityProof.jsx';
 import AccessUsageMetrics from './AccessUsageMetrics.jsx';
+import ProvingOurWays from './ProvingOurWays.jsx';
 import FamilyDoors from './FamilyDoors.jsx';
 import SupportAccess from './SupportAccess.jsx';
 import SectionTabs from './SectionTabs.jsx';
@@ -693,6 +694,17 @@ export default function AdminConsole({
           <NetworkStatus variant="inline" />
         </div>
       ),
+    },
+    {
+      id: 'proving',
+      label: 'Proving our ways',
+      icon: 'check',
+      // DR-0819. Darrell 2026-10-08 asked two questions in one breath: whether
+      // the family is actually testing the functions we ship, and where the
+      // framework for our evaluation and assessment lives. Both answers are
+      // here, beside the quality proof that measures the SYSTEM, because this
+      // one measures whether the ways serve the people.
+      render: () => <ProvingOurWays />,
     },
     {
       id: 'quality',

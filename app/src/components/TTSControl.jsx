@@ -13,6 +13,7 @@
 // renders nothing — no crash (unbreakable). Status is announced for screen
 // readers; every control is keyboard reachable; the panel is a high-contrast
 // (WCAG AA) white card regardless of app theme.
+import { noteUse } from '../lib/usage-events.js';
 import React, { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { tripSummary } from '../lib/reader-trip.js';
 import { newReaderId, registerReader, subscribeReaders, chosenReader } from '../lib/one-reader.js';
@@ -425,7 +426,7 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
     setControllerPref(saveControllerPref(flippedControllerPref(controller)));
   }, [controller]);
   const [pointerOn, setPointerOn] = useState(() => loadPointerPref());
-  const flipPointer = useCallback(() => setPointerOn((p) => savePointerPref(!p)), []);
+  const flipPointer = useCallback(() => { noteUse('reader.pointer'); setPointerOn((p) => savePointerPref(!p)); }, []);
   const [fullScreen, setFullScreen] = useState(false);
   const goFullScreen = useCallback(() => { setFullScreen(true); enterFullScreen(typeof document !== 'undefined' ? document : null); }, []);
   const leaveFullScreen = useCallback(() => { setFullScreen(false); exitFullScreen(typeof document !== 'undefined' ? document : null); }, []);
@@ -1408,6 +1409,7 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
     if (on) showTheText();
   };
   const onFollowButton = () => {
+    noteUse('reader.follow');
     if (!textHere) { showTheText(); return; }
     setFollow(!following);
   };
@@ -1891,7 +1893,7 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
                     "start to finish" means the top. Where the reader left off
                     is its own button just below, and only when there is one. */}
                 {target && (
-                  <button type="button" data-testid="reader-read-target" onClick={() => readTargetNow(target, { startSentence: 0 })} className="col-span-3 bg-[#5A6E3D] text-white px-[0.75em] py-[0.625em] text-[0.75em] uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">▶ Read {target.label} — start to finish</button>
+                  <button type="button" data-testid="reader-read-target" onClick={() => { noteUse('reader.read'); readTargetNow(target, { startSentence: 0 }); }} className="col-span-3 bg-[#5A6E3D] text-white px-[0.75em] py-[0.625em] text-[0.75em] uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">▶ Read {target.label} — start to finish</button>
                 )}
                 {/* RESUME — where this reading was left, said in paragraphs. */}
                 {target && resumeOffer && (
@@ -1990,7 +1992,7 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
                   <button
                     key={st.key}
                     type="button"
-                    onClick={() => setTextSizeKey(st.key)}
+                    onClick={() => { noteUse('textsize.change'); setTextSizeKey(st.key); }}
                     aria-pressed={on}
                     aria-label={`${st.name} text size${on ? ' (current)' : ''}`}
                     title={`${st.name} text`}
@@ -2140,7 +2142,7 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
                   <button
                     key={st.value}
                     type="button"
-                    onClick={() => setPitch(st.value)}
+                    onClick={() => { noteUse('reader.pitch'); setPitch(st.value); }}
                     aria-pressed={on}
                     aria-label={`${st.name}${on ? ' — current' : ''}`}
                     title={st.name}
