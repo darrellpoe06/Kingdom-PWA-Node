@@ -38,7 +38,7 @@ export function loneTab(children) {
   return tabs.length === 1 ? tabs[0] : null;
 }
 
-export default function TopNavRow({ hatch = null, navHistory = {}, collapsed = false, onToggleHeader, brandName = '', brandTagline = '', home = null, children }) {
+export default function TopNavRow({ hatch = null, navHistory = {}, collapsed = false, onToggleHeader, brandName = '', brandTagline = '', home = null, openers = null, children }) {
   const lone = loneTab(children);
   // ONE WAY BACK PER PHONE ROW (DR-0640). When the collapsed row sits inside
   // the one-tab row, its "Show header" button and this chevron do the same
@@ -90,6 +90,13 @@ export default function TopNavRow({ hatch = null, navHistory = {}, collapsed = f
             <TabScroll chrome className="pr-1 sm:pr-6 lg:pr-8 min-w-0 flex-1" rowClassName="sm:text-sm items-stretch">
               {children}
             </TabScroll>
+            {/* THE OPENER (Darrell 2026-10-08, driving home with a lesson
+                playing: "the garage door opener button is there for easy
+                access"). Pinned beside the chevron so it never scrolls away
+                with the tabs. Rendered only when the house has a registered
+                opener and the account is family (components/OpenerButton.jsx);
+                a church account never sees it. */}
+            {openers}
             {chevron}
           </div>
         </nav>
@@ -129,6 +136,7 @@ export default function TopNavRow({ hatch = null, navHistory = {}, collapsed = f
             {home.label} <span aria-hidden="true">→</span>
           </a>
         ) : null}
+        {openers}
         {chevron}
       </div>
     </nav>

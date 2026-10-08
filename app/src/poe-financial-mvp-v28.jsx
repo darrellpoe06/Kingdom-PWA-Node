@@ -72,6 +72,9 @@ import TTSControl from './components/TTSControl.jsx';
 import FloatingPlayer from './components/FloatingPlayer.jsx';
 import TextSizeControl, { TextSizeEscapeHatch } from './components/TextSizeControl.jsx';
 import TopNavRow from './components/TopNavRow.jsx';
+import OpenerButton from './components/OpenerButton.jsx';
+import OpenersPanel from './components/OpenersPanel.jsx';
+import { subscribeOpeners } from './lib/openers-sync.js';
 import ReadingVoiceControl from './components/ReadingVoiceControl.jsx';
 import HeaderAuthButton from './components/HeaderAuthButton.jsx';
 import PublicWelcome from './components/PublicWelcome.jsx';
@@ -1233,6 +1236,16 @@ export default function PoeFinancialSystem() {
   // email; every other state (anonymous, demo, picker, outside signed-in user)
   // keeps the sanitized pair.
   const isFamilyMember = !reviewerMode && isFamilyEmail(authSession?.user?.email);
+  // THE HOUSE OPENERS (Darrell 2026-10-08): the garage door and any other
+  // opener, read from the real `household_openers` table and nothing else.
+  // null until the first read answers, so the header draws no button for a
+  // question that has not come back yet; [] means this house has none
+  // registered, which is honest and still draws nothing (DR-0061).
+  const [openerRows, setOpenerRows] = useState(null);
+  useEffect(() => {
+    if (!isFamilyMember) { setOpenerRows(null); return undefined; }
+    return subscribeOpeners(setOpenerRows);
+  }, [isFamilyMember]);
   // Church staff get the church staff-only surfaces (Observation) and nothing
   // more — never the family/Governor scope. Family are staff too (superset).
   const churchAccess = useChurchAccess();  // what the OFFICE granted (0211) — lib/church-access-store.js
@@ -4246,6 +4259,7 @@ ${THEME_CSS}
             (components/TopNavRow.jsx, DR-0640: "Both places are good... why not"). */}
         <TopNavRow navHistory={navHistory} collapsed={headerCollapsed} onToggleHeader={toggleHeaderChrome} brandName={churchBrand ? 'The Love Corner' : 'Family Operating Systems'} brandTagline={churchBrand ? 'The Church of the Living God' : 'PoeTech · Life, Soul & Money'}
           home={churchDoorOnly && isFamilyMember ? { href: '/poetech-app/?view=overview', label: 'PoeTech app', title: 'Open the whole PoeTech app (every tab)' } : null}
+          openers={isFamilyMember ? <OpenerButton rows={openerRows} /> : null}
           hatch={<TextSizeEscapeHatch collapsed={headerCollapsed} onShowHeader={toggleHeaderChrome} siteName={churchBrand ? 'The Love Corner' : 'Family Operating Systems'} siteTagline={churchBrand ? 'The Church of the Living God' : 'PoeTech · Life, Soul & Money'} />}>
               {[
                 ['overview','Big Picture'],
@@ -4944,6 +4958,13 @@ ${THEME_CSS}
             />
           : <UpgradePrompt viewLabel="Dev/Ops (personalized entrepreneurial options)" requiredTier={VIEW_TIER_REQUIREMENTS.opportunities} currentTier={data.userTier} setView={setView} setUserTier={(isFamilyMember || isAnyDemoMode) ? setUserTier : null} />
         )}
+        {/* THE HOUSE OPENERS (Darrell 2026-10-08). Registered here, pressed
+            from the header. Family only, and RLS is the real gate (0254). */}
+        {view === 'opportunities' && isFamilyMember ? (
+          <div className="mt-6">
+            <OpenersPanel instanceId={instanceRoleState.instanceId} />
+          </div>
+        ) : null}
         {view === 'about' && <About moduleInterest={data.moduleInterest || {}} familyModuleInterest={familyModuleInterest} toggleModuleInterest={toggleModuleInterest} theme={theme} setTheme={setTheme} feedback={[...(data.feedback || []), ...remoteFeedback]} deleteFeedback={deleteFeedback} checkoutIntents={data.checkoutIntents || []} addCheckoutIntent={addCheckoutIntent} deleteCheckoutIntent={deleteCheckoutIntent} addProject={addProject} VIEW_TIER_REQUIREMENTS={VIEW_TIER_REQUIREMENTS} authUserId={authSession && mpBackendAvailable ? (authSession.user?.id || null) : null} authCreatedAt={authSession?.user?.created_at || null} familyFullAccess={!reviewerMode && !!personaOf(authSession?.user?.email)} onChangePin={() => setChangePinOpen(true)} />}
         {view === 'center' && (
           <CommandServeCenter
