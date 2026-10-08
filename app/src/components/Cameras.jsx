@@ -47,7 +47,7 @@ import {
   WYZE_FIELDS, setupWyze, WYZE_API_KEY_HELP_URL, WYZE_API_KEY_STEPS,
   serviceCodeState, restartService, loadWyzeDraft, saveWyzeDraft, clearWyzeDraft,
   SNAP_CONCURRENCY, LIVE_RECONNECT_MAX, LIVE_RECONNECT_DELAY_MS, runLimited, skipFailedFrame,
-  classifySnapError, fetchWhy, groupCameraFaults, faultSummaryLine, wyzeSaysFor, wyzeSaysLine,
+  classifySnapError, fetchWhy, groupCameraFaults, faultSummaryLine, wyzeSaysFor, wyzeSaysLine, cameraRoadLine, bridgeLine, setStreamRoad,
   loadViews, saveViews, activeView, addToView, removeFromView, moveInView, setViewLayout, renameView, addView, deleteView, viewCols, viewGridClass, indexAtPoint, VIEW_LAYOUTS,
   fitGrid, clampScale, setViewScale, VIEW_SCALE_STEP, VIEW_SCALE_MIN, VIEW_SCALE_MAX, toggleFocus, focusIn, shownCount,
   CLIP_SIZE_TIERS, fetchClipSizes, waitForClipSize, clipDownloadName, clipTierLine, fetchStreamHealth, STREAM_HEALTH_POLL_MS, liveStreamId, streamHealthLine, dropLines,
@@ -723,7 +723,7 @@ function LiveVideo({ cam, token, liveMax, onClose, compact = false, bare = false
       const mode = chooseLiveRoad({ pref: road, stats: loadRoadStats(), canPlayType: canPlay, avoid: lastFailed.current });
       lastFailed.current = '';
       const startedAt = Date.now();
-      setSt((p) => ({ ...p, mode, src: liveUrl(streamId, mode, ticket), startedAt, firstFrameMs: null, stalls: 0, ended: false, error: '', opening: false }));
+      setSt((p) => ({ ...p, mode, src: liveUrl(streamId, mode, ticket, { nonce: reconnects }), startedAt, firstFrameMs: null, stalls: 0, ended: false, error: '', opening: false }));
       timers.current.first = setTimeout(() => {
         setSt((p) => (p.firstFrameMs == null && !p.ended && p.src)
           ? { ...p, error: `No picture after ${Math.round(LIVE_FIRST_FRAME_TIMEOUT_MS / 1000)} s. The camera may be asleep or unreachable from the NAS; press Why? on its tile.` }
@@ -793,6 +793,10 @@ function LiveVideo({ cam, token, liveMax, onClose, compact = false, bare = false
         tendMemo.current = null;
         setSt((p) => ({ ...p, stalls: (p.stalls || 0) + 1 }));
         endedOnItsOwn(`the picture froze for ${FREEZE_SECONDS} s`);
+      } else if (r.behind != null) {
+        // DR-0808: a live MP4 is never seeked; one that is truly far behind opens fresh.
+        tendMemo.current = null;
+        endedOnItsOwn(`the picture fell ${Math.round(r.behind)} s behind live`);
       }
     }, LIVE_TEND_MS);
     return () => clearInterval(id);
@@ -1000,6 +1004,7 @@ function TileLive({ cam, token, liveMax, now, onFailed, sd = false }) {
       const r = tendLiveVideo(v, tendMemo.current, { mode: st.mode });
       tendMemo.current = r.memo;
       if (r.frozen) { tendMemo.current = null; endedOnItsOwn(`the picture froze for ${FREEZE_SECONDS} s`); }
+      else if (r.behind != null) { tendMemo.current = null; endedOnItsOwn(`the picture fell ${Math.round(r.behind)} s behind live`); }
     }, LIVE_TEND_MS);
     return () => clearInterval(id);
   }, [st.src, st.ended, st.mode, endedOnItsOwn]);
@@ -1022,9 +1027,19 @@ function TileLive({ cam, token, liveMax, now, onFailed, sd = false }) {
 
 // WHY IS THIS TILE BLANK? (DR-0774). The NAS's /why answer, in plain words,
 // with go2rtc's own lines underneath for anyone who wants the raw truth.
-function WhyPanel({ cam, token, onHide, health = null, devices = null }) {
+function WhyPanel({ cam, token, onHide, health = null, devices = null, owner = false, onRoad = null }) {
   const [r, setR] = useState(null);
+  const [roadMsg, setRoadMsg] = useState('');
+  const [roadBusy, setRoadBusy] = useState(false);
   const says = wyzeSaysLine(wyzeSaysFor(devices, cam.id)); // DR-0807: Wyze's own word, off vs out of reach
+  // DR-0809: which road this camera takes into the NAS, and the owner's hand on it.
+  const pickRoad = async (road) => {
+    setRoadBusy(true); setRoadMsg('');
+    const res = await setStreamRoad(cam.id, road, token);
+    setRoadBusy(false);
+    setRoadMsg(res.ok ? `Now ${res.road === 'bridge' ? 'through the Wyze bridge' : 'on the direct road'}${res.forced ? ' (your choice)' : ' (automatic)'}. The picture follows within a few seconds.` : res.text || res.error);
+    if (res.ok && onRoad) onRoad();
+  };
   const drops = health ? dropLines(health.events, cam.id) : [];
   const hl = health && health.cameras ? health.cameras[cam.id] : null;
   useEffect(() => { let on = true; fetchWhy(cam.id, token).then((x) => { if (on) setR(x); }); return () => { on = false; }; }, [cam.id, token]);
@@ -1036,6 +1051,15 @@ function WhyPanel({ cam, token, onHide, health = null, devices = null }) {
           <div className={`font-semibold ${ex.kind === 'ok' ? 'text-[#2F6B3A]' : 'text-[#B85838]'}`}>{ex.headline}</div>
           {ex.lines.map((l) => <div key={l} className="text-[#5A5751] mt-0.5">{l}</div>)}
           {says && ex.kind !== 'ok' ? <div className="text-[#1A1815] mt-0.5" data-testid={`why-wyze-${cam.id}`}>{says}</div> : null}
+          {cam.kind === 'wyze' ? <div className="text-[#5A5751] mt-0.5" data-testid={`why-road-${cam.id}`}>{cameraRoadLine(cam)}</div> : null}
+          {cam.kind === 'wyze' && owner ? (
+            <div className="mt-1 flex flex-wrap gap-1" data-testid={`why-road-pick-${cam.id}`}>
+              <button type="button" disabled={roadBusy} className={`${btnGhost} focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={() => pickRoad('bridge')} data-testid={`road-bridge-${cam.id}`}>Use the Wyze bridge</button>
+              <button type="button" disabled={roadBusy} className={`${btnGhost} focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={() => pickRoad('direct')} data-testid={`road-direct-${cam.id}`}>Use the direct road</button>
+              <button type="button" disabled={roadBusy} className={`${btnGhost} focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={() => pickRoad('auto')} data-testid={`road-auto-${cam.id}`}>Let the NAS choose</button>
+              {roadMsg ? <div className="w-full text-[#1A1815]" role="status" data-testid={`road-result-${cam.id}`}>{roadMsg}</div> : null}
+            </div>
+          ) : null}
           {ex.log && ex.log.length ? (
             <details className="mt-1"><summary className="text-[#5A5751] cursor-pointer">What the restreamer logged</summary>
               <pre className="text-[0.625rem] whitespace-pre-wrap break-all mt-1">{ex.log.slice(-6).join('\n')}</pre>
@@ -1745,7 +1769,7 @@ export default function Cameras() {
                             <button type="button" onClick={() => setLiveId(isLive ? '' : cam.id)} className={`${btnGhost} focus:outline focus:outline-2 focus:outline-[#B85838]`}>{isLive ? 'Close' : 'Big'}</button>
                           </div>
                         </div>
-                        {why === cam.id ? <WhyPanel cam={cam} token={token} onHide={() => setWhy('')} health={streamHealth} devices={devicesState && devicesState.devices} /> : null}
+                        {why === cam.id ? <WhyPanel cam={cam} token={token} onHide={() => setWhy('')} health={streamHealth} devices={devicesState && devicesState.devices} owner={isOwner} onRoad={() => { load(); }} /> : null}
                       </div>
                       {isLive ? <LiveVideo key={`live-${cam.id}`} cam={cam} token={token} liveMax={liveMax} now={now} onClose={() => setLiveId('')} /> : null}
                     </React.Fragment>
@@ -1771,6 +1795,8 @@ export default function Cameras() {
           {showAdd && <KindsHelp />}
           {showAdd && <AddCamera token={token} onChanged={() => { load(); }} />}
           {showAdd && <RingSetup token={token} onAdded={() => { load(); }} />}
+          {/* THE WYZE BRIDGE (DR-0809): the road for cameras the NAS cannot reach itself. Read from /health, never assumed. */}
+          <p className="text-xs text-[#1A1815] mt-3 border-l-4 border-[#E8E4DC] pl-2.5" data-testid="bridge-status">{bridgeLine(health)} <span className="text-[#5A5751]">Press Why? on a Wyze tile to see its road or choose one.</span></p>
           <details className="mt-3">
             <summary className="text-xs text-[#B85838] cursor-pointer min-h-[36px] inline-flex items-center">Sign in to a different Wyze account</summary>
             <WyzeSetup token={token} onAdded={() => { load(); }} />

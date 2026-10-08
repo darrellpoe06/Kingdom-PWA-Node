@@ -50,8 +50,11 @@ export function snapUrl(id, { w = SNAPSHOT_WIDTH, ticket = '' } = {}) {
 }
 
 // mode: 'hls' (Safari / iOS / Fire TV) | 'mp4' (everything else)
-export function liveUrl(id, mode, ticket) {
-  const t = `t=${encodeURIComponent(ticket || '')}`;
+export function liveUrl(id, mode, ticket, { nonce = 0 } = {}) {
+  // DR-0808: every (re)connection is its own URL. The same ticket lives an
+  // hour, so a reconnect to the identical address could be served by an
+  // engine's media buffer for that address instead of the camera's now.
+  const t = `t=${encodeURIComponent(ticket || '')}${nonce ? `&r=${encodeURIComponent(String(nonce))}` : ''}`;
   const cam = encodeURIComponent(id);
   return mode === 'hls'
     ? `${CAMS_BASE}/live/${cam}/index.m3u8?${t}`
@@ -92,6 +95,8 @@ export function parseCameraList(json) {
       h264: c.h264 === true,
       // The NAS keeps an SD twin (the camera's own substream) for grids of tiles (DR-0799).
       sd: c.sd === true,
+      // Which road the camera takes into go2rtc (DR-0809): its own network, or the Wyze bridge's relay.
+      road: c.road === 'bridge' ? 'bridge' : 'direct',
     });
   }
   return out.sort((a, b) => a.name.localeCompare(b.name));
@@ -1534,7 +1539,25 @@ export const FREEZE_SECONDS = 6;
 export const LIVE_LAG_SEEK_S = 3;
 export const LIVE_LAG_RATE_S = 1;
 export const LIVE_CATCHUP_RATE = 1.08;
+export const LIVE_CATCHUP_RATE_FAST = 1.25;
+export const LIVE_LAG_RECONNECT_S = 12;
 export const LIVE_EDGE_MARGIN_S = 0.5;
+
+// THE SAME CAR KEEPS GOING BY (DR-0808; Darrell 2026-10-07, the Window view
+// on the Firestick: "the livestream from the cameras keep looping the video
+// the same car keeps going by"). DR-0799's keeper SEEKED a progressive MP4
+// live stream to its buffered edge whenever it trailed by more than
+// LIVE_LAG_SEEK_S. A live MP4 arrives as one chunked HTTP body with no byte
+// ranges: it is not seekable, and a seek on such a resource is left to the
+// engine -- Chromium re-reads from what it holds for that address, so the
+// seconds already shown play again, the stream falls behind again, the keeper
+// seeks again: a loop of the same seconds. Frames from a camera also arrive
+// in keyframe-sized bursts, so "buffered ahead" on MP4 swings by several
+// seconds without the picture being late at all. The rule now: a progressive
+// MP4 stream is NEVER seeked. A small lag is run down at LIVE_CATCHUP_RATE, a
+// larger one at LIVE_CATCHUP_RATE_FAST, and only a lag past
+// LIVE_LAG_RECONNECT_S means the stream really is behind: the tile opens a
+// fresh one. HLS is seekable by design and keeps the jump.
 
 /** Where "now" is on this element: the end of what has arrived (mp4) or of what is seekable (HLS). */
 export function liveEdge(video, mode = 'mp4') {
@@ -1546,10 +1569,15 @@ export function liveEdge(video, mode = 'mp4') {
 }
 
 /** What to do about the distance from the play position to the live edge. */
-export function liveEdgeDecision({ currentTime, edge, playbackRate = 1 }) {
+export function liveEdgeDecision({ currentTime, edge, playbackRate = 1, mode = 'mp4' }) {
   if (!Number.isFinite(currentTime) || !Number.isFinite(edge)) return { action: 'none', lag: null };
   const lag = Math.max(0, edge - currentTime);
-  if (lag > LIVE_LAG_SEEK_S) return { action: 'seek', to: Math.max(0, edge - LIVE_EDGE_MARGIN_S), lag };
+  if (mode === 'hls') {
+    if (lag > LIVE_LAG_SEEK_S) return { action: 'seek', to: Math.max(0, edge - LIVE_EDGE_MARGIN_S), lag };
+  } else {
+    if (lag > LIVE_LAG_RECONNECT_S) return { action: 'reconnect', lag };
+    if (lag > LIVE_LAG_SEEK_S) return { action: 'rate', rate: LIVE_CATCHUP_RATE_FAST, lag };
+  }
   if (lag > LIVE_LAG_RATE_S) return { action: 'rate', rate: LIVE_CATCHUP_RATE, lag };
   if (Math.abs(Number(playbackRate) - 1) > 0.001) return { action: 'rate', rate: 1, lag };
   return { action: 'none', lag };
@@ -1579,13 +1607,13 @@ export function tendLiveVideo(video, memo, { mode = 'mp4', nowMs = Date.now() } 
   const frozen = next.frozenFor >= FREEZE_SECONDS;
   let decision = { action: 'none', lag: null };
   if (!frozen && !state.paused && !state.ended && Number(video.readyState) >= 2) {
-    decision = liveEdgeDecision({ currentTime: state.currentTime, edge: liveEdge(video, mode), playbackRate: video.playbackRate });
+    decision = liveEdgeDecision({ currentTime: state.currentTime, edge: liveEdge(video, mode), playbackRate: video.playbackRate, mode });
     try {
       if (decision.action === 'seek') video.currentTime = decision.to;
       else if (decision.action === 'rate') video.playbackRate = decision.rate;
     } catch { /* a device fact */ }
   }
-  return { memo: next, frozen, lag: decision.lag, action: decision.action };
+  return { memo: next, frozen, lag: decision.lag, action: decision.action, behind: decision.action === 'reconnect' ? decision.lag : null };
 }
 
 // =============================================================================
@@ -1712,5 +1740,63 @@ export async function setupRing({ email, password, code = '' }, token, fetchImpl
     return { kind: 'error', message: `The camera road answered HTTP ${r.status}${body && body.error ? ` (${body.error})` : ''}.` };
   } catch (e) {
     return { kind: 'error', message: `The camera road did not answer: ${humanizeFetchError(e, SETUP_TIMEOUT_MS)}.` };
+  }
+}
+
+// =============================================================================
+// THE WYZE BRIDGE ROAD (DR-0809; Darrell 2026-10-07: "Build the bridge on the
+// NAS so 805 works"). The NAS runs docker-wyze-bridge beside go2rtc in relay
+// mode; cams_forwarder.py puts a camera the NAS cannot reach directly (another
+// network, firmware without DTLS) onto the bridge's RTSP line and keeps the
+// record. The app shows which road a camera takes and lets the owner force
+// one. Pure helpers here; the NAS decides and does.
+// =============================================================================
+export function streamRoadUrl(id) { return `${CAMS_BASE}/streams/${encodeURIComponent(id)}/road`; }
+export function streamRoadsUrl() { return `${CAMS_BASE}/streams/roads`; }
+export const ROAD_WORDS = Object.freeze({
+  bridge: 'through the Wyze bridge (Wyze\'s relay, the road the Wyze app itself uses)',
+  direct: 'on its own network, straight from the camera',
+});
+export const ROAD_REASONS = Object.freeze({
+  'other-network': 'it sits on a network the NAS cannot reach',
+  'no-dtls': 'its firmware has no DTLS, which the direct road needs',
+  forced: 'you chose this road',
+  'reachable-again': 'the NAS can reach it again',
+});
+/** One line for a tile: how this camera reaches the NAS, and why (not roadLine, the live-road stats line of DR-0782). */
+export function cameraRoadLine(cam, roadRec = null) {
+  const road = (cam && cam.road) || 'direct';
+  const why = roadRec && roadRec.reason ? ROAD_REASONS[roadRec.reason] || roadRec.reason : '';
+  return `Reaches the NAS ${ROAD_WORDS[road] || ROAD_WORDS.direct}${why ? `: ${why}` : ''}.`;
+}
+/** The Setup tab's one line about the bridge, from /health's `bridge`. */
+export function bridgeLine(health) {
+  const b = health && health.bridge;
+  if (!b) return 'Wyze bridge: this NAS has not reported one yet (its forwarder predates DR-0809, or has not restarted onto it).';
+  if (!b.configured) return 'Wyze bridge: waits on the Wyze sign-in above; it takes the same sign-in and reaches cameras the NAS cannot, the way the Wyze app does.';
+  const last = b.last || {};
+  if (!last.at) return 'Wyze bridge: configured; the NAS has not synced the roads yet (within a minute of the forwarder starting).';
+  if (last.reachable === false) return 'Wyze bridge: configured but not answering on the NAS yet. It signs in to Wyze on its first start; the NAS asks again every minute.';
+  const unknown = Array.isArray(last.unknown) && last.unknown.length ? ` ${last.unknown.length} the bridge does not list yet.` : '';
+  return `Wyze bridge: up, knows ${last.known || 0} cameras, ${last.bridged || 0} ride it.${unknown}`;
+}
+/** The owner picks a camera's road: 'bridge' | 'direct' | 'auto'. Resolves {ok, road?, reason?, error?}. */
+export async function setStreamRoad(id, road, token, { fetchImpl = (typeof fetch === 'function' ? fetch : null), timeoutMs = 20000 } = {}) {
+  if (!fetchImpl) return { ok: false, error: 'no-fetch' };
+  try {
+    const r = await fetchWithTimeout(streamRoadUrl(id), { method: 'POST', headers: { ...authHeaders(token), 'Content-Type': 'application/json' }, body: JSON.stringify({ road }) }, timeoutMs, fetchImpl);
+    let body = {};
+    try { body = await r.json(); } catch { body = {}; }
+    if (r.ok) return { ok: true, road: body.road || road, reason: body.reason || null, forced: body.forced || null };
+    const err = body && body.error ? String(body.error) : `HTTP ${r.status}`;
+    const said = {
+      'bridge-not-configured': 'The bridge waits on the Wyze sign-in; sign in on the Setup tab first.',
+      'bridge-unreachable': 'The bridge is not answering on the NAS yet; try again in a minute.',
+      'unknown-to-bridge': 'The bridge does not list this camera yet; it lists the account after its sign-in.',
+      unauthorized: 'Only the owner picks a road.',
+    };
+    return { ok: false, error: err, text: said[err] || `The NAS said: ${err}.` };
+  } catch (e) {
+    return { ok: false, error: 'network', text: humanizeFetchError(e, timeoutMs) };
   }
 }

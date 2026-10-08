@@ -75,8 +75,11 @@ jobs:
           SH="$(curl -s -m 8 -H "Authorization: Bearer $TOK" http://127.0.0.1:8773/streams/health)"
           REC="$(curl -s -m 8 -H "Authorization: Bearer $TOK" http://127.0.0.1:8773/recording)"
           STREAMS="$(curl -s -m 10 http://127.0.0.1:1984/api/streams)"
+          # The first run (37704739922) judged the forwarder silent while cams-diag had just read it:
+          # these four were shell variables, never exported, so the Python below saw none of them.
+          export H SH REC STREAMS
           python3 - "$PROBE_ALL" <<'PY'
-          import json, os, sys, time, urllib.request
+          import json, os, sys, time, urllib.parse, urllib.request
           probe_all = sys.argv[1] == "true"
           def load(v):
               try: return json.loads(v)
