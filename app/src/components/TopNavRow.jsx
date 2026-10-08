@@ -31,6 +31,7 @@ import React from 'react';
 import { TabScroll, NavControls } from './shared.jsx';
 import UiIcon from './UiIcon.jsx';
 import { BrandLockup } from './TextSizeControl.jsx';
+import OpenerButton from './OpenerButton.jsx';
 
 // The one tab, when the list holds exactly one (separators excluded); else null.
 export function loneTab(children) {
@@ -90,6 +91,15 @@ export default function TopNavRow({ hatch = null, navHistory = {}, collapsed = f
             <TabScroll chrome className="pr-1 sm:pr-6 lg:pr-8 min-w-0 flex-1" rowClassName="sm:text-sm items-stretch">
               {children}
             </TabScroll>
+            {/* THE OPENER (Darrell 2026-10-08, driving home with a lesson
+                playing: "the garage door opener button is there for easy
+                access"). Pinned beside the chevron so it never scrolls away
+                with the tabs. It asks the household record itself and renders
+                NOTHING unless a real opener is registered and armed, and RLS
+                is the gate that decides that (DR-0060), so no account needs a
+                client-side check to be kept out. The shell is frozen
+                (DR-0078), so the row mounts it rather than being handed it. */}
+            <OpenerButton />
             {chevron}
           </div>
         </nav>
@@ -129,6 +139,7 @@ export default function TopNavRow({ hatch = null, navHistory = {}, collapsed = f
             {home.label} <span aria-hidden="true">→</span>
           </a>
         ) : null}
+        <OpenerButton />
         {chevron}
       </div>
     </nav>

@@ -48,6 +48,7 @@ Each needs the same three pieces the tax fix supplies: a service that answers, a
 installer registered in `infra/nas-loops/services.json`, and a mount recorded in
 the table above.
 
+- `/openers` — `infra/nas-openers/openers.py` + its installer exist and are registered in `infra/nas-loops/services.json` with `enabled: false`, so the Funnel mounts nothing here YET. Unactuated ON PURPOSE: this is the only service that drives a physical actuator on the family's house, so it is armed by hand and never by a merge (DR-0823). Unlike the defects above, the app is not quietly calling a dark backend — the header renders no button at all until an opener row exists and is armed, so there is nothing to fall through. Closes when the opener hardware is named. re-review: 2026-11-08
 - `/llm` — `infra/nas-llm/llm_server.py` exists; no installer, no manifest entry, no mount. re-review: 2026-09-20
 - `/ways` — no NAS-side provider found in the repo. re-review: 2026-09-20
 - `/reviews` — no NAS-side provider found in the repo. re-review: 2026-09-20
@@ -87,3 +88,4 @@ probing it, not by reasoning about it.
 the Funnel, so a 401 proves root exposure AND the path mount);
 TLS reset/000 = the Funnel itself is down — restore per rule 1 immediately
 (DR-0107: a dark transport is the worst outcome).
+

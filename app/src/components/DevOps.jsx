@@ -5,6 +5,8 @@ import React, { useState } from 'react';
 import { SectionTitle, MetricCell } from './shared.jsx';
 import SectionTabs from './SectionTabs.jsx';
 import { FAMILY_MINISTRIES } from '../lib/family-ministries.js';
+import OpenersPanel from './OpenersPanel.jsx';
+import { useInstanceRole } from '../lib/instance-role.js';
 
 const fmt = (n) => n == null || !isFinite(n) ? '—' : `${n < 0 ? '-' : ''}$${Math.abs(Math.round(n)).toLocaleString()}`;
 const fmtCompact = (n) => { if (n == null || !isFinite(n)) return '—'; const a = Math.abs(n); const sign = n < 0 ? '-' : ''; if (a >= 1000000000) return `${sign}$${(a/1000000000).toFixed(2)}B`; if (a >= 1000000) return `${sign}$${(a/1000000).toFixed(1)}M`; if (a >= 1000) return `${sign}$${Math.round(a/1000)}k`; return `${sign}$${Math.round(a)}`; };
@@ -324,8 +326,22 @@ function Opportunities({ opportunities, totals, skillProfiles = [], addSkillProf
       </section>
 
       <SectionTabs sections={sections} ariaLabel="Opportunities" idBase="opps" defaultId="options" />
+
+      {/* THE HOUSE OPENERS (Darrell 2026-10-08). Registered here, pressed from
+          the header. It lives in this module rather than the shell because the
+          shell is frozen (DR-0078), and it is gated by RLS on the household
+          (migration 0254), not by this render. */}
+      <OpenersHouseSection />
     </div>
   );
+}
+
+/** The openers panel, given the household it belongs to. Drawn only for an
+ *  account that is actually in a household; RLS decides what it can read. */
+function OpenersHouseSection() {
+  const instance = useInstanceRole();
+  if (!instance || !instance.instanceId) return null;
+  return <div className="mt-6"><OpenersPanel instanceId={instance.instanceId} /></div>;
 }
 
 // =============================================================================
