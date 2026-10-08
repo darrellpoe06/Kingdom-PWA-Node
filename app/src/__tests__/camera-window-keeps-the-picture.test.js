@@ -21,7 +21,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
   fitGrid, saveOpenWindow, loadOpenWindow, windowToResume, barShowing,
-  WINDOW_KEY, WINDOW_RESUME_MS, WINDOW_BAR_QUIET_MS,
+  WINDOW_KEY, WINDOW_BAR_QUIET_MS,
 } from '../lib/cameras.js';
 
 /** A localStorage that lives in this test only. */
@@ -102,17 +102,24 @@ describe('the window that was up comes back up', () => {
   it('it comes back on the view it was SHOWING, not whichever is active', () => {
     const st = store();
     saveOpenWindow('v2', st, 1000);
-    expect(windowToResume(views, loadOpenWindow(st), 2000)).toBe('v2');
+    expect(windowToResume(views, loadOpenWindow(st))).toBe('v2');
+  });
+
+  it('it comes back however long the power was out — age is NEVER a reason', () => {
+    // Darrell 2026-10-08: "Also needs to keep the window open indefinitely....
+    // as long as it has power.... and come back up in a power outage... or
+    // reset... etc.." A first build dropped a memory older than twelve hours;
+    // this is the correction, pinned so it cannot creep back.
+    const aWeek = 7 * 24 * 60 * 60 * 1000;
+    expect(windowToResume(views, { viewId: 'v1', at: Date.now() - aWeek })).toBe('v1');
+    expect(windowToResume(views, { viewId: 'v1', at: 0 })).toBe('v1');
   });
 
   it('nothing comes back when there is nothing to come back to', () => {
     expect(windowToResume(views, null)).toBe('');
     expect(windowToResume(views, { viewId: '', at: 1 })).toBe('');
-    // A view deleted while the window was remembered.
-    expect(windowToResume(views, { viewId: 'gone', at: 1000 }, 2000)).toBe('');
-    // Yesterday's window is a surprise, not a resume.
-    expect(windowToResume(views, { viewId: 'v1', at: 0 }, WINDOW_RESUME_MS + 1)).toBe('');
-    expect(windowToResume(views, { viewId: 'v1', at: 0 }, WINDOW_RESUME_MS)).toBe('v1');
+    // The one real reason: a view deleted while the window was remembered.
+    expect(windowToResume(views, { viewId: 'gone', at: 1000 })).toBe('');
   });
 
   it('a storage that refuses to answer loses nothing but the memory', () => {
@@ -150,5 +157,23 @@ describe('the window is wired to it', () => {
     expect(SRC).toContain('const closeWindow = useCallback(() => { setWindowOpen(false); saveOpenWindow(\'\'); }');
     expect(SRC).toContain('useState(() => !!windowToResume(views, loadOpenWindow()))');
     expect(SRC).toContain('onClick={() => openWindow(view.id)}');
+  });
+});
+
+describe('the wall stays up as long as it has power', () => {
+  const SRC = readFileSync(join(process.cwd(), 'src/components/Cameras.jsx'), 'utf8');
+
+  it('the screen is held awake while the window is up, and says so when it cannot be', () => {
+    expect(SRC).toContain("useScreenAwake(true, 'camera-window')");
+    expect(SRC).toContain('data-testid="view-window-sleep-note"');
+    expect(SRC).toContain('!awake.supported');
+  });
+
+  it('nothing but Close forgets the window', () => {
+    const lib = readFileSync(join(process.cwd(), 'src/lib/cameras.js'), 'utf8');
+    expect(lib, 'no expiry on the memory').not.toContain('WINDOW_RESUME_MS');
+    const at = lib.indexOf('export function windowToResume');
+    const body = lib.slice(at, lib.indexOf('\n}', at));
+    expect(body, 'age is not a reason to drop it').not.toMatch(/\bage\b|within|Date\.now/);
   });
 });

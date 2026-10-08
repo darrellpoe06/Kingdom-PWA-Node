@@ -1303,12 +1303,16 @@ export function setViewScale(state, id, scale) {
 //      viewer back to the page with the cameras still streaming behind it. The
 //      open window is now remembered, and the one that was up comes back up.
 //
-// CLOSE IS THE SIGNAL. Closing the window clears the memory, so a window the
-// viewer deliberately shut stays shut; only a window that was still up when the
-// app went away comes back. A stale one is dropped as well — a window from
-// yesterday returning unasked is a surprise, not a resume.
+// CLOSE IS THE SIGNAL, AND IT IS THE ONLY ONE. Closing the window clears the
+// memory, so a window the viewer deliberately shut stays shut. Nothing else
+// clears it — Darrell, same day, when a first build dropped a memory older than
+// twelve hours: "Also needs to keep the window open indefinitely.... as long as
+// it has power.... and come back up in a power outage... or reset... etc.."
+// This is a wall of cameras on a television, not a page someone wandered off
+// from. It is MEANT to be up, and the only thing that should ever take it down
+// is a hand on Close. So there is no age limit and no expiry: power comes back,
+// the app comes back, the window comes back, however long it has been.
 export const WINDOW_KEY = 'poetech.cameras.window.v1';
-export const WINDOW_RESUME_MS = 12 * 60 * 60 * 1000;
 
 /** Remember the window that is up, or forget it when `viewId` is empty. */
 export function saveOpenWindow(viewId, storage = null, at = Date.now()) {
@@ -1335,14 +1339,13 @@ export function loadOpenWindow(storage = null) {
 
 /**
  * The view whose window should come back up, or '' for none. Pure.
- * It comes back only when the remembered view still exists and the memory is
- * fresh; anything else opens nothing.
+ * The one thing that can stop it is the view no longer existing — a window
+ * cannot come back to a view that was deleted. Age is deliberately NOT a
+ * reason (see above): a week-old memory still brings the wall back.
  */
-export function windowToResume(state, saved, now = Date.now(), within = WINDOW_RESUME_MS) {
+export function windowToResume(state, saved) {
   if (!saved || !saved.viewId || !state || !Array.isArray(state.views)) return '';
   if (!state.views.some((v) => v && v.id === saved.viewId)) return '';
-  const age = Number(now) - (Number(saved.at) || 0);
-  if (!Number.isFinite(age) || age < 0 || age > within) return '';
   return saved.viewId;
 }
 

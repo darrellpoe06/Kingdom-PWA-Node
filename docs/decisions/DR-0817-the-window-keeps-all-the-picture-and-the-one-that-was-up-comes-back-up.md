@@ -15,7 +15,13 @@ across, black bands down both sides and under the control row:
 > capacity also... when reset happens inside the app... bring it back up to the
 > live window that was already up... make sense?"
 
-Two separate things, and the first is arithmetic rather than taste.
+And, correcting a first build of the resume that dropped a memory older than
+twelve hours:
+
+> "Also needs to keep the window open indefinitely.... as long as it has
+> power.... and come back up in a power outage... or reset... etc.."
+
+Three things, and the first is arithmetic rather than taste.
 
 ## What was measured
 
@@ -39,7 +45,19 @@ only (`const [windowOpen, setWindowOpen] = useState(false)`). A service-worker
 update, a crash, or any reload dropped him back to the page with the cameras
 still streaming behind it, and he had to find the view and press Window again.
 
-**3. A measurement that changed the shape of the fix.** Capping the sticky
+**3. An expiry nobody asked for.** The first build of the resume dropped a
+memory older than twelve hours, reasoning that yesterday's window returning
+unasked would be a surprise. That reasoning was wrong for this surface and
+Darrell said so the same day. A wall of cameras on a television is MEANT to be
+up; it is not a page someone wandered away from. The only thing that should
+ever take it down is a hand on Close. The age limit is removed: a week-old
+memory still brings the wall back.
+
+**4. A screen that sleeps is a wall that is not up.** Nothing held the display
+awake while the window was open, so the television's own timeout could blank
+a wall that the app believed was showing.
+
+**5. A measurement that changed the shape of the fix.** Capping the sticky
 title row for DR-0816 raised the same question about the fold handle, which
 carried `.ts-chrome-region`. `zoom` caps a box as well as a font: measured in
 Chromium at 390x844, that 44px handle rendered **24 x 20** at Big Print 44 — a
@@ -56,9 +74,14 @@ by its glyph instead, it measures **52 x 44** and the row holds at 57px.
   four quiet seconds. It never fades while a remote's focus is standing inside
   it — hiding the thing a D-pad is on would strand the viewer — and a hidden
   bar takes no clicks, so a tap goes to the camera under it.
-- **A reset brings the window back up, on the view it was showing.** Close is
-  the signal: closing forgets it, so a window he shut stays shut, and only one
-  that was still up when the app went away comes back.
+- **A reset, or a power cut, brings the window back up, on the view it was
+  showing — however long it was down.** Close is the signal, and the only one:
+  closing forgets it, so a window he shut stays shut; nothing else, and no
+  amount of time, clears it.
+- **The screen is held awake while the wall is up**, on the same lock the
+  reader uses, under its own key so neither drops the other's. Where the
+  browser offers no wake lock, the bar SAYS the screen may still sleep rather
+  than letting him believe otherwise.
 - **The fold handle is a real 44px target again at every text size.**
 - **Said plainly rather than smoothed over:** two cameras, or six, keep their
   bands. A 2-across row is 32:9 and a 3x2 grid is 8:3, both wider than a 16:9
@@ -79,34 +102,45 @@ by its glyph instead, it measures **52 x 44** and the row holds at 57px.
   inside it. Hidden, it is `pointer-events-none`.
 - The open window is remembered: `saveOpenWindow(viewId)` on open,
   `saveOpenWindow('')` on close, and `windowToResume(views, saved)` decides on
-  load — the remembered view must still exist and the memory must be younger
-  than `WINDOW_RESUME_MS` (12 hours). It comes back on the view it was showing,
-  not on whichever happens to be active.
+  load. Its ONE reason to refuse is that the remembered view no longer exists —
+  a window cannot come back to a deleted view. There is no age limit and no
+  expiry. It comes back on the view it was showing, not on whichever happens to
+  be active.
+- `useScreenAwake(true, 'camera-window')` holds the display while the window is
+  mounted, and the bar carries the hint when the browser has no wake lock.
 - The sticky title's fold handle drops `.ts-chrome-region` and caps its glyph
   instead, so the 44px target stays 44px.
 
 Full screen is still asked of the browser on open; a restored window cannot ask
 for it without a gesture, so it comes back as the full-screen overlay and the
 browser's own full screen returns on the next key. That is stated, not hidden.
+The same honesty applies to a power cut: the app brings the window back when
+the app is opened again, and whether the television opens the app by itself
+after power returns is the television's setting, not something this code can
+reach from inside the page.
 
 ## Verification
 
-- `app/src/__tests__/camera-window-keeps-the-picture.test.js` **11/11 green** —
+- `app/src/__tests__/camera-window-keeps-the-picture.test.js` **14/14 green** —
   every number in the table above computed from the real `fitGrid`; the bands
   before and after; the two-and-six case named as geometry; the bar's show/hide
   rule including the D-pad case; the window remembered, forgotten on close,
-  resumed on its own view, and refused when the view is gone, when the memory
-  is stale, or when storage throws; and the window component pinned to all of
-  it (no bar height subtracted, the bar absolutely positioned, open and close
-  wired to the memory).
+  resumed on its own view, resumed after a week with the clock a week on,
+  refused when the view is gone and when storage throws; the screen held awake
+  with its own key and the no-wake-lock note surfaced; and the window component
+  pinned to all of it (no bar height subtracted, the bar absolutely positioned,
+  open and close wired to the memory, nothing but Close forgetting it).
 - **Proven to catch (DR-0076 §3), three breaks, each restored after:**
   - the bar put back in the column → *"the grid is laid out against the WHOLE
     screen"* and *"the bar floats over the picture"* fail;
   - the memory removed from open/close → *"opening remembers the window and
     closing forgets it"* fails;
-  - `barShowing` made always-true and the staleness check dropped → *"the bar
-    shows on input, hides after a quiet spell"* and *"nothing comes back when
-    there is nothing to come back to"* fail.
+  - `barShowing` made always-true → *"the bar shows on input, hides after a
+    quiet spell"* fails;
+  - a twelve-hour expiry put back on the memory → **3 tests** fail, including
+    *"it comes back however long the power was out"*;
+  - the wake lock taken away → *"the screen is held awake while the window is
+    up"* fails.
 - `cameras.test.js`, `cameras-render.test.jsx`,
   `the-wall-says-why-in-one-line.test.js` and this file: **165/165 green**
   together. `the-title-stays-in-view.test.jsx` **19/19** after its fold-handle
