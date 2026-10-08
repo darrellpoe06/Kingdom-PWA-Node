@@ -53,6 +53,9 @@ import { loadFloat, saveFloat, clampRect, avoidRects, defaultRect } from '../lib
 import { loadFollowPrefs, saveFollowPrefs } from '../lib/reader-follow-prefs.js';
 import { useDeviceClass } from '../lib/use-device-class.js';
 import { PITCH_STEPS, pitchStep } from '../lib/voice-shape.js';
+// A POINTER FOR A REMOTE (DR-0802): an option, off by default, offered on a TV.
+import RemotePointer from './RemotePointer.jsx';
+import { loadPointerPref, savePointerPref } from '../lib/remote-pointer.js';
 import { loadControllerPref, saveControllerPref, controllerLayout, flippedControllerPref, controllerToggleLabel, controllerToggleTitle, railWidth, railButtonIds, nextInCycle, railWord, markRails, enterFullScreen, exitFullScreen, leavesFullScreen, FULLSCREEN_ATTR } from '../lib/reader-controller.js';
 import { deviceClipCache, rememberReadingKeys, recallReadingKeys, formatSaved, loadCapMb, saveCapMb, CAP_CHOICES_MB } from '../lib/clip-cache.js';
 // THE ONE LESSON LANDING (lib/learn-open.js, DR-0642): opens a lesson at a
@@ -421,6 +424,8 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
   const flipController = useCallback(() => {
     setControllerPref(saveControllerPref(flippedControllerPref(controller)));
   }, [controller]);
+  const [pointerOn, setPointerOn] = useState(() => loadPointerPref());
+  const flipPointer = useCallback(() => setPointerOn((p) => savePointerPref(!p)), []);
   const [fullScreen, setFullScreen] = useState(false);
   const goFullScreen = useCallback(() => { setFullScreen(true); enterFullScreen(typeof document !== 'undefined' ? document : null); }, []);
   const leaveFullScreen = useCallback(() => { setFullScreen(false); exitFullScreen(typeof document !== 'undefined' ? document : null); }, []);
@@ -1733,6 +1738,10 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
         return { icon: '◎', word: awake.enabled ? 'Screen on' : 'Screen off', on: awake.enabled, title: 'Keep the screen on while it reads', onClick: () => awake.setEnabled(!awake.enabled) };
       case 'panel':
         return { icon: '⇕', word: 'Panel', title: controllerToggleTitle(controller), onClick: flipController };
+      case 'pointer':
+        // DR-0802. Off by default because a Silk browser drives a pointer of
+        // its own and two would fight; on, the D-pad moves ours and OK clicks.
+        return { icon: '◉', word: pointerOn ? 'Pointer on' : 'Pointer', on: pointerOn, title: pointerOn ? 'The pointer is on: the arrows move it, OK presses what is under it, Back puts it away' : 'Show a pointer the remote can move, for a screen with no pointer of its own', onClick: flipPointer };
       case 'full':
         return { icon: '⤢', word: 'Full', title: 'Full screen — only the Word and the voice; Back, Esc or the corner mark brings the controls back', onClick: goFullScreen };
       case 'speed':
@@ -2295,6 +2304,9 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
         </div>,
         document.body,
       )}
+      {/* THE POINTER A REMOTE MOVES (DR-0802). Draws nothing until it is
+          switched on AND woken, so every other device pays nothing. */}
+      <RemotePointer on={pointerOn} />
       {/* FULL SCREEN: only the Word and the voice. A faint mark brings the controls back. */}
       {fullScreen && typeof document !== 'undefined' && createPortal(
         <button type="button" onClick={leaveFullScreen} data-testid="reader-fullscreen-exit" aria-label="Show the controls again" title="Show the controls again (Back or Esc also does)" className="tts-controls fixed top-2 right-2 z-[80] opacity-40 hover:opacity-100 focus:opacity-100 px-[0.5em] py-[0.25em] text-[0.625em] uppercase tracking-wider border-2 border-[#1A1815] bg-white text-[#1A1815] print:hidden focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]" style={{ fontSize: 'calc(1rem * var(--ts-chrome-scale, 1))' }}>⤡ Controls</button>,
