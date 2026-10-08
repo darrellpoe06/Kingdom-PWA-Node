@@ -159,7 +159,15 @@ jobs:
             if (!w.reachable || !w.health || w.health.ok !== true) reasons.push('the forwarder on the NAS did not answer /health');
             if (w.health && w.health.forwarder && w.health.on_disk && w.health.forwarder !== w.health.on_disk) reasons.push(`the forwarder runs ${w.health.forwarder} but ${w.health.on_disk} is on disk (services-sync did not restart it)`);
             if (w.sampler_age_s != null && w.sampler_age_s > 120) reasons.push(`the stream sampler is silent (${w.sampler_age_s} s since its last sample)`);
-            if (last && probedN > 0 && w.answering < (last.answering || 0)) reasons.push(`${w.answering} of ${probedN} watched/recording cameras answer a frame; ${last.answering} did last time (${w.silent.join(', ')} silent)`);
+            // Compare like with like (run 37725930156, 04:07 UTC: a 2-camera pass read "1 of 2 answer; 11 did last time"
+            // against a probe_all pass and raised a false regression). Only cameras BOTH runs probed are compared,
+            // and a regression is one of them answering last time and silent now.
+            const lastOk = new Map(((last && last.probed) || []).map((p) => [p.id, !!p.ok]));
+            const common = (w.probed || []).filter((p) => lastOk.has(p.id));
+            const lost = common.filter((p) => lastOk.get(p.id) && !p.ok).map((p) => p.id);
+            const commonLastAns = common.filter((p) => lastOk.get(p.id)).length;
+            const commonNowAns = common.filter((p) => p.ok).length;
+            if (last && common.length > 0 && lost.length > 0) reasons.push(`${commonNowAns} of the ${common.length} cameras both passes probed answer a frame; ${commonLastAns} did last time (${lost.join(', ')} went silent)`);
             if (last && (last.streams || 0) > 0 && w.streams < last.streams) reasons.push(`go2rtc lists ${w.streams} cameras; it listed ${last.streams} last time`);
             const regression = reasons.length > 0;
             const summary = w.reachable ? `${w.answering}/${probedN} probed cameras answer · ${w.streams} streams · ${w.resting} resting · forwarder ${w.health ? w.health.forwarder : '?'} · live ${w.health ? w.health.live_open : '?'} open, ${w.health ? Math.round((w.health.live_bytes_per_s || 0) * 8 / 1000) : '?'} kb/s` : 'the NAS was not reachable from the runner';
