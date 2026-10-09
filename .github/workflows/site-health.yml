@@ -325,6 +325,35 @@ jobs:
               *) sleep 5; SB_SOV=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 "https://poetech.us/sb/auth/v1/health" 2>/dev/null) || SB_SOV="000" ;;
             esac
             note "- \`GET poetech.us/sb/auth/v1/health\` (sovereign transport) -> **${SB_SOV:-000}**"
+            # A 200 THAT IS THE APP SHELL IS NOT A HEALTHY BACKEND. Measured
+            # 2026-10-09, the whole time Darrell and his wife were locked out:
+            # this probe read 200 and the run concluded "UP", because EVERY
+            # Cloudflare Pages Function on the site had stopped being invoked
+            # and the SPA fallback was answering /sb with index.html. A status
+            # code alone cannot tell GoTrue from our own HTML, so the content
+            # type is now part of the reading. GoTrue answers JSON; anything
+            # text/html on this path means the transport is gone and the green
+            # light is our own page talking back to us (DR-0076: unknown, and
+            # misread, must never report as healthy).
+            # AND WATCH THE LAYER ITSELF, not only the door we happened to try.
+            # On 2026-10-09 /sb was simply the first dead route the family
+            # touched; /n8n, /cams, /taxes, /openers, /llm, /reviews, /voice,
+            # /nas-photos, /ways and /scribe were all dark at the same moment,
+            # for one cause. A Function route that answers HTML names that
+            # cause directly, without waiting for someone to fail a sign-in.
+            FN_CT=$(curl -sS -o /dev/null -w '%{content_type}' --max-time 20 "https://poetech.us/automation-status" 2>/dev/null) || FN_CT=""
+            note "- \`GET /automation-status\` (is ANY Pages Function alive?) -> \`${FN_CT:-unknown}\`"
+            case "${FN_CT:-}" in
+              *text/html*)
+                add_fail "NO PAGES FUNCTION IS RUNNING — GET poetech.us/automation-status answered with '${FN_CT}', the SPA shell, instead of its Function's JSON. When this is true EVERY NAS-backed road is dark at once: /sb sign-in, /n8n, /cams, /taxes, /openers, /llm, /reviews, /voice, /nas-photos, /ways, /scribe. Measured 2026-10-09 while a deploy logged 'Uploading Functions bundle' and '_routes.json' and the Functions still never ran, on the custom domain, on poetech-app.pages.dev AND on the per-deployment host — so it is Cloudflare-side and no code change reaches it" ;;
+            esac
+
+            SB_SOV_CT=$(curl -sS -o /dev/null -w '%{content_type}' --max-time 20 "https://poetech.us/sb/auth/v1/health" 2>/dev/null) || SB_SOV_CT=""
+            note "- \`GET /sb/auth/v1/health\` content-type -> \`${SB_SOV_CT:-unknown}\`"
+            case "${SB_SOV_CT:-}" in
+              *text/html*)
+                add_fail "THE SOVEREIGN TRANSPORT IS GONE — GET poetech.us/sb/auth/v1/health answered ${SB_SOV:-000} but with content-type '${SB_SOV_CT}', which is the SPA shell, not GoTrue. The /sb Pages Function is not being invoked, so every sign-in POST gets a bodiless 405 and the browser dies on .json() with 'Unexpected end of JSON input'. This is the 2026-10-09 lockout: a 200 here is not proof of anything unless it is JSON" ;;
+            esac
             # A GET IS NOT A SIGN-IN. MEASURED 2026-10-09, the day Darrell was
             # locked out of his own app while this probe said "UP. Fresh":
             # `GET /sb/auth/v1/health` answered 200 the whole time, and a POST
