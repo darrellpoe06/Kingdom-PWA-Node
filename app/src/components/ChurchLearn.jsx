@@ -76,7 +76,7 @@ import { matrixFor, matrixBlockText, readNextInvitation } from '../lib/scripture
 import CopyButton from './CopyButton.jsx';
 import ShareButton from './ShareButton.jsx';
 import StoryLibrary from './StoryLibrary.jsx';
-import { storyHeading, storyFootnote } from '../lib/story-truth.js';
+import LessonStories from './LessonStories.jsx';
 import { subscribeSubmissions, reviewSubmission, promoteSubmission } from '../lib/story-library.js';
 import { engagementRowsByAge } from '../lib/learn-engagement.js';
 import { LessonFlowAudience, LessonRunOfShow, TimeFit } from './LessonFlow.jsx';
@@ -134,7 +134,6 @@ import VerseChips from './VerseChips.jsx';
 import LessonTeacher from './LessonTeacher.jsx';
 import { useTextToSpeech } from '../lib/tts.js';
 import { anchorIsRun, referencesIn } from '../lib/verse-refs.js';
-import ShowTheWordToggle from './ShowTheWordToggle.jsx';
 import { useScreenAwake } from '../lib/screen-awake.js';
 import { useFlowMode, useChromeAutoHide, announceStep, landStep, stepInView, FLOW_WORDS, STEP_LANDING_GAP } from '../lib/lesson-room.js';
 import LearnersPanel from './LearnersPanel.jsx';
@@ -1360,38 +1359,12 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
               levelOverride={levelOverride}
             />
             {/* Parable/story beats — short, vivid, often-funny illustrations, the way
-                Jesus taught (Matthew 13:34); the teacher drops these to land the point. */}
-            {Array.isArray(seg.audience.stories) && seg.audience.stories.length > 0 && (
-              <div className="mt-3 space-y-2">
-                <ShowTheWordToggle />
-                {seg.audience.stories.map((s, i) => (
-                  <div key={i} className="border border-[#5A6E3D] bg-[#FAF8F4] p-3">
-                    {/* The label is a truth commitment: a parable is openly illustrative
-                        ("Picture this…"); a testimony claims a real, lived, attributed
-                        event ("A true story"). Never blur the two (DR-0076/DR-0215). */}
-                    <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A6E3D] mb-1" data-testid="story-heading">
-                      {storyHeading(s)}
-                    </div>
-                    {/* THE STORYLINE IS THE PATTERN HE POINTED AT (2026-09-14):
-                        clean prose, then "— verse" in green at the foot. The
-                        story's own verse line and any reference the body names
-                        now share ONE green strip beneath it (refsBelow +
-                        alsoRefs), so nothing boxes the words mid-sentence and
-                        nothing is listed twice. */}
-                    <WordInline
-                      text={s.body}
-                      refsBelow
-                      alsoRefs={s.verse ? referencesIn(s.verse) : null}
-                      className="text-[0.8125rem] text-[#1A1815] leading-relaxed"
-                      style={{ fontFamily: '"Fraunces", serif' }}
-                    />
-                    {/* A PARABLE IS NEVER A RECORD (DR-0811): said in words under every
-                        story, so no reader takes an imagined family for a real one. */}
-                    <div className="mt-2 text-[0.6875rem] text-[#5A5751]" data-testid="story-footnote">{storyFootnote(s)}</div>
-                  </div>
-                ))}
-              </div>
-            )}
+                Jesus taught (Matthew 13:34); the teacher drops these to land the point.
+                DR-0855: each story is its own dropdown (an option, picked, not a wall),
+                the space's reviewed perspectives on the same lesson sit beneath, and
+                the last dropdown is where a reader adds theirs. LessonStories carries
+                the truth labels (DR-0811) exactly as the cards did. */}
+            <LessonStories lesson={module} stories={seg.audience.stories} />
             {/* Multi-modal media — diagrams, POV SOP clips, embedded videos */}
             <MediaList module={module} />
             {/* Who He Is (DR-0675): every passage this lesson carries, with where,

@@ -149,3 +149,19 @@ Measured on the live modules: L229 adult 1,029 with bands 0.505/0.601/0.666/0.72
 
 Two more words were spoken while these shipped and are the next records: a question on whether Yahweh ranks a wife over a woman and how the Proverbs 31 woman runs systems and still submits (DR-0854), and the Samaritan woman at the well with a research ask on what archaeology holds about the Samaritans (DR-0855).
 
+## Does Yahweh rank a wife over a woman (DR-0854)
+
+L229 and L230 merged as bac2fa626 (PR #2051). Only the GitHub Pages build fired for that merge; the Cloudflare deploy did not, and neither the auto-merge heal nor the freshness cron had dispatched it ten minutes later, so it was dispatched by hand at once (DR-0107).
+
+Darrell's question, opened with one word, Lesson: does a woman in covenant with a man hold more rank in Yahweh's eyes than one who is not, and how does the Proverbs 31 woman run systems and still submit. L231 answers every part from the text: the rank is the fear of the LORD and not a ring; marriage is a gift and the unmarried life a calling; she runs systems because the text says she does, under her husband's trust; the chapter does not say who trained her and the lesson adds nothing; the order stands as written on both sides; the head of Christ is God, so order is not worth; helper is the word the Psalms give to Yahweh; and a wife who lifts her husband is written. Adult 1,541; bands 0.509/0.615/0.611/0.613; 289 spans verbatim; 22 own gates; 6,353 green across the living-lessons suites.
+
+Still to build, spoken the same hour: the Samaritan woman at the well, with his note that the people believed because of her saying, that the scroll is the most important measure, all of His scrolls, and the research he asked for on the Samaritans (DR-0855); Yahweh speaking to Yahweh in every place the Word records it (DR-0856); and whether people will have angel-like experiences after death (DR-0857).
+
+## The stories come back, and three more lessons (DR-0855 to DR-0858)
+
+Darrell asked what happened to the two stories in every lesson. Measured: 146 of 228 lessons were short of DR-0215's standard, none since L166, and nothing enforced it. 292 parables were drafted in eight parallel batches against one validator, read in sample, and merged; every lesson now carries at least two, a gate fails the build on any lesson that drops them, and five teaching sections that were being labelled parables now say what they are. His second word set the shape: each story is a dropdown option, and the last dropdown in every lesson is where a person adds their own perspective on the same Word, which the space sees once a steward has reviewed it.
+
+The first merge wrote the stories as JSON, and the older lessons' verbatim gates, which scan the source for straight double quotes, failed on the keys; the full suite caught it and the merge was redone in each module's own quote style.
+
+Then three lessons from his words the same hour: the woman at the well and the Samaritans who believed, with the research he asked for stated in three tiers (L232, DR-0856); Yahweh speaking with Yahweh in every place the Word records it (L233, DR-0857); and whether we will have angel-like experiences after death (L234, DR-0858). Each carries its two stories.
+

@@ -47,7 +47,8 @@ describe('a parable never wears a real name (DR-0811)', () => {
     expect(storyFootnote({ kind: 'parable' })).toMatch(/^A parable, not a record/);
     expect(storyFootnote({ kind: 'parable' })).toMatch(/not real/);
     expect(storyFootnote({ kind: 'testimony', source: 'Darrell Poe' })).toBe("A true story: this happened, told with Darrell Poe's consent.");
-    for (const f of ['src/components/ChurchLearn.jsx', 'src/lib/lesson-flow.js', 'src/lib/presentable.js']) {
+    // The lesson's stories render in LessonStories since DR-0855 (each a dropdown), so that is the surface checked.
+    for (const f of ['src/components/LessonStories.jsx', 'src/lib/lesson-flow.js', 'src/lib/presentable.js']) {
       const text = readFileSync(join(process.cwd(), f), 'utf8');
       expect(text).toMatch(/storyHeading\(/);
       expect(text).toMatch(/storyFootnote\(/);

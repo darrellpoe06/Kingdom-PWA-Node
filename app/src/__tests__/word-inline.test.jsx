@@ -146,9 +146,10 @@ describe('the surfaces that carry it (each reverting to a plain <p> fails here)'
     // Re-pointed 2026-09-14 (DR-0406): the story body reads CLEAN — refsBelow
     // — and its "— verse" line rides the same strip via alsoRefs, so the Word
     // still opens in place without a boxed chip in the sentence.
-    const src = read('../components/ChurchLearn.jsx');
-    expect(src).toMatch(/<WordInline\s+text=\{s\.body\}\s+refsBelow\s+alsoRefs=\{s\.verse \? referencesIn\(s\.verse\) : null\}/);
-    expect(src).not.toMatch(/<WordInline text=\{`— \$\{s\.verse\}`\}/);
+    // The lesson's stories render in LessonStories since DR-0855 (each a dropdown).
+    const src = read('../components/LessonStories.jsx');
+    expect(src).toMatch(/<WordInline\s+text=\{story\.body\}\s+refsBelow\s+alsoRefs=\{story\.verse \? referencesIn\(story\.verse\) : null\}/);
+    expect(src).not.toMatch(/<WordInline text=\{`— \$\{story\.verse\}`\}/);
   });
   it('LessonFlow (every course and the living lessons): the part blurbs', () => {
     const src = read('../components/LessonFlow.jsx');

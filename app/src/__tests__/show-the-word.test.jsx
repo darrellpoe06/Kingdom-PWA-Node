@@ -163,7 +163,7 @@ describe('the surfaces carry the toggle', () => {
   it.each([
     ['../components/TorahPatternMap.jsx'],
     ['../components/Study.jsx'],
-    ['../components/ChurchLearn.jsx'],
+    ['../components/LessonStories.jsx'], // the lesson's stories moved here from ChurchLearn (DR-0855)
     ['../components/ScriptureLibrary.jsx'],
     ['../components/LessonFlow.jsx'],
     ['../components/EternalAlgorithmsStudy.jsx'],

@@ -20,9 +20,18 @@ export const REAL_NAMES = Object.freeze(['Poe', 'PoeTech', 'Darrell']);
 export const PARABLE_WORD = 'a parable';
 export const TESTIMONY_WORD = 'a true story';
 
+/** A section of teaching (heading + body, no kind) kept in a lesson's stories list. */
+export function isTeachingSection(story) {
+  const s = story || {};
+  return !s.kind && typeof s.heading === 'string' && s.heading.trim().length > 0;
+}
+
 /** The heading a story gets: the kind is said in words, then the title. */
 export function storyHeading(story) {
   const s = story || {};
+  // A teaching section filed beside the stories (a heading and a body, no kind)
+  // is neither a parable nor a true story, and is never called one (DR-0855).
+  if (isTeachingSection(s)) return `More on this lesson — ${s.heading}`;
   const kind = s.kind === 'testimony' ? `A true story, ${TESTIMONY_WORD === 'a true story' ? 'lived' : TESTIMONY_WORD}` : `Picture this, ${PARABLE_WORD}`;
   const title = s.title ? ` — ${s.title}` : '';
   const source = s.kind === 'testimony' && s.source ? ` · ${s.source}` : '';
@@ -32,6 +41,7 @@ export function storyHeading(story) {
 /** The one line under a story that says what it is, in plain words. */
 export function storyFootnote(story) {
   const s = story || {};
+  if (isTeachingSection(s)) return 'Teaching that belongs to this lesson, in our own words; not a story.';
   if (s.kind === 'testimony') {
     return `A true story: this happened, told with ${s.source ? `${s.source}'s` : "the person's"} consent.`;
   }
