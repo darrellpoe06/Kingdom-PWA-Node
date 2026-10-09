@@ -66,13 +66,20 @@ const numbered = (mods) => mods.map((m) => {
 // ever exist. The two numbers were spent as build-sequence labels before the
 // course was settled. Their entries stay for the same reason 79 stays: the
 // number was passed over, and the header says so rather than hiding it.
-// 236, 237 and 238 are HELD (2026-10-09) the way 193, 203 and 210 were held:
-// five lessons were built from five forwarded threads at the same time, one
-// number each, and L239 is landing while those three are still in flight on
-// their own branches. Delete each entry in the merge that brings its lesson in —
-// the second check below fails on a held number that was quietly filled, which
-// is how the convention tells the later merge what to remove.
-const KNOWN_MISSING = [79, 211, 212, 236, 237, 238];
+// 236 is HELD (2026-10-09) the way 193, 203 and 210 were held: five lessons
+// were built from five forwarded threads at the same time, one number each, and
+// L239 landed while the others were still in flight on their own branches.
+// Delete the entry in the merge that brings L236 in — the second check below
+// fails on a held number that was quietly filled, which is how the convention
+// tells the later merge what to remove.
+// 238 is a PERMANENT gap, not a hold, for the same reason 211 and 212 are. The
+// number was assigned to the Stop Wasting LLM Tokens teaching, which turned out
+// to be already built as sov37 in the Sovereign A.I. course (DR-0824), where the
+// ids are `sov<number>`, so no `ll238` will ever exist.
+// 237 WAS held here with 236 and 238. This is the merge that brings L237 in
+// (His Knowledge Is the Highest and the Standard, DR-0861), so its entry is
+// deleted rather than left behind — the convention working, as 193 and 210 did.
+const KNOWN_MISSING = [79, 211, 212, 236, 238];
 
 describe('every lesson id is shaped ll<number>-<slug>', () => {
   it('no lesson carries an unparseable id', () => {
