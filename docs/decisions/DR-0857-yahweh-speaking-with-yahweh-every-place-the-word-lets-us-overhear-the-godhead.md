@@ -17,11 +17,11 @@ The floor that nothing moves is Deuteronomy 6:4, in every band. The Word shows w
 |---|---|---|---|
 | adult | 1,077 | — | >1,000 |
 | child | 544 | 0.505 | 0.50 |
-| youth | 650 | 0.604 | 0.60 |
+| youth | 662 | 0.615 | 0.60 |
 | teen | 651 | 0.604 | 0.60 |
 | senior | 653 | 0.606 | 0.60 |
 
-Reading ladder: child 2.46, youth 8.40, teen 7.11, senior 8.62. 66 anchors taught; 261 referenced spans verbatim. Two parables. Caught before the push: five places used the generic name outside a quotation, reworded; a quoted single word with no reference, unquoted; the first draft was short of every floor because it was mostly quotation, and it gained teaching in our voice (what the Father's voice sounds like, speech that gives instead of speech that wins, the present tense of intercession).
+Reading ladder: child 2.46, youth 5.70, teen 7.11, senior 8.62. Caught by CI's curriculum gate, which reads the full ladder: the youth band first read harder than the teen band, because the quotations' own full stops are not counted and a chain of quoted verses joined by short connectors reads as one long sentence; the youth connectors became short sentences of their own. 66 anchors taught; 261 referenced spans verbatim. Two parables. Caught before the push: five places used the generic name outside a quotation, reworded; a quoted single word with no reference, unquoted; the first draft was short of every floor because it was mostly quotation, and it gained teaching in our voice (what the Father's voice sounds like, speech that gives instead of speech that wins, the present tense of intercession).
 
 ## Impact
 

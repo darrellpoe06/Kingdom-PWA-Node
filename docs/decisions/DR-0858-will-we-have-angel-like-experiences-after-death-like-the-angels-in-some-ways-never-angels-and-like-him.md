@@ -23,11 +23,11 @@ At death, for those who are His: absent from the body, present with the Lord (2 
 |---|---|---|---|
 | adult | 1,032 | — | >1,000 |
 | child | 520 | 0.504 | 0.50 |
-| youth | 632 | 0.612 | 0.60 |
-| teen | 621 | 0.602 | 0.60 |
+| youth | 655 | 0.635 | 0.60 |
+| teen | 673 | 0.652 | 0.60 |
 | senior | 629 | 0.609 | 0.60 |
 
-Reading ladder: child 2.40, youth 7.16, teen 3.55, senior 8.22. 42 anchors taught; 195 referenced spans verbatim. Two parables. Caught before the push: one quotation capitalized a word the verse writes lowercase ("it is sown in weakness"); a quiz distractor claimed the Word "states plainly" something it does not, and was rewritten.
+Reading ladder: child 2.40, youth 5.43, teen 5.84, senior 8.22. Caught by CI's curriculum gate, which reads the full ladder: the youth band first read harder than the teen band, because the quotations' own full stops are not counted and a chain of quoted verses joined by short connectors reads as one long sentence; the youth connectors became short sentences of their own. 42 anchors taught; 195 referenced spans verbatim. Two parables. Caught before the push: one quotation capitalized a word the verse writes lowercase ("it is sown in weakness"); a quiz distractor claimed the Word "states plainly" something it does not, and was rewritten.
 
 ## Impact
 

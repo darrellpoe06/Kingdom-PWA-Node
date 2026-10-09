@@ -31,7 +31,7 @@ Her saying and His own Word are both in every band, exactly as written: *"many o
 | teen | 996 | 0.604 | 0.60 |
 | senior | 1,012 | 0.614 | 0.60 |
 
-Reading ladder: child 2.43, youth 8.38, teen 7.52, senior 9.85. 70 anchors taught; 280 referenced spans verbatim. Two parables, one light and one solemn. Caught before the push: Acts 17:11 left out (the inspections course owns it); the teen band's reading level first sat above the senior band and its archaeology was rewritten in short sentences.
+Reading ladder: child 2.43, youth 7.41, teen 7.52, senior 9.85. Caught by CI's curriculum gate, which reads the full ladder: the youth band first read harder than the teen band, because the quotations' own full stops are not counted and a chain of quoted verses joined by short connectors reads as one long sentence; the youth connectors became short sentences of their own. 70 anchors taught; 280 referenced spans verbatim. Two parables, one light and one solemn. Caught before the push: Acts 17:11 left out (the inspections course owns it); the teen band's reading level first sat above the senior band and its archaeology was rewritten in short sentences.
 
 ## Impact
 

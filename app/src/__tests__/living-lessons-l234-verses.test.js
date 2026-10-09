@@ -174,7 +174,7 @@ describe('L234 — the whole spine, in every band', () => {
     }
   });
   it('every band says plainly that people do not become angels', () => {
-    for (const b of BANDS) expect(band(b), `${b}`).toMatch(/never be an angel|is not in the Bible|not in the Word|not a biblical one|not an angel|not true/);
+    for (const b of BANDS) expect(band(b), `${b}`).toMatch(/never be an angel|is not in the Bible|not in the Word|not something the Word teaches|not a biblical one|not an angel|not true/);
   });
   it('every band says a resurrection body is not a ghost, and where believers are at death', () => {
     for (const b of BANDS) {
