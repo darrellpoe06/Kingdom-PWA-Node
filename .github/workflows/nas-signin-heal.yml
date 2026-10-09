@@ -532,18 +532,18 @@ jobs:
           SUDO=""; sudo -n true 2>/dev/null && SUDO="sudo -n"
           PW=$($SUDO sed -n 's/^POSTGRES_PASSWORD=//p' /volume1/docker/supabase/.env 2>/dev/null | head -1)
           if [ -z "$PW" ]; then echo "  no database password readable"; else
+            echo "  -- buckets that exist, and how many objects each holds --"
             $SUDO docker exec -e PGPASSWORD="$PW" supabase-db psql -h 127.0.0.1 -U supabase_admin -d postgres -t -A -F' | ' \
-              -c "select o.created_at, o.name,
-                        case when exists (select 1 from public.agent_inbox i
-                                          where i.tags::text like '%'||o.name||'%')
-                             then 'has a row' else 'ORPHANED - no inbox row' end
-                   from storage.objects o
-                   where o.bucket_id = 'lesson-audio'
-                     and o.created_at > now() - interval '2 days'
-                   order by o.created_at asc" 2>&1 | tail -20
-            $SUDO docker exec -e PGPASSWORD="$PW" supabase-db psql -h 127.0.0.1 -U supabase_admin -d postgres -t -A \
-              -c "select 'lesson-audio objects in the last 2 days: '||count(*) from storage.objects where bucket_id='lesson-audio' and created_at > now() - interval '2 days'" 2>&1 | tail -1
-          fi
+              -c "select b.id, count(o.id) from storage.buckets b left join storage.objects o on o.bucket_id=b.id group by b.id order by b.id" 2>&1 | tail -20
+            echo "  -- EVERY object created in the last 2 days, any bucket --"
+            $SUDO docker exec -e PGPASSWORD="$PW" supabase-db psql -h 127.0.0.1 -U supabase_admin -d postgres -t -A -F' | ' \
+              -c "select o.bucket_id, o.created_at, o.name from storage.objects o where o.created_at > now() - interval '2 days' order by o.created_at asc" 2>&1 | tail -20
+            echo "  -- the street video's own object, by name (it MUST exist somewhere) --"
+            $SUDO docker exec -e PGPASSWORD="$PW" supabase-db psql -h 127.0.0.1 -U supabase_admin -d postgres -t -A -F' | ' \
+              -c "select bucket_id, created_at, name from storage.objects where name like '%20261009T135103Z%'" 2>&1 | tail -5
+            echo "  -- anything recorded at 14:0x today, any bucket (the lost one) --"
+            $SUDO docker exec -e PGPASSWORD="$PW" supabase-db psql -h 127.0.0.1 -U supabase_admin -d postgres -t -A -F' | ' \
+              -c "select bucket_id, created_at, name from storage.objects where name like '%20261009T14%'" 2>&1 | tail -10
           EOS
 
           echo "=== every inbox row from the last two days (no bodies) ==="
