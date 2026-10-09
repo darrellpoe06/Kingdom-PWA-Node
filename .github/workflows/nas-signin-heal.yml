@@ -115,6 +115,19 @@ jobs:
             echo "$_label -> HTTP $_code, ${#_body} bytes"
             printf '%s' "$_body" | head -c 200 | scrub; echo
           }
+          # THE BELL THAT DID NOT RING. On 2026-10-09 Darrell found his own
+          # outage; the alert never reached a phone, because the announce path
+          # is runner -> Funnel /webhook/ops-announce -> n8n -> ntfy, and n8n
+          # answers 404 "The requested webhook POST ops-announce is not
+          # registered". DR-0218 wants that n8n hop gone rather than revived,
+          # so the question is whether ntfy can be rung directly. This only
+          # LOOKS — it sends no notification to anybody's phone.
+          echo "=== the alert bell: what is actually there to ring ==="
+          $SUDO docker ps --format '{{.Names}}\t{{.Status}}\t{{.Ports}}' 2>/dev/null | grep -iE 'ntfy|n8n' | scrub || echo "(no ntfy or n8n container listed)"
+          for P in 8090 2586 8080 80; do
+            C=$(curl -s -o /dev/null -m 5 -w '%{http_code}' "http://127.0.0.1:$P/v1/health" 2>/dev/null || echo "000")
+            [ "$C" != "000" ] && echo "  something answers /v1/health on :$P -> HTTP $C"
+          done
           echo "=== POST on the box itself — the verb sign-in actually uses ==="
           probe_post 'http://127.0.0.1:8800/sb/auth/v1/token?grant_type=password' 'gateway :8800 /sb (the app path)'
           probe_post 'http://127.0.0.1:8800/auth/v1/token?grant_type=password'    'gateway :8800 bare  (the mirror path)'
