@@ -140,7 +140,7 @@ export function AddPerspective({ lesson, onSubmitted }) {
           </>
         )}
         {errors.length > 0 && (
-          <ul role="alert" className="text-[0.75rem] text-[#8A3A22] list-disc pl-5" data-testid="perspective-errors">
+          <ul role="alert" className="text-[0.75rem] text-[#B85838] list-disc pl-5" data-testid="perspective-errors">
             {errors.map((x) => <li key={x}>{x}</li>)}
           </ul>
         )}
