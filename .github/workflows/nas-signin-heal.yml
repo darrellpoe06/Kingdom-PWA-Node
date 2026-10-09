@@ -180,6 +180,10 @@ jobs:
         env:
           NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
           SB_ANON: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          # Read-only here: the deployments list, to tell a stuck production
+          # alias apart from a deployment that never ran its Functions.
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           umask 077
           printf '%s\n' "$NAS_SSH_KEY" > /tmp/nas_key
@@ -304,6 +308,40 @@ jobs:
             elif [ "${O_BYTES:-0}" -gt 0 ] 2>/dev/null; then
               echo "The Funnel answers a browser-shaped POST ($O_BYTES bytes). Repointing the app at it is a viable unlock."
             fi
+          fi
+
+          # WHICH LAYER IS SWALLOWING THE FUNCTIONS? Asking Cloudflare's own
+          # API, because three deploys have now logged "Compiled Worker
+          # successfully", "Uploading Functions bundle" AND "Uploading
+          # _routes.json" while every Function route still answered with the
+          # SPA shell. A deployment carries its OWN immutable hostname
+          # (<id>.poetech-app.pages.dev) alongside the production alias, and
+          # the two can disagree: if the per-deployment host runs Functions and
+          # the alias does not, the deployment is sound and the alias is stuck,
+          # which is a promote/retry repair rather than a code one.
+          echo "=== what Cloudflare itself says about the newest deployments ==="
+          if [ -n "${CF_TOKEN:-}" ] && [ -n "${CF_ACCOUNT:-}" ]; then
+            curl -s -m 25 -H "Authorization: Bearer $CF_TOKEN" \
+              "https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT/pages/projects/poetech-app/deployments?per_page=3" \
+              -o /tmp/cf_deploys.json 2>/dev/null || true
+            if [ "$(jq -r '.success' /tmp/cf_deploys.json 2>/dev/null)" = "true" ]; then
+              jq -r '.result[:3][] | "deployment \(.short_id) | \(.url)\n   env \(.environment) | stages \([.stages[]? | "\(.name)=\(.status)"] | join(", "))"' /tmp/cf_deploys.json 2>/dev/null || true
+              NEWEST=$(jq -r '.result[0].url // ""' /tmp/cf_deploys.json 2>/dev/null)
+            else
+              echo "deployments: API did not answer success — $(jq -rc '.errors // "unreadable"' /tmp/cf_deploys.json 2>/dev/null | head -c 200)"
+              NEWEST=""
+            fi
+            if [ -n "$NEWEST" ]; then
+              D_CT=$(curl -s -o /dev/null -m 20 -w '%{content_type}' "$NEWEST/automation-status" 2>/dev/null || echo "?")
+              echo "per-deployment host /automation-status -> $D_CT"
+              echo "- per-deployment host -> \`$D_CT\`" >> "$GITHUB_STEP_SUMMARY"
+              case "$D_CT" in
+                *json*) echo "::warning::THE DEPLOYMENT IS FINE AND THE ALIAS IS STUCK — Functions run on the per-deployment host but not on poetech.us. This is a promote/retry repair at Cloudflare, not a code change." ;;
+                *text/html*) echo "The deployment itself does not run Functions either — the bundle is accepted and never invoked." ;;
+              esac
+            fi
+          else
+            echo "(no Cloudflare API token/account in this workflow's env — skipped)"
           fi
 
           echo "=== the same Function route, on the domain vs the project alias ==="
