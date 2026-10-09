@@ -112,3 +112,13 @@ Darrell: "add the Wyze cameras for 805 Prospect Ave... porch etc... available wh
 ## The seats (DR-0842)
 
 Darrell: "I want my kids to see how to manage these systems from all positions... before they need to." The Known fold on the Admin roster now reads every seat a person holds from the rows, which they have walked from their opens, and lists the seats not yet theirs with the placement that grants each. The training lane for a seat not yet held is the next record.
+
+
+## When, and by whom (DR-0843)
+
+Darrell: "How many times have users used the apps?... my son has done 90% of the work of evaluation... on a calendar for most used days." One governor-gated function over the usage rows gives per person, per day, per kind; the surface names who has done the evaluating with their share, the busiest weekday, and a twelve-week calendar for everyone or one person. Counts only, never a view name; the governor's own row sits on the list; what happens outside the app is not held and the surface does not pretend it is.
+
+Captured as build input for the lessons measure (the next record): Darrell, 2026-10-09: "Different lessons I choose to learn from how many times and which levels?" and the goal that frames it: "Lesson the goal is to fill up with Yahweh's Perspectives explicitly... Highest Authority And Level..." The lessons-walked surface measures not clicks but how much of the Word, Yahweh's own perspective, the Highest Authority and Level, a person has taken in: lessons by level, with the Word they carry, said explicitly.
+And the view it is seen from, in his words: "So its easy to See From Deeper space... Yahweh's Way Of Getting Life Done With Him..." The lessons measure sits in that frame (the 4th-dimensional frame of CLAUDE.md): what a person has taken in is read from the deeper place, Yahweh's way of getting life done with Him, not from a count of taps.
+
+Built as DR-0844 the same hour: one person's lessons, named, by course and level, with the band and the attempts, in the Usage fold and the Known fold; the goal in our voice above the numbers; the opens-per-lesson gap said below them.

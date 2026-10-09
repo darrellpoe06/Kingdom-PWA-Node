@@ -1248,6 +1248,25 @@ const NODES = [
     writes: [{ res: 'db:rental_tenancies', token: "from('rental_tenancies')" }],
     seeds: [],
   }),
+  // EVERY TAB OPEN AND FUNCTION EXERCISED (0073, DR-0819): the shell records a
+  // view per tab and a use per function into usage_events; each person owns
+  // and can delete their own trail.
+  app('app/src/lib/usage-events.js', {
+    id: 'usage-record', name: 'Usage recorded (every tab open, every function exercised)',
+    purpose: 'recordView on each tab open and recordUse on each function exercised write one usage_events row per event for the signed-in person; the aggregate, the per-person read (0145) and the calendar (0259) all read from here.',
+    reads: [],
+    writes: [{ res: 'db:usage_events', token: "from('usage_events')" }],
+    seeds: ['usage-calendar'],
+  }),
+  // WHEN, AND BY WHOM (DR-0843): the governor's calendar of opens and uses per
+  // person per day (0259 over usage_events), on Admin → Users & usage.
+  app('app/src/lib/usage-calendar-sync.js', {
+    id: 'usage-calendar', name: 'When, and by whom, the apps are used (Admin → Users & usage)',
+    purpose: 'Per person, per day, per kind, a count from usage_events: who has done the evaluating and their share, the weekdays the apps are used most, and each person\'s calendar; counts only, never a view name.',
+    reads: [{ res: 'db:usage_events', token: "usage_calendar_metrics" }],
+    writes: [],
+    seeds: [],
+  }),
 ];
 
 // Every service rider and loop reads nas:services (the install services-sync
@@ -1395,6 +1414,7 @@ const RESOURCES = {
   'http:funnel': { label: 'the NAS’s public routes' },
   'db:contacts': { label: 'a person\u2019s own address book (0247, DR-0736; read by its owner alone)' },
   'db:dm_device_keys': { label: 'the public key of each device a person holds (0249, DR-0737; read by anyone signed in, written by its owner alone)' },
+  'db:usage_events': { label: 'every tab open and function exercised, per person with the time (0073, DR-0819); each person owns and can delete their own trail' },
   'db:rental_tenancies': { label: 'the tenancies (0055): who lives behind which door, the lease, the rent and, since 0258, the camera grant the door shares with its household (DR-0841)' },
   'db:church_devices': { label: 'the church device register (0056): identified assets with the MACs a scan read and, since 0256, the person each belongs to (DR-0830)' },
   'file:vcf': { label: 'a phone\u2019s exported contacts file', source: 'The phone\u2019s Contacts app or Google Contacts shares it; the person uploads it in Messages.' },

@@ -19,6 +19,7 @@ import { listMyAdminInstances, listInstanceMembersStrict } from '../lib/member-r
 import { loadInvites } from '../modules/properties/cloud.js';
 import { fetchUserUsage } from '../lib/usage-events.js';
 import { SEATS, seatsHeld, seatsWalked, seatsToWalk, apprenticeshipLine } from '../lib/apprenticeship.js';
+import LessonsWalked from './LessonsWalked.jsx';
 import { relativeTime } from '../lib/access-metrics.js';
 
 const serif = { fontFamily: '"Fraunces", Georgia, serif' };
@@ -148,6 +149,11 @@ export default function PersonRecord({ instanceId, member, contactIndex = null }
             ) : null}
           </>
         )}
+      </div>
+
+      <div data-testid="person-record-lessons">
+        <div className={H}>Lessons walked</div>
+        <LessonsWalked userId={userId} compact />
       </div>
 
       <div>
