@@ -250,4 +250,6 @@ export const LIVING_LESSONS_ADDED = {
   'll226-the-mind-of-christ-is-our-identity-sound-minds-the-whole-armour-and-the-kingdom-ways-every-nation-is-going-into': '2026-10-09', // added with the lesson (DR-0848); spoken into the app by Darrell on 2026-10-09 with one word under it, Lesson
   'll227-read-the-word-for-the-spirit-do-the-word-for-the-skill-not-to-say-i-got-you-but-to-become-better-his-way-and-then-do-his-way': '2026-10-09', // added with the lesson (DR-0849); spoken into the app by Darrell on 2026-10-09 with one word under it, Lesson
   'll228-can-a-man-be-taught-by-a-woman-knowing-him-is-most-important-he-can-use-anyone-and-the-word-answers-first': '2026-10-09', // added with the lesson (DR-0850); spoken into the app by Darrell on 2026-10-09 with one word under it, Lesson
+  'll229-the-word-is-spirit-and-life-what-it-means-in-his-own-words': '2026-10-09', // added with the lesson (DR-0852); spoken into the app by Darrell on 2026-10-09 as a question with one word under it, Lesson
+  'll230-competence-before-submission-the-study-skills-and-doing-skills-of-a-wife-and-a-husband-with-the-word-answering-first': '2026-10-09', // added with the lesson (DR-0853); spoken into the app by Darrell on 2026-10-09 with one word under it, Lesson
 };
