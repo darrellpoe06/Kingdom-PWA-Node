@@ -30,6 +30,36 @@
 // CLAUDE.md makes required reading. It does not police ordinary source-file
 // mentions, and anything it cannot parse passes. A guard that cries wolf gets
 // disabled, and a disabled guard protects nothing.
+//
+// THE POINTER IS NOT A CITATION (2026-10-09, caught live). Shipping a lesson,
+// the reply reported the ledger's own `**Next ID:** DR-0835` as the evidence
+// that the claim had landed — and this guard blocked it as cited-but-unread. It
+// was right that nothing had been read and wrong about what the number was: the
+// Next ID names the next UNCLAIMED record, so no file exists for it yet and
+// none can be read. The check was firing on a true statement.
+//
+// A guard that fires on correct work spends the same trust the original
+// incident spent, only from the other side. So the caller passes the ledger
+// pointer, and the fix is exactly one rule, no wider:
+//
+//   an id AT OR ABOVE the ledger's `Next ID` is unclaimed by definition, so it
+//   cannot be required reading. It passes. Everything below is policed as
+//   before, unchanged.
+//
+// WHAT THIS DELIBERATELY DOES NOT DO. The first attempt went further: treat an
+// id BELOW the pointer with no file as a wrong or invented number. Measured
+// against the real ledger that is false, and it would have blocked correct
+// work on 57 ids —
+//   - DR-0017 to DR-0049 are the PRE-FILE-CONVENTION era: real binding
+//     decisions recorded in docs/99-session-notes/**, never as their own files
+//     (docs/reviews/REVIEWS.md:263 confirms the range);
+//   - others, DR-0655 among them, are claimed by branches still in flight;
+//   - the rest are numbers abandoned mid-claim.
+// All are legitimately citable, so "no file" proves nothing about a number
+// below the pointer. The narrow rule above is the whole change.
+//
+// Supply no pointer and the behaviour is identical to before, because a caller
+// that cannot name the ledger must never quietly relax the gate.
 // =============================================================================
 
 // SCREAMING-KEBAB .md names are the foundation-doc idiom in this repo
@@ -51,11 +81,17 @@ const mentionsPath = (haystack, name) =>
  * @param {string[]} opts.readPaths every path the session demonstrably opened
  *                                  (Read tool file_path, plus shell commands)
  * @param {string[]} [opts.shellText] raw shell commands run this session
+ * @param {string|number} [opts.nextDrId] the ledger's `Next ID` pointer. An id
+ *                                   at or above it is unclaimed by definition,
+ *                                   so it cannot be required reading. Omit it
+ *                                   and every cited id is policed as before.
  * @returns {{ok: boolean, unread: string[], cited: string[]}}
  */
-export function checkCitedButUnread({ claimText, readPaths = [], shellText = [], knownDocs = [] } = {}) {
+export function checkCitedButUnread({
+  claimText, readPaths = [], shellText = [], knownDocs = [], nextDrId = null,
+} = {}) {
   const text = typeof claimText === 'string' ? claimText : '';
-  if (!text) return { ok: true, unread: [], cited: [] };
+  if (!text) return { ok: true, unread: [], missing: [], cited: [] };
 
   // PRECISION OVER PATTERN. The first version of this matched SCREAMING-KEBAB
   // ending in `.md` — and MISSED THE REAL INCIDENT, because the header actually
@@ -94,10 +130,18 @@ export function checkCitedButUnread({ claimText, readPaths = [], shellText = [],
   }
   for (const m of text.matchAll(DR_RE)) cited.add(`DR-${m[1]}`);
 
+  // The ledger pointer, when the caller could read it. An id at or above it has
+  // no record yet by definition, so no read of it was ever possible.
+  const pointer = Number.parseInt(String(nextDrId ?? '').match(/\d{4}/)?.[0] ?? '', 10);
+
   const unread = [];
   for (const name of cited) {
     // A DR is satisfied by any read whose path carries its number.
     if (mentionsPath(evidence, name)) continue;
+
+    const dr = name.match(/^DR-(\d{4})$/);
+    if (dr && Number.isFinite(pointer) && Number.parseInt(dr[1], 10) >= pointer) continue;
+
     unread.push(name);
   }
 

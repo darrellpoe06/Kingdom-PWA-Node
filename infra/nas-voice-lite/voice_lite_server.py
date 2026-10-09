@@ -26,10 +26,24 @@
 #        the piper binary and at least one voice model are really on disk;
 #        503 otherwise. Open (says nothing worth guarding).
 #   POST /speak,  /voice-lite/speak  -> Authorization: Bearer <family token>.
-#        Body {"text": "...", "voice": "male"|"female"}. Returns audio/wav.
-#        401 bad/missing bearer, 400 empty, 413 too long, 503 busy.
+#        Body {"text": "...", "voice": "male"|"female", "format": "wav"|"opus",
+#              "speed": 0.5..2.0 (the voice SPEAKS at that pace; see SPEED)}.
+#        Returns audio/wav, or audio/ogg; codecs=opus when "opus" was asked
+#        and ffmpeg with libopus is on this box (DR-0747; health lists
+#        "formats"). 401 bad/missing bearer, 400 empty, 413 too long, 503 busy.
 #
 # Cached by sha256(voice + text): a paragraph read twice is synthesized once.
+# A clip at a pace other than 1.0 is cached under its own key (voice + speed +
+# text); the 1.0 key is unchanged so every clip already saved still answers.
+#
+# SPEED (Darrell 2026-10-07: "the voice mumbles at times when on faster
+# speaking especially"). The app used to speed a clip up in the browser --
+# playbackRate with pitch preserved -- which is a time-stretch, and at 2x and
+# beyond a time-stretch smears consonants into exactly the mumble he hears.
+# Piper can simply SPEAK faster: --length_scale is the duration multiplier of
+# the voice itself (0.5 = twice the pace), and the words stay words. The app
+# asks for its pace here (clamped to SPEED_MIN..SPEED_MAX, where Piper is still
+# intelligible) and only stretches the small remainder itself.
 #
 # Brakes (request-driven, not the timer class; a public door still has bounds):
 #   * MAX_INFLIGHT concurrent syntheses; the next gets 503 immediately.
@@ -47,6 +61,7 @@ import hashlib
 import hmac
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -68,6 +83,39 @@ VOICES = {
     "female": "en_US-amy-medium",
 }
 DEFAULT_VOICE = "male"
+
+SPEED_MIN = 0.5
+SPEED_MAX = 2.0
+
+
+def code_sha(path=None):
+    """The sha of the file actually serving: /health names it so the outside
+    witness can see which code the NAS runs (2026-10-07), not infer it."""
+    try:
+        with open(path or os.path.abspath(__file__), "rb") as fh:
+            return hashlib.sha256(fh.read()).hexdigest()[:16]
+    except OSError:
+        return "unknown"
+
+
+CODE_SHA = code_sha()
+
+
+def clamp_speed(value):
+    """The pace the voice is asked to speak at: a number in SPEED_MIN..SPEED_MAX, else 1.0."""
+    try:
+        v = float(value)
+    except (TypeError, ValueError):
+        return 1.0
+    if v != v or v <= 0:  # NaN or nonsense
+        return 1.0
+    return round(min(SPEED_MAX, max(SPEED_MIN, v)), 3)
+
+
+def length_scale_for(speed):
+    """Piper's --length_scale is a DURATION multiplier: 2x pace = 0.5."""
+    return round(1.0 / clamp_speed(speed), 4)
+
 
 SPEAK_PATHS = {"/speak", "/voice-lite/speak"}
 HEALTH_PATHS = {"/health", "/voice-lite/health"}
@@ -104,24 +152,78 @@ class Piper:
             return []
         return [k for k in VOICES if os.path.isfile(self.model_path(k))]
 
-    def synthesize(self, text, voice, out_path):
+    def synthesize(self, text, voice, out_path, speed=1.0):
         model = self.model_path(voice)
         if not os.path.isfile(model):
             model = self.model_path(DEFAULT_VOICE)
+        args = [self.binary, "--model", model, "--output_file", out_path]
+        if clamp_speed(speed) != 1.0:
+            args += ["--length_scale", str(length_scale_for(speed))]
         subprocess.run(
-            [self.binary, "--model", model, "--output_file", out_path],
+            args,
             input=text.encode("utf-8"), check=True, timeout=SYNTH_TIMEOUT,
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
         )
 
 
-def cache_key(voice, text):
-    return hashlib.sha256((voice + "\n" + text).encode("utf-8")).hexdigest()
+def cache_key(voice, text, speed=1.0):
+    sp = clamp_speed(speed)
+    head = voice if sp == 1.0 else "%s@%s" % (voice, sp)
+    return hashlib.sha256((head + "\n" + text).encode("utf-8")).hexdigest()
+
+
+# LIGHTER CLIPS (DR-0747; Darrell 2026-10-02, "Download every lesson" reading
+# 31.3 GB with the voice: "Huge amount of data to download... can we make them
+# lighter?"). A Piper clip is PCM WAV at 44,100 bytes a second. The same words
+# in Opus at 24 kbit/s are 3,000 bytes a second: a fourteenth of the size, and
+# a phone plays it like any music. When ffmpeg with libopus is on this box the
+# server encodes each clip once and keeps both shapes in the cache; a device
+# that asks for "opus" gets Ogg Opus, any other asks (or a box without
+# ffmpeg) get WAV, and the Content-Type says which came. Never a refusal over
+# the shape: the words always come.
+OPUS_ARGS = ["-ac", "1", "-c:a", "libopus", "-b:a", "24k", "-vbr", "on", "-application", "audio", "-f", "ogg"]
+FORMATS = ("wav", "opus")
+AUDIO_TYPES = {"wav": "audio/wav", "opus": "audio/ogg; codecs=opus"}
+FFMPEG_CANDIDATES = (
+    "/usr/bin/ffmpeg", "/usr/local/bin/ffmpeg",
+    "/var/packages/ffmpeg7/target/bin/ffmpeg", "/var/packages/ffmpeg6/target/bin/ffmpeg",
+    "/var/packages/VideoStation/target/bin/ffmpeg",
+)
+
+
+def find_ffmpeg(home, env=None):
+    """The first ffmpeg on this box whose encoders include libopus, else None."""
+    env = os.environ if env is None else env
+    candidates = [env.get("VOICE_LITE_FFMPEG"), os.path.join(home, "ffmpeg", "ffmpeg"), shutil.which("ffmpeg")]
+    candidates.extend(FFMPEG_CANDIDATES)
+    for c in candidates:
+        if not c or not (os.path.isfile(c) and os.access(c, os.X_OK)):
+            continue
+        try:
+            out = subprocess.run([c, "-hide_banner", "-encoders"], capture_output=True, timeout=20, check=False)
+        except (OSError, subprocess.SubprocessError):
+            continue
+        if b"libopus" in (out.stdout or b""):
+            return c
+    return None
+
+
+class OpusEncoder:
+    """ffmpeg: one WAV clip -> one Ogg Opus clip, 24 kbit/s mono."""
+
+    def __init__(self, binary):
+        self.binary = binary
+
+    def encode(self, wav_path, out_path):
+        subprocess.run(
+            [self.binary, "-y", "-loglevel", "error", "-i", wav_path] + OPUS_ARGS + [out_path],
+            check=True, timeout=SYNTH_TIMEOUT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        )
 
 
 def prune_cache(cache_dir, max_bytes):
     try:
-        files = [os.path.join(cache_dir, f) for f in os.listdir(cache_dir) if f.endswith(".wav")]
+        files = [os.path.join(cache_dir, f) for f in os.listdir(cache_dir) if f.endswith((".wav", ".opus"))]
     except OSError:
         return 0
     files.sort(key=lambda p: os.path.getmtime(p))
@@ -138,9 +240,10 @@ def prune_cache(cache_dir, max_bytes):
     return removed
 
 
-def make_handler(engine, token, cache_dir, max_inflight=MAX_INFLIGHT):
+def make_handler(engine, token, cache_dir, max_inflight=MAX_INFLIGHT, encoder=None):
     gate = threading.BoundedSemaphore(max_inflight)
     os.makedirs(cache_dir, exist_ok=True)
+    formats = ["wav", "opus"] if encoder else ["wav"]
 
     class Handler(BaseHTTPRequestHandler):
         server_version = "poetech-voice-lite/1"
@@ -158,15 +261,42 @@ def make_handler(engine, token, cache_dir, max_inflight=MAX_INFLIGHT):
             self.end_headers()
             self.wfile.write(data)
 
-        def _wav(self, path):
+        def _audio(self, path, fmt="wav"):
             with open(path, "rb") as fh:
                 data = fh.read()
             self.send_response(200)
-            self.send_header("Content-Type", "audio/wav")
+            self.send_header("Content-Type", AUDIO_TYPES.get(fmt, AUDIO_TYPES["wav"]))
             self.send_header("Content-Length", str(len(data)))
             self.send_header("Cache-Control", "private, max-age=86400")
             self.end_headers()
             self.wfile.write(data)
+
+        def _wav(self, path):
+            return self._audio(path, "wav")
+
+        def _opus_or_wav(self, wav_path, key):
+            """Serve the Opus shape of a cached WAV, encoding it once; WAV when it cannot be made."""
+            out = os.path.join(cache_dir, key + ".opus")
+            if os.path.isfile(out) and os.path.getsize(out) > 0:
+                try:
+                    os.utime(out, None)
+                except OSError:
+                    pass
+                return self._audio(out, "opus")
+            fd, tmp = tempfile.mkstemp(suffix=".opus", dir=cache_dir)
+            os.close(fd)
+            try:
+                encoder.encode(wav_path, tmp)
+                if os.path.getsize(tmp) <= 0:
+                    raise RuntimeError("empty clip")
+                os.replace(tmp, out)
+            except Exception:  # noqa: BLE001 -- a failed encode is a WAV, never a refusal
+                try:
+                    os.remove(tmp)
+                except OSError:
+                    pass
+                return self._wav(wav_path)
+            return self._audio(out, "opus")
 
         def do_GET(self):
             path = self.path.split("?", 1)[0]
@@ -175,7 +305,7 @@ def make_handler(engine, token, cache_dir, max_inflight=MAX_INFLIGHT):
             voices = engine.available_voices()
             if not voices:
                 return self._json(503, {"ok": False, "error": "piper-not-installed"})
-            return self._json(200, {"ok": True, "voices": voices})
+            return self._json(200, {"ok": True, "voices": voices, "formats": formats, "code": CODE_SHA})
 
         def do_POST(self):
             path = self.path.split("?", 1)[0]
@@ -197,26 +327,33 @@ def make_handler(engine, token, cache_dir, max_inflight=MAX_INFLIGHT):
                 return self._json(400, {"error": "bad-json"})
             text = " ".join(str(body.get("text") or "").split())
             voice = body.get("voice") if body.get("voice") in VOICES else DEFAULT_VOICE
+            # The shape asked for: "opus" is honoured only when this box can
+            # make it; anything else, or no encoder, is WAV as before.
+            want = body.get("format") if body.get("format") in FORMATS else "wav"
+            if want == "opus" and not encoder:
+                want = "wav"
+            speed = clamp_speed(body.get("speed", 1.0))
             if not text:
                 return self._json(400, {"error": "text-required"})
             if len(text) > MAX_CHARS:
                 return self._json(413, {"error": "text-too-long", "max": MAX_CHARS})
             if not engine.available_voices():
                 return self._json(503, {"ok": False, "error": "piper-not-installed"})
-            out = os.path.join(cache_dir, cache_key(voice, text) + ".wav")
+            key = cache_key(voice, text, speed)
+            out = os.path.join(cache_dir, key + ".wav")
             if os.path.isfile(out) and os.path.getsize(out) > 44:
                 try:
                     os.utime(out, None)  # recently used stays in the cache
                 except OSError:
                     pass
-                return self._wav(out)
+                return self._opus_or_wav(out, key) if want == "opus" else self._wav(out)
             if not gate.acquire(blocking=False):
                 return self._json(503, {"error": "busy", "max_inflight": max_inflight})
             try:
                 fd, tmp = tempfile.mkstemp(suffix=".wav", dir=cache_dir)
                 os.close(fd)
                 try:
-                    engine.synthesize(text, voice, tmp)
+                    engine.synthesize(text, voice, tmp, speed)
                     if os.path.getsize(tmp) <= 44:
                         raise RuntimeError("empty clip")
                     os.replace(tmp, out)
@@ -227,7 +364,7 @@ def make_handler(engine, token, cache_dir, max_inflight=MAX_INFLIGHT):
                         pass
                     return self._json(502, {"error": "synthesis-failed"})
                 prune_cache(cache_dir, CACHE_MAX_BYTES)
-                return self._wav(out)
+                return self._opus_or_wav(out, key) if want == "opus" else self._wav(out)
             finally:
                 gate.release()
 
@@ -255,13 +392,15 @@ def _selftest():
             self.installed = True
             self.slow = 0.0
             self.voices_seen = []
+            self.speeds_seen = []
 
         def available_voices(self):
             return list(VOICES) if self.installed else []
 
-        def synthesize(self, text, voice, out_path):
+        def synthesize(self, text, voice, out_path, speed=1.0):
             self.calls += 1
             self.voices_seen.append(voice)
+            self.speeds_seen.append(speed)
             if self.slow:
                 time.sleep(self.slow)
             with open(out_path, "wb") as fh:
@@ -285,8 +424,9 @@ def _selftest():
         c.close()
         return out
 
-    s, _, _ = req("GET", "/health", auth=None)
+    s, _, b = req("GET", "/health", auth=None)
     check(s == 200, "health 200 when piper + voices are installed")
+    check(json.loads(b).get("code") == code_sha() and len(code_sha()) == 16, "health names the sha of the code that is serving")
     s, _, _ = req("GET", "/voice-lite/health", auth=None)
     check(s == 200, "prefixed health spelling answers too")
     eng.installed = False
@@ -314,6 +454,75 @@ def _selftest():
     req("POST", "/speak", {"text": "Unknown voice.", "voice": "robot"})
     check(eng.voices_seen[-1] == DEFAULT_VOICE, "an unknown voice falls back to the default")
 
+    # SPEED: the voice speaks at the asked pace; a pace is its own clip in the
+    # cache; the 1.0 key is the old key; nonsense and out-of-range are clamped.
+    s, _, _ = req("POST", "/speak", {"text": "Quickly now.", "speed": 2})
+    check(s == 200 and eng.speeds_seen[-1] == 2.0, "the asked pace reaches the synthesizer")
+    calls = eng.calls
+    s, _, _ = req("POST", "/speak", {"text": "Quickly now."})
+    check(s == 200 and eng.calls == calls + 1 and eng.speeds_seen[-1] == 1.0, "the same words at normal pace are a different clip, not the fast one")
+    s, _, _ = req("POST", "/speak", {"text": "Quickly now.", "speed": 2.0})
+    check(s == 200 and eng.calls == calls + 1, "the fast clip is served from the cache the second time")
+    check(cache_key("male", "x") == hashlib.sha256(b"male\nx").hexdigest(), "the 1.0 key is the old key: every saved clip still answers")
+    check(cache_key("male", "x", 1.5) != cache_key("male", "x"), "a pace other than 1.0 has its own key")
+    check(clamp_speed(9) == SPEED_MAX and clamp_speed(0.1) == SPEED_MIN and clamp_speed("fast") == 1.0 and clamp_speed(None) == 1.0, "speed is clamped to what Piper says clearly; nonsense is normal pace")
+    check(length_scale_for(2.0) == 0.5 and length_scale_for(0.5) == 2.0 and length_scale_for(1.0) == 1.0, "length_scale is the inverse of the pace")
+    req("POST", "/speak", {"text": "Clamped please.", "speed": 50})
+    check(eng.speeds_seen[-1] == SPEED_MAX, "an out-of-range pace is clamped before it reaches the synthesizer")
+
+    # LIGHTER CLIPS (DR-0747): without an encoder, "opus" is answered in WAV and
+    # health lists wav alone; with one, the same words come once as Ogg Opus,
+    # the second time from the cache, and a failed encode is a WAV, never a 5xx.
+    s, ctype, b = req("POST", "/speak", {"text": "Lighter please.", "format": "opus"})
+    check(s == 200 and ctype == "audio/wav" and b[:4] == b"RIFF", "asked for opus with no encoder on the box: WAV comes, honestly typed")
+    s, _, b = req("GET", "/health", auth=None)
+    check(s == 200 and json.loads(b).get("formats") == ["wav"], "health lists wav alone without an encoder")
+
+    class FakeEncoder:
+        def __init__(self):
+            self.calls = 0
+            self.fail = False
+
+        def encode(self, wav_path, out_path):
+            self.calls += 1
+            if self.fail:
+                raise RuntimeError("no libopus")
+            with open(out_path, "wb") as fh:
+                fh.write(b"OggS" + b"\x00" * 40)
+
+    enc = FakeEncoder()
+    tmpdir2 = tempfile.mkdtemp()
+    srv2 = ThreadingHTTPServer(("127.0.0.1", 0), make_handler(eng, "sekret", tmpdir2, max_inflight=1, encoder=enc))
+    port2 = srv2.server_address[1]
+    threading.Thread(target=srv2.serve_forever, daemon=True).start()
+
+    def req2(method, path, body=None, auth="Bearer sekret"):
+        c = HTTPConnection("127.0.0.1", port2, timeout=10)
+        headers = {"Content-Type": "application/json"}
+        if auth:
+            headers["Authorization"] = auth
+        data = json.dumps(body).encode() if body is not None else None
+        c.request(method, path, body=data, headers=headers)
+        r = c.getresponse()
+        out = (r.status, r.getheader("Content-Type"), r.read())
+        c.close()
+        return out
+
+    s, _, b = req2("GET", "/health", auth=None)
+    check(s == 200 and json.loads(b).get("formats") == ["wav", "opus"], "health lists opus when an encoder is on the box")
+    s, ctype, b = req2("POST", "/speak", {"text": "Lighter please.", "format": "opus"})
+    check(s == 200 and ctype == "audio/ogg; codecs=opus" and b[:4] == b"OggS" and enc.calls == 1, "asked for opus with an encoder: an Ogg Opus clip, encoded once")
+    s, ctype, b = req2("POST", "/speak", {"text": "Lighter  please.", "format": "opus"})
+    check(s == 200 and ctype == "audio/ogg; codecs=opus" and enc.calls == 1, "the same words again come from the cache, not re-encoded")
+    s, ctype, b = req2("POST", "/speak", {"text": "Lighter please."})
+    check(s == 200 and ctype == "audio/wav" and b[:4] == b"RIFF", "the WAV shape of the same words is still served from the same synthesis")
+    kept = sorted(f.rsplit(".", 1)[1] for f in os.listdir(tmpdir2) if not f.startswith("."))
+    check(kept == ["opus", "wav"], "both shapes of one clip share the cache under one key")
+    enc.fail = True
+    s, ctype, b = req2("POST", "/speak", {"text": "A fresh sentence.", "format": "opus"})
+    check(s == 200 and ctype == "audio/wav" and b[:4] == b"RIFF", "a failed encode answers in WAV, never a refusal")
+    srv2.shutdown()
+
     # Busy: one slow synthesis holds the only slot; a second is refused at once.
     eng.slow = 1.0
     results = {}
@@ -334,13 +543,13 @@ def _selftest():
     # Cache pruning keeps the newest.
     d = tempfile.mkdtemp()
     for i in range(5):
-        p = os.path.join(d, f"{i}.wav")
+        p = os.path.join(d, f"{i}.wav" if i != 2 else f"{i}.opus")
         with open(p, "wb") as fh:
             fh.write(b"0" * 100)
         os.utime(p, (1000 + i, 1000 + i))
     removed = prune_cache(d, 250)
     left = sorted(os.listdir(d))
-    check(removed == 3 and left == ["3.wav", "4.wav"], "cache pruning removes the oldest clips first")
+    check(removed == 3 and left == ["3.wav", "4.wav"], "cache pruning removes the oldest clips first, in either shape")
 
     s, _, _ = req("GET", "/nope", auth=None)
     check(s == 404, "unknown path -> 404")
@@ -362,8 +571,10 @@ def main():
         print("voice-lite: no family bearer token -- refusing to start an unlocked door", file=sys.stderr)
         sys.exit(2)
     engine = Piper(a.home)
-    srv = ThreadingHTTPServer(("127.0.0.1", a.port), make_handler(engine, token, os.path.join(a.home, "cache")))
-    print(f"voice-lite on 127.0.0.1:{a.port}, voices: {engine.available_voices()}")
+    ffmpeg = find_ffmpeg(a.home)
+    encoder = OpusEncoder(ffmpeg) if ffmpeg else None
+    srv = ThreadingHTTPServer(("127.0.0.1", a.port), make_handler(engine, token, os.path.join(a.home, "cache"), encoder=encoder))
+    print(f"voice-lite on 127.0.0.1:{a.port}, voices: {engine.available_voices()}, opus: {ffmpeg or 'no ffmpeg with libopus (WAV only)'}")
     srv.serve_forever()
 
 

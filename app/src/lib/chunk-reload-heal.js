@@ -12,6 +12,10 @@
 // deploy 404s → React.lazy throws → the ErrorBoundary shows a dead tab. That is the
 // EXACT "Voice broken, everything else fine" signature, and nothing self-healed it.
 //
+// NOTHING INTERRUPTS WORDS COMING IN (DR-0748): while a recording, a dictation,
+// typing, a reading or a download is in progress the heal reload is deferred
+// (lib/intake-guard.js) and the error is left to the boundary, which says so.
+//
 // Vite fires a `vite:preloadError` event on window whenever a dynamic-import chunk
 // fails to load. This module listens for it and, ONCE, reloads the page — the SW's
 // network-first/no-store navigation (app/public/sw.js) then pulls the CURRENT shell
@@ -41,6 +45,7 @@
 // survives the reload (same tab / PWA standalone window) so the post-reload load can
 // detect a too-soon second failure = loop, instead of spinning.
 import { recordError } from './error-journal.js';
+import { intakeHeld, intakeWords, whenIntakeFree } from './intake-guard.js';
 
 export const HEAL_TS_KEY = 'poetech:chunk-heal-ts';
 
@@ -101,6 +106,18 @@ export function wireChunkHeal(win, opts = {}) {
   });
   const handler = (event) => {
     if (decideChunkHeal(w, nowFn()) === 'reload') {
+      // NOTHING INTERRUPTS WORDS COMING IN (DR-0748): while a recording, a
+      // dictation, typing, a reading or a download is in progress, the heal
+      // reload waits for it. The error is NOT swallowed then, so the screen
+      // that failed to load says so in its boundary; the reload runs once the
+      // person is free.
+      if (intakeHeld()) {
+        try {
+          recordError({ source: 'chunk-heal', kind: 'heal', message: `stale chunk after a deploy — reload waited: ${intakeWords()}` }, w);
+        } catch (_) { /* watcher never blocks the heal */ }
+        whenIntakeFree(() => reload(), { setTimeout: w && typeof w.setTimeout === 'function' ? w.setTimeout.bind(w) : undefined });
+        return;
+      }
       // We own the recovery: swallow the error (the reload replaces the page)
       // and journal the heal so the recovery is visible on the quality board.
       try { if (event && typeof event.preventDefault === 'function') event.preventDefault(); } catch (_) { /* ignore */ }

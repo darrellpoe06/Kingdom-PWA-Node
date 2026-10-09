@@ -79,6 +79,9 @@ export function lessonItems(rows) {
     // transcript it built from; the road reads both.
     const progressTags = [...new Set([...(r.tags || []), ...((transcript && transcript.tags) || []), ...((failure && failure.tags) || [])])];
     const rungTag = transcript ? (transcript.tags || []).find((t) => String(t).startsWith('whisper:')) : '';
+    // DR-0771: the stale alarm writes stale-alarm@<time> on the ROOT row; the
+    // screen reads that field, never a clock of its own.
+    const alarmStamps = (r.tags || []).filter((t) => /^stale-alarm@\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ$/.test(String(t))).map((t) => String(t).slice('stale-alarm@'.length)).sort();
     items.push({
       id: r.id,
       createdAt: r.created_at || '',
@@ -95,6 +98,8 @@ export function lessonItems(rows) {
       words: transcript ? String(transcript.body || '') : '',
       why: failure ? String(failure.body || '') : '',
       withReader: carried,
+      // DR-0771: how many times the stale alarm rang for this teaching, and when last.
+      stale: { count: alarmStamps.length, lastAt: alarmStamps.length ? alarmStamps[alarmStamps.length - 1] : '' },
       // DR-0635: the Governor's review of a member's lesson, read from the row
       // that carries the words (the transcript, for a spoken one).
       review: memberOutcome(spoken ? (transcript || {}) : r),

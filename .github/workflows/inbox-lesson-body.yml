@@ -51,11 +51,35 @@ jobs:
           NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
         run: |
           set -uo pipefail
-          SQL="SELECT created_by::text, tags::text, md5(convert_to(coalesce(body,''),'UTF8')), encode(convert_to(coalesce(body,''),'UTF8'),'base64') FROM public.agent_inbox WHERE id = '$ROW_ID' AND created_by IN ('f13843f2-742b-4f8a-82af-7ecfbdc536ec','c2a6c39a-ae99-4ff7-83c6-b927e2e7f1cc');"
+          # The base64 is asked for as ONE line (chr(10) removed in the query),
+          # so the whole row is a single line and no pipe is needed to take it
+          # apart. That matters more than it looks -- see NO `head` below.
+          SQL="SELECT created_by::text, tags::text, md5(convert_to(coalesce(body,''),'UTF8')), replace(encode(convert_to(coalesce(body,''),'UTF8'),'base64'), chr(10), '') FROM public.agent_inbox WHERE id = '$ROW_ID' AND created_by IN ('f13843f2-742b-4f8a-82af-7ecfbdc536ec','c2a6c39a-ae99-4ff7-83c6-b927e2e7f1cc');"
           out=$(printf '%s' "$SQL" | bash scripts/live-sql.sh '|') || { echo "::error::could not read the live database"; exit 1; }
           [ -n "$out" ] || { echo "::error::no row $ROW_ID from Darrell's own accounts (a member's row is never read here)"; exit 1; }
+          # NO `head`, ON PURPOSE (2026-10-06). This step used to do
+          # `db_md5=$(printf '%s' "$out" | head -1 | cut -d'|' -f3)`. GitHub's
+          # default shell is `bash -e` and this script adds `pipefail`, so when
+          # the body is long enough that `head` closes the pipe before `printf`
+          # has finished writing, printf takes SIGPIPE, the pipeline exits 141,
+          # and a BARE ASSIGNMENT carries that status -- so `-e` killed the step
+          # with no reason printed. The same substitution one line earlier
+          # survived only because it sat inside an `echo`, whose own status is
+          # what `-e` sees. That is exactly how it failed on 2026-10-06 for
+          # Christyn's Homework (run 37542689782: "printf: write error: Broken
+          # pipe" at the tags line, again at the md5 line, then exit 1 with no
+          # error annotation), and why shorter bodies had always worked. Bash
+          # string operations cannot raise SIGPIPE, so they are used instead.
+          # Fields are taken from the END, so a '|' inside tags cannot shift
+          # them: base64 is last, the md5 before it.
+          line=${out%%$'\n'*}
+          b64=${line##*|}
+          rest=${line%|*}
+          db_md5=${rest##*|}
+          rest=${rest%|*}
+          tags=${rest#*|}
           echo "row: $ROW_ID"
-          echo "tags: $(printf '%s' "$out" | head -1 | cut -d'|' -f2)"
+          echo "tags: $tags"
           # GitHub masks any run of characters that equals a secret, even inside
           # base64, and blanked parts of L201's words (2026-09-30); a 3-character secret still caught one run. A '.' after
           # every 2 characters breaks every run longer than 2, so nothing can
@@ -65,10 +89,12 @@ jobs:
           # transport that altered them fails the run; and the md5 is printed
           # dotted the same way, so whoever reads the log checks the words they
           # decoded against it (a masked character changes the md5).
-          b64=$(printf '%s' "$out" | cut -d'|' -f4- | tr -d '\n')
-          db_md5=$(printf '%s' "$out" | head -1 | cut -d'|' -f3)
-          got_md5=$(printf '%s' "$b64" | base64 -d | md5sum | cut -d' ' -f1)
-          [ "$db_md5" = "$got_md5" ] || { echo "::error::round-trip failed: the words decoded on the runner do not match the database (md5)"; exit 1; }
+          got_md5=$(printf '%s' "$b64" | base64 -d 2>/dev/null | md5sum | cut -d' ' -f1) || true
+          if [ "$db_md5" != "$got_md5" ]; then
+            dot() { printf '%s' "$1" | sed 's/../&./g'; }
+            echo "::error::round-trip failed: the words decoded on the runner do not match the database. database md5 $(dot "$db_md5"), runner md5 $(dot "$got_md5"), base64 characters ${#b64}"
+            exit 1
+          fi
           echo "round-trip: the runner's decode matches the database"
           echo "md5 of the words (a '.' after every 2 characters): $(printf '%s' "$db_md5" | sed 's/../&./g')"
           echo "bytes: $(printf '%s' "$b64" | base64 -d | wc -c)"

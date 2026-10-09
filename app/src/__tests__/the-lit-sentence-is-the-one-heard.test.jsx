@@ -60,11 +60,12 @@ beforeEach(() => {
   localStorage.setItem(CHAT_BRIDGE_TOKEN_KEY, 'fam-key');
   _resetLiteVoiceForTests();
   _setDeviceClipCacheForTests(null); // nothing kept on the device from before
-  road.texts = []; urlText.clear(); pendingText = []; el = null;
+  road.texts = []; road.speeds = []; urlText.clear(); pendingText = []; el = null;
   globalThis.fetch = vi.fn(async (url, init) => {
     if (!String(url).includes('/voice-lite/')) return { ok: false, status: 404, headers: { get: () => null } };
     const body = JSON.parse(init.body);
     road.texts.push(body.text);
+    road.speeds.push(body.speed);
     pendingText.push(body.text);
     return { ok: true, status: 200, headers: { get: (k) => (k.toLowerCase() === 'content-type' ? 'audio/wav' : null) }, blob: async () => ({ size: 3200, text: body.text }) };
   });
@@ -102,12 +103,16 @@ describe('the lit sentence is the one being heard', () => {
       // The reported piece is the one in the element — never the one before.
       expect(api.cloudPiece, `while "${playing}" plays`).toBe(i);
       expect(playing).toBe(toSpokenForm(SENTENCES[i]));
-      expect(el.playbackRate).toBe(1.5);
+      // THE PACE IS SPOKEN, NOT STRETCHED (DR-0769, 2026-10-07): at 1.5x the
+      // NAS voice is asked to speak at 1.5 and the element plays the piece at
+      // 1x — the remainder. Before DR-0769 the element carried the whole 1.5.
+      expect(el.playbackRate).toBe(1);
       await act(async () => { if (el.onended) el.onended(); });
       await flush();
     }
     // Every sentence as written was asked for, once, in order.
     expect(road.texts).toEqual(SENTENCES.map((s) => toSpokenForm(s)));
+    expect(road.speeds.every((sp) => sp === 1.5), `the voice was asked at ${JSON.stringify(road.speeds)}`).toBe(true);
     act(() => root.unmount());
     container.remove();
   });

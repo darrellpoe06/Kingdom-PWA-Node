@@ -69,6 +69,21 @@ REF_MAX_SECONDS = os.environ.get("VOICE_REF_MAX_SECONDS", "30")
 _SUFFIX = {"webm": ".webm", "ogg": ".ogg", "mp4": ".m4a", "x-m4a": ".m4a", "aac": ".aac", "mpeg": ".mp3", "mp3": ".mp3", "flac": ".flac"}
 
 
+SPEED_MIN = 0.5
+SPEED_MAX = 2.0
+
+
+def clamp_speed(value):
+    """The pace the voice is asked to speak at: SPEED_MIN..SPEED_MAX, else 1.0 (nonsense is normal pace)."""
+    try:
+        v = float(value)
+    except (TypeError, ValueError):
+        return 1.0
+    if v != v or v <= 0:
+        return 1.0
+    return round(min(SPEED_MAX, max(SPEED_MIN, v)), 3)
+
+
 def _to_wav(src: str) -> str:
     """Transcode a reference sample to a mono 22.05 kHz WAV; return its path."""
     out = src + ".ref.wav"
@@ -138,6 +153,12 @@ async def speak(req: Request):
     text = (body.get("text") or "").strip()
     reference = body.get("reference_audio")
     language = body.get("language") or "en"
+    # THE PACE THE VOICE SPEAKS AT (2026-10-07; Darrell: "the voice mumbles at
+    # times when on faster speaking especially"). The app used to stretch the
+    # clip in the browser, which smears consonants at 2x and beyond. XTTS takes
+    # a `speed` at inference and simply speaks faster, words intact; the app
+    # stretches only the remainder. Clamped to what the model says clearly.
+    speed = clamp_speed(body.get("speed", 1.0))
     if not text:
         return JSONResponse({"error": "text-required"}, status_code=400)
     # THE BUILT-IN VOICE IS SERVED, NOT REFUSED (2026-09-14, DR-0401).
@@ -183,10 +204,11 @@ async def speak(req: Request):
         os.close(out_fd)
         # Few-shot: XTTS conditions on speaker_wav at inference, no training.
         # With no sample, the model's own speaker carries it instead.
+        pace = {"speed": speed} if speed != 1.0 else {}
         if builtin_speaker is not None:
-            tts.tts_to_file(text=text, speaker=builtin_speaker, language=language, file_path=out_path)
+            tts.tts_to_file(text=text, speaker=builtin_speaker, language=language, file_path=out_path, **pace)
         else:
-            tts.tts_to_file(text=text, speaker_wav=speaker_wav, language=language, file_path=out_path)
+            tts.tts_to_file(text=text, speaker_wav=speaker_wav, language=language, file_path=out_path, **pace)
         with open(out_path, "rb") as f:
             audio = f.read()
         for p in (speaker_wav, out_path):

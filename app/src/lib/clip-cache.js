@@ -29,6 +29,34 @@ export const DEFAULT_CAP_MB = 300;
 // reading voice runs to gigabytes (every lesson, adult only: about 33 GB), and
 // the limit is the person's to raise. The device's free space still decides.
 export const CAP_CHOICES_MB = [100, 300, 600, 1000, 2000, 5000, 10000, 20000, 50000];
+
+// THE READER MUST NOT SLOW DOWN OVER TIME (2026-10-07, DR-0786). Darrell, on
+// the Firestick: "The reader begins to slow down on firestick... longer
+// pauses... etc... over time... why?!" Measured against this file as it was:
+//   • every put() AWAITED a full eviction — store.list() of EVERY clip on the
+//     device, sorted — so with the fetch-ahead saving a sentence a second,
+//     the device re-read its whole clip catalogue once a second, and the
+//     scan grew with every lesson ever listened to (the cap is 300 MB; a
+//     sentence is ~100 KB; that is thousands of rows per scan);
+//   • every get() AWAITED a write (touch: read the row, write the row) BEFORE
+//     handing the clip to the player — so the next sentence waited behind
+//     the fetch-ahead's writes and scans in the same IndexedDB.
+// A phone with a fast flash hid it. A Firestick's did not: the pause between
+// sentences is exactly the time the next clip waits for the store, and that
+// time grew. Now: a put only SCHEDULES an eviction, and only when the running
+// total has passed the cap (one count at the start, then arithmetic); a get
+// hands the clip over at once and the touch is batched into one write a
+// little later. Pure timing is injectable so the suite proves both.
+export const EVICT_DEBOUNCE_MS = 1500;
+export const TOUCH_DEBOUNCE_MS = 2000;
+/**
+ * How many pieces the fetch-ahead asks the NAS for at once: EXACTLY the NAS
+ * voice's own cap (VOICE_LITE_MAX_INFLIGHT, infra/nas-voice-lite, default 2).
+ * It was 3: the third request was answered 503 busy and waited 600 ms+ to ask
+ * again, and when that piece was the player's next sentence, so did the
+ * listener. A CI test pins the two numbers together.
+ */
+export const AHEAD_CONCURRENCY = 2;
 const MB = 1024 * 1024;
 
 // cyrb53 — a fast 53-bit string hash; used twice with different seeds for a
@@ -46,10 +74,16 @@ function cyrb53(str, seed = 0) {
   return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36);
 }
 
-/** The key for one clip: voice + model + the exact words sent. */
-export function clipKey({ voice = 'male', model, text }) {
+/**
+ * The key for one clip: voice + model + the exact words sent — and, for a clip
+ * the voice SPOKE at a pace other than 1 (2026-10-07), that pace. The 1x key
+ * is unchanged, so every clip already saved on a device still answers.
+ */
+export function clipKey({ voice = 'male', model, text, speed = 1 }) {
   const m = model || LITE_MODELS[voice] || voice;
-  const s = `${voice}|${m}|${String(text || '').replace(/\s+/g, ' ').trim()}`;
+  const sp = Number(speed);
+  const pace = Number.isFinite(sp) && sp > 0 && sp !== 1 ? `|@${sp}` : '';
+  const s = `${voice}|${m}${pace}|${String(text || '').replace(/\s+/g, ' ').trim()}`;
   return `v1-${cyrb53(s, 1)}${cyrb53(s, 2)}`;
 }
 
@@ -75,6 +109,7 @@ export function memoryBackend() {
     async del(k) { blobs.delete(k); meta.delete(k); },
     async list() { return [...meta.values()]; },
     async touch(k, at) { const m = meta.get(k); if (m) meta.set(k, { ...m, at }); },
+    async touchMany(entries) { for (const [k, at] of entries) { const m = meta.get(k); if (m) meta.set(k, { ...m, at }); } },
     async getMeta(k) { return meta.has(k) ? meta.get(k) : null; },
     async setMeta(k, m) { if (blobs.has(k)) meta.set(k, { ...m, key: k }); },
     get size() { return blobs.size; },
@@ -123,6 +158,15 @@ export function indexedDbBackend(name = 'poe-voice-clips') {
       const m = await req2p(store.get(k));
       if (m) store.put({ ...m, at }, k);
     }),
+    // Several touches in ONE transaction (the batched path): each row is read
+    // and re-put inside the same tx, so the store is opened once, not per clip.
+    touchMany: (entries) => run(['meta'], 'readwrite', (tx) => {
+      const store = tx.objectStore('meta');
+      for (const [k, at] of entries) {
+        const req = store.get(k);
+        req.onsuccess = () => { if (req.result) store.put({ ...req.result, at }, k); };
+      }
+    }),
     getMeta: (k) => run(['meta'], 'readonly', async (tx, set) => { set((await req2p(tx.objectStore('meta').get(k))) || null); }),
     setMeta: (k, m) => run(['meta'], 'readwrite', (tx) => { tx.objectStore('meta').put({ ...m, key: k }, k); }),
   };
@@ -134,10 +178,45 @@ export function indexedDbBackend(name = 'poe-voice-clips') {
  * @param {() => number} [o.capBytes]  read at every eviction, so a new pick holds at once
  * @param {() => number} [o.now]
  */
-export function createClipCache({ backend, capBytes, now = () => Date.now() } = {}) {
+export function createClipCache({ backend, capBytes, now = () => Date.now(), schedule } = {}) {
   const store = backend || indexedDbBackend() || memoryBackend();
   const cap = typeof capBytes === 'function' ? capBytes : () => loadCapMb() * MB;
+  const later = typeof schedule === 'function' ? schedule : (typeof setTimeout === 'function' ? (fn, ms) => setTimeout(fn, ms) : (fn) => { fn(); return null; });
   let evicting = null;
+  // Bytes on the device, counted ONCE from the store and then kept by
+  // arithmetic; an eviction recounts authoritatively. null = not counted yet.
+  let knownTotal = null;
+  let evictTimer = null;
+  let evictDue = false;
+  const touches = new Map(); // key -> at, written in one batch
+  let touchTimer = null;
+  let touching = null;
+  const countOnce = async () => {
+    if (knownTotal == null) knownTotal = (await store.list()).reduce((n, m) => n + (m.bytes || 0), 0);
+    return knownTotal;
+  };
+  const flushTouches = async () => {
+    if (touchTimer != null) { try { clearTimeout(touchTimer); } catch { /* a scheduler without clear */ } touchTimer = null; }
+    if (!touches.size) return touching || undefined;
+    const entries = [...touches.entries()];
+    touches.clear();
+    touching = (async () => {
+      try {
+        if (typeof store.touchMany === 'function') await store.touchMany(entries);
+        else for (const [k, at] of entries) { try { await store.touch(k, at); } catch { /* next */ } }
+      } catch { /* the clips still play */ } finally { touching = null; }
+    })();
+    return touching;
+  };
+  const queueTouch = (key) => {
+    touches.set(key, now());
+    if (touchTimer == null) touchTimer = later(() => { touchTimer = null; return flushTouches(); }, TOUCH_DEBOUNCE_MS);
+  };
+  const scheduleEvict = () => {
+    evictDue = true;
+    if (evictTimer != null) return;
+    evictTimer = later(() => { evictTimer = null; return evictDue ? api.evict() : undefined; }, EVICT_DEBOUNCE_MS);
+  };
   const metaOf = async (k) => (typeof store.getMeta === 'function'
     ? store.getMeta(k)
     : ((await store.list()).find((m) => m.key === k) || null));
@@ -151,7 +230,8 @@ export function createClipCache({ backend, capBytes, now = () => Date.now() } = 
     async get(key) {
       try {
         const blob = await store.get(key);
-        if (blob) { try { await store.touch(key, now()); } catch { /* the clip still plays */ } }
+        // The clip goes to the player NOW; "last played" is written in a batch.
+        if (blob) queueTouch(key);
         return blob || null;
       } catch { return null; }
     },
@@ -162,10 +242,27 @@ export function createClipCache({ backend, capBytes, now = () => Date.now() } = 
       // A hold already on this clip is kept: a replay never un-keeps a download.
       let pins = pin ? [pin] : [];
       try { const old = await metaOf(key); if (old && Array.isArray(old.pins)) pins = [...new Set([...old.pins, ...pins])]; } catch { /* a fresh clip */ }
+      let fresh;
+      try { fresh = !(await metaOf(key)); } catch { fresh = true; }
       try { await store.put(key, blob, { bytes: blob.size, at: now(), ...(pins.length ? { pins } : {}) }); } catch { return false; }
-      await api.evict();
+      // No scan per save: one count, then arithmetic; the eviction is
+      // scheduled, never awaited, and only once the cap is passed.
+      try {
+        if (knownTotal == null) await countOnce();
+        else if (fresh) knownTotal += blob.size;
+        if (knownTotal > cap()) scheduleEvict();
+      } catch { /* counted at the next eviction */ }
       return true;
     },
+    /** Write every pending "last played" and run any eviction that is due. For tests and for a page about to close. */
+    async flush() {
+      if (evictTimer != null) { try { clearTimeout(evictTimer); } catch { /* ignore */ } evictTimer = null; }
+      await flushTouches();
+      if (evictDue) await api.evict();
+      else if (evicting) await evicting;
+    },
+    /** Bytes on the device as this cache knows them (counted once, then kept). */
+    knownBytes() { return knownTotal; },
     // KEPT ON PURPOSE (DR-0722). A clip a person downloaded is held by name
     // ('<lesson>|<level>') and is never cleared to make room; only a clip
     // nobody holds is. Removing a download lets go of its name, and a clip
@@ -191,6 +288,7 @@ export function createClipCache({ backend, capBytes, now = () => Date.now() } = 
           await store.del(key); freed += m.bytes || 0;
         } catch { /* next */ }
       }
+      if (knownTotal != null) knownTotal = Math.max(0, knownTotal - freed);
       return freed;
     },
     /** Let go of every download hold whose name starts with `prefix` ('' = all). */
@@ -206,6 +304,7 @@ export function createClipCache({ backend, capBytes, now = () => Date.now() } = 
           else { await store.del(m.key); freed += m.bytes || 0; }
         }
       } catch { /* best-effort */ }
+      if (knownTotal != null) knownTotal = Math.max(0, knownTotal - freed);
       return freed;
     },
     /** Bytes held by downloads (never evicted). */
@@ -215,8 +314,10 @@ export function createClipCache({ backend, capBytes, now = () => Date.now() } = 
     /** Least-recently-played first, until the total is under the cap. A clip a download holds is never cleared. */
     async evict() {
       if (evicting) return evicting;
+      evictDue = false;
       evicting = (async () => {
         try {
+          await flushTouches(); // "last played" must be current before least-recent is chosen
           const all = (await store.list()).slice().sort((a, b) => (a.at || 0) - (b.at || 0));
           let total = all.reduce((n, m) => n + (m.bytes || 0), 0);
           const limit = cap();
@@ -225,6 +326,7 @@ export function createClipCache({ backend, capBytes, now = () => Date.now() } = 
             if (Array.isArray(m.pins) && m.pins.length) continue;
             try { await store.del(m.key); total -= m.bytes || 0; } catch { /* next */ }
           }
+          knownTotal = total;
           return total;
         } catch { return 0; } finally { evicting = null; }
       })();
@@ -329,7 +431,7 @@ export function createClipSource({ keys, fetchBlob, cache, makeUrl }) {
       return { url: makeUrl(got.blob) };
     },
     /** Fetch every piece not on the device yet, a few at a time. */
-    ahead({ concurrency = 3, onProgress, signal } = {}) {
+    ahead({ concurrency = AHEAD_CONCURRENCY, onProgress, signal } = {}) {
       return cacheAhead({
         keys, cache, concurrency, onProgress, signal,
         // The player may have fetched it since the list was made.

@@ -261,7 +261,8 @@ describe('the launch plan tells the truth', () => {
 describe('the faces people actually meet', () => {
   it('a tenant gets their place, work orders, the thread, the history, and their payments', () => {
     const face = resolveFace('tenant', []);
-    expect(face.tabs.map((t) => t.id)).toEqual(['door', 'work', 'thread', 'history', 'rent', 'notices']);
+    // ...and, since DR-0841, the cameras their landlord shares with the door.
+    expect(face.tabs.map((t) => t.id)).toEqual(['door', 'work', 'thread', 'history', 'rent', 'notices', 'cameras']);
     // The rollout/plan view is management's, not the tenant's.
     expect(face.tabs.some((t) => t.id === 'plan')).toBe(false);
     expect(face.tabs.some((t) => t.locked)).toBe(false);

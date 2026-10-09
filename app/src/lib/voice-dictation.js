@@ -35,6 +35,7 @@
 // parsing + the pause-vs-stop decision) are pure functions; the React hook is
 // thin glue over them.
 import { useRef, useState } from 'react';
+import { holdIntake } from './intake-guard.js';
 
 // The brake: no session listens longer than this, tap or no tap.
 export const VOICE_SESSION_CAP_MS = 5 * 60 * 1000;
@@ -330,8 +331,13 @@ export function useVoiceDictation({ onTranscript, lang = 'en-US', capMs = VOICE_
   const SR = detectSpeechRecognition();
   const supported = !!SR;
 
+  // NOTHING INTERRUPTS WORDS COMING IN (DR-0748): the app holds still while
+  // the mic is on (lib/intake-guard.js).
+  const holdRef = useRef(null);
+
   const endSession = () => {
     liveSessions.delete(registered.current);
+    if (holdRef.current) { holdRef.current(); holdRef.current = null; }
     if (watchRef.current) { clearTimeout(watchRef.current); watchRef.current = null; }
     if (!sessionOpenRef.current) return;
     sessionOpenRef.current = false;
@@ -435,6 +441,7 @@ export function useVoiceDictation({ onTranscript, lang = 'en-US', capMs = VOICE_
       startEngine();
       sessionOpenRef.current = true;
       liveSessions.add(registered.current);
+      if (!holdRef.current) holdRef.current = holdIntake('dictation');
       setListening(true);
       // Never show "listening" over silence: if nothing at all reaches the
       // engine, the surface says so in words.

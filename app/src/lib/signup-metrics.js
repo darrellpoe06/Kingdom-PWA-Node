@@ -19,6 +19,7 @@
 // =============================================================================
 import { relativeTime } from './access-metrics.js';
 import { restRpc, readSnapshotToken } from './access-metrics-sync.js';
+import { isPhoneDoorEmail, phoneDoorDigits, formatPhone } from './member-contact.js';
 
 // ── fetch ────────────────────────────────────────────────────────────────────
 // Returns a discriminated status object — never throws, never paints:
@@ -141,16 +142,52 @@ export function isActiveNow(row, nowMs) {
   return (nowMs - last) <= ACTIVE_NOW_MS && (nowMs - last) >= -ACTIVE_NOW_MS;
 }
 
+// A phone-door account's "email" is the phone it signs in with, not a mailbox
+// (member-contact.js). Printing `12173900498@phone.poetech.us` in the place an
+// email goes states something false about how to reach the person; this reads
+// it as the phone it is. Masked, only the last four digits show.
+export function reachOf(email, mask = false) {
+  const e = String(email || '').trim();
+  if (isPhoneDoorEmail(e)) {
+    const d = phoneDoorDigits(e);
+    const shown = mask ? `phone ending ${d.slice(-4)}` : formatPhone(d);
+    return { phoneDoor: true, phone: d, text: `${shown} · signs in by phone` };
+  }
+  return { phoneDoor: false, phone: '', text: mask ? maskEmail(e) : (e || '(no email)') };
+}
+
+// The account's OWN name, or null when the "name" is only its identifier: the
+// phone door names an account by the digits of its address (0140 falls back
+// to the local part of the email), so `14472209779` is not a name anybody
+// chose, and showing it as one hid the contact's real name beside it
+// (Darrell's screenshot, 2026-10-09: digits first, "in your contacts as
+// Christyn Poe" after). An email's local part is the same non-name.
+export function ownNameOf(displayName, email) {
+  const n = String(displayName || '').trim();
+  if (!n) return null;
+  const e = String(email || '').trim().toLowerCase();
+  const bare = n.replace(/[\s().+-]/g, '');
+  if (/^\d+$/.test(bare)) return null;                                  // digits, however punctuated
+  if (e && n.toLowerCase() === e) return null;                          // the whole address
+  // The local part of a PHONE-DOOR address is the digits again; an ordinary
+  // email's local part may be a name the person chose, so it stays.
+  if (isPhoneDoorEmail(e) && n.toLowerCase() === e.slice(0, e.indexOf('@'))) return null;
+  return n;
+}
+
 // Shape one RPC signup row into the fields the list renders. `mask` toggles
 // email masking; `nowMs` stamps relative times once per render.
 export function signupRowView(row, nowMs, mask = false) {
   const r = row || {};
   const activeIso = lastActiveAt(r);
+  const reach = reachOf(r.email, mask);
   return {
     userId: r.user_id || null,
-    name: (r.display_name && String(r.display_name).trim()) || null,
-    email: mask ? maskEmail(r.email) : (r.email || '(no email)'),
+    name: ownNameOf(r.display_name, r.email),
+    email: reach.text,
     rawEmail: r.email || null,
+    phoneDoor: reach.phoneDoor,
+    phone: reach.phone,
     category: r.category || 'unknown',
     categoryLabel: categoryLabel(r.category),
     categoryTone: categoryTone(r.category),

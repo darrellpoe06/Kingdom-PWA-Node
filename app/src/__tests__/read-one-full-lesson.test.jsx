@@ -108,7 +108,8 @@ describe('readAloudTextFromArc — the WHOLE lesson, audience-only', () => {
     expect(text).toContain('Psalm 1:2');
     expect(text).toContain('Teaching sentence number 1');
     expect(text).toContain('Teaching sentence number 12'); // the LAST chunk — not just the visible step
-    expect(text).toContain('Picture this — The Widened Riverbed');
+    expect(text).toContain('Picture this, a parable — The Widened Riverbed');
+    expect(text).toContain('A parable, not a record');
     expect(text).toContain('What did the creek teach you?');
     expect(text).toContain('Open the study space');
     expect(text).toContain('Freedom benefit two.');

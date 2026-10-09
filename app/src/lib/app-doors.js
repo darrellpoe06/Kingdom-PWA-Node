@@ -52,6 +52,18 @@ export const PERSONAL_DOOR = '/poetech-app/';
  * Every installable door, keyed by its path. `instances` lists the instance
  * SLUGS whose app is that door. One door may serve several slugs (a door older
  * than a rename still has to work); a slug appears under exactly one door.
+ *
+ * THE DOOR'S OWN FACE (Darrell 2026-10-02: "Why does it show up as PoeTech App
+ * instead of the Love Corner App logo... why doesn't it have the correct
+ * logo?"). Each door's install icon already lived in its manifest (app/public),
+ * but two other places a person SEES the app painted the PoeTech "P" for every
+ * door: the notification in the shade (public/sw.js NOTIFY_DEFAULTS) and the
+ * lock-screen / car-display card while a lesson is read aloud
+ * (lib/background-audio.js DEFAULT_ARTWORK). So a Love Corner notification and
+ * a Love Corner reading both wore PoeTech's mark. `icon` / `icon512` are the
+ * same files the door's manifest installs with, named here once so every
+ * surface that shows the app's face reads the door, never a hard-coded "P".
+ * app-doors.test.js asserts each file exists in app/public.
  */
 export const DOORS = [
   {
@@ -59,6 +71,8 @@ export const DOORS = [
     key: 'poetech',
     label: 'PoeTech',
     instances: ['poe-family'],
+    icon: '/icon-192.png',
+    icon512: '/icon-512.png',
   },
   {
     path: '/lovecorner/app/',
@@ -67,12 +81,17 @@ export const DOORS = [
     // Migration 0012 seeds the church as slug 'colg'; DR-0174/DR-0258 gave it
     // the /lovecorner/ scope. The name a member reads is The Love Corner.
     instances: ['colg'],
+    // The church's own emblem (supplied by Darrell 2026-07-12, PR #793).
+    icon: '/lovecorner-icon-192.png',
+    icon512: '/lovecorner-icon-512.png',
   },
   {
     path: '/moore/app/',
     key: 'moore',
     label: 'Moore Divahs',
     instances: ['moore-divahs'],
+    icon: '/moore-icon-192.png',
+    icon512: '/moore-icon-512.png',
   },
   {
     path: '/tlc/app/',
@@ -81,14 +100,28 @@ export const DOORS = [
     // Both slugs are honored on purpose: crm-engine.js carries 'tlc' and the
     // live instances table carries 'tlc-therapy-solutions' (read 2026-09-16).
     instances: ['tlc-therapy-solutions', 'tlc'],
+    icon: '/tlc-icon-192.png',
+    icon512: '/tlc-icon-512.png',
   },
   {
     path: '/properties/app/',
     key: 'properties',
     label: 'Poe Properties',
     instances: ['poe-properties'],
+    icon: '/properties-icon-192.png',
+    icon512: '/properties-icon-512.png',
   },
 ];
+
+/** The lock-screen / car-display artwork for the door this page booted as:
+ *  the door's own 192 and 512 icons (the same files its manifest installs). */
+export function doorArtwork(pathname, search) {
+  const d = currentDoor(pathname, search);
+  return [
+    { src: d.icon, sizes: '192x192', type: 'image/png' },
+    { src: d.icon512, sizes: '512x512', type: 'image/png' },
+  ];
+}
 
 const byPath = new Map(DOORS.map((d) => [d.path, d]));
 

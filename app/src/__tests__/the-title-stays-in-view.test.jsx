@@ -265,8 +265,16 @@ describe('the in-app reader keeps the title at the top while you read', () => {
       expect(title.getAttribute('data-open')).toBe('false');
       expect(title.style.webkitLineClamp || title.style.WebkitLineClamp || title.getAttribute('style')).toMatch(/2/);
       expect(title.className).toContain('overflow-hidden');
-      // The control is chrome, capped at Big Print like every other control.
-      expect(toggle.className).toContain('ts-chrome-region');
+      // The control is chrome and still capped at Big Print — but by its TYPE
+      // now, not by `zoom` (DR-0816/DR-0817). It carried .ts-chrome-region
+      // until 2026-10-08, and `zoom` caps a box as well as a font: MEASURED in
+      // Chromium at 390x844, the 44px handle rendered 24x20 at Big Print 44,
+      // a tap target shrunk to less than half for exactly the reader who needs
+      // it biggest, which is the one thing index.css says a region must never
+      // do. Capping the glyph instead holds the row at 57px and the handle at
+      // its real 44px (measured 52x44) at every text size.
+      expect(toggle.className, 'the region would shrink the 44px target').not.toContain('ts-chrome-region');
+      expect(toggle.getAttribute('style') || '').toContain('var(--ts-chrome-scale, 1)');
       expect(Number((toggle.className.match(/min-h-\[(\d+)px\]/) || [])[1])).toBeGreaterThanOrEqual(44);
     });
 

@@ -3,7 +3,8 @@ import ReactDOM from 'react-dom/client';
 import { storage } from './shims/storage.js';
 import './index.css';
 import { ErrorBoundary } from './components/ErrorBoundary.jsx';
-import { wireUpdates, startUpdateChecks } from './lib/sw-update.js';
+import { wireUpdates, startUpdateChecks, watchLiveBuild } from './lib/sw-update.js';
+import { adoptGrantFromUrl } from './lib/cameras.js';
 import { wireChunkHeal } from './lib/chunk-reload-heal.js';
 import { showBootFallback } from './lib/boot-fallback.js';
 import { installGlobalErrorCapture } from './lib/error-journal.js';
@@ -19,6 +20,7 @@ import { markTvDevice } from './lib/tv-device.js';
 import { markDeviceClass } from './lib/device-roles.js';
 import { installNativeShell, isNativeShell } from './lib/native-shell.js';
 import { registerDoorWorker, rowMoverFor } from './lib/sw-door-scope.js';
+import { watchTypedIntake } from './lib/intake-guard.js';
 
 // The local app (the native shell, DR-0570) carries the house's address: the
 // same-origin NAS routes are re-homed to poetech.us before any module fetches.
@@ -66,6 +68,12 @@ markDeviceClass(window);
 // current shell instead of stranding the tab. No-op unless a chunk actually fails.
 // Wired before the dynamic imports below so the listener is live when they run.
 wireChunkHeal(window);
+
+// NOTHING INTERRUPTS WORDS COMING IN (DR-0748). Typing in any box holds the
+// app still: the update reload and the heal reload wait, banners stay away,
+// nothing opens itself. Recording, dictation, a reading and a download take
+// the same hold from their own hooks (lib/intake-guard.js).
+watchTypedIntake(document, { win: window });
 
 // Record every uncaught error + unhandled rejection to the device-local error
 // journal (DR-0092) — the failure stays visible to the steward on the Quality &
@@ -133,6 +141,9 @@ captureInstallPrompt(window);
 //                 TV's QR, functions/link.js) lands here. Also re-entered when a
 //                 Google full-page redirect dropped the query: the code was
 //                 stashed in sessionStorage first (lib/device-link.js).
+// A camera access link (DR-0778): `?cams-grant=` is stored on this device and
+// taken out of the address before anything else reads it.
+try { adoptGrantFromUrl(window.location, window.localStorage, window.history); } catch (_) { /* no storage: the gate says so */ }
 const __params = new URLSearchParams(window.location.search);
 const __linkCode = __params.get('link') || (() => {
   // Only a return FROM Google (a token in the hash, or a PKCE ?code=) may
@@ -381,5 +392,7 @@ if (!__standalone && !isNativeShell(window) && 'serviceWorker' in navigator) {
     } catch (err) {
       console.warn('Service worker registration failed:', err);
     }
+    // The server is asked which build is live, whatever the worker did (DR-0781).
+    try { watchLiveBuild(window.__pwaReg || null, window); } catch (_) { /* never blocks boot */ }
   });
 }

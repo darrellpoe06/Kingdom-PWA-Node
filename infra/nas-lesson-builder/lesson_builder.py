@@ -159,6 +159,12 @@ def eligibility(row, owners=OWNER_IDS, max_attempts=MAX_ATTEMPTS):
         return False, "a build holds it"
     if "awaiting-review" in tags:
         return False, "its versions wait for Darrell's decision"
+    if "not-a-lesson" in tags:
+        # Decided already: either chosen as a READING at record time (DR-0810)
+        # or judged by a human afterwards (DR-0768). Its words still come back
+        # through Whisper; nothing builds a lesson from it, and nobody is asked
+        # to decide a second time what was already decided.
+        return False, "marked not a lesson"
     if "canary" in tags:
         return False, "canary rows are the Routine's"
     if "voice-failed" in tags:
@@ -251,7 +257,11 @@ def already_built(fps, corpus_norm):
 # pure: numbers (taken atomically, never colliding with a parallel build)
 # =============================================================================
 
-LL_ID = re.compile(r"id: 'll(\d+)-")
+# Both spellings of an entry's id: the hand-written `id: 'll…'` and the
+# JSON-style `"id": "ll…"` that L199–L206 carry. The 2026-10-02 build read only
+# the first, saw 198 as the top, numbered a new lesson L199 and overwrote the
+# real L199's verse test (DR-0750 corrections).
+LL_ID = re.compile(r"""["']?id["']?\s*:\s*["']ll(\d+)-""")
 DR_NUM = re.compile(r"DR-(\d{4})")
 
 
@@ -1211,7 +1221,7 @@ class Git:
         ll, dr = 0, 0
         for ref in ["refs/remotes/origin/main"] + self.recent_refs():
             try:
-                hits = self.g("grep", "-h", "-E", "id: 'll[0-9]+-", ref, "--", LIVING, timeout=120)
+                hits = self.g("grep", "-h", "-E", "[\"']?id[\"']? *: *[\"']ll[0-9]+-", ref, "--", LIVING, timeout=120)
             except RuntimeError:
                 hits = ""
             ll = max(ll, max_ll([hits]))
@@ -1343,6 +1353,14 @@ class Db:
             "SELECT id::text, tags FROM public.agent_inbox WHERE tags ? 'lesson' AND NOT (tags ? 'lesson-captured') "
             "AND NOT (tags ? 'lesson-building') AND NOT (tags ? 'awaiting-review') ORDER BY created_at ASC")
         return [{"id": r[0], "tags": r[1] if isinstance(r[1], list) else json.loads(r[1] or "[]")} for r in rows]
+
+    def stale_sweep(self, first_hours, repeat_hours):
+        """Migration 0252: alarm every root lesson row waiting past first_hours,
+        no sooner than repeat_hours apart. Returns the rows alarmed (ids, never a word)."""
+        rows = self.con.run(
+            "SELECT id::text, created_by::text, waited_hours, alarm_no "
+            "FROM public.lesson_inbox_stale_sweep(CAST(:f AS int), CAST(:r AS int))", f=first_hours, r=repeat_hours)
+        return [{"id": r[0], "created_by": r[1], "waited_hours": r[2], "alarm_no": r[3]} for r in rows]
 
     def claim(self, rid, ts):
         """Atomic: the row is ours only if no one holds it and it is not captured."""
@@ -2008,6 +2026,17 @@ BELL_STAGE_PREFIX = "stage:"
 BELL_KEEP = 2000
 _UUID = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
 _STAGE = re.compile(r"^build:[a-z-]+@")
+# THE STALE-ROW ALARM (DR-0771). A lesson row that waits past STALE_FIRST_HOURS
+# with nobody told is alarmed by migration 0252's lesson_inbox_stale_sweep():
+# the row gains `stale-alarm@<time>` (so its bell milestone becomes
+# waiting#s<n> -- new news, the bell rings) and its person gets one push.
+# This service is the one caller: on each of its own wakes, no sooner than
+# STALE_SWEEP_SECONDS apart. No new timer: the LISTEN loop already wakes at
+# least every 300 s.
+_STALE = re.compile(r"^stale-alarm@")
+STALE_FIRST_HOURS = int(os.environ.get("LESSON_STALE_FIRST_HOURS", "4"))
+STALE_REPEAT_HOURS = int(os.environ.get("LESSON_STALE_REPEAT_HOURS", "24"))
+STALE_SWEEP_SECONDS = int(os.environ.get("LESSON_STALE_SWEEP_SECONDS", "900"))
 
 
 def bell_waits(tags):
@@ -2033,7 +2062,10 @@ def bell_milestone(tags):
     if "lesson-building" in tags:
         return "gated" if times.get("gated", "") >= times.get("claimed", "~") else "building"
     n = len([t for t in tags if _STAGE.match(t)])
-    return "waiting#b{}".format(n) if n else "waiting"
+    alarms = len([t for t in tags if _STALE.match(t)])
+    # A handed-back row and an alarmed row are each NEW news for the bell
+    # (DR-0725, DR-0771): the milestone carries both counts.
+    return "waiting" + ("#b{}".format(n) if n else "") + ("#s{}".format(alarms) if alarms else "")
 
 
 def bell_key(row_id, tags):
@@ -2145,9 +2177,16 @@ class Bell:
 
 class Service:
     def __init__(self, db, data_dir=DATA, parallel=PARALLEL, spawn=None, ready=readiness, kill=kill_state,
-                 now=utc_now, log=print, budget=None, bell=None):
+                 now=utc_now, log=print, budget=None, bell=None, clock=time.time,
+                 stale_first_hours=STALE_FIRST_HOURS, stale_repeat_hours=STALE_REPEAT_HOURS,
+                 stale_sweep_seconds=STALE_SWEEP_SECONDS):
         self.db, self.data_dir, self.parallel = db, data_dir, parallel
         self.bell = bell
+        self.clock = clock
+        self.stale_first_hours, self.stale_repeat_hours = stale_first_hours, stale_repeat_hours
+        self.stale_sweep_seconds = stale_sweep_seconds
+        self.stale_at = 0.0       # when the stale sweep last ran (clock seconds)
+        self.stale_said = False   # the "no sweep function yet" line is said once
         self.spawn = spawn or self._spawn_child
         self.ready, self.kill, self.now, self.log = ready, kill, now, log
         self.budget = budget if budget is not None else BUILD_MAX_SECONDS
@@ -2251,6 +2290,30 @@ class Service:
         except Exception as e:  # noqa: BLE001
             self.log("lesson-builder: consider failed: {}".format(e))
         return started
+
+    def sweep_stale(self, force=False):
+        """The stale-row alarm (DR-0771): ask 0252's sweep to alarm every root lesson
+        row waiting past the first window, then ring the bell for each alarmed row
+        (the tag change also rings through 0243; the bell dedupes). Returns the rows
+        alarmed. Never raises; a database without the function says so once."""
+        now = self.clock()
+        if not force and now - self.stale_at < self.stale_sweep_seconds:
+            return []
+        self.stale_at = now
+        sweep = getattr(self.db, "stale_sweep", None)
+        if sweep is None:
+            return []
+        try:
+            alarmed = sweep(self.stale_first_hours, self.stale_repeat_hours) or []
+        except Exception as e:  # noqa: BLE001 -- the alarm never stops a build
+            if not self.stale_said:
+                self.stale_said = True
+                self.log("lesson-stale: sweep not available ({}); waiting rows are not alarmed until 0252 is applied".format(type(e).__name__))
+            return []
+        for a in alarmed:
+            self.log("lesson-stale: alarm #{} for {} (waited {} h)".format(a.get("alarm_no"), a.get("id"), a.get("waited_hours")))
+            self._ring_bell(("row", a.get("id")))
+        return alarmed
 
     def _ring_bell(self, job):
         kind, ident = job
@@ -2401,6 +2464,7 @@ class Service:
                         time.sleep(1)
                     for payload in db.drain():
                         self.consider(payload)
+                    self.sweep_stale()  # DR-0771: a row waiting too long is alarmed, on this wake
                     if self.bell is not None:
                         self.bell.flush()  # the trailing ring of a burst
             except Exception as e:  # noqa: BLE001 -- reconnect, then sweep what was missed

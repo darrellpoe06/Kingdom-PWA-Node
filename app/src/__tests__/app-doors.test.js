@@ -23,7 +23,7 @@ import { fileURLToPath } from 'node:url';
 import {
   DOORS, PERSONAL_DOOR, doorForInstanceSlug, doorPathForInstanceSlug, currentDoor,
   messageLanding, liveLanding, dmPeerFrom, captureDeepLink, consumeDmPeer,
-  resetDeepLinkForTests, doorLabelForInstanceSlug, spaceLabel,
+  resetDeepLinkForTests, doorLabelForInstanceSlug, spaceLabel, doorArtwork,
 } from '../lib/app-doors.js';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -218,5 +218,35 @@ describe('a space is named by its door', () => {
 
   it('an unknown slug is the personal door, never a blank', () => {
     expect(doorLabelForInstanceSlug('nobody-knows')).toBe('PoeTech');
+  });
+});
+
+// THE DOOR'S OWN FACE (Darrell 2026-10-02: "Why does it show up as PoeTech App
+// instead of the Love Corner App logo?"). Every door names the icon its
+// manifest installs with, so the shade and the lock-screen card can wear it.
+describe('every door carries its own icon, and the file is really there', () => {
+  it('names a 192 and a 512 icon that exist in app/public', () => {
+    for (const d of DOORS) {
+      expect(typeof d.icon, `${d.key} has no icon`).toBe('string');
+      expect(typeof d.icon512, `${d.key} has no 512 icon`).toBe('string');
+      for (const p of [d.icon, d.icon512]) {
+        expect(existsSync(join(APP, 'public', p.replace(/^\//, ''))), `${d.key}: ${p} is not in app/public`).toBe(true);
+      }
+    }
+  });
+
+  it('the church door’s icon is the church’s own, not PoeTech’s', () => {
+    const church = DOORS.find((d) => d.key === 'lovecorner');
+    const poetech = DOORS.find((d) => d.key === 'poetech');
+    expect(church.icon).not.toBe(poetech.icon);
+    expect(church.icon).toMatch(/lovecorner/);
+  });
+
+  it('doorArtwork reads the door from the page: the church page gets the church art, the family page PoeTech’s', () => {
+    expect(doorArtwork('/lovecorner/app/', '').map((a) => a.src)).toEqual(['/lovecorner-icon-192.png', '/lovecorner-icon-512.png']);
+    expect(doorArtwork('/poetech-app/', '?view=church').map((a) => a.src)).toEqual(['/icon-192.png', '/icon-512.png']);
+    // The printed-QR launch param is still the church's door.
+    expect(doorArtwork('/poetech-app/', '?lovecorner=1')[0].src).toBe('/lovecorner-icon-192.png');
+    expect(doorArtwork('/lovecorner/app/', '').map((a) => a.sizes)).toEqual(['192x192', '512x512']);
   });
 });

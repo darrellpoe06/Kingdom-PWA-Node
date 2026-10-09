@@ -45,6 +45,7 @@ import {
   planRun, makeInertState, JOB_TYPES, DEFAULT_IDLE_WINDOWS,
 } from '../lib/gpu-scheduler.js';
 import { getDeviceAccess, subscribeDevices, saveDevice } from '../lib/church-devices-sync.js';
+import { listInstanceMembersStrict } from '../lib/member-roles.js';
 import NetworkTopology from './NetworkTopology.jsx';
 
 // Shared visual tokens — identical to the Video Wall / conference surfaces
@@ -159,7 +160,7 @@ function DeviceCard({ device, canEdit, onEdit }) {
 // optimistic paint — the register refreshes when the realtime stream returns
 // the real row (DR-0076: the screen shows what the DB actually holds).
 // -----------------------------------------------------------------------------
-function DeviceEditor({ target, onClose }) {
+function DeviceEditor({ target, onClose, members = [] }) {
   const [form, setForm] = useState({
     name: target?.name || '',
     deviceType: target?.deviceType || 'other',
@@ -168,6 +169,8 @@ function DeviceEditor({ target, onClose }) {
     steward: target?.steward || '',
     notes: target?.notes || '',
     confirmed: target?.confirmed === true,
+    // WHOSE device (DR-0830): a member of the space, by hand; '' = nobody.
+    ownerUserId: target?.ownerUserId || '',
   });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -185,6 +188,7 @@ function DeviceEditor({ target, onClose }) {
       steward: form.steward.trim() || null,
       notes: form.notes.trim() || null,
       confirmed: form.confirmed,
+      ownerUserId: form.ownerUserId || null,
     });
     const check = validateDevice(device);
     if (!check.ok) { setError(check.errors.join('; ')); return; }
@@ -225,6 +229,16 @@ function DeviceEditor({ target, onClose }) {
           <label htmlFor="dev-ed-steward" className={labelCls}>Steward</label>
           <input id="dev-ed-steward" className={fieldCls} value={form.steward} onChange={(e) => set('steward', e.target.value)} placeholder="Who keeps this device" />
         </div>
+        {/* BELONGS TO (DR-0830): the person whose device this is, from the
+            space's own roster, so their record (Admin > Known) shows it with
+            the MAC the scan read. A hand's choice, never derived. */}
+        <div className="sm:col-span-2">
+          <label htmlFor="dev-ed-owner" className={labelCls}>Belongs to</label>
+          <select id="dev-ed-owner" className={fieldCls} value={form.ownerUserId} onChange={(e) => set('ownerUserId', e.target.value)} data-testid="dev-ed-owner">
+            <option value="">Nobody assigned</option>
+            {members.map((m) => <option key={m.userId} value={m.userId}>{m.displayName || m.email || m.userId}</option>)}
+          </select>
+        </div>
         <div className="sm:col-span-2">
           <label htmlFor="dev-ed-notes" className={labelCls}>Notes</label>
           <textarea id="dev-ed-notes" rows="2" className={fieldCls} value={form.notes} onChange={(e) => set('notes', e.target.value)} />
@@ -263,12 +277,21 @@ export default function DeviceInventory() {
   const [rows, setRows] = useState(null); // null = loading / not subscribed
   // editor: null = closed; { target: null } = add form; { target: device } = edit.
   const [editor, setEditor] = useState(null);
+  // The space's roster, for Belongs to (DR-0830); read only when the editor
+  // can be opened at all.
+  const [members, setMembers] = useState([]);
 
   useEffect(() => {
     let alive = true;
     getDeviceAccess().then((a) => { if (alive) setAccess(a); });
     return () => { alive = false; };
   }, []);
+  useEffect(() => {
+    if (!access.canEdit || !access.tenantId) return undefined;
+    let alive = true;
+    listInstanceMembersStrict(access.tenantId).then((list) => { if (alive) setMembers(Array.isArray(list) ? list : []); }).catch(() => {});
+    return () => { alive = false; };
+  }, [access.canEdit, access.tenantId]);
 
   useEffect(() => {
     if (!access.canSee) return undefined;
@@ -325,6 +348,7 @@ export default function DeviceInventory() {
         <DeviceEditor
           key={editor.target ? editor.target.id : 'dev-ed-new'}
           target={editor.target}
+          members={members}
           onClose={() => setEditor(null)}
         />
       )}

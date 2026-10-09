@@ -65,6 +65,7 @@ const SINGULAR_BY_DESIGN = Object.freeze({
   'components/MooreDivahs.jsx': 'one piece, one photograph of it',
   'components/BooksTransactions.jsx': 'one receipt belongs to one transaction',
   'components/ChefCorner.jsx': 'one photo per recipe',
+  'components/Vault.jsx': 'one export file from one password manager per import (DR-0762)',
   'components/Choir.jsx': 'one attachment per song sheet',
   'components/MyProfile.jsx': 'one person, one profile picture (DR-0342)',
   'components/VoiceStudio.jsx': 'one person, one portrait as the Teacher likeness reference (DR-0430)',

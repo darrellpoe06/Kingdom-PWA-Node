@@ -121,6 +121,23 @@ html[data-lesson-space='open'] header.ts-safe-sticky {
   position: static;
 }
 
+/* THE CHROME GIVES THE READING ITS HEIGHT BACK (DR-0749; Darrell 2026-10-02:
+   "the top staying the same after we already read it while the bottom moves
+   makes the reading space smaller"). While a lesson is under way the pinned
+   block slides up out of view as the reader scrolls down and returns on the
+   first flick up or at the top (lib/lesson-room.js). It stays sticky; only
+   its transform moves. */
+.lesson-space-sticky {
+  transition: transform 0.22s ease;
+  will-change: transform;
+}
+.lesson-space-sticky[data-chrome='hidden'] {
+  transform: translateY(-100%);
+}
+@media (prefers-reduced-motion: reduce) {
+  .lesson-space-sticky { transition: none; }
+}
+
 /* .ts-escape-hatch — the comfort-controls row (text size, voice, theme) pins to
    the BOTTOM edge of the scrolling .ts-safe-sticky header at big sizes, so the
    escape hatch is on screen WITHOUT scrolling no matter how tall the header
@@ -492,4 +509,54 @@ body:has(.fixed.inset-0.z-50) .chrome-dock {
 [data-theme="midnight"] .poe-hl-poe-read-word {
   background-color: #FB923C;
   mix-blend-mode: screen;
+}
+
+/* =============================================================================
+   A TV flattens its inner scroll boxes — the page is the only scroller
+   =============================================================================
+   Darrell 2026-10-07, on the Firestick: "Can't scroll lists of lessons on
+   Firestick... how can we choose from the whole list?" Silk drives a pointer
+   with the D-pad and scrolls only the PAGE (pointer at the screen edge). A list
+   in a box with its own max-height and overflow-y: auto has no edge to lean
+   on, so the Learn tree showed four of seven lessons and no road to the rest.
+   On a TV every such box inside <main> is opened flat: the list takes its full
+   height and the page carries it. Fixed overlays are not in <main> and keep
+   their scroll. The dock's ▲ Up / ▼ Down chips (lib/tv-paging.js) walk the page
+   by clicking. The class comes from device-roles markDeviceClass at boot. */
+html[data-device-class="tv"] main .overflow-y-auto:not(.tv-keep-scroll) {
+  max-height: none !important;
+  overflow-y: visible !important;
+}
+
+/* =============================================================================
+   Full screen for the reader — only the Word and the voice (DR-0785)
+   =============================================================================
+   Darrell 2026-10-07, on the Firestick: "unless we go to full screen then the
+   controls are not there just listen to the app and seeing the Word." The
+   reader sets this attribute (lib/reader-controller.js); the dock, the shell
+   header and the docked reader bar step out of the way. The reader's own
+   rails are not rendered while it holds. A faint corner mark, Esc or the
+   remote's Back clears it. */
+html[data-reader-fullscreen="true"] .chrome-dock,
+html[data-reader-fullscreen="true"] header[data-read-skip],
+html[data-reader-fullscreen="true"] .tts-docked {
+  display: none !important;
+}
+
+/* =============================================================================
+   The reader's rails — <main> makes room for them (DR-0785)
+   =============================================================================
+   On a TV the Read Aloud controls sit on the two sides of the screen
+   (lib/reader-controller.js: one column of the bottom bar's own buttons,
+   6.5rem each, or less on a narrow TV so the Word keeps 32rem; scaled with
+   the chrome size). <main> and the shell header are
+   full width, so while the rails are on both are inset by the rail plus a gap
+   on each side: the Word's column and the header's tab rows narrow between the
+   rails rather than being covered at their edges (the CI layout probe caught a
+   rail over the tab row). The expression here IS RAIL_WIDTH_CSS; a test pins
+   the two together. */
+html[data-reader-rails="sides"] main,
+html[data-reader-rails="sides"] header[data-read-skip] {
+  padding-left: calc(calc(min(6.5rem, (100vw - 32rem) / 2) * var(--ts-chrome-scale, 1)) + 1.5rem) !important;
+  padding-right: calc(calc(min(6.5rem, (100vw - 32rem) / 2) * var(--ts-chrome-scale, 1)) + 1.5rem) !important;
 }

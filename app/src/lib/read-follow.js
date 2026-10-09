@@ -117,6 +117,14 @@ export function buildFollowMap(root, doc = typeof document !== 'undefined' ? doc
   if (!root || !doc) return null;
   const chars = [];   // normalized characters
   const map = [];     // map[i] = { node, offset } for chars[i]
+  // WHERE EACH BLOCK'S WORDS BEGIN, in normalized-character positions — the
+  // paragraph grid, recorded BY CONSTRUCTION (DR-0764). This walk already
+  // knows every block boundary (it puts the separator in, just below); writing
+  // those positions down costs nothing and gives paragraphStarts the one thing
+  // it could not get from the DOM afterwards: a boundary for EVERY kind of
+  // block, not only the handful of tags a second list happened to name.
+  const blocks = [];
+  let pendingBlock = true; // the next real character opens a block
   let lastWasSpace = true; // leading whitespace never lands
   let lastBlock = null;    // the block element the previous text node sat in
   const walker = doc.createTreeWalker(root, 4 /* NodeFilter.SHOW_TEXT */, null);
@@ -162,6 +170,7 @@ export function buildFollowMap(root, doc = typeof document !== 'undefined' ? doc
     // One space at the boundary restores both: real words for the engine, and a
     // segmentation that matches what the fallback path has always produced.
     const block = closestBlock(parent, root);
+    if (lastBlock && block !== lastBlock) pendingBlock = true;
     if (lastBlock && block !== lastBlock && !lastWasSpace) {
       // Anchor the separator to the END of the text we just left, so a range
       // that stops here stops at the real last character of that block.
@@ -204,6 +213,7 @@ export function buildFollowMap(root, doc = typeof document !== 'undefined' ? doc
         map.push({ node, offset: i });
         lastWasSpace = true;
       } else {
+        if (pendingBlock) { blocks.push(chars.length); pendingBlock = false; }
         chars.push(ch);
         map.push({ node, offset: i });
         lastWasSpace = false;
@@ -227,7 +237,7 @@ export function buildFollowMap(root, doc = typeof document !== 'undefined' ? doc
     located.push({ text: seg, start: at, end: at + seg.length });
     cursor = at + seg.length;
   }
-  return { text, map, segments: located };
+  return { text, map, segments: located, blocks };
 }
 
 /** The live DOM Range covering normalized positions [start, end). */
@@ -554,8 +564,18 @@ export const PLACE_SLACK = 12;
 // the sentence had LEFT the band, and then only far enough to bring its
 // bottom edge back inside — so every next sentence landed on the bottom edge.
 export const TOP_GAP = 14;
+// A MANUAL JUMP KEEPS THE SCREEN STILL (2026-10-07, DR-0790; Darrell: "Reader
+// screen jumps and moves everytime a user selected the prev/next buttons...
+// it makes it difficult to refind your place"). Back / Next restart the voice
+// at the paragraph before or after, and the follow then PLACED that
+// sentence at the top of the band — the whole page lurched under a reader
+// who had just looked at where the voice was. `mode: 'reveal'` keeps the
+// chosen place out of it: the page moves only when the sentence is hidden or
+// off the fold, and then by the least that shows it. The reader stays in
+// reveal until a move was genuinely needed; then the chosen place resumes.
+export const FOLLOW_MODES = Object.freeze(['place', 'reveal']);
 export function readingScrollDelta({
-  rangeTop = 0, rangeBottom = 0, topInset = 0, bottomInset = 0, viewportHeight = 0, margin = 24, place, lineHeight = 0,
+  rangeTop = 0, rangeBottom = 0, topInset = 0, bottomInset = 0, viewportHeight = 0, margin = 24, place, lineHeight = 0, mode = 'place',
 } = {}) {
   const vh = Number(viewportHeight) || 0;
   if (!vh) return 0;
@@ -565,7 +585,7 @@ export function readingScrollDelta({
   const restTop = safeTop + margin;          // first line that is genuinely readable
   const restBottom = vh - (Number(bottomInset) || 0) - margin;
 
-  if (place === 'top' || place === 'centre') {
+  if ((place === 'top' || place === 'centre') && mode !== 'reveal') {
     const height = Math.max(0, bottom - top);
     const line = Math.max(0, Number(lineHeight) || 0);
     let target;
@@ -654,12 +674,12 @@ export function scrollContainerFor(el, win = (typeof window !== 'undefined' ? wi
   return null;
 }
 
-export function followRange(range, { place } = {}) {
-  if (!range) return;
+export function followRange(range, { place, mode = 'place' } = {}) {
+  if (!range) return 0;
   try {
     const win = typeof window !== 'undefined' ? window : null;
     const doc = typeof document !== 'undefined' ? document : null;
-    if (!win) return;
+    if (!win) return 0;
     // The RANGE's own box — the sentence — not the paragraph that contains it.
     const rect = typeof range.getBoundingClientRect === 'function' ? range.getBoundingClientRect() : null;
     const usable = rect && (rect.height > 0 || rect.width > 0);
@@ -669,8 +689,8 @@ export function followRange(range, { place } = {}) {
       const el = range.startContainer && (range.startContainer.nodeType === 1
         ? range.startContainer
         : range.startContainer.parentElement);
-      if (el && el.scrollIntoView) el.scrollIntoView({ block: 'center', behavior: motionBehavior() });
-      return;
+      if (el && el.scrollIntoView) el.scrollIntoView({ block: mode === 'reveal' ? 'nearest' : 'center', behavior: motionBehavior() });
+      return 0;
     }
     const textEl = range.startContainer && (range.startContainer.nodeType === 1
       ? range.startContainer
@@ -698,11 +718,12 @@ export function followRange(range, { place } = {}) {
         margin: readingMargin(textEl, win),
         place,
         lineHeight,
+        mode,
       });
-      if (!inner) return;
+      if (!inner) return 0;
       if (typeof container.scrollBy === 'function') container.scrollBy({ top: inner, behavior: motionBehavior() });
       else container.scrollTop += inner;
-      return;
+      return inner;
     }
     const delta = readingScrollDelta({
       rangeTop: rect.top,
@@ -713,10 +734,12 @@ export function followRange(range, { place } = {}) {
       margin: readingMargin(textEl, win),
       place,
       lineHeight,
+      mode,
     });
-    if (!delta) return;
+    if (!delta) return 0;
     if (typeof win.scrollBy === 'function') win.scrollBy({ top: delta, behavior: motionBehavior() });
-  } catch (_) { /* scrolling is best-effort */ }
+    return delta;
+  } catch (_) { return 0; /* scrolling is best-effort */ }
 }
 
 // =============================================================================
@@ -732,12 +755,51 @@ export function followRange(range, { place } = {}) {
 const BLOCK_TAGS = /^(P|LI|H[1-6]|BLOCKQUOTE|TD|TH|DT|DD|FIGCAPTION|PRE)$/;
 
 /**
- * The segment indexes where a new paragraph (block element) begins. A segment
- * whose range cannot be resolved keeps the running paragraph (never splits).
+ * The segment indexes where a new paragraph begins, read from the follow map's
+ * OWN block grid (buildFollowMap records where each block's words start).
+ *
+ * THE BUG THIS REPLACES (DR-0764). Darrell 2026-10-06, from his phone, reading
+ * a lesson in the NAS voice: "The reader does not go to the next section or
+ * paragraph... it goes to the beginning of the lessons."
+ *
+ * Both halves of that sentence came from one line — the BLOCK_TAGS whitelist
+ * below. It names P, LI, H1-6, BLOCKQUOTE, TD, TH, DT, DD, FIGCAPTION and PRE,
+ * and nothing else; `buildFollowMap`'s own BLOCK_BOUNDARY_TAGS names twenty
+ * more, DIV and SECTION among them. So on a surface whose prose renders in
+ * DIVs — which is most of this app — every sentence walked past every DIV and
+ * landed on the one element the whole lesson is wrapped in
+ * (`<li id="learn-lesson-…">`, ChurchLearn.jsx:2856). One block for the whole
+ * lesson, so `starts` came back `[0]`, and paragraphJumpTarget then answered
+ * `null` for Forward (nothing moved) and `starts[0]` — SEGMENT 0, THE TOP OF
+ * THE LESSON — for Back. Measured in jsdom over a DIV-rendered lesson: six
+ * sentences, `starts` `[0]`, Forward `null`, Back `0`.
+ *
+ * The two lists cannot be kept in step by hand, so the second list is gone:
+ * the map that decides where a block ENDS now also says where one BEGINS, and
+ * paragraphs are read from that. It is the same "alignment by construction"
+ * this file is built on, and it survives what the DOM walk could not — a
+ * lesson that re-rendered under the reading, where the ranges resolve to
+ * detached nodes.
+ *
+ * The DOM walk is kept for a follow map built by hand (tests, callers that
+ * assemble `{segments}` themselves) — those carry no `blocks`.
  */
 export function paragraphStarts(follow, doc = typeof document !== 'undefined' ? document : null) {
   const starts = [];
   if (!follow || !Array.isArray(follow.segments)) return starts;
+  if (Array.isArray(follow.blocks) && follow.blocks.length) {
+    // Both lists are in ascending order, so one moving cursor pins every one.
+    let b = 0;
+    let prev = -1;
+    follow.segments.forEach((s, i) => {
+      if (s) {
+        while (b + 1 < follow.blocks.length && follow.blocks[b + 1] <= s.start) b += 1;
+      }
+      if (i === 0 || b !== prev) starts.push(i);
+      prev = b;
+    });
+    return starts;
+  }
   let prevBlock;
   follow.segments.forEach((s, i) => {
     const r = s ? rangeFor(follow, s.start, s.end, doc) : null;
@@ -768,4 +830,30 @@ export function paragraphJumpTarget(starts, current, dir) {
     return idx > 0 ? starts[idx - 1] : starts[0];
   }
   return idx < starts.length - 1 ? starts[idx + 1] : null;
+}
+
+/**
+ * TAP BACK AGAIN TO KEEP WALKING BACK (Darrell 2026-10-07: "Can't go back
+ * using the back button... it can't be pushed again before it reads the exact
+ * same paragraph"). Back first re-listens the paragraph the voice is in; the
+ * promise since 2026-08-15 was that a SECOND tap walks to the one before. But
+ * the second tap was judged by where the voice IS, and a fast voice is past
+ * the paragraph's first sentence within a second (at 3x, every sentence is
+ * about a second), while a NAS voice spends seconds preparing — so by the
+ * time a listener could tap again, Back re-listened the same paragraph. Every
+ * time. The way out was never reachable.
+ *
+ * The rule a music player uses: a Back pressed within a short window of the
+ * previous Back is "the one before THAT", judged from where the previous Back
+ * LANDED, not from where the voice has wandered since. Pure; `now` injected.
+ *   starts   paragraph starts (segment indexes)
+ *   current  the voice's absolute segment now
+ *   lastBack {at, target} of the previous Back, or null
+ */
+export const BACK_AGAIN_MS = 4000;
+export function paragraphBackTarget(starts, current, lastBack, now = Date.now(), windowMs = BACK_AGAIN_MS) {
+  const again = lastBack && Number.isFinite(lastBack.at) && Number.isFinite(lastBack.target)
+    && (now - lastBack.at) >= 0 && (now - lastBack.at) < windowMs;
+  if (again) return paragraphJumpTarget(starts, lastBack.target, -1);
+  return paragraphJumpTarget(starts, current, -1);
 }

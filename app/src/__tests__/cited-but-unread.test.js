@@ -160,4 +160,109 @@ describe('the message tells the agent what to DO', () => {
     expect(msg).toMatch(/Read them now/);
     expect(msg).toMatch(/drop the citation/);
   });
+
+});
+
+// =============================================================================
+// THE POINTER IS NOT A CITATION — the live 2026-10-09 false positive
+// =============================================================================
+// Shipping L223, the reply reported the ledger's own `**Next ID:** DR-0835` to
+// prove the claim had landed, and the guard blocked it. The number named the
+// next UNCLAIMED record, so no file for it existed or could be read. The guard
+// fired on a true statement, which costs the same trust as missing a real one.
+//
+// Both directions are pinned here on purpose: the fix must not buy quiet by
+// letting the original incident through.
+// =============================================================================
+describe('the ledger pointer is a value, not a claim to have read something', () => {
+  it('does NOT fire on the Next ID pointer, which has no record by definition', () => {
+    const out = checkCitedButUnread({
+      claimText: "main's ledger pointer now reads **Next ID:** DR-0835.",
+      readPaths: [],
+      nextDrId: '0835',
+    });
+    expect(out.ok).toBe(true);
+    expect(out.unread).toEqual([]);
+  });
+
+  it('does not fire on a forward id above the pointer either', () => {
+    const out = checkCitedButUnread({
+      claimText: 'The next lesson will claim DR-0836 or DR-0840.',
+      nextDrId: '0835',
+    });
+    expect(out.ok).toBe(true);
+  });
+
+  it('accepts the pointer written as DR-0835, the way the hook may hand it over', () => {
+    expect(checkCitedButUnread({ claimText: 'Pointer DR-0835.', nextDrId: 'DR-0835' }).ok).toBe(true);
+  });
+
+  it('PROVEN-TO-CATCH: an unread record BELOW the pointer still blocks', () => {
+    const out = checkCitedButUnread({
+      claimText: 'This follows DR-0060, and the pointer is at DR-0835.',
+      readPaths: ['/repo/CLAUDE.md'],
+      nextDrId: '0835',
+    });
+    expect(out.ok).toBe(false);
+    expect(out.unread).toEqual(['DR-0060']);   // the real record
+  });
+
+  it('PROVEN-TO-CATCH: the pointer never excuses the id just below it', () => {
+    const out = checkCitedButUnread({ claimText: 'Per DR-0834.', nextDrId: '0835' });
+    expect(out.ok).toBe(false);
+    expect(out.unread).toEqual(['DR-0834']);
+  });
+
+  it('a record that WAS read passes, pointer present or not', () => {
+    const out = checkCitedButUnread({
+      claimText: 'Per DR-0834, and the pointer is DR-0835.',
+      readPaths: ['/repo/docs/decisions/DR-0834-the-storm.md'],
+      nextDrId: '0835',
+    });
+    expect(out.ok).toBe(true);
+  });
+
+  // MEASURED AGAINST THE REAL LEDGER, and the reason the fix stops at the
+  // pointer. A wider rule — "below the pointer with no file means invented" —
+  // was built, measured, and REJECTED: 57 ids have no file yet are legitimately
+  // citable. DR-0017..DR-0049 are the pre-file-convention era recorded in
+  // session notes (docs/reviews/REVIEWS.md:263); DR-0655 and others are claimed
+  // by branches still in flight. So a gap below the pointer must keep being
+  // treated as an ordinary citation, never as a fabrication.
+  it('treats a FILE-LESS id below the pointer as an ordinary citation, not a fabrication', () => {
+    const preConvention = checkCitedButUnread({ claimText: 'Per DR-0017.', nextDrId: '0835' });
+    expect(preConvention.unread).toEqual(['DR-0017']);   // unread, which a read of the notes clears
+
+    const cleared = checkCitedButUnread({
+      claimText: 'Per DR-0017 the workforce layer is the engine.',
+      shellText: ['grep -n "DR-0017" docs/99-session-notes/2026-06-09-poetech-market-strategy.md'],
+      nextDrId: '0835',
+    });
+    expect(cleared.ok).toBe(true);
+  });
+});
+
+describe('WITHOUT the pointer, nothing is relaxed — a caller that cannot read it must not weaken the gate', () => {
+  it('polices every cited id exactly as before when no pointer is supplied', () => {
+    const out = checkCitedButUnread({ claimText: 'Per DR-0835 and DR-0400.', readPaths: [] });
+    expect(out.ok).toBe(false);
+    expect(out.unread).toEqual(['DR-0400', 'DR-0835']);
+  });
+
+  it('polices normally when the pointer is unreadable junk', () => {
+    for (const bad of ['not-a-number', '', null, undefined, {}]) {
+      const out = checkCitedButUnread({ claimText: 'Per DR-0835.', nextDrId: bad });
+      expect(out.unread).toEqual(['DR-0835']);
+    }
+  });
+
+  it('a foundation doc is judged by the doc list, never by the ledger pointer', () => {
+    const out = checkCitedButUnread({
+      claimText: 'Held to EXCELLENCE-STANDARD.md, pointer DR-0835.',
+      knownDocs: ['EXCELLENCE-STANDARD.md'],
+      nextDrId: '0835',
+    });
+    expect(out.ok).toBe(false);
+    expect(out.unread).toEqual(['EXCELLENCE-STANDARD.md']);
+  });
 });

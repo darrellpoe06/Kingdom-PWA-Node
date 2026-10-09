@@ -89,6 +89,26 @@ export async function inviteToSpace(instanceType, email, role, instanceId = null
   return { ...r, kind: 'instance' };
 }
 
+// ADD AN ACCOUNT THAT ALREADY EXISTS to a space, by the governor's hand
+// (DR-0829; Darrell 2026-10-09, Platform Signups open: "Why can't I make
+// Christyn my family with a check box or whatever... the ability to give and
+// do things as admin!"). The invite road (DR-0187) binds an EMAIL STRING to a
+// person through a claim link because knowing an address is not knowing the
+// person. Here the governor points at an authenticated account by its id on
+// the signups list, which is the second fact already. RPC add_user_to_instance
+// (0255): caller owner/admin of that space; only an owner mints admin; never
+// owner; idempotent (a second add updates the role); audit-logged.
+// Returns { status: 'added'|'changed'|'noop', role } or { ok:false, reason }.
+export async function addUserToSpace(instanceId, targetUserId, role = 'member', displayName = null) {
+  if (!instanceId || !targetUserId) return { ok: false, reason: 'bad-args' };
+  const safeRole = ['admin', 'member', 'viewer'].includes(role) ? role : 'member';
+  const args = { instance_uuid: instanceId, target_user: targetUserId, new_role: safeRole };
+  if (displayName) args.display_name_in = String(displayName).slice(0, 80);
+  const { data, error } = await supabase.rpc('add_user_to_instance', args);
+  if (error) return { ok: false, reason: 'rpc-error', error: error.message || String(error) };
+  return { ok: true, ...(data || { status: 'noop', role: safeRole }) };
+}
+
 // Remove a member from a space entirely — the REVOKE half of assistant rights
 // (DR-0271, RPC remove_instance_member in 0130). The RPC enforces: caller
 // owner/admin; never an owner; only an owner removes an admin; no self-removal.
