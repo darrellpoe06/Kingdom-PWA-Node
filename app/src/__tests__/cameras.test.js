@@ -15,7 +15,7 @@ import {
   serviceCodeState, classifyRestartResult, restartService, restartUrl,
   WYZE_DRAFT_KEY, loadWyzeDraft, saveWyzeDraft, clearWyzeDraft,
   humanizeCameraError, classifySnapError, explainWhy, fetchWhy, whyUrl, skipFailedFrame, runLimited,
-  WALL_KEY, loadWall, saveWall, wallLimit, WALL_MAX_DEFAULT, SNAP_CONCURRENCY, LIVE_RECONNECT_MAX,
+  WALL_KEY, loadWall, saveWall, wallLimit, WALL_MAX_DEFAULT, SNAP_CONCURRENCY, reconnectDelayMs, LIVE_RECONNECT_DELAY_MS, LIVE_RECONNECT_DELAY_MAX_MS,
   recordingUrl, recListUrl, recClipUrl, fetchRecording, saveRecording, fetchClips, clipParts, groupClipsByDay, diskForecast, RETENTION_CHOICES, CLIP_TICKET_TTL,
   LIVE_TILES_KEY, loadLiveTiles, saveLiveTiles, liveTileBudget, liveTrafficLine,
   streamNameFor, parseDevices, classifyDevicesResult, classifyActionResult, fetchDevices, runDeviceAction, setupWyzeAgain, garagesFor, wyzeKept,
@@ -388,7 +388,21 @@ describe('the sweep: several at once, a failed camera rested', () => {
     expect(peak).toBe(3);
     expect(done.sort((a, b) => a - b)).toEqual([1, 2, 3, 4, 5, 6, 7]);
     expect(SNAP_CONCURRENCY).toBeGreaterThan(1);
-    expect(LIVE_RECONNECT_MAX).toBeGreaterThan(0);
+    expect(LIVE_RECONNECT_DELAY_MAX_MS).toBeGreaterThan(LIVE_RECONNECT_DELAY_MS);
+  });
+});
+
+describe('a live view never stops trying (DR-0833)', () => {
+  it('the wait is the first step after a picture or one blank try, doubles while the camera stays blank, and never passes the ceiling', () => {
+    expect(reconnectDelayMs(0)).toBe(LIVE_RECONNECT_DELAY_MS);
+    expect(reconnectDelayMs(1)).toBe(LIVE_RECONNECT_DELAY_MS);
+    expect(reconnectDelayMs(2)).toBe(LIVE_RECONNECT_DELAY_MS * 2);
+    expect(reconnectDelayMs(3)).toBe(LIVE_RECONNECT_DELAY_MS * 4);
+    expect(reconnectDelayMs(5)).toBe(LIVE_RECONNECT_DELAY_MS * 16);
+    expect(reconnectDelayMs(6)).toBe(LIVE_RECONNECT_DELAY_MAX_MS);
+    expect(reconnectDelayMs(99)).toBe(LIVE_RECONNECT_DELAY_MAX_MS);
+    expect(reconnectDelayMs('x')).toBe(LIVE_RECONNECT_DELAY_MS);
+    expect(reconnectDelayMs(-4)).toBe(LIVE_RECONNECT_DELAY_MS);
   });
 });
 

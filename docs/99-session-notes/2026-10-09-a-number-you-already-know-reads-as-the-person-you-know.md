@@ -65,3 +65,8 @@ The migration run dispatched the isolation matrix (run 283): the role-control le
 ## Later: "Timelines based on the Way we work... DRs" (DR-0832)
 
 The Way's timeline is the ledger's re-review dates. Measured on the records: 257 dated re-reviews across 217 records on or after today, 16 on 10-14 and 31 on 10-21 alone, and some already passed. The app showed only a seven-day window and the date per record. Now the governance surface carries a Timeline: passed and not re-reviewed first, with the days; due today; then week by week, the first two open. Pure over the ledger the build ships; 10 cases.
+
+
+## A live view never stops trying (DR-0833)
+
+Darrell's photograph of the TV: four camera tiles stopped on "Press Resume". The cap (six tries, nine seconds) came from DR-0774 and was wrong for a wall nobody stands next to. The witness run at 03:26 UTC found two of those four cameras streaming again while their tiles waited for a hand. Both players now keep trying for as long as the tile is shown, with a wait that grows only while the camera gives no picture (1.5 s to 30 s) and resets on a picture; the first-frame deadline reconnects; a hidden page waits the long step. Measured and recorded in the DR: 9 of 31 cameras answer a frame; go2rtc cannot discover basketball_cam on the LAN; the bridge connects only great-room and kitchen-2; Wyze's peer service tells the bridge the 805 cameras are offline while the Wyze app shows them. That last line is the open question the next record takes to the NAS.

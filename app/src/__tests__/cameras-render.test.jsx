@@ -9,7 +9,7 @@ import { createRoot } from 'react-dom/client';
 import Cameras from '../components/Cameras.jsx';
 import { SURFACES, surfaceById } from '../surfaces.js';
 import { CHAT_BRIDGE_TOKEN_KEY } from '../lib/nas-photos.js';
-import { WYZE_DRAFT_KEY, WALL_KEY, LIVE_RECONNECT_MAX, LIVE_RECONNECT_DELAY_MS, formatBytes, LIVE_TILES_KEY, GRANT_KEY, PAIR_TIMING, VIEWS_KEY } from '../lib/cameras.js';
+import { WYZE_DRAFT_KEY, WALL_KEY, reconnectDelayMs, LIVE_RECONNECT_DELAY_MS, LIVE_RECONNECT_DELAY_MAX_MS, LIVE_FIRST_FRAME_TIMEOUT_MS, formatBytes, LIVE_TILES_KEY, GRANT_KEY, PAIR_TIMING, VIEWS_KEY } from '../lib/cameras.js';
 import { CAMS_TAB_KEY } from '../components/Cameras.jsx';
 import { getReadTarget, subscribeRead } from '../lib/read-target.js';
 
@@ -434,34 +434,69 @@ describe('Cameras surface', () => {
     expect(container.querySelector('[data-testid="live-view"]')).toBeFalsy();
   });
 
-  it('a live view that ends on its own reconnects itself (a new ticket, the count shown) and offers Resume only after the last try (DR-0774)', async () => {
+  it('a live view that ends on its own reconnects itself, never stops, and never asks for Resume (DR-0774, DR-0833)', async () => {
     const { fetchImpl, calls } = makeFetch({ list: { cameras: [{ id: 'front_yard', name: 'front yard', kind: 'wyze' }], count: 1 } });
     vi.stubGlobal('fetch', fetchImpl);
     vi.useFakeTimers({ shouldAdvanceTime: true });
+    const status = () => container.querySelector('[data-testid="live-view-status"]');
+    const tickets = () => calls.filter((c) => c.url === '/cams/ticket').length;
     try {
       await mount();
       await act(async () => { await new Promise((r) => setTimeout(r, 20)); });
       await click(buttons().find((b) => b.textContent === 'Big'));
       let video = container.querySelector('video');
       await act(async () => { video.dispatchEvent(new Event('loadeddata')); });
-      const ticketsBefore = calls.filter((c) => c.url === '/cams/ticket').length;
+      const ticketsBefore = tickets();
       await act(async () => { video.dispatchEvent(new Event('ended')); });
-      expect(container.querySelector('[data-testid="live-view-status"]').textContent).toMatch(/Reconnecting \(the stream ended on its own\)/);
+      expect(status().textContent).toMatch(/Reconnecting( in \d+ s)? \(the stream ended on its own\)/);
       expect(buttons().some((b) => b.textContent === 'Resume')).toBe(false);
+      // a picture was seen, so the first wait is the short step
       await act(async () => { await vi.advanceTimersByTimeAsync(LIVE_RECONNECT_DELAY_MS + 50); });
-      expect(calls.filter((c) => c.url === '/cams/ticket').length).toBe(ticketsBefore + 1);
+      expect(tickets()).toBe(ticketsBefore + 1);
       video = container.querySelector('video');
       expect(video).toBeTruthy();
       expect(container.querySelector('[data-testid="live-view-reconnects"]').textContent).toBe('reconnected 1×');
       // and it never says the NAS stopped it at a clock the NAS does not run (live_max_seconds 0)
       expect(container.textContent).not.toMatch(/stops each live view at/);
-      for (let i = 1; i < LIVE_RECONNECT_MAX; i += 1) {
+      // ten failures in a row with no picture: each one is followed by another
+      // try by itself; the wait doubles up to the ceiling and keeps going there.
+      // Nothing ever reads Stopped, Gave up or Resume (DR-0833).
+      let atCeiling = 0;
+      for (let i = 1; i <= 10; i += 1) {
+        const before = tickets();
         await act(async () => { container.querySelector('video').dispatchEvent(new Event('error')); });
-        await act(async () => { await vi.advanceTimersByTimeAsync(LIVE_RECONNECT_DELAY_MS + 50); });
+        expect(status().textContent, `try ${i}`).toMatch(/^Reconnecting/);
+        expect(buttons().some((b) => b.textContent === 'Resume')).toBe(false);
+        const wait = reconnectDelayMs(i);
+        if (wait === LIVE_RECONNECT_DELAY_MAX_MS) atCeiling += 1;
+        await act(async () => { await vi.advanceTimersByTimeAsync(wait + 50); });
+        expect(tickets(), `try ${i} came back by itself`).toBe(before + 1);
+        expect(container.querySelector('[data-testid="live-view-reconnects"]').textContent).toBe(`reconnected ${i + 1}×`);
       }
-      await act(async () => { container.querySelector('video').dispatchEvent(new Event('error')); });
-      expect(container.querySelector('[data-testid="live-view-status"]').textContent).toMatch(new RegExp(`Stopped after ${LIVE_RECONNECT_MAX} reconnects`));
-      expect(buttons().some((b) => b.textContent === 'Resume')).toBe(true);
+      expect(atCeiling).toBeGreaterThan(0);
+      expect(container.textContent).not.toMatch(/Stopped after|Press Resume|Gave up/);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('a live view with no picture by the first-frame deadline comes back by itself, no hand needed (DR-0833)', async () => {
+    const { fetchImpl, calls } = makeFetch({ list: { cameras: [{ id: 'front_yard', name: 'front yard', kind: 'wyze' }], count: 1 } });
+    vi.stubGlobal('fetch', fetchImpl);
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const tickets = () => calls.filter((c) => c.url === '/cams/ticket').length;
+    try {
+      await mount();
+      await act(async () => { await new Promise((r) => setTimeout(r, 20)); });
+      await click(buttons().find((b) => b.textContent === 'Big'));
+      expect(container.querySelector('video')).toBeTruthy();
+      const before = tickets();
+      await act(async () => { await vi.advanceTimersByTimeAsync(LIVE_FIRST_FRAME_TIMEOUT_MS + 50); });
+      expect(container.querySelector('[data-testid="live-view-status"]').textContent).toMatch(/Reconnecting.*no picture after \d+ s/);
+      expect(buttons().some((b) => b.textContent === 'Resume')).toBe(false);
+      await act(async () => { await vi.advanceTimersByTimeAsync(reconnectDelayMs(1) + 50); });
+      expect(tickets()).toBe(before + 1);
+      expect(container.querySelector('video')).toBeTruthy();
     } finally {
       vi.useRealTimers();
     }
