@@ -29,10 +29,10 @@ On 2026-09-25 the legs moved to applying the pre-step and the whole chain in ONE
 1. The apply step computes `ATOMIC_N`: for each function the pre-step drops, the index of the first file in the chain that defines it again; the atomic group is the pre-step plus the chain through the largest such index. A pre-step that drops a function no file defines again fails the leg with a plain error.
 2. The atomic group runs in one `psql --single-transaction`; every file after it runs in its own `psql --single-transaction`. A leg without a pre-step applies every file on its own.
 3. `checkAtomicApply` pins all of it: the pre-step never as its own psql command and always inside `ARGS`; the `${ARGS[@]}` call; the `ATOMIC_N` split; the per-file `REST` loop with `--single-transaction`; and no per-file loop straight from the matrix list.
-4. `re-review: 2026-10-16` on the next scheduled isolation run: all 26 legs green is the proof; a leg still red names its own cause.
+4. `re-review: 2026-10-16` on the next scheduled isolation run: every leg green again is the proof; a leg still red names its own cause.
 
 ## Verification
 
 - `rls-isolation-matrix-guard.test.js`: the 2026-09-25 shape (pre-step on its own, per-file chain) is caught; the whole-chain-in-one-transaction shape is caught on the `ATOMIC_N` split and the `REST` loop; the real workflow passes.
 - The guard on the real workflow prints its new sentence; every other gate unchanged and green.
-- After merge: `rls-isolation.yml` dispatched for the merge SHA and read per leg (the proof this record exists for).
+- After merge, measured: `rls-isolation.yml` run 284, dispatched on the merge SHA 628edeedf, completed success with 23 of 23 legs green, `product-forms`, `viewer-readonly`, `poe-properties` and `tlc-office` among them, the first all-green matrix since the one-transaction rule. Deploy 1539 for the same SHA completed success.
