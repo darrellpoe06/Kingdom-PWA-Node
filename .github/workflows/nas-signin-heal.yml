@@ -122,6 +122,26 @@ jobs:
           # registered". DR-0218 wants that n8n hop gone rather than revived,
           # so the question is whether ntfy can be rung directly. This only
           # LOOKS — it sends no notification to anybody's phone.
+          # IS THERE A BELL THAT CAN RING AT ALL? Darrell found every one of
+          # today's failures himself — the lockout, the dark cameras, the
+          # Firestick going silent — because the announce path is runner ->
+          # Funnel /webhook/ops-announce -> n8n -> ntfy and n8n answers 404,
+          # the webhook is not registered. DR-0218 wants that n8n hop gone
+          # rather than revived, and the NAS loops already carry NTFY_URL and
+          # NTFY_TOPIC for their own failure pings. If those are filled there
+          # is a topic his phone already listens to, and a run can ring it over
+          # SSH with no Pages Function and no new public exposure.
+          #
+          # SET-OR-NOT ONLY. An ntfy topic is a shared secret — anyone holding
+          # it can publish to the family's phones — so this log says whether a
+          # value exists and never what it is.
+          echo "=== is a bell configured on the box? (set-or-not, never the value) ==="
+          NTFY_ENV=/volume1/PoeTech/repos/Kingdom-PWA-Node/infra/nas-loops/.env
+          for K in NTFY_URL NTFY_TOPIC; do
+            V=$($SUDO sed -n "s/^$K=//p" "$NTFY_ENV" 2>/dev/null | head -1 | tr -d '[:space:]')
+            if [ -n "$V" ]; then echo "  $K: SET (${#V} characters)"; else echo "  $K: EMPTY — no bell can ring from the loops"; fi
+          done
+
           echo "=== the alert bell: what is actually there to ring ==="
           $SUDO docker ps --format '{{.Names}}\t{{.Status}}\t{{.Ports}}' 2>/dev/null | grep -iE 'ntfy|n8n' | scrub || echo "(no ntfy or n8n container listed)"
           for P in 8090 2586 8080 80; do
