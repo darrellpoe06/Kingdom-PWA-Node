@@ -69,3 +69,21 @@ export async function loadPersonRows(instanceId, userId, opts = {}) {
   ]);
   return { dm, presence, lan };
 }
+
+// EVERY SEAT THEY HOLD (DR-0842): the memberships in the spaces this steward
+// administers, the Poe Properties invites that are theirs, and their last 30
+// days of opens. Each read answers on its own; a refusal is a fact, not a blank.
+export async function loadSeatRows(userId, email, { listMyAdminInstances, listInstanceMembersStrict, loadInvites, fetchUserUsage } = {}) {
+  const spaces = await Promise.resolve(listMyAdminInstances ? listMyAdminInstances() : []).catch(() => []);
+  const memberships = [];
+  for (const sp of Array.isArray(spaces) ? spaces : []) {
+    const rows = await Promise.resolve(listInstanceMembersStrict ? listInstanceMembersStrict(sp.instanceId) : []).catch(() => []);
+    for (const m of Array.isArray(rows) ? rows : []) {
+      if (m && m.userId === userId) memberships.push({ ...m, instanceId: sp.instanceId, slug: sp.slug, displayName: sp.displayName, instanceType: sp.instanceType });
+    }
+  }
+  const inv = await Promise.resolve(loadInvites ? loadInvites() : { ok: false, invites: [] }).catch(() => ({ ok: false, invites: [] }));
+  const usage = await Promise.resolve(fetchUserUsage ? fetchUserUsage(userId) : null).catch(() => null);
+  return { memberships, propertyInvites: inv && inv.ok ? inv.invites : [], invitesOk: !!(inv && inv.ok), usage };
+}
+

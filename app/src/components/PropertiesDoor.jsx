@@ -18,6 +18,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import supabase, { resolveInitialSession, readPersistedSession, signOut } from '../lib/supabase.js';
 import PasswordAuth from './PasswordAuth.jsx';
 import PropertiesApp from '../modules/properties/PropertiesApp.jsx';
+import Cameras from './Cameras.jsx';
 import { POE_PROPERTIES } from '../modules/properties/config.js';
 import { DOORS, doorSession, leaveDoor, enterDoor, enterAllDoors } from '../lib/door-session.js';
 import { WHO_OPTIONS } from '../modules/properties/model.js';
@@ -245,7 +246,7 @@ export default function PropertiesDoor() {
             onReturn={() => { enterDoor(DOORS.properties); setLeft(false); }}
           />
         )}
-        {shown && <PropertiesApp surface="door" />}
+        {shown && <PropertiesApp surface="door" renderCameras={() => <Cameras />} />}
       </main>
 
       <footer className="px-4 py-6 text-center">

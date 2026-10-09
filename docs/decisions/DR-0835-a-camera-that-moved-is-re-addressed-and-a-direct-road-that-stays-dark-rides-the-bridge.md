@@ -19,6 +19,8 @@ DR-0809 chose a camera's road from its address alone: outside the NAS's networks
 - The bridge's log at 22:2x CDT: `IOTC_ER_DEVICE_OFFLINE` for the 805 cameras, Kitchen Cam, Living Room, North East Cam and Outside Front Door, as in DR-0809's sixth read; Wyze's peer service still tells the bridge those are off its network.
 - The forwarder as it was: `bridge_road_wanted` read only the host and `dtls=`; `ensure_bridge_roads` handed a bridged camera back the moment its recorded direct line looked LAN-and-DTLS; the breaker's reason and the stream health were never consulted for a road.
 
+**First field read (2026-10-09 04:17 UTC, cams-diag 37883164647).** services-sync restarted the forwarder at 23:16:08 CDT with this record's code, and its first sync wrote: `bridge-road: front_cam re-addressed from 192.168.1.13 to 192.168.1.15, where Wyze says it is today`. One of the twelve silent house cameras had taken a new lease; the direct line now dials the address the camera holds. `basketball_cam` is still at `192.168.1.62` on the direct road (its address did not move) and still answers 0 bytes in 5 s; it rides the bridge only once the breaker trips on three connect-class failures or the health reads it watched and dark for 300 s, neither of which a single diag probe produces. The next camera-health run is the read for that.
+
 ## Impact
 
 - Unresolved: a camera that moved stays dark on the direct road until someone rewrites a line on the NAS by hand, and a direct road that never connects is never given the bridge's relay, which is the road the Wyze app itself takes.

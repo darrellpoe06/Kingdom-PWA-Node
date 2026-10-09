@@ -1238,6 +1238,16 @@ const NODES = [
     writes: [],
     seeds: [],
   }),
+  // A DOOR SHARES ITS CAMERAS WITH ITS HOUSEHOLD (DR-0841): the landlord
+  // mints a camera grant on the NAS (DR-0778) for a door and the tenancy row
+  // carries it (0258); the tenant's Cameras tab reads it from their own row.
+  app('app/src/modules/properties/door-cameras.js', {
+    id: 'door-cameras', name: 'A door shares its cameras with its household (Properties → Cameras)',
+    purpose: 'The landlord picks the cameras at a door, the NAS mints a grant for that door, the tenancy row carries the token and a plain note; the household reads it as their Cameras tab; taking it back clears the row and revokes the grant on the NAS.',
+    reads: [{ res: 'db:rental_tenancies', token: "from('rental_tenancies')" }],
+    writes: [{ res: 'db:rental_tenancies', token: "from('rental_tenancies')" }],
+    seeds: [],
+  }),
 ];
 
 // Every service rider and loop reads nas:services (the install services-sync
@@ -1385,6 +1395,7 @@ const RESOURCES = {
   'http:funnel': { label: 'the NAS’s public routes' },
   'db:contacts': { label: 'a person\u2019s own address book (0247, DR-0736; read by its owner alone)' },
   'db:dm_device_keys': { label: 'the public key of each device a person holds (0249, DR-0737; read by anyone signed in, written by its owner alone)' },
+  'db:rental_tenancies': { label: 'the tenancies (0055): who lives behind which door, the lease, the rent and, since 0258, the camera grant the door shares with its household (DR-0841)' },
   'db:church_devices': { label: 'the church device register (0056): identified assets with the MACs a scan read and, since 0256, the person each belongs to (DR-0830)' },
   'file:vcf': { label: 'a phone\u2019s exported contacts file', source: 'The phone\u2019s Contacts app or Google Contacts shares it; the person uploads it in Messages.' },
   'db:household_openers': { label: 'the openers this household owns, and which are armed (0254, DR-0823)' },

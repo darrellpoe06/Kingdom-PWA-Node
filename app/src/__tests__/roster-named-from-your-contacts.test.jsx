@@ -49,6 +49,7 @@ vi.mock('../lib/contacts-store.js', () => ({
 // The Known fold's reads (DR-0828): a message device for the door member, and
 // presence that the server refuses, so both the row and the reason render.
 vi.mock('../lib/person-record-sync.js', () => ({
+  loadSeatRows: async () => ({ memberships: [], propertyInvites: [], invitesOk: true, usage: null }),
   loadPersonRows: async (instanceId, userId) => ({
     dm: { ok: true, rows: userId === 'u-door' ? [{ device_id: 'd1', label: 'Android device', last_seen_at: new Date().toISOString() }] : [], reason: '' },
     presence: { ok: false, rows: [], reason: 'permission denied for table member_presence' },

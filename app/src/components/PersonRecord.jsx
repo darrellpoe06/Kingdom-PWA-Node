@@ -14,7 +14,11 @@
 // =============================================================================
 import React, { useEffect, useState } from 'react';
 import { buildPersonRecord } from '../lib/person-record.js';
-import { loadPersonRows } from '../lib/person-record-sync.js';
+import { loadPersonRows, loadSeatRows } from '../lib/person-record-sync.js';
+import { listMyAdminInstances, listInstanceMembersStrict } from '../lib/member-roles.js';
+import { loadInvites } from '../modules/properties/cloud.js';
+import { fetchUserUsage } from '../lib/usage-events.js';
+import { SEATS, seatsHeld, seatsWalked, seatsToWalk, apprenticeshipLine } from '../lib/apprenticeship.js';
 import { relativeTime } from '../lib/access-metrics.js';
 
 const serif = { fontFamily: '"Fraunces", Georgia, serif' };
@@ -29,6 +33,18 @@ export default function PersonRecord({ instanceId, member, contactIndex = null }
     loadPersonRows(instanceId, userId).then((r) => { if (alive) setRows(r); });
     return () => { alive = false; };
   }, [instanceId, userId]);
+  // THE SEATS (DR-0842): held from the rows, walked from their opens.
+  const [seats, setSeats] = useState(null);
+  const email = (member && member.email) || '';
+  useEffect(() => {
+    let alive = true;
+    setSeats(null);
+    loadSeatRows(userId, email, { listMyAdminInstances, listInstanceMembersStrict, loadInvites, fetchUserUsage }).then((r) => { if (alive) setSeats(r); });
+    return () => { alive = false; };
+  }, [userId, email]);
+  const held = seats ? seatsHeld({ userId, email }, seats) : [];
+  const walked = seats ? seatsWalked(held, seats.usage || []) : [];
+  const toWalk = seats ? seatsToWalk(held) : [];
 
   const rec = buildPersonRecord({
     member: member || {},
@@ -96,6 +112,40 @@ export default function PersonRecord({ instanceId, member, contactIndex = null }
                 ))}
               </ul>
             )}
+          </>
+        )}
+      </div>
+
+      <div data-testid="person-record-seats">
+        <div className={H}>Seats: what they hold, what they have walked, what is not yet theirs</div>
+        {seats === null ? (
+          <p className="text-[0.6875rem] text-[#5A5751]" style={serif}>Reading their seats…</p>
+        ) : (
+          <>
+            <p className="text-[0.6875rem] text-[#1A1815]" style={serif} data-testid="person-record-seats-line">{apprenticeshipLine(held, walked, seats.usage)}</p>
+            {!seats.invitesOk ? <p className="text-[0.6875rem] text-[#5A5751]" style={serif}>The Poe Properties invites could not be read from here, so a tenant, household, worker or manager seat may be missing below.</p> : null}
+            {walked.length > 0 ? (
+              <ul className="text-xs text-[#1A1815] space-y-0.5 mt-1" style={serif}>
+                {walked.map((s) => {
+                  const seat = SEATS.find((x) => x.key === s.key) || { label: s.key, does: [] };
+                  return (
+                    <li key={`${s.key}|${s.where}`} data-testid="person-record-seat" data-walked={s.walked ? 'true' : 'false'}>
+                      <b>{seat.label}</b> · {s.where}{s.role && s.role !== s.key ? ` · ${s.role}` : ''}{s.claimed ? '' : ' · invited, not signed in yet'}
+                      <span className="text-[#5A5751]"> · {seats.usage === null ? 'walked: not visible from here' : (s.walked ? `walked: ${s.opens} open${s.opens === 1 ? '' : 's'} in 30 days` : 'not walked yet')}</span>
+                      <span className="block text-[0.625rem] text-[#5A5751]">what this seat does: {seat.does.join('; ')}</span>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : null}
+            {toWalk.length > 0 ? (
+              <details className="mt-1">
+                <summary className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] cursor-pointer focus:outline focus:outline-2 focus:outline-[#B85838]">Not yet theirs · {toWalk.length} seat{toWalk.length === 1 ? '' : 's'} to walk</summary>
+                <ul className="text-[0.6875rem] text-[#5A5751] space-y-0.5 mt-1" style={serif}>
+                  {toWalk.map((s) => <li key={s.key} data-testid="person-record-seat-next"><b className="text-[#1A1815]">{s.label}</b> ({s.where}) — {s.how}</li>)}
+                </ul>
+              </details>
+            ) : null}
           </>
         )}
       </div>

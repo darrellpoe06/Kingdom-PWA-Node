@@ -73,6 +73,9 @@ const TENANT_TABS = [
   TAB('history', 'History', 'Everything that has happened on this door, in order.'),
   TAB('rent', 'Payments', 'What was reported, what was confirmed, and when.'),
   TAB('notices', 'Notices', 'What the landlord has posted.'),
+  // THE CAMERAS AT THIS DOOR (DR-0841): the porch, the hallway, the lot — the
+  // ones the landlord shared with this door, live, through the same NAS road.
+  TAB('cameras', 'Cameras', 'The cameras your landlord shares with this door.'),
 ];
 
 const WORKER_TABS = [
@@ -112,6 +115,7 @@ const MANAGER_TABS = [
   // door, not to a side note. Darrell, 2026-09-12.
   TAB('readiness', 'Guest ready', 'Everything left before this unit can be listed and take a guest \u2014 and what it still costs.'),
   TAB('people', 'People', 'Invite a tenant, a family member, or a 1099 worker.'),
+  TAB('cameras', 'Cameras', 'Share the cameras at this door with its household, and take them back.'),
   TAB('documents', 'Documents', 'The lease, the rules, the notices and the letters — filled from this door’s own records.'),
   TAB('plan', 'Rollout', 'Where this app is in its build, what is gated, and what waits on a hand.'),
 ];
