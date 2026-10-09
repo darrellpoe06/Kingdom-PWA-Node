@@ -98,6 +98,29 @@ allow-listed by name. Nothing else may enter the module in quotation marks.
    phrases were unquoted, because quoting myself adds nothing and the
    quotation marks in this house mean the Word.
 
+5. **And the full suite found five more, every one a derived artifact a new
+   lesson has to refresh.** `course-band-coverage` pins the count of lessons
+   carrying all four bands and it may only grow by the number actually
+   measured, so the pin went 197 to 198 after
+   `course-band-baseline-write.mjs` regenerated it from the real catalog.
+   `learn-sort-every-option` (three cases) and `lesson-age-versions-count`
+   require every lesson in every course to be DATED, and the date is derived
+   from git history by `npm run lesson-dates` — which cannot date a lesson that
+   is not committed yet, so the order is commit, derive, then commit the
+   artifact. 774 of 774 lessons dated, 0 undated.
+
+6. **And sov36's own week-order check went red, exactly as its own comment
+   said it would not.** The comment above `orderProblem` in
+   `sovereign-ai-sov36-verses.test.js` read "does not go red when week 37 is
+   written", and the loop beneath it required every OTHER week to parse below
+   36 — which is the is-it-last form that comment ruled out. Week 37 tripped it.
+   The check now asserts what it is actually for: week 36 is present, parses as
+   36, and the weeks ascend. All three stay true however many weeks follow. Its
+   proven-to-catch case was corrected with it, and gained one: a later week
+   filed IN ORDER is not a fault, while one filed out of order still is. A
+   comment and its code disagreeing is a defect even while the suite is green,
+   because the comment is what the next author trusts.
+
 **Proven-to-catch (DR-0076 §3).** Six planted breaks, each shown to fail: a
 mutated verse, a dropped reference, an unattributed claim entering in
 quotation marks, a band whose three-directions close was removed, a band
@@ -150,6 +173,9 @@ both teach Luke 14:28 and Psalms 127:1.
   proven-to-catch breaks.
 - `sovereign-ai-verse-integrity.test.js` and `sovereign-ai-class.test.js` —
   225 cases green with the new week.
-- Band lengths, span counts and the three corrections above measured directly
-  against the real module.
+- Band lengths, span counts and the corrections above measured directly against
+  the real module.
+- `course-band-coverage`, `learn-sort-every-option`, `lesson-age-versions-count`
+  — 48 cases green after regenerating both derived artifacts.
+- The FULL Vitest suite, every guard and lint, run before the push.
 - Thread `1a11be129ec20d23` is labelled only after this push succeeds.
