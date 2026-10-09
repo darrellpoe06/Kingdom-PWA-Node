@@ -122,31 +122,6 @@ jobs:
           # registered". DR-0218 wants that n8n hop gone rather than revived,
           # so the question is whether ntfy can be rung directly. This only
           # LOOKS — it sends no notification to anybody's phone.
-          # WHERE IS HIS DAUGHTER'S HOMEWORK? Darrell, 2026-10-09, reading a
-          # thread in the app: "How do we have the last message and not the one
-          # with my daughter's homework?!" The daily carry-across lane handles
-          # THE WORD's content and has never carried a conversation table, so
-          # nobody has ever counted these. COUNTS AND DATES ONLY — no body, no
-          # sender, no subject is read or printed; this log is public.
-          echo "=== the family's conversations: counted on both sides ==="
-          SUPA_PW=$($SUDO sed -n 's/^POSTGRES_PASSWORD=//p' /volume1/docker/supabase/.env 2>/dev/null | head -1)
-          HOSTED_URL=$($SUDO sed -n 's/^AGENT_DB_URL=//p' /volume1/docker/poetech/agent.env 2>/dev/null | head -1)
-          for T in messages family_messages direct_messages group_messages choir_messages; do
-            SOV="(unreadable)"
-            if [ -n "$SUPA_PW" ]; then
-              SOV=$($SUDO docker exec -e PGPASSWORD="$SUPA_PW" supabase-db psql -h 127.0.0.1 -U supabase_admin -d postgres -t -A \
-                -c "select count(*)||' rows ('||coalesce(min(created_at)::text,'none')||' .. '||coalesce(max(created_at)::text,'none')||')' from public.$T" 2>&1 | tail -1)
-            fi
-            HOS="(not asked)"
-            if [ -n "$HOSTED_URL" ]; then
-              HOS=$($SUDO docker exec supabase-db psql "$HOSTED_URL" -t -A \
-                -c "select count(*)||' rows ('||coalesce(min(created_at)::text,'none')||' .. '||coalesce(max(created_at)::text,'none')||')' from public.$T" 2>&1 | tail -1)
-            fi
-            echo "  $T:"
-            echo "     sovereign (what the app reads): $SOV"
-            echo "     hosted    (the retired backend): $HOS"
-          done
-
           echo "=== the alert bell: what is actually there to ring ==="
           $SUDO docker ps --format '{{.Names}}\t{{.Status}}\t{{.Ports}}' 2>/dev/null | grep -iE 'ntfy|n8n' | scrub || echo "(no ntfy or n8n container listed)"
           for P in 8090 2586 8080 80; do
@@ -357,6 +332,34 @@ jobs:
           # the two can disagree: if the per-deployment host runs Functions and
           # the alias does not, the deployment is sound and the alias is stuck,
           # which is a promote/retry repair rather than a code one.
+          # WHERE IS HIS DAUGHTER'S HOMEWORK? Darrell, 2026-10-09, reading a
+          # thread in the app: "How do we have the last message and not the one
+          # with my daughter's homework?!" The daily carry-across lane handles
+          # THE WORD's content and has never carried a conversation table, so
+          # nobody has ever counted these. It runs in THIS step, the last one,
+          # because the job log is read from its tail. COUNTS AND DATES ONLY —
+          # no body, no sender, no subject is read or printed; this log is
+          # public.
+          echo "=== the family's conversations: counted on both sides ==="
+          $SSH 'sh -s' <<'EOS' || echo "(conversation count unavailable)"
+          PATH=/usr/local/bin:/opt/bin:/usr/bin:/bin:$PATH; export PATH
+          SUDO=""; sudo -n true 2>/dev/null && SUDO="sudo -n"
+          SUPA_PW=$($SUDO sed -n 's/^POSTGRES_PASSWORD=//p' /volume1/docker/supabase/.env 2>/dev/null | head -1)
+          HOSTED_URL=$($SUDO sed -n 's/^AGENT_DB_URL=//p' /volume1/docker/poetech/agent.env 2>/dev/null | head -1)
+          Q="select count(*)||' rows ('||coalesce(min(created_at)::text,'none')||' .. '||coalesce(max(created_at)::text,'none')||')'"
+          for T in messages family_messages direct_messages group_messages choir_messages; do
+            SOV="(no password readable)"
+            [ -n "$SUPA_PW" ] && SOV=$($SUDO docker exec -e PGPASSWORD="$SUPA_PW" supabase-db \
+              psql -h 127.0.0.1 -U supabase_admin -d postgres -t -A -c "$Q from public.$T" 2>&1 | tail -1)
+            HOS="(no hosted url readable)"
+            [ -n "$HOSTED_URL" ] && HOS=$($SUDO docker exec supabase-db \
+              psql "$HOSTED_URL" -t -A -c "$Q from public.$T" 2>&1 | tail -1)
+            echo "  $T"
+            echo "     sovereign (what the app reads): $SOV"
+            echo "     hosted    (the retired backend): $HOS"
+          done
+          EOS
+
           # WHICH ROAD DOES THE SHIPPED APP ACTUALLY CARRY? VITE_SUPABASE_URL
           # is inlined into the client bundle at build time, so the only
           # trustworthy answer is the bytes poetech.us is serving right now —
