@@ -351,9 +351,13 @@ function orderProblem(modules) {
   if (at < 1) return 'sov36 missing';
   const n = (m) => Number((/^sov(\d+)-/.exec(m.id) || [])[1]);
   if (n(modules[at]) !== 36) return `sov36 parses as week ${n(modules[at])}`;
-  for (const other of modules.filter((w) => w.id !== SOV36_ID)) {
-    if (!(n(other) < 36)) return `week ${n(other)} is not before week 36`;
-  }
+  // CORRECTED 2026-10-09, when week 37 landed (DR-0824). The comment above this
+  // function always said this check "does not go red when week 37 is written",
+  // and the loop that used to sit here said the opposite: it required every
+  // OTHER week to parse BELOW 36, which is the "is it last" form the comment
+  // ruled out. It went red on sov37 exactly as predicted. What this check is
+  // for is that week 36 is PRESENT, parses as 36, and that the weeks ASCEND —
+  // all three of which stay true however many weeks come after it.
   for (let i = 1; i < modules.length; i += 1) {
     if (!(n(modules[i - 1]) < n(modules[i]))) return `weeks do not ascend at ${modules[i].id}`;
   }
@@ -648,9 +652,13 @@ describe('sov36 - proven-to-catch: the gate fails on a drifted verse, an unattri
 
   it('week 36 missing, or a higher week filed before it, is caught', () => {
     expect(orderProblem(SOVEREIGN_AI_MODULES.filter((w) => w.id !== SOV36_ID))).toBe('sov36 missing');
+    // A week filed OUT OF ORDER is still caught, which is the thing that
+    // matters; a week filed after 36 in the right place is not a fault.
     const shuffled = [...SOVEREIGN_AI_MODULES];
     shuffled.splice(shuffled.length - 1, 0, { id: 'sov99-a-week-from-the-future' });
-    expect(orderProblem(shuffled)).toMatch(/week 99 is not before week 36/);
+    expect(orderProblem(shuffled)).toMatch(/weeks do not ascend/);
+    const appended = [...SOVEREIGN_AI_MODULES, { id: 'sov99-a-week-from-the-future' }];
+    expect(orderProblem(appended), 'a later week filed IN ORDER is not a fault').toBeNull();
     const outOfOrder = [SOVEREIGN_AI_MODULES[1], SOVEREIGN_AI_MODULES[0], ...SOVEREIGN_AI_MODULES.slice(2)];
     expect(orderProblem(outOfOrder)).toMatch(/weeks do not ascend/);
   });
