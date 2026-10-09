@@ -69,6 +69,12 @@ import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 TOKEN_FILE_DEFAULT = "/volume1/PoeTech/secrets/chat-bridge-token.txt"
+
+# THE ONLY ORIGIN THE VOICE ANSWERS CROSS-ORIGIN. Module level so the selftest
+# pins the value the running Handler is built from, not a copy of it. Never
+# "*": this road carries a bearer. See the CORS block on Handler for why it
+# exists at all.
+CORS_ALLOWED_ORIGINS = ("https://poetech.us",)
 HOME_DEFAULT = "/volume1/PoeTech/voice-lite"
 MAX_INFLIGHT = int(os.environ.get("VOICE_LITE_MAX_INFLIGHT", "2"))
 MAX_BODY = 64 * 1024
@@ -251,6 +257,51 @@ def make_handler(engine, token, cache_dir, max_inflight=MAX_INFLIGHT, encoder=No
 
         def log_message(self, *a):  # never log text or tokens
             pass
+
+        # -- CORS, so the reading voice survives a dead Pages Function -------
+        # MEASURED 2026-10-09. Every Cloudflare Pages Function on poetech.us
+        # stopped being invoked. Darrell: "the voice reader doesn't work on the
+        # Firestick anymore." All three voice roads the app knows are Pages
+        # Functions -- /api/voice-speak, /voice and /voice-lite/speak -- so the
+        # transport was gone. A phone can fall back to the browser's own
+        # speech; a Fire TV cannot, because Silk exposes speechSynthesis and
+        # does not deliver it (see TTSControl.jsx). The Firestick had no second
+        # road, which is exactly why it is the device that went silent.
+        #
+        # Pointing the app straight at the Funnel is the remedy, and it needs
+        # CORS the Funnel does not add: measured, /voice-lite answered
+        # preflight 501 with allow-origin none. Injected at end_headers because
+        # every response path here funnels through it -- json and audio alike.
+        #
+        # NEVER "*": this road carries a bearer. One origin is echoed, anything
+        # else gets nothing, and Vary keeps a cache from crossing them.
+        ALLOWED_ORIGINS = CORS_ALLOWED_ORIGINS
+
+        def _cors_origin(self):
+            o = self.headers.get("Origin")
+            return o if o in self.ALLOWED_ORIGINS else None
+
+        def end_headers(self):
+            o = self._cors_origin()
+            if o:
+                self.send_header("Access-Control-Allow-Origin", o)
+                self.send_header("Vary", "Origin")
+                self.send_header("Access-Control-Expose-Headers",
+                                 "Content-Length, Content-Type, Accept-Ranges")
+            BaseHTTPRequestHandler.end_headers(self)
+
+        def do_OPTIONS(self):
+            if not self._cors_origin():
+                self.send_response(403)
+                self.send_header("Content-Length", "0")
+                self.end_headers()
+                return
+            self.send_response(204)
+            self.send_header("Access-Control-Allow-Methods", "GET, HEAD, POST, OPTIONS")
+            self.send_header("Access-Control-Allow-Headers", "Authorization, Content-Type")
+            self.send_header("Access-Control-Max-Age", "600")
+            self.send_header("Content-Length", "0")
+            self.end_headers()
 
         def _json(self, code, obj):
             data = json.dumps(obj).encode("utf-8")
@@ -553,6 +604,45 @@ def _selftest():
 
     s, _, _ = req("GET", "/nope", auth=None)
     check(s == 404, "unknown path -> 404")
+
+    # --- CORS: the reading voice survives a dead Pages Function -------------
+    # 2026-10-09. Every Pages Function on poetech.us stopped being invoked and
+    # the Firestick went silent, because Silk exposes speechSynthesis without
+    # delivering it, so a Fire TV has no local fallback and these roads were
+    # its only voice. Pointing the app at the Funnel needs CORS the Funnel does
+    # not add (measured: /voice-lite preflight 501, allow-origin none).
+    class _H:
+        """The Handler's CORS decision, exercised without a socket."""
+        ALLOWED_ORIGINS = ("https://poetech.us",)
+
+        def __init__(self, origin):
+            self._origin = origin
+
+        @property
+        def headers(self):
+            return {"Origin": self._origin} if self._origin else {}
+
+        def _cors_origin(self):
+            o = self.headers.get("Origin")
+            return o if o in self.ALLOWED_ORIGINS else None
+
+    check(_H("https://poetech.us")._cors_origin() == "https://poetech.us",
+          "the app's own origin is allowed")
+    check(_H(None)._cors_origin() is None,
+          "no Origin -> no CORS header (the same-origin path is unchanged)")
+    check(_H("https://evil.example")._cors_origin() is None,
+          "CATCHES a stranger's origin: refused, not echoed")
+    check(_H("*")._cors_origin() is None,
+          "CATCHES a wildcard origin: never allowed on a bearer road")
+    check(_H("https://poetech.us.evil.example")._cors_origin() is None,
+          "CATCHES a lookalike origin that merely starts with ours")
+    check(_H("http://poetech.us")._cors_origin() is None,
+          "CATCHES plain http: only the https origin is allowed")
+    check("*" not in CORS_ALLOWED_ORIGINS,
+          "the LIVE allowlist the Handler is built from holds no wildcard")
+    check(tuple(CORS_ALLOWED_ORIGINS) == _H.ALLOWED_ORIGINS,
+          "the LIVE allowlist is exactly what these checks pin")
+
     srv.shutdown()
     print("voice-lite selftest: " + ("OK" if not failures else f"{len(failures)} FAILURE(S)"))
     return 1 if failures else 0
