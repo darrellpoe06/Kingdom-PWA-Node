@@ -121,8 +121,37 @@ jobs:
           probe_post 'http://127.0.0.1:8000/auth/v1/token?grant_type=password'    'kong :8000 direct   (expected closed)'
           EOS
 
-      - name: Restart the sign-in road (hardcoded containers, nothing else)
+      # DO NOT RESTART A HEALTHY STACK. Measured 2026-10-09 run 37958313908:
+      # the NAS answered the sign-in POST with a healthy 81-byte 400 BOTH
+      # before and after a restart of kong, auth and rest — the restart was
+      # pure risk to a live service the family depends on, taken because the
+      # earlier probe asked a port that was never open. A heal only heals what
+      # is actually broken, so the restart is now gated on the box's own
+      # answer: if the gateway returns a body, the containers are left alone
+      # and the run goes straight to measuring the road.
+      - name: Does the box already answer? (decides whether to restart at all)
+        id: precheck
         if: steps.gate.outputs.go == 'true'
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          umask 077
+          printf '%s\n' "$NAS_SSH_KEY" > /tmp/nas_key
+          SSH="ssh -i /tmp/nas_key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 dpoe@poetech.tail5a2f35.ts.net"
+          PRE=$($SSH 'curl -s --max-time 20 -X POST -H "Content-Type: application/json" -d "{\"email\":\"heal-probe@poetech.invalid\",\"password\":\"not-a-real-password\"}" "http://127.0.0.1:8800/sb/auth/v1/token?grant_type=password" 2>/dev/null || printf ""')
+          echo "pre-restart gateway POST bytes: ${#PRE}"
+          if [ -n "$PRE" ]; then
+            echo "The stack ALREADY answers a sign-in POST (${#PRE} bytes). Not restarting anything."
+            echo "- Stack already answering (**${#PRE} bytes**) — no restart performed" >> "$GITHUB_STEP_SUMMARY"
+            echo "stack_ok=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "The stack does NOT answer a sign-in POST. Restarting the sign-in containers."
+            echo "- Stack silent on a sign-in POST — restarting kong/auth/rest" >> "$GITHUB_STEP_SUMMARY"
+            echo "stack_ok=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Restart the sign-in road (hardcoded containers, nothing else)
+        if: steps.gate.outputs.go == 'true' && steps.precheck.outputs.stack_ok != 'true'
         env:
           NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
         run: |
@@ -158,6 +187,9 @@ jobs:
 
           echo "### After the restart" >> "$GITHUB_STEP_SUMMARY"
 
+          # No key material reaches this public log, even from an error body.
+          scrub_edge() { sed -E 's/([?&"]?(password|pass|pwd|token|api_key|key|secret|anon|service_role)[=:"]+)[^&" ,}]*/\1***/Ig'; }
+
           # The gateway on :8800, /sb path — the door the app rides (see the
           # before-step comment; :8000 is kong-internal and never answered).
           LOOP=$($SSH 'curl -s --max-time 20 -X POST -H "Content-Type: application/json" -d "{\"email\":\"heal-probe@poetech.invalid\",\"password\":\"not-a-real-password\"}" "http://127.0.0.1:8800/sb/auth/v1/token?grant_type=password" 2>/dev/null || printf ""')
@@ -179,6 +211,46 @@ jobs:
           echo "- POST through poetech.us/sb -> **${#EDGE} bytes**" >> "$GITHUB_STEP_SUMMARY"
           echo "edge POST body bytes: ${#EDGE}"
 
+          # WHAT IS THE EDGE ACTUALLY SAYING? Measured 2026-10-09 run
+          # 37958313908: the NAS answered this POST with a healthy 81-byte
+          # 400 (invalid_credentials) while the SAME POST through poetech.us
+          # came back 0 bytes. "0 bytes" alone cannot tell a dropped body from
+          # a bodiless 503 throttle from a connection reset — and this file's
+          # own factory comment says the Funnel throttles with 503. So the
+          # status line, curl's exit code and the response headers are all
+          # captured, and the Funnel is asked DIRECTLY, bypassing Cloudflare,
+          # so the leg that breaks is named rather than inferred.
+          echo "### Where the POST dies" >> "$GITHUB_STEP_SUMMARY"
+          if [ -n "${SB_ANON:-}" ]; then
+            E_CODE=$(curl -s -o /dev/null -m 25 -w '%{http_code}' -X POST \
+              -H "apikey: $SB_ANON" -H 'Content-Type: application/json' \
+              -d '{"email":"heal-probe@poetech.invalid","password":"not-a-real-password"}' \
+              -D /tmp/edge_hdr.txt \
+              "https://poetech.us/sb/auth/v1/token?grant_type=password" 2>/dev/null); E_RC=$?
+            echo "- edge POST \`poetech.us/sb\` -> HTTP **${E_CODE}**, curl exit **${E_RC}**" >> "$GITHUB_STEP_SUMMARY"
+            echo "edge POST: HTTP $E_CODE, curl exit $E_RC"
+            echo "--- edge response headers ---"
+            sed -E 's/([Ss]et-[Cc]ookie:).*/\1 ***/' /tmp/edge_hdr.txt 2>/dev/null | head -25 || echo "(no headers captured)"
+
+            # The Funnel, asked directly. If THIS 503s, Cloudflare is innocent
+            # and the throttle is Tailscale's.
+            F_CODE=$(curl -s -o /tmp/funnel_body.txt -m 25 -w '%{http_code}' -X POST \
+              -H "apikey: $SB_ANON" -H 'Content-Type: application/json' \
+              -d '{"email":"heal-probe@poetech.invalid","password":"not-a-real-password"}' \
+              "https://poetech.tail5a2f35.ts.net/sb/auth/v1/token?grant_type=password" 2>/dev/null); F_RC=$?
+            F_BYTES=$(wc -c < /tmp/funnel_body.txt 2>/dev/null | tr -d ' ')
+            echo "- Funnel direct (no Cloudflare) -> HTTP **${F_CODE}**, ${F_BYTES} bytes, curl exit **${F_RC}**" >> "$GITHUB_STEP_SUMMARY"
+            echo "funnel direct POST: HTTP $F_CODE, $F_BYTES bytes, curl exit $F_RC"
+            head -c 300 /tmp/funnel_body.txt 2>/dev/null | scrub_edge; echo
+
+            # A GET through the SAME Funnel path, for contrast: if GET passes
+            # and POST does not on the same leg, the verb is the variable.
+            G_CODE=$(curl -s -o /dev/null -m 20 -w '%{http_code}' \
+              "https://poetech.tail5a2f35.ts.net/sb/auth/v1/health" 2>/dev/null || echo "000")
+            echo "- Funnel direct GET health -> HTTP **${G_CODE}**" >> "$GITHUB_STEP_SUMMARY"
+            echo "funnel direct GET health: HTTP $G_CODE"
+          fi
+
           # IS THAT GREEN GET EVEN THE NAS ANSWERING? Measured 2026-10-09: a
           # GET to /sb/auth/v1/health returned 200 the whole time Darrell was
           # locked out, while nothing on the box answered a POST. A cached GET
@@ -199,8 +271,17 @@ jobs:
             echo "::error::STILL DOWN on the box — a POST to the NAS gateway (127.0.0.1:8800/sb/auth/v1/token) returned an empty body after the restart. The sovereign stack itself is not answering POSTs; this is not the Funnel and not Cloudflare. Read the before-step port listing in this same run: it names what is actually listening."
             exit 1
           fi
+          # THE NAS ANSWERS AND THE EDGE DOES NOT — name WHICH leg, because the
+          # Funnel and the Pages Function are different repairs. The direct
+          # Funnel probe above is what separates them.
           if [ -n "${SB_ANON:-}" ] && [ -z "$EDGE" ]; then
-            echo "::error::The NAS answers a POST but poetech.us/sb does not — the stack healed and the ROAD between Cloudflare and the NAS is dropping bodies (Funnel or the Pages Function), so sign-in is still broken for everyone."
+            if [ "${F_BYTES:-0}" -gt 0 ] 2>/dev/null; then
+              echo "::error::THE PAGES FUNCTION IS THE BREAK — the NAS answered this POST (${#LOOP} bytes) AND the Tailscale Funnel answered it directly (HTTP ${F_CODE}, ${F_BYTES} bytes), but the same POST through poetech.us/sb came back empty (HTTP ${E_CODE:-?}, curl exit ${E_RC:-?}). Both ends of the road are healthy, so the drop is in app/functions/sb/[[path]].js over app/functions/_lib/funnel-proxy.js. Fix that Function and deploy; nothing on the NAS needs touching."
+            elif [ "${F_CODE:-000}" = "503" ]; then
+              echo "::error::THE FUNNEL IS THROTTLING — the NAS answers this POST on its own gateway (${#LOOP} bytes) but the Tailscale Funnel returns a bodiless 503 to a direct POST, and poetech.us/sb returns HTTP ${E_CODE:-?} with no body. This is the documented Funnel throttle (see app/functions/_lib/funnel-proxy.js), not the stack and not Cloudflare."
+            else
+              echo "::error::THE ROAD IS THE BREAK — the NAS answers this POST (${#LOOP} bytes) but poetech.us/sb returns HTTP ${E_CODE:-?} with no body, and a direct POST to the Funnel returned HTTP ${F_CODE:-?} with ${F_BYTES:-?} bytes (curl exit ${F_RC:-?}). The stack healed; the carriage between Cloudflare and the NAS is dropping sign-in bodies."
+            fi
             exit 1
           fi
           echo "SIGN-IN ROAD CARRIES A POST AGAIN (loopback ${#LOOP} bytes, edge ${#EDGE} bytes)."
