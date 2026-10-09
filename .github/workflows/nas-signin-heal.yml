@@ -81,12 +81,44 @@ jobs:
           echo "=== the auth container's own last words ==="
           $SUDO docker logs --tail 40 supabase-auth 2>&1 | scrub | tail -40 || echo "(no supabase-auth log)"
           echo
-          echo "=== POST on the box itself (kong loopback) — body size is the answer ==="
-          B=$(curl -sS --max-time 20 -X POST -H 'Content-Type: application/json' \
-                -d '{"email":"heal-probe@poetech.invalid","password":"not-a-real-password"}' \
-                'http://127.0.0.1:8000/auth/v1/token?grant_type=password' 2>&1 || echo "")
-          echo "loopback POST body bytes: ${#B}"
-          printf '%s' "$B" | head -c 300 | scrub; echo
+          # NEVER GUESS THE PORT AGAIN. Measured 2026-10-09: the first cut of
+          # this workflow probed 127.0.0.1:8000 because that is kong's default,
+          # and got "Failed to connect ... after 0 ms" — which the probe then
+          # counted as a 68-byte body because it folded stderr in with 2>&1.
+          # Two bugs reading as one outage. The real door on this box is the
+          # Caddy gateway on :8800, which nas-health.yml has probed all along
+          # (nas-health.yml:295 /auth/v1/health, :369 /sb/auth/v1/health); kong
+          # itself is docker-internal. So the ports are LISTED here, every run,
+          # and the probe reads the door the app actually rides.
+          echo "=== what is actually listening on this box (so no probe guesses) ==="
+          { netstat -lnt 2>/dev/null || ss -lnt 2>/dev/null; } | awk 'NR==1 || /:(8000|8800|8771|5432|3000|9999)[^0-9]/' || echo "(no netstat/ss)"
+          echo
+          echo "=== kong's published ports, from docker itself ==="
+          $SUDO docker port supabase-kong 2>/dev/null || echo "(kong publishes no host ports — it is reached through the gateway)"
+          echo
+          # What the Funnel is pointed at. If this says :8800 the road is whole;
+          # if it says something dark, THAT is the outage, not the stack.
+          echo "=== what the Funnel serves (the road Cloudflare rides to get here) ==="
+          tailscale serve status 2>/dev/null || tailscale funnel status 2>/dev/null || echo "(tailscale serve/funnel status unavailable to this user)"
+          echo
+          # Bodies and codes measured SEPARATELY, and stderr kept OUT of the
+          # body, so "N bytes" means N bytes of answer and nothing else.
+          probe_post() {
+            _u="$1"; _label="$2"
+            _code=$(curl -s -o /dev/null -m 20 -w '%{http_code}' -X POST \
+                      -H 'Content-Type: application/json' \
+                      -d '{"email":"heal-probe@poetech.invalid","password":"not-a-real-password"}' \
+                      "$_u" 2>/dev/null || echo "000")
+            _body=$(curl -s -m 20 -X POST -H 'Content-Type: application/json' \
+                      -d '{"email":"heal-probe@poetech.invalid","password":"not-a-real-password"}' \
+                      "$_u" 2>/dev/null || printf '')
+            echo "$_label -> HTTP $_code, ${#_body} bytes"
+            printf '%s' "$_body" | head -c 200 | scrub; echo
+          }
+          echo "=== POST on the box itself — the verb sign-in actually uses ==="
+          probe_post 'http://127.0.0.1:8800/sb/auth/v1/token?grant_type=password' 'gateway :8800 /sb (the app path)'
+          probe_post 'http://127.0.0.1:8800/auth/v1/token?grant_type=password'    'gateway :8800 bare  (the mirror path)'
+          probe_post 'http://127.0.0.1:8000/auth/v1/token?grant_type=password'    'kong :8000 direct   (expected closed)'
           EOS
 
       - name: Restart the sign-in road (hardcoded containers, nothing else)
@@ -126,8 +158,10 @@ jobs:
 
           echo "### After the restart" >> "$GITHUB_STEP_SUMMARY"
 
-          LOOP=$($SSH 'curl -sS --max-time 20 -X POST -H "Content-Type: application/json" -d "{\"email\":\"heal-probe@poetech.invalid\",\"password\":\"not-a-real-password\"}" "http://127.0.0.1:8000/auth/v1/token?grant_type=password" 2>/dev/null || echo ""')
-          echo "- POST on the NAS loopback -> **${#LOOP} bytes**" >> "$GITHUB_STEP_SUMMARY"
+          # The gateway on :8800, /sb path — the door the app rides (see the
+          # before-step comment; :8000 is kong-internal and never answered).
+          LOOP=$($SSH 'curl -s --max-time 20 -X POST -H "Content-Type: application/json" -d "{\"email\":\"heal-probe@poetech.invalid\",\"password\":\"not-a-real-password\"}" "http://127.0.0.1:8800/sb/auth/v1/token?grant_type=password" 2>/dev/null || printf ""')
+          echo "- POST on the NAS gateway (:8800 /sb) -> **${#LOOP} bytes**" >> "$GITHUB_STEP_SUMMARY"
           echo "loopback POST body bytes: ${#LOOP}"
 
           # The whole road, the way a browser rides it.
@@ -145,9 +179,24 @@ jobs:
           echo "- POST through poetech.us/sb -> **${#EDGE} bytes**" >> "$GITHUB_STEP_SUMMARY"
           echo "edge POST body bytes: ${#EDGE}"
 
+          # IS THAT GREEN GET EVEN THE NAS ANSWERING? Measured 2026-10-09: a
+          # GET to /sb/auth/v1/health returned 200 the whole time Darrell was
+          # locked out, while nothing on the box answered a POST. A cached GET
+          # at Cloudflare looks identical to a healthy origin, so the GET is
+          # asked TWICE — once plainly, once with a cache-busting query that
+          # cannot have been cached before. If the plain GET is 200 and the
+          # busted one is not, the green light was the edge talking to itself.
+          GET_PLAIN=$(curl -s -o /dev/null -m 20 -w '%{http_code}' "https://poetech.us/sb/auth/v1/health" 2>/dev/null || echo "000")
+          GET_FRESH=$(curl -s -o /dev/null -m 20 -w '%{http_code}' -H 'Cache-Control: no-cache' "https://poetech.us/sb/auth/v1/health?cachebust=${GITHUB_RUN_ID}${GITHUB_RUN_ATTEMPT}" 2>/dev/null || echo "000")
+          echo "- \`GET /sb/auth/v1/health\` plain **$GET_PLAIN** / cache-busted **$GET_FRESH**" >> "$GITHUB_STEP_SUMMARY"
+          echo "edge GET health: plain $GET_PLAIN, cache-busted $GET_FRESH"
+          if [ "$GET_PLAIN" = "200" ] && [ "$GET_FRESH" != "200" ]; then
+            echo "::warning::THE GREEN LIGHT WAS CACHED — a plain GET to /sb/auth/v1/health answered 200 but the same GET with a cache-busting query answered $GET_FRESH. Cloudflare has been serving a stored copy; the NAS is not answering this road."
+          fi
+
           # A HEAL THAT DID NOT HEAL SAYS SO (DR-0076).
           if [ -z "$LOOP" ]; then
-            echo "::error::STILL DOWN on the box — a POST to kong on the NAS loopback returned an empty body after the restart. The sovereign stack itself is not answering POSTs; this is not the Funnel and not Cloudflare."
+            echo "::error::STILL DOWN on the box — a POST to the NAS gateway (127.0.0.1:8800/sb/auth/v1/token) returned an empty body after the restart. The sovereign stack itself is not answering POSTs; this is not the Funnel and not Cloudflare. Read the before-step port listing in this same run: it names what is actually listening."
             exit 1
           fi
           if [ -n "${SB_ANON:-}" ] && [ -z "$EDGE" ]; then
