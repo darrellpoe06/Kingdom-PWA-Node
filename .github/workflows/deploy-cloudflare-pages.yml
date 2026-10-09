@@ -154,7 +154,19 @@ jobs:
             # CORS for exactly this one origin (infra/nas-cameras/
             # cams_forwarder.py, CORS_ALLOWED_ORIGINS). Same lifetime as the
             # sign-in unlock above: REMOVE BOTH once Functions run again.
-            echo "VITE_CAMS_BASE=https://poetech.tail5a2f35.ts.net/cams"
+            # The name here must NOT match the build var it feeds. A step's
+            # own env: key shadows the env context, so
+            # "VITE_CAMS_BASE: ${{ env.VITE_CAMS_BASE }}" is a self-reference
+            # that resolves EMPTY -- measured 2026-10-09, the served bundle
+            # carried no Funnel camera URL at all and the Cameras tab stayed
+            # dark on the very build that was supposed to fix it. The sign-in
+            # unlock worked only because its two names differ.
+            echo "UNLOCK_CAMS_BASE=https://poetech.tail5a2f35.ts.net/cams"
+            # The reading voice, same outage, same shape. /voice-lite is the
+            # only voice road mounted on the Funnel, and a Fire TV has no local
+            # fallback (Silk exposes speechSynthesis without delivering it), so
+            # the Firestick is the device that went silent.
+            echo "UNLOCK_VOICE_LITE_BASE=https://poetech.tail5a2f35.ts.net/voice-lite"
           } >> "$GITHUB_ENV"
           echo "repoint: armed — TEMPORARY UNLOCK, this build carries the sovereign backend over the Funnel origin because every Pages Function is dark; revert to poetech.us/sb once /sb carries a POST again."
       - name: Build (static, base /poetech-app/)
@@ -173,7 +185,8 @@ jobs:
           # default and cameras.test.js keeps pinning it. Set only by the
           # 2026-10-09 unlock step above, for as long as the Pages Functions
           # are dark.
-          VITE_CAMS_BASE: ${{ env.VITE_CAMS_BASE }}
+          VITE_CAMS_BASE: ${{ env.UNLOCK_CAMS_BASE }}
+          VITE_VOICE_LITE_BASE: ${{ env.UNLOCK_VOICE_LITE_BASE }}
           VITE_SUPABASE_ANON_KEY: ${{ env.SOVEREIGN_SB_ANON || secrets.VITE_SUPABASE_ANON_KEY }}
           # THE BLOB BRIDGE (2026-08-31 — the Moore Divahs gallery regression).
           # VITE_PUBLIC_STORAGE_URL — the public-blob bridge DR-0317 shipped on
