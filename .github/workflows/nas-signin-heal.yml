@@ -340,6 +340,28 @@ jobs:
           # because the job log is read from its tail. COUNTS AND DATES ONLY —
           # no body, no sender, no subject is read or printed; this log is
           # public.
+          # THE OTHER DARK ROADS. Darrell, 2026-10-09: "Cameras tab is not
+          # working?!!!!!" — correct, and the same cause as the lockout: /cams
+          # is a Pages Function and no Function is running. Sign-in was routed
+          # around the dead layer; these were not. Before claiming any of them
+          # can be routed the same way, ask the Funnel for each one the way a
+          # BROWSER asks — with an Origin and a preflight — because a bearer
+          # route needs CORS to allow Authorization, and that is not proven by
+          # /sb answering. Any 2xx/4xx WITH CORS headers means the road carries
+          # it; a 000 or a preflight refusal means it does not.
+          echo "=== the other dark roads, asked the way a browser asks ==="
+          for R in cams taxes llm reviews ways scribe nas-photos voice voice-lite openers; do
+            PF=$(curl -s -o /dev/null -m 15 -w '%{http_code}' -X OPTIONS \
+              -H 'Origin: https://poetech.us' -H 'Access-Control-Request-Method: GET' \
+              -H 'Access-Control-Request-Headers: authorization,content-type' \
+              "https://poetech.tail5a2f35.ts.net/$R/" 2>/dev/null || echo "000")
+            GC=$(curl -s -o /dev/null -m 15 -w '%{http_code}' -H 'Origin: https://poetech.us' \
+              -D /tmp/r_hdr.txt "https://poetech.tail5a2f35.ts.net/$R/" 2>/dev/null || echo "000")
+            ACAO=$(grep -i '^access-control-allow-origin' /tmp/r_hdr.txt 2>/dev/null | head -1 | tr -d '\r' | cut -d' ' -f2-)
+            echo "  /$R -> preflight $PF, GET $GC, allow-origin: ${ACAO:-none}"
+            echo "- \`/$R\` preflight **$PF**, GET **$GC**, ACAO \`${ACAO:-none}\`" >> "$GITHUB_STEP_SUMMARY"
+          done
+
           echo "=== the family's conversations: counted on both sides ==="
           $SSH 'sh -s' <<'EOS' || echo "(conversation count unavailable)"
           PATH=/usr/local/bin:/opt/bin:/usr/bin:/bin:$PATH; export PATH
