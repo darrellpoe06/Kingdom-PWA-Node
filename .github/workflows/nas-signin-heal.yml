@@ -251,6 +251,29 @@ jobs:
             echo "funnel direct GET health: HTTP $G_CODE"
           fi
 
+          # ARE THE PAGES FUNCTIONS DEPLOYED AT ALL? Measured 2026-10-09: the
+          # edge answered the sign-in POST with HTTP 405 and content-length 0,
+          # which is what Cloudflare Pages returns when a path is served as a
+          # STATIC asset — static answers GET and refuses POST with an empty
+          # body. That would mean /sb/* never reaches functions/sb/[[path]].js
+          # at all, and the "healthy" GET /sb/auth/v1/health 200 was our own
+          # SPA shell, not GoTrue. One probe separates "this one route is
+          # unrouted" from "no Function is deployed": ask a DIFFERENT Function
+          # route that must answer a plain GET with JSON. If it answers HTML,
+          # the whole Functions bundle is missing from the live deployment.
+          echo "=== are the Pages Functions deployed at all? ==="
+          for R in automation-status review-feed; do
+            A_CODE=$(curl -s -o /tmp/fn_body.txt -m 20 -w '%{http_code}' "https://poetech.us/$R" 2>/dev/null || echo "000")
+            A_CT=$(curl -s -o /dev/null -m 20 -w '%{content_type}' "https://poetech.us/$R" 2>/dev/null || echo "?")
+            echo "GET /$R -> HTTP $A_CODE, content-type: $A_CT"
+            head -c 120 /tmp/fn_body.txt 2>/dev/null | tr -d '\n' | scrub_edge; echo
+            echo "- \`GET /$R\` -> **$A_CODE**, \`$A_CT\`" >> "$GITHUB_STEP_SUMMARY"
+            case "$A_CT" in
+              *text/html*)
+                echo "::warning::/$R served HTML — that route is NOT reaching its Pages Function; the SPA shell answered instead." ;;
+            esac
+          done
+
           # IS THAT GREEN GET EVEN THE NAS ANSWERING? Measured 2026-10-09: a
           # GET to /sb/auth/v1/health returned 200 the whole time Darrell was
           # locked out, while nothing on the box answered a POST. A cached GET
