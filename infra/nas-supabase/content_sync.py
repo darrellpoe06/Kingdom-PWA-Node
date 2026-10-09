@@ -515,6 +515,70 @@ def sync_table(src, dst, table, commit, remaps=None):
     return out
 
 
+# MEASURED, NEVER CARRIED -- the family's own conversations. Darrell,
+# 2026-10-09, looking at a thread in the app: "How do we have the last message
+# and not the one with my daughter's homework?!" The carry-across above was
+# built for THE WORD's content (sermons, transcripts, prep) and its header
+# cites "0 of 901 messages", where a message is a SERMON. No table holding a
+# person's conversation has ever been on CONTENT_TABLES, so if any of these
+# rows live only on the retired backend, nothing was ever going to bring them
+# over and nothing ever said so.
+#
+# This counts both sides and prints the difference. It copies NOTHING. Family
+# conversation is not content to be moved by a daily robot on its own say-so --
+# half a thread carried is its own kind of lie, and whose rows these are and
+# whether they should move at all is Darrell's call, not this script's. So the
+# gap is NAMED on every run and the decision stays with him (DR-0076: an
+# unmeasured gap is the thing that hides; DR-0443: never silently).
+#
+# COUNTS AND DATES ONLY. No row body, no sender, no subject is read or printed
+# here -- this file's output goes to a public Actions log.
+MEASURE_ONLY_TABLES = [
+    "messages",
+    "family_messages",
+    "direct_messages",
+    "group_messages",
+    "choir_messages",
+]
+
+
+def measure_only(src, dst):
+    """Count the conversation tables on both sides. Reads counts and dates;
+    never a body. Copies nothing. A table absent on a side is said plainly
+    rather than reported as zero, because 'no such table' and 'no rows' are
+    different findings."""
+    print("content-sync: --- measured, never carried (family conversations) ---")
+    for t in MEASURE_ONLY_TABLES:
+        side = {}
+        for name, con in (("hosted", src), ("sovereign", dst)):
+            try:
+                cols = table_columns(con, t)
+            except Exception as e:  # noqa: BLE001
+                side[name] = "unreadable ({})".format(str(e)[:60])
+                continue
+            if not cols:
+                side[name] = "no such table"
+                continue
+            datecol = next((c for c in ("created_at", "sent_at", "inserted_at", "updated_at") if c in cols), None)
+            try:
+                cur = con.cursor()
+                if datecol:
+                    cur.execute('select count(*), min("{0}")::text, max("{0}")::text from "{1}"'.format(datecol, t))
+                    n, lo, hi = cur.fetchone()
+                    side[name] = "{} rows ({} .. {})".format(n, lo or "none", hi or "none")
+                else:
+                    cur.execute('select count(*) from "{}"'.format(t))
+                    side[name] = "{} rows (no date column)".format(cur.fetchone()[0])
+                cur.close()
+            except Exception as e:  # noqa: BLE001
+                side[name] = "uncounted ({})".format(str(e)[:60])
+        print("content-sync: MEASURED-ONLY {}: hosted={} | sovereign={}"
+              .format(t, side.get("hosted"), side.get("sovereign")))
+    print("content-sync: the tables above are NOT copied by this lane -- "
+          "they are counted so a gap in the family's own conversations is "
+          "named instead of discovered by someone scrolling a thread")
+
+
 def real_run(commit, only_table=None):
     hosted_url = env_value(AGENT_ENV, "AGENT_DB_URL")
     pw = env_value(SUPA_ENV, "POSTGRES_PASSWORD")
@@ -547,6 +611,8 @@ def real_run(commit, only_table=None):
                 print(line)
                 if r.get("refused_reason"):
                     print("content-sync: {} refused a row: {}".format(t, r["refused_reason"]))
+        if not only_table:
+            measure_only(src, dst)
     finally:
         src.close()
         dst.close()
@@ -642,6 +708,22 @@ def selftest():
           all(len(v) > 40 for v in EXCLUDED_TABLES.values()))
     check("the watermark exclusion names the skip-rows danger, not just tidiness",
           "SKIP" in EXCLUDED_TABLES["_sync_tokens"])
+
+    # ---- the family's conversations are COUNTED, never carried (2026-10-09).
+    # Darrell, looking at a thread: "How do we have the last message and not
+    # the one with my daughter's homework?!" The carry list was built for THE
+    # WORD's content, and no conversation table was ever on it, so a gap there
+    # had nothing bringing it over and nothing saying so. These guard the two
+    # ways that fix could rot: a conversation table quietly joining the carry
+    # list, or the measured list being emptied so the gap goes unnamed again.
+    check("no conversation table is on the carry list",
+          all(t not in CONTENT_TABLES for t in MEASURE_ONLY_TABLES))
+    check("the measured-only list is not empty, so the gap is named every run",
+          len(MEASURE_ONLY_TABLES) >= 5)
+    check("the measured-only list and the carry list never overlap",
+          not (set(MEASURE_ONLY_TABLES) & set(CONTENT_TABLES)))
+    check("the thread Darrell was reading is measured by name",
+          "direct_messages" in MEASURE_ONLY_TABLES and "family_messages" in MEASURE_ONLY_TABLES)
 
     # ---- the FIRST of the two 2026-09-16 apply-run causes: a matched parent
     # held under a different primary key, so its children pointed at ids the
