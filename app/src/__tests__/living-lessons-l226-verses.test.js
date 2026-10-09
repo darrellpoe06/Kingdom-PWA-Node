@@ -10,7 +10,7 @@
 // to carry each piece with its verse.
 //
 // Every double-quoted span must be verbatim KJV from the in-repo corpus under
-// a STRICT comparison (whitespace only, never apostrophes). DR-0847.
+// a STRICT comparison (whitespace only, never apostrophes). DR-0848.
 import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';

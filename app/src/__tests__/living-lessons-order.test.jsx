@@ -113,9 +113,9 @@ describe('the day each lesson was added — a recorded day, and a new lesson joi
     expect(back).toEqual([]);
     expect(byNum[0].added).toBe('2026-06-24');
     // The newest lesson's day, kept current as lessons land: L224 to L228
-    // (DR-0845 to DR-0849) were spoken into the app on 2026-10-09, so the
+    // (DR-0846 to DR-0850) were spoken into the app on 2026-10-09, so the
     // highest-numbered lesson carries that day.
-    expect(byNum[byNum.length - 1].added).toBe('2026-10-09'); // L228 (DR-0849)
+    expect(byNum[byNum.length - 1].added).toBe('2026-10-09'); // L228 (DR-0850)
   });
 
   it('formats a calendar day without a time-zone shift, and months are labels', () => {

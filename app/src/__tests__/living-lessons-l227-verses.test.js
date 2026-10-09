@@ -11,7 +11,7 @@
 // 1 Peter 3:15) and the skill (2 Timothy 2:15; Acts 17:11; Nehemiah 8:8).
 //
 // Every double-quoted span must be verbatim KJV from the in-repo corpus under
-// a STRICT comparison (whitespace only, never apostrophes). DR-0848.
+// a STRICT comparison (whitespace only, never apostrophes). DR-0849.
 import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';

@@ -1,4 +1,4 @@
-# DR-0846 — Spiritual Knowledge is the most important factor: the highest quality of life in every season, with money or without it (L225)
+# DR-0847 — Spiritual Knowledge is the most important factor: the highest quality of life in every season, with money or without it (L225)
 
 **Date:** 2026-10-09
 **Status:** accepted

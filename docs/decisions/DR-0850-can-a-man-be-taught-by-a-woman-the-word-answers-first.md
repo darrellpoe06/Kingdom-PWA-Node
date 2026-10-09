@@ -1,4 +1,4 @@
-# DR-0849 — Can a man be taught by a woman? Knowing Him is most important, He can use anyone, and the Word answers first (L228)
+# DR-0850 — Can a man be taught by a woman? Knowing Him is most important, He can use anyone, and the Word answers first (L228)
 
 **Date:** 2026-10-09
 **Status:** accepted

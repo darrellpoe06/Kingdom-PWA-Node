@@ -1,4 +1,4 @@
-# DR-0848 — Read the Word for the Spirit, do the Word for the skill: not to say I got you, but to become better His Way and then do His Way (L227)
+# DR-0849 — Read the Word for the Spirit, do the Word for the skill: not to say I got you, but to become better His Way and then do His Way (L227)
 
 **Date:** 2026-10-09
 **Status:** accepted

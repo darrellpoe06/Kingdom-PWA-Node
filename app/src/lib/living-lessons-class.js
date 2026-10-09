@@ -20341,7 +20341,7 @@ export const LIVING_LESSONS_MODULES = [
   // (2 Samuel 12:13), and supplies the grace that makes rendering it
   // survivable (1 John 1:9; Romans 8:1). Teach, do not debate (DR-0098): the
   // levels are the Lord's own words, not a human school. Every quoted span
-  // verbatim from app/public/bible/kjv. DR-0845.
+  // verbatim from app/public/bible/kjv. DR-0846.
   {
     id: "ll224-accountability-every-soul-answers-to-yahweh-man-woman-and-child-at-every-level",
     title: "Accountability — Every Soul Answers to Yahweh: Man, Woman and Child, at Every Level",
@@ -20419,7 +20419,7 @@ export const LIVING_LESSONS_MODULES = [
   // giving and receiving of the Philippians and never names the tenth there
   // (DR-0076 §8). Taught, not debated (DR-0098); what the Word promises
   // plainly is stated plainly and nothing beyond it (DR-0100). Every quoted
-  // span verbatim from app/public/bible/kjv. DR-0846.
+  // span verbatim from app/public/bible/kjv. DR-0847.
   {
     id: "ll225-spiritual-knowledge-is-the-most-important-factor-the-highest-quality-of-life-in-every-season-with-money-or-without-it",
     title: "Spiritual Knowledge Is the Most Important Factor — the Highest Quality of Life in Every Season, With Money or Without It",
@@ -20507,7 +20507,7 @@ export const LIVING_LESSONS_MODULES = [
   // going to be man, eternally known by the Godhead, not angels, only the Son
   // of Yahweh; and He died for us to become the church, the body of Christ, a
   // host of humans from all nations. Taught, not debated (DR-0098); every
-  // quoted span verbatim from app/public/bible/kjv. DR-0847.
+  // quoted span verbatim from app/public/bible/kjv. DR-0848.
   {
     id: "ll226-the-mind-of-christ-is-our-identity-sound-minds-the-whole-armour-and-the-kingdom-ways-every-nation-is-going-into",
     title: "The Mind of Christ Is Our Identity — Sound Minds, the Whole Armour, and the Kingdom Ways Every Nation Is Going Into",
@@ -20578,7 +20578,7 @@ export const LIVING_LESSONS_MODULES = [
   // (Isaiah 55:8-9), and ties competent speech and learned skill to the Word
   // dwelling richly and being done (Colossians 3:16; 4:6; 1 Peter 3:15;
   // Ezra 7:10; 2 Timothy 2:15). Taught, not debated (DR-0098); every quoted
-  // span verbatim from app/public/bible/kjv. DR-0848.
+  // span verbatim from app/public/bible/kjv. DR-0849.
   {
     id: "ll227-read-the-word-for-the-spirit-do-the-word-for-the-skill-not-to-say-i-got-you-but-to-become-better-his-way-and-then-do-his-way",
     title: "Read the Word for the Spirit, Do the Word for the Skill — Not to Say I Got You, but to Become Better His Way and Then Do His Way",
@@ -20649,7 +20649,7 @@ export const LIVING_LESSONS_MODULES = [
   // 2:17-18; Titus 2:3-5; 2 Timothy 1:5; John 20:17-18). Nothing is erased
   // and nothing is added; where the Word is reticent the lesson stays with
   // what it says. Every quoted span verbatim from app/public/bible/kjv.
-  // DR-0849.
+  // DR-0850.
   {
     id: "ll228-can-a-man-be-taught-by-a-woman-knowing-him-is-most-important-he-can-use-anyone-and-the-word-answers-first",
     title: "Can a Man Be Taught by a Woman? — Knowing Him Is Most Important, He Can Use Anyone, and the Word Answers First",
