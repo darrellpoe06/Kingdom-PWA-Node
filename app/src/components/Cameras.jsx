@@ -48,7 +48,7 @@ import {
   formatAge, formatBytes, fetchWithTimeout, authHeaders, setupCommands,
   WYZE_FIELDS, setupWyze, WYZE_API_KEY_HELP_URL, WYZE_API_KEY_STEPS,
   serviceCodeState, restartService, loadWyzeDraft, saveWyzeDraft, clearWyzeDraft,
-  SNAP_CONCURRENCY, LIVE_RECONNECT_MAX, LIVE_RECONNECT_DELAY_MS, runLimited, skipFailedFrame,
+  SNAP_CONCURRENCY, LIVE_RECONNECT_DELAY_MAX_MS, reconnectDelayMs, runLimited, skipFailedFrame,
   classifySnapError, fetchWhy, groupCameraFaults, faultSummaryLine, wyzeSaysFor, wyzeSaysLine, cameraRoadLine, bridgeLine, setStreamRoad,
   loadViews, saveViews, activeView, addToView, removeFromView, moveInView, setViewLayout, renameView, addView, deleteView, viewCols, viewGridClass, indexAtPoint, VIEW_LAYOUTS,
   fitGrid, clampScale, setViewScale, VIEW_SCALE_STEP, VIEW_SCALE_MIN, VIEW_SCALE_MAX, toggleFocus, focusIn, shownCount,
@@ -372,9 +372,12 @@ function KindsHelp() {
 // black at 28 s with "the NAS stops each live view at 300 s", which was not
 // true: the stream ended on its own (a dropped segment, a camera hiccup) and
 // the app simply gave up. tinyCam reconnects; so does this. A view that ends
-// before the viewer closed it is re-opened after a short pause, up to
-// LIVE_RECONNECT_MAX times, with the count shown; only then does it offer
-// Resume. The optional NAS clock (liveMax > 0) is treated the same way.
+// before the viewer closed it is re-opened after a short pause, with the count
+// shown, AND IT NEVER STOPS (DR-0833): the six-try cap and the Resume button
+// put four "Press Resume" tiles on the family's TV on 2026-10-09. The wait
+// grows only while the camera gives no picture (lib reconnectDelayMs); a
+// hidden page waits the long step. The optional NAS clock (liveMax > 0) is
+// treated the same way.
 // THE DOOR, WITHOUT THE VIDEO (DR-0777; Darrell 2026-10-07: "I want a button
 // for garage that is independent of the video streaming being available").
 // One tap, one POST to the NAS, one cloud action to the camera's device record
@@ -701,7 +704,8 @@ function LiveVideo({ cam, token, liveMax, onClose, compact = false, bare = false
     onClick: () => onPick(),
     onKeyDown: (e) => { if (e && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onPick(); } },
   } : {};
-  const [st, setSt] = useState({ mode: '', src: '', startedAt: Date.now(), firstFrameMs: null, stalls: 0, ended: false, error: '', opening: true, reconnects: 0, exhausted: false });
+  const [st, setSt] = useState({ mode: '', src: '', startedAt: Date.now(), firstFrameMs: null, stalls: 0, ended: false, error: '', opening: true, reconnects: 0, blank: 0, nextAt: 0 });
+  const endedRef = useRef(null);
   const [road, setRoadRaw] = useState(() => loadLiveRoad());
   const setRoad = (r) => { saveLiveRoad(r); setRoadRaw(r); };
   const timers = useRef({ first: null, reopen: null, video: null });
@@ -715,7 +719,7 @@ function LiveVideo({ cam, token, liveMax, onClose, compact = false, bare = false
   const streamId = liveStreamId(cam, typeof document !== 'undefined' ? (t) => { try { return document.createElement('video').canPlayType(t); } catch { return ''; } } : null, { sd });
   const open = useCallback(async (reconnects) => {
     clearTimeout(timers.current.first);
-    setSt((p) => ({ ...p, opening: true, ended: false, error: '', src: '', firstFrameMs: null, startedAt: Date.now(), reconnects, exhausted: false }));
+    setSt((p) => ({ ...p, opening: true, ended: false, error: '', src: '', firstFrameMs: null, startedAt: Date.now(), reconnects, nextAt: 0 }));
     try {
       const r = await fetchWithTimeout(ticketUrl(), { method: 'POST', headers: { ...authHeaders(token), 'Content-Type': 'application/json' }, body: JSON.stringify({ camera: streamId }) }, FETCH_TIMEOUT_MS);
       if (!r.ok) throw new Error(r.status === 401 ? 'the family key was refused' : r.status === 503 ? 'the NAS has all its live slots in use' : `ticket HTTP ${r.status}`);
@@ -728,9 +732,9 @@ function LiveVideo({ cam, token, liveMax, onClose, compact = false, bare = false
       const startedAt = Date.now();
       setSt((p) => ({ ...p, mode, src: liveUrl(streamId, mode, ticket, { nonce: reconnects }), startedAt, firstFrameMs: null, stalls: 0, ended: false, error: '', opening: false }));
       timers.current.first = setTimeout(() => {
-        setSt((p) => (p.firstFrameMs == null && !p.ended && p.src)
-          ? { ...p, error: `No picture after ${Math.round(LIVE_FIRST_FRAME_TIMEOUT_MS / 1000)} s. The camera may be asleep or unreachable from the NAS; press Why? on its tile.` }
-          : p);
+        // No picture by now: say so AND come back by itself (DR-0833), the
+        // wait growing while it stays blank. Nothing here waits on a hand.
+        if (alive.current && endedRef.current) endedRef.current(`no picture after ${Math.round(LIVE_FIRST_FRAME_TIMEOUT_MS / 1000)} s; the camera may be asleep or unreachable from the NAS, press Why? on its tile`, { onlyIfBlank: true });
       }, LIVE_FIRST_FRAME_TIMEOUT_MS);
     } catch (e) {
       if (!alive.current) return;
@@ -764,21 +768,33 @@ function LiveVideo({ cam, token, liveMax, onClose, compact = false, bare = false
   // The stream ended or broke without the viewer closing it: come back. The
   // road's record is written (DR-0782) and, under Auto, a road that failed to
   // open is swapped for the other on the way back.
-  const endedOnItsOwn = useCallback((reason) => {
+  const endedOnItsOwn = useCallback((reason, { onlyIfBlank = false } = {}) => {
     setSt((p) => {
       if (p.ended) return p;
       const opened = p.firstFrameMs != null;
+      if (onlyIfBlank && opened) return p;
       recordRoadResult(p.mode, { ok: opened, firstFrameMs: p.firstFrameMs, stalls: p.stalls });
       if (!opened) lastFailed.current = p.mode;
+      // NO CAP, NO RESUME (DR-0833): the next try is always armed. The wait
+      // grows only while the camera gives no picture; a hidden page waits the
+      // long step and looks again rather than asking the NAS for tickets
+      // nobody is watching.
+      const blank = opened ? 0 : (p.blank || 0) + 1;
+      const wait = reconnectDelayMs(blank);
       const n = p.reconnects;
-      if (n < LIVE_RECONNECT_MAX) {
-        clearTimeout(timers.current.reopen);
-        timers.current.reopen = setTimeout(() => { if (alive.current) open(n + 1); }, LIVE_RECONNECT_DELAY_MS);
-        return { ...p, ended: true, error: reason, reconnecting: true };
-      }
-      return { ...p, ended: true, error: reason, exhausted: true, reconnecting: false };
+      clearTimeout(timers.current.reopen);
+      const again = (ms) => {
+        timers.current.reopen = setTimeout(() => {
+          if (!alive.current) return;
+          if (typeof document !== 'undefined' && document.visibilityState === 'hidden') { again(LIVE_RECONNECT_DELAY_MAX_MS); return; }
+          open(n + 1);
+        }, ms);
+      };
+      again(wait);
+      return { ...p, ended: true, error: reason, reconnecting: true, blank, nextAt: Date.now() + wait };
     });
   }, [open]);
+  endedRef.current = endedOnItsOwn;
 
   // THE TILE IS TENDED (DR-0799): every LIVE_TEND_MS the element is asked
   // whether its picture still moves and how far it trails the live edge. A
@@ -816,10 +832,10 @@ function LiveVideo({ cam, token, liveMax, onClose, compact = false, bare = false
   const onError = () => endedOnItsOwn(st.firstFrameMs == null ? 'the browser could not open this stream' : 'the stream broke');
 
   const elapsed = Math.max(0, Math.round(((now || Date.now()) - st.startedAt) / 1000));
+  const waitLeft = st.ended && st.nextAt ? Math.max(0, Math.ceil((st.nextAt - (now || Date.now())) / 1000)) : 0;
   const status = released ? 'Paused while another camera is the largest.'
     : st.opening ? 'Asking the NAS for a playback ticket...'
-    : st.exhausted ? `Stopped after ${LIVE_RECONNECT_MAX} reconnects: ${st.error}. Press Resume to try again.`
-    : st.ended ? `Reconnecting (${st.error})...`
+    : st.ended ? `Reconnecting${waitLeft > 0 ? ` in ${waitLeft} s` : ''} (${st.error})...`
     : st.error || 'No stream.';
   // BARE (DR-0788): the picture and the camera's name, nothing else — the
   // shape a tile takes inside the full-size window.
@@ -833,7 +849,6 @@ function LiveVideo({ cam, token, liveMax, onClose, compact = false, bare = false
           <div className="w-full h-full flex items-center justify-center text-white text-xs p-4 text-center" data-testid={`${testId}-status`}>{status}</div>
         )}
         <div className="absolute left-1 right-8 top-1 w-fit px-1.5 py-0.5 bg-black/60 text-white text-[0.6875rem] truncate">{cam.name}{st.reconnects > 0 ? ` · reconnected ${st.reconnects}×` : ''}</div>
-        {st.exhausted ? <button type="button" className={`absolute right-1 bottom-1 ${btnDark} focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={(e) => { e.stopPropagation(); open(0); }}>Resume</button> : null}
       </div>
     );
   }
@@ -874,7 +889,6 @@ function LiveVideo({ cam, token, liveMax, onClose, compact = false, bare = false
           {st.reconnects > 0 ? <span className={chip.wait} data-testid={`${testId}-reconnects`}>reconnected {st.reconnects}×</span> : null}
           {st.firstFrameMs != null && !st.ended ? <span>on for {elapsed} s{liveMax > 0 ? ` of ${liveMax}` : ''}</span> : null}
         </div>
-        {st.exhausted ? <button type="button" className={`${btnDark} focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={() => open(0)}>Resume</button> : null}
       </div>
       {!compact ? <div className="mt-1 text-[0.625rem] text-[#5A5751]" data-testid={`${testId}-roads`}>{roadLine(loadRoadStats(), 'mp4')} · {roadLine(loadRoadStats(), 'hls')} · frames every 5 s always work</div> : null}
     </div>
@@ -1008,18 +1022,19 @@ function ViewWindow({ view, cams, token, liveMax, now, onClose, onScale }) {
 }
 
 // A TILE THAT IS LIVE (DR-0776). The same reconnecting player as LiveVideo,
-// stripped to the picture: no header, no Close. When it has given up (the
-// camera never answered through all its reconnects) it tells the tab, which
-// drops the tile back to the snapshot road so the reason shows and recovery
-// is noticed on the next sweep.
+// stripped to the picture: no header, no Close, and no giving up (DR-0833).
+// After TILE_BLANK_TELL blank tries in a row it tells the tab once, so the
+// frames record carries the reason and Why? can show it; the tile itself
+// keeps trying, the wait growing while the camera stays blank.
+const TILE_BLANK_TELL = 3;
 function TileLive({ cam, token, liveMax, now, onFailed, sd = false }) {
-  const [st, setSt] = useState({ src: '', startedAt: Date.now(), firstFrameMs: null, ended: false, reconnects: 0, exhausted: false, error: '', mode: '' });
+  const [st, setSt] = useState({ src: '', startedAt: Date.now(), firstFrameMs: null, ended: false, reconnects: 0, blank: 0, nextAt: 0, error: '', mode: '' });
   const timers = useRef({ first: null, reopen: null, video: null });
   const alive = useRef(true);
   const streamId = liveStreamId(cam, typeof document !== 'undefined' ? (t) => { try { return document.createElement('video').canPlayType(t); } catch { return ''; } } : null, { sd });
   const open = useCallback(async (reconnects) => {
     clearTimeout(timers.current.first);
-    setSt((p) => ({ ...p, ended: false, src: '', firstFrameMs: null, startedAt: Date.now(), reconnects, exhausted: false, error: '' }));
+    setSt((p) => ({ ...p, ended: false, src: '', firstFrameMs: null, startedAt: Date.now(), reconnects, nextAt: 0, error: '' }));
     try {
       const r = await fetchWithTimeout(ticketUrl(), { method: 'POST', headers: { ...authHeaders(token), 'Content-Type': 'application/json' }, body: JSON.stringify({ camera: streamId }) }, FETCH_TIMEOUT_MS);
       if (!r.ok) throw new Error(r.status === 503 ? 'the NAS has all its live slots in use' : `ticket HTTP ${r.status}`);
@@ -1045,13 +1060,21 @@ function TileLive({ cam, token, liveMax, now, onFailed, sd = false }) {
   const endedOnItsOwn = useCallback((reason) => {
     setSt((p) => {
       if (p.ended) return p;
-      if (p.reconnects < LIVE_RECONNECT_MAX) {
-        clearTimeout(timers.current.reopen);
-        timers.current.reopen = setTimeout(() => { if (alive.current) open(p.reconnects + 1); }, LIVE_RECONNECT_DELAY_MS);
-        return { ...p, ended: true, error: reason };
-      }
-      if (onFailed) setTimeout(() => onFailed(`live view gave up: ${reason}`), 0);
-      return { ...p, ended: true, error: reason, exhausted: true };
+      const opened = p.firstFrameMs != null;
+      const blank = opened ? 0 : (p.blank || 0) + 1;
+      if (onFailed && blank === TILE_BLANK_TELL) setTimeout(() => onFailed(`live view has had no picture: ${reason}`), 0);
+      const wait = reconnectDelayMs(blank);
+      const n = p.reconnects;
+      clearTimeout(timers.current.reopen);
+      const again = (ms) => {
+        timers.current.reopen = setTimeout(() => {
+          if (!alive.current) return;
+          if (typeof document !== 'undefined' && document.visibilityState === 'hidden') { again(LIVE_RECONNECT_DELAY_MAX_MS); return; }
+          open(n + 1);
+        }, ms);
+      };
+      again(wait);
+      return { ...p, ended: true, error: reason, blank, nextAt: Date.now() + wait };
     });
   }, [open, onFailed]);
   // Tended like every live tile (DR-0799): a frozen picture reconnects, a lag is run down.
@@ -1070,6 +1093,7 @@ function TileLive({ cam, token, liveMax, now, onFailed, sd = false }) {
     return () => clearInterval(id);
   }, [st.src, st.ended, st.mode, endedOnItsOwn]);
   const elapsed = Math.max(0, Math.round(((now || Date.now()) - st.startedAt) / 1000));
+  const waitLeft = st.ended && st.nextAt ? Math.max(0, Math.ceil((st.nextAt - (now || Date.now())) / 1000)) : 0;
   return (
     <div className="aspect-video bg-black relative" data-testid={`tile-live-${cam.id}`}>
       {st.src && !st.ended ? (
@@ -1078,7 +1102,7 @@ function TileLive({ cam, token, liveMax, now, onFailed, sd = false }) {
           onEnded={() => endedOnItsOwn(liveMax > 0 && elapsed >= liveMax - 2 ? 'the NAS clock' : 'stream ended')}
           onError={() => endedOnItsOwn(st.firstFrameMs == null ? 'could not open' : 'stream broke')} />
       ) : (
-        <div className="absolute inset-0 flex items-center justify-center text-white/80 text-xs p-3 text-center">{st.exhausted ? `Gave up: ${st.error}` : st.ended ? 'Reconnecting...' : st.error || 'Opening live...'}</div>
+        <div className="absolute inset-0 flex items-center justify-center text-white/80 text-xs p-3 text-center">{st.ended ? `Reconnecting${waitLeft > 0 ? ` in ${waitLeft} s` : ''}${st.error ? ` (${st.error})` : ''}...` : st.error || 'Opening live...'}</div>
       )}
       {st.firstFrameMs == null && st.src && !st.ended && !st.error ? <div className="absolute bottom-1 left-1 text-[0.5625rem] text-white/70">waiting for the first picture</div> : null}
       {st.reconnects > 0 ? <div className="absolute top-1 right-1 text-[0.5625rem] text-white/80 bg-black/50 px-1">reconnected {st.reconnects}×</div> : null}

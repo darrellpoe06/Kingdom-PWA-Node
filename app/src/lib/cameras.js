@@ -392,8 +392,25 @@ export async function restartService(token, fetchImpl = globalThis.fetch) {
 // =============================================================================
 export const SNAP_CONCURRENCY = 3;            // frames in flight from this device at once (the NAS allows 6)
 export const SNAP_RETRY_FAILED_MS = 30000;    // a camera that just failed is tried again after this, not every sweep
-export const LIVE_RECONNECT_MAX = 6;          // a live view that ends on its own is re-opened this many times...
-export const LIVE_RECONNECT_DELAY_MS = 1500;  // ...this soon; then it offers Resume
+// A LIVE VIEW NEVER STOPS TRYING (DR-0833; Darrell 2026-10-09, four tiles on
+// the TV reading "Press Resume": "This should never happen.... you push
+// resume! Why should the user even need to!"). There is no cap and no Resume
+// button: a view that ends on its own comes back after LIVE_RECONNECT_DELAY_MS,
+// and only while the camera gives NO picture does the wait double, up to
+// LIVE_RECONNECT_DELAY_MAX_MS, so an off camera is asked again every half
+// minute instead of every second, and a camera that comes back is seen within
+// the minute. A picture resets the wait to the first step.
+export const LIVE_RECONNECT_DELAY_MS = 1500;       // the first wait after a view ends on its own
+export const LIVE_RECONNECT_DELAY_MAX_MS = 30000;  // the longest wait while a camera stays blank
+
+/**
+ * The wait before the next try, from how many tries in a row ended with no
+ * picture: 0 or 1 -> the first step; then doubling; never past the ceiling.
+ */
+export function reconnectDelayMs(blankInARow) {
+  const n = Math.max(0, Math.floor(Number(blankInARow) || 0));
+  return Math.min(LIVE_RECONNECT_DELAY_MAX_MS, LIVE_RECONNECT_DELAY_MS * (2 ** Math.max(0, n - 1)));
+}
 export const WALL_KEY = 'poetech.cameras.wall.v1';
 export const WALL_MAX_DEFAULT = 6;            // the wall's size when the NAS does not say (its max_live wins)
 
