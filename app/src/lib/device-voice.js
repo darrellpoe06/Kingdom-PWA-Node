@@ -37,6 +37,7 @@
 // PRs land). The card in the Voice surface is the only caller today.
 // =============================================================================
 import ortWasmUrl from 'onnxruntime-web/ort-wasm-simd-threaded.wasm?url';
+import { forSynthesis } from './synthesis-text.js';
 
 export const DEVICE_VOICE_CACHE = 'poetech-keep-device-voice-v1';
 // Must match the onnxruntime-web version in package.json (a cached runtime
@@ -336,7 +337,8 @@ async function workerFor(voice, { cachesImpl, workerFactory } = {}) {
  * @returns {Promise<{url:string, ms:number, audioSeconds:number, initMs?:number}|{error:string}>}
  */
 export async function synthesizeOnDevice({ text, voice = 'male', cachesImpl, workerFactory } = {}) {
-  const body = String(text || '').trim();
+  // Short, closed sentences only (DR-0851): the same shaping the NAS voice gets.
+  const body = forSynthesis(String(text || '').trim());
   if (!body) return { error: 'empty-text' };
   let entry;
   try { entry = await workerFor(voice, { cachesImpl, workerFactory }); } catch (e) { return { error: (e && e.message) || 'device-voice-error' }; }

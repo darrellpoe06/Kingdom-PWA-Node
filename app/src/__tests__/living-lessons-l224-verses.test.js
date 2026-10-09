@@ -61,9 +61,9 @@ const sentences = (t) => t.split(/(?<=[.?!])\s+/).filter(Boolean);
 const grown = `${L.lesson} ${band('teen')} ${band('senior')}`;
 
 // The references every band must carry, verbatim-gated below.
-const EVERY_BAND = ["Romans 14:12", "Ezekiel 18:20", "Hebrews 4:13", "Ecclesiastes 12:14", "Genesis 3:9", "Genesis 3:12", "Genesis 3:13", "Luke 12:48", "Matthew 25:19", "Matthew 25:23", "Luke 16:10", "Ephesians 5:25", "Ephesians 6:4", "Proverbs 31:27", "Proverbs 31:30", "Proverbs 20:11", "Ephesians 6:1", "1 Samuel 3:10", "2 Chronicles 34:3", "Ecclesiastes 12:1", "James 3:1", "Hebrews 13:17", "2 Samuel 12:7", "2 Samuel 12:13", "Proverbs 28:13", "James 5:16", "Proverbs 27:17", "Proverbs 27:6", "Matthew 18:15", "1 John 1:9", "Romans 8:1", "Ecclesiastes 12:13", "Galatians 6:7"];
+const EVERY_BAND = ["Romans 14:12", "Ezekiel 18:20", "Hebrews 4:13", "Ecclesiastes 12:14", "Genesis 3:9", "Genesis 3:12", "Genesis 3:13", "Luke 12:48", "Matthew 25:19", "Matthew 25:23", "Luke 16:10", "Ephesians 5:25", "Ephesians 6:4", "Proverbs 31:27", "Proverbs 31:30", "Proverbs 20:11", "Ephesians 6:1", "1 Samuel 3:10", "2 Chronicles 34:3", "Ecclesiastes 12:1", "James 3:1", "Hebrews 13:17", "2 Samuel 12:7", "2 Samuel 12:13", "Proverbs 28:13", "James 5:16", "Proverbs 27:17", "Proverbs 27:6", "Matthew 18:15", "1 John 1:9", "Romans 8:1", "Ecclesiastes 12:13", "Galatians 6:7", "Psalms 19:12", "John 16:8", "Matthew 7:5", "1 Corinthians 9:27", "Romans 8:13", "Galatians 5:24", "Proverbs 16:32", "Luke 9:23", "Hebrews 12:6", "Revelation 3:19", "Hebrews 12:7", "Hebrews 12:10", "Hebrews 12:11", "2 Corinthians 13:5", "Daniel 6:10", "1 Timothy 4:7", "Hebrews 12:9"];
 // The rest of the spine, carried by the lesson and the grown bands.
-const GROWN = ["(1 Peter 3:7)", "(2 Corinthians 5:10)", "(1 Timothy 4:12)", "(1 Corinthians 11:31)", "(Joshua 24:15)"];
+const GROWN = ["(1 Peter 3:7)", "(2 Corinthians 5:10)", "(1 Timothy 4:12)", "(1 Corinthians 11:31)", "(Joshua 24:15)", "(Psalms 139:23-24)", "(Jeremiah 17:9-10)", "(Romans 7:18-19)", "(Revelation 3:18)", "(Lamentations 3:40)", "(Titus 2:12)", "(Proverbs 25:28)", "(Proverbs 3:11-12)", "(Psalms 94:12)", "(Proverbs 10:17)", "(Proverbs 15:32)", "(1 Corinthians 11:28)", "(Psalms 4:4)", "(Acts 2:42)", "(Hebrews 5:14)"];
 
 describe('L224 exists and is whole', () => {
   it('is registered with its own id and title', () => {
@@ -176,6 +176,21 @@ describe('L224 — the whole spine, in every band', () => {
       const says = sentences(band(b)).some((s) => /much (is )?given|given a lot|more given/.test(s)) || /much (is )?given|given a lot|more given/.test(band(b));
       expect(says, `${b} is silent`).toBe(true);
     }
+  });
+  it('every band says seeing is a skill we cannot do alone, and holding the flesh accountable is the highest level', () => {
+    for (const b of BANDS) {
+      expect(band(b), `${b} highest level`).toMatch(/highest level/);
+      expect(band(b), `${b} cannot see our own`).toMatch(/cannot see our own|cannot see (our|your) own sin/i);
+    }
+    expect(L.lesson).toMatch(/SEEING YOUR SIN IS A SKILL YOU CANNOT DO ALONE; HOLDING YOUR FLESH ACCOUNTABLE IS THE HIGHEST LEVEL/);
+  });
+  it('every band says Love loves discipline, the why, and keeps a practice (DR-0846)', () => {
+    for (const b of BANDS) {
+      expect(band(b), `${b} Love loves discipline`).toMatch(/Love loves discipline/);
+      expect(band(b), `${b} the practice`).toMatch(/practice/);
+      expect(band(b), `${b} the program`).toMatch(/program/);
+    }
+    expect(L.lesson).toMatch(/LOVE LOVES DISCIPLINE: WHY WE NEED TO BE ACCOUNTABLE, AND THE PRACTICE THAT KEEPS US SUBMITTED/);
   });
   it('the lesson names man, woman and child each in their own movement', () => {
     expect(L.lesson).toMatch(/FIVE, THE MAN\./);
