@@ -48,9 +48,15 @@ describe('the speak request is bounded', () => {
     expect(r.error).toBeTruthy();
     expect(r.error).not.toBe('voice-service-timeout');
   });
-  it('a normal answer is untouched by the bound', async () => {
+  it('a normal answer is untouched by the bound, and names the voice that spoke', async () => {
     globalThis.fetch = vi.fn(async () => ({ ok: true, blob: async () => ({ size: 10 }) }));
-    expect(await synthesizeSpeech({ text: 'hello', referenceDataUri: 'data:audio/webm;base64,AAAA' })).toEqual({ url: 'blob:fake' });
+    // `engine` was added 2026-10-09: with the studio dark the reader fell back
+    // silently while the picker still read "My voice (Darrell)". Every
+    // synthesis now says which voice actually produced the audio. This path IS
+    // the studio, so it must say so — the expectation is tightened to assert
+    // that, never relaxed to tolerate an unnamed voice.
+    expect(await synthesizeSpeech({ text: 'hello', referenceDataUri: 'data:audio/webm;base64,AAAA' }))
+      .toEqual({ url: 'blob:fake', engine: 'studio' });
   });
 });
 
