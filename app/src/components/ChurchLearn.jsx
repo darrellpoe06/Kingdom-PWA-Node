@@ -1248,14 +1248,27 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
   const downloads = useDownloads();
   const savedSig = downloads.lessons[module.id] ? JSON.stringify(downloads.lessons[module.id].levels) : '';
   React.useEffect(() => {
+    const liveText = readAloudTextFromArc(buildLessonArc(module, { ageBand, levelOverride, sessionFlow, handsOnLabel }));
     const savedText = !online && !levelOverride ? savedReadingFor(module, ageBand, { sessionFlow, handsOnLabel }) : null;
-    const text = savedText || readAloudTextFromArc(buildLessonArc(module, { ageBand, levelOverride, sessionFlow, handsOnLabel }));
+    // THE SAVED READING ONLY WINS WHEN IT IS THIS PAGE'S READING (2026-10-09).
+    // Darrell, from the lesson reader: "reading something totally different
+    // from what's on the page." `savedReadingFor` builds the reading for the
+    // VERSION that serves this band (lesson-downloads.js), which is not always
+    // the band itself — so a saved reading can be a different version's words
+    // while the page shows this one's. Preferring it then hands the reader text
+    // the listener cannot see, and the saved clips are keyed on those other
+    // words, so the mismatch is audible, not cosmetic. Compared, not assumed
+    // (DR-0076 §4): same reading → the saved one is used and `preferText` asks
+    // the reader to speak it so the device's own clips play (DR-0722);
+    // different → the page's reading is registered and read normally.
+    const sameReading = !!savedText && savedText === liveText;
+    const text = sameReading ? savedText : liveText;
     if (text) {
       setReadTarget(module.id, {
         label: `this ${unitNoun}`,
         title: module.title || '',
         text,
-        preferText: !!savedText,
+        preferText: sameReading,
         elementId: `learn-read-${module.id}`,
         prepare: (on) => setReadAll(!!on),
         next: onAdvance || null,
