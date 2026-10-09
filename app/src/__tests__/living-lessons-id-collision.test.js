@@ -66,13 +66,21 @@ const numbered = (mods) => mods.map((m) => {
 // ever exist. The two numbers were spent as build-sequence labels before the
 // course was settled. Their entries stay for the same reason 79 stays: the
 // number was passed over, and the header says so rather than hiding it.
-// 236, 237 and 238 are HELD (2026-10-09) the way 193, 203 and 210 were held:
-// five lessons were built from five forwarded threads at the same time, one
-// number each, and L239 is landing while those three are still in flight on
-// their own branches. Delete each entry in the merge that brings its lesson in —
-// the second check below fails on a held number that was quietly filled, which
-// is how the convention tells the later merge what to remove.
-const KNOWN_MISSING = [79, 211, 212, 236, 237, 238];
+// 236, 237 and 238 were all recorded together (2026-10-09) when five lessons
+// were built from five forwarded threads at the same time, one number each, and
+// L239 landed first while the rest were still in flight on their own branches.
+// 236 WAS held here and is now deleted, because this merge brings L236 in (The
+// Bill You Cannot Read, DR-0860) — which is the convention working: the second
+// check below fails on a held number that was quietly filled, and it did.
+// 237 is still HELD, the way 193, 203 and 210 were held; its lesson is in flight
+// on its own branch and that merge deletes its entry.
+// 238 is a PERMANENT gap, not a hold, for the same reason as 211 and 212. The
+// number was handed to the Stop Wasting LLM Tokens teaching, which turned out
+// to be already built as sov37 in the Sovereign A.I. course (DR-0824), where the
+// ids are `sov<number>`. So no `ll238` will ever exist, and the entry stays
+// because the number was passed over and the header says so rather than hiding
+// it. This is a recorded decision, not a skipped session.
+const KNOWN_MISSING = [79, 211, 212, 237, 238];
 
 describe('every lesson id is shaped ll<number>-<slug>', () => {
   it('no lesson carries an unparseable id', () => {

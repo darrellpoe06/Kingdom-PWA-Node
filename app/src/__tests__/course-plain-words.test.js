@@ -103,9 +103,35 @@ describe('THE TITLES ARE UNTOUCHED — this is additive or it is wrong', () => {
   });
 });
 
+// WHY THE 400-RESULT WINDOW CAME OFF (2026-10-09, measured, DR-0332).
+// `finds` used to ask for the first 400 results and look for the course there.
+// That read as a relevance window and was not one. `searchLessons`
+// (app/src/lib/learn-organize.js:508-529) scores a hit 3 for a title match, 2
+// for a reference match and 1 otherwise, then breaks every tie by CATALOG
+// POSITION (`(a.i - b.i)`, line 527). There is no relevance score at all, so a
+// slice of the ordering is a slice of the catalog, in catalog order.
+//
+// What that cost, measured the day it bit: `work` is declared for
+// eternal-wisdom, which is near the end of the catalog, and its first `work`
+// hit sat at position 399 of 432 — the last slot in the window. Adding ONE
+// lesson anywhere ahead of it that contains the word pushed it to 400 and the
+// gate went red, on a lesson whose only uses of the word were inside two verses
+// it is required to quote verbatim (Proverbs 16:11, "all the weights of the bag
+// are his work"; Proverbs 24:27, "Prepare thy work without"). No edit to that
+// lesson's prose could move it, because position is not prose, and the one edit
+// that would have — altering a quotation — is forbidden (DR-0459, Layer 0).
+//
+// So the window measured catalog size, not connection, and this file's own
+// header says what it is for: it "fails if a course goes unreachable by the
+// plain word for what it teaches." Unreachable is the claim, so reachable is
+// what is asked, across the whole index. The cue is untouched — every word in
+// COURSE_PLAIN_WORDS must still reach its own course through the live search,
+// and the checks below still name any that does not. What is gone is a silent
+// dependency on how many lessons happen to sit ahead of the course.
 describe('the connection is REAL, measured through the live search (DR-0076 §6)', () => {
-  const finds = (query, courseKey) =>
-    searchLessons(index, query, 400).some((r) => r.courseKey === courseKey);
+  const hits = (query, courseKey) =>
+    searchLessons(index, query, index.length).filter((r) => r.courseKey === courseKey);
+  const finds = (query, courseKey) => hits(query, courseKey).length > 0;
 
   it('money reaches Kingdom Economics, whose title has no such word', () => {
     expect(finds('money', 'kingdom-economics')).toBe(true);
@@ -130,6 +156,30 @@ describe('the connection is REAL, measured through the live search (DR-0076 §6)
       for (const w of words) if (!finds(w, key)) dead.push(`${key}: ${w}`);
     }
     expect(dead, dead.slice(0, 10).join(', ')).toEqual([]);
+  });
+
+  // PROVEN-TO-CATCH for the reachability form (DR-0076 §3): a check that cannot
+  // return false is not a check. A word no lesson of the course carries must
+  // come back unreached however large the index is, and the real case — the one
+  // the window dropped — must come back reached.
+  it('PROVEN-TO-CATCH: a word the course does not carry is unreached, and the one it does is reached', () => {
+    expect(finds('zzqqxx', 'eternal-wisdom')).toBe(false);
+    expect(finds('work', 'eternal-wisdom')).toBe(true);
+  });
+
+  // STRONGER THAN THE WINDOW IT REPLACES, and not catalog-size dependent: a
+  // course is not "reached" by a row that carries no lesson. Every declared
+  // word must land on a real lesson of its own course, named.
+  it('every declared word lands on a REAL lesson of its own course', () => {
+    const hollow = [];
+    for (const [key, words] of Object.entries(COURSE_PLAIN_WORDS)) {
+      if (!courses.some((c) => c.key === key)) continue;
+      for (const w of words) {
+        const real = hits(w, key).filter((r) => String(r.lessonId || '').trim() && String(r.title || '').trim());
+        if (!real.length) hollow.push(`${key}: ${w}`);
+      }
+    }
+    expect(hollow, hollow.slice(0, 10).join(', ')).toEqual([]);
   });
 
   it('PROVEN-TO-CATCH: a word nobody declared finds nothing, so the search is not matching everything', () => {
