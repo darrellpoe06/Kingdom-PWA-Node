@@ -102,3 +102,32 @@ jobs:
           printf '%s' "$b64" | sed 's/../&./g'
           echo
           echo "----- end -----"
+          # THE SAME WORDS AGAIN, IN CHUNKS THAT CHECK THEMSELVES (2026-10-09).
+          # P63 put a round-trip md5 on this transport, and it did its job: it
+          # proved a copy wrong. What it cannot say is WHERE, and that is the
+          # difference between a transfer you can repair and one you can only
+          # abandon. Measured on row 7a74eae4 the same day: a reader carried the
+          # 4012-character line out of this log, decoded exactly the right 3007
+          # bytes, read clean English end to end -- and still missed the md5.
+          # One substituted character in 4012 is invisible and fatal, and there
+          # is no other road: in a cloud session the proxy refuses both the log
+          # download and the artifact blob (403 CONNECT), so this relayed log
+          # text is the only channel and it is copied out by hand.
+          #
+          # So the words are printed again in numbered 256-character chunks, each
+          # tagged with the first 8 hex of the md5 of that chunk's UNDOTTED
+          # characters. Strip the dots of one chunk, hash it, compare; then
+          # concatenate the chunks in order and the whole-body md5 above must
+          # match too. A bad copy now names its own chunk instead of condemning
+          # the whole body. The dotting is unchanged, so masking still cannot
+          # touch a run longer than two characters.
+          echo "----- the same words in chunks: NNN <first 8 of md5 of that chunk, dots stripped> <chunk, dotted> -----"
+          chunks=$b64
+          n=0
+          while [ -n "$chunks" ]; do
+            chunk=${chunks:0:256}
+            chunks=${chunks:256}
+            n=$((n+1))
+            printf '%03d %s %s\n' "$n" "$(printf '%s' "$chunk" | md5sum | cut -c1-8)" "$(printf '%s' "$chunk" | sed 's/../&./g')"
+          done
+          echo "----- end chunks ($n of them, 256 characters each; concatenate in order, strip the dots, then decode) -----"
