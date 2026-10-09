@@ -32,6 +32,24 @@ import { APPLICATION_SECTIONS, validateApplication } from '../modules/properties
 // anonymous applicant sees until the office saves its own words.
 import { originalProduct } from '../lib/product-forms.js';
 import { readProductForms } from '../lib/product-forms-sync.js';
+// THE TENANTS' VERSION OF POETECH (DR-0827): the same chrome the PoeTech shell
+// and the TLC door carry, from the same shared libs, so a tenant or a 1099
+// worker gets the platform staples here too: the five themes, text size and
+// its escape hatch, the hideaway top space, the install button, the share QR,
+// read-aloud, and the post-update toast. No PoeTech monolith is imported.
+import { THEME_CSS, THEMES, readThemePref, saveThemePref } from '../lib/theme-css.js';
+import { useTextSize } from '../lib/text-size.js';
+import { useAutoHideHeader } from '../lib/use-auto-hide-header.js';
+import { readHeaderCollapsed, writeHeaderCollapsed, nextCollapsed } from '../lib/header-hideaway.js';
+import { TextSizeEscapeHatch } from './TextSizeControl.jsx';
+import InstallAppButton from './InstallAppButton.jsx';
+import AppShareQR from './AppShareQR.jsx';
+import TTSControl from './TTSControl.jsx';
+import { UpdatePrompt } from './PwaPrompts.jsx';
+import UiIcon from './UiIcon.jsx';
+
+/** The door's own address, the one a tenant shares or scans (DR-0258 scope). */
+export const PROPERTIES_SHARE_URL = 'https://poetech.us/properties/app/';
 
 const { brand } = POE_PROPERTIES;
 const serif = { fontFamily: '"Fraunces", Georgia, serif' };
@@ -85,32 +103,136 @@ export default function PropertiesDoor() {
   const view = doorSession(DOORS.properties, session || null);
   const shown = left ? null : view.session;
 
+  // The platform staples (DR-0827), the same keys the PoeTech shell writes, so
+  // one choice follows a person between the apps on the same phone.
+  const [theme, setTheme] = useState(() => readThemePref('cream'));
+  useEffect(() => { saveThemePref(theme); }, [theme]);
+  const [sizeKey, setSizeKey, sizeSteps] = useTextSize();
+  const headerHidden = useAutoHideHeader();
+  const [headerCollapsed, setHeaderCollapsed] = useState(() => readHeaderCollapsed());
+  const toggleHeaderChrome = () => setHeaderCollapsed((prev) => { const next = nextCollapsed(prev); writeHeaderCollapsed(next); return next; });
+  const [showShare, setShowShare] = useState(false);
+
   return (
-    <div className="min-h-screen" style={{ background: brand.background }}>
-      <header className="border-b-2 px-4 py-3 flex flex-wrap items-baseline justify-between gap-2" style={{ borderColor: brand.accent }}>
-        <div>
-          <h1 className="text-lg font-semibold" style={{ ...serif, color: brand.accent }}>{brand.label}</h1>
-          <p className="text-xs text-[#5A5751]" style={serif}>{brand.tagline}</p>
+    <div data-theme={theme === 'cream' ? undefined : theme} className="min-h-screen overflow-x-clip bg-[#FAF8F4] text-[#1A1815]">
+      <style>{THEME_CSS}</style>
+      {/* The top space, controlled like PoeTech's header: a compact bar that
+          is always present, and a hideaway (tagline, comfort controls, install,
+          share) the chevron tucks away per device. Sticky and auto-hiding on
+          top of that. ts-safe-sticky keeps the size controls reachable at big
+          text (DR-0276). */}
+      <header
+        className={`ts-safe-sticky sticky top-0 z-40 bg-white border-b-2 transition-transform duration-300 will-change-transform ${headerHidden ? '-translate-y-full' : 'translate-y-0'}`}
+        style={{ borderColor: brand.accent }}
+        data-testid="properties-door-header"
+      >
+        <div className="px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between gap-2 py-2.5 sm:py-3">
+            <div className="min-w-0 ts-chrome-region">
+              <h1 className="text-lg sm:text-xl leading-none whitespace-nowrap truncate" style={{ ...serif, fontWeight: 600, letterSpacing: '-0.02em', color: brand.accent }}>{brand.label}</h1>
+            </div>
+            <div className="shrink-0 flex items-center gap-1.5 sm:gap-2 ts-chrome-region">
+              {shown && (
+                <>
+                  <button
+                    type="button"
+                    className="text-[0.625rem] uppercase tracking-wider underline text-[#5A5751] whitespace-nowrap"
+                    // Leaves THIS door only. Never calls supabase.auth.signOut(), so
+                    // the PoeTech app on the same phone keeps its sign-in.
+                    onClick={() => { leaveDoor(DOORS.properties); setLeft(true); }}
+                  >Sign out of Poe Properties</button>
+                  <button
+                    type="button"
+                    className="text-[0.625rem] uppercase tracking-wider underline text-[#8A867E]"
+                    // The real one. signOut() from lib/supabase (not
+                    // supabase.auth.signOut) opens the deliberate-sign-out window, so
+                    // the transient-logout guard does not "recover" it back in.
+                    onClick={() => { enterAllDoors(); signOut().then(() => window.location.reload()); }}
+                  >everywhere</button>
+                </>
+              )}
+              <button
+                type="button"
+                onClick={toggleHeaderChrome}
+                aria-expanded={!headerCollapsed}
+                aria-label={headerCollapsed ? 'Show the full header (tagline, comfort controls, install, share)' : 'Hide the top space — keep only the bar for more room'}
+                title={headerCollapsed ? 'Show the full header' : 'Hide the top space (keep the bar)'}
+                data-testid="properties-door-hideaway"
+                className="shrink-0 min-h-[2.25rem] min-w-[2.25rem] flex items-center justify-center border border-[#1A1815] bg-transparent text-[#1A1815] hover:border-[#B85838] hover:text-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]"
+              >
+                <UiIcon name={headerCollapsed ? 'chevronDown' : 'chevronUp'} className="text-base" />
+                <span className="sr-only">{headerCollapsed ? 'Show header' : 'Hide header'}</span>
+              </button>
+            </div>
+          </div>
+
+          {!headerCollapsed && (
+            <div className="pb-3 sm:pb-4">
+              <p className="text-xs sm:text-sm text-[#5A5751] ts-chrome-region" style={serif}>{brand.tagline}</p>
+              {/* Comfort controls: theme + text size, the platform staples, from
+                  the same libs the whole PoeTech app uses. */}
+              <div className="mt-2.5 flex flex-wrap items-center gap-1.5 ts-chrome-region ts-escape-hatch bg-white" role="group" aria-label="Comfort controls" data-testid="properties-door-comfort">
+                {THEMES.map((t) => (
+                  <button
+                    key={t.key}
+                    type="button"
+                    aria-label={`${t.label} theme`}
+                    title={t.label}
+                    aria-pressed={theme === t.key}
+                    className="flex h-9 w-9 items-center justify-center rounded-full focus:outline focus:outline-2 focus:outline-[#B85838]"
+                    onClick={() => setTheme(t.key)}
+                  >
+                    <span
+                      aria-hidden="true"
+                      className={`h-5 w-5 rounded-full ${theme === t.key ? 'ring-2 ring-[#B85838] ring-offset-1' : 'opacity-70'}`}
+                      style={{ backgroundColor: t.color, border: `1.5px solid ${t.border}`, display: 'inline-block' }}
+                    />
+                  </button>
+                ))}
+                <span className="mx-1 h-4 border-l border-[#E8E2D8]" aria-hidden="true" />
+                {sizeSteps.map((st) => (
+                  <button
+                    key={st.key}
+                    type="button"
+                    aria-label={`Text size ${st.name}`}
+                    aria-pressed={sizeKey === st.key}
+                    className={`min-h-[2.25rem] min-w-[2.25rem] rounded border px-1.5 text-xs focus:outline focus:outline-2 focus:outline-[#B85838] ${sizeKey === st.key ? 'border-[#B85838] text-[#B85838] font-semibold' : 'border-[#E8E2D8] text-[#5A5751]'}`}
+                    onClick={() => setSizeKey(st.key)}
+                  >
+                    {st.label}
+                  </button>
+                ))}
+              </div>
+              <div className="mt-2.5 flex flex-wrap items-center gap-2 ts-chrome-region">
+                {/* Install on this phone: the browser's own dialog where it has
+                    one, the exact steps for this phone otherwise; hides itself
+                    once installed. The door has its own manifest and scope. */}
+                <InstallAppButton />
+                <button
+                  type="button"
+                  onClick={() => setShowShare((v) => !v)}
+                  aria-expanded={showShare}
+                  data-testid="properties-door-share"
+                  className="inline-flex items-center px-3 py-2 border border-[#1A1815] text-[0.625rem] font-semibold uppercase tracking-wider hover:border-[#B85838] hover:text-[#B85838] transition-colors focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+                >
+                  {showShare ? 'Hide QR' : 'Share · QR'}
+                </button>
+              </div>
+              {showShare && (
+                <div className="mt-3 max-w-xl">
+                  <AppShareQR
+                    url={PROPERTIES_SHARE_URL}
+                    shown="poetech.us/properties/app"
+                    title="Share Poe Properties"
+                    blurb="Point a phone camera at this code (or share your screen) to open the Poe Properties app — no long address to type. It shares the way in; it never grants access."
+                    ariaLabel="QR code to open the Poe Properties app"
+                  />
+                </div>
+              )}
+            </div>
+          )}
         </div>
-        {shown && (
-          <span className="flex items-center gap-3">
-            <button
-              type="button"
-              className="text-[0.625rem] uppercase tracking-wider underline text-[#5A5751]"
-              // Leaves THIS door only. Never calls supabase.auth.signOut(), so
-              // the PoeTech app on the same phone keeps its sign-in.
-              onClick={() => { leaveDoor(DOORS.properties); setLeft(true); }}
-            >Sign out of Poe Properties</button>
-            <button
-              type="button"
-              className="text-[0.625rem] uppercase tracking-wider underline text-[#8A867E]"
-              // The real one. signOut() from lib/supabase (not
-              // supabase.auth.signOut) opens the deliberate-sign-out window, so
-              // the transient-logout guard does not "recover" it back in.
-              onClick={() => { enterAllDoors(); signOut().then(() => window.location.reload()); }}
-            >everywhere</button>
-          </span>
-        )}
+        <TextSizeEscapeHatch collapsed={headerCollapsed} onShowHeader={toggleHeaderChrome} />
       </header>
 
       <main className="w-full p-3 sm:p-4 lg:px-8">
@@ -129,6 +251,11 @@ export default function PropertiesDoor() {
       <footer className="px-4 py-6 text-center">
         <p className="text-[0.625rem] uppercase tracking-[0.2em] text-[#8A867E]">Poe Properties · powered by PoeTech</p>
       </footer>
+      {/* Read aloud, on every page, in the person's one chosen voice; renders
+          nothing where the device has no speech. */}
+      <TTSControl />
+      {/* The slim acknowledgement after an update reload; never a nag. */}
+      <UpdatePrompt />
     </div>
   );
 }
