@@ -319,6 +319,30 @@ jobs:
           # the two can disagree: if the per-deployment host runs Functions and
           # the alias does not, the deployment is sound and the alias is stuck,
           # which is a promote/retry repair rather than a code one.
+          # WHICH ROAD DOES THE SHIPPED APP ACTUALLY CARRY? VITE_SUPABASE_URL
+          # is inlined into the client bundle at build time, so the only
+          # trustworthy answer is the bytes poetech.us is serving right now —
+          # not the workflow file, not the deploy log. This reads index.html,
+          # finds its entry chunks, and reports which auth origin they name.
+          echo "=== the auth origin baked into the SERVED bundle ==="
+          curl -s -m 20 "https://poetech.us/poetech-app/" -o /tmp/idx.html 2>/dev/null || true
+          CHUNKS=$(grep -oE '/?(poetech-app/)?assets/[A-Za-z0-9._-]+\.js' /tmp/idx.html 2>/dev/null | sort -u | head -6)
+          FOUND_FUNNEL=0; FOUND_SAMEORIGIN=0
+          for C in $CHUNKS; do
+            U="https://poetech.us/poetech-app/${C#/}"
+            U=$(printf '%s' "$U" | sed 's#/poetech-app/poetech-app/#/poetech-app/#')
+            curl -s -m 30 "$U" -o /tmp/chunk.js 2>/dev/null || continue
+            if grep -q 'poetech\.tail5a2f35\.ts\.net/sb' /tmp/chunk.js 2>/dev/null; then FOUND_FUNNEL=1; fi
+            if grep -q 'poetech\.us/sb' /tmp/chunk.js 2>/dev/null; then FOUND_SAMEORIGIN=1; fi
+          done
+          echo "bundle names the Funnel /sb: $FOUND_FUNNEL ; bundle names poetech.us/sb: $FOUND_SAMEORIGIN"
+          echo "- served bundle: Funnel=**$FOUND_FUNNEL** sameorigin=**$FOUND_SAMEORIGIN**" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$FOUND_FUNNEL" = "1" ]; then
+            echo "UNLOCK IS LIVE — the served app signs in over the Funnel, which answers a browser-shaped POST with a real JSON body."
+          elif [ "$FOUND_SAMEORIGIN" = "1" ]; then
+            echo "::warning::The served app still points at poetech.us/sb, which is the dead Function path. The unlock has not reached the browser yet."
+          fi
+
           echo "=== what Cloudflare itself says about the newest deployments ==="
           if [ -n "${CF_TOKEN:-}" ] && [ -n "${CF_ACCOUNT:-}" ]; then
             curl -s -m 25 -H "Authorization: Bearer $CF_TOKEN" \
