@@ -149,3 +149,11 @@ Measured on the live modules: L229 adult 1,029 with bands 0.505/0.601/0.666/0.72
 
 Two more words were spoken while these shipped and are the next records: a question on whether Yahweh ranks a wife over a woman and how the Proverbs 31 woman runs systems and still submits (DR-0854), and the Samaritan woman at the well with a research ask on what archaeology holds about the Samaritans (DR-0855).
 
+## Does Yahweh rank a wife over a woman (DR-0854)
+
+L229 and L230 merged as bac2fa626 (PR #2051). Only the GitHub Pages build fired for that merge; the Cloudflare deploy did not, and neither the auto-merge heal nor the freshness cron had dispatched it ten minutes later, so it was dispatched by hand at once (DR-0107).
+
+Darrell's question, opened with one word, Lesson: does a woman in covenant with a man hold more rank in Yahweh's eyes than one who is not, and how does the Proverbs 31 woman run systems and still submit. L231 answers every part from the text: the rank is the fear of the LORD and not a ring; marriage is a gift and the unmarried life a calling; she runs systems because the text says she does, under her husband's trust; the chapter does not say who trained her and the lesson adds nothing; the order stands as written on both sides; the head of Christ is God, so order is not worth; helper is the word the Psalms give to Yahweh; and a wife who lifts her husband is written. Adult 1,541; bands 0.509/0.615/0.611/0.613; 289 spans verbatim; 22 own gates; 6,353 green across the living-lessons suites.
+
+Still to build, spoken the same hour: the Samaritan woman at the well, with his note that the people believed because of her saying, that the scroll is the most important measure, all of His scrolls, and the research he asked for on the Samaritans (DR-0855); Yahweh speaking to Yahweh in every place the Word records it (DR-0856); and whether people will have angel-like experiences after death (DR-0857).
+

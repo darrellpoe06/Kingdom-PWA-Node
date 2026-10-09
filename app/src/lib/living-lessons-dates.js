@@ -252,4 +252,5 @@ export const LIVING_LESSONS_ADDED = {
   'll228-can-a-man-be-taught-by-a-woman-knowing-him-is-most-important-he-can-use-anyone-and-the-word-answers-first': '2026-10-09', // added with the lesson (DR-0850); spoken into the app by Darrell on 2026-10-09 with one word under it, Lesson
   'll229-the-word-is-spirit-and-life-what-it-means-in-his-own-words': '2026-10-09', // added with the lesson (DR-0852); spoken into the app by Darrell on 2026-10-09 as a question with one word under it, Lesson
   'll230-competence-before-submission-the-study-skills-and-doing-skills-of-a-wife-and-a-husband-with-the-word-answering-first': '2026-10-09', // added with the lesson (DR-0853); spoken into the app by Darrell on 2026-10-09 with one word under it, Lesson
+  'll231-does-yahweh-rank-a-wife-over-a-woman-covenant-the-proverbs-31-woman-and-the-order-with-the-word-answering-first': '2026-10-09', // added with the lesson (DR-0854); spoken into the app by Darrell on 2026-10-09 as a question, opened with one word, Lesson
 };
