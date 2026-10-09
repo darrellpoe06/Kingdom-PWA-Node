@@ -398,8 +398,17 @@ jobs:
           # none, because it reads like proof. So the entry chunks are mined
           # for the asset names they themselves import, one level deep, and
           # every one of those is searched as well.
-          ALL_CHUNKS="$CHUNKS"
-          for C in $CHUNKS; do
+          # FETCH THE INDEX HERE. This check runs BEFORE the /sb block that
+          # used to define CHUNKS, so reading that variable gave an EMPTY list
+          # and the scan reported 0 twice while looking at nothing at all.
+          # Second time this same probe lied by aiming at the wrong files, so
+          # it now owns its own input and PRINTS the count it is scanning —
+          # a zero there is visibly a broken probe, not a failed fix.
+          curl -s -m 20 "https://poetech.us/poetech-app/" -o /tmp/idx_c.html 2>/dev/null || true
+          ENTRY=$(grep -oE '/?(poetech-app/)?assets/[A-Za-z0-9._-]+\.js' /tmp/idx_c.html 2>/dev/null | sort -u)
+          [ -n "$ENTRY" ] || echo "::warning::could not read any entry chunk from poetech.us/poetech-app/ — the bundle scan below proves nothing"
+          ALL_CHUNKS="$ENTRY"
+          for C in $ENTRY; do
             U="https://poetech.us/poetech-app/${C#/}"
             U=$(printf '%s' "$U" | sed 's#/poetech-app/poetech-app/#/poetech-app/#')
             curl -s -m 30 "$U" -o /tmp/entry.js 2>/dev/null || continue
