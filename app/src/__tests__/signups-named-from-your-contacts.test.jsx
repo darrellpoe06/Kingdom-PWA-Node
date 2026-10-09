@@ -161,7 +161,7 @@ describe('Platform Signups, named from your contacts', () => {
     expect(Array.from(form.querySelector('select[aria-label="Role"]').options).map((o) => o.value)).toEqual(['member', 'viewer']);
   });
 
-  it('after the add the list is re-read, and the badge and the family tile follow the server\'s word (DR-0835)', async () => {
+  it('after the add the list is re-read, and the badge and the family tile follow the server\'s word (DR-0836)', async () => {
     adds.length = 0;
     // The server before and after: a self-serve row, then the same account as family once 0257 ranks the family first.
     signups.data = { summary: { total_accounts: 3, family_members: 4 }, signups: [{ ...ROWS[2], category: 'self-serve' }] };

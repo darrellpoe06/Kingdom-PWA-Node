@@ -1,4 +1,4 @@
-# DR-0835 — The family outranks the person's own space on the signups list
+# DR-0836 — The family outranks the person's own space on the signups list
 
 - **Status:** accepted
 - **Tier:** A (one SECURITY DEFINER read function re-ranked; no table, no policy, no new grant)

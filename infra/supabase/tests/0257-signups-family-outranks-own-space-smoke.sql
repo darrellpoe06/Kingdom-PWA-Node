@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 0257 SIGNUPS CATEGORY SMOKE — the membership that names an account is chosen
--- by what the space is, not by which was joined first (DR-0835). Runs after
+-- by what the space is, not by which was joined first (DR-0836). Runs after
 -- the chain, in a transaction, and ROLLS BACK. PASS prints
 -- 'SIGNUPS CATEGORY SMOKE: PASS'; any breach RAISES.
 --

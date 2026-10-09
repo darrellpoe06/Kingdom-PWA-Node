@@ -244,4 +244,5 @@ export const LIVING_LESSONS_ADDED = {
   'll220-every-thought-captured-and-tested-his-word-written-inside-and-read-daily-for-the-gaps': '2026-10-08', // added with the lesson (DR-0820); sent into the app by email on 2026-10-08 with one word on top, Lesson, and his teaching under it
   'll221-owning-the-light-instead-of-renting-it-count-the-cost-carry-the-risk-honestly-and-follow-his-wisdom-first': '2026-10-08', // added with the lesson (DR-0821); forwarded into the app by email on 2026-10-08 with one word on top, Lesson, and his teaching under it
   'll222-the-only-incorruptible-one-every-other-being-fell-wanting-his-wisdom-and-he-is-proving-he-is-good': '2026-10-08', // added with the lesson (DR-0822); spoken into the app by Darrell 2026-10-08 and closed in prayer
+  'll223-the-storm-you-can-see-coming-and-the-court-where-a-life-hangs-what-a-warning-asks-of-you': '2026-10-08', // added with the lesson (DR-0834); forwarded into the app by email on 2026-10-08 with one word on top, Lesson
 };

@@ -1,4 +1,4 @@
-# DR-0834 — A camera that moved is re-addressed, and a direct road that stays dark rides the bridge
+# DR-0835 — A camera that moved is re-addressed, and a direct road that stays dark rides the bridge
 
 - **Status:** accepted
 - **Tier:** A (the NAS forwarder's own road record and go2rtc config; nothing new on the LAN or the Funnel; the three brakes DR-0809 §6 set still hold: the bridge connects only on demand, the sync is single-threaded and idempotent, a bridge that does not answer moves nothing)

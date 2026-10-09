@@ -1377,7 +1377,7 @@ def bridge_cameras(api=None, key=None, timeout=None):
             continue
         out.append({"uri": str(c.get("name_uri") or uri), "mac": norm_mac(c.get("mac")), "nickname": str(c.get("nickname") or ""),
                     "connected": bool(c.get("connected")), "enabled": bool(c.get("enabled", True)), "status": str(c.get("status") or ""),
-                    "ip": str(c.get("ip") or "")})  # where Wyze says the camera is today (DR-0834)
+                    "ip": str(c.get("ip") or "")})  # where Wyze says the camera is today (DR-0835)
     return out
 
 
@@ -1459,7 +1459,7 @@ def dtls_of(url):
     return _query_of(url).get("dtls", [""])[0].strip().lower() in ("true", "1", "yes")
 
 
-# A CAMERA THAT MOVED, AND A DIRECT ROAD THAT STAYS DARK (DR-0834; Darrell
+# A CAMERA THAT MOVED, AND A DIRECT ROAD THAT STAYS DARK (DR-0835; Darrell
 # 2026-10-09: "its working in Wyze!!!!!!!!! Fix that!!!!!!!!!!!!! We should
 # have video!!!!!!!!!!!"). cams-diag 37879231884 read go2rtc on basketball_cam:
 # "wyze: connect failed: discovery timeout" -- the direct road dials the
@@ -1666,7 +1666,7 @@ def ensure_bridge_roads(upstream, streams, bridge_cams, lans=None, roads=None, l
         rec = roads.get(sid) if isinstance(roads.get(sid), dict) else {}
         forced = rec.get("forced") if rec.get("forced") in ("bridge", "direct") else None
         if kind_of(url) == "wyze" and not is_bridge_source(url):
-            # THE ADDRESS WYZE REPORTS TODAY (DR-0834): a direct line dialling
+            # THE ADDRESS WYZE REPORTS TODAY (DR-0835): a direct line dialling
             # an address the camera no longer holds is re-addressed first, twin
             # included, and the road is judged on the line as it now is.
             ip_now = by_mac_ip.get(mac_of(url))
@@ -1947,7 +1947,7 @@ class StreamHealth:
             return {"interval_s": self.interval, "last_sample_at": self.last_sample_at, "cameras": len([k for k in self.cams if not is_twin(k)]), "drops_1h": drops}
 
     def dry_tries(self, sid, now=None):
-        """How the road has been going for one camera (DR-0834): tries without a
+        """How the road has been going for one camera (DR-0835): tries without a
         byte since the last byte arrived, seconds since that byte (or the first
         sample), seconds since the last try. A try is a sample with a producer
         or a watcher. None when the camera was never sampled."""
@@ -4351,7 +4351,7 @@ def _selftest():
     res8 = ensure_bridge_roads(rup, {"805_north": {"producers": [{"url": unsigned}]}}, bc, lans=lans, roads=roads_load(br_roads), log=logs.append, config_path=br_cfg, roads_path=br_roads, now=1900.0)
     check(res8["resigned"] == [] and FakeGo2rtcRoads.state["puts"] == [], "a producer URL go2rtc echoes without its credentials does not re-sign again: the record is the judge, so there is no loop")
 
-    print("=== 8o. a camera that moved is re-addressed; a direct road that stays dark rides the bridge and tries again later (DR-0834) ===")
+    print("=== 8o. a camera that moved is re-addressed; a direct road that stays dark rides the bridge and tries again later (DR-0835) ===")
     same = "wyze://192.168.1.50?uid=A&enr=S2&mac=AA:BB:CC:DD:EE:02&model=HL_CAM4&dtls=true"
     check(readdress(same, "192.168.1.77") == same.replace("192.168.1.50", "192.168.1.77"), "readdress moves the host and nothing else")
     check(readdress(same, "192.168.1.50") == same and readdress(same, "") == same and readdress(same, None) == same and readdress(same, "not-an-ip") == same and readdress("rtsp://u:p@192.168.1.9/live", "192.168.1.10") == "rtsp://u:p@192.168.1.9/live" and readdress(bsrc, "192.168.1.10") == bsrc, "the same address, no address, a bad address, an rtsp line and a bridge line are left alone")
