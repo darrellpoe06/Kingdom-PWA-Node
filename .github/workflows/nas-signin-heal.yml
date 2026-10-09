@@ -163,6 +163,41 @@ jobs:
             echo "stack_ok=false" >> "$GITHUB_OUTPUT"
           fi
 
+      # BRING THE NAS-SIDE FIXES FORWARD. The forwarders that answer CORS live
+      # on the NAS and reach it through services-sync, a cron on a ~15 minute
+      # cycle. Measured 2026-10-09: the camera CORS change was merged to main
+      # and the box was still running the old code (mirror grep 0, live
+      # preflight 501), so the Cameras tab stayed dark after a fix that had
+      # genuinely shipped. This pulls the mirror and restarts ONLY the two
+      # named services — the same operation the sync performs on its own
+      # schedule, just not fifteen minutes later. The service list is
+      # HARDCODED and this workflow takes no input of any kind.
+      - name: Pull the NAS mirror and restart the two CORS services
+        if: steps.gate.outputs.go == 'true'
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          umask 077
+          printf '%s\n' "$NAS_SSH_KEY" > /tmp/nas_key
+          SSH="ssh -i /tmp/nas_key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 dpoe@poetech.tail5a2f35.ts.net"
+          $SSH 'sh -s' <<'EOS' || echo "(mirror pull/restart unavailable)"
+          PATH=/usr/local/bin:/opt/bin:/usr/bin:/bin:$PATH; export PATH
+          SUDO=""; sudo -n true 2>/dev/null && SUDO="sudo -n"
+          REPO=/volume1/PoeTech/repos/Kingdom-PWA-Node
+          echo "mirror HEAD before: $(git -C "$REPO" rev-parse --short HEAD 2>/dev/null || echo unknown)"
+          $SUDO git -C "$REPO" fetch origin main --quiet 2>&1 | tail -2
+          $SUDO git -C "$REPO" reset --hard origin/main --quiet 2>&1 | tail -2
+          echo "mirror HEAD after:  $(git -C "$REPO" rev-parse --short HEAD 2>/dev/null || echo unknown)"
+          echo "cams_forwarder has CORS: $(grep -c CORS_ALLOWED_ORIGINS "$REPO/infra/nas-cameras/cams_forwarder.py" 2>/dev/null || echo 0)"
+          echo "voice_lite has CORS:     $(grep -c CORS_ALLOWED_ORIGINS "$REPO/infra/nas-voice-lite/voice_lite_server.py" 2>/dev/null || echo 0)"
+          for S in poetech-cams poetech-voice-lite; do
+            $SUDO systemctl restart "$S" 2>/dev/null && echo "  $S restarted" || echo "  $S restart not permitted or not a unit"
+          done
+          sleep 6
+          echo "cams preflight  :8773 -> $(curl -s -o /dev/null -m 8 -w '%{http_code}' -H 'Origin: https://poetech.us' -X OPTIONS http://127.0.0.1:8773/list 2>/dev/null || echo 000)"
+          echo "voice preflight :8772 -> $(curl -s -o /dev/null -m 8 -w '%{http_code}' -H 'Origin: https://poetech.us' -X OPTIONS http://127.0.0.1:8772/speak 2>/dev/null || echo 000)"
+          EOS
+
       - name: Restart the sign-in road (hardcoded containers, nothing else)
         if: steps.gate.outputs.go == 'true' && steps.precheck.outputs.stack_ok != 'true'
         env:
