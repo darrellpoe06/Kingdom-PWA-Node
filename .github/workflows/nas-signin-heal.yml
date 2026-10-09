@@ -544,6 +544,7 @@ jobs:
             echo "  -- anything recorded at 14:0x today, any bucket (the lost one) --"
             $SUDO docker exec -e PGPASSWORD="$PW" supabase-db psql -h 127.0.0.1 -U supabase_admin -d postgres -t -A -F' | ' \
               -c "select bucket_id, created_at, name from storage.objects where name like '%20261009T14%'" 2>&1 | tail -10
+          fi
           EOS
 
           echo "=== every inbox row from the last two days (no bodies) ==="
