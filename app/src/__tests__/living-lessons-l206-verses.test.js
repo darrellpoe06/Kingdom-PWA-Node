@@ -187,7 +187,7 @@ describe('the teaching is taught in order, in our voice, and carries both workfl
     for (const b of FULL_BANDS) expect(hasAllThree({ lesson: L().levels[b] }), `${b} band carries all three`).toBe(true);
   });
   it('sends the reader onward: it stands on shared ground with other lessons in the course, L205 and L202 among them', () => {
-    const s = searchItOutFor(L(), LIVING_LESSONS_MODULES, { limit: 50 });
+    const s = searchItOutFor(L(), LIVING_LESSONS_MODULES, { limit: LIVING_LESSONS_MODULES.length });
     expect(s.next.length).toBeGreaterThanOrEqual(3);
     const ids = s.next.map((n) => n.id);
     expect(ids.some((id) => id.startsWith('ll205-')), 'L205 shares Acts 17:11 / Romans 3:4 / Joshua 1:8').toBe(true);
