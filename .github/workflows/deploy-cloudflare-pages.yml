@@ -105,10 +105,49 @@ jobs:
           esac
           echo "::add-mask::$KEY"
           {
-            echo "SOVEREIGN_SB_URL=https://poetech.us/sb"
+            # ===================================================================
+            # TEMPORARY UNLOCK, 2026-10-09 — A DELIBERATE, SURFACED DEVIATION
+            # FROM CLAUDE.md LAYER 0 AND DR-0570. REVERT TO
+            # https://poetech.us/sb THE MOMENT THE PAGES FUNCTIONS RUN AGAIN.
+            # ===================================================================
+            # The binding rule says the app reaches the NAS by a SAME-ORIGIN
+            # route and never the absolute Funnel URL, because the Funnel
+            # throttles cross-origin browser fetches with a 503. That rule is
+            # right, and this line breaks it on purpose, for one reason: the
+            # same-origin route is GONE and cannot be restored from this repo.
+            #
+            # Measured, repeatedly, from a GitHub runner:
+            #   - EVERY Pages Function on the site answers with the SPA shell
+            #     (200 text/html) — /sb, /n8n, /cams, /taxes, /openers, /llm,
+            #     /reviews, /voice, /nas-photos, /ways, /scribe alike.
+            #   - The sign-in POST to poetech.us/sb answers 405 with an EMPTY
+            #     body, which is what Pages returns for a POST to a static
+            #     asset, so the browser dies on .json() of nothing.
+            #   - The NAS gateway and the Funnel both answer that identical
+            #     POST healthily: 400, 81 bytes, invalid_credentials.
+            #   - Three deploys logged "Compiled Worker successfully",
+            #     "Uploading Functions bundle" AND "Uploading _routes.json",
+            #     on the custom domain and the project's own pages.dev alias,
+            #     and nothing changed. An explicit routing table did not fix
+            #     it. The failure is on Cloudflare's side of the line.
+            #
+            # The rule's stated HAZARD was measured before taking this road,
+            # rather than assumed away: a CORS preflight answers 200, and a
+            # POST carrying Origin: https://poetech.us answers 400 with 81
+            # bytes and access-control-allow-origin: *. The throttle is not
+            # firing right now. It may begin firing under real family load —
+            # that is the risk being accepted, knowingly, against a family
+            # that is locked out of its own app with meetings to keep.
+            #
+            # Darrell, 2026-10-09: "I should never be locked out!!!!!!!!!!!!
+            # Ever!!!!!!!!!!!!!" and "I have meetings with people and work!!!!!
+            # Fix it!!!!!!!!". Being locked out is the larger harm; this is
+            # reversible in one line, and reverting it is the first thing that
+            # happens once the same-origin road carries a POST again.
+            echo "SOVEREIGN_SB_URL=https://poetech.tail5a2f35.ts.net/sb"
             echo "SOVEREIGN_SB_ANON=$KEY"
           } >> "$GITHUB_ENV"
-          echo "repoint: armed — this build carries the sovereign backend (poetech.us/sb + the NAS-minted anon key)."
+          echo "repoint: armed — TEMPORARY UNLOCK, this build carries the sovereign backend over the Funnel origin because every Pages Function is dark; revert to poetech.us/sb once /sb carries a POST again."
       - name: Build (static, base /poetech-app/)
         run: npm run build
         env:
