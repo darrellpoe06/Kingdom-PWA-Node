@@ -257,4 +257,5 @@ export const LIVING_LESSONS_ADDED = {
   'll233-yahweh-speaking-with-yahweh-every-place-the-word-lets-us-overhear-the-father-the-son-and-the-holy-spirit': '2026-10-09', // added with the lesson (DR-0857); spoken into the app by Darrell on 2026-10-09 with one word under it, Lesson
   'll234-will-we-have-angel-like-experiences-after-death-like-the-angels-in-some-ways-never-angels-and-like-him': '2026-10-09', // added with the lesson (DR-0858); asked by Darrell on 2026-10-09 with one word under it, Lesson
   'll235-ten-christmases-left-and-every-knee-shall-bow': '2026-10-09', // added with the lesson; spoken into the app and transcribed by Whisper (nas-cpu) on 2026-10-09
+  'll239-the-king-sits-down-first-a-shipyard-a-submarine-contract-and-who-gives-safety': '2026-10-09', // added with the lesson (DR-0863); forwarded by Darrell on 2026-10-07 with one word on top, Lesson
 };
