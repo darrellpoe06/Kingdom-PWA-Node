@@ -72,14 +72,15 @@ const numbered = (mods) => mods.map((m) => {
 // Delete the entry in the merge that brings L236 in — the second check below
 // fails on a held number that was quietly filled, which is how the convention
 // tells the later merge what to remove.
-// 238 is a PERMANENT gap, not a hold, for the same reason 211 and 212 are. The
-// number was assigned to the Stop Wasting LLM Tokens teaching, which turned out
-// to be already built as sov37 in the Sovereign A.I. course (DR-0824), where the
-// ids are `sov<number>`, so no `ll238` will ever exist.
-// 237 WAS held here with 236 and 238. This is the merge that brings L237 in
-// (His Knowledge Is the Highest and the Standard, DR-0861), so its entry is
-// deleted rather than left behind — the convention working, as 193 and 210 did.
-const KNOWN_MISSING = [79, 211, 212, 236, 238];
+// 238 WAS recorded here as a PERMANENT gap by the L237 merge, on the ground
+// that the Stop Wasting LLM Tokens teaching assigned to it was already built as
+// sov37 in the Sovereign A.I. course (DR-0824) and nothing would ever fill it.
+// This merge fills it instead, and the entry is deleted: the hurricane lesson
+// built from a forwarded storm digest and labelled L240 while its siblings held
+// 236-238 took 238 rather than leave Living Lessons a hole for a numbering slip
+// (DR-0864). Closing a hole beats documenting one, and the second check below is
+// what makes a filled-but-still-recorded number impossible to leave behind.
+const KNOWN_MISSING = [79, 211, 212, 236];
 
 describe('every lesson id is shaped ll<number>-<slug>', () => {
   it('no lesson carries an unparseable id', () => {

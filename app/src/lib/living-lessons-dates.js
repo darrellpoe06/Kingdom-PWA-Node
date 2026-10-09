@@ -259,4 +259,5 @@ export const LIVING_LESSONS_ADDED = {
   'll235-ten-christmases-left-and-every-knee-shall-bow': '2026-10-09', // added with the lesson; spoken into the app and transcribed by Whisper (nas-cpu) on 2026-10-09
   'll237-his-knowledge-is-the-highest-and-the-standard': '2026-10-09', // added with the lesson; written by Darrell on 2026-10-08 on top of a forwarded webinar reminder, with one word above it, Lesson
   'll239-the-king-sits-down-first-a-shipyard-a-submarine-contract-and-who-gives-safety': '2026-10-09', // added with the lesson (DR-0863); forwarded by Darrell on 2026-10-07 with one word on top, Lesson
+  'll238-who-holds-the-wind-the-warning-the-foundation-and-the-neighbour-in-the-storms-path': '2026-10-09', // added with the lesson (DR-0864); forwarded by Darrell on 2026-10-08 as a news digest with one word written on top of it, Lesson
 };
