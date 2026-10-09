@@ -23,6 +23,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { KpiDot } from './KpiDot.jsx';
 import UiIcon from './UiIcon.jsx';
 import SectionTabs from './SectionTabs.jsx';
+import PeopleYouKnow from './PeopleYouKnow.jsx';
 import AppShareQR from './AppShareQR.jsx';
 import FamilyInvitePanel from './FamilyInvitePanel.jsx';
 import { fetchAccessSnapshot, currentBuild } from '../lib/access-metrics-sync.js';
@@ -466,6 +467,13 @@ export default function AccessUsageMetrics() {
             id: 'signups',
             label: 'Signups',
             render: () => <PlatformSignups />,
+          },
+          {
+            // THE PEOPLE YOU KNOW, PLACED (DR-0839): the contacts brought in,
+            // each added or invited to a space as what they are there.
+            id: 'people',
+            label: 'People you know',
+            render: () => <PeopleYouKnow />,
           },
           {
             id: 'used',

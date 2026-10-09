@@ -92,3 +92,8 @@ His next screenshots: the Admin roster row squeezed her name into a column of le
 ## The ledger collision
 
 While this was in flight another lane merged L223 as DR-0834. The camera roads record became DR-0835 and the signups category record DR-0836 on the merge; the two records written after them are DR-0837 and DR-0838.
+
+
+## The people you know, placed (DR-0839)
+
+Darrell: "my daughter Christiana... in my contacts... how do I add all my contacts at once? Then choosing who are tenants... church members... all who we want in whatever space." The way in already takes all of them (pick from the phone, or upload the .vcf). The way out is new: Admin > Users & usage > People you know, the contacts merged and matched to accounts, a space and a placement chosen once, one person or everyone ticked placed with the write the app already trusts for that case, and the result said per person. Also captured tonight as build input for later records: the kids walking every seat before they need to, and sorting and understanding each user by what they could not stop using.
