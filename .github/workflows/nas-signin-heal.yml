@@ -503,6 +503,31 @@ jobs:
           # lands: the Funnel path, carrying the family bearer AND an Origin.
           # Run over SSH so the token never leaves the box, and never printed.
           # Camera names are rooms in a family's house, so only a COUNT.
+          # WHAT HAPPENED TO THEIR LESSON? Darrell, 2026-10-09: "Christina and
+          # I had a lesson sent in today whatever happened to it?" The intake
+          # only ever looks at rows TAGGED 'lesson', so a row that arrived
+          # without that tag -- or a write that died part-way -- is invisible
+          # to every check we have. Today every POST through poetech.us
+          # answered 405 with an empty body for hours, so a recording made in
+          # the app during that window may never have been written at all.
+          #
+          # This lists EVERY agent_inbox row from the last two days: id, who
+          # made it, its tags, its source, its time and the SIZE of its body.
+          # NEVER A BODY -- the intake's own standing rule, and this is public.
+          echo "=== every inbox row from the last two days (no bodies) ==="
+          $SSH 'sh -s' <<'EOS' || echo "(inbox listing unavailable)"
+          PATH=/usr/local/bin:/opt/bin:/usr/bin:/bin:$PATH; export PATH
+          SUDO=""; sudo -n true 2>/dev/null && SUDO="sudo -n"
+          PW=$($SUDO sed -n 's/^POSTGRES_PASSWORD=//p' /volume1/docker/supabase/.env 2>/dev/null | head -1)
+          if [ -z "$PW" ]; then echo "  no database password readable"; else
+            $SUDO docker exec -e PGPASSWORD="$PW" supabase-db psql -h 127.0.0.1 -U supabase_admin -d postgres -t -A -F' | ' \
+              -c "select left(id::text,8), created_at, coalesce(left(created_by::text,8),'(none)'), coalesce(source,'(none)'), coalesce(tags::text,'(no tags)'), length(coalesce(body,'')) from public.agent_inbox where created_at > now() - interval '2 days' order by created_at asc" 2>&1 | tail -40
+            echo "  --- totals ---"
+            $SUDO docker exec -e PGPASSWORD="$PW" supabase-db psql -h 127.0.0.1 -U supabase_admin -d postgres -t -A \
+              -c "select 'rows in the last 2 days: '||count(*)||' | distinct authors: '||count(distinct created_by) from public.agent_inbox where created_at > now() - interval '2 days'" 2>&1 | tail -1
+          fi
+          EOS
+
           echo "=== cameras, asked the way the TAB asks (Funnel + bearer + Origin) ==="
           $SSH 'sh -s' <<'EOS' || echo "(camera tab probe unavailable)"
           PATH=/usr/local/bin:/opt/bin:/usr/bin:/bin:$PATH; export PATH
