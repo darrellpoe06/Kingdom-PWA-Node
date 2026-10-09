@@ -25,6 +25,7 @@ import UiIcon from './UiIcon.jsx';
 import SectionTabs from './SectionTabs.jsx';
 import PeopleYouKnow from './PeopleYouKnow.jsx';
 import UsageCalendar from './UsageCalendar.jsx';
+import LessonsWalked from './LessonsWalked.jsx';
 import { placementsFor, isPropertiesSpace, placePerson } from '../lib/people-placement.js';
 import { inviteToProperties } from '../modules/properties/cloud.js';
 import { phoneLoginEmail } from '../lib/supabase.js';
@@ -185,6 +186,8 @@ function UsageFold({ userId }) {
           ))}
         </ul>
       ) : null}
+      {/* THE LESSONS THEY CHOSE (DR-0844): how far along the way, at what level. */}
+      <LessonsWalked userId={userId} />
     </div>
   );
 }

@@ -120,3 +120,5 @@ Darrell: "How many times have users used the apps?... my son has done 90% of the
 
 Captured as build input for the lessons measure (the next record): Darrell, 2026-10-09: "Different lessons I choose to learn from how many times and which levels?" and the goal that frames it: "Lesson the goal is to fill up with Yahweh's Perspectives explicitly... Highest Authority And Level..." The lessons-walked surface measures not clicks but how much of the Word, Yahweh's own perspective, the Highest Authority and Level, a person has taken in: lessons by level, with the Word they carry, said explicitly.
 And the view it is seen from, in his words: "So its easy to See From Deeper space... Yahweh's Way Of Getting Life Done With Him..." The lessons measure sits in that frame (the 4th-dimensional frame of CLAUDE.md): what a person has taken in is read from the deeper place, Yahweh's way of getting life done with Him, not from a count of taps.
+
+Built as DR-0844 the same hour: one person's lessons, named, by course and level, with the band and the attempts, in the Usage fold and the Known fold; the goal in our voice above the numbers; the opens-per-lesson gap said below them.
