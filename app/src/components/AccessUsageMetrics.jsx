@@ -24,6 +24,7 @@ import { KpiDot } from './KpiDot.jsx';
 import UiIcon from './UiIcon.jsx';
 import SectionTabs from './SectionTabs.jsx';
 import PeopleYouKnow from './PeopleYouKnow.jsx';
+import UsageCalendar from './UsageCalendar.jsx';
 import { placementsFor, isPropertiesSpace, placePerson } from '../lib/people-placement.js';
 import { inviteToProperties } from '../modules/properties/cloud.js';
 import { phoneLoginEmail } from '../lib/supabase.js';
@@ -546,6 +547,13 @@ export default function AccessUsageMetrics() {
             id: 'used',
             label: "What's used",
             render: () => <UsageFlow />,
+          },
+          {
+            // WHEN, AND BY WHOM (DR-0843): who has done the evaluating, the
+            // weekdays, and a calendar per person.
+            id: 'when',
+            label: 'When & by whom',
+            render: () => <UsageCalendar />,
           },
           {
             id: 'access',
