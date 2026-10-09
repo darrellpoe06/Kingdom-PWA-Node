@@ -349,6 +349,29 @@ jobs:
           # route needs CORS to allow Authorization, and that is not proven by
           # /sb answering. Any 2xx/4xx WITH CORS headers means the road carries
           # it; a 000 or a preflight refusal means it does not.
+          # DID THE CAMERA FIX ACTUALLY LAND, ON BOTH SIDES? Darrell's screen
+          # still reads ROAD UNREACHABLE on build 1fa9ba5, which IS the commit
+          # carrying the fix. Two different failures look identical from the
+          # sofa: the BUILD may not have picked up VITE_CAMS_BASE, or it did
+          # and the NAS has not yet synced the forwarder that answers CORS
+          # (services-sync runs every ~15 min). These two lines separate them.
+          echo "=== camera fix: is it on the client, and is it on the NAS? ==="
+          CAMS_IN_BUNDLE=0
+          for C in $CHUNKS; do
+            U="https://poetech.us/poetech-app/${C#/}"
+            U=$(printf '%s' "$U" | sed 's#/poetech-app/poetech-app/#/poetech-app/#')
+            curl -s -m 30 "$U" -o /tmp/chunk2.js 2>/dev/null || continue
+            grep -q 'tail5a2f35\.ts\.net/cams' /tmp/chunk2.js 2>/dev/null && CAMS_IN_BUNDLE=1
+          done
+          echo "client: served bundle names the Funnel /cams -> $CAMS_IN_BUNDLE"
+          echo "- client carries Funnel /cams: **$CAMS_IN_BUNDLE**" >> "$GITHUB_STEP_SUMMARY"
+          NAS_HAS_CORS=$($SSH 'grep -c "CORS_ALLOWED_ORIGINS" /volume1/PoeTech/repos/Kingdom-PWA-Node/infra/nas-cameras/cams_forwarder.py 2>/dev/null || echo 0' 2>/dev/null | tail -1)
+          echo "NAS mirror: cams_forwarder.py mentions CORS_ALLOWED_ORIGINS -> ${NAS_HAS_CORS:-?}"
+          echo "- NAS mirror has the CORS fix: **${NAS_HAS_CORS:-?}**" >> "$GITHUB_STEP_SUMMARY"
+          LIVE_CORS=$($SSH 'curl -s -o /dev/null -m 8 -w "%{http_code}" -H "Origin: https://poetech.us" -X OPTIONS http://127.0.0.1:8773/list 2>/dev/null || echo 000' 2>/dev/null | tail -1)
+          echo "NAS running service: preflight on :8773 -> ${LIVE_CORS:-?} (204 means the new code is RUNNING, not just synced)"
+          echo "- running forwarder preflight: **${LIVE_CORS:-?}**" >> "$GITHUB_STEP_SUMMARY"
+
           echo "=== the other dark roads, asked the way a browser asks ==="
           for R in cams taxes llm reviews ways scribe nas-photos voice voice-lite openers; do
             PF=$(curl -s -o /dev/null -m 15 -w '%{http_code}' -X OPTIONS \
