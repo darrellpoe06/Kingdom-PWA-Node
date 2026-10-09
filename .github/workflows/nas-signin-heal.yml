@@ -348,6 +348,29 @@ jobs:
             curl -s -m 25 -H "Authorization: Bearer $CF_TOKEN" \
               "https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT/pages/projects/poetech-app/deployments?per_page=3" \
               -o /tmp/cf_deploys.json 2>/dev/null || true
+            # THE PROJECT'S OWN CONFIG. A Pages project that accepts a Functions
+            # bundle and never invokes it is not explained by anything in this
+            # repo, so the next place to look is what Cloudflare thinks this
+            # project IS: its compatibility date and flags, its build config,
+            # and whether a deployment config exists for production at all. A
+            # missing or malformed production config is the shape that would
+            # make the Worker upload fine and never run.
+            curl -s -m 25 -H "Authorization: Bearer $CF_TOKEN" \
+              "https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT/pages/projects/poetech-app" \
+              -o /tmp/cf_project.json 2>/dev/null || true
+            if [ "$(jq -r '.success' /tmp/cf_project.json 2>/dev/null)" = "true" ]; then
+              jq -r '.result | "project: \(.name) | production_branch: \(.production_branch)",
+                     "build_config: \(.build_config // "none")",
+                     "production compat_date: \(.deployment_configs.production.compatibility_date // "NONE")",
+                     "production compat_flags: \(.deployment_configs.production.compatibility_flags // [])",
+                     "production usage_model: \(.deployment_configs.production.usage_model // "unset")",
+                     "production placement: \(.deployment_configs.production.placement // "unset")",
+                     "production binding names: \([.deployment_configs.production.env_vars // {} | keys[]] | join(", "))"' \
+                /tmp/cf_project.json 2>/dev/null || echo "(project fields unreadable)"
+            else
+              echo "project config: API did not answer success — $(jq -rc '.errors // "unreadable"' /tmp/cf_project.json 2>/dev/null | head -c 200)"
+            fi
+
             if [ "$(jq -r '.success' /tmp/cf_deploys.json 2>/dev/null)" = "true" ]; then
               jq -r '.result[:3][] | "deployment \(.short_id) | \(.url)\n   env \(.environment) | stages \([.stages[]? | "\(.name)=\(.status)"] | join(", "))"' /tmp/cf_deploys.json 2>/dev/null || true
               NEWEST=$(jq -r '.result[0].url // ""' /tmp/cf_deploys.json 2>/dev/null)
