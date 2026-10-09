@@ -57,3 +57,7 @@ My reply named "tying a LAN device to a person" as the next build. The ari-integ
 #2037 merged as 3d00be193 at 02:11 UTC after two CI rounds of my own: ui-standards (focus rings on the door's sign-out links), consistency-guard (a width cap on the QR card), legibility-guard (the health file's page count), decision-chain (Impact and What was measured on five records), and the interconnect guard (the device register and the person record declared in the flow graph). Deploy 1538 and migration run 654 both completed green for the merge SHA, so 0255 and 0256 are on the hosted database.
 
 The migration run dispatched the isolation matrix (run 283): the role-control leg with the 0255 smoke passed; four legs failed, the same four that failed run 282 before this merge, every one on `out of shared memory / max_locks_per_transaction` inside an overlay function. DR-0831: the pre-step and the files that rebuild what it dropped share one transaction; every later file commits on its own; the guard pins the shape and catches both failed shapes.
+
+## Later: the matrix is green again (DR-0831 proven)
+
+#2039 merged as 628edeedf at 02:36 UTC; deploy 1539 completed success for it. Isolation run 284, dispatched on that SHA, completed success with 23 of 23 legs green, `product-forms`, `viewer-readonly`, `poe-properties` and `tlc-office` among them: the first all-green matrix since the one-transaction rule of 2026-09-25.
