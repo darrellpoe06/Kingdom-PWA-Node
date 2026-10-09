@@ -526,25 +526,42 @@ jobs:
           #
           # Names and times only. The audio is the family speaking; nothing
           # here reads or moves it.
+          # AND IT MUST BE ASKED ON BOTH SIDES. The first run of this probe asked
+          # only the sovereign database and answered: lesson-audio holds exactly
+          # 1 object, nothing at all was created in the last 2 days, and the
+          # street video's own object -- whose name the 13:51 inbox row carries
+          # -- is NOT there. A file the row names must exist somewhere, so the
+          # single-sided answer located the bucket, not the file. The inbox rows
+          # themselves carry a "mirrored" tag, which is the clue: the app may be
+          # writing the HOSTED project and the row arriving sovereign by mirror.
+          # So both sides are asked, the same four questions, and whichever side
+          # holds the street video's object is the side the recording went to.
           echo "=== lesson-audio uploads in the last two days, and which are ORPHANED ==="
           $SSH 'sh -s' <<'EOS' || echo "(storage listing unavailable)"
           PATH=/usr/local/bin:/opt/bin:/usr/bin:/bin:$PATH; export PATH
           SUDO=""; sudo -n true 2>/dev/null && SUDO="sudo -n"
           PW=$($SUDO sed -n 's/^POSTGRES_PASSWORD=//p' /volume1/docker/supabase/.env 2>/dev/null | head -1)
-          if [ -z "$PW" ]; then echo "  no database password readable"; else
+          HOSTED_URL=$($SUDO sed -n 's/^AGENT_DB_URL=//p' /volume1/docker/poetech/agent.env 2>/dev/null | head -1)
+          for SIDE in sovereign hosted; do
+            if [ "$SIDE" = "sovereign" ]; then
+              [ -n "$PW" ] || { echo "  sovereign: no password readable"; continue; }
+              RUN="$SUDO docker exec -e PGPASSWORD=$PW supabase-db psql -h 127.0.0.1 -U supabase_admin -d postgres -t -A -F| "
+            else
+              [ -n "$HOSTED_URL" ] || { echo "  hosted: no url readable"; continue; }
+              RUN="$SUDO docker exec supabase-db psql $HOSTED_URL -t -A -F| "
+            fi
+            echo "  ===== $SIDE ====="
             echo "  -- buckets that exist, and how many objects each holds --"
-            $SUDO docker exec -e PGPASSWORD="$PW" supabase-db psql -h 127.0.0.1 -U supabase_admin -d postgres -t -A -F' | ' \
-              -c "select b.id, count(o.id) from storage.buckets b left join storage.objects o on o.bucket_id=b.id group by b.id order by b.id" 2>&1 | tail -20
+            $RUN -c "select b.id, count(o.id) from storage.buckets b left join storage.objects o on o.bucket_id=b.id group by b.id order by b.id" 2>&1 | tail -20
             echo "  -- EVERY object created in the last 2 days, any bucket --"
-            $SUDO docker exec -e PGPASSWORD="$PW" supabase-db psql -h 127.0.0.1 -U supabase_admin -d postgres -t -A -F' | ' \
-              -c "select o.bucket_id, o.created_at, o.name from storage.objects o where o.created_at > now() - interval '2 days' order by o.created_at asc" 2>&1 | tail -20
-            echo "  -- the street video's own object, by name (it MUST exist somewhere) --"
-            $SUDO docker exec -e PGPASSWORD="$PW" supabase-db psql -h 127.0.0.1 -U supabase_admin -d postgres -t -A -F' | ' \
-              -c "select bucket_id, created_at, name from storage.objects where name like '%20261009T135103Z%'" 2>&1 | tail -5
+            $RUN -c "select o.bucket_id, o.created_at, o.name from storage.objects o where o.created_at > now() - interval '2 days' order by o.created_at asc" 2>&1 | tail -20
+            echo "  -- the street video's own object, by name (it MUST exist on ONE of these sides) --"
+            $RUN -c "select bucket_id, created_at, name from storage.objects where name like '%20261009T135103Z%'" 2>&1 | tail -5
             echo "  -- anything recorded at 14:0x today, any bucket (the lost one) --"
-            $SUDO docker exec -e PGPASSWORD="$PW" supabase-db psql -h 127.0.0.1 -U supabase_admin -d postgres -t -A -F' | ' \
-              -c "select bucket_id, created_at, name from storage.objects where name like '%20261009T14%'" 2>&1 | tail -10
-          fi
+            $RUN -c "select bucket_id, created_at, name from storage.objects where name like '%20261009T14%'" 2>&1 | tail -10
+            echo "  -- every lesson-audio object ever, newest first (the bucket is small) --"
+            $RUN -c "select created_at, name from storage.objects where bucket_id='lesson-audio' order by created_at desc" 2>&1 | tail -15
+          done
           EOS
 
           echo "=== every inbox row from the last two days (no bodies) ==="
