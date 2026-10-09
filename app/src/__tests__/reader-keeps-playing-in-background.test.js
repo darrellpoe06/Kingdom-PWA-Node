@@ -140,7 +140,10 @@ describe('the NAS audio voice road (/voice-lite)', () => {
     // The blob rides along so the clip can be kept on the device (DR-0659);
     // the shape it came in is said with it (DR-0747), and in plain Node with
     // no <audio> to ask, the device asks for WAV.
-    expect(out).toEqual({ url: 'blob:clip', blob: { size: 1000 }, format: 'wav' });
+    // And it names the voice that actually spoke (2026-10-09): this road is
+    // Piper on the NAS, a real voice but NOT the cloned one, so it must say
+    // 'voice-lite' rather than let a stand-in pass for the studio.
+    expect(out).toEqual({ url: 'blob:clip', blob: { size: 1000 }, format: 'wav', engine: 'voice-lite' });
     expect(fetchImpl.mock.calls[0][0]).toBe('https://poetech.us/voice-lite/speak');
     expect(JSON.parse(fetchImpl.mock.calls[0][1].body)).toEqual({ text: 'In the beginning was the Word.', voice: 'male', format: 'wav' });
   });
