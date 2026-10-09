@@ -31,6 +31,8 @@ import { MAINTENANCE_TRANSITIONS, PRIORITY, buildMaintenanceRequest } from '../.
 import { smsHref, telHref } from '../../lib/dispatch.js';
 import { workerRoster, someoneElse, dispatchText, dispatchRecord, myJobs, dispatchable } from './dispatch-roster.js';
 import { formatPhone } from '../../lib/member-contact.js';
+import { DoorCamerasTab, TenantCamerasTab } from './DoorCameras.jsx';
+import { setDoorCameraGrant } from './door-cameras.js';
 import { stageFromRecord, confirmDraft, tenancyRowFromDraft } from './staging.js';
 import { availableDocuments, buildDocument } from './documents.js';
 import { TimelineTab, RoomsTab, DoorsBoard, GalleryTab, FilesTab } from './DoorTabs.jsx';
@@ -70,6 +72,7 @@ const DOOR_SCOPED = new Set([
   // worker's jobs and the documentation all read ONE door's requests, so they
   // carry the door's header and its open-work count like every other tab here.
   'work', 'board', 'jobs', 'document', 'dispatch',
+  'cameras',
 ]);
 
 /**
@@ -229,7 +232,7 @@ const KIND_LABEL = {
  *                   Absent in the Poe Properties door: the money river runs
  *                   books-side by design (0150's posting trigger enforces it).
  */
-export default function PropertiesApp({ surface = 'poetech', books = null, records = [] }) {
+export default function PropertiesApp({ surface = 'poetech', books = null, records = [], renderCameras = null }) {
   const [loading, setLoading] = useState(true);
   const [doors, setDoors] = useState([]);
   const [grants, setGrants] = useState([]);
@@ -940,6 +943,12 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
             return <DocumentsTab door={activeDoor} tenancy={activeDoor} />;
           case 'plan':
             return <PlanTab />;
+          case 'cameras':
+            // THE CAMERAS AT THIS DOOR (DR-0841): the landlord shares, the
+            // household watches, on a grant the NAS minted for this door.
+            return (role === 'owner' || role === 'manager')
+              ? <DoorCamerasTab door={activeDoor} onChange={async (patch) => { const w = await setDoorCameraGrant(activeDoor.id, patch); if (w.ok) { boot(); refresh(); } return w; }} />
+              : <TenantCamerasTab door={activeDoor} renderCameras={renderCameras} />;
           case 'people':
             return <PeopleTab door={activeDoor} onInvite={async (payload) => {
               const res = await inviteToProperties({ instanceId: activeDoor.instance_id, ...payload });

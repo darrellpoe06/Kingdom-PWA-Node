@@ -87,7 +87,7 @@ export async function loadMyDoors(client = supabase) {
   try {
     const { data, error } = await client
       .from('rental_tenancies')
-      .select('id, instance_id, rental_ref, property_label, unit_label, tenant_name, tenant_email, tenant_phone, lease_start, lease_end, monthly_rent, deposit, status')
+      .select('id, instance_id, rental_ref, property_label, unit_label, tenant_name, tenant_email, tenant_phone, lease_start, lease_end, monthly_rent, deposit, status, camera_grant, camera_grant_note')
       .order('property_label', { ascending: true });
     if (error) return no('read-failed', error);
     return ok({ doors: data || [] });
