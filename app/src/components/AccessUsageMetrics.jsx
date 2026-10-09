@@ -104,7 +104,10 @@ function AddToSpace({ row, spaces, who, onDone }) {
     const r = await addUserToSpace(space.instanceId, row.userId, role, who || null);
     if (!r.ok) { setState({ phase: 'error', text: `Could not add: ${r.error || r.reason}.` }); return; }
     const label = memberRoleLabel(r.role || role);
-    setState({ phase: 'done', text: r.status === 'noop' ? `Already ${label} of ${space.displayName}.` : `${who || 'This account'} is now ${label} of ${space.displayName}.` });
+    // Said the way a person says it, and the list is re-read right after so
+    // the row's badge and the family tile show the arrival (DR-0836): the
+    // sentence alone was not the proof; the badge is.
+    setState({ phase: 'done', text: r.status === 'noop' ? `Already ${label} of ${space.displayName}.` : `${who || 'This account'} is now ${label} of ${space.displayName}. The badge below updates as the list re-reads.` });
     onDone && onDone(r);
   };
   return (

@@ -1376,7 +1376,8 @@ def bridge_cameras(api=None, key=None, timeout=None):
         if not isinstance(c, dict) or not re.match(r"^[A-Za-z0-9_.+-]{1,96}$", str(uri)):
             continue
         out.append({"uri": str(c.get("name_uri") or uri), "mac": norm_mac(c.get("mac")), "nickname": str(c.get("nickname") or ""),
-                    "connected": bool(c.get("connected")), "enabled": bool(c.get("enabled", True)), "status": str(c.get("status") or "")})
+                    "connected": bool(c.get("connected")), "enabled": bool(c.get("enabled", True)), "status": str(c.get("status") or ""),
+                    "ip": str(c.get("ip") or "")})  # where Wyze says the camera is today (DR-0835)
     return out
 
 
@@ -1456,6 +1457,60 @@ def host_of(url):
 
 def dtls_of(url):
     return _query_of(url).get("dtls", [""])[0].strip().lower() in ("true", "1", "yes")
+
+
+# A CAMERA THAT MOVED, AND A DIRECT ROAD THAT STAYS DARK (DR-0835; Darrell
+# 2026-10-09: "its working in Wyze!!!!!!!!! Fix that!!!!!!!!!!!!! We should
+# have video!!!!!!!!!!!"). cams-diag 37879231884 read go2rtc on basketball_cam:
+# "wyze: connect failed: discovery timeout" -- the direct road dials the
+# address written into its wyze:// line, and a camera that took a new DHCP
+# lease is dialled at the old one for ever. Two answers, both from the NAS
+# alone: (1) the bridge's own listing says where Wyze sees each camera today,
+# so a direct line whose host differs is RE-ADDRESSED; (2) a direct-road camera
+# that keeps failing to connect (the snapshot breaker tripped on a connect-class
+# reason, or someone watching it with no byte arriving for DIRECT_DEAD_SECONDS
+# over DIRECT_DRY_TRIES tries) rides the bridge as `direct-unreachable`, and
+# the direct road is tried again after DIRECT_RETRY_SECONDS -- the bridge
+# relays through Wyze when the LAN does not answer, which is what the Wyze app
+# does. No road is assumed reachable from its address alone.
+DIRECT_RETRY_SECONDS = float(os.environ.get("CAMS_DIRECT_RETRY_SECONDS", "3600"))
+DIRECT_DEAD_SECONDS = float(os.environ.get("CAMS_DIRECT_DEAD_SECONDS", "300"))
+DIRECT_DRY_TRIES = int(os.environ.get("CAMS_DIRECT_DRY_TRIES", "3"))
+CONNECT_FAILURE = re.compile(r"(?i)discovery timeout|connect failed|i/o timeout|no route to host|connection refused|network is unreachable")
+
+
+def readdress(url, ip):
+    """The same wyze:// line at the address Wyze reports today. The line itself
+    when the address is the same, missing or not an address, or the line is
+    not a direct Wyze line. Pure."""
+    if kind_of(url) != "wyze" or is_bridge_source(url) or not ip:
+        return url
+    try:
+        ipaddress.ip_address(str(ip))
+    except ValueError:
+        return url
+    host = host_of(url)
+    if not host or host == str(ip):
+        return url
+    try:
+        u = urllib.parse.urlsplit(str(url))
+    except ValueError:
+        return url
+    return urllib.parse.urlunsplit((u.scheme, u.netloc.replace(host, str(ip), 1), u.path, u.query, u.fragment))
+
+
+def failing_cameras(breakers=None, now=None):
+    """The cameras whose snapshot breaker is tripped on a connect-class reason -> {cam: reason}."""
+    if breakers is None:
+        with BREAKER_LOCK:
+            src = dict((k, dict(v)) for k, v in BREAKERS.items())
+    else:
+        src = breakers
+    out = {}
+    for cam, b in src.items():
+        if isinstance(b, dict) and int(b.get("fails", 0) or 0) >= BREAKER_FAILS and CONNECT_FAILURE.search(str(b.get("last") or "")):
+            out[cam] = str(b.get("last") or "")
+    return out
 
 
 def lan_networks(now=None, runner=None, env=None):
@@ -1540,7 +1595,8 @@ def roads_public(doc):
     for sid, rec in (doc or {}).items():
         if isinstance(rec, dict):
             out[sid] = {"road": rec.get("road") or "direct", "uri": rec.get("uri"), "reason": rec.get("reason"),
-                        "since": rec.get("since"), "forced": rec.get("forced")}
+                        "since": rec.get("since"), "forced": rec.get("forced"),
+                        "readdressed": rec.get("readdressed"), "why": rec.get("why")}
     return out
 
 
@@ -1577,16 +1633,21 @@ def set_stream_source(upstream, name, src, config_path=None, log=print, timeout=
     return True
 
 
-def ensure_bridge_roads(upstream, streams, bridge_cams, lans=None, roads=None, log=print, config_path=None, roads_path=None, now=None, only=None):
+def ensure_bridge_roads(upstream, streams, bridge_cams, lans=None, roads=None, log=print, config_path=None, roads_path=None, now=None, only=None, failing=None, unreachable=None):
     """Put every Wyze camera on the road that works (DR-0809) and keep the record.
     streams: go2rtc GET /api/streams. bridge_cams: bridge_cameras(). lans:
-    lan_networks(). roads: the kept record (loaded when None). Answers
-    {to_bridge, to_direct, unknown, kept, known}."""
+    lan_networks(). roads: the kept record (loaded when None). failing: the
+    cameras whose snapshot breaker tripped on a connect-class reason {id: why};
+    unreachable: the cameras watched with no byte arriving (StreamHealth).
+    Answers {to_bridge, to_direct, resigned, readdressed, retried, unknown, kept, known}."""
     now = time.time() if now is None else now
     lans = lan_networks() if lans is None else lans
     roads = roads_load(roads_path) if roads is None else roads
+    failing = failing or {}
+    unreachable = unreachable or {}
     by_mac = dict((c["mac"], c["uri"]) for c in (bridge_cams or []) if c.get("mac") and c.get("uri"))
-    out = {"to_bridge": [], "to_direct": [], "resigned": [], "unknown": [], "kept": 0, "known": len(by_mac)}
+    by_mac_ip = dict((c["mac"], c["ip"]) for c in (bridge_cams or []) if c.get("mac") and c.get("ip"))
+    out = {"to_bridge": [], "to_direct": [], "resigned": [], "readdressed": [], "retried": [], "unknown": [], "kept": 0, "known": len(by_mac)}
     if not isinstance(streams, dict):
         return out
     ids = set(streams.keys())
@@ -1605,7 +1666,25 @@ def ensure_bridge_roads(upstream, streams, bridge_cams, lans=None, roads=None, l
         rec = roads.get(sid) if isinstance(roads.get(sid), dict) else {}
         forced = rec.get("forced") if rec.get("forced") in ("bridge", "direct") else None
         if kind_of(url) == "wyze" and not is_bridge_source(url):
+            # THE ADDRESS WYZE REPORTS TODAY (DR-0835): a direct line dialling
+            # an address the camera no longer holds is re-addressed first, twin
+            # included, and the road is judged on the line as it now is.
+            ip_now = by_mac_ip.get(mac_of(url))
+            moved = readdress(url, ip_now)
+            if moved != url:
+                if not set_stream_source(upstream, sid, moved, config_path, log):
+                    continue
+                set_stream_source(upstream, sd_of(sid), sd_source(moved), config_path, log)
+                roads[sid] = dict(rec, road="direct", direct=moved, readdressed={"from": host_of(url), "to": ip_now, "at": now})
+                rec = roads[sid]
+                out["readdressed"].append(sid)
+                log("bridge-road: %s re-addressed from %s to %s, where Wyze says it is today" % (sid, host_of(url), ip_now))
+                url = moved
             wanted, reason = bridge_road_wanted(url, lans)
+            why = None
+            if not wanted and forced is None and (sid in failing or sid in unreachable):
+                wanted, reason = True, "direct-unreachable"
+                why = failing.get(sid) or "watched with no byte arriving for %ds" % int(unreachable[sid].get("since_bytes", 0))
             if forced == "direct" or (not wanted and forced != "bridge"):
                 out["kept"] += 1
                 continue
@@ -1619,12 +1698,25 @@ def ensure_bridge_roads(upstream, streams, bridge_cams, lans=None, roads=None, l
                 continue
             sd_name = sd_of(sid)
             set_stream_source(upstream, sd_name, sd_source(new), config_path, log)
-            roads[sid] = {"road": "bridge", "direct": url, "bridge": new, "uri": uri, "reason": reason if wanted else "forced", "since": now, "forced": forced}
+            roads[sid] = {"road": "bridge", "direct": url, "bridge": new, "uri": uri, "reason": reason if wanted else "forced", "since": now, "forced": forced,
+                          "readdressed": rec.get("readdressed"), "why": why}
             out["to_bridge"].append(sid)
-            log("bridge-road: %s now rides the Wyze bridge as %s (%s)" % (sid, uri, roads[sid]["reason"]))
+            log("bridge-road: %s now rides the Wyze bridge as %s (%s%s)" % (sid, uri, roads[sid]["reason"], (": " + why) if why else ""))
         elif is_bridge_source(url):
             direct = rec.get("direct")
-            back = forced == "direct" or (forced != "bridge" and direct and not bridge_road_wanted(direct, lans)[0])
+            # The kept direct line follows the camera's address too, so the
+            # hand-back dials where the camera is, not where it was.
+            ip_now = by_mac_ip.get(mac_of(direct)) if direct else None
+            if direct and ip_now and readdress(direct, ip_now) != direct:
+                rec = dict(rec, direct=readdress(direct, ip_now), readdressed={"from": host_of(direct), "to": ip_now, "at": now})
+                direct = rec["direct"]
+                roads[sid] = rec
+            # A camera here for being UNREACHABLE is not handed back on its
+            # address alone (the address is what failed): it waits the retry
+            # window, then the direct road is tried again.
+            parked = rec.get("reason") == "direct-unreachable" and forced is None
+            retry_due = parked and (now - float(rec.get("since") or 0)) >= DIRECT_RETRY_SECONDS
+            back = forced == "direct" or (forced != "bridge" and direct and not bridge_road_wanted(direct, lans)[0] and (not parked or retry_due))
             if not back or not direct:
                 # Staying on the bridge. The line go2rtc holds must be the line the
                 # bridge accepts TODAY: the second field read (cams-diag 37717592345)
@@ -1650,9 +1742,11 @@ def ensure_bridge_roads(upstream, streams, bridge_cams, lans=None, roads=None, l
             sd_name = sd_of(sid)
             if sd_name in ids or True:
                 set_stream_source(upstream, sd_name, sd_source(direct), config_path, log)
-            roads[sid] = dict(rec, road="direct", reason="forced" if forced == "direct" else "reachable-again", since=now, forced=forced)
+            roads[sid] = dict(rec, road="direct", reason="forced" if forced == "direct" else ("retrying-direct" if retry_due else "reachable-again"), since=now, forced=forced)
             out["to_direct"].append(sid)
-            log("bridge-road: %s is back on go2rtc's direct road" % sid)
+            if retry_due:
+                out["retried"].append(sid)
+            log("bridge-road: %s is back on go2rtc's direct road (%s)" % (sid, roads[sid]["reason"]))
     roads_save(roads, roads_path)
     with BRIDGE_LOCK:
         BRIDGE_LAST.clear()
@@ -1681,7 +1775,8 @@ def sync_bridge_roads(upstream, streams=None, log=print, config_path=None, roads
         with BRIDGE_LOCK:
             BRIDGE_LAST.update({"at": time.time(), "reachable": False})
         return None
-    return ensure_bridge_roads(upstream, streams, cams, log=log, config_path=config_path, roads_path=roads_path, only=only)
+    return ensure_bridge_roads(upstream, streams, cams, log=log, config_path=config_path, roads_path=roads_path, only=only,
+                               failing=failing_cameras(), unreachable=STREAM_HEALTH.unreachable_cameras())
 
 
 _BRIDGE_TICK = {"n": 0}
@@ -1850,6 +1945,45 @@ class StreamHealth:
         with self.lock:
             drops = sum(len(c["drops"]) for c in self.cams.values())
             return {"interval_s": self.interval, "last_sample_at": self.last_sample_at, "cameras": len([k for k in self.cams if not is_twin(k)]), "drops_1h": drops}
+
+    def dry_tries(self, sid, now=None):
+        """How the road has been going for one camera (DR-0835): tries without a
+        byte since the last byte arrived, seconds since that byte (or the first
+        sample), seconds since the last try. A try is a sample with a producer
+        or a watcher. None when the camera was never sampled."""
+        c = self.cams.get(sid)
+        if not c or not c["samples"]:
+            return None
+        now = float(now if now is not None else self.now())
+        last_bytes_at = None
+        for x in c["samples"]:
+            if x["present"] and x["kbps"] is not None and x["kbps"] > 0:
+                last_bytes_at = x["t"]
+        tries = 0
+        last_try = None
+        for x in c["samples"]:
+            if last_bytes_at is not None and x["t"] <= last_bytes_at:
+                continue
+            if x["present"] or x["watchers"] > 0:
+                tries += 1
+                last_try = x["t"]
+        return {"tries": tries, "since_bytes": now - (last_bytes_at if last_bytes_at is not None else c["first"]),
+                "since_try": (now - last_try) if last_try is not None else None}
+
+    def unreachable_cameras(self, now=None, dead=None, dry=None):
+        """The cameras somebody has been trying to watch that gave no byte for
+        the dead window over at least `dry` tries, the last try recent."""
+        dead = DIRECT_DEAD_SECONDS if dead is None else float(dead)
+        dry = DIRECT_DRY_TRIES if dry is None else int(dry)
+        out = {}
+        with self.lock:
+            for sid in list(self.cams):
+                if is_twin(sid):
+                    continue
+                d = self.dry_tries(sid, now)
+                if d and d["tries"] >= dry and d["since_bytes"] >= dead and d["since_try"] is not None and d["since_try"] <= dead:
+                    out[sid] = d
+        return out
 
 
 STREAM_HEALTH = StreamHealth()
@@ -4091,6 +4225,7 @@ def _selftest():
             pass
 
         leaked = False
+        garage_ip = None
 
         def do_GET(self):
             path, _, query = self.path.partition("?")
@@ -4104,7 +4239,7 @@ def _selftest():
             body = json.dumps({"total": 3, "available": 3, "enabled": 3, "cameras": {
                 "805-north": {"name_uri": "805-north", "nickname": "805 North", "mac": "AABBCCDDEE01", "connected": False, "enabled": True, "status": "stopped", "ip": "10.0.0.180"},
                 "front-cam": {"name_uri": "front-cam", "nickname": "Front Cam", "mac": "AABBCCDDEE03", "connected": True, "enabled": True, "status": "connected", "ip": "192.168.1.60"},
-                "garage-doors": {"name_uri": "garage-doors", "nickname": "Garage Doors", "mac": "AABBCCDDEE02", "connected": False, "enabled": True, "status": "stopped"},
+                "garage-doors": dict({"name_uri": "garage-doors", "nickname": "Garage Doors", "mac": "AABBCCDDEE02", "connected": False, "enabled": True, "status": "stopped"}, **({"ip": FakeBridge.garage_ip} if FakeBridge.garage_ip else {})),
             }}).encode("utf-8")
             self.send_response(200); self.send_header("Content-Type", "application/json"); self.send_header("Content-Length", str(len(body))); self.end_headers(); self.wfile.write(body)
 
@@ -4215,6 +4350,49 @@ def _selftest():
     check(res7["resigned"] == [] and res7["kept"] >= 1 and FakeGo2rtcRoads.state["puts"] == [], "once signed, the next sync keeps it and makes no call")
     res8 = ensure_bridge_roads(rup, {"805_north": {"producers": [{"url": unsigned}]}}, bc, lans=lans, roads=roads_load(br_roads), log=logs.append, config_path=br_cfg, roads_path=br_roads, now=1900.0)
     check(res8["resigned"] == [] and FakeGo2rtcRoads.state["puts"] == [], "a producer URL go2rtc echoes without its credentials does not re-sign again: the record is the judge, so there is no loop")
+
+    print("=== 8o. a camera that moved is re-addressed; a direct road that stays dark rides the bridge and tries again later (DR-0835) ===")
+    same = "wyze://192.168.1.50?uid=A&enr=S2&mac=AA:BB:CC:DD:EE:02&model=HL_CAM4&dtls=true"
+    check(readdress(same, "192.168.1.77") == same.replace("192.168.1.50", "192.168.1.77"), "readdress moves the host and nothing else")
+    check(readdress(same, "192.168.1.50") == same and readdress(same, "") == same and readdress(same, None) == same and readdress(same, "not-an-ip") == same and readdress("rtsp://u:p@192.168.1.9/live", "192.168.1.10") == "rtsp://u:p@192.168.1.9/live" and readdress(bsrc, "192.168.1.10") == bsrc, "the same address, no address, a bad address, an rtsp line and a bridge line are left alone")
+    check(failing_cameras({"a": {"fails": 3, "last": "wyze: connect failed: discovery timeout"}, "b": {"fails": 3, "last": "HTTP 401"}, "c": {"fails": 1, "last": "i/o timeout"}}) == {"a": "wyze: connect failed: discovery timeout"}, "a tripped breaker on a connect-class reason names the camera; an auth error or an untripped one does not")
+    hs = StreamHealth(now=lambda: 0.0, history=3600, interval=15)
+    for i in range(4):
+        hs.observe({"dead": {"producers": [{"url": "wyze://x", "bytes_recv": 0}], "consumers": [{}]},
+                    "alive": {"producers": [{"url": "wyze://y", "bytes_recv": 1000 * (i + 1)}], "consumers": [{}]},
+                    "idle": {"producers": [], "consumers": []}}, t=float(i * 15))
+    dt = hs.dry_tries("dead", now=400.0)
+    check(dt["tries"] == 4 and dt["since_bytes"] == 400.0 and dt["since_try"] == 355.0, "dry tries: four tries and not one byte since the first sample (%r)" % dt)
+    un = hs.unreachable_cameras(now=300.0, dead=300, dry=3)
+    check(list(un.keys()) == ["dead"], "only the camera somebody tried to watch with no byte for the dead window is unreachable; a streaming one and an idle one are not (%r)" % list(un.keys()))
+    check(hs.unreachable_cameras(now=2000.0, dead=300, dry=3) == {}, "a camera nobody has tried lately is not called unreachable")
+    FakeBridge.garage_ip = "192.168.1.77"
+    bc2 = bridge_cameras(key="BRKEY")
+    # garage_doors was forced earlier in this section; the record starts clean here
+    rd = roads_load(br_roads); rd.pop("garage_doors", None); roads_save(rd, br_roads)
+    check(next(c for c in bc2 if c["uri"] == "garage-doors")["ip"] == "192.168.1.77", "the bridge's listing carries where Wyze sees the camera today")
+    FakeGo2rtcRoads.state["puts"] = []
+    res9 = ensure_bridge_roads(rup, {"garage_doors": {"producers": [{"url": same}]}}, bc2, lans=lans, roads=roads_load(br_roads), log=logs.append, config_path=br_cfg, roads_path=br_roads, now=2000.0)
+    moved_line = same.replace("192.168.1.50", "192.168.1.77")
+    check(res9["readdressed"] == ["garage_doors"] and res9["to_bridge"] == [] and ("garage_doors", moved_line) in FakeGo2rtcRoads.state["puts"] and ("garage_doors_sd", sd_source(moved_line)) in FakeGo2rtcRoads.state["puts"], "a camera the bridge lists at a new address is re-addressed on the direct road, twin included, and stays direct (%r)" % res9)
+    rd = roads_load(br_roads)
+    check(rd["garage_doors"]["road"] == "direct" and rd["garage_doors"]["readdressed"]["from"] == "192.168.1.50" and rd["garage_doors"]["readdressed"]["to"] == "192.168.1.77" and rd["garage_doors"]["direct"] == moved_line, "the record says where it was and where it is now")
+    FakeGo2rtcRoads.state["puts"] = []
+    res10 = ensure_bridge_roads(rup, {"garage_doors": {"producers": [{"url": moved_line}]}}, bc2, lans=lans, roads=roads_load(br_roads), log=logs.append, config_path=br_cfg, roads_path=br_roads, now=2100.0, failing={"garage_doors": "wyze: connect failed: discovery timeout"})
+    check(res10["to_bridge"] == ["garage_doors"] and ("garage_doors", bridge_source("garage-doors")) in FakeGo2rtcRoads.state["puts"], "a LAN camera whose direct road keeps failing to connect rides the bridge (%r)" % res10)
+    rd = roads_load(br_roads)
+    check(rd["garage_doors"]["road"] == "bridge" and rd["garage_doors"]["reason"] == "direct-unreachable" and rd["garage_doors"]["direct"] == moved_line and rd["garage_doors"]["since"] == 2100.0 and "discovery timeout" in rd["garage_doors"]["why"], "the record keeps the direct line, the reason, the time and go2rtc's own words")
+    FakeGo2rtcRoads.state["puts"] = []
+    bridged_now = {"garage_doors": {"producers": [{"url": bridge_source("garage-doors")}]}}
+    res11 = ensure_bridge_roads(rup, bridged_now, bc2, lans=lans, roads=roads_load(br_roads), log=logs.append, config_path=br_cfg, roads_path=br_roads, now=2100.0 + 600)
+    check(res11["to_direct"] == [] and res11["retried"] == [] and FakeGo2rtcRoads.state["puts"] == [], "inside the retry window it stays on the bridge: reachable-again is never assumed from the address that failed")
+    res11b = ensure_bridge_roads(rup, bridged_now, bc2, lans=lans, roads=roads_load(br_roads), log=logs.append, config_path=br_cfg, roads_path=br_roads, now=2100.0 + 600, unreachable={"garage_doors": {"since_bytes": 900}})
+    check(res11b["to_direct"] == [] and FakeGo2rtcRoads.state["puts"] == [], "...and a camera still dark on the bridge is not bounced")
+    res12 = ensure_bridge_roads(rup, bridged_now, bc2, lans=lans, roads=roads_load(br_roads), log=logs.append, config_path=br_cfg, roads_path=br_roads, now=2100.0 + DIRECT_RETRY_SECONDS + 1)
+    check(res12["to_direct"] == ["garage_doors"] and res12["retried"] == ["garage_doors"] and ("garage_doors", moved_line) in FakeGo2rtcRoads.state["puts"] and roads_load(br_roads)["garage_doors"]["reason"] == "retrying-direct", "after the retry window the direct road is tried again, at the current address (%r)" % res12)
+    pub = roads_public(roads_load(br_roads))
+    check(pub["garage_doors"]["readdressed"]["to"] == "192.168.1.77" and "enr=" not in json.dumps(pub) and "wyze://" not in json.dumps(pub), "the public view says a camera was re-addressed and still carries no URL")
+    FakeBridge.garage_ip = None
     s, _h, d = call("GET", "/health")
     jb = json.loads(d.decode("utf-8")).get("bridge")
     check(jb and jb["configured"] is True and jb["api"] == BRIDGE_API and jb["last"]["known"] == 3, "/health carries the bridge: configured, its address, the last sync's count")

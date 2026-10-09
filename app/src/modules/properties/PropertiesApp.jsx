@@ -25,10 +25,12 @@ import {
 import {
   claimPropertyAccess, loadMyDoors, loadMyGrants, loadMyHousehold, loadDoorRecord,
   fileWorkOrder, setWorkOrderStatus, assignWorkOrder, postMessage, postNote,
-  postJobDoc, recordRent, confirmRent, markRentPosted, inviteToProperties, createTenancy,
+  postJobDoc, recordRent, confirmRent, markRentPosted, inviteToProperties, createTenancy, loadInvites,
 } from './cloud.js';
 import { MAINTENANCE_TRANSITIONS, PRIORITY, buildMaintenanceRequest } from '../../lib/tenant-portal.js';
-import { smsHref, telHref, buildDispatchMessage } from '../../lib/dispatch.js';
+import { smsHref, telHref } from '../../lib/dispatch.js';
+import { workerRoster, someoneElse, dispatchText, dispatchRecord, myJobs, dispatchable } from './dispatch-roster.js';
+import { formatPhone } from '../../lib/member-contact.js';
 import { stageFromRecord, confirmDraft, tenancyRowFromDraft } from './staging.js';
 import { availableDocuments, buildDocument } from './documents.js';
 import { TimelineTab, RoomsTab, DoorsBoard, GalleryTab, FilesTab } from './DoorTabs.jsx';
@@ -51,7 +53,7 @@ import { announceRentalChange } from '../../lib/rental-write.js';
 import { buildRoom } from './rooms.js';
 import { pickCovers } from './photo-order.js';
 import { tenancyRowForDoor } from './staging.js';
-import { phoneLoginEmail } from '../../lib/supabase.js';
+import supabase, { phoneLoginEmail } from '../../lib/supabase.js';
 import { boundedRead, deadlineIn, OPTIONAL_TIMEOUT_MS as CLAIM_TIMEOUT_MS } from '../../lib/bounded-read.js';
 import { POE_PROPERTIES, LAUNCH_PLAN, OPPORTUNITIES, CONSTRAINTS } from './config.js';
 
@@ -64,6 +66,10 @@ const ACCENT = '#2F5D50';
 const DOOR_SCOPED = new Set([
   'timeline', 'rooms', 'gallery', 'files', 'systems', 'documents', 'door', 'history', 'rent', 'thread',
   'readiness',
+  // The work is an option of the door (DR-0837): the board, the dispatch, the
+  // worker's jobs and the documentation all read ONE door's requests, so they
+  // carry the door's header and its open-work count like every other tab here.
+  'work', 'board', 'jobs', 'document', 'dispatch',
 ]);
 
 /**
@@ -83,7 +89,7 @@ const DOOR_SCOPED = new Set([
  * inside each: in the same spot every time, it becomes something you stop
  * having to look for.
  */
-function DoorContext({ rental, tenancy, data = {}, onChange, onGo, tabs = [], activeTab, canPick = true }) {
+function DoorContext({ rental, tenancy, data = {}, open = [], onChange, onGo, tabs = [], activeTab, canPick = true }) {
   const label = rental?.display_name || rental?.address || tenancy?.property_label || null;
   const where = rental
     ? [rental.address, rental.unit, rental.city, rental.state].filter(Boolean).join(', ')
@@ -116,7 +122,9 @@ function DoorContext({ rental, tenancy, data = {}, onChange, onGo, tabs = [], ac
   const active = (data.tenancies || []).find((t) => t.status === 'active') || tenancy || null;
 
   // Counted from the rows the tabs themselves render, never stored beside them.
+  const workTab = tabs.find((t) => ['board', 'work', 'jobs'].includes(t.id));
   const counts = [
+    ...(workTab ? [{ id: workTab.id, n: (open || []).length, one: 'open work order', many: 'open work orders' }] : []),
     { id: 'rooms', n: live.length, one: 'room', many: 'rooms' },
     { id: 'gallery', n: shots.length, one: 'picture', many: 'pictures' },
     { id: 'files', n: papers.length, one: 'file', many: 'files' },
@@ -231,6 +239,11 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
   const [record, setRecord] = useState({ requests: [], messages: [], notes: [], docs: [], rent: [], notices: [] });
   const [tab, setTab] = useState('');
   const [busy, setBusy] = useState('');
+  // The 1099 workers invited to this instance (the landlord reads them all; a
+  // worker reads their own), and who is signed in, so a worker's jobs are
+  // THEIRS and a dispatch is assigned to a real user id (DR-0837).
+  const [invites, setInvites] = useState([]);
+  const [me, setMe] = useState(null);
   // Drafts the caller read from the family's own records (Drive/Gmail). The
   // module never fetches them itself — the shell hands them in, so this surface
   // has no opinion about WHERE a record lives, only about not asserting it.
@@ -294,9 +307,13 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
     // Its own deadline too, for the same reason: the cover thumbnails and the
     // public listings must not be starved by whatever the spine reads cost.
     const extras = deadlineIn();
-    const [ph, vac] = await Promise.all([
+    const [ph, vac, inv, sess] = await Promise.all([
       boundedRead(loadAllPhotos(), extras()), boundedRead(loadPublicVacancies(), extras()),
+      boundedRead(loadInvites(), extras(), { ok: false }),
+      boundedRead(Promise.resolve().then(() => supabase.auth.getSession()).then((r) => (r && r.data && r.data.session) || null).catch(() => null), extras(), null),
     ]);
+    setInvites(inv && inv.ok ? inv.invites : []);
+    setMe(sess && sess.user ? sess.user.id : null);
     // The list carries thumbnails, never images (0185 / DR-0303). Only the
     // pictures that will actually be COVERS are hydrated, and only those from
     // before thumbnails existed — a bounded read, sized to the doors, not to
@@ -434,6 +451,13 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
   );
 
   const refresh = () => setBusy(`r-${Date.now()}`);
+  const workers = useMemo(() => workerRoster(invites, { instanceId: activeDoor?.instance_id || null }), [invites, activeDoor]);
+  // The name this worker was invited under, so a job assigned by name before
+  // they ever signed in is still theirs.
+  const myLabel = useMemo(() => {
+    const own = invites.find((i) => i && i.role_label === 'field_worker' && (!me || !i.claimed_by || i.claimed_by === me));
+    return own && own.display_name ? own.display_name : null;
+  }, [invites, me]);
   const say = (m) => { setNotice(m); setTimeout(() => setNotice(''), 6000); };
 
   // ---- actions -------------------------------------------------------------
@@ -447,6 +471,23 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
       area: form.area || null, priority: built.priority || 'normal', status: 'submitted',
     });
     say(res.ok ? 'Work order filed.' : `Could not file it: ${res.reason}`);
+    refresh();
+  };
+
+  // THE DISPATCH IS A RECORD (DR-0837). Tapping Text it opens the messaging
+  // app, as before; it ALSO assigns the job to the worker (their user id when
+  // they have signed in, their name always), marks it scheduled, and writes a
+  // note on the door's record naming who was sent and when. The text is the
+  // worker's copy; the record is the family's.
+  const dispatchJob = async (request, worker) => {
+    if (!activeDoor || !request || !worker) return;
+    const rec = dispatchRecord({ request, worker });
+    if (!rec) { say('That work order is closed; nothing to send.'); return; }
+    const a = await assignWorkOrder(request.id, rec.assign);
+    if (!a || !a.ok) { say(`Not recorded: ${(a && a.reason) || 'the assignment did not save'}`); return; }
+    if (rec.status && rec.status !== request.status) await setWorkOrderStatus(request.id, rec.status);
+    await postNote(buildTenancyNote({ instanceId: activeDoor.instance_id, tenancyId: activeDoor.id, requestId: request.id, authorRole: role, body: rec.note }));
+    say(`${request.title}: sent to ${worker.name}, and the record says so.`);
     refresh();
   };
 
@@ -716,6 +757,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
           rental={activeRental}
           tenancy={activeDoor}
           data={doorData}
+          open={openWork}
           onChange={() => setTab('doors')}
           onGo={(id) => setTab(id)}
           tabs={face.tabs}
@@ -850,16 +892,22 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
             return (
               <WorkTab
                 door={activeDoor} requests={record.requests} open={openWork} docs={record.docs} role={role}
+                mine={role === 'field_worker' ? myJobs(openWork, { userId: me, label: myLabel }) : null}
+                workers={workers}
                 canFile={role !== 'field_worker'} canManage={role === 'owner' || role === 'manager'}
                 onFile={submitWorkOrder} onStatus={async (id, s) => { await setWorkOrderStatus(id, s); refresh(); }}
-                onAssign={async (id, label) => { await assignWorkOrder(id, { assignedToLabel: label }); refresh(); }}
+                onAssign={async (id, label) => {
+                  const w = workers.find((x) => x.name === label);
+                  await assignWorkOrder(id, { assignedTo: w ? w.userId : null, assignedToLabel: label });
+                  refresh();
+                }}
                 onDocument={documentJob}
               />
             );
           case 'document':
             return <DocumentTab requests={openWork} onDocument={documentJob} />;
           case 'dispatch':
-            return <DispatchTab door={activeDoor} open={openWork} />;
+            return <DispatchTab door={activeDoor} rental={activeRental} open={openWork} workers={workers} onDispatch={dispatchJob} />;
           case 'thread':
             return <ThreadTab messages={record.messages} onSend={sendMessage} />;
           case 'history':
@@ -1102,11 +1150,15 @@ function DoorsTab({ doors, onPick, staged, onConfirmDraft }) {
   );
 }
 
-function WorkTab({ door, requests, open, docs, role, canFile, canManage, onFile, onStatus, onAssign, onDocument }) {
+function WorkTab({ door, requests, open, docs, role, canFile, canManage, onFile, onStatus, onAssign, onDocument, workers = [], mine = null }) {
   const [title, setTitle] = useState('');
   const [detail, setDetail] = useState('');
   const [priority, setPriority] = useState('normal');
   const docsFor = (id) => (docs || []).filter((d) => d.request_id === id);
+  // A worker sees THEIR jobs on this door (assigned by user id or by the name
+  // they were invited under), and is told how many others exist unassigned.
+  const list = mine || open;
+  const others = mine ? Math.max(0, open.length - mine.length) : 0;
   return (
     <>
       {canFile && (
@@ -1127,8 +1179,9 @@ function WorkTab({ door, requests, open, docs, role, canFile, canManage, onFile,
           </div>
         </Card>
       )}
-      <Card title={`Open (${open.length})`}>
-        {open.length === 0 ? <Empty>Nothing open right now.</Empty> : open.map((r) => (
+      <Card title={mine ? `My jobs (${list.length})` : `Open (${list.length})`}>
+        {mine && others > 0 ? <Empty>{others} other open work order{others === 1 ? '' : 's'} on this door {others === 1 ? 'is' : 'are'} not assigned to you.</Empty> : null}
+        {list.length === 0 ? <Empty>{mine ? 'Nothing assigned to you on this door right now.' : 'Nothing open right now.'}</Empty> : list.map((r) => (
           <div key={r.id} className="border-b border-[#F0EDE6] py-2">
             <div className="flex items-baseline justify-between gap-2">
               <span className="text-sm text-[#1A1815]" style={serif}>{r.title}</span>
@@ -1146,7 +1199,7 @@ function WorkTab({ door, requests, open, docs, role, canFile, canManage, onFile,
                 {(MAINTENANCE_TRANSITIONS[r.status] || []).map((next) => (
                   <Btn key={next} onClick={() => onStatus(r.id, next)}>{next}</Btn>
                 ))}
-                <AssignRow current={r.assigned_to_label} onAssign={(who) => onAssign(r.id, who)} />
+                <AssignRow current={r.assigned_to_label} workers={workers} onAssign={(who) => onAssign(r.id, who)} />
               </div>
             )}
             {role === 'field_worker' && <DocRow requestId={r.id} onDocument={onDocument} />}
@@ -1157,15 +1210,22 @@ function WorkTab({ door, requests, open, docs, role, canFile, canManage, onFile,
   );
 }
 
-function AssignRow({ current, onAssign }) {
+function AssignRow({ current, onAssign, workers = [] }) {
   const [open, setOpen] = useState(false);
   const [who, setWho] = useState(current || '');
   if (!open) return <Btn onClick={() => setOpen(true)}>{current ? 'Reassign' : 'Assign'}</Btn>;
   return (
     <span className="inline-flex flex-wrap items-center gap-1">
+      {workers.length > 0 && (
+        <select value={workers.some((w) => w.name === who) ? who : ''} onChange={(e) => setWho(e.target.value)} aria-label="Pick a worker"
+          className="text-xs border border-[#E8E4DC] px-2 py-1 bg-white" style={serif}>
+          <option value="">Pick a 1099 worker</option>
+          {workers.map((w) => <option key={w.key} value={w.name}>{w.name}</option>)}
+        </select>
+      )}
       <input
-        value={who} onChange={(e) => setWho(e.target.value)} autoFocus
-        placeholder="Worker's name" aria-label="Assign to which worker"
+        value={who} onChange={(e) => setWho(e.target.value)} autoFocus={workers.length === 0}
+        placeholder={workers.length ? 'or type a name' : "Worker's name"} aria-label="Assign to which worker"
         className="text-xs border border-[#E8E4DC] px-2 py-1 w-36" style={serif}
       />
       <Btn tone="primary" disabled={!who.trim()} onClick={() => { onAssign(who.trim()); setOpen(false); }}>Save</Btn>
@@ -1204,27 +1264,64 @@ function DocumentTab({ requests, onDocument }) {
   );
 }
 
-function DispatchTab({ door, open }) {
+function DispatchTab({ door, rental, open, workers = [], onDispatch }) {
+  const [pick, setPick] = useState(() => (workers[0] && workers[0].key) || 'other');
   const [phone, setPhone] = useState('');
+  const [name, setName] = useState('');
+  useEffect(() => {
+    if (pick !== 'other' && !workers.some((w) => w.key === pick)) setPick((workers[0] && workers[0].key) || 'other');
+  }, [workers, pick]);
+  const worker = pick === 'other' ? someoneElse(phone, name) : (workers.find((w) => w.key === pick) || null);
+  const can = !!(worker && worker.phone);
+  const jobs = dispatchable(open);
   return (
-    <Card title="Dispatch a job">
-      <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Worker's phone" aria-label="Worker's phone"
-        className="w-full text-sm border border-[#E8E4DC] px-2 py-2 mb-2" style={serif} />
-      <Empty>The text opens in your own messaging app with the job already written. The app sends nothing on its own — you press send.</Empty>
-      {open.map((r) => {
-        const body = buildDispatchMessage({
-          propertyName: door?.property_label || '', address: door?.property_label || '',
-          description: r.title, priority: r.priority,
-        });
-        return (
-          <div key={r.id} className="border-b border-[#F0EDE6] py-2 flex flex-wrap items-center gap-2">
-            <span className="text-sm text-[#1A1815] flex-1 min-w-[8rem]" style={serif}>{r.title}</span>
-            <a href={smsHref(phone, body)} className={`text-[0.625rem] uppercase tracking-wider px-3 py-2 border ${phone ? 'bg-[#2F5D50] text-white border-[#2F5D50]' : 'pointer-events-none opacity-40 border-[#E8E4DC]'}`}>Text it</a>
-            <a href={telHref(phone)} className={`text-[0.625rem] uppercase tracking-wider px-3 py-2 border ${phone ? 'border-[#E8E4DC] text-[#1A1815]' : 'pointer-events-none opacity-40 border-[#E8E4DC]'}`}>Call</a>
-          </div>
-        );
-      })}
-    </Card>
+    <>
+      <Card title="Who does the work">
+        {workers.length === 0 && (
+          <Empty>No 1099 worker has been invited to this door yet. Invite one under People, or send to a number here.</Empty>
+        )}
+        <div className="flex flex-wrap items-center gap-2 mt-1">
+          <select value={pick} onChange={(e) => setPick(e.target.value)} aria-label="Which worker" data-testid="dispatch-worker"
+            className="text-xs border border-[#E8E4DC] px-2 py-2 bg-white" style={serif}>
+            {workers.map((w) => (
+              <option key={w.key} value={w.key}>{w.name}{w.phone ? ` \u00b7 ${formatPhone(w.phone)}` : ''}{w.claimed ? '' : ' \u00b7 not signed in yet'}</option>
+            ))}
+            <option value="other">Someone else, by phone</option>
+          </select>
+          {pick === 'other' && (
+            <>
+              <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Their name" aria-label="Worker's name"
+                className="text-xs border border-[#E8E4DC] px-2 py-2" style={serif} />
+              <input value={phone} onChange={(e) => setPhone(e.target.value)} type="tel" inputMode="tel" placeholder="Worker's phone" aria-label="Worker's phone"
+                className="text-xs border border-[#E8E4DC] px-2 py-2" style={serif} />
+            </>
+          )}
+        </div>
+        <p className="text-xs text-[#5A5751] mt-2" style={serif}>
+          The text opens in your own messaging app with the job already written; you press send. The moment you tap Text it,
+          the work order is assigned to them, marked scheduled, and a note goes on this door\u2019s record naming who was sent.
+        </p>
+      </Card>
+      <Card title={`Jobs to send (${jobs.length})`}>
+        {jobs.length === 0 ? <Empty>Nothing open on this door to send. File it under Work board first.</Empty> : jobs.map((r) => {
+          const body = dispatchText({ door, rental, request: r });
+          return (
+            <div key={r.id} className="border-b border-[#F0EDE6] py-2 flex flex-wrap items-center gap-2" data-testid="dispatch-job">
+              <span className="text-sm text-[#1A1815] flex-1 min-w-[8rem]" style={serif}>
+                {r.title}
+                <span className="block text-[0.625rem] text-[#8A867E]">
+                  {r.status}{r.assigned_to_label ? ` \u00b7 assigned to ${r.assigned_to_label}` : ' \u00b7 not assigned'}{r.priority && r.priority !== 'normal' ? ` \u00b7 ${r.priority}` : ''}
+                </span>
+              </span>
+              <a href={can ? smsHref(worker.phone, body) : undefined} onClick={() => { if (can) onDispatch(r, worker); }} data-testid="dispatch-text"
+                className={`text-[0.625rem] uppercase tracking-wider px-3 py-2 border focus:outline focus:outline-2 focus:outline-[#2F5D50] ${can ? 'bg-[#2F5D50] text-white border-[#2F5D50]' : 'pointer-events-none opacity-40 border-[#E8E4DC]'}`}>Text it</a>
+              <a href={can ? telHref(worker.phone) : undefined} onClick={() => { if (can) onDispatch(r, worker); }}
+                className={`text-[0.625rem] uppercase tracking-wider px-3 py-2 border focus:outline focus:outline-2 focus:outline-[#2F5D50] ${can ? 'border-[#E8E4DC] text-[#1A1815]' : 'pointer-events-none opacity-40 border-[#E8E4DC]'}`}>Call</a>
+            </div>
+          );
+        })}
+      </Card>
+    </>
   );
 }
 

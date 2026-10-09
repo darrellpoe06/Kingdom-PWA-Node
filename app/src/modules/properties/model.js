@@ -90,9 +90,13 @@ const WORKER_TABS = [
 ];
 
 const MANAGER_TABS = [
-  TAB('board', 'Work board', 'Every open work order across the doors I manage.', 'request.manage'),
-  TAB('dispatch', 'Dispatch', 'Send a job to a 1099 worker by text or call.', 'request.manage'),
+  // THE DOOR FIRST, THEN WHAT HAPPENS INSIDE IT (DR-0837; Darrell 2026-10-09:
+  // "they should be options inside the apartment... doesn't make sense
+  // separate"). The work board and the dispatch read ONE door; they sit after
+  // the doors and under the door's own header, never beside it.
   TAB('doors', 'Doors', 'The doors I manage and who lives in them.'),
+  TAB('board', 'Work board', 'The open work orders on this door.', 'request.manage'),
+  TAB('dispatch', 'Dispatch', 'Send one of this door\u2019s jobs to a 1099 worker by text or call, and record it.', 'request.manage'),
   TAB('thread', 'Messages', 'Tenant threads for my doors.', 'message.tenant'),
   TAB('rent', 'Rent', 'Confirm what came in; correct a balance with a reason.', 'rentroll.view'),
   TAB('history', 'History', 'The whole relationship record, notes included.'),

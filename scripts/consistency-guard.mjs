@@ -122,11 +122,33 @@ export function countWidthCaps(src) {
 // large-print guard's helper) so documentation that names the bug pattern
 // (text-[10px] -> text-[0.625rem]) is never counted as drift — the same
 // reasoning as the UiIcon emoji exemption, made general.
+// WORDS STAY WHOLE (DR-0838; Darrell 2026-10-09, Christyn's roster row on his
+// phone one letter per line): `break-all` belongs to URLs, codes, keys and log
+// lines, where breaking inside the string is the point. On a line that renders
+// a PERSON'S NAME it is drift: the name should keep a real width and break
+// between words (`break-words`), and the row's controls should wrap under it.
+// Counted on code lines only; a comment that names the rule is documentation.
+export const NAME_EXPR_RE = /\b(?:displayName|who\.shown|tenant_name|nickname|fullName|firstName|lastName|[A-Za-z_]+\.name)\b/;
+// JSX puts the class on one line and the name on the next, so the element is
+// read as its opening line plus the two that follow it (the roster row that
+// bit had the name one line under its `break-all`).
+export const NAME_BREAK_WINDOW = 3;
+export function countNameBreaks(src) {
+  const lines = stripCommentLines(src).split('\n');
+  let n = 0;
+  for (let i = 0; i < lines.length; i += 1) {
+    if (!/\bbreak-all\b/.test(lines[i])) continue;
+    if (NAME_EXPR_RE.test(lines.slice(i, i + NAME_BREAK_WINDOW).join('\n'))) n += 1;
+  }
+  return n;
+}
+
 export function fileCounts(src, basename) {
   return {
     emoji: EMOJI_EXEMPT.has(basename) ? 0 : countMatches(src, EMOJI_RE),
     fixedPx: countMatches(stripCommentLines(src), FIXED_PX_RE),
     widthCap: countWidthCaps(src),
+    nameBreak: countNameBreaks(src),
   };
 }
 
@@ -142,7 +164,7 @@ export function ratchet(liveCounts, baseline) {
   const violations = [];
   const warnings = [];
   for (const [rel, live] of Object.entries(liveCounts)) {
-    const base = baseline[rel] || { emoji: 0, fixedPx: 0, widthCap: 0 };
+    const base = baseline[rel] || { emoji: 0, fixedPx: 0, widthCap: 0, nameBreak: 0 };
     if (live.emoji > base.emoji) {
       violations.push({ file: rel, kind: 'emoji-as-icon', live: live.emoji, baseline: base.emoji,
         fix: 'replace the device-font emoji with <UiIcon name="..."/> (components/UiIcon.jsx)' });
@@ -154,6 +176,10 @@ export function ratchet(liveCounts, baseline) {
     if (live.widthCap > base.widthCap) {
       violations.push({ file: rel, kind: 'width-cap', live: live.widthCap, baseline: base.widthCap,
         fix: 'tab content stretches the full width (CONSISTENCY-STANDARD rule 1, DR-0246); prose measure and modals live INSIDE the full-width container, never as the tab wrapper' });
+    }
+    if ((live.nameBreak || 0) > (base.nameBreak || 0)) {
+      violations.push({ file: rel, kind: 'name-break-all', live: live.nameBreak, baseline: base.nameBreak || 0,
+        fix: 'a person\'s name breaks between words, never inside one: break-words (and flex-wrap on the row so the controls go under the name) — break-all is for URLs, codes and log lines (DR-0838)' });
     }
   }
   return { violations, warnings };
@@ -192,7 +218,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
     // readable; a file absent from the baseline defaults to {0,0,0} (new-file rule).
     const frozen = {};
     for (const [rel, c] of Object.entries(live)) {
-      if (c.emoji || c.fixedPx || c.widthCap) frozen[rel] = c;
+      if (c.emoji || c.fixedPx || c.widthCap || c.nameBreak) frozen[rel] = c;
     }
     writeFileSync(BASELINE_PATH, JSON.stringify(frozen, null, 2) + '\n');
     const totals = Object.values(live).reduce((a, c) => ({ emoji: a.emoji + c.emoji, fixedPx: a.fixedPx + c.fixedPx, widthCap: a.widthCap + c.widthCap }), { emoji: 0, fixedPx: 0, widthCap: 0 });

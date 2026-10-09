@@ -716,6 +716,16 @@ These are the distilled, binding lessons. Each links back to the dated incident(
 
 **Forward architectural fix:** `lessonSections` + `allocateSections` route the lesson's own points-with-prose to the part that teaches them, totally and in order; the floor is zero blank panels across all 1,026 scenes of 145 lessons at every age band; a standalone ALL-CAPS clause is a point (60→44 zero-point lessons, and 44 stays an honest zero rather than a fabricated outline); the presenter label is built from the part, with the no-leak law held by construction.
 
+### 2026-10-09 — A roster row squeezed a name into a column of letters, and the panels it opened landed at the bottom of the page
+
+**Trigger:** Darrell, two screenshots of Admin → Role & stewardship on his phone: Christyn's row rendered one letter per line down the whole screen; her *Extra powers* and *Stewardship record* panels were found only after scrolling past it. *"Couldn't see these forms and options!!!!!! Supposed to be in tabs never scrolled to the bottom of the page!!!????!!!!! Mandatory Ways!!!!!!! Documentation for this asap!!!!????!!!! Never again unless asked... why is the default wrong!!!!?????!!!!! Fix it!!!!!!!!"*
+
+**What happened:** the Manage access roles row was a flex line with no wrap: the name on the left with `break-all`, six controls on the right that never wrap. On a phone the controls took the full width, the name column was left with nothing, and `break-all` did what it says. The panels the row opens render directly under the row (the right place); under a row two thousand pixels tall, the right place is the bottom of the page. DR-0825 lengthened the name with the contact note and the reach line, which is what tipped it; the name was right and the row was wrong.
+
+**Root cause:** a layout written for a desktop and never read at phone width, and a break rule meant for URLs applied to a person's name. No gate counted either.
+
+**Principle(s) extracted:** **P72 — Words stay whole, a row's controls wrap under the name, and what a row opens stays under that row; `break-all` belongs to URLs, codes and log lines only.** Gate: `consistency-guard.test.js` (`nameBreak`: a `break-all` on a line that renders a person's name is a hard violation over a zero baseline) and `roster-named-from-your-contacts.test.jsx` (the roster row wraps, the name span is whole-word and full-width first, the controls wrap). The Way is written in QUALITY-OF-LIFE-AS-NORTH-STAR, *Rows, forms and the panels they open* (DR-0838). Pairs with P15 (observe the running app), P31 (the site has its own witness), DR-0239 (form factor measured, not assumed).
+
 ### Earlier incidents — to be backfilled from session notes + commit history
 
 (Per `project-institutional-memory-events`: prior incidents — wf30 silent-fail 4-hour debug, wf18 cross-origin throttle, two-session git race, ASCII-only PowerShell, the four-question test discovery, the PIN-optional community-default reversal — all get incident entries here over the next vacation-day sweep. Each pulls trigger / detection / root-cause / principle from the session note that captured it the day of, structured per the schema above. This is the doc that holds the historical narrative; the master fix list holds the live work queue.)

@@ -486,9 +486,17 @@ export default function AdminConsole({
                   const reach = contactOf(m);
                   const who = labelFor(contactIdx, { ownName: m.displayName, email: m.email, phone: reach.phoneDigits });
                   return (
-                    <li key={m.userId || m.email} className="text-xs text-[#1A1815]" style={serif}>
-                      <div className="flex items-baseline justify-between gap-2">
-                        <span className="break-all min-w-0">
+                    <li key={m.userId || m.email} className="text-xs text-[#1A1815]" style={serif} data-testid="roster-row">
+                      {/* WORDS STAY WHOLE; CONTROLS WRAP UNDER THE NAME (DR-0838;
+                          Darrell 2026-10-09, Christyn's row on his phone: the
+                          name column squeezed to one letter per line, and her
+                          Checklist and Inspect panels, which open right under
+                          the row, landed thousands of pixels down). The row
+                          wraps, the name keeps a real width and breaks between
+                          words, never inside one, and the selects and buttons
+                          take the next line on a narrow screen. */}
+                      <div className="flex flex-wrap items-baseline justify-between gap-2">
+                        <span className="basis-full sm:basis-auto sm:flex-1 min-w-0 break-words" data-testid="roster-row-name">
                           <span data-testid="roster-row-who">{who.shown || m.email || 'member'}</span>
                           {who.note && <span className="text-[0.5625rem] text-[#5A6E3D] ml-1 normal-case" data-testid="roster-contact-note">{who.note}</span>}{isSelf && <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold ml-1">you</span>}
                           {/* WHO, and HOW TO REACH THEM (Darrell 2026-09-11:
@@ -506,7 +514,7 @@ export default function AdminConsole({
                               unknown, never as today (DR-0076 rule 8). */}
                           <span className="block text-[0.625rem] text-[#8A857C] font-normal normal-case">{whenLabel(m, todayIso)}</span>
                         </span>
-                        <span className="flex items-center gap-1.5 shrink-0">
+                        <span className="flex flex-wrap items-center gap-1.5 shrink-0" data-testid="roster-row-controls">
                           {options.length ? (
                             <select className="text-xs p-1 border border-[#E8E4DC] bg-white" value={m.role}
                               onChange={(e) => changeMemberRole(m.userId, e.target.value)}>
