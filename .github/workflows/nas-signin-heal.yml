@@ -261,6 +261,23 @@ jobs:
           # unrouted" from "no Function is deployed": ask a DIFFERENT Function
           # route that must answer a plain GET with JSON. If it answers HTML,
           # the whole Functions bundle is missing from the live deployment.
+          # WHICH DEPLOYMENT IS THE DOMAIN SERVING? The 16:11 deploy of this
+          # same commit logged "Compiled Worker successfully" and "Uploading
+          # Functions bundle", and fifteen minutes later every Function route
+          # on poetech.us was answering with the SPA shell. So the bundle is
+          # not missing from the DEPLOYMENT — the custom domain is not serving
+          # the deployment that holds it. Asking the project's own pages.dev
+          # alias separates those two: JSON there and HTML on poetech.us means
+          # the domain is pinned to an older deployment, which is a Cloudflare
+          # routing repair, not a code one.
+          echo "=== the same Function route, on the domain vs the project alias ==="
+          for HOST in poetech.us poetech-app.pages.dev; do
+            H_CT=$(curl -s -o /dev/null -m 20 -w '%{content_type}' "https://$HOST/automation-status" 2>/dev/null || echo "?")
+            H_CODE=$(curl -s -o /dev/null -m 20 -w '%{http_code}' "https://$HOST/automation-status" 2>/dev/null || echo "000")
+            echo "$HOST /automation-status -> HTTP $H_CODE, $H_CT"
+            echo "- \`$HOST/automation-status\` -> **$H_CODE**, \`$H_CT\`" >> "$GITHUB_STEP_SUMMARY"
+          done
+
           echo "=== are the Pages Functions deployed at all? ==="
           for R in automation-status review-feed; do
             A_CODE=$(curl -s -o /tmp/fn_body.txt -m 20 -w '%{http_code}' "https://poetech.us/$R" 2>/dev/null || echo "000")
