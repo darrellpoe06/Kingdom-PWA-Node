@@ -135,39 +135,6 @@ jobs:
           # SET-OR-NOT ONLY. An ntfy topic is a shared secret — anyone holding
           # it can publish to the family's phones — so this log says whether a
           # value exists and never what it is.
-          # WHY NO FEEDS? Darrell, 2026-10-09: "Cameras tab is back... not the
-          # feeds." go2rtc is up, the forwarder runs the new CORS code, and the
-          # cameras are on_demand (connected=False until something asks), so
-          # the question is whether the BROWSER-SHAPED call actually lands:
-          # the Funnel, with the family bearer, carrying an Origin. Run from
-          # the NAS so the token never leaves the box — and never printed.
-          echo "=== cameras, asked the way the TAB asks (Funnel + bearer + Origin) ==="
-          TOKF=/volume1/PoeTech/secrets/chat-bridge-token.txt
-          TOK=$($SUDO cat "$TOKF" 2>/dev/null | tr -d '[:space:]')
-          if [ -z "$TOK" ]; then
-            echo "  no bridge token readable at $TOKF — cannot ask the way the tab asks"
-          else
-            echo "  bridge token: present (${#TOK} characters, never printed)"
-            for EP in health list; do
-              C=$(curl -s -o /tmp/cam_$EP.txt -m 20 -w '%{http_code}' \
-                    -H "Authorization: Bearer $TOK" -H 'Origin: https://poetech.us' \
-                    "https://poetech.tail5a2f35.ts.net/cams/$EP" 2>/dev/null || echo 000)
-              B=$(wc -c < /tmp/cam_$EP.txt 2>/dev/null | tr -d ' ')
-              echo "  GET /cams/$EP -> HTTP $C, $B bytes"
-              # Counts only: a camera list names rooms in the family's house.
-              if [ "$EP" = "list" ] && [ "$B" -gt 0 ] 2>/dev/null; then
-                echo "    cameras named in the answer: $(grep -o '"name"' /tmp/cam_list.txt 2>/dev/null | wc -l | tr -d ' ')"
-              fi
-            done
-          fi
-
-          echo "=== is a bell configured on the box? (set-or-not, never the value) ==="
-          NTFY_ENV=/volume1/PoeTech/repos/Kingdom-PWA-Node/infra/nas-loops/.env
-          for K in NTFY_URL NTFY_TOPIC; do
-            V=$($SUDO sed -n "s/^$K=//p" "$NTFY_ENV" 2>/dev/null | head -1 | tr -d '[:space:]')
-            if [ -n "$V" ]; then echo "  $K: SET (${#V} characters)"; else echo "  $K: EMPTY — no bell can ring from the loops"; fi
-          done
-
           echo "=== the alert bell: what is actually there to ring ==="
           $SUDO docker ps --format '{{.Names}}\t{{.Status}}\t{{.Ports}}' 2>/dev/null | grep -iE 'ntfy|n8n' | scrub || echo "(no ntfy or n8n container listed)"
           for P in 8090 2586 8080 80; do
@@ -526,6 +493,34 @@ jobs:
               echo "     $SIDE: $R"
             done
           done
+          EOS
+
+          # WHY NO FEEDS? Darrell, 2026-10-09: "Cameras tab is back... not
+          # the feeds." cams-diag showed go2rtc up, the forwarder running the
+          # new CORS code, and every camera on_demand (connected=False until
+          # something asks) with two actually connected — so the pipeline
+          # works and the open question is whether the call the TAB makes
+          # lands: the Funnel path, carrying the family bearer AND an Origin.
+          # Run over SSH so the token never leaves the box, and never printed.
+          # Camera names are rooms in a family's house, so only a COUNT.
+          echo "=== cameras, asked the way the TAB asks (Funnel + bearer + Origin) ==="
+          $SSH 'sh -s' <<'EOS' || echo "(camera tab probe unavailable)"
+          PATH=/usr/local/bin:/opt/bin:/usr/bin:/bin:$PATH; export PATH
+          SUDO=""; sudo -n true 2>/dev/null && SUDO="sudo -n"
+          TOK=$($SUDO cat /volume1/PoeTech/secrets/chat-bridge-token.txt 2>/dev/null | tr -d '[:space:]')
+          if [ -z "$TOK" ]; then
+            echo "  no bridge token readable — cannot ask the way the tab asks"
+          else
+            echo "  bridge token: present (${#TOK} characters, never printed)"
+            for EP in health list; do
+              C=$(curl -s -o /tmp/cam_$EP.txt -m 20 -w '%{http_code}' \
+                    -H "Authorization: Bearer $TOK" -H 'Origin: https://poetech.us' \
+                    "https://poetech.tail5a2f35.ts.net/cams/$EP" 2>/dev/null || echo 000)
+              B=$(wc -c < /tmp/cam_$EP.txt 2>/dev/null | tr -d ' ')
+              echo "  GET /cams/$EP -> HTTP $C, $B bytes"
+            done
+            echo "  cameras named in the list answer: $(grep -o '\"name\"' /tmp/cam_list.txt 2>/dev/null | wc -l | tr -d ' ')"
+          fi
           EOS
 
           # WHICH ROAD DOES THE SHIPPED APP ACTUALLY CARRY? VITE_SUPABASE_URL
