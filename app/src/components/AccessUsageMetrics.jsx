@@ -34,6 +34,7 @@ import {
   fetchSignupMetrics, summaryTiles, signupRowView, sortSignups,
 } from '../lib/signup-metrics.js';
 import { emptyIndex, loadContactIndex, labelFor, countNamed } from '../lib/contact-names.js';
+import { listMyAdminInstances, addUserToSpace, roleLabel as memberRoleLabel } from '../lib/member-roles.js';
 import { fetchUsageFlow, topViews, viewShare } from '../lib/usage-events.js';
 
 // Friendly names for the raw view ids the usage stream records.
@@ -85,9 +86,66 @@ function CategoryPill({ label }) {
   );
 }
 
+// ADD TO A SPACE, from the row (DR-0829). The governor sees an account that
+// already exists and makes it family (or church, or a business) right here:
+// pick the space, pick the role, Add. The RPC is the gate; this only offers
+// the spaces the caller may administer, and says exactly what it did.
+function AddToSpace({ row, spaces, who, onDone }) {
+  const [open, setOpen] = useState(false);
+  const [spaceId, setSpaceId] = useState(() => (spaces[0] && spaces[0].instanceId) || '');
+  const [role, setRole] = useState('member');
+  const [state, setState] = useState({ phase: 'idle', text: '' });
+  useEffect(() => { if (!spaceId && spaces[0]) setSpaceId(spaces[0].instanceId); }, [spaces, spaceId]);
+  if (!row.userId || spaces.length === 0) return null;
+  const space = spaces.find((s) => s.instanceId === spaceId) || spaces[0];
+  const canAdmin = space && space.role === 'owner';
+  const add = async () => {
+    setState({ phase: 'busy', text: 'Adding…' });
+    const r = await addUserToSpace(space.instanceId, row.userId, role, who || null);
+    if (!r.ok) { setState({ phase: 'error', text: `Could not add: ${r.error || r.reason}.` }); return; }
+    const label = memberRoleLabel(r.role || role);
+    setState({ phase: 'done', text: r.status === 'noop' ? `Already ${label} of ${space.displayName}.` : `${who || 'This account'} is now ${label} of ${space.displayName}.` });
+    onDone && onDone(r);
+  };
+  return (
+    <div className="mt-1">
+      {!open ? (
+        <button type="button" onClick={() => setOpen(true)} data-testid="signup-add-to-space"
+          className="text-[0.5625rem] uppercase tracking-wider px-1.5 py-0.5 border border-[#5A6E3D] text-[#5A6E3D] focus:outline focus:outline-2 focus:outline-[#B85838]">
+          Add to a space
+        </button>
+      ) : (
+        <div className="flex flex-wrap items-center gap-1.5" data-testid="signup-add-to-space-form">
+          <select aria-label="Space" value={space.instanceId} onChange={(e) => { setSpaceId(e.target.value); setRole('member'); }} className="text-[0.6875rem] p-1 border border-[#E8E4DC] bg-white">
+            {spaces.map((s) => <option key={s.instanceId} value={s.instanceId}>{s.displayName || s.slug || s.instanceType}</option>)}
+          </select>
+          <select aria-label="Role" value={role} onChange={(e) => setRole(e.target.value)} className="text-[0.6875rem] p-1 border border-[#E8E4DC] bg-white">
+            <option value="member">Member</option>
+            <option value="viewer">Viewer</option>
+            {canAdmin && <option value="admin">Admin</option>}
+          </select>
+          <button type="button" onClick={add} disabled={state.phase === 'busy'} data-testid="signup-add-to-space-go"
+            className="text-[0.5625rem] uppercase tracking-wider px-2 py-1 border border-[#1A1815] text-[#1A1815] disabled:opacity-40 focus:outline focus:outline-2 focus:outline-[#B85838]">
+            Add
+          </button>
+          <button type="button" onClick={() => setOpen(false)} className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] underline-offset-2 hover:underline">Close</button>
+          {state.text ? <span role="status" data-testid="signup-add-to-space-result" className={`text-[0.625rem] ${state.phase === 'error' ? 'text-[#B85838]' : 'text-[#5A6E3D]'}`}>{state.text}</span> : null}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function PlatformSignups() {
   const [res, setRes] = useState({ status: 'loading', data: null });
   const [mask, setMask] = useState(false);
+  // The spaces this governor may add people into (owner/admin), read once.
+  const [spaces, setSpaces] = useState([]);
+  useEffect(() => {
+    let alive = true;
+    listMyAdminInstances().then((s) => { if (alive) setSpaces(Array.isArray(s) ? s : []); }).catch(() => {});
+    return () => { alive = false; };
+  }, []);
   // THE VIEWER'S OWN CONTACTS (DR-0825). A raw number on this list is a person
   // the steward already knows on the phone in their hand; the index is built
   // from the rows THEY brought in (DR-0736: owner-only at the database, cached
@@ -197,6 +255,7 @@ function PlatformSignups() {
                       <div className="text-[0.625rem] text-[#5A5751]">
                         account created {r.joined} · {r.activeNow ? 'active now' : (r.returned ? `active, last active ${r.lastSeen}` : (r.lastSeen === 'never' ? 'never signed back in' : `last active ${r.lastSeen}`))}
                       </div>
+                      <AddToSpace row={r} spaces={spaces} who={who.shown} onDone={load} />
                     </div>
                     <CategoryPill label={r.categoryLabel} />
                   </div>
