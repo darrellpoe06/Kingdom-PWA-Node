@@ -33,6 +33,7 @@ import {
 import {
   fetchSignupMetrics, summaryTiles, signupRowView, sortSignups,
 } from '../lib/signup-metrics.js';
+import { emptyIndex, loadContactIndex, labelFor, countNamed } from '../lib/contact-names.js';
 import { fetchUsageFlow, topViews, viewShare } from '../lib/usage-events.js';
 
 // Friendly names for the raw view ids the usage stream records.
@@ -87,11 +88,21 @@ function CategoryPill({ label }) {
 function PlatformSignups() {
   const [res, setRes] = useState({ status: 'loading', data: null });
   const [mask, setMask] = useState(false);
+  // THE VIEWER'S OWN CONTACTS (DR-0825). A raw number on this list is a person
+  // the steward already knows on the phone in their hand; the index is built
+  // from the rows THEY brought in (DR-0736: owner-only at the database, cached
+  // on this device), so each viewer sees their own names and nobody else's.
+  const [contacts, setContacts] = useState(emptyIndex);
   const load = useCallback(async () => {
     setRes((r) => ({ status: 'loading', data: r.data }));
     setRes(await fetchSignupMetrics());
   }, []);
   useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    let alive = true;
+    loadContactIndex().then((idx) => { if (alive) setContacts(idx); });
+    return () => { alive = false; };
+  }, []);
 
   // Signed-out is handled by the parent (it returns early); a non-governor sees
   // an honest one-liner, never the data. Both are real states, not painted.
@@ -110,6 +121,7 @@ function PlatformSignups() {
   const rows = sortSignups((data && data.signups) || []);
   const nowMs = Date.now();
   const tiles = summaryTiles(summary);
+  const namedByContacts = countNamed(contacts, rows, (row) => ({ email: row.email }));
 
   return (
     <div className="mb-5">
@@ -161,12 +173,18 @@ function PlatformSignups() {
             <div className="border border-[#E8E4DC]">
               {rows.map((row) => {
                 const r = signupRowView(row, nowMs, mask);
+                // The account's own name first; the viewer's contacts fill the
+                // gap or stand beside it, labelled as theirs. Never merged.
+                const who = labelFor(contacts, { ownName: r.name, email: r.rawEmail });
                 return (
                   <div key={r.userId || r.email} className="flex items-center justify-between gap-2 px-2.5 py-1.5 border-b border-[#F2EEE6] last:border-b-0">
                     <div className="min-w-0">
-                      <div className="text-[0.8125rem] text-[#1A1815] truncate">
-                        {r.name || r.email}
-                        {r.name ? <span className="text-[#5A5751]"> · {r.email}</span> : null}
+                      <div className="text-[0.8125rem] text-[#1A1815] truncate" data-testid="signup-row-who">
+                        {who.shown || r.email}
+                        {who.shown ? <span className="text-[#5A5751]"> · {r.email}</span> : null}
+                        {who.note ? (
+                          <span className="text-[0.625rem] text-[#5A6E3D] ml-1" data-testid="signup-contact-note">{who.note}</span>
+                        ) : null}
                       </div>
                       {/* Two different clocks, named plainly (DR-0100): "account
                           created" is when the account was provisioned — family
@@ -188,6 +206,18 @@ function PlatformSignups() {
           )}
           {data && data.signups_truncated ? (
             <p className={note + ' italic mt-1'}>Showing the newest {data.signups_shown}. Older accounts are counted in the totals above but not listed.</p>
+          ) : null}
+          {/* WHERE THE NAMES COME FROM, said plainly (DR-0076 rule 8). The
+              count is this viewer's; the door to bring more in is named. */}
+          {rows.length > 0 ? (
+            <p className={note + ' italic mt-1'} data-testid="signup-contacts-note">
+              {contacts.size > 0
+                ? `${namedByContacts} of these ${rows.length === 1 ? 'account is' : 'accounts are'} named from your contacts (${contacts.size} on ${contacts.where === 'device' ? 'this device' : 'your own server'}). `
+                : 'None of these are named from your contacts yet. '}
+              A number or address you already know is shown as the person you know, by you alone:
+              bring your contacts in under Messages &gt; Add a contact (pick from your phone, or upload your .vcf).
+              {contacts.reason ? ` Your server did not answer this time (${contacts.reason}); the names shown are from this device.` : ''}
+            </p>
           ) : null}
           <p className="text-[0.5625rem] text-[#5A5751] italic mt-2 leading-relaxed">
             Each public signup lands in their OWN private space — they cannot see family, business, or

@@ -180,3 +180,26 @@ describe('sortSignups', () => {
     expect(out[0].user_id).toBe('b');
   });
 });
+
+// A phone-door account's address is the phone it signs in with, never a
+// mailbox (DR-0825, member-contact.js): the view says the phone, formatted,
+// and masked shows only the last four digits.
+describe('signupRowView reads the phone door as a phone', () => {
+  const door = { user_id: 'u2', display_name: null, email: '15550100498@phone.poetech.us', created_at: iso(DAY) };
+  it('unmasked: the formatted number and how they sign in', () => {
+    const v = signupRowView(door, NOW);
+    expect(v.email).toBe('(555) 010-0498 · signs in by phone');
+    expect(v.phoneDoor).toBe(true);
+    expect(v.phone).toBe('15550100498');
+    expect(v.rawEmail).toBe('15550100498@phone.poetech.us');
+    expect(v.name).toBeNull();
+  });
+  it('masked: only the last four digits', () => {
+    expect(signupRowView(door, NOW, true).email).toBe('phone ending 0498 · signs in by phone');
+  });
+  it('a real address is untouched', () => {
+    const v = signupRowView({ user_id: 'u3', email: 'jane@x.com', created_at: iso(DAY) }, NOW);
+    expect(v.phoneDoor).toBe(false);
+    expect(v.email).toBe('jane@x.com');
+  });
+});

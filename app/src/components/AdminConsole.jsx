@@ -25,7 +25,7 @@
 // (never inline color), icons are <UiIcon/> (bundled SVG, currentColor), sizes are
 // rem. Keeps consistency-guard + contrast-guard green.
 // =============================================================================
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import supabase from '../lib/supabase.js';
 import { enterReviewerMode } from '../lib/reviewer-mode.jsx';
 import UiIcon from './UiIcon.jsx';
@@ -56,6 +56,7 @@ import {
 import { listInstanceMembersStrict, setMemberRole, grantableRoles, roleLabel, listMyAdminInstances, inviteToSpace, isInviteEmail, CAPABILITIES, canEditCapabilities, listMemberCapabilities, setMemberCapability, CLASSIFICATIONS, setMemberClassification, RELATIONSHIP_SUGGESTIONS, setMemberRelationship } from '../lib/member-roles.js';
 import { listPendingClaims, confirmInvite } from '../lib/family-invite.js';
 import { contactOf, reachLabel, whenLabel, samePersonHints, contactCoverage } from '../lib/member-contact.js';
+import { emptyIndex, loadContactIndex, labelFor } from '../lib/contact-names.js';
 import MemberInspect from './MemberInspect.jsx';
 import ChatPane from './ChatPane.jsx';
 import LessonShareLedger from './LessonShareLedger.jsx';
@@ -155,6 +156,16 @@ export default function AdminConsole({
   // needs a day to count back from, and a surface with its own clock per row
   // would read differently at the top and bottom of a long roster.
   const todayIso = new Date().toISOString().slice(0, 10);
+  // The steward's OWN contacts (DR-0825): a roster row with no display name
+  // reads as the person this steward already knows, from the contacts they
+  // brought in (owner-only rows, DR-0736). A label beside the row, never a
+  // merge, and never another viewer's address book.
+  const [contactIdx, setContactIdx] = useState(emptyIndex);
+  useEffect(() => {
+    let alive = true;
+    loadContactIndex().then((idx) => { if (alive) setContactIdx(idx); });
+    return () => { alive = false; };
+  }, []);
 
   // No-leak defense-in-depth. The nav entry is already absent from the DOM for
   // non-stewards; this backstops any ?view=admin deep-link.
@@ -470,11 +481,14 @@ export default function AdminConsole({
                 {members.list.map((m) => {
                   const isSelf = !!(m.email && email && m.email.toLowerCase() === email.toLowerCase());
                   const options = grantableRoles(members.myRole, m.role, { isSelf });
+                  const reach = contactOf(m);
+                  const who = labelFor(contactIdx, { ownName: m.displayName, email: m.email, phone: reach.phoneDigits });
                   return (
                     <li key={m.userId || m.email} className="text-xs text-[#1A1815]" style={serif}>
                       <div className="flex items-baseline justify-between gap-2">
                         <span className="break-all min-w-0">
-                          {m.displayName || m.email || 'member'}{isSelf && <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold ml-1">you</span>}
+                          <span data-testid="roster-row-who">{who.shown || m.email || 'member'}</span>
+                          {who.note && <span className="text-[0.5625rem] text-[#5A6E3D] ml-1 normal-case" data-testid="roster-contact-note">{who.note}</span>}{isSelf && <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold ml-1">you</span>}
                           {/* WHO, and HOW TO REACH THEM (Darrell 2026-09-11:
                               "also see the email and try to get email and
                               cellphone together if they have them"). A display
@@ -484,7 +498,7 @@ export default function AdminConsole({
                               Missing either one is stated, never flagged — it
                               is "not allowing it to be a constraint" in the
                               one place that could have become one. */}
-                          <span className="block text-[0.625rem] text-[#5A5751] font-normal normal-case">{reachLabel(contactOf(m))}</span>
+                          <span className="block text-[0.625rem] text-[#5A5751] font-normal normal-case">{reachLabel(reach)}</span>
                           {/* ...and WHEN: when they came into this space, and
                               when they were last here. Unknown reads as
                               unknown, never as today (DR-0076 rule 8). */}

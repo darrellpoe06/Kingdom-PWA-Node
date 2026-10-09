@@ -19,6 +19,7 @@
 // =============================================================================
 import { relativeTime } from './access-metrics.js';
 import { restRpc, readSnapshotToken } from './access-metrics-sync.js';
+import { isPhoneDoorEmail, phoneDoorDigits, formatPhone } from './member-contact.js';
 
 // ── fetch ────────────────────────────────────────────────────────────────────
 // Returns a discriminated status object — never throws, never paints:
@@ -141,16 +142,33 @@ export function isActiveNow(row, nowMs) {
   return (nowMs - last) <= ACTIVE_NOW_MS && (nowMs - last) >= -ACTIVE_NOW_MS;
 }
 
+// A phone-door account's "email" is the phone it signs in with, not a mailbox
+// (member-contact.js). Printing `12173900498@phone.poetech.us` in the place an
+// email goes states something false about how to reach the person; this reads
+// it as the phone it is. Masked, only the last four digits show.
+export function reachOf(email, mask = false) {
+  const e = String(email || '').trim();
+  if (isPhoneDoorEmail(e)) {
+    const d = phoneDoorDigits(e);
+    const shown = mask ? `phone ending ${d.slice(-4)}` : formatPhone(d);
+    return { phoneDoor: true, phone: d, text: `${shown} · signs in by phone` };
+  }
+  return { phoneDoor: false, phone: '', text: mask ? maskEmail(e) : (e || '(no email)') };
+}
+
 // Shape one RPC signup row into the fields the list renders. `mask` toggles
 // email masking; `nowMs` stamps relative times once per render.
 export function signupRowView(row, nowMs, mask = false) {
   const r = row || {};
   const activeIso = lastActiveAt(r);
+  const reach = reachOf(r.email, mask);
   return {
     userId: r.user_id || null,
     name: (r.display_name && String(r.display_name).trim()) || null,
-    email: mask ? maskEmail(r.email) : (r.email || '(no email)'),
+    email: reach.text,
     rawEmail: r.email || null,
+    phoneDoor: reach.phoneDoor,
+    phone: reach.phone,
     category: r.category || 'unknown',
     categoryLabel: categoryLabel(r.category),
     categoryTone: categoryTone(r.category),
