@@ -31,7 +31,7 @@ Reading ladder: child 1.74, youth 6.00, teen 7.68, senior 8.80. 94 anchor refere
 
 ## Impact
 
-L225 joins Living Lessons as the 222nd module. Twelve movements: the measure is the soul; the most important factor, named by its absence; the Word's own price list; the house and the mechanism of a prosperous way; a lean season is a season; what is sold without money; Joseph, prosperous in a prison; the widow's barrel and Job's latter end; money comes in a season with Him, He GIVES the power, the things are added, the Philippians and the tenth as written; sustainable growth is a ladder; where the treasure is; submitted to Yahweh is the highest level, even to death, but if not.
+L225 joins Living Lessons as the 222nd module. Twelve movements: the measure is the soul; the most important factor, named by its absence; the Word's own price list; the house and the mechanism of a prosperous way; a lean season is a season; what is given freely; Joseph, prosperous in a prison; the widow's barrel and Job's latter end; money comes in a season with Him, He GIVES the power, the things are added, the Philippians and the tenth as written; sustainable growth is a ladder; where the treasure is; submitted to Yahweh is the highest level, even to death, but if not.
 
 His second and third words landed in the same hour as the first and are folded into the same lesson rather than parked, because they are the same teaching sharpened.
 

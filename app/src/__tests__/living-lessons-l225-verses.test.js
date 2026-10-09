@@ -66,7 +66,7 @@ const grown = `${L.lesson} ${band('teen')} ${band('senior')}`;
 // The references every band must carry, verbatim-gated below.
 const EVERY_BAND = ["3 John 1:2", "Mark 8:36", "Luke 12:15", "Hosea 4:6", "Proverbs 4:7", "Proverbs 2:6", "James 1:5", "Proverbs 16:16", "Proverbs 24:3-4", "Psalms 119:105", "Joshua 1:8", "Ecclesiastes 3:1", "Matthew 4:4", "Hebrews 13:5", "Psalms 23:1", "Psalms 34:10", "Genesis 39:2", "Genesis 39:23", "Genesis 41:41", "1 Kings 17:16", "Job 42:12", "Deuteronomy 8:18", "Proverbs 10:22", "Matthew 6:33", "Philippians 4:15", "Philippians 4:17", "Philippians 4:19", "Luke 6:38", "2 Peter 1:5-7", "Daniel 1:17", "John 10:10", "Jeremiah 29:11", "James 4:7", "Isaiah 55:9", "Deuteronomy 8:5", "Psalms 32:8", "Matthew 11:29", "Romans 8:14", "Daniel 3:17-18", "Daniel 3:25", "Luke 22:42"];
 // The rest of the spine, carried by the lesson and the grown bands.
-const GROWN = ["(Philippians 4:11-13)", "(1 Timothy 6:6-8)", "(Proverbs 15:16-17)", "(Hebrews 7:2)", "(Proverbs 3:9-10)", "(Isaiah 55:1-2)", "(2 Peter 1:3)", "(Revelation 12:11)"];
+const GROWN = ["(Philippians 4:11-13)", "(1 Timothy 6:6-8)", "(Proverbs 15:16-17)", "(Hebrews 7:2)", "(Proverbs 3:9-10)", "(Revelation 22:17)", "(2 Peter 1:3)", "(Revelation 12:11)"];
 
 describe('L225 exists and is whole', () => {
   it('is registered with its own id and title', () => {
