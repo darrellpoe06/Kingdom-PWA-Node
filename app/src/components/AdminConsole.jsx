@@ -25,12 +25,13 @@
 // (never inline color), icons are <UiIcon/> (bundled SVG, currentColor), sizes are
 // rem. Keeps consistency-guard + contrast-guard green.
 // =============================================================================
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import supabase from '../lib/supabase.js';
 import { enterReviewerMode } from '../lib/reviewer-mode.jsx';
 import UiIcon from './UiIcon.jsx';
 import QualityProof from './QualityProof.jsx';
 import AccessUsageMetrics from './AccessUsageMetrics.jsx';
+import ProvingOurWays from './ProvingOurWays.jsx';
 import FamilyDoors from './FamilyDoors.jsx';
 import SupportAccess from './SupportAccess.jsx';
 import SectionTabs from './SectionTabs.jsx';
@@ -55,7 +56,9 @@ import {
 import { listInstanceMembersStrict, setMemberRole, grantableRoles, roleLabel, listMyAdminInstances, inviteToSpace, isInviteEmail, CAPABILITIES, canEditCapabilities, listMemberCapabilities, setMemberCapability, CLASSIFICATIONS, setMemberClassification, RELATIONSHIP_SUGGESTIONS, setMemberRelationship } from '../lib/member-roles.js';
 import { listPendingClaims, confirmInvite } from '../lib/family-invite.js';
 import { contactOf, reachLabel, whenLabel, samePersonHints, contactCoverage } from '../lib/member-contact.js';
+import { emptyIndex, loadContactIndex, labelFor } from '../lib/contact-names.js';
 import MemberInspect from './MemberInspect.jsx';
+import PersonRecord from './PersonRecord.jsx';
 import ChatPane from './ChatPane.jsx';
 import LessonShareLedger from './LessonShareLedger.jsx';
 
@@ -148,12 +151,23 @@ export default function AdminConsole({
   const [invite, setInvite] = useState({ email: '', role: 'member', msg: '', link: '' });  // "invite someone" form
   const [pending, setPending] = useState([]);                       // claims awaiting the inviter's confirmation
   const [inspecting, setInspecting] = useState(null);               // member userId whose stewardship record is open (0122)
+  const [knownFor, setKnownFor] = useState(null);                   // member userId whose full record is open (DR-0828)
   const [checklistFor, setChecklistFor] = useState(null);           // member userId whose capability checklist is open (DR-0242)
   const [capGrants, setCapGrants] = useState([]);                   // [{ userId, capability }] for the scoped space (0126)
   // Today, read once per render rather than per row — the "last here" phrasing
   // needs a day to count back from, and a surface with its own clock per row
   // would read differently at the top and bottom of a long roster.
   const todayIso = new Date().toISOString().slice(0, 10);
+  // The steward's OWN contacts (DR-0825): a roster row with no display name
+  // reads as the person this steward already knows, from the contacts they
+  // brought in (owner-only rows, DR-0736). A label beside the row, never a
+  // merge, and never another viewer's address book.
+  const [contactIdx, setContactIdx] = useState(emptyIndex);
+  useEffect(() => {
+    let alive = true;
+    loadContactIndex().then((idx) => { if (alive) setContactIdx(idx); });
+    return () => { alive = false; };
+  }, []);
 
   // No-leak defense-in-depth. The nav entry is already absent from the DOM for
   // non-stewards; this backstops any ?view=admin deep-link.
@@ -469,11 +483,22 @@ export default function AdminConsole({
                 {members.list.map((m) => {
                   const isSelf = !!(m.email && email && m.email.toLowerCase() === email.toLowerCase());
                   const options = grantableRoles(members.myRole, m.role, { isSelf });
+                  const reach = contactOf(m);
+                  const who = labelFor(contactIdx, { ownName: m.displayName, email: m.email, phone: reach.phoneDigits });
                   return (
-                    <li key={m.userId || m.email} className="text-xs text-[#1A1815]" style={serif}>
-                      <div className="flex items-baseline justify-between gap-2">
-                        <span className="break-all min-w-0">
-                          {m.displayName || m.email || 'member'}{isSelf && <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold ml-1">you</span>}
+                    <li key={m.userId || m.email} className="text-xs text-[#1A1815]" style={serif} data-testid="roster-row">
+                      {/* WORDS STAY WHOLE; CONTROLS WRAP UNDER THE NAME (DR-0838;
+                          Darrell 2026-10-09, Christyn's row on his phone: the
+                          name column squeezed to one letter per line, and her
+                          Checklist and Inspect panels, which open right under
+                          the row, landed thousands of pixels down). The row
+                          wraps, the name keeps a real width and breaks between
+                          words, never inside one, and the selects and buttons
+                          take the next line on a narrow screen. */}
+                      <div className="flex flex-wrap items-baseline justify-between gap-2">
+                        <span className="basis-full sm:basis-auto sm:flex-1 min-w-0 break-words" data-testid="roster-row-name">
+                          <span data-testid="roster-row-who">{who.shown || m.email || 'member'}</span>
+                          {who.note && <span className="text-[0.5625rem] text-[#5A6E3D] ml-1 normal-case" data-testid="roster-contact-note">{who.note}</span>}{isSelf && <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold ml-1">you</span>}
                           {/* WHO, and HOW TO REACH THEM (Darrell 2026-09-11:
                               "also see the email and try to get email and
                               cellphone together if they have them"). A display
@@ -483,13 +508,13 @@ export default function AdminConsole({
                               Missing either one is stated, never flagged — it
                               is "not allowing it to be a constraint" in the
                               one place that could have become one. */}
-                          <span className="block text-[0.625rem] text-[#5A5751] font-normal normal-case">{reachLabel(contactOf(m))}</span>
+                          <span className="block text-[0.625rem] text-[#5A5751] font-normal normal-case">{reachLabel(reach)}</span>
                           {/* ...and WHEN: when they came into this space, and
                               when they were last here. Unknown reads as
                               unknown, never as today (DR-0076 rule 8). */}
                           <span className="block text-[0.625rem] text-[#8A857C] font-normal normal-case">{whenLabel(m, todayIso)}</span>
                         </span>
-                        <span className="flex items-center gap-1.5 shrink-0">
+                        <span className="flex flex-wrap items-center gap-1.5 shrink-0" data-testid="roster-row-controls">
                           {options.length ? (
                             <select className="text-xs p-1 border border-[#E8E4DC] bg-white" value={m.role}
                               onChange={(e) => changeMemberRole(m.userId, e.target.value)}>
@@ -539,6 +564,18 @@ export default function AdminConsole({
                               {checklistFor === m.userId ? 'Close' : 'Checklist'}
                             </button>
                           )}
+                          {/* Everything on record for this person (DR-0828):
+                              doors, ways to reach them, devices seen, and what
+                              the cloud never holds, said. */}
+                          {m.userId && (
+                            <button type="button"
+                              className="text-[0.625rem] uppercase tracking-wider px-2 py-1 border border-[#C9BFA8] text-[#5A5751] focus:outline focus:outline-2 focus:outline-[#B85838]"
+                              aria-expanded={knownFor === m.userId}
+                              data-testid="roster-known-toggle"
+                              onClick={() => setKnownFor((cur) => (cur === m.userId ? null : m.userId))}>
+                              {knownFor === m.userId ? 'Close' : 'Known'}
+                            </button>
+                          )}
                           {/* Inspect: the stewardship record (position · status ·
                               satisfaction · notes, 0122) — Darrell 2026-07-27. */}
                           {m.userId && (
@@ -582,6 +619,9 @@ export default function AdminConsole({
                             </div>
                           ))}
                         </div>
+                      )}
+                      {knownFor === m.userId && (
+                        <PersonRecord instanceId={scopeInstance} member={m} contactIndex={contactIdx} />
                       )}
                       {inspecting === m.userId && (
                         <MemberInspect instanceId={scopeInstance} member={m} />
@@ -693,6 +733,17 @@ export default function AdminConsole({
           <NetworkStatus variant="inline" />
         </div>
       ),
+    },
+    {
+      id: 'proving',
+      label: 'Proving our ways',
+      icon: 'check',
+      // DR-0819. Darrell 2026-10-08 asked two questions in one breath: whether
+      // the family is actually testing the functions we ship, and where the
+      // framework for our evaluation and assessment lives. Both answers are
+      // here, beside the quality proof that measures the SYSTEM, because this
+      // one measures whether the ways serve the people.
+      render: () => <ProvingOurWays />,
     },
     {
       id: 'quality',

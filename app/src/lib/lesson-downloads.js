@@ -37,10 +37,13 @@ import { buildLessonArc, readAloudTextFromArc } from './lesson-flow.js';
 import { chunkForClips } from './clip-queue.js';
 import { clipKey, deviceClipCache, loadCapMb, CAP_CHOICES_MB } from './clip-cache.js';
 import { toSpokenForm } from './speech-text.js';
+import { forSynthesis } from './synthesis-text.js';
 import { synthesizeLite } from './voice-service.js';
+import { preferredClipFormat } from './clip-format.js';
 import { hasBridgeToken } from './nas-photos.js';
 import { provisionBridgeToken } from './bridge-provision.js';
 import { supabase } from './supabase.js';
+import { holdIntake } from './intake-guard.js';
 
 const MB = 1024 * 1024;
 
@@ -181,13 +184,21 @@ export function lessonWords(module, bandId) {
 /** The voice pieces of a reading: the same cut and key the player uses. */
 export function readingPieces(text, voice = 'female') {
   return chunkForClips(String(text || '').trim()).map((c) => {
-    const spoken = toSpokenForm(c.text);
+    const spoken = forSynthesis(toSpokenForm(c.text)); // what the voice is handed, and what keys the clip (DR-0851)
     return { key: clipKey({ voice, text: spoken }), spoken };
   });
 }
 
-export function pieceBytes(spoken) {
-  return String(spoken || '').length * VOICE_BYTES_PER_CHAR + VOICE_BYTES_PER_PIECE;
+// A LIGHTER CLIP (DR-0747; Darrell 2026-10-02: "Huge amount of data to
+// download... can we make them lighter?"). Opus at 24 kbit/s is 3,000 bytes a
+// second against WAV's 44,100: 4,400 x 3,000 / 44,100 = 299 bytes a character,
+// plus the Ogg framing (about three in a hundred), 310. A device that plays
+// and decodes Opus asks for it (lib/clip-format.js) and is sized by it.
+export const VOICE_BYTES_PER_CHAR_BY_FORMAT = Object.freeze({ wav: VOICE_BYTES_PER_CHAR, opus: 310 });
+
+export function pieceBytes(spoken, format = 'wav') {
+  const perChar = VOICE_BYTES_PER_CHAR_BY_FORMAT[format] || VOICE_BYTES_PER_CHAR;
+  return String(spoken || '').length * perChar + VOICE_BYTES_PER_PIECE;
 }
 
 const utf8 = (s) => {
@@ -346,7 +357,7 @@ export function downloadVoice() { return currentVoice; }
  * @returns {Promise<{lessons:number, toSave:number, already:number, levels:number,
  *   wordsBytes:number, voiceBytes:number, pieces:number, work:object[]}>}
  */
-export async function planDownload(items, { choice = 'adult', voice = downloadVoice(), storage, yieldEvery = 25, withVoice = true } = {}) {
+export async function planDownload(items, { choice = 'adult', voice = downloadVoice(), storage, yieldEvery = 25, withVoice = true, format = preferredClipFormat() } = {}) {
   const seen = new Set();
   let wordsBytes = 0; let voiceBytes = 0; let voiceChars = 0; let pieces = 0; let levels = 0; let already = 0;
   const work = [];
@@ -365,14 +376,14 @@ export async function planDownload(items, { choice = 'adult', voice = downloadVo
       const reading = lessonReading(m, b, ctx);
       if (!have) wordsBytes += utf8(reading) + utf8(lessonWords(m, b));
       if (withVoice) {
-        for (const p of readingPieces(reading, voice)) { if (seen.has(p.key)) continue; seen.add(p.key); pieces += 1; voiceBytes += pieceBytes(p.spoken); voiceChars += p.spoken.length; }
+        for (const p of readingPieces(reading, voice)) { if (seen.has(p.key)) continue; seen.add(p.key); pieces += 1; voiceBytes += pieceBytes(p.spoken, format); voiceChars += p.spoken.length; }
       }
       todo.push(b);
     }
     if (!todo.length) { already += 1; continue; }
     work.push({ module: m, ctx, todo });
   }
-  return { lessons: list.length, toSave: work.length, already, levels, wordsBytes, voiceBytes, voiceChars, paceSeconds: paceSeconds(voiceChars), pieces, work, withVoice, voice, choice: normalizeChoice(choice) };
+  return { lessons: list.length, toSave: work.length, already, levels, wordsBytes, voiceBytes, voiceChars, paceSeconds: paceSeconds(voiceChars), pieces, work, withVoice, voice, format, choice: normalizeChoice(choice) };
 }
 
 /** "1.2 MB", "340 KB", "3.4 GB" */
@@ -450,13 +461,13 @@ export function reasonWords(code, { capMb } = {}) {
 // ---------------------------------------------------------------------------
 // The run: one lesson at a time, pausable, skipping what is already here
 // ---------------------------------------------------------------------------
-async function nasPiece(spoken, voice) {
+async function nasPiece(spoken, voice, format) {
   // The same family key a read asks for first (DR-0654): without it every piece is a 401.
   if (!hasBridgeToken()) await provisionBridgeToken(supabase).catch(() => { /* the piece says why */ });
-  let got = await synthesizeLite({ text: spoken, voice });
+  let got = await synthesizeLite({ text: spoken, voice, format });
   for (let tries = 0; got.error === 'voice-lite-503' && tries < 4; tries++) {
     await new Promise((r) => setTimeout(r, 600 * (tries + 1)));
-    got = await synthesizeLite({ text: spoken, voice });
+    got = await synthesizeLite({ text: spoken, voice, format });
   }
   if (got.url) { try { URL.revokeObjectURL(got.url); } catch { /* ignore */ } }
   return got;
@@ -474,6 +485,17 @@ const isOffline = () => typeof navigator !== 'undefined' && navigator.onLine ===
  * @returns {Promise<{total, saved, skipped, failed:{lessonId,title,reason}[], voiceStopped:null|string, cancelled:boolean, bytes:number}>}
  */
 export async function runDownload({ plan, signal = {}, onProgress, deps = {} }) {
+  // NOTHING INTERRUPTS WORDS COMING IN (DR-0748): a running download holds
+  // the app still (no update reload under it), released however the run ends.
+  const releaseHold = holdIntake('download');
+  try {
+    return await runDownloadHeld({ plan, signal, onProgress, deps });
+  } finally {
+    releaseHold();
+  }
+}
+
+async function runDownloadHeld({ plan, signal, onProgress, deps }) {
   const cache = deps.cache || deviceClipCache();
   const words = deps.words || deviceWords();
   const fetchPiece = deps.fetchPiece || nasPiece;
@@ -541,7 +563,7 @@ export async function runDownload({ plan, signal = {}, onProgress, deps = {} }) 
         } else missing.push(p);
       }
       if (piecesHeld) report();
-      const need = missing.reduce((n, p) => n + pieceBytes(p.spoken), 0);
+      const need = missing.reduce((n, p) => n + pieceBytes(p.spoken, plan.format || 'wav'), 0);
       const short = need ? await roomFor(need) : null;
       if (short) { voiceStopped = short; reason = reason || short; ok = false; }
       else if (missing.length && offline()) { reason = reason || 'offline'; ok = false; }
@@ -551,7 +573,7 @@ export async function runDownload({ plan, signal = {}, onProgress, deps = {} }) 
           if (signal.aborted) { ok = false; return; }
           const p = missing[next++];
           let got;
-          try { got = await fetchPiece(p.spoken, voice); } catch (e) { got = { error: (e && e.message) || 'fetch-failed' }; }
+          try { got = await fetchPiece(p.spoken, voice, plan.format || 'wav'); } catch (e) { got = { error: (e && e.message) || 'fetch-failed' }; }
           if (got && got.blob && got.blob.size && await cache.put(p.key, got.blob, { pin: owner })) {
             bytes += got.blob.size; lastPieceAt = now(); lastError = null;
             if (!counted.has(p.key)) { counted.add(p.key); piecesDone += 1; charsDone += p.spoken.length; }

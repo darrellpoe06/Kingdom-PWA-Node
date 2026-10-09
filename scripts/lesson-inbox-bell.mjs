@@ -43,6 +43,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const SAFE_TAG = /^[A-Za-z0-9:@._\-/+]{1,200}$/;
 const STAMP = /^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}(\.\d+)?([+-]\d{2}(:?\d{2})?|Z)?$/;
 const STAGE = /^build:([a-z-]+)@(\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ)$/;
+const STALE = /^stale-alarm@\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ$/;
 
 /** psql -At '|' rows -> [{ id, created_at, created_by, tags }]. Every other column is dropped. */
 export function parseWaiting(text) {
@@ -96,7 +97,14 @@ export function milestone(tags) {
   // Only the builder's stage tags (`build:<stage>@<time>`), never the app's
   // own `build:<sha>` stamp (DR-0697), which every row carries from birth.
   const n = t.filter((x) => /^build:[a-z-]+@/.test(x)).length;
-  return n ? `waiting#b${n}` : 'waiting';
+  // DR-0771: a row the stale alarm rang for is new news too; both counts ride.
+  const alarms = staleAlarms(t).length;
+  return `waiting${n ? `#b${n}` : ''}${alarms ? `#s${alarms}` : ''}`;
+}
+
+/** The stale alarm's own stamps on a row (stale-alarm@<time>, migration 0252). */
+export function staleAlarms(tags) {
+  return safeTags(tags).filter((x) => STALE.test(x)).map((x) => x.slice('stale-alarm@'.length)).sort();
 }
 
 /** One key per row in flight: its id and its milestone. */
@@ -196,6 +204,8 @@ export function progressOf(row, { versions = [], prs = [], now = Date.now() } = 
   const m = milestone(tags);
   const times = stageTimes(tags);
   const handedBack = String(m).startsWith('waiting#b');
+  const alarms = staleAlarms(tags);
+  const waitedSeconds = String(m).startsWith('waiting') ? secondsBetween(row.created_at, now) : null;
   const failed = tags.filter((t) => t.startsWith('build:failed@')).length;
   const groups = tags.filter((t) => t.startsWith('build-group:')).map((t) => t.slice(12)).filter((g) => UUID.test(g));
   const group = groups[groups.length - 1] || null;
@@ -210,7 +220,9 @@ export function progressOf(row, { versions = [], prs = [], now = Date.now() } = 
     created_by: row.created_by,
     created_at: row.created_at,
     milestone: m,
-    label: handedBack ? `handed back${lastStage ? ` (last: ${lastStage[0]})` : ''}, waiting for the intake` : (LABEL[m] || m),
+    label: `${handedBack ? `handed back${lastStage ? ` (last: ${lastStage[0]})` : ''}, waiting for the intake` : (LABEL[m] || m)}${alarms.length ? ` · ALARM rang ${alarms.length}× (last ${alarms[alarms.length - 1]}), waited ${humanSeconds(waitedSeconds)}` : ''}`,
+    alarms: alarms.length,
+    last_alarm: alarms.length ? alarms[alarms.length - 1] : null,
     started: times.claimed || null,
     elapsed: active && times.claimed ? secondsBetween(times.claimed, now) : null,
     attempt: active ? failed + 1 : failed,
@@ -246,8 +258,9 @@ export function formatComment(rows, keys, ctx = {}) {
   const ps = (rows || []).filter((r) => milestone(r.tags)).map((r) => progressOf(r, { ...ctx, now }));
   const count = (pred) => ps.filter(pred).length;
   const waiting = count((p) => String(p.milestone).startsWith('waiting'));
+  const alarmed = count((p) => p.alarms > 0);
   const lines = [
-    `**Lesson inbox bell:** ${waiting} waiting for the intake · ${count((p) => p.milestone === 'building' || p.milestone === 'gated')} building on the NAS · ${count((p) => p.milestone === 'awaiting-review')} awaiting review · ${count((p) => p.milestone === 'shipped')} shipped in the last day.`,
+    `**Lesson inbox bell:** ${waiting} waiting for the intake${alarmed ? ` (${alarmed} past the stale alarm, DR-0771)` : ''} · ${count((p) => p.milestone === 'building' || p.milestone === 'gated')} building on the NAS · ${count((p) => p.milestone === 'awaiting-review')} awaiting review · ${count((p) => p.milestone === 'shipped')} shipped in the last day.`,
     '',
     ...ps.map((p) => `- \`${p.id}\` by \`${p.created_by}\` at \`${STAMP.test(String(p.created_at)) ? p.created_at : 'unknown'}\` · ${progressLine(p)}`),
     '',

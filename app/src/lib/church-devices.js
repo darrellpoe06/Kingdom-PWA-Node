@@ -135,6 +135,9 @@ export function makeDevice(partial = {}) {
     // not positively identify, or an on-site/research-review provenance for the rest.
     // Local/seed enrichment only — deviceToRow does not persist it (no DB column yet).
     provenance:     (p.provenance && String(p.provenance).trim()) || null,
+    // WHOSE device this is (DR-0830): a member's user id, picked by the
+    // register's editor, never derived. Null = nobody assigned.
+    ownerUserId:    p.ownerUserId ?? null,
     notes:          p.notes ?? null,
     active:         p.active !== false,
     authorPersona:  p.authorPersona ?? null,

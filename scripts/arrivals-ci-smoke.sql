@@ -15,13 +15,22 @@
 --   * gaining `lesson-published` enqueues the second row, keyed :published;
 --   * a row that is not a lesson enqueues nothing;
 --   * the person reads their own outbox rows and nobody else's; anon reads none.
+-- And what the stale alarm (0252, DR-0771) promises:
+--   * a ROOT lesson row waiting longer than the first window is alarmed once:
+--     its tags gain stale-alarm@<time>, one push for its own person keyed
+--     lesson:<row>:stale:1, the Your lessons landing, no lesson text;
+--   * its transcript (of:<id>), a row inside the window, a captured row and a
+--     canary are left alone; a second sweep inside the repeat window does nothing;
+--   * past the repeat window the same row is alarmed again (:stale:2) and the
+--     row that has since aged past the first window gets its first alarm.
 -- =============================================================================
 \set ON_ERROR_STOP 1
 BEGIN;
 
 INSERT INTO auth.users (id, email) VALUES
   ('00000000-0000-0000-0000-00000000000a', 'speaker@example.test'),
-  ('00000000-0000-0000-0000-00000000000b', 'other@example.test');
+  ('00000000-0000-0000-0000-00000000000b', 'other@example.test'),
+  ('00000000-0000-0000-0000-00000000000c', 'waiter@example.test');
 INSERT INTO public.instances (id, slug) VALUES ('00000000-0000-0000-0000-0000000000f0', 'poe-family');
 
 -- A spoken lesson and its transcript, as the NAS rider writes them.
@@ -80,6 +89,49 @@ DO $$ BEGIN
   IF (SELECT count(*) FROM public.push_outbox) <> 2 THEN RAISE EXCEPTION 'SMOKE FAIL: a non-lesson row enqueued a push'; END IF;
 END $$;
 
+-- --- the stale alarm (0252) ---------------------------------------------------
+-- Five rows for a third person: a root recording 5 h old (s1) and its transcript
+-- (s2), a root 2 h old (s3), a captured root 10 h old (s4), a canary 9 h old (s5).
+INSERT INTO public.agent_inbox (id, instance_id, body, tags, created_by, created_at) VALUES
+  ('00000000-0000-0000-0000-0000000000c1', '00000000-0000-0000-0000-0000000000f0', 'Lesson. (spoken, waiting)', '["lesson","voice","lesson-name:Secret Words"]', '00000000-0000-0000-0000-00000000000c', now() - interval '5 hours'),
+  ('00000000-0000-0000-0000-0000000000c2', '00000000-0000-0000-0000-0000000000f0', 'the transcript words', '["lesson","voice-transcript","of:00000000-0000-0000-0000-0000000000c1"]', '00000000-0000-0000-0000-00000000000c', now() - interval '5 hours'),
+  ('00000000-0000-0000-0000-0000000000c3', '00000000-0000-0000-0000-0000000000f0', 'Lesson. (young)', '["lesson","voice"]', '00000000-0000-0000-0000-00000000000c', now() - interval '2 hours'),
+  ('00000000-0000-0000-0000-0000000000c4', '00000000-0000-0000-0000-0000000000f0', 'Lesson. (captured)', '["lesson","lesson-captured"]', '00000000-0000-0000-0000-00000000000c', now() - interval '10 hours'),
+  ('00000000-0000-0000-0000-0000000000c5', '00000000-0000-0000-0000-0000000000f0', 'BELL PROOF', '["lesson","canary","bell-proof"]', '00000000-0000-0000-0000-00000000000c', now() - interval '9 hours');
+
+DO $$
+DECLARE n int; r record; t jsonb;
+BEGIN
+  SELECT count(*) INTO n FROM public.lesson_inbox_stale_sweep(4, 24, now());
+  IF n <> 1 THEN RAISE EXCEPTION 'SMOKE FAIL: the first sweep alarmed % rows, not exactly the one root past 4 h', n; END IF;
+  SELECT tags INTO t FROM public.agent_inbox WHERE id = '00000000-0000-0000-0000-0000000000c1';
+  IF (SELECT count(*) FROM jsonb_array_elements_text(t) x WHERE x LIKE 'stale-alarm@%') <> 1 THEN RAISE EXCEPTION 'SMOKE FAIL: the alarmed row does not carry exactly one stale-alarm tag: %', t; END IF;
+  IF EXISTS (SELECT 1 FROM public.agent_inbox a, jsonb_array_elements_text(a.tags) x WHERE a.id <> '00000000-0000-0000-0000-0000000000c1' AND x LIKE 'stale-alarm@%')
+    THEN RAISE EXCEPTION 'SMOKE FAIL: a transcript, a young, a captured or a canary row was alarmed'; END IF;
+  SELECT * INTO r FROM public.push_outbox WHERE dedupe_key = 'lesson:00000000-0000-0000-0000-0000000000c1:stale:1';
+  IF r.id IS NULL THEN RAISE EXCEPTION 'SMOKE FAIL: no push keyed :stale:1 for the alarmed row'; END IF;
+  IF r.target_user <> '00000000-0000-0000-0000-00000000000c' OR r.target_role <> 'person' OR r.kind <> 'lesson' THEN RAISE EXCEPTION 'SMOKE FAIL: the stale push is addressed wrong (% % %)', r.target_user, r.target_role, r.kind; END IF;
+  IF r.title <> 'A lesson is still waiting' OR r.body NOT LIKE 'Recorded 5 hours ago%' THEN RAISE EXCEPTION 'SMOKE FAIL: the stale push words are wrong: % / %', r.title, r.body; END IF;
+  IF r.body ILIKE '%Secret Words%' OR r.body ILIKE '%transcript words%' THEN RAISE EXCEPTION 'SMOKE FAIL: the stale push carried lesson text'; END IF;
+  IF r.url <> '/poetech-app/?view=create&panel=your-lessons' THEN RAISE EXCEPTION 'SMOKE FAIL: stale landing was %', r.url; END IF;
+  IF (SELECT count(*) FROM public.push_outbox WHERE dedupe_key LIKE 'lesson:%:stale:%') <> 1 THEN RAISE EXCEPTION 'SMOKE FAIL: more than one stale push'; END IF;
+  IF EXISTS (SELECT 1 FROM public.push_outbox WHERE dedupe_key = 'lesson:00000000-0000-0000-0000-0000000000c1:ready') THEN RAISE EXCEPTION 'SMOKE FAIL: the alarm tag tripped the ready push'; END IF;
+  -- Inside the repeat window: nothing.
+  SELECT count(*) INTO n FROM public.lesson_inbox_stale_sweep(4, 24, now());
+  IF n <> 0 THEN RAISE EXCEPTION 'SMOKE FAIL: a second sweep inside the repeat window alarmed % rows', n; END IF;
+  IF (SELECT count(*) FROM public.push_outbox WHERE dedupe_key LIKE 'lesson:%:stale:%') <> 1 THEN RAISE EXCEPTION 'SMOKE FAIL: the second sweep enqueued again'; END IF;
+  -- 25 h later: the first row alarms again (#2), the young row has aged into its first alarm.
+  SELECT count(*) INTO n FROM public.lesson_inbox_stale_sweep(4, 24, now() + interval '25 hours');
+  IF n <> 2 THEN RAISE EXCEPTION 'SMOKE FAIL: the sweep past the repeat window alarmed % rows, not 2', n; END IF;
+  IF NOT EXISTS (SELECT 1 FROM public.push_outbox WHERE dedupe_key = 'lesson:00000000-0000-0000-0000-0000000000c1:stale:2') THEN RAISE EXCEPTION 'SMOKE FAIL: no second alarm for the long waiter'; END IF;
+  IF NOT EXISTS (SELECT 1 FROM public.push_outbox WHERE dedupe_key = 'lesson:00000000-0000-0000-0000-0000000000c3:stale:1') THEN RAISE EXCEPTION 'SMOKE FAIL: the row that aged past the window was not alarmed'; END IF;
+  SELECT tags INTO t FROM public.agent_inbox WHERE id = '00000000-0000-0000-0000-0000000000c1';
+  IF (SELECT count(*) FROM jsonb_array_elements_text(t) x WHERE x LIKE 'stale-alarm@%') <> 2 THEN RAISE EXCEPTION 'SMOKE FAIL: the long waiter does not carry two alarm tags'; END IF;
+  -- The alarmed row still WAITS (nothing captured it): the bell's own definition.
+  IF NOT EXISTS (SELECT 1 FROM public.agent_inbox WHERE id = '00000000-0000-0000-0000-0000000000c1' AND tags ? 'lesson' AND NOT (tags ? 'lesson-captured') AND NOT (tags ? 'lesson-building') AND NOT (tags ? 'awaiting-review'))
+    THEN RAISE EXCEPTION 'SMOKE FAIL: the alarm changed the row''s waiting state'; END IF;
+END $$;
+
 -- --- who reads what -----------------------------------------------------------
 SET LOCAL ROLE anon;
 SELECT set_config('request.jwt.claims', '{}', true);
@@ -97,6 +149,10 @@ END $$;
 SELECT set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000b","role":"authenticated"}', true);
 DO $$ BEGIN
   IF (SELECT count(*) FROM public.push_outbox) <> 0 THEN RAISE EXCEPTION 'SMOKE FAIL: another person read the speaker''s rows'; END IF;
+END $$;
+SELECT set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000c","role":"authenticated"}', true);
+DO $$ BEGIN
+  IF (SELECT count(*) FROM public.push_outbox) <> 3 THEN RAISE EXCEPTION 'SMOKE FAIL: the waiter does not read exactly their own three stale pushes (%)', (SELECT count(*) FROM public.push_outbox); END IF;
 END $$;
 RESET ROLE;
 

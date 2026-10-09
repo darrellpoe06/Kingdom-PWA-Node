@@ -31,6 +31,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { pickRecorderMime } from './voice-recording.js';
 import { releaseSpeechRecognition } from './voice-dictation.js';
+import { holdIntake, RESULT_HOLD_MS } from './intake-guard.js';
 
 // Aligned with lib/ministry-meetings.js maxDurationMin — one ceiling, one truth.
 export const SCRIBE_MAX_DURATION_MIN = 180;
@@ -270,8 +271,19 @@ export function useWorkflowScribe() {
   const secondsRef = useRef(0);
   const stepsRef = useRef([]);
   const urlRef = useRef('');
+  // NOTHING INTERRUPTS WORDS COMING IN (DR-0748): the app holds still for
+  // the whole take (lib/intake-guard.js), and for a while after it, because
+  // the finished take lives only in memory until it is sent.
+  const holdRef = useRef(null);
+  const keptRef = useRef(null);
+  const keptTimerRef = useRef(null);
+  const releaseKept = () => {
+    if (keptTimerRef.current) { clearTimeout(keptTimerRef.current); keptTimerRef.current = null; }
+    if (keptRef.current) { keptRef.current(); keptRef.current = null; }
+  };
 
   const cleanup = () => {
+    if (holdRef.current) { holdRef.current(); holdRef.current = null; }
     try { streamRef.current && streamRef.current.getTracks().forEach((t) => t.stop()); } catch (_) {}
     streamRef.current = null;
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
@@ -408,12 +420,21 @@ export function useWorkflowScribe() {
         setResult({ blob, url, manifest, chunks: chunksRef.current.slice(), measured: measuredRef.current > 0, heardSound: heardRef.current });
         cleanup();
         setRecording(false);
+        // The take is kept in memory until it is sent: hold the app still for
+        // it, for RESULT_HOLD_MS at most.
+        releaseKept();
+        if (chunksRef.current.length) {
+          keptRef.current = holdIntake('recording-kept');
+          keptTimerRef.current = setTimeout(releaseKept, RESULT_HOLD_MS);
+        }
       };
       // The user ending the screen share from the browser chrome stops us cleanly.
       try { stream.getVideoTracks().forEach((t) => { t.onended = () => stop(); }); } catch (_) {}
       // Wake lock so a phone/tablet doesn't sleep a long recording (best-effort).
       try { wakeRef.current = navigator.wakeLock ? await navigator.wakeLock.request('screen') : null; } catch (_) { wakeRef.current = null; }
       mr.start(timesliceMs);
+      releaseKept();
+      if (!holdRef.current) holdRef.current = holdIntake('recording');
       setRecording(true);
       timerRef.current = setInterval(() => {
         secondsRef.current += 1;
@@ -440,7 +461,7 @@ export function useWorkflowScribe() {
     } catch (_) { return false; }
   }, []);
 
-  useEffect(() => () => { cleanup(); try { if (urlRef.current) URL.revokeObjectURL(urlRef.current); } catch (_) {} }, []);
+  useEffect(() => () => { cleanup(); releaseKept(); try { if (urlRef.current) URL.revokeObjectURL(urlRef.current); } catch (_) {} }, []);
 
   return { screenSupported, micSupported, recording, seconds, steps, result, error, errorMessage, silentSeconds, heardSound, bytes, level, start, stop, markStep };
 }

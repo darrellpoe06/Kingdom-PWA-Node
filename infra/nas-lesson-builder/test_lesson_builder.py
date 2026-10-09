@@ -10,6 +10,7 @@ never-auto-replace rule for backfill and the decision stage are each FIRED by
 a test, and each has a proven-to-catch case (DR-0076 s3).
 """
 import json
+import re
 import os
 import shutil
 import subprocess
@@ -281,6 +282,19 @@ class WhoSpoke(unittest.TestCase):
 
     def rules(self, tags):
         return lw.row_rules([{"created_by": self.OWNER, "tags": tags}], {self.OWNER})
+
+    def test_max_ll_reads_both_spellings_of_an_entry_id(self):
+        """PROVEN-TO-CATCH (DR-0750 corrections): L199–L206 are written with
+        JSON-style double-quoted keys; a scan that reads only `id: 'll…'`
+        sees 198 as the top and numbers a new lesson L199 over the real one."""
+        single = "    id: 'll198-the-goldilocks-zone',\n"
+        double = '    "id": "ll206-kings-who-search-it-out",\n'
+        self.assertEqual(lb.max_ll([single]), 198)
+        self.assertEqual(lb.max_ll([double]), 206)
+        self.assertEqual(lb.max_ll([single + double]), 206)
+        self.assertEqual(lb.max_ll([single, double, None, ""]), 206)
+        # The old pattern, kept here as the break this proof catches.
+        self.assertEqual(max(int(m) for m in re.findall(r"id: 'll(\d+)-", single + double)), 198)
 
     def test_the_standard_carries_the_speaker_rules(self):
         for must in ("DP is Darrell Poe", "BG is Bishop Gwin", "S1, S2", "Never guess",
@@ -693,10 +707,36 @@ class Gates(unittest.TestCase):
         quiet["levels"] = {b: t.replace(TALK, "") for b, t in quiet["levels"].items()}
         g = gates.gate_version(quiet, self.module(quiet), CORPUS, lw.schema_problems)
         self.assertFalse(g["talk_together"]["passed"])
-        self.assertEqual(sorted(g["talk_together"]["missing"]), ["children", "friends", "parents"])
+        missing = g["talk_together"]["missing"]
+        # the three directions, absent from the module as a whole
+        self.assertEqual(sorted(x for x in missing if ":" not in x), ["children", "friends", "parents"])
+        # and every place a reader reads, named one by one (DR-0795)
+        self.assertEqual(
+            sorted(x for x in missing if ":" in x),
+            ["child: no parents + children + friends",
+             "lesson: no parents + children + friends",
+             "senior: no parents + children + friends",
+             "teen: no parents + children + friends",
+             "youth: no parents + children + friends"])
         self.assertFalse(g["passed"])
         full = gates.gate_version(make_lesson(), self.module(), CORPUS, lw.schema_problems)
         self.assertTrue(full["talk_together"]["passed"], json.dumps(full["talk_together"]))
+
+    def test_PROVEN_TO_CATCH_one_short_band_fails_though_the_module_as_a_whole_reads_full(self):
+        """DR-0795: strip the friend line from the teen band ALONE. The pooled
+        module still carries all three (the other bands have them), so the old
+        module-level gate passed it; the per-place check names the teen band."""
+        one = make_lesson()
+        friend_line = [s for s in TALK.split(". ") if "friend" in s.lower()]
+        self.assertTrue(friend_line, "the fixture's talk block has a friend line to strip")
+        levels = dict(one["levels"])
+        levels["teen"] = levels["teen"].replace(friend_line[0] + ". ", "").replace(friend_line[0], "")
+        one["levels"] = levels
+        mod = self.module(one)
+        self.assertEqual(gates.talk_together_gate(mod)[1], ["teen: no friends"])
+        g = gates.gate_version(one, mod, CORPUS, lw.schema_problems)
+        self.assertFalse(g["talk_together"]["passed"])
+        self.assertFalse(g["passed"])
 
     def test_PROVEN_TO_CATCH_one_changed_word_fails_the_verse_gate(self):
         g = gates.gate_version(make_lesson(drift=True), self.module(make_lesson(drift=True)), CORPUS, lw.schema_problems)
@@ -1336,7 +1376,63 @@ class BellTests(unittest.TestCase):
         self.assertEqual(m(["lesson", "lesson-captured", "build:duplicate@2026-10-01T01:01:00Z"]), "captured")
         self.assertEqual(m(["lesson", "lesson-captured", "lesson-published"]), "shipped")
         self.assertEqual(m(["lesson", c, "build:failed@2026-10-01T01:30:00Z", "build-failed"]), "waiting#b2")
+        # DR-0771: an alarmed row is new news; a handed-back AND alarmed row carries both.
+        self.assertEqual(m(["lesson", "stale-alarm@2026-10-07T04:00:00Z"]), "waiting#s1")
+        self.assertEqual(m(["lesson", "stale-alarm@2026-10-07T04:00:00Z", "stale-alarm@2026-10-08T04:00:00Z"]), "waiting#s2")
+        self.assertEqual(m(["lesson", c, "build:failed@2026-10-01T01:30:00Z", "stale-alarm@2026-10-07T04:00:00Z"]), "waiting#b2#s1")
+        self.assertNotEqual(lb.bell_key(self.A, ["lesson"]), lb.bell_key(self.A, ["lesson", "stale-alarm@2026-10-07T04:00:00Z"]))
         self.assertEqual(lb.job_of("stage:" + self.A), ("stage", self.A))
+
+    def test_the_stale_sweep_alarms_through_0252_rings_the_bell_and_keeps_its_spacing(self):
+        offered, calls = [], []
+
+        class B:
+            def ring(self, rid, tags):
+                offered.append((rid, list(tags)))
+
+        class Db(FakeDb):
+            def row_tags(self, rid):
+                return list(self.rows[rid]["tags"]) if rid in self.rows else None
+
+            def stale_sweep(self, first, repeat):
+                calls.append((first, repeat))
+                out = []
+                for r in self.rows.values():
+                    if lb.bell_waits(r["tags"]) and not any(t.startswith("stale-alarm@") for t in r["tags"]):
+                        r["tags"].append("stale-alarm@2026-10-07T04:00:00Z")
+                        out.append({"id": r["id"], "created_by": "c", "waited_hours": 5, "alarm_no": 1})
+                return out
+        A = self.A
+        clock = {"t": 1000.0}
+        db = Db([row(A, TEACHING)])
+        svc = lb.Service(db, data_dir=tempfile.mkdtemp(), ready=lambda: (False, {"state": "waiting on a writer"}),
+                         kill=lambda: (False, ""), log=lambda *_: None, bell=B(), clock=lambda: clock["t"],
+                         stale_first_hours=4, stale_repeat_hours=24, stale_sweep_seconds=900)
+        self.assertEqual([a["id"] for a in svc.sweep_stale()], [A])       # the first wake sweeps
+        self.assertEqual(calls, [(4, 24)])                                 # the configured windows reach 0252
+        self.assertEqual(offered, [(A, ["lesson", "stale-alarm@2026-10-07T04:00:00Z"])])  # the bell hears the NEW milestone
+        self.assertEqual(lb.bell_milestone(offered[0][1]), "waiting#s1")
+        clock["t"] += 100
+        self.assertEqual(svc.sweep_stale(), [])                            # inside the spacing: no call at all
+        self.assertEqual(len(calls), 1)
+        clock["t"] += 900
+        svc.sweep_stale()
+        self.assertEqual(len(calls), 2)                                    # past the spacing: asked again (0252 dedupes)
+        self.assertEqual(svc.sweep_stale(force=True), [])                  # nothing new to alarm
+
+    def test_the_stale_sweep_never_stops_the_service_when_0252_is_not_applied(self):
+        said = []
+
+        class Db(FakeDb):
+            def stale_sweep(self, first, repeat):
+                raise RuntimeError("function lesson_inbox_stale_sweep does not exist")
+        svc = lb.Service(Db([row(self.A, TEACHING)]), data_dir=tempfile.mkdtemp(), kill=lambda: (False, ""),
+                         log=lambda *a: said.append(" ".join(str(x) for x in a)), bell=None, clock=lambda: 5000.0)
+        self.assertEqual(svc.sweep_stale(force=True), [])
+        self.assertEqual(svc.sweep_stale(force=True), [])
+        self.assertEqual(len([x for x in said if "lesson-stale" in x]), 1)   # said once, not every wake
+        plain = lb.Service(FakeDb([]), data_dir=tempfile.mkdtemp(), kill=lambda: (False, ""), log=lambda *_: None)
+        self.assertEqual(plain.sweep_stale(force=True), [])                  # a db without the method: nothing, quietly
 
     def test_a_build_milestone_notifies_the_id_only(self):
         notes = []
@@ -1430,6 +1526,7 @@ class BellTests(unittest.TestCase):
         src = inspect.getsource(lb.Service.listen_forever)
         self.assertIn("self.bell.flush()", src)
         self.assertIn("self.bell.wait_seconds()", src)
+        self.assertIn("self.sweep_stale()", src)   # DR-0771: the stale alarm rides every wake of the loop
         self.assertIn("Service(None, bell=bell)", inspect.getsource(lb.main))
 
     def test_the_service_rings_a_waiting_row_and_the_sweep_reoffers_never_when_stopped(self):

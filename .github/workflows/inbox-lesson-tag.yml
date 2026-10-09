@@ -15,6 +15,19 @@
 # at push). Idempotent: a tag already present is not added twice. Reports the
 # row's tags before and after. Every input is validated before it reaches SQL.
 #
+# NOT EVERY RECORDING IS A LESSON (2026-10-06, DR-0768). The recorder inside
+# the app had ONE destination: everything spoken into it became a lesson row.
+# On 2026-10-06 Christyn read her homework into it -- a school passage, seven
+# unnamed voices, no teacher -- and the row could never pass the lesson gate.
+# The NAS builder claimed it, failed it, released it and claimed it again, six
+# times in an hour, because the only verdict this road could write was "shipped
+# as a lesson". A row that is not a lesson had no way to say so and therefore
+# no way to stop. `verdict: not-a-lesson` is that way: it writes
+# lesson-captured (which every waiting query excludes, so the loop ends),
+# not-a-lesson, and not-a-lesson-reason:<reason> so the record says WHY, and it
+# writes no lesson-id and no lesson-pr, because there is no lesson. The default
+# verdict is `lesson` and that path is unchanged.
+#
 # BRAKES (deterministic class, DR-0248: budget + lock): dispatch only, one row
 # per run, 5 minutes; concurrency group `inbox-lesson-tag`.
 
@@ -26,12 +39,24 @@ on:
       row_id:
         description: 'agent_inbox row id (uuid)'
         required: true
+      verdict:
+        description: 'what this row turned out to be'
+        required: false
+        default: lesson
+        type: choice
+        options: [lesson, not-a-lesson]
       lesson_id:
-        description: 'lesson id (lowercase letters, digits, hyphens)'
-        required: true
+        description: 'lesson id (lowercase letters, digits, hyphens) -- verdict=lesson only'
+        required: false
+        default: ''
       pr:
-        description: 'PR number that shipped the lesson'
-        required: true
+        description: 'PR number that shipped the lesson -- verdict=lesson only'
+        required: false
+        default: ''
+      reason:
+        description: 'why it is not a lesson (letters, digits, spaces, , . : - ) -- verdict=not-a-lesson only'
+        required: false
+        default: ''
 
 concurrency:
   group: inbox-lesson-tag
@@ -50,8 +75,10 @@ jobs:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       REPO: ${{ github.repository }}
       ROW_ID: ${{ inputs.row_id }}
+      VERDICT: ${{ inputs.verdict }}
       LESSON_ID: ${{ inputs.lesson_id }}
       PR: ${{ inputs.pr }}
+      REASON: ${{ inputs.reason }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -60,9 +87,25 @@ jobs:
         run: |
           set -euo pipefail
           [[ "$ROW_ID" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$ ]] || { echo "::error::row_id is not a uuid"; exit 1; }
-          [[ "$LESSON_ID" =~ ^[a-z0-9][a-z0-9-]{1,200}$ ]] || { echo "::error::lesson_id has characters outside a-z 0-9 -"; exit 1; }
-          [[ "$PR" =~ ^[0-9]{1,6}$ ]] || { echo "::error::pr is not a number"; exit 1; }
+          VERDICT=${VERDICT:-lesson}
+          case "$VERDICT" in
+            lesson)
+              [[ "$LESSON_ID" =~ ^[a-z0-9][a-z0-9-]{1,200}$ ]] || { echo "::error::lesson_id has characters outside a-z 0-9 -"; exit 1; }
+              [[ "$PR" =~ ^[0-9]{1,6}$ ]] || { echo "::error::pr is not a number"; exit 1; }
+              [ -z "$REASON" ] || { echo "::error::reason belongs to verdict=not-a-lesson; a lesson is named by its lesson_id"; exit 1; }
+              ;;
+            not-a-lesson)
+              # A verdict with no reason is the thing this road exists to stop:
+              # a row marked done with nothing saying why.
+              [[ "$REASON" =~ ^[A-Za-z0-9][A-Za-z0-9\ ,.:-]{9,300}$ ]] || { echo "::error::reason must be 10-300 characters of letters, digits, spaces and , . : -"; exit 1; }
+              [ -z "$LESSON_ID" ] || { echo "::error::verdict=not-a-lesson writes no lesson-id -- there is no lesson"; exit 1; }
+              [ -z "$PR" ] || { echo "::error::verdict=not-a-lesson writes no lesson-pr -- there is no lesson"; exit 1; }
+              ;;
+            *) echo "::error::verdict must be lesson or not-a-lesson"; exit 1;;
+          esac
+          echo "VERDICT=$VERDICT" >> "$GITHUB_ENV"
       - name: Is the lesson live? (merged, and inside the deployed build)
+        if: ${{ (inputs.verdict || 'lesson') == 'lesson' }}
         run: |
           set -euo pipefail
           MERGE=$(gh api "repos/$REPO/pulls/$PR" --jq 'if .merged then .merge_commit_sha else "" end')
@@ -90,12 +133,25 @@ jobs:
           NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
         run: |
           set -uo pipefail
-          TAGS="\"lesson-captured\",\"lesson-id:$LESSON_ID\",\"lesson-pr:$PR\""
-          [ "$LIVE" = yes ] && TAGS="$TAGS,\"lesson-published\""
+          if [ "${VERDICT:-lesson}" = not-a-lesson ]; then
+            # lesson-captured is what every waiting query excludes, so this is
+            # the tag that ends the claim-fail-release loop; the reason travels
+            # with it so the row says why it stopped, not just that it did.
+            TAGS="\"lesson-captured\",\"not-a-lesson\",\"not-a-lesson-reason:$REASON\""
+          else
+            TAGS="\"lesson-captured\",\"lesson-id:$LESSON_ID\",\"lesson-pr:$PR\""
+            [ "${LIVE:-no}" = yes ] && TAGS="$TAGS,\"lesson-published\""
+          fi
           before=$(printf '%s' "SELECT tags::text FROM public.agent_inbox WHERE id = '$ROW_ID';" | bash scripts/live-sql.sh '|') || { echo "::error::could not read the row"; exit 1; }
           [ -n "$before" ] || { echo "::error::row $ROW_ID is not on the live database"; exit 1; }
           echo "before: $before"
           SQL="UPDATE public.agent_inbox SET tags = tags || (SELECT coalesce(jsonb_agg(t), '[]'::jsonb) FROM jsonb_array_elements('[$TAGS]'::jsonb) t WHERE NOT (agent_inbox.tags @> jsonb_build_array(t))) WHERE id = '$ROW_ID'; SELECT tags::text FROM public.agent_inbox WHERE id = '$ROW_ID';"
           after=$(printf '%s' "$SQL" | bash scripts/live-sql.sh '|') || { echo "::error::the live database did not take the update"; exit 1; }
           echo "after: $after"
-          { echo "### agent_inbox $ROW_ID"; echo "- live: $LIVE"; echo "- before: \`$before\`"; echo "- after: \`$after\`"; } >> "$GITHUB_STEP_SUMMARY"
+          # ${LIVE:-} on purpose: the live check is skipped for not-a-lesson,
+          # so LIVE is unset there and `-u` would abort on a bare $LIVE.
+          { echo "### agent_inbox $ROW_ID"
+            echo "- verdict: ${VERDICT:-lesson}"
+            [ "${VERDICT:-lesson}" = not-a-lesson ] && echo "- reason: $REASON" || echo "- live: ${LIVE:-unknown}"
+            echo "- before: \`$before\`"
+            echo "- after: \`$after\`"; } >> "$GITHUB_STEP_SUMMARY"

@@ -23,7 +23,28 @@ globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
 // The door checks for a session on mount; a signed-OUT check is the state under
 // test (that is when the sign-in form renders).
-vi.mock('../lib/supabase.js', () => ({
+vi.mock('../lib/supabase.js', () => {
+// A query stub that answers any chain (select/eq/order/limit/maybeSingle...)
+// with an empty, error-free result: the chrome's libs (voices, readers) ask
+// the client on mount and none of them is what this test is about.
+function queryStub() {
+  const q = {};
+  const self = () => q;
+  for (const m of ['select', 'eq', 'neq', 'in', 'order', 'limit', 'range', 'gte', 'lte', 'is', 'not', 'upsert', 'insert', 'update', 'delete', 'match']) q[m] = self;
+  q.maybeSingle = async () => ({ data: null, error: null });
+  q.single = async () => ({ data: null, error: null });
+  q.then = (res) => Promise.resolve({ data: [], error: null }).then(res);
+  return q;
+}
+return {
+  // The door now carries PoeTech's chrome (DR-0827); read-aloud and the voice
+  // libs import the named client and the auth listener too.
+  supabase: {
+    auth: { getSession: async () => ({ data: { session: null } }), onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }) },
+    from: () => queryStub(),
+    rpc: async () => ({ data: null, error: null }),
+  },
+  onAuthChange: (cb) => { cb(null); return () => {}; },
   default: {
     auth: {
       getSession: async () => ({ data: { session: null } }),
@@ -49,7 +70,7 @@ vi.mock('../lib/supabase.js', () => ({
       .catch(() => {});
   },
   signOut: async () => ({}),
-}));
+}; });
 
 import PropertiesDoor from '../components/PropertiesDoor.jsx';
 

@@ -33,6 +33,10 @@ on:
       # stall (2026-07-05). Bringing `claude/**` into the same sanctioned
       # default (auto-merge on green; `hold` to soak) closes that gap.
       - 'claude/**'
+      # The cloud sessions (claude.ai/code) push on `ccr-<id>` branches, not
+      # `claude/*`; PR #1987 sat 40 minutes on a green head because neither
+      # this trigger nor auto-merge's filter knew the prefix (DR-0773).
+      - 'ccr-**'
 
 permissions:
   contents: write

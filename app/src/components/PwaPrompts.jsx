@@ -20,6 +20,7 @@
 //     is stored in localStorage for 30 days. Auto-hides once installed.
 // =============================================================================
 import React, { useState, useEffect, useMemo } from 'react';
+import { useIntakeHeld } from '../lib/intake-guard.js';
 
 const UPDATED_TOAST_MS = 4000;
 
@@ -57,6 +58,9 @@ const DISMISS_KEY = (face) => `pwa-install-dismissed:${face.key}`;
 
 export function UpdatePrompt() {
   const [confirmed, setConfirmed] = useState(false);
+  // NOTHING INTERRUPTS WORDS COMING IN (DR-0748): no toast over a recording,
+  // a dictation or a box being typed in.
+  const held = useIntakeHeld();
 
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;
@@ -73,7 +77,7 @@ export function UpdatePrompt() {
     };
   }, []);
 
-  if (!confirmed) return null;
+  if (!confirmed || held) return null;
 
   return (
     <div className="update-confirm fixed bottom-4 left-1/2 -translate-x-1/2 z-50 max-w-sm px-2 print:hidden" role="status" aria-live="polite">
@@ -90,6 +94,10 @@ export function InstallPrompt() {
   const [isIOS, setIsIOS] = useState(false);
   const [installed, setInstalled] = useState(false);
   const [dismissed, setDismissed] = useState(true); // assume dismissed until we check storage
+  // NOTHING INTERRUPTS WORDS COMING IN (DR-0748): the nudge waits until the
+  // person is not recording, speaking or typing. The deferred event is kept,
+  // so the nudge shows once they are free.
+  const held = useIntakeHeld();
   // Install identity is a page-load property — read the launch URL once (stable).
   const face = useMemo(() => (typeof window !== 'undefined' ? currentFace(window.location.search) : { key: 'poetech', label: 'PoeTech' }), []);
 
@@ -148,7 +156,7 @@ export function InstallPrompt() {
     dismiss();
   };
 
-  if (installed || dismissed) return null;
+  if (installed || dismissed || held) return null;
   if (!deferredEvt && !isIOS) return null;
 
   return (

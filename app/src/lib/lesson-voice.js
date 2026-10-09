@@ -51,14 +51,60 @@ export function formatClock(seconds) {
 }
 
 /** The inbox row's body: says what it is and that the words follow, plus any typed note. */
-export function voiceLessonBody(note, seconds) {
+export function voiceLessonBody(note, seconds, kind = DEFAULT_RECORDING_KIND) {
   const typed = String(note || '').trim();
-  const head = `Lesson. A spoken lesson (${formatClock(seconds)}); the words arrive as a transcript from Whisper on our own machines.`;
+  const reading = normalizeRecordingKind(kind) === 'reading';
+  const head = reading
+    ? `Reading aloud. Someone reading a text out loud (${formatClock(seconds)}); the words arrive as a transcript from Whisper on our own machines. Recorded as a reading, so no lesson is built from it.`
+    : `Lesson. A spoken lesson (${formatClock(seconds)}); the words arrive as a transcript from Whisper on our own machines.`;
   return typed ? `${head}\n\nTyped with it: ${typed}` : head;
 }
 
 export function voiceLessonTags(path) {
   return ['lesson', 'voice', `audio:${path}`];
+}
+
+// WHAT KIND OF RECORDING THIS IS, SAID AT RECORD TIME (DR-0810). DR-0768
+// named the gap and dated it: a child's homework reading arrived as a lesson
+// row, the NAS builder's gate refused it five times, and a human had to go
+// tag it `not-a-lesson` by hand — "the recorder still offers no choice at
+// record time between a teaching and a reading, so the next homework reading
+// will arrive as a lesson row again and need the same verdict by hand."
+//
+// So the recorder asks, once, before Send. The row still rides the SAME road:
+// it keeps `lesson` and `voice`, so Whisper still transcribes it and the words
+// still come back to the person who read them. What changes is that a reading
+// arrives already carrying the verdict DR-0768 built — `not-a-lesson` with its
+// reason — so no builder tries to make a lesson of it and nobody has to go
+// decide again what was already decided when the record button was pressed.
+
+export const RECORDING_KINDS = Object.freeze(['teaching', 'reading']);
+export const DEFAULT_RECORDING_KIND = 'teaching';
+
+/** The words on the two buttons, and the one line under each. */
+export const RECORDING_KIND_LABELS = Object.freeze({
+  teaching: { label: 'A teaching', help: 'A word taught or spoken to build a lesson from.' },
+  reading: { label: 'Reading aloud', help: 'Someone reading a text out loud. The words come back; no lesson is built.' },
+});
+
+export const READING_REASON = 'recorded as a reading aloud, not a teaching';
+
+export function normalizeRecordingKind(kind) {
+  return RECORDING_KINDS.includes(kind) ? kind : DEFAULT_RECORDING_KIND;
+}
+
+/**
+ * The extra tags a kind adds. A teaching adds nothing — it is what the road
+ * already assumed. A reading carries the DR-0768 verdict from the start.
+ */
+export function recordingKindTags(kind) {
+  if (normalizeRecordingKind(kind) !== 'reading') return [];
+  return ['reading-aloud', 'not-a-lesson', `not-a-lesson-reason:${READING_REASON}`];
+}
+
+/** True when a row's tags say a human already decided it is not a lesson. */
+export function alreadyDecidedNotALesson(tags = []) {
+  return (Array.isArray(tags) ? tags : []).some((t) => t === 'not-a-lesson');
 }
 
 /** Why a recording cannot be sent, or '' when it can. */
@@ -75,13 +121,15 @@ export function recordingProblem({ blob, seconds }) {
  * { ok, reason, path, id }. A failed upload files nothing; a failed row after
  * a good upload removes the uploaded audio, so no orphan waits in the bucket.
  */
-export async function sendVoiceLesson({ blob, seconds, note = '', source = 'church-one-voice', supabase, relay, nowMs = Date.now(), suffix, extraTags = [] }) {
+export async function sendVoiceLesson({ blob, seconds, note = '', kind = DEFAULT_RECORDING_KIND, source = 'church-one-voice', supabase, relay, nowMs = Date.now(), suffix, extraTags = [] }) {
   const problem = recordingProblem({ blob, seconds });
   if (problem) return { ok: false, reason: problem, path: '', id: null };
   // The member's naming choice (DR-0639) rides the spoken lesson too: the same
   // notice sits above the one Send, so the same choice must reach the reader.
   const extra = Array.isArray(extraTags) ? extraTags.filter((t) => typeof t === 'string' && t) : [];
-  return sendRecording({ blob, body: voiceLessonBody(note, seconds), tagsFor: (path) => [...voiceLessonTags(path), ...extra], source, supabase, relay, nowMs, suffix });
+  // The kind chosen at record time rides with it (DR-0810).
+  const kindTags = recordingKindTags(kind);
+  return sendRecording({ blob, body: voiceLessonBody(note, seconds, kind), tagsFor: (path) => [...voiceLessonTags(path), ...extra, ...kindTags], source, supabase, relay, nowMs, suffix });
 }
 
 /**

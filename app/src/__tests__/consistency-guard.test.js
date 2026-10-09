@@ -34,6 +34,19 @@ describe('consistency guard — drift counters', () => {
     expect(fileCounts('// book (was 📓), dove (was 🕊)', 'UiIcon.jsx').emoji).toBe(0);
   });
 
+  it('counts break-all on a line that renders a person\'s name, not on a URL, not in a comment (DR-0838)', () => {
+    expect(fileCounts('<span className="break-all min-w-0">{m.displayName || m.email}</span>', 'X.jsx').nameBreak).toBe(1);
+    expect(fileCounts('<span className="break-all">{who.shown}</span>', 'X.jsx').nameBreak).toBe(1);
+    expect(fileCounts('<code className="break-all">{link}</code>', 'X.jsx').nameBreak).toBe(0);
+    expect(fileCounts('<p className="break-all">{vendor.requestUrl}</p>', 'X.jsx').nameBreak).toBe(0);
+    expect(fileCounts('// a break-all on displayName used to live here', 'X.jsx').nameBreak).toBe(0);
+    expect(fileCounts('<span className="break-words">{m.displayName}</span>', 'X.jsx').nameBreak).toBe(0);
+    // the row that bit: the class on one line, the name on the next
+    expect(fileCounts('<span className="break-all min-w-0">\n  <span data-testid="who">{who.shown || m.email || \'member\'}</span>\n</span>', 'X.jsx').nameBreak).toBe(1);
+    expect(fileCounts('<code className="break-all">{link}</code>\n<p>{m.displayName}</p>\n<p/>\n<p>{x.name}</p>', 'X.jsx').nameBreak).toBe(1);
+    expect(fileCounts('<code className="break-all">{link}</code>\n<p/>\n<p/>\n<p>{x.name}</p>', 'X.jsx').nameBreak).toBe(0);
+  });
+
   it('counts a fixed-px font size but not a rem one', () => {
     expect(fileCounts('className="text-[10px]"', 'X.jsx').fixedPx).toBe(1);
     expect(fileCounts('className="text-[0.625rem]"', 'X.jsx').fixedPx).toBe(0);
@@ -108,6 +121,16 @@ describe('consistency guard — the ratchet (proven to CATCH new drift)', () => 
     expect(ratchet(live, baseline).violations.some((v) => v.kind === 'emoji-as-icon')).toBe(true);
     const live2 = { 'components/New.jsx': { emoji: 0, fixedPx: 1, widthCap: 0 } };
     expect(ratchet(live2, baseline).violations.some((v) => v.kind === 'fixed-px-font')).toBe(true);
+  });
+
+  it('CATCHES a break-all on a name in a NEW file, and over an older baseline (DR-0838)', () => {
+    const live = { 'components/New.jsx': { emoji: 0, fixedPx: 0, widthCap: 0, nameBreak: 1 } };
+    expect(ratchet(live, baseline).violations.some((v) => v.kind === 'name-break-all')).toBe(true);
+    // a baseline frozen before the counter existed reads as zero, never as "allowed"
+    const live2 = { 'components/A.jsx': { emoji: 2, fixedPx: 3, widthCap: 1, nameBreak: 1 } };
+    expect(ratchet(live2, baseline).violations.some((v) => v.kind === 'name-break-all')).toBe(true);
+    const live3 = { 'components/A.jsx': { emoji: 2, fixedPx: 3, widthCap: 1, nameBreak: 0 } };
+    expect(ratchet(live3, baseline).violations).toEqual([]);
   });
 
   it('CATCHES a NEW fixed-px font over the baseline (hard fail)', () => {

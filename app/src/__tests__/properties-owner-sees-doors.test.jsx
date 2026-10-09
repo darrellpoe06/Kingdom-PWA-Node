@@ -26,6 +26,7 @@ vi.mock('../modules/properties/cloud.js', () => {
   return {
     claimPropertyAccess: async () => ({ ok: true }),
     loadMyDoors: async () => ({ ok: true, doors: [] }),
+    loadInvites: async () => ({ ok: true, invites: [] }),
     loadMyGrants: async () => ({ ok: true, grants: [] }),
     loadMyHousehold: async () => ({ ok: true, memberships: [] }),
     loadMyRentals: async () => ({ ok: true, rentals: H.rentals }),

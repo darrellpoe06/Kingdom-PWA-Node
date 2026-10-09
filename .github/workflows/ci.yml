@@ -23,7 +23,7 @@ on:
     # main, plus the release lanes — a push to a lane runs CI on that commit so
     # the checks attach to the SHA a token-opened PR uses (see auto-open-pr.yml;
     # PRs opened by GITHUB_TOKEN don't trigger pull_request workflows).
-    branches: [main, 'feat/**', 'fix/**', 'merge/**', 'docs/**', 'claude/**']
+    branches: [main, 'feat/**', 'fix/**', 'merge/**', 'docs/**', 'claude/**', 'ccr-**']  # ccr-**: DR-0773
   # Required checks must also run inside the merge queue's temporary ref, or a
   # queued PR would wait forever. Harmless when the queue is off.
   merge_group:
@@ -298,6 +298,33 @@ jobs:
       - name: voice-lite selftest
         working-directory: infra/nas-voice-lite
         run: python3 voice_lite_server.py --selftest
+      # Cams forwarder selftest (DR-0756): the locked door in front of go2rtc,
+      # the family camera road. Proven-to-catch: fails if /list or /ticket ever
+      # accept a missing or wrong bearer, if a source URL (credentials) leaks in
+      # /list, if a ticket opens another camera, if the live cap stops refusing
+      # at once, if the live time brake stops ending a stream (caught a real
+      # defect on its first run), if the HLS rewrite drops the ticket from a
+      # segment line, or if a dark go2rtc ever reads as this process's own 200.
+      - name: cams forwarder selftest
+        working-directory: infra/nas-cameras
+        run: python3 cams_forwarder.py --selftest
+      # Recorded loops to the NAS (DR-0775): proven-to-catch -- fails if a bad
+      # config is not normalized, if a disabled camera keeps recording, if a
+      # dead ffmpeg is restarted without backoff, if retention or the disk
+      # budget stops pruning oldest-first, or if the clip being written is
+      # ever deleted.
+      - name: cams recorder selftest
+        working-directory: infra/nas-cameras
+        run: python3 cams_recorder.py --selftest
+      # The garage opens with no video in the way (DR-0777): the Wyze cloud
+      # client. Proven-to-catch -- fails if the login stops sending the API
+      # key headers or the triple-md5 password, if a device without the garage
+      # dongle can be told to open a door, if a double tap cycles a door twice,
+      # if an expired token is not refreshed once and retried, or if the
+      # credential readers invent values.
+      - name: wyze cloud selftest
+        working-directory: infra/nas-cameras
+        run: python3 wyze_cloud.py --selftest
       # Sovereign review-queue server selftest (DR-0218 zero-n8n / DR-0076): the
       # byte-faithful port of wf-review-feed + wf-review-action. Proven-to-catch:
       # fails if the dismissed-filter, id path-containment, or status-write
@@ -685,7 +712,10 @@ jobs:
           psql -v ON_ERROR_STOP=1 -q -f scripts/lesson-share-ci-smoke.sql | tee "$RUNNER_TEMP/smoke.txt"
           grep -q 'every wall held' "$RUNNER_TEMP/smoke.txt"
 
-  # EVERY ARRIVAL COUNTED, THE CLOSED-APP HALF, ON A REAL POSTGRESQL (DR-0728).
+  # EVERY ARRIVAL COUNTED, THE CLOSED-APP HALF, ON A REAL POSTGRESQL (DR-0728),
+  # AND THE STALE-ROW ALARM (DR-0771): 0252's sweep alarms exactly the root row
+  # past the first window, once per repeat window, pushes its own person with no
+  # lesson text, and leaves transcripts, young, captured and canary rows alone.
   # 0246 applies twice (idempotent), then the smoke proves: a lesson row gaining
   # `awaiting-review` or `lesson-published` enqueues ONE push_outbox row for its
   # one person (one per teaching per event, keyed lesson:<row>:<event>); an
@@ -712,12 +742,13 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install postgresql-client
         run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client > /dev/null
-      - name: 0246 applies, twice (idempotent), and the enqueue is exactly one per teaching per event
+      - name: 0246 and 0252 apply, twice (idempotent); the enqueue is one per teaching per event; a stale row alarms once per window
         run: |
           set -euo pipefail
           psql -v ON_ERROR_STOP=1 -q -f scripts/curriculum-ci-bootstrap.sql
           psql -v ON_ERROR_STOP=1 -q -f scripts/arrivals-ci-bootstrap.sql
           for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0246-every-arrival-is-counted-a-lesson-ready-or-published-enqueues-a-push.sql; done
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0252-a-lesson-that-waits-too-long-rings-again-and-pushes-its-person.sql; done
           psql -v ON_ERROR_STOP=1 -q -f scripts/arrivals-ci-smoke.sql | tee "$RUNNER_TEMP/smoke.txt"
           grep -q 'every wall held' "$RUNNER_TEMP/smoke.txt"
 
@@ -824,6 +855,78 @@ jobs:
           psql -v ON_ERROR_STOP=1 -q -f scripts/dm-device-keys-ci-smoke.sql | tee "$RUNNER_TEMP/smoke.txt"
           grep -q 'every wall held' "$RUNNER_TEMP/smoke.txt"
 
+  # THE VAULT HOLDS ONLY WHAT THE OWNER CAN OPEN: 0251'S WALLS, ON A REAL
+  # POSTGRESQL (DR-0762). 0251 applies twice (idempotent), then the smoke
+  # proves: the owner reads and writes their own header and ciphertext rows,
+  # updated_at moves on update, a soft delete stays readable by the owner,
+  # another signed-in person reads NONE and cannot plant/alter/delete, anon
+  # reads none, and the table refuses a weak KDF, an oversized ciphertext and
+  # a short IV.
+  vault-walls:
+    name: app — password vault walls (PostgreSQL)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      PGHOST: localhost
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install postgresql-client
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client > /dev/null
+      - name: 0251 applies, twice (idempotent), and every vault wall holds
+        run: |
+          set -euo pipefail
+          psql -v ON_ERROR_STOP=1 -q -f scripts/curriculum-ci-bootstrap.sql
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0251-the-vault-holds-only-what-the-owner-can-open.sql; done
+          psql -v ON_ERROR_STOP=1 -q -f scripts/vault-ci-smoke.sql | tee "$RUNNER_TEMP/smoke.txt"
+          grep -q 'every vault wall held' "$RUNNER_TEMP/smoke.txt"
+
+  # A LEARNER'S RECORD: 0250'S WALLS, ON A REAL POSTGRESQL (DR-0754). 0250
+  # applies twice (idempotent), then the smoke proves: a learner keeps and
+  # reads his own record, the row lands under his own account even when the
+  # payload lies, a second reading corrects the row instead of duplicating it,
+  # one learner cannot read, correct or delete another learner's, the Governor
+  # reads every learner's and writes none, anon reads nothing, and an
+  # out-of-range score is refused by the wall. Every check RAISEs.
+  learner-records:
+    name: app — learner record walls (PostgreSQL)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      PGHOST: localhost
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install postgresql-client
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client > /dev/null
+      - name: 0250 applies, twice (idempotent), and every wall holds
+        run: |
+          set -euo pipefail
+          psql -v ON_ERROR_STOP=1 -q -f scripts/curriculum-ci-bootstrap.sql
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q -f infra/supabase/migrations-auto/0250-a-learners-record-reaches-the-governor.sql; done
+          psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0250-learner-records-smoke.sql 2>&1 | tee "$RUNNER_TEMP/smoke.txt"
+          grep -q 'LEARNER RECORD SMOKE: PASS' "$RUNNER_TEMP/smoke.txt"
+
   # THE REQUIRED CHECK (DR-0645). Branch protection and native auto-merge wait
   # on a check named EXACTLY "app — lint + vitest". Do NOT rename this job.
   # It runs `if: always()` because a job whose `needs` failed is otherwise
@@ -832,10 +935,10 @@ jobs:
   app:
     name: app — lint + vitest
     if: always()
-    needs: [guards, vitest, probes, layout, curriculum, lesson-shares, arrivals-push, contacts-walls, voice-enrollments, dm-device-keys]
+    needs: [guards, vitest, probes, layout, curriculum, lesson-shares, arrivals-push, contacts-walls, voice-enrollments, dm-device-keys, learner-records, vault-walls]
     runs-on: ubuntu-latest
     steps:
-      - name: Every leg passed (lint + guards, every vitest shard, build + probes, layout, curriculum, lesson shares, lesson arrival push, contacts walls, voice consent walls, sealed-message device keys walls)
+      - name: Every leg passed (lint + guards, every vitest shard, build + probes, layout, curriculum, lesson shares, lesson arrival push, contacts walls, voice consent walls, sealed-message device keys walls, learner record walls)
         env:
           NEEDS: ${{ toJSON(needs) }}
         run: |

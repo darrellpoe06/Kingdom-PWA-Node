@@ -52,7 +52,7 @@ export const LEDGER_INDEX = 'docs/decisions/INDEX.md';
 export const LEGIBILITY_HEALTH = 'app/src/lib/legibility-health.json';
 export const LEDGER_FILES = [LEDGER_INDEX, LEGIBILITY_HEALTH];
 
-const ROW_RE = /^\| \[DR-(\d{4})\]/;
+const ROW_RE = /^\| \[DR-(\d{4})\]\(([^)]*)\)/;
 const NEXT_RE = /^\*\*Next ID:\*\*/;
 const MARKER_RE = /^(<{7}|>{7}|\|{7})(?: |$)/;
 
@@ -194,7 +194,14 @@ export function maxRowId(text) {
 export function normalizeLedger(text, { nextId } = {}) {
   if (conflictMarkerLines(text).length) throw new Error('normalizeLedger: text still carries conflict markers');
   const lines = text.split('\n');
-  const seen = new Set();
+  // DR id -> the file its row links to. Two rows with the same id and the SAME
+  // link are the one row arriving from both sides, which is the ordinary case
+  // this resolver exists for. Two rows with the same id and DIFFERENT links are
+  // two different decisions that claimed one number, which happened twice on
+  // 2026-10-06 (DR-0762 vault vs L213, DR-0756 cameras vs the reader). Keeping
+  // the first silently deleted a real decision from the ledger, so the resolver
+  // now refuses and names both files and the number to use instead.
+  const seen = new Map();
   const removedRows = [];
   const out = [];
   const annotationLists = [];
@@ -202,8 +209,19 @@ export function normalizeLedger(text, { nextId } = {}) {
   for (const line of lines) {
     const row = ROW_RE.exec(line);
     if (row) {
-      if (seen.has(row[1])) { removedRows.push(`DR-${row[1]}`); continue; }
-      seen.add(row[1]);
+      if (seen.has(row[1])) {
+        const first = seen.get(row[1]);
+        if (first !== row[2]) {
+          throw new Error(
+            `normalizeLedger: two different decisions claim DR-${row[1]} — ${first} and ${row[2]}. `
+            + 'This is a number collision, not a duplicate row, and folding them would delete one '
+            + `decision from the ledger. Renumber the newer file to DR-${String(maxRowId(text) + 1).padStart(4, '0')} `
+            + '(its file name, its INDEX row and every reference to it), then run this again.');
+        }
+        removedRows.push(`DR-${row[1]}`);
+        continue;
+      }
+      seen.set(row[1], row[2]);
       out.push(line);
       continue;
     }

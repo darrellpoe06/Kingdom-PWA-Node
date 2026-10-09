@@ -76,6 +76,15 @@ A feature that increases engagement but doesn't improve QoL is rejected. A reven
 - **Quarterly QoL review (Governor cadence):** Darrell + Christina review the platform's overall QoL impact each quarter. Sectors trending up; sectors trending down; sectors the family + community asked for that haven't shipped yet; sectors no one's using that should be retired.
 - **Family-voice channel for QoL feedback:** workflow 30 (family feedback intake) gets a `qol-impact` tag for feedback specifically about whether the platform is improving the family's life. Higher priority than other feedback types.
 
+### Rows, forms and the panels they open (added 2026-10-09, declared by Darrell; DR-0838)
+
+*"Couldn't see these forms and options... Supposed to be in tabs never scrolled to the bottom of the page... Mandatory Ways... Never again unless asked."* The rule, binding on every surface:
+
+- **Words stay whole.** A person's name, a label, a title breaks between words, never inside one. `break-all` belongs to URLs, codes, keys and log lines only. The consistency guard counts `break-all` on a line that renders a person's name as drift and fails the build on the first one.
+- **A row's controls wrap under the name on a narrow screen.** A row that holds selects, inputs or buttons beside text is `flex-wrap`; the text keeps a real width (`basis-full` on a phone, `flex-1` beside the controls on a wider screen); the controls take the next line rather than squeezing the words out.
+- **A control's panel opens in place.** What a row's button opens (a checklist, a record, an inspector) renders directly under that row, or in that row's own tab, and is reachable without scrolling past anything the row itself produced. Never appended at the end of the page, never reached by a scroll the person did not ask for.
+- **The default is the phone.** Every row is read first at 360 px wide (the chrome-layout probe's narrow pass); a layout that only works on a desktop is wrong by default.
+
 ## Connection to other foundations
 
 - **THE-WAY** — abundant life made measurable. The Way's outcomes ARE the QoL outcomes.

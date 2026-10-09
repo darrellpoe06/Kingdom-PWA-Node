@@ -82,6 +82,13 @@ describe('the road — each stage done only on evidence', () => {
     expect(road.current.key).toBe('building');
   });
 
+  it('DR-0771: the stale alarm is read from the row\'s own field, count and last time; a row never alarmed shows none', () => {
+    const [plain] = lessonItems([spoken('s0', DESK, '2026-10-04T13:50:31Z')]);
+    expect(plain.stale).toEqual({ count: 0, lastAt: '' });
+    const [rung] = lessonItems([spoken('s1', DESK, '2026-10-04T13:50:31Z', ['stale-alarm@2026-10-07T04:00:00Z', 'stale-alarm@2026-10-08T04:00:00Z', 'stale-alarm@garbage'])]);
+    expect(rung.stale).toEqual({ count: 2, lastAt: '2026-10-08T04:00:00Z' });
+  });
+
   it('a spoken lesson waiting for Whisper waits; a failed one says why and stops', () => {
     const [waiting] = lessonItems([spoken('v2', DESK, '2026-09-29T09:00:00Z')]);
     expect(byStage(deriveLessonPipeline(waiting, { owner: true, catalog: CATALOG }))).toMatchObject({ words: 'waiting', building: 'waiting' });

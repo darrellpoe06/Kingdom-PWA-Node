@@ -38,14 +38,17 @@ export const HOUSE_ORIGIN = 'https://poetech.us';
 // the moment it is added.
 export const REHOMED_ROUTES = Object.freeze([
   '/api/',
+  '/cams/',
   '/llm/',
   '/n8n/',
   '/nas-photos/',
+  '/openers/',
   '/poetech-app/taxes/',
   '/reviews/',
   '/sb/',
   '/scribe/',
   '/store/',
+  '/taxes/',
   '/voice/',
   '/voice-lite/',
   '/ways/',
