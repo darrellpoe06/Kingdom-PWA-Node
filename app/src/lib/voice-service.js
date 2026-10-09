@@ -235,7 +235,14 @@ export async function synthesizeSpeech({
       return { error: 'voice-service-empty' };
     }
     if (!referenceDataUri && allowBuiltIn) builtInSupport = 'yes';
-    return { url: URL.createObjectURL(blob) };
+    // WHICH VOICE ACTUALLY SPOKE (2026-10-09). A cloned voice and a stand-in
+    // are not interchangeable, and the reader could not tell them apart: with
+    // the studio dark the engine fell back silently while the picker still
+    // read "My voice (Darrell)". Darrell heard it before any surface said it:
+    // "Switched to a female voice..." Every successful synthesis now names
+    // its own engine so the caller can report the truth instead of the
+    // request. 'studio' is the real cloned timbre.
+    return { url: URL.createObjectURL(blob), engine: 'studio' };
   } catch (e) {
     if (!referenceDataUri && allowBuiltIn) builtInSupport = 'no';
     if (timedOut) return { error: 'voice-service-timeout' };
@@ -381,27 +388,7 @@ export function mayAttemptStudio() {
 // (infra/nas-voice-lite): always AUDIO, so a reading in it plays on like music.
 // Same lock as /voice (the family bridge bearer). A miss is remembered briefly
 // so a dark road is paid for once, not on every paragraph.
-// SAME-ORIGIN BY DEFAULT. The override exists because of 2026-10-09: every
-// Cloudflare Pages Function on poetech.us stopped being invoked, and all three
-// voice roads this file knows -- /api/voice-speak, /voice and /voice-lite --
-// ARE Pages Functions, so the reading voice lost every transport at once.
-//
-// A phone barely noticed, because it falls back to the browser's own speech.
-// A Fire TV cannot: Silk exposes speechSynthesis and does not deliver it (see
-// TTSControl.jsx), so the Firestick had no second road and went silent. That
-// is exactly the device Darrell reported: "the voice reader doesn't work on
-// the Firestick anymore."
-//
-// /voice-lite is the only voice road actually mounted on the Funnel
-// (127.0.0.1:8772), so it is the one that can carry a reading while the
-// Function layer is dark. Unset in every normal build, so the same-origin road
-// below is what ships. Safe only because the Piper server now answers CORS for
-// this one origin (infra/nas-voice-lite/voice_lite_server.py,
-// CORS_ALLOWED_ORIGINS) -- measured 2026-10-09, the Funnel itself adds none
-// (/voice-lite preflight 501, allow-origin none). Remove with the sign-in and
-// camera unlocks once the Functions run again.
-const LITE_BASE = (env('VITE_VOICE_LITE_BASE') || '/voice-lite').replace(/\/+$/, '');
-export const LITE_VOICE_PATH = `${LITE_BASE}/speak`;
+export const LITE_VOICE_PATH = '/voice-lite/speak';
 export const LITE_FIRST_TIMEOUT_MS = 15000;   // the first, short piece on a NAS CPU
 export const LITE_TIMEOUT_MS = 60000;         // later pieces are prefetched while one plays
 export const LITE_DOWN_MS = 2 * 60 * 1000;
@@ -553,7 +540,8 @@ async function synthesizeLiteOnce({ text, voice = 'male', format, speed = 1, tim
     if (!blob || !blob.size) return { error: 'voice-lite-empty' };
     // The blob rides along so the reader can keep the clip on the device
     // (lib/clip-cache.js, DR-0659), and says which shape it is.
-    return { url: URL.createObjectURL(blob), blob, format: formatOfType(ctype || (blob.type || '')) };
+    // 'voice-lite' is Piper on the NAS: a real voice, but NOT the cloned one.
+    return { url: URL.createObjectURL(blob), blob, format: formatOfType(ctype || (blob.type || '')), engine: 'voice-lite' };
   } catch (e) {
     return { error: timedOut ? 'voice-lite-timeout' : ((e && e.message) || 'voice-lite-error') };
   } finally {
