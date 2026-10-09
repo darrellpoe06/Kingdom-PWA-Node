@@ -14,7 +14,7 @@
 // =============================================================================
 
 import supabase from './supabase.js';
-import { upsertContact, readContacts } from './saved-contacts.js';
+import { upsertContact, readContacts, removeContact } from './saved-contacts.js';
 import { importKey, toSavedContact } from './contacts-import.js';
 
 export const CONTACT_SOURCES = ['picker', 'file', 'manual'];
@@ -83,4 +83,88 @@ export async function loadMyContacts({ client = supabase } = {}) {
 /** The device list, so a surface can show contacts before the table answers. */
 export function cachedContacts(storage) {
   return readContacts(storage);
+}
+
+// ── THE KEEPER PULLS BACK (DR-0826) ───────────────────────────────────────────
+// DR-0736 wrote every import to the table AND the device; the Messages list
+// read only the device. So a contact brought in on the phone never showed on
+// the Fold, and one added by hand never reached the server at all. Darrell
+// 2026-10-09: "Names and cellphone numbers are not being synchronized!!" The
+// three roads below close it: pull the table into this device's list on open,
+// keep a hand-added contact on the server too, and forget on the server what
+// is forgotten here (else it returns on the next pull).
+
+function race(promise, timeoutMs, onTimeout) {
+  const timer = new Promise((resolve) => setTimeout(() => resolve(onTimeout), timeoutMs));
+  return Promise.race([promise, timer]);
+}
+
+/** The device-list row for a table row: name, first phone, first email. */
+export function tableRowToDevice(row = {}) {
+  return {
+    name: row.name || '',
+    phone: (row.phones || [])[0] || '',
+    email: (row.emails || [])[0] || '',
+    status: 'saved',
+  };
+}
+
+/**
+ * Pull your rows from the table into this device's list, merging onto the
+ * same people (saved-contacts.js matches on a shared phone or email), so every
+ * phone you sign in on shows the same contacts.
+ * @returns {{ ok: boolean, pulled: number, reason: string }}
+ */
+export async function pullMyContacts({ client = supabase, storage, timeoutMs = 6000 } = {}) {
+  let r;
+  try {
+    r = await race(loadMyContacts({ client }), timeoutMs, { ok: false, rows: [], reason: `the server did not answer within ${Math.round(timeoutMs / 1000)}s` });
+  } catch (e) {
+    r = { ok: false, rows: [], reason: e && e.message ? e.message : String(e) };
+  }
+  if (!r.ok) return { ok: false, pulled: 0, reason: r.reason || 'the server did not answer' };
+  let pulled = 0;
+  for (const row of r.rows) {
+    const c = tableRowToDevice(row);
+    if (!c.name && !c.phone && !c.email) continue;
+    try { upsertContact(storage, c, row.created_at || ''); pulled += 1; } catch { /* a bad row never stops the rest */ }
+  }
+  return { ok: true, pulled, reason: '' };
+}
+
+/**
+ * Keep a contact added by hand on the server too (source 'manual'). The
+ * device list is the caller's; this is the keeper's half. Never throws.
+ * @returns {{ ok: boolean, reason: string }}
+ */
+export async function keepContactOnServer(contact = {}, { client = supabase } = {}) {
+  try {
+    const key = importKey({ name: contact.name, phones: contact.phone ? [contact.phone] : [], emails: contact.email ? [String(contact.email).toLowerCase()] : [] });
+    if (!key) return { ok: false, reason: 'nothing identifying to keep' };
+    const ownerId = await currentUserId(client);
+    if (!ownerId) return { ok: false, reason: 'Not signed in, so it is kept on this device only.' };
+    const row = toTableRow({ key, contact: { name: contact.name || '', phones: contact.phone ? [contact.phone] : [], emails: contact.email ? [String(contact.email).toLowerCase()] : [], addresses: [], org: '', note: '' } }, { ownerId, source: 'manual' });
+    const { error } = await client.from('contacts').upsert([row], { onConflict: 'owner_id,contact_key' });
+    if (error) return { ok: false, reason: error.message || String(error) };
+    return { ok: true, reason: '' };
+  } catch (e) {
+    return { ok: false, reason: e && e.message ? e.message : String(e) };
+  }
+}
+
+/**
+ * Forget a contact here AND on the server, by its stable key. Only the owner's
+ * row can match (RLS). Never throws.
+ * @returns {{ ok: boolean, reason: string }}
+ */
+export async function forgetContactEverywhere(id, { client = supabase, storage } = {}) {
+  try { removeContact(storage, id); } catch { /* device best effort */ }
+  if (!id) return { ok: false, reason: 'no key' };
+  try {
+    const { error } = await client.from('contacts').delete().eq('contact_key', id);
+    if (error) return { ok: false, reason: error.message || String(error) };
+    return { ok: true, reason: '' };
+  } catch (e) {
+    return { ok: false, reason: e && e.message ? e.message : String(e) };
+  }
 }
