@@ -91,6 +91,19 @@ afterEach(async () => {
 });
 
 describe('Admin roster, named from your contacts', () => {
+  it('the row wraps, the name keeps whole words and the full width first, and the controls go under it (DR-0838)', async () => {
+    store.table = { ok: true, rows: [{ name: 'Christyn Poe (test)', phones: ['(555) 010-0498'], emails: [] }], reason: '' };
+    await mountAndLoadRoster();
+    const row = host.querySelector('[data-testid="roster-row"] > div');
+    expect(row, 'the roster row').toBeTruthy();
+    expect(row.className).toMatch(/\bflex-wrap\b/);
+    const name = host.querySelector('[data-testid="roster-row-name"]');
+    expect(name.className).toMatch(/\bbasis-full\b/);
+    expect(name.className).toMatch(/\bbreak-words\b/);
+    expect(name.className).not.toMatch(/\bbreak-all\b/);
+    expect(host.querySelector('[data-testid="roster-row-controls"]').className).toMatch(/\bflex-wrap\b/);
+  });
+
   it('a phone-door member with no display name reads as the person the steward knows', async () => {
     store.table = { ok: true, rows: [
       { name: 'Sister Lamb', phones: ['(555) 010-0498'], emails: [] },

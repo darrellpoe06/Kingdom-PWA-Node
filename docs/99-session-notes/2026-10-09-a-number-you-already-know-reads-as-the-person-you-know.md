@@ -79,3 +79,16 @@ The diag said why two of the four TV cameras never opened: go2rtc dials the addr
 ## Christyn's badge (DR-0836)
 
 The add worked and the list re-read; the read itself was wrong. 0079 named each account by its earliest space, and a self-serve account's own space is always earliest. 0257 ranks the family first, then church, then a business, then the own space, and counts how many spaces hold the person. The smoke fails on 0079 and passes on 0257 on a local PostgreSQL; the role-control isolation leg runs it on the hosted database from now on. Owed after merge: db-migrate applies 0257 and Christyn's row reads FAMILY on the live build.
+
+
+## Inside the door (DR-0837)
+
+Darrell's two screenshots of the Poe Properties door and his line "they should be options inside the apartment" named the design. The manager's face now leads with Doors; Work board and Dispatch sit inside the chosen door with its header and an open-work count. The dispatch picks a real invited 1099 worker and, on Text it, assigns the job, marks it scheduled and writes a note on the door's history; the worker's My jobs is only what is theirs. Eight new cases over the pure roster, text and record, and the real app mounted as landlord and worker.
+
+## Christyn's row, one letter per line (DR-0838)
+
+His next screenshots: the Admin roster row squeezed her name into a column of letters and her panels landed at the bottom of the page. A no-wrap flex row with break-all on the name. The row wraps now, words stay whole, controls take the next line on a phone; the Way is written in QUALITY-OF-LIFE-AS-NORTH-STAR and LESSONS P72, and the consistency guard refuses break-all on a person's name from here on.
+
+## The ledger collision
+
+While this was in flight another lane merged L223 as DR-0834. The camera roads record became DR-0835 and the signups category record DR-0836 on the merge; the two records written after them are DR-0837 and DR-0838.
