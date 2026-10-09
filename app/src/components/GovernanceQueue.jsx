@@ -23,6 +23,7 @@ import supabase from '../lib/supabase.js';
 import ReactionBar from './ReactionBar.jsx';
 import HelpButton from './HelpButton.jsx';
 import { reactionsFor } from '../lib/reactions.js';
+import ReReviewTimeline from './ReReviewTimeline.jsx';
 import { subscribeReactions, toggleReaction, fetchReactors } from '../lib/reactions-sync.js';
 
 // Guarded so tests / SSR that don't run the vite define still render.
@@ -338,6 +339,10 @@ export default function GovernanceQueue({ appDecisions = [], familyInstanceId = 
             );
           })()}
         </section>
+
+        {/* THE TIMELINE (DR-0832): when each decision comes back, read from the
+            same ledger; passed dates first and named as passed. */}
+        {ledger.items.length > 0 && <ReReviewTimeline items={ledger.items} />}
 
         {ledger.items.length === 0 ? (
           <div className="bg-white border border-[#E8E4DC] p-6 text-center">
