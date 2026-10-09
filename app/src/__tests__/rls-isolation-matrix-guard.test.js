@@ -105,10 +105,14 @@ describe('rls-isolation-matrix-guard — every referenced file exists (DR-0239 g
   });
 });
 
-// Proven-to-catch (DR-0076 Section 3): the shape that left the hosted project
-// without public_vacancies() for the length of a chain, which failed
-// db-migrate run 36090407494's witness.
-describe('rls-isolation-matrix-guard — each leg is ONE transaction', () => {
+// Proven-to-catch (DR-0076 Section 3), two shapes that each failed for real:
+//   OLD   (before 2026-09-25): the pre-step committed on its own and every
+//         file applied alone, so the hosted project had no public_vacancies()
+//         for the length of a chain (db-migrate run 36090407494's witness);
+//   WHOLE (2026-09-25 to 2026-10-09): pre-step and the whole chain in one
+//         transaction, which ran the hosted project out of lock slots on four
+//         legs before any smoke ran (rls-isolation runs 282, 283; DR-0831).
+describe('rls-isolation-matrix-guard — the pre-step group is one transaction, every later file its own', () => {
   const OLD = [
     '        run: |',
     "          PRE=${{ toJSON(matrix.pre || '') }}",
@@ -119,13 +123,31 @@ describe('rls-isolation-matrix-guard — each leg is ONE transaction', () => {
     '            psql "$DBURL" --single-transaction -v ON_ERROR_STOP=1 -f "infra/supabase/migrations-auto/${mig}"',
     '          done',
   ].join('\n');
-  it('CATCHES a pre-step that commits on its own and a per-file chain', () => {
+  const WHOLE = [
+    '        run: |',
+    "          PRE=${{ toJSON(matrix.pre || '') }}",
+    '          ARGS=()',
+    '          if [ -n "$PRE" ]; then',
+    '            ARGS+=(-c "$PRE")',
+    '          fi',
+    '          for mig in ${{ matrix.migrations }}; do',
+    '            ARGS+=(-f "infra/supabase/migrations-auto/${mig}")',
+    '          done',
+    '          psql "$DBURL" --single-transaction -v ON_ERROR_STOP=1 "${ARGS[@]}"',
+  ].join('\n');
+  it('CATCHES a pre-step that commits on its own and a per-file chain straight from the list', () => {
     const p = checkAtomicApply(OLD);
     expect(p.some((x) => /pre-step runs as its own psql command/.test(x))).toBe(true);
-    expect(p.some((x) => /each migration in its own psql transaction/.test(x))).toBe(true);
-    expect(p.some((x) => /no single psql --single-transaction/.test(x))).toBe(true);
+    expect(p.some((x) => /straight from the matrix list/.test(x))).toBe(true);
+    expect(p.some((x) => /no psql --single-transaction call carries/.test(x))).toBe(true);
   });
-  it('the real workflow applies pre-step + chain in one psql --single-transaction', () => {
+  it('CATCHES the whole chain in one transaction (lock exhaustion on the hosted project)', () => {
+    const p = checkAtomicApply(WHOLE);
+    expect(p.some((x) => /not split at the first file/.test(x))).toBe(true);
+    expect(p.some((x) => /each apply in their own psql --single-transaction/.test(x))).toBe(true);
+    expect(p.some((x) => /pre-step runs as its own/.test(x))).toBe(false);
+  });
+  it('the real workflow applies the pre-step group in one transaction and every later file on its own', () => {
     expect(checkAtomicApply(WORKFLOW)).toEqual([]);
   });
 });
