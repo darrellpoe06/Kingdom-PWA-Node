@@ -24,6 +24,11 @@ That is the whole of "not synchronized": the keeper kept, and nothing asked it.
 - The merge on pull is the device list's own: `upsertContact` matches on a shared phone or email, so a contact already on the device under an older name is updated to the server's name, not duplicated (pinned: two rows in, one row out, the server's name on it).
 - The all-at-once question, measured against the doors that exist: the .vcf upload takes a whole contacts file (every phone exports all contacts as one .vcf); the Contact Picker on Android Chrome is multi-select. Both land in the same plan and the same keeper.
 
+## Impact
+
+- Unresolved: a person who brought their contacts in on one phone opens Messages on another and sees none of them, and a contact added by hand is lost with the phone; the keeper DR-0736 promised is not a keeper. Every surface that names a number from the viewer's contacts (DR-0825) stays blind on every device but one.
+- The call obligates: one read path for the list (pull on open), one write path for a hand-added contact (device and server), and a Remove that reaches both, with the list always saying where it came from.
+
 ## Decision
 
 1. On opening Messages, the viewer's rows are pulled from the table into this device's list, merged onto the same people. The Saved contacts line says `N from your own server, the same list on every phone you sign in on`, or `Showing this device's list; your server did not answer (reason)`, never silence (DR-0076 rule 8).

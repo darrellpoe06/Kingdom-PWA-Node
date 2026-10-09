@@ -12,6 +12,17 @@
 
 A browser cannot read a MAC address, so no sign-in ever carries one; that stays true. But the church device register already holds the MACs a real LAN scan read (`specs.mac`, scan-confirmed, DR-0076 provenance), and nothing tied a register row to the person whose device it is. The tie is one column and one picker.
 
+## What was measured
+
+- `church_devices` (0056) carries `specs.mac` for the devices a real LAN scan read (`DC-ED-84-A0-B4-CA — scan-confirmed 2026-09-18` and its siblings in the seed register) and a free-text `steward`, but no column naming the person whose device it is; `deviceToRow` / `deviceFromRow` mapped no such field, so nothing could have carried one.
+- The register's walls: read and write by the space's owner/admin/member, delete by owner/admin; unchanged by one nullable column.
+- Proven to catch: with `ownerUserId` dropped from the column map, the mapper case fails on `owner_user_id`; with the LAN read removed, the roster case fails on *Her tablet* absent.
+
+## Impact
+
+- Unresolved: a MAC the LAN already recorded stays unreachable from the person it belongs to, and DR-0828's record keeps saying "not held" about a thing the house already holds.
+- The call obligates: assignment by an editor's hand only, never derived from a scan; the person's record shows the MAC exactly as the scan recorded it, or says it was not recorded.
+
 ## Decision
 
 1. `church_devices.owner_user_id` (0256), nullable, set only by an editor's hand in the register (Belongs to, from the space's roster, Nobody assigned first). Never derived from a scan.

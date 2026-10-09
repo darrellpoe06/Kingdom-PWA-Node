@@ -19,6 +19,11 @@ The roster row said who a member is and how to reach them (DR-0425-era member-co
 - Never in the cloud, by earlier decisions: the full SSN/EIN (the on-device tax-id vault, `tax-id-vault.js`, Contractors1099: only type and last four sync); a MAC address (a browser cannot read one; the NAS on the LAN can); a device fingerprint (0055 chose a coarse platform on purpose).
 - `church_devices` is the church's infrastructure register with a steward, not a person's phones; it is not a person field.
 
+## Impact
+
+- Unresolved: a steward asking "what do we know about this person" reads five surfaces and still cannot tell a blank from a thing the cloud never holds; a question like "what is her EIN" or "what is his MAC" gets guessed at instead of answered.
+- The call obligates: reads only, through the walls that already exist; an absence stated with its reason; nothing merged and nothing fingerprinted; the ways to reach a person as real actions.
+
 ## Decision
 
 1. One record per roster row, built pure from rows already read: who (own name, the contact name labelled), the sign-in doors with their source, the ways to reach them as real `sms:`, `tel:` and `mailto:` links, the devices seen newest first (message devices and presence), and a summary line that counts only what is there.

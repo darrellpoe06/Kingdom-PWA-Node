@@ -136,14 +136,14 @@ export default function PropertiesDoor() {
                 <>
                   <button
                     type="button"
-                    className="text-[0.625rem] uppercase tracking-wider underline text-[#5A5751] whitespace-nowrap"
+                    className="text-[0.625rem] uppercase tracking-wider underline text-[#5A5751] whitespace-nowrap focus:outline focus:outline-2 focus:outline-[#B85838]"
                     // Leaves THIS door only. Never calls supabase.auth.signOut(), so
                     // the PoeTech app on the same phone keeps its sign-in.
                     onClick={() => { leaveDoor(DOORS.properties); setLeft(true); }}
                   >Sign out of Poe Properties</button>
                   <button
                     type="button"
-                    className="text-[0.625rem] uppercase tracking-wider underline text-[#8A867E]"
+                    className="text-[0.625rem] uppercase tracking-wider underline text-[#8A867E] focus:outline focus:outline-2 focus:outline-[#B85838]"
                     // The real one. signOut() from lib/supabase (not
                     // supabase.auth.signOut) opens the deliberate-sign-out window, so
                     // the transient-logout guard does not "recover" it back in.
@@ -219,7 +219,7 @@ export default function PropertiesDoor() {
                 </button>
               </div>
               {showShare && (
-                <div className="mt-3 max-w-xl">
+                <div className="mt-3 inline-block">
                   <AppShareQR
                     url={PROPERTIES_SHARE_URL}
                     shown="poetech.us/properties/app"

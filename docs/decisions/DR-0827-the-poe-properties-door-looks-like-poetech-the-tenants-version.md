@@ -19,6 +19,11 @@ The door at `/properties/app/` was built lean on purpose (DR-0313): sign in, the
 - The themes, text-size steps and the hideaway key are the same the PoeTech shell writes, so one choice follows a person between the apps on the same phone.
 - Left out, with the why: Messages and push notifications ride instance membership (`push_subscriptions.instance_id`, `list_dm_contacts` over `instance_members`) and a tenant is a tenancy, not a member; the module's own per-door thread is the tenant's conversation. Lessons and the Word on this door are a tenant-facing identity choice (RELEASE-TIERS Tier B), not low-hanging chrome. Both `re-review: 2026-10-23`.
 
+## Impact
+
+- Unresolved: a tenant or a 1099 worker gets an app with no theme, no text size, no install control, no way to share it and no read-aloud, while the same person in the PoeTech app or the TLC door has all of them; the door reads as an afterthought, which is the opposite of DR-0313's intent.
+- The call obligates: the chrome comes from the shared libs only (no second copy, no monolith import), the door's own manifest and scope stay (DR-0258), and what is left out is said with a why and a date.
+
 ## Decision
 
 1. The door wears the platform chrome from the shared libs, as the TLC door does: themes, text size and the escape hatch, the hideaway top space, a sticky auto-hiding header, Install, Share · QR, read-aloud, the post-update toast.

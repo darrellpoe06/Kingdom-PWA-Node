@@ -20,6 +20,11 @@ The same screenshot showed a second fault: the phone door names an account by it
 - The isolation matrix's `role-control` leg applies the role chain to the hosted database inside one transaction and runs its smokes with rollback; 0255 and its smoke join that leg.
 - Proven on a local PostgreSQL 16 before pushing: the migration applies twice; the smoke prints `ADD USER SMOKE: PASS`; with the only-an-owner-grants-admin guard removed from a copy of the function, the smoke fails on *an admin granted admin*.
 
+## Impact
+
+- Unresolved: a family member who already signed in stays a "public signup" in her own private space until a claim link is minted, delivered, opened and approved, which in practice did not happen; the governor cannot give or do as admin from the list that shows him the account.
+- The call obligates: the grant stays under the role control's ceiling (never owner; only an owner mints or removes admin), is audited on every change, never touches the person's own space, and the invite road stays for people not yet on the list.
+
 ## Decision
 
 1. `add_user_to_instance(instance_uuid, target_user, new_role, display_name_in)`: caller signed in and owner/admin of the space; target a real account and never the caller; role in admin/member/viewer; only an owner grants or removes admin; an owner's row is never touched; idempotent (same role is a noop, another role is a change); audit-logged. The person's own self-serve space is untouched.
