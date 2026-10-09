@@ -37,6 +37,7 @@ import { buildLessonArc, readAloudTextFromArc } from './lesson-flow.js';
 import { chunkForClips } from './clip-queue.js';
 import { clipKey, deviceClipCache, loadCapMb, CAP_CHOICES_MB } from './clip-cache.js';
 import { toSpokenForm } from './speech-text.js';
+import { forSynthesis } from './synthesis-text.js';
 import { synthesizeLite } from './voice-service.js';
 import { preferredClipFormat } from './clip-format.js';
 import { hasBridgeToken } from './nas-photos.js';
@@ -183,7 +184,7 @@ export function lessonWords(module, bandId) {
 /** The voice pieces of a reading: the same cut and key the player uses. */
 export function readingPieces(text, voice = 'female') {
   return chunkForClips(String(text || '').trim()).map((c) => {
-    const spoken = toSpokenForm(c.text);
+    const spoken = forSynthesis(toSpokenForm(c.text)); // what the voice is handed, and what keys the clip (DR-0851)
     return { key: clipKey({ voice, text: spoken }), spoken };
   });
 }

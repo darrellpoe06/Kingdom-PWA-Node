@@ -33,6 +33,11 @@ import { loadReference, blobToDataUri } from './voice-reference.js';
 import { loadVoiceProfiles } from './voice-sync.js';
 import { createBackgroundAudio, silentWavDataUri } from './background-audio.js';
 import { toSpokenForm } from './speech-text.js';
+// THE VOICE IS HANDED SHORT, CLOSED SENTENCES (DR-0851): the written piece
+// stays the piece on the page; what the Piper voice synthesizes, and what
+// keys its cache, is the piece shaped so no inference carries a clause run.
+import { forSynthesis } from './synthesis-text.js';
+const forVoice = (t) => forSynthesis(toSpokenForm(t));
 import { clipFraction, estimateClipSeconds, seekableEndOf } from './clip-progress.js';
 import { applyClipRate, clipRateNotice } from './clip-rate.js';
 import { supabase } from './supabase.js';
@@ -579,10 +584,10 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     const paceFor = (r) => voiceSpeedFor(r);
     const pinned = paceFor(rateRef.current);
     const speakPiece = async (t, timeoutMs, sp) => {
-      let got = await synthesizeLite({ text: toSpokenForm(t), voice, speed: sp, timeoutMs });
+      let got = await synthesizeLite({ text: forVoice(t), voice, speed: sp, timeoutMs });
       for (let tries = 0; got.error === 'voice-lite-503' && tries < 4; tries++) {
         await new Promise((r) => setTimeout(r, 600 * (tries + 1)));
-        got = await synthesizeLite({ text: toSpokenForm(t), voice, speed: sp, timeoutMs });
+        got = await synthesizeLite({ text: forVoice(t), voice, speed: sp, timeoutMs });
       }
       // The source keeps the blob and makes its own URL for the player.
       if (got.url) { try { URL.revokeObjectURL(got.url); } catch (_) { /* ignore */ } }
@@ -594,8 +599,8 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     // a replay, a resume, a jump or a dropped connection plays from here.
     // The 1x pieces are what a download saves; a reading at another pace
     // streams and keeps its own pieces under their own keys.
-    const savedKeys = chunks.map((c) => clipKey({ voice, text: toSpokenForm(c.text) }));
-    const keysFor = (sp) => (sp === 1 ? savedKeys : chunks.map((c) => clipKey({ voice, text: toSpokenForm(c.text), speed: sp })));
+    const savedKeys = chunks.map((c) => clipKey({ voice, text: forVoice(c.text) }));
+    const keysFor = (sp) => (sp === 1 ? savedKeys : chunks.map((c) => clipKey({ voice, text: forVoice(c.text), speed: sp })));
     const keys = keysFor(pinned);
     const cache = deviceClipCache();
     const sources = new Map();
@@ -855,7 +860,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
   const liteKeysFor = useCallback((text) => {
     const voice = liteVoiceFor();
     const chunks = chunkForClips(String(text || '').trim());
-    return { voice, chunks, keys: chunks.map((c) => clipKey({ voice, text: toSpokenForm(c.text) })) };
+    return { voice, chunks, keys: chunks.map((c) => clipKey({ voice, text: forVoice(c.text) })) };
   }, [liteVoiceFor]);
   const saveForListening = useCallback(async (text, { onProgress, signal } = {}) => {
     const { voice, chunks, keys } = liteKeysFor(text);
@@ -867,10 +872,10 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
       keys,
       cache: deviceClipCache(),
       fetchBlob: async (i) => {
-        let got = await synthesizeLite({ text: toSpokenForm(chunks[i].text), voice });
+        let got = await synthesizeLite({ text: forVoice(chunks[i].text), voice });
         for (let tries = 0; got.error === 'voice-lite-503' && tries < 4; tries++) {
           await new Promise((r) => setTimeout(r, 600 * (tries + 1)));
-          got = await synthesizeLite({ text: toSpokenForm(chunks[i].text), voice });
+          got = await synthesizeLite({ text: forVoice(chunks[i].text), voice });
         }
         if (got.url) { try { URL.revokeObjectURL(got.url); } catch (_) { /* ignore */ } }
         return got;
@@ -891,7 +896,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
       const voice = (readingPinRef.current && readingPinRef.current.gender) || liteVoiceFor();
       const chunks = chunkForClips(String(text || '').trim());
       if (!chunks.length) return false;
-      const s = await deviceClipCache().status(chunks.map((c) => clipKey({ voice, text: toSpokenForm(c.text) })));
+      const s = await deviceClipCache().status(chunks.map((c) => clipKey({ voice, text: forVoice(c.text) })));
       return !!s && s.total > 0 && s.saved === s.total;
     } catch (_) { return false; }
   }, [liteVoiceFor]);
@@ -911,7 +916,7 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
     const paceFor = (r) => voiceSpeedFor(r);
     const pinned = paceFor(rateRef.current);
     const speakPiece = (t, timeoutMs, sp = pinned) => synthesizeSpeech({
-      text: toSpokenForm(t), voiceId: voice.id, personKey, referenceDataUri, timeoutMs, speed: sp,
+      text: forVoice(t), voiceId: voice.id, personKey, referenceDataUri, timeoutMs, speed: sp,
     }).then((r) => (r && r.url ? { ...r, speed: sp } : r));
     const first = await speakPiece(chunks[0].text, speakTimeoutFor(studioHealth));
     // An XTTS clone takes its time; a jump made while it worked owns the voice now.

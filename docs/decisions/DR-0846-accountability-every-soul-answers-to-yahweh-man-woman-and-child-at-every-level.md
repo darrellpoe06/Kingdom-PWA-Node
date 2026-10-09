@@ -13,6 +13,13 @@ Most teaching on accountability aims the word at whoever holds the office and le
 
 The garden is the whole lesson in miniature: Yahweh asked each for their own account, both excuses ended on *I did eat*, and neither transfer was accepted (Genesis 3:9-13; Genesis 4:9).
 
+**Two more words the same day, folded in as movements TEN and ELEVEN (2026-10-09).** Darrell: *"Having the ability to see our sins is not The Skill... Holding our flesh accountable is the HighestLevel!!!!!!"*, then *"I guess it is a skill... seeing our sins... we also can't see..."*; and *"Love Loves Disciplines... so we can be Comprehensive and understand Why we need to be accountable.... and have a practice of accountability so we always submit to the program and process."*
+
+- **TEN, seeing your sin is a skill you cannot do alone; holding your flesh accountable is the highest level.** The seeing is asked for and supplied (Psalms 19:12; Jeremiah 17:9-10; Psalms 139:23-24; John 16:8; Hebrews 4:12; Matthew 7:3-5; Revelation 3:18; Lamentations 3:40; and a Nathan). The highest level is what is done with what is seen (Romans 7:18-19; 1 Corinthians 9:27; Romans 8:13; Galatians 5:24; Romans 6:12-13; 1 Peter 2:11; Romans 13:14; Titus 2:12; Proverbs 16:32; Proverbs 25:28; Luke 9:23).
+- **ELEVEN, Love loves discipline: why we need to be accountable, and the practice that keeps us submitted.** The why (Hebrews 12:6-11; Proverbs 3:11-12; Revelation 3:19; Psalms 94:12; Proverbs 10:17; Proverbs 15:32) and the practice (1 Corinthians 11:28; 2 Corinthians 13:5; Psalms 4:4; Daniel 6:10; Acts 2:42; 1 Timothy 4:7; Hebrews 5:14; Hebrews 12:9).
+
+The later movements renumbered (one to another, grace, the conclusion). Re-measured with both in: adult 1,909 prose words; child 1,012 (0.530), youth 1,237 (0.648), teen 1,321 (0.692), senior 1,430 (0.749); child FK 2.00; 89 anchor references, every one taught; the gate requires both movements in every band and grew to 19 cases.
+
 ## What was measured
 
 Band weight against the real adult prose (`scripts/full-levels.mjs`, quoted Scripture excluded on both sides):
