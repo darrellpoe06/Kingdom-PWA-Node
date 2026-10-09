@@ -107,3 +107,8 @@ Darrell: "sort users... comprehensively understand our users... what they couldn
 ## The 805 cameras for the household (DR-0841)
 
 Darrell: "add the Wyze cameras for 805 Prospect Ave... porch etc... available when we want the tenants to have access." A camera grant now belongs to a door: the landlord's Cameras tab inside the door ticks the 805 cameras, mints a grant on the NAS named for the door and writes it onto the tenancy row; the household's Cameras tab reads their own row and watches on that grant alone, through the same road; taking it back revokes on the NAS and clears the row.
+
+
+## The seats (DR-0842)
+
+Darrell: "I want my kids to see how to manage these systems from all positions... before they need to." The Known fold on the Admin roster now reads every seat a person holds from the rows, which they have walked from their opens, and lists the seats not yet theirs with the placement that grants each. The training lane for a seat not yet held is the next record.
