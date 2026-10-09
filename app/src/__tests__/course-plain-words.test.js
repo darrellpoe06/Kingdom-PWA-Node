@@ -135,6 +135,8 @@ describe('THE TITLES ARE UNTOUCHED — this is additive or it is wrong', () => {
 // re-review: 2026-11-09
 const finds = (query, courseKey, limit = index.length) =>
   searchLessons(index, query, limit).some((r) => r.courseKey === courseKey);
+const hits = (query, courseKey, limit = index.length) =>
+  searchLessons(index, query, limit).filter((r) => r.courseKey === courseKey);
 
 describe('the connection is REAL, measured through the live search (DR-0076 §6)', () => {
 
@@ -170,6 +172,21 @@ describe('the connection is REAL, measured through the live search (DR-0076 §6)
     expect(finds('zzqqxx', 'eternal-wisdom')).toBe(false);
     // And the whole-index window is a real window, not infinity-by-accident.
     expect(index.length).toBeGreaterThan(400);
+  });
+
+  // STRONGER THAN THE WINDOW IT REPLACES, and not catalog-size dependent: a
+  // course is not "reached" by a row that carries no lesson. Every declared
+  // word must land on a real lesson of its own course, named.
+  it('every declared word lands on a REAL lesson of its own course', () => {
+    const hollow = [];
+    for (const [key, words] of Object.entries(COURSE_PLAIN_WORDS)) {
+      if (!courses.some((c) => c.key === key)) continue;
+      for (const w of words) {
+        const real = hits(w, key).filter((r) => String(r.lessonId || '').trim() && String(r.title || '').trim());
+        if (!real.length) hollow.push(`${key}: ${w}`);
+      }
+    }
+    expect(hollow, hollow.slice(0, 10).join(', ')).toEqual([]);
   });
 
   it('the ranking debt is COUNTED, not hidden: common words die in the window the product uses', () => {
