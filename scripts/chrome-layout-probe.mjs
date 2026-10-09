@@ -194,6 +194,8 @@ let lessonMeasured = 0;
 let presenterMeasured = 0;
 let readerMeasured = 0;
 let readerFailuresBefore = 0;
+let lessonChromeFailuresBefore = 0;
+let lessonChromeMeasured = 0;
 let deviceFailuresBefore = 0;
 let deviceMeasured = 0;
 // COVERAGE, counted — not assumed (DR-0323). This probe reported `exit 0` on
@@ -1249,6 +1251,90 @@ try {
   if (readerMeasured !== READER_CASES.length) fail(`coverage: ${readerMeasured}/${READER_CASES.length} reader cases measured`);
 
   // ---------------------------------------------------------------------------
+  // LESSON-CHROME pass (DR-0816). Darrell 2026-10-08, with a photograph of L218
+  // on the television: "Fix it." The lesson's own sticky block — nav row,
+  // two-line title, STEP x OF y bar — had grown into the reading at the big
+  // text sizes, so the words arrived in a slot instead of on a page.
+  //
+  // DR-0438 already settled the rule, in his words: "the controls should never
+  // get bigger." Only the nav row was ever held to it; the title row and the
+  // progress block were not. Measured at 1280x720 before the fix: the block was
+  // 93px at Normal and 194px at Big Print 44, and the progress block alone went
+  // 43px -> 118px.
+  //
+  // So the invariant is DR-0438 itself, measured on the real block:
+  //   L1. THE BLOCK DOES NOT GROW — its height at Big Print 44 is within
+  //       LESSON_CHROME_GROWTH of its height at Normal.
+  //   L2. THE TITLE'S TYPE DOES NOT GROW — the same computed font-size at Big
+  //       Print 44 as at Normal.
+  // --selftest-break puts the uncapped sizes back; both must trip.
+  // ---------------------------------------------------------------------------
+  lessonChromeFailuresBefore = failures;
+  const LESSON_CHROME_GROWTH = 1.3;
+  const LESSON_URL = `${origin}${BASE}/?view=church&sub=learn&course=living-lessons&lesson=ll218-do-not-switch-up-on-his-way-yahwehs-principles-documented-no-offense-taken-and-letting-him-win-so-we-win`;
+  const LESSON_CHROME_CASES = SELFTEST
+    ? [{ w: 1280, h: 720 }]
+    : (SWEEP ? [{ w: 1280, h: 720 }, { w: 960, h: 540 }, { w: 390, h: 844, mobile: true }] : []);
+  for (const lc of LESSON_CHROME_CASES) {
+    const where = `lesson chrome@${lc.w}x${lc.h}`;
+    const read = async (sz) => {
+      const page = await browser.newPage({
+        viewport: { width: lc.w, height: lc.h },
+        ...(lc.ua ? { userAgent: lc.ua } : {}),
+        ...(lc.mobile ? { isMobile: true, hasTouch: true } : {}),
+      });
+      await page.addInitScript((s) => {
+        try {
+          localStorage.setItem('poetech.help.tour.v1', 'seen');
+          if (s === 'normal') localStorage.removeItem('poe-text-size'); else localStorage.setItem('poe-text-size', s);
+        } catch (_) { /* private mode */ }
+      }, sz);
+      await page.goto(LESSON_URL, { waitUntil: 'domcontentloaded', timeout: 45000 }).catch(() => {});
+      const there = await page.waitForSelector('[data-testid="lesson-space-title"]', { timeout: 30000 }).then(() => true).catch(() => false);
+      if (!there) { await page.close(); return null; }
+      await page.waitForTimeout(700);
+      if (SELFTEST) {
+        // The break: the sizes the block had before the cap — the title riding
+        // the full root scale and the chrome regions unzoomed.
+        await page.addStyleTag({
+          content: [
+            '[data-testid="lesson-space-title"] { font-size: 0.875rem !important }',
+            '[data-testid="lesson-space-title-toggle"] { font-size: 0.75rem !important }',
+            '[data-testid="lesson-space-title-row"] { padding-top: 0.375rem !important; padding-bottom: 0.375rem !important }',
+            '.lesson-space-sticky .ts-chrome-region { zoom: 1 !important }',
+          ].join('\n'),
+        });
+        await page.waitForTimeout(200);
+      }
+      const m = await page.evaluate(() => {
+        const sticky = document.querySelector('.lesson-space-sticky');
+        const h2 = document.querySelector('[data-testid="lesson-space-title"]');
+        return {
+          h: sticky ? Math.round(sticky.getBoundingClientRect().height) : null,
+          type: h2 ? getComputedStyle(h2).fontSize : null,
+        };
+      });
+      await page.close();
+      return m;
+    };
+    const base = await read('normal');
+    const big = await read('bigprint');
+    if (!base || !big || !base.h || !big.h) { fail(`${where}: the lesson space never opened — nothing was measured`); continue; }
+    const grew = big.h / base.h;
+    if (grew > LESSON_CHROME_GROWTH) {
+      fail(`${where}: the sticky block grows ${base.h}px -> ${big.h}px at Big Print 44 (${Math.round((grew - 1) * 100)}% over, cap ${Math.round((LESSON_CHROME_GROWTH - 1) * 100)}%) — the controls got bigger (DR-0438)`);
+    }
+    if (base.type !== big.type) {
+      fail(`${where}: the sticky title's type grows ${base.type} -> ${big.type} at Big Print 44 — chrome type is capped, only the words grow`);
+    }
+    lessonChromeMeasured += 1;
+    if (grew <= LESSON_CHROME_GROWTH && base.type === big.type) {
+      console.log(`lesson chrome ok  ${where} — block ${base.h}px -> ${big.h}px, title type ${base.type} at both`);
+    }
+  }
+  if (lessonChromeMeasured !== LESSON_CHROME_CASES.length) fail(`coverage: ${lessonChromeMeasured}/${LESSON_CHROME_CASES.length} lesson-chrome cases measured`);
+
+  // ---------------------------------------------------------------------------
   // DEVICE pass (DR-0678, remeasured for DR-0679). Darrell 2026-09-29:
   // "Laptop for creating... we need to be able to use the devices
   // appropriately", then "Why take away my type texting place?!" and
@@ -1395,7 +1481,8 @@ if (SELFTEST) {
   const tsTripped = readerFailuresBefore - tsFailuresBefore;
   // The reader pass (DR-0659): the mini-bar with its focus ring taken away
   // must trip the remote check.
-  const readerTripped = deviceFailuresBefore - readerFailuresBefore;
+  const readerTripped = lessonChromeFailuresBefore - readerFailuresBefore;
+  const lessonChromeTripped = deviceFailuresBefore - lessonChromeFailuresBefore;
   // The device pass (DR-0678/DR-0679): the subtab row hidden must trip.
   const deviceTripped = failures - deviceFailuresBefore;
   const lessonTripped = tsFailuresBefore - lessonFailuresBefore;
@@ -1403,11 +1490,13 @@ if (SELFTEST) {
   // The lesson pass now trips SEVEN ways: width-short, boxed control, a wall of
   // chips, an over-long block, the ballooned bar at Big Print, chrome that grew
   // with the text, and floaters on the comfort bar (DR-0438).
-  if (failures > 0 && chromeTripped > 0 && lessonTripped >= 7 && tsTripped >= 2 && readerTripped >= 1 && deviceTripped >= 1) {
-    console.log(`SELFTEST-BREAK OK — the probe CAN fail (${failures} tripped: ${chromeTripped} chrome, ${lessonTripped} lesson, ${tsTripped} textscale, ${readerTripped} reader, ${deviceTripped} device)`);
+  // The lesson-chrome pass (DR-0816) must trip BOTH ways: the block grown and
+  // the title's type grown.
+  if (failures > 0 && chromeTripped > 0 && lessonTripped >= 7 && tsTripped >= 2 && readerTripped >= 1 && lessonChromeTripped >= 2 && deviceTripped >= 1) {
+    console.log(`SELFTEST-BREAK OK — the probe CAN fail (${failures} tripped: ${chromeTripped} chrome, ${lessonTripped} lesson, ${tsTripped} textscale, ${readerTripped} reader, ${lessonChromeTripped} lesson-chrome, ${deviceTripped} device)`);
     process.exit(0);
   }
-  console.error(`SELFTEST-BREAK FAILED — a deliberate break tripped nothing (chrome: ${chromeTripped}, lesson: ${lessonTripped}, textscale: ${tsTripped}, reader: ${readerTripped}, device: ${deviceTripped}); the probe is theater`);
+  console.error(`SELFTEST-BREAK FAILED — a deliberate break tripped nothing (chrome: ${chromeTripped}, lesson: ${lessonTripped}, textscale: ${tsTripped}, reader: ${readerTripped}, lesson-chrome: ${lessonChromeTripped}, device: ${deviceTripped}); the probe is theater`);
   process.exit(1);
 }
 // The coverage assertion. A short run is a FAILED run, however clean its
@@ -1423,7 +1512,7 @@ if (measured !== expectedChrome) {
   console.error(`COVERAGE FAIL — measured ${lessonMeasured} of ${expectedLesson} lesson widths. A lesson that never rendered is not a pass.`);
   failures += 1;
 } else {
-  console.log(`coverage ok  ${measured}/${expectedChrome} chrome cases, ${lessonMeasured}/${expectedLesson} lesson cases, ${tsMeasured} text-scale cases, ${readerMeasured} reader cases, ${deviceMeasured} device cases measured.`);
+  console.log(`coverage ok  ${measured}/${expectedChrome} chrome cases, ${lessonMeasured}/${expectedLesson} lesson cases, ${tsMeasured} text-scale cases, ${readerMeasured} reader cases, ${lessonChromeMeasured} lesson-chrome cases, ${deviceMeasured} device cases measured.`);
 }
 
 process.exit(failures > 0 ? 1 : 0);

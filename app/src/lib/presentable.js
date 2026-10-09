@@ -40,6 +40,7 @@
 // stay on the presenter's laptop and can never reach the projected screen.
 // =============================================================================
 import { TEACH_CHANNEL, formatClock } from './teach-present.js';
+import { storyHeading, storyFootnote } from './story-truth.js';
 import { formatClassDate } from './church-classes.js';
 import { kjvText } from './scriptures.js';
 import { serviceKindLabel } from './service-day.js';
@@ -1048,7 +1049,7 @@ export function lessonPresentable(module, opts = {}) {
       if (big && stories.length) {
         stories.forEach((st) => {
           const body = String(st?.body || '').trim();
-          if (body) notes.push({ kind: 'body', heading: `Picture this — ${st.title || st.heading || 'the story'}`, body });
+          if (body) notes.push({ kind: 'body', heading: storyHeading({ ...st, title: st.title || st.heading || 'the story' }), body: `${body}\n\n${storyFootnote(st)}` });
         });
       }
       if (isReflect(seg.name) && quizQs.length) {

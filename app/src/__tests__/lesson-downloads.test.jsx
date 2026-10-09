@@ -31,7 +31,14 @@ const LL = COURSES.find((c) => c.meta.key === 'living-lessons');
 const CTX = courseContext(LL);
 // A lesson written at every level, and one written once for everybody.
 const LEVELED = LL.schedule.find((m) => lessonVersions(m).length >= 4);
-const SINGLE = COURSES.flatMap((c) => c.schedule).find((m) => lessonVersions(m).length === 1);
+// A lesson written once for everybody, CONSTRUCTED rather than hunted for.
+// This used to scan the live catalog for a module with a single reading
+// version. On 2026-10-09 that search returned nothing and the test failed:
+// the band work reached adultOnly 0, so no adult-only lesson exists any more,
+// by design (DR-0692). The assertion below is a property of bandsForChoice --
+// given one version, All resolves to Adult -- not a property of the catalog,
+// so it is pinned on a fixture that cannot be retired by our own success.
+const SINGLE = { ...COURSES.flatMap((c) => c.schedule)[0], levels: undefined };
 
 const fakeBlob = (n = 1000) => ({ size: n });
 function harness({ capBytes = 1e12 } = {}) {
@@ -224,6 +231,7 @@ describe('storage honesty', () => {
     await cache.put('held', fakeBlob(1000), { pin: 'lesson|adult' });
     await cache.put('casual', fakeBlob(1000));
     await cache.put('casual2', fakeBlob(1000));
+    await cache.flush(); // a put schedules the eviction, never waits on it (DR-0786)
     expect(await cache.has('held')).toBe(true);
     expect(await cache.has('casual')).toBe(false);
   });

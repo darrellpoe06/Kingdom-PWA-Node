@@ -99,9 +99,29 @@ export function sayTheBookOfJob(s) {
   });
 }
 
+// A DATE IS SAID AS A DATE, A RECORD BY ITS NAME (Darrell 2026-10-09, the NAS
+// voice on L227: "it babbles... Gibberish!!!"). The lessons carry the day they
+// were spoken as an ISO date, and 321 of them do (measured across the
+// catalog); espeak says "2026-10-09" as "two thousand twenty-six dash ten dash
+// zero nine", which is noise to a listener who cannot read along. A decision
+// record id ("DR-0848") was spelled letter by letter and digit by digit, and a
+// lesson number ("L227") as "ell two hundred twenty-seven". The written text
+// never changes; the voice says "October 9, 2026", "decision record 848" and
+// "lesson 227".
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const ISO_DATE_RE = /\b(20\d\d)-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])\b/g;
+const RECORD_RE = /\b(DR|REV)-0*(\d+)\b/g;
+const LESSON_RE = /\bL(\d{1,3})\b/g;
+export function sayDatesAndRecords(s) {
+  return String(s)
+    .replace(ISO_DATE_RE, (m, y, mo, d) => `${MONTHS[Number(mo) - 1]} ${Number(d)}, ${y}`)
+    .replace(RECORD_RE, (m, kind, n) => `${kind === 'DR' ? 'decision record' : 'review'} ${n}`)
+    .replace(LESSON_RE, (m, n) => `lesson ${n}`);
+}
+
 export function toSpokenForm(text) {
   if (text == null) return '';
-  const s = String(text);
+  const s = sayDatesAndRecords(String(text));
   if (!s) return '';
   // A shouted book name is un-shouted FIRST, or the matchers below never see
   // it (measured: 6 in the corpus, e.g. "HEBREWS 2:14").

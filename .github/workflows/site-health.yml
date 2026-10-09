@@ -218,6 +218,30 @@ jobs:
           PHOTO_CODE="$CODE"
           note "- \`GET /nas-photos/healthz\` -> **$CODE** (sovereign photo server, via Funnel)"
           [ "$PHOTO_CODE" = "200" ] || echo "::warning::photo path DOWN — /nas-photos/healthz returned HTTP $PHOTO_CODE (photo_server.py / Funnel / Pages Function hop)"
+          # The family camera road (DR-0756): /cams/health passes go2rtc's OWN
+          # answer through, so a 200 here proves Pages Function + Funnel +
+          # forwarder + go2rtc in one hop. Same v1 scope as the photo path: a
+          # loud warning, not the site-incident ledger (the NAS can be off).
+          fetch "https://poetech.us/cams/health"
+          CAMS_CODE="$CODE"
+          note "- \`GET /cams/health\` -> **$CODE** (family camera road: forwarder + go2rtc, via Funnel)"
+          # WHICH CODE THE NAS RUNS (2026-10-07): the forwarder names the sha of
+          # the file serving; beside the sha of main's copy, "deployed" is an
+          # observation, not an inference. The two differ until services-sync's
+          # next cycle restarts the service.
+          # This job has NO checkout (run 37573386665 crashed here reading the
+          # file from an empty workspace and filed a FALSE incident, #1986), so
+          # main's copy is fetched from GitHub; a miss is noted, never fatal.
+          CAMS_HEALTH="$(curl -sS -m 12 "https://poetech.us/cams/health" 2>/dev/null || true)"
+          CAMS_RUNNING="$(printf '%s' "$CAMS_HEALTH" | sed -n 's/.*"forwarder": *"\([0-9a-f]*\)".*/\1/p')"
+          CAMS_ON_DISK="$(printf '%s' "$CAMS_HEALTH" | sed -n 's/.*"on_disk": *"\([0-9a-f]*\)".*/\1/p')"
+          CAMS_MAIN="$(curl -fsS -m 12 "https://raw.githubusercontent.com/${REPO}/main/infra/nas-cameras/cams_forwarder.py" 2>/dev/null | sha256sum | cut -c1-16 || true)"
+          if [ -n "$CAMS_RUNNING" ] && [ -n "$CAMS_MAIN" ]; then
+            if [ "$CAMS_RUNNING" = "$CAMS_MAIN" ]; then note "- camera forwarder code: running \`$CAMS_RUNNING\` = main (the NAS runs main's forwarder)";
+            else note "- camera forwarder code: running \`$CAMS_RUNNING\`, main \`$CAMS_MAIN\`${CAMS_ON_DISK:+, on the NAS disk \`$CAMS_ON_DISK\`} -- the NAS has not restarted onto main yet (services-sync runs every 15 min; the Cameras tab can restart it)"; echo "::warning::camera forwarder on the NAS runs $CAMS_RUNNING, main is $CAMS_MAIN"; fi
+          elif [ -n "$CAMS_RUNNING" ]; then note "- camera forwarder code: running \`$CAMS_RUNNING\` (main's copy could not be fetched to compare)";
+          else note "- camera forwarder code: not reported (an older forwarder, or the road is down)"; fi
+          [ "$CAMS_CODE" = "200" ] || echo "::warning::camera road DOWN — /cams/health returned HTTP $CAMS_CODE (cams_forwarder.py / go2rtc / Funnel / Pages Function hop)"
           fetch "https://poetech.us/property-history?channel=healthprobe"
           HIST_CODE="$CODE"
           note "- \`GET /property-history\` -> **$CODE** (401 = alive+gated; 000/5xx = down)"

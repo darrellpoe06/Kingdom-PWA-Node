@@ -127,17 +127,34 @@ export function checkMatrix(workflowText, { migExists, smokeExists, smokesOnDisk
 export function checkAtomicApply(workflowText) {
   const problems = [];
   const text = String(workflowText || '');
-  // Only shell lines count; the explanation in comments may name the old shape.
+  // Only shell lines count; the explanation in comments may name the old shapes.
   const code = text.split('\n').filter((l) => !/^\s*#/.test(l)).join('\n');
+  // THE SHAPE (DR-0831): the pre-step and the chain up to the first file that
+  // defines each dropped function again share ONE transaction (no gap in
+  // which the hosted database lacks the function); every later file commits
+  // in its own transaction, so the lock table is released file by file (the
+  // whole chain in one transaction ran the hosted project out of
+  // max_locks_per_transaction on four legs, runs 282 and 283).
   if (/psql[^\n]*-c\s+"\$PRE"/.test(code)) {
-    problems.push('the leg pre-step runs as its own psql command, so its DROP commits before the chain rebuilds the object; carry it inside the chain\'s single transaction (ARGS+=(-c "$PRE"))');
+    problems.push('the leg pre-step runs as its own psql command, so its DROP commits before the chain rebuilds the object; carry it inside the atomic group (ARGS+=(-c "$PRE"))');
   }
-  const loop = /for\s+mig\s+in[\s\S]*?\bdone\b/.exec(code);
-  if (loop && /\bpsql\b/.test(loop[0])) {
-    problems.push('the leg applies each migration in its own psql transaction; a chain that drops and rebuilds a function leaves the database without it between files. Apply the whole chain in ONE psql --single-transaction');
+  if (!/ARGS\+=\(-c "\$PRE"\)/.test(code)) {
+    problems.push('the leg pre-step is not carried inside the atomic group (ARGS+=(-c "$PRE"))');
   }
   if (!/psql\s+"\$DBURL"\s+--single-transaction[^\n]*"\$\{ARGS\[@\]\}"/.test(code)) {
-    problems.push('no single psql --single-transaction call carries the leg\'s pre-step and chain ("${ARGS[@]}")');
+    problems.push('no psql --single-transaction call carries the leg\'s pre-step and the files that rebuild what it dropped ("${ARGS[@]}")');
+  }
+  if (!/ATOMIC_N/.test(code) || !/-le\s+"\$ATOMIC_N"/.test(code)) {
+    problems.push('the chain is not split at the first file that defines each dropped function again (ATOMIC_N): a whole chain in one transaction runs the hosted database out of lock slots');
+  }
+  if (!/for\s+f\s+in\s+"\$\{REST\[@\]\}"[\s\S]*?psql\s+"\$DBURL"\s+--single-transaction[^\n]*-f\s+"\$f"/.test(code)) {
+    problems.push('the files after the atomic group must each apply in their own psql --single-transaction (for f in "${REST[@]}"), so every file releases its locks and no file is applied outside a transaction');
+  }
+  // A per-file loop straight over the matrix list (no atomic group at all)
+  // leaves a gap between the pre-step's DROP and the rebuild.
+  const loop = /for\s+mig\s+in[\s\S]*?\bdone\b/.exec(code);
+  if (loop && /\bpsql\b/.test(loop[0])) {
+    problems.push('the leg applies each migration straight from the matrix list in its own psql transaction, pre-step included; the pre-step and what rebuilds it must share one transaction');
   }
   return problems;
 }
@@ -151,5 +168,5 @@ if (process.argv[1] && process.argv[1].endsWith('rls-isolation-matrix-guard.mjs'
     for (const p of problems) console.error(`  - ${p}`);
     process.exit(1);
   }
-  console.log('rls-isolation matrix guard: every referenced migration + smoke file exists, and every smoke on disk is run by a leg, and each leg applies its pre-step and chain in one transaction.');
+  console.log('rls-isolation matrix guard: every referenced migration + smoke file exists, and every smoke on disk is run by a leg, and each leg applies its pre-step with what rebuilds it in one transaction and every later file in its own.');
 }

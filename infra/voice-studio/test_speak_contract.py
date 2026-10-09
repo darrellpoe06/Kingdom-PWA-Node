@@ -73,6 +73,17 @@ print("  status:", r.status_code, "| body:", r.content)
 assert r.status_code==400 and r.content["error"]=="reference-required"
 print("  PASS - still refuses honestly, so the probe's 'no' stays TRUE")
 
+print("\n=== 2b. The asked PACE reaches the model; nonsense and out-of-range are clamped; 1.0 is not passed ===")
+r, f = run({"text":"quickly", "speed": 2}, ["Claribel Dervla"])
+assert r.status_code==200 and f.calls[0].get("speed")==2.0, "speed must reach tts_to_file"
+r, f = run({"text":"too fast", "speed": 50}, ["Claribel Dervla"])
+assert f.calls[0].get("speed")==vs.SPEED_MAX, "an out-of-range pace is clamped"
+r, f = run({"text":"plain"}, ["Claribel Dervla"])
+assert "speed" not in f.calls[0], "normal pace passes no speed (the model's own default)"
+r, f = run({"text":"nonsense", "speed": "fast"}, ["Claribel Dervla"])
+assert "speed" not in f.calls[0], "a pace that is not a number is normal pace"
+print("  PASS - the voice speaks at the asked pace, within what it says clearly")
+
 print("\n=== 3. A CLONE still requires its sample (unchanged) ===")
 import base64
 uri = "data:audio/wav;base64," + base64.b64encode(b"fakewav").decode()

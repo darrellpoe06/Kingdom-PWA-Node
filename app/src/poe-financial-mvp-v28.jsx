@@ -81,6 +81,7 @@ import { isReviewerModeOn, ReviewerModeBanner } from './lib/reviewer-mode.jsx';
 import { onAuthChange, signOut } from './lib/supabase.js';
 import { ensureTenantMembership, uploadFeedback, subscribeFeedback, newFeedbackId } from './lib/feedback-sync.js';
 import { reportPresence } from './lib/access-metrics-sync.js';
+import { useLearnerRecords } from './lib/use-learner-records.js';
 import { entitiesSync } from './lib/entities-sync.js';
 import { accountsSync, accountsMerge } from './lib/accounts-sync.js';
 import { debtsSync } from './lib/debts-sync.js';
@@ -160,7 +161,7 @@ import {
   EventCenterModule, ConferenceVariance, ChurchObservation, EventManagement, BusMinistry, ChurchMinistriesTab,
   Pulpit, ScriptureLibrary, CommandServeCenter, ChurchVideoWall, DeviceInventory, ChurchInfraPlan, ThinkingSpace,
   CreationWorkspace, VoiceStudio, WorkflowScribe, Study, BooksTransactions, HarvestLedger, Library,
-  Inventory, Forecast, AdminConsole, ChefCorner, RoadTo150, Games, TVTime, Messages, AdvocacyCases, DataLiberation,
+  Inventory, Forecast, AdminConsole, ChefCorner, RoadTo150, Games, TVTime, Messages, AdvocacyCases, DataLiberation, Cameras, Vault,
   surfaceById, AccessRequests, ChurchHome, MooreDivahs, TlcAssistant, TlcOnboarding, ChurchProjects, CohortPrograms, FamilyPlan, Obligations, ChurchMembers, ChurchMemberSpace, ChurchGivingBook, Relationships,
 } from './surfaces.js';
 import { unionPreservingLocal, getInstanceId } from './lib/table-sync.js';
@@ -931,7 +932,7 @@ function getInitialView() {
     // The former Access tab was merged into Admin (one users report, 2026-07-04);
     // an old ?view=access deep-link lands on Admin rather than dead-ending.
     if (v === 'access') return 'admin';
-    const VALID = ['overview','books','inbound','rentals','properties','projects','practice','tlc','opportunities','about','church','markets','notes','create','voice','scribe','library','recipes','games','tvtime','advocacy','databack','messages','admin','center','crm','relationships','inventory','forecast','cohorts','tlc-assistant','health'];
+    const VALID = ['overview','books','inbound','rentals','properties','projects','practice','tlc','opportunities','about','church','markets','notes','create','voice','scribe','library','recipes','games','tvtime','advocacy','databack','messages','admin','center','crm','relationships','inventory','forecast','cohorts','tlc-assistant','health','cameras','vault'];
     return VALID.includes(v) ? v : 'overview';
   } catch (e) { return 'overview'; }
 }
@@ -2031,6 +2032,7 @@ export default function PoeFinancialSystem() {
           });
         });
       }
+
     });
     return () => {
       cleanupAuth();
@@ -3293,10 +3295,11 @@ export default function PoeFinancialSystem() {
   // Church > Learn (Darrell 2026-06-15): the youth A.I. class. Progress is the
   // student's REAL record (per-module completedAt); cohort start + confirmed flag
   // are Governor-set real values that drive the computed timeline (no painted dates).
-  const toggleClassModule = (moduleId) => setData(d => {
-    const p = { ...(d.classProgress || {}) };
-    if (p[moduleId]) delete p[moduleId]; else p[moduleId] = new Date().toISOString();
-    return { ...d, classProgress: p };
+  // DR-0754 — the class record: his completion and his exam scores leave the
+  // device, so they cross his devices and reach the Governor. All of the wiring
+  // lives in lib/use-learner-records.js; this shell is frozen (DR-0078).
+  const { learnerRecords, toggleClassModule, recordClassQuiz } = useLearnerRecords({
+    authSession, demo: isAnyDemoMode, ageBand: data.learnAgeBand || 'adult', setData,
   });
   const setClassCohortStart = (date) => setData(d => ({ ...d, classCohort: { ...(d.classCohort || {}), startDate: date } }));
   const confirmClassCohort = (confirmed) => setData(d => ({ ...d, classCohort: { ...(d.classCohort || {}), confirmed: !!confirmed } }));
@@ -3315,7 +3318,6 @@ export default function PoeFinancialSystem() {
   // SHARED Learn-framework state (consumed by ALL three courses): quiz results keyed
   // by module id (real assessment record), the learner's depth override, and the
   // learner's AGE BAND (the master pacing control — one curriculum, age-right delivery).
-  const recordClassQuiz = (moduleId, result) => setData(d => ({ ...d, classQuiz: { ...(d.classQuiz || {}), [moduleId]: result } }));
   const setLearnLevel = (level) => setData(d => ({ ...d, learnLevel: level }));
   const setLearnAgeBand = (band) => setData(d => ({ ...d, learnAgeBand: band }));
   // Thinking Space — sovereign private notes + the in-app "tell PoeTech"
@@ -4243,6 +4245,7 @@ ${THEME_CSS}
         {/* The nav row, the header chevron, and on a one-tab door the brand row
             (components/TopNavRow.jsx, DR-0640: "Both places are good... why not"). */}
         <TopNavRow navHistory={navHistory} collapsed={headerCollapsed} onToggleHeader={toggleHeaderChrome} brandName={churchBrand ? 'The Love Corner' : 'Family Operating Systems'} brandTagline={churchBrand ? 'The Church of the Living God' : 'PoeTech · Life, Soul & Money'}
+          home={churchDoorOnly && isFamilyMember ? { href: '/poetech-app/?view=overview', label: 'PoeTech app', title: 'Open the whole PoeTech app (every tab)' } : null}
           hatch={<TextSizeEscapeHatch collapsed={headerCollapsed} onShowHeader={toggleHeaderChrome} siteName={churchBrand ? 'The Love Corner' : 'Family Operating Systems'} siteTagline={churchBrand ? 'The Church of the Living God' : 'PoeTech · Life, Soul & Money'} />}>
               {[
                 ['overview','Big Picture'],
@@ -4303,6 +4306,8 @@ ${THEME_CSS}
                 // asks for help with the data already in hand (2026-08-04).
                 ['advocacy', <><UiIcon name="landmark" /> Advocacy</>],
                 ['databack', <><UiIcon name="landmark" /> Your Data</>],
+                ...(isFamilyMember ? [['cameras', <><UiIcon name="eye" /> Cameras</>]] : []),
+                ...(authSession?.user ? [['vault', <><UiIcon name="lock" /> Vault</>]] : []),
                 // Darrell's Study — private to the circle (Darrell/Christina/BG).
                 // Spread so the entry is absent from the DOM entirely for everyone
                 // else (no-leak); the feedback-area-guard still sees the literal
@@ -4724,6 +4729,8 @@ ${THEME_CSS}
             extraCourses={[infrastructureCourse, sovereignAiCourse, aiLegalBlueprintCourse, ...selfPacedCourses]}
             quizState={data.classQuiz || {}}
             recordQuiz={authSession ? recordClassQuiz : null}
+            learnerRecords={learnerRecords} /* DR-0754: the real class record */
+            currentUserId={authSession?.user?.id || null}
             learnLevel={data.learnLevel || 'auto'}
             setLearnLevel={setLearnLevel}
             ageBand={data.learnAgeBand || 'adult'}
@@ -4845,6 +4852,8 @@ ${THEME_CSS}
             <TVTime email={authSession?.user?.email || null} />
           </SectionBoundary>
         )}
+        {view === 'cameras' && isFamilyMember && <SectionBoundary name="Cameras"><Cameras /></SectionBoundary>}
+        {view === 'vault' && <SectionBoundary name="Vault"><Vault /></SectionBoundary>}
         {/* Advocacy — the Case File (pb-advocacy-outcomes, Darrell 2026-08-04):
             students and families document situations as they happen so the data
             supporting their perspective is in hand when they ask for help.

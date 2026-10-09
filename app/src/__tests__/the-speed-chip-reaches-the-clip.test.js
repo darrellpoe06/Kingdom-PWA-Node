@@ -155,7 +155,9 @@ describe('both cloud playback sites are wired, not just one', () => {
 
   it('every clip created in the hook is handed the current rate', () => {
     const created = (src.match(/new Audio\(url\)/g) || []).length;
-    const applied = (src.match(/applyClipRate\(a, rateRef\.current\)/g) || []).length;
+    // Since 2026-10-07 the voice itself speaks at the pace and the element
+    // takes the REMAINDER (residualRate) — still the current rate, measured.
+    const applied = (src.match(/applyClipRate\(a, (?:rateRef\.current|residualRate\(rateRef\.current, [\w.]+\))\)/g) || []).length;
     expect(created, 'no clip is created here any more — re-read this file').toBeGreaterThan(0);
     expect(applied, `${created} clips created, ${applied} given the rate`).toBe(created);
   });
@@ -164,7 +166,7 @@ describe('both cloud playback sites are wired, not just one', () => {
     // An audio element takes a live rate change mid-play, unlike an utterance,
     // so the chip must be audible immediately rather than at the next clip.
     expect(src).toMatch(/const setRate = useCallback\(/);
-    expect(src).toMatch(/applyClipRate\(a, r\)/);
+    expect(src).toMatch(/applyClipRate\(a, (?:r|residualRate\(r, [\w.]+\))\)/);
     expect(src, 'the hook still hands out the raw setter, so a clip never hears the change')
       .not.toMatch(/setRate: tts\.setRate/);
   });

@@ -158,6 +158,49 @@ export function segmentText(text, maxLen = 180) {
   return clauseSegments(text, maxLen);
 }
 
+// FAST SPEECH IS SPOKEN IN LONGER BREATHS (Darrell 2026-10-07: "the voice
+// mumbles at times when on faster speaking especially"). Each clause segment
+// is its own utterance so a speed change can restart the current one. At
+// normal pace that is right. At 2x and above it is the mumble: a clause of
+// 60 characters lasts about a second, and every utterance costs the engine an
+// onset — Chrome's queue gap, and on Android the first syllable clipped while
+// the engine ramps — so fast speech became a run of swallowed starts. The
+// text was fine; the cuts were too close together for the pace.
+//
+// So at RATE_SPAN_FROM and above, consecutive segments are spoken as ONE
+// utterance, sized so each utterance holds roughly the same seconds of audio
+// as a single segment does at 1x (about SPAN_CHARS_PER_RATE characters per
+// unit of rate), never more than MAX_SPAN_CHARS (clear of Chrome's long-
+// utterance cutoff even at 1.5x) or MAX_SPAN_SEGMENTS. The SEGMENTS do not
+// change — the follow map, the highlight and the paragraph steps still see
+// one sentence each; the engine advances the segment index inside the
+// utterance from the word boundaries the engine fires, and at its end.
+export const RATE_SPAN_FROM = 1.5;
+export const SPAN_CHARS_PER_RATE = 180;
+export const MAX_SPAN_CHARS = 600;
+export const MAX_SPAN_SEGMENTS = 6;
+
+/**
+ * How many consecutive segments from `idx` one utterance should carry at
+ * `rate`. Always >= 1 while a segment exists at idx. Pure.
+ */
+export function utteranceSpan(segments, idx, rate, { spokenLength = (t) => String(t || '').length } = {}) {
+  const list = Array.isArray(segments) ? segments : [];
+  if (idx < 0 || idx >= list.length) return 0;
+  const r = clampRate(rate);
+  if (r < RATE_SPAN_FROM) return 1;
+  const budget = Math.min(MAX_SPAN_CHARS, Math.round(SPAN_CHARS_PER_RATE * r));
+  let n = 1;
+  let chars = spokenLength(list[idx]);
+  while (n < MAX_SPAN_SEGMENTS && idx + n < list.length) {
+    const next = spokenLength(list[idx + n]);
+    if (chars + 1 + next > budget) break;
+    chars += 1 + next;
+    n += 1;
+  }
+  return n;
+}
+
 /**
  * Pick the most NATURAL-sounding English voice available on this device. Honors
  * a saved choice first; otherwise ranks known high-quality engines (Natural /
@@ -361,7 +404,25 @@ export function createBrowserTTS({ synth, Utterance, onState, prefs, doc } = {})
       // lib/speech-text.js). The SEGMENT stays the written text — the follow
       // map, the highlight and every offset are computed from it — and only the
       // utterance handed to the voice carries the ordinal.
-      const u = new this.Utterance(toSpokenForm(seg));
+      //
+      // LONGER BREATHS AT SPEED (utteranceSpan above): at a fast rate one
+      // utterance carries several segments. `offsets[k]` is where segment
+      // idx+k begins inside the utterance text, so a word boundary can be
+      // placed in its segment and the highlight keeps stepping sentence by
+      // sentence while the voice no longer stops between them.
+      const first = this.idx;
+      const spokenParts = [];
+      const span = utteranceSpan(this.segments, first, this.rate, { spokenLength: (t) => toSpokenForm(t).length });
+      for (let k = 0; k < span; k += 1) spokenParts.push(toSpokenForm(this.segments[first + k]));
+      const offsets = [];
+      let at = 0;
+      for (const part of spokenParts) { offsets.push(at); at += part.length + 1; }
+      const segmentAt = (charIndex) => {
+        let k = 0;
+        for (let i = 1; i < offsets.length; i += 1) { if (charIndex >= offsets[i]) k = i; else break; }
+        return k;
+      };
+      const u = new this.Utterance(spokenParts.join(' '));
       u.rate = clampRate(this.rate);
       u.pitch = this.pitch;
       if (this.voice) u.voice = this.voice;
@@ -384,7 +445,7 @@ export function createBrowserTTS({ synth, Utterance, onState, prefs, doc } = {})
       u.onend = () => {
         if (gen !== this._gen) return;            // superseded — ignore
         this._clearWatch();
-        this.idx += 1;
+        this.idx = first + span;
         if (this.status === 'playing' && this.idx < this.segments.length) this._speakSegment();
         else if (this.idx >= this.segments.length) this._finish();
       };
@@ -396,7 +457,14 @@ export function createBrowserTTS({ synth, Utterance, onState, prefs, doc } = {})
       u.onboundary = (e) => {
         if (gen !== this._gen) return;
         if (e && e.name && e.name !== 'word') return;
-        try { this.onBoundary(this.idx, (e && e.charIndex) || 0, (e && e.charLength) || 0); } catch (_) { /* listener's problem, never playback's */ }
+        const charIndex = (e && e.charIndex) || 0;
+        // Inside a multi-segment utterance the boundary says which sentence
+        // the voice has reached: the segment index moves there (and the
+        // listeners hear it through onState), exactly as an utterance end
+        // used to move it.
+        const k = span > 1 ? segmentAt(charIndex) : 0;
+        if (first + k !== this.idx) { this.idx = first + k; this._emit(); }
+        try { this.onBoundary(this.idx, charIndex - (offsets[k] || 0), (e && e.charLength) || 0); } catch (_) { /* listener's problem, never playback's */ }
       };
       u.onerror = (e) => {
         if (gen !== this._gen) return;
@@ -715,6 +783,22 @@ export function useTextToSpeech() {
     setPrefs((prev) => { const next = { ...prev, rate: clampRate(r) }; saveTTSPrefs(next); return next; });
   }, []);
 
+  // PITCH, THE SAME WAY AS RATE (DR-0801). The engine has always carried a
+  // pitch and applied it to the live utterance; nothing exposed a way to set
+  // one, so the saved pref could never change. Darrell: "different pitches...
+  // to get a unique voice that has the right sound for each individual."
+  const setPitch = useCallback((pitch) => {
+    const eng = engineRef.current;
+    if (!eng) return;
+    eng.setPitch(pitch);
+    setPrefs((prev) => {
+      const n = Number(pitch);
+      const next = { ...prev, pitch: Number.isFinite(n) ? n : DEFAULT_PITCH };
+      saveTTSPrefs(next);
+      return next;
+    });
+  }, []);
+
   const setVoiceURI = useCallback((uri) => {
     const eng = engineRef.current;
     if (!eng) return;
@@ -739,7 +823,8 @@ export function useTextToSpeech() {
     // -> sentence without the engine handing back the text).
     segmentIndex: state.segmentIndex || 0,
     segmentCount: state.segmentCount || 0,
-    speak, pause, resume, stop, setRate, setVoiceURI,
+    pitch: prefs.pitch,
+    speak, pause, resume, stop, setRate, setPitch, setVoiceURI,
     // Register the follow-along word-boundary listener (cb(segmentIndex,
     // charIndex, charLength)); pass null to clear. Boundary support varies by
     // device engine — the segmentIndex state above is the guaranteed floor.

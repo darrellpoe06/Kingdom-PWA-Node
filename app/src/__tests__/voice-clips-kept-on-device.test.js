@@ -153,6 +153,9 @@ describe('the cap', () => {
     await cache.put('c', blob(1000));
     await cache.get('a'); // 'a' was just played: it is now the newest
     await cache.put('d', blob(1000)); // 4000 > 3000: one must go — 'b'
+    // The eviction is SCHEDULED by a put, never awaited by it (DR-0786: the
+    // player must not wait on a scan); flush runs what is due, now.
+    await cache.flush();
     expect(await cache.has('b')).toBe(false);
     expect(await cache.has('a')).toBe(true);
     expect(await cache.has('c')).toBe(true);

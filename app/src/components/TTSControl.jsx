@@ -13,6 +13,7 @@
 // renders nothing — no crash (unbreakable). Status is announced for screen
 // readers; every control is keyboard reachable; the panel is a high-contrast
 // (WCAG AA) white card regardless of app theme.
+import { noteUse } from '../lib/usage-events.js';
 import React, { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { tripSummary } from '../lib/reader-trip.js';
 import { newReaderId, registerReader, subscribeReaders, chosenReader } from '../lib/one-reader.js';
@@ -22,7 +23,7 @@ import {
   buildFollowMap, wordRange, highlightSegment, highlightWord,
   clearReadingHighlights, followRange, rangeFor,
   segmentIndexAtDomPoint, alignSegments, segmentIndexAtFraction, startIndexForFraction,
-  paragraphStarts, paragraphJumpTarget,
+  paragraphStarts, paragraphJumpTarget, paragraphBackTarget,
 } from '../lib/read-follow.js';
 import { segmentText } from '../lib/tts.js';
 import { readFromPoint } from '../lib/read-from-here.js';
@@ -51,6 +52,12 @@ import { openReadingSource, registerReadingOpener } from '../lib/reading-source.
 import FloatingReader from './FloatingReader.jsx';
 import { loadFloat, saveFloat, clampRect, avoidRects, defaultRect } from '../lib/float-geometry.js';
 import { loadFollowPrefs, saveFollowPrefs } from '../lib/reader-follow-prefs.js';
+import { useDeviceClass } from '../lib/use-device-class.js';
+import { PITCH_STEPS, pitchStep } from '../lib/voice-shape.js';
+// A POINTER FOR A REMOTE (DR-0802): an option, off by default, offered on a TV.
+import RemotePointer from './RemotePointer.jsx';
+import { loadPointerPref, savePointerPref } from '../lib/remote-pointer.js';
+import { loadControllerPref, saveControllerPref, controllerLayout, flippedControllerPref, controllerToggleLabel, controllerToggleTitle, railWidth, railButtonIds, nextInCycle, railWord, markRails, enterFullScreen, exitFullScreen, leavesFullScreen, FULLSCREEN_ATTR } from '../lib/reader-controller.js';
 import { deviceClipCache, rememberReadingKeys, recallReadingKeys, formatSaved, loadCapMb, saveCapMb, CAP_CHOICES_MB } from '../lib/clip-cache.js';
 // THE ONE LESSON LANDING (lib/learn-open.js, DR-0642): opens a lesson at a
 // saved sentence, scrolls it under the top bars and marks it. Read through a
@@ -220,6 +227,8 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
   const [talkSource, setTalkSource] = useState('');
   const {
     supported, isReading, isPaused, rate, read, pause, resume, stop, setRate, claimAudio,
+    // THE SOUND SHAPED ONTO THIS VOICE (DR-0801): pitch is kept per voice.
+    pitch, setPitch, stepPitch,
     catalog, voiceId, setVoiceId, currentItem,
     segmentIndex, setBoundaryHandler, deviceRead, cloudProgress, cloudPiece,
     // `notice` WAS NOT TAKEN HERE until 2026-09-20, and that single omission
@@ -244,6 +253,23 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
     standInWhy,
     myVoice,
   } = useReadAloud({ isOwner });
+  // A JUMP IN FLIGHT IS A READING IN FLIGHT (2026-10-07; Darrell: "can't be
+  // pushed again before it reads the exact same paragraph"). Between a step
+  // and the voice's first word — seconds, on the NAS voice — isReading is
+  // false, and every reading-only surface (the bar, the pill, the step
+  // buttons) used to fold away and come back only once the new paragraph was
+  // already being read. This state keeps them on screen for that window.
+  // State, not the ref, so the render sees it; cleared when the voice speaks,
+  // by Stop, or by a 20 s backstop so a read that never starts cannot leave
+  // the bar claiming a reading forever (DR-0076: the surface says what is).
+  const [jumpLive, setJumpLive] = useState(false);
+  useEffect(() => { if (isReading) setJumpLive(false); }, [isReading]);
+  useEffect(() => {
+    if (!jumpLive) return undefined;
+    const t = setTimeout(() => setJumpLive(false), 20000);
+    return () => clearTimeout(t);
+  }, [jumpLive]);
+  const live = isReading || jumpLive;
 
   // THE SCREEN STAYS ON WHILE IT READS (DR-0439; Darrell 2026-09-16: his phone
   // goes black at 10 minutes and cuts the lesson). One shared wake-lock holder
@@ -345,6 +371,30 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
   // mapping where the mode supports it), wordable }.
   const followRef = useRef(null);
   const lastCloudIdxRef = useRef(-1);
+  // HOW FAR INTO *THIS* RUN THE VOICE HAS REACHED (DR-0764).
+  //
+  // The absolute place is `base + local`, and `local` used to be read live from
+  // whichever of two counters the CURRENT mode pointed at —
+  // `deviceRead ? segmentIndex : lastCloudIdxRef.current`. Neither belongs to
+  // the run whose `base` it is added to: a jump sets a new `base` at once,
+  // while the piece/segment counter still holds the position of the run that
+  // just ended, and `deviceRead` itself flips (it is `!cloudPlaying`) for the
+  // seconds the NAS voice takes to answer. So the jump AFTER a jump was
+  // computed from base-of-the-new-run + position-in-the-old-one. Measured in
+  // jsdom: reading at sentence 3 of a four-paragraph lesson, Forward landed
+  // correctly on paragraph 3, and Back then went FORWARD to paragraph 4.
+  //
+  // One counter, owned by the run: set by whichever follow effect is driving,
+  // and put back to 0 by beginRun() the moment a new base is set. It is NOT
+  // cleared when the voice stops — a stop is where Continue picks the place up.
+  const runLocalRef = useRef(0);
+  /** Start a run from a known base: the follow state and its local position move together. */
+  const beginRun = (next) => {
+    followRef.current = next;
+    runLocalRef.current = 0;
+    lastCloudIdxRef.current = -1;
+    return next;
+  };
   // FOLLOW ALONG, BUT NEVER YANK (DR-0633; Darrell: "need to be able to go
   // back to the reading page to see the text when I want"). The highlight
   // always follows the voice; the SCROLL follows only until the listener
@@ -357,6 +407,46 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
   // device; read through a ref inside the per-sentence effects so a change
   // takes hold on the very next sentence without re-running them.
   const [followPrefs, setFollowPrefs] = useState(() => loadFollowPrefs());
+  // THE CONTROLS ON THE SIDES OF A TV (2026-10-07, DR-0785; Darrell on the
+  // Firestick: "it doesn't show all control options... maybe we need to pull
+  // out the controller for TV?" then "put the other reader options on the
+  // sides in the black space... so all options are always there... unless we
+  // go to full screen"). A Firestick's pointer scrolls only the page, never a
+  // 260px box, so on a TV the same panel is split across the two margins
+  // beside the Word's column: play on the left rail, how-it-sounds-and-looks
+  // on the right — always there, no opening, no scroll. 'auto' follows the
+  // measured device class; one tap in the header flips it and the choice is
+  // kept on this device. Full screen takes the rails, dock and header away
+  // (index.css reads the html attribute) until Back, Esc or the corner mark.
+  // lib/reader-controller.js.
+  const deviceClass = useDeviceClass();
+  const [controllerPref, setControllerPref] = useState(() => loadControllerPref());
+  const controller = controllerLayout({ pref: controllerPref, deviceClass, width: typeof window !== 'undefined' ? window.innerWidth : 0 });
+  const flipController = useCallback(() => {
+    setControllerPref(saveControllerPref(flippedControllerPref(controller)));
+  }, [controller]);
+  const [pointerOn, setPointerOn] = useState(() => loadPointerPref());
+  const flipPointer = useCallback(() => { noteUse('reader.pointer'); setPointerOn((p) => savePointerPref(!p)); }, []);
+  const [fullScreen, setFullScreen] = useState(false);
+  const goFullScreen = useCallback(() => { setFullScreen(true); enterFullScreen(typeof document !== 'undefined' ? document : null); }, []);
+  const leaveFullScreen = useCallback(() => { setFullScreen(false); exitFullScreen(typeof document !== 'undefined' ? document : null); }, []);
+  useEffect(() => {
+    if (typeof document === 'undefined') return undefined;
+    if (!fullScreen) { try { document.documentElement.removeAttribute(FULLSCREEN_ATTR); } catch { /* ignore */ } return undefined; }
+    try { document.documentElement.setAttribute(FULLSCREEN_ATTR, 'true'); } catch { /* ignore */ }
+    // The browser's own exit (Back on the remote, Esc) is honoured as ours.
+    const onChange = () => { if (!document.fullscreenElement && !document.webkitFullscreenElement) setFullScreen(false); };
+    const onKey = (e) => { if (e && leavesFullScreen(e.key)) setFullScreen(false); };
+    document.addEventListener('fullscreenchange', onChange);
+    document.addEventListener('webkitfullscreenchange', onChange);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('fullscreenchange', onChange);
+      document.removeEventListener('webkitfullscreenchange', onChange);
+      document.removeEventListener('keydown', onKey);
+      try { document.documentElement.removeAttribute(FULLSCREEN_ATTR); } catch { /* ignore */ }
+    };
+  }, [fullScreen]);
   const prefsRef = useRef(followPrefs);
   const setFollowPref = (key, value) => {
     const next = saveFollowPrefs({ ...prefsRef.current, [key]: value });
@@ -365,12 +455,20 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
     return next;
   };
   const lightSentence = (r) => highlightSegment(prefsRef.current.highlight === 'off' ? null : r);
+  // AFTER BACK / NEXT THE SCREEN STAYS STILL (DR-0790). A manual jump puts
+  // the follow into 'reveal': the page moves only when the sentence is
+  // hidden or off the fold, and by the least that shows it; the first move
+  // that was genuinely needed hands the chosen place back.
+  const settleRef = useRef(false);
+  const jumpingRef = useRef(false); // a jump in flight (declared here: the effect below reads it)
   const scrollToVoice = (r) => {
     if (!prefsRef.current.follow || awayRef.current) return;
-    followRange(r, { place: prefsRef.current.place });
+    const mode = settleRef.current ? 'reveal' : 'place';
+    const moved = followRange(r, { place: prefsRef.current.place, mode });
+    if (settleRef.current && moved) settleRef.current = false;
   };
   useEffect(() => {
-    if (!isReading) { awayRef.current = false; setUserAway(false); return undefined; }
+    if (!isReading) { awayRef.current = false; setUserAway(false); if (!jumpingRef.current) settleRef.current = false; return undefined; }
     if (typeof window === 'undefined') return undefined;
     const away = (e) => {
       if (e && e.type === 'keydown' && !['PageDown', 'PageUp', 'ArrowDown', 'ArrowUp', 'Home', 'End', ' '].includes(e.key)) return;
@@ -453,6 +551,7 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
       if (!isReading) { clearReadingHighlights(); highlightWord(null); lastCloudIdxRef.current = -1; }
       return;
     }
+    runLocalRef.current = Math.max(0, segmentIndex);
     const r = followRef.current.ranges[segmentIndex] || null;
     lightSentence(r);
     highlightWord(null); // a new sentence clears the previous word
@@ -476,6 +575,7 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
       : segmentIndexAtFraction(followRef.current.lens, cloudProgress);
     if (idx < 0 || idx === lastCloudIdxRef.current) return;
     lastCloudIdxRef.current = idx;
+    runLocalRef.current = idx;
     const r = followRef.current.ranges[idx] || null;
     lightSentence(r);
     scrollToVoice(r);
@@ -490,7 +590,7 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
     if (seg && seg.text) rememberSentence(st.base + idx, seg.text);
   }, [cloudProgress, cloudPiece, isReading, deviceRead, rememberSentence]);
   // Reading over (or never started) → the full card comes back next open.
-  useEffect(() => { if (!isReading) setMinimized(false); }, [isReading]);
+  useEffect(() => { if (!isReading && !jumpLive) setMinimized(false); }, [isReading, jumpLive]);
   // PLAY MEANS READ IT. A Play press records a want (read-target.js) and this
   // starts that lesson's reading the moment its target registers -- which is
   // usually a frame or two later, because pressing Play also opens the lesson
@@ -691,8 +791,10 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
   // through a not-reading render, which the run-continuation effect below must
   // not mistake for "the piece ended on its own". Declared here — above the
   // unsupported-device early return — so hook order never varies.
-  const jumpingRef = useRef(false);
   useEffect(() => { if (isReading) jumpingRef.current = false; }, [isReading]);
+  // The previous Back's landing, for "tap again" (see jumpParagraph). A ref,
+  // declared up here with jumpingRef so hook order never varies.
+  const lastBackRef = useRef(null);
   // THE HEADSET'S, THE CAR'S AND THE LOCK SCREEN'S SKIP BUTTONS step one
   // paragraph, exactly as the bar's ↪¶ and ↩¶ do. Reached through a ref: the
   // step is defined below the unsupported-device early return.
@@ -844,7 +946,7 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
       } catch (_) { caret = null; }
       const segIdx = follow && caret ? segmentIndexAtDomPoint(follow, caret.node, caret.offset) : -1;
       if (follow && segIdx >= 0) {
-        followRef.current = pageFollowState(follow, segIdx);
+        beginRun(pageFollowState(follow, segIdx));
         // Same law as Read-this-page: a tap-started read follows and highlights,
         // so the card must collapse to the pill or it covers the very words it
         // just lit up (reported 2026-08-06 — the panel sat over the read text).
@@ -854,7 +956,7 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
       }
       const hit = readFromPoint(main, e.clientX, e.clientY);
       const text = (hit && hit.text) || readablePageText();
-      followRef.current = null; // unresolvable tap reads unmapped — no stale highlight
+      beginRun(null); // unresolvable tap reads unmapped — no stale highlight
       if (text) { setMinimized(true); read(text); }
     };
     const onKey = (e) => { if (e.key === 'Escape') setArmed(false); };
@@ -921,12 +1023,12 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
     // can't be built (empty page) — reading always still works.
     const follow = main ? buildFollowMap(main) : null;
     if (follow && follow.text) {
-      followRef.current = pageFollowState(follow);
+      beginRun(pageFollowState(follow));
       setMinimized(true);
       read(follow.text);
       return;
     }
-    followRef.current = null;
+    beginRun(null);
     const text = readablePageText();
     if (text) { setMinimized(true); read(text); }
   };
@@ -1009,6 +1111,7 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
 
   const readTargetNow = async (t, { continuing = false, startFraction = null, startSentence = null, resumePlace = null } = {}) => {
     if (!t) return;
+    lastBackRef.current = null; // a new read closes the Back-again window
     // THE SPEAKER INSIDE AN OPEN LESSON (DR-0702; Darrell 2026-09-30: "the
     // reader should be asking me to read it from the beginning because I
     // pushed the speaker while inside the lesson... it only works after I hit
@@ -1088,12 +1191,12 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
           ? startIndexForFraction(startFraction, follow.segments.length)
           : (continuing ? -1 : savedStartIndex(follow.segments));
       if (at > 0 && follow.segments[at]) {
-        followRef.current = { ...pageFollowState(follow, at), owner: t.owner };
+        beginRun({ ...pageFollowState(follow, at), owner: t.owner });
         setMinimized(true);
         read(follow.text.slice(follow.segments[at].start));
         return;
       }
-      followRef.current = { ...pageFollowState(follow), owner: t.owner };
+      beginRun({ ...pageFollowState(follow), owner: t.owner });
       setMinimized(true);
       read(follow.text);
       return;
@@ -1103,13 +1206,13 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
     const spoken = segmentText(t.text);
     const pageRoot = readingRoot();
     const pageFollow = pageRoot ? buildFollowMap(pageRoot) : null;
-    followRef.current = pageFollow ? {
+    beginRun(pageFollow ? {
       follow: pageFollow,
       base: 0,
       ranges: alignSegments(pageFollow, spoken),
       lens: spoken.map((s) => s.length),
       wordable: false,
-    } : null;
+    } : null);
     setMinimized(true);
     read(t.text);
   };
@@ -1133,7 +1236,7 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
     const { text, source } = await talkAboutSurface(digest);
     setTalking(false);
     setTalkSource(source === 'live' ? 'Ari, live' : 'Ari, on-device');
-    followRef.current = null; // Ari's explanation isn't on-screen text — no highlight map
+    beginRun(null); // Ari's explanation isn't on-screen text — no highlight map
     if (text) read(text);
   };
 
@@ -1150,6 +1253,8 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
     runRef.current = null;
     setRunInfo(null);
     jumpingRef.current = false;
+    setJumpLive(false);
+    lastBackRef.current = null;
     stop();
   };
 
@@ -1165,8 +1270,7 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
   const currentGlobalSegment = () => {
     const f = followRef.current;
     if (!f) return -1;
-    const local = deviceRead ? segmentIndex : Math.max(0, lastCloudIdxRef.current);
-    return f.base + Math.max(0, local);
+    return f.base + Math.max(0, runLocalRef.current);
   };
   const jumpToSegment = (globalIdx) => {
     const f = followRef.current;
@@ -1179,22 +1283,41 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
     // A jump can flicker the engine through a not-reading render; the guard
     // keeps the hands-free run from mistaking that for "the piece ended".
     jumpingRef.current = true;
-    followRef.current = { ...pageFollowState(f.follow, idx), paraStarts, owner: f.owner };
+    settleRef.current = true;
+    setJumpLive(true);
+    beginRun({ ...pageFollowState(f.follow, idx), paraStarts, owner: f.owner });
     read(f.follow.text.slice(seg.start));
   };
+  // BACK, TAPPED AGAIN, KEEPS WALKING BACK (2026-10-07; lib/read-follow.js
+  // paragraphBackTarget). A Back within BACK_AGAIN_MS of the previous Back is
+  // judged from where that Back LANDED, so a fast voice already into the
+  // paragraph's second sentence, or a NAS voice still preparing, cannot turn
+  // every second tap into the same paragraph again. Forward, Top and a new
+  // read all close the window.
   const jumpParagraph = (dir) => {
     const f = followRef.current;
     if (!f || !f.follow) return;
     if (!f.paraStarts) f.paraStarts = paragraphStarts(f.follow);
-    const target = paragraphJumpTarget(f.paraStarts, currentGlobalSegment(), dir);
+    const now = Date.now();
+    const target = dir < 0
+      ? paragraphBackTarget(f.paraStarts, currentGlobalSegment(), lastBackRef.current, now)
+      : paragraphJumpTarget(f.paraStarts, currentGlobalSegment(), dir);
+    lastBackRef.current = dir < 0 && target != null ? { at: now, target } : null;
     if (target != null) jumpToSegment(target);
   };
   const jumpTop = () => {
     const f = followRef.current;
+    lastBackRef.current = null;
     try { window.scrollTo({ top: 0, behavior: motionBehavior() }); } catch (_) { /* best-effort */ }
     if (f && f.follow && isReading) jumpToSegment(0);
   };
-  const canJump = isReading && !!(followRef.current && followRef.current.follow);
+  // THE STEPS STAY ON SCREEN WHILE A STEP IS IN FLIGHT (2026-10-07). A jump
+  // restarts the voice, and the NAS voice takes seconds to answer; isReading
+  // is false for all of them, and `canJump` used to follow it — so Back and
+  // Next VANISHED the moment they were tapped and came back only once the
+  // new paragraph was already being read. That is the "can't be pushed again
+  // before it reads" in his words. A jump in flight is a reading in flight.
+  const canJump = live && !!(followRef.current && followRef.current.follow);
   jumpParaRef.current = jumpParagraph;
   // ▶ Continue after the screen went dark: resume a pause, else re-speak from
   // the held sentence when a follow map exists, else start the page read.
@@ -1255,8 +1378,7 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
   const spokenRange = () => {
     const f = followRef.current;
     if (!f || !f.ranges) return null;
-    const local = deviceRead ? segmentIndex : Math.max(0, lastCloudIdxRef.current);
-    return f.ranges[local] || null;
+    return f.ranges[Math.max(0, runLocalRef.current)] || null;
   };
   const showTheText = () => {
     awayRef.current = false;
@@ -1287,6 +1409,7 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
     if (on) showTheText();
   };
   const onFollowButton = () => {
+    noteUse('reader.follow');
     if (!textHere) { showTheText(); return; }
     setFollow(!following);
   };
@@ -1558,76 +1681,116 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
         </div>
   );
 
-  return (
-    // THE READER MUST OUTRANK A FULL-SCREEN PRESENTING SURFACE.
-    //
-    // Darrell 2026-08-31, from the live presenter console: "we dont have control
-    // over the voice... the controls dont show on the screen to even have a
-    // chance of adjustment."
-    //
-    // This control sat at z-40 while Presenter.jsx paints its console at
-    // zIndex 60 and its on-screen presenting mode at zIndex 70. So on exactly
-    // the surface that offers a "Read it aloud" button, pressing it started a
-    // reading whose voice, speed, pause and stop controls were painted
-    // UNDERNEATH the overlay — audible, and unreachable. A speaker standing in
-    // front of a room could start the reader and then could not adjust or stop
-    // it.
-    //
-    // 80 is the deliberate slot: above the presenting overlays (60/70) so the
-    // reader stays reachable wherever it can be started, and still below the
-    // true modal layer — HelpWalkthrough (110), Modal/Lightbox (120) — which
-    // must keep covering it.
-    <div className="tts-controls fixed bottom-4 right-4 z-[80] print:hidden flex flex-col items-end gap-2">
-      {/* THE FAILURE THE ENGINE ALREADY DETECTED, finally shown. Fire TV is the
-          case that exposed it: Silk exposes speechSynthesis and
-          SpeechSynthesisUtterance, so isTTSSupported() answers true, but the
-          device carries no voice engine — getVoices() stays empty, the
-          utterance produces no audio, and the watchdog flips `failed`. Every
-          piece worked except the last one. role="status" so a screen reader
-          announces it, and it sits ABOVE the panel so it cannot be missed. */}
-      {/* A NOTICE MAY NOT SIT ON THE WORD (Darrell 2026-09-22): "these types
-          of words covering the Word and perspectives being explained are not
-          wanted." And 2026-09-23, when the same box came back with an HTTP
-          404 in it: "Popup's?!!!" The notice used to be its own floating box
-          in this fixed stack, painted over the prose by construction. It is
-          no longer rendered here at all: it lives inside the open panel (below,
-          under the header), and while the panel is a pill or a button it is a
-          small mark on that pill or button. See the panel for the block. */}
-      {interrupted && (
-        <div role="status" data-testid="reading-interrupted" className="bg-white border-2 border-[#1A1815] shadow-lg px-[0.75em] py-[0.5em] flex items-center flex-wrap justify-end gap-[0.5em]" style={{ fontSize: 'calc(1rem * var(--ts-chrome-scale, 1))' }}>
-          <span className="text-[0.75em] text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>The screen went dark and the reading stopped.</span>
-          <button type="button" onClick={continueReading} className="px-[0.625em] py-[0.375em] min-h-[2.75em] text-[0.75em] uppercase tracking-wider border-2 border-[#1A1815] bg-[#1A1815] text-white hover:bg-[#B85838] hover:border-[#B85838] font-semibold whitespace-nowrap focus:outline focus:outline-2 focus:outline-[#B85838]">▶ Continue</button>
-          <button type="button" onClick={() => setInterrupted(false)} aria-label="Dismiss" className="px-[0.5em] py-[0.375em] text-[0.75em] border-2 border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">×</button>
-        </div>
-      )}
-      {offersReturn(ret) && (
-        <div role="status" data-testid="reading-way-back" className="bg-white border-2 border-[#1A1815] shadow-lg px-[0.75em] py-[0.5em] flex items-center flex-wrap justify-end gap-[0.5em]" style={{ fontSize: 'calc(1rem * var(--ts-chrome-scale, 1))' }}>
-          <span className="text-[0.75em] text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{returnLabel(ret)}</span>
-          <button type="button" onClick={takeMeBack} data-testid="reading-way-back-go" className="px-[0.625em] py-[0.375em] min-h-[2.75em] text-[0.75em] uppercase tracking-wider border-2 border-[#1A1815] bg-[#1A1815] text-white hover:bg-[#B85838] hover:border-[#B85838] font-semibold whitespace-nowrap focus:outline focus:outline-2 focus:outline-[#B85838]">↩ Take me back</button>
-          <button type="button" onClick={() => setRet(RETURN_IDLE)} aria-label="Dismiss" className="px-[0.5em] py-[0.375em] text-[0.75em] border-2 border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">×</button>
-        </div>
-      )}
-      {scrollTopBtn}
-      {!docked && backToVoice}
-      {floatEl}
-      {supported && !floatState.floating && (isOpen && minimized && isReading ? (docked ? null : pillEl)
-      : isOpen ? (
-        /* THE PANEL IS CHROME, NOT READING TEXT (Pattern 2b; Darrell 2026-07-27:
-           "The sizes of text makes the talk section not useful" — at A+++/A44
-           the rem-based labels ballooned inside the fixed 260px box: buttons
-           wrapped to three lines, the five speed chips crushed together, and
-           the panel clipped off-screen). Fix, same law as the collapsed FAB's
-           ts-chrome-region: the panel's font-size is the CAPPED chrome size
-           (1rem × --ts-chrome-scale = the capped chrome multiplier — ~1.1x at
-           A+++, ~1.4x at A44, exactly 1x at Normal), and EVERYTHING inside is
-           sized in em so text, padding, and the box grow together, bounded.
-           Width is em too (16.25em = 260px at Normal) so the panel widens in
-           step with its own capped text; max-h + scroll keep it on-screen at
-           any size instead of clipping controls off the top. */
-        <div
-          className="bg-white border-2 border-[#1A1815] p-[0.75em] shadow-lg w-[16.25em] max-w-[calc(100vw-2rem)] max-h-[calc(100dvh-7rem)] overflow-y-auto"
-          style={{ fontSize: 'calc(1rem * var(--ts-chrome-scale, 1))' }}
-        >
+  // THE RAILS STAND BESIDE THE WORD, NOT ON EVERY PAGE. A read target (a
+  // lesson on screen), an open reader or a live reading brings them; the
+  // Create station, the Learn tree and every other page keep their full
+  // width and the ordinary button. The CI layout probe caught the first cut
+  // squeezing the Create station to 512px on a 960px TV with nobody reading.
+  const railsOn = controller === 'sides' && !fullScreen && (!!target || isOpen || isReading);
+  // <main> makes room for the rails while they are on (index.css), so the
+  // Word narrows between them instead of being covered at its edges.
+  useEffect(() => {
+    const d = typeof document !== 'undefined' ? document : null;
+    markRails(d, railsOn && supported && !floatState.floating);
+    return () => markRails(d, false);
+  }, [railsOn, supported, floatState.floating]);
+
+  // THE SIDE BUTTONS (DR-0800). Darrell on the Firestick: "the user just needs
+  // the functions to look like the buttons below... just the missing ones...
+  // in the small side spaces... until we say full screen." So each rail
+  // control is one bottom-bar button — the same DOCK_BTN square, an icon and
+  // ONE word — and a control with more than two settings cycles: the word IS
+  // the setting it is on, a tap moves to the next, which is what a remote's
+  // D-pad can drive. lib/reader-controller.js decides WHICH ids stand here
+  // (that side's functions minus everything the bar already carries); this
+  // decides what each one looks like and does. The tall panel is untouched:
+  // every chip, list and line of prose still lives there for a mouse.
+  const railSpec = (id) => {
+    const levels = (target && target.setLevel && Array.isArray(target.levels) && target.levels.length > 0) ? target.levels : null;
+    const themeNow = THEMES.find((t) => t.key === theme) || THEMES[0];
+    const rateNow = RATE_STEPS.find((s) => Math.abs(rate - s.value) < 0.001) || RATE_STEPS[0];
+    const usable = catalog.filter((c) => c.usable);
+    const voiceNow = usable.find((c) => c.id === voiceId) || usable[0];
+    const offlineReady = !!(target && usesNasVoice && typeof saveForListening === 'function');
+    switch (id) {
+      case 'level':
+        if (!levels) return null;
+        return {
+          icon: <UiIcon name="users" />,
+          word: railWord((levels.find((b) => b.id === target.level) || levels[0]).label),
+          title: 'Who is learning — tap for the next one; the reading keeps its place',
+          onClick: () => pickLevel(nextInCycle(levels.map((b) => b.id), target.level)),
+        };
+      case 'start':
+        if (!target || isReading) return null;
+        return { icon: '▶', word: 'Start', title: `Read ${target.label} from the beginning`, onClick: () => readTargetNow(target, { startSentence: 0 }) };
+      case 'resume':
+        if (!target || !resumeOffer || isReading) return null;
+        return { icon: '▶', word: 'Resume', title: resumeOffer.label, onClick: () => readTargetNow(target, resumeOffer.opts) };
+      case 'tap':
+        if (isReading) return null;
+        return { icon: <UiIcon name="pin" />, word: armed ? 'Cancel' : 'Tap', on: armed, title: armed ? 'Now tap the word to start from — or tap here to stand down' : 'Start where I tap: the next word you tap is where reading begins', onClick: () => setArmed(!armed) };
+      case 'stop':
+        if (!isReading) return null;
+        return { icon: '⏹', word: 'Stop', title: 'Stop reading', onClick: stopAll };
+      case 'talk':
+        return { icon: <UiIcon name="volume" />, word: talking ? 'Thinking' : 'Talk', disabled: talking, title: 'Talk about this — Ari says what is on this screen', onClick: talkAbout };
+      case 'awake':
+        if (!awake.supported) return null;
+        return { icon: '◎', word: awake.enabled ? 'Screen on' : 'Screen off', on: awake.enabled, title: 'Keep the screen on while it reads', onClick: () => awake.setEnabled(!awake.enabled) };
+      case 'panel':
+        return { icon: '⇕', word: 'Panel', title: controllerToggleTitle(controller), onClick: flipController };
+      case 'pointer':
+        // DR-0802. Off by default because a Silk browser drives a pointer of
+        // its own and two would fight; on, the D-pad moves ours and OK clicks.
+        return { icon: '◉', word: pointerOn ? 'Pointer on' : 'Pointer', on: pointerOn, title: pointerOn ? 'The pointer is on: the arrows move it, OK presses what is under it, Back puts it away' : 'Show a pointer the remote can move, for a screen with no pointer of its own', onClick: flipPointer };
+      case 'full':
+        return { icon: '⤢', word: 'Full', title: 'Full screen — only the Word and the voice; Back, Esc or the corner mark brings the controls back', onClick: goFullScreen };
+      case 'speed':
+        return { icon: '⏱', word: rateNow.label, title: `Speed: ${rate.toFixed(1)}× — tap for the next`, onClick: () => setRate((RATE_STEPS.find((s) => s.value === nextInCycle(RATE_STEPS.map((s2) => s2.value), rateNow.value)) || RATE_STEPS[0]).value) };
+      case 'pitch': {
+        // THE SOUND OF THIS VOICE (DR-0801). One button, five named steps, the
+        // word IS the step. The pitch is kept per voice, so picking a voice
+        // brings its own sound back.
+        const step = pitchStep(pitch);
+        return { icon: '◢', word: step.label, title: `${step.name} — tap for the next; kept for this voice`, onClick: stepPitch };
+      }
+      case 'voice':
+        if (usable.length < 2 || !voiceNow) return null;
+        return { icon: <UiIcon name="volume" />, word: railWord(voiceNow.label), title: `Voice: ${voiceNow.label} — tap for the next`, onClick: () => setVoiceId(nextInCycle(usable.map((c) => c.id), voiceNow.id)) };
+      case 'colors':
+        return { icon: '◐', word: railWord(themeNow.label), title: `Colors: ${themeNow.label} — tap for the next; dark reads easier at night`, onClick: () => setTheme(nextInCycle(THEMES.map((t) => t.key), themeNow.key)) };
+      case 'highlight':
+        return { icon: '▮', word: followPrefs.highlight === 'off' ? 'No light' : 'Lit', on: followPrefs.highlight !== 'off', title: 'Light the sentence being read', onClick: () => setHighlight(followPrefs.highlight === 'off' ? 'sentence' : 'off') };
+      case 'place':
+        return { icon: '↕', word: followPrefs.place === 'centre' ? 'Centre' : 'Top', title: 'Where the spoken sentence sits on the screen', onClick: () => setPlace(followPrefs.place === 'centre' ? 'top' : 'centre') };
+      case 'word':
+        return { icon: <UiIcon name="book" />, word: showWord ? 'Word on' : 'Word off', on: showWord, title: showWord ? 'Hide the Word — read without the verses open' : 'Show the Word — open every verse', onClick: toggleShowTheWord };
+      case 'offline':
+        if (!offlineReady) return null;
+        return { icon: '⤓', word: 'Keep', title: `Save ${target.label} for listening offline`, onClick: saveOffline };
+      default:
+        return null;
+    }
+  };
+  const RailButton = ({ id }) => {
+    const spec = railSpec(id);
+    if (!spec) return null;
+    return (
+      <button type="button" onClick={spec.onClick} disabled={spec.disabled} data-testid={`reader-rail-${id}`} title={spec.title} aria-label={spec.title}
+        aria-pressed={typeof spec.on === 'boolean' ? spec.on : undefined}
+        className={`${spec.on ? DOCK_BTN_ON : DOCK_BTN} w-full disabled:opacity-50 focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]`}>
+        <span aria-hidden="true" className={DOCK_ICON}>{spec.icon}</span>
+        <span className={DOCK_LABEL}>{spec.word}</span>
+      </button>
+    );
+  };
+
+  // THE PANEL'S TWO HALVES (DR-0785). The same JSX in both shapes: stacked in
+  // the corner column (tall), or one on each side of the Word (sides). Written
+  // as functions so a half is only evaluated where it is rendered.
+  const renderRailLeft = () => (
+    <>
           <div className="flex items-baseline justify-between mb-[0.75em]">
             <div>
               <div className="text-[0.5625em] uppercase tracking-[0.25em] text-[#B85838] font-semibold">🔊 Read Aloud</div>
@@ -1646,10 +1809,15 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
                   re-seeks the voice when a reading is actually running, so for
                   a reader using their eyes this is a plain scroll home. */}
               <button type="button" onClick={jumpTop} data-testid="tts-header-top" aria-label="Back to the top of the lesson" title="Back to the top" className="text-[0.625em] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">↑ Top</button>
+              <button type="button" onClick={flipController} data-testid="reader-controller-toggle" aria-label={controllerToggleTitle(controller)} title={controllerToggleTitle(controller)} className="text-[0.625em] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">{controllerToggleLabel(controller)}</button>
               {isReading && (
                 <button type="button" onClick={() => setMinimized(true)} aria-label="Collapse to the reading pill — keeps reading" className="text-[0.625em] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">⌄ Smaller</button>
               )}
+              {controller === 'sides' ? (
+                <button type="button" onClick={goFullScreen} data-testid="reader-fullscreen" title="Full screen — only the Word and the voice; Back, Esc or the corner mark brings the controls back" aria-label="Full screen — only the Word and the voice" className="text-[0.625em] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">⤢ Full screen</button>
+              ) : (
               <button type="button" onClick={close} title={isReading ? 'Closes the panel — the reading keeps going' : 'Close'} className="text-[0.625em] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">× Close</button>
+              )}
             </div>
           </div>
 
@@ -1725,7 +1893,7 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
                     "start to finish" means the top. Where the reader left off
                     is its own button just below, and only when there is one. */}
                 {target && (
-                  <button type="button" data-testid="reader-read-target" onClick={() => readTargetNow(target, { startSentence: 0 })} className="col-span-3 bg-[#5A6E3D] text-white px-[0.75em] py-[0.625em] text-[0.75em] uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">▶ Read {target.label} — start to finish</button>
+                  <button type="button" data-testid="reader-read-target" onClick={() => { noteUse('reader.read'); readTargetNow(target, { startSentence: 0 }); }} className="col-span-3 bg-[#5A6E3D] text-white px-[0.75em] py-[0.625em] text-[0.75em] uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]">▶ Read {target.label} — start to finish</button>
                 )}
                 {/* RESUME — where this reading was left, said in paragraphs. */}
                 {target && resumeOffer && (
@@ -1790,6 +1958,10 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
             )}
           </div>
 
+    </>
+  );
+  const renderRailRight = () => (
+    <>
           {/* HOW IT LOOKS — text size and theme, reachable while READING (DR-0524).
               Darrell, on his phone in L179: "Can't change the text side nor etc
               on o cellphone reader fix it." Both controls existed only in the
@@ -1820,7 +1992,7 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
                   <button
                     key={st.key}
                     type="button"
-                    onClick={() => setTextSizeKey(st.key)}
+                    onClick={() => { noteUse('textsize.change'); setTextSizeKey(st.key); }}
                     aria-pressed={on}
                     aria-label={`${st.name} text size${on ? ' (current)' : ''}`}
                     title={`${st.name} text`}
@@ -1950,6 +2122,38 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
             </div>
           </div>
 
+          {/* THE SOUND OF THIS VOICE (DR-0801). Darrell 2026-10-07: "Can we
+              choose different male and female voices... different pitches...
+              to get a unique voice that has the right sound for each
+              individual?" The Web Speech API has no gender field - male and
+              female come only from which named voices a device offers, and a
+              TV browser offers almost none. Pitch is the lever we own, and
+              the engine has carried one all along (the Scripture cast tells
+              its characters apart with it); nothing ever exposed a control.
+              Kept PER VOICE, so picking a voice brings back the sound shaped
+              for it: one engine voice at five pitches is five readers a
+              listener can tell apart, with no studio and no 4070. */}
+          <div className="mb-[0.5em]" data-testid="reader-pitch">
+            <div className="text-[0.5625em] uppercase tracking-wider text-[#5A5751] mb-[0.25em]">The sound of this voice{currentItem && currentItem.label ? ` — kept for ${currentItem.label}` : ''}</div>
+            <div className="grid grid-cols-5 gap-[0.25em]" role="group" aria-label="The sound of this voice — how high or low it reads">
+              {PITCH_STEPS.map((st) => {
+                const on = Math.abs(pitch - st.value) < 0.001;
+                return (
+                  <button
+                    key={st.value}
+                    type="button"
+                    onClick={() => { noteUse('reader.pitch'); setPitch(st.value); }}
+                    aria-pressed={on}
+                    aria-label={`${st.name}${on ? ' — current' : ''}`}
+                    title={st.name}
+                    data-testid={`reader-pitch-${st.label.toLowerCase()}`}
+                    className={`px-[0.25em] py-[0.5em] min-h-[2.25em] text-[0.5625em] uppercase tracking-wider border leading-none focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838] ${on ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815]'}`}
+                  >{st.label}</button>
+                );
+              })}
+            </div>
+          </div>
+
           {catalog.length > 1 ? (
             <div className="mb-[0.5em]">
               <label htmlFor="tts-voice" className="block text-[0.5625em] uppercase tracking-wider text-[#5A5751] mb-[0.25em]">Voice (used everywhere)</label>
@@ -1997,8 +2201,85 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
               {tripSummary(lastTrip())}
             </p>
           ) : null}
+    </>
+  );
+
+  return (
+    // THE READER MUST OUTRANK A FULL-SCREEN PRESENTING SURFACE.
+    //
+    // Darrell 2026-08-31, from the live presenter console: "we dont have control
+    // over the voice... the controls dont show on the screen to even have a
+    // chance of adjustment."
+    //
+    // This control sat at z-40 while Presenter.jsx paints its console at
+    // zIndex 60 and its on-screen presenting mode at zIndex 70. So on exactly
+    // the surface that offers a "Read it aloud" button, pressing it started a
+    // reading whose voice, speed, pause and stop controls were painted
+    // UNDERNEATH the overlay — audible, and unreachable. A speaker standing in
+    // front of a room could start the reader and then could not adjust or stop
+    // it.
+    //
+    // 80 is the deliberate slot: above the presenting overlays (60/70) so the
+    // reader stays reachable wherever it can be started, and still below the
+    // true modal layer — HelpWalkthrough (110), Modal/Lightbox (120) — which
+    // must keep covering it.
+    <div className="tts-controls fixed bottom-4 right-4 z-[80] print:hidden flex flex-col items-end gap-2">
+      {/* THE FAILURE THE ENGINE ALREADY DETECTED, finally shown. Fire TV is the
+          case that exposed it: Silk exposes speechSynthesis and
+          SpeechSynthesisUtterance, so isTTSSupported() answers true, but the
+          device carries no voice engine — getVoices() stays empty, the
+          utterance produces no audio, and the watchdog flips `failed`. Every
+          piece worked except the last one. role="status" so a screen reader
+          announces it, and it sits ABOVE the panel so it cannot be missed. */}
+      {/* A NOTICE MAY NOT SIT ON THE WORD (Darrell 2026-09-22): "these types
+          of words covering the Word and perspectives being explained are not
+          wanted." And 2026-09-23, when the same box came back with an HTTP
+          404 in it: "Popup's?!!!" The notice used to be its own floating box
+          in this fixed stack, painted over the prose by construction. It is
+          no longer rendered here at all: it lives inside the open panel (below,
+          under the header), and while the panel is a pill or a button it is a
+          small mark on that pill or button. See the panel for the block. */}
+      {interrupted && (
+        <div role="status" data-testid="reading-interrupted" className="bg-white border-2 border-[#1A1815] shadow-lg px-[0.75em] py-[0.5em] flex items-center flex-wrap justify-end gap-[0.5em]" style={{ fontSize: 'calc(1rem * var(--ts-chrome-scale, 1))' }}>
+          <span className="text-[0.75em] text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>The screen went dark and the reading stopped.</span>
+          <button type="button" onClick={continueReading} className="px-[0.625em] py-[0.375em] min-h-[2.75em] text-[0.75em] uppercase tracking-wider border-2 border-[#1A1815] bg-[#1A1815] text-white hover:bg-[#B85838] hover:border-[#B85838] font-semibold whitespace-nowrap focus:outline focus:outline-2 focus:outline-[#B85838]">▶ Continue</button>
+          <button type="button" onClick={() => setInterrupted(false)} aria-label="Dismiss" className="px-[0.5em] py-[0.375em] text-[0.75em] border-2 border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">×</button>
         </div>
-      ) : docked ? null : isReading ? miniBarEl : (
+      )}
+      {offersReturn(ret) && (
+        <div role="status" data-testid="reading-way-back" className="bg-white border-2 border-[#1A1815] shadow-lg px-[0.75em] py-[0.5em] flex items-center flex-wrap justify-end gap-[0.5em]" style={{ fontSize: 'calc(1rem * var(--ts-chrome-scale, 1))' }}>
+          <span className="text-[0.75em] text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{returnLabel(ret)}</span>
+          <button type="button" onClick={takeMeBack} data-testid="reading-way-back-go" className="px-[0.625em] py-[0.375em] min-h-[2.75em] text-[0.75em] uppercase tracking-wider border-2 border-[#1A1815] bg-[#1A1815] text-white hover:bg-[#B85838] hover:border-[#B85838] font-semibold whitespace-nowrap focus:outline focus:outline-2 focus:outline-[#B85838]">↩ Take me back</button>
+          <button type="button" onClick={() => setRet(RETURN_IDLE)} aria-label="Dismiss" className="px-[0.5em] py-[0.375em] text-[0.75em] border-2 border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">×</button>
+        </div>
+      )}
+      {scrollTopBtn}
+      {!docked && backToVoice}
+      {floatEl}
+      {supported && !floatState.floating && (railsOn ? null : isOpen && minimized && live ? (docked ? null : pillEl)
+      : isOpen ? (
+        /* THE PANEL IS CHROME, NOT READING TEXT (Pattern 2b; Darrell 2026-07-27:
+           "The sizes of text makes the talk section not useful" — at A+++/A44
+           the rem-based labels ballooned inside the fixed 260px box: buttons
+           wrapped to three lines, the five speed chips crushed together, and
+           the panel clipped off-screen). Fix, same law as the collapsed FAB's
+           ts-chrome-region: the panel's font-size is the CAPPED chrome size
+           (1rem × --ts-chrome-scale = the capped chrome multiplier — ~1.1x at
+           A+++, ~1.4x at A44, exactly 1x at Normal), and EVERYTHING inside is
+           sized in em so text, padding, and the box grow together, bounded.
+           Width is em too (16.25em = 260px at Normal) so the panel widens in
+           step with its own capped text; max-h + scroll keep it on-screen at
+           any size instead of clipping controls off the top. */
+        <div
+          data-testid="reader-panel"
+          data-layout="tall"
+          className="bg-white border-2 border-[#1A1815] p-[0.75em] shadow-lg w-[16.25em] max-w-[calc(100vw-2rem)] max-h-[calc(100dvh-7rem)] overflow-y-auto"
+          style={{ fontSize: 'calc(1rem * var(--ts-chrome-scale, 1))' }}
+        >
+          {renderRailLeft()}
+          {renderRailRight()}
+        </div>
+      ) : docked ? null : live ? miniBarEl : (
         <div className="flex items-end gap-2" data-testid="reader-idle-row">
           <TextSizeQuick dim={!revealFab} />
           {fab}
@@ -2012,10 +2293,31 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
           the Word. The open panel above stays a panel. The wrapper keeps
           .tts-controls so the reading engine still counts it as the
           reader's own chrome (never read aloud, never a tap-to-start). */}
+      {/* THE RAILS: the bottom bar's own buttons, standing up the two sides of
+          the Word (DR-0785, re-cut DR-0800). Only what the bar does not have. */}
+      {supported && !floatState.floating && railsOn && typeof document !== 'undefined' && createPortal(
+        <div className="tts-controls print:hidden" data-testid="reader-rails" data-layout="sides" style={{ fontSize: 'calc(1rem * var(--ts-chrome-scale, 1))' }}>
+          <div data-testid="reader-rail-left" role="group" aria-label="Reading controls — the voice" className="fixed top-2 bottom-14 left-2 z-[80] overflow-y-auto flex flex-col items-stretch gap-[4px]" style={{ width: railWidth() }}>
+            {railButtonIds('left').map((id) => <RailButton key={id} id={id} />)}
+          </div>
+          <div data-testid="reader-rail-right" role="group" aria-label="Reading controls — how it sounds and looks" className="fixed top-2 bottom-14 right-2 z-[80] overflow-y-auto flex flex-col items-stretch gap-[4px]" style={{ width: railWidth() }}>
+            {railButtonIds('right').map((id) => <RailButton key={id} id={id} />)}
+          </div>
+        </div>,
+        document.body,
+      )}
+      {/* THE POINTER A REMOTE MOVES (DR-0802). Draws nothing until it is
+          switched on AND woken, so every other device pays nothing. */}
+      <RemotePointer on={pointerOn} />
+      {/* FULL SCREEN: only the Word and the voice. A faint mark brings the controls back. */}
+      {fullScreen && typeof document !== 'undefined' && createPortal(
+        <button type="button" onClick={leaveFullScreen} data-testid="reader-fullscreen-exit" aria-label="Show the controls again" title="Show the controls again (Back or Esc also does)" className="tts-controls fixed top-2 right-2 z-[80] opacity-40 hover:opacity-100 focus:opacity-100 px-[0.5em] py-[0.25em] text-[0.625em] uppercase tracking-wider border-2 border-[#1A1815] bg-white text-[#1A1815] print:hidden focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-[#B85838]" style={{ fontSize: 'calc(1rem * var(--ts-chrome-scale, 1))' }}>⤡ Controls</button>,
+        document.body,
+      )}
       {docked && createPortal(
         <div className="tts-controls tts-docked flex items-center gap-[4px]" data-testid="reader-docked">
           {backToVoice}
-          {supported && !floatState.floating && (isOpen && minimized && isReading ? pillEl : isOpen ? null : isReading ? miniBarEl : fab)}
+          {supported && !floatState.floating && (isOpen && minimized && live ? pillEl : isOpen ? null : live ? miniBarEl : fab)}
         </div>,
         dockSlot,
       )}

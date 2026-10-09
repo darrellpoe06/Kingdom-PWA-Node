@@ -61,6 +61,7 @@ vi.mock('../modules/properties/cloud.js', async (importOriginal) => {
     loadMyGrants: slow({ ok: true, grants: [], byScope: {}, roleLabel: null }),
     loadMyHousehold: slow({ ok: true, memberships: [] }),
     loadMyRentals: slow({ ok: true, rentals: [] }),
+    loadInvites: slow({ ok: true, invites: [] }),
     loadAllPhotos: slow({ ok: true, photos: [] }),
     loadPhotoImages: async () => ({ ok: true, images: {} }),
     hydrateLegacyImages: async (photos) => photos,
