@@ -270,6 +270,42 @@ jobs:
           # alias separates those two: JSON there and HTML on poetech.us means
           # the domain is pinned to an older deployment, which is a Cloudflare
           # routing repair, not a code one.
+          # WOULD POINTING THE APP STRAIGHT AT THE FUNNEL ACTUALLY UNLOCK THEM?
+          # With every Pages Function dark, the app's auth URL
+          # (SOVEREIGN_SB_URL=https://poetech.us/sb) is a dead path, and the
+          # obvious rescue is to build against the Funnel origin instead. But
+          # funnel-proxy.js exists BECAUSE the Funnel throttles cross-origin
+          # BROWSER fetches from poetech.us with a 503 before they reach the
+          # NAS — and every probe above sent no Origin header, so none of them
+          # tested the thing a browser does. This sends the same sign-in POST
+          # WITH the browser's Origin and a preflight, so the rescue is
+          # measured before it is shipped rather than hoped for (DR-0076).
+          echo "=== the Funnel, asked the way a BROWSER asks (Origin + preflight) ==="
+          if [ -n "${SB_ANON:-}" ]; then
+            PRE_CODE=$(curl -s -o /dev/null -m 20 -w '%{http_code}' -X OPTIONS \
+              -H 'Origin: https://poetech.us' \
+              -H 'Access-Control-Request-Method: POST' \
+              -H 'Access-Control-Request-Headers: apikey,content-type' \
+              "https://poetech.tail5a2f35.ts.net/sb/auth/v1/token?grant_type=password" 2>/dev/null || echo "000")
+            echo "CORS preflight (OPTIONS) -> HTTP $PRE_CODE"
+            O_CODE=$(curl -s -o /tmp/origin_body.txt -m 25 -w '%{http_code}' -X POST \
+              -H 'Origin: https://poetech.us' \
+              -H "apikey: $SB_ANON" -H 'Content-Type: application/json' \
+              -d '{"email":"heal-probe@poetech.invalid","password":"not-a-real-password"}' \
+              -D /tmp/origin_hdr.txt \
+              "https://poetech.tail5a2f35.ts.net/sb/auth/v1/token?grant_type=password" 2>/dev/null || echo "000")
+            O_BYTES=$(wc -c < /tmp/origin_body.txt 2>/dev/null | tr -d ' ')
+            echo "browser-shaped POST to the Funnel -> HTTP $O_CODE, $O_BYTES bytes"
+            echo "- Funnel with \`Origin\` -> **$O_CODE**, ${O_BYTES} bytes; preflight **$PRE_CODE**" >> "$GITHUB_STEP_SUMMARY"
+            grep -i -E '^access-control-allow-(origin|headers|methods)' /tmp/origin_hdr.txt 2>/dev/null || echo "(no CORS headers on the answer)"
+            head -c 200 /tmp/origin_body.txt 2>/dev/null | scrub_edge; echo
+            if [ "$O_CODE" = "503" ]; then
+              echo "::warning::THE FUNNEL THROTTLE IS REAL AND ACTIVE — a browser-shaped POST (Origin: https://poetech.us) got 503 while the same POST without an Origin succeeded. Repointing the app at the Funnel would NOT unlock anyone."
+            elif [ "${O_BYTES:-0}" -gt 0 ] 2>/dev/null; then
+              echo "The Funnel answers a browser-shaped POST ($O_BYTES bytes). Repointing the app at it is a viable unlock."
+            fi
+          fi
+
           echo "=== the same Function route, on the domain vs the project alias ==="
           for HOST in poetech.us poetech-app.pages.dev; do
             H_CT=$(curl -s -o /dev/null -m 20 -w '%{content_type}' "https://$HOST/automation-status" 2>/dev/null || echo "?")
