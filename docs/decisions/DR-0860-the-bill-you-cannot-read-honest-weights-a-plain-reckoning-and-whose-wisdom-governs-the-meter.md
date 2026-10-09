@@ -146,10 +146,20 @@ point of having them:
    never asked. Proven-to-catch both ways: a bogus word injected into
    eternal-wisdom's row is named by the reachability check AND by the new
    real-lesson check, and `zzqqxx` reads unreached while `work` reads reached.
-   The honest lesson: a window over a positional ordering measures the catalog,
-   not the connection, and it will bite the next lesson in any course ahead of
-   the last one. The three sibling lessons still in flight would each have hit
-   this same wall.
+   **Who landed what, said straight (DR-0076 §8).** L237 hit the identical wall
+   in the same hour on its own branch, reached the same diagnosis independently,
+   and merged first — so the window change on `main` is L237's, with a fuller
+   note than the one written here, including a finding this lesson had not
+   measured: the PRODUCT's own window is 40 (`searchLessons`' default, which
+   `ChurchLearn.jsx` uses), and at 40 `work` does not reach eternal-wisdom and
+   did not before either. That connection is dead on the live surface today, is
+   a ranking defect in the finder rather than in any lesson, and is parked with
+   a reason and `re-review: 2026-11-09` rather than hidden (DR-0075). What this
+   lesson contributes to that file is the stronger half: the new case requiring
+   every declared word to land on a REAL lesson of its own course. Both are in
+   the merged file. The honest lesson stands either way: a window over a
+   positional ordering measures the catalog, not the connection, and it bit two
+   sibling lessons in one hour.
 
 ## Impact
 
