@@ -6,7 +6,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   summaryTiles, categoryLabel, categoryTone, maskEmail,
-  hasReturned, signupRowView, sortSignups, lastActiveAt, isActiveNow,
+  hasReturned, signupRowView, sortSignups, lastActiveAt, isActiveNow, ownNameOf,
 } from '../lib/signup-metrics.js';
 
 // A fixed "now" so relative-time output is deterministic.
@@ -201,5 +201,26 @@ describe('signupRowView reads the phone door as a phone', () => {
     const v = signupRowView({ user_id: 'u3', email: 'jane@x.com', created_at: iso(DAY) }, NOW);
     expect(v.phoneDoor).toBe(false);
     expect(v.email).toBe('jane@x.com');
+  });
+});
+
+// A "name" that is only the account's identifier is no name (DR-0829): the
+// phone door names an account by its digits, and showing them as a name hid
+// the contact's real name beside it (Darrell's screenshot, 2026-10-09).
+describe('ownNameOf', () => {
+  it('digits, the address local part, or the whole address read as no name', () => {
+    expect(ownNameOf('14472209779', '14472209779@phone.poetech.us')).toBeNull();
+    expect(ownNameOf('(447) 220-9779', '14472209779@phone.poetech.us')).toBeNull();
+    expect(ownNameOf('JBVaughn21@gmail.com', 'jbvaughn21@gmail.com')).toBeNull();
+    expect(ownNameOf('', 'x@y.com')).toBeNull();
+  });
+  it('a chosen name stays, and an ordinary email local part may be one', () => {
+    expect(ownNameOf('jbvaughn21', 'jbvaughn21@gmail.com')).toBe('jbvaughn21');
+    expect(ownNameOf('Bro Clifton Reed', '12175205745@phone.poetech.us')).toBe('Bro Clifton Reed');
+    expect(ownNameOf(' Jane ', 'jane@x.com')).toBe('Jane');
+  });
+  it('signupRowView uses it, so the contact name fills the gap on the row', () => {
+    const v = signupRowView({ user_id: 'u', display_name: '14472209779', email: '14472209779@phone.poetech.us', created_at: iso(DAY) }, NOW);
+    expect(v.name).toBeNull();
   });
 });

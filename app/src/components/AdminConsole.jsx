@@ -58,6 +58,7 @@ import { listPendingClaims, confirmInvite } from '../lib/family-invite.js';
 import { contactOf, reachLabel, whenLabel, samePersonHints, contactCoverage } from '../lib/member-contact.js';
 import { emptyIndex, loadContactIndex, labelFor } from '../lib/contact-names.js';
 import MemberInspect from './MemberInspect.jsx';
+import PersonRecord from './PersonRecord.jsx';
 import ChatPane from './ChatPane.jsx';
 import LessonShareLedger from './LessonShareLedger.jsx';
 
@@ -150,6 +151,7 @@ export default function AdminConsole({
   const [invite, setInvite] = useState({ email: '', role: 'member', msg: '', link: '' });  // "invite someone" form
   const [pending, setPending] = useState([]);                       // claims awaiting the inviter's confirmation
   const [inspecting, setInspecting] = useState(null);               // member userId whose stewardship record is open (0122)
+  const [knownFor, setKnownFor] = useState(null);                   // member userId whose full record is open (DR-0828)
   const [checklistFor, setChecklistFor] = useState(null);           // member userId whose capability checklist is open (DR-0242)
   const [capGrants, setCapGrants] = useState([]);                   // [{ userId, capability }] for the scoped space (0126)
   // Today, read once per render rather than per row — the "last here" phrasing
@@ -554,6 +556,18 @@ export default function AdminConsole({
                               {checklistFor === m.userId ? 'Close' : 'Checklist'}
                             </button>
                           )}
+                          {/* Everything on record for this person (DR-0828):
+                              doors, ways to reach them, devices seen, and what
+                              the cloud never holds, said. */}
+                          {m.userId && (
+                            <button type="button"
+                              className="text-[0.625rem] uppercase tracking-wider px-2 py-1 border border-[#C9BFA8] text-[#5A5751] focus:outline focus:outline-2 focus:outline-[#B85838]"
+                              aria-expanded={knownFor === m.userId}
+                              data-testid="roster-known-toggle"
+                              onClick={() => setKnownFor((cur) => (cur === m.userId ? null : m.userId))}>
+                              {knownFor === m.userId ? 'Close' : 'Known'}
+                            </button>
+                          )}
                           {/* Inspect: the stewardship record (position · status ·
                               satisfaction · notes, 0122) — Darrell 2026-07-27. */}
                           {m.userId && (
@@ -597,6 +611,9 @@ export default function AdminConsole({
                             </div>
                           ))}
                         </div>
+                      )}
+                      {knownFor === m.userId && (
+                        <PersonRecord instanceId={scopeInstance} member={m} contactIndex={contactIdx} />
                       )}
                       {inspecting === m.userId && (
                         <MemberInspect instanceId={scopeInstance} member={m} />

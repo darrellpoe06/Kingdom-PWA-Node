@@ -35,6 +35,17 @@ vi.mock('../lib/contacts-store.js', () => ({
   cachedContacts: () => store.device,
   loadMyContacts: async () => store.table,
 }));
+// The governor's spaces and the add call (DR-0829): an owner of the family
+// and an admin of a business; every add is recorded here with its arguments.
+const adds = [];
+vi.mock('../lib/member-roles.js', async (orig) => ({
+  ...(await orig()),
+  listMyAdminInstances: async () => [
+    { instanceId: 'i-fam', slug: 'poe-family', displayName: 'Poe Family', instanceType: 'family', role: 'owner' },
+    { instanceId: 'i-biz', slug: 'moore-divahs', displayName: 'Moore Divahs', instanceType: 'business', role: 'admin' },
+  ],
+  addUserToSpace: async (instanceId, userId, role, name) => { adds.push({ instanceId, userId, role, name }); return { ok: true, status: 'added', role }; },
+}));
 
 import AccessUsageMetrics from '../components/AccessUsageMetrics.jsx';
 
@@ -123,5 +134,29 @@ describe('Platform Signups, named from your contacts', () => {
     await act(async () => { btn.click(); });
     const who = el.querySelector('[data-testid="signup-row-who"]').textContent;
     expect(who).toBe('phone ending 0498 · signs in by phone');
+  });
+
+  it('Add to a space: the governor makes the phone-door account family, as member or admin, by the contact\'s name', async () => {
+    adds.length = 0;
+    signups.data.signups = [ROWS[0]];
+    store.table = { ok: true, rows: [{ name: 'Sister Lamb', phones: ['(555) 010-0498'], emails: [] }], reason: '' };
+    store.device = [];
+    const el = await mount();
+    const open = el.querySelector('[data-testid="signup-add-to-space"]');
+    expect(open, 'the Add to a space control is on the row').toBeTruthy();
+    await act(async () => { open.click(); });
+    const form = el.querySelector('[data-testid="signup-add-to-space-form"]');
+    const space = form.querySelector('select[aria-label="Space"]');
+    const role = form.querySelector('select[aria-label="Role"]');
+    expect(Array.from(space.options).map((o) => o.textContent)).toEqual(['Poe Family', 'Moore Divahs']);
+    // The family is owned, so Admin is offered; the business is only administered, so it is not.
+    expect(Array.from(role.options).map((o) => o.value)).toEqual(['member', 'viewer', 'admin']);
+    await act(async () => { role.value = 'admin'; role.dispatchEvent(new Event('change', { bubbles: true })); });
+    await act(async () => { form.querySelector('[data-testid="signup-add-to-space-go"]').click(); });
+    await act(async () => { await Promise.resolve(); });
+    expect(adds).toEqual([{ instanceId: 'i-fam', userId: 'u-door', role: 'admin', name: 'Sister Lamb' }]);
+    expect(el.querySelector('[data-testid="signup-add-to-space-result"]').textContent).toMatch(/^Sister Lamb is now Admin.* of Poe Family\.$/);
+    await act(async () => { space.value = 'i-biz'; space.dispatchEvent(new Event('change', { bubbles: true })); });
+    expect(Array.from(form.querySelector('select[aria-label="Role"]').options).map((o) => o.value)).toEqual(['member', 'viewer']);
   });
 });

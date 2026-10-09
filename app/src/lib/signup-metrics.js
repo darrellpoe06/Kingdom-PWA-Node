@@ -156,6 +156,25 @@ export function reachOf(email, mask = false) {
   return { phoneDoor: false, phone: '', text: mask ? maskEmail(e) : (e || '(no email)') };
 }
 
+// The account's OWN name, or null when the "name" is only its identifier: the
+// phone door names an account by the digits of its address (0140 falls back
+// to the local part of the email), so `14472209779` is not a name anybody
+// chose, and showing it as one hid the contact's real name beside it
+// (Darrell's screenshot, 2026-10-09: digits first, "in your contacts as
+// Christyn Poe" after). An email's local part is the same non-name.
+export function ownNameOf(displayName, email) {
+  const n = String(displayName || '').trim();
+  if (!n) return null;
+  const e = String(email || '').trim().toLowerCase();
+  const bare = n.replace(/[\s().+-]/g, '');
+  if (/^\d+$/.test(bare)) return null;                                  // digits, however punctuated
+  if (e && n.toLowerCase() === e) return null;                          // the whole address
+  // The local part of a PHONE-DOOR address is the digits again; an ordinary
+  // email's local part may be a name the person chose, so it stays.
+  if (isPhoneDoorEmail(e) && n.toLowerCase() === e.slice(0, e.indexOf('@'))) return null;
+  return n;
+}
+
 // Shape one RPC signup row into the fields the list renders. `mask` toggles
 // email masking; `nowMs` stamps relative times once per render.
 export function signupRowView(row, nowMs, mask = false) {
@@ -164,7 +183,7 @@ export function signupRowView(row, nowMs, mask = false) {
   const reach = reachOf(r.email, mask);
   return {
     userId: r.user_id || null,
-    name: (r.display_name && String(r.display_name).trim()) || null,
+    name: ownNameOf(r.display_name, r.email),
     email: reach.text,
     rawEmail: r.email || null,
     phoneDoor: reach.phoneDoor,

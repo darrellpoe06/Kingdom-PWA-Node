@@ -1215,6 +1215,29 @@ const NODES = [
     ],
     seeds: [],
   }),
+  // A LAN DEVICE BELONGS TO A PERSON (DR-0830). The church device register
+  // (0056) holds the MACs a real scan read; 0256 adds whose device each is,
+  // set only by an editor's hand. The person's record reads it back.
+  app('app/src/lib/church-devices-sync.js', {
+    id: 'device-register', name: 'Device register (Devices, church infrastructure)',
+    purpose: 'The church’s devices as identified assets with specs, status, steward and, since 0256, the person each one belongs to, assigned from the roster by an editor.',
+    reads: [{ res: 'db:church_devices', token: "remoteTable: 'church_devices'" }],
+    writes: [{ res: 'db:church_devices', token: "remoteTable: 'church_devices'" }],
+    seeds: ['person-record'],
+  }),
+  // EVERYTHING ON RECORD FOR A PERSON (DR-0828): the Known fold on the Admin
+  // roster reads the rows a steward may already read and says what the cloud
+  // never holds.
+  app('app/src/lib/person-record-sync.js', {
+    id: 'person-record', name: 'Everything on record for a person (Admin → Known)',
+    purpose: 'One read per roster row: sign-in doors, the ways to reach them, the devices seen (message devices, presence) and the LAN devices assigned to them with the MAC the scan recorded; absences stated, nothing painted.',
+    reads: [
+      { res: 'db:dm_device_keys', token: "from('dm_device_keys')" },
+      { res: 'db:church_devices', token: "from('church_devices')" },
+    ],
+    writes: [],
+    seeds: [],
+  }),
 ];
 
 // Every service rider and loop reads nas:services (the install services-sync
@@ -1362,6 +1385,7 @@ const RESOURCES = {
   'http:funnel': { label: 'the NAS’s public routes' },
   'db:contacts': { label: 'a person\u2019s own address book (0247, DR-0736; read by its owner alone)' },
   'db:dm_device_keys': { label: 'the public key of each device a person holds (0249, DR-0737; read by anyone signed in, written by its owner alone)' },
+  'db:church_devices': { label: 'the church device register (0056): identified assets with the MACs a scan read and, since 0256, the person each belongs to (DR-0830)' },
   'file:vcf': { label: 'a phone\u2019s exported contacts file', source: 'The phone\u2019s Contacts app or Google Contacts shares it; the person uploads it in Messages.' },
   'db:household_openers': { label: 'the openers this household owns, and which are armed (0254, DR-0823)' },
   'db:opener_presses': { label: 'every press of an opener and what came back', sink: 'A steward reads it in Dev/Ops; it is append-only, with no update or delete policy, so the record of who opened the house and when cannot be tidied away.' },

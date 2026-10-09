@@ -19,7 +19,8 @@ vi.mock('../lib/supabase.js', () => {
   return { default: supabase, supabase };
 });
 
-import { deviceFromRow, deviceToRow } from '../lib/church-devices-sync.js';
+import { deviceFromRow, deviceToRow, DEVICE_COLUMN_OF } from '../lib/church-devices-sync.js';
+import { makeDevice } from '../lib/church-devices.js';
 
 const ROW = {
   id: 'a1b2c3d4-0000-0000-0000-00000000dead',
@@ -63,5 +64,16 @@ describe('deviceToRow — identity fields never round-trip into the row', () => 
     expect(row.slug).toBe('dev-nas-ds1621xs');
     expect(row.instance_id).toBe('tenant-1');
     expect(row.created_by).toBe('user-1');
+  });
+});
+
+// DR-0830: whose device this is rides the row both ways, and absent reads null.
+describe('ownerUserId (DR-0830)', () => {
+  it('round-trips through the row and the column map', () => {
+    const row = deviceToRow(makeDevice({ id: 'dev-x', name: 'Her tablet', ownerUserId: 'u-door' }), { tenantId: 't1', userId: 'me' });
+    expect(row.owner_user_id).toBe('u-door');
+    expect(deviceFromRow({ ...row, id: 'r1' }).ownerUserId).toBe('u-door');
+    expect(deviceFromRow({ ...row, id: 'r2', owner_user_id: null }).ownerUserId).toBeNull();
+    expect(DEVICE_COLUMN_OF.ownerUserId).toBe('owner_user_id');
   });
 });

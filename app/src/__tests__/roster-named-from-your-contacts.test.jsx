@@ -46,6 +46,15 @@ vi.mock('../lib/contacts-store.js', () => ({
   cachedContacts: () => store.device,
   loadMyContacts: async () => store.table,
 }));
+// The Known fold's reads (DR-0828): a message device for the door member, and
+// presence that the server refuses, so both the row and the reason render.
+vi.mock('../lib/person-record-sync.js', () => ({
+  loadPersonRows: async (instanceId, userId) => ({
+    dm: { ok: true, rows: userId === 'u-door' ? [{ device_id: 'd1', label: 'Android device', last_seen_at: new Date().toISOString() }] : [], reason: '' },
+    presence: { ok: false, rows: [], reason: 'permission denied for table member_presence' },
+    lan: { ok: true, rows: userId === 'u-door' ? [{ id: 'r1', name: 'Her tablet', device_type: 'iot', location: 'Fellowship hall', specs: { mac: 'AA-BB-CC-DD-EE-FF' }, updated_at: '2026-10-01T00:00:00Z' }] : [], reason: '' },
+  }),
+}));
 
 import AdminConsole from '../components/AdminConsole.jsx';
 
@@ -104,5 +113,32 @@ describe('Admin roster, named from your contacts', () => {
     expect(door).toContain('15550100498@phone.poetech.us');
     expect(door).not.toContain('from your contacts');
     expect(host.querySelectorAll('[data-testid="roster-contact-note"]').length).toBe(0);
+  });
+
+  it('Known opens everything on record: the contact name, the phone door, text and call, the device, the refused read, and what is not held', async () => {
+    store.table = { ok: true, rows: [{ name: 'Sister Lamb', phones: ['(555) 010-0498'], emails: [] }], reason: '' };
+    await mountAndLoadRoster();
+    const row = Array.from(host.querySelectorAll('li')).find((li) => /010-0498/.test(li.textContent || ''));
+    const known = row.querySelector('[data-testid="roster-known-toggle"]');
+    expect(known.textContent).toBe('Known');
+    await act(async () => { known.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+    await settle();
+    const rec = row.querySelector('[data-testid="person-record"]');
+    expect(rec, 'the record fold opens').toBeTruthy();
+    const text = rec.textContent;
+    expect(text).toContain('Everything on record for Sister Lamb');
+    expect(text).toContain('from your contacts');
+    expect(rec.querySelector('[data-testid="person-record-door"]').textContent).toContain('Phone · (555) 010-0498 (the phone they sign in with)');
+    expect(rec.querySelector('[data-testid="person-record-reach-text"]').getAttribute('href')).toBe('sms:15550100498');
+    expect(rec.querySelector('[data-testid="person-record-reach-call"]').getAttribute('href')).toBe('tel:15550100498');
+    expect(rec.querySelector('[data-testid="person-record-reach-email"]')).toBeNull();
+    const devices = Array.from(rec.querySelectorAll('[data-testid="person-record-device"]')).map((n) => n.textContent);
+    expect(devices.some((t) => /Android device/.test(t))).toBe(true);
+    expect(devices.some((t) => /Her tablet/.test(t) && /MAC AA-BB-CC-DD-EE-FF/.test(t) && /Fellowship hall/.test(t))).toBe(true);
+    expect(rec.querySelector('[data-testid="person-record-presence-reason"]').textContent).toContain('permission denied');
+    const notHeld = Array.from(rec.querySelectorAll('[data-testid="person-record-not-held"]')).map((n) => n.textContent);
+    expect(notHeld.some((t) => /Full SSN or EIN/.test(t))).toBe(true);
+    expect(notHeld.some((t) => /MAC address/.test(t) && /browser cannot read/.test(t))).toBe(true);
+    expect(known.textContent).toBe('Close');
   });
 });
