@@ -70,3 +70,12 @@ The Way's timeline is the ledger's re-review dates. Measured on the records: 257
 ## A live view never stops trying (DR-0833)
 
 Darrell's photograph of the TV: four camera tiles stopped on "Press Resume". The cap (six tries, nine seconds) came from DR-0774 and was wrong for a wall nobody stands next to. The witness run at 03:26 UTC found two of those four cameras streaming again while their tiles waited for a hand. Both players now keep trying for as long as the tile is shown, with a wait that grows only while the camera gives no picture (1.5 s to 30 s) and resets on a picture; the first-frame deadline reconnects; a hidden page waits the long step. Measured and recorded in the DR: 9 of 31 cameras answer a frame; go2rtc cannot discover basketball_cam on the LAN; the bridge connects only great-room and kitchen-2; Wyze's peer service tells the bridge the 805 cameras are offline while the Wyze app shows them. That last line is the open question the next record takes to the NAS.
+
+
+## The NAS side of the dark tiles (DR-0834)
+
+The diag said why two of the four TV cameras never opened: go2rtc dials the address written into a direct wyze:// line, and basketball_cam's address no longer answers (discovery timeout). The forwarder now asks the bridge's listing where Wyze sees each camera today and re-addresses the line; a direct road that stays dark (the snapshot breaker tripped on a connect-class reason, or someone watching with no byte for five minutes) rides the bridge, and the direct road is tried again an hour later. Fourteen new selftest checks; the whole forwarder selftest green. Still open and said so: cameras Wyze's own peer service calls offline, the 805 set among them, are reached by neither road.
+
+## Christyn's badge (DR-0835)
+
+The add worked and the list re-read; the read itself was wrong. 0079 named each account by its earliest space, and a self-serve account's own space is always earliest. 0257 ranks the family first, then church, then a business, then the own space, and counts how many spaces hold the person. The smoke fails on 0079 and passes on 0257 on a local PostgreSQL; the role-control isolation leg runs it on the hosted database from now on. Owed after merge: db-migrate applies 0257 and Christyn's row reads FAMILY on the live build.

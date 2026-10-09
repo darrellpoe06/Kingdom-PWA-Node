@@ -27,7 +27,8 @@ vi.mock('../lib/usage-events.js', () => ({ fetchUsageFlow: async () => null, top
 const signups = { status: 'ready', data: { summary: { total_accounts: 3 }, signups: [] } };
 vi.mock('../lib/signup-metrics.js', async (importOriginal) => {
   const real = await importOriginal();
-  return { ...real, fetchSignupMetrics: async () => signups };
+  // A fresh object per call, as the real fetch answers; the same object twice would let React skip the re-render.
+  return { ...real, fetchSignupMetrics: async () => ({ ...signups }) };
 });
 
 const store = { device: [], table: { ok: true, rows: [], reason: '' } };
@@ -155,8 +156,26 @@ describe('Platform Signups, named from your contacts', () => {
     await act(async () => { form.querySelector('[data-testid="signup-add-to-space-go"]').click(); });
     await act(async () => { await Promise.resolve(); });
     expect(adds).toEqual([{ instanceId: 'i-fam', userId: 'u-door', role: 'admin', name: 'Sister Lamb' }]);
-    expect(el.querySelector('[data-testid="signup-add-to-space-result"]').textContent).toMatch(/^Sister Lamb is now Admin.* of Poe Family\.$/);
+    expect(el.querySelector('[data-testid="signup-add-to-space-result"]').textContent).toMatch(/^Sister Lamb is now Admin.* of Poe Family\./);
     await act(async () => { space.value = 'i-biz'; space.dispatchEvent(new Event('change', { bubbles: true })); });
     expect(Array.from(form.querySelector('select[aria-label="Role"]').options).map((o) => o.value)).toEqual(['member', 'viewer']);
+  });
+
+  it('after the add the list is re-read, and the badge and the family tile follow the server\'s word (DR-0835)', async () => {
+    adds.length = 0;
+    // The server before and after: a self-serve row, then the same account as family once 0257 ranks the family first.
+    signups.data = { summary: { total_accounts: 3, family_members: 4 }, signups: [{ ...ROWS[2], category: 'self-serve' }] };
+    store.table = { ok: true, rows: [], reason: '' }; store.device = [];
+    const el = await mount();
+    expect(el.textContent).toMatch(/Public signup|Self-serve/i);
+    expect(el.textContent).toContain('4 family');
+    signups.data = { summary: { total_accounts: 3, family_members: 5 }, signups: [{ ...ROWS[2], category: 'family', display_name: 'Christyn (test)' }] };
+    await act(async () => { el.querySelector('[data-testid="signup-add-to-space"]').click(); });
+    await act(async () => { el.querySelector('[data-testid="signup-add-to-space-go"]').click(); });
+    await act(async () => { await new Promise((r) => setTimeout(r, 30)); });
+    expect(adds.length).toBe(1);
+    expect(el.textContent).toContain('5 family');
+    expect(el.textContent).toMatch(/Family/);
+    expect(el.textContent).not.toMatch(/Self-serve/i);
   });
 });
