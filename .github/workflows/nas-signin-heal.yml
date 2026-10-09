@@ -564,6 +564,34 @@ jobs:
           done
           EOS
 
+          # AND THE AUDIO IS NOT SUPPOSED TO BE IN THE BUCKET AT ALL. Both sides
+          # answered the same: lesson-audio holds nothing from today, on either
+          # database, and the street video's object -- whose name its 13:51 row
+          # carries -- is on neither. That is BY DESIGN, not loss:
+          # lesson-voice.js:14-18 says the NAS loop downloads the audio,
+          # transcribes it, KEEPS THE AUDIO ON THE NAS and deletes the cloud
+          # copy. So the bucket is a letterbox, and the NAS filesystem
+          # (/volume1/PoeTech/lesson-voice, lesson_voice_transcribe.py:80) is
+          # where a recording that arrived actually lives.
+          #
+          # This is therefore the question that settles it: did a 14:0x
+          # recording ever REACH the box? Names, sizes and times only -- the
+          # audio is the family speaking, and nothing here opens it.
+          echo "=== the recordings the NAS itself is holding (names and times only) ==="
+          $SSH 'sh -s' <<'EOS' || echo "(nas recording listing unavailable)"
+          PATH=/usr/local/bin:/opt/bin:/usr/bin:/bin:$PATH; export PATH
+          SUDO=""; sudo -n true 2>/dev/null && SUDO="sudo -n"
+          D=/volume1/PoeTech/lesson-voice
+          if [ ! -d "$D" ]; then echo "  $D does not exist"; else
+            echo "  -- newest 15 files anywhere under $D --"
+            $SUDO find "$D" -type f -printf '%TY-%Tm-%Td %TH:%TM  %10s  %p\n' 2>/dev/null | sort -r | head -15
+            echo "  -- anything stamped today at 14:0x --"
+            $SUDO find "$D" -type f -name '*20261009T14*' -printf '%TY-%Tm-%Td %TH:%TM  %10s  %p\n' 2>/dev/null | head -10
+            echo "  -- and the street video, to prove the listing can see a known file --"
+            $SUDO find "$D" -type f -name '*20261009T135103Z*' -printf '%TY-%Tm-%Td %TH:%TM  %10s  %p\n' 2>/dev/null | head -5
+          fi
+          EOS
+
           echo "=== every inbox row from the last two days (no bodies) ==="
           $SSH 'sh -s' <<'EOS' || echo "(inbox listing unavailable)"
           PATH=/usr/local/bin:/opt/bin:/usr/bin:/bin:$PATH; export PATH
