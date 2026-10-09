@@ -391,13 +391,35 @@ jobs:
           # and the NAS has not yet synced the forwarder that answers CORS
           # (services-sync runs every ~15 min). These two lines separate them.
           echo "=== camera fix: is it on the client, and is it on the NAS? ==="
-          CAMS_IN_BUNDLE=0
+          # SCAN THE LAZY CHUNKS TOO. The first cut of this check read only the
+          # chunks index.html names, reported 0 for the camera URL, and that 0
+          # was MY probe's fault: camera code is lazy-loaded, so it is not in
+          # the entry. A measurement that looks in the wrong file is worse than
+          # none, because it reads like proof. So the entry chunks are mined
+          # for the asset names they themselves import, one level deep, and
+          # every one of those is searched as well.
+          ALL_CHUNKS="$CHUNKS"
           for C in $CHUNKS; do
+            U="https://poetech.us/poetech-app/${C#/}"
+            U=$(printf '%s' "$U" | sed 's#/poetech-app/poetech-app/#/poetech-app/#')
+            curl -s -m 30 "$U" -o /tmp/entry.js 2>/dev/null || continue
+            MORE=$(grep -oE '"\./[A-Za-z0-9._-]+\.js"|assets/[A-Za-z0-9._-]+\.js' /tmp/entry.js 2>/dev/null \
+                   | tr -d '"' | sed 's#^\./#assets/#' | sort -u | head -400)
+            ALL_CHUNKS="$ALL_CHUNKS $MORE"
+          done
+          ALL_CHUNKS=$(printf '%s\n' $ALL_CHUNKS | sort -u)
+          echo "scanning $(printf '%s\n' $ALL_CHUNKS | grep -c . ) chunks (entry + one level of lazy imports)"
+          CAMS_IN_BUNDLE=0
+          VOICE_IN_BUNDLE=0
+          for C in $ALL_CHUNKS; do
             U="https://poetech.us/poetech-app/${C#/}"
             U=$(printf '%s' "$U" | sed 's#/poetech-app/poetech-app/#/poetech-app/#')
             curl -s -m 30 "$U" -o /tmp/chunk2.js 2>/dev/null || continue
             grep -q 'tail5a2f35\.ts\.net/cams' /tmp/chunk2.js 2>/dev/null && CAMS_IN_BUNDLE=1
+            grep -q 'tail5a2f35\.ts\.net/voice-lite' /tmp/chunk2.js 2>/dev/null && VOICE_IN_BUNDLE=1
           done
+          echo "client: served bundle names the Funnel /voice-lite -> $VOICE_IN_BUNDLE"
+          echo "- client carries Funnel /voice-lite: **$VOICE_IN_BUNDLE**" >> "$GITHUB_STEP_SUMMARY"
           echo "client: served bundle names the Funnel /cams -> $CAMS_IN_BUNDLE"
           echo "- client carries Funnel /cams: **$CAMS_IN_BUNDLE**" >> "$GITHUB_STEP_SUMMARY"
           NAS_HAS_CORS=$($SSH 'grep -c "CORS_ALLOWED_ORIGINS" /volume1/PoeTech/repos/Kingdom-PWA-Node/infra/nas-cameras/cams_forwarder.py 2>/dev/null || echo 0' 2>/dev/null | tail -1)
