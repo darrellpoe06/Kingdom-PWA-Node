@@ -51,3 +51,9 @@ Then Darrell, Platform Signups open and DR-0825 live on it (the row read `144722
 ## Later: the stop-hook caught a deferral, and the LAN device road was built (DR-0830)
 
 My reply named "tying a LAN device to a person" as the next build. The ari-integrity-guard flagged it as a fake boundary (DR-0236): it was buildable now, so it was built now. 0256 adds `owner_user_id` to the device register; Belongs to on the register's editor assigns a device to a member from the roster; the Known fold shows the assigned devices with the MAC the scan recorded. A MAC from a sign-in is still never held; the not-held list says so and says when one shows.
+
+## Later: #2037 merged, the deploy and the migrations proven, and the isolation matrix's four red legs (DR-0831)
+
+#2037 merged as 3d00be193 at 02:11 UTC after two CI rounds of my own: ui-standards (focus rings on the door's sign-out links), consistency-guard (a width cap on the QR card), legibility-guard (the health file's page count), decision-chain (Impact and What was measured on five records), and the interconnect guard (the device register and the person record declared in the flow graph). Deploy 1538 and migration run 654 both completed green for the merge SHA, so 0255 and 0256 are on the hosted database.
+
+The migration run dispatched the isolation matrix (run 283): the role-control leg with the 0255 smoke passed; four legs failed, the same four that failed run 282 before this merge, every one on `out of shared memory / max_locks_per_transaction` inside an overlay function. DR-0831: the pre-step and the files that rebuild what it dropped share one transaction; every later file commits on its own; the guard pins the shape and catches both failed shapes.
