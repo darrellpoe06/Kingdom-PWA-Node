@@ -45,8 +45,27 @@ export async function loadPresenceOf(instanceId, userId, { client = supabase, ti
   }
 }
 
-/** Both reads at once; each carries its own answer. */
+/**
+ * The LAN devices assigned to this person in the device register (0256,
+ * DR-0830). RLS returns only rows of spaces the viewer may read (0056).
+ * The MAC rides in specs.mac as the scan recorded it.
+ */
+export async function loadLanDevicesOf(userId, { client = supabase, timeoutMs = 6000 } = {}) {
+  if (!userId) return { ok: false, rows: [], reason: 'no user' };
+  try {
+    const q = client.from('church_devices').select('id,name,device_type,location,status,specs,make_model,updated_at,created_at').eq('owner_user_id', userId).eq('active', true);
+    const r = await race(q, timeoutMs, timedOut(timeoutMs));
+    if (r.error) return { ok: false, rows: [], reason: r.error.message || String(r.error) };
+    return { ok: true, rows: Array.isArray(r.data) ? r.data : [], reason: '' };
+  } catch (e) {
+    return { ok: false, rows: [], reason: e && e.message ? e.message : String(e) };
+  }
+}
+
+/** All three reads at once; each carries its own answer. */
 export async function loadPersonRows(instanceId, userId, opts = {}) {
-  const [dm, presence] = await Promise.all([loadDmDevicesOf(userId, opts), loadPresenceOf(instanceId, userId, opts)]);
-  return { dm, presence };
+  const [dm, presence, lan] = await Promise.all([
+    loadDmDevicesOf(userId, opts), loadPresenceOf(instanceId, userId, opts), loadLanDevicesOf(userId, opts),
+  ]);
+  return { dm, presence, lan };
 }

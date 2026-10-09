@@ -36,8 +36,8 @@ export const NOT_HELD = Object.freeze([
     why: 'kept only in the on-device tax-id vault on the phone that typed it (Contractors1099); the cloud carries the type and the last four at most.',
   }),
   Object.freeze({
-    what: 'MAC address',
-    why: 'a browser cannot read one, so the app never has it; the NAS on the LAN can see it, and tying a LAN device to a person is a NAS-side record, not a cloud field.',
+    what: 'MAC address, from a sign-in',
+    why: 'a browser cannot read one, so no sign-in ever carries it; a MAC shows here only when a LAN scan recorded the device in the register and an editor assigned that device to this person (DR-0830).',
   }),
   Object.freeze({
     what: 'Notification devices',
@@ -73,6 +73,21 @@ export function presenceView(row = {}) {
   };
 }
 
+/** A LAN device from the register assigned to this person (0256), as the record shows it. */
+export function lanDeviceView(row = {}) {
+  const specs = row.specs && typeof row.specs === 'object' ? row.specs : {};
+  const mac = str(specs.mac);
+  const type = str(row.device_type || row.deviceType) || 'device';
+  const where = str(row.location);
+  return {
+    kind: 'lan',
+    id: str(row.id || row.slug || row.name),
+    label: str(row.name) || 'Unnamed device',
+    lastSeenAt: row.updated_at || row.updatedAt || row.created_at || row.createdAt || null,
+    note: `${type}${where ? ` at ${where}` : ''} · ${mac ? `MAC ${mac}` : 'MAC not recorded'}`,
+  };
+}
+
 /** Newest first; an undated row sorts last and says so through lastSeenAt null. */
 export function sortDevices(list = []) {
   return [...list].sort((a, b) => {
@@ -99,7 +114,7 @@ export function reachLinks(contact) {
  * stated, never painted.
  * @param {object} args { member, contactIndex, dmDevices, presence }
  */
-export function buildPersonRecord({ member = {}, contactIndex = null, dmDevices = [], presence = [] } = {}) {
+export function buildPersonRecord({ member = {}, contactIndex = null, dmDevices = [], presence = [], lanDevices = [] } = {}) {
   const contact = contactOf(member);
   const who = labelFor(contactIndex, { ownName: member.displayName, email: member.email, phone: contact.phoneDigits });
   const doors = [];
@@ -108,6 +123,7 @@ export function buildPersonRecord({ member = {}, contactIndex = null, dmDevices 
   const devices = sortDevices([
     ...(Array.isArray(dmDevices) ? dmDevices : []).map(dmDeviceView),
     ...(Array.isArray(presence) ? presence : []).map(presenceView),
+    ...(Array.isArray(lanDevices) ? lanDevices : []).map(lanDeviceView),
   ]);
   return {
     userId: member.userId || null,

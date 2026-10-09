@@ -35,6 +35,7 @@ export default function PersonRecord({ instanceId, member, contactIndex = null }
     contactIndex,
     dmDevices: rows && rows.dm.ok ? rows.dm.rows : [],
     presence: rows && rows.presence.ok ? rows.presence.rows : [],
+    lanDevices: rows && rows.lan && rows.lan.ok ? rows.lan.rows : [],
   });
   const nowMs = Date.now();
 
@@ -75,14 +76,15 @@ export default function PersonRecord({ instanceId, member, contactIndex = null }
       </div>
 
       <div>
-        <div className={H}>Devices seen</div>
+        <div className={H}>Devices seen, and LAN devices assigned to them in the register</div>
         {rows === null ? (
           <p className="text-[0.6875rem] text-[#5A5751]" style={serif}>Reading…</p>
         ) : (
           <>
             {!rows.dm.ok && <p className="text-[0.6875rem] text-[#B85838]" style={serif} data-testid="person-record-dm-reason">Could not read their message devices: {rows.dm.reason}.</p>}
             {!rows.presence.ok && <p className="text-[0.6875rem] text-[#B85838]" style={serif} data-testid="person-record-presence-reason">Could not read where the app saw them: {rows.presence.reason}.</p>}
-            {rec.devices.length === 0 && rows.dm.ok && rows.presence.ok && (
+            {rows.lan && !rows.lan.ok && <p className="text-[0.6875rem] text-[#B85838]" style={serif} data-testid="person-record-lan-reason">Could not read the register for their LAN devices: {rows.lan.reason}.</p>}
+            {rec.devices.length === 0 && rows.dm.ok && rows.presence.ok && (!rows.lan || rows.lan.ok) && (
               <p className="text-[0.6875rem] text-[#5A5751]" style={serif}>No device has been seen for this person yet.</p>
             )}
             {rec.devices.length > 0 && (

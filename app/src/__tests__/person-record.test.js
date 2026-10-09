@@ -8,7 +8,7 @@
 // the reach links only where a fact supports them, and the not-held list says
 // plainly what the cloud never carries. Fixtures are made up.
 import { describe, it, expect, vi } from 'vitest';
-import { buildPersonRecord, dmDeviceView, presenceView, sortDevices, reachLinks, summaryLine, NOT_HELD } from '../lib/person-record.js';
+import { buildPersonRecord, dmDeviceView, presenceView, lanDeviceView, sortDevices, reachLinks, summaryLine, NOT_HELD } from '../lib/person-record.js';
 import { buildContactIndex } from '../lib/contact-names.js';
 
 const store = { dm: { ok: true, rows: [], reason: '' }, presence: { ok: true, rows: [], reason: '' } };
@@ -24,6 +24,11 @@ describe('the views', () => {
     expect(presenceView({ platform: 'web', build_sha: 'abcdef1234', last_seen_at: '2026-10-09T00:00:00Z' }))
       .toEqual({ kind: 'presence', id: 'web:abcdef1234', label: 'web', lastSeenAt: '2026-10-09T00:00:00Z', note: 'build abcdef1' });
     expect(presenceView({}).note).toBe('build not recorded');
+  });
+  it('a LAN device from the register: name, type, where, and the MAC the scan recorded (DR-0830)', () => {
+    expect(lanDeviceView({ id: 'r1', name: 'Booth laptop', device_type: 'media-rig', location: 'AV booth', specs: { mac: 'DC-ED-84-A0-B4-CA (scan-confirmed)' }, updated_at: '2026-10-01T00:00:00Z' }))
+      .toEqual({ kind: 'lan', id: 'r1', label: 'Booth laptop', lastSeenAt: '2026-10-01T00:00:00Z', note: 'media-rig at AV booth · MAC DC-ED-84-A0-B4-CA (scan-confirmed)' });
+    expect(lanDeviceView({ name: 'Phone', device_type: 'iot', specs: {} }).note).toBe('iot · MAC not recorded');
   });
   it('newest first; an undated row last', () => {
     const out = sortDevices([{ lastSeenAt: null }, { lastSeenAt: '2026-10-01T00:00:00Z' }, { lastSeenAt: '2026-10-09T00:00:00Z' }]);
@@ -50,6 +55,8 @@ describe('buildPersonRecord', () => {
     expect(rec.doors).toEqual([{ kind: 'phone', value: '(555) 010-0498', source: 'the phone they sign in with' }]);
     expect(rec.reach.map((r) => r.kind)).toEqual(['text', 'call']);
     expect(rec.devices.map((d) => d.label)).toEqual(['web', 'Android device']);   // newest first
+    const withLan = buildPersonRecord({ member: door, contactIndex: idx, lanDevices: [{ id: 'r1', name: 'Her tablet', device_type: 'iot', specs: { mac: 'AA-BB-CC-DD-EE-FF' }, updated_at: '2026-10-09T00:00:00Z' }] });
+    expect(withLan.devices[0]).toMatchObject({ kind: 'lan', label: 'Her tablet', note: 'iot · MAC AA-BB-CC-DD-EE-FF' });
     expect(rec.missing).toEqual(['email']);
     expect(rec.summary).toBe('1 sign-in door · 2 devices seen · 2 ways to reach them');
     expect(rec.notHeld).toBe(NOT_HELD);
@@ -75,9 +82,9 @@ describe('buildPersonRecord', () => {
 
   it('the not-held list names the EIN, the MAC, notification devices and fingerprints, each with its why', () => {
     const whats = NOT_HELD.map((n) => n.what);
-    expect(whats).toEqual(['Full SSN or EIN', 'MAC address', 'Notification devices', 'A device fingerprint']);
+    expect(whats).toEqual(['Full SSN or EIN', 'MAC address, from a sign-in', 'Notification devices', 'A device fingerprint']);
     for (const n of NOT_HELD) expect(n.why.length).toBeGreaterThan(30);
-    expect(NOT_HELD.find((n) => n.what === 'MAC address').why).toMatch(/browser cannot read/);
+    expect(NOT_HELD.find((n) => n.what.startsWith('MAC address')).why).toMatch(/browser cannot read/);
   });
 
   it('summaryLine counts only what is there, singular and plural', () => {
@@ -90,17 +97,22 @@ describe('the loader answers with a reason, never a throw', () => {
     const { loadPersonRows } = await import('../lib/person-record-sync.js');
     const client = { from: (t) => ({ select: () => ({ eq: () => (t === 'dm_device_keys'
       ? Promise.resolve({ data: store.dm.rows, error: null })
-      : { eq: () => Promise.resolve({ data: null, error: { message: 'permission denied for table member_presence' } }) }) }) }) };
+      : t === 'church_devices'
+        ? { eq: () => Promise.resolve({ data: [{ id: 'r1', name: 'Her tablet', device_type: 'iot', specs: { mac: 'AA-BB-CC-DD-EE-FF' } }], error: null }) }
+        : { eq: () => Promise.resolve({ data: null, error: { message: 'permission denied for table member_presence' } }) }) }) }) };
     store.dm.rows = [{ device_id: 'd1', label: 'iPhone', last_seen_at: '2026-10-08T00:00:00Z' }];
     const r = await loadPersonRows('i-fam', 'u-door', { client });
     expect(r.dm).toEqual({ ok: true, rows: store.dm.rows, reason: '' });
     expect(r.presence.ok).toBe(false);
     expect(r.presence.reason).toMatch(/permission denied/);
+    expect(r.lan.ok).toBe(true);
+    expect(r.lan.rows[0].name).toBe('Her tablet');
   });
   it('no user: a reason, no read', async () => {
     const { loadPersonRows } = await import('../lib/person-record-sync.js');
     const r = await loadPersonRows('i-fam', '', { client: { from: () => { throw new Error('should not be called'); } } });
     expect(r.dm.ok).toBe(false);
     expect(r.presence.ok).toBe(false);
+    expect(r.lan.ok).toBe(false);
   });
 });

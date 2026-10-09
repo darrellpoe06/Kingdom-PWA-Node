@@ -52,6 +52,7 @@ vi.mock('../lib/person-record-sync.js', () => ({
   loadPersonRows: async (instanceId, userId) => ({
     dm: { ok: true, rows: userId === 'u-door' ? [{ device_id: 'd1', label: 'Android device', last_seen_at: new Date().toISOString() }] : [], reason: '' },
     presence: { ok: false, rows: [], reason: 'permission denied for table member_presence' },
+    lan: { ok: true, rows: userId === 'u-door' ? [{ id: 'r1', name: 'Her tablet', device_type: 'iot', location: 'Fellowship hall', specs: { mac: 'AA-BB-CC-DD-EE-FF' }, updated_at: '2026-10-01T00:00:00Z' }] : [], reason: '' },
   }),
 }));
 
@@ -131,7 +132,9 @@ describe('Admin roster, named from your contacts', () => {
     expect(rec.querySelector('[data-testid="person-record-reach-text"]').getAttribute('href')).toBe('sms:15550100498');
     expect(rec.querySelector('[data-testid="person-record-reach-call"]').getAttribute('href')).toBe('tel:15550100498');
     expect(rec.querySelector('[data-testid="person-record-reach-email"]')).toBeNull();
-    expect(rec.querySelector('[data-testid="person-record-device"]').textContent).toContain('Android device');
+    const devices = Array.from(rec.querySelectorAll('[data-testid="person-record-device"]')).map((n) => n.textContent);
+    expect(devices.some((t) => /Android device/.test(t))).toBe(true);
+    expect(devices.some((t) => /Her tablet/.test(t) && /MAC AA-BB-CC-DD-EE-FF/.test(t) && /Fellowship hall/.test(t))).toBe(true);
     expect(rec.querySelector('[data-testid="person-record-presence-reason"]').textContent).toContain('permission denied');
     const notHeld = Array.from(rec.querySelectorAll('[data-testid="person-record-not-held"]')).map((n) => n.textContent);
     expect(notHeld.some((t) => /Full SSN or EIN/.test(t))).toBe(true);
