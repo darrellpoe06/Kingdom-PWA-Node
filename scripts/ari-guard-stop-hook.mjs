@@ -106,7 +106,17 @@ async function main() {
       const root = join(HERE, '..', 'docs', '00-foundations', '_root');
       knownDocs = readdirSync(root).filter((f) => f.endsWith('.md'));
     } catch { knownDocs = []; }
-    const cite = checkCitedButUnread({ claimText: text, readPaths: paths, shellText: shell, knownDocs });
+    // THE LEDGER POINTER, so reporting `Next ID` is not mistaken for citing a
+    // record that cannot exist yet. If the read fails it stays null and the
+    // check polices every cited id exactly as it did before.
+    let nextDrId = null;
+    try {
+      const index = readFileSync(join(HERE, '..', 'docs', 'decisions', 'INDEX.md'), 'utf8');
+      nextDrId = index.match(/^\*\*Next ID:\*\*\s*DR-(\d{4})/m)?.[1] ?? null;
+    } catch { nextDrId = null; }
+    const cite = checkCitedButUnread({
+      claimText: text, readPaths: paths, shellText: shell, knownDocs, nextDrId,
+    });
     if (cite && !cite.ok) {
       process.stdout.write(JSON.stringify({ decision: 'block', reason: citedButUnreadReason(cite.unread) }));
       return done();
