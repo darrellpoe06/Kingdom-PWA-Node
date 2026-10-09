@@ -253,4 +253,7 @@ export const LIVING_LESSONS_ADDED = {
   'll229-the-word-is-spirit-and-life-what-it-means-in-his-own-words': '2026-10-09', // added with the lesson (DR-0852); spoken into the app by Darrell on 2026-10-09 as a question with one word under it, Lesson
   'll230-competence-before-submission-the-study-skills-and-doing-skills-of-a-wife-and-a-husband-with-the-word-answering-first': '2026-10-09', // added with the lesson (DR-0853); spoken into the app by Darrell on 2026-10-09 with one word under it, Lesson
   'll231-does-yahweh-rank-a-wife-over-a-woman-covenant-the-proverbs-31-woman-and-the-order-with-the-word-answering-first': '2026-10-09', // added with the lesson (DR-0854); spoken into the app by Darrell on 2026-10-09 as a question, opened with one word, Lesson
+  'll232-the-woman-at-the-well-and-the-samaritans-who-believed-the-scroll-her-saying-and-his-own-word': '2026-10-09', // added with the lesson (DR-0856); spoken into the app by Darrell on 2026-10-09, with the research he asked for
+  'll233-yahweh-speaking-with-yahweh-every-place-the-word-lets-us-overhear-the-father-the-son-and-the-holy-spirit': '2026-10-09', // added with the lesson (DR-0857); spoken into the app by Darrell on 2026-10-09 with one word under it, Lesson
+  'll234-will-we-have-angel-like-experiences-after-death-like-the-angels-in-some-ways-never-angels-and-like-him': '2026-10-09', // added with the lesson (DR-0858); asked by Darrell on 2026-10-09 with one word under it, Lesson
 };

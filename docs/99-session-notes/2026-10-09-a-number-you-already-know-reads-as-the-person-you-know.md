@@ -157,3 +157,11 @@ Darrell's question, opened with one word, Lesson: does a woman in covenant with 
 
 Still to build, spoken the same hour: the Samaritan woman at the well, with his note that the people believed because of her saying, that the scroll is the most important measure, all of His scrolls, and the research he asked for on the Samaritans (DR-0855); Yahweh speaking to Yahweh in every place the Word records it (DR-0856); and whether people will have angel-like experiences after death (DR-0857).
 
+## The stories come back, and three more lessons (DR-0855 to DR-0858)
+
+Darrell asked what happened to the two stories in every lesson. Measured: 146 of 228 lessons were short of DR-0215's standard, none since L166, and nothing enforced it. 292 parables were drafted in eight parallel batches against one validator, read in sample, and merged; every lesson now carries at least two, a gate fails the build on any lesson that drops them, and five teaching sections that were being labelled parables now say what they are. His second word set the shape: each story is a dropdown option, and the last dropdown in every lesson is where a person adds their own perspective on the same Word, which the space sees once a steward has reviewed it.
+
+The first merge wrote the stories as JSON, and the older lessons' verbatim gates, which scan the source for straight double quotes, failed on the keys; the full suite caught it and the merge was redone in each module's own quote style.
+
+Then three lessons from his words the same hour: the woman at the well and the Samaritans who believed, with the research he asked for stated in three tiers (L232, DR-0856); Yahweh speaking with Yahweh in every place the Word records it (L233, DR-0857); and whether we will have angel-like experiences after death (L234, DR-0858). Each carries its two stories.
+

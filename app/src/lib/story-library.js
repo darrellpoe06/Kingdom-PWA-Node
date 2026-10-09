@@ -313,3 +313,83 @@ export async function promoteSubmission(id, sub) {
   }
   return { ok: true, row: data, story };
 }
+
+// ---------------------------------------------------------------------------
+// Perspectives on one lesson (DR-0855).
+// Darrell 2026-10-09: "What happened to the having two stories/parables inside
+// each lesson?!" and "As options... a drop down like the Word Tabs... so the
+// ability to add another perspective to the same Word so all perspectives can
+// see... make sense?" A person adds a story to the lesson they are reading; it
+// is a Story Library submission carrying target_lesson_id, so the steward queue
+// and the truth-label gate above are the same ones. Everyone in the space sees
+// a perspective once a steward has reviewed it (curation is not auto-publish,
+// DR-0215); the person who wrote it sees their own at once, marked waiting.
+// ---------------------------------------------------------------------------
+
+/** The statuses a perspective is shown to everyone at. */
+export const SHARED_STATUSES = ['reviewed', 'promoted'];
+
+/** A submission row in the shape a lesson story renders, plus who shared it. */
+export function rowToStory(row) {
+  const r = row || {};
+  const out = {
+    kind: STORY_KINDS.includes(r.kind) ? r.kind : 'parable',
+    tone: STORY_TONES.includes(r.tone) ? r.tone : 'light',
+    title: String(r.title || '').trim(),
+    body: String(r.body || '').trim(),
+    verse: String(r.verse || '').trim(),
+    sharedBy: String(r.submitted_name || '').trim() || 'Someone in this space',
+    status: r.status,
+    id: r.id,
+  };
+  if (out.kind === 'testimony' && nonEmpty(r.source)) out.source = r.source.trim();
+  return out;
+}
+
+/**
+ * Split the rows for one lesson into what everyone sees (shared) and what only
+ * the viewer sees (mine: their own, still waiting). Pure; rows for other lessons,
+ * declined rows and drafts are never shown. Newest first is kept as given.
+ */
+export function perspectivesForLesson(rows, { lessonId, viewerId } = {}) {
+  const shared = [];
+  const mine = [];
+  for (const r of Array.isArray(rows) ? rows : []) {
+    if (!r || r.target_lesson_id !== lessonId) continue;
+    if (SHARED_STATUSES.includes(r.status)) shared.push(rowToStory(r));
+    else if (r.status === 'submitted' && viewerId && r.submitted_by === viewerId) mine.push(rowToStory(r));
+  }
+  return { shared, mine };
+}
+
+/** The empty form for a new perspective on a lesson: its first anchor verse is offered. */
+export function perspectiveDraftFor(lesson) {
+  const L = lesson || {};
+  const first = String(L.anchor?.ref || L.anchorRef || '').split(';').map((x) => x.trim()).filter(Boolean)[0] || '';
+  return { kind: 'testimony', tone: 'solemn', title: '', verse: first, body: '', source: '', consent: false, target_lesson_id: L.id || '' };
+}
+
+/**
+ * Read the perspectives on one lesson the viewer may see (RLS: members of the
+ * space read submitted and later rows; the split above decides what renders).
+ * Signed out or on error: { rows: [], viewerId: null }, never a throw.
+ */
+export async function fetchLessonPerspectives(lessonId) {
+  try {
+    const session = await currentSession();
+    if (!session || !nonEmpty(lessonId)) return { rows: [], viewerId: null };
+    const supabase = await getSupabase();
+    const { data, error } = await supabase
+      .from('story_library_submissions')
+      .select('id, kind, tone, title, body, verse, source, status, target_lesson_id, submitted_by, submitted_name, created_at')
+      .eq('target_lesson_id', lessonId)
+      .in('status', ['submitted', ...SHARED_STATUSES])
+      .order('created_at', { ascending: false })
+      .limit(50);
+    if (error) { console.warn('[story-library] perspectives read failed:', error); return { rows: [], viewerId: session.user.id }; }
+    return { rows: data || [], viewerId: session.user.id };
+  } catch (e) {
+    console.warn('[story-library] perspectives read failed:', e);
+    return { rows: [], viewerId: null };
+  }
+}
