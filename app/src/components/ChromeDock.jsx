@@ -43,6 +43,9 @@ import { ChurchGiveDockButton } from './ChurchGiving.jsx';
 import UiIcon from './UiIcon.jsx';
 import { useTextSize } from '../lib/text-size.js';
 import { useComfortCollapsed, useInReader } from '../lib/comfort-bar.js';
+import { useDeviceClass } from '../lib/use-device-class.js';
+import { pageBy, showsPageChips } from '../lib/tv-paging.js';
+import { motionBehavior } from '../lib/gentle-motion.js';
 import {
   DOCK_BTN, DOCK_BTN_ON, DOCK_HEIGHT_PX, DOCK_ICON, DOCK_LABEL,
   scrollPageToTop, setDockSlot, useScrolledDeep, usePhoneWidth, useReaderLive,
@@ -92,6 +95,15 @@ export default function ChromeDock({ onFeedback, feedbackOpen = false, church = 
 
   const onHealthChange = useCallback((h) => setNetHealthy(!!h), []);
   const toTop = () => { setMoreOpen(false); scrollPageToTop(); };
+  // A TV PAGES BY CLICKING (2026-10-07; Darrell on the Firestick: "Can't
+  // scroll lists of lessons on Firestick... how can we choose from the whole
+  // list?"). Silk's pointer scrolls only at the screen edge and never an inner
+  // box; index.css flattens the boxes on a TV and these two chips walk the
+  // page most of a screen per click. lib/tv-paging.js.
+  const deviceClass = useDeviceClass();
+  const pageChips = showsPageChips(deviceClass);
+  const pageUp = () => { setMoreOpen(false); pageBy('up', { behavior: motionBehavior() }); };
+  const pageDown = () => { setMoreOpen(false); pageBy('down', { behavior: motionBehavior() }); };
   const FOCUS = 'focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]';
 
   // THE READER'S ONE SLIM ROW (Darrell 2026-10-01, the Fold folded, L202 at
@@ -251,6 +263,18 @@ export default function ChromeDock({ onFeedback, feedbackOpen = false, church = 
               before. On a phone, in the reader or while the reader's mini-bar
               or pill is in the bar, this inline copy steps aside (index.css)
               and the one in More carries it. */}
+          {pageChips && (
+            <>
+              <button type="button" onClick={pageUp} data-testid="dock-page-up" aria-label="Up one screen" title="Up one screen" className={`shrink-0 ${DOCK_BTN} ${FOCUS}`}>
+                <span aria-hidden="true" className={DOCK_ICON}>▲</span>
+                <DockLabel>Up</DockLabel>
+              </button>
+              <button type="button" onClick={pageDown} data-testid="dock-page-down" aria-label="Down one screen" title="Down one screen" className={`shrink-0 ${DOCK_BTN} ${FOCUS}`}>
+                <span aria-hidden="true" className={DOCK_ICON}>▼</span>
+                <DockLabel>Down</DockLabel>
+              </button>
+            </>
+          )}
           {deep && (
             <button type="button" onClick={toTop} data-testid="dock-top" aria-label="Back to the top of the page" title="Back to top" className={`dock-top-inline shrink-0 ${DOCK_BTN} ${FOCUS}`}>
               <span aria-hidden="true" className={DOCK_ICON}><UiIcon name="chevronUp" /></span>

@@ -44,6 +44,7 @@
 // in learn-framework). Claims are derived from real fields, not painted.
 // =============================================================================
 import { lessonPlanForAge, resolveForAge, DEFAULT_AGE_BAND } from './learn-framework.js';
+import { storyHeading, storyFootnote } from './story-truth.js';
 
 // ---------------------------------------------------------------------------
 // The canonical arc — ONE shape every lesson follows. `weight` is the default
@@ -267,9 +268,10 @@ export function readAloudTextFromArc(arc) {
     } else if (seg.kind === 'teach') {
       parts.push(...(((a.lessonPlan && a.lessonPlan.segments) || [])));
       for (const s of a.stories || []) {
-        parts.push(`${s.kind === 'testimony' ? 'A true story' : 'Picture this'}${s.title ? ` — ${s.title}` : ''}.`);
+        parts.push(`${storyHeading(s)}.`);
         if (s.body) parts.push(s.body);
         if (s.verse) parts.push(s.verse);
+        parts.push(storyFootnote(s)); // DR-0811: the spoken flow says what the story is, too
       }
     } else if (seg.kind === 'engage') {
       if ((a.prompts || []).length) parts.push('Questions to think about:', ...a.prompts);

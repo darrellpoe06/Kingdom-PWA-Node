@@ -73,6 +73,9 @@ const TENANT_TABS = [
   TAB('history', 'History', 'Everything that has happened on this door, in order.'),
   TAB('rent', 'Payments', 'What was reported, what was confirmed, and when.'),
   TAB('notices', 'Notices', 'What the landlord has posted.'),
+  // THE CAMERAS AT THIS DOOR (DR-0841): the porch, the hallway, the lot — the
+  // ones the landlord shared with this door, live, through the same NAS road.
+  TAB('cameras', 'Cameras', 'The cameras your landlord shares with this door.'),
 ];
 
 const WORKER_TABS = [
@@ -90,9 +93,13 @@ const WORKER_TABS = [
 ];
 
 const MANAGER_TABS = [
-  TAB('board', 'Work board', 'Every open work order across the doors I manage.', 'request.manage'),
-  TAB('dispatch', 'Dispatch', 'Send a job to a 1099 worker by text or call.', 'request.manage'),
+  // THE DOOR FIRST, THEN WHAT HAPPENS INSIDE IT (DR-0837; Darrell 2026-10-09:
+  // "they should be options inside the apartment... doesn't make sense
+  // separate"). The work board and the dispatch read ONE door; they sit after
+  // the doors and under the door's own header, never beside it.
   TAB('doors', 'Doors', 'The doors I manage and who lives in them.'),
+  TAB('board', 'Work board', 'The open work orders on this door.', 'request.manage'),
+  TAB('dispatch', 'Dispatch', 'Send one of this door\u2019s jobs to a 1099 worker by text or call, and record it.', 'request.manage'),
   TAB('thread', 'Messages', 'Tenant threads for my doors.', 'message.tenant'),
   TAB('rent', 'Rent', 'Confirm what came in; correct a balance with a reason.', 'rentroll.view'),
   TAB('history', 'History', 'The whole relationship record, notes included.'),
@@ -108,6 +115,7 @@ const MANAGER_TABS = [
   // door, not to a side note. Darrell, 2026-09-12.
   TAB('readiness', 'Guest ready', 'Everything left before this unit can be listed and take a guest \u2014 and what it still costs.'),
   TAB('people', 'People', 'Invite a tenant, a family member, or a 1099 worker.'),
+  TAB('cameras', 'Cameras', 'Share the cameras at this door with its household, and take them back.'),
   TAB('documents', 'Documents', 'The lease, the rules, the notices and the letters — filled from this door’s own records.'),
   TAB('plan', 'Rollout', 'Where this app is in its build, what is gated, and what waits on a hand.'),
 ];

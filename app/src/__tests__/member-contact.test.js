@@ -63,7 +63,10 @@ describe('NOT A CONSTRAINT — the instruction, held as a fact', () => {
     const src = read('components/AdminConsole.jsx');
     // The reach line is rendered as text beside the name — never as a gate on
     // the role select, the classification, or the invite.
-    expect(src).toMatch(/reachLabel\(contactOf\(m\)\)/);
+    // (DR-0825: contactOf(m) is taken once per row as `reach`, so the contact
+    // name lookup and the reach line read the same facts.)
+    expect(src).toMatch(/const reach = contactOf\(m\);/);
+    expect(src).toMatch(/reachLabel\(reach\)/);
     expect(src).not.toMatch(/disabled=\{[^}]*contactOf|disabled=\{[^}]*hasPhone|disabled=\{[^}]*hasEmail/);
   });
 });

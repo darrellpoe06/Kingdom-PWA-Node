@@ -184,7 +184,7 @@ jobs:
             timeout 60 gh pr list --repo "$REPO" --state open --base main --limit 100 \
               --json number,headRefName,isDraft,labels,headRepositoryOwner,updatedAt \
               --jq "sort_by(.updatedAt) | reverse | .[] | $filter
-                    | select(.headRefName | startswith(\"claude/\"))
+                    | select((.headRefName | startswith(\"claude/\")) or (.headRefName | startswith(\"ccr-\")))
                     | select(.headRepositoryOwner.login == \"$OWNER\")
                     | select(any(.labels[].name; . == \"hold\") | not)
                     | \"\(.number) \(.headRefName)\""

@@ -15,7 +15,20 @@
 // Feeds tax-documents.js (groupByYear + buildTaxHistory) unchanged.
 // =============================================================================
 
-const EMPTY = Object.freeze({ documents: [], served_at: null, source: 'none' });
+const EMPTY = Object.freeze({ documents: [], served_at: null, source: 'none', reason: 'none' });
+
+// WHY A `reason` (Darrell 2026-10-06). Every failure used to collapse into the
+// same empty archive, so a missing TRANSPORT looked exactly like a NAS holding
+// no returns — and the screen said "No returns indexed yet. Upload a return
+// above", which was untrue: the app could not reach the archive at all. That is
+// what a return uploaded and never processed looked like from the other door.
+// The reasons are distinguishable so the surface can say which it is (DR-0381).
+export const ARCHIVE_REASON = Object.freeze({
+  OK: 'ok',                 // the NAS answered with its index
+  NO_ROAD: 'no-road',       // something answered, but not JSON — the SPA shell
+  UNREACHABLE: 'unreachable', // the road is there and the far end did not answer
+  NONE: 'none',             // nothing was asked (no fetch in this environment)
+});
 
 function baseHref() {
   try {
@@ -38,15 +51,32 @@ export function __setTaxFetcher(fn) {
  */
 export async function fetchTaxArchive() {
   if (!fetcher) return { ...EMPTY };
+  let res;
   try {
-    const res = await fetcher(`${baseHref()}taxes/archive.json`, { cache: 'no-store' });
-    if (!res || !res.ok) return { ...EMPTY };
-    const data = await res.json();
-    const documents = Array.isArray(data && data.documents) ? data.documents : [];
-    return { documents, served_at: (data && data.served_at) || null, source: 'nas' };
+    res = await fetcher(`${baseHref()}taxes/archive.json`, { cache: 'no-store' });
   } catch {
-    return { ...EMPTY };
+    return { ...EMPTY, reason: ARCHIVE_REASON.UNREACHABLE };
   }
+  if (!res || !res.ok) return { ...EMPTY, reason: ARCHIVE_REASON.UNREACHABLE };
+  // A 200 that is not JSON means the request never reached the NAS: it fell
+  // through to the single-page app, which answers any path under its own base
+  // with HTML. That is a missing road, not an empty archive, and it is reported
+  // as such instead of being swallowed.
+  let data;
+  try {
+    data = await res.json();
+  } catch {
+    return { ...EMPTY, reason: ARCHIVE_REASON.NO_ROAD };
+  }
+  if (!data || typeof data !== 'object' || !Array.isArray(data.documents)) {
+    return { ...EMPTY, reason: ARCHIVE_REASON.NO_ROAD };
+  }
+  return {
+    documents: data.documents,
+    served_at: data.served_at || null,
+    source: 'nas',
+    reason: ARCHIVE_REASON.OK,
+  };
 }
 
 /**

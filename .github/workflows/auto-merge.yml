@@ -88,7 +88,9 @@ jobs:
         run: |
           set -euo pipefail
           # Eligible = open, non-draft, targets main, head branch is a release
-          # lane (feat|fix|merge|docs|claude), NOT labeled `hold`, and auto-merge is NOT
+          # lane (feat|fix|merge|docs|claude, or a cloud session's ccr-* branch; see
+          # DR-0773: #1987 sat 40 min on green because ccr- was not here), NOT
+          # labeled `hold`, and auto-merge is NOT
           # already enabled. Filtering happens here (not in a job-level `if:`) so
           # the same job works uniformly across pull_request / check_suite /
           # workflow_dispatch — only pull_request events carry a single PR.
@@ -97,7 +99,7 @@ jobs:
               --json number,headRefName,isDraft,autoMergeRequest,labels \
               --jq '.[]
                     | select(.isDraft == false)
-                    | select(.headRefName | test("^(feat|fix|merge|docs|claude)/"))
+                    | select(.headRefName | test("^(feat|fix|merge|docs|claude)/|^ccr-"))
                     | select(.autoMergeRequest == null)
                     | select(any(.labels[].name; . == "hold") | not)
                     | .number'

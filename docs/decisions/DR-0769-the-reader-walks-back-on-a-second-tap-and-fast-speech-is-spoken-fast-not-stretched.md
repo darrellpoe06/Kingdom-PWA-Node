@@ -1,0 +1,46 @@
+# DR-0769 — The reader walks back on a second tap, and fast speech is spoken fast, not stretched
+
+- **Status:** accepted
+- **Tier:** A (reader behaviour and the voice road; no schema, no money, no church-facing identity change)
+- **Type:** defect
+- **Date:** 2026-10-07
+- **Scope:** `app/src/lib/read-follow.js` (`paragraphBackTarget`, `BACK_AGAIN_MS`); `app/src/components/TTSControl.jsx` (`jumpLive`, `lastBackRef`, `live`); `app/src/lib/tts.js` (`utteranceSpan`, grouped utterances); `app/src/lib/voice-service.js` (`voiceSpeedFor`, `residualRate`, `speed` in both bodies); `app/src/lib/clip-cache.js` (`clipKey` pace); `app/src/lib/clip-queue.js` (per-piece remainder); `app/src/lib/use-read-aloud.js` (the reading's pace, pinned); `infra/nas-voice-lite/voice_lite_server.py` (`speed` -> `--length_scale`, pace-keyed cache); `infra/voice-studio/server.py` (`speed` -> XTTS); tests `back-tapped-again-walks-back.test.jsx`, `fast-speech-is-spoken-not-stretched.test.js`, `the-reading-asks-the-voice-for-its-pace.test.jsx`, `tts.test.js` (fast-speech block), the two Python selftests.
+- **Principles:** VERIFICATION-DOCTRINE (DR-0076), HOLD-THE-HAND (DR-0621), PERPETUAL-IMPROVEMENT (DR-0075), REALITY-TRACE (DR-0061), DECISION-RECORDS (DR-0011)
+- **Grounds:** Darrell 2026-10-07: *"Can't go back using the back button buffers so it can't be pushed again before it reads the exact same paragraph... fix it... also the voice mumbles at times when on faster speaking especially... fix it..."*
+- **Builds on:** DR-0764 (the paragraph grid from the follow map; one run-local position; one reading owns the voice), DR-0653 (one piece per sentence), DR-0718 / DR-0747 (a saved reading plays as one file; lighter clips), the 2026-09-18 speed-chip fix (`clip-rate.js`).
+
+## Context
+
+Two reports in one sentence, both about the reader on a fast voice. DR-0764 had just landed and fixed the step-after-a-step arithmetic; what remained was what a listener meets at speed, and it was measured against the code as it stood on `main` before anything was changed.
+
+## What was measured
+
+- **Why Back could not be pushed again.** `canJump` followed `isReading`, and the mini bar, the pill and the panel's step row were all gated on `isReading`. A paragraph jump restarts the voice, and the NAS voice spends seconds preparing (the family key, the saved-on-device check, the join of a saved reading); for all of them `isReading` is false. So the moment Back was tapped, Back and Next vanished, the bar folded to the closed button, and they returned only once the new paragraph was being read. Reproduced in jsdom over the real reader: after a step, with the hook reporting not-reading, no Back button existed in the DOM.
+- **Why the second Back read the same paragraph.** Back was judged from where the voice IS: the first Back re-listens the current paragraph (by design since 2026-08-15); the second was meant to walk to the one before. But by the time the button was back the voice had passed the paragraph's first sentence, so `paragraphJumpTarget(-1)` answered the same paragraph's start again. At 3x a sentence lasts about a second. Reproduced: Back, voice on sentence 2, Back again -> "The third paragraph" twice; the second paragraph was unreachable from the bar.
+- **Why fast speech mumbled, NAS voice.** Every clip (Piper on `/voice-lite`, XTTS in the studio) was synthesized at 1x and sped up in the browser with `playbackRate` and pitch preservation. That is a time-stretch, and a time-stretch at 2x and beyond smears consonants. The words were right; the audio was mangled after the fact. Neither server accepted a pace: `voice_lite_server.py` ran piper with model and output only; `server.py` called `tts_to_file` with no `speed`.
+- **Why fast speech mumbled, device voice.** `tts.js` speaks one clause-sized segment per utterance (so a speed change can restart the current one). At speed, every utterance costs the engine an onset (Chrome's queue gap; on Android the first syllable clipped while the engine ramps), and at 3x a 60-character clause is about a second long, so fast speech became a run of swallowed starts.
+
+## Impact
+
+Reading at speed, hands-free — the car, the kitchen, the screen off — could not be walked backwards from the bar at all: the one button that re-listens vanished for the seconds the voice took to restart and, once back, only ever re-read the same paragraph. And the default voice (the NAS, DR-0382) at 2x and above sounded like a stretched recording rather than a person speaking quickly, on every lesson, for every listener who had turned the speed up. Both land on the listener's best setup (a saved lesson in the NAS voice at speed), which is exactly where the reader is used most.
+
+## Decision
+
+1. **A jump in flight is a reading in flight.** `jumpLive` (state) is set by every jump, cleared when the voice speaks, by Stop, or by a 20 s backstop so a read that never starts cannot leave the bar claiming a reading (DR-0076). `live = isReading || jumpLive` gates the bar, the pill, the step row and `canJump`.
+2. **Back, tapped again, keeps walking back.** `paragraphBackTarget`: a Back within `BACK_AGAIN_MS` (4 s) of the previous Back is judged from where that Back LANDED, not from where the voice has wandered since, so it reaches the paragraph before. Forward, Top, Stop and a new read close the window. Pure, `now` injected, tested.
+3. **The voice speaks at the pace; the browser stretches only the remainder.** The reader's rate becomes `speed` on both NAS bodies, clamped by `voiceSpeedFor` to 0.5..2.0 (where Piper and XTTS still say words clearly); 1 is never sent. Piper takes it as `--length_scale = 1/speed`; XTTS as `speed=`. The element takes `residualRate(rate, speed)`: a 2x reading spoken at 2x plays at 1x; 5x spoken at 2x plays at 2.5x (a stretch half as deep as before). The piece queue applies the remainder per piece from what each piece says about itself.
+4. **A pace has its own clip, and 1x is the old key.** Server cache key and device `clipKey` both carry the pace only when it is not 1, so every clip already saved on a device or the NAS still answers; a download still saves 1x pieces; a fully saved reading still joins into one file and is stretched exactly as before (the saved pieces are the 1x ones).
+5. **The device voice speaks longer breaths at speed.** From 1.5x, `utteranceSpan` groups consecutive segments into one utterance, sized to hold about the seconds of audio one segment holds at 1x (180 characters per unit of rate, never over 600 characters or 6 segments). The segments do not change: the follow map, the highlight and the paragraph steps still see one sentence each; the engine moves the segment index from the word boundaries the engine fires, and at the utterance's end. A speed change re-speaks from the sentence the voice had reached, grouped for the new pace.
+
+## Verification
+
+- `back-tapped-again-walks-back.test.jsx` — **proven-to-catch**: against the code as it was, "Back vanished while the jump was in flight" (no Back in the DOM) and "the second Back re-read the same paragraph" (`The third paragraph` twice). Now Back -> Back -> Back walks third -> second -> first; Forward closes the window.
+- `fast-speech-is-spoken-not-stretched.test.js` — the pace clamp, the remainder, the 1x body unchanged byte for byte, the pace-keyed clip key with the 1x key pinned, and the queue stretching only the remainder per piece (2x spoken at 2x plays at 1x; a joined reading at the full rate).
+- `the-reading-asks-the-voice-for-its-pace.test.jsx` — the REAL hook at 2x asks `/voice-lite` for speed 2 and the element plays the piece at 1x; at 1x no speed is sent.
+- `tts.test.js` fast-speech block — at 3x four sentences ride in one utterance at rate 3; boundaries step the segment index 0 -> 1 -> 2 and are reported relative to the segment; the end lands past all four; at 1x one segment per utterance (unchanged).
+- `voice_lite_server.py --selftest` — the pace reaches the synthesizer, is clamped, has its own cache key, the 1x key is the old key; `test_speak_contract.py` — the pace reaches `tts_to_file`, out-of-range is clamped, 1.0 passes no `speed`.
+- Suites touching voice, reader, speech, clips and follow: 1,377 tests green; `eslint src --max-warnings 0`; `verify:gates`, `legibility --check`, `monolith-budget-guard` (5302, unchanged).
+
+**His test:** read a lesson at 3x in the NAS voice. Tap Back: the paragraph starts over and the bar stays. Tap Back again straight away: the paragraph before. The voice at 3x sounds like a man speaking quickly, not a stretched recording. On the phone's own voice at 3x, the sentences run on without the stutter between them.
+
+**Honest limits (DR-0100):** above 2x the NAS voice is still stretched for the remainder (a 5x reading is a 2.5x stretch of 2x speech) because Piper and XTTS degrade past 2x; the ladder's top is for the device voice, where the engine speaks at the rate natively. The NAS pace is pinned per reading: a speed change mid-reading is heard as the remainder until the next paragraph step or lesson, which re-pins. re-review: 2026-10-21, after a week of his fast listening — if the remainder still mumbles at 2.5x+, move the top of the NAS pace ladder to a measured limit per voice.

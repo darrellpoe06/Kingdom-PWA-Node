@@ -50,6 +50,25 @@
   Pragma: no-cache
   Expires: 0
 
+# The worker is REGISTERED from /sw.js at the site root (lib/sw-door-scope.js
+# registers '/sw.js' at the door's scope), so the rule above never matched the
+# file the browser actually fetches (2026-10-07, DR-0781). Same rule, right path.
+/sw.js
+  Cache-Control: no-cache, no-store, must-revalidate
+  Pragma: no-cache
+  Expires: 0
+
+# The live build's name (dist/build.json, written by vite.config.js): the app
+# compares it with its own sha to say "behind" honestly. Never cached (DR-0781).
+/build.json
+  Cache-Control: no-cache, no-store, must-revalidate
+  Pragma: no-cache
+  Expires: 0
+/poetech-app/build.json
+  Cache-Control: no-cache, no-store, must-revalidate
+  Pragma: no-cache
+  Expires: 0
+
 # PWA manifest: never cache so install metadata stays current.
 /poetech-app/manifest.webmanifest
   Cache-Control: no-cache, no-store, must-revalidate

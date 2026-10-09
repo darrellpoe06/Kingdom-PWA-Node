@@ -102,8 +102,8 @@ jobs:
           # reason; the guard (checkReplayShapes) now names this class.
           - feature: role-control
             pre: "DROP FUNCTION IF EXISTS public.list_instance_members(uuid); DROP FUNCTION IF EXISTS public.list_my_admin_instances();"
-            migrations: "0111-set-member-role.sql 0112-list-my-admin-instances.sql 0130-assistant-provisioning-and-office-workspace.sql 0131-stale-role-constraint-and-nullsafe-guards.sql 0143-member-worker-classification.sql 0144-standings-at-will-and-the-sons-wall.sql 0210-the-signature-door-and-a-roster-that-says-when.sql 0212-a-congregant-could-not-open-their-own-record.sql 0213-the-roster-shows-what-the-person-told-us.sql 0221-the-space-picker-can-name-the-door-it-belongs-to.sql"
-            smokes: "0111-role-control-smoke.sql"
+            migrations: "0111-set-member-role.sql 0112-list-my-admin-instances.sql 0130-assistant-provisioning-and-office-workspace.sql 0131-stale-role-constraint-and-nullsafe-guards.sql 0143-member-worker-classification.sql 0144-standings-at-will-and-the-sons-wall.sql 0210-the-signature-door-and-a-roster-that-says-when.sql 0212-a-congregant-could-not-open-their-own-record.sql 0213-the-roster-shows-what-the-person-told-us.sql 0221-the-space-picker-can-name-the-door-it-belongs-to.sql 0255-make-an-account-that-already-exists-family-by-the-governors-hand.sql 0257-the-family-outranks-the-persons-own-space-on-the-signups-list.sql 0259-when-and-by-whom-the-apps-are-used.sql"
+            smokes: "0111-role-control-smoke.sql 0255-add-user-to-instance-smoke.sql 0257-signups-family-outranks-own-space-smoke.sql 0259-usage-calendar-smoke.sql"
           - feature: support-door
             migrations: "0114-governed-support-door.sql 0115-support-user-initiated-self-grant.sql 0131-stale-role-constraint-and-nullsafe-guards.sql 0144-standings-at-will-and-the-sons-wall.sql 0210-the-signature-door-and-a-roster-that-says-when.sql 0212-a-congregant-could-not-open-their-own-record.sql 0213-the-roster-shows-what-the-person-told-us.sql"
             smokes: "0114-support-door-smoke.sql 0115-support-self-grant-smoke.sql"
@@ -196,6 +196,15 @@ jobs:
           - feature: voice-enrollment
             migrations: "0248-a-person-adds-their-own-voice-and-can-take-it-back.sql"
             smokes: "0248-voice-enrollment-smoke.sql"
+          # Added 2026-10-05 (DR-0754): a learner's class record. A learner
+          # keeps and reads only his own row, the row lands under his own
+          # account even when the payload names another, a second reading
+          # corrects it instead of duplicating, the Governor reads every
+          # learner's and writes none, anon reads nothing, and a score outside
+          # 0-100 is refused at the wall.
+          - feature: learner-records
+            migrations: "0250-a-learners-record-reaches-the-governor.sql"
+            smokes: "0250-learner-records-smoke.sql"
           # Added 2026-07-30 (REV-0216 access-evaluation carried item): the
           # core-books ROLE wall. 0082 (child walled / successor read-only) and
           # 0100 (assistant walled) both shipped their DB gate but had NO live
@@ -279,17 +288,63 @@ jobs:
           # sessions see the old definition until COMMIT and then the newest,
           # never nothing. Pinned by
           # scripts/rls-isolation-matrix-guard.mjs (checkAtomicApply).
+          # ONE TRANSACTION FOR THE PRE-STEP AND WHAT REBUILDS IT; THE REST ONE
+          # FILE AT A TIME (2026-10-09, DR-0831). Applying a whole chain in one
+          # transaction ran the hosted project out of lock slots: the overlay
+          # functions (assistant-scope, viewer-readonly) DROP and CREATE a policy
+          # on every instance-scoped table each time a file calls them, every
+          # lock held until COMMIT, and four legs (product-forms,
+          # viewer-readonly, poe-properties, tlc-office) died on "out of shared
+          # memory / max_locks_per_transaction" before any smoke ran (runs 282,
+          # 283). The gap the single transaction closed is only ever between the
+          # pre-step's DROP and the first file that defines the function again,
+          # so that group stays atomic: the pre-step plus the chain up to the
+          # first definition of each dropped function. Every later file commits
+          # on its own, which releases its locks; a file that changes a
+          # function's shape drops and recreates it inside its own transaction
+          # (migration-return-type-guard), so no file leaves a gap behind it.
+          # Pinned by scripts/rls-isolation-matrix-guard.mjs (checkAtomicApply).
           PRE=${{ toJSON(matrix.pre || '') }}
-          ARGS=()
+          MIGS=(${{ matrix.migrations }})
+          ATOMIC_N=0
           if [ -n "$PRE" ]; then
-            echo "=== pre-step SQL (inside the chain's transaction) ==="
-            ARGS+=(-c "$PRE")
+            echo "=== pre-step SQL (inside the atomic group's transaction) ==="
+            NAMES=$(printf '%s' "$PRE" | grep -oE 'FUNCTION IF EXISTS public\.[a-z_0-9]+' | sed 's/.*public\.//' || true)
+            for n in $NAMES; do
+              i=0
+              for mig in "${MIGS[@]}"; do
+                i=$((i+1))
+                if grep -qiE "FUNCTION public\.${n}\(" "infra/supabase/migrations-auto/${mig}"; then
+                  [ "$i" -gt "$ATOMIC_N" ] && ATOMIC_N=$i
+                  break
+                fi
+              done
+            done
+            if [ "$ATOMIC_N" -eq 0 ]; then
+              echo "::error::the pre-step drops a function no file in the chain defines again; the chain would leave it absent"
+              exit 1
+            fi
           fi
-          for mig in ${{ matrix.migrations }}; do
-            echo "=== will apply ${mig} (idempotent) ==="
-            ARGS+=(-f "infra/supabase/migrations-auto/${mig}")
+          ARGS=()
+          if [ -n "$PRE" ]; then ARGS+=(-c "$PRE"); fi
+          REST=()
+          i=0
+          for mig in "${MIGS[@]}"; do
+            i=$((i+1))
+            if [ "$i" -le "$ATOMIC_N" ]; then
+              echo "=== will apply ${mig} (idempotent, in the atomic group) ==="
+              ARGS+=(-f "infra/supabase/migrations-auto/${mig}")
+            else
+              REST+=("infra/supabase/migrations-auto/${mig}")
+            fi
           done
-          psql "$DBURL" --single-transaction -v ON_ERROR_STOP=1 "${ARGS[@]}"
+          if [ "${#ARGS[@]}" -gt 0 ]; then
+            psql "$DBURL" --single-transaction -v ON_ERROR_STOP=1 "${ARGS[@]}"
+          fi
+          for f in "${REST[@]}"; do
+            echo "=== applying ${f##*/} (idempotent, its own transaction) ==="
+            psql "$DBURL" --single-transaction -v ON_ERROR_STOP=1 -f "$f"
+          done
           for smoke in ${{ matrix.smokes }}; do
             echo "=== running ${smoke} (rolls back) ==="
             psql "$DBURL" -v ON_ERROR_STOP=1 \

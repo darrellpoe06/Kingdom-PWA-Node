@@ -127,6 +127,11 @@ export default function LessonInbox({ deps = LIVE, refreshKey = 0 }) {
                 {it.withReader ? ' · with the lesson reader' : ''}
               </p>
               <p className={`text-xs font-semibold ${TONE[it.state] || 'text-[#5A5751]'}`} style={SERIF} data-testid="lesson-state">{it.label}</p>
+              {it.stale && it.stale.count > 0 && !it.published && (
+                <p className="text-[0.6875rem] text-[#B85838] mt-0.5" style={SERIF} data-testid="lesson-stale">
+                  Still waiting · the alarm rang {it.stale.count === 1 ? 'once' : `${it.stale.count} times`}, last {when(it.stale.lastAt)}. The intake was told and your phone was pushed (DR-0771).
+                </p>
+              )}
               <LessonRoad road={road} />
               {/* COMPARE (DR-0672 over DR-0669): every writer's version of this
                   lesson from the same prompt. The Governor only. */}

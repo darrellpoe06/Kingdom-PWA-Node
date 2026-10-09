@@ -307,6 +307,14 @@ const swVersionStamp = () => ({
       throw new Error('sw-version-stamp: __SW_VERSION__ placeholder missing from dist/sw.js');
     }
     writeFileSync(swPath, src.replace("'__SW_VERSION__'", JSON.stringify(swVersion)));
+    // THE LIVE BUILD NAMES ITSELF (2026-10-07, DR-0781). Darrell's tablet read
+    // "build 847EC24 · LATEST" six deploys behind: "Latest" meant only "no new
+    // worker is waiting", a claim about the device, never a measurement of the
+    // server. dist/build.json carries the deployed sha and time; the app fetches
+    // it with cache: 'no-store' (and _headers forbids caching it) and compares
+    // it with its own __BUILD_SHA__. Different = behind, said and acted on.
+    const buildJsonPath = fileURLToPath(new URL('./dist/build.json', import.meta.url));
+    writeFileSync(buildJsonPath, JSON.stringify({ sha: buildSha, time: buildTime, sw: swVersion }));
   },
 });
 

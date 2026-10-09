@@ -97,6 +97,21 @@ jobs:
           SELECT 'bucket', count(*), coalesce(to_char(max(created_at),'YYYY-MM-DD"T"HH24:MI:SS"Z"'),'-')
           FROM storage.objects WHERE bucket_id = 'lesson-audio';
           SELECT 'bucket-exists', count(*) FROM storage.buckets WHERE id = 'lesson-audio';
+          -- ADD MY VOICE (DR-0720), Darrell 2026-10-02: "I've added my voice multiple
+          -- times... Why don't it work". The consent rows themselves, never a sample:
+          -- status + the plain reason the NAS wrote back, and whether a sample waits.
+          SELECT 'enroll', left(user_id::text,8), label, status, left(coalesce(reason,''),100),
+                 coalesce(to_char(consented_at,'YYYY-MM-DD"T"HH24:MI:SS"Z"'),'-'),
+                 coalesce(to_char(enrolled_at,'YYYY-MM-DD"T"HH24:MI:SS"Z"'),'-'),
+                 coalesce(to_char(updated_at,'YYYY-MM-DD"T"HH24:MI:SS"Z"'),'-'),
+                 CASE WHEN sample_path IS NULL THEN 'no-sample-waiting' ELSE 'sample-waiting' END
+          FROM voice_enrollments ORDER BY updated_at DESC NULLS LAST LIMIT 20;
+          SELECT 'enroll-count', count(*) FROM voice_enrollments;
+          -- WHO SPOKE (DR-0712): did the transcripts come back marked by voice at all?
+          SELECT 'speakers', CASE WHEN tags @> '["speakers:marked"]' THEN 'marked'
+                                  WHEN tags @> '["speakers:unmarked"]' THEN 'unmarked' ELSE 'untagged' END,
+                 count(*), to_char(max(created_at),'YYYY-MM-DD"T"HH24:MI:SS"Z"')
+          FROM agent_inbox WHERE tags @> '["voice-transcript"]' GROUP BY 2;
           SQL
           ) || { echo "::warning::live query failed -- UNKNOWN, never healthy"; echo "$out"; exit 0; }
           echo "$out"
@@ -170,6 +185,8 @@ jobs:
           echo "=== the rider's newest JSON report, if the cycle log kept it ==="
           ${SUDO} grep -a -A12 '"transcribe"' "$LOOPS/events/cron-services-sync.log" 2>/dev/null | tail -30 || true
           ${SUDO} tail -c 1500 /volume1/PoeTech/lesson-voice/last-run.json 2>/dev/null || echo "no last-run.json yet"
+          echo "=== why a transcript came back unmarked (the rider's skipped reasons, newest last) ==="
+          ${SUDO} grep -a -o 'speakers-not-marked: [^"]*' "$LOOPS/events/cron-services-sync.log" 2>/dev/null | tail -6 || echo "no speakers-not-marked line in the cycle log"
           echo "=== who spoke (DR-0712): speaker marking, voiceprints, enrollment ==="
           ${SUDO} cat /volume1/PoeTech/lesson-voice/.speakers-recipe 2>/dev/null | sed 's/^/speakers recipe installed: /' || echo "speaker marking not installed yet"
           ${SUDO} ls -la /volume1/PoeTech/lesson-voice/models/speakers 2>/dev/null || echo "no speaker models yet"
@@ -178,6 +195,34 @@ jobs:
           ${SUDO} cat /volume1/PoeTech/lesson-voice/.enroll-attempt 2>/dev/null | sed 's/^/last enroll attempt (epoch): /' || echo "no enroll attempt yet"
           ${SUDO} cat /volume1/PoeTech/lesson-voice/enroll-result.json 2>/dev/null || echo "no enroll-result.json yet"
           ${SUDO} tail -6 /volume1/PoeTech/lesson-voice/enroll.log 2>/dev/null || echo "no enroll.log yet"
+          echo "=== the rider's own answer: is speaker marking armed, in the rider's own interpreter? ==="
+          PY=/volume1/PoeTech/venvs/lesson-voice/bin/python; [ -x "$PY" ] || PY=python3
+          ${SUDO} grep -a '^LESSON_VOICE_\(SPEAKERS\|SELF_ENROLL\)=' /volume1/PoeTech/lesson-voice/lesson-voice.env 2>/dev/null | sed 's/^/env file: /' || echo "env file: no LESSON_VOICE_SPEAKERS / LESSON_VOICE_SELF_ENROLL line (both default on)"
+          ${SUDO} "$PY" - <<'PYEOF' 2>&1 | head -24
+          import os, sys, importlib.util
+          sys.path.insert(0, "/volume1/PoeTech/repos/Kingdom-PWA-Node/infra/nas-lesson-voice")
+          D = "/volume1/PoeTech/lesson-voice"
+          print("interpreter:", sys.executable)
+          print("sherpa_onnx importable here:", importlib.util.find_spec("sherpa_onnx") is not None)
+          try:
+              import diarize_local as dl
+              seg, emb = dl.model_paths(D)
+              print("speaker models present:", os.path.isfile(seg), os.path.isfile(emb))
+              print("speakers_enabled:", dl.speakers_enabled(D))
+          except Exception as e:
+              print("diarize_local:", type(e).__name__, str(e)[:160])
+          try:
+              import voice_enroll as ve
+              print("enrolling_enabled:", ve.enrolling_enabled())
+          except Exception as e:
+              print("voice_enroll:", type(e).__name__, str(e)[:160])
+          try:
+              import speaker_turns as st
+              for k, r in sorted(st.load_voiceprint_records(D).items()):
+                  print("voiceprint", k, "owner", ((r.get("user_id") or "word-attributed"))[:14], "source", str(r.get("source") or "")[:40])
+          except Exception as e:
+              print("voiceprints:", type(e).__name__, str(e)[:160])
+          PYEOF
           echo "=== add my voice (DR-0720): self-enrollment by consent ==="
           ${SUDO} cat /volume1/PoeTech/lesson-voice/voice-enroll-result.json 2>/dev/null || echo "no voice-enroll-result.json yet"
           ${SUDO} tail -4 /volume1/PoeTech/lesson-voice/voice-enroll.log 2>/dev/null || echo "no voice-enroll.log yet"

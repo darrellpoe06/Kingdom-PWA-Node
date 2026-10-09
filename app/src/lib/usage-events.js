@@ -68,3 +68,39 @@ export async function fetchUserUsage(userId, days = 30) {
     return data || [];
   } catch (err) { console.warn('[usage-events] user usage fetch failed:', err); return null; }
 }
+
+// A FUNCTION EXERCISED, NOT A TAB OPENED (DR-0819). Darrell 2026-10-08: "to see
+// if they are testing and using evaluating the functions based on the use so we
+// can streamline our process for testing these applications." recordView
+// answers "which tab", which cannot answer "has anyone tried the camera window".
+// Same table, same ownership and deletion rights, kind='use' instead of 'view'
+// — and because usage_flow_metrics filters kind='view', not one existing tab
+// number moves. Fire-and-forget, never throws into a handler, no-op signed out.
+export async function recordUse(feature) {
+  const v = String(feature || '').trim();
+  if (!v) return false;
+  try {
+    const { data } = await supabase.auth.getSession();
+    if (!data || !data.session) return false;
+    const { error } = await supabase.from('usage_events').insert({ kind: 'use', name: v });
+    return !error;
+  } catch { return false; }
+}
+
+/** Call it without awaiting, from inside a click handler. Never throws. */
+export function noteUse(feature) {
+  try { recordUse(feature); } catch { /* a metric may never break a feature */ }
+}
+
+// The governor's roll-up of kind='use' (migration 0253). Same direct-REST path
+// and the same honest null as fetchUsageFlow: null means we could not read it,
+// which the surface must NOT render as "nothing has been tried".
+export async function fetchFeatureUse(days = 90) {
+  try {
+    const token = readSnapshotToken();
+    if (!token) return null;
+    const { data, error } = await restRpc('feature_use_metrics', { days_in: days }, token);
+    if (error) { console.warn('[usage-events] feature use fetch failed:', error); return null; }
+    return data || null;
+  } catch (err) { console.warn('[usage-events] feature use fetch failed:', err); return null; }
+}

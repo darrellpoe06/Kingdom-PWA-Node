@@ -314,6 +314,29 @@ const NODES = [
     writes: [],
     seeds: [],
   }),
+  // DR-0754: the class record. A learner marks a lesson read or answers its
+  // exam; the same two facts become a real row, and the Governor reads every
+  // learner's (the read wall decides the scope, never the screen).
+  app('app/src/lib/learner-records-sync.js', {
+    id: 'learner-record', name: 'A learner\u2019s record leaves the device (Church \u2192 Learn)',
+    purpose: 'Keeps one row per learner per lesson as he marks it read and answers its exam, so his completion and his scores cross devices instead of living on one phone.',
+    reads: [
+      { res: 'db:learner_lesson_records', token: 'from(TABLE)' },
+    ],
+    writes: [
+      { res: 'db:learner_lesson_records', token: "onConflict: 'user_id,lesson_id'" },
+    ],
+    seeds: ['class-record'],
+  }),
+  app('app/src/components/LearnersPanel.jsx', {
+    id: 'class-record', name: 'Class record (Learn \u2192 Class record)',
+    purpose: 'Shows completion against the course and the competency band from the real exam scores; a learner sees his own, the Governor sees every learner\u2019s, and an untested learner reads \u201cNot yet tested\u201d rather than a painted zero.',
+    reads: [
+      { res: 'db:learner_lesson_records', file: 'app/src/lib/learner-records.js', token: 'aggregateLearnerRecords' },
+    ],
+    writes: [],
+    seeds: [],
+  }),
   // DR-0720: Add my voice. A person agrees, reads Psalm 23, and the NAS makes
   // one voiceprint (kept only on the NAS) and writes back added or why not;
   // removal deletes the consent, and the print on the next pass.
@@ -386,6 +409,10 @@ const NODES = [
       { res: 'db:agent_inbox#lesson-published', token: '"lesson-published"' },
       // DR-0725: the same notification, and each build milestone, rings the lesson inbox bell.
       { res: 'event:lesson-waiting', token: 'BELL_EVENT = "lesson-waiting"' },
+      // DR-0771: a row waiting past the window is alarmed through 0252's sweep: the row
+      // gains stale-alarm@<time> (the bell's new milestone) and its person gets one push.
+      { res: 'db:agent_inbox#stale-alarm', token: 'lesson_inbox_stale_sweep' },
+      { res: 'db:push_outbox', file: 'infra/supabase/migrations-auto/0252-a-lesson-that-waits-too-long-rings-again-and-pushes-its-person.sql', token: 'INSERT INTO public.push_outbox' },
     ],
     seeds: ['learn', 'lesson-inbox', 'lesson-inbox-bell'],
   }),
@@ -393,6 +420,12 @@ const NODES = [
     id: 'voice-intake-health', name: 'Voice intake witness',
     purpose: 'Proves on the live database that a spoken recording becomes words: voice rows in, transcripts out, and which Whisper rung wrote each.',
     reads: [{ res: 'db:agent_inbox#voice', token: 'agent_inbox' }, { res: 'db:agent_inbox#voice-transcript', token: 'voice-transcript' }],
+    writes: [], seeds: [],
+  }),
+  wf('lesson-sources-witness.yml', {
+    id: 'lesson-sources-witness', name: 'Lesson sources witness',
+    purpose: "Reads every researched figure in a lesson back from its publisher's own page on a GitHub runner (the NAS writer has no web; the cloud sandbox cannot reach epi.org or bls.gov), so a real-world claim in a lesson stands on the record, never on memory (DR-0750, DR-0100). A publisher that refuses a machine is said; a readable page that does not say the figure fails, and the lesson is corrected.",
+    reads: [{ res: 'file:app/src/lib/lesson-sources.json', token: 'lesson-sources.json' }],
     writes: [], seeds: [],
   }),
   wf('inbox-lesson-body.yml', {
@@ -423,6 +456,7 @@ const NODES = [
     reads: [
       { res: 'event:lesson-waiting', token: 'types: [lesson-waiting]' },
       { res: 'db:agent_inbox#lesson', file: 'scripts/lesson-inbox-progress.sql', token: 'FROM public.agent_inbox' },
+      { res: 'db:agent_inbox#stale-alarm', file: 'scripts/lesson-inbox-bell.mjs', token: 'staleAlarms' },
       { res: 'db:lesson_versions', file: 'scripts/lesson-builder-versions.sql', token: 'FROM public.lesson_versions' },
     ],
     writes: [{ res: 'gh:lesson-bell', token: 'BELL_PR' }],
@@ -588,6 +622,19 @@ const NODES = [
     id: 'nas-photos', name: 'Photos from the family NAS',
     purpose: 'Property, family and album photos served from our own box.',
     reads: [{ res: 'device:family-key', token: 'bridgeToken' }, { res: 'http:nas-photos', token: '/nas-photos' }],
+    seeds: [],
+  }),
+  app('app/src/lib/vault-store.js', {
+    id: 'vault', name: 'Vault (passwords locked on the device, kept on our server)',
+    purpose: 'A person’s passwords, encrypted in the browser under their own passphrase; the server holds ciphertext only (0251, DR-0762).',
+    reads: [{ res: 'db:vault_header', token: "from('vault_header')" }, { res: 'db:vault_items', token: "from('vault_items')" }],
+    writes: [{ res: 'db:vault_header', token: "from('vault_header').upsert" }, { res: 'db:vault_items', token: "from('vault_items').upsert" }],
+    seeds: [],
+  }),
+  app('app/src/lib/cameras.js', {
+    id: 'cameras', name: 'Cameras (the family’s cameras in the app)',
+    purpose: 'Frames and live video from the family’s own cameras — Wyze, Ring, ONVIF, RTSP — through the NAS, behind the family key and short playback tickets (DR-0756).',
+    reads: [{ res: 'device:family-key', file: 'app/src/components/Cameras.jsx', token: 'bridgeToken' }, { res: 'http:cams', token: '/cams' }],
     seeds: [],
   }),
   app('app/src/lib/clip-queue.js', {
@@ -878,6 +925,16 @@ const NODES = [
     id: 'nas-clock', name: 'NAS clock', purpose: 'Gives the NAS loop fleet its clock.',
     reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }], writes: [{ res: 'nas:clock', token: 'install-clock.sh' }], seeds: ['services-sync'],
   }),
+  wf('cams-diag.yml', {
+    id: 'cams-diag', name: 'Camera road diagnostics (look, never touch)', purpose: 'What go2rtc itself says about every camera — streams (kind, host, state), its log, the container log, the forwarder’s health and one timed probe with /why — from the NAS over the tailnet, scrubbed (DR-0774).',
+    reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }, { res: 'http:cams', token: '127.0.0.1:8773' }, { res: 'nas:services', token: 'poetech-cams' }],
+    writes: [], seeds: [],
+  }),
+  wf('camera-health.yml', {
+    id: 'camera-health', name: 'Camera road witness (DR-0806)', purpose: 'After every deploy and twice an hour: reads the forwarder’s /health, the stream health log and go2rtc’s streams over the tailnet, probes a frame from every recording or watched camera, compares with the last witness kept in the rolling camera-incident issue, and labels a regression priority:cameras so it is fixed first.',
+    reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }, { res: 'http:cams', token: '127.0.0.1:8773' }],
+    writes: [{ res: 'gh:incident', token: 'camera-incident' }], seeds: ['ops-surface'],
+  }),
   wf('nas-health.yml', {
     id: 'nas-health', name: 'NAS health (look, never touch)', purpose: 'What the NAS is doing right now — GPU, containers, services, and the live tables’ row counts.',
     reads: [{ res: 'nas:services', token: 'systemctl' }, { res: 'db:feedback', token: 'FROM feedback' }, { res: 'db:board_tasks', token: 'FROM board_tasks' }],
@@ -1018,7 +1075,7 @@ const NODES = [
     reads: [{ res: 'nas:scribe-queue', token: 'whisper-queue.jsonl' }], writes: [{ res: 'nas:scribe-minutes', token: 'minutes.md' }], seeds: ['scribe'],
   }),
   rider('service:property-photos', 'infra/nas-property-photos/photo_server.py', {
-    id: 'property-photos', name: 'Photo server', purpose: 'Serves property, family and album photos from our own box.',
+    id: 'property-photos', name: 'Photo server', purpose: 'Serves property, family and album photos from our own box, takes new ones in, and takes one off an address without deleting it (DR-0758).',
     writes: [{ res: 'http:nas-photos', token: 'photo' }], seeds: ['nas-photos'],
   }),
   rider('service:tax-upload', 'infra/nas-tax-ingest/tax_upload_server.py', {
@@ -1037,6 +1094,10 @@ const NODES = [
     id: 'voice-lite-probe', name: 'Voice-lite probe (a real clip, end to end)', purpose: 'Asks /voice-lite for a paragraph the way the app does and keeps the clip.',
     reads: [{ res: 'http:voice-lite', token: 'voice-lite' }], writes: [], seeds: [],
   }),
+  rider('service:cameras', 'infra/nas-cameras/cams_forwarder.py', {
+    id: 'cameras-road', name: 'Camera road (go2rtc behind the locked door)', purpose: 'Restreams the family’s cameras from the NAS to the app as frames and live video; the forwarder is the lock on the public Funnel (DR-0756).',
+    reads: [{ res: 'nas:services', file: 'infra/nas-loops/services.json', token: 'cameras' }], writes: [{ res: 'http:cams', token: '/cams' }], seeds: ['cameras'],
+  }),
   rider('service:funnel', 'infra/nas-loops/loops/funnel_watchdog.py', {
     id: 'funnel', name: 'Public Funnel (the NAS’s front door)', purpose: 'Keeps the recorded sovereign routes served to the app’s proxy.',
     reads: [{ res: 'nas:services', file: 'infra/nas-loops/services.json', token: 'funnel' }], writes: [{ res: 'http:funnel', token: 'funnel' }], seeds: ['transport'],
@@ -1048,6 +1109,33 @@ const NODES = [
   app('app/functions/_lib/funnel-proxy.js', {
     id: 'transport', name: 'Same-origin transport to the NAS', purpose: 'Every NAS-backed route the app calls rides this proxy.',
     reads: [{ res: 'http:funnel', token: 'Funnel' }], seeds: [],
+  }),
+  // THE HOUSE OPENERS (Darrell 2026-10-08; DR-0823). The header presses, the
+  // NAS drives the relay, and the ledger keeps what came back. Three nodes
+  // because the flow really has three: who asks, who acts, and who records.
+  app('app/src/components/OpenerButton.jsx', {
+    id: 'opener-press', name: 'Opener button (the header)',
+    purpose: 'A hold on the header button presses the garage door, or any other registered opener, while a lesson is playing in the car.',
+    reads: [{ res: 'db:household_openers', file: 'app/src/lib/openers-sync.js', token: "from('household_openers')" }],
+    writes: [
+      { res: 'http:openers', file: 'app/src/lib/openers.js', token: 'PRESS_PATH' },
+      { res: 'db:opener_presses', file: 'app/src/lib/openers-sync.js', token: "from('opener_presses').insert" },
+    ],
+    seeds: ['openers-service', 'openers-registry'],
+  }),
+  app('app/src/components/OpenersPanel.jsx', {
+    id: 'openers-registry', name: 'House openers (Dev/Ops)',
+    purpose: 'Register an opener, arm or disarm it, and read the record of every press. An opener that is not armed here puts no button in the header.',
+    reads: [{ res: 'db:opener_presses', token: "from('opener_presses')" }],
+    writes: [{ res: 'db:household_openers', token: "from('household_openers').insert" }],
+    seeds: ['opener-press'],
+  }),
+  rider('service:openers', 'infra/nas-openers/openers.py', {
+    id: 'openers-service', name: 'House openers (the only code that drives a relay)',
+    purpose: 'Resolves an opener id to the real device from a NAS-local devices.json and pulses it, with a per-opener hourly budget, a single-flight lock, and armed-by-record. Ships disabled.',
+    reads: [{ res: 'http:openers', file: 'app/functions/openers/[[path]].js', token: 'openers' }],
+    writes: [{ res: 'relay:opener', file: 'infra/nas-openers/openers.py', token: 'press_device' }],
+    seeds: [],
   }),
   rider('service:ytzero', 'infra/nas-ytzero/docker-compose.yml', {
     id: 'ytzero', name: 'YT Zero (chosen channels only)', purpose: 'A YouTube inbox of only the channels chosen, on our own box.',
@@ -1125,6 +1213,58 @@ const NODES = [
       { res: 'db:dm_device_keys', token: "from('dm_device_keys')" },
       { res: 'db:direct_messages', token: "from('direct_messages').insert" },
     ],
+    seeds: [],
+  }),
+  // A LAN DEVICE BELONGS TO A PERSON (DR-0830). The church device register
+  // (0056) holds the MACs a real scan read; 0256 adds whose device each is,
+  // set only by an editor's hand. The person's record reads it back.
+  app('app/src/lib/church-devices-sync.js', {
+    id: 'device-register', name: 'Device register (Devices, church infrastructure)',
+    purpose: 'The church’s devices as identified assets with specs, status, steward and, since 0256, the person each one belongs to, assigned from the roster by an editor.',
+    reads: [{ res: 'db:church_devices', token: "remoteTable: 'church_devices'" }],
+    writes: [{ res: 'db:church_devices', token: "remoteTable: 'church_devices'" }],
+    seeds: ['person-record'],
+  }),
+  // EVERYTHING ON RECORD FOR A PERSON (DR-0828): the Known fold on the Admin
+  // roster reads the rows a steward may already read and says what the cloud
+  // never holds.
+  app('app/src/lib/person-record-sync.js', {
+    id: 'person-record', name: 'Everything on record for a person (Admin → Known)',
+    purpose: 'One read per roster row: sign-in doors, the ways to reach them, the devices seen (message devices, presence) and the LAN devices assigned to them with the MAC the scan recorded; absences stated, nothing painted.',
+    reads: [
+      { res: 'db:dm_device_keys', token: "from('dm_device_keys')" },
+      { res: 'db:church_devices', token: "from('church_devices')" },
+    ],
+    writes: [],
+    seeds: [],
+  }),
+  // A DOOR SHARES ITS CAMERAS WITH ITS HOUSEHOLD (DR-0841): the landlord
+  // mints a camera grant on the NAS (DR-0778) for a door and the tenancy row
+  // carries it (0258); the tenant's Cameras tab reads it from their own row.
+  app('app/src/modules/properties/door-cameras.js', {
+    id: 'door-cameras', name: 'A door shares its cameras with its household (Properties → Cameras)',
+    purpose: 'The landlord picks the cameras at a door, the NAS mints a grant for that door, the tenancy row carries the token and a plain note; the household reads it as their Cameras tab; taking it back clears the row and revokes the grant on the NAS.',
+    reads: [{ res: 'db:rental_tenancies', token: "from('rental_tenancies')" }],
+    writes: [{ res: 'db:rental_tenancies', token: "from('rental_tenancies')" }],
+    seeds: [],
+  }),
+  // EVERY TAB OPEN AND FUNCTION EXERCISED (0073, DR-0819): the shell records a
+  // view per tab and a use per function into usage_events; each person owns
+  // and can delete their own trail.
+  app('app/src/lib/usage-events.js', {
+    id: 'usage-record', name: 'Usage recorded (every tab open, every function exercised)',
+    purpose: 'recordView on each tab open and recordUse on each function exercised write one usage_events row per event for the signed-in person; the aggregate, the per-person read (0145) and the calendar (0259) all read from here.',
+    reads: [],
+    writes: [{ res: 'db:usage_events', token: "from('usage_events')" }],
+    seeds: ['usage-calendar'],
+  }),
+  // WHEN, AND BY WHOM (DR-0843): the governor's calendar of opens and uses per
+  // person per day (0259 over usage_events), on Admin → Users & usage.
+  app('app/src/lib/usage-calendar-sync.js', {
+    id: 'usage-calendar', name: 'When, and by whom, the apps are used (Admin → Users & usage)',
+    purpose: 'Per person, per day, per kind, a count from usage_events: who has done the evaluating and their share, the weekdays the apps are used most, and each person\'s calendar; counts only, never a view name.',
+    reads: [{ res: 'db:usage_events', token: "usage_calendar_metrics" }],
+    writes: [],
     seeds: [],
   }),
 ];
@@ -1209,6 +1349,7 @@ const RESOURCES = {
   'file:audit-findings': { label: 'surface audit findings', source: 'Written by scripts/surface-audit.mjs, run on the NAS every 30 minutes and by an agent before a commit; the committed file is what the app reads.' },
   'db:transactions': { label: 'the family ledger', source: 'Written by every family device through lib/transactions-sync.js (imports, edits, deletes); the family-books-probe counts it.' },
   'file:decision-ledger': { label: 'the decision ledger', source: 'The decision records in docs/decisions, written by the sessions that decide.' },
+  'file:app/src/lib/lesson-sources.json': { label: 'the sources behind a lesson’s researched figures', source: 'Written by the research pass that follows a NAS lesson build (the session that reads the public record and names each publisher, url and the strings its page must say; DR-0750); the witness reads it back from the publishers on a GitHub runner.' },
 
   'mail:lesson': { label: 'forwarded “Lesson.” mail', source: 'Darrell forwards a lesson from his own mailbox.' },
   'yt:channel': { label: 'the church’s YouTube channel', source: 'The church publishes each service on its channel.' },
@@ -1233,6 +1374,9 @@ const RESOURCES = {
   'http:nas-photos': { label: 'photo server on the NAS', route: '/nas-photos' },
   'http:voice': { label: 'the reading voice studio', route: '/voice' },
   'http:voice-lite': { label: 'the NAS audio voice (Piper)', route: '/voice-lite' },
+  'http:cams': { label: 'the family camera road on the NAS (go2rtc)', route: '/cams' },
+  'db:vault_header': { label: 'a person’s vault header: KDF parameters, salt and a verifier, never a key (0251, DR-0762; owner only)' },
+  'db:vault_items': { label: 'a person’s vault records as ciphertext made in their browser (0251, DR-0762; owner only)' },
   'http:taxes': { label: 'the tax archive on the NAS', route: '/taxes' },
   'http:taxes-upload': { label: 'a tax document uploaded', route: '/taxes' },
   'nas:mirror': { label: 'the NAS repo mirror' },
@@ -1270,7 +1414,15 @@ const RESOURCES = {
   'http:funnel': { label: 'the NAS’s public routes' },
   'db:contacts': { label: 'a person\u2019s own address book (0247, DR-0736; read by its owner alone)' },
   'db:dm_device_keys': { label: 'the public key of each device a person holds (0249, DR-0737; read by anyone signed in, written by its owner alone)' },
+  'db:usage_events': { label: 'every tab open and function exercised, per person with the time (0073, DR-0819); each person owns and can delete their own trail' },
+  'db:rental_tenancies': { label: 'the tenancies (0055): who lives behind which door, the lease, the rent and, since 0258, the camera grant the door shares with its household (DR-0841)' },
+  'db:church_devices': { label: 'the church device register (0056): identified assets with the MACs a scan read and, since 0256, the person each belongs to (DR-0830)' },
   'file:vcf': { label: 'a phone\u2019s exported contacts file', source: 'The phone\u2019s Contacts app or Google Contacts shares it; the person uploads it in Messages.' },
+  'db:household_openers': { label: 'the openers this household owns, and which are armed (0254, DR-0823)' },
+  'db:opener_presses': { label: 'every press of an opener and what came back', sink: 'A steward reads it in Dev/Ops; it is append-only, with no update or delete policy, so the record of who opened the house and when cannot be tidied away.' },
+  'http:openers': { label: 'a press on its way to the house', route: '/openers',
+    open: { blocker: 'The Funnel mounts nothing at /openers yet, and that is on purpose: this is the only service in the fleet that drives a physical actuator on the family\u2019s house, so it ships disabled in services.json and is armed by hand rather than by a merge (DR-0823). It is recorded in the UNACTUATED section of infra/nas-transport/RECORDED-STATE.md, which is the honest state until Darrell names the opener hardware and fills in devices.json on the NAS.', reReview: '2026-11-08' } },
+  'relay:opener': { label: 'the garage door, or another opener, actually moving', sink: 'The door itself is the end of this flow. Only a device that reports its own position sends anything back, and a press nobody confirmed is recorded as unanswered rather than as opened (DR-0076).' },
 };
 
 // ---------------------------------------------------------------------------

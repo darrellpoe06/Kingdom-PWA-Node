@@ -38,7 +38,8 @@ import {
 import { listMyAdminInstances, inviteToSpace, isInviteEmail } from '../lib/member-roles.js';
 import { listPendingClaims, confirmInvite } from '../lib/family-invite.js';
 import { canAddContacts, inviteShareText, smsHrefTo, telHref, isLikelyPhone, installPromptText } from '../lib/messages-invite.js';
-import { readContacts, upsertContact, removeContact } from '../lib/saved-contacts.js';
+import { readContacts, upsertContact } from '../lib/saved-contacts.js';
+import { pullMyContacts, keepContactOnServer, forgetContactEverywhere } from '../lib/contacts-store.js';
 import { consumeDmPeer, spaceLabel } from '../lib/app-doors.js';
 import ContactsImport from './ContactsImport.jsx';
 
@@ -170,6 +171,11 @@ function AddContact({ onInvited, roster = [] }) {
   const [share, setShare] = useState({ text: '', link: '', phone: '' });
   const [pending, setPending] = useState([]);
   const [saved, setSaved] = useState([]);
+  // THE KEEPER PULLS BACK (DR-0826): the list used to be this device's cache
+  // alone, so contacts kept on your own server from another phone never showed
+  // here. On open, the server's rows are pulled into the device list; the
+  // state says whether that happened, so the list never pretends (DR-0076).
+  const [keeper, setKeeper] = useState({ ok: null, pulled: 0, reason: '' });
 
   const refreshSaved = () => { try { setSaved(readContacts()); } catch { setSaved([]); } };
 
@@ -177,6 +183,9 @@ function AddContact({ onInvited, roster = [] }) {
     listMyAdminInstances().then((s) => { setSpaces(s); if (s[0]) setSpaceId(s[0].instanceId); }).catch(() => setSpaces([]));
     listPendingClaims().then((r) => setPending(r.ok ? r.claims : [])).catch(() => {});
     refreshSaved();
+    let alive = true;
+    pullMyContacts().then((r) => { if (!alive) return; setKeeper(r); refreshSaved(); }).catch(() => {});
+    return () => { alive = false; };
   }, []);
 
   // Keep every added contact in the returnable address book (name + phone +
@@ -187,6 +196,8 @@ function AddContact({ onInvited, roster = [] }) {
     try { at = new Date().toISOString(); } catch { at = ''; }
     upsertContact(undefined, { name, phone, email, spaceId: space?.instanceId || '', spaceName: space?.displayName || '', status }, at);
     refreshSaved();
+    // ...and on your own server, so the next phone you sign in on has them too.
+    keepContactOnServer({ name, phone, email }).catch(() => {});
   };
 
   if (!canAddContacts(spaces)) {
@@ -248,7 +259,8 @@ function AddContact({ onInvited, roster = [] }) {
     listPendingClaims().then((p) => setPending(p.ok ? p.claims : [])).catch(() => {});
   };
 
-  const forgetContact = (id) => { removeContact(undefined, id); refreshSaved(); };
+  // Forgotten here AND on the server; otherwise the next pull brings it back.
+  const forgetContact = (id) => { forgetContactEverywhere(id).catch(() => {}); refreshSaved(); };
 
   const doShare = async () => {
     try {
@@ -331,6 +343,13 @@ function AddContact({ onInvited, roster = [] }) {
       {saved.length > 0 && (
         <div className="space-y-1.5 border-t border-[#E8E4DC] pt-2">
           <p className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Saved contacts</p>
+          <p className="text-[0.625rem] text-[#5A5751]" data-testid="contacts-keeper-note">
+            {keeper.ok === true
+              ? `${keeper.pulled} from your own server, the same list on every phone you sign in on.`
+              : keeper.ok === false
+                ? `Showing this device's list; your server did not answer (${keeper.reason}).`
+                : 'Checking your own server for contacts kept from other phones…'}
+          </p>
           {saved.map((c) => {
             // Honest status: "texted" is delivery, not access — a phone-only
             // contact has NO grant until their email is added (review GAP 1).

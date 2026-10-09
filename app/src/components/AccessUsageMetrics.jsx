@@ -23,6 +23,15 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { KpiDot } from './KpiDot.jsx';
 import UiIcon from './UiIcon.jsx';
 import SectionTabs from './SectionTabs.jsx';
+import PeopleYouKnow from './PeopleYouKnow.jsx';
+import UsageCalendar from './UsageCalendar.jsx';
+import LessonsWalked from './LessonsWalked.jsx';
+import { placementsFor, isPropertiesSpace, placePerson } from '../lib/people-placement.js';
+import { inviteToProperties } from '../modules/properties/cloud.js';
+import { phoneLoginEmail } from '../lib/supabase.js';
+import { isPhoneDoorEmail, phoneDoorDigits, nationalDigits } from '../lib/member-contact.js';
+import { fetchUserUsage } from '../lib/usage-events.js';
+import { SIGNUP_SORTS, sortSignupsBy, usageProfile, usageLine } from '../lib/user-usage-profile.js';
 import AppShareQR from './AppShareQR.jsx';
 import FamilyInvitePanel from './FamilyInvitePanel.jsx';
 import { fetchAccessSnapshot, currentBuild } from '../lib/access-metrics-sync.js';
@@ -33,6 +42,8 @@ import {
 import {
   fetchSignupMetrics, summaryTiles, signupRowView, sortSignups,
 } from '../lib/signup-metrics.js';
+import { emptyIndex, loadContactIndex, labelFor, countNamed } from '../lib/contact-names.js';
+import { listMyAdminInstances, addUserToSpace, roleLabel as memberRoleLabel } from '../lib/member-roles.js';
 import { fetchUsageFlow, topViews, viewShare } from '../lib/usage-events.js';
 
 // Friendly names for the raw view ids the usage stream records.
@@ -84,14 +95,130 @@ function CategoryPill({ label }) {
   );
 }
 
+// ADD TO A SPACE, from the row (DR-0829). The governor sees an account that
+// already exists and makes it family (or church, or a business) right here:
+// pick the space, pick the role, Add. The RPC is the gate; this only offers
+// the spaces the caller may administer, and says exactly what it did.
+function AddToSpace({ row, spaces, who, onDone }) {
+  const [open, setOpen] = useState(false);
+  const [spaceId, setSpaceId] = useState(() => (spaces[0] && spaces[0].instanceId) || '');
+  const [role, setRole] = useState('member');
+  const [state, setState] = useState({ phase: 'idle', text: '' });
+  useEffect(() => { if (!spaceId && spaces[0]) setSpaceId(spaces[0].instanceId); }, [spaces, spaceId]);
+  if (!row.userId || spaces.length === 0) return null;
+  const space = spaces.find((s) => s.instanceId === spaceId) || spaces[0];
+  // WHAT THEY ARE THERE (DR-0839; Darrell: "Want to add 1099 and other
+  // options and apps to add people to"): on the Poe Properties space the
+  // placements are tenant, household, 1099 worker and manager, written as the
+  // invite the door claims from; everywhere else member, viewer, admin.
+  const placements = placementsFor(space);
+  const add = async () => {
+    setState({ phase: 'busy', text: 'Adding…' });
+    if (isPropertiesSpace(space)) {
+      const email = String(row.rawEmail || '').toLowerCase();
+      const person = {
+        name: who || row.rawEmail || 'This account',
+        emails: email && !isPhoneDoorEmail(email) ? [email] : [],
+        phones: email && isPhoneDoorEmail(email) ? [nationalDigits(phoneDoorDigits(email))] : [],
+        account: { userId: row.userId },
+      };
+      const p = await placePerson({ person, space, placement: role, toPhoneEmail: phoneLoginEmail, addUserToSpace, inviteToSpace: async () => ({ ok: false, reason: 'not-this-road' }), inviteToProperties });
+      if (p.outcome === 'error') { setState({ phase: 'error', text: `Could not place: ${p.detail}.` }); return; }
+      setState({ phase: 'done', text: `${p.name}: ${p.detail}.` });
+      onDone && onDone(p);
+      return;
+    }
+    const r = await addUserToSpace(space.instanceId, row.userId, role, who || null);
+    if (!r.ok) { setState({ phase: 'error', text: `Could not add: ${r.error || r.reason}.` }); return; }
+    const label = memberRoleLabel(r.role || role);
+    // Said the way a person says it, and the list is re-read right after so
+    // the row's badge and the family tile show the arrival (DR-0836): the
+    // sentence alone was not the proof; the badge is.
+    setState({ phase: 'done', text: r.status === 'noop' ? `Already ${label} of ${space.displayName}.` : `${who || 'This account'} is now ${label} of ${space.displayName}. The badge below updates as the list re-reads.` });
+    onDone && onDone(r);
+  };
+  return (
+    <div className="mt-1">
+      {!open ? (
+        <button type="button" onClick={() => setOpen(true)} data-testid="signup-add-to-space"
+          className="text-[0.5625rem] uppercase tracking-wider px-1.5 py-0.5 border border-[#5A6E3D] text-[#5A6E3D] focus:outline focus:outline-2 focus:outline-[#B85838]">
+          Add to a space
+        </button>
+      ) : (
+        <div className="flex flex-wrap items-center gap-1.5" data-testid="signup-add-to-space-form">
+          <select aria-label="Space" value={space.instanceId} onChange={(e) => { const next = spaces.find((s) => s.instanceId === e.target.value); setSpaceId(e.target.value); setRole((placementsFor(next)[0] || { key: 'member' }).key); }} className="text-[0.6875rem] p-1 border border-[#E8E4DC] bg-white">
+            {spaces.map((s) => <option key={s.instanceId} value={s.instanceId}>{s.displayName || s.slug || s.instanceType}</option>)}
+          </select>
+          <select aria-label="Role" value={placements.some((p) => p.key === role) ? role : placements[0].key} onChange={(e) => setRole(e.target.value)} className="text-[0.6875rem] p-1 border border-[#E8E4DC] bg-white">
+            {placements.map((p) => <option key={p.key} value={p.key}>{p.label}</option>)}
+          </select>
+          <button type="button" onClick={add} disabled={state.phase === 'busy'} data-testid="signup-add-to-space-go"
+            className="text-[0.5625rem] uppercase tracking-wider px-2 py-1 border border-[#1A1815] text-[#1A1815] disabled:opacity-40 focus:outline focus:outline-2 focus:outline-[#B85838]">
+            Add
+          </button>
+          <button type="button" onClick={() => setOpen(false)} className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] underline-offset-2 hover:underline">Close</button>
+          {state.text ? <span role="status" data-testid="signup-add-to-space-result" className={`text-[0.625rem] ${state.phase === 'error' ? 'text-[#B85838]' : 'text-[#5A6E3D]'}`}>{state.text}</span> : null}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// WHAT ONE PERSON COULD NOT STOP USING (DR-0840). Read from user_usage_metrics
+// (0145) on demand; the server's gate (a steward of one of their spaces) is the
+// authority, and its refusal is said as what it is.
+function UsageFold({ userId }) {
+  const [st, setSt] = useState({ phase: 'loading', rows: undefined });
+  useEffect(() => {
+    let alive = true;
+    fetchUserUsage(userId).then((rows) => { if (alive) setSt({ phase: 'ready', rows }); }).catch(() => { if (alive) setSt({ phase: 'ready', rows: null }); });
+    return () => { alive = false; };
+  }, [userId]);
+  if (st.phase === 'loading') return <p className="text-[0.625rem] text-[#5A5751] mt-1" data-testid="signup-usage">Reading their last 30 days…</p>;
+  const profile = usageProfile(st.rows);
+  return (
+    <div className="mt-1 border-l-2 border-[#E8E4DC] pl-2" data-testid="signup-usage">
+      <p className="text-[0.625rem] text-[#1A1815]">{usageLine(profile)}</p>
+      {profile && profile.rows.length > 0 ? (
+        <ul className="mt-0.5 flex flex-wrap gap-1">
+          {profile.rows.slice(0, 8).map((r) => (
+            <li key={r.name} className={`text-[0.5625rem] px-1.5 py-0.5 border ${r.views >= 3 ? 'border-[#5A6E3D] text-[#5A6E3D]' : 'border-[#E3DDD2] text-[#5A5751]'}`}>{r.name} · {r.views}</li>
+          ))}
+        </ul>
+      ) : null}
+      {/* THE LESSONS THEY CHOSE (DR-0844): how far along the way, at what level. */}
+      <LessonsWalked userId={userId} />
+    </div>
+  );
+}
+
 function PlatformSignups() {
   const [res, setRes] = useState({ status: 'loading', data: null });
   const [mask, setMask] = useState(false);
+  const [sortKey, setSortKey] = useState('newest');
+  const [usageFor, setUsageFor] = useState(null);
+  // The spaces this governor may add people into (owner/admin), read once.
+  const [spaces, setSpaces] = useState([]);
+  useEffect(() => {
+    let alive = true;
+    listMyAdminInstances().then((s) => { if (alive) setSpaces(Array.isArray(s) ? s : []); }).catch(() => {});
+    return () => { alive = false; };
+  }, []);
+  // THE VIEWER'S OWN CONTACTS (DR-0825). A raw number on this list is a person
+  // the steward already knows on the phone in their hand; the index is built
+  // from the rows THEY brought in (DR-0736: owner-only at the database, cached
+  // on this device), so each viewer sees their own names and nobody else's.
+  const [contacts, setContacts] = useState(emptyIndex);
   const load = useCallback(async () => {
     setRes((r) => ({ status: 'loading', data: r.data }));
     setRes(await fetchSignupMetrics());
   }, []);
   useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    let alive = true;
+    loadContactIndex().then((idx) => { if (alive) setContacts(idx); });
+    return () => { alive = false; };
+  }, []);
 
   // Signed-out is handled by the parent (it returns early); a non-governor sees
   // an honest one-liner, never the data. Both are real states, not painted.
@@ -107,15 +234,24 @@ function PlatformSignups() {
 
   const data = res.data;
   const summary = data && data.summary;
-  const rows = sortSignups((data && data.signups) || []);
   const nowMs = Date.now();
+  // SORTED THE WAY THE GOVERNOR ASKED (DR-0840): newest, last active, name,
+  // space, returned first, never returned first; the sort reads the same
+  // view the row shows, so a contact's name sorts as that name.
+  const rows = sortSignupsBy(sortSignups((data && data.signups) || []), sortKey, (r) => signupRowView(r, nowMs, mask));
   const tiles = summaryTiles(summary);
+  const namedByContacts = countNamed(contacts, rows, (row) => ({ email: row.email }));
 
   return (
     <div className="mb-5">
       <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
         <div className={sectionH}>Platform signups — who created an account</div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
+          {rows.length > 0 ? (
+            <select aria-label="Sort" value={sortKey} onChange={(e) => setSortKey(e.target.value)} className="text-[0.625rem] p-1 border border-[#E8E4DC] bg-white" data-testid="signup-sort">
+              {SIGNUP_SORTS.map((o) => <option key={o.key} value={o.key}>{o.label}</option>)}
+            </select>
+          ) : null}
           {rows.length > 0 ? (
             <button
               type="button"
@@ -161,12 +297,18 @@ function PlatformSignups() {
             <div className="border border-[#E8E4DC]">
               {rows.map((row) => {
                 const r = signupRowView(row, nowMs, mask);
+                // The account's own name first; the viewer's contacts fill the
+                // gap or stand beside it, labelled as theirs. Never merged.
+                const who = labelFor(contacts, { ownName: r.name, email: r.rawEmail });
                 return (
                   <div key={r.userId || r.email} className="flex items-center justify-between gap-2 px-2.5 py-1.5 border-b border-[#F2EEE6] last:border-b-0">
                     <div className="min-w-0">
-                      <div className="text-[0.8125rem] text-[#1A1815] truncate">
-                        {r.name || r.email}
-                        {r.name ? <span className="text-[#5A5751]"> · {r.email}</span> : null}
+                      <div className="text-[0.8125rem] text-[#1A1815] truncate" data-testid="signup-row-who">
+                        {who.shown || r.email}
+                        {who.shown ? <span className="text-[#5A5751]"> · {r.email}</span> : null}
+                        {who.note ? (
+                          <span className="text-[0.625rem] text-[#5A6E3D] ml-1" data-testid="signup-contact-note">{who.note}</span>
+                        ) : null}
                       </div>
                       {/* Two different clocks, named plainly (DR-0100): "account
                           created" is when the account was provisioned — family
@@ -179,6 +321,16 @@ function PlatformSignups() {
                       <div className="text-[0.625rem] text-[#5A5751]">
                         account created {r.joined} · {r.activeNow ? 'active now' : (r.returned ? `active, last active ${r.lastSeen}` : (r.lastSeen === 'never' ? 'never signed back in' : `last active ${r.lastSeen}`))}
                       </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <AddToSpace row={r} spaces={spaces} who={who.shown} onDone={load} />
+                        {r.userId ? (
+                          <button type="button" onClick={() => setUsageFor((cur) => (cur === r.userId ? null : r.userId))} data-testid="signup-usage-toggle" aria-expanded={usageFor === r.userId}
+                            className="mt-1 text-[0.5625rem] uppercase tracking-wider px-1.5 py-0.5 border border-[#5A5751] text-[#5A5751] focus:outline focus:outline-2 focus:outline-[#B85838]">
+                            {usageFor === r.userId ? 'Close usage' : 'Usage'}
+                          </button>
+                        ) : null}
+                      </div>
+                      {usageFor === r.userId && r.userId ? <UsageFold userId={r.userId} /> : null}
                     </div>
                     <CategoryPill label={r.categoryLabel} />
                   </div>
@@ -188,6 +340,18 @@ function PlatformSignups() {
           )}
           {data && data.signups_truncated ? (
             <p className={note + ' italic mt-1'}>Showing the newest {data.signups_shown}. Older accounts are counted in the totals above but not listed.</p>
+          ) : null}
+          {/* WHERE THE NAMES COME FROM, said plainly (DR-0076 rule 8). The
+              count is this viewer's; the door to bring more in is named. */}
+          {rows.length > 0 ? (
+            <p className={note + ' italic mt-1'} data-testid="signup-contacts-note">
+              {contacts.size > 0
+                ? `${namedByContacts} of these ${rows.length === 1 ? 'account is' : 'accounts are'} named from your contacts (${contacts.size} on ${contacts.where === 'device' ? 'this device' : 'your own server'}). `
+                : 'None of these are named from your contacts yet. '}
+              A number or address you already know is shown as the person you know, by you alone:
+              bring your contacts in under Messages &gt; Add a contact (pick from your phone, or upload your .vcf).
+              {contacts.reason ? ` Your server did not answer this time (${contacts.reason}); the names shown are from this device.` : ''}
+            </p>
           ) : null}
           <p className="text-[0.5625rem] text-[#5A5751] italic mt-2 leading-relaxed">
             Each public signup lands in their OWN private space — they cannot see family, business, or
@@ -376,9 +540,23 @@ export default function AccessUsageMetrics() {
             render: () => <PlatformSignups />,
           },
           {
+            // THE PEOPLE YOU KNOW, PLACED (DR-0839): the contacts brought in,
+            // each added or invited to a space as what they are there.
+            id: 'people',
+            label: 'People you know',
+            render: () => <PeopleYouKnow />,
+          },
+          {
             id: 'used',
             label: "What's used",
             render: () => <UsageFlow />,
+          },
+          {
+            // WHEN, AND BY WHOM (DR-0843): who has done the evaluating, the
+            // weekdays, and a calendar per person.
+            id: 'when',
+            label: 'When & by whom',
+            render: () => <UsageCalendar />,
           },
           {
             id: 'access',

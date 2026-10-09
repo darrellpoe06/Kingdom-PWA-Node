@@ -99,10 +99,36 @@ describe('the phone’s own controls drive the reader', () => {
     const bg = createBackgroundAudio({ win, makeAudio: fakeAudio });
     expect(bg.describe({ title: 'Study 1 · Conditional Truth' })).toBe(true);
     expect(win._ms.metadata.title).toBe('Study 1 · Conditional Truth');
-    // The car display and lock screen say who made it (DR-0632): PoeTech,
-    // with the app icon as the artwork.
+    // The car display and lock screen say who made it (DR-0632): a window
+    // inside no door is PoeTech, with PoeTech's icon as the artwork.
     expect(win._ms.metadata.artist).toBe('PoeTech');
     expect(win._ms.metadata.artwork.map((a) => a.sizes)).toEqual(['192x192', '512x512']);
+    expect(win._ms.metadata.artwork[0].src).toBe('/icon-192.png');
+  });
+
+  it('a reading inside The Love Corner wears the church’s own name and icon on the card (Darrell 2026-10-02) — proven to catch', () => {
+    const win = fakeWin();
+    win.location = { pathname: '/lovecorner/app/', search: '' };
+    const bg = createBackgroundAudio({ win, makeAudio: fakeAudio });
+    bg.describe({ title: 'L1 · The Perfect Yahweh Expects' });
+    expect(win._ms.metadata.artist).toBe('The Love Corner');
+    expect(win._ms.metadata.artwork.map((a) => a.src)).toEqual(['/lovecorner-icon-192.png', '/lovecorner-icon-512.png']);
+    // Proven to catch: the family door on the same page facts is PoeTech, so
+    // a card that ignored the door would fail one of the two.
+    const fam = fakeWin();
+    fam.location = { pathname: '/poetech-app/', search: '?view=church' };
+    createBackgroundAudio({ win: fam, makeAudio: fakeAudio }).describe({ title: 'x' });
+    expect(fam._ms.metadata.artist).toBe('PoeTech');
+    expect(fam._ms.metadata.artwork[0].src).toBe('/icon-192.png');
+  });
+
+  it('a caller may still name the artist and artwork itself', () => {
+    const win = fakeWin();
+    win.location = { pathname: '/lovecorner/app/', search: '' };
+    const bg = createBackgroundAudio({ win, makeAudio: fakeAudio });
+    bg.describe({ title: 't', artist: 'Bishop Gwin', artwork: [{ src: '/x.png', sizes: '96x96', type: 'image/png' }] });
+    expect(win._ms.metadata.artist).toBe('Bishop Gwin');
+    expect(win._ms.metadata.artwork[0].src).toBe('/x.png');
   });
 
   it('the skip buttons (headset double/triple tap, car wheel) reach the reader — proven to catch', () => {

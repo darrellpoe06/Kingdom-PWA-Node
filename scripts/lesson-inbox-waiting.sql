@@ -10,4 +10,9 @@ WHERE tags ? 'lesson'
   AND NOT (tags ? 'lesson-captured')
   AND NOT (tags ? 'lesson-building')
   AND NOT (tags ? 'awaiting-review')
+  -- A recording the person marked a READING at record time, or that a human
+  -- later judged not a lesson (DR-0768, DR-0810). Its words still come back
+  -- through Whisper; no builder tries to make a lesson of it, and it never
+  -- rings the bell.
+  AND NOT (tags ? 'not-a-lesson')
 ORDER BY created_at ASC;
