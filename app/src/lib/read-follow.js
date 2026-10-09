@@ -266,13 +266,30 @@ export function segmentRange(follow, index, doc) {
  */
 export function wordRange(follow, index, charIndex, doc) {
   const seg = follow && follow.segments ? follow.segments[index] : null;
-  if (!seg) return null;
-  let start = seg.start + Math.max(0, charIndex | 0);
-  if (start >= seg.end) return null;
+  return seg ? wordRangeIn(follow, seg, charIndex, doc) : null;
+}
+
+/**
+ * The same word lookup, inside ANY span of the mapped text rather than only a
+ * segment the map found for itself.
+ *
+ * WHY THIS EXISTS (2026-10-09). `wordRange` could only take an INDEX into
+ * `follow.segments`, so word-level following was available on exactly one
+ * path: the read whose spoken text IS the mapped text. A read that speaks its
+ * OWN registered text and locates it in the page by search (`alignSegments`)
+ * held ranges but no indexes, so it ran with word highlighting switched off —
+ * on screen, a sentence block that sits still while the voice moves through
+ * it. Darrell, 2026-10-09, from the lesson reader: "Not keeping up with the
+ * words anymore." A span is all this lookup ever needed.
+ */
+export function wordRangeIn(follow, span, charIndex, doc) {
+  if (!follow || !span || !(span.end > span.start)) return null;
+  let start = span.start + Math.max(0, charIndex | 0);
+  if (start >= span.end) return null;
   // If the boundary landed on a space, step to the word it introduces.
-  while (start < seg.end && follow.text[start] === ' ') start++;
+  while (start < span.end && follow.text[start] === ' ') start++;
   let end = start;
-  while (end < seg.end && follow.text[end] !== ' ') end++;
+  while (end < span.end && follow.text[end] !== ' ') end++;
   return end > start ? rangeFor(follow, start, end, doc) : null;
 }
 
@@ -307,6 +324,22 @@ export function segmentIndexAtDomPoint(follow, node, offset) {
  * every sentence that IS on screen highlights and scrolls. Never guesses.
  */
 export function alignSegments(follow, spokenSegments, doc) {
+  return alignSegmentSpans(follow, spokenSegments)
+    .map((s) => (s ? rangeFor(follow, s.start, s.end, doc) : null));
+}
+
+/**
+ * The same walk, returning WHERE each spoken segment landed in the mapped text
+ * ({start, end}) instead of only its Range — so the caller can also ask for a
+ * word inside it (`wordRangeIn`). A Range is a live DOM object and tells you
+ * nothing about position in the normalized text, which is why the aligned read
+ * had no word-level following until this existed (2026-10-09).
+ *
+ * A segment that is spoken but NOT on screen returns null: an honest gap, not
+ * a guess. All-null means the spoken text is not this container's text at all,
+ * which is a finding the caller should act on rather than highlight nothing.
+ */
+export function alignSegmentSpans(follow, spokenSegments) {
   if (!follow || !Array.isArray(spokenSegments)) return [];
   let cursor = 0;
   return spokenSegments.map((seg) => {
@@ -315,7 +348,7 @@ export function alignSegments(follow, spokenSegments, doc) {
     const at = follow.text.indexOf(s, cursor);
     if (at === -1) return null; // spoken but not rendered — honest gap, no highlight
     cursor = at + s.length;
-    return rangeFor(follow, at, at + s.length, doc);
+    return { start: at, end: at + s.length };
   });
 }
 
