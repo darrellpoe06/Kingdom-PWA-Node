@@ -19,6 +19,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   resolveFace, buildHistory, newestFirst, buildJobDoc, buildTenancyNote,
+  unseenByThisFace, unreadNote,
   DOC_FOLLOWUPS, FOLLOWUP_LABELS, CAPABILITY_LABELS, ROLE_CEILING,
   canPostToBooks, rentRecordToBookEntry, unpostedRent,
 } from './model.js';
@@ -959,9 +960,11 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
           case 'dispatch':
             return <DispatchTab door={activeDoor} rental={activeRental} open={openWork} workers={workers} onDispatch={dispatchJob} />;
           case 'thread':
-            return <ThreadTab messages={record.messages} names={speakerNames} onSend={sendMessage} />;
+            return <ThreadTab messages={record.messages} names={speakerNames} onSend={sendMessage}
+              unread={unreadNote(record.unreadable)} />;
           case 'history':
-            return <HistoryTab history={history} onNote={addNote} />;
+            return <HistoryTab history={history} onNote={addNote}
+              unread={unreadNote(record.unreadable)} unseen={unseenByThisFace(role, grants)} />;
           case 'rent':
             return (
               <RentTab
@@ -1415,10 +1418,11 @@ function DispatchTab({ door, rental, open, workers = [], onDispatch }) {
   );
 }
 
-function ThreadTab({ messages, names = null, onSend }) {
+function ThreadTab({ messages, names = null, onSend, unread = null }) {
   const [body, setBody] = useState('');
   return (
     <Card title="Messages">
+      {unread && <p className="text-xs text-[#9B2C1E] mb-2" style={serif} data-testid="thread-unread">{unread}</p>}
       <div className="max-h-80 overflow-y-auto mb-2">
         {messages.length === 0 ? <Empty>No messages yet.</Empty> : messages.map((m) => (
           <div key={m.id} className="border-b border-[#F0EDE6] py-2">
@@ -1436,10 +1440,24 @@ function ThreadTab({ messages, names = null, onSend }) {
   );
 }
 
-function HistoryTab({ history, onNote }) {
+function HistoryTab({ history, onNote, unread = null, unseen = [] }) {
   const [body, setBody] = useState('');
   return (
     <>
+      {/* HISTORICAL ACCURACY (DR-0876). This panel says "Everything that has
+          happened on this door". When something could not be READ, or this
+          face is not PERMITTED to see part of it, the panel says that too —
+          otherwise an absence the app created reads as an absence of events,
+          and a worker deduces from it. */}
+      {unread && (
+        <p className="text-xs text-[#9B2C1E] mb-2" style={serif} data-testid="history-unread">{unread}</p>
+      )}
+      {unseen.length > 0 && (
+        <div className="text-xs text-[#5A5751] mb-2" style={serif} data-testid="history-unseen">
+          <div className="text-[0.625rem] uppercase tracking-wider text-[#8A867E]">What this history does not include</div>
+          {unseen.map((line) => <div key={line}>· {line}</div>)}
+        </div>
+      )}
       <Card title="Add to the record">
         <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={2} placeholder="A note anyone on this door can read later" aria-label="Add a note"
           className="w-full text-sm border border-[#E8E4DC] px-2 py-2 mb-2" style={serif} />

@@ -107,6 +107,24 @@ export function ReadinessTab({ boardSlug, boardTitle, rooms = [], door = null, o
     [boardSlug, tasks, rooms],
   );
 
+  // ONE AREA AT A TIME (DR-0877). Darrell, 2026-10-10, over 165 checkboxes in
+  // a single column: "Long scrolling!!!!!!! Fix it so its tabs!!!!!!!! Like
+  // the Ways and documentation state also the DRs" and "Each list as a header
+  // in subtabs".
+  //
+  // Nine areas, 165 to 181 tasks, all stacked — so reaching the Airbnb list
+  // meant scrolling past everything else, and the collapse control was a
+  // nine-tap workaround for a layout that should never have asked. The area
+  // cards above were ALREADY a picker; they just expanded a section further
+  // down instead of switching to it. Now each list is its own subtab with its
+  // own name as the header, and the cards select it.
+  //
+  // `area` is the section id, or null for the old everything-at-once view,
+  // which stays reachable: a landlord doing a final sweep wants one pass.
+  const [area, setArea] = useState(() => board.sections[0]?.id || null);
+  const areaId = board.sections.some((x) => x.id === area) ? area : null;
+  const sectionsShown = areaId ? board.sections.filter((x) => x.id === areaId) : board.sections;
+
   if (!boardSlug) {
     return <Card title="Ready for guests"><p className="text-[0.875rem] text-[#6B665E]">Pick a door first — this checklist belongs to one unit.</p></Card>;
   }
@@ -250,7 +268,8 @@ export function ReadinessTab({ boardSlug, boardTitle, rooms = [], door = null, o
           {board.sections.map((sec) => (
             <button
               key={sec.id} type="button"
-              onClick={() => setCollapsed((c) => ({ ...c, [sec.id]: false }))}
+              onClick={() => { setArea(sec.id); setCollapsed((c) => ({ ...c, [sec.id]: false })); }}
+              aria-pressed={areaId === sec.id}
               className="text-left border p-2 focus:outline focus:outline-2 focus:outline-[#2F5D50]"
               style={{ borderColor: sec.tally.pct === 100 ? ACCENT : LINE, background: sec.tally.pct === 100 ? '#F1F6F3' : '#FFFFFF' }}
             >
@@ -265,6 +284,26 @@ export function ReadinessTab({ boardSlug, boardTitle, rooms = [], door = null, o
         </div>
       </Card>
 
+      {/* ---- the area subtabs ---------------------------------------------- */}
+      <div className="flex flex-wrap gap-1 mb-2" role="tablist" aria-label="Area" data-testid="readiness-areas">
+        {board.sections.map((sec) => (
+          <Btn
+            key={sec.id}
+            tone={areaId === sec.id ? 'primary' : 'ghost'}
+            role="tab"
+            aria-selected={areaId === sec.id}
+            onClick={() => setArea(sec.id)}
+          >{sec.short} {sec.tally.done}/{sec.tally.total}</Btn>
+        ))}
+        <Btn
+          tone={areaId === null ? 'primary' : 'ghost'}
+          role="tab"
+          aria-selected={areaId === null}
+          data-testid="readiness-area-all"
+          onClick={() => setArea(null)}
+        >Every area {tally.done}/{tally.total}</Btn>
+      </div>
+
       {/* ---- the list ------------------------------------------------------ */}
       <div className="flex flex-wrap gap-2 mb-3">
         {[['all', 'All', tally.total], ['remaining', 'Still needed', tally.left], ['completed', 'Completed', tally.done]].map(([id, label, n]) => (
@@ -272,7 +311,7 @@ export function ReadinessTab({ boardSlug, boardTitle, rooms = [], door = null, o
         ))}
       </div>
 
-      {board.sections.map((sec) => {
+      {sectionsShown.map((sec) => {
         const visible = sec.tasks.filter(shown);
         if (!visible.length && view !== 'all') return null;
         const isShut = collapsed[sec.id];
