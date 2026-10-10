@@ -31,8 +31,15 @@ const spans = (text) => { const u = unescape(text); const at = [...u.matchAll(/"
 const ours = (text) => spans(text).out.reduce((t, s) => t.replace(`"${s}"`, '""'), unescape(text));
 
 describe('the course is whole and registered', () => {
-  it('six lessons in slice 1, the meta counts them, and the catalog carries the course with a Word-first frame', () => {
-    expect(LITTLE_LEARNERS_MODULES.length).toBe(6);
+  // SLICE 2 HAS BEGUN (2026-10-10). This read "six lessons in slice 1" and
+  // pinned 6. DR-0431 dated slice 2 for 2026-09-22 and it went 18 days
+  // overdue; lil7 (Adam and Eve) is its first lesson, from Darrell's ask for
+  // "Genesis - Revelation... Adam and Eve... basic building blocks of
+  // Yahweh's Perspectives explicitly for the children". The count is RAISED to
+  // the real number rather than relaxed to a floor: a lesson silently
+  // disappearing from this course must still turn the check red.
+  it('seven lessons — slice 1 plus the first of slice 2 — the meta counts them, and the catalog carries the course with a Word-first frame', () => {
+    expect(LITTLE_LEARNERS_MODULES.length).toBe(7);
     expect(LITTLE_LEARNERS_META.weeks).toBe(LITTLE_LEARNERS_MODULES.length);
     expect(LITTLE_LEARNERS_META.wordFirst.ref).toMatch(/Deuteronomy 6:7/);
     expect(LITTLE_LEARNERS_META.wordFirst.frame.length).toBeGreaterThan(80);
