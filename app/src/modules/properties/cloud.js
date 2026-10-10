@@ -599,11 +599,51 @@ export async function loadAllPhotos(client = supabase) {
 }
 
 /** File a photo against a door (and optionally a room / tenancy). */
-export async function addPhoto(row, client = supabase) {
+/**
+ * A WRITE THAT NEVER ANSWERS IS NOT A WRITE (DR-0908). Darrell, 2026-10-10,
+ * uploading fourteen move-out photographs on build 21F4C39: "After trying to
+ * upload it did not work.... pictures looked like they would upload and never
+ * did".
+ *
+ * Nothing in this file had a deadline. Reads got one long ago (boundedRead in
+ * PropertiesApp), because a slow read leaves a spinner; a slow WRITE was left
+ * to the network, on the assumption it would either land or error. It does
+ * neither here.
+ *
+ * WHY IT HANGS, measured 2026-10-10: the Pages Functions outage (#2057) means
+ * the same-origin /sb road is dead, so the deploy points the client at the
+ * ABSOLUTE Funnel URL (deploy-cloudflare-pages.yml:147). CLAUDE.md's own
+ * standing note says why that is a stopgap and not a home: the app must reach
+ * the NAS same-origin, "never the absolute Funnel URL (it throttles
+ * cross-origin)". Small reads get through. Fourteen cross-origin POSTs each
+ * carrying a ~300KB base64 data URL do not — they stall, and with no deadline
+ * the promise simply never settles. The button sat at "Saving 1 of 14" and the
+ * pictures looked like they were going somewhere.
+ *
+ * A deadline cannot make the write succeed. It makes the failure VISIBLE and
+ * the picture RECOVERABLE, which is the difference between a stall and a loss.
+ */
+export const WRITE_DEADLINE_MS = 45000;
+
+export function withDeadline(promise, ms = WRITE_DEADLINE_MS, label = 'the server') {
+  let timer = null;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(
+      () => reject(new Error(`${label} did not answer in ${Math.round(ms / 1000)}s`)),
+      ms,
+    );
+  });
+  return Promise.race([promise, timeout]).finally(() => { if (timer) clearTimeout(timer); });
+}
+
+export async function addPhoto(row, client = supabase, { deadlineMs = WRITE_DEADLINE_MS } = {}) {
   try {
     const uid = await userId(client);
-    const { data, error } = await client.from('property_photos')
-      .insert({ ...row, uploaded_by: uid }).select().single();
+    const { data, error } = await withDeadline(
+      client.from('property_photos').insert({ ...row, uploaded_by: uid }).select().single(),
+      deadlineMs,
+      'the picture server',
+    );
     if (error) return no('insert-failed', error);
     return ok({ photo: data });
   } catch (e) { return no('unexpected', e); }

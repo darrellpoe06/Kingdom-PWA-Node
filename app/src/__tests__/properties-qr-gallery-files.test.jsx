@@ -19,7 +19,7 @@ import {
 } from '../modules/properties/apply-link.js';
 import {
   GalleryTab, FilesTab, DoorsBoard, dataUrlBytes, PHOTO_KINDS, DOCUMENT_KINDS, MAX_DOCUMENT_BYTES,
-  RECORD_KINDS, ADVERTISING_KINDS, isAdvertising,
+  RECORD_KINDS, ADVERTISING_KINDS, isAdvertising, takenAtIso,
 } from '../modules/properties/DoorTabs.jsx';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
@@ -230,10 +230,21 @@ describe('a property\'s pictures', () => {
       expect(seen).toHaveLength(3);
       // The failed one is still on screen; the two that saved are gone.
       expect(host.querySelectorAll('li img').length, 'the failed picture was discarded').toBe(1);
-      expect(txt(host)).toMatch(/2 of 3 added/);
-      expect(txt(host)).toMatch(/1 still here and NOT saved/);
-      expect(txt(host)).toMatch(/b\.jpg \(write-failed\)/);
-      expect(txt(host)).toMatch(/still in the list — try again/);
+      // THE FINALIZE LIST (DR-0908), which Darrell asked for by name: a panel
+      // that STAYS and names every file, not a six-second toast that fourteen
+      // saves overwrite.
+      const rep = host.querySelector('[data-testid="upload-report"]');
+      expect(rep, 'no finalize list after the run').toBeTruthy();
+      expect(rep.textContent).toMatch(/2 of 3/);
+      expect(rep.textContent).toMatch(/Some did not save/);
+      // It says WHERE the saved ones went — the prechosen kind.
+      expect(rep.textContent).toMatch(/move in condition|as /);
+      const lost = host.querySelector('[data-testid="upload-report-lost"]');
+      expect(lost.textContent).toMatch(/b\.jpg — NOT saved \(write-failed\)/);
+      expect(lost.textContent).toMatch(/still in the list above/);
+      const savedList = host.querySelector('[data-testid="upload-report-saved"]');
+      expect(savedList.textContent).toMatch(/a\.jpg — saved/);
+      expect(savedList.textContent).toMatch(/c\.jpg — saved/);
     });
 
     it('when every picture saves, the queue empties and nothing is claimed lost', async () => {
@@ -246,7 +257,10 @@ describe('a property\'s pictures', () => {
         for (let i = 0; i < 24; i += 1) await Promise.resolve();
       });
       expect(host.querySelectorAll('li img').length).toBe(0);
-      expect(txt(host)).not.toMatch(/NOT saved/);
+      expect(host.querySelector('[data-testid="upload-report-lost"]')).toBeNull();
+      // And it still SAYS what it did, and where.
+      const rep = host.querySelector('[data-testid="upload-report"]');
+      expect(rep.textContent).toMatch(/2 of 2/);
     });
 
     it('an onAdd that answers nothing is treated as saved, as every caller before this did', async () => {
@@ -260,7 +274,7 @@ describe('a property\'s pictures', () => {
       });
       // A false "lost" would be its own lie.
       expect(host.querySelectorAll('li img').length).toBe(0);
-      expect(txt(host)).not.toMatch(/NOT saved/);
+      expect(host.querySelector('[data-testid="upload-report-lost"]')).toBeNull();
     });
 
     it('an onAdd that THROWS keeps the picture rather than losing it', async () => {
@@ -273,7 +287,195 @@ describe('a property\'s pictures', () => {
         for (let i = 0; i < 16; i += 1) await Promise.resolve();
       });
       expect(host.querySelectorAll('li img').length, 'a thrown error lost the picture').toBe(1);
-      expect(txt(host)).toMatch(/network gone/);
+      expect(host.querySelector('[data-testid="upload-report-lost"]').textContent).toMatch(/network gone/);
+    });
+  });
+
+  // SHOW ME THE SET I AM WORKING ON (DR-0908). Darrell, 2026-10-10: "Maybe
+  // choosing a move out conditions should show those images etc..."
+  describe('looking by kind', () => {
+    const mixed = [
+      photo({ id: 'p1', kind: 'move-out-condition', caption: 'bathroom as left' }),
+      photo({ id: 'p2', kind: 'move-out-condition', caption: 'kitchen as left' }),
+      photo({ id: 'p3', kind: 'listing', caption: 'front room, advertised' }),
+    ];
+
+    it('PROVEN-TO-CATCH: picking a kind shows only that kind', () => {
+      const host = render(<GalleryTab door={door} rooms={rooms} photos={mixed} canManage />);
+      const strip = host.querySelector('[data-testid="gallery-kinds"]');
+      expect(strip, 'no way to look by kind').toBeTruthy();
+      const moveOut = [...strip.querySelectorAll('button')]
+        .find((b) => /move out condition/i.test(b.textContent));
+      expect(moveOut, 'move-out is not offered').toBeTruthy();
+      expect(moveOut.textContent).toMatch(/\(2\)/);
+      act(() => { moveOut.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+      const body = txt(host);
+      expect(body).toContain('bathroom as left');
+      expect(body).toContain('kitchen as left');
+      expect(body, 'a listing shot leaked into the move-out view').not.toContain('front room, advertised');
+    });
+
+    it('every kind is the default, and comes back', () => {
+      const host = render(<GalleryTab door={door} rooms={rooms} photos={mixed} canManage />);
+      expect(txt(host)).toContain('front room, advertised');
+      const strip = host.querySelector('[data-testid="gallery-kinds"]');
+      const moveOut = [...strip.querySelectorAll('button')].find((b) => /move out condition/i.test(b.textContent));
+      act(() => { moveOut.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+      expect(txt(host)).not.toContain('front room, advertised');
+      const all = host.querySelector('[data-testid="gallery-kind-all"]');
+      act(() => { all.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+      expect(txt(host)).toContain('front room, advertised');
+    });
+
+    // SUPERSEDED THE SAME DAY, and named rather than quietly changed. This
+    // case asserted that the strip is HIDDEN when a door has one kind — a
+    // reasonable call ("an answer that can only be 'all of them' is not a
+    // question worth asking") that Darrell then overruled in one line: "All
+    // options show their images". The strip is how a person SEES which kinds
+    // a door holds, so hiding it hides the answer.
+    it('the strip is offered whenever there are pictures, even with one kind', () => {
+      const one = [photo({ id: 'p1', kind: 'move-out-condition' })];
+      const host = render(<GalleryTab door={door} rooms={rooms} photos={one} canManage />);
+      const strip = host.querySelector('[data-testid="gallery-kinds"]');
+      expect(strip, 'the only kind at this door was not offered').toBeTruthy();
+      expect(strip.textContent).toMatch(/move out condition \(1\)/);
+    });
+
+    it('the kind being ADDED is always offered, even with none of it yet', () => {
+      // Picking a kind must never lead to a strip that has forgotten it.
+      const host = render(<GalleryTab door={door} rooms={rooms} photos={mixed} canManage />);
+      const kind = host.querySelector('[data-testid="photo-kind"]');
+      act(() => {
+        const setter = Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, 'value');
+        setter.set.call(kind, 'damage');
+        kind.dispatchEvent(new Event('change', { bubbles: true }));
+      });
+      const strip = host.querySelector('[data-testid="gallery-kinds"]');
+      expect(strip.textContent).toMatch(/damage \(0\)/);
+      expect(txt(host)).toMatch(/No damage pictures at this door yet/);
+    });
+
+    it('choosing what to ADD also points the view at it', () => {
+      const host = render(<GalleryTab door={door} rooms={rooms} photos={mixed} canManage />);
+      const kind = host.querySelector('[data-testid="photo-kind"]');
+      act(() => {
+        const setter = Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, 'value');
+        setter.set.call(kind, 'move-out-condition');
+        kind.dispatchEvent(new Event('change', { bubbles: true }));
+      });
+      expect(txt(host)).not.toContain('front room, advertised');
+    });
+  });
+
+  // THE DAY THEY WERE TAKEN (DR-0908). Darrell, 2026-10-10: "allow me to
+  // enter the correct dates for photos... they will sort my move out dates".
+  describe('dating a set', () => {
+    it('PROVEN-TO-CATCH: a typed day reaches taken_at, which is what sorts them', async () => {
+      const rows = [];
+      const onAdd = async (row) => { rows.push(row); return { ok: true }; };
+      const host = render(<GalleryTab door={door} rooms={rooms} photos={[]} canManage onAdd={onAdd} />);
+      // The CHOSEN input, not the camera one. A photo captured in the app
+      // this second stamps its own takenAt and should; the whole point of a
+      // typed date is the set chosen from the phone, which has none.
+      const input = host.querySelector('input[type="file"][multiple]');
+      expect(input, 'no choose-from-phone input').toBeTruthy();
+      Object.defineProperty(input, 'files', {
+        value: [new File([new Uint8Array([1])], 'a.jpg', { type: 'image/jpeg' })], configurable: true,
+      });
+      await act(async () => {
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+        for (let i = 0; i < 8; i += 1) await Promise.resolve();
+      });
+      const day = host.querySelector('[data-testid="photo-taken-on"]');
+      expect(day, 'no way to say when they were taken').toBeTruthy();
+      act(() => {
+        const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value');
+        setter.set.call(day, '2026-09-28T16:20');
+        day.dispatchEvent(new Event('change', { bubbles: true }));
+      });
+      await act(async () => {
+        host.querySelector('[data-testid="add-to-gallery"]').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+        for (let i = 0; i < 20; i += 1) await Promise.resolve();
+      });
+      expect(rows).toHaveLength(1);
+      expect(rows[0].taken_at, 'the typed day never reached the row').toBeTruthy();
+      // The DAY AND THE TIME both survive the round trip into the record.
+      const back = new Date(rows[0].taken_at);
+      expect(back.getFullYear()).toBe(2026);
+      expect(back.getMonth() + 1).toBe(9);
+      expect(back.getDate()).toBe(28);
+      expect(back.getHours()).toBe(16);
+      expect(back.getMinutes()).toBe(20);
+    });
+
+    // SUPERSEDED BY DARRELL THE SAME DAY, named rather than quietly changed.
+    // This asserted that the field starts BLANK so a record says "unknown"
+    // rather than guessing. He then asked for the opposite default: "Calendar
+    // to choose those dates and times... or it defaults to today". Today is
+    // right for the common case — he photographs a unit and files it the same
+    // afternoon — and "Unknown" is still one tap away, so the honest answer
+    // remains reachable instead of being the only one.
+    it('it DEFAULTS to today, and the default is what gets written', async () => {
+      const rows = [];
+      const onAdd = async (row) => { rows.push(row); return { ok: true }; };
+      const host = render(<GalleryTab door={door} rooms={rooms} photos={[]} canManage onAdd={onAdd} />);
+      // The CHOSEN input, not the camera one. A photo captured in the app
+      // this second stamps its own takenAt and should; the whole point of a
+      // typed date is the set chosen from the phone, which has none.
+      const input = host.querySelector('input[type="file"][multiple]');
+      expect(input, 'no choose-from-phone input').toBeTruthy();
+      Object.defineProperty(input, 'files', {
+        value: [new File([new Uint8Array([1])], 'a.jpg', { type: 'image/jpeg' })], configurable: true,
+      });
+      await act(async () => {
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+        for (let i = 0; i < 8; i += 1) await Promise.resolve();
+      });
+      await act(async () => {
+        host.querySelector('[data-testid="add-to-gallery"]').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+        for (let i = 0; i < 20; i += 1) await Promise.resolve();
+      });
+      expect(rows[0].taken_at, 'the default day never reached the row').toBeTruthy();
+      const d = new Date(rows[0].taken_at);
+      const today = new Date();
+      expect(d.getDate()).toBe(today.getDate());
+      expect(d.getMonth()).toBe(today.getMonth());
+    });
+
+    it('and "Unknown" clears it, so a set from a day he cannot recall is not dated a lie', async () => {
+      const rows = [];
+      const onAdd = async (row) => { rows.push(row); return { ok: true }; };
+      const host = render(<GalleryTab door={door} rooms={rooms} photos={[]} canManage onAdd={onAdd} />);
+      const input = host.querySelector('input[type="file"][multiple]');
+      Object.defineProperty(input, 'files', {
+        value: [new File([new Uint8Array([1])], 'a.jpg', { type: 'image/jpeg' })], configurable: true,
+      });
+      await act(async () => {
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+        for (let i = 0; i < 8; i += 1) await Promise.resolve();
+      });
+      const clear = host.querySelector('[data-testid="photo-taken-clear"]');
+      expect(clear, 'no way to say the day is unknown').toBeTruthy();
+      act(() => { clear.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+      await act(async () => {
+        host.querySelector('[data-testid="add-to-gallery"]').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+        for (let i = 0; i < 20; i += 1) await Promise.resolve();
+      });
+      // "Unknown" is a truthful answer; a guessed day is a false one.
+      expect(rows[0].taken_at).toBeNull();
+    });
+
+    it('a bare day is stored at noon, so it never slides backwards in a western zone', () => {
+      // Champaign is UTC-5: parsed as UTC midnight, every dated photograph
+      // would render as the day before on his own screen.
+      expect(takenAtIso('2026-09-28')).toMatch(/^2026-09-28T\d{2}/);
+      expect(new Date(takenAtIso('2026-09-28')).getDate()).toBe(28);
+    });
+
+    it('a typo writes nothing at all', () => {
+      for (const bad of ['', '28/09/2026', '2026-13-45', 'yesterday', null]) {
+        expect(takenAtIso(bad), `${bad} should not become an instant`).toBeNull();
+      }
     });
   });
 
