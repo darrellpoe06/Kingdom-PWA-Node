@@ -56,7 +56,7 @@ vi.mock('../modules/properties/cloud.js', () => {
     loadRecordEvents: async () => ({ ok: true, events: [] }), loadDoorMoney: async () => ({ ok: true, months: H.money }),
     loadDoorPapers: async () => ({ ok: true, documents: [] }), loadSignatures: async () => ({ ok: true, signatures: [] }),
     requestSignatures: async () => ({ ok: true }), signDocument: async () => ({ ok: true }),
-    doorOfMyTenancy: async () => ({ ok: true, rentalId: null }), loadDoorStays: async () => ({ ok: true, rows: [] }), loadBookedNights: async () => ({ ok: true, ranges: [] }), requestAStay: async () => ({ ok: true }), addDoorStay: async () => ({ ok: true }), decideStay: async () => ({ ok: true }), loadCameraMenu: async () => ({ ok: true, menu: [] }), loadCameraAccess: async () => ({ ok: true, rows: [] }),
+    doorOfMyTenancy: async () => ({ ok: true, rentalId: null }), loadDoorStays: async () => ({ ok: true, rows: [] }), loadBookedNights: async () => ({ ok: true, ranges: [] }), loadDoorArea: async () => ({ ok: true, area: null, nearby: [] }), requestAStay: async () => ({ ok: true }), addDoorStay: async () => ({ ok: true }), decideStay: async () => ({ ok: true }), loadCameraMenu: async () => ({ ok: true, menu: [] }), loadCameraAccess: async () => ({ ok: true, rows: [] }),
     saveCameraMenu: async () => ({ ok: true }), askForCameras: async () => ({ ok: true }), decideCameraAccess: async () => ({ ok: true }), giveCameraAccess: async () => ({ ok: true }), loadPayeeForTenancy: async () => ({ ok: true, payee: null }),
     loadRentPayee: async () => ({ ok: true, payee: null }), saveRentPayee: async () => ({ ok: true }),
     fileWorkOrder: async (row) => { H.filed.push(row); return { ok: true, row: { id: 'req-new', ...row } }; },
@@ -202,6 +202,21 @@ describe('the landlord records money on a door nobody lives in', () => {
     });
     expect(w.memo).toContain('Short stay guest');
     expect(text()).toContain('It is in Payment history, History, and the totals.');
+  });
+
+  it('PROVEN-TO-CATCH (found end to end, DR-0911): after a save refreshes the door, the board\'s buttons still work', async () => {
+    H.rentals = [APT2]; H.doors = []; H.money = MONTHS;
+    await mount();
+    await pickDoor('805 North Prospect Avenue');
+    await tap(/^Rent$/);
+    await type('Amount received', '50');
+    await tap(/^Cash$/);
+    await tap(/^Record it$/);
+    expect(H.rentWrites).toHaveLength(1);
+    await tap(/^Doors$/);
+    const edit = buttons().filter((b) => /^Edit( door)?$/.test((b.textContent || '').trim()));
+    expect(edit.length).toBeGreaterThan(0);
+    expect(edit.every((b) => !b.disabled)).toBe(true);
   });
 
   it('a rented door records against its tenancy and still names the door', async () => {

@@ -57,6 +57,7 @@ import { toTimelineEvents } from './systems.js';
 import { isOwnHome, offerRefusal } from './homes.js';
 import { moveDoor, showFirst } from './showcase.js';
 import { VacancyCard } from './Storefront.jsx';
+import { areaOf } from './area.js';
 import {
   loadRooms, addRoom, patchRoom, loadDoorPhotos, loadDoorTenancies,
   loadMyRentals, updateTenancy, updateRental, loadAllPhotos,
@@ -263,7 +264,13 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
   const [activeId, setActiveId] = useState('');
   const [record, setRecord] = useState({ requests: [], messages: [], notes: [], docs: [], rent: [], notices: [] });
   const [tab, setTab] = useState('');
-  const [busy, setBusy] = useState('');
+  // A RELOAD IS A NUMBER, NOT A BUSY FLAG (DR-0911 finding). Until 2026-10-10
+  // refresh() wrote a timestamp into `busy`, nothing ever cleared it, and five
+  // tabs read Boolean(busy): after the first save that refreshed (a payment, a
+  // work-order move, an edit), every Edit, arrange and listing button on the
+  // board stayed greyed out until the page was reloaded. The end-to-end
+  // journeys found it; the-door-keeps-its-money pins it.
+  const [reloadKey, setReloadKey] = useState(0);
   // The 1099 workers invited to this instance (the landlord reads them all; a
   // worker reads their own), and who is signed in, so a worker's jobs are
   // THEIRS and a dispatch is assigned to a real user id (DR-0837).
@@ -457,7 +464,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
     let live = true;
     loadDoorRecord(workDoor.tenancyId, { rentalId: workDoor.rentalId }).then((r) => { if (live && r.ok) setRecord(r); });
     return () => { live = false; };
-  }, [workDoor, busy]);
+  }, [workDoor, reloadKey]);
 
   // EVERY CHANGE, TO THE INSTANT (DR-0899). The record_events of the rent
   // records and work orders on this door, read under the reader's own RLS.
@@ -541,7 +548,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
     [record.requests]
   );
 
-  const refresh = () => setBusy(`r-${Date.now()}`);
+  const refresh = () => setReloadKey((k) => k + 1);
   const workers = useMemo(() => workerRoster(invites, { instanceId: workDoor?.instanceId || null }), [invites, workDoor]);
   // The name this worker was invited under, so a job assigned by name before
   // they ever signed in is still theirs.
@@ -997,7 +1004,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
             <GalleryTab
               door={{ id: rentalId, instance_id: activeRental?.instance_id || activeDoor?.instance_id }}
               doorLabel={activeRental?.display_name || activeRental?.address || activeDoor?.property_label || ''}
-              rooms={doorData.rooms} photos={doorData.photos} busy={Boolean(busy)}
+              rooms={doorData.rooms} photos={doorData.photos}
               canManage={role === 'owner' || role === 'manager'}
               // A 1099 worker delegated "Add job documentation" files pictures
               // to the door he is sent to (0185); he does not arrange or archive.
@@ -1028,7 +1035,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
             <>
             <FilesTab
               door={{ id: rentalId, instance_id: activeRental?.instance_id || activeDoor?.instance_id }}
-              tenancies={doorData.tenancies} documents={doorData.documents} busy={Boolean(busy)}
+              tenancies={doorData.tenancies} documents={doorData.documents}
               canManage={role === 'owner' || role === 'manager'}
               onAdd={async (row) => { const r = await addDocument(row); say(r.ok ? 'Saved.' : `Not saved: ${r.reason}`); loadDoorData(); }}
               onPatch={async (id, patch) => { const r = await patchDocument(id, patch); say(r.ok ? 'Saved.' : `Not saved: ${r.reason}`); loadDoorData(); }}
@@ -1048,7 +1055,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
               systems={doorData.systems} events={doorData.systemEvents} rooms={doorData.rooms}
               propertyType={activeRental?.property_type === 'multi-family' ? 'apartment'
                 : activeRental?.property_type === 'commercial' ? 'commercial' : 'house'}
-              busy={Boolean(busy)}
+             
               canManage={role === 'owner' || role === 'manager'}
               onAdd={async (row) => { const r = await addSystem(row); say(r.ok ? 'Saved.' : `Not saved: ${r.reason}`); loadDoorData(); }}
               onPatch={async (id, patch) => { const r = await patchSystem(id, patch); say(r.ok ? 'Saved.' : `Not saved: ${r.reason}`); loadDoorData(); }}
@@ -1068,7 +1075,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
           case 'rooms': return (
             <RoomsTab
               door={{ id: rentalId, instance_id: activeRental?.instance_id || activeDoor?.instance_id }}
-              rooms={doorData.rooms} photos={doorData.photos} busy={busy}
+              rooms={doorData.rooms} photos={doorData.photos}
               canManage={role === 'owner' || role === 'manager'}
               onAdd={async (row) => { await addRoom(row); loadDoorData(); }}
               onPatch={async (id, patch) => { await patchRoom(id, patch); loadDoorData(); }}
@@ -1077,7 +1084,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
           case 'doors': return (
             <>
               <DoorsBoard
-                rentals={rentals} tenancies={doors} busy={Boolean(busy)}
+                rentals={rentals} tenancies={doors}
                 canManage={role === 'owner' || role === 'manager'}
                 money={role === 'owner' || role === 'manager' ? money : null}
                 loadImage={async (id) => { const r = await loadPhotoImages([id]); return r.ok ? r.images[id] || null : null; }}
@@ -1304,6 +1311,8 @@ function PlacesToLive({ vacancies = [], claim, onSignIn = null }) {
         // behaviour actually was — claiming a door is protected when the
         // database has not been migrated yet would be the same lie in reverse.
         addressShown: v.address_shown === undefined ? true : Boolean(v.address_shown),
+        area: areaOf(v),
+        nearby: Array.isArray(v.nearby) ? v.nearby : [],
       };
     })
     .filter(Boolean);
