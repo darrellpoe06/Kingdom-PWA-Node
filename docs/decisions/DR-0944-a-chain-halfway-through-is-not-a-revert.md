@@ -22,6 +22,13 @@ Its own hosted apply was `applied=0 skipped=271`, and its sovereign replay passe
 - **The rls-isolation run reports `queued` at run level while its legs run.** The API returned `in_progress: 0, queued: 1` for 38093504020 during its legs. A check on `in_progress` alone would have missed this incident.
 - The app reads the sovereign database (REPOINT-ARMED), which this window never touched.
 
+## Impact
+
+- **Who saw nothing wrong.** No visitor saw anything. The app reads the sovereign database, which this window never touches, and the hosted project held the newest definitions again 20 seconds after the leg ended.
+- **What went wrong.** The run went red and skipped "Dispatch the isolation proofs", so that merge's isolation proof was never dispatched by it. A red db-migrate is the lane's signal that production is behind the repo, and it fired on a false finding.
+- **The cost of a false finding.** It sends a person to the printed heal ("delete from public._schema_migrations ..."). Following it would re-apply 0203 / 0204 for no reason, and it teaches everyone to ignore the witness.
+- **Why it will recur.** It recurs whenever two db-migrate runs come close together, which is what every merge plus a heal dispatch produces.
+
 ## Decision
 
 1. **The witness settles before it judges.**
