@@ -91,20 +91,27 @@ export function traceableWords(text, limit = 5) {
  * nothing a crayon cannot stay inside.
  */
 export const SYMBOLS = [
-  { id: 'lamb', words: ['lamb', 'sheep', 'shepherd', 'flock'], d: 'M20 60 a18 14 0 1 1 36 0 a18 14 0 1 1 -36 0 M52 48 a9 9 0 1 1 14 6 M62 56 l6 -6 M30 74 l0 10 M46 74 l0 10' },
+  { id: 'lamb', words: ['lamb', 'sheep', 'shepherd', 'flock'], d: 'M24 62 a20 15 0 1 0 40 0 a20 15 0 1 0 -40 0 Z M64 52 a11 11 0 1 0 22 0 a11 11 0 1 0 -22 0 Z M28 54 a7 7 0 0 1 12 -5 a7 7 0 0 1 12 0 a7 7 0 0 1 10 5 M66 44 a6 4 0 1 0 9 -4 M79 49 a1.6 1.6 0 1 1 0.1 0 M34 76 l0 10 M52 76 l0 10' },
   { id: 'crown', words: ['king', 'crown', 'reign', 'throne', 'kingdom'], d: 'M14 70 L22 32 L36 54 L50 28 L64 54 L78 32 L86 70 Z M14 70 L86 70' },
   { id: 'bread', words: ['bread', 'loaf', 'loaves', 'feed', 'food', 'eat'], d: 'M18 64 a32 22 0 0 1 64 0 Z M18 64 l0 10 a32 10 0 0 0 64 0 l0 -10 M38 48 l0 12 M58 48 l0 12' },
   { id: 'water', words: ['water', 'well', 'river', 'sea', 'thirst', 'drink'], d: 'M12 50 q12 -12 24 0 q12 12 24 0 q12 -12 24 0 M12 68 q12 -12 24 0 q12 12 24 0 q12 -12 24 0' },
-  { id: 'lamp', words: ['lamp', 'light', 'shine', 'candle', 'dark'], d: 'M40 76 l20 0 l-4 -18 l-12 0 Z M50 58 l0 -10 M50 48 a6 8 0 1 1 0.1 0 M50 30 l0 -8 M36 36 l-6 -5 M64 36 l6 -5' },
+  { id: 'lamp', words: ['lamp', 'light', 'shine', 'candle', 'dark'], d: 'M36 86 l28 0 l0 -34 l-28 0 Z M32 52 l36 0 M50 52 l0 -6 M50 46 c-9 -7 -3 -18 0 -22 c3 4 9 15 0 22 Z M32 30 l-8 -5 M68 30 l8 -5' },
   { id: 'tree', words: ['tree', 'fruit', 'root', 'branch', 'vine', 'seed', 'grow'], d: 'M44 82 l12 0 l0 -22 l-12 0 Z M50 60 a22 20 0 1 1 0.1 0 M50 60 l0 -22 M50 46 l-10 -8 M50 50 l10 -8' },
   { id: 'house', words: ['house', 'home', 'build', 'door', 'family', 'temple'], d: 'M16 54 L50 26 L84 54 M24 54 l0 32 l52 0 l0 -32 M42 86 l0 -20 l16 0 l0 20' },
   { id: 'heart', words: ['heart', 'love', 'kind', 'mercy', 'care'], d: 'M50 84 C18 62 20 34 36 32 C44 31 50 38 50 44 C50 38 56 31 64 32 C80 34 82 62 50 84 Z' },
   { id: 'star', words: ['star', 'night', 'sky', 'heaven', 'glory'], d: 'M50 20 L59 44 L84 44 L64 58 L72 82 L50 68 L28 82 L36 58 L16 44 L41 44 Z' },
   { id: 'fish', words: ['fish', 'fishes', 'net', 'boat', 'catch'], d: 'M14 56 C30 34 62 34 76 56 C62 78 30 78 14 56 Z M76 56 l12 -12 l0 24 Z M30 50 a3 3 0 1 1 0.1 0' },
-  { id: 'hand', words: ['hand', 'give', 'help', 'hold', 'work'], d: 'M34 84 l0 -28 a5 5 0 0 1 10 0 l0 -16 a5 5 0 0 1 10 0 l0 14 a5 5 0 0 1 10 0 l0 8 a5 5 0 0 1 10 0 l0 22 Z' },
+  // An OPEN palm — four fingers of near-even height under a gentle arch.
+  //
+  // The first path drew a fist with one finger standing far above the rest.
+  // Rendered, it read unmistakably as an obscene gesture, and it was on 122 of
+  // the 236 children's sheets, because 'give', 'help', 'hold' and 'work' are
+  // ordinary words. Nobody had looked at it. Every finger is now present and
+  // within ten units of its neighbours, so the shape cannot read that way.
+  { id: 'hand', words: ['hand', 'give', 'help', 'hold', 'work'], d: 'M26 78 l0 -22 a8 8 0 0 1 8 -8 l38 0 a8 8 0 0 1 8 8 l0 22 a10 10 0 0 1 -10 10 l-34 0 a10 10 0 0 1 -10 -10 Z M30 50 l0 -20 a5 5 0 0 1 10 0 l0 20 M42 50 l0 -24 a5 5 0 0 1 10 0 l0 24 M54 50 l0 -26 a5 5 0 0 1 10 0 l0 26 M66 50 l0 -16 a5 5 0 0 1 10 0 l0 16 M26 62 l-9 5 a6 6 0 0 0 7 10 l5 -3' },
   { id: 'book', words: ['book', 'word', 'read', 'scroll', 'bible', 'write'], d: 'M14 28 l32 6 l0 46 l-32 -6 Z M86 28 l-32 6 l0 46 l32 -6 Z M50 34 l0 46' },
   { id: 'sun', words: ['sun', 'day', 'morning', 'bright', 'warm'], d: 'M50 50 m-18 0 a18 18 0 1 0 36 0 a18 18 0 1 0 -36 0 M50 18 l0 -10 M50 92 l0 -10 M18 50 l-10 0 M92 50 l10 0 M27 27 l-7 -7 M73 27 l7 -7 M27 73 l-7 7 M73 73 l7 7' },
-  { id: 'bird', words: ['bird', 'wing', 'fly', 'sparrow', 'eagle', 'dove'], d: 'M12 58 q20 -26 38 -4 q18 -22 38 4 M50 54 l0 14 M44 68 l12 0' },
+  { id: 'bird', words: ['bird', 'wing', 'fly', 'sparrow', 'eagle', 'dove'], d: 'M28 62 a22 18 0 1 0 44 0 a22 18 0 1 0 -44 0 Z M62 42 a12 12 0 1 0 24 0 a12 12 0 1 0 -24 0 Z M86 42 l10 4 l-10 4 Z M78 38 a2 2 0 1 1 0.1 0 M38 58 a14 10 0 0 1 24 4 a14 10 0 0 1 -24 -4 Z M28 62 l-16 -8 l2 16 Z M44 79 l0 9 M58 79 l0 9' },
   { id: 'door', words: ['door', 'gate', 'enter', 'open', 'way', 'path'], d: 'M26 86 l0 -56 a24 24 0 0 1 48 0 l0 56 Z M64 58 a3 3 0 1 1 0.1 0' },
   { id: 'cross', words: ['cross', 'jesus', 'saviour', 'blood', 'christ'], d: 'M42 90 l16 0 l0 -52 l20 0 l0 -14 l-20 0 l0 -14 l-16 0 l0 14 l-20 0 l0 14 l20 0 Z' },
 ];
@@ -153,12 +160,150 @@ export function coloringPage(module) {
 
 const esc = (s) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-/** Break a verse into lines a child can follow, without splitting a word. */
+// =============================================================================
+// THE SHEET HAS TO FIT ON THE PAPER (added 2026-10-10, same day, measured)
+// =============================================================================
+// The first cut of this file set the title on ONE line at font-size 44 and the
+// verse at five words a line at 34. Measured across all 236 Living Lessons
+// afterwards: 224 of 236 titles ran off the page, and three verse lines did
+// too. The median Living Lesson title is 81 characters — about 1,850px at
+// font-size 44 on a sheet 792px wide. So the library shipped a sheet that was
+// unprintable for 95% of the catalog.
+//
+// I had generated two real sheets and read them, which caught the lowercase
+// "jesus", and never once measured the WIDTH. That is the form-factor
+// dimension of DR-0239, skipped. Writing it down because the lesson is the
+// general one: reading a sample proves the content, never the geometry.
+//
+// So nothing is assumed to be one line any more. Text is WRAPPED, the size is
+// chosen as the largest on a ladder that fits, and the layout FLOWS downward
+// from however tall the title turned out to be.
+// =============================================================================
+
+/**
+ * Glyph advance as a fraction of font size. Georgia's lowercase prose averages
+ * near 0.50em; this is deliberately set HIGHER so the estimate can only ever
+ * over-state a line's width, never under-state it. A sheet that wraps one word
+ * early is fine; a sheet that runs off the paper is not.
+ *
+ * It is an estimate, not a browser measurement — this file is pure and has no
+ * renderer. The sheets were measured once for real with Chromium getBBox (see
+ * the record), and the standing CI gate measures this model across all 236.
+ */
+export const EM = 0.58;
+
+/** The paper, and the ink area inside it. US Letter at 96dpi. */
+export const SHEET = { width: 792, height: 1024, margin: 70 };
+export const USABLE = SHEET.width - 2 * SHEET.margin;
+
+/** The estimated rendered width of a line, in user units. */
+export function lineWidth(text, size) {
+  return String(text || '').length * size * EM;
+}
+
+/** Wrap on word boundaries to a character budget, never splitting a word. */
+function wrapTo(words, perLine) {
+  const out = [];
+  let line = '';
+  for (const w of words) {
+    const next = line ? `${line} ${w}` : w;
+    if (line && next.length > perLine) { out.push(line); line = w; } else line = next;
+  }
+  if (line) out.push(line);
+  return out;
+}
+
+/**
+ * Fit text into `maxLines` lines no wider than `width`, at the LARGEST size on
+ * the ladder that manages it. Returns `{ size, lines }`.
+ *
+ * Nothing is ever dropped or shortened — a 164-character lesson title arrives
+ * whole, just smaller. The last size on the ladder is used even if it still
+ * needs more lines than asked for, because a tall sheet beats a truncated one.
+ */
+export function fitLines(text, { width = USABLE, maxLines = 4, sizes = [44, 38, 32, 28, 24, 20] } = {}) {
+  const words = String(text || '').trim().split(/\s+/).filter(Boolean);
+  if (!words.length) return { size: sizes[sizes.length - 1], lines: [] };
+  let best = null;
+  for (const size of sizes) {
+    const perLine = Math.max(4, Math.floor(width / (size * EM)));
+    const lines = wrapTo(words, perLine);
+    best = { size, lines };
+    if (lines.length <= maxLines && lines.every((l) => lineWidth(l, size) <= width)) break;
+  }
+  return best;
+}
+
+/**
+ * Break a verse into lines a child can follow, without splitting a word.
+ *
+ * Kept because the sheet is not the only caller and the shape is useful on its
+ * own; `coloringSvg` now goes through `fitLines` so a long verse shrinks rather
+ * than overflowing.
+ */
 export function verseLines(verse, perLine = 5) {
   const w = String(verse || '').trim().split(/\s+/).filter(Boolean);
   const out = [];
   for (let i = 0; i < w.length; i += perLine) out.push(w.slice(i, i + perLine).join(' '));
   return out;
+}
+
+/** Every text run on the sheet, with the box it occupies. The layout, in data. */
+export function sheetLayout(page) {
+  if (!page) return null;
+  const { margin } = SHEET;
+  const mid = SHEET.width / 2;
+  const title = fitLines(page.title, { maxLines: 4 });
+  const verse = fitLines(page.verse, { maxLines: 6, sizes: [34, 30, 26, 22, 18] });
+
+  const runs = [];
+  let y = margin + title.size;
+  for (const l of title.lines) {
+    runs.push({ role: 'title', text: l, x: mid, y, size: title.size, anchor: 'middle', outline: true, weight: 1.5 });
+    y += title.size * 1.18;
+  }
+  if (page.ref) {
+    y += 14;
+    runs.push({ role: 'ref', text: page.ref, x: mid, y, size: 22, anchor: 'middle', outline: false });
+    y += 22;
+  }
+  if (verse.lines.length) {
+    y += 20;
+    for (const l of verse.lines) {
+      y += verse.size;
+      runs.push({ role: 'verse', text: l, x: mid, y, size: verse.size, anchor: 'middle', outline: true, weight: 1 });
+      y += verse.size * 0.34;
+    }
+  }
+
+  // The symbols FILL the room left between the words above them and the
+  // tracing row — they do not huddle at the top of it.
+  //
+  // The first cut capped the row height at 170 and the scale at 1.5, and the
+  // rendered sheet came back with four small shapes in the upper third and a
+  // dead white half below them. On a COLORING page the picture is the product,
+  // so the shapes take the whole of whatever room the words leave, bounded
+  // only by the column width and by each other.
+  const traceY = 900;
+  const top = Math.ceil(y + 24);
+  const rows = Math.ceil(page.symbols.length / 2) || 1;
+  const cols = Math.min(2, page.symbols.length) || 1;
+  const room = Math.max(0, traceY - 30 - top);
+  const rowH = Math.floor(room / rows);
+  const colW = Math.floor((SHEET.width - 2 * margin) / cols);
+  // Paths are drawn inside a 100×100 box; leave a little air on every side.
+  const scale = Math.max(0.8, Math.min((rowH - 16) / 100, (colW - 24) / 100));
+  const span = Math.round(scale * 100);
+  const gutter = Math.floor((SHEET.width - cols * span) / (cols + 1));
+  const symbols = page.symbols.map((s, i) => ({
+    id: s.id,
+    d: s.d,
+    x: gutter + (i % cols) * (span + gutter),
+    y: top + Math.floor(i / cols) * rowH + Math.floor((rowH - span) / 2),
+    scale: Number(scale.toFixed(3)),
+  }));
+
+  return { runs, symbols, traceY, titleSize: title.size, verseSize: verse.size, contentBottom: top + rows * rowH };
 }
 
 /**
@@ -167,21 +312,54 @@ export function verseLines(verse, perLine = 5) {
  */
 export function coloringSvg(page) {
   if (!page) return '';
-  const lines = verseLines(page.verse);
-  const sym = page.symbols.map((s, i) => {
-    const x = 70 + (i % 2) * 330;
-    const y = 430 + Math.floor(i / 2) * 170;
-    return `<g transform="translate(${x},${y}) scale(1.5)" fill="none" stroke="#000" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"><path d="${s.d}"/></g>`;
-  }).join('');
-  const verse = lines.map((l, i) => `<text x="396" y="${196 + i * 46}" text-anchor="middle" font-family="Georgia, serif" font-size="34" fill="none" stroke="#000" stroke-width="1">${esc(l)}</text>`).join('');
-  const trace = page.words.map((w, i) => `<text x="70" y="${930 + i * 0}" font-family="Georgia, serif" font-size="30" fill="none" stroke="#000" stroke-width="1" transform="translate(${(i % 5) * 130},0)">${esc(w)}</text>`).join('');
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="792" height="1024" viewBox="0 0 792 1024" role="img" aria-label="${esc(page.title)} — a coloring page">`
-    + '<rect x="0" y="0" width="792" height="1024" fill="#fff"/>'
-    + `<text x="396" y="90" text-anchor="middle" font-family="Georgia, serif" font-size="44" fill="none" stroke="#000" stroke-width="1.5">${esc(page.title)}</text>`
-    + `<text x="396" y="134" text-anchor="middle" font-family="Georgia, serif" font-size="22" fill="#000">${esc(page.ref)}</text>`
-    + verse + sym
-    + '<text x="70" y="900" font-family="Georgia, serif" font-size="20" fill="#000">Trace the words:</text>'
+  const lay = sheetLayout(page);
+  const { margin } = SHEET;
+  const text = (r) => `<text x="${r.x}" y="${Math.round(r.y)}" ${r.anchor === 'middle' ? 'text-anchor="middle" ' : ''}`
+    + `font-family="Georgia, serif" font-size="${r.size}" `
+    + (r.outline ? `fill="none" stroke="#000" stroke-width="${r.weight}"` : 'fill="#000"')
+    + `>${esc(r.text)}</text>`;
+  const sym = lay.symbols.map((s) => `<g transform="translate(${s.x},${s.y}) scale(${s.scale})" fill="none" stroke="#000" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"><path d="${s.d}"/></g>`).join('');
+  const trace = page.words.map((w, i) => `<text x="${margin + (i % 5) * 130}" y="${lay.traceY + 34}" font-family="Georgia, serif" font-size="30" fill="none" stroke="#000" stroke-width="1">${esc(w)}</text>`).join('');
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${SHEET.width}" height="${SHEET.height}" viewBox="0 0 ${SHEET.width} ${SHEET.height}" role="img" aria-label="${esc(page.title)} — a coloring page">`
+    + `<rect x="0" y="0" width="${SHEET.width}" height="${SHEET.height}" fill="#fff"/>`
+    + lay.runs.map(text).join('')
+    + sym
+    + `<text x="${margin}" y="${lay.traceY}" font-family="Georgia, serif" font-size="20" fill="#000">Trace the words:</text>`
     + trace
-    + '<text x="396" y="990" text-anchor="middle" font-family="Georgia, serif" font-size="16" fill="#000">Color it in while a grown-up reads the lesson to you.</text>'
+    + `<text x="${SHEET.width / 2}" y="990" text-anchor="middle" font-family="Georgia, serif" font-size="16" fill="#000">Color it in while a grown-up reads the lesson to you.</text>`
     + '</svg>';
+}
+
+/**
+ * A whole set of sheets as one printable document — the coloring book.
+ *
+ * DR-0865 deferred this with a date; it is the other half of what Darrell
+ * asked for, because he said "coloring BOOKS", not pages. Each sheet is its
+ * own printed page, in the order the lessons are taught.
+ *
+ * Returns an HTML document string. It is self-contained on purpose: no app
+ * stylesheet, no script, nothing to load — so it prints the same from a
+ * phone, a Firestick browser or a desktop, online or off.
+ */
+export function coloringBooklet(modules, { title = 'Coloring Book' } = {}) {
+  const pages = (Array.isArray(modules) ? modules : [])
+    .map((m) => coloringPage(m))
+    .filter(Boolean);
+  const sheets = pages.map((p) => `<div class="sheet">${coloringSvg(p)}</div>`).join('');
+  return '<!doctype html><html><head><meta charset="utf-8">'
+    + `<title>${esc(title)}</title>`
+    + '<style>'
+    + '@page{size:letter;margin:0}'
+    + 'html,body{margin:0;padding:0;background:#fff}'
+    + '.sheet{page-break-after:always;break-after:page;display:block}'
+    + '.sheet:last-child{page-break-after:auto;break-after:auto}'
+    + '.sheet svg{display:block;width:100%;height:auto}'
+    + '</style></head><body>'
+    + (sheets || `<p style="font-family:Georgia,serif;padding:40px">${esc(title)} — no lessons to color yet.</p>`)
+    + '</body></html>';
+}
+
+/** How many real sheets a set of lessons would print. */
+export function bookletCount(modules) {
+  return (Array.isArray(modules) ? modules : []).filter((m) => coloringPage(m)).length;
 }

@@ -76,6 +76,7 @@ import { matrixFor, matrixBlockText, readNextInvitation } from '../lib/scripture
 import CopyButton from './CopyButton.jsx';
 import ShareButton from './ShareButton.jsx';
 import StoryLibrary from './StoryLibrary.jsx';
+import ColoringSheet, { ColoringBookButton } from './ColoringSheet.jsx';
 import LessonStories, { AddPerspective } from './LessonStories.jsx';
 import { subscribeSubmissions, reviewSubmission, promoteSubmission } from '../lib/story-library.js';
 import { engagementRowsByAge } from '../lib/learn-engagement.js';
@@ -3159,6 +3160,13 @@ function CourseView({
                   </div>
                 );
               })()}
+              {/* FOR THE LITTLEST (DR-0866). Darrell, 2026-10-10: "Coloring
+                  books with words inside... that reflect the same lesson..."
+                  It sits directly under Talk About It because that is the
+                  family block, and a coloring page is how a child under nine
+                  receives the same lesson the grown-up is reading aloud. The
+                  sheet is derived from this lesson — nothing retyped. */}
+              <ColoringSheet module={m} signedIn={signedIn} />
               {/* SEARCH IT OUT (DR-0734). Darrell, 2026-10-01: "Integrated lessons
                   also so they make users want to learn more about Yahweh and the
                   Word's mysteries... so we produce kings like the Word says." The
@@ -3701,6 +3709,11 @@ function CourseView({
           <button type="button" onClick={copyCurriculum} className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">Copy markdown</button>
           <button type="button" onClick={downloadCurriculum} className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">Download .md</button>
           <button type="button" onClick={printCurriculum} className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">Print</button>
+          {/* THE COLORING BOOK — the whole course, one sheet a page (DR-0866).
+              It is a COURSE-scope control, so it stands here with the course's
+              own Copy / Download / Print, never above one open lesson
+              (P68 / DR-0688). */}
+          <ColoringBookButton modules={schedule} title={`${meta.title || 'Course'} — Coloring Book`} />
         </div>
         )}
         {exportNote && <p className="text-[0.6875rem] text-[#5A6E3D] mt-2" style={{ fontFamily: '"Fraunces", serif' }} aria-live="polite">{exportNote}</p>}
