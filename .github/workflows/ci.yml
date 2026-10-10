@@ -936,8 +936,13 @@ jobs:
   # cannot move a job, and documents a job whose scope comes from the request
   # (a lie about the door is overwritten) and whose "fixed" closes it; a
   # manager moves jobs on his door only; a tenant never sees the landlord's
-  # door work. Every check RAISEs. The same smoke runs on the live database in
-  # the rls-isolation poe-properties leg against the real overlays.
+  # door work. Then 0261 applies twice and the guest smoke proves (DR-0898): only
+  # the family opens a door's guest link and reads it; a guest with the card
+  # sees which door and files a report that lands on it as 'guest' with no
+  # account, reads nothing back, is told to call after five in an hour, and a
+  # replaced or closed card stops working; the office push names the door,
+  # never the guest's words. Every check RAISEs. Both smokes also run on the
+  # live database in the rls-isolation poe-properties leg.
   door-work:
     name: app — door work orders (PostgreSQL)
     runs-on: ubuntu-latest
@@ -970,8 +975,11 @@ jobs:
             psql -v ON_ERROR_STOP=1 -q --single-transaction -f "infra/supabase/migrations-auto/$f"
           done
           for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0260-work-is-filed-on-the-door-not-only-on-a-tenancy.sql; done
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0261-a-guest-reports-a-problem-from-inside-the-door.sql; done
           psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0260-door-work-orders-smoke.sql 2>&1 | tee "$RUNNER_TEMP/smoke.txt"
           grep -q 'DOOR WORK SMOKE: PASS' "$RUNNER_TEMP/smoke.txt"
+          psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0261-guest-report-smoke.sql 2>&1 | tee "$RUNNER_TEMP/guest.txt"
+          grep -q 'GUEST REPORT SMOKE: PASS' "$RUNNER_TEMP/guest.txt"
 
   # THE REQUIRED CHECK (DR-0645). Branch protection and native auto-merge wait
   # on a check named EXACTLY "app — lint + vitest". Do NOT rename this job.

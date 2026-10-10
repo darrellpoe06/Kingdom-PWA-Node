@@ -771,3 +771,57 @@ export async function loadVacancyAddress(applicationId, client = supabase) {
     return ok({ address: row || null });
   } catch (e) { return no('unexpected', e); }
 }
+
+// ---------------------------------------------------------------------------
+// THE GUEST CARD (DR-0898, 0261). A guest inside a door reports a problem with
+// no account. The family opens, replaces and closes the card's key; the guest
+// sees only which door it is and can file one report at a time. Every wall is
+// in the database; these are thin, never-throwing calls.
+// ---------------------------------------------------------------------------
+
+/** The live key on a door, or null. Only the family can read it (RLS). */
+export async function loadGuestLink(rentalId, client = supabase) {
+  if (!rentalId) return ok({ token: null });
+  try {
+    const { data, error } = await client.from('door_guest_links').select('token, created_at').eq('rental_id', rentalId).maybeSingle();
+    if (error) return no('read-failed', error);
+    return ok({ token: data?.token || null, since: data?.created_at || null });
+  } catch (e) { return no('unexpected', e); }
+}
+
+/** Open a door's card, or replace it (the old card stops working). */
+export async function openGuestLink(rentalId, client = supabase) {
+  try {
+    const { data, error } = await client.rpc('door_guest_link_open', { p_rental: rentalId });
+    return error ? no('write-failed', error) : ok({ token: data || null });
+  } catch (e) { return no('unexpected', e); }
+}
+
+/** Close a door's card. Every printed copy stops working. */
+export async function closeGuestLink(rentalId, client = supabase) {
+  try {
+    const { error } = await client.rpc('door_guest_link_close', { p_rental: rentalId });
+    return error ? no('write-failed', error) : ok();
+  } catch (e) { return no('unexpected', e); }
+}
+
+/** Which door a guest's card names. Label and unit only; empty for a dead card. */
+export async function loadGuestDoor(token, client = supabase) {
+  try {
+    const { data, error } = await client.rpc('guest_report_door', { p_token: token });
+    if (error) return no('read-failed', error);
+    const row = Array.isArray(data) ? data[0] : data;
+    return ok({ door: row ? { label: row.label, unit: row.unit || null } : null });
+  } catch (e) { return no('unexpected', e); }
+}
+
+/** File the guest's report. The database's refusal is passed through in its own words. */
+export async function submitGuestReport({ token, title, detail, name, contact, urgent }, client = supabase) {
+  try {
+    const { error } = await client.rpc('guest_report_problem', {
+      p_token: token, p_title: String(title || '').trim(), p_detail: String(detail || '').trim() || null,
+      p_name: String(name || '').trim() || null, p_contact: String(contact || '').trim() || null, p_urgent: Boolean(urgent),
+    });
+    return error ? no(error.message || 'write-failed', error) : ok();
+  } catch (e) { return no('unexpected', e); }
+}

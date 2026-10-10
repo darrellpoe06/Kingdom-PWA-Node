@@ -37,6 +37,7 @@ import { stageFromRecord, confirmDraft, tenancyRowFromDraft } from './staging.js
 import { availableDocuments, buildDocument } from './documents.js';
 import { TimelineTab, RoomsTab, DoorsBoard, GalleryTab, FilesTab } from './DoorTabs.jsx';
 import { SystemsTab } from './SystemsTab.jsx';
+import { GuestLinkCard } from './GuestReport.jsx';
 import { ReadinessTab } from './ReadinessTab.jsx';
 import { readinessBoardSlug } from './readiness.js';
 import { toTimelineEvents } from './systems.js';
@@ -913,6 +914,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
             // between guests, the fan, the stain) on a door he was granted
             // (0260's door arm). On a tenancy he documents; he does not file.
             return (
+              <>
               <WorkTab
                 door={workDoor} requests={record.requests} open={openWork} docs={record.docs} role={role}
                 mine={role === 'field_worker' ? myJobs(openWork, { userId: me, label: myLabel }) : null}
@@ -926,6 +928,10 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
                 }}
                 onDocument={documentJob}
               />
+              {/* The guest card (DR-0898): the family opens it per door, so a
+                  guest in a short stay can report a problem with no account. */}
+              {role === 'owner' && activeRental ? <GuestLinkCard rental={activeRental} /> : null}
+              </>
             );
           case 'document':
             return <DocumentTab requests={openWork} onDocument={documentJob} />;

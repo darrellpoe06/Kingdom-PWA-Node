@@ -23,6 +23,8 @@ import { POE_PROPERTIES } from '../modules/properties/config.js';
 import { DOORS, doorSession, leaveDoor, enterDoor, enterAllDoors } from '../lib/door-session.js';
 import { WHO_OPTIONS } from '../modules/properties/model.js';
 import { readApplyTarget, resolveScan } from '../modules/properties/apply-link.js';
+import { readReportToken } from '../modules/properties/guest-report.js';
+import { GuestReportPage } from '../modules/properties/GuestReport.jsx';
 import { loadPublicVacancies, submitApplication } from '../modules/properties/cloud.js';
 import { VacancyCard } from '../modules/properties/Storefront.jsx';
 import { APPLICATION_SECTIONS, validateApplication } from '../modules/properties/intake.js';
@@ -101,6 +103,10 @@ export default function PropertiesDoor() {
   // the session into a second storage key would race supabase's rotating
   // refresh token and cause random logouts, which is the disease, not the cure.
   const [left, setLeft] = useState(() => false);
+  const guestToken = useMemo(
+    () => (typeof window === 'undefined' ? null : readReportToken(window.location.search)),
+    [],
+  );
   const view = doorSession(DOORS.properties, session || null);
   const shown = left ? null : view.session;
 
@@ -237,6 +243,10 @@ export default function PropertiesDoor() {
       </header>
 
       <main className="w-full p-3 sm:p-4 lg:px-8">
+        {/* A GUEST'S CARD (DR-0898). A code scanned inside a short stay opens
+            the report form, signed in or not: the guest came to say what is
+            wrong, and nothing about a session changes what they may do. */}
+        {guestToken ? <GuestReportPage token={guestToken} /> : (<>
         {session === undefined && (
           <p className="text-xs text-[#5A5751] p-2" style={serif}>Checking your sign-in…</p>
         )}
@@ -247,6 +257,7 @@ export default function PropertiesDoor() {
           />
         )}
         {shown && <PropertiesApp surface="door" renderCameras={() => <Cameras />} />}
+        </>)}
       </main>
 
       <footer className="px-4 py-6 text-center">

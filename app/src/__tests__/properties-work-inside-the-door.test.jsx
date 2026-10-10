@@ -47,6 +47,8 @@ vi.mock('../modules/properties/cloud.js', () => {
     loadSystemEvents: async () => ({ ok: true, events: [] }),
     loadDoorNotes: async () => ({ ok: true, notes: [] }),
     addSystem: noop, patchSystem: noop, addSystemEvent: noop,
+    // The guest card on the Work board (DR-0898): off on every door here.
+    loadGuestLink: async () => ({ ok: true, token: null }), openGuestLink: async () => ({ ok: true, token: null }), closeGuestLink: async () => ({ ok: true }),
     fileWorkOrder: noop,
     setWorkOrderStatus: async (id, status) => { H.statuses.push([id, status]); return { ok: true }; },
     assignWorkOrder: async (id, a) => { H.assigns.push({ id, ...a }); return { ok: true }; },

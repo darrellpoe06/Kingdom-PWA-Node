@@ -1025,6 +1025,20 @@ const NODES = [
       { res: 'db:tenancy_notes', token: "scoped(client.from('tenancy_notes')" },
     ],
   }),
+  // The guest card (DR-0898): the family opens a door's card; a guest with no
+  // account reports through it onto that door's Work board; the office is told.
+  app('app/src/modules/properties/GuestReport.jsx', {
+    id: 'door-guest-card', name: 'Guest card (report a problem, no account)', purpose: 'A guest in a short stay scans the card inside the door and says what is wrong; it lands on that door\u2019s Work board and the office is told.',
+    writes: [
+      { res: 'db:door_guest_links', file: 'app/src/modules/properties/cloud.js', token: "rpc('door_guest_link_open'" },
+      { res: 'db:tenant_maintenance_requests', file: 'infra/supabase/migrations-auto/0261-a-guest-reports-a-problem-from-inside-the-door.sql', token: 'INSERT INTO tenant_maintenance_requests' },
+      { res: 'db:push_outbox', file: 'infra/supabase/migrations-auto/0261-a-guest-reports-a-problem-from-inside-the-door.sql', token: 'INSERT INTO public.push_outbox' },
+    ],
+    reads: [
+      { res: 'db:door_guest_links', file: 'app/src/modules/properties/cloud.js', token: "from('door_guest_links')" },
+    ],
+    seeds: ['door-work-orders', 'push-outbox-drain'],
+  }),
   wf('push-outbox-drain.yml', {
     id: 'push-outbox-drain', name: 'Office push drain', purpose: 'Delivers each new door fault to the office’s phones.',
     reads: [{ res: 'db:push_outbox', file: 'scripts/push-outbox-drain-over-tailnet.sh', token: 'push_outbox' }],

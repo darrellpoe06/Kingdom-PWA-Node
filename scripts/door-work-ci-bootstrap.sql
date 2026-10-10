@@ -41,3 +41,19 @@ BEGIN NEW.updated_at := now(); RETURN NEW; END $$;
 
 CREATE OR REPLACE FUNCTION public.apply_viewer_readonly_overlay() RETURNS void LANGUAGE sql AS $$ SELECT $$;
 CREATE OR REPLACE FUNCTION public.apply_assistant_scope_overlay() RETURNS void LANGUAGE sql AS $$ SELECT $$;
+
+-- push_outbox, the shape 0220 creates (0261 enqueues the office push into it
+-- when it exists). Copied in shape only; no policy is needed for the smoke,
+-- which reads it as postgres.
+CREATE TABLE IF NOT EXISTS public.push_outbox (
+  id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  instance_id  uuid NOT NULL,
+  fault_id     uuid,
+  kind         text        NOT NULL DEFAULT 'door_fault',
+  title        text        NOT NULL,
+  body         text        NOT NULL,
+  target_role  text        NOT NULL DEFAULT 'owner_admin',
+  created_at   timestamptz NOT NULL DEFAULT now(),
+  sent_at      timestamptz,
+  attempts     integer     NOT NULL DEFAULT 0
+);

@@ -16,3 +16,21 @@
   - Five app cases fail on the old code and pass on the new.
 
 **Next.** The guest in a short stay who reports a problem with no account, from a link or QR code on the door. This is a new public write path, built as its own decision on the 0152 pattern.
+
+## Then: the guest card (DR-0898, 0261)
+
+**What Darrell asked.** "Even a person walking through an Airbnb or short-term rental... getting work done or issues with systems or cleaning done asap". The integrity guard correctly refused my first instinct, which was to park the guest path as "the next build". The 0152 precedent already decides that a public write needs no account, so it was built in the same session.
+
+**How it works.**
+- The family opens a revocable card per door.
+- A guest scans it with no account, sees only the door's name, and files a work order onto that door's Work board as `guest`.
+- The guest reads nothing back.
+- Reports are capped at five per door per hour and twenty per day.
+- The office push names the door, never the guest's words.
+
+**Proof.** The smoke runs on PostgreSQL and in the live rls-isolation leg, with five breaks proven to catch. Eight app tests cover the page, the card, and the real door's routing.
+
+**Asked while this was being built, queued in order:**
+1. Documents with digital signing, where signed copies file themselves to their tenancy, plus paper uploads as tenant records.
+2. A listing link to share on social media that opens the app with the unit's pictures.
+3. A "landlord who wants their own app" path on the door, offering Poe Properties alone or the full PoeTech app.
