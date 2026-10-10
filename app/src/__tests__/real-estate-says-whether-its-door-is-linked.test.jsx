@@ -87,3 +87,52 @@ describe('when the link is missing, the surface says so', () => {
     expect(RENTALS).toContain('cannot\n            appear here');
   });
 });
+
+// =============================================================================
+// AND THE TENANCY CROSSES TOO
+// =============================================================================
+// Darrell, 2026-10-10: "Working?!!!!! Tenant information?" then "End to end?"
+//
+// MEASURED BEFORE BUILDING: Real Estate kept its own tenant object
+// (rental.tenant) and referenced `rental_tenancies` ZERO times, while
+// Start-the-tenancy on the Poe Properties door writes a full row there —
+// lease start, rent, phone, email, the subsidised flag. None of it crossed;
+// only a bare tenant_name string rode the rentals row. Two stores, one
+// address, no wire.
+//
+// THE DOOR IS THE SYSTEM OF RECORD and this tab SHOWS it, read-only. Two
+// writable copies of a real person's lease is how records get lost, and
+// starting or ending one stays on the door (P68).
+// =============================================================================
+describe('a tenancy started on the door reaches Real Estate', () => {
+  it('PROVEN-TO-CATCH: Real Estate reads the door’s tenancies at all', () => {
+    expect(CODE).toContain('loadDoorTenancies');
+  });
+
+  it('keyed by the SLUG, which is what rental_tenancies.rental_ref holds', () => {
+    // The uuid belongs to property_rooms and property_photos. Passing it here
+    // matches nothing and renders an empty panel that reads as "no tenants" —
+    // the measured 2026-08-27 defect class, and the quiet failure this whole
+    // question was about.
+    expect(CODE).toMatch(/tenancyRef\s*=\s*rental\.slug/);
+    expect(CODE).not.toMatch(/loadDoorTenancies\(\s*rental\.remoteUuid/);
+  });
+
+  it('shows the fields the door actually captures, not just a name', () => {
+    for (const f of ['tenant_name', 'lease_start', 'monthly_rent', 'tenant_phone', 'tenant_email', 'subsidised']) {
+      expect(CODE, `${f} is not surfaced`).toContain(f);
+    }
+  });
+
+  it('says so plainly when the door holds none — never a silent blank (P15)', () => {
+    expect(CODE).toContain('data-testid="door-tenancies-none"');
+    expect(RENTALS).toContain('No tenancy started on its Poe Properties door');
+  });
+
+  it('does NOT copy the door’s tenancy into the local tenant object', () => {
+    // One writable record. saveLeaseTenant still writes only the local object;
+    // nothing here feeds the door's row back into it.
+    expect(CODE).not.toMatch(/setTenantForm\([^)]*doorTenancies/);
+    expect(CODE).not.toMatch(/updateRental\([^)]*doorTenancies/);
+  });
+});
