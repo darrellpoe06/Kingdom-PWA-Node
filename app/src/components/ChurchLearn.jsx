@@ -2474,7 +2474,33 @@ function CourseView({
             )}
             <button
               type="button"
-              onClick={() => setFocusId(null)}
+              // LEAVING A LESSON LANDS AT THE TOP OF ALL LESSONS (DR-0880).
+              // Darrell, 2026-10-10: "Or the all lessons link... just take it
+              // to the top of the All Lessons!!! Fix it!!!"
+              //
+              // This only ever cleared the focus. Clearing the focus swaps
+              // what renders; it does not move the page, so the reader was
+              // left at whatever scroll offset the LESSON had them at —
+              // typically deep down, now looking at the middle of a list they
+              // did not choose to be in the middle of. The longer the lesson,
+              // the further from the top they landed, which is why it reads
+              // as the button not working rather than as a scroll position.
+              //
+              // The lessons bar is the landmark the list hangs under and it
+              // is already marked; the same gentle-motion behaviour the bar's
+              // own "All" control uses, so a reader who asked for reduced
+              // motion still gets it.
+              onClick={() => {
+                setFocusId(null);
+                if (typeof document === 'undefined') return;
+                // After the swap has painted, or there is nothing to scroll to.
+                requestAnimationFrame(() => {
+                  const bar = document.querySelector('[data-testid="lessons-bar"]');
+                  const target = bar || document.getElementById('learn-lesson-find');
+                  if (!target) { try { window.scrollTo({ top: 0, behavior: motionBehavior() }); } catch (_) { window.scrollTo(0, 0); } return; }
+                  try { target.scrollIntoView({ block: 'start', behavior: motionBehavior() }); } catch (_) { target.scrollIntoView(); }
+                });
+              }}
               data-testid="lesson-bar-all"
               className="text-[0.8125rem] uppercase tracking-wider px-4 py-2 min-h-[44px] border-2 border-[#1A1815] bg-[#1A1815] text-white hover:bg-[#3a352f] font-semibold focus:outline focus:outline-2 focus:outline-[#B85838]"
             >
