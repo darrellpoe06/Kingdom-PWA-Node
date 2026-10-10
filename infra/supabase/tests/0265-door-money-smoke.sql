@@ -178,11 +178,11 @@ BEGIN
     'the door-B manager records a payment on door A', false);
 
   -- 6. The clock carries the day it came and the door.
-  SELECT * INTO ev FROM record_events WHERE subject = 'rent' AND subject_id = rB AND event = 'reported';
+  SELECT * INTO ev FROM door_events WHERE subject = 'rent' AND subject_id = rB AND event = 'reported';
   IF ev.id IS NULL OR (ev.detail->>'paid_on') IS DISTINCT FROM '2025-01-15' OR (ev.detail->>'rental_id') IS DISTINCT FROM doorB OR ev.by_user IS DISTINCT FROM o THEN
     RAISE EXCEPTION 'DOOR MONEY SMOKE FAIL: the record of the empty door''s payment is incomplete (%)', ev;
   END IF;
-  IF pg_temp.num_as(o, format('SELECT count(*) FROM record_events WHERE subject_id = %L', rB)) <> 1 THEN
+  IF pg_temp.num_as(o, format('SELECT count(*) FROM door_events WHERE subject_id = %L', rB)) <> 1 THEN
     RAISE EXCEPTION 'DOOR MONEY SMOKE FAIL: the owner cannot read the door-level payment''s event';
   END IF;
 

@@ -352,7 +352,7 @@ export function buildHistory({
     const who = r.tenancy_id === null && r.rental_id ? ' (no tenant on record)' : '';
     push('rent', r, at(came, r.confirmed_at, r.reported_at), `${label}: $${Number(r.amount || 0).toFixed(2)}${r.for_period ? ` for ${r.for_period}` : ''}${part}${who}`, r.reported_by_role || '');
   }
-  // EVERY CHANGE, TO THE INSTANT (DR-0899, record_events). The row above is
+  // EVERY CHANGE, TO THE INSTANT (DR-0899, door_events). The row above is
   // the record's birth; these are what happened to it after, each with its
   // own clock, so a situation can be recreated in order.
   const titleOf = new Map(requests.map((r) => [r.id, r.title]));
@@ -370,7 +370,7 @@ export function buildHistory({
 }
 
 /**
- * One change from record_events (0262) in words. The birth events ('reported',
+ * One change from door_events (0262) in words. The birth events ('reported',
  * 'filed') are skipped: the record itself is already on the timeline.
  */
 export function changeSummary(e = {}, titleOf = new Map()) {

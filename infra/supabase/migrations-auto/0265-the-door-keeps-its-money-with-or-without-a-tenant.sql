@@ -150,14 +150,14 @@ CREATE POLICY rent_records_door_update ON public.rent_records FOR UPDATE TO auth
 -- ---------------------------------------------------------------------------
 -- 4. The clock carries the door and the day (0262's event, widened).
 -- ---------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION public.record_events_from_rent()
+CREATE OR REPLACE FUNCTION public.door_events_from_rent()
 RETURNS trigger
 LANGUAGE plpgsql SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
   IF TG_OP = 'INSERT' THEN
-    INSERT INTO record_events (instance_id, subject, subject_id, event, to_value, detail, by_user)
+    INSERT INTO door_events (instance_id, subject, subject_id, event, to_value, detail, by_user)
     VALUES (NEW.instance_id, 'rent', NEW.id, 'reported', NEW.status,
             jsonb_strip_nulls(jsonb_build_object('amount', NEW.amount, 'method', NEW.method, 'for_period', NEW.for_period,
               'due_amount', NEW.due_amount, 'remaining_after', NEW.remaining_after, 'rest_promised_on', NEW.rest_promised_on,
@@ -167,12 +167,12 @@ BEGIN
     RETURN NULL;
   END IF;
   IF NEW.status IS DISTINCT FROM OLD.status THEN
-    INSERT INTO record_events (instance_id, subject, subject_id, event, from_value, to_value, by_user)
+    INSERT INTO door_events (instance_id, subject, subject_id, event, from_value, to_value, by_user)
     VALUES (NEW.instance_id, 'rent', NEW.id, 'status', OLD.status, NEW.status, auth.uid());
   END IF;
   IF NEW.amount IS DISTINCT FROM OLD.amount OR NEW.remaining_after IS DISTINCT FROM OLD.remaining_after
      OR NEW.rest_promised_on IS DISTINCT FROM OLD.rest_promised_on OR NEW.paid_on IS DISTINCT FROM OLD.paid_on THEN
-    INSERT INTO record_events (instance_id, subject, subject_id, event, detail, by_user)
+    INSERT INTO door_events (instance_id, subject, subject_id, event, detail, by_user)
     VALUES (NEW.instance_id, 'rent', NEW.id, 'changed',
             jsonb_build_object('amount', jsonb_build_array(OLD.amount, NEW.amount),
               'remaining_after', jsonb_build_array(OLD.remaining_after, NEW.remaining_after),
@@ -181,12 +181,12 @@ BEGIN
             auth.uid());
   END IF;
   IF NEW.posted_tx_id IS DISTINCT FROM OLD.posted_tx_id AND NEW.posted_tx_id IS NOT NULL THEN
-    INSERT INTO record_events (instance_id, subject, subject_id, event, by_user)
+    INSERT INTO door_events (instance_id, subject, subject_id, event, by_user)
     VALUES (NEW.instance_id, 'rent', NEW.id, 'posted-to-books', auth.uid());
   END IF;
   RETURN NULL;
 END $$;
-REVOKE ALL ON FUNCTION public.record_events_from_rent() FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.door_events_from_rent() FROM PUBLIC;
 
 -- ---------------------------------------------------------------------------
 -- 5. What each door has accumulated, month by month, under the reader's RLS.

@@ -169,9 +169,9 @@ BEGIN
   IF pg_temp.val_as(s, 'SELECT count(*) FROM door_stays')::int <> 1 THEN RAISE EXCEPTION 'BOOKING CALENDAR SMOKE FAIL: a signed-in guest does not see exactly their own stay'; END IF;
 
   -- 7. The clock.
-  IF (SELECT count(*) FROM record_events WHERE subject = 'stay' AND subject_id = blk AND event = 'blocked') <> 1 THEN RAISE EXCEPTION 'BOOKING CALENDAR SMOKE FAIL: the blackout is not on the clock'; END IF;
-  IF (SELECT string_agg(event, ',' ORDER BY at) FROM record_events WHERE subject = 'stay' AND subject_id = ask::uuid) <> 'asked,confirmed,cancelled' THEN
-    RAISE EXCEPTION 'BOOKING CALENDAR SMOKE FAIL: the stay''s life is not on the clock in order (%)', (SELECT string_agg(event, ',' ORDER BY at) FROM record_events WHERE subject = 'stay' AND subject_id = ask::uuid);
+  IF (SELECT count(*) FROM door_events WHERE subject = 'stay' AND subject_id = blk AND event = 'blocked') <> 1 THEN RAISE EXCEPTION 'BOOKING CALENDAR SMOKE FAIL: the blackout is not on the clock'; END IF;
+  IF (SELECT string_agg(event, ',' ORDER BY at) FROM door_events WHERE subject = 'stay' AND subject_id = ask::uuid) <> 'asked,confirmed,cancelled' THEN
+    RAISE EXCEPTION 'BOOKING CALENDAR SMOKE FAIL: the stay''s life is not on the clock in order (%)', (SELECT string_agg(event, ',' ORDER BY at) FROM door_events WHERE subject = 'stay' AND subject_id = ask::uuid);
   END IF;
 
   RAISE NOTICE 'BOOKING CALENDAR SMOKE: PASS';

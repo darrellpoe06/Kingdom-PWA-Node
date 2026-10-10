@@ -132,34 +132,34 @@ BEGIN
     'a remainder larger than what was due', false);
 
   -- 4. Every change keeps its time and its hand.
-  SELECT * INTO ev FROM record_events WHERE subject = 'rent' AND subject_id = rr AND event = 'reported';
+  SELECT * INTO ev FROM door_events WHERE subject = 'rent' AND subject_id = rr AND event = 'reported';
   IF ev.id IS NULL OR ev.by_user IS DISTINCT FROM t OR (ev.detail->>'remaining_after')::numeric <> 380 OR ev.detail->>'rest_promised_on' <> '2026-10-20' THEN
     RAISE EXCEPTION 'RENT AND CLOCK SMOKE FAIL: the report left no complete event (%)', ev;
   END IF;
   n := pg_temp.changes(o, format('UPDATE rent_records SET status = ''confirmed'', confirmed_at = now() WHERE id = %L', rr));
   IF n <> 1 THEN RAISE EXCEPTION 'RENT AND CLOCK SMOKE FAIL: the owner could not confirm'; END IF;
-  SELECT * INTO ev FROM record_events WHERE subject = 'rent' AND subject_id = rr AND event = 'status';
+  SELECT * INTO ev FROM door_events WHERE subject = 'rent' AND subject_id = rr AND event = 'status';
   IF ev.id IS NULL OR ev.from_value <> 'reported' OR ev.to_value <> 'confirmed' OR ev.by_user IS DISTINCT FROM o THEN
     RAISE EXCEPTION 'RENT AND CLOCK SMOKE FAIL: the confirmation left no event (%)', ev;
   END IF;
 
   -- 5. The events are read where the record is read.
-  IF pg_temp.count_as(t, format('SELECT count(*)::int FROM record_events WHERE subject_id = %L', rr)) <> 2 THEN RAISE EXCEPTION 'RENT AND CLOCK SMOKE FAIL: the tenant cannot read their record''s events'; END IF;
-  IF pg_temp.count_as(t2, format('SELECT count(*)::int FROM record_events WHERE subject_id = %L', rr)) <> 0 THEN RAISE EXCEPTION 'RENT AND CLOCK SMOKE FAIL: another tenant reads them'; END IF;
-  IF pg_temp.count_as(o, format('SELECT count(*)::int FROM record_events WHERE subject_id = %L', rr)) <> 2 THEN RAISE EXCEPTION 'RENT AND CLOCK SMOKE FAIL: the owner cannot read them'; END IF;
+  IF pg_temp.count_as(t, format('SELECT count(*)::int FROM door_events WHERE subject_id = %L', rr)) <> 2 THEN RAISE EXCEPTION 'RENT AND CLOCK SMOKE FAIL: the tenant cannot read their record''s events'; END IF;
+  IF pg_temp.count_as(t2, format('SELECT count(*)::int FROM door_events WHERE subject_id = %L', rr)) <> 0 THEN RAISE EXCEPTION 'RENT AND CLOCK SMOKE FAIL: another tenant reads them'; END IF;
+  IF pg_temp.count_as(o, format('SELECT count(*)::int FROM door_events WHERE subject_id = %L', rr)) <> 2 THEN RAISE EXCEPTION 'RENT AND CLOCK SMOKE FAIL: the owner cannot read them'; END IF;
 
   -- 6. Nobody rewrites the clock.
-  IF pg_temp.changes(o, format('UPDATE record_events SET event = ''nothing happened'' WHERE subject_id = %L', rr)) <> 0 THEN RAISE EXCEPTION 'RENT AND CLOCK SMOKE FAIL: the owner edited an event'; END IF;
-  IF pg_temp.changes(o, format('DELETE FROM record_events WHERE subject_id = %L', rr)) <> 0 THEN RAISE EXCEPTION 'RENT AND CLOCK SMOKE FAIL: the owner deleted an event'; END IF;
+  IF pg_temp.changes(o, format('UPDATE door_events SET event = ''nothing happened'' WHERE subject_id = %L', rr)) <> 0 THEN RAISE EXCEPTION 'RENT AND CLOCK SMOKE FAIL: the owner edited an event'; END IF;
+  IF pg_temp.changes(o, format('DELETE FROM door_events WHERE subject_id = %L', rr)) <> 0 THEN RAISE EXCEPTION 'RENT AND CLOCK SMOKE FAIL: the owner deleted an event'; END IF;
 
   -- 7. A work order's life keeps its time too.
   PERFORM pg_temp.runs(o, format(
     'INSERT INTO tenant_maintenance_requests (id, instance_id, rental_id, created_by, created_by_role, title) VALUES (%L, %L, %L, %L, ''landlord'', ''Exhaust fan'')', wo, inst, doorA, o),
     'the owner files a work order', true);
   n := pg_temp.changes(o, format('UPDATE tenant_maintenance_requests SET status = ''scheduled'', assigned_to_label = ''Mike'' WHERE id = %L', wo));
-  IF (SELECT count(*) FROM record_events WHERE subject = 'work' AND subject_id = wo) <> 3 THEN
+  IF (SELECT count(*) FROM door_events WHERE subject = 'work' AND subject_id = wo) <> 3 THEN
     RAISE EXCEPTION 'RENT AND CLOCK SMOKE FAIL: filing, scheduling and assigning should be three events, saw %',
-      (SELECT count(*) FROM record_events WHERE subject = 'work' AND subject_id = wo);
+      (SELECT count(*) FROM door_events WHERE subject = 'work' AND subject_id = wo);
   END IF;
 
   RAISE NOTICE 'RENT AND CLOCK SMOKE: PASS';

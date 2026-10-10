@@ -167,17 +167,17 @@ BEGIN
   IF pg_temp.changes(o, format('DELETE FROM property_document_signatures WHERE document_id = %L', lease)) <> 0 THEN RAISE EXCEPTION 'DOCUMENT SIGNING SMOKE FAIL: a signature was deleted'; END IF;
 
   -- 8. Everything is on the clock.
-  IF (SELECT count(*) FROM record_events WHERE subject = 'document' AND subject_id = lease) <> 4
-     OR NOT EXISTS (SELECT 1 FROM record_events WHERE subject_id = lease AND event = 'signature-requested')
-     OR (SELECT count(*) FROM record_events WHERE subject_id = lease AND event = 'signed') <> 2
-     OR NOT EXISTS (SELECT 1 FROM record_events WHERE subject_id = lease AND event = 'fully-signed') THEN
+  IF (SELECT count(*) FROM door_events WHERE subject = 'document' AND subject_id = lease) <> 4
+     OR NOT EXISTS (SELECT 1 FROM door_events WHERE subject_id = lease AND event = 'signature-requested')
+     OR (SELECT count(*) FROM door_events WHERE subject_id = lease AND event = 'signed') <> 2
+     OR NOT EXISTS (SELECT 1 FROM door_events WHERE subject_id = lease AND event = 'fully-signed') THEN
     RAISE EXCEPTION 'DOCUMENT SIGNING SMOKE FAIL: the clock is missing events';
   END IF;
-  IF pg_temp.count_as(t, format('SELECT count(*)::int FROM record_events WHERE subject_id = %L', lease)) <> 4 THEN
+  IF pg_temp.count_as(t, format('SELECT count(*)::int FROM door_events WHERE subject_id = %L', lease)) <> 4 THEN
     RAISE EXCEPTION 'DOCUMENT SIGNING SMOKE FAIL: the tenant cannot read their lease''s events (saw %)',
-      pg_temp.count_as(t, format('SELECT count(*)::int FROM record_events WHERE subject_id = %L', lease));
+      pg_temp.count_as(t, format('SELECT count(*)::int FROM door_events WHERE subject_id = %L', lease));
   END IF;
-  IF pg_temp.count_as(t2, format('SELECT count(*)::int FROM record_events WHERE subject_id = %L', lease)) <> 0 THEN
+  IF pg_temp.count_as(t2, format('SELECT count(*)::int FROM door_events WHERE subject_id = %L', lease)) <> 0 THEN
     RAISE EXCEPTION 'DOCUMENT SIGNING SMOKE FAIL: another tenant reads the lease''s events';
   END IF;
 

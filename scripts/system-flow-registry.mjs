@@ -1074,7 +1074,7 @@ const NODES = [
     writes: [
       { res: 'db:door_camera_menu', file: 'app/src/modules/properties/cloud.js', token: "from('door_camera_menu').upsert" },
       { res: 'db:door_camera_access', file: 'app/src/modules/properties/cloud.js', token: "from('door_camera_access').insert" },
-      { res: 'db:record_events', file: 'infra/supabase/migrations-auto/0266-a-door-camera-is-asked-for-and-given-to-whoever-the-family-chooses.sql', token: 'INSERT INTO record_events' },
+      { res: 'db:door_events', file: 'infra/supabase/migrations-auto/0266-a-door-camera-is-asked-for-and-given-to-whoever-the-family-chooses.sql', token: 'INSERT INTO door_events' },
     ],
     reads: [
       { res: 'db:door_camera_menu', file: 'app/src/modules/properties/cloud.js', token: "from('door_camera_menu').select" },
@@ -1112,7 +1112,7 @@ const NODES = [
     writes: [
       { res: 'db:door_stays', file: 'app/src/modules/properties/cloud.js', token: "rpc('request_a_stay'" },
       { res: 'db:door_stays', file: 'app/src/modules/properties/cloud.js', token: "from('door_stays').insert" },
-      { res: 'db:record_events', file: 'infra/supabase/migrations-auto/0269-a-short-stay-door-has-a-booking-calendar.sql', token: 'INSERT INTO record_events' },
+      { res: 'db:door_events', file: 'infra/supabase/migrations-auto/0269-a-short-stay-door-has-a-booking-calendar.sql', token: 'INSERT INTO door_events' },
     ],
     reads: [
       { res: 'db:door_stays', file: 'app/src/modules/properties/cloud.js', token: "rpc('door_booked_nights'" },
@@ -1136,21 +1136,21 @@ const NODES = [
     id: 'record-clock', name: 'Every change, to the instant (record events)', purpose: 'Each report, confirmation, status move and assignment on rent and work leaves an append-only event with its own clock, read back on the door\u2019s history so a situation can be recreated.',
     reads: [
       { res: 'db:rent_records', file: 'app/src/modules/properties/cloud.js', token: "from('rent_records')" },
-      { res: 'db:record_events', file: 'app/src/modules/properties/cloud.js', token: "from('record_events')" },
+      { res: 'db:door_events', file: 'app/src/modules/properties/cloud.js', token: "from('door_events')" },
     ],
     writes: [
-      { res: 'db:record_events', file: 'infra/supabase/migrations-auto/0262-rent-is-reported-the-way-it-is-paid-and-every-change-keeps-its-time.sql', token: 'INSERT INTO record_events' },
+      { res: 'db:door_events', file: 'infra/supabase/migrations-auto/0262-rent-is-reported-the-way-it-is-paid-and-every-change-keeps-its-time.sql', token: 'INSERT INTO door_events' },
     ],
   }),
   // Papers signed in the app (DR-0936): the family files and sends; the
   // tenant files their own papers and receipts and signs; every signature is
-  // a row with the fingerprint signed, and every step is on record_events.
+  // a row with the fingerprint signed, and every step is on door_events.
   app('app/src/modules/properties/DocSigning.jsx', {
     id: 'doc-signing', name: 'Papers and signatures (Poe Properties)', purpose: 'A lease or any paper is sent for signature, signed by the tenant and the landlord against the exact bytes shown, and stays filed in its tenancy; tenants file receipts and pictures of their own.',
     writes: [
       { res: 'db:property_documents', file: 'app/src/modules/properties/cloud.js', token: "from('property_documents')\n      .insert" },
       { res: 'db:property_document_signatures', file: 'infra/supabase/migrations-auto/0263-a-document-is-signed-in-the-app-and-filed-where-it-belongs.sql', token: 'INSERT INTO property_document_signatures' },
-      { res: 'db:record_events', file: 'infra/supabase/migrations-auto/0263-a-document-is-signed-in-the-app-and-filed-where-it-belongs.sql', token: "'document', d.id, 'signed'" },
+      { res: 'db:door_events', file: 'infra/supabase/migrations-auto/0263-a-document-is-signed-in-the-app-and-filed-where-it-belongs.sql', token: "'document', d.id, 'signed'" },
     ],
     reads: [
       { res: 'db:property_documents', file: 'app/src/modules/properties/cloud.js', token: "client.from('property_documents').select('*').is('archived_at', null)" },

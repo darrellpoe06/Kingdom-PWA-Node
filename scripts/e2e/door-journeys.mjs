@@ -331,7 +331,7 @@ async function run() {
       await op.getByRole('button', { name: /^Confirm$/ }).first().click();
       await waitFor(() => sql(`SELECT status FROM door_stays WHERE rental_id = '${DOOR}' AND check_in = '${IN}'`) === 'confirmed', 'the stay to read confirmed in the database');
       await op.screenshot({ path: join(SHOTS, 'B2-confirmed.png'), fullPage: true });
-      const ev = sql(`SELECT string_agg(event, ',' ORDER BY at) FROM record_events WHERE subject = 'stay' AND subject_id = (SELECT id FROM door_stays WHERE rental_id = '${DOOR}' AND check_in = '${IN}')`);
+      const ev = sql(`SELECT string_agg(event, ',' ORDER BY at) FROM door_events WHERE subject = 'stay' AND subject_id = (SELECT id FROM door_stays WHERE rental_id = '${DOOR}' AND check_in = '${IN}')`);
       if (ev !== 'asked,confirmed') throw new Error(`the clock reads "${ev}"`);
     });
 
