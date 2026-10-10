@@ -137,3 +137,54 @@ describe('the pipeline the panel actually calls', () => {
     expect(src).toMatch(/heicError && heicError\.message/);
   });
 });
+
+// =============================================================================
+// A WRITE THAT NEVER ANSWERS IS NOT A WRITE (DR-0908)
+// =============================================================================
+// Darrell, 2026-10-10, on build 21F4C39 — the one that already had the serial
+// save: "After trying to upload it did not work.... pictures looked like they
+// would upload and never did".
+//
+// That build would have shown "Saving 1 of 14" and sat there, which is the
+// signature of a promise that never settles rather than one that fails.
+// Nothing in cloud.js had a deadline: reads got one long ago, writes were left
+// to the network on the assumption they would land or error.
+//
+// WHY THEY STALL (measured): the Pages Functions outage (#2057) killed the
+// same-origin /sb road, so the deploy points the client at the ABSOLUTE Funnel
+// URL (deploy-cloudflare-pages.yml:147) — and CLAUDE.md's standing note says
+// the app must reach the NAS same-origin, "never the absolute Funnel URL (it
+// throttles cross-origin)". Small reads pass. Fourteen cross-origin POSTs each
+// carrying a ~300KB base64 data URL do not.
+//
+// A deadline cannot make the write succeed. It makes the failure VISIBLE and
+// the picture RECOVERABLE.
+describe('a write that never answers', () => {
+  it('PROVEN-TO-CATCH: a hung insert gives up and SAYS so, instead of hanging', async () => {
+    const { addPhoto } = await import('../modules/properties/cloud.js');
+    // A client whose insert never settles — exactly the stall he met.
+    const hung = {
+      auth: { getUser: async () => ({ data: { user: { id: 'u1' } } }) },
+      from: () => ({
+        insert: () => ({ select: () => ({ single: () => new Promise(() => {}) }) }),
+      }),
+    };
+    const started = Date.now();
+    const res = await addPhoto({ instance_id: 'i1', rental_ref: 'r1' }, hung, { deadlineMs: 60 });
+    expect(res.ok, 'a stalled write reported success').toBe(false);
+    expect(res.error || res.reason).toBeTruthy();
+    expect(Date.now() - started, 'it waited far longer than its deadline').toBeLessThan(5000);
+  });
+
+  it('the deadline says how long it waited, in words a person can act on', async () => {
+    const { withDeadline } = await import('../modules/properties/cloud.js');
+    const err = await withDeadline(new Promise(() => {}), 30, 'the picture server').catch((e) => e);
+    expect(err).toBeInstanceOf(Error);
+    expect(err.message).toMatch(/the picture server did not answer/);
+  });
+
+  it('a write that DOES answer is untouched by the deadline', async () => {
+    const { withDeadline } = await import('../modules/properties/cloud.js');
+    await expect(withDeadline(Promise.resolve('landed'), 5000)).resolves.toBe('landed');
+  });
+});
