@@ -6,7 +6,8 @@
 - **Type:** product
 - **Scope:** `app/src/lib/coloring-page.js` (new, pure), `app/src/__tests__/a-coloring-page-for-every-lesson.test.js` (16 cases)
 - **Principles:** WORD-FIRST (DR-0127), THE-APP-IS-THE-PRIMARY-ARTIFACT (DR-0065), VERIFICATION-DOCTRINE (DR-0076), TYPOGRAPHIC-THEOLOGY (CLAUDE.md Layer 0), DR-0459 (a quotation is never altered), DR-0121 (derived, never retyped)
-- **Grounds:** Deuteronomy 6:7; and DR-0431 (Little Learners), DR-0427 (the little ones' text size), DR-0215 (parables and stories as curriculum design)
+- **Grounds:** Deuteronomy 6:7; DR-0431 (Little Learners — the littlest learners' own course, Flesch-Kincaid ≤ 1.0, read aloud, Ari in child mode); DR-0422 (L158, *How the worlds were made — for a child, Word based on the Word*, a real child-level Genesis lesson held under the 5.0 ceiling); DR-0215 (the ~25-minute Love Corner slot and **at least two parable/story beats per lesson**, funny and solemn — the story beats a child can already receive); DR-0417/DR-0418 (a new lesson ships with four full bands, child under 5.0)
+- **Corrected 2026-10-10, before merge:** an earlier draft of this line also cited **DR-0427** and **DR-0423**, from their filenames rather than their contents, and both were wrong. DR-0427's "little ones" are small **TEXT**, not small children — a stylesheet floor for tiny labels at Big Print. DR-0423 (L159) is *we are all children of Yahweh*, about every person being His child by making and by adoption; it is not child-audience content. Caught by the ari-guard cited-but-unread hook (DR-0076 §8 / DR-0250). A citation is a claim that the source was read, and these two had not been.
 
 ## The word, as spoken
 
