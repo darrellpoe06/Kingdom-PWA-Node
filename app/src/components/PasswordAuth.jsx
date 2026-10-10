@@ -17,12 +17,14 @@
 //
 // Accessibility (WCAG 2.1 AA on white): #1A1815 body, #5A5751 secondary, #7A1F1F
 // error, #B85838 focus ring, labelled inputs, >=44px targets, aria-live status.
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { authErrorMessage } from '../lib/auth-error-message.js';
 import {
   signUpWithPassword, signInWithPassword, validateCredentials, validateSignIn, sendRoyaltyLink,
-  signUpWithPhonePin, signInWithPhonePin, validatePhonePin,
+  signUpWithPhonePin, signInWithPhonePin, validatePhonePin, signInWithGoogle,
 } from '../lib/supabase.js';
+import { signInWithGooglePopup } from '../lib/oauth-popup.js';
+import { primeAuthProviders, guardProviderCached, guardProvider, resetAuthProvidersCache } from '../lib/auth-providers.js';
 
 // `embedded` hides this component's own eyebrow + big heading + intro line so it
 // can sit inside a frame that already supplies them (e.g. AuthModal). The form,
@@ -64,6 +66,75 @@ export default function PasswordAuth({ mode: initialMode = 'signup', onSignedIn 
   // one friendly message; the differentiating detail lived only in the console).
   const [errorDetail, setErrorDetail] = useState('');
   const [status, setStatus] = useState('idle'); // idle | working | done | linksent
+
+  // =========================================================================
+  // A DOOR THAT NEEDS NO EMAIL AT ALL (Darrell, 2026-10-10, locked out of Poe
+  // Properties on his own phone: "Never sent an email link to let me in!!!!!!?!")
+  // =========================================================================
+  // He was right and the app was wrong. SMTP has never been wired on the
+  // family server, so the Royalty Link cannot arrive -- and THIS component,
+  // which is the Poe Properties door (PropertiesDoor.jsx:422), offered email
+  // and phone and nothing else. Google was already built, already guarded,
+  // already proven in AuthModal, DeviceLinkApprove and ConferenceAccountOnRamp
+  // -- and was simply absent from the one door he was standing at, while his
+  // own address is a gmail address.
+  //
+  // So the same proven path comes here: ask GoTrue what is actually switched
+  // on BEFORE navigating (auth-providers, born of the 2026-09-11 church
+  // meeting where a dead provider put raw JSON on a member's screen), popup
+  // first, full-page redirect as the fallback. A provider that is off says so
+  // in words; it never dead-ends and never shows JSON.
+  const [oauthBusy, setOauthBusy] = useState(false);
+  useEffect(() => { primeAuthProviders(); }, []);
+
+  const handleGoogle = async () => {
+    setError(''); setErrorDetail('');
+    setOauthBusy(true);
+    // Read the primed probe SYNCHRONOUSLY: awaiting here would spend the user
+    // gesture that window.open needs. Not-yet-known proceeds, as in AuthModal.
+    const gate = guardProviderCached('google');
+    if (!gate.ok) { setOauthBusy(false); setError(gate.message); return; }
+    let res;
+    try {
+      res = await signInWithGooglePopup();
+    } catch (e) {
+      res = { error: { message: (e && e.message) || 'Google sign-in could not start.' } };
+    }
+    if (res && res.ok) { setOauthBusy(false); if (onSignedIn) onSignedIn(); return; }
+    if (res && (res.blocked || res.unsupported || res.error)) {
+      const fb = await signInWithGoogle();
+      if (fb && fb.error) {
+        setOauthBusy(false);
+        setError(fb.error.message || 'Google sign-in isn’t available right now — use a password or your phone below.');
+      }
+      return; // a started redirect navigates away
+    }
+    // Closed with no session: usually a cancel, but it is also what a dead
+    // provider looks like when the probe could not reach GoTrue. Ask once more.
+    setOauthBusy(false);
+    resetAuthProvidersCache();
+    const recheck = await guardProvider('google');
+    if (!recheck.ok) setError(recheck.message);
+  };
+
+  const googleDoor = (
+    <>
+      <div className="mt-3 flex items-center gap-2" aria-hidden="true">
+        <span className="h-px flex-1 bg-[#E8E4DC]"></span>
+        <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">or</span>
+        <span className="h-px flex-1 bg-[#E8E4DC]"></span>
+      </div>
+      <button
+        type="button"
+        onClick={handleGoogle}
+        disabled={oauthBusy}
+        data-testid="google-door"
+        className="mt-3 w-full text-xs uppercase tracking-wider px-4 py-3 min-h-[48px] border-2 border-[#1A1815] text-[#1A1815] bg-white hover:bg-[#1A1815] hover:text-white disabled:opacity-50 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+      >
+        {oauthBusy ? 'One moment…' : 'Continue with Google — no email needed'}
+      </button>
+    </>
+  );
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
   const isSignup = mode === 'signup';
@@ -166,16 +237,22 @@ export default function PasswordAuth({ mode: initialMode = 'signup', onSignedIn 
         <h3 className="text-lg font-semibold text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>Link requested</h3>
         <p className="text-sm text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>We asked the server to email {form.email || 'you'} a sign-in link. If it arrives, tap it — that’s the whole sign-in.</p>
         <p className="text-xs text-[#5A5751] mt-2 leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
-          No email after a couple of minutes? Check spam — and if it’s not there, email sending isn’t
-          set up on the family server yet, so the link can’t arrive. Your password works without email.
+          No email after a couple of minutes? Don’t keep waiting — email sending is not set up on the
+          family server, so the link cannot arrive at all. Use one of the doors below instead: Google
+          needs no email, and a password works without one IF you set a password when you signed up.
         </p>
         <button type="button" onClick={() => { setUsePassword(true); setStatus('idle'); setError(''); }}
           className="mt-3 w-full text-xs uppercase tracking-wider px-4 py-3 min-h-[48px] border-2 border-[#1A1815] text-white bg-[#1A1815] hover:bg-[#3a352f] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">
           Sign in with my password instead →
         </button>
+        {/* The door that needs no email at all, ON the screen where the email
+            door just failed. This is where Darrell was standing. */}
+        {googleDoor}
         <p className="text-xs text-[#5A5751] mt-2 leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
-          Forgot your password? It can’t be emailed to you yet — ask Darrell; the family server resets it in one step.
-          Or use the <strong>phone number + PIN</strong> door if you set one up.
+          Forgot it, or never set one? It can’t be emailed to you — there is no password-reset email either.
+          <strong>Continue with Google</strong> above needs no email at all. Otherwise use the
+          <strong> phone number + PIN</strong> door if you set one up, or ask the person who runs this
+          server to set a password on your account.
         </p>
         <button type="button" onClick={() => setStatus('idle')} className="mt-3 text-xs uppercase tracking-wider underline text-[#5A6E3D]">Back</button>
       </div>
@@ -288,6 +365,7 @@ export default function PasswordAuth({ mode: initialMode = 'signup', onSignedIn 
           className="mt-3 w-full text-xs uppercase tracking-wider px-4 py-3 min-h-[48px] border-2 border-[#1A1815] text-[#1A1815] bg-white hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">
           No email? Use your phone number + a PIN
         </button>
+        {googleDoor}
         <div className="mt-4 text-xs text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
           {isSignup ? (
             <button type="button" onClick={() => { setMode('signin'); setError(''); }} className="underline hover:text-[#1A1815]">Already have a profile? Sign in</button>
@@ -367,6 +445,7 @@ export default function PasswordAuth({ mode: initialMode = 'signup', onSignedIn 
         className="mt-3 w-full text-xs uppercase tracking-wider px-4 py-3 min-h-[48px] border-2 border-[#1A1815] text-[#1A1815] bg-white hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">
         No email? Use your phone number + a PIN
       </button>
+      {googleDoor}
     </div>
   );
 }

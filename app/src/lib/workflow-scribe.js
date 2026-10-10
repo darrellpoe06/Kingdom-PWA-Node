@@ -31,7 +31,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { pickRecorderMime } from './voice-recording.js';
 import { releaseSpeechRecognition } from './voice-dictation.js';
-import { holdIntake, RESULT_HOLD_MS } from './intake-guard.js';
+import { holdIntake } from './intake-guard.js';
 
 // Aligned with lib/ministry-meetings.js maxDurationMin — one ceiling, one truth.
 export const SCRIBE_MAX_DURATION_MIN = 180;
@@ -420,13 +420,18 @@ export function useWorkflowScribe() {
         setResult({ blob, url, manifest, chunks: chunksRef.current.slice(), measured: measuredRef.current > 0, heardSound: heardRef.current });
         cleanup();
         setRecording(false);
-        // The take is kept in memory until it is sent: hold the app still for
-        // it, for RESULT_HOLD_MS at most.
+        // THE HOLD LASTS UNTIL IT IS SENT, NOT TEN MINUTES (2026-10-10).
+        // Darrell: "an App Reload has to account for the specific situations
+        // on cellphones and make sure they want the update when we push them
+        // it should be a choice... so the users can finish without failing
+        // their process at that moment." This used to release itself after
+        // RESULT_HOLD_MS and let the zero-click reload take the page, which is
+        // a TIMER GUESSING how long a person needs. It no longer guesses: the
+        // hold stands while the take is unsent, and the person is offered the
+        // update by the FreshnessDot ("Update", tap to apply) instead of
+        // having it applied to them mid-process.
         releaseKept();
-        if (chunksRef.current.length) {
-          keptRef.current = holdIntake('recording-kept');
-          keptTimerRef.current = setTimeout(releaseKept, RESULT_HOLD_MS);
-        }
+        if (chunksRef.current.length) keptRef.current = holdIntake('recording-kept');
       };
       // The user ending the screen share from the browser chrome stops us cleanly.
       try { stream.getVideoTracks().forEach((t) => { t.onended = () => stop(); }); } catch (_) {}

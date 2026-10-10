@@ -249,6 +249,12 @@ def wyze_error_response(e):
     return status, out
 
 TOKEN_FILE_DEFAULT = "/volume1/PoeTech/secrets/chat-bridge-token.txt"
+
+# THE ONLY ORIGIN THE CAMERAS ANSWER CROSS-ORIGIN. Module level on purpose, so
+# the selftest pins the value the running Handler actually uses rather than a
+# copy of it. Never "*": these are the cameras on a family's house and the road
+# carries a bearer. See the CORS block on Handler for why this exists at all.
+CORS_ALLOWED_ORIGINS = ("https://poetech.us",)
 RECORDING_CONFIG = os.environ.get("CAMS_RECORDING_CONFIG", os.path.join(os.environ.get("GO2RTC_DATA", "/volume1/docker/go2rtc"), "recording.json"))
 RECORDING_STATUS = os.environ.get("CAMS_RECORDING_STATUS", os.path.join(os.environ.get("GO2RTC_DATA", "/volume1/docker/go2rtc"), "recording.status.json"))
 RECORDINGS_ROOT = os.environ.get("CAMS_RECORDINGS", "/volume1/PoeTech/cameras/recordings")
@@ -2194,6 +2200,59 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
 
         def log_message(self, *a):  # quiet; never log paths (they carry tickets) or tokens
             pass
+
+        # -- CORS, so the cameras survive a dead /cams Pages Function --------
+        # MEASURED 2026-10-09, the day every Cloudflare Pages Function on
+        # poetech.us stopped being invoked: Darrell, "Cameras tab is not
+        # working?!!!!!" The /cams road IS a Pages Function, so the tab had no
+        # transport. Sign-in was routed straight at the Funnel to get the
+        # family back in, and the same move was measured for every other dark
+        # road before being attempted -- it does NOT work for these:
+        #     /cams -> preflight 501, GET 404, allow-origin: none
+        # Only /sb carried CORS (kong sets it), so a browser pointed at the
+        # Funnel for cameras would have every request refused by its own
+        # same-origin policy, and the "fix" would have been a lie.
+        #
+        # So the forwarder answers CORS itself. It is injected at end_headers
+        # because EVERY response path here funnels through it -- json, bytes,
+        # ranged MP4, the live stream -- and a header added in one writer and
+        # forgotten in another is the bug this avoids.
+        #
+        # NEVER "*". These are the cameras on a family's house and the road
+        # carries a bearer, so exactly one origin is echoed and anything else
+        # gets nothing. Vary: Origin keeps a cache from serving one origin's
+        # answer to another.
+        ALLOWED_ORIGINS = CORS_ALLOWED_ORIGINS
+
+        def _cors_origin(self):
+            o = self.headers.get("Origin")
+            return o if o in self.ALLOWED_ORIGINS else None
+
+        def end_headers(self):
+            o = self._cors_origin()
+            if o:
+                self.send_header("Access-Control-Allow-Origin", o)
+                self.send_header("Vary", "Origin")
+                # Range/length matter to the player; without exposing them a
+                # cross-origin <video> cannot seek.
+                self.send_header("Access-Control-Expose-Headers",
+                                 "Content-Range, Content-Length, Accept-Ranges, X-Live-Max-Seconds")
+            BaseHTTPRequestHandler.end_headers(self)
+
+        def do_OPTIONS(self):
+            # The preflight the bearer requires. Unknown origins are refused
+            # rather than silently allowed.
+            if not self._cors_origin():
+                self.send_response(403)
+                self.send_header("Content-Length", "0")
+                self.end_headers()
+                return
+            self.send_response(204)
+            self.send_header("Access-Control-Allow-Methods", "GET, HEAD, POST, PUT, DELETE, OPTIONS")
+            self.send_header("Access-Control-Allow-Headers", "Authorization, Content-Type, Range")
+            self.send_header("Access-Control-Max-Age", "600")
+            self.send_header("Content-Length", "0")
+            self.end_headers()
 
         # -- small writers --------------------------------------------------
         def _json(self, code, obj):
@@ -4483,6 +4542,52 @@ def _selftest():
     print("=== 10. bearer_ok never accepts an empty expected token ===")
     check(not bearer_ok("Bearer ", ""), "empty expected token matches nothing")
     check(not bearer_ok("Bearer x", ""), "an unconfigured forwarder accepts nobody")
+
+    # === 11. CORS: the cameras survive a dead /cams Pages Function ==========
+    # 2026-10-09. Every Pages Function on poetech.us stopped being invoked and
+    # the Cameras tab lost its transport. Measured before writing this: /cams
+    # on the Funnel answered preflight 501 with allow-origin: none, so pointing
+    # the app at the Funnel would have been refused by the browser itself.
+    # These checks pin the fix and the bright line it must not cross.
+    print("=== 11. CORS is answered, and only for the one origin ===")
+
+    class _H:
+        """The Handler's CORS logic, exercised without standing up a socket."""
+        ALLOWED_ORIGINS = ("https://poetech.us",)
+
+        def __init__(self, origin):
+            self._origin = origin
+            self.sent = []
+
+        @property
+        def headers(self):
+            return {"Origin": self._origin} if self._origin else {}
+
+        def _cors_origin(self):
+            o = self.headers.get("Origin")
+            return o if o in self.ALLOWED_ORIGINS else None
+
+    check(_H("https://poetech.us")._cors_origin() == "https://poetech.us",
+          "the app's own origin is allowed")
+    check(_H(None)._cors_origin() is None,
+          "a request with no Origin gets no CORS header (same-origin path unchanged)")
+    # PROVEN-TO-CATCH: the bright line. These are house cameras on a bearer.
+    check(_H("https://evil.example")._cors_origin() is None,
+          "CATCHES a stranger's origin: it is refused, not echoed")
+    check(_H("*")._cors_origin() is None,
+          "CATCHES a wildcard origin: never allowed for house cameras")
+    check(_H("https://poetech.us.evil.example")._cors_origin() is None,
+          "CATCHES a lookalike origin that merely starts with ours")
+    check(_H("http://poetech.us")._cors_origin() is None,
+          "CATCHES plain http: only the https origin is allowed")
+    # The real Handler must carry the same allowlist this test pins, or the
+    # test is checking a copy that has drifted from the code that runs.
+    check("*" not in CORS_ALLOWED_ORIGINS,
+          "the LIVE allowlist the Handler is built from contains no wildcard")
+    check(tuple(CORS_ALLOWED_ORIGINS) == _H.ALLOWED_ORIGINS,
+          "the LIVE allowlist is exactly what these checks pin")
+    check(len(CORS_ALLOWED_ORIGINS) == 1 and CORS_ALLOWED_ORIGINS[0].startswith("https://"),
+          "exactly one origin, and it is https")
 
     fwd.shutdown()
     if failures:

@@ -256,4 +256,9 @@ export const LIVING_LESSONS_ADDED = {
   'll232-the-woman-at-the-well-and-the-samaritans-who-believed-the-scroll-her-saying-and-his-own-word': '2026-10-09', // added with the lesson (DR-0856); spoken into the app by Darrell on 2026-10-09, with the research he asked for
   'll233-yahweh-speaking-with-yahweh-every-place-the-word-lets-us-overhear-the-father-the-son-and-the-holy-spirit': '2026-10-09', // added with the lesson (DR-0857); spoken into the app by Darrell on 2026-10-09 with one word under it, Lesson
   'll234-will-we-have-angel-like-experiences-after-death-like-the-angels-in-some-ways-never-angels-and-like-him': '2026-10-09', // added with the lesson (DR-0858); asked by Darrell on 2026-10-09 with one word under it, Lesson
+  'll235-ten-christmases-left-and-every-knee-shall-bow': '2026-10-09', // added with the lesson; spoken into the app and transcribed by Whisper (nas-cpu) on 2026-10-09
+  'll237-his-knowledge-is-the-highest-and-the-standard': '2026-10-09', // added with the lesson; written by Darrell on 2026-10-08 on top of a forwarded webinar reminder, with one word above it, Lesson
+  'll239-the-king-sits-down-first-a-shipyard-a-submarine-contract-and-who-gives-safety': '2026-10-09', // added with the lesson (DR-0863); forwarded by Darrell on 2026-10-07 with one word on top, Lesson
+  'll238-who-holds-the-wind-the-warning-the-foundation-and-the-neighbour-in-the-storms-path': '2026-10-09', // added with the lesson (DR-0864); forwarded by Darrell on 2026-10-08 as a news digest with one word written on top of it, Lesson
+  'll236-the-bill-you-cannot-read-honest-weights-a-plain-reckoning-and-whose-wisdom-governs-the-meter': '2026-10-09', // added with the lesson (DR-0860); the utility-billing article Darrell forwarded by email on 2026-10-08 with one word on top, Lesson, taken up on the strand the earlier lesson from that email left untouched
 };

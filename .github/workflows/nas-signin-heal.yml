@@ -1,0 +1,159 @@
+# nas-signin-heal — bring the sovereign sign-in road back, from the NAS itself.
+#
+# WHY THIS EXISTS. On 2026-10-09 Darrell was locked out of his own app: a POST
+# to poetech.us/sb/auth/v1/token returned an EMPTY BODY, so the browser called
+# .json() on nothing and died with "Unexpected end of JSON input", on both the
+# email-link path and the phone-PIN path. A GET to /sb/auth/v1/health answered
+# 200 the whole time, which is why every probe read green. The cloud sandbox
+# has no route to the NAS, so the only thing the agent could do was hand him
+# commands to paste. His answer: "You do it!!!!!!"
+#
+# So this is the hand. It joins the tailnet the same way cams-diag does, SSHes
+# to the NAS as dpoe, and restarts ONLY the sovereign Supabase containers that
+# carry sign-in. The container list is HARDCODED on purpose: this workflow
+# takes no command input of any kind, so there is nothing to inject into it on
+# a public repository. It restarts what it names and nothing else.
+#
+# It then MEASURES rather than assumes (DR-0076): the same POST that failed,
+# first from the NAS loopback (is the stack itself answering?) and then from
+# the runner through poetech.us/sb (does the whole road carry a body?). An
+# empty body after the restart fails the run, so a heal that did not heal says
+# so instead of reporting success.
+name: nas-signin-heal
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nas-signin-heal
+  cancel-in-progress: false
+
+jobs:
+  heal:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Check secrets (no-op with instructions when absent)
+        id: gate
+        env:
+          TS: ${{ secrets.TS_AUTHKEY != '' }}
+          KEY: ${{ secrets.NAS_SSH_KEY != '' }}
+        run: |
+          if [ "$TS" != "true" ] || [ "$KEY" != "true" ]; then
+            echo "NOT CONFIGURED: add repo secrets TS_AUTHKEY (Reusable + Ephemeral) and NAS_SSH_KEY, then re-dispatch."
+            echo "go=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "go=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Join the tailnet (ephemeral)
+        if: steps.gate.outputs.go == 'true'
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+
+      - name: Verify the tailnet actually joined
+        if: steps.gate.outputs.go == 'true'
+        run: |
+          if ! tailscale status --peers=false >/dev/null 2>&1; then
+            echo "::error::Tailnet join FAILED — TS_AUTHKEY invalid or consumed (needs Reusable + Ephemeral)."
+            exit 1
+          fi
+
+      - name: Before — what the stack says, and does a POST work on the box
+        if: steps.gate.outputs.go == 'true'
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          umask 077
+          printf '%s\n' "$NAS_SSH_KEY" > /tmp/nas_key
+          SSH="ssh -i /tmp/nas_key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 dpoe@poetech.tail5a2f35.ts.net"
+          $SSH 'sh -s' <<'EOS'
+          PATH=/usr/local/bin:/opt/bin:/usr/bin:/bin:$PATH; export PATH
+          scrub() { sed -E 's/([?&"]?(password|pass|pwd|token|api_key|key|secret|anon|service_role)[=:"]+)[^&" ,}]*/\1***/Ig'; }
+          SUDO=""; sudo -n true 2>/dev/null && SUDO="sudo -n"
+          echo "=== supabase containers, before ==="
+          $SUDO docker ps -a --format '{{.Names}}\t{{.Status}}' 2>/dev/null | grep -i supabase | scrub || echo "(docker ps gave nothing)"
+          echo
+          echo "=== the auth container's own last words ==="
+          $SUDO docker logs --tail 40 supabase-auth 2>&1 | scrub | tail -40 || echo "(no supabase-auth log)"
+          echo
+          echo "=== POST on the box itself (kong loopback) — body size is the answer ==="
+          B=$(curl -sS --max-time 20 -X POST -H 'Content-Type: application/json' \
+                -d '{"email":"heal-probe@poetech.invalid","password":"not-a-real-password"}' \
+                'http://127.0.0.1:8000/auth/v1/token?grant_type=password' 2>&1 || echo "")
+          echo "loopback POST body bytes: ${#B}"
+          printf '%s' "$B" | head -c 300 | scrub; echo
+          EOS
+
+      - name: Restart the sign-in road (hardcoded containers, nothing else)
+        if: steps.gate.outputs.go == 'true'
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          umask 077
+          printf '%s\n' "$NAS_SSH_KEY" > /tmp/nas_key
+          SSH="ssh -i /tmp/nas_key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 dpoe@poetech.tail5a2f35.ts.net"
+          $SSH 'sh -s' <<'EOS'
+          PATH=/usr/local/bin:/opt/bin:/usr/bin:/bin:$PATH; export PATH
+          SUDO=""; sudo -n true 2>/dev/null && SUDO="sudo -n"
+          # ONLY these, and only if they exist. No input reaches this list.
+          for c in supabase-kong supabase-auth supabase-rest; do
+            if $SUDO docker inspect "$c" >/dev/null 2>&1; then
+              echo "restarting $c ..."
+              $SUDO docker restart "$c" >/dev/null 2>&1 && echo "  $c restarted" || echo "  $c RESTART FAILED"
+            else
+              echo "$c is not a container on this box (skipped)"
+            fi
+          done
+          echo "waiting 25s for the stack to come back up"
+          sleep 25
+          $SUDO docker ps --format '{{.Names}}\t{{.Status}}' 2>/dev/null | grep -i supabase || true
+          EOS
+
+      - name: After — measure the POST, on the box and through poetech.us
+        if: steps.gate.outputs.go == 'true'
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+          SB_ANON: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        run: |
+          umask 077
+          printf '%s\n' "$NAS_SSH_KEY" > /tmp/nas_key
+          SSH="ssh -i /tmp/nas_key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 dpoe@poetech.tail5a2f35.ts.net"
+
+          echo "### After the restart" >> "$GITHUB_STEP_SUMMARY"
+
+          LOOP=$($SSH 'curl -sS --max-time 20 -X POST -H "Content-Type: application/json" -d "{\"email\":\"heal-probe@poetech.invalid\",\"password\":\"not-a-real-password\"}" "http://127.0.0.1:8000/auth/v1/token?grant_type=password" 2>/dev/null || echo ""')
+          echo "- POST on the NAS loopback -> **${#LOOP} bytes**" >> "$GITHUB_STEP_SUMMARY"
+          echo "loopback POST body bytes: ${#LOOP}"
+
+          # The whole road, the way a browser rides it.
+          EDGE=""
+          if [ -n "${SB_ANON:-}" ]; then
+            EDGE=$(curl -sS --max-time 25 -X POST \
+              -H "apikey: $SB_ANON" -H 'Content-Type: application/json' \
+              -d '{"email":"heal-probe@poetech.invalid","password":"not-a-real-password"}' \
+              "https://poetech.us/sb/auth/v1/token?grant_type=password" 2>/dev/null || echo "")
+            [ -n "$EDGE" ] || { sleep 8; EDGE=$(curl -sS --max-time 25 -X POST \
+              -H "apikey: $SB_ANON" -H 'Content-Type: application/json' \
+              -d '{"email":"heal-probe@poetech.invalid","password":"not-a-real-password"}' \
+              "https://poetech.us/sb/auth/v1/token?grant_type=password" 2>/dev/null || echo ""); }
+          fi
+          echo "- POST through poetech.us/sb -> **${#EDGE} bytes**" >> "$GITHUB_STEP_SUMMARY"
+          echo "edge POST body bytes: ${#EDGE}"
+
+          # A HEAL THAT DID NOT HEAL SAYS SO (DR-0076).
+          if [ -z "$LOOP" ]; then
+            echo "::error::STILL DOWN on the box — a POST to kong on the NAS loopback returned an empty body after the restart. The sovereign stack itself is not answering POSTs; this is not the Funnel and not Cloudflare."
+            exit 1
+          fi
+          if [ -n "${SB_ANON:-}" ] && [ -z "$EDGE" ]; then
+            echo "::error::The NAS answers a POST but poetech.us/sb does not — the stack healed and the ROAD between Cloudflare and the NAS is dropping bodies (Funnel or the Pages Function), so sign-in is still broken for everyone."
+            exit 1
+          fi
+          echo "SIGN-IN ROAD CARRIES A POST AGAIN (loopback ${#LOOP} bytes, edge ${#EDGE} bytes)."
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Sign-in road carries a POST again.**" >> "$GITHUB_STEP_SUMMARY"

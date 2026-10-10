@@ -28,7 +28,7 @@
 //                     ones begun, a quiet "Finished" on the ones done.
 // =============================================================================
 import React from 'react';
-import { placeAgo, placeWhere } from '../lib/learn-resume.js';
+import { placeAgo, placeWhere, placeFinishes, finishedLabel } from '../lib/learn-resume.js';
 import { confirmThen } from '../lib/confirm-action.js';
 import { unitLabels } from '../lib/learn-units.js';
 import { ownNumber } from '../lib/lesson-order.js';
@@ -154,10 +154,18 @@ export function ContinueChip({ item, onContinue }) {
 /** A lesson row's own state in the by-title list: Continue, or Finished. */
 export function RowContinue({ place, title, onContinue }) {
   if (!place) return null;
-  if (place.done) {
+  // HOW MANY TIMES, NOT WHETHER (Darrell 2026-10-10: "Some say finished
+  // should be how many times I've finished it..."). A lesson read twice said
+  // exactly what a lesson read once said, so the second reading left no mark
+  // anywhere. The count rides on the place and ratchets (lib/learn-resume.js).
+  const times = placeFinishes(place);
+  if (times) {
+    const says = times === 1
+      ? 'You finished this lesson on this device'
+      : `You finished this lesson ${times} times on this device`;
     return (
-      <span className="shrink-0 text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold px-1" data-testid="row-finished" title="You finished this lesson on this device">
-        ✓ Finished
+      <span className="shrink-0 text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold px-1" data-testid="row-finished" data-times={times} title={says} aria-label={says}>
+        {`✓ ${finishedLabel(place)}`}
       </span>
     );
   }

@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0260 — WORK IS FILED ON THE DOOR, NOT ONLY ON A TENANCY (DR-0859)
+-- 0260 — WORK IS FILED ON THE DOOR, NOT ONLY ON A TENANCY (DR-0897)
 -- =============================================================================
 -- Darrell, 2026-10-10, on the Work Board for 805 North Prospect Avenue Apt 2
 -- with "Add a microwave and cabinet with exhaust fan inside the kitchen." typed
@@ -97,11 +97,11 @@ BEGIN
 END $$;
 
 COMMENT ON COLUMN public.tenant_maintenance_requests.rental_id IS
-  'DR-0859: the DOOR this job is on (rentals.id). A job on a vacant door or on the family''s own home has a door and no tenancy; at least one of the two is required.';
+  'DR-0897: the DOOR this job is on (rentals.id). A job on a vacant door or on the family''s own home has a door and no tenancy; at least one of the two is required.';
 COMMENT ON COLUMN public.request_documentation.rental_id IS
-  'DR-0859: copied from the parent request by request_documentation_scope_from_request; never trusted from the client.';
+  'DR-0897: copied from the parent request by request_documentation_scope_from_request; never trusted from the client.';
 COMMENT ON COLUMN public.tenancy_notes.rental_id IS
-  'DR-0859: the door a note is on when no tenancy holds it (a dispatch to a vacant door or the home).';
+  'DR-0897: the door a note is on when no tenancy holds it (a dispatch to a vacant door or the home).';
 
 -- ---------------------------------------------------------------------------
 -- 1b. The door-level delegate predicate. 0185 created it with exactly this

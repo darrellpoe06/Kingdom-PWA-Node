@@ -66,6 +66,23 @@ const numbered = (mods) => mods.map((m) => {
 // ever exist. The two numbers were spent as build-sequence labels before the
 // course was settled. Their entries stay for the same reason 79 stays: the
 // number was passed over, and the header says so rather than hiding it.
+// 236, 237 and 238 were all recorded here on 2026-10-09, when five lessons were
+// built from five forwarded threads at the same time, one number each, and L239
+// landed while the others were still in flight on their own branches. All three
+// are now deleted, which is the convention working rather than failing: L237
+// (His Knowledge Is the Highest and the Standard, DR-0861) landed on main, L238
+// filled the number recorded just below, and THIS merge brings L236 in (The Bill
+// You Cannot Read, DR-0860). The second check below fails on a held number that
+// was quietly filled, and it caught each one in turn — which is how the
+// convention tells the later merge what to remove.
+// 238 WAS recorded here as a PERMANENT gap by the L237 merge, on the ground
+// that the Stop Wasting LLM Tokens teaching assigned to it was already built as
+// sov37 in the Sovereign A.I. course (DR-0824) and nothing would ever fill it.
+// This merge fills it instead, and the entry is deleted: the hurricane lesson
+// built from a forwarded storm digest and labelled L240 while its siblings held
+// 236-238 took 238 rather than leave Living Lessons a hole for a numbering slip
+// (DR-0864). Closing a hole beats documenting one, and the second check below is
+// what makes a filled-but-still-recorded number impossible to leave behind.
 const KNOWN_MISSING = [79, 211, 212];
 
 describe('every lesson id is shaped ll<number>-<slug>', () => {

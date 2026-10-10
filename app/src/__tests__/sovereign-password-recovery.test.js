@@ -255,7 +255,13 @@ describe('the locked-out path: the email door leads with what works', () => {
     expect(linkScreenClaimsOnlyWhatItKnows(src)).toBe(true);
     expect(linkScreenClaimsOnlyWhatItKnows('<h3>Sign-in link sent</h3>')).toBe(false);
     expect(src).toMatch(/Sign in with my password instead/);
-    expect(src).toMatch(/Forgot your password\?/);
+    // 2026-10-10: the wording widened, and the pin widens with it rather than
+    // being dropped. "Forgot your password?" addressed only a reader who HAS
+    // one — and Darrell hit this screen on his own phone where the real gap
+    // was the other case: an account made by a Royalty Link has no password
+    // to forget. The screen must speak to BOTH, so both are pinned.
+    expect(src).toMatch(/Forgot it, or never set one\?/);
+    expect(src).toMatch(/never set one/);
   });
 
   it('keeps the phone+PIN door a PROMINENT button from the password form', () => {

@@ -927,7 +927,7 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0250-learner-records-smoke.sql 2>&1 | tee "$RUNNER_TEMP/smoke.txt"
           grep -q 'LEARNER RECORD SMOKE: PASS' "$RUNNER_TEMP/smoke.txt"
 
-  # WORK IS FILED ON THE DOOR (DR-0859), ON A REAL POSTGRESQL. The real schema
+  # WORK IS FILED ON THE DOOR (DR-0897), ON A REAL POSTGRESQL. The real schema
   # files and migrations that own the work-order tables apply in order, 0260
   # applies twice (idempotent), then the smoke proves: the landlord files on a
   # vacant door and on the family's own home with no tenancy; a row naming

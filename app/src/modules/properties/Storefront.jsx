@@ -21,6 +21,7 @@
 import React, { useEffect, useState } from 'react';
 import { loadVacancyPhotos } from './cloud.js';
 import { applyUrl } from './apply-link.js';
+import Lightbox from '../../components/Lightbox.jsx';
 
 const ACCENT = '#2F5D50';
 const serif = { fontFamily: '"Fraunces", serif' };
@@ -33,6 +34,7 @@ const serif = { fontFamily: '"Fraunces", serif' };
 export function VacancyCard({ unit }) {
   const [shots, setShots] = useState([]);
   const [i, setI] = useState(0);
+  const [open, setOpen] = useState(null); // index being shown large, or null
 
   useEffect(() => {
     if (!unit.rentalId) return undefined;
@@ -52,12 +54,27 @@ export function VacancyCard({ unit }) {
     <li className="border border-[#E8E4DC] bg-white overflow-hidden">
       <div className="aspect-[4/3] w-full bg-[#FAF8F4] flex items-center justify-center overflow-hidden">
         {shot?.storage_path ? (
-          <img
-            src={shot.storage_path}
-            alt={shot.caption || `${unit.label}${unit.unit ? ` ${unit.unit}` : ''}`}
-            loading="lazy"
-            className="w-full h-full object-cover"
-          />
+          /* THE PICTURE OPENS. Darrell, 2026-10-10: "Applications can't review
+             the pictures of the place... just a placeholder for one image...
+             can't click to see all images" and "image doesn't get bigger...
+             fix it so it's intuitive". The Lightbox this opens is the SAME one
+             the owner-side photo grids and the Life Gallery already use —
+             pinch-zoom, swipe, arrow keys, Esc. It existed; this card simply
+             never called it. */
+          <button
+            type="button"
+            onClick={() => setOpen(i)}
+            aria-label={`Open photo ${i + 1} of ${shots.length} larger`}
+            data-testid="vacancy-photo-open"
+            className="w-full h-full block cursor-zoom-in focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+          >
+            <img
+              src={shot.storage_path}
+              alt={shot.caption || `${unit.label}${unit.unit ? ` ${unit.unit}` : ''}`}
+              loading="lazy"
+              className="w-full h-full object-cover"
+            />
+          </button>
         ) : (
           /* Said plainly rather than shown as a broken frame or a stock photo of
              somewhere else — a stand-in picture of a different building is a
@@ -68,18 +85,54 @@ export function VacancyCard({ unit }) {
         )}
       </div>
 
+      {/* CONTROLS A THUMB CAN HIT, AND EVERY PHOTO REACHABLE.
+          What was here: ten-pixel dots, capped at `shots.slice(0, 6)` — so a
+          door with ten listing photographs showed six circles and FOUR
+          PICTURES NO APPLICANT COULD EVER REACH, however many circles they
+          poked. Darrell, 2026-10-10: "Have to push the small circles... image
+          doesn't get bigger... fix it so it's intuitive."
+          Now: 44px arrows, the real count in words, and a button that opens
+          the whole set. Nothing is capped. */}
       {shots.length > 1 && (
-        <div className="flex flex-wrap gap-1 p-1.5 border-b border-[#F0EDE6]">
-          {shots.slice(0, 6).map((p, n) => (
-            <button
-              key={p.id || n}
-              type="button"
-              onClick={() => setI(n)}
-              aria-label={`Photo ${n + 1} of ${shots.length}`}
-              className={`w-2.5 h-2.5 rounded-full border ${n === i ? 'bg-[#2F5D50] border-[#2F5D50]' : 'bg-white border-[#C9C4BA]'}`}
-            />
-          ))}
+        <div className="flex items-center justify-between gap-2 px-1.5 py-1 border-b border-[#F0EDE6]">
+          <button
+            type="button"
+            onClick={() => setI((n) => (n - 1 + shots.length) % shots.length)}
+            aria-label="Previous photo"
+            data-testid="vacancy-photo-prev"
+            className="min-w-[44px] min-h-[44px] text-[#1A1815] hover:bg-[#F0EDE6] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+          >
+            ‹
+          </button>
+          <button
+            type="button"
+            onClick={() => setOpen(i)}
+            data-testid="vacancy-photo-seeall"
+            className="flex-1 min-h-[44px] text-[0.75rem] text-[#2F5D50] underline hover:bg-[#F0EDE6] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+          >
+            {`See all ${shots.length} photos — ${i + 1} of ${shots.length}`}
+          </button>
+          <button
+            type="button"
+            onClick={() => setI((n) => (n + 1) % shots.length)}
+            aria-label="Next photo"
+            data-testid="vacancy-photo-next"
+            className="min-w-[44px] min-h-[44px] text-[#1A1815] hover:bg-[#F0EDE6] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+          >
+            ›
+          </button>
         </div>
+      )}
+      {open != null && (
+        <Lightbox
+          items={shots.map((p) => ({
+            src: p.storage_path,
+            alt: p.caption || `${unit.label}${unit.unit ? ` ${unit.unit}` : ''}`,
+            caption: p.caption || '',
+          }))}
+          index={open}
+          onClose={() => setOpen(null)}
+        />
       )}
 
       <div className="p-2.5">

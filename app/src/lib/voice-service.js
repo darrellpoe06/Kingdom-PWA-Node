@@ -235,7 +235,14 @@ export async function synthesizeSpeech({
       return { error: 'voice-service-empty' };
     }
     if (!referenceDataUri && allowBuiltIn) builtInSupport = 'yes';
-    return { url: URL.createObjectURL(blob) };
+    // WHICH VOICE ACTUALLY SPOKE (2026-10-09). A cloned voice and a stand-in
+    // are not interchangeable, and the reader could not tell them apart: with
+    // the studio dark the engine fell back silently while the picker still
+    // read "My voice (Darrell)". Darrell heard it before any surface said it:
+    // "Switched to a female voice..." Every successful synthesis now names
+    // its own engine so the caller can report the truth instead of the
+    // request. 'studio' is the real cloned timbre.
+    return { url: URL.createObjectURL(blob), engine: 'studio' };
   } catch (e) {
     if (!referenceDataUri && allowBuiltIn) builtInSupport = 'no';
     if (timedOut) return { error: 'voice-service-timeout' };
@@ -533,7 +540,8 @@ async function synthesizeLiteOnce({ text, voice = 'male', format, speed = 1, tim
     if (!blob || !blob.size) return { error: 'voice-lite-empty' };
     // The blob rides along so the reader can keep the clip on the device
     // (lib/clip-cache.js, DR-0659), and says which shape it is.
-    return { url: URL.createObjectURL(blob), blob, format: formatOfType(ctype || (blob.type || '')) };
+    // 'voice-lite' is Piper on the NAS: a real voice, but NOT the cloned one.
+    return { url: URL.createObjectURL(blob), blob, format: formatOfType(ctype || (blob.type || '')), engine: 'voice-lite' };
   } catch (e) {
     return { error: timedOut ? 'voice-lite-timeout' : ((e && e.message) || 'voice-lite-error') };
   } finally {

@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "include": [
+    "/api/*",
+    "/automation-status",
+    "/cams/*",
+    "/interest",
+    "/link",
+    "/llm/*",
+    "/n8n/*",
+    "/nas-photos/*",
+    "/openers/*",
+    "/poetech-app/assets/*",
+    "/poetech-app/taxes/*",
+    "/property-history",
+    "/review-action",
+    "/review-feed",
+    "/reviews/*",
+    "/sb/*",
+    "/scribe/*",
+    "/store/apk/*",
+    "/taxes/*",
+    "/voice-lite/*",
+    "/voice/*",
+    "/wake-orchestrator",
+    "/wake-orchestrator-control",
+    "/ways/*"
+  ],
+  "exclude": []
+}

@@ -8,7 +8,7 @@ import { findRelatedAuto } from '../poe-financial-mvp-v28.jsx';
 import { DispatchPanel } from './DispatchPanel.jsx';
 import { parseChatHistory, toConversationEntries } from '../lib/chat-import.js';
 import { compressImageFile } from '../lib/image.js';
-import { loadDoorPhotos as loadCloudDoorPhotos, loadPhotoImages as loadCloudPhotoImages } from '../modules/properties/cloud.js';
+import { loadDoorPhotos as loadCloudDoorPhotos, loadPhotoImages as loadCloudPhotoImages, loadDoorTenancies } from '../modules/properties/cloud.js';
 import { listImage as cloudListImage } from '../modules/properties/photo-order.js';
 import { hasBridgeToken, chatChannelFor, fetchChannelPhotos, propertyPhotosUrl } from '../lib/nas-photos.js';
 import PropertyPhotoActions, { PhotoRemoveButton } from './PropertyPhotoActions.jsx';
@@ -288,6 +288,27 @@ function PropertyGallery({ rental, nasTotal = null }) {
               ? 'No local photos yet, and the NAS archive is not reachable right now — it reconnects on its own next visit.'
               : 'No photos yet for this property. Room photos, maintenance shots, the pictures taken on its Poe Properties door, and the NAS chat archive all land here, oldest to latest.'}
         </p>
+        {/* THE LINK IS NAMED WHEN IT IS MISSING (Darrell, 2026-10-10: "Does it
+            interconnect to each other inside the appropriate locations? Images
+            transferred to the Properties tab inside PoeTech... however not to
+            the Real Estate tab.... data should be end to end workflows").
+
+            It DOES interconnect, and this panel already merges the door's
+            pictures — but on ONE hinge: rental.remoteUuid, the cloud rentals
+            id that property_photos.rental_ref points at. Until this record has
+            been synced it has no remoteUuid, so cloudRef is null, the door
+            query never runs, and the door's pictures simply never appear —
+            while the sentence above still PROMISES them. A surface that
+            promises what it cannot deliver is the fault (DR-0076 §1), and a
+            surface must say what is missing and how to fix it (P15/DR-0381).
+            So the missing link now says so, in its own line. */}
+        {!cloudRef && (
+          <p className="text-[0.6875rem] text-[#B85838] mt-1" style={{ fontFamily: '"Fraunces", serif' }} data-testid="door-not-linked">
+            This property is not linked to its Poe Properties door yet, so the pictures taken on that door cannot
+            appear here. Sign in and let Real Estate sync once — the link is the record’s cloud id, and it is made
+            for you the first time this property reaches the cloud.
+          </p>
+        )}
         {/* An empty address is exactly where someone wants to add the first
             picture, so the control is here too — not only once a strip exists. */}
         {dest
@@ -302,6 +323,16 @@ function PropertyGallery({ rental, nasTotal = null }) {
         <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">Property Photos · oldest → latest{totalKnown ? ` · ${totalKnown} in the archive` : ''}</div>
         {nas.status === 'loading' && <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">reading the NAS archive…</span>}
       </div>
+      {/* Same truth on the populated strip: a property with room and archive
+          photos but no cloud id is STILL missing every picture taken on its
+          Poe Properties door, and a full-looking strip hides that better than
+          an empty one does. */}
+      {!cloudRef && (
+        <p className="text-[0.6875rem] text-[#B85838] mt-1" style={{ fontFamily: '"Fraunces", serif' }} data-testid="door-not-linked">
+          Not linked to its Poe Properties door yet — pictures taken on that door are not in this strip. Sign in and
+          let Real Estate sync once to make the link.
+        </p>
+      )}
       <div className="flex flex-wrap gap-2 mt-2">
         {items.map((p, pi) => (
           <div key={p.id} className="w-24">
@@ -607,6 +638,43 @@ function PropertyDetails({ rental, updateRental, paid = null }) {
   const [tenantForm, setTenantForm] = useState(blankTenant());
   const [editingLeaseTenant, setEditingLeaseTenant] = useState(false);
 
+  // =========================================================================
+  // THE TENANCIES STARTED ON THE POE PROPERTIES DOOR, SHOWN HERE
+  // =========================================================================
+  // Darrell, 2026-10-10: "Working?!!!!! Tenant information?" and "End to end?"
+  //
+  // Measured before writing this: Real Estate kept its OWN tenant object
+  // (rental.tenant — name, phone, email, move-in, emergency contact) and read
+  // `rental_tenancies` ZERO times, while Start-the-tenancy on the Poe
+  // Properties door writes a full row there. So a tenancy begun on the door —
+  // lease start, rent, phone, email, the subsidised flag — never reached this
+  // tab at all; the only thing crossing was a bare tenant_name string on the
+  // rentals row. Two stores, one address, no wire.
+  //
+  // THE DOOR IS THE SYSTEM OF RECORD for a tenancy, because that is where the
+  // workflow writes it and where RLS already governs it. This tab SHOWS what
+  // the door holds; it does not copy it into the local object, because two
+  // writable copies of a real person's lease is how records get lost.
+  // Starting or ending a tenancy stays on the door (P68 — a control lives
+  // where its scope lives).
+  //
+  // KEYED BY THE SLUG, deliberately. The catalog was measured on 2026-08-27
+  // after the wrong key was passed to both: rental_tenancies.rental_ref is
+  // TEXT (the rentals SLUG), while property_rooms and property_photos use the
+  // UUID. Handing the uuid here would match nothing and show an empty panel
+  // that looks exactly like "no tenants" — the quiet failure this whole
+  // question is about.
+  const tenancyRef = rental.slug || rental.id || null;
+  const [doorTenancies, setDoorTenancies] = useState(null); // null = not asked yet
+  useEffect(() => {
+    let cancelled = false;
+    if (!tenancyRef) { setDoorTenancies([]); return undefined; }
+    loadDoorTenancies(tenancyRef).then((r) => {
+      if (!cancelled) setDoorTenancies(r.ok ? (r.tenancies || []) : []);
+    });
+    return () => { cancelled = true; };
+  }, [tenancyRef]);
+
   const saveLeaseTenant = () => {
     updateRental(rental.id, {
       lease: {
@@ -883,6 +951,39 @@ function PropertyDetails({ rental, updateRental, paid = null }) {
                 <div><span className="text-[#5A5751]">Email:</span> {rental.tenant?.email ? <a href={`mailto:${rental.tenant.email}`} className="underline text-[#B85838]">{rental.tenant.email}</a> : '—'}</div>
                 <div><span className="text-[#5A5751]">Emergency contact:</span> {rental.tenant?.emergencyContactName || '—'}{rental.tenant?.emergencyContactPhone ? ` · ${rental.tenant.emergencyContactPhone}` : ''}</div>
               </div>
+            )}
+            {/* What the DOOR holds, in the same panel, so the two surfaces
+                stop disagreeing about who lives here. */}
+            {doorTenancies && doorTenancies.length > 0 && (
+              <div className="mt-2 border-t border-[#F0EDE6] pt-2" data-testid="door-tenancies">
+                {/* #5A6E3D, not the #2F5D50 this first reached for: that token
+                    has no midnight remap, so the header measured 2.46:1 on the
+                    dark card and the legibility guard failed the build. This
+                    one is remapped (#86EFAC) and is already the file's
+                    emphasis header at L1870. */}
+                <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A6E3D] font-semibold">
+                  {`On its Poe Properties door · ${doorTenancies.length} ${doorTenancies.length === 1 ? 'tenancy' : 'tenancies'}`}
+                </div>
+                {doorTenancies.map((t) => (
+                  <div key={t.id} className="mt-1 grid grid-cols-1 sm:grid-cols-2 gap-x-2">
+                    <div><span className="text-[#5A5751]">Tenant:</span> {t.tenant_name || '—'}</div>
+                    <div><span className="text-[#5A5751]">Lease start:</span> {t.lease_start || '—'}</div>
+                    <div><span className="text-[#5A5751]">Rent:</span> {t.monthly_rent ? fmt(t.monthly_rent) : '—'}</div>
+                    <div><span className="text-[#5A5751]">Status:</span> {t.status || '—'}</div>
+                    {t.tenant_phone && <div><span className="text-[#5A5751]">Phone:</span> <a href={`tel:${t.tenant_phone}`} className="underline text-[#B85838]">{t.tenant_phone}</a></div>}
+                    {t.tenant_email && <div><span className="text-[#5A5751]">Email:</span> <a href={`mailto:${t.tenant_email}`} className="underline text-[#B85838]">{t.tenant_email}</a></div>}
+                    {t.subsidised && <div className="sm:col-span-2 text-[#5A5751]">Subsidised (Section 8 / voucher)</div>}
+                  </div>
+                ))}
+                <p className="text-[0.625rem] text-[#5A5751] mt-1 italic">
+                  Started on the door, and edited there — this is the record, shown here so both tabs agree.
+                </p>
+              </div>
+            )}
+            {doorTenancies && doorTenancies.length === 0 && (
+              <p className="text-[0.625rem] text-[#5A5751] mt-2 italic" data-testid="door-tenancies-none">
+                No tenancy started on its Poe Properties door. One begun there appears here too.
+              </p>
             )}
             <button type="button" onClick={() => { setLeaseForm(blankLease()); setTenantForm(blankTenant()); setEditingLeaseTenant(true); }} className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] mt-1">Edit lease &amp; tenant</button>
           </div>

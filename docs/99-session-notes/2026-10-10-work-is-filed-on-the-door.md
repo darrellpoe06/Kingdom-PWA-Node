@@ -1,4 +1,4 @@
-# 2026-10-10 — Work is filed on the door (DR-0859)
+# 2026-10-10 — Work is filed on the door (DR-0897)
 
 **What Darrell saw.** Two screenshots of the Work board on 805 North Prospect Avenue Apt 2. The door reads "No tenancy on this door". *"Add a microwave and cabinet with exhaust fan inside the kitchen."* is typed in, and FILE IT is greyed out. His words: "Can't file a workorder... Fix it", "They obviously should be able to", "Any property including our home... a 1099 worker", and "even a person walking through an Airbnb or short-term rental... cleaning done asap".
 

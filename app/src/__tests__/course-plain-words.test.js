@@ -103,9 +103,42 @@ describe('THE TITLES ARE UNTOUCHED — this is additive or it is wrong', () => {
   });
 });
 
+// THE WINDOW IS THE WHOLE INDEX, AND THE RANKING DEBT IS NAMED RATHER THAN
+// ABSORBED (measured 2026-10-09, while L237 was landing).
+//
+// This block asked whether a declared word finds its course inside the top 400
+// ranked hits. That number had exactly ONE row of headroom: `work` matched 432
+// rows and eternal-wisdom's first row sat at rank 399, so the next lesson added
+// to any course carrying `work` pushed it to 400 and turned the check red. L237
+// was that lesson, and nothing about its prose could change it — `work` is a
+// declared plain word for the whole Living Lessons course, so every one of its
+// lessons matches, and ties keep catalog order, which puts all of them ahead of
+// eternal-wisdom. A check that decays on catalog growth reports the calendar,
+// not the property.
+//
+// SO THE WINDOW IS NOW THE INDEX ITSELF, which is the property this block's own
+// name states: the word finds its course, or it is silently dead. The teeth are
+// unchanged — a word present in no row of its course still fails, and the
+// proven-to-catch case below still shows an undeclared word finding nothing.
+//
+// AND THE REAL FINDING, recorded here because it is the more useful half and it
+// is NOT what the 400 was measuring. The product's own window is 40
+// (`searchLessons(index, query, limit = 40)`, learn-organize.js, and
+// ChurchLearn.jsx calls it with the default). Measured at 40: `work` does NOT
+// reach eternal-wisdom, and it did not before L237 either. That connection is
+// dead on the live surface today, because `work` is a very common word and a
+// plain-word match scores rank 1, behind every title and anchor hit and behind
+// 400+ earlier rows. That is a ranking defect in the finder, not in any lesson,
+// and it is out of scope for the lesson that exposed it: it needs the plain-word
+// connection to carry weight of its own, or the registry to stop declaring a
+// word that common. Left with a reason and a date rather than hidden (DR-0075).
+// re-review: 2026-11-09
+const finds = (query, courseKey, limit = index.length) =>
+  searchLessons(index, query, limit).some((r) => r.courseKey === courseKey);
+const hits = (query, courseKey, limit = index.length) =>
+  searchLessons(index, query, limit).filter((r) => r.courseKey === courseKey);
+
 describe('the connection is REAL, measured through the live search (DR-0076 §6)', () => {
-  const finds = (query, courseKey) =>
-    searchLessons(index, query, 400).some((r) => r.courseKey === courseKey);
 
   it('money reaches Kingdom Economics, whose title has no such word', () => {
     expect(finds('money', 'kingdom-economics')).toBe(true);
@@ -130,6 +163,60 @@ describe('the connection is REAL, measured through the live search (DR-0076 §6)
       for (const w of words) if (!finds(w, key)) dead.push(`${key}: ${w}`);
     }
     expect(dead, dead.slice(0, 10).join(', ')).toEqual([]);
+  });
+
+  it('PROVEN-TO-CATCH: searching the whole index did NOT remove the teeth', () => {
+    // A word genuinely absent from a course's rows finds nothing at ANY window,
+    // so the check above can still fail. If this ever passes, it has gone hollow.
+    expect(finds('zzqqxx', 'living-lessons')).toBe(false);
+    expect(finds('zzqqxx', 'eternal-wisdom')).toBe(false);
+    // And the whole-index window is a real window, not infinity-by-accident.
+    expect(index.length).toBeGreaterThan(400);
+  });
+
+  // STRONGER THAN THE WINDOW IT REPLACES, and not catalog-size dependent: a
+  // course is not "reached" by a row that carries no lesson. Every declared
+  // word must land on a real lesson of its own course, named.
+  it('every declared word lands on a REAL lesson of its own course', () => {
+    const hollow = [];
+    for (const [key, words] of Object.entries(COURSE_PLAIN_WORDS)) {
+      if (!courses.some((c) => c.key === key)) continue;
+      for (const w of words) {
+        const real = hits(w, key).filter((r) => String(r.lessonId || '').trim() && String(r.title || '').trim());
+        if (!real.length) hollow.push(`${key}: ${w}`);
+      }
+    }
+    expect(hollow, hollow.slice(0, 10).join(', ')).toEqual([]);
+  });
+
+  it('the ranking debt is COUNTED, not hidden: common words die in the window the product uses', () => {
+    // MEASURED 2026-10-09 on the real catalog: of 278 declared word-to-course
+    // connections, every one is present in the index (the check above), and 75
+    // are unreachable inside the window the product actually passes (40). That
+    // is the finder's ranking, not any lesson's prose: a plain-word match scores
+    // rank 1, behind every title and anchor hit, so a common word like `work`
+    // or `bible` is buried under hundreds of earlier rows.
+    //
+    // THIS NUMBER IS A HIGH-WATER MARK AND MOVES ONE WAY, the way the band
+    // excuse list does. Lower it in the same commit that improves the finder.
+    // RAISING it is the edit this assertion exists to make impossible to do
+    // quietly — a connection that regresses out of reach is a product
+    // regression, and the honest move is to fix the finder, never the ceiling.
+    const CEILING = 75;
+    let declared = 0;
+    const dead = [];
+    for (const [key, words] of Object.entries(COURSE_PLAIN_WORDS)) {
+      if (!courses.some((c) => c.key === key)) continue;
+      for (const w of words) {
+        declared += 1;
+        if (!finds(w, key, 40)) dead.push(`${key}: ${w}`);
+      }
+    }
+    expect(declared, 'the walk covers the real registry').toBeGreaterThan(200);
+    expect(
+      dead.length,
+      `more declared words are now out of reach at the product window than the recorded ${CEILING}:\n${dead.slice(0, 10).join('\n')}`,
+    ).toBeLessThanOrEqual(CEILING);
   });
 
   it('PROVEN-TO-CATCH: a word nobody declared finds nothing, so the search is not matching everything', () => {

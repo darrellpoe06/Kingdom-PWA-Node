@@ -4,6 +4,19 @@
 # external-origin proxy; _redirects cannot proxy external domains). Functions
 # run BEFORE these rules, so /n8n/* never falls through to here.
 #
+# WHICH paths reach a Function is declared in public/_routes.json, and that file
+# is strict JSON so it cannot explain itself — the reason lives here. On
+# 2026-10-09 Darrell and his wife were locked out of the app: every Function
+# route on poetech.us answered with the SPA shell (200 text/html), and the
+# sign-in POST answered 405 with an EMPTY body, which is what Pages returns for
+# a POST to a static asset. Sign-in died on .json() of nothing. The NAS gateway
+# and the Tailscale Funnel both answered the identical POST healthily (400, 81
+# bytes), and the deploy logged "Compiled Worker successfully" and "Uploading
+# Functions bundle" the whole time, so nothing was broken except the routing
+# table Pages derives for itself. _routes.json states that table explicitly.
+# Add a Function, add its include — pages-functions-are-routed.test.js is the
+# gate, proven to catch both an unrouted Function and a dropped /sb/*.
+#
 # The app is built with Vite base '/poetech-app/', so index.html references its
 # assets as /poetech-app/assets/... . The build output (dist) is published at
 # the site ROOT, so map the /poetech-app/ prefix back to root — exactly the

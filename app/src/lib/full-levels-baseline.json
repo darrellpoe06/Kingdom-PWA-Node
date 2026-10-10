@@ -5,19 +5,14 @@
     "teen": 0.6,
     "senior": 0.6
   },
-  "note": "Shrink-only debt (DR-0418). Each entry names the bands of a lesson that are missing or below the floor share of the adult lesson. A NEW short band fails the build; entries are removed as full levels are authored, never added. 2026-09-20: ll57 (Power to Tread) was re-authored whole — the child band rewritten from grade 10.1 to 1.5, a youth band authored where none existed, and teen and senior extended past the floor. It leaves this list because its CONTENT changed, not because an entry was edited out. All four of its bands now clear their floors (child 0.59, youth 0.68, teen 0.71, senior 0.66), so it is removed rather than reduced; lessonsShort 68 -> 67.",
+  "note": "Shrink-only debt (DR-0418). Each entry names the bands of a lesson that are missing or below the floor share of the adult lesson. A NEW short band fails the build; entries are removed as full levels are authored, never added. 2026-09-20: ll57 (Power to Tread) was re-authored whole — the child band rewritten from grade 10.1 to 1.5, a youth band authored where none existed, and teen and senior extended past the floor. It leaves this list because its CONTENT changed, not because an entry was edited out. All four of its bands now clear their floors (child 0.59, youth 0.68, teen 0.71, senior 0.66), so it is removed rather than reduced; lessonsShort 68 -> 67. 2026-10-10: ll72 (The Berean Foundation) was made whole -- a youth band authored where none existed (338 words, 0.77 of the adult prose, reading grade 6.01, which sits between its own child band at 5.20 and its teen band at 6.69) and the teen band extended past the floor to 0.61. It leaves this list because its CONTENT changed, not because an entry was edited out; all four bands now clear their floors. lessonsShort 66 -> 65.",
   "measuredLessons": 196,
-  "lessonsShort": 67,
+  "lessonsShort": 65,
   "short": {
     "ll10-strength-and-honour-are-her-clothing": [
       "child",
       "youth",
       "teen"
-    ],
-    "ll14-ten-healed-one-whole": [
-      "child",
-      "youth",
-      "senior"
     ],
     "ll15-seasoned-with-salt": [
       "child",
@@ -354,10 +349,6 @@
     ],
     "ll71-the-two-gates-and-the-father-of-the-fatherless": [
       "child",
-      "youth",
-      "teen"
-    ],
-    "ll72-the-berean-foundation": [
       "youth",
       "teen"
     ],

@@ -76,7 +76,8 @@ import { matrixFor, matrixBlockText, readNextInvitation } from '../lib/scripture
 import CopyButton from './CopyButton.jsx';
 import ShareButton from './ShareButton.jsx';
 import StoryLibrary from './StoryLibrary.jsx';
-import LessonStories from './LessonStories.jsx';
+import ColoringSheet, { ColoringBookButton } from './ColoringSheet.jsx';
+import LessonStories, { AddPerspective } from './LessonStories.jsx';
 import { subscribeSubmissions, reviewSubmission, promoteSubmission } from '../lib/story-library.js';
 import { engagementRowsByAge } from '../lib/learn-engagement.js';
 import { LessonFlowAudience, LessonRunOfShow, TimeFit } from './LessonFlow.jsx';
@@ -1248,14 +1249,27 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
   const downloads = useDownloads();
   const savedSig = downloads.lessons[module.id] ? JSON.stringify(downloads.lessons[module.id].levels) : '';
   React.useEffect(() => {
+    const liveText = readAloudTextFromArc(buildLessonArc(module, { ageBand, levelOverride, sessionFlow, handsOnLabel }));
     const savedText = !online && !levelOverride ? savedReadingFor(module, ageBand, { sessionFlow, handsOnLabel }) : null;
-    const text = savedText || readAloudTextFromArc(buildLessonArc(module, { ageBand, levelOverride, sessionFlow, handsOnLabel }));
+    // THE SAVED READING ONLY WINS WHEN IT IS THIS PAGE'S READING (2026-10-09).
+    // Darrell, from the lesson reader: "reading something totally different
+    // from what's on the page." `savedReadingFor` builds the reading for the
+    // VERSION that serves this band (lesson-downloads.js), which is not always
+    // the band itself — so a saved reading can be a different version's words
+    // while the page shows this one's. Preferring it then hands the reader text
+    // the listener cannot see, and the saved clips are keyed on those other
+    // words, so the mismatch is audible, not cosmetic. Compared, not assumed
+    // (DR-0076 §4): same reading → the saved one is used and `preferText` asks
+    // the reader to speak it so the device's own clips play (DR-0722);
+    // different → the page's reading is registered and read normally.
+    const sameReading = !!savedText && savedText === liveText;
+    const text = sameReading ? savedText : liveText;
     if (text) {
       setReadTarget(module.id, {
         label: `this ${unitNoun}`,
         title: module.title || '',
         text,
-        preferText: !!savedText,
+        preferText: sameReading,
         elementId: `learn-read-${module.id}`,
         prepare: (on) => setReadAll(!!on),
         next: onAdvance || null,
@@ -1362,9 +1376,15 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
                 Jesus taught (Matthew 13:34); the teacher drops these to land the point.
                 DR-0855: each story is its own dropdown (an option, picked, not a wall),
                 the space's reviewed perspectives on the same lesson sit beneath, and
-                the last dropdown is where a reader adds theirs. LessonStories carries
-                the truth labels (DR-0811) exactly as the cards did. */}
-            <LessonStories lesson={module} stories={seg.audience.stories} />
+                and LessonStories carries the truth labels (DR-0811) exactly as the
+                cards did.
+                THE ASK FOR THE READER'S OWN STORY IS NOT HERE (2026-10-10, Darrell:
+                "Asking users for their stories in the middle of our lessons is a
+                distraction.... put it at the end of the lessons"). The taught stories
+                stay, because they ARE the teaching; the invitation to write your own
+                is a task, and a task set mid-reading takes the reader out of it. It
+                moves to the 'send' stage, after the reading is done. */}
+            <LessonStories lesson={module} stories={seg.audience.stories} askForYours={false} />
             {/* Multi-modal media — diagrams, POV SOP clips, embedded videos */}
             <MediaList module={module} />
             {/* Who He Is (DR-0675): every passage this lesson carries, with where,
@@ -1453,19 +1473,30 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
           </>
         );
       case 'send':
-        return Array.isArray(seg.audience.benefits) && seg.audience.benefits.length > 0 ? (
-          <div className="border-l-4 border-[#5A6E3D] bg-[#5A6E3D]/[0.06] pl-3 py-2">
-            <div className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold mb-1">What this frees in you</div>
-            <ul className="list-disc pl-4 space-y-1">
-              {seg.audience.benefits.map((b, i) => (
-                <li key={i} className="text-xs text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{b}</li>
-              ))}
-            </ul>
-          </div>
-        ) : (
-          <p className="text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
-            Carry one thing from this {unitNoun} into a real moment this week.
-          </p>
+        // THE LAST STAGE, AND WHERE THE ASK BELONGS (2026-10-10). The reading
+        // is over here, so the invitation to add your own story is an offer
+        // rather than an interruption — and it is still the same component,
+        // the same review path, the same lesson (DR-0855).
+        return (
+          <>
+            {Array.isArray(seg.audience.benefits) && seg.audience.benefits.length > 0 ? (
+              <div className="border-l-4 border-[#5A6E3D] bg-[#5A6E3D]/[0.06] pl-3 py-2">
+                <div className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold mb-1">What this frees in you</div>
+                <ul className="list-disc pl-4 space-y-1">
+                  {seg.audience.benefits.map((b, i) => (
+                    <li key={i} className="text-xs text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{b}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : (
+              <p className="text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+                Carry one thing from this {unitNoun} into a real moment this week.
+              </p>
+            )}
+            <div className="mt-3">
+              <AddPerspective lesson={module} />
+            </div>
+          </>
         );
       default:
         return null;
@@ -1846,6 +1877,37 @@ function CourseView({
   // This course's saved places, one parse per render, for the cards' own
   // Start/Continue buttons.
   const placeByLesson = Object.fromEntries(listPlaces({ courseKey: course.key }).map((p) => [p.lessonId, p]));
+
+  // READING A LESSON IS THE RECEIPT (2026-10-10). Darrell, with the lesson
+  // list saying "✓ FINISHED" on a lesson and the Class Record on the same
+  // screen saying "nothing read yet": "I've read most if not all of the
+  // lessons!!!!!!!!!!!!!! What are these fake records?!!!!!!!!"
+  //
+  // Not fake — counting the wrong thing. The Class Record has exactly two
+  // writers (lib/use-learner-records.js): the learner TAPPING "mark read",
+  // and answering an exam. Reading a lesson, or being read it to the end,
+  // wrote nothing to it — which lessons-walked.js admits in its own header
+  // ("a lesson's opens are not recorded per lesson"). So the places knew he
+  // had finished and the record did not, and the record printed a sentence
+  // that was not true.
+  //
+  // The place IS the evidence and it is already on the device: a lesson read
+  // to the end carries done/finishes (lib/learn-resume.js). Every finished
+  // place the record has not got is filed once — which brings in the history
+  // already on this phone, not only what is read from here on. Marked, never
+  // unmarked: `toggleModule` toggles, so a lesson the record already holds is
+  // skipped, and each is sent at most once per session. No loop — a filed
+  // lesson lands in `progress` and is skipped from then on.
+  const filedReads = React.useRef(new Set());
+  React.useEffect(() => {
+    if (!signedIn || typeof toggleModule !== 'function') return;
+    for (const p of listPlaces({ courseKey: course.key })) {
+      if (!placeIsFinished(p) || progress[p.lessonId] || filedReads.current.has(p.lessonId)) continue;
+      filedReads.current.add(p.lessonId);
+      try { toggleModule(p.lessonId, course.key); } catch (_) { /* the reading stands either way */ }
+    }
+  }, [signedIn, toggleModule, course.key, progress]);
+
   React.useEffect(() => {
     if (!focusId || typeof window === 'undefined') return undefined;
     let userAt = 0;
@@ -3098,6 +3160,13 @@ function CourseView({
                   </div>
                 );
               })()}
+              {/* FOR THE LITTLEST (DR-0866). Darrell, 2026-10-10: "Coloring
+                  books with words inside... that reflect the same lesson..."
+                  It sits directly under Talk About It because that is the
+                  family block, and a coloring page is how a child under nine
+                  receives the same lesson the grown-up is reading aloud. The
+                  sheet is derived from this lesson — nothing retyped. */}
+              <ColoringSheet module={m} signedIn={signedIn} />
               {/* SEARCH IT OUT (DR-0734). Darrell, 2026-10-01: "Integrated lessons
                   also so they make users want to learn more about Yahweh and the
                   Word's mysteries... so we produce kings like the Word says." The
@@ -3640,6 +3709,11 @@ function CourseView({
           <button type="button" onClick={copyCurriculum} className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">Copy markdown</button>
           <button type="button" onClick={downloadCurriculum} className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">Download .md</button>
           <button type="button" onClick={printCurriculum} className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">Print</button>
+          {/* THE COLORING BOOK — the whole course, one sheet a page (DR-0866).
+              It is a COURSE-scope control, so it stands here with the course's
+              own Copy / Download / Print, never above one open lesson
+              (P68 / DR-0688). */}
+          <ColoringBookButton modules={schedule} title={`${meta.title || 'Course'} — Coloring Book`} />
         </div>
         )}
         {exportNote && <p className="text-[0.6875rem] text-[#5A6E3D] mt-2" style={{ fontFamily: '"Fraunces", serif' }} aria-live="polite">{exportNote}</p>}
@@ -4101,7 +4175,18 @@ export default function ChurchLearn({
   const classRecordSummary = React.useMemo(() => {
     if (!signedIn) return 'sign in and your record is kept here';
     const rows = Array.isArray(learnerRecords) ? learnerRecords : [];
-    if (!rows.length) return 'nothing read yet';
+    // NEVER SAY NOTHING WAS READ WHILE THE DEVICE SAYS OTHERWISE (2026-10-10).
+    // The lesson list was showing "✓ FINISHED" on a lesson at the moment this
+    // line read "nothing read yet" — two surfaces, one device, contradicting
+    // each other, because this one reads only the cloud rows and the list
+    // reads the places. The places are filed into the record now (CourseView),
+    // but a record that has not arrived yet must still not claim the reading
+    // never happened. It says what IS known and where it is (DR-0622).
+    if (!rows.length) {
+      const read = listPlaces().filter(placeIsFinished).length;
+      if (!read) return 'nothing read yet';
+      return `${read} lesson${read === 1 ? '' : 's'} finished on this device, syncing to your record`;
+    }
     const { learners, totals } = aggregateLearnerRecords(rows, { courseTotals: courseLessonTotals });
     const score = totals.examsTaken ? `, average ${totals.avgQuizPct}%` : ', no exam answered yet';
     const who = isGovernor && learners.length > 1 ? `${learners.length} learners, ` : '';

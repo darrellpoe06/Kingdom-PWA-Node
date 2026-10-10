@@ -325,6 +325,62 @@ jobs:
               *) sleep 5; SB_SOV=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 "https://poetech.us/sb/auth/v1/health" 2>/dev/null) || SB_SOV="000" ;;
             esac
             note "- \`GET poetech.us/sb/auth/v1/health\` (sovereign transport) -> **${SB_SOV:-000}**"
+            # A 200 THAT IS THE APP SHELL IS NOT A HEALTHY BACKEND. Measured
+            # 2026-10-09, the whole time Darrell and his wife were locked out:
+            # this probe read 200 and the run concluded "UP", because EVERY
+            # Cloudflare Pages Function on the site had stopped being invoked
+            # and the SPA fallback was answering /sb with index.html. A status
+            # code alone cannot tell GoTrue from our own HTML, so the content
+            # type is now part of the reading. GoTrue answers JSON; anything
+            # text/html on this path means the transport is gone and the green
+            # light is our own page talking back to us (DR-0076: unknown, and
+            # misread, must never report as healthy).
+            # AND WATCH THE LAYER ITSELF, not only the door we happened to try.
+            # On 2026-10-09 /sb was simply the first dead route the family
+            # touched; /n8n, /cams, /taxes, /openers, /llm, /reviews, /voice,
+            # /nas-photos, /ways and /scribe were all dark at the same moment,
+            # for one cause. A Function route that answers HTML names that
+            # cause directly, without waiting for someone to fail a sign-in.
+            FN_CT=$(curl -sS -o /dev/null -w '%{content_type}' --max-time 20 "https://poetech.us/automation-status" 2>/dev/null) || FN_CT=""
+            note "- \`GET /automation-status\` (is ANY Pages Function alive?) -> \`${FN_CT:-unknown}\`"
+            case "${FN_CT:-}" in
+              *text/html*)
+                add_fail "NO PAGES FUNCTION IS RUNNING — GET poetech.us/automation-status answered with '${FN_CT}', the SPA shell, instead of its Function's JSON. When this is true EVERY NAS-backed road is dark at once: /sb sign-in, /n8n, /cams, /taxes, /openers, /llm, /reviews, /voice, /nas-photos, /ways, /scribe. Measured 2026-10-09 while a deploy logged 'Uploading Functions bundle' and '_routes.json' and the Functions still never ran, on the custom domain, on poetech-app.pages.dev AND on the per-deployment host — so it is Cloudflare-side and no code change reaches it" ;;
+            esac
+
+            SB_SOV_CT=$(curl -sS -o /dev/null -w '%{content_type}' --max-time 20 "https://poetech.us/sb/auth/v1/health" 2>/dev/null) || SB_SOV_CT=""
+            note "- \`GET /sb/auth/v1/health\` content-type -> \`${SB_SOV_CT:-unknown}\`"
+            case "${SB_SOV_CT:-}" in
+              *text/html*)
+                add_fail "THE SOVEREIGN TRANSPORT IS GONE — GET poetech.us/sb/auth/v1/health answered ${SB_SOV:-000} but with content-type '${SB_SOV_CT}', which is the SPA shell, not GoTrue. The /sb Pages Function is not being invoked, so every sign-in POST gets a bodiless 405 and the browser dies on .json() with 'Unexpected end of JSON input'. This is the 2026-10-09 lockout: a 200 here is not proof of anything unless it is JSON" ;;
+            esac
+            # A GET IS NOT A SIGN-IN. MEASURED 2026-10-09, the day Darrell was
+            # locked out of his own app while this probe said "UP. Fresh":
+            # `GET /sb/auth/v1/health` answered 200 the whole time, and a POST
+            # through the same road came back with an EMPTY BODY. The browser
+            # calls .json() on that and dies with "Unexpected end of JSON
+            # input" — which is the error he photographed, on both the email
+            # link and the phone PIN, because both are POSTs. Every green light
+            # here was measuring a verb nobody signs in with.
+            #
+            # So the road is now exercised the way the app uses it. A deliberately
+            # invalid credential is sent: a healthy GoTrue answers 400 with a JSON
+            # body, which proves the whole path (Pages Function -> Funnel -> kong
+            # -> auth) carries a POST and returns bytes. An empty body is the
+            # failure, whatever the status line says.
+            SIGNIN_PROBE() {
+              curl -sS --max-time 25 -X POST \
+                -H "apikey: $SB_ANON" -H 'Content-Type: application/json' \
+                -d '{"email":"site-health-probe@poetech.invalid","password":"not-a-real-password"}' \
+                "https://poetech.us/sb/auth/v1/token?grant_type=password" 2>/dev/null || echo ""
+            }
+            SIGNIN_BODY="$(SIGNIN_PROBE)"
+            # One retry, so a single dropped connection is not an outage.
+            [ -n "$SIGNIN_BODY" ] || { sleep 5; SIGNIN_BODY="$(SIGNIN_PROBE)"; }
+            note "- \`POST poetech.us/sb/auth/v1/token\` (the verb sign-in actually uses) -> **${#SIGNIN_BODY} bytes**"
+            if [ "$LIVE_SB" != "false" ] && [ -z "$SIGNIN_BODY" ]; then
+              add_fail "SIGN-IN IS DOWN — a POST to the app's own auth road (poetech.us/sb/auth/v1/token) returned an EMPTY BODY twice. The browser calls .json() on that and fails with 'Unexpected end of JSON input', so nobody can sign in by email link or by phone PIN. Note that GET /sb/auth/v1/health can still answer 200 while this is broken: a GET is not a sign-in"
+            fi
             if [ "$LIVE_SB" != "false" ]; then
               case "${SB_SOV:-000}" in
                 200|401) : ;; # answering; 401 means alive and gated
@@ -413,8 +469,21 @@ jobs:
               *'"stage":"capture"'*|*'"stage":"cleanup"'*)
                 add_fail "ORDER PATH REFUSED — a Moore Divahs order would NOT be captured on the live backend: door_capture_selfcheck returned $OJ (DR-0374 class — orders silently lost). crm-pipeline-parity is green in CI, so this is a LIVE/deploy regression: the sovereign DB may be missing migration 0218/0215, or a grant/RLS changed" ;;
               *)
-                note "- order path: **NOT MEASURED** (selfcheck returned '${OJ:-no response}' — RPC absent on this backend or anon-key mismatch, not an order refusal)"
-                echo "::warning::order-path selfcheck not measured — door_capture_selfcheck did not answer ok/refused on poetech.us/sb" ;;
+                # AN EMPTY BODY IS NOT "NOT MEASURED" — IT IS THE TRANSPORT
+                # FAILING. On 2026-10-09 this arm fired with no response at all
+                # and emitted a warning, the run concluded UP, and it CLOSED the
+                # open incident while Darrell could not sign in. A POST that
+                # returns nothing is the same defect the sign-in probe above now
+                # names, so it fails here too. A JSON body that merely is not
+                # ok/refused stays a warning, because that genuinely can be an
+                # absent RPC rather than a broken road.
+                if [ -z "$OJ" ]; then
+                  add_fail "POST THROUGH /sb RETURNED NOTHING — door_capture_selfcheck got an empty body on poetech.us/sb, twice. GETs through /sb can still be 200 while this is broken; it is the same empty-body failure that locks every person out of sign-in"
+                else
+                  note "- order path: **NOT MEASURED** (selfcheck returned '${OJ}' — RPC absent on this backend or anon-key mismatch, not an order refusal)"
+                  echo "::warning::order-path selfcheck not measured — door_capture_selfcheck did not answer ok/refused on poetech.us/sb"
+                fi
+                ;;
             esac
           else
             note "- order path: **NOT MEASURED** (backend not confirmed up — step 7 owns that)"

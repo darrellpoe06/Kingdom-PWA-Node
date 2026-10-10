@@ -353,7 +353,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
   // The TENANCY on the door in hand, or none. A door picked by its rentals id is
   // a door with nobody in it (DoorsBoard passes the tenancy id when one exists),
   // so it has NO tenancy. It used to fall back to doors[0] here, which would have
-  // shown, and filed work against, some other door's tenant (DR-0859).
+  // shown, and filed work against, some other door's tenant (DR-0897).
   const activeDoor = useMemo(() => {
     const byId = doors.find((x) => x.id === activeId);
     if (byId) return byId;
@@ -406,7 +406,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
   }, [rentalId, rentalRef]);
   useEffect(() => { loadDoorData(); }, [loadDoorData]);
 
-  // WHERE WORK IS FILED (DR-0859). A job is on a DOOR: through its tenancy when
+  // WHERE WORK IS FILED (DR-0897). A job is on a DOOR: through its tenancy when
   // somebody lives there, on the door itself when nobody does — a vacant unit
   // between tenants, a short stay, the family's own home. The database used to
   // require a tenancy, so on every door on this account (none has one) the

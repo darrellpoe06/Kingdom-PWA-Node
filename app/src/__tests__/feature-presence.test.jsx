@@ -164,7 +164,19 @@ const WALKS = {
     await settle();
     look(p); // open, at rest
     const startAt = p.querySelector('[data-testid="reader-start-at-open"]');
-    if (startAt) { click(startAt); await settle(400); look(p); }
+    if (startAt) {
+      click(startAt);
+      // WAIT FOR THE LIST; do not guess how long it takes. listParagraphs
+      // awaits mapTarget, which lays the whole piece out first, and this was
+      // a flat settle(400). As the catalog grew (every course banded) 400ms
+      // stopped being enough and the paragraph list read as MISSING: a
+      // registered feature reported VANISHED when it was merely late. That is
+      // the worst kind of red, because it accuses the product of losing a
+      // control it still has. Strictness is unchanged -- the element must
+      // still appear -- and the it() keeps its own 60s budget as the ceiling.
+      for (let i = 0; i < 60 && !p.querySelector('[data-testid="reader-start-at"]'); i += 1) await settle(100);
+      look(p);
+    }
     // Reading: the panel's Pause / Stop / Smaller.
     voice.isReading = true;
     act(() => panel.root.render(createElement(TTSControl, { view: 'church', churchView: 'learn', key: 'reading' })));

@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0260 SMOKE — work is filed on the DOOR, and the door's walls hold (DR-0859)
+-- 0260 SMOKE — work is filed on the DOOR, and the door's walls hold (DR-0897)
 -- =============================================================================
 -- Runs in CI on a throwaway PostgreSQL (the door-work leg) and on the LIVE
 -- database in the rls-isolation poe-properties leg. Everything is inside one

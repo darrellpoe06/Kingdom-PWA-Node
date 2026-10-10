@@ -124,7 +124,7 @@ export async function loadMyHousehold(client = supabase) {
 /**
  * Everything that has ever happened on one door — the whole relationship record.
  *
- * TWO KEYS (0260 / DR-0859). A tenancy's record is keyed by tenancy_id. Work on
+ * TWO KEYS (0260 / DR-0897). A tenancy's record is keyed by tenancy_id. Work on
  * the DOOR itself (a vacant door, a short stay, the family's own home) has no
  * tenancy and is keyed by rental_id. When both are known the landlord reads
  * both: the job filed between tenants is part of this door's history. RLS keeps

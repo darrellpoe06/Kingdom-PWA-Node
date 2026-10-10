@@ -39,6 +39,27 @@ describe('the road: every URL is same-origin under /cams', () => {
     expect(listUrl()).toBe('/cams/list');
     expect(ticketUrl()).toBe('/cams/ticket');
   });
+
+  // 2026-10-09: every Pages Function on poetech.us stopped being invoked and
+  // /cams, being a Function, went dark while the NAS answered fine. The base
+  // can now be overridden at BUILD time to ride the Funnel for the length of
+  // such an outage. These keep that escape hatch honest: the default is still
+  // same-origin, and the Funnel is never written into this source.
+  it('hardcodes no absolute origin — the Funnel is never baked into the source', async () => {
+    // jsdom's import.meta.url is not a file: URL, so resolve from the app root.
+    const [fs, path] = await Promise.all([import('node:fs'), import('node:path')]);
+    const src = fs.readFileSync(path.join(process.cwd(), 'src', 'lib', 'cameras.js'), 'utf8');
+    const code = src.replace(/\/\/[^\n]*|\/\*[\s\S]*?\*\//g, ''); // comments explain it; code must not do it
+    expect(code).not.toMatch(/https?:\/\//);
+    expect(code).not.toMatch(/tail5a2f35/);
+  });
+
+  it('falls back to the same-origin road when no override is set', () => {
+    // import.meta.env.VITE_CAMS_BASE is unset in test and in every normal
+    // build, so this is what actually ships.
+    expect(CAMS_BASE).toBe('/cams');
+    expect(CAMS_BASE.startsWith('/')).toBe(true);
+  });
   it('snapshot and live URLs encode the id and carry the ticket as t=', () => {
     expect(snapUrl('front_yard')).toBe('/cams/snap/front_yard.jpg?w=640');
     expect(snapUrl('front_yard', { w: 320, ticket: 'a.b' })).toBe('/cams/snap/front_yard.jpg?w=320&t=a.b');

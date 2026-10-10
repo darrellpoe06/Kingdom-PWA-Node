@@ -1,7 +1,7 @@
 -- =============================================================================
 -- door-work-ci-bootstrap.sql — the minimum Supabase shape a bare PostgreSQL
 -- needs before the Poe Properties work-order chain applies, for the CI
--- door-work job (DR-0859). Never applied to a real database.
+-- door-work job (DR-0897). Never applied to a real database.
 -- =============================================================================
 -- CI applies the REAL schema files and migrations that own the work-order
 -- tables (schema-v1 .. v2.2.2, 0055, 0062, 0075, 0150, 0151, 0153, 0160, 0185),

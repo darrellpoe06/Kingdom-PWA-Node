@@ -207,7 +207,7 @@ export function buildTenancyNote({ instanceId, tenancyId, rentalId, requestId, a
     instance_id: instanceId || null,
     tenancy_id: tenancyId || null,
     // A note on a door no tenancy holds (a vacant door, a short stay, our home)
-    // names the door instead (0260 / DR-0859). At least one of the two is set.
+    // names the door instead (0260 / DR-0897). At least one of the two is set.
     rental_id: rentalId || null,
     request_id: requestId || null,
     author_role: role === 'owner' ? 'landlord' : role === 'field_worker' ? 'worker' : role,

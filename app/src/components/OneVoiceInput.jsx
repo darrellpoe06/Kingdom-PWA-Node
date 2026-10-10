@@ -21,6 +21,8 @@ import { uploadFeedback } from '../lib/feedback-sync.js';
 import { resolveSurface, lessonConfirmationKey, lessonNameTags, lessonNotice, cleanLessonName } from '../lib/one-voice-surfaces.js';
 import { useVoiceDictation, LONG_FORM_SESSION_CAP_MS, VOICE_SESSION_CAP_MS, capMinutes } from '../lib/voice-dictation.js';
 import { readDraft, writeDraft, clearDraft } from '../lib/draft-autosave.js';
+import { keepRecording, readKeptRecording, dropKeptRecording } from '../lib/kept-recording.js';
+import { useIntakeHold } from '../lib/intake-guard.js';
 import { relayThought } from '../lib/agent-inbox-sync.js';
 import VoiceLessonRecorder from './VoiceLessonRecorder.jsx';
 import LessonInbox from './LessonInbox.jsx';
@@ -163,13 +165,60 @@ export function OneVoiceInput({
   const [lessonsSeen, setLessonsSeen] = useState(0);
   const [sending, setSending] = useState(false);
   const lessonRecording = route === 'lesson' && lessonLive.recording;
+  // NOTHING TAKES THE PAGE WHILE A LESSON IS UNSENT (DR-0748, and Darrell
+  // 2026-10-10: "an App Reload has to account for the specific situations on
+  // cellphones and make sure they want the update when we push them it should
+  // be a choice... so the users can finish without failing their process at
+  // that moment").
+  //
+  // MEASURED 2026-10-10: this surface took NO intake hold at all. The scribe
+  // held for its take; the box a spoken lesson is actually recorded in did
+  // not. So the zero-click update reload was free to take the page mid-take,
+  // and mid-UNSENT-take, which is exactly what happened to the 14:05 lesson
+  // on 2026-10-09. The recording now survives that (lib/kept-recording.js),
+  // but surviving a reload is not the same as not being interrupted.
+  //
+  // The hold stands while recording, and keeps standing while a finished take
+  // waits to be sent. It is not on a timer: it ends when the lesson is sent
+  // or the take is dropped. The update is still offered the whole time by the
+  // FreshnessDot, which is the CHOICE he asked for.
+  useIntakeHold('recording', lessonRecording);
+  useIntakeHold('recording-kept', !lessonRecording && !!lessonTake);
+
   const takeReady = route === 'lesson' && !!(lessonTake && lessonTake.verdict && lessonTake.verdict.ok);
   const onLessonTake = (take) => {
     setLessonTake(take);
+    // KEEP IT ON THE DEVICE THE MOMENT IT IS TAKEN (lib/kept-recording.js).
+    // Until 2026-10-10 the take lived in React state alone while the autosave
+    // kept only text, route and name — so a reload, an app update or a closed
+    // tab took the recording and the box went on showing the line describing
+    // it. That is how the 14:05 lesson was lost in the Pages-Functions
+    // outage. Fire and forget: a device that cannot keep it must never stop
+    // it being recorded.
+    if (take && take.verdict && take.verdict.ok) keepRecording(surface, take);
     if (take && take.verdict && take.verdict.ok && !latestText.current.trim()) {
       setText(spokenLessonLine(take.seconds));
     }
   };
+
+  // AND IT IS STILL THERE WHEN THEY COME BACK. The draft already restores the
+  // words; this restores the recording those words describe, so a Send that
+  // died in an outage is one that can simply be pressed again. Only when the
+  // box holds nothing — a live take always wins over a stored one.
+  useEffect(() => {
+    let alive = true;
+    Promise.resolve(readKeptRecording(surface)).then((kept) => {
+      if (!alive || !kept) return;
+      setLessonTake((cur) => cur || {
+        blob: kept.blob,
+        url: null,              // made on demand; a stored take has no live object URL
+        seconds: kept.seconds,
+        verdict: { ok: true },  // it passed when taken, and only a passed take is kept
+        restored: true,
+      });
+    }).catch(() => { /* nothing kept, or a store that would not answer */ });
+    return () => { alive = false; };
+  }, [surface]);
   // What the box shows: the words as they are heard while speaking, and a
   // plain line while a lesson records, so it is never an empty box.
   const shownText = lessonRecording
@@ -269,6 +318,10 @@ export function OneVoiceInput({
       return;
     }
     setConfirmation('Sent. Whisper on our own machines writes the words; they appear under Your lessons.');
+    // DELIVERED — and only now is the device copy let go. A failed send above
+    // returns before this line, so the recording stays exactly where it can be
+    // sent again (lib/kept-recording.js).
+    dropKeptRecording(surface);
     setLessonTake(null);
     setLessonsSeen((n) => n + 1);
     remember(t, 'lesson', false);

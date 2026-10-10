@@ -925,6 +925,14 @@ const NODES = [
     id: 'nas-clock', name: 'NAS clock', purpose: 'Gives the NAS loop fleet its clock.',
     reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }], writes: [{ res: 'nas:clock', token: 'install-clock.sh' }], seeds: ['services-sync'],
   }),
+  // The hand that puts the sign-in road back (2026-10-09). The witness says
+  // sign-in is down; this is the only thing in the repo that can DO something
+  // about it without a person at a keyboard.
+  wf('nas-signin-heal.yml', {
+    id: 'nas-signin-heal', name: 'Heal the sovereign sign-in road', purpose: 'Restarts supabase-kong/auth/rest on the NAS over the tailnet, then MEASURES a POST on the loopback and through poetech.us/sb, so a heal that did not heal fails the run.',
+    reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }, { res: 'nas:services', token: 'docker restart' }],
+    writes: [], seeds: [],
+  }),
   wf('cams-diag.yml', {
     id: 'cams-diag', name: 'Camera road diagnostics (look, never touch)', purpose: 'What go2rtc itself says about every camera — streams (kind, host, state), its log, the container log, the forwarder’s health and one timed probe with /why — from the NAS over the tailnet, scrubbed (DR-0774).',
     reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }, { res: 'http:cams', token: '127.0.0.1:8773' }, { res: 'nas:services', token: 'poetech-cams' }],
@@ -1001,7 +1009,7 @@ const NODES = [
     reads: [{ res: 'db:door_feedback', token: "from('door_feedback')" }],
     seeds: ['push-outbox-drain'],
   }),
-  // Work on a door (DR-0859): filed on the door itself when no tenancy holds it
+  // Work on a door (DR-0897): filed on the door itself when no tenancy holds it
   // (a vacant unit, a short stay, the family's own home), read back as the
   // door's open work, documented by the worker, noted on dispatch.
   app('app/src/modules/properties/cloud.js', {

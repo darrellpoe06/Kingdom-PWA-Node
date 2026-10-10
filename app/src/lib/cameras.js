@@ -22,7 +22,24 @@
 // never by sniffing a user agent.
 // =============================================================================
 
-export const CAMS_BASE = '/cams';
+// SAME-ORIGIN BY DEFAULT, ALWAYS. '/cams' is the road (DR-0570), and nothing
+// here hardcodes the Funnel.
+//
+// The override exists because of 2026-10-09: every Cloudflare Pages Function
+// on poetech.us stopped being invoked, and /cams IS a Pages Function, so the
+// Cameras tab lost its transport entirely while the NAS kept answering
+// perfectly. Darrell: "Cameras tab is not working?!!!!!" With the Function
+// layer dark there is no same-origin road left to ride, so the build can be
+// pointed at the Funnel for the length of that outage and put back after.
+//
+// It is a BUILD-TIME value and it is unset in every normal build, so the
+// default below is what ships and what cameras.test.js pins. Setting it gives
+// up the same-origin protection funnel-proxy.js exists for, which is why it is
+// temporary and why the forwarder had to learn CORS first — measured
+// 2026-10-09, /cams on the Funnel answered preflight 501 with no
+// allow-origin at all, so without that change this override would have been
+// refused by the browser and the "fix" would have been a lie.
+export const CAMS_BASE = (import.meta.env?.VITE_CAMS_BASE || '/cams').replace(/\/+$/, '');
 
 // Cadence + ceilings (the surface's brakes, mirrored from the forwarder's).
 export const SNAPSHOT_INTERVAL_MS = 5000;   // one frame per camera per 5 s while the tab is visible

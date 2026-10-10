@@ -261,6 +261,12 @@ input::placeholder,textarea::placeholder{color:var(--form-hint)}
 [data-theme="midnight"] .hover\\:bg-white:hover{background-color:#2A2A2A!important}
 [data-theme="midnight"] .hover\\:bg-\\[\\#E8E4DC\\]:hover{background-color:#2A2A2A!important}
 [data-theme="midnight"] .hover\\:bg-\\[\\#F0ECE4\\]:hover{background-color:#2A2A2A!important}
+/* #F0EDE6 is ONE HEX DIGIT from #F0ECE4 above, which is exactly why it slipped
+   in unremapped on 2026-10-10 with the full-screen photo controls (the gallery
+   prev/next and "See all N photos"). The eye cannot tell those two apart in a
+   diff; checkHoverCoverage measured it at 0.85 luminance and failed the build.
+   The gate is doing its job — DR-0713. */
+[data-theme="midnight"] .hover\\:bg-\\[\\#F0EDE6\\]:hover{background-color:#2A2A2A!important}
 [data-theme="midnight"] .hover\\:bg-\\[\\#F2F4EC\\]:hover{background-color:#16211A!important}
 [data-theme="midnight"] .hover\\:bg-\\[\\#E4EED6\\]:hover{background-color:#16211A!important}
 [data-theme="midnight"] .hover\\:bg-\\[\\#FAF1EC\\]:hover{background-color:#231614!important}

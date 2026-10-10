@@ -20,9 +20,9 @@ import { newReaderId, registerReader, subscribeReaders, chosenReader } from '../
 import { RATE_STEPS } from '../lib/tts.js';
 import { useReadAloud } from '../lib/use-read-aloud.js';
 import {
-  buildFollowMap, wordRange, highlightSegment, highlightWord,
+  buildFollowMap, wordRange, wordRangeIn, highlightSegment, highlightWord,
   clearReadingHighlights, followRange, rangeFor,
-  segmentIndexAtDomPoint, alignSegments, segmentIndexAtFraction, startIndexForFraction,
+  segmentIndexAtDomPoint, alignSegmentSpans, segmentIndexAtFraction, startIndexForFraction,
   paragraphStarts, paragraphJumpTarget, paragraphBackTarget,
 } from '../lib/read-follow.js';
 import { segmentText } from '../lib/tts.js';
@@ -617,7 +617,17 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
     setBoundaryHandler((segIdx, charIndex) => {
       const f = followRef.current;
       if (!f || !f.wordable) return;
-      const r = wordRange(f.follow, f.base + segIdx, charIndex);
+      // TWO WAYS TO KNOW WHERE A SPOKEN SENTENCE SITS. When the voice reads the
+      // mapped text itself, the engine's segment index IS an index into the map
+      // (`base + segIdx`). When the voice reads its own registered text, LOCATED
+      // in the page by search, the map has no such index — it has a span per
+      // spoken segment, and a span is enough to find the word. The DR-0722
+      // downloaded-lesson read is the second kind, and it ran with no word
+      // highlight at all until 2026-10-09.
+      const span = f.spans ? f.spans[segIdx] : null;
+      const r = f.spans
+        ? (span ? wordRangeIn(f.follow, span, charIndex) : null)
+        : wordRange(f.follow, f.base + segIdx, charIndex);
       if (r && prefsRef.current.highlight !== 'off') highlightWord(r);
     });
     return () => setBoundaryHandler(null);
@@ -1173,8 +1183,48 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
     }
     // A DOWNLOADED LESSON WITH NO CONNECTION (DR-0722) speaks the exact text
     // whose voice pieces were saved (`preferText`), so every piece plays from
-    // the device; the page is still followed sentence by sentence below.
-    const follow = el && !t.preferText ? buildFollowMap(el) : null;
+    // the device; the page is still followed below — now word by word, and
+    // inside THIS lesson rather than across the whole page.
+    //
+    // WHAT WENT WRONG, and what each half of it looked like (2026-10-09).
+    // Darrell, from the lesson reader: "Not keeping up with the words
+    // anymore... reading something totally different from what's on the page."
+    // Both came from this one branch. `preferText` skipped the map entirely, so
+    // the read fell through to the tail of this function, which mapped
+    // `readingRoot()` — the WHOLE page, every lesson card on it — and ran with
+    // `wordable: false`. So the sentence highlight was hunted for across other
+    // lessons' text (it can and does land on a different card's identical
+    // sentence) and no word ever lit inside it. The element is right here; the
+    // search just never used it.
+    const mapped = el ? buildFollowMap(el) : null;
+    // IS THE REGISTERED TEXT THIS PAGE'S TEXT? Measured, never assumed
+    // (DR-0076 §4). A reading whose sentences are nowhere in this element is
+    // not this lesson's reading, and speaking it is the defect he reported —
+    // so the page wins and the mapped read below carries it. The trade-off is
+    // named: offline, the saved clips are keyed on the registered text, so
+    // falling back to the page can mean the device voice reads it instead. A
+    // read that says the wrong words in the right voice is still the wrong
+    // words.
+    const ownSpoken = t.preferText && t.text ? segmentText(t.text) : null;
+    const ownSpans = ownSpoken && mapped && mapped.text ? alignSegmentSpans(mapped, ownSpoken) : null;
+    const speaksItsOwnText = !!(ownSpans && ownSpans.some(Boolean));
+    if (speaksItsOwnText) {
+      beginRun({
+        follow: mapped,
+        base: 0,
+        // The spans ARE the ranges, and they are also what the word lookup
+        // needs — one walk, one truth (read-follow.js).
+        ranges: ownSpans.map((s) => (s ? rangeFor(mapped, s.start, s.end) : null)),
+        spans: ownSpans,
+        lens: ownSpoken.map((s) => s.length),
+        wordable: true,
+        owner: t.owner,
+      });
+      setMinimized(true);
+      read(t.text);
+      return;
+    }
+    const follow = mapped;
     if (follow && follow.text) {
       // BEGIN WHERE HE LEFT OFF. A CONTINUING piece is a different lesson the
       // run advanced into, so it starts at its top; only a read the listener
@@ -1201,17 +1251,24 @@ function ReaderInstance({ isOwner = false, view, churchView, booksView, onOpenLe
       read(follow.text);
       return;
     }
-    // No element to map: speak the registered text and align what we can find
-    // on screen (sentence-level, unrendered passages carry no highlight).
+    // No element to map AT ALL: speak the registered text and align what can be
+    // found on the page (unrendered passages carry no highlight). This is now
+    // the only path that maps the whole page, because it is the only one with
+    // nothing better — a surface that named its element is mapped above.
     const spoken = segmentText(t.text);
     const pageRoot = readingRoot();
     const pageFollow = pageRoot ? buildFollowMap(pageRoot) : null;
+    const pageSpans = pageFollow ? alignSegmentSpans(pageFollow, spoken) : null;
     beginRun(pageFollow ? {
       follow: pageFollow,
       base: 0,
-      ranges: alignSegments(pageFollow, spoken),
+      ranges: pageSpans.map((s) => (s ? rangeFor(pageFollow, s.start, s.end) : null)),
+      spans: pageSpans,
       lens: spoken.map((s) => s.length),
-      wordable: false,
+      // Word-following works here too now: a located sentence has a span, and a
+      // span is all the lookup needs. Sentences that are not on screen stay
+      // null and simply carry no highlight, as before.
+      wordable: pageSpans.some(Boolean),
     } : null);
     setMinimized(true);
     read(t.text);

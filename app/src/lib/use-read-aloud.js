@@ -29,6 +29,8 @@ import { isVoiceServiceReady, synthesizeSpeech, activeVoiceEndpoint, builtInVoic
 import { chunkForClips, createClipQueue } from './clip-queue.js';
 import { clipKey, createClipSource, deviceClipCache, AHEAD_CONCURRENCY } from './clip-cache.js';
 import { joinClipBlobs } from './joined-clip.js';
+import { synthesizeOnDevice, checkDeviceVoice } from './device-voice.js';
+import { mayUseDeviceVoice, keepsAhead, realtimeFactor } from './device-voice-fallback.js';
 import { loadReference, blobToDataUri } from './voice-reference.js';
 import { loadVoiceProfiles } from './voice-sync.js';
 import { createBackgroundAudio, silentWavDataUri } from './background-audio.js';
@@ -66,6 +68,48 @@ const pageHidden = () => typeof document !== 'undefined' && document.visibilityS
 // never retried: no fetch can fix a gesture.
 export const DARK_RETRY_MS = [5000, 10000, 20000, 40000, 60000, 120000];
 const sentenceCase = (t) => (t ? t.charAt(0).toUpperCase() + t.slice(1) : t);
+
+// THE VOICE ALREADY ON THIS DEVICE (DR-0881) — session state for the fallback.
+// `ready` is answered once per session (checkDeviceVoice touches Cache Storage,
+// and the answer cannot change without a download); `stoodDown` latches when a
+// piece proves this device synthesises slower than it speaks, so a slow box
+// tries once rather than stuttering through a whole reading.
+const deviceVoice = { ready: null, stoodDown: false, lastFactor: null };
+
+/** Tests only — the session latch would otherwise leak between cases. */
+export function _resetDeviceVoiceFallback() {
+  deviceVoice.ready = null; deviceVoice.stoodDown = false; deviceVoice.lastFactor = null;
+}
+
+/** Is the model already in this device's cache? Answered once. Never throws. */
+async function deviceVoiceReady() {
+  if (deviceVoice.ready !== null) return deviceVoice.ready;
+  try {
+    const v = await checkDeviceVoice({});
+    deviceVoice.ready = !!(v && v.cached);
+  } catch (_) { deviceVoice.ready = false; }
+  return deviceVoice.ready;
+}
+
+/**
+ * One piece in the Piper that lives here. Returns the synthesizeLite shape, or
+ * null when this device may not or should not serve it. Measures the first
+ * answer and stands the voice down for the session if it cannot keep ahead of
+ * its own playback — stuttering is not an improvement on the device engine.
+ */
+async function deviceVoicePiece(text, speed) {
+  if (!mayUseDeviceVoice({ speed, ready: await deviceVoiceReady(), stoodDown: deviceVoice.stoodDown })) return null;
+  let got;
+  try { got = await synthesizeOnDevice({ text }); } catch (_) { return null; }
+  if (!got || got.error) return null;
+  const ahead = keepsAhead(got);
+  if (ahead === false) {
+    deviceVoice.stoodDown = true;
+    deviceVoice.lastFactor = realtimeFactor(got);
+    // The piece itself is good — play it, and simply do not ask again.
+  }
+  return got;
+}
 
 export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverride } = {}) {
   const tts = useTextToSpeech();
@@ -588,6 +632,26 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverri
       for (let tries = 0; got.error === 'voice-lite-503' && tries < 4; tries++) {
         await new Promise((r) => setTimeout(r, 600 * (tries + 1)));
         got = await synthesizeLite({ text: forVoice(t), voice, speed: sp, timeoutMs });
+      }
+      // THE VOICE ALREADY ON THIS DEVICE, BEFORE THE DEVICE'S OWN ENGINE
+      // (DR-0881). Darrell, 2026-10-10, on the Firestick: "Words keep slurring
+      // not articulate or even decernable."
+      //
+      // When /voice-lite cannot be reached the reading has always fallen to
+      // Web Speech, and on a Fire TV that is Fire OS's own engine — the thing
+      // he is hearing. lib/device-voice.js runs the SAME Piper model the NAS
+      // runs, on this device's CPU, with phoneme ids measured identical to the
+      // NAS binary, and its header has said since DR-0656 that it is "not
+      // wired into the reader yet". It is the better fallback by a wide
+      // margin and it was sitting there unused.
+      //
+      // Taken at THIS seam rather than at onFallback on purpose: a blob from
+      // here flows through the clip cache, the join, a saved reading and the
+      // background player exactly as a NAS clip does. Hooking the fallback
+      // would have needed all of that again.
+      if (got.error) {
+        const d = await deviceVoicePiece(forVoice(t), sp);
+        if (d) { trip().note('device-voice', { ms: d.ms, audioSeconds: d.audioSeconds }); got = d; }
       }
       // The source keeps the blob and makes its own URL for the player.
       if (got.url) { try { URL.revokeObjectURL(got.url); } catch (_) { /* ignore */ } }
