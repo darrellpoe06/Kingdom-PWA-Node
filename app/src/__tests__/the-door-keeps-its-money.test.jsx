@@ -100,6 +100,9 @@ afterEach(() => {
 });
 
 async function mount(props = {}) {
+  // A FRESH ADDRESS PER MOUNT (DR-0901): the module writes the page it is on
+  // into the URL, and one jsdom document is shared by every case here.
+  window.history.replaceState(null, '', `${window.location.pathname}`);
   container = document.createElement('div');
   document.body.appendChild(container);
   await act(async () => { root = createRoot(container); root.render(createElement(PropertiesApp, { surface: 'door', ...props })); });

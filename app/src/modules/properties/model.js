@@ -66,7 +66,7 @@ export function capabilitiesFor(role, requested = []) {
 // ---------------------------------------------------------------------------
 const TAB = (id, label, why, needs = null) => ({ id, label, why, needs });
 
-const TENANT_TABS = [
+export const TENANT_TABS = [
   TAB('door', 'My place', 'The unit, the lease dates, who to reach.'),
   TAB('work', 'Work orders', 'Report something broken and watch it move.'),
   TAB('thread', 'Messages', 'One timestamped thread with the landlord, manager, and worker.'),
@@ -81,7 +81,7 @@ const TENANT_TABS = [
   TAB('cameras', 'Cameras', 'The cameras your landlord shares with this door.'),
 ];
 
-const WORKER_TABS = [
+export const WORKER_TABS = [
   // THE DOORS HE IS SENT TO, TENANT OR NO TENANT (2026-09-08, migration 0185).
   // A worker's whole face used to hang on a tenancy row, and the turn — the
   // microwave, the ductwork, the stairs — happens exactly when there is none.
@@ -98,7 +98,7 @@ const WORKER_TABS = [
   TAB('cameras', 'Cameras', 'Ask for the cameras at the door I am sent to, and watch the ones given to me.'),
 ];
 
-const MANAGER_TABS = [
+export const MANAGER_TABS = [
   // THE DOOR FIRST, THEN WHAT HAPPENS INSIDE IT (DR-0837; Darrell 2026-10-09:
   // "they should be options inside the apartment... doesn't make sense
   // separate"). The work board and the dispatch read ONE door; they sit after
