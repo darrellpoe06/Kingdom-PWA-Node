@@ -1313,8 +1313,8 @@ function CaptionField({ value, onChange, placeholder, label, className = '' }) {
 }
 
 export function GalleryTab({
-  door, rooms = [], photos = [], canManage = false, canAdd = canManage, busy = false,
-  onAdd, onPatch, onAddRoom, loadImage = null, doorLabel = '',
+  door, rooms = [], photos = [], canManage = false, canAdd = canManage, busy = false, unread = false,
+  onAdd, onDone, onPatch, onAddRoom, loadImage = null, doorLabel = '',
 }) {
   // Every picture opened or saved here carries the Poe Properties band and a
   // QR to this unit's listing (DR-0941): "all downloaded materials have our
@@ -1481,6 +1481,30 @@ export function GalleryTab({
     setPending(kept);
     setSaving(false);
     setSaved(null);
+    // ONE REFRESH FOR THE WHOLE SET, NOT ONE PER PICTURE (DR-0947).
+    //
+    // Darrell, 2026-10-10, watching twelve move-out photographs go up: "The
+    // flow of uploading pictures is not working well... it keeps flashing...
+    // and pausing the coming back with new images about 20 seconds later".
+    //
+    // The cause was here, and it was ours. onAdd is awaited INSIDE the loop
+    // above (DR-0907 made the save serial, correctly), and the handler it
+    // calls in PropertiesApp ended with `loadDoorData(); boot();` — boot()
+    // being the WHOLE APP bootstrap: doors, grants, household, rentals. So a
+    // twelve-picture set ran twelve full bootstraps and twelve door reloads,
+    // interleaved with the writes, each of them seconds long on the throttled
+    // cross-origin road. That is precisely a screen that flashes, stalls, and
+    // repopulates twenty seconds later.
+    //
+    // It very likely cost him pictures, too. His run reported "Skipped 2 ...
+    // The requested file could not be read, typically due to permission
+    // problems that have occurred after a reference to a file was acquired" —
+    // the browser's NotReadableError, which is what an Android file handle
+    // gives once the page has churned long enough underneath it. Fewer
+    // remounts, longer-lived handles.
+    //
+    // The saves still happen one at a time; only the REFRESH is hoisted out.
+    await onDone?.();
     // THE FINALIZE LIST (DR-0908). Darrell asked for it by name: "a finalize
     // list of uploaded images and a where to store". A toast cannot be that —
     // it is gone in six seconds and fourteen of them overwrite each other.
@@ -1811,9 +1835,31 @@ export function GalleryTab({
             No {only.replace(/-/g, ' ')} pictures at this door yet.
           </p>
         )}
-        {shown.length === 0 ? (
+        {shown.length === 0 && unread ? (
+          /* THE DOOR WAS NOT READ, SO IT IS NOT EMPTY (DR-0946). Darrell,
+             2026-10-10: "What happened to the pictures in Apartment 2?!" The
+             photo list carries thumb_path — base64 — so a full gallery is
+             about a megabyte in one response, and with Pages Functions dark
+             the app is on the throttled cross-origin road. The read fails and
+             the rows are untouched on the NAS. Saying "none yet" about a
+             landlord's move-out evidence is the app inventing an absence, and
+             it is the one thing this surface must never do. */
+          <p className="text-sm text-[#B85838]" data-testid="gallery-unread">
+            These could not be loaded just now — that is not the same as there being none.
+            Nothing has been lost; try again in a moment.
+          </p>
+        ) : allShots.length === 0 ? (
+          /* ONLY WHEN THE DOOR REALLY HAS NONE (DR-0947). This branch tested
+             `shown`, the FILTERED list, so picking "move out condition" on a
+             door holding ten listing shots printed BOTH "No move out condition
+             pictures at this door yet." AND "No pictures on this property
+             yet." — two sentences, one of them false, directly under a header
+             reading "10 pictures". Darrell saw exactly that while hunting for
+             his move-out set, which is the worst possible moment to be told
+             the door is bare. The filtered case is already said above, once,
+             and accurately. */
           <Empty>No pictures on this property yet.</Empty>
-        ) : (
+        ) : shown.length === 0 ? null : (
           <ul className="grid grid-cols-2 sm:grid-cols-3 gap-2">
             {shown.map((p, idx) => (
               <li key={p.id} className="border border-[#E8E4DC] bg-white p-2">
