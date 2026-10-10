@@ -153,7 +153,20 @@ export function AddPerspective({ lesson, onSubmitted }) {
   );
 }
 
-export default function LessonStories({ lesson, stories = [], loadPerspectives = fetchLessonPerspectives }) {
+/**
+ * `askForYours` — whether this block ENDS with the invitation to add your own.
+ *
+ * Darrell, 2026-10-10: "Asking users for their stories in the middle of our
+ * lessons is a distraction.... put it at the end of the lessons." The stories
+ * the lesson TEACHES are teaching — short, vivid illustrations, the way Jesus
+ * taught (Matthew 13:34) — and they stay where the teaching is. The invitation
+ * to write your own is not teaching; it is a task, and a task set in the middle
+ * of a reading takes the reader out of it. So the ask travels to the last stage
+ * and the teaching stays put. Default true, so any other caller keeps the whole
+ * block; the lesson's teach stage passes false and renders AddPerspective at
+ * its end.
+ */
+export default function LessonStories({ lesson, stories = [], loadPerspectives = fetchLessonPerspectives, askForYours = true }) {
   const [view, setView] = useState({ shared: [], mine: [] });
   const lessonId = lesson && lesson.id;
 
@@ -183,7 +196,9 @@ export default function LessonStories({ lesson, stories = [], loadPerspectives =
       {view.mine.map((s) => (
         <StoryOption key={`mine-${s.id}`} story={s} testId="my-perspective" note="Your perspective, waiting for a steward's review before your space sees it" />
       ))}
-      <AddPerspective lesson={lesson} onSubmitted={(row) => setView((v) => ({ ...v, mine: [...perspectivesForLesson([{ ...row }], { lessonId, viewerId: row && row.submitted_by }).mine, ...v.mine] }))} />
+      {askForYours ? (
+        <AddPerspective lesson={lesson} onSubmitted={(row) => setView((v) => ({ ...v, mine: [...perspectivesForLesson([{ ...row }], { lessonId, viewerId: row && row.submitted_by }).mine, ...v.mine] }))} />
+      ) : null}
     </section>
   );
 }
