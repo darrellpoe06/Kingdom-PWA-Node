@@ -163,13 +163,41 @@ input::placeholder,textarea::placeholder{color:var(--form-hint)}
 [data-theme="midnight"] .text-\\[\\#5A5751\\]{color:#888888!important}
 [data-theme="midnight"] .text-\\[\\#B85838\\]{color:#FB923C!important}
 [data-theme="midnight"] .text-\\[\\#5A6E3D\\]{color:#86EFAC!important}
-/* The Poe Properties green #2F5D50 as TEXT (added 2026-10-10, caught by
-   legibility-guard at 2.46:1 on the properties door's new account chip). It
-   joins the same bright mint every other green here remaps to. Text and its
-   hover variant only: bg-[#2F5D50] stays a dark fill carrying white text,
-   which already passes, and remapping the fill would strand that white. */
-[data-theme="midnight"] .text-\\[\\#2F5D50\\]{color:#86EFAC!important}
-[data-theme="midnight"] .hover\\:text-\\[\\#2F5D50\\]:hover{color:#86EFAC!important}
+/* THE PROPERTIES MODULE'S OWN PALETTE, THEMED (2026-10-10). Darrell, on the
+   Guest Ready panel at night: "Can't see in dark mode...". These five hexes
+   are the Properties module's constants (ACCENT / MUTED and its three status
+   colors). They had NO midnight rule because the legibility guard never
+   scanned app/src/modules at all, so nobody had ever measured them on a dark
+   surface — #1A1815 lands at 1.04:1 there, which is black on black. Measured
+   ratios on midnight/card before this: 2.43 to 3.46, all under the 4.5 AA
+   bar. Light themes are untouched; only the dark one remaps. */
+[data-theme="midnight"] .text-\\[\\#6B665E\\]{color:#A3A3A3!important}
+[data-theme="midnight"] .text-\\[\\#2F5D50\\]{color:#6EE7B7!important}
+[data-theme="midnight"] .text-\\[\\#9B2C1E\\]{color:#FCA5A5!important}
+[data-theme="midnight"] .text-\\[\\#B23A2E\\]{color:#FCA5A5!important}
+[data-theme="midnight"] .text-\\[\\#8A6510\\]{color:#FCD34D!important}
+/* The last three the widened scan turned up: two light SURFACES that stayed
+   light under midnight (so dark ink on them was fine in light mode and the
+   card beneath them is dark), and one dark red that never had a dark-mode
+   twin. Measured: #8C2F2F 2.25:1. */
+[data-theme="midnight"] .text-\\[\\#8C2F2F\\]{color:#FCA5A5!important}
+[data-theme="midnight"] .bg-\\[\\#F2EFE9\\]{background-color:#232323!important}
+[data-theme="midnight"] .bg-\\[\\#E4EED6\\]{background-color:#1F2A1F!important}
+/* #F0EDE6 AS A FILL, not only as a hover (DR-0873 widening). The legibility
+   guard reads hover:bg-[#F0EDE6] as the bg-#f0ede6 token and asks for the
+   base remap too, which is the right reading: a light fill should be dark on
+   midnight whether a finger is resting on it or not. The hover rule below
+   covers the tap; this covers the token wherever else it lands. */
+[data-theme="midnight"] .bg-\\[\\#F0EDE6\\]{background-color:#2A2A2A!important}
+/* #2F5D50 AS A HOVER TEXT COLOR, the one token this door added that the
+   DR-0873 widening above did not reach. Two lanes remapped the same green on
+   the same day: the widened scan measured 2.43-3.46:1 across the module and
+   settled on #6EE7B7, so the base rule above is the measured one and stands.
+   What only the door needed is the hover variant -- its new account chip
+   paints the green on hover, and a hover state that drops back to the
+   unremapped 2.46:1 is a legible control that goes illegible under a finger.
+   Same mint as the base, so a tap does not change the color, only the state. */
+[data-theme="midnight"] .hover\\:text-\\[\\#2F5D50\\]:hover{color:#6EE7B7!important}
 [data-theme="midnight"] .border-\\[\\#1A1815\\]{border-color:#3A3A3A!important}
 [data-theme="midnight"] .border-\\[\\#E8E4DC\\]{border-color:#2A2A2A!important}
 [data-theme="midnight"] .border-\\[\\#B85838\\]{border-color:#FB923C!important}

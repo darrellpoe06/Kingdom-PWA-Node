@@ -58,13 +58,38 @@ const byText = (host, re, sel = '*') =>
   all(host, sel).filter((n) => re.test(n.textContent) && ![...n.children].some((c) => re.test(c.textContent)));
 const btn = (host, re) => all(host, 'button').find((b) => re.test(b.textContent));
 const click = (el) => act(() => { el.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+// ONE AREA AT A TIME (DR-0877). The nine areas are subtabs now — 165 to 181
+// checkboxes in one column was the defect, not the feature (Darrell
+// 2026-10-10: "Long scrolling!!!!!!! Fix it so its tabs!!!!!!!!"). So a test
+// that wants a particular area's tasks picks that area first, and a test that
+// wants the whole list picks "Every area" — which is still there, because a
+// final sweep wants one pass.
+const area = (host, re) => {
+  const tab = all(host, '[data-testid="readiness-areas"] button').find((b) => re.test(b.textContent));
+  if (!tab) throw new Error(`no area subtab matching ${re}`);
+  click(tab);
+};
+const everyArea = (host) => area(host, /^Every area/);
 
 describe('the first time a landlord opens it', () => {
-  it('shows the door, 0%, and the whole list', () => {
+  it('shows the door, 0%, and every area reachable without scrolling past it', () => {
     const host = mount();
     expect(host.textContent).toContain('1003 Koehn');
     expect(host.textContent).toContain('0%');
+    // The TOTAL is still stated honestly at the top — the count did not shrink,
+    // only the column did.
     expect(byText(host, /^0 of 181 tasks completed/).length).toBe(1);
+    // Nine areas, each its own subtab, so none of them is behind a scroll.
+    expect(all(host, '[data-testid="readiness-areas"] [role="tab"]').length).toBe(10); // 9 areas + Every area
+    // One area's worth of checkboxes, not all 181.
+    const shown = all(host, '[role="checkbox"]').length;
+    expect(shown).toBeGreaterThan(0);
+    expect(shown).toBeLessThan(181);
+  });
+
+  it('PROVEN-TO-CATCH: "Every area" still gives the whole list in one pass', () => {
+    const host = mount();
+    everyArea(host);
     expect(all(host, '[role="checkbox"]').length).toBe(181);
   });
 
@@ -87,13 +112,16 @@ describe('the first time a landlord opens it', () => {
 describe('bedrooms come from the door, not from a guess', () => {
   it('uses the room the landlord named', () => {
     const host = mount();
+    area(host, /^Bedrooms/);
     expect(host.textContent).toContain('Front bedroom');
   });
 
   it('says plainly when no bedroom is recorded, and sends him to Rooms', () => {
     const host = mount([]);
+    area(host, /^Bedrooms/);
     expect(host.textContent).toMatch(/No bedrooms are recorded for this door yet/);
     expect(host.textContent).toMatch(/Rooms/);
+    everyArea(host);
     expect(all(host, '[role="checkbox"]').length).toBe(165);
   });
 });
@@ -152,6 +180,7 @@ describe('the three views', () => {
       slug: first.slug, boardSlug: SLUG, title: first.title, status: 'done',
       group: first.group, notes: null, links: { readiness: { section: 'construction' } },
     }]);
+    everyArea(host);
     click(btn(host, /Still needed/));
     expect(all(host, '[role="checkbox"]').length).toBe(180);
     click(btn(host, /^Completed 1$/));
@@ -196,6 +225,7 @@ describe('a door with no bedrooms recorded', () => {
   it('lets the landlord name a bedroom without leaving the checklist', () => {
     const added = [];
     const host = mountEmpty((row) => added.push(row));
+    area(host, /^Bedrooms/);
     const input = all(host, 'input[type="text"]').find((i) => i.getAttribute('aria-label') === 'Name a bedroom in this unit');
     expect(input).toBeTruthy();
     act(() => {
@@ -210,6 +240,7 @@ describe('a door with no bedrooms recorded', () => {
 
   it('says the room becomes real, not just a checklist group', () => {
     const host = mountEmpty(() => {});
+    area(host, /^Bedrooms/);
     expect(host.textContent).toMatch(/becomes a real room on the/);
     expect(host.textContent).toMatch(/Rooms/);
   });
@@ -217,6 +248,7 @@ describe('a door with no bedrooms recorded', () => {
   it('will not add an empty name', () => {
     const added = [];
     const host = mountEmpty((row) => added.push(row));
+    area(host, /^Bedrooms/);
     const add = btn(host, /Add bedroom/);
     expect(add.disabled).toBe(true);
     click(add);
@@ -225,12 +257,14 @@ describe('a door with no bedrooms recorded', () => {
 
   it('falls back to pointing at Rooms when the viewer cannot add one', () => {
     const host = mountEmpty(null);
+    area(host, /^Bedrooms/);
     expect(host.textContent).toMatch(/Add them on the/);
     expect(all(host, 'button').some((b) => /Add bedroom/.test(b.textContent))).toBe(false);
   });
 
   it('still renders the 165 fixed tasks either way', () => {
     const host = mountEmpty(() => {});
+    everyArea(host);
     expect(all(host, '[role="checkbox"]').length).toBe(165);
   });
 });
