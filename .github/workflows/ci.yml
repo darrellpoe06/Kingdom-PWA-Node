@@ -927,6 +927,52 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0250-learner-records-smoke.sql 2>&1 | tee "$RUNNER_TEMP/smoke.txt"
           grep -q 'LEARNER RECORD SMOKE: PASS' "$RUNNER_TEMP/smoke.txt"
 
+  # WORK IS FILED ON THE DOOR (DR-0859), ON A REAL POSTGRESQL. The real schema
+  # files and migrations that own the work-order tables apply in order, 0260
+  # applies twice (idempotent), then the smoke proves: the landlord files on a
+  # vacant door and on the family's own home with no tenancy; a row naming
+  # neither is refused; another landlord cannot hang a row on this door; a
+  # 1099 worker reads and files on the door he was granted only, as himself,
+  # cannot move a job, and documents a job whose scope comes from the request
+  # (a lie about the door is overwritten) and whose "fixed" closes it; a
+  # manager moves jobs on his door only; a tenant never sees the landlord's
+  # door work. Every check RAISEs. The same smoke runs on the live database in
+  # the rls-isolation poe-properties leg against the real overlays.
+  door-work:
+    name: app — door work orders (PostgreSQL)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      PGHOST: localhost
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install postgresql-client
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client > /dev/null
+      - name: The work-order chain, 0260 twice (idempotent), and every wall holds
+        run: |
+          set -euo pipefail
+          psql -v ON_ERROR_STOP=1 -q -f scripts/door-work-ci-bootstrap.sql
+          for f in schema-v1.sql schema-v1.1-tenant-join.sql schema-v2.1-infra.sql schema-v2.2-rentals.sql schema-v2.2.1-rentals-amendments.sql schema-v2.2.2-rentals-sync-amendments.sql; do
+            psql -v ON_ERROR_STOP=1 -q --single-transaction -f "infra/supabase/$f"
+          done
+          for f in 0055-relationship-permissions.sql 0062-per-unit-management.sql 0075-delegated-property-management.sql 0150-poe-properties-app-invite-claim-and-household.sql; do
+            psql -v ON_ERROR_STOP=1 -q --single-transaction -f "infra/supabase/migrations-auto/$f"
+          done
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0260-work-is-filed-on-the-door-not-only-on-a-tenancy.sql; done
+          psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0260-door-work-orders-smoke.sql 2>&1 | tee "$RUNNER_TEMP/smoke.txt"
+          grep -q 'DOOR WORK SMOKE: PASS' "$RUNNER_TEMP/smoke.txt"
+
   # THE REQUIRED CHECK (DR-0645). Branch protection and native auto-merge wait
   # on a check named EXACTLY "app — lint + vitest". Do NOT rename this job.
   # It runs `if: always()` because a job whose `needs` failed is otherwise
@@ -935,10 +981,10 @@ jobs:
   app:
     name: app — lint + vitest
     if: always()
-    needs: [guards, vitest, probes, layout, curriculum, lesson-shares, arrivals-push, contacts-walls, voice-enrollments, dm-device-keys, learner-records, vault-walls]
+    needs: [guards, vitest, probes, layout, curriculum, lesson-shares, arrivals-push, contacts-walls, voice-enrollments, dm-device-keys, learner-records, vault-walls, door-work]
     runs-on: ubuntu-latest
     steps:
-      - name: Every leg passed (lint + guards, every vitest shard, build + probes, layout, curriculum, lesson shares, lesson arrival push, contacts walls, voice consent walls, sealed-message device keys walls, learner record walls)
+      - name: Every leg passed (lint + guards, every vitest shard, build + probes, layout, curriculum, lesson shares, lesson arrival push, contacts walls, voice consent walls, sealed-message device keys walls, learner record walls, door work orders)
         env:
           NEEDS: ${{ toJSON(needs) }}
         run: |

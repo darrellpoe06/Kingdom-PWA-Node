@@ -184,12 +184,15 @@ export const FOLLOWUP_LABELS = Object.freeze({
  * only meaningful when the job is NOT fixed — the DB comment says the app
  * enforces that, so it is enforced here and proven in the test.
  */
-export function buildJobDoc({ instanceId, requestId, tenancyId, outcome, followup, note, imageData } = {}) {
+export function buildJobDoc({ instanceId, requestId, tenancyId, rentalId, outcome, followup, note, imageData } = {}) {
   const out = DOC_OUTCOMES.includes(outcome) ? outcome : 'not_fixed';
+  // The scope is the REQUEST's (0260 copies it from the parent row before RLS
+  // reads it); these are carried so a reader of the row sees the door at once.
   return {
     instance_id: instanceId || null,
     request_id: requestId || null,
     tenancy_id: tenancyId || null,
+    rental_id: rentalId || null,
     outcome: out,
     followup: out === 'not_fixed' && DOC_FOLLOWUPS.includes(followup) ? followup : null,
     note: String(note || '').trim() || null,
@@ -198,11 +201,14 @@ export function buildJobDoc({ instanceId, requestId, tenancyId, outcome, followu
 }
 
 /** One note on the shared relationship record (tenancy_notes, 0150). */
-export function buildTenancyNote({ instanceId, tenancyId, requestId, authorRole, authorLabel, body } = {}) {
+export function buildTenancyNote({ instanceId, tenancyId, rentalId, requestId, authorRole, authorLabel, body } = {}) {
   const role = PROPERTY_ROLES.includes(authorRole) ? authorRole : 'tenant';
   return {
     instance_id: instanceId || null,
     tenancy_id: tenancyId || null,
+    // A note on a door no tenancy holds (a vacant door, a short stay, our home)
+    // names the door instead (0260 / DR-0859). At least one of the two is set.
+    rental_id: rentalId || null,
     request_id: requestId || null,
     author_role: role === 'owner' ? 'landlord' : role === 'field_worker' ? 'worker' : role,
     author_label: String(authorLabel || '').trim() || null,

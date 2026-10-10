@@ -121,16 +121,31 @@ export async function loadMyHousehold(client = supabase) {
   } catch (e) { return no('unexpected', e); }
 }
 
-/** Everything that has ever happened on one door — the whole relationship record. */
-export async function loadDoorRecord(tenancyId, client = supabase) {
-  if (!tenancyId) return ok({ requests: [], messages: [], notes: [], docs: [], rent: [], notices: [] });
+/**
+ * Everything that has ever happened on one door — the whole relationship record.
+ *
+ * TWO KEYS (0260 / DR-0859). A tenancy's record is keyed by tenancy_id. Work on
+ * the DOOR itself (a vacant door, a short stay, the family's own home) has no
+ * tenancy and is keyed by rental_id. When both are known the landlord reads
+ * both: the job filed between tenants is part of this door's history. RLS keeps
+ * the door rows from a tenant (every tenancy arm is false on a NULL tenancy),
+ * so asking for them is safe from any seat. Messages, rent and notices exist
+ * only through a tenancy and stay empty on a door with none.
+ */
+export async function loadDoorRecord(tenancyId, { rentalId = null } = {}, client = supabase) {
+  const empty = { requests: [], messages: [], notes: [], docs: [], rent: [], notices: [] };
+  if (!tenancyId && !rentalId) return ok(empty);
+  const scoped = (q) => (tenancyId && rentalId
+    ? q.or(`tenancy_id.eq.${tenancyId},rental_id.eq.${rentalId}`)
+    : tenancyId ? q.eq('tenancy_id', tenancyId) : q.eq('rental_id', rentalId));
+  const none = Promise.resolve({ data: [] });
   try {
     const [req, msg, note, rent, ntc] = await Promise.all([
-      client.from('tenant_maintenance_requests').select('*').eq('tenancy_id', tenancyId).order('created_at', { ascending: true }),
-      client.from('tenant_messages').select('*').eq('tenancy_id', tenancyId).order('sent_at', { ascending: true }),
-      client.from('tenancy_notes').select('*').eq('tenancy_id', tenancyId).order('created_at', { ascending: true }),
-      client.from('rent_records').select('*').eq('tenancy_id', tenancyId).order('reported_at', { ascending: true }),
-      client.from('tenant_notices').select('*').eq('tenancy_id', tenancyId).order('posted_at', { ascending: true }),
+      scoped(client.from('tenant_maintenance_requests').select('*')).order('created_at', { ascending: true }),
+      tenancyId ? client.from('tenant_messages').select('*').eq('tenancy_id', tenancyId).order('sent_at', { ascending: true }) : none,
+      scoped(client.from('tenancy_notes').select('*')).order('created_at', { ascending: true }),
+      tenancyId ? client.from('rent_records').select('*').eq('tenancy_id', tenancyId).order('reported_at', { ascending: true }) : none,
+      tenancyId ? client.from('tenant_notices').select('*').eq('tenancy_id', tenancyId).order('posted_at', { ascending: true }) : none,
     ]);
     // Documentation hangs off the requests we can see.
     const requests = req.data || [];
