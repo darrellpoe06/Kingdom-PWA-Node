@@ -678,7 +678,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
     return res;
   };
 
-  // A VIDEO ON A JOB (DR-0902: "video when necessary"). A short clip, read as
+  // A VIDEO ON A JOB (DR-0914: "video when necessary"). A short clip, read as
   // it is (no re-encoding on a phone), capped so a single upload cannot
   // swamp the record; 0264 checks it is a video and keeps its bytes off the
   // board's list.
@@ -1567,7 +1567,7 @@ function JobVideo({ docId }) {
   );
 }
 
-/** The family's proof setting on one job (DR-0902). */
+/** The family's proof setting on one job (DR-0914). */
 function ProofSetting({ request, onProof }) {
   const [note, setNote] = useState(request.proof_note || '');
   return (

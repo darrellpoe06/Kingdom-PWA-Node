@@ -1,4 +1,4 @@
-# DR-0902 — A job can require proof before it is done, and paid
+# DR-0914 — A job can require proof before it is done, and paid
 
 **Date:** 2026-10-10
 **Status:** accepted
@@ -60,3 +60,7 @@ Payment rested on the word "Fixed" alone. A disputed job had no picture to settl
   - the dispatch text ends with the notice;
   - the family sets a job's proof from the board, which shows the notice, what is still needed, and "Add a video".
   - 35 Properties suites (700 tests) pass, and lint is clean.
+
+## Addendum, 2026-10-10: renumbered
+
+This record was written as DR-0902. #2098 merged its own DR-0902 on main first ("the apply button opens the application"), so this one is DR-0914, with every reference renamed.

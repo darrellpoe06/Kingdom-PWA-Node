@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0264 — A JOB CAN REQUIRE PROOF BEFORE IT IS DONE, AND PAID (DR-0902)
+-- 0264 — A JOB CAN REQUIRE PROOF BEFORE IT IS DONE, AND PAID (DR-0914)
 -- =============================================================================
 -- Darrell, 2026-10-10: "1099 works notice of the need for pictures to
 -- document the work... may be mandatory for payment... situations that need
@@ -43,7 +43,7 @@ BEGIN
   END IF;
 END $$;
 COMMENT ON COLUMN public.tenant_maintenance_requests.proof_required IS
-  'DR-0902: what a documented "Fixed" must carry on this job before it is accepted — none, photos, or photos-and-video. Required for payment.';
+  'DR-0914: what a documented "Fixed" must carry on this job before it is accepted — none, photos, or photos-and-video. Required for payment.';
 
 ALTER TABLE public.request_documentation ADD COLUMN IF NOT EXISTS video_data text;
 DO $$

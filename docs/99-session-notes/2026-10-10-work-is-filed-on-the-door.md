@@ -46,7 +46,7 @@
 
 **Proof.** The smoke has seven breaks proven to catch, and one replay gap was found and fixed. There are 8 app tests, including the record-before-hand-off order.
 
-## Then: papers signed in the app (DR-0913, 0263), and proof before payment (DR-0902, 0264)
+## Then: papers signed in the app (DR-0913, 0263), and proof before payment (DR-0914, 0264)
 
 **Papers.** Asked for: digital signing, papers populated into their places, paper uploads as tenant records, tenants sharing receipts and pictures, and pictures on work orders.
 - The family files a paper and asks for signatures; the database fingerprints the stored bytes.

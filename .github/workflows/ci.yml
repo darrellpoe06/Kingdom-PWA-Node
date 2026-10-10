@@ -953,7 +953,7 @@ jobs:
   # only the right person signs, only the exact fingerprinted version, once;
   # nobody writes the sign state directly; signatures are read where the
   # document is read and edited by nobody; everything is on the clock. Then
-  # 0264 applies twice and the proof smoke proves (DR-0902): only the family
+  # 0264 applies twice and the proof smoke proves (DR-0914): only the family
   # sets a job's proof; "Fixed" is refused until the pictures (and video) are
   # on the job; a non-video is refused as a video; a job with no proof is
   # fixed as before; the requirement is on the clock. Then 0265 applies twice
