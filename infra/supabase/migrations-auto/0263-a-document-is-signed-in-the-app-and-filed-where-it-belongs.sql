@@ -29,7 +29,7 @@
 --     with the server's instant. It stays where it was filed — the tenancy's
 --     papers — so the signed lease is in the tenant's Documents and the door's
 --     Files without being copied anywhere.
---   * Every request, signature and completion lands on record_events (0262)
+--   * Every request, signature and completion lands on door_events (0262)
 --     with its own instant: the clock covers documents now too.
 --
 -- THE COUNSEL RULE STANDS (documents.js, lease-template.js: a generated draft
@@ -158,13 +158,13 @@ CREATE POLICY property_document_signatures_read ON public.property_document_sign
   USING (EXISTS (SELECT 1 FROM property_documents d WHERE d.id = document_id));
 
 -- ---------------------------------------------------------------------------
--- 3. The clock covers documents (record_events, 0262).
+-- 3. The clock covers documents (door_events, 0262).
 -- ---------------------------------------------------------------------------
-ALTER TABLE public.record_events DROP CONSTRAINT IF EXISTS record_events_subject_check;
-ALTER TABLE public.record_events ADD CONSTRAINT record_events_subject_check
+ALTER TABLE public.door_events DROP CONSTRAINT IF EXISTS door_events_subject_check;
+ALTER TABLE public.door_events ADD CONSTRAINT door_events_subject_check
   CHECK (subject IN ('rent', 'work', 'document'));
-DROP POLICY IF EXISTS record_events_read ON public.record_events;
-CREATE POLICY record_events_read ON public.record_events FOR SELECT TO authenticated
+DROP POLICY IF EXISTS door_events_read ON public.door_events;
+CREATE POLICY door_events_read ON public.door_events FOR SELECT TO authenticated
   USING (CASE subject
            WHEN 'rent' THEN EXISTS (SELECT 1 FROM rent_records r WHERE r.id = subject_id)
            WHEN 'work' THEN EXISTS (SELECT 1 FROM tenant_maintenance_requests w WHERE w.id = subject_id)
@@ -205,7 +205,7 @@ BEGIN
          counsel_attested_by = CASE WHEN d.source = 'generated' THEN auth.uid() END,
          counsel_attested_at = CASE WHEN d.source = 'generated' THEN clock_timestamp() END
    WHERE id = p_doc;
-  INSERT INTO record_events (instance_id, subject, subject_id, event, to_value, detail, by_user)
+  INSERT INTO door_events (instance_id, subject, subject_id, event, to_value, detail, by_user)
   VALUES (d.instance_id, 'document', d.id, 'signature-requested', array_to_string(p_signers, ','),
           jsonb_strip_nulls(jsonb_build_object('title', d.title, 'kind', d.kind, 'version', v_hash,
             'counsel_attested', CASE WHEN d.source = 'generated' THEN true END)), auth.uid());
@@ -251,7 +251,7 @@ BEGIN
   INSERT INTO property_document_signatures
     (document_id, instance_id, signer_user_id, signer_role, signature, attestation, consent, doc_version, signed_on_device_at)
   VALUES (p_doc, d.instance_id, auth.uid(), p_role, btrim(p_signature), btrim(p_attestation), btrim(p_consent), p_doc_version, p_device_at);
-  INSERT INTO record_events (instance_id, subject, subject_id, event, to_value, detail, by_user)
+  INSERT INTO door_events (instance_id, subject, subject_id, event, to_value, detail, by_user)
   VALUES (d.instance_id, 'document', d.id, 'signed', p_role,
           jsonb_strip_nulls(jsonb_build_object('title', d.title, 'version', p_doc_version, 'on_device_at', p_device_at)), auth.uid());
 
@@ -259,7 +259,7 @@ BEGIN
    WHERE NOT EXISTS (SELECT 1 FROM property_document_signatures s WHERE s.document_id = p_doc AND s.signer_role = r);
   IF v_left = 0 THEN
     UPDATE property_documents SET sign_status = 'signed', signed_at = clock_timestamp() WHERE id = p_doc;
-    INSERT INTO record_events (instance_id, subject, subject_id, event, to_value, detail, by_user)
+    INSERT INTO door_events (instance_id, subject, subject_id, event, to_value, detail, by_user)
     VALUES (d.instance_id, 'document', d.id, 'fully-signed', 'signed', jsonb_build_object('title', d.title, 'version', p_doc_version), auth.uid());
     RETURN 'signed';
   END IF;

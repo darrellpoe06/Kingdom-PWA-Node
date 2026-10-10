@@ -29,7 +29,7 @@
 --    and the device's own clock (reported_on_device_at) beside the server's
 --    reported_at. A remainder can never exceed what was due.
 --
--- 3. record_events — AN APPEND-ONLY CLOCK FOR EVERY CHANGE to a rent record or
+-- 3. door_events — AN APPEND-ONLY CLOCK FOR EVERY CHANGE to a rent record or
 --    a work order: created, status moved (from → to), amount or promise
 --    changed, assigned. Each row carries clock_timestamp() (the instant, not
 --    the transaction start) and the user who did it. Written only by
@@ -133,7 +133,7 @@ COMMENT ON COLUMN public.rent_records.remaining_after IS
 -- ---------------------------------------------------------------------------
 -- 3. The clock: every change to a rent record or a work order, append-only.
 -- ---------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.record_events (
+CREATE TABLE IF NOT EXISTS public.door_events (
   id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   instance_id uuid NOT NULL REFERENCES public.instances(id) ON DELETE CASCADE,
   subject     text NOT NULL CHECK (subject IN ('rent', 'work')),
@@ -145,29 +145,29 @@ CREATE TABLE IF NOT EXISTS public.record_events (
   at          timestamptz NOT NULL DEFAULT clock_timestamp(),
   by_user     uuid
 );
-CREATE INDEX IF NOT EXISTS record_events_subject_idx ON public.record_events(subject, subject_id, at);
-CREATE INDEX IF NOT EXISTS record_events_instance_idx ON public.record_events(instance_id, at);
-COMMENT ON TABLE public.record_events IS
+CREATE INDEX IF NOT EXISTS door_events_subject_idx ON public.door_events(subject, subject_id, at);
+CREATE INDEX IF NOT EXISTS door_events_instance_idx ON public.door_events(instance_id, at);
+COMMENT ON TABLE public.door_events IS
   'DR-0899: append-only, to the instant (clock_timestamp), who changed what on a rent record or a work order. Written only by triggers; read exactly where the parent row is readable.';
 
-REVOKE ALL ON public.record_events FROM anon, authenticated;
-GRANT SELECT ON public.record_events TO authenticated;
-ALTER TABLE public.record_events ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS record_events_read ON public.record_events;
-CREATE POLICY record_events_read ON public.record_events FOR SELECT TO authenticated
+REVOKE ALL ON public.door_events FROM anon, authenticated;
+GRANT SELECT ON public.door_events TO authenticated;
+ALTER TABLE public.door_events ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS door_events_read ON public.door_events;
+CREATE POLICY door_events_read ON public.door_events FOR SELECT TO authenticated
   USING (CASE subject
            WHEN 'rent' THEN EXISTS (SELECT 1 FROM rent_records r WHERE r.id = subject_id)
            WHEN 'work' THEN EXISTS (SELECT 1 FROM tenant_maintenance_requests w WHERE w.id = subject_id)
            ELSE false END);
 
-CREATE OR REPLACE FUNCTION public.record_events_from_rent()
+CREATE OR REPLACE FUNCTION public.door_events_from_rent()
 RETURNS trigger
 LANGUAGE plpgsql SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
   IF TG_OP = 'INSERT' THEN
-    INSERT INTO record_events (instance_id, subject, subject_id, event, to_value, detail, by_user)
+    INSERT INTO door_events (instance_id, subject, subject_id, event, to_value, detail, by_user)
     VALUES (NEW.instance_id, 'rent', NEW.id, 'reported', NEW.status,
             jsonb_strip_nulls(jsonb_build_object('amount', NEW.amount, 'method', NEW.method, 'for_period', NEW.for_period,
               'due_amount', NEW.due_amount, 'remaining_after', NEW.remaining_after, 'rest_promised_on', NEW.rest_promised_on,
@@ -176,12 +176,12 @@ BEGIN
     RETURN NULL;
   END IF;
   IF NEW.status IS DISTINCT FROM OLD.status THEN
-    INSERT INTO record_events (instance_id, subject, subject_id, event, from_value, to_value, by_user)
+    INSERT INTO door_events (instance_id, subject, subject_id, event, from_value, to_value, by_user)
     VALUES (NEW.instance_id, 'rent', NEW.id, 'status', OLD.status, NEW.status, auth.uid());
   END IF;
   IF NEW.amount IS DISTINCT FROM OLD.amount OR NEW.remaining_after IS DISTINCT FROM OLD.remaining_after
      OR NEW.rest_promised_on IS DISTINCT FROM OLD.rest_promised_on THEN
-    INSERT INTO record_events (instance_id, subject, subject_id, event, detail, by_user)
+    INSERT INTO door_events (instance_id, subject, subject_id, event, detail, by_user)
     VALUES (NEW.instance_id, 'rent', NEW.id, 'changed',
             jsonb_build_object('amount', jsonb_build_array(OLD.amount, NEW.amount),
               'remaining_after', jsonb_build_array(OLD.remaining_after, NEW.remaining_after),
@@ -189,51 +189,51 @@ BEGIN
             auth.uid());
   END IF;
   IF NEW.posted_tx_id IS DISTINCT FROM OLD.posted_tx_id AND NEW.posted_tx_id IS NOT NULL THEN
-    INSERT INTO record_events (instance_id, subject, subject_id, event, by_user)
+    INSERT INTO door_events (instance_id, subject, subject_id, event, by_user)
     VALUES (NEW.instance_id, 'rent', NEW.id, 'posted-to-books', auth.uid());
   END IF;
   RETURN NULL;
 END $$;
-REVOKE ALL ON FUNCTION public.record_events_from_rent() FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.door_events_from_rent() FROM PUBLIC;
 
 DROP TRIGGER IF EXISTS rent_records_events ON public.rent_records;
 CREATE TRIGGER rent_records_events
   AFTER INSERT OR UPDATE ON public.rent_records
-  FOR EACH ROW EXECUTE FUNCTION public.record_events_from_rent();
+  FOR EACH ROW EXECUTE FUNCTION public.door_events_from_rent();
 
-CREATE OR REPLACE FUNCTION public.record_events_from_work()
+CREATE OR REPLACE FUNCTION public.door_events_from_work()
 RETURNS trigger
 LANGUAGE plpgsql SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
   IF TG_OP = 'INSERT' THEN
-    INSERT INTO record_events (instance_id, subject, subject_id, event, to_value, detail, by_user)
+    INSERT INTO door_events (instance_id, subject, subject_id, event, to_value, detail, by_user)
     VALUES (NEW.instance_id, 'work', NEW.id, 'filed', NEW.status,
             jsonb_strip_nulls(jsonb_build_object('title', NEW.title, 'priority', NEW.priority, 'by_role', NEW.created_by_role)),
             auth.uid());
     RETURN NULL;
   END IF;
   IF NEW.status IS DISTINCT FROM OLD.status THEN
-    INSERT INTO record_events (instance_id, subject, subject_id, event, from_value, to_value, by_user)
+    INSERT INTO door_events (instance_id, subject, subject_id, event, from_value, to_value, by_user)
     VALUES (NEW.instance_id, 'work', NEW.id, 'status', OLD.status, NEW.status, auth.uid());
   END IF;
   IF NEW.assigned_to_label IS DISTINCT FROM OLD.assigned_to_label OR NEW.assigned_to IS DISTINCT FROM OLD.assigned_to THEN
-    INSERT INTO record_events (instance_id, subject, subject_id, event, from_value, to_value, by_user)
+    INSERT INTO door_events (instance_id, subject, subject_id, event, from_value, to_value, by_user)
     VALUES (NEW.instance_id, 'work', NEW.id, 'assigned', OLD.assigned_to_label, NEW.assigned_to_label, auth.uid());
   END IF;
   IF NEW.priority IS DISTINCT FROM OLD.priority THEN
-    INSERT INTO record_events (instance_id, subject, subject_id, event, from_value, to_value, by_user)
+    INSERT INTO door_events (instance_id, subject, subject_id, event, from_value, to_value, by_user)
     VALUES (NEW.instance_id, 'work', NEW.id, 'priority', OLD.priority, NEW.priority, auth.uid());
   END IF;
   RETURN NULL;
 END $$;
-REVOKE ALL ON FUNCTION public.record_events_from_work() FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.door_events_from_work() FROM PUBLIC;
 
 DROP TRIGGER IF EXISTS tenant_maintenance_requests_events ON public.tenant_maintenance_requests;
 CREATE TRIGGER tenant_maintenance_requests_events
   AFTER INSERT OR UPDATE ON public.tenant_maintenance_requests
-  FOR EACH ROW EXECUTE FUNCTION public.record_events_from_work();
+  FOR EACH ROW EXECUTE FUNCTION public.door_events_from_work();
 
 SELECT public.apply_viewer_readonly_overlay();
 SELECT public.apply_assistant_scope_overlay();

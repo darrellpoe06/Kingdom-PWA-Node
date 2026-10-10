@@ -23,7 +23,7 @@
 --
 -- The family can still close a job by its own status move — the requirement
 -- binds the documented "Fixed", which is the worker's claim of done and the
--- evidence the payment rests on. Every move stays on record_events (0262).
+-- evidence the payment rests on. Every move stays on door_events (0262).
 --
 -- IDEMPOTENT: IF NOT EXISTS, guarded constraints, CREATE OR REPLACE,
 -- DROP/CREATE trigger. ADDITIVE: every existing job reads proof 'none'.
@@ -91,23 +91,23 @@ CREATE TRIGGER request_documentation_proof
   FOR EACH ROW EXECUTE FUNCTION public.request_documentation_proof_before_fixed();
 
 -- The proof requirement and its changes are on the clock too.
-CREATE OR REPLACE FUNCTION public.record_events_from_work_proof()
+CREATE OR REPLACE FUNCTION public.door_events_from_work_proof()
 RETURNS trigger
 LANGUAGE plpgsql SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
   IF NEW.proof_required IS DISTINCT FROM OLD.proof_required THEN
-    INSERT INTO record_events (instance_id, subject, subject_id, event, from_value, to_value, by_user)
+    INSERT INTO door_events (instance_id, subject, subject_id, event, from_value, to_value, by_user)
     VALUES (NEW.instance_id, 'work', NEW.id, 'proof', OLD.proof_required, NEW.proof_required, auth.uid());
   END IF;
   RETURN NULL;
 END $$;
-REVOKE ALL ON FUNCTION public.record_events_from_work_proof() FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.door_events_from_work_proof() FROM PUBLIC;
 
 DROP TRIGGER IF EXISTS tenant_maintenance_requests_proof_events ON public.tenant_maintenance_requests;
 CREATE TRIGGER tenant_maintenance_requests_proof_events
   AFTER UPDATE OF proof_required ON public.tenant_maintenance_requests
-  FOR EACH ROW EXECUTE FUNCTION public.record_events_from_work_proof();
+  FOR EACH ROW EXECUTE FUNCTION public.door_events_from_work_proof();
 
 NOTIFY pgrst, 'reload schema';

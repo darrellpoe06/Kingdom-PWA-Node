@@ -351,14 +351,14 @@ export async function loadPayeeForTenancy(tenancyId, client = supabase) {
 
 /**
  * Every change to these rent records and work orders, to the instant, oldest
- * first (record_events, 0262). RLS returns exactly the events of the records
+ * first (door_events, 0262). RLS returns exactly the events of the records
  * this person can already read.
  */
 export async function loadRecordEvents(subjectIds = [], client = supabase) {
   const ids = [...new Set((subjectIds || []).filter(Boolean))];
   if (!ids.length) return ok({ events: [] });
   try {
-    const { data, error } = await client.from('record_events').select('*').in('subject_id', ids).order('at', { ascending: true });
+    const { data, error } = await client.from('door_events').select('*').in('subject_id', ids).order('at', { ascending: true });
     return error ? no('read-failed', error) : ok({ events: data || [] });
   } catch (e) { return no('unexpected', e); }
 }
