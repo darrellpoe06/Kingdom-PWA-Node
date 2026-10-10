@@ -1,4 +1,4 @@
-# DR-0909 — The upload date is the anchor; the taken date is a claim
+# DR-0942 — The upload date is the anchor; the taken date is a claim
 
 - **Status:** accepted
 - **Tier:** B (evidence rules on condition photographs — what a deposit argument turns on)

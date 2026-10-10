@@ -19,12 +19,14 @@ import { describe, it, expect, afterEach, vi } from 'vitest';
 import { createElement } from 'react';
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
+import { proofState, proofNotice } from '../modules/properties/proof.js';
+import { dispatchText } from '../modules/properties/dispatch-roster.js';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
 const H = vi.hoisted(() => ({
   rentals: [], doors: [], grants: [], household: [], invites: [], record: null, session: null,
-  assigns: [], statuses: [], notes: [], filed: [], recordCalls: [], jobDocs: [],
+  assigns: [], statuses: [], notes: [], filed: [], recordCalls: [], jobDocs: [], proofs: [],
 }));
 
 vi.mock('../modules/properties/cloud.js', () => {
@@ -50,12 +52,23 @@ vi.mock('../modules/properties/cloud.js', () => {
     loadSystemEvents: async () => ({ ok: true, events: [] }),
     loadDoorNotes: async () => ({ ok: true, notes: [] }),
     addSystem: noop, patchSystem: noop, addSystemEvent: noop,
-    fileWorkOrder: async (row) => { H.filed.push(row); return { ok: true, row }; },
+    // The guest card on the Work board (DR-0898): off on every door here.
+    loadGuestLink: async () => ({ ok: true, token: null }), openGuestLink: async () => ({ ok: true, token: null }), closeGuestLink: async () => ({ ok: true }),
+    // Rent hand-off and the change clock (DR-0899): nothing set, nothing logged.
+    loadRecordEvents: async () => ({ ok: true, events: [] }), loadDoorMoney: async () => ({ ok: true, months: [] }),
+    loadDoorPapers: async () => ({ ok: true, documents: [] }), loadSignatures: async () => ({ ok: true, signatures: [] }),
+    requestSignatures: async () => ({ ok: true }), signDocument: async () => ({ ok: true }),
+    doorOfMyTenancy: async () => ({ ok: true, rentalId: null }), loadDoorStays: async () => ({ ok: true, rows: [] }), loadBookedNights: async () => ({ ok: true, ranges: [] }), loadDoorArea: async () => ({ ok: true, area: null, nearby: [] }), requestAStay: async () => ({ ok: true }), addDoorStay: async () => ({ ok: true }), decideStay: async () => ({ ok: true }), loadCameraMenu: async () => ({ ok: true, menu: [] }), loadCameraAccess: async () => ({ ok: true, rows: [] }),
+    saveCameraMenu: async () => ({ ok: true }), askForCameras: async () => ({ ok: true }), decideCameraAccess: async () => ({ ok: true }), giveCameraAccess: async () => ({ ok: true }), loadPayeeForTenancy: async () => ({ ok: true, payee: null }),
+    loadRentPayee: async () => ({ ok: true, payee: null }), saveRentPayee: async () => ({ ok: true }),
+    fileWorkOrder: async (row) => { H.filed.push(row); return { ok: true, row: { id: 'req-new', ...row } }; },
     setWorkOrderStatus: async (id, status) => { H.statuses.push([id, status]); return { ok: true }; },
     assignWorkOrder: async (id, a) => { H.assigns.push({ id, ...a }); return { ok: true }; },
     postMessage: noop,
     postNote: async (row) => { H.notes.push(row); return { ok: true }; },
     postJobDoc: async (row) => { H.jobDocs.push(row); return { ok: true }; },
+    setWorkOrderProof: async (id, proof) => { H.proofs.push([id, proof]); return { ok: true }; },
+    loadJobVideo: async () => ({ ok: true, video: 'data:video/mp4;base64,AAAA' }),
     recordRent: noop, confirmRent: noop, markRentPosted: noop,
     inviteToProperties: noop, createTenancy: noop,
     addRoom: noop, patchRoom: noop, updateTenancy: noop, updateRental: noop,
@@ -70,6 +83,14 @@ vi.mock('../lib/supabase.js', () => ({
   normalizePhone: (p) => String(p || '').replace(/\D+/g, ''),
 }));
 
+// Phone photos are shrunk on a canvas jsdom does not have; the shrink is its
+// own unit's business, so here it answers with a fixed small JPEG.
+vi.mock('../lib/image.js', () => ({
+  compressImageFile: async () => 'data:image/jpeg;base64,SMALL',
+  isLikelyImageFile: (f) => /^image\//.test((f && f.type) || ''),
+  compressImageToFile: async (f) => f,
+  fileToDataUrl: async () => 'data:image/jpeg;base64,SMALL',
+}));
 import PropertiesApp from '../modules/properties/PropertiesApp.jsx';
 
 let container, root;
@@ -77,7 +98,7 @@ afterEach(() => {
   if (root) act(() => root.unmount());
   if (container) container.remove();
   root = container = null;
-  Object.assign(H, { rentals: [], doors: [], grants: [], household: [], invites: [], record: null, session: null, assigns: [], statuses: [], notes: [], filed: [], recordCalls: [], jobDocs: [] });
+  Object.assign(H, { rentals: [], doors: [], grants: [], household: [], invites: [], record: null, session: null, assigns: [], statuses: [], notes: [], filed: [], recordCalls: [], jobDocs: [], proofs: [] });
 });
 
 async function mount(props = {}) {
@@ -185,5 +206,100 @@ describe('the 1099 worker walking a door he was granted', () => {
     await tap(/^Fixed$/);
     expect(H.jobDocs).toHaveLength(1);
     expect(H.jobDocs[0]).toMatchObject({ request_id: 'req9', rental_id: 'r-apt2', tenancy_id: null, outcome: 'fixed' });
+  });
+});
+
+describe('a picture on a work order (DR-0936: "pictures for documentation... For workorders")', () => {
+  it('a report filed with several pictures (one taken, two chosen) lands each on the new job, as documentation with no outcome', async () => {
+    H.rentals = [APT2]; H.doors = [];
+    await mount();
+    await pickDoor('805 North Prospect Avenue');
+    await tap(/^Work board$/);
+    await typeJob('Water under the sink');
+    const put = async (label, files) => {
+      const el = container.querySelector(`input[aria-label="${label}"]`);
+      await act(async () => { Object.defineProperty(el, 'files', { value: files, configurable: true }); el.dispatchEvent(new Event('change', { bubbles: true })); });
+    };
+    const jpg = (n) => new File([new Uint8Array([1, 2, 3])], n, { type: 'image/jpeg' });
+    await put('Add a picture to this report', [jpg('sink.jpg')]);
+    await put('Choose pictures for this report', [jpg('pipe.jpg'), jpg('floor.jpg')]);
+    expect(container.querySelector('[data-testid="report-pictures"]').textContent).toContain('3 pictures ready');
+    await tap(/^File it$/i);
+    for (let i = 0; i < 10; i += 1) await act(async () => { await Promise.resolve(); });
+    expect(H.filed[0]).toMatchObject({ rental_id: 'r-apt2', title: 'Water under the sink' });
+    expect(H.jobDocs).toHaveLength(3);
+    expect(H.jobDocs.every((d) => d.request_id === 'req-new' && d.rental_id === 'r-apt2' && d.tenancy_id === null && d.outcome === null && d.image_data === 'data:image/jpeg;base64,SMALL')).toBe(true);
+    expect(text()).toContain('Work order filed with 3 pictures.');
+  });
+  it('an empty unit\'s own record reads "Empty", never "Rented"', async () => {
+    H.rentals = [APT2];
+    H.doors = [{ id: 't-unit', instance_id: 'i1', rental_ref: 'r-805-apt2', property_label: '805 North Prospect Avenue', unit_label: 'Apt 2', tenant_name: null, tenant_user_id: null, status: 'pending' }];
+    await mount();
+    await tap(/^Work board$/);
+    expect(text()).toContain('Empty \u2014 nobody living here yet');
+    expect(text()).not.toContain('Rented');
+  });
+  it('a picture already on a job shows on the board with its time', async () => {
+    H.rentals = [APT2]; H.doors = [];
+    H.record = {
+      requests: [{ id: 'req9', rental_id: 'r-apt2', title: 'Stain on the couch', status: 'submitted', created_at: '2026-10-10T12:00:00Z' }],
+      docs: [{ id: 'doc1', request_id: 'req9', outcome: null, note: 'Left cushion', image_data: 'data:image/jpeg;base64,SEEN', created_at: '2026-10-10T12:03:00Z' }],
+    };
+    await mount();
+    await pickDoor('805 North Prospect Avenue');
+    await tap(/^Work board$/);
+    const doc = container.querySelector('[data-testid="job-doc"]');
+    expect(doc.textContent).toContain('Picture: Left cushion');
+    expect(doc.querySelector('img').getAttribute('src')).toBe('data:image/jpeg;base64,SEEN');
+    expect(container.querySelector('input[aria-label="Add a picture to Stain on the couch"]')).not.toBeNull();
+  });
+});
+
+describe('proof before payment (DR-0937: "pictures to document the work... mandatory for payment... video when necessary")', () => {
+  const JOB = { id: 'req7', title: 'Install microwave', proof_required: 'photos-and-video', proof_note: 'the microwave mounted and the fan running', status: 'scheduled' };
+  it('says what is required, counts it, and says ready to pay only when the proof is in AND it is fixed', () => {
+    expect(proofNotice(JOB)).toBe('Pictures and a video of the microwave mounted and the fan running are required for payment. Add them on the job before marking it fixed.');
+    expect(proofNotice({ proof_required: 'none' })).toBe('');
+    expect(proofState(JOB, []).line).toBe('Proof for payment: 0 pictures, 0 videos. Still needed: a picture of the finished work and a video of the finished work');
+    const pic = { request_id: 'req7', image_data: 'data:image/jpeg;base64,A' };
+    const vid = { request_id: 'req7', has_video: true };
+    expect(proofState(JOB, [pic]).missing).toEqual(['a video of the finished work']);
+    expect(proofState(JOB, [pic, vid]).line).toBe('Proof complete (1 picture, 1 video); waiting for "Fixed"');
+    expect(proofState(JOB, [pic, vid, { request_id: 'req7', outcome: 'fixed' }]).payable).toBe(true);
+    expect(proofState({ ...JOB, proof_required: 'none' }, []).line).toBe('');
+  });
+  it('the dispatch text tells the worker before he starts', () => {
+    const t = dispatchText({ door: null, rental: APT2, request: JOB });
+    expect(t).toContain('Install microwave');
+    expect(t.split('\n').pop()).toBe(proofNotice(JOB));
+  });
+  it('the family sets the proof on a job, and the board shows the notice and what is still needed', async () => {
+    H.rentals = [APT2]; H.doors = [];
+    H.record = { requests: [{ ...JOB, rental_id: 'r-apt2', created_at: '2026-10-10T12:00:00Z' }], docs: [{ id: 'p1', request_id: 'req7', image_data: 'data:image/jpeg;base64,A', created_at: '2026-10-10T12:05:00Z' }] };
+    await mount();
+    await pickDoor('805 North Prospect Avenue');
+    await tap(/^Work board$/);
+    expect(container.querySelector('[data-testid="proof-notice"]').textContent).toBe(proofNotice(JOB));
+    expect(container.querySelector('[data-testid="proof-state"]').textContent).toBe('Proof for payment: 1 picture, 0 videos. Still needed: a video of the finished work');
+    expect(container.querySelector('input[aria-label="Add a video to Install microwave"]')).not.toBeNull();
+    const sel = container.querySelector('select[aria-label="Proof for Install microwave"]');
+    await act(async () => { sel.value = 'photos'; sel.dispatchEvent(new Event('change', { bubbles: true })); });
+    for (let i = 0; i < 4; i += 1) await act(async () => { await Promise.resolve(); });
+    expect(H.proofs).toEqual([['req7', { proofRequired: 'photos', proofNote: 'the microwave mounted and the fan running' }]]);
+  });
+});
+
+describe('a message on an empty unit stays (2026-10-10: "Didn\'t stay" / "Message Didn\'t save")', () => {
+  it('PROVEN-TO-CATCH: picking the door from Doors lands on its own pending record, so the saved thread is there', async () => {
+    const UNIT = { id: 't-unit', instance_id: 'i1', rental_ref: 'r-805-apt2', property_label: '805 North Prospect Avenue', unit_label: 'Apt 2', tenant_name: null, tenant_user_id: null, status: 'pending' };
+    H.rentals = [APT2, KOEHN]; H.doors = [KOEHN_TENANCY, UNIT];
+    H.record = { messages: [{ id: 'm1', tenancy_id: 't-unit', from_role: 'landlord', body: 'Testing the process....', sent_at: '2026-10-10T18:34:40Z' }] };
+    await mount();
+    await pickDoor('805 North Prospect Avenue');
+    expect(H.recordCalls.at(-1)[0]).toBe('t-unit');
+    await tap(/^Messages$/);
+    expect(text()).toContain('Testing the process....');
+    expect(text()).toContain('Empty — nobody living here yet');
+    expect(text()).not.toContain('Rented');
   });
 });

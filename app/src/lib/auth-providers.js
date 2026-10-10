@@ -223,7 +223,9 @@ function verdict(provider, status) {
   return {
     ok: false,
     status,
-    message: `${name} sign-in isn’t switched on yet. Use your email and password just below — or the “trouble signing in?” link to get a sign-in link emailed to you.`,
+    // The family server sends no email (SMTP is not wired), so the emailed
+    // link this used to suggest cannot arrive. Name only doors that work.
+    message: `${name} sign-in isn’t switched on at the family server yet. Use your email and password, or your phone number and PIN.`,
   };
 }
 

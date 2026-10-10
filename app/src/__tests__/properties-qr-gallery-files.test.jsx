@@ -479,7 +479,7 @@ describe('a property\'s pictures', () => {
     });
   });
 
-  // TWO DATES, TWO RULES (DR-0909). Darrell, 2026-10-10: "always put the
+  // TWO DATES, TWO RULES (DR-0942). Darrell, 2026-10-10: "always put the
   // uploaded dates... and the other option is default however editable...
   // however the upload dat never is".
   describe('the editor, on the two dates', () => {

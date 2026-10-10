@@ -54,7 +54,7 @@ return {
     // The signed-out door asks for listed vacancies; two listed, so the
     // "nothing available" copy and the listing copy are both exercised.
     rpc: async (name) => (name === 'public_vacancies'
-      ? { data: [{ id: 'v1', label: 'Maple Street', unit: 'Unit 2', city: 'Davenport', state: 'IA', property_type: 'duplex', rent: 950, note: 'Available Sept 1' }], error: null }
+      ? { data: [{ id: 'v1', label: 'Maple Street', unit: 'Unit 2', city: 'Davenport', state: 'IA', property_type: 'duplex', rent: 950, note: 'Available Sept 1', address_shown: false }], error: null }
       : { data: null, error: null }),
   },
   phoneLoginEmail: (p) => (String(p || '').replace(/\D+/g, '').length >= 10 ? `1${String(p).replace(/\D+/g, '')}@phone.poetech.us` : ''),

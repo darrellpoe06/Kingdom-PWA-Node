@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0261 — the UPLOAD date is the anchor; the TAKEN date is a claim
+-- 0271 — the UPLOAD date is the anchor; the TAKEN date is a claim
 -- =============================================================================
 -- Darrell, 2026-10-10, resolving a conflict this session had just surfaced to
 -- him:
@@ -53,7 +53,7 @@ begin
   if NEW.storage_path is distinct from OLD.storage_path then
     raise exception 'a photo''s image cannot be changed — add a new photo instead';
   end if;
-  -- THE ANCHOR (0261). Nobody asserts this and nobody may move it: it is what
+  -- THE ANCHOR (0271). Nobody asserts this and nobody may move it: it is what
   -- the system observed, and it is what makes a corrected taken_at safe.
   if NEW.uploaded_at is distinct from OLD.uploaded_at then
     raise exception 'when a photo was uploaded cannot be changed — it is the record of when it arrived';
@@ -61,7 +61,7 @@ begin
   if NEW.uploaded_by is distinct from OLD.uploaded_by then
     raise exception 'who uploaded a photo cannot be changed';
   end if;
-  -- taken_at is NO LONGER FROZEN (0261). It is a person's claim about the
+  -- taken_at is NO LONGER FROZEN (0271). It is a person's claim about the
   -- world, it is routinely absent on a photo chosen from a phone, and the
   -- immutable uploaded_at above is what keeps it honest.
   if NEW.rental_ref is distinct from OLD.rental_ref

@@ -40,6 +40,15 @@ vi.mock('../modules/properties/cloud.js', () => {
     loadDoorPhotos: async () => ({ ok: true, photos: [] }),
     loadDoorTenancies: async () => ({ ok: true, tenancies: [] }),
     loadDocuments: async () => ({ ok: true, documents: [] }),
+    // The guest card on the Work board (DR-0898): off on every door here.
+    loadGuestLink: async () => ({ ok: true, token: null }), openGuestLink: async () => ({ ok: true, token: null }), closeGuestLink: async () => ({ ok: true }),
+    // Rent hand-off and the change clock (DR-0899): nothing set, nothing logged.
+    loadRecordEvents: async () => ({ ok: true, events: [] }), loadDoorMoney: async () => ({ ok: true, months: [] }),
+    loadDoorPapers: async () => ({ ok: true, documents: [] }), loadSignatures: async () => ({ ok: true, signatures: [] }),
+    requestSignatures: async () => ({ ok: true }), signDocument: async () => ({ ok: true }),
+    doorOfMyTenancy: async () => ({ ok: true, rentalId: null }), loadDoorStays: async () => ({ ok: true, rows: [] }), loadBookedNights: async () => ({ ok: true, ranges: [] }), loadDoorArea: async () => ({ ok: true, area: null, nearby: [] }), requestAStay: async () => ({ ok: true }), addDoorStay: async () => ({ ok: true }), decideStay: async () => ({ ok: true }), loadCameraMenu: async () => ({ ok: true, menu: [] }), loadCameraAccess: async () => ({ ok: true, rows: [] }),
+    saveCameraMenu: async () => ({ ok: true }), askForCameras: async () => ({ ok: true }), decideCameraAccess: async () => ({ ok: true }), giveCameraAccess: async () => ({ ok: true }), loadPayeeForTenancy: async () => ({ ok: true, payee: null }),
+    loadRentPayee: async () => ({ ok: true, payee: null }), saveRentPayee: async () => ({ ok: true }),
     fileWorkOrder: noop, setWorkOrderStatus: noop, assignWorkOrder: noop,
     postMessage: noop, postNote: noop, postJobDoc: noop,
     recordRent: noop, confirmRent: noop, markRentPosted: noop,

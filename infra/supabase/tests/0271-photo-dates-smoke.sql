@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0261 SMOKE — the upload date is the anchor, the taken date is a claim
+-- 0271 SMOKE — the upload date is the anchor, the taken date is a claim
 -- =============================================================================
 -- Runs in CI on a throwaway PostgreSQL and on the LIVE database in the
 -- rls-isolation poe-properties leg. Everything is in one transaction and ROLLS
@@ -27,29 +27,29 @@
 BEGIN;
 
 INSERT INTO auth.users (instance_id, id, aud, role, email, encrypted_password, created_at, updated_at) VALUES
-  ('00000000-0000-0000-0000-000000000000', '00000000-0000-4000-a000-0000000a0261', 'authenticated','authenticated','owner261@test.local','', now(), now())
+  ('00000000-0000-0000-0000-000000000000', '00000000-0000-4000-a000-0000000a0271', 'authenticated','authenticated','owner261@test.local','', now(), now())
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO instances (id, slug, display_name, instance_type) VALUES
-  ('00000000-0000-4000-b000-000000010261', 'photo-dates-smoke-261', 'Photo Dates Smoke', 'business')
+  ('00000000-0000-4000-b000-000000010271', 'photo-dates-smoke-271', 'Photo Dates Smoke', 'business')
 ON CONFLICT (id) DO NOTHING;
 INSERT INTO instance_members (instance_id, user_id, role, display_name) VALUES
-  ('00000000-0000-4000-b000-000000010261', '00000000-0000-4000-a000-0000000a0261', 'owner', 'Owner')
+  ('00000000-0000-4000-b000-000000010271', '00000000-0000-4000-a000-0000000a0271', 'owner', 'Owner')
 ON CONFLICT DO NOTHING;
 
 INSERT INTO rentals (id, instance_id, created_by, slug, display_name, address, property_type, status) VALUES
-  ('00000000-0000-4000-c000-000000010261', '00000000-0000-4000-b000-000000010261',
-   '00000000-0000-4000-a000-0000000a0261', 'photo-dates-door-261', 'Door 261', '261 Smoke St', 'multi-family', 'vacant'),
-  ('00000000-0000-4000-c000-000000020261', '00000000-0000-4000-b000-000000010261',
-   '00000000-0000-4000-a000-0000000a0261', 'photo-dates-door2-261', 'Door 261 B', '262 Smoke St', 'multi-family', 'vacant')
+  ('00000000-0000-4000-c000-000000010271', '00000000-0000-4000-b000-000000010271',
+   '00000000-0000-4000-a000-0000000a0271', 'photo-dates-door-261', 'Door 261', '261 Smoke St', 'multi-family', 'vacant'),
+  ('00000000-0000-4000-c000-000000020271', '00000000-0000-4000-b000-000000010271',
+   '00000000-0000-4000-a000-0000000a0271', 'photo-dates-door2-261', 'Door 261 B', '262 Smoke St', 'multi-family', 'vacant')
 ON CONFLICT (id) DO NOTHING;
 
 DO $$
 DECLARE
-  o   uuid := '00000000-0000-4000-a000-0000000a0261';
-  ins uuid := '00000000-0000-4000-b000-000000010261';
-  d   uuid := '00000000-0000-4000-c000-000000010261';
-  d2  uuid := '00000000-0000-4000-c000-000000020261';
+  o   uuid := '00000000-0000-4000-a000-0000000a0271';
+  ins uuid := '00000000-0000-4000-b000-000000010271';
+  d   uuid := '00000000-0000-4000-c000-000000010271';
+  d2  uuid := '00000000-0000-4000-c000-000000020271';
   p   uuid;
   up  timestamptz;
   ed1 timestamptz;

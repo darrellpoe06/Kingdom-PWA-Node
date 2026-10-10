@@ -1,10 +1,10 @@
-# DR-0878 — The reader's color picker reaches every door
+# DR-0878 — The reader's colour picker reaches every door
 
 - **Status:** accepted
 - **Tier:** A (defect; one hook swap, no new behaviour)
 - **Date:** 2026-10-10
 - **Type:** product (defect)
-- **Scope:** `app/src/components/PropertiesDoor.jsx`, `TlcPublicDoor.jsx`, `MooreDoor.jsx`, `app/src/__tests__/the-reader-color-picker-reaches-every-door.test.js` (new)
+- **Scope:** `app/src/components/PropertiesDoor.jsx`, `TlcPublicDoor.jsx`, `MooreDoor.jsx`, `app/src/__tests__/the-reader-colour-picker-reaches-every-door.test.js` (new)
 - **Principles:** VERIFICATION-DOCTRINE (DR-0076), SURFACE-SAYS-TRUTH, DR-0827 (the platform staples follow a person between the apps)
 - **Grounds:** DR-0655 (the reader's own controls), `theme-css.js` `useThemePref`
 
@@ -51,7 +51,7 @@ both have been live. Removing the effect with the hook swap is part of the
 fix, not tidying.
 
 Honest limit: this makes the doors HEAR the change. It does not widen which
-elements the theme can reach — a surface painting color through inline
+elements the theme can reach — a surface painting colour through inline
 `style` is still unreachable by `[data-theme]` rules, which is the separate
 problem DR-0873 measured and paid down.
 
@@ -65,7 +65,7 @@ uses. The hand-written save effect goes with it, because the hook persists.
 **38 green** across the new gate (9), `the-reader-can-change-how-it-looks` (13)
 and `properties-door-render` (16); eslint clean.
 
-Proven-to-catch, and deliberately pinned on the SHAPE rather than on a color:
+Proven-to-catch, and deliberately pinned on the SHAPE rather than on a colour:
 the gate fails on the presence of `useState(() => readThemePref(` in any door,
 because a surface that reads the preference once can never be correct however
 the palette changes. Restoring the old two lines in any of the three turns it

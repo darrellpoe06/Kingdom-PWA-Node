@@ -8,7 +8,7 @@ import { describe, it, expect, afterEach, vi } from 'vitest';
 import { createElement } from 'react';
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
-import { doorGrantName, suggestDoorCameras, grantNote, grantIdOf, doorCameraState, setDoorCameraGrant } from '../modules/properties/door-cameras.js';
+import { doorGrantName, suggestDoorCameras, grantNote, grantIdOf, doorCameraState, setDoorCameraGrant, whoSeesDoorCameras } from '../modules/properties/door-cameras.js';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -106,6 +106,45 @@ describe('the landlord shares and takes back; the household watches', () => {
     await mount(createElement(DoorCamerasTab, { door: DOOR, onChange: async () => ({ ok: true }) }));
     expect(text()).toContain('did not answer the camera list (http-503)');
     expect(H.grants).toEqual([]);
+  });
+
+  // Darrell, 2026-10-10: "Cameras tab shows no Cameras!!!!!! It allows giving
+  // access to who?!!!!!!!!" The unit had no tenancy record, so the list was
+  // never read and the tab said the NAS "did not answer (no-door)" while the
+  // NAS was listing 31 cameras; and nothing said who would see them.
+  it('PROVEN-TO-CATCH: an empty unit (no tenancy record) still reads the NAS list and suggests its cameras', async () => {
+    H.list = CAMS;
+    const APT2 = { id: 'r-apt2', instance_id: 'i1', display_name: '805 North Prospect Avenue Apt 2', address: '805 North Prospect Avenue', unit: 'Apt 2' };
+    await mount(createElement(DoorCamerasTab, { door: null, place: APT2, onChange: async () => ({ ok: true }) }));
+    expect(text()).not.toContain('no-door');
+    const boxes = Array.from(container.querySelectorAll('[data-testid="door-cameras-pick"] input'));
+    expect(boxes).toHaveLength(4);
+    expect(boxes.filter((b) => b.checked)).toHaveLength(2);
+    expect(container.querySelector('[data-testid="door-cameras-count"]').textContent).toBe('4 cameras on the NAS; 2 ticked for this door.');
+    // Nobody is on the door, and the tab says so instead of implying a household.
+    expect(container.querySelector('[data-testid="door-cameras-nobody"]').textContent).toContain('Nobody signs into this door yet');
+  });
+
+  it('names exactly who will see them: the tenant and household on this door, never a worker', async () => {
+    H.list = CAMS;
+    const people = [
+      { name: 'Jordan Reed', roleLabel: 'tenant', roleName: 'Tenant', joined: true },
+      { name: 'Sam Reed', roleLabel: 'household', roleName: 'Household member', joined: false },
+      { name: 'Mike Handy', roleLabel: 'field_worker', roleName: '1099 worker', joined: true },
+    ];
+    await mount(createElement(DoorCamerasTab, { door: DOOR, people, onChange: async () => ({ ok: true }) }));
+    const who = Array.from(container.querySelectorAll('[data-testid="door-cameras-viewer"]')).map((n) => n.textContent);
+    expect(who).toEqual(['Jordan Reed · Tenant · signed in', 'Sam Reed · Household member · has not signed in yet']);
+    expect(container.querySelector('[data-testid="door-cameras-who"]').textContent).toContain('A 1099 worker, a guest and an applicant never do');
+  });
+
+  it('the tenant on the record counts even before an invite, once; an empty NAS list is said, not drawn blank', async () => {
+    expect(whoSeesDoorCameras({ door: { tenant_name: 'A. Tenant' }, people: [] })).toEqual([{ name: 'A. Tenant', role: 'Tenant on the record', joined: false }]);
+    expect(whoSeesDoorCameras({ door: { tenant_name: 'Jordan Reed' }, people: [{ name: 'Jordan Reed', roleLabel: 'tenant', roleName: 'Tenant', joined: true }] })).toHaveLength(1);
+    expect(doorGrantName({ display_name: '805 North Prospect Avenue Apt 2', unit: 'Apt 2' })).toBe('805 North Prospect Avenue Apt 2');
+    H.list = [];
+    await mount(createElement(DoorCamerasTab, { door: DOOR, onChange: async () => ({ ok: true }) }));
+    expect(container.querySelector('[data-testid="door-cameras-none"]').textContent).toContain('lists no cameras');
   });
 
   it('the household sees the cameras surface on the door\'s grant alone, and is told when none is shared', async () => {

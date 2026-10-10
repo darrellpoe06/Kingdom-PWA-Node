@@ -73,6 +73,9 @@ export const TENANT_TABS = [
   TAB('history', 'History', 'Everything that has happened on this door, in order.'),
   TAB('rent', 'Payments', 'What was reported, what was confirmed, and when.'),
   TAB('notices', 'Notices', 'What the landlord has posted.'),
+  // MY PAPERS (DR-0936): the lease and every paper filed to this tenancy, the
+  // ones waiting for my signature first, and a paper of my own to file.
+  TAB('papers', 'Documents', 'Your lease and papers, anything waiting for your signature, and a paper of your own to file.'),
   // THE CAMERAS AT THIS DOOR (DR-0841): the porch, the hallway, the lot — the
   // ones the landlord shared with this door, live, through the same NAS road.
   TAB('cameras', 'Cameras', 'The cameras your landlord shares with this door.'),
@@ -90,6 +93,9 @@ export const WORKER_TABS = [
   TAB('gallery', 'Pictures', 'Before and after, room by room — take a photo and say what it shows.', 'docs.add'),
   TAB('history', 'Property history', 'What this door has needed before.', 'property.history'),
   TAB('thread', 'Job messages', 'The thread for a job the landlord opened to me.'),
+  // THE CAMERAS AT THE DOOR HE IS SENT TO (DR-0938): he asks for the ones he
+  // needs (the porch, for a delivery); the family decides and for how long.
+  TAB('cameras', 'Cameras', 'Ask for the cameras at the door I am sent to, and watch the ones given to me.'),
 ];
 
 export const MANAGER_TABS = [
@@ -113,6 +119,9 @@ export const MANAGER_TABS = [
   // Turning a unit into a listing is its own body of work — construction,
   // furnishing, supplies, safety, the listing itself — and it belongs to the
   // door, not to a side note. Darrell, 2026-09-12.
+  // THE NIGHTS OF A SHORT-STAY DOOR (DR-0930): asks to confirm, what is
+  // coming, blackouts, and stays the family enters itself.
+  TAB('stays', 'Stays', 'Confirm or decline asked-for nights, black out dates, and book a stay yourself.'),
   TAB('readiness', 'Guest ready', 'Everything left before this unit can be listed and take a guest \u2014 and what it still costs.'),
   TAB('people', 'People', 'Invite a tenant, a family member, or a 1099 worker.'),
   TAB('cameras', 'Cameras', 'Share the cameras at this door with its household, and take them back.'),
@@ -293,7 +302,7 @@ const at = (...candidates) => {
 };
 
 export function buildHistory({
-  requests = [], messages = [], notes = [], docs = [], rent = [], notices = [], propertyNotes = [],
+  requests = [], messages = [], notes = [], docs = [], rent = [], notices = [], propertyNotes = [], changes = [],
   // Map(userId -> name) from people.js namesByUserId. Optional: when it is
   // absent the history reads exactly as it always did, by role. When it is
   // present a message says WHO said it, which is the whole point of keeping
@@ -333,7 +342,23 @@ export function buildHistory({
   }
   for (const r of rent) {
     const label = r.status === 'confirmed' ? 'Payment confirmed' : r.status === 'disputed' ? 'Payment disputed' : 'Payment reported';
-    push('rent', r, at(r.confirmed_at, r.reported_at), `${label}: $${Number(r.amount || 0).toFixed(2)}${r.for_period ? ` for ${r.for_period}` : ''}`, r.reported_by_role || '');
+    // A part payment says what is still owed and when it was promised (0262).
+    const part = Number(r.remaining_after) > 0
+      ? ` (part payment: $${Number(r.remaining_after).toFixed(2)} still owed${r.rest_promised_on ? `, promised by ${r.rest_promised_on}` : ''})`
+      : '';
+    // On the day the money CAME when that is known (0265 / DR-0903): a
+    // January payment recorded in October belongs in January.
+    const came = r.paid_on ? `${r.paid_on}T12:00:00Z` : null;
+    const who = r.tenancy_id === null && r.rental_id ? ' (no tenant on record)' : '';
+    push('rent', r, at(came, r.confirmed_at, r.reported_at), `${label}: $${Number(r.amount || 0).toFixed(2)}${r.for_period ? ` for ${r.for_period}` : ''}${part}${who}`, r.reported_by_role || '');
+  }
+  // EVERY CHANGE, TO THE INSTANT (DR-0899, record_events). The row above is
+  // the record's birth; these are what happened to it after, each with its
+  // own clock, so a situation can be recreated in order.
+  const titleOf = new Map(requests.map((r) => [r.id, r.title]));
+  for (const e of changes) {
+    const s = changeSummary(e, titleOf);
+    if (s) push('change', e, at(e.at), s, '');
   }
   for (const n of notices) push('notice', n, at(n.posted_at), n.title || 'Notice', 'landlord');
   // The landlord's own private door memory (property_notes, 0062) joins the
@@ -342,6 +367,22 @@ export function buildHistory({
 
   events.sort((a, b) => (a.ms - b.ms) || String(a.id).localeCompare(String(b.id)));
   return events;
+}
+
+/**
+ * One change from record_events (0262) in words. The birth events ('reported',
+ * 'filed') are skipped: the record itself is already on the timeline.
+ */
+export function changeSummary(e = {}, titleOf = new Map()) {
+  const what = e.subject === 'rent' ? 'Payment' : `Work order${titleOf.get(e.subject_id) ? ` "${titleOf.get(e.subject_id)}"` : ''}`;
+  switch (e.event) {
+    case 'status': return `${what} moved from ${e.from_value || 'nothing'} to ${e.to_value || 'nothing'}`;
+    case 'assigned': return e.to_value ? `${what} assigned to ${e.to_value}` : `${what} unassigned`;
+    case 'priority': return `${what} priority changed from ${e.from_value} to ${e.to_value}`;
+    case 'changed': return `${what} amount or dates changed`;
+    case 'posted-to-books': return `${what} posted to the books`;
+    default: return '';
+  }
 }
 
 /** Oldest-first is the reading order (DR-0124). Newest-first for the inbox view. */

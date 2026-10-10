@@ -7,7 +7,7 @@
 // WHAT WAS TRUE, and why it read as a broken picker when the picker was fine.
 // The theme is one shared preference: setThemePref writes it and publishes to
 // every subscriber, and useThemePref both subscribes and saves. The PoeTech
-// shell (poe-financial-mvp-v28.jsx:1082) used useThemePref and therefore
+// shell (the monolith:1082) used useThemePref and therefore
 // repainted the moment the reader's picker was tapped.
 //
 // The three DOORS did not. Each held a private copy —

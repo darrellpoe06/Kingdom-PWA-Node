@@ -1025,6 +1025,139 @@ const NODES = [
       { res: 'db:tenancy_notes', token: "scoped(client.from('tenancy_notes')" },
     ],
   }),
+  // The guest card (DR-0898): the family opens a door's card; a guest with no
+  // account reports through it onto that door's Work board; the office is told.
+  app('app/src/modules/properties/GuestReport.jsx', {
+    id: 'door-guest-card', name: 'Guest card (report a problem, no account)', purpose: 'A guest in a short stay scans the card inside the door and says what is wrong; it lands on that door\u2019s Work board and the office is told.',
+    writes: [
+      { res: 'db:door_guest_links', file: 'app/src/modules/properties/cloud.js', token: "rpc('door_guest_link_open'" },
+      { res: 'db:tenant_maintenance_requests', file: 'infra/supabase/migrations-auto/0261-a-guest-reports-a-problem-from-inside-the-door.sql', token: 'INSERT INTO tenant_maintenance_requests' },
+      { res: 'db:push_outbox', file: 'infra/supabase/migrations-auto/0261-a-guest-reports-a-problem-from-inside-the-door.sql', token: 'INSERT INTO public.push_outbox' },
+    ],
+    reads: [
+      { res: 'db:door_guest_links', file: 'app/src/modules/properties/cloud.js', token: "from('door_guest_links')" },
+    ],
+    seeds: ['door-work-orders', 'push-outbox-drain'],
+  }),
+  // "I'm paying" (DR-0899): the family writes how it is paid; the tenant reads
+  // it for their door and records the payment (full or part, with the promise)
+  // before being handed off; every change to rent and work keeps its instant.
+  app('app/src/modules/properties/RentPay.jsx', {
+    id: 'rent-pay', name: "I'm paying (rent hand-off and part payments)", purpose: 'The tenant records a payment, full or part with the promised date, then is handed to Cash App, Venmo, Zelle, cash, a bank deposit or a check; the family confirms when it lands.',
+    writes: [
+      { res: 'db:rent_payee', file: 'app/src/modules/properties/cloud.js', token: "from('rent_payee').upsert" },
+      { res: 'db:rent_records', file: 'app/src/modules/properties/cloud.js', token: "from('rent_records').insert" },
+    ],
+    reads: [
+      { res: 'db:rent_payee', file: 'app/src/modules/properties/cloud.js', token: "rpc('rent_payee_for_tenancy'" },
+    ],
+    seeds: ['record-clock'],
+  }),
+  // The door keeps its money (DR-0903): the family records money received on
+  // the door, tenant or none, on the day it came; door_money_months sums each
+  // asset under the reader's RLS for the Rent tab, door header and board.
+  app('app/src/modules/properties/DoorMoney.jsx', {
+    id: 'door-money', name: 'What each door has brought in', purpose: 'Money received is recorded on the door with or without a tenant, on the day it came; each asset shows its lifetime, yearly and monthly total, and the board the whole portfolio.',
+    writes: [
+      { res: 'db:rent_records', file: 'app/src/modules/properties/cloud.js', token: "from('rent_records').insert" },
+    ],
+    reads: [
+      { res: 'db:rent_records', file: 'app/src/modules/properties/cloud.js', token: "from('door_money_months')" },
+    ],
+    seeds: ['record-clock'],
+  }),
+  // A door's cameras, asked for and given (DR-0938): the family offers names
+  // on a door; anyone on it asks; the family gives (the NAS mints the grant),
+  // gives a guest a link, and takes back; each move is on the clock.
+  app('app/src/modules/properties/CameraAccess.jsx', {
+    id: 'door-camera-access', name: 'Door cameras, asked for and given', purpose: 'A tenant, household member or 1099 worker asks for the cameras the family offers on a door; the family gives them for the days it chooses, gives a short-stay guest a link, and takes any of it back.',
+    writes: [
+      { res: 'db:door_camera_menu', file: 'app/src/modules/properties/cloud.js', token: "from('door_camera_menu').upsert" },
+      { res: 'db:door_camera_access', file: 'app/src/modules/properties/cloud.js', token: "from('door_camera_access').insert" },
+      { res: 'db:record_events', file: 'infra/supabase/migrations-auto/0266-a-door-camera-is-asked-for-and-given-to-whoever-the-family-chooses.sql', token: 'INSERT INTO record_events' },
+    ],
+    reads: [
+      { res: 'db:door_camera_menu', file: 'app/src/modules/properties/cloud.js', token: "from('door_camera_menu').select" },
+      { res: 'db:door_camera_access', file: 'app/src/modules/properties/cloud.js', token: "from('door_camera_access').select" },
+    ],
+    seeds: ['record-clock'],
+  }),
+  // A door's pictures (0153/0185) and the pictures of its systems (DR-0932,
+  // 0267): one store, property_photos; the door's gallery and each system's
+  // pictures read what the other files.
+  app('app/src/modules/properties/DoorTabs.jsx', {
+    id: 'door-pictures', name: "A door's pictures", purpose: 'Listing, condition, turn and damage pictures of a door, with thumbnails, captions and the arranged order; sharp tiles and the branded viewer.',
+    writes: [
+      { res: 'db:property_photos', file: 'app/src/modules/properties/cloud.js', token: "from('property_photos')" },
+    ],
+    reads: [
+      { res: 'db:property_photos', file: 'app/src/modules/properties/cloud.js', token: "from('property_photos')" },
+    ],
+    seeds: ['system-pictures'],
+  }),
+  app('app/src/modules/properties/SystemPictures.jsx', {
+    id: 'system-pictures', name: 'A system keeps its pictures', purpose: 'The data plate, the flue, the new unit, the before and after of a service visit: filed on the system and the visit, shown on the system in the Systems tab.',
+    writes: [
+      { res: 'db:property_photos', file: 'app/src/modules/properties/SystemPictures.jsx', token: "system_id: system.id" },
+    ],
+    reads: [
+      { res: 'db:property_photos', file: 'app/src/modules/properties/SystemPictures.jsx', token: 'p.system_id === systemId' },
+    ],
+    seeds: ['door-pictures'],
+  }),
+  // A short-stay door's calendar (DR-0930, 0269): a guest asks (no account),
+  // the family confirms, declines, blacks out and books; every move on the clock.
+  app('app/src/modules/properties/Booking.jsx', {
+    id: 'stay-calendar', name: "A short-stay door's calendar", purpose: 'Guests ask for open nights through a short form (21+, house rules, wishes, an email offers yes); the family confirms, declines, blacks out dates and books stays; taken nights show dark to the public.',
+    writes: [
+      { res: 'db:door_stays', file: 'app/src/modules/properties/cloud.js', token: "rpc('request_a_stay'" },
+      { res: 'db:door_stays', file: 'app/src/modules/properties/cloud.js', token: "from('door_stays').insert" },
+      { res: 'db:record_events', file: 'infra/supabase/migrations-auto/0269-a-short-stay-door-has-a-booking-calendar.sql', token: 'INSERT INTO record_events' },
+    ],
+    reads: [
+      { res: 'db:door_stays', file: 'app/src/modules/properties/cloud.js', token: "rpc('door_booked_nights'" },
+      { res: 'db:door_stays', file: 'app/src/modules/properties/cloud.js', token: "from('door_stays').select" },
+    ],
+    seeds: ['record-clock'],
+  }),
+  // Where, never the street (DR-0935, 0270): the family sets a door's area and
+  // nearby lines; the open shelf shows the rounded area on a map.
+  app('app/src/modules/properties/AreaMap.jsx', {
+    id: 'area-map', name: 'The area on a map, never the street', purpose: 'The family pastes a point; the device rounds it and works out straight-line miles to cited places; the database keeps only the rounded area and the lines, and the public shelf draws a circle with what is nearby.',
+    writes: [
+      { res: 'db:rentals', file: 'app/src/modules/properties/AreaMap.jsx', token: 'area_lat: area.lat' },
+    ],
+    reads: [
+      { res: 'db:rentals', file: 'app/src/modules/properties/cloud.js', token: "select('area_lat, area_lng, nearby')" },
+      { res: 'db:rentals', file: 'app/src/modules/properties/Storefront.jsx', token: '<AreaMap area={unit.area}' },
+    ],
+  }),
+  app('app/src/modules/properties/model.js', {
+    id: 'record-clock', name: 'Every change, to the instant (record events)', purpose: 'Each report, confirmation, status move and assignment on rent and work leaves an append-only event with its own clock, read back on the door\u2019s history so a situation can be recreated.',
+    reads: [
+      { res: 'db:rent_records', file: 'app/src/modules/properties/cloud.js', token: "from('rent_records')" },
+      { res: 'db:record_events', file: 'app/src/modules/properties/cloud.js', token: "from('record_events')" },
+    ],
+    writes: [
+      { res: 'db:record_events', file: 'infra/supabase/migrations-auto/0262-rent-is-reported-the-way-it-is-paid-and-every-change-keeps-its-time.sql', token: 'INSERT INTO record_events' },
+    ],
+  }),
+  // Papers signed in the app (DR-0936): the family files and sends; the
+  // tenant files their own papers and receipts and signs; every signature is
+  // a row with the fingerprint signed, and every step is on record_events.
+  app('app/src/modules/properties/DocSigning.jsx', {
+    id: 'doc-signing', name: 'Papers and signatures (Poe Properties)', purpose: 'A lease or any paper is sent for signature, signed by the tenant and the landlord against the exact bytes shown, and stays filed in its tenancy; tenants file receipts and pictures of their own.',
+    writes: [
+      { res: 'db:property_documents', file: 'app/src/modules/properties/cloud.js', token: "from('property_documents')\n      .insert" },
+      { res: 'db:property_document_signatures', file: 'infra/supabase/migrations-auto/0263-a-document-is-signed-in-the-app-and-filed-where-it-belongs.sql', token: 'INSERT INTO property_document_signatures' },
+      { res: 'db:record_events', file: 'infra/supabase/migrations-auto/0263-a-document-is-signed-in-the-app-and-filed-where-it-belongs.sql', token: "'document', d.id, 'signed'" },
+    ],
+    reads: [
+      { res: 'db:property_documents', file: 'app/src/modules/properties/cloud.js', token: "client.from('property_documents').select('*').is('archived_at', null)" },
+      { res: 'db:property_document_signatures', file: 'app/src/modules/properties/cloud.js', token: "from('property_document_signatures')" },
+    ],
+    seeds: ['record-clock'],
+  }),
   wf('push-outbox-drain.yml', {
     id: 'push-outbox-drain', name: 'Office push drain', purpose: 'Delivers each new door fault to the office’s phones.',
     reads: [{ res: 'db:push_outbox', file: 'scripts/push-outbox-drain-over-tailnet.sh', token: 'push_outbox' }],
