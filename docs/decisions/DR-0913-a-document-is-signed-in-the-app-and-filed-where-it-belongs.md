@@ -1,4 +1,4 @@
-# DR-0901 — A document is signed in the app and filed where it belongs
+# DR-0913 — A document is signed in the app and filed where it belongs
 
 **Date:** 2026-10-10
 **Status:** accepted
@@ -90,3 +90,17 @@ Leases and notices were signed outside the app, with no record in it. A tenant's
   - `properties-work-on-any-door.test.jsx` gains two tests: a report filed with a picture lands it on the new job as no-outcome documentation, and a picture on a job shows with its time.
   - The tenant tabs pin in `properties-door.test.js` now includes `papers`.
 - **The flow graph.** The `doc-signing` node is declared, with 0 findings.
+
+## Addendum, 2026-10-10: the sign state is walled on UPDATE too, and this record was renumbered
+
+- **Renumbered.** This record was written as DR-0901. #2097 merged its own DR-0901 on main first, so this one is DR-0913, with every reference renamed.
+- **The hole.**
+  - The insert trigger made every new document arrive unsigned, but nothing guarded an UPDATE.
+  - With production's table grants, the owner's own UPDATE policy let them set `sign_status = 'signed'` on a lease nobody had signed.
+  - The door-work CI chain gave the API roles no table grants at all, so the smoke's "the owner wrote the sign state directly" check passed on a missing privilege, not on a wall.
+  - It surfaced when DR-0912 added production's default privileges to `scripts/door-work-ci-bootstrap.sql` (before the chain, as `infra/nas-supabase/replay_migrations.sh` sets them).
+- **The wall.** `property_documents_sign_state_on_update` refuses any change to the fingerprint, sign status, required signers, request, counsel attestation or signed time when it comes from `anon` or `authenticated` directly. The two SECURITY DEFINER functions still move it, because inside them `current_user` is their owner.
+- **Verification.**
+  - The whole door-work leg passes locally under production's grants: all ten smokes, 0260 to 0270.
+  - **Proven to catch:** with the trigger dropped, the 0263 smoke fails "the owner wrote the sign state directly"; restored, it passes.
+  - The app never writes these columns directly (searched: no `sign_status`, `signed_at`, `content_hash`, `signers_required` or `counsel_attested` write outside the RPCs).

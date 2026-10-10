@@ -202,7 +202,7 @@ describe('the 1099 worker walking a door he was granted', () => {
   });
 });
 
-describe('a picture on a work order (DR-0901: "pictures for documentation... For workorders")', () => {
+describe('a picture on a work order (DR-0913: "pictures for documentation... For workorders")', () => {
   it('a report filed with several pictures (one taken, two chosen) lands each on the new job, as documentation with no outcome', async () => {
     H.rentals = [APT2]; H.doors = [];
     await mount();

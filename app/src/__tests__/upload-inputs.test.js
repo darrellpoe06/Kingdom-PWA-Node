@@ -52,8 +52,8 @@ describe('file inputs never force camera-only', () => {
   // a file that carries capture with no sibling chooser still fails.
   const CAMERA_BESIDE_A_CHOOSER = Object.freeze({
     'modules/properties/DoorTabs.jsx': 'the walk-through camera button, beside "Choose from this phone" (DR-0339)',
-    'modules/properties/PropertiesApp.jsx': 'the work-order "Take a picture" buttons, each beside "Choose pictures" (DR-0901/DR-0902)',
-    'modules/properties/DocSigning.jsx': 'the tenant\'s "Take a picture of a paper", beside "Choose pictures" and "Choose files" (DR-0901)',
+    'modules/properties/PropertiesApp.jsx': 'the work-order "Take a picture" buttons, each beside "Choose pictures" (DR-0913/DR-0902)',
+    'modules/properties/DocSigning.jsx': 'the tenant\'s "Take a picture of a paper", beside "Choose pictures" and "Choose files" (DR-0913)',
   });
 
   it('no capture attribute on any file input anywhere in app/src, except a camera that stands beside a chooser', () => {

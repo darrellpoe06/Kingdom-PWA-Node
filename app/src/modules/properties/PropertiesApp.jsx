@@ -1041,7 +1041,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
               onPatch={async (id, patch) => { const r = await patchDocument(id, patch); say(r.ok ? 'Saved.' : `Not saved: ${r.reason}`); loadDoorData(); }}
             />
             {/* Send a paper for signature, countersign it, and see every
-                signature with its time (DR-0901). Tenants' own uploads carry
+                signature with its time (DR-0913). Tenants' own uploads carry
                 only their tenancy, so the door's tenancies are read too. */}
             {(role === 'owner' || role === 'manager') && (
               <PapersPanel seat="landlord" rentalId={rentalId} tenancyIds={(doorData.tenancies || []).map((t) => t.id)}
@@ -2016,7 +2016,7 @@ function PlanTab() {
  */
 function DocumentsTab({ door, tenancy, rentalId = null, onFiled }) {
   const [openId, setOpenId] = useState(null);
-  // FILE THE DRAFT WHERE IT BELONGS (DR-0901). The draft becomes a paper in
+  // FILE THE DRAFT WHERE IT BELONGS (DR-0913). The draft becomes a paper in
   // this tenancy's Files, marked as app-generated, so it can be sent for
   // signature there; the counsel rule rides with it (0263 refuses to send a
   // generated draft without the family's record that counsel reviewed it).

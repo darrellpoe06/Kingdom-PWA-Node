@@ -34,6 +34,14 @@ CREATE OR REPLACE FUNCTION auth.jwt() RETURNS jsonb LANGUAGE sql STABLE
 AS $$ SELECT coalesce(nullif(current_setting('request.jwt.claims', true), ''), '{}')::jsonb $$;
 GRANT USAGE ON SCHEMA auth TO anon, authenticated, service_role;
 GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
+-- Production's grants, set BEFORE the chain as the sovereign replay sets them
+-- (infra/nas-supabase/replay_migrations.sh): the API roles get privileges on
+-- what each migration creates, the migration's own REVOKEs narrow them, and
+-- RLS decides the rows. Without these a smoke tests a privilege wall
+-- production does not have (DR-0912: the family's own rentals UPDATE).
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO anon, authenticated, service_role;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO anon, authenticated, service_role;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT EXECUTE ON FUNCTIONS TO anon, authenticated, service_role;
 
 CREATE OR REPLACE FUNCTION public.engagement_touch_updated_at()
 RETURNS trigger LANGUAGE plpgsql AS $$

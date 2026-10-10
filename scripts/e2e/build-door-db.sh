@@ -25,15 +25,8 @@ case "${PGHOST:-}${PGDATABASE:-}" in
 esac
 
 P -f scripts/door-work-ci-bootstrap.sql
-# Production's grants, set BEFORE the chain the way the sovereign replay sets
-# them (infra/nas-supabase/replay_migrations.sh): the API roles get privileges
-# on what each migration creates, and the migration's own REVOKEs then narrow
-# them. Granting after the chain would undo those REVOKEs.
-P <<'SQL'
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO anon, authenticated, service_role;
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO anon, authenticated, service_role;
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT EXECUTE ON FUNCTIONS TO anon, authenticated, service_role;
-SQL
+# Production's grants are set by the bootstrap, before the chain (as the
+# sovereign replay sets them); each migration's REVOKEs then narrow them.
 for f in schema-v1.sql schema-v1.1-tenant-join.sql schema-v2.1-infra.sql schema-v2.2-rentals.sql schema-v2.2.1-rentals-amendments.sql schema-v2.2.2-rentals-sync-amendments.sql; do
   P -f "infra/supabase/$f"
 done

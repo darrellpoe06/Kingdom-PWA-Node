@@ -3,7 +3,7 @@
 **Date:** 2026-10-10
 **Status:** accepted
 **Area:** Poe Properties: Work board, Dispatch, the 1099 worker's jobs (migration 0264)
-**Principle:** DR-0901 (pictures on work orders), DR-0897 (work on the door), DR-0899 (the clock), DR-0303 (the list never carries the bytes), DR-0076
+**Principle:** DR-0913 (pictures on work orders), DR-0897 (work on the door), DR-0899 (the clock), DR-0303 (the list never carries the bytes), DR-0076
 
 ## Context
 
@@ -18,7 +18,7 @@ Darrell, 2026-10-10:
 - The family sees when a job is proven and fixed, meaning ready to pay.
 
 **ARE.**
-- Pictures could be attached to jobs (DR-0901), but nothing required them.
+- Pictures could be attached to jobs (DR-0913), but nothing required them.
 - A worker's "Fixed" was accepted with nothing attached.
 - No video could be attached at all.
 

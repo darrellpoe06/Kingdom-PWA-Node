@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0263 — A DOCUMENT IS SIGNED IN THE APP AND FILED WHERE IT BELONGS (DR-0901)
+-- 0263 — A DOCUMENT IS SIGNED IN THE APP AND FILED WHERE IT BELONGS (DR-0913)
 -- =============================================================================
 -- Darrell, 2026-10-10, on the Files tab of 805 North Prospect Avenue Apt 2:
 -- "Documents should be able to work integrated with the options to digitally
@@ -97,6 +97,38 @@ CREATE TRIGGER property_documents_unsigned_on_insert
   BEFORE INSERT ON public.property_documents
   FOR EACH ROW EXECUTE FUNCTION public.property_documents_insert_unsigned();
 
+-- An UPDATE never moves the sign state either, except through the functions
+-- below. They are SECURITY DEFINER, so inside them current_user is their
+-- owner; a direct write from the app runs as anon or authenticated. Found
+-- 2026-10-10 (DR-0911/DR-0912): with production's table grants the owner's
+-- own UPDATE policy let them set sign_status = 'signed' with no signature.
+-- The CI chain had no table grants at all, so the smoke passed on a missing
+-- privilege rather than on this wall.
+CREATE OR REPLACE FUNCTION public.property_documents_sign_state_by_function()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  IF current_user IN ('anon', 'authenticated') AND (
+       NEW.content_hash        IS DISTINCT FROM OLD.content_hash
+    OR NEW.sign_status         IS DISTINCT FROM OLD.sign_status
+    OR NEW.signers_required    IS DISTINCT FROM OLD.signers_required
+    OR NEW.sign_requested_at   IS DISTINCT FROM OLD.sign_requested_at
+    OR NEW.sign_requested_by   IS DISTINCT FROM OLD.sign_requested_by
+    OR NEW.counsel_attested_by IS DISTINCT FROM OLD.counsel_attested_by
+    OR NEW.counsel_attested_at IS DISTINCT FROM OLD.counsel_attested_at
+    OR NEW.signed_at           IS DISTINCT FROM OLD.signed_at
+  ) THEN
+    RAISE EXCEPTION 'the sign state moves only by sending for signature or signing (0263)'
+      USING ERRCODE = 'insufficient_privilege';
+  END IF;
+  RETURN NEW;
+END $$;
+DROP TRIGGER IF EXISTS property_documents_sign_state_on_update ON public.property_documents;
+CREATE TRIGGER property_documents_sign_state_on_update
+  BEFORE UPDATE ON public.property_documents
+  FOR EACH ROW EXECUTE FUNCTION public.property_documents_sign_state_by_function();
+
 -- ---------------------------------------------------------------------------
 -- 2. The signatures: append-only, read where the document is read.
 -- ---------------------------------------------------------------------------
@@ -116,7 +148,7 @@ CREATE TABLE IF NOT EXISTS public.property_document_signatures (
 );
 CREATE INDEX IF NOT EXISTS property_document_signatures_doc_idx ON public.property_document_signatures(document_id, signed_at);
 COMMENT ON TABLE public.property_document_signatures IS
-  'DR-0901: one row per signer per document — typed legal name, attestation, e-sign consent, the SHA-256 of the exact bytes signed, the device clock and the server instant. Written only by property_document_sign; nobody edits or deletes one.';
+  'DR-0913: one row per signer per document — typed legal name, attestation, e-sign consent, the SHA-256 of the exact bytes signed, the device clock and the server instant. Written only by property_document_sign; nobody edits or deletes one.';
 
 REVOKE ALL ON public.property_document_signatures FROM anon, authenticated;
 GRANT SELECT ON public.property_document_signatures TO authenticated;

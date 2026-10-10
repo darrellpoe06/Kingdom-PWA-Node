@@ -1,6 +1,6 @@
 // =============================================================================
 // doc-signing — what a document's signing state means, and the fingerprint a
-// signer's screen sends back (DR-0901, migration 0263)
+// signer's screen sends back (DR-0913, migration 0263)
 // =============================================================================
 // Darrell, 2026-10-10: "Documents should be able to work integrated with the
 // options to digitally sign... so all necessary documents are populated into
