@@ -199,12 +199,12 @@ export default function TlcPublicDoor() {
   //
   // This door used to hold its OWN copy of the theme — useState(readThemePref)
   // plus an effect that saved it — and never subscribed to the shared
-  // preference. The reader's colour picker calls setThemePref, which publishes
+  // preference. The reader's color picker calls setThemePref, which publishes
   // to every subscriber, and this door was not one: it had read the value once
   // at mount and had no way to learn it had changed. So the picker genuinely
   // set the preference, the preference was genuinely saved, and the screen the
   // reader was looking at never repainted. The PoeTech shell
-  // (poe-financial-mvp-v28.jsx) used useThemePref and therefore worked, which
+  // used useThemePref and therefore worked, which
   // is exactly why this read as "the reader can't change the system" rather
   // than "the picker is broken" — it depended on which door you were standing
   // in. useThemePref both subscribes and saves, so the effect goes with it.

@@ -1,5 +1,5 @@
 // =============================================================================
-// THE READER'S COLOUR PICKER REACHES EVERY DOOR
+// THE READER'S COLOR PICKER REACHES EVERY DOOR
 // =============================================================================
 // Darrell, 2026-10-10, inside Poe Properties: "can't change the color of the
 // system using the reader controller... fix it".
@@ -22,7 +22,7 @@
 // which is why it read as an intermittent fault rather than a missing
 // subscription.
 //
-// This pins the SUBSCRIPTION, not the colours: a door that reads the
+// This pins the SUBSCRIPTION, not the colors: a door that reads the
 // preference once can never be correct, however the palette changes.
 // =============================================================================
 import { describe, it, expect } from 'vitest';
