@@ -1191,6 +1191,47 @@ export const DOCUMENT_KINDS = Object.freeze([
   'insurance', 'w9', 'invoice', 'permit', 'correspondence', 'id-verification', 'other',
 ]);
 
+/**
+ * A typed day ("2026-09-28") to the instant the record keeps (DR-0908).
+ *
+ * MIDDAY, not midnight, and this is not a detail. A date input gives a bare
+ * day with no zone; parsing that as UTC midnight renders as the DAY BEFORE
+ * anywhere west of Greenwich — Champaign is UTC-5, so every photograph a
+ * landlord dated would move back one day on his own screen. Noon is far
+ * enough from either edge that no real zone can shift the date.
+ *
+ * Returns null for empty or unparseable input, so the field is optional and a
+ * typo can never write a wrong instant: the record would rather know nothing
+ * than record a day that is not true.
+ */
+export function takenAtIso(when) {
+  const v = String(when || '').trim();
+  // A bare day keeps the noon rule. A day WITH a time is taken as given, in
+  // the person's own zone — that is what a datetime-local field means, and
+  // "4:20pm" is the answer he actually has when he says what time he walked
+  // the unit.
+  const day = /^\d{4}-\d{2}-\d{2}$/.test(v);
+  const dayTime = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/.test(v);
+  if (!day && !dayTime) return null;
+  const at = new Date(day ? `${v}T12:00:00` : v);
+  return Number.isNaN(at.getTime()) ? null : at.toISOString();
+}
+
+/** An instant from the record back into a datetime-local field, local zone. */
+export function isoToLocalInput(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return nowLocalInput(d);
+}
+
+/** Now, in the shape a datetime-local field wants, in the viewer's own zone. */
+export function nowLocalInput(d = new Date()) {
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+    + `T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 /** Roughly what a data URL costs in the row, for an honest size warning. */
 export function dataUrlBytes(dataUrl = '') {
   const i = String(dataUrl).indexOf(',');
@@ -1280,9 +1321,10 @@ export function GalleryTab({
   // tags and logos". The stored original is never altered.
   const doorId = door ? door.id : null;
   const stamp = useCallback((item) => stampImage({ src: item.src, door: doorLabel, link: applyUrl(doorId) }), [doorLabel, doorId]);
-  const [f, setF] = useState(() => ({ caption: '', kind: rememberedKind(), roomId: '' }));
+  const [f, setF] = useState(() => ({ caption: '', kind: rememberedKind(), roomId: '', takenOn: nowLocalInput() }));
   const [saving, setSaving] = useState(false);
   const [savedSoFar, setSaved] = useState(null);
+  const [report, setReport] = useState(null);
   const [pending, setPending] = useState([]);
   const [error, setError] = useState('');
   const [editing, setEditing] = useState(null);
@@ -1292,7 +1334,25 @@ export function GalleryTab({
   const [open, setOpen] = useState(null);
   const live = useMemo(() => liveRooms(rooms), [rooms]);
   // In the landlord's arranged order (0160) — the first picture is the cover.
-  const shown = useMemo(() => photoOrder(photos.filter((p) => !p.archived_at)), [photos]);
+  const allShots = useMemo(() => photoOrder(photos.filter((p) => !p.archived_at)), [photos]);
+  // SHOW ME THE SET I AM WORKING ON (DR-0908). Darrell, 2026-10-10: "Maybe
+  // choosing a move out conditions should show those images etc..."
+  //
+  // A door accumulates every kind in one pile — move-in, move-out, damage,
+  // work-order before and after, the listing shots. Looking for "how it came
+  // back" meant reading captions down a single list. The kinds already exist
+  // and are already on every row; they were simply never offered as a way to
+  // LOOK. `null` means every kind, which stays the default on arrival.
+  const [only, setOnly] = useState(null);
+  const counts = useMemo(() => {
+    const m = new Map();
+    for (const p of allShots) m.set(p.kind, (m.get(p.kind) || 0) + 1);
+    return m;
+  }, [allShots]);
+  const shown = useMemo(
+    () => (only ? allShots.filter((p) => p.kind === only) : allShots),
+    [allShots, only],
+  );
 
   // Reorder a picture: the pure model returns the patches, and this writes
   // exactly those (one for "cover", two for a nudge) through the same onPatch
@@ -1366,6 +1426,7 @@ export function GalleryTab({
     if (saving) return;
     setSaving(true);
     setError('');
+    setReport(null);
     // A picture's OWN caption wins. The set caption is the honest reading of
     // one box above many files: it names the set, numbered, for any picture
     // that was not given its own words.
@@ -1373,7 +1434,7 @@ export function GalleryTab({
     const total = pending.length;
     const kept = [];
     const lost = [];
-    let saved = 0;
+    const done = [];
     for (let i = 0; i < pending.length; i += 1) {
       const pic = pending[i];
       const own = (pic.caption || '').trim();
@@ -1389,7 +1450,17 @@ export function GalleryTab({
           caption,
           storage_path: pic.dataUrl,
           thumb_path: pic.thumbUrl,
-          taken_at: pic.takenAt,   // the shutter, if it fired here; else unknown
+            // WHEN IT WAS TAKEN, NOT WHEN IT WAS UPLOADED (DR-0908). Darrell:
+          // "allow me to enter the correct dates for photos... they will sort
+          // my move out dates". taken_at has existed since 0153 ("when the
+          // shutter fired, if known"), is indexed, and is what photo-order and
+          // the door timeline already sort by — and it was written ONLY for a
+          // photo captured in the app this second. A set chosen from the phone
+          // had none, so a move-out set from three weeks ago sorted as though
+          // it were taken the moment it was uploaded. A typed date is the
+          // truth the person holds; the in-app shutter still wins when it
+          // fired here.
+          taken_at: pic.takenAt || takenAtIso(f.takenOn) || null,
         });
       } catch (e) {
         res = { ok: false, reason: (e && e.message) || 'failed' };
@@ -1401,7 +1472,7 @@ export function GalleryTab({
         lost.push({ pic, why: res.reason || 'could not be saved' });
         kept.push(pic);
       } else {
-        saved += 1;
+        done.push({ name: pic.name });
       }
       setSaved({ done: i + 1, total });
     }
@@ -1410,17 +1481,30 @@ export function GalleryTab({
     setPending(kept);
     setSaving(false);
     setSaved(null);
-    if (lost.length) {
-      setError(
-        `${saved} of ${total} added. ${lost.length} still here and NOT saved: `
-        + `${lost.map((l) => `${l.pic.name} (${l.why})`).join(', ')}. They are still in the list — try again.`,
-      );
-      return;
-    }
+    // THE FINALIZE LIST (DR-0908). Darrell asked for it by name: "a finalize
+    // list of uploaded images and a where to store". A toast cannot be that —
+    // it is gone in six seconds and fourteen of them overwrite each other.
+    // This is a panel that STAYS, names every file and its outcome, and says
+    // where the saved ones went.
+    setReport({
+      at: Date.now(),
+      saved: done.map((d) => d.name),
+      lost: lost.map((l) => ({ name: l.pic.name, why: l.why })),
+      total,
+      where: {
+        door: [door?.label, door?.unit].filter(Boolean).join(' \u00b7 ') || null,
+        kind: f.kind,
+        room: f.roomId ? (rooms.find((r) => r.id === f.roomId)?.name || null) : null,
+      },
+    });
+    if (lost.length) return;
     // KEEP THE KIND. A move-out set arrives in batches; reverting to
     // 'listing' between them is how an advertising photo gets made by
     // accident. Only the caption and room clear.
-    setF((p) => ({ caption: '', kind: p.kind, roomId: '' }));
+    // The DATE is kept with the kind: a move-out set is one day's work in
+    // several batches, and retyping it each time is how half a set ends up
+    // dated differently from the other half.
+    setF((p) => ({ caption: '', kind: p.kind, roomId: '', takenOn: p.takenOn }));
   };
 
   // Open a picture: draw what we have at once, then swap in the full image the
@@ -1482,7 +1566,14 @@ export function GalleryTab({
               <select
                 className={field} value={f.kind}
                 data-testid="photo-kind"
-                onChange={(e) => { rememberKind(e.target.value); setF((p) => ({ ...p, kind: e.target.value })); }}
+                onChange={(e) => {
+                  rememberKind(e.target.value);
+                  setF((p) => ({ ...p, kind: e.target.value }));
+                  // "Maybe choosing a move out conditions should show those
+                  // images" — saying what you are about to add is also saying
+                  // what you want to look at (DR-0908).
+                  setOnly(e.target.value);
+                }}
               >
                 {/* The two purposes are SEPARATE and named, because they are
                     not two flavours of one thing (DR-0906). */}
@@ -1493,6 +1584,33 @@ export function GalleryTab({
                   {ADVERTISING_KINDS.map((k) => <option key={k} value={k}>{k.replace(/-/g, ' ')}</option>)}
                 </optgroup>
               </select>
+            </label>
+            {/* THE DAY THEY WERE TAKEN (DR-0908). Optional, and never a gate —
+                an upload is not refused for want of a date. Empty means the
+                record says "unknown" rather than claiming the upload day,
+                which is what it did before and is how a move-out set from
+                three weeks ago sorted as though it were taken this minute. */}
+            <label><span className={lbl}>When were these taken</span>
+              <div className="flex items-center gap-2">
+                <input
+                  type="datetime-local" className={field} value={f.takenOn}
+                  data-testid="photo-taken-on"
+                  max={nowLocalInput()}
+                  onChange={(e) => setF((p) => ({ ...p, takenOn: e.target.value }))}
+                />
+                {f.takenOn && (
+                  <button
+                    type="button" onClick={() => setF((p) => ({ ...p, takenOn: '' }))}
+                    data-testid="photo-taken-clear"
+                    className="text-[0.625rem] uppercase tracking-wider px-2 py-2 min-h-[36px] border border-[#E8E4DC] text-[#6B665E] focus:outline focus:outline-2 focus:outline-[#2F5D50]"
+                  >Unknown</button>
+                )}
+              </div>
+              <span className="block text-[0.625rem] text-[#6B665E] mt-0.5">
+                {f.takenOn
+                  ? 'These sort by this, not by when they were uploaded. Change it if the set is from another day.'
+                  : 'Left unknown. The record will say the day is not known rather than guessing the upload day.'}
+              </span>
             </label>
             {/* A DROPDOWN NEVER DEAD-ENDS (2026-08-28). On a door with no rooms
                 this offered exactly one choice — "Not a specific room" — with no
@@ -1579,6 +1697,63 @@ export function GalleryTab({
             </p>
           )}
           {error && <p className="text-[0.8125rem] text-[#8C2F2F] mt-2">{error}</p>}
+
+          {/* THE PROGRESS BAR (DR-0908). Darrell asked for it by name, and the
+              reason is not decoration: the writes stall (see cloud.js's
+              deadline note), and a button that only greys out is how a person
+              decides the app has hung. A bar that MOVES says the difference
+              between working and stuck. */}
+          {saving && savedSoFar && (
+            <div className="mt-2" data-testid="upload-progress">
+              <div
+                role="progressbar"
+                aria-valuemin={0} aria-valuemax={savedSoFar.total} aria-valuenow={savedSoFar.done}
+                aria-label="Saving pictures"
+                className="h-2 w-full bg-[#E8E4DC] border border-[#E8E4DC]"
+              >
+                <div
+                  className="h-full bg-[#2F5D50]"
+                  style={{ width: `${Math.round((savedSoFar.done / Math.max(1, savedSoFar.total)) * 100)}%` }}
+                />
+              </div>
+              <p className="text-[0.75rem] text-[#6B665E] mt-1">
+                Saving {savedSoFar.done} of {savedSoFar.total} — each one is written before the next starts,
+                so nothing is lost if this is interrupted.
+              </p>
+            </div>
+          )}
+
+          {/* THE FINALIZE LIST. Stays until dismissed, names every file, and
+              says WHERE the saved ones went — "or store it in the prechosen
+              location", which it does: the kind and room chosen above. */}
+          {report && (
+            <div className="mt-2 border border-[#E8E4DC] bg-white p-2" data-testid="upload-report">
+              <p className="text-[0.625rem] uppercase tracking-[0.25em] text-[#2F5D50] mb-1">
+                {report.lost.length ? 'Some did not save' : 'Added'}
+              </p>
+              <p className="text-[0.8125rem] text-[#1A1815]">
+                <strong>{report.saved.length} of {report.total}</strong> saved
+                {report.where.door ? <> to <strong>{report.where.door}</strong></> : null}
+                {' '}as <strong>{String(report.where.kind).replace(/-/g, ' ')}</strong>
+                {report.where.room ? <> in <strong>{report.where.room}</strong></> : ', not filed to a room'}.
+              </p>
+              {report.saved.length > 0 && (
+                <ul className="mt-1 text-[0.75rem] text-[#6B665E]" data-testid="upload-report-saved">
+                  {report.saved.map((n) => <li key={n}>{n} — saved</li>)}
+                </ul>
+              )}
+              {report.lost.length > 0 && (
+                <ul className="mt-1 text-[0.75rem] text-[#8C2F2F]" data-testid="upload-report-lost">
+                  {report.lost.map((l) => <li key={l.name}>{l.name} — NOT saved ({l.why}) · still in the list above</li>)}
+                </ul>
+              )}
+              <button
+                type="button" onClick={() => setReport(null)}
+                data-testid="upload-report-dismiss"
+                className="mt-1 text-[0.625rem] uppercase tracking-wider text-[#2F5D50] px-2 py-1 min-h-[32px] focus:outline focus:outline-2 focus:outline-[#2F5D50]"
+              >Done</button>
+            </div>
+          )}
           <div className="mt-2 flex items-center gap-2 flex-wrap">
             {/* SAYING WHERE IT HAS GOT TO (DR-0907). Fourteen photographs
                 saved one at a time is a real wait, and a button that only
@@ -1603,7 +1778,39 @@ export function GalleryTab({
         </Card>
       )}
 
-      <Card title={`Pictures (${shown.length})`}>
+      <Card title={only ? `${only.replace(/-/g, ' ')} (${shown.length} of ${allShots.length})` : `Pictures (${allShots.length})`}>
+        {/* LOOK BY KIND (DR-0908). Only the kinds this door actually has, so
+            the strip never offers an empty answer. "Every kind" stays first
+            and is the default. */}
+        {allShots.length > 0 && (
+          <div className="flex flex-wrap gap-1 mb-2" role="tablist" aria-label="Which pictures" data-testid="gallery-kinds">
+            <button
+              type="button" role="tab" aria-selected={only === null}
+              onClick={() => setOnly(null)}
+              data-testid="gallery-kind-all"
+              className={`text-[0.625rem] uppercase tracking-wider px-2 py-1 min-h-[32px] border ${
+                only === null ? 'bg-[#2F5D50] text-white border-[#2F5D50]' : 'bg-white text-[#1A1815] border-[#E8E4DC]'}`}
+            >Every kind ({allShots.length})</button>
+            {/* EVERY OPTION SHOWS ITS IMAGES (DR-0908). Darrell: "All options
+                show their images". So the kinds this door HAS are listed with
+                their counts, and the one currently being looked at or added is
+                always listed too — picking a kind must never lead to a strip
+                that has forgotten it. */}
+            {[...new Set([...counts.keys(), ...(only ? [only] : []), f.kind])].map((k) => (
+              <button
+                key={k} type="button" role="tab" aria-selected={only === k}
+                onClick={() => setOnly(k)}
+                className={`text-[0.625rem] uppercase tracking-wider px-2 py-1 min-h-[32px] border ${
+                  only === k ? 'bg-[#2F5D50] text-white border-[#2F5D50]' : 'bg-white text-[#1A1815] border-[#E8E4DC]'}`}
+              >{k.replace(/-/g, ' ')} ({counts.get(k) || 0})</button>
+            ))}
+          </div>
+        )}
+        {only && shown.length === 0 && (
+          <p className="text-sm text-[#6B665E] mb-2">
+            No {only.replace(/-/g, ' ')} pictures at this door yet.
+          </p>
+        )}
         {shown.length === 0 ? (
           <Empty>No pictures on this property yet.</Empty>
         ) : (
@@ -1678,12 +1885,44 @@ export function GalleryTab({
 }
 
 /** Correct what a picture SAYS. The picture itself is frozen by a trigger (0154). */
+/**
+ * TWO DATES, TWO DIFFERENT KINDS OF FACT (DR-0943). Darrell, 2026-10-10:
+ * "always put the uploaded dates... and the other option is default however
+ * editable... however the upload dat never is".
+ *
+ *   uploaded_at — what the SYSTEM observed. Shown, never offered for editing,
+ *                 and frozen in the database by 0261 so nothing here is the
+ *                 only thing stopping it.
+ *   taken_at    — what a PERSON says. Editable, because the app only ever
+ *                 wrote it for an in-app capture, so a set chosen from a phone
+ *                 had none and could never be given one.
+ *
+ * The immutable upload date is what makes the editable one safe: a photograph
+ * that says "taken 28 September" and arrived on 10 October says both, to
+ * anyone reading the record.
+ */
 function PhotoEditor({ photo, rooms, onSave, busy }) {
-  const [f, setF] = useState({ caption: photo.caption || '', kind: photo.kind, room_id: photo.room_id || '' });
+  const [f, setF] = useState(() => ({
+    caption: photo.caption || '',
+    kind: photo.kind,
+    room_id: photo.room_id || '',
+    takenOn: isoToLocalInput(photo.taken_at),
+  }));
+  // `was` is derived INSIDE the memo, from `photo` alone: built outside it is
+  // a fresh object every render, so listing it as a dependency would rebuild
+  // the diff on every keystroke and defeat the memo entirely.
   const edit = useMemo(() => buildEdit(
-    { caption: photo.caption || '', kind: photo.kind, room_id: photo.room_id || '' },
-    f,
-    [{ key: 'caption', label: 'Caption' }, { key: 'kind', label: 'Kind' }, { key: 'room_id', label: 'Room' }],
+    {
+      caption: photo.caption || '',
+      kind: photo.kind,
+      room_id: photo.room_id || '',
+      taken_at: photo.taken_at || '',
+    },
+    { ...f, taken_at: takenAtIso(f.takenOn) || '' },
+    [
+      { key: 'caption', label: 'Caption' }, { key: 'kind', label: 'Kind' },
+      { key: 'room_id', label: 'Room' }, { key: 'taken_at', label: 'Taken' },
+    ],
   ), [photo, f]);
   const field = 'w-full border border-[#E8E4DC] px-1 py-1 text-[0.75rem] mt-1';
   return (
@@ -1696,9 +1935,34 @@ function PhotoEditor({ photo, rooms, onSave, busy }) {
         <option value="">Not a specific room</option>
         {rooms.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
       </select>
+      <label className="block mt-1">
+        <span className="text-[0.625rem] uppercase tracking-wider text-[#6B665E]">When it was taken</span>
+        <input
+          type="datetime-local" className={field} value={f.takenOn}
+          data-testid="photo-edit-taken"
+          max={nowLocalInput()}
+          onChange={(e) => setF((p) => ({ ...p, takenOn: e.target.value }))}
+        />
+      </label>
+      {/* THE ANCHOR, SHOWN AND NOT OFFERED. */}
+      <p className="text-[0.625rem] text-[#6B665E] mt-1" data-testid="photo-uploaded-at">
+        Uploaded {photo.uploaded_at ? new Date(photo.uploaded_at).toLocaleString() : 'at an unrecorded time'}
+        {' '}— that never changes.
+      </p>
       <p className="text-[0.625rem] text-[#6B665E] mt-1">The picture itself never changes — add a new one instead.</p>
       <div className="mt-1">
-        <Btn tone="primary" disabled={busy || !edit.changed} onClick={() => onSave(edit.patch)}>Save</Btn>
+        <Btn
+          tone="primary" disabled={busy || !edit.changed}
+          data-testid="photo-edit-save"
+          onClick={() => onSave(
+            // "Unknown" must reach the column as NULL. An empty string into a
+            // timestamptz is an error, not a clearing, and buildEdit carries
+            // whatever it was handed.
+            'taken_at' in edit.patch && !edit.patch.taken_at
+              ? { ...edit.patch, taken_at: null }
+              : edit.patch,
+          )}
+        >Save</Btn>
       </div>
     </div>
   );
