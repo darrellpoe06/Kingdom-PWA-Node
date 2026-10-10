@@ -25,7 +25,16 @@
   <link rel="manifest" href="/manifest-properties.webmanifest" />
   <link rel="apple-touch-icon" href="/properties-apple-touch.png" />
   <link rel="icon" href="/properties-icon-192.png" />
-  <meta http-equiv="refresh" content="0; url=/properties/app/?properties=1" />
+  <!-- THE QUERY HAS TO SURVIVE THIS HOP (DR-0902). A meta refresh cannot see
+       the query it was reached with, so the hardcoded url below destroyed
+       ?apply=<rentalId> on every scan of a printed card and on the listing's
+       own Apply link. redirect.js forwards the query (and forces properties=1)
+       and runs first; the meta refresh stays as the fallback for a browser
+       that could not fetch it, now at 3s so the script normally wins. The
+       destination is a React app, so a visitor with no JS at all cannot use
+       what is on the other side either way. -->
+  <script src="/properties/redirect.js"></script>
+  <meta http-equiv="refresh" content="3; url=/properties/app/?properties=1" />
   <style>
     body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #FAF8F4; color: #1A1815; font-family: Georgia, 'Times New Roman', serif; text-align: center; }
     .card { padding: 2rem; }

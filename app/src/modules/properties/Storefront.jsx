@@ -31,7 +31,27 @@ const serif = { fontFamily: '"Fraunces", serif' };
  * a unit whose pictures fail or have none still shows everything else rather
  * than holding up the page or rendering a broken frame.
  */
-export function VacancyCard({ unit }) {
+/**
+ * `onApply` — called with this unit's rentalId when the card's Apply control is
+ * used, INSTEAD of navigating (DR-0902).
+ *
+ * Darrell, 2026-10-10, on this exact card: "The image has an apply button that
+ * should open the application!!! It does not do that currently!!!"
+ *
+ * It did not, and the navigation was why. The control was an <a> to
+ * applyUrl() -- /properties/?apply=<id> -- which is the right address for a QR
+ * code printed and left in a window, and the wrong one for a button on a page
+ * the person is ALREADY STANDING ON. It left the app, passed through a
+ * redirect that dropped the id (fixed separately, in redirect.js, because the
+ * printed cards go through it too), and came back to the same page with
+ * nothing opened.
+ *
+ * So when a caller can open the form itself, it says so by passing onApply and
+ * the card asks it to rather than travelling. With no onApply the card keeps
+ * the plain link, because a card rendered anywhere else -- a QR sheet, a
+ * listing embedded outside the door -- genuinely has nowhere local to open.
+ */
+export function VacancyCard({ unit, onApply = null }) {
   const [shots, setShots] = useState([]);
   const [i, setI] = useState(0);
   const [open, setOpen] = useState(null); // index being shown large, or null
@@ -161,11 +181,22 @@ export function VacancyCard({ unit }) {
             Address shared when you apply — nothing to sign up for.
           </p>
         )}
-        <a
-          href={applyUrl(unit.rentalId)}
-          className="mt-2 inline-flex items-center text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border text-[#2F5D50]"
-          style={{ borderColor: ACCENT }}
-        >Apply — no account needed</a>
+        {onApply ? (
+          <button
+            type="button"
+            onClick={() => onApply(unit.rentalId)}
+            data-testid="vacancy-apply"
+            className="mt-2 inline-flex items-center text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border text-[#2F5D50] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+            style={{ borderColor: ACCENT }}
+          >Apply — no account needed</button>
+        ) : (
+          <a
+            href={applyUrl(unit.rentalId)}
+            data-testid="vacancy-apply"
+            className="mt-2 inline-flex items-center text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border text-[#2F5D50]"
+            style={{ borderColor: ACCENT }}
+          >Apply — no account needed</a>
+        )}
       </div>
     </li>
   );
