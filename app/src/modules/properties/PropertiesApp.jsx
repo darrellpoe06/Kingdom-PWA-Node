@@ -1388,7 +1388,7 @@ function JobVideo({ docId }) {
   const [state, setState] = useState('');
   if (src) return <video src={src} controls playsInline className="block mt-1 max-h-64 max-w-full border border-[#E8E4DC]" />;
   return (
-    <button type="button" className="block mt-1 text-[0.625rem] uppercase tracking-wider underline text-[#2F5D50]"
+    <button type="button" className="block mt-1 text-[0.625rem] uppercase tracking-wider underline text-[#2F5D50] focus:outline focus:outline-2 focus:outline-[#2F5D50]"
       onClick={async () => { setState('Loading…'); const r = await loadJobVideo(docId); if (r.ok && r.video) setSrc(r.video); else setState('The video could not be loaded.'); }}>
       {state || 'Play the video'}
     </button>
