@@ -948,12 +948,12 @@ jobs:
   # report, confirmation and work-order move leaves an event to the instant
   # with who did it, read where the record is read, edited by nobody. Every
   # check RAISEs. Then 0263 applies twice and the signing smoke proves
-  # (DR-0913): an insert never arrives signed; only the family sends for
+  # (DR-0936): an insert never arrives signed; only the family sends for
   # signature, and a generated draft only with counsel's review recorded;
   # only the right person signs, only the exact fingerprinted version, once;
   # nobody writes the sign state directly; signatures are read where the
   # document is read and edited by nobody; everything is on the clock. Then
-  # 0264 applies twice and the proof smoke proves (DR-0914): only the family
+  # 0264 applies twice and the proof smoke proves (DR-0937): only the family
   # sets a job's proof; "Fixed" is refused until the pictures (and video) are
   # on the job; a non-video is refused as a video; a job with no proof is
   # fixed as before; the requirement is on the clock. Then 0265 applies twice
@@ -962,13 +962,13 @@ jobs:
   # tenant's payment finds its door; the door keeps every tenant's money
   # while each tenant sees only their own; a reported payment is never
   # counted as received; a manager reads and records only by grant on that
-  # door. Then 0266 applies twice and the door-camera smoke proves (DR-0915):
+  # door. Then 0266 applies twice and the door-camera smoke proves (DR-0938):
   # only the family offers a door's cameras; anyone on the door reads the
   # names and asks, stamped with their real role, once at a time, only for
   # what is offered; only the family gives, declines and takes back; a grant's
   # token is read by its holder and the family alone; the ledger keeps every
   # row and the clock every move. Then 0267 (system pictures), 0269 (the booking
-  # calendar) and 0270 apply twice; the area smoke proves (DR-0912): the exact
+  # calendar) and 0270 apply twice; the area smoke proves (DR-0935): the exact
   # point sent is kept only as its rounded area; half an area, a nearby list of
   # the wrong shape, and a line naming the door's street are refused; a
   # stranger moves nothing; the public shelf carries the area and the lines and
@@ -1042,7 +1042,7 @@ jobs:
   # It runs `if: always()` because a job whose `needs` failed is otherwise
   # SKIPPED, and a skipped required check counts as passing. Here, anything but
   # success in any leg (failure, cancelled, skipped) turns this check red.
-  # THE DOOR JOURNEYS, END TO END (DR-0911). Every other leg stops short of the
+  # THE DOOR JOURNEYS, END TO END (DR-0934). Every other leg stops short of the
   # whole: the smokes prove the walls with no app, vitest proves the screens on
   # a fake data layer. This one walks what a person walks, in the runner's
   # Chrome, on the real built app, through PostgREST 12.2.12 (production's
@@ -1054,7 +1054,7 @@ jobs:
   # door with no tenant (the door's total reads 300.00); the next stranger finds
   # those nights dark; a real phone HEIC (Chromium has no HEIC decoder, like
   # Chrome on Android) is converted on the device under production's CSP and
-  # filed as a full JPEG (DR-0916). Then PROVEN TO CATCH, every run: four faults (the street
+  # filed as a full JPEG (DR-0939). Then PROVEN TO CATCH, every run: four faults (the street
   # shown, the family unable to confirm, money refused without a tenancy, the
   # calendar emptied) must each fail their own step, or this leg is red.
   door-journeys:

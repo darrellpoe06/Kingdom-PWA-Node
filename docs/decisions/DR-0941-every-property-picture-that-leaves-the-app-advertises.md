@@ -1,4 +1,4 @@
-# DR-0918 — Every property picture that leaves the app advertises
+# DR-0941 — Every property picture that leaves the app advertises
 
 **Date:** 2026-10-10
 **Status:** accepted
@@ -61,4 +61,4 @@ The existing gallery and viewer suites (680 tests across the properties, photo a
 
 ## Addendum, 2026-10-10: renumbered
 
-This record was written as DR-0906. #2101 merged its own DR-0906 on main first ("records versus advertising"), so this one is DR-0918, with every reference renamed.
+This record was written as DR-0906. #2101 merged its own DR-0906 on main first ("records versus advertising"), so this one is DR-0941, with every reference renamed.

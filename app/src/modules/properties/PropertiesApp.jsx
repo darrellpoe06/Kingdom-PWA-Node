@@ -271,7 +271,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
   const [activeId, setActiveId] = useState(opened.door || '');
   const [record, setRecord] = useState({ requests: [], messages: [], notes: [], docs: [], rent: [], notices: [] });
   const [tab, setTab] = useState(opened.tab || '');
-  // A RELOAD IS A NUMBER, NOT A BUSY FLAG (DR-0911 finding). Until 2026-10-10
+  // A RELOAD IS A NUMBER, NOT A BUSY FLAG (DR-0934 finding). Until 2026-10-10
   // refresh() wrote a timestamp into `busy`, nothing ever cleared it, and five
   // tabs read Boolean(busy): after the first save that refreshed (a payment, a
   // work-order move, an edit), every Edit, arrange and listing button on the
@@ -523,7 +523,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
   }, [record, rentals]);
   const money = useMemo(() => moneyByDoor(moneyRows), [moneyRows]);
 
-  // THE DOOR'S ID FOR A FACE THAT CANNOT READ RENTALS (DR-0915): a tenant or
+  // THE DOOR'S ID FOR A FACE THAT CANNOT READ RENTALS (DR-0938): a tenant or
   // household member asks for that door's cameras by its id, learned through
   // door_of_my_tenancy() for a tenancy they are on and nothing else.
   const [askDoorId, setAskDoorId] = useState(null);
@@ -707,7 +707,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
     return res;
   };
 
-  // A VIDEO ON A JOB (DR-0914: "video when necessary"). A short clip, read as
+  // A VIDEO ON A JOB (DR-0937: "video when necessary"). A short clip, read as
   // it is (no re-encoding on a phone), capped so a single upload cannot
   // swamp the record; 0264 checks it is a video and keeps its bytes off the
   // board's list.
@@ -1166,7 +1166,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
               onPatch={async (id, patch) => { const r = await patchDocument(id, patch); say(r.ok ? 'Saved.' : `Not saved: ${r.reason}`); loadDoorData(); }}
             />
             {/* Send a paper for signature, countersign it, and see every
-                signature with its time (DR-0913). Tenants' own uploads carry
+                signature with its time (DR-0936). Tenants' own uploads carry
                 only their tenancy, so the door's tenancies are read too. */}
             {(role === 'owner' || role === 'manager') && (
               <PapersPanel seat="landlord" rentalId={rentalId} tenancyIds={(doorData.tenancies || []).map((t) => t.id)}
@@ -1596,7 +1596,7 @@ function JobVideo({ docId }) {
   );
 }
 
-/** The family's proof setting on one job (DR-0914). */
+/** The family's proof setting on one job (DR-0937). */
 function ProofSetting({ request, onProof }) {
   const [note, setNote] = useState(request.proof_note || '');
   return (
@@ -2141,7 +2141,7 @@ function PlanTab() {
  */
 function DocumentsTab({ door, tenancy, rentalId = null, onFiled }) {
   const [openId, setOpenId] = useState(null);
-  // FILE THE DRAFT WHERE IT BELONGS (DR-0913). The draft becomes a paper in
+  // FILE THE DRAFT WHERE IT BELONGS (DR-0936). The draft becomes a paper in
   // this tenancy's Files, marked as app-generated, so it can be sent for
   // signature there; the counsel rule rides with it (0263 refuses to send a
   // generated draft without the family's record that counsel reviewed it).

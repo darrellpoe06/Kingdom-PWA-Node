@@ -1,6 +1,6 @@
 // =============================================================================
 // proof — what a job's proof requirement asks for, and whether it is met
-// (DR-0914, migration 0264)
+// (DR-0937, migration 0264)
 // =============================================================================
 // Darrell, 2026-10-10: "1099 works notice of the need for pictures to document
 // the work... may be mandatory for payment... situations that need images to

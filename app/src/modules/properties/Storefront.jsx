@@ -58,7 +58,7 @@ export function VacancyCard({ unit, onApply = null }) {
   const [shots, setShots] = useState([]);
   const [i, setI] = useState(0);
   const [open, setOpen] = useState(null); // index being shown large, or null
-  // A short-stay door takes a stay through its own short form (DR-0907):
+  // A short-stay door takes a stay through its own short form (DR-0930):
   // "Short term rentals need another form" (Darrell, 2026-10-10).
   const [booking, setBooking] = useState(false);
 
@@ -71,7 +71,7 @@ export function VacancyCard({ unit, onApply = null }) {
 
   const shot = shots[i] || null;
   // Every picture opened or saved from a listing carries the Poe Properties
-  // band and a QR back to THIS unit (DR-0918) — a forwarded copy advertises.
+  // band and a QR back to THIS unit (DR-0941) — a forwarded copy advertises.
   const placeName = `${unit.label}${unit.unit ? ` ${unit.unit}` : ''}`;
   const stamp = useCallback((item) => stampImage({ src: item.src, door: placeName, link: applyUrl(unit.rentalId) }), [placeName, unit.rentalId]);
   const size = [
@@ -182,7 +182,7 @@ export function VacancyCard({ unit, onApply = null }) {
           </div>
         )}
         {unit.note && <p className="text-[0.75rem] text-[#5A5751] mt-1 leading-snug">{unit.note}</p>}
-        {/* WHERE, NEVER THE STREET (DR-0912). The rounded area and the
+        {/* WHERE, NEVER THE STREET (DR-0935). The rounded area and the
             family's nearby lines, from public_vacancies (0270). */}
         {unit.area && <div className="mt-2"><AreaMap area={unit.area} where={unit.where} /></div>}
         <NearbyList lines={unit.nearby} />
@@ -206,7 +206,7 @@ export function VacancyCard({ unit, onApply = null }) {
             data-testid="book-a-stay-open"
           >{booking ? 'Close the calendar' : 'Book a stay — no account needed'}</button>
         )}
-        {/* Both doors on a short-stay place (DR-0907 + #2098): nights through
+        {/* Both doors on a short-stay place (DR-0930 + #2098): nights through
             the short stay form, a lease through the application, which
             opens in place. */}
         {onApply ? (

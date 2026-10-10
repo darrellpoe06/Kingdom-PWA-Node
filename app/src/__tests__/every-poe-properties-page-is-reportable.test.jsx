@@ -61,8 +61,8 @@ describe('the module knows what pages it has', () => {
     for (const id of every) expect(ids).toContain(id);
     // 21 as measured 2026-10-10. A number here is a tripwire, not a target:
     // when a tab is added this fails, and the fix is to update it knowingly.
-    // 23 from #2096: 'stays' (the family's booking desk, DR-0907) and
-    // 'papers' (the tenant's own signed and filed papers, DR-0913).
+    // 23 from #2096: 'stays' (the family's booking desk, DR-0930) and
+    // 'papers' (the tenant's own signed and filed papers, DR-0936).
     expect(ids).toHaveLength(23);
   });
 

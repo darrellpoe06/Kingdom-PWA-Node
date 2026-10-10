@@ -1,9 +1,9 @@
-# DR-0907 — A short-stay door has a booking calendar
+# DR-0930 — A short-stay door has a booking calendar
 
 **Date:** 2026-10-10
 **Status:** accepted
 **Area:** Poe Properties: the public listing ("Book a stay") and the door's Stays tab (migration 0269)
-**Principle:** DR-0094 (no money moves in the app), DR-0910 (the street is handed over on confirmation, never published), DR-0899 (the clock), DR-0076
+**Principle:** DR-0094 (no money moves in the app), DR-0933 (the street is handed over on confirmation, never published), DR-0899 (the clock), DR-0076
 
 ## Context
 

@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0267 SMOKE — a system keeps its pictures (DR-0909)
+-- 0267 SMOKE — a system keeps its pictures (DR-0932)
 -- =============================================================================
 -- Runs in CI on a throwaway PostgreSQL (the door-work leg) and on the LIVE
 -- database in the rls-isolation poe-properties leg. One transaction; ROLLS

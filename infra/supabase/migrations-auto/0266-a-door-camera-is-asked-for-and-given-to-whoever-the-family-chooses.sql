@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 0266 — A DOOR'S CAMERA IS ASKED FOR, AND GIVEN TO WHOEVER THE FAMILY CHOOSES
---        (DR-0915)
+--        (DR-0938)
 -- =============================================================================
 -- Darrell, 2026-10-10, in the Cameras tab: "Cameras tab shows no Cameras!!!!!!
 -- It allows giving access to who?!!!!!!!!" and then: "I want the camera to be
@@ -95,7 +95,7 @@ CREATE TABLE IF NOT EXISTS public.door_camera_menu (
   UNIQUE (rental_id, camera_id)
 );
 COMMENT ON TABLE public.door_camera_menu IS
-  'DR-0915: the cameras the family offers on a door. Read by anyone on the door (names only, never a feed); written by the family.';
+  'DR-0938: the cameras the family offers on a door. Read by anyone on the door (names only, never a feed); written by the family.';
 
 DROP TRIGGER IF EXISTS door_camera_menu_door_in_instance ON public.door_camera_menu;
 CREATE TRIGGER door_camera_menu_door_in_instance
@@ -145,7 +145,7 @@ CREATE INDEX IF NOT EXISTS door_camera_access_person_idx ON public.door_camera_a
 CREATE UNIQUE INDEX IF NOT EXISTS door_camera_access_one_open_ask
   ON public.door_camera_access(rental_id, person_user_id) WHERE kind = 'request' AND status = 'requested';
 COMMENT ON TABLE public.door_camera_access IS
-  'DR-0915: who asked for or was given which cameras on a door, who decided, until when. The NAS grant token is read only by its holder and the family.';
+  'DR-0938: who asked for or was given which cameras on a door, who decided, until when. The NAS grant token is read only by its holder and the family.';
 
 -- Before insert: the door is in the row's instance; an ask is checked against
 -- the menu and stamped with the asker's real role; a gift is the family's.

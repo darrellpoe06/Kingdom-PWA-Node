@@ -1,9 +1,9 @@
-# DR-0909 — A system keeps its pictures
+# DR-0932 — A system keeps its pictures
 
 **Date:** 2026-10-10
 **Status:** accepted
 **Area:** Poe Properties: the Systems tab (migration 0267)
-**Principle:** DR-0908 (sharp tiles), DR-0918 (branded viewer), DR-0303 (the list never carries the bytes), DR-0076
+**Principle:** DR-0931 (sharp tiles), DR-0941 (branded viewer), DR-0303 (the list never carries the bytes), DR-0076
 
 ## Context
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-# build-door-db.sh — the database the door journeys walk on (DR-0911)
+# build-door-db.sh — the database the door journeys walk on (DR-0934)
 # =============================================================================
 # A throwaway PostgreSQL (postgres:16 in CI) built from the REAL schema files
 # and migrations that own every table the Poe Properties journeys touch, in

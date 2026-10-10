@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0270 — The public shelf shows the area on a map, and what is nearby (DR-0912)
+-- 0270 — The public shelf shows the area on a map, and what is nearby (DR-0935)
 -- =============================================================================
 -- Darrell, 2026-10-10, on the no-account listing for 805 N Prospect Apt 2:
 --   "Just show the location without the address... make sense... map view..."

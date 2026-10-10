@@ -451,7 +451,7 @@ export function DoorsBoard({
   // What each door has brought in (DR-0903, door_money_months): moneyByDoor's
   // result. Shown on the family's board only; null hides it.
   money = null,
-  // The full image by id (DR-0908): covers sharpen past their thumbnail.
+  // The full image by id (DR-0931): covers sharpen past their thumbnail.
   loadImage = null,
 }) {
   const [openFor, setOpenFor] = useState(null);
@@ -1039,7 +1039,7 @@ function EditRental({ rental, onSave, busy }) {
         <label className="sm:col-span-2"><span className={lbl}>Address</span>
           <input type="text" className={field} value={f.address} onChange={set('address')} />
         </label>
-        {/* WHO MAY SEE THE STREET (0158, then DR-0910). Darrell 2026-10-10:
+        {/* WHO MAY SEE THE STREET (0158, then DR-0933). Darrell 2026-10-10:
             "Just show the location without the address... map view". The
             street is never on the open shelf now; the database answers that
             for every door, so this says it rather than offering a switch
@@ -1234,12 +1234,12 @@ export function dataUrlBytes(dataUrl = '') {
  * FILE pictures to the door he is working (0185), but the arrangement, the
  * captions of others' pictures and the archive stay the landlord's.
  */
-// 640 px at 75% (DR-0908): 320 px at 60% blurred on every phone-width tile.
+// 640 px at 75% (DR-0931): 320 px at 60% blurred on every phone-width tile.
 // Still a small fraction of the full image; SharpPicture swaps the full one
 // in where a tile needs more than the thumbnail holds.
 export const THUMB_MAX_WIDTH = 640;
 export const THUMB_QUALITY = 0.75;
-// THE FULL PICTURE (DR-0916). Darrell 2026-10-10: "I want the best pictures in
+// THE FULL PICTURE (DR-0939). Darrell 2026-10-10: "I want the best pictures in
 // the PoeTech App too". His Fold unfolded is ~1800 device pixels wide; a 1280px
 // picture was stretched across it. 1920px at 0.85 is sharp on that screen, and
 // the list read never carries these bytes (0185), so a board stays light.
@@ -1276,7 +1276,7 @@ export function GalleryTab({
   onAdd, onPatch, onAddRoom, loadImage = null, doorLabel = '',
 }) {
   // Every picture opened or saved here carries the Poe Properties band and a
-  // QR to this unit's listing (DR-0918): "all downloaded materials have our
+  // QR to this unit's listing (DR-0941): "all downloaded materials have our
   // tags and logos". The stored original is never altered.
   const doorId = door ? door.id : null;
   const stamp = useCallback((item) => stampImage({ src: item.src, door: doorLabel, link: applyUrl(doorId) }), [doorLabel, doorId]);

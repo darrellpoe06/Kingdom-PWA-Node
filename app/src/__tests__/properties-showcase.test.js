@@ -248,7 +248,7 @@ describe('the door editor carries the controls he asked for', () => {
     expect(board()).toMatch(/key: 'display_name', label: 'Name'/);
   });
 
-  // DR-0910 (Darrell 2026-10-10: "Just show the location without the
+  // DR-0933 (Darrell 2026-10-10: "Just show the location without the
   // address"): the per-door switch became one rule, enforced by 0268. The
   // editor states it and never offers a switch that would do nothing.
   it('states the address rule instead of offering a dead switch', () => {

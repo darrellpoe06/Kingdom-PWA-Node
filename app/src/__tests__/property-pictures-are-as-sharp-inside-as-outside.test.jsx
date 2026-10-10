@@ -1,6 +1,6 @@
 // =============================================================================
 // PROPERTY PICTURES ARE AS SHARP INSIDE THE APP AS ON THE PUBLIC LISTING
-// (DR-0908)
+// (DR-0931)
 // =============================================================================
 // Darrell, 2026-10-10: "Pictures inside PoeTech App for apartment 2 are worse
 // image quality than the advertising Pictures without an account... why?!!!!

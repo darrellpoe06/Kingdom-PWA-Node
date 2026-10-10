@@ -1,4 +1,4 @@
-# DR-0915 — A door's camera is asked for, and given to whoever the family chooses
+# DR-0938 — A door's camera is asked for, and given to whoever the family chooses
 
 **Date:** 2026-10-10
 **Status:** accepted
@@ -122,4 +122,4 @@ When it arrives, the lock will be built with:
 
 ## Addendum, 2026-10-10: renumbered
 
-This record was written as DR-0904. #2099 merged its own DR-0904 on main first ("a door's own tenancy is not another door's"), so this one is DR-0915, with every reference renamed.
+This record was written as DR-0904. #2099 merged its own DR-0904 on main first ("a door's own tenancy is not another door's"), so this one is DR-0938, with every reference renamed.

@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0268 — THE PUBLIC SHELF SHOWS WHERE, NEVER THE STREET (DR-0910)
+-- 0268 — THE PUBLIC SHELF SHOWS WHERE, NEVER THE STREET (DR-0933)
 -- =============================================================================
 -- Darrell, 2026-10-10, on the no-account listing for 805 N Prospect Apt 2:
 -- "Also the address shows while it says it will not show.... fix it... too"
@@ -27,6 +27,6 @@ RETURNS boolean LANGUAGE sql IMMUTABLE
 AS $$ SELECT false $$;
 
 COMMENT ON FUNCTION public.rental_address_is_public(text) IS
-  'DR-0910: the street is never on the public shelf; a stranger sees the town and the area. It is handed over when someone applies or books.';
+  'DR-0933: the street is never on the public shelf; a stranger sees the town and the area. It is handed over when someone applies or books.';
 
 NOTIFY pgrst, 'reload schema';

@@ -1066,7 +1066,7 @@ const NODES = [
     ],
     seeds: ['record-clock'],
   }),
-  // A door's cameras, asked for and given (DR-0915): the family offers names
+  // A door's cameras, asked for and given (DR-0938): the family offers names
   // on a door; anyone on it asks; the family gives (the NAS mints the grant),
   // gives a guest a link, and takes back; each move is on the clock.
   app('app/src/modules/properties/CameraAccess.jsx', {
@@ -1082,7 +1082,7 @@ const NODES = [
     ],
     seeds: ['record-clock'],
   }),
-  // A door's pictures (0153/0185) and the pictures of its systems (DR-0909,
+  // A door's pictures (0153/0185) and the pictures of its systems (DR-0932,
   // 0267): one store, property_photos; the door's gallery and each system's
   // pictures read what the other files.
   app('app/src/modules/properties/DoorTabs.jsx', {
@@ -1105,7 +1105,7 @@ const NODES = [
     ],
     seeds: ['door-pictures'],
   }),
-  // A short-stay door's calendar (DR-0907, 0269): a guest asks (no account),
+  // A short-stay door's calendar (DR-0930, 0269): a guest asks (no account),
   // the family confirms, declines, blacks out and books; every move on the clock.
   app('app/src/modules/properties/Booking.jsx', {
     id: 'stay-calendar', name: "A short-stay door's calendar", purpose: 'Guests ask for open nights through a short form (21+, house rules, wishes, an email offers yes); the family confirms, declines, blacks out dates and books stays; taken nights show dark to the public.',
@@ -1120,7 +1120,7 @@ const NODES = [
     ],
     seeds: ['record-clock'],
   }),
-  // Where, never the street (DR-0912, 0270): the family sets a door's area and
+  // Where, never the street (DR-0935, 0270): the family sets a door's area and
   // nearby lines; the open shelf shows the rounded area on a map.
   app('app/src/modules/properties/AreaMap.jsx', {
     id: 'area-map', name: 'The area on a map, never the street', purpose: 'The family pastes a point; the device rounds it and works out straight-line miles to cited places; the database keeps only the rounded area and the lines, and the public shelf draws a circle with what is nearby.',
@@ -1142,7 +1142,7 @@ const NODES = [
       { res: 'db:record_events', file: 'infra/supabase/migrations-auto/0262-rent-is-reported-the-way-it-is-paid-and-every-change-keeps-its-time.sql', token: 'INSERT INTO record_events' },
     ],
   }),
-  // Papers signed in the app (DR-0913): the family files and sends; the
+  // Papers signed in the app (DR-0936): the family files and sends; the
   // tenant files their own papers and receipts and signs; every signature is
   // a row with the fingerprint signed, and every step is on record_events.
   app('app/src/modules/properties/DocSigning.jsx', {

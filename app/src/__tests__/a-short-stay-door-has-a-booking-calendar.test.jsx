@@ -1,5 +1,5 @@
 // =============================================================================
-// A SHORT-STAY DOOR HAS A BOOKING CALENDAR (DR-0907, migration 0269)
+// A SHORT-STAY DOOR HAS A BOOKING CALENDAR (DR-0930, migration 0269)
 // =============================================================================
 // Darrell, 2026-10-10: "Calendar for booking the apartment?", "With blackout
 // dates for already booked...", "Short term rentals need another form...",

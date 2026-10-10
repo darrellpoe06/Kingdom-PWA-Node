@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 0263 SMOKE — a document is signed in the app and filed where it belongs
--- (DR-0913)
+-- (DR-0936)
 -- =============================================================================
 -- Runs in CI on a throwaway PostgreSQL (the door-work leg) and on the LIVE
 -- database in the rls-isolation poe-properties leg. One transaction; ROLLS

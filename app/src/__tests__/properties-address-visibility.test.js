@@ -100,7 +100,7 @@ describe('the surface stops making a claim it was breaking', () => {
     expect(door()).not.toMatch(/>\s*The exact address is given by a person, not published here\.\s*</);
   });
 
-  // DR-0910 (0268): "Just show the location without the address". The one
+  // DR-0933 (0268): "Just show the location without the address". The one
   // rule every caller reads now answers no for every door.
   it('the street is never on the public shelf, whatever a door was once set to', () => {
     const m268 = readFileSync(join(process.cwd(), '../infra/supabase/migrations-auto/0268-the-public-shelf-shows-where-never-the-street.sql'), 'utf8');

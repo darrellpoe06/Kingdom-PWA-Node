@@ -1,4 +1,4 @@
-# DR-0910 — The public shelf shows where, never the street
+# DR-0933 — The public shelf shows where, never the street
 
 **Date:** 2026-10-10
 **Status:** accepted
@@ -41,7 +41,7 @@ The public page promised one thing and did the other, about the one fact that pu
 ## Verification
 
 - **`0152-public-vacancy-smoke.sql`** now proves that even a door marked public shows no street and no unit.
-  - Proven to catch: under the old rule it fails with "a door marked public still shows no street and no unit (DR-0910) expected 1, saw 0"; with 0268 it passes.
+  - Proven to catch: under the old rule it fails with "a door marked public still shows no street and no unit (DR-0933) expected 1, saw 0"; with 0268 it passes.
   - It runs in the live rls-isolation poe-properties leg, which now replays 0268.
 - **`properties-address-visibility.test.js`**:
   - the public door's sentence is computed, never printed blind (proven to catch: it was printed blind);

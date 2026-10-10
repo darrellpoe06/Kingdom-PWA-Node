@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0269 — A SHORT-STAY DOOR HAS A BOOKING CALENDAR (DR-0907)
+-- 0269 — A SHORT-STAY DOOR HAS A BOOKING CALENDAR (DR-0930)
 -- =============================================================================
 -- Darrell, 2026-10-10: "Calendar for booking the apartment?" and "With
 -- blackout dates for already booked..."
@@ -85,7 +85,7 @@ CREATE TABLE IF NOT EXISTS public.door_stays (
 );
 CREATE INDEX IF NOT EXISTS door_stays_door_idx ON public.door_stays(rental_id, check_in);
 COMMENT ON TABLE public.door_stays IS
-  'DR-0907: a short-stay door''s calendar — guests'' stays and the family''s blackout blocks. Confirmed stays and blocks never overlap (trigger, door row locked). The public sees taken ranges only.';
+  'DR-0930: a short-stay door''s calendar — guests'' stays and the family''s blackout blocks. Confirmed stays and blocks never overlap (trigger, door row locked). The public sees taken ranges only.';
 
 -- ---------------------------------------------------------------------------
 -- No two confirmed stays or blocks on one door's nights.

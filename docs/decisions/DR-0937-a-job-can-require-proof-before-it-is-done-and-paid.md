@@ -1,9 +1,9 @@
-# DR-0914 — A job can require proof before it is done, and paid
+# DR-0937 — A job can require proof before it is done, and paid
 
 **Date:** 2026-10-10
 **Status:** accepted
 **Area:** Poe Properties: Work board, Dispatch, the 1099 worker's jobs (migration 0264)
-**Principle:** DR-0913 (pictures on work orders), DR-0897 (work on the door), DR-0899 (the clock), DR-0303 (the list never carries the bytes), DR-0076
+**Principle:** DR-0936 (pictures on work orders), DR-0897 (work on the door), DR-0899 (the clock), DR-0303 (the list never carries the bytes), DR-0076
 
 ## Context
 
@@ -18,7 +18,7 @@ Darrell, 2026-10-10:
 - The family sees when a job is proven and fixed, meaning ready to pay.
 
 **ARE.**
-- Pictures could be attached to jobs (DR-0913), but nothing required them.
+- Pictures could be attached to jobs (DR-0936), but nothing required them.
 - A worker's "Fixed" was accepted with nothing attached.
 - No video could be attached at all.
 
@@ -63,4 +63,4 @@ Payment rested on the word "Fixed" alone. A disputed job had no picture to settl
 
 ## Addendum, 2026-10-10: renumbered
 
-This record was written as DR-0902. #2098 merged its own DR-0902 on main first ("the apply button opens the application"), so this one is DR-0914, with every reference renamed.
+This record was written as DR-0902. #2098 merged its own DR-0902 on main first ("the apply button opens the application"), so this one is DR-0937, with every reference renamed.

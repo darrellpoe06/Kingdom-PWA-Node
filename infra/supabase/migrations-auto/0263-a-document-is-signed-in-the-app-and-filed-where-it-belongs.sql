@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0263 — A DOCUMENT IS SIGNED IN THE APP AND FILED WHERE IT BELONGS (DR-0913)
+-- 0263 — A DOCUMENT IS SIGNED IN THE APP AND FILED WHERE IT BELONGS (DR-0936)
 -- =============================================================================
 -- Darrell, 2026-10-10, on the Files tab of 805 North Prospect Avenue Apt 2:
 -- "Documents should be able to work integrated with the options to digitally
@@ -100,7 +100,7 @@ CREATE TRIGGER property_documents_unsigned_on_insert
 -- An UPDATE never moves the sign state either, except through the functions
 -- below. They are SECURITY DEFINER, so inside them current_user is their
 -- owner; a direct write from the app runs as anon or authenticated. Found
--- 2026-10-10 (DR-0911/DR-0912): with production's table grants the owner's
+-- 2026-10-10 (DR-0934/DR-0935): with production's table grants the owner's
 -- own UPDATE policy let them set sign_status = 'signed' with no signature.
 -- The CI chain had no table grants at all, so the smoke passed on a missing
 -- privilege rather than on this wall.
@@ -148,7 +148,7 @@ CREATE TABLE IF NOT EXISTS public.property_document_signatures (
 );
 CREATE INDEX IF NOT EXISTS property_document_signatures_doc_idx ON public.property_document_signatures(document_id, signed_at);
 COMMENT ON TABLE public.property_document_signatures IS
-  'DR-0913: one row per signer per document — typed legal name, attestation, e-sign consent, the SHA-256 of the exact bytes signed, the device clock and the server instant. Written only by property_document_sign; nobody edits or deletes one.';
+  'DR-0936: one row per signer per document — typed legal name, attestation, e-sign consent, the SHA-256 of the exact bytes signed, the device clock and the server instant. Written only by property_document_sign; nobody edits or deletes one.';
 
 REVOKE ALL ON public.property_document_signatures FROM anon, authenticated;
 GRANT SELECT ON public.property_document_signatures TO authenticated;

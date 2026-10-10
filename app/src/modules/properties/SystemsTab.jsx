@@ -82,7 +82,7 @@ const today = () => new Date().toISOString().slice(0, 10);
 export function SystemsTab({
   door, systems = [], events = [], rooms = [], canManage = false, busy = false,
   propertyType = 'house', onAdd, onPatch, onEvent, onSeed,
-  // Pictures of each system (DR-0909): the door's photos, the full-image
+  // Pictures of each system (DR-0932): the door's photos, the full-image
   // loader, the door's name for the viewer's stamp, and how to file new ones.
   photos = [], loadImage = null, doorLabel = '', onAddPictures = null,
 }) {

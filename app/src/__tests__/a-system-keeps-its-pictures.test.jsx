@@ -1,5 +1,5 @@
 // =============================================================================
-// A SYSTEM KEEPS ITS PICTURES (DR-0909, migration 0267)
+// A SYSTEM KEEPS ITS PICTURES (DR-0932, migration 0267)
 // =============================================================================
 // Darrell, 2026-10-10: "Should be able to add images etc of systems... all
 // places that make sense... make sense?" The data plate, the flue, the new
@@ -75,7 +75,7 @@ describe('on the system, in the Systems tab', () => {
       ['s-furn', 'e-1', 'data:image/jpeg;base64,FULL-flue.jpg', 'data:image/jpeg;base64,THUMB-flue.jpg'],
     ]);
     expect(container.textContent).toContain('Added 2 to Furnace (2026-10-01 Annual service). Not pictures: notes.txt.');
-    // The best picture (DR-0916): the full one is 1920px at 0.85, the thumbnail 640px.
+    // The best picture (DR-0939): the full one is 1920px at 0.85, the thumbnail 640px.
     expect(SIZES).toContainEqual([1920, 0.85]);
     expect(SIZES).toContainEqual([640, 0.75]);
   });

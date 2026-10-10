@@ -73,7 +73,7 @@ export const TENANT_TABS = [
   TAB('history', 'History', 'Everything that has happened on this door, in order.'),
   TAB('rent', 'Payments', 'What was reported, what was confirmed, and when.'),
   TAB('notices', 'Notices', 'What the landlord has posted.'),
-  // MY PAPERS (DR-0913): the lease and every paper filed to this tenancy, the
+  // MY PAPERS (DR-0936): the lease and every paper filed to this tenancy, the
   // ones waiting for my signature first, and a paper of my own to file.
   TAB('papers', 'Documents', 'Your lease and papers, anything waiting for your signature, and a paper of your own to file.'),
   // THE CAMERAS AT THIS DOOR (DR-0841): the porch, the hallway, the lot — the
@@ -93,7 +93,7 @@ export const WORKER_TABS = [
   TAB('gallery', 'Pictures', 'Before and after, room by room — take a photo and say what it shows.', 'docs.add'),
   TAB('history', 'Property history', 'What this door has needed before.', 'property.history'),
   TAB('thread', 'Job messages', 'The thread for a job the landlord opened to me.'),
-  // THE CAMERAS AT THE DOOR HE IS SENT TO (DR-0915): he asks for the ones he
+  // THE CAMERAS AT THE DOOR HE IS SENT TO (DR-0938): he asks for the ones he
   // needs (the porch, for a delivery); the family decides and for how long.
   TAB('cameras', 'Cameras', 'Ask for the cameras at the door I am sent to, and watch the ones given to me.'),
 ];
@@ -119,7 +119,7 @@ export const MANAGER_TABS = [
   // Turning a unit into a listing is its own body of work — construction,
   // furnishing, supplies, safety, the listing itself — and it belongs to the
   // door, not to a side note. Darrell, 2026-09-12.
-  // THE NIGHTS OF A SHORT-STAY DOOR (DR-0907): asks to confirm, what is
+  // THE NIGHTS OF A SHORT-STAY DOOR (DR-0930): asks to confirm, what is
   // coming, blackouts, and stays the family enters itself.
   TAB('stays', 'Stays', 'Confirm or decline asked-for nights, black out dates, and book a stay yourself.'),
   TAB('readiness', 'Guest ready', 'Everything left before this unit can be listed and take a guest \u2014 and what it still costs.'),

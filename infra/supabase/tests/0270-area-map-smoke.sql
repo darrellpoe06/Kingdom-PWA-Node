@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0270 SMOKE — the public shelf shows the area on a map, never the street (DR-0912)
+-- 0270 SMOKE — the public shelf shows the area on a map, never the street (DR-0935)
 -- =============================================================================
 -- Runs in CI on a throwaway PostgreSQL (the door-work leg) and on the LIVE
 -- database in the rls-isolation poe-properties leg. One transaction; ROLLS

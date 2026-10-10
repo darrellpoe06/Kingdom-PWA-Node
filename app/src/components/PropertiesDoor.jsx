@@ -444,7 +444,7 @@ function SignedOutDoor({ left = false, onReturn } = {}) {
             ))}
           </ul>
         )}
-        {/* The page's own sentence follows the doors it lists (0158 / DR-0909
+        {/* The page's own sentence follows the doors it lists (0158 / DR-0932
             addendum, Darrell 2026-10-10: "the address shows while it says it
             will not show... fix it"). It used to promise "not published here"
             unconditionally while a door set to show its street showed it. */}

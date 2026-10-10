@@ -207,7 +207,7 @@ describe('the landlord records money on a door nobody lives in', () => {
     expect(text()).toContain('It is in Payment history, History, and the totals.');
   });
 
-  it('PROVEN-TO-CATCH (found end to end, DR-0911): after a save refreshes the door, the board\'s buttons still work', async () => {
+  it('PROVEN-TO-CATCH (found end to end, DR-0934): after a save refreshes the door, the board\'s buttons still work', async () => {
     H.rentals = [APT2]; H.doors = []; H.money = MONTHS;
     await mount();
     await pickDoor('805 North Prospect Avenue');

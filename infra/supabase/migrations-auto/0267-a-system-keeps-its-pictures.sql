@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0267 — A SYSTEM KEEPS ITS PICTURES (DR-0909)
+-- 0267 — A SYSTEM KEEPS ITS PICTURES (DR-0932)
 -- =============================================================================
 -- Darrell, 2026-10-10: "Should be able to add images etc of systems... all
 -- places that make sense... make sense?"
@@ -35,9 +35,9 @@ ALTER TABLE public.property_photos ADD CONSTRAINT property_photos_kind_check
   ));
 
 COMMENT ON COLUMN public.property_photos.system_id IS
-  'DR-0909: the system (furnace, water heater, roof...) this picture shows. Must be on the picture''s door.';
+  'DR-0932: the system (furnace, water heater, roof...) this picture shows. Must be on the picture''s door.';
 COMMENT ON COLUMN public.property_photos.system_event_id IS
-  'DR-0909: the service visit, repair or replacement this picture documents. Must be an event of system_id.';
+  'DR-0932: the service visit, repair or replacement this picture documents. Must be an event of system_id.';
 
 CREATE OR REPLACE FUNCTION public.property_photos_system_on_its_door()
 RETURNS trigger

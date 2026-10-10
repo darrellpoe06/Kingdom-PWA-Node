@@ -209,7 +209,7 @@ describe('the 1099 worker walking a door he was granted', () => {
   });
 });
 
-describe('a picture on a work order (DR-0913: "pictures for documentation... For workorders")', () => {
+describe('a picture on a work order (DR-0936: "pictures for documentation... For workorders")', () => {
   it('a report filed with several pictures (one taken, two chosen) lands each on the new job, as documentation with no outcome', async () => {
     H.rentals = [APT2]; H.doors = [];
     await mount();
@@ -255,7 +255,7 @@ describe('a picture on a work order (DR-0913: "pictures for documentation... For
   });
 });
 
-describe('proof before payment (DR-0914: "pictures to document the work... mandatory for payment... video when necessary")', () => {
+describe('proof before payment (DR-0937: "pictures to document the work... mandatory for payment... video when necessary")', () => {
   const JOB = { id: 'req7', title: 'Install microwave', proof_required: 'photos-and-video', proof_note: 'the microwave mounted and the fan running', status: 'scheduled' };
   it('says what is required, counts it, and says ready to pay only when the proof is in AND it is fixed', () => {
     expect(proofNotice(JOB)).toBe('Pictures and a video of the microwave mounted and the fan running are required for payment. Add them on the job before marking it fixed.');

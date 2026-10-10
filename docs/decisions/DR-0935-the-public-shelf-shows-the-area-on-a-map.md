@@ -1,9 +1,9 @@
-# DR-0912 — The public shelf shows the area on a map, and what is nearby, never the street
+# DR-0935 — The public shelf shows the area on a map, and what is nearby, never the street
 
 **Date:** 2026-10-10
 **Status:** accepted
 **Area:** Poe Properties: the no-account listing, the door editor (migration 0270)
-**Principle:** DR-0910 (the street is never on the open shelf), DR-0076 (measure, don't claim), DR-0100 (state established fact plainly)
+**Principle:** DR-0933 (the street is never on the open shelf), DR-0076 (measure, don't claim), DR-0100 (state established fact plainly)
 
 ## Context
 
@@ -17,7 +17,7 @@ Darrell, 2026-10-10, on the no-account listing for 805 N Prospect Apt 2:
 
 > "Shops... etc..."
 
-**SHOULD.** A stranger sees where a place is: the area on a map and real distances to campus, the highway, town and the shops. They never see the street (DR-0910). The family sets it without the street ever leaving their hands.
+**SHOULD.** A stranger sees where a place is: the area on a map and real distances to campus, the highway, town and the shops. They never see the street (DR-0933). The family sets it without the street ever leaving their hands.
 
 ## What was measured
 
@@ -65,7 +65,7 @@ The listing answers "where is it" with a map and measured miles, and still never
   - the label checks removed → "a nearby line with no words"
 - **vitest** `the-public-shelf-shows-the-area-on-a-map.test.jsx`, 15 tests. It covers rounding, the paste formats, the distances against the research, no street in any place label, the map's 15 tiles and its 82 px circle, the card printing no coordinate, the editor saving only `40.125, -88.26`, a street line blocking the save, and an unreadable area offering nothing to overwrite.
   - **Proven to catch:** with the street rule disabled, 2 tests fail; with rounding disabled, 2 tests fail.
-- **End to end** (DR-0911):
+- **End to end** (DR-0934):
   - **E1:** the family pastes a Google Maps link in the real door editor and saves. The database reads `40.12500,-88.26000` and 12 lines, the first "I-74 at Exit 181".
   - **C2:** the next stranger sees 15 tiles and "University of Illinois Main Quad about 2.0 mi". The page source holds neither the street nor `40.1233` / `88.2582`.
   - **The fifth fault** (`--break=area`: the trigger refuses every area) fails E1, as it must.

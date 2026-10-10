@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0269 SMOKE — a short-stay door has a booking calendar (DR-0907)
+-- 0269 SMOKE — a short-stay door has a booking calendar (DR-0930)
 -- =============================================================================
 -- Runs in CI on a throwaway PostgreSQL (the door-work leg) and on the LIVE
 -- database in the rls-isolation poe-properties leg. One transaction; ROLLS

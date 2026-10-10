@@ -1,6 +1,6 @@
 // =============================================================================
 // SharpPicture — a property picture in a grid or on a door card, as sharp as
-// the public listing (DR-0908)
+// the public listing (DR-0931)
 // =============================================================================
 // Darrell, 2026-10-10: "Pictures inside PoeTech App for apartment 2 are worse
 // image quality than the advertising Pictures without an account... why?!!!!

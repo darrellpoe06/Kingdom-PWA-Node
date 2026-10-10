@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0264 SMOKE — a job can require proof before it is done, and paid (DR-0914)
+-- 0264 SMOKE — a job can require proof before it is done, and paid (DR-0937)
 -- =============================================================================
 -- Runs in CI on a throwaway PostgreSQL (the door-work leg) and on the LIVE
 -- database in the rls-isolation poe-properties leg. One transaction; ROLLS

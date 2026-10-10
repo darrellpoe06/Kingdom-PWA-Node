@@ -1,4 +1,4 @@
-# DR-0908 — Property pictures are as sharp inside the app as on the listing
+# DR-0931 — Property pictures are as sharp inside the app as on the listing
 
 **Date:** 2026-10-10
 **Status:** accepted

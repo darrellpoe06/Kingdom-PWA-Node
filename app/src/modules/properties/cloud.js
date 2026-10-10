@@ -515,7 +515,7 @@ export const PHOTO_LIST_COLUMNS = [
   'id', 'instance_id', 'rental_ref', 'tenancy_id', 'room_id', 'request_id',
   'kind', 'caption', 'thumb_path', 'taken_at', 'uploaded_at', 'uploaded_by',
   'author_label', 'archived_at', 'archived_by', 'sort_order',
-  // DR-0909 (0267): which system, and which service visit, a picture shows.
+  // DR-0932 (0267): which system, and which service visit, a picture shows.
   'system_id', 'system_event_id',
 ].join(', ');
 
@@ -962,7 +962,7 @@ export async function submitGuestReport({ token, title, detail, name, contact, u
 }
 
 // ---------------------------------------------------------------------------
-// SIGNING (DR-0913, 0263). Documents are filed where they belong (a door, or a
+// SIGNING (DR-0936, 0263). Documents are filed where they belong (a door, or a
 // tenancy's papers); the family asks for signatures; each signer signs the
 // fingerprint of the exact bytes their screen showed. Every wall is in the
 // database; these are thin, never-throwing calls.
@@ -1034,7 +1034,7 @@ export async function setWorkOrderProof(id, { proofRequired = 'none', proofNote 
 }
 
 // =============================================================================
-// A door's cameras, asked for and given (DR-0915, 0266). The menu is what the
+// A door's cameras, asked for and given (DR-0938, 0266). The menu is what the
 // family offers on a door (names only); the access rows are who asked for or
 // was given which cameras, who decided, until when. RLS: anyone on the door
 // reads the menu; each person reads their own rows; the family reads and
@@ -1115,7 +1115,7 @@ export async function doorOfMyTenancy(tenancyId, client = supabase) {
 }
 
 // =============================================================================
-// A short-stay door's calendar (DR-0907, 0269). The public reads taken ranges
+// A short-stay door's calendar (DR-0930, 0269). The public reads taken ranges
 // only (door_booked_nights); a guest asks through request_a_stay(); the family
 // reads, blocks, confirms and declines; a signed-in guest reads their own.
 // =============================================================================

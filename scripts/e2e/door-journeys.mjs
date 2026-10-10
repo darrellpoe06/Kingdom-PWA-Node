@@ -1,6 +1,6 @@
 // =============================================================================
 // door-journeys — END TO END: real Chromium, the real built app, PostgREST,
-// and a real PostgreSQL carrying the real migrations (DR-0911)
+// and a real PostgreSQL carrying the real migrations (DR-0934)
 // =============================================================================
 // Darrell, 2026-10-10: "End to end testing..."
 //
@@ -74,7 +74,7 @@ const sql = (text) => execFileSync(PSQL[0], [...PSQL.slice(1), '-v', 'ON_ERROR_S
 
 // ---------------------------------------------------------------------------
 // The seed: one family, one short-stay door marked to SHOW its street (the
-// setting DR-0910 overrode — so the stranger's page proves it stays hidden).
+// setting DR-0933 overrode — so the stranger's page proves it stays hidden).
 // ---------------------------------------------------------------------------
 const OWNER = '00000000-0000-4000-a000-00000000e2e1';
 const INSTANCE = '00000000-0000-4000-b000-00000000e2e1';
@@ -295,7 +295,7 @@ async function run() {
       await gp.getByText(/Champaign/).first().waitFor({ timeout: 15000 });
       await gp.screenshot({ path: join(SHOTS, 'A1-listing.png'), fullPage: true });
       const text = await gp.locator('body').innerText();
-      if (text.includes(STREET)) throw new Error(`the street "${STREET}" is on the public page (DR-0910 says never)`);
+      if (text.includes(STREET)) throw new Error(`the street "${STREET}" is on the public page (DR-0933 says never)`);
     });
     await step('A2 the short form books two nights, both attestations given', async () => {
       await gp.getByRole('button', { name: /Book a stay/i }).first().click();
@@ -366,7 +366,7 @@ async function run() {
       if (lines !== '12|I-74 at Exit 181') throw new Error(`the nearby lines read "${lines}"`);
     });
 
-    // F. A HEIC from a phone is kept, not skipped (DR-0916). Darrell's Samsung:
+    // F. A HEIC from a phone is kept, not skipped (DR-0939). Darrell's Samsung:
     // "Skipped 14: 6660.heic (the image could not be decoded on this device".
     // Chromium has no HEIC decoder, exactly like Chrome on Android, so this is
     // the fallback, under production's CSP.

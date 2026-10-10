@@ -1,4 +1,4 @@
-# DR-0917 — Square is a way tenants pay, through the family's own payment link
+# DR-0940 — Square is a way tenants pay, through the family's own payment link
 
 **Date:** 2026-10-10
 **Status:** accepted
@@ -46,4 +46,4 @@ The family's card-taking account sat outside the app. A tenant who wanted to pay
 
 ## Addendum, 2026-10-10: renumbered
 
-This record was written as DR-0905. #2100 merged its own DR-0905 on main first ("a HEIC photo is a photo"), so this one is DR-0917.
+This record was written as DR-0905. #2100 merged its own DR-0905 on main first ("a HEIC photo is a photo"), so this one is DR-0940.

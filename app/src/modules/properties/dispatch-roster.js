@@ -65,7 +65,7 @@ export function dispatchText({ door = {}, rental = null, request = {} } = {}) {
   const unit = door?.unit_label ? ` \u00b7 ${door.unit_label}` : '';
   const name = door?.property_label || (rental && (rental.display_name || rental.address)) || 'the property';
   // The worker is told up front when pictures (or a video) are required for
-  // payment (DR-0914), not after the job is done.
+  // payment (DR-0937), not after the job is done.
   const proof = proofNotice(request);
   const body = buildDispatchMessage({
     propertyName: `${name}${unit}`,

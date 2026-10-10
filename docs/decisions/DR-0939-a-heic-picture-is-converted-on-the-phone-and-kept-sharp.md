@@ -1,8 +1,8 @@
-# DR-0916 — A phone's HEIC picture is proven kept in a real browser under production's CSP, and property pictures are stored sharp enough for a big screen
+# DR-0939 — A phone's HEIC picture is proven kept in a real browser under production's CSP, and property pictures are stored sharp enough for a big screen
 
 **Date:** 2026-10-10
 **Status:** accepted
-**Area:** the door journeys (DR-0911, step F1); Poe Properties picture sizes (`DoorTabs.jsx` `FULL_MAX_WIDTH` / `FULL_QUALITY`)
+**Area:** the door journeys (DR-0934, step F1); Poe Properties picture sizes (`DoorTabs.jsx` `FULL_MAX_WIDTH` / `FULL_QUALITY`)
 **Principle:** DR-0076 (measure; prove to catch), DR-0905 (a HEIC photo is a photo, #2100)
 
 ## Context
@@ -40,7 +40,7 @@ The fix for Darrell's fourteen skipped photos is proven the way he hit the bug, 
 ## Decision
 
 1. **F1 joins the door journeys in CI.** CI downloads the sample at libheif v1.20.2 (checksum verified) and passes it as `E2E_HEIC`. F1 requires the stored full JPEG to be at least 1280 px wide, read from its frame header, so a thumbnail or an undecoded file fails.
-2. **The best picture.** Property pictures (the gallery, system pictures, work-order pictures) are stored full at **1920 px, quality 0.85** (`FULL_MAX_WIDTH`, `FULL_QUALITY`). The thumbnail stays 640 px at 0.75. The list read never carries the full bytes (0185), so a board stays light; the full picture loads when opened (`SharpPicture`, DR-0908). Pictures already stored keep their size until re-added.
+2. **The best picture.** Property pictures (the gallery, system pictures, work-order pictures) are stored full at **1920 px, quality 0.85** (`FULL_MAX_WIDTH`, `FULL_QUALITY`). The thumbnail stays 640 px at 0.75. The list read never carries the full bytes (0185), so a board stays light; the full picture loads when opened (`SharpPicture`, DR-0931). Pictures already stored keep their size until re-added.
 
 ## Verification
 

@@ -46,7 +46,7 @@
 
 **Proof.** The smoke has seven breaks proven to catch, and one replay gap was found and fixed. There are 8 app tests, including the record-before-hand-off order.
 
-## Then: papers signed in the app (DR-0913, 0263), and proof before payment (DR-0914, 0264)
+## Then: papers signed in the app (DR-0936, 0263), and proof before payment (DR-0937, 0264)
 
 **Papers.** Asked for: digital signing, papers populated into their places, paper uploads as tenant records, tenants sharing receipts and pictures, and pictures on work orders.
 - The family files a paper and asks for signatures; the database fingerprints the stored bytes.
@@ -91,7 +91,7 @@
 - There are 8 app tests, including a tenant-leak test proven to catch.
 - The 0260 through 0265 smokes pass together on the CI chain.
 
-## Then: door cameras, asked for and given (DR-0915, 0266)
+## Then: door cameras, asked for and given (DR-0938, 0266)
 
 **Asked for.** "Cameras tab shows no Cameras!!!!!! It allows giving access to who?!", then "request for certain ones... like the porch... give new tenants and 1099 workers.. and Airbnb guests... whoever we want to", and "Unlocks smart locks for doors... when short term tenants come".
 
@@ -112,7 +112,7 @@
 
 **Proof.** The smoke has ten breaks proven to catch. There are 15 app tests, three of them proven to catch.
 
-## End to end (DR-0911)
+## End to end (DR-0934)
 
 Darrell: "End to end testing..." The door journeys now run in a real browser on every push. The `door-journeys` leg in `ci.yml` is required by "app — lint + vitest":
 - Chrome walks the built app, through PostgREST 12.2.12, over a PostgreSQL built from the real chain (`scripts/e2e/build-door-db.sh`).
@@ -132,7 +132,7 @@ Building it found three things:
 
 **The fix that also went in.** The booking calendar's weekday headers now carry `scope="col"` (the table-a11y guard failed 6d0fdf756).
 
-## Where, never the street (DR-0912, 0270)
+## Where, never the street (DR-0935, 0270)
 
 The listing now shows the area on a map and what is nearby.
 - **The area.** It is rounded to 0.005 degrees on the device and again in the database, and a 600 m circle always holds the house.
@@ -145,10 +145,10 @@ The listing now shows the area on a map and what is nearby.
 
 **Found by the journeys.** After any save the board's buttons went dead until a reload, because `busy` was a never-cleared timestamp (since #2043). It is fixed, and the fix is pinned in vitest and walked end to end.
 
-## HEIC pictures are kept, and pictures are sharp on the Fold (DR-0916)
+## HEIC pictures are kept, and pictures are sharp on the Fold (DR-0939)
 
 Darrell's Samsung skipped 14 `.heic` photos: Chrome on Android cannot decode HEIC.
-- **The fix.** The decoder is DR-0905 (#2100, libheif-js, merged first on main); this branch's parallel heic-to version was dropped at the merge. DR-0916 proves it end to end.
+- **The fix.** The decoder is DR-0905 (#2100, libheif-js, merged first on main); this branch's parallel heic-to version was dropped at the merge. DR-0939 proves it end to end.
 - **Picture size.** Property pictures are now kept at 1920 px, quality 0.85 (was 1280 / 0.7), sharp on the unfolded Fold.
 - **Proof.**
   - The door journeys now walk a real phone HEIC under production's CSP; it is stored as a JPEG at the sample's full 1280 px width, 344 KB.
