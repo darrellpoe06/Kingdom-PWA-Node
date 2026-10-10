@@ -12,8 +12,9 @@ import { createRoot } from 'react-dom/client';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
+const SIZES = vi.hoisted(() => []);
 vi.mock('../lib/image.js', () => ({
-  compressImageFile: async (f, w) => (w ? `data:image/jpeg;base64,THUMB-${f.name}` : `data:image/jpeg;base64,FULL-${f.name}`),
+  compressImageFile: async (f, w, q) => { SIZES.push([w, q]); return w === 640 ? `data:image/jpeg;base64,THUMB-${f.name}` : `data:image/jpeg;base64,FULL-${f.name}`; },
   isLikelyImageFile: (f) => /^image\//.test((f && f.type) || ''),
 }));
 
@@ -74,6 +75,9 @@ describe('on the system, in the Systems tab', () => {
       ['s-furn', 'e-1', 'data:image/jpeg;base64,FULL-flue.jpg', 'data:image/jpeg;base64,THUMB-flue.jpg'],
     ]);
     expect(container.textContent).toContain('Added 2 to Furnace (2026-10-01 Annual service). Not pictures: notes.txt.');
+    // The best picture (DR-0916): the full one is 1920px at 0.85, the thumbnail 640px.
+    expect(SIZES).toContainEqual([1920, 0.85]);
+    expect(SIZES).toContainEqual([640, 0.75]);
   });
 
   it('someone who cannot manage the door sees the pictures and no way to add', async () => {

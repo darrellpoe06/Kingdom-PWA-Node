@@ -144,3 +144,12 @@ The listing now shows the area on a map and what is nearby.
 - **For the family:** Doors → Edit → paste the point from Google Maps → Use this point → Save the area.
 
 **Found by the journeys.** After any save the board's buttons went dead until a reload, because `busy` was a never-cleared timestamp (since #2043). It is fixed, and the fix is pinned in vitest and walked end to end.
+
+## HEIC pictures are kept, and pictures are sharp on the Fold (DR-0916)
+
+Darrell's Samsung skipped 14 `.heic` photos: Chrome on Android cannot decode HEIC.
+- **The fix.** The device's own decoder goes first. A file whose bytes say HEIC is converted on the phone (libheif, loaded only then, 60 s ceiling) and then filed like any picture.
+- **Picture size.** Property pictures are now kept at 1920 px, quality 0.85 (was 1280 / 0.7), sharp on the unfolded Fold.
+- **Proof.**
+  - The door journeys now walk a real phone HEIC under production's CSP; it is stored as a JPEG of 1280 × 854, the sample's own size.
+  - The old code fails that journey with Darrell's exact message.

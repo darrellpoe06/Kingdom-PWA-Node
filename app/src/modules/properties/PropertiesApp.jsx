@@ -41,7 +41,7 @@ import { DoorCamerasTab, TenantCamerasTab } from './DoorCameras.jsx';
 import { setDoorCameraGrant } from './door-cameras.js';
 import { stageFromRecord, confirmDraft, tenancyRowFromDraft, vacantUnitRow } from './staging.js';
 import { availableDocuments, buildDocument } from './documents.js';
-import { TimelineTab, RoomsTab, DoorsBoard, GalleryTab, FilesTab } from './DoorTabs.jsx';
+import { TimelineTab, RoomsTab, DoorsBoard, GalleryTab, FilesTab, FULL_MAX_WIDTH, FULL_QUALITY } from './DoorTabs.jsx';
 import { SystemsTab } from './SystemsTab.jsx';
 import { GuestLinkCard } from './GuestReport.jsx';
 import { PayRent, PayeeCard } from './RentPay.jsx';
@@ -698,7 +698,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
     if (!workDoor || !requestId || !file) return { ok: false, reason: 'nothing to attach' };
     if (!isLikelyImageFile(file)) { say('That is not a picture. Use a photo, or file a document under Documents.'); return { ok: false }; }
     let image;
-    try { image = await compressImageFile(file); } catch { say('That picture could not be read.'); return { ok: false }; }
+    try { image = await compressImageFile(file, FULL_MAX_WIDTH, FULL_QUALITY); } catch { say('That picture could not be read.'); return { ok: false }; }
     const res = await postJobDoc({
       instance_id: workDoor.instanceId, request_id: requestId, tenancy_id: workDoor.tenancyId, rental_id: workDoor.rentalId,
       outcome: null, followup: null, note: String(note || '').trim() || null, image_data: image,

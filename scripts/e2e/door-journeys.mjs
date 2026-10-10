@@ -63,6 +63,7 @@ const SHOTS = process.env.E2E_SHOTS || 'e2e-shots';
 const CHROME = process.env.E2E_CHROME || '';
 const POSTGREST = process.env.E2E_POSTGREST || 'postgrest';
 const DB_URI = process.env.E2E_DB_URI || '';
+const HEIC = process.env.E2E_HEIC || '';   // a real phone HEIC (CI downloads libheif's example, checksum pinned)
 
 function fail(code, msg) { console.error(`door-journeys: ${msg}`); process.exit(code); }
 if (!existsSync(join(DIST, 'properties', 'app', 'index.html'))) fail(2, `no built Properties app in ${DIST} (vite build first)`);
@@ -82,6 +83,7 @@ const STREET = '805 North Prospect Avenue';
 function seed() {
   sql(`
     DELETE FROM door_stays WHERE rental_id = '${DOOR}';
+    DELETE FROM property_photos WHERE rental_ref = '${DOOR}';
     DELETE FROM rent_records WHERE instance_id = '${INSTANCE}';
     DELETE FROM rentals WHERE id = '${DOOR}';
     DELETE FROM instance_members WHERE instance_id = '${INSTANCE}';
@@ -138,7 +140,18 @@ function undoFault(f) { if (f.restore.endsWith('.sql')) applyFile(f.restore); el
 // ---------------------------------------------------------------------------
 // PostgREST behind a gateway that answers the paths the app calls.
 // ---------------------------------------------------------------------------
-const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png', '.webmanifest': 'application/manifest+json', '.woff2': 'font/woff2' };
+const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.wasm': 'application/wasm', '.mjs': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png', '.webmanifest': 'application/manifest+json', '.woff2': 'font/woff2' };
+
+// The page runs under production's own Content-Security-Policy (app/public/
+// _headers), so a decoder or worker the real site would block fails here too.
+// One directive is left out: upgrade-insecure-requests would move this plain
+// http gateway's own requests to https, which a local harness does not serve.
+const ROOT_DIR = new URL('../..', import.meta.url).pathname;
+export const CSP = (() => {
+  const line = readFileSync(join(ROOT_DIR, 'app/public/_headers'), 'utf8').split('\n').find((l) => /^\s+Content-Security-Policy:/.test(l));
+  if (!line) throw new Error('no Content-Security-Policy in app/public/_headers');
+  return line.replace(/^\s+Content-Security-Policy:\s*/, '').split(';').map((d) => d.trim()).filter((d) => d && d !== 'upgrade-insecure-requests').join('; ');
+})();
 
 function startPostgrest() {
   const conf = join(SHOTS, 'postgrest.conf');
@@ -188,9 +201,23 @@ function gateway() {
     try { if (statSync(file).isDirectory()) file = join(file, 'index.html'); } catch { /* resolved below */ }
     if (!existsSync(file) && rel !== url.pathname) { res.writeHead(404); res.end(); return; }   // a missing asset is a 404, never the page
     if (!existsSync(file)) file = url.pathname.startsWith('/properties/') ? join(DIST, 'properties', 'app', 'index.html') : join(DIST, 'index.html');
-    res.writeHead(200, { 'content-type': MIME[extname(file)] || 'application/octet-stream', 'cache-control': 'no-store' });
+    const type = MIME[extname(file)] || 'application/octet-stream';
+    res.writeHead(200, { 'content-type': type, 'cache-control': 'no-store', ...(type === 'text/html' ? { 'content-security-policy': CSP } : {}) });
     res.end(readFileSync(file));
   });
+}
+
+/** The width in a JPEG's start-of-frame header (baseline or progressive). */
+function jpegWidth(buf) {
+  let i = 2;
+  while (i + 9 < buf.length) {
+    if (buf[i] !== 0xff) return null;
+    const marker = buf[i + 1];
+    const len = buf.readUInt16BE(i + 2);
+    if (marker === 0xc0 || marker === 0xc2) return buf.readUInt16BE(i + 7);
+    i += 2 + len;
+  }
+  return null;
 }
 
 async function waitFor(fn, what, ms = 15000) {
@@ -338,6 +365,28 @@ async function run() {
       const lines = sql(`SELECT jsonb_array_length(nearby) || '|' || (nearby->0->>'label') FROM rentals WHERE id = '${DOOR}'`);
       if (lines !== '12|I-74 at Exit 181') throw new Error(`the nearby lines read "${lines}"`);
     });
+
+    // F. A HEIC from a phone is kept, not skipped (DR-0916). Darrell's Samsung:
+    // "Skipped 14: 6660.heic (the image could not be decoded on this device".
+    // Chromium has no HEIC decoder, exactly like Chrome on Android, so this is
+    // the fallback, under production's CSP.
+    if (HEIC) {
+      await step('F1 a HEIC picture from a phone is converted and filed as a JPEG', async () => {
+        await op.getByRole('button', { name: /^Pictures$/ }).first().click({ timeout: 15000 });
+        await op.locator('input[type="file"][multiple]').first().setInputFiles({ name: '6660.heic', mimeType: '', buffer: readFileSync(HEIC) });
+        await op.getByRole('button', { name: /^Add to the gallery$/ }).waitFor({ timeout: 90000 });
+        const skipped = await op.getByText(/^Skipped/).count();
+        if (skipped) throw new Error(`the picture was skipped: ${await op.getByText(/^Skipped/).first().innerText()}`);
+        await op.getByRole('button', { name: /^Add to the gallery$/ }).click();
+        await waitFor(() => sql(`SELECT count(*) FROM property_photos WHERE rental_ref = '${DOOR}' AND storage_path LIKE 'data:image/jpeg%' AND thumb_path LIKE 'data:image/jpeg%'`) === '1', 'a JPEG picture and thumbnail on the door', 30000);
+        // Measured, not assumed: the stored JPEG's own frame header says its size.
+        const full = Buffer.from(sql(`SELECT split_part(storage_path, ',', 2) FROM property_photos WHERE rental_ref = '${DOOR}'`), 'base64');
+        const w = jpegWidth(full);
+        if (!(w >= 1280)) throw new Error(`the full picture is ${w}px wide; the HEIC is 1280px, so it was shrunk to a thumbnail or not decoded`);
+        console.log(`      (stored ${w}px wide, ${Math.round(full.length / 1024)} KB)`);
+        await op.screenshot({ path: join(SHOTS, 'F1-heic-filed.png'), fullPage: true });
+      });
+    } else console.log('  (F1 skipped: set E2E_HEIC to a HEIC file to walk it)');
 
     // C. The next stranger sees those nights dark.
     const next = await hermetic(await browser.newContext({ viewport: { width: 412, height: 915 } }));

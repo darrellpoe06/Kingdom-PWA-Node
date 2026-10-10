@@ -1052,7 +1052,9 @@ jobs:
   # books two nights with both attestations; the family sees the address,
   # confirms the ask (the clock reads asked,confirmed); records $300 cash on the
   # door with no tenant (the door's total reads 300.00); the next stranger finds
-  # those nights dark. Then PROVEN TO CATCH, every run: four faults (the street
+  # those nights dark; a real phone HEIC (Chromium has no HEIC decoder, like
+  # Chrome on Android) is converted on the device under production's CSP and
+  # filed as a full JPEG (DR-0916). Then PROVEN TO CATCH, every run: four faults (the street
   # shown, the family unable to confirm, money refused without a tenancy, the
   # calendar emptied) must each fail their own step, or this leg is red.
   door-journeys:
@@ -1076,6 +1078,7 @@ jobs:
       E2E_DB_URI: postgres://postgres:postgres@localhost:5432/postgres
       E2E_POSTGREST: ${{ github.workspace }}/.e2e/postgrest
       E2E_SHOTS: ${{ github.workspace }}/e2e-shots
+      E2E_HEIC: ${{ github.workspace }}/.e2e/example.heic
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -1093,6 +1096,11 @@ jobs:
           echo "5de4092f1719da3353c40bf96c8dec6913f2254a7cd0b61cc05f233153b557d5  .e2e/postgrest.tar.xz" | sha256sum -c -
           tar -xJf .e2e/postgrest.tar.xz -C .e2e
           .e2e/postgrest --version
+      - name: A real phone HEIC (libheif's example at v1.20.2, checksum verified)
+        run: |
+          set -euo pipefail
+          curl -sSLo .e2e/example.heic https://raw.githubusercontent.com/strukturag/libheif/v1.20.2/examples/example.heic
+          echo "7f8b363e4936c0666a25f64f3a92fda10bd8e5453be4592530b65a55dd98f3f2  .e2e/example.heic" | sha256sum -c -
       - name: The database, from the real chain
         run: scripts/e2e/build-door-db.sh
       - name: Install playwright-core (drives the runner's installed Chrome)

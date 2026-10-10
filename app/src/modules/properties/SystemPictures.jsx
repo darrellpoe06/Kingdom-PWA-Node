@@ -16,7 +16,7 @@ import { compressImageFile, isLikelyImageFile } from '../../lib/image.js';
 import { stampImage, stampFileName } from '../../lib/brand-stamp.js';
 import SharpPicture, { sharpestKnown } from './SharpPicture.jsx';
 import { applyUrl } from './apply-link.js';
-import { THUMB_MAX_WIDTH, THUMB_QUALITY } from './DoorTabs.jsx';
+import { THUMB_MAX_WIDTH, THUMB_QUALITY, FULL_MAX_WIDTH, FULL_QUALITY } from './DoorTabs.jsx';
 
 const serif = { fontFamily: '"Fraunces", serif' };
 const field = 'border border-[#E8E4DC] px-2 py-2 text-[0.8125rem] bg-white text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#2F5D50]';
@@ -68,7 +68,7 @@ export default function SystemPictures({
     for (const file of files) {
       if (!isLikelyImageFile(file)) { refused.push(file.name); continue; }
       try {
-        pics.push({ dataUrl: await compressImageFile(file), thumbUrl: await compressImageFile(file, THUMB_MAX_WIDTH, THUMB_QUALITY) });
+        pics.push({ dataUrl: await compressImageFile(file, FULL_MAX_WIDTH, FULL_QUALITY), thumbUrl: await compressImageFile(file, THUMB_MAX_WIDTH, THUMB_QUALITY) });
       } catch { refused.push(file.name); }
     }
     const rows = systemPictureRows({ door, system, eventId: eventId || null, caption, pics });

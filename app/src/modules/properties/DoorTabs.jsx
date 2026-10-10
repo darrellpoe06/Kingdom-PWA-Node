@@ -1190,6 +1190,12 @@ export function dataUrlBytes(dataUrl = '') {
 // in where a tile needs more than the thumbnail holds.
 export const THUMB_MAX_WIDTH = 640;
 export const THUMB_QUALITY = 0.75;
+// THE FULL PICTURE (DR-0916). Darrell 2026-10-10: "I want the best pictures in
+// the PoeTech App too". His Fold unfolded is ~1800 device pixels wide; a 1280px
+// picture was stretched across it. 1920px at 0.85 is sharp on that screen, and
+// the list read never carries these bytes (0185), so a board stays light.
+export const FULL_MAX_WIDTH = 1920;
+export const FULL_QUALITY = 0.85;
 
 /** Type-or-speak for one caption box: the mic appears only where the browser can hear. */
 function CaptionField({ value, onChange, placeholder, label, className = '' }) {
@@ -1264,7 +1270,7 @@ export function GalleryTab({
     for (const file of files) {
       if (!isLikelyImageFile(file)) { refused.push(`${file.name} (not an image)`); continue; }
       try {
-        const dataUrl = await compressImageFile(file);
+        const dataUrl = await compressImageFile(file, FULL_MAX_WIDTH, FULL_QUALITY);
         const thumbUrl = await compressImageFile(file, THUMB_MAX_WIDTH, THUMB_QUALITY);
         added.push({
           key: `${file.name}-${added.length}-${Date.now()}`,
