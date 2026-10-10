@@ -31,6 +31,8 @@ const spans = (text) => { const u = unescape(text); const at = [...u.matchAll(/"
 const ours = (text) => spans(text).out.reduce((t, s) => t.replace(`"${s}"`, '""'), unescape(text));
 
 describe('the course is whole and registered', () => {
+  // SLICE 2, THIRD LESSON (2026-10-10): lil9, Abraham. Genesis 12 to 22 --
+  // the promise, the stars, Genesis 15:6, and the lamb. Pinned EXACTLY at 9.
   // SLICE 2, SECOND LESSON (2026-10-10): lil8, Noah. The Genesis-to-Revelation
   // spine Darrell named -- "Genesis - Revelation... Adam and Eve... etc" --
   // continues from lil7. Pinned EXACTLY at 8, not as a floor, so a lesson
@@ -43,7 +45,7 @@ describe('the course is whole and registered', () => {
   // the real number rather than relaxed to a floor: a lesson silently
   // disappearing from this course must still turn the check red.
   it('seven lessons — slice 1 plus the first of slice 2 — the meta counts them, and the catalog carries the course with a Word-first frame', () => {
-    expect(LITTLE_LEARNERS_MODULES.length).toBe(8);
+    expect(LITTLE_LEARNERS_MODULES.length).toBe(9);
     expect(LITTLE_LEARNERS_META.weeks).toBe(LITTLE_LEARNERS_MODULES.length);
     expect(LITTLE_LEARNERS_META.wordFirst.ref).toMatch(/Deuteronomy 6:7/);
     expect(LITTLE_LEARNERS_META.wordFirst.frame.length).toBeGreaterThan(80);
