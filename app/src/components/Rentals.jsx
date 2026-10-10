@@ -288,6 +288,27 @@ function PropertyGallery({ rental, nasTotal = null }) {
               ? 'No local photos yet, and the NAS archive is not reachable right now — it reconnects on its own next visit.'
               : 'No photos yet for this property. Room photos, maintenance shots, the pictures taken on its Poe Properties door, and the NAS chat archive all land here, oldest to latest.'}
         </p>
+        {/* THE LINK IS NAMED WHEN IT IS MISSING (Darrell, 2026-10-10: "Does it
+            interconnect to each other inside the appropriate locations? Images
+            transferred to the Properties tab inside PoeTech... however not to
+            the Real Estate tab.... data should be end to end workflows").
+
+            It DOES interconnect, and this panel already merges the door's
+            pictures — but on ONE hinge: rental.remoteUuid, the cloud rentals
+            id that property_photos.rental_ref points at. Until this record has
+            been synced it has no remoteUuid, so cloudRef is null, the door
+            query never runs, and the door's pictures simply never appear —
+            while the sentence above still PROMISES them. A surface that
+            promises what it cannot deliver is the fault (DR-0076 §1), and a
+            surface must say what is missing and how to fix it (P15/DR-0381).
+            So the missing link now says so, in its own line. */}
+        {!cloudRef && (
+          <p className="text-[0.6875rem] text-[#B85838] mt-1" style={{ fontFamily: '"Fraunces", serif' }} data-testid="door-not-linked">
+            This property is not linked to its Poe Properties door yet, so the pictures taken on that door cannot
+            appear here. Sign in and let Real Estate sync once — the link is the record’s cloud id, and it is made
+            for you the first time this property reaches the cloud.
+          </p>
+        )}
         {/* An empty address is exactly where someone wants to add the first
             picture, so the control is here too — not only once a strip exists. */}
         {dest
@@ -302,6 +323,16 @@ function PropertyGallery({ rental, nasTotal = null }) {
         <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">Property Photos · oldest → latest{totalKnown ? ` · ${totalKnown} in the archive` : ''}</div>
         {nas.status === 'loading' && <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">reading the NAS archive…</span>}
       </div>
+      {/* Same truth on the populated strip: a property with room and archive
+          photos but no cloud id is STILL missing every picture taken on its
+          Poe Properties door, and a full-looking strip hides that better than
+          an empty one does. */}
+      {!cloudRef && (
+        <p className="text-[0.6875rem] text-[#B85838] mt-1" style={{ fontFamily: '"Fraunces", serif' }} data-testid="door-not-linked">
+          Not linked to its Poe Properties door yet — pictures taken on that door are not in this strip. Sign in and
+          let Real Estate sync once to make the link.
+        </p>
+      )}
       <div className="flex flex-wrap gap-2 mt-2">
         {items.map((p, pi) => (
           <div key={p.id} className="w-24">
