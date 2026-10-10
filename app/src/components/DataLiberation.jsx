@@ -59,8 +59,7 @@ function BackLink({ onClick, children }) {
     <button
       type="button"
       onClick={onClick}
-      className="underline mb-5 px-2 py-3 -ml-2 text-left"
-      className="text-[#1A1815]" style={{ ...serif,  fontSize: '1.0625rem', minHeight: '44px' }}
+      className="underline mb-5 px-2 py-3 -ml-2 text-left text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]" style={{ ...serif,  fontSize: '1.0625rem', minHeight: '44px' }}
     >
       {children}
     </button>
@@ -301,8 +300,7 @@ function ServiceSteps({ vendor, progress, onSet, onConfirm, onBack }) {
               <button
                 type="button"
                 onClick={advance}
-                className="w-full sm:w-auto px-6 border-2"
-                className="text-[#1A1815]" style={{ ...serif, ...bigButton, background: '#FFFFFF',  borderColor: INK, paddingTop: '12px', paddingBottom: '12px' }}
+                className="w-full sm:w-auto px-6 border-2 text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]" style={{ ...serif, ...bigButton, background: '#FFFFFF',  borderColor: INK, paddingTop: '12px', paddingBottom: '12px' }}
               >
                 {progress.stage === STAGE.VERIFIED && gate.allowed
                   ? 'I have freed up the space'
@@ -441,8 +439,7 @@ function TakeItWithYou({ progressById }) {
       <button
         type="button"
         onClick={download}
-        className="px-5 border-2"
-        className="text-[#1A1815]" style={{ ...serif,  borderColor: INK, background: '#FFFFFF', minHeight: '48px', fontSize: '1.0625rem', fontWeight: 600 }}
+        className="px-5 border-2 text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]" style={{ ...serif,  borderColor: INK, background: '#FFFFFF', minHeight: '48px', fontSize: '1.0625rem', fontWeight: 600 }}
       >
         {done ? 'Saved to your device' : 'Save my progress to my device'}
       </button>
@@ -520,8 +517,7 @@ export default function DataLiberation() {
           <button
             type="button"
             onClick={() => setEverything((v) => !v)}
-            className="underline mt-5 px-2 py-3 -ml-2 text-left"
-            className="text-[#1A1815]" style={{ ...serif,  fontSize: '1.0625rem', minHeight: '44px' }}
+            className="underline mt-5 px-2 py-3 -ml-2 text-left text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]" style={{ ...serif,  fontSize: '1.0625rem', minHeight: '44px' }}
             aria-expanded={everything}
           >
             {everything ? 'Hide the full list' : 'Show me all the steps at once'}

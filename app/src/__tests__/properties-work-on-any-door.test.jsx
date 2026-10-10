@@ -199,22 +199,34 @@ describe('the 1099 worker walking a door he was granted', () => {
 });
 
 describe('a picture on a work order (DR-0901: "pictures for documentation... For workorders")', () => {
-  it('a report filed with a picture lands the picture on the new job, as documentation with no outcome', async () => {
+  it('a report filed with several pictures (one taken, two chosen) lands each on the new job, as documentation with no outcome', async () => {
     H.rentals = [APT2]; H.doors = [];
     await mount();
     await pickDoor('805 North Prospect Avenue');
     await tap(/^Work board$/);
     await typeJob('Water under the sink');
-    const pic = container.querySelector('input[aria-label="Add a picture to this report"]');
-    const file = new File([new Uint8Array([1, 2, 3])], 'sink.jpg', { type: 'image/jpeg' });
-    await act(async () => { Object.defineProperty(pic, 'files', { value: [file] }); pic.dispatchEvent(new Event('change', { bubbles: true })); });
-    expect(text()).toContain('Picture: sink.jpg');
+    const put = async (label, files) => {
+      const el = container.querySelector(`input[aria-label="${label}"]`);
+      await act(async () => { Object.defineProperty(el, 'files', { value: files, configurable: true }); el.dispatchEvent(new Event('change', { bubbles: true })); });
+    };
+    const jpg = (n) => new File([new Uint8Array([1, 2, 3])], n, { type: 'image/jpeg' });
+    await put('Add a picture to this report', [jpg('sink.jpg')]);
+    await put('Choose pictures for this report', [jpg('pipe.jpg'), jpg('floor.jpg')]);
+    expect(container.querySelector('[data-testid="report-pictures"]').textContent).toContain('3 pictures ready');
     await tap(/^File it$/i);
-    for (let i = 0; i < 6; i += 1) await act(async () => { await Promise.resolve(); });
+    for (let i = 0; i < 10; i += 1) await act(async () => { await Promise.resolve(); });
     expect(H.filed[0]).toMatchObject({ rental_id: 'r-apt2', title: 'Water under the sink' });
-    expect(H.jobDocs).toHaveLength(1);
-    expect(H.jobDocs[0]).toMatchObject({ request_id: 'req-new', rental_id: 'r-apt2', tenancy_id: null, outcome: null, image_data: 'data:image/jpeg;base64,SMALL' });
-    expect(text()).toContain('Work order filed with its picture.');
+    expect(H.jobDocs).toHaveLength(3);
+    expect(H.jobDocs.every((d) => d.request_id === 'req-new' && d.rental_id === 'r-apt2' && d.tenancy_id === null && d.outcome === null && d.image_data === 'data:image/jpeg;base64,SMALL')).toBe(true);
+    expect(text()).toContain('Work order filed with 3 pictures.');
+  });
+  it('an empty unit\'s own record reads "Empty", never "Rented"', async () => {
+    H.rentals = [APT2];
+    H.doors = [{ id: 't-unit', instance_id: 'i1', rental_ref: 'r-805-apt2', property_label: '805 North Prospect Avenue', unit_label: 'Apt 2', tenant_name: null, tenant_user_id: null, status: 'pending' }];
+    await mount();
+    await tap(/^Work board$/);
+    expect(text()).toContain('Empty \u2014 nobody living here yet');
+    expect(text()).not.toContain('Rented');
   });
   it('a picture already on a job shows on the board with its time', async () => {
     H.rentals = [APT2]; H.doors = [];
@@ -263,5 +275,20 @@ describe('proof before payment (DR-0902: "pictures to document the work... manda
     await act(async () => { sel.value = 'photos'; sel.dispatchEvent(new Event('change', { bubbles: true })); });
     for (let i = 0; i < 4; i += 1) await act(async () => { await Promise.resolve(); });
     expect(H.proofs).toEqual([['req7', { proofRequired: 'photos', proofNote: 'the microwave mounted and the fan running' }]]);
+  });
+});
+
+describe('a message on an empty unit stays (2026-10-10: "Didn\'t stay" / "Message Didn\'t save")', () => {
+  it('PROVEN-TO-CATCH: picking the door from Doors lands on its own pending record, so the saved thread is there', async () => {
+    const UNIT = { id: 't-unit', instance_id: 'i1', rental_ref: 'r-805-apt2', property_label: '805 North Prospect Avenue', unit_label: 'Apt 2', tenant_name: null, tenant_user_id: null, status: 'pending' };
+    H.rentals = [APT2, KOEHN]; H.doors = [KOEHN_TENANCY, UNIT];
+    H.record = { messages: [{ id: 'm1', tenancy_id: 't-unit', from_role: 'landlord', body: 'Testing the process....', sent_at: '2026-10-10T18:34:40Z' }] };
+    await mount();
+    await pickDoor('805 North Prospect Avenue');
+    expect(H.recordCalls.at(-1)[0]).toBe('t-unit');
+    await tap(/^Messages$/);
+    expect(text()).toContain('Testing the process....');
+    expect(text()).toContain('Empty — nobody living here yet');
+    expect(text()).not.toContain('Rented');
   });
 });

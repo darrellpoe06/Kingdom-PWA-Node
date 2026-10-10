@@ -135,30 +135,45 @@ export const TENANT_PAPER_KINDS = Object.freeze([
   { id: 'other', label: 'Something else' },
 ]);
 
-/** A tenant files a paper of their own to their tenancy. */
+/** A tenant files papers of their own to their tenancy: one at a time or many. */
 function AddPaper({ instanceId, tenancyId, onDone }) {
-  const [file, setFile] = useState(null);
+  const [files, setFiles] = useState([]);
   const [title, setTitle] = useState('');
   const [kind, setKind] = useState('receipt');
   const [said, setSaid] = useState('');
-  const pick = (e) => {
-    const f = e.target.files && e.target.files[0];
-    if (!f) return;
-    if (f.size > MAX_BYTES) { setSaid('That file is over 3 MB. Take the picture again a little farther away, or send a smaller file.'); return; }
-    setSaid('');
+  const [busy, setBusy] = useState(false);
+  const read = (f) => new Promise((resolve) => {
     const reader = new FileReader();
-    reader.onload = () => setFile({ name: f.name, type: f.type || '', size: f.size, url: String(reader.result || '') });
+    reader.onload = () => resolve({ name: f.name, type: f.type || '', size: f.size, url: String(reader.result || '') });
+    reader.onerror = () => resolve(null);
     reader.readAsDataURL(f);
-    if (!title) setTitle(f.name.replace(/\.[^.]+$/, ''));
+  });
+  // "Multiple photo upload options" (Darrell, 2026-10-10): a picture from the
+  // camera, or several chosen at once; each is filed as its own paper.
+  const pick = async (e) => {
+    const chosen = Array.from((e.target.files) || []);
+    e.target.value = '';
+    const big = chosen.filter((f) => f.size > MAX_BYTES);
+    const ok = chosen.filter((f) => f.size <= MAX_BYTES);
+    setSaid(big.length ? `${big.length} file${big.length === 1 ? ' is' : 's are'} over 3 MB and ${big.length === 1 ? 'was' : 'were'} left out. Take the picture a little farther away, or send a smaller file.` : '');
+    const loaded = (await Promise.all(ok.map(read))).filter(Boolean);
+    if (loaded.length) setFiles((prev) => [...prev, ...loaded]);
   };
   const save = async () => {
-    const r = await addDocument({
-      instance_id: instanceId, tenancy_id: tenancyId, kind, title: title.trim() || file.name,
-      storage_path: file.url, mime_type: file.type, byte_size: file.size, source: 'upload', author_label: 'tenant',
-    });
-    if (!r.ok) { setSaid(`Not saved: ${r.reason}`); return; }
-    setFile(null); setTitle('');
-    onDone(`Filed ${new Date().toLocaleString()}.`);
+    setBusy(true);
+    let n = 0;
+    for (const [i, f] of files.entries()) {
+      const name = title.trim() ? (files.length > 1 ? `${title.trim()} (${i + 1} of ${files.length})` : title.trim()) : f.name.replace(/\.[^.]+$/, '');
+      const r = await addDocument({
+        instance_id: instanceId, tenancy_id: tenancyId, kind, title: name,
+        storage_path: f.url, mime_type: f.type, byte_size: f.size, source: 'upload', author_label: 'tenant',
+      });
+      if (r.ok) n += 1;
+    }
+    setBusy(false);
+    if (!n) { setSaid('Not saved. Try again.'); return; }
+    setFiles([]); setTitle('');
+    onDone(`Filed ${n} paper${n === 1 ? '' : 's'} ${new Date().toLocaleString()}.`);
   };
   return (
     <div className="mt-2" data-testid="add-paper">
@@ -168,21 +183,31 @@ function AddPaper({ instanceId, tenancyId, onDone }) {
           <input type="file" accept="image/*" capture="environment" className="sr-only" onChange={pick} aria-label="Take a picture of a paper" />
         </label>
         <label className="text-[0.625rem] uppercase tracking-wider px-3 py-2 border border-[#E8E4DC] bg-white text-[#1A1815] cursor-pointer">
-          Choose a file
-          <input type="file" accept="application/pdf,image/*,.txt" className="sr-only" onChange={pick} aria-label="Choose a file" />
+          Choose pictures
+          <input type="file" accept="image/*" multiple className="sr-only" onChange={pick} aria-label="Choose pictures" />
+        </label>
+        <label className="text-[0.625rem] uppercase tracking-wider px-3 py-2 border border-[#E8E4DC] bg-white text-[#1A1815] cursor-pointer">
+          Choose files
+          <input type="file" accept="application/pdf,image/*,.txt" multiple className="sr-only" onChange={pick} aria-label="Choose a file" />
         </label>
       </div>
-      {file && (
+      {files.length > 0 && (
         <div className="mt-2">
-          <label className="block text-xs text-[#5A5751]">What is it
+          <p className="text-xs text-[#5A5751]" style={serif} data-testid="papers-ready">
+            {files.length} ready: {files.map((f) => f.name).join(', ')}
+          </p>
+          <label className="block text-xs text-[#5A5751] mt-1">What is it
             <select value={kind} onChange={(e) => setKind(e.target.value)} aria-label="What kind of paper" className={`${field} block w-full`} style={serif}>
               {TENANT_PAPER_KINDS.map((k) => <option key={k.id} value={k.id}>{k.label}</option>)}
             </select>
           </label>
-          <label className="block text-xs text-[#5A5751] mt-2">A few words about it
+          <label className="block text-xs text-[#5A5751] mt-2">A few words about it (optional)
             <input value={title} onChange={(e) => setTitle(e.target.value)} aria-label="What is it" className={`${field} block w-full`} style={serif} />
           </label>
-          <div className="mt-2"><Btn tone="primary" onClick={save}>File it with my papers</Btn></div>
+          <div className="mt-2 flex gap-2">
+            <Btn tone="primary" disabled={busy} onClick={save}>{files.length > 1 ? `File these ${files.length} with my papers` : 'File it with my papers'}</Btn>
+            <Btn onClick={() => setFiles([])}>Clear</Btn>
+          </div>
         </div>
       )}
       {said && <p className="text-xs text-[#5A5751] mt-2" role="status">{said}</p>}

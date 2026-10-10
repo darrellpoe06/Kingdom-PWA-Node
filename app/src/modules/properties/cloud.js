@@ -131,9 +131,31 @@ export async function loadMyHousehold(client = supabase) {
  * the door rows from a tenant (every tenancy arm is false on a NULL tenancy),
  * so asking for them is safe from any seat. Messages, rent and notices exist
  * only through a tenancy and stay empty on a door with none.
+ *
+ * AND A RECORD THAT COULD NOT BE READ IS NOT AN EMPTY RECORD (DR-0876).
+ *
+ * Darrell, 2026-10-10, on what this record is FOR: "a place to make sure we
+ * have all-in-one information about this place... workers can deduce things
+ * from historical data" and "End to end.... historical accuracy and events".
+ *
+ * This used to write `msg.data || []` five times and return ok() whatever
+ * happened, so a failed read, a permission refusal and a door where genuinely
+ * nothing occurred all produced one identical answer — an empty array, under a
+ * heading reading "Everything that has happened on this door, in order."
+ * Somebody concluding "nothing was ever said here" could have been concluding
+ * it from a network error. `unreadable` carries the parts that FAILED, so the
+ * surface can say so (DR-0076 §8).
+ *
+ * The quieter half is that RLS does not error — it filters rows and returns an
+ * empty set, so a face not permitted to see part of the record cannot learn
+ * that here at all. That is answered on the surface instead, from the face
+ * itself: see unseenByThisFace() in model.js.
+ *
+ * The two halves are independent and both are kept: 0260 widened WHICH rows
+ * belong to a door; DR-0876 is about whether the answer can be trusted.
  */
 export async function loadDoorRecord(tenancyId, { rentalId = null } = {}, client = supabase) {
-  const empty = { requests: [], messages: [], notes: [], docs: [], rent: [], notices: [] };
+  const empty = { requests: [], messages: [], notes: [], docs: [], rent: [], notices: [], unreadable: [] };
   if (!tenancyId && !rentalId) return ok(empty);
   const scoped = (q) => (tenancyId && rentalId
     ? q.or(`tenancy_id.eq.${tenancyId},rental_id.eq.${rentalId}`)
@@ -147,8 +169,13 @@ export async function loadDoorRecord(tenancyId, { rentalId = null } = {}, client
       tenancyId ? client.from('rent_records').select('*').eq('tenancy_id', tenancyId).order('reported_at', { ascending: true }) : none,
       tenancyId ? client.from('tenant_notices').select('*').eq('tenancy_id', tenancyId).order('posted_at', { ascending: true }) : none,
     ]);
+    const unreadable = [];
+    const part = (res, what) => {
+      if (res && res.error) { unreadable.push(what); return []; }
+      return (res && res.data) || [];
+    };
+    const requests = part(req, 'work orders');
     // Documentation hangs off the requests we can see.
-    const requests = req.data || [];
     let docs = [];
     if (requests.length) {
       // The list never carries a video's bytes (DR-0303 / 0264): has_video
@@ -156,15 +183,16 @@ export async function loadDoorRecord(tenancyId, { rentalId = null } = {}, client
       const d = await client.from('request_documentation')
         .select('id, instance_id, request_id, tenancy_id, rental_id, author_user_id, outcome, followup, note, image_data, has_video, created_at')
         .in('request_id', requests.map((r) => r.id)).order('created_at', { ascending: true });
-      docs = d.data || [];
+      docs = part(d, 'job documentation');
     }
     return ok({
       requests,
-      messages: msg.data || [],
-      notes: note.data || [],
-      rent: rent.data || [],
-      notices: ntc.data || [],
+      messages: part(msg, 'messages'),
+      notes: part(note, 'notes'),
+      rent: part(rent, 'payments'),
+      notices: part(ntc, 'notices'),
       docs,
+      unreadable,
     });
   } catch (e) { return no('unexpected', e); }
 }

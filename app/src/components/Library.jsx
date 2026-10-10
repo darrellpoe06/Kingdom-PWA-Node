@@ -117,9 +117,9 @@ function DownloadRow({ book }) {
   const btn = 'text-xs px-3 py-1.5 border font-semibold hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]';
   return (
     <div className="flex flex-wrap gap-2">
-      <button type="button" onClick={() => dl('epub')} className={btn} className="border-[#1A1815] text-[#1A1815]" >Download .epub</button>
-      <button type="button" onClick={() => dl('html')} className={btn} className="border-[#1A1815] text-[#1A1815]" >Download .html</button>
-      <button type="button" onClick={() => dl('md')} className={btn} className="border-[#1A1815] text-[#1A1815]" >Download .md</button>
+      <button type="button" onClick={() => dl('epub')} className={`${btn} border-[#1A1815] text-[#1A1815]`} >Download .epub</button>
+      <button type="button" onClick={() => dl('html')} className={`${btn} border-[#1A1815] text-[#1A1815]`} >Download .html</button>
+      <button type="button" onClick={() => dl('md')} className={`${btn} border-[#1A1815] text-[#1A1815]`} >Download .md</button>
     </div>
   );
 }
@@ -201,7 +201,7 @@ function Studio({ ctx, preview, setPreview, onSave, canPublish }) {
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {recipes.map((r) => (
-          <div key={r.id} className={card} className="border-[#E8E4DC]" >
+          <div key={r.id} className={`${card} border-[#E8E4DC]`} >
             <div className="font-semibold text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{r.title}</div>
             <div className="text-[0.6875rem] text-[#5A5751]" >{r.source} · {r.count} {r.count === 1 ? 'piece' : 'pieces'}</div>
             {r.available

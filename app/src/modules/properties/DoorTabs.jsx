@@ -69,7 +69,7 @@ const Card = ({ title, children, right }) => (
   <section className="bg-white border border-[#E8E4DC] p-3 sm:p-4 mb-3">
     {(title || right) && (
       <div className="flex items-baseline justify-between gap-3 mb-2">
-        {title && <h3 className="text-[0.625rem] uppercase tracking-[0.25em] font-semibold" style={{ color: ACCENT }}>{title}</h3>}
+        {title && <h3 className="text-[0.625rem] uppercase tracking-[0.25em] font-semibold text-[#2F5D50]">{title}</h3>}
         {right}
       </div>
     )}
@@ -94,7 +94,7 @@ function EventRow({ e }) {
   return (
     <li className="border-l-2 pl-3 py-1.5" style={{ borderColor: e.undated || e.ms === null ? '#E8E4DC' : ACCENT }}>
       <div className="flex flex-wrap items-baseline gap-x-2">
-        <span className="text-[0.625rem] uppercase tracking-wider font-semibold" style={{ color: ACCENT }}>
+        <span className="text-[0.625rem] uppercase tracking-wider font-semibold text-[#2F5D50]">
           {KIND_WORDS[e.kind] || e.kind}
         </span>
         <span className="text-[0.6875rem] text-[#6B665E]">{when(e.at)}</span>
@@ -191,7 +191,7 @@ export function TimelineTab({ tenancies = [], events = [], photos = [], docs = [
             <ul className="mt-2 space-y-1">
               {issues.map((d, i) => (
                 <li key={`disc-${d.period}-${d.kind}-${i}`} className="text-[0.8125rem] text-[#1A1815]">
-                  <span className="uppercase tracking-wider text-[0.625rem] font-semibold" style={{ color: ACCENT }}>{d.period}</span>
+                  <span className="uppercase tracking-wider text-[0.625rem] font-semibold text-[#2F5D50]">{d.period}</span>
                   {' '}{d.kind}{d.note ? ` — ${d.note}` : ''}
                 </li>
               ))}
@@ -479,6 +479,10 @@ export function DoorsBoard({
   // a tenancy actually holds.
   const activeByRef = useMemo(() => {
     const m = new Map();
+    // The door's current record: the active tenancy, or else the unit's own
+    // pending record (DR-0870), so a pick lands on the record its messages
+    // and work live on (2026-10-10, "Message Didn't save").
+    for (const t of tenancies) if (t.status === 'pending' && !m.has(t.rental_ref)) m.set(t.rental_ref, t);
     for (const t of tenancies) if (t.status === 'active') m.set(t.rental_ref, t);
     return m;
   }, [tenancies]);
@@ -505,7 +509,9 @@ export function DoorsBoard({
     return {
       rental: r,
       tenancy,
-      rented: Boolean(tenancy),
+      // An empty unit's own pending record (nobody named, DR-0870) is not a
+      // rental: the door stays Available / Advertised.
+      rented: Boolean(tenancy) && !(tenancy.status === 'pending' && !tenancy.tenant_name && !tenancy.tenant_user_id),
       comingSoon,
       daysOut,
       availableFrom: comingSoon ? tenancy.lease_end : null,
@@ -598,7 +604,7 @@ export function DoorsBoard({
                   <div className="text-[0.8125rem] text-[#1A1815] leading-snug">{x.label}</div>
                   {x.address && <div className="text-[0.6875rem] text-[#5A5751] leading-snug">{x.address}</div>}
                   <div className="text-[0.6875rem] mt-1">
-                    <span className="uppercase tracking-wider text-[0.5625rem] font-semibold" style={{ color: ACCENT }}>
+                    <span className="uppercase tracking-wider text-[0.5625rem] font-semibold text-[#2F5D50]">
                       {statusWord(x)}
                     </span>
                     {x.rent > 0 ? ` · $${x.rent.toFixed(0)}/mo` : ' · no rent on record'}
@@ -653,7 +659,7 @@ export function DoorsBoard({
                 <div className="text-[0.75rem] text-[#5A5751]">
                   {/* Rented or available, and the rent EITHER WAY — an occupied
                       door still tells you what these units go for. */}
-                  <span className="uppercase tracking-wider text-[0.625rem] font-semibold" style={{ color: ACCENT }}>
+                  <span className="uppercase tracking-wider text-[0.625rem] font-semibold text-[#2F5D50]">
                     {statusWord(x)}
                   </span>
                   {x.rent > 0 ? ` · $${x.rent.toFixed(0)}/mo` : ' · no rent on record'}
@@ -664,7 +670,7 @@ export function DoorsBoard({
                 <div className="text-[0.75rem] text-[#6B665E]">
                   {x.rented
                     ? (x.tenancy.tenant_name || 'Household not named in the record')
-                    : 'No tenancy on this door'}
+                    : x.tenancy ? 'Empty \u2014 its record keeps the work and messages' : 'No tenancy on this door'}
                 </div>
               </button>
 
@@ -774,7 +780,7 @@ function OurHomes({ rows = [], canManage = false, busy = false, onPick, onEditRe
                 <div className="text-[0.875rem] text-[#1A1815]">{x.label}</div>
                 {x.address && <div className="text-[0.75rem] text-[#5A5751]">{x.address}</div>}
                 <div className="text-[0.75rem] text-[#5A5751]">
-                  <span className="uppercase tracking-wider text-[0.625rem] font-semibold" style={{ color: ACCENT }}>
+                  <span className="uppercase tracking-wider text-[0.625rem] font-semibold text-[#2F5D50]">
                     {statusWord(x)}
                   </span>
                   {x.where ? ` · ${x.where}` : ''}

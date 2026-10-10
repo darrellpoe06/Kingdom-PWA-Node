@@ -19,6 +19,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   resolveFace, buildHistory, newestFirst, buildJobDoc, buildTenancyNote, changeSummary,
+  unseenByThisFace, unreadNote,
   DOC_FOLLOWUPS, FOLLOWUP_LABELS, CAPABILITY_LABELS, ROLE_CEILING,
   canPostToBooks, rentRecordToBookEntry, unpostedRent,
 } from './model.js';
@@ -26,14 +27,16 @@ import {
   claimPropertyAccess, loadMyDoors, loadMyGrants, loadMyHousehold, loadDoorRecord,
   fileWorkOrder, setWorkOrderStatus, assignWorkOrder, postMessage, postNote,
   postJobDoc, recordRent, confirmRent, markRentPosted, inviteToProperties, createTenancy, loadInvites, loadRecordEvents,
+  revokeInvite,
 } from './cloud.js';
+import { peopleOnDoor, whyNotReady, namesByUserId } from './people.js';
 import { MAINTENANCE_TRANSITIONS, PRIORITY, buildMaintenanceRequest } from '../../lib/tenant-portal.js';
 import { smsHref, telHref } from '../../lib/dispatch.js';
 import { workerRoster, someoneElse, dispatchText, dispatchRecord, myJobs, dispatchable } from './dispatch-roster.js';
 import { formatPhone } from '../../lib/member-contact.js';
 import { DoorCamerasTab, TenantCamerasTab } from './DoorCameras.jsx';
 import { setDoorCameraGrant } from './door-cameras.js';
-import { stageFromRecord, confirmDraft, tenancyRowFromDraft } from './staging.js';
+import { stageFromRecord, confirmDraft, tenancyRowFromDraft, vacantUnitRow } from './staging.js';
 import { availableDocuments, buildDocument } from './documents.js';
 import { TimelineTab, RoomsTab, DoorsBoard, GalleryTab, FilesTab } from './DoorTabs.jsx';
 import { SystemsTab } from './SystemsTab.jsx';
@@ -118,8 +121,7 @@ function DoorContext({ rental, tenancy, data = {}, open = [], onChange, onGo, ta
           <button
             type="button"
             onClick={onChange}
-            className="mt-1 text-[0.625rem] uppercase tracking-wider underline"
-            style={{ color: ACCENT }}
+            className="mt-1 text-[0.625rem] uppercase tracking-wider underline text-[#2F5D50] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
           >Pick a property</button>
         )}
       </div>
@@ -145,7 +147,14 @@ function DoorContext({ rental, tenancy, data = {}, open = [], onChange, onGo, ta
   const rent = Number(active?.monthly_rent) || Number(rental?.listed_rent) || Number(rental?.monthly_rent) || 0;
   const facts = [
     rental?.property_type ? String(rental.property_type).replace(/-/g, ' ') : null,
-    active ? `Rented \u2014 ${active.tenant_name || 'household not named'}` : (rental ? 'No tenancy on this door' : null),
+    // A 'pending' record with nobody named is the unit's own record, made so
+    // work and messages can be kept before anyone moves in (DR-0870). It is
+    // not a rental: saying "Rented" there told Darrell Apt 2 was taken
+    // (2026-10-10 screenshot) when nobody lives in it.
+    active && active.status === 'pending' && !active.tenant_name && !active.tenant_user_id
+      ? 'Empty \u2014 nobody living here yet'
+      : active && active.status === 'pending' ? `Moving in \u2014 ${active.tenant_name}`
+        : active ? `Rented \u2014 ${active.tenant_name || 'household not named'}` : (rental ? 'No tenancy on this door' : null),
     rent > 0 ? `$${rent.toFixed(0)}/mo` : 'no rent on record',
   ].filter(Boolean);
 
@@ -163,8 +172,7 @@ function DoorContext({ rental, tenancy, data = {}, open = [], onChange, onGo, ta
           <button
             type="button"
             onClick={onChange}
-            className="text-[0.625rem] uppercase tracking-wider underline shrink-0"
-            style={{ color: ACCENT }}
+            className="text-[0.625rem] uppercase tracking-wider underline shrink-0 text-[#2F5D50] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
           >Change property</button>
         )}
       </div>
@@ -209,7 +217,7 @@ const Card = ({ title, children, right }) => (
   <section className="bg-white border border-[#E8E4DC] p-3 sm:p-4 mb-3">
     {(title || right) && (
       <div className="flex items-baseline justify-between gap-3 mb-2">
-        {title && <h3 className="text-[0.625rem] uppercase tracking-[0.25em] font-semibold" style={{ color: ACCENT }}>{title}</h3>}
+        {title && <h3 className="text-[0.625rem] uppercase tracking-[0.25em] font-semibold text-[#2F5D50]">{title}</h3>}
         {right}
       </div>
     )}
@@ -362,10 +370,23 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
   // a door with nobody in it (DoorsBoard passes the tenancy id when one exists),
   // so it has NO tenancy. It used to fall back to doors[0] here, which would have
   // shown, and filed work against, some other door's tenant (DR-0897).
+  // A DOOR PICKED BY ITS PROPERTY IS ITS CURRENT RECORD (Darrell, 2026-10-10,
+  // after a message sent on Apt 2 "Didn't stay" / "Message Didn't save"). The
+  // message DID save — on the unit record the send created ('pending', nobody
+  // named; DR-0870). But the Doors board hands back the rentals id for any
+  // door without an ACTIVE tenancy, and this resolved that to "no tenancy", so
+  // the door came back without its record and its thread read empty. Now a
+  // property picked by its rentals id resolves to the tenancy on that door:
+  // the active one, else the pending one. Never another door's (the doors[0]
+  // fallback stays gone for a property pick).
   const activeDoor = useMemo(() => {
     const byId = doors.find((x) => x.id === activeId);
     if (byId) return byId;
-    if (activeId && rentals.some((r) => r.id === activeId)) return null;
+    const picked = activeId ? rentals.find((r) => r.id === activeId) : null;
+    if (picked) {
+      const onDoor = doors.filter((d) => picked.slug && d.rental_ref === picked.slug);
+      return onDoor.find((d) => d.status === 'active') || onDoor.find((d) => d.status === 'pending') || null;
+    }
     return doors[0] || null;
   }, [doors, activeId, rentals]);
 
@@ -479,9 +500,12 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
   // and outlives them. `record` empties when there is no active tenancy; the
   // notes must not empty with it, which is why they are spread in here rather
   // than loaded into `record`.
+  // Who said what, by name (DR-0871) — joined from the invite rows, which
+  // hold both the name and the user id once the person has signed in.
+  const speakerNames = useMemo(() => namesByUserId(invites), [invites]);
   const history = useMemo(
-    () => newestFirst(buildHistory({ ...record, propertyNotes: doorData.propertyNotes || [], changes })),
-    [record, doorData.propertyNotes, changes],
+    () => newestFirst(buildHistory({ ...record, propertyNotes: doorData.propertyNotes || [], changes, names: speakerNames })),
+    [record, doorData.propertyNotes, changes, speakerNames],
   );
   const openWork = useMemo(
     () => (record.requests || []).filter((r) => !['resolved', 'declined', 'cancelled'].includes(r.status)),
@@ -499,8 +523,45 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
   const say = (m) => { setNotice(m); setTimeout(() => setNotice(''), 6000); };
 
   // ---- actions -------------------------------------------------------------
+
+  // THE DOOR IN HAND, CREATED IF THE UNIT IS EMPTY (DR-0870). Work orders,
+  // invitations, messages and rent all hang off a tenancy row, and a vacant
+  // unit has none — which is why Darrell's "Add a microwave and cabinet with
+  // exhaust fan" could not be filed and his invitation could not be written on
+  // 2026-10-10. A landlord working on an empty unit is not an edge case, it is
+  // the normal case, so the unit record is made on demand and he is told it
+  // happened. See staging.js vacantUnitRow for the full trace.
+  const ensureDoor = useCallback(async () => {
+    if (activeDoor) return { ok: true, door: activeDoor, created: false };
+    // THE FAMILY'S OWN HOME NEVER GETS A TENANCY (0156 / homes.js). Caught by
+    // a peer session reviewing this change, and it is a real hole: isOwnHome
+    // already guards offering and listing a home (two call sites below), and
+    // this new path had no such guard. Filing work on the house the family
+    // LIVES IN would have minted a placeholder tenancy row for it — putting
+    // their own home in the tenancy table, where every rent roll, door list
+    // and tenancy report would then count it as a rental. A home is not a
+    // door, and the refusal it already has is the right answer here too.
+    if (isOwnHome(activeRental)) return { ok: false, reason: 'own-home' };
+    const instanceId = activeRental?.instance_id || null;
+    const built = vacantUnitRow({ instanceId, rental: activeRental });
+    if (!built.ok) return { ok: false, reason: built.reason };
+    const res = await createTenancy(built.row);
+    if (!res.ok) return { ok: false, reason: res.reason };
+    setDoors((prev) => [...prev, res.row]);
+    setActiveId(res.row.id);
+    return { ok: true, door: res.row, created: true };
+  }, [activeDoor, activeRental]);
+
+  const WHY_NO_DOOR = {
+    'no-instance': 'This property is not attached to an instance yet, so there is nowhere to file it.',
+    'no-door': 'Pick one of your properties first.',
+    'own-home': 'This is your own home, not a rental door — it is kept out of tenancies, rent and the doors board on purpose.',
+  };
+
   const submitWorkOrder = async (form) => {
-    if (!workDoor) return;
+    // Never a silent return: a dead control that says nothing is the
+    // defect Darrell met on this very tab (DR-0870).
+    if (!workDoor) { say(WHY_NO_DOOR['no-door']); return; }
     const built = buildMaintenanceRequest({ ...form, tenancyId: workDoor.tenancyId, byRole: role });
     const res = await fileWorkOrder({
       instance_id: workDoor.instanceId, tenancy_id: workDoor.tenancyId, rental_id: workDoor.rentalId,
@@ -508,9 +569,18 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
       title: built.title || form.title, detail: built.detail || form.detail || null,
       area: form.area || null, priority: built.priority || 'normal', status: 'submitted',
     });
-    // A picture filed with the report rides as the job's first documentation.
-    if (res.ok && form.picture && res.row && res.row.id) await attachPicture(res.row.id, form.picture, '');
-    say(res.ok ? `Work order filed${form.picture ? ' with its picture' : ''}.` : `Could not file it: ${res.reason}`);
+    // No placeholder tenancy is minted any more: 0260 lets the row name the
+    // DOOR, so a vacant unit files directly (DR-0897 superseding DR-0870's
+    // app-side workaround for this path). A picture filed with the report
+    // rides as the job's first documentation.
+    // Several pictures at once (Darrell: "Multiple photo upload options"):
+    // each is its own documentation row, in the order chosen.
+    const pics = form.pictures || [];
+    let saved = 0;
+    if (res.ok && res.row && res.row.id) {
+      for (const f of pics) { const a = await attachPicture(res.row.id, f, ''); if (a && a.ok) saved += 1; }
+    }
+    say(res.ok ? `Work order filed${saved ? ` with ${saved} picture${saved === 1 ? '' : 's'}` : ''}.` : `Could not file it: ${res.reason}`);
     refresh();
   };
 
@@ -575,18 +645,27 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
     refresh();
   };
 
+  // EVERY MESSAGE LANDS IN THE TIMELINE (DR-0871). buildHistory already folds
+  // tenant_messages into the door's history (model.js:254) — but this returned
+  // silently when the unit had no tenancy row, so on a vacant door the message
+  // was never written and the history had nothing to fold. Darrell, 2026-10-10:
+  // "Messages... don't work appropriately... we need to be able to make sure
+  // every text is in the historical timeline."
   const sendMessage = async (body) => {
-    if (!activeDoor || !body.trim()) return;
+    if (!body.trim()) return;
+    const d = await ensureDoor();
+    if (!d.ok) { say(WHY_NO_DOOR[d.reason] || `Not sent: ${d.reason}`); return; }
     const res = await postMessage({
-      instanceId: activeDoor.instance_id, tenancyId: activeDoor.id, body: body.trim(),
+      instanceId: d.door.instance_id, tenancyId: d.door.id, body: body.trim(),
       fromRole: role === 'owner' ? 'landlord' : role === 'field_worker' ? 'worker' : role,
     });
-    say(res.ok ? 'Sent.' : `Not sent: ${res.reason}`);
+    say(res.ok ? 'Sent, and on the record.' : `Not sent: ${res.reason}`);
     refresh();
   };
 
   const addNote = async (body) => {
-    if (!workDoor || !body.trim()) return;
+    if (!body.trim()) return;
+    if (!workDoor) { say(WHY_NO_DOOR['no-door']); return; }
     const res = await postNote(buildTenancyNote({
       instanceId: workDoor.instanceId, tenancyId: workDoor.tenancyId, rentalId: workDoor.rentalId, authorRole: role, body,
     }));
@@ -779,8 +858,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
           <button
             type="button"
             onClick={boot}
-            className="mt-2 text-[0.625rem] uppercase tracking-wider underline focus:outline focus:outline-2 focus:outline-[#2F5D50]"
-            style={{ color: ACCENT }}
+            className="mt-2 text-[0.625rem] uppercase tracking-wider underline focus:outline focus:outline-2 focus:outline-[#2F5D50] text-[#2F5D50]"
           >Try again</button>
         </div>
       </div>
@@ -793,10 +871,10 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
 
   return (
     <div className="p-1">
-      {notice && <div className="mb-2 px-3 py-2 border text-xs" style={{ ...serif, borderColor: ACCENT, color: ACCENT }} role="status">{notice}</div>}
+      {notice && <div className="mb-2 px-3 py-2 border text-xs text-[#2F5D50]" style={{ ...serif, borderColor: ACCENT }} role="status">{notice}</div>}
 
       <div className="flex flex-wrap items-center gap-2 mb-3">
-        <span className="text-[0.625rem] uppercase tracking-[0.25em] font-semibold" style={{ color: ACCENT }}>{face.label}</span>
+        <span className="text-[0.625rem] uppercase tracking-[0.25em] font-semibold text-[#2F5D50]">{face.label}</span>
         {doors.length > 1 ? (
           <select
             value={activeDoor?.id || ''} onChange={(e) => { setActiveId(e.target.value); setTab(''); }}
@@ -988,7 +1066,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
             return (
               <>
               <WorkTab
-                door={workDoor} requests={record.requests} open={openWork} docs={record.docs} role={role}
+                door={workDoor} place={workDoor} requests={record.requests} open={openWork} docs={record.docs} role={role}
                 mine={role === 'field_worker' ? myJobs(openWork, { userId: me, label: myLabel }) : null}
                 workers={workers}
                 canFile={role !== 'field_worker' || Boolean(workDoor && workDoor.rentalId)} canManage={role === 'owner' || role === 'manager'}
@@ -999,7 +1077,11 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
                   refresh();
                 }}
                 onDocument={documentJob}
-                onPicture={async (id, file, note) => { const r = await attachPicture(id, file, note); if (r.ok) { say('Picture added to the job.'); refresh(); } }}
+                onPicture={async (id, files, note) => {
+                  let n = 0;
+                  for (const f of [].concat(files || [])) { const r = await attachPicture(id, f, note); if (r && r.ok) n += 1; }
+                  if (n) { say(`${n} picture${n === 1 ? '' : 's'} added to the job.`); refresh(); }
+                }}
                 onVideo={async (id, file, note) => { const r = await attachVideo(id, file, note); if (r.ok) { say('Video added to the job.'); refresh(); } }}
                 onProof={async (id, proof) => { const r = await setWorkOrderProof(id, proof); say(r.ok ? 'Proof requirement saved.' : `Not saved: ${r.reason}`); refresh(); }}
               />
@@ -1013,9 +1095,11 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
           case 'dispatch':
             return <DispatchTab door={activeDoor} rental={activeRental} open={openWork} workers={workers} onDispatch={dispatchJob} />;
           case 'thread':
-            return <ThreadTab messages={record.messages} onSend={sendMessage} />;
+            return <ThreadTab messages={record.messages} names={speakerNames} onSend={sendMessage}
+              unread={unreadNote(record.unreadable)} />;
           case 'history':
-            return <HistoryTab history={history} onNote={addNote} />;
+            return <HistoryTab history={history} onNote={addNote}
+              unread={unreadNote(record.unreadable)} unseen={unseenByThisFace(role, grants)} />;
           case 'rent':
             return (
               <RentTab
@@ -1059,13 +1143,40 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
             // THE CAMERAS AT THIS DOOR (DR-0841): the landlord shares, the
             // household watches, on a grant the NAS minted for this door.
             return (role === 'owner' || role === 'manager')
-              ? <DoorCamerasTab door={activeDoor} onChange={async (patch) => { const w = await setDoorCameraGrant(activeDoor.id, patch); if (w.ok) { boot(); refresh(); } return w; }} />
+              ? <DoorCamerasTab door={activeDoor} place={activeDoor || activeRental} onChange={async (patch) => {
+                  // The porch camera of a vacant unit is still shareable — make
+                  // the unit record first if it is missing (DR-0870).
+                  const d = await ensureDoor();
+                  if (!d.ok) return { ok: false, reason: WHY_NO_DOOR[d.reason] || d.reason };
+                  const w = await setDoorCameraGrant(d.door.id, patch);
+                  if (w.ok) { boot(); refresh(); }
+                  return w;
+                }} />
               : <TenantCamerasTab door={activeDoor} renderCameras={renderCameras} />;
           case 'people':
-            return <PeopleTab door={activeDoor} onInvite={async (payload) => {
-              const res = await inviteToProperties({ instanceId: activeDoor.instance_id, ...payload });
-              say(res.ok ? `Invitation written for ${payload.email}. They get access the moment they sign in to that address.` : `Not written: ${res.reason}`);
-            }} />;
+            return <PeopleTab door={activeDoor} place={activeDoor || activeRental} invites={invites}
+              onInvite={async (payload) => {
+                // A vacant unit can have a 1099 worker on it long before it has
+                // a tenant — make the unit record if it is missing (DR-0870).
+                const d = await ensureDoor();
+                if (!d.ok) { say(WHY_NO_DOOR[d.reason] || `Not written: ${d.reason}`); return; }
+                const res = await inviteToProperties({
+                  ...payload, instanceId: d.door.instance_id,
+                  tenancyId: d.door.id, scopeRef: d.door.rental_ref,
+                });
+                // Name the PERSON, and the contact they were actually invited
+                // by. This said "Invitation written for ." on every phone
+                // invite — payload.email is empty on that path.
+                const who = payload.displayName || payload.email || formatPhone(payload.phone) || 'them';
+                const howIn = payload.phone ? 'with that cell number' : `to ${payload.email}`;
+                say(res.ok ? `${who} is on this door. They get access the moment they sign in ${howIn}.` : `Not written: ${res.reason}`);
+                if (res.ok) refresh();
+              }}
+              onRevoke={async (person) => {
+                const res = await revokeInvite(person.id);
+                say(res.ok ? `${person.name} no longer has access to this door.` : `Not removed: ${res.reason}`);
+                if (res.ok) refresh();
+              }} />;
           default:
             return null;
         }
@@ -1189,8 +1300,8 @@ function SignInInvite({ onSignIn }) {
       <button
         type="button"
         onClick={onSignIn}
-        className="mt-2 text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border bg-white"
-        style={{ borderColor: ACCENT, color: ACCENT }}
+        className="mt-2 text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border bg-white text-[#2F5D50]"
+        style={{ borderColor: ACCENT }}
       >Sign in or create an account</button>
     </div>
   );
@@ -1305,11 +1416,12 @@ function ProofSetting({ request, onProof }) {
   );
 }
 
-function WorkTab({ door, requests, open, docs, role, canFile, canManage, onFile, onStatus, onAssign, onDocument, onPicture, onVideo, onProof, workers = [], mine = null }) {
+function WorkTab({ door, place, requests, open, docs, role, canFile, canManage, onFile, onStatus, onAssign, onDocument, onPicture, onVideo, onProof, workers = [], mine = null }) {
   const [title, setTitle] = useState('');
   const [detail, setDetail] = useState('');
   const [priority, setPriority] = useState('normal');
-  const [picture, setPicture] = useState(null);
+  const [pictures, setPictures] = useState([]);
+  const addPics = (e) => { const fs = Array.from((e.target.files) || []); if (fs.length) setPictures((p) => [...p, ...fs]); e.target.value = ''; };
   const docsFor = (id) => (docs || []).filter((d) => d.request_id === id);
   // A worker sees THEIR jobs on this door (assigned by user id or by the name
   // they were invited under), and is told how many others exist unassigned.
@@ -1329,15 +1441,31 @@ function WorkTab({ door, requests, open, docs, role, canFile, canManage, onFile,
               {PRIORITY.map((p) => <option key={p} value={p}>{p}</option>)}
             </select>
             <label className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#E8E4DC] bg-white text-[#1A1815] cursor-pointer inline-flex items-center">
-              {picture ? `Picture: ${picture.name}` : 'Add a picture'}
-              <input type="file" accept="image/*" capture="environment" className="sr-only" aria-label="Add a picture to this report"
-                onChange={(e) => setPicture((e.target.files && e.target.files[0]) || null)} />
+              Take a picture
+              <input type="file" accept="image/*" capture="environment" className="sr-only" aria-label="Add a picture to this report" onChange={addPics} />
             </label>
-            <Btn tone="primary" disabled={!title.trim() || !door}
-              onClick={() => { onFile({ title, detail, priority, picture }); setTitle(''); setDetail(''); setPriority('normal'); setPicture(null); }}>
+            <label className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#E8E4DC] bg-white text-[#1A1815] cursor-pointer inline-flex items-center">
+              Choose pictures
+              <input type="file" accept="image/*" multiple className="sr-only" aria-label="Choose pictures for this report" onChange={addPics} />
+            </label>
+            {pictures.length > 0 && (
+              <span className="text-xs text-[#5A5751]" style={serif} data-testid="report-pictures">
+                {pictures.length} picture{pictures.length === 1 ? '' : 's'} ready
+                <button type="button" className="ml-1 underline focus:outline focus:outline-2 focus:outline-[#2F5D50]" onClick={() => setPictures([])}>clear</button>
+              </span>
+            )}
+            <Btn tone="primary" disabled={!title.trim() || !(door || place)}
+              onClick={() => { onFile({ title, detail, priority, pictures }); setTitle(''); setDetail(''); setPriority('normal'); setPictures([]); }}>
               File it
             </Btn>
           </div>
+          {/* A dead button that does not say why is the defect Darrell met on
+              2026-10-10 — a filled-in work order and nothing happening. */}
+          {(!title.trim() || !place) && (
+            <p className="text-xs text-[#8A6510] mt-2" style={serif} data-testid="file-blocked">
+              {!place ? 'Pick one of your properties first.' : 'Say what is wrong, and this will send.'}
+            </p>
+          )}
         </Card>
       )}
       <Card title={mine ? `My jobs (${list.length})` : `Open (${list.length})`}>
@@ -1371,16 +1499,23 @@ function WorkTab({ door, requests, open, docs, role, canFile, canManage, onFile,
               </div>
             ))}
             {onPicture && (
-              <label className="inline-flex mt-1 text-[0.625rem] uppercase tracking-wider px-2 py-1 border border-[#E8E4DC] bg-white text-[#1A1815] cursor-pointer">
-                Add a picture to this job
-                <input type="file" accept="image/*" capture="environment" className="sr-only" aria-label={`Add a picture to ${r.title}`}
-                  onChange={(e) => { const f = e.target.files && e.target.files[0]; if (f) onPicture(r.id, f, ''); e.target.value = ''; }} />
-              </label>
+              <>
+                <label className="inline-flex mt-1 text-[0.625rem] uppercase tracking-wider px-2 py-1 border border-[#E8E4DC] bg-white text-[#1A1815] cursor-pointer">
+                  Take a picture
+                  <input type="file" accept="image/*" capture="environment" className="sr-only" aria-label={`Add a picture to ${r.title}`}
+                    onChange={(e) => { const f = e.target.files && e.target.files[0]; if (f) onPicture(r.id, [f], ''); e.target.value = ''; }} />
+                </label>
+                <label className="inline-flex mt-1 ml-1 text-[0.625rem] uppercase tracking-wider px-2 py-1 border border-[#E8E4DC] bg-white text-[#1A1815] cursor-pointer">
+                  Choose pictures
+                  <input type="file" accept="image/*" multiple className="sr-only" aria-label={`Choose pictures for ${r.title}`}
+                    onChange={(e) => { const fs = Array.from(e.target.files || []); if (fs.length) onPicture(r.id, fs, ''); e.target.value = ''; }} />
+                </label>
+              </>
             )}
             {onVideo && (
               <label className="inline-flex mt-1 ml-1 text-[0.625rem] uppercase tracking-wider px-2 py-1 border border-[#E8E4DC] bg-white text-[#1A1815] cursor-pointer">
                 Add a video
-                <input type="file" accept="video/*" capture="environment" className="sr-only" aria-label={`Add a video to ${r.title}`}
+                <input type="file" accept="video/*" className="sr-only" aria-label={`Add a video to ${r.title}`}
                   onChange={(e) => { const f = e.target.files && e.target.files[0]; if (f) onVideo(r.id, f, ''); e.target.value = ''; }} />
               </label>
             )}
@@ -1490,7 +1625,7 @@ function DispatchTab({ door, rental, open, workers = [], onDispatch }) {
         </div>
         <p className="text-xs text-[#5A5751] mt-2" style={serif}>
           The text opens in your own messaging app with the job already written; you press send. The moment you tap Text it,
-          the work order is assigned to them, marked scheduled, and a note goes on this door\u2019s record naming who was sent.
+          the work order is assigned to them, marked scheduled, and a note goes on this door’s record naming who was sent.
         </p>
       </Card>
       <Card title={`Jobs to send (${jobs.length})`}>
@@ -1516,14 +1651,17 @@ function DispatchTab({ door, rental, open, workers = [], onDispatch }) {
   );
 }
 
-function ThreadTab({ messages, onSend }) {
+function ThreadTab({ messages, names = null, onSend, unread = null }) {
   const [body, setBody] = useState('');
   return (
     <Card title="Messages">
+      {unread && <p className="text-xs text-[#9B2C1E] mb-2" style={serif} data-testid="thread-unread">{unread}</p>}
       <div className="max-h-80 overflow-y-auto mb-2">
         {messages.length === 0 ? <Empty>No messages yet.</Empty> : messages.map((m) => (
           <div key={m.id} className="border-b border-[#F0EDE6] py-2">
-            <div className="text-[0.625rem] uppercase tracking-wider text-[#8A867E]">{m.from_role} · {when(m.sent_at)}</div>
+            <div className="text-[0.625rem] uppercase tracking-wider text-[#8A867E]">
+              {(names && m.sender_user_id && names.get(m.sender_user_id)) || m.from_role} · {when(m.sent_at)}
+            </div>
             <div className="text-sm text-[#1A1815]" style={serif}>{m.body}</div>
           </div>
         ))}
@@ -1535,10 +1673,24 @@ function ThreadTab({ messages, onSend }) {
   );
 }
 
-function HistoryTab({ history, onNote }) {
+function HistoryTab({ history, onNote, unread = null, unseen = [] }) {
   const [body, setBody] = useState('');
   return (
     <>
+      {/* HISTORICAL ACCURACY (DR-0876). This panel says "Everything that has
+          happened on this door". When something could not be READ, or this
+          face is not PERMITTED to see part of it, the panel says that too —
+          otherwise an absence the app created reads as an absence of events,
+          and a worker deduces from it. */}
+      {unread && (
+        <p className="text-xs text-[#9B2C1E] mb-2" style={serif} data-testid="history-unread">{unread}</p>
+      )}
+      {unseen.length > 0 && (
+        <div className="text-xs text-[#5A5751] mb-2" style={serif} data-testid="history-unseen">
+          <div className="text-[0.625rem] uppercase tracking-wider text-[#8A867E]">What this history does not include</div>
+          {unseen.map((line) => <div key={line}>· {line}</div>)}
+        </div>
+      )}
       <Card title="Add to the record">
         <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={2} placeholder="A note anyone on this door can read later" aria-label="Add a note"
           className="w-full text-sm border border-[#E8E4DC] px-2 py-2 mb-2" style={serif} />
@@ -1597,12 +1749,18 @@ function RentTab({ rent, door, role, face, onReport, onConfirm, onPost, booksAva
   );
 }
 
-function PeopleTab({ door, onInvite }) {
+function PeopleTab({ door, place, invites = [], onInvite, onRevoke }) {
   // Email OR cell phone (Darrell, 2026-08-26). Many tenants and 1099 workers
   // have no email at all — that is the whole premise of the phone+PIN door
   // (DR-0172), and an invite that only accepts email locks those people out of
   // their own place.
+  //
+  // And a NAME (Darrell, 2026-10-10: "Names?!!!!"). The column, the writer and
+  // the Dispatch roster all carried display_name; this form never asked for it,
+  // so everyone invited from inside the door became a phone number for good.
+  // See people.js for the full trace (DR-0869).
   const [by, setBy] = useState('phone');
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [roleLabel, setRoleLabel] = useState('tenant');
@@ -1610,15 +1768,51 @@ function PeopleTab({ door, onInvite }) {
   const ceiling = ROLE_CEILING[roleLabel] || [];
   const toggle = (c) => setCaps((prev) => (prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]));
   const identified = by === 'phone' ? !!phoneLoginEmail(phone) : email.includes('@');
+  const blocked = whyNotReady({ name, identified, by, door: !!place });
+  const { people, removed } = useMemo(
+    () => peopleOnDoor(invites, { instanceId: door?.instance_id || null, tenancyId: door?.id || null, scopeRef: door?.rental_ref || null }),
+    [invites, door],
+  );
   // The invitation still has to REACH them. No gateway sends it (DR-0313): the
   // landlord's own messaging app does, with the door link already written.
   const inviteText = `You've been added to ${door?.property_label || 'your place'} on Poe Properties. Open ${POE_PROPERTIES.shareUrl} and sign in with this number to see your unit, report anything broken, and message us.`;
   return (
+    <>
+    <Card title={`On this door (${people.length})`}>
+      {people.length === 0 ? (
+        <Empty>Nobody has been invited to this door yet. Add the first person below — a tenant, their family, a 1099 worker, or a manager.</Empty>
+      ) : people.map((p) => (
+        <div key={p.key} className="border-b border-[#F0EDE6] py-2" data-testid="door-person">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <span className="text-sm text-[#1A1815]" style={serif}>{p.name}</span>
+            <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">
+              {p.roleName} · {p.joined ? `signed in ${when(p.joinedAt)}` : 'has not signed in yet'}
+            </span>
+          </div>
+          <div className="text-xs text-[#5A5751]" style={serif}>
+            {p.contact.label ? (p.contact.kind === 'phone' ? <a href={telHref(p.contact.phone)} className="underline">{p.contact.label}</a> : p.contact.label) : 'No way to reach them on file'}
+            {p.everywhere ? ' · every door' : ''}
+            {p.grants.length > 0 ? ` · ${p.grants.join(' · ')}` : ''}
+          </div>
+          {onRevoke && (
+            <Btn onClick={() => onRevoke(p)}>Take away access</Btn>
+          )}
+        </div>
+      ))}
+      {removed.length > 0 && (
+        <p className="text-[0.625rem] text-[#8A867E] mt-2" data-testid="door-people-removed">
+          Access removed: {removed.map((p) => p.name).join(', ')}.
+        </p>
+      )}
+    </Card>
     <Card title="Invite someone to this door">
       <div className="flex gap-1 mb-2">
         <Btn tone={by === 'phone' ? 'primary' : 'ghost'} onClick={() => setBy('phone')}>By cell phone</Btn>
         <Btn tone={by === 'email' ? 'primary' : 'ghost'} onClick={() => setBy('email')}>By email</Btn>
       </div>
+      <input value={name} onChange={(e) => setName(e.target.value)} type="text" placeholder="Their name" aria-label="Their name"
+        data-testid="invite-name"
+        className="w-full text-sm border border-[#E8E4DC] px-2 py-2 mb-2" style={serif} />
       {by === 'phone' ? (
         <>
           <input value={phone} onChange={(e) => setPhone(e.target.value)} type="tel" inputMode="tel" placeholder="(555) 555-5555" aria-label="Their cell phone"
@@ -1649,10 +1843,10 @@ function PeopleTab({ door, onInvite }) {
         </div>
       )}
       <div className="flex flex-wrap items-center gap-2">
-        <Btn tone="primary" disabled={!identified || !door}
+        <Btn tone="primary" disabled={!!blocked}
           onClick={() => {
-            onInvite({ email: by === 'email' ? email : '', phone: by === 'phone' ? phone : '', roleLabel, tenancyId: door.id, scopeRef: door.rental_ref, capabilities: caps });
-            setEmail(''); setPhone(''); setCaps([]);
+            onInvite({ email: by === 'email' ? email : '', phone: by === 'phone' ? phone : '', roleLabel, capabilities: caps, displayName: name.trim() });
+            setName(''); setEmail(''); setPhone(''); setCaps([]);
           }}>
           Write the invitation
         </Btn>
@@ -1663,10 +1857,15 @@ function PeopleTab({ door, onInvite }) {
           >Text them the link</a>
         )}
       </div>
+      {/* A greyed-out button that does not say why is the defect Darrell met.
+          The reason is always on screen when the button cannot be pressed. */}
+      {blocked && <p className="text-xs text-[#8A6510] mt-2" style={serif} data-testid="invite-blocked">{blocked}</p>}
       <p className="text-xs text-[#5A5751] mt-2" style={serif}>
-        The invitation grants nothing by itself. They get exactly what is checked here, only after they sign in to that same email address — and you can revoke any of it at any time.
+        The invitation grants nothing by itself. They get exactly what is checked here, only after they sign in
+        {by === 'phone' ? ' with that same cell number' : ' to that same email address'} — and you can take it away at any time.
       </p>
     </Card>
+    </>
   );
 }
 
@@ -1683,7 +1882,7 @@ function PlanTab() {
           <div key={p.id} className="border-b border-[#F0EDE6] py-2">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
               <span className="text-sm text-[#1A1815]" style={serif}>{p.id} · {p.title}</span>
-              <span className="text-[0.625rem] uppercase tracking-wider" style={{ color: p.state === 'built' ? ACCENT : '#8A867E' }}>{STATE_LABEL[p.state]}</span>
+              <span className={`text-[0.625rem] uppercase tracking-wider ${p.state === 'built' ? 'text-[#2F5D50]' : 'text-[#8A867E]'}`}>{STATE_LABEL[p.state]}</span>
             </div>
             <div className="text-xs text-[#5A5751]" style={serif}>{p.detail}</div>
             <div className="text-[0.625rem] text-[#8A867E]">
@@ -1776,3 +1975,8 @@ function DocumentsTab({ door, tenancy, rentalId = null, onFiled }) {
     </>
   );
 }
+
+// Exported for the door-roster tests (the-people-on-a-door-have-names): the
+// People tab is where a 1099 worker gets a name, and the name is the thing
+// that was missing. Test-only export; nothing in the app imports it.
+export { PeopleTab as __PeopleTab };
