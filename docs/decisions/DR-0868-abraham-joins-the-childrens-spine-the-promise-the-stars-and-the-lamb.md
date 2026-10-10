@@ -14,6 +14,20 @@ Darrell, 2026-10-10: *"Abc's 123'.... etc... Genesis - Revelation... Adam and Ev
 
 Adam and Eve, then Noah, now Abraham. Third station.
 
+## What was measured
+
+Before this: Little Learners carried **8** lessons. The Genesis-to-Revelation spine Darrell named had two of its stations written — lil7 (Adam and Eve) and lil8 (Noah) — and stopped at the flood.
+
+The read-aloud band was measured three times while being written, against the live gate rather than by eye:
+
+| pass | grade | ceiling | verdict |
+| --- | --- | --- | --- |
+| first draft | 2.35 | 2.0 | over |
+| after one simplification | 2.05 | 2.0 | still over |
+| after the second | **1.90** | 2.0 | inside |
+
+Only my own sentences were shortened. Quotations are excluded from the measure by `ourProseOnly`, so there was never a reason — or a way — to touch a word of Scripture to reach the number.
+
 ## The decision
 
 **lil9 — Abraham: the promise, the stars, and the lamb Yahweh provided.** Five bands, hand-written, in the order the text gives them:
