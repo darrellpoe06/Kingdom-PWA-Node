@@ -41,7 +41,7 @@ const Card = ({ title, children, right }) => (
   <section className="bg-white border border-[#E8E4DC] p-3 sm:p-4 mb-3">
     {(title || right) && (
       <div className="flex items-baseline justify-between gap-3 mb-2">
-        {title && <h3 className="text-[0.625rem] uppercase tracking-[0.25em] font-semibold" style={{ color: ACCENT }}>{title}</h3>}
+        {title && <h3 className="text-[0.625rem] uppercase tracking-[0.25em] font-semibold text-[#2F5D50]">{title}</h3>}
         {right}
       </div>
     )}
@@ -221,7 +221,7 @@ export function SystemsTab({
                         {sortEvents(r.events).map((e) => (
                           <li key={e.id || `${e.event_date}-${e.summary}`} className="py-1.5">
                             <div className="flex flex-wrap items-baseline gap-x-2">
-                              <span className="text-[0.625rem] uppercase tracking-wider font-semibold" style={{ color: ACCENT }}>
+                              <span className="text-[0.625rem] uppercase tracking-wider font-semibold text-[#2F5D50]">
                                 {EVENT_LABEL[e.kind] || e.kind}
                               </span>
                               <span className="text-[0.6875rem] text-[#6B665E]">{e.event_date}</span>

@@ -14,7 +14,6 @@ import { bridgeToken } from '../../lib/nas-photos.js';
 import { doorGrantName, suggestDoorCameras, grantNote, grantIdOf, doorCameraState } from './door-cameras.js';
 
 const serif = { fontFamily: '"Fraunces", serif' };
-const ACCENT = '#2F5D50';
 const btn = 'text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border focus:outline focus:outline-2 focus:outline-[#2F5D50] disabled:opacity-40';
 
 export function DoorCamerasTab({ door, onChange }) {
@@ -65,7 +64,7 @@ export function DoorCamerasTab({ door, onChange }) {
 
   return (
     <section className="bg-white border border-[#E8E4DC] p-3 sm:p-4 mb-3" data-testid="door-cameras-landlord">
-      <h3 className="text-[0.625rem] uppercase tracking-[0.25em] font-semibold" style={{ color: ACCENT }}>Cameras this door&rsquo;s household may watch</h3>
+      <h3 className="text-[0.625rem] uppercase tracking-[0.25em] font-semibold text-[#2F5D50]">Cameras this door&rsquo;s household may watch</h3>
       {shared.state === 'shared' ? (
         <p className="text-xs mt-1 text-[#1A1815]" style={serif} data-testid="door-cameras-shared">Shared now: {shared.note || 'a grant with no note'}.
           <button type="button" onClick={takeBack} disabled={busy} className={`${btn} ml-2 bg-white border-[#B85838] text-[#B85838]`} data-testid="door-cameras-take-back">Take back</button>
@@ -102,7 +101,7 @@ export function DoorCamerasTab({ door, onChange }) {
           </div>
         </>
       )}
-      {msg ? <p className="text-xs mt-2" style={{ ...serif, color: ACCENT }} role="status" data-testid="door-cameras-msg">{msg}</p> : null}
+      {msg ? <p className="text-xs mt-2" style={serif} className="text-[#2F5D50]" role="status" data-testid="door-cameras-msg">{msg}</p> : null}
     </section>
   );
 }
@@ -113,7 +112,7 @@ export function TenantCamerasTab({ door, renderCameras = null }) {
   if (shared.state !== 'shared') {
     return (
       <section className="bg-white border border-[#E8E4DC] p-3 sm:p-4 mb-3" data-testid="door-cameras-tenant">
-        <h3 className="text-[0.625rem] uppercase tracking-[0.25em] font-semibold" style={{ color: ACCENT }}>Cameras</h3>
+        <h3 className="text-[0.625rem] uppercase tracking-[0.25em] font-semibold text-[#2F5D50]">Cameras</h3>
         <p className="text-xs mt-1 text-[#5A5751]" style={serif}>Your landlord has not shared any camera with this door yet. When they do, the porch, the hallway or the lot shows here, live.</p>
       </section>
     );
@@ -121,7 +120,7 @@ export function TenantCamerasTab({ door, renderCameras = null }) {
   const origin = typeof window !== 'undefined' && window.location ? window.location.origin : '';
   return (
     <section className="bg-white border border-[#E8E4DC] p-3 sm:p-4 mb-3" data-testid="door-cameras-tenant">
-      <h3 className="text-[0.625rem] uppercase tracking-[0.25em] font-semibold" style={{ color: ACCENT }}>Cameras at this door</h3>
+      <h3 className="text-[0.625rem] uppercase tracking-[0.25em] font-semibold text-[#2F5D50]">Cameras at this door</h3>
       <p className="text-xs mt-1 text-[#5A5751]" style={serif} data-testid="door-cameras-tenant-note">Shared with this door: {shared.note || 'the cameras your landlord chose'}.</p>
       {renderCameras ? <div className="mt-2" data-testid="door-cameras-surface">{renderCameras(shared.token)}</div> : (
         <a href={grantLink(shared.token, origin)} className={`${btn} inline-block mt-2 bg-[#2F5D50] text-white border-[#2F5D50]`} data-testid="door-cameras-open">Open the cameras</a>

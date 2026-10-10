@@ -110,8 +110,7 @@ function DoorContext({ rental, tenancy, data = {}, open = [], onChange, onGo, ta
           <button
             type="button"
             onClick={onChange}
-            className="mt-1 text-[0.625rem] uppercase tracking-wider underline"
-            style={{ color: ACCENT }}
+            className="mt-1 text-[0.625rem] uppercase tracking-wider underline text-[#2F5D50] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
           >Pick a property</button>
         )}
       </div>
@@ -155,8 +154,7 @@ function DoorContext({ rental, tenancy, data = {}, open = [], onChange, onGo, ta
           <button
             type="button"
             onClick={onChange}
-            className="text-[0.625rem] uppercase tracking-wider underline shrink-0"
-            style={{ color: ACCENT }}
+            className="text-[0.625rem] uppercase tracking-wider underline shrink-0 text-[#2F5D50] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
           >Change property</button>
         )}
       </div>
@@ -201,7 +199,7 @@ const Card = ({ title, children, right }) => (
   <section className="bg-white border border-[#E8E4DC] p-3 sm:p-4 mb-3">
     {(title || right) && (
       <div className="flex items-baseline justify-between gap-3 mb-2">
-        {title && <h3 className="text-[0.625rem] uppercase tracking-[0.25em] font-semibold" style={{ color: ACCENT }}>{title}</h3>}
+        {title && <h3 className="text-[0.625rem] uppercase tracking-[0.25em] font-semibold text-[#2F5D50]">{title}</h3>}
         {right}
       </div>
     )}
@@ -698,8 +696,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
           <button
             type="button"
             onClick={boot}
-            className="mt-2 text-[0.625rem] uppercase tracking-wider underline focus:outline focus:outline-2 focus:outline-[#2F5D50]"
-            style={{ color: ACCENT }}
+            className="mt-2 text-[0.625rem] uppercase tracking-wider underline focus:outline focus:outline-2 focus:outline-[#2F5D50] text-[#2F5D50]"
           >Try again</button>
         </div>
       </div>
@@ -712,10 +709,10 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
 
   return (
     <div className="p-1">
-      {notice && <div className="mb-2 px-3 py-2 border text-xs" style={{ ...serif, borderColor: ACCENT, color: ACCENT }} role="status">{notice}</div>}
+      {notice && <div className="mb-2 px-3 py-2 border text-xs" style={{ ...serif, borderColor: ACCENT }} className="text-[#2F5D50]" role="status">{notice}</div>}
 
       <div className="flex flex-wrap items-center gap-2 mb-3">
-        <span className="text-[0.625rem] uppercase tracking-[0.25em] font-semibold" style={{ color: ACCENT }}>{face.label}</span>
+        <span className="text-[0.625rem] uppercase tracking-[0.25em] font-semibold text-[#2F5D50]">{face.label}</span>
         {doors.length > 1 ? (
           <select
             value={activeDoor?.id || ''} onChange={(e) => { setActiveId(e.target.value); setTab(''); }}
@@ -1078,7 +1075,7 @@ function SignInInvite({ onSignIn }) {
         type="button"
         onClick={onSignIn}
         className="mt-2 text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border bg-white"
-        style={{ borderColor: ACCENT, color: ACCENT }}
+        style={{ borderColor: ACCENT }} className="text-[#2F5D50]"
       >Sign in or create an account</button>
     </div>
   );
@@ -1512,7 +1509,7 @@ function PlanTab() {
           <div key={p.id} className="border-b border-[#F0EDE6] py-2">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
               <span className="text-sm text-[#1A1815]" style={serif}>{p.id} · {p.title}</span>
-              <span className="text-[0.625rem] uppercase tracking-wider" style={{ color: p.state === 'built' ? ACCENT : '#8A867E' }}>{STATE_LABEL[p.state]}</span>
+              <span className="text-[0.625rem] uppercase tracking-wider" className={p.state === 'built' ? 'text-[#2F5D50]' : 'text-[#8A867E]'}>{STATE_LABEL[p.state]}</span>
             </div>
             <div className="text-xs text-[#5A5751]" style={serif}>{p.detail}</div>
             <div className="text-[0.625rem] text-[#8A867E]">
