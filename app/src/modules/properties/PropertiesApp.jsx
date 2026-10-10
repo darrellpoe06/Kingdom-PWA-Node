@@ -860,6 +860,16 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
           it came from instead of "the Poe Properties module" — which was all
           21 of these pages could say until today.
 
+          The shell's side of this is ONE dense prop and nothing else, because
+          poe-financial-mvp-v28.jsx is frozen at 5302 lines (DR-0078 cutover,
+          monolith-budget-guard). The first cut of this change spread that prop
+          and the modal's over four lines each with a comment, grew the shell by
+          6, and the guard caught it — correctly: the freeze exists so new
+          capability lands in a module, and six lines of MY comment in the
+          frozen shell is exactly the drift it watches for. So the reasoning
+          lives here, next to the code it explains, and the shell carries only
+          the wiring.
+
           Shown only where the family's feedback channel actually exists. The
           Poe Properties door mounts this same module for TENANTS and 1099
           WORKERS, and that channel's writer enrols the author into the

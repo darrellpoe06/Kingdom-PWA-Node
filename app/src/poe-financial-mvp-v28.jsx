@@ -4442,10 +4442,7 @@ ${THEME_CSS}
         )}
         {view === 'inbound' && <SectionBoundary name="Inbound"><Inbound voiceOps={data.voiceOps || {}} setVoiceOpsConfig={setVoiceOpsConfig} addIncident={addIncident} addInquiry={addInquiry} addProject={addProject} entities={data.entities || []} setView={setView} /></SectionBoundary>}
         {/* Properties: the module the Poe Properties App also mounts (DR-0313; `books` only here — the books live in this app). */}
-        {view === 'properties' && <SectionBoundary name="Properties"><PropertiesApp surface="poetech" books={{ postEntry: (entry) => addTransaction(entry) }}
-          /* DR-0901: the module names the page the report is about, and hands over
-             its link, so a report never arrives saying only "Poe Properties". */
-          onFeedback={(areaKey, where) => setFeedbackOpen(where ? { area: areaKey, ...where } : areaKey)} /></SectionBoundary>}
+        {view === 'properties' && <SectionBoundary name="Properties"><PropertiesApp surface="poetech" books={{ postEntry: (entry) => addTransaction(entry) }} onFeedback={(areaKey, where) => setFeedbackOpen(where ? { area: areaKey, ...where } : areaKey)} /></SectionBoundary>}
         {view === 'rentals' && (() => {
           // Real Estate: Foundation tier = READ-ONLY PREVIEW of one seed property.
           // PoeTech+ and above = full editor over the user's actual rentals.
@@ -5133,10 +5130,7 @@ ${THEME_CSS}
       <FloatingPlayer />
       <InstallPrompt />
       <UpdatePrompt />
-      {feedbackOpen && <FeedbackModal
-        initialAreaKey={typeof feedbackOpen === 'string' ? feedbackOpen : (feedbackOpen.area || null)}
-        initialWhere={typeof feedbackOpen === 'object' && feedbackOpen.page ? feedbackOpen : null}
-        onClose={closeFeedback} onSubmit={addFeedback} currentView={view} myFeedback={data.feedback || []} />}
+      {feedbackOpen && <FeedbackModal initialAreaKey={typeof feedbackOpen === 'string' ? feedbackOpen : (feedbackOpen.area || null)} initialWhere={typeof feedbackOpen === 'object' && feedbackOpen.page ? feedbackOpen : null} onClose={closeFeedback} onSubmit={addFeedback} currentView={view} myFeedback={data.feedback || []} />}
       {/* THE BOTTOM BAR (DR-0716): Feedback, Give (Church only), the network
           dot, Top and the read-aloud controls, in one bar; nothing floats over
           the Word. See components/ChromeDock.jsx. */}
