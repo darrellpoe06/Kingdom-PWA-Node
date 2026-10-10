@@ -77,7 +77,6 @@ function libheif() {
   return heifPromise;
 }
 
-<<<<<<< HEAD
 // THE SAME FILE IS DECODED TWICE, AND THAT IS THE CALLER'S SHAPE, NOT A BUG
 // TO ARGUE WITH. The picker compresses every photo twice — once for the image
 // and once for its thumbnail (DoorTabs.jsx:1232) — so a naive HEIC path does
@@ -105,10 +104,6 @@ export function _resetHeicDecoder() {
   lastKey = null;
   lastPixels = null;
 }
-=======
-/** Only for tests, so one case cannot leak its stub into the next. */
-export function _resetHeicDecoder() { heifPromise = null; }
->>>>>>> origin/main
 
 /**
  * Decode HEIC bytes to raw pixels: { width, height, data } where data is RGBA.
@@ -152,7 +147,6 @@ export async function decodeHeicToRgba(bytes, { loader = libheif } = {}) {
  */
 export async function heicFileToJpegDataUrl(file, maxWidth = 1280, quality = 0.7, io = {}) {
   const decode = io.decodeHeicToRgba || decodeHeicToRgba;
-<<<<<<< HEAD
   const key = fileKey(file);
   let pixels = key && key === lastKey ? lastPixels : null;
   if (!pixels) {
@@ -163,10 +157,6 @@ export async function heicFileToJpegDataUrl(file, maxWidth = 1280, quality = 0.7
     lastPixels = pixels;
   }
   const { width, height, data } = pixels;
-=======
-  const bytes = new Uint8Array(await file.arrayBuffer());
-  const { width, height, data } = await decode(bytes);
->>>>>>> origin/main
 
   const doc = io.document || (typeof document === 'undefined' ? null : document);
   if (!doc) throw new Error('no canvas to draw the HEIC on');
