@@ -5,7 +5,49 @@
 // File to a JPEG data URL bounded to maxWidth, so photos persist in the
 // device-local rental record (and ride sync as data URLs) without a blob
 // store. A typical phone photo lands ~80-250 KB after this.
+// HEIC IS A PICTURE A PHONE TAKES, NOT AN UNSUPPORTED FORMAT (DR-0905).
+// Darrell, 2026-10-10, with fourteen move-out condition photographs refused in
+// one go: "I want to accept this type of images!!! Fix it!!!"
+//
+// The <img> path below cannot decode HEIC on Android Chrome, so the bytes were
+// read, offered, accepted, and dropped at the last step. The native path is
+// still TRIED FIRST -- Safari decodes HEIC natively and is faster at it than
+// any WASM build -- and the decoder is only reached for, and only downloaded,
+// when the native one has actually failed on a file that really is a HEIC.
+async function heicPath(file, maxWidth, quality) {
+  const { looksHeicName, looksHeicBytes, heicFileToJpegDataUrl } = await import('./heic.js');
+  let isHeic = looksHeicName(file);
+  if (!isHeic) {
+    // The name lied or said nothing -- Android hands over an empty MIME often
+    // enough that this file already carries a comment about it. Ask the bytes.
+    try {
+      isHeic = looksHeicBytes(new Uint8Array(await file.slice(0, 32).arrayBuffer()));
+    } catch { isHeic = false; }
+  }
+  if (!isHeic) return null;
+  return heicFileToJpegDataUrl(file, maxWidth, quality);
+}
+
 export function compressImageFile(file, maxWidth = 1280, quality = 0.7) {
+  return nativeCompress(file, maxWidth, quality).catch(async (nativeError) => {
+    try {
+      const url = await heicPath(file, maxWidth, quality);
+      if (url) return url;
+    } catch (heicError) {
+      // Say what the HEIC decoder said, not what the <img> guessed. "could not
+      // be decoded (HEIC?)" was a guess that happened to be right and could
+      // not act on itself; this is the real reason, from the thing that
+      // actually tried.
+      throw new Error(
+        heicError && heicError.message ? heicError.message : String(heicError),
+        { cause: heicError },
+      );
+    }
+    throw nativeError;
+  });
+}
+
+function nativeCompress(file, maxWidth = 1280, quality = 0.7) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (e) => {
