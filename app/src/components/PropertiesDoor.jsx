@@ -14,7 +14,7 @@
 // second copy of the logic and no second store, so both faces are always on the
 // same rows (Darrell: "keeping both with latest Synced data").
 // =============================================================================
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import supabase, { resolveInitialSession, readPersistedSession, signOut } from '../lib/supabase.js';
 import PasswordAuth from './PasswordAuth.jsx';
 import PropertiesApp from '../modules/properties/PropertiesApp.jsx';
@@ -40,6 +40,7 @@ import { readProductForms } from '../lib/product-forms-sync.js';
 // read-aloud, and the post-update toast. No PoeTech monolith is imported.
 import { THEME_CSS, THEMES, useThemePref } from '../lib/theme-css.js';
 import { useTextSize } from '../lib/text-size.js';
+import { motionBehavior } from '../lib/gentle-motion.js';
 import { useAutoHideHeader } from '../lib/use-auto-hide-header.js';
 import { readHeaderCollapsed, writeHeaderCollapsed, nextCollapsed } from '../lib/header-hideaway.js';
 import { TextSizeEscapeHatch } from './TextSizeControl.jsx';
@@ -312,6 +313,19 @@ function SignedOutDoor({ left = false, onReturn } = {}) {
     [scanned, vacancies],
   );
 
+  // THE CARD'S APPLY OPENS THE APPLICATION (DR-0902). Darrell, 2026-10-10:
+  // "The image has an apply button that should open the application!!! It does
+  // not do that currently!!!" It did not, because it was a link out to
+  // /properties/?apply=<id> and that hop dropped the id. The form is already
+  // on this page, so the card asks for it directly: name the unit, open the
+  // form, and put it where the eye is. `pick` is a counter rather than a
+  // boolean so tapping Apply on a SECOND card re-scrolls and re-selects
+  // instead of doing nothing because the form is already open.
+  const [picked, setPicked] = useState({ id: '', pick: 0 });
+  const applyFor = useCallback((rentalId) => {
+    setPicked((p) => ({ id: String(rentalId || ''), pick: p.pick + 1 }));
+  }, []);
+
   const chosen = WHO_OPTIONS.find((w) => w.id === who) || null;
   const back = () => { setWho(null); setWantsAuth(false); };
 
@@ -398,6 +412,7 @@ function SignedOutDoor({ left = false, onReturn } = {}) {
                   note: String(v.note || '').trim(),
                   addressShown: v.address_shown === undefined ? true : Boolean(v.address_shown),
                 }}
+                onApply={applyFor}
               />
             ))}
           </ul>
@@ -406,7 +421,11 @@ function SignedOutDoor({ left = false, onReturn } = {}) {
           The exact address is given by a person, not published here.
         </p>
         <BeforeYouApply />
-        <ApplyForm vacancies={vacancies || []} preselect={scan.matched ? scan.unit.id : ''} />
+        <ApplyForm
+          vacancies={vacancies || []}
+          preselect={picked.id || (scan.matched ? scan.unit.id : '')}
+          openFor={picked.pick || (scan.matched ? 1 : 0)}
+        />
       </div>
     );
   }
@@ -496,13 +515,53 @@ function BeforeYouApply() {
  * SSN is never even asked for here. Submitting needs no sign-in; an account is
  * OFFERED afterward, never required, because the application is the point.
  */
-function ApplyForm({ vacancies, preselect = '' }) {
-  const [open, setOpen] = useState(false);
+/**
+ * `openFor` — a COUNTER, not a flag. Each increment means "someone just asked
+ * to apply for `preselect`": open, select it, and scroll here (DR-0902).
+ *
+ * THE THIRD DEFECT IN THIS JOURNEY, and the quietest. Even when the unit id
+ * DID survive — a scan that worked — this form still rendered its own
+ * "Apply — no account needed" button and waited. The comment below has said
+ * since the code was written that preselecting "is the whole point of the
+ * code", and then the person who scanned a card ON the door of the unit they
+ * want had to tap Apply anyway. That is the same extra tap Darrell named on
+ * the lessons: "users have to click again!!! Why?"
+ *
+ * A counter rather than a boolean because the second tap matters: a person
+ * comparing two units taps Apply on one card, then on another. With a boolean
+ * the form is already open and nothing visibly happens — the selection would
+ * change silently, under a form they are no longer looking at.
+ */
+function ApplyForm({ vacancies, preselect = '', openFor = 0 }) {
+  const [open, setOpen] = useState(openFor > 0);
   const [values, setValues] = useState({});
   // A scan already said which unit. Preselecting it is the whole point of the
   // code — otherwise the person picks their own door out of a list they did not
   // need to see.
   const [unit, setUnit] = useState(preselect);
+  const box = React.useRef(null);
+
+  // Open on every ASK, not on every render. The first render is handled by the
+  // initial state above, so a page that simply loads with a scanned unit does
+  // not also fire a scroll.
+  const asked = React.useRef(openFor);
+  useEffect(() => {
+    if (openFor === asked.current) return;
+    asked.current = openFor;
+    if (openFor <= 0) return;
+    setOpen(true);
+    if (preselect) setUnit(preselect);
+    // Next frame: the form has to exist before it can be scrolled to.
+    if (typeof window !== 'undefined' && window.requestAnimationFrame) {
+      window.requestAnimationFrame(() => {
+        try {
+          if (box.current && box.current.scrollIntoView) {
+            box.current.scrollIntoView({ behavior: motionBehavior(), block: 'start' });
+          }
+        } catch { /* a view that cannot scroll is still a usable form */ }
+      });
+    }
+  }, [openFor, preselect]);
   const [sent, setSent] = useState(null);
   const set = (key) => (e) => setValues((p) => ({ ...p, [key]: e.target.value }));
 
@@ -530,7 +589,7 @@ function ApplyForm({ vacancies, preselect = '' }) {
   const name = `${values['applicant.firstName'] || ''} ${values['applicant.lastName'] || ''}`.trim();
 
   return (
-    <div className="border border-[#E8E4DC] p-3">
+    <div className="border border-[#E8E4DC] p-3" ref={box} data-testid="apply-form">
       <p className="text-xs text-[#5A5751] mb-2" style={serif}>
         Every adult 18 or older fills out their own. We never ask for a Social Security number here — if screening needs one,
         a person asks you directly.
