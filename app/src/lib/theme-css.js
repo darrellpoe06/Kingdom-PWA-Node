@@ -163,6 +163,13 @@ input::placeholder,textarea::placeholder{color:var(--form-hint)}
 [data-theme="midnight"] .text-\\[\\#5A5751\\]{color:#888888!important}
 [data-theme="midnight"] .text-\\[\\#B85838\\]{color:#FB923C!important}
 [data-theme="midnight"] .text-\\[\\#5A6E3D\\]{color:#86EFAC!important}
+/* The Poe Properties green #2F5D50 as TEXT (added 2026-10-10, caught by
+   legibility-guard at 2.46:1 on the properties door's new account chip). It
+   joins the same bright mint every other green here remaps to. Text and its
+   hover variant only: bg-[#2F5D50] stays a dark fill carrying white text,
+   which already passes, and remapping the fill would strand that white. */
+[data-theme="midnight"] .text-\\[\\#2F5D50\\]{color:#86EFAC!important}
+[data-theme="midnight"] .hover\\:text-\\[\\#2F5D50\\]:hover{color:#86EFAC!important}
 [data-theme="midnight"] .border-\\[\\#1A1815\\]{border-color:#3A3A3A!important}
 [data-theme="midnight"] .border-\\[\\#E8E4DC\\]{border-color:#2A2A2A!important}
 [data-theme="midnight"] .border-\\[\\#B85838\\]{border-color:#FB923C!important}
