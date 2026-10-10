@@ -18,6 +18,7 @@
 // the worker's own jobs.
 import { buildDispatchMessage, normalizePhone } from '../../lib/dispatch.js';
 import { formatPhone, isPhoneDoorEmail, phoneDoorDigits } from '../../lib/member-contact.js';
+import { proofNotice } from './proof.js';
 
 /** The statuses a job can still be sent in. */
 export const DISPATCHABLE = Object.freeze(['submitted', 'received', 'scheduled', 'in-progress']);
@@ -61,9 +62,12 @@ export function someoneElse(phone, name = '') {
 
 /** The text a worker receives: the door's real address, the job, how urgent, the detail. */
 export function dispatchText({ door = {}, rental = null, request = {} } = {}) {
-  const unit = door.unit_label ? ` \u00b7 ${door.unit_label}` : '';
-  const name = door.property_label || (rental && (rental.display_name || rental.address)) || 'the property';
-  return buildDispatchMessage({
+  const unit = door?.unit_label ? ` \u00b7 ${door.unit_label}` : '';
+  const name = door?.property_label || (rental && (rental.display_name || rental.address)) || 'the property';
+  // The worker is told up front when pictures (or a video) are required for
+  // payment (DR-0902), not after the job is done.
+  const proof = proofNotice(request);
+  const body = buildDispatchMessage({
     propertyName: `${name}${unit}`,
     address: (rental && rental.address) || '',
     city: (rental && rental.city) || '',
@@ -74,6 +78,7 @@ export function dispatchText({ door = {}, rental = null, request = {} } = {}) {
     urgencyLabel: URGENCY[request.priority] || '',
     notes: request.detail || '',
   });
+  return proof ? `${body}\n${proof}` : body;
 }
 
 /** Where a job goes when it is sent: a filed one becomes scheduled; one already moving stays; a closed one cannot be sent. */

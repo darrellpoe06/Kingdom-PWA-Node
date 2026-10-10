@@ -41,6 +41,8 @@ import { GuestLinkCard } from './GuestReport.jsx';
 import { PayRent, PayeeCard } from './RentPay.jsx';
 import { PapersPanel } from './DocSigning.jsx';
 import { compressImageFile, isLikelyImageFile } from '../../lib/image.js';
+import { PROOF_OPTIONS, proofNotice, proofState } from './proof.js';
+import { loadJobVideo, setWorkOrderProof } from './cloud.js';
 import { textDataUrl, kindForGenerated } from './doc-signing.js';
 import { rentLine } from './rent-pay.js';
 import { ReadinessTab } from './ReadinessTab.jsx';
@@ -532,6 +534,30 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
     return res;
   };
 
+  // A VIDEO ON A JOB (DR-0902: "video when necessary"). A short clip, read as
+  // it is (no re-encoding on a phone), capped so a single upload cannot
+  // swamp the record; 0264 checks it is a video and keeps its bytes off the
+  // board's list.
+  const VIDEO_MAX_BYTES = 25 * 1024 * 1024;
+  const attachVideo = async (requestId, file, note) => {
+    if (!workDoor || !requestId || !file) return { ok: false };
+    if (!/^video\//.test(file.type || '')) { say('That is not a video.'); return { ok: false }; }
+    if (file.size > VIDEO_MAX_BYTES) { say('That video is over 25 MB. Record a shorter clip (about 30 seconds) of the finished work.'); return { ok: false }; }
+    const video = await new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ''));
+      reader.onerror = () => resolve('');
+      reader.readAsDataURL(file);
+    });
+    if (!video) { say('That video could not be read.'); return { ok: false }; }
+    const res = await postJobDoc({
+      instance_id: workDoor.instanceId, request_id: requestId, tenancy_id: workDoor.tenancyId, rental_id: workDoor.rentalId,
+      outcome: null, followup: null, note: String(note || '').trim() || null, video_data: video,
+    });
+    if (!res.ok) say(`Video not saved: ${res.reason}`);
+    return res;
+  };
+
   // THE DISPATCH IS A RECORD (DR-0837). Tapping Text it opens the messaging
   // app, as before; it ALSO assigns the job to the worker (their user id when
   // they have signed in, their name always), marks it scheduled, and writes a
@@ -974,6 +1000,8 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
                 }}
                 onDocument={documentJob}
                 onPicture={async (id, file, note) => { const r = await attachPicture(id, file, note); if (r.ok) { say('Picture added to the job.'); refresh(); } }}
+                onVideo={async (id, file, note) => { const r = await attachVideo(id, file, note); if (r.ok) { say('Video added to the job.'); refresh(); } }}
+                onProof={async (id, proof) => { const r = await setWorkOrderProof(id, proof); say(r.ok ? 'Proof requirement saved.' : `Not saved: ${r.reason}`); refresh(); }}
               />
               {/* The guest card (DR-0898): the family opens it per door, so a
                   guest in a short stay can report a problem with no account. */}
@@ -1243,7 +1271,41 @@ function DoorsTab({ doors, onPick, staged, onConfirmDraft }) {
   );
 }
 
-function WorkTab({ door, requests, open, docs, role, canFile, canManage, onFile, onStatus, onAssign, onDocument, onPicture, workers = [], mine = null }) {
+/** A job's video, fetched only when someone opens it (the list never carries the bytes). */
+function JobVideo({ docId }) {
+  const [src, setSrc] = useState(null);
+  const [state, setState] = useState('');
+  if (src) return <video src={src} controls playsInline className="block mt-1 max-h-64 max-w-full border border-[#E8E4DC]" />;
+  return (
+    <button type="button" className="block mt-1 text-[0.625rem] uppercase tracking-wider underline text-[#2F5D50]"
+      onClick={async () => { setState('Loading…'); const r = await loadJobVideo(docId); if (r.ok && r.video) setSrc(r.video); else setState('The video could not be loaded.'); }}>
+      {state || 'Play the video'}
+    </button>
+  );
+}
+
+/** The family's proof setting on one job (DR-0902). */
+function ProofSetting({ request, onProof }) {
+  const [note, setNote] = useState(request.proof_note || '');
+  return (
+    <span className="inline-flex flex-wrap items-center gap-1">
+      <select value={request.proof_required || 'none'} aria-label={`Proof for ${request.title}`}
+        onChange={(e) => onProof(request.id, { proofRequired: e.target.value, proofNote: note })}
+        className="text-xs border border-[#E8E4DC] px-2 py-1 bg-white" style={serif}>
+        {PROOF_OPTIONS.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
+      </select>
+      {(request.proof_required || 'none') !== 'none' && (
+        <>
+          <input value={note} onChange={(e) => setNote(e.target.value)} maxLength={300} placeholder="What to show (optional)" aria-label={`What to show for ${request.title}`}
+            className="text-xs border border-[#E8E4DC] px-2 py-1 w-48" style={serif} />
+          <Btn onClick={() => onProof(request.id, { proofRequired: request.proof_required, proofNote: note })}>Save</Btn>
+        </>
+      )}
+    </span>
+  );
+}
+
+function WorkTab({ door, requests, open, docs, role, canFile, canManage, onFile, onStatus, onAssign, onDocument, onPicture, onVideo, onProof, workers = [], mine = null }) {
   const [title, setTitle] = useState('');
   const [detail, setDetail] = useState('');
   const [priority, setPriority] = useState('normal');
@@ -1287,16 +1349,25 @@ function WorkTab({ door, requests, open, docs, role, canFile, canManage, onFile,
               <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">{r.status}</span>
             </div>
             {r.detail && <div className="text-xs text-[#5A5751]" style={serif}>{r.detail}</div>}
+            {proofNotice(r) && (
+              <div className="text-xs text-[#1A1815] border-l-2 border-[#2F5D50] pl-2 mt-1" style={serif} data-testid="proof-notice">{proofNotice(r)}</div>
+            )}
+            {proofState(r, docs).line && (
+              <div className={`text-[0.6875rem] mt-1 ${proofState(r, docs).payable ? 'text-[#2F5D50] font-semibold' : 'text-[#5A5751]'}`} style={serif} data-testid="proof-state">
+                {proofState(r, docs).line}
+              </div>
+            )}
             <div className="text-[0.625rem] text-[#8A867E]">{when(r.created_at)}{r.assigned_to_label ? ` · assigned to ${r.assigned_to_label}` : ''}</div>
             {docsFor(r.id).map((d) => (
               <div key={d.id} className="text-xs text-[#5A5751] pl-2 border-l-2 border-[#E8E4DC] mt-1" style={serif} data-testid="job-doc">
-                {d.outcome === 'fixed' ? 'Fixed' : d.outcome === 'not_fixed' ? `Not fixed — ${FOLLOWUP_LABELS[d.followup] || 'follow-up'}` : 'Picture'}{d.note ? `: ${d.note}` : ''}
+                {d.outcome === 'fixed' ? 'Fixed' : d.outcome === 'not_fixed' ? `Not fixed — ${FOLLOWUP_LABELS[d.followup] || 'follow-up'}` : d.has_video ? 'Video' : 'Picture'}{d.note ? `: ${d.note}` : ''}
                 {d.created_at ? ` · ${when(d.created_at)}` : ''}
                 {d.image_data && (
                   <a href={d.image_data} target="_blank" rel="noopener noreferrer" className="block mt-1">
                     <img src={d.image_data} alt={d.note || `Picture on ${r.title}`} className="max-h-32 border border-[#E8E4DC]" loading="lazy" />
                   </a>
                 )}
+                {d.has_video && <JobVideo docId={d.id} />}
               </div>
             ))}
             {onPicture && (
@@ -1306,12 +1377,20 @@ function WorkTab({ door, requests, open, docs, role, canFile, canManage, onFile,
                   onChange={(e) => { const f = e.target.files && e.target.files[0]; if (f) onPicture(r.id, f, ''); e.target.value = ''; }} />
               </label>
             )}
+            {onVideo && (
+              <label className="inline-flex mt-1 ml-1 text-[0.625rem] uppercase tracking-wider px-2 py-1 border border-[#E8E4DC] bg-white text-[#1A1815] cursor-pointer">
+                Add a video
+                <input type="file" accept="video/*" capture="environment" className="sr-only" aria-label={`Add a video to ${r.title}`}
+                  onChange={(e) => { const f = e.target.files && e.target.files[0]; if (f) onVideo(r.id, f, ''); e.target.value = ''; }} />
+              </label>
+            )}
             {canManage && (
               <div className="flex flex-wrap gap-1 mt-2">
                 {(MAINTENANCE_TRANSITIONS[r.status] || []).map((next) => (
                   <Btn key={next} onClick={() => onStatus(r.id, next)}>{next}</Btn>
                 ))}
                 <AssignRow current={r.assigned_to_label} workers={workers} onAssign={(who) => onAssign(r.id, who)} />
+                {onProof && <ProofSetting request={r} onProof={onProof} />}
               </div>
             )}
             {role === 'field_worker' && <DocRow requestId={r.id} onDocument={onDocument} />}

@@ -19,12 +19,14 @@ import { describe, it, expect, afterEach, vi } from 'vitest';
 import { createElement } from 'react';
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
+import { proofState, proofNotice } from '../modules/properties/proof.js';
+import { dispatchText } from '../modules/properties/dispatch-roster.js';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
 const H = vi.hoisted(() => ({
   rentals: [], doors: [], grants: [], household: [], invites: [], record: null, session: null,
-  assigns: [], statuses: [], notes: [], filed: [], recordCalls: [], jobDocs: [],
+  assigns: [], statuses: [], notes: [], filed: [], recordCalls: [], jobDocs: [], proofs: [],
 }));
 
 vi.mock('../modules/properties/cloud.js', () => {
@@ -61,6 +63,8 @@ vi.mock('../modules/properties/cloud.js', () => {
     postMessage: noop,
     postNote: async (row) => { H.notes.push(row); return { ok: true }; },
     postJobDoc: async (row) => { H.jobDocs.push(row); return { ok: true }; },
+    setWorkOrderProof: async (id, proof) => { H.proofs.push([id, proof]); return { ok: true }; },
+    loadJobVideo: async () => ({ ok: true, video: 'data:video/mp4;base64,AAAA' }),
     recordRent: noop, confirmRent: noop, markRentPosted: noop,
     inviteToProperties: noop, createTenancy: noop,
     addRoom: noop, patchRoom: noop, updateTenancy: noop, updateRental: noop,
@@ -90,7 +94,7 @@ afterEach(() => {
   if (root) act(() => root.unmount());
   if (container) container.remove();
   root = container = null;
-  Object.assign(H, { rentals: [], doors: [], grants: [], household: [], invites: [], record: null, session: null, assigns: [], statuses: [], notes: [], filed: [], recordCalls: [], jobDocs: [] });
+  Object.assign(H, { rentals: [], doors: [], grants: [], household: [], invites: [], record: null, session: null, assigns: [], statuses: [], notes: [], filed: [], recordCalls: [], jobDocs: [], proofs: [] });
 });
 
 async function mount(props = {}) {
@@ -225,5 +229,39 @@ describe('a picture on a work order (DR-0901: "pictures for documentation... For
     expect(doc.textContent).toContain('Picture: Left cushion');
     expect(doc.querySelector('img').getAttribute('src')).toBe('data:image/jpeg;base64,SEEN');
     expect(container.querySelector('input[aria-label="Add a picture to Stain on the couch"]')).not.toBeNull();
+  });
+});
+
+describe('proof before payment (DR-0902: "pictures to document the work... mandatory for payment... video when necessary")', () => {
+  const JOB = { id: 'req7', title: 'Install microwave', proof_required: 'photos-and-video', proof_note: 'the microwave mounted and the fan running', status: 'scheduled' };
+  it('says what is required, counts it, and says ready to pay only when the proof is in AND it is fixed', () => {
+    expect(proofNotice(JOB)).toBe('Pictures and a video of the microwave mounted and the fan running are required for payment. Add them on the job before marking it fixed.');
+    expect(proofNotice({ proof_required: 'none' })).toBe('');
+    expect(proofState(JOB, []).line).toBe('Proof for payment: 0 pictures, 0 videos. Still needed: a picture of the finished work and a video of the finished work');
+    const pic = { request_id: 'req7', image_data: 'data:image/jpeg;base64,A' };
+    const vid = { request_id: 'req7', has_video: true };
+    expect(proofState(JOB, [pic]).missing).toEqual(['a video of the finished work']);
+    expect(proofState(JOB, [pic, vid]).line).toBe('Proof complete (1 picture, 1 video); waiting for "Fixed"');
+    expect(proofState(JOB, [pic, vid, { request_id: 'req7', outcome: 'fixed' }]).payable).toBe(true);
+    expect(proofState({ ...JOB, proof_required: 'none' }, []).line).toBe('');
+  });
+  it('the dispatch text tells the worker before he starts', () => {
+    const t = dispatchText({ door: null, rental: APT2, request: JOB });
+    expect(t).toContain('Install microwave');
+    expect(t.split('\n').pop()).toBe(proofNotice(JOB));
+  });
+  it('the family sets the proof on a job, and the board shows the notice and what is still needed', async () => {
+    H.rentals = [APT2]; H.doors = [];
+    H.record = { requests: [{ ...JOB, rental_id: 'r-apt2', created_at: '2026-10-10T12:00:00Z' }], docs: [{ id: 'p1', request_id: 'req7', image_data: 'data:image/jpeg;base64,A', created_at: '2026-10-10T12:05:00Z' }] };
+    await mount();
+    await pickDoor('805 North Prospect Avenue');
+    await tap(/^Work board$/);
+    expect(container.querySelector('[data-testid="proof-notice"]').textContent).toBe(proofNotice(JOB));
+    expect(container.querySelector('[data-testid="proof-state"]').textContent).toBe('Proof for payment: 1 picture, 0 videos. Still needed: a video of the finished work');
+    expect(container.querySelector('input[aria-label="Add a video to Install microwave"]')).not.toBeNull();
+    const sel = container.querySelector('select[aria-label="Proof for Install microwave"]');
+    await act(async () => { sel.value = 'photos'; sel.dispatchEvent(new Event('change', { bubbles: true })); });
+    for (let i = 0; i < 4; i += 1) await act(async () => { await Promise.resolve(); });
+    expect(H.proofs).toEqual([['req7', { proofRequired: 'photos', proofNote: 'the microwave mounted and the fan running' }]]);
   });
 });

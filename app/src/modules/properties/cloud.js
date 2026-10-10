@@ -151,7 +151,10 @@ export async function loadDoorRecord(tenancyId, { rentalId = null } = {}, client
     const requests = req.data || [];
     let docs = [];
     if (requests.length) {
-      const d = await client.from('request_documentation').select('*')
+      // The list never carries a video's bytes (DR-0303 / 0264): has_video
+      // says one is there; loadJobVideo fetches it when someone opens it.
+      const d = await client.from('request_documentation')
+        .select('id, instance_id, request_id, tenancy_id, rental_id, author_user_id, outcome, followup, note, image_data, has_video, created_at')
         .in('request_id', requests.map((r) => r.id)).order('created_at', { ascending: true });
       docs = d.data || [];
     }
@@ -942,5 +945,22 @@ export async function signDocument({ documentId, role, signature, version, attes
       p_attestation: attestation, p_consent: consent, p_device_at: deviceAt || null,
     });
     return error ? no(error.message || 'write-failed', error) : ok({ state: data });
+  } catch (e) { return no('unexpected', e); }
+}
+
+/** One job video's bytes, fetched only when someone opens it (0264). */
+export async function loadJobVideo(docId, client = supabase) {
+  try {
+    const { data, error } = await client.from('request_documentation').select('video_data').eq('id', docId).maybeSingle();
+    return error ? no('read-failed', error) : ok({ video: data?.video_data || null });
+  } catch (e) { return no('unexpected', e); }
+}
+
+/** The family sets what proof a job needs before it is done and paid (0264). */
+export async function setWorkOrderProof(id, { proofRequired = 'none', proofNote = null } = {}, client = supabase) {
+  try {
+    const { error } = await client.from('tenant_maintenance_requests')
+      .update({ proof_required: proofRequired, proof_note: (String(proofNote || '').trim() || null) }).eq('id', id);
+    return error ? no('write-failed', error) : ok();
   } catch (e) { return no('unexpected', e); }
 }

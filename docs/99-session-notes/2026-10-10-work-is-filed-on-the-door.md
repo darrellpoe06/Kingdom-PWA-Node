@@ -45,3 +45,22 @@
 - **`record_events`.** An append-only, to-the-instant log of every rent and work-order change, with who made it. It is read where the record is read and edited by nobody.
 
 **Proof.** The smoke has seven breaks proven to catch, and one replay gap was found and fixed. There are 8 app tests, including the record-before-hand-off order.
+
+## Then: papers signed in the app (DR-0901, 0263), and proof before payment (DR-0902, 0264)
+
+**Papers.** Asked for: digital signing, papers populated into their places, paper uploads as tenant records, tenants sharing receipts and pictures, and pictures on work orders.
+- The family files a paper and asks for signatures; the database fingerprints the stored bytes.
+- Each signer signs that fingerprint with a typed name, an attestation, e-sign consent, the device clock and the server instant. Signed papers stay in their tenancy.
+- The counsel rule from `documents.js` stands: a generated draft is sent only with the family's recorded attestation that counsel reviewed it.
+- Tenants get a Documents tab, and the family's Files tab gains Papers and signatures. Work orders take pictures.
+
+**Proof before payment.** Asked for: notice to 1099 workers that pictures are mandatory for payment, and video when necessary.
+- The family sets proof per job, and the worker is told on the job and in the dispatch text.
+- The database refuses "Fixed" until the proof is on the job.
+- Video is documentation too, kept off the board's list.
+- The board says what is still needed, or "ready to pay".
+
+**Along the way.**
+- #2095 (0260) merged and is live: deploy, db-migrate and the live rls-isolation run all succeeded on `d5dda5958`. The later commits moved to #2096.
+- The reader's color picker fix (#2089) sat red on the spelling gate and the monolith-name gate. It was ported into #2096 with both fixed.
+- The Guest Ready subtabs are in #2087, which its own session moved to green.
