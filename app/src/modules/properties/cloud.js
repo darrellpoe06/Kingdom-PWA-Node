@@ -331,6 +331,7 @@ export async function saveRentPayee(instanceId, fields, client = supabase) {
       cashtag: clean(fields.cashtag) && `$${clean(fields.cashtag).replace(/^\$/, '')}`,
       venmo: clean(fields.venmo), zelle_to: clean(fields.zelle_to), cash_note: clean(fields.cash_note),
       deposit_note: clean(fields.deposit_note), check_payable_to: clean(fields.check_payable_to),
+      square_link: clean(fields.square_link),
       updated_by: uid, updated_at: new Date().toISOString(),
     };
     const { error } = await client.from('rent_payee').upsert(row, { onConflict: 'instance_id' });

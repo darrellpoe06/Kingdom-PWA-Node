@@ -53,12 +53,25 @@ CREATE TABLE IF NOT EXISTS public.rent_payee (
   cash_note         text CHECK (cash_note IS NULL OR length(cash_note) <= 500),
   deposit_note      text CHECK (deposit_note IS NULL OR length(deposit_note) <= 500),
   check_payable_to  text CHECK (check_payable_to IS NULL OR length(check_payable_to) <= 120),
+  square_link       text,
   updated_by        uuid REFERENCES auth.users(id),
   updated_at        timestamptz NOT NULL DEFAULT now()
 );
+-- SQUARE (Darrell, 2026-10-10: "Christina already has a square account we
+-- can use that for payment options"). The family's own Square PAYMENT LINK,
+-- made in their Square dashboard — a Square address and nothing else: no key,
+-- no token, no account number ever reaches this table. The tenant is handed
+-- to it after the payment is recorded, exactly like Cash App and Venmo.
+ALTER TABLE public.rent_payee ADD COLUMN IF NOT EXISTS square_link text;
+
 -- Its own guarded step, so a replay restores it even where the table exists.
 DO $$
 BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'rent_payee_square_link_is_square') THEN
+    ALTER TABLE public.rent_payee ADD CONSTRAINT rent_payee_square_link_is_square CHECK (
+      square_link IS NULL OR (length(square_link) <= 300
+        AND square_link ~ '^https://(square\.link|checkout\.square\.site|squareup\.com|[a-z0-9-]+\.square\.site)/[^[:space:]]+$'));
+  END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'rent_payee_no_account_numbers') THEN
     ALTER TABLE public.rent_payee ADD CONSTRAINT rent_payee_no_account_numbers CHECK (
       coalesce(cash_note, '') !~ '\d{7,}' AND coalesce(deposit_note, '') !~ '\d{7,}'
@@ -66,7 +79,7 @@ BEGIN
   END IF;
 END $$;
 COMMENT ON TABLE public.rent_payee IS
-  'DR-0899: how this landlord is paid, in his own words (Cash App, Venmo, Zelle, cash, bank deposit, check). Never an account or routing number. Tenants read it through rent_payee_for_tenancy().';
+  'DR-0899: how this landlord is paid, in his own words (Cash App, Venmo, Zelle, Square payment link, cash, bank deposit, check). Never an account or routing number. Tenants read it through rent_payee_for_tenancy().';
 
 REVOKE ALL ON public.rent_payee FROM anon, authenticated;
 GRANT SELECT, INSERT, UPDATE ON public.rent_payee TO authenticated;
@@ -82,12 +95,15 @@ CREATE POLICY rent_payee_update ON public.rent_payee FOR UPDATE TO authenticated
   USING (user_role_in_instance(instance_id) IN ('owner','admin'))
   WITH CHECK (user_role_in_instance(instance_id) IN ('owner','admin'));
 
-CREATE OR REPLACE FUNCTION public.rent_payee_for_tenancy(p_tenancy uuid)
-RETURNS TABLE (cashtag text, venmo text, zelle_to text, cash_note text, deposit_note text, check_payable_to text)
+-- Dropped first: its shape gained square_link, and a function's return
+-- shape cannot change under CREATE OR REPLACE.
+DROP FUNCTION IF EXISTS public.rent_payee_for_tenancy(uuid);
+CREATE FUNCTION public.rent_payee_for_tenancy(p_tenancy uuid)
+RETURNS TABLE (cashtag text, venmo text, zelle_to text, cash_note text, deposit_note text, check_payable_to text, square_link text)
 LANGUAGE sql STABLE SECURITY DEFINER
 SET search_path = public
 AS $$
-  SELECT p.cashtag, p.venmo, p.zelle_to, p.cash_note, p.deposit_note, p.check_payable_to
+  SELECT p.cashtag, p.venmo, p.zelle_to, p.cash_note, p.deposit_note, p.check_payable_to, p.square_link
   FROM rental_tenancies t JOIN rent_payee p ON p.instance_id = t.instance_id
   WHERE t.id = p_tenancy
     AND (user_is_tenant(t.id) OR user_is_tenancy_household(t.id)

@@ -27,6 +27,9 @@
 /** The ways a tenant pays, in the order they are offered. */
 export const PAY_METHODS = Object.freeze([
   { id: 'cashapp', label: 'Cash App', needs: 'cashtag' },
+  // Square (Darrell, 2026-10-10): the family's own Square payment link — card,
+  // Apple Pay, Google Pay — made in their Square dashboard. A link, never a key.
+  { id: 'square', label: 'Square (card)', needs: 'square_link' },
   { id: 'zelle', label: 'Zelle', needs: 'zelle_to' },
   { id: 'venmo', label: 'Venmo', needs: 'venmo' },
   { id: 'deposit', label: 'Bank deposit', needs: 'deposit_note' },
@@ -54,6 +57,10 @@ export function payLink(methodId, payee, amount, note = 'Rent') {
     const tag = String(payee?.cashtag || '').trim().replace(/^\$?/, '$');
     return tag.length > 1 ? `https://cash.app/${encodeURIComponent(tag).replace(/^%24/, '$')}${amt > 0 ? `/${amt.toFixed(2)}` : ''}` : null;
   }
+  if (methodId === 'square') {
+    const link = String(payee?.square_link || '').trim();
+    return isSquareLink(link) ? link : null;
+  }
   if (methodId === 'venmo') {
     const who = String(payee?.venmo || '').trim().replace(/^@/, '');
     if (!who) return null;
@@ -61,6 +68,11 @@ export function payLink(methodId, payee, amount, note = 'Rent') {
     return `https://venmo.com/?${q.toString()}`;
   }
   return null;
+}
+
+/** Only a Square address is ever opened (0262 refuses anything else too). */
+export function isSquareLink(v) {
+  return /^https:\/\/(square\.link|checkout\.square\.site|squareup\.com|[a-z0-9-]+\.square\.site)\/\S+$/.test(String(v || '').trim());
 }
 
 /** The landlord's own words for a method with no link. */

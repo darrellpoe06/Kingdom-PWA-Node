@@ -63,7 +63,7 @@ export function PayRent({ tenancy, rent = [], onReport, openUrl = (u) => window.
   useEffect(() => { setAmount(due.remaining > 0 ? due.remaining.toFixed(2) : ''); }, [due.remaining]);
 
   const offered = methodsOffered(payee);
-  const choices = offered.length ? offered : PAY_METHODS.filter((m) => ['cash', 'zelle', 'cashapp', 'deposit', 'check', 'venmo'].includes(m.id));
+  const choices = offered.length ? offered : PAY_METHODS.filter((m) => ['cash', 'zelle', 'cashapp', 'square', 'deposit', 'check', 'venmo'].includes(m.id));
   const report = buildRentReport({
     amount, period, method, remainingBefore: due.remaining, promisedOn, note, today: localDay(),
   });
@@ -161,6 +161,7 @@ export function PayRent({ tenancy, rent = [], onReport, openUrl = (u) => window.
 
 const PAYEE_FIELDS = [
   ['cashtag', 'Cash App $cashtag', '$PoeProperties'],
+  ['square_link', 'Square payment link (from your Square dashboard)', 'https://square.link/u/...'],
   ['zelle_to', 'Zelle phone or email', '(555) 555-5555'],
   ['venmo', 'Venmo username', '@poe-properties'],
   ['deposit_note', 'Bank deposit (your words, never an account number)', 'Deposit at any Chase branch to Poe Properties LLC'],

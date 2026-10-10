@@ -17,7 +17,7 @@ import { describe, it, expect, afterEach, vi } from 'vitest';
 import { createElement } from 'react';
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
-import { payLink, payInstruction, methodsOffered, rentDue, buildRentReport, rentLine } from '../modules/properties/rent-pay.js';
+import { payLink, payInstruction, methodsOffered, rentDue, buildRentReport, rentLine, isSquareLink } from '../modules/properties/rent-pay.js';
 import { buildHistory, changeSummary } from '../modules/properties/model.js';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
@@ -151,8 +151,43 @@ describe('the tenant pays', () => {
   });
 });
 
+// SQUARE (Darrell, 2026-10-10: "Christina already has a square account we can
+// use that for payment options"). Her own Square payment link, opened only
+// after the payment is recorded; never a key, never anything but Square.
+describe('Square, the family\'s own payment link', () => {
+  const TENANCY = { id: 't1', monthly_rent: 680 };
+  it('PROVEN-TO-CATCH: only a Square address is ever opened', () => {
+    expect(isSquareLink('https://square.link/u/PoeRent1')).toBe(true);
+    expect(isSquareLink('https://checkout.square.site/merchant/abc/checkout/XYZ')).toBe(true);
+    expect(isSquareLink('https://poe-properties.square.site/s/shop')).toBe(true);
+    expect(isSquareLink('https://evil.example/pay')).toBe(false);
+    expect(isSquareLink('http://square.link/u/PoeRent1')).toBe(false);
+    expect(isSquareLink('https://square.link.evil.example/u/x')).toBe(false);
+    expect(payLink('square', { square_link: 'https://evil.example/pay' }, 680)).toBeNull();
+    expect(payLink('square', { square_link: 'https://square.link/u/PoeRent1' }, 680)).toBe('https://square.link/u/PoeRent1');
+    expect(methodsOffered({ square_link: 'https://square.link/u/PoeRent1' }).map((m) => m.id)).toEqual(['square']);
+  });
+  it('the tenant records first, then Square opens', async () => {
+    H.payee = { ...PAYEE, square_link: 'https://square.link/u/PoeRent1' };
+    const onReport = async (row) => { H.order.push(['record', row]); return { ok: true }; };
+    await mount(createElement(PayRent, { tenancy: TENANCY, rent: [], onReport, openUrl: (u) => H.order.push(['open', u]) }));
+    await click(/^Square \(card\)$/);
+    await click(/^Record it and open Square \(card\)$/);
+    expect(H.order.map((x) => x[0])).toEqual(['record', 'open']);
+    expect(H.order[0][1]).toMatchObject({ amount: 680, method: 'square' });
+    expect(H.order[1][1]).toBe('https://square.link/u/PoeRent1');
+  });
+  it('the family saves Christina\'s Square link with the other ways', async () => {
+    H.payee = {};
+    await mount(createElement(PayeeCard, { instanceId: 'i1' }));
+    await setValue('Square payment link (from your Square dashboard)', 'https://square.link/u/PoeRent1');
+    await click(/^Save$/);
+    expect(H.saved[0][1]).toMatchObject({ square_link: 'https://square.link/u/PoeRent1' });
+  });
+});
+
 describe('the family writes how it is paid', () => {
-  it('saves the six ways, blank meaning not offered', async () => {
+  it('saves the seven ways, blank meaning not offered', async () => {
     H.payee = { cashtag: '$PoeProperties' };
     await mount(createElement(PayeeCard, { instanceId: 'i1' }));
     expect(container.querySelector('input[aria-label="Cash App $cashtag"]').value).toBe('$PoeProperties');

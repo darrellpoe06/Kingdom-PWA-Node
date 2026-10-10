@@ -8,6 +8,7 @@
 --
 --   the owner writes how he is paid; a tenant cannot                 ✔ / ✘
 --   an account number in the deposit line                            ✘
+--   a payment link that is not Square; the family's Square link      ✘ / ✔
 --   the tenant reads it for their door; a stranger and the other
 --     door's tenant read nothing                                     ✔ / ✘
 --   the tenant reports a part payment: due, remaining, promise       ✔
@@ -107,8 +108,15 @@ BEGIN
   PERFORM pg_temp.runs(o, format('INSERT INTO rent_payee (instance_id, cashtag, zelle_to, deposit_note, cash_note) VALUES (%L, ''$PoeProperties'', ''(555) 010-0100'', ''Deposit at any Chase branch to Poe Properties LLC'', ''Hand it to Darrell, get a receipt'')', inst),
     'the owner writes how he is paid', true);
 
+  -- 1b. Square: the family's own payment link, a Square address and nothing else.
+  PERFORM pg_temp.runs(o, format('UPDATE rent_payee SET square_link = ''https://evil.example/pay'' WHERE instance_id = %L', inst),
+    'a payment link that is not Square', false);
+  PERFORM pg_temp.runs(o, format('UPDATE rent_payee SET square_link = ''https://square.link/u/PoeRent1'' WHERE instance_id = %L', inst),
+    'the family sets its Square payment link', true);
+
   -- 2. The tenant reads it for their door; nobody outside does.
   IF pg_temp.count_as(t, format('SELECT count(*)::int FROM public.rent_payee_for_tenancy(%L)', ta)) <> 1 THEN RAISE EXCEPTION 'RENT AND CLOCK SMOKE FAIL: the tenant cannot read how to pay'; END IF;
+  IF pg_temp.count_as(t, format('SELECT count(*)::int FROM public.rent_payee_for_tenancy(%L) WHERE square_link = ''https://square.link/u/PoeRent1''', ta)) <> 1 THEN RAISE EXCEPTION 'RENT AND CLOCK SMOKE FAIL: the tenant cannot read the Square link'; END IF;
   IF pg_temp.count_as(t2, format('SELECT count(*)::int FROM public.rent_payee_for_tenancy(%L)', ta)) <> 0 THEN RAISE EXCEPTION 'RENT AND CLOCK SMOKE FAIL: another door''s tenant reads it through door A'; END IF;
   IF pg_temp.count_as(s, format('SELECT count(*)::int FROM public.rent_payee_for_tenancy(%L)', ta)) <> 0 THEN RAISE EXCEPTION 'RENT AND CLOCK SMOKE FAIL: a stranger reads it'; END IF;
   IF pg_temp.count_as(t, 'SELECT count(*)::int FROM rent_payee') <> 0 THEN RAISE EXCEPTION 'RENT AND CLOCK SMOKE FAIL: a tenant reads the payee table directly'; END IF;
