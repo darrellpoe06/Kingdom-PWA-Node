@@ -200,6 +200,56 @@ export function tenancyRowForDoor({
 }
 
 /**
+ * THE VACANT UNIT (DR-0870). A door record for a property nobody lives in yet.
+ *
+ * Darrell, 2026-10-10, standing on 805 North Prospect Avenue Apt 2 — "No
+ * tenancy on this door" — having typed "Add a microwave and cabinet with
+ * exhaust fan inside the kitchen", with FILE IT dead: "Workorders don't
+ * work... can't send...!?!!!!!"
+ *
+ * TRACED (DR-0219). `tenant_maintenance_requests.tenancy_id` is `uuid NOT
+ * NULL REFERENCES rental_tenancies(id)` (0055:135), and the whole app keys its
+ * write controls off `activeDoor`, which is a TENANCY. So the schema says a
+ * work order can only exist where a tenant already lives — and the single most
+ * common landlord job, fixing up an empty unit before anyone moves in, had
+ * nowhere to go. Same root cause disabled "Write the invitation" on the People
+ * tab: both read `disabled={... || !door}`, and a vacant property has no door.
+ *
+ * The premise under the schema is wrong, but rewriting it means reworking the
+ * RLS on five tables that all scope by tenancy_id — so the fix stays on the
+ * app side, where rental_tenancies ALREADY allows it: every tenant column is
+ * nullable (0055:59-65) and 'pending' is a legal status (0055:70-71). A unit
+ * with no tenant is a tenancy row with no tenant in it. The landlord gets a
+ * real door the moment he needs one, and when someone moves in, that same row
+ * is filled rather than replaced — so the work history of the empty unit stays
+ * attached to the place it happened.
+ */
+export function vacantUnitRow({ instanceId, rental } = {}) {
+  if (!instanceId) return { ok: false, reason: 'no-instance' };
+  const ref = rental && (rental.slug || rental.id);
+  if (!ref) return { ok: false, reason: 'no-door' };
+  const label = String(rental.display_name || rental.address || '').trim() || 'This property';
+  return {
+    ok: true,
+    row: {
+      instance_id: instanceId,
+      rental_ref: ref,
+      property_label: label,
+      unit_label: String(rental.unit || '').trim() || null,
+      tenant_name: null,
+      tenant_email: null,
+      tenant_phone: null,
+      lease_start: null,
+      lease_end: null,
+      monthly_rent: 0,
+      deposit: 0,
+      status: 'pending',          // a unit on the books, nobody in it yet
+      notes: 'Unit record created so work, people and history could be tracked before anyone moved in.',
+    },
+  };
+}
+
+/**
  * The fields a person may edit on a tenancy or a door, and what changed.
  * Returns the patch plus a human sentence for the record — an edit that leaves
  * no trace is how two people end up disagreeing about what the lease said.

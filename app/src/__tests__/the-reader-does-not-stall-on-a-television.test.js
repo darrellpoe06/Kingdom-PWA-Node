@@ -34,7 +34,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   utteranceSpan, segmentText, createBrowserTTS,
-  RATE_SPAN_FROM, MAX_SPAN_CHARS, MAX_SPAN_SEGMENTS, TV_SPAN_CHARS,
+  RATE_SPAN_FROM, MAX_SPAN_CHARS, MAX_SPAN_SEGMENTS,
 } from '../lib/tts.js';
 
 // Six clauses of ~70 characters — the shape a real lesson paragraph takes
@@ -56,10 +56,22 @@ describe('a television pays the onset at every pace', () => {
     expect(tv, 'a TV at 1x was speaking one clause at a time — that is the stall').toBeGreaterThan(1);
   });
 
-  it('the TV span is several clauses, not two', () => {
-    // Two would still leave an onset every other clause, which is still a
-    // limp. The budget holds roughly three of these.
-    expect(utteranceSpan(CLAUSES, 0, 1.0, { tv: true })).toBeGreaterThanOrEqual(3);
+  it('PROVEN-TO-CATCH: the TV utterance stays inside Chrome\'s ~15s cutoff', () => {
+    // THE CORRECTION (DR-0879). The first cut used a flat 540-character TV
+    // budget. At roughly 15 characters of speech per second that is ~36
+    // SECONDS of audio, and Chrome silently truncates past about 15 — which
+    // is one of the two bugs segmenting exists to dodge in the first place.
+    // The paced budget is a constant ~12 seconds at every rate; that is what
+    // the number is really measuring, and a television does not get to leave
+    // it. This case fails against the 540 version.
+    const CHARS_PER_SECOND = 15;
+    const CHROME_CUTOFF_SECONDS = 15;
+    for (const r of [1.0, 1.5, 2.0, 3.0]) {
+      const n = utteranceSpan(CLAUSES, 0, r, { tv: true });
+      const chars = CLAUSES.slice(0, n).join(' ').length;
+      const seconds = chars / (CHARS_PER_SECOND * r);
+      expect(seconds, `a TV utterance at ${r}x lasts ${seconds.toFixed(1)}s`).toBeLessThan(CHROME_CUTOFF_SECONDS);
+    }
   });
 
   it('a phone is untouched at every rate below the fast threshold', () => {
@@ -84,7 +96,6 @@ describe('a television pays the onset at every pace', () => {
         expect(chars).toBeLessThanOrEqual(MAX_SPAN_CHARS);
       }
     }
-    expect(TV_SPAN_CHARS).toBeLessThan(MAX_SPAN_CHARS);
   });
 
   it('a single clause longer than the budget is still spoken, not dropped', () => {

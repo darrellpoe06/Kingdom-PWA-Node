@@ -121,6 +121,64 @@ const MANAGER_TABS = [
 ];
 
 /**
+ * WHAT THIS FACE IS NOT SHOWN (DR-0876). Darrell, 2026-10-10: "End to end....
+ * historical accuracy and events" — and the reason it matters: "workers can
+ * deduce things from historical data... less questions for owners."
+ *
+ * Row-level security does NOT error when it withholds something; it filters
+ * the rows and returns an empty set. So a person who is not permitted to see
+ * a part of a door's record gets exactly what a person looking at a brand new
+ * door gets — nothing — under a heading that says "Everything that has
+ * happened on this door, in order." A worker deducing from that would deduce
+ * from an absence the app created, which is the opposite of what the record
+ * is for.
+ *
+ * This names the gaps in plain words so the surface can SAY them. It mirrors
+ * the 0150 read policies deliberately, the same way capabilitiesFor() mirrors
+ * claim_property_access() — stated here so the duplication is a decision and
+ * not an accident. If the policies move, this moves with them.
+ *
+ * Returns [] when this face sees the whole record.
+ */
+export function unseenByThisFace(role, grants = []) {
+  const held = new Set(grants);
+  const out = [];
+  // tenant_messages_read (0150:242): owner/admin/member, the tenant, their
+  // household, a delegate with message.tenant, or a worker enabled on a job.
+  if (role === 'manager' && !held.has('message.tenant')) {
+    out.push('Messages are not part of the history you are shown — your landlord has not turned on "Message tenants" for you.');
+  }
+  if (role === 'field_worker') {
+    out.push('You are shown the job threads your landlord opened to you, not the tenant\u2019s whole conversation.');
+  }
+  // rent_records (0075 §3): the rent roll is a delegated sight.
+  if (role === 'manager' && !held.has('rentroll.view')) {
+    out.push('Payments are not part of the history you are shown — your landlord has not turned on "See the rent roll for managed doors".');
+  }
+  if (role === 'field_worker') {
+    out.push('Payments and the tenant\u2019s private details are never part of a worker\u2019s history.');
+  }
+  // property_notes (0062) is the landlord's own door memory, passed only to
+  // the management face by the caller — never promised to anyone else.
+  if (role === 'tenant' || role === 'household') {
+    out.push('Your landlord\u2019s own private notes about this property are not part of your history.');
+  }
+  return out;
+}
+
+/**
+ * One sentence for a record that could not be fully READ (as opposed to one
+ * the reader is not permitted to see). `unreadable` comes from
+ * loadDoorRecord. Null when everything was read.
+ */
+export function unreadNote(unreadable = []) {
+  const list = (Array.isArray(unreadable) ? unreadable : []).filter(Boolean);
+  if (!list.length) return null;
+  const which = list.length === 1 ? list[0] : `${list.slice(0, -1).join(', ')} and ${list[list.length - 1]}`;
+  return `This history is INCOMPLETE: the ${which} could not be read just now, so what is missing is unknown rather than absent. Try again before deciding anything from it.`;
+}
+
+/**
  * Resolve the face a signed-in person meets.
  *   role   — 'owner' | 'manager' | 'field_worker' | 'tenant' | 'household'
  *   grants — the capability strings actually held (from delegated_capabilities)
@@ -184,12 +242,15 @@ export const FOLLOWUP_LABELS = Object.freeze({
  * only meaningful when the job is NOT fixed — the DB comment says the app
  * enforces that, so it is enforced here and proven in the test.
  */
-export function buildJobDoc({ instanceId, requestId, tenancyId, outcome, followup, note, imageData } = {}) {
+export function buildJobDoc({ instanceId, requestId, tenancyId, rentalId, outcome, followup, note, imageData } = {}) {
   const out = DOC_OUTCOMES.includes(outcome) ? outcome : 'not_fixed';
+  // The scope is the REQUEST's (0260 copies it from the parent row before RLS
+  // reads it); these are carried so a reader of the row sees the door at once.
   return {
     instance_id: instanceId || null,
     request_id: requestId || null,
     tenancy_id: tenancyId || null,
+    rental_id: rentalId || null,
     outcome: out,
     followup: out === 'not_fixed' && DOC_FOLLOWUPS.includes(followup) ? followup : null,
     note: String(note || '').trim() || null,
@@ -198,11 +259,14 @@ export function buildJobDoc({ instanceId, requestId, tenancyId, outcome, followu
 }
 
 /** One note on the shared relationship record (tenancy_notes, 0150). */
-export function buildTenancyNote({ instanceId, tenancyId, requestId, authorRole, authorLabel, body } = {}) {
+export function buildTenancyNote({ instanceId, tenancyId, rentalId, requestId, authorRole, authorLabel, body } = {}) {
   const role = PROPERTY_ROLES.includes(authorRole) ? authorRole : 'tenant';
   return {
     instance_id: instanceId || null,
     tenancy_id: tenancyId || null,
+    // A note on a door no tenancy holds (a vacant door, a short stay, our home)
+    // names the door instead (0260 / DR-0897). At least one of the two is set.
+    rental_id: rentalId || null,
     request_id: requestId || null,
     author_role: role === 'owner' ? 'landlord' : role === 'field_worker' ? 'worker' : role,
     author_label: String(authorLabel || '').trim() || null,
@@ -230,7 +294,17 @@ const at = (...candidates) => {
 
 export function buildHistory({
   requests = [], messages = [], notes = [], docs = [], rent = [], notices = [], propertyNotes = [],
+  // Map(userId -> name) from people.js namesByUserId. Optional: when it is
+  // absent the history reads exactly as it always did, by role. When it is
+  // present a message says WHO said it, which is the whole point of keeping
+  // the thread (DR-0871) — "landlord · tenant · landlord" cannot tell you who
+  // was misled, and a name can.
+  names = null,
 } = {}) {
+  const speaker = (row, role) => {
+    const n = names && row && row.sender_user_id ? names.get(row.sender_user_id) : null;
+    return n ? `${n} · ${role || ''}`.replace(/ \u00b7 $/, '') : (role || '');
+  };
   const events = [];
   const push = (kind, row, stamp, summary, who) => {
     events.push({
@@ -251,7 +325,7 @@ export function buildHistory({
       push('work-order-closed', r, at(r.updated_at), `Closed: ${r.title || 'work order'}`, r.assigned_to_label || '');
     }
   }
-  for (const m of messages) push('message', m, at(m.sent_at), m.body || '', m.from_role || '');
+  for (const m of messages) push('message', m, at(m.sent_at), m.body || '', speaker(m, m.from_role));
   for (const n of notes) push('note', n, at(n.created_at), n.body || '', n.author_label || n.author_role || '');
   for (const d of docs) {
     const head = d.outcome === 'fixed' ? 'Fixed' : `Not fixed — ${FOLLOWUP_LABELS[d.followup] || 'follow-up needed'}`;

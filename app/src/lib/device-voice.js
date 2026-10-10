@@ -346,7 +346,17 @@ export async function synthesizeOnDevice({ text, voice = 'male', cachesImpl, wor
   const r = await call(entry, { type: 'speak', text: body });
   if (!r || r.error) return { error: (r && r.error) || 'device-voice-error' };
   const blob = new Blob([r.wav], { type: 'audio/wav' });
-  return { url: URL.createObjectURL(blob), ms: r.ms, audioSeconds: r.audioSeconds, initMs: entry.initMs };
+  // THE SAME SHAPE synthesizeLite ANSWERS IN (DR-0881). This file's header has
+  // always said the point was to be "a drop-in engine later" for the reader,
+  // and it was two fields short of being one: the clip cache keeps the BLOB
+  // (lib/clip-cache.js) and the player asks a clip which FORMAT it is
+  // (lib/clip-format.js). `engine` is how the trip can say which voice a
+  // listener actually heard — 'voice-lite' is Piper on the NAS, 'device-voice'
+  // is the same Piper here.
+  return {
+    url: URL.createObjectURL(blob), blob, format: 'wav', engine: 'device-voice',
+    ms: r.ms, audioSeconds: r.audioSeconds, initMs: entry.initMs,
+  };
 }
 
 /** Stop the worker(s) and free their memory (the model session is ~100+ MB). */
