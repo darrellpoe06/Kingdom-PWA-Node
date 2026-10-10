@@ -16,7 +16,7 @@
 // they were not granted renders LOCKED with the reason, never silently missing;
 // an empty spine says it is empty rather than showing a painted example.
 // =============================================================================
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   resolveFace, buildHistory, newestFirst, buildJobDoc, buildTenancyNote,
   unseenByThisFace, unreadNote,
@@ -58,6 +58,8 @@ import { announceRentalChange } from '../../lib/rental-write.js';
 import { buildRoom } from './rooms.js';
 import { pickCovers } from './photo-order.js';
 import { tenancyRowForDoor } from './staging.js';
+import { areaKeyFor, describeAddress, linkToAddress } from './addressing.js';
+import { addressNow, useAddress } from './use-address.js';
 import supabase, { phoneLoginEmail } from '../../lib/supabase.js';
 import { boundedRead, deadlineIn, OPTIONAL_TIMEOUT_MS as CLAIM_TIMEOUT_MS } from '../../lib/bounded-read.js';
 import { POE_PROPERTIES, LAUNCH_PLAN, OPPORTUNITIES, CONSTRAINTS } from './config.js';
@@ -233,15 +235,20 @@ const KIND_LABEL = {
  *                   Absent in the Poe Properties door: the money river runs
  *                   books-side by design (0150's posting trigger enforces it).
  */
-export default function PropertiesApp({ surface = 'poetech', books = null, records = [], renderCameras = null }) {
+export default function PropertiesApp({ surface = 'poetech', books = null, records = [], renderCameras = null, onFeedback = null }) {
   const [loading, setLoading] = useState(true);
   const [doors, setDoors] = useState([]);
   const [grants, setGrants] = useState([]);
   const [household, setHousehold] = useState([]);
   const [claim, setClaim] = useState(null);
-  const [activeId, setActiveId] = useState('');
+  // THE PAGE THE LINK ASKED FOR (DR-0898). A deep link lands here: the tab and
+  // the door come out of the URL on the first render rather than being
+  // defaulted and then corrected, so a person following a link never sees the
+  // landing tab flash past on the way to the page they were sent to.
+  const opened = useRef(addressNow()).current;
+  const [activeId, setActiveId] = useState(opened.door || '');
   const [record, setRecord] = useState({ requests: [], messages: [], notes: [], docs: [], rent: [], notices: [] });
-  const [tab, setTab] = useState('');
+  const [tab, setTab] = useState(opened.tab || '');
   const [busy, setBusy] = useState('');
   // The 1099 workers invited to this instance (the landlord reads them all; a
   // worker reads their own), and who is signed in, so a worker's jobs are
@@ -456,6 +463,37 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
     || face.tabs.find((t) => t.id === 'doors' && !t.locked)?.id
     || face.tabs.find((t) => !t.locked)?.id
     || face.tabs[0]?.id || '';
+
+  // THE URL FOLLOWS THE PAGE (DR-0898). Every page in this module is now
+  // addressable, which is what makes "linked to as the page with said issue"
+  // possible at all -- and it buys a reload that keeps your place and a back
+  // gesture that steps a tab instead of leaving the app. All of it is written
+  // through use-address.js so this file holds no history calls.
+  //
+  // `activeTab` is passed, not `tab`: the URL should name the page the person
+  // is LOOKING AT, not the empty string that means "wherever the default put
+  // me". A link to the landing tab has to say which tab that was, or it is
+  // not a link to a page.
+  const address = useMemo(
+    () => ({ tab: activeTab, door: activeId || null, area: null }),
+    [activeTab, activeId],
+  );
+  useAddress(address, useCallback((at) => {
+    // The back gesture moved the URL; move the app to match it. Guarded so a
+    // forged or stale link can only ever land on a page this face HAS --
+    // addressing.js has already dropped anything that is not a real surface,
+    // and this drops the ones this person is not shown.
+    if (at.tab && face.tabs.some((t) => t.id === at.tab)) setTab(at.tab);
+    if (at.door) setActiveId(at.door);
+  }, [face.tabs]));
+
+  // The page, in words, for a report: "Guest ready, on 805 N Prospect Apt 2".
+  const activeDoorName = useMemo(() => {
+    const d = doors.find((x) => x.id === activeId) || null;
+    const r = rentals.find((x) => x.id === activeId) || null;
+    return [d?.property_label || r?.property_label, d?.unit_label || r?.unit_label]
+      .filter(Boolean).join(' · ') || '';
+  }, [doors, rentals, activeId]);
 
   // The door's own notes join the chronology, and they join it whether or not a
   // TENANCY exists — a landlord's note about the building predates his tenant
@@ -808,6 +846,54 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
           </Btn>
         ))}
       </div>
+
+      {/* SOMETHING WRONG WITH *THIS PAGE* (DR-0898). Darrell, 2026-10-10:
+          "Feedback? Should be inside for app issues... workorders for property
+          issues... make sense?" — and then the part that makes a report
+          actionable: "make sure thr fields and pages are all able to be linked
+          to as the page with said issue/s".
+
+          So this is the APP-issue channel, deliberately NOT the work-order
+          channel beside it: a broken furnace is a work order, a broken Guest
+          ready tab is this. It hands the feedback form the page's own area key
+          and the page's own link, so the report arrives already saying where
+          it came from instead of "the Poe Properties module" — which was all
+          21 of these pages could say until today.
+
+          Shown only where the family's feedback channel actually exists. The
+          Poe Properties door mounts this same module for TENANTS and 1099
+          WORKERS, and that channel's writer enrols the author into the
+          'poe-family' instance (lib/feedback-sync.js, ensureTenantMembership)
+          — so showing it there would quietly make a tenant a member of the
+          family's space to report a typo. That is a tenancy boundary, not a
+          layout question, and it is left for its own decision rather than
+          crossed here. re-review: 2026-10-24. */}
+      {onFeedback && (
+        <div className="mb-3">
+          <button
+            type="button"
+            data-testid="properties-report-page"
+            onClick={() => onFeedback(areaKeyFor(activeTab), {
+              page: describeAddress(address, { doorName: activeDoorName }),
+              link: linkToAddress(
+                typeof window === 'undefined' ? {} : {
+                  origin: window.location.origin,
+                  pathname: window.location.pathname,
+                  search: window.location.search,
+                },
+                address,
+              ),
+            })}
+            className="text-[0.625rem] uppercase tracking-wider px-2 py-1 border border-[#E8E4DC] text-[#6B665E] hover:text-[#2F5D50] focus:outline-none focus:ring-2 focus:ring-[#2F5D50]"
+            style={serif}
+          >
+            Something&rsquo;s wrong with this page
+          </button>
+          <span className="text-[0.625rem] text-[#6B665E] ml-2" style={serif} data-testid="properties-page-name">
+            {describeAddress(address, { doorName: activeDoorName })}
+          </span>
+        </div>
+      )}
 
       {/* WHICH PROPERTY AM I IN? (Darrell, 2026-08-28: "I can't see which
           property I'm in after selecting a door... it doesn't tie into the

@@ -61,6 +61,13 @@ let container, root;
 afterEach(() => { if (root) act(() => root.unmount()); if (container) container.remove(); root = container = null; H.rentals = []; H.vacancies = []; });
 
 async function mount(props = {}) {
+  // A FRESH ADDRESS PER MOUNT (DR-0898). The module now writes the page it is
+  // on into the URL, and one jsdom document is shared by every case in this
+  // file -- so without this, case 2 opens at the address case 1 navigated to
+  // and lands on a door-scoped tab pointing at a door that only existed in
+  // case 1's fixture. A real page load always starts from the link that was
+  // opened; this is that.
+  window.history.replaceState(null, '', `${window.location.pathname}`);
   container = document.createElement('div');
   document.body.appendChild(container);
   await act(async () => { root = createRoot(container); root.render(createElement(PropertiesApp, { surface: 'poetech', ...props })); });

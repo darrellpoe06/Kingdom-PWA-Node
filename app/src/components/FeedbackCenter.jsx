@@ -17,6 +17,7 @@ import { filesFromClipboardEvent } from '../lib/paste-input.js';
 import { receiptMessage, receiptCode } from '../lib/feedback-receipt.js';
 import IntakeOutcomeList, { tallyText } from './IntakeOutcomeList.jsx';
 import FeedbackScreenshots from './FeedbackScreenshots.jsx';
+import { propertiesSurfaces, areaKeyFor } from '../modules/properties/addressing.js';
 import { fetchMyFeedback } from '../lib/feedback-sync.js';
 import { recentTripLine } from '../lib/reader-trip.js';
 import { fetchDeliveryRecord } from '../lib/github-ops.js';
@@ -55,6 +56,36 @@ const SIGNED_OUT_RECEIPT = 'You are signed out, so this note stayed on this devi
 // indented under their page on purpose — that granularity is what makes SME
 // feedback actionable. Existing keys are STABLE (stored feedback rows reference
 // them); only add, don't rename.
+//
+// THE POE PROPERTIES GROUP IS DERIVED, NOT LISTED (DR-0898). Darrell,
+// 2026-10-10: "make sure thr fields and pages are all able to be linked to as
+// the page with said issue/s". Measured that day: all 17 of the module's
+// manager tabs collapsed into the single 'properties' entry below, while the
+// OLDER Real Estate tab it replaces carried eleven sub-entries -- so the
+// newer surface was the LESS reportable one, and a reviewer standing on Guest
+// ready or Dispatch could only file against "the Poe Properties module".
+//
+// The header above says "when a tab is added there, add a matching entry
+// here". That instruction is the defect: it is a hand-maintained mirror, and
+// it has now gone stale three times (Inbound, Notes, the Choir sub-tabs, and
+// this). So this group is BUILT from the module's own face definitions at
+// import time -- a tab added to model.js appears in this form with no second
+// edit, and cannot be forgotten. The hand-listed groups above keep their
+// shape; only the one that measurably drifted is derived.
+//
+// The bare ['properties', ...] pair below stays a LITERAL inside this array on
+// purpose: scripts/feedback-area-guard.mjs scrapes these keys with a regex
+// over the source (it is a plain .mjs and cannot import a .jsx), so a key it
+// needs to see has to be written out. The 21 derived rows beside it are proven
+// by the runtime gate instead, which imports both lists and compares them.
+const propertiesPages = () => propertiesSurfaces().map((s) => [
+  areaKeyFor(s.id),
+  // The faces are named because a report wants to say WHO was looking: the
+  // manager's "History" and the worker's "Property history" are the same tab
+  // id showing different things to different people.
+  `└ ${s.labels.join(' / ')} (${s.faces.join(', ')})`,
+]);
+
 export const FEEDBACK_AREAS = [
   { group: 'Big Picture', items: [
     ['overview', 'Big Picture · dashboard'],
@@ -84,7 +115,9 @@ export const FEEDBACK_AREAS = [
   ]},
   { group: 'Real Estate', items: [
     ['rentals', 'Real Estate · property list + map'],
-    ['properties', 'Properties · work orders, tenants, 1099 workers (the Poe Properties module)'],
+    // 'properties' moved to its own group (DR-0898), where its 21 pages are
+    // now listed under it. The KEY is unchanged, so every report already
+    // filed against it still means what it meant.
     ['rentals-edit', '└ Inline quick-edit on property rows'],
     ['rentals-valuation', '└ Property Valuation (Zillow/Realtor/Redfin lookup + save)'],
     ['rentals-lease', '└ Lease & Tenant Contact'],
@@ -290,6 +323,12 @@ export const FEEDBACK_AREAS = [
     ['copy', 'Copy / wording / clarity'],
     ['other', 'Other'],
   ]},
+  // Last, beside the cross-cutting group, because its own pages are reached
+  // from inside the module rather than from this shell's nav.
+  { group: 'Poe Properties', items: [
+    ['properties', 'Poe Properties · the module in general'],
+    ...propertiesPages(),
+  ]},
 ];
 // filterAreas — type-to-find over the "Which area?" list.
 //
@@ -348,7 +387,7 @@ export function mergeMine(remote = [], local = []) {
     .sort((a, b) => String(b.createdAt || b.submittedAt || '').localeCompare(String(a.createdAt || a.submittedAt || '')));
 }
 
-export function FeedbackModal({ onClose, onSubmit, currentView, initialAreaKey = null, myFeedback = [], outcomeDeps = OUTCOME_DEPS }) {
+export function FeedbackModal({ onClose, onSubmit, currentView, initialAreaKey = null, initialWhere = null, myFeedback = [], outcomeDeps = OUTCOME_DEPS }) {
   const [rating, setRating] = useState('');
   // Pre-fill area from the currently-active view if it maps to an area key.
   // `initialAreaKey` wins: a surface that KNOWS what this note is about (the
@@ -375,7 +414,17 @@ export function FeedbackModal({ onClose, onSubmit, currentView, initialAreaKey =
   const [areaQuery, setAreaQuery] = useState('');
   const [categories, setCategories] = useState([]);
   const [whatsWorking, setWhatsWorking] = useState('');
-  const [whatsNot, setWhatsNot] = useState('');
+  // THE PAGE THE REPORT CAME FROM, ALREADY WRITTEN DOWN (DR-0898). A surface
+  // that knows exactly which page and which door the person was standing on
+  // hands both over, and they are seeded into the "what's not working" box
+  // rather than hidden in metadata -- so it survives into the report body a
+  // person reads, and the reporter can see what is being sent on their behalf
+  // and edit or delete it. Nothing is attached invisibly.
+  const [whatsNot, setWhatsNot] = useState(
+    initialWhere && initialWhere.page
+      ? `On: ${initialWhere.page}\n${initialWhere.link || ''}\n\n`
+      : '',
+  );
   const [whatsMissing, setWhatsMissing] = useState('');
   // 2026-06-16 — multi-image. Christina/parishioners asked to attach more than
   // one screenshot at a time ("I can only select one at a time"). `screenshots`
