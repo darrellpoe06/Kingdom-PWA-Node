@@ -19,6 +19,7 @@ import {
 } from '../modules/properties/apply-link.js';
 import {
   GalleryTab, FilesTab, DoorsBoard, dataUrlBytes, PHOTO_KINDS, DOCUMENT_KINDS, MAX_DOCUMENT_BYTES,
+  RECORD_KINDS, ADVERTISING_KINDS, isAdvertising,
 } from '../modules/properties/DoorTabs.jsx';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
@@ -154,9 +155,56 @@ describe('a property\'s pictures', () => {
     expect(txt(host)).toMatch(/No caption/);
   });
 
-  it('warns that a LISTING shot is the only kind a stranger can see', () => {
+  // RECORDS VS ADVERTISING (DR-0906). Darrell, 2026-10-10, over a move-out
+  // condition set: "just don't want it to be advertised!!!", "Records vs
+  // advertising!!!" and "Or workorders... etc... pictures for advertising are
+  // different..."
+  //
+  // THIS CASE USED TO ASSERT THE DEFECT. It rendered the panel and expected
+  // the listing warning to be ON SCREEN — which passed only because the form
+  // OPENED on 'listing', the single kind a stranger can see, for a panel whose
+  // ordinary use is documenting damage and work orders. The warning was not a
+  // warning; it was the standing state. Named here rather than quietly
+  // adjusted.
+  it('opens on a RECORD, never on advertising', () => {
     const host = render(<GalleryTab door={door} rooms={rooms} photos={[]} canManage />);
-    expect(txt(host)).toMatch(/only kind a stranger can ever see/);
+    const kind = host.querySelector('[data-testid="photo-kind"]');
+    expect(kind, 'no kind picker').toBeTruthy();
+    expect(RECORD_KINDS).toContain(kind.value);
+    expect(isAdvertising(kind.value)).toBe(false);
+    // And nothing shouts about advertising when nobody chose it.
+    expect(host.querySelector('[data-testid="advertising-warning"]')).toBeNull();
+  });
+
+  it('a work order, damage and a move-out set are all RECORDS', () => {
+    for (const k of ['work-order-before', 'work-order-after', 'damage', 'move-out-condition', 'turn', 'inspection']) {
+      expect(RECORD_KINDS, `${k} must be a record`).toContain(k);
+      expect(isAdvertising(k)).toBe(false);
+    }
+    // Exactly one kind is advertising, and it is named.
+    expect([...ADVERTISING_KINDS]).toEqual(['listing']);
+  });
+
+  it('PROVEN-TO-CATCH: choosing advertising SAYS it is advertising', () => {
+    const host = render(<GalleryTab door={door} rooms={rooms} photos={[]} canManage />);
+    const kind = host.querySelector('[data-testid="photo-kind"]');
+    act(() => {
+      const setter = Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, 'value');
+      setter.set.call(kind, 'listing');
+      kind.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    const warn = host.querySelector('[data-testid="advertising-warning"]');
+    expect(warn, 'picking listing said nothing').toBeTruthy();
+    expect(warn.textContent).toMatch(/This is advertising, not a record/);
+    expect(warn.textContent).toMatch(/only kind a stranger can ever see/);
+  });
+
+  it('the two purposes are separate GROUPS in the picker, not one flat list', () => {
+    const host = render(<GalleryTab door={door} rooms={rooms} photos={[]} canManage />);
+    const groups = [...host.querySelectorAll('[data-testid="photo-kind"] optgroup')].map((g) => g.label);
+    expect(groups).toHaveLength(2);
+    expect(groups[0]).toMatch(/record/i);
+    expect(groups[1]).toMatch(/stranger can see/i);
   });
 
   it('hides an archived picture without pretending it was deleted', () => {

@@ -1105,10 +1105,59 @@ function DoorQR({ rental, label }) {
   );
 }
 
-export const PHOTO_KINDS = Object.freeze([
-  'listing', 'move-in-condition', 'move-out-condition', 'turn',
+// RECORDS VS ADVERTISING (DR-0906). Darrell, 2026-10-10, over a move-out
+// condition set of a unit he had just got back: "just don't want it to be
+// advertised!!!" and then the principle itself: "Records vs advertising!!!"
+//
+// Eight of these nine kinds are RECORDS — what a place looked like on a day,
+// kept so the family and a worker can see later "how horrible it was or nice".
+// Exactly ONE, 'listing', is ADVERTISING: it is the only kind
+// public_vacancy_photos will return, and then only while the door is listed
+// and nobody lives there (0161).
+//
+// AND THE FORM DEFAULTED TO THE ADVERTISING ONE — `useState({ kind:
+// 'listing' })`, and it RESET BACK to it after every add. So the one kind a
+// stranger can see was the standing default for a panel whose ordinary use is
+// documenting damage, and a landlord adding a second batch of move-out photos
+// got silently switched back to "advertise this" between batches.
+//
+// The order here is the reading order of the picker, so the records come
+// first and the advertising kind is last, beside its own label.
+export const RECORD_KINDS = Object.freeze([
+  'move-in-condition', 'move-out-condition', 'turn',
   'work-order-before', 'work-order-after', 'damage', 'inspection', 'document-scan',
 ]);
+
+/** The only kind a stranger can ever be shown. One member, named, on purpose. */
+export const ADVERTISING_KINDS = Object.freeze(['listing']);
+
+export const PHOTO_KINDS = Object.freeze([...RECORD_KINDS, ...ADVERTISING_KINDS]);
+
+export const isAdvertising = (kind) => ADVERTISING_KINDS.includes(kind);
+
+// WHAT THE PANEL OPENS ON. The kind he used last, on this device, because a
+// move-out set is a dozen photographs over several batches and re-choosing it
+// each time is how the wrong one gets saved. Never 'listing' from memory
+// alone: advertising is a thing a person chooses each time they mean it, not
+// a state the app can drift into.
+const KIND_MEMORY = 'poetech-properties-photo-kind-v1';
+
+export function rememberedKind(storage) {
+  try {
+    const store = storage || (typeof localStorage === 'undefined' ? null : localStorage);
+    const seen = store && store.getItem(KIND_MEMORY);
+    if (seen && RECORD_KINDS.includes(seen)) return seen;
+  } catch { /* a private window has no storage; the default below is fine */ }
+  return RECORD_KINDS[0];
+}
+
+export function rememberKind(kind, storage) {
+  try {
+    const store = storage || (typeof localStorage === 'undefined' ? null : localStorage);
+    // Only a record is remembered. See above.
+    if (store && RECORD_KINDS.includes(kind)) store.setItem(KIND_MEMORY, kind);
+  } catch { /* nothing to do, and nothing worth failing an upload over */ }
+}
 
 export const DOCUMENT_KINDS = Object.freeze([
   'lease', 'addendum', 'rules', 'notice', 'receipt', 'inspection',
@@ -1190,7 +1239,7 @@ export function GalleryTab({
   door, rooms = [], photos = [], canManage = false, canAdd = canManage, busy = false,
   onAdd, onPatch, onAddRoom, loadImage = null,
 }) {
-  const [f, setF] = useState({ caption: '', kind: 'listing', roomId: '' });
+  const [f, setF] = useState(() => ({ caption: '', kind: rememberedKind(), roomId: '' }));
   const [pending, setPending] = useState([]);
   const [error, setError] = useState('');
   const [editing, setEditing] = useState(null);
@@ -1271,7 +1320,10 @@ export function GalleryTab({
       });
     });
     setPending([]);
-    setF({ caption: '', kind: 'listing', roomId: '' });
+    // KEEP THE KIND. A move-out set arrives in batches; reverting to
+    // 'listing' between them is how an advertising photo gets made by
+    // accident. Only the caption and room clear.
+    setF((p) => ({ caption: '', kind: p.kind, roomId: '' }));
   };
 
   // Open a picture: draw what we have at once, then swap in the full image the
@@ -1330,8 +1382,19 @@ export function GalleryTab({
               />
             </div>
             <label><span className={lbl}>What is it</span>
-              <select className={field} value={f.kind} onChange={(e) => setF((p) => ({ ...p, kind: e.target.value }))}>
-                {PHOTO_KINDS.map((k) => <option key={k} value={k}>{k.replace(/-/g, ' ')}</option>)}
+              <select
+                className={field} value={f.kind}
+                data-testid="photo-kind"
+                onChange={(e) => { rememberKind(e.target.value); setF((p) => ({ ...p, kind: e.target.value })); }}
+              >
+                {/* The two purposes are SEPARATE and named, because they are
+                    not two flavours of one thing (DR-0906). */}
+                <optgroup label="A record — stays inside the app">
+                  {RECORD_KINDS.map((k) => <option key={k} value={k}>{k.replace(/-/g, ' ')}</option>)}
+                </optgroup>
+                <optgroup label="Advertising — a stranger can see this">
+                  {ADVERTISING_KINDS.map((k) => <option key={k} value={k}>{k.replace(/-/g, ' ')}</option>)}
+                </optgroup>
               </select>
             </label>
             {/* A DROPDOWN NEVER DEAD-ENDS (2026-08-28). On a door with no rooms
@@ -1401,10 +1464,21 @@ export function GalleryTab({
               ))}
             </ul>
           )}
-          {f.kind === 'listing' && (
-            <p className="text-[0.8125rem] text-[#6B665E] leading-relaxed mt-1">
-              A <strong>listing</strong> picture is the only kind a stranger can ever see, and only while
-              this door is advertised and free. Everything else stays inside the app.
+          {/* ADVERTISING SAYS SO, LOUDLY. This sentence existed and was grey
+              body text under a control that DEFAULTED to advertising, so it
+              read as reassurance rather than as a warning. It is now the
+              exception, shown only when a person has deliberately chosen the
+              one public kind, and it is marked. */}
+          {isAdvertising(f.kind) && (
+            <p
+              className="text-[0.8125rem] text-[#8C2F2F] leading-relaxed mt-1 border-l-2 border-[#8C2F2F] pl-2"
+              data-testid="advertising-warning"
+              role="status"
+            >
+              <strong>This is advertising, not a record.</strong> A <strong>listing</strong> picture is the
+              only kind a stranger can ever see — and only while this door is advertised and nobody lives
+              in it. For a move-out set, damage, or a before and after, pick one of the record kinds above
+              and it stays inside the app.
             </p>
           )}
           {error && <p className="text-[0.8125rem] text-[#8C2F2F] mt-2">{error}</p>}
