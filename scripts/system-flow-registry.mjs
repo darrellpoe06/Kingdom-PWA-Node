@@ -1105,6 +1105,21 @@ const NODES = [
     ],
     seeds: ['door-pictures'],
   }),
+  // A short-stay door's calendar (DR-0907, 0269): a guest asks (no account),
+  // the family confirms, declines, blacks out and books; every move on the clock.
+  app('app/src/modules/properties/Booking.jsx', {
+    id: 'stay-calendar', name: "A short-stay door's calendar", purpose: 'Guests ask for open nights through a short form (21+, house rules, wishes, an email offers yes); the family confirms, declines, blacks out dates and books stays; taken nights show dark to the public.',
+    writes: [
+      { res: 'db:door_stays', file: 'app/src/modules/properties/cloud.js', token: "rpc('request_a_stay'" },
+      { res: 'db:door_stays', file: 'app/src/modules/properties/cloud.js', token: "from('door_stays').insert" },
+      { res: 'db:record_events', file: 'infra/supabase/migrations-auto/0269-a-short-stay-door-has-a-booking-calendar.sql', token: 'INSERT INTO record_events' },
+    ],
+    reads: [
+      { res: 'db:door_stays', file: 'app/src/modules/properties/cloud.js', token: "rpc('door_booked_nights'" },
+      { res: 'db:door_stays', file: 'app/src/modules/properties/cloud.js', token: "from('door_stays').select" },
+    ],
+    seeds: ['record-clock'],
+  }),
   app('app/src/modules/properties/model.js', {
     id: 'record-clock', name: 'Every change, to the instant (record events)', purpose: 'Each report, confirmation, status move and assignment on rent and work leaves an append-only event with its own clock, read back on the door\u2019s history so a situation can be recreated.',
     reads: [

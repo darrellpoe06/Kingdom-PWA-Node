@@ -119,6 +119,9 @@ const MANAGER_TABS = [
   // Turning a unit into a listing is its own body of work — construction,
   // furnishing, supplies, safety, the listing itself — and it belongs to the
   // door, not to a side note. Darrell, 2026-09-12.
+  // THE NIGHTS OF A SHORT-STAY DOOR (DR-0907): asks to confirm, what is
+  // coming, blackouts, and stays the family enters itself.
+  TAB('stays', 'Stays', 'Confirm or decline asked-for nights, black out dates, and book a stay yourself.'),
   TAB('readiness', 'Guest ready', 'Everything left before this unit can be listed and take a guest \u2014 and what it still costs.'),
   TAB('people', 'People', 'Invite a tenant, a family member, or a 1099 worker.'),
   TAB('cameras', 'Cameras', 'Share the cameras at this door with its household, and take them back.'),

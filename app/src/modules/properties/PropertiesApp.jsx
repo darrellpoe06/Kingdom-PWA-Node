@@ -31,6 +31,7 @@ import {
 } from './cloud.js';
 import { moneyByDoor, moneyLine } from './door-money.js';
 import { DoorMoneyCard, RecordPayment } from './DoorMoney.jsx';
+import { StayDesk } from './Booking.jsx';
 import { peopleOnDoor, whyNotReady, namesByUserId } from './people.js';
 import { MAINTENANCE_TRANSITIONS, PRIORITY, buildMaintenanceRequest } from '../../lib/tenant-portal.js';
 import { smsHref, telHref } from '../../lib/dispatch.js';
@@ -79,7 +80,7 @@ const ACCENT = '#2F5D50';
  * selected door, so every one of them owes the reader its name.
  */
 const DOOR_SCOPED = new Set([
-  'timeline', 'rooms', 'gallery', 'files', 'systems', 'documents', 'door', 'history', 'rent', 'thread',
+  'timeline', 'rooms', 'gallery', 'files', 'systems', 'documents', 'door', 'history', 'rent', 'thread', 'stays',
   'readiness',
   // The work is an option of the door (DR-0837): the board, the dispatch, the
   // worker's jobs and the documentation all read ONE door's requests, so they
@@ -1198,6 +1199,8 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
             return <PapersPanel seat="tenant" tenancyId={activeDoor?.id || null} instanceId={activeDoor?.instance_id || null} />;
           case 'plan':
             return <PlanTab />;
+          case 'stays':
+            return <StayDesk instanceId={(activeRental || activeDoor)?.instance_id || null} rentalId={activeRental?.id || null} />;
           case 'cameras':
             // THE CAMERAS AT THIS DOOR (DR-0841): the landlord shares, the
             // household watches, on a grant the NAS minted for this door.

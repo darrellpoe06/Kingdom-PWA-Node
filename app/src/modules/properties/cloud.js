@@ -1098,3 +1098,53 @@ export async function doorOfMyTenancy(tenancyId, client = supabase) {
     return ok({ rentalId: data || null });
   } catch (e) { return no('unexpected', e); }
 }
+
+// =============================================================================
+// A short-stay door's calendar (DR-0907, 0269). The public reads taken ranges
+// only (door_booked_nights); a guest asks through request_a_stay(); the family
+// reads, blocks, confirms and declines; a signed-in guest reads their own.
+// =============================================================================
+export async function loadBookedNights(rentalId, from, to, client = supabase) {
+  if (!rentalId) return ok({ ranges: [] });
+  try {
+    const { data, error } = await client.rpc('door_booked_nights', { p_rental: rentalId, p_from: from, p_to: to });
+    if (error) return no('read-failed', error);
+    return ok({ ranges: data || [] });
+  } catch (e) { return no('unexpected', e); }
+}
+
+export async function requestAStay(a, client = supabase) {
+  try {
+    const { data, error } = await client.rpc('request_a_stay', {
+      p_rental: a.rentalId, p_in: a.checkIn, p_out: a.checkOut, p_name: a.name, p_phone: a.phone || null,
+      p_email: a.email || null, p_guests: Number(a.guests) || 1, p_note: a.note || null,
+      p_21_plus: !!a.is21, p_house_rules: !!a.rules, p_wishes: a.wishes || null, p_offers_by_email: !!a.offers,
+    });
+    if (error) return no(error.message || 'write-failed', error);
+    return ok({ id: data });
+  } catch (e) { return no('unexpected', e); }
+}
+
+export async function loadDoorStays(rentalId, client = supabase) {
+  if (!rentalId) return ok({ rows: [] });
+  try {
+    const { data, error } = await client.from('door_stays').select('*').eq('rental_id', rentalId).order('check_in', { ascending: true });
+    if (error) return no('read-failed', error);
+    return ok({ rows: data || [] });
+  } catch (e) { return no('unexpected', e); }
+}
+
+/** The family writes on the calendar: a blackout, or a stay it enters itself. */
+export async function addDoorStay(row, client = supabase) {
+  try {
+    const { error } = await client.from('door_stays').insert(row);
+    return error ? no(error.message || 'write-failed', error) : ok();
+  } catch (e) { return no('unexpected', e); }
+}
+
+export async function decideStay(id, status, client = supabase) {
+  try {
+    const { error } = await client.from('door_stays').update({ status }).eq('id', id);
+    return error ? no(error.message || 'write-failed', error) : ok();
+  } catch (e) { return no('unexpected', e); }
+}

@@ -23,6 +23,7 @@ import { loadVacancyPhotos } from './cloud.js';
 import { applyUrl } from './apply-link.js';
 import Lightbox from '../../components/Lightbox.jsx';
 import { stampImage, stampFileName } from '../../lib/brand-stamp.js';
+import { BookAStay } from './Booking.jsx';
 
 const ACCENT = '#2F5D50';
 const serif = { fontFamily: '"Fraunces", serif' };
@@ -36,6 +37,9 @@ export function VacancyCard({ unit }) {
   const [shots, setShots] = useState([]);
   const [i, setI] = useState(0);
   const [open, setOpen] = useState(null); // index being shown large, or null
+  // A short-stay door takes a stay through its own short form (DR-0907):
+  // "Short term rentals need another form" (Darrell, 2026-10-10).
+  const [booking, setBooking] = useState(false);
 
   useEffect(() => {
     if (!unit.rentalId) return undefined;
@@ -168,11 +172,23 @@ export function VacancyCard({ unit }) {
             Address shared when you apply — nothing to sign up for.
           </p>
         )}
-        <a
-          href={applyUrl(unit.rentalId)}
-          className="mt-2 inline-flex items-center text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border text-[#2F5D50]"
-          style={{ borderColor: ACCENT }}
-        >Apply — no account needed</a>
+        {shortStay && (
+          <button
+            type="button"
+            onClick={() => setBooking((b) => !b)}
+            className="mt-2 mr-2 inline-flex items-center text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+            style={{ borderColor: ACCENT, background: ACCENT }}
+            data-testid="book-a-stay-open"
+          >{booking ? 'Close the calendar' : 'Book a stay — no account needed'}</button>
+        )}
+        {unit.offering !== 'short-term' && (
+          <a
+            href={applyUrl(unit.rentalId)}
+            className="mt-2 inline-flex items-center text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border text-[#2F5D50]"
+            style={{ borderColor: ACCENT }}
+          >Apply for a lease — no account needed</a>
+        )}
+        {booking && <BookAStay rentalId={unit.rentalId} placeName={placeName} rate={unit.nightly} />}
       </div>
     </li>
   );
