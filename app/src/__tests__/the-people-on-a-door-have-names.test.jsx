@@ -245,8 +245,8 @@ describe('a repeated prop can never ship again', () => {
   it('PROVEN-TO-CATCH: eslint forbids duplicate JSX props', () => {
     // Twenty-five of these were live on 2026-10-10 — a second className wins
     // and the first is DROPPED, taking its sizing, spacing and border classes
-    // with it, with no error anywhere. The colour gates were happy because the
-    // colour was right; the layout had quietly fallen off the element.
+    // with it, with no error anywhere. The color gates were happy because the
+    // color was right; the layout had quietly fallen off the element.
     const cfg = readFileSync(join(HERE, '..', '..', 'eslint.config.js'), 'utf8');
     expect(cfg).toContain("'react/jsx-no-duplicate-props': 'error'");
   });

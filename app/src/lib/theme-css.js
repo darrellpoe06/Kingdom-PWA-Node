@@ -166,7 +166,7 @@ input::placeholder,textarea::placeholder{color:var(--form-hint)}
 /* THE PROPERTIES MODULE'S OWN PALETTE, THEMED (2026-10-10). Darrell, on the
    Guest Ready panel at night: "Can't see in dark mode...". These five hexes
    are the Properties module's constants (ACCENT / MUTED and its three status
-   colours). They had NO midnight rule because the legibility guard never
+   colors). They had NO midnight rule because the legibility guard never
    scanned app/src/modules at all, so nobody had ever measured them on a dark
    surface — #1A1815 lands at 1.04:1 there, which is black on black. Measured
    ratios on midnight/card before this: 2.43 to 3.46, all under the 4.5 AA
