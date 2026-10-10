@@ -668,7 +668,7 @@ export function ChurchHome({ church, prayerRequests, addPrayerRequest, markPraye
           <button type="button" onClick={() => { setShowPrForm(!showPrForm); setPrError(''); }} className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">{showPrForm ? '× Cancel' : '+ Add request'}</button>
         </div>
         <p className="text-xs text-[#5A5751] italic mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
-          Logged locally on your device. With an office email on file, "Send" opens your email client — you stay in control of what leaves your device. Until then, "Open contact page" takes you to the church\u2019s contact form.
+          Logged locally on your device. With an office email on file, "Send" opens your email client — you stay in control of what leaves your device. Until then, "Open contact page" takes you to the church’s contact form.
         </p>
         {showPrForm && (
           <div className="bg-white border border-[#B85838] p-3 mb-3 space-y-2">
