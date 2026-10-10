@@ -48,6 +48,22 @@ import AppShareQR from './AppShareQR.jsx';
 import TTSControl from './TTSControl.jsx';
 import { UpdatePrompt } from './PwaPrompts.jsx';
 import UiIcon from './UiIcon.jsx';
+// A PERSON IS A FACE HERE TOO (Darrell 2026-10-10: "Picture and users account
+// information like PoeTech... should allow a photo to be represented by").
+// PoeTech's HeaderAuthButton has carried this since DR-0342 / 2026-09-09 ("All
+// apps users profile shows and has login or out under it... And upload a photo
+// spot") and this door never received it. Reused here, not re-written: the SAME
+// profiles row (migration 0186), the SAME avatar renderer, the SAME editor.
+//
+// What is deliberately NOT reused is HeaderAuthButton itself — its Log out
+// calls the global signOut(), which would tear down the two-tier sign-out this
+// door built on purpose (leave this door / leave everywhere). The parts come
+// over; the door keeps its own door semantics.
+import Modal from './Modal.jsx';
+import MyProfile from './MyProfile.jsx';
+import { ProfileAvatar } from './ProfileCard.jsx';
+import { loadMyProfile } from '../lib/profiles-sync.js';
+import { preferredName } from '../lib/use-profiles.js';
 
 /** The door's own address, the one a tenant shares or scans (DR-0258 scope). */
 export const PROPERTIES_SHARE_URL = 'https://poetech.us/properties/app/';
@@ -127,6 +143,40 @@ export default function PropertiesDoor() {
   const toggleHeaderChrome = () => setHeaderCollapsed((prev) => { const next = nextCollapsed(prev); writeHeaderCollapsed(next); return next; });
   const [showShare, setShowShare] = useState(false);
 
+  // WHO IS SIGNED IN, FROM THE REAL ROW — never a painted face (P15/DR-0061).
+  // loadMyProfile() reads this account's own `profiles` row (migration 0186,
+  // DR-0342) and `photo_thumb` is the picture. Three honest states, no fourth:
+  //   a picture      -> the picture
+  //   a row, no pic  -> initials of the name the account actually has, plus a
+  //                     visible "+ photo" invitation (the gap is SAID, not faked)
+  //   no row / failed read -> same initials path; loadMyProfile returns null
+  //                     rather than throwing, so the header never breaks
+  // Signed out, none of this renders at all.
+  const accountId = (shown && shown.user && shown.user.id) || '';
+  const [profile, setProfile] = useState(null);
+  const [profileOpen, setProfileOpen] = useState(false);
+  useEffect(() => {
+    if (!accountId) { setProfile(null); return undefined; }
+    // Re-read when the editor CLOSES, so a picture just saved shows at once
+    // instead of the copy loaded at boot (the same discipline HeaderAuthButton
+    // keeps: the header shows the row, never a stale copy).
+    if (profileOpen) return undefined;
+    let alive = true;
+    Promise.resolve()
+      .then(() => loadMyProfile())
+      .then((p) => { if (alive) setProfile(p || null); })
+      .catch(() => { if (alive) setProfile(null); });
+    return () => { alive = false; };
+  }, [accountId, profileOpen]);
+
+  // The chosen profile name first, then the sign-in's own handle — preferredName
+  // is the shared helper (use-profiles.js), so this door names a person exactly
+  // the way every other surface does.
+  const accountEmail = (shown && shown.user && shown.user.email) || '';
+  const accountPhone = (shown && shown.user && shown.user.phone) || '';
+  const accountName = preferredName(profile, accountEmail ? accountEmail.split('@')[0] : '', accountPhone);
+  const hasPicture = !!(profile && profile.photoThumb);
+
   return (
     <div data-theme={theme === 'cream' ? undefined : theme} className="min-h-screen overflow-x-clip bg-[#FAF8F4] text-[#1A1815]">
       <style>{THEME_CSS}</style>
@@ -142,12 +192,51 @@ export default function PropertiesDoor() {
       >
         <div className="px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between gap-2 py-2.5 sm:py-3">
-            <div className="min-w-0 ts-chrome-region">
-              <h1 className="text-lg sm:text-xl leading-none whitespace-nowrap truncate" style={{ ...serif, fontWeight: 600, letterSpacing: '-0.02em', color: brand.accent }}>{brand.label}</h1>
+            <div className="min-w-0 flex items-center gap-2 ts-chrome-region">
+              {/* THE MARK, IN THE HEADER (Darrell 2026-10-10: "the logo should
+                  be showing inside the Header"). Nothing was drawn for this —
+                  brand.mark is the file already inside the door's manifest, so
+                  the glyph here IS the icon on the home screen. Decorative: it
+                  sits beside the wordmark it duplicates, so alt="" and
+                  aria-hidden keep a screen reader from saying the name twice.
+                  Fixed box so the sticky bar's height never moves while it
+                  loads (the header's own behaviour is untouched). */}
+              <img
+                src={brand.mark}
+                alt=""
+                aria-hidden="true"
+                width={28}
+                height={28}
+                data-testid="properties-door-mark"
+                className="h-7 w-7 shrink-0 sm:h-8 sm:w-8"
+              />
+              <h1 className="min-w-0 text-lg sm:text-xl leading-none whitespace-nowrap truncate" style={{ ...serif, fontWeight: 600, letterSpacing: '-0.02em', color: brand.accent }}>{brand.label}</h1>
             </div>
             <div className="shrink-0 flex items-center gap-1.5 sm:gap-2 ts-chrome-region">
               {shown && (
                 <>
+                  {/* THE PERSON, BESIDE THE WAY OUT — the PoeTech arrangement
+                      (profile first, sign-out next to it), on this door at
+                      last. The face IS the upload spot: tapping it opens My
+                      profile in the quiet Modal, so a tenant or a 1099 worker
+                      can add their picture from the header of the app they
+                      actually use, without hunting for a settings page. The
+                      name is hidden on a narrow phone so the two sign-out
+                      links keep their room; the face never is. */}
+                  <button
+                    type="button"
+                    onClick={() => setProfileOpen(true)}
+                    aria-haspopup="dialog"
+                    aria-expanded={profileOpen}
+                    aria-label={hasPicture ? `${accountName} — open my profile` : `${accountName} — add your picture and open my profile`}
+                    title={hasPicture ? 'My profile' : 'Add your picture'}
+                    data-testid="properties-door-account"
+                    className="inline-flex items-center gap-1.5 min-h-[2.25rem] px-1 text-[0.625rem] uppercase tracking-wider text-[#1A1815] hover:text-[#2F5D50] focus:outline focus:outline-2 focus:outline-[#B85838]"
+                  >
+                    <ProfileAvatar profile={profile || { displayName: accountName }} size={28} />
+                    <span className="hidden max-w-[7rem] truncate font-semibold sm:inline-block">{accountName}</span>
+                    {!hasPicture && <span className="text-[#B85838]" aria-hidden="true">+ photo</span>}
+                  </button>
                   <button
                     type="button"
                     className="text-[0.625rem] uppercase tracking-wider underline text-[#5A5751] whitespace-nowrap focus:outline focus:outline-2 focus:outline-[#B85838]"
@@ -248,6 +337,23 @@ export default function PropertiesDoor() {
         </div>
         <TextSizeEscapeHatch collapsed={headerCollapsed} onShowHeader={toggleHeaderChrome} />
       </header>
+
+      {/* MY PROFILE — the same editor every other app opens (MyProfile.jsx,
+          DR-0342): the picture (camera or file, shrunk to a thumbnail before it
+          leaves the phone), the name, and who may see it. It portals to <body>,
+          so it is mounted here rather than inside a header row and the sticky
+          bar's layout is untouched. It stays reachable with the top space
+          tucked away, because the chip lives in the bar that never hides. */}
+      {shown && (
+        <Modal open={profileOpen} onClose={() => setProfileOpen(false)} label="My profile">
+          <div className="bg-white p-4 text-[#1A1815]">
+            <div className="mb-2 text-[0.625rem] uppercase tracking-[0.25em] font-semibold text-[#2F5D50]">
+              My profile · your picture and name, on this app and every other
+            </div>
+            <MyProfile initialName={accountName} />
+          </div>
+        </Modal>
+      )}
 
       <main className="w-full p-3 sm:p-4 lg:px-8">
         {session === undefined && (

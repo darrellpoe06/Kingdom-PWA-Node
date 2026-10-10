@@ -189,6 +189,15 @@ input::placeholder,textarea::placeholder{color:var(--form-hint)}
    midnight whether a finger is resting on it or not. The hover rule below
    covers the tap; this covers the token wherever else it lands. */
 [data-theme="midnight"] .bg-\\[\\#F0EDE6\\]{background-color:#2A2A2A!important}
+/* #2F5D50 AS A HOVER TEXT COLOR, the one token this door added that the
+   DR-0873 widening above did not reach. Two lanes remapped the same green on
+   the same day: the widened scan measured 2.43-3.46:1 across the module and
+   settled on #6EE7B7, so the base rule above is the measured one and stands.
+   What only the door needed is the hover variant -- its new account chip
+   paints the green on hover, and a hover state that drops back to the
+   unremapped 2.46:1 is a legible control that goes illegible under a finger.
+   Same mint as the base, so a tap does not change the color, only the state. */
+[data-theme="midnight"] .hover\\:text-\\[\\#2F5D50\\]:hover{color:#6EE7B7!important}
 [data-theme="midnight"] .border-\\[\\#1A1815\\]{border-color:#3A3A3A!important}
 [data-theme="midnight"] .border-\\[\\#E8E4DC\\]{border-color:#2A2A2A!important}
 [data-theme="midnight"] .border-\\[\\#B85838\\]{border-color:#FB923C!important}

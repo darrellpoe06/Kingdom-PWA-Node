@@ -20,6 +20,14 @@ export const POE_PROPERTIES = Object.freeze({
     tagline: 'Work orders, history, and the whole conversation — in one place.',
     accent: '#2F5D50',
     background: '#FAF8F4',
+    // THE DOOR'S MARK, FOR THE HEADER (Darrell 2026-10-10: "the logo should be
+    // showing inside the Header"). This is NOT a new drawing — it is the file
+    // already listed in `icons` of public/manifest-properties.webmanifest (the
+    // 2026-08-28 "two P's" mark, green ring, sizes:"any"). So the mark beside
+    // the wordmark and the icon on the phone's home screen are ONE asset and
+    // cannot drift apart; the door-mark test holds that tie by reading the
+    // manifest off disk, and fails if this path leaves it.
+    mark: '/properties-icon.svg',
   }),
   // The installable face. Scope MUST be disjoint from every other face on the
   // origin or Chrome collapses two apps into one (DR-0258/DR-0261).
