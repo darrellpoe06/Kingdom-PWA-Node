@@ -479,6 +479,78 @@ describe('a property\'s pictures', () => {
     });
   });
 
+  // TWO DATES, TWO RULES (DR-0909). Darrell, 2026-10-10: "always put the
+  // uploaded dates... and the other option is default however editable...
+  // however the upload dat never is".
+  describe('the editor, on the two dates', () => {
+    const open = (host) => {
+      const b = [...host.querySelectorAll('button')].find((x) => /^edit$/i.test((x.textContent || '').trim()));
+      expect(b, `no Edit control. Saw: ${[...host.querySelectorAll('button')].map((x) => x.textContent.trim()).join(' | ')}`).toBeTruthy();
+      act(() => { b.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+    };
+
+    it('PROVEN-TO-CATCH: the TAKEN date is editable', () => {
+      const host = render(<GalleryTab door={door} rooms={rooms} photos={[photo({ taken_at: null })]} canManage />);
+      open(host);
+      expect(host.querySelector('[data-testid="photo-edit-taken"]'), 'the taken date cannot be corrected').toBeTruthy();
+    });
+
+    it('the UPLOAD date is SHOWN and is never an input', () => {
+      const when = '2026-10-01T15:00:00.000Z';
+      const host = render(<GalleryTab door={door} rooms={rooms} photos={[photo({ uploaded_at: when })]} canManage />);
+      open(host);
+      const line = host.querySelector('[data-testid="photo-uploaded-at"]');
+      expect(line, 'the upload date is not shown at all').toBeTruthy();
+      expect(line.textContent).toMatch(/that never changes/);
+      // Shown as text. Nothing in the editor offers it for typing.
+      expect(line.querySelector('input')).toBeNull();
+      const inputs = [...host.querySelectorAll('input')].map((i) => i.getAttribute('data-testid') || '');
+      expect(inputs).not.toContain('photo-uploaded-at');
+    });
+
+    it('clearing the taken date sends NULL, not an empty string', () => {
+      const saves = [];
+      const host = render(
+        <GalleryTab door={door} rooms={rooms} canManage
+          photos={[photo({ taken_at: '2026-09-28T17:00:00.000Z' })]}
+          onPatch={(id, patch) => saves.push(patch)} />,
+      );
+      open(host);
+      const day = host.querySelector('[data-testid="photo-edit-taken"]');
+      act(() => {
+        const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value');
+        setter.set.call(day, '');
+        day.dispatchEvent(new Event('change', { bubbles: true }));
+      });
+      const save = host.querySelector('[data-testid="photo-edit-save"]');
+      act(() => { save.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+      expect(saves).toHaveLength(1);
+      // An empty string into a timestamptz is an error, not a clearing.
+      expect(saves[0].taken_at).toBeNull();
+    });
+
+    it('a corrected date is sent as an instant', () => {
+      const saves = [];
+      const host = render(
+        <GalleryTab door={door} rooms={rooms} canManage
+          photos={[photo({ taken_at: null })]}
+          onPatch={(id, patch) => saves.push(patch)} />,
+      );
+      open(host);
+      const day = host.querySelector('[data-testid="photo-edit-taken"]');
+      act(() => {
+        const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value');
+        setter.set.call(day, '2026-09-28T16:20');
+        day.dispatchEvent(new Event('change', { bubbles: true }));
+      });
+      act(() => { host.querySelector('[data-testid="photo-edit-save"]').dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+      expect(saves).toHaveLength(1);
+      const back = new Date(saves[0].taken_at);
+      expect(back.getDate()).toBe(28);
+      expect(back.getHours()).toBe(16);
+    });
+  });
+
   it('a work order, damage and a move-out set are all RECORDS', () => {
     for (const k of ['work-order-before', 'work-order-after', 'damage', 'move-out-condition', 'turn', 'inspection']) {
       expect(RECORD_KINDS, `${k} must be a record`).toContain(k);

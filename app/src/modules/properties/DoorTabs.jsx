@@ -1190,6 +1190,14 @@ export function takenAtIso(when) {
   return Number.isNaN(at.getTime()) ? null : at.toISOString();
 }
 
+/** An instant from the record back into a datetime-local field, local zone. */
+export function isoToLocalInput(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return nowLocalInput(d);
+}
+
 /** Now, in the shape a datetime-local field wants, in the viewer's own zone. */
 export function nowLocalInput(d = new Date()) {
   const pad = (n) => String(n).padStart(2, '0');
@@ -1834,12 +1842,44 @@ export function GalleryTab({
 }
 
 /** Correct what a picture SAYS. The picture itself is frozen by a trigger (0154). */
+/**
+ * TWO DATES, TWO DIFFERENT KINDS OF FACT (DR-0909). Darrell, 2026-10-10:
+ * "always put the uploaded dates... and the other option is default however
+ * editable... however the upload dat never is".
+ *
+ *   uploaded_at — what the SYSTEM observed. Shown, never offered for editing,
+ *                 and frozen in the database by 0261 so nothing here is the
+ *                 only thing stopping it.
+ *   taken_at    — what a PERSON says. Editable, because the app only ever
+ *                 wrote it for an in-app capture, so a set chosen from a phone
+ *                 had none and could never be given one.
+ *
+ * The immutable upload date is what makes the editable one safe: a photograph
+ * that says "taken 28 September" and arrived on 10 October says both, to
+ * anyone reading the record.
+ */
 function PhotoEditor({ photo, rooms, onSave, busy }) {
-  const [f, setF] = useState({ caption: photo.caption || '', kind: photo.kind, room_id: photo.room_id || '' });
+  const [f, setF] = useState(() => ({
+    caption: photo.caption || '',
+    kind: photo.kind,
+    room_id: photo.room_id || '',
+    takenOn: isoToLocalInput(photo.taken_at),
+  }));
+  // `was` is derived INSIDE the memo, from `photo` alone: built outside it is
+  // a fresh object every render, so listing it as a dependency would rebuild
+  // the diff on every keystroke and defeat the memo entirely.
   const edit = useMemo(() => buildEdit(
-    { caption: photo.caption || '', kind: photo.kind, room_id: photo.room_id || '' },
-    f,
-    [{ key: 'caption', label: 'Caption' }, { key: 'kind', label: 'Kind' }, { key: 'room_id', label: 'Room' }],
+    {
+      caption: photo.caption || '',
+      kind: photo.kind,
+      room_id: photo.room_id || '',
+      taken_at: photo.taken_at || '',
+    },
+    { ...f, taken_at: takenAtIso(f.takenOn) || '' },
+    [
+      { key: 'caption', label: 'Caption' }, { key: 'kind', label: 'Kind' },
+      { key: 'room_id', label: 'Room' }, { key: 'taken_at', label: 'Taken' },
+    ],
   ), [photo, f]);
   const field = 'w-full border border-[#E8E4DC] px-1 py-1 text-[0.75rem] mt-1';
   return (
@@ -1852,9 +1892,34 @@ function PhotoEditor({ photo, rooms, onSave, busy }) {
         <option value="">Not a specific room</option>
         {rooms.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
       </select>
+      <label className="block mt-1">
+        <span className="text-[0.625rem] uppercase tracking-wider text-[#6B665E]">When it was taken</span>
+        <input
+          type="datetime-local" className={field} value={f.takenOn}
+          data-testid="photo-edit-taken"
+          max={nowLocalInput()}
+          onChange={(e) => setF((p) => ({ ...p, takenOn: e.target.value }))}
+        />
+      </label>
+      {/* THE ANCHOR, SHOWN AND NOT OFFERED. */}
+      <p className="text-[0.625rem] text-[#6B665E] mt-1" data-testid="photo-uploaded-at">
+        Uploaded {photo.uploaded_at ? new Date(photo.uploaded_at).toLocaleString() : 'at an unrecorded time'}
+        {' '}— that never changes.
+      </p>
       <p className="text-[0.625rem] text-[#6B665E] mt-1">The picture itself never changes — add a new one instead.</p>
       <div className="mt-1">
-        <Btn tone="primary" disabled={busy || !edit.changed} onClick={() => onSave(edit.patch)}>Save</Btn>
+        <Btn
+          tone="primary" disabled={busy || !edit.changed}
+          data-testid="photo-edit-save"
+          onClick={() => onSave(
+            // "Unknown" must reach the column as NULL. An empty string into a
+            // timestamptz is an error, not a clearing, and buildEdit carries
+            // whatever it was handed.
+            'taken_at' in edit.patch && !edit.patch.taken_at
+              ? { ...edit.patch, taken_at: null }
+              : edit.patch,
+          )}
+        >Save</Btn>
       </div>
     </div>
   );

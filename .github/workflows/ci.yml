@@ -959,7 +959,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install postgresql-client
         run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client > /dev/null
-      - name: The work-order chain, 0260 twice (idempotent), and every wall holds
+      - name: The work-order chain, 0260/0261 twice (idempotent), and every wall holds
         run: |
           set -euo pipefail
           psql -v ON_ERROR_STOP=1 -q -f scripts/door-work-ci-bootstrap.sql
@@ -972,6 +972,14 @@ jobs:
           for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0260-work-is-filed-on-the-door-not-only-on-a-tenancy.sql; done
           psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0260-door-work-orders-smoke.sql 2>&1 | tee "$RUNNER_TEMP/smoke.txt"
           grep -q 'DOOR WORK SMOKE: PASS' "$RUNNER_TEMP/smoke.txt"
+          # 0261 (DR-0909): the upload date is the anchor, the taken date is a
+          # claim. Needs the photo chain, so 0153/0154 go on before it.
+          for f in 0153-property-timeline-photos.sql 0154-photo-captions-editable-and-archivable.sql; do
+            psql -v ON_ERROR_STOP=1 -q --single-transaction -f "infra/supabase/migrations-auto/$f"
+          done
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0261-the-upload-date-is-the-anchor-the-taken-date-is-a-claim.sql; done
+          psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0261-photo-dates-smoke.sql 2>&1 | tee "$RUNNER_TEMP/photo-dates.txt"
+          grep -q 'PHOTO DATES SMOKE: PASS' "$RUNNER_TEMP/photo-dates.txt"
 
   # THE REQUIRED CHECK (DR-0645). Branch protection and native auto-merge wait
   # on a check named EXACTLY "app — lint + vitest". Do NOT rename this job.
