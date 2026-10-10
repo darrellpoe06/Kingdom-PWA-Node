@@ -79,6 +79,25 @@ CREATE TRIGGER property_photos_freeze
   BEFORE UPDATE ON public.property_photos
   FOR EACH ROW EXECUTE FUNCTION public.property_photos_freeze_evidence();
 
+-- WHO FILED IT, TRUE BY CONSTRUCTION — found by this migration's own smoke
+-- test, which is the whole argument for writing it (DR-0076 §3).
+--
+-- uploaded_by has been `uuid` with NO DEFAULT since 0153, so it was recorded
+-- only because cloud.js happens to send it (cloud.js:750 and :824). A wall
+-- held up by a caller's good manners is not a wall. Worse, the freeze above
+-- CANNOT PROTECT A NULL: `NULL IS DISTINCT FROM NULL` is false, so a writer
+-- that omits the column leaves who-filed-it permanently blank AND permanently
+-- writable by anyone who may update the row — the one combination a record
+-- must never have. The smoke test inserted the way such a writer does and the
+-- freeze let the change straight through.
+--
+-- Defaulted now for exactly the reason uploaded_at is `DEFAULT now()`: it is
+-- what the system OBSERVED, not a claim anybody makes, so the database should
+-- be the one to say it. Existing rows stay NULL on purpose — we do not know
+-- who uploaded them, and filling in a plausible name would be the precise lie
+-- this record exists to prevent (DR-0876: never manufacture an answer).
+ALTER TABLE public.property_photos ALTER COLUMN uploaded_by SET DEFAULT auth.uid();
+
 -- The column grant has to widen too: a trigger that allows a change is not
 -- enough if UPDATE was never granted on the column (0154 granted four).
 -- Whoever may correct a caption may correct a date; the row policy is

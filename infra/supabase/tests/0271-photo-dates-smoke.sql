@@ -11,7 +11,8 @@
 -- PROVEN TO CATCH — each of these must be REFUSED, and the test fails if any
 -- of them is allowed:
 --   moving uploaded_at                                   ✘
---   moving uploaded_by                                   ✘
+--   BLANKING uploaded_by                                 ✘
+--   REASSIGNING uploaded_by to someone else              ✘
 --   changing the image (storage_path)                    ✘  (0154, unchanged)
 --   moving the photo to another door                     ✘  (0154, unchanged)
 --   a taken_at in the year 1200                          ✘  (new sanity check)
@@ -22,6 +23,7 @@
 --   CORRECTING a taken_at that was already set           ✔
 --   clearing it back to unknown                          ✔
 --   edited_at moves, so a correction is visible as one   ✔
+--   uploaded_by recorded even when the writer omits it   ✔  (0271 DEFAULT)
 -- =============================================================================
 
 BEGIN;
@@ -55,6 +57,7 @@ DECLARE
   ed1 timestamptz;
   ed2 timestamptz;
   got timestamptz;
+  who uuid;
 
 BEGIN
   PERFORM set_config('request.jwt.claims', json_build_object('sub', o, 'role','authenticated')::text, true);
@@ -62,11 +65,24 @@ BEGIN
 
   -- A photograph filed with NO taken_at — the ordinary case for a set chosen
   -- from a phone, and the one 0154 made permanently undateable.
+  --
+  -- uploaded_by IS DELIBERATELY NOT SENT HERE. cloud.js does send it, but the
+  -- point of this row is what happens when a writer DOESN'T, and the first run
+  -- of this test is how the gap was found: the column had no default, so the
+  -- row carried NULL, and `SET uploaded_by = NULL` was then no change at all —
+  -- the freeze never fired and who-filed-it was both blank and editable. The
+  -- DEFAULT auth.uid() added in 0271 is what this line now proves.
   INSERT INTO property_photos (instance_id, rental_ref, kind, caption, storage_path)
   VALUES (ins, d, 'move-out-condition', 'as it came back', 'data:image/jpeg;base64,AAAA')
-  RETURNING id, uploaded_at, edited_at INTO p, up, ed1;
+  RETURNING id, uploaded_at, edited_at, uploaded_by INTO p, up, ed1, who;
 
   IF up IS NULL THEN RAISE EXCEPTION 'uploaded_at was not recorded on insert'; END IF;
+  IF who IS NULL THEN
+    RAISE EXCEPTION 'uploaded_by was not recorded on insert — a writer that omits it leaves who filed it blank forever';
+  END IF;
+  IF who <> o THEN
+    RAISE EXCEPTION 'uploaded_by recorded the wrong person on insert';
+  END IF;
 
   -- 1. SET a taken_at that was never there. This is the whole point.
   UPDATE property_photos SET taken_at = up - interval '12 days' WHERE id = p;
@@ -96,12 +112,26 @@ BEGIN
     IF SQLERRM LIKE '%anchor is not holding%' THEN RAISE; END IF;
   END;
 
+  -- Both directions, because they fail differently. BLANKING it is how a
+  -- record is quietly erased; REASSIGNING it is how it is quietly falsified.
   BEGIN
     UPDATE property_photos SET uploaded_by = NULL WHERE id = p;
-    RAISE EXCEPTION 'uploaded_by WAS CHANGED — who filed it is not holding';
+    RAISE EXCEPTION 'uploaded_by was BLANKED — who filed it is not holding';
   EXCEPTION WHEN raise_exception THEN
     IF SQLERRM LIKE '%not holding%' THEN RAISE; END IF;
   END;
+
+  BEGIN
+    UPDATE property_photos SET uploaded_by = '00000000-0000-4000-a000-0000000b0271' WHERE id = p;
+    RAISE EXCEPTION 'uploaded_by was REASSIGNED to someone else — who filed it is not holding';
+  EXCEPTION WHEN raise_exception THEN
+    IF SQLERRM LIKE '%not holding%' THEN RAISE; END IF;
+  END;
+
+  SELECT uploaded_by INTO who FROM property_photos WHERE id = p;
+  IF who IS NULL OR who <> o THEN
+    RAISE EXCEPTION 'uploaded_by did not survive the attempts to change it';
+  END IF;
 
   -- 5. The 0154 walls that must survive untouched.
   BEGIN
