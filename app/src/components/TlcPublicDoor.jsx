@@ -204,7 +204,7 @@ export default function TlcPublicDoor() {
   // at mount and had no way to learn it had changed. So the picker genuinely
   // set the preference, the preference was genuinely saved, and the screen the
   // reader was looking at never repainted. The PoeTech shell
-  // (the monolith) used useThemePref and therefore worked, which
+  // used useThemePref and therefore worked, which
   // is exactly why this read as "the reader can't change the system" rather
   // than "the picker is broken" — it depended on which door you were standing
   // in. useThemePref both subscribes and saves, so the effect goes with it.
