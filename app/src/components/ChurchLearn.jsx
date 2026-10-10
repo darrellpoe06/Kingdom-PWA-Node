@@ -1859,6 +1859,37 @@ function CourseView({
   // This course's saved places, one parse per render, for the cards' own
   // Start/Continue buttons.
   const placeByLesson = Object.fromEntries(listPlaces({ courseKey: course.key }).map((p) => [p.lessonId, p]));
+
+  // READING A LESSON IS THE RECEIPT (2026-10-10). Darrell, with the lesson
+  // list saying "✓ FINISHED" on a lesson and the Class Record on the same
+  // screen saying "nothing read yet": "I've read most if not all of the
+  // lessons!!!!!!!!!!!!!! What are these fake records?!!!!!!!!"
+  //
+  // Not fake — counting the wrong thing. The Class Record has exactly two
+  // writers (lib/use-learner-records.js): the learner TAPPING "mark read",
+  // and answering an exam. Reading a lesson, or being read it to the end,
+  // wrote nothing to it — which lessons-walked.js admits in its own header
+  // ("a lesson's opens are not recorded per lesson"). So the places knew he
+  // had finished and the record did not, and the record printed a sentence
+  // that was not true.
+  //
+  // The place IS the evidence and it is already on the device: a lesson read
+  // to the end carries done/finishes (lib/learn-resume.js). Every finished
+  // place the record has not got is filed once — which brings in the history
+  // already on this phone, not only what is read from here on. Marked, never
+  // unmarked: `toggleModule` toggles, so a lesson the record already holds is
+  // skipped, and each is sent at most once per session. No loop — a filed
+  // lesson lands in `progress` and is skipped from then on.
+  const filedReads = React.useRef(new Set());
+  React.useEffect(() => {
+    if (!signedIn || typeof toggleModule !== 'function') return;
+    for (const p of listPlaces({ courseKey: course.key })) {
+      if (!placeIsFinished(p) || progress[p.lessonId] || filedReads.current.has(p.lessonId)) continue;
+      filedReads.current.add(p.lessonId);
+      try { toggleModule(p.lessonId, course.key); } catch (_) { /* the reading stands either way */ }
+    }
+  }, [signedIn, toggleModule, course.key, progress]);
+
   React.useEffect(() => {
     if (!focusId || typeof window === 'undefined') return undefined;
     let userAt = 0;
@@ -4114,7 +4145,18 @@ export default function ChurchLearn({
   const classRecordSummary = React.useMemo(() => {
     if (!signedIn) return 'sign in and your record is kept here';
     const rows = Array.isArray(learnerRecords) ? learnerRecords : [];
-    if (!rows.length) return 'nothing read yet';
+    // NEVER SAY NOTHING WAS READ WHILE THE DEVICE SAYS OTHERWISE (2026-10-10).
+    // The lesson list was showing "✓ FINISHED" on a lesson at the moment this
+    // line read "nothing read yet" — two surfaces, one device, contradicting
+    // each other, because this one reads only the cloud rows and the list
+    // reads the places. The places are filed into the record now (CourseView),
+    // but a record that has not arrived yet must still not claim the reading
+    // never happened. It says what IS known and where it is (DR-0622).
+    if (!rows.length) {
+      const read = listPlaces().filter(placeIsFinished).length;
+      if (!read) return 'nothing read yet';
+      return `${read} lesson${read === 1 ? '' : 's'} finished on this device, syncing to your record`;
+    }
     const { learners, totals } = aggregateLearnerRecords(rows, { courseTotals: courseLessonTotals });
     const score = totals.examsTaken ? `, average ${totals.avgQuizPct}%` : ', no exam answered yet';
     const who = isGovernor && learners.length > 1 ? `${learners.length} learners, ` : '';
