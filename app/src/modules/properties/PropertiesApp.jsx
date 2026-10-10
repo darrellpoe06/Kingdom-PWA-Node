@@ -350,10 +350,16 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
   }, []);
   useEffect(() => { boot(); }, [boot]);
 
-  const activeDoor = useMemo(
-    () => doors.find((x) => x.id === activeId) || doors[0] || null,
-    [doors, activeId]
-  );
+  // The TENANCY on the door in hand, or none. A door picked by its rentals id is
+  // a door with nobody in it (DoorsBoard passes the tenancy id when one exists),
+  // so it has NO tenancy. It used to fall back to doors[0] here, which would have
+  // shown, and filed work against, some other door's tenant (DR-0897).
+  const activeDoor = useMemo(() => {
+    const byId = doors.find((x) => x.id === activeId);
+    if (byId) return byId;
+    if (activeId && rentals.some((r) => r.id === activeId)) return null;
+    return doors[0] || null;
+  }, [doors, activeId, rentals]);
 
   // The DOOR's own records, which outlive any one tenancy.
   //
@@ -400,12 +406,23 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
   }, [rentalId, rentalRef]);
   useEffect(() => { loadDoorData(); }, [loadDoorData]);
 
+  // WHERE WORK IS FILED (DR-0897). A job is on a DOOR: through its tenancy when
+  // somebody lives there, on the door itself when nobody does — a vacant unit
+  // between tenants, a short stay, the family's own home. The database used to
+  // require a tenancy, so on every door on this account (none has one) the
+  // Work Board's File it was dead. 0260 lets a row name the door instead.
+  const workDoor = useMemo(() => {
+    if (activeDoor) return { instanceId: activeDoor.instance_id, tenancyId: activeDoor.id, rentalId: activeRental?.id || null };
+    if (activeRental) return { instanceId: activeRental.instance_id, tenancyId: null, rentalId: activeRental.id };
+    return null;
+  }, [activeDoor, activeRental]);
+
   useEffect(() => {
-    if (!activeDoor) { setRecord({ requests: [], messages: [], notes: [], docs: [], rent: [], notices: [] }); return; }
+    if (!workDoor) { setRecord({ requests: [], messages: [], notes: [], docs: [], rent: [], notices: [] }); return; }
     let live = true;
-    loadDoorRecord(activeDoor.id).then((r) => { if (live && r.ok) setRecord(r); });
+    loadDoorRecord(workDoor.tenancyId, { rentalId: workDoor.rentalId }).then((r) => { if (live && r.ok) setRecord(r); });
     return () => { live = false; };
-  }, [activeDoor, busy]);
+  }, [workDoor, busy]);
 
   // 2. The role. Derived from what the database actually returned for THIS person:
   //    a household membership, a capability grant, or (the family's own session)
@@ -454,7 +471,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
   );
 
   const refresh = () => setBusy(`r-${Date.now()}`);
-  const workers = useMemo(() => workerRoster(invites, { instanceId: activeDoor?.instance_id || null }), [invites, activeDoor]);
+  const workers = useMemo(() => workerRoster(invites, { instanceId: workDoor?.instanceId || null }), [invites, workDoor]);
   // The name this worker was invited under, so a job assigned by name before
   // they ever signed in is still theirs.
   const myLabel = useMemo(() => {
@@ -465,10 +482,10 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
 
   // ---- actions -------------------------------------------------------------
   const submitWorkOrder = async (form) => {
-    if (!activeDoor) return;
-    const built = buildMaintenanceRequest({ ...form, tenancyId: activeDoor.id, byRole: role });
+    if (!workDoor) return;
+    const built = buildMaintenanceRequest({ ...form, tenancyId: workDoor.tenancyId, byRole: role });
     const res = await fileWorkOrder({
-      instance_id: activeDoor.instance_id, tenancy_id: activeDoor.id,
+      instance_id: workDoor.instanceId, tenancy_id: workDoor.tenancyId, rental_id: workDoor.rentalId,
       created_by_role: role === 'owner' ? 'landlord' : role === 'field_worker' ? 'worker' : role,
       title: built.title || form.title, detail: built.detail || form.detail || null,
       area: form.area || null, priority: built.priority || 'normal', status: 'submitted',
@@ -483,13 +500,13 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
   // note on the door's record naming who was sent and when. The text is the
   // worker's copy; the record is the family's.
   const dispatchJob = async (request, worker) => {
-    if (!activeDoor || !request || !worker) return;
+    if (!workDoor || !request || !worker) return;
     const rec = dispatchRecord({ request, worker });
     if (!rec) { say('That work order is closed; nothing to send.'); return; }
     const a = await assignWorkOrder(request.id, rec.assign);
     if (!a || !a.ok) { say(`Not recorded: ${(a && a.reason) || 'the assignment did not save'}`); return; }
     if (rec.status && rec.status !== request.status) await setWorkOrderStatus(request.id, rec.status);
-    await postNote(buildTenancyNote({ instanceId: activeDoor.instance_id, tenancyId: activeDoor.id, requestId: request.id, authorRole: role, body: rec.note }));
+    await postNote(buildTenancyNote({ instanceId: workDoor.instanceId, tenancyId: workDoor.tenancyId, rentalId: workDoor.rentalId, requestId: request.id, authorRole: role, body: rec.note }));
     say(`${request.title}: sent to ${worker.name}, and the record says so.`);
     refresh();
   };
@@ -505,18 +522,18 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
   };
 
   const addNote = async (body) => {
-    if (!activeDoor || !body.trim()) return;
+    if (!workDoor || !body.trim()) return;
     const res = await postNote(buildTenancyNote({
-      instanceId: activeDoor.instance_id, tenancyId: activeDoor.id, authorRole: role, body,
+      instanceId: workDoor.instanceId, tenancyId: workDoor.tenancyId, rentalId: workDoor.rentalId, authorRole: role, body,
     }));
     say(res.ok ? 'Note added to the record.' : `Not saved: ${res.reason}`);
     refresh();
   };
 
   const documentJob = async (requestId, outcome, followup, note) => {
-    if (!activeDoor) return;
+    if (!workDoor) return;
     const res = await postJobDoc(buildJobDoc({
-      instanceId: activeDoor.instance_id, requestId, tenancyId: activeDoor.id, outcome, followup, note,
+      instanceId: workDoor.instanceId, requestId, tenancyId: workDoor.tenancyId, rentalId: workDoor.rentalId, outcome, followup, note,
     }));
     if (res.ok && outcome === 'fixed') await setWorkOrderStatus(requestId, 'resolved');
     say(res.ok ? 'Documented.' : `Not saved: ${res.reason}`);
@@ -892,12 +909,15 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
             </>
           );
           case 'work': case 'jobs': case 'board':
+            // A 1099 worker walking a door files what he sees (a short stay
+            // between guests, the fan, the stain) on a door he was granted
+            // (0260's door arm). On a tenancy he documents; he does not file.
             return (
               <WorkTab
-                door={activeDoor} requests={record.requests} open={openWork} docs={record.docs} role={role}
+                door={workDoor} requests={record.requests} open={openWork} docs={record.docs} role={role}
                 mine={role === 'field_worker' ? myJobs(openWork, { userId: me, label: myLabel }) : null}
                 workers={workers}
-                canFile={role !== 'field_worker'} canManage={role === 'owner' || role === 'manager'}
+                canFile={role !== 'field_worker' || Boolean(workDoor && workDoor.rentalId)} canManage={role === 'owner' || role === 'manager'}
                 onFile={submitWorkOrder} onStatus={async (id, s) => { await setWorkOrderStatus(id, s); refresh(); }}
                 onAssign={async (id, label) => {
                   const w = workers.find((x) => x.name === label);
