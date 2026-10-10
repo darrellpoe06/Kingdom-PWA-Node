@@ -37,7 +37,7 @@ export function MonthCalendar({ year, month, taken, today, checkIn, checkOut, on
   return (
     <table className="text-center text-xs" data-testid="month-calendar" aria-label={`${MONTHS[month]} ${year}`}>
       <caption className="text-[0.6875rem] uppercase tracking-wider text-[#2F5D50] font-semibold pb-1">{MONTHS[month]} {year}</caption>
-      <thead><tr>{['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => <th key={i} className="w-9 font-normal text-[#5A5751]">{d}</th>)}</tr></thead>
+      <thead><tr>{['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => <th key={i} scope="col" className="w-9 font-normal text-[#5A5751]">{d}</th>)}</tr></thead>
       <tbody>
         {weeks.map((w, wi) => (
           <tr key={wi}>
