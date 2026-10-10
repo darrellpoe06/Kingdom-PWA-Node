@@ -4322,6 +4322,34 @@ export default function ChurchLearn({
   // through this same Continue path — on mount if the request came first, or
   // at once if Learn is already on screen. The course is resolved against the
   // MOUNTED catalog, so a request for a lesson that is gone opens nothing.
+  // CONTINUE BEGINS THE READING (DR-0882). Darrell, 2026-10-10: "Clicking
+  // continue on lessons the big green tab doesn't just begin with the required
+  // reading... users have to click again!!!!!!!!!!! Why?"
+  //
+  // MEASURED FIRST, and the obvious fix was the wrong one. Continue already
+  // opens the reading in ONE tap — TutorPanel IS the component that renders
+  // the lesson's reading and registers it as the page's primary reading, so
+  // "the guide" is its chrome label, not a door in front of it. Setting
+  // resumeOpenGuide=false would have UNMOUNTED the reading (the lesson then
+  // registers a DOOR, read-target.js:63, whose whole point is "its full
+  // reading is not mounted yet"), creating the very extra tap he is naming,
+  // and would also have killed DR-0631's saved-place landing, which reads
+  // `resumeOpenGuide && placeInProgress(saved)`.
+  //
+  // The single real difference between Continue and Play is this call. What
+  // does not "begin" is the reading ALOUD, and that is his own law in capitals
+  // (read-target.js:105 — "Play Button reads the lesson!!!!!"). Continue means
+  // resume what I was doing, so it now speaks too.
+  //
+  // ARMED AT THE CALL SITE, NEVER INSIDE resumeNow: resumeNow is also the one
+  // door for lib/learn-open.js, whose contract says it "never touches audio —
+  // it only opens, scrolls and marks", and whose live caller is the reader's
+  // own "Show the text", pressed WHILE the reader is reading. Arming a read in
+  // there would restart the reading that just asked to be shown.
+  const continueAndRead = (place) => {
+    resumeNow(place);
+    if (place && place.lessonId) requestRead(place.lessonId);
+  };
   const resumeNowRef = React.useRef(resumeNow);
   resumeNowRef.current = resumeNow;
   React.useEffect(() => {
@@ -4596,7 +4624,7 @@ export default function ChurchLearn({
         {!lessonFocus && inProgress.length > 0 && (
           <ContinueOffer
             items={inProgress}
-            onContinue={resumeNow}
+            onContinue={continueAndRead}
             onRefresh={refreshFirst}
             onForget={startFresh}
           />
@@ -4885,7 +4913,7 @@ export default function ChurchLearn({
                     <RowContinue
                       place={activePlaces[m.id] && (activePlaces[m.id].done || placeInProgress(activePlaces[m.id])) ? activePlaces[m.id] : null}
                       title={m.title}
-                      onContinue={resumeNow}
+                      onContinue={continueAndRead}
                     />
                     {/* The SAME action the card list's ▶ Play performs — the big
                         full-screen reader on this one, read yourself or read to
@@ -5193,7 +5221,7 @@ export default function ChurchLearn({
           {/* THIS COURSE'S CONTINUE, WHERE IT NEVER SCROLLS AWAY (DR-0631).
               The bar is sticky, so a reader anywhere in the course's lesson
               list is one tap from the lesson they have in progress here. */}
-          <ContinueChip item={activeContinue} onContinue={resumeNow} />
+          <ContinueChip item={activeContinue} onContinue={continueAndRead} />
           <span className="text-[0.6875rem] text-[#5A5751] ml-auto" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
             {courses.reduce((t, c) => t + ((c.schedule && c.schedule.length) || 0), 0)} lessons<span className="hidden sm:inline"> · {courses.length} courses</span>
           </span>
