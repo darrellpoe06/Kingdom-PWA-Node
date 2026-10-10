@@ -76,7 +76,7 @@ import { matrixFor, matrixBlockText, readNextInvitation } from '../lib/scripture
 import CopyButton from './CopyButton.jsx';
 import ShareButton from './ShareButton.jsx';
 import StoryLibrary from './StoryLibrary.jsx';
-import LessonStories from './LessonStories.jsx';
+import LessonStories, { AddPerspective } from './LessonStories.jsx';
 import { subscribeSubmissions, reviewSubmission, promoteSubmission } from '../lib/story-library.js';
 import { engagementRowsByAge } from '../lib/learn-engagement.js';
 import { LessonFlowAudience, LessonRunOfShow, TimeFit } from './LessonFlow.jsx';
@@ -1375,9 +1375,15 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
                 Jesus taught (Matthew 13:34); the teacher drops these to land the point.
                 DR-0855: each story is its own dropdown (an option, picked, not a wall),
                 the space's reviewed perspectives on the same lesson sit beneath, and
-                the last dropdown is where a reader adds theirs. LessonStories carries
-                the truth labels (DR-0811) exactly as the cards did. */}
-            <LessonStories lesson={module} stories={seg.audience.stories} />
+                and LessonStories carries the truth labels (DR-0811) exactly as the
+                cards did.
+                THE ASK FOR THE READER'S OWN STORY IS NOT HERE (2026-10-10, Darrell:
+                "Asking users for their stories in the middle of our lessons is a
+                distraction.... put it at the end of the lessons"). The taught stories
+                stay, because they ARE the teaching; the invitation to write your own
+                is a task, and a task set mid-reading takes the reader out of it. It
+                moves to the 'send' stage, after the reading is done. */}
+            <LessonStories lesson={module} stories={seg.audience.stories} askForYours={false} />
             {/* Multi-modal media — diagrams, POV SOP clips, embedded videos */}
             <MediaList module={module} />
             {/* Who He Is (DR-0675): every passage this lesson carries, with where,
@@ -1466,19 +1472,30 @@ function TutorPanel({ module, onLaunch, tutorCourseMeta = null, handsOnLabel = '
           </>
         );
       case 'send':
-        return Array.isArray(seg.audience.benefits) && seg.audience.benefits.length > 0 ? (
-          <div className="border-l-4 border-[#5A6E3D] bg-[#5A6E3D]/[0.06] pl-3 py-2">
-            <div className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold mb-1">What this frees in you</div>
-            <ul className="list-disc pl-4 space-y-1">
-              {seg.audience.benefits.map((b, i) => (
-                <li key={i} className="text-xs text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{b}</li>
-              ))}
-            </ul>
-          </div>
-        ) : (
-          <p className="text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
-            Carry one thing from this {unitNoun} into a real moment this week.
-          </p>
+        // THE LAST STAGE, AND WHERE THE ASK BELONGS (2026-10-10). The reading
+        // is over here, so the invitation to add your own story is an offer
+        // rather than an interruption — and it is still the same component,
+        // the same review path, the same lesson (DR-0855).
+        return (
+          <>
+            {Array.isArray(seg.audience.benefits) && seg.audience.benefits.length > 0 ? (
+              <div className="border-l-4 border-[#5A6E3D] bg-[#5A6E3D]/[0.06] pl-3 py-2">
+                <div className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold mb-1">What this frees in you</div>
+                <ul className="list-disc pl-4 space-y-1">
+                  {seg.audience.benefits.map((b, i) => (
+                    <li key={i} className="text-xs text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{b}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : (
+              <p className="text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+                Carry one thing from this {unitNoun} into a real moment this week.
+              </p>
+            )}
+            <div className="mt-3">
+              <AddPerspective lesson={module} />
+            </div>
+          </>
         );
       default:
         return null;
