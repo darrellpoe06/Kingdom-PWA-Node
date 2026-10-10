@@ -365,7 +365,34 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
   const activeDoor = useMemo(() => {
     const byId = doors.find((x) => x.id === activeId);
     if (byId) return byId;
-    if (activeId && rentals.some((r) => r.id === activeId)) return null;
+    const picked = activeId ? rentals.find((r) => r.id === activeId) : null;
+    if (picked) {
+      // A DOOR'S OWN TENANCY IS NOT ANOTHER DOOR'S (DR-0904). Darrell,
+      // 2026-10-10: "Messages didn't stay either".
+      //
+      // This returned null flat. The guarantee it was added for is right — a
+      // vacant door must never borrow doors[0]'s tenancy, which once filed a
+      // work order against an entirely different property — but it threw away
+      // THIS door's own tenancy along with the stranger's.
+      //
+      // That is where the messages went. A vacant unit has no tenancy until
+      // ensureDoor() mints one on the first message; from then on the door DOES
+      // have a tenancy, and picking the unit from the board still resolved to
+      // null, because the board picks a RENTAL and no tenancy carries a
+      // rental's id. tenancyId stayed null, loadDoorRecord skips
+      // tenant_messages entirely without one (the table has no rental_id —
+      // 0260 added that column to work orders, documentation and notes and to
+      // nothing else), and so every message ever sent on that door became
+      // unreadable. Written correctly, kept correctly, never looked for.
+      //
+      // The link was always there and was simply never followed:
+      // rental_tenancies.rental_ref is the rentals SLUG (text, measured
+      // 2026-08-27 — the same key confusion that once emptied Rooms and
+      // Photos). Match on it, and accept the id too, because vacantUnitRow
+      // falls back to the id when a rental has no slug.
+      return doors.find((d) => d.rental_ref
+        && (d.rental_ref === picked.slug || d.rental_ref === picked.id)) || null;
+    }
     return doors[0] || null;
   }, [doors, activeId, rentals]);
 
