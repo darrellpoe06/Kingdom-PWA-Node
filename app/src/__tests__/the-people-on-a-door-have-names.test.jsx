@@ -207,6 +207,29 @@ describe('a vacant unit can hold work and people', () => {
   });
 });
 
+// ── 4b. THE FAMILY'S OWN HOME IS NOT A DOOR ────────────────────────────────
+describe('the house the family lives in never becomes a tenancy', () => {
+  const app = read('modules', 'properties', 'PropertiesApp.jsx');
+
+  it('PROVEN-TO-CATCH: ensureDoor refuses an own home before it writes a row', () => {
+    // Found by a peer session reviewing this change, and it was a real hole.
+    // isOwnHome already guards OFFERING and LISTING a home; this new path had
+    // no guard, so filing work on the house the family lives in would have
+    // minted a placeholder tenancy for it — and every rent roll, door list
+    // and tenancy report counts rows in that table.
+    const at = app.indexOf('const ensureDoor =');
+    expect(at).toBeGreaterThan(-1);
+    const body = app.slice(at, app.indexOf('}, [activeDoor, activeRental]);', at));
+    expect(body).toContain("isOwnHome(activeRental)");
+    // Before the write, not after it.
+    expect(body.indexOf('isOwnHome(activeRental)')).toBeLessThan(body.indexOf('createTenancy('));
+  });
+
+  it('and says why, in words about the home rather than a reason code', () => {
+    expect(app).toContain("'own-home': 'This is your own home, not a rental door");
+  });
+});
+
 // ── 5. THE SOURCE PINS ──────────────────────────────────────────────────────
 describe('the wiring the screens depend on', () => {
   const app = read('modules', 'properties', 'PropertiesApp.jsx');

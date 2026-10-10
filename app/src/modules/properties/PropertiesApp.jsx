@@ -484,6 +484,15 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
   // happened. See staging.js vacantUnitRow for the full trace.
   const ensureDoor = useCallback(async () => {
     if (activeDoor) return { ok: true, door: activeDoor, created: false };
+    // THE FAMILY'S OWN HOME NEVER GETS A TENANCY (0156 / homes.js). Caught by
+    // a peer session reviewing this change, and it is a real hole: isOwnHome
+    // already guards offering and listing a home (two call sites below), and
+    // this new path had no such guard. Filing work on the house the family
+    // LIVES IN would have minted a placeholder tenancy row for it — putting
+    // their own home in the tenancy table, where every rent roll, door list
+    // and tenancy report would then count it as a rental. A home is not a
+    // door, and the refusal it already has is the right answer here too.
+    if (isOwnHome(activeRental)) return { ok: false, reason: 'own-home' };
     const instanceId = activeRental?.instance_id || null;
     const built = vacantUnitRow({ instanceId, rental: activeRental });
     if (!built.ok) return { ok: false, reason: built.reason };
@@ -497,6 +506,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
   const WHY_NO_DOOR = {
     'no-instance': 'This property is not attached to an instance yet, so there is nowhere to file it.',
     'no-door': 'Pick one of your properties first.',
+    'own-home': 'This is your own home, not a rental door — it is kept out of tenancies, rent and the doors board on purpose.',
   };
 
   const submitWorkOrder = async (form) => {
