@@ -47,6 +47,13 @@ vi.mock('../modules/properties/cloud.js', () => {
     loadDoorPapers: async () => ({ ok: true, documents: [] }), loadSignatures: async () => ({ ok: true, signatures: [] }),
     requestSignatures: async () => ({ ok: true }), signDocument: async () => ({ ok: true }),
     doorOfMyTenancy: async () => ({ ok: true, rentalId: null }), loadDoorStays: async () => ({ ok: true, rows: [] }), loadBookedNights: async () => ({ ok: true, ranges: [] }), loadDoorArea: async () => ({ ok: true, area: null, nearby: [] }), requestAStay: async () => ({ ok: true }), addDoorStay: async () => ({ ok: true }), decideStay: async () => ({ ok: true }), loadCameraMenu: async () => ({ ok: true, menu: [] }), loadCameraAccess: async () => ({ ok: true, rows: [] }),
+    // The Applications tab (DR-0903/DR-0944) reads these three. A tab added
+    // to MANAGER_TABS renders in this suite's every-tab sweep, so its
+    // loaders belong in the mock — a true consequence, not a workaround.
+    loadApplications: async () => ({ ok: true, applications: [], unreadable: [] }),
+    loadApplicationChecks: async () => ({ ok: true, checks: [], unreadable: [] }),
+    addApplicationCheck: async () => ({ ok: true, check: {} }),
+    decideApplication: async () => ({ ok: true }),
     saveCameraMenu: async () => ({ ok: true }), askForCameras: async () => ({ ok: true }), decideCameraAccess: async () => ({ ok: true }), giveCameraAccess: async () => ({ ok: true }), loadPayeeForTenancy: async () => ({ ok: true, payee: null }),
     loadRentPayee: async () => ({ ok: true, payee: null }), saveRentPayee: async () => ({ ok: true }),
     fileWorkOrder: noop, setWorkOrderStatus: noop, assignWorkOrder: noop,

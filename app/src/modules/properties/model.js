@@ -123,6 +123,11 @@ export const MANAGER_TABS = [
   // coming, blackouts, and stays the family enters itself.
   TAB('stays', 'Stays', 'Confirm or decline asked-for nights, black out dates, and book a stay yourself.'),
   TAB('readiness', 'Guest ready', 'Everything left before this unit can be listed and take a guest \u2014 and what it still costs.'),
+  // WHO ASKED TO LIVE HERE (DR-0903). The one event that begins a tenancy had
+  // no surface at all: applications were written and never read. Gated on
+  // application.review, which 0152 already uses for exactly this read, so a
+  // manager sees them only when the landlord has said so.
+  TAB('applications', 'Applications', 'Who asked to live here, what they answered, and your decision with its reason.', 'application.review'),
   TAB('people', 'People', 'Invite a tenant, a family member, or a 1099 worker.'),
   TAB('cameras', 'Cameras', 'Share the cameras at this door with its household, and take them back.'),
   TAB('documents', 'Documents', 'The lease, the rules, the notices and the letters — filled from this door’s own records.'),
@@ -301,8 +306,160 @@ const at = (...candidates) => {
   return null;
 };
 
+/**
+ * The statuses 0152 treats as a DECISION — the two that its
+ * rental_applications_decision_has_reason constraint requires a reason for,
+ * plus 'withdrawn', which is the applicant's own decision and ends the ask
+ * just as finally. 'submitted' and 'reviewing' are the ask still open.
+ */
+export const DECIDED = new Set(['approved', 'declined', 'withdrawn']);
+
+/** What a landlord may set an application to, in the order a person moves through them. */
+export const APPLICATION_STATUSES = Object.freeze(['submitted', 'reviewing', 'approved', 'declined', 'withdrawn']);
+
+/** The shortest a decision reason may be — 0152 enforces 10 characters in the database. */
+export const DECISION_REASON_MIN = 10;
+
+/**
+ * Can this decision be saved? Mirrors the database constraint rather than
+ * trusting it to be hit: a form that lets someone type three characters,
+ * press save and watch it fail is a form that wasted their time.
+ */
+export function decisionReady(status, reason = '') {
+  if (!APPLICATION_STATUSES.includes(status)) return { ok: false, why: 'That is not a status an application can be in.' };
+  if (status === 'approved' || status === 'declined') {
+    const r = String(reason || '').trim();
+    if (r.length < DECISION_REASON_MIN) {
+      return { ok: false, why: `Say why, in a sentence — at least ${DECISION_REASON_MIN} characters. A decision without its reason is not a record anyone can answer for.` };
+    }
+  }
+  return { ok: true };
+}
+
+// ===========================================================================
+// CORROBORATION — how you verify a person without holding their ID (DR-0944)
+// ===========================================================================
+// Darrell, 2026-10-10: "How can we verify people without ID?" then, naming the
+// model himself, "Same as rent a center..."
+//
+// Rent-A-Center runs no credit check. It calls references, takes a utility
+// bill proving the address, takes a pay stub, and knows where the person is.
+// Corroboration instead of credentials — and for a landlord the asset never
+// even leaves his possession, because the tenant lives in it.
+//
+// This list is the machine version of that, and 0272 is the half that cannot
+// be talked around. Two properties it must keep, both load-bearing:
+//
+//   NOT A SCORE. No total, no threshold. A score is an exclusion engine
+//   wearing arithmetic, and the people it would exclude — the first-time
+//   renter, the recently-arrived, the unbanked — are exactly who the no-ID
+//   posture exists to keep a door open for. 'not-applicable' is therefore a
+//   real answer, not a blank.
+//
+//   NOT DISCRETION. The same list for every applicant, every time. A landlord
+//   who calls one applicant's references and not another's is the fair-housing
+//   exposure; working a fixed list for everyone is the defence, and a far
+//   better record than a note written afterwards.
+
+/** The fixed list. Order is the order a person would actually work it. */
+export const CORROBORATION_ITEMS = Object.freeze([
+  Object.freeze({ id: 'phone-answers', label: 'The number they gave answers',
+    help: 'Call it. A number that rings to them is the cheapest check there is, and a dead number is worth knowing early.' }),
+  Object.freeze({ id: 'prior-landlord', label: 'Their last landlord',
+    help: 'The single highest-signal call a landlord can make. No prior landlord is not a problem — mark it does not apply and say why.' }),
+  Object.freeze({ id: 'employer', label: 'Employment and income, at the source',
+    help: 'Look the employer up yourself rather than calling only the number on the form.' }),
+  Object.freeze({ id: 'income-shown', label: 'Income shown',
+    help: 'A pay stub, a benefits letter, bank deposits — seen, not held. Nothing needs to be kept to have been seen.' }),
+  Object.freeze({ id: 'address-shown', label: 'Where they live now',
+    help: 'A utility bill or lease in their name. This is the check that is hardest to fake and easiest to ask for.' }),
+  Object.freeze({ id: 'reference', label: 'A personal reference reached',
+    help: 'Someone who answers and knows them. Repeatable — a second attempt is a new entry, never an edit.' }),
+]);
+
+export const CORROBORATION_ITEM_IDS = Object.freeze(CORROBORATION_ITEMS.map((i) => i.id));
+
+/** What a check can come back as. 'not-applicable' is an ANSWER, never a gap. */
+export const CORROBORATION_OUTCOMES = Object.freeze([
+  Object.freeze({ id: 'confirmed', label: 'Confirmed' }),
+  Object.freeze({ id: 'could-not-reach', label: 'Could not reach' }),
+  Object.freeze({ id: 'did-not-confirm', label: 'Did not confirm' }),
+  Object.freeze({ id: 'not-applicable', label: 'Does not apply' }),
+]);
+
+export const CORROBORATION_OUTCOME_IDS = Object.freeze(CORROBORATION_OUTCOMES.map((o) => o.id));
+
+/**
+ * Which items still have no attempt recorded. Mirrors 0272's trigger so the
+ * surface can say what is left BEFORE the save, instead of letting the person
+ * write a decision and meet a database error holding it.
+ *
+ * ATTEMPTED, not passed. This deliberately never reads an outcome: six
+ * 'could-not-reach' rows is a complete list and a recordable decision — he
+ * tried, nobody answered, and that is written down.
+ */
+export function corroborationLeft(checks = [], items = CORROBORATION_ITEM_IDS) {
+  const done = new Set((checks || []).map((c) => c && c.item).filter(Boolean));
+  return items.filter((i) => !done.has(i));
+}
+
+/**
+ * Every attempt on one item, newest first — the whole thread, not a verdict.
+ * "Called Tuesday, no answer" then "called Thursday, reached her" IS the
+ * record; collapsing it to the last row would throw away the part a dispute
+ * actually turns on, which is why 0272 grants no UPDATE.
+ */
+export function corroborationByItem(checks = []) {
+  const out = new Map();
+  for (const c of checks || []) {
+    if (!c || !c.item) continue;
+    if (!out.has(c.item)) out.set(c.item, []);
+    out.get(c.item).push(c);
+  }
+  for (const list of out.values()) {
+    list.sort((a, b) => String(b.checked_at || '').localeCompare(String(a.checked_at || '')));
+  }
+  return out;
+}
+
+/**
+ * Can this decision be saved AT ALL — the reason rule above AND the list.
+ * Separate from decisionReady so the older function keeps its exact meaning
+ * for every existing caller; this is the one the Applications surface asks.
+ */
+export function decisionReadyWithChecks(status, reason = '', checks = []) {
+  const base = decisionReady(status, reason);
+  if (!base.ok) return base;
+  if (status !== 'approved' && status !== 'declined') return base;
+  const left = corroborationLeft(checks);
+  if (left.length) {
+    const names = left
+      .map((id) => (CORROBORATION_ITEMS.find((i) => i.id === id) || {}).label || id)
+      .join(', ');
+    return { ok: false, left,
+      why: `Still to check: ${names}. Every applicant gets the same list — and "could not reach" is an answer, a blank is not.` };
+  }
+  return { ok: true, left: [] };
+}
+
 export function buildHistory({
   requests = [], messages = [], notes = [], docs = [], rent = [], notices = [], propertyNotes = [], changes = [],
+  // APPLICATIONS JOIN THE RECORD (DR-0903). Darrell, 2026-10-10: "What happens
+  // when you apply!??? End to end documentation inside the records for the
+  // users!!! Obviously!!!"
+  //
+  // They did not join it. submitApplication wrote a row into
+  // rental_applications and NOTHING in the app ever read that table -- not a
+  // tab, not a badge, not this timeline -- while the database had permitted
+  // the landlord's read since 0152. So a door's history, built expressly so
+  // "workers can deduce things from historical data", silently omitted the
+  // one event that begins a tenancy: somebody asked to live here.
+  //
+  // Management-only, passed in by the caller exactly as propertyNotes is: an
+  // applicant's name and answers are not a tenant's to read, and RLS already
+  // says so. This parameter makes the omission a CHOICE the caller states
+  // rather than an accident of what was never wired.
+  applications = [],
   // Map(userId -> name) from people.js namesByUserId. Optional: when it is
   // absent the history reads exactly as it always did, by role. When it is
   // present a message says WHO said it, which is the whole point of keeping
@@ -364,6 +521,24 @@ export function buildHistory({
   // The landlord's own private door memory (property_notes, 0062) joins the
   // MANAGEMENT view only — the caller passes it in solely for that face.
   for (const n of propertyNotes) push('property-note', n, at(n.created_at, n.note_date), n.body || n.title || '', 'landlord');
+
+  // An application is TWO events when it has been decided, not one. The ask
+  // and the answer happen on different days and a record that collapsed them
+  // would lose how long somebody waited -- which is the question a person
+  // reviewing their own conduct actually asks.
+  for (const a of applications) {
+    push('application', a, at(a.created_at), `Applied: ${a.applicant_name || 'someone'}`, 'applicant');
+    if (DECIDED.has(a.status) && a.decided_at) {
+      const word = a.status === 'approved' ? 'Approved' : a.status === 'declined' ? 'Declined' : 'Withdrawn';
+      // The reason is carried, never summarised away: 0152 makes it a NOT NULL
+      // of at least ten characters precisely so a decision cannot be recorded
+      // without one, and dropping it here would undo that at the only place a
+      // person reads it.
+      push('application-decided', a, at(a.decided_at),
+        `${word}: ${a.applicant_name || 'someone'}${a.decision_reason ? ` \u2014 ${a.decision_reason}` : ''}`,
+        'landlord');
+    }
+  }
 
   events.sort((a, b) => (a.ms - b.ms) || String(a.id).localeCompare(String(b.id)));
   return events;
