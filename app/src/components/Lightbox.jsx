@@ -16,6 +16,12 @@
 //   <Lightbox src={url} alt="…" onClose={fn} />              // single photo
 //   <Lightbox items={[{src,alt,caption,date}]} index={n} onClose={fn} />  // a set
 //
+// BRANDED (DR-0906): pass `stamp` (async (item) => dataURL | null) and the
+// picture on screen AND the one Save hands out are the stamped copy — the
+// Poe Properties band with its QR drawn into the pixels — never the original.
+// If a stamp cannot be made, Save is withheld and says so: nothing leaves
+// unbranded. Without `stamp` (family photos elsewhere) nothing changes.
+//
 // Presentational + self-contained: the photo bytes are whatever src is handed
 // in (a data URL or a NAS thumbnail). It NEVER fetches or sends anything.
 // UNBREAKABLE: a photo that fails to load shows an honest "couldn't load" tile —
@@ -26,7 +32,7 @@ const MIN_SCALE = 1;
 const MAX_SCALE = 6;
 const SWIPE_PX = 48; // horizontal travel that counts as a next/prev swipe
 
-export default function Lightbox({ items, index = 0, src, alt = 'Photo', onClose }) {
+export default function Lightbox({ items, index = 0, src, alt = 'Photo', onClose, stamp = null }) {
   // Normalize both call shapes to one list. Single-src callers keep working.
   const list = Array.isArray(items) && items.length
     ? items
@@ -53,7 +59,26 @@ export default function Lightbox({ items, index = 0, src, alt = 'Photo', onClose
   }, [index, list.length]);
 
   // Reset zoom/pan/broken whenever the shown photo changes.
-  const curSrc = list[cur] ? list[cur].src : null;
+  const rawSrc = list[cur] ? list[cur].src : null;
+  // The stamped copy per picture (DR-0906): undefined = still being made,
+  // null = could not be made, a string = the branded data URL.
+  const [stamped, setStamped] = useState({});
+  useEffect(() => {
+    if (!stamp || !rawSrc || stamped[rawSrc] !== undefined) return undefined;
+    let live = true;
+    Promise.resolve()
+      .then(() => stamp(list[cur]))
+      .catch(() => null)
+      .then((url) => { if (live) setStamped((m) => ({ ...m, [rawSrc]: url || null })); });
+    return () => { live = false; };
+  }, [stamp, rawSrc]); // eslint-disable-line react-hooks/exhaustive-deps
+  const stampState = !stamp ? 'none' : stamped[rawSrc] === undefined ? 'making' : stamped[rawSrc] ? 'ready' : 'failed';
+  // VIEWING never breaks (the stamp can fail — a picture from another origin
+  // cannot be drawn into a canvas): the branded copy once it is ready, the
+  // original until then or if it cannot be made. SAVING is only ever the
+  // branded copy; with a stamp and no stamped copy there is no Save.
+  const curSrc = stampState === 'ready' ? stamped[rawSrc] : rawSrc;
+  const saveSrc = stampState === 'ready' ? stamped[rawSrc] : stampState === 'none' ? rawSrc : null;
   useEffect(() => { setScale(1); setPan({ x: 0, y: 0 }); setBroken(false); }, [cur, curSrc]);
 
   const go = useCallback((delta) => {
@@ -194,7 +219,11 @@ export default function Lightbox({ items, index = 0, src, alt = 'Photo', onClose
         <button type="button" aria-label="Zoom out" onClick={() => zoomBy(-0.5)} className="w-11 h-11 min-h-[44px] rounded-full bg-white/15 hover:bg-white/30 text-white text-2xl leading-none focus:outline focus:outline-2 focus:outline-white">−</button>
         <span className="text-white/80 text-xs w-12 text-center" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{Math.round(scale * 100)}%</span>
         <button type="button" aria-label="Zoom in" onClick={() => zoomBy(0.5)} className="w-11 h-11 min-h-[44px] rounded-full bg-white/15 hover:bg-white/30 text-white text-2xl leading-none focus:outline focus:outline-2 focus:outline-white">+</button>
-        <a href={curSrc} download onClick={stop} className="ml-3 text-white/70 hover:text-white text-[0.625rem] uppercase tracking-wider focus:outline focus:outline-2 focus:outline-white">⬇ Save</a>
+        {stampState === 'failed' ? (
+          <span className="ml-3 text-white/60 text-[0.625rem]" data-testid="lightbox-save-unavailable">This picture could not be prepared for saving.</span>
+        ) : saveSrc ? (
+          <a href={saveSrc} download={(photo && photo.fileName) || true} onClick={stop} data-testid="lightbox-save" className="ml-3 text-white/70 hover:text-white text-[0.625rem] uppercase tracking-wider focus:outline focus:outline-2 focus:outline-white">⬇ Save</a>
+        ) : null}
       </div>
     </div>
   );

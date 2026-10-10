@@ -995,6 +995,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
           case 'gallery': return (
             <GalleryTab
               door={{ id: rentalId, instance_id: activeRental?.instance_id || activeDoor?.instance_id }}
+              doorLabel={activeRental?.display_name || activeRental?.address || activeDoor?.property_label || ''}
               rooms={doorData.rooms} photos={doorData.photos} busy={Boolean(busy)}
               canManage={role === 'owner' || role === 'manager'}
               // A 1099 worker delegated "Add job documentation" files pictures

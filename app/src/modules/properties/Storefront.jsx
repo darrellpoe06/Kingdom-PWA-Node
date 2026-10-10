@@ -18,10 +18,11 @@
 // kind='listing', so a move-out condition set of somebody's home cannot come
 // through it whatever it is asked for. No street address is published either.
 // =============================================================================
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { loadVacancyPhotos } from './cloud.js';
 import { applyUrl } from './apply-link.js';
 import Lightbox from '../../components/Lightbox.jsx';
+import { stampImage, stampFileName } from '../../lib/brand-stamp.js';
 
 const ACCENT = '#2F5D50';
 const serif = { fontFamily: '"Fraunces", serif' };
@@ -44,6 +45,10 @@ export function VacancyCard({ unit }) {
   }, [unit.rentalId]);
 
   const shot = shots[i] || null;
+  // Every picture opened or saved from a listing carries the Poe Properties
+  // band and a QR back to THIS unit (DR-0906) — a forwarded copy advertises.
+  const placeName = `${unit.label}${unit.unit ? ` ${unit.unit}` : ''}`;
+  const stamp = useCallback((item) => stampImage({ src: item.src, door: placeName, link: applyUrl(unit.rentalId) }), [placeName, unit.rentalId]);
   const size = [
     unit.beds ? `${unit.beds} bed` : null,
     unit.baths ? `${unit.baths} bath` : null,
@@ -125,13 +130,15 @@ export function VacancyCard({ unit }) {
       )}
       {open != null && (
         <Lightbox
-          items={shots.map((p) => ({
+          items={shots.map((p, n) => ({
             src: p.storage_path,
-            alt: p.caption || `${unit.label}${unit.unit ? ` ${unit.unit}` : ''}`,
+            alt: p.caption || placeName,
             caption: p.caption || '',
+            fileName: stampFileName(placeName, n + 1),
           }))}
           index={open}
           onClose={() => setOpen(null)}
+          stamp={stamp}
         />
       )}
 

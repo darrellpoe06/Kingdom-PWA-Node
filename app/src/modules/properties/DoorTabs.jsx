@@ -16,7 +16,7 @@
 //   bed/bath figure is COUNTED from the rows on screen, so what the header
 //   claims and what the list shows cannot disagree.
 // =============================================================================
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { buildPropertyTimeline, turnPhotos, latestAtDoor, doorEvents } from './timeline.js';
 import {
@@ -29,6 +29,7 @@ import { applyUrl, applyUrlDisplay, cardCaption } from './apply-link.js';
 import { isOwnHome } from './homes.js';
 import { shelfOrder } from './showcase.js';
 import { moneyLine, dollarsLong } from './door-money.js';
+import { stampImage, stampFileName } from '../../lib/brand-stamp.js';
 import { photoOrder, movePhoto, makeCover, pickCovers, listImage } from './photo-order.js';
 import { compressImageFile, isLikelyImageFile } from '../../lib/image.js';
 import { useVoiceDictation } from '../../lib/voice-dictation.js';
@@ -1217,8 +1218,13 @@ function CaptionField({ value, onChange, placeholder, label, className = '' }) {
 
 export function GalleryTab({
   door, rooms = [], photos = [], canManage = false, canAdd = canManage, busy = false,
-  onAdd, onPatch, onAddRoom, loadImage = null,
+  onAdd, onPatch, onAddRoom, loadImage = null, doorLabel = '',
 }) {
+  // Every picture opened or saved here carries the Poe Properties band and a
+  // QR to this unit's listing (DR-0906): "all downloaded materials have our
+  // tags and logos". The stored original is never altered.
+  const doorId = door ? door.id : null;
+  const stamp = useCallback((item) => stampImage({ src: item.src, door: doorLabel, link: applyUrl(doorId) }), [doorLabel, doorId]);
   const [f, setF] = useState({ caption: '', kind: 'listing', roomId: '' });
   const [pending, setPending] = useState([]);
   const [error, setError] = useState('');
@@ -1508,14 +1514,16 @@ export function GalleryTab({
 
       {open !== null && shown.length > 0 && (
         <Lightbox
-          items={shown.map((p) => ({
+          items={shown.map((p, n) => ({
             src: full[p.id] || p.storage_path || listImage(p),
             alt: p.caption || p.kind,
             caption: [p.caption, p.kind.replace(/-/g, ' '), roomName(p.room_id)].filter(Boolean).join(' · '),
             date: p.taken_at ? p.taken_at.slice(0, 10) : '',
+            fileName: stampFileName(doorLabel, n + 1),
           }))}
           index={open}
           onClose={() => setOpen(null)}
+          stamp={stamp}
         />
       )}
     </>
