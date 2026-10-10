@@ -1240,6 +1240,8 @@ export function GalleryTab({
   onAdd, onPatch, onAddRoom, loadImage = null,
 }) {
   const [f, setF] = useState(() => ({ caption: '', kind: rememberedKind(), roomId: '' }));
+  const [saving, setSaving] = useState(false);
+  const [savedSoFar, setSaved] = useState(null);
   const [pending, setPending] = useState([]);
   const [error, setError] = useState('');
   const [editing, setEditing] = useState(null);
@@ -1298,28 +1300,82 @@ export function GalleryTab({
   const drop = (key) => setPending((q) => q.filter((x) => x.key !== key));
   const captionOf = (key, caption) => setPending((q) => q.map((x) => (x.key === key ? { ...x, caption } : x)));
 
-  const submit = () => {
+  // A PICTURE IS NOT GONE UNTIL IT IS SAVED (DR-0907). Darrell, 2026-10-10,
+  // after the HEIC fix let fourteen move-out photographs in at last: "Would
+  // let me upload however didn't take them".
+  //
+  // WHAT THIS USED TO DO, and all three parts matter:
+  //   pending.forEach((pic) => { onAdd?.({...}); });   // async, NOT awaited
+  //   setPending([]);                                  // cleared regardless
+  //
+  //   1. Fourteen inserts fired AT ONCE, each carrying a ~226KB data URL, and
+  //      each handler then reloading the door — twenty-eight more reads on top.
+  //   2. THE QUEUE WAS EMPTIED BEFORE A SINGLE RESULT CAME BACK. Anything that
+  //      failed — size, a dropped connection, RLS, a hiccup under fourteen-way
+  //      concurrency — was gone from the screen with nothing left to retry and
+  //      no copy of the file. The thumbnails vanished, so it LOOKED saved.
+  //   3. Failures were announced through a six-second toast called fourteen
+  //      times, each stomping the last, so a partial failure read as success.
+  //
+  // Now: one at a time (the picker already reads files serially, so this
+  // matches), only what actually saved leaves the queue, and the tally is the
+  // truth. A photograph of a unit at move-out cannot be re-taken.
+  const submit = async () => {
     if (!pending.length) { setError('Choose at least one picture first.'); return; }
+    if (saving) return;
+    setSaving(true);
+    setError('');
     // A picture's OWN caption wins. The set caption is the honest reading of
     // one box above many files: it names the set, numbered, for any picture
     // that was not given its own words.
     const setCaption = f.caption.trim();
-    pending.forEach((pic, i) => {
+    const total = pending.length;
+    const kept = [];
+    const lost = [];
+    let saved = 0;
+    for (let i = 0; i < pending.length; i += 1) {
+      const pic = pending[i];
       const own = (pic.caption || '').trim();
       const caption = own
-        || (setCaption && pending.length > 1 ? `${setCaption} (${i + 1} of ${pending.length})` : setCaption);
-      onAdd?.({
-        instance_id: door?.instance_id,
-        rental_ref: door?.id,
-        room_id: f.roomId || null,
-        kind: f.kind,
-        caption,
-        storage_path: pic.dataUrl,
-        thumb_path: pic.thumbUrl,
-        taken_at: pic.takenAt,   // the shutter, if it fired here; else unknown
-      });
-    });
-    setPending([]);
+        || (setCaption && total > 1 ? `${setCaption} (${i + 1} of ${total})` : setCaption);
+      let res;
+      try {
+        res = await onAdd?.({
+          instance_id: door?.instance_id,
+          rental_ref: door?.id,
+          room_id: f.roomId || null,
+          kind: f.kind,
+          caption,
+          storage_path: pic.dataUrl,
+          thumb_path: pic.thumbUrl,
+          taken_at: pic.takenAt,   // the shutter, if it fired here; else unknown
+        });
+      } catch (e) {
+        res = { ok: false, reason: (e && e.message) || 'failed' };
+      }
+      // An onAdd that answers nothing is treated as a SUCCESS, because that is
+      // what every caller before this change did and a false "lost" would be
+      // its own lie. The one in PropertiesApp returns a real result.
+      if (res && res.ok === false) {
+        lost.push({ pic, why: res.reason || 'could not be saved' });
+        kept.push(pic);
+      } else {
+        saved += 1;
+      }
+      setSaved({ done: i + 1, total });
+    }
+    // ONLY what saved leaves. What failed stays on screen with its caption and
+    // its thumbnail, ready to try again.
+    setPending(kept);
+    setSaving(false);
+    setSaved(null);
+    if (lost.length) {
+      setError(
+        `${saved} of ${total} added. ${lost.length} still here and NOT saved: `
+        + `${lost.map((l) => `${l.pic.name} (${l.why})`).join(', ')}. They are still in the list — try again.`,
+      );
+      return;
+    }
     // KEEP THE KIND. A move-out set arrives in batches; reverting to
     // 'listing' between them is how an advertising photo gets made by
     // accident. Only the caption and room clear.
@@ -1483,8 +1539,19 @@ export function GalleryTab({
           )}
           {error && <p className="text-[0.8125rem] text-[#8C2F2F] mt-2">{error}</p>}
           <div className="mt-2 flex items-center gap-2 flex-wrap">
-            <Btn tone="primary" onClick={submit} disabled={busy || !pending.length}>
-              {pending.length > 1 ? `Add ${pending.length} to the gallery` : 'Add to the gallery'}
+            {/* SAYING WHERE IT HAS GOT TO (DR-0907). Fourteen photographs
+                saved one at a time is a real wait, and a button that only
+                greys out is how a person decides it has hung and leaves —
+                which, before this change, genuinely lost the ones not yet
+                written. */}
+            <Btn
+              tone="primary" onClick={submit}
+              disabled={busy || saving || !pending.length}
+              data-testid="add-to-gallery"
+            >
+              {saving
+                ? `Saving ${savedSoFar ? `${savedSoFar.done} of ${savedSoFar.total}` : ''}\u2026`.replace('  ', ' ')
+                : (pending.length > 1 ? `Add ${pending.length} to the gallery` : 'Add to the gallery')}
             </Btn>
             {/* A DISABLED CONTROL SAYS WHY. A greyed button with no sentence
                 beside it is the app refusing without explaining itself. */}
