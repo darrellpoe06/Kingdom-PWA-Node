@@ -956,7 +956,12 @@ function PropertyDetails({ rental, updateRental, paid = null }) {
                 stop disagreeing about who lives here. */}
             {doorTenancies && doorTenancies.length > 0 && (
               <div className="mt-2 border-t border-[#F0EDE6] pt-2" data-testid="door-tenancies">
-                <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#2F5D50] font-semibold">
+                {/* #5A6E3D, not the #2F5D50 this first reached for: that token
+                    has no midnight remap, so the header measured 2.46:1 on the
+                    dark card and the legibility guard failed the build. This
+                    one is remapped (#86EFAC) and is already the file's
+                    emphasis header at L1870. */}
+                <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A6E3D] font-semibold">
                   {`On its Poe Properties door · ${doorTenancies.length} ${doorTenancies.length === 1 ? 'tenancy' : 'tenancies'}`}
                 </div>
                 {doorTenancies.map((t) => (
