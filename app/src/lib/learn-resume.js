@@ -155,6 +155,17 @@ function normPlace(p) {
     // place written before this shipped, which reads as false — an old
     // record keeps resuming exactly as it did.
     done: p.done === true,
+    // HOW MANY TIMES IT HAS BEEN FINISHED, and the migration that keeps the
+    // reading already on the device (2026-10-10). Every place written before
+    // the count existed has no `finishes` — but a great many carry
+    // `done: true`, which is a lesson genuinely read to the end. Normalising
+    // those to 0 would erase, on the very first read of the store, the exact
+    // history the lesson list is showing on screen. A finished place with no
+    // count therefore becomes one finish, which is both true and idempotent.
+    finishes: Number.isFinite(Number(p.finishes)) && Number(p.finishes) > 0
+      ? Math.floor(Number(p.finishes))
+      : (p.done === true ? 1 : 0),
+    lastFinishedAt: typeof p.lastFinishedAt === 'number' ? p.lastFinishedAt : null,
     // STARTED — the reader pressed Start/Continue/Play on this lesson, or
     // moved inside it. Merely glancing at a lesson's card (a title tap) is
     // not starting it, so a browse never shows up as "in progress" beside
@@ -354,6 +365,28 @@ export function placeIsFinished(place) {
 }
 
 /**
+ * How many times this lesson has been read to the end. 0 when never.
+ *
+ * A place written before the count existed has no `finishes` field but may
+ * well carry `done: true` — a lesson genuinely finished. Reading that as 0
+ * would throw away the history already on the device (and the Class Record is
+ * built from exactly this), so a finished place with no count reads as 1.
+ */
+export function placeFinishes(place) {
+  if (!place || typeof place !== 'object') return 0;
+  const n = Number(place.finishes);
+  if (Number.isFinite(n) && n > 0) return Math.floor(n);
+  return place.done === true ? 1 : 0;
+}
+
+/** "FINISHED" the first time, "FINISHED ×3" after that; '' when never. */
+export function finishedLabel(place) {
+  const n = placeFinishes(place);
+  if (!n) return '';
+  return n === 1 ? 'FINISHED' : `FINISHED ×${n}`;
+}
+
+/**
  * Record (merge) the learner's place for ONE lesson and make it the latest.
  *
  * The patch names the lesson (`lessonId`, optionally `courseKey`); a patch
@@ -387,8 +420,9 @@ export function recordPlace(patch, opts = {}) {
   const k = placeKey(courseKey, lessonId);
   // A lesson with no record starts unfinished: `done` belongs to the lesson
   // that was heard, and must never carry onto the next one.
-  const base = map.byLesson[k] || { stage: 0, step: 0, sentence: 0, sentenceKey: '', done: false, started: false };
+  const base = map.byLesson[k] || { stage: 0, step: 0, sentence: 0, sentenceKey: '', done: false, started: false, finishes: 0 };
   const moves = patch.stage !== undefined || patch.step !== undefined || patch.sentence !== undefined;
+  const nextDone = patch.done !== undefined ? patch.done === true : (moves ? false : base.done === true);
   const next = {
     courseKey,
     lessonId,
@@ -407,10 +441,22 @@ export function recordPlace(patch, opts = {}) {
     // starts at the top, and the sentence it then stores resumes normally.
     // A patch that only re-names the lesson (opening it again) keeps the flag,
     // which is what lets the lesson space reopen at part one.
-    done: patch.done !== undefined ? patch.done === true : (moves ? false : base.done === true),
+    done: nextDone,
     // Started is sticky for the lesson: once begun, a lesson stays begun until
     // it is finished or forgotten. Moving inside it is beginning it.
     started: patch.started === true || moves || base.started === true,
+    // HOW MANY TIMES, NOT WHETHER (Darrell 2026-10-10: "Some say finished
+    // should be how many times I've finished it..." — and, before that, the
+    // ask lessons-walked.js records and openly cannot answer: "Different
+    // lessons I choose to learn from how many times and which levels?").
+    //
+    // `done` is a FLAG, and the line above clears it the moment a reading
+    // moves again. That is right for resuming and useless for counting:
+    // reading a lesson a second time erased the evidence of the first. So the
+    // count lives beside it and RATCHETS — it rises on the false→true edge of
+    // `done`, and nothing lowers it, starting over included.
+    finishes: idx(base.finishes) + (nextDone && base.done !== true ? 1 : 0),
+    lastFinishedAt: (nextDone && base.done !== true) ? now : (base.lastFinishedAt || null),
     at: now,
   };
   writeMap(storage, { ...map, last: k, byLesson: { ...map.byLesson, [k]: next } });
