@@ -78,6 +78,16 @@ export default [
       'react/jsx-uses-vars': 'error',
       'react/jsx-no-undef': 'error',
 
+      // A SECOND className (or any repeated prop) silently wins and the first
+      // is DROPPED — no error, no warning, the element just renders without
+      // its sizing, spacing and border classes. Seventeen of these were live
+      // on 2026-10-10, produced by mechanical inline-color -> class passes
+      // (the oldest since PR #1149) and invisible to every other gate: the
+      // colour was right, so the colour checker was happy, while the layout
+      // quietly fell off the element. Darrell found one of them on the Guest
+      // Ready panel. Error, not warn — this is always a bug.
+      'react/jsx-no-duplicate-props': 'error',
+
       // React 17+ automatic JSX transform: React doesn't need to be in scope
       // for JSX. The repo still imports React explicitly for hooks, so that
       // import stays — this rule just disables the linter complaint.

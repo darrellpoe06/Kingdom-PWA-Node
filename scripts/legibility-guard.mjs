@@ -39,6 +39,17 @@ const MONOLITH = join(ROOT, 'app/src/poe-financial-mvp-v28.jsx');
 // parsing reads monolith + theme source; page scanning is unchanged.
 const THEME_SOURCE = join(ROOT, 'app/src/lib/theme-css.js');
 const COMPONENTS_DIR = join(ROOT, 'app/src/components');
+// THE BLIND SPOT, CLOSED (Darrell, 2026-10-10, on the Poe Properties Guest
+// Ready panel: "Can't see in dark mode...").
+//
+// This guard scanned app/src/components and the monolith, and NOTHING ELSE.
+// app/src/modules — the whole Properties module Darrell was standing in, plus
+// every other module door — was never measured, so the guard reported PASS on
+// a screen whose text was literally unreadable. Its own header already records
+// the sibling of this miss ("it scanned components/*.jsx NON-RECURSIVELY");
+// recursion was fixed and this root was never added. A gate that cannot see a
+// surface is not protecting it (DR-0076 §3).
+const MODULES_DIR = join(ROOT, 'app/src/modules');
 const BASELINE_PATH = join(ROOT, 'scripts/legibility-baseline.json');
 const HEALTH_PATH = join(ROOT, 'app/src/lib/legibility-health.json');
 
@@ -238,6 +249,7 @@ export function listPages() {
     }
   };
   walk(COMPONENTS_DIR);
+  walk(MODULES_DIR);
   // Sort by id so discovery order is filesystem-INDEPENDENT — the committed
   // health artifact must be byte-identical on every machine and in CI.
   return pages.sort((a, b) => pageId(a).localeCompare(pageId(b)));
