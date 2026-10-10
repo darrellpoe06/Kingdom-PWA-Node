@@ -57,7 +57,7 @@ const SIGNED_OUT_RECEIPT = 'You are signed out, so this note stayed on this devi
 // feedback actionable. Existing keys are STABLE (stored feedback rows reference
 // them); only add, don't rename.
 //
-// THE POE PROPERTIES GROUP IS DERIVED, NOT LISTED (DR-0898). Darrell,
+// THE POE PROPERTIES GROUP IS DERIVED, NOT LISTED (DR-0901). Darrell,
 // 2026-10-10: "make sure thr fields and pages are all able to be linked to as
 // the page with said issue/s". Measured that day: all 17 of the module's
 // manager tabs collapsed into the single 'properties' entry below, while the
@@ -115,7 +115,7 @@ export const FEEDBACK_AREAS = [
   ]},
   { group: 'Real Estate', items: [
     ['rentals', 'Real Estate · property list + map'],
-    // 'properties' moved to its own group (DR-0898), where its 21 pages are
+    // 'properties' moved to its own group (DR-0901), where its 21 pages are
     // now listed under it. The KEY is unchanged, so every report already
     // filed against it still means what it meant.
     ['rentals-edit', '└ Inline quick-edit on property rows'],
@@ -414,7 +414,7 @@ export function FeedbackModal({ onClose, onSubmit, currentView, initialAreaKey =
   const [areaQuery, setAreaQuery] = useState('');
   const [categories, setCategories] = useState([]);
   const [whatsWorking, setWhatsWorking] = useState('');
-  // THE PAGE THE REPORT CAME FROM, ALREADY WRITTEN DOWN (DR-0898). A surface
+  // THE PAGE THE REPORT CAME FROM, ALREADY WRITTEN DOWN (DR-0901). A surface
   // that knows exactly which page and which door the person was standing on
   // hands both over, and they are seeded into the "what's not working" box
   // rather than hidden in metadata -- so it survives into the report body a

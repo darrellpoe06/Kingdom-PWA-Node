@@ -241,7 +241,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
   const [grants, setGrants] = useState([]);
   const [household, setHousehold] = useState([]);
   const [claim, setClaim] = useState(null);
-  // THE PAGE THE LINK ASKED FOR (DR-0898). A deep link lands here: the tab and
+  // THE PAGE THE LINK ASKED FOR (DR-0901). A deep link lands here: the tab and
   // the door come out of the URL on the first render rather than being
   // defaulted and then corrected, so a person following a link never sees the
   // landing tab flash past on the way to the page they were sent to.
@@ -464,7 +464,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
     || face.tabs.find((t) => !t.locked)?.id
     || face.tabs[0]?.id || '';
 
-  // THE URL FOLLOWS THE PAGE (DR-0898). Every page in this module is now
+  // THE URL FOLLOWS THE PAGE (DR-0901). Every page in this module is now
   // addressable, which is what makes "linked to as the page with said issue"
   // possible at all -- and it buys a reload that keeps your place and a back
   // gesture that steps a tab instead of leaving the app. All of it is written
@@ -847,7 +847,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
         ))}
       </div>
 
-      {/* SOMETHING WRONG WITH *THIS PAGE* (DR-0898). Darrell, 2026-10-10:
+      {/* SOMETHING WRONG WITH *THIS PAGE* (DR-0901). Darrell, 2026-10-10:
           "Feedback? Should be inside for app issues... workorders for property
           issues... make sense?" — and then the part that makes a report
           actionable: "make sure thr fields and pages are all able to be linked

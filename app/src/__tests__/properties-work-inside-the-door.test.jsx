@@ -78,7 +78,7 @@ afterEach(() => {
 });
 
 async function mount(props = {}) {
-  // A FRESH ADDRESS PER MOUNT (DR-0898). The module now writes the page it is
+  // A FRESH ADDRESS PER MOUNT (DR-0901). The module now writes the page it is
   // on into the URL, and one jsdom document is shared by every case in this
   // file -- so without this, case 2 opens at the address case 1 navigated to
   // and lands on a door-scoped tab pointing at a door that only existed in
