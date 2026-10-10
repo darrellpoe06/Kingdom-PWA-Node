@@ -1886,7 +1886,7 @@ export function GalleryTab({
 
 /** Correct what a picture SAYS. The picture itself is frozen by a trigger (0154). */
 /**
- * TWO DATES, TWO DIFFERENT KINDS OF FACT (DR-0942). Darrell, 2026-10-10:
+ * TWO DATES, TWO DIFFERENT KINDS OF FACT (DR-0943). Darrell, 2026-10-10:
  * "always put the uploaded dates... and the other option is default however
  * editable... however the upload dat never is".
  *
