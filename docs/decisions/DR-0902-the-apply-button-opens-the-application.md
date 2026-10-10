@@ -111,24 +111,92 @@ is Darrell's to try. `re-review: 2026-10-17`.
 
 ## Outcome
 
-`apply-opens-the-application.test.jsx` — **22 green**.
+`apply-opens-the-application.test.jsx` — **19 green, and every one of them
+uses the button.**
 
-**Proven-to-catch.** Restoring the previous `index.html` (no script, hardcoded
-`content="0; …"`) fails the first case immediately: *"the front door loads a
-forwarder — a bare meta refresh cannot carry a query"*. The forwarder is then
-**executed for real** against a fake `window` and asserted end to end: the id
-survives (`readApplyTarget(to) === UNIT`), `properties=1` is forced and never
-duplicated, a hash is carried, a junk `apply` value lands harmlessly, a plain
-visit still reaches the door, and the exact string `applyUrl()` builds
-round-trips through it.
+**THE FIRST VERSION OF THIS GATE WAS NOT A GATE, and Darrell said so:**
+*"Testing needs to be respected!!! Undermining ways!!!"* He is right. It
+proved the fix with `expect(source).toMatch(/onClick=\{\(\) => onApply\(…\)\}/)`
+— grepping my own diff back at myself. That asserts I typed certain
+characters. It would have passed with the handler wired to the wrong unit,
+with the form never opening, with the button disabled. A gate that cannot fail
+for the reason the user is complaining about is not a gate (DR-0076 §3). The
+file now MOUNTS THE DOOR AND CLICKS.
 
-Also pinned: the card is a button with a caller and a link without one; the
-counter re-opens on a second card; a tapped card beats a stale scan; the form
-opens on a named unit; the scroll uses `motionBehavior()` on the next frame;
-and the load-with-a-scan case does not fire a scroll.
+**How the defect survived a suite that already covered this screen.**
+`properties-door-render.test.jsx` has had *"an APPLICANT can apply with NO
+account"* passing throughout. It clicks `/Apply — no account needed/`, and
+**two controls carry that exact label** on that page: the dead one on the unit
+card and the working green one at the bottom. The test found the working one.
+A label is not an identity. Every case here addresses a control by
+`data-testid`.
 
-Re-run together: **598 green** across 27 Properties suites, including
-`properties-door` (whose own assertion on the meta-refresh url still holds) and
-`properties-door-render`. eslint clean at `--max-warnings 0`.
+**Proven-to-catch, by restoring the `<a>`:** six cases fail, and the first
+one's message is his sentence back in the runner —
+`tapping the card's Apply did not open the application: expected null to be truthy`.
 
-`re-review: 2026-10-17` — the physical scan on a printed card.
+**THE BEHAVIOURAL TEST THEN FOUND TWO BUGS THE SOURCE-GREP VERSION HAD
+PASSED**, which is the clearest argument for writing it this way:
+
+1. **A scan yanked the view a second after paint.** `scan.matched` only
+   becomes true once `public_vacancies` answers, so driving the scroll from it
+   fired late — a delayed, unasked-for jump, the exact thing the guard was
+   written to prevent. Split: `openOnLoad` opens (a scan still belongs on the
+   form), `openFor` opens **and** scrolls (a deliberate tap).
+2. **A scanned unit opened an EMPTY picker.** `useState(preselect)` seeds at
+   first render, and at first render the scan has resolved to nothing. So the
+   person who scanned that unit's own door was handed a list to pick it out of
+   — precisely the failure `preselect` exists to prevent. Now synced when it
+   arrives, and only into an untouched picker so a choice already made is never
+   overwritten.
+
+Both were real, both were invisible to the first version, and neither would
+have been found by reading the diff again.
+
+The forwarder is **executed** against a fake window rather than read for
+shapes: the id survives, `properties=1` is forced and never duplicated, a hash
+is carried, `applyUrl()`'s exact output round-trips, `replace` is used and not
+`assign`, and three hostile queries (`?next=https://evil.example`,
+`?apply=../../etc`, `?properties=0`) all stay inside `/properties/app/`.
+
+Two cases legitimately read a file instead of rendering: the CSP and the
+absence of an inline `<script>` are facts about bytes a server sends, which no
+amount of rendering can exercise.
+
+Re-run together: **79 green** across this gate, `properties-door-render` and
+`properties-door`; **598 green** across 27 Properties suites. legibility,
+business-systems and monolith-budget guards green. eslint clean at
+`--max-warnings 0`. Build clean, `redirect.js` confirmed in `dist/`.
+
+`re-review: 2026-10-17` — the physical scan on a printed card, which this
+sandbox cannot do.
+
+## What happens AFTER you apply — measured, and it is a hole
+
+Darrell, immediately after: *"What happens when you apply!???!!! End to end
+documentation inside the records for the users!!! Obviously!!!"*
+
+Traced rather than assumed. `submitApplication` inserts into
+`rental_applications` (`cloud.js:58`) and returns the new id. Then:
+
+- **Nothing in the app ever reads that table.** `grep -rn rental_applications
+  app/src` returns the one `.insert(...)` and test files. There is no loader,
+  no tab, no list, no badge, no count.
+- **The database has permitted the read since 0152.**
+  `rental_applications_read … FOR SELECT TO authenticated` grants it to the
+  instance's owner/admin/member and to a manager holding
+  `application.review`, and `rental_applications_update` grants the decision
+  with a reason (`rental_applications_decision_has_reason`). The permission
+  was built. The app never asks.
+- **It never joins the door's record.** `buildHistory` folds requests,
+  messages, notes, documents, rent and notices — not applications. So the
+  timeline built for "historical accuracy and events" (DR-0876) has a hole
+  exactly where a prospective tenant's first contact with the family is.
+- **The applicant is told nothing further, and that part is deliberate**
+  (0152: "the decision reaches them from a human, not from a database read").
+
+So today an application is a dead letter: someone applies for 805 Apt 2 and
+nobody is ever told. Fixing the Apply button makes that path *reachable*, which
+makes the silence on the other side matter more, not less. Tracked as the next
+change — a surface that lists them, the decision with its reason, and the
+application as an event on the door's own timeline. **DR-0903.**

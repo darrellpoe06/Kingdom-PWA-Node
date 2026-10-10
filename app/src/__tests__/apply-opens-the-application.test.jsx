@@ -1,209 +1,312 @@
 // =============================================================================
-// THE APPLY BUTTON OPENS THE APPLICATION
+// THE APPLY BUTTON OPENS THE APPLICATION — tested by USING it
 // =============================================================================
-// Darrell, 2026-10-10, standing on the public listing for 805 North Prospect
-// Apt 2 at poetech.us/properties/app/?properties=1:
+// Darrell, 2026-10-10, on the public listing for 805 North Prospect Apt 2:
 //
 //   "The image has an apply button that should open the application!!!?!!!
 //    It does not do that currently!!!!!! Fix it!!!!"
 //
-// THREE DEFECTS IN ONE JOURNEY. Only the first is the one he could see.
+// and then, on the first version of this file:
 //
-// 1. THE CARD'S APPLY WENT NOWHERE. It was an <a> to applyUrl(), which builds
-//    /properties/?apply=<rentalId>. /properties/index.html is a STATIC page
-//    whose only job is a link preview, and it forwarded with
-//        <meta http-equiv="refresh" content="0; url=/properties/app/?properties=1" />
-//    A meta refresh cannot see the query it was reached with, so the id was
-//    DESTROYED one hop before the app could read it. The person left the page
-//    they were on and came back to it with nothing opened.
+//   "Testing needs to be respected!!! Undermining ways!!!"
 //
-// 2. EVERY PRINTED QR CODE HAD THE SAME FATE, and that is the bigger half.
-//    apply-link.js exists so that "someone standing at the door of a vacant
-//    unit points a camera at a card in the window and lands on the
-//    application FOR THAT UNIT". Those cards encode the same /properties/
-//    address and are physical — they cannot be recalled. So the fix had to be
-//    at the hop they all pass through, not only in what new links look like.
+// HE IS RIGHT, AND THIS FILE IS THE CORRECTION. The first version proved the
+// fix with `expect(source).toMatch(/onClick=\{\(\) => onApply\(...\)\}/)` --
+// grepping my own diff back at myself. That asserts I typed certain
+// characters. It would have passed if the handler were wired to the wrong
+// unit, if the form never opened, if the button were disabled. A gate that
+// cannot fail for the reason the user is complaining about is not a gate
+// (DR-0076 section 3). So this file MOUNTS THE DOOR AND CLICKS THE BUTTON.
 //
-// 3. EVEN A SCAN THAT WORKED STILL DEMANDED A TAP. ApplyForm rendered its own
-//    "Apply — no account needed" button and waited, while its own comment
-//    said preselecting the unit "is the whole point of the code". Same extra
-//    tap he named on the lessons: "users have to click again!!! Why?"
+// HOW THE DEFECT SURVIVED A TEST SUITE, which is the lesson worth keeping.
+// properties-door-render.test.jsx already had "an APPLICANT can apply with NO
+// account" -- and it passed throughout. It clicks /Apply - no account needed/,
+// and there are TWO controls with that exact label on that page: the dead one
+// on the unit card, and the working green one at the bottom. The test found
+// the working one. A label is not an identity; the test had no way to say
+// WHICH button it meant, so it silently exercised the half that was never
+// broken. Every case below addresses a control by its test id.
 //
-// WHAT THIS PINS, and why each case would have passed before and fails now:
-//   * the redirect FORWARDS the query (it could not, being a hardcoded meta);
-//   * the card asks its caller instead of navigating, when a caller exists;
-//   * a named unit opens the form rather than waiting for a tap.
+// WHAT WAS MEASURED (the defect itself, three parts in one journey):
+//   1. The card's Apply was an <a> to applyUrl() -> /properties/?apply=<id>,
+//      and /properties/index.html forwarded with a HARDCODED
+//      <meta http-equiv="refresh" content="0; url=/properties/app/?properties=1">.
+//      A meta refresh cannot see the query it was reached with, so the unit id
+//      died one hop before the app could read it. readApplyTarget on the far
+//      side was right all along and was simply never handed anything.
+//   2. Every printed QR code encodes that same address, so every scan has been
+//      landing on the generic front door. Those cards are physical.
+//   3. Even a scan that worked still demanded a tap: ApplyForm opened at
+//      useState(false) while its own comment said preselecting the unit "is
+//      the whole point of the code".
 // =============================================================================
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { describe, it, expect, afterEach, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createElement } from 'react';
+import { act } from 'react';
+import { createRoot } from 'react-dom/client';
 import { applyUrl, readApplyTarget, APPLY_PARAM } from '../modules/properties/apply-link.js';
+
+globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
 const here = dirname(fileURLToPath(import.meta.url));
 const read = (...p) => readFileSync(join(here, ...p), 'utf8');
-const DOOR_HTML = () => read('..', '..', 'public', 'properties', 'index.html');
 const REDIRECT_JS = () => read('..', '..', 'public', 'properties', 'redirect.js');
 
-const UNIT = '3f2504e0-4f89-11d3-9a0c-0305e82c3301';
+// Two real units, because the counter case needs a SECOND card to tap.
+const UNIT_A = '3f2504e0-4f89-11d3-9a0c-0305e82c3301';
+const UNIT_B = '7c9e6679-7425-40de-944b-e07fc1f90ae7';
+const VACANCIES = [
+  { id: UNIT_A, label: '805 North Prospect Avenue', unit: 'Apt 2', city: 'Champaign', state: 'IL', property_type: 'multi-family', rent: null, nightly_rate: 150, offering: 'short-term', bedrooms: 1, address_shown: false },
+  { id: UNIT_B, label: '1003 Koehn Dr', unit: '', city: 'Danville', state: 'IL', property_type: 'single-family', rent: 680, bedrooms: 3, address_shown: true },
+];
 
-describe('PROVEN-TO-CATCH: the hop that ate the unit id', () => {
-  it('the front door loads a forwarder — a bare meta refresh cannot carry a query', () => {
-    const html = DOOR_HTML();
-    expect(html).toContain('<script src="/properties/redirect.js"></script>');
+vi.mock('../lib/supabase.js', () => {
+  function queryStub() {
+    const q = {};
+    const self = () => q;
+    for (const m of ['select', 'eq', 'neq', 'in', 'order', 'limit', 'range', 'gte', 'lte', 'is', 'not', 'upsert', 'insert', 'update', 'delete', 'match']) q[m] = self;
+    q.maybeSingle = async () => ({ data: null, error: null });
+    q.single = async () => ({ data: null, error: null });
+    q.then = (res) => Promise.resolve({ data: [], error: null }).then(res);
+    return q;
+  }
+  const rpc = async (name) => (name === 'public_vacancies'
+    ? { data: VACANCIES, error: null }
+    : { data: null, error: null });
+  return {
+    supabase: {
+      auth: { getSession: async () => ({ data: { session: null } }), onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }) },
+      from: () => queryStub(),
+      rpc,
+    },
+    onAuthChange: (cb) => { cb(null); return () => {}; },
+    default: {
+      auth: {
+        getSession: async () => ({ data: { session: null } }),
+        onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }),
+        signOut: async () => ({}),
+      },
+      from: () => queryStub(),
+      rpc,
+    },
+    phoneLoginEmail: () => '',
+    normalizePhone: (p) => String(p || '').replace(/\D+/g, ''),
+    readPersistedSession: () => null,
+    resolveInitialSession: (emit) => { emit(null); },
+    signOut: async () => ({}),
+  };
+});
+
+const PropertiesDoor = (await import('../components/PropertiesDoor.jsx')).default;
+
+let container; let root;
+afterEach(() => {
+  if (root) act(() => root.unmount());
+  if (container) container.remove();
+  root = container = null;
+  try { window.history.replaceState(null, '', window.location.pathname); } catch { /* ignore */ }
+});
+
+async function settle(n = 4) {
+  for (let i = 0; i < n; i += 1) await act(async () => { await Promise.resolve(); });
+}
+
+async function openListing() {
+  container = document.createElement('div');
+  document.body.appendChild(container);
+  // jsdom has no scrollIntoView; the component guards it, and stubbing it lets
+  // us ASSERT it was asked for rather than merely not crash.
+  const scrolled = [];
+  window.HTMLElement.prototype.scrollIntoView = function stub(opts) { scrolled.push({ el: this, opts }); };
+  await act(async () => { root = createRoot(container); root.render(createElement(PropertiesDoor)); });
+  await settle();
+  // A SCAN SKIPS THE WHO-PICKER, by design: "someone who scanned a code at a
+  // property has already answered 'who are you'" (PropertiesDoor.jsx:286).
+  // So the picker is only there when we did NOT arrive with ?apply=, and the
+  // helper must not insist on it — my first version did, and these two cases
+  // failed for that reason rather than for anything wrong with the app.
+  const looking = [...container.querySelectorAll('button')].find((b) => /Looking for a place/i.test(b.textContent));
+  if (looking) {
+    await act(async () => { looking.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+    await settle(6);
+  } else {
+    expect(container.textContent, 'no who-picker AND no listing — the door rendered neither')
+      .toMatch(/Available now|Apply/i);
+    await settle(4);
+  }
+  return scrolled;
+}
+
+const cardApplies = () => [...container.querySelectorAll('[data-testid="vacancy-apply"]')];
+const form = () => container.querySelector('[data-testid="apply-form"]');
+const unitSelect = () => container.querySelector('select[aria-label="Which unit"]');
+
+const tap = async (el) => {
+  await act(async () => { el.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+  await settle(4);
+};
+
+describe('the card on the listing — the control he tapped', () => {
+  it('PROVEN-TO-CATCH: tapping the CARD’s Apply opens the application form', async () => {
+    await openListing();
+    const cards = cardApplies();
+    expect(cards.length, 'no Apply control rendered on any unit card').toBe(2);
+    // Before: the form is not on screen.
+    expect(form(), 'the application was already open before anything was tapped').toBeNull();
+    await tap(cards[0]);
+    // After: it is. On the old code this control was an <a href> — clicking it
+    // in jsdom does nothing at all, so this case fails there, which is the
+    // whole point of writing it this way round.
+    expect(form(), 'tapping the card’s Apply did not open the application').toBeTruthy();
   });
 
-  it('the meta refresh survives as the fallback, and still names the same door', () => {
-    // Kept deliberately: if the script 404s, the page must still move. The
-    // existing properties-door gate asserts this url too.
-    expect(DOOR_HTML()).toMatch(/url=\/properties\/app\/\?properties=1/);
+  it('it is a BUTTON, not a link that leaves the page the person is standing on', async () => {
+    await openListing();
+    expect(cardApplies()[0].tagName).toBe('BUTTON');
   });
 
-  it('the forwarder carries the WHOLE query, not a fixed string', () => {
-    const js = REDIRECT_JS();
-    expect(js).toContain('loc.search');
-    expect(js).toContain('URLSearchParams');
-    // It must still guarantee the flag the door boots on.
-    expect(js).toMatch(/params\.set\('properties', '1'\)/);
+  it('and it opens the application FOR THAT UNIT, not a blank one', async () => {
+    await openListing();
+    await tap(cardApplies()[0]);
+    const sel = unitSelect();
+    expect(sel, 'the open application has no unit picker').toBeTruthy();
+    expect(sel.value).toBe(UNIT_A);
   });
 
-  it('the destination path is FIXED — this can never become an open redirect', () => {
-    const js = REDIRECT_JS();
-    expect(js).toMatch(/var target = '\/properties\/app\/'/);
-    // The path is never read from the URL; only the query and hash are carried.
-    expect(js).not.toMatch(/loc\.pathname/);
+  it('the SECOND card re-selects — a person comparing two units is not ignored', async () => {
+    await openListing();
+    await tap(cardApplies()[0]);
+    expect(unitSelect().value).toBe(UNIT_A);
+    // With a boolean instead of a counter the form is already open, nothing
+    // visibly happens, and the selection changes under a form they are no
+    // longer looking at — or does not change at all.
+    await tap(cardApplies()[1]);
+    expect(unitSelect().value).toBe(UNIT_B);
   });
 
-  it('it replaces rather than pushes, so back does not bounce forward again', () => {
-    expect(REDIRECT_JS()).toMatch(/loc\.replace\(/);
+  it('the open form is scrolled to, so it is not opened below the fold', async () => {
+    const scrolled = await openListing();
+    const before = scrolled.length;
+    await tap(cardApplies()[0]);
+    await act(async () => { await new Promise((r) => requestAnimationFrame(r)); });
+    expect(scrolled.length, 'nothing was scrolled into view').toBeGreaterThan(before);
+    expect(scrolled[scrolled.length - 1].el).toBe(form());
   });
 
-  it('the forwarder is a FILE, because the page’s CSP forbids inline script', () => {
-    // Measured policy, app/public/_headers: script-src 'self' ...
-    const headers = read('..', '..', 'public', '_headers');
-    expect(headers).toMatch(/script-src 'self'/);
-    // So the page must reference a same-origin file and carry no inline code.
-    const html = DOOR_HTML();
-    const inline = html.match(/<script(?![^>]*\ssrc=)[^>]*>[\s\S]*?<\/script>/i);
-    expect(inline, 'an inline script here would be silently blocked by CSP').toBeNull();
+  it('the real application is behind it — the background questions, and never an SSN', async () => {
+    await openListing();
+    await tap(cardApplies()[0]);
+    const labels = [...container.querySelectorAll('label')].map((l) => l.textContent).join(' | ');
+    expect(labels).toMatch(/Last name/i);
+    expect(labels).toMatch(/Cell phone/i);
+    expect(container.textContent).toMatch(/never ask for a Social Security number/i);
   });
 });
 
-describe('the forwarder, run for real', () => {
-  afterEach(() => { vi.resetModules(); });
+describe('a scanned card lands ON the application, not in front of it', () => {
+  it('PROVEN-TO-CATCH: arriving with ?apply=<id> opens the form already filled in', async () => {
+    window.history.replaceState(null, '', `${window.location.pathname}?${APPLY_PARAM}=${UNIT_B}`);
+    await openListing();
+    // Before this change ApplyForm opened at useState(false): the person who
+    // scanned a code ON the door of the unit they want was shown a button and
+    // made to ask again.
+    expect(form(), 'a scanned unit still waited behind a tap').toBeTruthy();
+    expect(unitSelect().value).toBe(UNIT_B);
+  });
 
-  // Execute redirect.js against a fake window, which is exactly how it runs.
+  it('a page that merely LOADS with a scan does not also yank the view', async () => {
+    window.history.replaceState(null, '', `${window.location.pathname}?${APPLY_PARAM}=${UNIT_B}`);
+    const scrolled = await openListing();
+    await act(async () => { await new Promise((r) => requestAnimationFrame(r)); });
+    expect(scrolled, 'a plain load should not scroll; only an ASK should').toHaveLength(0);
+  });
+
+  it('a junk id in the URL lands on the ordinary listing, not a broken form', async () => {
+    window.history.replaceState(null, '', `${window.location.pathname}?${APPLY_PARAM}=not-a-uuid`);
+    await openListing();
+    expect(form()).toBeNull();
+    expect(cardApplies()).toHaveLength(2);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The forwarder is a static file served before any bundle, so it is EXECUTED
+// here against a fake window — the same thing a browser does with it — rather
+// than read for shapes.
+// ---------------------------------------------------------------------------
+describe('the hop that ate the unit id, run for real', () => {
   const run = (search, hash = '') => {
     const calls = [];
-    const win = {
-      location: {
-        search,
-        hash,
-        replace: (u) => calls.push(u),
-      },
-    };
-    // eslint-disable-next-line no-new-func
-    const fn = new Function('window', 'URLSearchParams', REDIRECT_JS());
-    fn(win, URLSearchParams);
+    const win = { location: { search, hash, replace: (u) => calls.push(u) } };
+    new Function('window', 'URLSearchParams', REDIRECT_JS())(win, URLSearchParams);
     return calls;
   };
 
   it('PROVEN-TO-CATCH: a scanned unit id reaches the door', () => {
-    const [to] = run(`?${APPLY_PARAM}=${UNIT}`);
+    const [to] = run(`?${APPLY_PARAM}=${UNIT_A}`);
     expect(to).toContain('/properties/app/?');
-    // The whole point: the id is still there on the other side.
-    expect(readApplyTarget(to.slice(to.indexOf('?')))).toBe(UNIT);
+    expect(readApplyTarget(to.slice(to.indexOf('?')))).toBe(UNIT_A);
   });
 
-  it('and the door still boots, because properties=1 is forced', () => {
-    const [to] = run(`?${APPLY_PARAM}=${UNIT}`);
+  it('the door still boots, because properties=1 is forced', () => {
+    const [to] = run(`?${APPLY_PARAM}=${UNIT_A}`);
     expect(new URLSearchParams(to.slice(to.indexOf('?'))).get('properties')).toBe('1');
   });
 
-  it('a plain visit with no query still lands on the door', () => {
-    const [to] = run('');
-    expect(to).toBe('/properties/app/?properties=1');
+  it('a plain visit still lands on the door', () => {
+    expect(run('')[0]).toBe('/properties/app/?properties=1');
   });
 
-  it('properties=1 is never duplicated when the link already carries it', () => {
-    const [to] = run('?properties=1');
-    expect(to).toBe('/properties/app/?properties=1');
+  it('properties=1 is never duplicated', () => {
+    expect(run('?properties=1')[0]).toBe('/properties/app/?properties=1');
   });
 
-  it('a hash is carried too', () => {
-    const [to] = run(`?${APPLY_PARAM}=${UNIT}`, '#apply');
-    expect(to.endsWith('#apply')).toBe(true);
+  it('a hash is carried', () => {
+    expect(run(`?${APPLY_PARAM}=${UNIT_A}`, '#apply')[0].endsWith('#apply')).toBe(true);
   });
 
-  it('a junk apply value is carried but lands harmlessly — the app drops it', () => {
-    const [to] = run('?apply=not-a-uuid');
-    expect(to).toContain('/properties/app/?');
-    expect(readApplyTarget(to.slice(to.indexOf('?')))).toBeNull();
-  });
-
-  it('the real link applyUrl builds round-trips through it', () => {
-    const url = applyUrl(UNIT);
+  it('the exact string applyUrl() builds round-trips through it', () => {
+    const url = applyUrl(UNIT_A);
     const [to] = run(url.slice(url.indexOf('?')));
-    expect(readApplyTarget(to.slice(to.indexOf('?')))).toBe(UNIT);
+    expect(readApplyTarget(to.slice(to.indexOf('?')))).toBe(UNIT_A);
+  });
+
+  it('it REPLACES, so back does not bounce the person forward again', () => {
+    // Behavioural: a fake window whose replace is absent but assign is present
+    // must not be navigated by assign.
+    const calls = [];
+    const win = { location: { search: '', hash: '', replace: (u) => calls.push(['replace', u]), assign: (u) => calls.push(['assign', u]) } };
+    new Function('window', 'URLSearchParams', REDIRECT_JS())(win, URLSearchParams);
+    expect(calls.map((c) => c[0])).toEqual(['replace']);
+  });
+
+  it('it cannot be turned into an open redirect by what a stranger prints', () => {
+    for (const q of ['?next=https://evil.example', '?apply=../../etc', '?properties=0']) {
+      const [to] = run(q);
+      expect(to.startsWith('/properties/app/?'), `escaped the app scope on ${q}`).toBe(true);
+    }
   });
 });
 
-describe('the card asks, instead of travelling', () => {
-  const STOREFRONT = () => read('..', 'modules', 'properties', 'Storefront.jsx');
+// ---------------------------------------------------------------------------
+// Two static properties of a static file. These are READ rather than executed
+// because that is what they are: facts about bytes a server sends, which no
+// amount of rendering can exercise.
+// ---------------------------------------------------------------------------
+describe('the static page that serves it', () => {
+  const DOOR_HTML = () => read('..', '..', 'public', 'properties', 'index.html');
 
-  it('PROVEN-TO-CATCH: with a caller that can open the form, it is a BUTTON', () => {
-    const src = STOREFRONT();
-    expect(src).toMatch(/export function VacancyCard\(\{ unit, onApply = null \}\)/);
-    expect(src).toMatch(/onClick=\{\(\) => onApply\(unit\.rentalId\)\}/);
+  it('the forwarder must be a FILE — the page’s CSP forbids inline script', () => {
+    expect(read('..', '..', 'public', '_headers')).toMatch(/script-src 'self'/);
+    expect(DOOR_HTML()).toContain('<script src="/properties/redirect.js"></script>');
+    const inline = DOOR_HTML().match(/<script(?![^>]*\ssrc=)[^>]*>[\s\S]*?<\/script>/i);
+    expect(inline, 'an inline script here would be silently blocked by CSP').toBeNull();
   });
 
-  it('with no caller it keeps the plain link — a QR sheet has nowhere local to open', () => {
-    const src = STOREFRONT();
-    expect(src).toMatch(/href=\{applyUrl\(unit\.rentalId\)\}/);
-    expect(src).toMatch(/\{onApply \? \(/);
-  });
-
-  it('either way the control carries the same test id, so a journey can find it', () => {
-    const hits = STOREFRONT().match(/data-testid="vacancy-apply"/g) || [];
-    expect(hits).toHaveLength(2);
-  });
-});
-
-describe('the door opens its own form', () => {
-  const DOOR = () => read('..', 'components', 'PropertiesDoor.jsx');
-
-  it('the listing hands the card a way to open the form', () => {
-    expect(DOOR()).toContain('onApply={applyFor}');
-  });
-
-  it('it is a COUNTER, so a second card re-opens and re-scrolls', () => {
-    const src = DOOR();
-    // A boolean would silently change the selection under a form the person
-    // is no longer looking at.
-    expect(src).toMatch(/pick: p\.pick \+ 1/);
-    expect(src).toMatch(/openFor=\{picked\.pick \|\| \(scan\.matched \? 1 : 0\)\}/);
-  });
-
-  it('a tapped card wins over a stale scanned id', () => {
-    expect(DOOR()).toMatch(/preselect=\{picked\.id \|\| \(scan\.matched \? scan\.unit\.id : ''\)\}/);
-  });
-
-  it('PROVEN-TO-CATCH: a named unit opens the form instead of waiting for a tap', () => {
-    const src = DOOR();
-    expect(src).toMatch(/function ApplyForm\(\{ vacancies, preselect = '', openFor = 0 \}\)/);
-    expect(src).toMatch(/useState\(openFor > 0\)/);
-  });
-
-  it('the form is scrolled to, with the reader’s own motion setting', () => {
-    const src = DOOR();
-    expect(src).toContain('data-testid="apply-form"');
-    expect(src).toMatch(/behavior: motionBehavior\(\)/);
-    // Next frame: the form has to exist before it can be scrolled to.
-    expect(src).toMatch(/requestAnimationFrame/);
-  });
-
-  it('a page that merely LOADS with a scan does not also fire a scroll', () => {
-    // The initial state covers that case; the effect must only run on a change.
-    expect(DOOR()).toMatch(/if \(openFor === asked\.current\) return;/);
+  it('the meta refresh survives as the fallback if the script cannot be fetched', () => {
+    expect(DOOR_HTML()).toMatch(/url=\/properties\/app\/\?properties=1/);
   });
 });

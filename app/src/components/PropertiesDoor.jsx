@@ -424,7 +424,8 @@ function SignedOutDoor({ left = false, onReturn } = {}) {
         <ApplyForm
           vacancies={vacancies || []}
           preselect={picked.id || (scan.matched ? scan.unit.id : '')}
-          openFor={picked.pick || (scan.matched ? 1 : 0)}
+          openFor={picked.pick}
+          openOnLoad={scan.matched}
         />
       </div>
     );
@@ -532,8 +533,8 @@ function BeforeYouApply() {
  * the form is already open and nothing visibly happens — the selection would
  * change silently, under a form they are no longer looking at.
  */
-function ApplyForm({ vacancies, preselect = '', openFor = 0 }) {
-  const [open, setOpen] = useState(openFor > 0);
+function ApplyForm({ vacancies, preselect = '', openFor = 0, openOnLoad = false }) {
+  const [open, setOpen] = useState(openFor > 0 || openOnLoad);
   const [values, setValues] = useState({});
   // A scan already said which unit. Preselecting it is the whole point of the
   // code — otherwise the person picks their own door out of a list they did not
@@ -541,9 +542,31 @@ function ApplyForm({ vacancies, preselect = '', openFor = 0 }) {
   const [unit, setUnit] = useState(preselect);
   const box = React.useRef(null);
 
-  // Open on every ASK, not on every render. The first render is handled by the
-  // initial state above, so a page that simply loads with a scanned unit does
-  // not also fire a scroll.
+  // A SCAN OPENS, A TAP OPENS AND SCROLLS (DR-0902, corrected by its own test).
+  // These are two different events and the first version conflated them. A
+  // scan's unit only resolves once the vacancies list arrives, which is a
+  // second or so AFTER paint -- so driving the scroll from it yanked the view
+  // out from under someone who was reading the photos. A delayed, unasked-for
+  // jump is the jarring thing this guard exists to avoid. Opening the form is
+  // still right on a scan: that person is standing at the unit's door.
+  useEffect(() => {
+    if (openOnLoad) setOpen(true);
+  }, [openOnLoad]);
+
+  // THE SCANNED UNIT ARRIVES LATE, AND HAS TO LAND IN THE PICKER. `unit` is
+  // seeded from `preselect` at first render, and at first render a scan has
+  // resolved to nothing yet — public_vacancies is the authority on whether the
+  // card is still good, and it has not answered. So the form opened with the
+  // picker EMPTY, which is the exact failure preselect exists to prevent: the
+  // person who scanned that unit's own door picks it out of a list again.
+  // Only fills an untouched picker, so a choice already made is never
+  // overwritten underneath someone.
+  useEffect(() => {
+    if (preselect) setUnit((u) => (u || preselect));
+  }, [preselect]);
+
+  // Open AND SCROLL on every ASK — a deliberate tap, where the form may be
+  // far below what the person is looking at.
   const asked = React.useRef(openFor);
   useEffect(() => {
     if (openFor === asked.current) return;
