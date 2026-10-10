@@ -93,7 +93,7 @@ export const WORKER_TABS = [
   TAB('gallery', 'Pictures', 'Before and after, room by room — take a photo and say what it shows.', 'docs.add'),
   TAB('history', 'Property history', 'What this door has needed before.', 'property.history'),
   TAB('thread', 'Job messages', 'The thread for a job the landlord opened to me.'),
-  // THE CAMERAS AT THE DOOR HE IS SENT TO (DR-0904): he asks for the ones he
+  // THE CAMERAS AT THE DOOR HE IS SENT TO (DR-0915): he asks for the ones he
   // needs (the porch, for a delivery); the family decides and for how long.
   TAB('cameras', 'Cameras', 'Ask for the cameras at the door I am sent to, and watch the ones given to me.'),
 ];

@@ -1,4 +1,4 @@
-# DR-0904 — A door's camera is asked for, and given to whoever the family chooses
+# DR-0915 — A door's camera is asked for, and given to whoever the family chooses
 
 **Date:** 2026-10-10
 **Status:** accepted
@@ -119,3 +119,7 @@ When it arrives, the lock will be built with:
     - take back;
     - the asker's flow, the live view once given, and the empty and waiting states.
   - `properties-door-cameras.test.jsx` gains three tests: the empty unit reads the list (proven to catch), who sees them by name (never a worker), and the empty NAS list is said.
+
+## Addendum, 2026-10-10: renumbered
+
+This record was written as DR-0904. #2099 merged its own DR-0904 on main first ("a door's own tenancy is not another door's"), so this one is DR-0915, with every reference renamed.

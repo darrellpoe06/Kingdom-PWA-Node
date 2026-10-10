@@ -132,7 +132,7 @@ export function DoorCamerasTab({ door, place = null, people = [], onChange, rent
         </>
       )}
       {msg ? <p className="text-xs mt-2 text-[#2F5D50]" style={serif} role="status" data-testid="door-cameras-msg">{msg}</p> : null}
-      {/* Asked for and given, per person (DR-0904): tenants, workers, guests. */}
+      {/* Asked for and given, per person (DR-0915): tenants, workers, guests. */}
       {token && list.status === 'ready' && list.cameras.length > 0 && rentalId && instanceId && (
         <CameraAccessDesk instanceId={instanceId} rentalId={rentalId} doorName={doorGrantName(target)} cameras={list.cameras} token={token} />
       )}
@@ -143,7 +143,7 @@ export function DoorCamerasTab({ door, place = null, people = [], onChange, rent
 export function TenantCamerasTab({ door, renderCameras = null, rentalId = null, instanceId = null, me = null, myName = '' }) {
   const shared = doorCameraState(door);
   useEffect(() => { if (shared.state === 'shared') saveGrantToken(shared.token); }, [shared.state, shared.token]);
-  // Ask for the cameras the family offers on this door (DR-0904); anyone on
+  // Ask for the cameras the family offers on this door (DR-0915); anyone on
   // the door can, whether or not the household grant below exists.
   const ask = rentalId && instanceId
     ? <AskForCameras instanceId={instanceId} rentalId={rentalId} me={me} myName={myName} renderCameras={renderCameras} />

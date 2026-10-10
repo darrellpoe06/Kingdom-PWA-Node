@@ -252,15 +252,23 @@ describe('the wiring the screens depend on', () => {
 
   it('activeDoor never silently falls back to a DIFFERENT property', () => {
     // The defect: `doors.find(...) || doors[0] || null` showed, and filed work
-    // against, some OTHER door's tenant when the id named a rental. DR-0897
-    // landed a different shape for the same guarantee (an explicit rentals
-    // check), so this pins the GUARANTEE rather than either spelling — the bad
-    // expression is gone, and a picked rental resolves to no tenancy.
+    // against, some OTHER door's tenant when the id named a rental.
+    //
+    // THIS ASSERTION USED TO READ `expect(app).toContain("rentals.some(...)")`
+    // AND THAT WAS THE WRONG KIND OF TEST, as DR-0904 then proved: it pinned
+    // one SPELLING of the fix, so it broke the moment the expression changed
+    // for a good reason — and, worse, it had nothing to say about whether the
+    // guarantee still held. It would have passed just as happily while every
+    // message on a vacant door was invisible, which is exactly what was
+    // happening.
+    //
+    // The guarantee is now proven by USING the app, in
+    // a-message-stays-on-a-vacant-door.test.jsx: mounted at a unit's address,
+    // with a tenancy belonging to a DIFFERENT property in state, the record is
+    // read with no tenancy and that property's messages never appear. What
+    // stays here is only the thing a render cannot say — that the specific bad
+    // expression has not come back.
     expect(app).not.toContain('doors.find((x) => x.id === activeId) || doors[0] || null');
-    // 2026-10-10 ("Message Didn't save"): a picked rental resolves to the
-    // tenancy ON THAT DOOR (active, else its own pending unit record) — never
-    // another door's — so its saved thread comes back with it.
-    expect(app).toContain('picked.slug && d.rental_ref === picked.slug');
   });
 
   it('filing work and inviting both go through ensureDoor', () => {

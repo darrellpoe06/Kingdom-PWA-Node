@@ -91,7 +91,7 @@
 - There are 8 app tests, including a tenant-leak test proven to catch.
 - The 0260 through 0265 smokes pass together on the CI chain.
 
-## Then: door cameras, asked for and given (DR-0904, 0266)
+## Then: door cameras, asked for and given (DR-0915, 0266)
 
 **Asked for.** "Cameras tab shows no Cameras!!!!!! It allows giving access to who?!", then "request for certain ones... like the porch... give new tenants and 1099 workers.. and Airbnb guests... whoever we want to", and "Unlocks smart locks for doors... when short term tenants come".
 

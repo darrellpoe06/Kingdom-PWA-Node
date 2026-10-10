@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 0266 SMOKE — a door's camera is asked for, and given to whoever the family
--- chooses (DR-0904)
+-- chooses (DR-0915)
 -- =============================================================================
 -- Runs in CI on a throwaway PostgreSQL (the door-work leg) and on the LIVE
 -- database in the rls-isolation poe-properties leg. One transaction; ROLLS

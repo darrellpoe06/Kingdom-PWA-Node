@@ -962,7 +962,7 @@ jobs:
   # tenant's payment finds its door; the door keeps every tenant's money
   # while each tenant sees only their own; a reported payment is never
   # counted as received; a manager reads and records only by grant on that
-  # door. Then 0266 applies twice and the door-camera smoke proves (DR-0904):
+  # door. Then 0266 applies twice and the door-camera smoke proves (DR-0915):
   # only the family offers a door's cameras; anyone on the door reads the
   # names and asks, stamped with their real role, once at a time, only for
   # what is offered; only the family gives, declines and takes back; a grant's
