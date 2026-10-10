@@ -16,7 +16,12 @@ import { doorGrantName, suggestDoorCameras, grantNote, grantIdOf, doorCameraStat
 const serif = { fontFamily: '"Fraunces", serif' };
 const btn = 'text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border focus:outline focus:outline-2 focus:outline-[#2F5D50] disabled:opacity-40';
 
-export function DoorCamerasTab({ door, onChange }) {
+// `place` is the property in hand when the unit has no tenancy row yet. A
+// vacant unit still has a porch, and its camera still needs sharing the day a
+// tenant or a 1099 worker arrives — hiding the whole control behind a tenancy
+// is the DR-0870 root cause, met here for the fifth time. The door record is
+// created by the caller's ensureDoor() when the grant is actually made.
+export function DoorCamerasTab({ door, place = null, onChange }) {
   const token = bridgeToken();
   const [list, setList] = useState({ status: 'loading', cameras: [] });
   const [picked, setPicked] = useState([]);
@@ -70,7 +75,7 @@ export function DoorCamerasTab({ door, onChange }) {
           <button type="button" onClick={takeBack} disabled={busy} className={`${btn} ml-2 bg-white border-[#B85838] text-[#B85838]`} data-testid="door-cameras-take-back">Take back</button>
         </p>
       ) : <p className="text-xs mt-1 text-[#5A5751]" style={serif}>Nothing shared with this door yet.</p>}
-      {!door ? (
+      {!door && !place ? (
         <p className="text-xs mt-2 text-[#5A5751]" style={serif}>Pick a door above; the cameras are shared per door, never to the whole portfolio.</p>
       ) : !token ? (
         <p className="text-xs mt-2 text-[#5A5751]" style={serif}>This device holds no family camera key, so it cannot mint a grant. Open Cameras in PoeTech once on a family device, then come back here.</p>
@@ -101,7 +106,7 @@ export function DoorCamerasTab({ door, onChange }) {
           </div>
         </>
       )}
-      {msg ? <p className="text-xs mt-2" style={serif} className="text-[#2F5D50]" role="status" data-testid="door-cameras-msg">{msg}</p> : null}
+      {msg ? <p className="text-xs mt-2 text-[#2F5D50]" style={serif} role="status" data-testid="door-cameras-msg">{msg}</p> : null}
     </section>
   );
 }

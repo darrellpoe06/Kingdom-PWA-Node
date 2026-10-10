@@ -200,7 +200,7 @@ export function ReadinessTab({ boardSlug, boardTitle, rooms = [], door = null, o
       >
         <div className="flex items-end gap-4 flex-wrap">
           <div>
-            <div className="text-[2.75rem] leading-none font-semibold tabular-nums" className={tally.pct === 100 ? 'text-[#2F5D50]' : 'text-[#1A1815]'}>
+            <div className={`text-[2.75rem] leading-none font-semibold tabular-nums ${tally.pct === 100 ? 'text-[#2F5D50]' : 'text-[#1A1815]'}`}>
               {tally.pct}%
             </div>
             <div className="text-[0.625rem] uppercase tracking-wider mt-1 text-[#6B665E]">Overall completion</div>
@@ -231,7 +231,7 @@ export function ReadinessTab({ boardSlug, boardTitle, rooms = [], door = null, o
             board_tasks — signed out, or blocked by RLS, it was a false
             statement on the one surface whose whole value is being trusted. It
             now reports the LAST REAL WRITE OUTCOME. */}
-        <p className="text-[0.75rem] mt-2" className={write.ok ? 'text-[#6B665E]' : 'text-[#9B2C1E]'}>
+        <p className={`text-[0.75rem] mt-2 ${write.ok ? 'text-[#6B665E]' : 'text-[#9B2C1E]'}`}>
           {write.reason === 'signed-out'
             ? 'Not signed in — changes are held on this device only and are not shared with anyone else yet.'
             : write.reason === 'no-tenant'
@@ -256,7 +256,7 @@ export function ReadinessTab({ boardSlug, boardTitle, rooms = [], door = null, o
             >
               <div className="text-[0.6875rem] font-semibold leading-tight min-h-[2.2em] text-[#1A1815]">{sec.short}</div>
               <div className="flex items-baseline justify-between gap-1 my-1">
-                <span className="text-[1.125rem] font-semibold tabular-nums" className={sec.tally.pct === 100 ? 'text-[#2F5D50]' : 'text-[#1A1815]'}>{sec.tally.pct}%</span>
+                <span className={`text-[1.125rem] font-semibold tabular-nums ${sec.tally.pct === 100 ? 'text-[#2F5D50]' : 'text-[#1A1815]'}`}>{sec.tally.pct}%</span>
                 <span className="text-[0.625rem] tabular-nums text-[#6B665E]">{sec.tally.done}/{sec.tally.total}</span>
               </div>
               <Bar pct={sec.tally.pct} thin />
@@ -351,23 +351,22 @@ export function ReadinessTab({ boardSlug, boardTitle, rooms = [], door = null, o
                               className="flex-1 text-left min-w-0 focus:outline focus:outline-2 focus:outline-[#2F5D50]"
                             >
                               <span
-                                className="block text-[0.9375rem] leading-snug break-words"
-                                className={task.status === 'done' ? 'text-[#6B665E] line-through' : 'text-[#1A1815]'}
+                                className={`block text-[0.9375rem] leading-snug break-words ${task.status === 'done' ? 'text-[#6B665E] line-through' : 'text-[#1A1815]'}`}
                               >
                                 {task.title}
                               </span>
                               <span className="flex flex-wrap items-center gap-2 mt-1">
                                 {task.status === 'in-progress' && (
-                                  <span className="text-[0.5625rem] uppercase tracking-wider px-1.5 py-0.5" style={{ background: '#FBF3E0' }} className="text-[#8A6510]">In progress</span>
+                                  <span className="text-[0.5625rem] uppercase tracking-wider px-1.5 py-0.5 text-[#8A6510]" style={{ background: '#FBF3E0' }}>In progress</span>
                                 )}
                                 {task.cost != null && (
-                                  <span className="text-[0.6875rem] font-semibold tabular-nums px-1.5 py-0.5" style={{ background: '#F1F6F3' }} className="text-[#2F5D50]">{money(task.cost)}</span>
+                                  <span className="text-[0.6875rem] font-semibold tabular-nums px-1.5 py-0.5 text-[#2F5D50]" style={{ background: '#F1F6F3' }}>{money(task.cost)}</span>
                                 )}
                                 {task.custom && (
                                   <span className="text-[0.5625rem] uppercase tracking-wider text-[#6B665E]">added here</span>
                                 )}
                                 {task.note && (
-                                  <span className="block w-full text-[0.8125rem] leading-snug pl-2 border-l-2" style={{ borderColor: LINE }} className="text-[#6B665E]">{task.note}</span>
+                                  <span className="block w-full text-[0.8125rem] leading-snug pl-2 border-l-2 text-[#6B665E]" style={{ borderColor: LINE }}>{task.note}</span>
                                 )}
                               </span>
                             </button>

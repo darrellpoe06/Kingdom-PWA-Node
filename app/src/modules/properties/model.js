@@ -230,7 +230,17 @@ const at = (...candidates) => {
 
 export function buildHistory({
   requests = [], messages = [], notes = [], docs = [], rent = [], notices = [], propertyNotes = [],
+  // Map(userId -> name) from people.js namesByUserId. Optional: when it is
+  // absent the history reads exactly as it always did, by role. When it is
+  // present a message says WHO said it, which is the whole point of keeping
+  // the thread (DR-0871) — "landlord · tenant · landlord" cannot tell you who
+  // was misled, and a name can.
+  names = null,
 } = {}) {
+  const speaker = (row, role) => {
+    const n = names && row && row.sender_user_id ? names.get(row.sender_user_id) : null;
+    return n ? `${n} · ${role || ''}`.replace(/ \u00b7 $/, '') : (role || '');
+  };
   const events = [];
   const push = (kind, row, stamp, summary, who) => {
     events.push({
@@ -251,7 +261,7 @@ export function buildHistory({
       push('work-order-closed', r, at(r.updated_at), `Closed: ${r.title || 'work order'}`, r.assigned_to_label || '');
     }
   }
-  for (const m of messages) push('message', m, at(m.sent_at), m.body || '', m.from_role || '');
+  for (const m of messages) push('message', m, at(m.sent_at), m.body || '', speaker(m, m.from_role));
   for (const n of notes) push('note', n, at(n.created_at), n.body || '', n.author_label || n.author_role || '');
   for (const d of docs) {
     const head = d.outcome === 'fixed' ? 'Fixed' : `Not fixed — ${FOLLOWUP_LABELS[d.followup] || 'follow-up needed'}`;
