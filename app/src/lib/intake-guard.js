@@ -16,9 +16,16 @@
 //     are not shown while held;
 //   - the arrivals list does not open itself on launch (components/
 //     ArrivalsBell.jsx) while held; it opens once the person is free.
-// A recording that has FINISHED but not yet been sent is held too, for a
-// while (RESULT_HOLD_MS): the take lives only in memory until it is sent, and
-// a reload in that minute would lose it as surely as one mid-take.
+// A recording that has FINISHED but not yet been sent is held too, and the
+// hold DOES NOT EXPIRE (2026-10-10). It used to release itself after
+// RESULT_HOLD_MS and let the zero-click reload take the page -- a timer
+// guessing how long a person needs. Darrell, after the outage took a lesson
+// he and Christina had just recorded: "an App Reload has to account for the
+// specific situations on cellphones and make sure they want the update when
+// we push them it should be a choice... so the users can finish without
+// failing their process at that moment." So the hold stands until the take is
+// sent or dropped, and the update is OFFERED the whole time by the
+// FreshnessDot ("Update", tap to apply) rather than applied mid-process.
 //
 // Holds are named by what they protect ('recording', 'dictation', 'typing',
 // 'reading', 'download', 'recording-kept'), so the deferral can be said in
@@ -33,7 +40,12 @@ export const INTAKE_EVENT = 'poetech:intake';
 /** A deferred action runs only after the intake has been free this long, so a Stop followed at once by a Send is not cut in two. */
 export const QUIET_MS = 3000;
 
-/** A finished, unsent recording is held this long; the take is in memory until it is sent. */
+/**
+ * RETIRED 2026-10-10 as a release timer, kept as a named number because the
+ * suite pins it and because it records what the policy USED to be. Nothing
+ * schedules a release from it any more: an unsent take holds until it is sent
+ * or dropped. See the header.
+ */
 export const RESULT_HOLD_MS = 10 * 60 * 1000;
 
 /** Typing with no keystroke this long releases the hold (a field left open overnight is not intake). */
