@@ -40,7 +40,7 @@ import { readProductForms } from '../lib/product-forms-sync.js';
 // worker gets the platform staples here too: the five themes, text size and
 // its escape hatch, the hideaway top space, the install button, the share QR,
 // read-aloud, and the post-update toast. No PoeTech monolith is imported.
-import { THEME_CSS, THEMES, readThemePref, saveThemePref } from '../lib/theme-css.js';
+import { THEME_CSS, THEMES, useThemePref } from '../lib/theme-css.js';
 import { useTextSize } from '../lib/text-size.js';
 import { useAutoHideHeader } from '../lib/use-auto-hide-header.js';
 import { readHeaderCollapsed, writeHeaderCollapsed, nextCollapsed } from '../lib/header-hideaway.js';
@@ -112,8 +112,21 @@ export default function PropertiesDoor() {
 
   // The platform staples (DR-0827), the same keys the PoeTech shell writes, so
   // one choice follows a person between the apps on the same phone.
-  const [theme, setTheme] = useState(() => readThemePref('cream'));
-  useEffect(() => { saveThemePref(theme); }, [theme]);
+  // ONE CHOICE, EVERY SURFACE (DR-0878). Darrell, 2026-10-10: "can't change
+  // the color of the system using the reader controller... fix it".
+  //
+  // This door used to hold its OWN copy of the theme — useState(readThemePref)
+  // plus an effect that saved it — and never subscribed to the shared
+  // preference. The reader's color picker calls setThemePref, which publishes
+  // to every subscriber, and this door was not one: it had read the value once
+  // at mount and had no way to learn it had changed. So the picker genuinely
+  // set the preference, the preference was genuinely saved, and the screen the
+  // reader was looking at never repainted. The PoeTech shell
+  // (the monolith) used useThemePref and therefore worked, which
+  // is exactly why this read as "the reader can't change the system" rather
+  // than "the picker is broken" — it depended on which door you were standing
+  // in. useThemePref both subscribes and saves, so the effect goes with it.
+  const [theme, setTheme] = useThemePref('cream');
   const [sizeKey, setSizeKey, sizeSteps] = useTextSize();
   const headerHidden = useAutoHideHeader();
   const [headerCollapsed, setHeaderCollapsed] = useState(() => readHeaderCollapsed());
