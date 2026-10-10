@@ -39,6 +39,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toSpokenForm } from './speech-text.js';
 import { clauseSegments } from './speech-shape.js';
+import { isTvDocument } from './tv-device.js';
 
 const STORAGE_KEY = 'poe-tts-prefs';
 
@@ -62,6 +63,21 @@ export const PHONE_DEFAULT_VOICE = '__phone_default__';
 // user-gesture window was lost. We give it a beat, kick it once, and if it is still
 // silent we surface an honest failure instead of leaving a dead, quiet button.
 const START_WATCHDOG_MS = 1400;
+// A TELEVISION IS SLOWER TO FIND ITS VOICE (DR-0874). The watchdog exists so a
+// tap never produces silence with no explanation, and 1400ms is a fair beat on
+// a phone. A Fire TV stick running Amazon's engine can still be in its onset
+// ramp at that point: not yet `speaking`, no `onstart` fired, and nothing
+// wrong. The watchdog then calls _restartCurrent() on a sentence that was
+// about to be said — which is heard as the sentence starting, stopping and
+// beginning again. That is the second half of what Darrell reported: "can't
+// full say the sentences without slowing and pauses unnecessarily."
+//
+// NOT MEASURED ON THE DEVICE — this is reasoned from the code path, not from a
+// Fire TV in the room, and it is written down as such (DR-0076 §8). Doubling
+// the beat on a TV keeps the "never a dead, silent button" guarantee (a real
+// failure is still surfaced inside three seconds) while giving a slow engine
+// room to start. re-review once it can be watched on the device.
+const TV_START_WATCHDOG_MS = 2800;
 
 // Big, plain-language speed steps for non-technical readers — a SLOWER option
 // (the old control had none) plus normal and faster. Slider-free on purpose:
@@ -180,16 +196,43 @@ export const SPAN_CHARS_PER_RATE = 180;
 export const MAX_SPAN_CHARS = 600;
 export const MAX_SPAN_SEGMENTS = 6;
 
+// A TELEVISION PAYS THE ONSET AT EVERY PACE (DR-0874). Darrell 2026-10-10 on
+// the Firestick: "reader is slow... timing seems an issue... takes long pauses
+// in-between sentences.... and can't full say the sentences without slowing
+// and pauses unnecessarily."
+//
+// Same cause as the 2026-10-07 mumble, different trigger. Every clause is its
+// own utterance, and every utterance costs the engine an onset — the queue gap
+// before it speaks. On a phone at 1x that gap is short enough to read as a
+// breath between sentences. A Fire TV is a low-power stick running Amazon's
+// engine, where the same gap is long enough to be a STALL, and it lands
+// between every clause, not every sentence. So the reading limps at the one
+// pace most people use, and the pauses fall in places a person would never
+// breathe.
+//
+// The existing fix already works; it was simply keyed to the wrong thing. It
+// spans consecutive segments into one utterance when the pace makes the cuts
+// too close together — but the cuts are too close together on a TV at ANY
+// pace, because what is slow there is the DEVICE, not the speech. So a TV
+// spans from 1x, with a budget that holds roughly three clauses: long enough
+// that onsets become rare, far enough under MAX_SPAN_CHARS to stay clear of
+// Chrome's long-utterance cutoff. The segments themselves never change — the
+// follow map, the highlight and the paragraph steps still see one sentence
+// each, advanced by the word boundaries inside the utterance.
+export const TV_SPAN_CHARS = 540;
+
 /**
  * How many consecutive segments from `idx` one utterance should carry at
- * `rate`. Always >= 1 while a segment exists at idx. Pure.
+ * `rate`. `tv` spans from any rate (a television's onset gap does not care
+ * how fast the voice is set). Always >= 1 while a segment exists at idx. Pure.
  */
-export function utteranceSpan(segments, idx, rate, { spokenLength = (t) => String(t || '').length } = {}) {
+export function utteranceSpan(segments, idx, rate, { spokenLength = (t) => String(t || '').length, tv = false } = {}) {
   const list = Array.isArray(segments) ? segments : [];
   if (idx < 0 || idx >= list.length) return 0;
   const r = clampRate(rate);
-  if (r < RATE_SPAN_FROM) return 1;
-  const budget = Math.min(MAX_SPAN_CHARS, Math.round(SPAN_CHARS_PER_RATE * r));
+  if (r < RATE_SPAN_FROM && !tv) return 1;
+  const paced = Math.round(SPAN_CHARS_PER_RATE * r);
+  const budget = Math.min(MAX_SPAN_CHARS, tv ? Math.max(TV_SPAN_CHARS, paced) : paced);
   let n = 1;
   let chars = spokenLength(list[idx]);
   while (n < MAX_SPAN_SEGMENTS && idx + n < list.length) {
@@ -266,14 +309,20 @@ export function saveTTSPrefs(prefs, store = (typeof localStorage !== 'undefined'
  * restarting bumps the token, so the synth's interrupt-driven onend/onerror for
  * a superseded utterance can never auto-advance or double-speak.
  */
-export function createBrowserTTS({ synth, Utterance, onState, prefs, doc } = {}) {
+export function createBrowserTTS({ synth, Utterance, onState, prefs, doc, tv } = {}) {
   const p = prefs || {};
+  const theDoc = doc || (typeof document !== 'undefined' ? document : null);
   const engine = {
     synth,
     Utterance,
+    // Is this a television? markTvDevice() has already answered at boot and
+    // written it on <html>, so this reads the same answer the CSS and the
+    // remote's navigation read — one question, one place (DR-0657). Injectable
+    // so the span behaviour is testable without a Fire TV in the room.
+    tv: typeof tv === 'boolean' ? tv : isTvDocument(theDoc),
     // The document is injected so the BACKGROUND KEEP-PLAYING watchdog below is
     // testable without a browser. Absent → the watchdog simply never arms.
-    doc: doc || (typeof document !== 'undefined' ? document : null),
+    doc: theDoc,
     onState: typeof onState === 'function' ? onState : () => {},
     segments: [],
     idx: 0,
@@ -412,7 +461,7 @@ export function createBrowserTTS({ synth, Utterance, onState, prefs, doc } = {})
       // sentence while the voice no longer stops between them.
       const first = this.idx;
       const spokenParts = [];
-      const span = utteranceSpan(this.segments, first, this.rate, { spokenLength: (t) => toSpokenForm(t).length });
+      const span = utteranceSpan(this.segments, first, this.rate, { spokenLength: (t) => toSpokenForm(t).length, tv: this.tv });
       for (let k = 0; k < span; k += 1) spokenParts.push(toSpokenForm(this.segments[first + k]));
       const offsets = [];
       let at = 0;
@@ -532,7 +581,7 @@ export function createBrowserTTS({ synth, Utterance, onState, prefs, doc } = {})
           this.status = 'idle';
           this.idx = 0;
           this._emit();
-        }, START_WATCHDOG_MS);
+        }, this.tv ? TV_START_WATCHDOG_MS : START_WATCHDOG_MS);
       }
       this._emit();
     },
