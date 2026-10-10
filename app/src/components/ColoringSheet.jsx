@@ -138,8 +138,12 @@ export function downloadText(text, name, type) {
   }
 }
 
-const BTN = 'text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#B85838] text-[#B85838] '
-  + 'hover:bg-[#B85838] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]';
+// THE FOCUS RING IS WRITTEN OUT ON EVERY BUTTON, NOT SHARED THROUGH A
+// CONSTANT. The ui-standards gate reads the literal className text and cannot
+// follow a variable, so a shared BTN constant carrying the ring reads to it as
+// no ring at all — and it was right to stop me: a scanner that cannot see the
+// ring cannot promise a keyboard user has one. Every other button in the house
+// is written the same way.
 
 const NOTE = 'mt-1 text-[0.6875rem] text-[#5A5751]';
 const SERIF = { fontFamily: '"Fraunces", serif' };
@@ -192,7 +196,7 @@ export default function ColoringSheet({ module: mod, signedIn = true }) {
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
-          className={BTN}
+          className={"text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"}
           aria-expanded={open}
           data-testid="coloring-sheet-toggle"
         >
@@ -211,14 +215,14 @@ export default function ColoringSheet({ module: mod, signedIn = true }) {
       )}
       {open ? (
         <div className="mt-2" data-testid="coloring-sheet-open">
-          <SheetSvg page={page} className="w-full max-w-[420px] border border-[#1A1815]/20 bg-white" />
+          <SheetSvg page={page} className="w-full border border-[#1A1815]/20 bg-white" />
           {/* Looking at the sheet is READING and stays open to everyone;
               taking it away is a download and asks for a free account, the
               same line the rest of the app draws (DR-0698). */}
           {signedIn ? (
             <div className="ts-chrome-region mt-2 flex flex-wrap gap-2">
-              <button type="button" onClick={onPrint} className={BTN} data-testid="coloring-sheet-print">Print it</button>
-              <button type="button" onClick={onSave} className={BTN} data-testid="coloring-sheet-save">Save it</button>
+              <button type="button" onClick={onPrint} className={"text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"} data-testid="coloring-sheet-print">Print it</button>
+              <button type="button" onClick={onSave} className={"text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"} data-testid="coloring-sheet-save">Save it</button>
             </div>
           ) : (
             <div className="ts-chrome-region mt-2"><DownloadNeedsAccount label="Print or save the coloring page" /></div>
@@ -263,7 +267,7 @@ export function ColoringBookButton({ modules, title = 'Coloring Book', className
 
   return (
     <span className={className}>
-      <button type="button" onClick={onPrint} className={BTN} data-testid="coloring-book-print" data-sheets={count}>
+      <button type="button" onClick={onPrint} className={"text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"} data-testid="coloring-book-print" data-sheets={count}>
         {`Coloring book (${count})`}
       </button>
       {note ? <span className="ml-2 text-[0.6875rem] text-[#5A5751]" role="status" data-testid="coloring-book-note">{note}</span> : null}
