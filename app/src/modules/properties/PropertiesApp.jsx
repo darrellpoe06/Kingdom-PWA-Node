@@ -1070,6 +1070,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
                 rentals={rentals} tenancies={doors} busy={Boolean(busy)}
                 canManage={role === 'owner' || role === 'manager'}
                 money={role === 'owner' || role === 'manager' ? money : null}
+                loadImage={async (id) => { const r = await loadPhotoImages([id]); return r.ok ? r.images[id] || null : null; }}
                 // A tenancy id opens the relationship record; a rentals id (a
                 // door with nobody in it, which is every door on this account
                 // today) opens the door's own chronology, which is the surface

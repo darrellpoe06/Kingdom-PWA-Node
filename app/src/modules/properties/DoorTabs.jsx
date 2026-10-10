@@ -30,6 +30,7 @@ import { isOwnHome } from './homes.js';
 import { shelfOrder } from './showcase.js';
 import { moneyLine, dollarsLong } from './door-money.js';
 import { stampImage, stampFileName } from '../../lib/brand-stamp.js';
+import SharpPicture, { sharpestKnown } from './SharpPicture.jsx';
 import { photoOrder, movePhoto, makeCover, pickCovers, listImage } from './photo-order.js';
 import { compressImageFile, isLikelyImageFile } from '../../lib/image.js';
 import { useVoiceDictation } from '../../lib/voice-dictation.js';
@@ -449,6 +450,8 @@ export function DoorsBoard({
   // What each door has brought in (DR-0903, door_money_months): moneyByDoor's
   // result. Shown on the family's board only; null hides it.
   money = null,
+  // The full image by id (DR-0908): covers sharpen past their thumbnail.
+  loadImage = null,
 }) {
   const [openFor, setOpenFor] = useState(null);
   const [editing, setEditing] = useState(null);
@@ -609,7 +612,7 @@ export function DoorsBoard({
               >
                 <div className="aspect-square w-full bg-[#FAF8F4] flex items-center justify-center overflow-hidden">
                   {listImage(x.cover) ? (
-                    <img src={listImage(x.cover)} alt={x.cover.caption || x.label} loading="lazy" className="w-full h-full object-cover" />
+                    <SharpPicture photo={x.cover} loadImage={loadImage} alt={x.cover.caption || x.label} className="w-full h-full object-cover" />
                   ) : (
                     <span className="text-[0.5625rem] uppercase tracking-wider text-[#8A867E]">No photo</span>
                   )}
@@ -660,10 +663,7 @@ export function DoorsBoard({
                   stand-in photograph of somewhere else. */}
               <div className="w-20 h-20 shrink-0 border border-[#E8E4DC] bg-[#FAF8F4] flex items-center justify-center overflow-hidden">
                 {listImage(x.cover) ? (
-                  <img
-                    src={listImage(x.cover)} alt={x.cover.caption || x.label}
-                    loading="lazy" className="w-full h-full object-cover"
-                  />
+                  <SharpPicture photo={x.cover} loadImage={loadImage} alt={x.cover.caption || x.label} className="w-full h-full object-cover" />
                 ) : (
                   <span className="text-[0.5625rem] uppercase tracking-wider text-[#8A867E] text-center px-1">No photo</span>
                 )}
@@ -751,7 +751,7 @@ export function DoorsBoard({
     </Card>
     )}
     {homeRows.length > 0 && (
-      <OurHomes rows={homeRows} canManage={canManage} busy={busy} onPick={onPick} onEditRental={onEditRental} />
+      <OurHomes rows={homeRows} canManage={canManage} busy={busy} onPick={onPick} onEditRental={onEditRental} loadImage={loadImage} />
     )}
     </>
   );
@@ -773,7 +773,7 @@ export function DoorsBoard({
  * a house on a properties screen and seeing no rent, no mortgage and no value
  * would reasonably conclude the app had lost them.
  */
-function OurHomes({ rows = [], canManage = false, busy = false, onPick, onEditRental }) {
+function OurHomes({ rows = [], canManage = false, busy = false, onPick, onEditRental, loadImage = null }) {
   const [editingDoor, setEditingDoor] = useState(null);
   return (
     <Card
@@ -791,7 +791,7 @@ function OurHomes({ rows = [], canManage = false, busy = false, onPick, onEditRe
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div className="w-20 h-20 shrink-0 border border-[#E8E4DC] bg-[#FAF8F4] flex items-center justify-center overflow-hidden">
                 {listImage(x.cover) ? (
-                  <img src={listImage(x.cover)} alt={x.cover.caption || x.label} loading="lazy" className="w-full h-full object-cover" />
+                  <SharpPicture photo={x.cover} loadImage={loadImage} alt={x.cover.caption || x.label} className="w-full h-full object-cover" />
                 ) : (
                   <span className="text-[0.5625rem] uppercase tracking-wider text-[#8A867E] text-center px-1">No photo</span>
                 )}
@@ -1188,8 +1188,11 @@ export function dataUrlBytes(dataUrl = '') {
  * FILE pictures to the door he is working (0185), but the arrangement, the
  * captions of others' pictures and the archive stay the landlord's.
  */
-export const THUMB_MAX_WIDTH = 320;
-export const THUMB_QUALITY = 0.6;
+// 640 px at 75% (DR-0908): 320 px at 60% blurred on every phone-width tile.
+// Still a small fraction of the full image; SharpPicture swaps the full one
+// in where a tile needs more than the thumbnail holds.
+export const THUMB_MAX_WIDTH = 640;
+export const THUMB_QUALITY = 0.75;
 
 /** Type-or-speak for one caption box: the mic appears only where the browser can hear. */
 function CaptionField({ value, onChange, placeholder, label, className = '' }) {
@@ -1465,7 +1468,7 @@ export function GalleryTab({
               <li key={p.id} className="border border-[#E8E4DC] bg-white p-2">
                 <div className="relative">
                   <button type="button" onClick={() => openAt(idx)} className="block w-full cursor-zoom-in" aria-label={`Open ${p.caption || p.kind}`}>
-                    <img src={listImage(p)} alt={p.caption || p.kind} loading="lazy" className="aspect-square w-full object-cover" />
+                    <SharpPicture photo={p} loadImage={loadImage} alt={p.caption || p.kind} className="aspect-square w-full object-cover" />
                   </button>
                   {idx === 0 && (
                     <span className="absolute top-1 left-1 bg-[#2F5D50] text-white text-[0.625rem] uppercase tracking-wider px-1.5 py-0.5">Cover</span>
@@ -1515,7 +1518,7 @@ export function GalleryTab({
       {open !== null && shown.length > 0 && (
         <Lightbox
           items={shown.map((p, n) => ({
-            src: full[p.id] || p.storage_path || listImage(p),
+            src: full[p.id] || sharpestKnown(p),
             alt: p.caption || p.kind,
             caption: [p.caption, p.kind.replace(/-/g, ' '), roomName(p.room_id)].filter(Boolean).join(' · '),
             date: p.taken_at ? p.taken_at.slice(0, 10) : '',

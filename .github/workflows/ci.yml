@@ -998,7 +998,7 @@ jobs:
             psql -v ON_ERROR_STOP=1 -q --single-transaction -f "infra/supabase/$f"
           done
           psql -v ON_ERROR_STOP=1 -q -f scripts/door-work-ci-rentals-shape.sql
-          for f in 0055-relationship-permissions.sql 0062-per-unit-management.sql 0075-delegated-property-management.sql 0150-poe-properties-app-invite-claim-and-household.sql 0152-vacancies-and-no-account-applications.sql 0153-property-timeline-photos.sql 0154-photo-captions-editable-and-archivable.sql; do
+          for f in 0055-relationship-permissions.sql 0062-per-unit-management.sql 0075-delegated-property-management.sql 0150-poe-properties-app-invite-claim-and-household.sql 0152-vacancies-and-no-account-applications.sql 0153-property-timeline-photos.sql 0154-photo-captions-editable-and-archivable.sql 0155-what-a-door-is-offered-as.sql; do
             psql -v ON_ERROR_STOP=1 -q --single-transaction -f "infra/supabase/migrations-auto/$f"
           done
           for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0260-work-is-filed-on-the-door-not-only-on-a-tenancy.sql; done

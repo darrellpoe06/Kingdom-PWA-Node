@@ -159,7 +159,13 @@ describe('covers from metadata alone', () => {
 describe('the surfaces', () => {
   it('the gallery draws thumbnails and writes one beside every new picture', () => {
     const gallery = TABS.slice(TABS.indexOf('export function GalleryTab'), TABS.indexOf('function PhotoEditor'));
-    expect(gallery).toMatch(/<img src=\{listImage\(p\)\}/);
+    // DR-0908: the tile is SharpPicture, which draws the thumbnail first and
+    // fetches the full image BY ID only when the tile needs more pixels —
+    // the list itself still carries no bytes.
+    expect(gallery).toMatch(/<SharpPicture photo=\{p\} loadImage=\{loadImage\}/);
+    const sharp = read('../modules/properties/SharpPicture.jsx');
+    expect(sharp).toMatch(/cache\.get\(photo\.id\) \|\| photo\.storage_path \|\| listImage\(photo\)/);
+    expect(sharp).toMatch(/sharpenOnce\(id, loadImage\)/);
     expect(gallery).toMatch(/thumb_path: pic\.thumbUrl/);
     expect(gallery).not.toMatch(/<img src=\{p\.storage_path\}/);
   });
