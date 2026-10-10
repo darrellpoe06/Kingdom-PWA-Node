@@ -31,7 +31,7 @@
 --      revoked. A grant carries the NAS grant token (the NAS mints and
 --      enforces it, DR-0778); the token is read only by the person it was
 --      given to and by the family.
---   3. Every ask, decision and take-back is on record_events (subject
+--   3. Every ask, decision and take-back is on door_events (subject
 --      'camera') with its own instant.
 --
 -- IDEMPOTENT + ADDITIVE.
@@ -254,13 +254,13 @@ CREATE POLICY door_camera_access_update ON public.door_camera_access FOR UPDATE 
 -- No DELETE policy: the ledger of who held which camera is kept.
 
 -- ---------------------------------------------------------------------------
--- 3. The clock covers camera access (record_events, 0262/0263).
+-- 3. The clock covers camera access (door_events, 0262/0263).
 -- ---------------------------------------------------------------------------
-ALTER TABLE public.record_events DROP CONSTRAINT IF EXISTS record_events_subject_check;
-ALTER TABLE public.record_events ADD CONSTRAINT record_events_subject_check
+ALTER TABLE public.door_events DROP CONSTRAINT IF EXISTS door_events_subject_check;
+ALTER TABLE public.door_events ADD CONSTRAINT door_events_subject_check
   CHECK (subject IN ('rent', 'work', 'document', 'camera'));
-DROP POLICY IF EXISTS record_events_read ON public.record_events;
-CREATE POLICY record_events_read ON public.record_events FOR SELECT TO authenticated
+DROP POLICY IF EXISTS door_events_read ON public.door_events;
+CREATE POLICY door_events_read ON public.door_events FOR SELECT TO authenticated
   USING (CASE subject
            WHEN 'rent' THEN EXISTS (SELECT 1 FROM rent_records r WHERE r.id = subject_id)
            WHEN 'work' THEN EXISTS (SELECT 1 FROM tenant_maintenance_requests w WHERE w.id = subject_id)
@@ -268,21 +268,21 @@ CREATE POLICY record_events_read ON public.record_events FOR SELECT TO authentic
            WHEN 'camera' THEN EXISTS (SELECT 1 FROM door_camera_access a WHERE a.id = subject_id)
            ELSE false END);
 
-CREATE OR REPLACE FUNCTION public.record_events_from_camera_access()
+CREATE OR REPLACE FUNCTION public.door_events_from_camera_access()
 RETURNS trigger
 LANGUAGE plpgsql SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
   IF TG_OP = 'INSERT' THEN
-    INSERT INTO record_events (instance_id, subject, subject_id, event, to_value, detail, by_user)
+    INSERT INTO door_events (instance_id, subject, subject_id, event, to_value, detail, by_user)
     VALUES (NEW.instance_id, 'camera', NEW.id, CASE NEW.kind WHEN 'request' THEN 'asked' ELSE 'given' END, NEW.status,
             jsonb_strip_nulls(jsonb_build_object('person', NEW.person_label, 'role', NEW.person_role,
               'cameras', to_jsonb(NEW.camera_names), 'reason', NEW.reason, 'days', NEW.days, 'expires_on', NEW.expires_on,
               'rental_id', NEW.rental_id)),
             auth.uid());
   ELSIF NEW.status IS DISTINCT FROM OLD.status THEN
-    INSERT INTO record_events (instance_id, subject, subject_id, event, from_value, to_value, detail, by_user)
+    INSERT INTO door_events (instance_id, subject, subject_id, event, from_value, to_value, detail, by_user)
     VALUES (NEW.instance_id, 'camera', NEW.id, NEW.status, OLD.status, NEW.status,
             jsonb_strip_nulls(jsonb_build_object('person', NEW.person_label, 'cameras', to_jsonb(NEW.camera_names),
               'days', NEW.days, 'expires_on', NEW.expires_on, 'note', NEW.decision_note)),
@@ -290,12 +290,12 @@ BEGIN
   END IF;
   RETURN NULL;
 END $$;
-REVOKE ALL ON FUNCTION public.record_events_from_camera_access() FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.door_events_from_camera_access() FROM PUBLIC;
 
 DROP TRIGGER IF EXISTS door_camera_access_events ON public.door_camera_access;
 CREATE TRIGGER door_camera_access_events
   AFTER INSERT OR UPDATE ON public.door_camera_access
-  FOR EACH ROW EXECUTE FUNCTION public.record_events_from_camera_access();
+  FOR EACH ROW EXECUTE FUNCTION public.door_events_from_camera_access();
 
 -- The two instance-scoped tables join the viewer read-only and assistant
 -- overlays, as every table created after 0130/0241 does.

@@ -11,7 +11,7 @@
 // RecordPayment writes a CONFIRMED payment on the door — with its tenancy when
 // there is one, on the door alone when there is not — on the day the money
 // actually came, which may be long past. It lands in Payment history, in the
-// door's History, on the clock (record_events), and in the totals below.
+// door's History, on the clock (door_events), and in the totals below.
 // No money moves here (DR-0094).
 // =============================================================================
 import React, { useState } from 'react';

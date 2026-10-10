@@ -30,7 +30,7 @@
 --     stay for a listed short-stay door, refused when the nights are taken,
 --     with at most three open asks per contact per door.
 --   * The family reads every row and decides; every ask, confirmation,
---     decline, cancel and block is on record_events (subject 'stay').
+--     decline, cancel and block is on door_events (subject 'stay').
 --
 -- IDEMPOTENT + ADDITIVE.
 -- =============================================================================
@@ -258,11 +258,11 @@ GRANT EXECUTE ON FUNCTION public.request_a_stay(uuid, date, date, text, text, te
 -- ---------------------------------------------------------------------------
 -- The clock covers the calendar.
 -- ---------------------------------------------------------------------------
-ALTER TABLE public.record_events DROP CONSTRAINT IF EXISTS record_events_subject_check;
-ALTER TABLE public.record_events ADD CONSTRAINT record_events_subject_check
+ALTER TABLE public.door_events DROP CONSTRAINT IF EXISTS door_events_subject_check;
+ALTER TABLE public.door_events ADD CONSTRAINT door_events_subject_check
   CHECK (subject IN ('rent', 'work', 'document', 'camera', 'stay'));
-DROP POLICY IF EXISTS record_events_read ON public.record_events;
-CREATE POLICY record_events_read ON public.record_events FOR SELECT TO authenticated
+DROP POLICY IF EXISTS door_events_read ON public.door_events;
+CREATE POLICY door_events_read ON public.door_events FOR SELECT TO authenticated
   USING (CASE subject
            WHEN 'rent' THEN EXISTS (SELECT 1 FROM rent_records r WHERE r.id = subject_id)
            WHEN 'work' THEN EXISTS (SELECT 1 FROM tenant_maintenance_requests w WHERE w.id = subject_id)
@@ -271,20 +271,20 @@ CREATE POLICY record_events_read ON public.record_events FOR SELECT TO authentic
            WHEN 'stay' THEN EXISTS (SELECT 1 FROM door_stays s WHERE s.id = subject_id)
            ELSE false END);
 
-CREATE OR REPLACE FUNCTION public.record_events_from_stay()
+CREATE OR REPLACE FUNCTION public.door_events_from_stay()
 RETURNS trigger
 LANGUAGE plpgsql SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
   IF TG_OP = 'INSERT' THEN
-    INSERT INTO record_events (instance_id, subject, subject_id, event, to_value, detail, by_user)
+    INSERT INTO door_events (instance_id, subject, subject_id, event, to_value, detail, by_user)
     VALUES (NEW.instance_id, 'stay', NEW.id, CASE NEW.kind WHEN 'block' THEN 'blocked' ELSE 'asked' END, NEW.status,
             jsonb_strip_nulls(jsonb_build_object('check_in', NEW.check_in, 'check_out', NEW.check_out, 'guest', NEW.guest_name,
               'guests', NEW.guests, 'reason', NEW.block_reason, 'rental_id', NEW.rental_id)),
             auth.uid());
   ELSIF NEW.status IS DISTINCT FROM OLD.status OR NEW.check_in IS DISTINCT FROM OLD.check_in OR NEW.check_out IS DISTINCT FROM OLD.check_out THEN
-    INSERT INTO record_events (instance_id, subject, subject_id, event, from_value, to_value, detail, by_user)
+    INSERT INTO door_events (instance_id, subject, subject_id, event, from_value, to_value, detail, by_user)
     VALUES (NEW.instance_id, 'stay', NEW.id, CASE WHEN NEW.status IS DISTINCT FROM OLD.status THEN NEW.status ELSE 'moved' END,
             OLD.status, NEW.status,
             jsonb_build_object('check_in', jsonb_build_array(OLD.check_in, NEW.check_in), 'check_out', jsonb_build_array(OLD.check_out, NEW.check_out)),
@@ -292,12 +292,12 @@ BEGIN
   END IF;
   RETURN NULL;
 END $$;
-REVOKE ALL ON FUNCTION public.record_events_from_stay() FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.door_events_from_stay() FROM PUBLIC;
 
 DROP TRIGGER IF EXISTS door_stays_events ON public.door_stays;
 CREATE TRIGGER door_stays_events
   AFTER INSERT OR UPDATE ON public.door_stays
-  FOR EACH ROW EXECUTE FUNCTION public.record_events_from_stay();
+  FOR EACH ROW EXECUTE FUNCTION public.door_events_from_stay();
 
 SELECT public.apply_viewer_readonly_overlay();
 SELECT public.apply_assistant_scope_overlay();

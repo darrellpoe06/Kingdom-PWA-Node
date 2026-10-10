@@ -502,7 +502,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
     return () => { live = false; };
   }, [workDoor, reloadKey]);
 
-  // EVERY CHANGE, TO THE INSTANT (DR-0899). The record_events of the rent
+  // EVERY CHANGE, TO THE INSTANT (DR-0899). The door_events of the rent
   // records and work orders on this door, read under the reader's own RLS.
   const [changes, setChanges] = useState([]);
   useEffect(() => {
@@ -1952,7 +1952,7 @@ function RentTab({ rent, door, role, face, onReport, onConfirm, onPost, booksAva
               {r.status}{r.posted_tx_id ? ' · in the books' : ''}{r.paid_on ? ` · came ${r.paid_on}` : ''} · recorded {when(r.reported_at)}{r.confirmed_at ? ` · confirmed ${when(r.confirmed_at)}` : ''}
             </span>
             {canConfirm && r.status === 'reported' && <Btn onClick={() => onConfirm(r.id)}>Confirm received</Btn>}
-            {/* Every change to this payment, to the second (record_events). */}
+            {/* Every change to this payment, to the second (door_events). */}
             {changes.filter((e) => e.subject_id === r.id && e.event !== 'reported').map((e) => (
               <div key={e.id} className="w-full text-[0.6875rem] text-[#5A5751] pl-2 border-l-2 border-[#E8E4DC]" style={serif}>
                 {when(e.at)}: {changeSummary(e)}

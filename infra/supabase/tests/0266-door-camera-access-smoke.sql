@@ -197,11 +197,11 @@ BEGIN
   IF pg_temp.changes(o, format('DELETE FROM door_camera_access WHERE id = %L', askT)) <> 0 THEN RAISE EXCEPTION 'DOOR CAMERA ACCESS SMOKE FAIL: the ledger lost a row'; END IF;
 
   -- 7. The clock.
-  IF (SELECT count(*) FROM record_events WHERE subject = 'camera' AND subject_id = askT AND event IN ('asked', 'granted')) <> 2 THEN RAISE EXCEPTION 'DOOR CAMERA ACCESS SMOKE FAIL: the ask and the grant are not both on the clock'; END IF;
-  IF NOT EXISTS (SELECT 1 FROM record_events WHERE subject = 'camera' AND subject_id = askW AND event = 'declined' AND by_user = o) THEN RAISE EXCEPTION 'DOOR CAMERA ACCESS SMOKE FAIL: the decline is not on the clock'; END IF;
-  IF (SELECT count(*) FROM record_events WHERE subject = 'camera' AND subject_id = gift AND event IN ('given', 'revoked')) <> 2 THEN RAISE EXCEPTION 'DOOR CAMERA ACCESS SMOKE FAIL: the gift and its taking back are not both on the clock'; END IF;
-  IF pg_temp.val_as(t, format('SELECT count(*) FROM record_events WHERE subject_id = %L', askT))::int <> 2 THEN RAISE EXCEPTION 'DOOR CAMERA ACCESS SMOKE FAIL: the tenant cannot read their own ask''s clock'; END IF;
-  IF pg_temp.val_as(t, format('SELECT count(*) FROM record_events WHERE subject_id = %L', askW))::int <> 0 THEN RAISE EXCEPTION 'DOOR CAMERA ACCESS SMOKE FAIL: the tenant reads the worker''s clock'; END IF;
+  IF (SELECT count(*) FROM door_events WHERE subject = 'camera' AND subject_id = askT AND event IN ('asked', 'granted')) <> 2 THEN RAISE EXCEPTION 'DOOR CAMERA ACCESS SMOKE FAIL: the ask and the grant are not both on the clock'; END IF;
+  IF NOT EXISTS (SELECT 1 FROM door_events WHERE subject = 'camera' AND subject_id = askW AND event = 'declined' AND by_user = o) THEN RAISE EXCEPTION 'DOOR CAMERA ACCESS SMOKE FAIL: the decline is not on the clock'; END IF;
+  IF (SELECT count(*) FROM door_events WHERE subject = 'camera' AND subject_id = gift AND event IN ('given', 'revoked')) <> 2 THEN RAISE EXCEPTION 'DOOR CAMERA ACCESS SMOKE FAIL: the gift and its taking back are not both on the clock'; END IF;
+  IF pg_temp.val_as(t, format('SELECT count(*) FROM door_events WHERE subject_id = %L', askT))::int <> 2 THEN RAISE EXCEPTION 'DOOR CAMERA ACCESS SMOKE FAIL: the tenant cannot read their own ask''s clock'; END IF;
+  IF pg_temp.val_as(t, format('SELECT count(*) FROM door_events WHERE subject_id = %L', askW))::int <> 0 THEN RAISE EXCEPTION 'DOOR CAMERA ACCESS SMOKE FAIL: the tenant reads the worker''s clock'; END IF;
 
   RAISE NOTICE 'DOOR CAMERA ACCESS SMOKE: PASS';
 END $$;

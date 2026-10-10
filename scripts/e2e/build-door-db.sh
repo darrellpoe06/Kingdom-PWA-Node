@@ -34,6 +34,7 @@ P -f scripts/door-work-ci-rentals-shape.sql
 
 # What the Properties app reads on boot, in the order the live ledger applied it.
 for f in \
+  0052-systems-of-record.sql \
   0055-relationship-permissions.sql \
   0062-per-unit-management.sql \
   0075-delegated-property-management.sql \

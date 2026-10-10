@@ -111,7 +111,7 @@ BEGIN
   PERFORM pg_temp.runs(w, format(doc, inst, jn, 'fixed', 'Swapped', NULL, NULL), 'a job with no proof required', true);
 
   -- 5. On the clock.
-  IF (SELECT count(*) FROM record_events WHERE subject_id = jp::uuid AND event = 'proof' AND to_value = 'photos') <> 1 THEN
+  IF (SELECT count(*) FROM door_events WHERE subject_id = jp::uuid AND event = 'proof' AND to_value = 'photos') <> 1 THEN
     RAISE EXCEPTION 'PROOF SMOKE FAIL: the proof requirement is not on the clock';
   END IF;
 
