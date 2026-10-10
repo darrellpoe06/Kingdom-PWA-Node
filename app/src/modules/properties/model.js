@@ -337,7 +337,7 @@ export function decisionReady(status, reason = '') {
 }
 
 // ===========================================================================
-// CORROBORATION — how you verify a person without holding their ID (DR-0944)
+// CORROBORATION — how you verify a person without holding their ID (DR-0945)
 // ===========================================================================
 // Darrell, 2026-10-10: "How can we verify people without ID?" then, naming the
 // model himself, "Same as rent a center..."

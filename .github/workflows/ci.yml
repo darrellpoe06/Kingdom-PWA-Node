@@ -1036,7 +1036,7 @@ jobs:
           grep -q 'BOOKING CALENDAR SMOKE: PASS' "$RUNNER_TEMP/booking.txt"
           psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0270-area-map-smoke.sql 2>&1 | tee "$RUNNER_TEMP/area.txt"
           grep -q 'AREA MAP SMOKE: PASS' "$RUNNER_TEMP/area.txt"
-          # 0272 (DR-0944): an application is corroborated, not credentialed.
+          # 0272 (DR-0945): an application is corroborated, not credentialed.
           # Both tables it needs are already on this leg — rental_applications
           # from 0152 in the list above, door_events from 0262.
           for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0272-an-application-is-corroborated-not-credentialed.sql; done

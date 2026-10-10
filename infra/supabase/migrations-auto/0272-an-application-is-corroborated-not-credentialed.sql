@@ -108,7 +108,7 @@ CREATE INDEX IF NOT EXISTS application_checks_instance_idx
   ON public.application_checks(instance_id, checked_at DESC);
 
 COMMENT ON TABLE public.application_checks IS
-  'Corroboration instead of credentials (DR-0944): the fixed list of checks run on every rental application, each row naming who checked, when, and what they heard. Append-only. No score, no threshold — not-applicable is a first-class outcome so a person with no rental history is not excluded by arithmetic.';
+  'Corroboration instead of credentials (DR-0945): the fixed list of checks run on every rental application, each row naming who checked, when, and what they heard. Append-only. No score, no threshold — not-applicable is a first-class outcome so a person with no rental history is not excluded by arithmetic.';
 
 -- APPEND-ONLY. Read and insert; never update, never delete.
 REVOKE ALL ON public.application_checks FROM anon, authenticated;

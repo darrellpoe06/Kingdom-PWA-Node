@@ -126,7 +126,7 @@ export async function loadApplications({ rentalId = null } = {}, client = supaba
  */
 export async function decideApplication(id, status, reason = '', client = supabase, checks = null) {
   if (!id) return no('no-application');
-  // When the caller hands over the checks, hold the whole rule here (DR-0944)
+  // When the caller hands over the checks, hold the whole rule here (DR-0945)
   // so the person is told what is left BEFORE writing a decision that 0272's
   // trigger would refuse. Omitted, the older reason-only rule still applies —
   // the database is the thing that actually enforces it either way.
@@ -147,7 +147,7 @@ export async function decideApplication(id, status, reason = '', client = supaba
 }
 
 /**
- * The corroboration record for one application (DR-0944) — every attempt, not
+ * The corroboration record for one application (DR-0945) — every attempt, not
  * a verdict per item. Reports what it could not read for the DR-0876 reason:
  * RLS returns an empty set rather than an error, so "no checks yet" and "you
  * may not see the checks" arrive identically, and a landlord must not read the

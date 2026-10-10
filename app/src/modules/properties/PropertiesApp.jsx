@@ -1103,7 +1103,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
         }
         switch (activeTab) {
           case 'door': return <DoorCard door={activeDoor} />;
-          // THE DEAD LETTER GETS A READER (DR-0903/DR-0944). Keyed by the
+          // THE DEAD LETTER GETS A READER (DR-0903/DR-0945). Keyed by the
           // rental's UUID: an application carries rental_id, never the slug.
           case 'applications': return (
             <ApplicationsTab
