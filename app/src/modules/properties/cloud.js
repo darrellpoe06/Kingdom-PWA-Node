@@ -232,16 +232,80 @@ export async function postJobDoc(row, client = supabase) {
 }
 
 /** Report or confirm rent. Records reality; moves no money (DR-0094). */
-export async function recordRent({ instanceId, tenancyId, amount, forPeriod, method, memo, status, role }, client = supabase) {
+export async function recordRent({ instanceId, tenancyId, amount, forPeriod, method, memo, status, role, part = null }, client = supabase) {
   try {
     const uid = await userId(client);
+    // The part-payment facts (0262 / DR-0899) ride along only when given, so a
+    // plain report never names a column a not-yet-migrated database lacks.
+    const extra = {};
+    if (part) {
+      for (const k of ['due_amount', 'remaining_after', 'rest_promised_on', 'reported_on_device_at']) {
+        if (part[k] !== null && part[k] !== undefined) extra[k] = part[k];
+      }
+    }
     const { error } = await client.from('rent_records').insert({
       instance_id: instanceId, tenancy_id: tenancyId, reported_by: uid,
       reported_by_role: ['tenant', 'manager', 'landlord'].includes(role) ? role : 'tenant',
       amount, for_period: forPeriod || null, method: method || 'other', memo: memo || null,
-      status: status || 'reported', money_moved_in_app: false,
+      status: status || 'reported', money_moved_in_app: false, ...extra,
     });
     return error ? no('write-failed', error) : ok();
+  } catch (e) { return no('unexpected', e); }
+}
+
+/**
+ * How this landlord is paid, as the family reads and writes it (0262). Like
+ * every read in this module it carries NO instance filter: RLS returns only
+ * the payee rows of instances this person belongs to, and the door's own
+ * instance is picked from those.
+ */
+export async function loadRentPayee(instanceId, client = supabase) {
+  if (!instanceId) return ok({ payee: null });
+  try {
+    const { data, error } = await client.from('rent_payee').select('*');
+    if (error) return no('read-failed', error);
+    return ok({ payee: (data || []).find((r) => r.instance_id === instanceId) || null });
+  } catch (e) { return no('unexpected', e); }
+}
+
+/** Save how this landlord is paid. Blank lines are stored as none. */
+export async function saveRentPayee(instanceId, fields, client = supabase) {
+  try {
+    const uid = await userId(client);
+    const clean = (v) => (String(v ?? '').trim() || null);
+    const row = {
+      instance_id: instanceId,
+      cashtag: clean(fields.cashtag) && `$${clean(fields.cashtag).replace(/^\$/, '')}`,
+      venmo: clean(fields.venmo), zelle_to: clean(fields.zelle_to), cash_note: clean(fields.cash_note),
+      deposit_note: clean(fields.deposit_note), check_payable_to: clean(fields.check_payable_to),
+      updated_by: uid, updated_at: new Date().toISOString(),
+    };
+    const { error } = await client.from('rent_payee').upsert(row, { onConflict: 'instance_id' });
+    return error ? no(error.message || 'write-failed', error) : ok();
+  } catch (e) { return no('unexpected', e); }
+}
+
+/** How to pay, as a tenant or household member of this door reads it. */
+export async function loadPayeeForTenancy(tenancyId, client = supabase) {
+  if (!tenancyId) return ok({ payee: null });
+  try {
+    const { data, error } = await client.rpc('rent_payee_for_tenancy', { p_tenancy: tenancyId });
+    if (error) return no('read-failed', error);
+    return ok({ payee: (Array.isArray(data) ? data[0] : data) || null });
+  } catch (e) { return no('unexpected', e); }
+}
+
+/**
+ * Every change to these rent records and work orders, to the instant, oldest
+ * first (record_events, 0262). RLS returns exactly the events of the records
+ * this person can already read.
+ */
+export async function loadRecordEvents(subjectIds = [], client = supabase) {
+  const ids = [...new Set((subjectIds || []).filter(Boolean))];
+  if (!ids.length) return ok({ events: [] });
+  try {
+    const { data, error } = await client.from('record_events').select('*').in('subject_id', ids).order('at', { ascending: true });
+    return error ? no('read-failed', error) : ok({ events: data || [] });
   } catch (e) { return no('unexpected', e); }
 }
 

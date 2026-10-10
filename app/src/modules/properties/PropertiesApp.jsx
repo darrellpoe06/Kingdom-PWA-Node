@@ -18,14 +18,14 @@
 // =============================================================================
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  resolveFace, buildHistory, newestFirst, buildJobDoc, buildTenancyNote,
+  resolveFace, buildHistory, newestFirst, buildJobDoc, buildTenancyNote, changeSummary,
   DOC_FOLLOWUPS, FOLLOWUP_LABELS, CAPABILITY_LABELS, ROLE_CEILING,
   canPostToBooks, rentRecordToBookEntry, unpostedRent,
 } from './model.js';
 import {
   claimPropertyAccess, loadMyDoors, loadMyGrants, loadMyHousehold, loadDoorRecord,
   fileWorkOrder, setWorkOrderStatus, assignWorkOrder, postMessage, postNote,
-  postJobDoc, recordRent, confirmRent, markRentPosted, inviteToProperties, createTenancy, loadInvites,
+  postJobDoc, recordRent, confirmRent, markRentPosted, inviteToProperties, createTenancy, loadInvites, loadRecordEvents,
 } from './cloud.js';
 import { MAINTENANCE_TRANSITIONS, PRIORITY, buildMaintenanceRequest } from '../../lib/tenant-portal.js';
 import { smsHref, telHref } from '../../lib/dispatch.js';
@@ -38,6 +38,8 @@ import { availableDocuments, buildDocument } from './documents.js';
 import { TimelineTab, RoomsTab, DoorsBoard, GalleryTab, FilesTab } from './DoorTabs.jsx';
 import { SystemsTab } from './SystemsTab.jsx';
 import { GuestLinkCard } from './GuestReport.jsx';
+import { PayRent, PayeeCard } from './RentPay.jsx';
+import { rentLine } from './rent-pay.js';
 import { ReadinessTab } from './ReadinessTab.jsx';
 import { readinessBoardSlug } from './readiness.js';
 import { toTimelineEvents } from './systems.js';
@@ -222,7 +224,7 @@ const when = (iso, undated) => {
 const KIND_LABEL = {
   'work-order': 'Work order', 'work-order-closed': 'Closed', message: 'Message',
   note: 'Note', 'job-doc': 'Job documentation', rent: 'Payment', notice: 'Notice',
-  'property-note': 'Landlord note',
+  'property-note': 'Landlord note', change: 'Change',
 };
 
 /**
@@ -425,6 +427,16 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
     return () => { live = false; };
   }, [workDoor, busy]);
 
+  // EVERY CHANGE, TO THE INSTANT (DR-0899). The record_events of the rent
+  // records and work orders on this door, read under the reader's own RLS.
+  const [changes, setChanges] = useState([]);
+  useEffect(() => {
+    let live = true;
+    const ids = [...(record.requests || []), ...(record.rent || [])].map((x) => x.id);
+    boundedRead(loadRecordEvents(ids), 8000, { ok: false }).then((r) => { if (live) setChanges(r.ok ? r.events : []); });
+    return () => { live = false; };
+  }, [record]);
+
   // 2. The role. Derived from what the database actually returned for THIS person:
   //    a household membership, a capability grant, or (the family's own session)
   //    the fact that they can see doors with no delegated grant at all.
@@ -463,8 +475,8 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
   // notes must not empty with it, which is why they are spread in here rather
   // than loaded into `record`.
   const history = useMemo(
-    () => newestFirst(buildHistory({ ...record, propertyNotes: doorData.propertyNotes || [] })),
-    [record, doorData.propertyNotes],
+    () => newestFirst(buildHistory({ ...record, propertyNotes: doorData.propertyNotes || [], changes })),
+    [record, doorData.propertyNotes, changes],
   );
   const openWork = useMemo(
     () => (record.requests || []).filter((r) => !['resolved', 'declined', 'cancelled'].includes(r.status)),
@@ -945,9 +957,18 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
             return (
               <RentTab
                 rent={record.rent} door={activeDoor} role={role} face={face} booksAvailable={!!books}
-                onReport={async (amount, period, method) => {
-                  await recordRent({ instanceId: activeDoor.instance_id, tenancyId: activeDoor.id, amount, forPeriod: period, method, role: 'tenant', status: 'reported' });
+                changes={changes} instanceId={workDoor?.instanceId || null}
+                onReport={async (row) => {
+                  // "I'm paying" (DR-0899): the record, with what was due, what
+                  // remains, the promise and this device's clock, is written
+                  // BEFORE the tenant is handed to Cash App / Venmo.
+                  if (!activeDoor) return { ok: false, reason: 'no door' };
+                  const res = await recordRent({
+                    instanceId: activeDoor.instance_id, tenancyId: activeDoor.id, amount: row.amount, forPeriod: row.for_period,
+                    method: row.method, memo: row.memo, role: 'tenant', status: 'reported', part: row,
+                  });
                   refresh();
+                  return res;
                 }}
                 onConfirm={async (id) => { await confirmRent(id); refresh(); }}
                 onPost={postRentToBooks}
@@ -1402,39 +1423,28 @@ function HistoryTab({ history, onNote }) {
   );
 }
 
-function RentTab({ rent, role, face, onReport, onConfirm, onPost, booksAvailable }) {
-  const [amount, setAmount] = useState('');
-  const [period, setPeriod] = useState(new Date().toISOString().slice(0, 7));
-  const [method, setMethod] = useState('zelle');
+function RentTab({ rent, door, role, face, onReport, onConfirm, onPost, booksAvailable, changes = [], instanceId = null }) {
   const canReport = role === 'tenant';
   const canConfirm = role === 'owner' || face.canWriteRent;
   const waiting = unpostedRent(rent);
   return (
     <>
-      {canReport && (
-        <Card title="I paid the rent">
-          <div className="flex flex-wrap items-center gap-2 mb-2">
-            <input value={amount} onChange={(e) => setAmount(e.target.value)} inputMode="decimal" placeholder="Amount" aria-label="Amount"
-              className="text-sm border border-[#E8E4DC] px-2 py-2 w-28" style={serif} />
-            <input value={period} onChange={(e) => setPeriod(e.target.value)} placeholder="YYYY-MM" aria-label="For which month"
-              className="text-sm border border-[#E8E4DC] px-2 py-2 w-28" style={serif} />
-            <select value={method} onChange={(e) => setMethod(e.target.value)} aria-label="How you paid"
-              className="text-xs border border-[#E8E4DC] px-2 py-2 bg-white" style={serif}>
-              {['zelle', 'cash', 'check', 'ach', 'venmo', 'cashapp', 'other'].map((m) => <option key={m} value={m}>{m}</option>)}
-            </select>
-            <Btn tone="primary" disabled={!(Number(amount) > 0)} onClick={() => { onReport(Number(amount), period, method); setAmount(''); }}>Record it</Btn>
-          </div>
-          <Empty>This records what you already paid outside the app. No money moves here — your landlord confirms it when it lands.</Empty>
-        </Card>
-      )}
+      {canReport && door && <PayRent tenancy={door} rent={rent} onReport={onReport} />}
+      {role === 'owner' && instanceId && <PayeeCard instanceId={instanceId} />}
       <Card title="Payment history">
         {rent.length === 0 ? <Empty>No payments recorded yet.</Empty> : rent.map((r) => (
           <div key={r.id} className="border-b border-[#F0EDE6] py-2 flex flex-wrap items-baseline justify-between gap-2">
-            <span className="text-sm text-[#1A1815]" style={serif}>${Number(r.amount || 0).toFixed(2)}{r.for_period ? ` · ${r.for_period}` : ''} · {r.method}</span>
+            <span className="text-sm text-[#1A1815]" style={serif}>{rentLine(r)}{r.memo ? ` "${r.memo}"` : ''}</span>
             <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">
-              {r.status}{r.posted_tx_id ? ' · in the books' : ''} · {when(r.confirmed_at || r.reported_at)}
+              {r.status}{r.posted_tx_id ? ' · in the books' : ''} · reported {when(r.reported_at)}{r.confirmed_at ? ` · confirmed ${when(r.confirmed_at)}` : ''}
             </span>
             {canConfirm && r.status === 'reported' && <Btn onClick={() => onConfirm(r.id)}>Confirm received</Btn>}
+            {/* Every change to this payment, to the second (record_events). */}
+            {changes.filter((e) => e.subject_id === r.id && e.event !== 'reported').map((e) => (
+              <div key={e.id} className="w-full text-[0.6875rem] text-[#5A5751] pl-2 border-l-2 border-[#E8E4DC]" style={serif}>
+                {when(e.at)}: {changeSummary(e)}
+              </div>
+            ))}
           </div>
         ))}
       </Card>

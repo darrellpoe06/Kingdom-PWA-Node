@@ -42,6 +42,9 @@ vi.mock('../modules/properties/cloud.js', () => {
     loadDocuments: async () => ({ ok: true, documents: [] }),
     // The guest card on the Work board (DR-0898): off on every door here.
     loadGuestLink: async () => ({ ok: true, token: null }), openGuestLink: async () => ({ ok: true, token: null }), closeGuestLink: async () => ({ ok: true }),
+    // Rent hand-off and the change clock (DR-0899): nothing set, nothing logged.
+    loadRecordEvents: async () => ({ ok: true, events: [] }), loadPayeeForTenancy: async () => ({ ok: true, payee: null }),
+    loadRentPayee: async () => ({ ok: true, payee: null }), saveRentPayee: async () => ({ ok: true }),
     fileWorkOrder: noop, setWorkOrderStatus: noop, assignWorkOrder: noop,
     postMessage: noop, postNote: noop, postJobDoc: noop,
     recordRent: noop, confirmRent: noop, markRentPosted: noop,

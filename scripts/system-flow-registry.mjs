@@ -1039,6 +1039,30 @@ const NODES = [
     ],
     seeds: ['door-work-orders', 'push-outbox-drain'],
   }),
+  // "I'm paying" (DR-0899): the family writes how it is paid; the tenant reads
+  // it for their door and records the payment (full or part, with the promise)
+  // before being handed off; every change to rent and work keeps its instant.
+  app('app/src/modules/properties/RentPay.jsx', {
+    id: 'rent-pay', name: "I'm paying (rent hand-off and part payments)", purpose: 'The tenant records a payment, full or part with the promised date, then is handed to Cash App, Venmo, Zelle, cash, a bank deposit or a check; the family confirms when it lands.',
+    writes: [
+      { res: 'db:rent_payee', file: 'app/src/modules/properties/cloud.js', token: "from('rent_payee').upsert" },
+      { res: 'db:rent_records', file: 'app/src/modules/properties/cloud.js', token: "from('rent_records').insert" },
+    ],
+    reads: [
+      { res: 'db:rent_payee', file: 'app/src/modules/properties/cloud.js', token: "rpc('rent_payee_for_tenancy'" },
+    ],
+    seeds: ['record-clock'],
+  }),
+  app('app/src/modules/properties/model.js', {
+    id: 'record-clock', name: 'Every change, to the instant (record events)', purpose: 'Each report, confirmation, status move and assignment on rent and work leaves an append-only event with its own clock, read back on the door\u2019s history so a situation can be recreated.',
+    reads: [
+      { res: 'db:rent_records', file: 'app/src/modules/properties/cloud.js', token: "from('rent_records')" },
+      { res: 'db:record_events', file: 'app/src/modules/properties/cloud.js', token: "from('record_events')" },
+    ],
+    writes: [
+      { res: 'db:record_events', file: 'infra/supabase/migrations-auto/0262-rent-is-reported-the-way-it-is-paid-and-every-change-keeps-its-time.sql', token: 'INSERT INTO record_events' },
+    ],
+  }),
   wf('push-outbox-drain.yml', {
     id: 'push-outbox-drain', name: 'Office push drain', purpose: 'Delivers each new door fault to the office’s phones.',
     reads: [{ res: 'db:push_outbox', file: 'scripts/push-outbox-drain-over-tailnet.sh', token: 'push_outbox' }],

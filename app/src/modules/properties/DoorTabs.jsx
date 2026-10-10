@@ -87,7 +87,7 @@ const KIND_WORDS = {
   'move-in': 'Moved in', 'move-out': 'Moved out', photo: 'Photo', document: 'Document',
   note: 'Note', 'property-note': 'Landlord note', message: 'Message', rent: 'Rent',
   'work-order': 'Work order', 'work-order-closed': 'Work order closed', 'job-doc': 'Job documented',
-  notice: 'Notice', system: 'Mechanical',
+  notice: 'Notice', system: 'Mechanical', change: 'Change',
 };
 
 function EventRow({ e }) {

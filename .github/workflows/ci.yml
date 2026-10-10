@@ -941,8 +941,14 @@ jobs:
   # sees which door and files a report that lands on it as 'guest' with no
   # account, reads nothing back, is told to call after five in an hour, and a
   # replaced or closed card stops working; the office push names the door,
-  # never the guest's words. Every check RAISEs. Both smokes also run on the
-  # live database in the rls-isolation poe-properties leg.
+  # never the guest's words. Then 0262 applies twice and the rent smoke proves
+  # (DR-0899): the family writes how it is paid, never an account number; a
+  # tenant reads it for their own door only; a part payment records what was
+  # due, what remains and when; a remainder over what was due is refused; every
+  # report, confirmation and work-order move leaves an event to the instant
+  # with who did it, read where the record is read, edited by nobody. Every
+  # check RAISEs. All three smokes also run on the live database in the
+  # rls-isolation poe-properties leg.
   door-work:
     name: app — door work orders (PostgreSQL)
     runs-on: ubuntu-latest
@@ -976,10 +982,13 @@ jobs:
           done
           for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0260-work-is-filed-on-the-door-not-only-on-a-tenancy.sql; done
           for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0261-a-guest-reports-a-problem-from-inside-the-door.sql; done
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0262-rent-is-reported-the-way-it-is-paid-and-every-change-keeps-its-time.sql; done
           psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0260-door-work-orders-smoke.sql 2>&1 | tee "$RUNNER_TEMP/smoke.txt"
           grep -q 'DOOR WORK SMOKE: PASS' "$RUNNER_TEMP/smoke.txt"
           psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0261-guest-report-smoke.sql 2>&1 | tee "$RUNNER_TEMP/guest.txt"
           grep -q 'GUEST REPORT SMOKE: PASS' "$RUNNER_TEMP/guest.txt"
+          psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0262-rent-and-clock-smoke.sql 2>&1 | tee "$RUNNER_TEMP/rent.txt"
+          grep -q 'RENT AND CLOCK SMOKE: PASS' "$RUNNER_TEMP/rent.txt"
 
   # THE REQUIRED CHECK (DR-0645). Branch protection and native auto-merge wait
   # on a check named EXACTLY "app — lint + vitest". Do NOT rename this job.

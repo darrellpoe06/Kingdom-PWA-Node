@@ -34,3 +34,14 @@
 1. Documents with digital signing, where signed copies file themselves to their tenancy, plus paper uploads as tenant records.
 2. A listing link to share on social media that opens the app with the unit's pictures.
 3. A "landlord who wants their own app" path on the door, offering Poe Properties alone or the full PoeTech app.
+
+## Then: rent the way it is paid, and the clock (DR-0899, 0262)
+
+**What Darrell asked**, in three messages: hand the tenant off to Cash App, Zelle, cash or a Chase deposit; record full or part payments with what remains and when; date and time on everything, so a situation can be recreated.
+
+**What was built.**
+- **How the landlord is paid.** The `rent_payee` table holds the landlord's own words, never an account number.
+- **"I'm paying".** The record is written first: what was due, what remains, the promise, a note and the device clock. Then Cash App or Venmo opens with the amount, or the landlord's words are shown.
+- **`record_events`.** An append-only, to-the-instant log of every rent and work-order change, with who made it. It is read where the record is read and edited by nobody.
+
+**Proof.** The smoke has seven breaks proven to catch, and one replay gap was found and fixed. There are 8 app tests, including the record-before-hand-off order.
