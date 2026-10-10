@@ -1038,21 +1038,16 @@ function EditRental({ rental, onSave, busy }) {
         <label className="sm:col-span-2"><span className={lbl}>Address</span>
           <input type="text" className={field} value={f.address} onChange={set('address')} />
         </label>
-        {/* WHO MAY SEE THE STREET (0158). Measured 2026-08-28: the public
-            listing had been publishing display_name — which IS the address on
-            all twelve doors — under a sentence promising it was not. This is
-            the control, per door, so it is never my decision again. */}
-        <label className="sm:col-span-2"><span className={lbl}>Address on the public shelf</span>
-          <select className={field} value={f.address_visibility} onChange={set('address_visibility')}>
-            <option value="after-application">Shared when someone applies</option>
-            <option value="public">Shown to anyone browsing</option>
-          </select>
-          <span className="block text-[0.75rem] text-[#6B665E] mt-1 leading-snug">
-            {f.address_visibility === 'public'
-              ? 'The street shows on the open shelf, to anyone, with no account.'
-              : 'Browsers see the size, kind, town and rent \u2014 the street is handed over when they apply.'}
+        {/* WHO MAY SEE THE STREET (0158, then DR-0910). Darrell 2026-10-10:
+            "Just show the location without the address... map view". The
+            street is never on the open shelf now; the database answers that
+            for every door, so this says it rather than offering a switch
+            that would do nothing. */}
+        <div className="sm:col-span-2"><span className={lbl}>Address on the public shelf</span>
+          <span className="block text-[0.75rem] text-[#6B665E] mt-1 leading-snug" data-testid="address-rule">
+            Never shown to strangers. Browsers see the size, kind, town and rent, and the area on a map; the street is handed over when someone applies or books.
           </span>
-        </label>
+        </div>
         <label><span className={lbl}>Unit</span>
           <input type="text" className={field} value={f.unit} onChange={set('unit')} placeholder="e.g. Apt 2" />
         </label>

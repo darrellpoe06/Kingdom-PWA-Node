@@ -1053,6 +1053,15 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
               onPatch={async (id, patch) => { const r = await patchSystem(id, patch); say(r.ok ? 'Saved.' : `Not saved: ${r.reason}`); loadDoorData(); }}
               onEvent={async (row) => { const r = await addSystemEvent(row); say(r.ok ? 'Recorded.' : `Not saved: ${r.reason}`); loadDoorData(); }}
               onSeed={async (rows) => { for (const row of rows) await addSystem(row); say(`Added ${rows.length}.`); loadDoorData(); }}
+              photos={doorData.photos}
+              doorLabel={activeRental?.display_name || activeRental?.address || activeDoor?.property_label || ''}
+              loadImage={async (id) => { const r = await loadPhotoImages([id]); return r.ok ? r.images[id] || null : null; }}
+              onAddPictures={async (rows) => {
+                let bad = null;
+                for (const row of rows) { const r = await addPhoto(row); if (!r.ok) { bad = r; break; } }
+                loadDoorData();
+                return bad || { ok: true };
+              }}
             />
           );
           case 'rooms': return (

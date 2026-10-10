@@ -998,7 +998,7 @@ jobs:
             psql -v ON_ERROR_STOP=1 -q --single-transaction -f "infra/supabase/$f"
           done
           psql -v ON_ERROR_STOP=1 -q -f scripts/door-work-ci-rentals-shape.sql
-          for f in 0055-relationship-permissions.sql 0062-per-unit-management.sql 0075-delegated-property-management.sql 0150-poe-properties-app-invite-claim-and-household.sql 0152-vacancies-and-no-account-applications.sql 0153-property-timeline-photos.sql 0154-photo-captions-editable-and-archivable.sql 0155-what-a-door-is-offered-as.sql; do
+          for f in 0055-relationship-permissions.sql 0062-per-unit-management.sql 0075-delegated-property-management.sql 0150-poe-properties-app-invite-claim-and-household.sql 0152-vacancies-and-no-account-applications.sql 0153-property-timeline-photos.sql 0154-photo-captions-editable-and-archivable.sql 0155-what-a-door-is-offered-as.sql 0156-our-own-home-is-not-a-rental-door.sql 0185-a-picture-list-never-carries-the-bytes-and-a-worker-can-file-to-a-vacant-door.sql; do
             psql -v ON_ERROR_STOP=1 -q --single-transaction -f "infra/supabase/migrations-auto/$f"
           done
           for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0260-work-is-filed-on-the-door-not-only-on-a-tenancy.sql; done
@@ -1008,6 +1008,7 @@ jobs:
           for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0264-a-job-can-require-proof-before-it-is-done-and-paid.sql; done
           for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0265-the-door-keeps-its-money-with-or-without-a-tenant.sql; done
           for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0266-a-door-camera-is-asked-for-and-given-to-whoever-the-family-chooses.sql; done
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0267-a-system-keeps-its-pictures.sql; done
           psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0260-door-work-orders-smoke.sql 2>&1 | tee "$RUNNER_TEMP/smoke.txt"
           grep -q 'DOOR WORK SMOKE: PASS' "$RUNNER_TEMP/smoke.txt"
           psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0261-guest-report-smoke.sql 2>&1 | tee "$RUNNER_TEMP/guest.txt"
@@ -1022,6 +1023,8 @@ jobs:
           grep -q 'DOOR MONEY SMOKE: PASS' "$RUNNER_TEMP/money.txt"
           psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0266-door-camera-access-smoke.sql 2>&1 | tee "$RUNNER_TEMP/cams.txt"
           grep -q 'DOOR CAMERA ACCESS SMOKE: PASS' "$RUNNER_TEMP/cams.txt"
+          psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0267-system-pictures-smoke.sql 2>&1 | tee "$RUNNER_TEMP/syspics.txt"
+          grep -q 'SYSTEM PICTURES SMOKE: PASS' "$RUNNER_TEMP/syspics.txt"
 
   # THE REQUIRED CHECK (DR-0645). Branch protection and native auto-merge wait
   # on a check named EXACTLY "app — lint + vitest". Do NOT rename this job.

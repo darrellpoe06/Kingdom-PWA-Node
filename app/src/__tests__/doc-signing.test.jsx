@@ -98,7 +98,9 @@ describe('the tenant\'s papers', () => {
     await check('I agree to sign electronically');
     await type('Your full legal name', 'Ana Maria Tenant');
     await click(/^Sign as tenant$/);
-    expect(H.signed).toHaveLength(1);
+    // Signing first fingerprints the text (crypto.subtle, async): wait for the
+    // signature itself, never a fixed number of ticks (CI shard 2, dd4bf8ae5).
+    await act(async () => { await vi.waitFor(() => expect(H.signed).toHaveLength(1), { timeout: 5000 }); });
     expect(H.signed[0]).toMatchObject({
       documentId: 'd1', role: 'tenant', signature: 'Ana Maria Tenant',
       version: '63134db4f89ebe9ea2d1b0806e895588f1eb4562b8508884d4a13ac3a7ff27bf',

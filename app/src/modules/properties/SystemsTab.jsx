@@ -19,6 +19,7 @@
 // point: "like all our properties."
 // =============================================================================
 import React, { useMemo, useState } from 'react';
+import SystemPictures from './SystemPictures.jsx';
 import {
   systemBoard, buildSystem, buildSystemEvent, retireSystem, defaultsFor,
   inferSystemKind, sortEvents, SYSTEM_KINDS, EVENT_KINDS, KIND_LABEL, EVENT_LABEL,
@@ -81,6 +82,9 @@ const today = () => new Date().toISOString().slice(0, 10);
 export function SystemsTab({
   door, systems = [], events = [], rooms = [], canManage = false, busy = false,
   propertyType = 'house', onAdd, onPatch, onEvent, onSeed,
+  // Pictures of each system (DR-0909): the door's photos, the full-image
+  // loader, the door's name for the viewer's stamp, and how to file new ones.
+  photos = [], loadImage = null, doorLabel = '', onAddPictures = null,
 }) {
   const [adding, setAdding] = useState(false);
   const [openFor, setOpenFor] = useState(null);   // which system's history is expanded
@@ -212,6 +216,10 @@ export function SystemsTab({
                 {openFor === r.system.id && (
                   <div className="mt-2 pl-2 border-l-2" style={{ borderColor: ACCENT }}>
                     <Detail system={r.system} rooms={rooms} />
+                    <SystemPictures
+                      door={door} system={r.system} events={sortEvents(r.events)} photos={photos}
+                      canAdd={canManage} busy={busy} onAdd={onAddPictures} loadImage={loadImage} doorLabel={doorLabel}
+                    />
                     {r.events.length === 0 ? (
                       <p className="text-[0.8125rem] text-[#6B665E] leading-relaxed">
                         Nothing has been recorded against this one yet.

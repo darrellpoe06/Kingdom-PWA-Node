@@ -515,6 +515,8 @@ export const PHOTO_LIST_COLUMNS = [
   'id', 'instance_id', 'rental_ref', 'tenancy_id', 'room_id', 'request_id',
   'kind', 'caption', 'thumb_path', 'taken_at', 'uploaded_at', 'uploaded_by',
   'author_label', 'archived_at', 'archived_by', 'sort_order',
+  // DR-0909 (0267): which system, and which service visit, a picture shows.
+  'system_id', 'system_event_id',
 ].join(', ');
 
 /** The most full images one call may carry. A door's gallery opens one at a time. */

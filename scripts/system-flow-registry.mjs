@@ -1082,6 +1082,29 @@ const NODES = [
     ],
     seeds: ['record-clock'],
   }),
+  // A door's pictures (0153/0185) and the pictures of its systems (DR-0909,
+  // 0267): one store, property_photos; the door's gallery and each system's
+  // pictures read what the other files.
+  app('app/src/modules/properties/DoorTabs.jsx', {
+    id: 'door-pictures', name: "A door's pictures", purpose: 'Listing, condition, turn and damage pictures of a door, with thumbnails, captions and the arranged order; sharp tiles and the branded viewer.',
+    writes: [
+      { res: 'db:property_photos', file: 'app/src/modules/properties/cloud.js', token: "from('property_photos')" },
+    ],
+    reads: [
+      { res: 'db:property_photos', file: 'app/src/modules/properties/cloud.js', token: "from('property_photos')" },
+    ],
+    seeds: ['system-pictures'],
+  }),
+  app('app/src/modules/properties/SystemPictures.jsx', {
+    id: 'system-pictures', name: 'A system keeps its pictures', purpose: 'The data plate, the flue, the new unit, the before and after of a service visit: filed on the system and the visit, shown on the system in the Systems tab.',
+    writes: [
+      { res: 'db:property_photos', file: 'app/src/modules/properties/SystemPictures.jsx', token: "system_id: system.id" },
+    ],
+    reads: [
+      { res: 'db:property_photos', file: 'app/src/modules/properties/SystemPictures.jsx', token: 'p.system_id === systemId' },
+    ],
+    seeds: ['door-pictures'],
+  }),
   app('app/src/modules/properties/model.js', {
     id: 'record-clock', name: 'Every change, to the instant (record events)', purpose: 'Each report, confirmation, status move and assignment on rent and work leaves an append-only event with its own clock, read back on the door\u2019s history so a situation can be recreated.',
     reads: [

@@ -28,7 +28,8 @@
 -- asserting 0152's `label = 'Maple Street'` against 0158's function. Now it
 -- proves BOTH sides of the switch:
 --   default: display name and unit WITHHELD, the placeable label shown        ✔
---   after he says 'public': display name and unit SHOWN                        ✔
+--   after he says 'public': STILL withheld — DR-0910 (0268), "just show the
+--     location without the address": the street never reaches a stranger   ✔
 --   unlisted / occupied doors stay out even when marked public               ✔
 -- Everything runs in a transaction and ROLLS BACK.
 -- =============================================================================
@@ -133,16 +134,16 @@ BEGIN
     $q$SELECT count(*) FROM public_vacancies() WHERE address_shown = false AND unit IS NULL$q$,
     'the gated door says it is gated and carries no unit', 1);
 
-  -- WHEN HE SAYS SO: the landlord marks all three doors public. Only the listed,
-  -- free one is offered — visibility never overrides listing or occupancy — and
-  -- it now carries its display name and unit.
+  -- EVEN WHEN A DOOR IS MARKED PUBLIC (DR-0910, 0268): only the listed, free
+  -- one is offered — visibility never overrides listing or occupancy — and it
+  -- STILL carries no street and no unit: the shelf shows where, never the street.
   UPDATE rentals SET address_visibility = 'public'
    WHERE slug IN ('VAC-LISTED', 'VAC-UNLISTED', 'VAC-TAKEN');
   PERFORM pg_temp.as_anon_count(
     'SELECT count(*) FROM public_vacancies()', 'marking doors public offers no extra door', 1);
   PERFORM pg_temp.as_anon_count(
-    $q$SELECT count(*) FROM public_vacancies() WHERE label = 'Maple Street' AND unit = 'Unit 2' AND address_shown = true$q$,
-    'the listed unit shows its display name and unit once public', 1);
+    $q$SELECT count(*) FROM public_vacancies() v WHERE v.address_shown = false AND v.unit IS NULL AND v::text NOT LIKE '%Maple Street%'$q$,
+    'a door marked public still shows no street and no unit (DR-0910)', 1);
   PERFORM pg_temp.as_anon_count(
     $q$SELECT count(*) FROM public_vacancies() v WHERE v::text LIKE '%Hidden House%' OR v::text LIKE '%Private Rd%'$q$,
     'an UNLISTED unit is never advertised, even marked public', 0);

@@ -57,6 +57,19 @@ export const PROPERTIES_SHARE_URL = 'https://poetech.us/properties/app/';
 const { brand } = POE_PROPERTIES;
 const serif = { fontFamily: '"Fraunces", Georgia, serif' };
 
+/**
+ * What the page may truthfully say about addresses, from what it lists:
+ * every card holding its street -> shared when you apply; any card showing
+ * its street -> say so, never the opposite.
+ */
+export function addressPromise(vacancies = []) {
+  const list = Array.isArray(vacancies) ? vacancies : [];
+  const shown = list.filter((v) => v && (v.address_shown === undefined || v.address_shown === true)).length;
+  if (shown === 0) return 'The exact address is given by a person, not published here.';
+  if (shown === list.length) return 'The owner has chosen to show these addresses.';
+  return 'Some places show their address by the owner\u2019s choice; the rest share it when you apply.';
+}
+
 export default function PropertiesDoor() {
   const [session, setSession] = useState(undefined); // undefined = still checking
 
@@ -413,8 +426,12 @@ function SignedOutDoor({ left = false, onReturn } = {}) {
             ))}
           </ul>
         )}
-        <p className="text-xs text-[#5A5751] mt-3 mb-2" style={serif}>
-          The exact address is given by a person, not published here.
+        {/* The page's own sentence follows the doors it lists (0158 / DR-0909
+            addendum, Darrell 2026-10-10: "the address shows while it says it
+            will not show... fix it"). It used to promise "not published here"
+            unconditionally while a door set to show its street showed it. */}
+        <p className="text-xs text-[#5A5751] mt-3 mb-2" style={serif} data-testid="address-promise">
+          {addressPromise(vacancies || [])}
         </p>
         <BeforeYouApply />
         <ApplyForm vacancies={vacancies || []} preselect={scan.matched ? scan.unit.id : ''} />
