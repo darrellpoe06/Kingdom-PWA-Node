@@ -947,8 +947,13 @@ jobs:
   # due, what remains and when; a remainder over what was due is refused; every
   # report, confirmation and work-order move leaves an event to the instant
   # with who did it, read where the record is read, edited by nobody. Every
-  # check RAISEs. All three smokes also run on the live database in the
-  # rls-isolation poe-properties leg.
+  # check RAISEs. Then 0263 applies twice and the signing smoke proves
+  # (DR-0901): an insert never arrives signed; only the family sends for
+  # signature, and a generated draft only with counsel's review recorded;
+  # only the right person signs, only the exact fingerprinted version, once;
+  # nobody writes the sign state directly; signatures are read where the
+  # document is read and edited by nobody; everything is on the clock. All
+  # four smokes also run on the live database in the rls-isolation leg.
   door-work:
     name: app — door work orders (PostgreSQL)
     runs-on: ubuntu-latest
@@ -977,18 +982,22 @@ jobs:
           for f in schema-v1.sql schema-v1.1-tenant-join.sql schema-v2.1-infra.sql schema-v2.2-rentals.sql schema-v2.2.1-rentals-amendments.sql schema-v2.2.2-rentals-sync-amendments.sql; do
             psql -v ON_ERROR_STOP=1 -q --single-transaction -f "infra/supabase/$f"
           done
-          for f in 0055-relationship-permissions.sql 0062-per-unit-management.sql 0075-delegated-property-management.sql 0150-poe-properties-app-invite-claim-and-household.sql; do
+          psql -v ON_ERROR_STOP=1 -q -f scripts/door-work-ci-rentals-shape.sql
+          for f in 0055-relationship-permissions.sql 0062-per-unit-management.sql 0075-delegated-property-management.sql 0150-poe-properties-app-invite-claim-and-household.sql 0152-vacancies-and-no-account-applications.sql 0153-property-timeline-photos.sql 0154-photo-captions-editable-and-archivable.sql; do
             psql -v ON_ERROR_STOP=1 -q --single-transaction -f "infra/supabase/migrations-auto/$f"
           done
           for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0260-work-is-filed-on-the-door-not-only-on-a-tenancy.sql; done
           for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0261-a-guest-reports-a-problem-from-inside-the-door.sql; done
           for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0262-rent-is-reported-the-way-it-is-paid-and-every-change-keeps-its-time.sql; done
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0263-a-document-is-signed-in-the-app-and-filed-where-it-belongs.sql; done
           psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0260-door-work-orders-smoke.sql 2>&1 | tee "$RUNNER_TEMP/smoke.txt"
           grep -q 'DOOR WORK SMOKE: PASS' "$RUNNER_TEMP/smoke.txt"
           psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0261-guest-report-smoke.sql 2>&1 | tee "$RUNNER_TEMP/guest.txt"
           grep -q 'GUEST REPORT SMOKE: PASS' "$RUNNER_TEMP/guest.txt"
           psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0262-rent-and-clock-smoke.sql 2>&1 | tee "$RUNNER_TEMP/rent.txt"
           grep -q 'RENT AND CLOCK SMOKE: PASS' "$RUNNER_TEMP/rent.txt"
+          psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0263-document-signing-smoke.sql 2>&1 | tee "$RUNNER_TEMP/sign.txt"
+          grep -q 'DOCUMENT SIGNING SMOKE: PASS' "$RUNNER_TEMP/sign.txt"
 
   # THE REQUIRED CHECK (DR-0645). Branch protection and native auto-merge wait
   # on a check named EXACTLY "app — lint + vitest". Do NOT rename this job.

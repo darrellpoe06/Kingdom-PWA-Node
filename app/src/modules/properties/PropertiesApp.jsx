@@ -39,6 +39,9 @@ import { TimelineTab, RoomsTab, DoorsBoard, GalleryTab, FilesTab } from './DoorT
 import { SystemsTab } from './SystemsTab.jsx';
 import { GuestLinkCard } from './GuestReport.jsx';
 import { PayRent, PayeeCard } from './RentPay.jsx';
+import { PapersPanel } from './DocSigning.jsx';
+import { compressImageFile, isLikelyImageFile } from '../../lib/image.js';
+import { textDataUrl, kindForGenerated } from './doc-signing.js';
 import { rentLine } from './rent-pay.js';
 import { ReadinessTab } from './ReadinessTab.jsx';
 import { readinessBoardSlug } from './readiness.js';
@@ -503,8 +506,30 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
       title: built.title || form.title, detail: built.detail || form.detail || null,
       area: form.area || null, priority: built.priority || 'normal', status: 'submitted',
     });
-    say(res.ok ? 'Work order filed.' : `Could not file it: ${res.reason}`);
+    // A picture filed with the report rides as the job's first documentation.
+    if (res.ok && form.picture && res.row && res.row.id) await attachPicture(res.row.id, form.picture, '');
+    say(res.ok ? `Work order filed${form.picture ? ' with its picture' : ''}.` : `Could not file it: ${res.reason}`);
     refresh();
+  };
+
+  // A PICTURE ON A JOB (Darrell, 2026-10-10: "Make sure tenants can upload
+  // receipts etc to share with us... pictures for documentation... For
+  // workorders"). Anyone who can document the job — the tenant on their own
+  // request, the worker on a door he was granted, the family — adds a picture
+  // with a line about it. It is a request_documentation row with no outcome
+  // (0075 allows the tenant's insert; 0260 takes its scope from the request),
+  // shrunk on the phone before it is sent, stamped by the server.
+  const attachPicture = async (requestId, file, note) => {
+    if (!workDoor || !requestId || !file) return { ok: false, reason: 'nothing to attach' };
+    if (!isLikelyImageFile(file)) { say('That is not a picture. Use a photo, or file a document under Documents.'); return { ok: false }; }
+    let image;
+    try { image = await compressImageFile(file); } catch { say('That picture could not be read.'); return { ok: false }; }
+    const res = await postJobDoc({
+      instance_id: workDoor.instanceId, request_id: requestId, tenancy_id: workDoor.tenancyId, rental_id: workDoor.rentalId,
+      outcome: null, followup: null, note: String(note || '').trim() || null, image_data: image,
+    });
+    if (!res.ok) say(`Picture not saved: ${res.reason}`);
+    return res;
   };
 
   // THE DISPATCH IS A RECORD (DR-0837). Tapping Text it opens the messaging
@@ -862,6 +887,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
             />
           );
           case 'files': return (
+            <>
             <FilesTab
               door={{ id: rentalId, instance_id: activeRental?.instance_id || activeDoor?.instance_id }}
               tenancies={doorData.tenancies} documents={doorData.documents} busy={Boolean(busy)}
@@ -869,6 +895,14 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
               onAdd={async (row) => { const r = await addDocument(row); say(r.ok ? 'Saved.' : `Not saved: ${r.reason}`); loadDoorData(); }}
               onPatch={async (id, patch) => { const r = await patchDocument(id, patch); say(r.ok ? 'Saved.' : `Not saved: ${r.reason}`); loadDoorData(); }}
             />
+            {/* Send a paper for signature, countersign it, and see every
+                signature with its time (DR-0901). Tenants' own uploads carry
+                only their tenancy, so the door's tenancies are read too. */}
+            {(role === 'owner' || role === 'manager') && (
+              <PapersPanel seat="landlord" rentalId={rentalId} tenancyIds={(doorData.tenancies || []).map((t) => t.id)}
+                instanceId={activeRental?.instance_id || activeDoor?.instance_id || null} />
+            )}
+            </>
           );
           case 'systems': return (
             <SystemsTab
@@ -939,6 +973,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
                   refresh();
                 }}
                 onDocument={documentJob}
+                onPicture={async (id, file, note) => { const r = await attachPicture(id, file, note); if (r.ok) { say('Picture added to the job.'); refresh(); } }}
               />
               {/* The guest card (DR-0898): the family opens it per door, so a
                   guest in a short stay can report a problem with no account. */}
@@ -987,7 +1022,9 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
               </Card>
             );
           case 'documents':
-            return <DocumentsTab door={activeDoor} tenancy={activeDoor} />;
+            return <DocumentsTab door={activeDoor} tenancy={activeDoor} rentalId={rentalId} onFiled={(m) => { say(m); loadDoorData(); }} />;
+          case 'papers':
+            return <PapersPanel seat="tenant" tenancyId={activeDoor?.id || null} instanceId={activeDoor?.instance_id || null} />;
           case 'plan':
             return <PlanTab />;
           case 'cameras':
@@ -1206,10 +1243,11 @@ function DoorsTab({ doors, onPick, staged, onConfirmDraft }) {
   );
 }
 
-function WorkTab({ door, requests, open, docs, role, canFile, canManage, onFile, onStatus, onAssign, onDocument, workers = [], mine = null }) {
+function WorkTab({ door, requests, open, docs, role, canFile, canManage, onFile, onStatus, onAssign, onDocument, onPicture, workers = [], mine = null }) {
   const [title, setTitle] = useState('');
   const [detail, setDetail] = useState('');
   const [priority, setPriority] = useState('normal');
+  const [picture, setPicture] = useState(null);
   const docsFor = (id) => (docs || []).filter((d) => d.request_id === id);
   // A worker sees THEIR jobs on this door (assigned by user id or by the name
   // they were invited under), and is told how many others exist unassigned.
@@ -1228,8 +1266,13 @@ function WorkTab({ door, requests, open, docs, role, canFile, canManage, onFile,
               className="text-xs border border-[#E8E4DC] px-2 py-1 bg-white" style={serif}>
               {PRIORITY.map((p) => <option key={p} value={p}>{p}</option>)}
             </select>
+            <label className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#E8E4DC] bg-white text-[#1A1815] cursor-pointer inline-flex items-center">
+              {picture ? `Picture: ${picture.name}` : 'Add a picture'}
+              <input type="file" accept="image/*" capture="environment" className="sr-only" aria-label="Add a picture to this report"
+                onChange={(e) => setPicture((e.target.files && e.target.files[0]) || null)} />
+            </label>
             <Btn tone="primary" disabled={!title.trim() || !door}
-              onClick={() => { onFile({ title, detail, priority }); setTitle(''); setDetail(''); setPriority('normal'); }}>
+              onClick={() => { onFile({ title, detail, priority, picture }); setTitle(''); setDetail(''); setPriority('normal'); setPicture(null); }}>
               File it
             </Btn>
           </div>
@@ -1246,10 +1289,23 @@ function WorkTab({ door, requests, open, docs, role, canFile, canManage, onFile,
             {r.detail && <div className="text-xs text-[#5A5751]" style={serif}>{r.detail}</div>}
             <div className="text-[0.625rem] text-[#8A867E]">{when(r.created_at)}{r.assigned_to_label ? ` · assigned to ${r.assigned_to_label}` : ''}</div>
             {docsFor(r.id).map((d) => (
-              <div key={d.id} className="text-xs text-[#5A5751] pl-2 border-l-2 border-[#E8E4DC] mt-1" style={serif}>
-                {d.outcome === 'fixed' ? 'Fixed' : `Not fixed — ${FOLLOWUP_LABELS[d.followup] || 'follow-up'}`}{d.note ? `: ${d.note}` : ''}
+              <div key={d.id} className="text-xs text-[#5A5751] pl-2 border-l-2 border-[#E8E4DC] mt-1" style={serif} data-testid="job-doc">
+                {d.outcome === 'fixed' ? 'Fixed' : d.outcome === 'not_fixed' ? `Not fixed — ${FOLLOWUP_LABELS[d.followup] || 'follow-up'}` : 'Picture'}{d.note ? `: ${d.note}` : ''}
+                {d.created_at ? ` · ${when(d.created_at)}` : ''}
+                {d.image_data && (
+                  <a href={d.image_data} target="_blank" rel="noopener noreferrer" className="block mt-1">
+                    <img src={d.image_data} alt={d.note || `Picture on ${r.title}`} className="max-h-32 border border-[#E8E4DC]" loading="lazy" />
+                  </a>
+                )}
               </div>
             ))}
+            {onPicture && (
+              <label className="inline-flex mt-1 text-[0.625rem] uppercase tracking-wider px-2 py-1 border border-[#E8E4DC] bg-white text-[#1A1815] cursor-pointer">
+                Add a picture to this job
+                <input type="file" accept="image/*" capture="environment" className="sr-only" aria-label={`Add a picture to ${r.title}`}
+                  onChange={(e) => { const f = e.target.files && e.target.files[0]; if (f) onPicture(r.id, f, ''); e.target.value = ''; }} />
+              </label>
+            )}
             {canManage && (
               <div className="flex flex-wrap gap-1 mt-2">
                 {(MAINTENANCE_TRANSITIONS[r.status] || []).map((next) => (
@@ -1587,8 +1643,20 @@ function PlanTab() {
  * as a named blank, a regulated document says which law governs it, and every
  * draft leads with the counsel-review line until an attorney signs it off.
  */
-function DocumentsTab({ door, tenancy }) {
+function DocumentsTab({ door, tenancy, rentalId = null, onFiled }) {
   const [openId, setOpenId] = useState(null);
+  // FILE THE DRAFT WHERE IT BELONGS (DR-0901). The draft becomes a paper in
+  // this tenancy's Files, marked as app-generated, so it can be sent for
+  // signature there; the counsel rule rides with it (0263 refuses to send a
+  // generated draft without the family's record that counsel reviewed it).
+  const fileDraft = async (doc) => {
+    if (!tenancy) return;
+    const r = await addDocument({
+      instance_id: tenancy.instance_id, tenancy_id: tenancy.id, rental_ref: rentalId || null,
+      kind: kindForGenerated(doc.id), title: doc.title, storage_path: textDataUrl(doc.lines), mime_type: 'text/plain', source: 'generated',
+    });
+    onFiled?.(r.ok ? `Filed to this tenancy's papers ${new Date().toLocaleString()}. Send it for signature under Files.` : `Not filed: ${r.reason}`);
+  };
   const records = { door, tenancy };
   const list = availableDocuments(records);
   const open = openId ? buildDocument(openId, records) : null;
@@ -1618,6 +1686,7 @@ function DocumentsTab({ door, tenancy }) {
       {open && open.ok && (
         <Card title={open.title}>
           <pre className="text-xs whitespace-pre-wrap text-[#1A1815]" style={serif}>{open.lines.join('\n')}</pre>
+          {tenancy && <div className="mt-2"><Btn tone="primary" onClick={() => fileDraft(open)}>File this draft to the tenancy</Btn></div>}
         </Card>
       )}
       {open && !open.ok && (

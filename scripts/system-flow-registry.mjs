@@ -1063,6 +1063,22 @@ const NODES = [
       { res: 'db:record_events', file: 'infra/supabase/migrations-auto/0262-rent-is-reported-the-way-it-is-paid-and-every-change-keeps-its-time.sql', token: 'INSERT INTO record_events' },
     ],
   }),
+  // Papers signed in the app (DR-0901): the family files and sends; the
+  // tenant files their own papers and receipts and signs; every signature is
+  // a row with the fingerprint signed, and every step is on record_events.
+  app('app/src/modules/properties/DocSigning.jsx', {
+    id: 'doc-signing', name: 'Papers and signatures (Poe Properties)', purpose: 'A lease or any paper is sent for signature, signed by the tenant and the landlord against the exact bytes shown, and stays filed in its tenancy; tenants file receipts and pictures of their own.',
+    writes: [
+      { res: 'db:property_documents', file: 'app/src/modules/properties/cloud.js', token: "from('property_documents')\n      .insert" },
+      { res: 'db:property_document_signatures', file: 'infra/supabase/migrations-auto/0263-a-document-is-signed-in-the-app-and-filed-where-it-belongs.sql', token: 'INSERT INTO property_document_signatures' },
+      { res: 'db:record_events', file: 'infra/supabase/migrations-auto/0263-a-document-is-signed-in-the-app-and-filed-where-it-belongs.sql', token: "'document', d.id, 'signed'" },
+    ],
+    reads: [
+      { res: 'db:property_documents', file: 'app/src/modules/properties/cloud.js', token: "client.from('property_documents').select('*').is('archived_at', null)" },
+      { res: 'db:property_document_signatures', file: 'app/src/modules/properties/cloud.js', token: "from('property_document_signatures')" },
+    ],
+    seeds: ['record-clock'],
+  }),
   wf('push-outbox-drain.yml', {
     id: 'push-outbox-drain', name: 'Office push drain', purpose: 'Delivers each new door fault to the office’s phones.',
     reads: [{ res: 'db:push_outbox', file: 'scripts/push-outbox-drain-over-tailnet.sh', token: 'push_outbox' }],

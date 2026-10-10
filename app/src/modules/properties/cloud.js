@@ -889,3 +889,58 @@ export async function submitGuestReport({ token, title, detail, name, contact, u
     return error ? no(error.message || 'write-failed', error) : ok();
   } catch (e) { return no('unexpected', e); }
 }
+
+// ---------------------------------------------------------------------------
+// SIGNING (DR-0901, 0263). Documents are filed where they belong (a door, or a
+// tenancy's papers); the family asks for signatures; each signer signs the
+// fingerprint of the exact bytes their screen showed. Every wall is in the
+// database; these are thin, never-throwing calls.
+// ---------------------------------------------------------------------------
+
+/**
+ * Every live paper on a door: the door's own and every tenancy's on it (a
+ * tenant's upload carries only its tenancy). RLS decides what this seat reads.
+ */
+export async function loadDoorPapers({ rentalId = null, tenancyIds = [] } = {}, client = supabase) {
+  const ids = (tenancyIds || []).filter(Boolean);
+  if (!rentalId && !ids.length) return ok({ documents: [] });
+  try {
+    let q = client.from('property_documents').select('*').is('archived_at', null);
+    if (rentalId && ids.length) q = q.or(`rental_ref.eq.${rentalId},tenancy_id.in.(${ids.join(',')})`);
+    else if (rentalId) q = q.eq('rental_ref', rentalId);
+    else q = q.in('tenancy_id', ids);
+    const { data, error } = await q.order('uploaded_at', { ascending: false });
+    return error ? no('read-failed', error) : ok({ documents: data || [] });
+  } catch (e) { return no('unexpected', e); }
+}
+
+/** The signatures on these documents, oldest first. */
+export async function loadSignatures(documentIds = [], client = supabase) {
+  const ids = [...new Set((documentIds || []).filter(Boolean))];
+  if (!ids.length) return ok({ signatures: [] });
+  try {
+    const { data, error } = await client.from('property_document_signatures').select('*').in('document_id', ids).order('signed_at', { ascending: true });
+    return error ? no('read-failed', error) : ok({ signatures: data || [] });
+  } catch (e) { return no('unexpected', e); }
+}
+
+/** Ask for signatures. The database's refusal comes back in its own words. */
+export async function requestSignatures(documentId, signers, counselReviewed = false, client = supabase) {
+  try {
+    const { data, error } = await client.rpc('property_document_request_signatures', {
+      p_doc: documentId, p_signers: signers, p_counsel_reviewed: Boolean(counselReviewed),
+    });
+    return error ? no(error.message || 'write-failed', error) : ok({ version: data });
+  } catch (e) { return no('unexpected', e); }
+}
+
+/** Sign as 'tenant' or 'landlord' with the fingerprint of what was shown. */
+export async function signDocument({ documentId, role, signature, version, attestation, consent, deviceAt }, client = supabase) {
+  try {
+    const { data, error } = await client.rpc('property_document_sign', {
+      p_doc: documentId, p_role: role, p_signature: String(signature || '').trim(), p_doc_version: version,
+      p_attestation: attestation, p_consent: consent, p_device_at: deviceAt || null,
+    });
+    return error ? no(error.message || 'write-failed', error) : ok({ state: data });
+  } catch (e) { return no('unexpected', e); }
+}

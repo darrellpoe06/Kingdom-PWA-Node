@@ -55,7 +55,7 @@ vi.mock('../modules/properties/cloud.js', () => {
     // Rent hand-off and the change clock (DR-0899): nothing set, nothing logged.
     loadRecordEvents: async () => ({ ok: true, events: [] }), loadPayeeForTenancy: async () => ({ ok: true, payee: null }),
     loadRentPayee: async () => ({ ok: true, payee: null }), saveRentPayee: async () => ({ ok: true }),
-    fileWorkOrder: async (row) => { H.filed.push(row); return { ok: true, row }; },
+    fileWorkOrder: async (row) => { H.filed.push(row); return { ok: true, row: { id: 'req-new', ...row } }; },
     setWorkOrderStatus: async (id, status) => { H.statuses.push([id, status]); return { ok: true }; },
     assignWorkOrder: async (id, a) => { H.assigns.push({ id, ...a }); return { ok: true }; },
     postMessage: noop,
@@ -75,6 +75,14 @@ vi.mock('../lib/supabase.js', () => ({
   normalizePhone: (p) => String(p || '').replace(/\D+/g, ''),
 }));
 
+// Phone photos are shrunk on a canvas jsdom does not have; the shrink is its
+// own unit's business, so here it answers with a fixed small JPEG.
+vi.mock('../lib/image.js', () => ({
+  compressImageFile: async () => 'data:image/jpeg;base64,SMALL',
+  isLikelyImageFile: (f) => /^image\//.test((f && f.type) || ''),
+  compressImageToFile: async (f) => f,
+  fileToDataUrl: async () => 'data:image/jpeg;base64,SMALL',
+}));
 import PropertiesApp from '../modules/properties/PropertiesApp.jsx';
 
 let container, root;
@@ -183,5 +191,39 @@ describe('the 1099 worker walking a door he was granted', () => {
     await tap(/^Fixed$/);
     expect(H.jobDocs).toHaveLength(1);
     expect(H.jobDocs[0]).toMatchObject({ request_id: 'req9', rental_id: 'r-apt2', tenancy_id: null, outcome: 'fixed' });
+  });
+});
+
+describe('a picture on a work order (DR-0901: "pictures for documentation... For workorders")', () => {
+  it('a report filed with a picture lands the picture on the new job, as documentation with no outcome', async () => {
+    H.rentals = [APT2]; H.doors = [];
+    await mount();
+    await pickDoor('805 North Prospect Avenue');
+    await tap(/^Work board$/);
+    await typeJob('Water under the sink');
+    const pic = container.querySelector('input[aria-label="Add a picture to this report"]');
+    const file = new File([new Uint8Array([1, 2, 3])], 'sink.jpg', { type: 'image/jpeg' });
+    await act(async () => { Object.defineProperty(pic, 'files', { value: [file] }); pic.dispatchEvent(new Event('change', { bubbles: true })); });
+    expect(text()).toContain('Picture: sink.jpg');
+    await tap(/^File it$/i);
+    for (let i = 0; i < 6; i += 1) await act(async () => { await Promise.resolve(); });
+    expect(H.filed[0]).toMatchObject({ rental_id: 'r-apt2', title: 'Water under the sink' });
+    expect(H.jobDocs).toHaveLength(1);
+    expect(H.jobDocs[0]).toMatchObject({ request_id: 'req-new', rental_id: 'r-apt2', tenancy_id: null, outcome: null, image_data: 'data:image/jpeg;base64,SMALL' });
+    expect(text()).toContain('Work order filed with its picture.');
+  });
+  it('a picture already on a job shows on the board with its time', async () => {
+    H.rentals = [APT2]; H.doors = [];
+    H.record = {
+      requests: [{ id: 'req9', rental_id: 'r-apt2', title: 'Stain on the couch', status: 'submitted', created_at: '2026-10-10T12:00:00Z' }],
+      docs: [{ id: 'doc1', request_id: 'req9', outcome: null, note: 'Left cushion', image_data: 'data:image/jpeg;base64,SEEN', created_at: '2026-10-10T12:03:00Z' }],
+    };
+    await mount();
+    await pickDoor('805 North Prospect Avenue');
+    await tap(/^Work board$/);
+    const doc = container.querySelector('[data-testid="job-doc"]');
+    expect(doc.textContent).toContain('Picture: Left cushion');
+    expect(doc.querySelector('img').getAttribute('src')).toBe('data:image/jpeg;base64,SEEN');
+    expect(container.querySelector('input[aria-label="Add a picture to Stain on the couch"]')).not.toBeNull();
   });
 });
