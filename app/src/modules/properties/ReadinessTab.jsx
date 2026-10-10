@@ -24,7 +24,6 @@ import { buildRoom } from './rooms.js';
 const ACCENT = '#2F5D50';
 const LINE = '#E8E4DC';
 const INK = '#1A1815';
-const MUTED = '#6B665E';
 
 const Btn = ({ children, onClick, tone = 'ghost', disabled, ...rest }) => (
   <button
@@ -41,7 +40,7 @@ const Card = ({ title, children, right }) => (
   <section className="bg-white border border-[#E8E4DC] p-3 sm:p-4 mb-3">
     {(title || right) && (
       <div className="flex items-baseline justify-between gap-3 mb-2">
-        {title && <h3 className="text-[0.625rem] uppercase tracking-[0.25em] font-semibold" style={{ color: ACCENT }}>{title}</h3>}
+        {title && <h3 className="text-[0.625rem] uppercase tracking-[0.25em] font-semibold text-[#2F5D50]">{title}</h3>}
         {right}
       </div>
     )}
@@ -108,8 +107,26 @@ export function ReadinessTab({ boardSlug, boardTitle, rooms = [], door = null, o
     [boardSlug, tasks, rooms],
   );
 
+  // ONE AREA AT A TIME (DR-0877). Darrell, 2026-10-10, over 165 checkboxes in
+  // a single column: "Long scrolling!!!!!!! Fix it so its tabs!!!!!!!! Like
+  // the Ways and documentation state also the DRs" and "Each list as a header
+  // in subtabs".
+  //
+  // Nine areas, 165 to 181 tasks, all stacked — so reaching the Airbnb list
+  // meant scrolling past everything else, and the collapse control was a
+  // nine-tap workaround for a layout that should never have asked. The area
+  // cards above were ALREADY a picker; they just expanded a section further
+  // down instead of switching to it. Now each list is its own subtab with its
+  // own name as the header, and the cards select it.
+  //
+  // `area` is the section id, or null for the old everything-at-once view,
+  // which stays reachable: a landlord doing a final sweep wants one pass.
+  const [area, setArea] = useState(() => board.sections[0]?.id || null);
+  const areaId = board.sections.some((x) => x.id === area) ? area : null;
+  const sectionsShown = areaId ? board.sections.filter((x) => x.id === areaId) : board.sections;
+
   if (!boardSlug) {
-    return <Card title="Ready for guests"><p className="text-[0.875rem]" style={{ color: MUTED }}>Pick a door first — this checklist belongs to one unit.</p></Card>;
+    return <Card title="Ready for guests"><p className="text-[0.875rem] text-[#6B665E]">Pick a door first — this checklist belongs to one unit.</p></Card>;
   }
 
   // ---- writes -------------------------------------------------------------
@@ -197,14 +214,14 @@ export function ReadinessTab({ boardSlug, boardTitle, rooms = [], door = null, o
       {/* ---- the dashboard ------------------------------------------------ */}
       <Card
         title="Ready for guests"
-        right={<span className="text-[0.625rem] uppercase tracking-wider" style={{ color: MUTED }}>{boardTitle}</span>}
+        right={<span className="text-[0.625rem] uppercase tracking-wider text-[#6B665E]">{boardTitle}</span>}
       >
         <div className="flex items-end gap-4 flex-wrap">
           <div>
-            <div className="text-[2.75rem] leading-none font-semibold tabular-nums" style={{ color: tally.pct === 100 ? ACCENT : INK }}>
+            <div className={`text-[2.75rem] leading-none font-semibold tabular-nums ${tally.pct === 100 ? 'text-[#2F5D50]' : 'text-[#1A1815]'}`}>
               {tally.pct}%
             </div>
-            <div className="text-[0.625rem] uppercase tracking-wider mt-1" style={{ color: MUTED }}>Overall completion</div>
+            <div className="text-[0.625rem] uppercase tracking-wider mt-1 text-[#6B665E]">Overall completion</div>
           </div>
           <div className="flex-1 min-w-[12rem] pb-2"><Bar pct={tally.pct} /></div>
         </div>
@@ -217,22 +234,22 @@ export function ReadinessTab({ boardSlug, boardTitle, rooms = [], door = null, o
             ['Est. remaining cost', money(tally.cost), ACCENT],
           ].map(([k, v, color]) => (
             <div key={k}>
-              <dt className="text-[0.625rem] uppercase tracking-wider" style={{ color: MUTED }}>{k}</dt>
+              <dt className="text-[0.625rem] uppercase tracking-wider text-[#6B665E]">{k}</dt>
               <dd className="text-[1.0625rem] font-semibold tabular-nums" style={{ color }}>{v}</dd>
             </div>
           ))}
         </dl>
 
-        <p className="text-[0.8125rem] mt-3 tabular-nums" style={{ color: MUTED }}>
-          <strong style={{ color: INK }}>{tally.done} of {tally.total}</strong> tasks completed
-          {tally.left ? <> · <strong style={{ color: INK }}>{tally.left}</strong> still to go</> : ' · every area is clear'}
+        <p className="text-[0.8125rem] mt-3 tabular-nums text-[#6B665E]">
+          <strong className="text-[#1A1815]">{tally.done} of {tally.total}</strong> tasks completed
+          {tally.left ? <> · <strong className="text-[#1A1815]">{tally.left}</strong> still to go</> : ' · every area is clear'}
         </p>
         {/* SURFACE-SAYS-TRUTH. This line used to promise "saved for everyone"
             unconditionally. It is only true when the write actually reached
             board_tasks — signed out, or blocked by RLS, it was a false
             statement on the one surface whose whole value is being trusted. It
             now reports the LAST REAL WRITE OUTCOME. */}
-        <p className="text-[0.75rem] mt-2" style={{ color: write.ok ? MUTED : '#9B2C1E' }}>
+        <p className={`text-[0.75rem] mt-2 ${write.ok ? 'text-[#6B665E]' : 'text-[#9B2C1E]'}`}>
           {write.reason === 'signed-out'
             ? 'Not signed in — changes are held on this device only and are not shared with anyone else yet.'
             : write.reason === 'no-tenant'
@@ -251,20 +268,41 @@ export function ReadinessTab({ boardSlug, boardTitle, rooms = [], door = null, o
           {board.sections.map((sec) => (
             <button
               key={sec.id} type="button"
-              onClick={() => setCollapsed((c) => ({ ...c, [sec.id]: false }))}
+              onClick={() => { setArea(sec.id); setCollapsed((c) => ({ ...c, [sec.id]: false })); }}
+              aria-pressed={areaId === sec.id}
               className="text-left border p-2 focus:outline focus:outline-2 focus:outline-[#2F5D50]"
               style={{ borderColor: sec.tally.pct === 100 ? ACCENT : LINE, background: sec.tally.pct === 100 ? '#F1F6F3' : '#FFFFFF' }}
             >
-              <div className="text-[0.6875rem] font-semibold leading-tight min-h-[2.2em]" style={{ color: INK }}>{sec.short}</div>
+              <div className="text-[0.6875rem] font-semibold leading-tight min-h-[2.2em] text-[#1A1815]">{sec.short}</div>
               <div className="flex items-baseline justify-between gap-1 my-1">
-                <span className="text-[1.125rem] font-semibold tabular-nums" style={{ color: sec.tally.pct === 100 ? ACCENT : INK }}>{sec.tally.pct}%</span>
-                <span className="text-[0.625rem] tabular-nums" style={{ color: MUTED }}>{sec.tally.done}/{sec.tally.total}</span>
+                <span className={`text-[1.125rem] font-semibold tabular-nums ${sec.tally.pct === 100 ? 'text-[#2F5D50]' : 'text-[#1A1815]'}`}>{sec.tally.pct}%</span>
+                <span className="text-[0.625rem] tabular-nums text-[#6B665E]">{sec.tally.done}/{sec.tally.total}</span>
               </div>
               <Bar pct={sec.tally.pct} thin />
             </button>
           ))}
         </div>
       </Card>
+
+      {/* ---- the area subtabs ---------------------------------------------- */}
+      <div className="flex flex-wrap gap-1 mb-2" role="tablist" aria-label="Area" data-testid="readiness-areas">
+        {board.sections.map((sec) => (
+          <Btn
+            key={sec.id}
+            tone={areaId === sec.id ? 'primary' : 'ghost'}
+            role="tab"
+            aria-selected={areaId === sec.id}
+            onClick={() => setArea(sec.id)}
+          >{sec.short} {sec.tally.done}/{sec.tally.total}</Btn>
+        ))}
+        <Btn
+          tone={areaId === null ? 'primary' : 'ghost'}
+          role="tab"
+          aria-selected={areaId === null}
+          data-testid="readiness-area-all"
+          onClick={() => setArea(null)}
+        >Every area {tally.done}/{tally.total}</Btn>
+      </div>
 
       {/* ---- the list ------------------------------------------------------ */}
       <div className="flex flex-wrap gap-2 mb-3">
@@ -273,7 +311,7 @@ export function ReadinessTab({ boardSlug, boardTitle, rooms = [], door = null, o
         ))}
       </div>
 
-      {board.sections.map((sec) => {
+      {sectionsShown.map((sec) => {
         const visible = sec.tasks.filter(shown);
         if (!visible.length && view !== 'all') return null;
         const isShut = collapsed[sec.id];
@@ -285,8 +323,7 @@ export function ReadinessTab({ boardSlug, boardTitle, rooms = [], door = null, o
               <button
                 type="button"
                 onClick={() => setCollapsed((c) => ({ ...c, [sec.id]: !c[sec.id] }))}
-                className="text-[0.625rem] uppercase tracking-wider focus:outline focus:outline-2 focus:outline-[#2F5D50]"
-                style={{ color: MUTED }}
+                className="text-[0.625rem] uppercase tracking-wider focus:outline focus:outline-2 focus:outline-[#2F5D50] text-[#6B665E]"
               >
                 {sec.tally.done}/{sec.tally.total} · {sec.tally.pct}% {isShut ? '· show' : '· hide'}
               </button>
@@ -294,10 +331,10 @@ export function ReadinessTab({ boardSlug, boardTitle, rooms = [], door = null, o
           >
             {!isShut && sec.grouped && !bedroomsOf(rooms).length && (
               <div>
-                <p className="text-[0.875rem]" style={{ color: MUTED }}>
+                <p className="text-[0.875rem] text-[#6B665E]">
                   No bedrooms are recorded for this door yet. Name one and it gets its own
                   {' '}{sec.tasks.length}-item list here — and it becomes a real room on the
-                  {' '}<strong style={{ color: INK }}>Rooms</strong> tab, where its photos live.
+                  {' '}<strong className="text-[#1A1815]">Rooms</strong> tab, where its photos live.
                 </p>
                 {onAddRoom && door?.id && door?.instance_id ? (
                   <div className="flex flex-wrap gap-2 mt-3">
@@ -312,12 +349,12 @@ export function ReadinessTab({ boardSlug, boardTitle, rooms = [], door = null, o
                     <Btn tone="primary" onClick={addBedroom} disabled={!bedName.trim()}>Add bedroom</Btn>
                   </div>
                 ) : (
-                  <p className="text-[0.875rem] mt-2" style={{ color: MUTED }}>
-                    Add them on the <strong style={{ color: INK }}>Rooms</strong> tab.
+                  <p className="text-[0.875rem] mt-2 text-[#6B665E]">
+                    Add them on the <strong className="text-[#1A1815]">Rooms</strong> tab.
                   </p>
                 )}
                 {roomError && (
-                  <p className="text-[0.8125rem] mt-2" style={{ color: '#9B2C1E' }}>{roomError}</p>
+                  <p className="text-[0.8125rem] mt-2 text-[#9B2C1E]">{roomError}</p>
                 )}
               </div>
             )}
@@ -330,7 +367,7 @@ export function ReadinessTab({ boardSlug, boardTitle, rooms = [], door = null, o
                 <div key={grp.name}>
                   {sec.grouped && (
                     <div className="flex items-center gap-2 pt-3 pb-1">
-                      <span className="text-[0.625rem] uppercase tracking-wider font-semibold" style={{ color: MUTED }}>
+                      <span className="text-[0.625rem] uppercase tracking-wider font-semibold text-[#6B665E]">
                         {grp.name} · {grp.tally.done}/{grp.tally.total}
                       </span>
                       <span className="flex-1 h-px" style={{ background: LINE }} />
@@ -353,23 +390,22 @@ export function ReadinessTab({ boardSlug, boardTitle, rooms = [], door = null, o
                               className="flex-1 text-left min-w-0 focus:outline focus:outline-2 focus:outline-[#2F5D50]"
                             >
                               <span
-                                className="block text-[0.9375rem] leading-snug break-words"
-                                style={{ color: task.status === 'done' ? MUTED : INK, textDecoration: task.status === 'done' ? 'line-through' : 'none' }}
+                                className={`block text-[0.9375rem] leading-snug break-words ${task.status === 'done' ? 'text-[#6B665E] line-through' : 'text-[#1A1815]'}`}
                               >
                                 {task.title}
                               </span>
                               <span className="flex flex-wrap items-center gap-2 mt-1">
                                 {task.status === 'in-progress' && (
-                                  <span className="text-[0.5625rem] uppercase tracking-wider px-1.5 py-0.5" style={{ background: '#FBF3E0', color: '#8A6510' }}>In progress</span>
+                                  <span className="text-[0.5625rem] uppercase tracking-wider px-1.5 py-0.5 text-[#8A6510]" style={{ background: '#FBF3E0' }}>In progress</span>
                                 )}
                                 {task.cost != null && (
-                                  <span className="text-[0.6875rem] font-semibold tabular-nums px-1.5 py-0.5" style={{ background: '#F1F6F3', color: ACCENT }}>{money(task.cost)}</span>
+                                  <span className="text-[0.6875rem] font-semibold tabular-nums px-1.5 py-0.5 text-[#2F5D50]" style={{ background: '#F1F6F3' }}>{money(task.cost)}</span>
                                 )}
                                 {task.custom && (
-                                  <span className="text-[0.5625rem] uppercase tracking-wider" style={{ color: MUTED }}>added here</span>
+                                  <span className="text-[0.5625rem] uppercase tracking-wider text-[#6B665E]">added here</span>
                                 )}
                                 {task.note && (
-                                  <span className="block w-full text-[0.8125rem] leading-snug pl-2 border-l-2" style={{ color: MUTED, borderColor: LINE }}>{task.note}</span>
+                                  <span className="block w-full text-[0.8125rem] leading-snug pl-2 border-l-2 text-[#6B665E]" style={{ borderColor: LINE }}>{task.note}</span>
                                 )}
                               </span>
                             </button>
@@ -448,7 +484,7 @@ export function ReadinessTab({ boardSlug, boardTitle, rooms = [], door = null, o
       <Card title="Start over">
         {confirmReset ? (
           <div>
-            <p className="text-[0.875rem] mb-3" style={{ color: INK }}>
+            <p className="text-[0.875rem] mb-3 text-[#1A1815]">
               This clears every checkmark, status, cost and note on this door, and deletes the tasks you added here.
               The original {board.tally.total}-item list stays. It cannot be undone.
             </p>
@@ -460,7 +496,7 @@ export function ReadinessTab({ boardSlug, boardTitle, rooms = [], door = null, o
         ) : (
           <div className="flex flex-wrap items-center gap-3">
             <Btn onClick={() => setConfirmReset(true)}>Reset checklist</Btn>
-            <span className="text-[0.75rem]" style={{ color: MUTED }}>Asks before it clears anything.</span>
+            <span className="text-[0.75rem] text-[#6B665E]">Asks before it clears anything.</span>
           </div>
         )}
       </Card>

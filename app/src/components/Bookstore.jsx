@@ -106,7 +106,7 @@ function ConversationPanel({ product, sub, userKey }) {
       </div>
       <div className="flex gap-1">
         <input value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="Ask a question or share…" className="flex-1 text-xs border px-2 py-1 border-[#E8E4DC]"  />
-        <button type="button" onClick={post} className={btn} className="border-[#1A1815] text-[#1A1815]" >Post</button>
+        <button type="button" onClick={post} className={`${btn} border-[#1A1815] text-[#1A1815]`} >Post</button>
       </div>
       {notice && <p className="text-[0.6875rem] mt-1 text-[#B85838]" >{notice}</p>}
     </div>
@@ -132,7 +132,7 @@ function GovernorEconomics({ product, onPublish, onPrice }) {
         <label className="text-[0.6875rem] text-[#5A5751]" >Price $
           <input value={price} onChange={(e2) => setPrice(e2.target.value)} className="w-16 text-xs border px-1 py-0.5 ml-1 border-[#E8E4DC]"  />
         </label>
-        <button type="button" onClick={() => onPrice(product, Math.round(parseFloat(price || '0') * 100))} className={btn} className="border-[#1A1815] text-[#1A1815]" >Preview → set price</button>
+        <button type="button" onClick={() => onPrice(product, Math.round(parseFloat(price || '0') * 100))} className={`${btn} border-[#1A1815] text-[#1A1815]`} >Preview → set price</button>
         {product.status !== 'published' && publishableProduct(product).ok && (
           <button type="button" onClick={() => onPublish(product)} className={`${btn} text-white bg-[#1A1815] border-[#1A1815]`}>Preview → publish</button>
         )}
@@ -225,8 +225,8 @@ export default function Bookstore({ email = '', isFamilyMember = false, onReadPr
                 {owned
                   ? <button type="button" onClick={() => onReadProduct && onReadProduct(product)} className={`${btn} text-white bg-[#1A1815] border-[#1A1815]`}>Read</button>
                   : <button type="button" onClick={() => buy(product)} className={`${btn} text-white bg-[#B85838] border-[#B85838]`}>Buy {formatPrice(product.priceCents)}</button>}
-                <button type="button" onClick={() => setSelected(open ? null : product.id)} className={btn} className="border-[#E8E4DC] text-[#5A5751]" >{open ? 'Hide' : 'Conversation'}</button>
-                {isFamilyMember && !owned && <button type="button" onClick={() => markOwned(product)} className={btn} className="border-[#E8E4DC] text-[#5A5751]"  title="Governor test — real purchases grant via the processor">Mark owned (test)</button>}
+                <button type="button" onClick={() => setSelected(open ? null : product.id)} className={`${btn} border-[#E8E4DC] text-[#5A5751]`} >{open ? 'Hide' : 'Conversation'}</button>
+                {isFamilyMember && !owned && <button type="button" onClick={() => markOwned(product)} className={`${btn} border-[#E8E4DC] text-[#5A5751]`}  title="Governor test — real purchases grant via the processor">Mark owned (test)</button>}
               </div>
               {open && <div className="mt-2"><ConversationPanel product={product} sub={sub} userKey={userKey} /></div>}
               {isFamilyMember && <GovernorEconomics product={product} onPublish={publish} onPrice={setPrice} />}
@@ -242,7 +242,7 @@ export default function Bookstore({ email = '', isFamilyMember = false, onReadPr
             <div key={p.id} className="flex items-center justify-between gap-2 text-xs py-1 text-[#1A1815]" >
               <span>{p.coverEmoji} {p.title} <span className="text-[#5A5751]" >— {p.blurb}</span></span>
               {publishableProduct(p).ok
-                ? <button type="button" onClick={() => publish(p)} className={btn} className="border-[#1A1815] text-[#1A1815]" >Publish</button>
+                ? <button type="button" onClick={() => publish(p)} className={`${btn} border-[#1A1815] text-[#1A1815]`} >Publish</button>
                 : <span className="text-[0.625rem] text-[#5A5751]" >{publishableProduct(p).reasons[0]}</span>}
             </div>
           ))}

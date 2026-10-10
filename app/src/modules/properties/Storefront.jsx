@@ -163,8 +163,8 @@ export function VacancyCard({ unit }) {
         )}
         <a
           href={applyUrl(unit.rentalId)}
-          className="mt-2 inline-flex items-center text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border"
-          style={{ borderColor: ACCENT, color: ACCENT }}
+          className="mt-2 inline-flex items-center text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border text-[#2F5D50]"
+          style={{ borderColor: ACCENT }}
         >Apply — no account needed</a>
       </div>
     </li>
