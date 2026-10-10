@@ -14,7 +14,7 @@
 // whole catalog as a wall of words.
 //
 // A coloring page answers that without pretending the child can read: the
-// lesson's own verse and its own words arrive as big outlines to colour and
+// lesson's own verse and its own words arrive as big outlines to color and
 // trace, so the Word goes in through the hand and the eye while a grown-up
 // reads it aloud — "thou shalt teach them diligently unto thy children"
 // (Deuteronomy 6:7), which is the same rhythm the Talk About It prompts ride.
@@ -86,7 +86,7 @@ export function traceableWords(text, limit = 5) {
 }
 
 /**
- * The symbol library — plain shapes a child can colour, each keyed to words a
+ * The symbol library — plain shapes a child can color, each keyed to words a
  * lesson might use. Paths are deliberately simple: thick outlines, big areas,
  * nothing a crayon cannot stay inside.
  */
@@ -163,7 +163,7 @@ export function verseLines(verse, perLine = 5) {
 
 /**
  * The page as a printable SVG string — outlines only, nothing filled, so every
- * stroke is something to colour. US Letter at 96dpi.
+ * stroke is something to color. US Letter at 96dpi.
  */
 export function coloringSvg(page) {
   if (!page) return '';
@@ -182,6 +182,6 @@ export function coloringSvg(page) {
     + verse + sym
     + '<text x="70" y="900" font-family="Georgia, serif" font-size="20" fill="#000">Trace the words:</text>'
     + trace
-    + '<text x="396" y="990" text-anchor="middle" font-family="Georgia, serif" font-size="16" fill="#000">Colour it in while a grown-up reads the lesson to you.</text>'
+    + '<text x="396" y="990" text-anchor="middle" font-family="Georgia, serif" font-size="16" fill="#000">Color it in while a grown-up reads the lesson to you.</text>'
     + '</svg>';
 }

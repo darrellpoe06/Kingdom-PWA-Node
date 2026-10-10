@@ -63,7 +63,7 @@ describe('the verse is the lesson’s own, to the letter', () => {
 });
 
 describe('every lesson gets a page', () => {
-  it('all 236 Living Lessons yield one, each with a title and something to colour', () => {
+  it('all 236 Living Lessons yield one, each with a title and something to color', () => {
     const none = [];
     for (const m of LIVING_LESSONS_MODULES) {
       const p = coloringPage(m);
@@ -137,7 +137,7 @@ describe('the words a small hand traces are really the lesson’s', () => {
 });
 
 describe('the sheet itself', () => {
-  it('is an SVG that prints: outlines to colour, nothing pre-filled', () => {
+  it('is an SVG that prints: outlines to color, nothing pre-filled', () => {
     const svg = coloringSvg(coloringPage(SAMPLE));
     expect(svg.startsWith('<svg')).toBe(true);
     expect(svg).toContain('</svg>');
@@ -146,7 +146,7 @@ describe('the sheet itself', () => {
     // nothing for a crayon to do.
     expect(svg).toMatch(/font-size="44"[^>]*fill="none"/);
     expect(svg).toContain('stroke="#000"');
-    expect(svg).toContain('Colour it in while a grown-up reads the lesson to you.');
+    expect(svg).toContain('Color it in while a grown-up reads the lesson to you.');
   });
 
   it('the verse is broken into short lines a child can follow', () => {

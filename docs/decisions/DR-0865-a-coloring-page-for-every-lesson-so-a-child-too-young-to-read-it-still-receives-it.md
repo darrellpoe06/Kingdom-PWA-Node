@@ -33,5 +33,5 @@ Darrell, 2026-10-10, after measuring the age bands with me: *"We wanted children
 
 ## What is NOT in this slice, with a date
 
-- **The in-app surface** — a "Colour this lesson" button beside the lesson, and a printable booklet of a whole month. The library is pure and the SVG prints; the placement is the next change. **re-review: 2026-10-17**
+- **The in-app surface** — a "Color this lesson" button beside the lesson, and a printable booklet of a whole month. The library is pure and the SVG prints; the placement is the next change. **re-review: 2026-10-17**
 - **The children's spine Darrell named in the same breath** — *"Abc's 123'.... etc... Genesis - Revelation... Adam and Eve... etc... basic building blocks of Yahweh's Perspectives explicitly for the children."* That is Little Learners slice 2 and beyond, whose own `re-review: 2026-09-22` is **18 days overdue** as of today. Recorded here so the overdue date is visible rather than buried. **re-review: 2026-10-13**
