@@ -77,8 +77,33 @@ function libheif() {
   return heifPromise;
 }
 
-/** Only for tests, so one case cannot leak its stub into the next. */
-export function _resetHeicDecoder() { heifPromise = null; }
+// THE SAME FILE IS DECODED TWICE, AND THAT IS THE CALLER'S SHAPE, NOT A BUG
+// TO ARGUE WITH. The picker compresses every photo twice — once for the image
+// and once for its thumbnail (DoorTabs.jsx:1232) — so a naive HEIC path does
+// the WASM decode twice per file. On fourteen twelve-megapixel photographs
+// that is twenty-eight decodes, which on a phone is about a minute of a panel
+// that looks frozen. Halved by remembering the LAST decode, because the two
+// calls are back to back.
+//
+// EXACTLY ONE ENTRY, deliberately. A WeakMap keyed by File would look tidier
+// and would be a memory disaster here: the picker holds all fourteen Files
+// alive for the whole loop, so every decoded frame would be retained —
+// 12MP x 4 bytes is ~48MB each, ~670MB for the batch. One entry means the
+// second call hits and the previous frame is released the moment a new file
+// arrives.
+let lastKey = null;
+let lastPixels = null;
+
+const fileKey = (file) => (file
+  ? `${file.name || ''}|${file.size || 0}|${file.lastModified || 0}`
+  : null);
+
+/** Only for tests, so one case cannot leak its stub or its frame into the next. */
+export function _resetHeicDecoder() {
+  heifPromise = null;
+  lastKey = null;
+  lastPixels = null;
+}
 
 /**
  * Decode HEIC bytes to raw pixels: { width, height, data } where data is RGBA.
@@ -122,8 +147,16 @@ export async function decodeHeicToRgba(bytes, { loader = libheif } = {}) {
  */
 export async function heicFileToJpegDataUrl(file, maxWidth = 1280, quality = 0.7, io = {}) {
   const decode = io.decodeHeicToRgba || decodeHeicToRgba;
-  const bytes = new Uint8Array(await file.arrayBuffer());
-  const { width, height, data } = await decode(bytes);
+  const key = fileKey(file);
+  let pixels = key && key === lastKey ? lastPixels : null;
+  if (!pixels) {
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    pixels = await decode(bytes);
+    // Replace, never accumulate — see the note on the one-entry cache above.
+    lastKey = key;
+    lastPixels = pixels;
+  }
+  const { width, height, data } = pixels;
 
   const doc = io.document || (typeof document === 'undefined' ? null : document);
   if (!doc) throw new Error('no canvas to draw the HEIC on');
