@@ -21,9 +21,11 @@
 //   * the whole page is DERIVED, so a lesson edited upstream changes its page
 //     (DR-0121) — nothing about a lesson is retyped in this file.
 // =============================================================================
+import { createHash } from 'node:crypto';
 import { describe, it, expect } from 'vitest';
 import {
   coloringPage, coloringSvg, quotedVerses, traceableWords, symbolsFor, verseLines, SYMBOLS,
+  sheetLayout, fitLines, lineWidth, USABLE, SHEET,
 } from '../lib/coloring-page.js';
 import { LIVING_LESSONS_MODULES } from '../lib/living-lessons-class.js';
 
@@ -164,5 +166,175 @@ describe('the sheet itself', () => {
     const svg = coloringSvg(coloringPage({ id: 'x', title: 'Fear & <Trembling>', levels: { child: 'He is good.' } }));
     expect(svg).toContain('Fear &amp; &lt;Trembling&gt;');
     expect(svg).not.toContain('<Trembling>');
+  });
+});
+
+// ===========================================================================
+// AND IT HAS TO FIT ON THE PAPER
+// ===========================================================================
+// The first cut of this library set the title on ONE line at font-size 44.
+// Measured afterwards across all 236 Living Lessons: 224 titles ran off the
+// page on the model, and rendering the same sheets in real Chromium and
+// reading getBBox put it at 214 of 236 sheets with text off the paper, the
+// widest run 3,098px on a sheet 792px wide — almost four times the paper.
+//
+// Two real sheets had been generated and read before that shipped, which is
+// how the lowercase "jesus" was caught. Reading a sample proves the CONTENT
+// and never the GEOMETRY. That is the form-factor dimension of DR-0239, and
+// this block is it, run every push.
+//
+// The model here estimates glyph advance (EM = 0.58, deliberately wider than
+// Georgia's real average so it can only over-state). Chromium measured the
+// widest run on the fixed sheets at 570px where this model says 651 — over-
+// stating, as designed. CI has no renderer, so the model is the standing gate
+// and the browser pass is recorded in DR-0866.
+// ===========================================================================
+describe('the sheet fits on the paper', () => {
+  it('PROVEN-TO-CATCH: not one run on any of the 236 sheets exceeds the ink area', () => {
+    const over = [];
+    for (const m of LIVING_LESSONS_MODULES) {
+      const page = coloringPage(m);
+      if (!page) continue;
+      for (const r of sheetLayout(page).runs) {
+        const w = lineWidth(r.text, r.size);
+        if (w > USABLE) over.push(`${m.id} [${r.role}] ${Math.round(w)}px > ${USABLE}px: "${r.text.slice(0, 40)}"`);
+      }
+    }
+    expect(over, `runs wider than the ink area:\n${over.slice(0, 6).join('\n')}`).toEqual([]);
+  });
+
+  it('PROVEN-TO-CATCH: nothing is drawn below the paper, or over the tracing row', () => {
+    const bad = [];
+    for (const m of LIVING_LESSONS_MODULES) {
+      const page = coloringPage(m);
+      if (!page) continue;
+      const lay = sheetLayout(page);
+      if (lay.contentBottom > lay.traceY - 20) bad.push(`${m.id}: symbols reach ${lay.contentBottom}, tracing row at ${lay.traceY}`);
+      if (lay.contentBottom > SHEET.height) bad.push(`${m.id}: ink past the paper`);
+    }
+    expect(bad, bad.slice(0, 6).join('\n')).toEqual([]);
+  });
+
+  it('a long title arrives WHOLE — wrapped, never cut', () => {
+    const long = 'A Very Long Lesson Title That Will Not Fit On One Single Line Of This Printed Sheet At All';
+    const fit = fitLines(long);
+    expect(fit.lines.length).toBeGreaterThan(1);
+    expect(fit.lines.join(' ')).toBe(long);
+    for (const l of fit.lines) expect(lineWidth(l, fit.size)).toBeLessThanOrEqual(USABLE);
+  });
+
+  it('wrapping is tried BEFORE shrinking, so a child gets the biggest text that fits', () => {
+    // Four lines at full size beats six lines of small type on a sheet a
+    // six-year-old is meant to read along with.
+    const fit = fitLines('A Very Long Lesson Title That Will Not Fit On One Single Line Of This Printed Sheet At All');
+    expect(fit.size).toBe(44);
+    expect(fit.lines.length).toBeLessThanOrEqual(4);
+  });
+
+  it('but it DOES shrink when wrapping alone cannot fit the line budget', () => {
+    const huge = Array.from({ length: 40 }, (_, i) => `word${i}`).join(' ');
+    const fit = fitLines(huge, { maxLines: 4 });
+    expect(fit.size).toBeLessThan(44);
+    expect(fit.lines.join(' ')).toBe(huge);
+    for (const l of fit.lines) expect(lineWidth(l, fit.size)).toBeLessThanOrEqual(USABLE);
+  });
+
+  it('a short title keeps the biggest size on the ladder', () => {
+    const fit = fitLines('Taste and See');
+    expect(fit.size).toBe(44);
+    expect(fit.lines).toEqual(['Taste and See']);
+  });
+
+  it('the longest real title in the catalog still fits', () => {
+    const worst = LIVING_LESSONS_MODULES
+      .map((m) => coloringPage(m)).filter(Boolean)
+      .sort((a, b) => b.title.length - a.title.length)[0];
+    expect(worst.title.length).toBeGreaterThan(100);
+    const fit = fitLines(worst.title, { maxLines: 4 });
+    expect(fit.lines.join(' ')).toBe(worst.title.replace(/\s+/g, ' ').trim());
+    for (const l of fit.lines) expect(lineWidth(l, fit.size)).toBeLessThanOrEqual(USABLE);
+  });
+
+  it('no words means no lines, not a line of nothing', () => {
+    expect(fitLines('').lines).toEqual([]);
+    expect(fitLines('   ').lines).toEqual([]);
+  });
+
+  it('a word longer than the line is kept whole rather than broken', () => {
+    const fit = fitLines('Mahershalalhashbaz', { width: 100, sizes: [44, 20] });
+    expect(fit.lines).toEqual(['Mahershalalhashbaz']);
+  });
+});
+
+// ===========================================================================
+// SOMEBODY HAS TO LOOK AT THE SHAPE
+// ===========================================================================
+// The first `hand` path drew a closed fist with ONE finger standing far above
+// the others. Rendered, it read unmistakably as an obscene gesture — and
+// because 'give', 'help', 'hold' and 'work' are ordinary words, it was
+// selected onto 122 of the 236 children's sheets. It shipped because the
+// symbol library was written as path data and never once rendered.
+//
+// The same look found a `lamb` whose head floated detached beside its body.
+// Layer 0 confesses Jesus as the Lamb of Yahweh; a malformed Lamb is not a
+// cosmetic defect. `lamp` read as a tripod and `bird` as a pole between two
+// arcs. All four were redrawn and looked at.
+//
+// No assertion can tell whether a path READS as what it claims — that needs
+// eyes. So this is a ratchet on the eyes instead: every path is pinned by
+// hash, and ANY edit to any path turns this red until someone renders the
+// library, looks at it, and updates the hash on purpose. The check cannot
+// judge the drawing; it can refuse to let a drawing change unwatched.
+//
+// To re-review: render SYMBOLS to PNG, look at every shape, then update the
+// hash here in the same commit that changes the path.
+// ===========================================================================
+const REVIEWED = {
+  lamb: '0dfa6288c11b',
+  crown: 'fb0abb060edf',
+  bread: 'ca582d07048f',
+  water: 'fc4c84fecc46',
+  lamp: 'f3da7b6543ea',
+  tree: '82ed12a8b025',
+  house: '186d0b5044f6',
+  heart: '790016cca43e',
+  star: '5db82389bfa9',
+  fish: '4febaa8d70e1',
+  hand: 'b4863361cb30',
+  book: 'd4bbbd3b68ad',
+  sun: '91ab1ce385e9',
+  bird: '144c4645651c',
+  door: 'b5bd1111328e',
+  cross: '975f35c191eb',
+};
+
+describe('a shape a child colors was looked at by a person', () => {
+  const hash = (d) => createHash('sha256').update(d).digest('hex').slice(0, 12);
+
+  it('PROVEN-TO-CATCH: no path may change without a fresh look', () => {
+    const drifted = [];
+    for (const s of SYMBOLS) {
+      if (!REVIEWED[s.id]) drifted.push(`${s.id}: new symbol, never reviewed`);
+      else if (REVIEWED[s.id] !== hash(s.d)) drifted.push(`${s.id}: path changed (${REVIEWED[s.id]} -> ${hash(s.d)})`);
+    }
+    expect(
+      drifted,
+      `Render the symbols, LOOK at them, then update REVIEWED in this file:\n${drifted.join('\n')}`,
+    ).toEqual([]);
+  });
+
+  it('every reviewed symbol still exists — a shape cannot quietly vanish', () => {
+    const ids = new Set(SYMBOLS.map((s) => s.id));
+    expect(Object.keys(REVIEWED).filter((id) => !ids.has(id))).toEqual([]);
+  });
+
+  it('the hand has every finger, none towering over its neighbours', () => {
+    // The specific fault, pinned in the shape itself rather than only by hash:
+    // four finger tops within ten units of each other cannot read as a
+    // gesture, however the path is otherwise redrawn.
+    const hand = SYMBOLS.find((s) => s.id === 'hand');
+    const tops = [...hand.d.matchAll(/l0 -(\d+) a5 5/g)].map((m) => Number(m[1]));
+    expect(tops.length, 'the hand should have four fingers').toBe(4);
+    expect(Math.max(...tops) - Math.min(...tops)).toBeLessThanOrEqual(10);
   });
 });
