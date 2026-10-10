@@ -16,7 +16,7 @@
 //   <Lightbox src={url} alt="…" onClose={fn} />              // single photo
 //   <Lightbox items={[{src,alt,caption,date}]} index={n} onClose={fn} />  // a set
 //
-// BRANDED (DR-0906): pass `stamp` (async (item) => dataURL | null) and the
+// BRANDED (DR-0918): pass `stamp` (async (item) => dataURL | null) and the
 // picture on screen AND the one Save hands out are the stamped copy — the
 // Poe Properties band with its QR drawn into the pixels — never the original.
 // If a stamp cannot be made, Save is withheld and says so: nothing leaves
@@ -60,7 +60,7 @@ export default function Lightbox({ items, index = 0, src, alt = 'Photo', onClose
 
   // Reset zoom/pan/broken whenever the shown photo changes.
   const rawSrc = list[cur] ? list[cur].src : null;
-  // The stamped copy per picture (DR-0906): undefined = still being made,
+  // The stamped copy per picture (DR-0918): undefined = still being made,
   // null = could not be made, a string = the branded data URL.
   const [stamped, setStamped] = useState({});
   useEffect(() => {

@@ -7,7 +7,7 @@
 // The data plate, the rusted flue, the new water heater in the basement, the
 // before and after of a service visit — filed ON the system (and optionally
 // on the visit), as ordinary door pictures (property_photos, kind 'system'):
-// the same thumbnails, sharp tiles (DR-0908), branded viewer (DR-0906), and
+// the same thumbnails, sharp tiles (DR-0908), branded viewer (DR-0918), and
 // walls as every other picture of the door.
 // =============================================================================
 import React, { useCallback, useMemo, useState } from 'react';

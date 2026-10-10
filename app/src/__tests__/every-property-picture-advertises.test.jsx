@@ -1,5 +1,5 @@
 // =============================================================================
-// EVERY PROPERTY PICTURE THAT LEAVES THE APP ADVERTISES (DR-0906)
+// EVERY PROPERTY PICTURE THAT LEAVES THE APP ADVERTISES (DR-0918)
 // =============================================================================
 // Darrell, 2026-10-10: "Make sure we have our logos and qrcodes inside each
 // image of the properties so it's always an advertisement... especially since

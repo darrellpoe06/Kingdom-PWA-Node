@@ -1,5 +1,5 @@
 // =============================================================================
-// brand-stamp — every property picture that leaves the app advertises (DR-0906)
+// brand-stamp — every property picture that leaves the app advertises (DR-0918)
 // =============================================================================
 // Darrell, 2026-10-10: "Make sure we have our logos and qrcodes inside each
 // image of the properties so it's always an advertisement... especially since

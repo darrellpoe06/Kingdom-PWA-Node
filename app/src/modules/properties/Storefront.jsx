@@ -71,7 +71,7 @@ export function VacancyCard({ unit, onApply = null }) {
 
   const shot = shots[i] || null;
   // Every picture opened or saved from a listing carries the Poe Properties
-  // band and a QR back to THIS unit (DR-0906) — a forwarded copy advertises.
+  // band and a QR back to THIS unit (DR-0918) — a forwarded copy advertises.
   const placeName = `${unit.label}${unit.unit ? ` ${unit.unit}` : ''}`;
   const stamp = useCallback((item) => stampImage({ src: item.src, door: placeName, link: applyUrl(unit.rentalId) }), [placeName, unit.rentalId]);
   const size = [

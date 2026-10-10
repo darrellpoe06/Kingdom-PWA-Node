@@ -148,8 +148,8 @@ The listing now shows the area on a map and what is nearby.
 ## HEIC pictures are kept, and pictures are sharp on the Fold (DR-0916)
 
 Darrell's Samsung skipped 14 `.heic` photos: Chrome on Android cannot decode HEIC.
-- **The fix.** The device's own decoder goes first. A file whose bytes say HEIC is converted on the phone (libheif, loaded only then, 60 s ceiling) and then filed like any picture.
+- **The fix.** The decoder is DR-0905 (#2100, libheif-js, merged first on main); this branch's parallel heic-to version was dropped at the merge. DR-0916 proves it end to end.
 - **Picture size.** Property pictures are now kept at 1920 px, quality 0.85 (was 1280 / 0.7), sharp on the unfolded Fold.
 - **Proof.**
-  - The door journeys now walk a real phone HEIC under production's CSP; it is stored as a JPEG of 1280 × 854, the sample's own size.
+  - The door journeys now walk a real phone HEIC under production's CSP; it is stored as a JPEG at the sample's full 1280 px width, 344 KB.
   - The old code fails that journey with Darrell's exact message.

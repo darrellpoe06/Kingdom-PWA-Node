@@ -26,7 +26,7 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.106.1",
-    "heic-to": "^1.6.5",
+    "libheif-js": "^1.23.5",
     "libsodium-wrappers": "^0.8.4",
     "node-forge": "^1.4.0",
     "onnxruntime-web": "1.30.0",
