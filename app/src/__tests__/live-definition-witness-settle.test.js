@@ -1,6 +1,6 @@
 // @vitest-environment node
 // A chain halfway through is not a revert, and a real revert still fails
-// (DR-0943; db-migrate run 38093330311 read the product-forms leg mid-chain).
+// (DR-0944; db-migrate run 38093330311 read the product-forms leg mid-chain).
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // =============================================================================
 // live-definition-witness-settle — read the live definitions again while an
-// isolation run is mid-apply, never longer than a budget (DR-0943)
+// isolation run is mid-apply, never longer than a budget (DR-0944)
 // =============================================================================
 // THE INCIDENT (2026-10-10, db-migrate run 38093330311). The witness read the
 // hosted database at 23:03:21 and reported document_route (0204) and

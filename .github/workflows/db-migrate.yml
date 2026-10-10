@@ -98,7 +98,7 @@ jobs:
       # up to date. Runs after the apply, on the real database, and fails the
       # run — a red db-migrate is the signal that production is behind the repo.
       #
-      # A CHAIN HALFWAY THROUGH IS NOT A REVERT (2026-10-10, DR-0943). Run
+      # A CHAIN HALFWAY THROUGH IS NOT A REVERT (2026-10-10, DR-0944). Run
       # 38093330311 read hosted at 23:03:21 while the isolation run dispatched
       # by the db-migrate before it was in its product-forms leg, which applies
       # 0200 -> 0213 one file per transaction (DR-0831): 0202's definitions had

@@ -1,4 +1,4 @@
-# DR-0943 — A chain halfway through is not a revert: the witness reads again while an isolation run is applying
+# DR-0944 — A chain halfway through is not a revert: the witness reads again while an isolation run is applying
 
 **Date:** 2026-10-10
 **Status:** accepted
