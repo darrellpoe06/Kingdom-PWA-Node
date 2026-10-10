@@ -251,8 +251,13 @@ describe('the wiring the screens depend on', () => {
   });
 
   it('activeDoor never silently falls back to a DIFFERENT property', () => {
+    // The defect: `doors.find(...) || doors[0] || null` showed, and filed work
+    // against, some OTHER door's tenant when the id named a rental. DR-0897
+    // landed a different shape for the same guarantee (an explicit rentals
+    // check), so this pins the GUARANTEE rather than either spelling — the bad
+    // expression is gone, and a picked rental resolves to no tenancy.
     expect(app).not.toContain('doors.find((x) => x.id === activeId) || doors[0] || null');
-    expect(app).toContain('activeId ? doors.find((x) => x.id === activeId) || null : doors[0] || null');
+    expect(app).toContain("rentals.some((r) => r.id === activeId)");
   });
 
   it('filing work and inviting both go through ensureDoor', () => {

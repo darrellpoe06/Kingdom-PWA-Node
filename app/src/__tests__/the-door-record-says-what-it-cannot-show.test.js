@@ -47,6 +47,9 @@ function clientWith(answers) {
       select: () => self,
       eq: () => self,
       in: () => self,
+      // 0260 / DR-0897: a door's rows are scoped with .or() when both a
+      // tenancy and a rental are known, so the stub has to answer it too.
+      or: () => self,
       order: () => Promise.resolve(res),
     };
     return self;
@@ -65,7 +68,7 @@ const EVERY_TABLE = {
 
 describe('a record that could not be read is not an empty record', () => {
   it('PROVEN-TO-CATCH: a failed message read is reported, not silently emptied', async () => {
-    const res = await loadDoorRecord('door-1', clientWith({
+    const res = await loadDoorRecord('door-1', {}, clientWith({
       ...EVERY_TABLE,
       tenant_messages: { data: null, error: { message: 'permission denied' } },
     }));
@@ -75,7 +78,7 @@ describe('a record that could not be read is not an empty record', () => {
   });
 
   it('reports every part that failed, not just the first', async () => {
-    const res = await loadDoorRecord('door-1', clientWith({
+    const res = await loadDoorRecord('door-1', {}, clientWith({
       ...EVERY_TABLE,
       tenant_messages: { data: null, error: { message: 'boom' } },
       rent_records: { data: null, error: { message: 'boom' } },
@@ -86,7 +89,7 @@ describe('a record that could not be read is not an empty record', () => {
 
   it('a door where nothing happened is NOT reported as unreadable', async () => {
     // The distinction the whole change exists to make.
-    const res = await loadDoorRecord('door-1', clientWith({
+    const res = await loadDoorRecord('door-1', {}, clientWith({
       tenant_maintenance_requests: { data: [], error: null },
       tenant_messages: { data: [], error: null },
       tenancy_notes: { data: [], error: null },
@@ -98,7 +101,7 @@ describe('a record that could not be read is not an empty record', () => {
   });
 
   it('still returns everything it COULD read when one part fails', async () => {
-    const res = await loadDoorRecord('door-1', clientWith({
+    const res = await loadDoorRecord('door-1', {}, clientWith({
       ...EVERY_TABLE,
       tenant_messages: { data: null, error: { message: 'boom' } },
     }));
@@ -106,7 +109,7 @@ describe('a record that could not be read is not an empty record', () => {
   });
 
   it('a door with no tenancy answers empty and unreadable-empty, never undefined', async () => {
-    const res = await loadDoorRecord(null, clientWith(EVERY_TABLE));
+    const res = await loadDoorRecord(null, {}, clientWith(EVERY_TABLE));
     expect(res.unreadable).toEqual([]);
   });
 });

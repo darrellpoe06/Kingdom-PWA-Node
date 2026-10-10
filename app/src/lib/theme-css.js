@@ -183,6 +183,12 @@ input::placeholder,textarea::placeholder{color:var(--form-hint)}
 [data-theme="midnight"] .text-\\[\\#8C2F2F\\]{color:#FCA5A5!important}
 [data-theme="midnight"] .bg-\\[\\#F2EFE9\\]{background-color:#232323!important}
 [data-theme="midnight"] .bg-\\[\\#E4EED6\\]{background-color:#1F2A1F!important}
+/* #F0EDE6 AS A FILL, not only as a hover (DR-0873 widening). The legibility
+   guard reads hover:bg-[#F0EDE6] as the bg-#f0ede6 token and asks for the
+   base remap too, which is the right reading: a light fill should be dark on
+   midnight whether a finger is resting on it or not. The hover rule below
+   covers the tap; this covers the token wherever else it lands. */
+[data-theme="midnight"] .bg-\\[\\#F0EDE6\\]{background-color:#2A2A2A!important}
 [data-theme="midnight"] .border-\\[\\#1A1815\\]{border-color:#3A3A3A!important}
 [data-theme="midnight"] .border-\\[\\#E8E4DC\\]{border-color:#2A2A2A!important}
 [data-theme="midnight"] .border-\\[\\#B85838\\]{border-color:#FB923C!important}
@@ -281,6 +287,12 @@ input::placeholder,textarea::placeholder{color:var(--form-hint)}
 [data-theme="midnight"] .hover\\:bg-white:hover{background-color:#2A2A2A!important}
 [data-theme="midnight"] .hover\\:bg-\\[\\#E8E4DC\\]:hover{background-color:#2A2A2A!important}
 [data-theme="midnight"] .hover\\:bg-\\[\\#F0ECE4\\]:hover{background-color:#2A2A2A!important}
+/* #F0EDE6 is ONE HEX DIGIT from #F0ECE4 above, which is exactly why it slipped
+   in unremapped on 2026-10-10 with the full-screen photo controls (the gallery
+   prev/next and "See all N photos"). The eye cannot tell those two apart in a
+   diff; checkHoverCoverage measured it at 0.85 luminance and failed the build.
+   The gate is doing its job — DR-0713. */
+[data-theme="midnight"] .hover\\:bg-\\[\\#F0EDE6\\]:hover{background-color:#2A2A2A!important}
 [data-theme="midnight"] .hover\\:bg-\\[\\#F2F4EC\\]:hover{background-color:#16211A!important}
 [data-theme="midnight"] .hover\\:bg-\\[\\#E4EED6\\]:hover{background-color:#16211A!important}
 [data-theme="midnight"] .hover\\:bg-\\[\\#FAF1EC\\]:hover{background-color:#231614!important}

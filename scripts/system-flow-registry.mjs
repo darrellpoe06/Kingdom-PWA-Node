@@ -1009,6 +1009,22 @@ const NODES = [
     reads: [{ res: 'db:door_feedback', token: "from('door_feedback')" }],
     seeds: ['push-outbox-drain'],
   }),
+  // Work on a door (DR-0897): filed on the door itself when no tenancy holds it
+  // (a vacant unit, a short stay, the family's own home), read back as the
+  // door's open work, documented by the worker, noted on dispatch.
+  app('app/src/modules/properties/cloud.js', {
+    id: 'door-work-orders', name: 'Work on a door (Poe Properties Work board)', purpose: 'The landlord, a manager or the 1099 worker walking a door files what is wrong; the worker documents it fixed or not; every dispatch leaves a note on the door.',
+    writes: [
+      { res: 'db:tenant_maintenance_requests', token: "from('tenant_maintenance_requests')\n      .insert" },
+      { res: 'db:request_documentation', token: "from('request_documentation').insert" },
+      { res: 'db:tenancy_notes', token: "from('tenancy_notes').insert" },
+    ],
+    reads: [
+      { res: 'db:tenant_maintenance_requests', token: "scoped(client.from('tenant_maintenance_requests')" },
+      { res: 'db:request_documentation', token: "from('request_documentation').select" },
+      { res: 'db:tenancy_notes', token: "scoped(client.from('tenancy_notes')" },
+    ],
+  }),
   wf('push-outbox-drain.yml', {
     id: 'push-outbox-drain', name: 'Office push drain', purpose: 'Delivers each new door fault to the office’s phones.',
     reads: [{ res: 'db:push_outbox', file: 'scripts/push-outbox-drain-over-tailnet.sh', token: 'push_outbox' }],

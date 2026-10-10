@@ -121,37 +121,53 @@ export async function loadMyHousehold(client = supabase) {
   } catch (e) { return no('unexpected', e); }
 }
 
-/** Everything that has ever happened on one door — the whole relationship record. */
-export async function loadDoorRecord(tenancyId, client = supabase) {
-  // A RECORD THAT COULD NOT BE READ IS NOT AN EMPTY RECORD (DR-0876).
-  //
-  // Darrell, 2026-10-10, on what this record is FOR: "a place to make sure we
-  // have all-in-one information about this place... workers can deduce things
-  // from historical data" and "End to end.... historical accuracy and
-  // events".
-  //
-  // This used to write `msg.data || []` five times and return ok() whatever
-  // happened. A failed read, a permission refusal and a door where genuinely
-  // nothing occurred all produced the same answer: an empty array, rendered
-  // under a heading that reads "Everything that has happened on this door, in
-  // order." Somebody reading that and concluding "nothing was ever said
-  // here" would have concluded it from a network error. `unreadable` carries
-  // the parts that FAILED, so the surface can say so (DR-0076 §8).
-  //
-  // The quieter half is that RLS does not error — it filters rows and returns
-  // an empty set. No error is available to report, so a face that is not
-  // permitted to see a part of the record cannot learn that from this
-  // function at all. That is answered on the surface instead, from the face
-  // itself: see unseenByThisFace() in model.js.
+/**
+ * Everything that has ever happened on one door — the whole relationship record.
+ *
+ * TWO KEYS (0260 / DR-0897). A tenancy's record is keyed by tenancy_id. Work on
+ * the DOOR itself (a vacant door, a short stay, the family's own home) has no
+ * tenancy and is keyed by rental_id. When both are known the landlord reads
+ * both: the job filed between tenants is part of this door's history. RLS keeps
+ * the door rows from a tenant (every tenancy arm is false on a NULL tenancy),
+ * so asking for them is safe from any seat. Messages, rent and notices exist
+ * only through a tenancy and stay empty on a door with none.
+ *
+ * AND A RECORD THAT COULD NOT BE READ IS NOT AN EMPTY RECORD (DR-0876).
+ *
+ * Darrell, 2026-10-10, on what this record is FOR: "a place to make sure we
+ * have all-in-one information about this place... workers can deduce things
+ * from historical data" and "End to end.... historical accuracy and events".
+ *
+ * This used to write `msg.data || []` five times and return ok() whatever
+ * happened, so a failed read, a permission refusal and a door where genuinely
+ * nothing occurred all produced one identical answer — an empty array, under a
+ * heading reading "Everything that has happened on this door, in order."
+ * Somebody concluding "nothing was ever said here" could have been concluding
+ * it from a network error. `unreadable` carries the parts that FAILED, so the
+ * surface can say so (DR-0076 §8).
+ *
+ * The quieter half is that RLS does not error — it filters rows and returns an
+ * empty set, so a face not permitted to see part of the record cannot learn
+ * that here at all. That is answered on the surface instead, from the face
+ * itself: see unseenByThisFace() in model.js.
+ *
+ * The two halves are independent and both are kept: 0260 widened WHICH rows
+ * belong to a door; DR-0876 is about whether the answer can be trusted.
+ */
+export async function loadDoorRecord(tenancyId, { rentalId = null } = {}, client = supabase) {
   const empty = { requests: [], messages: [], notes: [], docs: [], rent: [], notices: [], unreadable: [] };
-  if (!tenancyId) return ok(empty);
+  if (!tenancyId && !rentalId) return ok(empty);
+  const scoped = (q) => (tenancyId && rentalId
+    ? q.or(`tenancy_id.eq.${tenancyId},rental_id.eq.${rentalId}`)
+    : tenancyId ? q.eq('tenancy_id', tenancyId) : q.eq('rental_id', rentalId));
+  const none = Promise.resolve({ data: [] });
   try {
     const [req, msg, note, rent, ntc] = await Promise.all([
-      client.from('tenant_maintenance_requests').select('*').eq('tenancy_id', tenancyId).order('created_at', { ascending: true }),
-      client.from('tenant_messages').select('*').eq('tenancy_id', tenancyId).order('sent_at', { ascending: true }),
-      client.from('tenancy_notes').select('*').eq('tenancy_id', tenancyId).order('created_at', { ascending: true }),
-      client.from('rent_records').select('*').eq('tenancy_id', tenancyId).order('reported_at', { ascending: true }),
-      client.from('tenant_notices').select('*').eq('tenancy_id', tenancyId).order('posted_at', { ascending: true }),
+      scoped(client.from('tenant_maintenance_requests').select('*')).order('created_at', { ascending: true }),
+      tenancyId ? client.from('tenant_messages').select('*').eq('tenancy_id', tenancyId).order('sent_at', { ascending: true }) : none,
+      scoped(client.from('tenancy_notes').select('*')).order('created_at', { ascending: true }),
+      tenancyId ? client.from('rent_records').select('*').eq('tenancy_id', tenancyId).order('reported_at', { ascending: true }) : none,
+      tenancyId ? client.from('tenant_notices').select('*').eq('tenancy_id', tenancyId).order('posted_at', { ascending: true }) : none,
     ]);
     const unreadable = [];
     const part = (res, what) => {
