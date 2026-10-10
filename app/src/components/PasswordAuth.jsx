@@ -24,7 +24,7 @@ import {
   signUpWithPhonePin, signInWithPhonePin, validatePhonePin, signInWithGoogle,
 } from '../lib/supabase.js';
 import { signInWithGooglePopup } from '../lib/oauth-popup.js';
-import { primeAuthProviders, guardProviderCached, guardProvider, resetAuthProvidersCache } from '../lib/auth-providers.js';
+import { primeAuthProviders, guardProviderCached, guardProvider, resetAuthProvidersCache, cachedProviderStatus } from '../lib/auth-providers.js';
 
 // `embedded` hides this component's own eyebrow + big heading + intro line so it
 // can sit inside a frame that already supplies them (e.g. AuthModal). The form,
@@ -85,15 +85,30 @@ export default function PasswordAuth({ mode: initialMode = 'signup', onSignedIn 
   // first, full-page redirect as the fallback. A provider that is off says so
   // in words; it never dead-ends and never shows JSON.
   const [oauthBusy, setOauthBusy] = useState(false);
-  useEffect(() => { primeAuthProviders(); }, []);
+  // WHAT THE SERVER SAYS GOOGLE IS (2026-10-10, Darrell on the "Link
+  // requested" screen: "Need to work with Google... doesn't work!!!!!!!").
+  // This door offered Google on every screen whether or not the family server
+  // had it switched on, and on the "Link requested" screen the guard's refusal
+  // was written to an error this screen never drew -- so the tap did nothing
+  // at all. DR-0361's rule is that a provider switched OFF is never offered:
+  // once the probe says 'disabled' the button is replaced by a sentence that
+  // says so, and every refusal from this door is drawn right under it.
+  const [googleState, setGoogleState] = useState(() => cachedProviderStatus('google'));
+  const [googleError, setGoogleError] = useState('');
+  useEffect(() => {
+    let live = true;
+    Promise.resolve(primeAuthProviders()).then(() => { if (live) setGoogleState(cachedProviderStatus('google')); });
+    return () => { live = false; };
+  }, []);
+  const googleOff = googleState === 'disabled';
 
   const handleGoogle = async () => {
-    setError(''); setErrorDetail('');
+    setError(''); setErrorDetail(''); setGoogleError('');
     setOauthBusy(true);
     // Read the primed probe SYNCHRONOUSLY: awaiting here would spend the user
     // gesture that window.open needs. Not-yet-known proceeds, as in AuthModal.
     const gate = guardProviderCached('google');
-    if (!gate.ok) { setOauthBusy(false); setError(gate.message); return; }
+    if (!gate.ok) { setOauthBusy(false); setGoogleError(gate.message); setGoogleState('disabled'); return; }
     let res;
     try {
       res = await signInWithGooglePopup();
@@ -105,7 +120,7 @@ export default function PasswordAuth({ mode: initialMode = 'signup', onSignedIn 
       const fb = await signInWithGoogle();
       if (fb && fb.error) {
         setOauthBusy(false);
-        setError(fb.error.message || 'Google sign-in isn’t available right now — use a password or your phone below.');
+        setGoogleError(fb.error.message || 'Google sign-in isn’t available right now — use a password or your phone below.');
       }
       return; // a started redirect navigates away
     }
@@ -114,7 +129,7 @@ export default function PasswordAuth({ mode: initialMode = 'signup', onSignedIn 
     setOauthBusy(false);
     resetAuthProvidersCache();
     const recheck = await guardProvider('google');
-    if (!recheck.ok) setError(recheck.message);
+    if (!recheck.ok) { setGoogleError(recheck.message); setGoogleState('disabled'); }
   };
 
   const googleDoor = (
@@ -124,15 +139,24 @@ export default function PasswordAuth({ mode: initialMode = 'signup', onSignedIn 
         <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">or</span>
         <span className="h-px flex-1 bg-[#E8E4DC]"></span>
       </div>
-      <button
-        type="button"
-        onClick={handleGoogle}
-        disabled={oauthBusy}
-        data-testid="google-door"
-        className="mt-3 w-full text-xs uppercase tracking-wider px-4 py-3 min-h-[48px] border-2 border-[#1A1815] text-[#1A1815] bg-white hover:bg-[#1A1815] hover:text-white disabled:opacity-50 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
-      >
-        {oauthBusy ? 'One moment…' : 'Continue with Google — no email needed'}
-      </button>
+      {googleOff ? (
+        <p className="mt-3 text-xs text-[#5A5751] leading-relaxed" data-testid="google-door-off" role="status" style={{ fontFamily: '"Fraunces", serif' }}>
+          Google sign-in is not switched on at the family server yet. Use your password, or your phone number and PIN.
+        </p>
+      ) : (
+        <button
+          type="button"
+          onClick={handleGoogle}
+          disabled={oauthBusy}
+          data-testid="google-door"
+          className="mt-3 w-full text-xs uppercase tracking-wider px-4 py-3 min-h-[48px] border-2 border-[#1A1815] text-[#1A1815] bg-white hover:bg-[#1A1815] hover:text-white disabled:opacity-50 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+        >
+          {oauthBusy ? 'One moment…' : 'Continue with Google — no email needed'}
+        </button>
+      )}
+      {googleError && !googleOff && (
+        <p className="mt-2 text-xs text-[#B85838]" role="alert" data-testid="google-door-error">{googleError}</p>
+      )}
     </>
   );
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
@@ -238,8 +262,8 @@ export default function PasswordAuth({ mode: initialMode = 'signup', onSignedIn 
         <p className="text-sm text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>We asked the server to email {form.email || 'you'} a sign-in link. If it arrives, tap it — that’s the whole sign-in.</p>
         <p className="text-xs text-[#5A5751] mt-2 leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
           No email after a couple of minutes? Don’t keep waiting — email sending is not set up on the
-          family server, so the link cannot arrive at all. Use one of the doors below instead: Google
-          needs no email, and a password works without one IF you set a password when you signed up.
+          family server, so the link cannot arrive at all. Use one of the doors below instead: {googleOff ? '' : 'Google needs no email, and '}a
+          password works without one IF you set a password when you signed up.
         </p>
         <button type="button" onClick={() => { setUsePassword(true); setStatus('idle'); setError(''); }}
           className="mt-3 w-full text-xs uppercase tracking-wider px-4 py-3 min-h-[48px] border-2 border-[#1A1815] text-white bg-[#1A1815] hover:bg-[#3a352f] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]">
@@ -249,8 +273,8 @@ export default function PasswordAuth({ mode: initialMode = 'signup', onSignedIn 
             door just failed. This is where Darrell was standing. */}
         {googleDoor}
         <p className="text-xs text-[#5A5751] mt-2 leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
-          Forgot it, or never set one? It can’t be emailed to you — there is no password-reset email either.
-          <strong>Continue with Google</strong> above needs no email at all. Otherwise use the
+          Forgot it, or never set one? It can’t be emailed to you — there is no password-reset email either.{' '}
+          {googleOff ? null : <><strong>Continue with Google</strong> above needs no email at all. </>}Otherwise use the
           <strong> phone number + PIN</strong> door if you set one up, or ask the person who runs this
           server to set a password on your account.
         </p>

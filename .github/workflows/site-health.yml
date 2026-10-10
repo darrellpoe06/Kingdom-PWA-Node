@@ -348,6 +348,16 @@ jobs:
                 add_fail "NO PAGES FUNCTION IS RUNNING — GET poetech.us/automation-status answered with '${FN_CT}', the SPA shell, instead of its Function's JSON. When this is true EVERY NAS-backed road is dark at once: /sb sign-in, /n8n, /cams, /taxes, /openers, /llm, /reviews, /voice, /nas-photos, /ways, /scribe. Measured 2026-10-09 while a deploy logged 'Uploading Functions bundle' and '_routes.json' and the Functions still never ran, on the custom domain, on poetech-app.pages.dev AND on the per-deployment host — so it is Cloudflare-side and no code change reaches it" ;;
             esac
 
+            # WHICH SIGN-IN DOORS ARE ACTUALLY ON (DR-0900). 2026-10-10, Darrell
+            # on the "Link requested" screen: "Need to work with Google...
+            # doesn't work!!!!!!!" -- and nothing anywhere had ever measured
+            # whether the family server had Google switched on. This reads
+            # GoTrue's own public description of itself (the same endpoint the
+            # app's pre-flight guard reads) and writes the answer into the
+            # incident ledger's notes. A reading, not a failure: Google OFF is
+            # a known state the app now says out loud, not an outage.
+            AUTH_EXT=$(curl -sS --max-time 20 "https://poetech.us/sb/auth/v1/settings" 2>/dev/null | grep -o '"\(google\|email\|phone\)":[a-z]*' | tr '\n' ' ') || AUTH_EXT=""
+            note "- sign-in doors GoTrue reports (\`/sb/auth/v1/settings\`): \`${AUTH_EXT:-could not read}\`"
             SB_SOV_CT=$(curl -sS -o /dev/null -w '%{content_type}' --max-time 20 "https://poetech.us/sb/auth/v1/health" 2>/dev/null) || SB_SOV_CT=""
             note "- \`GET /sb/auth/v1/health\` content-type -> \`${SB_SOV_CT:-unknown}\`"
             case "${SB_SOV_CT:-}" in
