@@ -50,7 +50,11 @@ vi.mock('../modules/properties/cloud.js', () => {
     // The guest card on the Work board (DR-0898): off on every door here.
     loadGuestLink: async () => ({ ok: true, token: null }), openGuestLink: async () => ({ ok: true, token: null }), closeGuestLink: async () => ({ ok: true }),
     // Rent hand-off and the change clock (DR-0899): nothing set, nothing logged.
-    loadRecordEvents: async () => ({ ok: true, events: [] }), loadPayeeForTenancy: async () => ({ ok: true, payee: null }),
+    loadRecordEvents: async () => ({ ok: true, events: [] }), loadDoorMoney: async () => ({ ok: true, months: [] }),
+    loadDoorPapers: async () => ({ ok: true, documents: [] }), loadSignatures: async () => ({ ok: true, signatures: [] }),
+    requestSignatures: async () => ({ ok: true }), signDocument: async () => ({ ok: true }),
+    doorOfMyTenancy: async () => ({ ok: true, rentalId: null }), loadCameraMenu: async () => ({ ok: true, menu: [] }), loadCameraAccess: async () => ({ ok: true, rows: [] }),
+    saveCameraMenu: async () => ({ ok: true }), askForCameras: async () => ({ ok: true }), decideCameraAccess: async () => ({ ok: true }), giveCameraAccess: async () => ({ ok: true }), loadPayeeForTenancy: async () => ({ ok: true, payee: null }),
     loadRentPayee: async () => ({ ok: true, payee: null }), saveRentPayee: async () => ({ ok: true }),
     fileWorkOrder: noop,
     setWorkOrderStatus: async (id, status) => { H.statuses.push([id, status]); return { ok: true }; },

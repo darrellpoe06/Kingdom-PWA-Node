@@ -27,8 +27,10 @@ import {
   claimPropertyAccess, loadMyDoors, loadMyGrants, loadMyHousehold, loadDoorRecord,
   fileWorkOrder, setWorkOrderStatus, assignWorkOrder, postMessage, postNote,
   postJobDoc, recordRent, confirmRent, markRentPosted, inviteToProperties, createTenancy, loadInvites, loadRecordEvents,
-  revokeInvite,
+  revokeInvite, loadDoorMoney, doorOfMyTenancy,
 } from './cloud.js';
+import { moneyByDoor, moneyLine } from './door-money.js';
+import { DoorMoneyCard, RecordPayment } from './DoorMoney.jsx';
 import { peopleOnDoor, whyNotReady, namesByUserId } from './people.js';
 import { MAINTENANCE_TRANSITIONS, PRIORITY, buildMaintenanceRequest } from '../../lib/tenant-portal.js';
 import { smsHref, telHref } from '../../lib/dispatch.js';
@@ -103,7 +105,7 @@ const DOOR_SCOPED = new Set([
  * inside each: in the same spot every time, it becomes something you stop
  * having to look for.
  */
-function DoorContext({ rental, tenancy, data = {}, open = [], onChange, onGo, tabs = [], activeTab, canPick = true }) {
+function DoorContext({ rental, tenancy, data = {}, open = [], onChange, onGo, tabs = [], activeTab, canPick = true, money = null }) {
   const label = rental?.display_name || rental?.address || tenancy?.property_label || null;
   const where = rental
     ? [rental.address, rental.unit, rental.city, rental.state].filter(Boolean).join(', ')
@@ -156,6 +158,9 @@ function DoorContext({ rental, tenancy, data = {}, open = [], onChange, onGo, ta
       : active && active.status === 'pending' ? `Moving in \u2014 ${active.tenant_name}`
         : active ? `Rented \u2014 ${active.tenant_name || 'household not named'}` : (rental ? 'No tenancy on this door' : null),
     rent > 0 ? `$${rent.toFixed(0)}/mo` : 'no rent on record',
+    // What this asset has accumulated, tenant or no tenant (DR-0903). The
+    // family's face only; unknown says so, never $0.
+    money ? moneyLine(money) : null,
   ].filter(Boolean);
 
   return (
@@ -462,6 +467,29 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
     boundedRead(loadRecordEvents(ids), 8000, { ok: false }).then((r) => { if (live) setChanges(r.ok ? r.events : []); });
     return () => { live = false; };
   }, [record]);
+
+  // WHAT EACH DOOR HAS BROUGHT IN (DR-0903, 0265). One read of
+  // door_money_months under this person's RLS, re-read whenever the door's
+  // record is (a payment recorded anywhere moves the totals everywhere).
+  const [moneyRows, setMoneyRows] = useState([]);
+  useEffect(() => {
+    let live = true;
+    boundedRead(loadDoorMoney(), 8000, { ok: false }).then((r) => { if (live && r.ok) setMoneyRows(r.months); });
+    return () => { live = false; };
+  }, [record, rentals]);
+  const money = useMemo(() => moneyByDoor(moneyRows), [moneyRows]);
+
+  // THE DOOR'S ID FOR A FACE THAT CANNOT READ RENTALS (DR-0904): a tenant or
+  // household member asks for that door's cameras by its id, learned through
+  // door_of_my_tenancy() for a tenancy they are on and nothing else.
+  const [askDoorId, setAskDoorId] = useState(null);
+  useEffect(() => {
+    let live = true;
+    if (activeRental?.id) { setAskDoorId(activeRental.id); return () => { live = false; }; }
+    if (!activeDoor?.id) { setAskDoorId(null); return () => { live = false; }; }
+    boundedRead(doorOfMyTenancy(activeDoor.id), 8000, { ok: false }).then((r) => { if (live) setAskDoorId(r.ok ? r.rentalId : null); });
+    return () => { live = false; };
+  }, [activeRental, activeDoor]);
 
   // 2. The role. Derived from what the database actually returned for THIS person:
   //    a household membership, a capability grant, or (the family's own session)
@@ -925,6 +953,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
           tabs={face.tabs}
           activeTab={activeTab}
           canPick={face.tabs.some((t) => t.id === 'doors')}
+          money={role === 'owner' || role === 'manager' ? (activeRental ? money.doors.get(activeRental.id) || { known: false } : null) : null}
         />
       )}
 
@@ -957,7 +986,10 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
               tenancies={doorData.tenancies}
               events={[...history, ...toTimelineEvents(doorData.systemEvents, doorData.systems)]}
               photos={doorData.photos}
-              rent={record.rent} expectedRent={activeDoor?.monthly_rent ?? null}
+              // The ledger is this tenancy's, against its rent; the door's whole
+              // money (every tenant, and none) is on the Rent tab (DR-0903).
+              rent={activeDoor ? record.rent.filter((r) => r.tenancy_id === activeDoor.id) : []}
+              expectedRent={activeDoor?.monthly_rent ?? null}
             />
           );
           case 'gallery': return (
@@ -1036,6 +1068,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
               <DoorsBoard
                 rentals={rentals} tenancies={doors} busy={Boolean(busy)}
                 canManage={role === 'owner' || role === 'manager'}
+                money={role === 'owner' || role === 'manager' ? money : null}
                 // A tenancy id opens the relationship record; a rentals id (a
                 // door with nobody in it, which is every door on this account
                 // today) opens the door's own chronology, which is the surface
@@ -1105,6 +1138,21 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
               <RentTab
                 rent={record.rent} door={activeDoor} role={role} face={face} booksAvailable={!!books}
                 changes={changes} instanceId={workDoor?.instanceId || null}
+                money={activeRental ? money.doors.get(activeRental.id) || doorMoneyNone : null}
+                doorLabel={activeRental?.display_name || activeRental?.address || activeDoor?.property_label || 'this door'}
+                onRecordReceived={workDoor ? async (row) => {
+                  // "How to add payments to the historical events?" (DR-0903):
+                  // money the family received, on the door, tenant or not, on
+                  // the day it came. Confirmed as written — they would confirm it.
+                  const tenantOnDoor = activeDoor && (activeDoor.tenant_name || activeDoor.tenant_user_id) ? activeDoor.id : null;
+                  const res = await recordRent({
+                    instanceId: workDoor.instanceId, tenancyId: tenantOnDoor, rentalId: workDoor.rentalId,
+                    amount: row.amount, forPeriod: row.for_period, method: row.method, memo: row.memo,
+                    paidOn: row.paid_on, role: role === 'owner' ? 'landlord' : 'manager', status: 'confirmed',
+                  });
+                  refresh();
+                  return res;
+                } : null}
                 onReport={async (row) => {
                   // "I'm paying" (DR-0899): the record, with what was due, what
                   // remains, the promise and this device's clock, is written
@@ -1143,7 +1191,10 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
             // THE CAMERAS AT THIS DOOR (DR-0841): the landlord shares, the
             // household watches, on a grant the NAS minted for this door.
             return (role === 'owner' || role === 'manager')
-              ? <DoorCamerasTab door={activeDoor} place={activeDoor || activeRental} onChange={async (patch) => {
+              ? <DoorCamerasTab door={activeDoor} place={activeDoor || activeRental}
+                people={peopleOnDoor(invites, { instanceId: (activeDoor || activeRental)?.instance_id || null, tenancyId: activeDoor?.id || null, scopeRef: activeDoor?.rental_ref || activeRental?.slug || null }).people}
+                rentalId={activeRental?.id || null} instanceId={(activeRental || activeDoor)?.instance_id || null}
+                onChange={async (patch) => {
                   // The porch camera of a vacant unit is still shareable — make
                   // the unit record first if it is missing (DR-0870).
                   const d = await ensureDoor();
@@ -1152,7 +1203,9 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
                   if (w.ok) { boot(); refresh(); }
                   return w;
                 }} />
-              : <TenantCamerasTab door={activeDoor} renderCameras={renderCameras} />;
+              : <TenantCamerasTab door={activeDoor} renderCameras={renderCameras}
+                  rentalId={askDoorId} instanceId={(activeRental || activeDoor)?.instance_id || null}
+                  me={me} myName={role === 'tenant' ? activeDoor?.tenant_name || '' : ''} />;
           case 'people':
             return <PeopleTab door={activeDoor} place={activeDoor || activeRental} invites={invites}
               onInvite={async (payload) => {
@@ -1710,20 +1763,37 @@ function HistoryTab({ history, onNote, unread = null, unseen = [] }) {
   );
 }
 
-function RentTab({ rent, door, role, face, onReport, onConfirm, onPost, booksAvailable, changes = [], instanceId = null }) {
+const doorMoneyNone = Object.freeze({ known: false, received: 0, payments: 0, awaiting: 0, awaitingCount: 0, withoutTenant: 0, years: [], months: [] });
+
+function RentTab({ rent, door, role, face, onReport, onConfirm, onPost, booksAvailable, changes = [], instanceId = null, money = null, doorLabel = 'this door', onRecordReceived = null }) {
   const canReport = role === 'tenant';
   const canConfirm = role === 'owner' || face.canWriteRent;
+  const family = role === 'owner' || role === 'manager';
   const waiting = unpostedRent(rent);
+  // The tenant's balance is THIS tenancy's (an earlier tenant's money is not
+  // theirs to have paid); the history below is the door's, whoever paid it.
+  const mine = door ? rent.filter((r) => r.tenancy_id === door.id) : [];
+  // Newest money first, by the day it came when that is known.
+  const history = [...rent].sort((a, b) => String(b.paid_on || b.reported_at || '').localeCompare(String(a.paid_on || a.reported_at || '')));
+  const hasTenant = !!(door && (door.tenant_name || door.tenant_user_id));
   return (
     <>
-      {canReport && door && <PayRent tenancy={door} rent={rent} onReport={onReport} />}
+      {canReport && door && <PayRent tenancy={door} rent={mine} onReport={onReport} />}
+      {family && money && <DoorMoneyCard summary={money} doorLabel={doorLabel} />}
+      {family && (role === 'owner' || face.canWriteRent) && onRecordReceived && (
+        <RecordPayment onRecord={onRecordReceived} hasTenancy={hasTenant} tenantName={door?.tenant_name || ''} />
+      )}
       {role === 'owner' && instanceId && <PayeeCard instanceId={instanceId} />}
       <Card title="Payment history">
-        {rent.length === 0 ? <Empty>No payments recorded yet.</Empty> : rent.map((r) => (
+        {history.length === 0 ? <Empty>No payments recorded yet.</Empty> : history.map((r) => (
           <div key={r.id} className="border-b border-[#F0EDE6] py-2 flex flex-wrap items-baseline justify-between gap-2">
-            <span className="text-sm text-[#1A1815]" style={serif}>{rentLine(r)}{r.memo ? ` "${r.memo}"` : ''}</span>
+            <span className="text-sm text-[#1A1815]" style={serif}>
+              {rentLine(r)}{r.memo ? ` "${r.memo}"` : ''}
+              {/* Whose money it was, when it was not this tenancy's. */}
+              {family && r.tenancy_id === null && r.rental_id ? ' (no tenant on record)' : family && door && r.tenancy_id && r.tenancy_id !== door.id ? ' (an earlier tenancy)' : ''}
+            </span>
             <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">
-              {r.status}{r.posted_tx_id ? ' · in the books' : ''} · reported {when(r.reported_at)}{r.confirmed_at ? ` · confirmed ${when(r.confirmed_at)}` : ''}
+              {r.status}{r.posted_tx_id ? ' · in the books' : ''}{r.paid_on ? ` · came ${r.paid_on}` : ''} · recorded {when(r.reported_at)}{r.confirmed_at ? ` · confirmed ${when(r.confirmed_at)}` : ''}
             </span>
             {canConfirm && r.status === 'reported' && <Btn onClick={() => onConfirm(r.id)}>Confirm received</Btn>}
             {/* Every change to this payment, to the second (record_events). */}

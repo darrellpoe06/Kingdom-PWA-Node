@@ -28,6 +28,7 @@ import { buildEdit } from './staging.js';
 import { applyUrl, applyUrlDisplay, cardCaption } from './apply-link.js';
 import { isOwnHome } from './homes.js';
 import { shelfOrder } from './showcase.js';
+import { moneyLine, dollarsLong } from './door-money.js';
 import { photoOrder, movePhoto, makeCover, pickCovers, listImage } from './photo-order.js';
 import { compressImageFile, isLikelyImageFile } from '../../lib/image.js';
 import { useVoiceDictation } from '../../lib/voice-dictation.js';
@@ -444,6 +445,9 @@ function ArrangeControls({ id, index, total, onArrange, busy }) {
 export function DoorsBoard({
   rentals = [], tenancies = [], photos = [], canManage = false,
   onPick, onStart, onListing, onEditTenancy, onEditRental, onArrange, busy = false,
+  // What each door has brought in (DR-0903, door_money_months): moneyByDoor's
+  // result. Shown on the family's board only; null hides it.
+  money = null,
 }) {
   const [openFor, setOpenFor] = useState(null);
   const [editing, setEditing] = useState(null);
@@ -578,6 +582,15 @@ export function DoorsBoard({
         </span>
       }
     >
+      {money && (
+        // THE WHOLE PORTFOLIO, by what each asset has actually brought in —
+        // confirmed money only; a reported payment is named, never added.
+        <p className="text-[0.8125rem] text-[#1A1815] mb-2" data-testid="portfolio-money">
+          {money.doorsWithMoney === 0
+            ? 'No money is recorded on any door yet. Record it on a door\u2019s Rent tab, tenant or no tenant.'
+            : `${dollarsLong(money.received)} brought in across ${money.doorsWithMoney} door${money.doorsWithMoney === 1 ? '' : 's'} \u00b7 ${dollarsLong(money.thisYear)} this year${money.awaiting > 0 ? ` \u00b7 ${dollarsLong(money.awaiting)} reported, not yet confirmed` : ''}`}
+        </p>
+      )}
       {view === 'grid' && (
         <ul className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
           {doorRows.map((x, i) => (
@@ -609,6 +622,11 @@ export function DoorsBoard({
                     </span>
                     {x.rent > 0 ? ` · $${x.rent.toFixed(0)}/mo` : ' · no rent on record'}
                   </div>
+                  {money && (
+                    <div className="text-[0.6875rem] text-[#1A1815] mt-0.5" data-testid="door-card-money">
+                      {moneyLine(money.doors.get(x.rental.id))}
+                    </div>
+                  )}
                 </div>
               </button>
               {canManage && (
@@ -667,6 +685,11 @@ export function DoorsBoard({
                   {x.photoCount > 0 ? ` · ${x.photoCount} photo${x.photoCount === 1 ? '' : 's'}` : ''}
                   {x.shortStay ? ` · short stay${x.rental.nightly_rate ? ` $${Number(x.rental.nightly_rate).toFixed(0)}/night` : ''}` : ''}
                 </div>
+                {money && (
+                  <div className="text-[0.75rem] text-[#1A1815]" data-testid="door-card-money">
+                    {moneyLine(money.doors.get(x.rental.id))}
+                  </div>
+                )}
                 <div className="text-[0.75rem] text-[#6B665E]">
                   {x.rented
                     ? (x.tenancy.tenant_name || 'Household not named in the record')

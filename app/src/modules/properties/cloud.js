@@ -166,7 +166,10 @@ export async function loadDoorRecord(tenancyId, { rentalId = null } = {}, client
       scoped(client.from('tenant_maintenance_requests').select('*')).order('created_at', { ascending: true }),
       tenancyId ? client.from('tenant_messages').select('*').eq('tenancy_id', tenancyId).order('sent_at', { ascending: true }) : none,
       scoped(client.from('tenancy_notes').select('*')).order('created_at', { ascending: true }),
-      tenancyId ? client.from('rent_records').select('*').eq('tenancy_id', tenancyId).order('reported_at', { ascending: true }) : none,
+      // The door keeps its money (0265 / DR-0903): every payment on this door,
+      // with a tenant or without, under the reader's own RLS — a tenant still
+      // reads only their own; the family reads the door's whole history.
+      scoped(client.from('rent_records').select('*')).order('reported_at', { ascending: true }),
       tenancyId ? client.from('tenant_notices').select('*').eq('tenancy_id', tenancyId).order('posted_at', { ascending: true }) : none,
     ]);
     const unreadable = [];
@@ -263,7 +266,7 @@ export async function postJobDoc(row, client = supabase) {
 }
 
 /** Report or confirm rent. Records reality; moves no money (DR-0094). */
-export async function recordRent({ instanceId, tenancyId, amount, forPeriod, method, memo, status, role, part = null }, client = supabase) {
+export async function recordRent({ instanceId, tenancyId = null, rentalId = null, paidOn = null, amount, forPeriod, method, memo, status, role, part = null }, client = supabase) {
   try {
     const uid = await userId(client);
     // The part-payment facts (0262 / DR-0899) ride along only when given, so a
@@ -274,13 +277,32 @@ export async function recordRent({ instanceId, tenancyId, amount, forPeriod, met
         if (part[k] !== null && part[k] !== undefined) extra[k] = part[k];
       }
     }
+    // The door and the day the money came (0265) ride along only when given,
+    // for the same reason. A payment the family received is confirmed as it
+    // is written: they are the ones who would confirm it.
+    if (rentalId) extra.rental_id = rentalId;
+    if (paidOn) extra.paid_on = paidOn;
+    if (status === 'confirmed') extra.confirmed_at = new Date().toISOString();
     const { error } = await client.from('rent_records').insert({
-      instance_id: instanceId, tenancy_id: tenancyId, reported_by: uid,
+      instance_id: instanceId, tenancy_id: tenancyId || null, reported_by: uid,
       reported_by_role: ['tenant', 'manager', 'landlord'].includes(role) ? role : 'tenant',
       amount, for_period: forPeriod || null, method: method || 'other', memo: memo || null,
       status: status || 'reported', money_moved_in_app: false, ...extra,
     });
     return error ? no('write-failed', error) : ok();
+  } catch (e) { return no('unexpected', e); }
+}
+
+/**
+ * What every door this person can see has brought in, month by month
+ * (door_money_months, 0265). No instance filter, as everywhere here: the view
+ * runs under the reader's RLS, so it returns exactly the money they may see.
+ */
+export async function loadDoorMoney(client = supabase) {
+  try {
+    const { data, error } = await client.from('door_money_months').select('*');
+    if (error) return no('read-failed', error);
+    return ok({ months: data || [] });
   } catch (e) { return no('unexpected', e); }
 }
 
@@ -990,5 +1012,86 @@ export async function setWorkOrderProof(id, { proofRequired = 'none', proofNote 
     const { error } = await client.from('tenant_maintenance_requests')
       .update({ proof_required: proofRequired, proof_note: (String(proofNote || '').trim() || null) }).eq('id', id);
     return error ? no('write-failed', error) : ok();
+  } catch (e) { return no('unexpected', e); }
+}
+
+// =============================================================================
+// A door's cameras, asked for and given (DR-0904, 0266). The menu is what the
+// family offers on a door (names only); the access rows are who asked for or
+// was given which cameras, who decided, until when. RLS: anyone on the door
+// reads the menu; each person reads their own rows; the family reads and
+// decides all of them. The NAS mints and enforces the grant itself (DR-0778).
+// =============================================================================
+export async function loadCameraMenu(rentalId, client = supabase) {
+  if (!rentalId) return ok({ menu: [] });
+  try {
+    const { data, error } = await client.from('door_camera_menu').select('camera_id, camera_name').eq('rental_id', rentalId).order('camera_name', { ascending: true });
+    if (error) return no('read-failed', error);
+    return ok({ menu: data || [] });
+  } catch (e) { return no('unexpected', e); }
+}
+
+/** Replace what a door offers: the family ticks the cameras people may ask for. */
+export async function saveCameraMenu({ instanceId, rentalId, cameras = [] }, client = supabase) {
+  if (!instanceId || !rentalId) return no('no-door');
+  try {
+    const keep = cameras.map((c) => c.id);
+    const del = client.from('door_camera_menu').delete().eq('rental_id', rentalId);
+    const { error: e1 } = keep.length ? await del.not('camera_id', 'in', `(${keep.map((k) => `"${String(k).replace(/"/g, '')}"`).join(',')})`) : await del;
+    if (e1) return no('write-failed', e1);
+    if (!keep.length) return ok();
+    const { error: e2 } = await client.from('door_camera_menu').upsert(
+      cameras.map((c) => ({ instance_id: instanceId, rental_id: rentalId, camera_id: c.id, camera_name: c.name || c.id })),
+      { onConflict: 'rental_id,camera_id', ignoreDuplicates: false },
+    );
+    return e2 ? no('write-failed', e2) : ok();
+  } catch (e) { return no('unexpected', e); }
+}
+
+export async function loadCameraAccess(rentalId, client = supabase) {
+  if (!rentalId) return ok({ rows: [] });
+  try {
+    const { data, error } = await client.from('door_camera_access').select('*').eq('rental_id', rentalId).order('created_at', { ascending: false });
+    if (error) return no('read-failed', error);
+    return ok({ rows: data || [] });
+  } catch (e) { return no('unexpected', e); }
+}
+
+/** A person on the door asks. Their role is stamped by the database, not here. */
+export async function askForCameras({ instanceId, rentalId, cameras, reason, label }, client = supabase) {
+  try {
+    const uid = await userId(client);
+    if (!uid) return no('not-signed-in');
+    const { error } = await client.from('door_camera_access').insert({
+      instance_id: instanceId, rental_id: rentalId, kind: 'request', person_user_id: uid, person_role: 'other',
+      person_label: String(label || '').trim() || 'Someone on this door', cameras, reason: String(reason || '').trim() || null,
+    });
+    return error ? no(error.code === '23505' ? 'already-asked' : 'write-failed', error) : ok();
+  } catch (e) { return no('unexpected', e); }
+}
+
+/** The family decides: granted (with the NAS grant), declined, or revoked. */
+export async function decideCameraAccess(id, patch, client = supabase) {
+  try {
+    const { error } = await client.from('door_camera_access').update(patch).eq('id', id);
+    return error ? no('write-failed', error) : ok();
+  } catch (e) { return no('unexpected', e); }
+}
+
+/** The family gives access outright: a person with an account, or by link. */
+export async function giveCameraAccess(row, client = supabase) {
+  try {
+    const { error } = await client.from('door_camera_access').insert({ ...row, kind: 'given', status: 'granted' });
+    return error ? no('write-failed', error) : ok();
+  } catch (e) { return no('unexpected', e); }
+}
+
+/** The door of a tenancy this person is on (0266), for a face that cannot read rentals. */
+export async function doorOfMyTenancy(tenancyId, client = supabase) {
+  if (!tenancyId) return ok({ rentalId: null });
+  try {
+    const { data, error } = await client.rpc('door_of_my_tenancy', { p_tenancy: tenancyId });
+    if (error) return no('read-failed', error);
+    return ok({ rentalId: data || null });
   } catch (e) { return no('unexpected', e); }
 }

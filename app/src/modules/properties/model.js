@@ -93,6 +93,9 @@ const WORKER_TABS = [
   TAB('gallery', 'Pictures', 'Before and after, room by room — take a photo and say what it shows.', 'docs.add'),
   TAB('history', 'Property history', 'What this door has needed before.', 'property.history'),
   TAB('thread', 'Job messages', 'The thread for a job the landlord opened to me.'),
+  // THE CAMERAS AT THE DOOR HE IS SENT TO (DR-0904): he asks for the ones he
+  // needs (the porch, for a delivery); the family decides and for how long.
+  TAB('cameras', 'Cameras', 'Ask for the cameras at the door I am sent to, and watch the ones given to me.'),
 ];
 
 const MANAGER_TABS = [
@@ -340,7 +343,11 @@ export function buildHistory({
     const part = Number(r.remaining_after) > 0
       ? ` (part payment: $${Number(r.remaining_after).toFixed(2)} still owed${r.rest_promised_on ? `, promised by ${r.rest_promised_on}` : ''})`
       : '';
-    push('rent', r, at(r.confirmed_at, r.reported_at), `${label}: $${Number(r.amount || 0).toFixed(2)}${r.for_period ? ` for ${r.for_period}` : ''}${part}`, r.reported_by_role || '');
+    // On the day the money CAME when that is known (0265 / DR-0903): a
+    // January payment recorded in October belongs in January.
+    const came = r.paid_on ? `${r.paid_on}T12:00:00Z` : null;
+    const who = r.tenancy_id === null && r.rental_id ? ' (no tenant on record)' : '';
+    push('rent', r, at(came, r.confirmed_at, r.reported_at), `${label}: $${Number(r.amount || 0).toFixed(2)}${r.for_period ? ` for ${r.for_period}` : ''}${part}${who}`, r.reported_by_role || '');
   }
   // EVERY CHANGE, TO THE INSTANT (DR-0899, record_events). The row above is
   // the record's birth; these are what happened to it after, each with its
@@ -369,7 +376,7 @@ export function changeSummary(e = {}, titleOf = new Map()) {
     case 'status': return `${what} moved from ${e.from_value || 'nothing'} to ${e.to_value || 'nothing'}`;
     case 'assigned': return e.to_value ? `${what} assigned to ${e.to_value}` : `${what} unassigned`;
     case 'priority': return `${what} priority changed from ${e.from_value} to ${e.to_value}`;
-    case 'changed': return `${what} amounts or promised date changed`;
+    case 'changed': return `${what} amount or dates changed`;
     case 'posted-to-books': return `${what} posted to the books`;
     default: return '';
   }

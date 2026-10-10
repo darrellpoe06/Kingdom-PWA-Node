@@ -1053,6 +1053,35 @@ const NODES = [
     ],
     seeds: ['record-clock'],
   }),
+  // The door keeps its money (DR-0903): the family records money received on
+  // the door, tenant or none, on the day it came; door_money_months sums each
+  // asset under the reader's RLS for the Rent tab, door header and board.
+  app('app/src/modules/properties/DoorMoney.jsx', {
+    id: 'door-money', name: 'What each door has brought in', purpose: 'Money received is recorded on the door with or without a tenant, on the day it came; each asset shows its lifetime, yearly and monthly total, and the board the whole portfolio.',
+    writes: [
+      { res: 'db:rent_records', file: 'app/src/modules/properties/cloud.js', token: "from('rent_records').insert" },
+    ],
+    reads: [
+      { res: 'db:rent_records', file: 'app/src/modules/properties/cloud.js', token: "from('door_money_months')" },
+    ],
+    seeds: ['record-clock'],
+  }),
+  // A door's cameras, asked for and given (DR-0904): the family offers names
+  // on a door; anyone on it asks; the family gives (the NAS mints the grant),
+  // gives a guest a link, and takes back; each move is on the clock.
+  app('app/src/modules/properties/CameraAccess.jsx', {
+    id: 'door-camera-access', name: 'Door cameras, asked for and given', purpose: 'A tenant, household member or 1099 worker asks for the cameras the family offers on a door; the family gives them for the days it chooses, gives a short-stay guest a link, and takes any of it back.',
+    writes: [
+      { res: 'db:door_camera_menu', file: 'app/src/modules/properties/cloud.js', token: "from('door_camera_menu').upsert" },
+      { res: 'db:door_camera_access', file: 'app/src/modules/properties/cloud.js', token: "from('door_camera_access').insert" },
+      { res: 'db:record_events', file: 'infra/supabase/migrations-auto/0266-a-door-camera-is-asked-for-and-given-to-whoever-the-family-chooses.sql', token: 'INSERT INTO record_events' },
+    ],
+    reads: [
+      { res: 'db:door_camera_menu', file: 'app/src/modules/properties/cloud.js', token: "from('door_camera_menu').select" },
+      { res: 'db:door_camera_access', file: 'app/src/modules/properties/cloud.js', token: "from('door_camera_access').select" },
+    ],
+    seeds: ['record-clock'],
+  }),
   app('app/src/modules/properties/model.js', {
     id: 'record-clock', name: 'Every change, to the instant (record events)', purpose: 'Each report, confirmation, status move and assignment on rent and work leaves an append-only event with its own clock, read back on the door\u2019s history so a situation can be recreated.',
     reads: [

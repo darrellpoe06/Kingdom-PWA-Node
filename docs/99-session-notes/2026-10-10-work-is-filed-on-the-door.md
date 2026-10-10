@@ -64,3 +64,50 @@
 - #2095 (0260) merged and is live: deploy, db-migrate and the live rls-isolation run all succeeded on `d5dda5958`. The later commits moved to #2096.
 - The reader's color picker fix (#2089) sat red on the spelling gate and the monolith-name gate. It was ported into #2096 with both fixed.
 - The Guest Ready subtabs are in #2087, which its own session moved to green.
+
+## Then: the door keeps its money (DR-0903, 0265)
+
+**Asked for.** "How to add payments to the historical events?" (Rent tab, landlord seat), then "the historical money for each property... with or without the tenants information... so the door always pays... the most important thing is to see how much money is being accumulated by each asset".
+
+**What was true.**
+- A rent record required a tenancy, so no door on this account could hold money.
+- The landlord could only confirm a tenant's report, never record a payment received.
+- A payment's date was when it was typed, not when it came.
+- Nothing summed money per door.
+
+**What changed.**
+- `rent_records` names its door. The door is filled from the tenancy and backfilled; a payment with no tenancy is allowed, and it is the family's record.
+- `paid_on` is the day the money came.
+- Managers get door-scoped arms.
+- `door_money_months` (security_invoker) gives each door's received and awaiting money by month.
+- **In the app:**
+  - On the Rent tab: "What this door has brought in" and "Record a payment received", plus the door's whole Payment history, each payment marked with when the money came.
+  - On the door header and every Doors card: the asset's total. The board also shows the portfolio total.
+  - In History: a payment sits on the day it came.
+- A door with nothing says so, never $0.
+
+**Proof.**
+- The smoke has eight breaks proven to catch. The first pass exposed a NULL-unsafe check and a CHECK hidden behind a policy refusal; both were tightened.
+- There are 8 app tests, including a tenant-leak test proven to catch.
+- The 0260 through 0265 smokes pass together on the CI chain.
+
+## Then: door cameras, asked for and given (DR-0904, 0266)
+
+**Asked for.** "Cameras tab shows no Cameras!!!!!! It allows giving access to who?!", then "request for certain ones... like the porch... give new tenants and 1099 workers.. and Airbnb guests... whoever we want to", and "Unlocks smart locks for doors... when short term tenants come".
+
+**What was true.**
+- On a unit with no tenancy record the tab never read the NAS and said "did not answer (no-door)". The camera witness (#2011) measured the NAS answering with 31 cameras at 18:25 UTC.
+- "This door's household" named nobody.
+- Nobody could ask, workers and guests had no road, and nothing kept a ledger of who held which camera.
+
+**What changed.**
+- The tab reads the list on every door, names who will see the share, and says so when the NAS lists none.
+- 0266 adds a per-door menu of cameras that can be asked for, and an access ledger of asks and gifts.
+  - The database stamps each person's role, allows one open ask at a time, and lets only the family decide.
+  - The token is read only by its holder and the family. Every move is on the clock, and nothing is deleted.
+- The family's desk: offer cameras, give or decline asks for the days chosen, give anyone a link to text, and take back.
+- Tenants, household members and workers can ask, and watch once given. Workers gain a Cameras tab.
+
+**Smart locks.** No lock driver exists on the NAS. The forwarder speaks Wyze for the garage door, siren and power only. The same access model will carry an unlock window per person; the driver waits on which locks are on the doors (asked).
+
+**Proof.** The smoke has ten breaks proven to catch. There are 15 app tests, three of them proven to catch.
