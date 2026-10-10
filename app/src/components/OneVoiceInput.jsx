@@ -22,6 +22,7 @@ import { resolveSurface, lessonConfirmationKey, lessonNameTags, lessonNotice, cl
 import { useVoiceDictation, LONG_FORM_SESSION_CAP_MS, VOICE_SESSION_CAP_MS, capMinutes } from '../lib/voice-dictation.js';
 import { readDraft, writeDraft, clearDraft } from '../lib/draft-autosave.js';
 import { keepRecording, readKeptRecording, dropKeptRecording } from '../lib/kept-recording.js';
+import { useIntakeHold } from '../lib/intake-guard.js';
 import { relayThought } from '../lib/agent-inbox-sync.js';
 import VoiceLessonRecorder from './VoiceLessonRecorder.jsx';
 import LessonInbox from './LessonInbox.jsx';
@@ -164,6 +165,26 @@ export function OneVoiceInput({
   const [lessonsSeen, setLessonsSeen] = useState(0);
   const [sending, setSending] = useState(false);
   const lessonRecording = route === 'lesson' && lessonLive.recording;
+  // NOTHING TAKES THE PAGE WHILE A LESSON IS UNSENT (DR-0748, and Darrell
+  // 2026-10-10: "an App Reload has to account for the specific situations on
+  // cellphones and make sure they want the update when we push them it should
+  // be a choice... so the users can finish without failing their process at
+  // that moment").
+  //
+  // MEASURED 2026-10-10: this surface took NO intake hold at all. The scribe
+  // held for its take; the box a spoken lesson is actually recorded in did
+  // not. So the zero-click update reload was free to take the page mid-take,
+  // and mid-UNSENT-take, which is exactly what happened to the 14:05 lesson
+  // on 2026-10-09. The recording now survives that (lib/kept-recording.js),
+  // but surviving a reload is not the same as not being interrupted.
+  //
+  // The hold stands while recording, and keeps standing while a finished take
+  // waits to be sent. It is not on a timer: it ends when the lesson is sent
+  // or the take is dropped. The update is still offered the whole time by the
+  // FreshnessDot, which is the CHOICE he asked for.
+  useIntakeHold('recording', lessonRecording);
+  useIntakeHold('recording-kept', !lessonRecording && !!lessonTake);
+
   const takeReady = route === 'lesson' && !!(lessonTake && lessonTake.verdict && lessonTake.verdict.ok);
   const onLessonTake = (take) => {
     setLessonTake(take);

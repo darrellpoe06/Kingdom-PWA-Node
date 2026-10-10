@@ -373,7 +373,18 @@ describe('every taker of the screen consults the hold', () => {
     const scribe = codeOnly(read('lib', 'workflow-scribe.js'));
     expect(scribe).toContain("holdIntake('recording')");
     expect(scribe).toContain("holdIntake('recording-kept')");
-    expect(scribe).toContain('setTimeout(releaseKept, RESULT_HOLD_MS)');
+    // THE KEPT HOLD NO LONGER EXPIRES (2026-10-10). This used to pin the
+    // timer that released it after ten minutes and let the zero-click reload
+    // take the page. A timer cannot know how long a person needs, so the pin
+    // is INVERTED: the scribe must NOT schedule a release, and the hold ends
+    // only when the take is sent or dropped.
+    expect(scribe).not.toContain('setTimeout(releaseKept');
+    // And the box a spoken lesson is actually recorded in holds too -- it held
+    // nothing at all until today, which is how a reload could take the page
+    // mid-take (the 2026-10-09 lesson).
+    const box = codeOnly(read('components', 'OneVoiceInput.jsx'));
+    expect(box).toContain("useIntakeHold('recording', lessonRecording)");
+    expect(box).toContain("useIntakeHold('recording-kept', !lessonRecording && !!lessonTake)");
     const mic = codeOnly(read('lib', 'voice-dictation.js'));
     expect(mic).toContain("holdIntake('dictation')");
     const reader = codeOnly(read('lib', 'use-read-aloud.js'));
