@@ -219,7 +219,29 @@ export const MAX_SPAN_SEGMENTS = 6;
 // Chrome's long-utterance cutoff. The segments themselves never change — the
 // follow map, the highlight and the paragraph steps still see one sentence
 // each, advanced by the word boundaries inside the utterance.
-export const TV_SPAN_CHARS = 540;
+// CORRECTED SAME DAY (DR-0879). The first cut of this set a flat 540-character
+// TV budget, and that was wrong in a way worth writing down rather than
+// quietly deleting.
+//
+// The paced budget is not arbitrary and it is not really about characters. At
+// roughly 15 characters of speech per second, `SPAN_CHARS_PER_RATE * rate`
+// chars at `rate` is a CONSTANT ~12 SECONDS OF AUDIO, whatever the pace. That
+// is the whole point: Chrome silently truncates an utterance past about 15
+// seconds (this file's own header names it as one of the two bugs segmenting
+// exists to dodge), so every utterance is sized in TIME and the character
+// count is just how time is expressed.
+//
+// 540 characters at 1x is about THIRTY-SIX SECONDS — three times the budget
+// and well past the cutoff. Darrell, within the hour of that shipping: "Words
+// keep slurring not articulate or even decernable." A truncated utterance is
+// exactly what a listener hears as a sentence degrading.
+//
+// The correct TV change was never a bigger budget. It was only to stop the
+// RATE from gating the behaviour: at 1x the paced budget of 180 characters
+// already holds two typical clauses (~70 chars each), so a television halves
+// its onsets and stays inside the twelve seconds. One gate removed, no number
+// invented.
+export const TV_SPAN_CHARS = 540;   // kept exported only so a stale import cannot throw; unused.
 
 /**
  * How many consecutive segments from `idx` one utterance should carry at
@@ -232,7 +254,7 @@ export function utteranceSpan(segments, idx, rate, { spokenLength = (t) => Strin
   const r = clampRate(rate);
   if (r < RATE_SPAN_FROM && !tv) return 1;
   const paced = Math.round(SPAN_CHARS_PER_RATE * r);
-  const budget = Math.min(MAX_SPAN_CHARS, tv ? Math.max(TV_SPAN_CHARS, paced) : paced);
+  const budget = Math.min(MAX_SPAN_CHARS, paced);   // TIME, not characters — see above
   let n = 1;
   let chars = spokenLength(list[idx]);
   while (n < MAX_SPAN_SEGMENTS && idx + n < list.length) {
