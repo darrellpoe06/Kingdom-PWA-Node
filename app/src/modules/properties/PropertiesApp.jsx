@@ -1136,7 +1136,15 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
               canAdd={role === 'owner' || role === 'manager' || (role === 'field_worker' && grants.includes('docs.add'))}
               // The full image, one at a time, only when a picture is opened.
               loadImage={async (id) => { const r = await loadPhotoImages([id]); return r.ok ? r.images[id] || null : null; }}
-              onAdd={async (row) => { const r = await addPhoto(row); say(r.ok ? 'Added.' : `Not saved: ${r.reason}`); loadDoorData(); boot(); }}
+              // RETURNS the result (DR-0907). It used to swallow it, so the
+              // gallery could not tell a saved picture from a lost one and
+              // cleared its queue either way.
+              onAdd={async (row) => {
+                const r = await addPhoto(row);
+                if (!r.ok) say(`Not saved: ${r.reason}`);
+                loadDoorData(); boot();
+                return r;
+              }}
               onPatch={async (id, patch) => { const r = await patchPhoto(id, patch); say(r.ok ? 'Saved.' : `Not saved: ${r.reason}`); loadDoorData(); boot(); }}
               // A room can be made from INSIDE the picture form, so a dropdown
               // with nothing in it is never a dead end (2026-08-28). Same

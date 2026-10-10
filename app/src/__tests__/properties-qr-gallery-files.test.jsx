@@ -24,6 +24,17 @@ import {
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
+// jsdom cannot DECODE an image, so the real compressImageFile refuses every
+// file here and nothing would ever reach the queue. The decode itself is
+// proven against a genuine .heic in a-heic-photo-is-a-photo.test.js; what the
+// save cases below exercise is what happens to a picture AFTER it is queued,
+// which is where Darrell's "didn't take them" lives. isLikelyImageFile stays
+// real, so the picker's own gate is still the one under test.
+vi.mock('../lib/image.js', async (orig) => ({
+  ...(await orig()),
+  compressImageFile: async () => 'data:image/jpeg;base64,/9j/4AAQSkZJRg==',
+}));
+
 // The board's QR / Advertise / Start-a-tenancy controls live in the LIST view.
 // The default became grid on 2026-08-28 (Darrell: "I like the grid look as the
 // default"), so pin the view this suite is actually exercising rather than
@@ -174,6 +185,96 @@ describe('a property\'s pictures', () => {
     expect(isAdvertising(kind.value)).toBe(false);
     // And nothing shouts about advertising when nobody chose it.
     expect(host.querySelector('[data-testid="advertising-warning"]')).toBeNull();
+  });
+
+  // A PICTURE IS NOT GONE UNTIL IT IS SAVED (DR-0907). Darrell, 2026-10-10,
+  // after the HEIC fix let fourteen move-out photographs in at last: "Would
+  // let me upload however didn't take them".
+  //
+  // The old submit() fired every insert WITHOUT awaiting and then cleared the
+  // queue regardless, so anything that failed vanished from the screen with
+  // nothing to retry and no copy of the file — while the thumbnails
+  // disappearing made it look saved.
+  describe('saving the queue', () => {
+    const queue = async (host, names) => {
+      // Put files through the real picker so the queue is built the way the
+      // app builds it, not hand-assembled.
+      const input = host.querySelector('input[type="file"]');
+      expect(input, 'no file input').toBeTruthy();
+      const files = names.map((n) => new File([new Uint8Array([1, 2, 3])], n, { type: 'image/jpeg' }));
+      Object.defineProperty(input, 'files', { value: files, configurable: true });
+      await act(async () => {
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+        for (let i = 0; i < 8; i += 1) await Promise.resolve();
+      });
+    };
+
+    it('PROVEN-TO-CATCH: a picture that did NOT save stays in the queue', async () => {
+      const seen = [];
+      // The second one fails, the way one insert out of fourteen would.
+      const onAdd = async (row) => {
+        seen.push(row.caption);
+        return seen.length === 2 ? { ok: false, reason: 'write-failed' } : { ok: true };
+      };
+      const host = render(<GalleryTab door={door} rooms={rooms} photos={[]} canManage onAdd={onAdd} />);
+      await queue(host, ['a.jpg', 'b.jpg', 'c.jpg']);
+      expect(host.querySelectorAll('li img').length, 'the picker did not queue three').toBe(3);
+
+      const add = host.querySelector('[data-testid="add-to-gallery"]');
+      await act(async () => {
+        add.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+        for (let i = 0; i < 24; i += 1) await Promise.resolve();
+      });
+
+      // All three were attempted, ONE AT A TIME.
+      expect(seen).toHaveLength(3);
+      // The failed one is still on screen; the two that saved are gone.
+      expect(host.querySelectorAll('li img').length, 'the failed picture was discarded').toBe(1);
+      expect(txt(host)).toMatch(/2 of 3 added/);
+      expect(txt(host)).toMatch(/1 still here and NOT saved/);
+      expect(txt(host)).toMatch(/b\.jpg \(write-failed\)/);
+      expect(txt(host)).toMatch(/still in the list — try again/);
+    });
+
+    it('when every picture saves, the queue empties and nothing is claimed lost', async () => {
+      const onAdd = async () => ({ ok: true });
+      const host = render(<GalleryTab door={door} rooms={rooms} photos={[]} canManage onAdd={onAdd} />);
+      await queue(host, ['a.jpg', 'b.jpg']);
+      const add = host.querySelector('[data-testid="add-to-gallery"]');
+      await act(async () => {
+        add.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+        for (let i = 0; i < 24; i += 1) await Promise.resolve();
+      });
+      expect(host.querySelectorAll('li img').length).toBe(0);
+      expect(txt(host)).not.toMatch(/NOT saved/);
+    });
+
+    it('an onAdd that answers nothing is treated as saved, as every caller before this did', async () => {
+      const onAdd = async () => undefined;
+      const host = render(<GalleryTab door={door} rooms={rooms} photos={[]} canManage onAdd={onAdd} />);
+      await queue(host, ['a.jpg']);
+      const add = host.querySelector('[data-testid="add-to-gallery"]');
+      await act(async () => {
+        add.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+        for (let i = 0; i < 16; i += 1) await Promise.resolve();
+      });
+      // A false "lost" would be its own lie.
+      expect(host.querySelectorAll('li img').length).toBe(0);
+      expect(txt(host)).not.toMatch(/NOT saved/);
+    });
+
+    it('an onAdd that THROWS keeps the picture rather than losing it', async () => {
+      const onAdd = async () => { throw new Error('network gone'); };
+      const host = render(<GalleryTab door={door} rooms={rooms} photos={[]} canManage onAdd={onAdd} />);
+      await queue(host, ['a.jpg']);
+      const add = host.querySelector('[data-testid="add-to-gallery"]');
+      await act(async () => {
+        add.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+        for (let i = 0; i < 16; i += 1) await Promise.resolve();
+      });
+      expect(host.querySelectorAll('li img').length, 'a thrown error lost the picture').toBe(1);
+      expect(txt(host)).toMatch(/network gone/);
+    });
   });
 
   it('a work order, damage and a move-out set are all RECORDS', () => {
