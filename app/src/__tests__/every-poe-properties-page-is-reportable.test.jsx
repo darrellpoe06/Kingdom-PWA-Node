@@ -61,7 +61,9 @@ describe('the module knows what pages it has', () => {
     for (const id of every) expect(ids).toContain(id);
     // 21 as measured 2026-10-10. A number here is a tripwire, not a target:
     // when a tab is added this fails, and the fix is to update it knowingly.
-    expect(ids).toHaveLength(21);
+    // 23 from #2096: 'stays' (the family's booking desk, DR-0930) and
+    // 'papers' (the tenant's own signed and filed papers, DR-0936).
+    expect(ids).toHaveLength(23);
   });
 
   it('carries the faces that show a surface, because a report wants to say who was looking', () => {
@@ -107,8 +109,8 @@ describe('every page is selectable in the feedback form', () => {
   it('they are grouped under their own heading, not buried in Real Estate', () => {
     const g = FEEDBACK_AREAS.find((x) => x.group === 'Poe Properties');
     expect(g).toBeTruthy();
-    // 21 pages + the general entry.
-    expect(g.items).toHaveLength(22);
+    // 23 pages (21, plus stays and papers from #2096) + the general entry.
+    expect(g.items).toHaveLength(24);
   });
 
   it('a page key is not confusable with the Real Estate tab it replaced', () => {

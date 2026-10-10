@@ -21,6 +21,7 @@ const sql = readFileSync(
 );
 const store = () => readFileSync(join(process.cwd(), 'src/modules/properties/Storefront.jsx'), 'utf8');
 const app = () => readFileSync(join(process.cwd(), 'src/modules/properties/PropertiesApp.jsx'), 'utf8');
+const door = () => readFileSync(join(process.cwd(), 'src/components/PropertiesDoor.jsx'), 'utf8');
 
 describe('0158 — the control, per door', () => {
   it('adds the setting with only the two meanings it has', () => {
@@ -89,6 +90,30 @@ describe('"...then show" — the applicant gets it', () => {
 describe('the surface stops making a claim it was breaking', () => {
   it('no longer prints the blanket "not published here" line', () => {
     expect(app()).not.toMatch(/The exact address is given by a person, not published here/);
+  });
+
+  // Darrell, 2026-10-10, on the no-account door: "the address shows while it
+  // says it will not show... fix it". The check above read only the PoeTech
+  // tab; the public door (PropertiesDoor.jsx) kept the blanket line.
+  it('PROVEN-TO-CATCH: the public door\'s sentence is computed from its doors, never printed blind', () => {
+    expect(door()).toMatch(/\{addressPromise\(vacancies \|\| \[\]\)\}/);
+    expect(door()).not.toMatch(/>\s*The exact address is given by a person, not published here\.\s*</);
+  });
+
+  // DR-0933 (0268): "Just show the location without the address". The one
+  // rule every caller reads now answers no for every door.
+  it('the street is never on the public shelf, whatever a door was once set to', () => {
+    const m268 = readFileSync(join(process.cwd(), '../infra/supabase/migrations-auto/0268-the-public-shelf-shows-where-never-the-street.sql'), 'utf8');
+    expect(m268).toMatch(/FUNCTION public\.rental_address_is_public\(p_visibility text\)[\s\S]*SELECT false/);
+  });
+
+  it('the page says what its doors actually do', async () => {
+    const { addressPromise } = await import('../components/PropertiesDoor.jsx');
+    expect(addressPromise([{ address_shown: false }, { address_shown: false }])).toBe('The exact address is given by a person, not published here.');
+    expect(addressPromise([{ address_shown: true }])).toBe('The owner has chosen to show these addresses.');
+    expect(addressPromise([{ address_shown: true }, { address_shown: false }])).toMatch(/^Some places show their address/);
+    // An un-migrated database reads as SHOWN, never as protected.
+    expect(addressPromise([{}])).toBe('The owner has chosen to show these addresses.');
   });
 
   it('says per card which one it is', () => {

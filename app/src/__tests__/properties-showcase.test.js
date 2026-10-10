@@ -248,11 +248,14 @@ describe('the door editor carries the controls he asked for', () => {
     expect(board()).toMatch(/key: 'display_name', label: 'Name'/);
   });
 
-  it('lets him set who may see the street, per door', () => {
+  // DR-0933 (Darrell 2026-10-10: "Just show the location without the
+  // address"): the per-door switch became one rule, enforced by 0268. The
+  // editor states it and never offers a switch that would do nothing.
+  it('states the address rule instead of offering a dead switch', () => {
     const s = board();
     expect(s).toMatch(/key: 'address_visibility'/);
-    expect(s).toMatch(/Shared when someone applies/);
-    expect(s).toMatch(/Shown to anyone browsing/);
+    expect(s).toMatch(/Never shown to strangers/);
+    expect(s).not.toMatch(/Shown to anyone browsing/);
   });
 
   it('defaults an unset door to WITHHELD in the form too', () => {

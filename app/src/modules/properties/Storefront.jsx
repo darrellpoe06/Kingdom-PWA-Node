@@ -18,10 +18,13 @@
 // kind='listing', so a move-out condition set of somebody's home cannot come
 // through it whatever it is asked for. No street address is published either.
 // =============================================================================
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { loadVacancyPhotos } from './cloud.js';
 import { applyUrl } from './apply-link.js';
 import Lightbox from '../../components/Lightbox.jsx';
+import { stampImage, stampFileName } from '../../lib/brand-stamp.js';
+import { BookAStay } from './Booking.jsx';
+import { AreaMap, NearbyList } from './AreaMap.jsx';
 
 const ACCENT = '#2F5D50';
 const serif = { fontFamily: '"Fraunces", serif' };
@@ -55,6 +58,9 @@ export function VacancyCard({ unit, onApply = null }) {
   const [shots, setShots] = useState([]);
   const [i, setI] = useState(0);
   const [open, setOpen] = useState(null); // index being shown large, or null
+  // A short-stay door takes a stay through its own short form (DR-0930):
+  // "Short term rentals need another form" (Darrell, 2026-10-10).
+  const [booking, setBooking] = useState(false);
 
   useEffect(() => {
     if (!unit.rentalId) return undefined;
@@ -64,6 +70,10 @@ export function VacancyCard({ unit, onApply = null }) {
   }, [unit.rentalId]);
 
   const shot = shots[i] || null;
+  // Every picture opened or saved from a listing carries the Poe Properties
+  // band and a QR back to THIS unit (DR-0941) — a forwarded copy advertises.
+  const placeName = `${unit.label}${unit.unit ? ` ${unit.unit}` : ''}`;
+  const stamp = useCallback((item) => stampImage({ src: item.src, door: placeName, link: applyUrl(unit.rentalId) }), [placeName, unit.rentalId]);
   const size = [
     unit.beds ? `${unit.beds} bed` : null,
     unit.baths ? `${unit.baths} bath` : null,
@@ -145,13 +155,15 @@ export function VacancyCard({ unit, onApply = null }) {
       )}
       {open != null && (
         <Lightbox
-          items={shots.map((p) => ({
+          items={shots.map((p, n) => ({
             src: p.storage_path,
-            alt: p.caption || `${unit.label}${unit.unit ? ` ${unit.unit}` : ''}`,
+            alt: p.caption || placeName,
             caption: p.caption || '',
+            fileName: stampFileName(placeName, n + 1),
           }))}
           index={open}
           onClose={() => setOpen(null)}
+          stamp={stamp}
         />
       )}
 
@@ -170,6 +182,10 @@ export function VacancyCard({ unit, onApply = null }) {
           </div>
         )}
         {unit.note && <p className="text-[0.75rem] text-[#5A5751] mt-1 leading-snug">{unit.note}</p>}
+        {/* WHERE, NEVER THE STREET (DR-0935). The rounded area and the
+            family's nearby lines, from public_vacancies (0270). */}
+        {unit.area && <div className="mt-2"><AreaMap area={unit.area} where={unit.where} /></div>}
+        <NearbyList lines={unit.nearby} />
         {/* SAY WHICH IT IS (0158). Until 2026-08-28 every card printed "the exact
             address is given by a person, not published here" while the label
             above it WAS the street — display_name is the address on all twelve
@@ -181,6 +197,18 @@ export function VacancyCard({ unit, onApply = null }) {
             Address shared when you apply — nothing to sign up for.
           </p>
         )}
+        {shortStay && (
+          <button
+            type="button"
+            onClick={() => setBooking((b) => !b)}
+            className="mt-2 mr-2 inline-flex items-center text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+            style={{ borderColor: ACCENT, background: ACCENT }}
+            data-testid="book-a-stay-open"
+          >{booking ? 'Close the calendar' : 'Book a stay — no account needed'}</button>
+        )}
+        {/* Both doors on a short-stay place (DR-0930 + #2098): nights through
+            the short stay form, a lease through the application, which
+            opens in place. */}
         {onApply ? (
           <button
             type="button"
@@ -197,6 +225,7 @@ export function VacancyCard({ unit, onApply = null }) {
             style={{ borderColor: ACCENT }}
           >Apply — no account needed</a>
         )}
+        {booking && <BookAStay rentalId={unit.rentalId} placeName={placeName} rate={unit.nightly} />}
       </div>
     </li>
   );

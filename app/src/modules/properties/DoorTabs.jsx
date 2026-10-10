@@ -16,7 +16,7 @@
 //   bed/bath figure is COUNTED from the rows on screen, so what the header
 //   claims and what the list shows cannot disagree.
 // =============================================================================
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { buildPropertyTimeline, turnPhotos, latestAtDoor, doorEvents } from './timeline.js';
 import {
@@ -28,6 +28,10 @@ import { buildEdit } from './staging.js';
 import { applyUrl, applyUrlDisplay, cardCaption } from './apply-link.js';
 import { isOwnHome } from './homes.js';
 import { shelfOrder } from './showcase.js';
+import { moneyLine, dollarsLong } from './door-money.js';
+import { AreaEditor } from './AreaMap.jsx';
+import { stampImage, stampFileName } from '../../lib/brand-stamp.js';
+import SharpPicture, { sharpestKnown } from './SharpPicture.jsx';
 import { photoOrder, movePhoto, makeCover, pickCovers, listImage } from './photo-order.js';
 import { compressImageFile, isLikelyImageFile } from '../../lib/image.js';
 import { useVoiceDictation } from '../../lib/voice-dictation.js';
@@ -87,7 +91,7 @@ const KIND_WORDS = {
   'move-in': 'Moved in', 'move-out': 'Moved out', photo: 'Photo', document: 'Document',
   note: 'Note', 'property-note': 'Landlord note', message: 'Message', rent: 'Rent',
   'work-order': 'Work order', 'work-order-closed': 'Work order closed', 'job-doc': 'Job documented',
-  notice: 'Notice', system: 'Mechanical',
+  notice: 'Notice', system: 'Mechanical', change: 'Change',
 };
 
 function EventRow({ e }) {
@@ -444,6 +448,11 @@ function ArrangeControls({ id, index, total, onArrange, busy }) {
 export function DoorsBoard({
   rentals = [], tenancies = [], photos = [], canManage = false,
   onPick, onStart, onListing, onEditTenancy, onEditRental, onArrange, busy = false,
+  // What each door has brought in (DR-0903, door_money_months): moneyByDoor's
+  // result. Shown on the family's board only; null hides it.
+  money = null,
+  // The full image by id (DR-0931): covers sharpen past their thumbnail.
+  loadImage = null,
 }) {
   const [openFor, setOpenFor] = useState(null);
   const [editing, setEditing] = useState(null);
@@ -479,6 +488,10 @@ export function DoorsBoard({
   // a tenancy actually holds.
   const activeByRef = useMemo(() => {
     const m = new Map();
+    // The door's current record: the active tenancy, or else the unit's own
+    // pending record (DR-0870), so a pick lands on the record its messages
+    // and work live on (2026-10-10, "Message Didn't save").
+    for (const t of tenancies) if (t.status === 'pending' && !m.has(t.rental_ref)) m.set(t.rental_ref, t);
     for (const t of tenancies) if (t.status === 'active') m.set(t.rental_ref, t);
     return m;
   }, [tenancies]);
@@ -505,7 +518,9 @@ export function DoorsBoard({
     return {
       rental: r,
       tenancy,
-      rented: Boolean(tenancy),
+      // An empty unit's own pending record (nobody named, DR-0870) is not a
+      // rental: the door stays Available / Advertised.
+      rented: Boolean(tenancy) && !(tenancy.status === 'pending' && !tenancy.tenant_name && !tenancy.tenant_user_id),
       comingSoon,
       daysOut,
       availableFrom: comingSoon ? tenancy.lease_end : null,
@@ -572,6 +587,15 @@ export function DoorsBoard({
         </span>
       }
     >
+      {money && (
+        // THE WHOLE PORTFOLIO, by what each asset has actually brought in —
+        // confirmed money only; a reported payment is named, never added.
+        <p className="text-[0.8125rem] text-[#1A1815] mb-2" data-testid="portfolio-money">
+          {money.doorsWithMoney === 0
+            ? 'No money is recorded on any door yet. Record it on a door\u2019s Rent tab, tenant or no tenant.'
+            : `${dollarsLong(money.received)} brought in across ${money.doorsWithMoney} door${money.doorsWithMoney === 1 ? '' : 's'} \u00b7 ${dollarsLong(money.thisYear)} this year${money.awaiting > 0 ? ` \u00b7 ${dollarsLong(money.awaiting)} reported, not yet confirmed` : ''}`}
+        </p>
+      )}
       {view === 'grid' && (
         <ul className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
           {doorRows.map((x, i) => (
@@ -589,7 +613,7 @@ export function DoorsBoard({
               >
                 <div className="aspect-square w-full bg-[#FAF8F4] flex items-center justify-center overflow-hidden">
                   {listImage(x.cover) ? (
-                    <img src={listImage(x.cover)} alt={x.cover.caption || x.label} loading="lazy" className="w-full h-full object-cover" />
+                    <SharpPicture photo={x.cover} loadImage={loadImage} alt={x.cover.caption || x.label} className="w-full h-full object-cover" />
                   ) : (
                     <span className="text-[0.5625rem] uppercase tracking-wider text-[#8A867E]">No photo</span>
                   )}
@@ -603,6 +627,11 @@ export function DoorsBoard({
                     </span>
                     {x.rent > 0 ? ` · $${x.rent.toFixed(0)}/mo` : ' · no rent on record'}
                   </div>
+                  {money && (
+                    <div className="text-[0.6875rem] text-[#1A1815] mt-0.5" data-testid="door-card-money">
+                      {moneyLine(money.doors.get(x.rental.id))}
+                    </div>
+                  )}
                 </div>
               </button>
               {canManage && (
@@ -635,10 +664,7 @@ export function DoorsBoard({
                   stand-in photograph of somewhere else. */}
               <div className="w-20 h-20 shrink-0 border border-[#E8E4DC] bg-[#FAF8F4] flex items-center justify-center overflow-hidden">
                 {listImage(x.cover) ? (
-                  <img
-                    src={listImage(x.cover)} alt={x.cover.caption || x.label}
-                    loading="lazy" className="w-full h-full object-cover"
-                  />
+                  <SharpPicture photo={x.cover} loadImage={loadImage} alt={x.cover.caption || x.label} className="w-full h-full object-cover" />
                 ) : (
                   <span className="text-[0.5625rem] uppercase tracking-wider text-[#8A867E] text-center px-1">No photo</span>
                 )}
@@ -661,10 +687,15 @@ export function DoorsBoard({
                   {x.photoCount > 0 ? ` · ${x.photoCount} photo${x.photoCount === 1 ? '' : 's'}` : ''}
                   {x.shortStay ? ` · short stay${x.rental.nightly_rate ? ` $${Number(x.rental.nightly_rate).toFixed(0)}/night` : ''}` : ''}
                 </div>
+                {money && (
+                  <div className="text-[0.75rem] text-[#1A1815]" data-testid="door-card-money">
+                    {moneyLine(money.doors.get(x.rental.id))}
+                  </div>
+                )}
                 <div className="text-[0.75rem] text-[#6B665E]">
                   {x.rented
                     ? (x.tenancy.tenant_name || 'Household not named in the record')
-                    : 'No tenancy on this door'}
+                    : x.tenancy ? 'Empty \u2014 its record keeps the work and messages' : 'No tenancy on this door'}
                 </div>
               </button>
 
@@ -721,7 +752,7 @@ export function DoorsBoard({
     </Card>
     )}
     {homeRows.length > 0 && (
-      <OurHomes rows={homeRows} canManage={canManage} busy={busy} onPick={onPick} onEditRental={onEditRental} />
+      <OurHomes rows={homeRows} canManage={canManage} busy={busy} onPick={onPick} onEditRental={onEditRental} loadImage={loadImage} />
     )}
     </>
   );
@@ -743,7 +774,7 @@ export function DoorsBoard({
  * a house on a properties screen and seeing no rent, no mortgage and no value
  * would reasonably conclude the app had lost them.
  */
-function OurHomes({ rows = [], canManage = false, busy = false, onPick, onEditRental }) {
+function OurHomes({ rows = [], canManage = false, busy = false, onPick, onEditRental, loadImage = null }) {
   const [editingDoor, setEditingDoor] = useState(null);
   return (
     <Card
@@ -761,7 +792,7 @@ function OurHomes({ rows = [], canManage = false, busy = false, onPick, onEditRe
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div className="w-20 h-20 shrink-0 border border-[#E8E4DC] bg-[#FAF8F4] flex items-center justify-center overflow-hidden">
                 {listImage(x.cover) ? (
-                  <img src={listImage(x.cover)} alt={x.cover.caption || x.label} loading="lazy" className="w-full h-full object-cover" />
+                  <SharpPicture photo={x.cover} loadImage={loadImage} alt={x.cover.caption || x.label} className="w-full h-full object-cover" />
                 ) : (
                   <span className="text-[0.5625rem] uppercase tracking-wider text-[#8A867E] text-center px-1">No photo</span>
                 )}
@@ -1008,21 +1039,17 @@ function EditRental({ rental, onSave, busy }) {
         <label className="sm:col-span-2"><span className={lbl}>Address</span>
           <input type="text" className={field} value={f.address} onChange={set('address')} />
         </label>
-        {/* WHO MAY SEE THE STREET (0158). Measured 2026-08-28: the public
-            listing had been publishing display_name — which IS the address on
-            all twelve doors — under a sentence promising it was not. This is
-            the control, per door, so it is never my decision again. */}
-        <label className="sm:col-span-2"><span className={lbl}>Address on the public shelf</span>
-          <select className={field} value={f.address_visibility} onChange={set('address_visibility')}>
-            <option value="after-application">Shared when someone applies</option>
-            <option value="public">Shown to anyone browsing</option>
-          </select>
-          <span className="block text-[0.75rem] text-[#6B665E] mt-1 leading-snug">
-            {f.address_visibility === 'public'
-              ? 'The street shows on the open shelf, to anyone, with no account.'
-              : 'Browsers see the size, kind, town and rent \u2014 the street is handed over when they apply.'}
+        {/* WHO MAY SEE THE STREET (0158, then DR-0933). Darrell 2026-10-10:
+            "Just show the location without the address... map view". The
+            street is never on the open shelf now; the database answers that
+            for every door, so this says it rather than offering a switch
+            that would do nothing. */}
+        <div className="sm:col-span-2"><span className={lbl}>Address on the public shelf</span>
+          <span className="block text-[0.75rem] text-[#6B665E] mt-1 leading-snug" data-testid="address-rule">
+            Never shown to strangers. Browsers see the size, kind, town and rent, and the area on a map; the street is handed over when someone applies or books.
           </span>
-        </label>
+        </div>
+        <AreaEditor rental={rental} onSave={onSave} busy={busy} />
         <label><span className={lbl}>Unit</span>
           <input type="text" className={field} value={f.unit} onChange={set('unit')} placeholder="e.g. Apt 2" />
         </label>
@@ -1207,8 +1234,17 @@ export function dataUrlBytes(dataUrl = '') {
  * FILE pictures to the door he is working (0185), but the arrangement, the
  * captions of others' pictures and the archive stay the landlord's.
  */
-export const THUMB_MAX_WIDTH = 320;
-export const THUMB_QUALITY = 0.6;
+// 640 px at 75% (DR-0931): 320 px at 60% blurred on every phone-width tile.
+// Still a small fraction of the full image; SharpPicture swaps the full one
+// in where a tile needs more than the thumbnail holds.
+export const THUMB_MAX_WIDTH = 640;
+export const THUMB_QUALITY = 0.75;
+// THE FULL PICTURE (DR-0939). Darrell 2026-10-10: "I want the best pictures in
+// the PoeTech App too". His Fold unfolded is ~1800 device pixels wide; a 1280px
+// picture was stretched across it. 1920px at 0.85 is sharp on that screen, and
+// the list read never carries these bytes (0185), so a board stays light.
+export const FULL_MAX_WIDTH = 1920;
+export const FULL_QUALITY = 0.85;
 
 /** Type-or-speak for one caption box: the mic appears only where the browser can hear. */
 function CaptionField({ value, onChange, placeholder, label, className = '' }) {
@@ -1237,8 +1273,13 @@ function CaptionField({ value, onChange, placeholder, label, className = '' }) {
 
 export function GalleryTab({
   door, rooms = [], photos = [], canManage = false, canAdd = canManage, busy = false,
-  onAdd, onPatch, onAddRoom, loadImage = null,
+  onAdd, onPatch, onAddRoom, loadImage = null, doorLabel = '',
 }) {
+  // Every picture opened or saved here carries the Poe Properties band and a
+  // QR to this unit's listing (DR-0941): "all downloaded materials have our
+  // tags and logos". The stored original is never altered.
+  const doorId = door ? door.id : null;
+  const stamp = useCallback((item) => stampImage({ src: item.src, door: doorLabel, link: applyUrl(doorId) }), [doorLabel, doorId]);
   const [f, setF] = useState(() => ({ caption: '', kind: rememberedKind(), roomId: '' }));
   const [saving, setSaving] = useState(false);
   const [savedSoFar, setSaved] = useState(null);
@@ -1280,7 +1321,7 @@ export function GalleryTab({
     for (const file of files) {
       if (!isLikelyImageFile(file)) { refused.push(`${file.name} (not an image)`); continue; }
       try {
-        const dataUrl = await compressImageFile(file);
+        const dataUrl = await compressImageFile(file, FULL_MAX_WIDTH, FULL_QUALITY);
         const thumbUrl = await compressImageFile(file, THUMB_MAX_WIDTH, THUMB_QUALITY);
         added.push({
           key: `${file.name}-${added.length}-${Date.now()}`,
@@ -1571,7 +1612,7 @@ export function GalleryTab({
               <li key={p.id} className="border border-[#E8E4DC] bg-white p-2">
                 <div className="relative">
                   <button type="button" onClick={() => openAt(idx)} className="block w-full cursor-zoom-in" aria-label={`Open ${p.caption || p.kind}`}>
-                    <img src={listImage(p)} alt={p.caption || p.kind} loading="lazy" className="aspect-square w-full object-cover" />
+                    <SharpPicture photo={p} loadImage={loadImage} alt={p.caption || p.kind} className="aspect-square w-full object-cover" />
                   </button>
                   {idx === 0 && (
                     <span className="absolute top-1 left-1 bg-[#2F5D50] text-white text-[0.625rem] uppercase tracking-wider px-1.5 py-0.5">Cover</span>
@@ -1620,14 +1661,16 @@ export function GalleryTab({
 
       {open !== null && shown.length > 0 && (
         <Lightbox
-          items={shown.map((p) => ({
-            src: full[p.id] || p.storage_path || listImage(p),
+          items={shown.map((p, n) => ({
+            src: full[p.id] || sharpestKnown(p),
             alt: p.caption || p.kind,
             caption: [p.caption, p.kind.replace(/-/g, ' '), roomName(p.room_id)].filter(Boolean).join(' · '),
             date: p.taken_at ? p.taken_at.slice(0, 10) : '',
+            fileName: stampFileName(doorLabel, n + 1),
           }))}
           index={open}
           onClose={() => setOpen(null)}
+          stamp={stamp}
         />
       )}
     </>

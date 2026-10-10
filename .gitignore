@@ -138,3 +138,7 @@ notebooklm-bundle/MANIFEST.md
 notebooklm-bundle/pdf/
 
 .claude/.required-reading/
+
+# Door journeys (DR-0934): screenshots and the PostgREST binary, never committed
+e2e-shots/
+.e2e/

@@ -23,8 +23,11 @@ import { POE_PROPERTIES } from '../modules/properties/config.js';
 import { DOORS, doorSession, leaveDoor, enterDoor, enterAllDoors } from '../lib/door-session.js';
 import { WHO_OPTIONS } from '../modules/properties/model.js';
 import { readApplyTarget, resolveScan } from '../modules/properties/apply-link.js';
+import { readReportToken } from '../modules/properties/guest-report.js';
+import { GuestReportPage } from '../modules/properties/GuestReport.jsx';
 import { loadPublicVacancies, submitApplication } from '../modules/properties/cloud.js';
 import { VacancyCard } from '../modules/properties/Storefront.jsx';
+import { areaOf } from '../modules/properties/area.js';
 import { APPLICATION_SECTIONS, validateApplication } from '../modules/properties/intake.js';
 // WHAT AN APPLICANT IS OWED IN WRITING (DR-0357): the criteria every
 // application is judged by and the fair-housing commitment it is read under.
@@ -55,6 +58,19 @@ export const PROPERTIES_SHARE_URL = 'https://poetech.us/properties/app/';
 
 const { brand } = POE_PROPERTIES;
 const serif = { fontFamily: '"Fraunces", Georgia, serif' };
+
+/**
+ * What the page may truthfully say about addresses, from what it lists:
+ * every card holding its street -> shared when you apply; any card showing
+ * its street -> say so, never the opposite.
+ */
+export function addressPromise(vacancies = []) {
+  const list = Array.isArray(vacancies) ? vacancies : [];
+  const shown = list.filter((v) => v && (v.address_shown === undefined || v.address_shown === true)).length;
+  if (shown === 0) return 'The exact address is given by a person, not published here.';
+  if (shown === list.length) return 'The owner has chosen to show these addresses.';
+  return 'Some places show their address by the owner\u2019s choice; the rest share it when you apply.';
+}
 
 export default function PropertiesDoor() {
   const [session, setSession] = useState(undefined); // undefined = still checking
@@ -102,6 +118,10 @@ export default function PropertiesDoor() {
   // the session into a second storage key would race supabase's rotating
   // refresh token and cause random logouts, which is the disease, not the cure.
   const [left, setLeft] = useState(() => false);
+  const guestToken = useMemo(
+    () => (typeof window === 'undefined' ? null : readReportToken(window.location.search)),
+    [],
+  );
   const view = doorSession(DOORS.properties, session || null);
   const shown = left ? null : view.session;
 
@@ -117,7 +137,7 @@ export default function PropertiesDoor() {
   // at mount and had no way to learn it had changed. So the picker genuinely
   // set the preference, the preference was genuinely saved, and the screen the
   // reader was looking at never repainted. The PoeTech shell
-  // used useThemePref and therefore worked, which
+  // (the monolith) used useThemePref and therefore worked, which
   // is exactly why this read as "the reader can't change the system" rather
   // than "the picker is broken" — it depended on which door you were standing
   // in. useThemePref both subscribes and saves, so the effect goes with it.
@@ -251,6 +271,10 @@ export default function PropertiesDoor() {
       </header>
 
       <main className="w-full p-3 sm:p-4 lg:px-8">
+        {/* A GUEST'S CARD (DR-0898). A code scanned inside a short stay opens
+            the report form, signed in or not: the guest came to say what is
+            wrong, and nothing about a session changes what they may do. */}
+        {guestToken ? <GuestReportPage token={guestToken} /> : (<>
         {session === undefined && (
           <p className="text-xs text-[#5A5751] p-2" style={serif}>Checking your sign-in…</p>
         )}
@@ -261,6 +285,7 @@ export default function PropertiesDoor() {
           />
         )}
         {shown && <PropertiesApp surface="door" renderCameras={() => <Cameras />} />}
+        </>)}
       </main>
 
       <footer className="px-4 py-6 text-center">
@@ -411,14 +436,20 @@ function SignedOutDoor({ left = false, onReturn } = {}) {
                   nightly: Number(v.nightly_rate) > 0 ? Number(v.nightly_rate) : null,
                   note: String(v.note || '').trim(),
                   addressShown: v.address_shown === undefined ? true : Boolean(v.address_shown),
+                  area: areaOf(v),
+                  nearby: Array.isArray(v.nearby) ? v.nearby : [],
                 }}
                 onApply={applyFor}
               />
             ))}
           </ul>
         )}
-        <p className="text-xs text-[#5A5751] mt-3 mb-2" style={serif}>
-          The exact address is given by a person, not published here.
+        {/* The page's own sentence follows the doors it lists (0158 / DR-0932
+            addendum, Darrell 2026-10-10: "the address shows while it says it
+            will not show... fix it"). It used to promise "not published here"
+            unconditionally while a door set to show its street showed it. */}
+        <p className="text-xs text-[#5A5751] mt-3 mb-2" style={serif} data-testid="address-promise">
+          {addressPromise(vacancies || [])}
         </p>
         <BeforeYouApply />
         <ApplyForm

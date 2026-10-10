@@ -936,8 +936,44 @@ jobs:
   # cannot move a job, and documents a job whose scope comes from the request
   # (a lie about the door is overwritten) and whose "fixed" closes it; a
   # manager moves jobs on his door only; a tenant never sees the landlord's
-  # door work. Every check RAISEs. The same smoke runs on the live database in
-  # the rls-isolation poe-properties leg against the real overlays.
+  # door work. Then 0261 applies twice and the guest smoke proves (DR-0898): only
+  # the family opens a door's guest link and reads it; a guest with the card
+  # sees which door and files a report that lands on it as 'guest' with no
+  # account, reads nothing back, is told to call after five in an hour, and a
+  # replaced or closed card stops working; the office push names the door,
+  # never the guest's words. Then 0262 applies twice and the rent smoke proves
+  # (DR-0899): the family writes how it is paid, never an account number; a
+  # tenant reads it for their own door only; a part payment records what was
+  # due, what remains and when; a remainder over what was due is refused; every
+  # report, confirmation and work-order move leaves an event to the instant
+  # with who did it, read where the record is read, edited by nobody. Every
+  # check RAISEs. Then 0263 applies twice and the signing smoke proves
+  # (DR-0936): an insert never arrives signed; only the family sends for
+  # signature, and a generated draft only with counsel's review recorded;
+  # only the right person signs, only the exact fingerprinted version, once;
+  # nobody writes the sign state directly; signatures are read where the
+  # document is read and edited by nobody; everything is on the clock. Then
+  # 0264 applies twice and the proof smoke proves (DR-0937): only the family
+  # sets a job's proof; "Fixed" is refused until the pictures (and video) are
+  # on the job; a non-video is refused as a video; a job with no proof is
+  # fixed as before; the requirement is on the clock. Then 0265 applies twice
+  # and the door-money smoke proves (DR-0903): money is recorded on a door
+  # with no tenancy, by the family only, never on a day not yet come; a
+  # tenant's payment finds its door; the door keeps every tenant's money
+  # while each tenant sees only their own; a reported payment is never
+  # counted as received; a manager reads and records only by grant on that
+  # door. Then 0266 applies twice and the door-camera smoke proves (DR-0938):
+  # only the family offers a door's cameras; anyone on the door reads the
+  # names and asks, stamped with their real role, once at a time, only for
+  # what is offered; only the family gives, declines and takes back; a grant's
+  # token is read by its holder and the family alone; the ledger keeps every
+  # row and the clock every move. Then 0267 (system pictures), 0269 (the booking
+  # calendar) and 0270 apply twice; the area smoke proves (DR-0935): the exact
+  # point sent is kept only as its rounded area; half an area, a nearby list of
+  # the wrong shape, and a line naming the door's street are refused; a
+  # stranger moves nothing; the public shelf carries the area and the lines and
+  # never the street or the exact point. Every smoke also runs on the live
+  # database in the rls-isolation leg.
   door-work:
     name: app — door work orders (PostgreSQL)
     runs-on: ubuntu-latest
@@ -966,25 +1002,139 @@ jobs:
           for f in schema-v1.sql schema-v1.1-tenant-join.sql schema-v2.1-infra.sql schema-v2.2-rentals.sql schema-v2.2.1-rentals-amendments.sql schema-v2.2.2-rentals-sync-amendments.sql; do
             psql -v ON_ERROR_STOP=1 -q --single-transaction -f "infra/supabase/$f"
           done
-          for f in 0055-relationship-permissions.sql 0062-per-unit-management.sql 0075-delegated-property-management.sql 0150-poe-properties-app-invite-claim-and-household.sql; do
+          psql -v ON_ERROR_STOP=1 -q -f scripts/door-work-ci-rentals-shape.sql
+          for f in 0055-relationship-permissions.sql 0062-per-unit-management.sql 0075-delegated-property-management.sql 0150-poe-properties-app-invite-claim-and-household.sql 0152-vacancies-and-no-account-applications.sql 0153-property-timeline-photos.sql 0154-photo-captions-editable-and-archivable.sql 0155-what-a-door-is-offered-as.sql 0156-our-own-home-is-not-a-rental-door.sql 0157-the-landlord-orders-his-own-shelf.sql 0158-the-address-is-shown-when-he-says-so.sql 0159-nothing-a-landlord-types-lives-only-on-his-phone.sql 0160-a-door-says-what-it-is-unit-room-or-bed.sql 0161-the-landlord-orders-a-doors-pictures.sql 0185-a-picture-list-never-carries-the-bytes-and-a-worker-can-file-to-a-vacant-door.sql; do
             psql -v ON_ERROR_STOP=1 -q --single-transaction -f "infra/supabase/migrations-auto/$f"
           done
           for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0260-work-is-filed-on-the-door-not-only-on-a-tenancy.sql; done
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0261-a-guest-reports-a-problem-from-inside-the-door.sql; done
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0262-rent-is-reported-the-way-it-is-paid-and-every-change-keeps-its-time.sql; done
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0263-a-document-is-signed-in-the-app-and-filed-where-it-belongs.sql; done
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0264-a-job-can-require-proof-before-it-is-done-and-paid.sql; done
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0265-the-door-keeps-its-money-with-or-without-a-tenant.sql; done
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0266-a-door-camera-is-asked-for-and-given-to-whoever-the-family-chooses.sql; done
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0267-a-system-keeps-its-pictures.sql; done
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0269-a-short-stay-door-has-a-booking-calendar.sql; done
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0270-the-public-shelf-shows-the-area-on-a-map.sql; done
           psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0260-door-work-orders-smoke.sql 2>&1 | tee "$RUNNER_TEMP/smoke.txt"
           grep -q 'DOOR WORK SMOKE: PASS' "$RUNNER_TEMP/smoke.txt"
+          psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0261-guest-report-smoke.sql 2>&1 | tee "$RUNNER_TEMP/guest.txt"
+          grep -q 'GUEST REPORT SMOKE: PASS' "$RUNNER_TEMP/guest.txt"
+          psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0262-rent-and-clock-smoke.sql 2>&1 | tee "$RUNNER_TEMP/rent.txt"
+          grep -q 'RENT AND CLOCK SMOKE: PASS' "$RUNNER_TEMP/rent.txt"
+          psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0263-document-signing-smoke.sql 2>&1 | tee "$RUNNER_TEMP/sign.txt"
+          grep -q 'DOCUMENT SIGNING SMOKE: PASS' "$RUNNER_TEMP/sign.txt"
+          psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0264-proof-before-paid-smoke.sql 2>&1 | tee "$RUNNER_TEMP/proof.txt"
+          grep -q 'PROOF SMOKE: PASS' "$RUNNER_TEMP/proof.txt"
+          psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0265-door-money-smoke.sql 2>&1 | tee "$RUNNER_TEMP/money.txt"
+          grep -q 'DOOR MONEY SMOKE: PASS' "$RUNNER_TEMP/money.txt"
+          psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0266-door-camera-access-smoke.sql 2>&1 | tee "$RUNNER_TEMP/cams.txt"
+          grep -q 'DOOR CAMERA ACCESS SMOKE: PASS' "$RUNNER_TEMP/cams.txt"
+          psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0267-system-pictures-smoke.sql 2>&1 | tee "$RUNNER_TEMP/syspics.txt"
+          grep -q 'SYSTEM PICTURES SMOKE: PASS' "$RUNNER_TEMP/syspics.txt"
+          psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0269-booking-calendar-smoke.sql 2>&1 | tee "$RUNNER_TEMP/booking.txt"
+          grep -q 'BOOKING CALENDAR SMOKE: PASS' "$RUNNER_TEMP/booking.txt"
+          psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0270-area-map-smoke.sql 2>&1 | tee "$RUNNER_TEMP/area.txt"
+          grep -q 'AREA MAP SMOKE: PASS' "$RUNNER_TEMP/area.txt"
 
   # THE REQUIRED CHECK (DR-0645). Branch protection and native auto-merge wait
   # on a check named EXACTLY "app — lint + vitest". Do NOT rename this job.
   # It runs `if: always()` because a job whose `needs` failed is otherwise
   # SKIPPED, and a skipped required check counts as passing. Here, anything but
   # success in any leg (failure, cancelled, skipped) turns this check red.
+  # THE DOOR JOURNEYS, END TO END (DR-0934). Every other leg stops short of the
+  # whole: the smokes prove the walls with no app, vitest proves the screens on
+  # a fake data layer. This one walks what a person walks, in the runner's
+  # Chrome, on the real built app, through PostgREST 12.2.12 (production's
+  # version) over a PostgreSQL built from the real migration chain
+  # (scripts/e2e/build-door-db.sh, 0260-0269 each applied twice), and reads the
+  # database after each step: a stranger sees the place but never its street,
+  # books two nights with both attestations; the family sees the address,
+  # confirms the ask (the clock reads asked,confirmed); records $300 cash on the
+  # door with no tenant (the door's total reads 300.00); the next stranger finds
+  # those nights dark; a real phone HEIC (Chromium has no HEIC decoder, like
+  # Chrome on Android) is converted on the device under production's CSP and
+  # filed as a full JPEG (DR-0939). Then PROVEN TO CATCH, every run: four faults (the street
+  # shown, the family unable to confirm, money refused without a tenancy, the
+  # calendar emptied) must each fail their own step, or this leg is red.
+  door-journeys:
+    name: app — door journeys end to end (Chrome + PostgREST + PostgreSQL)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      PGHOST: localhost
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+      E2E_PSQL: psql
+      E2E_DB_URI: postgres://postgres:postgres@localhost:5432/postgres
+      E2E_POSTGREST: ${{ github.workspace }}/.e2e/postgrest
+      E2E_SHOTS: ${{ github.workspace }}/e2e-shots
+      E2E_HEIC: ${{ github.workspace }}/.e2e/example.heic
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - name: Install postgresql-client
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client > /dev/null
+      - name: PostgREST 12.2.12 (pinned release, checksum verified)
+        run: |
+          set -euo pipefail
+          mkdir -p .e2e
+          curl -sSLo .e2e/postgrest.tar.xz https://github.com/PostgREST/postgrest/releases/download/v12.2.12/postgrest-v12.2.12-linux-static-x86-64.tar.xz
+          echo "5de4092f1719da3353c40bf96c8dec6913f2254a7cd0b61cc05f233153b557d5  .e2e/postgrest.tar.xz" | sha256sum -c -
+          tar -xJf .e2e/postgrest.tar.xz -C .e2e
+          .e2e/postgrest --version
+      - name: A real phone HEIC (libheif's example at v1.20.2, checksum verified)
+        run: |
+          set -euo pipefail
+          curl -sSLo .e2e/example.heic https://raw.githubusercontent.com/strukturag/libheif/v1.20.2/examples/example.heic
+          echo "7f8b363e4936c0666a25f64f3a92fda10bd8e5453be4592530b65a55dd98f3f2  .e2e/example.heic" | sha256sum -c -
+      - name: The database, from the real chain
+        run: scripts/e2e/build-door-db.sh
+      - name: Install playwright-core (drives the runner's installed Chrome)
+        run: npm install --no-save playwright-core@1
+      - name: Build the app against the journeys' own stack
+        working-directory: app
+        run: |
+          set -euo pipefail
+          npm ci
+          VITE_SUPABASE_URL=http://127.0.0.1:4173/sb VITE_SUPABASE_ANON_KEY="$(node ../scripts/e2e/door-journeys.mjs --anon-key)" npm run build
+      - name: The journeys
+        run: node scripts/e2e/door-journeys.mjs app/dist
+      - name: Proven to catch — each fault fails its own step
+        run: |
+          set -euo pipefail
+          for b in street confirm payment area calendar; do
+            echo "=== --break=$b"
+            node scripts/e2e/door-journeys.mjs app/dist --break=$b
+          done
+      - name: Screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: door-journeys-screens
+          path: e2e-shots
+          retention-days: 14
+
   app:
     name: app — lint + vitest
     if: always()
-    needs: [guards, vitest, probes, layout, curriculum, lesson-shares, arrivals-push, contacts-walls, voice-enrollments, dm-device-keys, learner-records, vault-walls, door-work]
+    needs: [guards, vitest, probes, layout, curriculum, lesson-shares, arrivals-push, contacts-walls, voice-enrollments, dm-device-keys, learner-records, vault-walls, door-work, door-journeys]
     runs-on: ubuntu-latest
     steps:
-      - name: Every leg passed (lint + guards, every vitest shard, build + probes, layout, curriculum, lesson shares, lesson arrival push, contacts walls, voice consent walls, sealed-message device keys walls, learner record walls, door work orders)
+      - name: Every leg passed (lint + guards, every vitest shard, build + probes, layout, curriculum, lesson shares, lesson arrival push, contacts walls, voice consent walls, sealed-message device keys walls, learner record walls, door work orders, door journeys end to end)
         env:
           NEEDS: ${{ toJSON(needs) }}
         run: |

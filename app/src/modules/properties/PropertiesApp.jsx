@@ -18,7 +18,7 @@
 // =============================================================================
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  resolveFace, buildHistory, newestFirst, buildJobDoc, buildTenancyNote,
+  resolveFace, buildHistory, newestFirst, buildJobDoc, buildTenancyNote, changeSummary,
   unseenByThisFace, unreadNote,
   DOC_FOLLOWUPS, FOLLOWUP_LABELS, CAPABILITY_LABELS, ROLE_CEILING,
   canPostToBooks, rentRecordToBookEntry, unpostedRent,
@@ -26,9 +26,12 @@ import {
 import {
   claimPropertyAccess, loadMyDoors, loadMyGrants, loadMyHousehold, loadDoorRecord,
   fileWorkOrder, setWorkOrderStatus, assignWorkOrder, postMessage, postNote,
-  postJobDoc, recordRent, confirmRent, markRentPosted, inviteToProperties, createTenancy, loadInvites,
-  revokeInvite,
+  postJobDoc, recordRent, confirmRent, markRentPosted, inviteToProperties, createTenancy, loadInvites, loadRecordEvents,
+  revokeInvite, loadDoorMoney, doorOfMyTenancy,
 } from './cloud.js';
+import { moneyByDoor, moneyLine } from './door-money.js';
+import { DoorMoneyCard, RecordPayment } from './DoorMoney.jsx';
+import { StayDesk } from './Booking.jsx';
 import { peopleOnDoor, whyNotReady, namesByUserId } from './people.js';
 import { MAINTENANCE_TRANSITIONS, PRIORITY, buildMaintenanceRequest } from '../../lib/tenant-portal.js';
 import { smsHref, telHref } from '../../lib/dispatch.js';
@@ -38,14 +41,23 @@ import { DoorCamerasTab, TenantCamerasTab } from './DoorCameras.jsx';
 import { setDoorCameraGrant } from './door-cameras.js';
 import { stageFromRecord, confirmDraft, tenancyRowFromDraft, vacantUnitRow } from './staging.js';
 import { availableDocuments, buildDocument } from './documents.js';
-import { TimelineTab, RoomsTab, DoorsBoard, GalleryTab, FilesTab } from './DoorTabs.jsx';
+import { TimelineTab, RoomsTab, DoorsBoard, GalleryTab, FilesTab, FULL_MAX_WIDTH, FULL_QUALITY } from './DoorTabs.jsx';
 import { SystemsTab } from './SystemsTab.jsx';
+import { GuestLinkCard } from './GuestReport.jsx';
+import { PayRent, PayeeCard } from './RentPay.jsx';
+import { PapersPanel } from './DocSigning.jsx';
+import { compressImageFile, isLikelyImageFile } from '../../lib/image.js';
+import { PROOF_OPTIONS, proofNotice, proofState } from './proof.js';
+import { loadJobVideo, setWorkOrderProof } from './cloud.js';
+import { textDataUrl, kindForGenerated } from './doc-signing.js';
+import { rentLine } from './rent-pay.js';
 import { ReadinessTab } from './ReadinessTab.jsx';
 import { readinessBoardSlug } from './readiness.js';
 import { toTimelineEvents } from './systems.js';
 import { isOwnHome, offerRefusal } from './homes.js';
 import { moveDoor, showFirst } from './showcase.js';
 import { VacancyCard } from './Storefront.jsx';
+import { areaOf } from './area.js';
 import {
   loadRooms, addRoom, patchRoom, loadDoorPhotos, loadDoorTenancies,
   loadMyRentals, updateTenancy, updateRental, loadAllPhotos,
@@ -71,7 +83,7 @@ const ACCENT = '#2F5D50';
  * selected door, so every one of them owes the reader its name.
  */
 const DOOR_SCOPED = new Set([
-  'timeline', 'rooms', 'gallery', 'files', 'systems', 'documents', 'door', 'history', 'rent', 'thread',
+  'timeline', 'rooms', 'gallery', 'files', 'systems', 'documents', 'door', 'history', 'rent', 'thread', 'stays',
   'readiness',
   // The work is an option of the door (DR-0837): the board, the dispatch, the
   // worker's jobs and the documentation all read ONE door's requests, so they
@@ -97,7 +109,7 @@ const DOOR_SCOPED = new Set([
  * inside each: in the same spot every time, it becomes something you stop
  * having to look for.
  */
-function DoorContext({ rental, tenancy, data = {}, open = [], onChange, onGo, tabs = [], activeTab, canPick = true }) {
+function DoorContext({ rental, tenancy, data = {}, open = [], onChange, onGo, tabs = [], activeTab, canPick = true, money = null }) {
   const label = rental?.display_name || rental?.address || tenancy?.property_label || null;
   const where = rental
     ? [rental.address, rental.unit, rental.city, rental.state].filter(Boolean).join(', ')
@@ -141,8 +153,18 @@ function DoorContext({ rental, tenancy, data = {}, open = [], onChange, onGo, ta
   const rent = Number(active?.monthly_rent) || Number(rental?.listed_rent) || Number(rental?.monthly_rent) || 0;
   const facts = [
     rental?.property_type ? String(rental.property_type).replace(/-/g, ' ') : null,
-    active ? `Rented \u2014 ${active.tenant_name || 'household not named'}` : (rental ? 'No tenancy on this door' : null),
+    // A 'pending' record with nobody named is the unit's own record, made so
+    // work and messages can be kept before anyone moves in (DR-0870). It is
+    // not a rental: saying "Rented" there told Darrell Apt 2 was taken
+    // (2026-10-10 screenshot) when nobody lives in it.
+    active && active.status === 'pending' && !active.tenant_name && !active.tenant_user_id
+      ? 'Empty \u2014 nobody living here yet'
+      : active && active.status === 'pending' ? `Moving in \u2014 ${active.tenant_name}`
+        : active ? `Rented \u2014 ${active.tenant_name || 'household not named'}` : (rental ? 'No tenancy on this door' : null),
     rent > 0 ? `$${rent.toFixed(0)}/mo` : 'no rent on record',
+    // What this asset has accumulated, tenant or no tenant (DR-0903). The
+    // family's face only; unknown says so, never $0.
+    money ? moneyLine(money) : null,
   ].filter(Boolean);
 
   return (
@@ -224,7 +246,7 @@ const when = (iso, undated) => {
 const KIND_LABEL = {
   'work-order': 'Work order', 'work-order-closed': 'Closed', message: 'Message',
   note: 'Note', 'job-doc': 'Job documentation', rent: 'Payment', notice: 'Notice',
-  'property-note': 'Landlord note',
+  'property-note': 'Landlord note', change: 'Change',
 };
 
 /**
@@ -249,7 +271,13 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
   const [activeId, setActiveId] = useState(opened.door || '');
   const [record, setRecord] = useState({ requests: [], messages: [], notes: [], docs: [], rent: [], notices: [] });
   const [tab, setTab] = useState(opened.tab || '');
-  const [busy, setBusy] = useState('');
+  // A RELOAD IS A NUMBER, NOT A BUSY FLAG (DR-0934 finding). Until 2026-10-10
+  // refresh() wrote a timestamp into `busy`, nothing ever cleared it, and five
+  // tabs read Boolean(busy): after the first save that refreshed (a payment, a
+  // work-order move, an edit), every Edit, arrange and listing button on the
+  // board stayed greyed out until the page was reloaded. The end-to-end
+  // journeys found it; the-door-keeps-its-money pins it.
+  const [reloadKey, setReloadKey] = useState(0);
   // The 1099 workers invited to this instance (the landlord reads them all; a
   // worker reads their own), and who is signed in, so a worker's jobs are
   // THEIRS and a dispatch is assigned to a real user id (DR-0837).
@@ -362,6 +390,15 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
   // a door with nobody in it (DoorsBoard passes the tenancy id when one exists),
   // so it has NO tenancy. It used to fall back to doors[0] here, which would have
   // shown, and filed work against, some other door's tenant (DR-0897).
+  // A DOOR PICKED BY ITS PROPERTY IS ITS CURRENT RECORD (Darrell, 2026-10-10,
+  // after a message sent on Apt 2 "Didn't stay" / "Message Didn't save"). The
+  // message DID save — on the unit record the send created ('pending', nobody
+  // named; DR-0870). But the Doors board hands back the rentals id for any
+  // door without an ACTIVE tenancy, and this resolved that to "no tenancy", so
+  // the door came back without its record and its thread read empty. Now a
+  // property picked by its rentals id resolves to the tenancy on that door:
+  // the active one, else the pending one. Never another door's (the doors[0]
+  // fallback stays gone for a property pick).
   const activeDoor = useMemo(() => {
     const byId = doors.find((x) => x.id === activeId);
     if (byId) return byId;
@@ -390,8 +427,14 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
       // 2026-08-27 — the same key confusion that once emptied Rooms and
       // Photos). Match on it, and accept the id too, because vacantUnitRow
       // falls back to the id when a rental has no slug.
-      return doors.find((d) => d.rental_ref
-        && (d.rental_ref === picked.slug || d.rental_ref === picked.id)) || null;
+      // Of this door's own records, the live one first (#2096: an active
+      // tenancy, else its own pending unit record), so its saved thread and
+      // its tenant come back together.
+      const onDoor = doors.filter((d) => d.rental_ref
+        && (d.rental_ref === picked.slug || d.rental_ref === picked.id));
+      return onDoor.find((d) => d.status === 'active')
+        || onDoor.find((d) => d.status === 'pending')
+        || onDoor[0] || null;
     }
     return doors[0] || null;
   }, [doors, activeId, rentals]);
@@ -457,7 +500,40 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
     let live = true;
     loadDoorRecord(workDoor.tenancyId, { rentalId: workDoor.rentalId }).then((r) => { if (live && r.ok) setRecord(r); });
     return () => { live = false; };
-  }, [workDoor, busy]);
+  }, [workDoor, reloadKey]);
+
+  // EVERY CHANGE, TO THE INSTANT (DR-0899). The record_events of the rent
+  // records and work orders on this door, read under the reader's own RLS.
+  const [changes, setChanges] = useState([]);
+  useEffect(() => {
+    let live = true;
+    const ids = [...(record.requests || []), ...(record.rent || [])].map((x) => x.id);
+    boundedRead(loadRecordEvents(ids), 8000, { ok: false }).then((r) => { if (live) setChanges(r.ok ? r.events : []); });
+    return () => { live = false; };
+  }, [record]);
+
+  // WHAT EACH DOOR HAS BROUGHT IN (DR-0903, 0265). One read of
+  // door_money_months under this person's RLS, re-read whenever the door's
+  // record is (a payment recorded anywhere moves the totals everywhere).
+  const [moneyRows, setMoneyRows] = useState([]);
+  useEffect(() => {
+    let live = true;
+    boundedRead(loadDoorMoney(), 8000, { ok: false }).then((r) => { if (live && r.ok) setMoneyRows(r.months); });
+    return () => { live = false; };
+  }, [record, rentals]);
+  const money = useMemo(() => moneyByDoor(moneyRows), [moneyRows]);
+
+  // THE DOOR'S ID FOR A FACE THAT CANNOT READ RENTALS (DR-0938): a tenant or
+  // household member asks for that door's cameras by its id, learned through
+  // door_of_my_tenancy() for a tenancy they are on and nothing else.
+  const [askDoorId, setAskDoorId] = useState(null);
+  useEffect(() => {
+    let live = true;
+    if (activeRental?.id) { setAskDoorId(activeRental.id); return () => { live = false; }; }
+    if (!activeDoor?.id) { setAskDoorId(null); return () => { live = false; }; }
+    boundedRead(doorOfMyTenancy(activeDoor.id), 8000, { ok: false }).then((r) => { if (live) setAskDoorId(r.ok ? r.rentalId : null); });
+    return () => { live = false; };
+  }, [activeRental, activeDoor]);
 
   // 2. The role. Derived from what the database actually returned for THIS person:
   //    a household membership, a capability grant, or (the family's own session)
@@ -531,15 +607,15 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
   // hold both the name and the user id once the person has signed in.
   const speakerNames = useMemo(() => namesByUserId(invites), [invites]);
   const history = useMemo(
-    () => newestFirst(buildHistory({ ...record, propertyNotes: doorData.propertyNotes || [], names: speakerNames })),
-    [record, doorData.propertyNotes, speakerNames],
+    () => newestFirst(buildHistory({ ...record, propertyNotes: doorData.propertyNotes || [], changes, names: speakerNames })),
+    [record, doorData.propertyNotes, changes, speakerNames],
   );
   const openWork = useMemo(
     () => (record.requests || []).filter((r) => !['resolved', 'declined', 'cancelled'].includes(r.status)),
     [record.requests]
   );
 
-  const refresh = () => setBusy(`r-${Date.now()}`);
+  const refresh = () => setReloadKey((k) => k + 1);
   const workers = useMemo(() => workerRoster(invites, { instanceId: workDoor?.instanceId || null }), [invites, workDoor]);
   // The name this worker was invited under, so a job assigned by name before
   // they ever signed in is still theirs.
@@ -598,9 +674,61 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
     });
     // No placeholder tenancy is minted any more: 0260 lets the row name the
     // DOOR, so a vacant unit files directly (DR-0897 superseding DR-0870's
-    // app-side workaround for this path).
-    say(res.ok ? 'Work order filed.' : `Could not file it: ${res.reason}`);
+    // app-side workaround for this path). A picture filed with the report
+    // rides as the job's first documentation.
+    // Several pictures at once (Darrell: "Multiple photo upload options"):
+    // each is its own documentation row, in the order chosen.
+    const pics = form.pictures || [];
+    let saved = 0;
+    if (res.ok && res.row && res.row.id) {
+      for (const f of pics) { const a = await attachPicture(res.row.id, f, ''); if (a && a.ok) saved += 1; }
+    }
+    say(res.ok ? `Work order filed${saved ? ` with ${saved} picture${saved === 1 ? '' : 's'}` : ''}.` : `Could not file it: ${res.reason}`);
     refresh();
+  };
+
+  // A PICTURE ON A JOB (Darrell, 2026-10-10: "Make sure tenants can upload
+  // receipts etc to share with us... pictures for documentation... For
+  // workorders"). Anyone who can document the job — the tenant on their own
+  // request, the worker on a door he was granted, the family — adds a picture
+  // with a line about it. It is a request_documentation row with no outcome
+  // (0075 allows the tenant's insert; 0260 takes its scope from the request),
+  // shrunk on the phone before it is sent, stamped by the server.
+  const attachPicture = async (requestId, file, note) => {
+    if (!workDoor || !requestId || !file) return { ok: false, reason: 'nothing to attach' };
+    if (!isLikelyImageFile(file)) { say('That is not a picture. Use a photo, or file a document under Documents.'); return { ok: false }; }
+    let image;
+    try { image = await compressImageFile(file, FULL_MAX_WIDTH, FULL_QUALITY); } catch { say('That picture could not be read.'); return { ok: false }; }
+    const res = await postJobDoc({
+      instance_id: workDoor.instanceId, request_id: requestId, tenancy_id: workDoor.tenancyId, rental_id: workDoor.rentalId,
+      outcome: null, followup: null, note: String(note || '').trim() || null, image_data: image,
+    });
+    if (!res.ok) say(`Picture not saved: ${res.reason}`);
+    return res;
+  };
+
+  // A VIDEO ON A JOB (DR-0937: "video when necessary"). A short clip, read as
+  // it is (no re-encoding on a phone), capped so a single upload cannot
+  // swamp the record; 0264 checks it is a video and keeps its bytes off the
+  // board's list.
+  const VIDEO_MAX_BYTES = 25 * 1024 * 1024;
+  const attachVideo = async (requestId, file, note) => {
+    if (!workDoor || !requestId || !file) return { ok: false };
+    if (!/^video\//.test(file.type || '')) { say('That is not a video.'); return { ok: false }; }
+    if (file.size > VIDEO_MAX_BYTES) { say('That video is over 25 MB. Record a shorter clip (about 30 seconds) of the finished work.'); return { ok: false }; }
+    const video = await new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ''));
+      reader.onerror = () => resolve('');
+      reader.readAsDataURL(file);
+    });
+    if (!video) { say('That video could not be read.'); return { ok: false }; }
+    const res = await postJobDoc({
+      instance_id: workDoor.instanceId, request_id: requestId, tenancy_id: workDoor.tenancyId, rental_id: workDoor.rentalId,
+      outcome: null, followup: null, note: String(note || '').trim() || null, video_data: video,
+    });
+    if (!res.ok) say(`Video not saved: ${res.reason}`);
+    return res;
   };
 
   // THE DISPATCH IS A RECORD (DR-0837). Tapping Text it opens the messaging
@@ -958,6 +1086,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
           tabs={face.tabs}
           activeTab={activeTab}
           canPick={face.tabs.some((t) => t.id === 'doors')}
+          money={role === 'owner' || role === 'manager' ? (activeRental ? money.doors.get(activeRental.id) || { known: false } : null) : null}
         />
       )}
 
@@ -990,13 +1119,17 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
               tenancies={doorData.tenancies}
               events={[...history, ...toTimelineEvents(doorData.systemEvents, doorData.systems)]}
               photos={doorData.photos}
-              rent={record.rent} expectedRent={activeDoor?.monthly_rent ?? null}
+              // The ledger is this tenancy's, against its rent; the door's whole
+              // money (every tenant, and none) is on the Rent tab (DR-0903).
+              rent={activeDoor ? record.rent.filter((r) => r.tenancy_id === activeDoor.id) : []}
+              expectedRent={activeDoor?.monthly_rent ?? null}
             />
           );
           case 'gallery': return (
             <GalleryTab
               door={{ id: rentalId, instance_id: activeRental?.instance_id || activeDoor?.instance_id }}
-              rooms={doorData.rooms} photos={doorData.photos} busy={Boolean(busy)}
+              doorLabel={activeRental?.display_name || activeRental?.address || activeDoor?.property_label || ''}
+              rooms={doorData.rooms} photos={doorData.photos}
               canManage={role === 'owner' || role === 'manager'}
               // A 1099 worker delegated "Add job documentation" files pictures
               // to the door he is sent to (0185); he does not arrange or archive.
@@ -1032,13 +1165,22 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
             />
           );
           case 'files': return (
+            <>
             <FilesTab
               door={{ id: rentalId, instance_id: activeRental?.instance_id || activeDoor?.instance_id }}
-              tenancies={doorData.tenancies} documents={doorData.documents} busy={Boolean(busy)}
+              tenancies={doorData.tenancies} documents={doorData.documents}
               canManage={role === 'owner' || role === 'manager'}
               onAdd={async (row) => { const r = await addDocument(row); say(r.ok ? 'Saved.' : `Not saved: ${r.reason}`); loadDoorData(); }}
               onPatch={async (id, patch) => { const r = await patchDocument(id, patch); say(r.ok ? 'Saved.' : `Not saved: ${r.reason}`); loadDoorData(); }}
             />
+            {/* Send a paper for signature, countersign it, and see every
+                signature with its time (DR-0936). Tenants' own uploads carry
+                only their tenancy, so the door's tenancies are read too. */}
+            {(role === 'owner' || role === 'manager') && (
+              <PapersPanel seat="landlord" rentalId={rentalId} tenancyIds={(doorData.tenancies || []).map((t) => t.id)}
+                instanceId={activeRental?.instance_id || activeDoor?.instance_id || null} />
+            )}
+            </>
           );
           case 'systems': return (
             <SystemsTab
@@ -1046,18 +1188,27 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
               systems={doorData.systems} events={doorData.systemEvents} rooms={doorData.rooms}
               propertyType={activeRental?.property_type === 'multi-family' ? 'apartment'
                 : activeRental?.property_type === 'commercial' ? 'commercial' : 'house'}
-              busy={Boolean(busy)}
+             
               canManage={role === 'owner' || role === 'manager'}
               onAdd={async (row) => { const r = await addSystem(row); say(r.ok ? 'Saved.' : `Not saved: ${r.reason}`); loadDoorData(); }}
               onPatch={async (id, patch) => { const r = await patchSystem(id, patch); say(r.ok ? 'Saved.' : `Not saved: ${r.reason}`); loadDoorData(); }}
               onEvent={async (row) => { const r = await addSystemEvent(row); say(r.ok ? 'Recorded.' : `Not saved: ${r.reason}`); loadDoorData(); }}
               onSeed={async (rows) => { for (const row of rows) await addSystem(row); say(`Added ${rows.length}.`); loadDoorData(); }}
+              photos={doorData.photos}
+              doorLabel={activeRental?.display_name || activeRental?.address || activeDoor?.property_label || ''}
+              loadImage={async (id) => { const r = await loadPhotoImages([id]); return r.ok ? r.images[id] || null : null; }}
+              onAddPictures={async (rows) => {
+                let bad = null;
+                for (const row of rows) { const r = await addPhoto(row); if (!r.ok) { bad = r; break; } }
+                loadDoorData();
+                return bad || { ok: true };
+              }}
             />
           );
           case 'rooms': return (
             <RoomsTab
               door={{ id: rentalId, instance_id: activeRental?.instance_id || activeDoor?.instance_id }}
-              rooms={doorData.rooms} photos={doorData.photos} busy={busy}
+              rooms={doorData.rooms} photos={doorData.photos}
               canManage={role === 'owner' || role === 'manager'}
               onAdd={async (row) => { await addRoom(row); loadDoorData(); }}
               onPatch={async (id, patch) => { await patchRoom(id, patch); loadDoorData(); }}
@@ -1066,8 +1217,10 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
           case 'doors': return (
             <>
               <DoorsBoard
-                rentals={rentals} tenancies={doors} busy={Boolean(busy)}
+                rentals={rentals} tenancies={doors}
                 canManage={role === 'owner' || role === 'manager'}
+                money={role === 'owner' || role === 'manager' ? money : null}
+                loadImage={async (id) => { const r = await loadPhotoImages([id]); return r.ok ? r.images[id] || null : null; }}
                 // A tenancy id opens the relationship record; a rentals id (a
                 // door with nobody in it, which is every door on this account
                 // today) opens the door's own chronology, which is the surface
@@ -1096,6 +1249,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
             // between guests, the fan, the stain) on a door he was granted
             // (0260's door arm). On a tenancy he documents; he does not file.
             return (
+              <>
               <WorkTab
                 door={workDoor} place={workDoor} requests={record.requests} open={openWork} docs={record.docs} role={role}
                 mine={role === 'field_worker' ? myJobs(openWork, { userId: me, label: myLabel }) : null}
@@ -1108,7 +1262,18 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
                   refresh();
                 }}
                 onDocument={documentJob}
+                onPicture={async (id, files, note) => {
+                  let n = 0;
+                  for (const f of [].concat(files || [])) { const r = await attachPicture(id, f, note); if (r && r.ok) n += 1; }
+                  if (n) { say(`${n} picture${n === 1 ? '' : 's'} added to the job.`); refresh(); }
+                }}
+                onVideo={async (id, file, note) => { const r = await attachVideo(id, file, note); if (r.ok) { say('Video added to the job.'); refresh(); } }}
+                onProof={async (id, proof) => { const r = await setWorkOrderProof(id, proof); say(r.ok ? 'Proof requirement saved.' : `Not saved: ${r.reason}`); refresh(); }}
               />
+              {/* The guest card (DR-0898): the family opens it per door, so a
+                  guest in a short stay can report a problem with no account. */}
+              {role === 'owner' && activeRental ? <GuestLinkCard rental={activeRental} /> : null}
+              </>
             );
           case 'document':
             return <DocumentTab requests={openWork} onDocument={documentJob} />;
@@ -1124,9 +1289,33 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
             return (
               <RentTab
                 rent={record.rent} door={activeDoor} role={role} face={face} booksAvailable={!!books}
-                onReport={async (amount, period, method) => {
-                  await recordRent({ instanceId: activeDoor.instance_id, tenancyId: activeDoor.id, amount, forPeriod: period, method, role: 'tenant', status: 'reported' });
+                changes={changes} instanceId={workDoor?.instanceId || null}
+                money={activeRental ? money.doors.get(activeRental.id) || doorMoneyNone : null}
+                doorLabel={activeRental?.display_name || activeRental?.address || activeDoor?.property_label || 'this door'}
+                onRecordReceived={workDoor ? async (row) => {
+                  // "How to add payments to the historical events?" (DR-0903):
+                  // money the family received, on the door, tenant or not, on
+                  // the day it came. Confirmed as written — they would confirm it.
+                  const tenantOnDoor = activeDoor && (activeDoor.tenant_name || activeDoor.tenant_user_id) ? activeDoor.id : null;
+                  const res = await recordRent({
+                    instanceId: workDoor.instanceId, tenancyId: tenantOnDoor, rentalId: workDoor.rentalId,
+                    amount: row.amount, forPeriod: row.for_period, method: row.method, memo: row.memo,
+                    paidOn: row.paid_on, role: role === 'owner' ? 'landlord' : 'manager', status: 'confirmed',
+                  });
                   refresh();
+                  return res;
+                } : null}
+                onReport={async (row) => {
+                  // "I'm paying" (DR-0899): the record, with what was due, what
+                  // remains, the promise and this device's clock, is written
+                  // BEFORE the tenant is handed to Cash App / Venmo.
+                  if (!activeDoor) return { ok: false, reason: 'no door' };
+                  const res = await recordRent({
+                    instanceId: activeDoor.instance_id, tenancyId: activeDoor.id, amount: row.amount, forPeriod: row.for_period,
+                    method: row.method, memo: row.memo, role: 'tenant', status: 'reported', part: row,
+                  });
+                  refresh();
+                  return res;
                 }}
                 onConfirm={async (id) => { await confirmRent(id); refresh(); }}
                 onPost={postRentToBooks}
@@ -1145,14 +1334,21 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
               </Card>
             );
           case 'documents':
-            return <DocumentsTab door={activeDoor} tenancy={activeDoor} />;
+            return <DocumentsTab door={activeDoor} tenancy={activeDoor} rentalId={rentalId} onFiled={(m) => { say(m); loadDoorData(); }} />;
+          case 'papers':
+            return <PapersPanel seat="tenant" tenancyId={activeDoor?.id || null} instanceId={activeDoor?.instance_id || null} />;
           case 'plan':
             return <PlanTab />;
+          case 'stays':
+            return <StayDesk instanceId={(activeRental || activeDoor)?.instance_id || null} rentalId={activeRental?.id || null} />;
           case 'cameras':
             // THE CAMERAS AT THIS DOOR (DR-0841): the landlord shares, the
             // household watches, on a grant the NAS minted for this door.
             return (role === 'owner' || role === 'manager')
-              ? <DoorCamerasTab door={activeDoor} place={activeDoor || activeRental} onChange={async (patch) => {
+              ? <DoorCamerasTab door={activeDoor} place={activeDoor || activeRental}
+                people={peopleOnDoor(invites, { instanceId: (activeDoor || activeRental)?.instance_id || null, tenancyId: activeDoor?.id || null, scopeRef: activeDoor?.rental_ref || activeRental?.slug || null }).people}
+                rentalId={activeRental?.id || null} instanceId={(activeRental || activeDoor)?.instance_id || null}
+                onChange={async (patch) => {
                   // The porch camera of a vacant unit is still shareable — make
                   // the unit record first if it is missing (DR-0870).
                   const d = await ensureDoor();
@@ -1161,7 +1357,9 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
                   if (w.ok) { boot(); refresh(); }
                   return w;
                 }} />
-              : <TenantCamerasTab door={activeDoor} renderCameras={renderCameras} />;
+              : <TenantCamerasTab door={activeDoor} renderCameras={renderCameras}
+                  rentalId={askDoorId} instanceId={(activeRental || activeDoor)?.instance_id || null}
+                  me={me} myName={role === 'tenant' ? activeDoor?.tenant_name || '' : ''} />;
           case 'people':
             return <PeopleTab door={activeDoor} place={activeDoor || activeRental} invites={invites}
               onInvite={async (payload) => {
@@ -1246,6 +1444,8 @@ function PlacesToLive({ vacancies = [], claim, onSignIn = null }) {
         // behaviour actually was — claiming a door is protected when the
         // database has not been migrated yet would be the same lie in reverse.
         addressShown: v.address_shown === undefined ? true : Boolean(v.address_shown),
+        area: areaOf(v),
+        nearby: Array.isArray(v.nearby) ? v.nearby : [],
       };
     })
     .filter(Boolean);
@@ -1391,10 +1591,46 @@ function DoorsTab({ doors, onPick, staged, onConfirmDraft }) {
   );
 }
 
-function WorkTab({ door, place, requests, open, docs, role, canFile, canManage, onFile, onStatus, onAssign, onDocument, workers = [], mine = null }) {
+/** A job's video, fetched only when someone opens it (the list never carries the bytes). */
+function JobVideo({ docId }) {
+  const [src, setSrc] = useState(null);
+  const [state, setState] = useState('');
+  if (src) return <video src={src} controls playsInline className="block mt-1 max-h-64 max-w-full border border-[#E8E4DC]" />;
+  return (
+    <button type="button" className="block mt-1 text-[0.625rem] uppercase tracking-wider underline text-[#2F5D50] focus:outline focus:outline-2 focus:outline-[#2F5D50]"
+      onClick={async () => { setState('Loading…'); const r = await loadJobVideo(docId); if (r.ok && r.video) setSrc(r.video); else setState('The video could not be loaded.'); }}>
+      {state || 'Play the video'}
+    </button>
+  );
+}
+
+/** The family's proof setting on one job (DR-0937). */
+function ProofSetting({ request, onProof }) {
+  const [note, setNote] = useState(request.proof_note || '');
+  return (
+    <span className="inline-flex flex-wrap items-center gap-1">
+      <select value={request.proof_required || 'none'} aria-label={`Proof for ${request.title}`}
+        onChange={(e) => onProof(request.id, { proofRequired: e.target.value, proofNote: note })}
+        className="text-xs border border-[#E8E4DC] px-2 py-1 bg-white" style={serif}>
+        {PROOF_OPTIONS.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
+      </select>
+      {(request.proof_required || 'none') !== 'none' && (
+        <>
+          <input value={note} onChange={(e) => setNote(e.target.value)} maxLength={300} placeholder="What to show (optional)" aria-label={`What to show for ${request.title}`}
+            className="text-xs border border-[#E8E4DC] px-2 py-1 w-48" style={serif} />
+          <Btn onClick={() => onProof(request.id, { proofRequired: request.proof_required, proofNote: note })}>Save</Btn>
+        </>
+      )}
+    </span>
+  );
+}
+
+function WorkTab({ door, place, requests, open, docs, role, canFile, canManage, onFile, onStatus, onAssign, onDocument, onPicture, onVideo, onProof, workers = [], mine = null }) {
   const [title, setTitle] = useState('');
   const [detail, setDetail] = useState('');
   const [priority, setPriority] = useState('normal');
+  const [pictures, setPictures] = useState([]);
+  const addPics = (e) => { const fs = Array.from((e.target.files) || []); if (fs.length) setPictures((p) => [...p, ...fs]); e.target.value = ''; };
   const docsFor = (id) => (docs || []).filter((d) => d.request_id === id);
   // A worker sees THEIR jobs on this door (assigned by user id or by the name
   // they were invited under), and is told how many others exist unassigned.
@@ -1413,8 +1649,22 @@ function WorkTab({ door, place, requests, open, docs, role, canFile, canManage, 
               className="text-xs border border-[#E8E4DC] px-2 py-1 bg-white" style={serif}>
               {PRIORITY.map((p) => <option key={p} value={p}>{p}</option>)}
             </select>
-            <Btn tone="primary" disabled={!title.trim() || !place}
-              onClick={() => { onFile({ title, detail, priority }); setTitle(''); setDetail(''); setPriority('normal'); }}>
+            <label className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#E8E4DC] bg-white text-[#1A1815] cursor-pointer inline-flex items-center">
+              Take a picture
+              <input type="file" accept="image/*" capture="environment" className="sr-only" aria-label="Add a picture to this report" onChange={addPics} />
+            </label>
+            <label className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#E8E4DC] bg-white text-[#1A1815] cursor-pointer inline-flex items-center">
+              Choose pictures
+              <input type="file" accept="image/*" multiple className="sr-only" aria-label="Choose pictures for this report" onChange={addPics} />
+            </label>
+            {pictures.length > 0 && (
+              <span className="text-xs text-[#5A5751]" style={serif} data-testid="report-pictures">
+                {pictures.length} picture{pictures.length === 1 ? '' : 's'} ready
+                <button type="button" className="ml-1 underline focus:outline focus:outline-2 focus:outline-[#2F5D50]" onClick={() => setPictures([])}>clear</button>
+              </span>
+            )}
+            <Btn tone="primary" disabled={!title.trim() || !(door || place)}
+              onClick={() => { onFile({ title, detail, priority, pictures }); setTitle(''); setDetail(''); setPriority('normal'); setPictures([]); }}>
               File it
             </Btn>
           </div>
@@ -1436,18 +1686,55 @@ function WorkTab({ door, place, requests, open, docs, role, canFile, canManage, 
               <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">{r.status}</span>
             </div>
             {r.detail && <div className="text-xs text-[#5A5751]" style={serif}>{r.detail}</div>}
+            {proofNotice(r) && (
+              <div className="text-xs text-[#1A1815] border-l-2 border-[#2F5D50] pl-2 mt-1" style={serif} data-testid="proof-notice">{proofNotice(r)}</div>
+            )}
+            {proofState(r, docs).line && (
+              <div className={`text-[0.6875rem] mt-1 ${proofState(r, docs).payable ? 'text-[#2F5D50] font-semibold' : 'text-[#5A5751]'}`} style={serif} data-testid="proof-state">
+                {proofState(r, docs).line}
+              </div>
+            )}
             <div className="text-[0.625rem] text-[#8A867E]">{when(r.created_at)}{r.assigned_to_label ? ` · assigned to ${r.assigned_to_label}` : ''}</div>
             {docsFor(r.id).map((d) => (
-              <div key={d.id} className="text-xs text-[#5A5751] pl-2 border-l-2 border-[#E8E4DC] mt-1" style={serif}>
-                {d.outcome === 'fixed' ? 'Fixed' : `Not fixed — ${FOLLOWUP_LABELS[d.followup] || 'follow-up'}`}{d.note ? `: ${d.note}` : ''}
+              <div key={d.id} className="text-xs text-[#5A5751] pl-2 border-l-2 border-[#E8E4DC] mt-1" style={serif} data-testid="job-doc">
+                {d.outcome === 'fixed' ? 'Fixed' : d.outcome === 'not_fixed' ? `Not fixed — ${FOLLOWUP_LABELS[d.followup] || 'follow-up'}` : d.has_video ? 'Video' : 'Picture'}{d.note ? `: ${d.note}` : ''}
+                {d.created_at ? ` · ${when(d.created_at)}` : ''}
+                {d.image_data && (
+                  <a href={d.image_data} target="_blank" rel="noopener noreferrer" className="block mt-1">
+                    <img src={d.image_data} alt={d.note || `Picture on ${r.title}`} className="max-h-32 border border-[#E8E4DC]" loading="lazy" />
+                  </a>
+                )}
+                {d.has_video && <JobVideo docId={d.id} />}
               </div>
             ))}
+            {onPicture && (
+              <>
+                <label className="inline-flex mt-1 text-[0.625rem] uppercase tracking-wider px-2 py-1 border border-[#E8E4DC] bg-white text-[#1A1815] cursor-pointer">
+                  Take a picture
+                  <input type="file" accept="image/*" capture="environment" className="sr-only" aria-label={`Add a picture to ${r.title}`}
+                    onChange={(e) => { const f = e.target.files && e.target.files[0]; if (f) onPicture(r.id, [f], ''); e.target.value = ''; }} />
+                </label>
+                <label className="inline-flex mt-1 ml-1 text-[0.625rem] uppercase tracking-wider px-2 py-1 border border-[#E8E4DC] bg-white text-[#1A1815] cursor-pointer">
+                  Choose pictures
+                  <input type="file" accept="image/*" multiple className="sr-only" aria-label={`Choose pictures for ${r.title}`}
+                    onChange={(e) => { const fs = Array.from(e.target.files || []); if (fs.length) onPicture(r.id, fs, ''); e.target.value = ''; }} />
+                </label>
+              </>
+            )}
+            {onVideo && (
+              <label className="inline-flex mt-1 ml-1 text-[0.625rem] uppercase tracking-wider px-2 py-1 border border-[#E8E4DC] bg-white text-[#1A1815] cursor-pointer">
+                Add a video
+                <input type="file" accept="video/*" className="sr-only" aria-label={`Add a video to ${r.title}`}
+                  onChange={(e) => { const f = e.target.files && e.target.files[0]; if (f) onVideo(r.id, f, ''); e.target.value = ''; }} />
+              </label>
+            )}
             {canManage && (
               <div className="flex flex-wrap gap-1 mt-2">
                 {(MAINTENANCE_TRANSITIONS[r.status] || []).map((next) => (
                   <Btn key={next} onClick={() => onStatus(r.id, next)}>{next}</Btn>
                 ))}
                 <AssignRow current={r.assigned_to_label} workers={workers} onAssign={(who) => onAssign(r.id, who)} />
+                {onProof && <ProofSetting request={r} onProof={onProof} />}
               </div>
             )}
             {role === 'field_worker' && <DocRow requestId={r.id} onDocument={onDocument} />}
@@ -1632,39 +1919,45 @@ function HistoryTab({ history, onNote, unread = null, unseen = [] }) {
   );
 }
 
-function RentTab({ rent, role, face, onReport, onConfirm, onPost, booksAvailable }) {
-  const [amount, setAmount] = useState('');
-  const [period, setPeriod] = useState(new Date().toISOString().slice(0, 7));
-  const [method, setMethod] = useState('zelle');
+const doorMoneyNone = Object.freeze({ known: false, received: 0, payments: 0, awaiting: 0, awaitingCount: 0, withoutTenant: 0, years: [], months: [] });
+
+function RentTab({ rent, door, role, face, onReport, onConfirm, onPost, booksAvailable, changes = [], instanceId = null, money = null, doorLabel = 'this door', onRecordReceived = null }) {
   const canReport = role === 'tenant';
   const canConfirm = role === 'owner' || face.canWriteRent;
+  const family = role === 'owner' || role === 'manager';
   const waiting = unpostedRent(rent);
+  // The tenant's balance is THIS tenancy's (an earlier tenant's money is not
+  // theirs to have paid); the history below is the door's, whoever paid it.
+  const mine = door ? rent.filter((r) => r.tenancy_id === door.id) : [];
+  // Newest money first, by the day it came when that is known.
+  const history = [...rent].sort((a, b) => String(b.paid_on || b.reported_at || '').localeCompare(String(a.paid_on || a.reported_at || '')));
+  const hasTenant = !!(door && (door.tenant_name || door.tenant_user_id));
   return (
     <>
-      {canReport && (
-        <Card title="I paid the rent">
-          <div className="flex flex-wrap items-center gap-2 mb-2">
-            <input value={amount} onChange={(e) => setAmount(e.target.value)} inputMode="decimal" placeholder="Amount" aria-label="Amount"
-              className="text-sm border border-[#E8E4DC] px-2 py-2 w-28" style={serif} />
-            <input value={period} onChange={(e) => setPeriod(e.target.value)} placeholder="YYYY-MM" aria-label="For which month"
-              className="text-sm border border-[#E8E4DC] px-2 py-2 w-28" style={serif} />
-            <select value={method} onChange={(e) => setMethod(e.target.value)} aria-label="How you paid"
-              className="text-xs border border-[#E8E4DC] px-2 py-2 bg-white" style={serif}>
-              {['zelle', 'cash', 'check', 'ach', 'venmo', 'cashapp', 'other'].map((m) => <option key={m} value={m}>{m}</option>)}
-            </select>
-            <Btn tone="primary" disabled={!(Number(amount) > 0)} onClick={() => { onReport(Number(amount), period, method); setAmount(''); }}>Record it</Btn>
-          </div>
-          <Empty>This records what you already paid outside the app. No money moves here — your landlord confirms it when it lands.</Empty>
-        </Card>
+      {canReport && door && <PayRent tenancy={door} rent={mine} onReport={onReport} />}
+      {family && money && <DoorMoneyCard summary={money} doorLabel={doorLabel} />}
+      {family && (role === 'owner' || face.canWriteRent) && onRecordReceived && (
+        <RecordPayment onRecord={onRecordReceived} hasTenancy={hasTenant} tenantName={door?.tenant_name || ''} />
       )}
+      {role === 'owner' && instanceId && <PayeeCard instanceId={instanceId} />}
       <Card title="Payment history">
-        {rent.length === 0 ? <Empty>No payments recorded yet.</Empty> : rent.map((r) => (
+        {history.length === 0 ? <Empty>No payments recorded yet.</Empty> : history.map((r) => (
           <div key={r.id} className="border-b border-[#F0EDE6] py-2 flex flex-wrap items-baseline justify-between gap-2">
-            <span className="text-sm text-[#1A1815]" style={serif}>${Number(r.amount || 0).toFixed(2)}{r.for_period ? ` · ${r.for_period}` : ''} · {r.method}</span>
+            <span className="text-sm text-[#1A1815]" style={serif}>
+              {rentLine(r)}{r.memo ? ` "${r.memo}"` : ''}
+              {/* Whose money it was, when it was not this tenancy's. */}
+              {family && r.tenancy_id === null && r.rental_id ? ' (no tenant on record)' : family && door && r.tenancy_id && r.tenancy_id !== door.id ? ' (an earlier tenancy)' : ''}
+            </span>
             <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">
-              {r.status}{r.posted_tx_id ? ' · in the books' : ''} · {when(r.confirmed_at || r.reported_at)}
+              {r.status}{r.posted_tx_id ? ' · in the books' : ''}{r.paid_on ? ` · came ${r.paid_on}` : ''} · recorded {when(r.reported_at)}{r.confirmed_at ? ` · confirmed ${when(r.confirmed_at)}` : ''}
             </span>
             {canConfirm && r.status === 'reported' && <Btn onClick={() => onConfirm(r.id)}>Confirm received</Btn>}
+            {/* Every change to this payment, to the second (record_events). */}
+            {changes.filter((e) => e.subject_id === r.id && e.event !== 'reported').map((e) => (
+              <div key={e.id} className="w-full text-[0.6875rem] text-[#5A5751] pl-2 border-l-2 border-[#E8E4DC]" style={serif}>
+                {when(e.at)}: {changeSummary(e)}
+              </div>
+            ))}
           </div>
         ))}
       </Card>
@@ -1854,8 +2147,20 @@ function PlanTab() {
  * as a named blank, a regulated document says which law governs it, and every
  * draft leads with the counsel-review line until an attorney signs it off.
  */
-function DocumentsTab({ door, tenancy }) {
+function DocumentsTab({ door, tenancy, rentalId = null, onFiled }) {
   const [openId, setOpenId] = useState(null);
+  // FILE THE DRAFT WHERE IT BELONGS (DR-0936). The draft becomes a paper in
+  // this tenancy's Files, marked as app-generated, so it can be sent for
+  // signature there; the counsel rule rides with it (0263 refuses to send a
+  // generated draft without the family's record that counsel reviewed it).
+  const fileDraft = async (doc) => {
+    if (!tenancy) return;
+    const r = await addDocument({
+      instance_id: tenancy.instance_id, tenancy_id: tenancy.id, rental_ref: rentalId || null,
+      kind: kindForGenerated(doc.id), title: doc.title, storage_path: textDataUrl(doc.lines), mime_type: 'text/plain', source: 'generated',
+    });
+    onFiled?.(r.ok ? `Filed to this tenancy's papers ${new Date().toLocaleString()}. Send it for signature under Files.` : `Not filed: ${r.reason}`);
+  };
   const records = { door, tenancy };
   const list = availableDocuments(records);
   const open = openId ? buildDocument(openId, records) : null;
@@ -1885,6 +2190,7 @@ function DocumentsTab({ door, tenancy }) {
       {open && open.ok && (
         <Card title={open.title}>
           <pre className="text-xs whitespace-pre-wrap text-[#1A1815]" style={serif}>{open.lines.join('\n')}</pre>
+          {tenancy && <div className="mt-2"><Btn tone="primary" onClick={() => fileDraft(open)}>File this draft to the tenancy</Btn></div>}
         </Card>
       )}
       {open && !open.ok && (
