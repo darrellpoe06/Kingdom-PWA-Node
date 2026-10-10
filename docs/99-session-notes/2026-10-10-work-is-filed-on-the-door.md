@@ -111,3 +111,23 @@
 **Smart locks.** No lock driver exists on the NAS. The forwarder speaks Wyze for the garage door, siren and power only. The same access model will carry an unlock window per person; the driver waits on which locks are on the doors (asked).
 
 **Proof.** The smoke has ten breaks proven to catch. There are 15 app tests, three of them proven to catch.
+
+## End to end (DR-0911)
+
+Darrell: "End to end testing..." The door journeys now run in a real browser on every push. The `door-journeys` leg in `ci.yml` is required by "app — lint + vitest":
+- Chrome walks the built app, through PostgREST 12.2.12, over a PostgreSQL built from the real chain (`scripts/e2e/build-door-db.sh`).
+- **The journeys:**
+  - a stranger books two nights and never sees the street;
+  - the family sees the street, confirms the ask, and records $300 cash on the door with no tenant;
+  - the next stranger finds those nights dark.
+- The database is read after every step.
+- Four faults (street, confirm, payment, calendar) must each fail their own step on every run.
+
+Building it found three things:
+- the Properties face needs `?properties=1` (as the manifest opens it);
+- the build serves its assets from `/poetech-app/`;
+- a database without production's default privileges reads as "permission denied", which the page reports honestly.
+
+**Next journeys and a live-schema mode:** re-review 2026-10-24.
+
+**The fix that also went in.** The booking calendar's weekday headers now carry `scope="col"` (the table-a11y guard failed 6d0fdf756).

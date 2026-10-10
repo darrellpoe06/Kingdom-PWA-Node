@@ -1034,13 +1034,91 @@ jobs:
   # It runs `if: always()` because a job whose `needs` failed is otherwise
   # SKIPPED, and a skipped required check counts as passing. Here, anything but
   # success in any leg (failure, cancelled, skipped) turns this check red.
+  # THE DOOR JOURNEYS, END TO END (DR-0911). Every other leg stops short of the
+  # whole: the smokes prove the walls with no app, vitest proves the screens on
+  # a fake data layer. This one walks what a person walks, in the runner's
+  # Chrome, on the real built app, through PostgREST 12.2.12 (production's
+  # version) over a PostgreSQL built from the real migration chain
+  # (scripts/e2e/build-door-db.sh, 0260-0269 each applied twice), and reads the
+  # database after each step: a stranger sees the place but never its street,
+  # books two nights with both attestations; the family sees the address,
+  # confirms the ask (the clock reads asked,confirmed); records $300 cash on the
+  # door with no tenant (the door's total reads 300.00); the next stranger finds
+  # those nights dark. Then PROVEN TO CATCH, every run: four faults (the street
+  # shown, the family unable to confirm, money refused without a tenancy, the
+  # calendar emptied) must each fail their own step, or this leg is red.
+  door-journeys:
+    name: app — door journeys end to end (Chrome + PostgREST + PostgreSQL)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      PGHOST: localhost
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+      E2E_PSQL: psql
+      E2E_DB_URI: postgres://postgres:postgres@localhost:5432/postgres
+      E2E_POSTGREST: ${{ github.workspace }}/.e2e/postgrest
+      E2E_SHOTS: ${{ github.workspace }}/e2e-shots
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - name: Install postgresql-client
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client > /dev/null
+      - name: PostgREST 12.2.12 (pinned release, checksum verified)
+        run: |
+          set -euo pipefail
+          mkdir -p .e2e
+          curl -sSLo .e2e/postgrest.tar.xz https://github.com/PostgREST/postgrest/releases/download/v12.2.12/postgrest-v12.2.12-linux-static-x86-64.tar.xz
+          echo "5de4092f1719da3353c40bf96c8dec6913f2254a7cd0b61cc05f233153b557d5  .e2e/postgrest.tar.xz" | sha256sum -c -
+          tar -xJf .e2e/postgrest.tar.xz -C .e2e
+          .e2e/postgrest --version
+      - name: The database, from the real chain
+        run: scripts/e2e/build-door-db.sh
+      - name: Install playwright-core (drives the runner's installed Chrome)
+        run: npm install --no-save playwright-core@1
+      - name: Build the app against the journeys' own stack
+        working-directory: app
+        run: |
+          set -euo pipefail
+          npm ci
+          VITE_SUPABASE_URL=http://127.0.0.1:4173/sb VITE_SUPABASE_ANON_KEY="$(node ../scripts/e2e/door-journeys.mjs --anon-key)" npm run build
+      - name: The journeys
+        run: node scripts/e2e/door-journeys.mjs app/dist
+      - name: Proven to catch — each fault fails its own step
+        run: |
+          set -euo pipefail
+          for b in street confirm payment calendar; do
+            echo "=== --break=$b"
+            node scripts/e2e/door-journeys.mjs app/dist --break=$b
+          done
+      - name: Screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: door-journeys-screens
+          path: e2e-shots
+          retention-days: 14
+
   app:
     name: app — lint + vitest
     if: always()
-    needs: [guards, vitest, probes, layout, curriculum, lesson-shares, arrivals-push, contacts-walls, voice-enrollments, dm-device-keys, learner-records, vault-walls, door-work]
+    needs: [guards, vitest, probes, layout, curriculum, lesson-shares, arrivals-push, contacts-walls, voice-enrollments, dm-device-keys, learner-records, vault-walls, door-work, door-journeys]
     runs-on: ubuntu-latest
     steps:
-      - name: Every leg passed (lint + guards, every vitest shard, build + probes, layout, curriculum, lesson shares, lesson arrival push, contacts walls, voice consent walls, sealed-message device keys walls, learner record walls, door work orders)
+      - name: Every leg passed (lint + guards, every vitest shard, build + probes, layout, curriculum, lesson shares, lesson arrival push, contacts walls, voice consent walls, sealed-message device keys walls, learner record walls, door work orders, door journeys end to end)
         env:
           NEEDS: ${{ toJSON(needs) }}
         run: |
