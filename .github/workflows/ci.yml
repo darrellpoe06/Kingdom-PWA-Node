@@ -967,7 +967,12 @@ jobs:
   # names and asks, stamped with their real role, once at a time, only for
   # what is offered; only the family gives, declines and takes back; a grant's
   # token is read by its holder and the family alone; the ledger keeps every
-  # row and the clock every move. All seven smokes also run on the live
+  # row and the clock every move. Then 0267 (system pictures), 0269 (the booking
+  # calendar) and 0270 apply twice; the area smoke proves (DR-0912): the exact
+  # point sent is kept only as its rounded area; half an area, a nearby list of
+  # the wrong shape, and a line naming the door's street are refused; a
+  # stranger moves nothing; the public shelf carries the area and the lines and
+  # never the street or the exact point. Every smoke also runs on the live
   # database in the rls-isolation leg.
   door-work:
     name: app — door work orders (PostgreSQL)
@@ -1010,6 +1015,7 @@ jobs:
           for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0266-a-door-camera-is-asked-for-and-given-to-whoever-the-family-chooses.sql; done
           for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0267-a-system-keeps-its-pictures.sql; done
           for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0269-a-short-stay-door-has-a-booking-calendar.sql; done
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0270-the-public-shelf-shows-the-area-on-a-map.sql; done
           psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0260-door-work-orders-smoke.sql 2>&1 | tee "$RUNNER_TEMP/smoke.txt"
           grep -q 'DOOR WORK SMOKE: PASS' "$RUNNER_TEMP/smoke.txt"
           psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0261-guest-report-smoke.sql 2>&1 | tee "$RUNNER_TEMP/guest.txt"
@@ -1028,6 +1034,8 @@ jobs:
           grep -q 'SYSTEM PICTURES SMOKE: PASS' "$RUNNER_TEMP/syspics.txt"
           psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0269-booking-calendar-smoke.sql 2>&1 | tee "$RUNNER_TEMP/booking.txt"
           grep -q 'BOOKING CALENDAR SMOKE: PASS' "$RUNNER_TEMP/booking.txt"
+          psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0270-area-map-smoke.sql 2>&1 | tee "$RUNNER_TEMP/area.txt"
+          grep -q 'AREA MAP SMOKE: PASS' "$RUNNER_TEMP/area.txt"
 
   # THE REQUIRED CHECK (DR-0645). Branch protection and native auto-merge wait
   # on a check named EXACTLY "app — lint + vitest". Do NOT rename this job.
@@ -1100,7 +1108,7 @@ jobs:
       - name: Proven to catch — each fault fails its own step
         run: |
           set -euo pipefail
-          for b in street confirm payment calendar; do
+          for b in street confirm payment area calendar; do
             echo "=== --break=$b"
             node scripts/e2e/door-journeys.mjs app/dist --break=$b
           done

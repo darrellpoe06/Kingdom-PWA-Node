@@ -131,3 +131,16 @@ Building it found three things:
 **Next journeys and a live-schema mode:** re-review 2026-10-24.
 
 **The fix that also went in.** The booking calendar's weekday headers now carry `scope="col"` (the table-a11y guard failed 6d0fdf756).
+
+## Where, never the street (DR-0912, 0270)
+
+The listing now shows the area on a map and what is nearby.
+- **The area.** It is rounded to 0.005 degrees on the device and again in the database, and a 600 m circle always holds the house.
+- **The nearby lines.** Straight-line miles from twelve cited places, computed from the exact point before rounding.
+- **Darrell's two estimates, measured:**
+  - campus is about 2.0 mi (his "under 5" is true);
+  - the "quarter-mile highway" is US-150, which is North Prospect itself; I-74 is about 0.7 mi.
+- **The street.** A line naming it is refused.
+- **For the family:** Doors → Edit → paste the point from Google Maps → Use this point → Save the area.
+
+**Found by the journeys.** After any save the board's buttons went dead until a reload, because `busy` was a never-cleared timestamp (since #2043). It is fixed, and the fix is pinned in vitest and walked end to end.

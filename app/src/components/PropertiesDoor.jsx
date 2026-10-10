@@ -27,6 +27,7 @@ import { readReportToken } from '../modules/properties/guest-report.js';
 import { GuestReportPage } from '../modules/properties/GuestReport.jsx';
 import { loadPublicVacancies, submitApplication } from '../modules/properties/cloud.js';
 import { VacancyCard } from '../modules/properties/Storefront.jsx';
+import { areaOf } from '../modules/properties/area.js';
 import { APPLICATION_SECTIONS, validateApplication } from '../modules/properties/intake.js';
 // WHAT AN APPLICANT IS OWED IN WRITING (DR-0357): the criteria every
 // application is judged by and the fair-housing commitment it is read under.
@@ -421,6 +422,8 @@ function SignedOutDoor({ left = false, onReturn } = {}) {
                   nightly: Number(v.nightly_rate) > 0 ? Number(v.nightly_rate) : null,
                   note: String(v.note || '').trim(),
                   addressShown: v.address_shown === undefined ? true : Boolean(v.address_shown),
+                  area: areaOf(v),
+                  nearby: Array.isArray(v.nearby) ? v.nearby : [],
                 }}
               />
             ))}

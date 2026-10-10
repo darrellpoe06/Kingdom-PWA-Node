@@ -648,6 +648,21 @@ export async function updateTenancy(id, patch, { summary = '', authorLabel = '',
   } catch (e) { return no('unexpected', e); }
 }
 
+/**
+ * A door's area on the map and its nearby lines (0270), read on their own so
+ * the main rentals read never names a column a database without 0270 lacks
+ * (deploy and db-migrate run side by side). Only the rounded area exists to read.
+ */
+export async function loadDoorArea(id, client = supabase) {
+  if (!id) return no('no-rental');
+  try {
+    const { data, error } = await client.from('rentals').select('area_lat, area_lng, nearby').eq('id', id).single();
+    if (error) return no('read-failed', error);
+    const has = data && data.area_lat != null && data.area_lng != null;
+    return ok({ area: has ? { lat: Number(data.area_lat), lng: Number(data.area_lng) } : null, nearby: (data && data.nearby) || [] });
+  } catch (e) { return no('unexpected', e); }
+}
+
 /** Edit a door. The trace rides in the door's own notes, which is what it has. */
 export async function updateRental(id, patch, { summary = '' } = {}, client = supabase) {
   if (!id) return no('no-rental');

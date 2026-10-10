@@ -1120,6 +1120,18 @@ const NODES = [
     ],
     seeds: ['record-clock'],
   }),
+  // Where, never the street (DR-0912, 0270): the family sets a door's area and
+  // nearby lines; the open shelf shows the rounded area on a map.
+  app('app/src/modules/properties/AreaMap.jsx', {
+    id: 'area-map', name: 'The area on a map, never the street', purpose: 'The family pastes a point; the device rounds it and works out straight-line miles to cited places; the database keeps only the rounded area and the lines, and the public shelf draws a circle with what is nearby.',
+    writes: [
+      { res: 'db:rentals', file: 'app/src/modules/properties/AreaMap.jsx', token: 'area_lat: area.lat' },
+    ],
+    reads: [
+      { res: 'db:rentals', file: 'app/src/modules/properties/cloud.js', token: "select('area_lat, area_lng, nearby')" },
+      { res: 'db:rentals', file: 'app/src/modules/properties/Storefront.jsx', token: '<AreaMap area={unit.area}' },
+    ],
+  }),
   app('app/src/modules/properties/model.js', {
     id: 'record-clock', name: 'Every change, to the instant (record events)', purpose: 'Each report, confirmation, status move and assignment on rent and work leaves an append-only event with its own clock, read back on the door\u2019s history so a situation can be recreated.',
     reads: [

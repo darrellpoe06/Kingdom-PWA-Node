@@ -29,6 +29,7 @@ import { applyUrl, applyUrlDisplay, cardCaption } from './apply-link.js';
 import { isOwnHome } from './homes.js';
 import { shelfOrder } from './showcase.js';
 import { moneyLine, dollarsLong } from './door-money.js';
+import { AreaEditor } from './AreaMap.jsx';
 import { stampImage, stampFileName } from '../../lib/brand-stamp.js';
 import SharpPicture, { sharpestKnown } from './SharpPicture.jsx';
 import { photoOrder, movePhoto, makeCover, pickCovers, listImage } from './photo-order.js';
@@ -1048,6 +1049,7 @@ function EditRental({ rental, onSave, busy }) {
             Never shown to strangers. Browsers see the size, kind, town and rent, and the area on a map; the street is handed over when someone applies or books.
           </span>
         </div>
+        <AreaEditor rental={rental} onSave={onSave} busy={busy} />
         <label><span className={lbl}>Unit</span>
           <input type="text" className={field} value={f.unit} onChange={set('unit')} placeholder="e.g. Apt 2" />
         </label>

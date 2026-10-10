@@ -24,6 +24,7 @@ import { applyUrl } from './apply-link.js';
 import Lightbox from '../../components/Lightbox.jsx';
 import { stampImage, stampFileName } from '../../lib/brand-stamp.js';
 import { BookAStay } from './Booking.jsx';
+import { AreaMap, NearbyList } from './AreaMap.jsx';
 
 const ACCENT = '#2F5D50';
 const serif = { fontFamily: '"Fraunces", serif' };
@@ -161,6 +162,10 @@ export function VacancyCard({ unit }) {
           </div>
         )}
         {unit.note && <p className="text-[0.75rem] text-[#5A5751] mt-1 leading-snug">{unit.note}</p>}
+        {/* WHERE, NEVER THE STREET (DR-0912). The rounded area and the
+            family's nearby lines, from public_vacancies (0270). */}
+        {unit.area && <div className="mt-2"><AreaMap area={unit.area} where={unit.where} /></div>}
+        <NearbyList lines={unit.nearby} />
         {/* SAY WHICH IT IS (0158). Until 2026-08-28 every card printed "the exact
             address is given by a person, not published here" while the label
             above it WAS the street — display_name is the address on all twelve

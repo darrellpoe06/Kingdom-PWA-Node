@@ -29,7 +29,7 @@
 // VITE_SUPABASE_ANON_KEY=<printed by `node scripts/e2e/door-journeys.mjs --anon-key`>.
 // Screenshots land in E2E_SHOTS (default e2e-shots/). Exit 0 = every journey
 // passed; 1 = a journey failed (it says which, and what it saw); 2 = setup.
-// --break=<street|confirm|payment|calendar> installs one fault and exits 0 only
+// --break=<street|confirm|payment|area|calendar> installs one fault and exits 0 only
 // when the step it targets FAILED (proven to catch, DR-0076 §3).
 // Bounded: every wait has a timeout; the whole run is capped (E2E_BUDGET_MS).
 // =============================================================================
@@ -93,6 +93,7 @@ function seed() {
     INSERT INTO instance_members (instance_id, user_id, role, display_name) VALUES ('${INSTANCE}', '${OWNER}', 'owner', 'Owner');
     INSERT INTO rentals (id, instance_id, created_by, slug, display_name, address, unit, city, state, property_type, status, listed_at, offering, nightly_rate, address_visibility)
       VALUES ('${DOOR}', '${INSTANCE}', '${OWNER}', 'E2E-APT2', '${STREET} Apt 2', '${STREET}', 'Apt 2', 'Champaign', 'Illinois', 'multi-family', 'vacant', now(), 'short-term', 150, 'public');
+    -- (a fresh insert carries no area; the family sets it in E1)
   `);
 }
 
@@ -117,6 +118,11 @@ export const FAULTS = Object.freeze({
     step: 'D1',
     sql: 'ALTER TABLE public.rent_records ADD CONSTRAINT e2e_fault_needs_tenancy CHECK (tenancy_id IS NOT NULL) NOT VALID;',
     restore: 'ALTER TABLE public.rent_records DROP CONSTRAINT IF EXISTS e2e_fault_needs_tenancy;',
+  },
+  area: {
+    step: 'E1',
+    sql: `CREATE OR REPLACE FUNCTION public.rentals_area_rounded() RETURNS trigger LANGUAGE plpgsql AS $f$ BEGIN RAISE EXCEPTION 'e2e fault: no area' USING ERRCODE = 'check_violation'; END $f$;`,
+    restore: `${MIG}/0270-the-public-shelf-shows-the-area-on-a-map.sql`,
   },
   calendar: {
     step: 'C1',
@@ -232,6 +238,11 @@ async function run() {
       page.on('response', (r) => { if (r.status() >= 400) seen.push(`[${who} ${r.status()}] ${r.url()}`); });
       return page;
     };
+    // Map tiles are answered here: a run never calls OpenStreetMap (its tile
+    // policy is for people looking at maps, not CI), and the journeys prove the
+    // map is drawn, not that a third party is up.
+    const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
+    const hermetic = async (ctx) => { await ctx.route('https://tile.openstreetmap.org/**', (r) => r.fulfill({ status: 200, contentType: 'image/png', body: PNG })); return ctx; };
     let current = null;
     const step = async (name, fn) => {
       try { await fn(); results.push([name, 'pass']); console.log(`  ✔ ${name}`); } catch (e) {
@@ -249,7 +260,7 @@ async function run() {
     };
 
     // A. A stranger with no account books two nights — and never sees the street.
-    const guest = await browser.newContext({ viewport: { width: 412, height: 915 } });
+    const guest = await hermetic(await browser.newContext({ viewport: { width: 412, height: 915 } }));
     const gp = watch(await guest.newPage(), 'guest'); current = gp;
     await step('A1 the public door lists the short-stay place, without its street', async () => {
       await gp.goto(`${BASE}/properties/app/?properties=1`, { waitUntil: 'domcontentloaded' });
@@ -276,7 +287,7 @@ async function run() {
     });
 
     // B. The family confirms it in the door's Stays tab — and sees the full address.
-    const owner = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+    const owner = await hermetic(await browser.newContext({ viewport: { width: 1280, height: 900 } }));
     const token = mintJwt({ sub: OWNER, role: 'authenticated', aud: 'authenticated', email: 'owner@e2e.local', exp: FAR });
     const session = { access_token: token, token_type: 'bearer', expires_in: 3600 * 24 * 365, expires_at: FAR, refresh_token: 'e2e', user: { id: OWNER, aud: 'authenticated', role: 'authenticated', email: 'owner@e2e.local', app_metadata: {}, user_metadata: {} } };
     await owner.addInitScript(([k, v]) => { try { localStorage.setItem(k, v); } catch { /* none */ } }, ['sb-127-auth-token', JSON.stringify(session)]);
@@ -313,8 +324,23 @@ async function run() {
       await op.screenshot({ path: join(SHOTS, 'D1-payment-recorded.png'), fullPage: true });
     });
 
+    // E. The family puts the door's area on the map; only the area is kept.
+    await step('E1 the family sets the area on the map; the database keeps only the rounded area', async () => {
+      await op.getByRole('button', { name: /^Doors$/ }).first().click({ timeout: 15000 });
+      await op.getByRole('button', { name: /^Edit( door)?$/ }).first().click({ timeout: 15000 });
+      await op.getByTestId('area-editor').waitFor({ timeout: 15000 });
+      await op.getByLabel('Point from a map app').fill('https://www.google.com/maps/@40.123364,-88.25828,17z');
+      await op.getByRole('button', { name: /^Use this point$/ }).click();
+      await op.getByTestId('area-editor-lines').waitFor({ timeout: 15000 });
+      await op.screenshot({ path: join(SHOTS, 'E1-area-editor.png'), fullPage: true });
+      await op.getByRole('button', { name: /^Save the area$/ }).click();
+      await waitFor(() => sql(`SELECT coalesce(area_lat::text,'') || ',' || coalesce(area_lng::text,'') FROM rentals WHERE id = '${DOOR}'`) === '40.12500,-88.26000', 'the area to read 40.12500,-88.26000 in the database');
+      const lines = sql(`SELECT jsonb_array_length(nearby) || '|' || (nearby->0->>'label') FROM rentals WHERE id = '${DOOR}'`);
+      if (lines !== '12|I-74 at Exit 181') throw new Error(`the nearby lines read "${lines}"`);
+    });
+
     // C. The next stranger sees those nights dark.
-    const next = await browser.newContext({ viewport: { width: 412, height: 915 } });
+    const next = await hermetic(await browser.newContext({ viewport: { width: 412, height: 915 } }));
     const np = watch(await next.newPage(), 'next'); current = np;
     await step('C1 the booked nights are dark for the next guest', async () => {
       await np.goto(`${BASE}/properties/app/?properties=1`, { waitUntil: 'domcontentloaded' });
@@ -322,6 +348,18 @@ async function run() {
       await np.getByRole('button', { name: /Book a stay/i }).first().click({ timeout: 15000 });
       await waitFor(async () => (await np.locator(`button[aria-label^="${IN}"]`).first().getAttribute('data-taken')) === 'yes', `the night of ${IN} to show taken`);
       await np.screenshot({ path: join(SHOTS, 'C1-dark-nights.png'), fullPage: true });
+    });
+    await step('C2 the next guest sees the area and what is nearby, never the street or the point', async () => {
+      await np.getByTestId('area-map').first().waitFor({ timeout: 15000 });
+      const tiles = await np.getByTestId('area-map-tile').count();
+      if (tiles !== 15) throw new Error(`the map drew ${tiles} tiles, not 15`);
+      const near = await np.getByTestId('nearby').first().innerText();
+      if (!/University of Illinois Main Quad\s+about 2\.0 mi/.test(near)) throw new Error(`what's nearby reads "${near.replace(/\s+/g, ' ')}"`);
+      const html = await np.content();
+      if (html.includes(STREET)) throw new Error('the street is in the public page');
+      if (/40\.1233|88\.2582/.test(html)) throw new Error('the exact point is in the public page');
+      await np.getByTestId('area-map').first().scrollIntoViewIfNeeded();
+      await np.screenshot({ path: join(SHOTS, 'C2-area-map.png'), fullPage: true });
     });
   } finally {
     clearTimeout(killer);
