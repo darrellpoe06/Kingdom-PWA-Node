@@ -625,6 +625,112 @@ export async function loadDoorPhotos(rentalRef, client = supabase) {
   } catch (e) { return no('unexpected', e); }
 }
 
+/**
+ * The pictures of the OTHER doors in the same apartment (DR-0963).
+ *
+ * Darrell, 2026-10-11, standing on "805 North Prospect Avenue Room 1 - Bed B"
+ * reading "PICTURES (0) — No pictures on this property yet":
+ *
+ *   "Same options as the other co-living tenant... pictures are already
+ *    available for this place apartment 4... remember?"
+ *   "Where are the images... they should be able to be used here too!!!!!!!"
+ *
+ * He is right, and I had built only half of it. DR-0952 / 0273 taught the
+ * STRANGER'S road to borrow — `public_vacancy_photos` falls back to a sibling
+ * listing, so the public card for Bed B shows the apartment. It never touched
+ * the LANDLORD'S gallery, which is the screen he is standing on: that calls
+ * `loadDoorPhotos` for ONE door, and Bed B has none of its own.
+ *
+ * So a stranger could see Apartment 4's kitchen and the man who owns it could
+ * not. The borrowing worked for everyone except the person with the camera.
+ *
+ * WHAT MAKES TWO DOORS THE SAME APARTMENT: same instance, same `address`,
+ * same `unit`. Bed A and Bed B are both `805 North Prospect Avenue` / `Apt 4`.
+ * Both fields are already on the rental row, so this needs no migration.
+ *
+ * NOTHING NEW IS PUBLISHED. Every row returns through the reader's own RLS on
+ * property_photos, exactly as their own door's do — a person who may not see
+ * the sibling door gets [] from the DATABASE, not from a decision in this
+ * file. 0273's borrowing had to be SECURITY DEFINER because its reader is a
+ * stranger with no account at all; this reader is the landlord, who already
+ * holds the rows.
+ *
+ * Keyed on `rental_ref` (the slug) because that is what property_photos is
+ * keyed on — see loadDoorPhotos above. Keying it on `rental_id` would have
+ * matched nothing and failed silently, which is the quietest kind of wrong.
+ *
+ * Metadata only, like every list since DR-0955.
+ */
+export async function loadSiblingPhotos(rentalId, client = supabase) {
+  if (!rentalId) return ok({ photos: [], siblings: [] });
+  try {
+    const { data: me, error: meErr } = await client
+      .from('rentals').select('id, slug, instance_id, address, unit').eq('id', rentalId).single();
+    if (meErr) return no('read-failed', meErr);
+    // NO UNIT MEANS THIS IS THE WHOLE PLACE, not one door inside it. A house
+    // with no unit must never borrow from the next house at the same address,
+    // and 0273 draws the same line on the public side ("never for a whole
+    // unit"). The two halves agree on purpose.
+    if (!me || !me.address || !me.unit) return ok({ photos: [], siblings: [] });
+
+    // THE QUERY DOES NOT SCOPE BY THE CALLER'S TENANCY, and that is a rule
+    // this file keeps on purpose; `properties-door.test.js` fails the build
+    // on any such filter here. (Its check is a source scan, so it reads this
+    // comment too — which is why the forbidden call is described in words
+    // rather than written out.)
+    // This module is mounted by BOTH the PoeTech app and the standalone
+    // Poe Properties door, and a client-side instance filter is what would
+    // stop a non-member using the second. RLS decides what comes back; the
+    // client never scopes a read by the caller's tenancy.
+    //
+    // The same-instance rule still holds, as a CORRECTNESS refinement applied
+    // to rows already returned, not as the wall: a person who is a member of
+    // two instances that each happen to hold a "805 North Prospect Avenue /
+    // Apt 4" must not have one borrow from the other. 0273 draws the same
+    // line ("never across instances") on the public side.
+    const { data: sibs, error: sibErr } = await client
+      .from('rentals').select('id, slug, display_name, instance_id, address, unit');
+    if (sibErr) return no('read-failed', sibErr);
+    const mine = (sibs || []).filter((r) => (
+      r.id !== rentalId
+      && r.instance_id === me.instance_id
+      && r.address === me.address
+      && r.unit === me.unit
+    ));
+    const refs = mine.map((r) => r.slug).filter(Boolean);
+    if (!refs.length) return ok({ photos: [], siblings: [] });
+
+    const { data, error } = await client
+      .from('property_photos').select(PHOTO_LIST_COLUMNS)
+      .in('rental_ref', refs)
+      .is('archived_at', null)
+      .order('sort_order', { ascending: true, nullsFirst: false })
+      .order('taken_at', { ascending: false });
+    if (error) return no('read-failed', error);
+    return ok({ photos: data || [], siblings: mine });
+  } catch (e) { return no('unexpected', e); }
+}
+
+/**
+ * How a GUEST pays for nights on a listed door: the family's Square payment
+ * link and the nightly rate (0277, DR-0960).
+ *
+ * Darrell, 2026-10-11: "If they pay!!!" and "Square payment options!!!" and
+ * then, on the shape of it: "This can't be member scoped... we will need to be
+ * able to receive funds from everyone..." — so the RPC is granted to anon AND
+ * authenticated, and rent_payee itself stays member-only. Anybody may pay;
+ * nobody may read the rest of the family's payment details.
+ */
+export async function loadStayPayment(rentalId, client = supabase) {
+  if (!rentalId) return no('no-rental');
+  try {
+    const { data, error } = await client.rpc('public_stay_payment', { p_rental: rentalId });
+    if (error) return no('read-failed', error);
+    const row = Array.isArray(data) ? data[0] : data;
+    return ok({ squareLink: (row && row.square_link) || null, nightlyRate: (row && row.nightly_rate) ?? null });
+  } catch (e) { return no('unexpected', e); }
+}
+
 /** Every tenancy this door has held — the chapters of its chronology. */
 export async function loadDoorTenancies(rentalRef, client = supabase) {
   if (!rentalRef) return ok({ tenancies: [] });

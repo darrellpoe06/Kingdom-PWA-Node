@@ -78,9 +78,8 @@ describe('filing several pictures to one room', () => {
     const patches = [];
     await mountGallery({ onPatch: async (id, patch) => { patches.push([id, patch]); return { ok: true }; } });
 
-    await tap('gallery-choose-several');
     for (const n of [0, 1, 2, 3]) await check(`gallery-choose-p${n}`);
-    expect(need('gallery-chosen-count').textContent).toMatch(/4 chosen/);
+    expect(need('gallery-chosen-count').textContent).toMatch(/4 ticked/);
 
     await pick('gallery-bulk-room', 'r-bath');
     await tap('gallery-bulk-apply');
@@ -93,9 +92,8 @@ describe('filing several pictures to one room', () => {
   it('all-shown chooses the whole filtered set', async () => {
     const patches = [];
     await mountGallery({ onPatch: async (id, patch) => { patches.push([id, patch]); return { ok: true }; } });
-    await tap('gallery-choose-several');
     await tap('gallery-choose-all');
-    expect(need('gallery-chosen-count').textContent).toMatch(/6 chosen/);
+    expect(need('gallery-chosen-count').textContent).toMatch(/6 ticked/);
     await pick('gallery-bulk-room', 'r-bed');
     await tap('gallery-bulk-apply');
     expect(patches).toHaveLength(6);
@@ -104,20 +102,24 @@ describe('filing several pictures to one room', () => {
   it('clearing the room back to none is a real answer, not a no-op', async () => {
     const patches = [];
     await mountGallery({ onPatch: async (id, patch) => { patches.push([id, patch]); return { ok: true }; } });
-    await tap('gallery-choose-several');
     await check('gallery-choose-p0');
     await tap('gallery-bulk-apply');
     expect(patches[0][1].room_id, 'an empty pick must send null, never an empty string').toBe(null);
     expect(need('gallery-bulk-said').textContent).toMatch(/no specific room/);
   });
 
-  it('the grid is NOT in selection mode until asked — a tap still opens a picture', async () => {
-    // A grid always in selection mode makes tapping to LOOK ambiguous, and
-    // looking is what the grid is mostly for.
+  it('the checkmarks are on every picture from the start — no arming step (DR-0961)', async () => {
+    // THIS TEST USED TO ASSERT THE OPPOSITE, and the reversal is the point.
+    // It pinned a "Choose several" toggle on my reasoning that a grid always
+    // in selection mode makes tapping to LOOK ambiguous. Darrell, 2026-10-11,
+    // with the feature shipped and in front of him: "Maybe it should say move
+    // to listing... checkmarks!!!!!!! For each photo on any section". The
+    // ambiguity never arrived; the cost of a feature nobody could find did.
     await mountGallery({});
-    expect(at('gallery-choose-p0'), 'checkboxes were on before anyone asked').toBeFalsy();
-    await tap('gallery-choose-several');
-    expect(at('gallery-choose-p0')).toBeTruthy();
+    expect(at('gallery-choose-p0'), 'a picture arrived with no checkmark on it').toBeTruthy();
+    expect(at('gallery-choose-p1')).toBeTruthy();
+    // And the picture underneath is still its own target, so a tap still looks.
+    expect(at('gallery-choose-several'), 'the arming step came back').toBeFalsy();
   });
 
   it('says how many actually saved, not how many were asked', async () => {
@@ -125,7 +127,6 @@ describe('filing several pictures to one room', () => {
     // lie DR-0907 was written about.
     let n = 0;
     await mountGallery({ onPatch: async () => { n += 1; return n > 2 ? { ok: false, reason: 'write-failed' } : { ok: true }; } });
-    await tap('gallery-choose-several');
     for (const i of [0, 1, 2, 3]) await check(`gallery-choose-p${i}`);
     await pick('gallery-bulk-room', 'r-bath');
     await tap('gallery-bulk-apply');

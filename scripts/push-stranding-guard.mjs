@@ -66,7 +66,37 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-export const STAMP_PATH = join(HERE, '..', '.git', 'push-stranding-stamp.json');
+
+// WHERE THE STAMP LIVES, ASKED OF GIT RATHER THAN ASSUMED (DR-0962).
+//
+// This used to be a plain `join(HERE, '..', '.git', ...)`, which is correct in
+// an ordinary clone and IMPOSSIBLE in a git worktree: there `.git` is a FILE
+// holding `gitdir: /path/to/real/.git/worktrees/<name>`, so `mkdirSync` dies
+// with `EEXIST: file already exists, mkdir '<wt>/.git'`. The guard then exited
+// 2 exactly as DR-0393 decision 4 requires — and because it is the FIRST link
+// of `ship`'s `&&` chain, the whole of verify, the gates and the push never
+// ran. Nothing was lost (that is the rule working), but `npm run ship` simply
+// could not be used in a worktree at all.
+//
+// That is a contradiction with our own operating model, not a corner case:
+// ORCHESTRATION §2 says a lane IS an isolated worktree. The sanctioned way to
+// run work and the sanctioned way to ship it could not both be followed.
+//
+// `git rev-parse --git-dir` answers correctly in a clone, a worktree and a
+// submodule alike, so the assumption is replaced by a question. If git cannot
+// be asked at all, fall back to the old path — a wrong stamp location still
+// ends in the honest UNKNOWN exit, never a silent green.
+export function resolveGitDir(cwd = HERE) {
+  try {
+    const out = execFileSync('git', ['rev-parse', '--absolute-git-dir'], {
+      cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim();
+    if (out) return out;
+  } catch { /* fall through */ }
+  return join(cwd, '..', '.git');
+}
+
+export const STAMP_PATH = join(resolveGitDir(), 'push-stranding-stamp.json');
 
 /**
  * The whole decision, as a pure function. No git, no disk.

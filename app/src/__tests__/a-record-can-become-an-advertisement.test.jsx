@@ -81,7 +81,6 @@ describe('moving pictures to the advertising section', () => {
     const patches = [];
     await mountGallery({ onPatch: async (id, patch) => { patches.push([id, patch]); return { ok: true }; } });
 
-    await tap('gallery-choose-several');
     for (const n of [0, 1, 2]) await check(`gallery-choose-p${n}`);
     await pick('gallery-bulk-field', 'kind');
     await pick('gallery-bulk-kind', 'listing');
@@ -99,16 +98,20 @@ describe('moving pictures to the advertising section', () => {
 
   it('says plainly that this makes them public, before the button is pressed', async () => {
     await mountGallery({ onPatch: async () => ({ ok: true }) });
-    await tap('gallery-choose-several');
     await check('gallery-choose-p0');
     await pick('gallery-bulk-field', 'kind');
 
-    // A record kind is the opening value, so no warning yet (DR-0906).
+    // The field-picker warning stays off while a RECORD kind is the value
+    // (DR-0906), and stays off for 'listing' too, because the one-tap button's
+    // own warning covers that and two red sentences must never stack.
     expect(at('gallery-bulk-advertising'), 'warned about advertising while a record was chosen').toBeFalsy();
-
     await pick('gallery-bulk-kind', 'listing');
-    expect(need('gallery-bulk-advertising').textContent).toMatch(/only kind a stranger can see/i);
-    expect(need('gallery-bulk-advertising').textContent).toMatch(/not copied/i);
+    expect(at('gallery-bulk-advertising'), 'both red sentences showed at once').toBeFalsy();
+
+    // The sentence rides the button that does it (DR-0961): one tap from
+    // public, so it is on screen the whole time that button is.
+    expect(need('gallery-move-to-listing-warning').textContent).toMatch(/only kind a stranger can see/i);
+    expect(need('gallery-move-to-listing-warning').textContent).toMatch(/not copied/i);
   });
 
   it('moves the other way too — advertising back to a record', async () => {
@@ -117,7 +120,6 @@ describe('moving pictures to the advertising section', () => {
       photos: SHOTS.map((p) => ({ ...p, kind: 'listing' })),
       onPatch: async (id, patch) => { patches.push([id, patch]); return { ok: true }; },
     });
-    await tap('gallery-choose-several');
     await check('gallery-choose-p0');
     await pick('gallery-bulk-field', 'kind');
     await pick('gallery-bulk-kind', 'damage');
@@ -132,7 +134,6 @@ describe('moving pictures to the advertising section', () => {
       rooms: [{ id: 'r-bath', name: 'Bathroom', sort_order: 0 }],
       onPatch: async (id, patch) => { patches.push([id, patch]); return { ok: true }; },
     });
-    await tap('gallery-choose-several');
     await check('gallery-choose-p0');
     await pick('gallery-bulk-room', 'r-bath');
     await tap('gallery-bulk-apply');
