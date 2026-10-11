@@ -1056,6 +1056,27 @@ const NODES = [
   // The door keeps its money (DR-0903): the family records money received on
   // the door, tenant or none, on the day it came; door_money_months sums each
   // asset under the reader's RLS for the Rent tab, door header and board.
+  // WHO ASKED TO LIVE HERE, AND HOW THEY ARE VERIFIED (DR-0903 + DR-0945).
+  // The application was a dead letter: submitApplication had written
+  // rental_applications since 0152 and nothing in the app ever read it. The
+  // reader and the corroboration record arrive together, because a decision
+  // surface with no record of diligence is the dangerous half.
+  app('app/src/modules/properties/ApplicationsTab.jsx', {
+    id: 'applications', name: 'Applications, corroborated not credentialed',
+    purpose: 'The landlord reads who asked to live at a door and what they answered, works a FIXED list of checks on every applicant \u2014 last landlord, employer, income shown, address shown, a reference reached, the phone answering \u2014 each attempt recording who checked, when and what they heard, and records a decision with the documented criterion it rests on. No ID is held: 0152 refuses an SSN or licence in the payload and 0272 refuses SSN-shaped text in a call note. Attempted, never passed, so "could not reach" and "does not apply" are answers and nobody is excluded by arithmetic.',
+    writes: [
+      { res: 'db:application_checks', file: 'app/src/modules/properties/cloud.js', token: "from('application_checks')" },
+      { res: 'db:rental_applications', file: 'app/src/modules/properties/cloud.js', token: "from('rental_applications').update" },
+      // Trigger-driven, declared against the migration the way doc-signing
+      // declares its own: the clock is fed by the database, not the client.
+      { res: 'db:door_events', file: 'infra/supabase/migrations-auto/0272-an-application-is-corroborated-not-credentialed.sql', token: "'application', NEW.id, 'applied'" },
+    ],
+    reads: [
+      { res: 'db:rental_applications', file: 'app/src/modules/properties/cloud.js', token: "from('rental_applications')" },
+      { res: 'db:application_checks', file: 'app/src/modules/properties/cloud.js', token: "from('application_checks')" },
+    ],
+    seeds: ['record-clock'],
+  }),
   app('app/src/modules/properties/DoorMoney.jsx', {
     id: 'door-money', name: 'What each door has brought in', purpose: 'Money received is recorded on the door with or without a tenant, on the day it came; each asset shows its lifetime, yearly and monthly total, and the board the whole portfolio.',
     writes: [
