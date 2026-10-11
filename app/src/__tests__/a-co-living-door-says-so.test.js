@@ -67,16 +67,42 @@ describe('coLivingTag — from what the door already is', () => {
 });
 
 describe('the client actually reads the column it needs', () => {
-  it('PROVEN-TO-CATCH: the rentals read selects rentable_level', async () => {
-    // It existed in the database since 0160 and nothing asked for it, which is
-    // the whole reason no screen could ever say a door was a bed. A tag
-    // derived from a column nobody reads is a tag that never shows.
+  // A SOURCE PIN MUST NAME THE QUERY IT MEANS, NOT "THE FIRST ONE".
+  //
+  // This case first located the door list as `src.indexOf("from('rentals')")`
+  // and read the next 600 characters. That passed — until DR-0967's sibling
+  // read added two `from('rentals')` calls ABOVE it, at which point the pin
+  // silently started inspecting a different query and failed while the column
+  // it guards was untouched. A pin that moves when unrelated code is inserted
+  // above it is a pin that will one day pass while pointing at the wrong
+  // thing, which is the worse direction of the same fault.
+  //
+  // So the query is found by a column only IT selects (`showcase_order`, the
+  // landlord's arrangement), and the pin then asserts on that query alone.
+  const doorListSelect = async () => {
     const { readFileSync } = await import('node:fs');
     const { join, dirname } = await import('node:path');
     const { fileURLToPath } = await import('node:url');
     const here = dirname(fileURLToPath(import.meta.url));
     const src = readFileSync(join(here, '../modules/properties/cloud.js'), 'utf8');
-    const read = src.slice(src.indexOf("from('rentals')"));
-    expect(read.slice(0, 600), 'the rentals read stopped selecting rentable_level').toContain('rentable_level');
+    const selects = src.match(/\.select\((['"`])[^'"`]*\1\)/g) || [];
+    return selects.filter((s) => s.includes('showcase_order'));
+  };
+
+  it('PROVEN-TO-CATCH: the door-list read selects rentable_level', async () => {
+    // It existed in the database since 0160 and nothing asked for it, which is
+    // the whole reason no screen could ever say a door was a bed. A tag
+    // derived from a column nobody reads is a tag that never shows.
+    const found = await doorListSelect();
+    expect(found, 'the door-list select could not be found by showcase_order').toHaveLength(1);
+    expect(found[0], 'the door-list read stopped selecting rentable_level').toContain('rentable_level');
+  });
+
+  it('the pin is anchored, so inserting another rentals query cannot move it', async () => {
+    // The regression this pin itself suffered, pinned: the locator must select
+    // exactly one query by name, never "whichever comes first".
+    const found = await doorListSelect();
+    expect(found).toHaveLength(1);
+    expect(found[0]).toContain('property_type');
   });
 });
