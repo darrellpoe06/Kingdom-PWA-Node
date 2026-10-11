@@ -97,10 +97,21 @@ jobs:
       # to the newest definition of each function), so there is no list to keep
       # up to date. Runs after the apply, on the real database, and fails the
       # run — a red db-migrate is the signal that production is behind the repo.
+      #
+      # A CHAIN HALFWAY THROUGH IS NOT A REVERT (2026-10-10, DR-0944). Run
+      # 38093330311 read hosted at 23:03:21 while the isolation run dispatched
+      # by the db-migrate before it was in its product-forms leg, which applies
+      # 0200 -> 0213 one file per transaction (DR-0831): 0202's definitions had
+      # committed, 0203 / 0204 had not yet replaced them, and two functions read
+      # "older" for about thirty seconds. The settle script reads again every
+      # 20 s while an rls-isolation run is queued or in progress (budget 20 min;
+      # one last read after it ends). A finding with no isolation run in motion
+      # fails at once, as before; a plumbing fault never retries.
       - name: Witness the LIVE definitions (not the ledger)
         if: success()
         env:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
           # Strip whitespace from the secret before handing it to psql. The
@@ -119,11 +130,10 @@ jobs:
           # sent the placeholder to the server, got nothing back, and reported
           # all ten functions "absent" — a false alarm, which is a broken gate
           # exactly as surely as a silent one. No substitution step, no fault.
-          node scripts/live-definition-witness.mjs --sql > "$RUNNER_TEMP/witness.sql"
-          psql "$DBURL" -At -v ON_ERROR_STOP=1 -f "$RUNNER_TEMP/witness.sql" > "$RUNNER_TEMP/witness.json"
           # Empty output means the query never ran; --check exits 2 rather than
-          # inventing findings out of a plumbing fault.
-          node scripts/live-definition-witness.mjs --check < "$RUNNER_TEMP/witness.json"
+          # inventing findings out of a plumbing fault. The settle script builds
+          # the query with --sql and judges each read with --check.
+          SUPABASE_DB_URL="$DBURL" node scripts/live-definition-witness-settle.mjs
 
       # THE OTHER DATABASE — the one the app actually reads (DR-0317).
       #
