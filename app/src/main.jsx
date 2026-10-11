@@ -161,6 +161,19 @@ const __linkCode = __params.get('link') || (() => {
     return (typeof code === 'string' && Date.now() - at < 10 * 60 * 1000) ? code : '';
   } catch { return ''; }
 })();
+// THE PATH IS THE DOOR (DR-0958). /properties/app/ exists for one reason: to be
+// the Poe Properties face, in its own scope, with its own manifest and icon.
+// Booting it required `?properties=1` ON TOP of that path, so the link the app
+// itself hands out for advertising -- poetech.us/properties/app -- fell through
+// to the private PoeTech gate and showed a stranger the create-a-PIN form.
+// Darrell, 2026-10-11, holding the share panel beside that screen: "Wrong link
+// for advertising?!!!!!!!!!" The param still works, for every link already
+// printed or shared that carries it; the path now works on its own.
+const __onPropertiesPath = (() => {
+  try { return /^\/properties(\/|$)/.test(window.location.pathname || ''); } catch { return false; }
+})();
+const __isPropertiesDoor = __params.get('properties') === '1' || __onPropertiesPath;
+
 const __standalone = __params.get('join') === '1' || __params.get('invites') === '1'
   || !!__linkCode
   || __params.get('register') === '1' || __params.get('audience') === '1'
@@ -169,7 +182,7 @@ const __standalone = __params.get('join') === '1' || __params.get('invites') ===
   || __params.get('request-space') === '1'
   || __params.get('share') === '1' || __params.get('share') === 'church'
   || __params.get('moore') === '1'
-  || __params.get('properties') === '1'
+  || __isPropertiesDoor
   || !!__params.get('biz')
   || !!__params.get('room')
   || __params.get('oauth_popup') === '1';
@@ -284,7 +297,7 @@ if (__params.get('oauth_popup') === '1') {
   import('./components/SharePoster.jsx').then(({ default: SharePoster }) => {
     __root.render(<React.StrictMode><ErrorBoundary><SharePoster /></ErrorBoundary></React.StrictMode>);
   }).catch((err) => { console.warn('share boot failed:', err); showBootFallback(document.getElementById('root'), { error: err }); });
-} else if (__params.get('properties') === '1') {
+} else if (__isPropertiesDoor) {
   // The Poe Properties App (DR-0313). Its own installable face at
   // /properties/app/ (scope /properties/, disjoint from every other face), for
   // tenants, their families, and the 1099 workers who support the doors. A LEAN
