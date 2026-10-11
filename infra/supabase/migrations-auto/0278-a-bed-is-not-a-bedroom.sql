@@ -186,3 +186,81 @@ COMMENT ON FUNCTION public.public_vacancies() IS
 
 SELECT public.apply_viewer_readonly_overlay();
 SELECT public.apply_assistant_scope_overlay();
+
+-- ---------------------------------------------------------------------------
+-- 3. THE PUBLIC PHOTOGRAPHS BORROW ON THE INFERRED LEVEL TOO
+-- ---------------------------------------------------------------------------
+-- Darrell, 2026-10-11: "Why don't we show the same photos for both
+-- listings??????!!!!!!!!!"
+--
+-- His landlord board for Bed B reads "PICTURES (0)" above "SHARED WITH THIS
+-- APARTMENT (39)" -- so the owner-side borrowing works. The PUBLIC card for
+-- the same door still reads "PHOTOGRAPHS COMING".
+--
+-- THE SAME NULL COLUMN, A THIRD TIME. 0273's public_vacancy_photos gates the
+-- borrow on `me.rentable_level IN ('room','bed')`, read RAW. On his doors
+-- that column is NULL, and `NULL IN ('room','bed')` is NULL, not false -- so
+-- the EXISTS never holds and no sibling photograph is ever offered. The
+-- landlord road works because cloud.js does not gate on the column at all.
+-- Two roads, one apartment, opposite answers.
+--
+-- Same shape as 0273 otherwise: own pictures first, a sibling only when this
+-- door has none, same instance, same apartment number, never a whole unit,
+-- and every wall of 0161 still applied to the borrowed row.
+DROP FUNCTION IF EXISTS public.public_vacancy_photos(uuid);
+
+CREATE FUNCTION public.public_vacancy_photos(p_rental uuid)
+RETURNS TABLE (
+  id           uuid,
+  caption      text,
+  storage_path text,
+  taken_at     timestamptz,
+  from_sibling boolean
+)
+LANGUAGE sql STABLE SECURITY DEFINER
+SET search_path = public
+AS $$
+  WITH showable AS (
+    SELECT ph.id, ph.caption, ph.storage_path, ph.taken_at, ph.sort_order,
+           ph.uploaded_at, ph.rental_ref
+      FROM property_photos ph
+      JOIN rentals r ON r.id = ph.rental_ref
+     WHERE ph.kind = 'listing'
+       AND ph.archived_at IS NULL
+       AND r.listed_at IS NOT NULL
+       AND NOT EXISTS (
+         SELECT 1 FROM rental_tenancies t
+          WHERE t.rental_ref = r.slug AND t.status = 'active'
+       )
+  ),
+  mine AS (SELECT * FROM showable WHERE rental_ref = p_rental),
+  siblings AS (
+    SELECT s.* FROM showable s
+     WHERE NOT EXISTS (SELECT 1 FROM mine)
+       AND EXISTS (
+         SELECT 1
+           FROM rentals me
+           JOIN rentals sib ON sib.id = s.rental_ref
+          WHERE me.id = p_rental
+            -- INFERRED, not raw (DR-0971). This single word is why his Bed B
+            -- card said PHOTOGRAPHS COMING with 39 of the apartment's
+            -- pictures one door away.
+            AND public.rentable_level_of(me.rentable_level, me.unit, me.display_name) IN ('room', 'bed')
+            AND sib.instance_id = me.instance_id
+            AND public.same_apartment(me.address, me.unit, sib.address, sib.unit)
+            AND sib.id <> me.id
+       )
+  )
+  SELECT id, caption, storage_path, taken_at, false AS from_sibling FROM mine
+  UNION ALL
+  SELECT id, caption, storage_path, taken_at, true AS from_sibling FROM siblings
+  ORDER BY 5, 4 DESC NULLS LAST, 1
+$$;
+REVOKE ALL ON FUNCTION public.public_vacancy_photos(uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.public_vacancy_photos(uuid) TO anon, authenticated;
+
+COMMENT ON FUNCTION public.public_vacancy_photos(uuid) IS
+  'Listing photographs a stranger may see for one door. Its own first; a door with none borrows from a listing in the same apartment, with the level INFERRED when nobody stored one (DR-0971). Every wall of 0161 still applies to the borrowed row.';
+
+SELECT public.apply_viewer_readonly_overlay();
+SELECT public.apply_assistant_scope_overlay();

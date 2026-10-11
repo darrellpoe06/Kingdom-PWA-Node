@@ -113,3 +113,48 @@ describe('shared_home follows the inferred level', () => {
     expect(sharedHome(levelOf({ unit: 'Apt 2', name: '805 North Prospect Avenue' }))).toBe(false);
   });
 });
+
+describe('the shared-apartment card does not invite a move (DR-0971)', () => {
+  // Darrell, 2026-10-11, on Bed B's gallery showing "PICTURES (0)" above
+  // "SHARED WITH THIS APARTMENT (39)" with a MOVE 39 TO LISTING button:
+  //
+  //   "Moving them takes them away from the other listing?!!!! We're trying
+  //    to get co-renters!!!!!!!!!!!!!!!!!! Obviously!!!!!!!!!!!! Fix it!!!!!!!"
+  //
+  // MEASURED: applyToChosen reads `[...shown, ...sharedPhotos]` and patches
+  // every ticked id, so ticking the 39 borrowed pictures and pressing the
+  // button writes to BED A's rows. It does not change which door owns them
+  // (rental_ref is untouched), so nothing is taken away — but it changes
+  // their kind on Bed A, and it gives Bed B nothing at all. The button
+  // cannot do what he wants, and the card's old last line invited it anyway:
+  // "Tick any of them to use the buttons above; they stay where they are."
+  //
+  // The real answer is that no move is needed: once the public borrow works
+  // (0278 section 3), both listings advertise with the apartment's pictures
+  // and neither door has to own them.
+  it('PROVEN-TO-CATCH: the card says no move is needed, and never offers one as the way', async () => {
+    const { readFileSync } = await import('node:fs');
+    const { join, dirname } = await import('node:path');
+    const { fileURLToPath } = await import('node:url');
+    const here = dirname(fileURLToPath(import.meta.url));
+    const src = readFileSync(join(here, '../modules/properties/DoorTabs.jsx'), 'utf8');
+    const start = src.indexOf('gallery-shared-note');
+    expect(start, 'the shared-apartment note is gone').toBeGreaterThan(0);
+    const note = src.slice(start, start + 900);
+    expect(note).toMatch(/do not need to move them/);
+    expect(note).toMatch(/already\s*\n?\s*advertised with these pictures/);
+    expect(note, 'the old line invited exactly the move he feared').not.toMatch(/they stay where they are/);
+  });
+
+  it('it says plainly that an edit here reaches the door that owns the picture', async () => {
+    const { readFileSync } = await import('node:fs');
+    const { join, dirname } = await import('node:path');
+    const { fileURLToPath } = await import('node:url');
+    const here = dirname(fileURLToPath(import.meta.url));
+    const src = readFileSync(join(here, '../modules/properties/DoorTabs.jsx'), 'utf8');
+    const note = src.slice(src.indexOf('gallery-shared-note'), src.indexOf('gallery-shared-note') + 900);
+    expect(note).toMatch(/edits it on the door/);
+    expect(note).toMatch(/never a copy/);
+  });
+});
+
