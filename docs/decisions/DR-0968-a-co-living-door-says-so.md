@@ -51,6 +51,26 @@ asked of anybody:
 `rentable_level` being added and never read is the finding under the finding:
 0160 recorded the distinction and every surface then went on counting bedrooms.
 
+## Impact
+
+A door header that never says "co-living" is a landlord looking at Bed B and
+seeing `1 bed · multi-family · $500/mo` — the same words a whole one-bedroom
+apartment would show. The cost is not cosmetic. It is the landlord mis-reading
+his own inventory while deciding what to advertise, what to charge, and who to
+put where; and it is the same omission DR-0952 found on the public side, where
+it reaches a stranger instead of the owner.
+
+The narrower risk this decision removes is the **absent tag that lies**. If the
+tag were a checkbox, a blank would mean "nobody ticked it" while reading as
+"not a shared home" — so the feature would be most wrong exactly where it was
+most needed, on the doors somebody forgot to mark. Deriving it means a blank
+tag is a real claim.
+
+Reversible and cheap: one pure function, one entry in an existing `facts`
+array, no new column, no new read, no migration. Removing it removes a line of
+text. `rentable_level` was already there — unread since 0160 — so nothing is
+asked of anybody that the database does not already hold.
+
 ## Decision
 
 1. **`coLivingTag(rental, siblings)`** in `model.js` — pure, no React, no I/O.
