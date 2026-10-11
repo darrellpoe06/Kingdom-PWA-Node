@@ -26,7 +26,20 @@ import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = fileURLToPath(new URL('../../../', import.meta.url));
-const SCAN_DIRS = ['.github/workflows', 'app/functions', 'infra/nas-loops'];
+// SCAN WIDENED 2026-10-11 TO INCLUDE scripts/ (DR-0970).
+//
+// DR-0970 moved the ops-announce bell out of two workflows and into
+// scripts/ops-announce.mjs, so its decision could be unit-tested. That move
+// would have carried a TRACKED LIVE n8n CALL OUT OF THIS GUARD'S SIGHT: the
+// two HELD entries went stale, and dropping them (which the shrink-only rule
+// demands of a stale entry) would have left the call untracked with the
+// ledger looking cleaner. A workaround that reaches a surface the guard does
+// not watch is the finding, not the fix (P49).
+//
+// So scripts/ is scanned now. It surfaces pre-existing reality, not new
+// calls: nas-update-wf18-bearer-guard.sh has printed those lines all along
+// and is ALREADY held as a path below. Nothing newly calls n8n.
+const SCAN_DIRS = ['.github/workflows', 'app/functions', 'infra/nas-loops', 'scripts'];
 
 const LIVE_N8N = [
   { id: 'webhook-path', re: /\/webhook\/[A-Za-z0-9_-]+/ },
@@ -71,12 +84,16 @@ function walk(dir, acc = []) {
 // Each held piece: the file, the pattern it still carries, and WHY it is held.
 const HELD = [
   {
-    path: '.github/workflows/site-health.yml', id: 'webhook-path',
-    why: 'ops-announce phone bell. Measured 2026-09-03 (run 33700716591): n8n answered 404 "webhook POST ops-announce is not registered", so it delivered nothing then; no sovereign bell replaces it yet. Held until a replacement push is proven end to end.',
+    path: 'scripts/ops-announce.mjs', id: 'webhook-path',
+    why: 'the ops-announce phone bell, now in ONE place instead of two (DR-0970 consolidated the site-health and deploy-cloudflare-pages copies here). Still 404 "webhook POST ops-announce is not registered" — measured 2026-09-03 run 33700716591 and AGAIN 2026-10-11 run 38141832465, so it has delivered nothing for five weeks. What changed is that a dead bell is now DETECTED and written to the incident ledger instead of reported as sent. Held until a sovereign bell replaces it end to end.',
   },
   {
-    path: '.github/workflows/deploy-cloudflare-pages.yml', id: 'webhook-path',
-    why: 'the same ops-announce bell on a failed boot-check; held with the site-health one (deploy lane, untouched).',
+    path: 'scripts/nas-update-wf18-bearer-guard.sh', id: 'webhook-path',
+    why: 'newly VISIBLE, not newly live: the scan widened to scripts/ on 2026-10-11 and this file has printed the operator its wf18 verification curl all along. The file itself is already held in HELD_PATHS as the rotation control for the possibly-live wf18 bank-PII webhook. Held with it.',
+  },
+  {
+    path: 'scripts/nas-update-wf18-bearer-guard.sh', id: 'n8n-port',
+    why: 'the same two printed lines name 192.168.1.26:5678 because that is where the live NAS n8n answers; it is the address the operator must check by hand. Held with the file in HELD_PATHS until the wf18 webhook is proven dead.',
   },
   {
     path: 'infra/nas-loops/loops/health-check.sh', id: 'n8n-port',

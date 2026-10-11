@@ -25,8 +25,21 @@ It surfaced while proving #2112's deploy. site-health run **38141832465** at
  "hint":"The workflow must be active for a production URL to run successfully..."}
 ```
 
-That the webhook is unregistered was already suspected. **The part that was
-wrong is the detector**, and it is worse than silence.
+**That the webhook is unregistered was not "suspected" — it was MEASURED AND
+WRITTEN DOWN FIVE WEEKS AGO.** `n8n-is-gone.test.js`'s HELD ledger has carried
+this since 2026-09-03:
+
+> *"ops-announce phone bell. Measured 2026-09-03 (run 33700716591): n8n
+> answered 404 'webhook POST ops-announce is not registered', so it delivered
+> nothing then; no sovereign bell replaces it yet."*
+
+So for five weeks the repository's own ledger said **this bell delivers
+nothing**, while every workflow run that used it logged a push as sent and
+exited 0. Two records of the same system disagreed, and the one that was wrong
+was the one anybody actually reads during an incident.
+
+**The part that is new here is therefore not the outage. It is the
+detector** — and the detector is worse than silence.
 
 ## What was measured
 
@@ -110,12 +123,27 @@ deploy proof rather than riding someone else's.
 7. **`--relay=` exists so the exit codes can be proven** against a local
    server. The workflows never pass it. Without it, the exit-3 path both
    callers key their ledger write on would ship having never once run (P44).
-8. **NOT decided:** moving `ops-announce` off n8n to a sovereign Python
+8. **`n8n-is-gone.test.js` now scans `scripts/`, because this change would
+   otherwise have hidden from it.** Moving the bell into
+   `scripts/ops-announce.mjs` took a **tracked live n8n call out of the
+   guard's sight**: its two HELD entries went stale, and the shrink-only rule
+   says a stale entry must be dropped — which would have left the call
+   untracked while the ledger looked *cleaner*. A workaround that reaches a
+   surface the guard does not watch **is the finding, not the fix** (P49). The
+   scan is widened instead, and the two workflow entries are **consolidated
+   into one** at the script.
+   The widening also makes `nas-update-wf18-bearer-guard.sh` visible. That is
+   **newly visible, not newly live** — it has printed those two operator curl
+   lines all along and the file is already held in `HELD_PATHS`. Recorded
+   explicitly so the shrink-only ratchet keeps its meaning: entries may leave
+   as replacements are proven, and the only way the list grows is a recorded
+   widening of the scan, never a new call.
+9. **NOT decided:** moving `ops-announce` off n8n to a sovereign Python
    endpoint. DR-0132 is explicit that **n8n is NOT ripped out**, and this bell
    is reliability-critical on the inbound n8n hop, which is an argument for
    moving it — but that is a NAS-side build, not a detector fix.
    `re-review: 2026-10-25`.
-9. **NOT fixed here:** `db-migrate.yml:182` has the same `curl -sS ... && echo`
+10. **NOT fixed here:** `db-migrate.yml:182` has the same `curl -sS ... && echo`
    shape against the **GitHub API** (dispatching rls-isolation). Same latent
    class, different blast radius and different semantics; listed so it is not
    lost. `re-review: 2026-10-18`.
