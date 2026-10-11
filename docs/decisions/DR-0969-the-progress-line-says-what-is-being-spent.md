@@ -33,7 +33,23 @@ the screen said, not a misunderstanding to be explained away.
 | Pieces | 386 separate speech syntheses, one sentence each | `lesson-downloads.js:510-519` |
 | Speed | **19.7 characters a second** on one stream | `lesson-downloads.js:58-67` — probe run 36926132891, six pieces / 861 chars / 43.7 s, outside-in through poetech.us |
 | Streams | **two** | `lesson-downloads.js:587`, `await Promise.all([worker(), worker()])` |
-| Bytes | Opus at 24 kbit/s ≈ **299 bytes a character** | `lesson-downloads.js:193-194` (DR-0747) |
+| Bytes | Opus at 24 kbit/s: **310 bytes a character** as sized (299 of audio + ~3% Ogg framing) | `lesson-downloads.js:210-215`, `VOICE_BYTES_PER_CHAR_BY_FORMAT` = `{wav: 4400, opus: 310}`; DR-0747 decision 5 |
+
+**DR-0747 ALREADY FORESAW THIS EXACT CONFUSION, which is the strongest
+evidence that the fix belongs on the surface rather than in the pipeline.**
+Its "What is NOT changed by this" section says plainly: *"The time to make the
+voice (DR-0746: about as fast as it is spoken) is the same; Opus changes the
+bytes, not the synthesis."* That decision made the clips **a fourteenth** of
+their old size — 4,400 bytes a character down to 310 — and deliberately left
+the fourteen minutes untouched. So from 2026-10-02 the app has shown a small,
+shrinking byte count beside an unchanged long wait, and nothing on screen
+reconciled the two. Darrell's question is the predicted consequence of a
+correct decision, nine days later.
+
+DR-0747's limit 3 also confirms Opus is what he was seeing: *"Clips already on
+a phone stay WAV until they are cleared by the cap; new pieces come lighter."*
+His 1.8 MB across 100 pieces is ~18 kB a piece, which is Opus arithmetic
+(310 × ~60 characters), not WAV's 383,700.
 
 386 × ~87.4 characters ≈ 33,700 characters ÷ (19.7 × 2) ≈ **14 minutes**, over
 which 1.8 MB is about **2 kB a second**. It is not a download. The megabytes
@@ -133,7 +149,9 @@ schema, no network change.
 ## Links
 
 [DR-0746] (the pace and the per-piece bar this corrects — it wrote the right
-sentence and guarded it with `!running`), [DR-0747] (Opus, why the bytes are
-small), [DR-0659] (the measured bytes per piece), [DR-0947] (a screen must not
+sentence and guarded it with `!running`), [DR-0747] (Opus at 310 bytes a
+character, a fourteenth of WAV — **and its own "What is NOT changed by this":
+the synthesis time is untouched.** This DR is the surface catching up with
+that), [DR-0659] (the measured bytes per piece), [DR-0947] (a screen must not
 contradict itself), `voice_lite_server.py:79,402` (`MAX_INFLIGHT = 2` and the
 immediate 503 — the measurement that killed the obvious fix).
