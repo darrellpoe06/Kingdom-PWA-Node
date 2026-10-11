@@ -130,7 +130,8 @@ jobs:
           npx --yes playwright@1.47.2 install chromium >/dev/null 2>&1
           cp "$GITHUB_WORKSPACE/scripts/public-shelf-rules.mjs" .
           cp "$GITHUB_WORKSPACE/scripts/public-shelf-witness.mjs" .
-          OUT_DIR="$GITHUB_WORKSPACE/shots" node public-shelf-witness.mjs
+          OUT_DIR="$GITHUB_WORKSPACE/shots" node public-shelf-witness.mjs | tee /tmp/shelf.txt
+          echo "CARDS_READ=$(grep -oE 'Cards read: [0-9]+' /tmp/shelf.txt | grep -oE '[0-9]+' || echo unknown)" >> "$GITHUB_ENV"
 
       # ---------------------------------------------------------------------
       # THE COMPARISON. A door CALLED a bed that the shelf advertises with a
@@ -144,7 +145,8 @@ jobs:
           [ -f /tmp/doors.txt ] || { echo "::error::no database reading — cannot compare"; exit 1; }
           # The decision lives in scripts/public-shelf-rules.mjs, unit-tested
           # against the founding incident. This step only feeds it the rows.
-          node scripts/public-shelf-compare.mjs /tmp/doors.txt
+          node scripts/public-shelf-compare.mjs /tmp/doors.txt | tee /tmp/compare.txt
+          echo "DOORS_CHECKED=$(grep -oE 'shared doors checked: [0-9]+' /tmp/compare.txt | grep -oE '[0-9]+' || echo unknown)" >> "$GITHUB_ENV"
 
       - name: Upload what a stranger saw
         if: always()
@@ -154,6 +156,27 @@ jobs:
           path: shots/
           if-no-files-found: warn
           retention-days: 30
+
+      # A WITNESS WHOSE SILENCE IS AMBIGUOUS IS NOT A WITNESS.
+      #
+      # SILENCE on this log means the witness did not run — not that the shelf
+      # is fine. site-health learned this on 2026-09-18: it filed only on
+      # failure, so "no issue" meant either "healthy" or "never ran", and the
+      # question it was dispatched to answer had no answer. This appends on
+      # EVERY run, pass or fail, so a missing line is itself the finding.
+      - name: Record the run (rolling log, every run, pass or fail)
+        if: always()
+        run: |
+          set -uo pipefail
+          line="$(date -u +%FT%TZ) — shelf: ${{ job.status }}. Base: ${BASE}. Shared doors checked: ${DOORS_CHECKED:-unknown}. Cards read: ${CARDS_READ:-unknown}. Run: ${GITHUB_SERVER_URL}/${REPO}/actions/runs/${GITHUB_RUN_ID}"
+          num=$(gh issue list --repo "$REPO" --state open --search "in:title public shelf witness run log" --json number --jq '.[0].number // ""')
+          if [ -n "$num" ]; then
+            gh issue comment "$num" --repo "$REPO" --body "$line"
+          else
+            intro="Every run of the public shelf witness appends here, pass or fail (DR-0973). SILENCE on this log means the witness did not run — never that the shelf is fine."
+            printf '%s\n\n%s\n' "$intro" "$line" > /tmp/runlog-body.md
+            gh issue create --repo "$REPO" --title "public shelf witness run log" --body-file /tmp/runlog-body.md
+          fi
 
       - name: File the finding on the incident ledger
         if: failure()
