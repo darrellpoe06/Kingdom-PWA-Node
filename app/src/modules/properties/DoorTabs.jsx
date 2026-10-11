@@ -1340,6 +1340,16 @@ export function GalleryTab({
   const [choosing, setChoosing] = useState(false);
   const [chosen, setChosen] = useState(() => new Set());
   const [bulkRoom, setBulkRoom] = useState('');
+  // WHAT the bulk action sets: the room, or the kind (DR-0951). Darrell,
+  // 2026-10-11, on Bed A holding MOVE IN CONDITION (39) and LISTING (0):
+  // "Need to be able to move pictures to the advertisement sections for
+  // advertisement when necessary" and "I don't want to have to re-upload when
+  // we already have them."
+  const [bulkField, setBulkField] = useState('room');
+  // Never remembered, and never the opening value. DR-0906: advertising is
+  // chosen each time it is meant, because this is the one change that takes a
+  // picture of the inside of a place and makes it publicly visible.
+  const [bulkKind, setBulkKind] = useState(RECORD_KINDS[0]);
   const [bulkSaid, setBulkSaid] = useState('');
   const [newRoom, setNewRoom] = useState('');
   // The full images fetched so far, by id — only what somebody has opened.
@@ -1866,13 +1876,40 @@ export function GalleryTab({
               <>
                 <select
                   className="text-sm border border-[#E8E4DC] px-2 py-2 bg-white text-[#1A1815]"
-                  value={bulkRoom} aria-label="Room for the chosen pictures"
-                  data-testid="gallery-bulk-room"
-                  onChange={(e) => setBulkRoom(e.target.value)}
+                  value={bulkField} aria-label="What to set for the chosen pictures"
+                  data-testid="gallery-bulk-field"
+                  onChange={(e) => setBulkField(e.target.value)}
                 >
-                  <option value="">Not a specific room</option>
-                  {live.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+                  <option value="room">Set the room</option>
+                  <option value="kind">Set what it is</option>
                 </select>
+                {bulkField === 'room' ? (
+                  <select
+                    className="text-sm border border-[#E8E4DC] px-2 py-2 bg-white text-[#1A1815]"
+                    value={bulkRoom} aria-label="Room for the chosen pictures"
+                    data-testid="gallery-bulk-room"
+                    onChange={(e) => setBulkRoom(e.target.value)}
+                  >
+                    <option value="">Not a specific room</option>
+                    {live.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+                  </select>
+                ) : (
+                  /* THE SAME TWO NAMED GROUPS AS THE ADD PANEL (DR-0906): they
+                     are not two flavours of one thing. */
+                  <select
+                    className="text-sm border border-[#E8E4DC] px-2 py-2 bg-white text-[#1A1815]"
+                    value={bulkKind} aria-label="What the chosen pictures are"
+                    data-testid="gallery-bulk-kind"
+                    onChange={(e) => setBulkKind(e.target.value)}
+                  >
+                    <optgroup label="A record — stays inside the app">
+                      {RECORD_KINDS.map((k) => <option key={k} value={k}>{k.replace(/-/g, ' ')}</option>)}
+                    </optgroup>
+                    <optgroup label="Advertising — a stranger can see this">
+                      {ADVERTISING_KINDS.map((k) => <option key={k} value={k}>{k.replace(/-/g, ' ')}</option>)}
+                    </optgroup>
+                  </select>
+                )}
                 <Btn
                   tone="primary" disabled={busy}
                   data-testid="gallery-bulk-apply"
@@ -1880,19 +1917,42 @@ export function GalleryTab({
                     // Serial, like the upload: one write at a time, and the
                     // count that comes back is the count that actually saved.
                     const ids = shown.filter((p) => chosen.has(p.id)).map((p) => p.id);
+                    const patch = bulkField === 'kind'
+                      ? { kind: bulkKind }
+                      : { room_id: bulkRoom || null };
                     let saved = 0;
                     for (const id of ids) {
-                      const r = await onPatch?.(id, { room_id: bulkRoom || null });
+                      const r = await onPatch?.(id, patch);
                       if (!r || r.ok !== false) saved += 1;
                     }
-                    const where = bulkRoom
-                      ? (live.find((r) => r.id === bulkRoom)?.name || 'that room')
-                      : 'no specific room';
-                    setBulkSaid(`${saved} of ${ids.length} filed to ${where}.`);
+                    const where = bulkField === 'kind'
+                      ? bulkKind.replace(/-/g, ' ')
+                      : (bulkRoom
+                        ? (live.find((r) => r.id === bulkRoom)?.name || 'that room')
+                        : 'no specific room');
+                    setBulkSaid(
+                      bulkField === 'kind'
+                        ? `${saved} of ${ids.length} are now ${where}.`
+                        : `${saved} of ${ids.length} filed to ${where}.`,
+                    );
                     setChosen(new Set());
                   }}
-                >{`File ${chosen.size} here`}</Btn>
+                >{bulkField === 'kind' ? `Change ${chosen.size}` : `File ${chosen.size} here`}</Btn>
               </>
+            )}
+            {choosing && chosen.size > 0 && bulkField === 'kind' && isAdvertising(bulkKind) && (
+              /* THE SAME EXCEPTION IN THE SAME RED REGISTER as the add panel
+                 (DR-0906). Turning records into advertising is exactly what he
+                 asked for — "move pictures to the advertisement sections ...
+                 I don't want to have to re-upload when we already have them" —
+                 and it is also the one change that makes a picture of the
+                 inside of a place publicly visible. Offered, and said plainly,
+                 on the same screen as the button. */
+              <p className="w-full text-[0.75rem] text-[#B85838] leading-snug" data-testid="gallery-bulk-advertising">
+                <strong>This makes them advertising.</strong> A listing picture is the only
+                kind a stranger can see — and only while this door is advertised and nobody
+                lives in it. The pictures are not copied; these same ones move.
+              </p>
             )}
             {bulkSaid && (
               <span className="text-[0.75rem] text-[#2F5D50]" data-testid="gallery-bulk-said">{bulkSaid}</span>
