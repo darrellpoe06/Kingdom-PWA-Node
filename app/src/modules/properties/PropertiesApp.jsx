@@ -52,6 +52,7 @@ import { loadJobVideo, setWorkOrderProof } from './cloud.js';
 import { textDataUrl, kindForGenerated } from './doc-signing.js';
 import { rentLine } from './rent-pay.js';
 import { ReadinessTab } from './ReadinessTab.jsx';
+import ApplicationsTab from './ApplicationsTab.jsx';
 import { readinessBoardSlug } from './readiness.js';
 import { toTimelineEvents } from './systems.js';
 import { isOwnHome, offerRefusal } from './homes.js';
@@ -85,6 +86,11 @@ const ACCENT = '#2F5D50';
 const DOOR_SCOPED = new Set([
   'timeline', 'rooms', 'gallery', 'files', 'systems', 'documents', 'door', 'history', 'rent', 'thread', 'stays',
   'readiness',
+  // Who asked to live HERE (DR-0903). An application names a rental_id, so it
+  // is as door-scoped as the work board, and it owes the reader the door's
+  // name for the same reason: approving the wrong unit's applicant is the
+  // cross-door mistake this header exists to prevent.
+  'applications',
   // The work is an option of the door (DR-0837): the board, the dispatch, the
   // worker's jobs and the documentation all read ONE door's requests, so they
   // carry the door's header and its open-work count like every other tab here.
@@ -1122,6 +1128,14 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
         }
         switch (activeTab) {
           case 'door': return <DoorCard door={activeDoor} />;
+          // THE DEAD LETTER GETS A READER (DR-0903/DR-0945). Keyed by the
+          // rental's UUID: an application carries rental_id, never the slug.
+          case 'applications': return (
+            <ApplicationsTab
+              rentalId={rentalId}
+              doorName={activeRental?.display_name || activeRental?.address || rentalRef || 'this door'}
+            />
+          );
           // The readiness list is keyed by the rental's UUID where there is one
           // (a slug can be renamed; the row's id cannot), and its bedroom groups
           // are the door's REAL rooms — see readiness.js for the full trace.

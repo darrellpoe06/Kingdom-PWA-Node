@@ -16,6 +16,7 @@
 // Never throws: every function returns { ok, ... } with an honest reason.
 // =============================================================================
 import supabase, { phoneLoginEmail, normalizePhone } from '../../lib/supabase.js';
+import { decisionReady, decisionReadyWithChecks, CORROBORATION_ITEM_IDS, CORROBORATION_OUTCOME_IDS, DECIDED } from './model.js';
 
 const ok = (extra = {}) => ({ ok: true, ...extra });
 const no = (reason, error) => ({ ok: false, reason, error: (error && error.message) || undefined });
@@ -65,6 +66,141 @@ export async function submitApplication({ instanceId, rentalId, name, email, pho
       submitted_by: uid,
     }).select('id').single();
     return error ? no('write-failed', error) : ok({ applicationId: data?.id || null });
+  } catch (e) { return no('unexpected', e); }
+}
+
+/**
+ * THE APPLICATIONS NOBODY COULD SEE (DR-0903). Darrell, 2026-10-10: "What
+ * happens when you apply!??? End to end documentation inside the records for
+ * the users!!! Obviously!!!"
+ *
+ * WHAT WAS MEASURED. submitApplication (above) has written rental_applications
+ * rows since 0152, and `grep -rn rental_applications app/src` returned that
+ * one insert and nothing else. No loader, no tab, no badge, no count. The
+ * DATABASE had permitted this read the whole time —
+ * `rental_applications_read ... FOR SELECT TO authenticated` grants it to the
+ * instance's owner/admin/member and to a manager holding application.review
+ * — the app simply never asked. So someone applied for a vacant unit and
+ * nobody was ever told. A dead letter.
+ *
+ * Reports what it could not read, for the reason DR-0876 gives: RLS does not
+ * error when it withholds, it returns an empty set, so "no applications" and
+ * "you are not allowed to see applications" are the same answer from the
+ * client. A landlord deciding nobody wants the unit must not be deciding it
+ * from a permission he lacks.
+ */
+export async function loadApplications({ rentalId = null } = {}, client = supabase) {
+  try {
+    // NO INSTANCE FILTER, and that is deliberate (properties-door.test.js:
+    // "the module reads with NO instance filter — that is what lets a
+    // non-member use it"). A 1099 worker and a tenant are not instance
+    // members, so a client-side instance_id scope hands them nothing while
+    // LOOKING like isolation. The real wall is 0152's
+    // rental_applications_read, which already returns only the rows this
+    // person may see — the instance's own owner/admin/member, or a manager
+    // holding application.review. Filtering again here would be a second,
+    // weaker copy of a rule the database already enforces, and the first
+    // version of this function shipped exactly that until the gate caught it.
+    let q = client.from('rental_applications')
+      .select('id, instance_id, rental_id, applicant_name, applicant_email, applicant_phone, answers, status, decision_reason, decided_by, decided_at, created_at');
+    if (rentalId) q = q.eq('rental_id', rentalId);
+    const res = await q.order('created_at', { ascending: false });
+    if (res && res.error) return ok({ applications: [], unreadable: ['applications'] });
+    return ok({ applications: (res && res.data) || [], unreadable: [] });
+  } catch (e) {
+    return ok({ applications: [], unreadable: ['applications'], error: (e && e.message) || undefined });
+  }
+}
+
+/**
+ * Record the decision. 0152 holds the real rule — approved and declined
+ * REQUIRE a reason of at least ten characters
+ * (rental_applications_decision_has_reason) — and model.decisionReady mirrors
+ * it so a person is told before they press save rather than after. Checked
+ * here too, because a caller that skipped the form would otherwise meet a
+ * constraint violation instead of a sentence.
+ *
+ * decided_by / decided_at are set by US rather than left to a default, so the
+ * record says WHO decided and WHEN. A decision with no name on it is the thing
+ * the whole history exists to prevent.
+ */
+export async function decideApplication(id, status, reason = '', client = supabase, checks = null) {
+  if (!id) return no('no-application');
+  // When the caller hands over the checks, hold the whole rule here (DR-0945)
+  // so the person is told what is left BEFORE writing a decision that 0272's
+  // trigger would refuse. Omitted, the older reason-only rule still applies —
+  // the database is the thing that actually enforces it either way.
+  const gate = checks ? decisionReadyWithChecks(status, reason, checks) : decisionReady(status, reason);
+  if (!gate.ok) return no(gate.left && gate.left.length ? 'needs-checks' : 'needs-reason', { message: gate.why, left: gate.left });
+  try {
+    const uid = await userId(client);
+    const patch = { status };
+    const r = String(reason || '').trim();
+    if (r) patch.decision_reason = r;
+    if (DECIDED.has(status)) {
+      patch.decided_by = uid;
+      patch.decided_at = new Date().toISOString();
+    }
+    const { error } = await client.from('rental_applications').update(patch).eq('id', id);
+    return error ? no('write-failed', error) : ok({ id, status });
+  } catch (e) { return no('unexpected', e); }
+}
+
+/**
+ * The corroboration record for one application (DR-0945) — every attempt, not
+ * a verdict per item. Reports what it could not read for the DR-0876 reason:
+ * RLS returns an empty set rather than an error, so "no checks yet" and "you
+ * may not see the checks" arrive identically, and a landlord must not read the
+ * second as the first and start calling people twice.
+ */
+export async function loadApplicationChecks(applicationId, client = supabase) {
+  if (!applicationId) return ok({ checks: [], unreadable: [] });
+  try {
+    const res = await client.from('application_checks')
+      .select('id, application_id, item, outcome, heard, checked_by, checked_at')
+      .eq('application_id', applicationId)
+      .order('checked_at', { ascending: false });
+    if (res && res.error) return ok({ checks: [], unreadable: ['checks'] });
+    return ok({ checks: (res && res.data) || [], unreadable: [] });
+  } catch (e) {
+    return ok({ checks: [], unreadable: ['checks'], error: (e && e.message) || undefined });
+  }
+}
+
+/**
+ * Record one attempt. APPEND-ONLY by design and by grant: a second attempt on
+ * the same item is a new row, never a correction of the first, because the
+ * sequence IS the record — "called Tuesday, no answer" then "called Thursday,
+ * reached her" is what a deposit dispute or a fair-housing question turns on.
+ *
+ * instance_id comes from the APPLICATION, never from the caller: 0272's insert
+ * policy requires the two to match, and letting a caller name the instance is
+ * how a row ends up filed against the wrong family's record.
+ */
+export async function addApplicationCheck({ applicationId, instanceId, item, outcome, heard = '' } = {}, client = supabase) {
+  if (!applicationId) return no('no-application');
+  if (!CORROBORATION_ITEM_IDS.includes(item)) return no('unknown-item');
+  if (!CORROBORATION_OUTCOME_IDS.includes(outcome)) return no('unknown-outcome');
+  // The one number we promised never to hold does not get in through a call
+  // note. 0272 refuses it at the database too; this is so the person is told
+  // in a sentence instead of meeting a constraint violation.
+  const note = String(heard || '').trim();
+  if (/[0-9]{3}-[0-9]{2}-[0-9]{4}/.test(note)) {
+    return no('looks-like-an-ssn', { message: 'That note looks like it contains a Social Security number. We do not keep those — write what you were told, not the number.' });
+  }
+  try {
+    const uid = await userId(client);
+    const { data, error } = await client.from('application_checks')
+      .insert({
+        application_id: applicationId,
+        instance_id: instanceId || null,
+        item,
+        outcome,
+        heard: note || null,
+        checked_by: uid,
+      })
+      .select().single();
+    return error ? no('write-failed', error) : ok({ check: data });
   } catch (e) { return no('unexpected', e); }
 }
 

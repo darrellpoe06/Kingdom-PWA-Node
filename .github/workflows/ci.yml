@@ -1044,6 +1044,12 @@ jobs:
           for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0271-the-upload-date-is-the-anchor-the-taken-date-is-a-claim.sql; done
           psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0271-photo-dates-smoke.sql 2>&1 | tee "$RUNNER_TEMP/photo-dates.txt"
           grep -q 'PHOTO DATES SMOKE: PASS' "$RUNNER_TEMP/photo-dates.txt"
+          # 0272 (DR-0945): an application is corroborated, not credentialed.
+          # Both tables it needs are already on this leg — rental_applications
+          # from 0152 in the list above, door_events from 0262.
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0272-an-application-is-corroborated-not-credentialed.sql; done
+          psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0272-application-corroboration-smoke.sql 2>&1 | tee "$RUNNER_TEMP/corroboration.txt"
+          grep -q 'CORROBORATION SMOKE: PASS' "$RUNNER_TEMP/corroboration.txt"
 
   # THE REQUIRED CHECK (DR-0645). Branch protection and native auto-merge wait
   # on a check named EXACTLY "app — lint + vitest". Do NOT rename this job.
