@@ -58,6 +58,55 @@ COMMENT ON COLUMN public.rentals.utilities_included IS
 -- replay ends up failing halfway on the live database.
 DROP FUNCTION IF EXISTS public.public_vacancies();
 
+
+-- ---------------------------------------------------------------------------
+-- SAME APARTMENT NUMBER, SAME PLACE (DR-0967)
+-- ---------------------------------------------------------------------------
+-- Darrell, 2026-10-11: "If it has the same apt number its the same location."
+--
+-- His own doors are why a plain string comparison will not do: Bed B carries
+-- '805 North Prospect Avenue Apt 4' / 'Apt 4' while Apt 2 carries '805 North
+-- Prospect Avenue' / 'Apt 2'. The unit got typed into the address on one door
+-- and not another, which is what anybody does entering a co-living building by
+-- hand, and exact equality then calls two beds in one apartment two buildings.
+--
+-- The street is compared with the unit FOLDED OUT of it; the unit is compared
+-- by its NUMBER, so 'Apt 4', 'apt. 4', '#4', 'Unit 4' and '4' are one
+-- apartment. Deliberately NOT fuzzy on the street: '805 N Prospect Ave' still
+-- differs from '805 North Prospect Avenue', because guessing two addresses are
+-- probably the same is how one family's pictures advertise another family's
+-- door. `cloud.js` carries the identical rule for the landlord's gallery.
+CREATE OR REPLACE FUNCTION public.unit_key(p_unit text)
+RETURNS text LANGUAGE sql IMMUTABLE AS $$
+  SELECT btrim(regexp_replace(
+           regexp_replace(
+             regexp_replace(lower(coalesce(p_unit, '')), '[.,#]', ' ', 'g'),
+             '\m(apartment|apt|unit|suite|ste|room|rm|no|number)\M', ' ', 'g'),
+           '\s+', ' ', 'g'));
+$$;
+
+CREATE OR REPLACE FUNCTION public.street_key(p_address text, p_unit text)
+RETURNS text LANGUAGE plpgsql IMMUTABLE AS $$
+DECLARE
+  a text := btrim(regexp_replace(regexp_replace(lower(coalesce(p_address, '')), '[.,#]', ' ', 'g'), '\s+', ' ', 'g'));
+  u text := public.unit_key(p_unit);
+BEGIN
+  IF u = '' THEN RETURN a; END IF;
+  -- Strip a trailing "<designator> <unit>" or a bare "<unit>" from the street.
+  a := btrim(regexp_replace(
+         a,
+         '(\m(apartment|apt|unit|suite|ste|room|rm|no|number)\M\s*)?' || regexp_replace(u, '([.^$*+?()\[\]{}|\\])', '\\\1', 'g') || '\s*$',
+         ''));
+  RETURN btrim(regexp_replace(a, '\s+', ' ', 'g'));
+END $$;
+
+CREATE OR REPLACE FUNCTION public.same_apartment(p_addr_a text, p_unit_a text, p_addr_b text, p_unit_b text)
+RETURNS boolean LANGUAGE sql IMMUTABLE AS $$
+  SELECT public.unit_key(p_unit_a) <> ''
+     AND public.unit_key(p_unit_a) = public.unit_key(p_unit_b)
+     AND public.street_key(p_addr_a, p_unit_a) = public.street_key(p_addr_b, p_unit_b);
+$$;
+
 CREATE FUNCTION public.public_vacancies()
 RETURNS TABLE (
   id            uuid,
@@ -223,10 +272,24 @@ AS $$
            FROM rentals me
            JOIN rentals sib ON sib.id = s.rental_ref
           WHERE me.id = p_rental
+            -- THE APARTMENT NUMBER DECIDES (Darrell, 2026-10-11): "If it has
+            -- the same apt number its the same location... can we make sure
+            -- this happens each time we co-live a place?!!!!!!!!"
+            --
+            -- This used to require a matching `room_label`, and that is too
+            -- narrow twice over. It needs a field somebody remembered to fill
+            -- in, and it breaks the moment a door is renamed -- which happened
+            -- the same evening, "Room 1 - Bed B" becoming "half 0.5 of Room -
+            -- Bed B". His card then said PHOTOGRAPHS COMING while the
+            -- apartment's pictures sat one door away.
+            --
+            -- Same instance, same apartment number, same street with the unit
+            -- folded out of it. `same_apartment` is the one rule, and the
+            -- landlord's gallery uses the same one in cloud.js so the two
+            -- roads cannot disagree about what one apartment is.
             AND me.rentable_level IN ('room', 'bed')
             AND sib.instance_id = me.instance_id
-            AND nullif(btrim(me.room_label), '') IS NOT NULL
-            AND btrim(lower(sib.room_label)) = btrim(lower(me.room_label))
+            AND public.same_apartment(me.address, me.unit, sib.address, sib.unit)
             AND sib.id <> me.id
        )
   )

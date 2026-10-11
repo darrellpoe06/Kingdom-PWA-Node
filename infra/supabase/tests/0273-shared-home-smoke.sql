@@ -39,14 +39,18 @@ ON CONFLICT DO NOTHING;
 -- Room 1 holds Bed A (pictures) and Bed B (none). Apt 9 is a whole unit.
 -- Bed C is another family's bed, in a room that happens to share the name.
 -- Bed D shares the room but is NOT listed. Bed E shares it but is occupied.
-INSERT INTO rentals (id, instance_id, created_by, slug, display_name, address, property_type, status, city, state, listed_at, rentable_level, room_label, utilities_included) VALUES
- ('00000000-0000-4000-c000-00000000000a','00000000-0000-4000-b000-000000010273','00000000-0000-4000-a000-0000000a0273','bed-a-273','Room 1 - Bed A','805 N Prospect Apt 4','multi-family','vacant','Champaign','Illinois',now(),'bed','Room 1',true),
- ('00000000-0000-4000-c000-00000000000b','00000000-0000-4000-b000-000000010273','00000000-0000-4000-a000-0000000a0273','bed-b-273','Room 1 - Bed B','805 N Prospect Apt 4','multi-family','vacant','Champaign','Illinois',now(),'bed','Room 1',true),
- ('00000000-0000-4000-c000-00000000000d','00000000-0000-4000-b000-000000010273','00000000-0000-4000-a000-0000000a0273','bed-d-273','Room 1 - Bed D','805 N Prospect Apt 4','multi-family','vacant','Champaign','Illinois',NULL,'bed','Room 1',NULL),
- ('00000000-0000-4000-c000-00000000000e','00000000-0000-4000-b000-000000010273','00000000-0000-4000-a000-0000000a0273','bed-e-273','Room 1 - Bed E','805 N Prospect Apt 4','multi-family','vacant','Champaign','Illinois',now(),'bed','Room 1',NULL),
- ('00000000-0000-4000-c000-000000000099','00000000-0000-4000-b000-000000010273','00000000-0000-4000-a000-0000000a0273','unit-9-273','Apt 9','805 N Prospect Apt 9','multi-family','vacant','Champaign','Illinois',now(),'unit',NULL,NULL),
- ('00000000-0000-4000-c000-000000000077','00000000-0000-4000-b000-000000010273','00000000-0000-4000-a000-0000000a0273','room-7-273','Room 7','805 N Prospect Apt 7','multi-family','vacant','Champaign','Illinois',now(),'room','Room 7',false),
- ('00000000-0000-4000-c000-00000000000c','00000000-0000-4000-b000-000000020273','00000000-0000-4000-a000-0000000a0273','bed-c-273','Room 1 - Bed C','9 Elsewhere','multi-family','vacant','Urbana','Illinois',now(),'bed','Room 1',NULL)
+-- SEEDED WITH HIS REAL ASYMMETRY (DR-0967). Bed B carries 'Apt 4' inside its
+-- ADDRESS and Bed A does not, which is exactly how his two doors were typed
+-- and exactly what an address-equality match could not see. The unit column
+-- is what decides now, so the seed has to carry it.
+INSERT INTO rentals (id, instance_id, created_by, slug, display_name, address, unit, property_type, status, city, state, listed_at, rentable_level, room_label, utilities_included) VALUES
+ ('00000000-0000-4000-c000-00000000000a','00000000-0000-4000-b000-000000010273','00000000-0000-4000-a000-0000000a0273','bed-a-273','Room 1 - Bed A','805 N Prospect','Apt 4','multi-family','vacant','Champaign','Illinois',now(),'bed','Room 1',true),
+ ('00000000-0000-4000-c000-00000000000b','00000000-0000-4000-b000-000000010273','00000000-0000-4000-a000-0000000a0273','bed-b-273','Room 1 - Bed B','805 N Prospect Apt 4','Apt 4','multi-family','vacant','Champaign','Illinois',now(),'bed','Room 1',true),
+ ('00000000-0000-4000-c000-00000000000d','00000000-0000-4000-b000-000000010273','00000000-0000-4000-a000-0000000a0273','bed-d-273','Room 1 - Bed D','805 N Prospect','Apt 4','multi-family','vacant','Champaign','Illinois',NULL,'bed','Room 1',NULL),
+ ('00000000-0000-4000-c000-00000000000e','00000000-0000-4000-b000-000000010273','00000000-0000-4000-a000-0000000a0273','bed-e-273','Room 1 - Bed E','805 N Prospect','Apt 4','multi-family','vacant','Champaign','Illinois',now(),'bed','Room 1',NULL),
+ ('00000000-0000-4000-c000-000000000099','00000000-0000-4000-b000-000000010273','00000000-0000-4000-a000-0000000a0273','unit-9-273','Apt 9','805 N Prospect','Apt 9','multi-family','vacant','Champaign','Illinois',now(),'unit',NULL,NULL),
+ ('00000000-0000-4000-c000-000000000077','00000000-0000-4000-b000-000000010273','00000000-0000-4000-a000-0000000a0273','room-7-273','Room 7','805 N Prospect','Apt 7','multi-family','vacant','Champaign','Illinois',now(),'room','Room 7',false),
+ ('00000000-0000-4000-c000-00000000000c','00000000-0000-4000-b000-000000020273','00000000-0000-4000-a000-0000000a0273','bed-c-273','Room 1 - Bed C','9 Elsewhere','Apt 4','multi-family','vacant','Urbana','Illinois',now(),'bed','Room 1',NULL)
 ON CONFLICT (id) DO NOTHING;
 
 -- Bed E is occupied, so nothing of its may be borrowed (or shown).
