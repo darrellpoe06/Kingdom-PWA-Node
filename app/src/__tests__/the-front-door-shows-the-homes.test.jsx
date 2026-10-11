@@ -48,10 +48,10 @@ afterEach(() => {
   loadPublicVacancies.mockReset();
 });
 
-async function mount() {
+async function mount(props = {}) {
   container = document.createElement('div');
   document.body.appendChild(container);
-  await act(async () => { root = createRoot(container); root.render(createElement(PublicFrontDoor)); });
+  await act(async () => { root = createRoot(container); root.render(createElement(PublicFrontDoor, props)); });
   for (let i = 0; i < 6; i += 1) await act(async () => { await Promise.resolve(); });
 }
 
@@ -141,5 +141,32 @@ describe('the shell gate itself', () => {
     // not be importing or rendering it itself.
     expect(shell).not.toMatch(/<PasswordAuth\b/);
     expect(shell).not.toMatch(/import PasswordAuth from/);
+  });
+});
+
+// =============================================================================
+// THE CHURCH'S OWN DOOR IS NOT A RENTAL SHELF
+// =============================================================================
+// Caught by re-reading the diff before it merged, not by a failing test. The
+// shell gate is `__gate !== 'app' && !churchDoorOnly && !isPublicChurchRoute()`,
+// but the BRAND is decided by isChurchDoorContext(), a wider predicate that is
+// true for an INSTALLED church PWA launched standalone — which carries no
+// query string, so isPublicChurchRoute() is false and that visitor lands here.
+// Without the guard, a Love Corner member opening the app they installed would
+// have met Poe Properties listings instead of their church.
+describe('a branded door keeps the behaviour it had', () => {
+  it('shows the church its own sign-in, never the rental listings', async () => {
+    loadPublicVacancies.mockResolvedValue({ ok: true, vacancies: HOMES });
+    await mount({ brand: { name: 'The Love Corner', accent: '#2F5D50' } });
+    expect(container.querySelector('[data-testid="password-auth"]')).toBeTruthy();
+    expect(container.querySelector('[data-testid="public-front-door"]')).toBeNull();
+    expect(container.querySelector('[data-testid="vacancy-v1"]')).toBeNull();
+    expect(container.textContent).not.toMatch(/places available|No account needed to look/);
+  });
+
+  it('and does not even ask for the vacancies it will not show', async () => {
+    loadPublicVacancies.mockResolvedValue({ ok: true, vacancies: HOMES });
+    await mount({ brand: { name: 'The Love Corner' } });
+    expect(loadPublicVacancies).not.toHaveBeenCalled();
   });
 });

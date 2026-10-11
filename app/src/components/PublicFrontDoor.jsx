@@ -33,6 +33,24 @@ import { loadPublicVacancies } from '../modules/properties/cloud.js';
 import { VacancyCard } from '../modules/properties/Storefront.jsx';
 
 export default function PublicFrontDoor({ brand = null }) {
+  // THE CHURCH'S OWN DOOR IS NOT A RENTAL SHELF.
+  //
+  // Caught by re-reading this diff before it merged. The shell's gate is
+  // `__gate !== 'app' && !churchDoorOnly && !isPublicChurchRoute()`, and
+  // isChurchDoorContext() — which decides the BRAND — is a DIFFERENT and wider
+  // predicate: it is true for an INSTALLED church PWA launched standalone,
+  // which carries no query string, so isPublicChurchRoute() is false and that
+  // visitor reaches this component. Without this guard, a Love Corner member
+  // opening the app they installed would have been shown Poe Properties
+  // listings instead of their church.
+  //
+  // A branded door keeps exactly the behaviour it had. The homes are for the
+  // front door of the business, not for somebody who came to the church.
+  //
+  // The flag is read here but ACTED ON after the hooks, because a return above
+  // them is a conditional hook call — wrong, and the lint rule is right to say so.
+  const churchDoor = !!brand;
+
   // 'shelf' is what a stranger meets. 'auth' is one tap away and never the
   // first thing.
   const [view, setView] = useState('shelf');
@@ -43,6 +61,7 @@ export default function PublicFrontDoor({ brand = null }) {
   const [read, setRead] = useState('loading');
 
   useEffect(() => {
+    if (churchDoor) return undefined;      // nothing to fetch for a church visitor
     let live = true;
     loadPublicVacancies()
       .then((r) => {
@@ -52,7 +71,10 @@ export default function PublicFrontDoor({ brand = null }) {
       })
       .catch(() => { if (live) setRead('failed'); });
     return () => { live = false; };
-  }, []);
+  }, [churchDoor]);
+
+  // Acted on here, below every hook (see the note at the top).
+  if (churchDoor) return <PasswordAuth brand={brand} />;
 
   if (view === 'auth') {
     return (
