@@ -625,6 +625,57 @@ export async function loadDoorPhotos(rentalRef, client = supabase) {
   } catch (e) { return no('unexpected', e); }
 }
 
+
+// ---------------------------------------------------------------------------
+// SAME APARTMENT NUMBER, SAME PLACE (DR-0967)
+// ---------------------------------------------------------------------------
+// Darrell, 2026-10-11: "If it has the same apt number its the same location...
+// can we make sure this happens each time we co-live a place?!!!!!!!!"
+//
+// The first version compared `address` and `unit` as exact strings, and his
+// own doors break it: Bed B carries `805 North Prospect Avenue Apt 4` / `Apt 4`
+// while Apt 2 carries `805 North Prospect Avenue` / `Apt 2`. The unit got typed
+// into the address on one door and not another, which is what anybody does
+// entering a co-living building by hand, and exact equality then says two beds
+// in one apartment are two different buildings.
+//
+// So the street is compared with the unit FOLDED OUT of it, and the unit is
+// compared by its NUMBER. `Apt 4`, `apt. 4`, `#4`, `Unit 4` and `4` are one
+// apartment, because to the person standing in it they are.
+//
+// Deliberately NOT a fuzzy address match. `805 North Prospect Ave` and
+// `805 N Prospect Avenue` still read as different streets: guessing that two
+// addresses are "probably" the same is how one family's pictures end up
+// advertising another family's door. The unit is normalised; the street is
+// only cleaned.
+const tidy = (v) => String(v == null ? '' : v).toLowerCase().replace(/[.,#]/g, ' ').replace(/\s+/g, ' ').trim();
+
+// The digits-and-letters of a unit: "Apt 4" -> "4", "Unit 3B" -> "3b".
+export function unitKey(unit) {
+  const t = tidy(unit).replace(/\b(apartment|apt|unit|suite|ste|room|rm|no|number)\b/g, ' ').replace(/\s+/g, ' ').trim();
+  return t;
+}
+
+// The street with a trailing unit designator removed, so "805 x avenue apt 4"
+// and "805 x avenue" are one street once the unit is accounted for.
+export function streetKey(address, unit) {
+  let a = tidy(address);
+  const u = unitKey(unit);
+  if (!u) return a;
+  // Strip a trailing "<designator> <unit>" or bare "<unit>" from the address.
+  a = a.replace(new RegExp(`(?:\\b(?:apartment|apt|unit|suite|ste|room|rm|no|number)\\b\\s*)?${u.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*$`), '').trim();
+  return a.replace(/\s+/g, ' ');
+}
+
+/** Two doors are the same apartment when the street matches and the unit NUMBER matches. */
+export function sameApartment(a, b) {
+  const ua = unitKey(a && a.unit);
+  const ub = unitKey(b && b.unit);
+  if (!ua || !ub) return false;           // no unit means a whole place, never a sibling
+  if (ua !== ub) return false;
+  return streetKey(a && a.address, a && a.unit) === streetKey(b && b.address, b && b.unit);
+}
+
 /**
  * The pictures of the OTHER doors in the same apartment (DR-0963).
  *
@@ -655,9 +706,15 @@ export async function loadDoorPhotos(rentalRef, client = supabase) {
  * stranger with no account at all; this reader is the landlord, who already
  * holds the rows.
  *
- * Keyed on `rental_ref` (the slug) because that is what property_photos is
- * keyed on — see loadDoorPhotos above. Keying it on `rental_id` would have
- * matched nothing and failed silently, which is the quietest kind of wrong.
+ * KEYED ON THE DOOR'S id, AND I HAD THIS BACKWARDS ONCE (DR-0967). The
+ * column is called `rental_ref`, and `loadDoorPhotos`'s parameter is called
+ * `rentalRef`, so the first version of this function fed it SLUGS and the
+ * comment here congratulated itself for catching a bug it had just written.
+ * The column holds the rental's UUID: `PropertiesApp` calls
+ * `loadDoorPhotos(rentalId)`, and `apt2-photos-probe.yml` joins
+ * `r.id = p.rental_ref`. Slugs matched zero rows, every time, silently — the
+ * card simply never appeared, which is the quietest kind of wrong and exactly
+ * what I claimed to be avoiding.
  *
  * Metadata only, like every list since DR-0955.
  */
@@ -694,10 +751,9 @@ export async function loadSiblingPhotos(rentalId, client = supabase) {
     const mine = (sibs || []).filter((r) => (
       r.id !== rentalId
       && r.instance_id === me.instance_id
-      && r.address === me.address
-      && r.unit === me.unit
+      && sameApartment(r, me)
     ));
-    const refs = mine.map((r) => r.slug).filter(Boolean);
+    const refs = mine.map((r) => r.id).filter(Boolean);
     if (!refs.length) return ok({ photos: [], siblings: [] });
 
     const { data, error } = await client
