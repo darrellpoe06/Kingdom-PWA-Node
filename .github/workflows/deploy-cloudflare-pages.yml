@@ -335,14 +335,43 @@ jobs:
           else
             gh issue create --repo "$GITHUB_REPOSITORY" --title "incident: deployed app failed the real-browser boot-check" --label incident --body "$body"
           fi
-          # Announce, not only record (DR-0156): fail-soft phone push via the
-          # NAS relay — the ledger above stays the record either way.
+          # Announce, not only record (DR-0156): phone push via the NAS relay —
+          # the ledger above stays the record either way.
+          #
+          # AND THE BELL IS CHECKED (DR-0970). `curl -sS` without -f exits 0 on
+          # a 404, so the old `|| echo "::warning::"` could not fire on the
+          # failure that was actually happening: the ops-announce webhook is
+          # not registered (caught verbatim in site-health run 38141832465).
+          # This deploy was red for two hours on 2026-10-11 with no bell, and
+          # nobody knew the bell itself was what was broken.
+          #
+          # scripts/ops-announce.mjs classifies the HTTP answer and exits 3 on
+          # a dead bell, which is then recorded on the same incident issue as
+          # the boot-check failure — where a human actually looks (P53).
           if [ -n "${N8N_BEARER:-}" ]; then
-            curl -sS -X POST "https://poetech.tail5a2f35.ts.net/webhook/ops-announce" \
-              -H "Authorization: Bearer ${N8N_BEARER}" -H "content-type: application/json" \
-              --max-time 15 \
-              -d "{\"title\":\"deploy failed the real-browser boot-check\",\"message\":\"The deployed app did not boot after ${GITHUB_SHA}. Details on the incident ledger.\",\"url\":\"${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}\",\"priority\":\"5\"}" \
-              || echo "::warning::announce relay unreachable — incident recorded on the ledger, phone push skipped"
+            set +e
+            RUN_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" \
+              node scripts/ops-announce.mjs \
+                --title="deploy failed the real-browser boot-check" \
+                --message="The deployed app did not boot after ${GITHUB_SHA}. Details on the incident ledger." \
+                --url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" \
+                --priority=5 > /tmp/bell.txt 2>&1
+            bell=$?
+            set -e
+            sed 's/^LEDGER_LINE=.*/LEDGER_LINE=(recorded on the ledger)/' /tmp/bell.txt
+            if [ "$bell" = "3" ]; then
+              # RE-READ the issue number rather than reusing `num` from above:
+              # when that block CREATED the issue, `num` is still empty, so
+              # reusing it would drop the dead-bell record on exactly the first
+              # outage — the one where the silence matters most.
+              num=$(gh issue list --repo "$GITHUB_REPOSITORY" --label incident --state open --limit 1 --json number --jq '.[0].number // empty')
+              line=$(grep '^LEDGER_LINE=' /tmp/bell.txt | head -1 | cut -d= -f2-)
+              if [ -n "$num" ] && [ -n "$line" ]; then
+                gh issue comment "$num" --repo "$GITHUB_REPOSITORY" --body "$line"
+              else
+                echo "::warning::the phone alarm is dead and there was no open incident issue to record it on"
+              fi
+            fi
           fi
 
   # ---------------------------------------------------------------------------

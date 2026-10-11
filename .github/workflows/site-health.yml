@@ -86,6 +86,12 @@ jobs:
       SB_URL: ${{ secrets.VITE_SUPABASE_URL }}
       SB_ANON: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
     steps:
+      # THE CHECKOUT IS HERE ONLY FOR scripts/ops-announce.mjs (DR-0970).
+      # The probe below is still purely outside-in — it makes real HTTP
+      # requests to poetech.us and reads nothing from the tree. The bell at
+      # the end needs the repo because its decision now lives in a tested
+      # script instead of a `curl` line that could not fail.
+      - uses: actions/checkout@v4
       - name: Probe the live site
         id: probe
         run: |
@@ -603,16 +609,44 @@ jobs:
             gh issue create --repo "$REPO" --title "$title" --label incident --body "$body"
           fi
           # Announce, not only record (DR-0156): push the incident to the
-          # family's phones via the NAS relay (Funnel -> n8n -> ntfy). Fail-soft
-          # by design — the ledger above is the record; this is the bell.
+          # family's phones via the NAS relay (Funnel -> n8n -> ntfy).
+          #
+          # AND CHECK THAT THE BELL ACTUALLY RANG (DR-0970). This used to be
+          # `curl -sS ... || echo "::warning::"`, and `curl -sS` WITHOUT -f
+          # EXITS 0 ON A 404 -- so the `||` could never fire on the one failure
+          # that was really happening. Run 38141832465 caught it verbatim:
+          # {"code":404,"message":"The requested webhook \"POST ops-announce\"
+          # is not registered."}. An unregistered, renamed, revoked or 500-ing
+          # webhook was indistinguishable from a bell that rang.
+          #
+          # Note the probe step ABOVE already does this correctly (-o BODY -w
+          # '%{http_code}'); only the bell did not. The decision now lives in
+          # scripts/ops-announce.mjs, unit-tested against that exact 404 body,
+          # and it exits 3 when the bell is broken.
+          #
+          # A DEAD BELL IS RECORDED WHERE HUMANS LOOK, not into the warning
+          # stream nobody reads (P53). It goes on the same rolling incident
+          # issue as the outage itself.
           if [ -n "${N8N_BEARER:-}" ]; then
-            payload=$(printf '{"title":"poetech.us is failing the probe","message":%s,"url":"%s","priority":"5"}' \
-              "$(printf '%s' "$REASONS" | head -c 800 | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')" \
-              "${GITHUB_SERVER_URL}/${REPO}/actions/runs/${GITHUB_RUN_ID}")
-            curl -sS -X POST "https://poetech.tail5a2f35.ts.net/webhook/ops-announce" \
-              -H "Authorization: Bearer ${N8N_BEARER}" -H "content-type: application/json" \
-              --max-time 15 -d "$payload" \
-              || echo "::warning::announce relay unreachable — incident recorded on the ledger, phone push skipped"
+            set +e
+            RUN_URL="${GITHUB_SERVER_URL}/${REPO}/actions/runs/${GITHUB_RUN_ID}" \
+              node scripts/ops-announce.mjs \
+                --title="poetech.us is failing the probe" \
+                --message="$(printf '%s' "$REASONS" | head -c 800)" \
+                --url="${GITHUB_SERVER_URL}/${REPO}/actions/runs/${GITHUB_RUN_ID}" \
+                --priority=5 > /tmp/bell.txt 2>&1
+            bell=$?
+            set -e
+            sed 's/^LEDGER_LINE=.*/LEDGER_LINE=(recorded on the ledger)/' /tmp/bell.txt
+            if [ "$bell" = "3" ]; then
+              line=$(grep '^LEDGER_LINE=' /tmp/bell.txt | head -1 | cut -d= -f2-)
+              num=$(gh issue list --repo "$REPO" --label incident --state open --search "in:title site-health" --json number --jq '.[0].number // ""')
+              if [ -n "$num" ] && [ -n "$line" ]; then
+                gh issue comment "$num" --repo "$REPO" --body "$line"
+              else
+                echo "::warning::the phone alarm is dead and there was no open site-health incident to record it on"
+              fi
+            fi
           else
             echo "::warning::VITE_N8N_BEARER not set — announce skipped"
           fi
