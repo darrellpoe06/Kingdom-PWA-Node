@@ -1873,7 +1873,7 @@ export function GalleryTab({
                 </div>
                 {editing === p.id ? (
                   <PhotoEditor
-                    photo={p} rooms={live} busy={busy}
+                    photo={p} rooms={live} busy={busy} onAddRoom={onAddRoom}
                     onSave={(patch) => { onPatch?.(p.id, patch); setEditing(null); }}
                   />
                 ) : (
@@ -1947,7 +1947,22 @@ export function GalleryTab({
  * that says "taken 28 September" and arrived on 10 October says both, to
  * anyone reading the record.
  */
-function PhotoEditor({ photo, rooms, onSave, busy }) {
+// CHOOSE THE ROOM AFTER — INCLUDING ONE THAT DOES NOT EXIST YET (DR-0948).
+//
+// Darrell, 2026-10-10, with twelve move-out photographs just landed and this
+// very editor open: "Need to be able to choose the rooms after.... make
+// sense?" His screenshot shows why it was impossible: the room list offered
+// "Not a specific room" and "Bedroom", and every photograph on his screen was
+// a BATHROOM. The door has one room.
+//
+// He could already pick an EXISTING room here. What he could not do was make
+// the missing one without leaving for the Rooms tab and losing his place in a
+// grid of twelve. The ADD panel has had "+ Add a room…" inline since rooms
+// shipped; this editor never got it, so the same person doing the same job
+// five seconds later met a dead end. Same affordance, same onAddRoom, and the
+// new room is selected the moment it exists.
+function PhotoEditor({ photo, rooms, onSave, onAddRoom, busy }) {
+  const [newRoom, setNewRoom] = useState('');
   const [f, setF] = useState(() => ({
     caption: photo.caption || '',
     kind: photo.kind,
@@ -1977,10 +1992,44 @@ function PhotoEditor({ photo, rooms, onSave, busy }) {
       <select className={field} value={f.kind} onChange={(e) => setF((p) => ({ ...p, kind: e.target.value }))}>
         {PHOTO_KINDS.map((k) => <option key={k} value={k}>{k.replace(/-/g, ' ')}</option>)}
       </select>
-      <select className={field} value={f.room_id} onChange={(e) => setF((p) => ({ ...p, room_id: e.target.value }))}>
+      <select
+        className={field} value={f.room_id} data-testid="photo-edit-room"
+        onChange={(e) => {
+          const v = e.target.value;
+          if (v === '__add__') { setNewRoom(' '); return; }
+          setNewRoom('');
+          setF((p) => ({ ...p, room_id: v }));
+        }}
+      >
         <option value="">Not a specific room</option>
         {rooms.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+        {onAddRoom && <option value="__add__">+ Add a room…</option>}
       </select>
+      {newRoom !== '' && onAddRoom && (
+        <div className="flex gap-1 flex-wrap mt-1">
+          <input
+            type="text" className={`${field} flex-1 mt-0`} autoFocus
+            value={newRoom.trim()} placeholder="Bathroom, Kitchen, Bedroom 2…"
+            aria-label="Name the new room"
+            data-testid="photo-edit-new-room"
+            onChange={(e) => setNewRoom(e.target.value || ' ')}
+          />
+          <Btn
+            tone="primary" disabled={busy || !newRoom.trim()}
+            data-testid="photo-edit-add-room"
+            onClick={async () => {
+              const name = newRoom.trim();
+              if (!name) return;
+              const created = await onAddRoom(name);
+              // Selected the instant it exists, so the picture he is already
+              // editing lands in the room he just made — the whole point.
+              if (created?.id) setF((p) => ({ ...p, room_id: created.id }));
+              setNewRoom('');
+            }}
+          >Add room</Btn>
+          <Btn onClick={() => setNewRoom('')}>Cancel</Btn>
+        </div>
+      )}
       <label className="block mt-1">
         <span className="text-[0.625rem] uppercase tracking-wider text-[#6B665E]">When it was taken</span>
         <input

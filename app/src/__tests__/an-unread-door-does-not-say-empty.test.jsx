@@ -271,3 +271,59 @@ describe('uploading a set refreshes the screen ONCE, not once per picture', () =
     expect(refreshes, 'the screen reloaded more than once for one set').toBe(1);
   });
 });
+
+describe('choosing the room AFTER the pictures are in (DR-0948)', () => {
+  // Darrell, 2026-10-10, twelve move-out photographs just landed, this editor
+  // open: "Need to be able to choose the rooms after.... make sense?" His
+  // screenshot shows the dead end — the list offered "Not a specific room"
+  // and "Bedroom", and every picture on his screen was a BATHROOM.
+  const SHOT = {
+    id: 'p-bath', kind: 'move-out-condition', caption: '', thumb_path: 'data:image/jpeg;base64,AAAA',
+    taken_at: null, uploaded_at: '2026-10-10T18:45:00Z', sort_order: 0, archived_at: null, room_id: null,
+  };
+  const BEDROOM = { id: 'r-bed', name: 'Bedroom', sort_order: 0 };
+
+  it('PROVEN-TO-CATCH: a room that does not exist yet can be made from the editor, and is chosen', async () => {
+    const made = [];
+    const patches = [];
+    await mountGallery({
+      photos: [SHOT], rooms: [BEDROOM],
+      onAddRoom: async (name) => { const r = { id: 'r-bath', name }; made.push(name); return r; },
+      onPatch: async (id, patch) => { patches.push([id, patch]); return { ok: true }; },
+    });
+
+    await tapText(/^Edit$/i);
+    const room = container.querySelector('[data-testid="photo-edit-room"]');
+    expect(room, 'the editor has no room picker').toBeTruthy();
+
+    // The dead end his screenshot shows: Bathroom is simply not on the list.
+    const names = [...room.options].map((o) => o.textContent);
+    expect(names).not.toContain('Bathroom');
+    expect(
+      names.some((n) => /add a room/i.test(n)),
+      'the editor offered no way to make the missing room',
+    ).toBe(true);
+
+    // Make it from here, without leaving the grid.
+    const proto = window.HTMLSelectElement.prototype;
+    Object.getOwnPropertyDescriptor(proto, 'value').set.call(room, '__add__');
+    await act(async () => { room.dispatchEvent(new Event('change', { bubbles: true })); });
+    await settle(4);
+
+    const name = container.querySelector('[data-testid="photo-edit-new-room"]');
+    expect(name, 'no box to name the new room').toBeTruthy();
+    const ip = window.HTMLInputElement.prototype;
+    Object.getOwnPropertyDescriptor(ip, 'value').set.call(name, 'Bathroom');
+    await act(async () => { name.dispatchEvent(new Event('input', { bubbles: true })); });
+    await settle(2);
+
+    await tapText(/^Add room$/i);
+    expect(made, 'the room was never created').toEqual(['Bathroom']);
+
+    // And it is SELECTED — the picture he is editing lands in the room he
+    // just made, which is the entire point of doing it from here.
+    await tapText(/^Save$/i);
+    expect(patches.length, 'nothing was saved').toBe(1);
+    expect(patches[0][1].room_id, 'the new room was made but not applied to the picture').toBe('r-bath');
+  });
+});
