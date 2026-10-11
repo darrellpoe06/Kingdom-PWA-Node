@@ -1045,6 +1045,7 @@ jobs:
             psql -v ON_ERROR_STOP=1 -q --single-transaction -f "infra/supabase/migrations-auto/$f"
           done
           for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0273-a-shared-home-says-so-on-the-shelf.sql; done
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0274-the-shelf-names-the-unit-never-the-street.sql; done
           psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0273-shared-home-smoke.sql 2>&1 | tee "$RUNNER_TEMP/shared.txt"
           grep -q 'SHARED HOME SMOKE: PASS' "$RUNNER_TEMP/shared.txt"
           # 0271 (DR-0943): the upload date is the anchor, the taken date is a

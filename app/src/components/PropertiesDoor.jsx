@@ -22,7 +22,7 @@ import Cameras from './Cameras.jsx';
 import { POE_PROPERTIES } from '../modules/properties/config.js';
 import { DOORS, doorSession, leaveDoor, enterDoor, enterAllDoors } from '../lib/door-session.js';
 import { WHO_OPTIONS } from '../modules/properties/model.js';
-import { readApplyTarget, resolveScan } from '../modules/properties/apply-link.js';
+import { readApplyTarget, resolveScan, applyOptionLabel } from '../modules/properties/apply-link.js';
 import { readReportToken } from '../modules/properties/guest-report.js';
 import { GuestReportPage } from '../modules/properties/GuestReport.jsx';
 import { loadPublicVacancies, submitApplication } from '../modules/properties/cloud.js';
@@ -321,13 +321,38 @@ function SignedOutDoor({ left = false, onReturn } = {}) {
   const [who, setWho] = useState(scanned ? 'applicant' : null);
   const [wantsAuth, setWantsAuth] = useState(false);
   const [vacancies, setVacancies] = useState(null);   // null = not asked yet
+  // A READ THAT FAILED IS NOT AN EMPTY SHELF (DR-0953), and on THIS door it
+  // is the costliest version of that mistake.
+  //
+  // Darrell, 2026-10-11: "Why didn't it pop up right away when scanning the
+  // qrcode?" His screenshot at 7:59 shows the scan landing on "That unit is
+  // not available right now" and "Nothing is listed right now" — and at 8:00,
+  // the same page showing TWO listings. Nothing changed but the network.
+  //
+  // The line was `setVacancies(r.ok ? r.vacancies : [])`, so a failed read
+  // became an empty list and the page stated that emptiness AS FACT. This is
+  // the third surface tonight with the same shape (DR-0946 was the owner's
+  // gallery) and the worst of them, because the person reading it is a
+  // STRANGER STANDING AT THE DOOR with a camera. They are told the unit is
+  // taken and they leave. We never hear about it.
+  //
+  // With Pages Functions dark (#2057) the app is on the throttled Funnel
+  // road, so this is not rare for him — it is most of the time.
+  const [vacanciesFailed, setVacanciesFailed] = useState(false);
+  const [tries, setTries] = useState(0);
 
   useEffect(() => {
-    if (who !== 'applicant' || vacancies !== null) return;
+    if (who !== 'applicant' || vacancies !== null) return undefined;
     let on = true;
-    loadPublicVacancies().then((r) => { if (on) setVacancies(r.ok ? r.vacancies : []); });
+    loadPublicVacancies().then((r) => {
+      if (!on) return;
+      if (r.ok) { setVacanciesFailed(false); setVacancies(r.vacancies); return; }
+      // Say nothing about what is or is not listed.
+      setVacanciesFailed(true);
+      setVacancies(null);
+    });
     return () => { on = false; };
-  }, [who, vacancies]);
+  }, [who, vacancies, tries]);
 
   // The vacancies list is the authority on whether a scanned card is still
   // good: public_vacancies already refuses a door that is unadvertised or
@@ -404,11 +429,29 @@ function SignedOutDoor({ left = false, onReturn } = {}) {
         <h2 className="text-lg text-[#1A1815] mb-1" style={serif}>
           {scan.matched ? `${scan.unit.label}${scan.unit.unit ? ` · ${scan.unit.unit}` : ''}` : 'Available now'}
         </h2>
-        {scanned && vacancies !== null && !scan.matched && (
+        {/* Only once we actually KNOW. A scan that could not be checked must
+            never be told its unit is gone. */}
+        {scanned && vacancies !== null && !vacanciesFailed && !scan.matched && (
           <p className="text-xs text-[#5A5751] mb-2" style={serif}>{scan.reason}</p>
         )}
-        {vacancies === null && <p className="text-xs text-[#5A5751]" style={serif}>Checking…</p>}
-        {vacancies !== null && vacancies.length === 0 && (
+        {vacancies === null && !vacanciesFailed && (
+          <p className="text-xs text-[#5A5751]" style={serif}>Checking…</p>
+        )}
+        {vacanciesFailed && (
+          <div className="mb-2" data-testid="vacancies-unreachable">
+            <p className="text-sm text-[#B85838]" style={serif}>
+              We could not reach the listings just now. <strong>This is not an empty list</strong> —
+              it is a page that did not get an answer, so nothing here would be true.
+            </p>
+            <button
+              type="button"
+              onClick={() => { setVacanciesFailed(false); setVacancies(null); setTries((n) => n + 1); }}
+              data-testid="vacancies-retry"
+              className="mt-1 text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#2F5D50] text-[#2F5D50] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#2F5D50]"
+            >Try again</button>
+          </div>
+        )}
+        {vacancies !== null && !vacanciesFailed && vacancies.length === 0 && (
           <p className="text-xs text-[#5A5751]" style={serif}>
             Nothing is listed right now. Only units the landlord has listed appear here — an empty unit is never advertised automatically.
           </p>
@@ -654,15 +697,43 @@ function ApplyForm({ vacancies, preselect = '', openFor = 0, openOnLoad = false 
 
   return (
     <div className="border border-[#E8E4DC] p-3" ref={box} data-testid="apply-form">
-      <p className="text-xs text-[#5A5751] mb-2" style={serif}>
-        Every adult 18 or older fills out their own. We never ask for a Social Security number here — if screening needs one,
-        a person asks you directly.
-      </p>
+      {/* A WAY OUT (DR-0953). Darrell, 2026-10-11: "Got to be able to close
+          the apply button". The form opens from the card's Apply, from a
+          printed QR, and from its own button — three ways in and, until now,
+          NONE OUT. On a phone it fills the screen, so a person who tapped it
+          to look is stuck scrolling past a stranger's worth of fields to get
+          back to the listings, and the only real exit is leaving the page.
+          Closing keeps whatever was typed: `values` lives above this branch,
+          so reopening finds the form as it was rather than punishing a
+          mis-tap by throwing the work away. */}
+      <div className="flex items-start justify-between gap-2 mb-2">
+        <p className="text-xs text-[#5A5751]" style={serif}>
+          Every adult 18 or older fills out their own. We never ask for a Social Security number here — if screening needs one,
+          a person asks you directly.
+        </p>
+        <button
+          type="button" onClick={() => setOpen(false)}
+          aria-label="Close the application"
+          data-testid="apply-close"
+          className="shrink-0 text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#E8E4DC] text-[#5A5751] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#2F5D50]"
+        >Close</button>
+      </div>
       {vacancies.length > 0 && (
         <select value={unit} onChange={(e) => setUnit(e.target.value)} aria-label="Which unit"
           className="text-xs border border-[#E8E4DC] px-2 py-2 bg-white mb-2 w-full" style={serif}>
           <option value="">Which unit are you applying for?</option>
-          {vacancies.map((v) => <option key={v.id} value={v.id}>{v.label}{v.unit ? ` · ${v.unit}` : ''}</option>)}
+          {/* EACH OPTION HAS TO BE TELLABLE FROM THE NEXT (DR-0953). Darrell's
+              screenshot showed two choices reading "1-bed multi-family in
+              Champaign, Illinois" and "multi-family in Champaign, Illinois" —
+              an applicant cannot pick a unit from that, and picking the wrong
+              one sends their application to the wrong door.
+              `v.unit` was already here and was always null: public_vacancies
+              withheld it with the street. The street is what must not be
+              published (DR-0935); "Apt 4" beside a city does not locate
+              anybody, so 0274 publishes the unit alone and this line can
+              finally use it. Rent and the shared marker follow, so two doors
+              with no unit label are still distinguishable. */}
+          {vacancies.map((v) => <option key={v.id} value={v.id}>{applyOptionLabel(v)}</option>)}
         </select>
       )}
       {APPLICATION_SECTIONS.map((section) => {

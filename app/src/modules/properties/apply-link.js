@@ -88,3 +88,36 @@ export function cardCaption(unitLabel) {
     ? `Scan to apply for ${where} — no account needed`
     : 'Scan to see what is available — no account needed';
 }
+
+/**
+ * How one vacancy reads in the application's "Which unit are you applying
+ * for?" picker (DR-0953).
+ *
+ * Darrell, 2026-10-11: "also identify the Apartments in the drop down". His
+ * screenshot showed two options reading "1-bed multi-family in Champaign,
+ * Illinois" and "multi-family in Champaign, Illinois" — the public label is
+ * composed from a bedroom count, a property type and a city, which describes
+ * a KIND of place and identifies none. An applicant cannot choose from that,
+ * and choosing wrong sends their application to the wrong door.
+ *
+ * So the option is built to be TELLABLE FROM THE NEXT ONE, cheapest
+ * distinguisher first:
+ *   the unit designator ("Apt 4", "Room 1 - Bed A") when there is one — 0274
+ *     publishes it without the street, because "Apt 4" beside a city does not
+ *     locate anybody and the street is what DR-0935 protects;
+ *   then the rent, which separates a $750 bed from a $1,400 house;
+ *   then "shared", because a bed in a co-living flat and a whole unit at the
+ *     same price are otherwise identical on screen (DR-0952).
+ *
+ * The label still leads: it is what the person saw on the card they came from.
+ */
+export function applyOptionLabel(v = {}) {
+  const label = String(v.label || '').trim() || 'Available unit';
+  const unit = String(v.unit || '').trim();
+  const rent = Number(v.rent) > 0 ? `$${Math.round(Number(v.rent))}/mo` : '';
+  // Only when it adds something: a card that already says "shared" in its
+  // label should not say it twice.
+  const shared = v.shared_home && !/shared/i.test(label) ? 'shared' : '';
+  const tail = [unit, rent, shared].filter(Boolean).join(' · ');
+  return tail ? `${label} — ${tail}` : label;
+}
