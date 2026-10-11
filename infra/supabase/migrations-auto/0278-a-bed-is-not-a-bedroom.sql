@@ -79,10 +79,15 @@ COMMENT ON FUNCTION public.rentable_level_of(text, text, text) IS
 -- ---------------------------------------------------------------------------
 -- 2. THE SHELF USES IT — FOR THE LABEL AND FOR "IS THIS SHARED"
 -- ---------------------------------------------------------------------------
--- Same return shape as 0273, so this is a REPLACE and not a DROP. The only
--- change is that `rentable_level` is now read through rentable_level_of()
--- instead of raw, in the two places that decide what a stranger is told.
-CREATE OR REPLACE FUNCTION public.public_vacancies()
+-- DROPPED FIRST, as 0273 was. The shape here matches 0273's, but 0270 defined
+-- this function with the pre-0273 column list, and a replay that reaches 0270
+-- and then this file without 0273 in between would hand Postgres a CREATE OR
+-- REPLACE that changes a RETURNS TABLE — which it refuses, rolling the whole
+-- file back. migration-return-type-guard caught exactly that and named the
+-- fix. The drop makes the file safe from any starting point.
+DROP FUNCTION IF EXISTS public.public_vacancies();
+
+CREATE FUNCTION public.public_vacancies()
 RETURNS TABLE (
   id            uuid,
   label         text,
