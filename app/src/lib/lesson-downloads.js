@@ -65,6 +65,24 @@ export const VOICE_BYTES_PER_PIECE = 44;
 // takes two at a time), so a plan's voice is sized in minutes here, from its
 // characters, and the run then says its own measured pace as it goes.
 export const SYNTH_CHARS_PER_SECOND = 19.7;
+
+// WHY TWO, AND WHY RAISING IT HERE ALONE WOULD MAKE IT SLOWER (DR-0969).
+//
+// Darrell, 2026-10-11, on "100 of 386 pieces · 1.8 MB": "Why is downloading
+// lesson so long with only mb of data?!!!!!!!!!!"
+//
+// Because it is not a download. The MB is the one quantity NOT being spent.
+// 386 pieces at ~87 characters each is ~33,700 characters; at 19.7 a second
+// across two streams that is ~14 minutes, during which about 2 kB a second
+// lands — which is why it reads as idle.
+//
+// The obvious fix is wrong, and this is the measurement that says so: the NAS
+// caps itself at the same number. `infra/nas-voice-lite/voice_lite_server.py`
+// sets MAX_INFLIGHT = 2 (env VOICE_LITE_MAX_INFLIGHT) and returns 503 "busy"
+// IMMEDIATELY past it, and `nasPiece` then sleeps 600/1200/1800/2400 ms on a
+// 503. So a client raising this to four would earn 503s and backoff, not
+// throughput. The real lever is the NAS's own cap and the cores behind it, and
+// it has to move THERE FIRST; this constant follows it, never leads it.
 export const DOWNLOAD_STREAMS = 2;
 
 /** Seconds the church computer needs to make a plan's voice, from its characters. Pure. */

@@ -122,12 +122,16 @@ describe('the words on the screen', () => {
     pieces: { done: 37, total: 312, fetched: 37, held: 0 }, charsDone: 3200, charsPerSecond: 20,
     startedAt: 1_000_000, lastPieceAt: 1_000_000 + 160_000, lastError: null, ...over,
   });
-  it('progressText: lessons, pieces, bytes and the time left at the measured pace', () => {
+  // The bytes read "14 MB made" from DR-0969 on: a bare size beside a long
+  // wait reads as a TRANSFER, and a transfer that small should be instant --
+  // which is exactly the question Darrell asked on 2026-10-11. The number is
+  // unchanged; the one word says what it measures.
+  it('progressText: lessons, pieces, bytes MADE and the time left at the measured pace', () => {
     const t = progressText(run(), { running: true, now: 1_000_000 + 160_000 });
-    expect(t).toMatch(/^0 of 1 lesson saved · 37 of 312 voice pieces · 14 MB · about \d+ minutes more at this pace$/);
+    expect(t).toMatch(/^0 of 1 lesson saved · 37 of 312 voice pieces · 14 MB made · about \d+ minutes more at this pace$/);
     expect(progressText(run(), { running: true, paused: true, now: 1_000_000 + 160_000 })).toMatch(/· paused$/);
     expect(progressText(run({ pieces: { done: 0, total: 0, fetched: 0, held: 0 }, bytes: 0 }))).toBe('0 of 1 lesson saved');
-    expect(progressText(run({ total: 3, saved: 2, failed: [{ lessonId: 'x' }] }), { running: false })).toMatch(/^2 of 3 lessons saved · 37 of 312 voice pieces · 14 MB · 1 not saved$/);
+    expect(progressText(run({ total: 3, saved: 2, failed: [{ lessonId: 'x' }] }), { running: false })).toMatch(/^2 of 3 lessons saved · 37 of 312 voice pieces · 14 MB made · 1 not saved$/);
   });
   it('progressFraction: by the piece when there are pieces, by the lesson otherwise', () => {
     expect(progressFraction(run())).toEqual({ now: 37, max: 312, fraction: 37 / 312 });

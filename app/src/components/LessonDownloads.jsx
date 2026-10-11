@@ -24,7 +24,7 @@ import {
   LEVEL_BANDS, bandLabel, lessonVersions, normalizeChoice, choiceWords, loadChoice, saveChoice,
   planDownload, runDownload, removeDownloads, checkRoom, deviceSpace, askToKeep, heldVoiceBytes,
   formatBytes, reasonWords, readRegistry, subscribeDownloads, savedLevels, savedVoiceBand,
-  loadJob, saveJob, courseContext, SPACE_MARGIN, paceWords,
+  loadJob, saveJob, courseContext, SPACE_MARGIN, paceWords, DOWNLOAD_STREAMS,
 } from '../lib/lesson-downloads.js';
 import { loadCapMb, saveCapMb, deviceClipCache } from '../lib/clip-cache.js';
 import { useScreenAwake } from '../lib/screen-awake.js';
@@ -120,7 +120,14 @@ export function progressText(run, { paused = false, running = true, now = Date.n
   const p = run.pieces;
   if (p && p.total > 0) {
     parts.push(`${p.done} of ${p.total} voice pieces`);
-    if (run.bytes) parts.push(formatBytes(run.bytes));
+    // THE BYTES SAY THEY WERE *MADE* (DR-0969). Darrell, 2026-10-11, reading
+    // "100 of 386 pieces · 1.8 MB": "Why is downloading lesson so long with
+    // only mb of data?!!!!!!!!!!" A bare "1.8 MB" beside a fourteen-minute
+    // wait reads as the SIZE OF A TRANSFER, and a transfer that small should
+    // be instant — so the number invites exactly that question. It is not a
+    // transfer: it is how much speech the church computer has finished
+    // MAKING, one sentence at a time. One word fixes the reading.
+    if (run.bytes) parts.push(`${formatBytes(run.bytes)} made`);
     if (running && !paused && run.charsPerSecond > 0 && p.fetched > 0 && p.done < p.total) {
       const elapsed = Math.max(1, (now - run.startedAt) / 1000);
       const left = (p.total - p.done) * (elapsed / Math.max(1, p.fetched));
@@ -361,6 +368,20 @@ export function DownloadPanel({ items, scope, what, removeWhich, deps = null, on
         <p className="text-[0.6875rem] text-[#5A5751] mt-1" style={SERIF} data-testid="download-pace">
           The reading voice is made on the church computer as this runs, about as fast as it is spoken: {paceWords(current.paceSeconds)} for this choice.
           {current.paceSeconds > 3 * 3600 ? ' Save the words only and the voice is kept as you listen, one lesson at a time.' : ''}
+        </p>
+      )}
+      {/* AND SAID AGAIN WHILE IT RUNS (DR-0969) — which is the half that was
+          missing. The `!running` guard above means the one sentence explaining
+          WHY this is slow was on screen only before the start, and vanished at
+          the exact moment somebody is staring at a crawling bar wondering.
+          That is when the question gets asked, so that is when the answer has
+          to be present. It names the real cost — pieces made one at a time,
+          two at a time, on the church computer — never the bytes. */}
+      {running && withVoice && run && run.pieces && run.pieces.total > 0 && (
+        <p className="text-[0.6875rem] text-[#5A5751] mt-1" style={SERIF} data-testid="download-why-slow">
+          Not a download: each of these {run.pieces.total} pieces is a sentence the church computer
+          speaks out loud, {DOWNLOAD_STREAMS} at a time. The megabytes are small because speech is
+          small; the time is the making.
         </p>
       )}
 
