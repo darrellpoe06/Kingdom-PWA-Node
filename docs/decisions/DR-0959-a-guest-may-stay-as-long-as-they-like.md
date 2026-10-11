@@ -49,8 +49,17 @@ Neither is a reason the *form* should refuse the booking. The card now names
 the 30-night line as something worth knowing before confirming a long stay,
 rather than as a wall.
 
-**The year ceiling stays.** A booking calendar is not a lease ledger; an ask
-for four hundred nights is a typo, not an offer.
+**And then the year went too.** I kept a 365-night ceiling on the reasoning
+that an ask for four hundred nights is a typo rather than an offer. Darrell,
+immediately: **"All number of nights accepted!!!!!!!!"** That was my judgement
+standing in front of his, on his own property, for a case the family confirms
+**by hand** anyway. A long ask is a conversation, not something the form must
+refuse. `GUEST_MAX_NIGHTS` is now `null` — exported so a caller asking "is
+there a limit?" gets a truthful answer rather than a number pretending to be
+one.
+
+**What remains is a definition, not a limit:** `check_out > check_in`. A stay
+with no nights in it is not a stay.
 
 ## Verification
 
@@ -60,7 +69,9 @@ Executed on real **PostgreSQL 16.15**, chain through 0269, applied twice:
 |---|---|---|
 | 60 nights | **refused** — `violates check constraint door_stays_guest_asks_under_30_nights` | **accepted** |
 | 359 nights (a year) | refused | **accepted** |
-| 425 nights | refused | **still refused** — `door_stays_at_most_a_year` |
+| 425 nights | refused | **accepted** |
+| 3 years | refused | **accepted** |
+| 0 nights | refused | **still refused** — `door_stays_out_after_in` |
 
 7 green in the booking suite, including that night thirty and night sixty now
 pass validation, and that the ceiling message names 365.

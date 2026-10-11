@@ -58,17 +58,19 @@ BEGIN
   ALTER TABLE public.door_stays
     DROP CONSTRAINT IF EXISTS door_stays_guest_asks_under_30_nights;
 
-  -- The year remains. A booking calendar is not a lease ledger, and an ask for
-  -- four hundred nights is a typo or a misunderstanding, not an offer.
-  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'door_stays_at_most_a_year') THEN
-    ALTER TABLE public.door_stays
-      ADD CONSTRAINT door_stays_at_most_a_year CHECK (check_out - check_in <= 365);
-  END IF;
+  -- AND THE YEAR GOES TOO. Darrell, immediately after seeing the 29 lifted:
+  -- "All number of nights accepted!!!!!!!!" I had kept a 365-night ceiling on
+  -- the reasoning that an ask for four hundred nights is a typo rather than an
+  -- offer. That is my judgement standing in front of his, on his own property,
+  -- for a case the family confirms BY HAND anyway — a long ask is a
+  -- conversation, not a thing the form needs to refuse.
+  --
+  -- What remains is the one rule that is not a limit but a definition:
+  -- check_out > check_in (0269), because a stay with no nights in it is not a
+  -- stay.
+  ALTER TABLE public.door_stays
+    DROP CONSTRAINT IF EXISTS door_stays_at_most_a_year;
 
-  EXECUTE $c$
-    COMMENT ON CONSTRAINT door_stays_at_most_a_year ON public.door_stays IS
-      'A stay is at most a year. The 29-night guest cap that used to sit beside this was removed by 0276 (DR-0959): a guest may book any length at the nightly rate, and the family still confirms every one.'
-  $c$;
   EXECUTE $c$
     COMMENT ON TABLE public.door_stays IS
       'Nights asked for and nights held on a door. A guest may ask for any length up to a year at the nightly rate (DR-0959); the family confirms, and a confirmed stay blocks the calendar.'

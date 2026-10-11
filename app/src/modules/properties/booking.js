@@ -11,21 +11,23 @@
 // =============================================================================
 
 /**
- * The longest stay anyone may ask for: a year (0276, DR-0959).
+ * THERE IS NO LONGEST STAY (0276, DR-0959).
  *
- * This was 29 nights, and refusing night thirty is the thing Darrell rejected
- * twice — the second time in his own words: "we dont want people to do short
- * term leases because of staying passed 29 days!!! They can stay for a year
- * with $150 a day if they want too!!!" A guest who wants sixty nights at the
- * nightly rate is a guest, not a lease application.
+ * This was 29 nights, then briefly 365, and Darrell rejected both — the second
+ * time in four words: "All number of nights accepted!!!!!!!!" A guest who
+ * wants two months, or two years, at the nightly rate is a guest. The family
+ * confirms every stay by hand, so a long ask is a conversation rather than
+ * something the form has to refuse.
  *
- * The two real facts behind the old number are unchanged and are the OWNER'S
- * to weigh, not the form's: the Hotel Operators' tax and Champaign's 7% reach
- * stays under 30 consecutive days, and a 30+ night occupancy starts to carry
- * tenancy characteristics with no bright line in Illinois. The family confirms
- * every stay by hand; that is where the judgement lives.
+ * Exported as null so a caller can ASK whether there is a limit and get a
+ * truthful answer, instead of a number that pretends to be one.
+ *
+ * The two real facts behind the old 29 are unchanged and are the OWNER'S to
+ * weigh: the Hotel Operators' tax and Champaign's 7% reach stays under 30
+ * consecutive days, and a 30+ night occupancy begins to carry tenancy
+ * characteristics with no bright line in Illinois.
  */
-export const GUEST_MAX_NIGHTS = 365;
+export const GUEST_MAX_NIGHTS = null;
 
 const pad = (n) => String(n).padStart(2, '0');
 export const iso = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -72,9 +74,6 @@ export function checkStayAsk({ checkIn, checkOut, taken = new Set(), today, gues
   if (!checkIn || !checkOut) errors.dates = 'Pick the night you arrive and the day you leave.';
   else if (checkIn < today) errors.dates = 'That first night has passed.';
   else if (nights < 1) errors.dates = 'The day you leave comes after the night you arrive.';
-  // A year is the ceiling, and it reads as a sanity check rather than a
-  // refusal — because at this length it is one.
-  else if (nights > GUEST_MAX_NIGHTS) errors.dates = `A stay can run up to ${GUEST_MAX_NIGHTS} nights. For longer than a year, message us.`;
   else {
     for (let d = checkIn; d < checkOut; d = addDays(d, 1)) {
       if (taken.has(d)) { errors.dates = `The night of ${d} is already taken.`; break; }

@@ -57,14 +57,20 @@ describe('the nights (pure)', () => {
     const base = { taken: takenNights([{ taken_from: '2026-10-20', taken_to: '2026-10-23' }]), today: TODAY, guests: 2, name: 'Ana', phone: '217', is21: true, rules: true, rate: 150 };
     expect(checkStayAsk({ ...base, checkIn: '2026-10-18', checkOut: '2026-10-21' }).errors.dates).toMatch(/2026-10-20 is already taken/);
     expect(checkStayAsk({ ...base, checkIn: '2026-10-01', checkOut: '2026-10-03' }).errors.dates).toMatch(/passed/);
-    // A YEAR IS THE CEILING, NOT 29 NIGHTS (0276, DR-0959). Darrell, twice:
-    // "They can stay for a year with $150 a day if they want too!!!" Refusing
-    // night thirty and pointing the guest at a lease was the defect.
-    expect(GUEST_MAX_NIGHTS).toBe(365);
-    expect(checkStayAsk({ ...base, checkIn: '2026-11-01', checkOut: addDays('2026-11-01', GUEST_MAX_NIGHTS + 1) }).errors.dates).toMatch(/up to 365 nights/);
-    // The night that used to be refused is now simply a night.
-    expect(checkStayAsk({ ...base, checkIn: '2026-11-01', checkOut: addDays('2026-11-01', 60) }).errors.dates).toBeUndefined();
-    expect(checkStayAsk({ ...base, checkIn: '2026-11-01', checkOut: addDays('2026-11-01', 30) }).errors.dates).toBeUndefined();
+    // THERE IS NO LONGEST STAY (0276, DR-0959). It was 29, then briefly 365,
+    // and Darrell rejected both — the second time in four words: "All number
+    // of nights accepted!!!!!!!!" null is exported rather than a large number
+    // so a caller asking "is there a limit?" gets a truthful answer.
+    expect(GUEST_MAX_NIGHTS).toBeNull();
+    for (const n of [30, 60, 365, 400, 1000]) {
+      expect(
+        checkStayAsk({ ...base, checkIn: '2026-11-01', checkOut: addDays('2026-11-01', n) }).errors.dates,
+        `${n} nights should be a booking, not a refusal`,
+      ).toBeUndefined();
+    }
+    // The one rule that is a DEFINITION rather than a limit still holds: a
+    // stay with no nights in it is not a stay.
+    expect(checkStayAsk({ ...base, checkIn: '2026-11-01', checkOut: '2026-11-01' }).errors.dates).toBeTruthy();
     expect(checkStayAsk({ ...base, checkIn: '2026-10-24', checkOut: '2026-10-27', is21: false }).errors.is21).toBeTruthy();
     expect(checkStayAsk({ ...base, checkIn: '2026-10-24', checkOut: '2026-10-27', rules: false }).errors.rules).toBeTruthy();
     const ok = checkStayAsk({ ...base, checkIn: '2026-10-23', checkOut: '2026-10-26' });
