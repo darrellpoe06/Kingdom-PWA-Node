@@ -67,8 +67,30 @@ async function main() {
   let loadError = null;
   try {
     await page.goto(BASE, { waitUntil: 'networkidle', timeout: 60000 });
-    // The shelf mounts client-side; wait for a card or for the page to settle.
-    await page.waitForSelector('li', { timeout: 20000 }).catch(() => {});
+
+    // WALK THE PATH A STRANGER WALKS (DR-0974, from the first live run).
+    //
+    // The shelf is NOT the landing page. PropertiesDoor opens on "Who are
+    // you?" and only calls loadPublicVacancies() once `who === 'applicant'`
+    // (PropertiesDoor.jsx:321-330). The witness's first live run therefore
+    // read ZERO CARDS from a shelf holding three — it had photographed the
+    // chooser and judged that.
+    //
+    // It failed rather than passing, which is the only reason this was
+    // visible within minutes instead of becoming a daily green tick over a
+    // page nobody was reading. "Unknown is not pass" earned its keep on the
+    // instrument's own first outing.
+    //
+    // "Looking for a place" is the single option needing no account
+    // (WHO_OPTIONS[0], model.js:449). Clicked by its VISIBLE TEXT rather than
+    // a testid, because that is what a stranger clicks and a testid would let
+    // the button be renamed out from under the witness silently.
+    const browse = page.getByRole('button', { name: /Looking for a place/i }).first();
+    const sawChooser = await browse.count().catch(() => 0);
+    if (sawChooser) await browse.click({ timeout: 10000 }).catch(() => {});
+
+    // The cards arrive after a round trip to public_vacancies().
+    await page.waitForSelector('li', { timeout: 25000 }).catch(() => {});
     cards = await page.$$eval('li', (nodes) => nodes
       .filter((n) => /apply|book a stay/i.test(n.textContent || ''))
       .map((n) => {
