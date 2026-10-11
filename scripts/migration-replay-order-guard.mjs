@@ -28,6 +28,9 @@ import { fileURLToPath } from 'node:url';
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const MIGRATIONS = join(ROOT, 'infra/supabase/migrations-auto');
 const WORKFLOW = join(ROOT, '.github/workflows/rls-isolation.yml');
+// ci.yml replays migrations too, in shell rather than a matrix (see THE FOURTH
+// BLIND SPOT below). A guard that reads one of its two inputs is not a guard.
+const CI_WORKFLOW = join(ROOT, '.github/workflows/ci.yml');
 
 // Objects whose re-definition SILENTLY overwrites the previous one. A table
 // (CREATE TABLE IF NOT EXISTS) is not in this class; a function or a policy is.
@@ -174,6 +177,89 @@ export function checkReplayShapes(byFile = functionShapesByFile(), legs = isolat
   return { ok: problems.length === 0, problems };
 }
 
+// ── THE FOURTH BLIND SPOT (measured 2026-10-11, ci.yml `door-work` red on
+// PR #2112): this guard reads ONE FILE, rls-isolation.yml, and ci.yml replays
+// migrations too. The `door-work` leg applies 0273 — which widens
+// public_vacancy_photos()'s RETURNS TABLE with DROP + CREATE — and then
+// RE-APPLIES 0153/0154 for the 0271 smoke, and 0154's CREATE OR REPLACE
+// carries the four-column shape. Postgres refused it exactly as the third
+// blind spot's note predicts: "cannot change return type of existing
+// function... Use DROP FUNCTION public_vacancy_photos(uuid) first."
+//
+// The rule was already written and already enforced — on the other file. The
+// guard caught this same collision on rls-isolation when 0273 was built and
+// the fix went only where the guard could see, so the second leg shipped
+// broken. That is this guard's own header, three times over: "a guard that
+// cannot see part of its own input is the P55 shape again." A gate that cannot
+// see a surface is not protecting it (DR-0076 section 3).
+//
+// A ci.yml leg is plain shell — `for f in A.sql B.sql; do psql ... $f; done` —
+// not a matrix, so it needs its own reader. What it gains in exchange is a
+// POSITIONAL check, stricter than the matrix one: the matrix only knows a
+// leg-level `pre`, while a shell leg's drops and applies are interleaved in one
+// readable order, so a drop counts only where it actually falls.
+
+/** The files a ci.yml shell job applies and the functions it drops, IN ORDER. */
+export function shellLegs(workflowText = readFileSync(CI_WORKFLOW, 'utf8'), dir = MIGRATIONS) {
+  const known = new Set(readdirSync(dir).filter((f) => /^\d{4}-.+\.sql$/.test(f)));
+  // Jobs are the two-space keys of the top-level `jobs:` map.
+  const heads = [...workflowText.matchAll(/^ {2}([a-z][a-z0-9-]*):[ \t]*$/gm)].map((m) => ({ at: m.index, job: m[1] }));
+  heads.push({ at: workflowText.length, job: '' });
+  const legs = [];
+  for (let i = 0; i < heads.length - 1; i += 1) {
+    const body = workflowText.slice(heads[i].at, heads[i + 1].at);
+    const steps = [];
+    // Line by line, because that IS the execution order: a `for f in ...` list
+    // sits on the line above the psql that consumes it, and a bare filename in
+    // such a list is as real an apply as one written with its full path.
+    for (const line of body.split('\n')) {
+      if (/^\s*#/.test(line)) continue;
+      for (const tok of line.match(/\d{4}-[A-Za-z0-9._-]+\.sql/g) || []) {
+        if (known.has(tok)) steps.push({ kind: 'apply', file: tok });
+      }
+      for (const m of line.matchAll(/drop\s+function\s+(?:if\s+exists\s+)?(?:public\.)?([a-z0-9_]+)/gi)) {
+        steps.push({ kind: 'drop', name: m[1].toLowerCase() });
+      }
+    }
+    if (steps.some((s) => s.kind === 'apply')) legs.push({ job: heads[i].job, steps });
+  }
+  return legs;
+}
+
+/**
+ * The positional check: walk a shell leg in its real order, carrying the shape
+ * the database is actually at. An apply that carries a DIFFERENT shape than
+ * what is live, with no DROP of that function since, is the refusal.
+ *
+ * A file's OWN drop counts (0273 drops before it creates), which is why a leg
+ * may apply 0273 twice in a row and stay green.
+ */
+export function checkShellReplayShapes(byFile = functionShapesByFile(), legs = shellLegs()) {
+  const problems = [];
+  for (const leg of legs) {
+    const live = new Map();   // function name -> { returns, file }
+    for (const step of leg.steps) {
+      if (step.kind === 'drop') { live.delete(step.name); continue; }
+      const entry = byFile.get(step.file);
+      if (!entry) continue;
+      for (const s of entry.shapes) {
+        const at = live.get(s.name);
+        if (at && at.returns !== s.returns && !entry.drops.has(s.name)) {
+          problems.push(
+            `ci.yml job "${leg.job}" applies ${step.file}, which defines ${s.name}() with one RETURNS shape, ` +
+            `after ${at.file} in the same job left the database at a different one — Postgres REFUSES it ` +
+            `("cannot change return type of existing function"). Drop it first in that job, before ${step.file}: ` +
+            `psql -c 'DROP FUNCTION IF EXISTS public.${s.name}(...);'`
+          );
+        }
+        live.set(s.name, { returns: s.returns, file: step.file });
+      }
+      for (const d of entry.drops) if (!entry.shapes.some((s) => s.name === d)) live.delete(d);
+    }
+  }
+  return { ok: problems.length === 0, problems };
+}
+
 /** The check. Returns { ok, problems: [...] }. */
 export function check(replaced = replacedObjects(), legs = isolationLegs()) {
   const problems = [];
@@ -209,10 +295,11 @@ export function check(replaced = replacedObjects(), legs = isolationLegs()) {
 if (import.meta.url === `file://${process.argv[1]}`) {
   const order = check();
   const shapes = checkReplayShapes();
-  const ok = order.ok && shapes.ok;
-  const problems = [...order.problems, ...shapes.problems];
+  const shell = checkShellReplayShapes();
+  const ok = order.ok && shapes.ok && shell.ok;
+  const problems = [...order.problems, ...shapes.problems, ...shell.problems];
   if (ok) {
-    console.log('migration-replay-order-guard: OK — no isolation leg can revert a newer migration, and none replays a function under two RETURNS shapes without dropping it first.');
+    console.log('migration-replay-order-guard: OK — in rls-isolation AND ci.yml, no replay leg can revert a newer migration, and none replays a function under two RETURNS shapes without dropping it first.');
     process.exit(0);
   }
   console.error('migration-replay-order-guard FAILED — a replay would restore an older definition:');

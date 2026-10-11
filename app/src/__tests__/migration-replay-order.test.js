@@ -15,7 +15,12 @@
 // on the current truth, not restoring the past.
 // =============================================================================
 import { describe, it, expect } from 'vitest';
-import { check, replacedObjects, isolationLegs, checkReplayShapes, functionShapes, functionShapesByFile } from '../../../scripts/migration-replay-order-guard.mjs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import {
+  check, replacedObjects, isolationLegs, checkReplayShapes, functionShapes, functionShapesByFile,
+  shellLegs, checkShellReplayShapes,
+} from '../../../scripts/migration-replay-order-guard.mjs';
 
 describe('the live repo', () => {
   it('no isolation leg can revert a newer migration', () => {
@@ -182,5 +187,143 @@ describe('a leg that replays a function under two RETURNS shapes must drop it fi
     expect(a.returns).not.toBe(b.returns);
     const role = isolationLegs().find((l) => l.feature === 'role-control');
     expect(role.pre).toMatch(/list_my_admin_instances/);
+  });
+});
+
+
+// =============================================================================
+// THE FOURTH BLIND SPOT: ci.yml REPLAYS MIGRATIONS TOO (DR-0956)
+// =============================================================================
+// Measured 2026-10-11, ci.yml `door-work` red on PR #2112. The leg applies
+// 0273 — which widens public_vacancy_photos()'s RETURNS TABLE with DROP +
+// CREATE — and then re-applies 0153/0154 for the 0271 smoke. 0154's CREATE OR
+// REPLACE carries the four-column shape and Postgres refused it outright:
+// "cannot change return type of existing function ... Use DROP FUNCTION
+// public_vacancy_photos(uuid) first."
+//
+// THE RULE WAS ALREADY WRITTEN AND ALREADY ENFORCED — on the other file. This
+// guard caught the identical collision on rls-isolation.yml when 0273 was
+// built, so the fix went only where the guard could see and the second leg
+// shipped red. That is this guard's own header three times over: "a guard that
+// cannot see part of its own input is the P55 shape again."
+//
+// The shell check is POSITIONAL, and stricter than the matrix one: a matrix leg
+// has only a leg-level `pre`, while a shell leg's drops and applies interleave
+// in one readable order, so a drop counts only where it actually falls.
+describe('ci.yml replay legs are read too, in the order the shell runs them', () => {
+  const byFile = new Map([
+    ['0100-a.sql', { shapes: [{ name: 'f', returns: 'table(a text)' }], drops: new Set() }],
+    ['0110-b.sql', { shapes: [{ name: 'f', returns: 'table(a text,b text)' }], drops: new Set(['f']) }],
+    ['0105-same.sql', { shapes: [{ name: 'f', returns: 'table(a text)' }], drops: new Set() }],
+  ]);
+  const leg = (steps) => [{ job: 'door-work', steps }];
+  // Resolved from this file, not the runner's cwd, which differs between a
+  // local run and CI.
+  const MIG = join(dirname(fileURLToPath(import.meta.url)), '../../../infra/supabase/migrations-auto');
+  const apply = (file) => ({ kind: 'apply', file });
+
+  it('PROVEN-TO-CATCH: a newer shape, then an older one, with no drop between', () => {
+    const r = checkShellReplayShapes(byFile, leg([apply('0100-a.sql'), apply('0110-b.sql'), apply('0100-a.sql')]));
+    expect(r.ok).toBe(false);
+    expect(r.problems.join('\n')).toMatch(/job "door-work" applies 0100-a\.sql/);
+    expect(r.problems.join('\n')).toMatch(/cannot change return type/);
+  });
+
+  it('passes once a drop falls BETWEEN them — position is the whole point', () => {
+    const r = checkShellReplayShapes(byFile, leg([
+      apply('0100-a.sql'), apply('0110-b.sql'), { kind: 'drop', name: 'f' }, apply('0100-a.sql'),
+    ]));
+    expect(r.ok, r.problems.join('\n')).toBe(true);
+  });
+
+  it('a drop AFTER the clash does not excuse it — a matrix pre could not tell these apart', () => {
+    const r = checkShellReplayShapes(byFile, leg([
+      apply('0100-a.sql'), apply('0110-b.sql'), apply('0100-a.sql'), { kind: 'drop', name: 'f' },
+    ]));
+    expect(r.ok).toBe(false);
+  });
+
+  it('a file that drops what it defines may be replayed back to back (0273 does)', () => {
+    const r = checkShellReplayShapes(byFile, leg([apply('0100-a.sql'), apply('0110-b.sql'), apply('0110-b.sql')]));
+    expect(r.ok, r.problems.join('\n')).toBe(true);
+  });
+
+  it('a same-shape redefinition needs no drop', () => {
+    expect(checkShellReplayShapes(byFile, leg([apply('0100-a.sql'), apply('0105-same.sql')])).ok).toBe(true);
+  });
+
+  it('reads BOTH shell forms — the inline path and the `for f in` list', () => {
+    const yml = [
+      'jobs:',
+      '  door-work:',
+      '    steps:',
+      '      - run: |',
+      '          for f in 0153-property-timeline-photos.sql 0154-photo-captions-editable-and-archivable.sql; do',
+      '            psql -f "infra/supabase/migrations-auto/$f"',
+      '          done',
+      '          psql -f infra/supabase/migrations-auto/0273-a-shared-home-says-so-on-the-shelf.sql',
+      '          psql -c \'DROP FUNCTION IF EXISTS public.public_vacancy_photos(uuid);\'',
+      '          psql -f infra/supabase/migrations-auto/9999-not-a-real-migration.sql',
+      '  other:',
+      '    steps:',
+      '      - run: echo nothing',
+      '',
+    ].join('\n');
+    const legs = shellLegs(yml, MIG);
+    expect(legs.map((l) => l.job)).toEqual(['door-work']);
+    expect(legs[0].steps).toEqual([
+      // The `for f in` list, read from the line that names the files...
+      { kind: 'apply', file: '0153-property-timeline-photos.sql' },
+      { kind: 'apply', file: '0154-photo-captions-editable-and-archivable.sql' },
+      // ...and the inline path, both in the order the shell runs them.
+      { kind: 'apply', file: '0273-a-shared-home-says-so-on-the-shelf.sql' },
+      { kind: 'drop', name: 'public_vacancy_photos' },
+      // 9999 is absent: only a file that really exists counts, so a filename
+      // in prose or a typo cannot invent a step.
+    ]);
+  });
+
+  it('a commented-out line is not a step', () => {
+    const yml = 'jobs:\n  j:\n    run: |\n      # psql -f infra/supabase/migrations-auto/0153-property-timeline-photos.sql\n';
+    expect(shellLegs(yml, MIG)).toEqual([]);
+  });
+
+  it('the live repo: ci.yml has replay legs at all, so this check is not idle', () => {
+    const legs = shellLegs();
+    expect(legs.length).toBeGreaterThan(0);
+    const dw = legs.find((l) => l.job === 'door-work');
+    expect(dw, 'door-work is the leg this incident was about').toBeTruthy();
+    expect(dw.steps.filter((s) => s.kind === 'apply').length).toBeGreaterThan(10);
+  });
+
+  it('the live repo: no ci.yml leg replays a function under two shapes without dropping it', () => {
+    const r = checkShellReplayShapes(functionShapesByFile(), shellLegs());
+    expect(r.ok, r.problems.join('\n')).toBe(true);
+  });
+
+  it('the live repo: door-work really does carry two shapes of public_vacancy_photos', () => {
+    // If this ever stops being true the rule above is idle and the test says so
+    // rather than passing quietly.
+    const live = functionShapesByFile();
+    const a = live.get('0154-photo-captions-editable-and-archivable.sql').shapes.find((s) => s.name === 'public_vacancy_photos');
+    const b = live.get('0273-a-shared-home-says-so-on-the-shelf.sql').shapes.find((s) => s.name === 'public_vacancy_photos');
+    expect(a.returns).not.toBe(b.returns);
+    const dw = shellLegs().find((l) => l.job === 'door-work');
+    const files = dw.steps.filter((s) => s.kind === 'apply').map((s) => s.file);
+    expect(files).toContain('0154-photo-captions-editable-and-archivable.sql');
+    expect(files).toContain('0273-a-shared-home-says-so-on-the-shelf.sql');
+    expect(dw.steps.some((s) => s.kind === 'drop' && s.name === 'public_vacancy_photos')).toBe(true);
+  });
+
+  it('the leg ends where it is supposed to: 0273 goes on again after the replay', () => {
+    // A passing replay is not the same as a converged chain. Replaying 0154
+    // leaves the shelf back at four columns, so a door would silently stop
+    // borrowing its sibling's pictures; measured on PostgreSQL 16.15, the
+    // from_sibling column was GONE at that point.
+    const dw = shellLegs().find((l) => l.job === 'door-work');
+    const files = dw.steps.filter((s) => s.kind === 'apply').map((s) => s.file);
+    const last154 = files.lastIndexOf('0154-photo-captions-editable-and-archivable.sql');
+    const last273 = files.lastIndexOf('0273-a-shared-home-says-so-on-the-shelf.sql');
+    expect(last273).toBeGreaterThan(last154);
   });
 });
