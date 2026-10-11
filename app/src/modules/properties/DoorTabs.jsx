@@ -1313,8 +1313,8 @@ function CaptionField({ value, onChange, placeholder, label, className = '' }) {
 }
 
 export function GalleryTab({
-  door, rooms = [], photos = [], canManage = false, canAdd = canManage, busy = false,
-  onAdd, onPatch, onAddRoom, loadImage = null, doorLabel = '',
+  door, rooms = [], photos = [], canManage = false, canAdd = canManage, busy = false, unread = false,
+  onAdd, onDone, onPatch, onAddRoom, loadImage = null, doorLabel = '',
 }) {
   // Every picture opened or saved here carries the Poe Properties band and a
   // QR to this unit's listing (DR-0941): "all downloaded materials have our
@@ -1481,6 +1481,30 @@ export function GalleryTab({
     setPending(kept);
     setSaving(false);
     setSaved(null);
+    // ONE REFRESH FOR THE WHOLE SET, NOT ONE PER PICTURE (DR-0947).
+    //
+    // Darrell, 2026-10-10, watching twelve move-out photographs go up: "The
+    // flow of uploading pictures is not working well... it keeps flashing...
+    // and pausing the coming back with new images about 20 seconds later".
+    //
+    // The cause was here, and it was ours. onAdd is awaited INSIDE the loop
+    // above (DR-0907 made the save serial, correctly), and the handler it
+    // calls in PropertiesApp ended with `loadDoorData(); boot();` — boot()
+    // being the WHOLE APP bootstrap: doors, grants, household, rentals. So a
+    // twelve-picture set ran twelve full bootstraps and twelve door reloads,
+    // interleaved with the writes, each of them seconds long on the throttled
+    // cross-origin road. That is precisely a screen that flashes, stalls, and
+    // repopulates twenty seconds later.
+    //
+    // It very likely cost him pictures, too. His run reported "Skipped 2 ...
+    // The requested file could not be read, typically due to permission
+    // problems that have occurred after a reference to a file was acquired" —
+    // the browser's NotReadableError, which is what an Android file handle
+    // gives once the page has churned long enough underneath it. Fewer
+    // remounts, longer-lived handles.
+    //
+    // The saves still happen one at a time; only the REFRESH is hoisted out.
+    await onDone?.();
     // THE FINALIZE LIST (DR-0908). Darrell asked for it by name: "a finalize
     // list of uploaded images and a where to store". A toast cannot be that —
     // it is gone in six seconds and fourteen of them overwrite each other.
@@ -1811,9 +1835,31 @@ export function GalleryTab({
             No {only.replace(/-/g, ' ')} pictures at this door yet.
           </p>
         )}
-        {shown.length === 0 ? (
+        {shown.length === 0 && unread ? (
+          /* THE DOOR WAS NOT READ, SO IT IS NOT EMPTY (DR-0946). Darrell,
+             2026-10-10: "What happened to the pictures in Apartment 2?!" The
+             photo list carries thumb_path — base64 — so a full gallery is
+             about a megabyte in one response, and with Pages Functions dark
+             the app is on the throttled cross-origin road. The read fails and
+             the rows are untouched on the NAS. Saying "none yet" about a
+             landlord's move-out evidence is the app inventing an absence, and
+             it is the one thing this surface must never do. */
+          <p className="text-sm text-[#B85838]" data-testid="gallery-unread">
+            These could not be loaded just now — that is not the same as there being none.
+            Nothing has been lost; try again in a moment.
+          </p>
+        ) : allShots.length === 0 ? (
+          /* ONLY WHEN THE DOOR REALLY HAS NONE (DR-0947). This branch tested
+             `shown`, the FILTERED list, so picking "move out condition" on a
+             door holding ten listing shots printed BOTH "No move out condition
+             pictures at this door yet." AND "No pictures on this property
+             yet." — two sentences, one of them false, directly under a header
+             reading "10 pictures". Darrell saw exactly that while hunting for
+             his move-out set, which is the worst possible moment to be told
+             the door is bare. The filtered case is already said above, once,
+             and accurately. */
           <Empty>No pictures on this property yet.</Empty>
-        ) : (
+        ) : shown.length === 0 ? null : (
           <ul className="grid grid-cols-2 sm:grid-cols-3 gap-2">
             {shown.map((p, idx) => (
               <li key={p.id} className="border border-[#E8E4DC] bg-white p-2">
@@ -1827,7 +1873,7 @@ export function GalleryTab({
                 </div>
                 {editing === p.id ? (
                   <PhotoEditor
-                    photo={p} rooms={live} busy={busy}
+                    photo={p} rooms={live} busy={busy} onAddRoom={onAddRoom}
                     onSave={(patch) => { onPatch?.(p.id, patch); setEditing(null); }}
                   />
                 ) : (
@@ -1901,7 +1947,22 @@ export function GalleryTab({
  * that says "taken 28 September" and arrived on 10 October says both, to
  * anyone reading the record.
  */
-function PhotoEditor({ photo, rooms, onSave, busy }) {
+// CHOOSE THE ROOM AFTER — INCLUDING ONE THAT DOES NOT EXIST YET (DR-0948).
+//
+// Darrell, 2026-10-10, with twelve move-out photographs just landed and this
+// very editor open: "Need to be able to choose the rooms after.... make
+// sense?" His screenshot shows why it was impossible: the room list offered
+// "Not a specific room" and "Bedroom", and every photograph on his screen was
+// a BATHROOM. The door has one room.
+//
+// He could already pick an EXISTING room here. What he could not do was make
+// the missing one without leaving for the Rooms tab and losing his place in a
+// grid of twelve. The ADD panel has had "+ Add a room…" inline since rooms
+// shipped; this editor never got it, so the same person doing the same job
+// five seconds later met a dead end. Same affordance, same onAddRoom, and the
+// new room is selected the moment it exists.
+function PhotoEditor({ photo, rooms, onSave, onAddRoom, busy }) {
+  const [newRoom, setNewRoom] = useState('');
   const [f, setF] = useState(() => ({
     caption: photo.caption || '',
     kind: photo.kind,
@@ -1931,10 +1992,44 @@ function PhotoEditor({ photo, rooms, onSave, busy }) {
       <select className={field} value={f.kind} onChange={(e) => setF((p) => ({ ...p, kind: e.target.value }))}>
         {PHOTO_KINDS.map((k) => <option key={k} value={k}>{k.replace(/-/g, ' ')}</option>)}
       </select>
-      <select className={field} value={f.room_id} onChange={(e) => setF((p) => ({ ...p, room_id: e.target.value }))}>
+      <select
+        className={field} value={f.room_id} data-testid="photo-edit-room"
+        onChange={(e) => {
+          const v = e.target.value;
+          if (v === '__add__') { setNewRoom(' '); return; }
+          setNewRoom('');
+          setF((p) => ({ ...p, room_id: v }));
+        }}
+      >
         <option value="">Not a specific room</option>
         {rooms.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+        {onAddRoom && <option value="__add__">+ Add a room…</option>}
       </select>
+      {newRoom !== '' && onAddRoom && (
+        <div className="flex gap-1 flex-wrap mt-1">
+          <input
+            type="text" className={`${field} flex-1 mt-0`} autoFocus
+            value={newRoom.trim()} placeholder="Bathroom, Kitchen, Bedroom 2…"
+            aria-label="Name the new room"
+            data-testid="photo-edit-new-room"
+            onChange={(e) => setNewRoom(e.target.value || ' ')}
+          />
+          <Btn
+            tone="primary" disabled={busy || !newRoom.trim()}
+            data-testid="photo-edit-add-room"
+            onClick={async () => {
+              const name = newRoom.trim();
+              if (!name) return;
+              const created = await onAddRoom(name);
+              // Selected the instant it exists, so the picture he is already
+              // editing lands in the room he just made — the whole point.
+              if (created?.id) setF((p) => ({ ...p, room_id: created.id }));
+              setNewRoom('');
+            }}
+          >Add room</Btn>
+          <Btn onClick={() => setNewRoom('')}>Cancel</Btn>
+        </div>
+      )}
       <label className="block mt-1">
         <span className="text-[0.625rem] uppercase tracking-wider text-[#6B665E]">When it was taken</span>
         <input
