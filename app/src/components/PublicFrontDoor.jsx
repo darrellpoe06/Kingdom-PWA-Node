@@ -32,6 +32,12 @@ import PasswordAuth from './PasswordAuth.jsx';
 import { loadPublicVacancies } from '../modules/properties/cloud.js';
 import { VacancyCard } from '../modules/properties/Storefront.jsx';
 
+// FULL WIDTH, NO max-w WRAPPER (CONSISTENCY-STANDARD rule 1, DR-0246).
+// The first version centred the shelf in `max-w-5xl mx-auto` and the sign-in
+// in `max-w-md mx-auto`; consistency-guard failed the file on two width caps
+// against a new file's baseline of 0. Content stretches; a prose measure, if
+// one is ever wanted, goes on an element INSIDE this container and never on
+// the wrapper itself.
 export default function PublicFrontDoor({ brand = null }) {
   // THE CHURCH'S OWN DOOR IS NOT A RENTAL SHELF.
   //
@@ -78,7 +84,7 @@ export default function PublicFrontDoor({ brand = null }) {
 
   if (view === 'auth') {
     return (
-      <div className="w-full max-w-md mx-auto">
+      <div className="w-full">
         <button
           type="button"
           onClick={() => setView('shelf')}
@@ -95,7 +101,7 @@ export default function PublicFrontDoor({ brand = null }) {
   const count = vacancies.length;
 
   return (
-    <div className="w-full max-w-5xl mx-auto" data-testid="public-front-door">
+    <div className="w-full" data-testid="public-front-door">
       <header className="mb-5">
         <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#2F5D50] font-semibold">
           Poe Properties — places to live
