@@ -1325,6 +1325,12 @@ function CaptionField({ value, onChange, placeholder, label, className = '' }) {
 export function GalleryTab({
   door, rooms = [], photos = [], canManage = false, canAdd = canManage, busy = false, unread = false,
   onAdd, onDone, onPatch, onAddRoom, loadImage = null, loadThumb = null, doorLabel = '',
+  // THE REST OF THE APARTMENT (DR-0963). Deliberately a SEPARATE prop, never
+  // merged into `photos`: these rows belong to another door of the same
+  // apartment, and a gallery that quietly folded them in would be telling
+  // this door it owns pictures it does not — the same invented fact DR-0946
+  // was written about, pointing the other way.
+  sharedPhotos = [], sharedDoors = [], sharedUnread = false,
 }) {
   // Every picture opened or saved here carries the Poe Properties band and a
   // QR to this unit's listing (DR-0941): "all downloaded materials have our
@@ -1414,7 +1420,12 @@ export function GalleryTab({
   // It reads `chosen` against `shown`, so a tick in one kind tab is not
   // carried into another by accident.
   const applyToChosen = async (patch, say) => {
-    const ids = shown.filter((p) => chosen.has(p.id)).map((p) => p.id);
+    // WHAT IS ON SCREEN RIGHT NOW: this kind tab, plus the shared-apartment
+    // card below it (DR-0963). Still NOT every photo on the door -- a tick
+    // left behind in another kind tab must not be dragged along, which is the
+    // rule `shown` was carrying before the shared card existed.
+    const visible = [...shown, ...sharedPhotos];
+    const ids = visible.filter((p) => chosen.has(p.id)).map((p) => p.id);
     if (!ids.length) return;
     setBulkSaid('');
     setMoving({ done: 0, total: ids.length });
@@ -1909,12 +1920,16 @@ export function GalleryTab({
             step: the checkmarks are on the pictures themselves, in whichever
             kind tab he is looking at, and the first button names the move he
             actually keeps making. */}
-        {canManage && allShots.length > 1 && (
+        {/* BED B HAS NO PICTURES OF ITS OWN and must still get the buttons
+            (DR-0963): gating this on `allShots.length > 1` alone would have
+            shipped a shared card with nothing able to act on it, which is the
+            half-feature he has now caught me at twice. */}
+        {canManage && allShots.length + sharedPhotos.length > 1 && (
           <div className="flex flex-wrap items-center gap-2 mb-2">
             <Btn
-              onClick={() => setChosen(new Set(shown.map((p) => p.id)))}
+              onClick={() => setChosen(new Set([...shown, ...sharedPhotos].map((p) => p.id)))}
               data-testid="gallery-choose-all"
-            >{`Tick all ${shown.length} shown`}</Btn>
+            >{`Tick all ${shown.length + sharedPhotos.length} shown`}</Btn>
             {chosen.size > 0 && (
               <Btn
                 onClick={() => { setChosen(new Set()); setBulkSaid(''); }}
@@ -2080,7 +2095,7 @@ export function GalleryTab({
                   {/* ON EVERY PICTURE, IN EVERY SECTION (DR-0961), not behind
                       a mode. The picture underneath still opens on tap; this
                       is its own target in the corner. */}
-                  {canManage && allShots.length > 1 && (
+                  {canManage && allShots.length + sharedPhotos.length > 1 && (
                     <label className="absolute top-1 right-1 z-10 bg-white border border-[#E8E4DC] px-1.5 py-1 flex items-center gap-1 cursor-pointer">
                       <input
                         type="checkbox" checked={chosen.has(p.id)}
@@ -2141,6 +2156,79 @@ export function GalleryTab({
           </ul>
         )}
       </Card>
+
+      {/* =====================================================================
+          THE REST OF THE APARTMENT (DR-0963)
+          =====================================================================
+          Darrell, 2026-10-11, on Bed B of Apt 4 reading "PICTURES (0)":
+          "Same options as the other co-living tenant... pictures are already
+          available for this place apartment 4... remember?" and "Where are
+          the images... they should be able to be used here too!!!!!!!"
+
+          Its own card, not folded into the gallery above, because WHOSE these
+          are is a fact the screen must keep saying. Each one still lives on
+          the sibling door; nothing is copied (0154 freezes storage_path, so a
+          copy would mean re-photographing the same wall — the exact waste he
+          has now refused twice). Working on one here works on the real row,
+          which serves both doors at once, and that is the point of a shared
+          home rather than a limitation of it. */}
+      {canManage && (sharedUnread || sharedPhotos.length > 0) && (
+        <Card title={`Shared with this apartment (${sharedPhotos.length})`}>
+          {sharedUnread ? (
+            /* A READ THAT FAILED IS NOT AN APARTMENT WITH NO PICTURES
+               (DR-0946). Saying "none" here would be the same invented
+               absence, one door over. */
+            <p className="text-sm text-[#8C2F2F]" data-testid="gallery-shared-unreadable">
+              The rest of this apartment could not be read just now — this is not
+              the same as there being none. Pull down to try again.
+            </p>
+          ) : (
+            <>
+              <p className="text-[0.8125rem] text-[#5A5751] mb-2" data-testid="gallery-shared-note">
+                These are on {sharedDoors.length === 1
+                  ? <strong>{sharedDoors[0].display_name || 'the other door'}</strong>
+                  : <strong>{sharedDoors.length} other doors</strong>} in this same
+                apartment. The kitchen, the bath and the halls are the same rooms, so
+                they advertise this door too — you do not need to photograph them again.
+                Tick any of them to use the buttons above; they stay where they are.
+              </p>
+              <ul className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {sharedPhotos.map((p) => (
+                  <li key={p.id} className="border border-[#E8E4DC] bg-white p-2">
+                    <div className="relative">
+                      {canManage && (
+                        <label className="absolute top-1 right-1 z-10 bg-white border border-[#E8E4DC] px-1.5 py-1 flex items-center gap-1 cursor-pointer">
+                          <input
+                            type="checkbox" checked={chosen.has(p.id)}
+                            aria-label={`Choose ${p.caption || p.kind}`}
+                            data-testid={`gallery-choose-${p.id}`}
+                            onChange={(e) => setChosen((prev) => {
+                              const next = new Set(prev);
+                              if (e.target.checked) next.add(p.id); else next.delete(p.id);
+                              return next;
+                            })}
+                          />
+                        </label>
+                      )}
+                      <SharpPicture
+                        photo={p} loadImage={loadImage} loadThumb={loadThumb}
+                        alt={p.caption || p.kind} className="aspect-square w-full object-cover"
+                      />
+                      <span className="absolute bottom-1 left-1 bg-[#5A5751] text-white text-[0.625rem] uppercase tracking-wider px-1.5 py-0.5">
+                        Shared
+                      </span>
+                    </div>
+                    <div className="text-[0.8125rem] text-[#1A1815] mt-1 leading-snug">
+                      {p.caption || <em className="text-[#6B665E]">No caption</em>}
+                    </div>
+                    <div className="text-[0.6875rem] text-[#6B665E]">{p.kind.replace(/-/g, ' ')}</div>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+        </Card>
+      )}
 
       {open !== null && shown.length > 0 && (
         <Lightbox

@@ -59,7 +59,7 @@ import { moveDoor, showFirst } from './showcase.js';
 import { VacancyCard } from './Storefront.jsx';
 import { areaOf } from './area.js';
 import {
-  loadRooms, addRoom, patchRoom, loadDoorPhotos, loadDoorTenancies,
+  loadRooms, addRoom, patchRoom, loadDoorPhotos, loadSiblingPhotos, loadDoorTenancies,
   loadMyRentals, updateTenancy, updateRental, loadAllPhotos,
   loadPhotoImages, loadPhotoThumbs,
   addPhoto, patchPhoto, loadDocuments, addDocument, patchDocument,
@@ -518,8 +518,14 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
     // property_notes is SLUG-keyed (rentalRef), the rest UUID-keyed (rentalId).
     // RLS returns [] to anyone who is not owner/admin/member, so a tenant or a
     // field worker gets nothing here without this file deciding anything.
-    const [rm, ph, tn, dc, sy, se, pn] = await Promise.all([
-      loadRooms(rentalId), loadDoorPhotos(rentalId), loadDoorTenancies(rentalRef), loadDocuments(rentalId),
+    const [rm, ph, sp, tn, dc, sy, se, pn] = await Promise.all([
+      loadRooms(rentalId), loadDoorPhotos(rentalId),
+      // THE REST OF THE APARTMENT (DR-0963). A bed or a room in a shared home
+      // borrows nothing on this screen without it, which is how Bed B read
+      // "No pictures on this property yet" while Bed A held thirty-nine of
+      // the same kitchen.
+      loadSiblingPhotos(rentalId),
+      loadDoorTenancies(rentalRef), loadDocuments(rentalId),
       loadSystems(rentalId), loadSystemEvents(rentalId), loadDoorNotes(rentalRef),
     ]);
     // A READ THAT FAILED IS NOT A DOOR THAT IS EMPTY (DR-0946).
@@ -545,6 +551,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
     const unreadable = [
       !rm.ok && 'rooms', !ph.ok && 'photos', !tn.ok && 'tenancies', !dc.ok && 'documents',
       !sy.ok && 'systems', !se.ok && 'system history', !pn.ok && 'notes',
+      !sp.ok && 'the rest of the apartment',
     ].filter(Boolean);
     setDoorData({
       rooms: rm.ok ? rm.rooms : [],
@@ -552,6 +559,12 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
       // scrolls into view, so opening a door with 39 pictures no longer waits
       // on ~2.1 MB of base64 before it will draw anything.
       photos: ph.ok ? ph.photos : [],
+      // Flagged, never merged into `photos`: these rows live on another door
+      // and the gallery must say so rather than quietly implying Bed B owns
+      // them. A failed read is NOT "no shared pictures" (DR-0946), so it
+      // joins `unreadable` below rather than collapsing to [].
+      sharedPhotos: sp.ok ? sp.photos : [],
+      sharedDoors: sp.ok ? sp.siblings : [],
       tenancies: tn.ok ? tn.tenancies : [],
       documents: dc.ok ? dc.documents : [],
       systems: sy.ok ? sy.systems : [],
@@ -1208,6 +1221,12 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
               door={{ id: rentalId, instance_id: activeRental?.instance_id || activeDoor?.instance_id }}
               doorLabel={activeRental?.display_name || activeRental?.address || activeDoor?.property_label || ''}
               rooms={doorData.rooms} photos={doorData.photos}
+              // THE REST OF THE APARTMENT (DR-0963), kept separate so the
+              // gallery can say whose they are instead of implying this door
+              // owns them.
+              sharedPhotos={doorData.sharedPhotos || []}
+              sharedDoors={doorData.sharedDoors || []}
+              sharedUnread={(doorData.unreadable || []).includes('the rest of the apartment')}
               // "I could not read these" is never "there are none" (DR-0946).
               unread={(doorData.unreadable || []).includes('photos')}
               canManage={role === 'owner' || role === 'manager'}
