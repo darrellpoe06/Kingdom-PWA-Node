@@ -132,6 +132,24 @@ fixed: the board test first asserted `TABS` contained no `listImage` anywhere,
 which the comment explaining the change trips by naming the old call. It checks
 the import instead, which is the property that matters.
 
+**A SECOND GATE WAS PINNING A SPELLING, and CI found it.** Shard 4/4 came back
+`1 failed, 6901 passed` on the first commit:
+`real-estate-says-whether-its-door-is-linked` asked for the strip's memo
+dependency array by its exact text — `[rental, nas.photos, added, cloud,
+cloudFull]` — so it broke the moment `cloudThumb` joined it, which is the merge
+getting **more** correct. That is the pattern **DR-0904** retired once already
+(*"one pinned a SPELLING ... and could not see the defect"*). It now pins
+membership — `cloud`, `cloudFull`, `cloudThumb` must all be in the list, so a
+picture that lands is drawn — and is proven to catch by removing `cloudThumb`.
+
+Two gates in one change, both pinning the shape of the old code rather than the
+behaviour that mattered. Worth noticing as a class: **a test that fails on a
+correct change and cannot catch a wrong one costs more than it protects.**
+
+Every other required leg was green on the first commit — guards, probes,
+layout, contacts-walls, vault-walls, door-work, and **`door-journeys`, the
+real-browser end-to-end walk**.
+
 **Not proven from this sandbox:** the live tab on his phone after deploy. The
 measurement that matters is whether the Properties tab opens without freezing
 and Bed A's 39 pictures fill in; that is a live-build check.
