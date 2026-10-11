@@ -820,7 +820,7 @@ export async function loadMyRentals(client = supabase) {
       // without this column every door reads as unplaced and "Show first" writes
       // to a column the reloaded board never sees — the door never moves (the
       // bug Darrell hit 2026-08-28). The DB order is a stable fallback only.
-      .select('id, slug, instance_id, address, unit, city, state, status, monthly_rent, tenant_name, display_name, property_type, listed_at, listed_rent, listed_note, notes, showcase_order')
+      .select('id, slug, instance_id, address, unit, city, state, status, monthly_rent, tenant_name, display_name, property_type, rentable_level, listed_at, listed_rent, listed_note, notes, showcase_order')
       .order('showcase_order', { ascending: true, nullsFirst: false })
       .order('address', { ascending: true });
     if (error) return no('read-failed', error);
