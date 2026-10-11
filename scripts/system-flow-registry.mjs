@@ -1129,6 +1129,28 @@ const NODES = [
     ],
     seeds: ['record-clock'],
   }),
+  // A tenant waits for the landlord's yes (DR-0957, 0275). THE DATABASE HALF
+  // LANDS FIRST ON PURPOSE: Darrell's own instruction on this spec was that the
+  // restrictions "must be enforced through backend authorization and database
+  // security, not simply by hiding pages or buttons" — so the wall ships before
+  // the screen that stands behind it, and the screen is the next increment, not
+  // a someday. Declared here citing the migration's own statements because that
+  // is where the flow genuinely runs today; when the portal surface lands it
+  // takes over these reads and writes with its own file:token pairs.
+  app('infra/supabase/migrations-auto/0275-a-tenant-waits-for-the-landlords-yes.sql', {
+    id: 'portal-approval',
+    name: "A tenant waits for the landlord's yes",
+    purpose: 'A person asks for access to a door they already live behind; the ask is matched against the tenancies on that door by normalized phone and email without ever showing the asker who else lives there; the landlord or manager decides, and only a yes opens the private record. An invitation does not skip the yes.',
+    writes: [
+      { res: 'db:tenant_portal_requests', file: 'infra/supabase/migrations-auto/0275-a-tenant-waits-for-the-landlords-yes.sql', token: 'UPDATE tenant_portal_requests' },
+      { res: 'db:door_events', file: 'infra/supabase/migrations-auto/0275-a-tenant-waits-for-the-landlords-yes.sql', token: 'INSERT INTO door_events' },
+    ],
+    reads: [
+      { res: 'db:tenant_portal_requests', file: 'infra/supabase/migrations-auto/0275-a-tenant-waits-for-the-landlords-yes.sql', token: 'SELECT * INTO req FROM tenant_portal_requests' },
+      { res: 'db:rental_tenancies', file: 'infra/supabase/migrations-auto/0275-a-tenant-waits-for-the-landlords-yes.sql', token: 'FROM rental_tenancies t' },
+    ],
+    seeds: ['record-clock'],
+  }),
   // Where, never the street (DR-0935, 0270): the family sets a door's area and
   // nearby lines; the open shelf shows the rounded area on a map.
   app('app/src/modules/properties/AreaMap.jsx', {

@@ -13,15 +13,12 @@
 // Requires playwright-core; launches the runner's installed Chrome (channel) or
 // PLAYWRIGHT_CHROMIUM_PATH when set (the sandbox's /opt/pw-browsers build).
 import { chromium } from 'playwright-core';
+import { MOUNT_MARKERS, FAIL_MARKERS, hasMarker } from './boot-markers.mjs';
 
-// A healthy front door renders ONE of these (incident #715 taught us the hard
-// way that production shows the ACCESS GATE to a fresh visitor, not the
-// marketing welcome — the gate IS a healthy mount):
-//   - the disclaimer bar (signed-in and welcome views)
-//   - the profile-creation / sign-in wall (fresh visitor on production)
-const MOUNT_MARKERS = ['PROJECTIONS, NOT PROMISES', 'Create your profile', 'SIGNED IN AS'];
-// Recovery-screen headlines = the app did NOT boot.
-const FAIL_MARKERS = ['Almost there — one more tap', 'Getting the latest version'];
+// The markers and the comparison live in their own module so they can be
+// tested without a browser (DR-0964): `scripts/boot-markers.mjs`, pinned by
+// `the-witness-watches-the-door-that-is-there.test.js` against the exact body
+// that failed two deploys on 2026-10-11.
 
 // The propagation gate in deploy-cloudflare-pages.yml already waits for every
 // boot chunk to serve as JavaScript before this runs, so a failure here is
@@ -80,9 +77,14 @@ async function checkOnce(browser, url) {
       try {
         await page.waitForFunction(
           ({ mounts, fails, alone }) => {
-            const t = document.body ? document.body.innerText || '' : '';
-            if (fails.some((m) => t.includes(m))) return true;
-            if (mounts.some((m) => t.includes(m))) return true;
+            // Folded here too, and it must be: this function runs INSIDE the
+            // page, so it cannot call hasMarker above. A literal compare here
+            // and a folded one below would disagree the moment a marker is
+            // styled -- the waiter would time out for thirty seconds before
+            // the verdict said it was fine (DR-0964).
+            const t = (document.body ? document.body.innerText || '' : '').toLowerCase();
+            if (fails.some((m) => t.includes(m.toLowerCase()))) return true;
+            if (mounts.some((m) => t.includes(m.toLowerCase()))) return true;
             return alone ? t.trim().length >= 400 : false;
           },
           { mounts: MOUNT_MARKERS, fails: FAIL_MARKERS, alone: standalone },
@@ -107,15 +109,15 @@ async function checkOnce(browser, url) {
         }
         throw e;
       }
-      const failHit = FAIL_MARKERS.find((m) => text.includes(m));
+      const failHit = FAIL_MARKERS.find((m) => String(text || '').toLowerCase().includes(m.toLowerCase()));
       if (failHit) return { ok: false, why: `recovery screen shown ("${failHit}")`, errors };
       if (standalone) {
-        if (!MOUNT_MARKERS.some((m) => text.includes(m)) && text.trim().length < 400) {
+        if (!hasMarker(text, MOUNT_MARKERS) && text.trim().length < 400) {
           return { ok: false, why: `standalone surface did not mount (no gate/mount marker; body ${text.length} chars): "${text.trim().slice(0, 200)}"`, errors };
         }
         return { ok: true, errors };
       }
-      if (!MOUNT_MARKERS.some((m) => text.includes(m))) {
+      if (!hasMarker(text, MOUNT_MARKERS)) {
         return { ok: false, why: `app did not mount within ${MOUNT_TIMEOUT_MS / 1000}s (no mount marker; body ${text.length} chars): "${text.trim().slice(0, 200)}"`, errors };
       }
       // `await` is load-bearing: a bare `return` would let this function's
@@ -144,7 +146,7 @@ async function swControlledPass(page, url, errors) {
   try {
     await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 45000 });
     const text = await page.evaluate(() => (document.body ? document.body.innerText : '')).catch(() => '');
-    const failHit = FAIL_MARKERS.find((m) => text.includes(m));
+    const failHit = FAIL_MARKERS.find((m) => String(text || '').toLowerCase().includes(m.toLowerCase()));
     if (failHit) return { ok: false, why: `SW-controlled navigation landed on a recovery screen ("${failHit}")`, errors };
     return { ok: true, errors };
   } catch (e) {
