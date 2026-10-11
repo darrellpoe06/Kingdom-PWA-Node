@@ -21,8 +21,7 @@ import {
   resolveFace, buildHistory, newestFirst, buildJobDoc, buildTenancyNote, changeSummary,
   unseenByThisFace, unreadNote,
   DOC_FOLLOWUPS, FOLLOWUP_LABELS, CAPABILITY_LABELS, ROLE_CEILING,
-  canPostToBooks, rentRecordToBookEntry, unpostedRent,
-} from './model.js';
+  canPostToBooks, rentRecordToBookEntry, unpostedRent, coLivingTag } from './model.js';
 import {
   claimPropertyAccess, loadMyDoors, loadMyGrants, loadMyHousehold, loadDoorRecord,
   fileWorkOrder, setWorkOrderStatus, assignWorkOrder, postMessage, postNote,
@@ -157,7 +156,15 @@ function DoorContext({ rental, tenancy, data = {}, open = [], onChange, onGo, ta
   ].filter((c) => tabs.some((t) => t.id === c.id && !t.locked));
 
   const rent = Number(active?.monthly_rent) || Number(rental?.listed_rent) || Number(rental?.monthly_rent) || 0;
+  // A CO-LIVING DOOR SAYS SO (DR-0968). Derived from rentable_level and from
+  // whether the door actually has a sibling at its apartment number -- never
+  // a checkbox, because "make sure this happens each time we co-live a place"
+  // is not answered by something somebody has to remember to tick.
+  // `data.sharedDoors` is already here from DR-0963 -- the other doors found
+  // at this apartment number. No new prop, and no new read.
+  const coLiving = coLivingTag(rental, (data.sharedDoors || []).length);
   const facts = [
+    coLiving,
     rental?.property_type ? String(rental.property_type).replace(/-/g, ' ') : null,
     // A 'pending' record with nobody named is the unit's own record, made so
     // work and messages can be kept before anyone moves in (DR-0870). It is
