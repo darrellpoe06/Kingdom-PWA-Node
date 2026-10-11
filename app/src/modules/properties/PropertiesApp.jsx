@@ -73,7 +73,7 @@ import { tenancyRowForDoor } from './staging.js';
 import { areaKeyFor, describeAddress, linkToAddress } from './addressing.js';
 import { addressNow, useAddress } from './use-address.js';
 import supabase, { phoneLoginEmail } from '../../lib/supabase.js';
-import { boundedRead, deadlineIn, OPTIONAL_TIMEOUT_MS as CLAIM_TIMEOUT_MS } from '../../lib/bounded-read.js';
+import { boundedRead, deadlineIn, READ_TIMEOUT_MS, OPTIONAL_TIMEOUT_MS as CLAIM_TIMEOUT_MS } from '../../lib/bounded-read.js';
 import { POE_PROPERTIES, LAUNCH_PLAN, OPPORTUNITIES, CONSTRAINTS } from './config.js';
 
 const ACCENT = '#2F5D50';
@@ -383,6 +383,50 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
     // before 0150 applies, and that is not a failure to reach anything.
     setUnreached([d, g, h, r].some((x) => !x.ok));
     setLoading(false);
+
+    // A SLOW ROAD IS NOT A DEAD ONE — ONE RETRY, IN THE BACKGROUND (DR-0950).
+    //
+    // Darrell, 2026-10-11 00:20: "Properties tab in PoeTech App is frozen!!!"
+    // His card showed all four spine reads 'not-reached' while site-health
+    // measured poetech.us at 200 and the backend at 200 from a runner in the
+    // same minute, and a read of the live database counted all 67 of his
+    // photographs. Nothing was wrong with the data or the server: his phone
+    // could not finish four round trips inside 6s. With Pages Functions dark
+    // (#2057) the app is on the absolute Funnel URL, which throttles
+    // cross-origin, and he had just pushed forty photographs through it in
+    // ten minutes. Minutes later it came back on its own.
+    //
+    // THE FIRST VERSION OF THIS RETRY WAS WRONG AND A GATE CAUGHT IT. I
+    // awaited it inline, which turned a 6-second wait into an 18-second one —
+    // and properties-never-hangs exists precisely to stop this surface
+    // sitting on "Opening your properties…". A fix that lengthens the freeze
+    // is not a fix. So the page still resolves on time and says the honest
+    // thing; the retry runs AFTER, and quietly replaces that answer if the
+    // road was merely slow. boundedRead never cancels the request — "a late
+    // answer is simply ignored" — so this is asking again for something that
+    // was probably already on its way.
+    //
+    // ALL FOUR, which is the whole condition: one or two failing is about
+    // DATA or permissions and must be shown honestly, never retried away.
+    // Once only, with room, and never on a healthy boot.
+    if (!d.ok && !g.ok && !h.ok && !r.ok) {
+      const again = deadlineIn(READ_TIMEOUT_MS * 2);
+      const [d2, g2, h2, r2] = await Promise.all([
+        boundedRead(loadMyDoors(), again()), boundedRead(loadMyGrants(), again()),
+        boundedRead(loadMyHousehold(), again()), boundedRead(loadMyRentals(), again()),
+      ]);
+      if (d2.ok || g2.ok || h2.ok || r2.ok) {
+        if (d2.ok) setDoors(d2.doors);
+        if (g2.ok) setGrants(g2.grants);
+        if (h2.ok) setHousehold(h2.memberships);
+        if (r2.ok) setRentals(r2.rentals);
+        setUnreachedWhy([
+          ['doors', d2], ['grants', g2], ['household', h2], ['properties', r2],
+        ].filter(([, x]) => !x.ok)
+         .map(([what, x]) => ({ what, reason: x.reason || 'unknown', detail: x.error || '' })));
+        setUnreached([d2, g2, h2, r2].some((x) => !x.ok));
+      }
+    }
   }, []);
   useEffect(() => { boot(); }, [boot]);
 
