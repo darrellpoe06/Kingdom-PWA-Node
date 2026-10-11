@@ -460,7 +460,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
   const rentalRef = activeDoor?.rental_ref || activeRental?.slug || null; // text — tenancies
   const loadDoorData = useCallback(async () => {
     if (!rentalId && !rentalRef) {
-      setDoorData({ rooms: [], photos: [], tenancies: [], documents: [], systems: [], systemEvents: [], propertyNotes: [] });
+      setDoorData({ rooms: [], photos: [], tenancies: [], documents: [], systems: [], systemEvents: [], propertyNotes: [], unreadable: [] });
       return;
     }
     // property_notes is SLUG-keyed (rentalRef), the rest UUID-keyed (rentalId).
@@ -470,6 +470,30 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
       loadRooms(rentalId), loadDoorPhotos(rentalId), loadDoorTenancies(rentalRef), loadDocuments(rentalId),
       loadSystems(rentalId), loadSystemEvents(rentalId), loadDoorNotes(rentalRef),
     ]);
+    // A READ THAT FAILED IS NOT A DOOR THAT IS EMPTY (DR-0946).
+    //
+    // Darrell, 2026-10-10: "What happened to the pictures in Apartment 2?!"
+    //
+    // Every one of these seven used to collapse `ok === false` into `[]`, and
+    // the surface then said "No pictures on this property yet." — a sentence
+    // the app INVENTED about somebody's move-out evidence. That is DR-0876's
+    // exact failure: an absence manufactured and presented as fact.
+    //
+    // It is not hypothetical here. The photo list carries thumb_path, which is
+    // a base64 data URL, so a twenty-picture gallery is about a megabyte in
+    // one response — and with Pages Functions dark (#2057) the app is on the
+    // absolute Funnel URL, which throttles cross-origin. Small reads pass;
+    // that one does not have to. The rows are untouched on the NAS and the
+    // screen says they do not exist.
+    //
+    // The comment above is right that RLS withholds by returning [] — and that
+    // is precisely why a FAILURE must be told apart from it. One is "you may
+    // not see these", the other is "I could not ask". Neither is "there are
+    // none", and only the third is what the surface was saying.
+    const unreadable = [
+      !rm.ok && 'rooms', !ph.ok && 'photos', !tn.ok && 'tenancies', !dc.ok && 'documents',
+      !sy.ok && 'systems', !se.ok && 'system history', !pn.ok && 'notes',
+    ].filter(Boolean);
     setDoorData({
       rooms: rm.ok ? rm.rooms : [],
       // Thumbnails for the grid; rows from before 0185 get their image in one
@@ -480,6 +504,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
       systems: sy.ok ? sy.systems : [],
       systemEvents: se.ok ? se.events : [],
       propertyNotes: pn.ok ? pn.notes : [],
+      unreadable,
     });
   }, [rentalId, rentalRef]);
   useEffect(() => { loadDoorData(); }, [loadDoorData]);
@@ -1130,6 +1155,8 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
               door={{ id: rentalId, instance_id: activeRental?.instance_id || activeDoor?.instance_id }}
               doorLabel={activeRental?.display_name || activeRental?.address || activeDoor?.property_label || ''}
               rooms={doorData.rooms} photos={doorData.photos}
+              // "I could not read these" is never "there are none" (DR-0946).
+              unread={(doorData.unreadable || []).includes('photos')}
               canManage={role === 'owner' || role === 'manager'}
               // A 1099 worker delegated "Add job documentation" files pictures
               // to the door he is sent to (0185); he does not arrange or archive.
@@ -1139,12 +1166,15 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
               // RETURNS the result (DR-0907). It used to swallow it, so the
               // gallery could not tell a saved picture from a lost one and
               // cleared its queue either way.
+              // SAVE ONLY. The refresh used to live here and ran per picture
+              // — twelve bootstraps during one twelve-photo set (DR-0947).
               onAdd={async (row) => {
                 const r = await addPhoto(row);
                 if (!r.ok) say(`Not saved: ${r.reason}`);
-                loadDoorData(); boot();
                 return r;
               }}
+              // Once, when the whole set has been through.
+              onDone={async () => { await loadDoorData(); boot(); }}
               onPatch={async (id, patch) => { const r = await patchPhoto(id, patch); say(r.ok ? 'Saved.' : `Not saved: ${r.reason}`); loadDoorData(); boot(); }}
               // A room can be made from INSIDE the picture form, so a dropdown
               // with nothing in it is never a dead end (2026-08-28). Same
