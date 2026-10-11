@@ -486,3 +486,38 @@ export function inventory(doors = [], tenancies = [], vacancies = []) {
     unknownMeans: 'Not listed publicly. A unit is only shown as available when the landlord lists it — an empty unit is never advertised automatically.',
   };
 }
+
+// ---------------------------------------------------------------------------
+// A CO-LIVING DOOR SAYS SO (DR-0968)
+// ---------------------------------------------------------------------------
+// Darrell, 2026-10-11, right after settling that the apartment number decides
+// what is one apartment: "Good... a tag for co-living?!!!"
+//
+// DERIVED, NEVER A CHECKBOX. He had just asked, in the same breath, "can we
+// make sure this happens each time we co-living a place" -- so a tag that only
+// appears when somebody remembers to tick it is the wrong answer to the
+// question he actually asked. Both signals are facts the database already
+// holds:
+//
+//   * `rentable_level` -- 0160 added it in 2026 and the client NEVER READ IT,
+//     which is why nothing on any screen could say a door is a bed or a room.
+//     'bed' and 'room' ARE co-living; 'unit' is a whole place.
+//   * having a sibling at the same apartment number -- measured, not declared.
+//     A door cannot be the only bed in a shared apartment.
+//
+// Either one is enough. A door that is a bed says so from the day it is
+// created, and a whole unit that later gets split starts saying so the moment
+// its second door exists, with nobody editing anything.
+const SHARED_LEVELS = new Set(['bed', 'room']);
+
+/** Is this door one part of a shared home? `siblings` is how many other doors sit at its apartment number. */
+export function coLivingTag(rental, siblings = 0) {
+  if (!rental) return null;
+  const level = String(rental.rentable_level || '').toLowerCase();
+  if (SHARED_LEVELS.has(level)) {
+    return level === 'bed' ? 'Co-living \u2014 a bed' : 'Co-living \u2014 a private room';
+  }
+  // No level recorded, but it is demonstrably not alone in its apartment.
+  if (Number(siblings) > 0) return 'Co-living \u2014 shares this apartment';
+  return null;
+}

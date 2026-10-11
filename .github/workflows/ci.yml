@@ -102,6 +102,8 @@ jobs:
       # read its live source — a loop can't silently go static. Also covered by
       # vitest, run as a named step so the live-data promise is a visible check.
       - run: node ../scripts/interconnect-guard.mjs
+      # A DR cited in the code is a DR that exists (DR-0952).
+      - run: node ../scripts/decision-citation-guard.mjs
       # Source-adapter seam guard (docs/design/SOURCE-ADAPTER-INTERFACE.md / 0066):
       # fails the build if the backbone seam migration is missing, any *-ingest.py
       # adapter lacks a PLATFORM declaration, fewer than two platforms are registered,
@@ -1036,14 +1038,43 @@ jobs:
           grep -q 'BOOKING CALENDAR SMOKE: PASS' "$RUNNER_TEMP/booking.txt"
           psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0270-area-map-smoke.sql 2>&1 | tee "$RUNNER_TEMP/area.txt"
           grep -q 'AREA MAP SMOKE: PASS' "$RUNNER_TEMP/area.txt"
+          # 0273 (DR-0952): a shared home says so, and the separated listings
+          # of one apartment share their pictures. Needs 0160 (rentable_level,
+          # room_label) and 0161 (the public photo RPC), both above.
+          for f in 0160-a-door-says-what-it-is-unit-room-or-bed.sql 0161-the-landlord-orders-a-doors-pictures.sql; do
+            psql -v ON_ERROR_STOP=1 -q --single-transaction -f "infra/supabase/migrations-auto/$f"
+          done
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0273-a-shared-home-says-so-on-the-shelf.sql; done
+          psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0273-shared-home-smoke.sql 2>&1 | tee "$RUNNER_TEMP/shared.txt"
+          grep -q 'SHARED HOME SMOKE: PASS' "$RUNNER_TEMP/shared.txt"
           # 0271 (DR-0943): the upload date is the anchor, the taken date is a
           # claim. Needs the photo chain, so 0153/0154 go on before it.
+          #
+          # AND 0154 CANNOT GO ON AFTER 0273 WITHOUT THIS DROP (DR-0956). 0273
+          # widened public_vacancy_photos()'s RETURNS TABLE with DROP + CREATE;
+          # 0154's CREATE OR REPLACE carries the four-column shape, and
+          # Postgres refuses the replay outright — "cannot change return type of
+          # existing function". migration-replay-order-guard already enforced
+          # this rule on rls-isolation.yml and could not see ci.yml, so the fix
+          # went only where the guard was looking and this leg shipped red. The
+          # guard now reads both files.
+          psql -v ON_ERROR_STOP=1 -q -c 'DROP FUNCTION IF EXISTS public.public_vacancy_photos(uuid);'
           for f in 0153-property-timeline-photos.sql 0154-photo-captions-editable-and-archivable.sql; do
             psql -v ON_ERROR_STOP=1 -q --single-transaction -f "infra/supabase/migrations-auto/$f"
           done
           for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0271-the-upload-date-is-the-anchor-the-taken-date-is-a-claim.sql; done
           psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0271-photo-dates-smoke.sql 2>&1 | tee "$RUNNER_TEMP/photo-dates.txt"
           grep -q 'PHOTO DATES SMOKE: PASS' "$RUNNER_TEMP/photo-dates.txt"
+          # THE CHAIN CONVERGES, which is the part a passing replay does not
+          # prove on its own. Replaying 0154 left the shelf back at the
+          # four-column shape — a door that borrows its sibling's pictures
+          # would have silently stopped borrowing. So 0273 goes on again and
+          # its smoke runs a SECOND time: whatever order the chain is replayed
+          # in, it ends where it is supposed to (DR-0944's lesson, which is that
+          # halfway through a chain is a real state somebody can read).
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0273-a-shared-home-says-so-on-the-shelf.sql; done
+          psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0273-shared-home-smoke.sql 2>&1 | tee "$RUNNER_TEMP/shared-again.txt"
+          grep -q 'SHARED HOME SMOKE: PASS' "$RUNNER_TEMP/shared-again.txt"
           # 0275 (DR-0957): a tenant waits for the landlord's yes. The whole
           # point of this migration is the DENY, so the smoke asserts it as a
           # stranger with `SET LOCAL ROLE authenticated` — postgres BYPASSES RLS

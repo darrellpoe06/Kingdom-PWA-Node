@@ -176,6 +176,26 @@ export function VacancyCard({ unit, onApply = null }) {
           {unit.rent != null ? `$${unit.rent.toFixed(0)}/mo` : 'Rent on request'}
           {size ? ` · ${size}` : ''}
         </div>
+        {/* A SHARED HOME SAYS SO, ABOVE THE PRICE (DR-0952).
+            Darrell, 2026-10-11: "It should be noted this is a co-living
+            situation!!!!!" — and his own card read "1-bed multi-family in
+            Champaign, Illinois" for a BED in an apartment with housemates.
+            Somebody books that expecting their own place and arrives with
+            their things in a car. The cost of the omission is not a lost
+            click. It is said plainly and early, not buried under the rent. */}
+        {unit.sharedHome && (
+          <div className="text-[0.75rem] text-[#1A1815] mt-1 leading-snug" data-testid="vacancy-shared-home">
+            <strong>{unit.rentableLevel === 'room' ? 'A private room' : 'A private bed'} in a shared home.</strong>
+            {' '}You would have housemates; the kitchen and bathroom are shared.
+          </div>
+        )}
+        {/* Only when somebody has actually said. NULL is not "no" (DR-0952). */}
+        {unit.utilities === true && (
+          <div className="text-[0.75rem] text-[#2F5D50]" data-testid="vacancy-utilities">All utilities paid.</div>
+        )}
+        {unit.utilities === false && (
+          <div className="text-[0.75rem] text-[#5A5751]" data-testid="vacancy-utilities">Utilities are not included.</div>
+        )}
         {shortStay && (
           <div className="text-[0.75rem] text-[#5A5751]">
             Short stay welcome{unit.nightly ? ` · $${unit.nightly.toFixed(0)}/night` : ''}

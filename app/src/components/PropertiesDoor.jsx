@@ -438,6 +438,16 @@ function SignedOutDoor({ left = false, onReturn } = {}) {
                   addressShown: v.address_shown === undefined ? true : Boolean(v.address_shown),
                   area: areaOf(v),
                   nearby: Array.isArray(v.nearby) ? v.nearby : [],
+                  // WHAT IS ACTUALLY BEING RENTED (DR-0952). A bed or a room
+                  // in a shared home is not a one-bedroom apartment, and the
+                  // card said it was.
+                  sharedHome: Boolean(v.shared_home),
+                  rentableLevel: String(v.rentable_level || '') || null,
+                  // Three states, not two: true, false, and NOT YET SAID.
+                  // undefined/null must stay null so the card says nothing
+                  // rather than inventing an answer.
+                  utilities: v.utilities_included === null || v.utilities_included === undefined
+                    ? null : Boolean(v.utilities_included),
                 }}
                 onApply={applyFor}
               />
