@@ -57,7 +57,14 @@ describe('the nights (pure)', () => {
     const base = { taken: takenNights([{ taken_from: '2026-10-20', taken_to: '2026-10-23' }]), today: TODAY, guests: 2, name: 'Ana', phone: '217', is21: true, rules: true, rate: 150 };
     expect(checkStayAsk({ ...base, checkIn: '2026-10-18', checkOut: '2026-10-21' }).errors.dates).toMatch(/2026-10-20 is already taken/);
     expect(checkStayAsk({ ...base, checkIn: '2026-10-01', checkOut: '2026-10-03' }).errors.dates).toMatch(/passed/);
-    expect(checkStayAsk({ ...base, checkIn: '2026-11-01', checkOut: addDays('2026-11-01', GUEST_MAX_NIGHTS + 1) }).errors.dates).toMatch(/up to 29 nights/);
+    // A YEAR IS THE CEILING, NOT 29 NIGHTS (0276, DR-0959). Darrell, twice:
+    // "They can stay for a year with $150 a day if they want too!!!" Refusing
+    // night thirty and pointing the guest at a lease was the defect.
+    expect(GUEST_MAX_NIGHTS).toBe(365);
+    expect(checkStayAsk({ ...base, checkIn: '2026-11-01', checkOut: addDays('2026-11-01', GUEST_MAX_NIGHTS + 1) }).errors.dates).toMatch(/up to 365 nights/);
+    // The night that used to be refused is now simply a night.
+    expect(checkStayAsk({ ...base, checkIn: '2026-11-01', checkOut: addDays('2026-11-01', 60) }).errors.dates).toBeUndefined();
+    expect(checkStayAsk({ ...base, checkIn: '2026-11-01', checkOut: addDays('2026-11-01', 30) }).errors.dates).toBeUndefined();
     expect(checkStayAsk({ ...base, checkIn: '2026-10-24', checkOut: '2026-10-27', is21: false }).errors.is21).toBeTruthy();
     expect(checkStayAsk({ ...base, checkIn: '2026-10-24', checkOut: '2026-10-27', rules: false }).errors.rules).toBeTruthy();
     const ok = checkStayAsk({ ...base, checkIn: '2026-10-23', checkOut: '2026-10-26' });
