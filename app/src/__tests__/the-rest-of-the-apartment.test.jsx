@@ -99,7 +99,16 @@ describe('a bed in a shared apartment sees the apartment’s pictures', () => {
     const note = need('gallery-shared-note').textContent;
     expect(note).toMatch(/805 North Prospect Avenue Room 1 - Bed A/);
     expect(note).toMatch(/do not need to photograph them again/i);
-    expect(note).toMatch(/stay where they are/i);
+    // THE WORDING MOVED, THE PROMISE DID NOT (DR-0971). This asserted
+    // "stay where they are", which was true about which door owns the rows
+    // and false as an invitation: the sentence continued "Tick any of them
+    // to use the buttons above", and Darrell read that exactly as it was
+    // written -- "Moving them takes them away from the other listing?!!!!
+    // We're trying to get co-renters!!!!" The promise being pinned here is
+    // that these are NOT COPIED into this door, and the card now says so in
+    // words that cannot be read as "move them to advertise this door".
+    expect(note).toMatch(/never a copy/i);
+    expect(note).toMatch(/do not need to move them/i);
     // And the door's own count is still honestly zero.
     expect(container.textContent).toMatch(/Pictures \(0\)/);
   });
