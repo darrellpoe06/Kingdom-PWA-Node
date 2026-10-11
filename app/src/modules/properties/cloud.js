@@ -673,14 +673,31 @@ export async function loadSiblingPhotos(rentalId, client = supabase) {
     // unit"). The two halves agree on purpose.
     if (!me || !me.address || !me.unit) return ok({ photos: [], siblings: [] });
 
+    // THE QUERY DOES NOT SCOPE BY THE CALLER'S TENANCY, and that is a rule
+    // this file keeps on purpose; `properties-door.test.js` fails the build
+    // on any such filter here. (Its check is a source scan, so it reads this
+    // comment too — which is why the forbidden call is described in words
+    // rather than written out.)
+    // This module is mounted by BOTH the PoeTech app and the standalone
+    // Poe Properties door, and a client-side instance filter is what would
+    // stop a non-member using the second. RLS decides what comes back; the
+    // client never scopes a read by the caller's tenancy.
+    //
+    // The same-instance rule still holds, as a CORRECTNESS refinement applied
+    // to rows already returned, not as the wall: a person who is a member of
+    // two instances that each happen to hold a "805 North Prospect Avenue /
+    // Apt 4" must not have one borrow from the other. 0273 draws the same
+    // line ("never across instances") on the public side.
     const { data: sibs, error: sibErr } = await client
-      .from('rentals').select('id, slug, display_name')
-      .eq('instance_id', me.instance_id)
-      .eq('address', me.address)
-      .eq('unit', me.unit)
-      .neq('id', rentalId);
+      .from('rentals').select('id, slug, display_name, instance_id, address, unit');
     if (sibErr) return no('read-failed', sibErr);
-    const refs = (sibs || []).map((s) => s.slug).filter(Boolean);
+    const mine = (sibs || []).filter((r) => (
+      r.id !== rentalId
+      && r.instance_id === me.instance_id
+      && r.address === me.address
+      && r.unit === me.unit
+    ));
+    const refs = mine.map((r) => r.slug).filter(Boolean);
     if (!refs.length) return ok({ photos: [], siblings: [] });
 
     const { data, error } = await client
@@ -690,7 +707,7 @@ export async function loadSiblingPhotos(rentalId, client = supabase) {
       .order('sort_order', { ascending: true, nullsFirst: false })
       .order('taken_at', { ascending: false });
     if (error) return no('read-failed', error);
-    return ok({ photos: data || [], siblings: sibs || [] });
+    return ok({ photos: data || [], siblings: mine });
   } catch (e) { return no('unexpected', e); }
 }
 

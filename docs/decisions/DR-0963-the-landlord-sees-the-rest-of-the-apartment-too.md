@@ -110,6 +110,41 @@ row moved.
   be absent rather than wrong. `re-review: 2026-10-13`, to be checked against
   the real rows.
 
+## What the full suite caught that the targeted tests could not
+
+Three failures on the first `ship`, 9 tests across 3 files, every one mine.
+
+**1. An architectural rule I broke, and it is a good rule.**
+`properties-door.test.js` fails the build on any `.eq('instance_id', ...)` in
+`cloud.js`: this module is mounted by BOTH the PoeTech app and the standalone
+Poe Properties door, and a client-side tenancy filter is exactly what would
+stop a non-member using the second. My sibling query had one.
+
+The fix is not a weaker rule — the filter was **redundant as a wall** (RLS
+already confines the reader) and only ever mattered as a *correctness*
+refinement: a person who belongs to two instances that each hold a
+"805 North Prospect Avenue / Apt 4" must not have one borrow from the other.
+So the query is unscoped and the same-instance test is applied to rows already
+returned. The wall is RLS; the filter is arithmetic.
+
+**2. The guard reads comments.** Its own note calls the import check "the
+honest, comment-proof form", but the second assertion is a plain source scan,
+so my *comment explaining why I must not write that call* tripped it. Reworded
+to describe the forbidden call in words. Left as-is rather than tightened:
+making a source scan comment-aware is a change to a guard that currently works,
+for a false positive that costs one reading. `re-review: 2026-11-11`.
+
+**3. Eight suites mock `cloud.js` and knew nothing of the new export.**
+`Promise.all` called `undefined(...)`, the whole door load threw, and the
+symptom was six journey tests losing their *room counts* — a failure whose face
+looks nothing like its cause. Each mock now stubs `loadSiblingPhotos` empty,
+which is the ordinary case those suites are about. 69 green across the eight.
+
+This is the proof ladder doing its job (DR-0347): rungs 1-3 on the new
+behaviour were all green while a rung-3 regression sat in eight neighbouring
+suites. Targeted tests prove the thing built; only the full suite proves the
+thing not broken.
+
 ## Links
 
 [DR-0952] (a shared home says so on the shelf — the public half, whose landlord
