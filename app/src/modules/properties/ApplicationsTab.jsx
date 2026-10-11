@@ -13,7 +13,7 @@
 // time; the app simply never asked. Somebody applied for a vacant unit and
 // nobody was ever told. A dead letter.
 //
-// Then, the same evening, after being shown why an applicant's driving licence
+// Then, the same evening, after being shown why an applicant's driving license
 // is the one document we must not hold: "How can we verify people without
 // ID?" and, naming the model himself, "Same as rent a center..."
 //
@@ -25,7 +25,7 @@
 // thing that makes the decision safe to record at all.
 //
 // ── THE NO-ID POSTURE, in three enforced layers (none of them is a promise) ─
-//   intake.js      marks the social-security and licence fields 'out-of-band'
+//   intake.js      marks the social-security and license fields 'out-of-band'
 //                  (named there, not here — properties-intake.test.js forbids
 //                  the three-letter token in any .jsx in this folder, and an
 //                  allow-list for "but mine is only a comment" is how the next
@@ -43,7 +43,7 @@
 // ── WHAT REPLACES IT ───────────────────────────────────────────────────────
 // Rent-A-Center runs no credit check: it calls references, takes a utility
 // bill proving the address, takes a pay stub, and knows where the person is.
-// Corroboration instead of credentials — and a forged licence costs about
+// Corroboration instead of credentials — and a forged license costs about
 // eighty dollars, while six people who answer the phone and know your name
 // are expensive to fake. An ID proves WHO someone is; it has never predicted
 // whether they will pay rent or keep the place.
@@ -77,7 +77,7 @@ const when = (iso) => {
 };
 
 // Themeable CLASSES, not inline hex: legibility-guard measures inline text
-// colour against every surface and #B85838 renders 3.94:1 on midnight/card,
+// color against every surface and #B85838 renders 3.94:1 on midnight/card,
 // under the 4.5 floor. It caught this file on its first run.
 const OUTCOME_TONE = {
   confirmed: 'text-[#2F5D50]',
@@ -198,7 +198,7 @@ function ApplicationCard({ app, onChanged }) {
       if (!r || r.ok === false) {
         // cloud.js's no() folds an explanatory {message} into `.error` — read
         // both, or the person meets a useless "that did not save" in place of
-        // the sentence that tells them what to do. Caught by the behavioural
+        // the sentence that tells them what to do. Caught by the behavioral
         // gate; a source-grep test would never have seen it.
         return { ok: false, message: (r && (r.message || r.error)) || 'That did not save. Nothing was recorded.' };
       }

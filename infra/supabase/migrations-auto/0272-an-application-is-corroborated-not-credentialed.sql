@@ -256,3 +256,15 @@ DROP TRIGGER IF EXISTS application_checks_events ON public.application_checks;
 CREATE TRIGGER application_checks_events
   AFTER INSERT ON public.application_checks
   FOR EACH ROW EXECUTE FUNCTION public.door_events_from_application_check();
+
+-- ---------------------------------------------------------------------------
+-- 4. THE VIEWER OVERLAY COVERS THE NEW TABLE
+-- ---------------------------------------------------------------------------
+-- tenancy-guard caught this and it was a REAL HOLE, not a formality: a new
+-- instance-scoped table that does not re-run the overlay leaves a VIEWER able
+-- to WRITE it (DR-0241). On this table that means a read-only viewer could
+-- file corroboration attempts against somebody's application — inventing a
+-- record of calls that were never made, on the one surface whose whole value
+-- is that its record is true.
+SELECT public.apply_viewer_readonly_overlay();
+SELECT public.apply_assistant_scope_overlay();

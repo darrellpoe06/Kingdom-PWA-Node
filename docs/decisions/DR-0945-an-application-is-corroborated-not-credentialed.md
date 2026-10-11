@@ -69,7 +69,7 @@ pay the rent or keep the place.** References, employment and payment history do.
 The app's own fair-housing message already named exactly those criteria. This
 finishes the sentence it started.
 
-## The gap, measured
+## What was measured
 
 The application already collects `landlordName`, `landlordPhone`, `employer`,
 `supervisorName`, `supervisorPhone`, `monthlySalary` and two emergency contacts.
@@ -144,7 +144,7 @@ SSN refusal reached the person as a generic *"that did not save"*, because
 A real application submitted from the live build, on his own door, reaching this
 surface; and the corroboration list worked on his phone. **re-review: 2026-10-17.**
 
-## Still open
+## Impact — what this obligates, and what is still open
 
 A payment rail or third-party identity verifier (Stripe Identity, Persona) would
 let a short-stay guest be verified without us holding anything — the vendor
