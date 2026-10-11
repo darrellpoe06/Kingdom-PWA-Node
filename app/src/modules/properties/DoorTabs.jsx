@@ -1325,6 +1325,12 @@ function CaptionField({ value, onChange, placeholder, label, className = '' }) {
 export function GalleryTab({
   door, rooms = [], photos = [], canManage = false, canAdd = canManage, busy = false, unread = false,
   onAdd, onDone, onPatch, onAddRoom, loadImage = null, loadThumb = null, doorLabel = '',
+  // THE REST OF THE APARTMENT (DR-0963). Deliberately a SEPARATE prop, never
+  // merged into `photos`: these rows belong to another door of the same
+  // apartment, and a gallery that quietly folded them in would be telling
+  // this door it owns pictures it does not — the same invented fact DR-0946
+  // was written about, pointing the other way.
+  sharedPhotos = [], sharedDoors = [], sharedUnread = false,
 }) {
   // Every picture opened or saved here carries the Poe Properties band and a
   // QR to this unit's listing (DR-0941): "all downloaded materials have our
@@ -1344,11 +1350,26 @@ export function GalleryTab({
   // thing. A move-out set is naturally grouped — six bathroom shots in a row,
   // then the kitchen — so the room is exactly the field worth setting once.
   //
-  // `chosen` is a Set of photo ids and is empty until he asks for it: a grid
-  // that is always in selection mode makes tapping a picture to LOOK at it
-  // ambiguous, and looking is what the grid is mostly for.
-  const [choosing, setChoosing] = useState(false);
+  // `chosen` is a Set of photo ids.
+  //
+  // THE ARMING STEP IS GONE (DR-0961). It used to be hidden behind a "Choose
+  // several" toggle, on my reasoning that a grid always in selection mode makes
+  // tapping a picture to LOOK at it ambiguous. Darrell, 2026-10-11, with the
+  // feature already shipped and in front of him: "Maybe it should say move to
+  // listing... checkmarks!!!!!!! For each photo on any section". The reasoning
+  // was wrong in the way a hidden feature is always wrong -- the ambiguity I
+  // was protecting against never arrived, because the checkbox is its own small
+  // target in the corner and the picture underneath still opens on tap, while
+  // the cost I did not count was that nobody can find a capability whose button
+  // names its mechanism ("choose several") instead of its outcome ("move to
+  // listing"). Checkmarks now show on every picture in every kind tab.
   const [chosen, setChosen] = useState(() => new Set());
+  // HOW FAR THE MOVE HAS GOT. The add panel learned this in DR-0907 -- "a
+  // button that only greys out is how a person decides it has hung and leaves"
+  // -- and the lesson was never carried the six hundred lines down to here,
+  // where the same serial one-at-a-time loop ran with no sign of life at all.
+  // Null when nothing is moving; {done, total} while it runs.
+  const [moving, setMoving] = useState(null);
   const [bulkRoom, setBulkRoom] = useState('');
   // WHAT the bulk action sets: the room, or the kind (DR-0951). Darrell,
   // 2026-10-11, on Bed A holding MOVE IN CONDITION (39) and LISTING (0):
@@ -1386,6 +1407,38 @@ export function GalleryTab({
     () => (only ? allShots.filter((p) => p.kind === only) : allShots),
     [allShots, only],
   );
+
+  // MOVE THE TICKED ONES, SAYING HOW FAR IT HAS GOT (DR-0961).
+  //
+  // Serial on purpose, as the upload is: one write at a time, so the count
+  // that comes back is the count that actually SAVED and not the count that
+  // was attempted. What is new is that the counter is published after each
+  // write instead of only at the end, which is the whole of the progress bar
+  // -- there is no second source of truth to drift (DR-0076 section 4: the
+  // number shown is measured, never estimated).
+  //
+  // It reads `chosen` against `shown`, so a tick in one kind tab is not
+  // carried into another by accident.
+  const applyToChosen = async (patch, say) => {
+    // WHAT IS ON SCREEN RIGHT NOW: this kind tab, plus the shared-apartment
+    // card below it (DR-0963). Still NOT every photo on the door -- a tick
+    // left behind in another kind tab must not be dragged along, which is the
+    // rule `shown` was carrying before the shared card existed.
+    const visible = [...shown, ...sharedPhotos];
+    const ids = visible.filter((p) => chosen.has(p.id)).map((p) => p.id);
+    if (!ids.length) return;
+    setBulkSaid('');
+    setMoving({ done: 0, total: ids.length });
+    let saved = 0;
+    for (const id of ids) {
+      const r = await onPatch?.(id, patch);
+      if (!r || r.ok !== false) saved += 1;
+      setMoving({ done: saved, total: ids.length });
+    }
+    setMoving(null);
+    setBulkSaid(say(saved, ids.length));
+    setChosen(new Set());
+  };
 
   // Reorder a picture: the pure model returns the patches, and this writes
   // exactly those (one for "cover", two for a nudge) through the same onPatch
@@ -1863,26 +1916,54 @@ export function GalleryTab({
             ))}
           </div>
         )}
-        {/* SET THE ROOM FOR SEVERAL AT ONCE (DR-0949). Off by default, so a
-            tap on a picture still just opens it. */}
-        {canManage && allShots.length > 1 && (
+        {/* TICK THEM AND MOVE THEM (DR-0949, DR-0951, DR-0961). No arming
+            step: the checkmarks are on the pictures themselves, in whichever
+            kind tab he is looking at, and the first button names the move he
+            actually keeps making. */}
+        {/* BED B HAS NO PICTURES OF ITS OWN and must still get the buttons
+            (DR-0963): gating this on `allShots.length > 1` alone would have
+            shipped a shared card with nothing able to act on it, which is the
+            half-feature he has now caught me at twice. */}
+        {canManage && allShots.length + sharedPhotos.length > 1 && (
           <div className="flex flex-wrap items-center gap-2 mb-2">
             <Btn
-              onClick={() => { setChoosing((v) => !v); setChosen(new Set()); setBulkSaid(''); }}
-              data-testid="gallery-choose-several"
-            >{choosing ? 'Done choosing' : 'Choose several'}</Btn>
-            {choosing && (
-              <>
-                <Btn
-                  onClick={() => setChosen(new Set(shown.map((p) => p.id)))}
-                  data-testid="gallery-choose-all"
-                >{`All ${shown.length} shown`}</Btn>
-                <span className="text-[0.75rem] text-[#5A5751]" data-testid="gallery-chosen-count">
-                  {chosen.size === 0 ? 'None chosen yet' : `${chosen.size} chosen`}
-                </span>
-              </>
+              onClick={() => setChosen(new Set([...shown, ...sharedPhotos].map((p) => p.id)))}
+              data-testid="gallery-choose-all"
+            >{`Tick all ${shown.length + sharedPhotos.length} shown`}</Btn>
+            {chosen.size > 0 && (
+              <Btn
+                onClick={() => { setChosen(new Set()); setBulkSaid(''); }}
+                data-testid="gallery-choose-none"
+              >Untick all</Btn>
             )}
-            {choosing && chosen.size > 0 && (
+            <span className="text-[0.75rem] text-[#5A5751]" data-testid="gallery-chosen-count">
+              {chosen.size === 0 ? 'Tick the pictures you want to move' : `${chosen.size} ticked`}
+            </span>
+            {/* THE ONE-TAP PATH, NAMED FOR WHAT IT DOES. Everything else on
+                this bar is still here; this is simply the move he asked for by
+                name, without going through a field picker and a kind picker
+                first. It carries the same red sentence underneath, because it
+                is the same change: a record becoming advertising (DR-0906). */}
+            {chosen.size > 0 && (
+              <Btn
+                tone="primary" disabled={busy || !!moving}
+                data-testid="gallery-move-to-listing"
+                onClick={() => applyToChosen({ kind: 'listing' }, (saved, total) => `${saved} of ${total} are now listing.`)}
+              >{moving ? `Moving ${moving.done} of ${moving.total}…` : `Move ${chosen.size} to listing`}</Btn>
+            )}
+            {/* THE RED SENTENCE RIDES THE BUTTON IT BELONGS TO (DR-0906,
+                DR-0961). The one-tap path is one tap from public, so the
+                warning is on screen whenever that button is. The field-picker
+                path keeps its own warning for the OTHER advertising kinds,
+                and excludes 'listing' so the two never stack. */}
+            {chosen.size > 0 && (
+              <p className="w-full text-[0.75rem] text-[#B85838] leading-snug" data-testid="gallery-move-to-listing-warning">
+                <strong>Moving to listing makes them advertising.</strong> A listing picture
+                is the only kind a stranger can see — and only while this door is advertised
+                and nobody lives in it. The pictures are not copied; these same ones move.
+              </p>
+            )}
+            {chosen.size > 0 && (
               <>
                 <select
                   className="text-sm border border-[#E8E4DC] px-2 py-2 bg-white text-[#1A1815]"
@@ -1921,36 +2002,44 @@ export function GalleryTab({
                   </select>
                 )}
                 <Btn
-                  tone="primary" disabled={busy}
+                  tone="primary" disabled={busy || !!moving}
                   data-testid="gallery-bulk-apply"
-                  onClick={async () => {
-                    // Serial, like the upload: one write at a time, and the
-                    // count that comes back is the count that actually saved.
-                    const ids = shown.filter((p) => chosen.has(p.id)).map((p) => p.id);
+                  onClick={() => {
                     const patch = bulkField === 'kind'
                       ? { kind: bulkKind }
                       : { room_id: bulkRoom || null };
-                    let saved = 0;
-                    for (const id of ids) {
-                      const r = await onPatch?.(id, patch);
-                      if (!r || r.ok !== false) saved += 1;
-                    }
                     const where = bulkField === 'kind'
                       ? bulkKind.replace(/-/g, ' ')
                       : (bulkRoom
                         ? (live.find((r) => r.id === bulkRoom)?.name || 'that room')
                         : 'no specific room');
-                    setBulkSaid(
+                    return applyToChosen(patch, (saved, total) => (
                       bulkField === 'kind'
-                        ? `${saved} of ${ids.length} are now ${where}.`
-                        : `${saved} of ${ids.length} filed to ${where}.`,
-                    );
-                    setChosen(new Set());
+                        ? `${saved} of ${total} are now ${where}.`
+                        : `${saved} of ${total} filed to ${where}.`
+                    ));
                   }}
-                >{bulkField === 'kind' ? `Change ${chosen.size}` : `File ${chosen.size} here`}</Btn>
+                >{moving
+                  ? `Moving ${moving.done} of ${moving.total}…`
+                  : (bulkField === 'kind' ? `Change ${chosen.size}` : `File ${chosen.size} here`)}</Btn>
               </>
             )}
-            {choosing && chosen.size > 0 && bulkField === 'kind' && isAdvertising(bulkKind) && (
+            {/* HOW FAR IT HAS GOT (DR-0961). A real bar driven by the loop's
+                own counter, not a spinner: eighteen pictures is eighteen
+                separate writes and a long enough wait to abandon. */}
+            {moving && (
+              <div className="w-full" data-testid="gallery-move-progress">
+                <div className="h-2 w-full bg-[#E8E4DC]" role="progressbar"
+                  aria-valuenow={moving.done} aria-valuemin={0} aria-valuemax={moving.total}
+                  aria-label="Moving the ticked pictures">
+                  <div className="h-2 bg-[#2F5D50]" style={{ width: `${Math.round((moving.done / Math.max(moving.total, 1)) * 100)}%` }} />
+                </div>
+                <span className="text-[0.75rem] text-[#5A5751]">
+                  {`Moving ${moving.done} of ${moving.total}… don’t leave this screen.`}
+                </span>
+              </div>
+            )}
+            {chosen.size > 0 && bulkField === 'kind' && isAdvertising(bulkKind) && bulkKind !== 'listing' && (
               /* THE SAME EXCEPTION IN THE SAME RED REGISTER as the add panel
                  (DR-0906). Turning records into advertising is exactly what he
                  asked for — "move pictures to the advertisement sections ...
@@ -2003,7 +2092,10 @@ export function GalleryTab({
             {shown.map((p, idx) => (
               <li key={p.id} className="border border-[#E8E4DC] bg-white p-2">
                 <div className="relative">
-                  {choosing && (
+                  {/* ON EVERY PICTURE, IN EVERY SECTION (DR-0961), not behind
+                      a mode. The picture underneath still opens on tap; this
+                      is its own target in the corner. */}
+                  {canManage && allShots.length + sharedPhotos.length > 1 && (
                     <label className="absolute top-1 right-1 z-10 bg-white border border-[#E8E4DC] px-1.5 py-1 flex items-center gap-1 cursor-pointer">
                       <input
                         type="checkbox" checked={chosen.has(p.id)}
@@ -2064,6 +2156,79 @@ export function GalleryTab({
           </ul>
         )}
       </Card>
+
+      {/* =====================================================================
+          THE REST OF THE APARTMENT (DR-0963)
+          =====================================================================
+          Darrell, 2026-10-11, on Bed B of Apt 4 reading "PICTURES (0)":
+          "Same options as the other co-living tenant... pictures are already
+          available for this place apartment 4... remember?" and "Where are
+          the images... they should be able to be used here too!!!!!!!"
+
+          Its own card, not folded into the gallery above, because WHOSE these
+          are is a fact the screen must keep saying. Each one still lives on
+          the sibling door; nothing is copied (0154 freezes storage_path, so a
+          copy would mean re-photographing the same wall — the exact waste he
+          has now refused twice). Working on one here works on the real row,
+          which serves both doors at once, and that is the point of a shared
+          home rather than a limitation of it. */}
+      {canManage && (sharedUnread || sharedPhotos.length > 0) && (
+        <Card title={`Shared with this apartment (${sharedPhotos.length})`}>
+          {sharedUnread ? (
+            /* A READ THAT FAILED IS NOT AN APARTMENT WITH NO PICTURES
+               (DR-0946). Saying "none" here would be the same invented
+               absence, one door over. */
+            <p className="text-sm text-[#8C2F2F]" data-testid="gallery-shared-unreadable">
+              The rest of this apartment could not be read just now — this is not
+              the same as there being none. Pull down to try again.
+            </p>
+          ) : (
+            <>
+              <p className="text-[0.8125rem] text-[#5A5751] mb-2" data-testid="gallery-shared-note">
+                These are on {sharedDoors.length === 1
+                  ? <strong>{sharedDoors[0].display_name || 'the other door'}</strong>
+                  : <strong>{sharedDoors.length} other doors</strong>} in this same
+                apartment. The kitchen, the bath and the halls are the same rooms, so
+                they advertise this door too — you do not need to photograph them again.
+                Tick any of them to use the buttons above; they stay where they are.
+              </p>
+              <ul className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {sharedPhotos.map((p) => (
+                  <li key={p.id} className="border border-[#E8E4DC] bg-white p-2">
+                    <div className="relative">
+                      {canManage && (
+                        <label className="absolute top-1 right-1 z-10 bg-white border border-[#E8E4DC] px-1.5 py-1 flex items-center gap-1 cursor-pointer">
+                          <input
+                            type="checkbox" checked={chosen.has(p.id)}
+                            aria-label={`Choose ${p.caption || p.kind}`}
+                            data-testid={`gallery-choose-${p.id}`}
+                            onChange={(e) => setChosen((prev) => {
+                              const next = new Set(prev);
+                              if (e.target.checked) next.add(p.id); else next.delete(p.id);
+                              return next;
+                            })}
+                          />
+                        </label>
+                      )}
+                      <SharpPicture
+                        photo={p} loadImage={loadImage} loadThumb={loadThumb}
+                        alt={p.caption || p.kind} className="aspect-square w-full object-cover"
+                      />
+                      <span className="absolute bottom-1 left-1 bg-[#5A5751] text-white text-[0.625rem] uppercase tracking-wider px-1.5 py-0.5">
+                        Shared
+                      </span>
+                    </div>
+                    <div className="text-[0.8125rem] text-[#1A1815] mt-1 leading-snug">
+                      {p.caption || <em className="text-[#6B665E]">No caption</em>}
+                    </div>
+                    <div className="text-[0.6875rem] text-[#6B665E]">{p.kind.replace(/-/g, ' ')}</div>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+        </Card>
+      )}
 
       {open !== null && shown.length > 0 && (
         <Lightbox

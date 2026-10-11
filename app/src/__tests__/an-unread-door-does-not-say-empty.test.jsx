@@ -59,6 +59,9 @@ vi.mock('../modules/properties/cloud.js', () => {
     loadRooms: async () => ({ ok: true, rooms: [] }),
     // THE SINGLE LEVER. Exactly what cloud.js returns when the request is
     // refused or times out on the throttled cross-origin road.
+    // The rest of the apartment (DR-0963). Stubbed empty: these suites are
+    // about a single door, and a door with no siblings is the ordinary case.
+    loadSiblingPhotos: async () => ({ ok: true, photos: [], siblings: [] }),
     loadDoorPhotos: async () => (H.photosRead === 'ok'
       ? { ok: true, photos: [] }
       : { ok: false, reason: 'read-failed', error: 'fetch failed' }),
