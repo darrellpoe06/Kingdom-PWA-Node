@@ -14,10 +14,15 @@ import { nightsBetween, takenNights, monthGrid, checkStayAsk, stayBook, GUEST_MA
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
-const H = vi.hoisted(() => ({ ranges: [], rows: [], asked: [], decided: [], added: [] }));
+const H = vi.hoisted(() => ({ ranges: [], rows: [], asked: [], decided: [], added: [], pay: undefined }));
 vi.mock('../modules/properties/cloud.js', () => ({
   loadBookedNights: async () => ({ ok: true, ranges: H.ranges }),
   requestAStay: async (a) => { H.asked.push(a); return { ok: true, id: 's1' }; },
+  // 0277 / DR-0960: the pay link is fetched beside the calendar. H.pay lets a
+  // case choose whether the family has one set.
+  loadStayPayment: async () => (H.pay === undefined
+    ? { ok: true, squareLink: null, nightlyRate: null }
+    : H.pay),
   loadDoorStays: async () => ({ ok: true, rows: H.rows }),
   addDoorStay: async (row) => { H.added.push(row); return { ok: true }; },
   decideStay: async (id, status) => { H.decided.push([id, status]); return { ok: true }; },
@@ -27,7 +32,7 @@ import { BookAStay, StayDesk } from '../modules/properties/Booking.jsx';
 
 const TODAY = '2026-10-10';
 let container; let root;
-afterEach(() => { if (root) act(() => root.unmount()); if (container) container.remove(); root = container = null; Object.assign(H, { ranges: [], rows: [], asked: [], decided: [], added: [] }); });
+afterEach(() => { if (root) act(() => root.unmount()); if (container) container.remove(); root = container = null; Object.assign(H, { ranges: [], rows: [], asked: [], decided: [], added: [], pay: undefined }); });
 async function mount(el) {
   container = document.createElement('div'); document.body.appendChild(container);
   await act(async () => { root = createRoot(container); root.render(el); });
@@ -143,5 +148,60 @@ describe('the family\'s Stays desk', () => {
       { instance_id: 'i1', rental_id: 'r-apt2', kind: 'block', status: 'confirmed', check_in: '2026-12-20', check_out: '2026-12-27', block_reason: 'Family visiting' },
       { instance_id: 'i1', rental_id: 'r-apt2', kind: 'stay', status: 'confirmed', check_in: '2027-01-05', check_out: '2027-03-05', guest_name: 'Visiting professor', guest_phone: '217-555-0199' },
     ]);
+  });
+});
+
+// =============================================================================
+// AND THEN THEY CAN PAY (0277, DR-0960)
+// =============================================================================
+// Darrell, 2026-10-11, seconds after the night cap came off: "If they
+// pay!!!!!!!!!!!" then "Square payment options!!!!!!!!!" and, on the shape of
+// it, "This can't be member scoped... we will need to be able to receive funds
+// from everyone..." and "Also be members...".
+//
+// The card used to end at "The family confirms, then sends the address,
+// check-in steps and how to pay" — so a guest ready to pay, at the one moment
+// they are ready, was told to wait for a message.
+describe('a guest who has asked can pay for the nights', () => {
+  // Drive the real form to the "Asked" screen, exactly as the case above does.
+  async function askForNights() {
+    await mount(createElement(BookAStay, { rentalId: 'r-apt2', placeName: '1-bed in Champaign', rate: 150, today: TODAY }));
+    await tap(day('2026-10-23'));
+    await tap(day('2026-10-26'));
+    await type('Your name', 'Ana Guest');
+    await type('Cell phone', '217-555-0100');
+    await tick('I am 21 or older');
+    await tick('I accept the house rules');
+    await tap(container.querySelector('[data-testid="book-a-stay-send"]'));
+    expect(container.querySelector('[data-testid="book-a-stay-done"]'), 'the ask must land before paying is offered').toBeTruthy();
+  }
+
+  it('shows the Square button with the total, on the family\'s own link', async () => {
+    H.pay = { ok: true, squareLink: 'https://square.link/u/abc123', nightlyRate: 150 };
+    await askForNights();
+    const pay = container.querySelector('[data-testid="stay-pay-square"]');
+    expect(pay, 'a guest who just asked is the one moment they are ready to pay').toBeTruthy();
+    expect(pay.getAttribute('href')).toBe('https://square.link/u/abc123');
+    expect(pay.textContent).toContain('$450.00');
+    // Square is somebody else's page: it must not open inside the app shell.
+    expect(pay.getAttribute('target')).toBe('_blank');
+    expect(pay.getAttribute('rel')).toMatch(/noopener/);
+    expect(container.querySelector('[data-testid="stay-pay-none"]')).toBeNull();
+  });
+
+  it('says plainly that we will send how to pay when no link is set', async () => {
+    // Honest about the gap: saying nothing leaves a guest who wants to pay
+    // with nowhere to go, and inventing a method would be worse.
+    H.pay = { ok: true, squareLink: null, nightlyRate: 150 };
+    await askForNights();
+    expect(container.querySelector('[data-testid="stay-pay-none"]')).toBeTruthy();
+    expect(container.querySelector('[data-testid="stay-pay-square"]')).toBeNull();
+  });
+
+  it('a FAILED read is the same honest answer, never an invented link', async () => {
+    H.pay = { ok: false, reason: 'read-failed' };
+    await askForNights();
+    expect(container.querySelector('[data-testid="stay-pay-square"]')).toBeNull();
+    expect(container.querySelector('[data-testid="stay-pay-none"]')).toBeTruthy();
   });
 });
