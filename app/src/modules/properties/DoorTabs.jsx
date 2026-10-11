@@ -1328,6 +1328,19 @@ export function GalleryTab({
   const [pending, setPending] = useState([]);
   const [error, setError] = useState('');
   const [editing, setEditing] = useState(null);
+  // MANY PICTURES, ONE ROOM (DR-0949). Darrell, 2026-10-10, after the room
+  // picker reached this editor: twelve move-out photographs is twelve times
+  // Edit -> pick -> Save, which is thirty-six taps on a phone to say one
+  // thing. A move-out set is naturally grouped — six bathroom shots in a row,
+  // then the kitchen — so the room is exactly the field worth setting once.
+  //
+  // `chosen` is a Set of photo ids and is empty until he asks for it: a grid
+  // that is always in selection mode makes tapping a picture to LOOK at it
+  // ambiguous, and looking is what the grid is mostly for.
+  const [choosing, setChoosing] = useState(false);
+  const [chosen, setChosen] = useState(() => new Set());
+  const [bulkRoom, setBulkRoom] = useState('');
+  const [bulkSaid, setBulkSaid] = useState('');
   const [newRoom, setNewRoom] = useState('');
   // The full images fetched so far, by id — only what somebody has opened.
   const [full, setFull] = useState({});
@@ -1830,6 +1843,62 @@ export function GalleryTab({
             ))}
           </div>
         )}
+        {/* SET THE ROOM FOR SEVERAL AT ONCE (DR-0949). Off by default, so a
+            tap on a picture still just opens it. */}
+        {canManage && allShots.length > 1 && (
+          <div className="flex flex-wrap items-center gap-2 mb-2">
+            <Btn
+              onClick={() => { setChoosing((v) => !v); setChosen(new Set()); setBulkSaid(''); }}
+              data-testid="gallery-choose-several"
+            >{choosing ? 'Done choosing' : 'Choose several'}</Btn>
+            {choosing && (
+              <>
+                <Btn
+                  onClick={() => setChosen(new Set(shown.map((p) => p.id)))}
+                  data-testid="gallery-choose-all"
+                >{`All ${shown.length} shown`}</Btn>
+                <span className="text-[0.75rem] text-[#5A5751]" data-testid="gallery-chosen-count">
+                  {chosen.size === 0 ? 'None chosen yet' : `${chosen.size} chosen`}
+                </span>
+              </>
+            )}
+            {choosing && chosen.size > 0 && (
+              <>
+                <select
+                  className="text-sm border border-[#E8E4DC] px-2 py-2 bg-white text-[#1A1815]"
+                  value={bulkRoom} aria-label="Room for the chosen pictures"
+                  data-testid="gallery-bulk-room"
+                  onChange={(e) => setBulkRoom(e.target.value)}
+                >
+                  <option value="">Not a specific room</option>
+                  {live.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+                </select>
+                <Btn
+                  tone="primary" disabled={busy}
+                  data-testid="gallery-bulk-apply"
+                  onClick={async () => {
+                    // Serial, like the upload: one write at a time, and the
+                    // count that comes back is the count that actually saved.
+                    const ids = shown.filter((p) => chosen.has(p.id)).map((p) => p.id);
+                    let saved = 0;
+                    for (const id of ids) {
+                      const r = await onPatch?.(id, { room_id: bulkRoom || null });
+                      if (!r || r.ok !== false) saved += 1;
+                    }
+                    const where = bulkRoom
+                      ? (live.find((r) => r.id === bulkRoom)?.name || 'that room')
+                      : 'no specific room';
+                    setBulkSaid(`${saved} of ${ids.length} filed to ${where}.`);
+                    setChosen(new Set());
+                  }}
+                >{`File ${chosen.size} here`}</Btn>
+              </>
+            )}
+            {bulkSaid && (
+              <span className="text-[0.75rem] text-[#2F5D50]" data-testid="gallery-bulk-said">{bulkSaid}</span>
+            )}
+          </div>
+        )}
         {only && shown.length === 0 && (
           <p className="text-sm text-[#6B665E] mb-2">
             No {only.replace(/-/g, ' ')} pictures at this door yet.
@@ -1864,6 +1933,20 @@ export function GalleryTab({
             {shown.map((p, idx) => (
               <li key={p.id} className="border border-[#E8E4DC] bg-white p-2">
                 <div className="relative">
+                  {choosing && (
+                    <label className="absolute top-1 right-1 z-10 bg-white border border-[#E8E4DC] px-1.5 py-1 flex items-center gap-1 cursor-pointer">
+                      <input
+                        type="checkbox" checked={chosen.has(p.id)}
+                        aria-label={`Choose ${p.caption || p.kind}`}
+                        data-testid={`gallery-choose-${p.id}`}
+                        onChange={(e) => setChosen((prev) => {
+                          const next = new Set(prev);
+                          if (e.target.checked) next.add(p.id); else next.delete(p.id);
+                          return next;
+                        })}
+                      />
+                    </label>
+                  )}
                   <button type="button" onClick={() => openAt(idx)} className="block w-full cursor-zoom-in" aria-label={`Open ${p.caption || p.kind}`}>
                     <SharpPicture photo={p} loadImage={loadImage} alt={p.caption || p.kind} className="aspect-square w-full object-cover" />
                   </button>
