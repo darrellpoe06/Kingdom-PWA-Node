@@ -788,6 +788,20 @@ const NODES = [
     writes: [{ res: 'gh:incident', token: '--label incident' }, { res: 'gh:deploy-heal', token: 'gh workflow run deploy-cloudflare-pages.yml' }],
     seeds: ['ops-surface', 'deploy'],
   }),
+  // THE STRANGER'S SCREEN, BESIDE THE PIPELINE'S (DR-0973). site-health above
+  // proves the site is UP and FRESH; it has never had an opinion about whether
+  // a listing card tells the truth. This one reads the card, and the door's
+  // own labels from the database, and fails when they disagree.
+  wf('public-shelf-witness.yml', {
+    id: 'public-shelf-witness', name: 'Public shelf witness',
+    purpose: 'Proves every advertised card says what the door actually IS — a whole unit, a private room, or a bed in a shared home.',
+    reads: [
+      { res: 'site:poetech.us', token: 'poetech.us/properties/app/' },
+      { res: 'db:rentals', token: 'public.public_vacancies()' },
+    ],
+    writes: [{ res: 'gh:incident', token: '--label incident' }],
+    seeds: ['ops-surface'],
+  }),
   app('app/src/lib/site-health.js', {
     id: 'ops-surface', name: 'OpsBoard uptime + incident ledger',
     purpose: 'Every outage and stall the witnesses recorded, with its duration.',

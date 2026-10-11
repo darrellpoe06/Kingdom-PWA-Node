@@ -1,0 +1,168 @@
+# Public shelf witness — THE STRANGER'S SCREEN GETS ITS OWN EYE (DR-0973)
+#
+# WHY THIS EXISTS. On 2026-10-11 Darrell found three faults on his own public
+# listing, from his phone, while every pipeline check was green:
+#
+#   "0.5 Bedroom or 1-Bedroom?!!!!!?????!!!!!"
+#   "None say co-living!!!!!!!!!!!!!!!!!!!!!!"
+#   "Why don't we show the same photos for both listings??????!!!!!!!!!"
+#
+# All three came from ONE NULL column (`rentals.rentable_level`, added by 0160
+# and written by nothing) read as though it had been filled in. Tests passed,
+# the migration applied, the deploy succeeded on the exact SHA, and a fix was
+# reported to him as live while it rendered nothing for nine days.
+#
+# Every instrument we had watches the PIPELINE. site-health (DR-0125) proves
+# the site is up and fresh; it has never had an opinion about whether a card
+# tells the truth. Nothing read the page a stranger sees.
+#
+# TWO READINGS, COMPARED — and this is the part that matters. A DOM-only
+# witness CANNOT catch the founding incident: before the fix the card read
+# "1-bed multi-family in Champaign, Illinois", which is character for
+# character what a genuine one-bedroom reads. The fact that made it wrong is
+# not on the page.
+#
+# So this takes a SECOND, INDEPENDENT reading from the database — what each
+# advertised door is CALLED (rentals.unit + display_name) — derives the level
+# from those labels with its own regex, and compares that against what
+# public_vacancies() tells the shelf to say. A door named "...Bed A" that the
+# shelf advertises as "1-bed" is the disagreement, and it is exactly the
+# 2026-10-11 bug. The witness is proven against that shape in
+# the-public-shelf-has-a-witness.test.js.
+#
+# WHAT IT REFUSES TO READ. Counts and labels only. Never a storage_path, never
+# a thumb_path, never a caption, never a street address, never a tenant name.
+# A diagnostic has no business printing the inside of somebody's home into an
+# Actions log (the apt2-photos-probe rule, kept).
+#
+# THE THREE BRAKES (CLAUDE.md, deterministic class per DR-0248: budget + lock):
+#   1. BUDGET — one runner, hard 12-minute timeout, one page load, one query.
+#   2. LOCK   — concurrency group `public-shelf-witness`, single-instance.
+#   3. STOP   — repo variable PUBLIC_SHELF_WITNESS_ENABLED='false', or disable
+#      in the Actions UI. Unset => runs. Read-only against product and
+#      database alike.
+name: Public shelf witness
+
+on:
+  workflow_dispatch:
+    inputs:
+      base:
+        description: 'Public shelf URL to read'
+        required: false
+        default: 'https://poetech.us/properties/app/'
+  schedule:
+    - cron: '41 14 * * *' # once a day, off the hour (server traffic)
+
+concurrency:
+  group: public-shelf-witness
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  issues: write # the rolling incident ledger, same as site-health
+
+jobs:
+  witness:
+    if: ${{ vars.PUBLIC_SHELF_WITNESS_ENABLED != 'false' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      REPO: ${{ github.repository }}
+      BASE: ${{ github.event.inputs.base || 'https://poetech.us/properties/app/' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # ---------------------------------------------------------------------
+      # READING ONE: what the doors are CALLED, straight from the database.
+      # This is the independent opinion. It derives the level from the door's
+      # own labels rather than trusting rentable_level, which is the column
+      # that was NULL on every door and broke three surfaces at once.
+      # ---------------------------------------------------------------------
+      - name: Join the tailnet (to reach the live database)
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+
+      - name: What each advertised door IS, by its own labels (labels only)
+        id: doors
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          set -uo pipefail
+          cat > /tmp/doors.sql <<'SQL'
+          BEGIN READ ONLY;
+          \echo == advertised doors (level_from_labels|shelf_label|photos_offered) ==
+          SELECT
+            CASE
+              WHEN lower(concat_ws(' ', coalesce(r.unit,''), coalesce(r.display_name,''))) ~ '\mbed\M'  THEN 'bed'
+              WHEN lower(concat_ws(' ', coalesce(r.unit,''), coalesce(r.display_name,''))) ~ '\mroom\M' THEN 'room'
+              ELSE 'unit'
+            END                                             AS level_from_labels,
+            v.label                                         AS shelf_label,
+            (SELECT count(*) FROM public.public_vacancy_photos(r.id)) AS photos_offered
+          FROM public.public_vacancies() v
+          JOIN rentals r ON r.id = v.id
+          ORDER BY 1, 2;
+          COMMIT;
+          SQL
+          if ! out=$(bash scripts/live-sql.sh '|' < /tmp/doors.sql); then
+            echo "::error::could not read the live database — that is itself the finding"
+            printf '%s\n' "$out"
+            exit 1
+          fi
+          printf '%s\n' "$out"
+          printf '%s\n' "$out" > /tmp/doors.txt
+
+      # ---------------------------------------------------------------------
+      # READING TWO: what a stranger's browser actually renders.
+      # ---------------------------------------------------------------------
+      - name: Read the shelf in a real browser
+        id: shelf
+        run: |
+          set -uo pipefail
+          mkdir -p "$RUNNER_TEMP/pw" && cd "$RUNNER_TEMP/pw"
+          npm init -y >/dev/null 2>&1
+          npm i --no-audit --no-fund playwright-core@1.47.2 >/dev/null 2>&1
+          npx --yes playwright@1.47.2 install chromium >/dev/null 2>&1
+          cp "$GITHUB_WORKSPACE/scripts/public-shelf-rules.mjs" .
+          cp "$GITHUB_WORKSPACE/scripts/public-shelf-witness.mjs" .
+          OUT_DIR="$GITHUB_WORKSPACE/shots" node public-shelf-witness.mjs
+
+      # ---------------------------------------------------------------------
+      # THE COMPARISON. A door CALLED a bed that the shelf advertises with a
+      # bedroom count is the 2026-10-11 bug, and it is the one thing a
+      # DOM-only reading can never see.
+      # ---------------------------------------------------------------------
+      - name: Do the two readings agree?
+        if: always()
+        run: |
+          set -uo pipefail
+          [ -f /tmp/doors.txt ] || { echo "::error::no database reading — cannot compare"; exit 1; }
+          # The decision lives in scripts/public-shelf-rules.mjs, unit-tested
+          # against the founding incident. This step only feeds it the rows.
+          node scripts/public-shelf-compare.mjs /tmp/doors.txt
+
+      - name: Upload what a stranger saw
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: public-shelf
+          path: shots/
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: File the finding on the incident ledger
+        if: failure()
+        run: |
+          set -uo pipefail
+          body="$(date -u +%FT%TZ) — **the public shelf disagrees with what the doors are called**, or could not be read. Base: ${BASE}. Run: ${GITHUB_SERVER_URL}/${REPO}/actions/runs/${GITHUB_RUN_ID} (DR-0973)."
+          num=$(gh issue list --repo "$REPO" --label incident --state open --search "in:title shelf" --json number --jq '.[0].number // ""')
+          if [ -n "$num" ]; then
+            gh issue comment "$num" --repo "$REPO" --body "$body"
+          else
+            gh issue create --repo "$REPO" --title "incident: the public shelf is advertising a door as something it is not" --label incident --body "$body"
+          fi
