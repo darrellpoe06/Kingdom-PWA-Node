@@ -120,3 +120,71 @@ describe('the remedy is the replay, and it says the old green does not carry', (
     expect(remedy('b')).toMatch(/different tree/i);
   });
 });
+
+// =============================================================================
+// The stamp must land where git says, not where the path assumed (DR-0962)
+// =============================================================================
+// Measured 2026-10-11 running `npm run ship` from an isolated worktree, which
+// is the lane shape ORCHESTRATION section 2 prescribes:
+//
+//   push-stranding-guard: COULD NOT STAMP — EEXIST: file already exists,
+//   mkdir '/tmp/wt-pics/.git'
+//
+// In a worktree `.git` is a FILE holding `gitdir: ...`, so `mkdirSync` on it
+// cannot succeed. The guard exited 2, which is DR-0393 decision 4 working
+// exactly as written — and because it is the first link of ship's `&&` chain,
+// verify, the fifteen gates and the push all silently never ran. The rule held
+// and the lane was unusable; both of those are true at once.
+//
+// THIS TEST MAKES A REAL WORKTREE, and that is the whole point of it. The
+// first version asserted only against the repository the suite runs in, where
+// `<root>/.git` and the true gitdir are the SAME path — so restoring the
+// broken line passed all fourteen tests. A check that cannot fail on the
+// defect it was written for is theatre (DR-0076 section 3, P46). Creating the
+// worktree is what makes the two paths differ, and therefore what makes the
+// assertion mean something.
+describe('STAMP_PATH is resolved from git, so a worktree can ship (DR-0962)', () => {
+  it('PROVEN-TO-CATCH: in a real worktree the stamp avoids the .git FILE', async () => {
+    const { resolveGitDir } = await import('../../../scripts/push-stranding-guard.mjs');
+    const { execFileSync } = await import('node:child_process');
+    const { mkdtempSync, rmSync, statSync, existsSync } = await import('node:fs');
+    const { join } = await import('node:path');
+    const { tmpdir } = await import('node:os');
+
+    const root = execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim();
+    const parent = mkdtempSync(join(tmpdir(), 'pssg-wt-'));
+    const wt = join(parent, 'lane');
+    try {
+      // --no-checkout: we need the .git FILE, not 1,100 source files.
+      execFileSync('git', ['worktree', 'add', '--no-checkout', '--detach', wt], {
+        cwd: root, stdio: ['ignore', 'ignore', 'pipe'],
+      });
+
+      // The shape that broke it: `.git` here is a file, so the old
+      // `join(cwd, '..', '.git')` could never be mkdir'd.
+      const naive = join(wt, '.git');
+      expect(existsSync(naive), 'no .git in the worktree at all').toBe(true);
+      expect(statSync(naive).isFile(), 'this worktree has a .git DIRECTORY, so it cannot prove the bug').toBe(true);
+
+      const resolved = resolveGitDir(wt);
+      expect(statSync(resolved).isDirectory(), 'the resolved gitdir is not a directory').toBe(true);
+      expect(resolved, 'the resolver handed back the .git FILE').not.toBe(naive);
+      // And it is this lane's OWN gitdir, so two lanes verifying against
+      // different bases cannot overwrite each other's stamp.
+      expect(resolved.includes(`${join('.git', 'worktrees')}`), `not a per-worktree gitdir: ${resolved}`).toBe(true);
+    } finally {
+      try { execFileSync('git', ['worktree', 'remove', '--force', wt], { cwd: root, stdio: 'ignore' }); } catch { /* best effort */ }
+      rmSync(parent, { recursive: true, force: true });
+    }
+  });
+
+  it('in an ordinary clone it still lands in the repository .git', async () => {
+    const { STAMP_PATH } = await import('../../../scripts/push-stranding-guard.mjs');
+    const { execFileSync } = await import('node:child_process');
+    const { statSync } = await import('node:fs');
+    const { dirname } = await import('node:path');
+    const gitDir = execFileSync('git', ['rev-parse', '--absolute-git-dir'], { encoding: 'utf8' }).trim();
+    expect(dirname(STAMP_PATH)).toBe(gitDir);
+    expect(statSync(dirname(STAMP_PATH)).isDirectory()).toBe(true);
+  });
+});
