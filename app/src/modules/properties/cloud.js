@@ -711,6 +711,26 @@ export async function loadSiblingPhotos(rentalId, client = supabase) {
   } catch (e) { return no('unexpected', e); }
 }
 
+/**
+ * How a GUEST pays for nights on a listed door: the family's Square payment
+ * link and the nightly rate (0277, DR-0960).
+ *
+ * Darrell, 2026-10-11: "If they pay!!!" and "Square payment options!!!" and
+ * then, on the shape of it: "This can't be member scoped... we will need to be
+ * able to receive funds from everyone..." — so the RPC is granted to anon AND
+ * authenticated, and rent_payee itself stays member-only. Anybody may pay;
+ * nobody may read the rest of the family's payment details.
+ */
+export async function loadStayPayment(rentalId, client = supabase) {
+  if (!rentalId) return no('no-rental');
+  try {
+    const { data, error } = await client.rpc('public_stay_payment', { p_rental: rentalId });
+    if (error) return no('read-failed', error);
+    const row = Array.isArray(data) ? data[0] : data;
+    return ok({ squareLink: (row && row.square_link) || null, nightlyRate: (row && row.nightly_rate) ?? null });
+  } catch (e) { return no('unexpected', e); }
+}
+
 /** Every tenancy this door has held — the chapters of its chronology. */
 export async function loadDoorTenancies(rentalRef, client = supabase) {
   if (!rentalRef) return ok({ tenancies: [] });

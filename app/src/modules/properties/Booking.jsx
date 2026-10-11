@@ -16,13 +16,13 @@
 //
 // StayDesk is the family's: asks to confirm or decline, what is coming and
 // what has been, black out nights, and enter a stay themselves (any length:
-// the 29-night cap is the guest default, not the owner's limit).
+// a guest may ask for any length up to a year; 0276 / DR-0959).
 // =============================================================================
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { boundedRead } from '../../lib/bounded-read.js';
-import { loadBookedNights, requestAStay, loadDoorStays, addDoorStay, decideStay } from './cloud.js';
+import { loadBookedNights, requestAStay, loadDoorStays, addDoorStay, decideStay, loadStayPayment } from './cloud.js';
 import {
-  GUEST_MAX_NIGHTS, HOUSE_RULES, addDays, iso, monthGrid, nightsBetween, takenNights, checkStayAsk, stayBook,
+  HOUSE_RULES, addDays, iso, monthGrid, nightsBetween, takenNights, checkStayAsk, stayBook,
 } from './booking.js';
 
 const serif = { fontFamily: '"Fraunces", serif' };
@@ -95,6 +95,19 @@ export function BookAStay({ rentalId, placeName = 'this place', rate = null, tod
   const second = new Date(view.y, view.m + 1, 1);
   const check = checkStayAsk({ ...f, taken, today, rate });
 
+  // The pay link is fetched once, beside the calendar, so it is already in
+  // hand the moment somebody asks — a guest ready to pay should not then wait
+  // on a round trip. A failed read leaves it null and the honest line below.
+  const [pay, setPay] = useState({ squareLink: null, nightlyRate: null });
+  useEffect(() => {
+    let live = true;
+    if (!rentalId) return undefined;
+    loadStayPayment(rentalId)
+      .then((r) => { if (live && r && r.ok) setPay({ squareLink: r.squareLink, nightlyRate: r.nightlyRate }); })
+      .catch(() => {});
+    return () => { live = false; };
+  }, [rentalId]);
+
   const send = async () => {
     setErrors(check.errors);
     if (!check.ok) return;
@@ -114,6 +127,36 @@ export function BookAStay({ rentalId, placeName = 'this place', rate = null, tod
           {done.nights} night{done.nights === 1 ? '' : 's'} at {placeName}, {done.checkIn} to {done.checkOut}{done.total ? `, about $${done.total.toFixed(2)}` : ''}.
           We confirm by {done.phone ? 'text' : 'email'} and send the address and check-in steps then.
         </p>
+        {/* PAYING IS HERE, NOT IN A MESSAGE LATER (DR-0960). Darrell: "If they
+            pay!!!" and "Square payment options!!!" — the nights are unlimited
+            on the condition that they are paid for, and a guest who has just
+            asked is the one moment they are ready to. The link is the family's
+            own Square link; the app charges nothing and never could (0055). */}
+        {pay.squareLink ? (
+          <div className="border-t border-[#E8E4DC] mt-2 pt-2">
+            <a
+              href={pay.squareLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              data-testid="stay-pay-square"
+              className="inline-flex items-center justify-center min-h-[44px] px-4 bg-[#2F5D50] text-white text-[0.75rem] uppercase tracking-wider"
+            >
+              Pay with Square{done.total ? ` — $${done.total.toFixed(2)}` : ''}
+            </a>
+            <p className="text-[0.6875rem] text-[#5A5751] mt-1" style={serif}>
+              Card, Apple Pay or Google Pay, on Square&rsquo;s own page. Enter
+              {done.total ? ` $${done.total.toFixed(2)}` : ' the amount above'} and your name, so we can match it to these nights.
+              Your nights are held once we confirm.
+            </p>
+          </div>
+        ) : (
+          /* HONEST ABOUT THE GAP. No link set, or the read did not answer —
+             either way, saying nothing would leave a guest who wants to pay
+             with nowhere to go, and inventing a method would be worse. */
+          <p className="text-[0.6875rem] text-[#5A5751] mt-2" style={serif} data-testid="stay-pay-none">
+            We will send you how to pay when we confirm.
+          </p>
+        )}
       </section>
     );
   }
@@ -122,7 +165,7 @@ export function BookAStay({ rentalId, placeName = 'this place', rate = null, tod
     <section className="border border-[#E8E4DC] bg-white p-3 mt-2" data-testid="book-a-stay">
       <h4 className="text-[0.625rem] uppercase tracking-[0.2em] font-semibold text-[#2F5D50] mb-1">Book a stay — no account needed</h4>
       <p className="text-xs text-[#5A5751] mb-2" style={serif}>
-        Tap the night you arrive, then the day you leave. Dark nights are taken. Up to {GUEST_MAX_NIGHTS} nights here; for longer, apply for a lease.
+        Tap the night you arrive, then the day you leave. Dark nights are taken. Stay a night or stay a year — the nightly rate is the nightly rate.
       </p>
       {ranges === null ? <p className="text-xs text-[#5A5751]">Reading the calendar…</p> : (
         <>
@@ -218,7 +261,7 @@ export function StayDesk({ instanceId, rentalId, today = iso(new Date()) }) {
               onClick={() => act(addDoorStay({ instance_id: instanceId, rental_id: rentalId, kind: 'block', status: 'confirmed', check_in: blk.from, check_out: blk.to, block_reason: blk.reason || null }), 'Blacked out.')}>Black out</button>
           </div>
           <h4 className="text-[0.625rem] uppercase tracking-wider font-semibold text-[#2F5D50] mt-3">Enter a stay yourself</h4>
-          <p className="text-xs text-[#5A5751]" style={serif}>Any length: the {GUEST_MAX_NIGHTS}-night limit is for guests booking themselves. Over 29 nights, consider the lease (tax and tenancy rules change at 30).</p>
+          <p className="text-xs text-[#5A5751]" style={serif}>Any length, up to a year. Occupancy tax and tenancy rules change at 30 consecutive nights — worth knowing before you confirm a long one, not a reason to turn the guest away.</p>
           <div className="flex flex-wrap items-end gap-2">
             <label className="text-xs text-[#5A5751]">Arrives<input type="date" value={own.from} onChange={(e) => setOwn((b) => ({ ...b, from: e.target.value }))} aria-label="Stay arrives" className={`${field} block`} /></label>
             <label className="text-xs text-[#5A5751]">Leaves<input type="date" value={own.to} onChange={(e) => setOwn((b) => ({ ...b, to: e.target.value }))} aria-label="Stay leaves" className={`${field} block`} /></label>
