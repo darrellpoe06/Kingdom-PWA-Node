@@ -471,6 +471,15 @@ const NODES = [
     ],
     writes: [], seeds: [],
   }),
+  wf('apt2-photos-probe.yml', {
+    id: 'apt2-photos-probe', name: 'Apartment 2 photographs probe',
+    purpose: 'Measures from a runner on the tailnet whether a door\u2019s photographs are actually in the live database, and when they arrived \u2014 because from a browser "there are none" and "the read was refused" are the same answer (DR-0876), and the sandbox has no route to the NAS (DR-0125). Counts, kinds and timestamps only: never storage_path, thumb_path or caption, since the first two ARE the photographs and the third is a person\u2019s words about the inside of somebody\u2019s home.',
+    reads: [
+      { res: 'db:property_photos', token: 'FROM property_photos' },
+      { res: 'db:rentals', token: 'FROM rentals' },
+    ],
+    writes: [], seeds: [],
+  }),
   wf('inbox-lesson-tag.yml', {
     id: 'inbox-lesson-tag', name: 'A shipped lesson marks its row',
     purpose: 'Tags the agent_inbox row a lesson was built from (captured, lesson id, PR) on the live database, and published only once the deployed build contains the merge — the road that needs no chat connector.',
