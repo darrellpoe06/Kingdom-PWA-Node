@@ -502,18 +502,39 @@ export async function patchRoom(id, patch, client = supabase) {
 }
 
 // ---------------------------------------------------------------------------
-// THE LIST NEVER CARRIES THE BYTES (DR-0303 / migration 0185).
+// THE LIST CARRIES NO PICTURES AT ALL — NOT EVEN SMALL ONES (DR-0955).
 // ---------------------------------------------------------------------------
-// storage_path holds the whole compressed image as a data URL. Selecting it in
-// a LIST — every picture on every door, on every boot, to pick one cover per
-// door — is the exact shape that locked everyone out on 2026-08-14 (6.2 MB of
-// base64 pulled once per sign-in). So a list reads the small thumbnail written
-// at upload (thumb_path) and never storage_path; the full image is fetched by
-// id, a few at a time, only when somebody opens it (loadPhotoImages). The
-// column list is a named constant so a test can pin what goes over the wire.
+// 0185 / DR-0303 got half of this right and the half it got wrong is what froze
+// the Properties tab. storage_path holds the whole compressed image as a data
+// URL, so it was taken out of every list; a list read thumb_path instead. But
+// THUMB_PATH IS ALSO AN IMAGE — the same base64 data URL, written at upload
+// 640 px wide at 75% JPEG (DoorTabs THUMB_MAX_WIDTH / THUMB_QUALITY).
+//
+// MEASURED 2026-10-11, encoding photographic content at exactly those
+// settings: 47 KB of base64 for a smooth interior, 60 KB for an ordinary
+// detailed one. Call it 55 KB A ROW. loadAllPhotos reads every unarchived
+// picture across every door on every boot of the tab, to choose one cover per
+// door; his board holds 67 rows today, which is ~3.6 MB in one response, and
+// it grows by 55 KB every time he takes a photograph. A single door's gallery
+// is the same shape smaller: Room 1 - Bed A carries 39 pictures, ~2.1 MB.
+//
+// With Pages Functions dark (#2057) the app is on the ABSOLUTE Funnel URL,
+// which CLAUDE.md's own standing note says throttles cross-origin. Small reads
+// pass. Multi-megabyte ones do not, and boundedRead gives up at 6 s — so the
+// tab froze, then came back without the pictures. "It keeps flashing... and
+// pausing the coming back with new images about 20 seconds later" is that
+// read, arriving after the UI stopped waiting for it.
+//
+// SO THE LIST IS METADATA, FULL STOP. No storage_path, no thumb_path: 67 rows
+// of ids, kinds, captions and timestamps is tens of kilobytes and the board
+// opens at once. pickCovers already chose covers from metadata alone, and
+// SharpPicture already fetched full images by id, a few at a time, when a tile
+// was on screen and wanted more pixels. Thumbnails now ride that same road,
+// which is the road that works. The column list is a named constant so a test
+// can pin exactly what goes over the wire.
 export const PHOTO_LIST_COLUMNS = [
   'id', 'instance_id', 'rental_ref', 'tenancy_id', 'room_id', 'request_id',
-  'kind', 'caption', 'thumb_path', 'taken_at', 'uploaded_at', 'uploaded_by',
+  'kind', 'caption', 'taken_at', 'uploaded_at', 'uploaded_by',
   'author_label', 'archived_at', 'archived_by', 'sort_order',
   // DR-0932 (0267): which system, and which service visit, a picture shows.
   'system_id', 'system_event_id',
@@ -521,6 +542,34 @@ export const PHOTO_LIST_COLUMNS = [
 
 /** The most full images one call may carry. A door's gallery opens one at a time. */
 export const PHOTO_IMAGE_BATCH = 24;
+
+/**
+ * The thumbnail for a few pictures, by id — the ONLY read of thumb_path in
+ * this module, and bounded for the same reason loadPhotoImages is: so no
+ * caller can quietly reassemble the unbounded list that froze the tab.
+ *
+ * Smaller than the batch for full images on purpose. A thumbnail is ~55 KB of
+ * base64; twelve is ~660 KB, which is about as much as the Funnel road will
+ * carry in one answer while the page still feels alive.
+ */
+export const PHOTO_THUMB_BATCH = 12;
+
+export async function loadPhotoThumbs(ids = [], client = supabase) {
+  const want = Array.from(new Set((ids || []).filter(Boolean)));
+  if (!want.length) return ok({ thumbs: {} });
+  if (want.length > PHOTO_THUMB_BATCH) return no('too-many-at-once');
+  try {
+    const { data, error } = await client
+      .from('property_photos').select('id, thumb_path').in('id', want);
+    if (error) return no('read-failed', error);
+    const thumbs = {};
+    // A row from before 0185 has no thumbnail. It is left OUT rather than
+    // recorded as empty, so the caller can tell "no thumbnail exists" from
+    // "I did not ask" and fall through to the full image (DR-0946).
+    for (const row of data || []) if (row.thumb_path) thumbs[row.id] = row.thumb_path;
+    return ok({ thumbs });
+  } catch (e) { return no('unexpected', e); }
+}
 
 /**
  * The full image for a few pictures, by id — the ONLY read of storage_path in
@@ -541,18 +590,21 @@ export async function loadPhotoImages(ids = [], client = supabase) {
   } catch (e) { return no('unexpected', e); }
 }
 
-/**
- * Give the pictures that have no thumbnail (rows from before 0185) their full
- * image, bounded to one batch. Pictures written since carry thumb_path and
- * cost nothing here. Returns a new list; never touches the one it was given.
- */
-export async function hydrateLegacyImages(photos = [], client = supabase) {
-  const missing = (photos || []).filter((p) => p && !p.thumb_path && !p.storage_path).map((p) => p.id);
-  if (!missing.length) return photos;
-  const r = await loadPhotoImages(missing.slice(0, PHOTO_IMAGE_BATCH), client);
-  if (!r.ok) return photos;
-  return photos.map((p) => (r.images[p.id] ? { ...p, storage_path: r.images[p.id] } : p));
-}
+// hydrateLegacyImages IS GONE (DR-0955), and removing it is part of the fix
+// rather than tidying after it.
+//
+// It existed to give the pre-0185 rows — the ones with no thumbnail — their
+// full image in one bounded read at boot, and it told them apart by asking
+// `!p.thumb_path`. With thumb_path out of the list that question has no
+// answer: EVERY row looks legacy, so it would have fetched twenty-four FULL
+// images (~300 KB each, ~7 MB) on every boot. The same defect, eight times
+// heavier.
+//
+// What it was protecting is still protected, and now lazily: a tile with
+// nothing to draw asks for its own thumbnail when it comes on screen, and a
+// row that turns out to have none asks for its full image instead
+// (SharpPicture). An older gallery still fills in; it no longer makes the
+// whole tab wait to find out.
 
 /**
  * The door's photos. RLS decides what comes back — a tenant sees only their own

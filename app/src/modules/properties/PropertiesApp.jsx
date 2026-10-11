@@ -61,14 +61,13 @@ import { areaOf } from './area.js';
 import {
   loadRooms, addRoom, patchRoom, loadDoorPhotos, loadDoorTenancies,
   loadMyRentals, updateTenancy, updateRental, loadAllPhotos,
-  loadPhotoImages, hydrateLegacyImages,
+  loadPhotoImages, loadPhotoThumbs,
   addPhoto, patchPhoto, loadDocuments, addDocument, patchDocument,
   loadPublicVacancies,
   loadSystems, loadSystemEvents, addSystem, patchSystem, addSystemEvent, loadDoorNotes,
 } from './cloud.js';
 import { announceRentalChange } from '../../lib/rental-write.js';
 import { buildRoom } from './rooms.js';
-import { pickCovers } from './photo-order.js';
 import { tenancyRowForDoor } from './staging.js';
 import { areaKeyFor, describeAddress, linkToAddress } from './addressing.js';
 import { addressNow, useAddress } from './use-address.js';
@@ -77,6 +76,13 @@ import { boundedRead, deadlineIn, READ_TIMEOUT_MS, OPTIONAL_TIMEOUT_MS as CLAIM_
 import { POE_PROPERTIES, LAUNCH_PLAN, OPPORTUNITIES, CONSTRAINTS } from './config.js';
 
 const ACCENT = '#2F5D50';
+
+// THE TWO WAYS A TILE GETS ITS BYTES (DR-0955). Both by id, both bounded, both
+// only when something is actually on screen asking. The list carries neither.
+// Named once here rather than written out at each of the four surfaces that
+// pass them down, so the two roads cannot drift apart.
+const oneImage = async (id) => { const r = await loadPhotoImages([id]); return r.ok ? r.images[id] || null : null; };
+const oneThumb = async (id) => { const r = await loadPhotoThumbs([id]); return r.ok ? r.thumbs[id] || null : null; };
 
 /**
  * The tabs whose content belongs to ONE property. Everything here reads the
@@ -353,15 +359,17 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
     ]);
     setInvites(inv && inv.ok ? inv.invites : []);
     setMe(sess && sess.user ? sess.user.id : null);
-    // The list carries thumbnails, never images (0185 / DR-0303). Only the
-    // pictures that will actually be COVERS are hydrated, and only those from
-    // before thumbnails existed — a bounded read, sized to the doors, not to
-    // every picture ever taken.
-    const allPhotos = ph.ok ? ph.photos : [];
-    const coverList = [...pickCovers(allPhotos).values()];
-    const covers = await boundedRead(hydrateLegacyImages(coverList), extras(), coverList);
-    const hydrated = new Map(covers.map((c) => [c.id, c]));
-    setDoorPhotos(allPhotos.map((p) => hydrated.get(p.id) || p));
+    // NO PICTURE IS FETCHED AT BOOT — NOT ONE (DR-0955). The list is metadata
+    // now, and every cover tile asks for its own thumbnail when it comes into
+    // view. There used to be a second bounded read here, hydrating the covers,
+    // which on its own cost 2.5 s of boot before the board could draw and
+    // returned nothing useful once thumb_path left the list.
+    //
+    // Choosing which picture is a door's cover was always a decision about
+    // metadata — kind, sort_order, taken_at — and never needed a single byte,
+    // so DoorsBoard makes it itself from this list (pickCovers, memoised on
+    // the photos it is given). Nothing is left for this function to prepare.
+    setDoorPhotos(ph.ok ? ph.photos : []);
     setVacancies(vac.ok ? vac.vacancies : []);
     // WHAT the database actually said, kept and shown. The first version of
     // this card guessed a cause in its copy ("close your other tabs — a frozen
@@ -540,9 +548,10 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
     ].filter(Boolean);
     setDoorData({
       rooms: rm.ok ? rm.rooms : [],
-      // Thumbnails for the grid; rows from before 0185 get their image in one
-      // bounded read so an older gallery does not go blank.
-      photos: ph.ok ? await boundedRead(hydrateLegacyImages(ph.photos), deadlineIn()(), ph.photos) : [],
+      // Metadata only (DR-0955). Each tile fetches its own thumbnail when it
+      // scrolls into view, so opening a door with 39 pictures no longer waits
+      // on ~2.1 MB of base64 before it will draw anything.
+      photos: ph.ok ? ph.photos : [],
       tenancies: tn.ok ? tn.tenancies : [],
       documents: dc.ok ? dc.documents : [],
       systems: sy.ok ? sy.systems : [],
@@ -1205,8 +1214,10 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
               // A 1099 worker delegated "Add job documentation" files pictures
               // to the door he is sent to (0185); he does not arrange or archive.
               canAdd={role === 'owner' || role === 'manager' || (role === 'field_worker' && grants.includes('docs.add'))}
-              // The full image, one at a time, only when a picture is opened.
-              loadImage={async (id) => { const r = await loadPhotoImages([id]); return r.ok ? r.images[id] || null : null; }}
+              // The thumbnail when a tile comes into view, the full image when it is
+              // opened or needs more pixels. Never in the list (DR-0955).
+              loadThumb={oneThumb}
+              loadImage={oneImage}
               // RETURNS the result (DR-0907). It used to swallow it, so the
               // gallery could not tell a saved picture from a lost one and
               // cleared its queue either way.
@@ -1270,7 +1281,8 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
               onSeed={async (rows) => { for (const row of rows) await addSystem(row); say(`Added ${rows.length}.`); loadDoorData(); }}
               photos={doorData.photos}
               doorLabel={activeRental?.display_name || activeRental?.address || activeDoor?.property_label || ''}
-              loadImage={async (id) => { const r = await loadPhotoImages([id]); return r.ok ? r.images[id] || null : null; }}
+              loadThumb={oneThumb}
+              loadImage={oneImage}
               onAddPictures={async (rows) => {
                 let bad = null;
                 for (const row of rows) { const r = await addPhoto(row); if (!r.ok) { bad = r; break; } }
@@ -1294,7 +1306,8 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
                 rentals={rentals} tenancies={doors}
                 canManage={role === 'owner' || role === 'manager'}
                 money={role === 'owner' || role === 'manager' ? money : null}
-                loadImage={async (id) => { const r = await loadPhotoImages([id]); return r.ok ? r.images[id] || null : null; }}
+                loadThumb={oneThumb}
+                loadImage={oneImage}
                 // A tenancy id opens the relationship record; a rentals id (a
                 // door with nobody in it, which is every door on this account
                 // today) opens the door's own chronology, which is the surface

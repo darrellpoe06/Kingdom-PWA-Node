@@ -53,7 +53,19 @@ describe('the wire from the door to Real Estate is real', () => {
     // A door picture that loads but is never merged is the same as no wire.
     expect(CODE).toMatch(/for \(const p of cloud\)/);
     expect(CODE).toContain('Poe Properties · ');
-    expect(CODE).toMatch(/\}, \[rental, nas\.photos, added, cloud, cloudFull\]\)/);
+    // THE MERGE RECOMPUTES WHEN THE DOOR'S PICTURES CHANGE. This asked for the
+    // dependency array by its exact SPELLING —
+    // `[rental, nas.photos, added, cloud, cloudFull]` — and so it failed the
+    // moment DR-0955 added `cloudThumb` beside `cloudFull`, which is the merge
+    // being made MORE correct, not less. A test that pins a spelling breaks on
+    // a correct change and cannot catch a wrong one; DR-0904 retired one of
+    // these already. What matters is membership: the list, and every store the
+    // bytes can arrive in, so a picture that lands is drawn.
+    const deps = (CODE.match(/\}, \[rental, nas\.photos[^\]]*\]\)/) || [''])[0];
+    expect(deps, 'the items memo must depend on the door photos').toBeTruthy();
+    for (const d of ['cloud', 'cloudFull', 'cloudThumb']) {
+      expect(deps, `${d} missing: a picture arriving there would never be drawn`).toContain(d);
+    }
   });
 });
 

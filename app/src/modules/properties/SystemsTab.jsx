@@ -84,7 +84,7 @@ export function SystemsTab({
   propertyType = 'house', onAdd, onPatch, onEvent, onSeed,
   // Pictures of each system (DR-0932): the door's photos, the full-image
   // loader, the door's name for the viewer's stamp, and how to file new ones.
-  photos = [], loadImage = null, doorLabel = '', onAddPictures = null,
+  photos = [], loadImage = null, loadThumb = null, doorLabel = '', onAddPictures = null,
 }) {
   const [adding, setAdding] = useState(false);
   const [openFor, setOpenFor] = useState(null);   // which system's history is expanded
@@ -218,7 +218,7 @@ export function SystemsTab({
                     <Detail system={r.system} rooms={rooms} />
                     <SystemPictures
                       door={door} system={r.system} events={sortEvents(r.events)} photos={photos}
-                      canAdd={canManage} busy={busy} onAdd={onAddPictures} loadImage={loadImage} doorLabel={doorLabel}
+                      canAdd={canManage} busy={busy} onAdd={onAddPictures} loadImage={loadImage} loadThumb={loadThumb} doorLabel={doorLabel}
                     />
                     {r.events.length === 0 ? (
                       <p className="text-[0.8125rem] text-[#6B665E] leading-relaxed">

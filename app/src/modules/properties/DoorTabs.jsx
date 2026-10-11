@@ -32,7 +32,7 @@ import { moneyLine, dollarsLong } from './door-money.js';
 import { AreaEditor } from './AreaMap.jsx';
 import { stampImage, stampFileName } from '../../lib/brand-stamp.js';
 import SharpPicture, { sharpestKnown } from './SharpPicture.jsx';
-import { photoOrder, movePhoto, makeCover, pickCovers, listImage } from './photo-order.js';
+import { photoOrder, movePhoto, makeCover, pickCovers } from './photo-order.js';
 import { compressImageFile, isLikelyImageFile } from '../../lib/image.js';
 import { useVoiceDictation } from '../../lib/voice-dictation.js';
 import Lightbox from '../../components/Lightbox.jsx';
@@ -452,7 +452,7 @@ export function DoorsBoard({
   // result. Shown on the family's board only; null hides it.
   money = null,
   // The full image by id (DR-0931): covers sharpen past their thumbnail.
-  loadImage = null,
+  loadImage = null, loadThumb = null,
 }) {
   const [openFor, setOpenFor] = useState(null);
   const [editing, setEditing] = useState(null);
@@ -612,8 +612,8 @@ export function DoorsBoard({
                 className="w-full text-left"
               >
                 <div className="aspect-square w-full bg-[#FAF8F4] flex items-center justify-center overflow-hidden">
-                  {listImage(x.cover) ? (
-                    <SharpPicture photo={x.cover} loadImage={loadImage} alt={x.cover.caption || x.label} className="w-full h-full object-cover" />
+                  {x.cover ? (
+                    <SharpPicture photo={x.cover} loadImage={loadImage} loadThumb={loadThumb} alt={x.cover.caption || x.label} className="w-full h-full object-cover" />
                   ) : (
                     <span className="text-[0.5625rem] uppercase tracking-wider text-[#8A867E]">No photo</span>
                   )}
@@ -661,10 +661,20 @@ export function DoorsBoard({
             <div className="flex flex-wrap items-start justify-between gap-2">
               {/* The picture, so the board reads like a property list and not a
                   spreadsheet. A door with none says so rather than showing a
-                  stand-in photograph of somewhere else. */}
+                  stand-in photograph of somewhere else.
+
+                  "NO PHOTO" IS A FACT ABOUT THE DOOR, NOT ABOUT THE READ
+                  (DR-0955). This asked `listImage(x.cover)` — do the bytes
+                  happen to be in hand — which meant a door whose only
+                  pictures predate 0185 read as having none, and which with
+                  thumbnails out of the list would have made EVERY cover on
+                  this board say "No photo" for good. pickCovers chose a cover
+                  from metadata; whether its bytes have landed yet is
+                  SharpPicture's business and it draws a waiting tile while it
+                  finds out. */}
               <div className="w-20 h-20 shrink-0 border border-[#E8E4DC] bg-[#FAF8F4] flex items-center justify-center overflow-hidden">
-                {listImage(x.cover) ? (
-                  <SharpPicture photo={x.cover} loadImage={loadImage} alt={x.cover.caption || x.label} className="w-full h-full object-cover" />
+                {x.cover ? (
+                  <SharpPicture photo={x.cover} loadImage={loadImage} loadThumb={loadThumb} alt={x.cover.caption || x.label} className="w-full h-full object-cover" />
                 ) : (
                   <span className="text-[0.5625rem] uppercase tracking-wider text-[#8A867E] text-center px-1">No photo</span>
                 )}
@@ -752,7 +762,7 @@ export function DoorsBoard({
     </Card>
     )}
     {homeRows.length > 0 && (
-      <OurHomes rows={homeRows} canManage={canManage} busy={busy} onPick={onPick} onEditRental={onEditRental} loadImage={loadImage} />
+      <OurHomes rows={homeRows} canManage={canManage} busy={busy} onPick={onPick} onEditRental={onEditRental} loadImage={loadImage} loadThumb={loadThumb} />
     )}
     </>
   );
@@ -774,7 +784,7 @@ export function DoorsBoard({
  * a house on a properties screen and seeing no rent, no mortgage and no value
  * would reasonably conclude the app had lost them.
  */
-function OurHomes({ rows = [], canManage = false, busy = false, onPick, onEditRental, loadImage = null }) {
+function OurHomes({ rows = [], canManage = false, busy = false, onPick, onEditRental, loadImage = null, loadThumb = null }) {
   const [editingDoor, setEditingDoor] = useState(null);
   return (
     <Card
@@ -791,8 +801,8 @@ function OurHomes({ rows = [], canManage = false, busy = false, onPick, onEditRe
           <li key={x.rental.id} className="border-b border-[#F0EDE6] py-2 last:border-0">
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div className="w-20 h-20 shrink-0 border border-[#E8E4DC] bg-[#FAF8F4] flex items-center justify-center overflow-hidden">
-                {listImage(x.cover) ? (
-                  <SharpPicture photo={x.cover} loadImage={loadImage} alt={x.cover.caption || x.label} className="w-full h-full object-cover" />
+                {x.cover ? (
+                  <SharpPicture photo={x.cover} loadImage={loadImage} loadThumb={loadThumb} alt={x.cover.caption || x.label} className="w-full h-full object-cover" />
                 ) : (
                   <span className="text-[0.5625rem] uppercase tracking-wider text-[#8A867E] text-center px-1">No photo</span>
                 )}
@@ -1314,7 +1324,7 @@ function CaptionField({ value, onChange, placeholder, label, className = '' }) {
 
 export function GalleryTab({
   door, rooms = [], photos = [], canManage = false, canAdd = canManage, busy = false, unread = false,
-  onAdd, onDone, onPatch, onAddRoom, loadImage = null, doorLabel = '',
+  onAdd, onDone, onPatch, onAddRoom, loadImage = null, loadThumb = null, doorLabel = '',
 }) {
   // Every picture opened or saved here carries the Poe Properties band and a
   // QR to this unit's listing (DR-0941): "all downloaded materials have our
@@ -2008,7 +2018,7 @@ export function GalleryTab({
                     </label>
                   )}
                   <button type="button" onClick={() => openAt(idx)} className="block w-full cursor-zoom-in" aria-label={`Open ${p.caption || p.kind}`}>
-                    <SharpPicture photo={p} loadImage={loadImage} alt={p.caption || p.kind} className="aspect-square w-full object-cover" />
+                    <SharpPicture photo={p} loadImage={loadImage} loadThumb={loadThumb} alt={p.caption || p.kind} className="aspect-square w-full object-cover" />
                   </button>
                   {idx === 0 && (
                     <span className="absolute top-1 left-1 bg-[#2F5D50] text-white text-[0.625rem] uppercase tracking-wider px-1.5 py-0.5">Cover</span>

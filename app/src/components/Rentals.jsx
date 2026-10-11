@@ -8,7 +8,10 @@ import { findRelatedAuto } from '../poe-financial-mvp-v28.jsx';
 import { DispatchPanel } from './DispatchPanel.jsx';
 import { parseChatHistory, toConversationEntries } from '../lib/chat-import.js';
 import { compressImageFile } from '../lib/image.js';
-import { loadDoorPhotos as loadCloudDoorPhotos, loadPhotoImages as loadCloudPhotoImages, loadDoorTenancies } from '../modules/properties/cloud.js';
+import {
+  loadDoorPhotos as loadCloudDoorPhotos, loadPhotoImages as loadCloudPhotoImages,
+  loadPhotoThumbs as loadCloudPhotoThumbs, PHOTO_THUMB_BATCH, loadDoorTenancies,
+} from '../modules/properties/cloud.js';
 import { listImage as cloudListImage } from '../modules/properties/photo-order.js';
 import { hasBridgeToken, chatChannelFor, fetchChannelPhotos, propertyPhotosUrl } from '../lib/nas-photos.js';
 import PropertyPhotoActions, { PhotoRemoveButton } from './PropertyPhotoActions.jsx';
@@ -175,17 +178,43 @@ function PropertyGallery({ rental, nasTotal = null }) {
   // inside of the property section as well as inside of the other section for
   // rentals"). The pictures taken on the Poe Properties door (property_photos,
   // keyed by the rentals uuid this record syncs as remoteUuid) are the same
-  // pictures here. The list carries thumbnails only (0185 / DR-0303); the full
-  // image is fetched by id when one is opened.
+  // pictures here. The list carries NO image at all (DR-0955) — thumbnails are
+  // base64 too, and 67 of them in one answer is what froze the Properties tab.
+  // Thumbnails arrive by id in small batches, the full image when one is opened.
   const cloudRef = rental.remoteUuid || null;
   const [cloud, setCloud] = useState([]);
   const [cloudFull, setCloudFull] = useState({});
+  const [cloudThumb, setCloudThumb] = useState({});
   useEffect(() => {
     let cancelled = false;
     if (!cloudRef) { setCloud([]); return undefined; }
     loadCloudDoorPhotos(cloudRef).then((r) => { if (!cancelled) setCloud(r.ok ? r.photos.filter((p) => !p.archived_at) : []); });
     return () => { cancelled = true; };
   }, [cloudRef]);
+
+  // THE PICTURES DO NOT VANISH WHILE THEY ARE ON THEIR WAY (DR-0955). This
+  // strip drops any item with no `src`, so with thumbnails out of the list a
+  // Poe Properties picture would simply not appear here — the Apartment 2
+  // failure in a second place, and silent (DR-0946).
+  //
+  // A BATCH AT A TIME, PAINTING AS EACH LANDS. Twelve thumbnails is ~660 KB;
+  // a 39-picture door is four answers rather than one 2.1 MB answer that the
+  // Funnel road may never finish. The strip is already on screen with its
+  // other sources while these fill in.
+  useEffect(() => {
+    let cancelled = false;
+    const ids = cloud.map((p) => p.id).filter((id) => id && !cloudThumb[id]);
+    if (!ids.length) return undefined;
+    (async () => {
+      for (let i = 0; i < ids.length && !cancelled; i += PHOTO_THUMB_BATCH) {
+        const r = await loadCloudPhotoThumbs(ids.slice(i, i + PHOTO_THUMB_BATCH));
+        if (cancelled || !r.ok || !Object.keys(r.thumbs).length) continue;
+        setCloudThumb((m) => ({ ...m, ...r.thumbs }));
+      }
+    })();
+    return () => { cancelled = true; };
+    // cloudThumb is read to skip what is already held, not to re-run on it.
+  }, [cloud]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     let cancelled = false;
@@ -253,7 +282,11 @@ function PropertyGallery({ rental, nasTotal = null }) {
       });
     }
     for (const p of cloud) {
-      const src = cloudFull[p.id] || cloudListImage(p);
+      // Sharpest first, then the fetched thumbnail, then whatever the row
+      // itself carries (a picture just uploaded in this session has its
+      // thumbnail on the row already). A picture whose bytes have not arrived
+      // yet waits for the next render rather than being dropped for good.
+      const src = cloudFull[p.id] || cloudThumb[p.id] || cloudListImage(p);
       if (!src) continue;
       out.push({
         id: `cloud-${p.id}`, cloudId: p.id, src,
@@ -263,7 +296,7 @@ function PropertyGallery({ rental, nasTotal = null }) {
       });
     }
     return out.sort((a, b) => (a.date || '').localeCompare(b.date || '') || String(a.id).localeCompare(String(b.id)));
-  }, [rental, nas.photos, added, cloud, cloudFull]);
+  }, [rental, nas.photos, added, cloud, cloudFull, cloudThumb]);
 
   // Opening a Poe Properties picture fetches its full image once; the strip
   // and the lightbox re-render from `items` when it lands.
