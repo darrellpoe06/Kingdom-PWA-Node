@@ -483,7 +483,35 @@ function SignedOutDoor({ left = false, onReturn } = {}) {
       </div>
       {wantsAuth && (
         <div className="mx-auto w-full sm:w-2/3 lg:w-1/3">
-          <PasswordAuth mode="signin" embedded startWith="email" onSignedIn={() => window.location.reload()} />
+          {/* SIGNING IN COMES BACK THROUGH THE DOOR (DR-0954).
+              Christina, 2026-10-11, relayed by Darrell: "When I sign in as
+              then I click on I live here. I then go to the other sign in page
+              and it is a loop as it goes straight to these 3 pages over and
+              over."
+
+              It was a loop, and this line was the whole of it. Leaving this
+              door writes a per-door flag (leaveDoor), and doorSession then
+              hides the session until that flag is cleared. enterDoor clears
+              it, and its own docstring says it is "called whenever a sign-in
+              succeeds at that door" — this call site never called it. So she
+              signed in SUCCESSFULLY, reloaded, the flag was still there, the
+              door still believed she had left, and it showed her "You signed
+              out of Poe Properties" and "Who are you?" again. Picking "I live
+              here" took her back to this form, for ever.
+
+              The only escape was the small "Come back in" link on the banner,
+              which is the one control that did call enterDoor — and nobody
+              who has just signed in has any reason to look for a way to come
+              back in.
+
+              Reloading is kept: the shell reads the session at mount in
+              several places and a reload is the honest way to re-read them
+              all. The flag is simply cleared FIRST, which is the order the
+              rest of this file already uses (see onReturn above). */}
+          <PasswordAuth
+            mode="signin" embedded startWith="email"
+            onSignedIn={() => { enterDoor(DOORS.properties); window.location.reload(); }}
+          />
         </div>
       )}
     </>
