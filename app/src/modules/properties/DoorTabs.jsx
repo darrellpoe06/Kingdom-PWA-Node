@@ -32,7 +32,7 @@ import { moneyLine, dollarsLong } from './door-money.js';
 import { AreaEditor } from './AreaMap.jsx';
 import { stampImage, stampFileName } from '../../lib/brand-stamp.js';
 import SharpPicture, { sharpestKnown } from './SharpPicture.jsx';
-import { photoOrder, movePhoto, makeCover, pickCovers, listImage } from './photo-order.js';
+import { photoOrder, movePhoto, makeCover, pickCovers } from './photo-order.js';
 import { compressImageFile, isLikelyImageFile } from '../../lib/image.js';
 import { useVoiceDictation } from '../../lib/voice-dictation.js';
 import Lightbox from '../../components/Lightbox.jsx';
@@ -452,7 +452,7 @@ export function DoorsBoard({
   // result. Shown on the family's board only; null hides it.
   money = null,
   // The full image by id (DR-0931): covers sharpen past their thumbnail.
-  loadImage = null,
+  loadImage = null, loadThumb = null,
 }) {
   const [openFor, setOpenFor] = useState(null);
   const [editing, setEditing] = useState(null);
@@ -612,8 +612,8 @@ export function DoorsBoard({
                 className="w-full text-left"
               >
                 <div className="aspect-square w-full bg-[#FAF8F4] flex items-center justify-center overflow-hidden">
-                  {listImage(x.cover) ? (
-                    <SharpPicture photo={x.cover} loadImage={loadImage} alt={x.cover.caption || x.label} className="w-full h-full object-cover" />
+                  {x.cover ? (
+                    <SharpPicture photo={x.cover} loadImage={loadImage} loadThumb={loadThumb} alt={x.cover.caption || x.label} className="w-full h-full object-cover" />
                   ) : (
                     <span className="text-[0.5625rem] uppercase tracking-wider text-[#8A867E]">No photo</span>
                   )}
@@ -661,10 +661,20 @@ export function DoorsBoard({
             <div className="flex flex-wrap items-start justify-between gap-2">
               {/* The picture, so the board reads like a property list and not a
                   spreadsheet. A door with none says so rather than showing a
-                  stand-in photograph of somewhere else. */}
+                  stand-in photograph of somewhere else.
+
+                  "NO PHOTO" IS A FACT ABOUT THE DOOR, NOT ABOUT THE READ
+                  (DR-0955). This asked `listImage(x.cover)` — do the bytes
+                  happen to be in hand — which meant a door whose only
+                  pictures predate 0185 read as having none, and which with
+                  thumbnails out of the list would have made EVERY cover on
+                  this board say "No photo" for good. pickCovers chose a cover
+                  from metadata; whether its bytes have landed yet is
+                  SharpPicture's business and it draws a waiting tile while it
+                  finds out. */}
               <div className="w-20 h-20 shrink-0 border border-[#E8E4DC] bg-[#FAF8F4] flex items-center justify-center overflow-hidden">
-                {listImage(x.cover) ? (
-                  <SharpPicture photo={x.cover} loadImage={loadImage} alt={x.cover.caption || x.label} className="w-full h-full object-cover" />
+                {x.cover ? (
+                  <SharpPicture photo={x.cover} loadImage={loadImage} loadThumb={loadThumb} alt={x.cover.caption || x.label} className="w-full h-full object-cover" />
                 ) : (
                   <span className="text-[0.5625rem] uppercase tracking-wider text-[#8A867E] text-center px-1">No photo</span>
                 )}
@@ -752,7 +762,7 @@ export function DoorsBoard({
     </Card>
     )}
     {homeRows.length > 0 && (
-      <OurHomes rows={homeRows} canManage={canManage} busy={busy} onPick={onPick} onEditRental={onEditRental} loadImage={loadImage} />
+      <OurHomes rows={homeRows} canManage={canManage} busy={busy} onPick={onPick} onEditRental={onEditRental} loadImage={loadImage} loadThumb={loadThumb} />
     )}
     </>
   );
@@ -774,7 +784,7 @@ export function DoorsBoard({
  * a house on a properties screen and seeing no rent, no mortgage and no value
  * would reasonably conclude the app had lost them.
  */
-function OurHomes({ rows = [], canManage = false, busy = false, onPick, onEditRental, loadImage = null }) {
+function OurHomes({ rows = [], canManage = false, busy = false, onPick, onEditRental, loadImage = null, loadThumb = null }) {
   const [editingDoor, setEditingDoor] = useState(null);
   return (
     <Card
@@ -791,8 +801,8 @@ function OurHomes({ rows = [], canManage = false, busy = false, onPick, onEditRe
           <li key={x.rental.id} className="border-b border-[#F0EDE6] py-2 last:border-0">
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div className="w-20 h-20 shrink-0 border border-[#E8E4DC] bg-[#FAF8F4] flex items-center justify-center overflow-hidden">
-                {listImage(x.cover) ? (
-                  <SharpPicture photo={x.cover} loadImage={loadImage} alt={x.cover.caption || x.label} className="w-full h-full object-cover" />
+                {x.cover ? (
+                  <SharpPicture photo={x.cover} loadImage={loadImage} loadThumb={loadThumb} alt={x.cover.caption || x.label} className="w-full h-full object-cover" />
                 ) : (
                   <span className="text-[0.5625rem] uppercase tracking-wider text-[#8A867E] text-center px-1">No photo</span>
                 )}
@@ -1314,7 +1324,7 @@ function CaptionField({ value, onChange, placeholder, label, className = '' }) {
 
 export function GalleryTab({
   door, rooms = [], photos = [], canManage = false, canAdd = canManage, busy = false, unread = false,
-  onAdd, onDone, onPatch, onAddRoom, loadImage = null, doorLabel = '',
+  onAdd, onDone, onPatch, onAddRoom, loadImage = null, loadThumb = null, doorLabel = '',
 }) {
   // Every picture opened or saved here carries the Poe Properties band and a
   // QR to this unit's listing (DR-0941): "all downloaded materials have our
@@ -1340,6 +1350,16 @@ export function GalleryTab({
   const [choosing, setChoosing] = useState(false);
   const [chosen, setChosen] = useState(() => new Set());
   const [bulkRoom, setBulkRoom] = useState('');
+  // WHAT the bulk action sets: the room, or the kind (DR-0951). Darrell,
+  // 2026-10-11, on Bed A holding MOVE IN CONDITION (39) and LISTING (0):
+  // "Need to be able to move pictures to the advertisement sections for
+  // advertisement when necessary" and "I don't want to have to re-upload when
+  // we already have them."
+  const [bulkField, setBulkField] = useState('room');
+  // Never remembered, and never the opening value. DR-0906: advertising is
+  // chosen each time it is meant, because this is the one change that takes a
+  // picture of the inside of a place and makes it publicly visible.
+  const [bulkKind, setBulkKind] = useState(RECORD_KINDS[0]);
   const [bulkSaid, setBulkSaid] = useState('');
   const [newRoom, setNewRoom] = useState('');
   // The full images fetched so far, by id — only what somebody has opened.
@@ -1866,13 +1886,40 @@ export function GalleryTab({
               <>
                 <select
                   className="text-sm border border-[#E8E4DC] px-2 py-2 bg-white text-[#1A1815]"
-                  value={bulkRoom} aria-label="Room for the chosen pictures"
-                  data-testid="gallery-bulk-room"
-                  onChange={(e) => setBulkRoom(e.target.value)}
+                  value={bulkField} aria-label="What to set for the chosen pictures"
+                  data-testid="gallery-bulk-field"
+                  onChange={(e) => setBulkField(e.target.value)}
                 >
-                  <option value="">Not a specific room</option>
-                  {live.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+                  <option value="room">Set the room</option>
+                  <option value="kind">Set what it is</option>
                 </select>
+                {bulkField === 'room' ? (
+                  <select
+                    className="text-sm border border-[#E8E4DC] px-2 py-2 bg-white text-[#1A1815]"
+                    value={bulkRoom} aria-label="Room for the chosen pictures"
+                    data-testid="gallery-bulk-room"
+                    onChange={(e) => setBulkRoom(e.target.value)}
+                  >
+                    <option value="">Not a specific room</option>
+                    {live.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+                  </select>
+                ) : (
+                  /* THE SAME TWO NAMED GROUPS AS THE ADD PANEL (DR-0906): they
+                     are not two flavours of one thing. */
+                  <select
+                    className="text-sm border border-[#E8E4DC] px-2 py-2 bg-white text-[#1A1815]"
+                    value={bulkKind} aria-label="What the chosen pictures are"
+                    data-testid="gallery-bulk-kind"
+                    onChange={(e) => setBulkKind(e.target.value)}
+                  >
+                    <optgroup label="A record — stays inside the app">
+                      {RECORD_KINDS.map((k) => <option key={k} value={k}>{k.replace(/-/g, ' ')}</option>)}
+                    </optgroup>
+                    <optgroup label="Advertising — a stranger can see this">
+                      {ADVERTISING_KINDS.map((k) => <option key={k} value={k}>{k.replace(/-/g, ' ')}</option>)}
+                    </optgroup>
+                  </select>
+                )}
                 <Btn
                   tone="primary" disabled={busy}
                   data-testid="gallery-bulk-apply"
@@ -1880,19 +1927,42 @@ export function GalleryTab({
                     // Serial, like the upload: one write at a time, and the
                     // count that comes back is the count that actually saved.
                     const ids = shown.filter((p) => chosen.has(p.id)).map((p) => p.id);
+                    const patch = bulkField === 'kind'
+                      ? { kind: bulkKind }
+                      : { room_id: bulkRoom || null };
                     let saved = 0;
                     for (const id of ids) {
-                      const r = await onPatch?.(id, { room_id: bulkRoom || null });
+                      const r = await onPatch?.(id, patch);
                       if (!r || r.ok !== false) saved += 1;
                     }
-                    const where = bulkRoom
-                      ? (live.find((r) => r.id === bulkRoom)?.name || 'that room')
-                      : 'no specific room';
-                    setBulkSaid(`${saved} of ${ids.length} filed to ${where}.`);
+                    const where = bulkField === 'kind'
+                      ? bulkKind.replace(/-/g, ' ')
+                      : (bulkRoom
+                        ? (live.find((r) => r.id === bulkRoom)?.name || 'that room')
+                        : 'no specific room');
+                    setBulkSaid(
+                      bulkField === 'kind'
+                        ? `${saved} of ${ids.length} are now ${where}.`
+                        : `${saved} of ${ids.length} filed to ${where}.`,
+                    );
                     setChosen(new Set());
                   }}
-                >{`File ${chosen.size} here`}</Btn>
+                >{bulkField === 'kind' ? `Change ${chosen.size}` : `File ${chosen.size} here`}</Btn>
               </>
+            )}
+            {choosing && chosen.size > 0 && bulkField === 'kind' && isAdvertising(bulkKind) && (
+              /* THE SAME EXCEPTION IN THE SAME RED REGISTER as the add panel
+                 (DR-0906). Turning records into advertising is exactly what he
+                 asked for — "move pictures to the advertisement sections ...
+                 I don't want to have to re-upload when we already have them" —
+                 and it is also the one change that makes a picture of the
+                 inside of a place publicly visible. Offered, and said plainly,
+                 on the same screen as the button. */
+              <p className="w-full text-[0.75rem] text-[#B85838] leading-snug" data-testid="gallery-bulk-advertising">
+                <strong>This makes them advertising.</strong> A listing picture is the only
+                kind a stranger can see — and only while this door is advertised and nobody
+                lives in it. The pictures are not copied; these same ones move.
+              </p>
             )}
             {bulkSaid && (
               <span className="text-[0.75rem] text-[#2F5D50]" data-testid="gallery-bulk-said">{bulkSaid}</span>
@@ -1948,7 +2018,7 @@ export function GalleryTab({
                     </label>
                   )}
                   <button type="button" onClick={() => openAt(idx)} className="block w-full cursor-zoom-in" aria-label={`Open ${p.caption || p.kind}`}>
-                    <SharpPicture photo={p} loadImage={loadImage} alt={p.caption || p.kind} className="aspect-square w-full object-cover" />
+                    <SharpPicture photo={p} loadImage={loadImage} loadThumb={loadThumb} alt={p.caption || p.kind} className="aspect-square w-full object-cover" />
                   </button>
                   {idx === 0 && (
                     <span className="absolute top-1 left-1 bg-[#2F5D50] text-white text-[0.625rem] uppercase tracking-wider px-1.5 py-0.5">Cover</span>

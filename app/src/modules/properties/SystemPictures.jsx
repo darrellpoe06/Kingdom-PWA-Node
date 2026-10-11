@@ -45,7 +45,7 @@ export function systemPictureRows({ door, system, eventId = null, caption = '', 
 }
 
 export default function SystemPictures({
-  door, system, events = [], photos = [], canAdd = false, busy = false, onAdd, loadImage = null, doorLabel = '',
+  door, system, events = [], photos = [], canAdd = false, busy = false, onAdd, loadImage = null, loadThumb = null, doorLabel = '',
 }) {
   const mine = useMemo(() => picturesOf(photos, system.id), [photos, system.id]);
   const [open, setOpen] = useState(null);
@@ -91,7 +91,7 @@ export default function SystemPictures({
           {mine.map((p, i) => (
             <li key={p.id}>
               <button type="button" onClick={() => setOpen(i)} className="w-full focus:outline focus:outline-2 focus:outline-[#2F5D50]" aria-label={`Open ${p.caption || 'picture'}`}>
-                <SharpPicture photo={p} loadImage={loadImage} alt={p.caption || system.name} className="aspect-square w-full object-cover" />
+                <SharpPicture photo={p} loadImage={loadImage} loadThumb={loadThumb} alt={p.caption || system.name} className="aspect-square w-full object-cover" />
               </button>
               {p.system_event_id && <div className="text-[0.625rem] text-[#6B665E] leading-tight">{eventName(p.system_event_id)}</div>}
             </li>
