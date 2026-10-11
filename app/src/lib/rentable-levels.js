@@ -70,7 +70,16 @@ const text = (v) => String(v ?? '').trim();
  */
 export function levelOf(rental) {
   if (!rental || typeof rental !== 'object') return 'unit';
-  const stored = text(rental.rentableLevel ?? rental.rentable_level);
+  // CASE-INSENSITIVE ON THE STORED VALUE (DR-0971). This read used to be
+  // exact, so a stored 'BED' was not recognised and the door fell through to
+  // label inference — reading as a whole unit if its name said nothing. The
+  // app itself can only ever write the three lowercase values
+  // (rentals-sync.js gates on RENTABLE_LEVELS), so this never arose from the
+  // UI; it would arise from a hand-written row or an import. The SQL twin
+  // added in 0278 folds case, and the parity pin in
+  // a-bed-is-not-a-bedroom.test.js caught the two sides disagreeing here.
+  // Folding case on both is the reading that cannot drift.
+  const stored = text(rental.rentableLevel ?? rental.rentable_level).toLowerCase();
   if (LEVELS.includes(stored)) return stored;
   const label = `${text(rental.unitLabel ?? rental.unit)} ${text(rental.name)}`;
   if (/\bbed\b/i.test(label)) return 'bed';

@@ -2189,8 +2189,11 @@ export function GalleryTab({
                   ? <strong>{sharedDoors[0].display_name || 'the other door'}</strong>
                   : <strong>{sharedDoors.length} other doors</strong>} in this same
                 apartment. The kitchen, the bath and the halls are the same rooms, so
-                they advertise this door too — you do not need to photograph them again.
-                Tick any of them to use the buttons above; they stay where they are.
+                they advertise this door too — you do not need to photograph them again,
+                and <strong>you do not need to move them</strong>. This door is already
+                advertised with these pictures. Ticking one here edits it on the door
+                that owns it, for both listings at once — it is never a copy and never
+                a way to give this door its own.
               </p>
               <ul className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {sharedPhotos.map((p) => (
