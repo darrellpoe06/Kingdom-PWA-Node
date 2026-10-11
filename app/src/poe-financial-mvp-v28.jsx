@@ -28,7 +28,7 @@ import { Inbound } from './components/Inbound.jsx';
 import { ProjectsWrapper } from './components/Projects.jsx';
 import AuthBanner from './components/AuthBanner.jsx';
 import ClaimInviteBanner from './components/ClaimInviteBanner.jsx';
-import PasswordAuth from './components/PasswordAuth.jsx';
+import PublicFrontDoor from './components/PublicFrontDoor.jsx';
 import { accessState, isPublicChurchRoute, wearsChurchBrand, isChurchLinkVisit, isPublicHost } from './lib/access-gate.js';
 import { PROPOSED_COHORT_START, resolveCohort, CLASS_INTEREST_TAG, extractClassRoster } from './lib/church-classes.js';
 import { COLG_DEFAULT_CHURCH } from './lib/default-church.js';
@@ -3530,11 +3530,11 @@ export default function PoeFinancialSystem() {
   // out visitors SEE the church (no private family/financial data lives here) — the
   // "no profile, no access" wall is only for the private PoeTech app. Sign-in stays
   // one tap away (HeaderAuthButton) for staff / a ride account; staff surfaces self-gate.
+  // The HOMES get it too — this gate used to render the PIN form alone (DR-0958).
   if (__gate !== 'app' && !churchDoorOnly && !isPublicChurchRoute()) {
     return (
       <div data-theme={theme} className="min-h-screen overflow-x-clip bg-[#FAF8F4] text-[#1A1815] flex items-start justify-center p-6 sm:p-12" style={{ fontFamily: '"DM Sans", system-ui, sans-serif' }}>
-        {/* The church door wears the church on the gate too (DR-0174). */}
-        {__gate === 'gate' ? <PasswordAuth brand={isChurchDoorContext() ? LOVE_CORNER_BRAND : null} /> : null}
+        {__gate === 'gate' ? <PublicFrontDoor brand={isChurchDoorContext() ? LOVE_CORNER_BRAND : null} /> : null}
       </div>
     );
   }
