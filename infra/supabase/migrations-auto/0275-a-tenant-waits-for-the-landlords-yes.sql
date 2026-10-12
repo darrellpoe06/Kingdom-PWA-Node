@@ -499,6 +499,22 @@ GRANT EXECUTE ON FUNCTION public.decide_portal_request(uuid, text, uuid, text) T
 -- failing. Listing a value a sibling branch adds costs nothing if that branch
 -- never lands. And the whole block is skipped when door_events does not exist,
 -- so the earlier chain legs that stop before 0262 still replay clean.
+--
+-- CORRECTION, ADDED 2026-10-12 (DR-0976). THE PARAGRAPH ABOVE IS WRONG ABOUT
+-- WHAT THE STATEMENT BELOW DOES. It says "this widens it" and the statement
+-- NARROWS it: the list was rebuilt from 0262's two values plus 'stay', so
+-- 0263's 'document' and 0266's 'camera' were DELETED — the exact harm this
+-- comment set out to avoid, done to the already-merged files while guarding
+-- the unmerged sibling.
+--
+-- MEASURED CONSEQUENCE: lease signing (three writes in 0263) and door-camera
+-- access (a trigger in 0266) raised on every write for ~28 hours, and
+-- rls-isolation failed 10 consecutive runs on 0263's smoke. Restored by 0279.
+-- Nothing here is changed — the SQL stays exactly as it was applied; only the
+-- record is corrected, where the next reader will look.
+--
+-- allow-list-change: door_events_subject_check document -- DEFECT, not intent: deleted by mistake, restored by 0279 (DR-0976)
+-- allow-list-change: door_events_subject_check camera -- DEFECT, not intent: deleted by mistake, restored by 0279 (DR-0976)
 DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM information_schema.tables
