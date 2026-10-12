@@ -77,6 +77,12 @@ jobs:
     if: ${{ vars.SITE_HEALTH_ENABLED != 'false' }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    outputs:
+      # Carried out of the job ONLY so the `verdict` job below can put it in a
+      # job NAME. A run's `run-name:` is fixed when the run is created, before
+      # anything is measured, so the Actions list cannot be made to show which
+      # fault this is — a named downstream job is the one label that can.
+      verdict_label: ${{ steps.verdict.outputs.run_name }}
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       REPO: ${{ github.repository }}
@@ -521,6 +527,68 @@ jobs:
             note "**UP.**${stale:+ }$([ "$stale" = "true" ] && echo "**But STALE** — dispatching the deploy heal." || echo " Fresh.")"
           fi
 
+      # WHICH FAULT IS THIS? (DR-0975)
+      #
+      # MEASURED 2026-10-12: the last green run of this workflow was
+      # 37952054170 on 2026-10-09T15:28:55Z, and the 22 runs after it all
+      # failed with the SAME single reason — the Cloudflare Pages Functions
+      # outage recorded on #2057, which no code change in this repository
+      # reaches. Issue #2057 held 29 comments, every one of them that cause.
+      #
+      # A witness whose output has not changed in 65 hours cannot report a new
+      # fault. A second fault arriving today appended one more clause to the
+      # same `fail_reasons` string inside an already-red run: identical
+      # conclusion, identical title, comment #30 on a thread nobody can read.
+      # That is DR-0125 defeated — and line 434 of this very file predicted it
+      # about a different probe: "a witness that cries wolf gets deleted".
+      #
+      # THIS DOES NOT MAKE ANYTHING GREEN. The site really is broken and the
+      # run still fails. All that changes is that the run says WHICH fault,
+      # so a new one is distinguishable from one already on the record.
+      - name: Name the fault (new, or the one already on record)
+        id: verdict
+        if: always()
+        env:
+          REASONS: ${{ steps.probe.outputs.fail_reasons }}
+          OUTCOME: ${{ steps.probe.outcome }}
+        run: |
+          set -uo pipefail
+          # A probe that died before reporting is an unexplained observation,
+          # not a quiet one. Give it a reason that matches no carve-out so it
+          # reads NEW (DR-0076: unknown never reads as healthy).
+          if [ -z "${REASONS}" ] && [ "${OUTCOME}" != "success" ]; then
+            REASONS="the probe crashed before reporting"
+          fi
+          # When was the last "still true" note left on the incident ledger?
+          # Used only to decide whether to repeat an unchanged observation; a
+          # NEW fault is never throttled by it.
+          last=""
+          num=$(gh issue list --repo "$REPO" --label incident --state open --search "in:title site-health" --json number --jq '.[0].number // ""')
+          if [ -n "$num" ]; then
+            last=$(gh issue view "$num" --repo "$REPO" --json comments \
+              --jq '[.comments[] | select(.body | contains("site-health: known outage, still true")) | .createdAt] | last // ""' || echo "")
+          fi
+          echo "incident_issue=$num" >> "$GITHUB_OUTPUT"
+          # One invocation, read twice: once into the step outputs, once for
+          # the summary. The script prints nothing but key=value lines.
+          REASONS="$REASONS" node scripts/site-health-verdict.mjs \
+            --last-known-at="$last" > "$RUNNER_TEMP/verdict.txt"
+          cat "$RUNNER_TEMP/verdict.txt" >> "$GITHUB_OUTPUT"
+          cat "$RUNNER_TEMP/verdict.txt"
+          V=$(grep '^verdict=' "$RUNNER_TEMP/verdict.txt" | cut -d= -f2-)
+          H=$(grep '^headline=' "$RUNNER_TEMP/verdict.txt" | cut -d= -f2-)
+          # The verdict CLOSES the summary — the step summary is append-only
+          # and the probe has already written its measurements above, so this
+          # is the last thing on the page rather than the first. That is where
+          # a reader's eye lands after the readings, and it states the
+          # conclusion those readings add up to.
+          case "$V" in
+            UP)    head="**UP. Fresh.**" ;;
+            NEW)   head="### 🆕 NEW FAULT — not already on record" ;;
+            *)     head="### Nothing new (still failing)" ;;
+          esac
+          printf '%s\n\n%s\n\n' "$head" "$H" >> "$GITHUB_STEP_SUMMARY"
+
       - name: Heal a stale build (one-shot deploy dispatch)
         if: ${{ steps.probe.outcome == 'success' && steps.probe.outputs.stale == 'true' && steps.probe.outputs.fail_reasons == '' }}
         run: gh workflow run deploy-cloudflare-pages.yml --repo "$REPO" --ref main || echo "::warning::could not dispatch deploy"
@@ -555,6 +623,9 @@ jobs:
           PAGES_CODE: ${{ steps.probe.outputs.pages_code }}
           BACKEND_CODE: ${{ steps.probe.outputs.backend_code }}
           OUTCOME: ${{ steps.probe.outcome }}
+          VERDICT: ${{ steps.verdict.outputs.verdict }}
+          ANY_NEW: ${{ steps.verdict.outputs.any_new }}
+          DAYS: ${{ steps.verdict.outputs.days }}
         run: |
           set -uo pipefail
           title="site-health: the live site, run log"
@@ -565,7 +636,15 @@ jobs:
               verdict="UP. Fresh"
             fi
           else
-            verdict="DOWN/BROKEN - ${REASONS:-the probe crashed before reporting}"
+            # EVERY run still leaves a line here, throttled by nothing: this
+            # log's whole contract is that SILENCE means the witness did not
+            # run (DR-0514). What the line now carries is WHICH fault, so a
+            # scan of the log shows a new one instead of 22 identical rows.
+            if [ "${ANY_NEW}" = "true" ]; then
+              verdict="DOWN/BROKEN (NEW FAULT) - ${REASONS:-the probe crashed before reporting}"
+            else
+              verdict="DOWN/BROKEN (nothing new, known outage day ${DAYS:-?}) - ${REASONS:-the probe crashed before reporting}"
+            fi
           fi
           line="$(date -u +%FT%TZ) - ${verdict}. Served build: ${SERVED:-unknown} (main: ${MAIN:-unknown}). pages.dev shell: HTTP ${PAGES_CODE:-unknown}. backend auth: HTTP ${BACKEND_CODE:-unknown}. Run: ${GITHUB_SERVER_URL}/${REPO}/actions/runs/${GITHUB_RUN_ID}"
           log_issue=$(gh issue list --repo "$REPO" --state all --search "in:title site-health: the live site, run log" --json number --jq '.[0].number // ""')
@@ -597,12 +676,38 @@ jobs:
           MAIN: ${{ steps.probe.outputs.main_sha }}
           BACKEND_CODE: ${{ steps.probe.outputs.backend_code }}
           N8N_BEARER: ${{ secrets.VITE_N8N_BEARER }}
+          VERDICT: ${{ steps.verdict.outputs.verdict }}
+          ANY_NEW: ${{ steps.verdict.outputs.any_new }}
+          WRITE_LEDGER: ${{ steps.verdict.outputs.write_ledger }}
+          HEADLINE: ${{ steps.verdict.outputs.headline }}
+          DAYS: ${{ steps.verdict.outputs.days }}
         run: |
           set -uo pipefail
           title="site-health: poetech.us failing the outside-in probe"
-          body="$(date -u +%FT%TZ) — **DOWN/BROKEN**: ${REASONS:-probe step crashed before reporting — see the run log}. pages.dev shell: HTTP ${PAGES_CODE}. backend auth: HTTP ${BACKEND_CODE}. served=${SERVED} main=${MAIN}. Run: ${GITHUB_SERVER_URL}/${REPO}/actions/runs/${GITHUB_RUN_ID}"
+          # A NEW fault is written the moment it is seen, and marked so it is
+          # findable in a thread that is mostly one repeated observation. A run
+          # that only re-measures something already on record writes at most
+          # once a day (DR-0975): #2057 collected 29 comments in 65 hours, all
+          # one cause, which is exactly how a ledger stops being read (P53) —
+          # and the comment that matters then arrives as #30.
+          #
+          # THE RUN STILL FAILS EITHER WAY. Only the writing is throttled, and
+          # only for an observation that is unchanged. The run log above still
+          # gets its line every single run, with no throttle at all.
+          if [ "${ANY_NEW}" = "true" ]; then
+            # The marker stays ON THE SAME LINE on purpose. Inside this `run: |`
+            # block a continuation line carries the YAML indentation into the
+            # string, and four or more leading spaces make Markdown render it
+            # as a code block — so a marker meant to be invisible would be
+            # printed in the comment instead.
+            body="$(date -u +%FT%TZ) — 🆕 **A FAULT NOT ALREADY ON RECORD**: ${REASONS:-probe step crashed before reporting — see the run log}. pages.dev shell: HTTP ${PAGES_CODE}. backend auth: HTTP ${BACKEND_CODE}. served=${SERVED} main=${MAIN}. Run: ${GITHUB_SERVER_URL}/${REPO}/actions/runs/${GITHUB_RUN_ID} <!-- site-health: NEW fault -->"
+          else
+            body="$(date -u +%FT%TZ) — **STILL BROKEN, nothing new.** ${HEADLINE}. pages.dev shell: HTTP ${PAGES_CODE}. backend auth: HTTP ${BACKEND_CODE}. served=${SERVED} main=${MAIN}. This note is written at most once a day while the fault is unchanged, so a genuinely new fault is not buried under repetitions of this one; every run is still recorded on the run log, and every run still FAILS. Run: ${GITHUB_SERVER_URL}/${REPO}/actions/runs/${GITHUB_RUN_ID} <!-- site-health: known outage, still true -->"
+          fi
           open_issue=$(gh issue list --repo "$REPO" --label incident --state open --search "in:title site-health" --json number --jq '.[0].number // ""')
-          if [ -n "$open_issue" ]; then
+          if [ "${WRITE_LEDGER}" != "true" ] && [ -n "$open_issue" ]; then
+            echo "::notice::nothing new (known outage, day ${DAYS:-?}) and it was noted within the last day — not repeating it on #${open_issue}. The run log still has this run's line, and this run still fails."
+          elif [ -n "$open_issue" ]; then
             gh issue comment "$open_issue" --repo "$REPO" --body "$body"
           else
             gh label create incident --repo "$REPO" --color B60205 --description "Live-site downtime record (site-health probe)" 2>/dev/null || true
@@ -627,7 +732,14 @@ jobs:
           # A DEAD BELL IS RECORDED WHERE HUMANS LOOK, not into the warning
           # stream nobody reads (P53). It goes on the same rolling incident
           # issue as the outage itself.
-          if [ -n "${N8N_BEARER:-}" ]; then
+          #
+          # The bell follows the same throttle (DR-0975). A phone that buzzes
+          # every hour for three days with the identical unchanged message is
+          # a phone somebody mutes, and then the NEW fault's buzz is muted too.
+          # A new fault always rings; an unchanged one rings at most once a day.
+          if [ "${WRITE_LEDGER}" != "true" ]; then
+            echo "::notice::the alarm already carried this unchanged fault within the last day — not ringing again."
+          elif [ -n "${N8N_BEARER:-}" ]; then
             set +e
             RUN_URL="${GITHUB_SERVER_URL}/${REPO}/actions/runs/${GITHUB_RUN_ID}" \
               node scripts/ops-announce.mjs \
@@ -663,6 +775,25 @@ jobs:
             gh issue close "$open_issue" --repo "$REPO" \
               --comment "$(date -u +%FT%TZ) — RECOVERED: probe green (served build ${{ steps.probe.outputs.served_sha }})."
           fi
+
+  # WHICH FAULT, VISIBLE WITHOUT OPENING THE RUN (DR-0975).
+  #
+  # All 1,553 runs of this workflow share one display title, because a run's
+  # name is fixed when the run is created — before a single measurement exists.
+  # So the Actions list cannot be made to say which fault a red run is. A job
+  # NAME can: `jobs.<id>.name` is evaluated from the `needs` context, after the
+  # probe has reported. This job exists for nothing but that label.
+  #
+  # It does no work, touches nothing, and cannot affect the probe's result.
+  verdict:
+    needs: probe
+    if: ${{ always() && needs.probe.result != 'skipped' }}
+    name: ${{ needs.probe.outputs.verdict_label || 'verdict unavailable — the probe did not report' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: The label is the point
+        run: echo "${{ needs.probe.outputs.verdict_label || 'the probe did not report a verdict' }}"
 
   # A DISABLED WITNESS MUST STILL SAY SO (added 2026-09-18; DR-0514).
   #
