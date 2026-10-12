@@ -202,3 +202,58 @@ describe('the second reading — the one a browser cannot take (DR-0973)', () =>
   });
 });
 
+describe('the witness walks the path a stranger walks (DR-0974)', () => {
+  // ITS OWN FIRST LIVE RUN FOUND THIS. Run 38178556102, 2026-10-11:
+  //
+  //   Cards read: 0
+  //   - the shelf rendered NO cards at all
+  //
+  // The shelf is not the landing page. PropertiesDoor opens on "Who are
+  // you?" and only calls loadPublicVacancies() once `who === 'applicant'`
+  // (PropertiesDoor.jsx:321-330), so the witness had photographed the
+  // chooser and judged that. It FAILED rather than passing, which is the
+  // only reason this surfaced in minutes instead of becoming a daily green
+  // tick over a page nobody read — "unknown is not pass" earning its keep on
+  // the instrument's own first outing.
+  //
+  // A source pin, because the alternative is discovering it again live.
+  it('PROVEN-TO-CATCH: it clicks through the chooser before judging anything', async () => {
+    const { readFileSync } = await import('node:fs');
+    const { join, dirname } = await import('node:path');
+    const { fileURLToPath } = await import('node:url');
+    const here = dirname(fileURLToPath(import.meta.url));
+    const src = readFileSync(join(here, '../../../scripts/public-shelf-witness.mjs'), 'utf8');
+
+    const goto = src.indexOf('page.goto(BASE');
+    const judge = src.indexOf("waitForSelector('li'");
+    expect(goto, 'the witness no longer loads the base URL').toBeGreaterThan(0);
+    expect(judge, 'the witness no longer waits for cards').toBeGreaterThan(0);
+    expect(judge, 'it must click through BEFORE waiting for cards').toBeGreaterThan(goto);
+
+    const between = src.slice(goto, judge);
+    expect(between, 'nothing clicks the one option that needs no account').toMatch(/Looking for a place/);
+    expect(between, 'it must actually click, not merely find').toMatch(/\.click\(/);
+  });
+
+  it('it clicks by visible text, not a testid', async () => {
+    // A testid would let the button be renamed out from under the witness in
+    // silence; the visible words are what a stranger reads and clicks.
+    const { readFileSync } = await import('node:fs');
+    const { join, dirname } = await import('node:path');
+    const { fileURLToPath } = await import('node:url');
+    const here = dirname(fileURLToPath(import.meta.url));
+    const src = readFileSync(join(here, '../../../scripts/public-shelf-witness.mjs'), 'utf8');
+    expect(src).toMatch(/getByRole\('button', \{ name: \/Looking for a place/);
+  });
+
+  it('the label it clicks is the real one, from WHO_OPTIONS', async () => {
+    // If the option is ever renamed, this fails here rather than as a zero
+    // on a live run at 02:41 in the morning.
+    const { WHO_OPTIONS } = await import('../modules/properties/model.js');
+    const browse = WHO_OPTIONS.filter((w) => !w.needsAccount);
+    expect(browse, 'exactly one option should need no account').toHaveLength(1);
+    expect(browse[0].label).toBe('Looking for a place');
+    expect(browse[0].goes).toBe('vacancies');
+  });
+});
+
