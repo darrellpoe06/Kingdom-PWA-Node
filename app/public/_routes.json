@@ -4,6 +4,7 @@
     "/api/*",
     "/automation-status",
     "/cams/*",
+    "/geocode",
     "/interest",
     "/link",
     "/llm/*",

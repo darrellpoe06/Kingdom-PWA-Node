@@ -356,3 +356,34 @@ describe('what a door is offered as', () => {
     expect(patch.min_stay_nights).toBe(0);
   });
 });
+
+// DR-0980. Darrell, 2026-10-12, Bed B reading "NO PHOTO" beside Bed A's 37:
+// "Why don't the images show up for apartment 4 B?" -- "If the Apartment field
+// is the same?!" Proven-to-catch: drop the borrowing and Bed B reads "No photo".
+describe('a door with no pictures of its own shows its apartment\'s', () => {
+  const apt4 = [
+    { id: 'bed-a', slug: 'bed-a', instance_id: 'i1', display_name: '805 North Prospect Avenue half 0.5 of Room - Bed A', address: '805 North Prospect Avenue', unit: 'Apt 4', city: 'Champaign', state: 'Illinois', listed_at: '2026-10-01T00:00:00Z' },
+    // The unit typed into the address on this door and not the other (DR-0968).
+    { id: 'bed-b', slug: 'bed-b', instance_id: 'i1', display_name: '805 North Prospect Avenue half 0.5 of Room - Bed B', address: '805 North Prospect Avenue Apt 4', unit: 'Apt 4', city: 'Champaign', state: 'Illinois', listed_at: '2026-10-01T00:00:00Z' },
+    { id: 'apt-2', slug: 'apt-2', instance_id: 'i1', display_name: '805 North Prospect Avenue', address: '805 North Prospect Avenue', unit: 'Apt 2', city: 'Champaign', state: 'Illinois' },
+    { id: 'other-inst', slug: 'other', instance_id: 'i2', display_name: 'Elsewhere', address: '805 North Prospect Avenue', unit: 'Apt 4', city: 'Champaign', state: 'Illinois' },
+  ];
+  const shot = (id, ref) => ({ id, rental_ref: ref, kind: 'listing', caption: id, storage_path: `data:image/jpeg;base64,${id}`, thumb_path: `data:image/jpeg;base64,${id}`, taken_at: '2026-01-01T00:00:00Z' });
+  const photos = [shot('a1', 'bed-a'), shot('a2', 'bed-a'), shot('a3', 'bed-a'), shot('x1', 'other-inst')];
+  const lineOf = (host, name) => [...host.querySelectorAll('li')].find((li) => li.textContent.includes(name));
+
+  it('Bed B shows Apt 4\'s cover and says the pictures are shared; it never borrows across an instance or another apartment', () => {
+    const host = render(<DoorsBoard rentals={apt4} tenancies={[]} photos={photos} canManage />);
+    const bedB = lineOf(host, 'Bed B');
+    expect(bedB.textContent).not.toMatch(/No photo/i);
+    expect(bedB.querySelector('img')).not.toBeNull();
+    expect(bedB.textContent).toContain('3 photos shared with Apt 4');
+    const bedA = lineOf(host, 'Bed A');
+    expect(bedA.textContent).toContain('3 photos');
+    expect(bedA.textContent).not.toContain('shared with');
+    // Apt 2 is another apartment at the same street: nothing borrowed.
+    const apt2 = [...host.querySelectorAll('li')].find((li) => /Apt 2/.test(li.textContent) && !/Bed/.test(li.textContent));
+    expect(apt2.textContent).toMatch(/No photo/i);
+    expect(apt2.textContent).not.toContain('shared with');
+  });
+});

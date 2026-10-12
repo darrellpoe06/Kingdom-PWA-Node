@@ -38,6 +38,7 @@ import { spawn, execFileSync } from 'node:child_process';
 import { createHmac, randomUUID } from 'node:crypto';
 import { readFileSync, existsSync, mkdirSync, writeFileSync, statSync } from 'node:fs';
 import { join, extname, normalize } from 'node:path';
+import { geocodeResponse } from '../../app/functions/geocode.js';
 
 // A secret that exists only for this throwaway stack.
 const JWT_SECRET = 'e2e-door-journeys-throwaway-secret-0123456789abcdef';
@@ -73,8 +74,9 @@ mkdirSync(SHOTS, { recursive: true });
 const sql = (text) => execFileSync(PSQL[0], [...PSQL.slice(1), '-v', 'ON_ERROR_STOP=1', '-qAt', '-c', text], { encoding: 'utf8' }).trim();
 
 // ---------------------------------------------------------------------------
-// The seed: one family, one short-stay door marked to SHOW its street (the
-// setting DR-0933 overrode — so the stranger's page proves it stays hidden).
+// The seed: one family, one short-stay door whose family HOLDS its street
+// (DR-0977: the street shows unless the family holds it), so the stranger's
+// page proves a held street stays hidden. H1 then shows it.
 // ---------------------------------------------------------------------------
 const OWNER = '00000000-0000-4000-a000-00000000e2e1';
 const INSTANCE = '00000000-0000-4000-b000-00000000e2e1';
@@ -94,7 +96,7 @@ function seed() {
     INSERT INTO instances (id, slug, display_name, instance_type) VALUES ('${INSTANCE}', 'poe-properties-e2e', 'Poe Properties E2E', 'business');
     INSERT INTO instance_members (instance_id, user_id, role, display_name) VALUES ('${INSTANCE}', '${OWNER}', 'owner', 'Owner');
     INSERT INTO rentals (id, instance_id, created_by, slug, display_name, address, unit, city, state, property_type, status, listed_at, offering, nightly_rate, address_visibility)
-      VALUES ('${DOOR}', '${INSTANCE}', '${OWNER}', 'E2E-APT2', '${STREET} Apt 2', '${STREET}', 'Apt 2', 'Champaign', 'Illinois', 'multi-family', 'vacant', now(), 'short-term', 150, 'public');
+      VALUES ('${DOOR}', '${INSTANCE}', '${OWNER}', 'E2E-APT2', '${STREET} Apt 2', '${STREET}', 'Apt 2', 'Champaign', 'Illinois', 'multi-family', 'vacant', now(), 'short-term', 150, 'after-application');
     -- (a fresh insert carries no area; the family sets it in E1)
   `);
 }
@@ -108,8 +110,8 @@ const MIG = 'infra/supabase/migrations-auto';
 export const FAULTS = Object.freeze({
   street: {
     step: 'A1',
-    sql: `CREATE OR REPLACE FUNCTION public.rental_address_is_public(p_visibility text) RETURNS boolean LANGUAGE sql IMMUTABLE AS $f$ SELECT p_visibility = 'public' $f$;`,
-    restore: `${MIG}/0268-the-public-shelf-shows-where-never-the-street.sql`,
+    sql: `CREATE OR REPLACE FUNCTION public.rental_address_is_public(p_visibility text) RETURNS boolean LANGUAGE sql IMMUTABLE AS $f$ SELECT true $f$;`,
+    restore: `${MIG}/0280-the-address-shows-unless-the-family-holds-it.sql`,
   },
   confirm: {
     step: 'B2',
@@ -124,7 +126,12 @@ export const FAULTS = Object.freeze({
   area: {
     step: 'E1',
     sql: `CREATE OR REPLACE FUNCTION public.rentals_area_rounded() RETURNS trigger LANGUAGE plpgsql AS $f$ BEGIN RAISE EXCEPTION 'e2e fault: no area' USING ERRCODE = 'check_violation'; END $f$;`,
-    restore: `${MIG}/0270-the-public-shelf-shows-the-area-on-a-map.sql`,
+    restore: [
+      `${MIG}/0270-the-public-shelf-shows-the-area-on-a-map.sql`,
+      `${MIG}/0273-a-shared-home-says-so-on-the-shelf.sql`,
+      `${MIG}/0278-a-bed-is-not-a-bedroom.sql`,
+      `${MIG}/0280-the-address-shows-unless-the-family-holds-it.sql`,
+    ],
   },
   calendar: {
     step: 'C1',
@@ -135,7 +142,10 @@ export const FAULTS = Object.freeze({
 const BREAK = (process.argv.find((a) => a.startsWith('--break=')) || '').slice('--break='.length);
 if (BREAK && !FAULTS[BREAK]) fail(2, `unknown --break=${BREAK} (one of: ${Object.keys(FAULTS).join(', ')})`);
 function applyFile(path) { execFileSync(PSQL[0], [...PSQL.slice(1), '-v', 'ON_ERROR_STOP=1', '-q', '-f', path], { encoding: 'utf8', stdio: ['ignore', 'ignore', 'inherit'] }); }
-function undoFault(f) { if (f.restore.endsWith('.sql')) applyFile(f.restore); else sql(f.restore); }
+// A restore may be a LIST of files: re-applying one migration can rebuild an
+// object a later one owns (0270 recreates public_vacancies() without 0278's
+// levels and 0280's street), so the restore replays the chain after it too.
+function undoFault(f) { for (const r of [].concat(f.restore)) { if (r.endsWith('.sql')) applyFile(r); else sql(r); } }
 
 // ---------------------------------------------------------------------------
 // PostgREST behind a gateway that answers the paths the app calls.
@@ -169,6 +179,15 @@ function claims(req) {
   try { return JSON.parse(Buffer.from(m[1].split('.')[1], 'base64url').toString()); } catch { return null; }
 }
 
+// The Census geocoder's answer for 805 N Prospect, recorded (its shape:
+// result.addressMatches[0].coordinates {x: longitude, y: latitude}).
+const CENSUS_RECORDED = async () => ({
+  ok: true, status: 200,
+  json: async () => ({ result: { addressMatches: [{ matchedAddress: '805 N PROSPECT AVE, CHAMPAIGN, IL, 61820', coordinates: { x: -88.25828, y: 40.123364 } }] } }),
+});
+const GEOCODES = [];
+const TILE_FETCHES = {};
+
 function gateway() {
   return createServer((req, res) => {
     const url = new URL(req.url, BASE);
@@ -190,6 +209,17 @@ function gateway() {
       return;
     }
     if (url.pathname.startsWith('/sb/')) { res.writeHead(404, { 'content-type': 'application/json' }); res.end('{}'); return; }
+    // THE REAL /geocode ROUTE (app/functions/geocode.js), with the Census
+    // answer recorded rather than fetched: a run never calls the Census or
+    // OpenStreetMap. Every lookup is counted, so a journey can prove that
+    // nothing is looked up until somebody asks for a map (DR-0977).
+    if (url.pathname === '/geocode') {
+      GEOCODES.push(url.searchParams.get('q'));
+      geocodeResponse(url.href, CENSUS_RECORDED).then(async (r) => {
+        res.writeHead(r.status, Object.fromEntries(r.headers)); res.end(await r.text());
+      }, () => { res.writeHead(500); res.end(); });
+      return;
+    }
     // The built app, served the way Pages serves it; no service worker here
     // (a worker caching between journeys would blur what each one proves).
     if (url.pathname.endsWith('/sw.js')) { res.writeHead(404); res.end(); return; }
@@ -269,7 +299,9 @@ async function run() {
     // policy is for people looking at maps, not CI), and the journeys prove the
     // map is drawn, not that a third party is up.
     const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
-    const hermetic = async (ctx) => { await ctx.route('https://tile.openstreetmap.org/**', (r) => r.fulfill({ status: 200, contentType: 'image/png', body: PNG })); return ctx; };
+    // Every tile request is counted per context, so C2 can prove none is
+    // fetched before the visitor asks for the map (DR-0977).
+    const hermetic = async (ctx, name = '') => { await ctx.route('https://tile.openstreetmap.org/**', (r) => { if (name) TILE_FETCHES[name] = (TILE_FETCHES[name] || 0) + 1; return r.fulfill({ status: 200, contentType: 'image/png', body: PNG }); }); return ctx; };
     let current = null;
     const step = async (name, fn) => {
       try { await fn(); results.push([name, 'pass']); console.log(`  ✔ ${name}`); } catch (e) {
@@ -289,13 +321,13 @@ async function run() {
     // A. A stranger with no account books two nights — and never sees the street.
     const guest = await hermetic(await browser.newContext({ viewport: { width: 412, height: 915 } }));
     const gp = watch(await guest.newPage(), 'guest'); current = gp;
-    await step('A1 the public door lists the short-stay place, without its street', async () => {
+    await step('A1 the public door lists the short-stay place, without the street its family holds', async () => {
       await gp.goto(`${BASE}/properties/app/?properties=1`, { waitUntil: 'domcontentloaded' });
       await gp.getByRole('button', { name: /Looking for a place/i }).click({ timeout: 15000 });
       await gp.getByText(/Champaign/).first().waitFor({ timeout: 15000 });
       await gp.screenshot({ path: join(SHOTS, 'A1-listing.png'), fullPage: true });
       const text = await gp.locator('body').innerText();
-      if (text.includes(STREET)) throw new Error(`the street "${STREET}" is on the public page (DR-0933 says never)`);
+      if (text.includes(STREET)) throw new Error(`the held street "${STREET}" is on the public page (DR-0977: held until they apply or book)`);
     });
     await step('A2 the short form books two nights, both attestations given', async () => {
       await gp.getByRole('button', { name: /Book a stay/i }).first().click();
@@ -352,13 +384,14 @@ async function run() {
     });
 
     // E. The family puts the door's area on the map; only the area is kept.
-    await step('E1 the family sets the area on the map; the database keeps only the rounded area', async () => {
+    await step('E1 the family finds the door from its own address; the database keeps only the rounded area', async () => {
       await op.getByRole('button', { name: /^Doors$/ }).first().click({ timeout: 15000 });
       await op.getByRole('button', { name: /^Edit( door)?$/ }).first().click({ timeout: 15000 });
       await op.getByTestId('area-editor').waitFor({ timeout: 15000 });
-      await op.getByLabel('Point from a map app').fill('https://www.google.com/maps/@40.123364,-88.25828,17z');
-      await op.getByRole('button', { name: /^Use this point$/ }).click();
+      if (GEOCODES.length) throw new Error(`the editor looked the address up before anyone asked (${GEOCODES.length})`);
+      await op.getByRole('button', { name: /^Find it from the address$/ }).click();
       await op.getByTestId('area-editor-lines').waitFor({ timeout: 15000 });
+      if (GEOCODES.join('|') !== `${STREET}, Champaign, Illinois`) throw new Error(`the lookup asked for "${GEOCODES.join('|')}"`);
       await op.screenshot({ path: join(SHOTS, 'E1-area-editor.png'), fullPage: true });
       await op.getByRole('button', { name: /^Save the area$/ }).click();
       await waitFor(() => sql(`SELECT coalesce(area_lat::text,'') || ',' || coalesce(area_lng::text,'') FROM rentals WHERE id = '${DOOR}'`) === '40.12500,-88.26000', 'the area to read 40.12500,-88.26000 in the database');
@@ -389,7 +422,7 @@ async function run() {
     } else console.log('  (F1 skipped: set E2E_HEIC to a HEIC file to walk it)');
 
     // C. The next stranger sees those nights dark.
-    const next = await hermetic(await browser.newContext({ viewport: { width: 412, height: 915 } }));
+    const next = await hermetic(await browser.newContext({ viewport: { width: 412, height: 915 } }), 'next');
     const np = watch(await next.newPage(), 'next'); current = np;
     await step('C1 the booked nights are dark for the next guest', async () => {
       await np.goto(`${BASE}/properties/app/?properties=1`, { waitUntil: 'domcontentloaded' });
@@ -398,17 +431,41 @@ async function run() {
       await waitFor(async () => (await np.locator(`button[aria-label^="${IN}"]`).first().getAttribute('data-taken')) === 'yes', `the night of ${IN} to show taken`);
       await np.screenshot({ path: join(SHOTS, 'C1-dark-nights.png'), fullPage: true });
     });
-    await step('C2 the next guest sees the area and what is nearby, never the street or the point', async () => {
+    await step('C2 the next guest gets a map only when asking for it: the area and what is nearby, never the held street or the point', async () => {
+      await np.getByTestId('show-map').first().waitFor({ timeout: 15000 });
+      if (TILE_FETCHES.next) throw new Error(`${TILE_FETCHES.next} map tile(s) were fetched before anyone asked for the map`);
+      const near = await np.getByTestId('nearby').first().innerText();
+      if (!/University of Illinois Main Quad\s+about 2\.0 mi/.test(near)) throw new Error(`what's nearby reads "${near.replace(/\s+/g, ' ')}"`);
+      await np.getByTestId('show-map').first().click();
       await np.getByTestId('area-map').first().waitFor({ timeout: 15000 });
       const tiles = await np.getByTestId('area-map-tile').count();
       if (tiles !== 15) throw new Error(`the map drew ${tiles} tiles, not 15`);
-      const near = await np.getByTestId('nearby').first().innerText();
-      if (!/University of Illinois Main Quad\s+about 2\.0 mi/.test(near)) throw new Error(`what's nearby reads "${near.replace(/\s+/g, ' ')}"`);
       const html = await np.content();
-      if (html.includes(STREET)) throw new Error('the street is in the public page');
+      if (html.includes(STREET)) throw new Error('the held street is in the public page');
       if (/40\.1233|88\.2582/.test(html)) throw new Error('the exact point is in the public page');
+      if (await np.getByTestId('open-in-maps').count()) throw new Error('a held street offered Open in Maps');
       await np.getByTestId('area-map').first().scrollIntoViewIfNeeded();
       await np.screenshot({ path: join(SHOTS, 'C2-area-map.png'), fullPage: true });
+    });
+
+    // H. The family shows the street (DR-0977: the default, which this door had held).
+    await step('H1 the family shows the street; the next visitor sees it with Open in Maps', async () => {
+      await op.getByRole('button', { name: /^Doors$/ }).first().click({ timeout: 15000 });
+      const edit = op.getByRole('button', { name: /^Edit( door)?$/ }).first();
+      if (!(await op.getByTestId('address-visibility').count())) await edit.click({ timeout: 15000 });
+      await op.getByTestId('address-visibility').selectOption('public');
+      await op.getByRole('button', { name: /^Save the change$/ }).click();
+      await waitFor(() => sql(`SELECT address_visibility FROM rentals WHERE id = '${DOOR}'`) === 'public', 'the door to read public');
+      const third = await hermetic(await browser.newContext({ viewport: { width: 412, height: 915 } }));
+      const tp = watch(await third.newPage(), 'third'); current = tp;
+      await tp.goto(`${BASE}/properties/app/?properties=1`, { waitUntil: 'domcontentloaded' });
+      await tp.getByRole('button', { name: /Looking for a place/i }).click({ timeout: 15000 });
+      await tp.getByTestId('open-in-maps').first().waitFor({ timeout: 15000 });
+      const text = await tp.locator('body').innerText();
+      if (!text.includes(STREET)) throw new Error('the shown street is not on the public page');
+      const href = await tp.getByTestId('open-in-maps').first().getAttribute('href');
+      if (href !== `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${STREET}, Champaign, Illinois`)}`) throw new Error(`Open in Maps points at ${href}`);
+      await tp.screenshot({ path: join(SHOTS, 'H1-street-shown.png'), fullPage: true });
     });
   } finally {
     clearTimeout(killer);

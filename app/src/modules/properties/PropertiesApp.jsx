@@ -54,7 +54,7 @@ import { ReadinessTab } from './ReadinessTab.jsx';
 import { readinessBoardSlug } from './readiness.js';
 import { toTimelineEvents } from './systems.js';
 import { isOwnHome, offerRefusal } from './homes.js';
-import { moveDoor, showFirst } from './showcase.js';
+import { moveDoor, showFirst, doorPickerOptions } from './showcase.js';
 import { VacancyCard } from './Storefront.jsx';
 import { areaOf } from './area.js';
 import {
@@ -516,6 +516,11 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
     [rentals, activeDoor, activeId],
   );
   const rentalId = activeRental?.id || null;          // uuid — rooms, photos
+  const doorChoices = useMemo(() => (rentals.length > 0
+    ? doorPickerOptions(rentals)
+    : doors.map((d) => ({ id: d.id, label: [d.property_label, d.unit_label].filter(Boolean).join(' · ') || d.rental_ref }))),
+  [rentals, doors]);
+  const doorChoiceValue = rentals.length > 0 ? (activeRental?.id || '') : (activeDoor?.id || '');
   const rentalRef = activeDoor?.rental_ref || activeRental?.slug || null; // text — tenancies
   const loadDoorData = useCallback(async () => {
     if (!rentalId && !rentalRef) {
@@ -1076,14 +1081,18 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
 
       <div className="flex flex-wrap items-center gap-2 mb-3">
         <span className="text-[0.625rem] uppercase tracking-[0.25em] font-semibold text-[#2F5D50]">{face.label}</span>
-        {doors.length > 1 ? (
+        {/* EVERY DOOR, BY THE BOARD'S NAME (DR-0978). Darrell, 2026-10-12: a
+            screenshot of this picker holding two doors under "Your doors (12)".
+            It listed TENANCIES, and only two of the twelve doors have one. Whoever
+            can read the doors picks from all of them, in the board's order; a
+            tenant (who reads no doors) still picks among their own tenancies. */}
+        {doorChoices.length > 1 ? (
           <select
-            value={activeDoor?.id || ''} onChange={(e) => { setActiveId(e.target.value); setTab(''); }}
+            value={doorChoiceValue} onChange={(e) => { setActiveId(e.target.value); setTab(''); }}
             className="text-xs border border-[#E8E4DC] px-2 py-1 bg-white" style={serif} aria-label="Choose a door"
+            data-testid="door-picker"
           >
-            {doors.map((d) => (
-              <option key={d.id} value={d.id}>{[d.property_label, d.unit_label].filter(Boolean).join(' · ') || d.rental_ref}</option>
-            ))}
+            {doorChoices.map((d) => <option key={d.id} value={d.id}>{d.label}</option>)}
           </select>
         ) : (
           <span className="text-xs text-[#1A1815]" style={serif}>
@@ -1558,6 +1567,9 @@ function PlacesToLive({ vacancies = [], claim, onSignIn = null }) {
         // database has not been migrated yet would be the same lie in reverse.
         addressShown: v.address_shown === undefined ? true : Boolean(v.address_shown),
         area: areaOf(v),
+        street: String(v.street || '').trim(),
+        city: String(v.city || '').trim(),
+        state: String(v.state || '').trim(),
         nearby: Array.isArray(v.nearby) ? v.nearby : [],
       };
     })

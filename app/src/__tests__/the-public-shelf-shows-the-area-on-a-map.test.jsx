@@ -1,5 +1,5 @@
 // =============================================================================
-// THE PUBLIC SHELF SHOWS THE AREA ON A MAP, NEVER THE STREET (DR-0935, 0270)
+// THE PUBLIC SHELF: THE AREA ON A MAP WHEN ASKED (DR-0935, 0270, DR-0977)
 // =============================================================================
 // Darrell, 2026-10-10: "Just show the location without the address... make
 // sense... map view...", "How many miles away from the UIUC campus is the
@@ -103,19 +103,68 @@ describe('the area (pure)', () => {
 });
 
 describe('on the public shelf', () => {
-  it('the card shows the area and what is nearby, credits OpenStreetMap, and never a coordinate', async () => {
+  it('a held door: nearby lines show, NO map tile is fetched until asked, then the area is drawn (DR-0977)', async () => {
     await mount(createElement(VacancyCard, { unit: {
       id: 'r1', rentalId: 'r1', label: '1-bed multi-family in Champaign, Illinois', where: 'Champaign, Illinois', unit: '',
-      rent: null, offering: 'short-term', nightly: 150, addressShown: false,
+      rent: null, offering: 'short-term', nightly: 150, addressShown: false, street: '',
       area: { lat: 40.125, lng: -88.26 }, nearby: [{ label: 'University of Illinois Main Quad', miles: 2 }, { label: 'I-74 at Exit 181', miles: 0.7 }],
     } }));
-    expect(container.querySelectorAll('[data-testid="area-map-tile"]')).toHaveLength(15);
-    expect(container.querySelector('[data-testid="area-map-circle"]')).not.toBeNull();
-    expect(container.querySelector('[data-testid="area-map"]').getAttribute('aria-label')).toContain('Champaign, Illinois');
-    expect(container.textContent).toContain('© OpenStreetMap contributors');
+    // "I only want a map when I want it": nothing drawn, nothing fetched.
+    expect(container.querySelectorAll('[data-testid="area-map-tile"]')).toHaveLength(0);
     expect(container.querySelector('[data-testid="nearby"]').textContent).toContain('University of Illinois Main Quad');
     expect(container.textContent).toContain('about 0.7 mi');
-    expect(container.innerHTML).not.toMatch(/40\.12|88\.2[0-9]/);
+    // A held street gets no Open in Maps: a pin on the rounded area would read as the house.
+    expect(container.querySelector('[data-testid="open-in-maps"]')).toBeNull();
+    await tap(container.querySelector('[data-testid="show-map"]'));
+    expect(container.querySelectorAll('[data-testid="area-map-tile"]')).toHaveLength(15);
+    expect(container.querySelector('[data-testid="area-map-circle"]')).not.toBeNull();
+    const label = container.querySelector('[data-testid="area-map"]').getAttribute('aria-label');
+    expect(label).toContain('Champaign, Illinois');
+    expect(label).toContain('The street is not shown');
+    expect(container.textContent).toContain('© OpenStreetMap contributors');
+    expect(container.innerHTML).not.toMatch(/40\.1233|88\.2582/);
+    await tap(container.querySelector('[data-testid="show-map"]'));
+    expect(container.querySelectorAll('[data-testid="area-map-tile"]')).toHaveLength(0);
+  });
+
+  it('a shown street: the street line, Open in Maps by the address, and a map found from the address on tap', async () => {
+    const calls = [];
+    const real = globalThis.fetch;
+    globalThis.fetch = async (url) => { calls.push(String(url)); return { json: async () => ({ ok: true, lat: APT2.lat, lng: APT2.lng, matched: '805 N PROSPECT AVE, CHAMPAIGN, IL, 61820', source: 'census' }) }; };
+    try {
+      await mount(createElement(VacancyCard, { unit: {
+        id: 'r3', rentalId: 'r3', label: 'Apt 2 at Prospect', where: 'Champaign, Illinois', unit: 'Apt 2',
+        offering: 'long-term', addressShown: true, street: '805 North Prospect Avenue', city: 'Champaign', state: 'Illinois',
+        area: null, nearby: [],
+      } }));
+      expect(container.querySelector('[data-testid="vacancy-street"]').textContent).toBe('805 North Prospect Avenue');
+      expect(container.querySelector('[data-testid="open-in-maps"]').getAttribute('href'))
+        .toBe('https://www.google.com/maps/search/?api=1&query=805%20North%20Prospect%20Avenue%2C%20Champaign%2C%20Illinois');
+      expect(calls).toEqual([]); // nothing looked up on render
+      await tap(container.querySelector('[data-testid="show-map"]'));
+      expect(calls).toEqual(['/geocode?q=805%20North%20Prospect%20Avenue%2C%20Champaign%2C%20Illinois']);
+      expect(container.querySelectorAll('[data-testid="area-map-tile"]')).toHaveLength(15);
+      // No stored lines, so the ones worked out from the found point are shown.
+      expect(container.querySelector('[data-testid="nearby"]').textContent).toContain('University of Illinois Main Quad');
+      // Shown, not looked up again.
+      await tap(container.querySelector('[data-testid="show-map"]'));
+      await tap(container.querySelector('[data-testid="show-map"]'));
+      expect(calls).toHaveLength(1);
+    } finally { globalThis.fetch = real; }
+  });
+
+  it('an address the map cannot find says so and draws nothing', async () => {
+    const real = globalThis.fetch;
+    globalThis.fetch = async () => ({ json: async () => ({ ok: false, reason: 'census: no match; openstreetmap: no match' }) });
+    try {
+      await mount(createElement(VacancyCard, { unit: {
+        id: 'r4', rentalId: 'r4', label: 'Somewhere', where: 'Nowhere, Illinois', offering: 'long-term', addressShown: true,
+        street: '1 Imaginary Lane', city: 'Nowhere', state: 'Illinois', area: null, nearby: [],
+      } }));
+      await tap(container.querySelector('[data-testid="show-map"]'));
+      expect(container.textContent).toContain('The map could not find this address.');
+      expect(container.querySelectorAll('[data-testid="area-map-tile"]')).toHaveLength(0);
+    } finally { globalThis.fetch = real; }
   });
 
   it('a door with no area set shows no map and no empty heading', async () => {
@@ -137,6 +186,39 @@ describe('on the public shelf', () => {
 
 describe('the family sets the area', () => {
   const RENTAL = { id: 'r-apt2', address: '805 North Prospect Avenue', city: 'Champaign', state: 'Illinois' };
+
+  it('FROM THE ADDRESS (DR-0977): one tap finds the door; the area and 12 lines are saved, never the point', async () => {
+    const calls = [];
+    const real = globalThis.fetch;
+    globalThis.fetch = async (url) => { calls.push(String(url)); return { json: async () => ({ ok: true, lat: APT2.lat, lng: APT2.lng, matched: '805 N PROSPECT AVE, CHAMPAIGN, IL, 61820' }) }; };
+    try {
+      const saved = [];
+      await mount(createElement(AreaEditor, { rental: RENTAL, onSave: (patch, summary) => saved.push([patch, summary]) }));
+      // Opening the editor looks nothing up and draws no map.
+      expect(calls).toEqual([]);
+      expect(container.querySelector('[data-testid="area-map"]')).toBeNull();
+      expect(container.querySelector('[data-testid="area-status"]').textContent).toContain('Not on the map yet');
+      await tap(button('Find it from the address'));
+      expect(calls).toEqual(['/geocode?q=805%20North%20Prospect%20Avenue%2C%20Champaign%2C%20Illinois']);
+      expect(container.querySelector('[data-testid="area-map"]')).not.toBeNull();
+      expect(container.textContent).toContain('805 N PROSPECT AVE, CHAMPAIGN, IL, 61820');
+      await tap(button('Save the area'));
+      const [patch, summary] = saved[0];
+      expect([patch.area_lat, patch.area_lng]).toEqual([40.125, -88.26]);
+      expect(JSON.stringify(patch)).not.toMatch(/40\.1233|88\.2582/);
+      expect(patch.nearby).toHaveLength(12);
+      expect(summary).toBe('Area on the map and 12 nearby lines');
+    } finally { globalThis.fetch = real; }
+  });
+
+  it('a saved area is not drawn until the family asks', async () => {
+    H.area = { ok: true, area: { lat: 40.125, lng: -88.26 }, nearby: [] };
+    await mount(createElement(AreaEditor, { rental: RENTAL, onSave: () => {} }));
+    expect(container.querySelector('[data-testid="area-status"]').textContent).toContain('This door is on the map');
+    expect(container.querySelectorAll('[data-testid="area-map-tile"]')).toHaveLength(0);
+    await tap(button('Show on map'));
+    expect(container.querySelectorAll('[data-testid="area-map-tile"]')).toHaveLength(15);
+  });
 
   it('a pasted point gives the area and the distances; only the rounded area is saved', async () => {
     const saved = [];
@@ -183,5 +265,18 @@ describe('the family sets the area', () => {
     await mount(createElement(AreaEditor, { rental: RENTAL, onSave: () => {} }));
     expect(container.querySelector('[data-testid="area-editor-unavailable"]')).not.toBeNull();
     expect(button('Save the area')).toBeUndefined();
+  });
+});
+
+describe('the card names the door once', () => {
+  it('a name that already says the unit is not followed by it again', async () => {
+    await mount(createElement(VacancyCard, { unit: { id: 'r5', rentalId: 'r5', label: '805 North Prospect Avenue Apt 2', unit: 'Apt 2', where: 'Champaign, Illinois', offering: 'long-term', addressShown: true, street: '805 North Prospect Avenue', area: null, nearby: [] } }));
+    expect(container.textContent).toContain('805 North Prospect Avenue Apt 2');
+    expect(container.textContent).not.toContain('Apt 2 · Apt 2');
+    expect(container.querySelector('[data-testid="vacancy-street"]')).toBeNull();
+  });
+  it('a name without the unit still gets it', async () => {
+    await mount(createElement(VacancyCard, { unit: { id: 'r6', rentalId: 'r6', label: '805 North Prospect Avenue', unit: 'Apt 3', where: 'Champaign, Illinois', offering: 'long-term', addressShown: true, street: '805 North Prospect Avenue', area: null, nearby: [] } }));
+    expect(container.textContent).toContain('805 North Prospect Avenue · Apt 3');
   });
 });

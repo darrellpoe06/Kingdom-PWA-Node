@@ -27,7 +27,8 @@ import { paymentLedger, gaps, discrepancies, accuracy, totals } from './payments
 import { buildEdit } from './staging.js';
 import { applyUrl, applyUrlDisplay, cardCaption } from './apply-link.js';
 import { isOwnHome } from './homes.js';
-import { shelfOrder } from './showcase.js';
+import { shelfOrder, doorLabel } from './showcase.js';
+import { sameApartment } from './apartment.js';
 import { moneyLine, dollarsLong } from './door-money.js';
 import { AreaEditor } from './AreaMap.jsx';
 import { stampImage, stampFileName } from '../../lib/brand-stamp.js';
@@ -502,6 +503,15 @@ export function DoorsBoard({
   // public storefront sorts by, so what he arranges here is what a renter sees.
   const arranged = useMemo(() => shelfOrder(rentals), [rentals]);
 
+  // THE APARTMENT'S PICTURES, ON THE BOARD TOO (DR-0980). Darrell, 2026-10-12,
+  // Bed B reading "NO PHOTO" beside Bed A's 37: "Why don't the images show up
+  // for apartment 4 B?" and "If the Apartment field is the same?!" The door's
+  // own Pictures tab (DR-0963) and the public card (0278) already borrow from a
+  // door in the same apartment; the board was the one place that did not. Same
+  // rule, same function: same instance, same street, same apartment NUMBER,
+  // never a whole place with no unit. Its own pictures always come first.
+  const apartmentOf = useCallback((r) => arranged.filter((o) => o.id !== r.id
+    && o.instance_id === r.instance_id && sameApartment(o, r)), [arranged]);
   const rows = useMemo(() => arranged.map((r) => {
     const tenancy = activeByRef.get(r.slug) || null;
     // What it rents for: the tenancy's actual rent if occupied, otherwise the
@@ -526,7 +536,7 @@ export function DoorsBoard({
       availableFrom: comingSoon ? tenancy.lease_end : null,
       listed: Boolean(r.listed_at),
       rent,
-      label: [r.display_name || r.address, r.unit].filter(Boolean).join(' · ') || 'Unnamed door',
+      label: doorLabel(r),
       // The ADDRESS is shown as its own line, not folded into a display name —
       // "see the properties and their addresses" (Darrell).
       address: [r.address, r.unit].filter(Boolean).join(', '),
@@ -538,8 +548,18 @@ export function DoorsBoard({
       ownHome: isOwnHome(r),
       cover: coverByRental.get(r.id) || null,
       photoCount: photos.filter((p) => p.rental_ref === r.id && !p.archived_at).length,
+      ...(() => {
+        if (coverByRental.get(r.id)) return { sharedCount: 0, sharedFrom: '' };
+        const sibs = apartmentOf(r);
+        const withCover = sibs.find((o) => coverByRental.get(o.id));
+        const ids = new Set(sibs.map((o) => o.id));
+        const sharedCount = photos.filter((p) => ids.has(p.rental_ref) && !p.archived_at).length;
+        return withCover
+          ? { cover: coverByRental.get(withCover.id), sharedCount, sharedFrom: r.unit || withCover.unit || 'this apartment' }
+          : { sharedCount: 0, sharedFrom: '' };
+      })(),
     };
-  }), [arranged, activeByRef, coverByRental, photos]);
+  }), [arranged, activeByRef, coverByRental, photos, apartmentOf]);
 
   // TWO LISTS, NOT ONE FILTERED VIEW. "not in the Properties tab because it's
   // not for renting... Real Estate keeps it just as our home and asset"
@@ -694,7 +714,7 @@ export function DoorsBoard({
                   </span>
                   {x.rent > 0 ? ` · $${x.rent.toFixed(0)}/mo` : ' · no rent on record'}
                   {x.where ? ` · ${x.where}` : ''}
-                  {x.photoCount > 0 ? ` · ${x.photoCount} photo${x.photoCount === 1 ? '' : 's'}` : ''}
+                  {x.photoCount > 0 ? ` · ${x.photoCount} photo${x.photoCount === 1 ? '' : 's'}` : x.sharedCount > 0 ? ` · ${x.sharedCount} photo${x.sharedCount === 1 ? '' : 's'} shared with ${x.sharedFrom}` : ''}
                   {x.shortStay ? ` · short stay${x.rental.nightly_rate ? ` $${Number(x.rental.nightly_rate).toFixed(0)}/night` : ''}` : ''}
                 </div>
                 {money && (
@@ -819,7 +839,7 @@ function OurHomes({ rows = [], canManage = false, busy = false, onPick, onEditRe
                     {statusWord(x)}
                   </span>
                   {x.where ? ` · ${x.where}` : ''}
-                  {x.photoCount > 0 ? ` · ${x.photoCount} photo${x.photoCount === 1 ? '' : 's'}` : ''}
+                  {x.photoCount > 0 ? ` · ${x.photoCount} photo${x.photoCount === 1 ? '' : 's'}` : x.sharedCount > 0 ? ` · ${x.sharedCount} photo${x.sharedCount === 1 ? '' : 's'} shared with ${x.sharedFrom}` : ''}
                 </div>
                 <div className="text-[0.75rem] text-[#6B665E]">Mortgage and payments in Real Estate · records here</div>
               </button>
@@ -998,9 +1018,10 @@ function EditRental({ rental, onSave, busy }) {
     offering: rental.offering || 'long-term',
     nightly_rate: rental.nightly_rate ?? '',
     min_stay_nights: rental.min_stay_nights ?? '',
-    // Unset means WITHHELD (0158) — the safe reading is the default, so a door
-    // nobody has thought about does not publish its street.
-    address_visibility: rental.address_visibility || 'after-application',
+    // THE STREET SHOWS UNLESS THE FAMILY HOLDS IT (DR-0977): 0280 made
+    // 'public' the default. A row read before that (unset) is shown as the
+    // database now treats it after 0280's one-time step: shown.
+    address_visibility: rental.address_visibility || 'public',
     display_name: rental.display_name || '',
   });
   const set = (k) => (e) => setF((p) => ({ ...p, [k]: e.target.value }));
@@ -1012,7 +1033,7 @@ function EditRental({ rental, onSave, busy }) {
   const before = useMemo(() => ({
     ...rental,
     offering: rental.offering || 'long-term',
-    address_visibility: rental.address_visibility || 'after-application',
+    address_visibility: rental.address_visibility || 'public',
     display_name: rental.display_name || '',
   }), [rental]);
   const edit = useMemo(() => buildEdit(before, {
@@ -1032,7 +1053,7 @@ function EditRental({ rental, onSave, busy }) {
     { key: 'offering', label: 'Offered as' },
     { key: 'nightly_rate', label: 'Nightly rate', numeric: true },
     { key: 'min_stay_nights', label: 'Minimum stay', numeric: true },
-    { key: 'address_visibility', label: 'Address on the public shelf' },
+    { key: 'address_visibility', label: 'Street on the public listing' },
   ]), [before, f, shortStay]);
 
   const field = 'w-full border border-[#E8E4DC] px-2 py-2 text-[0.875rem] focus:outline focus:outline-2 focus:outline-[#2F5D50]';
@@ -1049,16 +1070,23 @@ function EditRental({ rental, onSave, busy }) {
         <label className="sm:col-span-2"><span className={lbl}>Address</span>
           <input type="text" className={field} value={f.address} onChange={set('address')} />
         </label>
-        {/* WHO MAY SEE THE STREET (0158, then DR-0933). Darrell 2026-10-10:
-            "Just show the location without the address... map view". The
-            street is never on the open shelf now; the database answers that
-            for every door, so this says it rather than offering a switch
-            that would do nothing. */}
-        <div className="sm:col-span-2"><span className={lbl}>Address on the public shelf</span>
+        {/* WHO MAY SEE THE STREET (0158, DR-0933, then DR-0977). Darrell,
+            2026-10-12: "show address unless..." -- the street is the default,
+            and the family can hold it until someone applies or books. The
+            sentence under the choice says exactly what the shelf will do, so
+            the page never promises one thing and shows another (the 0268
+            incident). */}
+        <label className="sm:col-span-2"><span className={lbl}>Street on the public listing</span>
+          <select className={field} value={f.address_visibility} onChange={set('address_visibility')} data-testid="address-visibility">
+            <option value="public">Show the street address</option>
+            <option value="after-application">Hold it until someone applies or books</option>
+          </select>
           <span className="block text-[0.75rem] text-[#6B665E] mt-1 leading-snug" data-testid="address-rule">
-            Never shown to strangers. Browsers see the size, kind, town and rent, and the area on a map; the street is handed over when someone applies or books.
+            {f.address_visibility === 'public'
+              ? 'Visitors see the street, with Open in Maps and a map they can ask for.'
+              : 'Visitors see the town and a map they can ask for (when this door is on the map); the street is handed over when someone applies or books.'}
           </span>
-        </div>
+        </label>
         <AreaEditor rental={rental} onSave={onSave} busy={busy} />
         <label><span className={lbl}>Unit</span>
           <input type="text" className={field} value={f.unit} onChange={set('unit')} placeholder="e.g. Apt 2" />
