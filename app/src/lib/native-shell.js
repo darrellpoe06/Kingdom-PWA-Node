@@ -53,6 +53,7 @@ export const REHOMED_ROUTES = Object.freeze([
   '/voice-lite/',
   '/ways/',
   '/automation-status',
+  '/geocode',
   '/interest',
   '/link',
   '/property-history',

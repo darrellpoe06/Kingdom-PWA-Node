@@ -28,6 +28,7 @@ import { buildEdit } from './staging.js';
 import { applyUrl, applyUrlDisplay, cardCaption } from './apply-link.js';
 import { isOwnHome } from './homes.js';
 import { shelfOrder, doorLabel } from './showcase.js';
+import { sameApartment } from './apartment.js';
 import { moneyLine, dollarsLong } from './door-money.js';
 import { AreaEditor } from './AreaMap.jsx';
 import { stampImage, stampFileName } from '../../lib/brand-stamp.js';
@@ -502,6 +503,15 @@ export function DoorsBoard({
   // public storefront sorts by, so what he arranges here is what a renter sees.
   const arranged = useMemo(() => shelfOrder(rentals), [rentals]);
 
+  // THE APARTMENT'S PICTURES, ON THE BOARD TOO (DR-0980). Darrell, 2026-10-12,
+  // Bed B reading "NO PHOTO" beside Bed A's 37: "Why don't the images show up
+  // for apartment 4 B?" and "If the Apartment field is the same?!" The door's
+  // own Pictures tab (DR-0963) and the public card (0278) already borrow from a
+  // door in the same apartment; the board was the one place that did not. Same
+  // rule, same function: same instance, same street, same apartment NUMBER,
+  // never a whole place with no unit. Its own pictures always come first.
+  const apartmentOf = useCallback((r) => arranged.filter((o) => o.id !== r.id
+    && o.instance_id === r.instance_id && sameApartment(o, r)), [arranged]);
   const rows = useMemo(() => arranged.map((r) => {
     const tenancy = activeByRef.get(r.slug) || null;
     // What it rents for: the tenancy's actual rent if occupied, otherwise the
@@ -538,8 +548,18 @@ export function DoorsBoard({
       ownHome: isOwnHome(r),
       cover: coverByRental.get(r.id) || null,
       photoCount: photos.filter((p) => p.rental_ref === r.id && !p.archived_at).length,
+      ...(() => {
+        if (coverByRental.get(r.id)) return { sharedCount: 0, sharedFrom: '' };
+        const sibs = apartmentOf(r);
+        const withCover = sibs.find((o) => coverByRental.get(o.id));
+        const ids = new Set(sibs.map((o) => o.id));
+        const sharedCount = photos.filter((p) => ids.has(p.rental_ref) && !p.archived_at).length;
+        return withCover
+          ? { cover: coverByRental.get(withCover.id), sharedCount, sharedFrom: r.unit || withCover.unit || 'this apartment' }
+          : { sharedCount: 0, sharedFrom: '' };
+      })(),
     };
-  }), [arranged, activeByRef, coverByRental, photos]);
+  }), [arranged, activeByRef, coverByRental, photos, apartmentOf]);
 
   // TWO LISTS, NOT ONE FILTERED VIEW. "not in the Properties tab because it's
   // not for renting... Real Estate keeps it just as our home and asset"
@@ -694,7 +714,7 @@ export function DoorsBoard({
                   </span>
                   {x.rent > 0 ? ` · $${x.rent.toFixed(0)}/mo` : ' · no rent on record'}
                   {x.where ? ` · ${x.where}` : ''}
-                  {x.photoCount > 0 ? ` · ${x.photoCount} photo${x.photoCount === 1 ? '' : 's'}` : ''}
+                  {x.photoCount > 0 ? ` · ${x.photoCount} photo${x.photoCount === 1 ? '' : 's'}` : x.sharedCount > 0 ? ` · ${x.sharedCount} photo${x.sharedCount === 1 ? '' : 's'} shared with ${x.sharedFrom}` : ''}
                   {x.shortStay ? ` · short stay${x.rental.nightly_rate ? ` $${Number(x.rental.nightly_rate).toFixed(0)}/night` : ''}` : ''}
                 </div>
                 {money && (
@@ -819,7 +839,7 @@ function OurHomes({ rows = [], canManage = false, busy = false, onPick, onEditRe
                     {statusWord(x)}
                   </span>
                   {x.where ? ` · ${x.where}` : ''}
-                  {x.photoCount > 0 ? ` · ${x.photoCount} photo${x.photoCount === 1 ? '' : 's'}` : ''}
+                  {x.photoCount > 0 ? ` · ${x.photoCount} photo${x.photoCount === 1 ? '' : 's'}` : x.sharedCount > 0 ? ` · ${x.sharedCount} photo${x.sharedCount === 1 ? '' : 's'} shared with ${x.sharedFrom}` : ''}
                 </div>
                 <div className="text-[0.75rem] text-[#6B665E]">Mortgage and payments in Real Estate · records here</div>
               </button>
