@@ -103,9 +103,22 @@ BEGIN
     'a guest who does not attest 21+', false);
   PERFORM pg_temp.runs(NULL, format('SELECT request_a_stay(%L, %L, %L, ''Ana'', ''217-555-0100'', NULL, 2, NULL, true, false)', doorA, d0 + 5, d0 + 8),
     'a guest who does not accept the house rules', false);
+  -- ANY NUMBER OF NIGHTS IS ACCEPTED (0276; Darrell 2026-10-11: "we dont want
+  -- people to do short term leases because of staying passed 29 days!!!!!!!
+  -- They can stay for a year with $150 a day if they want too!!!!!!!!!!!!!!!!!!"
+  -- and, on seeing the 29 lifted, "All number of nights accepted!!!!!!!!").
+  -- 0276 DROPPED door_stays_guest_asks_under_30_nights and
+  -- door_stays_at_most_a_year, so a guest's own ask is no longer capped at 29
+  -- nights nor at a year. This case asserted the CAP until 2026-10-12 and was
+  -- the first thing to fail once 0263's document-signing failure stopped
+  -- masking it (DR-0982) -- the product had done what he asked and the test
+  -- still asked for the old rule. It now proves the new rule instead of
+  -- merely not proving the old one.
   PERFORM pg_temp.runs(NULL, format('SELECT request_a_stay(%L, %L, %L, ''Ana'', ''217-555-0100'', NULL, 2, NULL, true, true)', doorA, d0 + 5, d0 + 35),
-    'a guest asks for thirty nights on their own', false);
-  -- The family may enter a longer stay itself; the cap is a guest default.
+    'a guest asks for thirty nights on their own', true);
+  PERFORM pg_temp.runs(NULL, format('SELECT request_a_stay(%L, %L, %L, ''Ana'', ''217-555-0100'', NULL, 2, NULL, true, true)', doorA, d0 + 200, d0 + 500),
+    'a guest asks for three hundred nights, past the old one-year ceiling', true);
+  -- The family may enter a longer stay itself, as it always could.
   PERFORM pg_temp.runs(o, format(
     'INSERT INTO door_stays (instance_id, rental_id, kind, status, check_in, check_out, guest_name, guest_phone) VALUES (%L, %L, ''stay'', ''requested'', %L, %L, ''Visiting professor'', ''217-555-0199'')',
     inst, doorA, d0 + 100, d0 + 160), 'the family enters a sixty-night stay', true);
