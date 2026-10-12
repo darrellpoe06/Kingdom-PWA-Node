@@ -15,11 +15,23 @@
 -- authenticated reader — a `CASE ... ELSE false` hides what it has no arm for.
 --
 -- Run AFTER 0279. Needs door_events (0262) and the tables each arm points at.
+--
+-- THE INSTANCE IS CREATED, NOT INVENTED. The first version of this file made
+-- up an instance_id, and `door_events.instance_id` REFERENCES instances(id)
+-- (0262:138) — so every insert below failed the foreign key and the CI leg
+-- went red. It passed locally because the reproduction I proved it against was
+-- a hand-built door_events with no foreign keys: real PostgreSQL, but not the
+-- real SCHEMA. The sibling smokes all create their own rows and roll back
+-- (0263:31), which is the idiom this now follows.
 BEGIN;
+
+INSERT INTO instances (id, slug, display_name, instance_type) VALUES
+  ('00000000-0000-4000-b000-000000010279', 'allow-list-smoke-279', 'Allow-list Smoke', 'business')
+ON CONFLICT (id) DO NOTHING;
 
 DO $$
 DECLARE
-  inst uuid := '00000000-0000-4000-a000-000000000279';
+  inst uuid := '00000000-0000-4000-b000-000000010279';
   n int;
   qual text;
   v text;

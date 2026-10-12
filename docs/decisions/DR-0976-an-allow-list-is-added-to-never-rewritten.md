@@ -215,13 +215,33 @@ so it carries real-database proof rather than a reading.
   `ON_ERROR_STOP=1`, clean both times; the `portal-request` arm present, the
   `application` arm correctly absent, and writes still accepted after the
   second application.
-- `0279-allow-list-smoke.sql` — **proven-to-catch on the live schema, twice:**
+- **A CORRECTION, AND THE SHARPEST LESSON HERE.** The first version of this
+  record claimed the smoke was *"proven-to-catch on the live schema"*. **That
+  was an overclaim.** It was proven against the reproduction above — real
+  PostgreSQL, but a **hand-built `door_events` with no foreign keys.** The real
+  table declares `instance_id uuid NOT NULL REFERENCES public.instances(id)`
+  (0262:138), the smoke invented an `instance_id`, and so every insert in it
+  failed the foreign key **the first time it met the real schema, which was
+  CI**: `app — door work orders (PostgreSQL)` went red on PR #2131, taking the
+  required `app — lint + vitest` with it.
+
+  *"Real PostgreSQL" is not "the real schema."* The reproduction was built to
+  prove the constraint chain, and for that it was exactly right — the four
+  `ADD CONSTRAINT` statements and the `document`/`camera` rejection are
+  unaffected, and remain proven. But I then ran a new smoke against that same
+  stripped table and reported the result as if the schema were the product's.
+  The sibling smokes all create their own rows against the real tables and roll
+  back (0263:31); the smoke now follows that idiom.
+
+- `0279-allow-list-smoke.sql` — **re-proven on a schema carrying the real
+  foreign key**, copied from 0262:136-147:
 
   | mutation | smoke |
   |---|---|
+  | the OLD smoke, inventing an instance | **FAIL** — the exact CI error: *"violates foreign key constraint door_events_instance_id_fkey"* |
   | restore 0275's narrow constraint | **FAIL** — *"'document' is gone again — lease signing writes it three times (0263)"*, exit 3 |
   | constraint restored, `portal-request` arm removed | **FAIL** — *"no arm for portal-request, so those rows are written and then invisible"* |
-  | the real 0279 re-applied | **PASS** |
+  | the real 0279 applied **twice**, as a replay does | **PASS** |
 
   The smoke reads the allowed values **out of the constraint itself** rather
   than retyping them, for the same reason.
