@@ -1097,6 +1097,20 @@ jobs:
           for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0279-an-allow-list-is-added-to-never-rewritten.sql; done
           psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0279-allow-list-smoke.sql 2>&1 | tee "$RUNNER_TEMP/allowlist.txt"
           grep -q 'ALLOW-LIST SMOKE: PASS' "$RUNNER_TEMP/allowlist.txt"
+          # 0280 (DR-0977): the street shows unless the family holds it. It
+          # needs 0278's public_vacancies (rentable_level_of), so 0278 goes on
+          # first. Then the guard that matters most: 0280 is re-applied by the
+          # replay and the isolation matrix forever, and a re-run must NEVER
+          # undo a family's hold -- a held door is committed, 0280 re-applied,
+          # and the door must still read after-application.
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0278-a-bed-is-not-a-bedroom.sql; done
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0280-the-address-shows-unless-the-family-holds-it.sql; done
+          psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0280-address-shows-smoke.sql 2>&1 | tee "$RUNNER_TEMP/address.txt"
+          grep -q 'ADDRESS SHOWS SMOKE: PASS' "$RUNNER_TEMP/address.txt"
+          psql -v ON_ERROR_STOP=1 -q -c "INSERT INTO auth.users (instance_id,id,aud,role,email,encrypted_password,created_at,updated_at) VALUES ('00000000-0000-0000-0000-000000000000','00000000-0000-4000-a000-0000000f0280','authenticated','authenticated','hold280@test.local','',now(),now()) ON CONFLICT (id) DO NOTHING; INSERT INTO instances (id, slug, display_name, instance_type) VALUES ('00000000-0000-4000-b000-0000000f0280','hold-280','Hold 280','business') ON CONFLICT (id) DO NOTHING; INSERT INTO rentals (id, instance_id, created_by, slug, display_name, address, city, property_type, status, address_visibility) VALUES ('00000000-0000-4000-c000-0000000f0280','00000000-0000-4000-b000-0000000f0280','00000000-0000-4000-a000-0000000f0280','HOLD-280','Held','1 Held Way','Champaign','multi-family','vacant','after-application')"
+          psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0280-the-address-shows-unless-the-family-holds-it.sql
+          test "$(psql -qAt -c "SELECT address_visibility FROM rentals WHERE slug = 'HOLD-280'")" = "after-application" || { echo "::error::re-applying 0280 undid a family's hold on the street"; exit 1; }
+          psql -v ON_ERROR_STOP=1 -q -c "DELETE FROM rentals WHERE slug = 'HOLD-280'; DELETE FROM instances WHERE id = '00000000-0000-4000-b000-0000000f0280'"
 
   # THE REQUIRED CHECK (DR-0645). Branch protection and native auto-merge wait
   # on a check named EXACTLY "app — lint + vitest". Do NOT rename this job.
@@ -1108,7 +1122,7 @@ jobs:
   # a fake data layer. This one walks what a person walks, in the runner's
   # Chrome, on the real built app, through PostgREST 12.2.12 (production's
   # version) over a PostgreSQL built from the real migration chain
-  # (scripts/e2e/build-door-db.sh, 0260-0269 each applied twice), and reads the
+  # (scripts/e2e/build-door-db.sh, 0260-0280 each applied twice), and reads the
   # database after each step: a stranger sees the place but never its street,
   # books two nights with both attestations; the family sees the address,
   # confirms the ask (the clock reads asked,confirmed); records $300 cash on the

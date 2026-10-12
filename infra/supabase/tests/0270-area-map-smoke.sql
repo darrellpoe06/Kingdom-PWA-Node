@@ -11,7 +11,7 @@
 --     200 miles, miles as text, an extra key)                               ✘
 --   a nearby line that names this door's street, any case                   ✘
 --   a stranger to the door moves its area                                   ✘ (nothing changes)
---   the public shelf: the rounded area and the lines, never the street      ✔
+--   the public shelf: the rounded area and the lines, never a held street   ✔
 -- =============================================================================
 BEGIN;
 
@@ -25,8 +25,10 @@ ON CONFLICT (id) DO NOTHING;
 INSERT INTO instance_members (instance_id, user_id, role, display_name) VALUES
   ('00000000-0000-4000-b000-000000010270', '00000000-0000-4000-a000-0000000a0270', 'owner', 'Owner')
 ON CONFLICT DO NOTHING;
-INSERT INTO rentals (id, instance_id, created_by, slug, display_name, address, city, state, property_type, status, listed_at, offering, nightly_rate) VALUES
-  ('00000000-0000-4000-c000-0000000a0270', '00000000-0000-4000-b000-000000010270', '00000000-0000-4000-a000-0000000a0270', 'AREA-A-270', 'Area A', '9805 Zeta Smoke Avenue', 'Champaign', 'Illinois', 'multi-family', 'vacant', now(), 'short-term', 150);
+-- The family HOLDS this door's street (DR-0977: shown is the default since
+-- 0280), so the shelf proves the area and the lines arrive without it.
+INSERT INTO rentals (id, instance_id, created_by, slug, display_name, address, city, state, property_type, status, listed_at, offering, nightly_rate, address_visibility) VALUES
+  ('00000000-0000-4000-c000-0000000a0270', '00000000-0000-4000-b000-000000010270', '00000000-0000-4000-a000-0000000a0270', 'AREA-A-270', 'Area A', '9805 Zeta Smoke Avenue', 'Champaign', 'Illinois', 'multi-family', 'vacant', now(), 'short-term', 150, 'after-application');
 
 CREATE OR REPLACE FUNCTION pg_temp.as_user(_who uuid) RETURNS void LANGUAGE plpgsql AS $$
 BEGIN

@@ -66,7 +66,10 @@ for f in \
   0267-a-system-keeps-its-pictures.sql \
   0268-the-public-shelf-shows-where-never-the-street.sql \
   0269-a-short-stay-door-has-a-booking-calendar.sql \
-  0270-the-public-shelf-shows-the-area-on-a-map.sql; do
+  0270-the-public-shelf-shows-the-area-on-a-map.sql \
+  0273-a-shared-home-says-so-on-the-shelf.sql \
+  0278-a-bed-is-not-a-bedroom.sql \
+  0280-the-address-shows-unless-the-family-holds-it.sql; do
   for i in 1 2; do P -f "$MIG/$f"; done
 done
 

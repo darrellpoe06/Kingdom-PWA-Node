@@ -16,7 +16,8 @@
 // SECURITY DEFINER, both granted to anon, and both refuse on their own for a
 // door that is unadvertised or occupied. The photo RPC returns ONLY
 // kind='listing', so a move-out condition set of somebody's home cannot come
-// through it whatever it is asked for. No street address is published either.
+// through it whatever it is asked for. The street is published only when the
+// family shows it (the default since DR-0977), and a map only when asked for.
 // =============================================================================
 import React, { useEffect, useState, useCallback } from 'react';
 import { loadVacancyPhotos } from './cloud.js';
@@ -24,7 +25,8 @@ import { applyUrl } from './apply-link.js';
 import Lightbox from '../../components/Lightbox.jsx';
 import { stampImage, stampFileName } from '../../lib/brand-stamp.js';
 import { BookAStay } from './Booking.jsx';
-import { AreaMap, NearbyList } from './AreaMap.jsx';
+import { MapOnRequest, NearbyList } from './AreaMap.jsx';
+import { addressLine } from './area.js';
 
 const ACCENT = '#2F5D50';
 const serif = { fontFamily: '"Fraunces", serif' };
@@ -169,8 +171,15 @@ export function VacancyCard({ unit, onApply = null }) {
 
       <div className="p-2.5">
         <div className="text-[0.875rem] text-[#1A1815] leading-snug" style={serif}>
-          {unit.label}{unit.unit ? ` · ${unit.unit}` : ''}
+          {/* The unit once: a name that already says "Apt 2" is not followed by "· Apt 2". */}
+          {unit.label}{unit.unit && !String(unit.label || '').toLowerCase().includes(unit.unit.toLowerCase()) ? ` · ${unit.unit}` : ''}
         </div>
+        {/* THE STREET, WHEN THE FAMILY SHOWS IT (DR-0977). Printed unless the
+            name above already says it ("805 North Prospect Avenue" twice is
+            noise). */}
+        {unit.street && !String(unit.label || '').toLowerCase().includes(unit.street.toLowerCase()) && (
+          <div className="text-[0.75rem] text-[#1A1815]" data-testid="vacancy-street">{unit.street}</div>
+        )}
         {unit.where && <div className="text-[0.75rem] text-[#5A5751]">{unit.where}</div>}
         <div className="text-[0.8125rem] text-[#1A1815] mt-1">
           {unit.rent != null ? `$${unit.rent.toFixed(0)}/mo` : 'Rent on request'}
@@ -202,10 +211,17 @@ export function VacancyCard({ unit, onApply = null }) {
           </div>
         )}
         {unit.note && <p className="text-[0.75rem] text-[#5A5751] mt-1 leading-snug">{unit.note}</p>}
-        {/* WHERE, NEVER THE STREET (DR-0935). The rounded area and the
-            family's nearby lines, from public_vacancies (0270). */}
-        {unit.area && <div className="mt-2"><AreaMap area={unit.area} where={unit.where} /></div>}
+        {/* A MAP WHEN ASKED FOR (DR-0977). "I only want a map when I want
+            it" -- no tile and no lookup until the visitor taps. The family's
+            nearby lines are words and cost nothing, so they stay. */}
         <NearbyList lines={unit.nearby} />
+        <MapOnRequest
+          area={unit.area}
+          query={unit.street ? addressLine({ street: unit.street, city: unit.city, state: unit.state }) : ''}
+          where={unit.where}
+          streetShown={Boolean(unit.street)}
+          nearby={unit.nearby}
+        />
         {/* SAY WHICH IT IS (0158). Until 2026-08-28 every card printed "the exact
             address is given by a person, not published here" while the label
             above it WAS the street — display_name is the address on all twelve

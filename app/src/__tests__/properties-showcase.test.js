@@ -251,17 +251,18 @@ describe('the door editor carries the controls he asked for', () => {
   // DR-0933 (Darrell 2026-10-10: "Just show the location without the
   // address"): the per-door switch became one rule, enforced by 0268. The
   // editor states it and never offers a switch that would do nothing.
-  it('states the address rule instead of offering a dead switch', () => {
+  it('offers the street choice, and says what the shelf will do with it (DR-0977)', () => {
     const s = board();
     expect(s).toMatch(/key: 'address_visibility'/);
-    expect(s).toMatch(/Never shown to strangers/);
-    expect(s).not.toMatch(/Shown to anyone browsing/);
+    expect(s).toMatch(/<option value="public">Show the street address<\/option>/);
+    expect(s).toMatch(/<option value="after-application">Hold it until someone applies or books<\/option>/);
+    expect(s).not.toMatch(/Never shown to strangers/);
   });
 
-  it('defaults an unset door to WITHHELD in the form too', () => {
-    // The form must not display "public" for a door whose column is NULL — the
-    // database treats NULL as after-application, and the editor has to agree or
-    // saving without touching it would flip the door open.
-    expect(board()).toMatch(/rental\.address_visibility \|\| 'after-application'/);
+  it('defaults an unset door to SHOWN in the form too (DR-0977)', () => {
+    // 0280 made the street the default and set every door to 'public' once, so
+    // the form reads an unset row the way the database now treats it.
+    expect(board()).toMatch(/rental\.address_visibility \|\| 'public'/);
+    expect(board()).not.toMatch(/rental\.address_visibility \|\| 'after-application'/);
   });
 });

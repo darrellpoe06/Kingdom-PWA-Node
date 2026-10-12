@@ -60,6 +60,25 @@ export function shelfOrder(rentals = []) {
 }
 
 /**
+ * A door's name, the one the Doors board prints. The door picker and the board
+ * read it from here, so a door cannot be "Apt 2" in one and "805 North
+ * Prospect Avenue Apt 1" in the other (DR-0978).
+ */
+export function doorLabel(r) {
+  return [r?.display_name || r?.address, r?.unit].filter(Boolean).join(' \u00b7 ') || 'Unnamed door';
+}
+
+/**
+ * The door picker for whoever can read the doors: EVERY door, in the board's
+ * order, by the board's name (DR-0978). Darrell, 2026-10-12, a screenshot of
+ * the landlord picker holding two doors under "Your doors (12)": it listed
+ * TENANCIES, and only two of the twelve doors have one.
+ */
+export function doorPickerOptions(rentals = []) {
+  return shelfOrder(rentals).filter((r) => r && r.id).map((r) => ({ id: r.id, label: doorLabel(r) }));
+}
+
+/**
  * Move one door one place toward the front (dir -1) or the back (dir +1).
  * Returns the patches to write — at most two rows, and usually one.
  *

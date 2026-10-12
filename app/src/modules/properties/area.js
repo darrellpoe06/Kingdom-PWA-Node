@@ -18,6 +18,15 @@
 //   WP = Wikipedia; LL = latlong.net. Straight-line, never a driving claim.
 // No place line names a street: a line like "Target on North Prospect" would
 // hand a stranger the street of a door that fronts it.
+//
+// THE MAP IS ASKED FOR (DR-0977, 2026-10-12). Darrell: "Why would I ever need
+// to add a Google maps link when you can do that as a standard for any address
+// we add?!!!!!" and "I only want a map when I want it... don't want to spend
+// time or data for the map if not required or requested". So the point comes
+// from the ADDRESS (findPoint -> the same-origin /geocode route), and only when
+// somebody taps for the map; nothing is looked up and no tile is fetched
+// before that. mapsUrl hands the address to the phone's own maps app instead,
+// which costs this app nothing at all.
 // =============================================================================
 
 export const GRID = 0.005;
@@ -42,8 +51,8 @@ export function roundArea(lat, lng) {
 /**
  * Read a point pasted from any map app: "40.123364, -88.25828",
  * "40.123364 -88.25828", or a Google Maps link carrying "@lat,lng" or
- * "q=lat,lng". Returns {lat, lng} or null. Nothing is looked up anywhere: the
- * street is never sent to a search service.
+ * "q=lat,lng". Returns {lat, lng} or null. Kept for pinning a door by hand
+ * when an address lookup misses it.
  */
 export function parsePoint(text) {
   const s = String(text || '');
@@ -189,4 +198,63 @@ export function streetName(address) {
 export function namesStreet(label, address) {
   const st = streetName(address);
   return Boolean(st) && String(label || '').toLowerCase().includes(st.toLowerCase());
+}
+
+// --- From the address, on request (DR-0977) ----------------------------------
+
+/** The one line an address is looked up and opened by. */
+export function addressLine(parts = {}) {
+  return [parts.street ?? parts.address, parts.city, parts.state]
+    .map((x) => String(x || '').trim()).filter(Boolean).join(', ');
+}
+
+/**
+ * The phone's own maps app, for an address (or, with no address, a rounded
+ * area). One link, no key: Google's documented Maps URL opens the Maps app on
+ * Android and iOS and the website elsewhere.
+ */
+export function mapsUrl({ query = '', area = null } = {}) {
+  const q = String(query || '').trim() || (area ? `${area.lat},${area.lng}` : '');
+  return q ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}` : '';
+}
+
+export const NOMINATIM_DIRECT = 'https://nominatim.openstreetmap.org/search';
+
+/**
+ * Where an address is: {ok:true, point:{lat,lng}, matched, via} or {ok:false, reason}.
+ * Asks this app's own /geocode route first (Census, then OpenStreetMap). When
+ * that road gives no answer at all -- unreachable, or the Pages Functions are
+ * down and it returns the app's own page (#2057, 2026-10-09 to at least
+ * 10-12) -- it asks OpenStreetMap straight from the phone, which allows it.
+ * A route that ANSWERS "not found" is believed: it already asked both.
+ * Bounded by a timeout per road; never throws. The exact point stays in
+ * memory: callers round it (roundArea) before it is drawn or saved.
+ */
+export async function findPoint(query, { fetchImpl = (typeof fetch === 'function' ? fetch : null), timeoutMs = 10000, base = '' } = {}) {
+  const q = String(query || '').trim();
+  if (q.length < 5) return { ok: false, reason: 'There is no address to look up.' };
+  if (!fetchImpl) return { ok: false, reason: 'This device cannot look an address up.' };
+  const timedOut = (e) => e?.name === 'TimeoutError';
+  let lastError = null;
+  try {
+    const res = await fetchImpl(`${base}/geocode?q=${encodeURIComponent(q)}`, { signal: AbortSignal.timeout(timeoutMs) });
+    const body = await res.json().catch(() => null);
+    if (body && typeof body.ok === 'boolean') {
+      const lat = Number(body.lat); const lng = Number(body.lng);
+      if (body.ok && Number.isFinite(lat) && Number.isFinite(lng)) return { ok: true, point: { lat, lng }, matched: String(body.matched || ''), via: 'route' };
+      return { ok: false, reason: 'The map could not find this address.' };
+    }
+  } catch (e) { lastError = e; }
+  try {
+    const u = `${NOMINATIM_DIRECT}?${new URLSearchParams({ q, format: 'jsonv2', limit: '1', countrycodes: 'us' })}`;
+    const res = await fetchImpl(u, { headers: { accept: 'application/json' }, signal: AbortSignal.timeout(timeoutMs) });
+    const body = await res.json().catch(() => null);
+    const m = Array.isArray(body) ? body[0] : null;
+    const lat = Number(m?.lat); const lng = Number(m?.lon);
+    if (Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lat) <= 85 && Math.abs(lng) <= 180) {
+      return { ok: true, point: { lat, lng }, matched: String(m.display_name || ''), via: 'openstreetmap' };
+    }
+    if (Array.isArray(body)) return { ok: false, reason: 'The map could not find this address.' };
+  } catch (e) { lastError = e; }
+  return { ok: false, reason: timedOut(lastError) ? 'The map took too long to answer. Try again.' : 'The map could not be reached just now.' };
 }

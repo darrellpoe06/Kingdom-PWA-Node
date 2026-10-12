@@ -1165,16 +1165,16 @@ const NODES = [
     ],
     seeds: ['record-clock'],
   }),
-  // Where, never the street (DR-0935, 0270): the family sets a door's area and
-  // nearby lines; the open shelf shows the rounded area on a map.
+  // The map, asked for (DR-0935, 0270, then DR-0977, 0280): the family finds a
+  // door from its own address; the open shelf draws the area only on request.
   app('app/src/modules/properties/AreaMap.jsx', {
-    id: 'area-map', name: 'The area on a map, never the street', purpose: 'The family pastes a point; the device rounds it and works out straight-line miles to cited places; the database keeps only the rounded area and the lines, and the public shelf draws a circle with what is nearby.',
+    id: 'area-map', name: 'The area on a map, when asked for', purpose: 'The family finds the door from its own address (or pins it by hand); the device rounds the point and works out straight-line miles to cited places; the database keeps only the rounded area and the lines, and the public shelf draws a circle with what is nearby only when a visitor asks for the map.',
     writes: [
       { res: 'db:rentals', file: 'app/src/modules/properties/AreaMap.jsx', token: 'area_lat: area.lat' },
     ],
     reads: [
       { res: 'db:rentals', file: 'app/src/modules/properties/cloud.js', token: "select('area_lat, area_lng, nearby')" },
-      { res: 'db:rentals', file: 'app/src/modules/properties/Storefront.jsx', token: '<AreaMap area={unit.area}' },
+      { res: 'db:rentals', file: 'app/src/modules/properties/Storefront.jsx', token: 'area={unit.area}' },
     ],
   }),
   app('app/src/modules/properties/model.js', {

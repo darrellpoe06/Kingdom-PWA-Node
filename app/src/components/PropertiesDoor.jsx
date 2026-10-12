@@ -437,6 +437,9 @@ function SignedOutDoor({ left = false, onReturn } = {}) {
                   note: String(v.note || '').trim(),
                   addressShown: v.address_shown === undefined ? true : Boolean(v.address_shown),
                   area: areaOf(v),
+                  street: String(v.street || '').trim(),
+                  city: String(v.city || '').trim(),
+                  state: String(v.state || '').trim(),
                   nearby: Array.isArray(v.nearby) ? v.nearby : [],
                   // WHAT IS ACTUALLY BEING RENTED (DR-0952). A bed or a room
                   // in a shared home is not a one-bedroom apartment, and the

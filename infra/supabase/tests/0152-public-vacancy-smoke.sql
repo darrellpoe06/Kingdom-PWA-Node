@@ -50,11 +50,14 @@ INSERT INTO instance_members (instance_id, user_id, role, display_name)
 VALUES (:'inst', :'owner', 'owner', 'Owner') ON CONFLICT DO NOTHING;
 
 -- Three doors: listed+free, unlisted, listed-but-occupied. Money on every one.
-INSERT INTO rentals (id, instance_id, created_by, slug, display_name, address, unit, city, state, monthly_rent, purchase_price, mortgage_balance, tenant_name, listed_at, listed_rent, listed_note)
+-- All three HELD to begin with (address_visibility after-application): since
+-- 0280 (DR-0977) a door's street shows unless the family holds it, so the
+-- gated case is set explicitly and the shown case is the UPDATE below.
+INSERT INTO rentals (id, instance_id, created_by, slug, display_name, address, unit, city, state, monthly_rent, purchase_price, mortgage_balance, tenant_name, listed_at, listed_rent, listed_note, address_visibility)
 VALUES
-  (:'rlist',  :'inst', :'owner', 'VAC-LISTED',   'Maple Street', '123 Secret St', 'Unit 2', 'Davenport', 'IA', 950, 180000, 120000, NULL, now(), 950, 'Available Sept 1'),
-  (:'rhid',   :'inst', :'owner', 'VAC-UNLISTED', 'Hidden House', '456 Private Rd', NULL,    'Davenport', 'IA', 900, 170000, 110000, NULL, NULL, NULL, NULL),
-  (:'rtaken', :'inst', :'owner', 'VAC-TAKEN',    'Taken Place',  '789 Occupied Ave','Unit 1','Davenport', 'IA', 1000, 200000, 150000, 'Current Tenant', now(), 1000, 'Listed but occupied');
+  (:'rlist',  :'inst', :'owner', 'VAC-LISTED',   'Maple Street', '123 Secret St', 'Unit 2', 'Davenport', 'IA', 950, 180000, 120000, NULL, now(), 950, 'Available Sept 1', 'after-application'),
+  (:'rhid',   :'inst', :'owner', 'VAC-UNLISTED', 'Hidden House', '456 Private Rd', NULL,    'Davenport', 'IA', 900, 170000, 110000, NULL, NULL, NULL, NULL, 'after-application'),
+  (:'rtaken', :'inst', :'owner', 'VAC-TAKEN',    'Taken Place',  '789 Occupied Ave','Unit 1','Davenport', 'IA', 1000, 200000, 150000, 'Current Tenant', now(), 1000, 'Listed but occupied', 'after-application');
 
 INSERT INTO rental_tenancies (instance_id, created_by, rental_ref, property_label, monthly_rent, deposit, status)
 VALUES (:'inst', :'owner', 'VAC-TAKEN', 'Taken Place', 1000, 1000, 'active');
@@ -118,7 +121,7 @@ BEGIN
   PERFORM pg_temp.as_anon_count(
     'SELECT count(*) FROM public_vacancies()', 'anon sees exactly the listed+free unit', 1);
 
-  -- DEFAULT (address_visibility NULL = 'after-application', 0158): the door is
+  -- HELD (after-application, 0158 / DR-0977): the door is
   -- placeable, not locatable. No property_type and no rooms in this fixture,
   -- so the computed label is exactly "place in Davenport, IA".
   PERFORM pg_temp.as_anon_count(
@@ -134,16 +137,16 @@ BEGIN
     $q$SELECT count(*) FROM public_vacancies() WHERE address_shown = false AND unit IS NULL$q$,
     'the gated door says it is gated and carries no unit', 1);
 
-  -- EVEN WHEN A DOOR IS MARKED PUBLIC (DR-0933, 0268): only the listed, free
-  -- one is offered — visibility never overrides listing or occupancy — and it
-  -- STILL carries no street and no unit: the shelf shows where, never the street.
+  -- SHOWN (DR-0977, 0280; DR-0933's "never" superseded): only the listed,
+  -- free door is offered -- visibility never overrides listing or occupancy --
+  -- and that door now carries its name, its unit and its street.
   UPDATE rentals SET address_visibility = 'public'
    WHERE slug IN ('VAC-LISTED', 'VAC-UNLISTED', 'VAC-TAKEN');
   PERFORM pg_temp.as_anon_count(
     'SELECT count(*) FROM public_vacancies()', 'marking doors public offers no extra door', 1);
   PERFORM pg_temp.as_anon_count(
-    $q$SELECT count(*) FROM public_vacancies() v WHERE v.address_shown = false AND v.unit IS NULL AND v::text NOT LIKE '%Maple Street%'$q$,
-    'a door marked public still shows no street and no unit (DR-0933)', 1);
+    $q$SELECT count(*) FROM public_vacancies() v WHERE v.address_shown AND v.label = 'Maple Street' AND v.unit = 'Unit 2' AND v.street = '123 Secret St'$q$,
+    'a shown door carries its name, unit and street (DR-0977)', 1);
   PERFORM pg_temp.as_anon_count(
     $q$SELECT count(*) FROM public_vacancies() v WHERE v::text LIKE '%Hidden House%' OR v::text LIKE '%Private Rd%'$q$,
     'an UNLISTED unit is never advertised, even marked public', 0);
@@ -151,11 +154,13 @@ BEGIN
     $q$SELECT count(*) FROM public_vacancies() v WHERE v::text LIKE '%Taken Place%' OR v::text LIKE '%Occupied Ave%'$q$,
     'a listed but OCCUPIED unit is not offered, even marked public', 0);
 
-  -- The table itself stays shut, and the address never rides along.
+  -- The table itself stays shut, and a HELD street never rides along.
+  UPDATE rentals SET address_visibility = 'after-application'
+   WHERE slug IN ('VAC-LISTED', 'VAC-UNLISTED', 'VAC-TAKEN');
   PERFORM pg_temp.as_anon_shut('SELECT count(*) FROM rentals', 'anon reads rentals directly');
   PERFORM pg_temp.as_anon_count(
     $q$SELECT count(*) FROM public_vacancies() v WHERE v::text LIKE '%Secret St%'$q$,
-    'the street address leaks through the RPC', 0);
+    'a held street address leaks through the RPC', 0);
   PERFORM pg_temp.as_anon_count(
     $q$SELECT count(*) FROM public_vacancies() v WHERE v::text LIKE '%120000%'$q$,
     'the mortgage balance leaks through the RPC', 0);
