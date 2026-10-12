@@ -1205,11 +1205,20 @@ def sd_of(stream_id):
 
 def sd_source(url):
     """The same wyze:// source with subtype=sd (replacing subtype=hd when it is there);
-    a bridge road's own `-sub` substream (DR-0809); None for any other kind."""
+    for a bridge road, the bridge's MAIN stream (DR-0979); None for any other kind.
+
+    WHY NOT THE BRIDGE'S `-sub` (DR-0809 had it so). cams-diag 37980447085,
+    2026-10-09: every `-sub` the bridge tried timed out at the camera
+    ("[front-door-view-sub] [-13] IOTC_ER_TIMEOUT", basketball-cam-sub,
+    outside-7-sub, garage-front-yard-sub), and the wall asks every tile for its
+    `_sd` -- so a wall of bridged cameras asked only for the one feed that never
+    connected, while the Wyze app showed all of them live (Darrell, 2026-10-12).
+    A second substream is a second session to the camera; the main stream is the
+    session the bridge already holds. The tile is small either way."""
     if is_bridge_source(url):
         base, _, frag = str(url).partition("#")
-        if not base.endswith(BRIDGE_SUB_SUFFIX):
-            base += BRIDGE_SUB_SUFFIX
+        if base.endswith(BRIDGE_SUB_SUFFIX):
+            base = base[: -len(BRIDGE_SUB_SUFFIX)]
         return base + (("#" + frag) if frag else "")
     if kind_of(url) != "wyze":
         return None
@@ -1639,13 +1648,24 @@ def set_stream_source(upstream, name, src, config_path=None, log=print, timeout=
     return True
 
 
+def stream_source_url(entry):
+    """The first producer URL of a go2rtc /api/streams entry, or None."""
+    if not isinstance(entry, dict):
+        return None
+    for p in entry.get("producers") or []:
+        if isinstance(p, dict) and p.get("url"):
+            return p.get("url")
+    return None
+
+
 def ensure_bridge_roads(upstream, streams, bridge_cams, lans=None, roads=None, log=print, config_path=None, roads_path=None, now=None, only=None, failing=None, unreachable=None):
     """Put every Wyze camera on the road that works (DR-0809) and keep the record.
     streams: go2rtc GET /api/streams. bridge_cams: bridge_cameras(). lans:
     lan_networks(). roads: the kept record (loaded when None). failing: the
     cameras whose snapshot breaker tripped on a connect-class reason {id: why};
     unreachable: the cameras watched with no byte arriving (StreamHealth).
-    Answers {to_bridge, to_direct, resigned, readdressed, retried, unknown, kept, known}."""
+    Answers {to_bridge, to_direct, resigned, readdressed, retried, unknown, kept, known},
+    plus sd_main: the bridged cameras whose SD twin was moved off `-sub` (DR-0979)."""
     now = time.time() if now is None else now
     lans = lan_networks() if lans is None else lans
     roads = roads_load(roads_path) if roads is None else roads
@@ -1741,6 +1761,14 @@ def ensure_bridge_roads(upstream, streams, bridge_cams, lans=None, roads=None, l
                     out["resigned"].append(sid)
                     log("bridge-road: %s re-signed with the bridge's current stream line" % sid)
                     continue
+                # A twin still on the bridge's `-sub` (written before DR-0979)
+                # is moved to the main stream once. Read from the URL go2rtc
+                # echoes, by its path alone, so a credentialed line cannot loop.
+                sd_url = stream_source_url(streams.get(sd_of(sid)))
+                if sd_url and urllib.parse.urlsplit(sd_url.partition("#")[0]).path.endswith(BRIDGE_SUB_SUFFIX):
+                    if set_stream_source(upstream, sd_of(sid), sd_source(rec.get("bridge") or want or sd_url), config_path, log):
+                        out.setdefault("sd_main", []).append(sid)
+                        log("bridge-road: %s's SD twin moved off the bridge's -sub stream to its main stream (DR-0979)" % sid)
                 out["kept"] += 1
                 continue
             if not set_stream_source(upstream, sid, direct, config_path, log):
@@ -4277,7 +4305,7 @@ def _selftest():
     check(bridge_road_wanted("wyze://192.168.1.60?uid=A&enr=S&mac=AA:BB:CC:DD:EE:03&model=WYZEC1-JZ", lans) == (True, "no-dtls"), "a LAN camera without dtls=true wants the bridge: no-dtls")
     check(bridge_road_wanted("rtsp://u:p@192.168.1.9/live", lans) == (False, "") and bridge_road_wanted(bridge_source("x"), lans) == (False, ""), "an rtsp camera and a bridged one are not asked")
     check(mac_of("wyze://10.0.0.5?uid=A&mac=aa:bb:cc:dd:ee:01") == "AABBCCDDEE01" and norm_mac("AA22334455bB") == "AA22334455BB" and norm_mac(None) == "", "MACs compare without colons or case")
-    check(sd_source(bridge_source("805-north")) == bridge_source("805-north").replace("#", "-sub#") and bridge_source("805-north").endswith("/805-north#timeout=30") and sd_source(bridge_source("805-north-sub")) == bridge_source("805-north-sub") and kind_of(bridge_source("805-north")) == "wyze", "a bridged camera's SD twin is its -sub stream ahead of go2rtc's #timeout=30, and it is still a Wyze camera")
+    check(sd_source(bridge_source("805-north")) == bridge_source("805-north") and bridge_source("805-north").endswith("/805-north#timeout=30") and sd_source(bridge_source("805-north-sub")) == bridge_source("805-north") and kind_of(bridge_source("805-north")) == "wyze", "a bridged camera's SD twin is the bridge's MAIN stream (DR-0979: every -sub the bridge tried timed out), an old -sub line reads back to main, and it is still a Wyze camera")
 
     class FakeBridge(BaseHTTPRequestHandler):
         def log_message(self, *a):
@@ -4364,6 +4392,14 @@ def _selftest():
     streams_after["front_cam_sd"] = {"producers": [{"url": sd_source(bridge_source("front-cam"))}]}
     res2 = ensure_bridge_roads(rup, streams_after, bc, lans=lans, roads=roads_load(br_roads), log=logs.append, config_path=br_cfg, roads_path=br_roads, now=1300.0)
     check(res2["to_bridge"] == [] and res2["to_direct"] == [] and FakeGo2rtcRoads.state["puts"] == [], "a second sync moves nothing and makes no call")
+    # DR-0979: a twin written before it, still on the bridge's -sub, moves to the main stream ONCE.
+    streams_old_sd = dict(streams_after)
+    streams_old_sd["805_north_sd"] = {"producers": [{"url": bridge_source("805-north").replace("/805-north#", "/805-north-sub#")}]}
+    res2b = ensure_bridge_roads(rup, streams_old_sd, bc, lans=lans, roads=roads_load(br_roads), log=logs.append, config_path=br_cfg, roads_path=br_roads, now=1310.0)
+    check(res2b.get("sd_main") == ["805_north"] and FakeGo2rtcRoads.state["puts"] == [("805_north_sd", bridge_source("805-north"))] and res2b["to_bridge"] == [] and res2b["to_direct"] == [], "an old -sub twin is moved to the bridge's main stream, one call, nothing else moves (%r)" % (FakeGo2rtcRoads.state["puts"],))
+    FakeGo2rtcRoads.state["puts"] = []
+    res2c = ensure_bridge_roads(rup, streams_after, bc, lans=lans, roads=roads_load(br_roads), log=logs.append, config_path=br_cfg, roads_path=br_roads, now=1320.0)
+    check(not res2c.get("sd_main") and FakeGo2rtcRoads.state["puts"] == [], "once on the main stream, the twin is left alone: no loop")
     # The owner forces 805_north back to direct: it returns with its kept line, twin included.
     rd = roads_load(br_roads); rd["805_north"]["forced"] = "direct"; roads_save(rd, br_roads)
     res3 = ensure_bridge_roads(rup, streams_after, bc, lans=lans, roads=roads_load(br_roads), log=logs.append, config_path=br_cfg, roads_path=br_roads, now=1400.0)
@@ -4389,7 +4425,7 @@ def _selftest():
     # The bridge's RTSP needs its stream credentials (the first field read answered "user/pass not provided").
     bsrc = bridge_source("805-north")
     check(bsrc.startswith("rtsp://wb:") and read_env_pairs(br_env)["WB_API"] in urllib.parse.unquote(bsrc) and read_env_pairs(br_env)["WB_PASSWORD"] not in bsrc and "poetech" not in bsrc and bsrc.endswith("@127.0.0.1:8555/805-north#timeout=30"), "with the env in place the bridge line carries wb:<WB_API> before the host, never the web UI's WB_USERNAME:WB_PASSWORD (third field read: those answer wrong user/pass) (%s)" % scrub_text(bsrc))
-    check(is_bridge_source(bsrc) and kind_of(bsrc) == "wyze" and sd_source(bsrc) == bsrc.replace("/805-north#", "/805-north-sub#") and sd_source(bsrc).endswith("-sub#timeout=30") and is_bridge_source("rtsp://127.0.0.1:8555/x") and not is_bridge_source("rtsp://u:p@192.168.1.9:8555/x") and not is_bridge_source("rtsp://127.0.0.1:8554/x"), "a credentialed bridge line is still the bridge road (host and port decide), another host or go2rtc's own port is not")
+    check(is_bridge_source(bsrc) and kind_of(bsrc) == "wyze" and sd_source(bsrc) == bsrc and sd_source(bsrc.replace("/805-north#", "/805-north-sub#")) == bsrc and is_bridge_source("rtsp://127.0.0.1:8555/x") and not is_bridge_source("rtsp://u:p@192.168.1.9:8555/x") and not is_bridge_source("rtsp://127.0.0.1:8554/x"), "a credentialed bridge line is still the bridge road (host and port decide), another host or go2rtc's own port is not")
     check(read_env_pairs(br_env)["WB_API"] not in scrub_text(bsrc) and "***@127.0.0.1" in scrub_text(bsrc), "scrub_text masks the bridge credentials wherever a URL is quoted")
     rd_pub = roads_public({"805_north": {"road": "bridge", "bridge": bsrc, "direct": "wyze://10.0.0.180?enr=S", "uri": "805-north", "reason": "other-network"}})
     check("poetech" not in json.dumps(rd_pub) and "8555" not in json.dumps(rd_pub), "the public roads view carries neither URL")
