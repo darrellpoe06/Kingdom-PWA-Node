@@ -51,7 +51,8 @@ describe('a bed in a shared home', () => {
   it('PROVEN-TO-CATCH: says it is shared, and that there are housemates', async () => {
     const text = await show(BED);
     expect(at('vacancy-shared-home'), 'the card never said this is a shared home').toBeTruthy();
-    expect(text).toMatch(/private bed in a shared home/i);
+    // Darrell, 2026-10-13: "bedroom shared, 2 to a room" (DR-1003).
+    expect(text).toMatch(/bed in a shared bedroom, two to a room, in a shared home/i);
     expect(text).toMatch(/housemates/i);
     expect(text).toMatch(/kitchen and bathroom are shared/i);
   });

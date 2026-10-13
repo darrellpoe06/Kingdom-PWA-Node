@@ -98,8 +98,8 @@ function seed() {
       ON CONFLICT (id) DO NOTHING;
     INSERT INTO instances (id, slug, display_name, instance_type) VALUES ('${INSTANCE}', 'poe-properties-e2e', 'Poe Properties E2E', 'business');
     INSERT INTO instance_members (instance_id, user_id, role, display_name) VALUES ('${INSTANCE}', '${OWNER}', 'owner', 'Owner');
-    INSERT INTO rentals (id, instance_id, created_by, slug, display_name, address, unit, city, state, property_type, status, listed_at, offering, nightly_rate, address_visibility, showcase_order)
-      VALUES ('${DOOR}', '${INSTANCE}', '${OWNER}', 'E2E-APT2', '${STREET} Apt 2', '${STREET}', 'Apt 2', 'Champaign', 'Illinois', 'multi-family', 'vacant', now(), 'short-term', 150, 'after-application', 1);
+    INSERT INTO rentals (id, instance_id, created_by, slug, display_name, address, unit, city, state, property_type, status, listed_at, offering, nightly_rate, address_visibility, showcase_order, monthly_rent, weekly_rate, building_note)
+      VALUES ('${DOOR}', '${INSTANCE}', '${OWNER}', 'E2E-APT2', '${STREET} Apt 2', '${STREET}', 'Apt 2', 'Champaign', 'Illinois', 'multi-family', 'vacant', now(), 'short-term', 150, 'after-application', 1, 800, 200, 'Laundry in the entry');
     -- A SECOND DOOR IN THE REAL ESTATE SHAPE (DR-0999): the whole address typed
     -- into one field, no town of its own, not advertised. The family's app
     -- holds it in its parts by itself (G1 reads the row).
@@ -150,6 +150,12 @@ export const FAULTS = Object.freeze({
       `DELETE FROM public.property_photos WHERE source IS NOT NULL AND rental_ref IN ('${DOOR}', '${DOOR2}');`,
       `${MIG}/0285-a-nas-picture-is-filed-once.sql`,
     ],
+  },
+  cadence: {
+    step: 'A1',
+    // Without the weekly price the card has no true month to print beside it.
+    sql: `UPDATE public.rentals SET weekly_rate = NULL WHERE id = '${DOOR}';`,
+    restore: `UPDATE public.rentals SET weekly_rate = 200 WHERE id = '${DOOR}';`,
   },
   area: {
     step: 'E1',
@@ -433,6 +439,15 @@ async function run() {
       await gp.screenshot({ path: join(SHOTS, 'A1-listing.png'), fullPage: true });
       const text = await gp.locator('body').innerText();
       if (text.includes(STREET)) throw new Error(`the held street "${STREET}" is on the public page (DR-0977: held until they apply or book)`);
+      // ANY CADENCE, THE TRUE MONTH BESIDE EACH (DR-1003): $200 a week is
+      // $867 a month on average and $1,000 in a five-week month, said on the
+      // card beside the $800 month, with which is the better deal.
+      const cad = await gp.getByTestId('vacancy-cadence').first().innerText({ timeout: 15000 });
+      if (!cad.includes('Weekly $200 ($867 a month on average, $1,000 in a five-week month)')) throw new Error(`the true month is not beside the weekly price: "${cad}"`);
+      const deal = await gp.getByTestId('vacancy-deal').first().innerText();
+      if (!/Monthly is the better deal: \$67 a month less than weekly on average/.test(deal)) throw new Error(`the better deal is not said: "${deal}"`);
+      const bld = await gp.getByTestId('vacancy-building').first().innerText();
+      if (!bld.includes('Laundry in the entry')) throw new Error(`what the building offers is not on the card: "${bld}"`);
     });
     await step('A2 the short form books two nights, both attestations given', async () => {
       await gp.getByRole('button', { name: /Book a stay/i }).first().click();
