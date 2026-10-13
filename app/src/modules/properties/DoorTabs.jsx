@@ -448,6 +448,9 @@ function ArrangeControls({ id, index, total, onArrange, busy }) {
 
 export function DoorsBoard({
   rentals = [], tenancies = [], photos = [], canManage = false,
+  // Each door's own order of the apartment pictures it borrows (DR-0984):
+  // {rental_id: {photo_id: position}}. Bed B's card leads with its choice.
+  photoOrders = {},
   onPick, onStart, onListing, onEditTenancy, onEditRental, onArrange, busy = false,
   // What each door has brought in (DR-0903, door_money_months): moneyByDoor's
   // result. Shown on the family's board only; null hides it.
@@ -553,13 +556,20 @@ export function DoorsBoard({
         const sibs = apartmentOf(r);
         const withCover = sibs.find((o) => coverByRental.get(o.id));
         const ids = new Set(sibs.map((o) => o.id));
-        const sharedCount = photos.filter((p) => ids.has(p.rental_ref) && !p.archived_at).length;
-        return withCover
-          ? { cover: coverByRental.get(withCover.id), sharedCount, sharedFrom: r.unit || withCover.unit || 'this apartment' }
+        const borrowed = photos.filter((p) => ids.has(p.rental_ref) && !p.archived_at);
+        // THIS DOOR'S OWN COVER of the apartment, when it chose one (DR-0984):
+        // Bed B's card leads with the bedroom while Bed A's leads with its own.
+        const mine = photoOrders[r.id] || {};
+        const chosenCover = borrowed
+          .filter((p) => mine[p.id] !== undefined && mine[p.id] !== null)
+          .sort((a, b) => mine[a.id] - mine[b.id])[0] || null;
+        const cover = chosenCover || (withCover ? coverByRental.get(withCover.id) : null);
+        return cover
+          ? { cover, sharedCount: borrowed.length, sharedFrom: r.unit || withCover?.unit || 'this apartment' }
           : { sharedCount: 0, sharedFrom: '' };
       })(),
     };
-  }), [arranged, activeByRef, coverByRental, photos, apartmentOf]);
+  }), [arranged, activeByRef, coverByRental, photos, apartmentOf, photoOrders]);
 
   // TWO LISTS, NOT ONE FILTERED VIEW. "not in the Properties tab because it's
   // not for renting... Real Estate keeps it just as our home and asset"
@@ -1359,6 +1369,10 @@ export function GalleryTab({
   // this door it owns pictures it does not — the same invented fact DR-0946
   // was written about, pointing the other way.
   sharedPhotos = [], sharedDoors = [], sharedUnread = false,
+  // THIS DOOR'S OWN ORDER of those pictures (DR-0984): {photo_id: position}.
+  // Saved per door, so Bed B can lead with the bedroom while Bed A leads with
+  // the kitchen; the pictures themselves stay on the door that owns them.
+  sharedOrder = {}, onArrangeShared = null,
 }) {
   // Every picture opened or saved here carries the Poe Properties band and a
   // QR to this unit's listing (DR-0941): "all downloaded materials have our
@@ -1435,6 +1449,16 @@ export function GalleryTab({
     () => (only ? allShots.filter((p) => p.kind === only) : allShots),
     [allShots, only],
   );
+  // The apartment's pictures in THIS listing's order (DR-0984): what this door
+  // placed first, then the rest in the owning door's order.
+  const sharedArranged = useMemo(
+    () => photoOrder((sharedPhotos || []).map((p) => ({ ...p, sort_order: sharedOrder[p.id] ?? null }))),
+    [sharedPhotos, sharedOrder],
+  );
+  // One viewer for everything on screen: this door's pictures, then the shared
+  // ones -- "the apartment B picture can't be used/clicked and enlarged".
+  const viewable = useMemo(() => [...shown, ...sharedArranged], [shown, sharedArranged]);
+  const arrangeShared = (res) => { if (onArrangeShared && res.patches.length) onArrangeShared(res.patches); };
 
   // MOVE THE TICKED ONES, SAYING HOW FAR IT HAS GOT (DR-0961).
   //
@@ -1650,7 +1674,7 @@ export function GalleryTab({
   // thumbnail rather than going blank.
   const openAt = async (idx) => {
     setOpen(idx);
-    const p = shown[idx];
+    const p = viewable[idx];
     if (!p || full[p.id] || p.storage_path || typeof loadImage !== 'function') return;
     try {
       const src = await loadImage(p.id);
@@ -2213,19 +2237,19 @@ export function GalleryTab({
           ) : (
             <>
               <p className="text-[0.8125rem] text-[#5A5751] mb-2" data-testid="gallery-shared-note">
-                These are on {sharedDoors.length === 1
+                These live on {sharedDoors.length === 1
                   ? <strong>{sharedDoors[0].display_name || 'the other door'}</strong>
                   : <strong>{sharedDoors.length} other doors</strong>} in this same
-                apartment. The kitchen, the bath and the halls are the same rooms, so
-                they advertise this door too — you do not need to photograph them again,
-                and <strong>you do not need to move them</strong>. This door is already
-                advertised with these pictures. Ticking one here edits it on the door
-                that owns it, for both listings at once — it is never a copy and never
-                a way to give this door its own.
+                apartment, and they advertise this door too, with no need to photograph
+                the kitchen and the halls again. <strong>The order and the cover here are
+                this listing&rsquo;s own</strong>: lead with the bedroom here and the other
+                listing still leads with whatever it chose, so a visitor sees two different
+                rooms before tapping anything. A caption or a tick changes the picture
+                itself, on both listings.
               </p>
               <ul className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {sharedPhotos.map((p) => (
-                  <li key={p.id} className="border border-[#E8E4DC] bg-white p-2">
+                {sharedArranged.map((p, i) => (
+                  <li key={p.id} className="border border-[#E8E4DC] bg-white p-2" data-testid={`gallery-shared-${p.id}`}>
                     <div className="relative">
                       {canManage && (
                         <label className="absolute top-1 right-1 z-10 bg-white border border-[#E8E4DC] px-1.5 py-1 flex items-center gap-1 cursor-pointer">
@@ -2241,18 +2265,32 @@ export function GalleryTab({
                           />
                         </label>
                       )}
-                      <SharpPicture
-                        photo={p} loadImage={loadImage} loadThumb={loadThumb}
-                        alt={p.caption || p.kind} className="aspect-square w-full object-cover"
-                      />
+                      <button
+                        type="button" onClick={() => openAt(shown.length + i)}
+                        aria-label={`Open ${p.caption || p.kind} large`}
+                        data-testid={`gallery-shared-open-${p.id}`}
+                        className="block w-full focus:outline focus:outline-2 focus:outline-[#2F5D50]"
+                      >
+                        <SharpPicture
+                          photo={p} loadImage={loadImage} loadThumb={loadThumb}
+                          alt={p.caption || p.kind} className="aspect-square w-full object-cover"
+                        />
+                      </button>
                       <span className="absolute bottom-1 left-1 bg-[#5A5751] text-white text-[0.625rem] uppercase tracking-wider px-1.5 py-0.5">
-                        Shared
+                        {i === 0 ? 'This listing\u2019s cover' : 'Shared'}
                       </span>
                     </div>
                     <div className="text-[0.8125rem] text-[#1A1815] mt-1 leading-snug">
                       {p.caption || <em className="text-[#6B665E]">No caption</em>}
                     </div>
                     <div className="text-[0.6875rem] text-[#6B665E]">{p.kind.replace(/-/g, ' ')}</div>
+                    {canManage && onArrangeShared && sharedArranged.length > 1 && (
+                      <div className="flex flex-wrap gap-1 mt-1" data-testid={`gallery-shared-arrange-${p.id}`}>
+                        <Btn onClick={() => arrangeShared(movePhoto(sharedArranged, p.id, -1))} disabled={i === 0} aria-label={`Move ${p.caption || p.kind} earlier in this listing`}>&larr;</Btn>
+                        <Btn onClick={() => arrangeShared(movePhoto(sharedArranged, p.id, 1))} disabled={i === sharedArranged.length - 1} aria-label={`Move ${p.caption || p.kind} later in this listing`}>&rarr;</Btn>
+                        <Btn onClick={() => arrangeShared(makeCover(sharedArranged, p.id))} disabled={i === 0}>Make this listing&rsquo;s cover</Btn>
+                      </div>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -2261,9 +2299,9 @@ export function GalleryTab({
         </Card>
       )}
 
-      {open !== null && shown.length > 0 && (
+      {open !== null && viewable.length > 0 && (
         <Lightbox
-          items={shown.map((p, n) => ({
+          items={viewable.map((p, n) => ({
             src: full[p.id] || sharpestKnown(p),
             alt: p.caption || p.kind,
             caption: [p.caption, p.kind.replace(/-/g, ' '), roomName(p.room_id)].filter(Boolean).join(' · '),

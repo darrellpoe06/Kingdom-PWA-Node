@@ -53,6 +53,7 @@ vi.mock('../modules/properties/cloud.js', () => {
     // The rest of the apartment (DR-0963). Stubbed empty: these suites are
     // about a single door, and a door with no siblings is the ordinary case.
     loadSiblingPhotos: async () => ({ ok: true, photos: [], siblings: [] }),
+    loadDoorPhotoOrders: async () => ({ ok: true, orders: {} }), saveDoorPhotoOrder: async () => ({ ok: true, saved: 0 }),
     loadDoorPhotos: async () => ({ ok: true, photos: H.photos }),
     loadDoorTenancies: async () => ({ ok: true, tenancies: H.tenancies }),
     loadDocuments: async () => ({ ok: true, documents: H.documents }),

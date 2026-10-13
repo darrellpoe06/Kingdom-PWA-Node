@@ -40,6 +40,7 @@ vi.mock('../modules/properties/cloud.js', () => {
     // The rest of the apartment (DR-0963). Stubbed empty: these suites are
     // about a single door, and a door with no siblings is the ordinary case.
     loadSiblingPhotos: async () => ({ ok: true, photos: [], siblings: [] }),
+    loadDoorPhotoOrders: async () => ({ ok: true, orders: {} }), saveDoorPhotoOrder: async () => ({ ok: true, saved: 0 }),
     loadDoorPhotos: async () => ({ ok: true, photos: [] }),
     loadPhotoThumbs: async () => ({ ok: true, thumbs: {} }), loadStayPayment: async () => ({ ok: true, payment: null }), loadDoorNotes: async () => ({ ok: true, notes: [] }), loadVacancyAddress: async () => ({ ok: false }), loadGuestDoor: async () => ({ ok: false }), loadJobVideo: async () => ({ ok: false }),
     loadSystems: async () => ({ ok: true, systems: [] }), loadSystemEvents: async () => ({ ok: true, events: [] }), loadPropertyNotes: async () => ({ ok: true, notes: [] }),
@@ -125,5 +126,22 @@ describe('the landlord door picker', () => {
     });
     for (let i = 0; i < 3; i++) await act(async () => { await Promise.resolve(); });
     expect(container.querySelector('[data-testid="door-picker"]').value).toBe('r7');
+  });
+
+  it('DR-0985: picking a door opens its Pictures, not the landing tab', async () => {
+    H.rentals = twelve();
+    H.doors = [];
+    await mount();
+    const picker = container.querySelector('[data-testid="door-picker"]');
+    await act(async () => {
+      picker.value = 'r7';
+      picker.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    for (let i = 0; i < 4; i++) await act(async () => { await Promise.resolve(); });
+    const pictures = [...container.querySelectorAll('button')].find((b) => /^Pictures$/i.test(b.textContent.trim()));
+    expect(pictures, 'no Pictures tab on the landlord face').toBeTruthy();
+    // The active tab is the primary-toned one.
+    expect(pictures.className).toMatch(/bg-\[#2F5D50\]/);
+    expect(window.location.search + window.location.hash).toMatch(/gallery/);
   });
 });

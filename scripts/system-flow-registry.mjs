@@ -1177,6 +1177,19 @@ const NODES = [
       { res: 'db:rentals', file: 'app/src/modules/properties/Storefront.jsx', token: 'area={unit.area}' },
     ],
   }),
+  // Each door its own order of the apartment it borrows (DR-0984, 0282): Bed B
+  // leads with the bedroom while Bed A leads with the kitchen; the public card,
+  // the board and the gallery all read the same rows.
+  app('app/src/modules/properties/DoorTabs.jsx', {
+    id: 'door-photo-order', name: 'Each listing its own cover of the apartment', purpose: 'A door with no pictures of its own arranges the apartment pictures it borrows for its own listing; the family saves the order here and the public card, the board and the gallery lead with that door\u2019s choice.',
+    writes: [
+      { res: 'db:door_photo_order', file: 'app/src/modules/properties/cloud.js', token: "from('door_photo_order').upsert" },
+    ],
+    reads: [
+      { res: 'db:door_photo_order', file: 'app/src/modules/properties/cloud.js', token: "select('photo_id, position')" },
+      { res: 'db:door_photo_order', file: 'app/src/modules/properties/cloud.js', token: "select('rental_id, photo_id, position')" },
+    ],
+  }),
   app('app/src/modules/properties/model.js', {
     id: 'record-clock', name: 'Every change, to the instant (record events)', purpose: 'Each report, confirmation, status move and assignment on rent and work leaves an append-only event with its own clock, read back on the door\u2019s history so a situation can be recreated.',
     reads: [

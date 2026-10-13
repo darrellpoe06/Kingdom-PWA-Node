@@ -738,7 +738,47 @@ export async function loadSiblingPhotos(rentalId, client = supabase) {
       .order('sort_order', { ascending: true, nullsFirst: false })
       .order('taken_at', { ascending: false });
     if (error) return no('read-failed', error);
-    return ok({ photos: data || [], siblings: mine });
+    // THIS DOOR'S OWN ORDER of what it borrows (DR-0984, 0282). A failed read
+    // here is not a reason to hide the pictures: they come back in the owning
+    // door's order and say so, never as "none".
+    const { data: placed, error: placedErr } = await client
+      .from('door_photo_order').select('photo_id, position').eq('rental_id', rentalId);
+    const order = {};
+    for (const row of placed || []) order[row.photo_id] = row.position;
+    return ok({ photos: data || [], siblings: mine, order, orderUnread: Boolean(placedErr) });
+  } catch (e) { return no('unexpected', e); }
+}
+
+/**
+ * Save THIS door's order of the pictures it borrows from the rest of its
+ * apartment (DR-0984). `patches` is what photo-order.js's movePhoto/makeCover
+ * return ([{id, patch: {sort_order}}]); each becomes this door's position for
+ * that picture. The picture itself is never touched -- Bed A keeps its own
+ * order and cover while Bed B leads with the bedroom. The database refuses a
+ * picture that is not in this door's apartment (0282's trigger) and anyone
+ * who is not the family (RLS).
+ */
+export async function saveDoorPhotoOrder(rentalId, instanceId, patches = [], client = supabase) {
+  const rows = (Array.isArray(patches) ? patches : [])
+    .filter((x) => x && x.id && Number.isFinite(Number(x.patch?.sort_order)))
+    .map((x) => ({ rental_id: rentalId, photo_id: x.id, instance_id: instanceId, position: Math.round(Number(x.patch.sort_order)) }));
+  if (!rentalId || !instanceId) return no('no-door');
+  if (!rows.length) return ok({ saved: 0 });
+  try {
+    const { error } = await client.from('door_photo_order').upsert(rows, { onConflict: 'rental_id,photo_id' });
+    if (error) return no('write-failed', error);
+    return ok({ saved: rows.length });
+  } catch (e) { return no('unexpected', e); }
+}
+
+/** Every door's own order of borrowed pictures the family may read: {rental_id: {photo_id: position}}. */
+export async function loadDoorPhotoOrders(client = supabase) {
+  try {
+    const { data, error } = await client.from('door_photo_order').select('rental_id, photo_id, position');
+    if (error) return no('read-failed', error);
+    const orders = {};
+    for (const row of data || []) (orders[row.rental_id] ||= {})[row.photo_id] = row.position;
+    return ok({ orders });
   } catch (e) { return no('unexpected', e); }
 }
 

@@ -59,7 +59,7 @@ import { VacancyCard } from './Storefront.jsx';
 import { areaOf } from './area.js';
 import {
   loadRooms, addRoom, patchRoom, loadDoorPhotos, loadSiblingPhotos, loadDoorTenancies,
-  loadMyRentals, updateTenancy, updateRental, loadAllPhotos,
+  loadMyRentals, updateTenancy, updateRental, loadAllPhotos, loadDoorPhotoOrders, saveDoorPhotoOrder,
   loadPhotoImages, loadPhotoThumbs,
   addPhoto, patchPhoto, loadDocuments, addDocument, patchDocument,
   loadPublicVacancies,
@@ -304,6 +304,8 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
   // Every photo this person may see, for the board's cover thumbnails. RLS
   // scopes it, so a tenant's copy holds only their own tenancy's pictures.
   const [doorPhotos, setDoorPhotos] = useState([]);
+  // Each door's own order of the apartment pictures it borrows (DR-0984).
+  const [photoOrders, setPhotoOrders] = useState({});
   // The public listings anyone can see with no account (column-safe: no tenant
   // names, no mortgage — cloud.js). Shown when this person holds neither a
   // tenancy nor an owned door, so the front door is never a blank space.
@@ -359,11 +361,13 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
     // Its own deadline too, for the same reason: the cover thumbnails and the
     // public listings must not be starved by whatever the spine reads cost.
     const extras = deadlineIn();
-    const [ph, vac, inv, sess] = await Promise.all([
+    const [ph, vac, inv, sess, po] = await Promise.all([
       boundedRead(loadAllPhotos(), extras()), boundedRead(loadPublicVacancies(), extras()),
       boundedRead(loadInvites(), extras(), { ok: false }),
       boundedRead(Promise.resolve().then(() => supabase.auth.getSession()).then((r) => (r && r.data && r.data.session) || null).catch(() => null), extras(), null),
+      boundedRead(loadDoorPhotoOrders(), extras(), { ok: false }),
     ]);
+    setPhotoOrders(po && po.ok ? po.orders : {});
     setInvites(inv && inv.ok ? inv.invites : []);
     setMe(sess && sess.user ? sess.user.id : null);
     // NO PICTURE IS FETCHED AT BOOT — NOT ONE (DR-0955). The list is metadata
@@ -577,6 +581,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
       // joins `unreadable` below rather than collapsing to [].
       sharedPhotos: sp.ok ? sp.photos : [],
       sharedDoors: sp.ok ? sp.siblings : [],
+      sharedOrder: sp.ok ? (sp.order || {}) : {},
       tenancies: tn.ok ? tn.tenancies : [],
       documents: dc.ok ? dc.documents : [],
       systems: sy.ok ? sy.systems : [],
@@ -1088,7 +1093,16 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
             tenant (who reads no doors) still picks among their own tenancies. */}
         {doorChoices.length > 1 ? (
           <select
-            value={doorChoiceValue} onChange={(e) => { setActiveId(e.target.value); setTab(''); }}
+            // STRAIGHT TO ITS PICTURES (DR-0985). Darrell, 2026-10-13, on this
+            // picker: "the drop down doesn't go directly to that page... it
+            // should right?" -- "Defaulting to the pictures tab" -- "A faster
+            // way to get to the same thing as going down the list in the screen
+            // to see the image first". A face with no Pictures tab keeps its
+            // own landing tab.
+            value={doorChoiceValue} onChange={(e) => {
+              setActiveId(e.target.value);
+              setTab(face.tabs.some((t) => t.id === 'gallery' && !t.locked) ? 'gallery' : '');
+            }}
             className="text-xs border border-[#E8E4DC] px-2 py-1 bg-white" style={serif} aria-label="Choose a door"
             data-testid="door-picker"
           >
@@ -1242,6 +1256,15 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
               // owns them.
               sharedPhotos={doorData.sharedPhotos || []}
               sharedDoors={doorData.sharedDoors || []}
+              // THIS DOOR'S OWN ORDER of them (DR-0984): Bed B can lead with
+              // the bedroom while Bed A leads with the kitchen.
+              sharedOrder={doorData.sharedOrder || {}}
+              onArrangeShared={async (patches) => {
+                const instanceId = activeRental?.instance_id || activeDoor?.instance_id;
+                const r = await saveDoorPhotoOrder(rentalId, instanceId, patches);
+                say(r.ok ? 'Saved for this listing.' : `Not saved: ${r.reason}`);
+                loadDoorData(); boot();
+              }}
               sharedUnread={(doorData.unreadable || []).includes('the rest of the apartment')}
               // "I could not read these" is never "there are none" (DR-0946).
               unread={(doorData.unreadable || []).includes('photos')}
@@ -1349,6 +1372,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
                 // that actually has something to show for it.
                 onPick={(id) => { setActiveId(id); setTab(doors.some((d) => d.id === id) ? 'history' : 'timeline'); }}
                 photos={doorPhotos}
+                photoOrders={photoOrders}
                 onStart={startTenancy}
                 onListing={setListing}
                 onEditTenancy={editTenancy}

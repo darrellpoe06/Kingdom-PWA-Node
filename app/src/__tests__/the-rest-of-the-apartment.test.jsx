@@ -97,8 +97,8 @@ describe('a bed in a shared apartment sees the apartment’s pictures', () => {
     // pictures it does not — DR-0946's invented fact pointing the other way.
     await mountBedB();
     const note = need('gallery-shared-note').textContent;
-    expect(note).toMatch(/805 North Prospect Avenue Room 1 - Bed A/);
-    expect(note).toMatch(/do not need to photograph them again/i);
+    expect(note).toMatch(/These live on 805 North Prospect Avenue Room 1 - Bed A/);
+    expect(note).toMatch(/no need to photograph/i);
     // THE WORDING MOVED, THE PROMISE DID NOT (DR-0971). This asserted
     // "stay where they are", which was true about which door owns the rows
     // and false as an invitation: the sentence continued "Tick any of them
@@ -107,8 +107,14 @@ describe('a bed in a shared apartment sees the apartment’s pictures', () => {
     // We're trying to get co-renters!!!!" The promise being pinned here is
     // that these are NOT COPIED into this door, and the card now says so in
     // words that cannot be read as "move them to advertise this door".
-    expect(note).toMatch(/never a copy/i);
-    expect(note).toMatch(/do not need to move them/i);
+    // DR-0984. Darrell, 2026-10-12, reading the line this used to pin ("never a
+    // way to give this door its own"): "This is the opposite of the required
+    // specifications... I want to be able to show two different rooms in the
+    // same apartment". The promise now: the ORDER and COVER here are this
+    // listing's own; the pictures themselves still live on Bed A.
+    expect(note).toMatch(/order and the cover here are\s+this listing.s own/i);
+    expect(note).toMatch(/changes the picture itself, on both listings/i);
+    expect(note).not.toMatch(/never a way to give this door its own/i);
     // And the door's own count is still honestly zero.
     expect(container.textContent).toMatch(/Pictures \(0\)/);
   });
@@ -196,5 +202,49 @@ describe('a door with its OWN pictures keeps them separate from the shared ones'
     await check('gallery-choose-b-porch');          // the shared one, still on screen
     await tap('gallery-move-to-listing');
     expect(patches.map(([id]) => id), 'a picture from a hidden kind tab was moved').toEqual(['b-porch']);
+  });
+});
+
+
+// DR-0984: each listing its own cover of the apartment, and every shared
+// picture opens large ("the apartment B picture can't be used/clicked and
+// enlarged... fix all of it").
+describe('Bed B arranges the apartment for its own listing', () => {
+  const ROOMS = [
+    { ...shot('a-kitchen', 'listing', 'the kitchen'), sort_order: 10 },
+    { ...shot('a-living', 'listing', 'the living room'), sort_order: 20 },
+    { ...shot('a-bedroom', 'listing', 'the bedroom'), sort_order: 30 },
+  ];
+  const order = () => [...container.querySelectorAll('[data-testid^="gallery-shared-open-"]')].map((b) => b.getAttribute('data-testid').replace('gallery-shared-open-', ''));
+
+  it('starts in the owning door\'s order, and "Make this listing\'s cover" puts the bedroom first for Bed B only', async () => {
+    const saved = [];
+    await mountBedB({ sharedPhotos: ROOMS, sharedOrder: {}, onArrangeShared: (patches) => saved.push(patches) });
+    expect(order()).toEqual(['a-kitchen', 'a-living', 'a-bedroom']);
+    const coverBtn = [...need('gallery-shared-arrange-a-bedroom').querySelectorAll('button')].find((b) => /cover/i.test(b.textContent));
+    await act(async () => { coverBtn.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+    expect(saved).toHaveLength(1);
+    const pos = Object.fromEntries(saved[0].map((x) => [x.id, x.patch.sort_order]));
+    // The bedroom is placed ahead of everything else in THIS listing.
+    expect(pos['a-bedroom']).toBeLessThan(Math.min(...Object.entries(pos).filter(([k]) => k !== 'a-bedroom').map(([, v]) => v)));
+    // What the parent saves comes back as this door's order and is drawn so.
+    act(() => root.unmount()); container.remove(); root = null;
+    await mountBedB({ sharedPhotos: ROOMS, sharedOrder: pos, onArrangeShared: () => {} });
+    expect(order()[0]).toBe('a-bedroom');
+    expect(need('gallery-shared-a-bedroom').textContent).toMatch(/This listing.s cover/);
+  });
+
+  it('PROVEN-TO-CATCH: a shared picture opens large on tap', async () => {
+    await mountBedB({ sharedPhotos: ROOMS, sharedOrder: {}, onArrangeShared: () => {} });
+    expect(document.querySelector('[role="dialog"]')).toBeNull();
+    await tap('gallery-shared-open-a-living');
+    const dialog = document.querySelector('[role="dialog"]');
+    expect(dialog, 'tapping a shared picture opened nothing').not.toBeNull();
+    expect(dialog.textContent).toContain('the living room');
+  });
+
+  it('no arrange controls without a way to save them (a tenant, or no handler)', async () => {
+    await mountBedB({ sharedPhotos: ROOMS, sharedOrder: {}, onArrangeShared: null });
+    expect(at('gallery-shared-arrange-a-bedroom')).toBeNull();
   });
 });
