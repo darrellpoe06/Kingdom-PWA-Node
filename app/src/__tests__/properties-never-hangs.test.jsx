@@ -61,6 +61,9 @@ vi.mock('../modules/properties/cloud.js', async (importOriginal) => {
     loadMyGrants: slow({ ok: true, grants: [], byScope: {}, roleLabel: null }),
     loadMyHousehold: slow({ ok: true, memberships: [] }),
     loadMyRentals: slow({ ok: true, rentals: [] }),
+    // The landlord seat beside the spine (DR-1007): none, the ordinary family case.
+    loadMyLandlordSeat: async () => ({ ok: true, seat: null }),
+    addRental: async () => ({ ok: true, row: null }),
     loadInvites: slow({ ok: true, invites: [] }),
     loadAllPhotos: slow({ ok: true, photos: [] }),
     loadPhotoImages: async () => ({ ok: true, images: {} }),

@@ -53,11 +53,16 @@ describe('any cadence, the true month beside each', () => {
     expect(at('vacancy-deal')).toBeFalsy();
   });
 
-  it('a short-stay door counts its nights into the line; a lease-only door does not print a nightly figure it was never offered at', async () => {
+  it('PROVEN-TO-CATCH: a short-stay door keeps its night on its own line and never stretches it over a month (DR-1008)', async () => {
     await show({ ...APT, offering: 'both', nightly: 150, biweekly: null });
-    expect(at('vacancy-cadence').textContent).toMatch(/Nightly \$150 \(\$4,563 a month on average, \$4,650 in a 31-night month\)/);
-    await show({ ...APT, offering: 'long-term', nightly: 150, biweekly: null });
-    expect(at('vacancy-cadence').textContent).not.toMatch(/Nightly/);
+    expect(at('vacancy-cadence').textContent).not.toMatch(/Nightly|31-night|4,563/);
+    expect(at('vacancy-deal').textContent).not.toMatch(/nightly/i);
+    expect(container.textContent).toMatch(/Short stay welcome · \$150\/night/);
+    // a bed priced monthly with a night offered: no comparison at all, the night alone
+    await show({ ...APT, offering: 'both', nightly: 150, weekly: null, biweekly: null });
+    expect(at('vacancy-cadence')).toBeFalsy();
+    expect(at('vacancy-deal')).toBeFalsy();
+    expect(container.textContent).toMatch(/Short stay welcome · \$150\/night/);
   });
 
   it('says what the building offers', async () => {

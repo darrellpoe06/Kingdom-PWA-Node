@@ -12,6 +12,17 @@
 // prints the true month beside every cadence the family offers, and says which
 // one is the better deal, before anyone chooses.
 //
+// A NIGHT IS A STAY, NOT A CADENCE (DR-1008). Darrell, 2026-10-13, on the card
+// that printed "Nightly $150 ($4,563 a month on average, $4,650 in a 31-night
+// month)" and "Monthly is the better deal: $3,813 a month less than nightly":
+// "We prefer short term rentals... different business model... we want only
+// the difference between co-living situations... not Airbnb." A nightly price
+// is a stay someone books for the nights they want; stretching it over a month
+// compares two different businesses and talks the family's preferred one down.
+// The cadences compared here are the ways a co-living renter PAYS for the same
+// month — monthly, weekly, every two weeks. The nightly price stays on the card
+// as "Short stay welcome · $150/night", by itself.
+//
 // PURE: no I/O, no React. The arithmetic lives here once, tested, and both the
 // public card and the family's door editor read it.
 // =============================================================================
@@ -23,8 +34,6 @@ export const CADENCES = Object.freeze([
   Object.freeze({ id: 'weekly', label: 'Weekly', aMonth: 52 / 12, long: 5, longName: 'a five-week month' }),
   // 26 paydays over 12 months: 2.167 a month on average; three in a long month.
   Object.freeze({ id: 'biweekly', label: 'Every two weeks', aMonth: 26 / 12, long: 3, longName: 'a month with three paydays' }),
-  // 365 nights over 12 months: 30.4 a month on average; 31 in a long month.
-  Object.freeze({ id: 'nightly', label: 'Nightly', aMonth: 365 / 12, long: 31, longName: 'a 31-night month' }),
 ]);
 
 const money = (v) => {
@@ -42,8 +51,9 @@ export function dollars(n) {
  * and its long month. A price that is missing, zero, negative or not a number
  * is not offered — it is never shown as "$0".
  */
-export function cadencePrices({ monthly, weekly, biweekly, nightly } = {}) {
-  const given = { monthly: money(monthly), weekly: money(weekly), biweekly: money(biweekly), nightly: money(nightly) };
+export function cadencePrices({ monthly, weekly, biweekly } = {}) {
+  // A nightly price handed in is a stay, not a cadence: it is never compared.
+  const given = { monthly: money(monthly), weekly: money(weekly), biweekly: money(biweekly) };
   return CADENCES
     .filter((c) => given[c.id] != null)
     .map((c) => ({

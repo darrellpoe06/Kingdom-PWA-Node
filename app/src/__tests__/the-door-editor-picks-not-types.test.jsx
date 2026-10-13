@@ -22,6 +22,9 @@ vi.mock('../modules/properties/cloud.js', () => {
     loadMyGrants: async () => ({ ok: true, grants: [] }),
     loadMyHousehold: async () => ({ ok: true, memberships: [] }),
     loadMyRentals: async () => ({ ok: true, rentals: H.rentals }),
+    // The landlord seat beside the spine (DR-1007): none, the ordinary family case.
+    loadMyLandlordSeat: async () => ({ ok: true, seat: null }),
+    addRental: async () => ({ ok: true, row: null }),
     loadPublicVacancies: async () => ({ ok: true, vacancies: H.vacancies }),
     loadVacancyPhotos: async () => ({ ok: true, photos: [] }),
     loadAllPhotos: async () => ({ ok: true, photos: [] }),

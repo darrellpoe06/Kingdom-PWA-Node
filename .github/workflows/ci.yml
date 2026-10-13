@@ -1182,6 +1182,16 @@ jobs:
           for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0286-a-door-is-priced-by-any-cadence.sql; done
           psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0286-any-cadence-smoke.sql 2>&1 | tee "$RUNNER_TEMP/any-cadence.txt"
           grep -q 'ANY CADENCE SMOKE: PASS' "$RUNNER_TEMP/any-cadence.txt"
+          # 0287 (DR-1007): a landlord gets their own space by their own hand.
+          # claim_landlord_space(path) mints a landlord-type instance owned by
+          # the caller ('properties'), and the person's family home beside it
+          # ('poetech'); a seat already held comes back as 'already'. 0056
+          # first: this database still carries schema-v1's recursive instances
+          # policy, and the smoke's cross-tenant read needs the live shape.
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0056-fix-instances-policy-recursion.sql; done
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0287-a-landlord-gets-their-own-space.sql; done
+          psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0287-landlord-space-smoke.sql 2>&1 | tee "$RUNNER_TEMP/landlord-space.txt"
+          grep -q 'LANDLORD SPACE SMOKE: PASS' "$RUNNER_TEMP/landlord-space.txt"
 
   # THE REQUIRED CHECK (DR-0645). Branch protection and native auto-merge wait
   # on a check named EXACTLY "app — lint + vitest". Do NOT rename this job.
@@ -1264,7 +1274,7 @@ jobs:
       - name: Proven to catch — each fault fails its own step
         run: |
           set -euo pipefail
-          for b in street confirm payment area calendar archive source cadence; do
+          for b in street confirm payment area calendar archive source cadence share; do
             echo "=== --break=$b"
             node scripts/e2e/door-journeys.mjs app/dist --break=$b
           done

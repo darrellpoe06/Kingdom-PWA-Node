@@ -48,6 +48,8 @@ import { PapersPanel } from './DocSigning.jsx';
 import { compressImageFile, isLikelyImageFile } from '../../lib/image.js';
 import { PROOF_OPTIONS, proofNotice, proofState } from './proof.js';
 import { loadJobVideo, setWorkOrderProof } from './cloud.js';
+import { loadMyLandlordSeat, addRental } from './cloud.js';
+import { seatIsOwner } from './own-space.js';
 import { textDataUrl, kindForGenerated } from './doc-signing.js';
 import { rentLine } from './rent-pay.js';
 import { ReadinessTab } from './ReadinessTab.jsx';
@@ -304,6 +306,9 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
   // has no opinion about WHERE a record lives, only about not asserting it.
   const [staged, setStaged] = useState(() => records.map((r) => stageFromRecord(r)).filter(Boolean));
   const [rentals, setRentals] = useState([]);
+  // THE LANDLORD SEAT (DR-1007, 0207's resolver): the space the doors live
+  // in, and the proof of the owner's face before the first door exists.
+  const [seat, setSeat] = useState(null);
   // Every photo this person may see, for the board's cover thumbnails. RLS
   // scopes it, so a tenant's copy holds only their own tenancy's pictures.
   const [doorPhotos, setDoorPhotos] = useState([]);
@@ -352,10 +357,14 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
     const claimed = await boundedRead(claimPropertyAccess(), CLAIM_TIMEOUT_MS);
     setClaim(claimed);
     const spine = deadlineIn();
-    const [d, g, h, r] = await Promise.all([
+    const [d, g, h, r, st] = await Promise.all([
       boundedRead(loadMyDoors(), spine()), boundedRead(loadMyGrants(), spine()),
       boundedRead(loadMyHousehold(), spine()), boundedRead(loadMyRentals(), spine()),
+      // The seat rides beside the four; it is not one of them: a landlord
+      // with no seat is the ordinary family case, never an unreached read.
+      boundedRead(loadMyLandlordSeat(), spine(), { ok: false }),
     ]);
+    setSeat(st.ok ? st.seat : null);
     setDoors(d.ok ? d.doors : []);
     setGrants(g.ok ? g.grants : []);
     setHousehold(h.ok ? h.memberships : []);
@@ -668,11 +677,16 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
     // is the membership proof (RLS: user_in_instance), and it is true from the
     // moment he owns a door, which is the moment he needs the app.
     if (rentals.length > 0 && !grants.length && household.length === 0) return 'owner';
+    // A LANDLORD WITH NO DOOR YET IS STILL THE LANDLORD (DR-1007). The seat
+    // on a landlord-type space (owner or admin) is the same membership proof
+    // RLS reads; it is true from the moment the space exists, which is the
+    // moment the first door needs adding.
+    if (seatIsOwner(seat) && !grants.length && household.length === 0) return 'owner';
     if (activeDoor && !grants.length && household.length === 0) {
       return surface === 'poetech' ? 'owner' : 'tenant';
     }
     return 'tenant';
-  }, [grants, household, activeDoor, surface, rentals]);
+  }, [grants, household, activeDoor, surface, rentals, seat]);
 
   const face = useMemo(() => resolveFace(role, grants), [role, grants]);
 
@@ -1017,6 +1031,19 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
     refresh();
   };
 
+  // A NEW DOOR ON THE ACCOUNT (DR-1007). Into the landlord space when there
+  // is a seat, else beside the doors already read; never into nothing.
+  const addDoor = async (fields) => {
+    const instanceId = seat?.instance_id || rentals[0]?.instance_id || null;
+    const res = await addRental({ instanceId, ...fields });
+    say(res.ok ? 'Saved.' : `Not saved: ${res.reason}`);
+    if (res.ok) {
+      announceRentalChange({ slug: res.row?.slug || null, uuid: res.row?.id || null, patch: fields });
+      boot();
+    }
+    return res;
+  };
+
   const editRental = async (id, patch, summary) => {
     const res = await updateRental(id, patch, { summary });
     say(res.ok ? 'Saved.' : `Not saved: ${res.reason}`);
@@ -1113,7 +1140,10 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
     );
   }
 
-  if (!doors.length && !rentals.length && !grants.length) {
+  // ...AND A LANDLORD WHO JUST GOT THEIR OWN SPACE (DR-1007). No tenancy, no
+  // door, no grant — and the owner of a landlord-type space. The places to
+  // live are not theirs to be offered; the empty board with Add a door is.
+  if (!doors.length && !rentals.length && !grants.length && !seatIsOwner(seat)) {
     return <PlacesToLive vacancies={vacancies} claim={claim} />;
   }
 
@@ -1419,6 +1449,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
                 onListing={setListing}
                 onEditTenancy={editTenancy}
                 onEditRental={editRental}
+                onAddRental={role === 'owner' ? addDoor : null}
                 onArrange={arrangeDoor}
               />
               {/* The tenancy list and the staged drafts are the landlord's

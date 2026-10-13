@@ -82,6 +82,72 @@ export async function claimPropertyAccess(client = supabase) {
   } catch (e) { return no('unexpected', e); }
 }
 
+/**
+ * The landlord seat this person holds, if any (0207's resolver): the space
+ * the properties tab reads, and the proof that "I own properties" is true of
+ * them. A failed read is a failure, never "no seat" (DR-0946): the door must
+ * not offer a new space to someone whose seat it merely could not read.
+ */
+export async function loadMyLandlordSeat(client = supabase) {
+  try {
+    const { data, error } = await client.rpc('my_properties_instance_role');
+    if (error) return no('read-failed', error);
+    return ok({ seat: data && data.instance_id ? data : null });
+  } catch (e) { return no('unexpected', e); }
+}
+
+/**
+ * A landlord gets their own space, by their own hand (DR-1007, 0287).
+ * path: 'properties' (Poe Properties by itself) or 'poetech' (the full app,
+ * which also mints the person's family home). Idempotent on the database's
+ * side: a seat already held comes back as 'already'.
+ */
+export async function claimLandlordSpace({ path = 'properties', name = null } = {}, client = supabase) {
+  try {
+    const { data, error } = await client.rpc('claim_landlord_space', { display_name_in: name || null, path_in: path });
+    if (error) return no('rpc-error', error);
+    return ok({ receipt: data || {} });
+  } catch (e) { return no('unexpected', e); }
+}
+
+/** A slug a door can be filed under: r-<the address and unit, compacted>. */
+export function doorSlug({ address = '', unit = '' } = {}) {
+  const compact = `${address} ${unit}`.toLowerCase().replace(/[^a-z0-9]+/g, '').slice(0, 48);
+  return `r-${compact || 'door'}`;
+}
+
+/**
+ * A new door on the landlord's own space (DR-1007). The first door a new
+ * landlord adds is the one that makes the board real; before it, there was
+ * no way to make one from the properties door at all. The slug is derived
+ * from the address; a second door at the same words gets a numbered one
+ * (rentals_instance_slug_uniq). created_by is the signed-in person, as
+ * rentals_member_insert requires.
+ */
+export async function addRental({ instanceId, address, unit = '', city = '', state = '', propertyType = 'single-family', monthlyRent = null, displayName = '' } = {}, client = supabase) {
+  if (!instanceId) return no('no-space');
+  if (!String(address || '').trim()) return no('no-address');
+  try {
+    const uid = await userId(client);
+    const base = doorSlug({ address, unit });
+    const row = {
+      instance_id: instanceId, created_by: uid,
+      address: String(address).trim(), unit: String(unit || '').trim() || null,
+      city: String(city || '').trim() || null, state: String(state || '').trim() || null,
+      display_name: String(displayName || '').trim() || `${String(address).trim()}${unit ? ` ${String(unit).trim()}` : ''}`,
+      property_type: propertyType, status: 'vacant',
+      monthly_rent: Number(monthlyRent) > 0 ? Number(monthlyRent) : null,
+    };
+    for (let n = 0; n < 5; n += 1) {
+      const slug = n === 0 ? base : `${base}-${n + 1}`;
+      const { data, error } = await client.from('rentals').insert({ ...row, slug }).select().single();
+      if (!error) return ok({ row: data });
+      if (String(error.code) !== '23505') return no('write-failed', error);
+    }
+    return no('slug-taken');
+  } catch (e) { return no('unexpected', e); }
+}
+
 /** The doors this person can see AT ALL — tenant, family, worker, or manager. */
 export async function loadMyDoors(client = supabase) {
   try {

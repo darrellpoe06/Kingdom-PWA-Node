@@ -4,7 +4,7 @@
 // Darrell, 2026-10-13: "$800 a monthly however $200 weekly... sounds the same
 // until you get a 5 week month."
 import { describe, it, expect } from 'vitest';
-import { CADENCES, cadencePrices, cadenceLine, betterDeal, dealLine, dollars, cadenceChoice } from '../modules/properties/cadence.js';
+import { CADENCES, cadencePrices, cadenceLine, betterDeal, dealLine, cadenceChoice } from '../modules/properties/cadence.js';
 
 describe('the arithmetic', () => {
   it('a week is paid 52 times a year: $200 a week is $867 a month on average and $1,000 in a five-week month', () => {
@@ -21,10 +21,13 @@ describe('the arithmetic', () => {
     expect(b.longName).toBe('a month with three paydays');
   });
 
-  it('a night is paid 365 times a year: $150 a night is $4,563 a month on average and $4,650 in a 31-night month', () => {
-    const [n] = cadencePrices({ nightly: 150 });
-    expect(dollars(n.averageMonth)).toBe('$4,563');
-    expect(n.longMonth).toBe(4650);
+  it('PROVEN-TO-CATCH: a night is a stay, not a cadence — a nightly price never enters the comparison (DR-1008)', () => {
+    expect(CADENCES.map((c) => c.id)).toEqual(['monthly', 'weekly', 'biweekly']);
+    expect(cadencePrices({ nightly: 150 })).toEqual([]);
+    const c = cadenceChoice({ monthly: 750, nightly: 150 });
+    expect(c.line).toBe('');
+    expect(c.deal).toBe('');
+    expect(cadenceChoice({ monthly: 800, weekly: 200, nightly: 150 }).line).not.toMatch(/Nightly|night/);
   });
 
   it('PROVEN-TO-CATCH: the five-week month is five weeks, not 4.33 of them', () => {
@@ -39,7 +42,7 @@ describe('the arithmetic', () => {
   });
 
   it('the order is the order of CADENCES, whatever order the prices came in', () => {
-    expect(cadencePrices({ nightly: 1, weekly: 1, monthly: 1, biweekly: 1 }).map((p) => p.id)).toEqual(CADENCES.map((c) => c.id));
+    expect(cadencePrices({ weekly: 1, monthly: 1, biweekly: 1 }).map((p) => p.id)).toEqual(CADENCES.map((c) => c.id));
   });
 });
 

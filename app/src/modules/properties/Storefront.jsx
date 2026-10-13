@@ -21,7 +21,8 @@
 // =============================================================================
 import React, { useEffect, useState, useCallback } from 'react';
 import { loadVacancyPhotos } from './cloud.js';
-import { applyUrl } from './apply-link.js';
+import { applyUrl, shareListingUrl, listingShareText } from './apply-link.js';
+import ShareButton from '../../components/ShareButton.jsx';
 import Lightbox from '../../components/Lightbox.jsx';
 import { stampImage, stampFileName } from '../../lib/brand-stamp.js';
 import { BookAStay } from './Booking.jsx';
@@ -57,7 +58,13 @@ const serif = { fontFamily: '"Fraunces", serif' };
  * the plain link, because a card rendered anywhere else -- a QR sheet, a
  * listing embedded outside the door -- genuinely has nowhere local to open.
  */
-export function VacancyCard({ unit, onApply = null }) {
+/**
+ * `openPictures` — a counter; when it rises and the unit's pictures have
+ * loaded, the card scrolls into view and opens them (DR-1006: a shared link
+ * lands with that unit's pictures open). 0 = the ordinary card.
+ */
+export function VacancyCard({ unit, onApply = null, openPictures = 0 }) {
+  const rootRef = React.useRef(null);
   const [shots, setShots] = useState([]);
   const [i, setI] = useState(0);
   const [open, setOpen] = useState(null); // index being shown large, or null
@@ -72,6 +79,20 @@ export function VacancyCard({ unit, onApply = null }) {
     return () => { on = false; };
   }, [unit.rentalId]);
 
+  // A SHARED LINK OPENS THE PICTURES (DR-1006). Once the shots are here and
+  // the caller asked, scroll the card into view and open the first picture;
+  // a unit with no pictures yet is scrolled to and left as it is — nothing is
+  // opened that is not there.
+  const openedFor = React.useRef(0);
+  useEffect(() => {
+    if (!openPictures || openedFor.current === openPictures) return;
+    if (rootRef.current && typeof rootRef.current.scrollIntoView === 'function') rootRef.current.scrollIntoView({ block: 'start' });
+    if (shots.length === 0) return;
+    openedFor.current = openPictures;
+    setI(0);
+    setOpen(0);
+  }, [openPictures, shots.length]);
+
   const shot = shots[i] || null;
   // Every picture opened or saved from a listing carries the Poe Properties
   // band and a QR back to THIS unit (DR-0941) — a forwarded copy advertises.
@@ -85,10 +106,11 @@ export function VacancyCard({ unit, onApply = null }) {
   // ANY CADENCE, THE TRUE MONTH BESIDE EACH (DR-1003). Darrell: "$800 a
   // monthly however $200 weekly... sounds the same until you get a 5 week
   // month." Printed only when the door is offered some way other than monthly.
-  const cadence = cadenceChoice({ monthly: unit.rent, weekly: unit.weekly, biweekly: unit.biweekly, nightly: shortStay ? unit.nightly : null });
+  // Only the co-living cadences are compared (DR-1008); the night stays its own line below.
+  const cadence = cadenceChoice({ monthly: unit.rent, weekly: unit.weekly, biweekly: unit.biweekly });
 
   return (
-    <li className="border border-[#E8E4DC] bg-white overflow-hidden">
+    <li ref={rootRef} className="border border-[#E8E4DC] bg-white overflow-hidden" data-testid={`vacancy-card-${unit.rentalId || unit.id}`}>
       <div className="aspect-[4/3] w-full bg-[#FAF8F4] flex items-center justify-center overflow-hidden">
         {shot?.storage_path ? (
           /* THE PICTURE OPENS. Darrell, 2026-10-10: "Applications can't review
@@ -265,6 +287,16 @@ export function VacancyCard({ unit, onApply = null }) {
         {/* Both doors on a short-stay place (DR-0930 + #2098): nights through
             the short stay form, a lease through the application, which
             opens in place. */}
+        {/* THE LISTING TRAVELS (DR-1006): one tap into whatever they already
+            use; the address posted is the static preview page with this
+            unit's own picture and name in its tags. */}
+        <span data-testid="vacancy-share" className="inline-block mr-2 align-middle">
+          <ShareButton
+            label="Share this listing"
+            title={`Share ${placeName}`}
+            payload={() => ({ title: placeName, text: listingShareText(unit), url: shareListingUrl(unit.rentalId) })}
+          />
+        </span>
         {onApply ? (
           <button
             type="button"

@@ -34,6 +34,7 @@ P -f scripts/door-work-ci-rentals-shape.sql
 
 # What the Properties app reads on boot, in the order the live ledger applied it.
 for f in \
+  0056-fix-instances-policy-recursion.sql \
   0052-systems-of-record.sql \
   0055-relationship-permissions.sql \
   0062-per-unit-management.sql \
@@ -89,7 +90,8 @@ for f in \
   0283-a-held-door-shows-its-buildings-area.sql \
   0284-the-whole-address-and-its-archive-on-the-record.sql \
   0285-a-nas-picture-is-filed-once.sql \
-  0286-a-door-is-priced-by-any-cadence.sql; do
+  0286-a-door-is-priced-by-any-cadence.sql \
+  0287-a-landlord-gets-their-own-space.sql; do
   for i in 1 2; do P -f "$MIG/$f"; done
 done
 

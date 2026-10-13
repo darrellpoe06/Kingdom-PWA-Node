@@ -22,10 +22,11 @@ import Cameras from './Cameras.jsx';
 import { POE_PROPERTIES } from '../modules/properties/config.js';
 import { DOORS, doorSession, leaveDoor, enterDoor, enterAllDoors } from '../lib/door-session.js';
 import { WHO_OPTIONS } from '../modules/properties/model.js';
-import { readApplyTarget, resolveScan } from '../modules/properties/apply-link.js';
+import { readApplyTarget, readListingTarget, resolveScan } from '../modules/properties/apply-link.js';
 import { readReportToken } from '../modules/properties/guest-report.js';
 import { GuestReportPage } from '../modules/properties/GuestReport.jsx';
-import { loadPublicVacancies, submitApplication } from '../modules/properties/cloud.js';
+import { loadPublicVacancies, submitApplication, loadMyLandlordSeat, claimLandlordSpace } from '../modules/properties/cloud.js';
+import { readWhoIntent, withWhoIntent, withoutWhoIntent, LANDLORD_PATHS, landingFor, holdsSeat, navigate } from '../modules/properties/own-space.js';
 import { VacancyCard } from '../modules/properties/Storefront.jsx';
 import { areaOf } from '../modules/properties/area.js';
 import { APPLICATION_SECTIONS, validateApplication } from '../modules/properties/intake.js';
@@ -303,7 +304,13 @@ export default function PropertiesDoor() {
             onReturn={() => { enterDoor(DOORS.properties); setLeft(false); }}
           />
         )}
-        {shown && <PropertiesApp surface="door" renderCameras={() => <Cameras />} />}
+        {/* "I OWN PROPERTIES", AFTER THE SIGN-IN (DR-1007): the intent rides
+            the address through the reload; a person who holds no landlord
+            seat is offered their own space before the app, never the tenant
+            face. Anyone else, and anyone with a seat, gets the app. */}
+        {shown && (readWhoIntent(window.location.search) === 'landlord'
+          ? <OwnSpace session={shown} />
+          : <PropertiesApp surface="door" renderCameras={() => <Cameras />} />)}
         </>)}
       </main>
 
@@ -318,6 +325,99 @@ export default function PropertiesDoor() {
       <TTSControl />
       {/* The slim acknowledgement after an update reload; never a nag. */}
       <UpdatePrompt />
+    </div>
+  );
+}
+
+/** A bounded wait: the answer, or `fallback` when `ms` pass first (never a hang). */
+function within(promise, ms, fallback) {
+  return new Promise((resolve) => {
+    const t = setTimeout(() => resolve(fallback), ms);
+    Promise.resolve(promise).then((v) => { clearTimeout(t); resolve(v); }, () => { clearTimeout(t); resolve(fallback); });
+  });
+}
+
+/**
+ * A landlord gets their own space, by their own hand (DR-1007). Reached only
+ * through "I own properties" + a sign-in: the seat is read first — a seat of
+ * any role means the app, not a new space (a manager on someone's team is
+ * not a prospective landlord). No seat: the two paths. A read that FAILED is
+ * said as a failure with a retry, never as "no seat" (DR-0946): the door
+ * must not mint a space for someone whose seat it merely could not read.
+ */
+function OwnSpace({ session }) {
+  const [seat, setSeat] = useState(undefined);      // undefined = not read yet
+  const [why, setWhy] = useState('');               // the read's failure, if any
+  const [tries, setTries] = useState(0);
+  const [claiming, setClaiming] = useState('');
+  const [said, setSaid] = useState('');
+  useEffect(() => {
+    let on = true;
+    setSeat(undefined); setWhy('');
+    within(loadMyLandlordSeat(), 8000, { ok: false, reason: 'timed-out' }).then((r) => {
+      if (!on) return;
+      if (!r.ok) { setWhy(r.reason || 'unknown'); setSeat(null); return; }
+      setSeat(r.seat || null);
+    });
+    return () => { on = false; };
+  }, [tries]);
+
+  const dropIntent = () => {
+    try { window.history.replaceState(null, '', `${window.location.pathname}${withoutWhoIntent(window.location.search)}`); } catch { /* fine */ }
+  };
+  const seated = seat !== undefined && !why && holdsSeat(seat);
+  // The seat is held: the intent comes out of the address so a reload is an
+  // ordinary one, and the app renders.
+  useEffect(() => { if (seated) dropIntent(); }, [seated]);
+  if (seated) return <PropertiesApp surface="door" renderCameras={() => <Cameras />} />;
+
+  const name = String(session?.user?.email || '').split('@')[0] || null;
+  const pick = async (path) => {
+    setClaiming(path); setSaid('');
+    const r = await within(claimLandlordSpace({ path, name }), 15000, { ok: false, reason: 'timed-out' });
+    if (!r.ok) { setClaiming(''); setSaid(`Not done: ${r.reason}. Nothing was made. Try again.`); return; }
+    dropIntent();
+    navigate(landingFor(path));
+  };
+
+  return (
+    <div className="pp-step">
+      <div className="pp-panel" data-testid="own-space">
+        <span className="pp-kicker">I own properties</span>
+        <h2 className="pp-panel-title">Your own app</h2>
+        {seat === undefined && <p className="pp-panel-note">Checking your account…</p>}
+        {seat !== undefined && why && (
+          <p className="pp-panel-note" data-testid="own-space-unreached">
+            Could not check your account ({why}). Nothing was made.{' '}
+            <button type="button" className={`underline ${FOCUS_RING}`} onClick={() => setTries((t) => t + 1)}>Try again</button>
+          </p>
+        )}
+        {seat === null && !why && (
+          <>
+            <p className="pp-panel-lead">Run your doors here. Pick how:</p>
+            <ul className="pp-cards" data-testid="own-space-chooser">
+              {LANDLORD_PATHS.map((p) => (
+                <li key={p.id}>
+                  <button
+                    type="button" className={`pp-card min-h-[44px] ${FOCUS_RING}`}
+                    onClick={() => pick(p.id)} disabled={Boolean(claiming)} data-path={p.id}
+                  >
+                    <span className="pp-card-text">
+                      <span className="pp-card-title">{p.title}</span>
+                      <span className="pp-card-blurb">{p.blurb}</span>
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <p className="pp-panel-note">
+              Either way the space is yours, named after you, with you as its owner. No card, no charge is taken here.
+              {claiming ? ' Making your space…' : ''}
+            </p>
+            {said && <p className="pp-panel-note" data-testid="own-space-said" aria-live="polite">{said}</p>}
+          </>
+        )}
+      </div>
     </div>
   );
 }
@@ -340,7 +440,15 @@ function SignedOutDoor({ left = false, onReturn } = {}) {
     () => (typeof window === 'undefined' ? null : readApplyTarget(window.location.search)),
     [],
   );
-  const [who, setWho] = useState(scanned ? 'applicant' : null);
+  // A SHARED LISTING LANDS ON ITS CARD WITH THE PICTURES OPEN (DR-1006):
+  // ?listing=<id> from the preview page's refresh, or the page's own path
+  // when the page is gone and the shell booted on it. Like a scan, it has
+  // already answered "who are you" — but it opens pictures, never the form.
+  const wanted = useMemo(
+    () => (typeof window === 'undefined' ? null : readListingTarget(window.location.search, window.location.pathname)),
+    [],
+  );
+  const [who, setWho] = useState(scanned || wanted ? 'applicant' : null);
   const [wantsAuth, setWantsAuth] = useState(false);
   const [vacancies, setVacancies] = useState(null);   // null = not asked yet
 
@@ -358,6 +466,11 @@ function SignedOutDoor({ left = false, onReturn } = {}) {
   const scan = useMemo(
     () => resolveScan(scanned, vacancies || []),
     [scanned, vacancies],
+  );
+  // The same authority answers a shared link: listed, or gone and said so.
+  const shared = useMemo(
+    () => resolveScan(wanted, vacancies || []),
+    [wanted, vacancies],
   );
 
   // THE CARD'S APPLY OPENS THE APPLICATION (DR-0902). Darrell, 2026-10-10:
@@ -404,10 +517,14 @@ function SignedOutDoor({ left = false, onReturn } = {}) {
         <div className="pp-panel" data-testid="vacancies-panel">
         <span className="pp-kicker">{cardCopy(chosen).title}</span>
         <h2 className="pp-panel-title">
-          {scan.matched ? `${scan.unit.label}${scan.unit.unit ? ` · ${scan.unit.unit}` : ''}` : 'Available now'}
+          {scan.matched ? `${scan.unit.label}${scan.unit.unit ? ` · ${scan.unit.unit}` : ''}`
+            : shared.matched ? `${shared.unit.label}${shared.unit.unit ? ` · ${shared.unit.unit}` : ''}` : 'Available now'}
         </h2>
         {scanned && vacancies !== null && !scan.matched && (
           <p className="pp-panel-note">{scan.reason}</p>
+        )}
+        {wanted && !scanned && vacancies !== null && !shared.matched && (
+          <p className="pp-panel-note" data-testid="listing-gone">{shared.reason}</p>
         )}
         {vacancies === null && <p className="pp-panel-note">Checking…</p>}
         {vacancies !== null && vacancies.length === 0 && (
@@ -460,6 +577,7 @@ function SignedOutDoor({ left = false, onReturn } = {}) {
                     ? null : Boolean(v.utilities_included),
                 }}
                 onApply={applyFor}
+                openPictures={wanted && v.id === wanted ? 1 : 0}
               />
             ))}
           </ul>
@@ -497,13 +615,29 @@ function SignedOutDoor({ left = false, onReturn } = {}) {
           <span className="pp-kicker">Sign in</span>
           <h2 className="pp-panel-title">{cardCopy(chosen).title}</h2>
           <p className="pp-panel-lead">{chosen.blurb}</p>
-          <p className="pp-panel-note">
-            Your place is tied to the email address <strong>or the cell phone number</strong> your landlord used to invite you — that
-            is how the app knows which one is yours. Nothing to set up.
-          </p>
+          {chosen.id === 'landlord' ? (
+            <p className="pp-panel-note" data-testid="landlord-note">
+              Sign in or create a profile, and you choose how to run your doors: <strong>Poe Properties by itself</strong>,
+              or <strong>the full PoeTech app</strong> with the properties inside it. Already on a landlord&rsquo;s team? The same
+              sign-in takes you to your seat.
+            </p>
+          ) : (
+            <p className="pp-panel-note">
+              Your place is tied to the email address <strong>or the cell phone number</strong> your landlord used to invite you — that
+              is how the app knows which one is yours. Nothing to set up.
+            </p>
+          )}
           {!wantsAuth && (
             <button
-              type="button" onClick={() => setWantsAuth(true)}
+              type="button"
+              onClick={() => {
+                // The intent survives the sign-in's reload in the address
+                // itself (DR-1007): ?who=landlord, read back by the door.
+                if (chosen.id === 'landlord') {
+                  try { window.history.replaceState(null, '', `${window.location.pathname}${withWhoIntent(window.location.search)}`); } catch { /* the chooser still opens */ }
+                }
+                setWantsAuth(true);
+              }}
               className={`pp-btn mt-5 ${FOCUS_RING}`}
             >Sign in / create a profile</button>
           )}

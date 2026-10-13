@@ -81,6 +81,62 @@ export function resolveScan(rentalId, vacancies = []) {
   };
 }
 
+// =============================================================================
+// A LISTING TRAVELS (DR-1006). Darrell: share a listing to social media; the
+// link opens the app with that unit's pictures open, and the post shows the
+// picture and the name.
+//
+// Two addresses, one unit. The one that is POSTED is a static page per listed
+// unit, written at deploy time (scripts/listing-share-pages.mjs) with the
+// unit's own picture and name in its tags — a social crawler never runs the
+// app, so the preview has to be in the HTML it fetches, exactly as /moore and
+// /lovecorner already do. That page meta-refreshes into the door with
+// ?listing=<id>, which is the one the APP honours: the card scrolls into view
+// with its pictures open. A link to a unit no longer listed loses its static
+// page at the next deploy; the SPA fallback then serves the shell on the same
+// /properties/l/<id>/ path, the door boots from the path (DR-0958) and reads
+// the id from it, and resolveScan says the unit is gone — never a dead end.
+// =============================================================================
+export const LISTING_PARAM = 'listing';
+const LISTING_PATH = /^\/properties\/l\/([0-9a-f-]{36})\/?$/i;
+
+/** The address to post: the static preview page for this unit. */
+export function shareListingUrl(rentalId) {
+  const base = `${CANONICAL_APP_ORIGIN}${POE_PROPERTIES.scope}`;
+  return isId(rentalId) ? `${base}l/${String(rentalId).toLowerCase()}/` : base;
+}
+
+/** The address the preview page hands the app: the door, this unit's pictures open. */
+export function listingAppUrl(rentalId) {
+  return isId(rentalId) ? `${POE_PROPERTIES.scope}app/?properties=1&${LISTING_PARAM}=${String(rentalId).toLowerCase()}` : `${POE_PROPERTIES.scope}app/?properties=1`;
+}
+
+/**
+ * The unit a shared link asks for: ?listing=<id>, or the static page's own
+ * path when the page is gone and the shell booted on it. Null for anything
+ * that is not a well-formed id.
+ */
+export function readListingTarget(search = '', pathname = '') {
+  try {
+    const s = String(search ?? '');
+    const params = new URLSearchParams(s.startsWith('?') ? s.slice(1) : s);
+    const q = params.get(LISTING_PARAM);
+    if (isId(q)) return q.toLowerCase();
+  } catch { /* fall through to the path */ }
+  const m = LISTING_PATH.exec(String(pathname ?? ''));
+  return m && isId(m[1]) ? m[1].toLowerCase() : null;
+}
+
+/** The words that travel with the link in a share sheet or a text. */
+export function listingShareText(unit = {}) {
+  const name = [unit.label, unit.unit && !String(unit.label || '').toLowerCase().includes(String(unit.unit).toLowerCase()) ? unit.unit : '']
+    .filter(Boolean).join(' · ').trim() || 'A place to live';
+  const where = String(unit.where || '').trim();
+  const rent = Number(unit.rent) > 0 ? `$${Math.round(Number(unit.rent)).toLocaleString('en-US')}/mo` : '';
+  const head = [name, where, rent].filter(Boolean).join(' — ');
+  return `${head}\n${shareListingUrl(unit.rentalId || unit.id)}`;
+}
+
 /** A line for the printed card, so the paper says what the code does. */
 export function cardCaption(unitLabel) {
   const where = String(unitLabel ?? '').trim();
