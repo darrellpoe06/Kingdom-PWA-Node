@@ -1,4 +1,4 @@
-# DR-1004: A listing travels — one link opens the unit with its pictures, and the post shows its picture and name
+# DR-1006: A listing travels — one link opens the unit with its pictures, and the post shows its picture and name
 
 **Date:** 2026-10-13
 **Status:** accepted

@@ -218,7 +218,7 @@ jobs:
           # the same-origin "/n8n" path served by the Pages Function. Setting it
           # to the bare Funnel URL would re-open the cross-origin 503 throttle.
 
-      # THE LISTING TRAVELS (DR-1004): one static preview page per listed unit,
+      # THE LISTING TRAVELS (DR-1006): one static preview page per listed unit,
       # its own picture and name in the tags, written from the public shelf as
       # anon — the road /moore and /lovecorner take, no Pages Function needed.
       # Best-effort by design: a read that fails is said in the log and the

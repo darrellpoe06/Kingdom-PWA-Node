@@ -86,8 +86,19 @@ const INSTANCE = '00000000-0000-4000-b000-00000000e2e1';
 const DOOR = '00000000-0000-4000-c000-00000000e2e1';
 const DOOR2 = '00000000-0000-4000-c000-00000000e2e2';
 const STREET = '805 North Prospect Avenue';
+// A PROSPECTIVE LANDLORD (DR-1007): an account, no space, no seat, no door.
+// Their space is derived from their id (0287): ll-<uid>, and the full-app
+// home u-<uid>; both are cleared so every run claims afresh.
+const NEWLL = '00000000-0000-4000-a000-00000000e2e9';
+const NEWLL_HEX = NEWLL.replace(/-/g, '');
 function seed() {
   sql(`
+    DELETE FROM audit_log WHERE user_id = '${NEWLL}';
+    DELETE FROM instance_members WHERE user_id = '${NEWLL}';
+    DELETE FROM instances WHERE slug IN ('ll-${NEWLL_HEX}', 'u-${NEWLL_HEX}');
+    INSERT INTO auth.users (instance_id, id, aud, role, email, encrypted_password, created_at, updated_at)
+      VALUES ('00000000-0000-0000-0000-000000000000', '${NEWLL}', 'authenticated', 'authenticated', 'newlandlord@e2e.local', '', now(), now())
+      ON CONFLICT (id) DO NOTHING;
     DELETE FROM door_stays WHERE rental_id = '${DOOR}';
     DELETE FROM property_photos WHERE rental_ref IN ('${DOOR}', '${DOOR2}');
     DELETE FROM rent_records WHERE instance_id = '${INSTANCE}';
@@ -168,6 +179,13 @@ export const FAULTS = Object.freeze({
     // the icon standing in, and G3 wants the unit's own picture.
     sql: 'REVOKE EXECUTE ON FUNCTION public.public_vacancy_photos(uuid) FROM anon;',
     restore: 'GRANT EXECUTE ON FUNCTION public.public_vacancy_photos(uuid) TO anon;',
+  },
+  own: {
+    step: 'L1',
+    // The claim refused to signed-in people: the chooser's pick fails and
+    // says so; nothing is made, the landlord never reaches their board.
+    sql: 'REVOKE EXECUTE ON FUNCTION public.claim_landlord_space(text, text) FROM authenticated;',
+    restore: [`${MIG}/0287-a-landlord-gets-their-own-space.sql`],
   },
   cadence: {
     step: 'A1',
@@ -676,7 +694,7 @@ async function run() {
     // C. The next stranger sees those nights dark.
     const next = await hermetic(await browser.newContext({ viewport: { width: 412, height: 915 } }), 'next');
     const np = watch(await next.newPage(), 'next'); current = np;
-    // G3. THE LISTING TRAVELS (DR-1004): the deploy-time generator, run here
+    // G3. THE LISTING TRAVELS (DR-1006): the deploy-time generator, run here
     // against the journeys' own stack, writes this unit's preview page with
     // its own picture; opening that page lands on the door with the card's
     // pictures open.
@@ -760,6 +778,48 @@ async function run() {
       if (after !== 'https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=40.123364,-88.258280') throw new Error(`Street view points at ${after}`);
       await tp.getByTestId('area-map').first().scrollIntoViewIfNeeded();
       await tp.screenshot({ path: join(SHOTS, 'H1-street-shown.png'), fullPage: true });
+    });
+
+    // L. A LANDLORD GETS THEIR OWN APP (DR-1007). A signed-in person who holds
+    // no seat answers "I own properties", is offered the two paths, picks Poe
+    // Properties by itself, lands on the landlord's face with nothing on it,
+    // and adds the first door — which the board reads back and the database
+    // holds on a landlord-type space they own.
+    const newbie = await hermetic(await browser.newContext({ viewport: { width: 412, height: 915 } }), 'newbie');
+    const ltoken = mintJwt({ sub: NEWLL, role: 'authenticated', aud: 'authenticated', email: 'newlandlord@e2e.local', exp: FAR });
+    const lsession = { access_token: ltoken, token_type: 'bearer', expires_in: 3600 * 24 * 365, expires_at: FAR, refresh_token: 'e2e', user: { id: NEWLL, aud: 'authenticated', role: 'authenticated', email: 'newlandlord@e2e.local', app_metadata: {}, user_metadata: {} } };
+    await newbie.addInitScript(([k, v]) => { try { localStorage.setItem(k, v); } catch { /* none */ } }, ['sb-127-auth-token', JSON.stringify(lsession)]);
+    const lp = watch(await newbie.newPage(), 'newbie'); current = lp;
+    await step('L1 a signed-in stranger who owns properties gets their own space and adds the first door', async () => {
+      await lp.goto(`${BASE}/properties/app/?properties=1&who=landlord`, { waitUntil: 'domcontentloaded' });
+      const chooser = lp.getByTestId('own-space-chooser');
+      await chooser.waitFor({ timeout: 20000 });
+      await lp.screenshot({ path: join(SHOTS, 'L1-chooser.png'), fullPage: true });
+      await chooser.locator('button[data-path="properties"]').click();
+      // the landing: the properties door, the intent gone from the address
+      await lp.waitForURL((u) => /\/properties\/app\/\?properties=1$/.test(u.toString()), { timeout: 20000 });
+      await lp.getByText(/No properties are on your account yet/).first().waitFor({ timeout: 20000 });
+      const face = await lp.locator('body').innerText();
+      // innerText carries the CSS uppercase (text-transform), so LANDLORD.
+      if (!/\bLANDLORD\b/i.test(face)) throw new Error('the owner\'s face did not render for the new landlord');
+      // the database: a landlord-type space, owned, audited with the path
+      const row = sql(`SELECT i.instance_type || '|' || m.role || '|' || (SELECT count(*) FROM audit_log a WHERE a.instance_id = i.id AND a.note = 'claim_landlord_space' AND a.to_value->>'path' = 'properties')
+                         FROM instances i JOIN instance_members m ON m.instance_id = i.id WHERE i.slug = 'll-${NEWLL_HEX}' AND m.user_id = '${NEWLL}'`);
+      if (row !== 'landlord|owner|1') throw new Error(`the space reads "${row}", not landlord|owner|1`);
+      const homes = sql(`SELECT count(*) FROM instances WHERE slug = 'u-${NEWLL_HEX}'`);
+      if (homes !== '0') throw new Error('Poe Properties by itself minted a family home too');
+      // the first door, typed into the open form
+      const form = lp.getByTestId('add-door');
+      await form.getByLabel('Street address').fill('12 Elm Street');
+      await form.getByLabel('Unit').fill('Apt 2');
+      await form.getByLabel('City').fill('Urbana');
+      await form.getByLabel('State').fill('Illinois');
+      await form.getByLabel('What it is').selectOption('duplex');
+      await form.getByLabel('Monthly rent').fill('900');
+      await form.getByTestId('add-door-save').click();
+      await waitFor(() => sql(`SELECT slug || '|' || display_name || '|' || property_type || '|' || coalesce(monthly_rent::text, '') FROM rentals WHERE instance_id = (SELECT id FROM instances WHERE slug = 'll-${NEWLL_HEX}')`) === 'r-12elmstreetapt2|12 Elm Street Apt 2|duplex|900.00', 'the first door to land on the landlord\'s space');
+      await lp.getByText('12 Elm Street').first().waitFor({ timeout: 20000 });
+      await lp.screenshot({ path: join(SHOTS, 'L1-first-door.png'), fullPage: true });
     });
   } finally {
     clearTimeout(killer);

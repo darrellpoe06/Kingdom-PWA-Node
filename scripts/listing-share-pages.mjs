@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // =============================================================================
-// listing-share-pages — one static preview page per listed unit (DR-1004)
+// listing-share-pages — one static preview page per listed unit (DR-1006)
 // =============================================================================
 // Darrell: share a listing to social media; the link opens the app with that
 // unit's pictures open, and the post shows the picture and the name.
@@ -49,8 +49,10 @@ export function describeListing(v = {}) {
   if (where) parts.push(where);
   if (Number(v.rent) > 0) parts.push(`${money(v.rent)}/mo`);
   const shortStay = v.offering === 'short-term' || v.offering === 'both';
-  const c = cadenceChoice({ monthly: v.rent, weekly: v.weekly_rate, biweekly: v.biweekly_rate, nightly: shortStay ? v.nightly_rate : null });
+  // The co-living cadences compared; the night said by itself (DR-1008).
+  const c = cadenceChoice({ monthly: v.rent, weekly: v.weekly_rate, biweekly: v.biweekly_rate });
   if (c.line) parts.push(c.line);
+  if (shortStay && Number(v.nightly_rate) > 0) parts.push(`Short stay ${money(v.nightly_rate)}/night`);
   if (v.shared_home) parts.push(v.rentable_level === 'room' ? 'A private room in a shared home' : 'A bed in a shared bedroom, two to a room, in a shared home');
   if (v.building_note) parts.push(`The building: ${String(v.building_note).trim()}`);
   return parts.join(' · ');
@@ -73,7 +75,7 @@ export function renderListingPage(v, { image = FALLBACK_IMAGE, imageAlt = '' } =
   const pageUrl = `${ORIGIN}/properties/l/${id}/`;
   const appUrl = `/properties/app/?properties=1&listing=${id}`;
   return `<!doctype html>
-<!-- One listing's shareable link (DR-1004). Written at deploy time by
+<!-- One listing's shareable link (DR-1006). Written at deploy time by
      scripts/listing-share-pages.mjs from the public shelf; a crawler reads the
      tags, a person is refreshed into the door with this unit's pictures open.
      No inline JS (CSP: script-src 'self'). -->

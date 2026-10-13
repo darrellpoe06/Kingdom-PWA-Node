@@ -82,7 +82,7 @@ export function resolveScan(rentalId, vacancies = []) {
 }
 
 // =============================================================================
-// A LISTING TRAVELS (DR-1004). Darrell: share a listing to social media; the
+// A LISTING TRAVELS (DR-1006). Darrell: share a listing to social media; the
 // link opens the app with that unit's pictures open, and the post shows the
 // picture and the name.
 //

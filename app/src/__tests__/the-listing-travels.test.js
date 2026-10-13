@@ -1,5 +1,5 @@
 // =============================================================================
-// A listing travels (DR-1004) — the link, the words, and the preview page
+// A listing travels (DR-1006) — the link, the words, and the preview page
 // =============================================================================
 // Darrell: share a listing to social media; the link opens the app with that
 // unit's pictures open, and the post shows the picture and the name.
@@ -43,7 +43,8 @@ describe('the preview page', () => {
     expect(html).toContain(`<meta property="og:image" content="https://poetech.us/properties/l/${ID}/photo.jpg" />`);
     expect(html).toContain('<meta name="twitter:card" content="summary_large_image" />');
     expect(html).toContain(`content="0; url=/properties/app/?properties=1&amp;listing=${ID}"`);
-    expect(describeListing(UNIT)).toBe('Champaign, Illinois · $800/mo · Monthly $800 · Weekly $200 ($867 a month on average, $1,000 in a five-week month) · Nightly $150 ($4,563 a month on average, $4,650 in a 31-night month) · The building: Laundry in the entry');
+    // the night is a stay, said by itself, never stretched over a month (DR-1008)
+    expect(describeListing(UNIT)).toBe('Champaign, Illinois · $800/mo · Monthly $800 · Weekly $200 ($867 a month on average, $1,000 in a five-week month) · Short stay $150/night · The building: Laundry in the entry');
     expect(html).not.toMatch(/<script/);
   });
 

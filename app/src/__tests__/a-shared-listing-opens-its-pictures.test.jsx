@@ -1,5 +1,5 @@
 // =============================================================================
-// A shared listing opens on its card with the pictures open (DR-1004)
+// A shared listing opens on its card with the pictures open (DR-1006)
 // =============================================================================
 // Darrell: the link opens the app with that unit's pictures open. Tested by
 // USING it: the door is mounted at the address the preview page hands over,

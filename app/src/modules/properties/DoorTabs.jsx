@@ -449,6 +449,70 @@ function ArrangeControls({ id, index, total, onArrange, busy }) {
   );
 }
 
+/**
+ * A new door, in the words the editor already uses (DR-1007). Six fields,
+ * the address required; the rest can be filled from Edit afterwards. The
+ * result line says exactly what happened — saved, or why not.
+ */
+export function AddDoor({ onAdd, busy = false, open = false }) {
+  const [f, setF] = useState({ address: '', unit: '', city: '', state: '', property_type: 'single-family', monthly_rent: '' });
+  const [said, setSaid] = useState('');
+  const [saving, setSaving] = useState(false);
+  const set = (k) => (e) => setF((p) => ({ ...p, [k]: e.target.value }));
+  const field = 'w-full border border-[#E8E4DC] px-2 py-2 text-[0.875rem] focus:outline focus:outline-2 focus:outline-[#2F5D50]';
+  const lbl = 'block text-[0.625rem] uppercase tracking-wider text-[#6B665E] mb-1';
+  if (!open) return null;
+  const submit = async (e) => {
+    e.preventDefault();
+    if (!f.address.trim()) { setSaid('The address is the one thing a door needs.'); return; }
+    setSaving(true);
+    const r = await onAdd?.({
+      address: f.address, unit: f.unit, city: f.city, state: f.state,
+      propertyType: f.property_type, monthlyRent: f.monthly_rent,
+    });
+    setSaving(false);
+    if (r && r.ok) { setSaid('Saved. The door is on your board.'); setF({ address: '', unit: '', city: '', state: '', property_type: 'single-family', monthly_rent: '' }); }
+    else setSaid(`Not saved: ${(r && r.reason) || 'unknown'}`);
+  };
+  return (
+    <form onSubmit={submit} className="mt-3 pl-2 border-l-2" style={{ borderColor: ACCENT }} data-testid="add-door">
+      <p className="text-[0.8125rem] text-[#1A1815] mb-2">Add a door</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <label className="sm:col-span-2"><span className={lbl}>Street address</span>
+          <input type="text" className={field} value={f.address} onChange={set('address')} placeholder="12 Elm Street" aria-label="Street address" required />
+        </label>
+        <label><span className={lbl}>Unit</span>
+          <input type="text" className={field} value={f.unit} onChange={set('unit')} placeholder="Apt 2 (if any)" aria-label="Unit" />
+        </label>
+        <label><span className={lbl}>What it is</span>
+          <select className={field} value={f.property_type} onChange={set('property_type')} aria-label="What it is">
+            <option value="single-family">Single-family</option>
+            <option value="duplex">Duplex</option>
+            <option value="multi-family">Multi-family</option>
+            <option value="condo">Condo</option>
+            <option value="townhouse">Townhouse</option>
+            <option value="commercial">Commercial</option>
+            <option value="land">Land</option>
+          </select>
+        </label>
+        <label><span className={lbl}>City</span>
+          <input type="text" className={field} value={f.city} onChange={set('city')} aria-label="City" />
+        </label>
+        <label><span className={lbl}>State</span>
+          <input type="text" className={field} value={f.state} onChange={set('state')} aria-label="State" />
+        </label>
+        <label><span className={lbl}>Monthly rent</span>
+          <input type="number" inputMode="decimal" min="0" className={field} value={f.monthly_rent} onChange={set('monthly_rent')} aria-label="Monthly rent" />
+        </label>
+      </div>
+      <div className="flex items-center gap-2 mt-2">
+        <Btn tone="primary" type="submit" disabled={busy || saving} onClick={undefined} data-testid="add-door-save">{saving ? 'Saving…' : 'Add this door'}</Btn>
+        {said && <span className="text-[0.75rem] text-[#6B665E]" data-testid="add-door-said" aria-live="polite">{said}</span>}
+      </div>
+    </form>
+  );
+}
+
 export function DoorsBoard({
   rentals = [], tenancies = [], photos = [], canManage = false,
   // Each door's own order of the apartment pictures it borrows (DR-0984):
@@ -458,6 +522,8 @@ export function DoorsBoard({
   // picture archive on the NAS, {rental_id: channel} (DR-0999).
   knownBuildings = [], archives = {},
   onPick, onStart, onListing, onEditTenancy, onEditRental, onArrange, busy = false,
+  // A new door on the account (DR-1007): the owner's hand, null for anyone else.
+  onAddRental = null,
   // What each door has brought in (DR-0903, door_money_months): moneyByDoor's
   // result. Shown on the family's board only; null hides it.
   money = null,
@@ -468,6 +534,7 @@ export function DoorsBoard({
   const [editing, setEditing] = useState(null);
   const [editingDoor, setEditingDoor] = useState(null);
   const [qrFor, setQrFor] = useState(null);
+  const [adding, setAdding] = useState(false);
   // Two views, because they answer different questions: the GRID is for
   // looking at the properties (an applicant, or the landlord picking which one
   // to photograph next), the LIST is for working them (status, rent, actions
@@ -595,6 +662,10 @@ export function DoorsBoard({
           No properties are on your account yet. A door has to exist before a tenancy, a work order
           or an invitation can hang on it.
         </Empty>
+        {/* THE FIRST DOOR (DR-1007): a landlord who just got their own space
+            met this sentence and nothing to do about it. The form is right
+            here, open, because it is the only next step there is. */}
+        {canManage && onAddRental && <AddDoor onAdd={onAddRental} busy={busy} open />}
       </Card>
     );
   }
@@ -617,12 +688,18 @@ export function DoorsBoard({
             {rented} rented · {doorRows.length - rented} available{coming ? ` · ${coming} coming` : ''}
           </span>
           <span className="flex gap-1">
+            {canManage && onAddRental && (
+              <Btn tone={adding ? 'primary' : 'ghost'} onClick={() => setAdding((a) => !a)} data-testid="add-door-toggle">{adding ? 'Close' : 'Add a door'}</Btn>
+            )}
             <Btn tone={view === 'list' ? 'primary' : 'ghost'} onClick={() => pickView('list')}>List</Btn>
             <Btn tone={view === 'grid' ? 'primary' : 'ghost'} onClick={() => pickView('grid')}>Grid</Btn>
           </span>
         </span>
       }
     >
+      {adding && canManage && onAddRental && (
+        <AddDoor onAdd={async (f) => { const r = await onAddRental(f); if (r && r.ok) setAdding(false); return r; }} busy={busy} open />
+      )}
       {money && (
         // THE WHOLE PORTFOLIO, by what each asset has actually brought in —
         // confirmed money only; a reported payment is named, never added.
@@ -1105,7 +1182,8 @@ function EditRental({ rental, onSave, busy, knownBuildings = [], archive = '' })
     { key: 'address_visibility', label: 'Street on the public listing' },
     { key: 'photo_channel', label: 'Picture archive on the NAS' },
   ]), [before, f, shortStay]);
-  const cadencePreview = useMemo(() => cadenceChoice({ monthly: f.monthly_rent, weekly: f.weekly_rate, biweekly: f.biweekly_rate, nightly: shortStay ? f.nightly_rate : null }), [f.monthly_rent, f.weekly_rate, f.biweekly_rate, f.nightly_rate, shortStay]);
+  // The co-living cadences only (DR-1008): a night is a stay, never stretched over a month.
+  const cadencePreview = useMemo(() => cadenceChoice({ monthly: f.monthly_rent, weekly: f.weekly_rate, biweekly: f.biweekly_rate }), [f.monthly_rent, f.weekly_rate, f.biweekly_rate]);
 
   const field = 'w-full border border-[#E8E4DC] px-2 py-2 text-[0.875rem] focus:outline focus:outline-2 focus:outline-[#2F5D50]';
   const lbl = 'block text-[0.625rem] uppercase tracking-wider text-[#6B665E] mb-1';
