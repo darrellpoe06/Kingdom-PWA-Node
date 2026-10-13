@@ -59,7 +59,10 @@ const REDIRECT_JS = () => read('..', '..', 'public', 'properties', 'redirect.js'
 const UNIT_A = '3f2504e0-4f89-11d3-9a0c-0305e82c3301';
 const UNIT_B = '7c9e6679-7425-40de-944b-e07fc1f90ae7';
 const VACANCIES = [
-  { id: UNIT_A, label: '805 North Prospect Avenue', unit: 'Apt 2', city: 'Champaign', state: 'IL', property_type: 'multi-family', rent: null, nightly_rate: 150, offering: 'short-term', bedrooms: 1, address_shown: false },
+  // Apt 2 is offered BOTH ways here (DR-0930: nights through the short-stay
+  // form, a lease through the application). A door offered short stays ONLY
+  // carries no application at all (DR-1009) — the last case below pins that.
+  { id: UNIT_A, label: '805 North Prospect Avenue', unit: 'Apt 2', city: 'Champaign', state: 'IL', property_type: 'multi-family', rent: null, nightly_rate: 150, offering: 'both', bedrooms: 1, address_shown: false },
   { id: UNIT_B, label: '1003 Koehn Dr', unit: '', city: 'Danville', state: 'IL', property_type: 'single-family', rent: 680, bedrooms: 3, address_shown: true },
 ];
 
@@ -229,6 +232,20 @@ describe('a scanned card lands ON the application, not in front of it', () => {
     await openListing();
     expect(form()).toBeNull();
     expect(cardApplies()).toHaveLength(2);
+  });
+
+  it('a door offered short stays ONLY carries no application at all (DR-1009)', async () => {
+    const was = VACANCIES[0].offering;
+    VACANCIES[0].offering = 'short-term';
+    try {
+      await openListing();
+      expect(form()).toBeNull();
+      // only the lease-only unit offers an application; the short-stay card keeps its calendar
+      expect(cardApplies()).toHaveLength(1);
+      expect(cardApplies()[0].closest('li').textContent).not.toMatch(/Apt 2/);
+    } finally {
+      VACANCIES[0].offering = was;
+    }
   });
 });
 

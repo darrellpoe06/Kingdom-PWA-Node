@@ -49,6 +49,9 @@ export function describeListing(v = {}) {
   if (where) parts.push(where);
   if (Number(v.rent) > 0) parts.push(`${money(v.rent)}/mo`);
   const shortStay = v.offering === 'short-term' || v.offering === 'both';
+  // A short-stays-only season says so (DR-1009); the shelf already reads no
+  // lease price for it, so nothing is contradicted below.
+  if (v.offering === 'short-term') parts.push('Short stays only');
   // The co-living cadences compared; the night said by itself (DR-1008).
   const c = cadenceChoice({ monthly: v.rent, weekly: v.weekly_rate, biweekly: v.biweekly_rate });
   if (c.line) parts.push(c.line);
