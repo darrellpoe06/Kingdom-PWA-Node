@@ -140,6 +140,17 @@ export const FAULTS = Object.freeze({
           CREATE TRIGGER e2e_fault_archive BEFORE UPDATE ON public.rentals FOR EACH ROW EXECUTE FUNCTION public.e2e_fault_archive();`,
     restore: 'DROP TRIGGER IF EXISTS e2e_fault_archive ON public.rentals; DROP FUNCTION IF EXISTS public.e2e_fault_archive();',
   },
+  source: {
+    step: 'G2',
+    // Without 0285's index the database files the same NAS picture twice.
+    sql: 'DROP INDEX IF EXISTS public.property_photos_source_once;',
+    // G2's own proof leaves the twice-filed picture behind, and a unique index
+    // cannot be rebuilt over it: the rows go first, then 0285 comes back.
+    restore: [
+      `DELETE FROM public.property_photos WHERE source IS NOT NULL AND rental_ref IN ('${DOOR}', '${DOOR2}');`,
+      `${MIG}/0285-a-nas-picture-is-filed-once.sql`,
+    ],
+  },
   area: {
     step: 'E1',
     sql: `CREATE OR REPLACE FUNCTION public.rentals_area_rounded() RETURNS trigger LANGUAGE plpgsql AS $f$ BEGIN RAISE EXCEPTION 'e2e fault: no area' USING ERRCODE = 'check_violation'; END $f$;`,
@@ -160,6 +171,7 @@ export const FAULTS = Object.freeze({
   },
 });
 const BREAK = (process.argv.find((a) => a.startsWith('--break=')) || '').slice('--break='.length);
+let undoFailed = '';
 if (BREAK && !FAULTS[BREAK]) fail(2, `unknown --break=${BREAK} (one of: ${Object.keys(FAULTS).join(', ')})`);
 function applyFile(path) { execFileSync(PSQL[0], [...PSQL.slice(1), '-v', 'ON_ERROR_STOP=1', '-q', '-f', path], { encoding: 'utf8', stdio: ['ignore', 'ignore', 'inherit'] }); }
 // A restore may be a LIST of files: re-applying one migration can rebuild an
@@ -554,6 +566,36 @@ async function run() {
       });
     } else console.log('  (F1 skipped: set E2E_HEIC to a HEIC file to walk it)');
 
+    // G2. FROM THE NAS (DR-1002): the whole library by month, read from the
+    // real photo server's folders (no Synology sign-in); one picture filed
+    // on the listing at listing size with its source on the row; the second
+    // copy refused by the database itself.
+    await step('G2 a NAS picture is filed on the listing from the whole library, once', async () => {
+      await op.getByRole('button', { name: /^Pictures$/ }).first().click({ timeout: 15000 });
+      await op.getByTestId('nas-shelf').waitFor({ timeout: 20000 });
+      await op.getByTestId('nas-shelf-pick').selectOption('library');
+      await op.getByTestId('nas-month').fill('2024-01');
+      await op.getByTestId(`nas-tile-${OVERPASS_PHOTO.name}`).waitFor({ timeout: 30000 });
+      const timing = await op.getByTestId('nas-shelf-timing').innerText();
+      if (!/read in \d+\.\d s over the same-origin road/.test(timing)) throw new Error(`the read was not timed and named: "${timing}"`);
+      await op.getByTestId(`nas-use-${OVERPASS_PHOTO.name}`).click();
+      const src = `nas:library:${OVERPASS_PHOTO.name}`;
+      await waitFor(() => sql(`SELECT count(*) FROM property_photos WHERE rental_ref = '${DOOR}' AND source = '${src}' AND kind = 'listing'`) === '1', 'the NAS picture to be filed on the listing with its source', 30000);
+      const full = Buffer.from(sql(`SELECT split_part(storage_path, ',', 2) FROM property_photos WHERE rental_ref = '${DOOR}' AND source = '${src}'`), 'base64');
+      const w = jpegWidth(full);
+      if (!(w > 0 && w <= 1920)) throw new Error(`the filed picture is ${w}px wide; listing size is at most 1920`);
+      if (sql(`SELECT length(thumb_path) > 100 FROM property_photos WHERE rental_ref = '${DOOR}' AND source = '${src}'`) !== 't') throw new Error('the filed picture has no thumbnail');
+      await op.getByTestId(`nas-tile-${OVERPASS_PHOTO.name}-filed`).waitFor({ timeout: 20000 });
+      console.log(`      (filed ${w}px wide, ${Math.round(full.length / 1024)} KB; ${timing})`);
+      // NEVER TWICE: the database refuses a second copy on this door (0285).
+      let refused = false;
+      try {
+        sql(`INSERT INTO property_photos (instance_id, rental_ref, kind, caption, storage_path, thumb_path, source) VALUES ('${INSTANCE}', '${DOOR}', 'listing', 'again', 'data:image/jpeg;base64,/9j/4AAQ', 'data:image/jpeg;base64,/9j/4AAQ', '${src}')`);
+      } catch (_) { refused = true; }
+      if (!refused) throw new Error('the same NAS picture was filed on the same door twice (is 0285\'s index there?)');
+      await op.screenshot({ path: join(SHOTS, 'G2-nas-filed.png'), fullPage: true });
+    });
+
     // C. The next stranger sees those nights dark.
     const next = await hermetic(await browser.newContext({ viewport: { width: 412, height: 915 } }), 'next');
     const np = watch(await next.newPage(), 'next'); current = np;
@@ -612,7 +654,9 @@ async function run() {
     });
   } finally {
     clearTimeout(killer);
-    if (BREAK) { try { undoFault(FAULTS[BREAK]); } catch (e) { console.error(`door-journeys: could not undo the ${BREAK} fault: ${e.message}`); } }
+    // A fault that stays behind makes the NEXT run prove the wrong thing
+    // (DR-0076): an undo that fails is red, however the step itself went.
+    if (BREAK) { try { undoFault(FAULTS[BREAK]); } catch (e) { undoFailed = `could not undo the ${BREAK} fault: ${e.message}`; console.error(`door-journeys: ${undoFailed}`); } }
     if (browser) await browser.close().catch(() => {});
     server.close();
     pgrst.kill();
@@ -626,7 +670,11 @@ function verdict(r) {
   if (BREAK) {
     const want = FAULTS[BREAK].step;
     const hit = r.find((x) => x[0].startsWith(`${want} `));
-    if (hit && hit[1] === 'FAIL') { console.log(`door-journeys: CAUGHT — the ${BREAK} fault failed ${want}, as it must`); process.exit(0); }
+    if (hit && hit[1] === 'FAIL') {
+      console.log(`door-journeys: CAUGHT — the ${BREAK} fault failed ${want}, as it must`);
+      if (undoFailed) { console.error(`door-journeys: but the fault is still in the database (${undoFailed}); the next run would prove the wrong thing`); process.exit(1); }
+      process.exit(0);
+    }
     console.log(`door-journeys: NOT CAUGHT — the ${BREAK} fault left ${want} ${hit ? 'passing' : 'unreached'}; this journey proves nothing about it`);
     process.exit(1);
   }

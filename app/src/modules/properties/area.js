@@ -135,6 +135,11 @@ export function nearbyFrom(point, places = PLACES) {
 // building, from the family's app, never from a visitor's phone), and the
 // nearest of each kind is measured straight-line from that point.
 export const OVERPASS = 'https://overpass-api.de/api/interpreter';
+// A second public Overpass mirror, asked when the first answers 5xx or 429
+// (nearby-witness run 38434844861, 2026-10-13: overpass-api.de reached its
+// interpreter and answered 504 "runtime error: open64" -- its own fault at
+// that moment). Same data, same query; the first that answers wins.
+export const OVERPASS_MIRRORS = Object.freeze([OVERPASS, 'https://overpass.kumi.systems/api/interpreter']);
 const MI = 1609.344;
 
 // [kind, Overpass selector, radius in miles, how many, how the line reads]
@@ -191,23 +196,37 @@ export function nearbyFromOverpass(point, body) {
  * real answer (nothing near) -- or {ok:false, reason} when Overpass could not
  * be asked, so the caller can try again rather than save nothing as truth.
  */
-export async function nearbyAround(point, { fetchImpl = (typeof fetch === 'function' ? fetch : null), timeoutMs = 30000, places = PLACES } = {}) {
+export async function nearbyAround(point, { fetchImpl = (typeof fetch === 'function' ? fetch : null), timeoutMs = 30000, places = PLACES, userAgent = '' } = {}) {
   if (!point || !Number.isFinite(point.lat) || !Number.isFinite(point.lng)) return { ok: false, reason: 'no point' };
   const researched = nearbyFrom(point, places);
   if (!fetchImpl) return { ok: false, reason: 'This device cannot look up what is nearby.' };
   let found;
-  try {
-    const res = await fetchImpl(OVERPASS, {
-      method: 'POST',
-      headers: { 'content-type': 'application/x-www-form-urlencoded', accept: 'application/json' },
-      body: `data=${encodeURIComponent(overpassQuery(point))}`,
-      signal: AbortSignal.timeout(timeoutMs),
-    });
-    if (!res.ok) return { ok: false, reason: `What is nearby could not be looked up (HTTP ${res.status}).` };
-    found = nearbyFromOverpass(point, await res.json());
-  } catch (e) {
-    return { ok: false, reason: e?.name === 'TimeoutError' ? 'What is nearby took too long to answer.' : 'What is nearby could not be reached just now.' };
+  // No Accept header: the query's [out:json] decides the shape, and a
+  // browser's default "*/*" is what the servers see from a phone. A browser
+  // sends its own User-Agent and `userAgent` stays empty; a runner (the
+  // nearby witness) names itself, as Overpass's usage policy asks -- from a
+  // runner an unnamed or generic request is refused by Apache with 406 before
+  // the interpreter runs (witness runs 38434388889 / 38434844861, 2026-10-13,
+  // read from the server's own body). The servers' own words ride in the
+  // reason, so the next witness run says why (DR-0076).
+  const body = `data=${encodeURIComponent(overpassQuery(point))}`;
+  const headers = { 'content-type': 'application/x-www-form-urlencoded', ...(userAgent ? { 'user-agent': userAgent } : {}) };
+  let last = { ok: false, reason: 'What is nearby could not be reached just now.' };
+  for (const endpoint of OVERPASS_MIRRORS) {
+    try {
+      const res = await fetchImpl(endpoint, { method: 'POST', headers, body, signal: AbortSignal.timeout(timeoutMs) });
+      if (res.ok) { found = nearbyFromOverpass(point, await res.json()); break; }
+      let said = '';
+      try { said = String(await res.text()).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 160); } catch (_) { said = ''; }
+      last = { ok: false, reason: `What is nearby could not be looked up (HTTP ${res.status}${said ? `: ${said}` : ''}).` };
+      // A refusal of the request itself (4xx other than 429) is the same on
+      // every mirror; a server's own trouble (5xx, 429) is worth the next one.
+      if (res.status < 500 && res.status !== 429) break;
+    } catch (e) {
+      last = { ok: false, reason: e?.name === 'TimeoutError' ? 'What is nearby took too long to answer.' : 'What is nearby could not be reached just now.' };
+    }
   }
+  if (!found) return last;
   const have = new Set(researched.map((l) => l.label.toLowerCase()));
   const lines = [...researched, ...found.filter((l) => ![...have].some((h) => h.includes(l.label.toLowerCase().replace(/ \(.*\)$/, ''))))]
     .sort((a, b) => a.miles - b.miles)

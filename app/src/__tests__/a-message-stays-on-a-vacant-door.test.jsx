@@ -135,6 +135,7 @@ vi.mock('../modules/properties/cloud.js', () => {
     loadDoorPhotoOrders: async () => ({ ok: true, orders: {} }),
   loadDoorAreas: async () => ({ ok: false }), saveDoorPhotoOrder: async () => ({ ok: true, saved: 0 }),
   loadDoorArchives: async () => ({ ok: true, channels: {}, heldAt: {} }),
+  loadDoorPhotoSources: async () => ({ ok: true, sources: {} }),
     loadDoorPhotos: async () => ({ ok: true, photos: [] }),
     loadDoorTenancies: async () => ({ ok: true, tenancies: [] }),
     loadDocuments: async () => ({ ok: true, documents: [] }),

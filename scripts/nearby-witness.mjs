@@ -16,7 +16,7 @@
 // Usage: node scripts/nearby-witness.mjs "805 North Prospect Avenue" Champaign Illinois
 // =============================================================================
 import { geocode } from '../app/functions/geocode.js';
-import { nearbyAround, roundArea, milesText } from '../app/src/modules/properties/area.js';
+import { nearbyAround, roundArea, milesText, OVERPASS, overpassQuery } from '../app/src/modules/properties/area.js';
 import { matchesAddress } from '../app/src/modules/properties/place-on-map.js';
 
 const [street, city = '', state = ''] = process.argv.slice(2);
@@ -32,7 +32,31 @@ if (!matchesAddress(g.matched, { address: street, city })) {
 }
 const area = roundArea(g.lat, g.lng);
 console.log(`area the app saves (rounded): ${area.lat}, ${area.lng}`);
-const near = await nearbyAround({ lat: g.lat, lng: g.lng });
-if (!near.ok) { console.error(`NEARBY FAILED: ${near.reason}`); process.exit(1); }
+// The runner names itself (Overpass's usage policy); a phone sends its own.
+const UA = 'PoeTech nearby witness/1 (+https://poetech.us)';
+// A runner can wait longer than a phone: the public servers answered their
+// own 504s and timeouts on 2026-10-13, and a short patience here would hide
+// a slow-but-honest answer behind "took too long".
+const near = await nearbyAround({ lat: g.lat, lng: g.lng }, { userAgent: UA, timeoutMs: 60000 });
+if (!near.ok) {
+  console.error(`NEARBY FAILED: ${near.reason}`);
+  // Map the space in this one run, so the next change is measured, not
+  // guessed (2026-10-13: two runs answered 406 with and without an Accept
+  // header; what differs between a runner and a phone is the User-Agent and
+  // the verb).
+  const q = overpassQuery({ lat: g.lat, lng: g.lng });
+  const said = async (label, url, init) => {
+    try {
+      const r = await fetch(url, { ...init, signal: AbortSignal.timeout(30000) });
+      const body = String(await r.text()).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 120);
+      console.error(`  probe ${label}: HTTP ${r.status}${r.ok ? ' (answered)' : `: ${body}`}`);
+    } catch (e) { console.error(`  probe ${label}: ${e?.name || 'failed'}`); }
+  };
+  await said('POST, no User-Agent', OVERPASS, { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: `data=${encodeURIComponent(q)}` });
+  await said('POST, browser-like headers', OVERPASS, { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded', 'user-agent': 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/126.0 Mobile Safari/537.36', accept: '*/*' }, body: `data=${encodeURIComponent(q)}` });
+  await said('GET ?data=, named', `${OVERPASS}?data=${encodeURIComponent(q)}`, { method: 'GET', headers: { 'user-agent': UA } });
+  await said('GET ?data=, browser-like', `${OVERPASS}?data=${encodeURIComponent(q)}`, { method: 'GET', headers: { 'user-agent': 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/126.0 Mobile Safari/537.36', accept: '*/*' } });
+  process.exit(1);
+}
 console.log(`what is nearby (${near.lines.length}):`);
 for (const l of near.lines) console.log(`  ${l.label} · ${milesText(l.miles)}`);

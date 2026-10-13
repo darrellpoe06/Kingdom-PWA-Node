@@ -1,5 +1,5 @@
 ---
-id: DR-1002
+id: DR-1003
 title: AI lowered the cost of building, not the cost of owning — sov38, from an advertisement we refused to obey
 date: 2026-10-13
 status: accepted

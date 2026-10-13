@@ -610,6 +610,26 @@ export async function loadPhotoImages(ids = [], client = supabase) {
  * The door's photos. RLS decides what comes back — a tenant sees only their own
  * tenancy's, and never the door-level turn between households.
  */
+/**
+ * Which NAS pictures this door has already filed: {source: photo id} (DR-1002).
+ * Its OWN read, never a column on the list read: the column lands with
+ * db-migrate while the deploy is already serving, and a list read that named
+ * it would fail for every door until then (DR-0935). A failed read is
+ * "unknown", not "none" -- the shelf then offers every picture and lets the
+ * database refuse the second copy (0285).
+ */
+export async function loadDoorPhotoSources(rentalRef, client = supabase) {
+  if (!rentalRef) return ok({ sources: {} });
+  try {
+    const { data, error } = await client
+      .from('property_photos').select('id, source').eq('rental_ref', rentalRef).not('source', 'is', null);
+    if (error) return no('read-failed', error);
+    const sources = {};
+    for (const row of data || []) if (row && row.source) sources[row.source] = row.id;
+    return ok({ sources });
+  } catch (e) { return no('unexpected', e); }
+}
+
 export async function loadDoorPhotos(rentalRef, client = supabase) {
   if (!rentalRef) return ok({ photos: [] });
   try {
