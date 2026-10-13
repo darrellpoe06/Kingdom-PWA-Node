@@ -160,4 +160,9 @@ $$;
 REVOKE ALL ON FUNCTION public.public_vacancy_photos(uuid) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.public_vacancy_photos(uuid) TO anon, authenticated;
 
+-- A viewer reads and never writes; an assistant sees only the scope it was
+-- given (DR-0241; 0130). Both overlays run over every instance-scoped table.
+SELECT public.apply_viewer_readonly_overlay();
+SELECT public.apply_assistant_scope_overlay();
+
 NOTIFY pgrst, 'reload schema';

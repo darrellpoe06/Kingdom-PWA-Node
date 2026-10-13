@@ -35,6 +35,7 @@ const mig = (f) => readFileSync(join(ROOT, 'infra/supabase/migrations-auto', f),
 const F278 = '0278-a-bed-is-not-a-bedroom.sql';
 const F280 = '0280-the-address-shows-unless-the-family-holds-it.sql';
 const F281 = '0281-a-bed-still-says-it-is-a-bed-when-the-street-shows.sql';
+const F282 = '0282-each-door-shows-the-apartment-in-its-own-order.sql'; // the pre-fix state predates it
 
 // The label expression, read out of 0281 so these assertions are about the
 // shipped SQL and not about a copy of it.
@@ -141,7 +142,7 @@ describe('every chain that runs a shelf smoke converges on the newest definition
     const newest = newestDefiner(byFile);
     const leg = shellLegs().find((l) => l.job === 'door-work');
     const applied = leg.steps.filter((s) => s.kind === 'apply').map((s) => s.file)
-      .filter((f) => ![F278, F280, F281].includes(f));
+      .filter((f) => ![F278, F280, F281, F282].includes(f));
     const problems = checkChain(applied, shellSmokes().get('door-work'), 'ci.yml door-work', byFile, newest);
     expect(problems.length).toBeGreaterThanOrEqual(2);
     const all = problems.join('\n');
