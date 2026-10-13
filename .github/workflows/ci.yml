@@ -1192,6 +1192,13 @@ jobs:
           for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0287-a-landlord-gets-their-own-space.sql; done
           psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0287-landlord-space-smoke.sql 2>&1 | tee "$RUNNER_TEMP/landlord-space.txt"
           grep -q 'LANDLORD SPACE SMOKE: PASS' "$RUNNER_TEMP/landlord-space.txt"
+          # 0288 (DR-1009): a short-stays-only season advertises the night
+          # alone. public_vacancies() reads rent, weekly and every-two-weeks
+          # NULL while a door is offered short-term; 'both' and 'long-term'
+          # advertise them; the stored prices are untouched.
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0288-a-short-stays-only-season-advertises-the-night-alone.sql; done
+          psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0288-short-stays-only-smoke.sql 2>&1 | tee "$RUNNER_TEMP/short-stays-only.txt"
+          grep -q 'SHORT STAYS ONLY SMOKE: PASS' "$RUNNER_TEMP/short-stays-only.txt"
 
   # THE REQUIRED CHECK (DR-0645). Branch protection and native auto-merge wait
   # on a check named EXACTLY "app — lint + vitest". Do NOT rename this job.

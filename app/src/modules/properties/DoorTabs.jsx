@@ -1125,6 +1125,11 @@ function EditRental({ rental, onSave, busy, knownBuildings = [], archive = '' })
   });
   const set = (k) => (e) => setF((p) => ({ ...p, [k]: e.target.value }));
   const shortStay = f.offering === 'short-term' || f.offering === 'both';
+  // The two boxes (DR-1009): nights, and more than nights. Neither ticked is
+  // a lease-only door, the default a door is born with.
+  const offersNights = shortStay;
+  const offersLonger = f.offering !== 'short-term';
+  const setOffering = (nights, longer) => setF((p) => ({ ...p, offering: nights && longer ? 'both' : nights ? 'short-term' : 'long-term' }));
 
   // THE ADDRESS IS PICKED, NOT RETYPED (DR-0999). Darrell: "Drop down with
   // addresses... instead of letting someone else mistyped". The family's
@@ -1260,11 +1265,35 @@ function EditRental({ rental, onSave, busy, knownBuildings = [], archive = '' })
         <label><span className={lbl}>State</span>
           <input type="text" className={field} value={f.state} onChange={set('state')} />
         </label>
-        <label className="sm:col-span-2"><span className={lbl}>Offered as</span>
-          <select className={field} value={f.offering} onChange={set('offering')}>
-            {OFFERINGS.map((o) => <option key={o.key} value={o.key}>{o.label}</option>)}
-          </select>
-        </label>
+        {/* WHAT THIS DOOR IS OFFERED AS, BY SEASON (DR-1009). Darrell: "a check
+            box for if/when we offer something more than short stays... for the
+            seasons we decided"; "all of the above can also be an option... the
+            first opportunity to get revenue." Two boxes, three states: short
+            stays only, leases and longer terms only, or all of the above. The
+            prices stay on the row either way; the shelf advertises only what
+            is ticked (0288). */}
+        <fieldset className="sm:col-span-2" data-testid="offering-boxes">
+          <legend className={lbl}>Offered as</legend>
+          <label className="flex items-center gap-2 text-[0.8125rem] min-h-[44px]">
+            <input
+              type="checkbox" checked={offersNights} aria-label="Short stays, by the night"
+              onChange={(e) => setOffering(e.target.checked, offersLonger)}
+            />
+            <span>Short stays, by the night</span>
+          </label>
+          <label className="flex items-center gap-2 text-[0.8125rem] min-h-[44px]">
+            <input
+              type="checkbox" checked={offersLonger} aria-label="More than short stays: leases, weekly, every two weeks"
+              onChange={(e) => setOffering(offersNights, e.target.checked)}
+            />
+            <span>More than short stays: leases, weekly, every two weeks</span>
+          </label>
+          <span className="block text-[0.6875rem] text-[#6B665E]" data-testid="offering-reads">
+            {OFFERINGS.find((o) => o.key === f.offering)?.label || 'Lease only'}
+            {offersNights && offersLonger ? ' — all of the above: the first revenue that comes is taken.' : ''}
+            {!offersLonger ? ' — the lease prices stay on file and are not advertised this season.' : ''}
+          </span>
+        </fieldset>
         {shortStay && (
           <>
             <label><span className={lbl}>Nightly rate</span>

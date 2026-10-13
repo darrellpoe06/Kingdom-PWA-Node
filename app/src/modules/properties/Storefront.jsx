@@ -208,8 +208,11 @@ export function VacancyCard({ unit, onApply = null, openPictures = 0 }) {
           <div className="text-[0.75rem] text-[#1A1815]" data-testid="vacancy-street">{unit.street}</div>
         )}
         {unit.where && <div className="text-[0.75rem] text-[#5A5751]">{unit.where}</div>}
-        <div className="text-[0.8125rem] text-[#1A1815] mt-1">
-          {unit.rent != null ? `$${unit.rent.toFixed(0)}/mo` : 'Rent on request'}
+        {/* A SHORT-STAYS-ONLY SEASON SAYS SO (DR-1009): no month, no "rent on
+            request" that implies a lease; the night and the calendar are the
+            offer. The lease prices wait on the row for their season. */}
+        <div className="text-[0.8125rem] text-[#1A1815] mt-1" data-testid="vacancy-rent">
+          {unit.offering === 'short-term' ? 'Short stays only' : unit.rent != null ? `$${unit.rent.toFixed(0)}/mo` : 'Rent on request'}
           {size ? ` · ${size}` : ''}
         </div>
         {/* A SHARED HOME SAYS SO, ABOVE THE PRICE (DR-0952).
@@ -297,7 +300,8 @@ export function VacancyCard({ unit, onApply = null, openPictures = 0 }) {
             payload={() => ({ title: placeName, text: listingShareText(unit), url: shareListingUrl(unit.rentalId) })}
           />
         </span>
-        {onApply ? (
+        {/* An application is for a lease; a short-stays-only door offers none (DR-1009). */}
+        {unit.offering === 'short-term' ? null : onApply ? (
           <button
             type="button"
             onClick={() => onApply(unit.rentalId)}

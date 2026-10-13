@@ -111,7 +111,7 @@ function seed() {
     INSERT INTO instances (id, slug, display_name, instance_type) VALUES ('${INSTANCE}', 'poe-properties-e2e', 'Poe Properties E2E', 'business');
     INSERT INTO instance_members (instance_id, user_id, role, display_name) VALUES ('${INSTANCE}', '${OWNER}', 'owner', 'Owner');
     INSERT INTO rentals (id, instance_id, created_by, slug, display_name, address, unit, city, state, property_type, status, listed_at, offering, nightly_rate, address_visibility, showcase_order, monthly_rent, weekly_rate, building_note)
-      VALUES ('${DOOR}', '${INSTANCE}', '${OWNER}', 'E2E-APT2', '${STREET} Apt 2', '${STREET}', 'Apt 2', 'Champaign', 'Illinois', 'multi-family', 'vacant', now(), 'short-term', 150, 'after-application', 1, 800, 200, 'Laundry in the entry');
+      VALUES ('${DOOR}', '${INSTANCE}', '${OWNER}', 'E2E-APT2', '${STREET} Apt 2', '${STREET}', 'Apt 2', 'Champaign', 'Illinois', 'multi-family', 'vacant', now(), 'both', 150, 'after-application', 1, 800, 200, 'Laundry in the entry');
     -- A SECOND DOOR IN THE REAL ESTATE SHAPE (DR-0999): the whole address typed
     -- into one field, no town of its own, not advertised. The family's app
     -- holds it in its parts by itself (G1 reads the row).
@@ -141,6 +141,7 @@ export const FAULTS = Object.freeze({
       `${MIG}/0282-each-door-shows-the-apartment-in-its-own-order.sql`,
       `${MIG}/0283-a-held-door-shows-its-buildings-area.sql`,
       `${MIG}/0286-a-door-is-priced-by-any-cadence.sql`,
+      `${MIG}/0288-a-short-stays-only-season-advertises-the-night-alone.sql`,
     ],
   },
   confirm: {
@@ -205,6 +206,7 @@ export const FAULTS = Object.freeze({
       `${MIG}/0282-each-door-shows-the-apartment-in-its-own-order.sql`,
       `${MIG}/0283-a-held-door-shows-its-buildings-area.sql`,
       `${MIG}/0286-a-door-is-priced-by-any-cadence.sql`,
+      `${MIG}/0288-a-short-stays-only-season-advertises-the-night-alone.sql`,
     ],
   },
   calendar: {
@@ -524,6 +526,31 @@ async function run() {
       if (!/Monthly is the better deal: \$67 a month less than weekly on average/.test(deal)) throw new Error(`the better deal is not said: "${deal}"`);
       const bld = await gp.getByTestId('vacancy-building').first().innerText();
       if (!bld.includes('Laundry in the entry')) throw new Error(`what the building offers is not on the card: "${bld}"`);
+    });
+    // A3. A SHORT-STAYS-ONLY SEASON ADVERTISES THE NIGHT ALONE (DR-1009). The
+    // family flips the door to short stays only; the same card now says so,
+    // prints no month, no cadence, offers no application — the night and the
+    // calendar only. Flipped back to "all of the above" for A2.
+    await step('A3 a short-stays-only season advertises the night alone, and the lease prices wait', async () => {
+      sql(`UPDATE rentals SET offering = 'short-term' WHERE id = '${DOOR}'`);
+      await gp.reload({ waitUntil: 'domcontentloaded' });
+      await gp.getByRole('button', { name: /Looking for a place/i }).click({ timeout: 15000 });
+      await gp.getByTestId('vacancy-rent').first().waitFor({ timeout: 15000 });
+      const rent = await gp.getByTestId('vacancy-rent').first().innerText();
+      if (!/Short stays only/.test(rent)) throw new Error(`the price line reads "${rent}", not Short stays only`);
+      if (await gp.getByTestId('vacancy-cadence').count()) throw new Error('a short-stays-only door still prints the cadence line');
+      if (await gp.getByTestId('vacancy-apply').count()) throw new Error('a short-stays-only door still offers an application');
+      if (!(await gp.getByTestId('book-a-stay-open').count())) throw new Error('the short stay is not offered');
+      const text = await gp.locator('body').innerText();
+      if (/\$800/.test(text)) throw new Error('the lease price is advertised in the short-stay season');
+      if (!/\$150\/night/.test(text)) throw new Error('the night is not on the card');
+      await gp.screenshot({ path: join(SHOTS, 'A3-short-stays-only.png'), fullPage: true });
+      const kept = sql(`SELECT monthly_rent::int || '|' || weekly_rate::int FROM rentals WHERE id = '${DOOR}'`);
+      if (kept !== '800|200') throw new Error(`the stored prices changed: ${kept}`);
+      sql(`UPDATE rentals SET offering = 'both' WHERE id = '${DOOR}'`);
+      await gp.reload({ waitUntil: 'domcontentloaded' });
+      await gp.getByRole('button', { name: /Looking for a place/i }).click({ timeout: 15000 });
+      await gp.getByTestId('vacancy-cadence').first().waitFor({ timeout: 15000 });
     });
     await step('A2 the short form books two nights, both attestations given', async () => {
       await gp.getByRole('button', { name: /Book a stay/i }).first().click();

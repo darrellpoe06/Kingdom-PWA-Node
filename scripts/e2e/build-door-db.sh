@@ -91,7 +91,8 @@ for f in \
   0284-the-whole-address-and-its-archive-on-the-record.sql \
   0285-a-nas-picture-is-filed-once.sql \
   0286-a-door-is-priced-by-any-cadence.sql \
-  0287-a-landlord-gets-their-own-space.sql; do
+  0287-a-landlord-gets-their-own-space.sql \
+  0288-a-short-stays-only-season-advertises-the-night-alone.sql; do
   for i in 1 2; do P -f "$MIG/$f"; done
 done
 

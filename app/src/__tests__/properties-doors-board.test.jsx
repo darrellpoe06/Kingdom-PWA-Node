@@ -268,14 +268,15 @@ describe('editing what is already there', () => {
   });
 });
 
-// The door editor now has TWO selects — "Offered as" and, since 0158, "Address
-// on the public shelf". querySelector('select') used to be unambiguous and is
-// not any more, so these pick the offering one by the options it carries. A
-// test that depends on there being exactly one of something breaks the day
-// somebody adds a second for a good reason.
-const offeringSelect = (host) =>
-  [...host.querySelectorAll('select')].find((el) =>
-    [...el.options].some((o) => o.value === 'short-term'));
+// What a door is offered as is two checkboxes since DR-1009 (short stays, and
+// more than short stays); ticking them is how the test sets the offering.
+const offeringBox = (host, which) => host.querySelector(`[data-testid="offering-boxes"] input[aria-label^="${which}"]`);
+const tick = (box, on) => act(() => {
+  const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'checked').set;
+  setter.call(box, on);
+  box.dispatchEvent(new Event('click', { bubbles: true }));
+  box.dispatchEvent(new Event('change', { bubbles: true }));
+});
 
 describe('what a door is offered as', () => {
   // "you only need to create an account for lease or for a short term lease
@@ -329,13 +330,10 @@ describe('what a door is offered as', () => {
     const host = render(<DoorsBoard rentals={[rentals[1]]} tenancies={[]} canManage onEditRental={() => {}} />);
     click(byText(host, /Edit door/));
     expect(txt(host)).not.toMatch(/Nightly rate/);
-    const select = offeringSelect(host);
-    act(() => {
-      const setter = Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, 'value').set;
-      setter.call(select, 'short-term');
-      select.dispatchEvent(new Event('change', { bubbles: true }));
-    });
+    tick(offeringBox(host, 'Short stays'), true);
     expect(txt(host)).toMatch(/Nightly rate/);
+    // both boxes ticked is "all of the above", said plainly
+    expect(txt(host)).toMatch(/all of the above/);
     expect(txt(host)).toMatch(/Minimum stay/);
   });
 
@@ -343,12 +341,9 @@ describe('what a door is offered as', () => {
     const onEditRental = vi.fn();
     const host = render(<DoorsBoard rentals={[shortStay]} tenancies={[]} canManage onEditRental={onEditRental} />);
     click(byText(host, /Edit door/));
-    const select = offeringSelect(host);
-    act(() => {
-      const setter = Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, 'value').set;
-      setter.call(select, 'long-term');
-      select.dispatchEvent(new Event('change', { bubbles: true }));
-    });
+    // a short-stay-only door: untick the nights, tick the longer terms
+    tick(offeringBox(host, 'Short stays'), false);
+    tick(offeringBox(host, 'More than short stays'), true);
     click(byText(host, /Save the change/));
     const patch = onEditRental.mock.calls[0][1];
     expect(patch.offering).toBe('long-term');
