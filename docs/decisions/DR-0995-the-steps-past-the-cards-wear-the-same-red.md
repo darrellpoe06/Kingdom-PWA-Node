@@ -35,6 +35,15 @@ correction to the palette: the red read as pink to him.
   file that uses it: an imported `FOCUS_RING` reads as "no focus ring" and
   fails the baseline.
 
+## Impact
+
+A person who taps any of the six cards now lands on a screen that looks like
+the page they came from: the same panel, the same red, the same type. The
+vacancies list, the application and the sign-in form do exactly what they
+did before; only their clothes changed. The PoeTech shell's copies of the
+shared listing card and sign-in form are untouched, so nothing outside this
+door moves.
+
 ## Decision
 
 1. **A true red.** `--pp-red:#E00000` (hover `#B30000`), `#FF3B3B` on
