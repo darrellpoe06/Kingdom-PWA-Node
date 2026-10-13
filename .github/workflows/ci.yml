@@ -1137,6 +1137,15 @@ jobs:
           psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0280-the-address-shows-unless-the-family-holds-it.sql
           test "$(psql -qAt -c "SELECT address_visibility FROM rentals WHERE slug = 'HOLD-280'")" = "after-application" || { echo "::error::re-applying 0280 undid a family's hold on the street"; exit 1; }
           psql -v ON_ERROR_STOP=1 -q -c "DELETE FROM rentals WHERE slug = 'HOLD-280'; DELETE FROM instances WHERE id = '00000000-0000-4000-b000-0000000f0280'"
+          # 0282 (DR-0984): each door shows the apartment in its own order. It
+          # needs same_apartment (0273) and 0278's public_vacancy_photos, both
+          # above. The smoke proves the shelf honours sort_order again (lost in
+          # 0273), that Bed B leads with the cover it chose while Bed A keeps
+          # its own, and the four refusals: a door's own picture, another
+          # apartment's door, a stranger's write, a stranger's read.
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0282-each-door-shows-the-apartment-in-its-own-order.sql; done
+          psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0282-door-photo-order-smoke.sql 2>&1 | tee "$RUNNER_TEMP/photo-order.txt"
+          grep -q 'DOOR PHOTO ORDER SMOKE: PASS' "$RUNNER_TEMP/photo-order.txt"
 
   # THE REQUIRED CHECK (DR-0645). Branch protection and native auto-merge wait
   # on a check named EXACTLY "app — lint + vitest". Do NOT rename this job.

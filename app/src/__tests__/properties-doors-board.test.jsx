@@ -386,4 +386,15 @@ describe('a door with no pictures of its own shows its apartment\'s', () => {
     expect(apt2.textContent).toMatch(/No photo/i);
     expect(apt2.textContent).not.toContain('shared with');
   });
+
+  it('DR-0984: a door that chose its own cover of the apartment leads with it; Bed A keeps its own', () => {
+    // Bed A's own cover is a1 (the newest of its own); Bed B chose a3.
+    const host = render(<DoorsBoard rentals={apt4} tenancies={[]} photos={photos} photoOrders={{ 'bed-b': { a3: 5 } }} canManage />);
+    const imgAlt = (name) => lineOf(host, name).querySelector('img')?.getAttribute('alt');
+    expect(imgAlt('Bed B')).toBe('a3');
+    expect(imgAlt('Bed A')).not.toBe('a3');
+    // An order row for another door's picture outside this apartment is ignored.
+    const host2 = render(<DoorsBoard rentals={apt4} tenancies={[]} photos={photos} photoOrders={{ 'bed-b': { x1: 1 } }} canManage />);
+    expect([...host2.querySelectorAll('li')].find((li) => li.textContent.includes('Bed B')).querySelector('img').getAttribute('alt')).not.toBe('x1');
+  });
 });
