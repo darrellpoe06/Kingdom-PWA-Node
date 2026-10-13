@@ -19,6 +19,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { buildPropertyTimeline, turnPhotos, latestAtDoor, doorEvents } from './timeline.js';
+import { cadenceChoice } from './cadence.js';
 import {
   liveRooms, archivedRooms, buildRoom, seedRooms, archiveRoom, restoreRoom,
   roomBoard, unitSize, sizeChange, ROOM_KINDS, STARTER_SETS,
@@ -1034,6 +1035,11 @@ function EditRental({ rental, onSave, busy, knownBuildings = [], archive = '' })
     offering: rental.offering || 'long-term',
     nightly_rate: rental.nightly_rate ?? '',
     min_stay_nights: rental.min_stay_nights ?? '',
+    // ANY CADENCE (DR-1003): a weekly price, a price every two weeks, and
+    // what the building offers — on any door, lease or short stay.
+    weekly_rate: rental.weekly_rate ?? '',
+    biweekly_rate: rental.biweekly_rate ?? '',
+    building_note: rental.building_note || '',
     // THE STREET SHOWS UNLESS THE FAMILY HOLDS IT (DR-0977): 0280 made
     // 'public' the default. A row read before that (unset) is shown as the
     // database now treats it after 0280's one-time step: shown.
@@ -1074,6 +1080,7 @@ function EditRental({ rental, onSave, busy, knownBuildings = [], archive = '' })
     address_visibility: rental.address_visibility || 'public',
     display_name: rental.display_name || '',
     photo_channel: archive || rental.photo_channel || '',
+    building_note: rental.building_note || '',
   }), [rental, archive]);
   const edit = useMemo(() => buildEdit(before, {
     ...f,
@@ -1092,9 +1099,13 @@ function EditRental({ rental, onSave, busy, knownBuildings = [], archive = '' })
     { key: 'offering', label: 'Offered as' },
     { key: 'nightly_rate', label: 'Nightly rate', numeric: true },
     { key: 'min_stay_nights', label: 'Minimum stay', numeric: true },
+    { key: 'weekly_rate', label: 'Weekly rate', numeric: true },
+    { key: 'biweekly_rate', label: 'Rate every two weeks', numeric: true },
+    { key: 'building_note', label: 'What the building offers' },
     { key: 'address_visibility', label: 'Street on the public listing' },
     { key: 'photo_channel', label: 'Picture archive on the NAS' },
   ]), [before, f, shortStay]);
+  const cadencePreview = useMemo(() => cadenceChoice({ monthly: f.monthly_rent, weekly: f.weekly_rate, biweekly: f.biweekly_rate, nightly: shortStay ? f.nightly_rate : null }), [f.monthly_rent, f.weekly_rate, f.biweekly_rate, f.nightly_rate, shortStay]);
 
   const field = 'w-full border border-[#E8E4DC] px-2 py-2 text-[0.875rem] focus:outline focus:outline-2 focus:outline-[#2F5D50]';
   const lbl = 'block text-[0.625rem] uppercase tracking-wider text-[#6B665E] mb-1';
@@ -1186,6 +1197,24 @@ function EditRental({ rental, onSave, busy, knownBuildings = [], archive = '' })
             </label>
           </>
         )}
+        {/* ANY CADENCE, AND THE TRUE MONTH BESIDE EACH (DR-1003). Darrell:
+            "$800 a monthly however $200 weekly... sounds the same until you
+            get a 5 week month." The family sees here exactly what the renter
+            will read on the card, before saving. */}
+        <label><span className={lbl}>Weekly rate (optional)</span>
+          <input type="text" inputMode="decimal" className={field} value={f.weekly_rate} onChange={set('weekly_rate')} aria-label="Weekly rate" />
+        </label>
+        <label><span className={lbl}>Rate every two weeks (optional)</span>
+          <input type="text" inputMode="decimal" className={field} value={f.biweekly_rate} onChange={set('biweekly_rate')} aria-label="Rate every two weeks" />
+        </label>
+        {cadencePreview.line && (
+          <p className="sm:col-span-2 text-[0.75rem] text-[#1A1815] leading-snug" data-testid="edit-cadence-preview">
+            On the listing: {cadencePreview.line}{cadencePreview.deal ? ` — ${cadencePreview.deal}` : ''}
+          </p>
+        )}
+        <label className="sm:col-span-2"><span className={lbl}>What the building offers (shared by every door in it)</span>
+          <input type="text" className={field} value={f.building_note} onChange={set('building_note')} maxLength={300} placeholder="Laundry in the entry" aria-label="What the building offers" />
+        </label>
       </div>
       {edit.changed && <p className="text-[0.8125rem] text-[#1A1815] leading-relaxed mt-2">{edit.summary}</p>}
       <div className="mt-2">

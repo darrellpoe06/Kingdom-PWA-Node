@@ -36,7 +36,7 @@
 import { createServer, request as httpRequest } from 'node:http';
 import { spawn, execFileSync } from 'node:child_process';
 import { createHmac, randomUUID } from 'node:crypto';
-import { readFileSync, existsSync, mkdirSync, writeFileSync, statSync } from 'node:fs';
+import { readFileSync, existsSync, mkdirSync, writeFileSync, statSync, readdirSync } from 'node:fs';
 import { join, extname, normalize } from 'node:path';
 import { geocodeResponse } from '../../app/functions/geocode.js';
 
@@ -60,7 +60,8 @@ export const ANON_KEY = mintJwt({ role: 'anon', iss: 'e2e', exp: FAR });
 
 if (process.argv[2] === '--anon-key') { process.stdout.write(ANON_KEY); process.exit(0); }
 
-const DIST = process.argv[2] || 'app/dist';
+const CHECK_FAULTS = process.argv.includes('--check-faults');
+const DIST = (process.argv[2] && !process.argv[2].startsWith('--')) ? process.argv[2] : 'app/dist';
 const PSQL = (process.env.E2E_PSQL || '').split(/\s+/).filter(Boolean);
 const SHOTS = process.env.E2E_SHOTS || 'e2e-shots';
 const CHROME = process.env.E2E_CHROME || '';
@@ -69,8 +70,8 @@ const DB_URI = process.env.E2E_DB_URI || '';
 const HEIC = process.env.E2E_HEIC || '';   // a real phone HEIC (CI downloads libheif's example, checksum pinned)
 
 function fail(code, msg) { console.error(`door-journeys: ${msg}`); process.exit(code); }
-if (!existsSync(join(DIST, 'properties', 'app', 'index.html'))) fail(2, `no built Properties app in ${DIST} (vite build first)`);
-if (!PSQL.length || !DB_URI) fail(2, 'set E2E_PSQL and E2E_DB_URI');
+if (!CHECK_FAULTS && !existsSync(join(DIST, 'properties', 'app', 'index.html'))) fail(2, `no built Properties app in ${DIST} (vite build first)`);
+if (!CHECK_FAULTS && (!PSQL.length || !DB_URI)) fail(2, 'set E2E_PSQL and E2E_DB_URI');
 mkdirSync(SHOTS, { recursive: true });
 
 const sql = (text) => execFileSync(PSQL[0], [...PSQL.slice(1), '-v', 'ON_ERROR_STOP=1', '-qAt', '-c', text], { encoding: 'utf8' }).trim();
@@ -98,8 +99,8 @@ function seed() {
       ON CONFLICT (id) DO NOTHING;
     INSERT INTO instances (id, slug, display_name, instance_type) VALUES ('${INSTANCE}', 'poe-properties-e2e', 'Poe Properties E2E', 'business');
     INSERT INTO instance_members (instance_id, user_id, role, display_name) VALUES ('${INSTANCE}', '${OWNER}', 'owner', 'Owner');
-    INSERT INTO rentals (id, instance_id, created_by, slug, display_name, address, unit, city, state, property_type, status, listed_at, offering, nightly_rate, address_visibility, showcase_order)
-      VALUES ('${DOOR}', '${INSTANCE}', '${OWNER}', 'E2E-APT2', '${STREET} Apt 2', '${STREET}', 'Apt 2', 'Champaign', 'Illinois', 'multi-family', 'vacant', now(), 'short-term', 150, 'after-application', 1);
+    INSERT INTO rentals (id, instance_id, created_by, slug, display_name, address, unit, city, state, property_type, status, listed_at, offering, nightly_rate, address_visibility, showcase_order, monthly_rent, weekly_rate, building_note)
+      VALUES ('${DOOR}', '${INSTANCE}', '${OWNER}', 'E2E-APT2', '${STREET} Apt 2', '${STREET}', 'Apt 2', 'Champaign', 'Illinois', 'multi-family', 'vacant', now(), 'short-term', 150, 'after-application', 1, 800, 200, 'Laundry in the entry');
     -- A SECOND DOOR IN THE REAL ESTATE SHAPE (DR-0999): the whole address typed
     -- into one field, no town of its own, not advertised. The family's app
     -- holds it in its parts by itself (G1 reads the row).
@@ -119,7 +120,17 @@ export const FAULTS = Object.freeze({
   street: {
     step: 'A1',
     sql: `CREATE OR REPLACE FUNCTION public.rental_address_is_public(p_visibility text) RETURNS boolean LANGUAGE sql IMMUTABLE AS $f$ SELECT true $f$;`,
-    restore: `${MIG}/0280-the-address-shows-unless-the-family-holds-it.sql`,
+    // 0280 rebuilds public_vacancies() in its own shape, so the chain after it
+    // is replayed too (0281's label, 0282, 0283's area, 0286's cadence) —
+    // measured on CI run 38442293220: after this undo the next fault's A1 read
+    // a shelf with no weekly price. faultRestoreProblems() refuses the gap.
+    restore: [
+      `${MIG}/0280-the-address-shows-unless-the-family-holds-it.sql`,
+      `${MIG}/0281-a-bed-still-says-it-is-a-bed-when-the-street-shows.sql`,
+      `${MIG}/0282-each-door-shows-the-apartment-in-its-own-order.sql`,
+      `${MIG}/0283-a-held-door-shows-its-buildings-area.sql`,
+      `${MIG}/0286-a-door-is-priced-by-any-cadence.sql`,
+    ],
   },
   confirm: {
     step: 'B2',
@@ -151,6 +162,12 @@ export const FAULTS = Object.freeze({
       `${MIG}/0285-a-nas-picture-is-filed-once.sql`,
     ],
   },
+  cadence: {
+    step: 'A1',
+    // Without the weekly price the card has no true month to print beside it.
+    sql: `UPDATE public.rentals SET weekly_rate = NULL WHERE id = '${DOOR}';`,
+    restore: `UPDATE public.rentals SET weekly_rate = 200 WHERE id = '${DOOR}';`,
+  },
   area: {
     step: 'E1',
     sql: `CREATE OR REPLACE FUNCTION public.rentals_area_rounded() RETURNS trigger LANGUAGE plpgsql AS $f$ BEGIN RAISE EXCEPTION 'e2e fault: no area' USING ERRCODE = 'check_violation'; END $f$;`,
@@ -162,6 +179,7 @@ export const FAULTS = Object.freeze({
       `${MIG}/0281-a-bed-still-says-it-is-a-bed-when-the-street-shows.sql`,
       `${MIG}/0282-each-door-shows-the-apartment-in-its-own-order.sql`,
       `${MIG}/0283-a-held-door-shows-its-buildings-area.sql`,
+      `${MIG}/0286-a-door-is-priced-by-any-cadence.sql`,
     ],
   },
   calendar: {
@@ -173,6 +191,45 @@ export const FAULTS = Object.freeze({
 const BREAK = (process.argv.find((a) => a.startsWith('--break=')) || '').slice('--break='.length);
 let undoFailed = '';
 if (BREAK && !FAULTS[BREAK]) fail(2, `unknown --break=${BREAK} (one of: ${Object.keys(FAULTS).join(', ')})`);
+
+// AN UNDO CONVERGES ON THE NEWEST DEFINITION (DR-1003). Re-applying one
+// migration rebuilds every function it defines in THAT file's shape; a later
+// migration that redefined the function is then silently gone, and every run
+// after the undo proves the wrong thing. CI run 38442293220: the street
+// fault's undo re-applied 0280 alone, and the confirm fault's run read a shelf
+// public_vacancies() no longer gave a weekly price to. So: every restore that
+// re-applies a file defining a function must also carry, later in the list,
+// the newest file in the chain that defines it. Checked on every run, before
+// the seed; refused with the gap named.
+const definersOf = (file) => [...readFileSync(join(MIG, file), 'utf8').matchAll(/CREATE OR REPLACE FUNCTION public\.([a-z_]+)\s*\(/gi)].map((m) => m[1].toLowerCase());
+export function faultRestoreProblems(faults = FAULTS) {
+  const files = readdirSync(MIG).filter((f) => f.endsWith('.sql')).sort();
+  const newest = new Map();
+  for (const f of files) for (const fn of definersOf(f)) newest.set(fn, f);
+  const problems = [];
+  for (const [name, fault] of Object.entries(faults)) {
+    const list = [].concat(fault.restore).filter((r) => typeof r === 'string' && r.endsWith('.sql')).map((r) => r.replace(/^.*\//, ''));
+    for (const file of list) {
+      for (const fn of definersOf(file)) {
+        const last = newest.get(fn);
+        if (!last || last === file) continue;
+        if (!list.includes(last)) problems.push(`the ${name} fault's undo re-applies ${file}, which defines ${fn}(), but not its newest definer ${last}: every run after the undo would prove the wrong thing`);
+        else if (list.indexOf(last) < list.indexOf(file)) problems.push(`the ${name} fault's undo re-applies ${file} after ${last}, so ${fn}() ends up in ${file}'s shape`);
+      }
+    }
+  }
+  return problems;
+}
+if (CHECK_FAULTS) {
+  const bad = faultRestoreProblems();
+  if (bad.length) fail(2, `fault undo does not converge:\n  ${bad.join('\n  ')}`);
+  console.log(`door-journeys: every fault's undo converges on the newest definer (${Object.keys(FAULTS).length} faults)`);
+  process.exit(0);
+}
+{
+  const bad = faultRestoreProblems();
+  if (bad.length) fail(2, `fault undo does not converge:\n  ${bad.join('\n  ')}`);
+}
 function applyFile(path) { execFileSync(PSQL[0], [...PSQL.slice(1), '-v', 'ON_ERROR_STOP=1', '-q', '-f', path], { encoding: 'utf8', stdio: ['ignore', 'ignore', 'inherit'] }); }
 // A restore may be a LIST of files: re-applying one migration can rebuild an
 // object a later one owns (0270 recreates public_vacancies() without 0278's
@@ -433,6 +490,15 @@ async function run() {
       await gp.screenshot({ path: join(SHOTS, 'A1-listing.png'), fullPage: true });
       const text = await gp.locator('body').innerText();
       if (text.includes(STREET)) throw new Error(`the held street "${STREET}" is on the public page (DR-0977: held until they apply or book)`);
+      // ANY CADENCE, THE TRUE MONTH BESIDE EACH (DR-1003): $200 a week is
+      // $867 a month on average and $1,000 in a five-week month, said on the
+      // card beside the $800 month, with which is the better deal.
+      const cad = await gp.getByTestId('vacancy-cadence').first().innerText({ timeout: 15000 });
+      if (!cad.includes('Weekly $200 ($867 a month on average, $1,000 in a five-week month)')) throw new Error(`the true month is not beside the weekly price: "${cad}"`);
+      const deal = await gp.getByTestId('vacancy-deal').first().innerText();
+      if (!/Monthly is the better deal: \$67 a month less than weekly on average/.test(deal)) throw new Error(`the better deal is not said: "${deal}"`);
+      const bld = await gp.getByTestId('vacancy-building').first().innerText();
+      if (!bld.includes('Laundry in the entry')) throw new Error(`what the building offers is not on the card: "${bld}"`);
     });
     await step('A2 the short form books two nights, both attestations given', async () => {
       await gp.getByRole('button', { name: /Book a stay/i }).first().click();
@@ -482,7 +548,11 @@ async function run() {
       await op.getByTestId('record-payment').getByRole('button', { name: /^Cash$/ }).click();
       await op.getByLabel('From whom').fill('Ana Guest');
       await op.getByTestId('record-payment').getByRole('button', { name: /^Record it$/ }).click();
-      await op.getByTestId('record-payment-done').waitFor({ timeout: 15000 });
+      // The insert goes through PostgREST and the door reloads behind it; on a
+      // loaded runner that took longer than 15 s (CI run 38435481693, and
+      // locally with three vitest shards beside Chrome). The step proves the
+      // same thing at 30 s; it does not wait longer for a failure.
+      await op.getByTestId('record-payment-done').waitFor({ timeout: 30000 });
       const row = sql(`SELECT coalesce(tenancy_id::text,'none') || '|' || rental_id || '|' || amount::numeric(10,2) || '|' || method FROM rent_records WHERE instance_id = '${INSTANCE}'`);
       if (row !== `none|${DOOR}|300.00|cash`) throw new Error(`the database holds "${row}", not $300 cash on the door with no tenancy`);
       const total = sql(`SELECT received::numeric(10,2) FROM door_money_months WHERE rental_id = '${DOOR}'`);

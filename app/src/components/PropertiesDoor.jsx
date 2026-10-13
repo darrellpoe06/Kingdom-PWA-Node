@@ -436,6 +436,11 @@ function SignedOutDoor({ left = false, onReturn } = {}) {
                   baths: Number(v.bathrooms) > 0 ? Number(v.bathrooms) : null,
                   offering: String(v.offering || 'long-term'),
                   nightly: Number(v.nightly_rate) > 0 ? Number(v.nightly_rate) : null,
+                  // ANY CADENCE (DR-1003): NULL from the database is "not
+                  // offered that way", and stays null here, never 0.
+                  weekly: Number(v.weekly_rate) > 0 ? Number(v.weekly_rate) : null,
+                  biweekly: Number(v.biweekly_rate) > 0 ? Number(v.biweekly_rate) : null,
+                  buildingNote: String(v.building_note || '').trim() || null,
                   note: String(v.note || '').trim(),
                   addressShown: v.address_shown === undefined ? true : Boolean(v.address_shown),
                   area: areaOf(v),

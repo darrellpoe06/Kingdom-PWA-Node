@@ -54,6 +54,16 @@ export const APPLICATION_SECTIONS = Object.freeze([
     fields: [
       F('door', 'Apartment / unit', 'door', { collect: 'derived', required: true }),
       F('rent', 'Rent', 'money', { collect: 'derived' }),
+      // ANY CADENCE (DR-1003): the renter says how they would like to pay,
+      // having read the true month beside each price on the card.
+      F('payCadence', 'How you would like to pay', 'choice', {
+        options: [
+          { value: 'monthly', label: 'Monthly' },
+          { value: 'weekly', label: 'Weekly' },
+          { value: 'biweekly', label: 'Every two weeks' },
+        ],
+        help: 'The listing shows what each comes to in a month; monthly is usually the better deal.',
+      }),
       F('startDate', 'Start date', 'date', { required: true }),
       F('referredBy', 'Agent / referred by', 'text'),
     ],

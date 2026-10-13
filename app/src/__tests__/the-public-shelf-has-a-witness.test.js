@@ -27,8 +27,8 @@ const BEFORE = [
 // The same shelf as it should read once the level is inferred.
 const AFTER = [
   { title: '1-bed multi-family in Champaign, Illinois', size: 'Rent on request · 1 bed · 1 bath', sharedLine: '', photos: 'See all 16 photos — 1 of 16' },
-  { title: 'Bed in a shared multi-family in Champaign, Illinois', size: '$750/mo', sharedLine: 'A private bed in a shared home. You would have housemates; the kitchen and bathroom are shared.', photos: 'See all 39 photos — 1 of 39' },
-  { title: 'Bed in a shared multi-family in Champaign, Illinois', size: '$750/mo', sharedLine: 'A private bed in a shared home. You would have housemates; the kitchen and bathroom are shared.', photos: 'See all 39 photos — 1 of 39' },
+  { title: 'Bed in a shared multi-family in Champaign, Illinois', size: '$750/mo', sharedLine: 'A bed in a shared bedroom, two to a room, in a shared home. You would have housemates; the kitchen and bathroom are shared.', photos: 'See all 39 photos — 1 of 39' },
+  { title: 'Bed in a shared multi-family in Champaign, Illinois', size: '$750/mo', sharedLine: 'A bed in a shared bedroom, two to a room, in a shared home. You would have housemates; the kitchen and bathroom are shared.', photos: 'See all 39 photos — 1 of 39' },
 ];
 
 describe('the witness passes a shelf that tells the truth', () => {
@@ -77,7 +77,7 @@ describe('PROVEN-TO-CATCH: it fails on exactly what Darrell found', () => {
     const r = judgeShelf([{
       title: 'Bed in a shared multi-family in Champaign, Illinois',
       size: '$750/mo · 1 bed · 1 bath',
-      sharedLine: 'A private bed in a shared home. You would have housemates; the kitchen and bathroom are shared.',
+      sharedLine: 'A bed in a shared bedroom, two to a room, in a shared home. You would have housemates; the kitchen and bathroom are shared.',
       photos: 'See all 39 photos',
     }]);
     expect(r.findings.join(' ')).toMatch(/says it is shared AND claims/);

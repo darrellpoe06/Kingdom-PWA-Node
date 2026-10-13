@@ -27,6 +27,7 @@ import { stampImage, stampFileName } from '../../lib/brand-stamp.js';
 import { BookAStay } from './Booking.jsx';
 import { MapOnRequest, NearbyList } from './AreaMap.jsx';
 import { addressLine } from './area.js';
+import { cadenceChoice } from './cadence.js';
 
 const ACCENT = '#2F5D50';
 const serif = { fontFamily: '"Fraunces", serif' };
@@ -81,6 +82,10 @@ export function VacancyCard({ unit, onApply = null }) {
     unit.baths ? `${unit.baths} bath` : null,
   ].filter(Boolean).join(' · ');
   const shortStay = unit.offering === 'short-term' || unit.offering === 'both';
+  // ANY CADENCE, THE TRUE MONTH BESIDE EACH (DR-1003). Darrell: "$800 a
+  // monthly however $200 weekly... sounds the same until you get a 5 week
+  // month." Printed only when the door is offered some way other than monthly.
+  const cadence = cadenceChoice({ monthly: unit.rent, weekly: unit.weekly, biweekly: unit.biweekly, nightly: shortStay ? unit.nightly : null });
 
   return (
     <li className="border border-[#E8E4DC] bg-white overflow-hidden">
@@ -194,7 +199,10 @@ export function VacancyCard({ unit, onApply = null }) {
             click. It is said plainly and early, not buried under the rent. */}
         {unit.sharedHome && (
           <div className="text-[0.75rem] text-[#1A1815] mt-1 leading-snug" data-testid="vacancy-shared-home">
-            <strong>{unit.rentableLevel === 'room' ? 'A private room' : 'A private bed'} in a shared home.</strong>
+            {/* A BED IS IN A SHARED BEDROOM, TWO TO A ROOM (DR-1003). Darrell,
+                2026-10-13: "bedroom shared, 2 to a room" — said before anyone
+                books a bed expecting a door of their own. */}
+            <strong>{unit.rentableLevel === 'room' ? 'A private room in a shared home.' : 'A bed in a shared bedroom, two to a room, in a shared home.'}</strong>
             {' '}You would have housemates; the kitchen and bathroom are shared.
           </div>
         )}
@@ -204,6 +212,18 @@ export function VacancyCard({ unit, onApply = null }) {
         )}
         {unit.utilities === false && (
           <div className="text-[0.75rem] text-[#5A5751]" data-testid="vacancy-utilities">Utilities are not included.</div>
+        )}
+        {cadence.line && (
+          <div className="text-[0.75rem] text-[#1A1815] mt-1 leading-snug" data-testid="vacancy-cadence">{cadence.line}</div>
+        )}
+        {cadence.deal && (
+          <div className="text-[0.75rem] text-[#2F5D50] leading-snug" data-testid="vacancy-deal">{cadence.deal}</div>
+        )}
+        {/* WHAT THE BUILDING OFFERS (DR-1003): "805 laundry in the entry" —
+            the building's, shared by every door in it, lent by the database to
+            a door that stored none. */}
+        {unit.buildingNote && (
+          <div className="text-[0.75rem] text-[#5A5751] mt-1 leading-snug" data-testid="vacancy-building">The building: {unit.buildingNote}</div>
         )}
         {shortStay && (
           <div className="text-[0.75rem] text-[#5A5751]">
