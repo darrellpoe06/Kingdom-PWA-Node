@@ -51,7 +51,7 @@ vi.mock('../modules/properties/cloud.js', () => ({
 }));
 
 import PropertiesDoor from '../components/PropertiesDoor.jsx';
-import { CARD_COPY, FOOTER_WORDING, cardCopy } from '../components/PoePropertiesWelcome.jsx';
+import { CARD_COPY, FOOTER_WORDING, WELCOME_CSS, cardCopy } from '../components/PoePropertiesWelcome.jsx';
 import { WHO_OPTIONS } from '../modules/properties/model.js';
 import { DOORS, leaveDoor } from '../lib/door-session.js';
 
@@ -170,5 +170,58 @@ describe('the footer', () => {
     const said = footer.textContent.replace(/\s+/g, ' ').trim().toUpperCase().replace(/ ?· ?/g, ' · ');
     expect(said).toBe(FOOTER_WORDING);
     expect(footer.className).toMatch(/pp-footer/);
+  });
+});
+
+describe('the two steps past the cards wear the same look (2026-10-13)', () => {
+  it('the vacancies step: a red Back, the panel, the portal title as kicker, the shelf title', async () => {
+    const el = await mount();
+    await click(el.querySelector('.pp-card[data-portal="applicant"]'));
+    const panel = el.querySelector('[data-testid="vacancies-panel"]');
+    expect(panel, 'the vacancies panel renders').toBeTruthy();
+    expect(panel.className).toMatch(/pp-panel/);
+    expect(panel.querySelector('.pp-kicker').textContent).toBe('Looking for a Place');
+    expect(panel.querySelector('.pp-panel-title').textContent).toMatch(/Available now/);
+    const back = Array.from(el.querySelectorAll('button')).find((b) => /Back/.test(b.textContent));
+    expect(back.className).toMatch(/pp-back/);
+    expect(back.className).toMatch(/focus:outline/);
+    // the address sentence and the apply button are still here, restyled
+    expect(el.querySelector('[data-testid="address-promise"]')).toBeTruthy();
+    const apply = Array.from(el.querySelectorAll('button')).find((b) => /Apply — no account needed/.test(b.textContent));
+    expect(apply.className).toMatch(/pp-btn/);
+    await click(apply);
+    const form = el.querySelector('[data-testid="apply-form"]');
+    expect(form.className).toMatch(/pp-panel/);
+    expect(form.className).toMatch(/pp-form/);
+    expect(Array.from(form.querySelectorAll('legend')).length).toBeGreaterThan(0);
+    const send = Array.from(form.querySelectorAll('button')).find((b) => /Send my application/.test(b.textContent));
+    expect(send.className).toMatch(/pp-btn/);
+    expect(send.disabled, 'an empty application cannot be sent').toBe(true);
+    await click(back);
+    expect(el.querySelector('.pp-cards'), 'Back returns to the six cards').toBeTruthy();
+  });
+
+  it('the sign-in step: the card title, the red pill, and the same sign-in form behind it', async () => {
+    const el = await mount();
+    await click(el.querySelector('.pp-card[data-portal="landlord"]'));
+    const panel = el.querySelector('[data-testid="sign-in-panel"]');
+    expect(panel).toBeTruthy();
+    expect(panel.querySelector('.pp-panel-title').textContent).toBe('I Own Properties');
+    expect(panel.querySelector('.pp-panel-lead').textContent).toBe(WHO_OPTIONS.find((w) => w.id === 'landlord').blurb);
+    const go = Array.from(panel.querySelectorAll('button')).find((b) => /Sign in \/ create a profile/.test(b.textContent));
+    expect(go.className).toMatch(/pp-btn/);
+    expect(el.querySelectorAll('input'), 'no form until asked for').toHaveLength(0);
+    await click(go);
+    const auth = el.querySelector('.pp-auth');
+    expect(auth, 'the sign-in form sits in its own panel').toBeTruthy();
+    expect(auth.querySelectorAll('input').length).toBeGreaterThan(0);
+  });
+
+  it('the brand red is a true red, in the light themes and on midnight, and the red discs are solid', () => {
+    expect(WELCOME_CSS).toMatch(/\.pp-door\{[^}]*--pp-red:#E00000;/);
+    expect(WELCOME_CSS).toMatch(/\[data-theme="midnight"\]\.pp-door\{[^}]*--pp-red:#FF3B3B;/);
+    expect(WELCOME_CSS).toMatch(/\.pp-disc\.is-red\{background:var\(--pp-red\);color:#FFFFFF\}/);
+    // the shared shelf and sign-in form wear the door's red, not their own green
+    expect(WELCOME_CSS).toMatch(/\.pp-door \.text-\\\[\\#2F5D50\\\]\{color:var\(--pp-red\)!important\}/);
   });
 });

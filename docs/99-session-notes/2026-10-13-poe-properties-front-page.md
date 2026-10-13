@@ -73,3 +73,22 @@ two steps to the same palette once Darrell approves the front page.
 
 The PR is labeled `hold`. Remove the label when the preview is approved and
 the lane squash-merges it; merge = deploy.
+
+## Addendum, same day — the two steps past the cards (DR-0995)
+
+Darrell, after seeing the live page: *"Now restyle the sign-in and vacancies
+pages to match. Make the color a true red though. It looks pink now."*
+
+- **True red:** `--pp-red:#E00000` (hover `#B30000`), `#FF3B3B` on midnight;
+  the red icon discs are solid red with white icons (the pale pink tint is
+  gone).
+- **Vacancies step and sign-in step:** red Back, white panel, the card's own
+  title, system sans body, red pill buttons; Before-you-apply as folds; the
+  application as a panel form with red legends and rounded fields.
+- **Shared pieces** (vacancy card, sign-in form) recolored by a token remap
+  scoped to `.pp-door` inside `WELCOME_CSS`; their files are untouched, and
+  the PoeTech shell's copies keep their own colors. The sign-in form is given
+  the door's name so the after-sign-in screen says "Welcome to Poe Properties".
+- **Guard catch:** the ui-standards guard reads a button's focus constant only
+  in-file; `FOCUS_RING` is now a local literal in `PropertiesDoor.jsx`.
+- **Tests:** three added to `poe-properties-front-page.test.jsx`.
