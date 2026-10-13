@@ -548,7 +548,11 @@ async function run() {
       await op.getByTestId('record-payment').getByRole('button', { name: /^Cash$/ }).click();
       await op.getByLabel('From whom').fill('Ana Guest');
       await op.getByTestId('record-payment').getByRole('button', { name: /^Record it$/ }).click();
-      await op.getByTestId('record-payment-done').waitFor({ timeout: 15000 });
+      // The insert goes through PostgREST and the door reloads behind it; on a
+      // loaded runner that took longer than 15 s (CI run 38435481693, and
+      // locally with three vitest shards beside Chrome). The step proves the
+      // same thing at 30 s; it does not wait longer for a failure.
+      await op.getByTestId('record-payment-done').waitFor({ timeout: 30000 });
       const row = sql(`SELECT coalesce(tenancy_id::text,'none') || '|' || rental_id || '|' || amount::numeric(10,2) || '|' || method FROM rent_records WHERE instance_id = '${INSTANCE}'`);
       if (row !== `none|${DOOR}|300.00|cash`) throw new Error(`the database holds "${row}", not $300 cash on the door with no tenancy`);
       const total = sql(`SELECT received::numeric(10,2) FROM door_money_months WHERE rental_id = '${DOOR}'`);
