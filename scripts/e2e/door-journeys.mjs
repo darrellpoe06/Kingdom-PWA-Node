@@ -486,6 +486,11 @@ async function run() {
       // repaired first (G1 reads it), so it is asked for as its parts, not as
       // its one-line field. The recorded answer is 805's house, which is not
       // 1508, so that door is REFUSED a place (matchesAddress), end to end.
+      // The two lookups are 1.1 s apart (placeDoorsOnTheMap's gap), and the
+      // first area can be in the database before the second ask has left the
+      // phone: wait for both asks, never read the list mid-flight (CI on
+      // c93e3bb3f saw one ask where the sandbox always saw two).
+      await waitFor(() => GEOCODES.length >= 2, 'both buildings to be looked up', 20000);
       const asked = GEOCODES.slice().sort();
       if (asked.join('|') !== ['1508 Williamsburg, Champaign, IL', `${STREET}, Champaign, Illinois`].join('|')) throw new Error(`the addresses were looked up as "${GEOCODES.join('|')}"`);
       if (OVERPASS_ASKS.length !== 1) throw new Error(`what is nearby was asked ${OVERPASS_ASKS.length} times, not once (the refused door must never reach it)`);
