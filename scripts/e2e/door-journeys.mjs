@@ -162,6 +162,13 @@ export const FAULTS = Object.freeze({
       `${MIG}/0285-a-nas-picture-is-filed-once.sql`,
     ],
   },
+  share: {
+    step: 'G3',
+    // The public pictures refused to anon: the preview page is written with
+    // the icon standing in, and G3 wants the unit's own picture.
+    sql: 'REVOKE EXECUTE ON FUNCTION public.public_vacancy_photos(uuid) FROM anon;',
+    restore: 'GRANT EXECUTE ON FUNCTION public.public_vacancy_photos(uuid) TO anon;',
+  },
   cadence: {
     step: 'A1',
     // Without the weekly price the card has no true month to print beside it.
@@ -669,6 +676,38 @@ async function run() {
     // C. The next stranger sees those nights dark.
     const next = await hermetic(await browser.newContext({ viewport: { width: 412, height: 915 } }), 'next');
     const np = watch(await next.newPage(), 'next'); current = np;
+    // G3. THE LISTING TRAVELS (DR-1004): the deploy-time generator, run here
+    // against the journeys' own stack, writes this unit's preview page with
+    // its own picture; opening that page lands on the door with the card's
+    // pictures open.
+    await step('G3 a shared link carries the unit\'s picture and name, and opens the door on its pictures', async () => {
+      const { writeListingPages } = await import('../listing-share-pages.mjs');
+      const r = await writeListingPages({ dist: DIST, base: `${BASE}/sb`, key: ANON_KEY, log: () => {} });
+      if (r.written < 1) throw new Error(`no preview page was written (${r.failed.join('; ') || 'nothing listed'})`);
+      const page = join(DIST, 'properties', 'l', DOOR, 'index.html');
+      if (!existsSync(page)) throw new Error(`no preview page for the listed door at ${page}`);
+      const html = readFileSync(page, 'utf8');
+      // The shelf names a held door by what it is and where, never its street
+      // or unit (0280 / DR-0977); the preview carries exactly that name.
+      if (!/property="og:title" content="multi-family in Champaign, Illinois"/.test(html)) throw new Error('the preview does not carry the unit\'s public name');
+      if (html.includes(STREET) || /Apt 2/.test(html)) throw new Error(`the held street or unit is in the preview (DR-0977)`);
+      if (!html.includes(`/properties/l/${DOOR}/photo.`)) throw new Error('the preview does not carry the unit\'s own picture');
+      if (!/\$867 a month on average/.test(html)) throw new Error('the preview does not carry the true month');
+      const photo = ['jpg', 'png', 'webp'].map((e) => join(DIST, 'properties', 'l', DOOR, `photo.${e}`)).find((f) => existsSync(f));
+      if (!photo || statSync(photo).size < 100) throw new Error('the unit\'s picture was not written beside the page');
+      // A visitor follows the posted link: the page refreshes into the door
+      // and the unit's pictures open by themselves.
+      await gp.goto(`${BASE}/properties/l/${DOOR}/`, { waitUntil: 'domcontentloaded' });
+      await gp.locator('[role="dialog"][aria-modal="true"]').first().waitFor({ timeout: 20000 });
+      await gp.screenshot({ path: join(SHOTS, 'G3-shared-listing-open.png'), fullPage: true });
+      const text = await gp.locator('body').innerText();
+      if (text.includes(STREET)) throw new Error(`the held street "${STREET}" is on the shared page (DR-0977)`);
+      await gp.keyboard.press('Escape');
+      // The link's words name the unit and its own address, never a dead end
+      // for a unit that is gone: the door says so from the path alone.
+      await gp.goto(`${BASE}/properties/l/00000000-0000-4000-c000-00000000dead/`, { waitUntil: 'domcontentloaded' });
+      await gp.getByTestId('listing-gone').waitFor({ timeout: 15000 });
+    });
     await step('C1 the booked nights are dark for the next guest', async () => {
       await np.goto(`${BASE}/properties/app/?properties=1`, { waitUntil: 'domcontentloaded' });
       await np.getByRole('button', { name: /Looking for a place/i }).click({ timeout: 15000 });

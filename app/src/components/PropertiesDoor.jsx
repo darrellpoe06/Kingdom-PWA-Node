@@ -22,7 +22,7 @@ import Cameras from './Cameras.jsx';
 import { POE_PROPERTIES } from '../modules/properties/config.js';
 import { DOORS, doorSession, leaveDoor, enterDoor, enterAllDoors } from '../lib/door-session.js';
 import { WHO_OPTIONS } from '../modules/properties/model.js';
-import { readApplyTarget, resolveScan } from '../modules/properties/apply-link.js';
+import { readApplyTarget, readListingTarget, resolveScan } from '../modules/properties/apply-link.js';
 import { readReportToken } from '../modules/properties/guest-report.js';
 import { GuestReportPage } from '../modules/properties/GuestReport.jsx';
 import { loadPublicVacancies, submitApplication } from '../modules/properties/cloud.js';
@@ -340,7 +340,15 @@ function SignedOutDoor({ left = false, onReturn } = {}) {
     () => (typeof window === 'undefined' ? null : readApplyTarget(window.location.search)),
     [],
   );
-  const [who, setWho] = useState(scanned ? 'applicant' : null);
+  // A SHARED LISTING LANDS ON ITS CARD WITH THE PICTURES OPEN (DR-1004):
+  // ?listing=<id> from the preview page's refresh, or the page's own path
+  // when the page is gone and the shell booted on it. Like a scan, it has
+  // already answered "who are you" — but it opens pictures, never the form.
+  const wanted = useMemo(
+    () => (typeof window === 'undefined' ? null : readListingTarget(window.location.search, window.location.pathname)),
+    [],
+  );
+  const [who, setWho] = useState(scanned || wanted ? 'applicant' : null);
   const [wantsAuth, setWantsAuth] = useState(false);
   const [vacancies, setVacancies] = useState(null);   // null = not asked yet
 
@@ -358,6 +366,11 @@ function SignedOutDoor({ left = false, onReturn } = {}) {
   const scan = useMemo(
     () => resolveScan(scanned, vacancies || []),
     [scanned, vacancies],
+  );
+  // The same authority answers a shared link: listed, or gone and said so.
+  const shared = useMemo(
+    () => resolveScan(wanted, vacancies || []),
+    [wanted, vacancies],
   );
 
   // THE CARD'S APPLY OPENS THE APPLICATION (DR-0902). Darrell, 2026-10-10:
@@ -404,10 +417,14 @@ function SignedOutDoor({ left = false, onReturn } = {}) {
         <div className="pp-panel" data-testid="vacancies-panel">
         <span className="pp-kicker">{cardCopy(chosen).title}</span>
         <h2 className="pp-panel-title">
-          {scan.matched ? `${scan.unit.label}${scan.unit.unit ? ` · ${scan.unit.unit}` : ''}` : 'Available now'}
+          {scan.matched ? `${scan.unit.label}${scan.unit.unit ? ` · ${scan.unit.unit}` : ''}`
+            : shared.matched ? `${shared.unit.label}${shared.unit.unit ? ` · ${shared.unit.unit}` : ''}` : 'Available now'}
         </h2>
         {scanned && vacancies !== null && !scan.matched && (
           <p className="pp-panel-note">{scan.reason}</p>
+        )}
+        {wanted && !scanned && vacancies !== null && !shared.matched && (
+          <p className="pp-panel-note" data-testid="listing-gone">{shared.reason}</p>
         )}
         {vacancies === null && <p className="pp-panel-note">Checking…</p>}
         {vacancies !== null && vacancies.length === 0 && (
@@ -460,6 +477,7 @@ function SignedOutDoor({ left = false, onReturn } = {}) {
                     ? null : Boolean(v.utilities_included),
                 }}
                 onApply={applyFor}
+                openPictures={wanted && v.id === wanted ? 1 : 0}
               />
             ))}
           </ul>

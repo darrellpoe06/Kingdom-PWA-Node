@@ -1264,7 +1264,7 @@ jobs:
       - name: Proven to catch — each fault fails its own step
         run: |
           set -euo pipefail
-          for b in street confirm payment area calendar archive source cadence; do
+          for b in street confirm payment area calendar archive source cadence share; do
             echo "=== --break=$b"
             node scripts/e2e/door-journeys.mjs app/dist --break=$b
           done
