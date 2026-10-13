@@ -6,10 +6,10 @@
   ],
   "summary": {
     "pages": 335,
-    "passing": 321,
+    "passing": 322,
     "trackedDebtPages": 13,
-    "regressionPages": 1,
-    "regressions": 1,
+    "regressionPages": 0,
+    "regressions": 0,
     "debtViolations": 86
   },
   "pages": [
@@ -119,15 +119,6 @@
       "regressions": 0,
       "kinds": [
         "inline-dark-text"
-      ]
-    },
-    {
-      "page": "modules/properties/DoorTabs.jsx",
-      "status": "REGRESSION",
-      "violations": 1,
-      "regressions": 1,
-      "kinds": [
-        "token-light-on-light"
       ]
     },
     {

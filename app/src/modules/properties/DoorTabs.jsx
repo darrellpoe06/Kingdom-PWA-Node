@@ -1524,7 +1524,7 @@ export function NasShelf({ door, archive = '', nasFiled = null, recordKind = 'mo
                 <li key={p.id} className="border border-[#E8E4DC] bg-white p-2" data-testid={`nas-tile-${p.id}`}>
                   {p.thumb
                     ? <img src={p.thumb} alt={p.text || p.name || 'a picture on the NAS'} className="w-full h-28 object-cover" loading="lazy" />
-                    : <div className="w-full h-28 bg-[#F3F0EA] text-[0.6875rem] text-[#6B665E] flex items-center justify-center px-2 text-center">{p.name || p.id}</div>}
+                    : <div className="w-full h-28 bg-[#E8E4DC] text-[0.6875rem] text-[#6B665E] flex items-center justify-center px-2 text-center">{p.name || p.id}</div>}
                   <p className="text-[0.6875rem] text-[#6B665E] mt-1">{p.date || ''}{p.text ? ` · ${p.text}` : ''}</p>
                   {already ? (
                     <p className="text-[0.75rem] text-[#2F5D50] mt-1" data-testid={`nas-tile-${p.id}-filed`}>On this door already.</p>
