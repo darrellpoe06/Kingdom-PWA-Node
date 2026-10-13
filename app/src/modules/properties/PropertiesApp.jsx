@@ -58,7 +58,7 @@ import { moveDoor, showFirst, doorPickerOptions } from './showcase.js';
 import { VacancyCard } from './Storefront.jsx';
 import { areaOf } from './area.js';
 import {
-  loadRooms, addRoom, patchRoom, loadDoorPhotos, loadSiblingPhotos, loadDoorTenancies,
+  loadRooms, addRoom, patchRoom, loadDoorPhotos, loadDoorPhotoSources, loadSiblingPhotos, loadDoorTenancies,
   loadMyRentals, updateTenancy, updateRental, loadAllPhotos, loadDoorPhotoOrders, saveDoorPhotoOrder, loadDoorAreas, loadDoorArchives,
   loadPhotoImages, loadPhotoThumbs,
   addPhoto, patchPhoto, loadDocuments, addDocument, patchDocument,
@@ -75,6 +75,7 @@ import { boundedRead, deadlineIn, READ_TIMEOUT_MS, OPTIONAL_TIMEOUT_MS as CLAIM_
 import { POE_PROPERTIES, LAUNCH_PLAN, OPPORTUNITIES, CONSTRAINTS } from './config.js';
 import { placeDoorsOnTheMap } from './place-on-map.js';
 import { holdTheRecords } from './hold-the-record.js';
+import { PROPERTY_CHANNELS } from '../../lib/nas-photos.js';
 
 const ACCENT = '#2F5D50';
 
@@ -534,13 +535,13 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
   const rentalRef = activeDoor?.rental_ref || activeRental?.slug || null; // text — tenancies
   const loadDoorData = useCallback(async () => {
     if (!rentalId && !rentalRef) {
-      setDoorData({ rooms: [], photos: [], tenancies: [], documents: [], systems: [], systemEvents: [], propertyNotes: [], unreadable: [] });
+      setDoorData({ rooms: [], photos: [], tenancies: [], documents: [], systems: [], systemEvents: [], propertyNotes: [], unreadable: [], nasFiled: null });
       return;
     }
     // property_notes is SLUG-keyed (rentalRef), the rest UUID-keyed (rentalId).
     // RLS returns [] to anyone who is not owner/admin/member, so a tenant or a
     // field worker gets nothing here without this file deciding anything.
-    const [rm, ph, sp, tn, dc, sy, se, pn] = await Promise.all([
+    const [rm, ph, sp, tn, dc, sy, se, pn, ns] = await Promise.all([
       loadRooms(rentalId), loadDoorPhotos(rentalId),
       // THE REST OF THE APARTMENT (DR-0963). A bed or a room in a shared home
       // borrows nothing on this screen without it, which is how Bed B read
@@ -549,6 +550,8 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
       loadSiblingPhotos(rentalId),
       loadDoorTenancies(rentalRef), loadDocuments(rentalId),
       loadSystems(rentalId), loadSystemEvents(rentalId), loadDoorNotes(rentalRef),
+      // Which NAS pictures this door already filed (DR-1002); its own read.
+      loadDoorPhotoSources(rentalId),
     ]);
     // A READ THAT FAILED IS NOT A DOOR THAT IS EMPTY (DR-0946).
     //
@@ -581,6 +584,8 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
       // scrolls into view, so opening a door with 39 pictures no longer waits
       // on ~2.1 MB of base64 before it will draw anything.
       photos: ph.ok ? ph.photos : [],
+      // {source: photo id}, or null = unknown (never "none"), DR-1002.
+      nasFiled: ns && ns.ok ? ns.sources : null,
       // Flagged, never merged into `photos`: these rows live on another door
       // and the gallery must say so rather than quietly implying Bed B owns
       // them. A failed read is NOT "no shared pictures" (DR-0946), so it
@@ -1291,6 +1296,10 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
               // THIS DOOR'S OWN ORDER of them (DR-0984): Bed B can lead with
               // the bedroom while Bed A leads with the kitchen.
               sharedOrder={doorData.sharedOrder || {}}
+              // FROM THE NAS (DR-1002): the archive on the record, the old list as
+              // the fallback, and what this door has already filed from it.
+              archive={archives?.channels?.[rentalId] || PROPERTY_CHANNELS[activeRental?.slug] || ''}
+              nasFiled={doorData.nasFiled ?? null}
               onArrangeShared={async (patches) => {
                 const instanceId = activeRental?.instance_id || activeDoor?.instance_id;
                 const r = await saveDoorPhotoOrder(rentalId, instanceId, patches);

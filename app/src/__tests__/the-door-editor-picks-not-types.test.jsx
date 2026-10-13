@@ -33,6 +33,7 @@ vi.mock('../modules/properties/cloud.js', () => {
     loadDoorPhotoOrders: async () => ({ ok: true, orders: {} }),
     loadDoorAreas: async () => ({ ok: true, placed: new Set(['r1', 'r2']), areas: {} }),
     loadDoorArchives: async () => ({ ok: true, channels: { r1: '805NProspect' }, heldAt: { r1: 'x', r2: 'x' } }),
+    loadDoorPhotoSources: async () => ({ ok: true, sources: {} }),
     saveDoorPhotoOrder: async () => ({ ok: true, saved: 0 }),
     loadDoorPhotos: async () => ({ ok: true, photos: [] }),
     loadPhotoThumbs: async () => ({ ok: true, thumbs: {} }), loadStayPayment: async () => ({ ok: true, payment: null }), loadDoorNotes: async () => ({ ok: true, notes: [] }), loadVacancyAddress: async () => ({ ok: false }), loadGuestDoor: async () => ({ ok: false }), loadJobVideo: async () => ({ ok: false }),
