@@ -89,6 +89,19 @@ describe('sov38 — the verses are the corpus, verbatim', () => {
     expect(Object.keys(lesson.levels).sort()).toEqual(['child', 'senior', 'teen', 'youth']);
   });
 
+  // Deliberately NOT "and every other week parses lower". That form is a
+  // newest-forever pin: sov37 carried it, and this lesson's arrival failed it on
+  // 2026-10-13 for no reason except that a week 38 now exists. What is sov38's to
+  // guarantee is its own number, and that nobody else claims it.
+  it('is week 38, and no other week claims that number', () => {
+    const n = (id) => Number((String(id).match(/^sov(\d+)-/) || [])[1]);
+    expect(n(lesson.id)).toBe(38);
+    for (const m of SOVEREIGN_AI_MODULES) {
+      if (m.id === lesson.id) continue;
+      expect(n(m.id), `${m.id} also claims week 38`).not.toBe(38);
+    }
+  });
+
   for (const [ref, text] of Object.entries(PINNED)) {
     it(`${ref} matches the corpus on disk`, () => {
       expect(text).toBe(corpusText(ref));
