@@ -13,7 +13,7 @@ import {
   loadPhotoThumbs as loadCloudPhotoThumbs, PHOTO_THUMB_BATCH, loadDoorTenancies,
 } from '../modules/properties/cloud.js';
 import { listImage as cloudListImage } from '../modules/properties/photo-order.js';
-import { hasBridgeToken, chatChannelFor, fetchChannelPhotos, propertyPhotosUrl, nasRoad } from '../lib/nas-photos.js';
+import { hasBridgeToken, chatChannelFor, fetchChannelPhotos, propertyPhotosUrl, nasRoad, nasFetch } from '../lib/nas-photos.js';
 // ONE ADDRESS, BOTH DOORS (DR-0999): the same parts, the same line, the same
 // dropdown of known buildings, and the same rounded area as Poe Properties.
 import { buildingOptions, pickedBuilding, formatAddress, formatBuilding, addressNeeds } from '../modules/properties/address.js';
@@ -1740,7 +1740,9 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
     const all = []; const seen = new Set();
     try {
       for (let offset = 0; all.length < target; offset += 48) {
-        const resp = await fetch(propertyPhotosUrl(chatChannelFor(r), { limit: 48, offset }), { headers: { authorization: `Bearer ${token}` } });
+        // By either road (DR-0999): same-origin, then the Funnel when the Functions are dark.
+        const resp = await nasFetch(propertyPhotosUrl(chatChannelFor(r), { limit: 48, offset }), { headers: { authorization: `Bearer ${token}` } });
+        if (!resp) throw new Error('the NAS could not be reached by either road');
         if (resp.status === 401 || resp.status === 403) { setPhotoImport({ rentalId: r.id, status: 'need-token', photos: [], badToken: true }); return; }
         if (!resp.ok) throw new Error(`photo bridge answered ${resp.status}`);
         const json = await resp.json();
@@ -1759,9 +1761,10 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
     if (!token) { setPhotoImport({ rentalId: r.id, status: 'need-token', photos: [] }); return; }
     setPhotoImport(p => ({ rentalId: r.id, status: 'loading', photos: (p && p.rentalId === r.id ? p.photos : []), offset }));
     try {
-      const resp = await fetch(propertyPhotosUrl(chatChannelFor(r), { limit: PHOTO_PAGE, offset }), {
+      const resp = await nasFetch(propertyPhotosUrl(chatChannelFor(r), { limit: PHOTO_PAGE, offset }), {
         headers: { authorization: `Bearer ${token}` },
       });
+      if (!resp) throw new Error('the NAS could not be reached by either road');
       if (resp.status === 401 || resp.status === 403) { setPhotoImport({ rentalId: r.id, status: 'need-token', photos: [], badToken: true }); return; }
       if (!resp.ok) throw new Error(`photo bridge answered ${resp.status}`);
       const json = await resp.json();

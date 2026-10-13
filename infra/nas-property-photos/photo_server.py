@@ -732,6 +732,86 @@ def post_by_id(channel, photo_id):
     return (cols[0], cols[1], cols[2]) if len(cols) >= 3 else None
 
 
+# --- THE WHOLE LIBRARY BY MONTH (DR-1000) -------------------------------------
+# Darrell, 2026-10-13: "The nas has all pictures period!!! All my photos are
+# uploaded in the Synology photos app... why not just pull from there?
+# However I'm locked out while being logged in". So the app reads the
+# library the way the file system holds it -- the dated photo roots and the
+# phone backup (<device>/<y>/<m>) -- with no Synology Photos sign-in at all.
+# Read-only: lists a month, serves one picture at listing size; writes nothing.
+LIBRARY_EXTS = {".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif"}
+SAFE_MONTH = re.compile(r"^(20\d{2})-(0[1-9]|1[0-2])$")
+LIBRARY_PAGE_MAX = 24
+
+
+def library_dirs(y, mo):
+    """Every folder that may hold that month's pictures: the dated roots with
+    {y}/{m} filled in, and the phone backup's <device>/<y>/<m> folders."""
+    dirs = [t.format(y=y, m=mo) for t in roots()]
+    try:
+        dirs += sorted(glob.glob(os.path.join(media_root(), "*", y, mo)))
+    except Exception:
+        pass
+    return dirs
+
+
+def library_month(month, limit, offset):
+    """{photos:[{id,name,date,text,thumb}], total, month} for one month of the
+    library, newest name first (camera names carry the date and time). None
+    when the month is not a month. Honest-empty on a missing folder."""
+    m = SAFE_MONTH.match(month or "")
+    if not m:
+        return None
+    y, mo = m.group(1), m.group(2)
+    entries = []
+    seen = set()
+    for d in library_dirs(y, mo):
+        try:
+            with os.scandir(d) as it:
+                for e in it:
+                    try:
+                        if e.name.startswith(".") or not e.is_file():
+                            continue
+                        if os.path.splitext(e.name)[1].lower() not in LIBRARY_EXTS:
+                            continue
+                        if not SAFE_NAME.match(e.name) or e.name in seen:
+                            continue
+                        seen.add(e.name)
+                        entries.append((e.name, e.stat().st_mtime, e.path))
+                    except OSError:
+                        pass
+        except OSError:
+            continue
+    entries.sort(key=lambda t: t[0], reverse=True)
+    photos = []
+    for name, mtime, path in entries[offset:offset + limit]:
+        dm = DATE_ANYWHERE.search(name)
+        if dm:
+            date = "%s-%s-%s" % (dm.group(1), dm.group(2), dm.group(3))
+        else:
+            date = datetime.fromtimestamp(mtime, timezone.utc).strftime("%Y-%m-%d")
+        photos.append({"id": name, "name": name, "date": date, "text": "", "thumb": _thumb_from_path(path)})
+    return {"photos": photos, "total": len(entries), "month": month}
+
+
+def find_library_original(name):
+    """The file for a library name: the dated roots first (_find_original),
+    then the phone backup's <device>/<y>/<m> folders. None when absent."""
+    if not SAFE_NAME.match(name or "") or "/" in name or "\\" in name or name.startswith("."):
+        return None
+    hit = _find_original(name)
+    if hit:
+        return hit
+    dm = DATE_ANYWHERE.search(name)
+    pattern = os.path.join(media_root(), "*", dm.group(1), dm.group(2), glob.escape(name)) if dm \
+        else os.path.join(media_root(), "*", "*", "*", glob.escape(name))
+    try:
+        hits = sorted(glob.glob(pattern))
+    except Exception:
+        hits = []
+    return hits[0] if hits else None
+
+
 def listing_size(path, max_edge):
     """The original, downscaled so its LONG edge is at most max_edge, as JPEG
     bytes plus (width, height). Pillow first, ImageMagick second, else None.
@@ -1137,6 +1217,61 @@ def make_handler(args):
                     self._send(401, {"ok": False, "error": "unauthorized"}, cache="no-store")
                     return
                 self._media_upload_status(parsed.query)
+                return
+            # THE WHOLE LIBRARY BY MONTH (DR-1000): the dated photo roots and the
+            # phone backup, read as folders -- no Synology Photos sign-in.
+            if path.endswith("/library") or path == "/library":
+                if not bearer_ok(self.headers.get("Authorization"), token):
+                    self._send(401, {"error": "unauthorized", "photos": [], "count": 0})
+                    return
+                q = parse_qs(parsed.query)
+                month = (q.get("month", [""])[0] or "").strip()
+                try:
+                    limit = max(1, min(LIBRARY_PAGE_MAX, int(q.get("limit", [str(LIBRARY_PAGE_MAX)])[0])))
+                    offset = max(0, int(q.get("offset", ["0"])[0]))
+                except ValueError:
+                    self._send(400, {"error": "bad limit/offset", "photos": [], "count": 0})
+                    return
+                try:
+                    lib = library_month(month, limit, offset)
+                except Exception as err:
+                    self._send(500, {"error": "library failed: %s" % type(err).__name__, "photos": [], "count": 0})
+                    return
+                if lib is None:
+                    self._send(400, {"error": "bad month (YYYY-MM)", "photos": [], "count": 0})
+                    return
+                self._send(200, {"count": len(lib["photos"]), "total": lib["total"], "month": lib["month"], "photos": lib["photos"]})
+                return
+            # ONE LIBRARY PICTURE AT LISTING SIZE (DR-1000), by its file name.
+            if path.endswith("/library-photo") or path == "/library-photo":
+                if not bearer_ok(self.headers.get("Authorization"), token):
+                    self._send(401, {"ok": False, "error": "unauthorized"})
+                    return
+                q = parse_qs(parsed.query)
+                name = (q.get("name", [""])[0] or "").strip()
+                if not SAFE_NAME.match(name) or "/" in name or "\\" in name or name.startswith("."):
+                    self._send(400, {"ok": False, "error": "bad name"})
+                    return
+                try:
+                    max_edge = max(320, min(PHOTO_MAX_EDGE_CEILING, int(q.get("max", [str(PHOTO_MAX_EDGE)])[0])))
+                except ValueError:
+                    max_edge = PHOTO_MAX_EDGE
+                orig = find_library_original(name)
+                if not orig:
+                    self._send(404, {"ok": False, "error": "no such picture in the library", "name": name})
+                    return
+                sized = listing_size(orig, max_edge)
+                if not sized:
+                    self._send(422, {"ok": False, "error": "could not size the picture", "name": name})
+                    return
+                data, size = sized
+                dm = DATE_ANYWHERE.search(name)
+                date = "%s-%s-%s" % (dm.group(1), dm.group(2), dm.group(3)) if dm else ""
+                self._send(200, {
+                    "ok": True, "id": name, "name": name, "date": date, "text": "",
+                    "width": size[0] if size else None, "height": size[1] if size else None,
+                    "bytes": len(data), "image": "data:image/jpeg;base64," + base64.b64encode(data).decode("ascii"),
+                })
                 return
             if not (path.endswith("/property-photos") or path == "/property-photos"):
                 self._send(404, {"error": "not found", "photos": [], "count": 0})
@@ -1648,6 +1783,29 @@ def selftest():
             ok("http: with no image road the picture route says so honestly (422)", st == 422 and body["ok"] is False)
         st, _h, body = _get("/property-photo?channel=805NProspect&id=nope")
         ok("http: an unknown picture id is 404", st == 404 and body["ok"] is False)
+        # THE WHOLE LIBRARY BY MONTH (DR-1000): the same fixture folder, read
+        # as the file system holds it, with no chat and no Synology sign-in.
+        st, _h, body = _get("/library?month=2024-01", bearer=False)
+        ok("http: /library without the bearer is 401", st == 401)
+        st, _h, body = _get("/library?month=2024-01")
+        ok("http: /library lists the month's pictures from the folders, newest first",
+           st == 200 and body["total"] == 1 and body["month"] == "2024-01"
+           and body["photos"][0]["name"] == "20240123_144917.jpg" and body["photos"][0]["date"] == "2024-01-23")
+        st, _h, body = _get("/library?month=2024-02")
+        ok("http: an empty month is honest-empty, never an error", st == 200 and body["total"] == 0 and body["photos"] == [])
+        st, _h, body = _get("/library?month=2024-13")
+        ok("http: a month that is not a month is 400", st == 400)
+        st, _h, body = _get("/library-photo?name=20240123_144917.jpg&max=1920")
+        if _road != "none":
+            ok("http: one library picture at listing size by its name (road: %s)" % _road,
+               st == 200 and body["ok"] is True and body["name"] == "20240123_144917.jpg"
+               and body["date"] == "2024-01-23" and (body["width"] is None or body["width"] <= 1920))
+        else:
+            ok("http: with no image road the library picture route says so honestly (422)", st == 422)
+        st, _h, body = _get("/library-photo?name=..%2F..%2Fetc%2Fpasswd")
+        ok("http: a library name that walks the tree is refused (400)", st == 400)
+        st, _h, body = _get("/library-photo?name=nope.jpg")
+        ok("http: an unknown library picture is 404", st == 404)
         st, _h, body = _get("/property-photo?channel=805NProspect&id=9001", bearer=False)
         ok("http: the picture route needs the bearer", st == 401)
         st, hdr, _b = _get("/channels", method="OPTIONS", bearer=False, origin="https://poetech.us")

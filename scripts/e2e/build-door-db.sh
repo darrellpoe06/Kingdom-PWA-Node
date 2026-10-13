@@ -87,7 +87,8 @@ for f in \
   0281-a-bed-still-says-it-is-a-bed-when-the-street-shows.sql \
   0282-each-door-shows-the-apartment-in-its-own-order.sql \
   0283-a-held-door-shows-its-buildings-area.sql \
-  0284-the-whole-address-and-its-archive-on-the-record.sql; do
+  0284-the-whole-address-and-its-archive-on-the-record.sql \
+  0285-a-nas-picture-is-filed-once.sql; do
   for i in 1 2; do P -f "$MIG/$f"; done
 done
 

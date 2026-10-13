@@ -196,6 +196,68 @@ export async function fetchListingPhoto(channel, id, { max = 1920 } = {}) {
   return json;
 }
 
+// ---------------------------------------------------------------------------
+// THE WHOLE LIBRARY, BY MONTH, AND A PICTURE'S SOURCE (DR-1000)
+// ---------------------------------------------------------------------------
+// Darrell, 2026-10-13: "The nas has all pictures period!!! All my photos are
+// uploaded in the Synology photos app... why not just pull from there?
+// However I'm locked out while being logged in". The server reads the
+// library as folders (the dated roots and the phone backup), so no Synology
+// Photos sign-in is needed; a picture filed from it carries its SOURCE so
+// one door never files it twice (0285).
+export const LIBRARY_NAME_RE = /^[^/\\.][^/\\]{0,254}$/;
+export const SOURCE_RE = /^nas:[A-Za-z0-9._-]{1,64}:[A-Za-z0-9._ -]{1,160}$/;
+
+/** 'nas:<archive>:<post id>' for a picture in a chat archive. */
+export function nasSource(channel, id) {
+  const s = `nas:${String(channel || '').trim()}:${String(id || '').trim()}`;
+  return SOURCE_RE.test(s) ? s : '';
+}
+/** 'nas:library:<file name>' for a picture in the phone backup by month. */
+export function nasLibrarySource(name) {
+  const s = `nas:library:${String(name || '').trim()}`;
+  return SOURCE_RE.test(s) ? s : '';
+}
+/** This month as the library's default page, 'YYYY-MM' in the phone's own time. */
+export function thisMonth(now = new Date()) {
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+}
+
+/**
+ * One month of the library: {photos:[{id,name,date,text,thumb}], total, month}
+ * or null when the NAS could not be reached (the caller says so, never "none").
+ */
+export async function fetchLibrary({ month, limit = 24, offset = 0 } = {}) {
+  const token = bridgeToken();
+  if (!token || !/^20\d{2}-(0[1-9]|1[0-2])$/.test(String(month || ''))) return null;
+  const q = new URLSearchParams({ month, limit: String(limit), offset: String(offset) });
+  const resp = await nasFetch(`${NAS_PHOTO_BASE}/library?${q}`, { headers: { authorization: `Bearer ${token}` } }, { timeoutMs: 45000 });
+  if (!resp || !resp.ok) return null;
+  try {
+    const json = await resp.json();
+    return { photos: Array.isArray(json?.photos) ? json.photos : [], total: typeof json?.total === 'number' ? json.total : 0, month: json?.month || month };
+  } catch (_) { return null; }
+}
+
+/**
+ * ONE library picture at listing size by its file name (DR-1000): the same
+ * shape fetchListingPhoto returns. Never throws.
+ */
+export async function fetchLibraryPhoto(name, { max = 1920 } = {}) {
+  const token = bridgeToken();
+  if (!token) return { ok: false, reason: 'no-key' };
+  if (!LIBRARY_NAME_RE.test(String(name || ''))) return { ok: false, reason: 'bad-request' };
+  const q = new URLSearchParams({ name: String(name), max: String(max) });
+  const resp = await nasFetch(`${NAS_PHOTO_BASE}/library-photo?${q}`, { headers: { authorization: `Bearer ${token}` } }, { timeoutMs: 45000 });
+  if (!resp) return { ok: false, reason: 'unreachable' };
+  let json;
+  try { json = await resp.json(); } catch (_) { return { ok: false, reason: 'bad-answer' }; }
+  if (!resp.ok || !json || json.ok !== true || typeof json.image !== 'string' || !json.image.startsWith('data:image/jpeg;base64,')) {
+    return { ok: false, reason: (json && json.error) || `HTTP ${resp.status}` };
+  }
+  return json;
+}
+
 // Fetch one page of a property channel's photos. Returns { photos } on
 // success, null on any failure (no token, offline, 401) — callers render
 // nothing rather than an error wall; the NAS being unreachable must never

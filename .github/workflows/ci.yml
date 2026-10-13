@@ -1165,6 +1165,14 @@ jobs:
           for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0284-the-whole-address-and-its-archive-on-the-record.sql; done
           psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0284-archive-on-the-record-smoke.sql 2>&1 | tee "$RUNNER_TEMP/archive-record.txt"
           grep -q 'ARCHIVE ON THE RECORD SMOKE: PASS' "$RUNNER_TEMP/archive-record.txt"
+          # 0285 (DR-1000): a NAS picture is filed on a door once and says
+          # where it came from. One column, one shape CHECK, one partial
+          # unique index; the smoke proves the second copy is refused, the
+          # sibling door is allowed, a non-NAS source is refused, and a
+          # stranger cannot file one.
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0285-a-nas-picture-is-filed-once.sql; done
+          psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0285-nas-picture-once-smoke.sql 2>&1 | tee "$RUNNER_TEMP/nas-once.txt"
+          grep -q 'NAS PICTURE ONCE SMOKE: PASS' "$RUNNER_TEMP/nas-once.txt"
 
   # THE REQUIRED CHECK (DR-0645). Branch protection and native auto-merge wait
   # on a check named EXACTLY "app — lint + vitest". Do NOT rename this job.
@@ -1247,7 +1255,7 @@ jobs:
       - name: Proven to catch — each fault fails its own step
         run: |
           set -euo pipefail
-          for b in street confirm payment area calendar archive; do
+          for b in street confirm payment area calendar archive source; do
             echo "=== --break=$b"
             node scripts/e2e/door-journeys.mjs app/dist --break=$b
           done

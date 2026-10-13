@@ -32,7 +32,7 @@ import { sameApartment } from './apartment.js';
 import { moneyLine, dollarsLong } from './door-money.js';
 import { AreaEditor } from './AreaMap.jsx';
 import { buildingOptions, pickedBuilding, formatAddress } from './address.js';
-import { fetchChannels, hasBridgeToken, nasRoad } from '../../lib/nas-photos.js';
+import { fetchChannels, hasBridgeToken, nasRoad, fetchChannelPhotos, fetchLibrary, fetchListingPhoto, fetchLibraryPhoto, nasSource, nasLibrarySource, thisMonth } from '../../lib/nas-photos.js';
 import { stampImage, stampFileName } from '../../lib/brand-stamp.js';
 import SharpPicture, { sharpestKnown } from './SharpPicture.jsx';
 import { photoOrder, movePhoto, makeCover, pickCovers } from './photo-order.js';
@@ -1421,6 +1421,134 @@ function CaptionField({ value, onChange, placeholder, label, className = '' }) {
   );
 }
 
+// =============================================================================
+// FROM THE NAS -- the family's pictures onto a door, picked, never twice (DR-1000)
+// =============================================================================
+// Darrell, 2026-10-13: "Most of the properties have pictures already on the
+// nas... why don't they show up", "The nas has all pictures period!!!... why
+// not just pull from there?" Two shelves on the family NAS: this door's chat
+// archive (0284 names it) and the whole library by month (the dated photo
+// roots and the phone backup, read as folders -- no Synology Photos sign-in).
+// Each picture offers the two purposes DR-0906 keeps apart: USE ON THE
+// LISTING (advertising, chosen each time) or KEEP AS A RECORD (the record
+// kind the form holds). The bytes come down at listing size from the server
+// (/property-photo, /library-photo) and are filed the way a phone picture is;
+// the row carries its SOURCE so the database refuses a second copy (0285).
+// A picture already on this door says so. An unreachable NAS says so --
+// never "none". The read is timed and the road named (DR-0955's slow-pictures
+// thread: measured, not felt).
+// The shelf and month a person last chose on a door, kept across the gallery's
+// own refreshes (filing one picture reloads the door's data and can remount
+// this card) so the next picture is still in front of them.
+const NAS_SHELF_MEMORY = new Map();
+export function NasShelf({ door, archive = '', nasFiled = null, recordKind = 'move-in-condition', onAdd, onDone }) {
+  const remembered = NAS_SHELF_MEMORY.get(door?.id) || {};
+  const [shelf, setShelfState] = useState(remembered.shelf || (archive ? 'archive' : 'library'));
+  const [month, setMonthState] = useState(() => remembered.month || thisMonth());
+  const setShelf = (v) => { setShelfState(v); NAS_SHELF_MEMORY.set(door?.id, { ...(NAS_SHELF_MEMORY.get(door?.id) || {}), shelf: v }); };
+  const setMonth = (v) => { setMonthState(v); NAS_SHELF_MEMORY.set(door?.id, { ...(NAS_SHELF_MEMORY.get(door?.id) || {}), month: v }); };
+  const [state, setState] = useState({ status: 'idle', photos: [], total: 0, ms: 0, road: '' });
+  const [busy, setBusy] = useState(null);
+  const [note, setNote] = useState('');
+  const load = useCallback(async () => {
+    setState((s) => ({ ...s, status: 'loading' }));
+    const t0 = Date.now();
+    const r = shelf === 'archive' ? await fetchChannelPhotos(archive, { limit: 24 }) : await fetchLibrary({ month, limit: 24 });
+    const ms = Date.now() - t0;
+    if (!r) { setState({ status: 'unreachable', photos: [], total: 0, ms, road: nasRoad() }); return; }
+    setState({ status: 'ready', photos: r.photos || [], total: r.total || 0, ms, road: nasRoad() });
+  }, [shelf, archive, month]);
+  useEffect(() => { load(); }, [load]);
+  const keyOf = (p) => (shelf === 'archive' ? nasSource(archive, p.id) : nasLibrarySource(p.name || p.id));
+  const reasonText = (reason) => {
+    if (reason === 'unreachable') return 'the NAS could not be reached by either road';
+    if (reason === 'no-key') return 'no NAS key on this phone';
+    if (/source/i.test(String(reason || ''))) return 'the database is still being updated for this; try again in a minute';
+    return String(reason || 'unknown');
+  };
+  const file = async (p, kind) => {
+    const key = keyOf(p);
+    if (!key) { setNote('Not filed: this picture has no usable name.'); return; }
+    setBusy(p.id); setNote('');
+    const got = shelf === 'archive' ? await fetchListingPhoto(archive, p.id) : await fetchLibraryPhoto(p.name || p.id);
+    if (!got.ok) { setBusy(null); setNote(`Not filed: ${reasonText(got.reason)}.`); return; }
+    // A thumbnail for the tile (DR-0955 keeps the full picture out of the
+    // list): the archive's own, or a small copy asked of the server.
+    let thumb = p.thumb || '';
+    if (!thumb && shelf === 'library') { const small = await fetchLibraryPhoto(p.name || p.id, { max: 480 }); if (small.ok) thumb = small.image; }
+    const res = await onAdd?.({
+      instance_id: door?.instance_id, rental_ref: door?.id, room_id: null, kind,
+      caption: String(p.text || '').trim(),
+      storage_path: got.image, thumb_path: thumb || got.image,
+      taken_at: p.date ? `${p.date}T12:00:00Z` : null,
+      source: key,
+    });
+    setBusy(null);
+    if (res?.ok) { setNote(kind === 'listing' ? 'On the listing.' : `Kept as ${kind.replace(/-/g, ' ')}.`); onDone?.(); }
+    else setNote(`Not filed: ${reasonText(`${res?.reason || ''} ${res?.error || ''}`.trim())}.`);
+  };
+  const filed = (p) => (nasFiled && keyOf(p) && nasFiled[keyOf(p)]) ? nasFiled[keyOf(p)] : null;
+  const seconds = (state.ms / 1000).toFixed(1);
+  return (
+    <Card title="From the NAS" right={<span className="text-[0.6875rem] text-[#6B665E]">picked, never twice</span>}>
+      <div className="flex flex-wrap items-end gap-2 mb-2" data-testid="nas-shelf">
+        <label className="text-[0.75rem] text-[#5A5751]">Shelf
+          <select className="block border border-[#E8E4DC] bg-white px-2 py-2 text-sm min-h-[36px]" value={shelf} data-testid="nas-shelf-pick" onChange={(e) => setShelf(e.target.value)}>
+            {archive && <option value="archive">This door&rsquo;s archive ({archive})</option>}
+            <option value="library">The whole library, by month</option>
+          </select>
+        </label>
+        {shelf === 'library' && (
+          <label className="text-[0.75rem] text-[#5A5751]">Month
+            <input type="month" className="block border border-[#E8E4DC] bg-white px-2 py-2 text-sm min-h-[36px]" value={month} data-testid="nas-month" onChange={(e) => setMonth(e.target.value)} />
+          </label>
+        )}
+        <button type="button" className="min-h-[36px] px-3 border border-[#E8E4DC] text-sm" onClick={load} disabled={state.status === 'loading'}>Look again</button>
+      </div>
+      {state.status === 'loading' && <p className="text-sm text-[#5A5751]">Reading the NAS&hellip;</p>}
+      {state.status === 'unreachable' && (
+        <p className="text-sm text-[#8C2F2F]" data-testid="nas-shelf-unreachable">
+          The NAS could not be reached by either road just now &mdash; this is not the same as there being no pictures. Try again in a moment.
+        </p>
+      )}
+      {state.status === 'ready' && (
+        <>
+          <p className="text-[0.75rem] text-[#6B665E] mb-2" data-testid="nas-shelf-timing">
+            {state.total} picture{state.total === 1 ? '' : 's'}{state.total > state.photos.length ? ` (showing ${state.photos.length})` : ''} &middot; read in {seconds} s over the {state.road} road
+          </p>
+          {state.photos.length === 0 && <p className="text-sm text-[#5A5751]">Nothing on this shelf{shelf === 'library' ? ` for ${month}` : ''}.</p>}
+          <ul className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            {state.photos.map((p) => {
+              const already = filed(p);
+              return (
+                <li key={p.id} className="border border-[#E8E4DC] bg-white p-2" data-testid={`nas-tile-${p.id}`}>
+                  {p.thumb
+                    ? <img src={p.thumb} alt={p.text || p.name || 'a picture on the NAS'} className="w-full h-28 object-cover" loading="lazy" />
+                    : <div className="w-full h-28 bg-[#F3F0EA] text-[0.6875rem] text-[#6B665E] flex items-center justify-center px-2 text-center">{p.name || p.id}</div>}
+                  <p className="text-[0.6875rem] text-[#6B665E] mt-1">{p.date || ''}{p.text ? ` · ${p.text}` : ''}</p>
+                  {already ? (
+                    <p className="text-[0.75rem] text-[#2F5D50] mt-1" data-testid={`nas-tile-${p.id}-filed`}>On this door already.</p>
+                  ) : (
+                    <div className="flex flex-col gap-1 mt-1">
+                      <button type="button" className="min-h-[36px] px-2 text-[0.75rem] border border-[#2F5D50] text-[#2F5D50]" disabled={busy === p.id} data-testid={`nas-use-${p.id}`} onClick={() => file(p, 'listing')}>
+                        {busy === p.id ? 'Filing…' : 'Use on the listing'}
+                      </button>
+                      <button type="button" className="min-h-[36px] px-2 text-[0.75rem] border border-[#E8E4DC] text-[#5A5751]" disabled={busy === p.id} data-testid={`nas-keep-${p.id}`} onClick={() => file(p, recordKind)}>
+                        Keep as a record ({recordKind.replace(/-/g, ' ')})
+                      </button>
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </>
+      )}
+      {note && <p className="text-sm mt-2" data-testid="nas-shelf-note" aria-live="polite">{note}</p>}
+    </Card>
+  );
+}
+
 export function GalleryTab({
   door, rooms = [], photos = [], canManage = false, canAdd = canManage, busy = false, unread = false,
   onAdd, onDone, onPatch, onAddRoom, loadImage = null, loadThumb = null, doorLabel = '',
@@ -1434,6 +1562,10 @@ export function GalleryTab({
   // Saved per door, so Bed B can lead with the bedroom while Bed A leads with
   // the kitchen; the pictures themselves stay on the door that owns them.
   sharedOrder = {}, onArrangeShared = null,
+  // FROM THE NAS (DR-1000): the door's archive name on its record (0284) and
+  // which NAS pictures it has already filed ({source: photo id}); null when
+  // that read failed -- unknown, never "none".
+  archive = '', nasFiled = null,
 }) {
   // Every picture opened or saved here carries the Poe Properties band and a
   // QR to this unit's listing (DR-0941): "all downloaded materials have our
@@ -1999,6 +2131,10 @@ export function GalleryTab({
             )}
           </div>
         </Card>
+      )}
+
+      {canAdd && hasBridgeToken() && (
+        <NasShelf door={door} archive={archive} nasFiled={nasFiled} recordKind={isAdvertising(f.kind) ? rememberedKind() : f.kind} onAdd={onAdd} onDone={onDone} />
       )}
 
       <Card title={only ? `${only.replace(/-/g, ' ')} (${shown.length} of ${allShots.length})` : `Pictures (${allShots.length})`}>

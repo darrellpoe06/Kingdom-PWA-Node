@@ -140,6 +140,12 @@ export const FAULTS = Object.freeze({
           CREATE TRIGGER e2e_fault_archive BEFORE UPDATE ON public.rentals FOR EACH ROW EXECUTE FUNCTION public.e2e_fault_archive();`,
     restore: 'DROP TRIGGER IF EXISTS e2e_fault_archive ON public.rentals; DROP FUNCTION IF EXISTS public.e2e_fault_archive();',
   },
+  source: {
+    step: 'G2',
+    // Without 0285's index the database files the same NAS picture twice.
+    sql: 'DROP INDEX IF EXISTS public.property_photos_source_once;',
+    restore: `${MIG}/0285-a-nas-picture-is-filed-once.sql`,
+  },
   area: {
     step: 'E1',
     sql: `CREATE OR REPLACE FUNCTION public.rentals_area_rounded() RETURNS trigger LANGUAGE plpgsql AS $f$ BEGIN RAISE EXCEPTION 'e2e fault: no area' USING ERRCODE = 'check_violation'; END $f$;`,
@@ -553,6 +559,36 @@ async function run() {
         await op.screenshot({ path: join(SHOTS, 'F1-heic-filed.png'), fullPage: true });
       });
     } else console.log('  (F1 skipped: set E2E_HEIC to a HEIC file to walk it)');
+
+    // G2. FROM THE NAS (DR-1000): the whole library by month, read from the
+    // real photo server's folders (no Synology sign-in); one picture filed
+    // on the listing at listing size with its source on the row; the second
+    // copy refused by the database itself.
+    await step('G2 a NAS picture is filed on the listing from the whole library, once', async () => {
+      await op.getByRole('button', { name: /^Pictures$/ }).first().click({ timeout: 15000 });
+      await op.getByTestId('nas-shelf').waitFor({ timeout: 20000 });
+      await op.getByTestId('nas-shelf-pick').selectOption('library');
+      await op.getByTestId('nas-month').fill('2024-01');
+      await op.getByTestId(`nas-tile-${OVERPASS_PHOTO.name}`).waitFor({ timeout: 30000 });
+      const timing = await op.getByTestId('nas-shelf-timing').innerText();
+      if (!/read in \d+\.\d s over the same-origin road/.test(timing)) throw new Error(`the read was not timed and named: "${timing}"`);
+      await op.getByTestId(`nas-use-${OVERPASS_PHOTO.name}`).click();
+      const src = `nas:library:${OVERPASS_PHOTO.name}`;
+      await waitFor(() => sql(`SELECT count(*) FROM property_photos WHERE rental_ref = '${DOOR}' AND source = '${src}' AND kind = 'listing'`) === '1', 'the NAS picture to be filed on the listing with its source', 30000);
+      const full = Buffer.from(sql(`SELECT split_part(storage_path, ',', 2) FROM property_photos WHERE rental_ref = '${DOOR}' AND source = '${src}'`), 'base64');
+      const w = jpegWidth(full);
+      if (!(w > 0 && w <= 1920)) throw new Error(`the filed picture is ${w}px wide; listing size is at most 1920`);
+      if (sql(`SELECT length(thumb_path) > 100 FROM property_photos WHERE rental_ref = '${DOOR}' AND source = '${src}'`) !== 't') throw new Error('the filed picture has no thumbnail');
+      await op.getByTestId(`nas-tile-${OVERPASS_PHOTO.name}-filed`).waitFor({ timeout: 20000 });
+      console.log(`      (filed ${w}px wide, ${Math.round(full.length / 1024)} KB; ${timing})`);
+      // NEVER TWICE: the database refuses a second copy on this door (0285).
+      let refused = false;
+      try {
+        sql(`INSERT INTO property_photos (instance_id, rental_ref, kind, caption, storage_path, thumb_path, source) VALUES ('${INSTANCE}', '${DOOR}', 'listing', 'again', 'data:image/jpeg;base64,/9j/4AAQ', 'data:image/jpeg;base64,/9j/4AAQ', '${src}')`);
+      } catch (_) { refused = true; }
+      if (!refused) throw new Error('the same NAS picture was filed on the same door twice (is 0285\'s index there?)');
+      await op.screenshot({ path: join(SHOTS, 'G2-nas-filed.png'), fullPage: true });
+    });
 
     // C. The next stranger sees those nights dark.
     const next = await hermetic(await browser.newContext({ viewport: { width: 412, height: 915 } }), 'next');
