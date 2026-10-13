@@ -100,7 +100,7 @@ function seed() {
     INSERT INTO instance_members (instance_id, user_id, role, display_name) VALUES ('${INSTANCE}', '${OWNER}', 'owner', 'Owner');
     INSERT INTO rentals (id, instance_id, created_by, slug, display_name, address, unit, city, state, property_type, status, listed_at, offering, nightly_rate, address_visibility, showcase_order)
       VALUES ('${DOOR}', '${INSTANCE}', '${OWNER}', 'E2E-APT2', '${STREET} Apt 2', '${STREET}', 'Apt 2', 'Champaign', 'Illinois', 'multi-family', 'vacant', now(), 'short-term', 150, 'after-application', 1);
-    -- A SECOND DOOR IN THE REAL ESTATE SHAPE (DR-0998): the whole address typed
+    -- A SECOND DOOR IN THE REAL ESTATE SHAPE (DR-0999): the whole address typed
     -- into one field, no town of its own, not advertised. The family's app
     -- holds it in its parts by itself (G1 reads the row).
     INSERT INTO rentals (id, instance_id, created_by, slug, display_name, address, unit, city, state, property_type, status, showcase_order)
@@ -183,7 +183,7 @@ export const CSP = (() => {
   return line.replace(/^\s+Content-Security-Policy:\s*/, '').split(';').map((d) => d.trim()).filter((d) => d && d !== 'upgrade-insecure-requests').join('; ');
 })();
 
-// THE REAL NAS PHOTO SERVER (DR-0998; LESSONS P59). infra/nas-property-photos/
+// THE REAL NAS PHOTO SERVER (DR-0999; LESSONS P59). infra/nas-property-photos/
 // photo_server.py itself, over real HTTP, with a fixture standing in for
 // Synology Chat and a generated JPEG for the phone backup. The gateway
 // proxies /nas-photos/* to it the way the Funnel mount does on the NAS.
@@ -254,7 +254,7 @@ const CENSUS_RECORDED = async () => ({
   json: async () => ({ result: { addressMatches: [{ matchedAddress: '805 N PROSPECT AVE, CHAMPAIGN, IL, 61820', coordinates: { x: -88.25828, y: 40.123364 } }] } }),
 });
 const GEOCODES = [];
-// OpenStreetMap's Overpass answer around 805, recorded (DR-0997): one park the
+// OpenStreetMap's Overpass answer around 805, recorded (DR-0998): one park the
 // Champaign research does not list, and a supermarket it does (so the merge
 // keeps the researched line and drops the duplicate). Every ask is counted.
 const OVERPASS_RECORDED = { elements: [
@@ -391,7 +391,7 @@ async function run() {
     // fetched before the visitor asks for the map (DR-0977).
     const hermetic = async (ctx, name = '') => {
       await ctx.route('https://tile.openstreetmap.org/**', (r) => { if (name) TILE_FETCHES[name] = (TILE_FETCHES[name] || 0) + 1; return r.fulfill({ status: 200, contentType: 'image/png', body: PNG }); });
-      // What is nearby (DR-0997) is asked of Overpass; answered here, never fetched.
+      // What is nearby (DR-0998) is asked of Overpass; answered here, never fetched.
       await ctx.route('https://overpass-api.de/**', (r) => { OVERPASS_ASKS.push(name || 'ctx'); return r.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify(OVERPASS_RECORDED) }); });
       return ctx;
     };
@@ -443,7 +443,7 @@ async function run() {
     const token = mintJwt({ sub: OWNER, role: 'authenticated', aud: 'authenticated', email: 'owner@e2e.local', exp: FAR });
     const session = { access_token: token, token_type: 'bearer', expires_in: 3600 * 24 * 365, expires_at: FAR, refresh_token: 'e2e', user: { id: OWNER, aud: 'authenticated', role: 'authenticated', email: 'owner@e2e.local', app_metadata: {}, user_metadata: {} } };
     await owner.addInitScript(([k, v]) => { try { localStorage.setItem(k, v); } catch { /* none */ } }, ['sb-127-auth-token', JSON.stringify(session)]);
-    // The family key this device holds, so the NAS reads are made (DR-0998).
+    // The family key this device holds, so the NAS reads are made (DR-0999).
     await owner.addInitScript(([k, v]) => { try { localStorage.setItem(k, v); } catch { /* none */ } }, ['poetech-chat-bridge-token', PHOTO_TOKEN]);
     const op = watch(await owner.newPage(), 'owner'); current = op;
     await step('B1 the family sees the door with its full address', async () => {
@@ -479,7 +479,7 @@ async function run() {
     });
 
     // E. The family puts the door's area on the map; only the area is kept.
-    await step('E1 the family\'s app places the door from its own address BY ITSELF; the database keeps the rounded area and what is near it (DR-0997)', async () => {
+    await step('E1 the family\'s app places the door from its own address BY ITSELF; the database keeps the rounded area and what is near it (DR-0998)', async () => {
       // Nobody pressed anything: opening the family's app (B1) placed it.
       await waitFor(() => sql(`SELECT coalesce(area_lat::text,'') || ',' || coalesce(area_lng::text,'') FROM rentals WHERE id = '${DOOR}'`) === '40.12500,-88.26000', 'the area to read 40.12500,-88.26000 in the database', 30000);
       // One lookup per building, by the address AS HELD: the second door was
@@ -509,7 +509,7 @@ async function run() {
       await op.screenshot({ path: join(SHOTS, 'E1-placed-by-itself.png'), fullPage: true });
     });
 
-    // G. One record, both doors (DR-0998): the family's app held the second
+    // G. One record, both doors (DR-0999): the family's app held the second
     // door's whole-line address in its parts by itself; the archive is picked
     // from the list the REAL NAS photo server serves, and lands on the row.
     await step('G1 the address is held in its parts by itself, and the archive is picked from the NAS\'s own list', async () => {
@@ -584,7 +584,7 @@ async function run() {
     });
 
     // H. The family shows the street (DR-0977: the default, which this door had held).
-    await step('H1 the family shows the street; the next visitor gets a pin on the house and Street view at it (DR-0996)', async () => {
+    await step('H1 the family shows the street; the next visitor gets a pin on the house and Street view at it (DR-0997)', async () => {
       await op.getByRole('button', { name: /^Doors$/ }).first().click({ timeout: 15000 });
       const edit = op.getByRole('button', { name: /^Edit( door)?$/ }).first();
       if (!(await op.getByTestId('address-visibility').count())) await edit.click({ timeout: 15000 });

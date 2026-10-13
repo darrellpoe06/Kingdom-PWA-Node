@@ -196,7 +196,7 @@ export function localPatchToCloud(updates = {}) {
     patch.mortgage_escrow  = num(u.mortgage?.escrow);
   }
   if (u.notes !== undefined)          patch.notes = u.notes;
-  // THE STRUCTURE REACHES A LINKED DOOR TOO (DR-0998). 0160 made toRow carry
+  // THE STRUCTURE REACHES A LINKED DOOR TOO (DR-0999). 0160 made toRow carry
   // unit / building / room / level, but an EDIT to a door already linked went
   // through this patch, which never named them -- so a unit typed in Real
   // Estate stayed on the device for every door that had synced once.

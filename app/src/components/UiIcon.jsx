@@ -207,6 +207,17 @@ const ICONS = {
   ),
   // stop square — stop-recording state (was ⏹)
   stop: <rect x="7" y="7" width="10" height="10" rx="1.5" fill="currentColor" stroke="none" />,
+  // shield — the Phone → NAS backup card: protection for the family's media
+  shield: (
+    <path d="M12 3.5l7 2.5v5.5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z" />
+  ),
+  // (bytes leaving this device for the NAS reuse the `upload` arrow above —
+  // DR-0709's Books icon is the same arrow-rising-from-a-tray, so the backup
+  // card shares it rather than defining a second `upload` key.)
+  // folder — back up a whole directory
+  folder: (
+    <path d="M3.5 7a1.5 1.5 0 0 1 1.5-1.5h4l2 2.5h8A1.5 1.5 0 0 1 20.5 9.5v8A1.5 1.5 0 0 1 19 19H5a1.5 1.5 0 0 1-1.5-1.5z" />
+  ),
   // calendar page — save-to-calendar + calendar links (was 📅)
   calendar: (
     <>

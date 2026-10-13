@@ -56,7 +56,7 @@ export const PHOTO_PICK_MAX_BYTES = 64 * 1024 * 1024;
 export const PROPERTY_UPLOADS_PATH = `${NAS_PHOTO_BASE}/property-uploads`;
 export const PROPERTY_PHOTO_REMOVE_PATH = `${NAS_PHOTO_BASE}/property-photo-remove`;
 
-// By road (DR-0998): same-origin first, the Funnel when the Functions are
+// By road (DR-0999): same-origin first, the Funnel when the Functions are
 // dark. nasFetch takes the same-origin path whole and swaps the base for the
 // Funnel's on the direct road.
 const byRoad = (url, init) => nasFetch(String(url), init);

@@ -307,7 +307,7 @@ export default function PropertiesDoor() {
         </>)}
       </main>
 
-      {/* What the app holds itself to, where renters and guests are (DR-0997);
+      {/* What the app holds itself to, where renters and guests are (DR-0998);
           above the band, so the band keeps its exact wording. */}
       <div className="px-4 pb-4 flex justify-center"><AccessibilityNote /></div>
       {/* POE PROPERTIES · POWERED BY POETECH -- the black band, on every

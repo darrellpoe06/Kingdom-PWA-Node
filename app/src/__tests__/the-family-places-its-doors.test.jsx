@@ -1,5 +1,5 @@
 // =============================================================================
-// The family's app places its doors on the map by itself (DR-0997)
+// The family's app places its doors on the map by itself (DR-0998)
 // =============================================================================
 // Darrell, 2026-10-13: "I love that it shows what's close!!! Shouldn't this be
 // default?" -- so the family's own session places every door not yet on the
@@ -114,7 +114,7 @@ describe('every door with an address is on the map, by default', () => {
     expect(H.placeCalls[0].rentals.map((r) => r.id)).toEqual(['r1', 'r2']);
     expect([...H.placeCalls[0].placed]).toEqual(['r2']);
     // The same edit path as the editor, so the trace lands in the door's notes.
-    // The record is held whole FIRST (DR-0998: both doors already in their
+    // The record is held whole FIRST (DR-0999: both doors already in their
     // parts, so each is marked held), then the door is placed.
     expect(H.saves.map((s) => s.id)).toEqual(['r1', 'r2', 'r1']);
     expect(H.saves[0].patch.address_held_at).toBeTruthy();

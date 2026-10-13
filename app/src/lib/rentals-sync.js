@@ -66,7 +66,7 @@ export function fromRemoteStatus(s) {
   return LEGACY_REMOTE_TO_LOCAL_STATUS[s] || 'paying';
 }
 
-/** A Real Estate record as a cloud rentals row (exported for its tests, DR-0998). */
+/** A Real Estate record as a cloud rentals row (exported for its tests, DR-0999). */
 export function rentalToRow(item, { tenantId, userId }) {
     return {
       instance_id:          tenantId,
@@ -103,7 +103,7 @@ export function rentalToRow(item, { tenantId, userId }) {
       // app infers from the label; writing 'unit' here would turn that honest
       // silence into a claim about twelve doors (DR-0076 §8).
       rentable_level:       RENTABLE_LEVELS.has(item.rentableLevel) ? item.rentableLevel : null,
-      // THE ARCHIVE ON THE RECORD (0284, DR-0998). Written only when the door
+      // THE ARCHIVE ON THE RECORD (0284, DR-0999). Written only when the door
       // names one: the column lands by db-migrate beside the deploy, and a
       // row carrying a column the database does not yet have would fail every
       // upload for the minutes between.

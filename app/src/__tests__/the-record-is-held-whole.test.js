@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 // =============================================================================
-// THE FAMILY'S APP HOLDS EACH RECORD WHOLE, ONCE; BOTH DOORS READ ONE ROW (DR-0998)
+// THE FAMILY'S APP HOLDS EACH RECORD WHOLE, ONCE; BOTH DOORS READ ONE ROW (DR-0999)
 // =============================================================================
 // Darrell, 2026-10-13: "they all should be in sync... correct? End to end
 // processes!!!" The repairs are decided here on his records' shapes; the
@@ -100,7 +100,7 @@ describe('the sync carries the archive and the structure both ways', () => {
   });
 });
 
-describe('the NAS client, by road (DR-0998; #2057)', () => {
+describe('the NAS client, by road (DR-0999; #2057)', () => {
   it('the default direct base is unset in every normal build', () => {
     expect(NAS_PHOTO_DIRECT).toBe('');
     expect(NAS_PHOTO_BASE).toBe('/nas-photos');

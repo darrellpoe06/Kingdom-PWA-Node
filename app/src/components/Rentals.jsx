@@ -14,7 +14,7 @@ import {
 } from '../modules/properties/cloud.js';
 import { listImage as cloudListImage } from '../modules/properties/photo-order.js';
 import { hasBridgeToken, chatChannelFor, fetchChannelPhotos, propertyPhotosUrl, nasRoad } from '../lib/nas-photos.js';
-// ONE ADDRESS, BOTH DOORS (DR-0998): the same parts, the same line, the same
+// ONE ADDRESS, BOTH DOORS (DR-0999): the same parts, the same line, the same
 // dropdown of known buildings, and the same rounded area as Poe Properties.
 import { buildingOptions, pickedBuilding, formatAddress, formatBuilding, addressNeeds } from '../modules/properties/address.js';
 import { MapOnRequest } from '../modules/properties/AreaMap.jsx';
@@ -1214,7 +1214,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
     return () => { cancelled = true; };
   }, [rentals]);
   const photoCountFor = (r) => (channelCounts[r.id] != null ? channelCounts[r.id] : propertyPhotoCount(r));
-  // THE ADDRESS IS PICKED, NOT RETYPED (DR-0998). Darrell: "Drop down with
+  // THE ADDRESS IS PICKED, NOT RETYPED (DR-0999). Darrell: "Drop down with
   // addresses... instead of letting someone else mistyped". The family's own
   // buildings sit under the street field; an exact pick fills the town, state
   // and zip; typing still works (and still pulls the map suggestions).
@@ -1225,7 +1225,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
     setPropForm((f) => ({ ...f, address: v }));
     fetchSuggestions(v);
   };
-  // THE SAME AREA POE PROPERTIES HOLDS (DR-0998): the rounded area on the cloud
+  // THE SAME AREA POE PROPERTIES HOLDS (DR-0999): the rounded area on the cloud
   // row, by remoteUuid, read once. "Coords" used to show only a point picked on
   // this device, so every card said "Set address" while the other door had
   // placed the house. Never an exact point: the area is a 0.005-degree cell.
@@ -2160,7 +2160,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                       <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{rowTitle}</div>
                       <div className="text-xs text-[#5A5751]">
                         {(() => {
-                          // THE ONE PATTERN (DR-0998): street, unit, town, state zip,
+                          // THE ONE PATTERN (DR-0999): street, unit, town, state zip,
                           // printed by the same formatter Poe Properties uses; and
                           // what is still missing, said plainly, never hidden.
                           const full = formatAddress({ address: r.address, unit: r.unitLabel, city: r.city, state: r.state, zip: r.zip });

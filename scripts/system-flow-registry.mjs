@@ -961,9 +961,9 @@ const NODES = [
     reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }, { res: 'http:cams', token: '127.0.0.1:8773' }, { res: 'nas:services', token: 'poetech-cams' }],
     writes: [], seeds: [],
   }),
-  // The real "What's nearby" for a real address (DR-0997): looks, never saves.
+  // The real "What's nearby" for a real address (DR-0998): looks, never saves.
   wf('nearby-witness.yml', {
-    id: 'nearby-witness', name: 'Nearby witness (look, never save)', purpose: 'Looks a real address up from a runner the way the family\u2019s app places a door — the Census/OpenStreetMap lookup, the check that the match is THIS house, and what OpenStreetMap\u2019s Overpass knows around its own point — and prints the rounded area and the nearby list (DR-0997).',
+    id: 'nearby-witness', name: 'Nearby witness (look, never save)', purpose: 'Looks a real address up from a runner the way the family\u2019s app places a door — the Census/OpenStreetMap lookup, the check that the match is THIS house, and what OpenStreetMap\u2019s Overpass knows around its own point — and prints the rounded area and the nearby list (DR-0998).',
     reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }],
     writes: [], seeds: [],
   }),

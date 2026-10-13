@@ -12,7 +12,7 @@
 // OSM's attribution on the map.
 //
 // MapOnRequest is what a card shows, and what it shows follows the street
-// (DR-0996; Darrell, 2026-10-13: "Show on map is supposed to be giving the
+// (DR-0997; Darrell, 2026-10-13: "Show on map is supposed to be giving the
 // area without the address... when the address is not shown... however maps
 // when the address is showing can be the direct link to the street view"):
 //   * street HELD  -> "Show on map" draws the rounded area as a circle, and
@@ -56,7 +56,7 @@ const acrossMiles = ((2 * CIRCLE_METERS) / 1609.344).toFixed(1);
 /**
  * The map. `area` is {lat, lng} already rounded and is drawn as a circle;
  * `pin` is the exact point of a SHOWN street and is drawn as a pin on the
- * house at block zoom (DR-0996). A held door is only ever given `area`.
+ * house at block zoom (DR-0997). A held door is only ever given `area`.
  * `where` names the town (or the street, when shown) for the screen reader.
  */
 export function AreaMap({ area, pin = null, where = '', height = 200, streetShown = false }) {
@@ -143,7 +143,7 @@ const linkCls = 'inline-flex items-center text-[0.625rem] uppercase tracking-wid
 
 /**
  * A map only when somebody asks for one (DR-0977), and the kind of map the
- * street allows (DR-0996). `area` is a rounded area or null (the door's own,
+ * street allows (DR-0997). `area` is a rounded area or null (the door's own,
  * or its building's, from the shelf); `query` is the address line ONLY when
  * the family shows the street, and '' when they hold it. Nothing is fetched
  * until a tap.
@@ -259,7 +259,7 @@ export function AreaEditor({ rental, onSave, busy }) {
 
   const place = async (p, how) => {
     // The exact point is used here, once, for the distances; only the area is
-    // kept. What is nearby is asked around THIS point (DR-0997), so a door
+    // kept. What is nearby is asked around THIS point (DR-0998), so a door
     // anywhere gets its own places, not Champaign's.
     setArea(roundArea(p.lat, p.lng));
     setLines(nearbyFrom(p));

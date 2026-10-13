@@ -1,4 +1,4 @@
-# DR-0997: What's nearby is on every door by default, measured from each property's own house; the app says what accessibility it holds itself to
+# DR-0998: What's nearby is on every door by default, measured from each property's own house; the app says what accessibility it holds itself to
 
 **Date:** 2026-10-13
 **Status:** accepted
@@ -13,7 +13,7 @@
 - `scripts/nearby-witness.mjs` and `.github/workflows/nearby-witness.yml` (new)
 - `scripts/e2e/door-journeys.mjs` (E1)
 
-**Amends:** DR-0935 and DR-0977 (where nearby lines come from, and that nothing is looked up until asked), DR-0996
+**Amends:** DR-0935 and DR-0977 (where nearby lines come from, and that nothing is looked up until asked), DR-0997
 **Principle:** DR-0076 (proven to catch; no claim past the evidence), DR-0315 (WCAG 2.2 AA), DR-0065 (build it in the app)
 
 ## Context
@@ -30,7 +30,7 @@ Darrell, 2026-10-13, all with screenshots of the live shelf on his Fold:
 
 - **The list he loved was not stored.** In the screenshot, "What's nearby" sat *under* the map. In `MapOnRequest` that position is the list worked out on the visitor's phone from a lookup made when the map was tapped. The stored list (`NearbyList`, above the buttons) was absent.
   - So Apt 2 had no saved area and no saved lines. The list vanished with the map, and it cost a lookup per visitor.
-- **No door at 805 had an area.** DR-0996's building area therefore had nothing to lend, and the held bed in Apt 4 still had no map.
+- **No door at 805 had an area.** DR-0997's building area therefore had nothing to lend, and the held bed in Apt 4 still had no map.
 - **`PLACES` is the Champaign research** (`docs/99-session-notes/2026-10-10-805-north-prospect-whats-nearby.md`).
   - `nearbyFrom` keeps only places within 15 miles, so a door in Danville got an empty list.
   - Nothing measured what is near any property other than the ones in Champaign.
@@ -64,7 +64,7 @@ Darrell, 2026-10-13, all with screenshots of the live shelf on his Fold:
      They are merged nearest first, at most 12, and never duplicated.
    - **A Danville door gets Danville's places,** and none of Champaign's.
    - **An unreachable lookup is not "nothing near".** If Overpass cannot be asked, nothing is saved and the door is tried again next session.
-3. **The public card shows what is near by default.** It is the stored list (DR-0996's building borrow covers held doors). The map tiles still wait for a tap.
+3. **The public card shows what is near by default.** It is the stored list (DR-0997's building borrow covers held doors). The map tiles still wait for a tap.
 4. **The editor's "Find it from the address" uses the same `nearbyAround`,** so a door placed by hand reads the same as one placed automatically.
 5. **Heard as well as seen (WCAG 2.2 AA, DR-0315):**
    - Distances are spelled "about 0.7 miles".
