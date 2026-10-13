@@ -130,3 +130,69 @@ describe('the facts this rests on are read from the repository, not recalled', (
     expect(src).toContain('NOT A BUILD GATE');
   });
 });
+
+// ── THE FOURTH QUESTION (DR-0991), added after PR #789. Its own body said
+// "shipped via PR #787", which merged 2026-07-11T21:49:37Z — the same day #789
+// was opened. Every line of it was on main, and main had moved PAST it (its
+// test differs by 165 lines, church-own-door.js by 66, in main's favour), so
+// merging it would have dragged the church's door back to its July shape.
+//
+// Neither existing tool sees this: pr-janitor closes only PROVABLY EMPTY PRs
+// and #789 is not empty — its diff against its own merge-base is real; it is
+// MAIN that moved. And the three structural questions ask about the monolith,
+// the budget and migration ordinals, none of which notices work that shipped.
+describe('a superseded pull request is not a drain', () => {
+  it('flags a PR whose every added file is already on main', () => {
+    const r = classify({ files: ['a', 'b'], added: { total: 2, alreadyOnMain: 2 }, newest: NEWEST });
+    expect(r.verdict).toBe('superseded?');
+    expect(r.reasons.join(' ')).toContain('already exists on main');
+    expect(r.reasons.join(' ')).toContain('could REGRESS');
+  });
+
+  it('is a QUESTION, not a verdict — the mark is deliberate', () => {
+    // Only a reader can say whether the PR still carries something main lacks,
+    // so the tool asks rather than decides.
+    expect(classify({ files: ['a'], added: { total: 1, alreadyOnMain: 1 }, newest: NEWEST }).verdict)
+      .toMatch(/\?$/);
+    expect(classify({ files: ['a'], added: { total: 1, alreadyOnMain: 1 }, newest: NEWEST }).reasons.join(' '))
+      .toContain('read it before any merge');
+  });
+
+  it('does NOT flag a PR that adds something main lacks', () => {
+    expect(classify({ files: ['a', 'b'], added: { total: 2, alreadyOnMain: 1 }, newest: NEWEST }).verdict).toBe('drain');
+    expect(classify({ files: ['a'], added: { total: 1, alreadyOnMain: 0 }, newest: NEWEST }).verdict).toBe('drain');
+  });
+
+  it('does not flag a PR that adds NO files at all — it only modifies', () => {
+    expect(classify({ files: ['a'], added: { total: 0, alreadyOnMain: 0 }, newest: NEWEST }).verdict).toBe('drain');
+  });
+
+  it('still works when the caller knows nothing about added files', () => {
+    expect(classify({ files: ['a'], newest: NEWEST }).verdict).toBe('drain');
+    expect(classify({ files: [MONOLITH], newest: NEWEST }).verdict).toBe('rebuild');
+  });
+
+  // The flaw in the FIRST version of this question, caught by reading the
+  // tool's own output: it returned early, so a PR that is both superseded-
+  // looking AND structurally unsafe reported only the supersession — throwing
+  // away exactly what a reader who RULES OUT supersession needs next.
+  it('reports the structural reasons TOO, not instead', () => {
+    const r = classify({
+      files: [MONOLITH, 'infra/supabase/migrations-auto/0039-x.sql'],
+      added: { total: 2, alreadyOnMain: 2 },
+      newest: NEWEST,
+    });
+    expect(r.verdict).toBe('superseded?');
+    expect(r.reasons).toHaveLength(3);
+    expect(r.reasons.join(' ')).toContain('frozen monolith');
+    expect(r.reasons.join(' ')).toContain('243 behind');
+  });
+
+  it('the tool records why neither pr-janitor nor the three questions caught it', () => {
+    const src = readFileSync(join(ROOT, 'scripts/drain-triage.mjs'), 'utf8');
+    expect(src).toContain('NEITHER EXISTING TOOL SEES THIS');
+    expect(src).toContain('PROVABLY EMPTY');
+    expect(src).toContain('shipped via PR #787');
+    expect(src).toContain('a question mark, deliberately');
+  });
+});
