@@ -1093,8 +1093,8 @@ function EditRental({ rental, onSave, busy }) {
           </select>
           <span className="block text-[0.75rem] text-[#6B665E] mt-1 leading-snug" data-testid="address-rule">
             {f.address_visibility === 'public'
-              ? 'Visitors see the street, with Open in Maps and a map they can ask for.'
-              : 'Visitors see the town and a map they can ask for (when this door is on the map); the street is handed over when someone applies or books.'}
+              ? 'Visitors see the street, what is nearby, Street view, and a map with the house pinned when they ask for it.'
+              : 'Visitors see the town, what is nearby, and the area on a map when they ask for it; the street is handed over when someone applies or books.'}
           </span>
         </label>
         <AreaEditor rental={rental} onSave={onSave} busy={busy} />

@@ -31,7 +31,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   roundArea, parsePoint, nearbyFrom, cleanNearby, tileLayout, milesText,
   namesStreet, CIRCLE_METERS, NEARBY_MAX, addressLine, mapsUrl, findPoint,
-  streetViewUrl, PIN_ZOOM,
+  streetViewUrl, PIN_ZOOM, nearbyAround,
 } from './area.js';
 import { loadDoorArea } from './cloud.js';
 import { boundedRead } from '../../lib/bounded-read.js';
@@ -110,9 +110,12 @@ export function AreaMap({ area, pin = null, where = '', height = 200, streetShow
           <circle cx={r + 2} cy={r + 2} r={r} fill="rgba(47,93,80,0.18)" stroke="#2F5D50" strokeWidth="2" />
         </svg>
       )}
+      {/* The tiles' licence asks for this on the map; it is not the listing,
+          so the read-aloud passes over it (data-read-skip). */}
       <a
         href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer"
         className="absolute right-0 bottom-0 bg-white/85 px-1 text-[0.625rem] text-[#1A1815] underline"
+        aria-label="© OpenStreetMap contributors (opens in a new tab)" data-read-skip=""
       >© OpenStreetMap contributors</a>
     </div>
   );
@@ -202,6 +205,10 @@ export function MapOnRequest({ area = null, query = '', where = '', streetShown 
             href={point ? streetViewUrl(point) : mapsUrl({ query })}
             onClick={streetView}
             target="_blank" rel="noopener noreferrer" className={linkCls} data-testid="street-view"
+            // WCAG 2.2 AA (DR-0315): the name starts with what the button says
+            // (2.5.3) and says where it goes; a control is not read aloud as
+            // part of the listing (data-read-skip, TTSControl).
+            aria-label={`Street view of ${query}, opens Google Maps in a new tab`} data-read-skip=""
           >Street view</a>
         )}
       </div>
@@ -250,25 +257,34 @@ export function AreaEditor({ rental, onSave, busy }) {
     return () => { on = false; };
   }, [rental.id]);
 
-  const place = (p, how) => {
-    // The exact point is used here, once, for the distances; only the area is kept.
+  const place = async (p, how) => {
+    // The exact point is used here, once, for the distances; only the area is
+    // kept. What is nearby is asked around THIS point (DR-0995), so a door
+    // anywhere gets its own places, not Champaign's.
     setArea(roundArea(p.lat, p.lng));
     setLines(nearbyFrom(p));
     setSeeMap(true);
-    setSaid(`${how} Only the rounded area is saved.`);
+    setSaid(`${how} Looking up what is nearby…`);
+    const near = await nearbyAround(p);
+    if (near.ok) {
+      setLines(near.lines);
+      setSaid(`${how} ${near.lines.length ? `${near.lines.length} nearby place${near.lines.length === 1 ? '' : 's'} measured from it.` : 'Nothing listed is within reach of it.'} Only the rounded area is saved.`);
+    } else {
+      setSaid(`${how} ${near.reason} The researched places are shown; only the rounded area is saved.`);
+    }
   };
   const findIt = async () => {
     setFinding(true); setSaid('');
     const r = await findPoint(query);
     setFinding(false);
     if (!r.ok) { setSaid(`${r.reason} You can pin it by hand below.`); return; }
-    place(r.point, `Found${r.matched ? ` as "${r.matched}"` : ''}; the distances are worked out from it.`);
+    await place(r.point, `Found${r.matched ? ` as "${r.matched}"` : ''}.`);
   };
   const usePoint = () => {
     const p = parsePoint(paste);
     if (!p) { setSaid('That is not a point. Paste it as "40.1234, -88.2583", or a map link.'); return; }
     setPaste('');
-    place(p, 'Pinned by hand; the distances are worked out from it.');
+    place(p, 'Pinned by hand.');
   };
   const addOwn = () => {
     const label = own.label.trim(); const miles = Number(own.miles);
@@ -288,8 +304,8 @@ export function AreaEditor({ rental, onSave, busy }) {
     <div className="sm:col-span-2 mt-1" data-testid="area-editor">
       <span className={lbl}>The map, and what is nearby</span>
       <p className="text-[0.75rem] text-[#6B665E] leading-snug mb-2" data-testid="area-status">
-        {saved ? 'This door is on the map. ' : 'Not on the map yet. '}
-        Nothing is looked up until you ask; visitors see a map only when they tap for one.
+        {saved ? 'This door is on the map. ' : 'Not on the map yet: the app places it from its address on its own, or find it now. '}
+        Visitors see what is nearby; they see a map only when they tap for one.
       </p>
       <div className="flex flex-wrap gap-2 items-center">
         <Btn onClick={findIt} disabled={finding || !query}>{finding ? 'Finding it…' : 'Find it from the address'}</Btn>

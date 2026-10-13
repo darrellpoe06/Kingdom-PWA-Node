@@ -59,7 +59,7 @@ import { VacancyCard } from './Storefront.jsx';
 import { areaOf } from './area.js';
 import {
   loadRooms, addRoom, patchRoom, loadDoorPhotos, loadSiblingPhotos, loadDoorTenancies,
-  loadMyRentals, updateTenancy, updateRental, loadAllPhotos, loadDoorPhotoOrders, saveDoorPhotoOrder,
+  loadMyRentals, updateTenancy, updateRental, loadAllPhotos, loadDoorPhotoOrders, saveDoorPhotoOrder, loadDoorAreas,
   loadPhotoImages, loadPhotoThumbs,
   addPhoto, patchPhoto, loadDocuments, addDocument, patchDocument,
   loadPublicVacancies,
@@ -73,6 +73,7 @@ import { addressNow, useAddress } from './use-address.js';
 import supabase, { phoneLoginEmail } from '../../lib/supabase.js';
 import { boundedRead, deadlineIn, READ_TIMEOUT_MS, OPTIONAL_TIMEOUT_MS as CLAIM_TIMEOUT_MS } from '../../lib/bounded-read.js';
 import { POE_PROPERTIES, LAUNCH_PLAN, OPPORTUNITIES, CONSTRAINTS } from './config.js';
+import { placeDoorsOnTheMap } from './place-on-map.js';
 
 const ACCENT = '#2F5D50';
 
@@ -664,6 +665,30 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
   }, [grants, household, activeDoor, surface, rentals]);
 
   const face = useMemo(() => resolveFace(role, grants), [role, grants]);
+
+  // EVERY DOOR WITH AN ADDRESS IS ON THE MAP, BY DEFAULT (DR-0995). Once a
+  // session, in the background, for the family only: each building with a
+  // door not yet on the map is looked up once and its doors saved with the
+  // rounded area and what is nearby, so every public card shows "What's
+  // nearby" without a visitor's phone looking anything up. Bounded (a few
+  // lookups, one a second); a door already on the map is never touched.
+  const placing = useRef(false);
+  useEffect(() => {
+    if (role !== 'owner' || !rentals.length || placing.current) return;
+    placing.current = true;
+    (async () => {
+      const a = await boundedRead(loadDoorAreas(), 8000, { ok: false });
+      if (!a || !a.ok) return;
+      const r = await placeDoorsOnTheMap({
+        rentals, placed: a.placed,
+        save: (id, patch, summary) => updateRental(id, patch, { summary }),
+      });
+      if (r.placed.length) {
+        const v = await boundedRead(loadPublicVacancies(), 8000, { ok: false });
+        if (v && v.ok) setVacancies(v.vacancies);
+      }
+    })().catch(() => {});
+  }, [role, rentals]);
   // THE FIRST SCREEN IS THE DOORS. The landing tab used to be "the first tab
   // that is not locked", which put the landlord on his Doors only BECAUSE the
   // Work board above it was wrongly locked (model.js, 2026-09-08). With the

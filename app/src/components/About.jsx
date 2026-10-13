@@ -12,6 +12,7 @@ import { REPEATABLE_GOVERNANCE } from '../lib/purpose.js';
 import BlueprintFieldGuide from './BlueprintFieldGuide.jsx';
 import { ARI } from '../lib/ari.js';
 import { feedbackText, feedbackScreenshotCount } from '../lib/feedback-triage.js';
+import AccessibilityNote from './AccessibilityNote.jsx';
 
 // Patch the function signature to also accept VIEW_TIER_REQUIREMENTS as a prop.
 // 2026-06-14 — authUserId + onChangePin added for the multi-point auth Security
@@ -873,6 +874,9 @@ function About({ moduleInterest, familyModuleInterest = null, toggleModuleIntere
           </div>
         </div>
       )}
+
+      {/* What the app holds itself to (DR-0995). */}
+      <AccessibilityNote className="mt-6" />
 
       {/* Credits — the borrowed artwork is named (CC-BY 4.0 requires it, and
           honesty does anyway). Self-hosted: no CDN is called at runtime. */}

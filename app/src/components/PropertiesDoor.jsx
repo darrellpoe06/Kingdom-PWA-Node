@@ -52,6 +52,7 @@ import AppShareQR from './AppShareQR.jsx';
 import TTSControl from './TTSControl.jsx';
 import { UpdatePrompt } from './PwaPrompts.jsx';
 import UiIcon from './UiIcon.jsx';
+import AccessibilityNote from './AccessibilityNote.jsx';
 
 /** The door's own address, the one a tenant shares or scans (DR-0258 scope). */
 export const PROPERTIES_SHARE_URL = 'https://poetech.us/properties/app/';
@@ -290,6 +291,8 @@ export default function PropertiesDoor() {
 
       <footer className="px-4 py-6 text-center">
         <p className="text-[0.625rem] uppercase tracking-[0.2em] text-[#8A867E]">Poe Properties · powered by PoeTech</p>
+        {/* What the app holds itself to, where renters and guests are (DR-0995). */}
+        <div className="mt-2 flex justify-center"><AccessibilityNote /></div>
       </footer>
       {/* Read aloud, on every page, in the person's one chosen voice; renders
           nothing where the device has no speech. */}

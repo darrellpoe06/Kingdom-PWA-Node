@@ -961,6 +961,12 @@ const NODES = [
     reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }, { res: 'http:cams', token: '127.0.0.1:8773' }, { res: 'nas:services', token: 'poetech-cams' }],
     writes: [], seeds: [],
   }),
+  // The real "What's nearby" for a real address (DR-0995): looks, never saves.
+  wf('nearby-witness.yml', {
+    id: 'nearby-witness', name: 'Nearby witness (look, never save)', purpose: 'Looks a real address up from a runner the way the family\u2019s app places a door — the Census/OpenStreetMap lookup, the check that the match is THIS house, and what OpenStreetMap\u2019s Overpass knows around its own point — and prints the rounded area and the nearby list (DR-0995).',
+    reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }],
+    writes: [], seeds: [],
+  }),
   wf('camera-health.yml', {
     id: 'camera-health', name: 'Camera road witness (DR-0806)', purpose: 'After every deploy and twice an hour: reads the forwarder’s /health, the stream health log and go2rtc’s streams over the tailnet, probes a frame from every recording or watched camera, compares with the last witness kept in the rolling camera-incident issue, and labels a regression priority:cameras so it is fixed first.',
     reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }, { res: 'http:cams', token: '127.0.0.1:8773' }],

@@ -97,7 +97,7 @@ function seed() {
     INSERT INTO instance_members (instance_id, user_id, role, display_name) VALUES ('${INSTANCE}', '${OWNER}', 'owner', 'Owner');
     INSERT INTO rentals (id, instance_id, created_by, slug, display_name, address, unit, city, state, property_type, status, listed_at, offering, nightly_rate, address_visibility)
       VALUES ('${DOOR}', '${INSTANCE}', '${OWNER}', 'E2E-APT2', '${STREET} Apt 2', '${STREET}', 'Apt 2', 'Champaign', 'Illinois', 'multi-family', 'vacant', now(), 'short-term', 150, 'after-application');
-    -- (a fresh insert carries no area; the family sets it in E1)
+    -- (a fresh insert carries no area; the family's app places it by itself, E1)
   `);
 }
 
@@ -189,6 +189,14 @@ const CENSUS_RECORDED = async () => ({
   json: async () => ({ result: { addressMatches: [{ matchedAddress: '805 N PROSPECT AVE, CHAMPAIGN, IL, 61820', coordinates: { x: -88.25828, y: 40.123364 } }] } }),
 });
 const GEOCODES = [];
+// OpenStreetMap's Overpass answer around 805, recorded (DR-0995): one park the
+// Champaign research does not list, and a supermarket it does (so the merge
+// keeps the researched line and drops the duplicate). Every ask is counted.
+const OVERPASS_RECORDED = { elements: [
+  { type: 'way', center: { lat: 40.128, lon: -88.262 }, tags: { leisure: 'park', name: 'Garden Hills Park' } },
+  { type: 'node', lat: 40.1372, lon: -88.2463, tags: { shop: 'supermarket', name: 'Schnucks' } },
+] };
+const OVERPASS_ASKS = [];
 const TILE_FETCHES = {};
 
 function gateway() {
@@ -304,7 +312,12 @@ async function run() {
     const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
     // Every tile request is counted per context, so C2 can prove none is
     // fetched before the visitor asks for the map (DR-0977).
-    const hermetic = async (ctx, name = '') => { await ctx.route('https://tile.openstreetmap.org/**', (r) => { if (name) TILE_FETCHES[name] = (TILE_FETCHES[name] || 0) + 1; return r.fulfill({ status: 200, contentType: 'image/png', body: PNG }); }); return ctx; };
+    const hermetic = async (ctx, name = '') => {
+      await ctx.route('https://tile.openstreetmap.org/**', (r) => { if (name) TILE_FETCHES[name] = (TILE_FETCHES[name] || 0) + 1; return r.fulfill({ status: 200, contentType: 'image/png', body: PNG }); });
+      // What is nearby (DR-0995) is asked of Overpass; answered here, never fetched.
+      await ctx.route('https://overpass-api.de/**', (r) => { OVERPASS_ASKS.push(name || 'ctx'); return r.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify(OVERPASS_RECORDED) }); });
+      return ctx;
+    };
     let current = null;
     const step = async (name, fn) => {
       try { await fn(); results.push([name, 'pass']); console.log(`  ✔ ${name}`); } catch (e) {
@@ -387,19 +400,23 @@ async function run() {
     });
 
     // E. The family puts the door's area on the map; only the area is kept.
-    await step('E1 the family finds the door from its own address; the database keeps only the rounded area', async () => {
+    await step('E1 the family\'s app places the door from its own address BY ITSELF; the database keeps the rounded area and what is near it (DR-0995)', async () => {
+      // Nobody pressed anything: opening the family's app (B1) placed it.
+      await waitFor(() => sql(`SELECT coalesce(area_lat::text,'') || ',' || coalesce(area_lng::text,'') FROM rentals WHERE id = '${DOOR}'`) === '40.12500,-88.26000', 'the area to read 40.12500,-88.26000 in the database', 30000);
+      if (GEOCODES.join('|') !== `${STREET}, Champaign, Illinois`) throw new Error(`the address was looked up as "${GEOCODES.join('|')}", not once for this door`);
+      if (OVERPASS_ASKS.length !== 1) throw new Error(`what is nearby was asked ${OVERPASS_ASKS.length} times, not once`);
+      // Nearest first, measured from THIS door's own point: the recorded park
+      // (not in the Champaign research) leads; the research fills the rest.
+      const lines = sql(`SELECT jsonb_array_length(nearby) || '|' || (nearby->0->>'label') || '|' || (nearby->1->>'label') FROM rentals WHERE id = '${DOOR}'`);
+      if (lines !== '12|Garden Hills Park|I-74 at Exit 181') throw new Error(`the nearby lines read "${lines}"`);
+      if (sql(`SELECT count(*) FROM rentals WHERE id = '${DOOR}' AND nearby::text ILIKE '%Schnucks (grocery)%'`) !== '0') throw new Error('the researched Schnucks line was duplicated by OpenStreetMap\'s');
+      if (!sql(`SELECT notes FROM rentals WHERE id = '${DOOR}'`).includes('Placed on the map from its address (automatic)')) throw new Error('the door\'s notes carry no trace of the placement');
       await op.getByRole('button', { name: /^Doors$/ }).first().click({ timeout: 15000 });
       await op.getByRole('button', { name: /^Edit( door)?$/ }).first().click({ timeout: 15000 });
-      await op.getByTestId('area-editor').waitFor({ timeout: 15000 });
-      if (GEOCODES.length) throw new Error(`the editor looked the address up before anyone asked (${GEOCODES.length})`);
-      await op.getByRole('button', { name: /^Find it from the address$/ }).click();
-      await op.getByTestId('area-editor-lines').waitFor({ timeout: 15000 });
-      if (GEOCODES.join('|') !== `${STREET}, Champaign, Illinois`) throw new Error(`the lookup asked for "${GEOCODES.join('|')}"`);
-      await op.screenshot({ path: join(SHOTS, 'E1-area-editor.png'), fullPage: true });
-      await op.getByRole('button', { name: /^Save the area$/ }).click();
-      await waitFor(() => sql(`SELECT coalesce(area_lat::text,'') || ',' || coalesce(area_lng::text,'') FROM rentals WHERE id = '${DOOR}'`) === '40.12500,-88.26000', 'the area to read 40.12500,-88.26000 in the database');
-      const lines = sql(`SELECT jsonb_array_length(nearby) || '|' || (nearby->0->>'label') FROM rentals WHERE id = '${DOOR}'`);
-      if (lines !== '12|I-74 at Exit 181') throw new Error(`the nearby lines read "${lines}"`);
+      await op.getByTestId('area-status').waitFor({ timeout: 15000 });
+      const status = await op.getByTestId('area-status').innerText();
+      if (!status.includes('This door is on the map')) throw new Error(`the editor says "${status}"`);
+      await op.screenshot({ path: join(SHOTS, 'E1-placed-by-itself.png'), fullPage: true });
     });
 
     // F. A HEIC from a phone is kept, not skipped (DR-0939). Darrell's Samsung:

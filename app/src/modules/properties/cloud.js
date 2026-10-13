@@ -892,6 +892,18 @@ export async function loadDoorArea(id, client = supabase) {
   } catch (e) { return no('unexpected', e); }
 }
 
+/**
+ * Which of this person's doors are already on the map (DR-0995): one read, the
+ * ids that carry a rounded area. RLS scopes it to the doors they can see.
+ */
+export async function loadDoorAreas(client = supabase) {
+  try {
+    const { data, error } = await client.from('rentals').select('id, area_lat');
+    if (error) return no('read-failed', error);
+    return ok({ placed: new Set((data || []).filter((r) => r.area_lat != null).map((r) => r.id)) });
+  } catch (e) { return no('unexpected', e); }
+}
+
 /** Edit a door. The trace rides in the door's own notes, which is what it has. */
 export async function updateRental(id, patch, { summary = '' } = {}, client = supabase) {
   if (!id) return no('no-rental');

@@ -12,7 +12,7 @@ import { createElement } from 'react';
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import {
-  roundArea, parsePoint, nearbyFrom, namesStreet, streetName, tileLayout, cleanNearby, areaOf, PLACES,
+  roundArea, parsePoint, nearbyFrom, namesStreet, streetName, tileLayout, cleanNearby, areaOf, PLACES, OVERPASS,
 } from '../modules/properties/area.js';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
@@ -112,7 +112,7 @@ describe('on the public shelf', () => {
     // "I only want a map when I want it": nothing drawn, nothing fetched.
     expect(container.querySelectorAll('[data-testid="area-map-tile"]')).toHaveLength(0);
     expect(container.querySelector('[data-testid="nearby"]').textContent).toContain('University of Illinois Main Quad');
-    expect(container.textContent).toContain('about 0.7 mi');
+    expect(container.textContent).toContain('about 0.7 miles');
     // A held street gets no link out and no pin (DR-0994): a pin on the rounded
     // area would read as the house.
     expect(container.querySelector('[data-testid="street-view"]')).toBeNull();
@@ -266,7 +266,13 @@ describe('the family sets the area', () => {
   it('FROM THE ADDRESS (DR-0977): one tap finds the door; the area and 12 lines are saved, never the point', async () => {
     const calls = [];
     const real = globalThis.fetch;
-    globalThis.fetch = async (url) => { calls.push(String(url)); return { json: async () => ({ ok: true, lat: APT2.lat, lng: APT2.lng, matched: '805 N PROSPECT AVE, CHAMPAIGN, IL, 61820' }) }; };
+    globalThis.fetch = async (url) => {
+      calls.push(String(url));
+      // What is nearby is asked around the found point (DR-0995); OpenStreetMap
+      // knows nothing here, so the Champaign research is what is listed.
+      if (String(url) === OVERPASS) return { ok: true, status: 200, json: async () => ({ elements: [] }) };
+      return { json: async () => ({ ok: true, lat: APT2.lat, lng: APT2.lng, matched: '805 N PROSPECT AVE, CHAMPAIGN, IL, 61820' }) };
+    };
     try {
       const saved = [];
       await mount(createElement(AreaEditor, { rental: RENTAL, onSave: (patch, summary) => saved.push([patch, summary]) }));
@@ -275,7 +281,7 @@ describe('the family sets the area', () => {
       expect(container.querySelector('[data-testid="area-map"]')).toBeNull();
       expect(container.querySelector('[data-testid="area-status"]').textContent).toContain('Not on the map yet');
       await tap(button('Find it from the address'));
-      expect(calls).toEqual(['/geocode?q=805%20North%20Prospect%20Avenue%2C%20Champaign%2C%20Illinois']);
+      expect(calls).toEqual(['/geocode?q=805%20North%20Prospect%20Avenue%2C%20Champaign%2C%20Illinois', OVERPASS]);
       expect(container.querySelector('[data-testid="area-map"]')).not.toBeNull();
       expect(container.textContent).toContain('805 N PROSPECT AVE, CHAMPAIGN, IL, 61820');
       await tap(button('Save the area'));
@@ -302,7 +308,7 @@ describe('the family sets the area', () => {
     await type('Point from a map app', 'https://www.google.com/maps/@40.123364,-88.25828,17z');
     await tap(button('Use this point'));
     expect(container.querySelector('[data-testid="area-map"]')).not.toBeNull();
-    expect(container.querySelector('[data-testid="area-editor-lines"]').textContent).toContain('I-74 at Exit 181 · about 0.7 mi');
+    expect(container.querySelector('[data-testid="area-editor-lines"]').textContent).toContain('I-74 at Exit 181 · about 0.7 miles');
     await tap(button('Save the area'));
     expect(saved).toHaveLength(1);
     const [patch, summary] = saved[0];

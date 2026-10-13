@@ -1,0 +1,50 @@
+# Nearby witness — the real "What's nearby" for a real address (DR-0995)
+#
+# The family's app places every door on the map from its own address and lists
+# what is near THAT house (Census / OpenStreetMap lookup, then OpenStreetMap's
+# Overpass API around its own point). The cloud sandbox cannot reach any of
+# those services, so the unit tests read recorded answers; this reads the live
+# ones from a GitHub runner, for any address, on demand.
+#
+# Dispatch only: no schedule, nothing spawned, read-only (it saves nothing).
+# BUDGET: one runner, 5-minute timeout, three requests. LOCK: concurrency group.
+name: Nearby witness
+
+on:
+  workflow_dispatch:
+    inputs:
+      street:
+        description: 'Street address (house number first)'
+        required: true
+        default: '805 North Prospect Avenue'
+      city:
+        description: 'City'
+        required: true
+        default: 'Champaign'
+      state:
+        description: 'State'
+        required: true
+        default: 'Illinois'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nearby-witness
+  cancel-in-progress: false
+
+jobs:
+  witness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Look the address up and list what is near it
+        env:
+          STREET: ${{ inputs.street }}
+          CITY: ${{ inputs.city }}
+          STATE: ${{ inputs.state }}
+        run: node scripts/nearby-witness.mjs "$STREET" "$CITY" "$STATE"
