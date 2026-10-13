@@ -111,6 +111,15 @@ jobs:
           echo "=== tailscale funnel status ==="; $SSH "$TSBIN funnel status 2>&1 || true"
           echo "=== tailscale serve status ==="; $SSH "$TSBIN serve status 2>&1 || true"
           echo "=== poetech-mcp service ==="; $SSH 'systemctl is-active poetech-mcp 2>&1; systemctl status poetech-mcp --no-pager -n 5 2>&1 || true'
+          # DR-0272 open verification, answered by the channel, not by a human
+          # ask: -n never prompts, -l only LISTS the rules that apply to dpoe.
+          # A narrow grant prints exactly the run.mjs line; anything broader
+          # (the unexplained `sudo -n true` success) prints itself here.
+          echo "=== sudo -n -l (grant breadth, read-only) ==="; $SSH 'sudo -n -l 2>&1 || true'
+          # Is the fleet's cron clock registered? (DR-0272; readable output
+          # either way — a permission denial is itself the answer "needs the
+          # principal's eye", never a guess.)
+          echo "=== /etc/crontab nas-loops line (is the clock registered?) ==="; $SSH 'grep -n "nas-loops" /etc/crontab 2>&1 || echo "no nas-loops line readable as dpoe"'
           echo "=== localhost :8795 discover (does the server itself answer?) ==="
           $SSH "curl -sS -o /dev/null -w 'HTTP %{http_code}\n' --max-time 10 -X POST http://127.0.0.1:8795/mcp -H 'Mcp-Method: server/discover' -d '{}' 2>&1 || true"
           echo "=== funnel --set-path help (is the syntax even supported here?) ==="; $SSH "$TSBIN funnel --help 2>&1 | head -30 || true"

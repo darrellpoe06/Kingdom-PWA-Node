@@ -9,7 +9,35 @@
 
 ---
 
-## 0. Why this doc exists now (the trigger)
+## 0. Why this doc exists now (the trigger + the goal)
+
+> **THE GOAL, IN HIS OWN WORDS (Darrell, 2026-06-23).** *"The best PRIVATE,
+> SOVEREIGN coding rig he can afford, OUTSIDE vendor cloud LLMs. What I need and
+> more for programming — not cloud-grade."*
+>
+> **The cap is the symptom, not the goal.** The three drivers, in his order of
+> priority:
+>
+> 1. **Privacy / legal exposure (PRIMARY).** No question, no code, no context
+>    goes to any cloud where it could be logged, retained, subpoenaed, or used
+>    against him. The rig must be fully offline-capable and **air-gappable** —
+>    coding works with the network unplugged.
+> 2. **Strong OPEN coding-model throughput per dollar**, running locally.
+> 3. **Continuity.** The build never stalls on a cap, an outage, or a refusal.
+>
+> **Cloud-parity is explicitly NOT the bar.** This box is not trying to match
+> any vendor's hardest agentic work — it is trying to be *more than enough for
+> his programming, on his own hardware, with his data never leaving the
+> building.* Throughput-per-dollar and data-never-leaves outrank benchmark
+> parity in every screen below.
+>
+> *Recovered 2026-10-13 from PR #286, where this reframe sat unmerged for
+> nearly four months while `main` carried only the earlier pre-privacy draft
+> (DR-0993). His words are build input and are not left in a closed branch
+> (CLAUDE.md, "Spoken Teachings Are Build Input"). The hardware specifics
+> below — prices, tok/s, model picks — remain the **June 2026 snapshot** and
+> are re-verified before any purchase, not read as current.*
+
 
 Darrell has lost trust in cloud Claude over the last four weeks; **today the weekly usage cap stalled the local-LLM cutover work** — the exact failure this purchase is meant to end. The binding need is **continuity**: a sovereign box that keeps the build moving when the vendor is capped, down, or refusing. This is a research-first decision for a **$4–6k+** purchase (Darrell's research-first rule).
 
