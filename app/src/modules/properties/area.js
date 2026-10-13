@@ -197,9 +197,15 @@ export async function nearbyAround(point, { fetchImpl = (typeof fetch === 'funct
   if (!fetchImpl) return { ok: false, reason: 'This device cannot look up what is nearby.' };
   let found;
   try {
+    // No Accept header: overpass-api.de sits behind Apache content
+    // negotiation, and an explicit "accept: application/json" is answered
+    // "406 Not Acceptable -- an appropriate representation of the requested
+    // resource could not be found" before the query runs (nearby-witness run
+    // 38434388889, 2026-10-13, read from the server's own body). A browser's
+    // default "*/*" goes through; the query's [out:json] decides the shape.
     const res = await fetchImpl(OVERPASS, {
       method: 'POST',
-      headers: { 'content-type': 'application/x-www-form-urlencoded', accept: 'application/json' },
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
       body: `data=${encodeURIComponent(overpassQuery(point))}`,
       signal: AbortSignal.timeout(timeoutMs),
     });
