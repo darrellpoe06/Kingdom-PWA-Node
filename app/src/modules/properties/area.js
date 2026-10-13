@@ -203,7 +203,14 @@ export async function nearbyAround(point, { fetchImpl = (typeof fetch === 'funct
       body: `data=${encodeURIComponent(overpassQuery(point))}`,
       signal: AbortSignal.timeout(timeoutMs),
     });
-    if (!res.ok) return { ok: false, reason: `What is nearby could not be looked up (HTTP ${res.status}).` };
+    if (!res.ok) {
+      // The server's own words ride along (the witness on 2026-10-13 saw a
+      // bare "HTTP 406" from a runner and could say nothing more): measured,
+      // never guessed (DR-0076).
+      let said = '';
+      try { said = String(await res.text()).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 160); } catch (_) { said = ''; }
+      return { ok: false, reason: `What is nearby could not be looked up (HTTP ${res.status}${said ? `: ${said}` : ''}).` };
+    }
     found = nearbyFromOverpass(point, await res.json());
   } catch (e) {
     return { ok: false, reason: e?.name === 'TimeoutError' ? 'What is nearby took too long to answer.' : 'What is nearby could not be reached just now.' };
