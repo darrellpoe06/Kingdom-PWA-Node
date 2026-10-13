@@ -15,9 +15,12 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { SOVEREIGN_AI_MODULES } from '../lib/sovereign-ai-class.js';
+import {
+  SOVEREIGN_AI_MODULES, SOVEREIGN_AI_SESSION_FLOW, SOVEREIGN_AI_SESSION_MINUTES,
+} from '../lib/sovereign-ai-class.js';
 import { placesMissingDirections } from '../lib/talk-together.js';
 import { formatLessonText, lessonShareText } from '../lib/lesson-format.js';
+import { parseRunOfShow } from '../lib/presentable.js';
 
 const CORPUS = join(process.cwd(), 'public', 'bible', 'kjv');
 
@@ -69,6 +72,8 @@ const EVERY_TEXT = () => {
   for (const [k, v] of Object.entries(lesson.rpe || {})) push(`rpe.${k}`, v);
   (lesson.benefits || []).forEach((b, i) => push(`benefits[${i}]`, b));
   ((lesson.facilitator || {}).talkingPoints || []).forEach((t, i) => push(`talkingPoints[${i}]`, t));
+  push('howToRun', (lesson.facilitator || {}).howToRun);
+  ((lesson.facilitator || {}).discussionPrompts || []).forEach((p, i) => push(`discussionPrompts[${i}]`, p));
   ((lesson.quiz || {}).questions || []).forEach((q, i) => {
     push(`quiz[${i}].q`, q.q); push(`quiz[${i}].explain`, q.explain);
   });
@@ -93,6 +98,27 @@ describe('sov38 — the verses are the corpus, verbatim', () => {
   it('every pinned verse is quoted somewhere in the lesson', () => {
     const all = PLACES().map((p) => p.text).join('\n');
     expect(Object.values(PINNED).filter((t) => !all.includes(t))).toEqual([]);
+  });
+
+  // The generalised form of a real slip: an earlier draft of quiz[1].explain ended
+  // Proverbs 24:3 with a full stop where the KJV has a colon, and the pinned-table
+  // check above could not see it, because it only pins the table. This walks EVERY
+  // "quote" (Reference) pair the module writes anywhere and holds it to the corpus.
+  it('every quoted span that names a reference is that verse, character for character', () => {
+    const RE = /"([^"]{12,})"\s*\((\d?\s?[A-Z][A-Za-z]+\s+\d+:\d+)\)/g;
+    const offenders = [];
+    let pairs = 0;
+    for (const { place, text } of EVERY_TEXT()) {
+      RE.lastIndex = 0;
+      let m;
+      while ((m = RE.exec(text))) {
+        pairs += 1;
+        const ref = m[2].replace(/\s+/g, ' ').trim();
+        if (corpusText(ref) !== m[1]) offenders.push(`${place} :: ${ref}`);
+      }
+    }
+    expect(pairs).toBeGreaterThan(90); // 104 on 2026-10-13; a collapse here means the walk stopped seeing them
+    expect(offenders, 'the corpus on disk is the authority for every quotation').toEqual([]);
   });
 
   it('anchor.ref names every verse the lesson stands on (DR-0734)', () => {
@@ -151,6 +177,35 @@ describe('sov38 — the sections are numbered exactly once (DR-0520)', () => {
   it('no author numbering remains, which would disable the caps-heading pass', () => {
     const offenders = PLACES().filter(({ text }) => /(?:^|\n\n)(?:MOVEMENT\s+)?(?:ONE|TWO|THREE|FOUR|FIVE|SIX|SEVEN|[1-9])\.\s+[A-Z]/.test(text));
     expect(offenders.map((o) => o.place)).toEqual([]);
+  });
+});
+
+describe('sov38 — the facilitator guide is whole', () => {
+  // This is the check I did not have. The lesson shipped with talkingPoints alone,
+  // and the COURSE-wide suite caught the two missing fields in CI rather than this
+  // one, which is the wrong place for a lesson's own witness to be silent. The
+  // run-of-show is pinned to the course's six-segment, 75-minute shape so a guide
+  // that parses into the wrong flow fails here, not on a Sunday.
+  it('carries all three facilitator fields', () => {
+    const f = lesson.facilitator;
+    expect(f.talkingPoints.length).toBeGreaterThan(0);
+    expect(typeof f.howToRun).toBe('string');
+    expect(f.discussionPrompts.length).toBeGreaterThan(0);
+  });
+
+  it('the run of show is the course session flow, and it sums to 75 minutes', () => {
+    const segs = parseRunOfShow(lesson.facilitator.howToRun);
+    expect(segs.map((s) => s.name)).toEqual(SOVEREIGN_AI_SESSION_FLOW.map((s) => s.name));
+    expect(segs.map((s) => s.estimatedMin)).toEqual(SOVEREIGN_AI_SESSION_FLOW.map((s) => s.minutes));
+    expect(segs.reduce((t, s) => t + s.estimatedMin, 0)).toBe(SOVEREIGN_AI_SESSION_MINUTES);
+    expect(segs.filter((s) => !s.detail)).toEqual([]);
+  });
+
+  it('every discussion prompt opens on a verse and then asks something', () => {
+    for (const p of lesson.facilitator.discussionPrompts) {
+      expect(p, 'a prompt opens with the quotation').toMatch(/^"[^"]+"\s*\([^)]+\)/);
+      expect(p.trim(), 'and it ends on a question').toMatch(/\?$/);
+    }
   });
 });
 
