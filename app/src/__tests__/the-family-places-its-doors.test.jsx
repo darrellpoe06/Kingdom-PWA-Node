@@ -37,6 +37,7 @@ vi.mock('../modules/properties/cloud.js', () => {
     loadSiblingPhotos: async () => ({ ok: true, photos: [], siblings: [] }),
     loadDoorPhotoOrders: async () => ({ ok: true, orders: {} }),
     loadDoorAreas: async () => { H.areasRead += 1; return { ok: true, placed: new Set(['r2']) }; }, saveDoorPhotoOrder: async () => ({ ok: true, saved: 0 }),
+    loadDoorArchives: async () => ({ ok: true, channels: {}, heldAt: {} }),
     loadDoorPhotos: async () => ({ ok: true, photos: [] }),
     loadPhotoThumbs: async () => ({ ok: true, thumbs: {} }), loadStayPayment: async () => ({ ok: true, payment: null }), loadDoorNotes: async () => ({ ok: true, notes: [] }), loadVacancyAddress: async () => ({ ok: false }), loadGuestDoor: async () => ({ ok: false }), loadJobVideo: async () => ({ ok: false }),
     loadSystems: async () => ({ ok: true, systems: [] }), loadSystemEvents: async () => ({ ok: true, events: [] }), loadPropertyNotes: async () => ({ ok: true, notes: [] }),
@@ -113,7 +114,12 @@ describe('every door with an address is on the map, by default', () => {
     expect(H.placeCalls[0].rentals.map((r) => r.id)).toEqual(['r1', 'r2']);
     expect([...H.placeCalls[0].placed]).toEqual(['r2']);
     // The same edit path as the editor, so the trace lands in the door's notes.
-    expect(H.saves).toEqual([{ id: 'r1', patch: { area_lat: 40.125, area_lng: -88.26, nearby: null }, opts: { summary: 'Placed on the map from its address (automatic): the area' } }]);
+    // The record is held whole FIRST (DR-0997: both doors already in their
+    // parts, so each is marked held), then the door is placed.
+    expect(H.saves.map((s) => s.id)).toEqual(['r1', 'r2', 'r1']);
+    expect(H.saves[0].patch.address_held_at).toBeTruthy();
+    expect(H.saves[0].opts.summary).toBe('Address held in its parts');
+    expect(H.saves[2]).toEqual({ id: 'r1', patch: { area_lat: 40.125, area_lng: -88.26, nearby: null }, opts: { summary: 'Placed on the map from its address (automatic): the area' } });
   });
 
   it('PROVEN-TO-CATCH: a session that owns no doors (a tenant\'s) places nothing', async () => {

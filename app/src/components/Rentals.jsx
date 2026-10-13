@@ -9,11 +9,15 @@ import { DispatchPanel } from './DispatchPanel.jsx';
 import { parseChatHistory, toConversationEntries } from '../lib/chat-import.js';
 import { compressImageFile } from '../lib/image.js';
 import {
-  loadDoorPhotos as loadCloudDoorPhotos, loadPhotoImages as loadCloudPhotoImages,
+  loadDoorPhotos as loadCloudDoorPhotos, loadPhotoImages as loadCloudPhotoImages, loadDoorAreas,
   loadPhotoThumbs as loadCloudPhotoThumbs, PHOTO_THUMB_BATCH, loadDoorTenancies,
 } from '../modules/properties/cloud.js';
 import { listImage as cloudListImage } from '../modules/properties/photo-order.js';
-import { hasBridgeToken, chatChannelFor, fetchChannelPhotos, propertyPhotosUrl } from '../lib/nas-photos.js';
+import { hasBridgeToken, chatChannelFor, fetchChannelPhotos, propertyPhotosUrl, nasRoad } from '../lib/nas-photos.js';
+// ONE ADDRESS, BOTH DOORS (DR-0997): the same parts, the same line, the same
+// dropdown of known buildings, and the same rounded area as Poe Properties.
+import { buildingOptions, pickedBuilding, formatAddress, formatBuilding, addressNeeds } from '../modules/properties/address.js';
+import { MapOnRequest } from '../modules/properties/AreaMap.jsx';
 import PropertyPhotoActions, { PhotoRemoveButton } from './PropertyPhotoActions.jsx';
 import { fetchPropertyUploads, applyPropertyPhotoEdits, destinationFor } from '../lib/property-photo-edit.js';
 import { provisionBridgeToken, publishBridgeToken } from '../lib/bridge-provision.js';
@@ -354,6 +358,7 @@ function PropertyGallery({ rental, nasTotal = null }) {
     <div className="bg-white border border-[#E8E4DC] p-3">
       <div className="flex items-baseline justify-between gap-2 flex-wrap">
         <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">Property Photos · oldest → latest{totalKnown ? ` · ${totalKnown} in the archive` : ''}</div>
+        {channel && <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]" data-testid="re-archive">archive · {channel}{nas.status === 'ready' ? ` · ${nasRoad()} road` : ''}</span>}
         {nas.status === 'loading' && <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">reading the NAS archive…</span>}
       </div>
       {/* Same truth on the populated strip: a property with room and archive
@@ -1209,6 +1214,28 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
     return () => { cancelled = true; };
   }, [rentals]);
   const photoCountFor = (r) => (channelCounts[r.id] != null ? channelCounts[r.id] : propertyPhotoCount(r));
+  // THE ADDRESS IS PICKED, NOT RETYPED (DR-0997). Darrell: "Drop down with
+  // addresses... instead of letting someone else mistyped". The family's own
+  // buildings sit under the street field; an exact pick fills the town, state
+  // and zip; typing still works (and still pulls the map suggestions).
+  const knownBuildings = useMemo(() => buildingOptions(rentals || []), [rentals]);
+  const typeAddress = (v) => {
+    const b = pickedBuilding(v, knownBuildings);
+    if (b) { setPropForm((f) => ({ ...f, address: b.address, city: b.city || f.city, state: b.state || f.state, zip: b.zip || f.zip })); setSuggestions([]); return; }
+    setPropForm((f) => ({ ...f, address: v }));
+    fetchSuggestions(v);
+  };
+  // THE SAME AREA POE PROPERTIES HOLDS (DR-0997): the rounded area on the cloud
+  // row, by remoteUuid, read once. "Coords" used to show only a point picked on
+  // this device, so every card said "Set address" while the other door had
+  // placed the house. Never an exact point: the area is a 0.005-degree cell.
+  const [cloudAreas, setCloudAreas] = useState({});
+  useEffect(() => {
+    let live = true;
+    loadDoorAreas().then((r) => { if (live && r && r.ok) setCloudAreas(r.areas || {}); }).catch(() => {});
+    return () => { live = false; };
+  }, [rentals]);
+  const areaFor = (r) => (r && r.remoteUuid ? cloudAreas[r.remoteUuid] || null : null);
   const toggleTenantLink = (rentalId, link) => {
     setTenantLateSelectedLinks(prev => {
       const cur = prev[rentalId] || [];
@@ -1857,7 +1884,8 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
 
             <div>
               <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Address (start typing — suggestions appear)</label>
-              <input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="123 Main St, Cedar Heights" value={propForm.address} onChange={e => { setPropForm({ ...propForm, address: e.target.value }); fetchSuggestions(e.target.value); }} />
+              <input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="123 Main St, Cedar Heights" value={propForm.address} list="known-buildings-re" autoComplete="off" onChange={e => typeAddress(e.target.value)} />
+              <datalist id="known-buildings-re">{knownBuildings.map((b) => <option key={b.label} value={b.label} />)}</datalist>
               {suggestLoading && <div className="text-[0.625rem] text-[#5A5751] italic mt-1">Searching...</div>}
               {suggestions.length > 0 && (
                 <div className="border border-[#E8E4DC] bg-white mt-1 max-h-48 overflow-y-auto">
@@ -2131,7 +2159,17 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                     <div className="flex-1 min-w-0">
                       <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{rowTitle}</div>
                       <div className="text-xs text-[#5A5751]">
-                        {(() => { const full = [r.address, r.city, r.state, r.zip].filter(Boolean).join(', '); return (full && full !== rowTitle) ? <span className="mr-2">{full}</span> : null; })()}
+                        {(() => {
+                          // THE ONE PATTERN (DR-0997): street, unit, town, state zip,
+                          // printed by the same formatter Poe Properties uses; and
+                          // what is still missing, said plainly, never hidden.
+                          const full = formatAddress({ address: r.address, unit: r.unitLabel, city: r.city, state: r.state, zip: r.zip });
+                          const needs = addressNeeds({ address: r.address, city: r.city, state: r.state });
+                          return (<>
+                            {(full && full !== rowTitle) ? <span className="mr-2" data-testid="re-address-line">{full}</span> : null}
+                            {needs.length > 0 && <span className="text-[#B85838] mr-2" data-testid="re-address-needs">· address needs {needs.join(' and ')}</span>}
+                          </>);
+                        })()}
                         {r.propertyType && <span className="uppercase tracking-wider text-[0.5625rem]">· {r.propertyType}</span>}
                         {photoCountFor(r) > 0 && <span className="uppercase tracking-wider text-[0.5625rem] text-[#B85838] ml-2">· 📷 {photoCountFor(r)} photo{photoCountFor(r) === 1 ? '' : 's'}</span>}
                       </div>
@@ -2159,8 +2197,14 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                     <div><span className="text-[#5A5751]">Mortgage:</span> <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>{r.mortgage?.balance ? fmt(r.mortgage.balance) : '—'}</span></div>
                     <div><span className="text-[#5A5751]">Rate:</span> <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>{r.mortgage?.rate ? r.mortgage.rate + '%' : '—'}</span></div>
                     <div><span className="text-[#5A5751]">P&I:</span> <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>{r.mortgage?.monthlyPI ? fmt(r.mortgage.monthlyPI) : '—'}</span></div>
-                    <div><span className="text-[#5A5751]">Coords:</span> {typeof r.lat === 'number' ? <span className="text-[0.625rem]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{r.lat.toFixed(3)}, {r.lon.toFixed(3)}</span> : <button type="button" onClick={() => startEditProp(r)} className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] underline">📍 Set address</button>}</div>
+                    <div><span className="text-[#5A5751]">Map:</span> {areaFor(r)
+                      ? <span className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D]" data-testid="re-area">On the map · area</span>
+                      : typeof r.lat === 'number' ? <span className="text-[0.625rem]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{r.lat.toFixed(3)}, {r.lon.toFixed(3)} <span className="text-[#5A5751]">(this device)</span></span>
+                      : <button type="button" onClick={() => startEditProp(r)} className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] underline">📍 Set address</button>}</div>
                   </div>
+                  {(areaFor(r) || r.address) && (
+                    <MapOnRequest area={areaFor(r)} query={r.address ? formatBuilding({ address: r.address, city: r.city, state: r.state }) : ''} where={[r.city, r.state].filter(Boolean).join(', ')} streetShown />
+                  )}
                   <div className="flex gap-2 mt-2 items-baseline flex-wrap">
                     <button type="button" onClick={() => editingPropId === r.id ? cancelPropForm() : startEditProp(r)} aria-expanded={editingPropId === r.id} className="text-xs uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] hover:bg-[#FAF8F4] border border-transparent hover:border-[#1A1815] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">{editingPropId === r.id ? '× Cancel edit' : '✎ Edit'}</button>
                     <button type="button" onClick={() => openRecords(r)} className="text-xs uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] hover:bg-[#FAF8F4] border border-transparent hover:border-[#B85838] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">
@@ -2285,7 +2329,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                             pin light up from the one pick. */}
                         <div className="relative">
                           <label htmlFor={`qe-addr-${r.id}`} className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Address (start typing — suggestions appear)</label>
-                          <input id={`qe-addr-${r.id}`} className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" value={propForm.address} onChange={e => { setPropForm({ ...propForm, address: e.target.value }); fetchSuggestions(e.target.value); }} />
+                          <input id={`qe-addr-${r.id}`} className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" value={propForm.address} list="known-buildings-re" autoComplete="off" onChange={e => typeAddress(e.target.value)} />
                           {suggestions.length > 0 && (
                             <div className="absolute z-10 left-0 right-0 border border-[#E8E4DC] bg-white mt-1 max-h-48 overflow-y-auto shadow-sm">
                               {suggestions.map((s, si) => (

@@ -16,7 +16,7 @@
 //   bed/bath figure is COUNTED from the rows on screen, so what the header
 //   claims and what the list shows cannot disagree.
 // =============================================================================
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { buildPropertyTimeline, turnPhotos, latestAtDoor, doorEvents } from './timeline.js';
 import {
@@ -31,6 +31,8 @@ import { shelfOrder, doorLabel } from './showcase.js';
 import { sameApartment } from './apartment.js';
 import { moneyLine, dollarsLong } from './door-money.js';
 import { AreaEditor } from './AreaMap.jsx';
+import { buildingOptions, pickedBuilding, formatAddress } from './address.js';
+import { fetchChannels, hasBridgeToken, nasRoad } from '../../lib/nas-photos.js';
 import { stampImage, stampFileName } from '../../lib/brand-stamp.js';
 import SharpPicture, { sharpestKnown } from './SharpPicture.jsx';
 import { photoOrder, movePhoto, makeCover, pickCovers } from './photo-order.js';
@@ -451,6 +453,9 @@ export function DoorsBoard({
   // Each door's own order of the apartment pictures it borrows (DR-0984):
   // {rental_id: {photo_id: position}}. Bed B's card leads with its choice.
   photoOrders = {},
+  // The family's known buildings (for the address dropdown) and each door's
+  // picture archive on the NAS, {rental_id: channel} (DR-0997).
+  knownBuildings = [], archives = {},
   onPick, onStart, onListing, onEditTenancy, onEditRental, onArrange, busy = false,
   // What each door has brought in (DR-0903, door_money_months): moneyByDoor's
   // result. Shown on the family's board only; null hides it.
@@ -674,7 +679,7 @@ export function DoorsBoard({
               )}
               {editingDoor === x.rental.id && (
                 <div className="px-2 pb-2">
-                  <EditRental
+                  <EditRental knownBuildings={knownBuildings} archive={archives?.[x.rental.id] || ''}
                     rental={x.rental} busy={busy}
                     onSave={(patch, summary) => { onEditRental?.(x.rental.id, patch, summary); setEditingDoor(null); }}
                   />
@@ -768,7 +773,7 @@ export function DoorsBoard({
             </div>
             {qrFor === x.rental.id && <DoorQR rental={x.rental} label={x.label} />}
             {editingDoor === x.rental.id && (
-              <EditRental
+              <EditRental knownBuildings={knownBuildings} archive={archives?.[x.rental.id] || ''}
                 rental={x.rental} busy={busy}
                 onSave={(patch, summary) => { onEditRental?.(x.rental.id, patch, summary); setEditingDoor(null); }}
               />
@@ -792,7 +797,7 @@ export function DoorsBoard({
     </Card>
     )}
     {homeRows.length > 0 && (
-      <OurHomes rows={homeRows} canManage={canManage} busy={busy} onPick={onPick} onEditRental={onEditRental} loadImage={loadImage} loadThumb={loadThumb} />
+      <OurHomes rows={homeRows} canManage={canManage} busy={busy} onPick={onPick} onEditRental={onEditRental} loadImage={loadImage} loadThumb={loadThumb} knownBuildings={knownBuildings} archives={archives} />
     )}
     </>
   );
@@ -814,7 +819,7 @@ export function DoorsBoard({
  * a house on a properties screen and seeing no rent, no mortgage and no value
  * would reasonably conclude the app had lost them.
  */
-function OurHomes({ rows = [], canManage = false, busy = false, onPick, onEditRental, loadImage = null, loadThumb = null }) {
+function OurHomes({ rows = [], canManage = false, busy = false, onPick, onEditRental, loadImage = null, loadThumb = null, knownBuildings = [], archives = {} }) {
   const [editingDoor, setEditingDoor] = useState(null);
   return (
     <Card
@@ -860,7 +865,7 @@ function OurHomes({ rows = [], canManage = false, busy = false, onPick, onEditRe
               )}
             </div>
             {editingDoor === x.rental.id && (
-              <EditRental
+              <EditRental knownBuildings={knownBuildings} archive={archives?.[x.rental.id] || ''}
                 rental={x.rental} busy={busy}
                 onSave={(patch, summary) => { onEditRental?.(x.rental.id, patch, summary); setEditingDoor(null); }}
               />
@@ -1018,8 +1023,9 @@ export const OFFERINGS = Object.freeze([
  * single piece of this feature only he holds, so the app hands him the field
  * instead of guessing, and every other door is untouched.
  */
-function EditRental({ rental, onSave, busy }) {
+function EditRental({ rental, onSave, busy, knownBuildings = [], archive = '' }) {
   const [f, setF] = useState({
+    photo_channel: archive || rental.photo_channel || '',
     address: rental.address || '',
     unit: rental.unit || '',
     city: rental.city || '',
@@ -1037,6 +1043,28 @@ function EditRental({ rental, onSave, busy }) {
   const set = (k) => (e) => setF((p) => ({ ...p, [k]: e.target.value }));
   const shortStay = f.offering === 'short-term' || f.offering === 'both';
 
+  // THE ADDRESS IS PICKED, NOT RETYPED (DR-0997). Darrell: "Drop down with
+  // addresses... instead of letting someone else mistyped". The family's
+  // known buildings are offered under the street field; an exact pick fills
+  // the town and state; new text is a new building.
+  const buildings = useMemo(() => buildingOptions(knownBuildings), [knownBuildings]);
+  const setAddress = (e) => {
+    const v = e.target.value;
+    const b = pickedBuilding(v, buildings);
+    setF((p) => (b ? { ...p, address: b.address, city: b.city || p.city, state: b.state || p.state } : { ...p, address: v }));
+  };
+  // THE ARCHIVE IS PICKED FROM WHAT THE NAS HOLDS (DR-0997): the list the
+  // photo server serves, with counts, read once when the editor opens. When
+  // the NAS cannot be reached the current name is shown and kept as it is;
+  // a name is never typed here, so one is never mistyped.
+  const [archives, setArchives] = useState({ state: 'reading', list: [] });
+  useEffect(() => {
+    let on = true;
+    if (!hasBridgeToken()) { setArchives({ state: 'no-key', list: [] }); return undefined; }
+    fetchChannels().then((list) => { if (on) setArchives(list ? { state: 'ready', list } : { state: 'unreachable', list: [] }); });
+    return () => { on = false; };
+  }, []);
+
   // Compare against the door as the FORM sees it: an unset offering displays as
   // "Lease only", so treating it as a change would write a field the landlord
   // never touched and light up Save the moment the editor opens.
@@ -1045,7 +1073,8 @@ function EditRental({ rental, onSave, busy }) {
     offering: rental.offering || 'long-term',
     address_visibility: rental.address_visibility || 'public',
     display_name: rental.display_name || '',
-  }), [rental]);
+    photo_channel: archive || rental.photo_channel || '',
+  }), [rental, archive]);
   const edit = useMemo(() => buildEdit(before, {
     ...f,
     // The database refuses a nightly rate on a door that is not offered short —
@@ -1064,6 +1093,7 @@ function EditRental({ rental, onSave, busy }) {
     { key: 'nightly_rate', label: 'Nightly rate', numeric: true },
     { key: 'min_stay_nights', label: 'Minimum stay', numeric: true },
     { key: 'address_visibility', label: 'Street on the public listing' },
+    { key: 'photo_channel', label: 'Picture archive on the NAS' },
   ]), [before, f, shortStay]);
 
   const field = 'w-full border border-[#E8E4DC] px-2 py-2 text-[0.875rem] focus:outline focus:outline-2 focus:outline-[#2F5D50]';
@@ -1078,7 +1108,38 @@ function EditRental({ rental, onSave, busy }) {
           <input type="text" className={field} value={f.display_name} onChange={set('display_name')} placeholder="What this door is called" />
         </label>
         <label className="sm:col-span-2"><span className={lbl}>Address</span>
-          <input type="text" className={field} value={f.address} onChange={set('address')} />
+          <input type="text" className={field} value={f.address} onChange={setAddress} list="known-buildings" autoComplete="off" data-testid="door-address" />
+          <datalist id="known-buildings">
+            {buildings.map((b) => <option key={b.label} value={b.label} />)}
+          </datalist>
+          <span className="block text-[0.6875rem] text-[#6B665E] mt-1" data-testid="door-address-line">
+            {buildings.length ? 'Pick a building the family already holds, or type a new one. ' : ''}
+            This door reads: <strong>{formatAddress({ ...f, unit: f.unit }) || 'nothing yet'}</strong>
+          </span>
+        </label>
+        {/* THE PICTURE ARCHIVE ON THE NAS (DR-0997), picked from the list the NAS
+            serves. Darrell: "Most of the properties have pictures already on
+            the nas... why don't they show up". */}
+        <label className="sm:col-span-2"><span className={lbl}>Picture archive on the NAS</span>
+          {archives.state === 'ready' ? (
+            <select className={field} value={f.photo_channel} onChange={set('photo_channel')} data-testid="door-archive">
+              <option value="">None named</option>
+              {!archives.list.some((c) => c.name === f.photo_channel) && f.photo_channel && <option value={f.photo_channel}>{f.photo_channel} (not on the NAS's list)</option>}
+              {archives.list.map((c) => <option key={c.name} value={c.name}>{c.name} ({c.total} picture{c.total === 1 ? '' : 's'})</option>)}
+            </select>
+          ) : (
+            <span className="block text-[0.8125rem] text-[#1A1815]" data-testid="door-archive-state" data-state={archives.state}>
+              {f.photo_channel ? <>Named: <strong>{f.photo_channel}</strong>. </> : 'None named. '}
+              {archives.state === 'reading' ? 'Reading the NAS\u2019s list\u2026'
+                : archives.state === 'no-key' ? 'This device has no family key yet, so the NAS\u2019s list cannot be read here.'
+                : 'The NAS could not be reached just now; the archive stays as it is.'}
+            </span>
+          )}
+          {archives.state === 'ready' && (
+            <span className="block text-[0.6875rem] text-[#6B665E] mt-1">
+              The pictures in this archive show on this door and in Real Estate. Read over the {nasRoad() === 'direct' ? 'direct' : 'same-origin'} road.
+            </span>
+          )}
         </label>
         {/* WHO MAY SEE THE STREET (0158, DR-0933, then DR-0977). Darrell,
             2026-10-12: "show address unless..." -- the street is the default,

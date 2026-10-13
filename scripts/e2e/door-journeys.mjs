@@ -44,6 +44,8 @@ import { geocodeResponse } from '../../app/functions/geocode.js';
 const JWT_SECRET = 'e2e-door-journeys-throwaway-secret-0123456789abcdef';
 const GATEWAY_PORT = 4173;
 const PGRST_PORT = 3999;
+const PHOTO_PORT = 3998;
+const PHOTO_TOKEN = 'e2e-photo-token';
 const BASE = `http://127.0.0.1:${GATEWAY_PORT}`;
 const BUDGET_MS = Number(process.env.E2E_BUDGET_MS || 240000);
 
@@ -81,13 +83,14 @@ const sql = (text) => execFileSync(PSQL[0], [...PSQL.slice(1), '-v', 'ON_ERROR_S
 const OWNER = '00000000-0000-4000-a000-00000000e2e1';
 const INSTANCE = '00000000-0000-4000-b000-00000000e2e1';
 const DOOR = '00000000-0000-4000-c000-00000000e2e1';
+const DOOR2 = '00000000-0000-4000-c000-00000000e2e2';
 const STREET = '805 North Prospect Avenue';
 function seed() {
   sql(`
     DELETE FROM door_stays WHERE rental_id = '${DOOR}';
-    DELETE FROM property_photos WHERE rental_ref = '${DOOR}';
+    DELETE FROM property_photos WHERE rental_ref IN ('${DOOR}', '${DOOR2}');
     DELETE FROM rent_records WHERE instance_id = '${INSTANCE}';
-    DELETE FROM rentals WHERE id = '${DOOR}';
+    DELETE FROM rentals WHERE id IN ('${DOOR}', '${DOOR2}');
     DELETE FROM instance_members WHERE instance_id = '${INSTANCE}';
     DELETE FROM instances WHERE id = '${INSTANCE}';
     INSERT INTO auth.users (instance_id, id, aud, role, email, encrypted_password, created_at, updated_at)
@@ -95,8 +98,13 @@ function seed() {
       ON CONFLICT (id) DO NOTHING;
     INSERT INTO instances (id, slug, display_name, instance_type) VALUES ('${INSTANCE}', 'poe-properties-e2e', 'Poe Properties E2E', 'business');
     INSERT INTO instance_members (instance_id, user_id, role, display_name) VALUES ('${INSTANCE}', '${OWNER}', 'owner', 'Owner');
-    INSERT INTO rentals (id, instance_id, created_by, slug, display_name, address, unit, city, state, property_type, status, listed_at, offering, nightly_rate, address_visibility)
-      VALUES ('${DOOR}', '${INSTANCE}', '${OWNER}', 'E2E-APT2', '${STREET} Apt 2', '${STREET}', 'Apt 2', 'Champaign', 'Illinois', 'multi-family', 'vacant', now(), 'short-term', 150, 'after-application');
+    INSERT INTO rentals (id, instance_id, created_by, slug, display_name, address, unit, city, state, property_type, status, listed_at, offering, nightly_rate, address_visibility, showcase_order)
+      VALUES ('${DOOR}', '${INSTANCE}', '${OWNER}', 'E2E-APT2', '${STREET} Apt 2', '${STREET}', 'Apt 2', 'Champaign', 'Illinois', 'multi-family', 'vacant', now(), 'short-term', 150, 'after-application', 1);
+    -- A SECOND DOOR IN THE REAL ESTATE SHAPE (DR-0997): the whole address typed
+    -- into one field, no town of its own, not advertised. The family's app
+    -- holds it in its parts by itself (G1 reads the row).
+    INSERT INTO rentals (id, instance_id, created_by, slug, display_name, address, unit, city, state, property_type, status, showcase_order)
+      VALUES ('${DOOR2}', '${INSTANCE}', '${OWNER}', 'r-1508williamsburg', '1508 Williamsburg, Champaign, IL, 61821', '1508 Williamsburg, Champaign, IL, 61821', '', '', '', 'single-family', 'paying', 2);
     -- (a fresh insert carries no area; the family's app places it by itself, E1)
   `);
 }
@@ -122,6 +130,15 @@ export const FAULTS = Object.freeze({
     step: 'D1',
     sql: 'ALTER TABLE public.rent_records ADD CONSTRAINT e2e_fault_needs_tenancy CHECK (tenancy_id IS NOT NULL) NOT VALID;',
     restore: 'ALTER TABLE public.rent_records DROP CONSTRAINT IF EXISTS e2e_fault_needs_tenancy;',
+  },
+  archive: {
+    step: 'G1',
+    // Refuses exactly the archive G1 picks, so the seed's own writes (B1's
+    // repair names 1508Williamsburg) still land and E1 is untouched.
+    sql: `CREATE OR REPLACE FUNCTION public.e2e_fault_archive() RETURNS trigger LANGUAGE plpgsql AS $f$ BEGIN IF NEW.photo_channel = '805NProspect' THEN RAISE EXCEPTION 'e2e fault: archive' USING ERRCODE = 'check_violation'; END IF; RETURN NEW; END $f$;
+          DROP TRIGGER IF EXISTS e2e_fault_archive ON public.rentals;
+          CREATE TRIGGER e2e_fault_archive BEFORE UPDATE ON public.rentals FOR EACH ROW EXECUTE FUNCTION public.e2e_fault_archive();`,
+    restore: 'DROP TRIGGER IF EXISTS e2e_fault_archive ON public.rentals; DROP FUNCTION IF EXISTS public.e2e_fault_archive();',
   },
   area: {
     step: 'E1',
@@ -166,6 +183,37 @@ export const CSP = (() => {
   return line.replace(/^\s+Content-Security-Policy:\s*/, '').split(';').map((d) => d.trim()).filter((d) => d && d !== 'upgrade-insecure-requests').join('; ');
 })();
 
+// THE REAL NAS PHOTO SERVER (DR-0997; LESSONS P59). infra/nas-property-photos/
+// photo_server.py itself, over real HTTP, with a fixture standing in for
+// Synology Chat and a generated JPEG for the phone backup. The gateway
+// proxies /nas-photos/* to it the way the Funnel mount does on the NAS.
+const OVERPASS_PHOTO = { channel: '805NProspect', id: '9001', name: '20240123_144917.jpg' };
+function startPhotoServer() {
+  const root = join(SHOTS, 'nas');
+  const pdir = join(root, 'photos', '2024', '01');
+  mkdirSync(pdir, { recursive: true });
+  execFileSync('python3', ['-c', `from PIL import Image; Image.new('RGB', (2400, 1600), (47, 93, 80)).save(${JSON.stringify(join(pdir, OVERPASS_PHOTO.name))}, format='JPEG', quality=80)`]);
+  const fixture = join(root, 'chat.json');
+  writeFileSync(fixture, JSON.stringify({ channels: [
+    { name: OVERPASS_PHOTO.channel, posts: [{ id: OVERPASS_PHOTO.id, create_at: 1705891200000, name: OVERPASS_PHOTO.name, text: 'the porch, winter' }] },
+    { name: '709CommercialSt', posts: [] },
+    { name: '1508Williamsburg', posts: [] },
+  ] }));
+  const tokenFile = join(root, 'token.txt');
+  writeFileSync(tokenFile, `${PHOTO_TOKEN}\n`);
+  const p = spawn('python3', ['infra/nas-property-photos/photo_server.py', '--serve', '--host', '127.0.0.1', '--port', String(PHOTO_PORT), '--token-file', tokenFile], {
+    stdio: ['ignore', 'inherit', 'inherit'],
+    env: {
+      ...process.env,
+      PHOTO_CHAT_FIXTURE: fixture,
+      PHOTO_ROOTS: join(root, 'photos', '{y}', '{m}'),
+      PHOTO_UNDATED_ROOTS: join(root, 'photos', '*', '*'),
+      PHOTO_UPLOAD_ROOT: join(root, 'uploads'),
+    },
+  });
+  return p;
+}
+
 function startPostgrest() {
   const conf = join(SHOTS, 'postgrest.conf');
   writeFileSync(conf, [
@@ -202,6 +250,16 @@ const TILE_FETCHES = {};
 function gateway() {
   return createServer((req, res) => {
     const url = new URL(req.url, BASE);
+    if (url.pathname.startsWith('/nas-photos/')) {
+      const target = url.pathname.slice('/nas-photos'.length) + url.search;
+      const headers = { ...req.headers, host: `127.0.0.1:${PHOTO_PORT}` };
+      const up = httpRequest({ host: '127.0.0.1', port: PHOTO_PORT, path: target, method: req.method, headers }, (r) => {
+        res.writeHead(r.statusCode || 502, r.headers); r.pipe(res);
+      });
+      up.on('error', () => { res.writeHead(502); res.end(); });
+      req.pipe(up);
+      return;
+    }
     if (url.pathname.startsWith('/sb/rest/v1/')) {
       const target = url.pathname.slice('/sb/rest/v1'.length) + url.search;
       const headers = { ...req.headers, host: `127.0.0.1:${PGRST_PORT}` };
@@ -280,6 +338,7 @@ const dayFromToday = (n) => { const d = new Date(); d.setDate(d.getDate() + n); 
 async function run() {
   const { chromium } = await import('playwright-core');
   const pgrst = startPostgrest();
+  const photos = startPhotoServer();
   const server = gateway();
   await new Promise((r) => server.listen(GATEWAY_PORT, '127.0.0.1', r));
   const killer = setTimeout(() => { console.error('door-journeys: over budget'); process.exit(1); }, BUDGET_MS);
@@ -288,8 +347,9 @@ async function run() {
   try {
     await waitFor(async () => {
       const r = await fetch(`http://127.0.0.1:${PGRST_PORT}/`).catch(() => null);
-      return r && r.status < 500;
-    }, 'PostgREST to answer', 30000);
+      const ph = await fetch(`http://127.0.0.1:${PHOTO_PORT}/healthz`).catch(() => null);
+      return r && r.status < 500 && ph && ph.ok;
+    }, 'PostgREST and the photo server to answer', 30000);
     seed();
     if (BREAK) { console.log(`  (fault installed: ${BREAK} — step ${FAULTS[BREAK].step} must fail)`); sql(FAULTS[BREAK].sql); }
     browser = await chromium.launch({ headless: true, ...(CHROME ? { executablePath: CHROME } : { channel: 'chrome' }) });
@@ -366,14 +426,16 @@ async function run() {
     const token = mintJwt({ sub: OWNER, role: 'authenticated', aud: 'authenticated', email: 'owner@e2e.local', exp: FAR });
     const session = { access_token: token, token_type: 'bearer', expires_in: 3600 * 24 * 365, expires_at: FAR, refresh_token: 'e2e', user: { id: OWNER, aud: 'authenticated', role: 'authenticated', email: 'owner@e2e.local', app_metadata: {}, user_metadata: {} } };
     await owner.addInitScript(([k, v]) => { try { localStorage.setItem(k, v); } catch { /* none */ } }, ['sb-127-auth-token', JSON.stringify(session)]);
+    // The family key this device holds, so the NAS reads are made (DR-0997).
+    await owner.addInitScript(([k, v]) => { try { localStorage.setItem(k, v); } catch { /* none */ } }, ['poetech-chat-bridge-token', PHOTO_TOKEN]);
     const op = watch(await owner.newPage(), 'owner'); current = op;
     await step('B1 the family sees the door with its full address', async () => {
       await op.goto(`${BASE}/properties/app/?properties=1`, { waitUntil: 'domcontentloaded' });
-      await op.getByText(STREET).first().waitFor({ timeout: 20000 });
+      await op.getByText(STREET).locator('visible=true').first().waitFor({ timeout: 20000 });
       await op.screenshot({ path: join(SHOTS, 'B1-family-doors.png'), fullPage: true });
     });
     await step('B2 the family confirms the ask in the Stays tab', async () => {
-      await op.getByText(STREET).first().click();
+      await op.getByText(STREET).locator('visible=true').first().click();
       await op.getByRole('button', { name: /^Stays$/ }).first().click({ timeout: 15000 });
       await op.getByTestId('stay-ask').first().waitFor({ timeout: 15000 });
       await op.getByRole('button', { name: /^Confirm$/ }).first().click();
@@ -403,8 +465,14 @@ async function run() {
     await step('E1 the family\'s app places the door from its own address BY ITSELF; the database keeps the rounded area and what is near it (DR-0996)', async () => {
       // Nobody pressed anything: opening the family's app (B1) placed it.
       await waitFor(() => sql(`SELECT coalesce(area_lat::text,'') || ',' || coalesce(area_lng::text,'') FROM rentals WHERE id = '${DOOR}'`) === '40.12500,-88.26000', 'the area to read 40.12500,-88.26000 in the database', 30000);
-      if (GEOCODES.join('|') !== `${STREET}, Champaign, Illinois`) throw new Error(`the address was looked up as "${GEOCODES.join('|')}", not once for this door`);
-      if (OVERPASS_ASKS.length !== 1) throw new Error(`what is nearby was asked ${OVERPASS_ASKS.length} times, not once`);
+      // One lookup per building, by the address AS HELD: the second door was
+      // repaired first (G1 reads it), so it is asked for as its parts, not as
+      // its one-line field. The recorded answer is 805's house, which is not
+      // 1508, so that door is REFUSED a place (matchesAddress), end to end.
+      const asked = GEOCODES.slice().sort();
+      if (asked.join('|') !== ['1508 Williamsburg, Champaign, IL', `${STREET}, Champaign, Illinois`].join('|')) throw new Error(`the addresses were looked up as "${GEOCODES.join('|')}"`);
+      if (OVERPASS_ASKS.length !== 1) throw new Error(`what is nearby was asked ${OVERPASS_ASKS.length} times, not once (the refused door must never reach it)`);
+      if (sql(`SELECT count(*) FROM rentals WHERE id = '${DOOR2}' AND area_lat IS NOT NULL`) !== '0') throw new Error('the wrong-house answer was saved as the second door\'s area');
       // Nearest first, measured from THIS door's own point: the recorded park
       // (not in the Champaign research) leads; the research fills the rest.
       const lines = sql(`SELECT jsonb_array_length(nearby) || '|' || (nearby->0->>'label') || '|' || (nearby->1->>'label') FROM rentals WHERE id = '${DOOR}'`);
@@ -417,6 +485,29 @@ async function run() {
       const status = await op.getByTestId('area-status').innerText();
       if (!status.includes('This door is on the map')) throw new Error(`the editor says "${status}"`);
       await op.screenshot({ path: join(SHOTS, 'E1-placed-by-itself.png'), fullPage: true });
+    });
+
+    // G. One record, both doors (DR-0997): the family's app held the second
+    // door's whole-line address in its parts by itself; the archive is picked
+    // from the list the REAL NAS photo server serves, and lands on the row.
+    await step('G1 the address is held in its parts by itself, and the archive is picked from the NAS\'s own list', async () => {
+      // The repair ran on the family's first visit (B1), with its trace.
+      await waitFor(() => sql(`SELECT address || '|' || city || '|' || state || '|' || coalesce(zip,'') FROM rentals WHERE id = '${DOOR2}'`) === '1508 Williamsburg|Champaign|IL|61821', 'the second door to be held in its parts', 30000);
+      if (!sql(`SELECT notes FROM rentals WHERE id = '${DOOR2}'`).includes('was "1508 Williamsburg, Champaign, IL, 61821"')) throw new Error('the repair left no trace in the notes');
+      if (sql(`SELECT photo_channel FROM rentals WHERE id = '${DOOR2}'`) !== '1508Williamsburg') throw new Error('the old list\'s archive was not written onto the record');
+      if (sql(`SELECT count(*) FROM rentals WHERE id = '${DOOR}' AND address_held_at IS NOT NULL`) !== '1') throw new Error('the first door was not marked held');
+      // The editor (still open from E1): the archive select was filled by the
+      // real server, and the address line reads the one pattern.
+      const sel = op.getByTestId('door-archive');
+      await sel.waitFor({ timeout: 15000 });
+      const options = await sel.locator('option').allInnerTexts();
+      if (!options.some((o) => o.startsWith('805NProspect (1 picture)')) || !options.some((o) => o.startsWith('709CommercialSt (0 pictures)'))) throw new Error(`the archive list reads ${JSON.stringify(options)}`);
+      const line = await op.getByTestId('door-address-line').innerText();
+      if (!line.includes(`${STREET}, Apt 2, Champaign, Illinois`)) throw new Error(`the address line reads "${line}"`);
+      await sel.selectOption('805NProspect');
+      await op.getByRole('button', { name: /^Save the change$/ }).click();
+      await waitFor(() => sql(`SELECT photo_channel FROM rentals WHERE id = '${DOOR}'`) === '805NProspect', 'the archive to land on the row');
+      await op.screenshot({ path: join(SHOTS, 'G1-archive-picked.png'), fullPage: true });
     });
 
     // F. A HEIC from a phone is kept, not skipped (DR-0939). Darrell's Samsung:
@@ -503,6 +594,7 @@ async function run() {
     if (browser) await browser.close().catch(() => {});
     server.close();
     pgrst.kill();
+    photos.kill();
     writeFileSync(join(SHOTS, 'results.json'), JSON.stringify(results, null, 2));
   }
   return results;

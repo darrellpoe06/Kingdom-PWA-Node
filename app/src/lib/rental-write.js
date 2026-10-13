@@ -30,6 +30,7 @@
 // =============================================================================
 
 import { toRemoteStatus, toRemotePropertyType } from './rentals-sync.js';
+import { CHANNEL_RE } from './nas-photos.js';
 
 export const RENTAL_CHANGED = 'poe-rental-changed';
 
@@ -56,6 +57,7 @@ export const CLOUD_TO_LOCAL = Object.freeze({
   building_label: 'building',
   room_label: 'roomLabel',
   rentable_level: 'rentableLevel',
+  photo_channel: 'photoChannel',
 });
 
 const NUMERIC = new Set(['rent', 'actual']);
@@ -194,6 +196,17 @@ export function localPatchToCloud(updates = {}) {
     patch.mortgage_escrow  = num(u.mortgage?.escrow);
   }
   if (u.notes !== undefined)          patch.notes = u.notes;
+  // THE STRUCTURE REACHES A LINKED DOOR TOO (DR-0997). 0160 made toRow carry
+  // unit / building / room / level, but an EDIT to a door already linked went
+  // through this patch, which never named them -- so a unit typed in Real
+  // Estate stayed on the device for every door that had synced once.
+  if (u.unitLabel !== undefined)      patch.unit = u.unitLabel || null;
+  if (u.building !== undefined)       patch.building_label = u.building || null;
+  if (u.roomLabel !== undefined)      patch.room_label = u.roomLabel || null;
+  if (u.rentableLevel !== undefined)  patch.rentable_level = ['unit', 'room', 'bed'].includes(u.rentableLevel) ? u.rentableLevel : null;
+  // The archive on the record (0284): only when it is set, for the same
+  // column-not-yet-there reason as toRow.
+  if (u.photoChannel !== undefined && CHANNEL_RE.test(String(u.photoChannel || ''))) patch.photo_channel = u.photoChannel;
   return patch;
 }
 

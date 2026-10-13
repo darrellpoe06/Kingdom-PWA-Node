@@ -59,7 +59,7 @@ import { VacancyCard } from './Storefront.jsx';
 import { areaOf } from './area.js';
 import {
   loadRooms, addRoom, patchRoom, loadDoorPhotos, loadSiblingPhotos, loadDoorTenancies,
-  loadMyRentals, updateTenancy, updateRental, loadAllPhotos, loadDoorPhotoOrders, saveDoorPhotoOrder, loadDoorAreas,
+  loadMyRentals, updateTenancy, updateRental, loadAllPhotos, loadDoorPhotoOrders, saveDoorPhotoOrder, loadDoorAreas, loadDoorArchives,
   loadPhotoImages, loadPhotoThumbs,
   addPhoto, patchPhoto, loadDocuments, addDocument, patchDocument,
   loadPublicVacancies,
@@ -74,6 +74,7 @@ import supabase, { phoneLoginEmail } from '../../lib/supabase.js';
 import { boundedRead, deadlineIn, READ_TIMEOUT_MS, OPTIONAL_TIMEOUT_MS as CLAIM_TIMEOUT_MS } from '../../lib/bounded-read.js';
 import { POE_PROPERTIES, LAUNCH_PLAN, OPPORTUNITIES, CONSTRAINTS } from './config.js';
 import { placeDoorsOnTheMap } from './place-on-map.js';
+import { holdTheRecords } from './hold-the-record.js';
 
 const ACCENT = '#2F5D50';
 
@@ -311,6 +312,8 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
   // names, no mortgage — cloud.js). Shown when this person holds neither a
   // tenancy nor an owned door, so the front door is never a blank space.
   const [vacancies, setVacancies] = useState([]);
+  // Each door's picture archive on the NAS and when its address was held (0284, DR-0997).
+  const [archives, setArchives] = useState({ channels: {}, heldAt: {} });
   const [notice, setNotice] = useState('');
   // Did the spine reads actually come back? An empty portfolio and an unreachable
   // one look IDENTICAL in the rows ([] either way) and must never look identical
@@ -362,13 +365,15 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
     // Its own deadline too, for the same reason: the cover thumbnails and the
     // public listings must not be starved by whatever the spine reads cost.
     const extras = deadlineIn();
-    const [ph, vac, inv, sess, po] = await Promise.all([
+    const [ph, vac, inv, sess, po, ar] = await Promise.all([
       boundedRead(loadAllPhotos(), extras()), boundedRead(loadPublicVacancies(), extras()),
       boundedRead(loadInvites(), extras(), { ok: false }),
       boundedRead(Promise.resolve().then(() => supabase.auth.getSession()).then((r) => (r && r.data && r.data.session) || null).catch(() => null), extras(), null),
       boundedRead(loadDoorPhotoOrders(), extras(), { ok: false }),
+      boundedRead(loadDoorArchives(), extras(), { ok: false }),
     ]);
     setPhotoOrders(po && po.ok ? po.orders : {});
+    setArchives(ar && ar.ok ? { channels: ar.channels, heldAt: ar.heldAt } : { channels: {}, heldAt: {} });
     setInvites(inv && inv.ok ? inv.invites : []);
     setMe(sess && sess.user ? sess.user.id : null);
     // NO PICTURE IS FETCHED AT BOOT — NOT ONE (DR-0955). The list is metadata
@@ -677,18 +682,20 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
     if (role !== 'owner' || !rentals.length || placing.current) return;
     placing.current = true;
     (async () => {
+      const save = (id, patch, summary) => updateRental(id, patch, { summary });
+      // THE RECORD HELD WHOLE, ONCE (DR-0997), FIRST: the address in its parts
+      // and the archive named on the row, through the same edit path, with
+      // the same trace. The placement below then reads the repaired address,
+      // never the one-line one. Both doors then read one row.
+      const known = await boundedRead(loadDoorArchives(), 8000, { ok: false });
+      const held = known && known.ok
+        ? await holdTheRecords(rentals, { heldAt: known.heldAt, channels: known.channels }, save)
+        : { done: [], rentals };
       const a = await boundedRead(loadDoorAreas(), 8000, { ok: false });
-      if (!a || !a.ok) return;
-      const r = await placeDoorsOnTheMap({
-        rentals, placed: a.placed,
-        save: (id, patch, summary) => updateRental(id, patch, { summary }),
-      });
-      if (r.placed.length) {
-        const v = await boundedRead(loadPublicVacancies(), 8000, { ok: false });
-        if (v && v.ok) setVacancies(v.vacancies);
-      }
+      const r = a && a.ok ? await placeDoorsOnTheMap({ rentals: held.rentals, placed: a.placed, save }) : { placed: [] };
+      if (r.placed.length || held.done.length) boot();
     })().catch(() => {});
-  }, [role, rentals]);
+  }, [role, rentals, boot]);
   // THE FIRST SCREEN IS THE DOORS. The landing tab used to be "the first tab
   // that is not locked", which put the landlord on his Doors only BECAUSE the
   // Work board above it was wrongly locked (model.js, 2026-09-08). With the
@@ -1387,6 +1394,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
             <>
               <DoorsBoard
                 rentals={rentals} tenancies={doors}
+                knownBuildings={rentals} archives={archives.channels}
                 canManage={role === 'owner' || role === 'manager'}
                 money={role === 'owner' || role === 'manager' ? money : null}
                 loadThumb={oneThumb}

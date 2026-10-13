@@ -47,6 +47,45 @@ export const CHAT_BRIDGE_TOKEN_KEY = 'poetech-chat-bridge-token';
 // anywhere on the photo path; DR-0617.)
 export const NAS_PHOTO_BASE = '/nas-photos';
 
+// THE DIRECT ROAD (DR-0997). While every Cloudflare Pages Function is dark
+// (#2057, since 2026-10-09) the same-origin /nas-photos answers with the app's
+// own HTML page, so every read above came back as "not JSON" and both doors
+// showed no archive. /sb and /cams already carry a build-time Funnel base for
+// this outage; this is the same shape for the photos: unset in every normal
+// build (the default below is what ships), set by the deploy's unlock step.
+// nasFetch tries the same-origin road first and, only when that answer is not
+// the server's (HTML, or no answer at all), asks the NAS straight over the
+// Funnel. Which road answered last is kept, so a surface can SAY it.
+export const NAS_PHOTO_DIRECT = String(import.meta.env?.VITE_NAS_PHOTOS_BASE || '').replace(/\/+$/, '');
+let lastRoad = 'none'; // 'same-origin' | 'direct' | 'none'
+export function nasRoad() { return lastRoad; }
+
+const isJson = (resp) => /\bjson\b/i.test(resp?.headers?.get?.('content-type') || '');
+
+/**
+ * fetch() for the photo server, by road. `url` is the same-origin path the app
+ * calls (`${NAS_PHOTO_BASE}/channels?x=y`), spelled whole at every call site so
+ * the client-path parity scan sees the real route; the direct road swaps the
+ * base for the Funnel's. Resolves to the Response that is the SERVER'S, or null
+ * when neither road answered as the server (a 4xx/5xx JSON answer is the
+ * server's and is returned as-is for the caller to read).
+ */
+export async function nasFetch(url, init = {}, { fetchImpl = (typeof fetch === 'function' ? fetch : null), direct = NAS_PHOTO_DIRECT, timeoutMs = 20000 } = {}) {
+  if (!fetchImpl) return null;
+  const same = String(url || '');
+  const path = same.startsWith(NAS_PHOTO_BASE) ? same.slice(NAS_PHOTO_BASE.length) : same;
+  const roads = [['same-origin', same]];
+  if (direct) roads.push(['direct', `${direct}${path}`]);
+  for (const [road, url] of roads) {
+    try {
+      const resp = await fetchImpl(url, { ...init, signal: init.signal || AbortSignal.timeout(timeoutMs) });
+      if (resp && isJson(resp)) { lastRoad = road; return resp; }
+    } catch (_) { /* the next road, if any */ }
+  }
+  lastRoad = 'none';
+  return null;
+}
+
 export function propertyPhotosUrl(channel, { limit = 24, offset = 0 } = {}) {
   return `${NAS_PHOTO_BASE}/property-photos?channel=${encodeURIComponent(channel)}&limit=${limit}&offset=${offset}`;
 }
@@ -106,9 +145,55 @@ export const PROPERTY_CHANNELS = {
   'r-1508williamsburg': '1508Williamsburg',
 };
 
+// A channel name the server will accept (photo_server.py SAFE_CHANNEL).
+export const CHANNEL_RE = /^[A-Za-z0-9._-]{1,64}$/;
+
 export function chatChannelFor(r) {
   if (!r) return '';
-  return PROPERTY_CHANNELS[r.id] || r.name || '';
+  // THE RECORD FIRST (DR-0997): the archive named on the door itself
+  // (rentals.photo_channel, picked from the NAS's own list) wins; the
+  // hardcoded nine stay as the fallback until every record carries its own.
+  const own = String(r.photoChannel || r.photo_channel || '').trim();
+  if (CHANNEL_RE.test(own)) return own;
+  const mapped = PROPERTY_CHANNELS[r.id] || '';
+  if (mapped) return mapped;
+  const name = String(r.name || '').trim();
+  return CHANNEL_RE.test(name) ? name : '';
+}
+
+/**
+ * Every archive the NAS holds, with its picture count: [{name, total}], or
+ * null when the NAS could not be reached (DR-0997). The door's archive is
+ * PICKED from this, never typed.
+ */
+export async function fetchChannels() {
+  const token = bridgeToken();
+  if (!token) return null;
+  const resp = await nasFetch(`${NAS_PHOTO_BASE}/channels`, { headers: { authorization: `Bearer ${token}` } });
+  if (!resp || !resp.ok) return null;
+  try {
+    const json = await resp.json();
+    return Array.isArray(json?.channels) ? json.channels.filter((c) => c && CHANNEL_RE.test(String(c.name || ''))) : null;
+  } catch (_) { return null; }
+}
+
+/**
+ * ONE picture from an archive at listing size (DR-0997): {ok, id, name, date,
+ * text, width, height, image: data URL} or {ok:false, reason}. Never throws.
+ */
+export async function fetchListingPhoto(channel, id, { max = 1920 } = {}) {
+  const token = bridgeToken();
+  if (!token) return { ok: false, reason: 'no-key' };
+  if (!CHANNEL_RE.test(String(channel || '')) || !String(id || '').trim()) return { ok: false, reason: 'bad-request' };
+  const q = new URLSearchParams({ channel, id: String(id), max: String(max) });
+  const resp = await nasFetch(`${NAS_PHOTO_BASE}/property-photo?${q}`, { headers: { authorization: `Bearer ${token}` } }, { timeoutMs: 45000 });
+  if (!resp) return { ok: false, reason: 'unreachable' };
+  let json;
+  try { json = await resp.json(); } catch (_) { return { ok: false, reason: 'bad-answer' }; }
+  if (!resp.ok || !json || json.ok !== true || typeof json.image !== 'string' || !json.image.startsWith('data:image/jpeg;base64,')) {
+    return { ok: false, reason: (json && json.error) || `HTTP ${resp.status}` };
+  }
+  return json;
 }
 
 // Fetch one page of a property channel's photos. Returns { photos } on
@@ -119,10 +204,10 @@ export async function fetchChannelPhotos(channel, { limit = 12, offset = 0 } = {
   const token = bridgeToken();
   if (!token || !channel) return null;
   try {
-    const resp = await fetch(propertyPhotosUrl(channel, { limit, offset }), {
+    const resp = await nasFetch(propertyPhotosUrl(channel, { limit, offset }), {
       headers: { authorization: `Bearer ${token}` },
     });
-    if (!resp.ok) return null;
+    if (!resp || !resp.ok) return null;
     const json = await resp.json();
     const payload = Array.isArray(json) ? (json[0] || {}) : json;
     return { photos: payload.photos || [], total: typeof payload.total === 'number' ? payload.total : (payload.photos || []).length };
@@ -146,10 +231,10 @@ export async function fetchFamilyPhotos({ limit = 12 } = {}) {
   const token = bridgeToken();
   if (!token) return null;
   try {
-    const resp = await fetch(familyPhotosUrl({ limit }), {
+    const resp = await nasFetch(familyPhotosUrl({ limit }), {
       headers: { authorization: `Bearer ${token}` },
     });
-    if (!resp.ok) return null;
+    if (!resp || !resp.ok) return null;
     const json = await resp.json();
     const payload = Array.isArray(json) ? (json[0] || {}) : json;
     return { photos: payload.photos || [], total: typeof payload.total === 'number' ? payload.total : (payload.photos || []).length };
@@ -228,10 +313,10 @@ export async function fetchAlbumPhotos(album, { limit = 60 } = {}) {
   const token = bridgeToken();
   if (!token || !album || !isValidAlbum(album)) return null;
   try {
-    const resp = await fetch(albumPhotosUrl(album, { limit }), {
+    const resp = await nasFetch(albumPhotosUrl(album, { limit }), {
       headers: { authorization: `Bearer ${token}` },
     });
-    if (!resp.ok) return null;
+    if (!resp || !resp.ok) return null;
     const json = await resp.json();
     const payload = Array.isArray(json) ? (json[0] || {}) : json;
     return { photos: payload.photos || [], total: typeof payload.total === 'number' ? payload.total : (payload.photos || []).length };
@@ -274,12 +359,12 @@ export async function uploadPhoto(dataUrl, { dest = 'family', filename = '' } = 
   try {
     // Sovereign Python photo server (same-origin /nas-photos rewrite), NOT n8n —
     // the write path now matches the read path (Ways: Python-first, off n8n).
-    const resp = await fetch(`${NAS_PHOTO_BASE}/upload`, {
+    const resp = await nasFetch(`${NAS_PHOTO_BASE}/upload`, {
       method: 'POST',
       headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
       body: JSON.stringify({ dest, filename: safeName, dataUrl }),
-    });
-    if (!resp.ok) return null;
+    }, { timeoutMs: 60000 });
+    if (!resp || !resp.ok) return null;
     const json = await resp.json();
     const payload = Array.isArray(json) ? (json[0] || {}) : json;
     return payload && payload.ok ? payload : null;

@@ -127,6 +127,74 @@ DOWNSCALE_MAX = 480           # px longest edge for the on-the-fly fallback
 # stores the same value in localStorage["poetech-chat-bridge-token"].
 TOKEN_FILE_DEFAULT = "/volume1/PoeTech/secrets/chat-bridge-token.txt"
 
+# --- The other door, and the Funnel road (DR-0997) ----------------------------
+# Darrell, 2026-10-13: "Most of the properties have pictures already on the
+# nas... why don't they show up [in Poe Properties]... they all should be in
+# sync... End to end processes!!!" and "Drop down with addresses... instead of
+# letting someone else mistyped". Three additions, all read-only against the
+# archive, all behind the same bearer:
+#   GET /channels            -> which archives exist, with their picture counts,
+#                               so a door's archive is PICKED, never typed.
+#   GET /property-photo      -> ONE picture at listing size (<= PHOTO_MAX_EDGE px
+#                               on its long edge, JPEG), so a NAS picture can be
+#                               filed on a listing exactly as a phone upload is.
+#                               Every other route serves a ~20KB thumbnail only.
+#   OPTIONS + CORS headers   -> while every Cloudflare Pages Function is dark
+#                               (#2057), the app reaches this server straight
+#                               over the Tailscale Funnel, cross-origin, the
+#                               way /cams and /sb already do; a browser refuses
+#                               that without these answers (measured 2026-10-09
+#                               on /cams: preflight 501, no allow-origin).
+# PHOTO_CHAT_FIXTURE=<json> replaces the Synology Chat reads with a file, so
+# the SAME server, over real HTTP, is what the Chrome journeys and the selftest
+# talk to -- never a stand-in (LESSONS P59: a mocked service proves only that
+# the client is self-consistent).
+CORS_ORIGINS_DEFAULT = "https://poetech.us"
+PHOTO_MAX_EDGE = 1920          # a listing picture's long edge (DR-0939's 1920)
+PHOTO_MAX_EDGE_CEILING = 2560  # the most a caller may ask for
+PHOTO_QUALITY = 85
+MAX_PHOTO_BYTES = 6 * 1024 * 1024
+
+
+def cors_origins():
+    env = os.environ.get("PHOTO_CORS_ORIGINS", "").strip()
+    return [o.strip() for o in (env or CORS_ORIGINS_DEFAULT).split(",") if o.strip()]
+
+
+def cors_headers(origin):
+    """The headers a browser needs to accept an answer from another origin,
+    only for an origin on the list; anything else gets none (same as before)."""
+    if origin and origin in cors_origins():
+        return [
+            ("Access-Control-Allow-Origin", origin),
+            ("Vary", "Origin"),
+            ("Access-Control-Allow-Headers", "authorization, content-type"),
+            ("Access-Control-Allow-Methods", "GET, POST, OPTIONS"),
+            ("Access-Control-Max-Age", "600"),
+        ]
+    return []
+
+
+def chat_fixture():
+    """{"channels":[{"name", "posts":[{"id","create_at","name","text"}]}]} or None."""
+    path = os.environ.get("PHOTO_CHAT_FIXTURE", "").strip()
+    if not path:
+        return None
+    try:
+        with open(path, "r", encoding="utf-8") as fh:
+            data = json.load(fh)
+    except (OSError, ValueError):
+        return {"channels": []}
+    return data if isinstance(data, dict) else {"channels": []}
+
+
+def _fixture_posts(fx, channel):
+    for c in fx.get("channels", []):
+        if c.get("name") == channel:
+            posts = [p for p in c.get("posts", []) if isinstance(p, dict)]
+            return sorted(posts, key=lambda p: -int(p.get("create_at", 0) or 0))
+    return []
+
 # --- Upload (sovereign write-path; REPLACES the n8n wf-photo-upload bridge) ----
 # The PWA's "+ Add photos" POSTs {dest, filename, dataUrl} here so a photo leaves
 # the phone and lands on the NAS, sharing the SAME bearer token as the reads.
@@ -333,6 +401,10 @@ def _psql(sql):
 
 
 def query_rows(channel, limit, offset):
+    fx = chat_fixture()
+    if fx is not None:
+        return [[str(p.get("id", "")), str(p.get("create_at", 0)), str(p.get("name", "")), str(p.get("text", ""))]
+                for p in _fixture_posts(fx, channel)[offset:offset + limit]]
     sql = (
         "SELECT p.id, p.create_at, p.file_props->>'name', COALESCE(p.message,'') "
         "FROM posts p JOIN channels c ON c.id = p.channel_id "
@@ -352,6 +424,9 @@ def query_rows(channel, limit, offset):
 
 
 def total_count(channel):
+    fx = chat_fixture()
+    if fx is not None:
+        return len(_fixture_posts(fx, channel))
     sql = (
         "SELECT COUNT(*) FROM posts p JOIN channels c ON c.id = p.channel_id "
         "WHERE c.name = '%s' AND (p.file_props->>'is_image') = 'true' "
@@ -443,6 +518,88 @@ def thumb_for(name, allow_downscale=True):
     if not data:
         return None
     return "data:image/jpeg;base64," + base64.b64encode(data).decode("ascii")
+
+
+def channel_list():
+    """Every archive the NAS holds, with how many pictures each has:
+    [{name, total}], names that pass SAFE_CHANNEL only, by name."""
+    fx = chat_fixture()
+    if fx is not None:
+        rows = [(str(c.get("name", "")), len(_fixture_posts(fx, str(c.get("name", ""))))) for c in fx.get("channels", [])]
+    else:
+        sql = (
+            "SELECT c.name, COUNT(p.id) FROM channels c "
+            "LEFT JOIN posts p ON p.channel_id = c.id "
+            "AND (p.file_props->>'is_image') = 'true' AND COALESCE(p.delete_at,0) = 0 "
+            "GROUP BY c.name ORDER BY c.name"
+        )
+        raw = _psql(sql).strip("\x1e\n")
+        rows = []
+        for rec in (raw.split("\x1e") if raw else []):
+            cols = rec.split("\x1f")
+            if len(cols) >= 2:
+                try:
+                    rows.append((cols[0], int(cols[1])))
+                except ValueError:
+                    rows.append((cols[0], 0))
+    out = [{"name": n, "total": t} for n, t in rows if SAFE_CHANNEL.match(n or "")]
+    out.sort(key=lambda c: c["name"].lower())
+    return out
+
+
+def post_by_id(channel, photo_id):
+    """(create_at, name, text) of one post in a channel, or None."""
+    fx = chat_fixture()
+    if fx is not None:
+        for p in _fixture_posts(fx, channel):
+            if str(p.get("id", "")) == str(photo_id):
+                return (str(p.get("create_at", 0)), str(p.get("name", "")), str(p.get("text", "")))
+        return None
+    if not re.match(r"^\d{1,20}$", str(photo_id)):
+        return None
+    sql = (
+        "SELECT p.create_at, p.file_props->>'name', COALESCE(p.message,'') "
+        "FROM posts p JOIN channels c ON c.id = p.channel_id "
+        "WHERE c.name = '%s' AND p.id = %s AND (p.file_props->>'is_image') = 'true' "
+        "AND COALESCE(p.delete_at,0) = 0 LIMIT 1" % (channel, photo_id)
+    )
+    raw = _psql(sql).strip("\x1e\n")
+    if not raw:
+        return None
+    cols = raw.split("\x1e")[0].split("\x1f")
+    return (cols[0], cols[1], cols[2]) if len(cols) >= 3 else None
+
+
+def listing_size(path, max_edge):
+    """The original, downscaled so its LONG edge is at most max_edge, as JPEG
+    bytes plus (width, height). Pillow first, ImageMagick second, else None.
+    Never rewrites the original on disk."""
+    try:
+        if os.path.getsize(path) > MAX_ORIGINAL_BYTES:
+            return None
+    except OSError:
+        return None
+    try:
+        from PIL import Image, ImageOps  # noqa: PLC0415 -- optional, lazy by design
+        with Image.open(path) as im:
+            im = ImageOps.exif_transpose(im).convert("RGB")
+            im.thumbnail((max_edge, max_edge))
+            buf = io.BytesIO()
+            im.save(buf, format="JPEG", quality=PHOTO_QUALITY, optimize=True)
+            data = buf.getvalue()
+            return (data, im.size) if 0 < len(data) <= MAX_PHOTO_BYTES else None
+    except Exception:
+        pass
+    try:
+        out = subprocess.run(
+            ["convert", path + "[0]", "-auto-orient", "-resize", "%dx%d>" % (max_edge, max_edge),
+             "-quality", str(PHOTO_QUALITY), "jpg:-"],
+            stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, timeout=30,
+        )
+        data = out.stdout
+        return (data, None) if 0 < len(data) <= MAX_PHOTO_BYTES else None
+    except (OSError, subprocess.SubprocessError):
+        return None
 
 
 def build_photos(channel, limit, offset, allow_downscale=True):
@@ -553,8 +710,20 @@ def make_handler(args):
             self.send_header("Content-Type", "application/json; charset=utf-8")
             self.send_header("Content-Length", str(len(body)))
             self.send_header("Cache-Control", "private, max-age=60")
+            for k, v in cors_headers(self.headers.get("Origin")):
+                self.send_header(k, v)
             self.end_headers()
             self.wfile.write(body)
+
+        def do_OPTIONS(self):
+            # The browser's preflight for the cross-origin Funnel road (DR-0997).
+            # An origin not on the list gets a bare 204 and the browser refuses
+            # the real request, which is the point.
+            self.send_response(204)
+            for k, v in cors_headers(self.headers.get("Origin")):
+                self.send_header(k, v)
+            self.send_header("Content-Length", "0")
+            self.end_headers()
 
         def log_message(self, *a):  # keep the NAS console quiet; never log tokens
             pass
@@ -616,6 +785,63 @@ def make_handler(args):
                     self._send(401, {"error": "unauthorized", "photos": [], "count": 0})
                     return
                 self._send(200, {"count": 0, "total": 0, "photos": [], "pending": "album-integration"})
+                return
+            # WHICH ARCHIVES EXIST (DR-0997): a door's archive is picked from this
+            # list in the app, never typed. Names and counts only.
+            if path.endswith("/channels") or path == "/channels":
+                if not bearer_ok(self.headers.get("Authorization"), token):
+                    self._send(401, {"error": "unauthorized", "channels": [], "count": 0})
+                    return
+                try:
+                    chans = channel_list()
+                    self._send(200, {"count": len(chans), "channels": chans})
+                except Exception as err:
+                    self._send(500, {"error": "list failed: %s" % type(err).__name__, "channels": [], "count": 0})
+                return
+            # ONE PICTURE AT LISTING SIZE (DR-0997): so a NAS picture can be filed
+            # on a door's listing exactly as a phone upload is. The original is
+            # read and downscaled in memory; nothing on the NAS is written.
+            if path.endswith("/property-photo") or path == "/property-photo":
+                if not bearer_ok(self.headers.get("Authorization"), token):
+                    self._send(401, {"ok": False, "error": "unauthorized"})
+                    return
+                q = parse_qs(parsed.query)
+                channel = (q.get("channel", [""])[0] or "").strip()
+                photo_id = (q.get("id", [""])[0] or "").strip()
+                if not SAFE_CHANNEL.match(channel) or not photo_id:
+                    self._send(400, {"ok": False, "error": "bad channel or id"})
+                    return
+                try:
+                    max_edge = max(320, min(PHOTO_MAX_EDGE_CEILING, int(q.get("max", [str(PHOTO_MAX_EDGE)])[0])))
+                except ValueError:
+                    max_edge = PHOTO_MAX_EDGE
+                try:
+                    post = post_by_id(channel, photo_id)
+                except Exception as err:
+                    self._send(500, {"ok": False, "error": "lookup failed: %s" % type(err).__name__})
+                    return
+                if not post:
+                    self._send(404, {"ok": False, "error": "no such picture in this archive"})
+                    return
+                create_at, name, text = post
+                orig = _find_original(name)
+                if not orig:
+                    self._send(404, {"ok": False, "error": "the original is not on this NAS", "name": name})
+                    return
+                sized = listing_size(orig, max_edge)
+                if not sized:
+                    self._send(422, {"ok": False, "error": "could not size the picture", "name": name})
+                    return
+                data, size = sized
+                try:
+                    date = datetime.fromtimestamp(int(create_at) / 1000, timezone.utc).strftime("%Y-%m-%d")
+                except (ValueError, OverflowError):
+                    date = ""
+                self._send(200, {
+                    "ok": True, "id": photo_id, "name": name, "date": date, "text": (text or "")[:280],
+                    "width": size[0] if size else None, "height": size[1] if size else None,
+                    "bytes": len(data), "image": "data:image/jpeg;base64," + base64.b64encode(data).decode("ascii"),
+                })
                 return
             if not (path.endswith("/property-photos") or path == "/property-photos"):
                 self._send(404, {"error": "not found", "photos": [], "count": 0})
@@ -927,6 +1153,115 @@ def selftest():
         os.environ.pop("PHOTO_UPLOAD_ROOT", None)
         import shutil as _sh
         _sh.rmtree(_d, ignore_errors=True)
+
+    # --- THE REAL SERVER, OVER REAL HTTP (DR-0997; LESSONS P59) ---------------
+    # A fixture stands in for Synology Chat and a generated JPEG for the phone
+    # backup; everything else -- the routes, the bearer, the thumbnail and
+    # listing-size roads, CORS -- is the code that runs on the NAS.
+    ok("cors: a listed origin is answered", dict(cors_headers("https://poetech.us")).get("Access-Control-Allow-Origin") == "https://poetech.us")
+    ok("cors: an unlisted origin gets nothing", cors_headers("https://evil.example") == [])
+    ok("cors: no origin gets nothing", cors_headers(None) == [])
+    import tempfile as _tf2, threading as _th, types as _types, urllib.request as _ur, urllib.error as _ue
+    _d2 = _tf2.mkdtemp(prefix="poetech-photos-http-")
+    _saved = {k: os.environ.get(k) for k in ("PHOTO_CHAT_FIXTURE", "PHOTO_ROOTS", "PHOTO_UNDATED_ROOTS", "PHOTO_BRIDGE_TOKEN", "PHOTO_UPLOAD_ROOT")}
+    _httpd = None
+    try:
+        _pdir = os.path.join(_d2, "photos", "2024", "01")
+        os.makedirs(_pdir)
+        _jpg = os.path.join(_pdir, "20240123_144917.jpg")
+        _road = "none"
+        try:
+            from PIL import Image as _Im  # noqa: PLC0415
+            _Im.new("RGB", (2400, 1600), (47, 93, 80)).save(_jpg, format="JPEG", quality=80)
+            _road = "pillow"
+        except Exception:
+            try:
+                subprocess.run(["convert", "-size", "2400x1600", "xc:#2F5D50", _jpg], check=True, timeout=30,
+                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                _road = "convert"
+            except Exception:
+                with open(_jpg, "wb") as _fh:
+                    _fh.write(b"\xff\xd8\xff\xe0" + b"\x00" * 64)
+        _fx = os.path.join(_d2, "chat.json")
+        with open(_fx, "w", encoding="utf-8") as _fh:
+            json.dump({"channels": [
+                {"name": "805NProspect", "posts": [{"id": "9001", "create_at": 1705891200000, "name": "20240123_144917.jpg", "text": "the porch"}]},
+                {"name": "709CommercialSt", "posts": []},
+                {"name": "bad name", "posts": []},
+            ]}, _fh)
+        os.environ["PHOTO_CHAT_FIXTURE"] = _fx
+        os.environ["PHOTO_ROOTS"] = os.path.join(_d2, "photos", "{y}", "{m}")
+        os.environ["PHOTO_UNDATED_ROOTS"] = os.path.join(_d2, "photos", "*", "*")
+        os.environ["PHOTO_BRIDGE_TOKEN"] = "selftest-token"
+        os.environ["PHOTO_UPLOAD_ROOT"] = os.path.join(_d2, "uploads")
+        _args = _types.SimpleNamespace(token_file=None)
+        _httpd = ThreadingHTTPServer(("127.0.0.1", 0), make_handler(_args))
+        _port = _httpd.server_address[1]
+        _th.Thread(target=_httpd.serve_forever, daemon=True).start()
+        _base = "http://127.0.0.1:%d" % _port
+
+        def _get(path, bearer=True, origin=None, method="GET"):
+            req = _ur.Request(_base + path, method=method)
+            if bearer:
+                req.add_header("Authorization", "Bearer selftest-token")
+            if origin:
+                req.add_header("Origin", origin)
+            try:
+                with _ur.urlopen(req, timeout=10) as r:
+                    raw = r.read()
+                    return r.status, dict(r.headers), (json.loads(raw) if raw else None)
+            except _ue.HTTPError as e:
+                raw = e.read()
+                try:
+                    body = json.loads(raw) if raw else None
+                except ValueError:
+                    body = None
+                return e.code, dict(e.headers), body
+
+        st, _h, body = _get("/healthz", bearer=False)
+        ok("http: /healthz answers", st == 200 and body == {"ok": True})
+        st, _h, body = _get("/channels", bearer=False)
+        ok("http: /channels without the bearer is 401", st == 401)
+        st, _h, body = _get("/channels")
+        ok("http: /channels lists the archives with their counts, unsafe names dropped",
+           st == 200 and [c["name"] for c in body["channels"]] == ["709CommercialSt", "805NProspect"]
+           and [c["total"] for c in body["channels"]] == [0, 1])
+        st, _h, body = _get("/property-photos?channel=805NProspect&limit=12")
+        ok("http: the archive lists the fixture's picture", st == 200 and body["total"] == 1 and body["photos"][0]["id"] == "9001"
+           and body["photos"][0]["date"] == "2024-01-22" and body["photos"][0]["text"] == "the porch")
+        if _road != "none":
+            ok("http: the thumbnail is served (road: %s)" % _road, bool(body["photos"][0]["thumb"]) and body["photos"][0]["thumb"].startswith("data:image/jpeg;base64,"))
+        st, _h, body = _get("/property-photo?channel=805NProspect&id=9001&max=1920")
+        if _road != "none":
+            ok("http: one picture at listing size, long edge <= 1920 (road: %s)" % _road,
+               st == 200 and body["ok"] is True and body["image"].startswith("data:image/jpeg;base64,")
+               and body["name"] == "20240123_144917.jpg" and (body["width"] is None or body["width"] <= 1920)
+               and 0 < body["bytes"] <= MAX_PHOTO_BYTES)
+        else:
+            ok("http: with no image road the picture route says so honestly (422)", st == 422 and body["ok"] is False)
+        st, _h, body = _get("/property-photo?channel=805NProspect&id=nope")
+        ok("http: an unknown picture id is 404", st == 404 and body["ok"] is False)
+        st, _h, body = _get("/property-photo?channel=805NProspect&id=9001", bearer=False)
+        ok("http: the picture route needs the bearer", st == 401)
+        st, hdr, _b = _get("/channels", method="OPTIONS", bearer=False, origin="https://poetech.us")
+        ok("http: preflight from poetech.us is 204 with the origin echoed",
+           st == 204 and hdr.get("Access-Control-Allow-Origin") == "https://poetech.us"
+           and "authorization" in (hdr.get("Access-Control-Allow-Headers") or ""))
+        st, hdr, _b = _get("/channels", method="OPTIONS", bearer=False, origin="https://evil.example")
+        ok("http: preflight from elsewhere carries no allow-origin", st == 204 and not hdr.get("Access-Control-Allow-Origin"))
+        st, hdr, body = _get("/channels", origin="https://poetech.us")
+        ok("http: a cross-origin GET from poetech.us is answered with allow-origin", st == 200 and hdr.get("Access-Control-Allow-Origin") == "https://poetech.us")
+    finally:
+        if _httpd is not None:
+            _httpd.shutdown()
+            _httpd.server_close()
+        for k, v in _saved.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
+        import shutil as _sh2
+        _sh2.rmtree(_d2, ignore_errors=True)
 
     passed = sum(1 for _, c in checks if c)
     for label, c in checks:

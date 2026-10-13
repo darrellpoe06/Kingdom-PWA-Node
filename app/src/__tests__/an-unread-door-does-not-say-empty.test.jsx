@@ -64,6 +64,7 @@ vi.mock('../modules/properties/cloud.js', () => {
     loadSiblingPhotos: async () => ({ ok: true, photos: [], siblings: [] }),
     loadDoorPhotoOrders: async () => ({ ok: true, orders: {} }),
   loadDoorAreas: async () => ({ ok: false }), saveDoorPhotoOrder: async () => ({ ok: true, saved: 0 }),
+  loadDoorArchives: async () => ({ ok: true, channels: {}, heldAt: {} }),
     loadDoorPhotos: async () => (H.photosRead === 'ok'
       ? { ok: true, photos: [] }
       : { ok: false, reason: 'read-failed', error: 'fetch failed' }),

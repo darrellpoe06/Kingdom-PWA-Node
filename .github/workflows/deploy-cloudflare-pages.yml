@@ -167,6 +167,13 @@ jobs:
             # fallback (Silk exposes speechSynthesis without delivering it), so
             # the Firestick is the device that went silent.
             echo "UNLOCK_VOICE_LITE_BASE=https://poetech.tail5a2f35.ts.net/voice-lite"
+            # The property pictures, same outage, same shape (DR-0997). Both
+            # doors (Real Estate and Poe Properties) read the family's NAS
+            # archive through /nas-photos, which answers the SPA shell like
+            # every other Function. The photo server learned CORS for this
+            # road in the same change (photo_server.py do_OPTIONS); the client
+            # tries same-origin first and only then this.
+            echo "UNLOCK_NAS_PHOTOS_BASE=https://poetech.tail5a2f35.ts.net/nas-photos"
           } >> "$GITHUB_ENV"
           echo "repoint: armed — TEMPORARY UNLOCK, this build carries the sovereign backend over the Funnel origin because every Pages Function is dark; revert to poetech.us/sb once /sb carries a POST again."
       - name: Build (static, base /poetech-app/)
@@ -187,6 +194,7 @@ jobs:
           # are dark.
           VITE_CAMS_BASE: ${{ env.UNLOCK_CAMS_BASE }}
           VITE_VOICE_LITE_BASE: ${{ env.UNLOCK_VOICE_LITE_BASE }}
+          VITE_NAS_PHOTOS_BASE: ${{ env.UNLOCK_NAS_PHOTOS_BASE }}
           VITE_SUPABASE_ANON_KEY: ${{ env.SOVEREIGN_SB_ANON || secrets.VITE_SUPABASE_ANON_KEY }}
           # THE BLOB BRIDGE (2026-08-31 — the Moore Divahs gallery regression).
           # VITE_PUBLIC_STORAGE_URL — the public-blob bridge DR-0317 shipped on
