@@ -127,7 +127,7 @@ DOWNSCALE_MAX = 480           # px longest edge for the on-the-fly fallback
 # stores the same value in localStorage["poetech-chat-bridge-token"].
 TOKEN_FILE_DEFAULT = "/volume1/PoeTech/secrets/chat-bridge-token.txt"
 
-# --- The other door, and the Funnel road (DR-0997) ----------------------------
+# --- The other door, and the Funnel road (DR-0998) ----------------------------
 # Darrell, 2026-10-13: "Most of the properties have pictures already on the
 # nas... why don't they show up [in Poe Properties]... they all should be in
 # sync... End to end processes!!!" and "Drop down with addresses... instead of
@@ -716,7 +716,7 @@ def make_handler(args):
             self.wfile.write(body)
 
         def do_OPTIONS(self):
-            # The browser's preflight for the cross-origin Funnel road (DR-0997).
+            # The browser's preflight for the cross-origin Funnel road (DR-0998).
             # An origin not on the list gets a bare 204 and the browser refuses
             # the real request, which is the point.
             self.send_response(204)
@@ -786,7 +786,7 @@ def make_handler(args):
                     return
                 self._send(200, {"count": 0, "total": 0, "photos": [], "pending": "album-integration"})
                 return
-            # WHICH ARCHIVES EXIST (DR-0997): a door's archive is picked from this
+            # WHICH ARCHIVES EXIST (DR-0998): a door's archive is picked from this
             # list in the app, never typed. Names and counts only.
             if path.endswith("/channels") or path == "/channels":
                 if not bearer_ok(self.headers.get("Authorization"), token):
@@ -798,7 +798,7 @@ def make_handler(args):
                 except Exception as err:
                     self._send(500, {"error": "list failed: %s" % type(err).__name__, "channels": [], "count": 0})
                 return
-            # ONE PICTURE AT LISTING SIZE (DR-0997): so a NAS picture can be filed
+            # ONE PICTURE AT LISTING SIZE (DR-0998): so a NAS picture can be filed
             # on a door's listing exactly as a phone upload is. The original is
             # read and downscaled in memory; nothing on the NAS is written.
             if path.endswith("/property-photo") or path == "/property-photo":
@@ -1154,7 +1154,7 @@ def selftest():
         import shutil as _sh
         _sh.rmtree(_d, ignore_errors=True)
 
-    # --- THE REAL SERVER, OVER REAL HTTP (DR-0997; LESSONS P59) ---------------
+    # --- THE REAL SERVER, OVER REAL HTTP (DR-0998; LESSONS P59) ---------------
     # A fixture stands in for Synology Chat and a generated JPEG for the phone
     # backup; everything else -- the routes, the bearer, the thumbnail and
     # listing-size roads, CORS -- is the code that runs on the NAS.

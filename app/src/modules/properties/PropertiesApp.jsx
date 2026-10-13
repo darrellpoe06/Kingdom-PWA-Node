@@ -312,7 +312,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
   // names, no mortgage — cloud.js). Shown when this person holds neither a
   // tenancy nor an owned door, so the front door is never a blank space.
   const [vacancies, setVacancies] = useState([]);
-  // Each door's picture archive on the NAS and when its address was held (0284, DR-0997).
+  // Each door's picture archive on the NAS and when its address was held (0284, DR-0998).
   const [archives, setArchives] = useState({ channels: {}, heldAt: {} });
   const [notice, setNotice] = useState('');
   // Did the spine reads actually come back? An empty portfolio and an unreachable
@@ -671,7 +671,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
 
   const face = useMemo(() => resolveFace(role, grants), [role, grants]);
 
-  // EVERY DOOR WITH AN ADDRESS IS ON THE MAP, BY DEFAULT (DR-0996). Once a
+  // EVERY DOOR WITH AN ADDRESS IS ON THE MAP, BY DEFAULT (DR-0997). Once a
   // session, in the background, for the family only: each building with a
   // door not yet on the map is looked up once and its doors saved with the
   // rounded area and what is nearby, so every public card shows "What's
@@ -683,7 +683,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
     placing.current = true;
     (async () => {
       const save = (id, patch, summary) => updateRental(id, patch, { summary });
-      // THE RECORD HELD WHOLE, ONCE (DR-0997), FIRST: the address in its parts
+      // THE RECORD HELD WHOLE, ONCE (DR-0998), FIRST: the address in its parts
       // and the archive named on the row, through the same edit path, with
       // the same trace. The placement below then reads the repaired address,
       // never the one-line one. Both doors then read one row.

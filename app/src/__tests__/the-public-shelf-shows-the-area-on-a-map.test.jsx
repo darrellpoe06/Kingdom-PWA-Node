@@ -113,7 +113,7 @@ describe('on the public shelf', () => {
     expect(container.querySelectorAll('[data-testid="area-map-tile"]')).toHaveLength(0);
     expect(container.querySelector('[data-testid="nearby"]').textContent).toContain('University of Illinois Main Quad');
     expect(container.textContent).toContain('about 0.7 miles');
-    // A held street gets no link out and no pin (DR-0995): a pin on the rounded
+    // A held street gets no link out and no pin (DR-0996): a pin on the rounded
     // area would read as the house.
     expect(container.querySelector('[data-testid="street-view"]')).toBeNull();
     expect(container.querySelector('[data-testid="open-in-maps"]')).toBeNull();
@@ -130,7 +130,7 @@ describe('on the public shelf', () => {
     expect(container.querySelectorAll('[data-testid="area-map-tile"]')).toHaveLength(0);
   });
 
-  it('a shown street (DR-0995): Show on map pins the HOUSE, and Street view stands at it', async () => {
+  it('a shown street (DR-0996): Show on map pins the HOUSE, and Street view stands at it', async () => {
     const calls = [];
     const real = globalThis.fetch;
     globalThis.fetch = async (url) => { calls.push(String(url)); return { json: async () => ({ ok: true, lat: APT2.lat, lng: APT2.lng, matched: '805 N PROSPECT AVE, CHAMPAIGN, IL, 61820', source: 'census' }) }; };
@@ -268,7 +268,7 @@ describe('the family sets the area', () => {
     const real = globalThis.fetch;
     globalThis.fetch = async (url) => {
       calls.push(String(url));
-      // What is nearby is asked around the found point (DR-0996); OpenStreetMap
+      // What is nearby is asked around the found point (DR-0997); OpenStreetMap
       // knows nothing here, so the Champaign research is what is listed.
       if (String(url) === OVERPASS) return { ok: true, status: 200, json: async () => ({ elements: [] }) };
       return { json: async () => ({ ok: true, lat: APT2.lat, lng: APT2.lng, matched: '805 N PROSPECT AVE, CHAMPAIGN, IL, 61820' }) };

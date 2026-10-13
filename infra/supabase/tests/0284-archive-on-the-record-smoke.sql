@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0284 SMOKE — the whole address and its archive on the record (DR-0997)
+-- 0284 SMOKE — the whole address and its archive on the record (DR-0998)
 -- =============================================================================
 -- One transaction; ROLLS BACK. PASS prints 'ARCHIVE ON THE RECORD SMOKE: PASS'.
 --

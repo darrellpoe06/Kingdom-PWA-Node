@@ -454,7 +454,7 @@ export function DoorsBoard({
   // {rental_id: {photo_id: position}}. Bed B's card leads with its choice.
   photoOrders = {},
   // The family's known buildings (for the address dropdown) and each door's
-  // picture archive on the NAS, {rental_id: channel} (DR-0997).
+  // picture archive on the NAS, {rental_id: channel} (DR-0998).
   knownBuildings = [], archives = {},
   onPick, onStart, onListing, onEditTenancy, onEditRental, onArrange, busy = false,
   // What each door has brought in (DR-0903, door_money_months): moneyByDoor's
@@ -1043,7 +1043,7 @@ function EditRental({ rental, onSave, busy, knownBuildings = [], archive = '' })
   const set = (k) => (e) => setF((p) => ({ ...p, [k]: e.target.value }));
   const shortStay = f.offering === 'short-term' || f.offering === 'both';
 
-  // THE ADDRESS IS PICKED, NOT RETYPED (DR-0997). Darrell: "Drop down with
+  // THE ADDRESS IS PICKED, NOT RETYPED (DR-0998). Darrell: "Drop down with
   // addresses... instead of letting someone else mistyped". The family's
   // known buildings are offered under the street field; an exact pick fills
   // the town and state; new text is a new building.
@@ -1053,7 +1053,7 @@ function EditRental({ rental, onSave, busy, knownBuildings = [], archive = '' })
     const b = pickedBuilding(v, buildings);
     setF((p) => (b ? { ...p, address: b.address, city: b.city || p.city, state: b.state || p.state } : { ...p, address: v }));
   };
-  // THE ARCHIVE IS PICKED FROM WHAT THE NAS HOLDS (DR-0997): the list the
+  // THE ARCHIVE IS PICKED FROM WHAT THE NAS HOLDS (DR-0998): the list the
   // photo server serves, with counts, read once when the editor opens. When
   // the NAS cannot be reached the current name is shown and kept as it is;
   // a name is never typed here, so one is never mistyped.
@@ -1117,7 +1117,7 @@ function EditRental({ rental, onSave, busy, knownBuildings = [], archive = '' })
             This door reads: <strong>{formatAddress({ ...f, unit: f.unit }) || 'nothing yet'}</strong>
           </span>
         </label>
-        {/* THE PICTURE ARCHIVE ON THE NAS (DR-0997), picked from the list the NAS
+        {/* THE PICTURE ARCHIVE ON THE NAS (DR-0998), picked from the list the NAS
             serves. Darrell: "Most of the properties have pictures already on
             the nas... why don't they show up". */}
         <label className="sm:col-span-2"><span className={lbl}>Picture archive on the NAS</span>

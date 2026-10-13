@@ -893,7 +893,7 @@ export async function loadDoorArea(id, client = supabase) {
 }
 
 /**
- * Which of this person's doors are already on the map (DR-0996): one read, the
+ * Which of this person's doors are already on the map (DR-0997): one read, the
  * ids that carry a rounded area. RLS scopes it to the doors they can see.
  */
 export async function loadDoorAreas(client = supabase) {
@@ -904,7 +904,7 @@ export async function loadDoorAreas(client = supabase) {
     return ok({
       placed: new Set(rows.map((r) => r.id)),
       // The rounded areas themselves, by door, so the Real Estate card can show
-      // the same map Poe Properties shows (DR-0997). Never an exact point.
+      // the same map Poe Properties shows (DR-0998). Never an exact point.
       areas: Object.fromEntries(rows.map((r) => [r.id, { lat: Number(r.area_lat), lng: Number(r.area_lng) }])),
     });
   } catch (e) { return no('unexpected', e); }
@@ -912,7 +912,7 @@ export async function loadDoorAreas(client = supabase) {
 
 /**
  * Each door's picture archive on the NAS and when its address was last held
- * in its parts (0284, DR-0997). Its OWN read, as the areas are: the columns
+ * in its parts (0284, DR-0998). Its OWN read, as the areas are: the columns
  * arrive by db-migrate beside the deploy, and a column the database does not
  * yet have must not cost the main rentals read. {channels: {id: name},
  * heldAt: {id: iso}}.

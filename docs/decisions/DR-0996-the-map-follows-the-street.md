@@ -1,4 +1,4 @@
-# DR-0995: The map follows the street — a pin and Street View when it is shown, the building's area when it is held
+# DR-0996: The map follows the street — a pin and Street View when it is shown, the building's area when it is held
 
 **Date:** 2026-10-13
 **Status:** accepted

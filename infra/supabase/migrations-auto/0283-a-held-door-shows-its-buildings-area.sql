@@ -1,5 +1,5 @@
 -- ===========================================================================
--- 0283 — a held door shows its building's area (DR-0995)
+-- 0283 — a held door shows its building's area (DR-0996)
 -- ===========================================================================
 -- Darrell, 2026-10-13, with the live shelf on his Fold (Apt 2 beside the bed
 -- in Apt 4): "Show on map is supposed to be giving the area without the
@@ -47,7 +47,7 @@ RETURNS text LANGUAGE sql IMMUTABLE AS $$
 $$;
 
 COMMENT ON FUNCTION public.building_key(text, text) IS
-  'The building a door is in: its street with the unit folded out (street_key, 0273) and everything from the first unit designator on cut away. Cleaned, never fuzzy (DR-0967). Used by public_vacancies to give a door with no area its building''s area (DR-0995).';
+  'The building a door is in: its street with the unit folded out (street_key, 0273) and everything from the first unit designator on cut away. Cleaned, never fuzzy (DR-0967). Used by public_vacancies to give a door with no area its building''s area (DR-0996).';
 
 CREATE OR REPLACE FUNCTION public.public_vacancies()
 RETURNS TABLE (
@@ -84,7 +84,7 @@ AS $$
            public.rentable_level_of(r.rentable_level, r.unit, r.display_name) AS level,
            (SELECT count(*)::integer FROM property_rooms pr
              WHERE pr.rental_ref = r.id AND pr.archived_at IS NULL AND pr.kind = 'bedroom') AS beds,
-           -- THE BUILDING'S AREA (DR-0995), for a door that stored none. Any
+           -- THE BUILDING'S AREA (DR-0996), for a door that stored none. Any
            -- door of the same family in the same building, listed or not; the
            -- one with nearby lines first, then the oldest, so the answer does
            -- not change from one read to the next.
@@ -164,6 +164,6 @@ REVOKE ALL ON FUNCTION public.public_vacancies() FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.public_vacancies() TO anon, authenticated;
 
 COMMENT ON FUNCTION public.public_vacancies() IS
-  'The public shelf (DR-0995): a room or a bed says what it is first (0281); a whole unit keeps its own name / bedroom-count label (0280); the street when the family shows it and nothing more exact than the town when they hold it; the rounded area the door stored, or its building''s rounded area when it stored none (same family, same street with the unit folded out).';
+  'The public shelf (DR-0996): a room or a bed says what it is first (0281); a whole unit keeps its own name / bedroom-count label (0280); the street when the family shows it and nothing more exact than the town when they hold it; the rounded area the door stored, or its building''s rounded area when it stored none (same family, same street with the unit folded out).';
 
 NOTIFY pgrst, 'reload schema';

@@ -37,7 +37,7 @@ export function sameApartment(a, b) {
 
 
 /**
- * The building a door is in (DR-0996): its street with the unit folded out
+ * The building a door is in (DR-0997): its street with the unit folded out
  * (streetKey), cut at the first unit designator. The same rule as the
  * database's public.building_key (0283), so "805 North Prospect Avenue Apt 4"
  * with unit "Bed B" and "805 North Prospect Avenue" with unit "Apt 2" are one

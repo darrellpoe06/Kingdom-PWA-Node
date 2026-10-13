@@ -67,14 +67,14 @@ const RED_DISC = new Set(['applicant', 'household', 'manager']);
 
 // The focus ring every styled button on the platform carries (UX-PATTERNS
 // 2g.1); the color is the brand red, readable on midnight's black as well.
-const FOCUS = 'focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#C8102E]';
+const FOCUS = 'focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#E00000]';
 
 export const WELCOME_CSS = `
 @font-face{font-family:"Playfair Display";font-style:normal;font-weight:700;font-display:swap;src:url(/properties/fonts/playfair-display-700-latin.woff2) format("woff2")}
 @font-face{font-family:"Playfair Display";font-style:normal;font-weight:800;font-display:swap;src:url(/properties/fonts/playfair-display-800-latin.woff2) format("woff2")}
 .pp-door{
   --pp-paper:#F4F4F6;--pp-card:#FFFFFF;--pp-line:#E4E4E9;--pp-ink:#111111;--pp-muted:#55555C;
-  --pp-red:#C8102E;--pp-red-deep:#A30D25;--pp-red-tint:#FBE7EA;--pp-gray-disc:#EEEFF2;
+  --pp-red:#E00000;--pp-red-deep:#B30000;--pp-red-tint:#FDEDED;--pp-gray-disc:#EEEFF2;
   --pp-gold:#C9A24D;--pp-black:#111111;--pp-footer-ink:#FFFFFF;--pp-shadow:0 1px 2px rgba(17,17,17,.04),0 8px 24px rgba(17,17,17,.06);
   --pp-serif:"Playfair Display","Fraunces",Georgia,"Times New Roman",serif;
   --pp-sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
@@ -82,7 +82,7 @@ export const WELCOME_CSS = `
 }
 [data-theme="midnight"].pp-door{
   --pp-paper:#000000;--pp-card:#141414;--pp-line:#2A2A2A;--pp-ink:#E5E5E5;--pp-muted:#A3A3A3;
-  --pp-red:#F0506A;--pp-red-deep:#F97A8E;--pp-red-tint:#3A1218;--pp-gray-disc:#232323;--pp-black:#1F1F1F;
+  --pp-red:#FF3B3B;--pp-red-deep:#FF6B6B;--pp-red-tint:#3A1212;--pp-gray-disc:#232323;--pp-black:#1F1F1F;
   --pp-shadow:0 1px 2px rgba(0,0,0,.6),0 8px 24px rgba(0,0,0,.5);
 }
 .pp-serif{font-family:var(--pp-serif)}
@@ -124,16 +124,60 @@ export const WELCOME_CSS = `
 @media (prefers-reduced-motion:reduce){.pp-card,.pp-card:hover{transition:none;transform:none}}
 .pp-disc{flex:none;width:4.25rem;height:4.25rem;border-radius:999px;display:flex;align-items:center;justify-content:center;background:var(--pp-gray-disc);color:var(--pp-ink)}
 .pp-disc svg{width:2rem;height:2rem}
-.pp-disc.is-red{background:var(--pp-red-tint);color:var(--pp-red)}
+.pp-disc.is-red{background:var(--pp-red);color:#FFFFFF}
 .pp-card-text{flex:1;min-width:0}
 .pp-card-title{display:block;font-family:var(--pp-serif);font-weight:700;font-size:1.25rem;line-height:1.15;letter-spacing:-.01em;color:var(--pp-ink);margin:0}
 .pp-card-blurb{display:block;font-size:.9375rem;line-height:1.4;color:var(--pp-muted);margin:.35rem 0 0}
 .pp-pill{display:inline-block;margin-top:.5rem;font-size:.625rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--pp-red);border:1px solid currentColor;border-radius:999px;padding:.2rem .55rem}
 .pp-card-go{flex:none;display:flex;align-items:center;gap:1rem;align-self:stretch}
 .pp-card-go::before{content:"";width:1px;align-self:stretch;background:var(--pp-line)}
-.pp-arrow{width:2.75rem;height:2.75rem;border-radius:999px;background:var(--pp-red);color:#FFFFFF;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 10px rgba(200,16,46,.28)}
+.pp-arrow{width:2.75rem;height:2.75rem;border-radius:999px;background:var(--pp-red);color:#FFFFFF;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 10px rgba(224,0,0,.25)}
 .pp-arrow svg{width:1.25rem;height:1.25rem}
 .pp-card:hover .pp-arrow{background:var(--pp-red-deep)}
+/* THE TWO STEPS PAST THE CARDS (2026-10-13, Darrell: "restyle the sign-in and
+   vacancies pages to match"): the same white panel, serif title, red kicker
+   and red pill button as the front page. */
+.pp-step{max-width:76rem;margin:0 auto;padding:.75rem 0 2rem}
+.pp-back{display:inline-flex;align-items:center;gap:.4rem;min-height:2.75rem;padding:0 .25rem;margin-bottom:.75rem;font-size:.75rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--pp-red);background:none;border:0;cursor:pointer;border-radius:.4rem;text-decoration:underline;text-underline-offset:.25em}
+.pp-back:hover{color:var(--pp-red-deep)}
+.pp-panel{background:var(--pp-card);border:1px solid var(--pp-line);border-radius:1rem;padding:1.25rem;box-shadow:var(--pp-shadow);color:var(--pp-ink)}
+.pp-panel+.pp-panel,.pp-panel+.pp-fold,.pp-fold+.pp-panel,.pp-fold+.pp-btn,.pp-panel+.pp-btn{margin-top:1rem}
+.pp-kicker{display:block;font-size:.6875rem;font-weight:700;letter-spacing:.28em;text-transform:uppercase;color:var(--pp-red);margin:0 0 .35rem}
+.pp-panel-title{font-family:var(--pp-serif);font-weight:700;font-size:1.625rem;line-height:1.15;letter-spacing:-.015em;color:var(--pp-ink);margin:0}
+.pp-panel-lead{font-size:1.0625rem;line-height:1.55;color:var(--pp-ink);margin:.5rem 0 0;max-width:40em}
+.pp-panel-note{font-size:.9375rem;line-height:1.5;color:var(--pp-muted);margin:.5rem 0 0;max-width:44em}
+.pp-shelf{margin-top:1rem}
+.pp-btn{display:inline-flex;align-items:center;justify-content:center;gap:.5rem;min-height:3rem;padding:0 1.35rem;border-radius:999px;background:var(--pp-red);color:#FFFFFF;border:1px solid var(--pp-red);font-weight:700;font-size:.8125rem;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;box-shadow:0 4px 12px rgba(224,0,0,.22)}
+.pp-btn:hover{background:var(--pp-red-deep);border-color:var(--pp-red-deep)}
+.pp-btn:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
+.pp-fold{background:var(--pp-card);border:1px solid var(--pp-line);border-radius:1rem;padding:1rem 1.25rem;box-shadow:var(--pp-shadow)}
+.pp-fold-row{border-top:1px solid var(--pp-line)}
+.pp-fold-row:first-of-type{border-top:0}
+.pp-fold-open{min-height:2.75rem;width:100%;display:flex;align-items:center;justify-content:space-between;gap:.75rem;text-align:left;font-family:var(--pp-serif);font-weight:700;font-size:1.0625rem;color:var(--pp-ink);background:none;border:0;padding:.5rem 0;cursor:pointer}
+.pp-fold-open span:last-child{font-family:var(--pp-sans);font-weight:700;font-size:.6875rem;letter-spacing:.16em;text-transform:uppercase;color:var(--pp-red)}
+.pp-fold-body{font-size:.9375rem;line-height:1.55;color:var(--pp-ink);padding:0 0 .75rem}
+.pp-fold-body p{margin:.35rem 0}
+.pp-fold-body h4{font-weight:700;margin:.6rem 0 .15rem}
+.pp-fold-body ul{list-style:disc;padding-left:1.25rem;margin:.25rem 0}
+.pp-form fieldset{border:0;padding:0;margin:0 0 1rem}
+.pp-form legend{display:block;font-size:.6875rem;font-weight:700;letter-spacing:.28em;text-transform:uppercase;color:var(--pp-red);margin:0 0 .4rem;padding:0}
+.pp-form label{display:block;font-size:.875rem;font-weight:600;color:var(--pp-ink);margin:0 0 .75rem}
+.pp-form input,.pp-form select{display:block;width:100%;margin-top:.3rem;border:1px solid var(--pp-line);border-radius:.6rem;background:var(--pp-card);color:var(--pp-ink);padding:.6rem .75rem;min-height:2.75rem;font-size:1rem;font-weight:400;font-family:var(--pp-sans)}
+.pp-form input:focus-visible,.pp-form select:focus-visible{outline:2px solid var(--pp-red);outline-offset:2px}
+.pp-form .pp-help{display:block;font-size:.8125rem;font-weight:400;color:var(--pp-muted);margin-top:.2rem}
+.pp-auth{max-width:36rem}
+/* The shared pieces this door hosts -- the vacancy shelf (Storefront.jsx), the
+   sign-in form (PasswordAuth.jsx) and their links -- wear the door's red in
+   place of their own green and rust. The same remap-by-token pattern
+   lib/theme-css.js uses for midnight; scoped to this door, so the PoeTech
+   shell's copy of the same components keeps its own colors. */
+.pp-door .text-\\[\\#2F5D50\\]{color:var(--pp-red)!important}
+.pp-door .bg-\\[\\#2F5D50\\]{background-color:var(--pp-red)!important}
+.pp-door .border-\\[\\#2F5D50\\]{border-color:var(--pp-red)!important}
+.pp-door .text-\\[\\#B85838\\]{color:var(--pp-red)!important}
+.pp-door .text-\\[\\#5A6E3D\\]{color:var(--pp-red)!important}
+.pp-door [data-testid="vacancy-apply"]{border-color:var(--pp-red)!important;color:var(--pp-red)!important;border-radius:999px;font-weight:700}
+.pp-door [data-testid="book-a-stay-open"]{background:var(--pp-red)!important;border-color:var(--pp-red)!important;border-radius:999px;font-weight:700}
 .pp-footer{background:var(--pp-black);color:var(--pp-footer-ink);border-top:2px solid var(--pp-gold);padding:1.6rem 1rem calc(1.6rem + env(safe-area-inset-bottom,0px));text-align:center}
 .pp-footer-line{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:.5rem 1rem;max-width:40rem;margin:0 auto;font-size:.75rem;font-weight:600;letter-spacing:.3em;text-transform:uppercase;line-height:1.5}
 .pp-footer-line>span{white-space:nowrap}

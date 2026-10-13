@@ -167,7 +167,7 @@ jobs:
             # fallback (Silk exposes speechSynthesis without delivering it), so
             # the Firestick is the device that went silent.
             echo "UNLOCK_VOICE_LITE_BASE=https://poetech.tail5a2f35.ts.net/voice-lite"
-            # The property pictures, same outage, same shape (DR-0997). Both
+            # The property pictures, same outage, same shape (DR-0998). Both
             # doors (Real Estate and Poe Properties) read the family's NAS
             # archive through /nas-photos, which answers the SPA shell like
             # every other Function. The photo server learned CORS for this

@@ -47,7 +47,7 @@ export const CHAT_BRIDGE_TOKEN_KEY = 'poetech-chat-bridge-token';
 // anywhere on the photo path; DR-0617.)
 export const NAS_PHOTO_BASE = '/nas-photos';
 
-// THE DIRECT ROAD (DR-0997). While every Cloudflare Pages Function is dark
+// THE DIRECT ROAD (DR-0998). While every Cloudflare Pages Function is dark
 // (#2057, since 2026-10-09) the same-origin /nas-photos answers with the app's
 // own HTML page, so every read above came back as "not JSON" and both doors
 // showed no archive. /sb and /cams already carry a build-time Funnel base for
@@ -150,7 +150,7 @@ export const CHANNEL_RE = /^[A-Za-z0-9._-]{1,64}$/;
 
 export function chatChannelFor(r) {
   if (!r) return '';
-  // THE RECORD FIRST (DR-0997): the archive named on the door itself
+  // THE RECORD FIRST (DR-0998): the archive named on the door itself
   // (rentals.photo_channel, picked from the NAS's own list) wins; the
   // hardcoded nine stay as the fallback until every record carries its own.
   const own = String(r.photoChannel || r.photo_channel || '').trim();
@@ -163,7 +163,7 @@ export function chatChannelFor(r) {
 
 /**
  * Every archive the NAS holds, with its picture count: [{name, total}], or
- * null when the NAS could not be reached (DR-0997). The door's archive is
+ * null when the NAS could not be reached (DR-0998). The door's archive is
  * PICKED from this, never typed.
  */
 export async function fetchChannels() {
@@ -178,7 +178,7 @@ export async function fetchChannels() {
 }
 
 /**
- * ONE picture from an archive at listing size (DR-0997): {ok, id, name, date,
+ * ONE picture from an archive at listing size (DR-0998): {ok, id, name, date,
  * text, width, height, image: data URL} or {ok:false, reason}. Never throws.
  */
 export async function fetchListingPhoto(channel, id, { max = 1920 } = {}) {

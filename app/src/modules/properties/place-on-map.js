@@ -1,5 +1,5 @@
 // =============================================================================
-// place-on-map — every door with an address is on the map, by default (DR-0996)
+// place-on-map — every door with an address is on the map, by default (DR-0997)
 // =============================================================================
 // Darrell, 2026-10-13, looking at "What's nearby" under the map on Apt 2:
 // "I love that it shows what's close!!! Shouldn't this be default?" And on
@@ -39,7 +39,7 @@ import { buildingKey } from './apartment.js';
 // any of a dozen towns' Commercial Streets, and a guess would put the distances
 // on the wrong one. The town is the door's city, or the part of its address
 // after the street when the whole address was typed into one field ("1508
-// Williamsburg, Champaign, IL, 61821" -- the Real Estate records, DR-0997).
+// Williamsburg, Champaign, IL, 61821" -- the Real Estate records, DR-0998).
 const STATE_RE = /^(?:[a-z]{2}|alabama|alaska|arizona|arkansas|california|colorado|connecticut|delaware|florida|georgia|hawaii|idaho|illinois|indiana|iowa|kansas|kentucky|louisiana|maine|maryland|massachusetts|michigan|minnesota|mississippi|missouri|montana|nebraska|nevada|new hampshire|new jersey|new mexico|new york|north carolina|north dakota|ohio|oklahoma|oregon|pennsylvania|rhode island|south carolina|south dakota|tennessee|texas|utah|vermont|virginia|washington|west virginia|wisconsin|wyoming)(?:\s+\d{5}(?:-\d{4})?)?$/;
 export function townOf(rental) {
   const tidy = (v) => String(v || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();

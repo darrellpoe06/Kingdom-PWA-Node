@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0284 — THE WHOLE ADDRESS, AND ITS PICTURE ARCHIVE, ON THE RECORD (DR-0997)
+-- 0284 — THE WHOLE ADDRESS, AND ITS PICTURE ARCHIVE, ON THE RECORD (DR-0998)
 -- =============================================================================
 -- Darrell, 2026-10-13, with the Real Estate tab beside Poe Properties:
 --
@@ -20,7 +20,7 @@
 --      family NAS (a Synology Chat channel, e.g. '805NProspect'), picked from
 --      the list the NAS itself serves, never typed. Same character rule as the
 --      server's SAFE_CHANNEL; NULL means "no archive named yet".
---   2. rentals.address_held_at: when the one-time address repair (DR-0997,
+--   2. rentals.address_held_at: when the one-time address repair (DR-0998,
 --      address.js repairAddress) last ran on this row, so it runs once per
 --      row and the app can say "held in its parts since ...".
 --   3. Both are read on their OWN (loadDoorAreas), never added to the main
@@ -42,8 +42,8 @@ BEGIN
 END $$;
 
 COMMENT ON COLUMN public.rentals.photo_channel IS
-  'The name of this door''s picture archive on the family NAS (a Synology Chat channel), picked from the list the NAS serves (DR-0997). NULL = no archive named yet. Same shape rule as the photo server''s SAFE_CHANNEL.';
+  'The name of this door''s picture archive on the family NAS (a Synology Chat channel), picked from the list the NAS serves (DR-0998). NULL = no archive named yet. Same shape rule as the photo server''s SAFE_CHANNEL.';
 COMMENT ON COLUMN public.rentals.address_held_at IS
-  'When the one-time address repair last held this row''s address in its parts (street / unit / city / state / zip), so every surface prints the same line (DR-0997).';
+  'When the one-time address repair last held this row''s address in its parts (street / unit / city / state / zip), so every surface prints the same line (DR-0998).';
 
 NOTIFY pgrst, 'reload schema';
