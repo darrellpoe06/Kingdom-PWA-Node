@@ -74,7 +74,27 @@ number from the tree you are building on, never from another checkout.
 - `living-lessons-ll241-verses.test.js` — **17 green**: twelve verbatim corpus
   comparisons, every pinned verse actually quoted somewhere, `anchor.ref`
   naming every verse it stands on (DR-0734), and the per-band direction check.
-- **Four bands**; `placesMissingDirections` is `[]` on the lesson and all four.
+- **Four bands, every one carrying the FULL message** — and this is where CI
+  refused the first version. The `full-levels` gate measured child at 0.25 of
+  the adult lesson against a 0.50 floor, youth 0.41, teen 0.54 and senior 0.47
+  against 0.60, and `reading-level` called the ladder inverted because senior
+  (FK 4.8) read easier than teen (4.96). I had written full adult prose and
+  abbreviated the bands — exactly the failure that gate exists to stop, and
+  exactly what Darrell said when he commissioned it: *"full message,
+  age-simple"*, *"THE SHORT LESSON IS THE ONLY PROBLEM."* All four bands were
+  re-authored to carry every point: now 0.77 / 0.94 / 1.00 / 1.13 of the adult
+  prose, with an ascending ladder of FK 1.0 / 4.9 / 5.7 / 9.9 and the child
+  band under its 5.0 ceiling. `placesMissingDirections` is `[]` on the lesson
+  and all four.
+- **A mechanical shortcut was tried and thrown away, which is worth recording.**
+  To raise the floors I first inflated the register ("inasmuch as",
+  "antecedently", "constitutes"), which passed both gates at FK 14 and 18.5 —
+  measured against the corpus, teen's 12.8 tied the highest teen band in 238
+  lessons. Then a regex sentence-splitter made it worse, producing fragments
+  ("Whose previous judgements may be examined.") and collapsing every
+  paragraph break. Both passes were discarded and both bands hand-written.
+  A gate satisfied by padding is not a lesson served to a reader; the gate's
+  own comment says the author's eye is still the judge.
 - **Proven-to-catch (DR-0795), the proof the builder brief names:** strip every
   friend-direction sentence from the teen band alone and `hasAllThree` still
   reads green while the per-band check names
