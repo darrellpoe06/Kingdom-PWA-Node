@@ -188,20 +188,28 @@ export const CSP = (() => {
 // Synology Chat and a generated JPEG for the phone backup. The gateway
 // proxies /nas-photos/* to it the way the Funnel mount does on the NAS.
 const OVERPASS_PHOTO = { channel: '805NProspect', id: '9001', name: '20240123_144917.jpg' };
+// A 64x48 solid JPEG (Pillow, q70): the last road for the fixture above.
+const FIXTURE_JPEG_B64 = '/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAoHBwgHBgoICAgLCgoLDhgQDg0NDh0VFhEYIx8lJCIfIiEmKzcvJik0KSEiMEExNDk7Pj4+JS5ESUM8SDc9Pjv/2wBDAQoLCw4NDhwQEBw7KCIoOzs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozv/wAARCAAwAEADASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwDl6KKKZ5oUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFAH//2Q==';
 function startPhotoServer() {
   const root = join(SHOTS, 'nas');
   const pdir = join(root, 'photos', '2024', '01');
   mkdirSync(pdir, { recursive: true });
-  // The phone backup's JPEG: Pillow where it is installed, else ImageMagick's
-  // convert (the GitHub runner has convert and no Pillow -- the same two roads
-  // photo_server.py's own selftest and listing_size take). E2E_NO_PIL=1 forces
-  // the convert road so it is proven where Pillow exists.
+  // The phone backup's JPEG, by three roads -- the same ones photo_server.py's
+  // own selftest and listing_size take: Pillow (the NAS's, and CI installs it),
+  // else ImageMagick's convert, else a small JPEG held here so the run never
+  // dies on its fixture (a bare GitHub runner has neither; CI's "0a0598c1b"
+  // run died on "convert ENOENT"). The road is printed; E2E_NO_PIL=1 skips
+  // Pillow so the other roads are proven where Pillow exists.
   const jpg = join(pdir, OVERPASS_PHOTO.name);
-  let made = false;
+  let road = 'none';
   if (!process.env.E2E_NO_PIL) {
-    try { execFileSync('python3', ['-c', `from PIL import Image; Image.new('RGB', (2400, 1600), (47, 93, 80)).save(${JSON.stringify(jpg)}, format='JPEG', quality=80)`], { stdio: 'ignore' }); made = true; } catch (_) { made = false; }
+    try { execFileSync('python3', ['-c', `from PIL import Image; Image.new('RGB', (2400, 1600), (47, 93, 80)).save(${JSON.stringify(jpg)}, format='JPEG', quality=80)`], { stdio: 'ignore' }); road = 'pillow'; } catch (_) { road = 'none'; }
   }
-  if (!made) execFileSync('convert', ['-size', '2400x1600', 'xc:#2F5D50', jpg], { stdio: 'ignore' });
+  if (road === 'none') {
+    try { execFileSync('convert', ['-size', '2400x1600', 'xc:#2F5D50', jpg], { stdio: 'ignore' }); road = 'convert'; } catch (_) { road = 'none'; }
+  }
+  if (road === 'none') { writeFileSync(jpg, Buffer.from(FIXTURE_JPEG_B64, 'base64')); road = 'held'; }
+  console.log(`door-journeys: phone-backup fixture by the ${road} road`);
   const fixture = join(root, 'chat.json');
   writeFileSync(fixture, JSON.stringify({ channels: [
     { name: OVERPASS_PHOTO.channel, posts: [{ id: OVERPASS_PHOTO.id, create_at: 1705891200000, name: OVERPASS_PHOTO.name, text: 'the porch, winter' }] },
@@ -619,6 +627,10 @@ function verdict(r) {
   }
   const bad = r.filter((x) => x[1] !== 'pass');
   console.log(`door-journeys: ${r.length - bad.length} of ${r.length} steps passed`);
+  // A run that reached no step proved nothing; green must mean something
+  // (DR-0076 S3). CI's 0a0598c1b run printed "0 of 0 steps passed" and went
+  // green after its fixture died -- never again.
+  if (!r.length) { console.error('door-journeys: no step ran -- a run that proves nothing is red'); process.exit(1); }
   process.exit(bad.length ? 1 : 0);
 }
 // A failing step throws out of run(); the results so far are still the verdict.
