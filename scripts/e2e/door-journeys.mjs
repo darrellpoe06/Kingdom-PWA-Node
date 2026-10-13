@@ -144,7 +144,12 @@ export const FAULTS = Object.freeze({
     step: 'G2',
     // Without 0285's index the database files the same NAS picture twice.
     sql: 'DROP INDEX IF EXISTS public.property_photos_source_once;',
-    restore: `${MIG}/0285-a-nas-picture-is-filed-once.sql`,
+    // G2's own proof leaves the twice-filed picture behind, and a unique index
+    // cannot be rebuilt over it: the rows go first, then 0285 comes back.
+    restore: [
+      `DELETE FROM public.property_photos WHERE source IS NOT NULL AND rental_ref IN ('${DOOR}', '${DOOR2}');`,
+      `${MIG}/0285-a-nas-picture-is-filed-once.sql`,
+    ],
   },
   area: {
     step: 'E1',
@@ -166,6 +171,7 @@ export const FAULTS = Object.freeze({
   },
 });
 const BREAK = (process.argv.find((a) => a.startsWith('--break=')) || '').slice('--break='.length);
+let undoFailed = '';
 if (BREAK && !FAULTS[BREAK]) fail(2, `unknown --break=${BREAK} (one of: ${Object.keys(FAULTS).join(', ')})`);
 function applyFile(path) { execFileSync(PSQL[0], [...PSQL.slice(1), '-v', 'ON_ERROR_STOP=1', '-q', '-f', path], { encoding: 'utf8', stdio: ['ignore', 'ignore', 'inherit'] }); }
 // A restore may be a LIST of files: re-applying one migration can rebuild an
@@ -648,7 +654,9 @@ async function run() {
     });
   } finally {
     clearTimeout(killer);
-    if (BREAK) { try { undoFault(FAULTS[BREAK]); } catch (e) { console.error(`door-journeys: could not undo the ${BREAK} fault: ${e.message}`); } }
+    // A fault that stays behind makes the NEXT run prove the wrong thing
+    // (DR-0076): an undo that fails is red, however the step itself went.
+    if (BREAK) { try { undoFault(FAULTS[BREAK]); } catch (e) { undoFailed = `could not undo the ${BREAK} fault: ${e.message}`; console.error(`door-journeys: ${undoFailed}`); } }
     if (browser) await browser.close().catch(() => {});
     server.close();
     pgrst.kill();
@@ -662,7 +670,11 @@ function verdict(r) {
   if (BREAK) {
     const want = FAULTS[BREAK].step;
     const hit = r.find((x) => x[0].startsWith(`${want} `));
-    if (hit && hit[1] === 'FAIL') { console.log(`door-journeys: CAUGHT — the ${BREAK} fault failed ${want}, as it must`); process.exit(0); }
+    if (hit && hit[1] === 'FAIL') {
+      console.log(`door-journeys: CAUGHT — the ${BREAK} fault failed ${want}, as it must`);
+      if (undoFailed) { console.error(`door-journeys: but the fault is still in the database (${undoFailed}); the next run would prove the wrong thing`); process.exit(1); }
+      process.exit(0);
+    }
     console.log(`door-journeys: NOT CAUGHT — the ${BREAK} fault left ${want} ${hit ? 'passing' : 'unreached'}; this journey proves nothing about it`);
     process.exit(1);
   }
