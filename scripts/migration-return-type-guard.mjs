@@ -59,7 +59,7 @@ export function normalizeReturns(text = '') {
 export function functionReturns(sql = '') {
   const clean = stripComments(sql);
   const out = [];
-  const re = /create\s+or\s+replace\s+function\s+(?:public\.)?([a-z0-9_]+)\s*\(/gi;
+  const re = /create\s+(?:or\s+replace\s+)?function\s+(?:public\.)?([a-z0-9_]+)\s*\(/gi;
   let m;
   while ((m = re.exec(clean)) !== null) {
     const name = m[1].toLowerCase();
