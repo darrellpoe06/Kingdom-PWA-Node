@@ -243,4 +243,35 @@ describe('checkMediaService — honest capability states, never a fake ✓', () 
     vi.stubGlobal('fetch', vi.fn(async () => { throw new Error('offline'); }));
     expect(await checkMediaService()).toBe('unreachable');
   });
+
+  // A 200 IS NOT AN ANSWER (2026-10-13, #2057). /nas-photos is a Cloudflare
+  // Pages Function; while none is invoked the path falls through to the SPA
+  // and the browser gets index.html with HTTP 200. The old probe read
+  // `resp.ok` alone and called that 'ready' -- a painted checkmark on a dark
+  // road, live on the site the day this was written. Each of these fails
+  // against that version.
+  it('NOT ready when the SPA shell answers 200 because no Pages Function ran', async () => {
+    localStorage.setItem(CHAT_BRIDGE_TOKEN_KEY, 't');
+    vi.stubGlobal('fetch', vi.fn(async () => ({
+      ok: true, status: 200,
+      // What a real Response does when the body is index.html.
+      json: async () => { throw new SyntaxError('Unexpected token <'); },
+    })));
+    expect(await checkMediaService()).toBe('unreachable');
+  });
+
+  it("NOT ready when the proxy's own JSON 502 answers for the NAS", async () => {
+    localStorage.setItem(CHAT_BRIDGE_TOKEN_KEY, 't');
+    vi.stubGlobal('fetch', vi.fn(async () => ({
+      ok: false, status: 502,
+      json: async () => ({ error: 'nas-photos proxy upstream unreachable', code: 'upstream-unreachable' }),
+    })));
+    expect(await checkMediaService()).toBe('unreachable');
+  });
+
+  it('NOT ready when a 200 carries JSON that is not the server saying ok', async () => {
+    localStorage.setItem(CHAT_BRIDGE_TOKEN_KEY, 't');
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, status: 200, json: async () => ({ pending: 'something-else' }) })));
+    expect(await checkMediaService()).toBe('unreachable');
+  });
 });
