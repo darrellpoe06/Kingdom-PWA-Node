@@ -40,13 +40,16 @@ describe('the gap that blocked the first drain', () => {
   it('is 65 days, and the grace is 14 — so it is refused by default', () => {
     expect(daysBetween('2026-08-09', '2026-10-13')).toBe(65);
     expect(SQUASH_GRACE_DAYS).toBe(14);
-    const why = judgeEntry(DRAINED, GIT, reach, 'ea-gh-knowledge-and-sin');
+    // An UNDECLARED id, so this tests the default. 'ea-gh-knowledge-and-sin' is
+    // a real declaration now (DR-0989 re-landed PR #1217 through this very
+    // mechanism), and using it here would test the exception, not the rule.
+    const why = judgeEntry(DRAINED, GIT, reach, 'ea-gh-no-such-card');
     expect(why).toMatch(/65 days before it first reached history/);
   });
 
   it('and the refusal TELLS the reader what to do, naming the id', () => {
-    const why = judgeEntry(DRAINED, GIT, reach, 'ea-gh-knowledge-and-sin');
-    expect(why).toContain("declare 'ea-gh-knowledge-and-sin' in SQUASHED_AWAY");
+    const why = judgeEntry(DRAINED, GIT, reach, 'ea-gh-no-such-card');
+    expect(why).toContain("declare 'ea-gh-no-such-card' in SQUASHED_AWAY");
     expect(why).toContain('day, pr and why');
   });
 
@@ -59,9 +62,15 @@ describe('the gap that blocked the first drain', () => {
 describe('a declaration admits exactly the lesson it names', () => {
   // Injected rather than shipped, so the repository's own declaration map stays
   // empty and these tests do not depend on live content.
+  // SAVE AND RESTORE, never delete. The first version deleted the key in
+  // `finally`, which silently removed a REAL declaration whenever the injected
+  // id collided with one — and once PR #1217 re-landed through this mechanism,
+  // 'ea-gh-knowledge-and-sin' became exactly such an id.
   const withDeclared = (id, decl, fn) => {
+    const had = Object.prototype.hasOwnProperty.call(SQUASHED_AWAY, id);
+    const prior = SQUASHED_AWAY[id];
     SQUASHED_AWAY[id] = decl;
-    try { return fn(); } finally { delete SQUASHED_AWAY[id]; }
+    try { return fn(); } finally { if (had) SQUASHED_AWAY[id] = prior; else delete SQUASHED_AWAY[id]; }
   };
 
   it('accepts the declared lesson at the declared day', () => {
@@ -107,8 +116,24 @@ describe('a declaration admits exactly the lesson it names', () => {
 });
 
 describe('the declaration map is data with a reason, and empty is correct', () => {
-  it('ships empty — an entry means a drain happened and was accounted for', () => {
-    expect(Object.keys(SQUASHED_AWAY)).toEqual([]);
+  it('holds exactly the drains that happened — PR #1217 and nothing else', () => {
+    // Empty WAS the correct state when the mechanism shipped alone (DR-0988).
+    // DR-0989 re-landed PR #1217 through it, so the map now accounts for those
+    // seven cards and must account for nothing else.
+    const ids = Object.keys(SQUASHED_AWAY).sort();
+    expect(ids).toEqual([
+      'ea-gh-conviction-vs-condemnation',
+      'ea-gh-justice-rationed-at-the-gate',
+      'ea-gh-keep-yourself-by-the-word',
+      'ea-gh-knowledge-and-sin',
+      'ea-gh-mind-of-christ-in-the-hidden-part',
+      'ea-gh-remedy-that-arrives-on-a-calendar',
+      'ea-gh-word-is-4d-fact',
+    ]);
+    for (const d of Object.values(SQUASHED_AWAY)) {
+      expect(d.pr).toBe(1217);
+      expect(d.day).toMatch(/^2026-08-(09|10)$/);
+    }
   });
 
   it('every live declaration (when there is one) carries a day, a pr and a why', () => {
