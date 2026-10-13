@@ -60,6 +60,31 @@ describe('PhoneBackup — honest render states', () => {
     expect(container.textContent).toContain('running the build from before media backup');
   });
 
+  // NO not-ready state IS SILENT (2026-10-13, DR-0994). 'unauthorized' and the
+  // initial 'checking' both disabled the buttons with no sentence on the card,
+  // and DR-0908 already named the cost: "a button that only greys out is how a
+  // person decides it hung and leaves." Proven-to-catch: each of these fails
+  // against the version that rendered no banner for its state.
+  it('says WHY when the NAS refuses this phone\'s code, instead of only greying out', async () => {
+    localStorage.setItem(CHAT_BRIDGE_TOKEN_KEY, 't');
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: false, status: 401 })));
+    act(() => { root.render(createElement(PhoneBackup)); });
+    await flush();
+    expect(container.textContent).toContain("access code was refused");
+    expect(container.textContent).toContain('nothing is marked safe');
+    expect(container.querySelector('label').className).toContain('pointer-events-none');
+  });
+
+  it('says it is checking, rather than showing dead buttons with no reason', async () => {
+    localStorage.setItem(CHAT_BRIDGE_TOKEN_KEY, 't');
+    // A probe that never settles: the card is in its initial state the whole time.
+    vi.stubGlobal('fetch', vi.fn(() => new Promise(() => {})));
+    act(() => { root.render(createElement(PhoneBackup)); });
+    await flush();
+    expect(container.textContent).toContain('Checking whether your NAS is ready');
+    expect(container.querySelector('label').className).toContain('pointer-events-none');
+  });
+
   it('enables the upload actions when the NAS media service answers ready', async () => {
     localStorage.setItem(CHAT_BRIDGE_TOKEN_KEY, 't');
     vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, status: 200, json: async () => ({ ok: true, bytes: 0 }) })));

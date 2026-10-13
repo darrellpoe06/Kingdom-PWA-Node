@@ -194,8 +194,11 @@ history). Family/album galleries still ride `/n8n` and are unaffected.
 
 ## Phone media backup (photos + videos) — added 2026-07-05
 
-**Status: built + verified locally (53/53 selftest, live chunked-upload
-end-to-end exercise, 4,492 app tests); NAS redeploy pending Darrell.**
+**Status: built + verified locally (86/86 selftest, live chunked-upload
+end-to-end exercise, the full app suite green); NAS redeploy pending Darrell.**
+Authored 2026-07-05, merged 2026-10-13 under DR-0994 — the drain is where the
+second-`do_POST` shadow was caught, so the selftest now also refuses any
+method defined twice in one scope.
 
 Darrell, 2026-07-05: *"Can this app upload and give me the option of moving all
 my photos and videos to my server or nas ... so I can get a new phone and all
@@ -234,9 +237,11 @@ and per-upload locks keep the threaded server's appends serial.
 - `app/src/components/PhoneBackup.jsx` — the Big Picture card: pick files or
   a whole folder (Android Chrome), progress, stop/resume, honest service
   states (it detects a pre-media server build and says so).
-- `app/functions/nas-photos/[[path]].js` — Cloudflare Pages proxy for the
-  `/nas-photos` path (sibling of the `/n8n` Function; the Vercel rewrite
-  already covers it there).
+- `app/functions/nas-photos/[[path]].js` — the Cloudflare Pages transport for
+  `/nas-photos`, three lines over the shared `functions/_lib/funnel-proxy.js`
+  factory (2026-07-30). It buffers the body, so a ~6 MB chunk is bounded and
+  well under the Pages request cap, and it turns an edge HTML 5xx into one
+  honest JSON 502 — which the card reads as `unreachable`, never as ready.
 - Tests: `app/src/__tests__/media-backup.test.js` (protocol, sanitizers,
   ledger, endpoint pinned to `/nas-photos` never `/n8n`) and
   `phone-backup-render.test.jsx` (honest render states).

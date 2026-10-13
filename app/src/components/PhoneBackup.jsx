@@ -138,6 +138,20 @@ export function PhoneBackup() {
           Can&apos;t reach the NAS backup service right now — nothing is lost, and nothing pretends to be backed up. Try again when the NAS is reachable.
         </div>
       )}
+      {/* EVERY not-ready state SAYS SO. 'unauthorized' and 'checking' used to
+          grey the buttons out with no sentence at all, and DR-0908 already
+          named what that costs: "a button that only greys out is how a person
+          decides it hung and leaves." */}
+      {service === 'unauthorized' && (
+        <div className="mb-3 text-[0.6875rem] text-[#7A1F1F] bg-[#FEE2E2] border border-[#7A1F1F] px-3 py-2">
+          The NAS answered, but this phone&apos;s access code was refused — so nothing was sent and nothing is marked safe. Re-enter the code on the My profile tab, then come back.
+        </div>
+      )}
+      {service === 'checking' && (
+        <div className="mb-3 text-[0.6875rem] text-[#5A5751] bg-[#FAF8F4] border border-[#E8E4DC] px-3 py-2">
+          Checking whether your NAS is ready for a backup…
+        </div>
+      )}
 
       <div className="flex items-center gap-2 flex-wrap mb-2">
         <label className={`${running || service !== 'ready' ? 'opacity-50 pointer-events-none ' : ''}${btn} border-[#1A1815] bg-[#1A1815] text-white hover:bg-[#B85838]`}>
