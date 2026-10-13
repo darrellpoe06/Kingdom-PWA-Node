@@ -16,7 +16,7 @@ source: 2026-10-13 — Darrell, with the mock-up attached: "redesign the front w
 
 The Poe Properties door (`/properties/app/`, DR-0313) greeted a stranger with
 a bare "Who are you?" box: six plain bordered buttons in the door's green,
-a one-line banner for someone who had signed out, and a ten-pixel grey
+a one-line banner for someone who had signed out, and a ten-pixel gray
 footer. DR-0827 gave the door the platform staples (themes, text size, the
 hideaway, Install, Share · QR, read-aloud); it did not give it a face.
 
@@ -49,7 +49,7 @@ working preview on phone and desktop first.
   mock-up Darrell sent *is* the photograph ("This is the front page photo"),
   and its right half below the mock-up's notification card is clean.
 - **What the guards refuse:** the legibility guard fails an inline dark text
-  colour with no themeable class (it goes 1.04:1 on midnight); the
+  color with no themeable class (it goes 1.04:1 on midnight); the
   ui-standards guard requires a focus class on every styled button and a
   36px floor. Both shaped the implementation below.
 
@@ -76,11 +76,11 @@ behind the page is as it was.
 2. **The palette is custom properties on `.pp-door`,** remapped once for
    midnight (red lifts to `#F0506A` so "Poe" reads on black). Red `#C8102E`
    for brand, icons and arrows; black `#111` for headings and the footer;
-   white cards on light grey; gold `#C9A24D` only on the rules, the mark's
+   white cards on light gray; gold `#C9A24D` only on the rules, the mark's
    window and the footer hairlines. No inline hex, so every theme and the
-   legibility guard are honoured.
+   legibility guard are honored.
 3. **Playfair Display 700 and 800, latin subset, self-hosted** under
-   `/properties/fonts/` (SIL OFL; licence beside the files), loaded by this
+   `/properties/fonts/` (SIL OFL; license beside the files), loaded by this
    page only. Body text is the system sans.
 4. **The photograph is the entryway cropped from the mock-up,** served from
    `/properties/welcome-entry.jpg`; a full-size photo can replace the file
@@ -134,6 +134,6 @@ behind the page is as it was.
 [DR-0827] (the staples this page keeps), [DR-0313] (the door's own scope),
 [DR-0954] (signing in comes back through this door — unchanged),
 [DR-0902] (the card's Apply — unchanged, one tap past this page),
-[DR-0103] (the `hold` label is the brake), [DR-0691] (copy and behaviour
+[DR-0103] (the `hold` label is the brake), [DR-0691] (copy and behavior
 tested together), [DR-0076] (nothing claimed without the screenshot).
 Session log: `docs/99-session-notes/2026-10-13-poe-properties-front-page.md`.

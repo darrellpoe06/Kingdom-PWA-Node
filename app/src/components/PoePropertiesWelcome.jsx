@@ -12,16 +12,16 @@
 // WHO_OPTIONS in modules/properties/model.js, read by PropertiesDoor.jsx, and
 // nothing here changes a route, a permission or a session.
 //
-// WHY A SCOPED STYLESHEET AND NOT INLINE HEX. The door honours the platform's
+// WHY A SCOPED STYLESHEET AND NOT INLINE HEX. The door honors the platform's
 // five themes (data-theme on its root, lib/theme-css.js), and the legibility
-// guard refuses an inline dark text colour that would vanish on midnight. The
+// guard refuses an inline dark text color that would vanish on midnight. The
 // palette below is a set of custom properties on `.pp-door`, remapped once for
 // midnight, so every red, black and gold here follows the person's theme and
 // the guard has nothing un-themeable to find.
 //
 // WHY THE HEADLINE FONT IS SELF-HOSTED. The site's CSP allows fonts from
 // 'self' only (app/public/_headers), so a Google Fonts <link> would be blocked
-// at the browser. Playfair Display (SIL OFL, licence beside the files) ships
+// at the browser. Playfair Display (SIL OFL, license beside the files) ships
 // as two latin woff2 files under /properties/fonts/, loaded by this page only.
 //
 // THE PHOTOGRAPH is the entryway from Darrell's own mock-up ("This is the
@@ -61,12 +61,12 @@ export function cardCopy(option) {
   return { title: c.title || option?.label || '', blurb: c.blurb || option?.blurb || '' };
 }
 
-// Red disc + red icon on the first, third and fifth card; grey disc + black
+// Red disc + red icon on the first, third and fifth card; gray disc + black
 // icon on the rest -- the alternation in the mock-up.
 const RED_DISC = new Set(['applicant', 'household', 'manager']);
 
 // The focus ring every styled button on the platform carries (UX-PATTERNS
-// 2g.1); the colour is the brand red, readable on midnight's black as well.
+// 2g.1); the color is the brand red, readable on midnight's black as well.
 const FOCUS = 'focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#C8102E]';
 
 export const WELCOME_CSS = `
@@ -74,7 +74,7 @@ export const WELCOME_CSS = `
 @font-face{font-family:"Playfair Display";font-style:normal;font-weight:800;font-display:swap;src:url(/properties/fonts/playfair-display-800-latin.woff2) format("woff2")}
 .pp-door{
   --pp-paper:#F4F4F6;--pp-card:#FFFFFF;--pp-line:#E4E4E9;--pp-ink:#111111;--pp-muted:#55555C;
-  --pp-red:#C8102E;--pp-red-deep:#A30D25;--pp-red-tint:#FBE7EA;--pp-grey-disc:#EEEFF2;
+  --pp-red:#C8102E;--pp-red-deep:#A30D25;--pp-red-tint:#FBE7EA;--pp-gray-disc:#EEEFF2;
   --pp-gold:#C9A24D;--pp-black:#111111;--pp-footer-ink:#FFFFFF;--pp-shadow:0 1px 2px rgba(17,17,17,.04),0 8px 24px rgba(17,17,17,.06);
   --pp-serif:"Playfair Display","Fraunces",Georgia,"Times New Roman",serif;
   --pp-sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
@@ -82,7 +82,7 @@ export const WELCOME_CSS = `
 }
 [data-theme="midnight"].pp-door{
   --pp-paper:#000000;--pp-card:#141414;--pp-line:#2A2A2A;--pp-ink:#E5E5E5;--pp-muted:#A3A3A3;
-  --pp-red:#F0506A;--pp-red-deep:#F97A8E;--pp-red-tint:#3A1218;--pp-grey-disc:#232323;--pp-black:#1F1F1F;
+  --pp-red:#F0506A;--pp-red-deep:#F97A8E;--pp-red-tint:#3A1218;--pp-gray-disc:#232323;--pp-black:#1F1F1F;
   --pp-shadow:0 1px 2px rgba(0,0,0,.6),0 8px 24px rgba(0,0,0,.5);
 }
 .pp-serif{font-family:var(--pp-serif)}
@@ -102,7 +102,7 @@ export const WELCOME_CSS = `
 .pp-rule{width:5.5rem;height:3px;background:var(--pp-gold);margin:1rem 0 1rem;border-radius:2px}
 .pp-lead{font-size:clamp(1rem,1.3vw,1.2rem);line-height:1.55;color:var(--pp-muted);max-width:34em;margin:0}
 .pp-lead+.pp-lead{margin-top:.25rem}
-.pp-photo{position:relative;border-radius:1.125rem;overflow:hidden;box-shadow:var(--pp-shadow);aspect-ratio:16/9;background:var(--pp-grey-disc)}
+.pp-photo{position:relative;border-radius:1.125rem;overflow:hidden;box-shadow:var(--pp-shadow);aspect-ratio:16/9;background:var(--pp-gray-disc)}
 @media (min-width:64rem){.pp-photo{aspect-ratio:530/298}}
 .pp-photo img{display:block;width:100%;height:100%;object-fit:cover}
 .pp-photo::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(105deg,rgba(255,255,255,.55) 0%,rgba(255,255,255,0) 28%)}
@@ -122,7 +122,7 @@ export const WELCOME_CSS = `
 .pp-card{display:flex;align-items:center;gap:1rem;width:100%;height:100%;text-align:left;background:var(--pp-card);border:1px solid var(--pp-line);border-radius:1rem;padding:1.1rem 1.1rem 1.1rem 1.25rem;box-shadow:var(--pp-shadow);color:var(--pp-ink);cursor:pointer;transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}
 .pp-card:hover{border-color:var(--pp-red);box-shadow:0 2px 4px rgba(17,17,17,.05),0 14px 32px rgba(17,17,17,.1);transform:translateY(-2px)}
 @media (prefers-reduced-motion:reduce){.pp-card,.pp-card:hover{transition:none;transform:none}}
-.pp-disc{flex:none;width:4.25rem;height:4.25rem;border-radius:999px;display:flex;align-items:center;justify-content:center;background:var(--pp-grey-disc);color:var(--pp-ink)}
+.pp-disc{flex:none;width:4.25rem;height:4.25rem;border-radius:999px;display:flex;align-items:center;justify-content:center;background:var(--pp-gray-disc);color:var(--pp-ink)}
 .pp-disc svg{width:2rem;height:2rem}
 .pp-disc.is-red{background:var(--pp-red-tint);color:var(--pp-red)}
 .pp-card-text{flex:1;min-width:0}

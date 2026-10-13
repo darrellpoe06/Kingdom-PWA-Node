@@ -21,7 +21,7 @@ And, with the second copy of the picture: *"This is the front page photo."*
 | `app/src/components/PoePropertiesWelcome.jsx` (new) | Presentation only: the scoped stylesheet (`.pp-*` custom properties, remapped once for midnight), the roof mark, the six portal icons, `WelcomeHero`, `PortalCards`, `SignedOutNotice`, `DoorFooter`, and `CARD_COPY` (Darrell's exact card wording, keyed by `WHO_OPTIONS` id with the model as fallback). |
 | `app/src/components/PropertiesDoor.jsx` | The header lock-up ("Poe" red, "Properties" black, PROPERTY MANAGEMENT between gold rules), the "Who are you?" picker now rendered by the welcome components, the black footer band. **Nothing else**: the session logic, `WHO_OPTIONS`, `setWho`, the two sign-out links, the comfort controls, Install, Share · QR, read-aloud and the applicant / sign-in steps are untouched. |
 | `app/public/properties/welcome-entry.jpg` (new) | The entryway photograph, cropped from Darrell's own mock-up (the clean region below the mock-up's notification card). Swap for a full-size photo at any time. |
-| `app/public/properties/fonts/` (new) | Playfair Display 700 + 800, latin subset, self-hosted (SIL OFL, licence beside the files). The site's CSP allows `font-src 'self'` only, so a Google Fonts link would be blocked at the browser. |
+| `app/public/properties/fonts/` (new) | Playfair Display 700 + 800, latin subset, self-hosted (SIL OFL, license beside the files). The site's CSP allows `font-src 'self'` only, so a Google Fonts link would be blocked at the browser. |
 | `app/src/__tests__/poe-properties-front-page.test.jsx` (new) | Pins the wording and the wiring together: lock-up, heading + two lines, six cards in order with his words, the one "No account needed" pill, a card still opens the same portal, the notice only for someone who left (and "Come back in" clears it), the footer wording. |
 | `app/src/__tests__/properties-door-render.test.jsx` | One assertion made case-insensitive (the cards are title-case now; the portals are unchanged). |
 | `app/src/lib/legibility-health.json` | Regenerated snapshot (one more page in the scan). |
@@ -29,12 +29,12 @@ And, with the second copy of the picture: *"This is the front page photo."*
 ### Design decisions
 
 - **Palette** — red `#C8102E` (brand, icons, arrows), black `#111` (headings,
-  footer), white cards on light grey `#F4F4F6`, gold `#C9A24D` only for the
+  footer), white cards on light gray `#F4F4F6`, gold `#C9A24D` only for the
   rules, the window panes on the mark, and the footer hairlines. Midnight
   remaps every token (red lifts to `#F0506A` so "Poe" reads on black).
 - **Cards** — one `<button>` each (the whole card is the tap target), auto-fit
   grid: three across on desktop, two on tablets, one on phones, and the same
-  fall-back happens at large text sizes without a media query. Red/grey icon
+  fall-back happens at large text sizes without a media query. Red/gray icon
   discs alternate as in the mock-up. Hover lift is disabled under
   `prefers-reduced-motion`.
 - **Signed-out notice** — rendered only when the person LEFT this door

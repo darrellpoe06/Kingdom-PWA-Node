@@ -5,7 +5,7 @@
 // Darrell, 2026-10-13, with the picture: "redesign the front welcome page ...
 // to look as close as possible to the attached image ... This is a visual
 // redesign only." These pins hold the words and the wiring together (copy and
-// behaviour are tested together, DR-0691): the welcome lines, the six cards
+// behavior are tested together, DR-0691): the welcome lines, the six cards
 // in his wording, the footer wording that must never become another slogan,
 // the signed-out notice shown ONLY to someone who left, and the proof that a
 // card still opens the same portal the model names.
