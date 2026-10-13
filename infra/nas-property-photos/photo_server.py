@@ -327,7 +327,7 @@ MAX_MEDIA_BYTES = 4 * 1024 * 1024 * 1024   # 4 GB per file (covers long phone vi
 MAX_CHUNK_BYTES = 16 * 1024 * 1024          # per-request cap; client sends ~6 MB
 SAFE_UPLOAD_ID = re.compile(r"^[A-Za-z0-9._-]{8,120}$")
 SAFE_MEDIA_DATE = re.compile(r"^(20\d{2})-(0[1-9]|1[0-2])-([0-3]\d)$")
-# AN ABANDONED PART IS SWEPT, A RESUMABLE ONE IS NOT (2026-10-13, DR-0995).
+# AN ABANDONED PART IS SWEPT, A RESUMABLE ONE IS NOT (2026-10-13, DR-0996).
 # A .part is removed on completion, on a magic-byte rejection and on a bad
 # destination -- but NOT when an upload is simply abandoned: the tab closes,
 # the phone sleeps, the network goes for good, or the file is deleted off the
@@ -1067,7 +1067,7 @@ def serve(args):
               "populate %s" % (args.token_file or TOKEN_FILE_DEFAULT), file=sys.stderr)
         sys.exit(2)
     # Sweep abandoned backup chunks once at start, so a restart is also the
-    # thing that reclaims the volume (DR-0995). Says what it did, or nothing.
+    # thing that reclaims the volume (DR-0996). Says what it did, or nothing.
     swept, freed = sweep_stale_parts()
     if swept:
         print("swept %d abandoned upload part(s), %.1f MB reclaimed from %s"
@@ -1276,7 +1276,7 @@ def selftest():
     ok("media root has a default", media_root() == MEDIA_ROOT_DEFAULT)
     ok("upload lock is per-id and stable", _upload_lock("id-12345678") is _upload_lock("id-12345678"))
 
-    # THE SWEEP TAKES THE ABANDONED AND LEAVES THE RESUMABLE (DR-0995).
+    # THE SWEEP TAKES THE ABANDONED AND LEAVES THE RESUMABLE (DR-0996).
     # Exercised on a real temp tree, not a mock: the whole point is what it
     # does to files on disk, and a mocked os.remove would prove nothing.
     import shutil as _shutil

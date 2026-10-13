@@ -52,7 +52,12 @@ import AppShareQR from './AppShareQR.jsx';
 import TTSControl from './TTSControl.jsx';
 import { UpdatePrompt } from './PwaPrompts.jsx';
 import UiIcon from './UiIcon.jsx';
-import { WELCOME_CSS, PoePropertiesMark, WelcomeHero, PortalCards, DoorFooter } from './PoePropertiesWelcome.jsx';
+import { WELCOME_CSS, PoePropertiesMark, WelcomeHero, PortalCards, DoorFooter, cardCopy } from './PoePropertiesWelcome.jsx';
+
+// The focus ring the door's own buttons carry (UX-PATTERNS 2g.1), in the brand
+// red. A literal here, not an import: the ui-standards guard resolves a
+// className's constant only within the file that uses it.
+const FOCUS_RING = 'focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#E00000]';
 
 /** The door's own address, the one a tenant shares or scans (DR-0258 scope). */
 export const PROPERTIES_SHARE_URL = 'https://poetech.us/properties/app/';
@@ -387,17 +392,22 @@ function SignedOutDoor({ left = false, onReturn } = {}) {
 
   if (chosen.id === 'applicant') {
     return (
-      <div className="bg-white border border-[#E8E4DC] p-4">
-        <button type="button" onClick={() => setWho(null)} className="text-[0.625rem] uppercase tracking-wider underline text-[#5A5751] mb-2">← Back</button>
-        <h2 className="text-lg text-[#1A1815] mb-1" style={serif}>
+      <div className="pp-step">
+        {/* The vacancies step wears the front page's look (2026-10-13): the
+            same white panel, serif title, red kicker and red pill. What it
+            lists and how Apply works are unchanged. */}
+        <button type="button" onClick={() => setWho(null)} className={`pp-back ${FOCUS_RING}`}>← Back</button>
+        <div className="pp-panel" data-testid="vacancies-panel">
+        <span className="pp-kicker">{cardCopy(chosen).title}</span>
+        <h2 className="pp-panel-title">
           {scan.matched ? `${scan.unit.label}${scan.unit.unit ? ` · ${scan.unit.unit}` : ''}` : 'Available now'}
         </h2>
         {scanned && vacancies !== null && !scan.matched && (
-          <p className="text-xs text-[#5A5751] mb-2" style={serif}>{scan.reason}</p>
+          <p className="pp-panel-note">{scan.reason}</p>
         )}
-        {vacancies === null && <p className="text-xs text-[#5A5751]" style={serif}>Checking…</p>}
+        {vacancies === null && <p className="pp-panel-note">Checking…</p>}
         {vacancies !== null && vacancies.length === 0 && (
-          <p className="text-xs text-[#5A5751]" style={serif}>
+          <p className="pp-panel-note">
             Nothing is listed right now. Only units the landlord has listed appear here — an empty unit is never advertised automatically.
           </p>
         )}
@@ -407,7 +417,7 @@ function SignedOutDoor({ left = false, onReturn } = {}) {
             second copy of the layout to drift. "like the MooreDivahs App has
             except this is places to live... without an account" (Darrell). */}
         {(vacancies || []).length > 0 && (
-          <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
+          <ul className="pp-shelf grid grid-cols-1 sm:grid-cols-2 gap-3">
             {(vacancies || []).map((v) => (
               <VacancyCard
                 key={v.id}
@@ -449,9 +459,10 @@ function SignedOutDoor({ left = false, onReturn } = {}) {
             addendum, Darrell 2026-10-10: "the address shows while it says it
             will not show... fix it"). It used to promise "not published here"
             unconditionally while a door set to show its street showed it. */}
-        <p className="text-xs text-[#5A5751] mt-3 mb-2" style={serif} data-testid="address-promise">
+        <p className="pp-panel-note" data-testid="address-promise">
           {addressPromise(vacancies || [])}
         </p>
+        </div>
         <BeforeYouApply />
         <ApplyForm
           vacancies={vacancies || []}
@@ -468,22 +479,28 @@ function SignedOutDoor({ left = false, onReturn } = {}) {
   // waits — the form appears when the person asks for it.
   return (
     <>
-      <div className="bg-white border border-[#E8E4DC] p-4 mb-3">
-        <button type="button" onClick={back} className="text-[0.625rem] uppercase tracking-wider underline text-[#5A5751] mb-2">← Back</button>
-        <p className="text-sm text-[#1A1815] mb-1" style={serif}>{chosen.blurb}</p>
-        <p className="text-xs text-[#5A5751] mb-3" style={serif}>
-          Your place is tied to the email address <strong>or the cell phone number</strong> your landlord used to invite you — that
-          is how the app knows which one is yours. Nothing to set up.
-        </p>
-        {!wantsAuth && (
-          <button
-            type="button" onClick={() => setWantsAuth(true)}
-            className="text-[0.625rem] uppercase tracking-wider px-3 py-2 border bg-[#2F5D50] text-white border-[#2F5D50] focus:outline focus:outline-2 focus:outline-[#2F5D50]"
-          >Sign in / create a profile</button>
-        )}
-      </div>
+      <div className="pp-step">
+        {/* The sign-in step wears the front page's look (2026-10-13): the
+            portal's own title from the card, the same panel, the red pill. The
+            form and what happens after a sign-in are unchanged. */}
+        <button type="button" onClick={back} className={`pp-back ${FOCUS_RING}`}>← Back</button>
+        <div className="pp-panel" data-testid="sign-in-panel">
+          <span className="pp-kicker">Sign in</span>
+          <h2 className="pp-panel-title">{cardCopy(chosen).title}</h2>
+          <p className="pp-panel-lead">{chosen.blurb}</p>
+          <p className="pp-panel-note">
+            Your place is tied to the email address <strong>or the cell phone number</strong> your landlord used to invite you — that
+            is how the app knows which one is yours. Nothing to set up.
+          </p>
+          {!wantsAuth && (
+            <button
+              type="button" onClick={() => setWantsAuth(true)}
+              className={`pp-btn mt-5 ${FOCUS_RING}`}
+            >Sign in / create a profile</button>
+          )}
+        </div>
       {wantsAuth && (
-        <div className="mx-auto w-full sm:w-2/3 lg:w-1/3">
+        <div className="pp-panel pp-auth">
           {/* SIGNING IN COMES BACK THROUGH THE DOOR (DR-0954).
               Christina, 2026-10-11, relayed by Darrell: "When I sign in as
               then I click on I live here. I then go to the other sign in page
@@ -510,11 +527,12 @@ function SignedOutDoor({ left = false, onReturn } = {}) {
               all. The flag is simply cleared FIRST, which is the order the
               rest of this file already uses (see onReturn above). */}
           <PasswordAuth
-            mode="signin" embedded startWith="email"
+            mode="signin" embedded startWith="email" brand={{ name: brand.label, eyebrow: brand.label }}
             onSignedIn={() => { enterDoor(DOORS.properties); window.location.reload(); }}
           />
         </div>
       )}
+      </div>
     </>
   );
 }
@@ -536,29 +554,28 @@ function BeforeYouApply() {
   const pages = ['rental-criteria', 'fair-housing'].map((k) => ({ key: k, entry: forms[k] })).filter((p) => p.entry && p.entry.doc);
   if (!pages.length) return null;
   return (
-    <div className="border border-[#E8E4DC] p-3 mb-3">
-      <p className="text-[0.625rem] uppercase tracking-[0.25em] font-semibold mb-2" style={{ color: brand.accent }}>Before you apply</p>
+    <div className="pp-fold">
+      <p className="pp-kicker">Before you apply</p>
       {pages.map(({ key, entry }) => {
         const open = openKey === key;
         return (
-          <div key={key} className="border-t border-[#F0ECE4] first:border-t-0 py-1">
+          <div key={key} className="pp-fold-row">
             <button
               type="button" onClick={() => setOpenKey(open ? '' : key)} aria-expanded={open}
-              className="w-full min-h-[36px] flex items-center justify-between gap-2 text-left text-sm text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#2F5D50]"
-              style={serif}
+              className={`pp-fold-open min-h-[44px] ${FOCUS_RING}`}
             >
               <span>{entry.doc.title}</span>
-              <span className="text-[0.625rem] uppercase tracking-wider text-[#8A867E]">{open ? 'hide' : 'read'}</span>
+              <span>{open ? 'hide' : 'read'}</span>
             </button>
             {open && (
-              <div className="space-y-2 text-xs text-[#1A1815] leading-relaxed pb-2" style={serif}>
-                <p className="text-[#5A5751]">{entry.doc.preamble}</p>
+              <div className="pp-fold-body">
+                <p>{entry.doc.preamble}</p>
                 {entry.doc.sections.map((sec) => (
                   <section key={sec.n}>
-                    <h4 className="font-semibold">{sec.n}. {sec.title}</h4>
+                    <h4>{sec.n}. {sec.title}</h4>
                     {sec.text && <p>{sec.text}</p>}
-                    {sec.items && <ul className="list-disc pl-4">{sec.items.map((it) => <li key={it}>{it}</li>)}</ul>}
-                    {sec.after && <p className="text-[#5A5751]">{sec.after}</p>}
+                    {sec.items && <ul>{sec.items.map((it) => <li key={it}>{it}</li>)}</ul>}
+                    {sec.after && <p>{sec.after}</p>}
                   </section>
                 ))}
               </div>
@@ -652,15 +669,15 @@ function ApplyForm({ vacancies, preselect = '', openFor = 0, openOnLoad = false 
     return (
       <button
         type="button" onClick={() => setOpen(true)}
-        className="text-[0.625rem] uppercase tracking-wider px-3 py-2 border bg-[#2F5D50] text-white border-[#2F5D50] focus:outline focus:outline-2 focus:outline-[#2F5D50]"
+        className={`pp-btn mt-4 ${FOCUS_RING}`}
       >Apply — no account needed</button>
     );
   }
   if (sent) {
     return (
-      <div className="border border-[#E8E4DC] p-3">
-        <p className="text-sm text-[#1A1815]" style={serif}>{sent}</p>
-        <p className="text-xs text-[#5A5751] mt-1" style={serif}>
+      <div className="pp-panel mt-4">
+        <p className="pp-panel-lead">{sent}</p>
+        <p className="pp-panel-note">
           You do not need an account for us to read this. If you want one — to follow your application and, once you are approved,
           to reach your unit — you can make one any time from this page.
         </p>
@@ -672,14 +689,14 @@ function ApplyForm({ vacancies, preselect = '', openFor = 0, openOnLoad = false 
   const name = `${values['applicant.firstName'] || ''} ${values['applicant.lastName'] || ''}`.trim();
 
   return (
-    <div className="border border-[#E8E4DC] p-3" ref={box} data-testid="apply-form">
-      <p className="text-xs text-[#5A5751] mb-2" style={serif}>
+    <div className="pp-panel pp-form mt-4" ref={box} data-testid="apply-form">
+      <span className="pp-kicker">Apply</span>
+      <p className="pp-panel-note" style={{ marginTop: 0, marginBottom: '1rem' }}>
         Every adult 18 or older fills out their own. We never ask for a Social Security number here — if screening needs one,
         a person asks you directly.
       </p>
       {vacancies.length > 0 && (
-        <select value={unit} onChange={(e) => setUnit(e.target.value)} aria-label="Which unit"
-          className="text-xs border border-[#E8E4DC] px-2 py-2 bg-white mb-2 w-full" style={serif}>
+        <select value={unit} onChange={(e) => setUnit(e.target.value)} aria-label="Which unit" className="mb-4">
           <option value="">Which unit are you applying for?</option>
           {vacancies.map((v) => <option key={v.id} value={v.id}>{v.label}{v.unit ? ` · ${v.unit}` : ''}</option>)}
         </select>
@@ -689,25 +706,24 @@ function ApplyForm({ vacancies, preselect = '', openFor = 0, openOnLoad = false 
         if (!fields.length) return null;
         return (
           <fieldset key={section.id} className="mb-3">
-            <legend className="text-[0.625rem] uppercase tracking-[0.25em] font-semibold" style={{ color: brand.accent }}>{section.title}</legend>
-            {section.note && <p className="text-xs text-[#5A5751] mb-1" style={serif}>{section.note}</p>}
+            <legend>{section.title}</legend>
+            {section.note && <p className="pp-panel-note" style={{ marginTop: 0, marginBottom: '.6rem' }}>{section.note}</p>}
             {fields.map((f) => {
               const key = `${section.id}.${f.id}`;
               return (
-                <label key={key} className="block text-xs text-[#5A5751] mb-2" style={serif}>
+                <label key={key}>
                   {f.label}{f.required ? ' *' : ''}
                   {f.type === 'yesno' ? (
-                    <select value={values[key] || ''} onChange={set(key)} className="w-full text-sm border border-[#E8E4DC] px-2 py-2 bg-white">
+                    <select value={values[key] || ''} onChange={set(key)}>
                       <option value="">—</option><option value="no">No</option><option value="yes">Yes</option>
                     </select>
                   ) : (
                     <input
                       value={values[key] || ''} onChange={set(key)}
                       type={f.type === 'date' ? 'date' : f.type === 'email' ? 'email' : f.type === 'tel' ? 'tel' : 'text'}
-                      className="w-full text-sm border border-[#E8E4DC] px-2 py-2"
                     />
                   )}
-                  {f.help && <span className="text-[0.625rem] text-[#8A867E]">{f.help}</span>}
+                  {f.help && <span className="pp-help">{f.help}</span>}
                 </label>
               );
             })}
@@ -725,10 +741,10 @@ function ApplyForm({ vacancies, preselect = '', openFor = 0, openOnLoad = false 
             ? 'Your application is in. Someone will reach out about the next step.'
             : `That did not send (${res.reason}). Nothing was lost — try again, or call us.`);
         }}
-        className={`text-[0.625rem] uppercase tracking-wider px-3 py-2 border ${check.ok && name ? 'bg-[#2F5D50] text-white border-[#2F5D50]' : 'opacity-40 border-[#E8E4DC]'}`}
+        className={`pp-btn ${FOCUS_RING}`}
       >Send my application</button>
       {!check.ok && check.missing.length > 0 && (
-        <p className="text-[0.625rem] text-[#8A867E] mt-1">Still needed: {check.missing.length} required field{check.missing.length === 1 ? '' : 's'}.</p>
+        <p className="pp-panel-note">Still needed: {check.missing.length} required field{check.missing.length === 1 ? '' : 's'}.</p>
       )}
     </div>
   );

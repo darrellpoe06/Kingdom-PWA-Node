@@ -1,5 +1,5 @@
 ---
-id: DR-0995
+id: DR-0996
 title: Two defs of one name are not a conflict — the phone-backup lane drained, and the silent-shadow class gated
 date: 2026-10-13
 status: accepted
@@ -121,7 +121,7 @@ the redeploy has run and a real photo and a real video have made the trip.
 ## Verification after merge
 
 - **Gates:** all 20 of `verify:gates` green; `business-systems-guard` reports
-  the ledger whole at DR-0995 with n8n still contained to **3** files.
+  the ledger whole at DR-0996 with n8n still contained to **3** files.
 - **The server:** `photo_server.py --selftest` **92/92** — main's 54 checks,
   the PR's 31, the duplicate-definition check, and the six sweep checks.
 - **Proven-to-catch, three times, each against the real break:** the merge's
