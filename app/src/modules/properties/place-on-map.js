@@ -34,12 +34,28 @@ import { buildingKey } from './apartment.js';
 // middle of the street, or to a same-named street in another town, would put
 // the distances on the wrong place. No match, no save -- the door stays "Not
 // on the map yet" for the family to pin by hand.
+//
+// A door that names no town is never placed: "709 Commercial St, IL" could be
+// any of a dozen towns' Commercial Streets, and a guess would put the distances
+// on the wrong one. The town is the door's city, or the part of its address
+// after the street when the whole address was typed into one field ("1508
+// Williamsburg, Champaign, IL, 61821" -- the Real Estate records, DR-0996).
+const STATE_RE = /^(?:[a-z]{2}|alabama|alaska|arizona|arkansas|california|colorado|connecticut|delaware|florida|georgia|hawaii|idaho|illinois|indiana|iowa|kansas|kentucky|louisiana|maine|maryland|massachusetts|michigan|minnesota|mississippi|missouri|montana|nebraska|nevada|new hampshire|new jersey|new mexico|new york|north carolina|north dakota|ohio|oklahoma|oregon|pennsylvania|rhode island|south carolina|south dakota|tennessee|texas|utah|vermont|virginia|washington|west virginia|wisconsin|wyoming)(?:\s+\d{5}(?:-\d{4})?)?$/;
+export function townOf(rental) {
+  const tidy = (v) => String(v || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  const city = tidy(rental?.city);
+  if (city) return city;
+  const parts = String(rental?.address || '').split(',').map(tidy).filter(Boolean);
+  const t = parts[1] || '';
+  return t && !STATE_RE.test(t) && !/^\d+$/.test(t) ? t : '';
+}
+
 export function matchesAddress(matched, rental) {
   const m = ` ${String(matched || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ')} `;
   const num = (String(rental?.address || '').trim().match(/^(\d+[a-z]?)\b/i) || [])[1];
   if (!num || !m.includes(` ${num.toLowerCase()} `)) return false;
-  const town = String(rental?.city || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
-  return !town || m.includes(` ${town} `);
+  const town = townOf(rental);
+  return Boolean(town) && m.includes(` ${town} `);
 }
 
 export const PLACE_GAP_MS = 1100;

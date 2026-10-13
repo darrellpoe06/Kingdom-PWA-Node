@@ -8,7 +8,7 @@
 // route to either. The live answer is witnessed after merge (nearby-witness.yml).
 import { describe, it, expect } from 'vitest';
 import {
-  buildingsToPlace, placeDoorsOnTheMap, matchesAddress, PLACE_MAX_LOOKUPS,
+  buildingsToPlace, placeDoorsOnTheMap, matchesAddress, townOf, PLACE_MAX_LOOKUPS,
 } from '../modules/properties/place-on-map.js';
 import {
   nearbyAround, nearbyFromOverpass, overpassQuery, OVERPASS, milesText, NEARBY_MAX,
@@ -93,6 +93,18 @@ describe('the lookup must be THIS property', () => {
     expect(matchesAddress('805 N PROSPECT AVE, PEORIA, IL', APT2)).toBe(false);          // another town
     expect(matchesAddress('', APT2)).toBe(false);
     expect(matchesAddress('12 Oak Street', door('x', 'Oak Street', ''))).toBe(false);    // no number to check
+  });
+
+  it('PROVEN-TO-CATCH: a record that names no town is never placed by a guess (the Real Estate shapes)', () => {
+    const one = (address) => ({ address, city: '' });
+    // The whole address typed into one field: the town is read out of it.
+    expect(townOf(one('1508 Williamsburg, Champaign, IL, 61821'))).toBe('champaign');
+    expect(townOf(one('1213 Koehn Dr, Danville, IL'))).toBe('danville');
+    expect(matchesAddress('1508 WILLIAMSBURG DR, CHAMPAIGN, IL, 61821', one('1508 Williamsburg, Champaign, IL, 61821'))).toBe(true);
+    // No town anywhere: "709 Commercial St, IL" could be any town's.
+    expect(townOf(one('709 Commercial St, IL'))).toBe('');
+    expect(matchesAddress('709 COMMERCIAL ST, DANVILLE, IL', one('709 Commercial St, IL'))).toBe(false);
+    expect(townOf(one('709 Commercial St, Illinois 61832'))).toBe('');
   });
 });
 
