@@ -44,12 +44,29 @@ describe('the assessment never under-claims', () => {
     expect(flat.length).toBeGreaterThan(0);
     for (const f of flat) expect(f.severity).toBe('critical');
   });
-  it('PROVEN-TO-CATCH: a host bridging both segments is reported as a segmentation bypass', () => {
-    const a = assessNetworkSecurity(SEED_DEVICES);
+  it('PROVEN-TO-CATCH: a host bridging two REAL networks is a segmentation bypass', () => {
+    // Tested synthetically. On the church's own flat /23 there is no boundary to
+    // bridge, so pinning this to a live row made the gate assert a fiction — the
+    // previous version of this test demanded livestream-main-pc be reported as a
+    // bridge, which the /23 correction showed it never was.
+    const devices = [
+      makeDevice({ id: 'nas', name: 'NAS', deviceType: 'nas', ipAddress: '10.1.1.10' }),
+      makeDevice({
+        id: 'b', name: 'Bridge box', deviceType: 'server',
+        ipAddress: '10.1.1.5', specs: { lanIpWifi: '10.2.2.5' },
+      }),
+    ];
+    const a = assessNetworkSecurity(devices);
     const bridge = a.findings.find((f) => f.class === 'segmentation-bypass');
     expect(bridge).toBeTruthy();
     expect(bridge.severity).toBe('high');
-    expect(bridge.title).toMatch(/livestream-main-pc/);
+    expect(bridge.title).toMatch(/Bridge box/);
+  });
+  it('reports NO segmentation bypass on the real flat church network', () => {
+    // The corrected reality, asserted directly so a regression back to the /24
+    // split would re-introduce a bridge finding and fail here.
+    const a = assessNetworkSecurity(SEED_DEVICES);
+    expect(a.findings.some((f) => f.class === 'segmentation-bypass')).toBe(false);
   });
   it('goes quiet only when the exposure is genuinely absent', () => {
     // A register with storage and NO IoT must NOT raise the flat-segment finding.
@@ -69,16 +86,28 @@ describe('the assessment never under-claims', () => {
     const ids = a.findings.map((f) => f.id);
     expect(new Set(ids).size).toBe(ids.length);
   });
-  it('PROVEN-TO-CATCH: unidentified gear on BOTH segments is CRITICAL, not high', () => {
-    // Gear nobody can name that already spans the firewall boundary is strictly
-    // worse than the same gear sitting on one segment.
-    const a = assessNetworkSecurity(SEED_DEVICES);
+  it('PROVEN-TO-CATCH: unidentified gear spanning two REAL networks is CRITICAL', () => {
+    // Synthetic for the same reason as above: on the flat /23 nothing spans a
+    // boundary, so the church's own UniFi pair is correctly HIGH rather than
+    // critical now. The escalation logic itself still has to work.
+    const devices = [
+      makeDevice({
+        id: 'gear', name: 'Unnamed gear', deviceType: 'network',
+        specs: { ips: '10.1.1.9, 10.2.2.9' }, smeNeeded: true, confirmed: false,
+      }),
+    ];
+    const a = assessNetworkSecurity(devices);
     const spanning = a.findings.find(
-      (f) => f.class === 'unidentified-infrastructure' && /BOTH segments/.test(f.title),
+      (f) => f.class === 'unidentified-infrastructure' && /BOTH/.test(f.title),
     );
     expect(spanning).toBeTruthy();
     expect(spanning.severity).toBe('critical');
-    expect(spanning.evidence).toMatch(/192\.168\.0\..*and.*192\.168\.1\.|192\.168\.1\..*and.*192\.168\.0\./);
+  });
+  it('the church UniFi pair is HIGH, not critical, now that it spans nothing', () => {
+    const a = assessNetworkSecurity(SEED_DEVICES);
+    const unifi = a.findings.find((f) => f.id === 'unknown-gear-dev-unifi-aps');
+    expect(unifi).toBeTruthy();
+    expect(unifi.severity).toBe('high');
   });
   it('ranks critical above high above moderate above watch', () => {
     const a = assessNetworkSecurity(SEED_DEVICES);
@@ -86,11 +115,13 @@ describe('the assessment never under-claims', () => {
     for (let i = 1; i < ranks.length; i += 1) expect(ranks[i]).toBeGreaterThanOrEqual(ranks[i - 1]);
     expect(severityTone('critical')).toBe('problem');
   });
-  it('the remediation order puts segmentation before the bridge it depends on', () => {
+  it('the remediation summary still leads with segmentation on the flat network', () => {
     const a = assessNetworkSecurity(SEED_DEVICES);
     const steps = topRemediation(a).map((s) => s.step);
     expect(steps[0]).toMatch(/Segment the network/);
-    expect(steps.some((s) => /bridge/i.test(s))).toBe(true);
+    // No bridge step on the real network — there is no bridge. It appears only
+    // when a genuine segmentation bypass exists.
+    expect(steps.some((s) => /bridge/i.test(s))).toBe(false);
   });
 });
 

@@ -94,7 +94,7 @@ export default function NetworkTopology({ devices, canEdit = false }) {
             <KpiDot status="attention" /> Layer-3 address map — cabling not yet mapped
           </div>
           <p className="mt-1.5 text-[0.75rem] text-[#5A5751]">
-            This map knows which <em>segment</em> each device sits on and what routes between segments. It does <strong>not</strong> know which switch port anything is patched into — the register holds no port, VLAN or cable data, and the gear in the closet is still unidentified. One walk of the network closet closes that; the queue below is what to read while standing there.
+            This map knows which <em>network</em> each device sits on, read from a real netmask rather than assumed. It does <strong>not</strong> know which switch port anything is patched into — the register holds no port, VLAN or cable data, and the gear in the closet is still unidentified. One walk of the network closet closes that; the queue below is what to read while standing there.
           </p>
         </div>
       </div>
@@ -117,7 +117,7 @@ export default function NetworkTopology({ devices, canEdit = false }) {
               ))}
             </div>
             <p className="mt-3 text-[0.75rem] text-[#5A5751]">
-              Both church subnets are gatewayed by this one device, so <strong>anything crossing between them is a routed hop, not a switched one</strong>. That is not a detail: the three NDI stage cameras sit on one segment and the ATEM switcher on the other, so live production traffic crosses the firewall every service.
+              This device is the <strong>edge</strong>, not an internal boundary. The church runs as a single flat network, so traffic between any two devices on it is <strong>switched, never routed</strong> — it does not pass the firewall at all. Stage cameras, the switcher, the storage and the office all share one broadcast domain, and nothing inside it is filtered from anything else.
             </p>
           </>
         ) : (
