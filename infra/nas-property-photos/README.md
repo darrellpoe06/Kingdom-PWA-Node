@@ -196,7 +196,7 @@ history). Family/album galleries still ride `/n8n` and are unaffected.
 
 **Status: built + verified locally (92/92 selftest, live chunked-upload
 end-to-end exercise, the full app suite green); NAS redeploy pending Darrell.**
-Authored 2026-07-05, merged 2026-10-13 under DR-0994 — the drain is where the
+Authored 2026-07-05, merged 2026-10-13 under DR-0995 — the drain is where the
 second-`do_POST` shadow was caught, so the selftest now also refuses any
 method defined twice in one scope.
 

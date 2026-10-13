@@ -60,7 +60,7 @@ describe('PhoneBackup — honest render states', () => {
     expect(container.textContent).toContain('running the build from before media backup');
   });
 
-  // NO not-ready state IS SILENT (2026-10-13, DR-0994). 'unauthorized' and the
+  // NO not-ready state IS SILENT (2026-10-13, DR-0995). 'unauthorized' and the
   // initial 'checking' both disabled the buttons with no sentence on the card,
   // and DR-0908 already named the cost: "a button that only greys out is how a
   // person decides it hung and leaves." Proven-to-catch: each of these fails
