@@ -70,10 +70,34 @@ export const SQUASH_GRACE_DAYS = 14;
  * accounted for; the day itself still has to have come from git on the branch.
  */
 export const SQUASHED_AWAY = {
-  // 'ea-gh-knowledge-and-sin': {
-  //   day: '2026-08-09', pr: 1217,
-  //   why: 'drained from PR #1217 (DR-0986); authored 2026-08-09, squash-merged 65 days later',
-  // },
+  'ea-gh-knowledge-and-sin': {
+    day: '2026-08-09', pr: 1217,
+    why: 'drained from PR #1217 per DR-0986; first defined 2026-08-09 in 6600e1bc on its own branch, which this branch does not carry (DR-0988)',
+  },
+  'ea-gh-remedy-that-arrives-on-a-calendar': {
+    day: '2026-08-10', pr: 1217,
+    why: 'drained from PR #1217 per DR-0986; first defined 2026-08-10 in bb5cb192 on its own branch, which this branch does not carry (DR-0988)',
+  },
+  'ea-gh-mind-of-christ-in-the-hidden-part': {
+    day: '2026-08-09', pr: 1217,
+    why: 'drained from PR #1217 per DR-0986; first defined 2026-08-09 in 6600e1bc on its own branch, which this branch does not carry (DR-0988)',
+  },
+  'ea-gh-justice-rationed-at-the-gate': {
+    day: '2026-08-10', pr: 1217,
+    why: 'drained from PR #1217 per DR-0986; first defined 2026-08-10 in bb5cb192 on its own branch, which this branch does not carry (DR-0988)',
+  },
+  'ea-gh-keep-yourself-by-the-word': {
+    day: '2026-08-09', pr: 1217,
+    why: 'drained from PR #1217 per DR-0986; first defined 2026-08-09 in 6600e1bc on its own branch, which this branch does not carry (DR-0988)',
+  },
+  'ea-gh-conviction-vs-condemnation': {
+    day: '2026-08-09', pr: 1217,
+    why: 'drained from PR #1217 per DR-0986; first defined 2026-08-09 in 6600e1bc on its own branch, which this branch does not carry (DR-0988)',
+  },
+  'ea-gh-word-is-4d-fact': {
+    day: '2026-08-09', pr: 1217,
+    why: 'drained from PR #1217 per DR-0986; first defined 2026-08-09 in 82b05402 on its own branch, which this branch does not carry (DR-0988)',
+  },
 };
 
 // `id: '…'` in JS, `"id": "…"` in a JSON-shaped block.
