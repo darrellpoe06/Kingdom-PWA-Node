@@ -194,7 +194,7 @@ history). Family/album galleries still ride `/n8n` and are unaffected.
 
 ## Phone media backup (photos + videos) — added 2026-07-05
 
-**Status: built + verified locally (86/86 selftest, live chunked-upload
+**Status: built + verified locally (92/92 selftest, live chunked-upload
 end-to-end exercise, the full app suite green); NAS redeploy pending Darrell.**
 Authored 2026-07-05, merged 2026-10-13 under DR-0994 — the drain is where the
 second-`do_POST` shadow was caught, so the selftest now also refuses any
@@ -221,7 +221,12 @@ POST /media-upload                       # body = raw chunk (~6 MB from the PWA)
 ```
 
 Files land under `MEDIA_BACKUP_ROOT` (default `/volume1/PoeTech/phone-backup`):
-`<device>/<YYYY>/<MM>/<name>`. In-flight chunks accumulate in `.parts/`.
+`<device>/<YYYY>/<MM>/<name>`. In-flight chunks accumulate in `.parts/`, and an
+**abandoned** one is swept after 14 days — once at service start (which prints
+what it reclaimed) and once per new upload. A part still inside that window is
+never touched, because resuming across sessions is what makes re-running the
+backup cheap. The sweep only ever takes regular `*.part` files directly inside
+`.parts/`: a directory, a symlink or any other name is left alone.
 Completion is gated on a magic-byte check (JPEG/PNG/WebP/GIF, MP4/MOV/HEIC
 family, WebM/MKV, AVI); anything unrecognized is deleted, never stored. A
 same-name-same-size file is a dedup hit; a same-name-different-size file gets a

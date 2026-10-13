@@ -327,6 +327,18 @@ MAX_MEDIA_BYTES = 4 * 1024 * 1024 * 1024   # 4 GB per file (covers long phone vi
 MAX_CHUNK_BYTES = 16 * 1024 * 1024          # per-request cap; client sends ~6 MB
 SAFE_UPLOAD_ID = re.compile(r"^[A-Za-z0-9._-]{8,120}$")
 SAFE_MEDIA_DATE = re.compile(r"^(20\d{2})-(0[1-9]|1[0-2])-([0-3]\d)$")
+# AN ABANDONED PART IS SWEPT, A RESUMABLE ONE IS NOT (2026-10-13, DR-0994).
+# A .part is removed on completion, on a magic-byte rejection and on a bad
+# destination -- but NOT when an upload is simply abandoned: the tab closes,
+# the phone sleeps, the network goes for good, or the file is deleted off the
+# phone before the backup is re-run. Those parts are up to MAX_MEDIA_BYTES
+# each and nothing ever swept them, so the lane that exists to protect the
+# family's media would slowly fill the volume holding it. Eager deletion is
+# NOT the fix -- resume across sessions is the whole design, and that is what
+# makes "safe to switch phones" cheap to re-run. So parts are kept for a
+# generous window and swept only once they are far past any real resume.
+PART_TTL_SECONDS = 14 * 24 * 60 * 60        # 14 days; a resume long dead
+PART_SUFFIX = ".part"
 # One lock per in-flight upload id so ThreadingHTTPServer appends never interleave.
 _MEDIA_LOCKS = {}
 _MEDIA_LOCKS_GUARD = threading.Lock()
@@ -339,6 +351,43 @@ def media_root():
 def _upload_lock(upload_id):
     with _MEDIA_LOCKS_GUARD:
         return _MEDIA_LOCKS.setdefault(upload_id, threading.Lock())
+
+
+def parts_dir():
+    return os.path.join(media_root(), ".parts")
+
+
+def sweep_stale_parts(now=None, ttl=PART_TTL_SECONDS):
+    """Delete abandoned chunk files older than ttl. Returns (count, bytes).
+
+    Deliberately narrow: only regular files, only directly inside .parts/,
+    only names ending .part, and only ones whose mtime is past the window. A
+    symlink, a directory, or anything else in there is left alone -- this
+    sweeps its own scratch space and nothing else. Never raises; a sweep that
+    cannot run must not take the upload path down with it."""
+    d = parts_dir()
+    cutoff = (now if now is not None else datetime.now(timezone.utc).timestamp()) - ttl
+    freed, count = 0, 0
+    try:
+        names = os.listdir(d)
+    except OSError:
+        return (0, 0)
+    for name in names:
+        if not name.endswith(PART_SUFFIX):
+            continue
+        p = os.path.join(d, name)
+        try:
+            if os.path.islink(p) or not os.path.isfile(p):
+                continue
+            st = os.stat(p)
+            if st.st_mtime >= cutoff:
+                continue
+            os.remove(p)
+        except OSError:
+            continue
+        count += 1
+        freed += st.st_size
+    return (count, freed)
 
 
 def sanitize_media_name(name):
@@ -702,7 +751,7 @@ def make_handler(args):
             if not SAFE_UPLOAD_ID.match(upload_id):
                 self._send(400, {"ok": False, "error": "bad id"}, cache="no-store")
                 return
-            part = os.path.join(media_root(), ".parts", upload_id + ".part")
+            part = os.path.join(parts_dir(), upload_id + PART_SUFFIX)
             have = 0
             try:
                 if os.path.isfile(part):
@@ -735,12 +784,15 @@ def make_handler(args):
                     or offset + clen > total):
                 self._send(400, {"ok": False, "error": "bad upload params"}, cache="no-store")
                 return
-            parts_dir = os.path.join(media_root(), ".parts")
-            part = os.path.join(parts_dir, upload_id + ".part")
+            part = os.path.join(parts_dir(), upload_id + PART_SUFFIX)
             with _upload_lock(upload_id):
                 try:
-                    os.makedirs(parts_dir, exist_ok=True)
+                    os.makedirs(parts_dir(), exist_ok=True)
                     have = os.path.getsize(part) if os.path.isfile(part) else 0
+                    if offset == 0 and have == 0:
+                        # A brand-new file: once per upload, not per chunk, so
+                        # a long-lived service still sweeps what it abandons.
+                        sweep_stale_parts()
                     if offset != have:
                         # Idempotent resume: tell the client where the part really
                         # is; it adopts this offset and continues. A fully-replayed
@@ -1014,6 +1066,12 @@ def serve(args):
         print("REFUSING TO START: no bearer token. Set PHOTO_BRIDGE_TOKEN or "
               "populate %s" % (args.token_file or TOKEN_FILE_DEFAULT), file=sys.stderr)
         sys.exit(2)
+    # Sweep abandoned backup chunks once at start, so a restart is also the
+    # thing that reclaims the volume (DR-0994). Says what it did, or nothing.
+    swept, freed = sweep_stale_parts()
+    if swept:
+        print("swept %d abandoned upload part(s), %.1f MB reclaimed from %s"
+              % (swept, freed / (1024.0 * 1024.0), parts_dir()))
     httpd = ThreadingHTTPServer((args.host, args.port), make_handler(args))
     print("photo_server listening on http://%s:%d  (GET /property-photos)" % (args.host, args.port))
     try:
@@ -1217,6 +1275,39 @@ def selftest():
     del os.environ["MEDIA_BACKUP_ROOT"]
     ok("media root has a default", media_root() == MEDIA_ROOT_DEFAULT)
     ok("upload lock is per-id and stable", _upload_lock("id-12345678") is _upload_lock("id-12345678"))
+
+    # THE SWEEP TAKES THE ABANDONED AND LEAVES THE RESUMABLE (DR-0994).
+    # Exercised on a real temp tree, not a mock: the whole point is what it
+    # does to files on disk, and a mocked os.remove would prove nothing.
+    import shutil as _shutil
+    import tempfile as _tempfile
+    _tmp = _tempfile.mkdtemp(prefix="poetech-selftest-parts-")
+    try:
+        os.environ["MEDIA_BACKUP_ROOT"] = _tmp
+        os.makedirs(parts_dir())
+        _now = datetime.now(timezone.utc).timestamp()
+        def _mk(name, age_days, size=32):
+            q = os.path.join(parts_dir(), name)
+            with io.open(q, "wb") as _fh:
+                _fh.write(b"\x00" * size)
+            t = _now - age_days * 24 * 60 * 60
+            os.utime(q, (t, t))
+            return q
+        _old = _mk("abandoned-00000001.part", 30, 1024)
+        _new = _mk("resuming-00000002.part", 1, 64)
+        _keep = _mk("notes.txt", 400)                     # not a .part
+        os.makedirs(os.path.join(parts_dir(), "a-dir.part"))   # not a file
+        _swept, _freed = sweep_stale_parts(now=_now)
+        ok("sweep takes the abandoned part", not os.path.exists(_old))
+        ok("sweep LEAVES a part still inside the resume window", os.path.isfile(_new))
+        ok("sweep leaves a non-.part file alone", os.path.isfile(_keep))
+        ok("sweep leaves a directory alone", os.path.isdir(os.path.join(parts_dir(), "a-dir.part")))
+        ok("sweep reports what it reclaimed", (_swept, _freed) == (1, 1024))
+        _shutil.rmtree(parts_dir())
+        ok("sweep on a missing .parts dir is a quiet no-op", sweep_stale_parts(now=_now) == (0, 0))
+    finally:
+        os.environ.pop("MEDIA_BACKUP_ROOT", None)
+        _shutil.rmtree(_tmp, ignore_errors=True)
 
     # NO HANDLER METHOD IS DEFINED TWICE (2026-10-13, proven-to-catch).
     # The phone-media lane was authored on 2026-07-05 as a SECOND do_POST on

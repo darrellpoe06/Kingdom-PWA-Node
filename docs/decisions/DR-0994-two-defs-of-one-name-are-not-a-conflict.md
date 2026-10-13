@@ -84,6 +84,28 @@ magic-byte gated; junk is deleted, never stored. Files land at
 dedups, same-name-different-size uniquifies — never clobbered. A file is marked
 safe only when the NAS confirms the exact byte count (DR-0076).
 
+## The leak the lane shipped with, closed in the same change
+
+A `.part` is removed on completion, on a magic-byte rejection and on a bad
+destination — but **not when an upload is simply abandoned**: the tab closes,
+the phone sleeps, the network goes for good, or the file is deleted off the
+phone before the backup is re-run. Nothing ever swept them, and each is up to
+`MAX_MEDIA_BYTES` (4 GB), so the lane built to protect the family's media would
+slowly fill the volume holding it.
+
+Eager deletion is the wrong fix — resume across sessions is the whole design,
+and it is what makes "safe to switch phones" cheap to re-run. So:
+`sweep_stale_parts()` takes only regular `*.part` files directly inside
+`.parts/` whose mtime is past a 14-day window; a symlink, a directory and any
+other name are left alone. It never raises — a sweep that cannot run must not
+take the upload path down with it. It runs once at service start (so a restart
+reclaims the volume, and says how much) and once per new upload, not per chunk.
+
+**Proven-to-catch in both directions, on a real temp tree** — a mocked
+`os.remove` would prove nothing about files on disk. Too eager (age check
+removed) fails *"sweep LEAVES a part still inside the resume window"*; too timid
+(`os.remove` → `pass`) fails *"sweep takes the abandoned part"*. 92/92 green.
+
 ## The honest limit, stated on the card
 
 A PWA cannot background-sync the camera roll. This is the foreground
