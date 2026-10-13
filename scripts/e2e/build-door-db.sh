@@ -55,6 +55,19 @@ for f in \
 done
 
 # The work under test: each twice.
+#
+# 0276 IS IN THIS LIST (DR-0982) even though no journey here books a long stay.
+# 0269 creates door_stays with CREATE TABLE IF NOT EXISTS and its two length
+# caps are INLINE CONSTRAINTs, so on a FRESH database -- which is the only kind
+# this script builds -- the caps 0276 dropped come back. The journeys book two
+# nights and neither cap refuses anything, but the database would otherwise sit
+# in a state production has not been in since 2026-10-11, and a replay ending
+# where production actually is is the whole point of replaying it.
+#
+# NOTE FOR THE NEXT EDITOR: these are backslash-continued words, not separate
+# lines. A `#` comment placed BETWEEN them is not a comment on one entry -- it
+# comments out the remainder of the logical line, silently dropping every file
+# after it along with the `; do`. Comments go here, above the loop.
 for f in \
   0260-work-is-filed-on-the-door-not-only-on-a-tenancy.sql \
   0261-a-guest-reports-a-problem-from-inside-the-door.sql \
@@ -68,6 +81,7 @@ for f in \
   0269-a-short-stay-door-has-a-booking-calendar.sql \
   0270-the-public-shelf-shows-the-area-on-a-map.sql \
   0273-a-shared-home-says-so-on-the-shelf.sql \
+  0276-a-guest-may-stay-as-long-as-they-like.sql \
   0278-a-bed-is-not-a-bedroom.sql \
   0280-the-address-shows-unless-the-family-holds-it.sql; do
   for i in 1 2; do P -f "$MIG/$f"; done

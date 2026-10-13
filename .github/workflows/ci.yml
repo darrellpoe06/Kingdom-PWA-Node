@@ -1018,6 +1018,18 @@ jobs:
           for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0267-a-system-keeps-its-pictures.sql; done
           for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0269-a-short-stay-door-has-a-booking-calendar.sql; done
           for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0270-the-public-shelf-shows-the-area-on-a-map.sql; done
+          # 0276 (DR-0982) MUST FOLLOW 0269 HERE, and this leg is the reason the
+          # rule needs stating twice. 0269 creates door_stays with CREATE TABLE
+          # IF NOT EXISTS, and its two length caps
+          # (door_stays_guest_asks_under_30_nights, door_stays_at_most_a_year)
+          # are INLINE CONSTRAINTs. Against the LIVE database the rls-isolation
+          # leg uses, that CREATE is a no-op and the caps 0276 dropped stay
+          # dropped. THIS leg runs on a FRESH container, so the CREATE really
+          # runs and really re-creates both caps -- a state production has not
+          # been in since 2026-10-11. 0276 is omitted and 0269's smoke asserts
+          # the new rule, and the two disagree. 0276 guards on the table
+          # existing, so it is safe anywhere after 0269.
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0276-a-guest-may-stay-as-long-as-they-like.sql; done
           psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0260-door-work-orders-smoke.sql 2>&1 | tee "$RUNNER_TEMP/smoke.txt"
           grep -q 'DOOR WORK SMOKE: PASS' "$RUNNER_TEMP/smoke.txt"
           psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0261-guest-report-smoke.sql 2>&1 | tee "$RUNNER_TEMP/guest.txt"

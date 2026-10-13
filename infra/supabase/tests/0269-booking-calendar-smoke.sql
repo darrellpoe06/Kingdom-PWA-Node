@@ -9,7 +9,8 @@
 --   a guest (no account) asks for taken nights                               ✘
 --   a guest who is not 21+ or does not accept the house rules                ✘
 --   a guest asks for open nights                                             ✔
---   a guest's 30+ nights; a door not taking stays; a past first night         ✘
+--   a door not taking stays; an unlisted door; a past first night            ✘
+--   any number of nights — the 29 and the year are both gone (0276)          ✔
 --   the family enters a longer stay itself                                   ✔
 --   the family confirms; an overlapping confirmation                         ✔ / ✘
 --   a fourth open ask from the same contact                                  ✘
@@ -112,12 +113,32 @@ BEGIN
   -- nights nor at a year. This case asserted the CAP until 2026-10-12 and was
   -- the first thing to fail once 0263's document-signing failure stopped
   -- masking it (DR-0982) -- the product had done what he asked and the test
-  -- still asked for the old rule. It now proves the new rule instead of
-  -- merely not proving the old one.
-  PERFORM pg_temp.runs(NULL, format('SELECT request_a_stay(%L, %L, %L, ''Ana'', ''217-555-0100'', NULL, 2, NULL, true, true)', doorA, d0 + 5, d0 + 35),
-    'a guest asks for thirty nights on their own', true);
-  PERFORM pg_temp.runs(NULL, format('SELECT request_a_stay(%L, %L, %L, ''Ana'', ''217-555-0100'', NULL, 2, NULL, true, true)', doorA, d0 + 200, d0 + 500),
-    'a guest asks for three hundred nights, past the old one-year ceiling', true);
+  -- still demanded the old rule.
+  --
+  -- ASKED OF THE CATALOG HERE, NOT BY BOOKING THIRTY NIGHTS IN THE MIDDLE OF
+  -- THIS SMOKE. The first fix did book them, and broke this file's own
+  -- arithmetic three ways at once: the new row landed on d0 + 5, so the
+  -- `SELECT ... INTO ask` below picked it instead of the ask it means (plain
+  -- SELECT INTO takes an arbitrary row, it does not complain); it spent one of
+  -- Ana's three open asks, so 'a fourth open ask from the same contact' stopped
+  -- being the fourth; and it pushed doorA's row count past the 6 section 3
+  -- asserts. A catalog read costs nothing, disturbs nothing, and names the
+  -- fault better than a refused booking does: if a leg replays 0269 WITHOUT
+  -- 0276 -- ci.yml's door-work leg did exactly that until 2026-10-12 -- then
+  -- `CREATE TABLE IF NOT EXISTS` builds the table WITH both caps on a fresh
+  -- database, and this says so in one line instead of failing as a mysterious
+  -- booking refusal. The BEHAVIOUR is proven too, at the very end of this file
+  -- where a long ask can disturb nothing.
+  IF EXISTS (SELECT 1 FROM pg_constraint
+              WHERE conrelid = 'public.door_stays'::regclass
+                AND conname = 'door_stays_guest_asks_under_30_nights') THEN
+    RAISE EXCEPTION 'BOOKING CALENDAR SMOKE FAIL: the 29-night cap on a guest''s own ask is back (0276 dropped it at the owner''s word; a leg that replays 0269 without 0276 re-creates it)';
+  END IF;
+  IF EXISTS (SELECT 1 FROM pg_constraint
+              WHERE conrelid = 'public.door_stays'::regclass
+                AND conname = 'door_stays_at_most_a_year') THEN
+    RAISE EXCEPTION 'BOOKING CALENDAR SMOKE FAIL: the one-year ceiling is back (0276 dropped it at the owner''s word; a leg that replays 0269 without 0276 re-creates it)';
+  END IF;
   -- The family may enter a longer stay itself, as it always could.
   PERFORM pg_temp.runs(o, format(
     'INSERT INTO door_stays (instance_id, rental_id, kind, status, check_in, check_out, guest_name, guest_phone) VALUES (%L, %L, ''stay'', ''requested'', %L, %L, ''Visiting professor'', ''217-555-0199'')',
@@ -185,6 +206,19 @@ BEGIN
   IF (SELECT count(*) FROM door_events WHERE subject = 'stay' AND subject_id = blk AND event = 'blocked') <> 1 THEN RAISE EXCEPTION 'BOOKING CALENDAR SMOKE FAIL: the blackout is not on the clock'; END IF;
   IF (SELECT string_agg(event, ',' ORDER BY at) FROM door_events WHERE subject = 'stay' AND subject_id = ask::uuid) <> 'asked,confirmed,cancelled' THEN
     RAISE EXCEPTION 'BOOKING CALENDAR SMOKE FAIL: the stay''s life is not on the clock in order (%)', (SELECT string_agg(event, ',' ORDER BY at) FROM door_events WHERE subject = 'stay' AND subject_id = ask::uuid);
+  END IF;
+
+  -- 8. ANY NUMBER OF NIGHTS, PROVEN IN BEHAVIOUR and not only in the catalog.
+  -- Last in the file on purpose, because this is the one case that ADDS a row:
+  -- a fresh contact (so nobody's three-open-ask budget is spent) on nights far
+  -- past every window above (so no count, no `check_in` lookup and no clock
+  -- assertion can see it). Four hundred nights -- past the 29 the guest cap
+  -- refused AND past the 365 the year ceiling refused -- asked by a guest with
+  -- no account at all, and accepted.
+  PERFORM pg_temp.runs(NULL, format('SELECT request_a_stay(%L, %L, %L, ''Nadia'', ''217-555-0177'', NULL, 2, NULL, true, true)', doorA, d0 + 600, d0 + 1000),
+    'a guest asks for four hundred nights, past both the old 29 and the old year', true);
+  IF (SELECT check_out - check_in FROM door_stays WHERE rental_id = doorA::uuid AND guest_phone = '217-555-0177') <> 400 THEN
+    RAISE EXCEPTION 'BOOKING CALENDAR SMOKE FAIL: the four-hundred-night ask was not kept whole';
   END IF;
 
   RAISE NOTICE 'BOOKING CALENDAR SMOKE: PASS';
