@@ -191,7 +191,7 @@ export function nearbyFromOverpass(point, body) {
  * real answer (nothing near) -- or {ok:false, reason} when Overpass could not
  * be asked, so the caller can try again rather than save nothing as truth.
  */
-export async function nearbyAround(point, { fetchImpl = (typeof fetch === 'function' ? fetch : null), timeoutMs = 30000, places = PLACES } = {}) {
+export async function nearbyAround(point, { fetchImpl = (typeof fetch === 'function' ? fetch : null), timeoutMs = 30000, places = PLACES, userAgent = '' } = {}) {
   if (!point || !Number.isFinite(point.lat) || !Number.isFinite(point.lng)) return { ok: false, reason: 'no point' };
   const researched = nearbyFrom(point, places);
   if (!fetchImpl) return { ok: false, reason: 'This device cannot look up what is nearby.' };
@@ -203,9 +203,11 @@ export async function nearbyAround(point, { fetchImpl = (typeof fetch === 'funct
     // resource could not be found" before the query runs (nearby-witness run
     // 38434388889, 2026-10-13, read from the server's own body). A browser's
     // default "*/*" goes through; the query's [out:json] decides the shape.
+    // A browser sends its own User-Agent and this stays empty; a runner (the
+    // nearby witness) names itself, as Overpass's usage policy asks.
     const res = await fetchImpl(OVERPASS, {
       method: 'POST',
-      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      headers: { 'content-type': 'application/x-www-form-urlencoded', ...(userAgent ? { 'user-agent': userAgent } : {}) },
       body: `data=${encodeURIComponent(overpassQuery(point))}`,
       signal: AbortSignal.timeout(timeoutMs),
     });
