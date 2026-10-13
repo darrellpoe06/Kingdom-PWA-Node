@@ -58,8 +58,11 @@ export function makeFunnelProxy({ upstreamPrefix, label }) {
       upstream = await fetch(target, {
         method: request.method,
         headers,
-        // Buffer the body (family payloads are small) so we never depend on
-        // streaming-body `duplex` support across runtime versions.
+        // Buffer the body so we never depend on streaming-body `duplex`
+        // support across runtime versions. Bounded: the largest body any
+        // route sends is a phone-backup media chunk at CHUNK_BYTES (6 MB,
+        // app/src/lib/media-backup.js), well under the Pages request cap;
+        // every other payload is a small JSON family write.
         body: hasBody ? await request.arrayBuffer() : undefined,
         redirect: 'manual',
       });
