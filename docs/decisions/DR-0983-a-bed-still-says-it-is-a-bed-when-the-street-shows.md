@@ -191,12 +191,33 @@ No schema change, no row written, nothing on the merge path.
   no SQL in this record was executed. The proof is the next `rls-isolation`
   run — a green `poe-properties` leg, the first since 2026-10-10T23:44:45Z — and
   a green `app — door work orders (PostgreSQL)` now that its chain reaches
-  0281. `re-review: 2026-10-13`.
-- **Not verified:** whether a FOURTH stale or broken assertion waits behind
+  0281. ~~`re-review: 2026-10-13`.~~
+  **CLOSED 2026-10-13 — both, and the stronger one first.**
+  `app — door work orders (PostgreSQL)` green on `5fe202c5` (PR #2136), and that
+  leg now applies 0278/0280/0281 and runs the WHOLE 0273 smoke to PASS — so its
+  photo assertions under 0278's `public_vacancy_photos`, which the live leg had
+  never reached, did run on a real PostgreSQL against production's definitions.
+  Then the live half: `0273-shared-home-smoke.sql:150: SHARED HOME SMOKE: PASS`
+  in `rls-isolation` run 38334645684 (job 115091894643), head `7feb2da1`, 2026-10-13T02:00Z, with the leg running clean to its end
+  (0275 PASS, 0279 PASS, 0280 PASS, *"completed without a leak"*) and all 23
+  legs green. Deploy and `db-migrate` both succeeded on the exact merge SHA
+  `7feb2da1`, so 0281 is applied to the hosted database.
+- ~~**Not verified:** whether a FOURTH stale or broken assertion waits behind
   0273. The leg still stops at its first failure, so the masking DR-0976
   described applies to everything after it. Named rather than assumed clean —
   this is the third in a row (0263 → 0269 → 0273) and the pattern is the
-  finding, not the exception.
+  finding, not the exception.~~
+  **ANSWERED 2026-10-13: there is no fourth. The cascade is fully unwound.**
+  With 0273 repaired the leg ran clean to its end for the first time since
+  2026-10-10T23:44:45Z — `0275-portal-approval-smoke.sql:280` PASS,
+  `0279-allow-list-smoke.sql:94` PASS, `0280-address-shows-smoke.sql:78` PASS,
+  then *"isolation smoke(s) completed without a leak for poe-properties"* — all
+  16 smokes, including the three that sat BEHIND 0273 and had never been
+  reached. I expected a fourth and predicted one on the strength of three in a
+  row; the measurement says otherwise, and the measurement wins. Worth keeping
+  as the counter-example: a run of three does not make a fourth, and guessing
+  from a pattern is not the same as reading the log. `rls-isolation` run
+  38334645684, job 115091894643, head `7feb2da1`, 23 of 23 legs green.
 
 ## Links
 
