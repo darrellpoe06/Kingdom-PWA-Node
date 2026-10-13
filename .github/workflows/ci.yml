@@ -1173,6 +1173,15 @@ jobs:
           for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0285-a-nas-picture-is-filed-once.sql; done
           psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0285-nas-picture-once-smoke.sql 2>&1 | tee "$RUNNER_TEMP/nas-once.txt"
           grep -q 'NAS PICTURE ONCE SMOKE: PASS' "$RUNNER_TEMP/nas-once.txt"
+          # 0286 (DR-1003): a door is priced by any cadence. Weekly and
+          # every-two-weeks prices and what the building offers come through
+          # the public shelf (the function is dropped and widened), and a
+          # private room is offered before a bed. The smoke proves the prices
+          # come through, NULL never reads as $0, a rate below zero is
+          # refused, and the building's note is lent within the family only.
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0286-a-door-is-priced-by-any-cadence.sql; done
+          psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0286-any-cadence-smoke.sql 2>&1 | tee "$RUNNER_TEMP/any-cadence.txt"
+          grep -q 'ANY CADENCE SMOKE: PASS' "$RUNNER_TEMP/any-cadence.txt"
 
   # THE REQUIRED CHECK (DR-0645). Branch protection and native auto-merge wait
   # on a check named EXACTLY "app — lint + vitest". Do NOT rename this job.
@@ -1255,7 +1264,7 @@ jobs:
       - name: Proven to catch — each fault fails its own step
         run: |
           set -euo pipefail
-          for b in street confirm payment area calendar archive source; do
+          for b in street confirm payment area calendar archive source cadence; do
             echo "=== --break=$b"
             node scripts/e2e/door-journeys.mjs app/dist --break=$b
           done

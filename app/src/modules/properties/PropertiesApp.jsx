@@ -1616,6 +1616,8 @@ function PlacesToLive({ vacancies = [], claim, onSignIn = null }) {
       const beds = Number(v.bedrooms);
       const baths = Number(v.bathrooms);
       const nightly = Number(v.nightly_rate);
+      const weekly = Number(v.weekly_rate);
+      const biweekly = Number(v.biweekly_rate);
       return {
         id: String(v.id || v.rental_id || address),
         rentalId: v.id || null,
@@ -1627,6 +1629,10 @@ function PlacesToLive({ vacancies = [], claim, onSignIn = null }) {
         baths: Number.isFinite(baths) && baths > 0 ? baths : null,
         offering: String(v.offering || 'long-term'),
         nightly: Number.isFinite(nightly) && nightly > 0 ? nightly : null,
+        // ANY CADENCE (DR-1003), the same three the public door reads.
+        weekly: Number.isFinite(weekly) && weekly > 0 ? weekly : null,
+        biweekly: Number.isFinite(biweekly) && biweekly > 0 ? biweekly : null,
+        buildingNote: String(v.building_note || '').trim() || null,
         note: String(v.listed_note || v.note || v.blurb || '').trim(),
         // Undefined (an older RPC) reads as SHOWN, because that is what the old
         // behaviour actually was — claiming a door is protected when the
