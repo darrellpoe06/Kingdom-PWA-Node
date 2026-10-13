@@ -39,6 +39,37 @@ export function duplicateNumbers(modules) {
     .sort((a, b) => a.number - b.number);
 }
 
+/**
+ * Numbers inside the catalog's own range that NO module claims.
+ *
+ * A number claimed twice is loud; a number claimed never is silent, and that is
+ * why ll79 sat missing from 2026-08-14 until a drain triage went looking on
+ * 2026-10-13. The lesson that was meant to fill it is still sitting in #1255,
+ * whose catalog holds 81 modules against this one's 238 — so the file cannot be
+ * merged, only the module mined out of it.
+ *
+ * Gaps are RECORDED DEBT, not an error: the three below are real holes awaiting
+ * their lessons. The ratchet below is shrink-only, so paying one off is always
+ * allowed and opening a NEW one fails.
+ */
+export function unclaimedNumbers(modules) {
+  const claimed = new Set();
+  for (const m of modules || []) {
+    const n = lessonNumber(m && m.id);
+    if (n !== null) claimed.add(n);
+  }
+  if (!claimed.size) return [];
+  const nums = [...claimed];
+  const out = [];
+  for (let n = Math.min(...nums); n <= Math.max(...nums); n += 1) if (!claimed.has(n)) out.push(n);
+  return out;
+}
+
+// The holes as measured on main `83d06328b`, 2026-10-13. Shrink-only: a lesson
+// that fills one of these removes it from the list, which the test allows; a
+// number that goes missing is not on this list, which fails.
+const KNOWN_GAPS = [79, 211, 212];
+
 describe('Living Lessons — the lesson number is unique', () => {
   it('no two modules share a lesson number', () => {
     expect(duplicateNumbers(LIVING_LESSONS_MODULES)).toEqual([]);
@@ -68,6 +99,35 @@ describe('Living Lessons — the lesson number is unique', () => {
         ],
       },
     ]);
+  });
+
+  it('no NEW number goes unclaimed, and a filled one may always be removed', () => {
+    const gaps = unclaimedNumbers(LIVING_LESSONS_MODULES);
+    const appeared = gaps.filter((n) => !KNOWN_GAPS.includes(n));
+    expect(appeared, 'a lesson number nobody claims is a hole a reader can fall into').toEqual([]);
+    expect(gaps.length, 'shrink-only: KNOWN_GAPS may lose entries, never gain them')
+      .toBeLessThanOrEqual(KNOWN_GAPS.length);
+  });
+
+  // PROVEN-TO-CATCH on the real shape of the ll79 miss: a catalog that skips a
+  // number reads perfectly to every uniqueness check there is.
+  it('catches a skipped number, where uniqueness checks cannot', () => {
+    const skipped = [
+      { id: 'll77-the-king-over-the-children-of-pride' },
+      { id: 'll78-the-snare-of-the-fear-of-man' },
+      { id: 'll80-the-four-warnings-of-a-hardening-heart' },
+    ];
+    expect(duplicateNumbers(skipped), 'uniqueness is satisfied — that is the hazard').toEqual([]);
+    expect(skipped.filter((m) => lessonNumber(m.id) === null)).toEqual([]);
+    expect(unclaimedNumbers(skipped)).toEqual([79]);
+  });
+
+  it('unclaimedNumbers reads a dense catalog as whole, and an empty one as nothing', () => {
+    expect(unclaimedNumbers([{ id: 'll1-a' }, { id: 'll2-b' }, { id: 'll3-c' }])).toEqual([]);
+    expect(unclaimedNumbers([{ id: 'll5-only' }])).toEqual([]);
+    expect(unclaimedNumbers([])).toEqual([]);
+    expect(unclaimedNumbers([{ id: 'sov1-not-a-living-lesson' }])).toEqual([]);
+    expect(unclaimedNumbers([{ id: 'll1-a' }, { id: 'll4-d' }])).toEqual([2, 3]);
   });
 
   it('lessonNumber reads the number and refuses what is not one', () => {
