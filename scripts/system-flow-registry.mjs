@@ -1149,6 +1149,32 @@ const NODES = [
     ],
     seeds: ['record-clock'],
   }),
+  // Life at 805 (DR-1010, 0289): a tenant, a household member or a guest hands
+  // the family a picture of life at the property, signed over (the wording's
+  // version + fingerprint, three attestations, both clocks); the family
+  // approves, declines, removes; the poster's ask is honored at once; a picked
+  // picture becomes a listing picture; the public wall hangs under the shelf.
+  app('app/src/modules/properties/StayWall.jsx', {
+    id: 'life-wall', name: 'Life at 805 (stay pictures, signed over, approved)', purpose: 'A tenant, household member or guest shares a picture of life here, signed over to the family by the wording’s version and fingerprint; the family approves it for the building’s public wall, picks it for the listing under the counsel rule, or removes it; the poster can ask for it to come down.',
+    writes: [
+      { res: 'db:stay_pictures', file: 'infra/supabase/migrations-auto/0289-a-stay-picture-joins-the-wall-with-the-familys-yes.sql', token: 'INSERT INTO stay_pictures' },
+      { res: 'db:stay_pictures', file: 'app/src/modules/properties/cloud.js', token: "rpc('stay_wall_submit'" },
+      { res: 'db:stay_pictures', file: 'app/src/modules/properties/cloud.js', token: "rpc('stay_wall_decide'" },
+      { res: 'db:stay_wall_wordings', file: 'infra/supabase/migrations-auto/0289-a-stay-picture-joins-the-wall-with-the-familys-yes.sql', token: 'INSERT INTO public.stay_wall_wordings' },
+      { res: 'db:stay_wall_wording_attestations', file: 'infra/supabase/migrations-auto/0289-a-stay-picture-joins-the-wall-with-the-familys-yes.sql', token: 'INSERT INTO stay_wall_wording_attestations' },
+      { res: 'db:property_photos', file: 'infra/supabase/migrations-auto/0289-a-stay-picture-joins-the-wall-with-the-familys-yes.sql', token: 'INSERT INTO property_photos' },
+      { res: 'db:door_events', file: 'infra/supabase/migrations-auto/0289-a-stay-picture-joins-the-wall-with-the-familys-yes.sql', token: 'INSERT INTO door_events' },
+      { res: 'db:push_outbox', file: 'infra/supabase/migrations-auto/0289-a-stay-picture-joins-the-wall-with-the-familys-yes.sql', token: 'INSERT INTO public.push_outbox' },
+    ],
+    reads: [
+      { res: 'db:stay_wall_wordings', file: 'app/src/modules/properties/cloud.js', token: "rpc('stay_wall_wording'" },
+      { res: 'db:stay_wall_wording_attestations', file: 'infra/supabase/migrations-auto/0289-a-stay-picture-joins-the-wall-with-the-familys-yes.sql', token: 'FROM stay_wall_wording_attestations a' },
+      { res: 'db:stay_pictures', file: 'app/src/modules/properties/cloud.js', token: "from('stay_pictures')" },
+      { res: 'db:stay_pictures', file: 'app/src/modules/properties/cloud.js', token: "rpc('public_stay_walls')" },
+      { res: 'db:door_guest_links', file: 'infra/supabase/migrations-auto/0289-a-stay-picture-joins-the-wall-with-the-familys-yes.sql', token: 'FROM door_guest_links g' },
+    ],
+    seeds: ['door-pictures', 'record-clock', 'push-outbox-drain'],
+  }),
   // A tenant waits for the landlord's yes (DR-0957, 0275). THE DATABASE HALF
   // LANDS FIRST ON PURPOSE: Darrell's own instruction on this spec was that the
   // restrictions "must be enforced through backend authorization and database

@@ -45,6 +45,7 @@ import { SystemsTab } from './SystemsTab.jsx';
 import { GuestLinkCard } from './GuestReport.jsx';
 import { PayRent, PayeeCard } from './RentPay.jsx';
 import { PapersPanel } from './DocSigning.jsx';
+import { StayWallDesk, StayWallMine, LifeWall } from './StayWall.jsx';
 import { compressImageFile, isLikelyImageFile } from '../../lib/image.js';
 import { PROOF_OPTIONS, proofNotice, proofState } from './proof.js';
 import { loadJobVideo, setWorkOrderProof } from './cloud.js';
@@ -100,6 +101,8 @@ const DOOR_SCOPED = new Set([
   // carry the door's header and its open-work count like every other tab here.
   'work', 'board', 'jobs', 'document', 'dispatch',
   'cameras',
+  // The Life wall reads one door's shared pictures (DR-1010).
+  'wall',
 ]);
 
 /**
@@ -1556,6 +1559,13 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
             return <DocumentsTab door={activeDoor} tenancy={activeDoor} rentalId={rentalId} onFiled={(m) => { say(m); loadDoorData(); }} />;
           case 'papers':
             return <PapersPanel seat="tenant" tenancyId={activeDoor?.id || null} instanceId={activeDoor?.instance_id || null} />;
+          case 'wall':
+            // THE LIFE WALL (DR-1010): the family's desk for this door; for a
+            // tenant or household member, the share form and what they shared
+            // (the door's id comes from door_of_my_tenancy).
+            return (role === 'owner' || role === 'manager')
+              ? <StayWallDesk rentalId={rentalId} instanceId={activeRental?.instance_id || activeDoor?.instance_id || null} canAttest={role === 'owner'} />
+              : <StayWallMine rentalId={askDoorId} />;
           case 'plan':
             return <PlanTab />;
           case 'stays':
@@ -1689,6 +1699,8 @@ function PlacesToLive({ vacancies = [], claim, onSignIn = null }) {
             <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-2">
               {rows.map((r) => <VacancyCard key={r.id} unit={r} />)}
             </ul>
+            {/* LIFE AT 805 (DR-1010): the building's wall under its cards. */}
+            <LifeWall shelfIds={rows.map((r) => r.rentalId || r.id)} />
             {/* The blanket claim is gone. It was false on every door (display_name
                 IS the street), and it is now a per-card fact the database
                 enforces, printed on the cards that actually hold it back. */}

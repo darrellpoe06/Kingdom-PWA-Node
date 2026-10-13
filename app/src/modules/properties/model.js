@@ -79,6 +79,9 @@ export const TENANT_TABS = [
   // THE CAMERAS AT THIS DOOR (DR-0841): the porch, the hallway, the lot — the
   // ones the landlord shared with this door, live, through the same NAS road.
   TAB('cameras', 'Cameras', 'The cameras your landlord shares with this door.'),
+  // LIFE HERE (DR-1010): a picture of life at the property, signed over to the
+  // family, shown on the building's public wall once they say yes.
+  TAB('wall', 'Life here', 'Share a picture of life here for the community wall; see where each one stands.'),
 ];
 
 export const WORKER_TABS = [
@@ -126,6 +129,9 @@ export const MANAGER_TABS = [
   TAB('people', 'People', 'Invite a tenant, a family member, or a 1099 worker.'),
   TAB('cameras', 'Cameras', 'Share the cameras at this door with its household, and take them back.'),
   TAB('documents', 'Documents', 'The lease, the rules, the notices and the letters — filled from this door’s own records.'),
+  // THE LIFE WALL (DR-1010): what tenants and guests shared, waiting for the
+  // family's yes; approved pictures on the public wall, picked ones in the listing.
+  TAB('wall', 'Life wall', 'Pictures tenants and guests shared of life here: approve them for the public wall, pick some for the listing.'),
   TAB('plan', 'Rollout', 'Where this app is in its build, what is gated, and what waits on a hand.'),
 ];
 

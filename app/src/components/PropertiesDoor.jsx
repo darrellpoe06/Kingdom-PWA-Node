@@ -25,6 +25,7 @@ import { WHO_OPTIONS } from '../modules/properties/model.js';
 import { readApplyTarget, readListingTarget, resolveScan } from '../modules/properties/apply-link.js';
 import { readReportToken } from '../modules/properties/guest-report.js';
 import { GuestReportPage } from '../modules/properties/GuestReport.jsx';
+import { LifeWall } from '../modules/properties/StayWall.jsx';
 import { loadPublicVacancies, submitApplication, loadMyLandlordSeat, claimLandlordSpace } from '../modules/properties/cloud.js';
 import { readWhoIntent, withWhoIntent, withoutWhoIntent, LANDLORD_PATHS, landingFor, holdsSeat, navigate } from '../modules/properties/own-space.js';
 import { VacancyCard } from '../modules/properties/Storefront.jsx';
@@ -582,6 +583,8 @@ function SignedOutDoor({ left = false, onReturn } = {}) {
             ))}
           </ul>
         )}
+        {/* LIFE AT 805 (DR-1010): the building's public wall under its cards. */}
+        {(vacancies || []).length > 0 && <LifeWall shelfIds={(vacancies || []).map((v) => v.id)} />}
         {/* The page's own sentence follows the doors it lists (0158 / DR-0932
             addendum, Darrell 2026-10-10: "the address shows while it says it
             will not show... fix it"). It used to promise "not published here"
