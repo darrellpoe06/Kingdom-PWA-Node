@@ -27,6 +27,7 @@
 import { createTableSync, getDoorsInstanceId } from './table-sync.js';
 import supabase from './supabase.js';
 import { syncLeaseForRental, syncAllLeases } from './lease-sync.js';
+import { CHANNEL_RE } from './nas-photos.js';
 
 // The UI vocab (Rentals.jsx selects). The live table has no CHECKs; these
 // passthrough-with-fallback helpers exist so garbage never syncs and the
@@ -65,18 +66,8 @@ export function fromRemoteStatus(s) {
   return LEGACY_REMOTE_TO_LOCAL_STATUS[s] || 'paying';
 }
 
-export const rentalsSync = createTableSync({
-  localKey: 'rentals',
-  remoteTable: 'rentals',
-  // The doors live in the landlord instance since 0207 (DR-0365); reading them
-  // through the family instance showed 13 real doors as none (DR-0743).
-  instanceId: getDoorsInstanceId,
-  // The live table's UNIQUE (instance_id, slug) index (partial: WHERE slug IS
-  // NOT NULL). Lets upsert() heal an edit to a door whose local row never linked
-  // to the cloud — resolve by slug and UPDATE, instead of silently skipping.
-  conflictKey: 'instance_id,slug',
-
-  toRow(item, { tenantId, userId }) {
+/** A Real Estate record as a cloud rentals row (exported for its tests, DR-0999). */
+export function rentalToRow(item, { tenantId, userId }) {
     return {
       instance_id:          tenantId,
       created_by:           userId,
@@ -112,10 +103,16 @@ export const rentalsSync = createTableSync({
       // app infers from the label; writing 'unit' here would turn that honest
       // silence into a claim about twelve doors (DR-0076 §8).
       rentable_level:       RENTABLE_LEVELS.has(item.rentableLevel) ? item.rentableLevel : null,
+      // THE ARCHIVE ON THE RECORD (0284, DR-0999). Written only when the door
+      // names one: the column lands by db-migrate beside the deploy, and a
+      // row carrying a column the database does not yet have would fail every
+      // upload for the minutes between.
+      ...(CHANNEL_RE.test(String(item.photoChannel || '')) ? { photo_channel: item.photoChannel } : {}),
     };
-  },
+}
 
-  fromRow(row) {
+/** A cloud rentals row as a Real Estate record. */
+export function rentalFromRow(row) {
     return {
       id:             row.slug || `r-remote-${row.id}`,
       remoteUuid:     row.id,
@@ -145,10 +142,25 @@ export const rentalsSync = createTableSync({
       building:       row.building_label ?? '',
       roomLabel:      row.room_label ?? '',
       rentableLevel:  RENTABLE_LEVELS.has(row.rentable_level) ? row.rentable_level : '',
+      photoChannel:   row.photo_channel ?? '',
       updatedAt:      row.updated_at,
       createdAt:      row.created_at,
     };
-  },
+}
+
+export const rentalsSync = createTableSync({
+  localKey: 'rentals',
+  remoteTable: 'rentals',
+  // The doors live in the landlord instance since 0207 (DR-0365); reading them
+  // through the family instance showed 13 real doors as none (DR-0743).
+  instanceId: getDoorsInstanceId,
+  // The live table's UNIQUE (instance_id, slug) index (partial: WHERE slug IS
+  // NOT NULL). Lets upsert() heal an edit to a door whose local row never linked
+  // to the cloud — resolve by slug and UPDATE, instead of silently skipping.
+  conflictKey: 'instance_id,slug',
+
+  toRow: rentalToRow,
+  fromRow: rentalFromRow,
 
   idOf(item) {
     return item.id; // the local slug; the DB's (instance_id, slug) unique index enforces dedup
@@ -170,7 +182,7 @@ const STRUCTURE_FIELDS = ['unitLabel', 'building', 'roomLabel', 'rentableLevel']
 
 // Location fields fill in from remote but a blank remote value never
 // erases locally-typed detail.
-const FILL_FIELDS = ['city', 'state', 'zip'];
+const FILL_FIELDS = ['city', 'state', 'zip', 'photoChannel'];
 
 // A value that carries no information — treated as "unset" so it can never
 // ERASE a real local value during a merge. Numeric 0 counts as blank for this

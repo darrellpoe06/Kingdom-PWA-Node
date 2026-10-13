@@ -1,5 +1,5 @@
 // =============================================================================
-// No two Living Lessons carry the same lesson NUMBER (2026-10-13, DR-0998)
+// No two Living Lessons carry the same lesson NUMBER (2026-10-13, DR-1001)
 // =============================================================================
 // learn-integration.test.js already asserts ids are unique, but it compares
 // WHOLE ids and only across three other courses. That cannot catch this class:

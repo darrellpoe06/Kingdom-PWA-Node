@@ -52,6 +52,7 @@ import AppShareQR from './AppShareQR.jsx';
 import TTSControl from './TTSControl.jsx';
 import { UpdatePrompt } from './PwaPrompts.jsx';
 import UiIcon from './UiIcon.jsx';
+import AccessibilityNote from './AccessibilityNote.jsx';
 import { WELCOME_CSS, PoePropertiesMark, WelcomeHero, PortalCards, DoorFooter, cardCopy } from './PoePropertiesWelcome.jsx';
 
 // The focus ring the door's own buttons carry (UX-PATTERNS 2g.1), in the brand
@@ -306,6 +307,9 @@ export default function PropertiesDoor() {
         </>)}
       </main>
 
+      {/* What the app holds itself to, where renters and guests are (DR-0998);
+          above the band, so the band keeps its exact wording. */}
+      <div className="px-4 pb-4 flex justify-center"><AccessibilityNote /></div>
       {/* POE PROPERTIES · POWERED BY POETECH -- the black band, on every
           screen size, with the exact wording Darrell asked for. */}
       <DoorFooter />

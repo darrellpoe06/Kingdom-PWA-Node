@@ -11,11 +11,15 @@
 // 600 m circle. No map library: a few <img> tiles and one SVG circle, with
 // OSM's attribution on the map.
 //
-// MapOnRequest is what a card shows: a "Show on map" button and an "Open in
-// Maps" link. No tile and no lookup happens until the button is pressed; then
-// the stored area is drawn, or the address is looked up (findPoint ->
-// /geocode) and its rounded area drawn. "Open in Maps" hands the address to
-// the phone's own maps app and costs this app nothing.
+// MapOnRequest is what a card shows, and what it shows follows the street
+// (DR-0997; Darrell, 2026-10-13: "Show on map is supposed to be giving the
+// area without the address... when the address is not shown... however maps
+// when the address is showing can be the direct link to the street view"):
+//   * street HELD  -> "Show on map" draws the rounded area as a circle, and
+//     nothing else: no pin, no point, no link to a maps app.
+//   * street SHOWN -> "Show on map" looks the address up and puts a PIN on the
+//     house; "Street view" opens Google's Street View standing at it.
+// No tile and no lookup happens until somebody taps.
 //
 // AreaEditor is the family's: "Find it from the address" looks the door up
 // from its own address and works out what is nearby from the exact point,
@@ -27,6 +31,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   roundArea, parsePoint, nearbyFrom, cleanNearby, tileLayout, milesText,
   namesStreet, CIRCLE_METERS, NEARBY_MAX, addressLine, mapsUrl, findPoint,
+  streetViewUrl, PIN_ZOOM, nearbyAround,
 } from './area.js';
 import { loadDoorArea } from './cloud.js';
 import { boundedRead } from '../../lib/bounded-read.js';
@@ -48,17 +53,26 @@ const Btn = ({ children, onClick, tone = 'ghost', disabled, ...rest }) => (
 // The circle is 2 x CIRCLE_METERS across: about 0.7 mi.
 const acrossMiles = ((2 * CIRCLE_METERS) / 1609.344).toFixed(1);
 
-/** The map. `area` is {lat, lng} already rounded; `where` names the town for the screen reader. */
-export function AreaMap({ area, where = '', height = 200, streetShown = false }) {
-  const L = useMemo(() => (area ? tileLayout(area) : null), [area]);
+/**
+ * The map. `area` is {lat, lng} already rounded and is drawn as a circle;
+ * `pin` is the exact point of a SHOWN street and is drawn as a pin on the
+ * house at block zoom (DR-0997). A held door is only ever given `area`.
+ * `where` names the town (or the street, when shown) for the screen reader.
+ */
+export function AreaMap({ area, pin = null, where = '', height = 200, streetShown = false }) {
+  const at = pin || area;
+  const L = useMemo(() => (at ? tileLayout(at, pin ? { z: PIN_ZOOM } : undefined) : null), [at, pin]);
   if (!L) return null;
   const r = L.radiusPx;
+  const label = pin
+    ? `Map of ${where || 'the address'}. The pin is on the house.`
+    : `Map of the area${where ? ` in ${where}` : ''}. The place is inside the circle, about ${acrossMiles} miles across.${streetShown ? '' : ' The street is not shown.'}`;
   return (
     <div
       className="relative w-full overflow-hidden border border-[#E8E4DC]"
       style={{ height }}
       role="img"
-      aria-label={`Map of the area${where ? ` in ${where}` : ''}. The place is inside the circle, about ${acrossMiles} miles across.${streetShown ? '' : ' The street is not shown.'}`}
+      aria-label={label}
       data-testid="area-map"
     >
       <div
@@ -74,17 +88,34 @@ export function AreaMap({ area, where = '', height = 200, streetShown = false })
           />
         ))}
       </div>
-      <svg
-        aria-hidden="true" className="absolute pointer-events-none"
-        width={2 * r + 4} height={2 * r + 4}
-        style={{ left: `calc(50% - ${r + 2}px)`, top: `calc(50% - ${r + 2}px)` }}
-        data-testid="area-map-circle"
-      >
-        <circle cx={r + 2} cy={r + 2} r={r} fill="rgba(47,93,80,0.18)" stroke="#2F5D50" strokeWidth="2" />
-      </svg>
+      {pin ? (
+        // The pin's tip sits on the point: the SVG is 28 x 36 and its tip is
+        // its bottom-center, so it is lifted by its full height.
+        <svg
+          aria-hidden="true" className="absolute pointer-events-none"
+          width="28" height="36" viewBox="0 0 28 36"
+          style={{ left: 'calc(50% - 14px)', top: 'calc(50% - 36px)' }}
+          data-testid="area-map-pin"
+        >
+          <path d="M14 35C14 35 2 21 2 13a12 12 0 0 1 24 0c0 8-12 22-12 22z" fill="#2F5D50" stroke="#FFFFFF" strokeWidth="2" />
+          <circle cx="14" cy="13" r="4.5" fill="#FFFFFF" />
+        </svg>
+      ) : (
+        <svg
+          aria-hidden="true" className="absolute pointer-events-none"
+          width={2 * r + 4} height={2 * r + 4}
+          style={{ left: `calc(50% - ${r + 2}px)`, top: `calc(50% - ${r + 2}px)` }}
+          data-testid="area-map-circle"
+        >
+          <circle cx={r + 2} cy={r + 2} r={r} fill="rgba(47,93,80,0.18)" stroke="#2F5D50" strokeWidth="2" />
+        </svg>
+      )}
+      {/* The tiles' licence asks for this on the map; it is not the listing,
+          so the read-aloud passes over it (data-read-skip). */}
       <a
         href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer"
         className="absolute right-0 bottom-0 bg-white/85 px-1 text-[0.625rem] text-[#1A1815] underline"
+        aria-label="© OpenStreetMap contributors (opens in a new tab)" data-read-skip=""
       >© OpenStreetMap contributors</a>
     </div>
   );
@@ -111,44 +142,91 @@ export function NearbyList({ lines }) {
 const linkCls = 'inline-flex items-center text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#E8E4DC] bg-white text-[#1A1815] underline-offset-2 hover:border-[#1A1815] focus:outline focus:outline-2 focus:outline-[#2F5D50]';
 
 /**
- * A map only when somebody asks for one (DR-0977). `area` is a stored, rounded
- * area or null; `query` is the address line when the address may be shown.
- * Nothing is fetched until "Show on map" is pressed.
+ * A map only when somebody asks for one (DR-0977), and the kind of map the
+ * street allows (DR-0997). `area` is a rounded area or null (the door's own,
+ * or its building's, from the shelf); `query` is the address line ONLY when
+ * the family shows the street, and '' when they hold it. Nothing is fetched
+ * until a tap.
+ *
+ *   held  (no query): "Show on map" -> the area circle. No link out: a pin
+ *                     dropped in a maps app would read as the house.
+ *   shown (query):    "Show on map" -> the address is looked up and a pin is
+ *                     put on the house; if the lookup fails, the area is drawn
+ *                     and the card says so. "Street view" -> Google's Street
+ *                     View at the house. Before the point is known, its href is
+ *                     the address in Google Maps; a tap opens a tab at once
+ *                     (inside the tap, so no pop-up blocker refuses it), looks
+ *                     the house up, and sends that tab into Street View.
  */
-export function MapOnRequest({ area = null, query = '', where = '', streetShown = false, nearby = [] }) {
+export function MapOnRequest({ area = null, query = '', where = '', streetShown = false, nearby = [], openTab = defaultOpenTab }) {
   const [open, setOpen] = useState(false);
-  const [found, setFound] = useState(null); // {area, lines} once looked up
-  const [state, setState] = useState('idle'); // idle | finding | failed
+  const [point, setPoint] = useState(null); // the exact point of a SHOWN street, once looked up
+  const [lines, setLines] = useState([]);
+  const [state, setState] = useState('idle'); // idle | finding
   const [said, setSaid] = useState('');
-  const shown = area || found?.area || null;
-  // Open in Maps only for a shown street: a pin dropped on a held door's
-  // rounded area would read as the house, and it is not.
-  const out = query ? mapsUrl({ query }) : '';
-  if (!area && !query) return null;
+  const shownStreet = Boolean(query);
+  if (!area && !shownStreet) return null;
 
+  const lookUp = async () => {
+    if (point) return { ok: true, point };
+    const r = await findPoint(query);
+    if (r.ok) { setPoint(r.point); setLines(nearbyFrom(r.point)); }
+    return r;
+  };
   const show = async () => {
     if (open) { setOpen(false); return; }
-    if (shown) { setOpen(true); return; }
+    if (!shownStreet || point) { setOpen(true); return; }
     setState('finding'); setSaid('');
-    const r = await findPoint(query);
-    if (!r.ok) { setState('failed'); setSaid(r.reason); return; }
-    setFound({ area: roundArea(r.point.lat, r.point.lng), lines: nearbyFrom(r.point) });
-    setState('idle'); setOpen(true);
+    const r = await lookUp();
+    setState('idle');
+    if (r.ok) { setOpen(true); return; }
+    if (area) { setSaid(`${r.reason} This is its area.`); setOpen(true); return; }
+    setSaid(r.reason);
   };
-  const lines = cleanNearby(nearby).length ? [] : (found?.lines || []);
+  const streetView = async (e) => {
+    if (point) return; // the href is already Street View
+    e.preventDefault();
+    const tab = openTab();
+    const r = await lookUp();
+    const url = r.ok ? streetViewUrl(r.point) : mapsUrl({ query });
+    if (!r.ok) setSaid(`${r.reason} Opened the address in Maps instead.`);
+    if (tab) { tab.location.href = url; return; }
+    setSaid(r.ok ? 'Street view is ready: tap it again.' : `${r.reason}`);
+  };
+  const extra = cleanNearby(nearby).length ? [] : lines;
   return (
     <div className="mt-2" data-testid="map-on-request">
       <div className="flex flex-wrap gap-2">
         <Btn onClick={show} disabled={state === 'finding'} data-testid="show-map" aria-expanded={open}>
           {state === 'finding' ? 'Finding it…' : open ? 'Hide the map' : 'Show on map'}
         </Btn>
-        {out && <a href={out} target="_blank" rel="noopener noreferrer" className={linkCls} data-testid="open-in-maps">Open in Maps</a>}
+        {shownStreet && (
+          <a
+            href={point ? streetViewUrl(point) : mapsUrl({ query })}
+            onClick={streetView}
+            target="_blank" rel="noopener noreferrer" className={linkCls} data-testid="street-view"
+            // WCAG 2.2 AA (DR-0315): the name starts with what the button says
+            // (2.5.3) and says where it goes; a control is not read aloud as
+            // part of the listing (data-read-skip, TTSControl).
+            aria-label={`Street view of ${query}, opens Google Maps in a new tab`} data-read-skip=""
+          >Street view</a>
+        )}
       </div>
       {said && <p className="text-xs text-[#5A5751] mt-1" role="status">{said}</p>}
-      {open && shown && <div className="mt-2"><AreaMap area={shown} where={where} streetShown={streetShown} /></div>}
-      {open && lines.length > 0 && <NearbyList lines={lines} />}
+      {open && (point
+        ? <div className="mt-2"><AreaMap pin={point} where={query} streetShown /></div>
+        : area && <div className="mt-2"><AreaMap area={area} where={where} streetShown={streetShown} /></div>)}
+      {open && extra.length > 0 && <NearbyList lines={extra} />}
     </div>
   );
+}
+
+/** A tab opened inside the tap, cut off from this page (no opener). */
+function defaultOpenTab() {
+  if (typeof window === 'undefined' || typeof window.open !== 'function') return null;
+  const tab = window.open('', '_blank');
+  if (tab) { try { tab.opener = null; } catch { /* a cross-origin tab already has none */ } }
+  return tab;
 }
 
 /**
@@ -179,25 +257,34 @@ export function AreaEditor({ rental, onSave, busy }) {
     return () => { on = false; };
   }, [rental.id]);
 
-  const place = (p, how) => {
-    // The exact point is used here, once, for the distances; only the area is kept.
+  const place = async (p, how) => {
+    // The exact point is used here, once, for the distances; only the area is
+    // kept. What is nearby is asked around THIS point (DR-0998), so a door
+    // anywhere gets its own places, not Champaign's.
     setArea(roundArea(p.lat, p.lng));
     setLines(nearbyFrom(p));
     setSeeMap(true);
-    setSaid(`${how} Only the rounded area is saved.`);
+    setSaid(`${how} Looking up what is nearby…`);
+    const near = await nearbyAround(p);
+    if (near.ok) {
+      setLines(near.lines);
+      setSaid(`${how} ${near.lines.length ? `${near.lines.length} nearby place${near.lines.length === 1 ? '' : 's'} measured from it.` : 'Nothing listed is within reach of it.'} Only the rounded area is saved.`);
+    } else {
+      setSaid(`${how} ${near.reason} The researched places are shown; only the rounded area is saved.`);
+    }
   };
   const findIt = async () => {
     setFinding(true); setSaid('');
     const r = await findPoint(query);
     setFinding(false);
     if (!r.ok) { setSaid(`${r.reason} You can pin it by hand below.`); return; }
-    place(r.point, `Found${r.matched ? ` as "${r.matched}"` : ''}; the distances are worked out from it.`);
+    await place(r.point, `Found${r.matched ? ` as "${r.matched}"` : ''}.`);
   };
   const usePoint = () => {
     const p = parsePoint(paste);
     if (!p) { setSaid('That is not a point. Paste it as "40.1234, -88.2583", or a map link.'); return; }
     setPaste('');
-    place(p, 'Pinned by hand; the distances are worked out from it.');
+    place(p, 'Pinned by hand.');
   };
   const addOwn = () => {
     const label = own.label.trim(); const miles = Number(own.miles);
@@ -217,8 +304,8 @@ export function AreaEditor({ rental, onSave, busy }) {
     <div className="sm:col-span-2 mt-1" data-testid="area-editor">
       <span className={lbl}>The map, and what is nearby</span>
       <p className="text-[0.75rem] text-[#6B665E] leading-snug mb-2" data-testid="area-status">
-        {saved ? 'This door is on the map. ' : 'Not on the map yet. '}
-        Nothing is looked up until you ask; visitors see a map only when they tap for one.
+        {saved ? 'This door is on the map. ' : 'Not on the map yet: the app places it from its address on its own, or find it now. '}
+        Visitors see what is nearby; they see a map only when they tap for one.
       </p>
       <div className="flex flex-wrap gap-2 items-center">
         <Btn onClick={findIt} disabled={finding || !query}>{finding ? 'Finding it…' : 'Find it from the address'}</Btn>

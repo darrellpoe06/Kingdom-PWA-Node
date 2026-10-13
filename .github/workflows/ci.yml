@@ -280,6 +280,8 @@ jobs:
       # logic checks for the property + family photo image server, including the
       # new list_uploaded family read-back. Proven-to-catch: fails if dest path
       # containment or the read-back regresses. Gates merge.
+      - name: Pillow for the photo server (so the listing-size road is exercised here, as on the NAS)
+        run: python3 -m pip install --quiet pillow || python3 -m pip install --quiet --break-system-packages pillow
       - name: sovereign photo server selftest
         working-directory: infra/nas-property-photos
         run: python3 photo_server.py --selftest
@@ -1096,7 +1098,7 @@ jobs:
           # exactly as long as this chain ended early. The second run is the
           # right place for them: the first proves 0273 in its own terms, this
           # one proves the chain's END state, which is what a replay is for.
-          for f in 0278-a-bed-is-not-a-bedroom.sql 0280-the-address-shows-unless-the-family-holds-it.sql 0281-a-bed-still-says-it-is-a-bed-when-the-street-shows.sql; do
+          for f in 0278-a-bed-is-not-a-bedroom.sql 0280-the-address-shows-unless-the-family-holds-it.sql 0281-a-bed-still-says-it-is-a-bed-when-the-street-shows.sql 0283-a-held-door-shows-its-buildings-area.sql; do
             for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f "infra/supabase/migrations-auto/$f"; done
           done
           psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0273-shared-home-smoke.sql 2>&1 | tee "$RUNNER_TEMP/shared-again.txt"
@@ -1146,6 +1148,23 @@ jobs:
           for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0282-each-door-shows-the-apartment-in-its-own-order.sql; done
           psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0282-door-photo-order-smoke.sql 2>&1 | tee "$RUNNER_TEMP/photo-order.txt"
           grep -q 'DOOR PHOTO ORDER SMOKE: PASS' "$RUNNER_TEMP/photo-order.txt"
+          # 0283 (DR-0997): a held door shows its BUILDING's area when it stored
+          # none. It is the newest public_vacancies(), so it goes on LAST (0280
+          # was re-applied above) and this leg ends on production's definition.
+          # The smoke proves the held bed draws its building's area and lines
+          # with no street, that a door's own area wins, and the two refusals:
+          # another family on the same street, and "Ave" guessed as "Avenue".
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0283-a-held-door-shows-its-buildings-area.sql; done
+          psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0283-building-area-smoke.sql 2>&1 | tee "$RUNNER_TEMP/building-area.txt"
+          grep -q 'BUILDING AREA SMOKE: PASS' "$RUNNER_TEMP/building-area.txt"
+          # 0284 (DR-0999): the whole address and its picture archive on the
+          # record. Two nullable columns and a CHECK on the archive name; the
+          # smoke proves the family names an archive, a mistyped one is
+          # refused by the database, a stranger cannot name it, and the open
+          # shelf never carries it.
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0284-the-whole-address-and-its-archive-on-the-record.sql; done
+          psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0284-archive-on-the-record-smoke.sql 2>&1 | tee "$RUNNER_TEMP/archive-record.txt"
+          grep -q 'ARCHIVE ON THE RECORD SMOKE: PASS' "$RUNNER_TEMP/archive-record.txt"
 
   # THE REQUIRED CHECK (DR-0645). Branch protection and native auto-merge wait
   # on a check named EXACTLY "app — lint + vitest". Do NOT rename this job.
@@ -1213,6 +1232,8 @@ jobs:
           echo "7f8b363e4936c0666a25f64f3a92fda10bd8e5453be4592530b65a55dd98f3f2  .e2e/example.heic" | sha256sum -c -
       - name: The database, from the real chain
         run: scripts/e2e/build-door-db.sh
+      - name: Pillow for the photo server (the NAS's listing road; a bare runner has neither Pillow nor convert)
+        run: python3 -m pip install --quiet pillow || python3 -m pip install --quiet --break-system-packages pillow
       - name: Install playwright-core (drives the runner's installed Chrome)
         run: npm install --no-save playwright-core@1
       - name: Build the app against the journeys' own stack
@@ -1226,7 +1247,7 @@ jobs:
       - name: Proven to catch — each fault fails its own step
         run: |
           set -euo pipefail
-          for b in street confirm payment area calendar; do
+          for b in street confirm payment area calendar archive; do
             echo "=== --break=$b"
             node scripts/e2e/door-journeys.mjs app/dist --break=$b
           done

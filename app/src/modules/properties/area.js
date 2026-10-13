@@ -101,11 +101,15 @@ export function roundMiles(m) {
   return Math.max(0.1, Math.round(m * 10) / 10);
 }
 
-/** "about 1.9 mi" — what a line says on the shelf. */
+/**
+ * "about 1.9 miles" — what a line says on the shelf. The word in full
+ * (DR-0998): the read-aloud speaks the page's own text, and "mi" is spoken as
+ * "my" or spelled out; a person listening hears "miles". WCAG 2.2 AA (DR-0315).
+ */
 export function milesText(m) {
   const n = Number(m);
   if (!Number.isFinite(n)) return '';
-  return `about ${n.toFixed(1)} mi`;
+  return `about ${n.toFixed(1)} ${n === 1 ? 'mile' : 'miles'}`;
 }
 
 /**
@@ -121,6 +125,94 @@ export function nearbyFrom(point, places = PLACES) {
     .filter((l) => l.miles <= NEARBY_WITHIN_MILES)
     .sort((a, b) => a.miles - b.miles)
     .slice(0, NEARBY_MAX);
+}
+
+// --- What is nearby ANY property (DR-0998) -----------------------------------
+// Darrell, 2026-10-13: "Make sure it's accurate for each property... Not just
+// 805". PLACES above is the Champaign research; a door anywhere else is near
+// none of it. So when a door is placed, the places around ITS OWN exact point
+// are asked of OpenStreetMap's Overpass API (public, no key; one query per
+// building, from the family's app, never from a visitor's phone), and the
+// nearest of each kind is measured straight-line from that point.
+export const OVERPASS = 'https://overpass-api.de/api/interpreter';
+const MI = 1609.344;
+
+// [kind, Overpass selector, radius in miles, how many, how the line reads]
+export const NEARBY_KINDS = Object.freeze([
+  ['grocery',    'nwr["shop"="supermarket"]["name"]',                          5,  2, (n) => `${n} (grocery)`],
+  ['pharmacy',   'nwr["amenity"="pharmacy"]["name"]',                          5,  1, (n) => `${n} (pharmacy)`],
+  ['hospital',   'nwr["amenity"="hospital"]["name"]',                          15, 1, (n) => n],
+  ['college',    'nwr["amenity"~"^(university|college)$"]["name"]',            15, 2, (n) => n],
+  ['school',     'nwr["amenity"="school"]["name"]',                            3,  1, (n) => `${n} (school)`],
+  ['station',    'nwr["amenity"="bus_station"]["name"];nwr["railway"="station"]["name"]', 15, 1, (n) => n],
+  ['highway',    'node["highway"="motorway_junction"]["ref"]',                 5,  1, (n, t) => `Highway exit ${t.ref}${t.name ? ` (${n})` : ''}`],
+  ['park',       'nwr["leisure"="park"]["name"]',                              2,  1, (n) => n],
+  ['airport',    'nwr["aeroway"="aerodrome"]["iata"]["name"]',                 15, 1, (n, t) => `${n} (${t.iata})`],
+]);
+
+/** The one Overpass query for a point: every kind, each in its own radius. */
+export function overpassQuery(point) {
+  const at = `${point.lat.toFixed(6)},${point.lng.toFixed(6)}`;
+  const parts = NEARBY_KINDS.flatMap(([, sel, miles]) =>
+    sel.split(';').map((one) => `${one}(around:${Math.round(miles * MI)},${at});`));
+  return `[out:json][timeout:25];(${parts.join('')});out center tags;`;
+}
+
+/** The lines from an Overpass answer, measured from `point`: nearest of each kind. */
+export function nearbyFromOverpass(point, body) {
+  const els = Array.isArray(body?.elements) ? body.elements : [];
+  const lines = [];
+  const seen = new Set();
+  for (const [, sel, miles, count, read] of NEARBY_KINDS) {
+    const match = (t) => sel.split(';').some((one) => [...one.matchAll(/\["([^"]+)"(?:(=|~)"([^"]+)")?\]/g)]
+      .every(([, k, op, v]) => (op === '=' ? t[k] === v : op === '~' ? new RegExp(v).test(t[k] || '') : t[k] != null)));
+    const found = [];
+    for (const e of els) {
+      const t = e.tags || {};
+      if (!match(t)) continue;
+      const lat = Number(e.lat ?? e.center?.lat); const lng = Number(e.lon ?? e.center?.lon);
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
+      const m = roundMiles(haversineMiles(point, { lat, lng }));
+      if (m > miles) continue;
+      const label = String(read(String(t.name || t.ref || '').trim(), t)).replace(/\s+/g, ' ').trim().slice(0, 80);
+      if (!label || seen.has(label.toLowerCase())) continue;
+      found.push({ label, miles: m });
+    }
+    found.sort((a, b) => a.miles - b.miles);
+    for (const l of found.slice(0, count)) { seen.add(l.label.toLowerCase()); lines.push(l); }
+  }
+  return lines;
+}
+
+/**
+ * What is nearby THIS point: the researched places within reach (PLACES, for
+ * Champaign) and the nearest of each kind OpenStreetMap knows around it,
+ * nearest first, at most NEARBY_MAX. {ok:true, lines} -- an empty list is a
+ * real answer (nothing near) -- or {ok:false, reason} when Overpass could not
+ * be asked, so the caller can try again rather than save nothing as truth.
+ */
+export async function nearbyAround(point, { fetchImpl = (typeof fetch === 'function' ? fetch : null), timeoutMs = 30000, places = PLACES } = {}) {
+  if (!point || !Number.isFinite(point.lat) || !Number.isFinite(point.lng)) return { ok: false, reason: 'no point' };
+  const researched = nearbyFrom(point, places);
+  if (!fetchImpl) return { ok: false, reason: 'This device cannot look up what is nearby.' };
+  let found;
+  try {
+    const res = await fetchImpl(OVERPASS, {
+      method: 'POST',
+      headers: { 'content-type': 'application/x-www-form-urlencoded', accept: 'application/json' },
+      body: `data=${encodeURIComponent(overpassQuery(point))}`,
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+    if (!res.ok) return { ok: false, reason: `What is nearby could not be looked up (HTTP ${res.status}).` };
+    found = nearbyFromOverpass(point, await res.json());
+  } catch (e) {
+    return { ok: false, reason: e?.name === 'TimeoutError' ? 'What is nearby took too long to answer.' : 'What is nearby could not be reached just now.' };
+  }
+  const have = new Set(researched.map((l) => l.label.toLowerCase()));
+  const lines = [...researched, ...found.filter((l) => ![...have].some((h) => h.includes(l.label.toLowerCase().replace(/ \(.*\)$/, ''))))]
+    .sort((a, b) => a.miles - b.miles)
+    .slice(0, NEARBY_MAX);
+  return { ok: true, lines };
 }
 
 /** The lines the shelf may print: the database's own shape, checked again. */
@@ -217,6 +309,21 @@ export function mapsUrl({ query = '', area = null } = {}) {
   const q = String(query || '').trim() || (area ? `${area.lat},${area.lng}` : '');
   return q ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}` : '';
 }
+
+/**
+ * Street View, straight in, at a point (DR-0997). Google's documented Maps URL
+ * (map_action=pano) opens the Maps app's Street View on Android and iOS and
+ * the website elsewhere; no key. Only ever built for a door whose street the
+ * family SHOWS: a held door has no point to stand at, only an area.
+ */
+export function streetViewUrl(point) {
+  const lat = Number(point?.lat); const lng = Number(point?.lng);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return '';
+  return `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat.toFixed(6)},${lng.toFixed(6)}`;
+}
+
+/** The zoom a shown street's pin is drawn at: the block, not the town. */
+export const PIN_ZOOM = 17;
 
 export const NOMINATIM_DIRECT = 'https://nominatim.openstreetmap.org/search';
 

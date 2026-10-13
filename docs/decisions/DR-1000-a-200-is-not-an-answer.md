@@ -1,5 +1,5 @@
 ---
-id: DR-0997
+id: DR-1000
 title: A 200 is not an answer — only the server's own JSON is
 date: 2026-10-13
 status: accepted
