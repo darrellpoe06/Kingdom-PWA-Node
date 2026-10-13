@@ -192,7 +192,16 @@ function startPhotoServer() {
   const root = join(SHOTS, 'nas');
   const pdir = join(root, 'photos', '2024', '01');
   mkdirSync(pdir, { recursive: true });
-  execFileSync('python3', ['-c', `from PIL import Image; Image.new('RGB', (2400, 1600), (47, 93, 80)).save(${JSON.stringify(join(pdir, OVERPASS_PHOTO.name))}, format='JPEG', quality=80)`]);
+  // The phone backup's JPEG: Pillow where it is installed, else ImageMagick's
+  // convert (the GitHub runner has convert and no Pillow -- the same two roads
+  // photo_server.py's own selftest and listing_size take). E2E_NO_PIL=1 forces
+  // the convert road so it is proven where Pillow exists.
+  const jpg = join(pdir, OVERPASS_PHOTO.name);
+  let made = false;
+  if (!process.env.E2E_NO_PIL) {
+    try { execFileSync('python3', ['-c', `from PIL import Image; Image.new('RGB', (2400, 1600), (47, 93, 80)).save(${JSON.stringify(jpg)}, format='JPEG', quality=80)`], { stdio: 'ignore' }); made = true; } catch (_) { made = false; }
+  }
+  if (!made) execFileSync('convert', ['-size', '2400x1600', 'xc:#2F5D50', jpg], { stdio: 'ignore' });
   const fixture = join(root, 'chat.json');
   writeFileSync(fixture, JSON.stringify({ channels: [
     { name: OVERPASS_PHOTO.channel, posts: [{ id: OVERPASS_PHOTO.id, create_at: 1705891200000, name: OVERPASS_PHOTO.name, text: 'the porch, winter' }] },
