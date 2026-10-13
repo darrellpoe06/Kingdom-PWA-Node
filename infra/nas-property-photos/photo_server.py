@@ -732,7 +732,7 @@ def post_by_id(channel, photo_id):
     return (cols[0], cols[1], cols[2]) if len(cols) >= 3 else None
 
 
-# --- THE WHOLE LIBRARY BY MONTH (DR-1000) -------------------------------------
+# --- THE WHOLE LIBRARY BY MONTH (DR-1002) -------------------------------------
 # Darrell, 2026-10-13: "The nas has all pictures period!!! All my photos are
 # uploaded in the Synology photos app... why not just pull from there?
 # However I'm locked out while being logged in". So the app reads the
@@ -1218,7 +1218,7 @@ def make_handler(args):
                     return
                 self._media_upload_status(parsed.query)
                 return
-            # THE WHOLE LIBRARY BY MONTH (DR-1000): the dated photo roots and the
+            # THE WHOLE LIBRARY BY MONTH (DR-1002): the dated photo roots and the
             # phone backup, read as folders -- no Synology Photos sign-in.
             if path.endswith("/library") or path == "/library":
                 if not bearer_ok(self.headers.get("Authorization"), token):
@@ -1242,7 +1242,7 @@ def make_handler(args):
                     return
                 self._send(200, {"count": len(lib["photos"]), "total": lib["total"], "month": lib["month"], "photos": lib["photos"]})
                 return
-            # ONE LIBRARY PICTURE AT LISTING SIZE (DR-1000), by its file name.
+            # ONE LIBRARY PICTURE AT LISTING SIZE (DR-1002), by its file name.
             if path.endswith("/library-photo") or path == "/library-photo":
                 if not bearer_ok(self.headers.get("Authorization"), token):
                     self._send(401, {"ok": False, "error": "unauthorized"})
@@ -1783,7 +1783,7 @@ def selftest():
             ok("http: with no image road the picture route says so honestly (422)", st == 422 and body["ok"] is False)
         st, _h, body = _get("/property-photo?channel=805NProspect&id=nope")
         ok("http: an unknown picture id is 404", st == 404 and body["ok"] is False)
-        # THE WHOLE LIBRARY BY MONTH (DR-1000): the same fixture folder, read
+        # THE WHOLE LIBRARY BY MONTH (DR-1002): the same fixture folder, read
         # as the file system holds it, with no chat and no Synology sign-in.
         st, _h, body = _get("/library?month=2024-01", bearer=False)
         ok("http: /library without the bearer is 401", st == 401)

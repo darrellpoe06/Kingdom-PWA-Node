@@ -197,7 +197,7 @@ export async function fetchListingPhoto(channel, id, { max = 1920 } = {}) {
 }
 
 // ---------------------------------------------------------------------------
-// THE WHOLE LIBRARY, BY MONTH, AND A PICTURE'S SOURCE (DR-1000)
+// THE WHOLE LIBRARY, BY MONTH, AND A PICTURE'S SOURCE (DR-1002)
 // ---------------------------------------------------------------------------
 // Darrell, 2026-10-13: "The nas has all pictures period!!! All my photos are
 // uploaded in the Synology photos app... why not just pull from there?
@@ -240,7 +240,7 @@ export async function fetchLibrary({ month, limit = 24, offset = 0 } = {}) {
 }
 
 /**
- * ONE library picture at listing size by its file name (DR-1000): the same
+ * ONE library picture at listing size by its file name (DR-1002): the same
  * shape fetchListingPhoto returns. Never throws.
  */
 export async function fetchLibraryPhoto(name, { max = 1920 } = {}) {

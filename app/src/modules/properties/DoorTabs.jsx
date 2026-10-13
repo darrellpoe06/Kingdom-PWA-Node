@@ -1422,7 +1422,7 @@ function CaptionField({ value, onChange, placeholder, label, className = '' }) {
 }
 
 // =============================================================================
-// FROM THE NAS -- the family's pictures onto a door, picked, never twice (DR-1000)
+// FROM THE NAS -- the family's pictures onto a door, picked, never twice (DR-1002)
 // =============================================================================
 // Darrell, 2026-10-13: "Most of the properties have pictures already on the
 // nas... why don't they show up", "The nas has all pictures period!!!... why
@@ -1562,7 +1562,7 @@ export function GalleryTab({
   // Saved per door, so Bed B can lead with the bedroom while Bed A leads with
   // the kitchen; the pictures themselves stay on the door that owns them.
   sharedOrder = {}, onArrangeShared = null,
-  // FROM THE NAS (DR-1000): the door's archive name on its record (0284) and
+  // FROM THE NAS (DR-1002): the door's archive name on its record (0284) and
   // which NAS pictures it has already filed ({source: photo id}); null when
   // that read failed -- unknown, never "none".
   archive = '', nasFiled = null,

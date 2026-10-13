@@ -1,5 +1,5 @@
 // =============================================================================
-// FROM THE NAS: a family picture joins a door, picked, never twice (DR-1000)
+// FROM THE NAS: a family picture joins a door, picked, never twice (DR-1002)
 // =============================================================================
 // Darrell, 2026-10-13: "Most of the properties have pictures already on the
 // nas... why don't they show up", "The nas has all pictures period!!!... why

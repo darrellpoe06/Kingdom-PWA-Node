@@ -150,14 +150,31 @@ function authHeaders() {
 // Honest capability check: is the NAS server running WITH the media endpoints?
 // 'ready' | 'needs-update' (server live but pre-media build) | 'no-token' |
 // 'unauthorized' | 'unreachable'. The card states the real one, never a fake ✓.
+//
+// A 200 IS NOT AN ANSWER — ONLY THE SERVER'S OWN JSON IS (2026-10-13, #2057).
+// /nas-photos is a Cloudflare Pages Function. When no Function is invoked
+// (the outage open since 2026-10-09, which site-health reports as "NO PAGES
+// FUNCTION IS RUNNING"), the path falls through to the SPA and the browser
+// gets the app's own index.html: HTTP 200, content-type text/html. `resp.ok`
+// is then TRUE, so this probe answered 'ready' while every road to the NAS
+// was dark -- the painted checkmark the comment above promises never to show,
+// and reachable on the live site today. The transport's own error page is not
+// the server speaking either: funnel-proxy.js has carried this same lesson
+// since 2026-09-09, when Cloudflare's HTML 1016 page streamed through into
+// supabase-js and printed itself as a profile status line.
+//
+// So readiness now requires the shape only photo_server.py produces: parsed
+// JSON carrying ok:true. Anything else -- the SPA shell, an edge error page,
+// a proxy's JSON 502 -- is 'unreachable', which is the truth.
 export async function checkMediaService() {
   if (!bridgeToken()) return 'no-token';
   try {
     const resp = await fetch(mediaStatusUrl('service-probe-0000'), { headers: authHeaders() });
     if (resp.status === 404) return 'needs-update';
     if (resp.status === 401) return 'unauthorized';
-    if (resp.ok) return 'ready';
-    return 'unreachable';
+    if (!resp.ok) return 'unreachable';
+    const j = await resp.json().catch(() => null);
+    return j && j.ok === true ? 'ready' : 'unreachable';
   } catch (_) {
     return 'unreachable';
   }

@@ -611,7 +611,7 @@ export async function loadPhotoImages(ids = [], client = supabase) {
  * tenancy's, and never the door-level turn between households.
  */
 /**
- * Which NAS pictures this door has already filed: {source: photo id} (DR-1000).
+ * Which NAS pictures this door has already filed: {source: photo id} (DR-1002).
  * Its OWN read, never a column on the list read: the column lands with
  * db-migrate while the deploy is already serving, and a list read that named
  * it would fail for every door until then (DR-0935). A failed read is

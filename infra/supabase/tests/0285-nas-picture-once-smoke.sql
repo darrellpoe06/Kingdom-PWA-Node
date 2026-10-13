@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0285 SMOKE — a NAS picture is filed on a door once (DR-1000)
+-- 0285 SMOKE — a NAS picture is filed on a door once (DR-1002)
 -- =============================================================================
 -- One transaction; ROLLS BACK. PASS prints 'NAS PICTURE ONCE SMOKE: PASS'.
 --

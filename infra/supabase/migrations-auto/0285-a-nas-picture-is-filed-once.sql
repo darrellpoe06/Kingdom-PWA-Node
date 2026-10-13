@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0285 — A NAS PICTURE IS FILED ON A DOOR ONCE, AND SAYS WHERE IT CAME FROM (DR-1000)
+-- 0285 — A NAS PICTURE IS FILED ON A DOOR ONCE, AND SAYS WHERE IT CAME FROM (DR-1002)
 -- =============================================================================
 -- Darrell, 2026-10-13, with the Real Estate tab beside Poe Properties:
 --
@@ -46,6 +46,6 @@ CREATE UNIQUE INDEX IF NOT EXISTS property_photos_source_once
   WHERE source IS NOT NULL AND rental_ref IS NOT NULL;
 
 COMMENT ON COLUMN public.property_photos.source IS
-  'Where this picture came from when it came from the family NAS: nas:<archive>:<post id> (a Synology Chat archive) or nas:library:<file name> (the phone backup by month). NULL = taken or picked on the phone. One door files one source once (property_photos_source_once, DR-1000).';
+  'Where this picture came from when it came from the family NAS: nas:<archive>:<post id> (a Synology Chat archive) or nas:library:<file name> (the phone backup by month). NULL = taken or picked on the phone. One door files one source once (property_photos_source_once, DR-1002).';
 
 NOTIFY pgrst, 'reload schema';

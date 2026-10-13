@@ -1,4 +1,4 @@
-# DR-1000: A NAS picture joins a door, picked, never twice — the family's archive and the whole library by month, onto the listing or into the record, with no Synology sign-in
+# DR-1002: A NAS picture joins a door, picked, never twice — the family's archive and the whole library by month, onto the listing or into the record, with no Synology sign-in
 
 **Date:** 2026-10-13
 **Status:** accepted

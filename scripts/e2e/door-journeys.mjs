@@ -566,7 +566,7 @@ async function run() {
       });
     } else console.log('  (F1 skipped: set E2E_HEIC to a HEIC file to walk it)');
 
-    // G2. FROM THE NAS (DR-1000): the whole library by month, read from the
+    // G2. FROM THE NAS (DR-1002): the whole library by month, read from the
     // real photo server's folders (no Synology sign-in); one picture filed
     // on the listing at listing size with its source on the row; the second
     // copy refused by the database itself.

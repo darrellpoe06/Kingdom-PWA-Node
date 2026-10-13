@@ -550,7 +550,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
       loadSiblingPhotos(rentalId),
       loadDoorTenancies(rentalRef), loadDocuments(rentalId),
       loadSystems(rentalId), loadSystemEvents(rentalId), loadDoorNotes(rentalRef),
-      // Which NAS pictures this door already filed (DR-1000); its own read.
+      // Which NAS pictures this door already filed (DR-1002); its own read.
       loadDoorPhotoSources(rentalId),
     ]);
     // A READ THAT FAILED IS NOT A DOOR THAT IS EMPTY (DR-0946).
@@ -584,7 +584,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
       // scrolls into view, so opening a door with 39 pictures no longer waits
       // on ~2.1 MB of base64 before it will draw anything.
       photos: ph.ok ? ph.photos : [],
-      // {source: photo id}, or null = unknown (never "none"), DR-1000.
+      // {source: photo id}, or null = unknown (never "none"), DR-1002.
       nasFiled: ns && ns.ok ? ns.sources : null,
       // Flagged, never merged into `photos`: these rows live on another door
       // and the gallery must say so rather than quietly implying Bed B owns
@@ -1296,7 +1296,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
               // THIS DOOR'S OWN ORDER of them (DR-0984): Bed B can lead with
               // the bedroom while Bed A leads with the kitchen.
               sharedOrder={doorData.sharedOrder || {}}
-              // FROM THE NAS (DR-1000): the archive on the record, the old list as
+              // FROM THE NAS (DR-1002): the archive on the record, the old list as
               // the fallback, and what this door has already filed from it.
               archive={archives?.channels?.[rentalId] || PROPERTY_CHANNELS[activeRental?.slug] || ''}
               nasFiled={doorData.nasFiled ?? null}
