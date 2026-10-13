@@ -19,6 +19,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { boundedRead } from '../../lib/bounded-read.js';
 import { loadGuestLink, openGuestLink, closeGuestLink, loadGuestDoor, submitGuestReport } from './cloud.js';
 import { reportUrl, validateGuestReport, guestCardCaption, GUEST_LIMITS } from './guest-report.js';
+import { StayWallMine } from './StayWall.jsx';
 
 const serif = { fontFamily: '"Fraunces", Georgia, serif' };
 const READ_MS = 8000;
@@ -181,6 +182,13 @@ export function GuestReportPage({ token }) {
             No account needed. Your host sees what you write here; you will not see their board. For fire, gas or flooding, call 911 first.
           </p>
         </>
+      )}
+      {/* LIFE AT 805 (DR-1010): the same card lets a guest hand the family a
+          picture of their stay, signed over, for the building's wall. */}
+      {door && (
+        <div className="mt-4" data-testid="guest-stay-wall">
+          <StayWallMine token={token} />
+        </div>
       )}
     </div>
   );

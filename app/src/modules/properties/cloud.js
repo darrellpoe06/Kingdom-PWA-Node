@@ -1556,3 +1556,139 @@ export async function decideStay(id, status, client = supabase) {
     return error ? no(error.message || 'write-failed', error) : ok();
   } catch (e) { return no('unexpected', e); }
 }
+
+// ---------------------------------------------------------------------------
+// THE LIFE WALL (DR-1010, 0289). A tenant, a household member or a guest hands
+// the family a picture of life at the property, signed over at submission;
+// the family approves, declines or removes; the poster may ask for a
+// take-down; an approved picture can be copied into the door's listing. Every
+// wall is in the database; these are thin, never-throwing calls.
+// ---------------------------------------------------------------------------
+
+/** The current wording, its fingerprint, and whether this door's family has counsel's attestation on it. Anyone may read it. */
+export async function loadStayWallWording(rentalId = null, client = supabase) {
+  try {
+    const { data, error } = await client.rpc('stay_wall_wording', { p_rental: rentalId || null });
+    if (error) return no('read-failed', error);
+    const row = Array.isArray(data) ? data[0] : data;
+    return row ? ok({ wording: row }) : no('no-wording');
+  } catch (e) { return no('unexpected', e); }
+}
+
+const stayWallArgs = (a = {}) => ({
+  p_image: a.image, p_thumb: a.thumb || null, p_caption: String(a.caption || '').trim(),
+  p_poster_name: String(a.name || '').trim(), p_show_name: Boolean(a.showName),
+  p_attests_own: Boolean(a.own), p_attests_consent: Boolean(a.consent), p_attests_minors: Boolean(a.minors),
+  p_wording_version: a.wordingVersion, p_wording_hash: a.wordingHash,
+  p_attestation: a.attestation, p_consent: a.consentText,
+  p_device_at: a.deviceAt || new Date().toISOString(), p_taken_at: a.takenAt || null,
+});
+
+/** Signed in: share one picture of this door. The database's refusal comes back in its own words. */
+export async function submitStayPicture(a, client = supabase, { deadlineMs = WRITE_DEADLINE_MS } = {}) {
+  try {
+    const { data, error } = await withDeadline(client.rpc('stay_wall_submit', { p_rental: a.rentalId, ...stayWallArgs(a) }), deadlineMs, 'the picture server');
+    return error ? no(error.message || 'write-failed', error) : ok({ id: data });
+  } catch (e) { return no(e && e.message ? e.message : 'unexpected', e); }
+}
+
+/** Through the door's guest card: no account, the key says which door. */
+export async function submitStayPictureAsGuest(a, client = supabase, { deadlineMs = WRITE_DEADLINE_MS } = {}) {
+  try {
+    const { data, error } = await withDeadline(client.rpc('stay_wall_submit_as_guest', { p_token: a.token, ...stayWallArgs(a) }), deadlineMs, 'the picture server');
+    return error ? no(error.message || 'write-failed', error) : ok({ id: data });
+  } catch (e) { return no(e && e.message ? e.message : 'unexpected', e); }
+}
+
+/** A poster's own pictures, newest first (RLS: theirs alone). Never the bytes. */
+export async function loadMyStayPictures(client = supabase) {
+  try {
+    const uid = await userId(client);
+    if (!uid) return ok({ pictures: [] });
+    const { data, error } = await client.from('stay_pictures')
+      .select('id, rental_id, caption, thumb, status, decline_reason, removal_asked_at, listing_photo_id, created_at, show_name, poster_name')
+      .eq('submitted_by', uid).order('created_at', { ascending: false });
+    return error ? no('read-failed', error) : ok({ pictures: data || [] });
+  } catch (e) { return no('unexpected', e); }
+}
+
+/** Every picture on a door, for the family (RLS: the family alone). Never the bytes. */
+export async function loadDoorStayPictures(rentalId, client = supabase) {
+  if (!rentalId) return ok({ pictures: [] });
+  try {
+    const { data, error } = await client.from('stay_pictures')
+      .select('id, rental_id, instance_id, submitted_role, poster_name, show_name, caption, thumb, taken_at, status, decline_reason, removal_asked_at, removed_reason, listing_photo_id, wording_version, signed_at, signed_on_device_at, created_at')
+      .eq('rental_id', rentalId).order('created_at', { ascending: false });
+    return error ? no('read-failed', error) : ok({ pictures: data || [] });
+  } catch (e) { return no('unexpected', e); }
+}
+
+/** One picture's bytes, for someone who can read its row (the family, or the poster). */
+export async function loadStayPictureImage(id, client = supabase) {
+  if (!id) return no('no-picture');
+  try {
+    const { data, error } = await client.from('stay_pictures').select('image').eq('id', id).maybeSingle();
+    return error ? no('read-failed', error) : ok({ image: data?.image || null });
+  } catch (e) { return no('unexpected', e); }
+}
+
+export async function decideStayPicture(id, decision, reason = '', client = supabase) {
+  try {
+    const { data, error } = await client.rpc('stay_wall_decide', { p_id: id, p_decision: decision, p_reason: reason || null });
+    return error ? no(error.message || 'write-failed', error) : ok({ status: data });
+  } catch (e) { return no('unexpected', e); }
+}
+
+export async function removeStayPicture(id, reason = '', client = supabase) {
+  try {
+    const { error } = await client.rpc('stay_wall_remove', { p_id: id, p_reason: reason || null });
+    return error ? no(error.message || 'write-failed', error) : ok();
+  } catch (e) { return no('unexpected', e); }
+}
+
+export async function askStayPictureRemoval(id, client = supabase) {
+  try {
+    const { error } = await client.rpc('stay_wall_ask_removal', { p_id: id });
+    return error ? no(error.message || 'write-failed', error) : ok();
+  } catch (e) { return no('unexpected', e); }
+}
+
+export async function askStayPictureRemovalAsGuest(token, id, client = supabase) {
+  try {
+    const { error } = await client.rpc('stay_wall_ask_removal_as_guest', { p_token: token, p_id: id });
+    return error ? no(error.message || 'write-failed', error) : ok();
+  } catch (e) { return no('unexpected', e); }
+}
+
+/** The family copies an approved picture into the door's listing (on), or takes the copy back (off). */
+export async function putStayPictureInListing(id, on, client = supabase) {
+  try {
+    const { data, error } = await client.rpc('stay_wall_use_in_listing', { p_id: id, p_on: Boolean(on) });
+    return error ? no(error.message || 'write-failed', error) : ok({ photoId: data || null });
+  } catch (e) { return no('unexpected', e); }
+}
+
+/** The family records that counsel reviewed a wording version. */
+export async function attestStayWallWording(instanceId, version, note = '', client = supabase) {
+  try {
+    const { error } = await client.rpc('stay_wall_wording_attest', { p_instance: instanceId, p_version: version, p_note: note || null });
+    return error ? no(error.message || 'write-failed', error) : ok();
+  } catch (e) { return no('unexpected', e); }
+}
+
+/** The public walls: every approved picture, grouped by its building, without the bytes. No account needed. */
+export async function loadPublicStayWalls(client = supabase) {
+  try {
+    const { data, error } = await client.rpc('public_stay_walls');
+    return error ? no('read-failed', error) : ok({ rows: data || [] });
+  } catch (e) { return no('unexpected', e); }
+}
+
+/** One wall picture's bytes, for anyone, only while it is on the wall. */
+export async function loadPublicStayWallImage(id, client = supabase) {
+  if (!id) return no('no-picture');
+  try {
+    const { data, error } = await client.rpc('public_stay_wall_image', { p_id: id });
+    return error ? no('read-failed', error) : ok({ image: data || null });
+  } catch (e) { return no('unexpected', e); }
+}

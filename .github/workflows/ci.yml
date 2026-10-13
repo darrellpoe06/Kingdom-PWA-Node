@@ -1199,6 +1199,17 @@ jobs:
           for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0288-a-short-stays-only-season-advertises-the-night-alone.sql; done
           psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0288-short-stays-only-smoke.sql 2>&1 | tee "$RUNNER_TEMP/short-stays-only.txt"
           grep -q 'SHORT STAYS ONLY SMOKE: PASS' "$RUNNER_TEMP/short-stays-only.txt"
+          # 0289 (DR-1010): a stay picture joins the wall with the family's yes.
+          # The wording is fingerprinted by the database and signed by version
+          # + hash; the three attestations and the two clocks ride the row;
+          # the family approves / declines / removes; the poster's ask takes it
+          # off the wall and out of the listing at once; a listing copy is a
+          # real listing picture under the counsel rule; the guest card road is
+          # rate-limited. Needs 0275's table absent or present (the read arm is
+          # conditional, as 0279's is) and 0261's guest card.
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0289-a-stay-picture-joins-the-wall-with-the-familys-yes.sql; done
+          psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0289-stay-wall-smoke.sql 2>&1 | tee "$RUNNER_TEMP/stay-wall.txt"
+          grep -q 'STAY WALL SMOKE: PASS' "$RUNNER_TEMP/stay-wall.txt"
 
   # THE REQUIRED CHECK (DR-0645). Branch protection and native auto-merge wait
   # on a check named EXACTLY "app — lint + vitest". Do NOT rename this job.

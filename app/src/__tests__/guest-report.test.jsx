@@ -27,6 +27,11 @@ vi.mock('../modules/properties/cloud.js', () => ({
   loadGuestLink: async () => ({ ok: true, token: H.link }),
   openGuestLink: async () => { H.opened += 1; H.link = (H.opened % 2 ? 'b' : 'c').repeat(64); return { ok: true, token: H.link }; },
   closeGuestLink: async () => { H.closed += 1; H.link = null; return { ok: true }; },
+  // The Life wall rides the same card (DR-1010); not what this suite proves.
+  loadStayWallWording: async () => ({ ok: false, reason: 'not-reached' }),
+  submitStayPictureAsGuest: async () => ({ ok: false, reason: 'not-reached' }),
+  askStayPictureRemovalAsGuest: async () => ({ ok: false, reason: 'not-reached' }),
+  loadMyStayPictures: async () => ({ ok: true, pictures: [] }),
 }));
 
 import { GuestReportPage, GuestLinkCard } from '../modules/properties/GuestReport.jsx';

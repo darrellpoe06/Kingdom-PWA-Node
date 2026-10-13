@@ -43,6 +43,10 @@ vi.mock('../modules/properties/cloud.js', () => {
     loadMyRentals: async () => ({ ok: true, rentals: H.rentals }),
     // The landlord seat beside the spine (DR-1007): none, the ordinary family case.
     loadMyLandlordSeat: async () => ({ ok: true, seat: null }),
+    // The Life wall (DR-1010): the tenant's tab reads the wording and their own pictures.
+    loadStayWallWording: async () => ({ ok: true, wording: { version: 'v1', body: 'Rights assignment for a picture shared on the Life wall', body_hash: 'ab'.repeat(32), counsel_attested: false } }),
+    loadMyStayPictures: async () => ({ ok: true, pictures: [] }),
+    loadDoorStayPictures: async () => ({ ok: true, pictures: [] }),
     addRental: async () => ({ ok: true, row: null }),
     loadPublicVacancies: async () => ({ ok: true, vacancies: H.vacancies }),
     loadVacancyPhotos: async () => ({ ok: true, photos: H.listingPhotos || [] }),

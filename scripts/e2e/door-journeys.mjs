@@ -188,6 +188,13 @@ export const FAULTS = Object.freeze({
     sql: 'REVOKE EXECUTE ON FUNCTION public.claim_landlord_space(text, text) FROM authenticated;',
     restore: [`${MIG}/0287-a-landlord-gets-their-own-space.sql`],
   },
+  wall: {
+    step: 'W1',
+    // The guest card's signing road refused to anyone without an account: the
+    // form says so, nothing lands, the wall stays empty.
+    sql: 'REVOKE EXECUTE ON FUNCTION public.stay_wall_submit_as_guest(text, text, text, text, text, boolean, boolean, boolean, boolean, text, text, text, text, timestamptz, timestamptz) FROM anon;',
+    restore: [`${MIG}/0289-a-stay-picture-joins-the-wall-with-the-familys-yes.sql`],
+  },
   cadence: {
     step: 'A1',
     // Without the weekly price the card has no true month to print beside it.
@@ -805,6 +812,53 @@ async function run() {
       if (after !== 'https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=40.123364,-88.258280') throw new Error(`Street view points at ${after}`);
       await tp.getByTestId('area-map').first().scrollIntoViewIfNeeded();
       await tp.screenshot({ path: join(SHOTS, 'H1-street-shown.png'), fullPage: true });
+    });
+
+    // W. LIFE AT 805 (DR-1010). A guest shares a picture of their stay from the
+    // door's card with no account, signed over (the wording's version and
+    // fingerprint from the database, the three attestations, the two
+    // sentences, the device clock); the family approves it on the Life wall
+    // desk; the next visitor sees it under the building's cards, named by the
+    // house number because H1 showed the street.
+    const WALL_TOKEN = 'ab'.repeat(32);
+    await step('W1 a guest signs a picture over from the door\'s card, the family approves it, and the public wall shows it as "Life at 805"', async () => {
+      sql(`DELETE FROM door_guest_links WHERE rental_id = '${DOOR}'; INSERT INTO door_guest_links (rental_id, instance_id, token, created_by) VALUES ('${DOOR}', '${INSTANCE}', '${WALL_TOKEN}', '${OWNER}');`);
+      current = gp;
+      await gp.goto(`${BASE}/properties/app/?report=${WALL_TOKEN}`, { waitUntil: 'domcontentloaded' });
+      await gp.getByTestId('share-stay-picture').waitFor({ timeout: 20000 });
+      await gp.locator('input[aria-label="Choose pictures"]').setInputFiles({ name: 'porch.jpg', mimeType: 'image/jpeg', buffer: Buffer.from(FIXTURE_JPEG_B64, 'base64') });
+      await gp.getByTestId('share-stay-ready').waitFor({ timeout: 15000 });
+      await gp.getByLabel('A few words about it').fill('Porch coffee at sunrise');
+      for (const label of ['These are my own pictures, or I hold the rights to them.', 'Everyone who can be recognized in them agreed to be shown.', 'No one under eighteen is in them, or a parent or guardian agreed.', 'I have read it', 'I agree to sign electronically', 'Show my name on the wall']) await gp.getByLabel(label).check();
+      await gp.getByLabel('Your full legal name').fill('Gail Guest');
+      await gp.screenshot({ path: join(SHOTS, 'W1-signing.png'), fullPage: true });
+      await gp.getByTestId('share-stay-send').click();
+      await gp.getByTestId('share-stay-done').waitFor({ timeout: 20000 });
+      const row = sql(`SELECT status || '|' || submitted_role || '|' || coalesce(submitted_by::text, 'none') || '|' || poster_name || '|' || show_name || '|' || wording_version || '|' || (wording_hash = (SELECT body_hash FROM stay_wall_wordings WHERE is_current)) || '|' || (signed_on_device_at IS NOT NULL) || '|' || (attests_own AND attests_consent AND attests_minors) || '|' || (image LIKE 'data:image/jpeg;base64,%') FROM stay_pictures WHERE rental_id = '${DOOR}' ORDER BY created_at DESC LIMIT 1`);
+      if (row !== 'pending|guest|none|Gail Guest|true|v1|true|true|true|true') throw new Error(`the database holds "${row}", not a pending, signed-over guest picture`);
+      const clock = sql(`SELECT count(*) FROM door_events e JOIN stay_pictures p ON p.id = e.subject_id WHERE e.subject = 'stay-picture' AND e.event = 'submitted' AND p.rental_id = '${DOOR}'`);
+      if (clock !== '1') throw new Error(`${clock} submissions on the clock, not 1`);
+      // the family's yes, on the desk
+      current = op;
+      await op.getByRole('button', { name: /^Life wall$/ }).first().click({ timeout: 15000 });
+      await op.getByTestId('stay-wall-desk').waitFor({ timeout: 20000 });
+      await op.getByLabel('Approve Porch coffee at sunrise').click({ timeout: 15000 });
+      await waitFor(() => sql(`SELECT status FROM stay_pictures WHERE rental_id = '${DOOR}' ORDER BY created_at DESC LIMIT 1`) === 'approved', 'the family\'s yes to land');
+      await op.screenshot({ path: join(SHOTS, 'W1-desk.png'), fullPage: true });
+      // the public wall, under the building's cards, named by the house number
+      current = np;
+      await np.goto(`${BASE}/properties/app/?properties=1`, { waitUntil: 'domcontentloaded' });
+      await np.getByRole('button', { name: /Looking for a place/i }).click({ timeout: 15000 });
+      const title = np.getByTestId('life-wall-title').first();
+      await title.waitFor({ timeout: 20000 });
+      const name = await title.innerText();
+      if (name !== 'Life at 805') throw new Error(`the wall is named "${name}", not "Life at 805"`);
+      const wall = np.getByTestId('life-wall').first();
+      if (!/Porch coffee at sunrise — Gail Guest/.test(await wall.innerText())) throw new Error('the picture and its poster are not on the wall');
+      await wall.getByLabel('Open Porch coffee at sunrise larger').click();
+      await np.locator('[role="dialog"][aria-modal="true"]').first().waitFor({ timeout: 20000 });
+      await np.screenshot({ path: join(SHOTS, 'W1-wall-open.png'), fullPage: true });
+      await np.keyboard.press('Escape');
     });
 
     // L. A LANDLORD GETS THEIR OWN APP (DR-1007). A signed-in person who holds
