@@ -11,15 +11,31 @@
 **Amends:** DR-0952 (a bed's copy now says the bedroom is shared, two to a room), DR-0155 (a door's price is no longer monthly-or-nightly only), DR-0997 (the building lends its note the way it lends its area)
 **Declared by:** Darrell, 2026-10-13
 
-## His word
+## Context
+
+Darrell, 2026-10-13:
 
 > "$800 a monthly however $200 weekly... sounds the same until you get a 5 week month."
 
 And in the same breath: rooms before beds; a bed is in a bedroom shared, two to a room; 805's laundry is in the entry.
 
-## The problem
+A weekly price is paid 52 times a year, not 48. $200 a week is $867 a month on average and $1,000 in a five-week month; "every two weeks" is paid 26 times, so $400 is $867 on average and $1,200 in a month with three paydays. A listing that prints "$200/week" beside "$800/month" and stops leaves the renter to discover the difference at the end of the first long month.
 
-A weekly price is paid 52 times a year, not 48. $200 a week is $867 a month on average and $1,000 in a five-week month; "every two weeks" is paid 26 times, so $400 is $867 on average and $1,200 in a month with three paydays. A listing that prints "$200/week" beside "$800/month" and stops leaves the renter to discover the difference at the end of the first long month. The database held a monthly rent and, for a short stay, a nightly rate — no weekly, no every-two-weeks — so a family that rents by the week had nowhere to say so, and a renter nowhere to compare.
+## What was measured
+
+- `rentals` held `monthly_rent` (and `listed_rent`) and, for a short stay, `nightly_rate` (0155) — no weekly, no every-two-weeks column anywhere in the chain (`grep nightly_rate\|weekly` over `infra/supabase/migrations-auto`): a family that rents by the week had nowhere to say so, and `public_vacancies()` (0283) could not carry it.
+- The public card (`Storefront.jsx`) printed one figure, `$800/mo`, and for a short stay `· $150/night`; no month beside a non-monthly price, no comparison, nothing of the building.
+- The door editor (`DoorTabs.jsx`, `EditRental`) offered Rent, Offered as, Nightly rate and Minimum stay; the application (`intake.js`) never asked how the renter would pay.
+- The arithmetic on his own example: $200 × 52 ÷ 12 = $866.67; $200 × 5 = $1,000; $800 − $866.67 = −$66.67 a month on average. Nightly $150 × 365 ÷ 12 = $4,562.50; × 31 = $4,650.
+- The card's bed line read "A private bed in a shared home." — a bed in a bedroom shared two to a room (ROOM_DEFAULTS.occupancyMax = 2) was not said.
+- The shelf's order (0283): showcase order, then newest listing; a bed could sit above a private room.
+
+## Impact
+
+- **The renter** reads the true month beside every cadence a door offers, and which one is the better deal, before choosing; a bed says the bedroom is shared two to a room before the price; what the building offers is on every door in it.
+- **The family** prices any door by the week or every two weeks from Doors → Edit, sees the exact line the renter will read before Save, and types the building's note once.
+- **The application** carries the renter's chosen cadence to the family for the lease.
+- **Nothing held is let go:** the held street, the unit, the exact point and the tenant stay off the shelf (0283's smokes still pass on the widened function).
 
 ## Decision
 
@@ -30,10 +46,7 @@ A weekly price is paid 52 times a year, not 48. $200 a week is $867 a month on a
 5. **A bed says the bedroom is shared, two to a room.** The card's shared-home line for a bed reads *"A bed in a shared bedroom, two to a room, in a shared home."* (a private room keeps *"A private room in a shared home."*), before the price, as DR-0952 placed it.
 6. **What the building offers is on every door in it.** `rentals.building_note` ("Laundry in the entry") is lent by `public_vacancies()` to a sibling door that stored none — same family, same building key — exactly as 0283 lends the building's area; another family's door on the same street lends nothing. The card prints *"The building: Laundry in the entry."* The family types it once, on any door of the building.
 
-## Not in this decision
-
-- A tenancy's rent cadence (what a lease collects, when, and how Rent and the ledger count a five-week month). The tenancy still holds one monthly rent; the renter's chosen cadence arrives on the application for the family to write into the lease. `re-review: 2026-10-27`.
-- A short stay's quote (BookAStay) already prices by the night; it does not restate the month.
+7. **Not in this decision:** a tenancy's rent cadence (what a lease collects, when, and how Rent and the ledger count a five-week month) — the tenancy still holds one monthly rent; the renter's chosen cadence arrives on the application for the family to write into the lease (`re-review: 2026-10-27`). A short stay's quote (BookAStay) already prices by the night and does not restate the month.
 
 ## Verification
 
