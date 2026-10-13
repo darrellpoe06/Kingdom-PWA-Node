@@ -37,6 +37,7 @@ const F280 = '0280-the-address-shows-unless-the-family-holds-it.sql';
 const F281 = '0281-a-bed-still-says-it-is-a-bed-when-the-street-shows.sql';
 const F282 = '0282-each-door-shows-the-apartment-in-its-own-order.sql'; // the pre-fix state predates it
 const F283 = '0283-a-held-door-shows-its-buildings-area.sql'; // so does this one
+const F286 = '0286-a-door-is-priced-by-any-cadence.sql'; // and this one (DR-1003)
 
 // The label expression, read out of 0281 so these assertions are about the
 // shipped SQL and not about a copy of it.
@@ -85,10 +86,12 @@ describe('0281 puts the room/bed descriptor in front of the street branch', () =
     const b = s280.indexOf('END AS label,', a);
     const l280 = s280.slice(a, b);
     expect(l280.indexOf('WHEN v.shown')).toBeLessThan(l280.indexOf("WHEN 'bed'  THEN 'Bed in a shared'"));
-    // 0283 (DR-0997) redefined it again after 0281, keeping 0281's label arm;
-    // the newest definer moves with the chain, the premise above does not.
-    expect(newestDefiner().get('public_vacancies')).toBe(F283);
+    // 0283 (DR-0997) and then 0286 (DR-1003) redefined it again after 0281,
+    // each keeping 0281's label arm; the newest definer moves with the chain,
+    // the premise above does not.
+    expect(newestDefiner().get('public_vacancies')).toBe(F286);
     expect(mig(F283)).toContain("WHEN v.level IN ('room', 'bed') THEN");
+    expect(mig(F286)).toContain("WHEN v.level IN ('room', 'bed') THEN");
   });
 
   it('nothing else about the shelf moved: the street, the area and shared_home are unchanged', () => {
@@ -146,7 +149,7 @@ describe('every chain that runs a shelf smoke converges on the newest definition
     const newest = newestDefiner(byFile);
     const leg = shellLegs().find((l) => l.job === 'door-work');
     const applied = leg.steps.filter((s) => s.kind === 'apply').map((s) => s.file)
-      .filter((f) => ![F278, F280, F281, F282, F283].includes(f));
+      .filter((f) => ![F278, F280, F281, F282, F283, F286].includes(f));
     const problems = checkChain(applied, shellSmokes().get('door-work'), 'ci.yml door-work', byFile, newest);
     expect(problems.length).toBeGreaterThanOrEqual(2);
     const all = problems.join('\n');
@@ -157,13 +160,13 @@ describe('every chain that runs a shelf smoke converges on the newest definition
     expect(all).toContain('public_vacancy_photos()');
   });
 
-  it('FAILS the live leg the moment the newest definition (0283, after 0281) is taken back out', () => {
+  it('FAILS the live leg the moment the newest definition (0286, after 0283 after 0281) is taken back out', () => {
     const byFile = definitionsByFile();
     const newest = newestDefiner(byFile);
     const leg = isolationLegsWithSmokes().find((l) => l.feature === 'poe-properties');
-    const problems = checkChain(leg.migrations.filter((f) => f !== F283), leg.smokes, 'live', byFile, newest);
+    const problems = checkChain(leg.migrations.filter((f) => f !== F286), leg.smokes, 'live', byFile, newest);
     expect(problems.length).toBeGreaterThanOrEqual(1);
-    expect(problems.join('\n')).toContain(F283);
+    expect(problems.join('\n')).toContain(F286);
   });
 
   it('reads definitions and the newest definer honestly', () => {

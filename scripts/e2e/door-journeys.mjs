@@ -36,7 +36,7 @@
 import { createServer, request as httpRequest } from 'node:http';
 import { spawn, execFileSync } from 'node:child_process';
 import { createHmac, randomUUID } from 'node:crypto';
-import { readFileSync, existsSync, mkdirSync, writeFileSync, statSync } from 'node:fs';
+import { readFileSync, existsSync, mkdirSync, writeFileSync, statSync, readdirSync } from 'node:fs';
 import { join, extname, normalize } from 'node:path';
 import { geocodeResponse } from '../../app/functions/geocode.js';
 
@@ -60,7 +60,8 @@ export const ANON_KEY = mintJwt({ role: 'anon', iss: 'e2e', exp: FAR });
 
 if (process.argv[2] === '--anon-key') { process.stdout.write(ANON_KEY); process.exit(0); }
 
-const DIST = process.argv[2] || 'app/dist';
+const CHECK_FAULTS = process.argv.includes('--check-faults');
+const DIST = (process.argv[2] && !process.argv[2].startsWith('--')) ? process.argv[2] : 'app/dist';
 const PSQL = (process.env.E2E_PSQL || '').split(/\s+/).filter(Boolean);
 const SHOTS = process.env.E2E_SHOTS || 'e2e-shots';
 const CHROME = process.env.E2E_CHROME || '';
@@ -69,8 +70,8 @@ const DB_URI = process.env.E2E_DB_URI || '';
 const HEIC = process.env.E2E_HEIC || '';   // a real phone HEIC (CI downloads libheif's example, checksum pinned)
 
 function fail(code, msg) { console.error(`door-journeys: ${msg}`); process.exit(code); }
-if (!existsSync(join(DIST, 'properties', 'app', 'index.html'))) fail(2, `no built Properties app in ${DIST} (vite build first)`);
-if (!PSQL.length || !DB_URI) fail(2, 'set E2E_PSQL and E2E_DB_URI');
+if (!CHECK_FAULTS && !existsSync(join(DIST, 'properties', 'app', 'index.html'))) fail(2, `no built Properties app in ${DIST} (vite build first)`);
+if (!CHECK_FAULTS && (!PSQL.length || !DB_URI)) fail(2, 'set E2E_PSQL and E2E_DB_URI');
 mkdirSync(SHOTS, { recursive: true });
 
 const sql = (text) => execFileSync(PSQL[0], [...PSQL.slice(1), '-v', 'ON_ERROR_STOP=1', '-qAt', '-c', text], { encoding: 'utf8' }).trim();
@@ -119,7 +120,17 @@ export const FAULTS = Object.freeze({
   street: {
     step: 'A1',
     sql: `CREATE OR REPLACE FUNCTION public.rental_address_is_public(p_visibility text) RETURNS boolean LANGUAGE sql IMMUTABLE AS $f$ SELECT true $f$;`,
-    restore: `${MIG}/0280-the-address-shows-unless-the-family-holds-it.sql`,
+    // 0280 rebuilds public_vacancies() in its own shape, so the chain after it
+    // is replayed too (0281's label, 0282, 0283's area, 0286's cadence) —
+    // measured on CI run 38442293220: after this undo the next fault's A1 read
+    // a shelf with no weekly price. faultRestoreProblems() refuses the gap.
+    restore: [
+      `${MIG}/0280-the-address-shows-unless-the-family-holds-it.sql`,
+      `${MIG}/0281-a-bed-still-says-it-is-a-bed-when-the-street-shows.sql`,
+      `${MIG}/0282-each-door-shows-the-apartment-in-its-own-order.sql`,
+      `${MIG}/0283-a-held-door-shows-its-buildings-area.sql`,
+      `${MIG}/0286-a-door-is-priced-by-any-cadence.sql`,
+    ],
   },
   confirm: {
     step: 'B2',
@@ -168,6 +179,7 @@ export const FAULTS = Object.freeze({
       `${MIG}/0281-a-bed-still-says-it-is-a-bed-when-the-street-shows.sql`,
       `${MIG}/0282-each-door-shows-the-apartment-in-its-own-order.sql`,
       `${MIG}/0283-a-held-door-shows-its-buildings-area.sql`,
+      `${MIG}/0286-a-door-is-priced-by-any-cadence.sql`,
     ],
   },
   calendar: {
@@ -179,6 +191,45 @@ export const FAULTS = Object.freeze({
 const BREAK = (process.argv.find((a) => a.startsWith('--break=')) || '').slice('--break='.length);
 let undoFailed = '';
 if (BREAK && !FAULTS[BREAK]) fail(2, `unknown --break=${BREAK} (one of: ${Object.keys(FAULTS).join(', ')})`);
+
+// AN UNDO CONVERGES ON THE NEWEST DEFINITION (DR-1003). Re-applying one
+// migration rebuilds every function it defines in THAT file's shape; a later
+// migration that redefined the function is then silently gone, and every run
+// after the undo proves the wrong thing. CI run 38442293220: the street
+// fault's undo re-applied 0280 alone, and the confirm fault's run read a shelf
+// public_vacancies() no longer gave a weekly price to. So: every restore that
+// re-applies a file defining a function must also carry, later in the list,
+// the newest file in the chain that defines it. Checked on every run, before
+// the seed; refused with the gap named.
+const definersOf = (file) => [...readFileSync(join(MIG, file), 'utf8').matchAll(/CREATE OR REPLACE FUNCTION public\.([a-z_]+)\s*\(/gi)].map((m) => m[1].toLowerCase());
+export function faultRestoreProblems(faults = FAULTS) {
+  const files = readdirSync(MIG).filter((f) => f.endsWith('.sql')).sort();
+  const newest = new Map();
+  for (const f of files) for (const fn of definersOf(f)) newest.set(fn, f);
+  const problems = [];
+  for (const [name, fault] of Object.entries(faults)) {
+    const list = [].concat(fault.restore).filter((r) => typeof r === 'string' && r.endsWith('.sql')).map((r) => r.replace(/^.*\//, ''));
+    for (const file of list) {
+      for (const fn of definersOf(file)) {
+        const last = newest.get(fn);
+        if (!last || last === file) continue;
+        if (!list.includes(last)) problems.push(`the ${name} fault's undo re-applies ${file}, which defines ${fn}(), but not its newest definer ${last}: every run after the undo would prove the wrong thing`);
+        else if (list.indexOf(last) < list.indexOf(file)) problems.push(`the ${name} fault's undo re-applies ${file} after ${last}, so ${fn}() ends up in ${file}'s shape`);
+      }
+    }
+  }
+  return problems;
+}
+if (CHECK_FAULTS) {
+  const bad = faultRestoreProblems();
+  if (bad.length) fail(2, `fault undo does not converge:\n  ${bad.join('\n  ')}`);
+  console.log(`door-journeys: every fault's undo converges on the newest definer (${Object.keys(FAULTS).length} faults)`);
+  process.exit(0);
+}
+{
+  const bad = faultRestoreProblems();
+  if (bad.length) fail(2, `fault undo does not converge:\n  ${bad.join('\n  ')}`);
+}
 function applyFile(path) { execFileSync(PSQL[0], [...PSQL.slice(1), '-v', 'ON_ERROR_STOP=1', '-q', '-f', path], { encoding: 'utf8', stdio: ['ignore', 'ignore', 'inherit'] }); }
 // A restore may be a LIST of files: re-applying one migration can rebuild an
 // object a later one owns (0270 recreates public_vacancies() without 0278's
