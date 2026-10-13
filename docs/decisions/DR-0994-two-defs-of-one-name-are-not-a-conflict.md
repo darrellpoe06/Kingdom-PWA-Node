@@ -27,7 +27,7 @@ preview before merge" — and then sat open for **100 days**. It was the oldest
 Before it, the honest answer to his question was no: the Big Picture fine print
 said photos live on this device only, and there was no video path anywhere.
 
-## What the drain actually cost
+## What was measured
 
 Four files conflicted, five hunks — far less than 100 days suggested, and the
 real hazards were in the files that merged **clean**.
@@ -106,7 +106,7 @@ reclaims the volume, and says how much) and once per new upload, not per chunk.
 removed) fails *"sweep LEAVES a part still inside the resume window"*; too timid
 (`os.remove` → `pass`) fails *"sweep takes the abandoned part"*. 92/92 green.
 
-## The honest limit, stated on the card
+## Limits, stated — and what is not claimed
 
 A PWA cannot background-sync the camera roll. This is the foreground
 pick-and-verify lane, bulk folder included; Synology Photos remains the
@@ -117,3 +117,25 @@ needs the NAS redeploy — steps and a paste-from-anywhere PowerShell block are 
 `infra/nas-property-photos/README.md`, and the card reports "needs the update"
 honestly until then rather than pretending. `re-review: 2026-10-20` — whether
 the redeploy has run and a real photo and a real video have made the trip.
+
+## Verification after merge
+
+- **Gates:** all 20 of `verify:gates` green; `business-systems-guard` reports
+  the ledger whole at DR-0994 with n8n still contained to **3** files.
+- **The server:** `photo_server.py --selftest` **92/92** — main's 54 checks,
+  the PR's 31, the duplicate-definition check, and the six sweep checks.
+- **Proven-to-catch, three times, each against the real break:** the merge's
+  own shape fails `(shadowed: Handler.do_POST)`; a sweep with the age test
+  removed fails *"sweep LEAVES a part still inside the resume window"*; a sweep
+  that never removes fails *"sweep takes the abandoned part"*.
+- **The card:** both new render tests fail against the version with no banner
+  for their state, and the four older ones are unaffected.
+- **Caught by the repo's own gates, not by me:** `decision-chain` refused this
+  record until it carried all five steps, and `ui-standards-set` refused the
+  folder button for having no focus ring — a keyboard user could not see where
+  they were. Both were real, and both are fixed here.
+- **Not proven from here:** the live chain to the NAS. `re-review: 2026-10-20`
+  — whether the redeploy has run and a real photo and a real video have made
+  the trip, and whether the LifeGallery footer should name the backup card only
+  when the card is actually rendered (it is conditional prose today, and the
+  card renders nothing without a bridge token).

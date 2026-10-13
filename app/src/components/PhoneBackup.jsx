@@ -117,7 +117,7 @@ export function PhoneBackup() {
   const running = run && run.state === 'running';
   const supportsFolderPick = typeof window !== 'undefined' && 'showDirectoryPicker' in window;
   const deviceShown = device || 'my-phone';
-  const btn = 'text-[0.625rem] uppercase tracking-wider px-3 py-1.5 min-h-[36px] inline-flex items-center gap-1.5 border cursor-pointer';
+  const btn = 'text-[0.625rem] uppercase tracking-wider px-3 py-1.5 min-h-[36px] inline-flex items-center gap-1.5 border cursor-pointer focus:outline focus:outline-2 focus:outline-[#B85838]';
 
   return (
     <section className="bg-white border border-[#1A1815] p-4 sm:p-5 mb-4">
