@@ -141,9 +141,11 @@ describe('the shared-apartment card does not invite a move (DR-0971)', () => {
     const start = src.indexOf('gallery-shared-note');
     expect(start, 'the shared-apartment note is gone').toBeGreaterThan(0);
     const note = src.slice(start, start + 900);
-    expect(note).toMatch(/do not need to move them/);
-    expect(note).toMatch(/already\s*\n?\s*advertised with these pictures/);
+    // Re-pinned by DR-0984: the same promise in the note's new words.
+    expect(note).toMatch(/they advertise this door too/);
+    expect(note).toMatch(/no need to photograph/);
     expect(note, 'the old line invited exactly the move he feared').not.toMatch(/they stay where they are/);
+    expect(note).not.toMatch(/\bmove (them|it)\b/);
   });
 
   it('it says plainly that an edit here reaches the door that owns the picture', async () => {
@@ -153,8 +155,10 @@ describe('the shared-apartment card does not invite a move (DR-0971)', () => {
     const here = dirname(fileURLToPath(import.meta.url));
     const src = readFileSync(join(here, '../modules/properties/DoorTabs.jsx'), 'utf8');
     const note = src.slice(src.indexOf('gallery-shared-note'), src.indexOf('gallery-shared-note') + 900);
-    expect(note).toMatch(/edits it on the door/);
-    expect(note).toMatch(/never a copy/);
+    // Re-pinned by DR-0984: a caption or a tick still reaches the picture
+    // itself; only the order and the cover became this listing's own.
+    expect(note).toMatch(/A caption or a tick changes the picture\s+itself, on both listings/);
+    expect(note, 'the line Darrell called the opposite of the spec').not.toMatch(/never a way to give this door its own/);
   });
 });
 

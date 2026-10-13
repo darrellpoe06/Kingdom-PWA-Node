@@ -58,8 +58,8 @@ import { moveDoor, showFirst, doorPickerOptions } from './showcase.js';
 import { VacancyCard } from './Storefront.jsx';
 import { areaOf } from './area.js';
 import {
-  loadRooms, addRoom, patchRoom, loadDoorPhotos, loadSiblingPhotos, loadDoorTenancies,
-  loadMyRentals, updateTenancy, updateRental, loadAllPhotos,
+  loadRooms, addRoom, patchRoom, loadDoorPhotos, loadDoorPhotoSources, loadSiblingPhotos, loadDoorTenancies,
+  loadMyRentals, updateTenancy, updateRental, loadAllPhotos, loadDoorPhotoOrders, saveDoorPhotoOrder, loadDoorAreas, loadDoorArchives,
   loadPhotoImages, loadPhotoThumbs,
   addPhoto, patchPhoto, loadDocuments, addDocument, patchDocument,
   loadPublicVacancies,
@@ -73,6 +73,9 @@ import { addressNow, useAddress } from './use-address.js';
 import supabase, { phoneLoginEmail } from '../../lib/supabase.js';
 import { boundedRead, deadlineIn, READ_TIMEOUT_MS, OPTIONAL_TIMEOUT_MS as CLAIM_TIMEOUT_MS } from '../../lib/bounded-read.js';
 import { POE_PROPERTIES, LAUNCH_PLAN, OPPORTUNITIES, CONSTRAINTS } from './config.js';
+import { placeDoorsOnTheMap } from './place-on-map.js';
+import { holdTheRecords } from './hold-the-record.js';
+import { PROPERTY_CHANNELS } from '../../lib/nas-photos.js';
 
 const ACCENT = '#2F5D50';
 
@@ -304,10 +307,14 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
   // Every photo this person may see, for the board's cover thumbnails. RLS
   // scopes it, so a tenant's copy holds only their own tenancy's pictures.
   const [doorPhotos, setDoorPhotos] = useState([]);
+  // Each door's own order of the apartment pictures it borrows (DR-0984).
+  const [photoOrders, setPhotoOrders] = useState({});
   // The public listings anyone can see with no account (column-safe: no tenant
   // names, no mortgage — cloud.js). Shown when this person holds neither a
   // tenancy nor an owned door, so the front door is never a blank space.
   const [vacancies, setVacancies] = useState([]);
+  // Each door's picture archive on the NAS and when its address was held (0284, DR-0999).
+  const [archives, setArchives] = useState({ channels: {}, heldAt: {} });
   const [notice, setNotice] = useState('');
   // Did the spine reads actually come back? An empty portfolio and an unreachable
   // one look IDENTICAL in the rows ([] either way) and must never look identical
@@ -359,11 +366,15 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
     // Its own deadline too, for the same reason: the cover thumbnails and the
     // public listings must not be starved by whatever the spine reads cost.
     const extras = deadlineIn();
-    const [ph, vac, inv, sess] = await Promise.all([
+    const [ph, vac, inv, sess, po, ar] = await Promise.all([
       boundedRead(loadAllPhotos(), extras()), boundedRead(loadPublicVacancies(), extras()),
       boundedRead(loadInvites(), extras(), { ok: false }),
       boundedRead(Promise.resolve().then(() => supabase.auth.getSession()).then((r) => (r && r.data && r.data.session) || null).catch(() => null), extras(), null),
+      boundedRead(loadDoorPhotoOrders(), extras(), { ok: false }),
+      boundedRead(loadDoorArchives(), extras(), { ok: false }),
     ]);
+    setPhotoOrders(po && po.ok ? po.orders : {});
+    setArchives(ar && ar.ok ? { channels: ar.channels, heldAt: ar.heldAt } : { channels: {}, heldAt: {} });
     setInvites(inv && inv.ok ? inv.invites : []);
     setMe(sess && sess.user ? sess.user.id : null);
     // NO PICTURE IS FETCHED AT BOOT — NOT ONE (DR-0955). The list is metadata
@@ -524,13 +535,13 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
   const rentalRef = activeDoor?.rental_ref || activeRental?.slug || null; // text — tenancies
   const loadDoorData = useCallback(async () => {
     if (!rentalId && !rentalRef) {
-      setDoorData({ rooms: [], photos: [], tenancies: [], documents: [], systems: [], systemEvents: [], propertyNotes: [], unreadable: [] });
+      setDoorData({ rooms: [], photos: [], tenancies: [], documents: [], systems: [], systemEvents: [], propertyNotes: [], unreadable: [], nasFiled: null });
       return;
     }
     // property_notes is SLUG-keyed (rentalRef), the rest UUID-keyed (rentalId).
     // RLS returns [] to anyone who is not owner/admin/member, so a tenant or a
     // field worker gets nothing here without this file deciding anything.
-    const [rm, ph, sp, tn, dc, sy, se, pn] = await Promise.all([
+    const [rm, ph, sp, tn, dc, sy, se, pn, ns] = await Promise.all([
       loadRooms(rentalId), loadDoorPhotos(rentalId),
       // THE REST OF THE APARTMENT (DR-0963). A bed or a room in a shared home
       // borrows nothing on this screen without it, which is how Bed B read
@@ -539,6 +550,8 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
       loadSiblingPhotos(rentalId),
       loadDoorTenancies(rentalRef), loadDocuments(rentalId),
       loadSystems(rentalId), loadSystemEvents(rentalId), loadDoorNotes(rentalRef),
+      // Which NAS pictures this door already filed (DR-1002); its own read.
+      loadDoorPhotoSources(rentalId),
     ]);
     // A READ THAT FAILED IS NOT A DOOR THAT IS EMPTY (DR-0946).
     //
@@ -571,12 +584,15 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
       // scrolls into view, so opening a door with 39 pictures no longer waits
       // on ~2.1 MB of base64 before it will draw anything.
       photos: ph.ok ? ph.photos : [],
+      // {source: photo id}, or null = unknown (never "none"), DR-1002.
+      nasFiled: ns && ns.ok ? ns.sources : null,
       // Flagged, never merged into `photos`: these rows live on another door
       // and the gallery must say so rather than quietly implying Bed B owns
       // them. A failed read is NOT "no shared pictures" (DR-0946), so it
       // joins `unreadable` below rather than collapsing to [].
       sharedPhotos: sp.ok ? sp.photos : [],
       sharedDoors: sp.ok ? sp.siblings : [],
+      sharedOrder: sp.ok ? (sp.order || {}) : {},
       tenancies: tn.ok ? tn.tenancies : [],
       documents: dc.ok ? dc.documents : [],
       systems: sy.ok ? sy.systems : [],
@@ -659,6 +675,32 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
   }, [grants, household, activeDoor, surface, rentals]);
 
   const face = useMemo(() => resolveFace(role, grants), [role, grants]);
+
+  // EVERY DOOR WITH AN ADDRESS IS ON THE MAP, BY DEFAULT (DR-0998). Once a
+  // session, in the background, for the family only: each building with a
+  // door not yet on the map is looked up once and its doors saved with the
+  // rounded area and what is nearby, so every public card shows "What's
+  // nearby" without a visitor's phone looking anything up. Bounded (a few
+  // lookups, one a second); a door already on the map is never touched.
+  const placing = useRef(false);
+  useEffect(() => {
+    if (role !== 'owner' || !rentals.length || placing.current) return;
+    placing.current = true;
+    (async () => {
+      const save = (id, patch, summary) => updateRental(id, patch, { summary });
+      // THE RECORD HELD WHOLE, ONCE (DR-0999), FIRST: the address in its parts
+      // and the archive named on the row, through the same edit path, with
+      // the same trace. The placement below then reads the repaired address,
+      // never the one-line one. Both doors then read one row.
+      const known = await boundedRead(loadDoorArchives(), 8000, { ok: false });
+      const held = known && known.ok
+        ? await holdTheRecords(rentals, { heldAt: known.heldAt, channels: known.channels }, save)
+        : { done: [], rentals };
+      const a = await boundedRead(loadDoorAreas(), 8000, { ok: false });
+      const r = a && a.ok ? await placeDoorsOnTheMap({ rentals: held.rentals, placed: a.placed, save }) : { placed: [] };
+      if (r.placed.length || held.done.length) boot();
+    })().catch(() => {});
+  }, [role, rentals, boot]);
   // THE FIRST SCREEN IS THE DOORS. The landing tab used to be "the first tab
   // that is not locked", which put the landlord on his Doors only BECAUSE the
   // Work board above it was wrongly locked (model.js, 2026-09-08). With the
@@ -1088,7 +1130,16 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
             tenant (who reads no doors) still picks among their own tenancies. */}
         {doorChoices.length > 1 ? (
           <select
-            value={doorChoiceValue} onChange={(e) => { setActiveId(e.target.value); setTab(''); }}
+            // STRAIGHT TO ITS PICTURES (DR-0985). Darrell, 2026-10-13, on this
+            // picker: "the drop down doesn't go directly to that page... it
+            // should right?" -- "Defaulting to the pictures tab" -- "A faster
+            // way to get to the same thing as going down the list in the screen
+            // to see the image first". A face with no Pictures tab keeps its
+            // own landing tab.
+            value={doorChoiceValue} onChange={(e) => {
+              setActiveId(e.target.value);
+              setTab(face.tabs.some((t) => t.id === 'gallery' && !t.locked) ? 'gallery' : '');
+            }}
             className="text-xs border border-[#E8E4DC] px-2 py-1 bg-white" style={serif} aria-label="Choose a door"
             data-testid="door-picker"
           >
@@ -1242,6 +1293,19 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
               // owns them.
               sharedPhotos={doorData.sharedPhotos || []}
               sharedDoors={doorData.sharedDoors || []}
+              // THIS DOOR'S OWN ORDER of them (DR-0984): Bed B can lead with
+              // the bedroom while Bed A leads with the kitchen.
+              sharedOrder={doorData.sharedOrder || {}}
+              // FROM THE NAS (DR-1002): the archive on the record, the old list as
+              // the fallback, and what this door has already filed from it.
+              archive={archives?.channels?.[rentalId] || PROPERTY_CHANNELS[activeRental?.slug] || ''}
+              nasFiled={doorData.nasFiled ?? null}
+              onArrangeShared={async (patches) => {
+                const instanceId = activeRental?.instance_id || activeDoor?.instance_id;
+                const r = await saveDoorPhotoOrder(rentalId, instanceId, patches);
+                say(r.ok ? 'Saved for this listing.' : `Not saved: ${r.reason}`);
+                loadDoorData(); boot();
+              }}
               sharedUnread={(doorData.unreadable || []).includes('the rest of the apartment')}
               // "I could not read these" is never "there are none" (DR-0946).
               unread={(doorData.unreadable || []).includes('photos')}
@@ -1339,6 +1403,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
             <>
               <DoorsBoard
                 rentals={rentals} tenancies={doors}
+                knownBuildings={rentals} archives={archives.channels}
                 canManage={role === 'owner' || role === 'manager'}
                 money={role === 'owner' || role === 'manager' ? money : null}
                 loadThumb={oneThumb}
@@ -1349,6 +1414,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
                 // that actually has something to show for it.
                 onPick={(id) => { setActiveId(id); setTab(doors.some((d) => d.id === id) ? 'history' : 'timeline'); }}
                 photos={doorPhotos}
+                photoOrders={photoOrders}
                 onStart={startTenancy}
                 onListing={setListing}
                 onEditTenancy={editTenancy}

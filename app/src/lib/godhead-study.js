@@ -2,6 +2,24 @@
 // godhead-study — THE GODHEAD STUDY: the Bible's deterministic algorithms,
 // Torah through Revelation (Darrell 2026-07-03).
 // =============================================================================
+// >> WHERE WHAT YOU ADD HERE SHOWS UP (read before authoring — DR-0126/DR-0285)
+//    Add an entry below and it reaches users in TWO places, with no re-typing:
+//      1. Church -> Eternal Algorithms -> "The Godhead Study" (the catalog room)
+//      2. Church -> LEARN, as a derived lesson inside one of the six
+//         "Deep Processing" courses, chosen by this entry's `section:` field
+//         (torah | wisdom | prophets | gospels | epistles | revelation).
+//         Derivation lives in lib/eternal-algorithms-course.js.
+//    Verses: refs here are NEVER quoted from memory. Add the ref, then run
+//      node scripts/fetch-godhead-verses.mjs
+//    which materializes verbatim KJV into godhead-study-verses.json.
+//    A new BOOK also needs a line in BOOK_MASTERPIECES below (the gate demands it).
+//    Gates: godhead-study.test.js, authored-content-reaches-its-surface.test.js.
+//
+//    This header exists because on 2026-08-09 seven entries were authored here
+//    and the agent could not answer "where are the lessons?" — the routing was
+//    documented in a DR it had not read. Routing now travels WITH the code, so
+//    the question is answered by the file you are already editing.
+// =============================================================================
 // "Can you go through the entire Bible and find the deterministic algorithms
 // so we can have that as a Thorough Study Of The Living GodHead — Forever
 // Eternal Beings asking us to become a bloodline family... everyone gets their
@@ -46,6 +64,7 @@ export const GODHEAD_SECTIONS = [
 export const BOOK_MASTERPIECES = {
   'Genesis':       'The book of beginnings — the Word speaking worlds into being, the garden, the fall, the giants in the earth, and the seed of the woman promised against the serpent.',
   'Exodus':        'The rescue masterpiece — the Blood, the passover, and a people walked out of what owned them.',
+  'Leviticus':     'The nearness manual — how a holy God is safely approached: blood applied, the offering appointed even for the sin a man never knew he committed, and a people taught that access is His to define.',
   'Numbers':       'The wilderness-census book — a generation numbered and sifted between the promise and the land; the giants seen, and the report that believed them over God.',
   'Deuteronomy':   'The covenant restated on the doorstep — the choice set before every generation about to cross over.',
   'Joshua':        'The taking of what was promised — allegiance declared out loud, house by house.',
@@ -64,6 +83,7 @@ export const BOOK_MASTERPIECES = {
   'Jeremiah':      'The weeping prophet\'s book — the Word found and EATEN as the heart\'s joy, fire shut up in the bones, and a new covenant written on hearts.',
   'Ezekiel':       'The watchman\'s book — every soul answers for itself, and dead bones learn to stand.',
   'Daniel':        'The furnace-and-throne book — allegiance under empire, and the Kingdom that outlasts them all.',
+  'Amos':          'The herdsman-prophet’s book — a working man sent to a prosperous nation to say that solemn assemblies do not cover a rigged gate: let judgment run down as waters, and the poor stop being turned aside from their right.',
   'Malachi':       'The last word before the silence — prove Me now, and the Sun of righteousness rising.',
   'Matthew':       'The King\'s gospel — the Kingdom\'s constitution preached from a mountain.',
   'Mark':          'The servant\'s gospel — the Son of man come not to be ministered unto but to minister; immediate and active, the Word done more than discussed.',
@@ -79,6 +99,7 @@ export const BOOK_MASTERPIECES = {
   'Philippians':   'The joy-from-a-cell letter — the mind of Christ descending, and every knee bowing.',
   '1 Timothy':     'The house-conduct letter — how to behave in the house of God; godliness with contentment is great gain, and the good fight of faith is fought, not felt.',
   '2 Timothy':     'The baton letter — study approved, endure hardness, commit the Word to faithful men who teach others also; a crown laid up at the finish.',
+  'Titus':         'The sound-doctrine letter — order set in the house, good works maintained, and the anchor under it all: the God who CANNOT lie promised eternal life before the world began.',
   'Hebrews':       'The better-covenant masterpiece — a great High Priest, faith\'s hall, and the assembling not forsaken.',
   'James':         'The doing book — faith with its sleeves rolled up; hearers become doers or deceive themselves.',
   '1 Peter':       'The furnace letter — tried gold, a royal priesthood, and hope that suffering cannot repossess.',
@@ -1803,6 +1824,91 @@ export const GODHEAD_ALGORITHMS = [
     threeD: 'This is why the question is never only whether a thing is false. It is what that thing is making of the person holding it -- which is the same test the platform runs on every system it teaches.',
     outcome: 'You choose what to trust by what it is turning you INTO, not only by whether it works.',
     tags: ['idolatry', 'formation', 'trust', 'egypt'],
+  },
+  // ===========================================================================
+  // KEEPING YOURSELF BY THE WORD (Darrell 2026-08-09: "How do we keep ourselves
+  // by following the Word... iteratively... as we learn... can't sin unless you
+  // know what to do Yahweh's Way... or you're sinning but guilt comes from").
+  // Three algorithms: the ITERATIVE WALK, what KNOWLEDGE does and does not
+  // change about sin, and where GUILT actually comes from. The middle one
+  // carries a premise correction the Word itself makes (Leviticus 5:17), stated
+  // plainly per DR-0098 — the Word explains the Word, no camps staged.
+  // ===========================================================================
+  {
+    id: 'gh-keep-yourself-by-the-word', section: 'epistles', name: 'Keeping Yourself by the Word (line upon line, and both hands on it)',
+    refs: ['Psalms 119:9', 'Psalms 119:11', 'Isaiah 28:10', 'Proverbs 4:18', 'Philippians 2:12-13', 'Jude 1:21', 'Jude 1:24', 'James 1:22', 'James 1:25', '2 Corinthians 3:18'],
+    condition: 'Stop looking for the single decision that settles it and take the daily one. "Wherewithal shall a young man cleanse his way? by taking heed thereto ACCORDING TO THY WORD" — the method is named in the same breath as the question. And it arrives the way Yahweh says it arrives: "precept must be upon precept, precept upon precept; line upon line, line upon line; here a little, and there a little."',
+    consequence: 'Two hands hold you, and Jude states both in one chapter. Yours: "Keep yourselves in the love of God." His: "Now unto him that is able to keep you from falling, and to present you faultless before the presence of his glory." Paul says the same without contradiction — "work out your own salvation with fear and trembling. FOR it is God which worketh in you both to will and to do of his good pleasure." Your working out is possible BECAUSE of His working in; that is why the command and the promise never compete. The result is a direction rather than an arrival: "the path of the just is as the shining light, that shineth more and more unto the perfect day," and "changed into the same image from glory to glory."',
+    threeD: 'Hide the Word IN you, not just near you — "Thy word have I hid in mine heart, that I might not sin against thee" is a storage decision made before the pressure, because you cannot consult what you did not load. Then close the loop the same day: "be ye doers of the word, and not hearers only, DECEIVING YOUR OWN SELVES" — the self-deception is the danger, and it is specifically the feeling of having grown because you understood something. Take the next line, do the next thing, and expect the light to widen rather than arrive.',
+    outcome: 'A walk that compounds — small obedience repeated until the senses are trained — instead of a cycle of big resolutions and quiet collapses.',
+    psyche: 'Line-upon-line is mercy, not slowness. All of it at once would crush, and none of it would stick; the pace is set so obedience can actually be practiced. And note who keeps whom: a person trying to keep himself with one hand exhausts, while a person who has let go entirely drifts. Jude gives both hands on purpose.',
+    tags: ['keeping', 'iterative', 'line-upon-line', 'doers', 'sanctification', 'growth'],
+  },
+  {
+    id: 'gh-knowledge-and-sin', section: 'torah', name: 'What Knowing Changes (ignorance lowers the stripes, never the guilt)',
+    refs: ['Leviticus 5:17', 'Luke 12:47-48', 'James 4:17', 'John 15:22', 'John 9:41', 'Numbers 15:30', 'Acts 17:30', '1 Timothy 1:13'],
+    condition: 'Test the common assumption — that a thing is not sin until you know it is. Scripture is direct, and it does not say that: "if a soul sin, and commit any of these things which are forbidden to be done by the commandments of the LORD; THOUGH HE WIST IT NOT, YET IS HE GUILTY, and shall bear his iniquity." Sin is measured against what Yahweh forbade, not against what you had gotten around to learning.',
+    consequence: 'What knowing DOES change is the weight, the excuse, and the remedy. THE WEIGHT: "that servant, which KNEW his lord\'s will, and prepared not himself... shall be beaten with many stripes. But he that KNEW NOT, and did commit things worthy of stripes, shall be beaten with FEW stripes" — few, not none, and the principle is stated outright: "unto whomsoever much is given, of him shall be much required." THE EXCUSE: "If I had not come and spoken unto them, they had not had sin: but now they have no cloak for their sin," and to men insisting on their sight, "now ye say, We see; therefore your sin remaineth." THE REMEDY: ignorance had an offering appointed for it, while "the soul that doeth ought PRESUMPTUOUSLY... the same reproacheth the LORD." And mercy is real on that road — "I obtained mercy, BECAUSE I did it ignorantly in unbelief" — with a deadline attached: "the times of this ignorance God winked at; but now commandeth all men every where to repent."',
+    threeD: 'Two errors die here. The first says "I did not know, so it was not sin" — Leviticus 5:17 removes that shelter, which is why the honest response to new light is repentance rather than a defense of the years before it. The second says "now that I know, my past ignorance is as damnable as present rebellion" — Luke 12:48 removes that too. So learn eagerly rather than defensively: every line you receive raises what is required of you, and that is a promotion, not a trap. And never engineer ignorance to stay comfortable; James closes that door from the other side — "to him that knoweth to do good, and doeth it not, TO HIM IT IS SIN."',
+    outcome: 'Freedom from both self-excusing and self-torturing — a conscience that takes new light as a call forward instead of a verdict on the past.',
+    psyche: 'The instinct behind "you cannot sin unless you know" is usually a good one: it is reaching for the justice of degrees, and the Word grants exactly that in Luke 12:47-48. What it gets wrong is treating sin as a violation of MY awareness rather than of HIS standard — which would make the standard move every time I looked away. Yahweh keeps the standard fixed and scales the accountability instead. That is a harder truth and a far kinder one.',
+    tags: ['sin', 'ignorance', 'knowledge', 'accountability', 'stripes', 'repentance'],
+  },
+  {
+    id: 'gh-conviction-vs-condemnation', section: 'epistles', name: 'Where Guilt Comes From (conviction walks you home; accusation walks you off)',
+    refs: ['2 Corinthians 7:10', 'Romans 8:1', 'Revelation 12:10', '1 John 3:20-21', 'Romans 2:15', 'Hebrews 10:22'],
+    condition: 'Two things feel identical in the chest and come from opposite directions. Do not ask how BAD the guilt feels; ask which way it is pointing you.',
+    consequence: 'Scripture separates them by their FRUIT, not their intensity: "godly sorrow worketh repentance to salvation not to be repented of: but the sorrow of the world worketh death." One produces a turn and leaves no regret behind it; the other produces death and calls it seriousness. The source of the second is named: "the accuser of our brethren... which accused them before our God day and night." And the standing verdict for those in Christ is published: "There is therefore now no condemnation to them which are in Christ Jesus." The conscience is real equipment — "their conscience also bearing witness, and their thoughts the mean while accusing or else excusing" — but it is not the final court: "if our heart condemn us, GOD IS GREATER THAN OUR HEART, and knoweth all things."',
+    threeD: 'Run the direction test the moment it lands. Conviction is SPECIFIC (this deed, this word, this omission), it is ACTIONABLE (there is something to confess, restore, or stop), and it moves you TOWARD Him. Accusation is VAGUE and total (you are worthless, you always do this, you are beyond it), it offers nothing to do, and it moves you AWAY — from prayer, from the Word, from people. When it is conviction, obey it quickly and be done. When it is accusation, answer it with the verdict rather than with your own defense: hearts are "sprinkled from an evil conscience," and the accuser has already been cast down.',
+    outcome: 'A conscience that stays tender without becoming a torturer — quick to repent, unwilling to re-serve a sentence Christ already served.',
+    psyche: 'The accuser rarely invents charges; he prefers TRUE ones, kept past their expiration. That is what makes the counterfeit convincing and why intensity is a useless test — real guilt over a real sin can be weaponized after it has already been dealt with. The tell is always the direction: toward the Father, or away from Him.',
+    tags: ['guilt', 'conviction', 'condemnation', 'conscience', 'accuser', 'repentance'],
+  },
+  {
+    id: 'gh-mind-of-christ-in-the-hidden-part', section: 'wisdom', name: 'Truth in the Hidden Part (He reshapes the depths, and hands you the work)',
+    refs: ['Psalms 51:6', 'Psalms 51:10', 'Philippians 2:5', 'Proverbs 23:7', 'Jeremiah 31:33', 'Ezekiel 36:26-27', 'Joshua 1:8', 'Philippians 4:8', 'Colossians 3:2'],
+    condition: 'Aim below the part of you that answers questions. "Behold, thou desirest truth in the INWARD PARTS: and in the HIDDEN PART thou shalt make me to know wisdom" — Yahweh names a layer under the one you narrate with, and He wants the truth THERE. It matters because that layer, not your stated position, is what you actually are: "as he thinketh in his heart, so is he."',
+    consequence: 'He does the part you cannot: "A new heart also will I give you, and a new spirit will I put within you: and I will take away the stony heart"; "I will put my law in their inward parts, and write it in their hearts." That is His writing, in a place you have no pen for. AND HE HANDS YOU REAL WORK — "Let this mind be in you, which was also in Christ Jesus" is addressed to you as a command, not a wish; "whatsoever things are true, whatsoever things are honest... THINK ON THESE THINGS"; "SET your affection on things above"; "thou shalt MEDITATE therein day and night." The prayer and the labor sit in the same psalm: "Create in me a clean heart" is asked of Him, while the meditating, thinking, and setting are done by you.',
+    threeD: 'You cannot edit the hidden part directly — you can only choose what goes in and what gets repeated, and it does the rest. So govern the inputs: what you read, replay, rehearse, and refuse. Run the sequence when a thought surfaces — NOTICE it, TEST it against Philippians 4:8, CAPTURE it (2 Corinthians 10:5), REDIRECT to the Word — and understand why repetition is the method rather than intensity. Day and night, line upon line, until the reaction that used to come out of you is replaced by one you did not have to manufacture. Ask Him for the clean heart while you do the meditating; asking without inputs is superstition, and inputs without asking is willpower.',
+    outcome: 'A reshaped default — the answer that comes out before you compose one begins to match His, because the hidden part was rewritten rather than merely supervised.',
+    psyche: 'This is why the transformation feels slow and then sudden. Conscious effort is the only lever you hold, but the change registers in the layer you do not control, so nothing seems to move for a long while and then a reaction is simply different. He asks for the work not because He needs your help, but because the meditating IS the mechanism He uses to write.',
+    tags: ['mind-of-christ', 'subconscious', 'hidden-part', 'meditation', 'renewed-mind', 'inputs'],
+  },
+  {
+    id: 'gh-word-is-4d-fact', section: 'epistles', name: 'The Word Is 4th-Dimensional Fact (it outranks 3rd-dimensional fact)',
+    refs: ['2 Corinthians 4:18', 'Matthew 24:35', 'Psalms 119:89', 'Isaiah 40:8', 'Numbers 23:19', 'Titus 1:2', 'Romans 3:4', '1 Corinthians 13:12', 'Hebrews 11:1'],
+    condition: 'Decide the ranking BEFORE the two ever appear to disagree, because in the moment you will rank by whichever one you can currently see. The materialist ordering treats 3rd-dimensional observation as the hard fact and revelation as the soft claim that must earn its way up. Scripture inverts it: "the things which are seen are TEMPORAL; but the things which are not seen are ETERNAL."',
+    consequence: 'His Word outranks on every test we already use to rank evidence. DURABILITY: "Heaven and earth shall pass away, but my words shall not pass away" — the entire 3rd-dimensional dataset has an expiration date that His Word does not; "the grass withereth, the flower fadeth: but the word of our God shall stand for ever." STABILITY: "For ever, O LORD, thy word is settled in heaven" — settled, past tense, not pending revision. RELIABILITY OF THE WITNESS: "God is not a man, that he should lie... hath he said, and shall he not do it?"; "God, that cannot lie"; and where the two testimonies conflict, the verdict is already published — "let God be true, but every man a liar." AND THE INSTRUMENT: the dim one is OURS, not His — "now we see through a glass, DARKLY... now I know IN PART." Faith is therefore not the absence of evidence but a class of it: "the evidence of things not seen."',
+    threeD: 'Keep the distinction clean so this never becomes an excuse for sloppiness. This does NOT mean 3rd-dimensional facts are false or that measurement is worthless — He made the thing being measured, and real data is real (a documented harm, a denied claim, a tested number). It means His Word is the FRAME the data is read inside, and the higher court when they appear to collide. So verify your 3D claims rigorously AND do not let a verified 3D reading overturn a settled 4D fact; the usual resolution is that our reading of one or the other is still partial, and the part more likely to be partial is ours. When you cannot reconcile them yet, hold the Word and keep working — that is not anti-intellectual, it is ranking the more reliable witness first.',
+    outcome: 'A mind that can hold hard data and hard doctrine at once without either collapsing — rigorous about measurement, unshaken when measurement runs ahead of understanding.',
+    psyche: 'Notice which way the humility actually runs. The frame that calls itself humble — "I only believe what I can see" — quietly makes a partial, expiring, provably fallible instrument the final arbiter of everything. Ranking His Word first is the humbler position, because it starts by admitting the glass is dark on OUR side.',
+    tags: ['the-word', '4d', 'evidence', 'truth', 'epistemology', 'frame'],
+  },
+  // ===========================================================================
+  // JUSTICE YOU HAVE TO BUY (Darrell 2026-08-09: "When suing someone for justice
+  // is the only way to get it... the rich are the only ones who will"). Two
+  // algorithms: the DIAGNOSIS Scripture already names, and the DESIGN Yahweh
+  // built to make the remedy un-purchasable.
+  // ===========================================================================
+  {
+    id: 'gh-justice-rationed-at-the-gate', section: 'prophets', name: 'Turned Aside at the Gate (when justice must be bought, only the rich get it)',
+    refs: ['Amos 5:12', 'James 2:6', 'Isaiah 1:23', 'Proverbs 22:22-23', 'Exodus 23:6', 'Deuteronomy 16:19'],
+    condition: 'Watch what happens when the ONLY road to a remedy runs through a proceeding you must fund. The gate in Scripture was the courthouse — where elders heard cases — so read this as the courthouse door: "they afflict the just, they take a bribe, and they turn aside THE POOR IN THE GATE from their right."',
+    consequence: 'Yahweh files it among "your mighty sins," not among unfortunate outcomes. James states the same from the other end: "Do not rich men oppress you, and DRAW YOU BEFORE THE JUDGMENT SEATS?" — the court appears there as the wealthy man\'s instrument, not as neutral ground. And Isaiah names the subtlest form, which is not a lost verdict but an unheard case: "every one loveth gifts, and followeth after rewards: they judge not the fatherless, NEITHER DOTH THE CAUSE OF THE WIDOW COME UNTO THEM." The widow\'s case never arrives. The commands are therefore aimed at the powerful, never at the victim: "Thou shalt not wrest the judgment of thy poor in his cause"; "thou shalt not respect persons, neither take a gift: for A GIFT DOTH BLIND THE EYES OF THE WISE." And where the gate stays shut, He appoints Himself counsel: "Rob not the poor, because he is poor... FOR THE LORD WILL PLEAD THEIR CAUSE."',
+    threeD: 'Stop reading "everyone can sue" as though access were equal — filing fees, years of time, and counsel are the real gate, and a system where the remedy costs more than the injury has quietly repealed the remedy for most people. So measure a justice system by whether the poor man\'s case ARRIVES, not by whether the law is written fairly. Where you have standing, means, or a voice, spend it on the case that cannot be brought without you (Proverbs 31:8-9); where you are the one shut out, keep coming (Luke 18) and know who has taken the brief.',
+    outcome: 'Clear sight about a real injustice without cynicism about justice itself — because the same Word that names the closed gate promises the Advocate who does not bill.',
+    psyche: 'A closed gate is more corrosive than a hostile verdict. A verdict can be appealed and at least says the system saw you; a case that never arrives teaches a person that their injury does not register at all — which is exactly what breeds the fury that later gets aimed at the wrong target.',
+    tags: ['justice', 'the-gate', 'poor', 'courts', 'access', 'advocate'],
+  },
+  {
+    id: 'gh-remedy-that-arrives-on-a-calendar', section: 'torah', name: 'The Remedy Arrives on a Calendar (His justice is not adversarial or purchased)',
+    refs: ['Deuteronomy 15:1', 'Leviticus 25:10', 'Leviticus 25:25', 'Leviticus 19:9-10', 'Deuteronomy 24:17', 'Psalms 140:12', 'Psalms 12:5'],
+    condition: 'Compare the two designs before you assume ours is the only shape justice can take. Man\'s justice is ADVERSARIAL and PURCHASED: the wronged party must discover the wrong, prove standing, fund counsel, and win. Yahweh built remedies that require NONE of that.',
+    consequence: 'His arrive by schedule and by structure, with the burden on the system and the strong: "At the end of every seven years THOU SHALT MAKE A RELEASE" — the debtor files nothing; "ye shall return every man unto his possession" — Jubilee restores by the calendar, not by verdict; "if any of his kin come to redeem it, then shall he redeem that which his brother sold" — the redeemer is a FAMILY OBLIGATION, not a service you retain; "thou shalt not wholly reap the corners of thy field... thou shalt leave them for the poor and stranger" — the poor do not apply, they simply come and reap. And the protected classes are named so no one has to argue their way in: "Thou shalt not pervert the judgment of the stranger, nor of the fatherless." Where a case still cannot be brought, He takes it: "I know that the LORD will maintain the cause of the afflicted, and the right of the poor"; "for the sighing of the needy, NOW WILL I ARISE, saith the LORD."',
+    threeD: 'Build like He builds. In anything you run — a business, a household, a church, a platform — put the remedy on a schedule instead of on a complaint: the audit that runs whether or not anyone objects, the correction that triggers automatically, the margin left standing for whoever needs it. Any protection that requires the weakest party to notice, object, and press is a protection the weakest party does not have. And apply it to your own house first: forgive on the calendar rather than when confronted, restore before you are asked.',
+    outcome: 'Systems whose justice does not depend on the victim\'s strength — the pattern that makes Jubilee possible and makes "you have to sue for it" unnecessary.',
+    psyche: 'Adversarial justice quietly taxes the injured a second time: to be made whole you must relive the injury, fund the fight, and outlast the stronger party. Calendared justice removes that second tax entirely, which is why it reaches people who could never win a case — and why Yahweh legislated it rather than merely recommending mercy.',
+    tags: ['justice', 'jubilee', 'release', 'gleaning', 'redeemer', 'automatic', 'design'],
   },
 ];
 

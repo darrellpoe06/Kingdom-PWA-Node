@@ -16,7 +16,7 @@
 //   bed/bath figure is COUNTED from the rows on screen, so what the header
 //   claims and what the list shows cannot disagree.
 // =============================================================================
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { buildPropertyTimeline, turnPhotos, latestAtDoor, doorEvents } from './timeline.js';
 import {
@@ -31,6 +31,8 @@ import { shelfOrder, doorLabel } from './showcase.js';
 import { sameApartment } from './apartment.js';
 import { moneyLine, dollarsLong } from './door-money.js';
 import { AreaEditor } from './AreaMap.jsx';
+import { buildingOptions, pickedBuilding, formatAddress } from './address.js';
+import { fetchChannels, hasBridgeToken, nasRoad, fetchChannelPhotos, fetchLibrary, fetchListingPhoto, fetchLibraryPhoto, nasSource, nasLibrarySource, thisMonth } from '../../lib/nas-photos.js';
 import { stampImage, stampFileName } from '../../lib/brand-stamp.js';
 import SharpPicture, { sharpestKnown } from './SharpPicture.jsx';
 import { photoOrder, movePhoto, makeCover, pickCovers } from './photo-order.js';
@@ -448,6 +450,12 @@ function ArrangeControls({ id, index, total, onArrange, busy }) {
 
 export function DoorsBoard({
   rentals = [], tenancies = [], photos = [], canManage = false,
+  // Each door's own order of the apartment pictures it borrows (DR-0984):
+  // {rental_id: {photo_id: position}}. Bed B's card leads with its choice.
+  photoOrders = {},
+  // The family's known buildings (for the address dropdown) and each door's
+  // picture archive on the NAS, {rental_id: channel} (DR-0999).
+  knownBuildings = [], archives = {},
   onPick, onStart, onListing, onEditTenancy, onEditRental, onArrange, busy = false,
   // What each door has brought in (DR-0903, door_money_months): moneyByDoor's
   // result. Shown on the family's board only; null hides it.
@@ -553,13 +561,20 @@ export function DoorsBoard({
         const sibs = apartmentOf(r);
         const withCover = sibs.find((o) => coverByRental.get(o.id));
         const ids = new Set(sibs.map((o) => o.id));
-        const sharedCount = photos.filter((p) => ids.has(p.rental_ref) && !p.archived_at).length;
-        return withCover
-          ? { cover: coverByRental.get(withCover.id), sharedCount, sharedFrom: r.unit || withCover.unit || 'this apartment' }
+        const borrowed = photos.filter((p) => ids.has(p.rental_ref) && !p.archived_at);
+        // THIS DOOR'S OWN COVER of the apartment, when it chose one (DR-0984):
+        // Bed B's card leads with the bedroom while Bed A's leads with its own.
+        const mine = photoOrders[r.id] || {};
+        const chosenCover = borrowed
+          .filter((p) => mine[p.id] !== undefined && mine[p.id] !== null)
+          .sort((a, b) => mine[a.id] - mine[b.id])[0] || null;
+        const cover = chosenCover || (withCover ? coverByRental.get(withCover.id) : null);
+        return cover
+          ? { cover, sharedCount: borrowed.length, sharedFrom: r.unit || withCover?.unit || 'this apartment' }
           : { sharedCount: 0, sharedFrom: '' };
       })(),
     };
-  }), [arranged, activeByRef, coverByRental, photos, apartmentOf]);
+  }), [arranged, activeByRef, coverByRental, photos, apartmentOf, photoOrders]);
 
   // TWO LISTS, NOT ONE FILTERED VIEW. "not in the Properties tab because it's
   // not for renting... Real Estate keeps it just as our home and asset"
@@ -664,7 +679,7 @@ export function DoorsBoard({
               )}
               {editingDoor === x.rental.id && (
                 <div className="px-2 pb-2">
-                  <EditRental
+                  <EditRental knownBuildings={knownBuildings} archive={archives?.[x.rental.id] || ''}
                     rental={x.rental} busy={busy}
                     onSave={(patch, summary) => { onEditRental?.(x.rental.id, patch, summary); setEditingDoor(null); }}
                   />
@@ -758,7 +773,7 @@ export function DoorsBoard({
             </div>
             {qrFor === x.rental.id && <DoorQR rental={x.rental} label={x.label} />}
             {editingDoor === x.rental.id && (
-              <EditRental
+              <EditRental knownBuildings={knownBuildings} archive={archives?.[x.rental.id] || ''}
                 rental={x.rental} busy={busy}
                 onSave={(patch, summary) => { onEditRental?.(x.rental.id, patch, summary); setEditingDoor(null); }}
               />
@@ -782,7 +797,7 @@ export function DoorsBoard({
     </Card>
     )}
     {homeRows.length > 0 && (
-      <OurHomes rows={homeRows} canManage={canManage} busy={busy} onPick={onPick} onEditRental={onEditRental} loadImage={loadImage} loadThumb={loadThumb} />
+      <OurHomes rows={homeRows} canManage={canManage} busy={busy} onPick={onPick} onEditRental={onEditRental} loadImage={loadImage} loadThumb={loadThumb} knownBuildings={knownBuildings} archives={archives} />
     )}
     </>
   );
@@ -804,7 +819,7 @@ export function DoorsBoard({
  * a house on a properties screen and seeing no rent, no mortgage and no value
  * would reasonably conclude the app had lost them.
  */
-function OurHomes({ rows = [], canManage = false, busy = false, onPick, onEditRental, loadImage = null, loadThumb = null }) {
+function OurHomes({ rows = [], canManage = false, busy = false, onPick, onEditRental, loadImage = null, loadThumb = null, knownBuildings = [], archives = {} }) {
   const [editingDoor, setEditingDoor] = useState(null);
   return (
     <Card
@@ -850,7 +865,7 @@ function OurHomes({ rows = [], canManage = false, busy = false, onPick, onEditRe
               )}
             </div>
             {editingDoor === x.rental.id && (
-              <EditRental
+              <EditRental knownBuildings={knownBuildings} archive={archives?.[x.rental.id] || ''}
                 rental={x.rental} busy={busy}
                 onSave={(patch, summary) => { onEditRental?.(x.rental.id, patch, summary); setEditingDoor(null); }}
               />
@@ -1008,8 +1023,9 @@ export const OFFERINGS = Object.freeze([
  * single piece of this feature only he holds, so the app hands him the field
  * instead of guessing, and every other door is untouched.
  */
-function EditRental({ rental, onSave, busy }) {
+function EditRental({ rental, onSave, busy, knownBuildings = [], archive = '' }) {
   const [f, setF] = useState({
+    photo_channel: archive || rental.photo_channel || '',
     address: rental.address || '',
     unit: rental.unit || '',
     city: rental.city || '',
@@ -1027,6 +1043,28 @@ function EditRental({ rental, onSave, busy }) {
   const set = (k) => (e) => setF((p) => ({ ...p, [k]: e.target.value }));
   const shortStay = f.offering === 'short-term' || f.offering === 'both';
 
+  // THE ADDRESS IS PICKED, NOT RETYPED (DR-0999). Darrell: "Drop down with
+  // addresses... instead of letting someone else mistyped". The family's
+  // known buildings are offered under the street field; an exact pick fills
+  // the town and state; new text is a new building.
+  const buildings = useMemo(() => buildingOptions(knownBuildings), [knownBuildings]);
+  const setAddress = (e) => {
+    const v = e.target.value;
+    const b = pickedBuilding(v, buildings);
+    setF((p) => (b ? { ...p, address: b.address, city: b.city || p.city, state: b.state || p.state } : { ...p, address: v }));
+  };
+  // THE ARCHIVE IS PICKED FROM WHAT THE NAS HOLDS (DR-0999): the list the
+  // photo server serves, with counts, read once when the editor opens. When
+  // the NAS cannot be reached the current name is shown and kept as it is;
+  // a name is never typed here, so one is never mistyped.
+  const [archives, setArchives] = useState({ state: 'reading', list: [] });
+  useEffect(() => {
+    let on = true;
+    if (!hasBridgeToken()) { setArchives({ state: 'no-key', list: [] }); return undefined; }
+    fetchChannels().then((list) => { if (on) setArchives(list ? { state: 'ready', list } : { state: 'unreachable', list: [] }); });
+    return () => { on = false; };
+  }, []);
+
   // Compare against the door as the FORM sees it: an unset offering displays as
   // "Lease only", so treating it as a change would write a field the landlord
   // never touched and light up Save the moment the editor opens.
@@ -1035,7 +1073,8 @@ function EditRental({ rental, onSave, busy }) {
     offering: rental.offering || 'long-term',
     address_visibility: rental.address_visibility || 'public',
     display_name: rental.display_name || '',
-  }), [rental]);
+    photo_channel: archive || rental.photo_channel || '',
+  }), [rental, archive]);
   const edit = useMemo(() => buildEdit(before, {
     ...f,
     // The database refuses a nightly rate on a door that is not offered short —
@@ -1054,6 +1093,7 @@ function EditRental({ rental, onSave, busy }) {
     { key: 'nightly_rate', label: 'Nightly rate', numeric: true },
     { key: 'min_stay_nights', label: 'Minimum stay', numeric: true },
     { key: 'address_visibility', label: 'Street on the public listing' },
+    { key: 'photo_channel', label: 'Picture archive on the NAS' },
   ]), [before, f, shortStay]);
 
   const field = 'w-full border border-[#E8E4DC] px-2 py-2 text-[0.875rem] focus:outline focus:outline-2 focus:outline-[#2F5D50]';
@@ -1068,7 +1108,38 @@ function EditRental({ rental, onSave, busy }) {
           <input type="text" className={field} value={f.display_name} onChange={set('display_name')} placeholder="What this door is called" />
         </label>
         <label className="sm:col-span-2"><span className={lbl}>Address</span>
-          <input type="text" className={field} value={f.address} onChange={set('address')} />
+          <input type="text" className={field} value={f.address} onChange={setAddress} list="known-buildings" autoComplete="off" data-testid="door-address" />
+          <datalist id="known-buildings">
+            {buildings.map((b) => <option key={b.label} value={b.label} />)}
+          </datalist>
+          <span className="block text-[0.6875rem] text-[#6B665E] mt-1" data-testid="door-address-line">
+            {buildings.length ? 'Pick a building the family already holds, or type a new one. ' : ''}
+            This door reads: <strong>{formatAddress({ ...f, unit: f.unit }) || 'nothing yet'}</strong>
+          </span>
+        </label>
+        {/* THE PICTURE ARCHIVE ON THE NAS (DR-0999), picked from the list the NAS
+            serves. Darrell: "Most of the properties have pictures already on
+            the nas... why don't they show up". */}
+        <label className="sm:col-span-2"><span className={lbl}>Picture archive on the NAS</span>
+          {archives.state === 'ready' ? (
+            <select className={field} value={f.photo_channel} onChange={set('photo_channel')} data-testid="door-archive">
+              <option value="">None named</option>
+              {!archives.list.some((c) => c.name === f.photo_channel) && f.photo_channel && <option value={f.photo_channel}>{f.photo_channel} (not on the NAS's list)</option>}
+              {archives.list.map((c) => <option key={c.name} value={c.name}>{c.name} ({c.total} picture{c.total === 1 ? '' : 's'})</option>)}
+            </select>
+          ) : (
+            <span className="block text-[0.8125rem] text-[#1A1815]" data-testid="door-archive-state" data-state={archives.state}>
+              {f.photo_channel ? <>Named: <strong>{f.photo_channel}</strong>. </> : 'None named. '}
+              {archives.state === 'reading' ? 'Reading the NAS\u2019s list\u2026'
+                : archives.state === 'no-key' ? 'This device has no family key yet, so the NAS\u2019s list cannot be read here.'
+                : 'The NAS could not be reached just now; the archive stays as it is.'}
+            </span>
+          )}
+          {archives.state === 'ready' && (
+            <span className="block text-[0.6875rem] text-[#6B665E] mt-1">
+              The pictures in this archive show on this door and in Real Estate. Read over the {nasRoad() === 'direct' ? 'direct' : 'same-origin'} road.
+            </span>
+          )}
         </label>
         {/* WHO MAY SEE THE STREET (0158, DR-0933, then DR-0977). Darrell,
             2026-10-12: "show address unless..." -- the street is the default,
@@ -1083,8 +1154,8 @@ function EditRental({ rental, onSave, busy }) {
           </select>
           <span className="block text-[0.75rem] text-[#6B665E] mt-1 leading-snug" data-testid="address-rule">
             {f.address_visibility === 'public'
-              ? 'Visitors see the street, with Open in Maps and a map they can ask for.'
-              : 'Visitors see the town and a map they can ask for (when this door is on the map); the street is handed over when someone applies or books.'}
+              ? 'Visitors see the street, what is nearby, Street view, and a map with the house pinned when they ask for it.'
+              : 'Visitors see the town, what is nearby, and the area on a map when they ask for it; the street is handed over when someone applies or books.'}
           </span>
         </label>
         <AreaEditor rental={rental} onSave={onSave} busy={busy} />
@@ -1350,6 +1421,134 @@ function CaptionField({ value, onChange, placeholder, label, className = '' }) {
   );
 }
 
+// =============================================================================
+// FROM THE NAS -- the family's pictures onto a door, picked, never twice (DR-1002)
+// =============================================================================
+// Darrell, 2026-10-13: "Most of the properties have pictures already on the
+// nas... why don't they show up", "The nas has all pictures period!!!... why
+// not just pull from there?" Two shelves on the family NAS: this door's chat
+// archive (0284 names it) and the whole library by month (the dated photo
+// roots and the phone backup, read as folders -- no Synology Photos sign-in).
+// Each picture offers the two purposes DR-0906 keeps apart: USE ON THE
+// LISTING (advertising, chosen each time) or KEEP AS A RECORD (the record
+// kind the form holds). The bytes come down at listing size from the server
+// (/property-photo, /library-photo) and are filed the way a phone picture is;
+// the row carries its SOURCE so the database refuses a second copy (0285).
+// A picture already on this door says so. An unreachable NAS says so --
+// never "none". The read is timed and the road named (DR-0955's slow-pictures
+// thread: measured, not felt).
+// The shelf and month a person last chose on a door, kept across the gallery's
+// own refreshes (filing one picture reloads the door's data and can remount
+// this card) so the next picture is still in front of them.
+const NAS_SHELF_MEMORY = new Map();
+export function NasShelf({ door, archive = '', nasFiled = null, recordKind = 'move-in-condition', onAdd, onDone }) {
+  const remembered = NAS_SHELF_MEMORY.get(door?.id) || {};
+  const [shelf, setShelfState] = useState(remembered.shelf || (archive ? 'archive' : 'library'));
+  const [month, setMonthState] = useState(() => remembered.month || thisMonth());
+  const setShelf = (v) => { setShelfState(v); NAS_SHELF_MEMORY.set(door?.id, { ...(NAS_SHELF_MEMORY.get(door?.id) || {}), shelf: v }); };
+  const setMonth = (v) => { setMonthState(v); NAS_SHELF_MEMORY.set(door?.id, { ...(NAS_SHELF_MEMORY.get(door?.id) || {}), month: v }); };
+  const [state, setState] = useState({ status: 'idle', photos: [], total: 0, ms: 0, road: '' });
+  const [busy, setBusy] = useState(null);
+  const [note, setNote] = useState('');
+  const load = useCallback(async () => {
+    setState((s) => ({ ...s, status: 'loading' }));
+    const t0 = Date.now();
+    const r = shelf === 'archive' ? await fetchChannelPhotos(archive, { limit: 24 }) : await fetchLibrary({ month, limit: 24 });
+    const ms = Date.now() - t0;
+    if (!r) { setState({ status: 'unreachable', photos: [], total: 0, ms, road: nasRoad() }); return; }
+    setState({ status: 'ready', photos: r.photos || [], total: r.total || 0, ms, road: nasRoad() });
+  }, [shelf, archive, month]);
+  useEffect(() => { load(); }, [load]);
+  const keyOf = (p) => (shelf === 'archive' ? nasSource(archive, p.id) : nasLibrarySource(p.name || p.id));
+  const reasonText = (reason) => {
+    if (reason === 'unreachable') return 'the NAS could not be reached by either road';
+    if (reason === 'no-key') return 'no NAS key on this phone';
+    if (/source/i.test(String(reason || ''))) return 'the database is still being updated for this; try again in a minute';
+    return String(reason || 'unknown');
+  };
+  const file = async (p, kind) => {
+    const key = keyOf(p);
+    if (!key) { setNote('Not filed: this picture has no usable name.'); return; }
+    setBusy(p.id); setNote('');
+    const got = shelf === 'archive' ? await fetchListingPhoto(archive, p.id) : await fetchLibraryPhoto(p.name || p.id);
+    if (!got.ok) { setBusy(null); setNote(`Not filed: ${reasonText(got.reason)}.`); return; }
+    // A thumbnail for the tile (DR-0955 keeps the full picture out of the
+    // list): the archive's own, or a small copy asked of the server.
+    let thumb = p.thumb || '';
+    if (!thumb && shelf === 'library') { const small = await fetchLibraryPhoto(p.name || p.id, { max: 480 }); if (small.ok) thumb = small.image; }
+    const res = await onAdd?.({
+      instance_id: door?.instance_id, rental_ref: door?.id, room_id: null, kind,
+      caption: String(p.text || '').trim(),
+      storage_path: got.image, thumb_path: thumb || got.image,
+      taken_at: p.date ? `${p.date}T12:00:00Z` : null,
+      source: key,
+    });
+    setBusy(null);
+    if (res?.ok) { setNote(kind === 'listing' ? 'On the listing.' : `Kept as ${kind.replace(/-/g, ' ')}.`); onDone?.(); }
+    else setNote(`Not filed: ${reasonText(`${res?.reason || ''} ${res?.error || ''}`.trim())}.`);
+  };
+  const filed = (p) => (nasFiled && keyOf(p) && nasFiled[keyOf(p)]) ? nasFiled[keyOf(p)] : null;
+  const seconds = (state.ms / 1000).toFixed(1);
+  return (
+    <Card title="From the NAS" right={<span className="text-[0.6875rem] text-[#6B665E]">picked, never twice</span>}>
+      <div className="flex flex-wrap items-end gap-2 mb-2" data-testid="nas-shelf">
+        <label className="text-[0.75rem] text-[#5A5751]">Shelf
+          <select className="block border border-[#E8E4DC] bg-white px-2 py-2 text-sm min-h-[36px]" value={shelf} data-testid="nas-shelf-pick" onChange={(e) => setShelf(e.target.value)}>
+            {archive && <option value="archive">This door&rsquo;s archive ({archive})</option>}
+            <option value="library">The whole library, by month</option>
+          </select>
+        </label>
+        {shelf === 'library' && (
+          <label className="text-[0.75rem] text-[#5A5751]">Month
+            <input type="month" className="block border border-[#E8E4DC] bg-white px-2 py-2 text-sm min-h-[36px]" value={month} data-testid="nas-month" onChange={(e) => setMonth(e.target.value)} />
+          </label>
+        )}
+        <button type="button" className="min-h-[36px] px-3 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#2F5D50] border border-[#E8E4DC] text-sm" onClick={load} disabled={state.status === 'loading'}>Look again</button>
+      </div>
+      {state.status === 'loading' && <p className="text-sm text-[#5A5751]">Reading the NAS&hellip;</p>}
+      {state.status === 'unreachable' && (
+        <p className="text-sm text-[#8C2F2F]" data-testid="nas-shelf-unreachable">
+          The NAS could not be reached by either road just now &mdash; this is not the same as there being no pictures. Try again in a moment.
+        </p>
+      )}
+      {state.status === 'ready' && (
+        <>
+          <p className="text-[0.75rem] text-[#6B665E] mb-2" data-testid="nas-shelf-timing">
+            {state.total} picture{state.total === 1 ? '' : 's'}{state.total > state.photos.length ? ` (showing ${state.photos.length})` : ''} &middot; read in {seconds} s over the {state.road} road
+          </p>
+          {state.photos.length === 0 && <p className="text-sm text-[#5A5751]">Nothing on this shelf{shelf === 'library' ? ` for ${month}` : ''}.</p>}
+          <ul className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            {state.photos.map((p) => {
+              const already = filed(p);
+              return (
+                <li key={p.id} className="border border-[#E8E4DC] bg-white p-2" data-testid={`nas-tile-${p.id}`}>
+                  {p.thumb
+                    ? <img src={p.thumb} alt={p.text || p.name || 'a picture on the NAS'} className="w-full h-28 object-cover" loading="lazy" />
+                    : <div className="w-full h-28 bg-[#E8E4DC] text-[0.6875rem] text-[#6B665E] flex items-center justify-center px-2 text-center">{p.name || p.id}</div>}
+                  <p className="text-[0.6875rem] text-[#6B665E] mt-1">{p.date || ''}{p.text ? ` · ${p.text}` : ''}</p>
+                  {already ? (
+                    <p className="text-[0.75rem] text-[#2F5D50] mt-1" data-testid={`nas-tile-${p.id}-filed`}>On this door already.</p>
+                  ) : (
+                    <div className="flex flex-col gap-1 mt-1">
+                      <button type="button" className="min-h-[36px] px-2 text-[0.75rem] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#2F5D50] border border-[#2F5D50] text-[#2F5D50]" disabled={busy === p.id} data-testid={`nas-use-${p.id}`} onClick={() => file(p, 'listing')}>
+                        {busy === p.id ? 'Filing…' : 'Use on the listing'}
+                      </button>
+                      <button type="button" className="min-h-[36px] px-2 text-[0.75rem] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#2F5D50] border border-[#E8E4DC] text-[#5A5751]" disabled={busy === p.id} data-testid={`nas-keep-${p.id}`} onClick={() => file(p, recordKind)}>
+                        Keep as a record ({recordKind.replace(/-/g, ' ')})
+                      </button>
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </>
+      )}
+      {note && <p className="text-sm mt-2" data-testid="nas-shelf-note" aria-live="polite">{note}</p>}
+    </Card>
+  );
+}
+
 export function GalleryTab({
   door, rooms = [], photos = [], canManage = false, canAdd = canManage, busy = false, unread = false,
   onAdd, onDone, onPatch, onAddRoom, loadImage = null, loadThumb = null, doorLabel = '',
@@ -1359,6 +1558,14 @@ export function GalleryTab({
   // this door it owns pictures it does not — the same invented fact DR-0946
   // was written about, pointing the other way.
   sharedPhotos = [], sharedDoors = [], sharedUnread = false,
+  // THIS DOOR'S OWN ORDER of those pictures (DR-0984): {photo_id: position}.
+  // Saved per door, so Bed B can lead with the bedroom while Bed A leads with
+  // the kitchen; the pictures themselves stay on the door that owns them.
+  sharedOrder = {}, onArrangeShared = null,
+  // FROM THE NAS (DR-1002): the door's archive name on its record (0284) and
+  // which NAS pictures it has already filed ({source: photo id}); null when
+  // that read failed -- unknown, never "none".
+  archive = '', nasFiled = null,
 }) {
   // Every picture opened or saved here carries the Poe Properties band and a
   // QR to this unit's listing (DR-0941): "all downloaded materials have our
@@ -1435,6 +1642,16 @@ export function GalleryTab({
     () => (only ? allShots.filter((p) => p.kind === only) : allShots),
     [allShots, only],
   );
+  // The apartment's pictures in THIS listing's order (DR-0984): what this door
+  // placed first, then the rest in the owning door's order.
+  const sharedArranged = useMemo(
+    () => photoOrder((sharedPhotos || []).map((p) => ({ ...p, sort_order: sharedOrder[p.id] ?? null }))),
+    [sharedPhotos, sharedOrder],
+  );
+  // One viewer for everything on screen: this door's pictures, then the shared
+  // ones -- "the apartment B picture can't be used/clicked and enlarged".
+  const viewable = useMemo(() => [...shown, ...sharedArranged], [shown, sharedArranged]);
+  const arrangeShared = (res) => { if (onArrangeShared && res.patches.length) onArrangeShared(res.patches); };
 
   // MOVE THE TICKED ONES, SAYING HOW FAR IT HAS GOT (DR-0961).
   //
@@ -1650,7 +1867,7 @@ export function GalleryTab({
   // thumbnail rather than going blank.
   const openAt = async (idx) => {
     setOpen(idx);
-    const p = shown[idx];
+    const p = viewable[idx];
     if (!p || full[p.id] || p.storage_path || typeof loadImage !== 'function') return;
     try {
       const src = await loadImage(p.id);
@@ -1914,6 +2131,10 @@ export function GalleryTab({
             )}
           </div>
         </Card>
+      )}
+
+      {canAdd && hasBridgeToken() && (
+        <NasShelf door={door} archive={archive} nasFiled={nasFiled} recordKind={isAdvertising(f.kind) ? rememberedKind() : f.kind} onAdd={onAdd} onDone={onDone} />
       )}
 
       <Card title={only ? `${only.replace(/-/g, ' ')} (${shown.length} of ${allShots.length})` : `Pictures (${allShots.length})`}>
@@ -2213,19 +2434,19 @@ export function GalleryTab({
           ) : (
             <>
               <p className="text-[0.8125rem] text-[#5A5751] mb-2" data-testid="gallery-shared-note">
-                These are on {sharedDoors.length === 1
+                These live on {sharedDoors.length === 1
                   ? <strong>{sharedDoors[0].display_name || 'the other door'}</strong>
                   : <strong>{sharedDoors.length} other doors</strong>} in this same
-                apartment. The kitchen, the bath and the halls are the same rooms, so
-                they advertise this door too — you do not need to photograph them again,
-                and <strong>you do not need to move them</strong>. This door is already
-                advertised with these pictures. Ticking one here edits it on the door
-                that owns it, for both listings at once — it is never a copy and never
-                a way to give this door its own.
+                apartment, and they advertise this door too, with no need to photograph
+                the kitchen and the halls again. <strong>The order and the cover here are
+                this listing&rsquo;s own</strong>: lead with the bedroom here and the other
+                listing still leads with whatever it chose, so a visitor sees two different
+                rooms before tapping anything. A caption or a tick changes the picture
+                itself, on both listings.
               </p>
               <ul className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {sharedPhotos.map((p) => (
-                  <li key={p.id} className="border border-[#E8E4DC] bg-white p-2">
+                {sharedArranged.map((p, i) => (
+                  <li key={p.id} className="border border-[#E8E4DC] bg-white p-2" data-testid={`gallery-shared-${p.id}`}>
                     <div className="relative">
                       {canManage && (
                         <label className="absolute top-1 right-1 z-10 bg-white border border-[#E8E4DC] px-1.5 py-1 flex items-center gap-1 cursor-pointer">
@@ -2241,18 +2462,32 @@ export function GalleryTab({
                           />
                         </label>
                       )}
-                      <SharpPicture
-                        photo={p} loadImage={loadImage} loadThumb={loadThumb}
-                        alt={p.caption || p.kind} className="aspect-square w-full object-cover"
-                      />
+                      <button
+                        type="button" onClick={() => openAt(shown.length + i)}
+                        aria-label={`Open ${p.caption || p.kind} large`}
+                        data-testid={`gallery-shared-open-${p.id}`}
+                        className="block w-full focus:outline focus:outline-2 focus:outline-[#2F5D50]"
+                      >
+                        <SharpPicture
+                          photo={p} loadImage={loadImage} loadThumb={loadThumb}
+                          alt={p.caption || p.kind} className="aspect-square w-full object-cover"
+                        />
+                      </button>
                       <span className="absolute bottom-1 left-1 bg-[#5A5751] text-white text-[0.625rem] uppercase tracking-wider px-1.5 py-0.5">
-                        Shared
+                        {i === 0 ? 'This listing\u2019s cover' : 'Shared'}
                       </span>
                     </div>
                     <div className="text-[0.8125rem] text-[#1A1815] mt-1 leading-snug">
                       {p.caption || <em className="text-[#6B665E]">No caption</em>}
                     </div>
                     <div className="text-[0.6875rem] text-[#6B665E]">{p.kind.replace(/-/g, ' ')}</div>
+                    {canManage && onArrangeShared && sharedArranged.length > 1 && (
+                      <div className="flex flex-wrap gap-1 mt-1" data-testid={`gallery-shared-arrange-${p.id}`}>
+                        <Btn onClick={() => arrangeShared(movePhoto(sharedArranged, p.id, -1))} disabled={i === 0} aria-label={`Move ${p.caption || p.kind} earlier in this listing`}>&larr;</Btn>
+                        <Btn onClick={() => arrangeShared(movePhoto(sharedArranged, p.id, 1))} disabled={i === sharedArranged.length - 1} aria-label={`Move ${p.caption || p.kind} later in this listing`}>&rarr;</Btn>
+                        <Btn onClick={() => arrangeShared(makeCover(sharedArranged, p.id))} disabled={i === 0}>Make this listing&rsquo;s cover</Btn>
+                      </div>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -2261,9 +2496,9 @@ export function GalleryTab({
         </Card>
       )}
 
-      {open !== null && shown.length > 0 && (
+      {open !== null && viewable.length > 0 && (
         <Lightbox
-          items={shown.map((p, n) => ({
+          items={viewable.map((p, n) => ({
             src: full[p.id] || sharpestKnown(p),
             alt: p.caption || p.kind,
             caption: [p.caption, p.kind.replace(/-/g, ' '), roomName(p.room_id)].filter(Boolean).join(' · '),

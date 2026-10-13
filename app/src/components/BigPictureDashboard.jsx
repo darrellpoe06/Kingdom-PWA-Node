@@ -21,6 +21,7 @@ import TraceableNumber from './TraceableNumber.jsx';
 import { DispatchPanel } from './DispatchPanel.jsx';
 import { CapacityPanel } from './CapacityPanel.jsx';
 import { LifeGallery } from './LifeGallery.jsx';
+import { PhoneBackup } from './PhoneBackup.jsx';
 import { fmt, fmtCompact } from '../lib/format.js';
 import { relativeWhen } from '../lib/calendar-shared.js';
 import { getAssignments, summarize as summarizeAssignments } from '../lib/assignments.js';
@@ -791,6 +792,11 @@ export function BigPictureDashboard({ data = {}, snowballExtra = 0, totals, pres
             icon: 'home',
             render: () => (
               <>
+      {/* Phone → NAS backup (2026-07-05, Darrell: "moving all my photos and
+          videos to my server or nas ... so I can get a new phone"). Renders
+          only on devices holding the bridge token — fail-quiet like every
+          NAS surface. */}
+      <PhoneBackup />
       {/* THE BIGGEST PICTURE — family / business / project hero photos. Moved to
           the BOTTOM (2026-06-24, Darrell): the Action Queue ("what needs you")
           leads the tab; the photo wall closes it as the "this is what it's all

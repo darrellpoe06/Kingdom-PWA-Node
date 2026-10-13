@@ -610,6 +610,26 @@ export async function loadPhotoImages(ids = [], client = supabase) {
  * The door's photos. RLS decides what comes back — a tenant sees only their own
  * tenancy's, and never the door-level turn between households.
  */
+/**
+ * Which NAS pictures this door has already filed: {source: photo id} (DR-1002).
+ * Its OWN read, never a column on the list read: the column lands with
+ * db-migrate while the deploy is already serving, and a list read that named
+ * it would fail for every door until then (DR-0935). A failed read is
+ * "unknown", not "none" -- the shelf then offers every picture and lets the
+ * database refuse the second copy (0285).
+ */
+export async function loadDoorPhotoSources(rentalRef, client = supabase) {
+  if (!rentalRef) return ok({ sources: {} });
+  try {
+    const { data, error } = await client
+      .from('property_photos').select('id, source').eq('rental_ref', rentalRef).not('source', 'is', null);
+    if (error) return no('read-failed', error);
+    const sources = {};
+    for (const row of data || []) if (row && row.source) sources[row.source] = row.id;
+    return ok({ sources });
+  } catch (e) { return no('unexpected', e); }
+}
+
 export async function loadDoorPhotos(rentalRef, client = supabase) {
   if (!rentalRef) return ok({ photos: [] });
   try {
@@ -738,7 +758,47 @@ export async function loadSiblingPhotos(rentalId, client = supabase) {
       .order('sort_order', { ascending: true, nullsFirst: false })
       .order('taken_at', { ascending: false });
     if (error) return no('read-failed', error);
-    return ok({ photos: data || [], siblings: mine });
+    // THIS DOOR'S OWN ORDER of what it borrows (DR-0984, 0282). A failed read
+    // here is not a reason to hide the pictures: they come back in the owning
+    // door's order and say so, never as "none".
+    const { data: placed, error: placedErr } = await client
+      .from('door_photo_order').select('photo_id, position').eq('rental_id', rentalId);
+    const order = {};
+    for (const row of placed || []) order[row.photo_id] = row.position;
+    return ok({ photos: data || [], siblings: mine, order, orderUnread: Boolean(placedErr) });
+  } catch (e) { return no('unexpected', e); }
+}
+
+/**
+ * Save THIS door's order of the pictures it borrows from the rest of its
+ * apartment (DR-0984). `patches` is what photo-order.js's movePhoto/makeCover
+ * return ([{id, patch: {sort_order}}]); each becomes this door's position for
+ * that picture. The picture itself is never touched -- Bed A keeps its own
+ * order and cover while Bed B leads with the bedroom. The database refuses a
+ * picture that is not in this door's apartment (0282's trigger) and anyone
+ * who is not the family (RLS).
+ */
+export async function saveDoorPhotoOrder(rentalId, instanceId, patches = [], client = supabase) {
+  const rows = (Array.isArray(patches) ? patches : [])
+    .filter((x) => x && x.id && Number.isFinite(Number(x.patch?.sort_order)))
+    .map((x) => ({ rental_id: rentalId, photo_id: x.id, instance_id: instanceId, position: Math.round(Number(x.patch.sort_order)) }));
+  if (!rentalId || !instanceId) return no('no-door');
+  if (!rows.length) return ok({ saved: 0 });
+  try {
+    const { error } = await client.from('door_photo_order').upsert(rows, { onConflict: 'rental_id,photo_id' });
+    if (error) return no('write-failed', error);
+    return ok({ saved: rows.length });
+  } catch (e) { return no('unexpected', e); }
+}
+
+/** Every door's own order of borrowed pictures the family may read: {rental_id: {photo_id: position}}. */
+export async function loadDoorPhotoOrders(client = supabase) {
+  try {
+    const { data, error } = await client.from('door_photo_order').select('rental_id, photo_id, position');
+    if (error) return no('read-failed', error);
+    const orders = {};
+    for (const row of data || []) (orders[row.rental_id] ||= {})[row.photo_id] = row.position;
+    return ok({ orders });
   } catch (e) { return no('unexpected', e); }
 }
 
@@ -849,6 +909,44 @@ export async function loadDoorArea(id, client = supabase) {
     if (error) return no('read-failed', error);
     const has = data && data.area_lat != null && data.area_lng != null;
     return ok({ area: has ? { lat: Number(data.area_lat), lng: Number(data.area_lng) } : null, nearby: (data && data.nearby) || [] });
+  } catch (e) { return no('unexpected', e); }
+}
+
+/**
+ * Which of this person's doors are already on the map (DR-0998): one read, the
+ * ids that carry a rounded area. RLS scopes it to the doors they can see.
+ */
+export async function loadDoorAreas(client = supabase) {
+  try {
+    const { data, error } = await client.from('rentals').select('id, area_lat, area_lng');
+    if (error) return no('read-failed', error);
+    const rows = (data || []).filter((r) => r.area_lat != null && r.area_lng != null);
+    return ok({
+      placed: new Set(rows.map((r) => r.id)),
+      // The rounded areas themselves, by door, so the Real Estate card can show
+      // the same map Poe Properties shows (DR-0999). Never an exact point.
+      areas: Object.fromEntries(rows.map((r) => [r.id, { lat: Number(r.area_lat), lng: Number(r.area_lng) }])),
+    });
+  } catch (e) { return no('unexpected', e); }
+}
+
+/**
+ * Each door's picture archive on the NAS and when its address was last held
+ * in its parts (0284, DR-0999). Its OWN read, as the areas are: the columns
+ * arrive by db-migrate beside the deploy, and a column the database does not
+ * yet have must not cost the main rentals read. {channels: {id: name},
+ * heldAt: {id: iso}}.
+ */
+export async function loadDoorArchives(client = supabase) {
+  try {
+    const { data, error } = await client.from('rentals').select('id, photo_channel, address_held_at');
+    if (error) return no('read-failed', error);
+    const channels = {}; const heldAt = {};
+    for (const r of data || []) {
+      if (r.photo_channel) channels[r.id] = r.photo_channel;
+      if (r.address_held_at) heldAt[r.id] = r.address_held_at;
+    }
+    return ok({ channels, heldAt });
   } catch (e) { return no('unexpected', e); }
 }
 

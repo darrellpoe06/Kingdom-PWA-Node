@@ -35,3 +35,17 @@ export function sameApartment(a, b) {
   return streetKey(a && a.address, a && a.unit) === streetKey(b && b.address, b && b.unit);
 }
 
+
+/**
+ * The building a door is in (DR-0998): its street with the unit folded out
+ * (streetKey), cut at the first unit designator. The same rule as the
+ * database's public.building_key (0283), so "805 North Prospect Avenue Apt 4"
+ * with unit "Bed B" and "805 North Prospect Avenue" with unit "Apt 2" are one
+ * building. Cleaned, never fuzzy (DR-0967). '' when it names nothing.
+ */
+export function buildingKey(address, unit) {
+  const k = streetKey(address, unit)
+    .replace(/\b(apartment|apt|unit|suite|ste|room|rm|bed|no|number)\b.*$/, '')
+    .replace(/\s+/g, ' ').trim();
+  return k.length >= 5 ? k : '';
+}

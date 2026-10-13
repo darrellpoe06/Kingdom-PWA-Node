@@ -39,6 +39,67 @@ export const RECORDED_ELSEWHERE = { 'living-lessons': 'app/src/lib/living-lesson
 /** A new lesson authored on a branch lands on main in a squash commit a little later. */
 export const SQUASH_GRACE_DAYS = 14;
 
+/**
+ * Lessons whose defining commits were SQUASHED AWAY, declared one at a time
+ * with the real day and why (DR-0988).
+ *
+ * THE CASE THIS EXISTS FOR, measured 2026-10-13. Draining a two-month-old pull
+ * request (DR-0986's first drain, PR #1217 — a Godhead Study teaching authored
+ * 2026-08-09) hits a contradiction no single file can satisfy:
+ *
+ *   on the PR head, git says the lesson was defined 2026-08-09;
+ *   on main after the lane's SQUASH merge, those commits are unreachable and
+ *   git says 2026-10-13 — a 65-day gap against a 14-day grace.
+ *
+ * Raising SQUASH_GRACE_DAYS to admit that would weaken the "is this really a
+ * squash?" question for EVERY lesson, and that question is the whole point of
+ * the grace: it catches a hand-edited wrong day. A declared, per-lesson
+ * exception carrying its provenance is strictly stronger — it admits exactly
+ * the one lesson someone can account for, and nothing else.
+ *
+ * This is the same shape as the allow-list declarations in
+ * scripts/constraint-allow-list-guard.mjs: the exception is data in the
+ * repository with a reason attached, not a loosened threshold.
+ *
+ * A declaration is honoured ONLY when its `day` equals the recorded day, so it
+ * cannot be used to bless a day nobody checked. `pr` and `why` are required and
+ * asserted, so the next reader learns where the lesson came from rather than
+ * finding a bare override.
+ *
+ * Empty is the correct state. An entry here means a drain happened and is
+ * accounted for; the day itself still has to have come from git on the branch.
+ */
+export const SQUASHED_AWAY = {
+  'ea-gh-knowledge-and-sin': {
+    day: '2026-08-09', pr: 1217,
+    why: 'drained from PR #1217 per DR-0986; first defined 2026-08-09 in 6600e1bc on its own branch, which this branch does not carry (DR-0988)',
+  },
+  'ea-gh-remedy-that-arrives-on-a-calendar': {
+    day: '2026-08-10', pr: 1217,
+    why: 'drained from PR #1217 per DR-0986; first defined 2026-08-10 in bb5cb192 on its own branch, which this branch does not carry (DR-0988)',
+  },
+  'ea-gh-mind-of-christ-in-the-hidden-part': {
+    day: '2026-08-09', pr: 1217,
+    why: 'drained from PR #1217 per DR-0986; first defined 2026-08-09 in 6600e1bc on its own branch, which this branch does not carry (DR-0988)',
+  },
+  'ea-gh-justice-rationed-at-the-gate': {
+    day: '2026-08-10', pr: 1217,
+    why: 'drained from PR #1217 per DR-0986; first defined 2026-08-10 in bb5cb192 on its own branch, which this branch does not carry (DR-0988)',
+  },
+  'ea-gh-keep-yourself-by-the-word': {
+    day: '2026-08-09', pr: 1217,
+    why: 'drained from PR #1217 per DR-0986; first defined 2026-08-09 in 6600e1bc on its own branch, which this branch does not carry (DR-0988)',
+  },
+  'ea-gh-conviction-vs-condemnation': {
+    day: '2026-08-09', pr: 1217,
+    why: 'drained from PR #1217 per DR-0986; first defined 2026-08-09 in 6600e1bc on its own branch, which this branch does not carry (DR-0988)',
+  },
+  'ea-gh-word-is-4d-fact': {
+    day: '2026-08-09', pr: 1217,
+    why: 'drained from PR #1217 per DR-0986; first defined 2026-08-09 in 82b05402 on its own branch, which this branch does not carry (DR-0988)',
+  },
+};
+
 // `id: '…'` in JS, `"id": "…"` in a JSON-shaped block.
 const DEF = /(?:^|[\s{,(])(['"]?)id\1:\s*(['"`])([a-z0-9][a-z0-9-]*)\2/g;
 // A course that defines each lesson as the KEY of a spec table.
@@ -120,7 +181,7 @@ export function gitDayFor(id, scan, derived = DERIVED_LESSONS) {
  * dated on its branch, or before its first commit — 'working-tree' — and then
  * squash-merged) must be on or before git's day and within SQUASH_GRACE_DAYS.
  */
-export function judgeEntry(entry, git, reachable) {
+export function judgeEntry(entry, git, reachable, id = null) {
   if (!entry || !isIsoDay(entry.date)) return 'no recorded day';
   if (entry.sha === 'working-tree' && git && git.reason) return null; // still uncommitted
   if (!git || git.reason) return `git cannot trace it (${git ? git.reason : 'no record'})`;
@@ -131,7 +192,15 @@ export function judgeEntry(entry, git, reachable) {
   }
   const gap = daysBetween(entry.date, git.date);
   if (gap < 0) return `recorded ${entry.date} is AFTER the day it first reached history (${git.date})`;
-  if (gap > SQUASH_GRACE_DAYS) return `recorded ${entry.date} is ${gap} days before it first reached history (${git.date}); more than ${SQUASH_GRACE_DAYS} is not a squash`;
+  if (gap > SQUASH_GRACE_DAYS) {
+    // A DRAIN, declared and accounted for (DR-0988). Honoured only when the
+    // declaration names the same day the file records, so it cannot bless a day
+    // nobody checked.
+    const declared = id ? SQUASHED_AWAY[id] : null;
+    if (declared && declared.day === entry.date) return null;
+    return `recorded ${entry.date} is ${gap} days before it first reached history (${git.date}); more than ${SQUASH_GRACE_DAYS} is not a squash`
+      + (id ? ` — if a drain squashed its branch away, declare '${id}' in SQUASHED_AWAY with its day, pr and why` : '');
+  }
   return null;
 }
 
@@ -169,7 +238,7 @@ export function buildDatesFile({ catalog, scan, reachable, previous = null, reco
       const prevRow = prevCourses[c.key] && prevCourses[c.key][id];
       const prev = Array.isArray(prevRow) ? { date: prevRow[0], sha: prevRow[1] } : null;
       if (prev) {
-        const why = judgeEntry(prev, git, reachable);
+        const why = judgeEntry(prev, git, reachable, id);
         if (!why) { out[id] = [prev.date, prev.sha]; dated += 1; continue; }
         problems.push({ course: c.key, id, why });
       }
