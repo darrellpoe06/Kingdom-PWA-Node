@@ -23,6 +23,14 @@ import { createTableSync } from './table-sync.js';
 export const transactionsSync = createTableSync({
   localKey: 'transactions',
   remoteTable: 'transactions',
+  // Watermark delta on updated_at (migration 0136 backfilled the 1,978 NULLs
+  // and added the touch trigger) + deletions reconciled from record_events —
+  // the ledger held 2,953 rows / 3.4 MB and re-downloaded WHOLE on every one
+  // of its 17,374 lifetime writes. appendOnly is unsound here (rows update and
+  // delete); this mode keeps the consumer's full-list contract via the
+  // controller's cache. See table-sync.js `mutableDelta`.
+  mutableDelta: true,
+  eventsKind: 'transaction',
 
   toRow(item, { tenantId, userId }) {
     return {

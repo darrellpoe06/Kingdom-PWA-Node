@@ -30,36 +30,77 @@ const pick = (loader, name) =>
 
 // The registry. One entry per lazy-loaded surface. `load` is the single source
 // of the chunk boundary; `component` is derived from it once, below.
-//   nav : 'top' | 'church' | 'books'  — which nav group mounts it
+//   nav : 'top' | 'church' | 'books' | 'create'  — which nav group mounts it
 //   view: the top-level `view ===` id  (for nav:'top' this IS the route id)
-//   sub : the sub-view id within church/books (churchView/booksView), else null
-//   gate: human-readable note on the gate the render switch applies today
-//         (declarative `requires` is migrated onto the registry in Stage 2 —
-//          left descriptive here rather than fabricated; DR-0076)
+//   sub : the sub-view id within church/books/create (churchView/booksView,
+//         the Create row's sub, lib/create-sub.js), else null
+//   gate: human-readable note on the gate the render switch applies today —
+//         the prose, for a reader
+//   requires    : the MACHINE-READABLE requirement (lib/surface-access.js
+//                 REQUIREMENTS). Stage 2's declarative gate, no longer deferred.
+//   whenDenied  : 'hide' (the tab is not in the nav at all) or 'lock' (the tab
+//                 is there, dark, saying what it is and who to ask).
+//
+// WHICH OF THE TWO, AND WHY (Darrell 2026-09-11: "not showing tabs unless they
+// are staff or it's black with instructions for access"). The rule applied
+// across the 29 gated surfaces below, so the next one to land has a precedent
+// instead of a coin toss:
+//
+//   'hide'  when the surface's EXISTENCE is not the viewer's business — the
+//           family's own books, CRM, Forecast, Admin, the private Study circle,
+//           the church Observation board. A member of the congregation seeing
+//           "Observation (locked)" learns something about the house that is not
+//           theirs to learn, and there is no version of asking that ends in yes.
+//
+//   'lock'  when a person could legitimately want it and legitimately ask —
+//           Devices, the Infra Plan, the Video Wall, Harvest, church Projects,
+//           and everything that only wants a sign-in. A hidden tab teaches
+//           nothing: somebody who SHOULD have access cannot tell "not for me"
+//           from "broken", and never learns the door was there.
+//
+// `requires` describes the SCREEN. RLS is the wall and holds either way
+// (DR-0060); where the two disagree, the database is right and this is a bug.
 export const SURFACES = [
   // ── top-level surfaces ──────────────────────────────────────────────────
   { id: 'about',        label: 'About',            nav: 'top', view: 'about',        sub: null,          load: () => import('./components/About.jsx') },
   { id: 'rentals',      label: 'Rentals',          nav: 'top', view: 'rentals',      sub: null,          load: pick(() => import('./components/Rentals.jsx'), 'Rentals') },
+  { id: 'properties',   label: 'Properties',       nav: 'top', view: 'properties',   sub: null,          requires: 'signed-in', whenDenied: 'lock', gate: 'any signed-in person — RLS decides which doors they see (DR-0313)', load: pick(() => import('./modules/properties/index.js'), 'PropertiesApp') },
   { id: 'markets',      label: 'Markets',          nav: 'top', view: 'markets',      sub: null,          load: pick(() => import('./components/Markets.jsx'), 'Markets') },
-  { id: 'practice',     label: 'Practice',         nav: 'top', view: 'practice',     sub: null,          gate: 'tier: VIEW_TIER_REQUIREMENTS.practice',     load: pick(() => import('./components/Practice.jsx'), 'Practice') },
-  { id: 'opportunities',label: 'Opportunities',    nav: 'top', view: 'opportunities',sub: null,          gate: 'tier: VIEW_TIER_REQUIREMENTS.opportunities', load: pick(() => import('./components/DevOps.jsx'), 'Opportunities') },
+  { id: 'practice',     label: 'Practice',         nav: 'top', view: 'practice',     sub: null,          requires: 'family', whenDenied: 'hide', gate: 'tier: VIEW_TIER_REQUIREMENTS.practice',     load: pick(() => import('./components/Practice.jsx'), 'Practice') },
+  { id: 'opportunities',label: 'Opportunities',    nav: 'top', view: 'opportunities',sub: null,          requires: 'family', whenDenied: 'hide', gate: 'tier: VIEW_TIER_REQUIREMENTS.opportunities', load: pick(() => import('./components/DevOps.jsx'), 'Opportunities') },
   { id: 'notes',        label: 'Notes',            nav: 'top', view: 'notes',        sub: null,          load: pick(() => import('./components/ThinkingSpace.jsx'), 'ThinkingSpace') },
   { id: 'create',       label: 'Create',           nav: 'top', view: 'create',       sub: null,          load: () => import('./components/CreationWorkspace.jsx') },
   { id: 'voice',        label: 'Voice',            nav: 'top', view: 'voice',        sub: null,          load: () => import('./components/VoiceStudio.jsx') },
-  { id: 'library',      label: 'Library',          nav: 'top', view: 'library',      sub: null,          gate: 'reader: any signed-in; Studio (build): family/governor', load: () => import('./components/Library.jsx') },
-  { id: 'study',        label: 'Study',            nav: 'top', view: 'study',        sub: null,          gate: 'isStudyCircle',                              load: () => import('./components/Study.jsx') },
-  { id: 'center',       label: 'Command & Serve',  nav: 'top', view: 'center',       sub: null,          gate: 'family/governor',                            load: () => import('./components/CommandServeCenter.jsx') },
-  { id: 'crm',          label: 'CRM',              nav: 'top', view: 'crm',          sub: null,          gate: 'family/governor',                            load: pick(() => import('./components/CRM.jsx'), 'CRM') },
-  { id: 'relationships',label: 'Relationships',    nav: 'top', view: 'relationships',sub: null,          gate: 'family/governor',                            load: pick(() => import('./components/Relationships.jsx'), 'Relationships') },
-  { id: 'inventory',    label: 'Inventory',        nav: 'top', view: 'inventory',    sub: null,          gate: 'family/governor',                            load: () => import('./components/Inventory.jsx') },
-  { id: 'forecast',     label: 'Forecast',         nav: 'top', view: 'forecast',     sub: null,          gate: 'family/governor',                            load: () => import('./components/Forecast.jsx') },
+  { id: 'scribe',       label: 'Scribe',           nav: 'top', view: 'scribe',       sub: null,          requires: 'family', whenDenied: 'hide', gate: 'family/governor',                            load: () => import('./components/WorkflowScribe.jsx') },
+  { id: 'library',      label: 'Library',          nav: 'top', view: 'library',      sub: null,          requires: 'signed-in', whenDenied: 'lock', gate: 'reader: any signed-in; Studio (build): family/governor', load: () => import('./components/Library.jsx') },
+  { id: 'study',        label: 'Study',            nav: 'top', view: 'study',        sub: null,          requires: 'study-circle', whenDenied: 'hide', gate: 'isStudyCircle',                              load: () => import('./components/Study.jsx') },
+  { id: 'center',       label: 'Command & Serve',  nav: 'top', view: 'center',       sub: null,          requires: 'family', whenDenied: 'hide', gate: 'family/governor',                            load: () => import('./components/CommandServeCenter.jsx') },
+  { id: 'crm',          label: 'CRM',              nav: 'top', view: 'crm',          sub: null,          requires: 'family', whenDenied: 'hide', gate: 'family/governor',                            load: pick(() => import('./components/CRM.jsx'), 'CRM') },
+  { id: 'relationships',label: 'Relationships',    nav: 'top', view: 'relationships',sub: null,          requires: 'family', whenDenied: 'hide', gate: 'family/governor OR business tier (DR-0128)', load: pick(() => import('./components/Relationships.jsx'), 'Relationships') },
+  { id: 'inventory',    label: 'Inventory',        nav: 'top', view: 'inventory',    sub: null,          requires: 'family', whenDenied: 'hide', gate: 'family/governor',                            load: () => import('./components/Inventory.jsx') },
+  { id: 'forecast',     label: 'Forecast',         nav: 'top', view: 'forecast',     sub: null,          requires: 'family', whenDenied: 'hide', gate: 'family/governor',                            load: () => import('./components/Forecast.jsx') },
   // Admin absorbed the users/usage report (the former 'access' surface) into ONE
   // report and retired the separate Access tab (Darrell 2026-07-04). AdminConsole
   // now renders AccessUsageMetrics directly; there is no standalone 'access' route.
-  { id: 'admin',        label: 'Admin',            nav: 'top', view: 'admin',        sub: null,          gate: 'family/governor',                            load: () => import('./components/AdminConsole.jsx') },
+  { id: 'admin',        label: 'Admin',            nav: 'top', view: 'admin',        sub: null,          requires: 'family', whenDenied: 'hide', gate: 'family/governor',                            load: () => import('./components/AdminConsole.jsx') },
+  { id: 'moore',        label: 'Moore Divahs',     nav: 'top', view: 'moore',        sub: null,          requires: 'family', whenDenied: 'hide', gate: 'family/governor',                            load: () => import('./components/MooreDivahs.jsx') },
+  { id: 'cohorts',      label: 'Academy',          nav: 'top', view: 'cohorts',      sub: null,          requires: 'family', whenDenied: 'hide', gate: 'family/governor OR business tier',           load: () => import('./components/CohortPrograms.jsx') },
+  { id: 'tlc-assistant',label: 'Assistant',        nav: 'top', view: 'tlc-assistant',sub: null,          requires: 'family', whenDenied: 'hide', gate: 'family/governor OR business tier',           load: () => import('./components/TlcAssistant.jsx') },
+  { id: 'tlc-onboarding',label: 'Onboarding',      nav: 'top', view: 'tlc',          sub: 'onboard',     requires: 'family', whenDenied: 'hide', gate: 'family/governor OR business tier; office owner/admin inside (DR-0344)', load: () => import('./components/TlcOnboarding.jsx') },
   { id: 'recipes',      label: "Chef's Corner",    nav: 'top', view: 'recipes',      sub: null,          load: () => import('./components/ChefCorner.jsx') },
+  { id: 'health',       label: 'Road to 150',      nav: 'top', view: 'health',       sub: null,          requires: 'signed-in', whenDenied: 'lock', gate: 'steward, or enrolled in a program (canSeeHealthTab)', load: () => import('./components/RoadTo150.jsx') },
   { id: 'games',        label: 'Games',            nav: 'top', view: 'games',        sub: null,          load: () => import('./components/Games.jsx') },
+  { id: 'messages',     label: 'Messages',         nav: 'top', view: 'messages',     sub: null,          load: () => import('./components/Messages.jsx') },
   { id: 'tvtime',       label: 'TV Time',          nav: 'top', view: 'tvtime',       sub: null,          load: () => import('./components/TVTime.jsx') },
+  { id: 'advocacy',     label: 'Advocacy',         nav: 'top', view: 'advocacy',     sub: null,          load: () => import('./components/AdvocacyCases.jsx') },
+  { id: 'databack',     label: 'Your Data',        nav: 'top', view: 'databack',     sub: null,          load: () => import('./components/DataLiberation.jsx') },
+  // Cameras — the family's cameras from the family's own server (DR-0756).
+  // 'hide': the home's cameras are not a visitor's business, and there is no
+  // version of asking that ends in yes for someone outside the family.
+  { id: 'cameras',      label: 'Cameras',          nav: 'top', view: 'cameras',      sub: null,          requires: 'cameras', whenDenied: 'hide', gate: 'family/governor, or a camera grant the owner gave this device (DR-0756, DR-0778)', load: () => import('./components/Cameras.jsx') },
+  // Vault — a person's passwords, locked on their device, kept on their own
+  // server (DR-0762). 'lock': anyone could legitimately want it; signing in opens it.
+  { id: 'vault',        label: 'Vault',            nav: 'top', view: 'vault',        sub: null,          requires: 'signed-in', whenDenied: 'lock', gate: 'any signed-in person — the vault is theirs alone (0251 RLS, DR-0762)', load: () => import('./components/Vault.jsx') },
 
   // ── church sub-surfaces (view === 'church', churchView === sub) ──────────
   { id: 'church-home',      label: 'Church Home',   nav: 'church', view: 'church', sub: 'home',       load: pick(() => import('./components/ChurchHome.jsx'), 'ChurchHome') },
@@ -68,21 +109,51 @@ export const SURFACES = [
   { id: 'program',          label: 'Service Program', nav: 'church', view: 'church', sub: 'program',  load: () => import('./components/ServiceProgram.jsx') },
   { id: 'pulpit',           label: 'Pulpit',        nav: 'church', view: 'church', sub: 'pulpit',     load: () => import('./components/Pulpit.jsx') },
   { id: 'scripture',        label: 'Scripture',     nav: 'church', view: 'church', sub: 'scripture',  load: () => import('./components/ScriptureLibrary.jsx') },
-  { id: 'videowall',        label: 'Video Wall',    nav: 'church', view: 'church', sub: 'videowall',  gate: 'isChurchStaff', load: () => import('./components/ChurchVideoWall.jsx') },
-  { id: 'devices',          label: 'Devices',       nav: 'church', view: 'church', sub: 'devices',    gate: 'isChurchStaff', load: () => import('./components/DeviceInventory.jsx') },
-  { id: 'harvest',          label: 'Harvest',       nav: 'church', view: 'church', sub: 'harvest',    gate: 'isChurchStaff', load: () => import('./components/HarvestLedger.jsx') },
-  { id: 'observe',          label: 'Observation',   nav: 'church', view: 'church', sub: 'observe',    gate: 'isChurchStaff', load: pick(() => import('./components/ChurchObservation.jsx'), 'ChurchObservation') },
+  { id: 'videowall',        label: 'Video Wall',    nav: 'church', view: 'church', sub: 'videowall',  requires: 'church-staff', whenDenied: 'lock', gate: 'isChurchStaff', load: () => import('./components/ChurchVideoWall.jsx') },
+  { id: 'devices',          label: 'Devices',       nav: 'church', view: 'church', sub: 'devices',    requires: 'church-staff', whenDenied: 'lock', gate: 'isChurchStaff', load: () => import('./components/DeviceInventory.jsx') },
+  { id: 'infra-plan',       label: 'Infra Plan',    nav: 'church', view: 'church', sub: 'infra-plan', requires: 'church-staff', whenDenied: 'lock', gate: 'isChurchStaff', load: () => import('./components/ChurchInfraPlan.jsx') },
+  { id: 'harvest',          label: 'Harvest',       nav: 'church', view: 'church', sub: 'harvest',    requires: 'church-staff', whenDenied: 'lock', gate: 'isChurchStaff', load: () => import('./components/HarvestLedger.jsx') },
+  { id: 'observe',          label: 'Observation',   nav: 'church', view: 'church', sub: 'observe',    requires: 'church-staff', whenDenied: 'hide', gate: 'isChurchStaff', load: pick(() => import('./components/ChurchObservation.jsx'), 'ChurchObservation') },
   { id: 'learn',            label: 'Learn',         nav: 'church', view: 'church', sub: 'learn',      load: () => import('./components/ChurchLearn.jsx') },
   { id: 'eternal-algorithms', label: 'Eternal Algorithms', nav: 'church', view: 'church', sub: 'eternal-algorithms', load: () => import('./components/EternalAlgorithmsStudy.jsx') },
   { id: 'conference',       label: 'Conference',    nav: 'church', view: 'church', sub: 'conference', load: pick(() => import('./components/ConferenceModule.jsx'), 'ConferenceModule') },
   { id: 'conference-var',   label: 'Conference Variance', nav: 'church', view: 'church', sub: 'conference', load: pick(() => import('./components/ConferenceVariance.jsx'), 'ConferenceVariance') },
   { id: 'event-center',     label: 'Event Center',  nav: 'church', view: 'church', sub: 'conference', load: pick(() => import('./components/EventCenterModule.jsx'), 'EventCenterModule') },
-  { id: 'events',           label: 'Events',        nav: 'church', view: 'church', sub: 'events',     load: () => import('./components/EventManagement.jsx') },
+  { id: 'events',           label: 'Campus Rentals', nav: 'church', view: 'church', sub: 'events',     load: () => import('./components/EventManagement.jsx') },
+  { id: 'church-projects',  label: 'Projects',      nav: 'church', view: 'church', sub: 'projects',   requires: 'church-staff', whenDenied: 'lock', gate: 'isChurchStaff (read-only otherwise)', load: () => import('./components/ChurchProjects.jsx') },
+  { id: 'ministries',       label: 'Ministries',    nav: 'church', view: 'church', sub: 'ministries', requires: 'anyone', whenDenied: 'lock', gate: 'any church viewer — the directory of the house', load: pick(() => import('./components/ChurchMinistries.jsx'), 'ChurchMinistries') },
+  { id: 'bus',              label: 'Bus Ministry',  nav: 'church', view: 'church', sub: 'bus',        requires: 'signed-in', whenDenied: 'lock', gate: 'bus-ministry member (owner/admin OR bus_drivers row)', load: () => import('./components/BusMinistry.jsx') },
+  { id: 'access',           label: 'Access',        nav: 'church', view: 'church', sub: 'access',     requires: 'signed-in', whenDenied: 'lock', gate: 'any signed-in member sees THEIR OWN requests; the queue inside is church owner/admin and the DB is the wall (0211)', load: () => import('./components/AccessRequests.jsx') },
+  { id: 'my-record',        label: 'My Record',     nav: 'church', view: 'church', sub: 'my-record',  requires: 'signed-in', whenDenied: 'lock', gate: 'any signed-in member reads and fills THEIR OWN record; the roll area inside is church owner/admin and the DB is the wall (0209)', load: () => import('./components/ChurchMemberSpace.jsx') },
+  { id: 'church-members',   label: 'Members',       nav: 'church', view: 'church', sub: 'members',    requires: 'signed-in', whenDenied: 'lock', gate: 'signed-in sees the way in; church owner/admin (list_my_admin_instances) governs — the DB is the wall (DR-0348)', load: () => import('./components/ChurchMembers.jsx') },
+  { id: 'giving-book',      label: 'Giving Book',   nav: 'church', view: 'church', sub: 'giving-book', requires: 'signed-in', whenDenied: 'lock', gate: 'the church OFFICE only (owner/admin) — the office\'s own contribution book; 0214 RLS is the wall, and it is never the member\'s private ledger (0184) nor the pastoral roll (0209)', load: () => import('./components/ChurchGivingBook.jsx') },
+
+  // ── create sub-surfaces (view === 'create', the Create row's sub === sub) ─
+  // DR-0679, amending DR-0678. Darrell 2026-09-29: "Why take away my type
+  // texting place?!!!!!!!!!!!! Where is it?!!!!!!!!!!!!!!", "Obviously give us
+  // a actual tabs like so we can know!!!!!!!!!!!!!!!!", "Subtabs". Create's
+  // second row, under the main nav exactly like Church's, is DERIVED from these
+  // entries (components/CreateSubNav.jsx). 'workspace' is first and the default
+  // everywhere. The page module mounts every sub (components/CreatingStation.jsx);
+  // the gates are the ones the station already applies (the Governor's two
+  // queues are family-only, locked so he can see where they are; the lesson
+  // lists want a sign-in). The order after the Workspace is the device's,
+  // applied by the row; this registry stays device-free.
+  { id: 'create-workspace',   label: 'Workspace',         nav: 'create', view: 'create', sub: 'workspace',    requires: 'anyone',    whenDenied: 'lock', gate: 'open: the Creation Workspace canvas; saving syncs when signed in', load: () => import('./components/CreationWorkspace.jsx') },
+  { id: 'create-record',      label: 'Lesson entry',      nav: 'create', view: 'create', sub: 'record',       requires: 'anyone',    whenDenied: 'lock', gate: 'open: the one-voice input with the Lesson chip chosen', load: () => import('./components/CreationWorkspace.jsx') },
+  { id: 'create-lessons',     label: 'Your lessons',      nav: 'create', view: 'create', sub: 'your-lessons', requires: 'signed-in', whenDenied: 'lock', gate: 'signed-in: the person\'s own lessons (RLS is the wall)', load: () => import('./components/CreationWorkspace.jsx') },
+  { id: 'create-decide',      label: 'Lessons to decide', nav: 'create', view: 'create', sub: 'decide',       requires: 'family',    whenDenied: 'lock', gate: 'the Governor (signed in, not reviewer mode, a family email), as on Projects -> Decisions', load: () => import('./components/CreationWorkspace.jsx') },
+  { id: 'create-governor',    label: "Governor's queue",  nav: 'create', view: 'create', sub: 'governor',     requires: 'family',    whenDenied: 'lock', gate: 'the Governor (signed in, not reviewer mode, a family email), as on Projects -> Decisions', load: () => import('./components/CreationWorkspace.jsx') },
+  { id: 'create-towers',      label: 'Towers',            nav: 'create', view: 'create', sub: 'towers',       requires: 'signed-in', whenDenied: 'lock', gate: 'signed-in: which tower wrote what', load: () => import('./components/CreationWorkspace.jsx') },
+  { id: 'create-read-listen', label: 'Read and listen',   nav: 'create', view: 'create', sub: 'read-listen',  requires: 'anyone',    whenDenied: 'lock', gate: 'open: links to Learn and Voice', load: () => import('./components/CreationWorkspace.jsx') },
+  { id: 'create-handoff',     label: 'Hand off',          nav: 'create', view: 'create', sub: 'handoff',      requires: 'anyone',    whenDenied: 'lock', gate: 'open: a link that opens Create at a sub on another device', load: () => import('./components/CreationWorkspace.jsx') },
 
   // ── books sub-surfaces (view === 'books', booksView === sub) ────────────
   { id: 'transactions', label: 'Transactions', nav: 'books', view: 'books', sub: 'transactions', load: () => import('./components/BooksTransactions.jsx') },
   { id: 'cart',  label: 'Subscriptions', nav: 'books', view: 'books', sub: 'cart',  load: pick(() => import('./components/Cart.jsx'), 'Cart') },
   { id: 'k1099', label: '1099',          nav: 'books', view: 'books', sub: 'k1099', load: pick(() => import('./components/Contractors1099.jsx'), 'Contractors1099') },
+  { id: 'owed',  label: 'Owed',          nav: 'books', view: 'books', sub: 'owed',  requires: 'instance-owner-admin', whenDenied: 'lock', gate: 'owner or admin (books wall, 0082/0100 + 0202/0203)', load: () => import('./components/Obligations.jsx') },
+  { id: 'plan',  label: 'Plan',          nav: 'books', view: 'books', sub: 'plan',  requires: 'signed-in', whenDenied: 'lock', gate: 'instance member (family_plans RLS)', load: pick(() => import('./components/FamilyPlan.jsx'), 'FamilyPlan') },
 ];
 
 // Derive each lazy component ONCE from its loader and hang it on the entry.
@@ -103,12 +174,14 @@ export const surfaceById = Object.fromEntries(SURFACES.map((s) => [s.id, s]));
 // registry-driven mount and these named exports retire.)
 export const About            = surfaceById['about'].component;
 export const Rentals          = surfaceById['rentals'].component;
+export const PropertiesApp    = surfaceById['properties'].component;
 export const Markets          = surfaceById['markets'].component;
 export const Practice         = surfaceById['practice'].component;
 export const Opportunities    = surfaceById['opportunities'].component;
 export const ThinkingSpace    = surfaceById['notes'].component;
 export const CreationWorkspace = surfaceById['create'].component;
 export const VoiceStudio      = surfaceById['voice'].component;
+export const WorkflowScribe   = surfaceById['scribe'].component;
 export const Library          = surfaceById['library'].component;
 export const Study            = surfaceById['study'].component;
 export const CommandServeCenter = surfaceById['center'].component;
@@ -117,9 +190,19 @@ export const Relationships    = surfaceById['relationships'].component;
 export const Inventory        = surfaceById['inventory'].component;
 export const Forecast         = surfaceById['forecast'].component;
 export const AdminConsole     = surfaceById['admin'].component;
+export const MooreDivahs      = surfaceById['moore'].component;
+export const CohortPrograms   = surfaceById['cohorts'].component;
+export const TlcAssistant     = surfaceById['tlc-assistant'].component;
+export const TlcOnboarding    = surfaceById['tlc-onboarding'].component;
 export const ChefCorner       = surfaceById['recipes'].component;
+export const RoadTo150        = surfaceById['health'].component;
 export const Games            = surfaceById['games'].component;
+export const Messages         = surfaceById['messages'].component;
 export const TVTime           = surfaceById['tvtime'].component;
+export const AdvocacyCases    = surfaceById['advocacy'].component;
+export const DataLiberation   = surfaceById['databack'].component;
+export const Cameras          = surfaceById['cameras'].component;
+export const Vault            = surfaceById['vault'].component;
 export const ChurchHome       = surfaceById['church-home'].component;
 export const Engagement       = surfaceById['engagement'].component;
 export const Choir            = surfaceById['choir'].component;
@@ -128,6 +211,7 @@ export const Pulpit           = surfaceById['pulpit'].component;
 export const ScriptureLibrary = surfaceById['scripture'].component;
 export const ChurchVideoWall  = surfaceById['videowall'].component;
 export const DeviceInventory  = surfaceById['devices'].component;
+export const ChurchInfraPlan  = surfaceById['infra-plan'].component;
 export const HarvestLedger    = surfaceById['harvest'].component;
 export const ChurchObservation = surfaceById['observe'].component;
 export const ChurchLearn      = surfaceById['learn'].component;
@@ -136,6 +220,15 @@ export const ConferenceModule = surfaceById['conference'].component;
 export const ConferenceVariance = surfaceById['conference-var'].component;
 export const EventCenterModule = surfaceById['event-center'].component;
 export const EventManagement  = surfaceById['events'].component;
+export const ChurchProjects   = surfaceById['church-projects'].component;
+export const ChurchMinistriesTab = surfaceById['ministries'].component;
+export const BusMinistry      = surfaceById['bus'].component;
+export const ChurchMembers    = surfaceById['church-members'].component;
+export const ChurchMemberSpace = surfaceById['my-record'].component;
+export const ChurchGivingBook = surfaceById['giving-book'].component;
+export const AccessRequests   = surfaceById['access'].component;
 export const BooksTransactions = surfaceById['transactions'].component;
 export const Cart             = surfaceById['cart'].component;
 export const Contractors1099  = surfaceById['k1099'].component;
+export const FamilyPlan       = surfaceById['plan'].component;
+export const Obligations      = surfaceById['owed'].component;

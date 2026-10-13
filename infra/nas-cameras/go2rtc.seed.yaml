@@ -1,0 +1,24 @@
+# go2rtc.yaml -- SEED, written by infra/nas-cameras/install.sh ONLY when
+# /volume1/docker/go2rtc/go2rtc.yaml does not exist yet. After that this file
+# on the NAS is go2rtc's own: the WebUI (Add > Wyze) writes the generated
+# wyze:// stream lines into it, and the installer never overwrites it.
+#
+# Exposure is decided HERE because the container runs with host networking:
+# everything binds to loopback; the ONLY way in is poetech-cams.service.
+api:
+  listen: "127.0.0.1:1984"
+rtsp:
+  listen: "127.0.0.1:8554"
+webrtc:
+  listen: ""
+log:
+  level: info
+
+# Cameras. Wyze cameras arrive through the WebUI's Add > Wyze flow (it signs in
+# with the wyze: section below -- added by the installer from
+# /volume1/PoeTech/secrets/wyze.env -- and writes one wyze:// line per camera).
+# Any other system is one line each, by hand or by PR:
+#   doorbell:  ring://...            (see infra/nas-cameras/README.md)
+#   driveway:  onvif://user:pass@192.168.1.x
+#   garage:    rtsp://user:pass@192.168.1.y/live
+streams: {}

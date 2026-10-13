@@ -85,11 +85,12 @@ describe('verifyNarrationGrounded — anti-fabrication guard', () => {
 });
 
 describe('sovereign/local routing + prompt construction', () => {
-  it('asks for the local model and a relative same-origin endpoint', () => {
+  it('asks for the local model and the relative sovereign /llm/chat endpoint', () => {
     expect(TALK_MODEL).toBe('qwen2.5');
     const ep = talkAboutEndpoint();
-    expect(ep.startsWith('/n8n')).toBe(true);
+    expect(ep).toContain('/llm/chat');
     expect(ep).not.toMatch(/https?:\/\//); // never an absolute Funnel/vendor URL
+    expect(ep).not.toMatch(/n8n|webhook|tail5a2f35/i);
   });
 
   it('builds an Ari-persona prompt that forbids fabrication and lists the facts', () => {
@@ -99,7 +100,8 @@ describe('sovereign/local routing + prompt construction', () => {
     expect(sys).toContain('Cash today: $12,400');
     const payload = buildTalkPayload(dashboardDigest);
     expect(payload.model).toBe('qwen2.5');
-    expect(payload.facts.length).toBe(3);
+    // The facts ride the system prompt; the generic messages array carries the ask.
+    expect(payload.messages[0].content).toMatch(/Forecast/);
   });
 });
 

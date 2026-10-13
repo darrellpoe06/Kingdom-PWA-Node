@@ -1,4 +1,8 @@
 #!/bin/bash
+# RECORDED-STATE: infra/nas-transport/RECORDED-STATE.md — this script sets the
+# public funnel root (-> 127.0.0.1:5678, n8n legacy). Keep that row true; the
+# n8n root is LEGACY and shrinks to zero (DR-0218), never grows. Never use
+# `serve --set-path` to REPLACE the public exposure (the 2026-07-30 outage class).
 # ============================================================================
 # setup-tailscale-funnel.sh - expose n8n's webhook endpoint to the public
 # internet via Tailscale Funnel, so the PWA can reach /webhook/* from any

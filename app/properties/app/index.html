@@ -1,0 +1,35 @@
+<!doctype html>
+<!-- =========================================================================
+  /properties/app/ — the Poe Properties App's OWN page (DR-0313, on the DR-0258
+  scope split proven on-device with The Love Corner and Moore Divahs). Every
+  installable face needs a DISJOINT scope or Chrome collapses them into one app,
+  and install identity is a page-load property — so this page serves the SAME app
+  (same /src/main.jsx, same absolute /poetech-app/ assets) from the properties'
+  own scope /properties/, with ITS manifest linked in STATIC markup.
+  Mirrors app/moore/app/index.html; pinned by properties-door.test.js.
+========================================================================== -->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <title>Poe Properties</title>
+    <meta name="description" content="Work orders, history, and the whole conversation between tenants, their families, 1099 workers, and management — in one place." />
+    <link rel="manifest" href="/manifest-properties.webmanifest" />
+    <meta name="theme-color" content="#2F5D50" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/properties-icon-192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="/properties-icon-512.png" />
+    <link rel="apple-touch-icon" href="/properties-apple-touch.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Poe Properties" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script defer src="/poetech-app/watchdog.js"></script>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

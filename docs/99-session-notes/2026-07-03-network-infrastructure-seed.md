@@ -5,6 +5,39 @@ infrastructure project asap." This note is the project's starting spine: every
 fact below is verified from tonight's session; every unknown is named as an
 unknown. The plan gets drafted against the real map, not guesses.
 
+## Foundation — identity + mission (declared by Darrell, 2026-07-05)
+
+**Who this serves — declared by Darrell:**
+
+> "The Tribe Of Judah Love Corner Nation Kingdom Of Yahweh — seekers and doers."
+
+**Why this project exists — declared by Darrell:**
+
+> "The network infrastructure project will allow us to have a data driven
+> understanding without guessing or speculating."
+
+This is the **Verification Doctrine (DR-0076)** applied to the network: the design
+is drafted against the **real map** — a measured inventory, live probes, actual
+device state — never a guess. Today proved the need in the negative: all morning
+the cloud session had to *infer* the booth from photos because it could not see
+the church LAN. The network-infrastructure project is what removes that blindness
+— **the system sees itself** (AI-FOUNDATION-INTERNAL-OPERATIONS: the network gets
+inventoried into the device register so nothing about it is speculated). Data
+first; then act on what the data shows. No guessing, no speculating.
+
+**The Word under the name** (verbatim; fetched from the in-repo KJV, DR-0076):
+
+- *seekers* — **KJV — Matthew 6:33:** *"But seek ye first the kingdom of God, and
+  his righteousness; and all these things shall be added unto you."* — the Kingdom
+  Of Yahweh, sought first.
+- *doers* — **KJV — James 1:22:** *"But be ye doers of the word, and not hearers
+  only, deceiving your own selves."* — doers act on what is real, not on hearing-
+  only speculation.
+
+**Seekers AND doers** is the posture the whole project runs on: seek the real
+data, then do the work it shows. That is the opposite of guessing — and it is why
+the network infrastructure is a Kingdom concern, not just an IT chore.
+
 ## Verified tonight (receipts)
 
 ### The tailnet (from `tailscale status` on the church tower)

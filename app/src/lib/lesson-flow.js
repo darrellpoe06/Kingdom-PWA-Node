@@ -43,7 +43,8 @@
 // than shown empty; every word of the authored lesson survives (the chunking lives
 // in learn-framework). Claims are derived from real fields, not painted.
 // =============================================================================
-import { lessonPlanForAge, DEFAULT_AGE_BAND } from './learn-framework.js';
+import { lessonPlanForAge, resolveForAge, DEFAULT_AGE_BAND } from './learn-framework.js';
+import { storyHeading, storyFootnote } from './story-truth.js';
 
 // ---------------------------------------------------------------------------
 // The canonical arc — ONE shape every lesson follows. `weight` is the default
@@ -147,6 +148,229 @@ export function phaseKind(label) {
 //     audience:    { ...learner-safe content only... },
 //     facilitator: { say:[...], do:[...], watchFor? } }
 // ---------------------------------------------------------------------------
+// Spoken pace for estimating how long the authored teaching runs read aloud.
+// ~140 words/minute is an unhurried teaching cadence (the DR-0215 measure).
+export const SPOKEN_WPM = 140;
+
+// ---------------------------------------------------------------------------
+// planSessions — the course-split (DR-0215 §2): when a lesson's spoken teaching
+// runs longer than one facilitated slot, it FLOWS across more than one session.
+// This is content-preserving by construction: the teaching prose is grouped at
+// SENTENCE boundaries into N even sessions — every word is MOVED, never cut
+// (Darrell 2026-07-21: "adjust the curriculum to the allotted time... don't lose
+// content"). A lesson that fits the slot returns a single session, unchanged.
+//
+// Pure + deterministic (no Date/Math.random) — the same sentence splitter the
+// age chunker uses. Returns { slotMinutes, wpm, totalSpokenWords, estMinutes,
+// sessionCount, multiSession, sessions:[{ index, label, text, words, estMinutes }] }.
+// Invariant (tested): sessions.map(s => s.text).join(' ') reproduces the teaching
+// prose — nothing dropped, nothing reordered.
+// ---------------------------------------------------------------------------
+const wordsIn = (s) => String(s || '').trim().split(/\s+/).filter(Boolean).length;
+
+export function planSessions(module, opts = {}) {
+  const m = module || {};
+  const {
+    slotMinutes = 25,
+    wpm = SPOKEN_WPM,
+    // Reserve, in minutes, held back from the slot for open/engage/apply/send
+    // framing. Default 0 so the split threshold matches DR-0215's own measure —
+    // a lesson splits when its SPOKEN teaching exceeds the slot, not before.
+    framingMinutes = 0,
+    ageBand = DEFAULT_AGE_BAND,
+    levelOverride = null,
+  } = opts;
+
+  // The authored teaching prose (adult band = the whole lesson as one string).
+  const plan = lessonPlanForAge(m, ageBand, levelOverride);
+  const teachText = ((plan && plan.segments) || []).join(' ').trim();
+  const teachWords = wordsIn(teachText);
+  const storyWords = (Array.isArray(m.stories) ? m.stories : []).reduce((t, s) => t + wordsIn(s.body), 0);
+  const talk = (m.facilitator && Array.isArray(m.facilitator.talkingPoints)) ? m.facilitator.talkingPoints : [];
+  const talkWords = talk.reduce((t, p) => t + wordsIn(p), 0);
+
+  const totalSpokenWords = teachWords + storyWords + talkWords;
+  const estMinutes = wpm > 0 ? +(totalSpokenWords / wpm).toFixed(1) : 0;
+
+  // Per-session teaching budget (the slot minus its framing), in words.
+  const teachBudgetMin = Math.max(1, (Number(slotMinutes) || 0) - (Number(framingMinutes) || 0));
+  const capWords = Math.max(1, Math.round(teachBudgetMin * wpm));
+  const sessionCount = Math.max(1, Math.ceil(totalSpokenWords / capWords));
+
+  const single = (label) => [{
+    index: 1, label, text: teachText, words: teachWords, estMinutes: wpm > 0 ? +(teachWords / wpm).toFixed(1) : 0,
+  }];
+
+  let sessions;
+  if (sessionCount <= 1 || !teachText) {
+    sessions = single('Full session');
+  } else {
+    // Even split of the PROSE across sessions, breaking only at sentence ends.
+    const sentences = teachText.match(/[^.!?]+[.!?]*\s*/g) || [teachText];
+    const targetPerSession = Math.ceil(teachWords / sessionCount);
+    sessions = [];
+    let buf = '';
+    let words = 0;
+    for (const s of sentences) {
+      buf += s;
+      words += wordsIn(s);
+      // Close a session at a sentence boundary once it reaches its even share,
+      // but never open more sessions than planned (the last one takes the rest).
+      if (words >= targetPerSession && sessions.length < sessionCount - 1) {
+        sessions.push({ text: buf.trim(), words });
+        buf = '';
+        words = 0;
+      }
+    }
+    if (buf.trim()) sessions.push({ text: buf.trim(), words });
+    const n = sessions.length;
+    sessions = sessions.map((s, i) => ({
+      index: i + 1,
+      label: `Session ${i + 1} of ${n}`,
+      text: s.text,
+      words: s.words,
+      estMinutes: wpm > 0 ? +(s.words / wpm).toFixed(1) : 0,
+    }));
+  }
+
+  return {
+    slotMinutes: Number(slotMinutes) || 0,
+    wpm,
+    totalSpokenWords,
+    estMinutes,
+    sessionCount: sessions.length,
+    multiSession: sessions.length > 1,
+    sessions,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// readAloudTextFromArc — ONE lesson as speakable text, start to finish.
+// Darrell 2026-07-30: "The reader reads different lessons not one full one...
+// Just the pages showing on the full list view." The Read Aloud control read
+// the page DOM — fragments of many lessons, and only the visible paced step of
+// the open one. This walks the built arc's AUDIENCE side instead: the title,
+// the big idea + anchor, EVERY paced teach segment (the whole authored lesson,
+// not the step on screen), the stories with their honest labels (parable vs
+// testimony — DR-0215), the discussion questions, the hands-on line, and the
+// benefits. NO-LEAK: reads only `audience` fields — facilitator say/do/howToRun
+// can never be spoken to a learner. Pure over the arc (DR-0076-testable).
+// ---------------------------------------------------------------------------
+export function readAloudTextFromArc(arc) {
+  if (!arc) return '';
+  const parts = [];
+  if (arc.title) parts.push(`${arc.title}.`);
+  for (const seg of arc.audienceSegments || []) {
+    const a = seg.audience || {};
+    if (seg.kind === 'open') {
+      if (a.bigIdea) parts.push(a.bigIdea);
+      if (a.anchorRef) parts.push(`Anchor scripture — ${a.anchorRef}${a.anchorTheme ? `: ${a.anchorTheme}` : ''}.`);
+    } else if (seg.kind === 'teach') {
+      parts.push(...(((a.lessonPlan && a.lessonPlan.segments) || [])));
+      for (const s of a.stories || []) {
+        parts.push(`${storyHeading(s)}.`);
+        if (s.body) parts.push(s.body);
+        if (s.verse) parts.push(s.verse);
+        parts.push(storyFootnote(s)); // DR-0811: the spoken flow says what the story is, too
+      }
+    } else if (seg.kind === 'engage') {
+      if ((a.prompts || []).length) parts.push('Questions to think about:', ...a.prompts);
+    } else if (seg.kind === 'apply') {
+      if (a.inApp) parts.push(`${a.handsOnLabel || 'In the app'}: ${a.inApp}`);
+    } else if (seg.kind === 'send') {
+      if ((a.benefits || []).length) parts.push('What this frees in you:', ...a.benefits);
+    }
+  }
+  // Same ceiling the page reader uses, so the speech queue is never handed an
+  // unbounded string.
+  return parts.join(' ').replace(/\s+/g, ' ').trim().slice(0, 32000);
+}
+
+// ---------------------------------------------------------------------------
+// THE INTRO IS READ BY THE SAME PERSON WHO READS THE LESSON
+// ---------------------------------------------------------------------------
+// Darrell 2026-09-18, from the church door: "child version isn't on the intro".
+//
+// MEASURED, not inferred. buildLessonArc paced the TEACH stage to the learner's
+// band (lessonPlanForAge) and built the Open stage from three raw authored
+// fields — bigIdea, anchor.ref, anchor.theme — with no band argument reaching
+// them at all. So the intro was byte-identical at child, youth, teen, adult and
+// senior, for every lesson in the catalog: a seven-year-old met the adult big
+// idea, in the adult register, before a single word of the lesson written for
+// him. The level control genuinely re-paced the teaching and genuinely could
+// not touch the intro.
+//
+// WHERE THE REPLACEMENT COMES FROM, AND WHY IT IS NOT INVENTED. No lesson
+// carries a per-band bigIdea, and writing one would be fabrication. Each band
+// DOES already open by naming its own lesson and stating its point in that
+// age's words — that is enforced by the title-in-narrative gate — so the band's
+// own opening IS its intro, authored for that reader by the person who wrote
+// the lesson. presentable.js has led the presenter's slides this way since it
+// was built (`child: lv.child || m.bigIdea`); this is the same pattern, reaching
+// the stage that was missed.
+//
+// THE COST, NAMED: the teach stage then re-reads those opening sentences, so a
+// listener hears them twice within a minute. That is why the extract is held to
+// roughly one or two sentences rather than a paragraph, and it is a smaller
+// cost than an intro a child cannot read. The duplication-free version starts
+// the band's teach plan AFTER the intro, which changes step counts and course
+// duration and is carried separately. re-review: 2026-11-18.
+export const INTRO_CHARS = 320;
+// An intro shorter than this is not an intro. The first draft cut at the LAST
+// sentence end inside the window and produced a THREE-CHARACTER opening for
+// ll5's senior band, whose first words are "Dr. Martin Picard describes..." —
+// the period after an abbreviation is not a sentence end. Measured across all
+// 700 derived intros, which is how it was found.
+export const MIN_INTRO_CHARS = 90;
+// The abbreviations whose period ends no sentence. Same list the lesson
+// renderer uses, kept in step by intent rather than by import: this module
+// must stay dependency-light enough to run in a plain node script.
+const ABBREV = /(?:^|\s)(?:[IVX]{1,4}|Dr|Mr|Mrs|Ms|Jr|Sr|St|vs)\.$/;
+
+/**
+ * The opening sentences of `text`, up to `limit` characters: whole sentences,
+ * never a cut word, never fewer than MIN_INTRO_CHARS while more text exists,
+ * and never stopping on an abbreviation's period.
+ */
+export function firstSentences(text, limit = INTRO_CHARS, min = MIN_INTRO_CHARS) {
+  const t = String(text || '').replace(/\s+/g, ' ').trim();
+  if (!t) return '';
+  if (t.length <= limit) return t;
+  let out = '';
+  const re = /[.!?]\s/g;
+  let m;
+  while ((m = re.exec(t))) {
+    const upto = t.slice(0, m.index + 1);
+    if (ABBREV.test(upto)) continue;          // "Dr." ends no sentence
+    if (upto.length > limit) break;           // past the window — keep what we have
+    out = upto;
+    if (out.length >= min) break;             // long enough to be an intro
+  }
+  if (out) return out;
+  // No usable sentence end in the window: cut at the last space instead, so a
+  // word is never broken in half.
+  const head = t.slice(0, limit);
+  const space = head.lastIndexOf(' ');
+  return (space > 0 ? head.slice(0, space) : head).trim();
+}
+
+/**
+ * The intro this band's reader should meet. A band with its own authored text
+ * gets that text's opening; everyone else gets the lesson's big idea, exactly
+ * as before. Returns { text, levelId, derived } so a surface or a gate can tell
+ * which of the two it is holding.
+ */
+export function introForAge(module, ageBand = DEFAULT_AGE_BAND, levelOverride = null) {
+  const m = module || {};
+  const big = m.bigIdea || '';
+  const resolved = resolveForAge(m, ageBand, levelOverride);
+  const own = resolved && resolved.branched && resolved.levelId !== 'standard' ? resolved.text : '';
+  const opening = firstSentences(own);
+  return opening
+    ? { text: opening, levelId: resolved.levelId, derived: true }
+    : { text: big, levelId: (resolved && resolved.levelId) || 'standard', derived: false };
+}
+
 export function buildLessonArc(module, opts = {}) {
   const m = module || {};
   const {
@@ -164,6 +388,8 @@ export function buildLessonArc(module, opts = {}) {
 
   // The authored lesson, paced to age/depth (chunked, never summarized).
   const lessonPlan = lessonPlanForAge(m, ageBand, levelOverride);
+  // The intro, at the same level as the teaching it introduces (2026-09-18).
+  const intro = introForAge(m, ageBand, levelOverride);
 
   const fac = (m && m.facilitator) || {};
   const phases = parseHowToRun(fac.howToRun);
@@ -178,6 +404,12 @@ export function buildLessonArc(module, opts = {}) {
   const talking = Array.isArray(fac.talkingPoints) ? fac.talkingPoints : [];
   const prompts = Array.isArray(fac.discussionPrompts) ? fac.discussionPrompts : [];
   const benefits = Array.isArray(m.benefits) ? m.benefits : [];
+  // Parable/story beats — short, vivid, often-funny illustrations the teacher drops
+  // mid-teach to land the point, the way Jesus taught (Matthew 13:34). Learner-safe
+  // (title/body/verse only — no facilitator keys), so they flow to the audience side
+  // of the TEACH stage. Darrell 2026-07-21: "make it funny and fun... short stories
+  // like Jesus did parables... at least 2 to each 25-minute lesson."
+  const stories = Array.isArray(m.stories) ? m.stories : [];
   const hasMedia = Array.isArray(m.media) && m.media.length > 0;
   const hasHardware = Array.isArray(m.hardware) && m.hardware.length > 0;
   const hasRpe = !!(m.rpe && (m.rpe.research || m.rpe.plan || m.rpe.execute));
@@ -188,7 +420,9 @@ export function buildLessonArc(module, opts = {}) {
   const body = {
     open: {
       audience: {
-        bigIdea: m.bigIdea || '',
+        bigIdea: intro.text,
+        introIsBandsOwn: intro.derived,
+        introLevelId: intro.levelId,
         anchorRef: anchor.ref || null,
         anchorTheme: anchor.theme || null,
       },
@@ -196,12 +430,12 @@ export function buildLessonArc(module, opts = {}) {
         say: [anchor.ref ? `Open in prayer, then read ${anchor.ref} aloud — ${anchor.theme || 'the anchor for today'}.` : 'Open in prayer and welcome everyone.'],
         do: facDo('open'),
       },
-      hasContent: !!(m.bigIdea || anchor.ref),
+      hasContent: !!(intro.text || anchor.ref),
     },
     teach: {
-      audience: { lessonPlan, hasMedia, hasHardware, hasRpe },
+      audience: { lessonPlan, stories, hasMedia, hasHardware, hasRpe },
       facilitator: { say: talking, do: facDo('teach') },
-      hasContent: lessonSegs.length > 0 || talking.length > 0 || hasMedia || hasHardware,
+      hasContent: lessonSegs.length > 0 || stories.length > 0 || talking.length > 0 || hasMedia || hasHardware,
     },
     engage: {
       audience: { prompts },
@@ -250,6 +484,14 @@ export function buildLessonArc(module, opts = {}) {
       : 'Close in prayer or a blessing, and send them out.',
   }));
 
+  // The course-split (DR-0215 §2): if this lesson's spoken teaching runs longer
+  // than the slot, it flows across more than one session — content-preserving.
+  const sessionPlan = planSessions(m, {
+    slotMinutes: total,
+    ageBand,
+    levelOverride,
+  });
+
   return {
     moduleId: m.id || null,
     title: m.title || '',
@@ -257,5 +499,6 @@ export function buildLessonArc(module, opts = {}) {
     band: lessonPlan && lessonPlan.band,
     segments,
     audienceSegments: segments.filter((s) => s.hasContent),
+    sessionPlan,
   };
 }

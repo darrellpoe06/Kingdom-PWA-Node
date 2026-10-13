@@ -82,7 +82,7 @@ export function RentCastPrefill({ rental, apiUrl = '', apiToken = '', onConfirm 
         type="button"
         onClick={() => setShowSetup(true)}
         title="Auto-fill market value from RentCast (requires backend setup)"
-        className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] underline px-2 py-1 focus:outline focus:outline-2 focus:outline-[#B85838]"
+        className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] underline px-2 py-1 focus:outline focus:outline-2 focus:outline-[#B85838]"
       >
         ✨ Auto-fill from RentCast
       </button>
@@ -92,7 +92,7 @@ export function RentCastPrefill({ rental, apiUrl = '', apiToken = '', onConfirm 
   if (showSetup) {
     return (
       <div className="bg-[#FAF8F4] border border-[#1A1815] p-3 space-y-2 my-2">
-        <div className="text-[10px] uppercase tracking-[0.2em] text-[#1A1815] font-semibold">RentCast auto-fill · setup required</div>
+        <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#1A1815] font-semibold">RentCast auto-fill · setup required</div>
         <p className="text-xs leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
           To auto-fill market value (instead of typing it), the system needs two things:
         </p>
@@ -100,10 +100,10 @@ export function RentCastPrefill({ rental, apiUrl = '', apiToken = '', onConfirm 
           <li>The Cloudflare Worker URL configured in <strong>Inbound · Setup</strong> (same one Voice Ops uses).</li>
           <li>A RentCast API key set as a Worker secret (free tier: 50 calls/month). <a href="https://app.rentcast.io" target="_blank" rel="noopener noreferrer" className="underline text-[#B85838]">Sign up at rentcast.io</a>, copy the key, then run <code className="px-1 bg-white">wrangler secret put RENTCAST_API_KEY</code>.</li>
         </ol>
-        <p className="text-[11px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
+        <p className="text-[0.6875rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
           Once setup is done, this button fetches market value + value range + confidence + comp count in one tap. You always confirm before saving — the system never overwrites your data silently.
         </p>
-        <button type="button" onClick={() => setShowSetup(false)} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">× Close</button>
+        <button type="button" onClick={() => setShowSetup(false)} className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">× Close</button>
       </div>
     );
   }
@@ -111,7 +111,7 @@ export function RentCastPrefill({ rental, apiUrl = '', apiToken = '', onConfirm 
   if (result) {
     return (
       <div className="bg-white border-2 border-[#5A6E3D] p-3 space-y-2 my-2">
-        <div className="text-[10px] uppercase tracking-[0.2em] text-[#5A6E3D] font-semibold">
+        <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A6E3D] font-semibold">
           ✨ RentCast estimate {result._cached ? '· (cached, 24h)' : ''}
         </div>
         <div className="text-2xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{fmt$(result.valueEstimate)}</div>
@@ -120,7 +120,7 @@ export function RentCastPrefill({ rental, apiUrl = '', apiToken = '', onConfirm 
           {result.confidence != null && <> · Confidence: {(result.confidence * 100).toFixed(0)}%</>}
           {result.comparablesCount > 0 && <> · Based on {result.comparablesCount} comp{result.comparablesCount === 1 ? '' : 's'}</>}
         </div>
-        <p className="text-[11px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
+        <p className="text-[0.6875rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
           Save this as the property's market value? Provenance will be logged: source=rentcast, as-of={result.fetched_at?.slice(0, 10)}. You can change it any time.
         </p>
         <div className="flex gap-2">
@@ -134,9 +134,9 @@ export function RentCastPrefill({ rental, apiUrl = '', apiToken = '', onConfirm 
   if (error) {
     return (
       <div className="bg-white border-2 border-[#B85838] p-3 space-y-2 my-2">
-        <div className="text-[10px] uppercase tracking-[0.2em] text-[#B85838] font-semibold">RentCast lookup failed</div>
+        <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#B85838] font-semibold">RentCast lookup failed</div>
         <p className="text-xs text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{error}</p>
-        <button type="button" onClick={reset} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">× Dismiss</button>
+        <button type="button" onClick={reset} className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">× Dismiss</button>
       </div>
     );
   }
@@ -147,7 +147,7 @@ export function RentCastPrefill({ rental, apiUrl = '', apiToken = '', onConfirm 
       onClick={lookup}
       disabled={busy || !canTry}
       title={canTry ? 'Fetch a market value estimate from RentCast' : 'Address and city + state are required first'}
-      className="text-[10px] uppercase tracking-wider px-2 py-1 border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white disabled:opacity-50 disabled:cursor-not-allowed focus:outline focus:outline-2 focus:outline-[#B85838]"
+      className="text-[0.625rem] uppercase tracking-wider px-2 py-1 border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white disabled:opacity-50 disabled:cursor-not-allowed focus:outline focus:outline-2 focus:outline-[#B85838]"
     >
       {busy ? 'Looking up…' : '✨ Auto-fill from RentCast'}
     </button>

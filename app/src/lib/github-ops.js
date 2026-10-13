@@ -48,6 +48,8 @@ export function normalizePulls(json) {
     autoMerge: !!(p && p.auto_merge),
     hold: Array.isArray(p && p.labels) && p.labels.some((l) => l && l.name === 'hold'),
     updatedAt: (p && p.updated_at) || null,
+    // DR-0672: when the PR opened, so Your lessons can time the step.
+    createdAt: (p && p.created_at) || null,
   }));
 }
 
@@ -65,17 +67,27 @@ export function normalizeCommits(json) {
   });
 }
 
-// Latest CI run conclusion for main — the "is the trunk healthy" signal.
+// CI health for main — the "is the trunk healthy" signal, told TRUTHFULLY while
+// a run is in flight (Darrell 2026-07-10, the "CI UNKNOWN" board): an
+// in-progress run says nothing about trunk health, so the VERDICT comes from
+// the most recent COMPLETED run on the same page (zero extra requests) and the
+// in-flight run is noted beside it — "CI green (abc1234) · new run in flight",
+// never UNKNOWN just because the lane is busy.
 export function normalizeMainRuns(json) {
   const runs = (json && Array.isArray(json.workflow_runs)) ? json.workflow_runs : [];
-  if (runs.length === 0) return { status: 'idle', label: 'No runs', latest: null };
-  const latest = runs[0];
-  const concl = String(latest.conclusion || latest.status || 'unknown');
+  if (runs.length === 0) return { status: 'idle', label: 'No runs', latest: null, inFlight: false };
+  const inFlightRun = runs.find((r) => r && r.status !== 'completed') || null;
+  const completed = runs.find((r) => r && r.status === 'completed') || null;
+  const judge = completed || runs[0];
+  const concl = String(judge.conclusion || judge.status || 'unknown');
   const map = { success: 'good', failure: 'problem', cancelled: 'attention', timed_out: 'problem' };
+  const inFlight = !!inFlightRun;
   return {
     status: map[concl] || 'attention',
-    label: concl === 'success' ? 'CI green' : `CI ${concl}`,
-    latest: { sha: String(latest.head_sha || '').slice(0, 7), name: latest.name || 'CI', conclusion: concl },
+    label: (concl === 'success' ? 'CI green' : `CI ${concl}`) + (inFlight ? ' · new run in flight' : ''),
+    latest: { sha: String(judge.head_sha || '').slice(0, 7), name: judge.name || 'CI', conclusion: concl },
+    inFlight,
+    inFlightSha: inFlightRun ? String(inFlightRun.head_sha || '').slice(0, 7) : null,
   };
 }
 
@@ -136,6 +148,13 @@ function persistEtagCache(cache) {
     }
     localStorage.setItem(ETAG_KEY, JSON.stringify(cache));
   } catch { /* private mode / full storage — caching is best-effort */ }
+}
+
+// Exported for sibling live-read modules (site-health.js) so every GitHub read
+// in the app shares ONE ETag cache + rate-budget discipline — a second module
+// growing its own fetch path is how the 60/hr budget gets re-blown.
+export async function ghGetJson(url, fetchImpl) {
+  return getJson(url, fetchImpl);
 }
 
 async function getJson(url, fetchImpl) {
@@ -201,7 +220,12 @@ async function fetchOpsUncached(opts = {}) {
     out.recentMerges = merges;
     out.main = merges[0] ? { sha: merges[0].sha, shortSha: merges[0].shortSha, title: merges[0].title } : null;
 
-    // Lane per open PR — REAL changed files, bounded by the rate budget.
+    // Lane per open PR — REAL changed files, bounded by the rate budget. The
+    // budget is spent on the LIVE PRs first (most recently updated), so a pile
+    // of stale open PRs can no longer starve the readout of the work actually
+    // in flight (the 2026-07-10 "first 8 of 24" board — 23 of those 24 were
+    // idle zombies; pr-janitor.yml prunes them, this ordering survives them).
+    pulls = pulls.slice().sort((a, b) => String(b.updatedAt || '').localeCompare(String(a.updatedAt || '')));
     const lookups = pulls.slice(0, MAX_PR_FILE_LOOKUPS);
     await Promise.all(lookups.map(async (p) => {
       try {
@@ -214,7 +238,7 @@ async function fetchOpsUncached(opts = {}) {
       }
     }));
     if (pulls.length > MAX_PR_FILE_LOOKUPS) {
-      out.notice = `Lane computed for the first ${MAX_PR_FILE_LOOKUPS} of ${pulls.length} open PRs (API rate budget).`;
+      out.notice = `Lane computed for the ${MAX_PR_FILE_LOOKUPS} most recently updated of ${pulls.length} open PRs (API rate budget) — the janitor prunes idle ones.`;
     }
     pulls.forEach((p) => { if (!p.lane) p.lane = 'unknown'; });
 
@@ -233,4 +257,52 @@ async function fetchOpsUncached(opts = {}) {
       : `Could not reach GitHub API: ${(e && e.message) || 'unknown'}. This surface reads live repo state; nothing is shown when it cannot.`;
   }
   return out;
+}
+
+// --- The delivery record (DR-0625) -------------------------------------------
+// The measured window a sender is given ("changes like this have merged in a
+// median of ...") comes from REAL merged pull requests: when each was opened
+// and when it merged. One unauthenticated read of the newest 100 closed pull
+// requests, normalized to five fields and held in memory for DELIVERY_TTL_MS,
+// so a screen full of receipts spends one request, never one per note. The
+// bodies are NOT kept (they are large, and the ETag cache persists what it
+// holds to localStorage). A failed read is { ok: false } and the receipt says
+// it has no window, never a painted one (DR-0076).
+export const DELIVERY_TTL_MS = 10 * 60 * 1000;
+let deliveryLast = { at: 0, data: null };
+let deliveryInflight = null;
+
+export function normalizeMerges(json) {
+  if (!Array.isArray(json)) return [];
+  return json
+    .filter((p) => p && p.merged_at && p.created_at)
+    .map((p) => ({ number: p.number, title: String(p.title || ''), branch: String((p.head && p.head.ref) || ''), createdAt: p.created_at, mergedAt: p.merged_at }));
+}
+
+export async function fetchDeliveryRecord(opts = {}) {
+  const f = opts.fetch || (typeof fetch !== 'undefined' ? fetch : null);
+  if (!f) return { ok: false, merges: [], notice: 'no fetch' };
+  if (!opts.fetch && deliveryLast.data && Date.now() - deliveryLast.at < DELIVERY_TTL_MS) return deliveryLast.data;
+  if (!opts.fetch && deliveryInflight) return deliveryInflight;
+  const run = (async () => {
+    try {
+      const r = await f(`${API}/pulls?state=closed&per_page=100&sort=updated&direction=desc`, { headers: { Accept: 'application/vnd.github+json' } });
+      if (!r.ok) return { ok: false, merges: [], notice: r.status === 403 || r.status === 429 ? 'rate-limited' : `http ${r.status}` };
+      return { ok: true, merges: normalizeMerges(await r.json()), notice: '' };
+    } catch (e) {
+      return { ok: false, merges: [], notice: (e && e.message) || 'unreachable' };
+    }
+  })();
+  if (opts.fetch) return run;
+  deliveryInflight = run.then((data) => { deliveryLast = { at: Date.now(), data }; deliveryInflight = null; return data; });
+  return deliveryInflight;
+}
+
+// --- One pull request by number (DR-0672) -------------------------------------
+// Your lessons names a lesson's PR by number. Open PRs come from fetchOps and
+// merged ones from fetchDeliveryRecord; this reads one that is in neither,
+// through the same ETag cache and rate budget (a 304 is free).
+export async function fetchPull(number, fetchImpl) {
+  if (!Number.isInteger(number) || number <= 0) throw new Error('bad pr number');
+  return getJson(`${API}/pulls/${number}`, fetchImpl);
 }

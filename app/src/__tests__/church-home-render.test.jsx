@@ -58,6 +58,19 @@ const clickTab = (label) => {
   act(() => tab.dispatchEvent(new MouseEvent('click', { bubbles: true })));
 };
 
+describe('Love Corner — an obvious Log in / Create account for signed-out visitors', () => {
+  it('shows a prominent Log in / Create account button when signed OUT', () => {
+    mount({ signedIn: false });
+    const btn = [...container.querySelectorAll('button')].find((b) => /log in\s*\/\s*create account/i.test(b.textContent || ''));
+    expect(btn, 'no obvious Log in / Create account button on the public church door').toBeTruthy();
+  });
+  it('hides it once signed in (no redundant login prompt)', () => {
+    mount({ signedIn: true });
+    const btn = [...container.querySelectorAll('button')].find((b) => /log in\s*\/\s*create account/i.test(b.textContent || ''));
+    expect(btn).toBeFalsy();
+  });
+});
+
 describe('ChurchHome — every inline section survived the extraction', () => {
   it('renders the full section inventory of the pre-extraction Church home', () => {
     mount();
@@ -66,16 +79,42 @@ describe('ChurchHome — every inline section survived the extraction', () => {
     expect(container.querySelector('[role="tablist"]')).toBeTruthy();
     expect(container.textContent).toMatch(/default church home/i);
 
-    // WORSHIP tab (default active): Live Worship + Pastoral Content + Media.
+    // WORSHIP tab (default active). Darrell 2026-09-11 ("dashboard debt tracker
+    // all subtabs!!!!!!!"): Worship stacked six unrelated sections in one
+    // read-down, so it now carries a third row — Live now / Past sermons /
+    // Stay connected. Panels mount lazily, so the inventory is proven by
+    // WALKING the strip, which keeps the guarantee this test exists for: every
+    // pre-extraction section is still reachable, none was quietly dropped.
     expect(container.querySelector('#live-worship-h')).toBeTruthy();
     expect(container.querySelector('iframe')).toBeTruthy();
+    clickTab('Past sermons');
     expect(container.querySelector('#sermons-h')).toBeTruthy();
+    clickTab('Stay connected');
+    expect(container.querySelector('#msg-h')).toBeTruthy();
     expect(container.querySelector('#media-h')).toBeTruthy();
+    expect(container.querySelector('#shareapp-h')).toBeTruthy();
+    // Back to the default panel so the assertions below start where a visitor does.
+    clickTab('Live now');
+    expect(container.querySelector('#live-worship-h')).toBeTruthy();
 
-    // SPEAK tab: One Voice front door + Yahweh Hears You + Testimony Diary door.
+    // SPEAK tab: THE ONE input surface (DR-0131 — "only have one input surface
+    // from PoeTech on any and all tabs") + Testimony Diary door. The former
+    // second widget (memory-only log + raw mailto Send that yanked the surface
+    // into the mail app) is gone; its identity lives on as the one box's title.
     clickTab('Speak');
     expect(container.textContent).toMatch(/Yahweh Hears You/);
-    expect(container.querySelector('#diary-h')).toBeTruthy();
+    // Exactly ONE input surface: one master box, one textarea.
+    expect(container.querySelectorAll('[aria-labelledby="onevoice-h"]').length).toBe(1);
+    expect(container.querySelectorAll('textarea').length).toBe(1);
+    // Nothing on this surface navigates the app into a mail client in place:
+    // any mailto is an explicit secondary link opening a NEW context.
+    for (const a of container.querySelectorAll('a[href^="mailto:"]')) {
+      expect(a.getAttribute('target')).toBe('_blank');
+    }
+    // The Testimony Diary was REMOVED (2026-07-21): its V0 isn't built, so it
+    // was a coming-soon placeholder the surface-audit gate flags — no placeholder
+    // ships to parishioners; it returns when V0 is real.
+    expect(container.querySelector('#diary-h')).toBeFalsy();
 
     // PRAYER tab: Prayer Requests.
     clickTab('Prayer');
@@ -143,8 +182,26 @@ describe('ChurchHome — every inline section survived the extraction', () => {
     clickTab('Prayer');
     const text = container.textContent;
     expect(text.indexOf('newer')).toBeLessThan(text.indexOf('older'));
-    expect([...container.querySelectorAll('a')].some((a) => /Send/.test(a.textContent))).toBe(true);
+    // 2026-07-28 truth fix: with no office email on file the affordance honestly
+    // reads 'Open contact page' (and never marks sent); 'Send' appears only with a
+    // real mailto destination.
+    expect([...container.querySelectorAll('a')].some((a) => /Send|Open contact page/.test(a.textContent))).toBe(true);
     expect(container.querySelector('button[aria-label^="Delete prayer request"]')).toBeTruthy();
+  });
+
+  it('hides Send (and never marks "sent") when the church has NO reachable destination', () => {
+    // A church with no contactEmail, no Stay-Connected link, and no site: the old
+    // code rendered a Send that resolved to href="#" and STILL flipped the request
+    // to "sent" — reporting success while opening nothing. Guard: no destination -> no Send.
+    let marked = 0;
+    const noDest = { ...COLG_DEFAULT_CHURCH, contactEmail: null, site: null, links: {} };
+    const prs = [{ id: 'pr1', requester: 'A', request: 'please pray', createdAt: '2026-07-01T00:00:00.000Z', shareWithChurch: true, sentAt: null }];
+    mount({ church: noDest, prayerRequests: prs, markPrayerRequestSent: () => { marked += 1; } });
+    clickTab('Prayer');
+    expect([...container.querySelectorAll('a')].some((a) => /Send/.test(a.textContent))).toBe(false);
+    expect(marked).toBe(0);
+    // The request is NOT lost — it still shows, ready for a steward to see.
+    expect(container.textContent).toMatch(/please pray/);
   });
 
   it('save-to-calendar builds a real next-occurrence event from a service entry', () => {
@@ -176,5 +233,94 @@ describe('ChurchHome — every inline section survived the extraction', () => {
     // The church identity lives on the About tab.
     clickTab('About');
     expect(container.textContent).toMatch(/Grace Fellowship/);
+  });
+});
+
+// Follow along in the Word (Darrell 2026-07-14): the control opens the Scripture
+// reader INLINE, on the SAME page as the live player, so you watch + read the Word
+// together — it must NOT navigate away (the old bug: it called setChurchView
+// ('scripture'), moving you off the live video). Proven-to-catch: clicking reveals
+// the inline reader on this page and never leaves it.
+describe('Follow along in the Word', () => {
+  it('opens the Scripture reader INLINE on the same page (does not navigate away)', () => {
+    const setChurchView = vi.fn();
+    mount({ setChurchView });
+    const btn = [...container.querySelectorAll('button')].find((b) => /Follow along in the Word/i.test(b.textContent || ''));
+    expect(btn).toBeTruthy();
+    // Reader is not present until asked for.
+    expect(container.textContent).not.toMatch(/Follow Along · The Word/);
+    act(() => btn.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+    // The inline reader appears on THIS page...
+    expect(container.textContent).toMatch(/Follow Along · The Word/);
+    // ...and we never navigated to the Scripture tab (the whole point).
+    expect(setChurchView).not.toHaveBeenCalledWith('scripture');
+  });
+  it('offers follow-along even without navigation (it is inline, not a tab jump)', () => {
+    mount({});
+    const btn = [...container.querySelectorAll('button')].find((b) => /Follow along in the Word/i.test(b.textContent || ''));
+    // Inline follow-along no longer depends on setChurchView being available.
+    expect(btn).toBeTruthy();
+  });
+
+  // The orange box is GONE and follow-along floats a draggable mini instead of
+  // pinning a big sticky orange panel (Darrell 2026-07-18: "STILL THE ORANGE
+  // BOX... why cant the video only size like small MOVE ANYWHERE... and go back
+  // whenever"). Proven-to-catch: the live-worship section never carries the thick
+  // orange box (border-2 / #B85838) and never goes sticky — including while the
+  // Word reader is open. Opening follow-along still opens the Word (Close the Word
+  // appears); the player pops to a small DRAGGABLE mini-player instead of a pin.
+  it('follow-along shows no sticky orange box; the Word still opens', () => {
+    mount();
+    const section = () => container.querySelector('#live-worship-h').closest('section');
+    // No orange box, ever: no thick border, no #B85838 frame, not sticky.
+    expect(section().className).not.toMatch(/border-2/);
+    expect(section().className).not.toMatch(/#B85838/);
+    expect(section().className).not.toMatch(/\bsticky\b/);
+    const btn = [...container.querySelectorAll('button')].find((b) => /Follow along in the Word/i.test(b.textContent || ''));
+    act(() => btn.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+    // Word reader opened...
+    const close = [...container.querySelectorAll('button')].find((b) => /Close the Word/i.test(b.textContent || ''));
+    expect(close).toBeTruthy();
+    // ...and STILL no sticky orange box while reading.
+    expect(section().className).not.toMatch(/\bsticky\b/);
+    expect(section().className).not.toMatch(/border-2/);
+    act(() => close.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+    expect(section().className).not.toMatch(/\bsticky\b/);
+  });
+});
+
+// DR-0219 pre-launch: parishioner-facing forms must PERSIST, not drop the write
+// and then claim "we'll reach out." The invite-your-church form used to only
+// setState locally. This proves it now routes through the real addInquiry sink.
+describe('church-home forms persist (no dropped write, no false confirmation)', () => {
+  const setInput = (sel, value) => {
+    const el = container.querySelector(sel);
+    const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+    setter.call(el, value);
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+  };
+  it('the invite-your-church "Send invite" writes a REAL partner-church-invite inquiry', () => {
+    const addInquiry = vi.fn();
+    mount({ addInquiry });
+    clickTab('About');
+    const open = [...container.querySelectorAll('button')].find((b) => /Invite them/i.test(b.textContent || ''));
+    expect(open, 'no "Invite them" opener on the About tab').toBeTruthy();
+    act(() => open.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+    act(() => { setInput('#inv-church', 'Grace Chapel'); setInput('#inv-email', 'pastor@grace.example'); });
+    const send = [...container.querySelectorAll('button')].find((b) => /Send invite/i.test(b.textContent || ''));
+    act(() => send.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+    expect(addInquiry).toHaveBeenCalledTimes(1);
+    expect(addInquiry.mock.calls[0][0].kind).toBe('partner-church-invite');
+    expect(addInquiry.mock.calls[0][0].churchName).toBe('Grace Chapel');
+    // and the confirmation only shows AFTER the real write
+    expect(container.textContent).toMatch(/we'll reach out/i);
+  });
+  it('the not-yet-built Testimony Diary is not shipped as a placeholder', () => {
+    mount({});
+    clickTab('Speak');
+    // No diary door, no PIN, no "coming soon" placeholder on the live surface.
+    expect(container.querySelector('#diary-h')).toBeFalsy();
+    expect(container.querySelector('#diary-pin')).toBeFalsy();
+    expect(container.textContent).not.toMatch(/coming soon/i);
   });
 });

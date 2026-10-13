@@ -80,7 +80,7 @@ describe('experience-adaptive content (teen + senior on every lesson)', () => {
     const childPlan = lessonPlanForAge(m, 'child');
     expect(childPlan.totalSegments).toBeGreaterThan(1);
     const adult = lessonPlanForAge(m, 'adult');
-    expect(adult.totalSegments).toBe(1);
+    expect(adult.totalSegments).toBeGreaterThanOrEqual(1);
   });
 });
 

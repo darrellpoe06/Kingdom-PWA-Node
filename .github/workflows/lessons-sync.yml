@@ -1,0 +1,81 @@
+# lessons-sync — the NAS copy of the curriculum follows the code (DR-0677)
+#
+# Darrell 2026-09-29: "Why don't the lessons live on the nas?!!!!!!!!!!" and
+# "The apps code is needed to keep context!!!!!!!%". The course files stay the
+# master; this lands them on the sovereign database the app reads (0242) and
+# then PROVES the copy matches, lesson by lesson, reading it back FROM the NAS
+# (scripts/lessons-sync-over-tailnet.sh; the parity witness names every drifted
+# lesson and field, and the verdict is recorded in curriculum_sync_runs).
+#
+# WHEN IT RUNS. After every production deploy: deploy-cloudflare-pages.yml
+# dispatches this file explicitly once the deploy succeeds (a GITHUB_TOKEN merge
+# fires no push event and workflow_run from token-driven runs is suppressed —
+# the DR-0107 class db-migrate already documents), plus on a human push to main
+# and by hand. Merge -> deploy -> sync: the copy follows the code that is live.
+#
+# BRAKES (Layer 0, three-brakes; deterministic class per DR-0248): a budget
+# (timeout-minutes), a lock (one sync at a time, never cancelled half-way), and
+# the stop-path is the same record the migration lane rides: without
+# infra/nas-supabase/REPOINT-ARMED nothing is written. The sync SQL is written
+# only when every curriculum gate passes on the code (curriculum-cli --sql
+# refuses otherwise), and the database refuses any row without a passed gate
+# over exactly its content (curriculum_lessons_require_gate).
+name: lessons-sync
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'app/src/lib/**'
+      - 'scripts/curriculum-*.mjs'
+      - 'scripts/lessons-sync-over-tailnet.sh'
+      - '.github/workflows/lessons-sync.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: lessons-sync
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Is the sovereign database the live one? (the REPOINT-ARMED record)
+        id: armed
+        run: |
+          if [ -f infra/nas-supabase/REPOINT-ARMED ]; then echo "armed=true" >> "$GITHUB_OUTPUT";
+          else echo "armed=false" >> "$GITHUB_OUTPUT"; echo "REPOINT-ARMED absent: the app does not read the NAS database, so nothing is synced." | tee -a "$GITHUB_STEP_SUMMARY"; fi
+      - uses: actions/setup-node@v4
+        if: steps.armed.outputs.armed == 'true'
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - run: npm ci
+        if: steps.armed.outputs.armed == 'true'
+        working-directory: app
+      - name: Gate the code, then write the sync SQL (refused on any failure)
+        if: steps.armed.outputs.armed == 'true'
+        working-directory: app
+        run: |
+          set -euo pipefail
+          npx vite-node ../scripts/curriculum-cli.mjs --sql "$RUNNER_TEMP/sync.sql" --commit "${{ github.sha }}"
+          node -e "import('../scripts/curriculum-snapshot.mjs').then((m) => process.stdout.write(m.READ_BACK_SQL))" > "$RUNNER_TEMP/readback.sql"
+      - name: Join the tailnet
+        if: steps.armed.outputs.armed == 'true'
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+      - name: Sync to the NAS, read back, prove parity
+        if: steps.armed.outputs.armed == 'true'
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+          COMMIT: ${{ github.sha }}
+        run: |
+          SYNC_SQL="$RUNNER_TEMP/sync.sql" READBACK_SQL="$RUNNER_TEMP/readback.sql" \
+          READBACK_OUT="$RUNNER_TEMP/readback.json" bash scripts/lessons-sync-over-tailnet.sh

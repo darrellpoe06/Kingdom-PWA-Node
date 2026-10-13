@@ -4,6 +4,9 @@
 import React, { useState } from 'react';
 import { SectionTitle, MetricCell } from './shared.jsx';
 import SectionTabs from './SectionTabs.jsx';
+import { FAMILY_MINISTRIES } from '../lib/family-ministries.js';
+import OpenersPanel from './OpenersPanel.jsx';
+import { useInstanceRole } from '../lib/instance-role.js';
 
 const fmt = (n) => n == null || !isFinite(n) ? '—' : `${n < 0 ? '-' : ''}$${Math.abs(Math.round(n)).toLocaleString()}`;
 const fmtCompact = (n) => { if (n == null || !isFinite(n)) return '—'; const a = Math.abs(n); const sign = n < 0 ? '-' : ''; if (a >= 1000000000) return `${sign}$${(a/1000000000).toFixed(2)}B`; if (a >= 1000000) return `${sign}$${(a/1000000).toFixed(1)}M`; if (a >= 1000) return `${sign}$${Math.round(a/1000)}k`; return `${sign}$${Math.round(a)}`; };
@@ -34,7 +37,7 @@ function Opportunities({ opportunities, totals, skillProfiles = [], addSkillProf
     cancelProfile();
   };
   const fieldCls = 'w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]';
-  const labelCls = 'text-[9px] uppercase tracking-wider text-[#5A5751]';
+  const labelCls = 'text-[0.5625rem] uppercase tracking-wider text-[#5A5751]';
 
   // Wrap-me-with-the-tech handler — auto-create Project + Scope from an opportunity.
   // Round 11: capacity check first. If adding this project would push the family
@@ -87,7 +90,7 @@ function Opportunities({ opportunities, totals, skillProfiles = [], addSkillProf
         make: '', model: '', serial: '',
       });
     }
-    alert(`Created a project "${projectTitle}" + a draft scope. Open the Projects tab to refine details.`);
+    alert(`Created a project "${projectTitle}" + a draft scope. Open the Projects tab to refine details.${decision.note ? `\n\n${decision.note} Set weekly hours on a profile under My skills.` : ''}`);
     if (setView) setView('projects');
   };
 
@@ -97,143 +100,178 @@ function Opportunities({ opportunities, totals, skillProfiles = [], addSkillProf
       label: 'My options',
       icon: 'sliders',
       render: () => (
-        <>
-      {/* SKILL PROFILES — editor */}
-      <section aria-labelledby="profiles-h">
-        <div className="flex items-baseline justify-between mb-2 pb-2 border-b border-[#1A1815] gap-2 flex-wrap">
-          <h3 id="profiles-h" className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751]">My Skills &amp; Situation · {skillProfiles.length} {skillProfiles.length === 1 ? 'profile' : 'profiles'}</h3>
-          <button type="button" onClick={() => showProfileForm ? cancelProfile() : startAddProfile()} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">{showProfileForm ? '× Cancel' : '+ Add a profile'}</button>
-        </div>
-        {showProfileForm && (
-          <div className="bg-white border border-[#B85838] p-3 mb-3 space-y-2">
-            <div className="text-[10px] uppercase tracking-[0.2em] text-[#B85838] font-medium">{editingProfileId ? 'Edit profile' : 'New profile'}</div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-              <div><label htmlFor="sp-name" className={labelCls}>Name</label><input id="sp-name" className={fieldCls} value={profileForm.name} onChange={e => setProfileForm({ ...profileForm, name: e.target.value })} /></div>
-              <div><label htmlFor="sp-loc" className={labelCls}>Location (city, state)</label><input id="sp-loc" className={fieldCls} value={profileForm.location} onChange={e => setProfileForm({ ...profileForm, location: e.target.value })} /></div>
-              <div><label htmlFor="sp-tech" className={labelCls}>Tech comfort (1–5)</label><input id="sp-tech" type="number" min="1" max="5" className={fieldCls} value={profileForm.techComfort} onChange={e => setProfileForm({ ...profileForm, techComfort: parseInt(e.target.value) || 3 })} /></div>
+              // Darrell 2026-09-11: "dashboard debt tracker all subtabs!!!!!!!"
+              // My options stacked three unrelated sections: the skill-profile
+              // editor, the per-profile options, and the pipeline. Third row.
+              <SectionTabs
+                variant="sub"
+                idBase="devops-options"
+                ariaLabel="My options sections"
+                defaultId="skills"
+                sections={[
+                  {
+                    id: 'skills',
+                    label: 'My skills',
+                    icon: 'users',
+                    render: () => (
+                      <>
+          {/* SKILL PROFILES — editor */}
+          <section aria-labelledby="profiles-h">
+            <div className="flex items-baseline justify-between mb-2 pb-2 border-b border-[#1A1815] gap-2 flex-wrap">
+              <h3 id="profiles-h" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751]">My Skills &amp; Situation · {skillProfiles.length} {skillProfiles.length === 1 ? 'profile' : 'profiles'}</h3>
+              <button type="button" onClick={() => showProfileForm ? cancelProfile() : startAddProfile()} className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">{showProfileForm ? '× Cancel' : '+ Add a profile'}</button>
             </div>
-            <div><label htmlFor="sp-skills" className={labelCls}>Skills (comma-separated tags)</label><textarea id="sp-skills" rows="2" className={fieldCls} placeholder="e.g., carpentry, plumbing, spanish, sales, teaching" value={profileForm.skills} onChange={e => setProfileForm({ ...profileForm, skills: e.target.value })} /></div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              <div><label htmlFor="sp-hours" className={labelCls}>Hours/week available</label><input id="sp-hours" type="number" min="0" max="80" className={fieldCls} value={profileForm.hoursPerWeek} onChange={e => setProfileForm({ ...profileForm, hoursPerWeek: parseInt(e.target.value) || 0 })} /></div>
-              <div><label htmlFor="sp-income" className={labelCls}>Current monthly income</label><input id="sp-income" type="number" min="0" className={fieldCls} value={profileForm.monthlyIncome} onChange={e => setProfileForm({ ...profileForm, monthlyIncome: parseInt(e.target.value) || 0 })} /></div>
-            </div>
-            <div><label htmlFor="sp-notes" className={labelCls}>Notes</label><input id="sp-notes" className={fieldCls} value={profileForm.notes} onChange={e => setProfileForm({ ...profileForm, notes: e.target.value })} /></div>
-            <button type="button" onClick={submitProfile} className="w-full bg-[#1A1815] text-white py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">{editingProfileId ? 'Save Changes' : 'Save Profile'}</button>
-          </div>
-        )}
-        {skillProfiles.length === 0 ? (
-          <p className="text-xs text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No profiles yet — add one above to see personalized options.</p>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {skillProfiles.map(p => (
-              <div key={p.id} className="bg-white border border-[#E8E4DC] p-3">
-                <div className="flex items-baseline justify-between gap-2 flex-wrap">
-                  <div className="min-w-0 flex-1">
-                    <div className="text-sm" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{p.name}</div>
-                    <div className="text-[10px] uppercase tracking-wider text-[#5A5751]">{p.hoursPerWeek}h/wk · {fmt(p.monthlyIncome)}/mo · tech {p.techComfort}/5{p.location ? ` · ${p.location}` : ''}</div>
-                    {p.skills && <div className="text-xs text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{p.skills}</div>}
-                    {p.notes && <div className="text-[11px] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{p.notes}</div>}
-                  </div>
+            {showProfileForm && (
+              <div className="bg-white border border-[#B85838] p-3 mb-3 space-y-2">
+                <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#B85838] font-medium">{editingProfileId ? 'Edit profile' : 'New profile'}</div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <div><label htmlFor="sp-name" className={labelCls}>Name</label><input id="sp-name" className={fieldCls} value={profileForm.name} onChange={e => setProfileForm({ ...profileForm, name: e.target.value })} /></div>
+                  <div><label htmlFor="sp-loc" className={labelCls}>Location (city, state)</label><input id="sp-loc" className={fieldCls} value={profileForm.location} onChange={e => setProfileForm({ ...profileForm, location: e.target.value })} /></div>
+                  <div><label htmlFor="sp-tech" className={labelCls}>Tech comfort (1–5)</label><input id="sp-tech" type="number" min="1" max="5" className={fieldCls} value={profileForm.techComfort} onChange={e => setProfileForm({ ...profileForm, techComfort: parseInt(e.target.value) || 3 })} /></div>
                 </div>
-                <div className="flex items-center gap-2 mt-2">
-                  <button type="button" onClick={() => startEditProfile(p)} className="text-xs uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] hover:bg-[#FAF8F4] border border-transparent hover:border-[#1A1815] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">Edit</button>
-                  <span aria-hidden="true" className="h-5 w-px bg-[#E8E4DC] ml-auto" />
-                  <button type="button" onClick={() => { if (confirm(`Delete profile "${p.name}"? Personalized options for them will disappear.`)) deleteSkillProfile && deleteSkillProfile(p.id); }} className="text-xs uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] hover:bg-[#FAF8F4] border border-transparent hover:border-[#B85838] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">Delete</button>
+                <div><label htmlFor="sp-skills" className={labelCls}>Skills (comma-separated tags)</label><textarea id="sp-skills" rows="2" className={fieldCls} placeholder="e.g., carpentry, plumbing, spanish, sales, teaching" value={profileForm.skills} onChange={e => setProfileForm({ ...profileForm, skills: e.target.value })} /></div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <div><label htmlFor="sp-hours" className={labelCls}>Hours/week available</label><input id="sp-hours" type="number" min="0" max="80" className={fieldCls} value={profileForm.hoursPerWeek} onChange={e => setProfileForm({ ...profileForm, hoursPerWeek: parseInt(e.target.value) || 0 })} /></div>
+                  <div><label htmlFor="sp-income" className={labelCls}>Current monthly income</label><input id="sp-income" type="number" min="0" className={fieldCls} value={profileForm.monthlyIncome} onChange={e => setProfileForm({ ...profileForm, monthlyIncome: parseInt(e.target.value) || 0 })} /></div>
                 </div>
+                <div><label htmlFor="sp-notes" className={labelCls}>Notes</label><input id="sp-notes" className={fieldCls} value={profileForm.notes} onChange={e => setProfileForm({ ...profileForm, notes: e.target.value })} /></div>
+                <button type="button" onClick={submitProfile} className="w-full bg-[#1A1815] text-white py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">{editingProfileId ? 'Save Changes' : 'Save Profile'}</button>
               </div>
-            ))}
-          </div>
-        )}
-      </section>
-
-      {/* PERSONALIZED OPTIONS PER PROFILE */}
-      <section aria-labelledby="options-h">
-        <h3 id="options-h" className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-2 pb-2 border-b border-[#1A1815]">Personalized Options · top {optionsPerProfile} per profile</h3>
-        {skillProfiles.length === 0 && <p className="text-sm text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>Add a profile above to unlock matched options.</p>}
-        <div className="space-y-6">
-          {skillProfiles.map(profile => {
-            const matches = matchOpportunities(profile, OPPORTUNITY_LIBRARY).slice(0, optionsPerProfile);
-            return (
-              <div key={profile.id}>
-                <h4 className="text-sm mb-2" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{profile.name}</h4>
-                {matches.length === 0 ? (
-                  <p className="text-xs text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No matches yet. Add more skill tags to {profile.name}'s profile (e.g., "teaching, music, real estate").</p>
-                ) : (
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                    {matches.map(op => (
-                      <article key={op.id} className="bg-white border border-[#1A1815] p-4">
-                        <div className="flex items-baseline justify-between gap-2 flex-wrap mb-1">
-                          <div>
-                            <div className="text-[10px] uppercase tracking-wider text-[#B85838] font-semibold">{op.category}</div>
-                            <h5 className="text-base" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{op.title}</h5>
-                          </div>
-                          <div className="text-right">
-                            <div className="text-base" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{fmt(op.earningsLow)}–{fmt(op.earningsHigh)}<span className="text-xs text-[#5A5751]">/mo</span></div>
-                            <div className="text-[10px] uppercase tracking-wider text-[#5A5751]">{op.hoursPerWeek}h/wk · startup {fmt(op.startupCost)}</div>
-                          </div>
-                        </div>
-                        <div className="text-[10px] uppercase tracking-wider text-[#5A5751] mb-2">first dollar: {op.timeToFirstDollar}</div>
-                        <p className="text-sm text-[#5A5751] leading-snug mb-2" style={{ fontFamily: '"Fraunces", serif' }}><strong>Example:</strong> {op.example}</p>
-                        <p className="text-xs leading-snug bg-[#FAF8F4] border border-[#E8E4DC] p-2" style={{ fontFamily: '"Fraunces", serif' }}>🛠 {op.techStack}</p>
-                        <div className="flex items-center gap-2 mt-3 flex-wrap">
-                          <button type="button" onClick={() => wrapWithTech(op, profile)} disabled={!canWrap} className={`text-xs uppercase tracking-wider px-3 py-2 font-semibold focus:outline focus:outline-2 focus:outline-[#B85838] ${canWrap ? 'bg-[#1A1815] text-white hover:bg-[#B85838]' : 'bg-[#E8E4DC] text-[#5A5751] cursor-not-allowed'}`} title={canWrap ? 'Auto-create a project + scope + capex item' : `Unlocks at ${TIER_LABEL['premium']}`}>
-                            {canWrap ? '🛠 Wrap me with the tech →' : `🔒 Wrap me (unlocks at ${TIER_LABEL['premium']})`}
-                          </button>
-                          <span className="text-[10px] uppercase tracking-wider text-[#5A5751]">matched on: {op.skillTags.slice(0, 3).join(' · ')}</span>
-                        </div>
-                      </article>
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-        <p className="text-[10px] text-[#5A5751] italic mt-4 max-w-prose" style={{ fontFamily: '"Fraunces", serif' }}>
-          Examples are composites drawn from public reporting and industry surveys, not specific individuals. Earnings ranges reflect typical solo / small-team operators in the US; your mileage will vary by region, hours, and time invested.
-        </p>
-      </section>
-
-      {/* MY ACTIVE PIPELINE — kept from prior version. Seed rows (ids o1..oN)
-          are the SEED-DATA-AS-ASPIRATION starter picture; the 2026-07-03 claims
-          audit found them rendering unlabeled under "actively in motion" — a
-          painted list. They now carry the sample banner until real rows exist. */}
-      <section aria-labelledby="pipeline-h">
-        <SectionTitle eyebrow="Pipeline">My Active Pipeline · Near-term opportunities</SectionTitle>
-        <p id="pipeline-h" className="text-sm text-[#5A5751] leading-relaxed max-w-prose mb-3" style={{ fontFamily: '"Fraunces", serif' }}>
-          What's actively in motion this year. Each row compounds into the household projection. Active conversations get priority.
-        </p>
-        {opportunities.length > 0 && opportunities.every((o) => /^o\d+$/.test(String(o.id))) && (
-          <p className="text-xs text-[#B85838] border border-[#B85838] bg-[#FAF8F4] px-3 py-2 mb-3 max-w-prose" style={{ fontFamily: '"Fraunces", serif' }}>
-            <strong>Sample pipeline.</strong> These rows are the starter picture of what a working pipeline looks like — not your live deals. They&apos;re replaced as your real opportunities land.
-          </p>
-        )}
-        {Object.entries(grouped).map(([person, items]) => (
-          <section key={person} className="mb-4">
-            <h3 className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-2">{person}</h3>
-            <div className="bg-white border border-[#1A1815]">
-              {items.map((o, i) => (
-                <div key={o.id} className={`p-4 ${i < items.length - 1 ? 'border-b border-[#E8E4DC]' : ''} ${o.flag ? 'bg-[#FAF8F4]' : ''}`}>
-                  <div className="flex justify-between gap-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-baseline gap-2 flex-wrap">
-                        <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{o.what}</span>
-                        {o.flag && <span className="text-[10px] uppercase tracking-wider text-[#B85838] font-medium">⚠ Priority</span>}
+            )}
+            {skillProfiles.length === 0 ? (
+              <p className="text-xs text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No profiles yet — add one above to see personalized options.</p>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {skillProfiles.map(p => (
+                  <div key={p.id} className="bg-white border border-[#E8E4DC] p-3">
+                    <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                      <div className="min-w-0 flex-1">
+                        <div className="text-sm" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{p.name}</div>
+                        <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">{p.hoursPerWeek}h/wk · {fmt(p.monthlyIncome)}/mo · tech {p.techComfort}/5{p.location ? ` · ${p.location}` : ''}</div>
+                        {p.skills && <div className="text-xs text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{p.skills}</div>}
+                        {p.notes && <div className="text-[0.6875rem] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{p.notes}</div>}
                       </div>
-                      <div className="text-xs text-[#5A5751]">{o.skill} · {o.status}</div>
                     </div>
-                    <div className="text-right shrink-0">
-                      <div className="text-lg" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{fmt(o.monthly)}</div>
-                      <div className="text-[10px] uppercase tracking-wider text-[#5A5751]">/ mo</div>
+                    <div className="flex items-center gap-2 mt-2">
+                      <button type="button" onClick={() => startEditProfile(p)} className="text-xs uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] hover:bg-[#FAF8F4] border border-transparent hover:border-[#1A1815] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">Edit</button>
+                      <span aria-hidden="true" className="h-5 w-px bg-[#E8E4DC] ml-auto" />
+                      <button type="button" onClick={() => { if (confirm(`Delete profile "${p.name}"? Personalized options for them will disappear.`)) deleteSkillProfile && deleteSkillProfile(p.id); }} className="text-xs uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] hover:bg-[#FAF8F4] border border-transparent hover:border-[#B85838] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">Delete</button>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </section>
-        ))}
-      </section>
-        </>
+                      </>
+                    ),
+                  },
+                  {
+                    id: 'options',
+                    label: 'What fits me',
+                    icon: 'sliders',
+                    render: () => (
+                      <>
+          {/* PERSONALIZED OPTIONS PER PROFILE */}
+          <section aria-labelledby="options-h">
+            <h3 id="options-h" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-2 pb-2 border-b border-[#1A1815]">Personalized Options · top {optionsPerProfile} per profile</h3>
+            {skillProfiles.length === 0 && <p className="text-sm text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>Add a profile above to unlock matched options.</p>}
+            <div className="space-y-6">
+              {skillProfiles.map(profile => {
+                const matches = matchOpportunities(profile, OPPORTUNITY_LIBRARY).slice(0, optionsPerProfile);
+                return (
+                  <div key={profile.id}>
+                    <h4 className="text-sm mb-2" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{profile.name}</h4>
+                    {matches.length === 0 ? (
+                      <p className="text-xs text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No matches yet. Add more skill tags to {profile.name}'s profile (e.g., "teaching, music, real estate").</p>
+                    ) : (
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                        {matches.map(op => (
+                          <article key={op.id} className="bg-white border border-[#1A1815] p-4">
+                            <div className="flex items-baseline justify-between gap-2 flex-wrap mb-1">
+                              <div>
+                                <div className="text-[0.625rem] uppercase tracking-wider text-[#B85838] font-semibold">{op.category}</div>
+                                <h5 className="text-base" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{op.title}</h5>
+                              </div>
+                              <div className="text-right">
+                                <div className="text-base" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{fmt(op.earningsLow)}–{fmt(op.earningsHigh)}<span className="text-xs text-[#5A5751]">/mo</span></div>
+                                <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">{op.hoursPerWeek}h/wk · startup {fmt(op.startupCost)}</div>
+                              </div>
+                            </div>
+                            <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-2">first dollar: {op.timeToFirstDollar}</div>
+                            <p className="text-sm text-[#5A5751] leading-snug mb-2" style={{ fontFamily: '"Fraunces", serif' }}><strong>Example:</strong> {op.example}</p>
+                            <p className="text-xs leading-snug bg-[#FAF8F4] border border-[#E8E4DC] p-2" style={{ fontFamily: '"Fraunces", serif' }}>🛠 {op.techStack}</p>
+                            <div className="flex items-center gap-2 mt-3 flex-wrap">
+                              <button type="button" onClick={() => wrapWithTech(op, profile)} disabled={!canWrap} className={`text-xs uppercase tracking-wider px-3 py-2 font-semibold focus:outline focus:outline-2 focus:outline-[#B85838] ${canWrap ? 'bg-[#1A1815] text-white hover:bg-[#B85838]' : 'bg-[#E8E4DC] text-[#5A5751] cursor-not-allowed'}`} title={canWrap ? 'Auto-create a project + scope + capex item' : `Unlocks at ${TIER_LABEL['premium']}`}>
+                                {canWrap ? '🛠 Wrap me with the tech →' : `🔒 Wrap me (unlocks at ${TIER_LABEL['premium']})`}
+                              </button>
+                              <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">matched on: {op.skillTags.slice(0, 3).join(' · ')}</span>
+                            </div>
+                          </article>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            <p className="text-[0.625rem] text-[#5A5751] italic mt-4 max-w-prose" style={{ fontFamily: '"Fraunces", serif' }}>
+              Examples are composites drawn from public reporting and industry surveys, not specific individuals. Earnings ranges reflect typical solo / small-team operators in the US; your mileage will vary by region, hours, and time invested.
+            </p>
+          </section>
+
+          {/* MY ACTIVE PIPELINE — kept from prior version. Seed rows (ids o1..oN)
+              are the SEED-DATA-AS-ASPIRATION starter picture; the 2026-07-03 claims
+              audit found them rendering unlabeled under "actively in motion" — a
+                      </>
+                    ),
+                  },
+                  {
+                    id: 'pipeline',
+                    label: 'Pipeline',
+                    icon: 'chart',
+                    render: () => (
+                      <>
+              painted list. They now carry the sample banner until real rows exist. */}
+          <section aria-labelledby="pipeline-h">
+            <SectionTitle eyebrow="Pipeline">My Active Pipeline · Near-term opportunities</SectionTitle>
+            <p id="pipeline-h" className="text-sm text-[#5A5751] leading-relaxed max-w-prose mb-3" style={{ fontFamily: '"Fraunces", serif' }}>
+              What's actively in motion this year. Each row compounds into the household projection. Active conversations get priority.
+            </p>
+            {opportunities.length > 0 && opportunities.every((o) => /^o\d+$/.test(String(o.id))) && (
+              <p className="text-xs text-[#B85838] border border-[#B85838] bg-[#FAF8F4] px-3 py-2 mb-3 max-w-prose" style={{ fontFamily: '"Fraunces", serif' }}>
+                <strong>Sample pipeline.</strong> These rows are the starter picture of what a working pipeline looks like — not your live deals. They&apos;re replaced as your real opportunities land.
+              </p>
+            )}
+            {Object.entries(grouped).map(([person, items]) => (
+              <section key={person} className="mb-4">
+                <h3 className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-2">{person}</h3>
+                <div className="bg-white border border-[#1A1815]">
+                  {items.map((o, i) => (
+                    <div key={o.id} className={`p-4 ${i < items.length - 1 ? 'border-b border-[#E8E4DC]' : ''} ${o.flag ? 'bg-[#FAF8F4]' : ''}`}>
+                      <div className="flex justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-baseline gap-2 flex-wrap">
+                            <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{o.what}</span>
+                            {o.flag && <span className="text-[0.625rem] uppercase tracking-wider text-[#B85838] font-medium">⚠ Priority</span>}
+                          </div>
+                          <div className="text-xs text-[#5A5751]">{o.skill} · {o.status}</div>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <div className="text-lg" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{fmt(o.monthly)}</div>
+                          <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">/ mo</div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            ))}
+          </section>
+                      </>
+                    ),
+                  },
+                ]}
+              />
       ),
     },
     {
@@ -244,7 +282,7 @@ function Opportunities({ opportunities, totals, skillProfiles = [], addSkillProf
         <>
       {/* DEMOTED — was the lead, now the answer to "I picked one, who builds it?" */}
       <section className="bg-[#FAF8F4] border border-[#1A1815] p-4 sm:p-5">
-        <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-1">Picked one? Here's how PoeTech wraps it.</div>
+        <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-1">Picked one? Here's how PoeTech wraps it.</div>
         <p className="text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
           The four engagement models below are how PoeTech actually builds the technology around an option you pick — from a Saturday hobbyist setup up through full enterprise transformation.
         </p>
@@ -280,7 +318,7 @@ function Opportunities({ opportunities, totals, skillProfiles = [], addSkillProf
     <div className="space-y-10">
       {/* HERO — orient the user */}
       <section className="bg-white border border-[#1A1815] p-5 sm:p-6">
-        <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] mb-1 font-medium">Dev/Ops · Your Entrepreneurial Options</div>
+        <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] mb-1 font-medium">Dev/Ops · Your Entrepreneurial Options</div>
         <h2 className="text-2xl sm:text-3xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>Your skills · what's working for people like you · how PoeTech wraps it.</h2>
         <p className="text-sm leading-relaxed mt-2 text-[#5A5751] max-w-prose" style={{ fontFamily: '"Fraunces", serif' }}>
           Add the skills, hours, and situation of each person in your household. We match them against curated entrepreneurial paths that real people run today, with what PoeTech can build to wrap that path in tech. <strong>You're seeing {optionsPerProfile} option{optionsPerProfile === 1 ? '' : 's'} per person at your tier.</strong>
@@ -288,8 +326,22 @@ function Opportunities({ opportunities, totals, skillProfiles = [], addSkillProf
       </section>
 
       <SectionTabs sections={sections} ariaLabel="Opportunities" idBase="opps" defaultId="options" />
+
+      {/* THE HOUSE OPENERS (Darrell 2026-10-08). Registered here, pressed from
+          the header. It lives in this module rather than the shell because the
+          shell is frozen (DR-0078), and it is gated by RLS on the household
+          (migration 0254), not by this render. */}
+      <OpenersHouseSection />
     </div>
   );
+}
+
+/** The openers panel, given the household it belongs to. Drawn only for an
+ *  account that is actually in a household; RLS decides what it can read. */
+function OpenersHouseSection() {
+  const instance = useInstanceRole();
+  if (!instance || !instance.instanceId) return null;
+  return <div className="mt-6"><OpenersPanel instanceId={instance.instanceId} /></div>;
 }
 
 // =============================================================================
@@ -322,7 +374,7 @@ function PoeTechDifferentiation() {
     {
       kind: 'Authenticity',
       title: 'Vertical integration with real businesses',
-      detail: 'Poe Properties (11 rentals · real management), TLC Therapy Solutions (real clinical practice · 7 clinicians), Church of the Living God (real ministry · Tech Director). Every workflow tested on actual family businesses before shipped. Competitors would need to start parallel businesses to match this provenance.',
+      detail: `Poe Properties (${FAMILY_MINISTRIES.poeProperties.rentals} rentals · real management), TLC Therapy Solutions (real clinical practice · ${FAMILY_MINISTRIES.tlc.clinicians} clinicians), Church of the Living God (real ministry · Tech Director). Every workflow tested on actual family businesses before shipped. Competitors would need to start parallel businesses to match this provenance.`,
       strength: 'Strong'
     },
     {
@@ -372,19 +424,19 @@ function PoeTechDifferentiation() {
           <div key={i} className="bg-white border border-[#E8E4DC] p-4 hover:border-[#1A1815] transition-colors">
             <div className="flex items-baseline justify-between gap-2 mb-1 flex-wrap">
               <div className="flex items-baseline gap-2 flex-wrap">
-                <span className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold">{m.kind}</span>
+                <span className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">{m.kind}</span>
                 <h4 className="text-base" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{m.title}</h4>
               </div>
-              <span className={`text-[10px] uppercase tracking-wider font-semibold ${m.strength === 'Strong' ? 'text-[#5A6E3D]' : 'text-[#5A5751]'}`}>{m.strength}</span>
+              <span className={`text-[0.625rem] uppercase tracking-wider font-semibold ${m.strength === 'Strong' ? 'text-[#5A6E3D]' : 'text-[#5A5751]'}`}>{m.strength}</span>
             </div>
             <p className="text-sm text-[#5A5751] leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>{m.detail}</p>
           </div>
         ))}
       </div>
 
-      <h3 className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-3 pb-2 border-b border-[#1A1815]">Competitive Landscape</h3>
+      <h3 className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-3 pb-2 border-b border-[#1A1815]">Competitive Landscape</h3>
       <div className="bg-white border border-[#1A1815]">
-        <div className="grid grid-cols-12 gap-2 p-3 border-b-2 border-[#1A1815] text-[10px] uppercase tracking-wider text-[#5A5751] bg-[#FAF8F4]">
+        <div className="grid grid-cols-12 gap-2 p-3 border-b-2 border-[#1A1815] text-[0.625rem] uppercase tracking-wider text-[#5A5751] bg-[#FAF8F4]">
           <div className="col-span-3">Competitor</div>
           <div className="col-span-3">Segment</div>
           <div className="col-span-4">What overlaps · what doesn't</div>
@@ -500,7 +552,7 @@ function LowHangingFruit() {
               <h4 className="text-base" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{o.name}</h4>
               <div className="text-base text-[#5A6E3D]" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{o.revenue}</div>
             </div>
-            <div className="flex items-baseline gap-3 mb-2 flex-wrap text-[10px] uppercase tracking-wider">
+            <div className="flex items-baseline gap-3 mb-2 flex-wrap text-[0.625rem] uppercase tracking-wider">
               <span className="text-[#5A5751]"><span className="text-[#B85838] font-semibold">Effort:</span> {o.effort}</span>
               <span className="text-[#5A5751]"><span className="text-[#B85838] font-semibold">Window:</span> {o.window}</span>
               <span className="text-[#5A5751]"><span className="text-[#B85838] font-semibold">Who:</span> {o.who}</span>
@@ -562,7 +614,7 @@ function PoeTechServicesPortfolio() {
 
       {/* v27: Why Hire Us — direct positioning callout */}
       <div className="bg-white border-2 border-[#B85838] p-5 sm:p-6 mb-5">
-        <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-2">Why Hire Us · Not Them</div>
+        <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-2">Why Hire Us · Not Them</div>
         <h3 className="text-2xl sm:text-3xl mb-3" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>
           Faster and better than the big team because it's intimate.
         </h3>
@@ -579,15 +631,15 @@ function PoeTechServicesPortfolio() {
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
           <div className="bg-[#FAF8F4] p-3">
-            <div className="text-[10px] uppercase tracking-[0.2em] text-[#5A6E3D] font-semibold mb-1">Intimate</div>
+            <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A6E3D] font-semibold mb-1">Intimate</div>
             <p className="text-xs leading-snug" style={{ fontFamily: '"Fraunces", serif' }}>You talk to the people doing the work. No account managers, no offshore handoffs, no game of telephone.</p>
           </div>
           <div className="bg-[#FAF8F4] p-3">
-            <div className="text-[10px] uppercase tracking-[0.2em] text-[#5A6E3D] font-semibold mb-1">Lean</div>
+            <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A6E3D] font-semibold mb-1">Lean</div>
             <p className="text-xs leading-snug" style={{ fontFamily: '"Fraunces", serif' }}>No bloat. No process for process's sake. Lower price reflects lower overhead, not lower quality.</p>
           </div>
           <div className="bg-[#FAF8F4] p-3">
-            <div className="text-[10px] uppercase tracking-[0.2em] text-[#5A6E3D] font-semibold mb-1">Both Sides</div>
+            <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A6E3D] font-semibold mb-1">Both Sides</div>
             <p className="text-xs leading-snug" style={{ fontFamily: '"Fraunces", serif' }}>Hands-on dev/ops AND business. We understand both your stack and your P&L. Rare combination.</p>
           </div>
         </div>
@@ -600,13 +652,13 @@ function PoeTechServicesPortfolio() {
 
       {/* v29: Pricing Philosophy — Dual Track */}
       <div className="bg-white border-2 border-[#5A6E3D] p-5 sm:p-6 mb-5">
-        <div className="text-[10px] uppercase tracking-[0.3em] text-[#5A6E3D] font-semibold mb-2">Pricing Philosophy · Two Tracks</div>
+        <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#5A6E3D] font-semibold mb-2">Pricing Philosophy · Two Tracks</div>
         <h3 className="text-xl sm:text-2xl mb-3" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>
           Fair pricing both ways. Not slave wages. Not extortion.
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
           <div className="bg-[#FAF8F4] border border-[#5A6E3D] p-4">
-            <div className="text-[10px] uppercase tracking-[0.2em] text-[#5A6E3D] font-semibold mb-1">Family · Small Business · Founders</div>
+            <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A6E3D] font-semibold mb-1">Family · Small Business · Founders</div>
             <p className="text-sm mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
               Accessible by design. Foundation tier free forever. Loved Ones free PoeTech+ for life (first 100 COLG families). Subscriptions $39–$249/mo. Community tier free for families in need (sponsor-funded).
             </p>
@@ -615,7 +667,7 @@ function PoeTechServicesPortfolio() {
             </p>
           </div>
           <div className="bg-[#FAF8F4] border border-[#1A1815] p-4">
-            <div className="text-[10px] uppercase tracking-[0.2em] text-[#1A1815] font-semibold mb-1">Enterprise · Big Business with Budget</div>
+            <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#1A1815] font-semibold mb-1">Enterprise · Big Business with Budget</div>
             <p className="text-sm mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
               Premium pricing for compressed delivery. $50K–$5M projects. $25K–$75K/mo retainers. $400–$800/hr senior rates. Pay us $3M for ~2 months of senior, focused work and walk with $5M of delivered value — vs <strong>$5M per year × 5 years = $25M</strong> from a BigCo for less.
             </p>
@@ -634,19 +686,19 @@ function PoeTechServicesPortfolio() {
           <div key={i} className={`bg-white border-2 ${m.color} p-5`}>
             <div className="flex items-baseline justify-between gap-3 mb-1 flex-wrap">
               <h3 className="text-lg" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{m.name}</h3>
-              <span className="text-[11px] uppercase tracking-[0.15em] text-[#5A5751] font-medium">{m.pricing}</span>
+              <span className="text-[0.6875rem] uppercase tracking-[0.15em] text-[#5A5751] font-medium">{m.pricing}</span>
             </div>
             <p className="text-sm italic text-[#5A5751] mb-3" style={{ fontFamily: '"Fraunces", serif' }}>"{m.tagline}"</p>
             <p className="text-sm mb-3" style={{ fontFamily: '"Fraunces", serif' }}>{m.best}</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <div className="text-[10px] uppercase tracking-[0.2em] text-[#B85838] mb-1 font-medium">Includes</div>
+                <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#B85838] mb-1 font-medium">Includes</div>
                 <ul className="text-xs text-[#5A5751] space-y-1">
                   {m.includes.map((f, j) => <li key={j} className="flex gap-2"><span className="text-[#B85838]">·</span><span>{f}</span></li>)}
                 </ul>
               </div>
               <div>
-                <div className="text-[10px] uppercase tracking-[0.2em] text-[#B85838] mb-1 font-medium">For Who</div>
+                <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#B85838] mb-1 font-medium">For Who</div>
                 <p className="text-xs text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>{m.forWho}</p>
               </div>
             </div>
@@ -656,7 +708,7 @@ function PoeTechServicesPortfolio() {
 
       {/* Annual revenue scenarios */}
       <div className="bg-white border border-[#1A1815] p-5 mt-4">
-        <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-medium mb-2">Year-Ahead Visibility · PoeTech Services Revenue</div>
+        <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-medium mb-2">Year-Ahead Visibility · PoeTech Services Revenue</div>
         <p className="text-sm leading-relaxed mb-3" style={{ fontFamily: '"Fraunces", serif' }}>
           What this looks like over 12 months as a portfolio mix:
         </p>
@@ -685,7 +737,7 @@ function PoeTechServicesPortfolio() {
 
       {/* Collaboration call-out */}
       <div className="bg-white border-2 border-dashed border-[#B85838] p-5 mt-4">
-        <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-medium mb-2">⚡ Active Conversations</div>
+        <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-medium mb-2">⚡ Active Conversations</div>
         <p className="text-sm leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
           Two warm prospects are already interested — each with business background and some tech experience, both looking for the personal touch PoeTech offers. Treat them as Project or Retainer engagements first; convert to Revenue Share when fit becomes obvious. See "Active This Year" below for the entries.
         </p>
@@ -710,7 +762,7 @@ function PoeTechProjections() {
   const milestones = [
     { customers: 100,       year: 1,  context: 'Warm market · Loved Ones tier · Church + family network', poeFamily: 'Still paying down personal debt' },
     { customers: 1000,      year: 2,  context: 'Word of mouth from first 100 · early product-led growth', poeFamily: 'Consumer debt-free path clearly working' },
-    { customers: 10000,     year: 4,  context: 'Crossed into mainstream awareness · Marketing module live', poeFamily: '~7 of 11 rentals paid off · Real income from PoeTech' },
+    { customers: 10000,     year: 4,  context: 'Crossed into mainstream awareness · Marketing module live', poeFamily: `~7 of ${FAMILY_MINISTRIES.poeProperties.rentals} rentals paid off · Real income from PoeTech` },
     { customers: 100000,    year: 7,  context: 'Calendly was here at year 7 · PoeTech hardware DTC viable', poeFamily: 'All rentals owned free · Compounding from PoeTech equity' },
     { customers: 1000000,   year: 10, context: 'Major SaaS scale · Mission-level impact across families', poeFamily: 'Generational wealth · Full Sabbath rest possible' },
   ];
@@ -723,7 +775,7 @@ function PoeTechProjections() {
       </p>
 
       <div className="bg-white border border-[#1A1815] p-5 mb-4">
-        <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-3">Customer Tier Mix · Current Pricing</div>
+        <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-3">Customer Tier Mix · Current Pricing</div>
         <div className="space-y-2.5">
           <TierSlider label="Foundation (free)" value={foundationPct} setValue={setFoundationPct} price={0} />
           <TierSlider label="PoeTech+ ($39/mo)" value={plusPct} setValue={setPlusPct} price={39} />
@@ -736,13 +788,13 @@ function PoeTechProjections() {
           <MetricCell label="Annual ARPU" value={`$${arpuAnnual.toFixed(0)}`} sub="per customer/yr" small />
           <MetricCell label="Paying %" value={`${payingPct}%`} sub={totalPct < 100 ? `${100-totalPct}% free` : 'of customers'} small accent="green" />
         </div>
-        <p className="text-[10px] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
+        <p className="text-[0.625rem] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
           Industry-typical freemium SaaS: 5-15% paying conversion. Calendly's free→paid is ~3%. The remaining {totalPct < 100 ? (100-totalPct) : 0}% is Loved Ones + Community tiers (free, sponsored).
         </p>
       </div>
 
       <div className="bg-white border border-[#1A1815]">
-        <div className="grid grid-cols-12 gap-2 p-3 border-b-2 border-[#1A1815] text-[10px] uppercase tracking-wider text-[#5A5751] bg-[#FAF8F4]">
+        <div className="grid grid-cols-12 gap-2 p-3 border-b-2 border-[#1A1815] text-[0.625rem] uppercase tracking-wider text-[#5A5751] bg-[#FAF8F4]">
           <div className="col-span-3">Milestone</div>
           <div className="col-span-2 text-right">MRR</div>
           <div className="col-span-2 text-right">ARR</div>
@@ -757,22 +809,22 @@ function PoeTechProjections() {
               <div className="grid grid-cols-12 gap-2 items-baseline">
                 <div className="col-span-3">
                   <div className="text-base sm:text-lg" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{m.customers.toLocaleString()}</div>
-                  <div className="text-[10px] uppercase tracking-wider text-[#5A5751]">families</div>
+                  <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">families</div>
                 </div>
                 <div className="col-span-2 text-right">
                   <div style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 500 }}>{fmtCompact(mrr)}</div>
-                  <div className="text-[10px] uppercase tracking-wider text-[#5A5751]">/mo</div>
+                  <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">/mo</div>
                 </div>
                 <div className="col-span-2 text-right">
                   <div className="text-[#5A6E3D]" style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 500 }}>{fmtCompact(arr)}</div>
-                  <div className="text-[10px] uppercase tracking-wider text-[#5A5751]">/yr</div>
+                  <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">/yr</div>
                 </div>
                 <div className="col-span-1 text-right">
                   <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>Y{m.year}</div>
                 </div>
                 <div className="col-span-4">
                   <div className="text-xs text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>{m.context}</div>
-                  <div className="text-[10px] text-[#B85838] mt-0.5 italic">Poe family: {m.poeFamily}</div>
+                  <div className="text-[0.625rem] text-[#B85838] mt-0.5 italic">Poe family: {m.poeFamily}</div>
                 </div>
               </div>
             </div>
@@ -781,7 +833,7 @@ function PoeTechProjections() {
       </div>
 
       <div className="bg-white border border-[#1A1815] p-5 mt-4">
-        <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-2">Comparable Trajectories</div>
+        <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-2">Comparable Trajectories</div>
         <div className="space-y-2 text-sm" style={{ fontFamily: '"Fraunces", serif' }}>
           <div className="flex justify-between gap-3">
             <span><strong>Calendly</strong> · Tope Awotona</span>
@@ -802,7 +854,7 @@ function PoeTechProjections() {
       </div>
 
       <div className="bg-white border border-[#1A1815] p-5 mt-4">
-        <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] mb-2 font-medium">Multiple Paths to Be Fruitful</div>
+        <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] mb-2 font-medium">Multiple Paths to Be Fruitful</div>
         <h3 className="text-lg mb-2" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>What every family on PoeTech can do</h3>
         <p className="text-sm leading-relaxed mb-3" style={{ fontFamily: '"Fraunces", serif' }}>
           Each PoeTech subscriber owns their data and gets the tools that compound their stewardship. The same patterns work for any family — not just ours.

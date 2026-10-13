@@ -33,6 +33,14 @@ export function concernToRow(item, { tenantId, userId }) {
     source:      item.source ?? 'manual',
     sort_rank:   item.sortRank ?? null,
     links:       item.links && typeof item.links === 'object' ? item.links : {},
+    // The chain columns (0228, DR-0589). Sent only when the local item carries
+    // the key, so a row written before a box has replayed 0228 is not refused
+    // for a column it does not yet have.
+    ...(item.evidence !== undefined ? { evidence: item.evidence ?? null } : {}),
+    ...(item.impact !== undefined ? { impact: item.impact ?? null } : {}),
+    ...(item.decisionRequired !== undefined ? { decision_required: item.decisionRequired ?? null } : {}),
+    ...(item.outcome !== undefined ? { outcome: item.outcome ?? null } : {}),
+    ...(item.owner !== undefined ? { owner: item.owner ?? null } : {}),
   };
 }
 
@@ -51,6 +59,11 @@ export function concernFromRow(row) {
     source:     row.source ?? 'manual',
     sortRank:   row.sort_rank ?? null,
     links:      row.links && typeof row.links === 'object' ? row.links : {},
+    evidence:         row.evidence ?? null,
+    impact:           row.impact ?? null,
+    decisionRequired: row.decision_required ?? null,
+    outcome:          row.outcome ?? null,
+    owner:            row.owner ?? null,
     createdAt:  row.created_at,
     updatedAt:  row.updated_at,
   };
@@ -77,6 +90,11 @@ export const CONCERN_COLUMN_OF = {
   source:     'source',
   sortRank:   'sort_rank',
   links:      'links',
+  evidence:         'evidence',
+  impact:           'impact',
+  decisionRequired: 'decision_required',
+  outcome:          'outcome',
+  owner:            'owner',
 };
 
 // Field-preserving merge for a realtime refetch (same contract as

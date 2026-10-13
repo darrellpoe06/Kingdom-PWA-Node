@@ -1,0 +1,8 @@
+# Runtime artifacts — never committed. The runner ships inert via state/KILL_SWITCH;
+# these are produced only on an armed church node.
+events/events.jsonl
+yt-index.json
+__pycache__/
+state/INGEST_ARMED
+state/INGEST_COMMIT
+state/ingest.lock/

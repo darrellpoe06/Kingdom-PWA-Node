@@ -150,27 +150,30 @@ export const LEDGER = [
     reason: 'Prevents accidental PHI exchange; Acuity stays the PHI system of record. A deliberate privacy default, not a hedge.',
   },
   {
-    id: 'external-config-integrations', label: 'Voice bridge · Review feed · YouTube · Synology chat · n8n ingest · CF Pages · Bookstore checkout',
+    id: 'external-config-integrations', label: 'Voice (sovereign studio / recorded vendor gap) · Review feed · YouTube · Synology chat · n8n ingest · CF Pages · Bookstore checkout',
     ref: 'voice-service.js / ReviewFeed.jsx / choir-sync.js / synology-chat.js / poe-financial-mvp-v28.jsx / concerns.js / Bookstore.jsx',
     bucket: BUCKET.SAFETY, active: false,
-    gate: 'VITE_VOICE_BRIDGE · VITE_REVIEW_TOKEN · VITE_YOUTUBE_API_KEY · VITE_SYNOLOGY_CHAT_BOT_URL · VITE_N8N_WEBHOOK_BASE · CF_PAGES_ENABLED · CHECKOUT_CONFIG.enabled',
-    reason: 'Each needs an external resource only Darrell can provide (an API key, a NAS/Funnel URL, a payment processor, DNS cutover). They degrade gracefully to a status message; there is nothing to "turn on" until the resource exists. Not a hedge — an unmet precondition.',
+    gate: 'VITE_VOICE_SERVICE_URL (sovereign, outranks) · VITE_VOICE_BRIDGE (vendor, recorded gap) · VITE_REVIEW_TOKEN · VITE_YOUTUBE_API_KEY · VITE_SYNOLOGY_CHAT_BOT_URL · VITE_N8N_WEBHOOK_BASE · CF_PAGES_ENABLED · CHECKOUT_CONFIG.enabled',
+    reason: 'Each needs a resource only Darrell can provide (the studio URL on the 4070, an API key, a NAS/Funnel URL, a payment processor, DNS cutover). They degrade gracefully to a status message; there is nothing to "turn on" until the resource exists. Voice is SOVEREIGN-FIRST per DR-0137: the local studio always outranks the vendor bridge, and any vendor use is a recorded sovereignty gap (lib/sovereignty-gaps.js) carrying its build/purchase path home.',
   },
 
   // ── Bucket 4 — BROKEN / half-built. On the FIX LIST. Honestly surfaced as
   //    placeholder/"coming"; activated ONLY once it actually works.
   {
     id: 'legal-full', label: 'Legal module — full encrypted matter management',
-    ref: 'app/src/components/Legal.jsx:143 (LegalPlaceholder "Coming next")', bucket: BUCKET.BROKEN, active: false,
-    gate: 'ships LegalPlaceholder; full impl tracked as tasks #94–#99',
-    reason: 'FIX LIST: PIN setup → AES-GCM-256 at-rest → matter CRUD (4 scopes) → privileged journal/documents → key-date Calendar mirroring → privileged-stripped export are not built. Surfaced honestly as a placeholder, NOT flipped on.',
+    ref: 'app/src/components/Legal.jsx (LegalPlaceholder "Coming next")', bucket: BUCKET.BROKEN, active: false,
+    gate: 'document SHELVES ship (DR-0329); matter management + at-rest encryption remain unbuilt',
+    reason: 'PARTIALLY CLOSED 2026-09-06 (DR-0329): the four category boxes were hardcoded <ul> lists and are now real document shelves — upload or pointer, mandatory privileged Y/N, private bucket + creator-only RLS (migration 0169), signed-URL reads. STILL ON THE FIX LIST: matter CRUD across the four scopes, the privileged journal, key-date Calendar mirroring, the privileged-stripped export, and AES-GCM-256 at rest. The encryption layer is not merely unbuilt but currently unbuildable as specified: LEGAL-PRIVACY-BOUNDARY derives its key from the Legal PIN, and lib/pin.js keeps the PIN out of the browser entirely, so there is no client-side key material. That needs its own key-architecture decision. The surface states this in words rather than implying encryption it lacks. re-review: 2026-10-15.',
   },
-  {
-    id: 'pulpit-sermons', label: 'Pulpit — sermon archive (captioned, searchable)',
-    ref: 'app/src/poe-financial-mvp-v28.jsx:8017 ("Sermons coming soon")', bucket: BUCKET.BROKEN, active: false,
-    gate: 'entry point + placeholder; Sermon-to-Content pipeline not online',
-    reason: 'FIX LIST: the sermon caption/archive/search pipeline is not wired. The Pulpit surface ships with an honest "coming soon" panel rather than an empty/broken archive.',
-  },
+  // (removed 2026-07-12) 'pulpit-sermons' entry retired: it described the Pulpit
+  // sermon archive as a "Sermons coming soon" placeholder at a monolith line that
+  // no longer exists (:8017 in a 5307-line file; the quoted string is nowhere in
+  // the tree). The archive SHIPPED — Pulpit.jsx ("The Word — Migdal") renders the
+  // live, RPC-backed (theword_public_sermons, 0029) chronological library with
+  // per-message points + search. The remaining caption-ENRICHMENT gap (Harvest %)
+  // is tracked by the harvest pipeline (Harvest Ledger), not as a broken Pulpit.
+  // The entry carried no surfaceId, so validateLedger's cross-check never caught
+  // the drift — the cause of DR-0076 "honest ledger, dishonestly stale."
 ];
 
 // ── Validation — the regression guard (runs in CI via vitest) ────────────────

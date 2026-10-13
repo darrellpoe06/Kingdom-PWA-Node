@@ -28,8 +28,10 @@ import { SectionTitle } from './shared.jsx';
 import { subscribeSermons, subscribeSongs } from '../lib/choir-sync.js';
 import {
   THEMES, SURFACES, OTHER_VERSIONS, VERSE_ROLES, COPYRIGHT_NOTE,
-  kjvText, readOnline, searchVerses,
+  kjvText, webText, readOnline, searchVerses, versesForTheme,
 } from '../lib/scriptures.js';
+import { setReadTarget, clearReadTarget } from '../lib/read-target.js';
+import { scriptureReadingPlan } from '../lib/scripture-reading.js';
 import {
   DEPTH_TIERS, EXPERIENCE_LEVELS, GOVERNING_LENS, PRIVACY, ACCESSIBILITY,
   resolveDepth, resolveLevel, rankByInterest, gradeTest, encouragement,
@@ -37,7 +39,8 @@ import {
 import {
   buildStudyEntry, checkSeparation, clarifiedRefs, INTEGRITY_BANNER,
 } from '../lib/study-edition.js';
-import { provenanceLine } from '../lib/bible-editions.js';
+import { provenanceLine, editionById } from '../lib/bible-editions.js';
+import { EDITIONS_ON_DISK, readerEdition, rememberReaderEdition } from '../lib/bible-kjv.js';
 import { fetchPublishedAlgorithms, algorithmsAnchoredAt } from '../lib/eternal-algorithms-sync.js';
 import ScriptureConnections from './ScriptureConnections.jsx';
 import { studySeedFromVerse } from '../lib/studyable.js';
@@ -45,6 +48,10 @@ import { loadStudy, saveStudy, addSeedToStudy } from '../lib/study-space.js';
 import VerseHighlighter from './VerseHighlighter.jsx';
 import { loadHighlights, saveHighlights, getMark, setMark, cssForHighlight } from '../lib/scripture-highlights.js';
 import BibleReader from './BibleReader.jsx';
+import SectionTabs from './SectionTabs.jsx';
+import VerseChips from './VerseChips.jsx';
+import ShowTheWordToggle from './ShowTheWordToggle.jsx';
+import HowWeWriteHisName from './HowWeWriteHisName.jsx';
 
 const serif = { fontFamily: '"Fraunces", serif' };
 const mono = { fontFamily: '"JetBrains Mono", monospace' };
@@ -135,7 +142,7 @@ function usePublishedAlgs() {
   return algs;
 }
 
-function VerseCard({ refStr, kjv, gloss, role, backs, canStudy = false, email = null, themeId = null, themeTitle = null, onOpenAlgorithms = null }) {
+function VerseCard({ refStr, kjv, text = null, editionShort = 'KJV', gloss, role, backs, canStudy = false, email = null, themeId = null, themeTitle = null, onOpenAlgorithms = null }) {
   const roleLabel = (VERSE_ROLES[role] || {}).label || role;
   // "Scriptures are eternal algorithms" — the back-link from a verse to every
   // PUBLISHED framework it anchors (honest overlap match: same book+chapter,
@@ -163,7 +170,7 @@ function VerseCard({ refStr, kjv, gloss, role, backs, canStudy = false, email = 
       </div>
       <p className="text-sm text-[#1A1815] mt-1 leading-relaxed" style={serif}>
         <span className="sr-only">King James Version. </span>
-        <span style={cssForHighlight(mark)}>“{kjv}”</span><span className="text-[0.625rem] text-[#5A5751] ml-1 align-baseline" style={mono}>KJV</span>
+        <span style={cssForHighlight(mark)}>“{text || kjv}”</span><span className="text-[0.625rem] text-[#5A5751] ml-1 align-baseline" style={mono}>{editionShort}</span>
       </p>
       {gloss && <p className="text-xs text-[#5A5751] mt-1.5" style={serif}>{gloss}</p>}
       {anchored.length > 0 && (
@@ -255,7 +262,15 @@ function ThemeTest({ test }) {
 }
 
 // --- One theme ---------------------------------------------------------------
-function ThemeSection({ theme, tier, level, canStudy = false, email = null, onOpenAlgorithms = null }) {
+// `edition` (2026-09-06): the verse shows the WEB when the reader has chosen it
+// and the WEB carries the verse; otherwise the KJV, labelled as such. The
+// reader speaks what is rendered, so the spoken edition is the shown edition.
+const shownVerse = (ref, edition) => {
+  const web = edition === 'web' ? webText(ref) : null;
+  return web ? { text: web, editionShort: 'WEB' } : { text: kjvText(ref), editionShort: 'KJV' };
+};
+
+function ThemeSection({ theme, tier, level, canStudy = false, email = null, onOpenAlgorithms = null, edition = 'kjv' }) {
   const [localTier, setLocalTier] = useState(null); // per-theme override of global tier
   const effectiveTier = localTier || tier;
   const depth = resolveDepth(theme, effectiveTier);
@@ -333,7 +348,7 @@ function ThemeSection({ theme, tier, level, canStudy = false, email = null, onOp
       {/* The verses */}
       <div className="space-y-2">
         {theme.verses.map((v) => (
-          <VerseCard key={v.ref} refStr={v.ref} kjv={kjvText(v.ref)} gloss={v.gloss} role={v.role} backs={v.backs || theme.surfaces}
+          <VerseCard key={v.ref} refStr={v.ref} kjv={kjvText(v.ref)} {...shownVerse(v.ref, edition)} gloss={v.gloss} role={v.role} backs={v.backs || theme.surfaces}
             canStudy={canStudy} email={email} themeId={theme.id} themeTitle={theme.title} onOpenAlgorithms={onOpenAlgorithms} />
         ))}
       </div>
@@ -460,9 +475,7 @@ function StudyEditionEntry({ refStr }) {
                 {clar.crossRefs && clar.crossRefs.length > 0 && (
                   <div className="flex flex-wrap gap-1.5 items-center">
                     <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Cross-references:</span>
-                    {clar.crossRefs.map((r) => (
-                      <span key={r} className="text-[0.625rem] bg-white border border-[#E8E4DC] text-[#5A5751] px-1.5 py-0.5" style={mono}>{r}</span>
-                    ))}
+                    <VerseChips refs={clar.crossRefs} />
                   </div>
                 )}
               </div>
@@ -489,6 +502,7 @@ function StudyEdition() {
         <p className="text-xs text-[#5A5751] mb-2" style={serif}>
           Our own freely-usable edition: public-domain Scripture (modern English + KJV, shown side by side) with our clarification beside it. The two are always kept visibly separate — the Word is the Word; the notes are notes.
         </p>
+        <div className="mb-2"><ShowTheWordToggle /></div>
         <div className="flex gap-1.5 mb-3 overflow-x-auto pb-1" role="tablist" aria-label="Study Edition references">
           {refs.map((r) => (
             <button key={r} type="button" role="tab" aria-selected={active === r} onClick={() => setActive(r)}
@@ -508,8 +522,20 @@ export default function ScriptureLibrary({ email = null, canStudy = false, sermo
   const onOpenAlgorithms = typeof setChurchView === 'function' ? () => setChurchView('eternal-algorithms') : null;
   const [query, setQuery] = useState('');
   const [activeTheme, setActiveTheme] = useState('all');
+  // Search-result windowing — a common word can match hundreds of verses; the
+  // first pageSize render, the rest wait behind an honest "Show more" (audit:
+  // list-pagination, intuitive-ux). Resets on each new query.
+  const pageSize = 30;
+  const [visibleCount, setVisibleCount] = useState(pageSize);
+  useEffect(() => { setVisibleCount(pageSize); }, [query]);
   const [tier, setTier] = useState('standard');
   const [level, setLevel] = useState('standard');
+  // The chosen public-domain edition, shared with the Bible reader and
+  // remembered per device (Darrell 2026-09-06: "we want kjv and esv" — the ESV
+  // cannot be carried; the WEB is the second). The page shows it, and the
+  // reader speaks what the page shows.
+  const [edition, setEdition] = useState(() => readerEdition());
+  const chooseEdition = (e) => { setEdition(e); rememberReaderEdition(e); };
   const [consented, setConsented] = useState(false);
   const [interests, setInterests] = useState([]);
 
@@ -536,29 +562,71 @@ export default function ScriptureLibrary({ email = null, canStudy = false, sermo
     [activeTheme, orderedThemes],
   );
   const toggleInterest = (id) => setInterests((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
+
+  // ONE PRESS OF PLAY READS THE WHOLE SECTION, THEN THE NEXT ONE.
+  //
+  // Darrell 2026-08-13: "I want users to be able to get the whole lesson from
+  // pushing play once... beginning to end", "verses plus the 'Whosoever — the…'
+  // commentary", "each version all the way to deep for each section."
+  //
+  // Until now Scripture registered NO read target, so the floating reader fell
+  // back to reading the whole page — which is how the button labels ended up in
+  // the reading. Registering the real one fixes that at the source AND buys the
+  // two things the fallback can never have: follow-along highlighting (the
+  // reader maps the named element) and hands-free continuation (`next`).
+  //
+  // The reading is composed by lib/scripture-reading.js, deliberately NOT from
+  // the DOM: the page shows one depth at a time because a reader chooses how far
+  // to go, and a listener cannot tap between tiers mid-sentence. The spoken form
+  // carries the whole ladder — Essential, Standard, Deep — which is exactly what
+  // "all the way to deep" asks for and is invisible to anything that scrapes
+  // what is currently rendered.
+  const [readIndex, setReadIndex] = useState(0);
+  // A theme list change (switching tabs, searching) restarts the reading rather
+  // than leaving an index pointing into the previous list.
+  useEffect(() => { setReadIndex(0); }, [activeTheme, query]);
+  useEffect(() => {
+    if (results) return undefined; // a search result set is not a section reading
+    const plan = scriptureReadingPlan(shownThemes, { versesFor: versesForTheme, level, index: readIndex, edition });
+    if (!plan) return undefined;
+    setReadTarget('scripture-study', {
+      label: plan.label,
+      text: plan.text,
+      elementId: 'scripture-read-root',
+      next: plan.hasNext ? () => { setReadIndex(plan.nextIndex); return true; } : null,
+    });
+    return () => clearReadTarget('scripture-study');
+  }, [shownThemes, results, level, readIndex, edition]);
   // The WHOLE KJV read in-app vs. the curated, depth-adaptive study (Darrell
   // 2026-07-04: a Logos-type Bible inside PoeTech, no link-out). The Word leads —
   // opening Scripture lands on the Bible itself, curated study is the second tab
   // (Darrell 2026-07-04: "the Word tab should be first under the Scripture tab").
-  const [readerMode, setReaderMode] = useState('bible');
-
-  return (
-    <div className="max-w-3xl">
-      <SectionTitle eyebrow="Word-first · KJV public domain · His perspective + His love">Scripture</SectionTitle>
-
-      <div className="flex gap-2 mb-3 flex-wrap" role="tablist" aria-label="Scripture mode">
-        <button type="button" role="tab" aria-selected={readerMode === 'bible'} onClick={() => setReaderMode('bible')}
-          className={`text-[0.625rem] uppercase tracking-wider px-3 py-1.5 border focus:outline focus:outline-2 focus:outline-[#B85838] ${readerMode === 'bible' ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'text-[#5A5751] border-[#E8E4DC] hover:text-[#1A1815]'}`}>
-          The Word · Full Bible KJV
-        </button>
-        <button type="button" role="tab" aria-selected={readerMode === 'study'} onClick={() => setReaderMode('study')}
-          className={`text-[0.625rem] uppercase tracking-wider px-3 py-1.5 border focus:outline focus:outline-2 focus:outline-[#B85838] ${readerMode === 'study' ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'text-[#5A5751] border-[#E8E4DC] hover:text-[#1A1815]'}`}>
-          Curated study
-        </button>
-      </div>
-
-      {readerMode === 'bible' && <BibleReader email={email} />}
-      {readerMode === 'study' && (<>
+  // The two rooms ride the shared SectionTabs strip (Darrell 2026-07-04 "sliding
+  // tabs instead of a long scroll"); the curated study KEEPS its own inner strips
+  // (Study Edition refs, themes) as the deeper navigation, and every hook stays
+  // up here so sliding between sections loses no depth/level/interest choices.
+  const sections = [
+    {
+      // Darrell 2026-09-19: "Still quoting however give an overall we capitalize
+      // etc for etc reasons..." It gets a section rather than a note repeated
+      // under every verse: the rule is stated ONCE, where the Word lives, and
+      // a reader who wonders about a lower-case name has somewhere to go.
+      id: 'names',
+      label: 'How we write His Name',
+      icon: 'bookOpen',
+      render: () => <HowWeWriteHisName />,
+    },
+    {
+      id: 'bible',
+      label: 'The Word · Full Bible KJV',
+      icon: 'book',
+      render: () => <BibleReader email={email} />,
+    },
+    {
+      id: 'study',
+      label: 'Curated study',
+      icon: 'bookOpen',
+      render: () => (<>
 
       <blockquote className="border-l-2 border-[#5A6E3D] bg-[#FAF8F4] pl-3 pr-2 py-2 mb-3" style={serif}>
         <p className="text-sm text-[#1A1815] italic">“Wisdom is the principal thing; therefore get wisdom: and with all thy getting get understanding.”</p>
@@ -653,10 +721,16 @@ export default function ScriptureLibrary({ email = null, canStudy = false, sermo
           </p>
           {results.length ? (
             <div className="space-y-2">
-              {results.map((v) => (
-                <VerseCard key={`${v.themeId}-${v.ref}`} refStr={v.ref} kjv={v.kjv} role={v.role} gloss={`${v.gloss} · ${v.themeTitle}`} backs={v.backs}
+              {results.slice(0, visibleCount).map((v) => (
+                <VerseCard key={`${v.themeId}-${v.ref}`} refStr={v.ref} kjv={v.kjv} {...shownVerse(v.ref, edition)} role={v.role} gloss={`${v.gloss} · ${v.themeTitle}`} backs={v.backs}
                   canStudy={canStudy} email={email} themeId={v.themeId} themeTitle={v.themeTitle} onOpenAlgorithms={onOpenAlgorithms} />
               ))}
+              {results.length > visibleCount && (
+                <button type="button" onClick={() => setVisibleCount((c) => c + pageSize)}
+                  className="w-full text-xs px-3 py-2 border border-[#E8E4DC] text-[#5A5751] hover:border-[#B85838] hover:text-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">
+                  Show more · {results.length - visibleCount} remaining
+                </button>
+              )}
             </div>
           ) : (
             <div className="bg-[#FAF8F4] border border-dashed border-[#E8E4DC] p-6 text-center">
@@ -676,14 +750,41 @@ export default function ScriptureLibrary({ email = null, canStudy = false, sermo
             ))}
           </div>
 
-          {shownThemes.map((t) => <ThemeSection key={t.id} theme={t} tier={tier} level={level} canStudy={canStudy} email={email} onOpenAlgorithms={onOpenAlgorithms} />)}
+          {/* Which public-domain edition the verses show — and therefore which the
+              reader speaks. Outside the read root, so the control is never read. */}
+          <div role="radiogroup" aria-label="Edition" className="flex flex-wrap items-center gap-1.5 mb-3">
+            <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]" style={mono}>Edition</span>
+            {EDITIONS_ON_DISK.map((e) => {
+              const meta = editionById(e.toUpperCase());
+              const on = e === edition;
+              return (
+                <button key={e} type="button" role="radio" aria-checked={on} onClick={() => chooseEdition(e)}
+                  title={meta ? meta.label : e.toUpperCase()}
+                  className={`min-h-[44px] px-3 text-[0.6875rem] uppercase tracking-wider font-semibold border focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] ${on ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'bg-white text-[#1A1815] border-[#E8E4DC] hover:border-[#B85838]'}`}
+                  style={mono}>
+                  {meta ? `${meta.short} · ${meta.modernEnglish ? 'modern English' : '1611'}` : e.toUpperCase()}
+                </button>
+              );
+            })}
+          </div>
+          <div id="scripture-read-root">
+            {shownThemes.map((t) => <ThemeSection key={t.id} theme={t} tier={tier} level={level} canStudy={canStudy} email={email} onOpenAlgorithms={onOpenAlgorithms} edition={edition} />)}
+          </div>
         </>
       )}
 
       <p className="text-[0.625rem] text-[#5A5751] mt-6 pt-3 border-t border-[#E8E4DC]" style={serif}>
-        King James Version — Public Domain, fetched verbatim and verified; other translations referenced, not reproduced (copyright). {ACCESSIBILITY.dyslexia} Truth in love, no condemnation — for the soul’s sake.
+        {edition === 'web' ? 'World English Bible' : 'King James Version'} — Public Domain, fetched verbatim and verified; other translations referenced, not reproduced (copyright). {ACCESSIBILITY.dyslexia} Truth in love, no condemnation — for the soul’s sake.
       </p>
-      </>)}
+      </>),
+    },
+  ];
+
+  return (
+    <div className="w-full">
+      <SectionTitle eyebrow="Word-first · KJV public domain · His perspective + His love">Scripture</SectionTitle>
+
+      <SectionTabs sections={sections} ariaLabel="Scripture sections" idBase="scripture" defaultId="bible" />
     </div>
   );
 }

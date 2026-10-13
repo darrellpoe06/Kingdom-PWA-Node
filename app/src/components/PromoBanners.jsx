@@ -14,6 +14,7 @@
 //     (COLG, TLC, Poe Properties …) shown to Foundation (free) tier only.
 // =============================================================================
 import React, { useState, useEffect } from 'react';
+import { FAMILY_MINISTRIES, tlcClinicianLine, tlcInsurersLine, poePropertiesLine } from '../lib/family-ministries.js';
 
 // =============================================================================
 // Preparatory scaffolding — per MVP-1-HARDENING-PLAN.md step 2.3 this re-wires
@@ -52,14 +53,14 @@ export function SalesFooterBanner({ currentView, setView }) {
     <section className="mt-10 mb-2">
       <div className="bg-white border border-[#B85838] hover:border-[#1A1815] transition-colors">
         <div className="px-3 py-1 border-b border-[#E8E4DC] flex items-baseline justify-between gap-2">
-          <div className="text-[9px] uppercase tracking-[0.25em] text-[#5A5751]">⌾ PoeTech Services · Built lean, priced fair</div>
+          <div className="text-[0.5625rem] uppercase tracking-[0.25em] text-[#5A5751]">⌾ PoeTech Services · Built lean, priced fair</div>
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-1">
               {pitches.map((_, i) => (
                 <button key={i} onClick={() => setIndex(i)} aria-label={`Show pitch ${i + 1}`} className={`w-1 h-1 rounded-full transition-all ${i === index ? 'bg-[#B85838] w-2' : 'bg-[#E8E4DC]'}`}></button>
               ))}
             </div>
-            <button type="button" onClick={() => setDismissed(true)} aria-label="Dismiss" className="text-[9px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">×</button>
+            <button type="button" onClick={() => setDismissed(true)} aria-label="Dismiss" className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">×</button>
           </div>
         </div>
         <a href="#" onClick={handleClick} className="block px-3 py-3 hover:bg-[#FAF8F4] transition-colors">
@@ -68,7 +69,7 @@ export function SalesFooterBanner({ currentView, setView }) {
               <h4 className="text-sm sm:text-base mb-0.5" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.01em' }}>{p.headline}</h4>
               <p className="text-xs text-[#5A5751] leading-snug" style={{ fontFamily: '"Fraunces", serif' }}>{p.detail}</p>
             </div>
-            <div className="text-[10px] uppercase tracking-wider text-[#B85838] font-semibold shrink-0">{p.cta}</div>
+            <div className="text-[0.625rem] uppercase tracking-wider text-[#B85838] font-semibold shrink-0">{p.cta}</div>
           </div>
         </a>
       </div>
@@ -91,17 +92,17 @@ export function TherapyReminder() {
     <section className="bg-white border-l-4 border border-[#E8E4DC] mt-6 print:hidden" style={{ borderLeftColor: '#5A6E3D' }}>
       <a href="https://tlctherapysolutions-scheduleappointment.as.me/" target="_blank" rel="noopener noreferrer" className="block p-4 hover:bg-[#FAF8F4] transition-colors">
         <div className="flex items-baseline justify-between gap-3 flex-wrap mb-1">
-          <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold">🌿 Need someone to talk to?</div>
-          <div className="text-[10px] uppercase tracking-wider text-[#5A5751]">For every family · every tier</div>
+          <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold">🌿 Need someone to talk to?</div>
+          <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">For every family · every tier</div>
         </div>
         <h3 className="text-base sm:text-lg mb-1" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.01em' }}>TLC Therapy Solutions · Real solutions for real life</h3>
         <p className="text-sm mb-1" style={{ fontFamily: '"Fraunces", serif' }}>
           Money stress. Family stress. Marriage stress. Grief. Parenting hard seasons. You don't have to carry it alone — and you don't have to wait until it's a crisis to reach out.
         </p>
         <p className="text-xs text-[#5A5751] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
-          Faith-integrated therapy · 7-clinician team · accepts BCBS, Aetna, UHC, VA, Cigna · online and in-person.
+          Faith-integrated therapy · {tlcClinicianLine()} · {tlcInsurersLine().replace('Accepts', 'accepts')} · {FAMILY_MINISTRIES.tlc.modes}.
         </p>
-        <div className="text-[10px] uppercase tracking-wider font-semibold text-[#5A6E3D]">Book a session →</div>
+        <div className="text-[0.625rem] uppercase tracking-wider font-semibold text-[#5A6E3D]">Book a session →</div>
       </a>
     </section>
   );
@@ -111,20 +112,20 @@ export function AdvisementBanner() {
   const [index, setIndex] = useState(0);
   const advisements = [
     {
-      brand: 'The Church of the Living God',
+      brand: FAMILY_MINISTRIES.colg.name,
       tagline: 'RESET! Reviving Faith · Restoring Hope · Rebuilding Communities',
-      detail: 'Sunday Worship 11AM · Wed Bible Study 1PM & 6PM · 312 E. Bradley Ave, Champaign IL',
+      detail: `${FAMILY_MINISTRIES.colg.schedule} · ${FAMILY_MINISTRIES.colg.address}`,
       cta: 'Visit thechurchofthelivinggod.com',
-      url: 'https://thechurchofthelivinggod.com',
+      url: FAMILY_MINISTRIES.colg.siteUrl,
       tag: 'Faith Community',
       accent: '#B85838',
     },
     {
-      brand: 'TLC Therapy Solutions',
-      tagline: 'Real Solutions for Real Life · Faith-integrated therapy',
-      detail: 'Online & in-person · Accepts BCBS, Aetna, UHC, VA, Cigna · 7-clinician team',
+      brand: FAMILY_MINISTRIES.tlc.name,
+      tagline: FAMILY_MINISTRIES.tlc.tagline,
+      detail: `Online & in-person · ${tlcInsurersLine()} · ${tlcClinicianLine()}`,
       cta: 'Book a Session →',
-      url: 'https://tlctherapysolutions-scheduleappointment.as.me/',
+      url: FAMILY_MINISTRIES.tlc.bookingUrl,
       tag: 'Mental Health',
       accent: '#5A6E3D',
     },
@@ -133,25 +134,25 @@ export function AdvisementBanner() {
       tagline: 'Worship from anywhere · The Love Corner experience',
       detail: 'Sunday service streams live · Subscribe to be notified',
       cta: 'Watch on YouTube →',
-      url: 'https://www.youtube.com/channel/UC821pJh7YR5llBNnWUJj-ZA',
+      url: FAMILY_MINISTRIES.colg.youtubeUrl,
       tag: 'Live Worship',
       accent: '#B85838',
     },
     {
-      brand: 'Poe Properties LLC',
-      tagline: 'Quality rentals in Champaign-Urbana · Owner-managed',
-      detail: '11 rental homes · Faith-led ownership · Community-rooted',
+      brand: FAMILY_MINISTRIES.poeProperties.name,
+      tagline: FAMILY_MINISTRIES.poeProperties.tagline,
+      detail: poePropertiesLine(),
       cta: 'Inquire about availability',
-      url: 'mailto:contact@poetech.us?subject=Poe Properties Rental Inquiry',
+      url: FAMILY_MINISTRIES.poeProperties.contact,
       tag: 'Housing',
       accent: '#5A6E3D',
     },
     {
-      brand: 'COLG · 77th National Assembly',
+      brand: `COLG · ${FAMILY_MINISTRIES.assembly.name}`,
       tagline: 'Annual gathering · Faith, fellowship, growth',
       detail: 'Find dates and registration on the church site',
       cta: 'Learn more →',
-      url: 'https://www.thechurchofthelivinggod.com/77th-national-assembly.html',
+      url: FAMILY_MINISTRIES.assembly.infoUrl,
       tag: 'Event',
       accent: '#B85838',
     },
@@ -176,7 +177,7 @@ export function AdvisementBanner() {
   return (
     <section className="bg-white border border-[#E8E4DC]">
       <div className="px-3 py-1 border-b border-[#E8E4DC] flex items-baseline justify-between gap-2 flex-wrap">
-        <div className="text-[9px] uppercase tracking-[0.25em] text-[#5A5751]">⌾ Advisement · Family Ministries & Solutions</div>
+        <div className="text-[0.5625rem] uppercase tracking-[0.25em] text-[#5A5751]">⌾ Advisement · Family Ministries & Solutions</div>
         <div className="flex items-center gap-1">
           {advisements.map((_, i) => (
             <button key={i} onClick={() => setIndex(i)} aria-label={`Show advisement ${i + 1}`} className={`w-1.5 h-1.5 rounded-full transition-all ${i === index ? 'bg-[#1A1815] w-3' : 'bg-[#E8E4DC]'}`}></button>
@@ -185,15 +186,15 @@ export function AdvisementBanner() {
       </div>
       <a href={a.url} target="_blank" rel="noopener noreferrer" className="block p-4 hover:bg-[#FAF8F4] transition-colors">
         <div className="flex items-baseline justify-between gap-3 mb-1 flex-wrap">
-          <div className="text-[10px] uppercase tracking-[0.25em] font-semibold" style={{ color: a.accent }}>{a.tag}</div>
-          <div className="text-[10px] uppercase tracking-wider text-[#5A5751]">{index + 1} of {advisements.length}</div>
+          <div className="text-[0.625rem] uppercase tracking-[0.25em] font-semibold" style={{ color: a.accent }}>{a.tag}</div>
+          <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">{index + 1} of {advisements.length}</div>
         </div>
         <h3 className="text-base sm:text-lg mb-1" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.01em' }}>{a.brand}</h3>
         <p className="text-sm mb-1" style={{ fontFamily: '"Fraunces", serif', fontStyle: 'italic' }}>{a.tagline}</p>
         <p className="text-xs text-[#5A5751] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>{a.detail}</p>
-        <div className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: a.accent }}>{a.cta} →</div>
+        <div className="text-[0.625rem] uppercase tracking-wider font-semibold" style={{ color: a.accent }}>{a.cta} →</div>
       </a>
-      <div className="px-3 py-1.5 border-t border-[#E8E4DC] text-[9px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
+      <div className="px-3 py-1.5 border-t border-[#E8E4DC] text-[0.5625rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
         Foundation tier · Family ministries & businesses are highlighted to all free users. Paid tiers don't see this.
       </div>
     </section>

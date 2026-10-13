@@ -74,14 +74,14 @@ export default function ConferenceRegisterForm({ conferenceName = '', source = '
       <div className="mb-3">
         <label htmlFor="cr-name" className={labelCls}>Your name</label>
         <input id="cr-name" type="text" maxLength={FIELD_CAPS.name} value={form.name} onChange={set('name')} className={inputCls} autoComplete="name" aria-invalid={!!errors.name} aria-describedby={errors.name ? 'cr-name-err' : undefined} />
-        {errors.name && <p id="cr-name-err" className="text-[11px] text-[#7A1F1F] mt-1" aria-live="polite">{errors.name}</p>}
+        {errors.name && <p id="cr-name-err" className="text-[0.6875rem] text-[#7A1F1F] mt-1" aria-live="polite">{errors.name}</p>}
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="mb-1">
           <label htmlFor="cr-email" className={labelCls}>Email <span className="text-[#5A5751] font-normal">(optional)</span></label>
           <input id="cr-email" type="email" maxLength={FIELD_CAPS.email} value={form.email} onChange={set('email')} className={inputCls} autoComplete="email" aria-invalid={!!errors.email} aria-describedby={errors.email ? 'cr-email-err' : undefined} />
-          {errors.email && <p id="cr-email-err" className="text-[11px] text-[#7A1F1F] mt-1" aria-live="polite">{errors.email}</p>}
+          {errors.email && <p id="cr-email-err" className="text-[0.6875rem] text-[#7A1F1F] mt-1" aria-live="polite">{errors.email}</p>}
         </div>
         <div className="mb-1">
           <label htmlFor="cr-phone" className={labelCls}>Phone <span className="text-[#5A5751] font-normal">(optional)</span></label>
@@ -99,7 +99,7 @@ export default function ConferenceRegisterForm({ conferenceName = '', source = '
         <div className="mb-1">
           <label htmlFor="cr-party" className={labelCls}>How many in your party? <span className="text-[#5A5751] font-normal">(optional)</span></label>
           <input id="cr-party" type="number" min="1" max="99" inputMode="numeric" value={form.partySize} onChange={set('partySize')} className={inputCls} placeholder="1" aria-invalid={!!errors.partySize} aria-describedby={errors.partySize ? 'cr-party-err' : undefined} />
-          {errors.partySize && <p id="cr-party-err" className="text-[11px] text-[#7A1F1F] mt-1" aria-live="polite">{errors.partySize}</p>}
+          {errors.partySize && <p id="cr-party-err" className="text-[0.6875rem] text-[#7A1F1F] mt-1" aria-live="polite">{errors.partySize}</p>}
         </div>
       </div>
 
@@ -118,7 +118,7 @@ export default function ConferenceRegisterForm({ conferenceName = '', source = '
       {/* honeypot: visually hidden, off-tab; bots fill it, people don't */}
       <input type="text" value={hp} onChange={(e) => setHp(e.target.value)} tabIndex={-1} autoComplete="off" aria-hidden="true" style={{ position: 'absolute', left: '-9999px', width: 1, height: 1, opacity: 0 }} />
 
-      <p className="text-[11px] text-[#5A5751] mb-3" style={{ fontFamily: '"Fraunces", serif' }}>
+      <p className="text-[0.6875rem] text-[#5A5751] mb-3" style={{ fontFamily: '"Fraunces", serif' }}>
         We only use this to plan seating + meals and to reach you about the Assembly. Your info stays with the church — never sold, never shared.
       </p>
 

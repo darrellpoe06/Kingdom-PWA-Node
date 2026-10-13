@@ -23,11 +23,48 @@
 // and never public (the whole table is owner/admin-read). A staff-editable rate card
 // is a documented follow-up.
 import supabase from './supabase.js';
+import {
+  quoteCommercialEvent, quoteInputsFrom, mergeRateCard, validateRateCardPatch,
+  RATE_FIELD_KEYS, TERM_KEYS, RATE_CARD_STATUS_IDS,
+} from './venue-commercial-rates.js';
 
 // --- Catalog: the two campuses + their bookable spaces ------------------------
 // Bathrooms are intentionally NOT bookable spaces. Capacity is only asserted where
 // it is actually known (the North main sanctuary, 600 — the figure already used by
 // the Observation board); elsewhere it is null (truthful — staff confirm per event).
+// THE SOUTH CAMPUS BUILDING HAS A NAME, AND IT IS A PERSON'S.
+//
+// VERIFIED 2026-09-11 against the church's own page, which Darrell sent and
+// then screenshotted when this session's network egress policy blocked the
+// domain outright (the proxy answers 403 to CONNECT, so it could not be
+// fetched; the screenshots ARE the primary source here):
+//
+//     https://www.thechurchofthelivinggod.com/e-meg-christian-center1.html
+//
+// The page heading reads "E-MEG CHRISTIAN CENTER / EVALUATE · MEET · ENRICH ·
+// GLORIFY", and the contact block spells the full name out:
+// "EVANGELIST MARY E. GWIN CHRISTIAN CENTER".
+//
+// This corrected the first recollection twice over — Darrell had said
+// "Evangelists Mary Gwin Event Center I believe it's called", and it is neither
+// an Event Center nor without the middle initial. The app had been calling it
+// only by its geography, "South Campus Event Center", which is where it is
+// rather than what it is called.
+//
+// It is a MEMORIAL. The page is headed "IN HONOR OF EVANGELIST MARY E. GWIN" —
+// Minister of Music at The Church of the Living God for more than 35 years, an
+// Urbana School District teacher for more than 20, Director of Church
+// Ministries, and Bishop Gwin's wife. Which is why this is one constant with
+// its provenance attached rather than a string typed into five files.
+export const EVENT_CENTER_NAME = 'Evangelist Mary E. Gwin Christian Center';
+// The short form the church itself uses in the page heading and the URL.
+export const EVENT_CENTER_SHORT_NAME = 'E-MEG Christian Center';
+// The acronym, expanded on the church's own banner.
+export const EVENT_CENTER_MOTTO = 'Evaluate · Meet · Enrich · Glorify';
+export const EVENT_CENTER_PAGE = 'https://www.thechurchofthelivinggod.com/e-meg-christian-center1.html';
+// Confirmed against the church's published page (see above).
+export const EVENT_CENTER_NAME_CONFIRMED = true;
+
 export const CAMPUSES = [
   {
     id: 'north',
@@ -45,15 +82,40 @@ export const CAMPUSES = [
   },
   {
     id: 'south',
-    name: 'South Campus Event Center',
+    // Named and described from the church's own E-MEG page (see
+    // EVENT_CENTER_NAME above for the provenance). Everything below is quoted
+    // from that page rather than assumed: the capacity, the amenities and the
+    // kinds of events it is offered for were all blank or invented-looking
+    // before, which is a rental surface making promises nobody had checked.
+    name: EVENT_CENTER_NAME,
+    shortName: EVENT_CENTER_SHORT_NAME,
+    motto: EVENT_CENTER_MOTTO,
     tier: 'standard',
-    address: '1109 N 4th St',
-    blurb: 'South Campus Event Center. Standard rate.',
+    // The page prints "1109 N. Fourth Street Champaign, IL 62820". The church's
+    // main campus record carries 61820, and 62820 is not a Champaign ZIP — so
+    // the published ZIP looks like a typo on the church's own page. The street
+    // address is used here and the ZIP is deliberately NOT asserted; the office
+    // can confirm which is right (DR-0076 — do not launder someone else's typo
+    // into our data as though we had checked it).
+    address: '1109 N. Fourth Street, Champaign, IL',
+    page: EVENT_CENTER_PAGE,
+    phone: '217-359-6920',
+    // Named on the page.
+    eventDirector: 'Assistant Pastor Evelyn Moore',
+    ceo: 'Senior Bishop Lloyd E. Gwin',
+    blurb: 'A new venue serving the Champaign–Urbana community, in the refurbished church on the north end of Champaign: ample parking, basic sound, and tables and chairs for up to 200 guests. Standard rate.',
+    capacity: 200,
+    amenities: ['Ample parking', 'Basic sound application', 'Tables and chairs for up to 200 guests'],
+    // The event types the church itself advertises, in its own two groupings.
+    eventTypes: {
+      'Family celebrations': ['Anniversaries', 'Birthdays', 'Family reunions', 'Fellowships', 'Graduations'],
+      'Other events': ['Funerals (services & repast)', 'Conferences', 'Concerts', 'Community engagement'],
+    },
     spaces: [
-      { id: 'south-whole',      name: 'Whole Event Center (exclusive use)', wholeCampus: true, capacity: null },
-      { id: 'south-sanctuary',  name: 'Main Sanctuary',                     capacity: null },
-      { id: 'south-fellowship', name: 'Fellowship Hall',                    capacity: null },
-      { id: 'south-kitchen',    name: 'Kitchen',                            capacity: null },
+      { id: 'south-whole',      name: 'Whole Christian Center (exclusive use)', wholeCampus: true, capacity: 200 },
+      { id: 'south-sanctuary',  name: 'Main Sanctuary',                        capacity: 200 },
+      { id: 'south-fellowship', name: 'Fellowship Hall',                       capacity: null },
+      { id: 'south-kitchen',    name: 'Kitchen',                               capacity: null },
     ],
   },
 ];
@@ -80,19 +142,53 @@ export function findSpace(spaceId) {
 // team, food on the kitchen, etc. The booking's `responsibilities` jsonb stores
 // which keys are DONE; the template is the source of truth for what must happen.
 export const EVENT_TYPES = [
-  { id: 'funeral',   label: 'Funeral / Homegoing' },
-  { id: 'wedding',   label: 'Wedding' },
+  // Darrell 2026-08-24: "Should say Sunday and Wednesday Service too" — then
+  // "separated": each service is its own type. The media team's most regular
+  // work is the regular services, so the cue sheet serves them first-class.
+  { id: 'sunday-service',    label: 'Sunday Service' },
+  { id: 'wednesday-service', label: 'Wednesday Service' },
+  { id: 'funeral',    label: 'Funeral / Homegoing' },
+  { id: 'wedding',    label: 'Wedding' },
+  { id: 'concert',    label: 'Concert / Musical' },
+  { id: 'conference', label: 'Conference / Workshop' },
   { id: 'community', label: 'Community Event' },
+  // Christina (Director of Ministries, The Love Corner) 2026-08-30, with the
+  // Commercial Event Facility Rental Proposal: a commercial event is its own
+  // type because it carries its own rate card, its own staffing, and its own
+  // payment schedule — none of which apply to a funeral or a church gathering.
+  { id: 'commercial', label: 'Commercial Event (revenue-generating)' },
 ];
 export const EVENT_TYPE_IDS = EVENT_TYPES.map((t) => t.id);
 export function eventTypeLabel(id) {
   return EVENT_TYPES.find((t) => t.id === id)?.label || 'Event';
 }
 
+// Every event type carries the media CUE SHEET as a named Media Team step —
+// merged 2026-08-24 from Bro Clifton Reed's Event Media Intake process, built
+// from his experience working with the congregation: the media team confirms
+// what it will receive (photos, videos, slides, documents, music) BEFORE the
+// day, so nothing is chased mid-event.
+const CUE_SHEET_STEP = { key: 'cuesheet', label: 'Media cue sheet confirmed (files + music received)', team: 'Media Team' };
+
+// The regular services: the media team's standing weekly lane. No rental
+// logistics here — the checklist is what makes the broadcast ready. Sunday
+// and Wednesday share the same steps; they are separate TYPES so each
+// service's bookings, cue sheets, and checklists stand on their own.
+const SERVICE_TEMPLATE = [
+  { key: 'av',           label: 'AV / livestream',         team: 'Media Team' },
+  CUE_SHEET_STEP,
+  { key: 'soundcheck',   label: 'Sound check before service', team: 'Media Team' },
+  { key: 'setup',        label: 'Setup & seating',         team: 'Deacons' },
+  { key: 'scheduling',   label: 'Order of service confirmed', team: 'Church Office' },
+];
+
 const RESPONSIBILITY_TEMPLATES = {
+  'sunday-service': SERVICE_TEMPLATE,
+  'wednesday-service': SERVICE_TEMPLATE,
   funeral: [
     { key: 'setup',        label: 'Setup & seating',         team: 'Deacons' },
     { key: 'av',           label: 'AV / livestream',         team: 'Media Team' },
+    CUE_SHEET_STEP,
     { key: 'kitchen',      label: 'Repast / kitchen',        team: 'Hospitality' },
     { key: 'cleaning',     label: 'Cleaning & reset',        team: 'Custodial' },
     { key: 'security',     label: 'Security & parking',      team: 'Security' },
@@ -102,15 +198,52 @@ const RESPONSIBILITY_TEMPLATES = {
   wedding: [
     { key: 'setup',        label: 'Setup & décor',           team: 'Deacons' },
     { key: 'av',           label: 'AV / sound',              team: 'Media Team' },
+    CUE_SHEET_STEP,
     { key: 'rehearsal',    label: 'Rehearsal scheduling',    team: 'Church Office' },
     { key: 'kitchen',      label: 'Reception / kitchen',     team: 'Hospitality' },
     { key: 'cleaning',     label: 'Cleaning & reset',        team: 'Custodial' },
     { key: 'security',     label: 'Security & parking',      team: 'Security' },
     { key: 'officiant',    label: 'Officiant coordination',  team: 'Pastoral' },
   ],
+  concert: [
+    { key: 'setup',        label: 'Setup & staging',         team: 'Deacons' },
+    { key: 'av',           label: 'AV / sound & lighting',   team: 'Media Team' },
+    CUE_SHEET_STEP,
+    { key: 'soundcheck',   label: 'Sound check scheduled',   team: 'Media Team' },
+    { key: 'cleaning',     label: 'Cleaning & reset',        team: 'Custodial' },
+    { key: 'security',     label: 'Security & parking',      team: 'Security' },
+    { key: 'scheduling',   label: 'Scheduling & coordination', team: 'Church Office' },
+  ],
+  conference: [
+    { key: 'setup',        label: 'Setup & seating',         team: 'Deacons' },
+    { key: 'av',           label: 'AV / projection & mics',  team: 'Media Team' },
+    CUE_SHEET_STEP,
+    { key: 'kitchen',      label: 'Refreshments (if catered)', team: 'Hospitality' },
+    { key: 'cleaning',     label: 'Cleaning & reset',        team: 'Custodial' },
+    { key: 'security',     label: 'Security & parking',      team: 'Security' },
+    { key: 'scheduling',   label: 'Scheduling & coordination', team: 'Church Office' },
+  ],
+  // The commercial template is the proposal turned into work: every paid line
+  // and every contract term Christina named becomes a step somebody owns, so a
+  // commercial booking cannot reach event day with an unsigned contract, an
+  // unpaid balance, or unassigned security.
+  commercial: [
+    { key: 'contract',     label: 'Contract signed + 50% facility rental received', team: 'Church Office' },
+    { key: 'insurance',    label: 'Event liability insurance received (if required)', team: 'Church Office' },
+    { key: 'balance',      label: 'Balance paid in full 30 days before',  team: 'Church Office' },
+    { key: 'deposit',      label: 'Refundable damage deposit held',        team: 'Church Office' },
+    { key: 'sound',        label: 'Sound personnel assigned (2-4 typical)', team: 'Media Team' },
+    CUE_SHEET_STEP,
+    { key: 'soundcheck',   label: 'Sound check scheduled',   team: 'Media Team' },
+    { key: 'security',     label: 'Security personnel assigned (5-10 typical)', team: 'Security' },
+    { key: 'setup',        label: 'Setup, load-in & load-out window',  team: 'Deacons' },
+    { key: 'cleaning',     label: 'Cleaning & post-event reset',       team: 'Custodial' },
+    { key: 'inspection',   label: 'Post-event inspection before deposit is returned', team: 'Church Office' },
+  ],
   community: [
     { key: 'setup',        label: 'Setup & seating',         team: 'Deacons' },
     { key: 'av',           label: 'AV / sound',              team: 'Media Team' },
+    CUE_SHEET_STEP,
     { key: 'kitchen',      label: 'Kitchen (if catered)',    team: 'Hospitality' },
     { key: 'cleaning',     label: 'Cleaning & reset',        team: 'Custodial' },
     { key: 'security',     label: 'Security & parking',      team: 'Security' },
@@ -121,6 +254,34 @@ const RESPONSIBILITY_TEMPLATES = {
 // The responsibility checklist for an event type (defaults to community).
 export function responsibilitiesFor(eventType) {
   return RESPONSIBILITY_TEMPLATES[eventType] || RESPONSIBILITY_TEMPLATES.community;
+}
+
+// --- The media cue sheet (Bro Clifton Reed's Event Media Intake, merged) ------
+// The four media categories his congregation-tested form collects, with the
+// formats the media team can actually play. The booking's `media_expected`
+// jsonb stores { key: true } for what the requester says is coming; the
+// Spotify link + media notes ride their own columns (0146). Files themselves
+// travel the media team's channel until the storage work lands (DR-0307) —
+// the cue sheet is the coordination record, not the file store.
+export const MEDIA_CATEGORIES = [
+  { key: 'photos',    label: 'Pictures / photos',       formats: 'JPG, PNG, HEIC' },
+  { key: 'videos',    label: 'Videos',                  formats: 'MP4, MOV' },
+  { key: 'slides',    label: 'PowerPoints / slides',    formats: 'PPT, PPTX, KEY, PDF' },
+  { key: 'documents', label: 'Documents (programs, obituaries, lyrics)', formats: 'PDF, DOC, DOCX, TXT' },
+];
+export const MEDIA_CATEGORY_KEYS = MEDIA_CATEGORIES.map((c) => c.key);
+
+// The labels of the categories a booking says to expect (for the staff card).
+export function mediaExpectedLabels(booking) {
+  const state = (booking?.mediaExpected && typeof booking.mediaExpected === 'object') ? booking.mediaExpected : {};
+  return MEDIA_CATEGORIES.filter((c) => state[c.key] === true).map((c) => c.label);
+}
+
+// Does this booking carry ANY cue-sheet info worth showing the media team?
+export function hasCueSheet(booking) {
+  return mediaExpectedLabels(booking).length > 0
+    || !!String(booking?.musicLink ?? '').trim()
+    || !!String(booking?.mediaNotes ?? '').trim();
 }
 
 // Progress over a booking's responsibilities: which of the required items are done.
@@ -282,8 +443,32 @@ export function buildBookingRow(form = {}) {
     end_time: String(form.endTime ?? '').trim() || null,
     expected_attendance: cleanInt(form.expectedAttendance),
     notes: String(form.notes ?? '').trim() || null,
+    media_expected: buildMediaExpected(form.mediaExpected),
+    music_link: String(form.musicLink ?? '').trim() || null,
+    media_notes: String(form.mediaNotes ?? '').trim() || null,
+    quote_detail: buildQuoteDetail(form.quoteDetail),
     source: form.source || 'public-request',
   };
+}
+
+// Only the recognized quote INPUTS, only sane values — the stored shape stays
+// clean and the totals are always recomputed from the team's live rate card.
+function buildQuoteDetail(input) {
+  if (!input || typeof input !== 'object') return {};
+  const d = quoteInputsFrom(input);
+  // A quote with no hours is not a quote; store nothing rather than a zero.
+  return d.hours > 0 ? d : {};
+}
+
+// Only known category keys, only true values — the stored shape stays clean.
+function buildMediaExpected(input) {
+  const out = {};
+  if (input && typeof input === 'object') {
+    for (const key of MEDIA_CATEGORY_KEYS) {
+      if (input[key] === true) out[key] = true;
+    }
+  }
+  return out;
 }
 
 // DB row -> camelCase shape for the management surface.
@@ -307,6 +492,13 @@ export function toBookingShape(row) {
     quotedPrice: row.quoted_price ?? null,
     responsibilities: (row.responsibilities && typeof row.responsibilities === 'object') ? row.responsibilities : {},
     notes: row.notes ?? null,
+    quoteDetail: (row.quote_detail && typeof row.quote_detail === 'object') ? row.quote_detail : {},
+    mediaExpected: (row.media_expected && typeof row.media_expected === 'object') ? row.media_expected : {},
+    musicLink: row.music_link ?? null,
+    mediaNotes: row.media_notes ?? null,
+    // Trigger-stamped (0147): the requester's own account when they submitted
+    // signed-in — staff can follow up in Messages; null for anonymous requests.
+    requesterUser: row.requester_user ?? null,
     source: row.source ?? null,
     createdAt: row.created_at ?? null,
   };
@@ -399,6 +591,7 @@ export async function updateBooking(id, patch = {}) {
     row.quoted_price = (patch.quotedPrice === '' || patch.quotedPrice === null || !Number.isFinite(n) || n < 0) ? null : n;
   }
   if (patch.responsibilities !== undefined) row.responsibilities = patch.responsibilities || {};
+  if (patch.quoteDetail !== undefined) row.quote_detail = buildQuoteDetail(patch.quoteDetail);
   if (patch.notes !== undefined) row.notes = String(patch.notes ?? '').trim() || null;
   if (patch.eventDate !== undefined) row.event_date = String(patch.eventDate ?? '').trim() || null;
   if (patch.startTime !== undefined) row.start_time = String(patch.startTime ?? '').trim() || null;
@@ -421,6 +614,80 @@ export async function toggleResponsibility(booking, key) {
   return updateBooking(booking.id, { responsibilities: next });
 }
 
+// --- Booking correspondence (0148): the thread the team can carry -----------
+// DMs are E2E-encrypted between two people by design, so the TEAM-visible
+// history lives on the booking: staff and the booking's own signed-in
+// requester read/write; identity is server-stamped; nothing is editable or
+// deletable — when someone is out, the next person has the whole thread.
+
+function toThreadMessage(row) {
+  return {
+    id: row.id,
+    bookingId: row.booking_id,
+    author: row.author ?? null,
+    authorEmail: row.author_email ?? null,
+    fromStaff: row.from_staff === true,
+    body: row.body ?? '',
+    createdAt: row.created_at ?? null,
+  };
+}
+
+export async function fetchBookingMessages(bookingId) {
+  if (!bookingId) return { ok: false, error: 'no-booking', rows: [] };
+  try {
+    const { data, error } = await supabase
+      .from('venue_booking_messages')
+      .select('*')
+      .eq('booking_id', bookingId)
+      .order('created_at', { ascending: true });
+    if (error) return { ok: false, error, rows: [] };
+    return { ok: true, rows: (data || []).map(toThreadMessage) };
+  } catch (e) {
+    return { ok: false, error: e, rows: [] };
+  }
+}
+
+export async function sendBookingMessage(bookingId, body) {
+  const text = String(body ?? '').trim();
+  if (!bookingId) return { ok: false, error: 'no-booking' };
+  if (!text) return { ok: false, error: 'empty' };
+  try {
+    const { error } = await supabase
+      .from('venue_booking_messages')
+      .insert({ booking_id: bookingId, body: text.slice(0, 4000) });
+    if (error) return { ok: false, error };
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e };
+  }
+}
+
+// The signed-in requester's own requests, in the SAFE server shape (no price,
+// no internal fields) — the in-app "we'll get back to you directly" view.
+export async function fetchMyVenueRequests() {
+  try {
+    const { data, error } = await supabase.rpc('my_venue_requests');
+    if (error) return { ok: false, error, rows: [] };
+    return {
+      ok: true,
+      rows: (data || []).map((r) => ({
+        id: r.id,
+        campus: r.campus ?? 'south',
+        spaceName: r.space_name ?? null,
+        eventType: r.event_type ?? 'community',
+        eventTitle: r.event_title ?? null,
+        eventDate: r.event_date ?? null,
+        startTime: r.start_time ?? null,
+        endTime: r.end_time ?? null,
+        status: r.status ?? 'requested',
+        createdAt: r.created_at ?? null,
+      })),
+    };
+  } catch (e) {
+    return { ok: false, error: e, rows: [] };
+  }
+}
+
 export async function deleteBooking(id) {
   if (!id) return { ok: false, error: 'no-id' };
   try {
@@ -430,4 +697,171 @@ export async function deleteBooking(id) {
   } catch (e) {
     return { ok: false, error: e };
   }
+}
+
+// =============================================================================
+// The commercial rate card (0162) — the team's numbers, not the code's
+// =============================================================================
+// Christina 2026-08-30: "this will need to be able to be updated based on what
+// the whole team and staff would like to see... a great opportunity for default
+// settings to be able to be discussed... inside the Love Corner App."
+//
+// So the committed proposal is the SEED and the team owns the live card. These
+// calls read and write venue_rate_cards (one row per instance, holding only
+// what the team changed) and venue_rate_card_notes (the discussion, append-only).
+// RLS is owner/admin in both directions — pricing is never public — so every
+// one of these is safe to call from any surface: a non-staff caller simply gets
+// nothing back, which renders as the committed defaults.
+
+function toRateCardRow(row) {
+  return {
+    id: row?.id ?? null,
+    values: (row?.values && typeof row.values === 'object') ? row.values : {},
+    terms: (row?.terms && typeof row.terms === 'object') ? row.terms : {},
+    definition: row?.definition ?? null,
+    status: RATE_CARD_STATUS_IDS.includes(row?.status) ? row.status : 'proposed',
+    updatedAt: row?.updated_at ?? null,
+    updatedByEmail: row?.updated_by_email ?? null,
+  };
+}
+
+// The live rate card, already merged over the committed defaults. A missing row
+// (never edited) or a non-staff caller both resolve to the defaults — the
+// surface always has a complete card to render, and says which it is.
+export async function fetchRateCard() {
+  try {
+    const { data, error } = await supabase.from('venue_rate_cards').select('*').limit(1).maybeSingle();
+    if (error) return { ok: false, error, card: mergeRateCard(null) };
+    return { ok: true, card: mergeRateCard(data ? toRateCardRow(data) : null), stored: data ? toRateCardRow(data) : null };
+  } catch (e) {
+    return { ok: false, error: e, card: mergeRateCard(null) };
+  }
+}
+
+// Live subscription — an edit by one staff member reaches every other device.
+export function subscribeRateCard(onChange) {
+  let channel = null;
+  let cancelled = false;
+  const load = async () => {
+    const { card, stored } = await fetchRateCard();
+    if (!cancelled) onChange(card, stored);
+  };
+  load();
+  try {
+    channel = supabase
+      .channel('venue_rate_cards-stream')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'venue_rate_cards' }, () => { load(); })
+      .subscribe();
+  } catch { /* realtime optional; the initial load still ran */ }
+  return function unsubscribe() {
+    cancelled = true;
+    if (channel) { try { supabase.removeChannel(channel); } catch { /* noop */ } }
+  };
+}
+
+// Save the team's edits. Validation runs BEFORE the write, so a bad entry is
+// surfaced to the person typing instead of being silently coerced into a price.
+// Only changed keys are stored; a cleared field falls back to Christina's default.
+export async function saveRateCard(patch = {}) {
+  const { ok, values, errors } = validateRateCardPatch(patch);
+  if (!ok) return { ok: false, errors };
+
+  const row = { values };
+  if (patch.status !== undefined) {
+    if (!RATE_CARD_STATUS_IDS.includes(patch.status)) return { ok: false, error: 'bad-status' };
+    row.status = patch.status;
+  }
+  if (patch.terms !== undefined) {
+    const terms = {};
+    if (patch.terms && typeof patch.terms === 'object') {
+      for (const key of TERM_KEYS) {
+        const text = String(patch.terms[key] ?? '').trim();
+        if (text) terms[key] = text.slice(0, 4000);
+      }
+    }
+    row.terms = terms;
+  }
+  if (patch.definition !== undefined) {
+    row.definition = String(patch.definition ?? '').trim().slice(0, 4000) || null;
+  }
+
+  try {
+    // The instance is trigger-stamped, so the unique row is found by reading it
+    // first — an upsert on a client-supplied instance_id would be a forgeable key.
+    const { data: existing } = await supabase.from('venue_rate_cards').select('id').limit(1).maybeSingle();
+    const { error } = existing?.id
+      ? await supabase.from('venue_rate_cards').update(row).eq('id', existing.id)
+      : await supabase.from('venue_rate_cards').insert(row);
+    if (error) return { ok: false, error };
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e };
+  }
+}
+
+// Reset every number back to Christina's committed proposal. Deliberately keeps
+// the discussion notes — the team's reasoning is not undone by resetting a rate.
+export async function resetRateCardToDefaults() {
+  return saveRateCard({ status: 'proposed', terms: {}, definition: '' });
+}
+
+// Only changed keys are ever written, so an empty `values` means the team is on
+// the defaults. Exposed for the surface's "as submitted / edited by the team" line.
+export { RATE_FIELD_KEYS };
+
+// --- The rate-card discussion (append-only, staff-only) ----------------------
+
+export async function fetchRateCardNotes() {
+  try {
+    const { data, error } = await supabase
+      .from('venue_rate_card_notes')
+      .select('*')
+      .order('created_at', { ascending: true });
+    if (error) return { ok: false, error, rows: [] };
+    return {
+      ok: true,
+      rows: (data || []).map((r) => ({
+        id: r.id,
+        author: r.author ?? null,
+        authorEmail: r.author_email ?? null,
+        body: r.body ?? '',
+        createdAt: r.created_at ?? null,
+      })),
+    };
+  } catch (e) {
+    return { ok: false, error: e, rows: [] };
+  }
+}
+
+export async function sendRateCardNote(body) {
+  const text = String(body ?? '').trim();
+  if (!text) return { ok: false, error: 'empty' };
+  try {
+    const { error } = await supabase.from('venue_rate_card_notes').insert({ body: text.slice(0, 4000) });
+    if (error) return { ok: false, error };
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e };
+  }
+}
+
+// --- Booking <-> quote seam --------------------------------------------------
+
+// Is this booking priced by the commercial rate card?
+export function isCommercialBooking(booking) {
+  return booking?.eventType === 'commercial';
+}
+
+// Does this booking carry a saved quote? (Hours are the one required input.)
+export function hasQuote(booking) {
+  return Number(booking?.quoteDetail?.hours) > 0;
+}
+
+// The booking's quote, RECOMPUTED against the team's live rate card. Nothing is
+// read back from a stored total, so an approved rate change reprices every open
+// booking instead of leaving stale money on the screen. Returns null when the
+// booking has no saved quote inputs.
+export function bookingQuote(booking, card) {
+  if (!hasQuote(booking)) return null;
+  return quoteCommercialEvent(booking.quoteDetail, card);
 }

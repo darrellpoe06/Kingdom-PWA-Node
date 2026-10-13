@@ -1,0 +1,429 @@
+# Android package — build the sovereign PoeTech app package (DR-0152, door 1).
+#
+# WHY (Darrell, 2026-07-10): "We need a sustainable solution for chrome to let
+# me download this app period." Chrome's install offer is discretionary — it
+# withholds the one-tap on postures, heuristics, and installed-already guesses
+# nobody controls. This workflow removes Chrome from the equation: it builds a
+# REAL Android package (TWA via Bubblewrap) from the live manifest and attaches
+# the .apk/.aab as a run artifact — downloaded and installed like any app.
+#
+# SIGNING (held constraint, DR-0152): this run generates a fresh TESTING key
+# each time — right for family sideload testing, NOT the Play key. The Play
+# keystore is generated once, offline, and custodied by Darrell like a title
+# deed before the first Play upload; assetlinks.json ships live only with that
+# real fingerprint.
+#
+# THE THREE BRAKES: dispatch-only (no schedule), one bounded job with a hard
+# timeout, no repo writes, no compute spawned beyond the single Gradle build.
+name: Android package (TWA, sideload-testing)
+
+on:
+  workflow_dispatch: {}
+
+concurrency:
+  group: android-package
+  cancel-in-progress: false
+
+permissions:
+  # contents: write — the lane PUBLISHES each brand's .apk to the rolling
+  # `android-latest` release: the PoeTech App Store's shelves (in-app Download
+  # buttons link these stable, public URLs — latest version always).
+  contents: write
+
+# FOUR BRANDS, FOUR REAL APPS (DR-0227, Darrell 2026-07-23: each app in the
+# family on the phone, SEPARATED — "anyone anywhere... able to use them
+# independently"). All four PWAs share one origin scope, so Android resumes
+# the ONE installed window wherever it last sat — the "PoeTech turns into
+# Love Corner" morph. A TWA per brand is the phone-side perpetual fix: four
+# distinct Android packages, each with its own task, icon, and resume state.
+jobs:
+  # One-time key bootstrap (Darrell 2026-07-24, "YOU do it" — recorded transfer
+  # of the mechanical act): the B64-paste ceremony kept failing human hands, and
+  # the ONLY secret that reliably landed was ANDROID_STORE_KEYSTORE_PASS. So the
+  # lane now needs ONLY that: if no encrypted keystore is committed yet, this job
+  # generates the store key ONCE, encrypts it with the PASS secret (AES-256,
+  # PBKDF2), commits store/android.keystore.enc, and every build thereafter
+  # decrypts + signs with the same stable identity. Rotation (DR-0232): delete
+  # the .enc + set a new PASS → next run re-bootstraps. The Governor can pull a
+  # custody copy anytime (git + his PASS). The legacy B64 secret, if ever set,
+  # still wins — nothing breaks.
+  key:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    env:
+      STORE_KS_B64: ${{ secrets.ANDROID_STORE_KEYSTORE_B64 }}
+      STORE_KS_PASS: ${{ secrets.ANDROID_STORE_KEYSTORE_PASS }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Bootstrap the encrypted store keystore once (PASS is the only key)
+        run: |
+          set -euo pipefail
+          if [ -n "${STORE_KS_B64:-}" ]; then echo "B64 secret present — bootstrap not needed"; exit 0; fi
+          if [ -z "${STORE_KS_PASS:-}" ]; then echo "no PASS secret — per-run testing keys continue"; exit 0; fi
+          if [ -f store/android.keystore.enc ]; then echo "encrypted keystore already committed — nothing to do"; exit 0; fi
+          # Main is PR-only (run-17 lesson: direct push rejected by the repo's
+          # own rules — the DR-0103 lane defending itself, correctly). So the
+          # bootstrap rides the lane: push a claude/* branch, auto-open-pr +
+          # auto-merge land it on green. Build jobs read the key from this
+          # branch until the merge completes, so even THIS run signs stable.
+          if git ls-remote --exit-code origin claude/store-key-bootstrap >/dev/null 2>&1; then
+            echo "bootstrap branch already pending merge — no new key generated"; exit 0
+          fi
+          keytool -genkeypair -keystore /tmp/store.keystore -storetype PKCS12 -alias poetech \
+            -keyalg RSA -keysize 2048 -validity 9125 \
+            -storepass "$STORE_KS_PASS" -keypass "$STORE_KS_PASS" \
+            -dname "CN=PoeTech App Store, O=PoeTech, C=US"
+          openssl enc -aes-256-cbc -pbkdf2 -salt -in /tmp/store.keystore -out store/android.keystore.enc -pass env:STORE_KS_PASS
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git checkout -b claude/store-key-bootstrap
+          git add store/android.keystore.enc
+          git commit -m "Store signing key: encrypted keystore at rest; the PASS secret is the one key"
+          git push -u origin claude/store-key-bootstrap
+          echo "bootstrapped — encrypted keystore riding the lane to main"
+
+  build:
+    needs: key
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - brand: poetech
+            package_id: us.poetech.app
+            app_name: PoeTech Family OS
+            launcher: PoeTech
+            start_url: /poetech-app/
+            web_manifest: https://poetech.us/manifest.webmanifest
+            icon: https://poetech.us/icon-512.png
+            maskable: https://poetech.us/icon-maskable-512.png
+          - brand: lovecorner
+            package_id: us.poetech.lovecorner
+            app_name: The Love Corner
+            launcher: Love Corner
+            start_url: /poetech-app/?view=church
+            web_manifest: https://poetech.us/manifest-lovecorner.webmanifest
+            icon: https://poetech.us/lovecorner-icon-512.png
+            maskable: https://poetech.us/lovecorner-icon-maskable-512.png
+          - brand: tlc
+            package_id: us.poetech.tlc
+            app_name: TLC Therapy Solutions
+            launcher: TLC Therapy
+            start_url: /poetech-app/?tlc=1
+            web_manifest: https://poetech.us/manifest-tlc.webmanifest
+            icon: https://poetech.us/tlc-icon-512.png
+            maskable: https://poetech.us/tlc-icon-512.png
+          # Poe Properties (DR-0313) — its own scope /properties/, so the TWA's
+          # start_url is its OWN page, not a query on the PoeTech scope. That is
+          # what makes it a separate app in the phone's Apps section.
+          - brand: properties
+            package_id: us.poetech.properties
+            app_name: Poe Properties
+            launcher: Poe Properties
+            start_url: /properties/app/?properties=1
+            web_manifest: https://poetech.us/manifest-properties.webmanifest
+            icon: https://poetech.us/properties-icon-512.png
+            maskable: https://poetech.us/properties-icon-maskable-512.png
+          - brand: moore
+            package_id: us.poetech.moore
+            app_name: Moore Divahs
+            launcher: Moore Divahs
+            start_url: /poetech-app/?moore=1
+            web_manifest: https://poetech.us/manifest-moore.webmanifest
+            # HER OWN mark (DR-0227) — derived from the MOORE_BRAND record;
+            # swaps in one file when supplied artwork lands.
+            icon: https://poetech.us/moore-icon-512.png
+            maskable: https://poetech.us/moore-icon-maskable-512.png
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Signing keystore (persistent store key if set; else per-run testing key)
+        id: keys
+        # Run-8 field lesson (Darrell's Samsung, 2026-07-23): per-run keys mean
+        # every new build requires uninstall/reinstall — a store must UPDATE in
+        # place. If the ANDROID_STORE_KEYSTORE_B64 + ANDROID_STORE_KEYSTORE_PASS
+        # secrets exist (a PKCS12/JKS with key alias `poetech`, generated by
+        # Darrell's hand — custody stays his, DR-0152), every build signs with
+        # that stable identity. Absent the secrets, the per-run testing key
+        # keeps working exactly as before. The PLAY keystore remains a separate,
+        # offline, Governor-custodied step (DR-0152) — never these secrets.
+        env:
+          STORE_KS_B64: ${{ secrets.ANDROID_STORE_KEYSTORE_B64 }}
+          STORE_KS_PASS: ${{ secrets.ANDROID_STORE_KEYSTORE_PASS }}
+        run: |
+          set -euo pipefail
+          if [ -n "${STORE_KS_B64:-}" ] && [ -n "${STORE_KS_PASS:-}" ]; then
+            printf '%s' "$STORE_KS_B64" | base64 -d > "$PWD/android.keystore"
+            PASS="$STORE_KS_PASS"
+            echo "Signing with the persistent store keystore (stable identity; updates install in place)."
+          elif [ -n "${STORE_KS_PASS:-}" ]; then
+            # PASS-only mode: decrypt the committed keystore the `key` job
+            # bootstrapped. Fetch fresh from main — the bootstrap commit may
+            # postdate this job's checkout sha.
+            git fetch origin main --depth=1
+            git checkout origin/main -- store/android.keystore.enc 2>/dev/null || true
+            if [ ! -s store/android.keystore.enc ]; then
+              # Not merged yet — read it from the bootstrap branch the key job
+              # just pushed, so this very run already signs with the stable key.
+              git fetch origin claude/store-key-bootstrap --depth=1 2>/dev/null \
+                && git checkout FETCH_HEAD -- store/android.keystore.enc 2>/dev/null || true
+            fi
+            if [ -s store/android.keystore.enc ]; then
+              openssl enc -d -aes-256-cbc -pbkdf2 -in store/android.keystore.enc -out "$PWD/android.keystore" -pass env:STORE_KS_PASS
+              PASS="$STORE_KS_PASS"
+              echo "Signing with the persistent store keystore (encrypted-at-rest; PASS custody; updates install in place)."
+            else
+              PASS=$(openssl rand -hex 16)
+              keytool -genkeypair -keystore "$PWD/android.keystore" -alias poetech \
+                -keyalg RSA -keysize 2048 -validity 3650 \
+                -storepass "$PASS" -keypass "$PASS" \
+                -dname "CN=PoeTech Sideload Testing, O=PoeTech, C=US"
+              echo "Signing with a per-run testing key (encrypted keystore not committed yet)."
+            fi
+          else
+            PASS=$(openssl rand -hex 16)
+            keytool -genkeypair -keystore "$PWD/android.keystore" -alias poetech \
+              -keyalg RSA -keysize 2048 -validity 3650 \
+              -storepass "$PASS" -keypass "$PASS" \
+              -dname "CN=PoeTech Sideload Testing, O=PoeTech, C=US"
+            echo "Signing with a per-run testing key (set the store-keystore secrets for stable updates)."
+          fi
+          echo "::add-mask::$PASS"
+          echo "pass=$PASS" >> "$GITHUB_OUTPUT"
+
+      - name: Assemble the TWA manifest from the repo template + the brand matrix
+        run: |
+          set -euo pipefail
+          mkdir -p twa-build
+          # Versioning is PINNED from the run number (run-8 field lesson: the
+          # `yes |` prompt pipe answered Bubblewrap's version question with a
+          # literal "y", shipping versionName "y" and an unplanned versionCode.
+          # Measured on the shelf's poetech.apk 2026-07-24, DR-0076). A store
+          # must UPDATE in place: versionCode strictly increases per run, so
+          # Android accepts each new shelf build as an upgrade; no interactive
+          # prompt can ever set either field again.
+          jq --arg ks "$PWD/android.keystore" \
+             --arg pkg "${{ matrix.package_id }}" \
+             --arg name "${{ matrix.app_name }}" \
+             --arg launcher "${{ matrix.launcher }}" \
+             --arg start "${{ matrix.start_url }}" \
+             --arg wm "${{ matrix.web_manifest }}" \
+             --arg icon "${{ matrix.icon }}" \
+             --arg mask "${{ matrix.maskable }}" \
+             --arg vc "${{ github.run_number }}" \
+             --arg vn "1.0.${{ github.run_number }}" '
+            del(._comment, ._signingNote)
+            | .packageId = $pkg
+            | .name = $name
+            | .launcherName = $launcher
+            | .startUrl = $start
+            | .webManifestUrl = $wm
+            | .iconUrl = $icon
+            | .maskableIconUrl = $mask
+            | .appVersionCode = ($vc | tonumber)
+            | .appVersion = $vn
+            | .appVersionName = $vn
+            | .signingKey = { path: $ks, alias: "poetech" }
+          ' store/twa-manifest.template.json > twa-build/twa-manifest.json
+          cat twa-build/twa-manifest.json
+
+      - name: Point Bubblewrap at the runner's real Android SDK (runs 1-7 lesson)
+        # THE LANE'S RECORDED LESSONS, CONSOLIDATED (runs 1-7): a private
+        # staged cmdline-tools dir satisfies Bubblewrap's validatePath (needs
+        # `tools/` or `bin/` inside the path — @bubblewrap/core 1.24 source)
+        # but Gradle/AGP can NEVER build from it: AGP wants a standard-layout
+        # SDK (run 7 proved android-36 on disk in the staged dir still reads
+        # "failed to find target"). The runner's own SDK at ANDROID_SDK_ROOT
+        # IS that standard layout with licenses pre-accepted — the only thing
+        # it lacks is a `bin/` for validatePath, so symlink one to
+        # cmdline-tools/latest/bin. Bubblewrap then runs `<sdk>/bin/sdkmanager
+        # --sdk_root=<sdk>` (real, working) and launches Gradle with
+        # ANDROID_HOME = this same path — agreeing with the runner's
+        # ANDROID_SDK_ROOT (run 4's mismatch hard-fail cannot recur).
+        # VERIFIED, not claimed (DR-0076): the compile platform is installed
+        # and checked on disk before this step may pass.
+        run: |
+          set -euo pipefail
+          SDK="${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}"
+          ln -sfn "$SDK/cmdline-tools/latest/bin" "$SDK/bin" || sudo ln -sfn "$SDK/cmdline-tools/latest/bin" "$SDK/bin"
+          SDKMGR="$SDK/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SDKMGR" --licenses > /dev/null 2>&1 || true
+          yes | "$SDKMGR" "platforms;android-36" > "$RUNNER_TEMP/sdkinstall.log" 2>&1 || true
+          tail -20 "$RUNNER_TEMP/sdkinstall.log"
+          test -d "$SDK/platforms/android-36" || { echo "::error::android-36 platform missing from $SDK"; exit 1; }
+          mkdir -p ~/.bubblewrap
+          printf '{"jdkPath":"%s","androidSdkPath":"%s"}\n' "$JAVA_HOME" "$SDK" > ~/.bubblewrap/config.json
+          cat ~/.bubblewrap/config.json
+
+      - name: Build the package (Bubblewrap -> Gradle -> signed .apk + .aab)
+        working-directory: twa-build
+        env:
+          BUBBLEWRAP_KEYSTORE_PASSWORD: ${{ steps.keys.outputs.pass }}
+          BUBBLEWRAP_KEY_PASSWORD: ${{ steps.keys.outputs.pass }}
+        # Run-9 field lesson (measured on the shelf APK, DR-0076): piping `yes`
+        # straight into `build` also answered Bubblewrap's VERSION prompts —
+        # the shelf shipped versionCode 10 / versionName "y", overriding the
+        # manifest pin. So: `update --skipVersionUpgrade` FIRST generates the
+        # Android project from the manifest WITHOUT touching versions, then
+        # `build` runs against the ready project. `yes |` stays only to answer
+        # yes/no confirmations (run 2's "have you run bubblewrap update?");
+        # the version values themselves are now pinned upstream in the
+        # manifest and PROVEN downstream by the verify step below.
+        # Bounded `y` batch, not infinite `yes`: under `set -o pipefail` an
+        # infinite `yes` dies on SIGPIPE the moment Bubblewrap exits without
+        # draining stdin, failing the step AFTER a successful command (run 10:
+        # "Project updated successfully" then "yes: standard output: Broken
+        # pipe" → exit 1). Twenty y's answer every confirmation and fit the
+        # pipe buffer, so printf always completes.
+        run: |
+          set -euo pipefail
+          printf 'y\n%.0s' {1..20} | npx --yes @bubblewrap/cli@1 update --skipVersionUpgrade
+          printf 'y\n%.0s' {1..20} | npx --yes @bubblewrap/cli@1 build --skipPwaValidation
+
+      - name: Verify the built APK carries the pinned version (proven, not assumed)
+        # DR-0076 §3 (anti-theater): run 9 LOOKED green while shipping
+        # versionName "y". This step reads the REAL AndroidManifest out of the
+        # built APK with aapt2 and hard-fails the run on any mismatch, so a
+        # future Bubblewrap prompt-drift cannot ship a mangled version again.
+        run: |
+          set -euo pipefail
+          SDK="${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}"
+          AAPT2=$(ls "$SDK"/build-tools/*/aapt2 | sort -V | tail -1)
+          APK=$(ls twa-build/*.apk | head -1)
+          BADGING=$("$AAPT2" dump badging "$APK" | head -1)
+          echo "$BADGING"
+          WANT_VC="versionCode='${{ github.run_number }}'"
+          WANT_VN="versionName='1.0.${{ github.run_number }}'"
+          case "$BADGING" in
+            *"$WANT_VC"*"$WANT_VN"*) echo "version pin verified: $WANT_VC $WANT_VN" ;;
+            *) echo "::error::built APK version does not match the pin (wanted $WANT_VC $WANT_VN): $BADGING"; exit 1 ;;
+          esac
+
+      - name: Name what was built
+        run: |
+          set -euo pipefail
+          ls -la twa-build/*.apk twa-build/*.aab 2>/dev/null || { echo "::error::no package produced"; exit 1; }
+          {
+            echo "## Android package built (sideload-testing) — ${{ matrix.app_name }}"
+            echo "- Package: \`${{ matrix.package_id }}\` · opens ${{ matrix.start_url }} — its OWN app, its own task, its own resume state."
+            echo "- Download the .apk from this run's Artifacts, open it on the phone, allow the install prompt."
+            echo "- Signed with a PER-RUN testing key: updating requires uninstall/reinstall. The Play keystore is a Governor step (DR-0152)."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Publish to the PoeTech App Store shelf (rolling android-latest release)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          APK=$(ls twa-build/*.apk | head -1)
+          cp "$APK" "${{ matrix.brand }}.apk"
+          gh release create android-latest --title "PoeTech App Store — Android apps (latest)" \
+            --notes "Rolling latest builds of the four family apps. Installed from the in-app PoeTech App Store." \
+            2>/dev/null || true
+          gh release upload android-latest "${{ matrix.brand }}.apk" --clobber
+
+      - name: Attach the package as a downloadable artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.brand }}-android-sideload-testing
+          path: |
+            twa-build/*.apk
+            twa-build/*.aab
+          retention-days: 30
+          if-no-files-found: error
+
+  # ---------------------------------------------------------------------------
+  # The shelf describes what is ACTUALLY on it.
+  #
+  # Measured 2026-08-28: the release notes read "the four family apps" while the
+  # shelf held five. Not a typo — a structural one-way door. The publish step
+  # above runs `gh release create ... --notes "..." || true`, so the notes are
+  # written ONCE, the first time the release is created (2026-07-23), and every
+  # run since has silently skipped them. The count was frozen at whatever was
+  # true in July, on a public page, with no mechanism that could ever correct it.
+  #
+  # This job runs after every brand has uploaded and rewrites the notes from the
+  # release's OWN asset list — so the sentence is not a claim anybody maintains,
+  # it is a reading of the shelf. Adding a sixth app updates it by itself, and a
+  # brand whose build FAILED is absent from the list rather than counted, which
+  # is the honest answer to "what can I install right now?" (DR-0076 §4).
+  #
+  # `if: always()` so a partial run still corrects the notes to what actually
+  # shipped; the count would otherwise stay stale precisely when it matters most.
+  shelf:
+    needs: build
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Describe the shelf from the shelf, and prove nothing is missing
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          names=$(gh api "repos/$REPO/releases/tags/android-latest" \
+                    --jq '[.assets[].name | sub("\\.apk$";"")] | sort | join(", ")')
+          count=$(gh api "repos/$REPO/releases/tags/android-latest" --jq '.assets | length')
+          if [ -z "$count" ] || [ "$count" = "0" ]; then
+            echo "::warning::the release lists no assets — leaving the notes alone rather than claiming an empty shelf."
+            exit 0
+          fi
+          word=$(case "$count" in
+            1) echo one;; 2) echo two;; 3) echo three;; 4) echo four;;
+            5) echo five;; 6) echo six;; 7) echo seven;; 8) echo eight;;
+            *) echo "$count";; esac)
+          gh release edit android-latest \
+            --title "PoeTech App Store — Android apps (latest)" \
+            --notes "Rolling latest builds of the $word family apps: $names. Installed from the in-app PoeTech App Store. This description is written from the release's own asset list on every build, so it cannot fall behind what is actually here."
+          echo "shelf notes now describe $count package(s): $names"
+
+          # THE CHECK THAT WOULD HAVE CAUGHT THE 2026-08-28 OUTAGE.
+          #
+          # A conformance test that every store brand appears in the build matrix
+          # already existed, and it PASSED throughout: `properties` was in the
+          # matrix with the right package id the whole time. The config was never
+          # wrong — the lane was simply never dispatched, so no package was ever
+          # built, /store/apk/properties.apk 404'd, and the phone showed a
+          # Cloudflare "Bad gateway". No test of the config can see that.
+          #
+          # This can, because it asks the SHELF rather than the source: every app
+          # the store offers must have a package a person can actually install.
+          # Missing one FAILS the run — a store that lists what it cannot deliver
+          # is the defect, and a green build that leaves one missing is the lie.
+          # Normalise to a strictly comma-delimited list first, so the match
+          # below can require BOTH delimiters. Without that, a future brand key
+          # that is a substring of another ("moore" inside "mooredivahs") would
+          # match loosely and the gate would quietly pass on a missing package —
+          # a gate that cannot be wrong about the thing it guards is the point.
+          csv=",$(printf '%s' "$names" | tr -d ' '),"
+          missing=""
+          for key in $(grep -oP "^\s+key: '\K[a-z]+" app/src/lib/app-store.js); do
+            case "$csv" in
+              *",$key,"*) ;;
+              *) missing="$missing $key" ;;
+            esac
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::the PoeTech App Store offers these apps with NO package on the shelf:$missing"
+            echo "Anyone tapping their Download button gets a 404 from /store/apk/. Re-run this lane."
+            exit 1
+          fi
+          echo "every app the store offers has a package on the shelf."

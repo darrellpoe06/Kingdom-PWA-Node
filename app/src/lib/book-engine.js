@@ -28,7 +28,7 @@ export const SOURCE_KINDS = {
   scripture:   { label: 'Scripture',   noun: 'passage',     view: 'church', churchView: 'scripture' },
   algorithm:   { label: 'Eternal Algorithm', noun: 'pattern', view: 'study', churchView: null },
   discernment: { label: 'Discernment', noun: 'lesson',      view: 'church', churchView: 'learn' },
-  testimony:   { label: 'Testimony',   noun: 'testimony',   view: 'church', churchView: 'home' },
+  testimony:   { label: 'Testimony',   noun: 'testimony',   view: 'church', churchView: 'home', churchSection: 'speak' }, // spoken into the Council Chamber (DR-0142)
   discussion:  { label: 'Discussion',  noun: 'discussion',  view: 'notes',  churchView: null },
 };
 

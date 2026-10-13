@@ -134,7 +134,7 @@ export default function KitchenInventory({
   // hook order stays stable across renders).
   if (!addItem || !addCount) {
     return (
-      <div className="max-w-2xl">
+      <div className="w-full">
         <SectionTitle eyebrow={config.eyebrow}>{config.title}</SectionTitle>
         <div className="bg-[#FAF8F4] border border-[#E8E4DC] p-6 text-sm text-[#5A5751]">
           {config.title} is not wired to persistence in this view.
@@ -144,7 +144,7 @@ export default function KitchenInventory({
   }
 
   return (
-    <div className="max-w-5xl">
+    <div className="w-full">
       <SectionTitle eyebrow={config.eyebrow}>{config.title}</SectionTitle>
 
       <p className="text-sm text-[#5A5751] mb-4 max-w-3xl">{config.intro}</p>
@@ -325,13 +325,13 @@ function StockTab({ config, labelers, items, movements, addItem, recordMovements
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-[#F4F2EE] text-left text-[0.625rem] uppercase tracking-wider text-[#5A5751]">
-                <th className="px-2 py-2">Item</th>
-                <th className="px-2 py-2 hidden sm:table-cell">Category</th>
-                <th className="px-2 py-2 hidden md:table-cell">Storage</th>
-                <th className="px-2 py-2 text-right">On hand</th>
-                <th className="px-2 py-2 text-right hidden sm:table-cell">{(config.parNoun || 'par').replace(/^\w/, (m) => m.toUpperCase())}</th>
-                <th className="px-2 py-2">Status</th>
-                <th className="px-2 py-2 text-right hidden sm:table-cell">Value</th>
+                <th scope="col" className="px-2 py-2">Item</th>
+                <th scope="col" className="px-2 py-2 hidden sm:table-cell">Category</th>
+                <th scope="col" className="px-2 py-2 hidden md:table-cell">Storage</th>
+                <th scope="col" className="px-2 py-2 text-right">On hand</th>
+                <th scope="col" className="px-2 py-2 text-right hidden sm:table-cell">{(config.parNoun || 'par').replace(/^\w/, (m) => m.toUpperCase())}</th>
+                <th scope="col" className="px-2 py-2">Status</th>
+                <th scope="col" className="px-2 py-2 text-right hidden sm:table-cell">Value</th>
               </tr>
             </thead>
             <tbody>
@@ -610,12 +610,12 @@ function CountSheet({ config, labelers, count, items, movements, countLines, add
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-[#F4F2EE] text-left text-[0.625rem] uppercase tracking-wider text-[#5A5751]">
-                <th className="px-2 py-2">Item</th>
-                <th className="px-2 py-2 text-right">Expected</th>
-                <th className="px-2 py-2 text-right">Counted</th>
-                <th className="px-2 py-2 text-right hidden sm:table-cell">Variance</th>
-                <th className="px-2 py-2 text-right">Value</th>
-                <th className="px-2 py-2">±</th>
+                <th scope="col" className="px-2 py-2">Item</th>
+                <th scope="col" className="px-2 py-2 text-right">Expected</th>
+                <th scope="col" className="px-2 py-2 text-right">Counted</th>
+                <th scope="col" className="px-2 py-2 text-right hidden sm:table-cell">Variance</th>
+                <th scope="col" className="px-2 py-2 text-right">Value</th>
+                <th scope="col" className="px-2 py-2">±</th>
               </tr>
             </thead>
             <tbody>
@@ -754,11 +754,11 @@ function PurchasingTab({ config, labelers, drafts, purchaseOrders, purchaseOrder
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="text-left text-[0.625rem] uppercase tracking-wider text-[#5A5751]">
-                      <th className="px-3 py-1.5">Item</th>
-                      <th className="px-3 py-1.5 text-right">On hand</th>
-                      <th className="px-3 py-1.5 text-right">{(config.parNoun || 'par').replace(/^\w/, (m) => m.toUpperCase())}</th>
-                      <th className="px-3 py-1.5 text-right">Order</th>
-                      <th className="px-3 py-1.5 text-right">Est. cost</th>
+                      <th scope="col" className="px-3 py-1.5">Item</th>
+                      <th scope="col" className="px-3 py-1.5 text-right">On hand</th>
+                      <th scope="col" className="px-3 py-1.5 text-right">{(config.parNoun || 'par').replace(/^\w/, (m) => m.toUpperCase())}</th>
+                      <th scope="col" className="px-3 py-1.5 text-right">Order</th>
+                      <th scope="col" className="px-3 py-1.5 text-right">Est. cost</th>
                     </tr>
                   </thead>
                   <tbody>

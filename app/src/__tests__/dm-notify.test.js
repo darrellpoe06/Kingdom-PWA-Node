@@ -1,0 +1,110 @@
+// =============================================================================
+// dm-notify — the doorbell rings honestly (2026-08-22)
+// =============================================================================
+// Darrell: "do the users get notifications?" — measured no; this layer adds
+// the tab-title unread badge and the hidden-tab browser Notification. These
+// tests pin the pure decision (never ring on shrink, never while watching,
+// never without permission), the idempotent title badge, and the wiring.
+import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { notifyDecision, applyTitleBadge, applyAppBadge } from '../lib/dm-notify.js';
+
+const HERE = dirname(fileURLToPath(import.meta.url));
+
+describe('notifyDecision — ring only on growth, hidden, and permission', () => {
+  it('rings when unread grew while hidden with permission granted', () => {
+    expect(notifyDecision(0, 1, { hidden: true, permission: 'granted' }).notify).toBe(true);
+  });
+  it('never rings while the reader is watching (visible)', () => {
+    expect(notifyDecision(0, 3, { hidden: false, permission: 'granted' }).notify).toBe(false);
+  });
+  it('never rings without permission, and never on shrink or no-change', () => {
+    expect(notifyDecision(0, 1, { hidden: true, permission: 'default' }).notify).toBe(false);
+    expect(notifyDecision(2, 1, { hidden: true, permission: 'granted' }).notify).toBe(false);
+    expect(notifyDecision(2, 2, { hidden: true, permission: 'granted' }).notify).toBe(false);
+  });
+  it('the title badge states the count, and clears at zero', () => {
+    expect(notifyDecision(0, 2, {}).titleBadge).toBe('(2) ');
+    expect(notifyDecision(2, 0, {}).titleBadge).toBe('');
+  });
+});
+
+describe('applyTitleBadge — idempotent, always restorable', () => {
+  it('prefixes, re-prefixes without stacking, and restores the clean title', () => {
+    const doc = { title: 'PoeTech' };
+    applyTitleBadge(doc, '(1) ');
+    expect(doc.title).toBe('(1) PoeTech');
+    applyTitleBadge(doc, '(4) ');
+    expect(doc.title).toBe('(4) PoeTech');
+    applyTitleBadge(doc, '');
+    expect(doc.title).toBe('PoeTech');
+  });
+  it('adopts an already-badged title without doubling the badge', () => {
+    const doc = { title: '(3) PoeTech' };
+    applyTitleBadge(doc, '(5) ');
+    expect(doc.title).toBe('(5) PoeTech');
+  });
+});
+
+describe('wiring — the doorbell is mounted app-wide and asked for by a tap', () => {
+  it('main.jsx starts the watcher at boot (any tab, not only Messages)', () => {
+    const src = readFileSync(join(HERE, '..', 'main.jsx'), 'utf8');
+    expect(src).toMatch(/startDmNotifications\(window\)/);
+  });
+  it('DirectMessages offers the one-tap grant only while permission is undecided', () => {
+    const src = readFileSync(join(HERE, '..', 'components', 'DirectMessages.jsx'), 'utf8');
+    expect(src).toMatch(/notifPerm === 'default'/);
+    expect(src).toMatch(/requestDmNotificationPermission/);
+  });
+  it('the hidden-tab heartbeat exists — a sick stream cannot silence the doorbell', () => {
+    const src = readFileSync(join(HERE, '..', 'lib', 'dm-notify.js'), 'utf8');
+    expect(src).toMatch(/HIDDEN_HEARTBEAT_MS = 60000/);
+    expect(src).toMatch(/visibilityState === 'hidden'\) stopSub\?\.refresh\?\.\(\)/);
+  });
+});
+
+// The number on the APP ICON (Darrell, 2026-09-09: "on the app and in the
+// notification list"). Follows the unread count exactly; zero clears it; a
+// browser without the Badging API is a no-op rather than a fault.
+describe('applyAppBadge — the launcher icon carries the unread count', () => {
+  const nav = () => {
+    const calls = { set: [], cleared: 0 };
+    return { calls, setAppBadge(n) { calls.set.push(n); return Promise.resolve(); }, clearAppBadge() { calls.cleared += 1; return Promise.resolve(); } };
+  };
+  it('a count sets the badge', () => {
+    const n = nav();
+    expect(applyAppBadge(n, 3)).toBe('set');
+    expect(n.calls.set).toEqual([3]);
+  });
+  it('zero clears it (read messages drop the number)', () => {
+    const n = nav();
+    expect(applyAppBadge(n, 0)).toBe('cleared');
+    expect(n.calls.cleared).toBe(1);
+    expect(n.calls.set).toEqual([]);
+  });
+  it('no Badging API is honest and harmless', () => {
+    expect(applyAppBadge({}, 2)).toBe('unsupported');
+    expect(applyAppBadge(undefined, 2)).toBe('unsupported');
+  });
+  it('a launcher that rejects never throws into the app', () => {
+    const n = { setAppBadge() { throw new Error('nope'); } };
+    expect(() => applyAppBadge(n, 1)).not.toThrow();
+  });
+  // WIDENED 2026-10-01 (DR-0728). The badge used to be set here, to unread
+  // MESSAGES alone. It is now set in ONE place, lib/arrivals-watch.js, from the
+  // combined count of every kind of arrival, and this watcher no longer writes
+  // it: two writers of one badge would fight, and the DM-only number was the
+  // defect Darrell named ("the number of them if I haven't checked them yet").
+  it('the badge has ONE writer, the arrivals watcher, and it is the combined count', () => {
+    const code = (s) => s.replace(/\/\*[\s\S]*?\*\//g, ' ').split('\n').map((l) => l.replace(/\/\/.*$/, '')).join('\n');
+    const dm = code(readFileSync(join(HERE, '..', 'lib', 'dm-notify.js'), 'utf8'));
+    const watch = code(readFileSync(join(HERE, '..', 'lib', 'arrivals-watch.js'), 'utf8'));
+    expect(dm).not.toMatch(/applyAppBadge\(win\.navigator/);
+    expect(dm).not.toMatch(/applyTitleBadge\(win\.document/);
+    expect(watch).toContain('applyAppBadge(win.navigator, count)');
+    expect(watch).toContain('applyTitleBadge(win.document, badgeText(count))');
+    expect(watch).toContain('applyAppBadge(win.navigator, 0)');
+  });
+});

@@ -7,11 +7,33 @@ import {
   toSongShape, toScheduleShape, toMemberShape, toChoirMessageShape, toAbsenceShape,
   toSermonShape, toResourceShape, toSermonDocShape, toTeamDocShape,
   deriveAccess, youtubeEmbedUrl, sortServices, songsForService, buildPastServices,
-  weekBucket, isOutOnDate, membersOutOnDate, suggestBackups, buildReusedSong, buildReusedSermon,
+  weekBucket, isOutOnDate, membersOutOnDate, suggestBackups, backupsAreCrossSection, canRespondToBackup, buildReusedSong, buildReusedSermon,
   parseTimecode, formatTimecode, youtubeTimedUrl, parseServiceTitle, extractYoutubeId,
   selectNewSermonImports, isValidInviteEmail, isExternalUrl, distinctSongCatalog,
   isInlineDocument, classifyUpload, TEAM_DOC_MAX_BYTES,
+  toInviteShape, deriveInviteStatus, sortInvites,
+  normalizeClaimCode,
 } from '../lib/choir-sync.js';
+
+describe('normalizeClaimCode (roster self-claim code hygiene, DR-0220)', () => {
+  it('uppercases and strips whitespace to match the server upper(trim())', () => {
+    expect(normalizeClaimCode(' abc234 ')).toBe('ABC234');
+    expect(normalizeClaimCode('a b c 2 3 4')).toBe('ABC234');
+    expect(normalizeClaimCode('AbC234\n')).toBe('ABC234');
+  });
+  it('leaves a valid confusable-free code EXACTLY intact (never mangles a real code)', () => {
+    // The alphabet excludes 0/O/1/I/L/U; a valid code must survive normalization
+    // byte-for-byte or a correctly-typed code would be rejected.
+    for (const code of ['ABC234', 'ZZ9KMN', 'PQRSTV', '234567']) {
+      expect(normalizeClaimCode(code)).toBe(code);
+    }
+  });
+  it('handles empty / null safely', () => {
+    expect(normalizeClaimCode('')).toBe('');
+    expect(normalizeClaimCode(null)).toBe('');
+    expect(normalizeClaimCode(undefined)).toBe('');
+  });
+});
 
 describe('deriveAccess (visibility/edit gate)', () => {
   it('owner/admin can see AND edit', () => {
@@ -116,9 +138,12 @@ describe('buildPastServices', () => {
     { id: 'sch2', serviceDate: '2026-07-13', serviceType: 'sunday', title: 'Future' }, // future -> excluded
   ];
   const sermons = [
-    { videoId: 'v1', serviceDate: '2026-06-29', serviceType: 'sunday', title: 'Msg 29', youtubeUrl: 'y29' },
-    { videoId: 'v2', serviceDate: '2026-06-15', serviceType: 'sunday', title: 'Msg 15', youtubeUrl: 'y15' }, // no songs -> excluded
+    { videoId: 'v1', serviceDate: '2026-06-29', serviceType: 'sunday', title: 'Msg 29', youtubeUrl: 'y29' }, // Monday date, but HAS a song -> stays
+    { videoId: 'v2', serviceDate: '2026-06-21', serviceType: 'sunday', title: 'Msg 21', youtubeUrl: 'y21' }, // a real SUNDAY recording, no songs -> WATCHABLE history (DR-0137)
     { videoId: 'v3', serviceDate: '2026-06-28', serviceType: 'sunday', title: 'Sermon dup' }, // dup of sch1
+    { videoId: 'v4', serviceDate: '2026-06-24', serviceType: 'wednesday', title: 'Bible study', youtubeUrl: 'y24' }, // Wednesday video-only -> the sermon library's, not the choir's
+    { videoId: 'v5', serviceDate: '2026-06-22', serviceType: 'sunday', title: 'Monday-posted', youtubeUrl: 'y22' }, // Monday video-only -> not a choir Sunday
+    { serviceDate: '2026-06-08', serviceType: 'sunday', title: 'Draft notes' }, // no video, no songs, no plan -> noise, excluded
   ];
   const songs = [
     { id: 's1', title: 'My Worship', serviceDate: '2026-06-29', serviceType: 'sunday', status: 'active' },
@@ -130,9 +155,26 @@ describe('buildPastServices', () => {
     expect(dates).toContain('2026-06-29'); // has a song
     expect(dates).toContain('2026-06-28'); // scheduled
   });
-  it('excludes past sermons with no setlist and no schedule row (avoids 130 empty cards)', () => {
+  it('includes a RECORDED past SUNDAY with no setlist — the watchable Sunday corpus IS the choir history (DR-0137)', () => {
     const past = buildPastServices(schedule, sermons, songs, today);
-    expect(past.map((s) => s.serviceDate)).not.toContain('2026-06-15');
+    const hit = past.find((s) => s.serviceDate === '2026-06-21');
+    expect(hit).toBeTruthy();
+    expect(hit.youtubeUrl).toBe('y21'); // the Watch-service link rides the card
+  });
+  it('every DATED recording is browsable history, any weekday (Darrell 2026-08-03: "only 52 of the 800 plus" — supersedes the 2026-07-10 Sunday-only rule)', () => {
+    const dates = buildPastServices(schedule, sermons, songs, today).map((s) => s.serviceDate);
+    expect(dates).toContain('2026-06-24'); // Wednesday Bible study video — watchable, so it shows
+    expect(dates).toContain('2026-06-22'); // Monday-posted video — watchable, so it shows
+    expect(dates).toContain('2026-06-29'); // Monday date with harvested songs — stays
+  });
+  it('a row with NO date cannot sit on the dated list (the undated corpus surfaces via the remainder note)', () => {
+    const withUndated = [...sermons, { videoId: 'v9', serviceDate: null, title: 'Stream, no date', youtubeUrl: 'y9' }];
+    const past = buildPastServices(schedule, withUndated, songs, today);
+    expect(past.find((s) => s.title === 'Stream, no date')).toBeUndefined();
+  });
+  it('still excludes a past row with no plan, no setlist, AND no video (pure noise)', () => {
+    const past = buildPastServices(schedule, sermons, songs, today);
+    expect(past.map((s) => s.serviceDate)).not.toContain('2026-06-08');
   });
   it('excludes future services and dedupes schedule+sermon on the same date/type', () => {
     const past = buildPastServices(schedule, sermons, songs, today);
@@ -197,6 +239,49 @@ describe('suggestBackups', () => {
     const noSection = { id: 'mX', displayName: 'X', section: null, choirRole: 'member' };
     const out = suggestBackups([...members, noSection], [], '2026-06-21', noSection);
     expect(out.map((m) => m.id)).toEqual(['m1', 'm2', 'm3', 'm4']); // all singers, not the support role, not self
+  });
+  it('NEVER dead-ends: falls back to any free singer when no same-section peer is free', () => {
+    // m4 (alto) is out and is the ONLY alto — the old code returned [] (a dead
+    // end: "no backup" was the only option). Now it offers the free sopranos.
+    const out = suggestBackups(members, [], '2026-06-21', members[3]); // m4 alto out
+    expect(out.map((m) => m.id)).toEqual(['m1', 'm2', 'm3']); // cross-section fallback, support role still excluded
+  });
+  it('prefers same-section when one IS free (no fallback then)', () => {
+    const out = suggestBackups(members, [], '2026-06-21', members[0]); // m1 soprano out
+    expect(out.map((m) => m.id)).toEqual(['m2', 'm3']); // only sopranos, not the alto
+  });
+});
+
+describe('canRespondToBackup — the director can resolve a stuck request', () => {
+  const req = { backupName: 'Sam', backupStatus: 'requested' };
+  it('the chosen backup can respond', () => {
+    expect(canRespondToBackup({ ...req, iAmBackup: true }, false)).toBe(true);
+  });
+  it('the director (canEdit) can respond even when not the backup', () => {
+    expect(canRespondToBackup({ ...req, iAmBackup: false }, true)).toBe(true);
+  });
+  it('a non-backup non-director cannot', () => {
+    expect(canRespondToBackup({ ...req, iAmBackup: false }, false)).toBe(false);
+  });
+  it('no response affordance unless a backup was requested and is still pending', () => {
+    expect(canRespondToBackup({ backupName: null, backupStatus: 'requested', iAmBackup: true }, true)).toBe(false);
+    expect(canRespondToBackup({ ...req, backupStatus: 'confirmed', iAmBackup: true }, true)).toBe(false);
+    expect(canRespondToBackup(null, true)).toBe(false);
+  });
+});
+
+describe('backupsAreCrossSection — honest UI labelling', () => {
+  const alto = { id: 'a1', displayName: 'A', section: 'alto', choirRole: 'member' };
+  const sops = [{ id: 's1', displayName: 'S', section: 'soprano', choirRole: 'member' }];
+  it('true when the offered backups are all a different section than the absentee', () => {
+    expect(backupsAreCrossSection(sops, alto)).toBe(true);
+  });
+  it('false when a same-section singer is in the list', () => {
+    expect(backupsAreCrossSection([...sops, { id: 'a2', section: 'alto', choirRole: 'member' }], alto)).toBe(false);
+  });
+  it('false when the absentee has no section, or the list is empty', () => {
+    expect(backupsAreCrossSection(sops, { id: 'x', section: null })).toBe(false);
+    expect(backupsAreCrossSection([], alto)).toBe(false);
   });
 });
 
@@ -268,26 +353,53 @@ describe('parseServiceTitle (the YouTube importer core — real channel titles)'
     expect(parseServiceTitle('Choir rehearsal clip').serviceDate).toBeNull();
     expect(parseServiceTitle('Black History Month 2025 at The Love Corner').serviceDate).toBeNull();
   });
+  it('parses DOT-separated dates (128 of the undated backlog carried these — 2026-08-04 audit)', () => {
+    expect(parseServiceTitle('Bible Study 11.8.2023').serviceDate).toBe('2023-11-08');
+    expect(parseServiceTitle('Bible Study 10.25.23 Senior Assistant Pastor James Harding').serviceDate).toBe('2023-10-25');
+  });
+  it('parses a MID-TITLE space-separated date', () => {
+    expect(parseServiceTitle("Wednesday Bible Study 11 29 23 I'm On The Lord Side").serviceDate).toBe('2023-11-29');
+  });
+  it('the mid-title fallback does not invent dates from stray numbers', () => {
+    expect(parseServiceTitle('Dr. Bobby Smith Presentation').serviceDate).toBeNull();
+    expect(parseServiceTitle('Watch God Deliver Me').serviceDate).toBeNull();
+    // one or two numbers is never a date
+    expect(parseServiceTitle('Psalm 118 24 The Day The Lord Has Made').serviceDate).toBeNull();
+  });
 });
 
 describe('selectNewSermonImports (idempotent channel import)', () => {
   const items = [
     { videoId: 'vNEW1', title: '6 -10 - 2026 Bishop E. Gwin "LET GO"' },          // new, dated, sunday
     { videoId: 'vHAVE', title: '6 -3 - 2026 Bishop Gwin Wednesday Bible Study "X"' }, // already stored
-    { videoId: 'vNODATE', title: 'Black History Month at The Love Corner' },        // no date -> skip
+    { videoId: 'vNODATE', title: 'Black History Month at The Love Corner' },        // no date -> still imported (dateless)
     { videoId: 'vNEW2', title: '5/28/2026 Bishop Gwin Wednesday Bible Study "Y"' },  // new, slash date
   ];
-  it('keeps only new, dated videos and shapes them for insert', () => {
+  it('imports EVERY new video (dateless included) and shapes them for insert', () => {
     const out = selectNewSermonImports(items, ['vHAVE']);
-    expect(out.map((r) => r.videoId)).toEqual(['vNEW1', 'vNEW2']);
+    expect(out.map((r) => r.videoId)).toEqual(['vNEW1', 'vNODATE', 'vNEW2']); // all 3 new, incl. dateless
     expect(out[0]).toMatchObject({ serviceType: 'sunday', serviceDate: '2026-06-10', source: 'youtube', youtubeUrl: 'https://www.youtube.com/watch?v=vNEW1' });
-    expect(out[1].serviceType).toBe('wednesday');
+    expect(out[1]).toMatchObject({ videoId: 'vNODATE', serviceDate: null }); // dateless -> null, but present
+    expect(out[2].serviceType).toBe('wednesday');
   });
   it('returns nothing when every video is already stored', () => {
-    expect(selectNewSermonImports(items, ['vNEW1', 'vHAVE', 'vNEW2'])).toEqual([]);
+    expect(selectNewSermonImports(items, ['vNEW1', 'vNODATE', 'vHAVE', 'vNEW2'])).toEqual([]);
   });
   it('is safe on empty inputs', () => {
     expect(selectNewSermonImports(null, null)).toEqual([]);
+  });
+  // A title with no spelled-out date is dated from the YouTube UPLOAD date
+  // (contentDetails.videoPublishedAt); a video with NO date anywhere still imports
+  // (dateless) so the archive matches the channel — never dropped.
+  it('dates from the upload date when the title has none, and still imports the truly dateless', () => {
+    const withUpload = [
+      { videoId: 'vUP', title: 'Sunday Worship at The Love Corner', publishedAt: '2026-07-12T15:30:00Z' },
+      { videoId: 'vNONE', title: 'Choir rehearsal clip' }, // no title date, no upload date -> imported dateless
+    ];
+    const out = selectNewSermonImports(withUpload, []);
+    expect(out.map((r) => r.videoId)).toEqual(['vUP', 'vNONE']);
+    expect(out[0].serviceDate).toBe('2026-07-12');
+    expect(out[1].serviceDate).toBe(null);
   });
 });
 
@@ -412,5 +524,96 @@ describe('team-doc uploads (pictures/documents, not just a link)', () => {
     expect(classifyUpload({ type: 'application/pdf', name: 'big.pdf', size: TEAM_DOC_MAX_BYTES + 1 }))
       .toEqual({ ok: false, reason: 'too-large' });
     expect(classifyUpload(null).ok).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// A failed save never discards the typed entry (feedback bf8ad82f: "adding an
+// entry under the Choir schedule discards it"). The song/service forms close
+// ONLY on a confirmed save — on a skip/error the form stays open with the
+// values intact and the error banner saying why.
+// ---------------------------------------------------------------------------
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
+
+describe('choir forms survive a failed save (no data loss)', () => {
+  const src = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '../components/Choir.jsx'), 'utf8');
+  it('closes the service form only when the save confirmed', () => {
+    expect(src).toMatch(/if \(r\?\.saved\) setServiceForm\(null\)/);
+    expect(src).not.toMatch(/reportSkip\(await saveService\(f\)\); setBusy\(false\); setServiceForm\(null\)/);
+  });
+  it('closes the song form only when the save confirmed', () => {
+    expect(src).toMatch(/if \(r\?\.saved\) setSongForm\(null\)/);
+  });
+  it('schedule form offers every service type the table allows (incl. Wednesday)', () => {
+    const formStart = src.indexOf('function ServiceForm');
+    const form = src.slice(formStart, src.indexOf('function ', formStart + 10));
+    for (const v of ['sunday', 'wednesday', 'rehearsal']) {
+      expect(form).toContain(`<option value="${v}">`);
+    }
+  });
+});
+
+// --- HTML-entity decode (DR-0139) — '&QUOT;' never prints on a service card ---
+import { decodeHtmlEntities } from '../lib/choir-sync.js';
+
+describe('decodeHtmlEntities — harvested titles render as words, not entities', () => {
+  it('decodes the live sighting: uppercased &QUOT; from a harvested title', () => {
+    expect(decodeHtmlEntities("&QUOT;DON'T ALLOW ANY STRUGGLE TO DISTRACT YOU FROM YOUR DOUBLE!&QUOT; - Pastor Ken McCray"))
+      .toBe("\"DON'T ALLOW ANY STRUGGLE TO DISTRACT YOU FROM YOUR DOUBLE!\" - Pastor Ken McCray");
+  });
+  it('decodes the common entities, one honest level', () => {
+    expect(decodeHtmlEntities('Praise &amp; Worship &#39;Night&#39; &lt;live&gt;')).toBe("Praise & Worship 'Night' <live>");
+    expect(decodeHtmlEntities('&amp;quot;')).toBe('&quot;'); // double-encoded unescapes ONE step
+  });
+  it('is safe on null / non-strings', () => {
+    expect(decodeHtmlEntities(null)).toBeNull();
+    expect(decodeHtmlEntities(undefined)).toBeNull();
+    expect(decodeHtmlEntities('plain title')).toBe('plain title');
+  });
+  it('the sermon/schedule/song mappers decode stored titles at render', () => {
+    expect(toSermonShape({ id: 'x', title: '&quot;MY WORSHIP&quot;' }).title).toBe('"MY WORSHIP"');
+    expect(toScheduleShape({ id: 'y', service_date: 'd', service_type: 'sunday', title: 'A &amp; B' }).title).toBe('A & B');
+    expect(toSongShape({ id: 'z', title: '&#39;Tis So Sweet' }).title).toBe("'Tis So Sweet");
+  });
+});
+
+describe('sent-invites view (Christina: "see who I already invited") ', () => {
+  const DAY = 24 * 60 * 60 * 1000;
+  it('toInviteShape maps a row and derives the send date (expires - 14d)', () => {
+    const expiresAt = new Date(Date.parse('2026-07-12T00:00:00.000Z') + 14 * DAY).toISOString();
+    const shape = toInviteShape({ id: 'i1', email: 'A@Email.com', role: 'admin', invited_by: 'u1', accepted_at: null, expires_at: expiresAt });
+    expect(shape.id).toBe('i1');
+    expect(shape.email).toBe('A@Email.com');
+    expect(shape.role).toBe('admin');
+    expect(shape.invitedBy).toBe('u1');
+    expect(shape.acceptedAt).toBeNull();
+    expect(String(shape.invitedAt).slice(0, 10)).toBe('2026-07-12');
+  });
+  it('role defaults to member; a null expiry leaves invitedAt null', () => {
+    const shape = toInviteShape({ id: 'i2', email: 'b@e.com' });
+    expect(shape.role).toBe('member');
+    expect(shape.invitedAt).toBeNull();
+  });
+  it('deriveInviteStatus: accepted > expired > pending', () => {
+    const now = Date.parse('2026-07-12T00:00:00.000Z');
+    const future = new Date(now + DAY).toISOString();
+    const past = new Date(now - DAY).toISOString();
+    expect(deriveInviteStatus({ acceptedAt: past, expiresAt: past }, now)).toBe('accepted');
+    expect(deriveInviteStatus({ acceptedAt: null, expiresAt: past }, now)).toBe('expired');
+    expect(deriveInviteStatus({ acceptedAt: null, expiresAt: future }, now)).toBe('pending');
+    expect(deriveInviteStatus(null, now)).toBe('pending');
+  });
+  it('sortInvites puts the newest invite first and never mutates the input', () => {
+    const input = [
+      { id: 'old', invitedAt: '2026-07-01T00:00:00.000Z' },
+      { id: 'new', invitedAt: '2026-07-10T00:00:00.000Z' },
+      { id: 'mid', invitedAt: '2026-07-05T00:00:00.000Z' },
+    ];
+    const sorted = sortInvites(input);
+    expect(sorted.map((x) => x.id)).toEqual(['new', 'mid', 'old']);
+    expect(input.map((x) => x.id)).toEqual(['old', 'new', 'mid']); // input untouched
+    expect(sortInvites(null)).toEqual([]);
   });
 });

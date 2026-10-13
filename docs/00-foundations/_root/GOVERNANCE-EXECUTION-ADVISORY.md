@@ -103,6 +103,27 @@ The threshold for "needs Governor approval" should narrow as the system proves i
 
 This is not relaxing the test — the "lift the family / creates rather than extracts" test remains absolute. It is calibrating which actions automatically meet the test versus which require explicit confirmation.
 
+## What PoeTech designs (declared 2026-09-24)
+
+**Declared by Darrell, 2026-09-24:**
+
+> "PoeTech App should be Designing repeatable governance systems that help organizations recognize patterns, surface risks, and make better decisions without depending on one person's institutional knowledge."
+
+Held in our voice as the app's statement of purpose (`app/src/lib/purpose.js`, shown on About → Mission and on the OpsBoard):
+
+**PoeTech designs repeatable governance systems that help organizations recognize patterns, surface risks, and make better decisions without depending on one person's institutional knowledge.**
+
+This is what the three roles above produce together. The Governor decides; the Foundation executes; the Advisor advises — and the *product* of that division is a governance system another organization can run without the Governor's memory in the room. Three verbs and one condition measure every governance surface:
+
+1. **Recognize patterns** — the surface shows the pattern from real data, not from someone's recollection (the OpsBoard reads the lane from the repo; the watcher fleet reads the site from outside).
+2. **Surface risks** — the surface says what is wrong before a person has to notice it (probe → readout → actuator → announce, DR-0135).
+3. **Make better decisions** — the surface carries the decision's chain (concern → evidence → impact → decision → outcome) so the next steward can read why, not only what.
+4. **Without depending on one person's institutional knowledge** — if the one who knows how it fits is absent, the surface still works. A surface that only works while he remembers is a memory, not a system.
+
+The Word behind it, verbatim (KJV): "Where no counsel is, the people fall: but in the multitude of counsellors there is safety." (Proverbs 11:14). "And the LORD answered me, and said, Write the vision, and make it plain upon tables, that he may run that readeth it." (Habakkuk 2:2). "For if they fall, the one will lift up his fellow: but woe to him that is alone when he falleth; for he hath not another to help him up." (Ecclesiastes 4:10).
+
+Recorded as **DR-0607**; principle ID **REPEATABLE-GOVERNANCE**. Its first stated instance is `MINISTRY-SUPPORT-PATTERN.md` (2026-07-12), where the software's job was named as making a ministry's carrying "coordinated instead of dependent on one person's memory and phone calls"; this section generalizes that to the whole app.
+
 ## Closing
 
 This document is the role distribution that makes the system safe to delegate to. The Governor is not eliminated; he is freed from typing so he can govern. The Foundation is not autonomous in the absolute sense; it is autonomous within authority granted. Claude is not a decision-maker; Claude is a Cabinet-level advisor.

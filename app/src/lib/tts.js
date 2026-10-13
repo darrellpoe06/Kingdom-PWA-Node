@@ -37,11 +37,14 @@
 // environments degrade gracefully — every public function is null-safe and the
 // hook reports `supported: false` rather than throwing (unbreakable).
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { toSpokenForm } from './speech-text.js';
+import { clauseSegments } from './speech-shape.js';
+import { isTvDocument } from './tv-device.js';
 
 const STORAGE_KEY = 'poe-tts-prefs';
 
 export const MIN_RATE = 0.5;
-export const MAX_RATE = 3.0;
+export const MAX_RATE = 5.0;
 export const DEFAULT_RATE = 1.0;
 export const DEFAULT_PITCH = 1.0;
 
@@ -60,16 +63,45 @@ export const PHONE_DEFAULT_VOICE = '__phone_default__';
 // user-gesture window was lost. We give it a beat, kick it once, and if it is still
 // silent we surface an honest failure instead of leaving a dead, quiet button.
 const START_WATCHDOG_MS = 1400;
+// A TELEVISION IS SLOWER TO FIND ITS VOICE (DR-0874). The watchdog exists so a
+// tap never produces silence with no explanation, and 1400ms is a fair beat on
+// a phone. A Fire TV stick running Amazon's engine can still be in its onset
+// ramp at that point: not yet `speaking`, no `onstart` fired, and nothing
+// wrong. The watchdog then calls _restartCurrent() on a sentence that was
+// about to be said — which is heard as the sentence starting, stopping and
+// beginning again. That is the second half of what Darrell reported: "can't
+// full say the sentences without slowing and pauses unnecessarily."
+//
+// NOT MEASURED ON THE DEVICE — this is reasoned from the code path, not from a
+// Fire TV in the room, and it is written down as such (DR-0076 §8). Doubling
+// the beat on a TV keeps the "never a dead, silent button" guarantee (a real
+// failure is still surfaced inside three seconds) while giving a slow engine
+// room to start. re-review once it can be watched on the device.
+const TV_START_WATCHDOG_MS = 2800;
 
 // Big, plain-language speed steps for non-technical readers — a SLOWER option
 // (the old control had none) plus normal and faster. Slider-free on purpose:
 // large tap targets beat a fiddly 0.1x slider for an elderly reader.
+// THE LADDER GOES TO 5x, AND WHY (Darrell 2026-09-18, reading on both his
+// devices): "Reader speed is different on the laptop vs cellphone... we may
+// need 4.5 or even as high as 5x speed for the laptop... it's slower." The
+// nominal rate is NOT a speed: every engine has its own baseline words per
+// minute, so 2.5x on a desktop voice can be slower than 1.5x on a phone's.
+// Capping at 2.5x therefore capped the LAPTOP below the pace he reads at,
+// while the phone had headroom to spare. The Web Speech spec allows up to 10;
+// 5 is where this house stops, because the ladder is only useful while the
+// words are still words. Each device remembers its own choice (prefs are
+// per-device localStorage), which is the right shape for exactly this: one
+// number cannot mean one speed on two engines.
 export const RATE_STEPS = [
   { value: 0.7, label: '0.7×', name: 'Slower' },
   { value: 1.0, label: '1×',   name: 'Normal' },
   { value: 1.5, label: '1.5×', name: 'Faster' },
   { value: 2.0, label: '2×',   name: 'Fast' },
-  { value: 2.5, label: '2.5×', name: 'Fastest' },
+  { value: 2.5, label: '2.5×', name: 'Faster still' },
+  { value: 3.0, label: '3×',   name: 'Very fast' },
+  { value: 4.0, label: '4×',   name: 'Rapid' },
+  { value: 5.0, label: '5×',   name: 'Fastest' },
 ];
 
 /** Clamp any rate into the supported range. Non-numbers fall back to Normal. */
@@ -86,6 +118,39 @@ export function isTTSSupported(win = (typeof window !== 'undefined' ? window : u
 }
 
 /**
+ * Wait (briefly) for the device voice list to populate. Mobile engines fill
+ * getVoices() a beat after load — a read started inside that window resolves NO
+ * voice and falls to the raw OS default (a top "my voice never worked" cause,
+ * DR-0138). Resolves with the voices found, or [] at the timeout — the caller
+ * proceeds either way, so this can only help, never hang a read. Pure enough to
+ * test with a mock synth.
+ */
+export function waitForVoices(synth, { timeoutMs = 1200, stepMs = 100 } = {}) {
+  return new Promise((resolve) => {
+    let got;
+    try { got = synth.getVoices() || []; } catch (_) { got = []; }
+    if (got.length) { resolve(got); return; }
+    let waited = 0;
+    const timer = setInterval(() => {
+      waited += stepMs;
+      let v;
+      try { v = synth.getVoices() || []; } catch (_) { v = []; }
+      if (v.length || waited >= timeoutMs) { clearInterval(timer); resolve(v); }
+    }, stepMs);
+  });
+}
+
+/**
+ * The BCP-47 language an utterance must carry for a picked device voice to be
+ * honoured. Android reports some voices as "en_US"; the utterance wants
+ * "en-US". Returns '' when there is no voice or no language. Pure.
+ */
+export function utteranceLangFor(voice) {
+  const raw = voice && typeof voice.lang === 'string' ? voice.lang.trim() : '';
+  return raw ? raw.replace(/_/g, '-') : '';
+}
+
+/**
  * Split text into short, sentence-sized segments. Pure + unit-tested. Each
  * segment becomes its own utterance so (a) a rate change can restart the CURRENT
  * segment at the new speed, and (b) we avoid Chrome's long-utterance cutoff and
@@ -93,25 +158,112 @@ export function isTTSSupported(win = (typeof window !== 'undefined' ? window : u
  * is too long. Whitespace is collapsed; empties dropped.
  */
 export function segmentText(text, maxLen = 180) {
-  if (text == null) return [];
-  const clean = String(text).replace(/\s+/g, ' ').trim();
-  if (!clean) return [];
-  // Sentence enders kept with their sentence; fall back to the whole string.
-  const sentences = clean.match(/[^.!?]+[.!?]*/g) || [clean];
-  const out = [];
-  for (const raw of sentences) {
-    const s = raw.trim();
-    if (!s) continue;
-    if (s.length <= maxLen) { out.push(s); continue; }
-    // Long sentence — wrap on word boundaries so no utterance exceeds maxLen.
-    let buf = '';
-    for (const w of s.split(' ')) {
-      if (buf && buf.length + 1 + w.length > maxLen) { out.push(buf); buf = w; }
-      else buf = buf ? `${buf} ${w}` : w;
-    }
-    if (buf) out.push(buf);
+  // CUT WHERE A PERSON BREATHES (DR-0381). This used to split on . ! ? and then
+  // word-wrap anything longer than maxLen at whatever word happened to cross
+  // the limit — a hard stop in the middle of a clause, which is the single most
+  // robotic thing a reader can do, because nobody breathes mid-phrase. Darrell
+  // 2026-09-13: "can we get close to humans when talking or do we still have to
+  // sound like a computer".
+  //
+  // clauseSegments prefers a real boundary (; : , and/but/so/because/which) and
+  // only falls back to the old word wrap when no boundary is in range. Every
+  // segment is still an EXACT SUBSTRING of the normalized text, which
+  // read-follow.js depends on for the follow-along highlight — it locates each
+  // segment with indexOf, so a shaped segment would silently stop highlighting.
+  // Shaping happens later, per-utterance, in toSpokenForm.
+  return clauseSegments(text, maxLen);
+}
+
+// FAST SPEECH IS SPOKEN IN LONGER BREATHS (Darrell 2026-10-07: "the voice
+// mumbles at times when on faster speaking especially"). Each clause segment
+// is its own utterance so a speed change can restart the current one. At
+// normal pace that is right. At 2x and above it is the mumble: a clause of
+// 60 characters lasts about a second, and every utterance costs the engine an
+// onset — Chrome's queue gap, and on Android the first syllable clipped while
+// the engine ramps — so fast speech became a run of swallowed starts. The
+// text was fine; the cuts were too close together for the pace.
+//
+// So at RATE_SPAN_FROM and above, consecutive segments are spoken as ONE
+// utterance, sized so each utterance holds roughly the same seconds of audio
+// as a single segment does at 1x (about SPAN_CHARS_PER_RATE characters per
+// unit of rate), never more than MAX_SPAN_CHARS (clear of Chrome's long-
+// utterance cutoff even at 1.5x) or MAX_SPAN_SEGMENTS. The SEGMENTS do not
+// change — the follow map, the highlight and the paragraph steps still see
+// one sentence each; the engine advances the segment index inside the
+// utterance from the word boundaries the engine fires, and at its end.
+export const RATE_SPAN_FROM = 1.5;
+export const SPAN_CHARS_PER_RATE = 180;
+export const MAX_SPAN_CHARS = 600;
+export const MAX_SPAN_SEGMENTS = 6;
+
+// A TELEVISION PAYS THE ONSET AT EVERY PACE (DR-0874). Darrell 2026-10-10 on
+// the Firestick: "reader is slow... timing seems an issue... takes long pauses
+// in-between sentences.... and can't full say the sentences without slowing
+// and pauses unnecessarily."
+//
+// Same cause as the 2026-10-07 mumble, different trigger. Every clause is its
+// own utterance, and every utterance costs the engine an onset — the queue gap
+// before it speaks. On a phone at 1x that gap is short enough to read as a
+// breath between sentences. A Fire TV is a low-power stick running Amazon's
+// engine, where the same gap is long enough to be a STALL, and it lands
+// between every clause, not every sentence. So the reading limps at the one
+// pace most people use, and the pauses fall in places a person would never
+// breathe.
+//
+// The existing fix already works; it was simply keyed to the wrong thing. It
+// spans consecutive segments into one utterance when the pace makes the cuts
+// too close together — but the cuts are too close together on a TV at ANY
+// pace, because what is slow there is the DEVICE, not the speech. So a TV
+// spans from 1x, with a budget that holds roughly three clauses: long enough
+// that onsets become rare, far enough under MAX_SPAN_CHARS to stay clear of
+// Chrome's long-utterance cutoff. The segments themselves never change — the
+// follow map, the highlight and the paragraph steps still see one sentence
+// each, advanced by the word boundaries inside the utterance.
+// CORRECTED SAME DAY (DR-0879). The first cut of this set a flat 540-character
+// TV budget, and that was wrong in a way worth writing down rather than
+// quietly deleting.
+//
+// The paced budget is not arbitrary and it is not really about characters. At
+// roughly 15 characters of speech per second, `SPAN_CHARS_PER_RATE * rate`
+// chars at `rate` is a CONSTANT ~12 SECONDS OF AUDIO, whatever the pace. That
+// is the whole point: Chrome silently truncates an utterance past about 15
+// seconds (this file's own header names it as one of the two bugs segmenting
+// exists to dodge), so every utterance is sized in TIME and the character
+// count is just how time is expressed.
+//
+// 540 characters at 1x is about THIRTY-SIX SECONDS — three times the budget
+// and well past the cutoff. Darrell, within the hour of that shipping: "Words
+// keep slurring not articulate or even decernable." A truncated utterance is
+// exactly what a listener hears as a sentence degrading.
+//
+// The correct TV change was never a bigger budget. It was only to stop the
+// RATE from gating the behaviour: at 1x the paced budget of 180 characters
+// already holds two typical clauses (~70 chars each), so a television halves
+// its onsets and stays inside the twelve seconds. One gate removed, no number
+// invented.
+export const TV_SPAN_CHARS = 540;   // kept exported only so a stale import cannot throw; unused.
+
+/**
+ * How many consecutive segments from `idx` one utterance should carry at
+ * `rate`. `tv` spans from any rate (a television's onset gap does not care
+ * how fast the voice is set). Always >= 1 while a segment exists at idx. Pure.
+ */
+export function utteranceSpan(segments, idx, rate, { spokenLength = (t) => String(t || '').length, tv = false } = {}) {
+  const list = Array.isArray(segments) ? segments : [];
+  if (idx < 0 || idx >= list.length) return 0;
+  const r = clampRate(rate);
+  if (r < RATE_SPAN_FROM && !tv) return 1;
+  const paced = Math.round(SPAN_CHARS_PER_RATE * r);
+  const budget = Math.min(MAX_SPAN_CHARS, paced);   // TIME, not characters — see above
+  let n = 1;
+  let chars = spokenLength(list[idx]);
+  while (n < MAX_SPAN_SEGMENTS && idx + n < list.length) {
+    const next = spokenLength(list[idx + n]);
+    if (chars + 1 + next > budget) break;
+    chars += 1 + next;
+    n += 1;
   }
-  return out;
+  return n;
 }
 
 /**
@@ -179,14 +331,25 @@ export function saveTTSPrefs(prefs, store = (typeof localStorage !== 'undefined'
  * restarting bumps the token, so the synth's interrupt-driven onend/onerror for
  * a superseded utterance can never auto-advance or double-speak.
  */
-export function createBrowserTTS({ synth, Utterance, onState, prefs } = {}) {
+export function createBrowserTTS({ synth, Utterance, onState, prefs, doc, tv } = {}) {
   const p = prefs || {};
+  const theDoc = doc || (typeof document !== 'undefined' ? document : null);
   const engine = {
     synth,
     Utterance,
+    // Is this a television? markTvDevice() has already answered at boot and
+    // written it on <html>, so this reads the same answer the CSS and the
+    // remote's navigation read — one question, one place (DR-0657). Injectable
+    // so the span behaviour is testable without a Fire TV in the room.
+    tv: typeof tv === 'boolean' ? tv : isTvDocument(theDoc),
+    // The document is injected so the BACKGROUND KEEP-PLAYING watchdog below is
+    // testable without a browser. Absent → the watchdog simply never arms.
+    doc: theDoc,
     onState: typeof onState === 'function' ? onState : () => {},
     segments: [],
     idx: 0,
+    // Follow-along word-boundary listener (settable; default no-op).
+    onBoundary: () => {},
     rate: clampRate(p.rate),
     pitch: Number.isFinite(Number(p.pitch)) ? Number(p.pitch) : DEFAULT_PITCH,
     voice: null,
@@ -198,11 +361,97 @@ export function createBrowserTTS({ synth, Utterance, onState, prefs } = {}) {
     _retried: false, // we've already kicked-and-retried a silent start this playback
     _watch: null,    // start-watchdog timer id
 
+    _bgTimer: null,   // background keep-playing ticker
+    _bgVis: null,     // the visibilitychange listener while reading
+    _bgStalls: 0,     // consecutive hidden ticks with no audio at all
+    _wasHidden: false, // the page has been hidden since the last foreground recovery
+
     _clearWatch() {
       if (this._watch != null && typeof clearTimeout === 'function') {
         try { clearTimeout(this._watch); } catch (_) { /* ignore */ }
       }
       this._watch = null;
+    },
+
+    // -----------------------------------------------------------------------
+    // BACKGROUND KEEP-PLAYING (Darrell 2026-08-10: "let the reader continue
+    // after leaving the app... so I can hear the Word"). Two things stop a
+    // backgrounded read, and this answers the second of them:
+    //   1. the page being frozen for lack of an audio session — answered by
+    //      lib/background-audio.js (a silent looping element held while reading);
+    //   2. Chrome PAUSING the synth itself when the document hides — answered
+    //      here: while the document is hidden and the user has NOT paused, tick
+    //      the synth back to playing. Two consecutive silent ticks (no speaking,
+    //      nothing pending) means the utterance was dropped rather than paused,
+    //      so the CURRENT segment is re-spoken — the generation token makes that
+    //      safe, and re-speaking one sentence is the honest worst case.
+    // A user pause is never overridden: every path is gated on status ===
+    // 'playing'.
+    // -----------------------------------------------------------------------
+    _kickBackground() {
+      if (this.status !== 'playing') return;
+      if (!this.doc || this.doc.hidden !== true) { this._bgStalls = 0; return; }
+      this._wasHidden = true; // remember we went off-screen — recover on return
+      let paused = false; let speaking = false; let pending = false;
+      try { paused = !!this.synth.paused; speaking = !!this.synth.speaking; pending = !!this.synth.pending; } catch (_) { /* ignore */ }
+      if (paused) { try { this.synth.resume(); } catch (_) { /* ignore */ } }
+      if (speaking || pending) { this._bgStalls = 0; return; }
+      this._bgStalls += 1;
+      if (this._bgStalls >= 2) { this._bgStalls = 0; this._restartCurrent(); }
+    },
+
+    // -----------------------------------------------------------------------
+    // RETURN FROM BACKGROUND (Darrell 2026-08-29: "the lessons lose their place
+    // and start from the beginning when the cellphone screen goes off"). Android
+    // suspends the SPEECH ENGINE while the screen is off even with the silent
+    // audio session holding the page alive, so a device-voice segment gets
+    // dropped. Coming back on-screen, if we are still 'playing' but nothing is
+    // producing audio, re-speak the CURRENT segment — position held, never the
+    // top. Only across a real hidden->visible transition (via visibilitychange),
+    // so the steady-state ticker still never touches a VISIBLE read. A user
+    // pause is never overridden (gated on status === 'playing').
+    // -----------------------------------------------------------------------
+    _recoverForeground() {
+      if (this.status !== 'playing') return;
+      if (this.doc && this.doc.hidden === true) return; // not actually visible yet
+      const wasHidden = this._wasHidden;
+      this._wasHidden = false;
+      this._bgStalls = 0;
+      if (!wasHidden) return; // only recover across an off-screen -> on-screen return
+      let speaking = false; let pending = false;
+      try { speaking = !!this.synth.speaking; pending = !!this.synth.pending; } catch (_) { /* ignore */ }
+      if (speaking || pending) return; // audio survived — leave it alone
+      try { if (typeof this.synth.resume === 'function') this.synth.resume(); } catch (_) { /* ignore */ }
+      this._restartCurrent(); // resume from the held segment, not the beginning
+    },
+
+    _armBackground() {
+      if (this._bgTimer != null || !this.doc) return;
+      this._bgStalls = 0;
+      this._wasHidden = this.doc.hidden === true;
+      if (typeof this.doc.addEventListener === 'function') {
+        this._bgVis = () => {
+          if (this.doc && this.doc.hidden === true) this._kickBackground();
+          else this._recoverForeground();
+        };
+        try { this.doc.addEventListener('visibilitychange', this._bgVis); } catch (_) { this._bgVis = null; }
+      }
+      if (typeof setInterval === 'function') {
+        this._bgTimer = setInterval(() => this._kickBackground(), 2000);
+      }
+    },
+
+    _disarmBackground() {
+      if (this._bgTimer != null && typeof clearInterval === 'function') {
+        try { clearInterval(this._bgTimer); } catch (_) { /* ignore */ }
+      }
+      this._bgTimer = null;
+      if (this._bgVis && this.doc && typeof this.doc.removeEventListener === 'function') {
+        try { this.doc.removeEventListener('visibilitychange', this._bgVis); } catch (_) { /* ignore */ }
+      }
+      this._bgVis = null;
+      this._bgStalls = 0;
+      this._wasHidden = false;
     },
 
     _emit() {
@@ -222,10 +471,41 @@ export function createBrowserTTS({ synth, Utterance, onState, prefs } = {}) {
       this._clearWatch();
       const seg = this.segments[this.idx];
       if (seg == null) { this._finish(); return; }
-      const u = new this.Utterance(seg);
+      // SPOKEN FORM, not written form: "2 Timothy" is said "2nd Timothy" (see
+      // lib/speech-text.js). The SEGMENT stays the written text — the follow
+      // map, the highlight and every offset are computed from it — and only the
+      // utterance handed to the voice carries the ordinal.
+      //
+      // LONGER BREATHS AT SPEED (utteranceSpan above): at a fast rate one
+      // utterance carries several segments. `offsets[k]` is where segment
+      // idx+k begins inside the utterance text, so a word boundary can be
+      // placed in its segment and the highlight keeps stepping sentence by
+      // sentence while the voice no longer stops between them.
+      const first = this.idx;
+      const spokenParts = [];
+      const span = utteranceSpan(this.segments, first, this.rate, { spokenLength: (t) => toSpokenForm(t).length, tv: this.tv });
+      for (let k = 0; k < span; k += 1) spokenParts.push(toSpokenForm(this.segments[first + k]));
+      const offsets = [];
+      let at = 0;
+      for (const part of spokenParts) { offsets.push(at); at += part.length + 1; }
+      const segmentAt = (charIndex) => {
+        let k = 0;
+        for (let i = 1; i < offsets.length; i += 1) { if (charIndex >= offsets[i]) k = i; else break; }
+        return k;
+      };
+      const u = new this.Utterance(spokenParts.join(' '));
       u.rate = clampRate(this.rate);
       u.pitch = this.pitch;
       if (this.voice) u.voice = this.voice;
+      // THE LANGUAGE CARRIES THE PICK ON ANDROID (Darrell 2026-09-25: "I did
+      // it didn't work!!!!!"). Chrome on Android chooses the engine voice from
+      // the utterance's LANGUAGE, and `lang` was never set here, so the
+      // utterance inherited the page's English and every pick ("English United
+      // Kingdom", "English India"...) spoke in the one default voice. Setting
+      // both is what every engine honours; desktop engines already obeyed
+      // `voice` alone and are unchanged by this.
+      const lang = utteranceLangFor(this.voice);
+      if (lang) u.lang = lang;
       this._started = false;
       u.onstart = () => {
         if (gen !== this._gen) return;
@@ -236,9 +516,26 @@ export function createBrowserTTS({ synth, Utterance, onState, prefs } = {}) {
       u.onend = () => {
         if (gen !== this._gen) return;            // superseded — ignore
         this._clearWatch();
-        this.idx += 1;
+        this.idx = first + span;
         if (this.status === 'playing' && this.idx < this.segments.length) this._speakSegment();
         else if (this.idx >= this.segments.length) this._finish();
+      };
+      // WORD boundaries (follow-along, DR-0264): where the device's engine fires
+      // them, report (segmentIndex, charIndex-within-segment) so a caller can
+      // karaoke-highlight the exact word. Many mobile engines never fire these —
+      // the per-SEGMENT highlight via onState is the guaranteed floor, this is
+      // the enhancement. Never throws into the synth's callback.
+      u.onboundary = (e) => {
+        if (gen !== this._gen) return;
+        if (e && e.name && e.name !== 'word') return;
+        const charIndex = (e && e.charIndex) || 0;
+        // Inside a multi-segment utterance the boundary says which sentence
+        // the voice has reached: the segment index moves there (and the
+        // listeners hear it through onState), exactly as an utterance end
+        // used to move it.
+        const k = span > 1 ? segmentAt(charIndex) : 0;
+        if (first + k !== this.idx) { this.idx = first + k; this._emit(); }
+        try { this.onBoundary(this.idx, charIndex - (offsets[k] || 0), (e && e.charLength) || 0); } catch (_) { /* listener's problem, never playback's */ }
       };
       u.onerror = (e) => {
         if (gen !== this._gen) return;
@@ -264,14 +561,36 @@ export function createBrowserTTS({ synth, Utterance, onState, prefs } = {}) {
       // fired AND the synth is not actually speaking after a beat, the tap produced
       // no audio (mobile suspended-synth / voices-not-ready / lost gesture). Kick
       // once via resume()+re-speak; if it is STILL silent, surface a real failure so
-      // the UI can tell the user instead of sitting quiet. Gated on a synth that
-      // exposes `speaking` so the simple unit-test fakes are unaffected.
-      if (typeof setTimeout === 'function' && this.synth && ('speaking' in this.synth)) {
+      // the UI can tell the user instead of sitting quiet.
+      //
+      // THE GUARD USED TO READ `&& ('speaking' in this.synth)`, ADDED SO THAT
+      // "the simple unit-test fakes are unaffected" — and that convenience
+      // silently disabled this entire safety net on any real engine that does
+      // not expose `speaking`. Darrell, on a Fire TV, 2026-09-20: "Not reading
+      // yet... even though it says so." The panel read READING... KEEPS GOING
+      // while nothing played, for as long as he cared to watch: status stayed
+      // 'playing', the watchdog never armed, `failed` never flipped, and the
+      // notice that would have explained it was never computed. A surface
+      // lying about its own state is the one thing this repo exists to prevent
+      // (DR-0076), and it was a test affordance that put it there.
+      //
+      // The watchdog now always arms. `speaking` is used when the engine has
+      // it — a true reading with no onstart event must not be called a failure
+      // — but its ABSENCE no longer buys silence, because `_started` is the
+      // real evidence and every engine reports that or doesn't.
+      if (typeof setTimeout === 'function' && this.synth) {
         this._watch = setTimeout(() => {
           if (gen !== this._gen || this.status !== 'playing' || this._started) return;
           let isSpeaking = false;
           try { isSpeaking = !!this.synth.speaking; } catch (_) { /* ignore */ }
           if (isSpeaking) return; // it did start; we just never got an onstart event
+          // OFF-SCREEN is not a failure. While the page is hidden the OS suspends
+          // the synth, so a silent start is expected — never declare failure and
+          // never reset the position here (that was the "lost its place and
+          // started over when the screen went off" bug, Darrell 2026-08-29). Hold
+          // the current segment; the ticker retries while hidden and
+          // _recoverForeground re-speaks it on return.
+          if (this.doc && this.doc.hidden === true) { this._clearWatch(); return; }
           if (!this._retried) {
             this._retried = true;
             try { if (typeof this.synth.resume === 'function') this.synth.resume(); } catch (_) { /* ignore */ }
@@ -284,7 +603,7 @@ export function createBrowserTTS({ synth, Utterance, onState, prefs } = {}) {
           this.status = 'idle';
           this.idx = 0;
           this._emit();
-        }, START_WATCHDOG_MS);
+        }, this.tv ? TV_START_WATCHDOG_MS : START_WATCHDOG_MS);
       }
       this._emit();
     },
@@ -298,6 +617,7 @@ export function createBrowserTTS({ synth, Utterance, onState, prefs } = {}) {
 
     _finish() {
       this._clearWatch();
+      this._disarmBackground();
       this.status = 'idle';
       this.idx = 0;
       this._dirty = false;
@@ -331,34 +651,60 @@ export function createBrowserTTS({ synth, Utterance, onState, prefs } = {}) {
       this._dirty = false;
       this.failed = false;
       this._retried = false;
+      this._armBackground();
       this._speakSegment();
     },
 
+    // -----------------------------------------------------------------------
+    // PAUSE / CONTINUE — ours, not the platform's (Darrell 2026-08-10: "the
+    // pause and continue doesn't work"). Root cause: on Android the browser's
+    // speechSynthesis.pause() is not honored — the voice talks straight through
+    // it, and a later resume() on a synth that was never really paused does
+    // nothing. Trusting the platform here is the bug.
+    //
+    // So we hold our own place instead. Pause CANCELS (the one command every
+    // engine honors) and remembers the current SENTENCE; continue re-speaks
+    // from that sentence. The cost is honest and small: continuing restarts the
+    // sentence you were in — segments are one sentence each — and in exchange
+    // pause/continue behaves identically on every device, a rate or voice
+    // change made while paused is simply heard when you continue, and there is
+    // no way to end up in Chrome's stuck-paused state (the classic "it paused
+    // and never spoke again").
+    // -----------------------------------------------------------------------
     pause() {
       if (this.status !== 'playing') return;
       this._clearWatch();
-      try { this.synth.pause(); } catch (_) { /* ignore */ }
+      this._gen += 1; // the in-flight utterance's onend/onerror must not advance us
+      try { this.synth.cancel(); } catch (_) { /* ignore */ }
       this.status = 'paused';
+      this._dirty = false; // continuing always re-speaks, so nothing is stale
       this._emit();
     },
 
     resume() {
       if (this.status !== 'paused') return;
       this.status = 'playing';
-      if (this._dirty) {
-        // A rate/voice change landed while paused — re-speak the current segment
-        // so the new setting is heard (native resume can't change rate, and mobile
-        // resume is unreliable anyway).
-        this._dirty = false;
-        this._restartCurrent();
-      } else {
-        try { this.synth.resume(); } catch (_) { /* ignore */ }
-        this._emit();
-      }
+      this._dirty = false;
+      this._retried = false;
+      // Un-suspend first: a synth parked by the OS (backgrounding, a prior
+      // cancel) accepts speak() and stays silent until it is resumed.
+      try { if (typeof this.synth.resume === 'function') this.synth.resume(); } catch (_) { /* ignore */ }
+      this._armBackground();
+      this._speakSegment();
     },
 
     stop() {
-      try { this.synth.cancel(); } catch (_) { /* ignore */ }
+      // ONLY SILENCE WHAT THIS ENGINE IS SAYING (Darrell 2026-09-24: "Leaving
+      // a tab should not make the player stop playing... It is like a radio
+      // in the background"). speechSynthesis is ONE object for the whole page,
+      // and several surfaces hold their own engine (a lesson's quiz, the
+      // lesson teacher, a study). Each stops its engine when it unmounts — and
+      // this line used to cancel UNCONDITIONALLY, so leaving the Learn tab
+      // unmounted an idle quiz engine whose stop() silenced the reader's
+      // voice mid-sentence. An engine that is idle has nothing to cancel.
+      if (this.status !== 'idle') {
+        try { this.synth.cancel(); } catch (_) { /* ignore */ }
+      }
       this._gen += 1; // invalidate any pending callbacks
       this._finish();
     },
@@ -406,6 +752,7 @@ export function useTextToSpeech() {
       Utterance: window.SpeechSynthesisUtterance,
       onState: setState,
       prefs,
+      doc: typeof document !== 'undefined' ? document : null,
     });
   }
 
@@ -440,8 +787,18 @@ export function useTextToSpeech() {
 
   // Once voices exist, resolve the active voice: saved choice, else most natural.
   // Persist a first-run natural pick so the choice is stable across sessions.
+  //
+  // NEVER MID-READING (DR-0654, Darrell 2026-09-25: "the voices change on
+  // their own at times... female to male etc.. different female voices").
+  // Android fires voiceschanged more than once, and each refresh set the
+  // engine's voice back to the saved default. A reading is speaking in the
+  // voice speak() handed it (a man's stand-in, a pinned voice), and setVoice()
+  // restarts the current sentence, so every refresh restarted the sentence in
+  // a different voice. A reading keeps its voice; the default is resolved
+  // again only while nothing is being read.
   useEffect(() => {
     if (!supported || !engineRef.current || !voices.length) return;
+    if (engineRef.current.status !== 'idle') return;
     const chosen = pickDefaultVoice(voices, prefs.voiceURI);
     engineRef.current.setVoice(chosen);
     if (prefs.voiceURI == null && chosen) {
@@ -462,7 +819,11 @@ export function useTextToSpeech() {
   // this is how a gendered stand-in (a male system voice for a male person, a
   // different voice per person) is honored per-play without clobbering the user's
   // chosen browser-voice pref. Passing voiceURI null/'' forces the device default.
-  const speak = useCallback((text, voiceURI) => {
+  // speak(text, voiceURI, pitch) additionally speaks at a per-read PITCH — the
+  // prosody diversifier for devices whose voice list is one-female-voice-only
+  // (DR-0145 follow-through: a man reads low, two people read distinct, on ANY
+  // device). Transient: the next pitch-less speak reverts to the saved pref.
+  const speak = useCallback((text, voiceURI, pitch) => {
     const eng = engineRef.current;
     if (!eng) return;
     if (voiceURI !== undefined) {
@@ -475,9 +836,12 @@ export function useTextToSpeech() {
         : ((window.speechSynthesis.getVoices() || []).find((x) => x.voiceURI === voiceURI) || null);
       eng.setVoice(v); // transient — does not touch saved prefs
     }
+    eng.pitch = Number.isFinite(Number(pitch))
+      ? Number(pitch)
+      : (Number.isFinite(Number(prefs.pitch)) ? Number(prefs.pitch) : DEFAULT_PITCH);
     eng.load(text);
     eng.play();
-  }, []);
+  }, [prefs.pitch]);
 
   const pause = useCallback(() => { engineRef.current && engineRef.current.pause(); }, []);
   const resume = useCallback(() => { engineRef.current && engineRef.current.resume(); }, []);
@@ -488,6 +852,22 @@ export function useTextToSpeech() {
     if (!eng) return;
     eng.setRate(r);
     setPrefs((prev) => { const next = { ...prev, rate: clampRate(r) }; saveTTSPrefs(next); return next; });
+  }, []);
+
+  // PITCH, THE SAME WAY AS RATE (DR-0801). The engine has always carried a
+  // pitch and applied it to the live utterance; nothing exposed a way to set
+  // one, so the saved pref could never change. Darrell: "different pitches...
+  // to get a unique voice that has the right sound for each individual."
+  const setPitch = useCallback((pitch) => {
+    const eng = engineRef.current;
+    if (!eng) return;
+    eng.setPitch(pitch);
+    setPrefs((prev) => {
+      const n = Number(pitch);
+      const next = { ...prev, pitch: Number.isFinite(n) ? n : DEFAULT_PITCH };
+      saveTTSPrefs(next);
+      return next;
+    });
   }, []);
 
   const setVoiceURI = useCallback((uri) => {
@@ -514,6 +894,11 @@ export function useTextToSpeech() {
     // -> sentence without the engine handing back the text).
     segmentIndex: state.segmentIndex || 0,
     segmentCount: state.segmentCount || 0,
-    speak, pause, resume, stop, setRate, setVoiceURI,
+    pitch: prefs.pitch,
+    speak, pause, resume, stop, setRate, setPitch, setVoiceURI,
+    // Register the follow-along word-boundary listener (cb(segmentIndex,
+    // charIndex, charLength)); pass null to clear. Boundary support varies by
+    // device engine — the segmentIndex state above is the guaranteed floor.
+    setBoundaryHandler: (cb) => { if (engineRef.current) engineRef.current.onBoundary = typeof cb === 'function' ? cb : () => {}; },
   };
 }

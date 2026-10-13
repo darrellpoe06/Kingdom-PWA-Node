@@ -34,6 +34,8 @@
 // localStorage alone, sync resumes when the user signs back in.
 // =============================================================================
 import supabase from './supabase.js';
+import { withUploadRetry } from './upload-retry.js';
+import { markSynced, markSyncFailed, registerResync } from './sync-freshness.js';
 
 // -----------------------------------------------------------------------------
 // createDebouncer — coalesce a burst of calls into a single trailing run.
@@ -95,6 +97,43 @@ export async function getInstanceId() {
   return getTenantId();
 }
 
+// The OFFICE instance id (0193, DR-0351): the caller's therapy-practice
+// membership, or null when they have none — the TLC seams (assignments, the
+// launch board) write office rows here, never to the family instance that
+// getInstanceId() resolves. Never joins or creates anything.
+export async function getOfficeInstanceId() {
+  const { data, error } = await supabase.rpc('my_office_instance_role');
+  if (error) throw error;
+  return (data && data.instance_id) || null;
+}
+
+// THE DOORS' OWN INSTANCE (0207, DR-0365; the fix is DR-0743). On 2026-09-14
+// every rental and the tables that hang off it moved from `poe-family` into the
+// landlord instance `poe-properties`, and the resolver for it is
+// my_properties_instance_role(). The family app kept reading rentals through
+// getInstanceId(), which is the FAMILY instance, so Real Estate showed
+// "Properties · 0" over 13 real doors (Darrell, 2026-10-01: "Properties?!!!!!";
+// measured on the live database: rentals 13 rows, all under the landlord
+// instance). A door sync resolves the landlord membership first and falls back
+// to the family instance only for a person who has no landlord seat, so a
+// household that never moved its doors keeps working unchanged. Never joins or
+// creates anything.
+export async function getPropertiesInstanceId() {
+  const { data, error } = await supabase.rpc('my_properties_instance_role');
+  if (error) throw error;
+  return (data && data.instance_id) || null;
+}
+
+export async function getDoorsInstanceId() {
+  try {
+    const id = await getPropertiesInstanceId();
+    if (id) return id;
+  } catch (e) {
+    console.warn('[table-sync] landlord instance lookup failed; reading the family instance:', e);
+  }
+  return getTenantId();
+}
+
 export function createTableSync(spec) {
   const {
     localKey,
@@ -102,6 +141,63 @@ export function createTableSync(spec) {
     toRow,
     fromRow,
     idOf = (item) => item?.id,
+    // APPEND-ONLY tables refresh by DELTA, not by re-downloading the table.
+    //
+    // WHY THIS EXISTS (2026-08-14, the egress outage). record_events is the
+    // audit log: one row per change to ANY tracked record, 20,129 rows / 15 MB,
+    // with fat before/after JSON blobs (largest single row 1.18 MB). subscribe()
+    // called fetchAll() on EVERY realtime change, so ten inventory edits meant
+    // ten full 15 MB re-downloads on every connected device. 5 GB of free-tier
+    // egress is ~340 of those refetches, and the project was hard-restricted
+    // with `exceed_egress_quota` -- every account across all four apps locked
+    // out for 3.5 days (last successful sign-in 2026-08-11 03:04 UTC, measured).
+    //
+    // Worse, the pagination directly above was added to fix TRUNCATION at 1,000
+    // rows, which turned a capped 1,000-row pull into a guaranteed 20,129-row
+    // one. The correctness fix made the egress bill strictly worse, and nothing
+    // measured egress, so it was invisible until the service was cut off.
+    //
+    // Safe ONLY where the merge is a UNION (see mergeRemoteRecordEvents ->
+    // unionPreservingLocal): the refresh then hands the consumer just the new
+    // rows and the union folds them in. A consumer that REPLACES its list would
+    // lose history, so this is opt-in per table and never a default.
+    appendOnly = false,
+    // MUTABLE tables refresh by WATERMARK on updated_at (2026-08-14, the second
+    // half of the same egress work; the plan corrected by Gemini's review then
+    // corrected again by measurement). transactions is 2,953 rows / 3.4 MB with
+    // 17,374 lifetime writes — every one of which re-downloaded the whole
+    // ledger. appendOnly is UNSOUND there (rows update; deletes happen), so:
+    //
+    //   * upserts ride `updated_at > watermark` (migration 0136 backfills the
+    //     1,978 NULL updated_at rows and adds the touch trigger — measured 67%
+    //     of the ledger was invisible to a watermark before that);
+    //   * deletions are reconciled from record_events (record_kind=eventsKind,
+    //     action='delete'), whose record_id carries the LOCAL id (measured);
+    //     no soft-delete column, so the ledger's semantics and RLS are untouched;
+    //   * the controller keeps a by-id cache and ALWAYS hands the consumer the
+    //     FULL list, so the consumer contract is unchanged — a partial list to
+    //     a replace-style consumer is how history gets lost (DR-0305's rule).
+    //
+    // Cheaper never means less correct: any failed leg falls back to fetchAll,
+    // a partial full read never advances the watermark, and before the first
+    // full load there is no delta at all.
+    mutableDelta = false,
+    // record_events.record_kind used for deletion reconciliation ('transaction').
+    eventsKind = null,
+    // conflictKey — comma-separated columns of a UNIQUE index (e.g.
+    // 'instance_id,slug'). When set, upsert() can heal a write whose local row
+    // never linked to the cloud: it resolves the existing row by these columns
+    // and UPDATEs it, or INSERTs when none exists. Left null, upsert() is a
+    // plain insert. RESOLVE-then-write, deliberately NOT PostgREST ON CONFLICT:
+    // rentals' unique index is PARTIAL (WHERE slug IS NOT NULL), which the
+    // on_conflict arbiter cannot target — a resolve+update sidesteps that and
+    // is exact.
+    conflictKey = null,
+    // instanceId — the resolver for the instance this table's rows live in.
+    // Every read, write, delete and the realtime channel go through it, so one
+    // table cannot read one instance and write another. The default is the
+    // family instance; a door sync passes getDoorsInstanceId (DR-0743).
+    instanceId = getTenantId,
   } = spec;
 
   async function upload(item) {
@@ -109,22 +205,71 @@ export function createTableSync(spec) {
     if (!session) return { skipped: 'signed-out' };
     let tenantId;
     try {
-      tenantId = await getTenantId();
+      tenantId = await instanceId();
     } catch (e) {
       console.warn(`[table-sync:${remoteTable}] tenant lookup failed:`, e);
       return { skipped: 'no-tenant', error: e };
     }
     const row = toRow(item, { tenantId, userId: session.user.id });
-    const { data, error } = await supabase
-      .from(remoteTable)
-      .insert(row)
-      .select()
-      .single();
+    // Retry TRANSIENT failures (rate-limit / network blip / timeout) so a burst of
+    // inserts — a reset-and-re-import fires hundreds at once — no longer silently
+    // drops a row that hit a momentary error (Christina's books, 2026-07-18).
+    // Permanent errors (unique/RLS/validation) stop immediately; a retry can't fix
+    // them. INSERT stays idempotent-safe: a permanent unique_violation is NOT
+    // retried, so a re-import can't double-write.
+    const { data, error } = await withUploadRetry(() =>
+      supabase.from(remoteTable).insert(row).select().single());
     if (error) {
-      console.warn(`[table-sync:${remoteTable}] upload failed:`, error);
+      console.warn(`[table-sync:${remoteTable}] upload failed (after retries):`, error);
       return { skipped: 'insert-error', error };
     }
     return { uploaded: true, remoteId: data.id, row: data };
+  }
+
+  // upsert(item) — write a row that MAY already exist in the cloud under the
+  // conflictKey (e.g. a family member edits a door whose row another device
+  // created, or whose local copy never linked). Resolves by the conflict
+  // columns and UPDATEs the existing row, else INSERTs. This is the self-heal
+  // path: an edit to a never-linked row no longer silently vanishes. No-op to a
+  // plain insert when the table declares no conflictKey.
+  async function upsert(item) {
+    if (!conflictKey) return upload(item);
+    const session = await currentSession();
+    if (!session) return { skipped: 'signed-out' };
+    let tenantId;
+    try {
+      tenantId = await instanceId();
+    } catch (e) {
+      console.warn(`[table-sync:${remoteTable}] tenant lookup failed:`, e);
+      return { skipped: 'no-tenant', error: e };
+    }
+    const row = toRow(item, { tenantId, userId: session.user.id });
+    const cols = conflictKey.split(',').map((c) => c.trim()).filter(Boolean);
+    let q = supabase.from(remoteTable).select('id');
+    for (const c of cols) q = q.eq(c, row[c]);
+    const { data: found, error: selErr } = await q.limit(1).maybeSingle();
+    if (selErr) {
+      console.warn(`[table-sync:${remoteTable}] upsert resolve failed:`, selErr);
+      return { skipped: 'resolve-error', error: selErr };
+    }
+    if (found && found.id) {
+      const { error } = await supabase
+        .from(remoteTable)
+        .update({ ...row, updated_at: new Date().toISOString() })
+        .eq('id', found.id);
+      if (error) {
+        console.warn(`[table-sync:${remoteTable}] upsert update failed:`, error);
+        return { skipped: 'update-error', error };
+      }
+      return { upserted: true, updated: true, remoteId: found.id };
+    }
+    const { data, error } = await withUploadRetry(() =>
+      supabase.from(remoteTable).insert(row).select().single());
+    if (error) {
+      console.warn(`[table-sync:${remoteTable}] upsert insert failed:`, error);
+      return { skipped: 'insert-error', error };
+    }
+    return { upserted: true, inserted: true, remoteId: data.id, row: data };
   }
 
   async function updateRow(id, patch) {
@@ -142,15 +287,49 @@ export function createTableSync(spec) {
     return { updated: true };
   }
 
+  // deleteRows(ids) — BATCH delete, chunked + awaited. The books dedupe removes
+  // THOUSANDS of rows at once; firing that many single deleteRow() calls floods the
+  // browser's ~6-connection-per-origin cap and the PostgREST rate limit, so most
+  // silently never land and the cloud stays doubled ("removed" on screen but back on
+  // refresh, Darrell 2026-07-19). One `.in()` delete per CHUNK ids (sequential, so it
+  // never floods) reliably clears them. Returns the count actually deleted (via
+  // .select) so a partial/RLS-blocked result is visible, not a false success (DR-0076).
+  async function deleteRows(ids) {
+    const session = await currentSession();
+    if (!session) return { skipped: 'signed-out', deleted: 0 };
+    const list = [...new Set((ids || []).filter(Boolean))];
+    if (!list.length) return { deleted: 0 };
+    const CHUNK = 200;
+    let deleted = 0;
+    for (let i = 0; i < list.length; i += CHUNK) {
+      const chunk = list.slice(i, i + CHUNK);
+      const { data, error } = await supabase.from(remoteTable).delete().in('id', chunk).select('id');
+      if (error) { console.warn(`[table-sync:${remoteTable}] batch delete failed:`, error); continue; }
+      deleted += Array.isArray(data) ? data.length : 0;
+    }
+    return { deleted, requested: list.length };
+  }
+
   async function deleteRow(id) {
     const session = await currentSession();
     if (!session) return { skipped: 'signed-out' };
-    const { error } = await supabase.from(remoteTable).delete().eq('id', id);
+    // Ask for the deleted rows back (.select) so a 0-row delete is DETECTED rather
+    // than reported as a false success. A DELETE the RLS USING clause blocks — a
+    // non-owner on the books (0100: DELETE is owner/admin only), or a row on
+    // another instance — returns NO error but removes NOTHING. That silent no-op is
+    // exactly what let cleared transactions resurrect on the next cloud merge
+    // (Darrell 2026-07-19). Honest result so the caller can surface it (DR-0076).
+    const { data, error } = await supabase.from(remoteTable).delete().eq('id', id).select('id');
     if (error) {
       console.warn(`[table-sync:${remoteTable}] delete failed:`, error);
       return { skipped: 'delete-error', error };
     }
-    return { deleted: true };
+    const affected = Array.isArray(data) ? data.length : 0;
+    if (affected === 0) {
+      console.warn(`[table-sync:${remoteTable}] delete removed 0 rows (RLS-blocked or already gone):`, id);
+      return { skipped: 'no-op', affected: 0 };
+    }
+    return { deleted: true, affected };
   }
 
   // 2026-06-12 fix (review finding): reads used to rely on RLS alone, which
@@ -162,7 +341,7 @@ export function createTableSync(spec) {
   // doesn't change mid-session.
   let cachedTenantId = null;
   async function tenantIdCached() {
-    if (!cachedTenantId) cachedTenantId = await getTenantId();
+    if (!cachedTenantId) cachedTenantId = await instanceId();
     return cachedTenantId;
   }
 
@@ -172,6 +351,7 @@ export function createTableSync(spec) {
       tenantId = await tenantIdCached();
     } catch (e) {
       console.warn(`[table-sync:${remoteTable}] tenant lookup failed:`, e);
+      markSyncFailed(remoteTable, 'tenant-lookup');
       return null;
     }
     // PAGINATE. Supabase/PostgREST caps a single response at 1,000 rows, so a
@@ -195,32 +375,240 @@ export function createTableSync(spec) {
       if (error) {
         console.warn(`[table-sync:${remoteTable}] fetch failed at offset ${from}:`, error);
         // Keep what already paged in rather than dropping the whole ledger.
+        // A PARTIAL read must not advance the watermark: doing so would make
+        // the next delta start past rows this read never returned, and the gap
+        // would be permanent and silent. For mutableDelta it must also CLEAR
+        // the watermark: the cache is about to hold a partial picture, and the
+        // only safe next refresh is another full read, not a delta on top of
+        // a hole.
+        updatedWatermark = null;
+        markSyncFailed(remoteTable, from === 0 ? 'read-failed' : 'partial-read');
         return from === 0 ? null : rows.map(fromRow);
       }
       const batch = data || [];
       rows.push(...batch);
       if (batch.length < PAGE) break;
     }
+    advanceWatermark(rows);
+    advanceUpdatedWatermark(rows);
+    // The database answered every page: this device now holds the whole table.
+    markSynced(remoteTable, { rows: rows.length, mode: 'full' });
     return rows.map(fromRow);
+  }
+
+  // The high-water mark for an append-only table: the newest created_at this
+  // controller has seen. Null until the first successful full load, and any
+  // refresh before that falls back to fetchAll — never to "fetch nothing".
+  let watermark = null;
+
+  function advanceWatermark(rawRows) {
+    for (const r of rawRows || []) {
+      const t = r && r.created_at;
+      if (t && (!watermark || t > watermark)) watermark = t;
+    }
+  }
+
+  // Only rows written since the watermark. Same page loop and same stable total
+  // order as fetchAll, so a burst landing in one millisecond cannot be skipped.
+  // `.gt` (not `.gte`) because the watermark row is already held locally.
+  async function fetchSince(since) {
+    let tenantId;
+    try {
+      tenantId = await tenantIdCached();
+    } catch (e) {
+      console.warn(`[table-sync:${remoteTable}] tenant lookup failed:`, e);
+      return null;
+    }
+    const PAGE = 1000;
+    const raw = [];
+    for (let from = 0; from < 200000; from += PAGE) {
+      const { data, error } = await supabase
+        .from(remoteTable)
+        .select('*')
+        .eq('instance_id', tenantId)
+        .gt('created_at', since)
+        .order('created_at', { ascending: true })
+        .order('id', { ascending: true })
+        .range(from, from + PAGE - 1);
+      if (error) {
+        console.warn(`[table-sync:${remoteTable}] delta fetch failed at offset ${from}:`, error);
+        // A failed delta must not look like "nothing new" — fall back to the
+        // full read so a dropped page can never silently lose history.
+        return null;
+      }
+      const batch = data || [];
+      raw.push(...batch);
+      if (batch.length < PAGE) break;
+    }
+    advanceWatermark(raw);
+    return raw.map(fromRow);
+  }
+
+  // ── mutableDelta: watermark on updated_at + deletes from record_events ─────
+  // The by-id cache. The consumer's contract is a FULL list on every callback;
+  // the cache is what lets the fetch be delta-sized while the callback stays
+  // whole. Keyed by the LOCAL id (idOf after fromRow) because record_events
+  // .record_id carries the local id (measured against production deletes).
+  const cache = new Map();
+
+  function cacheReplaceAll(items) {
+    cache.clear();
+    for (const it of items || []) { const k = idOf(it); if (k != null) cache.set(k, it); }
+  }
+
+  // updated_at watermark for mutableDelta (the created_at one above serves
+  // appendOnly; they advance on different columns and never mix).
+  let updatedWatermark = null;
+  function advanceUpdatedWatermark(rawRows) {
+    for (const r of rawRows || []) {
+      const t = r && r.updated_at;
+      if (t && (!updatedWatermark || t > updatedWatermark)) updatedWatermark = t;
+    }
+  }
+
+  // Rows MODIFIED since the watermark — inserts and edits both, because the
+  // 0136 trigger touches updated_at on INSERT OR UPDATE. Same stable total
+  // order and page loop as fetchAll; `.gt` because the watermark row is held.
+  async function fetchChangedSince(since) {
+    let tenantId;
+    try { tenantId = await tenantIdCached(); } catch (e) {
+      console.warn(`[table-sync:${remoteTable}] tenant lookup failed:`, e);
+      return null;
+    }
+    const PAGE = 1000;
+    const raw = [];
+    for (let from = 0; from < 200000; from += PAGE) {
+      const { data, error } = await supabase
+        .from(remoteTable)
+        .select('*')
+        .eq('instance_id', tenantId)
+        .gt('updated_at', since)
+        .order('updated_at', { ascending: true })
+        .order('id', { ascending: true })
+        .range(from, from + PAGE - 1);
+      if (error) {
+        console.warn(`[table-sync:${remoteTable}] watermark delta failed at offset ${from}:`, error);
+        return null; // a failed delta must never read as "nothing changed"
+      }
+      const batch = data || [];
+      raw.push(...batch);
+      if (batch.length < PAGE) break;
+    }
+    advanceUpdatedWatermark(raw);
+    return raw.map(fromRow);
+  }
+
+  // Local ids deleted since the watermark, read from the audit log. No
+  // soft-delete column: record_events already records every books delete
+  // (18,502 of them measured), so the ledger's own semantics and RLS stay
+  // untouched. A delete bumps no transactions row, so this window re-reads
+  // until an upsert advances the watermark — idempotent removals, small rows.
+  async function fetchDeletedIdsSince(since) {
+    if (!eventsKind) return [];
+    let tenantId;
+    try { tenantId = await tenantIdCached(); } catch (_e) { return null; }
+    const { data, error } = await supabase
+      .from('record_events')
+      .select('record_id')
+      .eq('instance_id', tenantId)
+      .eq('record_kind', eventsKind)
+      .eq('action', 'delete')
+      .gt('occurred_at', since)
+      .order('occurred_at', { ascending: true })
+      .range(0, 999);
+    if (error) {
+      console.warn(`[table-sync:${remoteTable}] delete reconciliation failed:`, error);
+      return null; // fall back to the full read rather than resurrect deleted rows
+    }
+    return (data || []).map((r) => r.record_id).filter(Boolean);
   }
 
   function subscribe(onRemote) {
     let channel = null;
     let cancelled = false;
     const refresh = () => {
-      fetchAll().then((refreshed) => {
-        if (refreshed && !cancelled) onRemote(refreshed);
+      if (mutableDelta && updatedWatermark) {
+        // Both legs must succeed; either failing falls back to the full read.
+        Promise.all([
+          fetchChangedSince(updatedWatermark),
+          fetchDeletedIdsSince(updatedWatermark),
+        ]).then(async ([upserts, deletedIds]) => {
+          if (cancelled) return;
+          if (upserts === null || deletedIds === null) {
+            const full = await fetchAll();
+            if (!full || cancelled) return;
+            cacheReplaceAll(full);
+            onRemote(full);
+            return;
+          }
+          // Both legs answered: the cache now matches the database as of now.
+          markSynced(remoteTable, { rows: cache.size, mode: 'delta' });
+          if (upserts.length === 0 && deletedIds.length === 0) return; // quiet
+          for (const it of upserts) { const k = idOf(it); if (k != null) cache.set(k, it); }
+          for (const id of deletedIds) cache.delete(id);
+          onRemote([...cache.values()]);
+        });
+        return;
+      }
+      // Append-only: ask for the delta. On any failure, or before the first
+      // full load has set a watermark, fall back to the whole table — cheaper
+      // is never allowed to mean less correct.
+      const pull = (appendOnly && watermark)
+        ? fetchSince(watermark).then((d) => (d === null ? fetchAll() : d))
+        : fetchAll();
+      pull.then((refreshed) => {
+        if (!refreshed || cancelled) return;
+        // A delta of zero rows is the common case once the log is quiet; there
+        // is nothing for the consumer to merge, so do not churn its state.
+        if (appendOnly && watermark && refreshed.length === 0) return;
+        onRemote(refreshed);
       });
     };
     // A4: coalesce a burst of realtime changes (incl. own writes) into one
     // refetch. A5: state for the reconnect-resync decision.
     const debouncedRefresh = createDebouncer(refresh, 400);
     const statusState = { everSubscribed: false };
+
+    // "Sync now": a FULL re-read on request (Books -> Imported's button). Full,
+    // not delta, so a device that doubts its picture gets the whole table.
+    const resyncNow = async () => {
+      const full = await fetchAll();
+      if (!full || cancelled) return;
+      if (mutableDelta) cacheReplaceAll(full);
+      onRemote(full);
+    };
+    const unregisterResync = registerResync(remoteTable, resyncNow);
+
+    // BACK TO THE FRONT, RE-READ (2026-09-30, DR-0708). Realtime is the fast
+    // path, but a screen must not depend on it alone: on the NAS the ledger was
+    // never in the realtime publication, and a desktop that loaded before
+    // Christina's import showed 75 fewer September rows for as long as it
+    // stayed open. For delta-capable tables (a cheap `updated_at > watermark`
+    // read), coming back to the screen or back online re-reads. Event-driven,
+    // no timer; at most once per 30 s so a flurry of focus events is one read.
+    let lastFrontRead = Date.now(); // the initial full read below is the first one
+    const onFront = () => {
+      if (cancelled || !(mutableDelta || appendOnly)) return;
+      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+      const now = Date.now();
+      if (now - lastFrontRead < 30000) return;
+      lastFrontRead = now;
+      refresh();
+    };
+    const hasWindow = typeof window !== 'undefined' && typeof window.addEventListener === 'function';
+    if (hasWindow && (mutableDelta || appendOnly)) {
+      window.addEventListener('focus', onFront);
+      window.addEventListener('online', onFront);
+      if (typeof document !== 'undefined') document.addEventListener('visibilitychange', onFront);
+    }
     (async () => {
       const session = await currentSession();
       if (!session || cancelled) return;
       const initial = await fetchAll();
-      if (initial) onRemote(initial);
+      if (initial) {
+        if (mutableDelta) cacheReplaceAll(initial);
+        onRemote(initial);
+      }
       let tenantId = null;
       try { tenantId = await tenantIdCached(); } catch (_) { /* filter below stays broad; fetchAll still scopes */ }
       if (cancelled) return;
@@ -239,10 +627,21 @@ export function createTableSync(spec) {
           // while it was down — catch up with a fresh fetch.
           if (shouldResyncOnStatus(status, statusState) && !cancelled) refresh();
         });
-    })();
+    // Nothing awaits this IIFE, so anything it throws would surface as an
+    // UNHANDLED REJECTION rather than a handled failure — noise in CI and, in
+    // the browser, an error the surface never asked for. Sync is best-effort by
+    // contract (local-first; the courier is optional), so a failure here is
+    // logged and the surface keeps working on its device-local records.
+    })().catch((e) => { console.warn(`[table-sync] ${remoteTable} subscribe failed:`, e); });
     return function unsubscribe() {
       cancelled = true;
       debouncedRefresh.cancel();
+      unregisterResync();
+      if (hasWindow && (mutableDelta || appendOnly)) {
+        window.removeEventListener('focus', onFront);
+        window.removeEventListener('online', onFront);
+        if (typeof document !== 'undefined') document.removeEventListener('visibilitychange', onFront);
+      }
       if (channel) supabase.removeChannel(channel);
     };
   }
@@ -258,6 +657,15 @@ export function createTableSync(spec) {
     // for entities that haven't been uploaded yet (local ids are non-UUID).
     const remoteIds = new Set(remoteItems.map((r) => r.id));
     const toUpload = (localItems || []).filter((local) => {
+      // 2026-07-19 RESURRECTION FIX (the cloud half). A row that was SYNCED
+      // (carries a remoteUuid) but is now ABSENT from the cloud was DELETED
+      // remotely — it must NOT be re-uploaded, or a delete resurrects itself in
+      // the cloud on the next sign-in. This is the second half of the "duplicates
+      // leave and come back" fix: on a storage-full device the stale localStorage
+      // still holds the deleted rows, and without this guard initialSync re-INSERTED
+      // them (their old slug was freed by the delete, so the unique index didn't
+      // stop it). Only genuinely-new local rows (no remoteUuid) are ever uploaded.
+      if (local && local.remoteUuid) return false;
       const lid = idOf(local);
       return !lid || !remoteIds.has(lid);
     });
@@ -280,7 +688,7 @@ export function createTableSync(spec) {
     return { merged: [...base, ...preserved], uploadFailures: failedUploads.length };
   }
 
-  return { localKey, remoteTable, upload, updateRow, deleteRow, subscribe, initialSync };
+  return { localKey, remoteTable, upload, upsert, updateRow, deleteRow, deleteRows, fetchAll, subscribe, initialSync };
 }
 
 // -----------------------------------------------------------------------------
@@ -299,6 +707,12 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
 export function unionPreservingLocal(currentLocal, remoteItems, idOf = (item) => item?.id) {
   const remote = remoteItems || [];
+  // SAFETY (Darrell 2026-07-19, post-incident): an EMPTY cloud list is NOT proof the
+  // rows were deleted — a read on an out-of-space device can hiccup to empty. Without
+  // this, the "drop UUID rows absent from remote" rule below would BLANK every synced
+  // table at once (all Books tabs went empty + the app wedged). No authoritative
+  // update from an empty read: keep the current rows and wait for a real sync.
+  if (!remote.length) return currentLocal || [];
   const remoteIds = new Set(remote.map((r) => idOf(r)));
   const keep = (currentLocal || []).filter((l) => {
     const lid = idOf(l);

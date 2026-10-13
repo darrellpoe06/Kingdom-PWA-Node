@@ -31,12 +31,16 @@ PLATFORM = "youtube"
 #                     videos while gaps remain, so a scheduler surfaces the stall
 #                     instead of it hanging silently.
 #
-# THREE BRAKES (CLAUDE.md autonomous-automation rule): (1) --max budget; (2) a
-# single-instance lock file (a second run SKIPS); (3) a kill-switch: after 3
-# consecutive all-blocked runs the loader writes out/.transcripts-paused and
-# refuses to run until a human deletes it -- a scheduled task can never grind
-# against a blocked IP unattended. Ships MANUAL/inactive -- arm the DSM
-# schedule only with someone watching. No autostart in this file.
+# BRAKES (CLAUDE.md autonomous-automation rule, as amended by DR-0248 for the
+# deterministic class): (1) --max budget; (2) a single-instance lock file (a
+# second run SKIPS); plus (3) a TIME-DECAYED BACKOFF -- after 3 consecutive
+# all-blocked runs the loader pauses, then resumes ITSELF after
+# PAUSE_DECAY_SECONDS, so a scheduled task never grinds against a blocked IP AND
+# never stops forever waiting on a hand. This is deliberately not a kill-switch:
+# DR-0248 removed the manual override from this class, and the 2026-08-05 ways
+# review proved the old human-cleared pause had no reachable clear path at all.
+# ARMED BY RECORD (DR-0247): the trickle rides the services-sync clock via
+# transcript_trickle_install.sh; merging its manifest entry IS its start.
 #
 # TRICKLE MODE (Darrell 2026-07-03, after YouTube IP-blocked the NAS at ~50
 # fetches in one burst): a small daily budget at randomized times, sized to
@@ -59,6 +63,7 @@ PLATFORM = "youtube"
 #   python load-transcripts.py --slug colg --dry-run         # fetch, print coverage, write nothing
 # =============================================================================
 import argparse
+import calendar
 import json
 import os
 import random
@@ -75,6 +80,15 @@ PAUSE_FLAG = os.path.join(_OUT_DIR, ".transcripts-paused")
 BLOCKED_RUNS = os.path.join(_OUT_DIR, ".transcripts-blocked-runs")
 DEFAULT_SECRETS = "/volume1/PoeTech/secrets/supabase.json"
 
+# YouTube can take a couple of days (longer for long services) to finish
+# generating a video's auto-captions. A "no captions" result on a video newer
+# than this window is TRANSIENT -- the track is still processing -- so we retry it
+# later instead of burning a durable no-caption verdict on a fresh upload
+# (Darrell 2026-07-06: "there's not closed captions for that video yet... takes a
+# couple days for YouTube to process them"). Older than this, a no-caption result
+# is a real verdict about the video -> Whisper-on-NAS fallback.
+CAPTION_GRACE_DAYS = 4
+
 # Exception class names that are durable verdicts about the video itself
 # (mirrors transcript-backfill-ci.py; verified against youtube-transcript-api's
 # _errors module). Everything else -- RequestBlocked, IpBlocked, network
@@ -90,6 +104,67 @@ VERDICT_ERRORS = (
 def is_verdict(err):
     """True when a stored/new error string is a durable no-caption verdict."""
     return bool(err) and err.split(":", 1)[0].strip() in VERDICT_ERRORS
+
+
+def coverage(state, worklist):
+    """(with_text, verdicts, owed) over the worklist, from an existing_state map.
+
+    OWED means no text AND no durable no-caption verdict: the only videos a
+    caption fetch can still advance. A verdict is ANSWERED (the video has no
+    captions; it is Whisper's queue, not the trickle's), so it is never owed.
+    Counting verdicts as owed is the 2026-10-01 defect (DR-0723): 756/876 with
+    all 120 remaining being verdicts read as "120 still owe a transcript" and
+    "STALL: 0 videos advanced", every fire, while the drain was finished. It
+    matches harvest-health.yml's own owed = total - transcribed - verdicts.
+    """
+    with_text = verdicts = owed = 0
+    for vid in worklist:
+        st = state.get(vid) or {}
+        if st.get("has_text"):
+            with_text += 1
+        elif st.get("has_verdict"):
+            verdicts += 1
+        else:
+            owed += 1
+    return with_text, verdicts, owed
+
+
+def run_outcome(fetched, no_caption, blocked, pending, owed, refetch=False):
+    """What a finished run means, as one word the exit code follows.
+
+    'blocked' -- every attempt was refused (an IP block): exit 3, backoff.
+    'stall'   -- nothing attempted while videos are still OWED: exit 3. This is
+                 a real fault (the worklist and the state disagree).
+    'drained' -- nothing attempted and nothing owed: the caption drain is done;
+                 the rest are answered verdicts. Healthy, exit 0.
+    'ok'      -- the run did work. Exit 0.
+    """
+    attempted = fetched + no_caption + blocked + pending
+    if blocked > 0 and (fetched + no_caption + pending) == 0:
+        return "blocked"
+    if attempted == 0:
+        if owed > 0 and not refetch:
+            return "stall"
+        return "drained"
+    return "ok"
+
+
+def within_caption_grace(service_date, now_ms=None, grace_days=CAPTION_GRACE_DAYS):
+    """True when a video is new enough that a missing caption track most likely
+    just means YouTube has not finished processing it yet (retry later) rather
+    than a durable no-caption verdict. `service_date` is 'YYYY-MM-DD' (from
+    choir_sermons) or None. An unknown/unparseable date returns False -- treat it
+    as old, i.e. let the verdict stand -- the conservative default that never
+    leaves a genuinely caption-less old video looping forever. `now_ms` is epoch
+    SECONDS (injected in tests; defaults to time.time())."""
+    if not service_date:
+        return False
+    try:
+        vid_epoch = calendar.timegm(time.strptime(str(service_date)[:10], "%Y-%m-%d"))
+    except (ValueError, TypeError):
+        return False
+    now = now_ms if now_ms is not None else time.time()
+    return (now - vid_epoch) < grace_days * 86400
 
 
 def build_api(YouTubeTranscriptApi):
@@ -124,20 +199,12 @@ def log(msg):
 # --- secrets ----------------------------------------------------------------
 
 def load_secrets(path):
-    url = os.environ.get("SUPABASE_URL")
-    key = os.environ.get("SUPABASE_SERVICE_KEY")
-    if url and key:
-        return url.rstrip("/"), key
-    if path and os.path.exists(path):
-        with open(path, "r", encoding="utf-8") as fh:
-            d = json.load(fh)
-        url = (d.get("url") or "").rstrip("/")
-        key = d.get("service_key") or d.get("service_role_key")
-        if url and key:
-            return url, key
-    log("ERROR: no Supabase credentials. Set SUPABASE_URL + SUPABASE_SERVICE_KEY, "
-        f"or provide {path} as {{\"url\":..., \"service_key\":...}}.")
-    sys.exit(2)
+    # DR-0442: the writers follow the repoint record. The shared resolver picks
+    # env -> the sovereign door (REPOINT-ARMED + this box's own supabase .env)
+    # -> the secrets file, and says which one to stderr. Same (url, key) shape.
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "nas-supabase"))
+    from sovereign_target import load_target
+    return load_target(path)
 
 
 # --- REST helpers (service role, RLS-exempt) --------------------------------
@@ -157,6 +224,29 @@ def rest(url, key, method, path, body=None, extra_headers=None):
     return json.loads(raw) if raw.strip() else None
 
 
+# PostgREST caps an unbounded GET at its server default (1000 rows) and returns
+# the truncation SILENTLY -- no error, just a short list. The corpus passed 858
+# videos on 2026-08-03 and grows every service, so an unpaged read was days away
+# from a permanent phantom gap: a truncated existing_state makes already-loaded
+# videos look unloaded, so every run would re-fetch the same head of the list and
+# burn its whole --max budget without ever reaching the real gaps. Page until a
+# short page proves the end (DR-0076: measure, never assume the read was whole).
+# Callers MUST pass a stable total order or paging can drop/duplicate rows.
+PAGE = 500
+
+
+def rest_all(url, key, path):
+    out = []
+    offset = 0
+    while True:
+        sep = "&" if "?" in path else "?"
+        page = rest(url, key, "GET", f"{path}{sep}limit={PAGE}&offset={offset}") or []
+        out.extend(page)
+        if len(page) < PAGE:
+            return out
+        offset += PAGE
+
+
 def resolve_instance(url, key, slug):
     rows = rest(url, key, "GET", "instances?select=id&slug=eq." + urllib.parse.quote(slug))
     if not rows:
@@ -172,8 +262,9 @@ def existing_state(url, key, instance_id):
     A row holding a transient error (RequestBlocked etc., recorded before the
     verdict/transient split) reads as neither -> it gets retried this run.
     """
-    rows = rest(url, key, "GET",
-                "video_transcripts?select=video_id,words,error&instance_id=eq." + instance_id) or []
+    rows = rest_all(url, key,
+                    "video_transcripts?select=video_id,words,error&instance_id=eq." + instance_id
+                    + "&order=video_id.asc")
     out = {}
     for r in rows:
         out[r["video_id"]] = {"has_text": (r.get("words") or 0) > 0,
@@ -192,10 +283,16 @@ def upsert_transcript(url, key, instance_id, vid, record, dry_run):
 
 
 def video_ids_from_cloud(url, key, instance_id):
-    rows = rest(url, key, "GET",
-                "choir_sermons?select=video_id&instance_id=eq." + instance_id
-                + "&video_id=not.is.null&order=service_date.desc") or []
-    return [r["video_id"] for r in rows if r.get("video_id")]
+    """Return [(video_id, service_date)] newest-first. service_date drives the
+    caption-grace check -- a brand-new upload's missing captions are transient."""
+    # video_id is the tiebreaker so the total order is STABLE across pages --
+    # service_date alone ties (several services share a date, ~700 shared NULL
+    # before the 2026-08-04 drain), and an unstable sort silently drops or
+    # duplicates rows at every page boundary.
+    rows = rest_all(url, key,
+                    "choir_sermons?select=video_id,service_date&instance_id=eq." + instance_id
+                    + "&video_id=not.is.null&order=service_date.desc,video_id.asc")
+    return [(r["video_id"], r.get("service_date")) for r in rows if r.get("video_id")]
 
 
 # --- id sources -------------------------------------------------------------
@@ -263,9 +360,40 @@ def release_lock():
         pass
 
 
-# Kill-switch (brake 3): 3 consecutive all-blocked runs -> auto-pause. A
-# scheduled task must never grind against a blocked IP unattended; a human
-# deletes the flag to resume once the block has cleared.
+# BACKOFF (not a kill-switch): 3 consecutive all-blocked runs -> pause, so a
+# scheduled task never grinds against a blocked IP. The pause is TIME-DECAYED and
+# clears ITSELF after PAUSE_DECAY_SECONDS -- deliberately NOT a human-cleared
+# switch (DR-0248 removed the manual override from the deterministic class; the
+# 2026-08-05 ways review found the documented clear path, the app's
+# resume-transcripts ops job, routed through ops-runner.py, which is installed by
+# NOTHING -- so a pause would have stopped the drain permanently and silently,
+# re-creating the very stall this lane exists to end). A human CAN still delete
+# the flag early; nothing REQUIRES them to.
+PAUSE_DECAY_SECONDS = 24 * 3600
+
+
+def pause_active():
+    """True only while a recorded pause is still inside its decay window.
+
+    An expired pause is REMOVED here, so the very next fire runs -- the drain
+    resumes on its own clock with no hand and no queue.
+    """
+    if not os.path.exists(PAUSE_FLAG):
+        return False
+    try:
+        age = time.time() - os.path.getmtime(PAUSE_FLAG)
+    except OSError:
+        return False
+    if age < PAUSE_DECAY_SECONDS:
+        return True
+    try:
+        os.remove(PAUSE_FLAG)
+        log(f"Backoff expired after {int(age) // 3600}h -- resuming on this fire.")
+    except OSError:
+        return True
+    clear_blocked_runs()
+    return False
+
 
 def _consecutive_blocked():
     try:
@@ -284,8 +412,8 @@ def record_blocked_run():
     if n >= 3:
         with open(PAUSE_FLAG, "w", encoding="utf-8") as fh:
             fh.write(f"auto-paused after {n} consecutive all-blocked runs\n")
-        log(f"KILL-SWITCH: {n} consecutive all-blocked runs -> auto-paused.")
-        log(f"To resume once the block clears: rm {PAUSE_FLAG}")
+        log(f"BACKOFF: {n} consecutive all-blocked runs -> pausing for "
+            f"{PAUSE_DECAY_SECONDS // 3600}h, then resuming automatically.")
 
 
 def clear_blocked_runs():
@@ -305,6 +433,10 @@ def main():
     ap.add_argument("--channel", help="YouTube channel_id (UC...) -- recent uploads via RSS")
     ap.add_argument("--max", type=int, default=25, help="cap videos fetched THIS run (budget brake; 0 = no cap)")
     ap.add_argument("--refetch", action="store_true", help="re-fetch ids already loaded")
+    ap.add_argument("--caption-grace-days", type=int, default=CAPTION_GRACE_DAYS,
+                    help="a no-caption result on a video newer than this many days is treated "
+                         "as transient (YouTube still processing the captions), not a durable "
+                         f"verdict; such a video is retried on a later run (default {CAPTION_GRACE_DAYS})")
     ap.add_argument("--dry-run", action="store_true", help="fetch + report, write nothing")
     ap.add_argument("--secrets", default=DEFAULT_SECRETS, help="path to Supabase secrets JSON")
     ap.add_argument("--sleep-min", type=float, default=1.0,
@@ -318,10 +450,12 @@ def main():
                          "stale threshold)")
     args = ap.parse_args()
 
-    # Kill-switch gate: refuse to run while auto-paused (see record_blocked_run).
-    if os.path.exists(PAUSE_FLAG):
-        log(f"PAUSED: {PAUSE_FLAG} exists (kill-switch: repeated all-blocked runs).")
-        log(f"Once the IP block has cleared, resume with: rm {PAUSE_FLAG}")
+    # Backoff gate (see record_blocked_run). SELF-CLEARING by design: the pause
+    # decays after PAUSE_DECAY_SECONDS and the next fire proceeds on its own.
+    if pause_active():
+        left = int(PAUSE_DECAY_SECONDS - (time.time() - os.path.getmtime(PAUSE_FLAG)))
+        log(f"BACKOFF: paused after repeated all-blocked runs; auto-resumes in ~{max(left, 0) // 3600}h "
+            f"({PAUSE_FLAG}). Nothing to clear by hand.")
         sys.exit(4)
 
     try:
@@ -334,6 +468,7 @@ def main():
     instance_id = resolve_instance(url, key, args.slug)
 
     # Assemble the id worklist (explicit sources first, else the cloud corpus).
+    svc_date = {}  # video_id -> service_date (cloud), drives the caption-grace check
     ids = []
     if args.ids:
         ids += [s.strip() for s in args.ids.split(",") if s.strip()]
@@ -342,7 +477,9 @@ def main():
     if args.channel:
         ids += channel_video_ids(args.channel)
     if not ids:
-        ids = video_ids_from_cloud(url, key, instance_id)
+        for _vid, _sd in video_ids_from_cloud(url, key, instance_id):
+            ids.append(_vid)
+            svc_date[_vid] = _sd
     seen, ordered = set(), []
     for v in ids:
         if v not in seen:
@@ -361,14 +498,21 @@ def main():
 
         state = existing_state(url, key, instance_id)
         api = build_api(YouTubeTranscriptApi)
-        fetched = no_caption = blocked = skipped = 0
+        fetched = no_caption = blocked = pending = skipped = 0
         total = len(ordered)
         for i, vid in enumerate(ordered, 1):
             prior = state.get(vid)
-            if prior and not args.refetch and (prior["has_text"] or prior["has_verdict"]):
+            recent = within_caption_grace(svc_date.get(vid), grace_days=args.caption_grace_days)
+            # A recorded no-caption VERDICT counts as resolved -- UNLESS the video
+            # is still inside the caption-processing window, where that verdict may
+            # be premature (YouTube had not generated captions yet). Re-fetching a
+            # recent, verdict-marked video is how a mistaken early verdict SELF-HEALS
+            # once the captions land (no manual cleanup needed).
+            resolved = prior and (prior["has_text"] or (prior["has_verdict"] and not recent))
+            if resolved and not args.refetch:
                 skipped += 1
                 continue
-            if args.max and (fetched + no_caption + blocked) >= args.max:
+            if args.max and (fetched + no_caption + blocked + pending) >= args.max:
                 log(f"--max {args.max} reached; stopping (re-run to continue).")
                 break
             log(f"[{i}/{total}] fetching captions for {vid} ...")
@@ -379,6 +523,13 @@ def main():
                                    "lang": "en", "error": None}, args.dry_run)
                 fetched += 1
                 log(f"    ok  {words} words -> video_transcripts")
+            elif is_verdict(err) and recent:
+                # No caption track YET, but the upload is new enough that YouTube is
+                # very likely still processing it (Darrell 2026-07-06). Treat like a
+                # transient miss: write NOTHING so a later run retries once captions
+                # land -- never burn a durable verdict on a fresh upload.
+                pending += 1
+                log(f"    PENDING ({err}) -> uploaded < {args.caption_grace_days}d ago; captions still processing, will retry")
             elif is_verdict(err):
                 upsert_transcript(url, key, instance_id, vid,
                                   {"text": "", "words": 0, "source": "youtube-asr",
@@ -396,25 +547,34 @@ def main():
             if args.sleep_max > 0:
                 time.sleep(random.uniform(max(args.sleep_min, 0), max(args.sleep_max, args.sleep_min)))
 
-        # STALL-GUARD: coverage after this run. Non-zero exit if we advanced 0 while
-        # gaps remain, so a scheduler flags the stall instead of it hanging silent.
+        # STALL-GUARD: coverage after this run. Non-zero exit only for a REAL
+        # stall (videos still owed and nothing attempted) or an all-blocked run.
         after = existing_state(url, key, instance_id) if not args.dry_run else state
-        with_text = sum(1 for v in after.values() if v.get("has_text"))
-        gaps = total - with_text
+        with_text, verdicts, owed = coverage(after, ordered)
         log("")
         log(f"This run: {fetched} fetched, {no_caption} no-caption verdicts, "
-            f"{blocked} blocked (will retry), {skipped} already resolved.")
-        log(f"Coverage: {with_text}/{total} videos transcribed ({gaps} still owe a transcript).")
+            f"{pending} pending (too new; will retry), {blocked} blocked (will retry), "
+            f"{skipped} already resolved.")
+        log(f"Coverage: {with_text}/{total} videos transcribed; {verdicts} have no captions "
+            f"(answered, Whisper's queue); {owed} still owe a caption fetch.")
         if fetched > 0:
-            clear_blocked_runs()  # real progress resets the kill-switch counter
-        if blocked > 0 and fetched == 0:
+            clear_blocked_runs()  # real progress resets the backoff counter
+        outcome = run_outcome(fetched, no_caption, blocked, pending, owed, args.refetch)
+        # Only trip the IP-block backoff when EVERY attempt was refused -- a run
+        # that got any real answer (a fetch, a verdict, or a still-processing
+        # pending) proves the IP is reaching YouTube.
+        if outcome == "blocked":
             log(f"BLOCKED: all {blocked} attempts were rejected (YouTube is blocking this IP). Nothing advanced.")
             if not args.dry_run:
                 record_blocked_run()
             sys.exit(3)
-        if fetched == 0 and no_caption == 0 and gaps > 0 and not args.refetch:
-            log("STALL: 0 videos advanced while gaps remain. Check credentials / caption availability.")
+        if outcome == "stall":
+            log(f"STALL: 0 videos attempted while {owed} still owe a caption fetch. "
+                "Check credentials / caption availability.")
             sys.exit(3)
+        if outcome == "drained":
+            log(f"DRAINED: every video is transcribed or answered; nothing owes a caption fetch. "
+                f"The {verdicts} without captions wait on Whisper, not on this trickle.")
         if fetched > 0:
             log("Done. The served Harvest ledger derives these transcripts live -- the % climbs.")
     finally:

@@ -23,6 +23,7 @@
 // =============================================================================
 
 import { SEED_CONCERNS } from './concerns.js';
+import { concernChain } from './decision-intelligence.js';
 
 function isoDay(v) {
   if (!v) return '';
@@ -104,8 +105,11 @@ export function deriveAppDecisions({ discussions = [], concerns = [], seeds = SE
       decision: 'Concern marked resolved',
       rationale: c.solution || '(no resolution note recorded)',
       date: isoDay(c.targetDate || c.created),
-      owner: '',
+      owner: c.owner || '',
       source: `concern resolution · ${c.area || 'general'}`,
+      // Concern → Evidence → Impact → Decision → Outcome from the row's own
+      // columns (0228); an empty column reads as not recorded (DR-0589).
+      chain: concernChain(c),
     });
   }
 

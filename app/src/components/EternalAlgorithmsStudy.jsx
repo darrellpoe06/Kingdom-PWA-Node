@@ -19,10 +19,13 @@
 // =============================================================================
 import React, { useEffect, useMemo, useState } from 'react';
 import { SectionTitle } from './shared.jsx';
+import SectionTabs from './SectionTabs.jsx';
 import HelpButton from './HelpButton.jsx';
 import UiIcon from './UiIcon.jsx';
 import { kjvText, readOnline } from '../lib/scriptures.js';
 import { verseText as fullKjvVerse } from '../lib/bible-kjv.js';
+import { useTextToSpeech } from '../lib/tts.js';
+import { buildTutorScript, toSpeech } from '../lib/voice-tutor.js';
 import {
   SERIES, listStudies, getStudy, AXES,
   studyToGameCards, algorithmsToGameCards, scoreRound,
@@ -30,8 +33,19 @@ import {
 } from '../lib/eternal-algorithms-studies.js';
 import { withStudyDeck } from '../lib/games/generations.js';
 import { fetchPublishedAlgorithms } from '../lib/eternal-algorithms-sync.js';
-import { GODHEAD_ALGORITHMS, godheadBySection, godheadVerse, godheadToGameCards, BOOK_MASTERPIECES, booksInCatalog, algorithmsForBook } from '../lib/godhead-study.js';
+import { GODHEAD_ALGORITHMS, godheadBySection, godheadVerse, godheadToGameCards, BOOK_MASTERPIECES, booksInCatalog, algorithmsForBook, JUDGMENT_COVENANT_REVIEW, covenantAlgorithms } from '../lib/godhead-study.js';
 import { WITNESS_SOURCES, WITNESS_TAGLINE, witnessVerse, witnessScienceOnly } from '../lib/third-witness.js';
+import { witnessCopyBlock, lessonUrl, lessonSharePayload } from '../lib/lesson-links.js';
+import { newShareToken } from '../lib/lesson-share.js';
+import { recordLessonShare } from '../lib/lesson-share-record.js';
+import { HEALTHY_LIVING_CARE_NOTE, HEALTHY_LIVING_META } from '../lib/healthy-living-course.js';
+import CopyButton from './CopyButton.jsx';
+import ShareButton from './ShareButton.jsx';
+
+import TorahPatternMap from './TorahPatternMap.jsx';
+import WordInline from './WordInline.jsx';
+import ShowTheWordToggle from './ShowTheWordToggle.jsx';
+import { useOpenWithTheWord } from '../lib/show-the-word.js';
 
 const serif = { fontFamily: '"Fraunces", serif' };
 const mono = { fontFamily: '"JetBrains Mono", monospace' };
@@ -81,22 +95,22 @@ export function Verse({ refStr, translationCited = 'ESV' }) {
 // One teaching section: plain layer first, the deeper layer + extra anchors one
 // click beneath (the two-tier self-explain motion).
 function Section({ section }) {
-  const [deep, setDeep] = useState(false);
+  const [deep, toggleDeep] = useOpenWithTheWord();
   const extra = (section.anchors || []).filter((a) => a.ref !== section.primaryRef);
   return (
     <div className={CARD}>
       <h4 className="text-[#1A1815] mb-1" style={{ ...serif, fontWeight: 600 }}>{section.heading}</h4>
-      <p className="text-sm text-[#1A1815] leading-relaxed" style={serif}>{section.plain}</p>
+      <WordInline text={section.plain} className="text-sm text-[#1A1815] leading-relaxed" style={serif} />
       {section.primaryRef && <Verse refStr={section.primaryRef} translationCited={(section.anchors?.[0]?.translation) || 'ESV'} />}
       {/* Full-width tap target (Darrell 2026-07-04: reachable by a right thumb,
           not just the left link) — the text stays small + left so it looks the same. */}
-      <button type="button" onClick={() => setDeep((v) => !v)} aria-expanded={deep}
+      <button type="button" onClick={toggleDeep} aria-expanded={deep}
         className="w-full text-left mt-1.5 py-1.5 text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:bg-[#FAF8F4] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">
         {deep ? '↑ Close' : '↓ Go deeper'}
       </button>
       {deep && (
         <div className="mt-1.5 border-l-2 border-[#1A1815] pl-3 pr-1 py-1">
-          <p className="text-sm text-[#1A1815] leading-relaxed" style={serif}>{section.deep}</p>
+          <WordInline text={section.deep} className="text-sm text-[#1A1815] leading-relaxed" style={serif} />
           {extra.map((a) => <Verse key={a.ref} refStr={a.ref} translationCited={a.translation || 'ESV'} />)}
           {section.citation && (
             <p className="text-[0.6875rem] text-[#5A5751] mt-1" style={serif}>
@@ -110,6 +124,46 @@ function Section({ section }) {
 }
 
 // -----------------------------------------------------------------------------
+// TeachAloud — HEAR the whole study taught, section by section, for members who
+// do better listening than reading (COMMUNITY-FIRST accessibility; the
+// PhysicsWallah voice-tutor pattern applied to the Word). Reuses the ONE app
+// read-aloud engine (tts.js) and the pure, tested study->script transform
+// (voice-tutor.js). The verse resolver is the SYNCHRONOUS curated KJV
+// (kjvText) — the same text the on-screen Verse shows instantly; an
+// un-curated ref speaks "open your Bible", never a fabricated verse (DR-0076).
+// Hidden entirely on devices without speech support (unbreakable, honest).
+// -----------------------------------------------------------------------------
+function TeachAloud({ study }) {
+  const tts = useTextToSpeech();
+  const speech = useMemo(
+    () => toSpeech(buildTutorScript(study, { resolveVerse: kjvText })),
+    [study],
+  );
+  if (!tts.supported) return null;
+  const reading = tts.isReading;
+  return (
+    <div className="bg-[#FAF8F4] border border-[#E8E4DC] p-2 mt-2 flex flex-wrap items-center gap-2">
+      <button type="button"
+        onClick={() => (reading ? tts.stop() : tts.speak(speech))}
+        aria-pressed={reading}
+        className={`${BTN} bg-[#1A1815] text-white hover:bg-[#3A3630]`}>
+        {reading ? '■ Stop' : '▶ Teach me aloud'}
+      </button>
+      <span className="text-[0.6875rem] text-[#5A5751]" style={serif}>
+        Hear this study taught — the teaching and the Word, read to you.
+      </span>
+      <span role="status" aria-live="polite" className="text-[0.625rem] text-[#5A6E3D] w-full">
+        {tts.failed
+          ? 'Tap "Teach me aloud" again — your device paused the sound.'
+          : reading && tts.segmentCount
+            ? `Reading ${tts.segmentIndex + 1} of ${tts.segmentCount}…`
+            : ''}
+      </span>
+    </div>
+  );
+}
+
+// -----------------------------------------------------------------------------
 // From the forge — a PUBLISHED finalized framework (the forge→pulpit bridge,
 // 2026-07-03). Rendered from the database's ONE public window
 // (eternal_algorithms_public): only entries the owner explicitly published,
@@ -118,7 +172,7 @@ function Section({ section }) {
 // render through the same KJV-verbatim / link-don't-reproduce Verse.
 // -----------------------------------------------------------------------------
 function ForgeFramework({ alg }) {
-  const [openDeep, setOpenDeep] = useState(false);
+  const [openDeep, toggleOpenDeep] = useOpenWithTheWord();
   const refs = String(alg.scripture || '').split(';').map((r) => r.trim()).filter(Boolean);
   return (
     <div className={CARD}>
@@ -129,20 +183,20 @@ function ForgeFramework({ alg }) {
       {alg.outcome && (
         <div className="mt-1.5 bg-[#F2F4EC] border-l-2 border-[#5A6E3D] pl-3 pr-2 py-1.5">
           <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold">✦ Outcome — you win with it</div>
-          <p className="text-sm text-[#1A1815]" style={serif}>{alg.outcome}</p>
+          <WordInline text={alg.outcome} className="text-sm text-[#1A1815]" style={serif} />
         </div>
       )}
-      {alg.threeD && <p className="text-sm text-[#1A1815] leading-relaxed mt-1.5" style={serif}>{alg.threeD}</p>}
+      {alg.threeD && <WordInline text={alg.threeD} className="text-sm text-[#1A1815] leading-relaxed mt-1.5" style={serif} />}
       {refs.map((r) => <Verse key={r} refStr={r} />)}
       {alg.fourD && (
         <div className="mt-1.5">
-          <button type="button" onClick={() => setOpenDeep((v) => !v)} aria-expanded={openDeep}
+          <button type="button" onClick={toggleOpenDeep} aria-expanded={openDeep}
             className="w-full text-left py-1.5 text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:bg-[#FAF8F4] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">
             {openDeep ? '↑ Close the deep layer' : '↓ Go deeper (the eternal expression)'}
           </button>
           {openDeep && (
             <div className="mt-1 border-l-2 border-[#1A1815] pl-3 pr-1 py-1">
-              <p className="text-sm text-[#1A1815] leading-relaxed whitespace-pre-wrap" style={serif}>{alg.fourD}</p>
+              <WordInline text={alg.fourD} className="text-sm text-[#1A1815] leading-relaxed whitespace-pre-wrap" style={serif} />
             </div>
           )}
         </div>
@@ -163,10 +217,10 @@ function ForgeFramework({ alg }) {
 // from the beginning." The Outcome you win with it LEADS the card, visible even
 // collapsed; the IF/THEN mechanism, verses, and practice follow on expand.
 function GodheadEntry({ entry }) {
-  const [open, setOpen] = useState(false);
+  const [open, toggleOpen] = useOpenWithTheWord();
   return (
     <div className={CARD}>
-      <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open}
+      <button type="button" onClick={toggleOpen} aria-expanded={open}
         className="w-full text-left focus:outline focus:outline-2 focus:outline-[#B85838]">
         <div className="flex items-baseline justify-between gap-2 flex-wrap">
           <span className="text-[#1A1815]" style={{ ...serif, fontWeight: 600 }}>✦ {entry.name}</span>
@@ -175,7 +229,7 @@ function GodheadEntry({ entry }) {
         {/* The end from the beginning — the outcome you win with it, first. */}
         <div className="mt-1.5 bg-[#F2F4EC] border-l-2 border-[#5A6E3D] pl-3 pr-2 py-1.5">
           <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold">✦ Outcome — you win with it</div>
-          <p className="text-sm text-[#1A1815]" style={serif}>{entry.outcome}</p>
+          <WordInline text={entry.outcome} className="text-sm text-[#1A1815]" style={serif} />
         </div>
         <p className="text-[0.75rem] text-[#5A5751] mt-1.5" style={serif}>
           <span className="uppercase tracking-wider text-[0.5625rem] text-[#B85838] font-semibold">If</span> {entry.condition}
@@ -202,13 +256,67 @@ function GodheadEntry({ entry }) {
               </div>
             );
           })}
-          <p className="text-sm text-[#1A1815] leading-relaxed" style={serif}>{entry.threeD}</p>
+          <WordInline text={entry.threeD} className="text-sm text-[#1A1815] leading-relaxed" style={serif} />
           {entry.psyche && (
             <div className="mt-1.5 border-l-2 border-[#5A5751] pl-3 pr-2 py-1">
               <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] font-semibold">How the mind runs it — the psychological perspective</div>
-              <p className="text-[0.8rem] text-[#1A1815] leading-relaxed" style={serif}>{entry.psyche}</p>
+              <WordInline text={entry.psyche} className="text-[0.8rem] text-[#1A1815] leading-relaxed" style={serif} />
             </div>
           )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// THE ETERNAL COVENANT REVIEW (Darrell 2026-07-05) — the in-app comprehensive
+// review of the judgment committed to the Son: the declared word, the covenant
+// taught from the verbatim Word, the abiding checklist (each point anchored to
+// a verified verse), and the covenant's algorithm list walked in order.
+function CovenantReview() {
+  const [open, toggleOpen] = useOpenWithTheWord();
+  const r = JUDGMENT_COVENANT_REVIEW;
+  return (
+    <div className="mb-3">
+      <div className="bg-[#1A1815] text-[#FAF8F4] p-3">
+        <p className="text-[0.6875rem] uppercase tracking-[0.25em] text-[#B89838] mb-1">Featured review · {r.title}</p>
+        <blockquote className="text-sm leading-relaxed italic" style={serif}>{r.declared}</blockquote>
+        <button type="button" onClick={toggleOpen} aria-expanded={open}
+          className={`mt-2 px-3 py-1.5 text-[0.6875rem] uppercase tracking-wider border border-[#5A6E3D] focus:outline focus:outline-2 focus:outline-[#B85838] ${open ? 'bg-[#5A6E3D] text-[#FAF8F4] font-semibold' : 'text-[#D8D4CC] hover:text-[#FAF8F4]'}`}>
+          {open ? '↑ Close the covenant review' : '↓ Open the covenant review'}
+        </button>
+      </div>
+      {open && (
+        <div className="border border-t-0 border-[#E8E4DC] bg-white p-3">
+          {r.summary.map((p) => (
+            <WordInline key={p.slice(0, 24)} text={p} className="text-sm text-[#1A1815] leading-relaxed mb-2" style={serif} />
+          ))}
+          <h4 className="text-[#1A1815] mt-3 mb-1" style={{ ...serif, fontWeight: 600 }}>Abiding by the covenant — for every Kingdom Believer</h4>
+          <div className="space-y-2 mb-3">
+            {r.abiding.map((a) => {
+              const text = godheadVerse(a.anchor);
+              return (
+                <div key={a.anchor + a.point.slice(0, 16)} className={CARD}>
+                  <WordInline text={a.point} className="text-sm text-[#1A1815]" style={serif} />
+                  <div className="border-l-2 border-[#5A6E3D] bg-[#FAF8F4] pl-3 pr-2 py-1.5 mt-1.5">
+                    {text
+                      ? <p className="text-sm text-[#1A1815]" style={serif}>“{text}”<span className="text-[0.625rem] text-[#5A5751] ml-1" style={mono}>KJV</span></p>
+                      : <p className="text-xs text-[#5A5751] italic" style={serif}>{a.anchor} — read it in your Bible.</p>}
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="text-[0.6875rem] text-[#5A6E3D]" style={serif}>{a.anchor}</span>
+                      <a href={readOnline(a.anchor, 'ESV')} target="_blank" rel="noopener noreferrer"
+                        className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">Read ESV ↗</a>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <h4 className="text-[#1A1815] mb-1" style={{ ...serif, fontWeight: 600 }}>The covenant's algorithm list — in order</h4>
+          <p className="text-[0.75rem] text-[#5A5751] mb-2" style={serif}>The grant, the exemption, the standard, the appointment, the seat, the vacating, the training, the reward — each an if/then the Word itself states, every verse verbatim.</p>
+          <div className="space-y-2">
+            {covenantAlgorithms().map((e) => <GodheadEntry key={e.id} entry={e} />)}
+          </div>
         </div>
       )}
     </div>
@@ -235,6 +343,11 @@ function GodheadStudyView() {
           Die daily. This 3rd-dimensional space is not Home — it is the development environment: the sheep, lions and lambs of the Church of the Living Yahweh are built and tested HERE before the release Home. Suffering for His Glory is only 100–150 years for Him — I win still. Yahweh IS, and He IS GOOD. This platform is that work: bringing the church to the streets, using the world's technology so there is a Way — from Yahweh, His tool, held humbly by the Tribe. See you when you get there.
         </p>
       </div>
+      <ShowTheWordToggle className="mb-3" />
+      {/* THE ETERNAL COVENANT REVIEW (Darrell 2026-07-05) — all judgment is
+          committed unto the Son; the review + its algorithm list live HERE,
+          inside the app, where the Kingdom Believers study. */}
+      <CovenantReview />
       {/* THE BOOKS — each its own masterpiece; tap to read its identity and
           filter to its algorithms. */}
       <div className="mb-3">
@@ -280,10 +393,10 @@ function GodheadStudyView() {
 // Word is the authority. Pastoral, not clinical.
 // -----------------------------------------------------------------------------
 function WitnessPair({ pair }) {
-  const [open, setOpen] = useState(false);
+  const [open, toggleOpen] = useOpenWithTheWord();
   return (
     <div className={CARD}>
-      <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open}
+      <button type="button" onClick={toggleOpen} aria-expanded={open}
         className="w-full text-left focus:outline focus:outline-2 focus:outline-[#B85838]">
         <div className="flex items-baseline justify-between gap-2 flex-wrap">
           <span className="text-[#1A1815]" style={{ ...serif, fontWeight: 600 }}>✦ {pair.refs.join(' · ')}</span>
@@ -312,7 +425,7 @@ function WitnessPair({ pair }) {
           })}
           <div className="border-l-2 border-[#5A5751] pl-3 pr-2 py-1">
             <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] font-semibold">The intertwine — 4th dimension said it first</div>
-            <p className="text-[0.8rem] text-[#1A1815] leading-relaxed" style={serif}>{pair.bridge}</p>
+            <WordInline text={pair.bridge} className="text-[0.8rem] text-[#1A1815] leading-relaxed" style={serif} />
           </div>
         </div>
       )}
@@ -360,6 +473,47 @@ function WitnessView() {
             <p className="text-[0.6875rem] text-[#5A6E3D] mb-2" style={mono}>
               Source: {src.source.expert} ({src.source.credential}) — {src.source.work}
             </p>
+            {/* TAKE THIS SECTION WITH YOU (Darrell 2026-08-10: "copy paste
+                options for each section... links to the exact lessons"). Copy
+                carries the whole witness — every verse VERBATIM from the
+                verified corpus, the expert cited, the care note, and a link
+                back — so a forwarded section can never lose its citation or
+                its Scripture. The second control opens this same witness as
+                its Healthy Living lesson, where it can be worked at a level. */}
+            <div className="flex flex-wrap gap-2 mb-2 items-center">
+              <ShareButton
+                label="Share"
+                title="Share this section using your usual apps"
+                payload={() => lessonSharePayload(
+                  { title: src.topic || src.source.work, bigIdea: src.summary || '' },
+                  {
+                    url: lessonUrl({ courseKey: HEALTHY_LIVING_META.key, lessonId: `hl-${src.id}` }),
+                    courseTitle: HEALTHY_LIVING_META.title || '',
+                    // DR-0698: the record key on the link, and the share recorded.
+                    token: newShareToken(),
+                    courseKey: HEALTHY_LIVING_META.key,
+                    lessonId: `hl-${src.id}`,
+                  },
+                )}
+                onShared={recordLessonShare}
+              />
+              <CopyButton
+                label="Copy this section"
+                copiedLabel="Section copied ✓"
+                title="Copy this witness — verses verbatim, expert cited, with a link back"
+                text={() => witnessCopyBlock(src, {
+                  verseFor: witnessVerse,
+                  care: HEALTHY_LIVING_CARE_NOTE,
+                  url: lessonUrl({ courseKey: HEALTHY_LIVING_META.key, lessonId: `hl-${src.id}` }),
+                })}
+              />
+              <a
+                href={lessonUrl({ courseKey: HEALTHY_LIVING_META.key, lessonId: `hl-${src.id}` })}
+                className="text-[0.625rem] uppercase tracking-wider px-2.5 py-1.5 min-h-[32px] inline-flex items-center border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+              >
+                Open as a lesson →
+              </a>
+            </div>
             {sciOnly ? (
               <ul className="space-y-1.5">
                 {sci.points.map((pt) => (
@@ -428,7 +582,7 @@ function BeliefVsActionRound({ cards }) {
         <div key={card.id} className={CARD}>
           <p className="text-[0.6875rem] uppercase tracking-wider text-[#5A6E3D]" style={serif}>{card.lens}</p>
           <Verse refStr={card.scripture.ref} />
-          <p className="text-sm text-[#1A1815] my-1" style={serif}>{card.body}</p>
+          <WordInline text={card.body} className="text-sm text-[#1A1815] my-1" style={serif} />
           <div className="space-y-1.5">
             {card.choices.map((c, i) => (
               <button key={i} type="button" aria-pressed={picks[card.id] === i}
@@ -496,9 +650,6 @@ export default function EternalAlgorithmsStudy({ email, view, churchView, setVie
     () => [...studyToGameCards(study, responses), ...algorithmsToGameCards(forge), ...godheadToGameCards()],
     [study, responses, forge],
   );
-  // Which room of the surface is open: the study series, or the whole-Bible
-  // Godhead Study (deterministic algorithms, Torah → Revelation).
-  const [room, setRoom] = useState('series');
   // Persist the generated deck so a Game Night (Generations) can pick it up, and
   // go to the games hub. withStudyDeck proves the deck injects into a real def.
   const toGameNight = () => {
@@ -511,37 +662,28 @@ export default function EternalAlgorithmsStudy({ email, view, churchView, setVie
 
   const helpNav = { view, churchView, setView, setChurchView };
 
-  return (
-    <div className="max-w-3xl">
-      <SectionTitle eyebrow="Word-first · for honest self-examination">
-        <span className="inline-flex items-center gap-2">
-          <UiIcon name="sparkle" /> {SERIES.title}
-          <HelpButton variant="inline" topic="church:eternal-algorithms" {...helpNav} />
-        </span>
-      </SectionTitle>
-
-      {/* Three rooms, one surface: the interactive study series, the
-          whole-Bible Godhead Study, and the 3rd-Dimension Witness — cited
-          science cross-referenced with the Word (Darrell 2026-07-03). */}
-      <div className="flex gap-2 flex-wrap mb-3" role="tablist" aria-label="Eternal Algorithms rooms">
-        <button type="button" role="tab" aria-selected={room === 'series'} onClick={() => setRoom('series')}
-          className={`${BTN} border ${room === 'series' ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'text-[#5A5751] border-[#E8E4DC] hover:text-[#1A1815]'}`}>
-          Study series
-        </button>
-        <button type="button" role="tab" aria-selected={room === 'godhead'} onClick={() => setRoom('godhead')}
-          className={`${BTN} border ${room === 'godhead' ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'text-[#5A5751] border-[#E8E4DC] hover:text-[#1A1815]'}`}>
-          The Godhead Study · whole Bible
-        </button>
-        <button type="button" role="tab" aria-selected={room === 'witness'} onClick={() => setRoom('witness')}
-          className={`${BTN} border ${room === 'witness' ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'text-[#5A5751] border-[#E8E4DC] hover:text-[#1A1815]'}`}>
-          3rd-Dimension Witness
-        </button>
-      </div>
-
-      {room === 'godhead' && <GodheadStudyView />}
-      {room === 'witness' && <WitnessView />}
-
-      {room === 'series' && (<>
+  // The rooms of this surface as sliding section tabs (SectionTabs — Darrell
+  // 2026-07-04 "sliding tabs instead of a long scroll"): the interactive study
+  // series, the whole-Bible Godhead Study, the 3rd-Dimension Witness — cited
+  // science cross-referenced with the Word (Darrell 2026-07-03) — the game
+  // hand-off, and (only when something is published) the family-forge
+  // frameworks. Only the open section mounts; every hook stays up here, so
+  // sliding between sections loses no answers, deck, or forge data.
+  const sections = [
+    // The Torah pattern map (Darrell 2026-09-08: "we want ALL of the visible
+    // patterns of these relationships so we can See!!!!"). Its own component —
+    // every count derived in lib/torah-patterns.js, nothing painted here.
+    {
+      id: 'torah-map',
+      label: 'Torah pattern map',
+      icon: 'bookOpen',
+      render: () => <TorahPatternMap />,
+    },
+    {
+      id: 'series',
+      label: 'Study series',
+      icon: 'bookOpen',
+      render: () => (<>
       {/* The series frame — reverent, humble-seeking. */}
       <div className="bg-[#1A1815] text-[#FAF8F4] p-3 mb-3">
         <p className="text-[0.6875rem] uppercase tracking-[0.25em] text-[#B89838] mb-1">{SERIES.kicker}</p>
@@ -582,7 +724,9 @@ export default function EternalAlgorithmsStudy({ email, view, churchView, setVie
       <div className="mb-2">
         <h3 className="text-xl text-[#1A1815]" style={{ ...serif, fontWeight: 600 }}>Study {study.number} · {study.title}</h3>
         <p className="text-sm text-[#5A5751]" style={serif}>{study.subtitle}</p>
-        <p className="text-sm text-[#1A1815] leading-relaxed mt-1.5" style={serif}>{study.intro}</p>
+        <WordInline text={study.intro} className="text-sm text-[#1A1815] leading-relaxed mt-1.5" style={serif} />
+        <ShowTheWordToggle className="mt-2" />
+        <TeachAloud study={study} />
       </div>
 
       <div className="space-y-2 mb-4">
@@ -602,9 +746,26 @@ export default function EternalAlgorithmsStudy({ email, view, churchView, setVie
         </div>
       </div>
 
-      </>)}
-
-      {/* The game hook — belief-vs-action round + Game Night hand-off. */}
+      </>),
+    },
+    {
+      id: 'godhead',
+      label: 'The Godhead Study · whole Bible',
+      icon: 'sparkle',
+      render: () => <GodheadStudyView />,
+    },
+    {
+      id: 'witness',
+      label: '3rd-Dimension Witness',
+      icon: 'globe',
+      render: () => <WitnessView />,
+    },
+    // The game hook — belief-vs-action round + Game Night hand-off.
+    {
+      id: 'game',
+      label: 'Take it to the game',
+      icon: 'dice',
+      render: () => (
       <div className="border-t-2 border-[#1A1815] pt-3">
         <h3 className="text-lg text-[#1A1815]" style={{ ...serif, fontWeight: 600 }}>Take it to the game</h3>
         <p className="text-sm text-[#5A5751] mb-2" style={serif}>
@@ -620,12 +781,18 @@ export default function EternalAlgorithmsStudy({ email, view, churchView, setVie
         </div>
         {showRound && <BeliefVsActionRound cards={cards} />}
       </div>
-
-      {/* FROM THE FORGE — finalized frameworks published from the family's
-          Study gallery (the forge→pulpit bridge). Only what the owner
-          explicitly published appears here; the deep layer only where they
-          chose to include it. Hidden entirely when nothing is published. */}
-      {forge.length > 0 && (
+      ),
+    },
+    // FROM THE FORGE — finalized frameworks published from the family's
+    // Study gallery (the forge→pulpit bridge). Only what the owner
+    // explicitly published appears here; the deep layer only where they
+    // chose to include it. Hidden entirely when nothing is published
+    // (SectionTabs filters the null — the tab never shows empty).
+    forge.length > 0 ? {
+      id: 'forge',
+      label: 'From the family forge',
+      icon: 'tools',
+      render: () => (
         <div className="border-t-2 border-[#1A1815] pt-3 mt-4">
           <h3 className="text-lg text-[#1A1815]" style={{ ...serif, fontWeight: 600 }}>Finalized frameworks · from the family forge</h3>
           <p className="text-sm text-[#5A5751] mb-2" style={serif}>
@@ -635,7 +802,20 @@ export default function EternalAlgorithmsStudy({ email, view, churchView, setVie
             {forge.map((alg) => <ForgeFramework key={alg.id} alg={alg} />)}
           </div>
         </div>
-      )}
+      ),
+    } : null,
+  ];
+
+  return (
+    <div className="w-full">
+      <SectionTitle eyebrow="Word-first · for honest self-examination">
+        <span className="inline-flex items-center gap-2">
+          <UiIcon name="sparkle" /> {SERIES.title}
+          <HelpButton variant="inline" topic="church:eternal-algorithms" {...helpNav} />
+        </span>
+      </SectionTitle>
+
+      <SectionTabs sections={sections} ariaLabel="Eternal Algorithms sections" idBase="ea" defaultId="series" />
 
       <p className="text-[0.6875rem] text-[#5A5751] mt-4" style={serif}>
         King James Version (Public Domain) shown in-app, fetched verbatim and verified; other translations are referenced and linked, not reproduced (copyright). The Word is the arbiter; where we are unsure, we go back to it. Held in grace and truth, for the soul.

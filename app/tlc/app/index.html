@@ -1,0 +1,53 @@
+<!doctype html>
+<!-- =========================================================================
+  /tlc/app/ — TLC Therapy Solutions' OWN app page (DR-0261, extending the
+  DR-0258 scope split proven on-device with The Love Corner). All four
+  installable faces used to share scope /poetech-app/, so Chrome collapsed
+  them into one app — with PoeTech installed, TLC's install sheet said
+  "already installed" (Darrell's 2026-08-01 screenshots). This page serves the
+  SAME app (same /src/main.jsx, same absolute /poetech-app/ assets) from the
+  practice's own disjoint scope /tlc/, with ITS manifest linked in STATIC
+  markup (install identity is a page-load property — the in-door runtime swap
+  is retired). Mirrors app/lovecorner/app/index.html; pinned by
+  lovecorner-door.test.js's all-faces gate.
+========================================================================== -->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <title>TLC Therapy Solutions</title>
+    <meta name="description" content="TLC Therapy Solutions — faith-integrated therapy, online & in-person. Christina Poe, LCSW + clinical team. Match a preferred provider and book online. Powered by PoeTech." />
+    <link rel="manifest" href="/manifest-tlc.webmanifest" />
+    <meta name="theme-color" content="#1A1815" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/tlc-icon-192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="/tlc-icon-512.png" />
+    <link rel="apple-touch-icon" href="/tlc-apple-touch.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="TLC Therapy" />
+    <script>
+      (function () {
+        var p = new URLSearchParams(location.search);
+        var standalone = ['join', 'invites', 'register', 'audience', 'teach', 'login', 'request-space', 'share', 'oauth_popup']
+          .some(function (k) { return p.get(k) === '1'; });
+        var href = '__MONOLITH_PRELOAD_HREF__';
+        if (!standalone && href.charAt(0) === '/') {
+          var l = document.createElement('link');
+          l.rel = 'modulepreload';
+          l.href = href;
+          l.crossOrigin = '';
+          document.head.appendChild(l);
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script defer src="/poetech-app/watchdog.js"></script>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

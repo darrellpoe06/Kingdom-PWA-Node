@@ -1,0 +1,188 @@
+# Deploy freshness — the SAFEGUARD that heals a missed production deploy.
+#
+# WHY THIS EXISTS (2026-07-06, DR-0107 / DR-0109; LESSONS P25/P26). The
+# auto-merge lane merges via GITHUB_TOKEN, and GitHub does NOT fire push- /
+# CI- / workflow_run-triggered workflows for a GITHUB_TOKEN push (anti-recursion).
+# So the deploy (deploy-cloudflare-pages.yml, on: push:main) does not fire on an
+# auto-merged commit. auto-merge.yml dispatches the deploy itself as a partial
+# fix — but it runs on PR *events*, and the LAST merge in a quiet stretch has no
+# following event, so that final commit can sit undeployed until the next merge
+# or a manual dispatch. A down/stale site is the worst outcome (DR-0107), so this
+# closes the gap the only reliable way GitHub allows after a GITHUB_TOKEN merge:
+# a SCHEDULE. It compares main's tip to the last successful deploy and dispatches
+# the deploy iff they differ. Idempotent: a fresh site is a no-op.
+#
+# THE THREE BRAKES (CLAUDE.md "Autonomous Automation Requires Three Brakes").
+# This is timer-driven, so it carries all three even though it cannot run away
+# (it dispatches at most ONE already-safe, single-flight deploy per fire — it
+# spawns no Claude, no compute loop, no fan-out):
+#   1. BUDGET   — one cheap SHA check + at most one deploy dispatch per run; the
+#                 dispatched deploy is itself wall-clock-bounded and single-flight.
+#                 On a workflow_run fire the check is repeated at most
+#                 WATCH_TRIES times WATCH_GAP seconds apart (a hard ceiling of
+#                 about three minutes of sleeping, no compute) and STOPS at the
+#                 first dispatch — it never dispatches twice in one fire.
+#   2. LOCK     — concurrency: deploy-freshness (this workflow is single-instance)
+#                 AND the deploy's own cf-pages-deploy group. Deploys never stack.
+#   3. KILL     — SHIPS ACTIVE (DR-0110), because a bounded, idempotent,
+#                 non-spawning deploy-healer is not the runaway class P11/three-
+#                 brakes gates (it is operationally the same as the db-migrate and
+#                 auto-merge deploy dispatches, which already ship active). The
+#                 kill-switch is retained: set the repo variable
+#                 DEPLOY_FRESHNESS_ENABLED='false' (or disable this workflow in the
+#                 Actions UI) to pause instantly. Unset ⇒ runs.
+#
+# PAUSE: GitHub → Settings → Secrets and variables → Actions → Variables →
+# add DEPLOY_FRESHNESS_ENABLED = false (delete it, or set anything but 'false', to
+# resume). Activation requires no action — it heals main from its first fire.
+
+name: Deploy freshness (heal a missed deploy)
+
+on:
+  schedule:
+    # The measurement that corrected migrate-freshness was taken FROM this
+    # workflow (2026-08-28): 1,171 scheduled fires in the 53 days since
+    # 2026-07-06 — 7.7% of the 288/day a literal */5 would give.
+    #
+    # The AVERAGE (one per ~65 min) does not describe the behaviour and must not
+    # be reasoned from. The eleven most recent gaps: 0.5h, 0.7h, 0.8h, 1.1h,
+    # 1.7h, 1.7h, 1.9h, 3.4h, 5.4h, 8.6h, 11.3h — busy by day, long silences
+    # overnight; this workflow itself sat 6.7 hours without firing on the night
+    # the numbers were taken. Kept at */5 because asking for less delivers less.
+    # An hours-scale safety net, never a prompt one — the deploy's promptness
+    # comes from auto-merge's own dispatch.
+    - cron: '*/5 * * * *' # a REQUEST for every 5 min; see the measurement above
+  # THE EVENT-DRIVEN HOOK (2026-09-17, DR-0458 — the SEVENTH miss of this class).
+  #
+  # MEASURED on the merge of PR #1648. auto-merge's own heal-deploy poll ran
+  # 18:07:53 -> 18:20:48 and gave up; the merge landed at 18:21:12 — TWENTY-FOUR
+  # SECONDS after the window closed. No deploy fired. The next scheduled fire of
+  # THIS workflow would have healed it, but the three fires it actually got that
+  # day were 05:29, 10:19 and 15:05, so the site would have served a stale build
+  # for hours. It was dispatched by hand (run #1155).
+  #
+  # Every previous fix of this class raised the timer: 2 -> 6 -> 12 minutes. A
+  # number that has to be re-guessed every time CI gets slower is not a fix, so
+  # this one is not a number. `workflow_run` on Auto-merge completing fires the
+  # freshness check at exactly the moment the merge either has happened or is
+  # seconds away, which is precisely the moment the old poll stops watching.
+  #
+  # NOT the same thing as the suppressed push (see the header): what is
+  # suppressed is an event EMITTED BY a GITHUB_TOKEN action. A workflow run's
+  # completion is emitted by GitHub about its own run, and Auto-merge's
+  # check_suite-triggered run completes normally. Whether that reaches here is
+  # a claim about GitHub's behaviour, so it is PROVEN on the next real merge
+  # rather than assumed — see DR-0458's "what is still not proven", and the
+  # cron and auto-merge's own dispatch both stay in place, so the worst case of
+  # being wrong is exactly today's behaviour and nothing worse.
+  workflow_run:
+    workflows: ["Auto-merge"]
+    types: [completed]
+  workflow_dispatch: {}
+
+# LOCK: single-instance. A new fire while one runs is queued, never stacked.
+concurrency:
+  group: deploy-freshness
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  actions: write # to dispatch deploy-cloudflare-pages.yml
+
+jobs:
+  heal:
+    # KILL-SWITCH: ships ACTIVE (DR-0110). Runs by default; set the repo variable
+    # DEPLOY_FRESHNESS_ENABLED='false' (or disable this workflow in the Actions UI)
+    # to pause instantly. A bounded, non-spawning deploy-healer is not the
+    # runaway class P11 gates, so it ships on — matching db-migrate/auto-merge.
+    if: ${{ vars.DEPLOY_FRESHNESS_ENABLED != 'false' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy main's tip if the served build has fallen behind
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          # ONE look on a schedule or a manual fire — main is settled by then.
+          # SEVERAL on a workflow_run fire, because that fire lands in the exact
+          # seconds around the merge: on PR #1648 the merge was 24 seconds after
+          # auto-merge's run ended, so a single look would have seen a main that
+          # had not moved yet and called the site fresh. Bounded and additive:
+          # at most five looks about 45 seconds apart, sleeping, no compute, and
+          # it stops the moment it dispatches.
+          WATCH_TRIES: ${{ github.event_name == 'workflow_run' && '5' || '1' }}
+          WATCH_GAP: '45'
+        run: |
+          set -euo pipefail
+          # Return codes, because three outcomes are genuinely different:
+          #   0  DISPATCHED       — main is stale and no deploy exists for it.
+          #   2  ALREADY IN FLIGHT — a deploy run already exists for main's
+          #      exact tip. Nothing to do, and NOTHING TO WAIT FOR either.
+          #   1  FRESH / UNRESOLVED — keep looking on an event fire, because
+          #      main may simply not have moved yet.
+          check_once() {
+            main_sha=$(gh api "repos/$REPO/commits/main" --jq '.sha' 2>/dev/null || echo "")
+            # Has main's EXACT tip had a successful production deploy? Asked by
+            # head_sha, never read off the runs list: that list is not
+            # newest-first once filtered (P62, DR-0697; measured 2026-09-30).
+            last_deployed=$(gh api \
+              "repos/$REPO/actions/workflows/deploy-cloudflare-pages.yml/runs?status=success&head_sha=$main_sha&per_page=1" \
+              --jq '.workflow_runs[0].head_sha // ""' 2>/dev/null || echo "")
+            if [ -z "$main_sha" ]; then
+              echo "::warning::could not resolve main HEAD; skipping this look."
+              return 1
+            fi
+            if [ "$main_sha" = "$last_deployed" ]; then
+              echo "FRESH: main $main_sha is already the served build; nothing to do."
+              return 1
+            fi
+            # THE IN-FLIGHT GATE (2026-09-17, measured on the merge of PR #1650
+            # — the same merge that PROVED the workflow_run hook above works).
+            # This workflow compares against the last SUCCESSFUL deploy, so
+            # while auto-merge's own heal had a deploy RUNNING on the new tip,
+            # the last success was still the previous tip and this read STALE
+            # and dispatched a SECOND build: runs #1157 (19:15:57, auto-merge)
+            # and #1158 (19:17:06, this hook), both on 003aaf22, both green.
+            # Nothing broke, but two Cloudflare Pages builds ran for one merge
+            # and would have on every merge from here. auto-merge's own heal
+            # already avoids this ("a run already queued/running for this same
+            # tip is a no-op") and the same gate belongs here. ANY run for
+            # main's exact tip counts, whatever its status — queued, running or
+            # failed — because a failed deploy for this tip is the deploy
+            # workflow's problem to report, not a reason for this healer to
+            # stack another build on top of it.
+            in_flight=$(gh api \
+              "repos/$REPO/actions/workflows/deploy-cloudflare-pages.yml/runs?head_sha=$main_sha&per_page=1" \
+              --jq '.total_count // 0' 2>/dev/null || echo "0")
+            if [ "${in_flight:-0}" != "0" ]; then
+              echo "ALREADY IN FLIGHT: a deploy run exists for main $main_sha; not dispatching."
+              return 2
+            fi
+            echo "STALE: main $main_sha has no successful deploy — dispatching deploy."
+            gh workflow run deploy-cloudflare-pages.yml --repo "$REPO" --ref main \
+              || echo "::warning::could not dispatch deploy (it can be run manually)."
+            # A merge nobody deployed is also a merge nobody refreshed the
+            # other PRs for (DR-0644): the same dispatch auto-merge makes.
+            gh workflow run keep-prs-current.yml --repo "$REPO" --ref main \
+              || echo "::warning::could not dispatch keep-prs-current (its schedule is the fallback)."
+            return 0
+          }
+          i=1
+          while [ "$i" -le "$WATCH_TRIES" ]; do
+            echo "--- look $i of $WATCH_TRIES (event: $GITHUB_EVENT_NAME)"
+            set +e
+            check_once
+            rc=$?
+            set -e
+            if [ "$rc" -eq 0 ]; then
+              echo "dispatched on look $i; done."
+              exit 0
+            fi
+            if [ "$rc" -eq 2 ]; then
+              echo "already handled on look $i; done."
+              exit 0
+            fi
+            if [ "$i" -lt "$WATCH_TRIES" ]; then sleep "$WATCH_GAP"; fi
+            i=$((i + 1))
+          done
+          echo "no dispatch needed after $WATCH_TRIES look(s)."
+

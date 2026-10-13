@@ -1,0 +1,210 @@
+# TLC colleague onboarding — the intake packet lives in the TLC app
+
+**Date:** 2026-09-10 · **Branch:** `claude/tlc-intake-form-xr7jhw` · **Rule:** DR-0344 (new), DR-0271, DR-0187, DR-0303, DR-0076, USER-ACCOUNTS-AND-HISTORIES-STANDARD, DATA-AS-EMPOWERMENT
+
+**Trigger.** Darrell: *"We need the TLC Therapy Solutions intake form inside the TLC Therapy Solutions App... so Christina can on-board new colleagues inside the TLC Therapy Solutions App... go look at our Google drive and use that to build the system from as our scaling process or scaffolding."* Mid-build, with a screenshot of the door's "Match a Preferred Provider": *"On-boarding should also update the Apps and other online locations with new Therapists using the same format as the current ones."*
+
+## The Ways review (DR-0108) — what Drive holds
+
+- The Google Form **TLC Therapy Solutions – Therapist Onboarding | Hiring Form**, its **Responses** sheet (five colleagues, Sep 2025 to May 2026), and the **File responses** folder. The sheet's header row is the field list; the sheet body is where the cost shows: every answer in the clear, including bank routing and account numbers and, in one response, a CAQH password typed into the free-text box. None of that data was copied anywhere; only the question labels and the option lists were used.
+- The **Independent Contractor Handbook** (section 9 is the acknowledgment text), the **Independent Contractor Agreement** and the **Confidentiality Agreement (NDA)**, all TLC-owned. The three in-app acknowledgments point at these documents and carry each one's own statement.
+- The Drive form's `download_file_content` export failed with an internal error, so the option lists come from the observed responses (populations, specialties, hour slots, "No Clients Today"). If the form carries an option no colleague has ever picked, it is not in the app's list yet; Christina can name it and it is a one-line addition.
+
+## What was built
+
+| Piece | File | What it does |
+|---|---|---|
+| Migration | `infra/supabase/migrations-auto/0187-…sql` | `tlc_onboarding_invites`, `tlc_onboarding_packets` (bounded jsonb, headshot thumb), `tlc_onboarding_banking` (RLS on, **no policy**), `tlc_roster`; the private `tlc-onboarding` bucket with owner/office policies; SECURITY DEFINER functions for invite, revoke, open, save/submit, list, read (audited), banking reveal (audited), review (approve writes the clinicians row and the public card), withdraw, delete, roster upsert/remove/list, and the anon `tlc_public_roster()`; both overlays re-run |
+| Spec (pure) | `app/src/lib/tlc-onboarding.js` | Every Drive question by label, grouped as the form reads; option lists; validation mirroring the server; ABA checksum; progress; link and path builders; the labelled export |
+| Seam | `app/src/lib/tlc-onboarding-sync.js` | Every call through the migration's functions, timeouts on every network call, fail-soft sentences; documents as pointers; files removed before a row is deleted |
+| Roster | `app/src/lib/tlc-roster-cards.js` (pure) + `app/src/lib/tlc-roster.js` (hook + seam) | The seed card format; live rows merged after the seven seed cards; `useTlcRoster()` on the TLC door, the Moore door's Practice tab and the operator Practice tab |
+| Colleague | `app/src/components/TlcOnboardingForm.jsx` | Sliding sections, autosave draft, submit blocked on the device until the required answers and three signatures are in, export, withdraw |
+| Christina | `app/src/components/TlcOnboarding.jsx` | Mint a link, open invites, packets, the readout, banking reveal (logged), the card preview she edits before approving, return with a note, the live roster editor with "Copy for website" |
+| Readout | `app/src/components/TlcOnboardingReadout.jsx` | One read-only rendering shared by both sides; documents open on a short-lived signed URL |
+| Mounts | `TlcPublicDoor.jsx`, `surfaces.js`, the shell (+1 line, budget 5344 → 5345) | `?onboard=TOKEN` swaps the door to the invite flow; an Onboarding section for the owner/admin; an Onboarding sub-tab on the operator TLC tab |
+
+## Proof
+
+- `tlc-onboarding.test.js` (30) and `tlc-onboarding-render.test.jsx` (11), both green; `tlc-door.test.js` re-pinned to the roster hook. Each source pin was broken once on purpose while writing and failed by name.
+- Guards green: eslint, module-boundary, monolith-budget, migration return-type / replay-order / replay-completeness, rls-isolation-matrix, no-prompt, interconnect, infra-transport, business-systems (ledger whole at DR-0344), tenancy, assistant-scope, assistant-wall.
+
+## Honest limits (DR-0100)
+
+- The live round trip (mint on Christina's phone, open on a colleague's, upload, submit, approve, card on all three surfaces) is not exercised in the sandbox: no session can sign in to the live office from here. `re-review: 2026-09-17` with the first real onboarding.
+- The website (tlctherapysolutions.me) has no write door the app holds; the app publishes to its own three surfaces and hands Christina the card text for the site editor. This is a named gap, not a claim.
+- The existing Google Sheet still holds the five earlier responses, including the plaintext password and bank numbers. That sheet is Christina's to clean; the app does not read it. Recommended, in Drive by her hand (a dashboard step): remove the CAQH password cell, then restrict the sheet's sharing to herself.
+
+## Same session, four more directives (the Drive sweep, training, the flatten)
+
+Darrell pasted the whole *Training Notes for Therapists-in-Training* document, then: *"intuitive integration for easy on-boarding and user experiences"* · *"We have lessons etc can we make sure those workflows are inside the TLC Therapy Solutions App comb our drive for documentation of systems we need or should add here"* · *"Training etc..."* · with four screenshots of the operator TLC tab: *"we need sliding tabs like the others so there are only one or two levels"* · *"learn space... is different from the church learn space."*
+
+**The Drive sweep — every TLC systems document found, and its in-app carry**
+
+| Drive document | Owner | In the app now | Remaining |
+|---|---|---|---|
+| Therapist Onboarding \| Hiring Form + Responses + File responses | Darrell | The Onboarding intake packet (this delivery) | Christina cleans the old sheet (a Drive step by her hand: remove the password cell, restrict sharing) |
+| Independent Contractor Handbook | TLC | Readable in place on Team, section for section (`lib/tlc-handbook.js`) | The Drive doc stays the source; a change there is a one-file edit here |
+| Independent Contractor Agreement; Confidentiality Agreement (NDA) | TLC | Signed in the intake packet; linked on Team | none |
+| Training Notes for Therapists-in-Training (six scripts) | TLC | Six courses in Training (`lib/tlc-session-scripts.js`), her words, verbatim KJV, four strands | Christina's in-app Agree on each |
+| TLCTS LAUNCH (task tracker) | Christina | Linked on Team; the Assistant workspace carries the working schedule | A launch board in the Assistant workspace — `re-review: 2026-09-24` |
+| Finding Peace: Biblical Wisdom for Life's Stressors (manuscript, 11 chapters) | Christina | Linked on Team | A client-facing lesson track; her quotations are NIV, the app hosts KJV/WEB, so verses open in place by reference — `re-review: 2026-09-24` |
+| TLC Therapy Data (2025 prototype sheet) | Darrell | superseded by the app | none |
+
+Not TLC Therapy: Streaming Instructions for TLC 2020 and *TLC Infrastructure* (the church), the career class (church youth), trucking and real-estate sheets.
+
+**Built.** `lib/tlc-session-scripts.js` (six courses registered in the training library) · `lib/tlc-handbook.js` (handbook + office documents as data) · `components/TlcTeamResources.jsx` (Team) · `myPacketStatus()` in the seam · the TLC door gains **Training** (the TLC Learn space, `PracticeLearn`, never the church Learn space) and **Team** for every signed-in colleague; the invite flow points an approved colleague at them · the operator TLC tab is one strip — Practice · Client Growth · Learn · Intake · Assistant · Onboarding — `Practice` takes a `section` prop and renders the destination without its own strip (shell line count unchanged at 5345).
+
+**Proof.** `tlc-session-scripts.test.js` (10) green, including every quoted verse against `app/public/bible/kjv` word for word; `tlc-training-library`, `tlc-course-strands`, `tlc-practice`, the door tests and the onboarding render tests re-run green; guards unchanged.
+
+## Then: every TLC workflow inside the TLC app, on one slider
+
+Darrell: *"there are tabs inside the PoeTech App that are not inside the TLC Therapy Solutions App?!"* · *"The tabs need to be only side by side... slider..."* · *"only two levels... make sure they make sense..."*
+
+| Workflow | PoeTech TLC tab (one slider under the top nav) | TLC app (one slider) |
+|---|---|---|
+| Team & services / roster | Practice | Find your therapist |
+| Pre-intake inquiries | Inquiries | Inquiries (staff) |
+| Revenue estimate (from inquiries) | Revenue | Revenue (staff) |
+| Client acquisition CRM | Client Growth | Client Growth (staff) |
+| TLC Learn space (training, scripts, hours) | Learn | Training |
+| Family inbound router (voice ops, incidents) | Intake | not carried: family ops, not TLC's; TLC intake is Inquiries |
+| Referral / assistant workspace | Assistant | Assistant |
+| Colleague onboarding | Onboarding | Onboarding (owner/admin) |
+| Handbook, agreements, office documents | (via Onboarding packet) | Team |
+
+Built: `lib/tlc-office-data.js` (the standalone office store over the same two syncs), `Practice` renders an operations sub-id directly (no chips) and takes `findRelatedAuto` from the lib, the door mounts Inquiries / Client Growth / Revenue for staff. Proof: `tlc-office-data.test.js` (8), door render (+2), guards green.
+
+## Then: no Google link anywhere, and areas on a second row
+
+Darrell: *"drive?! I want this built into the App!"* · *"why would you use Google?! fix it build the whole process workflows!"* · *"training tab is too deep... another tab slider for each section... any long scrolling tabs"* · *"users need to see the areas easier."*
+
+| Document | Was | Now |
+|---|---|---|
+| Independent Contractor Agreement | Drive link | `lib/tlc-agreements.js`, read in place at the signature and on Team |
+| Confidentiality Agreement (NDA) | Drive link | same |
+| Independent Contractor Handbook | data, but the acknowledgment linked out | read in place at the signature (`TlcAgreementReader`) |
+| Training Notes | six courses; Team linked the doc | Team fold → "Open Training" moves the slider |
+| Hiring form | the intake; Team linked the form | Team fold → "Open Onboarding" (staff) |
+| TLCTS LAUNCH tracker | Drive link | live board, `tlc_office_tasks` (0188), 15 rows in five phases |
+| Finding Peace manuscript | Drive link | eleven client lessons, `lib/tlc-finding-peace.js`, 39 verses verbatim |
+
+Areas (second-row chips, one shows at a time): Training = Lessons · What you'll gain · Course library · Training map · Pathways · Certificates · Hours · CE renewal · Catalog & required (per audience). Team = Documents · Launch board · Who we are. Onboarding = Invite · Packets · Roster.
+
+Proof: `tlc-office-documents.test.js` (14), `tlc-onboarding-render.test.jsx` (16), `practice-learn-render.test.jsx` (9); full suite 13,071 passing; every CI guard green; build green.
+
+Open, from Darrell in the same hour (next increment): every course as two lesson versions (with the Word, without it) so the curriculum serves every client; the 24 therapist trainings weekly and comprehensive on current Illinois policy; therapists schedule lessons for a client to review before the next session; every hand-off between tabs proven end to end.
+
+## Then: two renderings, Illinois on every training, one a week, a lesson scheduled for a client (DR-0345)
+
+Darrell, within the hour: *"build two lessons one with the Word and the other without it so our curriculum is capable of working for all clients"* · *"on click for the Word versions"* · *"the 24 trainings for therapists to be for the week... comprehensive... latest... Illinois policy and program and procedures"* · *"Therapist should be able to schedule lessons for their clients to review before their next session... all low hanging fruit"* · *"Each tab that should work together make sure they work end to end."*
+
+| Built | Where | Proof |
+|---|---|---|
+| Plain rendering + the Word on click for every lesson | `lib/lesson-word.js`; `word` on the client modules; Finding Peace split into plain tips + her chapter; library lessons draw on the course's Yahweh strand; `LessonRunner` button + `VerseBlock` (verbatim from the corpus) | `tlc-curriculum.test.js`, `practice-learn-render.test.jsx` |
+| Illinois: policy, program and procedure on every course | `lib/tlc-illinois-policy.js` (11 rules, dated 2026-09-10, cited, `verbatim:false`, `smeConfirm` on the open points); `withIllinois` in the library | same |
+| One training a week | `buildWeeklyPlan`; the Training map leads with it | same |
+| A therapist schedules a lesson | migration 0189 `tlc_lesson_assignments`; `lib/tlc-assignments.js` (+ `-core`); Assign-to-a-client on every lesson; For you / Assigned areas | same |
+| Hand-offs end to end | Team → Onboarding → approve → Roster → Find; Team → Training → Lessons + Assigned | `tlc-onboarding-render.test.jsx` |
+
+The Illinois wording is a paraphrase verified by web search (the primary IDFPR / ILGA / LII / Justia pages are egress-blocked from the sandbox); every rule names its primary page for Christina's ratification, re-review 2026-09-17.
+
+Open, from Darrell in the same hour (next increment): *"Assistants and others need hierarchy for making sure we have appropriate governance and resources for our business."*
+
+## Then: the office governs itself from the TLC app (DR-0346)
+
+Darrell: *"Assistants and others need hierarchy for making sure we have appropriate governance and resources for our business"* · *"Owners and managers etc need to be able to govern using the same app."* Built: `lib/tlc-governance.js` (eight seats, reports-to, governs, may, reaches) and a Governance area on Team for the office owner/admin (`TlcGovernance`: chart, matrix, live members with guarded seat changes, removal, invite with a seat). Proof: `tlc-governance.test.js` (4), onboarding render (+2).
+
+## Then: the pre-existing rls-isolation red, root-caused and closed (DR-0347)
+
+The `viewer-readonly` leg's 0126 smoke ("write:choir grant did not unlock the choir area") was red since 0181 (2026-09-06): 0181's redefinition of `apply_viewer_readonly_overlay()` dropped 0126's capability predicate, and every later re-run rebuilt the pure deny in production (verified live). Migration 0190 carries both the predicate and the full participation list; `viewer-overlay-lineage.test.js` gates the class (proven-to-catch against 0181's own body); 0190 joins the matrix leg. Live proof: the next rls-isolation run after merge.
+
+Darrell: *"not fake test... also documenting the best workflows behavior."* Added the `tlc-office` matrix leg (`0189-tlc-office-smoke.sql`, the real policies for 0188/0189, rolled back on the real database) and §9 of the operating model, the proof ladder. Live proof for both legs: the rls-isolation run db-migrate dispatches after this merges.
+
+Darrell, reading the handbook fold on his phone: *"where is number 1?"* Section 1 (welcome, mission, vision, what we provide, contractor status) had been carried only as fields shown under Who we are, so the handbook opened at 2. It is now the handbook's own first section in both readers; pinned in `tlc-office-documents.test.js` and the door render.
+
+Darrell, on the Training map: *"These lessons should be laid out over the 24 month period the state expects or whatever number of months."* The map is now `buildStatePlan`: every course across the 24-month LCSW window as 104 weeks, evenly, open weeks honest, hours by month, the 30-hour CE minimum per cycle shown. The 36-month runway panel is retired from the screen (DR-0345 amendment).
+
+Live proof: db-migrate run 493 applied 0190; rls-isolation run 128 on `daf7f53` green on every leg, the viewer-readonly leg (red since 0181) and the new tlc-office leg included; the choir policy in production carries `has_capability` again. DR-0347's re-review closed.
+
+## Then: full lessons, the Word as a drop-down, the review for Christina, the top space (DR-0345 amendment, evening)
+
+Darrell: *"Where is the Word on some of these lessons? Also what happened to the whole courses build out?"* · *"I don't want starter lessons one paragraph... 1 level comprehensive review of the known understanding and lessons to discuss with stakeholders... full lessons."* · *"a robust version for Christina to evaluate against her knowledge of the workflows so we can finalize her App... From MVP to Hard Coded workflows."* · *"not either!?!... drop down of the Word for the same information like we have been doing already."* · *"control of the top space like PoeTech for the Header."*
+
+Built: 35 full lesson bodies in six parts (`lib/tlc-course-bodies/`, ≥350 words each, no reference in the body), merged into the library as the standard and senior levels with the starter kept as the teen level; the Word as a drop-down fold inside every lesson, following the page-wide switch, opening with the Hebrews 4:12 note; the Word authored for the five lessons that lacked it; a review for Christina under every course and script (known understanding, sources, her questions, the workflow as steps); the door's top space as a compact sticky bar plus a hideaway the chevron tucks away per device under PoeTech's own key, the escape hatch kept in both states. Proof: curriculum (+5), practice-learn-render re-pinned, door render (+1).
+
+## Then: a lesson served by link — taste and see (DR-0349)
+
+Darrell: *"how do we assign or share outside the app? Like a link to serve the lessons like the Love Corner App does... so people can taste and see what type of therapy and training TLC Therapy Solutions App has to offer."*
+
+Built the Love Corner's mechanism on TLC's own door: `lib/tlc-lesson-links.js` (the link `poetech.us/tlc/app/?tlc=1&course=…&lesson=…`, parsed and resolved against the mounted curriculum, stale → the door opens normally); Share on every lesson, track and course; signed out the door serves the linked lesson open above the booking page in guest mode with nothing of the office; signed in it opens Training on the lesson. Proof: `tlc-lesson-links.test.js` (10), door render (+3), practice-learn-render (+1). Live proof waits on the first tap from a phone (re-review 2026-09-17).
+
+## Then: the first share from a phone, and the link carries the Word (DR-0349 amendment)
+
+Deploy run 1012 on `8c7ab73` proven (DR-0107). Darrell shared "What is anxiety" from his phone; the share text arrived as designed. His word: *"The link should be with or without the Word depending on if the Word is open."* Built: `word=1` on the link when the fold was open; the recipient's fold opens the same way; the page-wide switch is never flipped by a link. Proof: lesson-links (+1), practice-learn-render (share plain, then with the Word), door render (+1).
+
+## Then: hire through the app (DR-0350)
+
+Darrell: *"need to have the ability to hire people for jobs we post so we can hire through the app and onboarding goes to the telehealth app we use"* · *"The website is already linked however opportunities and constraints"* · *"Do we have all the types of users we need for these workflows to work and how do the users acknowledge they read and agree to the documents we need signatures for?"*
+
+Built: migration 0191 (jobs; applications written only by anon `tlc_apply`, read by owner/admin only; `tlc_application_hire` mints the DR-0344 invite atomically; the telehealth hand-off stamped on the row); `lib/tlc-hiring.js` + seam; Join the team on the door (the website's careers link lands on it with `?jobs=1`); Jobs and Applicants on Onboarding with the pipeline, Hire and the hand-off (SimplePractice from the handbook, flagged for Christina). The user-types question answered from the code: eight office seats plus two standings before membership now in the matrix (applicant, new colleague). The signature question answered from the code and one gap closed: every typed signature now pins a content-hash document version, a precise time and the ESIGN consent (`lib/tlc-signing.js`). Constraints stated in the DR: no platform API; the shared instance and one-role-three-titles (re-review 2026-09-24). Proof: hiring (12) + render (5); governance and onboarding re-pinned; `0191-tlc-hiring-smoke.sql` in the rls-isolation leg. Live proof: the next rls-isolation run after db-migrate applies 0191.
+
+Darrell, on the shared lesson stacked above the booking page: *"The lessons should be on another tab for those who are not signed in... we like the sliders"* · *"what tabs do each group need to see and or not?"* · *"We want clients to have information about subjects available 24/7"* · *"understanding is the principle thing."* Built: the visitor's slider (Find your therapist · Learn · Join the team; a link picks the tab); Learn signed out serves the client lessons at any hour with a subject finder, headed "Understanding is the principal thing" with Proverbs 4:7 from the corpus; the tabs per group as data (`doorTabsFor`) pinned beside the matrix (DR-0350 amendment).
+
+**The smoke caught a real bug.** rls-isolation run 130 (the first after 0191 applied) failed on `tlc_apply`: `audit_log.action` has an allow-list and 0191 wrote `apply` / `hire`. Every live application would have failed. Migration 0192 corrects both functions (`create`, `status-change`); the tlc-office leg carries it; the pure test reads the allow-list from the schema. The mocked tests could not see this; the real-database leg did, on its first run (DR-0350 amendment).
+
+
+## Then: TLC's own instance, the acknowledgment sentence, a client's account, how one joins (DR-0351; DR-0350 amended §18–22)
+
+Darrell decided the two open items of the assessment (*"yes TLC gets it's own database"* / *"A client should be able to create an account!!!! that's the point"*), asked for the checkbox to say *"by checking here you agree"* with the time stamps kept, said *"fix the low hanging fruit obviously"*, then sent the live door reading "No open positions" (*"HOW DOES ONE JOIN THE TEAM"*) and asked for *"options for roles they can show they are interested in... how many people look at this role vs this one... data driven reporting"* and *"where can we post the vacancies we have?"*
+
+- **Live read first (DR-0076):** poe-family held Darrell (gmail + phone, owner) and mrspoe06 (admin); `christina@tlctherapysolutions.com` has no account yet; every `tlc_*` table empty; the instance-type allow-list already carries `therapy-practice`; the 0191 application guard pins `instance_id` (so the move steps around it).
+- **Migration 0193 (DR-0351):** the `tlc-therapy-solutions` instance; Christina owner, Darrell admin; the eight office tables re-homed; office-only resolvers (`tlc_onboarding_my_office`, new `my_office_instance_role`); the shell's resolver untouched. `lib/instance-role.js` is one store factory serving two resolvers; the TLC door, Onboarding, Governance, Assistant read `useOfficeInstanceRole`; `getOfficeInstanceId()` serves assignments and the launch board. The 0189 and 0191 smokes now stand up a therapy-practice office (the office-only resolver would otherwise find nothing).
+- **Migration 0194:** the office's wall clock on every signed acknowledgment at submit (kept on an unchanged resubmit, renewed on a re-sign), the versions + stamps on the audit row; the checkbox sentence and the checked moment stored with the signature; the readout shows both.
+- **Migration 0195:** `kind` on a posting and the standing interest card seeded on the office; `interest_roles` on applications (guard-pinned); the honeypot refused first; `tlc_job_views` + anon `tlc_job_viewed` (open postings only, the RPC alone writes); `tlc_hiring_report()` for owner/admin; the door's list carries the kind. Client: the interest form with role checkboxes and its own link/share, the hidden untabbable field, one view per opened posting per visit, the applicant card's "Interested in", the Onboarding **Hiring report** area (views 7d / all, applications by station, roles counted).
+- **The door:** "Sign in" for clients and staff (TLC-branded entry with its own create-a-profile switch); "Create an account" under a lesson served by link opens it on sign-up.
+- **Proof:** three new smokes in the tlc-office leg (0193, 0194, 0195); `tlc-onboarding.test.js` (+7), `tlc-hiring.test.js` (+4), `tlc-hiring-render` (+2), door render (+2), `instance-role-office.test.js` (2); lint; every guard; the standards gates; build; layout probe. Live proof after merge: db-migrate 0193–0195, then the rls-isolation run it dispatches.
+- **Not low-hanging, dated:** `office_records` / `practice_leads` re-homing (2026-09-17, DR-0351 §6); the AI specialist seat in the Love Corner and family charts (2026-09-17, DR-0350 §15 — those charts are `member-roles.js` labels, not seat files; the seat needs a chart first); one database role for three clinical seats (2026-09-24).
+
+**Live proof of #1510 (main 9182754):** db-migrate 501 applied 0193–0195 (the instance `tlc-therapy-solutions` exists as therapy-practice; mrspoe06 owner, Darrell's gmail and phone identities admin; one open interest card; the three functions and `tlc_job_views` present); deploy 1016 carries main's head. rls-isolation run 134 went RED on `0191-tlc-hiring-smoke.sql`: it asserted anon sees exactly one open posting through `tlc_public_jobs('tlc')`, and the door now lists the live office's standing interest card beside the smoke's own posting (the function lists every open posting of office `tlc`, not one instance's). The 0189, 0193, 0194 and 0195 smokes were not reached. Fix: the smoke reads only its own instance's rows out of the list (the 0195 smoke already did). A note for the record: `tlc_public_jobs` keys on `office_id`, not the instance, which is right for a signed-out door and means a second instance calling itself `tlc` would share the list — today there is one.
+
+**rls-isolation run 136 (main 65b9e89, dispatched by hand since #1511 changed no migration):** 0189, 0191 (scoped), 0193 and 0194 PASS live; 0195 stopped on its own assertion — it counted anon's rows on `tlc_job_views` expecting 0, and the database refused the read outright ("permission denied": 0195 grants SELECT to authenticated only). The wall is stronger than the smoke assumed; the assertion now pins the refusal. Nothing in 0195 itself changes.
+
+**rls-isolation run 137 (main c8762e3, dispatched by hand after #1512): GREEN — the whole matrix, the tlc-office leg through 0189, 0191, 0193, 0194 and 0195 on the real database.** That closes the live proof of DR-0351 and DR-0350 §18–22: the office-only resolvers, the office's clock on every acknowledgment, the interest card with its roles, the honeypot, the view counts nobody but staff can read, and the hiring report — each proven against the real policies, not a mock. Runs 134 and 136 each caught one over-broad assertion in a smoke (never a product defect) and both are recorded above.
+
+## Then: the office edits its own forms; the colleagues already on the form (DR-0352, DR-0353)
+
+Darrell, on the live Onboarding tab: *"where is the intake form so we can have staff update it?! everything needs to be able to be updated by staff!"* — then the assessment (missing information, assumptions, risks, dependencies, decisions), then *"Add our users into the app so they can log in and already have access to their information... from TLC Therapy Solutions intake form."*
+
+- **SHOULD/ARE/GAP:** the packet's questions, the agreements and the handbook were code; no surface edited them. **CLOSE:** migration 0196 (versioned rows, a note on every save, history append-only, read by a member or a packet holder, the live required questions enforced at submit), `lib/tlc-office-forms.js` (the original as an editable body; any body normalized onto it; the floor fixed), the **Form & documents** area under Onboarding, the packet form / readout / Team reader / signature record reading the live definition.
+- **The colleagues on the old form:** migration 0197 — a prefilled invite (packet body; banking apart; a source), claimed by the signed-in email with no link (`tlc_onboarding_claim`, called from `myPacketStatus` when nothing is bound); the banking goes behind the wall and off the invite; signatures are never prefilled. The import itself is a live-database step after merge, by count only in the record; the sheet also holds one colleague's CAQH password in plain text, which is never imported and should be deleted from the sheet.
+- **Proof:** smokes 0196 and 0197 in the tlc-office leg; `tlc-office-forms.test.js` (10), `tlc-form-editor-render.test.jsx` (2), `tlc-onboarding-claim.test.js` (4); onboarding suites re-pinned; lint; guards; build; probe.
+- **The reader on the door** (Darrell, on Team: *"we want the reader function to be added"*): the TLC door now mounts the single floating read-aloud control once, for every tab signed in or out, inside one `main` that wraps whatever the door shows — so it reads the handbook, the agreements, the launch board, a packet, a posting — and never the bar; the lessons surface inside the door no longer mounts its own. Pinned in the door render test.
+- **The form itself, to see** (Darrell, at a copy of the old Google form: *"Where is the intake form, and why can't we see it?"*): `TlcFormPreview` — the intake form as a colleague meets it, read-only, from the live definition — on Team → Documents for staff and as a Preview beside the editor. The old Google form is superseded; the app's form is the one the office edits (Onboarding · Form & documents) and the one a colleague fills.
+
+## Then: a cell for every item (DR-0354)
+
+Darrell: *"at least create a place for all items on the intake form even if Christina needs to add the data later or even have users add their own data... we need the cells to accommodate the data... make sense?"*
+
+- **SHOULD/ARE/GAP:** every item had a place in the packet, but a cell could be filled only by the colleague, only in the packet form, only while a draft or returned; an invite's held answers could not be seen or filled. **CLOSE:** migration 0198 — `tlc_onboarding_patch` (the office or the colleague themself, any status, audited with who + which cells + note), `tlc_onboarding_invite_read` / `tlc_onboarding_invite_patch` (the office on a not-yet-opened prefilled invite; banking only as on-file), the list saying which invites are prefilled; the guard refuses signatures, documents, passwords and bank numbers in any patch.
+- **The editor:** `TlcRecordEditor` — every cell of the live form, section folds, only the changed cells sent, a note for the record, what it does not fill named. On a packet (Onboarding · Packets → *Fill or correct the cells*), on a prefilled invite (Onboarding · Invite → *Answers on file*), and on Team (*My record · fill or correct any cell*) for a colleague at any status. The packet form's inputs moved to `TlcFieldInputs.jsx` so both surfaces render one set; the pure middle is `lib/tlc-record-cells.js`.
+- **Proof:** smoke 0198 in the tlc-office leg; `tlc-record-cells.test.js` (8), `tlc-record-editor-render.test.jsx` (4), `tlc-onboarding-render.test.jsx` (+2), the 0198 pins in `tlc-office-forms.test.js`; lint; every guard; the standards gates; build. Live proof after merge: db-migrate 0198, then the rls-isolation run it dispatches.
+
+## Then: every area of Training explained, and shown complete (DR-0355)
+
+Darrell, on the therapist strip at "Assigned lessons · Nothing scheduled yet": *"explain each one possible on this tab... then just show it as complete when they do... etc..."*
+
+- **SHOULD/ARE/GAP:** each area had a panel; the strip said nothing about what an area was for and nothing marked one complete, though every panel already carried its own completion math. **CLOSE:** `lib/learn-areas.js` — a guide per area (what it is · what to do there · when complete) and `learnAreaDone` from the learner's own records only (an empty record is never done; What you'll gain and Pathways are informational and never marked); `SectionTabs` grows `explain` / `done` / `detail` — the line under the strip for the open area with the honest count, a named check on a done tab (an image, never text, so every label pin holds).
+- **Proof:** `learn-areas.test.js` (6), `section-tabs.test.jsx` (+1), `practice-learn-render.test.jsx` (+1); lint; standards; guards; gates.
+
+**Live proof of #1516 (main 3b2db94 — DR-0354 + DR-0355):** deploy 1022 carries main's head (DR-0107); db-migrate 505 applied 0198 (`tlc_onboarding_patch`, `tlc_onboarding_patch_guard`, `tlc_onboarding_invite_read`, `tlc_onboarding_invite_patch` present on the live database, `tlc_onboarding_list` redefined); rls-isolation run 140 GREEN first try — the tlc-office leg through 0189, 0191, 0193–0198 on the real policies, the 0198 smoke proving the office fills an invite, the claimed packet carries the cell, an opened invite refuses, the office and the colleague patch a packet, a member and a stranger cannot, a signature and the documents are refused, an approved colleague still updates their own cell, every write audited. Locally: two full suites (902 → 903 files, 13,252 → 13,261 tests), lint, standards, every guard, build, the layout probe (self-test + sweep) green.
+
+## Then: a check at the bottom of every document (DR-0356)
+
+Darrell: *"still don't have a check box at the bottom of the documents with time stamps for when they agreed... like a green check that they acknowledged!"* — and, at the Form & documents editor, *"intake documents are making users erase the cell content that says what it is instead of having text outside of the cell so the date can be a calendar..."* then *"I think I like it maybe..."*
+
+- **SHOULD/ARE/GAP:** the three acknowledgments lived only in the packet form's Agreements section, only while a draft or returned, by saving the whole packet; Team → Documents showed no acknowledgment; an approved colleague could not re-acknowledge a revised text. **CLOSE:** migration 0199 `tlc_onboarding_acknowledge` (self only, any status, the packet's own record shape, the office's stamp with 0194's keep-or-renew rule, audited); `TlcDocumentAcknowledge` under the handbook and both agreements on Team — checkbox + typed signature, then a green check with who, the device moment, the office moment and the version; a revised document brings the box back and keeps the green check for the version signed.
+- **The editor, traced:** the Label cell of the Form & documents editor read as an answer cell. Reality: every date on file is an ISO date answered by a calendar; the editor edits the QUESTIONS. Each question card now says "answered with a calendar / a short answer box / one choice from a list…", and a line under Preview says nothing typed there is an answer. The structural rework of the composite questions (emergency contact, education, effective dates as typed cells) is an open question Darrell paused on ("I'm not sure about the intake form... opportunities and constraints?") — assessed in the reply, not built.
+- **Proof:** smoke 0199 in the tlc-office leg; `tlc-document-acknowledge-render.test.jsx` (6); the 0199 pins; lint; guards; build; the layout probe. Live proof after merge: db-migrate 0199, then the rls-isolation run it dispatches.
+
+**Live proof of #1518 (main c91789c — DR-0356):** deploy 1024 carries main's head (DR-0107); db-migrate 507 applied 0199 (`tlc_onboarding_acknowledge` present on the live database, security definer, the six arguments); rls-isolation run 142 GREEN first try — the tlc-office leg through 0189, 0191, 0193–0199, the 0199 smoke proving the colleague acknowledges from the document, the same signing keeps its stamp, a new version is stamped anew, the owner / a member / a stranger cannot sign for them, an unknown key, an empty name and an unchecked sentence are refused, an approved colleague still acknowledges a revised text, every signing audited. Locally: full suite (904 files, 13,269 tests), lint, standards, every guard, build, the layout probe (self-test + sweep, run from the repo root; a first run from `app/` never started, exit 1 on a missing path — caught by reading its log, rerun before the proof was claimed).
+

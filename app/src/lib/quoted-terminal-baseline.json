@@ -1,0 +1,150 @@
+{
+  "note": "Quoted spans that are verbatim KJV EXCEPT for their terminal punctuation. 222 occurrences were made verbatim on 2026-09-17 by moving the host sentence mark outside the closing quote; these are what remain. Two kinds: (a) OUR OWN short dialogue and names, where the punctuation is correct as it stands and no change is wanted, and (b) Scripture fragments inside an ellipsis-joined quoted region, where the mark sits mid-region and a span-level replace cannot reach it -- those need a per-case edit. Recorded so the count can only shrink. A NEW instance fails the build. See DR-0418 and living-lessons-quoted-terminal.test.js.",
+  "recorded": "2026-09-17",
+  "fixedInThatPass": 222,
+  "distinctSpans": 55,
+  "lessons": 43,
+  "byLesson": {
+    "ll2-the-energy-you-were-given": [
+      "do more."
+    ],
+    "ll3-bodybuilding-christ": [
+      "in particular,"
+    ],
+    "ll4-dying-to-live": [
+      "abideth alone,"
+    ],
+    "ll5-take-no-thought-for-tomorrow": [
+      "Take therefore no thought for the morrow."
+    ],
+    "ll9-the-lord-looks-on-the-heart": [
+      "whited sepulchre,"
+    ],
+    "ll14-ten-healed-one-whole": [
+      "I know."
+    ],
+    "ll15-seasoned-with-salt": [
+      "a time to dance,"
+    ],
+    "ll18-the-flinch-comes-first": [
+      "Fine."
+    ],
+    "ll19-not-ignorant-of-his-devices": [
+      "Marv,",
+      "come here,",
+      "hold this,"
+    ],
+    "ll21-hidden-vs-known": [
+      "and I hid myself,"
+    ],
+    "ll22-goshen-and-the-watch": [
+      "You,"
+    ],
+    "ll23-the-blessed-hope": [
+      "shall so come in like manner,"
+    ],
+    "ll25-the-threshold-and-the-two-patterns": [
+      "pray for them,"
+    ],
+    "ll27-the-god-who-documents-his-grief": [
+      "How shall I give thee up?",
+      "What are these?"
+    ],
+    "ll30-the-whole-story-yahweh-and-humanity": [
+      "shall be preached in all the world,"
+    ],
+    "ll31-the-best-way-preferred-accepted-natural-against": [
+      "best,"
+    ],
+    "ll32-salt-light-and-anchor-the-church-in-the-city": [
+      "Now it is."
+    ],
+    "ll34-the-tower-the-race-and-the-sovereign": [
+      "a sound mind,"
+    ],
+    "ll35-sovereign-and-small": [
+      "and oil in the dwelling,"
+    ],
+    "ll36-fruit-root-and-the-empty-house": [
+      "Ada,",
+      "fine,",
+      "more wicked,"
+    ],
+    "ll37-one-blood-truth-over-the-debate": [
+      "plead the cause of the poor,"
+    ],
+    "ll38-become-the-message-tactics-to-essence": [
+      "he also reap,"
+    ],
+    "ll40-the-thread-did-not-snap-remnant": [
+      "one blood,"
+    ],
+    "ll43-the-war-is-for-the-mind": [
+      "May,",
+      "out there,"
+    ],
+    "ll46-ye-fathers-provoke-to-good-works": [
+      "shall we not much rather be in subjection unto the Father of spirits?",
+      "ye fathers."
+    ],
+    "ll47-navigating-the-age-faith-critical-thinking-identity": [
+      "Baby,",
+      "why?"
+    ],
+    "ll48-world-class-as-unto-the-lord-work-ownership-resilience": [
+      "sufficient,"
+    ],
+    "ll49-mastery-without-manipulation-lifes-task-envy-sober-mind": [
+      "fortresses,"
+    ],
+    "ll53-the-emotional-cycles-of-brain-and-body-stewarding-feeling-by-the-renewed-mind": [
+      "an angel touched him, and said unto him, Arise and eat,"
+    ],
+    "ll54-the-same-word-different-soil-the-parable-of-the-sower": [
+      "heareth the word, and understandeth it; which also beareth fruit."
+    ],
+    "ll58-the-wind-you-can-hear-perceiving-the-holy-spirit": [
+      "Child,",
+      "There,"
+    ],
+    "ll64-as-thy-soul-prospereth-spirit-soul-and-the-will": [
+      "even as."
+    ],
+    "ll65-processed-for-righteousness-works-words-and-the-verdict": [
+      "hath committed all judgment unto the Son,"
+    ],
+    "ll66-watch-and-pray-the-secret-place-and-the-predators-within": [
+      "seeking whom he may devour,"
+    ],
+    "ll68-out-of-the-way-consecration-and-the-broken-bread": [
+      "can I?"
+    ],
+    "ll69-faithful-over-a-few-things-stewardship-and-increase": [
+      "Having,"
+    ],
+    "ll73-the-house-of-el-and-the-only-saviour": [
+      "My God, my God."
+    ],
+    "ll80-the-four-warnings-of-a-hardening-heart": [
+      "deceitfulness."
+    ],
+    "ll81-tongues-weighed-word-first": [
+      "forbid not."
+    ],
+    "ll83-keep-thy-heart-the-conditions-of-growth": [
+      "Then,",
+      "be kind,",
+      "if.",
+      "shall keep your hearts and minds,"
+    ],
+    "ll87-two-ways-two-wisdoms-how-the-word-makes-whole": [
+      "seemeth right."
+    ],
+    "ll89-the-most-hated-verse-wilful-sin-the-one-sacrifice-the-advocate": [
+      "wilfully,"
+    ],
+    "ll95-know-the-state-of-thy-flocks-best-buy-and-the-fickle-rally": [
+      "trick,"
+    ]
+  }
+}

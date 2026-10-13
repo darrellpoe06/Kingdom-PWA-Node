@@ -1,0 +1,828 @@
+# Site health — proves poetech.us is UP and FRESH, from outside the building.
+#
+# WHY THIS EXISTS (2026-07-08, DR-0107 lineage). Every existing safeguard in the
+# lane watches the PIPELINE: CI proves the build, deploy-freshness proves a
+# deploy was DISPATCHED for main's tip, the auto-merge heal step dispatches it.
+# None of them ever makes an HTTP request to the site the family actually opens.
+# On 2026-07-08 Darrell reported the app down AGAIN while every deploy run in
+# the ledger was green — the exact blind spot: deploy-success is not site-up.
+# This workflow is the missing instrument: an outside-in probe of the served
+# product (DR-0076 rule 7, independent verification; LESSONS P5/P22/P26).
+#
+# WHAT IT MEASURES (all against the LIVE domain, browser-shaped requests):
+#   1. UP        — the root redirect (302 -> /poetech-app/) and the app shell
+#                  (200, real HTML with the #root mount) both answer.
+#   2. INTACT    — the hashed JS bundle index.html points at actually exists
+#                  (catches the stale-shell / missing-chunk white-screen class,
+#                  2026-06-30 signature).
+#   3. FRESH     — the build SHA embedded in the served sw.js matches main's
+#                  tip (catches the silent-stale class, 2026-07-06 incident).
+#   4. ISOLATED  — the same checks against poetech-app.pages.dev, so a failure
+#                  localizes to the custom domain layer vs the Pages project.
+#   5. USABLE    — the BACKEND answers on the path the app uses (DR-0303).
+#                  Added 2026-08-14 after every account across all four apps was
+#                  locked out for ~20 hours by a Supabase 402
+#                  `exceed_egress_quota` while checks 1-4 stayed green: the HTML
+#                  served perfectly the entire time. Site-up is not app-usable.
+#
+# WHAT IT DOES WITH A FAILURE:
+#   - DOWN/BROKEN: opens (or comments on) the single rolling "site-health
+#     incident" issue, labeled `incident`, with the measured evidence — the
+#     durable, queryable downtime record ("how many times today?" has an
+#     answer). Recovery posts the close.
+#   - STALE: dispatches deploy-cloudflare-pages.yml (same one-shot heal as
+#     deploy-freshness; the deploy's own concurrency group makes stacking
+#     impossible).
+#
+# THE THREE BRAKES (CLAUDE.md — timer-driven automation):
+#   1. BUDGET — a handful of HTTP GETs + at most one deploy dispatch + at most
+#      one issue write per fire; hard step timeout; no compute is spawned.
+#   2. LOCK   — concurrency group `site-health`, single-instance; the healed
+#      deploy is single-flight in its own `cf-pages-deploy` group.
+#   3. KILL   — set repo variable SITE_HEALTH_ENABLED='false' (or disable in
+#      the Actions UI) to pause instantly. Unset => runs (DR-0110 class: a
+#      bounded, idempotent, non-spawning prober is the deploy-freshness class,
+#      which ships active).
+
+name: Site health (up + fresh, outside-in)
+
+on:
+  schedule:
+    # REQUESTED every 10 min. MEASURED cadence is ~67 min (range 38–154 across
+    # 28 scheduled runs, 2026-08-14): GitHub throttles scheduled workflows, so
+    # this cron is a request, not a guarantee. The comment used to read "every
+    # 10 min" flatly, and DR-0303 then cited that comment as if it were a
+    # measurement — claiming this witness cuts a blind window to ~10 minutes
+    # when the honest figure is about an hour, worst case ~2.5 hours.
+    #
+    # Left at */10 deliberately: asking for more than we get costs nothing and
+    # takes whatever slots are free. What must not happen again is READING THIS
+    # LINE AS THE CADENCE. If a class needs a real sub-10-minute guarantee, it
+    # needs a different runner (a sovereign NAS loop or an external monitor) —
+    # tracked in DR-0303, re-review 2026-08-21.
+    - cron: '*/10 * * * *'
+  workflow_dispatch: {}
+
+concurrency:
+  group: site-health
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  actions: write # dispatch the deploy heal
+  issues: write  # the rolling incident record
+
+jobs:
+  probe:
+    if: ${{ vars.SITE_HEALTH_ENABLED != 'false' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      # Carried out of the job ONLY so the `verdict` job below can put it in a
+      # job NAME. A run's `run-name:` is fixed when the run is created, before
+      # anything is measured, so the Actions list cannot be made to show which
+      # fault this is — a named downstream job is the one label that can.
+      verdict_label: ${{ steps.verdict.outputs.run_name }}
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      REPO: ${{ github.repository }}
+      UA: 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Mobile Safari/537.36'
+      # The backend probe (step 7) walks the same path the app walks. The anon
+      # key is the public client key already shipped in the bundle.
+      SB_URL: ${{ secrets.VITE_SUPABASE_URL }}
+      SB_ANON: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+    steps:
+      # THE CHECKOUT IS HERE ONLY FOR scripts/ops-announce.mjs (DR-0970).
+      # The probe below is still purely outside-in — it makes real HTTP
+      # requests to poetech.us and reads nothing from the tree. The bell at
+      # the end needs the repo because its decision now lives in a tested
+      # script instead of a `curl` line that could not fail.
+      - uses: actions/checkout@v4
+      - name: Probe the live site
+        id: probe
+        run: |
+          set -uo pipefail
+          fail_reasons=""
+          note() { echo "$1"; echo "$1" >> "$GITHUB_STEP_SUMMARY"; }
+          add_fail() { fail_reasons="${fail_reasons}${fail_reasons:+; }$1"; }
+
+          fetch() { # fetch <url> -> sets CODE, BODY_FILE, LOC
+            local url="$1"; BODY_FILE=$(mktemp)
+            local out
+            out=$(curl -sS -A "$UA" -o "$BODY_FILE" -w '%{http_code} %{redirect_url}' --max-time 20 "$url" 2>&1) || true
+            CODE="${out%% *}"; LOC="${out#* }"
+          }
+
+          note "## Site health probe — $(date -u +%FT%TZ)"
+
+          # 1. UP: root answers and routes into the manifest scope.
+          fetch "https://poetech.us/"
+          note "- \`GET /\` -> **$CODE** (redirect: ${LOC:-none})"
+          case "$CODE" in
+            301|302|307|308)
+              case "$LOC" in *"/poetech-app/"*) : ;; *) add_fail "root redirects to '$LOC', not /poetech-app/";; esac ;;
+            200) : ;; # a future distinct root landing page is legal
+            *) add_fail "root returned HTTP $CODE" ;;
+          esac
+
+          # 2. UP: the app shell is real HTML with the mount point.
+          fetch "https://poetech.us/poetech-app/"
+          note "- \`GET /poetech-app/\` -> **$CODE**"
+          if [ "$CODE" != "200" ]; then
+            add_fail "app shell returned HTTP $CODE"
+          elif ! grep -q 'id="root"' "$BODY_FILE"; then
+            add_fail "app shell 200 but no #root mount (body starts: $(head -c 120 "$BODY_FILE" | tr -d '\n'))"
+          fi
+          SHELL_BODY="$BODY_FILE"
+
+          # 2b. EVERY INSTALLABLE FACE'S OWN DOOR. Diagnosed in PR #1405
+          # (2026-08-30): DR-0258 gave each installable app its own served page
+          # and its own scope, and this probe only ever measured /poetech-app/.
+          # It reported "UP. Fresh." across all eight dimensions while the
+          # church app's own start_url was dead on Darrell's phone -- the
+          # instrument was blind to the door the congregation actually taps. A
+          # face that 404s, or serves 200 with no #root mount, IS the site being
+          # down for that congregation, so it fails the probe like any other
+          # dimension.
+          for face in /lovecorner/app/ /moore/app/ /tlc/app/ /properties/app/; do
+            fetch "https://poetech.us${face}"
+            note "- \`GET ${face}\` -> **$CODE** (installable face, DR-0258 scope)"
+            if [ "$CODE" != "200" ]; then
+              add_fail "installable face ${face} returned HTTP $CODE"
+            elif ! grep -q 'id="root"' "$BODY_FILE"; then
+              add_fail "face ${face} returned 200 but no #root mount"
+            fi
+          done
+
+          # 3. INTACT: the hashed bundle the shell points at exists.
+          asset=$(grep -o '/poetech-app/assets/[^"]*\.js' "$SHELL_BODY" | head -1 || true)
+          if [ -n "$asset" ]; then
+            fetch "https://poetech.us$asset"
+            note "- \`GET $asset\` -> **$CODE**"
+            [ "$CODE" = "200" ] || add_fail "shell's own bundle $asset returned HTTP $CODE (stale-shell/missing-chunk class)"
+          fi
+
+          # 3b. WHICH BACKEND DOES THE SERVED APP ACTUALLY CALL? (2026-09-03)
+          #
+          # Christina could not sign in. Every sign-in call answered with
+          # Cloudflare's HTML 525 page, and THIS PROBE — running 17 minutes
+          # later — wrote "**UP.** Fresh." It measured the HOSTED backend named
+          # by the secrets while the served app had been calling poetech.us/sb
+          # since the 2026-08-19 repoint. The instrument was watching an origin
+          # the family's app no longer uses (P31, one layer down again).
+          #
+          # So the probe stops trusting configuration and READS THE SERVED
+          # BUNDLE: the VITE_ vars are inlined at build time, so the backend the
+          # app truly calls is a string in the JavaScript the browser just ran.
+          # Every referenced chunk is scanned, because the key/URL can land in
+          # any of them (measured by nas-health, 2026-08-19).
+          LIVE_SB="unknown"
+          for A in $(grep -o '/poetech-app/assets/[^"]*\.js' "$SHELL_BODY" | sort -u | head -12 || true); do
+            CHUNK=$(curl -sS -A "$UA" --max-time 30 "https://poetech.us$A" 2>/dev/null) || continue
+            case "$CHUNK" in
+              *"poetech.us/sb"*) LIVE_SB="true"; break ;;
+              *".supabase.co"*)  LIVE_SB="false" ;;
+            esac
+          done
+          note "- served app's auth backend: **$(case $LIVE_SB in true) echo 'poetech.us/sb (sovereign)';; false) echo 'hosted supabase.co';; *) echo 'UNREADABLE — treated as sovereign below';; esac)**"
+
+          # 4. FRESH: served sw.js carries main's tip. The build stamps
+          # `const SW_VERSION = "abc1234";` (JSON.stringify => DOUBLE quotes —
+          # vite.config.js sw-version-stamp; the first probe run missed this
+          # with a single-quote pattern and read "unknown").
+          main_sha=$(gh api "repos/$REPO/commits/main" --jq '.sha' 2>/dev/null | cut -c1-7 || echo "")
+          fetch "https://poetech.us/poetech-app/sw.js"
+          served_sha=$(grep -oE 'SW_VERSION = "[0-9a-f]{7}"' "$BODY_FILE" | grep -oE '[0-9a-f]{7}' | head -1 || true)
+          stale="false"
+          if [ -n "$main_sha" ] && [ -n "$served_sha" ]; then
+            [ "$served_sha" != "$main_sha" ] && stale="true"
+            note "- served build: **$served_sha** · main tip: **$main_sha**"
+          else
+            # UNKNOWN never reads as fresh. Fall back to the deploy ledger,
+            # asked by EXACT commit (P62, DR-0697 -- the runs list is not
+            # newest-first once filtered): has main's full tip a successful
+            # deploy? No run for it means stale.
+            main_full=$(gh api "repos/$REPO/commits/main" --jq '.sha' 2>/dev/null || echo "")
+            deployed_sha=""
+            if [ -n "$main_full" ]; then
+              deployed_sha=$(gh api \
+                "repos/$REPO/actions/workflows/deploy-cloudflare-pages.yml/runs?status=success&head_sha=$main_full&per_page=1" \
+                --jq '.workflow_runs[0].head_sha // ""' 2>/dev/null | cut -c1-7 || echo "")
+              [ -z "$deployed_sha" ] && stale="true"
+            fi
+            note "- served build: **unverified** (sw.js extraction missed) · main tip deployed: **${deployed_sha:-no}** · main tip: **${main_sha:-unknown}**"
+          fi
+
+          # 5. ISOLATE: same shell check on the Pages project domain.
+          fetch "https://poetech-app.pages.dev/poetech-app/"
+          note "- \`GET pages.dev/poetech-app/\` -> **$CODE** (isolates domain layer vs project)"
+          PAGES_CODE="$CODE"
+
+          # 6. PHOTO PATH (DR-0268): the sovereign photo server, outside-in —
+          # the runner is the only eye that can see this hop (the sandbox has
+          # no route). healthz is unauthenticated liveness; /property-history
+          # answering 401 PROVES the history bridge is alive (auth-gated is
+          # alive; only connect-fail/5xx is down). v1 scope: a red photo path
+          # is a loud warning + its own output, NOT the site-incident ledger
+          # (the NAS is a family box that can be legitimately off; escalation
+          # to the ledger is re-review 2026-08-17, REV-0228).
+          fetch "https://poetech.us/nas-photos/healthz"
+          PHOTO_CODE="$CODE"
+          note "- \`GET /nas-photos/healthz\` -> **$CODE** (sovereign photo server, via Funnel)"
+          [ "$PHOTO_CODE" = "200" ] || echo "::warning::photo path DOWN — /nas-photos/healthz returned HTTP $PHOTO_CODE (photo_server.py / Funnel / Pages Function hop)"
+          # The family camera road (DR-0756): /cams/health passes go2rtc's OWN
+          # answer through, so a 200 here proves Pages Function + Funnel +
+          # forwarder + go2rtc in one hop. Same v1 scope as the photo path: a
+          # loud warning, not the site-incident ledger (the NAS can be off).
+          fetch "https://poetech.us/cams/health"
+          CAMS_CODE="$CODE"
+          note "- \`GET /cams/health\` -> **$CODE** (family camera road: forwarder + go2rtc, via Funnel)"
+          # WHICH CODE THE NAS RUNS (2026-10-07): the forwarder names the sha of
+          # the file serving; beside the sha of main's copy, "deployed" is an
+          # observation, not an inference. The two differ until services-sync's
+          # next cycle restarts the service.
+          # This job has NO checkout (run 37573386665 crashed here reading the
+          # file from an empty workspace and filed a FALSE incident, #1986), so
+          # main's copy is fetched from GitHub; a miss is noted, never fatal.
+          CAMS_HEALTH="$(curl -sS -m 12 "https://poetech.us/cams/health" 2>/dev/null || true)"
+          CAMS_RUNNING="$(printf '%s' "$CAMS_HEALTH" | sed -n 's/.*"forwarder": *"\([0-9a-f]*\)".*/\1/p')"
+          CAMS_ON_DISK="$(printf '%s' "$CAMS_HEALTH" | sed -n 's/.*"on_disk": *"\([0-9a-f]*\)".*/\1/p')"
+          CAMS_MAIN="$(curl -fsS -m 12 "https://raw.githubusercontent.com/${REPO}/main/infra/nas-cameras/cams_forwarder.py" 2>/dev/null | sha256sum | cut -c1-16 || true)"
+          if [ -n "$CAMS_RUNNING" ] && [ -n "$CAMS_MAIN" ]; then
+            if [ "$CAMS_RUNNING" = "$CAMS_MAIN" ]; then note "- camera forwarder code: running \`$CAMS_RUNNING\` = main (the NAS runs main's forwarder)";
+            else note "- camera forwarder code: running \`$CAMS_RUNNING\`, main \`$CAMS_MAIN\`${CAMS_ON_DISK:+, on the NAS disk \`$CAMS_ON_DISK\`} -- the NAS has not restarted onto main yet (services-sync runs every 15 min; the Cameras tab can restart it)"; echo "::warning::camera forwarder on the NAS runs $CAMS_RUNNING, main is $CAMS_MAIN"; fi
+          elif [ -n "$CAMS_RUNNING" ]; then note "- camera forwarder code: running \`$CAMS_RUNNING\` (main's copy could not be fetched to compare)";
+          else note "- camera forwarder code: not reported (an older forwarder, or the road is down)"; fi
+          [ "$CAMS_CODE" = "200" ] || echo "::warning::camera road DOWN — /cams/health returned HTTP $CAMS_CODE (cams_forwarder.py / go2rtc / Funnel / Pages Function hop)"
+          fetch "https://poetech.us/property-history?channel=healthprobe"
+          HIST_CODE="$CODE"
+          note "- \`GET /property-history\` -> **$CODE** (401 = alive+gated; 000/5xx = down)"
+          case "$HIST_CODE" in 200|400|401|403|404) : ;; *) echo "::warning::history bridge DOWN — /property-history returned HTTP $HIST_CODE" ;; esac
+
+          # 7. USABLE (DR-0303): the BACKEND answers, not just the HTML.
+          #
+          # 2026-08-14: every account across all four apps was signed out and
+          # could not sign back in for ~20 hours, and NOTHING here moved —
+          # because Cloudflare kept serving the shell perfectly while Supabase
+          # answered HTTP 402 `exceed_egress_quota` on /auth/v1/token,
+          # /auth/v1/signup and every /rest/v1 path. Checks 1-5 above all
+          # measure HTML. A locked front door BEHIND the HTML is invisible to
+          # every one of them.
+          #
+          # This is P31 one layer down: deploy-green is not site-up (why this
+          # file exists), and site-up is not APP-USABLE (why this step exists).
+          #
+          # It uses the anon key so it walks the exact path the app walks — a
+          # keyless probe would only prove the host resolves. The key is the
+          # public client key already shipped in the bundle; it grants nothing
+          # RLS does not already allow an anonymous visitor.
+          #
+          # A quota/billing restriction locks EVERY user out of EVERY app, so
+          # unlike the photo path (a family NAS that can legitimately be off)
+          # this goes on the incident ledger, not a warning.
+          BACKEND_CODE="unknown"
+          if [ -n "${SB_URL:-}" ] && [ -n "${SB_ANON:-}" ]; then
+            sb_fetch() {
+              BODY_FILE=$(mktemp)
+              # NO `|| echo 000` here. curl ALREADY prints 000 on a connection
+              # failure, so the fallback concatenated into "000000" — which
+              # missed both the retry test and the `000` case arm below. Caught
+              # by running this step against a dead port before shipping it.
+              # TWO `bash -e` TRAPS LIVE IN THESE THREE LINES. This step runs
+              # under GitHub's default `bash -e`, and both were proven by
+              # running the block against a dead port, not by reading it:
+              #
+              #   1. `CODE=$(curl ...)` takes CURL'S exit status, and curl
+              #      returns 7 when it cannot connect — so the assignment fails
+              #      and `-e` kills the step. The original `|| echo "000"`
+              #      existed to prevent exactly this; removing it to fix the
+              #      "000000" concatenation reintroduced the abort. `|| CODE=""`
+              #      keeps the list at exit 0 AND leaves one clean value.
+              #   2. A trailing `[ -z "$CODE" ] && CODE="000"` makes the
+              #      FUNCTION return 1 whenever the test is false, and the
+              #      caller `sb_fetch "$url"` is a plain command, so `-e` kills
+              #      the step there instead. An `if` with a false condition
+              #      exits 0.
+              #
+              # Trap 2 was live on run 31807695303: the probe measured the real
+              # 402 and died before printing it, which also skipped the incident
+              # step — the witness saw the outage and could not file it.
+              CODE=$(curl -sS -o "$BODY_FILE" -w '%{http_code}' --max-time 20 \
+                -H "apikey: $SB_ANON" -H "Authorization: Bearer $SB_ANON" \
+                "$1" 2>/dev/null) || CODE=""
+              if [ -z "$CODE" ]; then CODE="000"; fi
+            }
+            sb_fetch "${SB_URL%/}/auth/v1/health"
+            # One retry, so a single dropped connection is not an outage.
+            if [ "$CODE" = "000" ]; then sleep 5; sb_fetch "${SB_URL%/}/auth/v1/health"; fi
+            BACKEND_CODE="$CODE"
+            # The sovereign /sb transport, measured keyless (the health route
+            # answers without an apikey) — DR-0310 §5.
+            #
+            # ARMED 2026-09-03. DR-0310 §5 promised "observe-only until /sb is
+            # live, incident-armed after"; /sb went live on 2026-08-19 and the
+            # arming never landed, so for fifteen days the app's REAL backend
+            # could fail without moving this probe one inch. It failed on
+            # 2026-09-03: /sb answered 525 (Cloudflare could not reach the
+            # Funnel — the NAS was off the tailnet entirely) and the only
+            # witness that noticed was Christina, texting a screenshot.
+            #
+            # The arm is conditional on the SERVED bundle (step 3b), so this
+            # never fires for a build that does not use /sb. An UNREADABLE
+            # bundle arms it too: unknown never reads as healthy (DR-0076).
+            SB_SOV=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 "https://poetech.us/sb/auth/v1/health" 2>/dev/null) || SB_SOV="000"
+            # One retry before calling it an outage, matching the hosted probe.
+            case "${SB_SOV:-000}" in
+              200|401) : ;;
+              *) sleep 5; SB_SOV=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 "https://poetech.us/sb/auth/v1/health" 2>/dev/null) || SB_SOV="000" ;;
+            esac
+            note "- \`GET poetech.us/sb/auth/v1/health\` (sovereign transport) -> **${SB_SOV:-000}**"
+            # A 200 THAT IS THE APP SHELL IS NOT A HEALTHY BACKEND. Measured
+            # 2026-10-09, the whole time Darrell and his wife were locked out:
+            # this probe read 200 and the run concluded "UP", because EVERY
+            # Cloudflare Pages Function on the site had stopped being invoked
+            # and the SPA fallback was answering /sb with index.html. A status
+            # code alone cannot tell GoTrue from our own HTML, so the content
+            # type is now part of the reading. GoTrue answers JSON; anything
+            # text/html on this path means the transport is gone and the green
+            # light is our own page talking back to us (DR-0076: unknown, and
+            # misread, must never report as healthy).
+            # AND WATCH THE LAYER ITSELF, not only the door we happened to try.
+            # On 2026-10-09 /sb was simply the first dead route the family
+            # touched; /n8n, /cams, /taxes, /openers, /llm, /reviews, /voice,
+            # /nas-photos, /ways and /scribe were all dark at the same moment,
+            # for one cause. A Function route that answers HTML names that
+            # cause directly, without waiting for someone to fail a sign-in.
+            FN_CT=$(curl -sS -o /dev/null -w '%{content_type}' --max-time 20 "https://poetech.us/automation-status" 2>/dev/null) || FN_CT=""
+            note "- \`GET /automation-status\` (is ANY Pages Function alive?) -> \`${FN_CT:-unknown}\`"
+            case "${FN_CT:-}" in
+              *text/html*)
+                add_fail "NO PAGES FUNCTION IS RUNNING — GET poetech.us/automation-status answered with '${FN_CT}', the SPA shell, instead of its Function's JSON. When this is true EVERY NAS-backed road is dark at once: /sb sign-in, /n8n, /cams, /taxes, /openers, /llm, /reviews, /voice, /nas-photos, /ways, /scribe. Measured 2026-10-09 while a deploy logged 'Uploading Functions bundle' and '_routes.json' and the Functions still never ran, on the custom domain, on poetech-app.pages.dev AND on the per-deployment host — so it is Cloudflare-side and no code change reaches it" ;;
+            esac
+
+            # WHICH SIGN-IN DOORS ARE ACTUALLY ON (DR-0900). 2026-10-10, Darrell
+            # on the "Link requested" screen: "Need to work with Google...
+            # doesn't work!!!!!!!" -- and nothing anywhere had ever measured
+            # whether the family server had Google switched on. This reads
+            # GoTrue's own public description of itself (the same endpoint the
+            # app's pre-flight guard reads) and writes the answer into the
+            # incident ledger's notes. A reading, not a failure: Google OFF is
+            # a known state the app now says out loud, not an outage.
+            AUTH_EXT=$(curl -sS --max-time 20 "https://poetech.us/sb/auth/v1/settings" 2>/dev/null | grep -o '"\(google\|email\|phone\)":[a-z]*' | tr '\n' ' ') || AUTH_EXT=""
+            note "- sign-in doors GoTrue reports (\`/sb/auth/v1/settings\`): \`${AUTH_EXT:-could not read}\`"
+            SB_SOV_CT=$(curl -sS -o /dev/null -w '%{content_type}' --max-time 20 "https://poetech.us/sb/auth/v1/health" 2>/dev/null) || SB_SOV_CT=""
+            note "- \`GET /sb/auth/v1/health\` content-type -> \`${SB_SOV_CT:-unknown}\`"
+            case "${SB_SOV_CT:-}" in
+              *text/html*)
+                add_fail "THE SOVEREIGN TRANSPORT IS GONE — GET poetech.us/sb/auth/v1/health answered ${SB_SOV:-000} but with content-type '${SB_SOV_CT}', which is the SPA shell, not GoTrue. The /sb Pages Function is not being invoked, so every sign-in POST gets a bodiless 405 and the browser dies on .json() with 'Unexpected end of JSON input'. This is the 2026-10-09 lockout: a 200 here is not proof of anything unless it is JSON" ;;
+            esac
+            # A GET IS NOT A SIGN-IN. MEASURED 2026-10-09, the day Darrell was
+            # locked out of his own app while this probe said "UP. Fresh":
+            # `GET /sb/auth/v1/health` answered 200 the whole time, and a POST
+            # through the same road came back with an EMPTY BODY. The browser
+            # calls .json() on that and dies with "Unexpected end of JSON
+            # input" — which is the error he photographed, on both the email
+            # link and the phone PIN, because both are POSTs. Every green light
+            # here was measuring a verb nobody signs in with.
+            #
+            # So the road is now exercised the way the app uses it. A deliberately
+            # invalid credential is sent: a healthy GoTrue answers 400 with a JSON
+            # body, which proves the whole path (Pages Function -> Funnel -> kong
+            # -> auth) carries a POST and returns bytes. An empty body is the
+            # failure, whatever the status line says.
+            SIGNIN_PROBE() {
+              curl -sS --max-time 25 -X POST \
+                -H "apikey: $SB_ANON" -H 'Content-Type: application/json' \
+                -d '{"email":"site-health-probe@poetech.invalid","password":"not-a-real-password"}' \
+                "https://poetech.us/sb/auth/v1/token?grant_type=password" 2>/dev/null || echo ""
+            }
+            SIGNIN_BODY="$(SIGNIN_PROBE)"
+            # One retry, so a single dropped connection is not an outage.
+            [ -n "$SIGNIN_BODY" ] || { sleep 5; SIGNIN_BODY="$(SIGNIN_PROBE)"; }
+            note "- \`POST poetech.us/sb/auth/v1/token\` (the verb sign-in actually uses) -> **${#SIGNIN_BODY} bytes**"
+            if [ "$LIVE_SB" != "false" ] && [ -z "$SIGNIN_BODY" ]; then
+              add_fail "SIGN-IN IS DOWN — a POST to the app's own auth road (poetech.us/sb/auth/v1/token) returned an EMPTY BODY twice. The browser calls .json() on that and fails with 'Unexpected end of JSON input', so nobody can sign in by email link or by phone PIN. Note that GET /sb/auth/v1/health can still answer 200 while this is broken: a GET is not a sign-in"
+            fi
+            if [ "$LIVE_SB" != "false" ]; then
+              case "${SB_SOV:-000}" in
+                200|401) : ;; # answering; 401 means alive and gated
+                525|526) add_fail "SIGN-IN IS DOWN — the app's own backend (poetech.us/sb) returned HTTP $SB_SOV: Cloudflare cannot complete TLS to the Funnel, so every sign-in call gets an HTML error page instead of JSON. Nobody can sign in until the NAS/Funnel is back or the app is repointed (revert infra/nas-supabase/REPOINT-ARMED). CHECK THE DEVICE LEDGER FIRST — dispatch node-availability.yml: on 2026-09-03 it had already measured the NAS dark 64 minutes before anyone connected that to the outage" ;;
+                000) add_fail "SIGN-IN IS DOWN — the app's own backend (poetech.us/sb) did not answer in two attempts. Nobody can sign in" ;;
+                *) add_fail "SIGN-IN IS DOWN — the app's own backend (poetech.us/sb) returned HTTP $SB_SOV. Nobody can sign in" ;;
+              esac
+            fi
+            violation=$(grep -oE 'exceed_[a-z_]+|restricted due to[^"]*' "$BODY_FILE" 2>/dev/null | head -1 || true)
+            note "- \`GET auth/v1/health\` (anon) -> **$CODE**${violation:+ — \`$violation\`}"
+            case "$CODE" in
+              200|401) : ;; # answering; 401 means alive and gated
+              402) add_fail "BACKEND RESTRICTED — auth returned HTTP 402${violation:+ ($violation)}: every user is locked out of every app until the plan/spend cap is resolved" ;;
+              000) add_fail "backend unreachable — auth/v1/health did not answer (two attempts)" ;;
+              *)   add_fail "backend auth returned HTTP $CODE${violation:+ ($violation)}" ;;
+            esac
+          else
+            # UNKNOWN NEVER READS AS HEALTHY (DR-0076). Missing secrets means
+            # this dimension was not measured — say so loudly rather than let
+            # a green run imply the backend was checked.
+            note "- backend probe: **NOT MEASURED** (VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY unset)"
+            echo "::warning::backend probe skipped — secrets unset, so this run does NOT prove the backend is usable"
+          fi
+
+          # 8. THE BLOBS HAVE AN EYE NOW (DR-0317). Every dimension above
+          # watches the shell, the bundle, or auth — so when the 2026-08-19
+          # repoint moved the rows and left 455 storage objects behind, the
+          # gallery was broken on the front screen for twelve days and every
+          # probe stayed green. Storage was the one thing nothing looked at.
+          # This walks the app's real read: ask the public RPC for a live
+          # image_path (never a hardcoded name that rots), then fetch that
+          # object at BOTH origins — the hosted one the bridge points at today,
+          # and the sovereign one it returns to once storage_sync.py reports GO.
+          # OBSERVE-ONLY, like the /sb transport line above: it reports, it does
+          # not add_fail. A witness that cries wolf gets deleted; the incident
+          # arm follows once the blob copy has landed and both codes are known
+          # good. Unknown never reads as healthy (DR-0076) — an unmeasured
+          # dimension says so.
+          if [ -n "${SB_URL:-}" ] && [ -n "${SB_ANON:-}" ]; then
+            piece=$(curl -sS --max-time 20 -X POST \
+              -H "apikey: $SB_ANON" -H "Authorization: Bearer $SB_ANON" \
+              -H 'Content-Type: application/json' \
+              -d '{"p_instance_slug":"moore-divahs"}' \
+              "${SB_URL%/}/rest/v1/rpc/moore_showcase" 2>/dev/null \
+              | grep -o '"image_path":"[^"]*"' | head -1 | cut -d'"' -f4 || true)
+            if [ -n "$piece" ]; then
+              G_HOSTED=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 \
+                "${SB_URL%/}/storage/v1/object/public/moore-showcase/$piece" 2>/dev/null) || G_HOSTED="000"
+              G_SOV=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 \
+                "https://poetech.us/sb/storage/v1/object/public/moore-showcase/$piece" 2>/dev/null) || G_SOV="000"
+              note "- \`GET storage/.../moore-showcase/$piece\` -> hosted **${G_HOSTED:-000}** | sovereign **${G_SOV:-000}** (observe-only; sovereign turns 200 when the blob copy lands)"
+              if [ "$G_HOSTED" != "200" ] && [ "$G_SOV" != "200" ]; then
+                echo "::warning::gallery image resolves at NEITHER origin — the blob gap has reopened (DR-0317)"
+              fi
+            else
+              note "- gallery blob probe: **NOT MEASURED** (the showcase RPC returned no image_path)"
+            fi
+          else
+            note "- gallery blob probe: **NOT MEASURED** (backend secrets unset)"
+          fi
+
+          # 9. THE ORDER PATH HAS A LIVE WITNESS (DR-0398). crm-pipeline-parity
+          # .test.js catches an allowlist drift at BUILD time; nothing caught a
+          # LIVE/deploy regression — the sovereign backend missing the migration,
+          # a grant/RLS change, the RPC unreachable — the class that cost Sterling
+          # months (DR-0374). door_capture_selfcheck runs the REAL crm_capture_lead
+          # round-trip and self-deletes, so this asks the live backend "would a
+          # Moore order be captured right now?" and leaves nothing behind. Gated on
+          # the backend being UP (step 7 owns a down backend) and given one retry,
+          # so it never cries wolf when the NAS is off. An auth/unreachable answer
+          # is NOT MEASURED (a probe-config/backend issue), never an order incident;
+          # only a clean capture-stage refusal is the real regression.
+          if [ -n "${SB_ANON:-}" ] && [ "$LIVE_SB" != "false" ] && { [ "${SB_SOV:-000}" = "200" ] || [ "${SB_SOV:-000}" = "401" ]; }; then
+            selfcheck() {
+              curl -sS --max-time 20 -X POST \
+                -H "apikey: $SB_ANON" -H "Authorization: Bearer $SB_ANON" \
+                -H 'Content-Type: application/json' \
+                -d '{"p_instance_slug":"moore-divahs","p_pipeline":"moore-orders"}' \
+                "https://poetech.us/sb/rest/v1/rpc/door_capture_selfcheck" 2>/dev/null || echo ""
+            }
+            OJ="$(selfcheck)"
+            case "$OJ" in *'"ok":true'*) : ;; *) sleep 5; OJ="$(selfcheck)" ;; esac
+            case "$OJ" in
+              *'"ok":true'*)
+                note "- order path (Moore Divahs): **capture OK** — a real order would land (self-cleaning round-trip)" ;;
+              *'"stage":"capture"'*|*'"stage":"cleanup"'*)
+                add_fail "ORDER PATH REFUSED — a Moore Divahs order would NOT be captured on the live backend: door_capture_selfcheck returned $OJ (DR-0374 class — orders silently lost). crm-pipeline-parity is green in CI, so this is a LIVE/deploy regression: the sovereign DB may be missing migration 0218/0215, or a grant/RLS changed" ;;
+              *)
+                # AN EMPTY BODY IS NOT "NOT MEASURED" — IT IS THE TRANSPORT
+                # FAILING. On 2026-10-09 this arm fired with no response at all
+                # and emitted a warning, the run concluded UP, and it CLOSED the
+                # open incident while Darrell could not sign in. A POST that
+                # returns nothing is the same defect the sign-in probe above now
+                # names, so it fails here too. A JSON body that merely is not
+                # ok/refused stays a warning, because that genuinely can be an
+                # absent RPC rather than a broken road.
+                if [ -z "$OJ" ]; then
+                  add_fail "POST THROUGH /sb RETURNED NOTHING — door_capture_selfcheck got an empty body on poetech.us/sb, twice. GETs through /sb can still be 200 while this is broken; it is the same empty-body failure that locks every person out of sign-in"
+                else
+                  note "- order path: **NOT MEASURED** (selfcheck returned '${OJ}' — RPC absent on this backend or anon-key mismatch, not an order refusal)"
+                  echo "::warning::order-path selfcheck not measured — door_capture_selfcheck did not answer ok/refused on poetech.us/sb"
+                fi
+                ;;
+            esac
+          else
+            note "- order path: **NOT MEASURED** (backend not confirmed up — step 7 owns that)"
+          fi
+
+          echo "backend_code=$BACKEND_CODE" >> "$GITHUB_OUTPUT"
+          echo "fail_reasons=$fail_reasons" >> "$GITHUB_OUTPUT"
+          echo "stale=$stale" >> "$GITHUB_OUTPUT"
+          echo "pages_code=$PAGES_CODE" >> "$GITHUB_OUTPUT"
+          echo "photo_code=$PHOTO_CODE" >> "$GITHUB_OUTPUT"
+          echo "history_code=$HIST_CODE" >> "$GITHUB_OUTPUT"
+          echo "served_sha=${served_sha:-unknown}" >> "$GITHUB_OUTPUT"
+          echo "main_sha=${main_sha:-unknown}" >> "$GITHUB_OUTPUT"
+          if [ -n "$fail_reasons" ]; then
+            note ""
+            note "**DOWN/BROKEN:** $fail_reasons"
+          else
+            note ""
+            note "**UP.**${stale:+ }$([ "$stale" = "true" ] && echo "**But STALE** — dispatching the deploy heal." || echo " Fresh.")"
+          fi
+
+      # WHICH FAULT IS THIS? (DR-0975)
+      #
+      # MEASURED 2026-10-12: the last green run of this workflow was
+      # 37952054170 on 2026-10-09T15:28:55Z, and the 22 runs after it all
+      # failed with the SAME single reason — the Cloudflare Pages Functions
+      # outage recorded on #2057, which no code change in this repository
+      # reaches. Issue #2057 held 29 comments, every one of them that cause.
+      #
+      # A witness whose output has not changed in 65 hours cannot report a new
+      # fault. A second fault arriving today appended one more clause to the
+      # same `fail_reasons` string inside an already-red run: identical
+      # conclusion, identical title, comment #30 on a thread nobody can read.
+      # That is DR-0125 defeated — and line 434 of this very file predicted it
+      # about a different probe: "a witness that cries wolf gets deleted".
+      #
+      # THIS DOES NOT MAKE ANYTHING GREEN. The site really is broken and the
+      # run still fails. All that changes is that the run says WHICH fault,
+      # so a new one is distinguishable from one already on the record.
+      - name: Name the fault (new, or the one already on record)
+        id: verdict
+        if: always()
+        env:
+          REASONS: ${{ steps.probe.outputs.fail_reasons }}
+          OUTCOME: ${{ steps.probe.outcome }}
+        run: |
+          set -uo pipefail
+          # A probe that died before reporting is an unexplained observation,
+          # not a quiet one. Give it a reason that matches no carve-out so it
+          # reads NEW (DR-0076: unknown never reads as healthy).
+          if [ -z "${REASONS}" ] && [ "${OUTCOME}" != "success" ]; then
+            REASONS="the probe crashed before reporting"
+          fi
+          # When was the last "still true" note left on the incident ledger?
+          # Used only to decide whether to repeat an unchanged observation; a
+          # NEW fault is never throttled by it.
+          last=""
+          num=$(gh issue list --repo "$REPO" --label incident --state open --search "in:title site-health" --json number --jq '.[0].number // ""')
+          if [ -n "$num" ]; then
+            last=$(gh issue view "$num" --repo "$REPO" --json comments \
+              --jq '[.comments[] | select(.body | contains("site-health: known outage, still true")) | .createdAt] | last // ""' || echo "")
+          fi
+          echo "incident_issue=$num" >> "$GITHUB_OUTPUT"
+          # One invocation, read twice: once into the step outputs, once for
+          # the summary. The script prints nothing but key=value lines.
+          REASONS="$REASONS" node scripts/site-health-verdict.mjs \
+            --last-known-at="$last" > "$RUNNER_TEMP/verdict.txt"
+          cat "$RUNNER_TEMP/verdict.txt" >> "$GITHUB_OUTPUT"
+          cat "$RUNNER_TEMP/verdict.txt"
+          V=$(grep '^verdict=' "$RUNNER_TEMP/verdict.txt" | cut -d= -f2-)
+          H=$(grep '^headline=' "$RUNNER_TEMP/verdict.txt" | cut -d= -f2-)
+          # The verdict CLOSES the summary — the step summary is append-only
+          # and the probe has already written its measurements above, so this
+          # is the last thing on the page rather than the first. That is where
+          # a reader's eye lands after the readings, and it states the
+          # conclusion those readings add up to.
+          case "$V" in
+            UP)    head="**UP. Fresh.**" ;;
+            NEW)   head="### 🆕 NEW FAULT — not already on record" ;;
+            *)     head="### Nothing new (still failing)" ;;
+          esac
+          printf '%s\n\n%s\n\n' "$head" "$H" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Heal a stale build (one-shot deploy dispatch)
+        if: ${{ steps.probe.outcome == 'success' && steps.probe.outputs.stale == 'true' && steps.probe.outputs.fail_reasons == '' }}
+        run: gh workflow run deploy-cloudflare-pages.yml --repo "$REPO" --ref main || echo "::warning::could not dispatch deploy"
+
+      # EVERY RUN IS RECORDED, PASS OR FAIL (added 2026-09-18; DR-0514).
+      #
+      # This workflow has filed only on FAILURE since it was written, and
+      # closed a recovered incident. A run that passed left nothing behind, so
+      # "no issue filed" meant either "the site is fine" or "the witness never
+      # ran" -- two answers that cannot be told apart, on the instrument DR-0125
+      # created specifically because every other safeguard watched the pipeline
+      # and none of them watched the product.
+      #
+      # MEASURED, not theorised: on 2026-09-18 this workflow was dispatched on
+      # main to prove a merge had reached the live site, and it produced no
+      # observable record at all. The question "is the deployed build current?"
+      # had no answer, which is the exact ambiguity DR-0125 exists to remove.
+      # level-witness.yml already carries this step (issue #1687) for the same
+      # reason, one day earlier; this is that pattern applied to the witness
+      # that matters more.
+      #
+      # always(): a probe that crashes must still leave a line, because an
+      # unexplained crash is a failing observation rather than a silent pass.
+      # Silence on this log now means the witness did not run.
+      - name: Record the run (rolling log, pass or fail)
+        if: always()
+        env:
+          REASONS: ${{ steps.probe.outputs.fail_reasons }}
+          STALE: ${{ steps.probe.outputs.stale }}
+          SERVED: ${{ steps.probe.outputs.served_sha }}
+          MAIN: ${{ steps.probe.outputs.main_sha }}
+          PAGES_CODE: ${{ steps.probe.outputs.pages_code }}
+          BACKEND_CODE: ${{ steps.probe.outputs.backend_code }}
+          OUTCOME: ${{ steps.probe.outcome }}
+          VERDICT: ${{ steps.verdict.outputs.verdict }}
+          ANY_NEW: ${{ steps.verdict.outputs.any_new }}
+          DAYS: ${{ steps.verdict.outputs.days }}
+        run: |
+          set -uo pipefail
+          title="site-health: the live site, run log"
+          if [ "$OUTCOME" = "success" ] && [ -z "${REASONS}" ]; then
+            if [ "${STALE}" = "true" ]; then
+              verdict="UP but STALE - the deploy heal was dispatched"
+            else
+              verdict="UP. Fresh"
+            fi
+          else
+            # EVERY run still leaves a line here, throttled by nothing: this
+            # log's whole contract is that SILENCE means the witness did not
+            # run (DR-0514). What the line now carries is WHICH fault, so a
+            # scan of the log shows a new one instead of 22 identical rows.
+            if [ "${ANY_NEW}" = "true" ]; then
+              verdict="DOWN/BROKEN (NEW FAULT) - ${REASONS:-the probe crashed before reporting}"
+            else
+              verdict="DOWN/BROKEN (nothing new, known outage day ${DAYS:-?}) - ${REASONS:-the probe crashed before reporting}"
+            fi
+          fi
+          line="$(date -u +%FT%TZ) - ${verdict}. Served build: ${SERVED:-unknown} (main: ${MAIN:-unknown}). pages.dev shell: HTTP ${PAGES_CODE:-unknown}. backend auth: HTTP ${BACKEND_CODE:-unknown}. Run: ${GITHUB_SERVER_URL}/${REPO}/actions/runs/${GITHUB_RUN_ID}"
+          log_issue=$(gh issue list --repo "$REPO" --state all --search "in:title site-health: the live site, run log" --json number --jq '.[0].number // ""')
+          if [ -n "$log_issue" ]; then
+            gh issue comment "$log_issue" --repo "$REPO" --body "$line"
+          else
+            printf '%s\n\n%s\n' "Rolling run log for site-health.yml, the outside-in witness for poetech.us. Every run appends its measurement here, pass or fail, so SILENCE on this log means the witness did not run rather than that the site is fine (DR-0125 / DR-0514). A failing observation also opens an incident-labeled issue of its own, and a recovery closes it. The served-build line is the answer to \"did the last merge actually reach the live site?\" -- compare it with main." "$line" > "$RUNNER_TEMP/site-log-body.md"
+            gh issue create --repo "$REPO" --title "$title" --body-file "$RUNNER_TEMP/site-log-body.md"
+          fi
+
+      # always(): A CRASH IN THE PROBE MUST NEVER SILENCE THE LEDGER.
+      #
+      # Without this, any non-zero exit in the probe step skips every step
+      # after it — so the one job this workflow exists to do (record the
+      # outage) is the first thing lost when something goes wrong. That is
+      # exactly what happened on run 31807695303: a bug in the backend probe
+      # aborted the step, and the incident was never filed even though the
+      # backend was measurably down.
+      #
+      # The condition now fires on a real failure OR on a probe that died
+      # before it could report one — an unexplained crash is itself a failing
+      # observation, not a silent pass (DR-0076: unknown never reads healthy).
+      - name: Record the incident (rolling issue, labeled `incident`)
+        if: ${{ always() && (steps.probe.outputs.fail_reasons != '' || steps.probe.outcome == 'failure') }}
+        env:
+          REASONS: ${{ steps.probe.outputs.fail_reasons }}
+          PAGES_CODE: ${{ steps.probe.outputs.pages_code }}
+          SERVED: ${{ steps.probe.outputs.served_sha }}
+          MAIN: ${{ steps.probe.outputs.main_sha }}
+          BACKEND_CODE: ${{ steps.probe.outputs.backend_code }}
+          N8N_BEARER: ${{ secrets.VITE_N8N_BEARER }}
+          VERDICT: ${{ steps.verdict.outputs.verdict }}
+          ANY_NEW: ${{ steps.verdict.outputs.any_new }}
+          WRITE_LEDGER: ${{ steps.verdict.outputs.write_ledger }}
+          HEADLINE: ${{ steps.verdict.outputs.headline }}
+          DAYS: ${{ steps.verdict.outputs.days }}
+        run: |
+          set -uo pipefail
+          title="site-health: poetech.us failing the outside-in probe"
+          # A NEW fault is written the moment it is seen, and marked so it is
+          # findable in a thread that is mostly one repeated observation. A run
+          # that only re-measures something already on record writes at most
+          # once a day (DR-0975): #2057 collected 29 comments in 65 hours, all
+          # one cause, which is exactly how a ledger stops being read (P53) —
+          # and the comment that matters then arrives as #30.
+          #
+          # THE RUN STILL FAILS EITHER WAY. Only the writing is throttled, and
+          # only for an observation that is unchanged. The run log above still
+          # gets its line every single run, with no throttle at all.
+          if [ "${ANY_NEW}" = "true" ]; then
+            # The marker stays ON THE SAME LINE on purpose. Inside this `run: |`
+            # block a continuation line carries the YAML indentation into the
+            # string, and four or more leading spaces make Markdown render it
+            # as a code block — so a marker meant to be invisible would be
+            # printed in the comment instead.
+            body="$(date -u +%FT%TZ) — 🆕 **A FAULT NOT ALREADY ON RECORD**: ${REASONS:-probe step crashed before reporting — see the run log}. pages.dev shell: HTTP ${PAGES_CODE}. backend auth: HTTP ${BACKEND_CODE}. served=${SERVED} main=${MAIN}. Run: ${GITHUB_SERVER_URL}/${REPO}/actions/runs/${GITHUB_RUN_ID} <!-- site-health: NEW fault -->"
+          else
+            body="$(date -u +%FT%TZ) — **STILL BROKEN, nothing new.** ${HEADLINE}. pages.dev shell: HTTP ${PAGES_CODE}. backend auth: HTTP ${BACKEND_CODE}. served=${SERVED} main=${MAIN}. This note is written at most once a day while the fault is unchanged, so a genuinely new fault is not buried under repetitions of this one; every run is still recorded on the run log, and every run still FAILS. Run: ${GITHUB_SERVER_URL}/${REPO}/actions/runs/${GITHUB_RUN_ID} <!-- site-health: known outage, still true -->"
+          fi
+          open_issue=$(gh issue list --repo "$REPO" --label incident --state open --search "in:title site-health" --json number --jq '.[0].number // ""')
+          if [ "${WRITE_LEDGER}" != "true" ] && [ -n "$open_issue" ]; then
+            echo "::notice::nothing new (known outage, day ${DAYS:-?}) and it was noted within the last day — not repeating it on #${open_issue}. The run log still has this run's line, and this run still fails."
+          elif [ -n "$open_issue" ]; then
+            gh issue comment "$open_issue" --repo "$REPO" --body "$body"
+          else
+            gh label create incident --repo "$REPO" --color B60205 --description "Live-site downtime record (site-health probe)" 2>/dev/null || true
+            gh issue create --repo "$REPO" --title "$title" --label incident --body "$body"
+          fi
+          # Announce, not only record (DR-0156): push the incident to the
+          # family's phones via the NAS relay (Funnel -> n8n -> ntfy).
+          #
+          # AND CHECK THAT THE BELL ACTUALLY RANG (DR-0970). This used to be
+          # `curl -sS ... || echo "::warning::"`, and `curl -sS` WITHOUT -f
+          # EXITS 0 ON A 404 -- so the `||` could never fire on the one failure
+          # that was really happening. Run 38141832465 caught it verbatim:
+          # {"code":404,"message":"The requested webhook \"POST ops-announce\"
+          # is not registered."}. An unregistered, renamed, revoked or 500-ing
+          # webhook was indistinguishable from a bell that rang.
+          #
+          # Note the probe step ABOVE already does this correctly (-o BODY -w
+          # '%{http_code}'); only the bell did not. The decision now lives in
+          # scripts/ops-announce.mjs, unit-tested against that exact 404 body,
+          # and it exits 3 when the bell is broken.
+          #
+          # A DEAD BELL IS RECORDED WHERE HUMANS LOOK, not into the warning
+          # stream nobody reads (P53). It goes on the same rolling incident
+          # issue as the outage itself.
+          #
+          # The bell follows the same throttle (DR-0975). A phone that buzzes
+          # every hour for three days with the identical unchanged message is
+          # a phone somebody mutes, and then the NEW fault's buzz is muted too.
+          # A new fault always rings; an unchanged one rings at most once a day.
+          if [ "${WRITE_LEDGER}" != "true" ]; then
+            echo "::notice::the alarm already carried this unchanged fault within the last day — not ringing again."
+          elif [ -n "${N8N_BEARER:-}" ]; then
+            set +e
+            RUN_URL="${GITHUB_SERVER_URL}/${REPO}/actions/runs/${GITHUB_RUN_ID}" \
+              node scripts/ops-announce.mjs \
+                --title="poetech.us is failing the probe" \
+                --message="$(printf '%s' "$REASONS" | head -c 800)" \
+                --url="${GITHUB_SERVER_URL}/${REPO}/actions/runs/${GITHUB_RUN_ID}" \
+                --priority=5 > /tmp/bell.txt 2>&1
+            bell=$?
+            set -e
+            sed 's/^LEDGER_LINE=.*/LEDGER_LINE=(recorded on the ledger)/' /tmp/bell.txt
+            if [ "$bell" = "3" ]; then
+              line=$(grep '^LEDGER_LINE=' /tmp/bell.txt | head -1 | cut -d= -f2-)
+              num=$(gh issue list --repo "$REPO" --label incident --state open --search "in:title site-health" --json number --jq '.[0].number // ""')
+              if [ -n "$num" ] && [ -n "$line" ]; then
+                gh issue comment "$num" --repo "$REPO" --body "$line"
+              else
+                echo "::warning::the phone alarm is dead and there was no open site-health incident to record it on"
+              fi
+            fi
+          else
+            echo "::warning::VITE_N8N_BEARER not set — announce skipped"
+          fi
+          exit 1 # a failing probe is a failing run — visible in the Actions list
+
+      # Only close on a probe that actually RAN and found nothing wrong. A
+      # crashed probe proves nothing and must never close an open incident.
+      - name: Close a recovered incident
+        if: ${{ always() && steps.probe.outcome == 'success' && steps.probe.outputs.fail_reasons == '' }}
+        run: |
+          set -uo pipefail
+          open_issue=$(gh issue list --repo "$REPO" --label incident --state open --search "in:title site-health" --json number --jq '.[0].number // ""')
+          if [ -n "$open_issue" ]; then
+            gh issue close "$open_issue" --repo "$REPO" \
+              --comment "$(date -u +%FT%TZ) — RECOVERED: probe green (served build ${{ steps.probe.outputs.served_sha }})."
+          fi
+
+  # WHICH FAULT, VISIBLE WITHOUT OPENING THE RUN (DR-0975).
+  #
+  # All 1,553 runs of this workflow share one display title, because a run's
+  # name is fixed when the run is created — before a single measurement exists.
+  # So the Actions list cannot be made to say which fault a red run is. A job
+  # NAME can: `jobs.<id>.name` is evaluated from the `needs` context, after the
+  # probe has reported. This job exists for nothing but that label.
+  #
+  # It does no work, touches nothing, and cannot affect the probe's result.
+  verdict:
+    needs: probe
+    if: ${{ always() && needs.probe.result != 'skipped' }}
+    name: ${{ needs.probe.outputs.verdict_label || 'verdict unavailable — the probe did not report' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: The label is the point
+        run: echo "${{ needs.probe.outputs.verdict_label || 'the probe did not report a verdict' }}"
+
+  # A DISABLED WITNESS MUST STILL SAY SO (added 2026-09-18; DR-0514).
+  #
+  # The probe job carries `if: vars.SITE_HEALTH_ENABLED != 'false'`. When that
+  # variable is set to 'false' the whole job is SKIPPED, which means the run-log
+  # step inside it never runs either -- and the log then looks exactly the same
+  # as it does when the workflow was never dispatched at all. That defeats the
+  # contract the log exists to create ("silence means it did not run"), because
+  # it makes "switched off on purpose" indistinguishable from "never fired".
+  #
+  # This job is additive and cannot affect the probe: it only runs when the
+  # probe was skipped, and all it does is leave the line the probe could not.
+  log_disabled:
+    needs: probe
+    if: ${{ always() && needs.probe.result == 'skipped' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      REPO: ${{ github.repository }}
+    steps:
+      - name: Record that the witness was switched off
+        run: |
+          set -uo pipefail
+          title="site-health: the live site, run log"
+          line="$(date -u +%FT%TZ) - DISABLED - the probe job was skipped, so nothing was measured. Set the repository variable SITE_HEALTH_ENABLED back to true (or remove it) to resume. Run: ${GITHUB_SERVER_URL}/${REPO}/actions/runs/${GITHUB_RUN_ID}"
+          log_issue=$(gh issue list --repo "$REPO" --state all --search "in:title site-health: the live site, run log" --json number --jq '.[0].number // ""')
+          if [ -n "$log_issue" ]; then
+            gh issue comment "$log_issue" --repo "$REPO" --body "$line"
+          else
+            gh issue create --repo "$REPO" --title "$title" --body "$line"
+          fi

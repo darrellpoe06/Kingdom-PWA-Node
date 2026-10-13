@@ -99,7 +99,7 @@ export function computeTotals(def, state) {
 
 // ---- lifecycle --------------------------------------------------------------
 // A fresh game, paused at the opening crossroads where the player picks a path.
-export function createGame(def, { seed = 1 } = {}) {
+export function createGame(def, { seed = 1, level = 'child' } = {}) {
   return {
     gameId: def.id,
     status: 'choosing-path',  // -> 'playing' -> 'finished'
@@ -107,6 +107,9 @@ export function createGame(def, { seed = 1 } = {}) {
     position: -1,             // not on the board until a path is chosen
     turn: 0,
     seed: seed >>> 0,
+    // Age/difficulty level (young -> old). Pure carry — it never touches scoring;
+    // the UI reads it via lib/games/difficulty.js to decide how much to reveal.
+    level,
     scores: { ...emptyScores(def), ...(def.startingScores || {}) },
     pending: null,            // a choice/card awaiting the player's decision
     log: [],
@@ -217,9 +220,26 @@ export function takeTurn(def, state) {
     ...state,
     seed: seedAfterSpin,
     turn: state.turn + 1,
-    log: [...state.log, { spaceId: '__spin__', type: 'spin', title: `Spin: ${spin}`, body: '' }],
+    log: [...state.log, { spaceId: '__spin__', type: 'spin', title: `Spin: ${spin}`, body: '', value: spin }],
   };
   return settleLanding(def, moved, board, nextPos);
+}
+
+// The most recent spin — the REAL value the UI's spinner wheel animates to
+// (the animation is presentation over this already-determined state, never a
+// second random). `index` is the entry's position in the log, so a consumer can
+// tell a NEW spin from a re-render (the index only grows within one journey).
+// Falls back to parsing the title for saves recorded before `value` existed.
+export function lastSpin(state) {
+  const log = (state && state.log) || [];
+  for (let i = log.length - 1; i >= 0; i--) {
+    const e = log[i];
+    if (e.type !== 'spin') continue;
+    let value = typeof e.value === 'number' ? e.value : parseInt(String(e.title || '').replace(/[^0-9]/g, ''), 10);
+    if (!Number.isFinite(value)) value = null;
+    return { value, index: i };
+  }
+  return null;
 }
 
 // Resolve a pending decision (a crossroads/invest/obstacle space, or a drawn

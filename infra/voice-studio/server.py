@@ -14,10 +14,18 @@
 #   POST /speak  { text, reference_audio (base64 data URI), language }  -> audio/wav
 #   GET  /health -> { ok: true }
 #
-# Deploy (his-hand, on the church 4070 box):
-#   python -m venv .venv && . .venv/bin/activate
+# Deploy — NOT by hand (DR-0236 / DR-0108). Two channels drive this and neither
+# is a person at a keyboard:
+#   · the container:  infra/church-gpu-node/docker-compose.yml `voice-studio`,
+#     brought up on the 4070 box by .github/workflows/arm-voice-studio.yml,
+#     which joins the tailnet with TS_AUTHKEY and verifies by SYNTHESIZING
+#     rather than by reading /health.
+#   · the road home:  infra/voice-studio/install.sh, run every cycle by the
+#     services-sync loop, which finds whichever host is answering and mounts
+#     `/voice` on the Funnel so poetech.us can reach it same-origin.
+# The commands below remain only as the description of what those two automate.
 #   pip install fastapi uvicorn TTS torch   # CUDA build of torch for the 4070
-#   python server.py    # serves on :8770; expose via Tailscale, not the public net
+#   python server.py    # serves on :8770; exposed via Tailscale, never the public net
 #
 # License note: XTTS-v2 weights are CPML (non-commercial). Fine for family/church
 # sovereign use. The contract is model-agnostic — swap to F5-TTS / OpenVoice v2
@@ -27,6 +35,7 @@ import base64
 import io
 import os
 import re
+import subprocess
 import tempfile
 
 from fastapi import FastAPI, Request
@@ -47,49 +56,164 @@ def get_tts():
     return _tts
 
 
+# THE BROWSER RECORDS WEBM, AND XTTS READS WAV (DR-0721). The in-app recorder
+# (MediaRecorder) produces audio/webm;codecs=opus on Android and Chrome and
+# audio/mp4 on iOS. XTTS loads its reference through torchaudio, which in this
+# image has no ffmpeg backend, so a webm reference would fail at inference with
+# "synthesis-failed" on the first real clone -- and audio/mp4 was written to a
+# ".wav" file by the old suffix map. Every reference that is not already a WAV
+# is turned into one here (mono, 22.05 kHz, the first REF_MAX_SECONDS), with
+# the ffmpeg the Dockerfile now installs. A missing ffmpeg is a named error,
+# never a silent bad read.
+REF_MAX_SECONDS = os.environ.get("VOICE_REF_MAX_SECONDS", "30")
+_SUFFIX = {"webm": ".webm", "ogg": ".ogg", "mp4": ".m4a", "x-m4a": ".m4a", "aac": ".aac", "mpeg": ".mp3", "mp3": ".mp3", "flac": ".flac"}
+
+
+SPEED_MIN = 0.5
+SPEED_MAX = 2.0
+
+
+def clamp_speed(value):
+    """The pace the voice is asked to speak at: SPEED_MIN..SPEED_MAX, else 1.0 (nonsense is normal pace)."""
+    try:
+        v = float(value)
+    except (TypeError, ValueError):
+        return 1.0
+    if v != v or v <= 0:
+        return 1.0
+    return round(min(SPEED_MAX, max(SPEED_MIN, v)), 3)
+
+
+def _to_wav(src: str) -> str:
+    """Transcode a reference sample to a mono 22.05 kHz WAV; return its path."""
+    out = src + ".ref.wav"
+    try:
+        subprocess.run(
+            ["ffmpeg", "-y", "-loglevel", "error", "-i", src, "-ac", "1", "-ar", "22050", "-t", str(REF_MAX_SECONDS), out],
+            check=True, timeout=60, capture_output=True,
+        )
+    except FileNotFoundError as e:
+        raise ValueError("reference-needs-ffmpeg: ffmpeg is not installed in the studio image") from e
+    except subprocess.CalledProcessError as e:
+        raise ValueError("reference-unreadable: " + (e.stderr or b"").decode("utf-8", "replace")[:200]) from e
+    return out
+
+
 def _decode_reference(data_uri: str) -> str:
-    """Write the base64 reference sample to a temp wav/webm file; return its path."""
-    m = re.match(r"data:(audio/[^;]+);base64,(.*)", data_uri or "", re.DOTALL)
+    """Write the base64 reference sample to a temp file, as WAV; return its path."""
+    m = re.match(r"data:(audio/[^;,]+)[^,]*;base64,(.*)", data_uri or "", re.DOTALL)
     if not m:
         raise ValueError("reference_audio must be a base64 audio data URI")
     raw = base64.b64decode(m.group(2))
-    suffix = ".webm" if "webm" in m.group(1) else (".ogg" if "ogg" in m.group(1) else ".wav")
+    sub = m.group(1).split("/", 1)[1].lower()
+    is_wav = sub in ("wav", "x-wav", "wave", "vnd.wave")
+    suffix = ".wav" if is_wav else _SUFFIX.get(sub, ".bin")
     fd, path = tempfile.mkstemp(suffix=suffix)
     with os.fdopen(fd, "wb") as f:
         f.write(raw)
-    return path
+    if is_wav:
+        return path
+    try:
+        return _to_wav(path)
+    finally:
+        try:
+            os.remove(path)
+        except OSError:
+            pass
 
 
+# THE PREFIX IS SERVED BOTH WAYS, AND THE PLAIN ONE IS THE REAL PATH.
+#
+# The app reaches this studio at same-origin `/voice/speak`, which the Pages
+# Function forwards to the Funnel as `/voice/speak`, which a Tailscale path
+# mount hands on here. This comment first said that whether the mount STRIPS
+# `/voice` was unknowable from this repository. It is not -- it is documented:
+# tailscale trims the mount point before proxying, so a mount at `/voice`
+# delivers `/speak` and `/health`, as if the service were running at the root.
+# "Nothing here can measure it" was a guess wearing DR-0076's clothes; the
+# actual discipline is to go and check.
+#
+# The prefixed aliases stay anyway, and not out of timidity. They cost one
+# decorator each, they make the server correct under a proxy that does NOT trim
+# (a Caddy handle, a forwarder that passes the path through), and the tax
+# server carries exactly the same pair for exactly that reason.
+@app.get("/voice/health")
 @app.get("/health")
 def health():
-    return {"ok": True}
+    # WHAT IT CAN DO, said by the studio itself (DR-0721): it clones from a
+    # recording (few-shot XTTS-v2), and which model is loaded. Cold: nothing
+    # here loads the model.
+    return {"ok": True, "clone": True, "model": os.environ.get("VOICE_MODEL", "tts_models/multilingual/multi-dataset/xtts_v2")}
 
 
+@app.post("/voice/speak")
 @app.post("/speak")
 async def speak(req: Request):
     body = await req.json()
     text = (body.get("text") or "").strip()
     reference = body.get("reference_audio")
     language = body.get("language") or "en"
+    # THE PACE THE VOICE SPEAKS AT (2026-10-07; Darrell: "the voice mumbles at
+    # times when on faster speaking especially"). The app used to stretch the
+    # clip in the browser, which smears consonants at 2x and beyond. XTTS takes
+    # a `speed` at inference and simply speaks faster, words intact; the app
+    # stretches only the remainder. Clamped to what the model says clearly.
+    speed = clamp_speed(body.get("speed", 1.0))
     if not text:
         return JSONResponse({"error": "text-required"}, status_code=400)
+    # THE BUILT-IN VOICE IS SERVED, NOT REFUSED (2026-09-14, DR-0401).
+    #
+    # Until now this returned 400 the moment no reference sample arrived, which
+    # made the studio CLONE-ONLY by construction. DR-0382 had taught the client
+    # to ask for the service's own voice -- `allowBuiltIn`, with a runtime probe
+    # that remembers the answer -- and shipped it as the DEFAULT read path for
+    # the System voice. But no server was ever taught to answer: this endpoint
+    # and the vendor bridge BOTH refused, so the probe's first result was
+    # guaranteed to be 'no' and every lesson fell to the device robot forever.
+    # The client asked a question nothing could say yes to.
+    #
+    # A reference is required only for a CLONE. A multi-speaker model (XTTS-v2
+    # ships a speaker bank) can synthesize from a built-in speaker with no
+    # sample at all, which is exactly what the System voice wants.
+    #
+    # HONEST FAILURE IS PRESERVED. If the loaded model exposes no speaker bank,
+    # this still returns the same 400 -- so the probe's 'no' stays TRUE for a
+    # deployment that genuinely cannot do it, rather than being papered over.
+    # We do not claim a capability we have not asked the model for (DR-0076).
+    speaker_wav = None
+    builtin_speaker = None
     if not reference:
-        return JSONResponse({"error": "reference-required"}, status_code=400)
-
-    try:
-        speaker_wav = _decode_reference(reference)
-    except Exception as e:  # noqa: BLE001
-        return JSONResponse({"error": "bad-reference", "detail": str(e)}, status_code=400)
+        try:
+            tts = get_tts()
+        except Exception as e:  # noqa: BLE001
+            return JSONResponse({"error": "synthesis-failed", "detail": str(e)}, status_code=500)
+        speakers = getattr(tts, "speakers", None) or []
+        if not speakers:
+            return JSONResponse({"error": "reference-required"}, status_code=400)
+        want = os.environ.get("VOICE_BUILTIN_SPEAKER", "").strip()
+        builtin_speaker = want if want in speakers else speakers[0]
+    else:
+        try:
+            speaker_wav = _decode_reference(reference)
+        except Exception as e:  # noqa: BLE001
+            return JSONResponse({"error": "bad-reference", "detail": str(e)}, status_code=400)
 
     try:
         tts = get_tts()
         out_fd, out_path = tempfile.mkstemp(suffix=".wav")
         os.close(out_fd)
         # Few-shot: XTTS conditions on speaker_wav at inference, no training.
-        tts.tts_to_file(text=text, speaker_wav=speaker_wav, language=language, file_path=out_path)
+        # With no sample, the model's own speaker carries it instead.
+        pace = {"speed": speed} if speed != 1.0 else {}
+        if builtin_speaker is not None:
+            tts.tts_to_file(text=text, speaker=builtin_speaker, language=language, file_path=out_path, **pace)
+        else:
+            tts.tts_to_file(text=text, speaker_wav=speaker_wav, language=language, file_path=out_path, **pace)
         with open(out_path, "rb") as f:
             audio = f.read()
         for p in (speaker_wav, out_path):
+            if not p:
+                continue
             try:
                 os.remove(p)
             except OSError:

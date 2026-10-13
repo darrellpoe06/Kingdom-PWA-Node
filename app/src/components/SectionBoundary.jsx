@@ -35,7 +35,7 @@ class SectionBoundary extends React.Component {
     if (!this.state.error) return this.props.children;
     return (
       <div className="bg-white border-2 border-[#B85838] p-4 sm:p-5" role="alert">
-        <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] mb-1 font-semibold">
+        <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] mb-1 font-semibold">
           {this.props.name ? `${this.props.name} hit a snag` : 'This section hit a snag'}
         </div>
         <p className="text-sm leading-relaxed text-[#1A1815] mb-3" style={{ fontFamily: '"Fraunces", serif' }}>

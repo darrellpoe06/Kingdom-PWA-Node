@@ -32,6 +32,12 @@ export const SURFACE_HELP = {
     how: 'Each message is filed under the month it was preached; jump to any month or date, search by title, scripture, or speaker, and watch the service inline.',
     helpTopic: 'church:pulpit',
   },
+  'books:plan': {
+    what: 'Your family’s written financial plan, and the Legacy Provisions system beside it — the constitution the trust points at, the spendthrift review, and the produce-before-you-take ledger.',
+    where: 'The plan is the newest family_plans row (RLS-scoped to your family). The provisions read your own dated records — contributions, distributions, attestations, review answers — kept on this device and synced to your family; the articles and questions themselves ship with the app.',
+    how: 'Read the plan, then work the three provisions in turn: attest the articles you have read, answer the wall’s questions honestly, and record what each beneficiary actually produced or received. Nothing here shows a status the records do not support.',
+    helpTopic: 'books:plan',
+  },
   'church:harvest': {
     what: 'The coverage ledger — every ingested service recording and what it has (and has not yet) been mined into, so no Sunday or Wednesday is wasted.',
     where: 'The video_harvests ledger joined over your real corpus (choir_sermons + choir_songs); every ✦ is a harvest verified against actual app data, never painted.',

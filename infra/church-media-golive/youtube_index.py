@@ -44,8 +44,21 @@ def main():
         print(r.stderr.strip()[:500])
         return 1
     data = json.loads(r.stdout)
+    # Capture the upload date when yt-dlp exposes it (flat mode gives `timestamp`
+    # for many YouTube entries; `upload_date` is 'YYYYMMDD'). It's the archive
+    # loader's service-date FALLBACK for a title that doesn't spell out its date,
+    # so every video can still land dated. Harmless (None) when absent.
+    def _upload_iso(e):
+        ud = e.get("upload_date")  # 'YYYYMMDD'
+        if isinstance(ud, str) and len(ud) == 8 and ud.isdigit():
+            return f"{ud[0:4]}-{ud[4:6]}-{ud[6:8]}"
+        ts = e.get("timestamp") or e.get("release_timestamp")
+        if isinstance(ts, (int, float)):
+            return datetime.fromtimestamp(ts, tz=timezone.utc).strftime("%Y-%m-%d")
+        return None
     videos = [{"id": e.get("id"), "title": e.get("title"), "url": e.get("url"),
-               "duration": e.get("duration"), "transcribed": False}
+               "duration": e.get("duration"), "published": _upload_iso(e),
+               "transcribed": False}
               for e in data.get("entries", []) if e]
     out_path.write_text(json.dumps({"generated": datetime.now(timezone.utc).isoformat(),
                                     "channel": url, "count": len(videos),

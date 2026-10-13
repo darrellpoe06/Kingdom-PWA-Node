@@ -157,7 +157,7 @@ describe('checkout-seam — no secrets, money is the owner\'s hand', () => {
     expect(entitlementFromWebhook({ type: 'nonsense' })).toBeNull();
   });
   it('processorConfigured requires enabled + endpoint', () => {
-    expect(processorConfigured({ enabled: true, endpoint: '/n8n/webhook/book-checkout' })).toBe(true);
+    expect(processorConfigured({ enabled: true, endpoint: '/api/checkout' })).toBe(true);
     expect(processorConfigured({ enabled: true, endpoint: '' })).toBe(false);
   });
 });

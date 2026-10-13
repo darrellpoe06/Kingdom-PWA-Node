@@ -19,15 +19,18 @@ import {
   loadTv, saveTv, bucketShows, customCatalog, addCustomShow, addShowFromCatalog, addMovieFromCatalog, toggleMovieWatched,
   setStatus, untrack, rateShow, addComment, getComments, toggleReaction, reactionCount,
   discernmentPromptFor, toggleEpisode, isEpisodeWatched, setSeasonWatched, showProgress, seasonProgress,
-  trendingWatches, exportTv, importTvJson, touchTv, tvUpdatedAt,
+  trendingWatches, exportTv, importTvJson, touchTv, tvUpdatedAt, hydrateShow,
 } from '../lib/tv-time.js';
-import { searchTitles, loadShow, resolvePoster, TV_SOURCE, MOVIE_SOURCE, GENRES, genreMatches } from '../lib/tv-catalog.js';
+import { searchTitles, loadShow, resolvePoster, normalizeTitleQuery, TV_SOURCE, MOVIE_SOURCE, GENRES, genreMatches } from '../lib/tv-catalog.js';
 import { relatedTitles, franchiseOf, titleKey } from '../lib/tv-franchises.js';
 import { fetchTvCloud, pushTvCloud, subscribeTvRealtime, mergeTvCloud } from '../lib/tv-time-sync.js';
 import { importTvTimeZip, looksLikeZip } from '../lib/tv-time-import-zip.js';
 import { POPULAR_SHOWS, popularByGenre, popularCount } from '../lib/tv-popular.js';
 import { AUDIENCES, shareFlags, setShowShare } from '../lib/tv-sharing.js';
+import { gentleReveal } from '../lib/gentle-motion.js';
+import { TV_SHARING_ENABLED } from '../lib/tv-circle-sync.js';
 import TVCircle from './TVCircle.jsx';
+import SectionTabs from './SectionTabs.jsx';
 import { createDebouncer } from '../lib/table-sync.js';
 
 const serif = { fontFamily: '"Fraunces", serif' };
@@ -159,10 +162,19 @@ function EpisodeList({ show, isWatched, onToggleEp, onToggleSeason, progressFor 
   );
 }
 
-function ShowCard({ show, me, state, onStatus, onRate, onAddComment, onReact, onUntrack, onToggleEp, onToggleSeason, onToggleMovie, onAddByTitle, onShare, trackedKeys, busy }) {
+function ShowCard({ show, me, state, onStatus, onRate, onAddComment, onReact, onUntrack, onToggleEp, onToggleSeason, onToggleMovie, onAddByTitle, onShare, trackedKeys, busy, onHydrate = null }) {
   const [tab, setTab] = useState(null); // 'episodes' | 'talk' | null
   const [draft, setDraft] = useState('');
   const comments = getComments(state, show.id);
+  // Opening the Episodes tab on a show with no season list is the gesture that
+  // says "bring in the seasons" — hydrate it from the catalog (single-flight in
+  // the parent; imported shows only). The list streams in when the lookup lands.
+  useEffect(() => {
+    // The parent's needsHydration gates this — a hydrated (or catalog-added)
+    // show returns immediately, so this fires real work for imports only. The
+    // partial-seasons import case (only watched episodes present) is included.
+    if (tab === 'episodes' && onHydrate && show.kind !== 'movie') onHydrate(show);
+  }, [tab]); // eslint-disable-line react-hooks/exhaustive-deps
   const prog = showProgress(state, show.id);
   const isMovie = show.kind === 'movie';
   const seen = show.status === 'watched';
@@ -404,6 +416,18 @@ export default function TVTime({ email = null }) {
     return null; // decided from list size on first render
   });
   const [focusId, setFocusId] = useState(null); // grid tile tapped → its card opens
+  // The opened card renders IN PLACE — a full-width grid row directly under the
+  // tapped tile (DR-0274, grounding DR-0131: "open in place and not move fast
+  // from that location because humans can get dizzy"). The 2026-08-04 fix for
+  // "the tap looked dead" rendered the card below the WHOLE wall and flew the
+  // screen thousands of pixels to it — the exact movement the Way forbids
+  // (Darrell's 2026-08-05 dizziness report). Now the card lands beside the
+  // finger; gentleReveal nudges only if its top edge starts below the fold
+  // (at most about a tile of travel), honoring prefers-reduced-motion.
+  const focusCardRef = useRef(null);
+  useEffect(() => {
+    if (focusId && focusCardRef.current) gentleReveal(focusCardRef.current);
+  }, [focusId]);
   const activeView = viewMode || (tracked.length > 9 ? 'wall' : 'cards');
   // 'wall' (tall 2:3 posters) and 'squares' (Darrell 2026-07-05: "a view that has
   // squares" — 1:1 tiles, art cropped to fill) are both the condensed grid; they
@@ -506,6 +530,25 @@ export default function TVTime({ email = null }) {
     setBusy('');
   };
 
+  // Hydrate a zip-imported / hand-added show with the catalog's FULL record (the
+  // missing half of the migration — its "seasons" were only the episodes already
+  // watched, so there was nothing left to check off; 2026-08-04 review, G1/G2/G3).
+  // Runs on a USER GESTURE only (tile tap / Episodes tab), single-flight per show
+  // per session, so a 100-show imported wall never bursts the free API. A failed
+  // lookup releases the flight so a later open retries.
+  const hydrating = useRef(new Set());
+  const needsHydration = (s) => !!s && s.kind !== 'movie' && !s.sourceId
+    && (String(s.id).startsWith('tvt-') || !(s.seasons && s.seasons.length));
+  const onHydrate = async (show) => {
+    if (!needsHydration(show) || hydrating.current.has(show.id)) return;
+    hydrating.current.add(show.id);
+    const hits = await searchTitles(normalizeTitleQuery(show.title));
+    const hit = (hits || []).find((h) => h.kind === 'show');
+    const full = hit ? await loadShow(hit.id) : null;
+    if (full) persist(hydrateShow(stateRef.current, show.id, full));
+    else hydrating.current.delete(show.id);
+  };
+
   // Import your old list: paste titles (one per line). Each is looked up (show or
   // movie); a show brings in its seasons, a movie comes in as a single watch, and
   // no match is kept as a plain title.
@@ -573,7 +616,7 @@ export default function TVTime({ email = null }) {
   const genreEmpty = genreFilter && !tracked.some((s) => genreMatches(s.genre, genreFilter));
 
   return (
-    <div className="max-w-3xl">
+    <div className="w-full">
       <SectionTitle eyebrow="Shows & movies · check off every episode · talk it · watch it through The Way">PoeTech TV Time</SectionTitle>
 
       <p className="text-sm text-[#1A1815] mb-2" style={serif}>
@@ -640,17 +683,28 @@ export default function TVTime({ email = null }) {
         )}
       </div>
 
-      {/* What's getting watched — dynamic, from real activity. */}
+      {/* What's getting watched — dynamic, from real activity. PINNED above the
+          section strip (the KPI-style summary stays always visible). */}
       <TrendingStrip items={trending} />
 
-      {/* Family/circle sharing — LIVE. TV_SHARING_ENABLED opened 2026-07-04 after
-          the data-isolation smoke test passed against the real database
-          (tv-circle-sync.js); the flag remains the kill-switch — flipped false,
-          this renders null. state + a light catalog let it publish only your
-          tagged shows. */}
-      <TVCircle state={state} email={me}
-        catalog={Object.fromEntries(tracked.map((s) => [s.id, { id: s.id, title: s.title, poster: s.poster, genre: s.genre, kind: s.kind }]))} />
+      <SectionTabs sections={[
+        { id: 'shows', label: 'My shows & picks', icon: 'monitor', render: renderShows },
+        // Family/circle sharing — LIVE. TV_SHARING_ENABLED opened 2026-07-04 after
+        // the data-isolation smoke test passed against the real database
+        // (tv-circle-sync.js); the flag remains the kill-switch — flipped false,
+        // the section is filtered out entirely (no empty panel, no dead tab).
+        TV_SHARING_ENABLED ? { id: 'circle', label: 'Your circle', icon: 'users', render: renderCircle } : null,
+      ]} ariaLabel="TV Time sections" idBase="tvtime" defaultId="shows" />
+    </div>
+  );
 
+  // The shows-and-picks flow. One section on purpose: the genre chips filter
+  // BOTH your tracked list AND the Popular picks below them (never a dead end),
+  // so splitting them across tabs would break that promise. Plain closure over
+  // the top-level state — no hooks in here.
+  function renderShows() {
+    return (
+      <>
       {/* Browse by genre — a chip filters BOTH your tracked list AND the Popular
           picks below (Darrell 2026-07-04: pick a genre and it shows all in that
           genre, never a dead end). Always shown, so an empty list still browses. */}
@@ -699,44 +753,48 @@ export default function TVTime({ email = null }) {
       {STATUSES.map((st) => {
         const list = genreFilter ? buckets[st.key].filter((s) => genreMatches(s.genre, genreFilter)) : buckets[st.key];
         if (!list.length) return null;
-        const focused = wallMode ? list.find((s) => s.id === focusId) : null;
         return (
           <section key={st.key} className="mb-4" aria-labelledby={`sec-${st.key}`}>
             <h3 id={`sec-${st.key}`} className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold mb-2">{st.label} <span className="text-[#B85838]">· {st.hint}</span></h3>
             {wallMode ? (
               <>
                 {/* Condensed wall: a dense poster grid for quick choosing. Tap a
-                    tile → its full card opens right below the grid. Progress rides
-                    under each tile so "where am I" reads at a glance. Posters
-                    lazy-resolve (imports included) as tiles scroll into view.
-                    Columns come from the Size slider: auto-fill at the chosen
-                    min-tile-width (rem), so smaller = more per row, bigger = fewer. */}
+                    tile → its full card opens IN PLACE, a full-width grid row
+                    directly under that tile (DR-0274/DR-0131: the screen never
+                    flies to content; the content comes to the finger). Progress
+                    rides under each tile so "where am I" reads at a glance.
+                    Posters lazy-resolve (imports included) as tiles scroll into
+                    view. Columns come from the Size slider: auto-fill at the
+                    chosen min-tile-width (rem), so smaller = more per row,
+                    bigger = fewer. */}
                 <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(auto-fill, minmax(${wallSize}rem, 1fr))` }}>
                   {list.map((show) => {
                     const prog = showProgress(state, show.id);
                     const pct = prog.total ? Math.round((prog.watched / prog.total) * 100) : 0;
                     const on = focusId === show.id;
                     return (
-                      <button key={show.id} type="button" onClick={() => setFocusId(on ? null : show.id)}
-                        aria-pressed={on}
-                        aria-label={`${show.title} — ${prog.watched} of ${prog.total || '?'} watched`}
-                        className={`text-left focus:outline focus:outline-2 focus:outline-[#B85838] ${on ? 'ring-2 ring-[#B85838]' : ''}`}>
-                        <Poster url={show.poster} title={show.title} kind={show.kind} resolve className={`w-full ${tileAspect}`} />
-                        <span className="block h-1 bg-[#E8E4DC]" aria-hidden="true">
-                          <span className="block h-1 bg-[#2F6B33]" style={{ width: `${pct}%` }} />
-                        </span>
-                      </button>
+                      <React.Fragment key={show.id}>
+                        <button type="button" onClick={() => { setFocusId(on ? null : show.id); if (!on) onHydrate(show); }}
+                          aria-pressed={on}
+                          aria-label={`${show.title} — ${prog.watched} of ${prog.total || '?'} watched`}
+                          className={`text-left focus:outline focus:outline-2 focus:outline-[#B85838] ${on ? 'ring-2 ring-[#B85838]' : ''}`}>
+                          <Poster url={show.poster} title={show.title} kind={show.kind} resolve className={`w-full ${tileAspect}`} />
+                          <span className="block h-1 bg-[#E8E4DC]" aria-hidden="true">
+                            <span className="block h-1 bg-[#2F6B33]" style={{ width: `${pct}%` }} />
+                          </span>
+                        </button>
+                        {on && (
+                          <div className="my-1" style={{ gridColumn: '1 / -1' }} ref={focusCardRef}>
+                            <ShowCard show={show} me={me} state={state}
+                              onStatus={onStatus} onRate={onRate} onAddComment={onAddComment} onReact={onReact} onUntrack={onUntrack}
+                              onToggleEp={onToggleEp} onToggleSeason={onToggleSeason} onToggleMovie={onToggleMovie}
+                              onAddByTitle={onAddByTitle} onShare={onShare} trackedKeys={trackedKeys} busy={busy} onHydrate={onHydrate} />
+                          </div>
+                        )}
+                      </React.Fragment>
                     );
                   })}
                 </div>
-                {focused && (
-                  <div className="mt-2">
-                    <ShowCard key={focused.id} show={focused} me={me} state={state}
-                      onStatus={onStatus} onRate={onRate} onAddComment={onAddComment} onReact={onReact} onUntrack={onUntrack}
-                      onToggleEp={onToggleEp} onToggleSeason={onToggleSeason} onToggleMovie={onToggleMovie}
-                      onAddByTitle={onAddByTitle} onShare={onShare} trackedKeys={trackedKeys} busy={busy} />
-                  </div>
-                )}
               </>
             ) : (
               <div className="space-y-2">
@@ -744,7 +802,7 @@ export default function TVTime({ email = null }) {
                   <ShowCard key={show.id} show={show} me={me} state={state}
                     onStatus={onStatus} onRate={onRate} onAddComment={onAddComment} onReact={onReact} onUntrack={onUntrack}
                     onToggleEp={onToggleEp} onToggleSeason={onToggleSeason} onToggleMovie={onToggleMovie}
-                    onAddByTitle={onAddByTitle} onShare={onShare} trackedKeys={trackedKeys} busy={busy} />
+                    onAddByTitle={onAddByTitle} onShare={onShare} trackedKeys={trackedKeys} busy={busy} onHydrate={onHydrate} />
                 ))}
               </div>
             )}
@@ -778,8 +836,20 @@ export default function TVTime({ email = null }) {
       })()}
 
       {!anyTracked && !genreFilter && <p className="text-sm text-[#5A5751]" style={serif}>Tip: look up any show above, or import your old list — your own shows land in the sections here.</p>}
-    </div>
-  );
+      </>
+    );
+  }
+
+  // Your circle — the family/friends sharing surface, in its own section so the
+  // main list isn't a long read-down past it. Its circle fetch runs when the
+  // panel mounts (publishing is a deliberate button, never a mount side effect),
+  // so nothing is lost by opening it on demand.
+  function renderCircle() {
+    return (
+      <TVCircle state={state} email={me}
+        catalog={Object.fromEntries(tracked.map((s) => [s.id, { id: s.id, title: s.title, poster: s.poster, genre: s.genre, kind: s.kind }]))} />
+    );
+  }
 }
 
 function safeNow() {

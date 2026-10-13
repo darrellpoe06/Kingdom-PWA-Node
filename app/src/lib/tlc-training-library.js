@@ -41,7 +41,11 @@
 // `now`); ids are authored, not generated, so the library is stable + testable.
 // =============================================================================
 import { courseAssessment, gradeQuiz, QUIZ_PASS_RATIO } from './learn-framework.js';
+import { illinoisModuleFor } from './tlc-illinois-policy.js';
+import { courseBody } from './tlc-course-bodies.js';
+import { courseReview } from './tlc-course-reviews.js';
 import { CLINICAL_COMPETENCIES } from './practice-academy.js';
+import { SESSION_SCRIPT_COURSES } from './tlc-session-scripts.js';
 
 // The ten training FIELDS = the clinical competencies already in the app. Re-exported
 // so the library and its surface share ONE source of truth (no second list to drift).
@@ -751,10 +755,40 @@ const COURSES = [
       { q: 'Feedback in supervision is best understood as…', options: ['A personal verdict', 'A professional skill serving better client care', 'Punishment'], answer: 1, explain: 'A skill in service of clients.' },
     ] },
   }),
+
+  // ===========================================================================
+  // CHRISTINA'S SESSION SCRIPTS — "Training Notes for Therapists-in-Training"
+  // (lib/tlc-session-scripts.js; DR-0344). Her words, engine-shaped; validated
+  // by her in-app like every other course.
+  // ===========================================================================
+  ...SESSION_SCRIPT_COURSES.map(makeCourse),
 ];
 
 // The frozen, normalized library. Every entry is already makeCourse-shaped.
-export const TRAINING_LIBRARY = COURSES;
+// Every training carries Illinois (DR-0345): the state's policy, program and
+// procedure for its field as its closing lesson, composed from the one
+// registry in lib/tlc-illinois-policy.js — so the 24 weekly trainings teach
+// the rules a TLC clinician works under, dated and cited, inside the course.
+function withIllinois(course) {
+  if (!course || course.modules.some((m) => m && m.illinois)) return course;
+  const il = illinoisModuleFor(course);
+  return il ? { ...course, modules: [...course.modules, il] } : course;
+}
+// The build-out (DR-0345): a lesson with a full body carries it as the
+// standard level and keeps its starter paragraph as the teen level; a course
+// carries its review block for Christina (known understanding, sources, her
+// questions, the TLC workflow).
+function withDepth(course) {
+  if (!course) return course;
+  const modules = course.modules.map((m) => {
+    const body = courseBody(m.id);
+    if (!body) return m;
+    const levels = { ...m.levels, teen: m.levels.teen || m.levels.standard, standard: body, senior: body };
+    return { ...m, levels, depth: true, starter: m.levels.standard };
+  });
+  return { ...course, modules, review: courseReview(course.id) };
+}
+export const TRAINING_LIBRARY = COURSES.map(withIllinois).map(withDepth);
 
 // ---------------------------------------------------------------------------
 // Accessors — pure, derived. The surface + the plan + the tests share these.

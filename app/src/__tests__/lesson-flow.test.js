@@ -10,9 +10,11 @@ import { describe, it, expect } from 'vitest';
 import {
   LESSON_ARC, ARC_KINDS, DEFAULT_SESSION_MINUTES,
   sessionMinutesFromFlow, reflowArcMinutes, parseHowToRun, phaseKind, buildLessonArc,
+  planSessions, SPOKEN_WPM,
 } from '../lib/lesson-flow.js';
 import { MODULES, SESSION_FLOW } from '../lib/church-classes.js';
-import { LIVING_LESSONS_MODULES } from '../lib/living-lessons-class.js';
+import { chunkLessonForAge } from '../lib/learn-framework.js';
+import { LIVING_LESSONS_MODULES, LIVING_LESSONS_META } from '../lib/living-lessons-class.js';
 
 const FORBIDDEN_AUDIENCE_KEYS = ['say', 'do', 'talkingPoints', 'howToRun', 'watchFor'];
 // Deep-scan an object for any forbidden key (the no-leak guard).
@@ -126,12 +128,18 @@ describe('buildLessonArc — derives a consistent arc from real authored content
     expect(teach.facilitator.say.length).toBe(wk1.facilitator.talkingPoints.length);
   });
 
-  it('composes with depth/age: a child gets more teach segments than an adult (same lesson)', () => {
+  it('composes with depth/age: a child chunks the SAME text into more (shorter) sections than an adult', () => {
+    // Both bands now chunk into readable sections (adult is no longer one wall —
+    // Darrell 2026-07-28); developmental pacing means, for the SAME text, a child
+    // gets shorter chunks (more segments) than an adult. Comparing per-band arcs
+    // directly would compare DIFFERENT rewrites of different lengths, so the
+    // invariant is proven on one text via the chunker.
     const childArc = buildLessonArc(perfect, { ageBand: 'child', targetMinutes: 60 });
     const adultArc = buildLessonArc(perfect, { ageBand: 'adult', targetMinutes: 60 });
-    const childTeach = childArc.segments.find((s) => s.kind === 'teach');
-    const adultTeach = adultArc.segments.find((s) => s.kind === 'teach');
-    expect(childTeach.audience.lessonPlan.totalSegments).toBeGreaterThan(adultTeach.audience.lessonPlan.totalSegments);
+    expect(childArc.segments.find((s) => s.kind === 'teach').audience.lessonPlan.band.id).toBe('child');
+    expect(adultArc.segments.find((s) => s.kind === 'teach').audience.lessonPlan.band.id).toBe('adult');
+    expect(chunkLessonForAge(perfect.lesson, 'child').length)
+      .toBeGreaterThan(chunkLessonForAge(perfect.lesson, 'adult').length);
   });
 
   it('a target override changes the total; default uses the session flow', () => {
@@ -150,5 +158,171 @@ describe('buildLessonArc — derives a consistent arc from real authored content
     expect(kinds).toContain('open');  // has bigIdea
     expect(kinds).toContain('apply'); // has inApp
     expect(kinds).not.toContain('engage'); // no prompts authored → hidden, not empty
+  });
+});
+
+describe('Living Lessons L43 — "The War Is for the Mind" (Darrell 2026-07-19), diversified for all ages', () => {
+  const war = LIVING_LESSONS_MODULES.find((m) => m.id === 'll43-the-war-is-for-the-mind');
+
+  it('exists and is authored for EVERY age — child, teen, senior — plus the deep lesson', () => {
+    // "diversified for everyone at all ages" (Darrell). PROVEN-TO-CATCH: drop any age
+    // level and this fails — the lesson must reach the child AND the seasoned believer.
+    expect(war, 'L43 must be present in the series').toBeTruthy();
+    for (const age of ['child', 'teen', 'senior']) {
+      expect((war.levels[age] || '').length, `L43 level '${age}' must be authored`).toBeGreaterThan(200);
+    }
+    expect(war.lesson.length).toBeGreaterThan(800); // the deep 4D teaching
+    expect(war.benefits.length).toBeGreaterThanOrEqual(4);
+  });
+
+  it('renders through the shared five-stage arc without leaking facilitator notes', () => {
+    const arc = buildLessonArc(war, {});
+    expect(arc.segments.map((s) => s.kind)).toEqual(['open', 'teach', 'engage', 'apply', 'send']);
+    expect(arc.audienceSegments.length).toBeGreaterThan(0);
+  });
+
+  it('quiz answers are all valid indices into their options', () => {
+    for (const q of war.quiz.questions) {
+      expect(Number.isInteger(q.answer)).toBe(true);
+      expect(q.answer).toBeGreaterThanOrEqual(0);
+      expect(q.answer).toBeLessThan(q.options.length);
+    }
+  });
+
+  it('stays well-being-positive (a SOUND mind, not fear) and Word-first (the defeated, LIMITED enemy)', () => {
+    // The bright line the series holds: sober AND confident, never fearful/paranoid.
+    const hay = (war.bigIdea + ' ' + war.lesson + ' ' + war.levels.senior).toLowerCase();
+    expect(hay).toMatch(/sound mind/);        // 2 Tim 1:7 — the anti-paranoia anchor
+    expect(hay).toMatch(/may devour/);        // 1 Pet 5:8 — "may," not will (limited enemy)
+    expect(hay).toMatch(/king of kings/);     // Rev 19:16 — fight from settled victory
+  });
+
+  it('META lesson count matches the module count (guards the "Living lessons break")', () => {
+    expect(LIVING_LESSONS_META.weeks).toBe(LIVING_LESSONS_MODULES.length);
+  });
+});
+
+describe('parable/story beats — reach the audience, never leak facilitator notes (Darrell 2026-07-21)', () => {
+  it('surfaces module.stories on the TEACH stage audience side, learner-safe', () => {
+    const mod = {
+      id: 'x', title: 'X', bigIdea: 'idea', anchor: { ref: 'John 1:1', theme: 't' },
+      stories: [{ tone: 'light', title: 'The Tenant', body: 'A funny parable.', verse: '"..." (2 Corinthians 10:5)' }],
+      facilitator: { talkingPoints: ['tp'], howToRun: 'Teach the big idea (12): go.' },
+    };
+    const arc = buildLessonArc(mod, { targetMinutes: 25 });
+    const teach = arc.segments.find((s) => s.kind === 'teach');
+    expect(Array.isArray(teach.audience.stories)).toBe(true);
+    expect(teach.audience.stories[0].title).toBe('The Tenant');
+    // teach has content BECAUSE of the story, even with a thin lessonPlan
+    expect(teach.hasContent).toBe(true);
+    // NO-LEAK: the story object carries no facilitator keys
+    const FORBIDDEN = ['say', 'do', 'talkingPoints', 'howToRun', 'watchFor'];
+    for (const st of teach.audience.stories) {
+      for (const k of Object.keys(st)) expect(FORBIDDEN.includes(k)).toBe(false);
+    }
+  });
+
+  it('a real Living Lesson (L50) carries at least 2 stories, each with a body', () => {
+    const l50 = LIVING_LESSONS_MODULES.find((m) => /the-mind-of-christ-thinking/.test(m.id));
+    expect(l50).toBeTruthy();
+    expect(Array.isArray(l50.stories)).toBe(true);
+    expect(l50.stories.length).toBeGreaterThanOrEqual(2);
+    for (const s of l50.stories) {
+      expect(typeof s.body).toBe('string');
+      expect(s.body.length).toBeGreaterThan(20);
+    }
+  });
+});
+
+describe('never lie about a story — kind is truthfully labeled (Darrell 2026-07-21, DR-0215/DR-0076)', () => {
+  it('every story across the curriculum is a valid kind, and a testimony is attributed (a real, credited account — never a fiction mislabeled as true)', () => {
+    const offenders = [];
+    for (const m of LIVING_LESSONS_MODULES) {
+      if (!Array.isArray(m.stories)) continue;
+      for (const s of m.stories) {
+        // kind, when present, must be exactly one of the two truthful labels.
+        if (s.kind != null && s.kind !== 'parable' && s.kind !== 'testimony') {
+          offenders.push(`${m.id}: invalid kind "${s.kind}"`);
+        }
+        // A testimony CLAIMS a real, lived event — it must be attributed (source).
+        // An unattributed "true story" is not allowed (it would assert reality with
+        // no one standing behind it). Parables need no source (they claim nothing real).
+        if (s.kind === 'testimony' && !(typeof s.source === 'string' && s.source.trim())) {
+          offenders.push(`${m.id}: testimony "${s.title || ''}" has no source/attribution`);
+        }
+        // Every story must have a body (no empty illustration).
+        if (!(typeof s.body === 'string' && s.body.trim().length > 20)) {
+          offenders.push(`${m.id}: story "${s.title || ''}" has no real body`);
+        }
+      }
+    }
+    expect(offenders, offenders.join(' | ')).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// planSessions — the course-split (DR-0215 §2). Adversarial / proven-to-catch:
+// it must (a) NEVER drop or reorder a word of the teaching (content-preserving),
+// (b) keep a slot-sized lesson to ONE session, (c) flow an over-slot lesson
+// across MORE than one session, and (d) split only at sentence boundaries.
+// ---------------------------------------------------------------------------
+const normWS = (s) => String(s).replace(/\s+/g, ' ').trim();
+
+describe('planSessions — content-preserving course-split (DR-0215)', () => {
+  const shortLesson = { id: 'x-short', lesson: 'A short teaching. It fits one slot. Nothing more to say here.' };
+  // ~4200 words of teaching -> well over a 25-min slot at 140 wpm (~30 min).
+  const longText = Array.from({ length: 300 }, (_, i) =>
+    `This is teaching sentence number ${i + 1} and it carries real weight for the learner.`).join(' ');
+  const longLesson = { id: 'x-long', lesson: longText };
+
+  it('keeps a slot-sized lesson to a single session', () => {
+    const p = planSessions(shortLesson, { slotMinutes: 25 });
+    expect(p.sessionCount).toBe(1);
+    expect(p.multiSession).toBe(false);
+    expect(p.sessions.length).toBe(1);
+  });
+
+  it('flows an over-slot lesson across MORE than one session', () => {
+    const p = planSessions(longLesson, { slotMinutes: 25 });
+    expect(p.sessionCount).toBeGreaterThanOrEqual(2);
+    expect(p.multiSession).toBe(true);
+    expect(p.sessions.map((s) => s.label)).toEqual(
+      p.sessions.map((s, i) => `Session ${i + 1} of ${p.sessions.length}`));
+  });
+
+  it('NEVER loses or reorders a word — rejoining the sessions reproduces the teaching', () => {
+    const p = planSessions(longLesson, { slotMinutes: 25 });
+    expect(normWS(p.sessions.map((s) => s.text).join(' '))).toBe(normWS(longText));
+  });
+
+  it('splits only at sentence boundaries (no session ends mid-sentence)', () => {
+    const p = planSessions(longLesson, { slotMinutes: 25 });
+    for (const s of p.sessions.slice(0, -1)) {
+      expect(/[.!?]$/.test(s.text.trim())).toBe(true);
+    }
+  });
+
+  it('fewer, larger slots need fewer sessions (the slot drives the split)', () => {
+    const small = planSessions(longLesson, { slotMinutes: 10 }).sessionCount;
+    const big = planSessions(longLesson, { slotMinutes: 60 }).sessionCount;
+    expect(small).toBeGreaterThanOrEqual(big);
+    expect(big).toBe(1);
+  });
+
+  it('a real over-slot Living Lesson (L50) flows across >=2 sessions, content-preserved', () => {
+    const l50 = LIVING_LESSONS_MODULES.find((m) => m.id.startsWith('ll50-'));
+    const p = planSessions(l50, { slotMinutes: 25 });
+    expect(p.estMinutes).toBeGreaterThan(25);
+    expect(p.sessionCount).toBeGreaterThanOrEqual(2);
+    // every session carries real teaching, and none is empty
+    for (const s of p.sessions) expect(s.words).toBeGreaterThan(0);
+  });
+
+  it('buildLessonArc surfaces the session plan', () => {
+    const l50 = LIVING_LESSONS_MODULES.find((m) => m.id.startsWith('ll50-'));
+    const arc = buildLessonArc(l50, { targetMinutes: 25 });
+    expect(arc.sessionPlan).toBeTruthy();
+    expect(arc.sessionPlan.multiSession).toBe(true);
+    expect(SPOKEN_WPM).toBeGreaterThan(0);
   });
 });

@@ -49,9 +49,17 @@ beforeAll(async () => {
 describe('QualityProof renders the real proof + reviews (sub-tabbed)', () => {
   it('renders without throwing, shows the header + every sub-tab chip', () => {
     expect(html).toContain('Quality / Proof');
-    for (const label of ['Break-it gates', 'Closed loops', 'Accessibility', 'Interconnect', 'Reviews']) {
+    for (const label of ['Break-it gates', 'Closed loops', 'Accessibility', 'Interconnect', 'Reviews', 'Re-reviews']) {
       expect(html, `missing sub-tab ${label}`).toContain(label);
     }
+  });
+  it('surfaces the sortable re-review backlog from real REVIEWS.md dates', () => {
+    // Proven-to-catch against real data: REV-0008 carries `re-review 2026-07-13`
+    // et al. in its findings; the backlog tab must extract + render them, sortable.
+    const h = render('rereviews');
+    expect(h).toContain('Re-review backlog');
+    expect(h).toContain('2026-07-13'); // a real dated commitment from REV-0008
+    expect(h).toMatch(/Due.*Item.*Type.*Source.*Status/s); // sortable column headers
   });
   it('surfaces real adversarial gate rows from the manifest (default panel)', () => {
     expect(html).toContain('Per-theme WCAG 2.1 AA contrast');
@@ -76,5 +84,15 @@ describe('QualityProof renders the real proof + reviews (sub-tabbed)', () => {
   });
   it('points at the live local-LLM review panel (no duplication)', () => {
     expect(render('reviews')).toMatch(/Local-LLM/i);
+  });
+  it('surfaces the orchestration review record + the measured freshness line (DR-0102)', () => {
+    const h = render('reviews');
+    // The registry's own freshness is rendered (verdict text is time-dependent
+    // by design, so only the line's presence is pinned here; the verdict logic
+    // is pinned deterministically in quality-proof.test.js).
+    expect(h).toContain('Review freshness');
+    // REV-0006 flows from the real REVIEWS.md through the same parse.
+    expect(h).toContain('Orchestration review — the 2026-07-05 working day');
+    expect(h).toContain('Orchestration');
   });
 });

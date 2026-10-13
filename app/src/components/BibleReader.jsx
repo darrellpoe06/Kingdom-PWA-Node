@@ -12,7 +12,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   OLD_TESTAMENT, NEW_TESTAMENT, chapterVerses, chapterCount, parseRef, parseLoose, searchBooks,
+  EDITIONS_ON_DISK, readerEdition, rememberReaderEdition,
 } from '../lib/bible-kjv.js';
+import { provenanceLine, editionById } from '../lib/bible-editions.js';
 import VerseHighlighter from './VerseHighlighter.jsx';
 import {
   loadHighlights, saveHighlights, getMark, setMark, cssForHighlight,
@@ -50,7 +52,7 @@ function selectionSpanIn(containerEl) {
 // The per-verse "study" panel — Copy the verse, and the UNIONS: its cross-
 // references across both testaments (Darrell 2026-07-04: "I love how the unions
 // connect the old and new testament"). Cross-refs lazy-load when opened.
-function VerseUnions({ refStr, text, onOpenRef }) {
+function VerseUnions({ refStr, text, onOpenRef, editionShort = 'KJV' }) {
   const [xrefs, setXrefs] = useState(null); // null = loading, [] = none
   const [copied, setCopied] = useState(false);
   useEffect(() => {
@@ -59,7 +61,7 @@ function VerseUnions({ refStr, text, onOpenRef }) {
     return () => { on = false; };
   }, [refStr]);
   const copy = async () => {
-    try { await navigator.clipboard.writeText(`“${text}” — ${refStr} (KJV)`); setCopied(true); setTimeout(() => setCopied(false), 1500); }
+    try { await navigator.clipboard.writeText(`“${text}” — ${refStr} (${editionShort})`); setCopied(true); setTimeout(() => setCopied(false), 1500); }
     catch { /* clipboard blocked; no-op */ }
   };
   return (
@@ -103,6 +105,20 @@ const mono = { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' };
 function segCss(style) {
   const hi = cssForHighlight(style);
   return Object.keys(hi).length ? hi : cssForVoice(style);
+}
+
+// Theme-chip marker css: the abbr marker always sits on a PARCHMENT PLATE when
+// its palette style carries no background of its own, so it reads "as it looks
+// on the page" on ANY surface. Root cause (Darrell's 2026-07-23 screenshot,
+// REV: dark Church theme): ink-only styles like Box/#1A1815 (Judgment) and
+// Struck/#4A4640 (Sin) are reader inks for parchment — rendered raw on the
+// dark theme the Jdg chip was invisible and Sin nearly so. The plate fixes
+// every ink-only marker in both themes; styles with their own background
+// (Grace/Love/Spirit/…) keep it.
+function markerChipCss(styleKey) {
+  const css = cssForHighlight(styleKey);
+  if (css.color && !css.backgroundColor) return { ...css, backgroundColor: '#FAF8F4' };
+  return css;
 }
 
 // The Godhead together — where the Father, the Son (the Word / the Light), and the
@@ -182,7 +198,7 @@ function ThemesIndex({ onOpenRef }) {
                 <button key={t.key} type="button" onClick={() => setActive(on ? null : t.key)} aria-pressed={on}
                   aria-label={`${t.label} — ${t.definition}`} title={t.definition}
                   className={`inline-flex items-center gap-1 px-2 py-1 border text-[0.6875rem] focus:outline focus:outline-2 focus:outline-[#B85838] ${on ? 'border-[#1A1815] bg-[#FAF8F4]' : 'border-[#E8E4DC] hover:border-[#1A1815]'}`} style={serif}>
-                  <span aria-hidden="true" className="inline-flex items-center justify-center px-1 text-[0.5625rem] font-semibold" style={cssForHighlight(themeMarkerStyle(t.key))}>{t.abbr}</span>
+                  <span aria-hidden="true" className="inline-flex items-center justify-center px-1 text-[0.5625rem] font-semibold" style={markerChipCss(themeMarkerStyle(t.key))}>{t.abbr}</span>
                   <span className="text-[#1A1815]">{t.label}</span>
                 </button>
               );
@@ -209,6 +225,19 @@ function ThemesIndex({ onOpenRef }) {
 export default function BibleReader({ email = null }) {
   const [book, setBook] = useState('Genesis');
   const [chapter, setChapter] = useState(1);
+  // THE SECOND READABLE EDITION (Darrell 2026-09-06: "we want kjv and esv" —
+  // the ESV cannot be carried, so the modern-English public-domain WEB already
+  // on disk is the second). Remembered per device; the chapter reloads from the
+  // chosen corpus; the header, the copy label and the provenance line follow.
+  const [edition, setEdition] = useState(() => readerEdition());
+  const chooseEdition = (e) => { setEdition(e); rememberReaderEdition(e); };
+  const editionMeta = editionById(edition.toUpperCase()) || editionById('KJV');
+  const editionShort = (editionMeta && editionMeta.short) || 'KJV';
+  // WORD-LEVEL spans are offsets into a verse's TEXT, and the two editions word
+  // a verse differently — a KJV span painted over WEB words would mark the wrong
+  // words. Spans are therefore scoped to the edition they were made in (the
+  // KJV keeps its existing keys); whole-verse marks are per VERSE and shared.
+  const spanRef = (ref) => (edition === 'kjv' ? ref : `${ref}@${edition}`);
   const [verses, setVerses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -252,13 +281,13 @@ export default function BibleReader({ email = null }) {
   useEffect(() => {
     let on = true;
     setLoading(true);
-    chapterVerses(book, chapter).then((vs) => {
+    chapterVerses(book, chapter, edition).then((vs) => {
       if (!on) return;
       setVerses(vs);
       setLoading(false);
     });
     return () => { on = false; };
-  }, [book, chapter]);
+  }, [book, chapter, edition]);
 
   const openAt = (bk, ch, v = null) => {
     setBook(bk);
@@ -311,7 +340,7 @@ export default function BibleReader({ email = null }) {
   const [pendingSel, setPendingSel] = useState(null); // { ref, start, end, text }
   const onSelect = (ref, el) => {
     const sp = selectionSpanIn(el);
-    if (sp) setPendingSel({ ref, ...sp });
+    if (sp) setPendingSel({ ref: spanRef(ref), ...sp });
   };
   const applySpan = (style) => {
     if (!pendingSel) return;
@@ -341,9 +370,25 @@ export default function BibleReader({ email = null }) {
   return (
     <div>
       <div className="bg-[#1A1815] text-[#FAF8F4] p-3 mb-3">
-        <p className="text-[0.6875rem] uppercase tracking-[0.25em] text-[#B89838] mb-1">The Word · King James Version</p>
+        <p className="text-[0.6875rem] uppercase tracking-[0.25em] text-[#B89838] mb-1">The Word · {editionMeta ? editionMeta.label : 'King James Version'}</p>
+        {/* Two public-domain editions, read verbatim — the reader chooses, and the device remembers. */}
+        <div role="radiogroup" aria-label="Edition" className="flex flex-wrap gap-1.5 mb-2">
+          {EDITIONS_ON_DISK.map((e) => {
+            const meta = editionById(e.toUpperCase());
+            const on = e === edition;
+            return (
+              <button key={e} type="button" role="radio" aria-checked={on} onClick={() => chooseEdition(e)}
+                title={meta ? meta.label : e.toUpperCase()}
+                className={`min-h-[44px] px-3 text-[0.6875rem] uppercase tracking-wider font-semibold border focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B89838] ${on ? 'bg-[#B89838] text-[#1A1815] border-[#B89838]' : 'bg-transparent text-[#FAF8F4] border-[#4A453D] hover:border-[#B89838]'}`}
+                style={mono}>
+                {meta ? `${meta.short} · ${meta.modernEnglish ? 'modern English' : '1611'}` : e.toUpperCase()}
+              </button>
+            );
+          })}
+        </div>
+        <p className="text-[0.625rem] text-[#CFC9BD] mb-1" data-testid="edition-provenance" style={mono}>{provenanceLine(edition.toUpperCase())}</p>
         <p className="text-sm leading-relaxed" style={serif}>
-          The whole Bible, hosted inside PoeTech — verbatim public-domain KJV, served from here, no link-out. Read it, and mark it in your own colors; your highlights are private to your sign-in and follow you across devices.
+          The whole Bible, hosted inside PoeTech — verbatim public-domain {editionShort}, served from here, no link-out. Read it, and mark it in your own colors; your highlights are private to this device — kept in your browser, never sent anywhere.
         </p>
       </div>
 
@@ -487,7 +532,7 @@ export default function BibleReader({ email = null }) {
               const t = THEMES.find((x) => x.key === k);
               return (
                 <span key={k} className="inline-flex items-center gap-1 px-1.5 py-0.5 border border-[#E8E4DC]" title={t.definition}>
-                  <span aria-hidden="true" className="inline-flex items-center justify-center px-1 text-[0.5625rem] font-semibold" style={cssForHighlight(themeMarkerStyle(k))}>{t.abbr}</span>
+                  <span aria-hidden="true" className="inline-flex items-center justify-center px-1 text-[0.5625rem] font-semibold" style={markerChipCss(themeMarkerStyle(k))}>{t.abbr}</span>
                   <span className="text-[0.625rem] text-[#1A1815]" style={serif}>{t.label}</span>
                 </span>
               );
@@ -542,7 +587,7 @@ export default function BibleReader({ email = null }) {
             // speaker (voices), UNDER the reader's own spans (which win on overlap).
             const autoSpans = autoMode === 'themes' ? scanThemeSpans(text)
               : autoMode === 'voices' ? voiceSpansFor(ref, text) : [];
-            const spans = autoSpans.length ? [...autoSpans, ...getSpans(marks, ref)] : getSpans(marks, ref);
+            const spans = autoSpans.length ? [...autoSpans, ...getSpans(marks, spanRef(ref))] : getSpans(marks, spanRef(ref));
             return (
               <React.Fragment key={v}>
                 <div id={`v-${v}`}
@@ -565,7 +610,7 @@ export default function BibleReader({ email = null }) {
                   </p>
                   <VerseHighlighter value={mark} onPick={(k) => pick(ref, k)} refLabel={ref} />
                 </div>
-                {open && <VerseUnions refStr={ref} text={text} onOpenRef={goToRef} />}
+                {open && <VerseUnions refStr={ref} text={text} onOpenRef={goToRef} editionShort={editionShort} />}
               </React.Fragment>
             );
           })}

@@ -23,6 +23,182 @@ import {
   visibleDiscussions, sortDiscussions,
 } from '../lib/discussions.js';
 import { handoffSummary } from '../lib/orchestrator-handoff.js';
+import { ARI } from '../lib/ari.js';
+import { ariNotesFromLedger, ariAssignments, resolveDuties, dutySummary } from '../lib/ari-notes.js';
+import { WORKFLOW_REGISTRY_RETIRED } from '../lib/workflow-registry.js';
+import { RESEARCH_DAY, SOURCING_BENCH, RESEARCH_FINDINGS, researchCadence } from '../lib/research-intake.js';
+import { useBoardTasks } from '../lib/use-board-tasks.js';
+
+// The decision ledger — Ari's derived note source (re-parsed every build).
+const DR_LEDGER = (typeof __DR_LEDGER__ !== 'undefined') ? __DR_LEDGER__ : { ok: false, count: 0, items: [] };
+// The review registry — the Research Day cadence derives from it (DR-0143):
+// a pass counts only when a REV record carrying the marker is filed.
+const UIUX_REVIEWS = (typeof __UIUX_REVIEWS__ !== 'undefined') ? __UIUX_REVIEWS__ : { ok: false, count: 0, items: [] };
+
+// -----------------------------------------------------------------------------
+// AriRecord — Ari's notes + responsibilities, DERIVED (DR-0120/DR-0121 item 3).
+// "This should be full of Ari notes and Ari has stopped updating as we add
+// features" — the fix is structural: one note per dated Decision Record, read
+// from the same ledger the Decisions tab reads, so the feed updates with every
+// build and can never silently stall. Ari's live workload derives from the real
+// board rows (owner = Ari); his standing duties resolve their DR refs against
+// the live ledger (a ref that stops resolving reads as missing, DR-0076).
+// The credentialed Local-LLM tending lane (Tier C, three brakes) will ADD real
+// synced reflections on top when it arms; this derived floor never goes stale.
+// -----------------------------------------------------------------------------
+function AriRecord() {
+  const tasks = useBoardTasks();
+  const [visibleCount, setVisibleCount] = useState(6);
+  const [visibleFindings, setVisibleFindings] = useState(4);
+  const [openDuty, setOpenDuty] = useState(null);   // one duty expanded at a time (DR-0243)
+  const notes = useMemo(() => ariNotesFromLedger(DR_LEDGER), []);
+  const work = useMemo(() => ariAssignments(tasks), [tasks]);
+  const duties = useMemo(() => resolveDuties(DR_LEDGER), []);
+  // The Research Day cadence — measured from the same review registry the
+  // Quality panel reads; a pass exists only when its REV record is filed.
+  const cadence = useMemo(() => researchCadence(UIUX_REVIEWS, Date.now()), []);
+  return (
+    <section className="bg-white border border-[#5A4A2E] p-4">
+      <div className="flex items-baseline justify-between gap-2 flex-wrap">
+        <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A4A2E] font-semibold">{ARI.name}&apos;s record · notes, responsibilities, workload — derived live</div>
+        <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">{notes.length} notes · {work.open} open assignment{work.open === 1 ? '' : 's'}</span>
+      </div>
+      <p className="text-xs text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+        One note per shipped decision, read from the same ledger the Decisions tab reads — it updates with every build, so it cannot silently stall. {ARI.honesty}
+      </p>
+
+      {/* Standing duties — each resolved against the live ledger. One-line
+          summaries by default (DR-0243: no more prose walls hiding the data);
+          the full duty is one tap away. Nothing is lost, only folded. */}
+      <div className="mt-3">
+        <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] font-semibold mb-1">Standing responsibilities (assigned by the ledger) · {duties.length}</div>
+        <ul className="space-y-1">
+          {duties.map((d) => (
+            <li key={d.key} className="text-[0.6875rem] text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
+              <span className="text-[#5A4A2E] mr-1" aria-hidden="true">›</span>
+              {openDuty === d.key ? d.duty : dutySummary(d.duty)}{' '}
+              {d.found
+                ? <span className="text-[0.625rem] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>({d.drRef}{d.drDate ? ` · ${d.drDate}` : ''})</span>
+                : <span className="text-[0.625rem] text-[#DC2626]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>({d.drRef} — not in the ledger)</span>}
+              {dutySummary(d.duty) !== d.duty && (
+                <button type="button"
+                  className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] hover:text-[#1A1815] ml-1"
+                  aria-expanded={openDuty === d.key}
+                  onClick={() => setOpenDuty((cur) => (cur === d.key ? null : d.key))}>
+                  {openDuty === d.key ? 'Less' : 'More'}
+                </button>
+              )}
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      {/* The sourcing bench + Research Day (DR-0143) — the whole team's
+          instruments with honest limits, the evidence-based findings registry,
+          and the weekly research cadence MEASURED from the review registry. */}
+      <div className="mt-3">
+        <div className="flex items-baseline justify-between gap-2 flex-wrap">
+          <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] font-semibold">Sourcing bench · Research Day (weekly, {RESEARCH_DAY.dayName}s)</div>
+          {cadence.hasRecord ? (
+            <span className={`text-[0.625rem] ${cadence.overdue ? 'text-[#DC2626]' : 'text-[#5A5751]'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+              last pass {cadence.lastPass.date}{cadence.daysSince != null ? ` · ${cadence.daysSince}d ago` : ''} · next due {cadence.nextDue}{cadence.overdue ? ' · OVERDUE' : ''}
+            </span>
+          ) : (
+            <span className="text-[0.625rem] text-[#DC2626]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>no pass on record — overdue (nothing invented)</span>
+          )}
+        </div>
+        <p className="text-[0.6875rem] text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+          Every capability routes to the instrument that actually has it — the whole team&apos;s bench, not only the agent&apos;s. Outside input runs the intake house-first, and adoption takes evidence from real use here — tested, never agreed to untested. The cadence above derives from the review registry: a pass counts only when its record is filed.
+        </p>
+        <ul className="mt-1.5 space-y-0.5">
+          {SOURCING_BENCH.map((b) => (
+            <li key={b.key} className="text-[0.6875rem] text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
+              <span className="text-[#5A4A2E] mr-1" aria-hidden="true">›</span>
+              <span style={{ fontWeight: 600 }}>{b.name}</span> — {b.skills}{' '}
+              <span className="text-[#5A5751]">Limit: {b.constraint}</span>
+            </li>
+          ))}
+        </ul>
+        <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] font-semibold mt-2 mb-1">Research findings — evidence-based verdicts (adopt only what actually works)</div>
+        <div className="space-y-1.5">
+          {RESEARCH_FINDINGS.slice(0, visibleFindings).map((f) => (
+            <div key={f.key} className="border-l-2 border-[#5A4A2E] bg-[#FAF8F4] px-2.5 py-1.5">
+              <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                <span className="text-xs" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{f.name}</span>
+                <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{f.verdict}{f.reReview ? ` · re-review ${f.reReview}` : ''}</span>
+              </div>
+              <p className="text-[0.6875rem] text-[#5A5751] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{f.why} <span className="italic">Constraint: {f.constraint}</span></p>
+            </div>
+          ))}
+        </div>
+        {RESEARCH_FINDINGS.length > visibleFindings && (
+          <button type="button" onClick={() => setVisibleFindings((c) => c + 7)}
+            className="mt-2 w-full text-[0.625rem] uppercase tracking-wider px-3 py-2 border border-[#E8E4DC] text-[#5A5751] hover:border-[#5A4A2E] hover:text-[#5A4A2E] focus:outline focus:outline-2 focus:outline-[#B85838]">
+            Show more findings · {RESEARCH_FINDINGS.length - visibleFindings} remaining
+          </button>
+        )}
+      </div>
+
+      {/* The workflow bench (DR-0158) is retired with n8n (DR-0617): the house
+          stores no n8n workflows, and the surface says so plainly rather than
+          rendering an empty list or an injection error. */}
+      <div className="mt-3">
+        <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] font-semibold">Workflow bench — {WORKFLOW_REGISTRY_RETIRED.title}</div>
+        <p className="text-[0.6875rem] text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+          {WORKFLOW_REGISTRY_RETIRED.note}
+        </p>
+      </div>
+
+      {/* Live workload — the real board rows pushed to Ari. */}
+      <div className="mt-3">
+        <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] font-semibold mb-1">Current workload (live board items owned by {ARI.name}: {work.open} open · {work.done} done)</div>
+        {work.openItems.length === 0 ? (
+          <p className="text-[0.6875rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No open items pushed to {ARI.name} on this device — the boards sync on sign-in, and any item can be pushed to him from ▦ Boards.</p>
+        ) : (
+          <ul className="space-y-0.5">
+            {work.openItems.slice(0, 5).map((t) => (
+              <li key={t.slug} className="text-[0.6875rem] text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
+                <span className="text-[#2A5A8E] mr-1" aria-hidden="true">◐</span>{t.title}
+                <span className="text-[#5A5751]"> · {t.board}{t.dueDate ? ` · due ${t.dueDate}` : ''} · {t.status}</span>
+              </li>
+            ))}
+            {work.openItems.length > 5 && (
+              <li className="text-[0.625rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>…and {work.openItems.length - 5} more on ▦ Boards.</li>
+            )}
+          </ul>
+        )}
+      </div>
+
+      {/* The derived notes feed. */}
+      <div className="mt-3">
+        <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] font-semibold mb-1">Notes — what shipped and why (newest first)</div>
+        {notes.length === 0 ? (
+          <p className="text-[0.6875rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>The decision ledger was not parsed in this build — showing nothing rather than inventing notes.</p>
+        ) : (
+          <>
+            <div className="space-y-1.5">
+              {notes.slice(0, visibleCount).map((n) => (
+                <div key={n.id} className="border-l-2 border-[#5A4A2E] bg-[#FAF8F4] px-2.5 py-1.5">
+                  <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                    <span className="text-xs" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{n.title}</span>
+                    <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{n.drRef} · {n.date}</span>
+                  </div>
+                  <p className="text-[0.6875rem] text-[#5A5751] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{n.body}</p>
+                </div>
+              ))}
+            </div>
+            {notes.length > visibleCount && (
+              <button type="button" onClick={() => setVisibleCount((c) => c + 12)}
+                className="mt-2 w-full text-[0.625rem] uppercase tracking-wider px-3 py-2 border border-[#E8E4DC] text-[#5A5751] hover:border-[#5A4A2E] hover:text-[#5A4A2E] focus:outline focus:outline-2 focus:outline-[#B85838]">
+                Show more notes · {notes.length - visibleCount} remaining
+              </button>
+            )}
+          </>
+        )}
+      </div>
+    </section>
+  );
+}
 
 const blankForm = () => ({
   kind: 'directive', title: '', body: '', projectSlugs: [],
@@ -99,22 +275,25 @@ export default function Discussions({
   }));
 
   const fieldCls = 'w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]';
-  const labelCls = 'text-[9px] uppercase tracking-wider text-[#5A5751] block mb-1';
+  const labelCls = 'text-[0.5625rem] uppercase tracking-wider text-[#5A5751] block mb-1';
 
   return (
     <div className="space-y-5">
       <section className="bg-white border-2 border-[#1A1815] p-4 sm:p-5">
-        <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold">💬 Discussions · discuss, then document</div>
+        <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">💬 Discussions · discuss, then document</div>
         <h2 className="text-2xl mt-1" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>Capture what drives the work.</h2>
         <p className="text-sm mt-1 text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
           The directive, the decision and its reason, the reflection behind it — kept as real records that link to the projects they drive. A decision can carry its Decision-Record number; a reflection can point back to your Study. Nothing here is lost to a chat scroll.
         </p>
       </section>
 
+      {/* Ari's derived record — notes per shipped decision, duties, live workload. */}
+      <AriRecord />
+
       {/* Filters + capture */}
       <section>
         <div className="flex items-baseline justify-between mb-3 pb-2 border-b border-[#1A1815] gap-2 flex-wrap">
-          <h3 className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751]">All discussions ({visible.length})</h3>
+          <h3 className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751]">All discussions ({visible.length})</h3>
           <div className="flex gap-2 flex-wrap items-center">
             <select className="text-xs p-1.5 border border-[#E8E4DC] bg-[#FAF8F4]" value={filterKind} onChange={(e) => setFilterKind(e.target.value)} aria-label="Filter by kind">
               <option value="all">All kinds</option>
@@ -124,7 +303,7 @@ export default function Discussions({
               <option value="all">All projects</option>
               {projects.map((p) => <option key={p.id} value={p.id}>{p.title}</option>)}
             </select>
-            <button type="button" onClick={() => { if (showForm) resetForm(); else { setForm(blankForm()); setShowForm(true); } }} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] border border-transparent hover:border-[#B85838] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">
+            <button type="button" onClick={() => { if (showForm) resetForm(); else { setForm(blankForm()); setShowForm(true); } }} className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] border border-transparent hover:border-[#B85838] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">
               {showForm ? '× Cancel' : '+ New discussion'}
             </button>
           </div>
@@ -132,19 +311,19 @@ export default function Discussions({
 
         {showForm && (
           <div className="bg-white border border-[#B85838] p-4 mb-4 space-y-3">
-            <div className="text-[10px] uppercase tracking-[0.2em] text-[#B85838] font-medium">{editingId ? 'Edit discussion' : 'New discussion'}</div>
+            <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#B85838] font-medium">{editingId ? 'Edit discussion' : 'New discussion'}</div>
             <div>
               <span className={labelCls}>Kind</span>
               <div className="flex flex-wrap gap-1.5" role="group" aria-label="Discussion kind">
                 {DISCUSSION_KINDS.filter((k) => k.key !== 'handoff' || editingId).map((k) => (
                   <button key={k.key} type="button" aria-pressed={form.kind === k.key} onClick={() => setForm({ ...form, kind: k.key })}
-                    className="text-[10px] px-2.5 py-1.5 border uppercase tracking-wider min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]"
+                    className="text-[0.625rem] px-2.5 py-1.5 border uppercase tracking-wider min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]"
                     style={form.kind === k.key ? { backgroundColor: '#1A1815', color: 'white', borderColor: '#1A1815' } : { color: '#5A5751', borderColor: '#E8E4DC' }}>
                     {k.glyph} {k.label}
                   </button>
                 ))}
               </div>
-              <p className="text-[10px] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{kindMeta(form.kind).blurb}</p>
+              <p className="text-[0.625rem] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{kindMeta(form.kind).blurb}</p>
             </div>
             <input className={fieldCls} placeholder="Title — e.g., 'Prioritize the video wall over the newsletter'" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} aria-label="Discussion title" />
             <div>
@@ -154,14 +333,14 @@ export default function Discussions({
             <div>
               <span className={labelCls}>Drives which project(s)</span>
               {projects.length === 0 ? (
-                <p className="text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No projects yet — add one in the Projects · Timeline tab, then link it here.</p>
+                <p className="text-[0.625rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No projects yet — add one in the Projects · Timeline tab, then link it here.</p>
               ) : (
                 <div className="flex flex-wrap gap-1.5">
                   {projects.map((p) => {
                     const on = form.projectSlugs.includes(p.id);
                     return (
                       <button key={p.id} type="button" aria-pressed={on} onClick={() => toggleProject(p.id)}
-                        className="text-[10px] px-2 py-1 border uppercase tracking-wider min-h-[32px] focus:outline focus:outline-2 focus:outline-[#B85838]"
+                        className="text-[0.625rem] px-2 py-1 border uppercase tracking-wider min-h-[32px] focus:outline focus:outline-2 focus:outline-[#B85838]"
                         style={on ? { backgroundColor: '#5A6E3D', color: 'white', borderColor: '#5A6E3D' } : { color: '#5A5751', borderColor: '#E8E4DC' }}>
                         {on ? '✓ ' : ''}{p.title}
                       </button>
@@ -188,7 +367,7 @@ export default function Discussions({
               <div className="flex gap-1.5" role="group" aria-label="Visibility">
                 {[['shared', 'Shared with family'], ['private', 'Private (you + owners)']].map(([k, label]) => (
                   <button key={k} type="button" aria-pressed={form.visibility === k} onClick={() => setForm({ ...form, visibility: k })}
-                    className="text-[10px] px-2.5 py-1.5 border uppercase tracking-wider min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]"
+                    className="text-[0.625rem] px-2.5 py-1.5 border uppercase tracking-wider min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]"
                     style={form.visibility === k ? { backgroundColor: '#1A1815', color: 'white', borderColor: '#1A1815' } : { color: '#5A5751', borderColor: '#E8E4DC' }}>
                     {label}
                   </button>
@@ -229,7 +408,7 @@ export default function Discussions({
         )}
       </section>
 
-      <p className="text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
+      <p className="text-[0.625rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
         Discussions sync across your devices and stay family-internal. Private ones are visible only to you and the owners. Hand-offs are created from a project (Projects · Timeline) and stay behind the Cage — recorded, never auto-run.
       </p>
     </div>
@@ -244,20 +423,20 @@ function DiscussionCard({ d, projectTitle, canManage, onEdit, onStatus, onDelete
   return (
     <div className="bg-white border-l-4 border border-[#E8E4DC] p-4" style={{ borderLeftColor: accent }}>
       <div className="flex items-baseline justify-between gap-2 flex-wrap">
-        <span className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: accent }}>{km.glyph} {km.label}</span>
-        <span className="text-[10px] uppercase tracking-wider font-medium" style={{ color: statusColor }}>{d.status}{d.visibility === 'private' ? ' · private' : ''}</span>
+        <span className="text-[0.625rem] uppercase tracking-wider font-semibold" style={{ color: accent }}>{km.glyph} {km.label}</span>
+        <span className="text-[0.625rem] uppercase tracking-wider font-medium" style={{ color: statusColor }}>{d.status}{d.visibility === 'private' ? ' · private' : ''}</span>
       </div>
       <h4 className="text-base mt-0.5" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{d.title}</h4>
       {d.body && <p className="text-xs text-[#1A1815] mt-1 whitespace-pre-wrap" style={{ fontFamily: '"Fraunces", serif' }}>{d.body}</p>}
 
       {isHandoff && (
-        <p className="text-[11px] mt-2 px-2 py-1.5 bg-[#FAF8F4] border-l-2 border-[#2A5A8E]" style={{ fontFamily: '"Fraunces", serif' }}>
-          <span className="uppercase tracking-wider text-[10px] text-[#2A5A8E] font-semibold mr-1">🛰 Hand-off</span>{handoffSummary(d)}
+        <p className="text-[0.6875rem] mt-2 px-2 py-1.5 bg-[#FAF8F4] border-l-2 border-[#2A5A8E]" style={{ fontFamily: '"Fraunces", serif' }}>
+          <span className="uppercase tracking-wider text-[0.625rem] text-[#2A5A8E] font-semibold mr-1">🛰 Hand-off</span>{handoffSummary(d)}
         </p>
       )}
 
       {Array.isArray(d.projectSlugs) && d.projectSlugs.length > 0 && (
-        <div className="text-[10px] text-[#5A5751] mt-2 flex flex-wrap items-center gap-1.5">
+        <div className="text-[0.625rem] text-[#5A5751] mt-2 flex flex-wrap items-center gap-1.5">
           <span className="uppercase tracking-wider">Drives:</span>
           {d.projectSlugs.map((s) => (
             <span key={s} className="px-1.5 py-0.5 border border-[#E8E4DC] bg-[#FAF8F4]" style={{ fontFamily: '"Fraunces", serif' }}>{projectTitle[s] || s}</span>
@@ -266,14 +445,14 @@ function DiscussionCard({ d, projectTitle, canManage, onEdit, onStatus, onDelete
       )}
 
       {(d.links && (d.links.study_ref || d.links.dr_ref)) && (
-        <div className="text-[10px] text-[#5A5751] mt-1.5 flex flex-wrap gap-x-4 gap-y-0.5" style={{ fontFamily: '"Fraunces", serif' }}>
+        <div className="text-[0.625rem] text-[#5A5751] mt-1.5 flex flex-wrap gap-x-4 gap-y-0.5" style={{ fontFamily: '"Fraunces", serif' }}>
           {d.links.dr_ref && <span><span className="uppercase tracking-wider text-[#5A4A2E]">⚖ Ledger · </span>{d.links.dr_ref}</span>}
           {d.links.study_ref && <span><span className="uppercase tracking-wider text-[#7A5A8E]">📓 Study · </span>{d.links.study_ref}</span>}
         </div>
       )}
 
       {canManage && (
-        <div className="flex items-center gap-1 text-[10px] uppercase tracking-wider mt-2 pt-2 border-t border-[#E8E4DC]">
+        <div className="flex items-center gap-1 text-[0.625rem] uppercase tracking-wider mt-2 pt-2 border-t border-[#E8E4DC]">
           <button type="button" onClick={onEdit} className="text-[#5A5751] hover:text-[#1A1815] hover:bg-[#FAF8F4] border border-transparent hover:border-[#1A1815] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">✎ Edit</button>
           <span aria-hidden="true" className="h-5 w-px bg-[#E8E4DC]" />
           {d.status !== 'resolved' && (

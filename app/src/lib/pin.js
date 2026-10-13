@@ -37,9 +37,30 @@ export function isValidPinFormat(pin) {
   return true;
 }
 
+// The shared supabase client awaits auth.getSession() before EVERY call, and
+// getSession waits on a CROSS-TAB navigator lock shared by every PoeTech window
+// on the origin. A wedged/backgrounded PoeTech tab holds that lock and — because
+// browser fetch() has no timeout — supabase.rpc never settles. A PIN check that
+// never settles strands PrivateGate on its "loading" state, which renders NULL,
+// so the WHOLE private area (all of Books) goes blank with no heading and no way
+// out (Darrell 2026-07-19, many tabs open). Cap every PIN RPC so a hang degrades
+// to NO-LOCKOUT (backendAvailable:false -> privateGateState opens for the owner),
+// never an infinite blank. Same cross-tab-lock hang class as fetchShowcase /
+// fetchPublicSermons; PIN reads need the session so they can't use the anon path,
+// but a hard deadline makes the hang recoverable.
+const CALL_RPC_TIMEOUT_MS = 8000;
+
 async function callRpc(fn, args) {
   try {
-    const { data, error } = await supabase.rpc(fn, args);
+    let timer;
+    const timeout = new Promise((resolve) => { timer = setTimeout(() => resolve({ __rpcTimedOut: true }), CALL_RPC_TIMEOUT_MS); });
+    const res = await Promise.race([supabase.rpc(fn, args), timeout]);
+    clearTimeout(timer);
+    if (res && res.__rpcTimedOut) {
+      console.warn(`[pin] ${fn} timed out — degrading to no-lockout`);
+      return { backendAvailable: false };
+    }
+    const { data, error } = res;
     if (error) {
       if (isMissingRpc(error)) return { backendAvailable: false };
       // Log metadata ONLY — never the args (they contain the PIN).
@@ -64,9 +85,25 @@ export async function setUserPin(pin) {
   return { ok: !!(r.data && r.data.ok), backendAvailable: r.backendAvailable !== false, error: r.error };
 }
 
-/** Does the signed-in user have a PIN? @returns {hasPin, backendAvailable} */
+/**
+ * Does the signed-in user have a PIN? @returns {hasPin, backendAvailable}
+ *
+ * UNKNOWN IS NOT "NO PIN" (2026-09-07, Darrell's tablet: "Secure your space"
+ * on every tab while the box held his PIN row and has_user_pin() measured
+ * TRUE for his door — nas-health run 34166201488). An RPC that ERRORS — a
+ * 401 from a tab whose token expired mid-refresh, a 5xx, a proxy page — used
+ * to come back here as hasPin:false with backendAvailable:true, which
+ * decideAccess reads as "never set one" and answers with the SET-PIN gate.
+ * That is the wrong door twice over: it strands a person on a gate that
+ * cannot save (the same call fails), and had the set later succeeded it would
+ * have silently REPLACED a real PIN. A failed read means the answer is not
+ * known; the no-lockout rule for "not known" is backendAvailable:false —
+ * identity keeps the door open, exactly as the timeout path already does.
+ * Only a real answer (true/false) may steer the gate.
+ */
 export async function hasUserPin() {
   const r = await callRpc('has_user_pin', {});
+  if (r.error) return { hasPin: false, backendAvailable: false, error: r.error };
   return { hasPin: r.data === true, backendAvailable: r.backendAvailable !== false };
 }
 

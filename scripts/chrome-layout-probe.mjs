@@ -1,0 +1,1518 @@
+// =============================================================================
+// chrome-layout-probe — the app chrome is MEASURED at real widths, not eyeballed
+// =============================================================================
+// The blind spot this closes (Darrell 2026-07-28, "The PoeTech App Title or
+// Header is always messed up cellphone or laptop... what is comprehensive if
+// these items are missed?"): every layout review to date was source-level —
+// jsdom cannot measure geometry, so a header whose brand column collapsed to
+// one letter per line with the auth button overlapping it survived lint,
+// vitest, the build, and multiple UI/UX review passes. A layout defect class
+// needs a layout instrument: this serves the freshly built dist exactly the
+// way sw-nav-check.mjs does and MEASURES the rendered chrome in a real
+// Chromium at phone / tablet / laptop widths (COMPREHENSIVE-REVIEW-STANDARD
+// dimension 4, DR-0239).
+//
+// Invariants asserted per width (360 / 768 / 1440 / 1920):
+//   1920 ADDED 2026-09-22: Darrell reads lessons on a Fire TV and a Samsung
+//   set, and the sweep had never measured a television. A 10-foot UI is a
+//   real form factor for this app (DR-0264 asked for readers aged 6 to 60,
+//   across a room), and dimension 4 says a sweep is MEASURED, not eyeballed.
+//   Measured by CI's runner: the sandbox that added this width cannot mount
+//   the page at all (no route to /sb), which is exactly why the runner is the
+//   team's eye (DR-0125) and why this line was not asserted from a guess.
+//   1. NO PAGE OVERFLOW — document scrollWidth <= viewport width + 1px.
+//   2. BRAND READS HORIZONTALLY — the header h1 box is wider than tall
+//      (a letter-stacked 1-ch column is taller than wide by construction).
+//   3. NOTHING OVERLAPS THE NAME — no header button/link/select rect
+//      intersects the h1 rect (the LOG OUT-over-the-wordmark screenshot).
+//
+// TEXT-SCALE pass (rides --sweep; added 2026-08-05 after the Big Print TLC
+// screenshots — clipped cards, and a reader TRAPPED in big text because the
+// door header outgrew the viewport and hid its own size controls): the same
+// surfaces plus the TLC and Moore doors are loaded at Big Print 44 (2.75x,
+// the top step) at phone/tablet widths and must hold two invariants:
+//   4. NO PAGE OVERFLOW at Big Print — the layout holds, nothing clips.
+//   5. THE ESCAPE HATCH IS REACHABLE — at least one text-size control is
+//      fully on screen at load, so big text is always reversible. Asserted in
+//      BOTH header states (expanded AND collapsed via the header hideaway):
+//      "always reversible" means from every state the reader can actually be
+//      in, not only the one the probe happened to load.
+//
+// READER pass (rides --sweep; DR-0659): a real reading of L191 in the NAS
+// voice (answered here with a tone) at 412x915 A+++, 390x844 and 1920x1080 —
+// the reader's pill and mini-bar are on screen, the lit sentence stays in
+// view while following, and at 1920 a remote's focus walks the mini-bar with
+// a ring and Enter works. Its selftest takes the ring away and requires the
+// remote check to trip.
+//
+// Proven-to-catch (DR-0076 §3, anti-theater): --selftest-break injects a CSS
+// override that forces the brand column to 10px (the pre-fix collapse) and
+// REQUIRES the invariants to FAIL — a probe that cannot fail is a painted
+// gate. CI runs the selftest first, then the real pass.
+//
+// Usage: node scripts/chrome-layout-probe.mjs [distDir] [--selftest-break]
+// Requires playwright-core (already installed for sw-nav-check); uses the
+// runner's Chrome or PLAYWRIGHT_CHROMIUM_PATH.
+// =============================================================================
+import { chromium } from 'playwright-core';
+import { createServer } from 'node:http';
+import { readFileSync, existsSync } from 'node:fs';
+import { join, extname, normalize } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const args = process.argv.slice(2).filter((a) => a !== '--selftest-break' && a !== '--sweep');
+const SELFTEST = process.argv.includes('--selftest-break');
+// --sweep probes the major surface families, not only the church door —
+// dimension 4 is a SWEEP, one width on one view is not (DR-0239).
+const SWEEP = process.argv.includes('--sweep');
+const BASE = '/poetech-app';
+const DIST = args[0] || fileURLToPath(new URL('../app/dist', import.meta.url));
+const WIDTHS = [360, 768, 1440, 1920];
+// Each device its job (DR-0678): the roles file the app reads, read here too,
+// so the probe asserts the SAME order the station derives, never a copy.
+const DEVICE_ROLES = JSON.parse(readFileSync(fileURLToPath(new URL('../infra/device-availability/device-roles.json', import.meta.url)), 'utf8'));
+const VIEWS = SWEEP
+  // 'properties' added 2026-08-27: the Poe Properties workspace is a face of
+  // its own (its own manifest scope, its own served page) and had NO layout
+  // instrument — the exact gap dimension 4 exists to close, found by running
+  // this review against a surface the sweep list had never heard of.
+  // 'notes' added 2026-09-29 (DR-0672): the Thinking Space hosts Your lessons,
+  // whose road runs five across from 640px and stacks on a phone.
+  // 'create' added 2026-09-29 (DR-0678): the Create station is the laptop's
+  // creating workspace, and it is measured at every width like every face.
+  ? ['church', 'books', 'messages', 'about', 'crm', 'rentals', 'markets', 'library', 'games', 'admin', 'properties', 'notes', 'create']
+  : ['church'];
+
+if (!existsSync(join(DIST, 'index.html'))) {
+  console.error(`chrome-layout-probe: no index.html in ${DIST} — build the app first (npm run build)`);
+  process.exit(2);
+}
+
+const MIME = {
+  '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript',
+  '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml',
+  '.webmanifest': 'application/manifest+json', '.woff2': 'font/woff2', '.png': 'image/png',
+};
+
+// A short tone in the NAS voice's own format (16-bit mono PCM WAV, 22050 Hz),
+// so the reader pass can start a REAL reading: the app's /voice-lite call is
+// answered here exactly as the NAS answers it (DR-0659).
+function toneWav(seconds = 1.2, hz = 330, rate = 22050) {
+  const n = Math.round(seconds * rate);
+  const buf = Buffer.alloc(44 + n * 2);
+  buf.write('RIFF', 0); buf.writeUInt32LE(36 + n * 2, 4); buf.write('WAVE', 8);
+  buf.write('fmt ', 12); buf.writeUInt32LE(16, 16); buf.writeUInt16LE(1, 20); buf.writeUInt16LE(1, 22);
+  buf.writeUInt32LE(rate, 24); buf.writeUInt32LE(rate * 2, 28); buf.writeUInt16LE(2, 32); buf.writeUInt16LE(16, 34);
+  buf.write('data', 36); buf.writeUInt32LE(n * 2, 40);
+  for (let i = 0; i < n; i++) buf.writeInt16LE(Math.round(Math.sin((2 * Math.PI * hz * i) / rate) * 6000), 44 + i * 2);
+  return buf;
+}
+const TONE = toneWav();
+
+const server = createServer((req, res) => {
+  let path = (req.url || '/').split('?')[0];
+  if (path === '/voice-lite/speak') {
+    res.writeHead(200, { 'Content-Type': 'audio/wav', 'Content-Length': TONE.length });
+    res.end(TONE);
+    return;
+  }
+  if (path.startsWith('/voice/') || path.startsWith('/voice-lite/')) { res.writeHead(404); res.end(); return; }
+  if (path.startsWith(BASE)) path = path.slice(BASE.length) || '/';
+  if (path === '/') path = '/index.html';
+  const file = normalize(join(DIST, path));
+  if (!file.startsWith(normalize(DIST)) || !existsSync(file)) {
+    // SPA fallback: unknown routes serve the shell, like Pages does.
+    res.writeHead(200, { 'Content-Type': 'text/html' });
+    res.end(readFileSync(join(DIST, 'index.html')));
+    return;
+  }
+  res.writeHead(200, { 'Content-Type': MIME[extname(file)] || 'application/octet-stream' });
+  res.end(readFileSync(file));
+});
+
+await new Promise((r) => server.listen(0, '127.0.0.1', r));
+const origin = `http://127.0.0.1:${server.address().port}`;
+
+const AUDIO_ARGS = ['--autoplay-policy=no-user-gesture-required'];
+const launchOpts = process.env.PLAYWRIGHT_CHROMIUM_PATH
+  ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_PATH, args: AUDIO_ARGS }
+  : { channel: 'chrome', args: AUDIO_ARGS };
+let browser;
+try { browser = await chromium.launch(launchOpts); }
+catch { browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: AUDIO_ARGS }); }
+
+// THE PROBE READS THE SAME CLOCK AT EVERY HOUR (2026-09-30). The app changes
+// with the time: inside a published service window the pinned live-service bar
+// (LiveWorshipBar) opens across the top of every page. This probe used to read
+// the runner's own clock, so the same commit measured differently by the hour:
+// on 2026-09-30 every run inside the Wednesday windows passed and every run
+// after 21:30 UTC failed the 360px lesson budget, with no change to the app.
+// Every page now opens in Champaign's time zone at a pinned instant with no
+// service window (QUIET_HOUR). The live state is measured on purpose, by the
+// lesson cases that pass `at: SERVICE_HOUR`, never by the hour CI happens to run.
+//
+// ONLY THE DATE IS PINNED, NEVER THE TIMERS. Playwright's page.clock.install
+// fakes setTimeout too, and fires the app's timers from its own controller:
+// measured on lesson 1 at 360px, that deferred the lesson's 140ms landing timer
+// (ChurchLearn.jsx LANDING) until after the probe's Teach tap, so the page
+// scrolled 1469px down into the lesson and the chrome read 169px instead of
+// the 486px a real reader sees at the top. A pin that changes what the app does
+// is not a pin. So `Date` alone is shifted to the pinned instant (time still
+// flows from there) and every timer stays the browser's own.
+const PROBE_TZ = 'America/Chicago';
+const QUIET_HOUR = new Date('2026-09-29T10:00:00-05:00'); // a Tuesday morning: no service
+const SERVICE_HOUR = new Date('2026-09-30T18:10:00-05:00'); // Wednesday 6:10 PM: the evening Bible study is live
+async function pinClock(page, at) {
+  await page.addInitScript((target) => {
+    const RealDate = Date;
+    const off = target - RealDate.now();
+    class PinnedDate extends RealDate {
+      constructor(...a) { if (a.length === 0) super(RealDate.now() + off); else super(...a); }
+      static now() { return RealDate.now() + off; }
+    }
+    // Date() called without `new` returns a string, as the real one does.
+    globalThis.Date = new Proxy(PinnedDate, { apply: () => new PinnedDate().toString() });
+  }, (at || QUIET_HOUR).getTime());
+  return page;
+}
+{
+  const rawNewPage = browser.newPage.bind(browser);
+  browser.newPage = async ({ at, ...opts } = {}) => pinClock(await rawNewPage({ timezoneId: PROBE_TZ, ...opts }), at);
+  const rawNewContext = browser.newContext.bind(browser);
+  browser.newContext = async ({ at, ...opts } = {}) => {
+    const ctx = await rawNewContext({ timezoneId: PROBE_TZ, ...opts });
+    const rawCtxPage = ctx.newPage.bind(ctx);
+    ctx.newPage = async () => pinClock(await rawCtxPage(), at);
+    return ctx;
+  };
+}
+
+let failures = 0;
+let tsFailuresBefore = 0;
+let lessonFailuresBefore = 0;
+let lessonMeasured = 0;
+let presenterMeasured = 0;
+let readerMeasured = 0;
+let readerFailuresBefore = 0;
+let lessonChromeFailuresBefore = 0;
+let lessonChromeMeasured = 0;
+let deviceFailuresBefore = 0;
+let deviceMeasured = 0;
+// COVERAGE, counted — not assumed (DR-0323). This probe reported `exit 0` on
+// 2026-09-03 having measured only 8 of its 11 views: no failure was raised, so
+// the run read as a clean pass while a third of the surfaces — including the
+// one under review — were never looked at. A gate that can silently skip its
+// subjects and still say OK is the vacuous-green class DR-0076 §3 exists to
+// kill, and counting failures alone cannot see it. So every completed
+// measurement is counted and the total is asserted against what was intended.
+let measured = 0;
+let tsMeasured = 0;
+const fail = (msg) => { failures += 1; console.error(`LAYOUT FAIL  ${msg}`); };
+// How long a chrome case waits for the network to go quiet (DR-0645).
+// Measured on CI run 36073585592: every view settled in 1.3-2.5 s except
+// `markets`, which polls outside quote relays that never go idle from a
+// runner, so it sat out the full 45 s timeout at each of four widths —
+// 3 of the sweep's 5 minutes spent waiting on nothing the probe measures.
+// Past the cap the header is measured exactly as before: the h1 wait
+// below still has to find the header, and every invariant still runs.
+const CHROME_IDLE_CAP_MS = 10000;
+
+try {
+  for (const view of VIEWS) for (const width of WIDTHS) {
+    const url = `${origin}${BASE}/?view=${view}`;
+    const page = await browser.newPage({ viewport: { width, height: 900 } });
+    await page.goto(url, { waitUntil: 'networkidle', timeout: CHROME_IDLE_CAP_MS }).catch(() => {});
+    await page.waitForSelector('header h1', { timeout: 20000 }).catch(() => {});
+    if (SELFTEST) {
+      // The pre-fix collapse, reproduced deliberately: the brand is forced to
+      // wrap letter-per-line (white-space:normal at ~1ch width — the nowrap
+      // was exactly why the first injection failed to trip, which the
+      // anti-theater exit caught), and the first header control is pinned
+      // over the name (the LOG OUT screenshot). Both invariants MUST trip.
+      await page.addStyleTag({ content: 'header h1 { max-width:14px !important; white-space:normal !important; overflow-wrap:anywhere !important } header button:first-of-type { position:absolute !important; left:0 !important; top:0 !important; transform:none !important }' });
+      await page.evaluate(() => {
+        const h1 = document.querySelector('header h1');
+        const btn = document.querySelector('header button');
+        if (h1 && btn) { const r = h1.getBoundingClientRect(); btn.style.left = `${r.left}px`; btn.style.top = `${r.top}px`; }
+      });
+      await page.evaluate(() => new Promise((r) => setTimeout(r, 100)));
+    }
+    const m = await page.evaluate(() => {
+      const h1 = document.querySelector('header h1');
+      if (!h1) return { noHeader: true };
+      const hr = h1.getBoundingClientRect();
+      const doc = document.documentElement;
+      const overlaps = [];
+      for (const el of document.querySelectorAll('header button, header a, header select')) {
+        const r = el.getBoundingClientRect();
+        if (r.width === 0 || r.height === 0) continue;
+        const x = Math.max(0, Math.min(r.right, hr.right) - Math.max(r.left, hr.left));
+        const y = Math.max(0, Math.min(r.bottom, hr.bottom) - Math.max(r.top, hr.top));
+        // >4px in both axes = a real occlusion, not subpixel kissing.
+        if (x > 4 && y > 4) overlaps.push(`${(el.textContent || el.ariaLabel || el.tagName).trim().slice(0, 24)} (${Math.round(x)}x${Math.round(y)}px)`);
+      }
+      return {
+        scrollWidth: doc.scrollWidth,
+        clientWidth: doc.clientWidth,
+        h1: { w: Math.round(hr.width), h: Math.round(hr.height), text: (h1.textContent || '').trim().slice(0, 40) },
+        overlaps,
+      };
+    });
+    await page.close();
+    // PER-CASE, NOT CUMULATIVE (fixed 2026-08-14, REV-0248).
+    //
+    // This line used to read `if (!failures)` — the GLOBAL running count — so
+    // the moment ANY surface failed, every later surface that passed perfectly
+    // went unprinted. A run with 1 real failure and 37 clean passes produced
+    // output indistinguishable in shape from 38 failures, with no positives to
+    // read against. That is the surface-says-truth defect class applied to a
+    // gate's own report: the number was right, the picture it painted was not,
+    // and it cost a real misreading of this probe's output before it was found.
+    const before = failures;
+    measured += 1;
+    if (m.noHeader) { fail(`${view}@${width}px: header h1 never rendered`); continue; }
+    if (m.scrollWidth > m.clientWidth + 1) fail(`${view}@${width}px: page overflows horizontally (${m.scrollWidth} > ${m.clientWidth})`);
+    if (m.h1.w <= m.h1.h) fail(`${view}@${width}px: brand reads vertically — h1 "${m.h1.text}" is ${m.h1.w}x${m.h1.h}px (letter-stack collapse)`);
+    if (m.overlaps.length) fail(`${view}@${width}px: controls overlap the name: ${m.overlaps.join(', ')}`);
+    if (failures === before) console.log(`layout ok  ${view}@${width}px — h1 ${m.h1.w}x${m.h1.h}px, no overflow, no overlap`);
+  }
+  // ---------------------------------------------------------------------------
+  // THE WAY BACK FROM THE HIDEAWAY pass (DR-0577). Darrell 2026-09-23, on his
+  // Fold with the header tucked away: "Lost the whole header?!!!!!!!!!!!" and
+  // "It's hard to get to the edges of the app anymore?!" The only control that
+  // brought the header back was the chevron pinned to the RIGHT of the tab
+  // row, and the row had stopped shrinking (#1734's Show-all wrapper was a
+  // flex item with min-width:auto), so at any width where the tabs did not
+  // fit the row ran past the viewport and took the chevron with it. Measured
+  // in Chromium at 1812px before the fix: nav row 1953px, chevron at x=1912.
+  // Three invariants, with the header COLLAPSED, at every width:
+  //  12. THE HEADER NEVER RUNS PAST THE SCREEN — header.scrollWidth <= clientWidth.
+  //  13. THE CHEVRON IS ON SCREEN — the hideaway toggle's right edge <= viewport.
+  //  14. THE WAY BACK IS ALSO IN WORDS — the tucked-away row carries a
+  //      "Show header" button, on screen, so the way back never depends on
+  //      an edge; and when the tab row overflows, its Show-all control is
+  //      there (the wrapper shrank, so the scroll box can measure itself).
+  // Selftest: the wrapper (the div holding .tab-scroll) is forced to 2600px min-width (the pre-fix
+  // behaviour, exaggerated) and 12 + 13 MUST trip.
+  // ---------------------------------------------------------------------------
+  const HIDEAWAY_WIDTHS = SELFTEST ? [1812] : [360, 768, 1440, 1812, 1920];
+  let hideawayTripped = 0;
+  for (const width of HIDEAWAY_WIDTHS) {
+    const page = await browser.newPage({ viewport: { width, height: 900 } });
+    await page.addInitScript(() => {
+      try { localStorage.setItem('poetech.help.tour.v1', 'seen'); localStorage.setItem('poe-header-collapsed', '1'); } catch (_) { /* private mode */ }
+    });
+    await page.goto(`${origin}${BASE}/?view=church`, { waitUntil: 'networkidle', timeout: 45000 }).catch(() => {});
+    await page.waitForSelector('header nav', { timeout: 20000 }).catch(() => {});
+    if (SELFTEST) {
+      await page.addStyleTag({ content: 'header nav div:has(> .tab-scroll) { min-width: 2600px !important }' });
+      await page.evaluate(() => new Promise((r) => setTimeout(r, 100)));
+    }
+    const hm = await page.evaluate(() => {
+      const header = document.querySelector('header');
+      const nav = header && header.querySelector('nav');
+      if (!header || !nav) return { none: true };
+      const vw = document.documentElement.clientWidth;
+      const rect = (el) => (el ? el.getBoundingClientRect() : null);
+      const chevron = header.querySelector('nav button[aria-label^="Show the full header"]');
+      const words = header.querySelector('[data-testid="show-full-header"]');
+      const box = nav.querySelector('.tab-scroll');
+      const showAll = nav.querySelector('[data-testid="tabscroll-show-all"]');
+      const c = rect(chevron); const w = rect(words); const b = rect(box);
+      return {
+        vw,
+        headerScroll: header.scrollWidth, headerClient: header.clientWidth,
+        chevron: c ? { right: Math.round(c.right), width: Math.round(c.width) } : null,
+        words: w ? { left: Math.round(w.left), right: Math.round(w.right), width: Math.round(w.width) } : null,
+        box: b ? { right: Math.round(b.right), scroll: box.scrollWidth, client: box.clientWidth } : null,
+        showAll: !!showAll,
+      };
+    });
+    await page.close();
+    const hbefore = failures;
+    const hwhere = `hideaway@${width}px`;
+    if (hm.none) { fail(`${hwhere}: the header never rendered`); continue; }
+    if (hm.headerScroll > hm.headerClient + 1) fail(`${hwhere}: the collapsed header runs past the screen (${hm.headerScroll} > ${hm.headerClient})`);
+    if (!hm.chevron) fail(`${hwhere}: the hideaway chevron is missing`);
+    else if (hm.chevron.right > hm.vw) fail(`${hwhere}: the hideaway chevron is off-screen (right edge ${hm.chevron.right} > ${hm.vw})`);
+    if (!hm.words || hm.words.width === 0) fail(`${hwhere}: the tucked-away row has no "Show header" button`);
+    else if (hm.words.left < 0 || hm.words.right > hm.vw) fail(`${hwhere}: the "Show header" button is off-screen (${hm.words.left}..${hm.words.right} of ${hm.vw})`);
+    if (hm.box && hm.box.scroll > hm.box.client + 4 && !hm.showAll) fail(`${hwhere}: the tab row overflows (${hm.box.scroll} > ${hm.box.client}) and offers no Show-all control`);
+    if (failures === hbefore) console.log(`hideaway ok  ${hwhere} — header ${hm.headerScroll}/${hm.headerClient}, chevron right ${hm.chevron.right}, words ${hm.words.left}..${hm.words.right}${hm.box && hm.box.scroll > hm.box.client + 4 ? ', tabs overflow with Show-all' : ''}`);
+    else hideawayTripped += failures - hbefore;
+  }
+  if (SELFTEST && hideawayTripped < 2) fail(`selftest: the hideaway break tripped ${hideawayTripped} invariants, expected at least 2 — the pass is theater`);
+  // ---------------------------------------------------------------------------
+  // THE ONE-TAB ROW CARRIES THE BRAND pass (DR-0640). Darrell 2026-09-24, on
+  // his Fold in The Love Corner with the header tucked away: "Why does the
+  // Church tab space need that? Can we save even more space if not... can we
+  // add another Love Corner etc tag in the space?" and then "Both places are
+  // good... why not". Measured in Chromium before the change, on
+  // /?lovecorner=1&view=church collapsed: a full-width row held back/forward,
+  // ONE tab ("Church") and the chevron, under a second row holding the brand.
+  // Invariants, header collapsed, on the one-tab door:
+  //  15. NO LONE TAB ROW — the top nav never draws a tab strip of one tab.
+  //  16. THE BRAND IS IN THE TOP ROW, on screen, at every size.
+  //  17. ONE ROW, NOT TWO — while the collapsed row is in the flow (Normal to
+  //      Larger) it sits INSIDE the top row; at Largest / Big Print it is the
+  //      fixed bottom bar (DR-0438) and carries the brand too ("both places").
+  //  18. THE WAY BACK IS ON SCREEN, in words, and nothing overflows the page.
+  // Proven against the pre-change build (all of 15-17 trip there) and by the
+  // self-test below, which puts a lone tab strip back and hides the brand.
+  // ---------------------------------------------------------------------------
+  const ONE_TAB_CASES = SELFTEST
+    ? [{ width: 1812, size: 'normal' }]
+    : [{ width: 320, size: 'normal' }, { width: 390, size: 'normal' }, { width: 1812, size: 'normal' }, { width: 390, size: 'largest' }, { width: 1812, size: 'bigprint' }];
+  let oneTabTripped = 0;
+  let oneTabMeasured = 0;
+  for (const { width, size } of ONE_TAB_CASES) {
+    const page = await browser.newPage({ viewport: { width, height: 900 } });
+    await page.addInitScript((sz) => {
+      try {
+        localStorage.setItem('poetech.help.tour.v1', 'seen');
+        localStorage.setItem('poe-header-collapsed', '1');
+        localStorage.setItem('poe-text-size', sz);
+      } catch (_) { /* private mode */ }
+    }, size);
+    await page.goto(`${origin}${BASE}/?lovecorner=1&view=church`, { waitUntil: 'networkidle', timeout: 45000 }).catch(() => {});
+    await page.waitForSelector('header nav', { timeout: 20000 }).catch(() => {});
+    if (SELFTEST) {
+      // The pre-change shape, put back: a one-tab strip in the top row, and
+      // no brand in it. 15 and 16 MUST trip.
+      await page.addStyleTag({ content: 'header nav [data-testid="top-brand-name"], header nav [data-testid="collapsed-site-name"] { display: none !important }' });
+      await page.evaluate(() => {
+        const row = document.querySelector('header nav > div');
+        if (!row) return;
+        const strip = document.createElement('div');
+        strip.className = 'tab-scroll';
+        strip.innerHTML = '<button type="button">Church</button>';
+        row.appendChild(strip);
+      });
+      await page.evaluate(() => new Promise((r) => setTimeout(r, 100)));
+    }
+    const om = await page.evaluate(() => {
+      const header = document.querySelector('header');
+      const nav = header && header.querySelector('nav');
+      if (!nav) return { none: true };
+      const vw = document.documentElement.clientWidth;
+      const vh = window.innerHeight;
+      const onScreen = (el) => {
+        if (!el) return false;
+        const r = el.getBoundingClientRect();
+        return r.width > 0 && r.height > 0 && r.left >= 0 && r.right <= vw + 1 && r.top >= 0 && r.bottom <= vh + 1;
+      };
+      const strips = [...nav.querySelectorAll('.tab-scroll')].map((s) => [...s.querySelectorAll('button')].filter((b) => b.getBoundingClientRect().width > 0).length);
+      const topBrand = [...nav.querySelectorAll('[data-testid="top-brand-name"], [data-testid="collapsed-site-name"]')].some(onScreen);
+      // With the header collapsed the comfort row is unmounted, so the only
+      // .ts-escape-hatch left is the collapsed row (the class is older than
+      // its testid, so the pre-change build is measured by the same line).
+      const row = header.querySelector('[data-testid="collapsed-row"]') || header.querySelector('.ts-escape-hatch');
+      const rowPos = row ? getComputedStyle(row).position : null;
+      const rowInNav = !!(row && nav.contains(row));
+      const barBrand = row && rowPos === 'fixed' ? onScreen(row.querySelector('[data-testid="collapsed-site-name"]')) : null;
+      return {
+        vw,
+        size: document.documentElement.getAttribute('data-text-size'),
+        strips,
+        topBrand,
+        row: !!row,
+        rowPos,
+        rowInNav,
+        barBrand,
+        words: onScreen(header.querySelector('[data-testid="show-full-header"]')),
+        overflow: document.documentElement.scrollWidth > vw + 1,
+        navH: Math.round(nav.getBoundingClientRect().height),
+      };
+    });
+    await page.close();
+    const obefore = failures;
+    const owhere = `one-tab@${width}px${om.size && om.size !== 'normal' ? ` [${om.size}]` : ''}`;
+    if (om.none) { fail(`${owhere}: the header never rendered`); continue; }
+    if (om.size !== size) { fail(`${owhere}: data-text-size="${om.size}", expected ${size} — nothing was measured`); continue; }
+    oneTabMeasured += 1;
+    if (om.strips.some((n) => n === 1)) fail(`${owhere}: the top nav draws a lone tab row (a strip of one tab) — the row should carry the brand (DR-0640)`);
+    if (!om.topBrand) fail(`${owhere}: the brand is not in the top row, on screen (DR-0640)`);
+    if (!om.row) fail(`${owhere}: the collapsed row never rendered`);
+    else if (om.rowPos === 'fixed') {
+      if (!om.barBrand) fail(`${owhere}: the bottom bar lost the brand — Darrell asked for both places (DR-0640)`);
+    } else if (!om.rowInNav) fail(`${owhere}: the collapsed row sits in its own row above the top row — two rows where one fits (DR-0640)`);
+    if (!om.words) fail(`${owhere}: the "Show header" way back is not on screen`);
+    if (om.overflow) fail(`${owhere}: the page overflows horizontally`);
+    if (failures === obefore) console.log(`one-tab ok  ${owhere} — no lone tab row, brand in the top row, collapsed row ${om.rowPos === 'fixed' ? 'is the bottom bar with the brand' : 'inside the top row'}, top row ${om.navH}px`);
+    else oneTabTripped += failures - obefore;
+  }
+  if (!SELFTEST && oneTabMeasured !== ONE_TAB_CASES.length) fail(`coverage: ${oneTabMeasured}/${ONE_TAB_CASES.length} one-tab cases measured`);
+  if (SELFTEST && oneTabTripped < 2) fail(`selftest: the one-tab break tripped ${oneTabTripped} invariants, expected at least 2 — the pass is theater`);
+  // ---------------------------------------------------------------------------
+  // LESSON READING pass (DR-0406) — the lesson column is MEASURED at the width
+  // a reader gets, and nothing is boxed inside a sentence.
+  //
+  // Darrell 2026-09-14, building for elderly church founders: "The width of the
+  // pages need the full width of the page to be used!!!! Old required
+  // procedures!!!" and "Don't block the lesson words." Measured before the fix
+  // in a real Chromium: NO max-width remained, yet the prose was 262px of a
+  // 390px phone — five nested bordered boxes each taking padding down the
+  // reading path. jsdom cannot see that; only this instrument can. Two
+  // invariants, per width, on the real Lesson 1 in its own space with the arc
+  // stepped to TEACH:
+  //   6. THE PROSE MEETS THE PAGE — the paragraph column reaches <main>'s
+  //      content edge on both sides within 2px (the same gutter every page has).
+  //   7. NOTHING IS BOXED IN A SENTENCE — no button/link inside a prose
+  //      paragraph; the references live in the green strip at the section foot.
+  // Rides --sweep (real assertions) and --selftest-break (a 60% max-width on
+  // the paragraphs plus a button injected into one MUST trip both).
+  // ---------------------------------------------------------------------------
+  //
+  // THE STANDARD IS LESSON 127 (Darrell 2026-09-15, listening at Big Print:
+  // "use lesson 127 that flows correctly... as the standard"; and "I don't like
+  // the the buttons get way bigger on the bigger font choices!! Can we fix
+  // it!"). Two more invariants, measured on the rendered lesson:
+  //   8. THE STRIP RHYTHM IS 127's — no green strip carries more than
+  //      SECTION_RHYTHM.maxRefs chips (L128 had 141 in one), and no block of
+  //      prose runs longer than SECTION_RHYTHM.maxLines lines before its strip
+  //      (L1 had one after every line). Read from the strip's own
+  //      data-block-lines, which LessonProse stamps from the real block.
+  //   9. THE CHROME STAYS A FRAME AT BIG PRINT — the lesson-space bar's buttons
+  //      (ALL LESSONS / PREV / NEXT) and every text-size chip on the page stay
+  //      under 64px tall with the root at 2.75x (un-capped they measured ~100px
+  //      and ~132px). Loaded once more at 360px with Big Print seeded.
+  // Selftest: 10 chips injected into a strip + data-block-lines forced to 7
+  // (normal), and the bar's zoom cap removed with a 7rem floor (Big Print) —
+  // all three MUST trip.
+  const RHYTHM = { maxLines: 6, maxRefs: 9 }; // = SECTION_RHYTHM (ChurchLearn.jsx); pinned by lesson-127-is-the-standard.test.jsx
+  const CHROME_MAX_PX = 64;
+  // THE WAY OUT IS NEVER A LITTLE BITTY BUTTON (DR-0450). The cap above keeps
+  // chrome from ballooning; nothing kept it from SHRINKING back to the 10px
+  // label in a 1px outline that Darrell could not find on his phone
+  // (2026-09-16: "There's a little bitty button to get back to all... Make it
+  // obvious"). A ceiling without a floor is half a guarantee, so the lesson's
+  // way-out carries both: a real touch target and a legible word, measured in
+  // the browser at phone width.
+  const WAY_OUT_MIN_PX = 44;
+  const WAY_OUT_MIN_FONT_PX = 12;
+  //  10. THE TEXT DOMINATES AND THE CONTROLS NEVER GET BIGGER (Darrell
+  //      2026-09-16, phone screenshots at A++/A+++, DR-0438): on the lesson at
+  //      360px the chrome that covers the first viewport (header, lesson bar,
+  //      the fixed comfort bar, the floaters — a union of their bands) is
+  //      bounded at Normal, and at Big Print it is NO LARGER than at Normal
+  //      (+12px of rounding). Measured before the fix: 443px at Normal, 749px
+  //      (89% of 844) at Big Print; after: 443 / 422.
+  //  11. NO FLOATER SITS ON THE FIXED COMFORT BAR at Big Print — the reading
+  //      pill, back-to-top, Feedback and Give step above it (--ts-hatch-h).
+  // The Normal budget is a RATCHET: it holds today's measurement and only
+  // moves down (the phone header's own "only what is necessary" decision is
+  // the pending DR-0438 re-review).
+  const CHROME_BUDGET_360_NORMAL_PX = 460;
+  // Rounding allowance for the never-bigger comparison: the union is built
+  // from five or six bands each rounded to a pixel, and the comfort row wraps
+  // on web-font metrics. Measured 2026-09-16: 441 vs 445 in the sandbox, 442
+  // vs 456 on one runner that measured before the fonts had settled (the
+  // sibling run on the same commit read 442 vs 450). The pass now waits for
+  // document.fonts.ready and a settle before it measures, and allows 12px.
+  const NEVER_BIGGER_ALLOWANCE_PX = 12;
+  const coveredNormal360 = { open: null, collapsed: null };
+  // THE COLLAPSED CASE IS NOT OPTIONAL (added 2026-09-19, DR-0524). Every
+  // earlier run of this pass loaded with the header EXPANDED, and the header is
+  // position:sticky — so five text-size controls stayed on screen mid-lesson
+  // and the pass would have reported comfort as reachable. With the top bar
+  // TUCKED AWAY, which is the state Darrell's screenshot shows and the state
+  // the hideaway exists to produce, the count was ZERO. Measuring only the
+  // state that works is the instrument blindness this file's textscale pass was
+  // already written about; the same law applies here.
+  const LESSON_CASES = SELFTEST
+    ? [{ width: 360, size: 'normal', collapsed: true }, { width: 360, size: 'bigprint' }]
+    : (SWEEP
+      ? [...WIDTHS.map((width) => ({ width, size: 'normal' })), { width: 360, size: 'normal', collapsed: true }, { width: 360, size: 'bigprint' }, { width: 360, size: 'bigprint', collapsed: true },
+        // BOTH CLOCK STATES (2026-09-30). The same lesson at 360px, read during
+        // the Wednesday evening Bible study: the pinned live-service bar is open
+        // across the top. Every other case reads the QUIET_HOUR, with no bar.
+        { width: 360, size: 'normal', at: 'service' }, { width: 360, size: 'normal', collapsed: true, at: 'service' }]
+      : []);
+  const LESSON_URL = `${origin}${BASE}/?view=church&sub=learn&course=living-lessons&lesson=ll1-the-perfect-yahweh-expects`;
+  lessonFailuresBefore = failures;
+  for (const { width, size, collapsed = false, at = 'quiet' } of LESSON_CASES) {
+    const page = await browser.newPage({ viewport: { width, height: 900 }, at: at === 'service' ? SERVICE_HOUR : QUIET_HOUR });
+    // The first-visit tour is chrome, not the lesson; a returning reader has seen it.
+    await page.addInitScript((cfg) => {
+      try {
+        localStorage.setItem('poetech.help.tour.v1', 'seen');
+        if (cfg.sz === 'bigprint') localStorage.setItem('poe-text-size', 'bigprint'); else localStorage.removeItem('poe-text-size');
+        // The header hideaway's own per-device key (lib/header-hideaway.js).
+        if (cfg.collapsed) localStorage.setItem('poe-header-collapsed', '1'); else localStorage.removeItem('poe-header-collapsed');
+      } catch { /* private mode */ }
+    }, { sz: size, collapsed });
+    await page.goto(LESSON_URL, { waitUntil: 'networkidle', timeout: 45000 }).catch(() => {});
+    await page.waitForSelector('[data-testid="lesson-space-bar"]', { timeout: 20000 }).catch(() => {});
+    // Step the arc to TEACH, where the lesson body lives — the stage rail's own
+    // button. Scoped to the rail and matched loosely on purpose: the built
+    // button's textContent is "📖Teach7m" (icon + title + minutes, no spaces),
+    // so a word-boundary match finds nothing and the pass measures nothing.
+    await page.evaluate(() => {
+      const b = [...document.querySelectorAll('[aria-label="Lesson stages"] button')].find((x) => /teach/i.test(x.textContent || ''));
+      if (b) b.click();
+    });
+    await page.waitForSelector('[data-para-index], [data-point-index]', { timeout: 20000 }).catch(() => {});
+    // Fonts first, then a settle: the chrome bands wrap on the real web-font
+    // metrics, and a measurement taken on the fallback face reads differently.
+    await page.evaluate(() => (document.fonts && document.fonts.ready ? document.fonts.ready : null)).catch(() => {});
+    await page.evaluate(() => new Promise((r) => setTimeout(r, 300)));
+    if (SELFTEST && size === 'normal') {
+      await page.addStyleTag({ content: '[data-para-index], [data-point-index] { max-width: 60% !important }' });
+      await page.evaluate(() => {
+        const p = document.querySelector('[data-para-index], [data-point-index]');
+        if (p) { const b = document.createElement('button'); b.textContent = 'Genesis 17:1'; p.appendChild(b); }
+        const strip = document.querySelector('[data-testid="section-refs"]');
+        if (strip) {
+          for (let i = 0; i < 10; i += 1) { const b = document.createElement('button'); b.textContent = `Psalm ${i + 1}:1`; strip.appendChild(b); }
+          strip.setAttribute('data-block-lines', '7');
+        }
+      });
+      await page.evaluate(() => new Promise((r) => setTimeout(r, 100)));
+    }
+    if (SELFTEST && size === 'bigprint') {
+      // The pre-fix balloon, reproduced: the cap removed and the rem floor back.
+      // And DR-0438's two: every chrome region back to the raw root scale (the
+      // controls grow with the text) and the comfort-bar height un-published
+      // (the floaters land on the bar) — both MUST trip.
+      await page.addStyleTag({ content: '[data-testid="lesson-space-bar"] { zoom: 1 !important } [data-testid="lesson-space-bar"] button { min-height: 7rem !important } .ts-chrome-region { zoom: 1 !important } :root { --ts-hatch-h: 0px !important }' });
+      await page.evaluate(() => new Promise((r) => setTimeout(r, 100)));
+    }
+    const m = await page.evaluate(() => {
+      const main = document.querySelector('main');
+      const paras = [...document.querySelectorAll('[data-para-index], [data-point-index]')];
+      if (!main || !paras.length) return { none: true, paras: paras.length };
+      const cs = getComputedStyle(main);
+      const mr = main.getBoundingClientRect();
+      const contentLeft = mr.left + parseFloat(cs.paddingLeft);
+      const contentRight = mr.right - parseFloat(cs.paddingRight);
+      const pr = paras[0].getBoundingClientRect();
+      const strips = [...document.querySelectorAll('[data-testid="section-refs"]')];
+      const tall = (sel) => Math.max(0, ...[...document.querySelectorAll(sel)].map((b) => Math.round(b.getBoundingClientRect().height)));
+      // Invariants 10 + 11: the chrome bands that cover the first viewport.
+      const vh = window.innerHeight;
+      const hdr = document.querySelector('header');
+      const bar = document.querySelector('[data-testid="lesson-space-bar"]');
+      const hatch = document.querySelector('.ts-escape-hatch');
+      // The pinned live-service bar is fixed at the very top during a service
+      // window; it is chrome over the first viewport like the header is.
+      const liveBar = document.querySelector('[role="region"][aria-label^="Live worship"]');
+      const floaters = [document.querySelector('.tts-controls'), document.querySelector('button[aria-label="Open feedback"]'), document.querySelector('.church-give-floater')].filter(Boolean);
+      // THE BOTTOM BAR (DR-0716) is chrome over the first viewport like the
+      // header: Feedback, Give, the dot, Top and the reader moved INTO it, so
+      // its whole band is counted (the controls inside it fall within it). It
+      // is a bar standing on the comfort bar, not a floater, so it is not in
+      // the on-the-bar list below.
+      const dockBar = document.querySelector('[data-testid="chrome-dock"]');
+      const bands = [];
+      for (const el of [liveBar, hdr, bar, hatch, dockBar, ...floaters]) {
+        if (!el) continue;
+        const r = el.getBoundingClientRect();
+        if (r.height <= 0) continue;
+        bands.push([Math.max(0, r.top), Math.min(vh, r.bottom)]);
+      }
+      bands.sort((a, b) => a[0] - b[0]);
+      let covered = 0; let cur = null;
+      for (const [t, b] of bands) { if (b <= t) continue; if (!cur || t > cur[1]) { if (cur) covered += cur[1] - cur[0]; cur = [t, b]; } else cur[1] = Math.max(cur[1], b); }
+      if (cur) covered += cur[1] - cur[0];
+      const hatchFixed = !!hatch && getComputedStyle(hatch).position === 'fixed';
+      const hr = hatch ? hatch.getBoundingClientRect() : null;
+      const onTheBar = hatchFixed ? floaters.filter((f) => !(dockBar && dockBar.contains(f))).filter((f) => { const r = f.getBoundingClientRect(); return r.height > 0 && !(r.right <= hr.left || hr.right <= r.left || r.bottom <= hr.top || hr.bottom <= r.top); }).map((f) => (f.getAttribute('aria-label') || f.className || '?').toString().slice(0, 20)) : [];
+      return {
+        size: document.documentElement.getAttribute('data-text-size'),
+        liveBarPx: liveBar ? Math.round(liveBar.getBoundingClientRect().height) : 0,
+        dockPx: dockBar ? Math.round(dockBar.getBoundingClientRect().height) : 0,
+        // The bar stands ON TOP of the fixed comfort bar, never over it: the
+        // vertical overlap of the two, in px (more than 1px is a bar on a bar).
+        dockOnHatch: (() => {
+          if (!hatchFixed || !dockBar) return 0;
+          const d = dockBar.getBoundingClientRect();
+          return Math.max(0, Math.round(Math.min(d.bottom, hr.bottom) - Math.max(d.top, hr.top)));
+        })(),
+        vh,
+        covered: Math.round(covered),
+        onTheBar,
+        paras: paras.length,
+        prose: Math.round(pr.width),
+        content: Math.round(contentRight - contentLeft),
+        gapLeft: Math.round(pr.left - contentLeft),
+        gapRight: Math.round(contentRight - pr.right),
+        inside: paras.reduce((n, p) => n + p.querySelectorAll('button, a').length, 0),
+        strips: strips.length,
+        maxChips: Math.max(0, ...strips.map((s) => s.querySelectorAll('button').length)),
+        maxBlockLines: Math.max(0, ...strips.map((s) => parseInt(s.getAttribute('data-block-lines') || '0', 10))),
+        barButtonPx: tall('[data-testid="lesson-space-bar"] button'),
+        chipPx: tall('button[aria-label*="text size" i]'),
+        // The way back to ALL: its own box and its own word size (DR-0450).
+        wayOut: (() => {
+          const b = document.querySelector('[data-testid="lesson-bar-all"]');
+          if (!b) return null;
+          const r = b.getBoundingClientRect();
+          return {
+            h: Math.round(r.height),
+            w: Math.round(r.width),
+            font: Math.round(parseFloat(getComputedStyle(b).fontSize) * 10) / 10,
+            filled: getComputedStyle(b).backgroundColor.replace(/\s/g, '') === 'rgb(26,24,21)',
+            says: /all/i.test(b.textContent || ''),
+          };
+        })(),
+      };
+    });
+
+    // -------------------------------------------------------------------------
+    // CAN THE READER STILL CHANGE HOW IT LOOKS, MID-LESSON? (DR-0524)
+    // -------------------------------------------------------------------------
+    // Darrell, 2026-09-19, reading L179 on his phone: "Can't change the text
+    // side nor etc on o cellphone reader fix it." He was right, and THIS
+    // instrument had never looked: the textscale pass below loads the app at
+    // page top with the header on screen, and never opens a lesson. Its own
+    // law -- a state the user can reach is a state the probe must load in --
+    // was written about exactly this class and had not been applied here.
+    //
+    // The state measured now is the one he was actually in: a lesson open,
+    // SCROLLED INTO THE WORDS, with the reading panel open -- and, in the
+    // collapsed cases below, with the top bar tucked away, which is what his
+    // screenshot shows and where the count was ZERO. (The header itself is
+    // position:sticky, so with the bar OPEN the controls never left the screen;
+    // measuring only that state is what hid this for so long.) A text-size
+    // control must be on screen, and so must a theme swatch -- reading at night
+    // is when a person reaches for Midnight.
+    if (SELFTEST && size === 'normal') {
+      // The break: the reader's own comfort row removed, which is precisely
+      // the state this pass exists to refuse. The header is already scrolled
+      // away by the scroll below, so this leaves genuinely nothing reachable.
+      // And the A- / A+ pair beside the read-aloud button (DR-0724), or the
+      // pair alone would keep this case green and the break would prove nothing.
+      await page.addStyleTag({ content: '[data-testid="reader-look-and-feel"], [data-testid="text-size-quick"] { display: none !important }' });
+    }
+    await page.evaluate(() => window.scrollTo(0, Math.max(900, Math.round(document.documentElement.scrollHeight * 0.4))));
+    await page.evaluate(() => new Promise((r) => setTimeout(r, 200)));
+    // TEXT SIZE WITHOUT OPENING THE READER (DR-0724). Darrell 2026-09-30: "Text
+    // sizes are the main reason why I keep opening the reader... give an option
+    // for that on each screen even without the other controls." This pass used
+    // to count size controls only AFTER tapping the reader open, which is how
+    // the reader became the text-size button. Counted first, reader closed.
+    const closedSizeOnScreen = await page.evaluate(() => {
+      const vw = window.innerWidth, vh = window.innerHeight;
+      return [...document.querySelectorAll('button')]
+        .filter((b) => /text size/i.test(b.getAttribute('aria-label') || ''))
+        .filter((b) => { const r = b.getBoundingClientRect(); return r.width > 0 && r.height > 0 && r.top >= 0 && r.left >= 0 && r.bottom <= vh && r.right <= vw && getComputedStyle(b).visibility !== 'hidden'; })
+        .length;
+    });
+    // Open the reading panel the way a reader does — by tapping the floater.
+    await page.evaluate(() => {
+      const fab = [...document.querySelectorAll('button')]
+        .find((b) => /read-aloud controls/i.test(b.getAttribute('aria-label') || ''));
+      if (fab) fab.click();
+    });
+    await page.evaluate(() => new Promise((r) => setTimeout(r, 250)));
+    const comfort = await page.evaluate(() => {
+      const vw = window.innerWidth, vh = window.innerHeight;
+      const onScreen = (b) => {
+        const r = b.getBoundingClientRect();
+        return r.width > 0 && r.height > 0 && r.top >= 0 && r.left >= 0 && r.bottom <= vh && r.right <= vw;
+      };
+      const pick = (re) => [...document.querySelectorAll('button')]
+        .filter((b) => re.test(b.getAttribute('aria-label') || ''));
+      const sizes = pick(/text size/i);
+      const themes = pick(/ theme/i);
+      return {
+        scrollY: Math.round(window.scrollY),
+        panelOpen: !!document.querySelector('[data-testid="reader-look-and-feel"]'),
+        sizeCount: sizes.length,
+        sizeReachable: sizes.filter(onScreen).length,
+        themeCount: themes.length,
+        themeReachable: themes.filter(onScreen).length,
+        // The instrument names WHERE, not just "none" (instrument-blindness law).
+        rects: sizes.slice(0, 5).map((b) => {
+          const r = b.getBoundingClientRect();
+          return `${(b.getAttribute('aria-label') || '?').slice(0, 12)}@t${Math.round(r.top)},b${Math.round(r.bottom)}`;
+        }),
+        vh,
+      };
+    });
+    await page.close();
+    const where = `lesson@${width}px${size === 'bigprint' ? ' [Big Print]' : ''}${collapsed ? ' [header collapsed]' : ''}${at === 'service' ? ' [in a service window]' : ''}`;
+    if (m.none) { fail(`${where}: the lesson prose never rendered (${m.paras} paragraphs) — nothing was measured`); continue; }
+    // The clock state must be the one asked for, or nothing about it was measured.
+    if (at === 'service' && !m.liveBarPx) { fail(`${where}: the live-service bar never opened at ${SERVICE_HOUR.toISOString()} — the in-window state was not measured`); continue; }
+    if (at === 'quiet' && m.liveBarPx) { fail(`${where}: the live-service bar is open at the quiet hour (${m.liveBarPx}px) — the pinned clock did not hold`); continue; }
+    if (size === 'bigprint' && m.size !== 'bigprint') { fail(`${where}: data-text-size="${m.size}" — Big Print never applied, nothing was measured`); continue; }
+    const before = failures;
+    lessonMeasured += 1;
+    if (m.gapLeft > 2 || m.gapRight > 2) fail(`${where}: the prose column stops short of the page — ${m.prose}px of ${m.content}px content width (left gap ${m.gapLeft}px, right gap ${m.gapRight}px)`);
+    if (m.inside > 0) fail(`${where}: ${m.inside} control(s) boxed inside the lesson prose — the reference belongs at the foot of its section, not in the sentence`);
+    if (m.maxChips > RHYTHM.maxRefs) fail(`${where}: a green strip carries ${m.maxChips} chips — lesson 127's rhythm is at most ${RHYTHM.maxRefs} per strip (a wall of chips is a computer list)`);
+    if (m.maxBlockLines > RHYTHM.maxLines) fail(`${where}: a block of ${m.maxBlockLines} lines waits for one strip — lesson 127's rhythm is at most ${RHYTHM.maxLines} lines before the Word`);
+    if (!m.wayOut) fail(`${where}: the lesson bar has no way back to ALL — the reader is shut in (data-testid="lesson-bar-all")`);
+    else {
+      if (!m.wayOut.says) fail(`${where}: the way out does not say ALL — it reads "${m.wayOut.text || ''}"`);
+      if (!m.wayOut.filled) fail(`${where}: the way out is an outline, not the bar's primary control — a hairline button is the one Darrell could not find`);
+      if (size === 'normal') {
+        if (m.wayOut.h < WAY_OUT_MIN_PX) fail(`${where}: the way back to ALL is ${m.wayOut.h}px tall — under the ${WAY_OUT_MIN_PX}px touch floor (DR-0450)`);
+        if (m.wayOut.font < WAY_OUT_MIN_FONT_PX) fail(`${where}: the way back to ALL is set at ${m.wayOut.font}px — under the ${WAY_OUT_MIN_FONT_PX}px legibility floor (DR-0450)`);
+      }
+    }
+    // MID-LESSON COMFORT (DR-0524) — the reader is scrolled into the words and
+    // the header is gone; the reading panel must carry the way to change both.
+    if (comfort.scrollY && !closedSizeOnScreen) fail(`${where}: scrolled into the lesson with the reader CLOSED, no text-size control is on screen — the reader has to be opened just to change the words' size (DR-0724)`);
+    if (!comfort.scrollY) fail(`${where}: the page never scrolled — the mid-lesson state was not measured`);
+    else if (!comfort.sizeCount) fail(`${where}: scrolled into the lesson, NO text-size control exists anywhere — the reader cannot change the words' size while reading (panel open: ${comfort.panelOpen})`);
+    else if (!comfort.sizeReachable) fail(`${where}: scrolled into the lesson, ${comfort.sizeCount} text-size control(s) exist but none is on screen — viewport ${comfort.vh}px, controls: ${comfort.rects.join(' ')}`);
+    else if (!comfort.themeReachable) fail(`${where}: scrolled into the lesson, no theme swatch on screen (${comfort.themeCount} exist) — a night reader cannot reach Midnight`);
+    if (size === 'bigprint') {
+      if (m.barButtonPx > CHROME_MAX_PX) fail(`${where}: the lesson bar's buttons are ${m.barButtonPx}px tall — the frame ballooned with the text (cap: ${CHROME_MAX_PX}px)`);
+      if (m.chipPx > CHROME_MAX_PX) fail(`${where}: a text-size chip is ${m.chipPx}px tall — the control compounds with its own setting (cap: ${CHROME_MAX_PX}px)`);
+    }
+    if (width === 360) {
+      // THE BASELINE IS PER HEADER STATE (2026-09-19). The never-bigger
+      // invariant compares Big Print chrome against the SAME page at Normal.
+      // Adding the collapsed cases with one shared baseline would have measured
+      // Big-Print-expanded against Normal-COLLAPSED — a smaller number, so the
+      // check would have failed for a reason that is not a defect. Keyed by
+      // header state, each comparison is like-for-like.
+      const key = `${collapsed ? 'collapsed' : 'open'}${at === 'service' ? '-service' : ''}`;
+      if (size === 'normal') {
+        coveredNormal360[key] = m.covered;
+        if (m.covered > CHROME_BUDGET_360_NORMAL_PX) fail(`${where}: chrome covers ${m.covered}px of the ${m.vh}px first viewport${m.liveBarPx ? ` (the live bar alone ${m.liveBarPx}px)` : ''} — over the ${CHROME_BUDGET_360_NORMAL_PX}px budget; the text must dominate a phone`);
+      } else if (size === 'bigprint') {
+        const base = coveredNormal360[key];
+        if (base == null) fail(`${where}: no Normal measurement in the same header state to compare against — the never-bigger invariant was not checked`);
+        else if (m.covered > base + NEVER_BIGGER_ALLOWANCE_PX) fail(`${where}: chrome covers ${m.covered}px at Big Print vs ${base}px at Normal — the controls got bigger with the text`);
+        if (m.onTheBar.length) fail(`${where}: ${m.onTheBar.length} floater(s) sit on the fixed comfort bar: ${m.onTheBar.join(', ')}`);
+        if (m.dockOnHatch > 1) fail(`${where}: the bottom bar sits ${m.dockOnHatch}px over the fixed comfort bar instead of standing on it (DR-0716)`);
+      }
+    }
+    if (failures === before) console.log(`lesson ok  ${where} — chrome covers ${m.covered}px of ${m.vh}px${m.liveBarPx ? ` (live bar ${m.liveBarPx}px)` : ''}${m.dockPx ? ` (bottom bar ${m.dockPx}px)` : ''}, prose ${m.prose}px of ${m.content}px, ${m.strips} strips (max ${m.maxChips} chips, max ${m.maxBlockLines} lines/block)${size === 'bigprint' ? `, bar buttons ${m.barButtonPx}px, chips ${m.chipPx}px` : ''}, nothing boxed in a sentence; mid-lesson at y${comfort.scrollY}: ${closedSizeOnScreen} size with the reader closed, ${comfort.sizeReachable}/${comfort.sizeCount} size + ${comfort.themeReachable}/${comfort.themeCount} theme controls on screen`);
+  }
+  // ---------------------------------------------------------------------------
+  // COMFORT pass (DR-0716) — the big-text bottom block folds, and in the reader
+  // the whole bottom is ONE slim row.
+  // Darrell 2026-10-01, at A44 on his Fold 7: "How do I get rid of the below
+  // header?!!!!! I need a button!!!!" — then, the Fold folded, L202 at A+++:
+  // "Bottom tab is too much!!!!! We needed less room undermining the reader...."
+  //   READER (L1 at 360 / 412 / 900 = the Fold folded and open, A+++, first
+  //   visit, scrolled into the words): the bottom chrome (every fixed band in
+  //   the lower half) is at most READER_BOTTOM_MAX_PX, a text-size control is
+  //   on it, and Controls opens the block and folds it back to the same.
+  //   OUTSIDE the reader (the Church tab at 360, Big Print): Hide folds the
+  //   block to at most COMFORT_FOLDED_MAX_PX, the fold survives a reload, and
+  //   Show controls brings the whole block back.
+  // Selftest: the fold's CSS overridden (every item shown) MUST trip both.
+  // Before (main e17de76a, A+++, L1 scrolled): 238px at 360 and 412, 237px at
+  // 900 — the block plus the Feedback / Give / network / reader floaters.
+  // ---------------------------------------------------------------------------
+  const READER_BOTTOM_MAX_PX = 56;
+  const COMFORT_FOLDED_MAX_PX = 64;
+  const COMFORT_BREAK = ':root { --ts-hatch-h: 0px !important } html[data-text-size][data-comfort-bar] .ts-safe-sticky.ts-safe-sticky .ts-escape-hatch.ts-escape-hatch { display: flex !important } html[data-text-size][data-comfort-bar] .ts-safe-sticky.ts-safe-sticky .header-comfort-row.header-comfort-row > * { display: flex !important }';
+  const bottomChrome = (page) => page.evaluate(() => {
+    const vh = innerHeight; const bands = []; const names = [];
+    for (const el of document.querySelectorAll('body *')) {
+      const cs = getComputedStyle(el);
+      if (cs.position !== 'fixed' || cs.display === 'none' || cs.visibility === 'hidden') continue;
+      const r = el.getBoundingClientRect();
+      if (r.height < 2 || r.width < 2 || r.top < vh / 2) continue;
+      bands.push([Math.max(0, r.top), Math.min(vh, r.bottom)]);
+      names.push(`${(el.getAttribute('data-testid') || el.getAttribute('aria-label') || String(el.className || '').split(' ')[0] || el.tagName).slice(0, 24)}@${Math.round(r.top)}`);
+    }
+    bands.sort((x, y) => x[0] - y[0]);
+    let cov = 0; let cur = null;
+    for (const [t, bt] of bands) { if (!cur || t > cur[1]) { if (cur) cov += cur[1] - cur[0]; cur = [t, bt]; } else cur[1] = Math.max(cur[1], bt); }
+    if (cur) cov += cur[1] - cur[0];
+    const sizes = [...document.querySelectorAll('button, select')].filter((x) => /text size/i.test(x.getAttribute('aria-label') || '')).filter((x) => { const r = x.getBoundingClientRect(); return r.width > 0 && r.height > 0 && r.top >= 0 && r.bottom <= vh; }).length;
+    // The bar stands ON the opened block, never over it (DR-0716).
+    const dk = document.querySelector('[data-testid="chrome-dock"]');
+    const hatchEl = [...document.querySelectorAll('.ts-safe-sticky .ts-escape-hatch')].find((h) => getComputedStyle(h).position === 'fixed' && h.getBoundingClientRect().height > 0);
+    let onBlock = 0;
+    if (dk && hatchEl) { const d = dk.getBoundingClientRect(); const h = hatchEl.getBoundingClientRect(); onBlock = Math.max(0, Math.round(Math.min(d.bottom, h.bottom) - Math.max(d.top, h.top))); }
+    return { px: Math.round(cov), names, sizes, onBlock, attr: document.documentElement.getAttribute('data-comfort-bar'), sw: document.documentElement.scrollWidth, vw: innerWidth };
+  });
+  const READER_COMFORT_CASES = SELFTEST ? [360] : (SWEEP ? [360, 412, 900] : []);
+  for (const width of READER_COMFORT_CASES) {
+    const where = `reader-bottom@${width}px [A+++]`;
+    const page = await browser.newPage({ viewport: { width, height: 900 } });
+    await page.addInitScript(() => {
+      try {
+        localStorage.setItem('poetech.help.tour.v1', 'seen');
+        localStorage.setItem('poe-text-size', 'largest');
+        localStorage.removeItem('poe-header-collapsed');
+        localStorage.removeItem('poe-comfort-bar-collapsed');
+      } catch { /* private mode */ }
+    });
+    await page.goto(LESSON_URL, { waitUntil: 'networkidle', timeout: 45000 }).catch(() => {});
+    await page.waitForSelector('[data-testid="chrome-dock"]', { timeout: 20000 }).catch(() => {});
+    await page.evaluate(() => (document.fonts && document.fonts.ready ? document.fonts.ready : null)).catch(() => {});
+    if (SELFTEST) await page.addStyleTag({ content: COMFORT_BREAK });
+    await page.evaluate(() => window.scrollTo(0, Math.max(900, Math.round(document.documentElement.scrollHeight * 0.4))));
+    await page.waitForTimeout(500);
+    const folded = await bottomChrome(page);
+    await page.locator('[data-testid="dock-controls"]').click({ timeout: 5000 }).catch(() => {});
+    await page.waitForTimeout(400);
+    const opened = await bottomChrome(page);
+    await page.locator('[data-testid="dock-controls"]').click({ timeout: 5000 }).catch(() => {});
+    await page.waitForTimeout(400);
+    const refolded = await bottomChrome(page);
+    await page.close();
+    const before = failures;
+    if (folded.attr !== 'collapsed') fail(`${where}: the reader did not open with the bottom block folded (data-comfort-bar="${folded.attr}")`);
+    if (folded.px > READER_BOTTOM_MAX_PX) fail(`${where}: the bottom chrome is ${folded.px}px with the block folded — over ${READER_BOTTOM_MAX_PX}px (${folded.names.join(', ')})`);
+    if (!folded.sizes) fail(`${where}: folded, no text-size control is on screen — big text is not reversible`);
+    if (folded.sw > folded.vw + 1) fail(`${where}: the page is ${folded.sw}px wide in a ${folded.vw}px viewport`);
+    if (opened.attr !== 'open' || opened.px <= folded.px) fail(`${where}: Controls did not open the block (${opened.attr}, ${opened.px}px)`);
+    if (opened.onBlock > 1) fail(`${where}: with Controls open the bottom bar sits ${opened.onBlock}px over the block instead of standing on it`);
+    if (refolded.attr !== 'collapsed' || refolded.px > READER_BOTTOM_MAX_PX) fail(`${where}: Controls did not fold it back (${refolded.attr}, ${refolded.px}px)`);
+    if (failures === before) console.log(`comfort ok  ${where} — bottom chrome ${folded.px}px folded (${folded.names.join(', ')}), ${opened.px}px with Controls open, ${refolded.px}px folded again; ${folded.sizes} size controls on screen`);
+  }
+  const COMFORT_CASES = SELFTEST ? [360] : (SWEEP ? [360, 900] : []);
+  const CHURCH_URL = `${origin}${BASE}/?view=church`;
+  for (const width of COMFORT_CASES) {
+    const where = `comfort@${width}px [Big Print, outside the reader]`;
+    const page = await browser.newPage({ viewport: { width, height: 900 } });
+    await page.addInitScript(() => {
+      try {
+        localStorage.setItem('poetech.help.tour.v1', 'seen');
+        localStorage.setItem('poe-text-size', 'bigprint');
+        localStorage.removeItem('poe-header-collapsed');
+        if (!sessionStorage.getItem('comfort-probe-seeded')) { localStorage.removeItem('poe-comfort-bar-collapsed'); sessionStorage.setItem('comfort-probe-seeded', '1'); }
+      } catch { /* private mode */ }
+    });
+    await page.goto(CHURCH_URL, { waitUntil: 'networkidle', timeout: 45000 }).catch(() => {});
+    await page.waitForSelector('[data-testid="comfort-hide"]', { state: 'attached', timeout: 20000 }).catch(() => {});
+    await page.evaluate(() => new Promise((r) => setTimeout(r, 300)));
+    if (SELFTEST) await page.addStyleTag({ content: COMFORT_BREAK });
+    const box = () => page.evaluate(() => {
+      const row = document.querySelector('.header-comfort-row');
+      if (!row) return null;
+      const r = row.getBoundingClientRect();
+      const sizes = [...row.querySelectorAll('button, select')].filter((x) => /text size/i.test(x.getAttribute('aria-label') || '') && x.getBoundingClientRect().height > 0).length;
+      return { h: Math.round(r.height), fixed: getComputedStyle(row).position === 'fixed', sizes, attr: document.documentElement.getAttribute('data-comfort-bar') };
+    });
+    const open = await box();
+    await page.locator('[data-testid="comfort-hide"]').click({ timeout: 5000 }).catch(() => {});
+    await page.waitForTimeout(250);
+    const folded = await box();
+    await page.reload({ waitUntil: 'networkidle', timeout: 45000 }).catch(() => {});
+    await page.waitForSelector('[data-testid="comfort-show"]', { state: 'attached', timeout: 20000 }).catch(() => {});
+    await page.waitForTimeout(300);
+    if (SELFTEST) await page.addStyleTag({ content: COMFORT_BREAK });
+    const reloaded = await box();
+    await page.locator('[data-testid="comfort-show"]').click({ timeout: 5000 }).catch(() => {});
+    await page.waitForTimeout(250);
+    const restored = await box();
+    await page.close();
+    const before = failures;
+    if (!open || !folded || !reloaded || !restored) { fail(`${where}: the header controls row never rendered — nothing was measured`); continue; }
+    if (!open.fixed) fail(`${where}: the controls row is not the fixed bottom block at Big Print — the state was not measured`);
+    if (folded.attr !== 'collapsed') fail(`${where}: Hide did not fold the block (data-comfort-bar="${folded.attr}")`);
+    if (folded.h > COMFORT_FOLDED_MAX_PX) fail(`${where}: folded, the bottom block is ${folded.h}px — over ${COMFORT_FOLDED_MAX_PX}px (open: ${open.h}px)`);
+    if (folded.h >= open.h) fail(`${where}: folding did not make the block smaller (${open.h}px -> ${folded.h}px)`);
+    if (!folded.sizes) fail(`${where}: folded, no text-size control is left — big text is not reversible`);
+    if (reloaded.attr !== 'collapsed' || reloaded.h > COMFORT_FOLDED_MAX_PX) fail(`${where}: the fold did not survive a reload (${reloaded.attr}, ${reloaded.h}px)`);
+    if (restored.h < open.h - 2) fail(`${where}: Show controls did not bring the whole block back (${restored.h}px of ${open.h}px)`);
+    if (failures === before) console.log(`comfort ok  ${where} — bottom block ${open.h}px open, ${folded.h}px folded (${folded.sizes} size control), folded after reload ${reloaded.h}px, restored ${restored.h}px`);
+  }
+  // ---------------------------------------------------------------------------
+  // TEXT-SCALE pass — the layout is measured AT Big Print, not assumed to hold.
+  // Rides --sweep (real assertions) and --selftest-break (proves it can fail),
+  // so ci.yml needs no new step. localStorage is seeded before boot exactly the
+  // way a returning reader's device is; initTextSize applies it pre-paint.
+  // ---------------------------------------------------------------------------
+  const TS_VIEWS = SWEEP
+    ? [
+        { name: 'church', path: '/?view=church' },
+        { name: 'library', path: '/?view=library' },
+        { name: 'tlc-door', path: '/?tlc=1' },
+        { name: 'moore-door', path: '/?moore=1' },
+      ]
+    : SELFTEST
+      ? [{ name: 'tlc-door', path: '/?tlc=1' }]
+      : [];
+  const TS_WIDTHS = SELFTEST ? [360] : [360, 768];
+  // BOTH header states (added 2026-08-30, Darrell at Big Print on his phone:
+  // "large font block the ability to change it afterwards after selecting it").
+  // The header hideaway unmounts the whole comfort-controls row — text size
+  // included — so a reader who tucked the top bar away had NO size control in
+  // the DOM at all. Every earlier run of this pass loaded with the header
+  // EXPANDED, so the trap was invisible to the instrument that exists to catch
+  // exactly this. Measured before the fix: collapsed+bigprint@360 = 0 controls
+  // rendered. A state the user can reach is a state the probe must load in.
+  const TS_HEADER_STATES = SELFTEST ? [false] : [false, true];
+  tsFailuresBefore = failures;
+  for (const v of TS_VIEWS) for (const width of TS_WIDTHS) for (const collapsed of TS_HEADER_STATES) {
+    const page = await browser.newPage({ viewport: { width, height: 740 } });
+    await page.addInitScript((hideHeader) => {
+      try {
+        localStorage.setItem('poe-text-size', 'bigprint');
+        // The header hideaway's own per-device key (lib/header-hideaway.js).
+        if (hideHeader) localStorage.setItem('poe-header-collapsed', '1');
+        else localStorage.removeItem('poe-header-collapsed');
+      } catch { /* private mode */ }
+    }, collapsed);
+    await page.goto(`${origin}${BASE}${v.path}`, { waitUntil: 'networkidle', timeout: 45000 }).catch(() => {});
+    await page.waitForSelector('button', { timeout: 20000 }).catch(() => {});
+    if (SELFTEST) {
+      // The trap, reproduced deliberately: the comfort controls are shoved a
+      // full 3 viewports down (the ballooned-header failure) and the body is
+      // forced wider than the phone (the card-grid blowout). Both new
+      // invariants MUST trip or the pass is theater.
+      // The break must also DEFEAT the protection (2026-09-10): the door's
+      // comfort row now carries .ts-escape-hatch, which pins it to the viewport
+      // at Big Print (index.css), so a margin alone no longer moves it — the
+      // app is immune to that failure by construction. The self-test proves
+      // the INSTRUMENT can see a lost control, so it un-pins the row first.
+      await page.addStyleTag({ content: '[aria-label="Comfort controls"] { position: static !important; margin-top: 300vh !important } body::after { content: ""; display: block; width: 3000px; height: 2px }' });
+      await page.evaluate(() => new Promise((r) => setTimeout(r, 100)));
+    }
+    const m = await page.evaluate(() => {
+      const doc = document.documentElement;
+      const vw = window.innerWidth, vh = window.innerHeight;
+      // A phone's collapsed row carries the sizes as ONE dropdown (2026-09-24,
+      // "a drop down with all options"); the five buttons are the 640px-and-up
+      // form. Either is a way out of big text, so both count — and neither
+      // on screen is still the failure.
+      const hatch = [...document.querySelectorAll('button, select')]
+        .filter((b) => /text size/i.test(b.getAttribute('aria-label') || ''));
+      const reachable = hatch.some((b) => {
+        const r = b.getBoundingClientRect();
+        return r.width > 0 && r.height > 0 && r.top >= 0 && r.left >= 0 && r.bottom <= vh && r.right <= vw;
+      });
+      // The instrument names WHERE (instrument-blindness law): a bare "none is
+      // on screen" forced a blind bisect on 2026-08-16 — the fail line now
+      // carries each control's rect + the header's height so the failing run
+      // itself says which edge lost the control and by how many pixels.
+      const hdr = document.querySelector('header');
+      return {
+        size: doc.getAttribute('data-text-size'),
+        scrollWidth: doc.scrollWidth,
+        clientWidth: doc.clientWidth,
+        hatchCount: hatch.length,
+        reachable,
+        vh,
+        vw,
+        headerH: hdr ? Math.round(hdr.getBoundingClientRect().height) : null,
+        rects: hatch.slice(0, 6).map((b) => {
+          const r = b.getBoundingClientRect();
+          // Ancestry flags (2026-08-19, instrument-blindness law round 2): the
+          // identical-rects run could not say WHERE the controls live, so a
+          // sticky fix was aimed at the wrong element. h=inside <header>,
+          // s=inside .ts-safe-sticky, e=inside .ts-escape-hatch, then the
+          // escape-hatch row's computed position (did the CSS engage at all).
+          const eh = b.closest('.ts-escape-hatch');
+          const flags = `${b.closest('header') ? 'h' : '-'}${b.closest('.ts-safe-sticky') ? 's' : '-'}${eh ? 'e' : '-'}${eh ? ':' + getComputedStyle(eh).position : ''}`;
+          return `${(b.getAttribute('aria-label') || '?').slice(0, 14)}[${flags}]@t${Math.round(r.top)},l${Math.round(r.left)},b${Math.round(r.bottom)},r${Math.round(r.right)}`;
+        }),
+      };
+    });
+    await page.close();
+    const where = `${v.name}@${width}px${collapsed ? ' [header collapsed]' : ''}`;
+    if (m.size !== 'bigprint') { fail(`textscale ${where}: data-text-size="${m.size}" — Big Print never applied, nothing was measured`); continue; }
+    const before = failures;
+    tsMeasured += 1;
+    if (m.scrollWidth > m.clientWidth + 1) fail(`textscale ${where}: page overflows horizontally at Big Print (${m.scrollWidth} > ${m.clientWidth})`);
+    if (!m.hatchCount) fail(`textscale ${where}: no text-size control rendered — no way out of big text`);
+    else if (!m.reachable) fail(`textscale ${where}: text-size controls exist but none is on screen — reader trapped in big text (viewport ${m.vw}x${m.vh}, header ${m.headerH}px tall, controls: ${m.rects.join(' ')})`);
+    if (failures === before) console.log(`textscale ok  ${where} — Big Print holds, escape hatch on screen (${m.hatchCount} controls)`);
+  }
+} finally {
+  // ---------------------------------------------------------------------------
+  // THE PRESENTER IS CHROME TOO (DR-0451). It was the largest surface in the
+  // app the probe had never visited: no view, no selector, no budget — so the
+  // one rule that would have caught Darrell's report ("the controls are taking
+  // over the screen real-estate", 2026-09-17) had nothing to measure. The bar
+  // now carries a testid and a cap; this measures both, in the browser, at the
+  // width he was holding.
+  // ---------------------------------------------------------------------------
+  const PRESENTER_BAR_MAX_PX = 160;
+  // The course page, not a lesson: the whole-course overview lives with the
+  // course and never above an open lesson (DR-0688, Darrell 2026-09-30: "the
+  // over view should not be at the top of each lesson it is confusing").
+  const DECK_URL = `${origin}${BASE}/?view=church&sub=learn&course=living-lessons`;
+  for (const size of ['normal', 'bigprint']) {
+    const page = await browser.newPage({ viewport: { width: 360, height: 900 } });
+    await page.addInitScript((sz) => {
+      try {
+        localStorage.setItem('poetech.help.tour.v1', 'seen');
+        if (sz === 'bigprint') localStorage.setItem('poe-text-size', 'bigprint'); else localStorage.removeItem('poe-text-size');
+      } catch { /* private mode */ }
+    }, size);
+    await page.goto(DECK_URL, { waitUntil: 'networkidle', timeout: 45000 }).catch(() => {});
+    await page.waitForSelector('[data-testid="course-overview-play"] button', { timeout: 20000 }).catch(() => {});
+    // Open the series deck the way a reader does — the whole-course overview
+    // play control on the course's own page.
+    const opened = await page.evaluate(() => {
+      const b = [...document.querySelectorAll('button')].find((x) => /play the whole course overview/i.test(x.textContent || ''));
+      if (!b) return false;
+      b.click();
+      return true;
+    });
+    if (!opened) { await page.close(); fail(`presenter@360px${size === 'bigprint' ? ' [Big Print]' : ''}: no way into the deck was found on the course page`); continue; }
+    await page.waitForSelector('[data-testid="present-setup-bar"]', { timeout: 20000 }).catch(() => {});
+    await page.evaluate(() => (document.fonts && document.fonts.ready ? document.fonts.ready : null)).catch(() => {});
+    await page.evaluate(() => new Promise((r) => setTimeout(r, 400)));
+    if (SELFTEST) {
+      // The pre-fix bar, reproduced: the cap removed and every control always on.
+      await page.addStyleTag({ content: '[data-testid="present-setup-bar"] { zoom: 1 !important } [data-testid="present-setup-bar"] button { min-height: 6rem !important }' });
+      await page.evaluate(() => new Promise((r) => setTimeout(r, 150)));
+    }
+    const pm = await page.evaluate(() => {
+      const bar = document.querySelector('[data-testid="present-setup-bar"]');
+      if (!bar) return { none: true };
+      const r = bar.getBoundingClientRect();
+      const hasJump = !!document.querySelector('[data-testid="present-setup-jump"]');
+      const more = document.querySelector('[data-testid="present-setup-bar-more"]');
+      return {
+        h: Math.round(r.height),
+        vh: window.innerHeight,
+        capped: bar.classList.contains('ts-chrome-region'),
+        safeSticky: bar.classList.contains('ts-safe-sticky'),
+        foldable: !!more,
+        hasJump,
+        size: document.documentElement.getAttribute('data-text-size') || 'normal',
+      };
+    });
+    await page.close();
+    const pwhere = `presenter@360px${size === 'bigprint' ? ' [Big Print]' : ''}`;
+    if (pm.none) { fail(`${pwhere}: the presenting bar never rendered — nothing was measured`); continue; }
+    if (size === 'bigprint' && pm.size !== 'bigprint') { fail(`${pwhere}: data-text-size="${pm.size}" — Big Print never applied, nothing was measured`); continue; }
+    const pbefore = failures;
+    presenterMeasured += 1;
+    if (!pm.capped) fail(`${pwhere}: the presenting bar is not in .ts-chrome-region — the controls grow with the text (DR-0438 §1)`);
+    if (!pm.safeSticky) fail(`${pwhere}: the presenting bar is not .ts-safe-sticky — a sticky header may never exceed the viewport (DR-0276 rule 2)`);
+    if (!pm.foldable) fail(`${pwhere}: the presenting bar has no More control — every control is always on, which is what took the screen`);
+    if (!pm.hasJump) fail(`${pwhere}: the deck offers no way to reach one part directly — stepping is the only route`);
+    if (pm.h > PRESENTER_BAR_MAX_PX) fail(`${pwhere}: the presenting bar is ${pm.h}px of the ${pm.vh}px viewport — over the ${PRESENTER_BAR_MAX_PX}px budget; the slide must dominate the screen`);
+    if (failures === pbefore) console.log(`presenter ok  ${pwhere} — bar ${pm.h}px of ${pm.vh}px, capped, safe-sticky, foldable, one-tap jump present`);
+  }
+  if (presenterMeasured !== 2) fail(`coverage: ${presenterMeasured}/2 presenter cases measured`);
+
+  // ---------------------------------------------------------------------------
+  // THE READER WHILE THE WORD IS PLAYING (DR-0659). No instrument had ever
+  // looked at the page WHILE READING. Darrell 2026-09-24: "Still need the
+  // reader to keep up with the sentence", and the Fire TV: the mini-bar must
+  // be reachable and usable with a D-pad at 1920x1080 over the NAS voice.
+  // (Where the app's own floaters sit — Feedback, Give, the network dot —
+  // moves into the header in its own lane; this pass measures the reader.)
+  // A real reading is started (the NAS voice is answered by this server with
+  // a tone, exactly the app's /voice-lite call), then measured:
+  //   R2. THE READER IS ON SCREEN — the pill ran 82 px off the left at 412.
+  //   R3. FOLLOWING KEEPS THE SENTENCE AT THE TOP — as the voice moves on, the
+  //       lit sentence's top stays within 120 px under whatever is pinned at
+  //       the top (measured here, like the reader measures it). Darrell
+  //       2026-09-25: "keep the reading at the top of the page as much as
+  //       possible... currently it's almost at the bottom of the page".
+  //   R4. THE REMOTE CAN DRIVE IT (1920) — each mini-bar button takes focus in
+  //       order with a visible ring, and Enter on Follow changes its state.
+  // ---------------------------------------------------------------------------
+  readerFailuresBefore = failures;
+  const READER_URL = `${origin}${BASE}/?view=church&sub=learn&course=living-lessons&lesson=ll191-who-he-said-he-was-every-hearer-every-situation-and-the-keys-of-hell-and-of-death`;
+  const READER_CASES = SELFTEST
+    ? [{ w: 1920, h: 1080, sz: 'normal', tv: true }]
+    : (SWEEP ? [{ w: 412, h: 915, sz: 'largest' }, { w: 390, h: 844, sz: 'normal' }, { w: 1920, h: 1080, sz: 'normal', tv: true }] : []);
+  for (const rc of READER_CASES) {
+    const where = `reader@${rc.w}x${rc.h} [${rc.sz}]`;
+    const page = await browser.newPage({ viewport: { width: rc.w, height: rc.h } });
+    await page.addInitScript((sz) => {
+      try {
+        localStorage.setItem('poetech.help.tour.v1', 'seen');
+        if (sz !== 'normal') localStorage.setItem('poe-text-size', sz); else localStorage.removeItem('poe-text-size');
+        localStorage.removeItem('poe-reader-follow');
+      } catch (_) { /* private mode */ }
+      window.__audios = [];
+      const ce = document.createElement.bind(document);
+      document.createElement = (t, o) => { const el = ce(t, o); if (String(t).toLowerCase() === 'audio') window.__audios.push(el); return el; };
+      const A = window.Audio;
+      window.Audio = function (...a) { const x = new A(...a); window.__audios.push(x); return x; };
+    }, rc.sz);
+    await page.goto(READER_URL, { waitUntil: 'domcontentloaded', timeout: 45000 }).catch(() => {});
+    await page.waitForSelector('[data-testid="lesson-space-bar"]', { timeout: 30000 }).catch(() => {});
+    await page.waitForTimeout(1200);
+    let started = false;
+    try {
+      await page.click('button[aria-label*="read-aloud controls"]', { timeout: 10000 });
+      await page.getByRole('button', { name: /Read this lesson — start to finish/ }).click({ timeout: 10000 });
+      started = await page.waitForFunction(() => (window.__audios || []).some((a) => String(a.src).startsWith('blob:') && !a.paused && a.currentTime > 0.2), null, { timeout: 25000 }).then(() => true).catch(() => false);
+    } catch (_) { started = false; }
+    if (!started) { fail(`${where}: the reading never started playing the NAS voice — nothing was measured`); await page.close(); continue; }
+    if (SELFTEST) {
+      // The break: no focus ring on the mini-bar — a remote's user would not
+      // see where they are. R4 must trip.
+      await page.addStyleTag({ content: '[data-testid="reader-mini-bar"] button:focus, [data-testid="reader-mini-bar"] button:focus-visible { outline: none !important }' });
+    }
+    const measureFloaters = () => page.evaluate(() => {
+      const r = (el) => { const b = el.getBoundingClientRect(); return (b.width < 2 || b.height < 2) ? null : { l: b.left, r: b.right, t: b.top, b: b.bottom }; };
+      const items = {};
+      const els = {};
+      const nameOf = (el, i) => (el.getAttribute('data-testid') || el.getAttribute('aria-label') || String(el.className || '').split(' ').find((c) => /floater|hatch/.test(c)) || `${el.tagName}${i}`).slice(0, 36);
+      [...document.querySelectorAll('body *')].forEach((el, i) => {
+        if (el.closest('.tts-controls')) return;
+        const cs = getComputedStyle(el);
+        if (cs.position !== 'fixed' || cs.display === 'none' || cs.visibility === 'hidden') return;
+        const x = r(el);
+        if (!x || x.b - x.t > innerHeight * 0.6 || x.t < innerHeight / 2) return;
+        const n = nameOf(el, i);
+        items[n] = x; els[n] = el;
+      });
+      const stack = document.querySelector('.tts-controls');
+      [...(stack ? stack.children : [])].forEach((el, i) => { const x = r(el); if (x) { const n = `reader:${nameOf(el, i)}`; items[n] = x; els[n] = el; } });
+      const names = Object.keys(items);
+      const hit = (a, b) => !(a.r <= b.l + 0.5 || b.r <= a.l + 0.5 || a.b <= b.t + 0.5 || b.b <= a.t + 0.5);
+      const overlaps = [];
+      for (let i = 0; i < names.length; i++) for (let j = i + 1; j < names.length; j++) {
+        if (names[i].startsWith('reader:') && names[j].startsWith('reader:')) continue;
+        // One floater nested in another (a fixed child of a fixed bar) is one
+        // floater, not two.
+        if (els[names[i]].contains(els[names[j]]) || els[names[j]].contains(els[names[i]])) continue;
+        if (hit(items[names[i]], items[names[j]])) overlaps.push(`${names[i]} x ${names[j]}`);
+      }
+      const off = names.filter((k) => { const x = items[k]; return x.l < -0.5 || x.t < -0.5 || x.r > innerWidth + 0.5 || x.b > innerHeight + 0.5; });
+      return { overlaps, off, count: names.length };
+    });
+    // Scroll so back-to-top shows, then measure the pill.
+    await page.mouse.wheel(0, 700);
+    await page.waitForTimeout(800);
+    const pill = await measureFloaters();
+    // Put the panel away: the mini-bar.
+    await page.locator('button[aria-label="Hide reading controls — keeps reading"]').click({ timeout: 5000 }).catch(() => {});
+    await page.waitForTimeout(600);
+    const mini = await measureFloaters();
+    const rbefore = failures;
+    for (const [state, m] of [['pill', pill], ['mini-bar', mini]]) {
+      const offReader = m.off.filter((k) => k.startsWith('reader:'));
+      if (offReader.length) fail(`${where} ${state}: the reader runs off the screen — ${offReader.join(', ')}`);
+    }
+    // R3: follow on — bring the voice back, then look three times as pieces
+    // go by: the lit sentence sits just under the pinned top every time.
+    await page.locator('[data-testid="reader-back-to-voice"]').click({ timeout: 3000 }).catch(() => {});
+    const looks = [];
+    for (let k = 0; k < 3; k++) {
+      await page.waitForTimeout(1400);
+      looks.push(await page.evaluate(() => {
+        const h = window.CSS && CSS.highlights && CSS.highlights.get('poe-read-seg');
+        const rng = h ? [...h][0] : null;
+        const el = document.querySelector('[data-testid="reader-show-text"]');
+        // What is pinned at the top, measured the way the reader measures it.
+        let pinned = 0;
+        for (const x of [innerWidth * 0.25, innerWidth * 0.5, innerWidth * 0.75]) {
+          for (const e of document.elementsFromPoint(Math.round(x), 2)) {
+            const pos = getComputedStyle(e).position;
+            if (pos !== 'fixed' && pos !== 'sticky') continue;
+            const r = e.getBoundingClientRect();
+            if (r.height >= innerHeight * 0.9) continue;
+            if (r.top <= 2 && r.bottom > pinned) pinned = r.bottom;
+          }
+        }
+        if (!rng) return { none: true, state: el && el.getAttribute('data-state') };
+        const b = rng.getClientRects()[0] || rng.getBoundingClientRect();
+        return { t: b.top, pinned: Math.min(pinned, innerHeight * 0.45), text: rng.toString().slice(0, 40), state: el && el.getAttribute('data-state') };
+      }));
+    }
+    const litNone = looks.find((l) => l.none);
+    if (litNone) fail(`${where}: no sentence is lit while the NAS voice reads`);
+    else if (looks.some((l) => l.state !== 'following')) fail(`${where}: the mini-bar says "${looks.find((l) => l.state !== 'following').state}", not following, after "Back to the voice"`);
+    else {
+      const far = looks.filter((l) => l.t < l.pinned - 2 || l.t - l.pinned > 120);
+      if (far.length) fail(`${where}: following is on but the lit sentence is not at the top — ${far.map((l) => `"${l.text}" at ${Math.round(l.t)}px, pinned top ends at ${Math.round(l.pinned)}px`).join('; ')}`);
+      if (new Set(looks.map((l) => l.text)).size < 2) console.log(`reader note  ${where}: the voice stayed on one sentence across the three looks`);
+    }
+    // R4: the remote. Focus walks the mini-bar in order with a visible ring,
+    // and Enter on Follow flips it.
+    if (rc.tv) {
+      const dpad = await page.evaluate(() => {
+        const bar = document.querySelector('[data-testid="reader-mini-bar"]');
+        const btns = bar ? [...bar.querySelectorAll('button')] : [];
+        return btns.map((b) => b.getAttribute('data-testid') || b.getAttribute('aria-label'));
+      });
+      if (dpad.length < 3) fail(`${where}: the mini-bar has ${dpad.length} buttons — nothing for a remote to drive`);
+      await page.focus('[data-testid="reader-show-text"]').catch(() => {});
+      const walked = [];
+      for (let i = 0; i < dpad.length; i++) {
+        const f = await page.evaluate(() => {
+          const a = document.activeElement;
+          const cs = a ? getComputedStyle(a) : null;
+          return { id: a ? (a.getAttribute('data-testid') || a.getAttribute('aria-label')) : null, ring: cs ? (cs.outlineStyle !== 'none' && parseFloat(cs.outlineWidth) >= 2) : false };
+        });
+        walked.push(f);
+        await page.keyboard.press('Tab');
+      }
+      const order = walked.map((x) => x.id);
+      if (order.join('|') !== dpad.join('|')) fail(`${where}: focus does not walk the mini-bar in order — got ${order.join(' > ')}, want ${dpad.join(' > ')}`);
+      const noRing = walked.filter((x) => !x.ring).map((x) => x.id);
+      if (noRing.length) fail(`${where}: no visible focus ring on ${noRing.join(', ')} — a remote user cannot see where they are`);
+      await page.focus('[data-testid="reader-show-text"]').catch(() => {});
+      const s0 = await page.getAttribute('[data-testid="reader-show-text"]', 'data-state').catch(() => null);
+      await page.keyboard.press('Enter');
+      await page.waitForTimeout(300);
+      const s1 = await page.getAttribute('[data-testid="reader-show-text"]', 'data-state').catch(() => null);
+      if (!s0 || s0 === s1) fail(`${where}: Enter on Follow did nothing (${s0} -> ${s1})`);
+    }
+    readerMeasured += 1;
+    if (failures === rbefore) console.log(`reader ok  ${where} — pill and mini-bar on screen, the lit sentence within 120 px under the pinned top while following${rc.tv ? ', D-pad walks the mini-bar with a ring and Enter works' : ''}`);
+    await page.close();
+  }
+  if (readerMeasured !== READER_CASES.length) fail(`coverage: ${readerMeasured}/${READER_CASES.length} reader cases measured`);
+
+  // ---------------------------------------------------------------------------
+  // LESSON-CHROME pass (DR-0816). Darrell 2026-10-08, with a photograph of L218
+  // on the television: "Fix it." The lesson's own sticky block — nav row,
+  // two-line title, STEP x OF y bar — had grown into the reading at the big
+  // text sizes, so the words arrived in a slot instead of on a page.
+  //
+  // DR-0438 already settled the rule, in his words: "the controls should never
+  // get bigger." Only the nav row was ever held to it; the title row and the
+  // progress block were not. Measured at 1280x720 before the fix: the block was
+  // 93px at Normal and 194px at Big Print 44, and the progress block alone went
+  // 43px -> 118px.
+  //
+  // So the invariant is DR-0438 itself, measured on the real block:
+  //   L1. THE BLOCK DOES NOT GROW — its height at Big Print 44 is within
+  //       LESSON_CHROME_GROWTH of its height at Normal.
+  //   L2. THE TITLE'S TYPE DOES NOT GROW — the same computed font-size at Big
+  //       Print 44 as at Normal.
+  // --selftest-break puts the uncapped sizes back; both must trip.
+  // ---------------------------------------------------------------------------
+  lessonChromeFailuresBefore = failures;
+  const LESSON_CHROME_GROWTH = 1.3;
+  const LESSON_URL = `${origin}${BASE}/?view=church&sub=learn&course=living-lessons&lesson=ll218-do-not-switch-up-on-his-way-yahwehs-principles-documented-no-offense-taken-and-letting-him-win-so-we-win`;
+  const LESSON_CHROME_CASES = SELFTEST
+    ? [{ w: 1280, h: 720 }]
+    : (SWEEP ? [{ w: 1280, h: 720 }, { w: 960, h: 540 }, { w: 390, h: 844, mobile: true }] : []);
+  for (const lc of LESSON_CHROME_CASES) {
+    const where = `lesson chrome@${lc.w}x${lc.h}`;
+    const read = async (sz) => {
+      const page = await browser.newPage({
+        viewport: { width: lc.w, height: lc.h },
+        ...(lc.ua ? { userAgent: lc.ua } : {}),
+        ...(lc.mobile ? { isMobile: true, hasTouch: true } : {}),
+      });
+      await page.addInitScript((s) => {
+        try {
+          localStorage.setItem('poetech.help.tour.v1', 'seen');
+          if (s === 'normal') localStorage.removeItem('poe-text-size'); else localStorage.setItem('poe-text-size', s);
+        } catch (_) { /* private mode */ }
+      }, sz);
+      await page.goto(LESSON_URL, { waitUntil: 'domcontentloaded', timeout: 45000 }).catch(() => {});
+      const there = await page.waitForSelector('[data-testid="lesson-space-title"]', { timeout: 30000 }).then(() => true).catch(() => false);
+      if (!there) { await page.close(); return null; }
+      await page.waitForTimeout(700);
+      if (SELFTEST) {
+        // The break: the sizes the block had before the cap — the title riding
+        // the full root scale and the chrome regions unzoomed.
+        await page.addStyleTag({
+          content: [
+            '[data-testid="lesson-space-title"] { font-size: 0.875rem !important }',
+            '[data-testid="lesson-space-title-toggle"] { font-size: 0.75rem !important }',
+            '[data-testid="lesson-space-title-row"] { padding-top: 0.375rem !important; padding-bottom: 0.375rem !important }',
+            '.lesson-space-sticky .ts-chrome-region { zoom: 1 !important }',
+          ].join('\n'),
+        });
+        await page.waitForTimeout(200);
+      }
+      const m = await page.evaluate(() => {
+        const sticky = document.querySelector('.lesson-space-sticky');
+        const h2 = document.querySelector('[data-testid="lesson-space-title"]');
+        return {
+          h: sticky ? Math.round(sticky.getBoundingClientRect().height) : null,
+          type: h2 ? getComputedStyle(h2).fontSize : null,
+        };
+      });
+      await page.close();
+      return m;
+    };
+    const base = await read('normal');
+    const big = await read('bigprint');
+    if (!base || !big || !base.h || !big.h) { fail(`${where}: the lesson space never opened — nothing was measured`); continue; }
+    const grew = big.h / base.h;
+    if (grew > LESSON_CHROME_GROWTH) {
+      fail(`${where}: the sticky block grows ${base.h}px -> ${big.h}px at Big Print 44 (${Math.round((grew - 1) * 100)}% over, cap ${Math.round((LESSON_CHROME_GROWTH - 1) * 100)}%) — the controls got bigger (DR-0438)`);
+    }
+    if (base.type !== big.type) {
+      fail(`${where}: the sticky title's type grows ${base.type} -> ${big.type} at Big Print 44 — chrome type is capped, only the words grow`);
+    }
+    lessonChromeMeasured += 1;
+    if (grew <= LESSON_CHROME_GROWTH && base.type === big.type) {
+      console.log(`lesson chrome ok  ${where} — block ${base.h}px -> ${big.h}px, title type ${base.type} at both`);
+    }
+  }
+  if (lessonChromeMeasured !== LESSON_CHROME_CASES.length) fail(`coverage: ${lessonChromeMeasured}/${LESSON_CHROME_CASES.length} lesson-chrome cases measured`);
+
+  // ---------------------------------------------------------------------------
+  // DEVICE pass (DR-0678, remeasured for DR-0679). Darrell 2026-09-29:
+  // "Laptop for creating... we need to be able to use the devices
+  // appropriately", then "Why take away my type texting place?!" and
+  // "Subtabs". Create has a level-2 row under the main nav (the Church row's
+  // mechanism, components/CreateSubNav.jsx), opened as each device actually
+  // meets it (a laptop with a mouse, a phone with a finger, a Fire TV by its
+  // own user agent at its own 960x540) and MEASURED — the row plus the open
+  // sub's page, never a grid of panels:
+  //   D1. the class the app derived is the device's (html[data-device-class]
+  //       and the page agree) — measured by the browser, not asserted by us;
+  //   D2. the tab row is there with every subtab (the Workspace + every panel;
+  //       never blocked by device), and the row itself sits on the screen;
+  //   D3. the Workspace is the first tab and the OPEN one, and its canvas is
+  //       on screen above the fold (his writing place is never buried); the
+  //       tab after it is the role's first panel (the roles file, read above);
+  //   D4. exactly one tab panel shows; the role's first panel, opened, shows
+  //       alone and uses the width (>= 60% on a laptop);
+  //   D5. nothing runs past the right edge (page, tab row box, panel).
+  // --selftest-break hides the row; D2 and D3 must trip.
+  // ---------------------------------------------------------------------------
+  deviceFailuresBefore = failures;
+  const FIRE_TV_UA = 'Mozilla/5.0 (Linux; Android 9; AFTMM Build/PS7285) AppleWebKit/537.36 (KHTML, like Gecko) Silk/112.3.1 like Chrome/112.0.5615.213 Safari/537.36';
+  const PHONE_UA = 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Mobile Safari/537.36';
+  const DEVICE_CASES = SELFTEST
+    ? [{ cls: 'laptop', w: 1440, h: 900 }]
+    : (SWEEP ? [
+      { cls: 'laptop', w: 1440, h: 900 },
+      { cls: 'laptop', w: 1920, h: 1080 },
+      { cls: 'phone', w: 390, h: 844, mobile: true, ua: PHONE_UA },
+      { cls: 'tv', w: 960, h: 540, ua: FIRE_TV_UA },
+    ] : []);
+  const TAB_COUNT = 1 + Object.keys(DEVICE_ROLES.panels).length;
+  const measureCreate = () => {
+    const st = document.querySelector('[data-testid="creating-station"]');
+    const nav = document.querySelector('[data-testid="create-subnav"]');
+    if (!st || !nav) return { none: true, html: document.documentElement.getAttribute('data-device-class') };
+    const vw = document.documentElement.clientWidth;
+    const vh = window.innerHeight;
+    const box = (el) => { if (!el) return null; const r = el.getBoundingClientRect(); return { left: Math.round(r.left), top: Math.round(r.top), right: Math.round(r.right), bottom: Math.round(r.bottom), w: Math.round(r.width), h: Math.round(r.height) }; };
+    const btns = [...nav.querySelectorAll('[data-create-sub]')].filter((b) => b.getBoundingClientRect().width > 0);
+    const lr = box(nav.querySelector('.tab-scroll') || nav);
+    const tabs = btns.map((b) => b.getAttribute('data-create-sub'));
+    const sel = nav.querySelector('[data-create-sub][aria-current="page"]');
+    const shown = [...st.querySelectorAll('[data-create-page]')].filter((p) => !p.hidden && p.getBoundingClientRect().height > 0);
+    const canvas = st.querySelector('#create-sub-workspace .creation-canvas, #create-sub-workspace [contenteditable]');
+    return {
+      html: document.documentElement.getAttribute('data-device-class'),
+      station: st.getAttribute('data-device-class'),
+      fine: matchMedia('(any-pointer: fine)').matches,
+      tabs,
+      rowVisible: !!(lr && lr.w > 0 && lr.h > 0),
+      row: lr,
+      selected: sel ? sel.getAttribute('data-create-sub') : null,
+      shown: shown.map((p) => ({ id: p.getAttribute('data-create-page'), ...box(p) })),
+      canvas: box(canvas),
+      vw,
+      vh,
+      scrollWidth: document.documentElement.scrollWidth,
+    };
+  };
+  for (const dc of DEVICE_CASES) {
+    const where = `device ${dc.cls}@${dc.w}x${dc.h}`;
+    const ctx = await browser.newContext({
+      viewport: { width: dc.w, height: dc.h },
+      ...(dc.mobile ? { isMobile: true, hasTouch: true, deviceScaleFactor: 2 } : {}),
+      ...(dc.ua ? { userAgent: dc.ua } : {}),
+    });
+    const page = await ctx.newPage();
+    // The live-service bar (LiveWorshipBar) shows app-wide inside a published
+    // service window, read from the RUNNER's clock, and pads the page by its
+    // own height (491px at 1440 wide). On 2026-09-30 at 13:15 UTC that window
+    // was open and this pass read the Workspace as "buried" at every size,
+    // though the Create page had not changed (DR-0688). It measures the Create
+    // page's own layout, so it starts with the bar dismissed for the session,
+    // exactly as a person's × does; the bar is its own surface.
+    await page.addInitScript(() => {
+      try { localStorage.setItem('poetech.help.tour.v1', 'seen'); } catch (_) { /* private mode */ }
+      try { sessionStorage.setItem('poe.liveWorshipBar.dismissedSession', '1'); } catch (_) { /* private mode */ }
+    });
+    await page.goto(`${origin}${BASE}/?view=create`, { waitUntil: 'networkidle', timeout: CHROME_IDLE_CAP_MS }).catch(() => {});
+    await page.waitForSelector('[data-testid="create-subnav"] [data-create-sub]', { timeout: 30000 }).catch(() => {});
+    await page.waitForSelector('[data-testid="creating-station"]', { timeout: 30000 }).catch(() => {});
+    // A fresh device first meets "Who's using this device?" (the shell's
+    // profile picker, a full-screen modal). It covers the row, so every click
+    // on a subtab lands on the modal. Before DR-0679 this pass never clicked,
+    // so it never met it; the first click run swallowed the intercept and read
+    // it as "the subtab did not open". Choose a profile the way a person does
+    // (a tap on the first profile), then prove the modal is gone.
+    const picker = '[role="dialog"][aria-labelledby="profile-picker-h"]';
+    if (await page.$(picker)) {
+      await page.click(`${picker} button`, { timeout: 5000 }).catch((e) => fail(`${where}: could not choose a profile in "Who's using this device?": ${String(e.message).split('\n')[0]}`));
+      await page.waitForSelector(picker, { state: 'detached', timeout: 5000 }).catch(() => fail(`${where}: "Who's using this device?" stayed over the Create page after a profile was chosen`));
+    }
+    if (SELFTEST) {
+      await page.addStyleTag({ content: '[data-testid="create-subnav"] { display: none !important }' });
+      await page.waitForTimeout(100);
+    }
+    const m = await page.evaluate(measureCreate);
+    const dbefore = failures;
+    deviceMeasured += 1;
+    if (m.none) { await ctx.close(); fail(`${where}: the Create page never rendered (html class ${m.html})`); continue; }
+    if (m.html !== dc.cls || m.station !== dc.cls) fail(`${where}: the app took this for a ${m.html} (page ${m.station}, any-pointer fine ${m.fine})`);
+    if (m.tabs.length !== TAB_COUNT) fail(`${where}: ${m.tabs.length} of ${TAB_COUNT} subtabs — a device must never lose one`);
+    if (!m.rowVisible) fail(`${where}: the subtab row is not on the screen`);
+    if (m.tabs[0] !== 'workspace') fail(`${where}: "${m.tabs[0]}" is the first subtab, not the Workspace`);
+    if (m.selected !== 'workspace') fail(`${where}: Create opened on "${m.selected}", not the Workspace`);
+    if (!m.canvas || m.canvas.h <= 0) fail(`${where}: the Workspace canvas is not showing`);
+    else if (m.canvas.top >= m.vh) fail(`${where}: the Workspace canvas starts at ${m.canvas.top}px, below the ${m.vh}px fold — his writing place is buried`);
+    if (m.shown.length !== 1) fail(`${where}: ${m.shown.length} tab panels showing — only the open subtab shows`);
+    const wantFirst = DEVICE_ROLES.classes[dc.cls].first[0];
+    if (m.tabs[1] !== wantFirst) fail(`${where}: "${m.tabs[1]}" comes after the Workspace, the ${dc.cls}'s role puts "${wantFirst}" there`);
+    if (m.row && m.row.right > m.vw + 1) fail(`${where}: the subtab row runs past the right edge (${m.row.right} > ${m.vw})`);
+    // Open the role's first panel and measure it alone.
+    let p = null;
+    if (m.rowVisible && m.tabs.includes(wantFirst)) {
+      // A click that cannot land is reported with its reason (what intercepted
+      // it), never swallowed and misread as a switch that failed.
+      await page.click(`[data-create-sub="${wantFirst}"]`, { timeout: 10000 }).catch((e) => fail(`${where}: clicking the "${wantFirst}" subtab could not land: ${String(e.message).split('\n').find((l) => /intercepts|Timeout/.test(l)) || String(e.message).split('\n')[0]}`));
+      await page.waitForTimeout(150);
+      p = await page.evaluate(measureCreate);
+      if (p.selected !== wantFirst) fail(`${where}: the "${wantFirst}" subtab did not open`);
+      if (p.shown.length !== 1 || (p.shown[0] && p.shown[0].id !== wantFirst)) fail(`${where}: opening "${wantFirst}" shows ${p.shown.map((x) => x.id).join(', ') || 'nothing'}`);
+      const ap = p.shown[0];
+      if (ap && dc.cls === 'laptop' && ap.w < p.vw * 0.6) fail(`${where}: the open panel uses ${ap.w}px of a ${p.vw}px screen`);
+      if (ap && ap.right > p.vw + 1) fail(`${where}: the open panel runs past the right edge (${ap.right} > ${p.vw})`);
+      if (p.scrollWidth > p.vw + 1) fail(`${where}: page overflows horizontally with "${wantFirst}" open (${p.scrollWidth} > ${p.vw})`);
+    }
+    await ctx.close();
+    if (m.scrollWidth > m.vw + 1) fail(`${where}: page overflows horizontally (${m.scrollWidth} > ${m.vw})`);
+    if (failures === dbefore) console.log(`device ok  ${where} — derived ${m.html}, ${m.tabs.length} subtabs, Workspace open with its canvas at ${m.canvas.top}px, "${m.tabs[1]}" next; opened it: ${p && p.shown[0] ? `${p.shown[0].w}px of ${p.vw}px` : 'not measured'}`);
+  }
+  if (deviceMeasured !== DEVICE_CASES.length) fail(`coverage: ${deviceMeasured}/${DEVICE_CASES.length} device cases measured`);
+
+  await browser.close();
+
+
+  server.close();
+}
+
+if (SELFTEST) {
+  // BOTH passes must prove they can fail: the chrome pass's collapse AND the
+  // text-scale pass's trap + blowout (>=2 textscale trips: overflow, hatch).
+  // And the lesson pass's width-short + boxed-control break (>=2 lesson trips).
+  const tsTripped = readerFailuresBefore - tsFailuresBefore;
+  // The reader pass (DR-0659): the mini-bar with its focus ring taken away
+  // must trip the remote check.
+  const readerTripped = lessonChromeFailuresBefore - readerFailuresBefore;
+  const lessonChromeTripped = deviceFailuresBefore - lessonChromeFailuresBefore;
+  // The device pass (DR-0678/DR-0679): the subtab row hidden must trip.
+  const deviceTripped = failures - deviceFailuresBefore;
+  const lessonTripped = tsFailuresBefore - lessonFailuresBefore;
+  const chromeTripped = lessonFailuresBefore;
+  // The lesson pass now trips SEVEN ways: width-short, boxed control, a wall of
+  // chips, an over-long block, the ballooned bar at Big Print, chrome that grew
+  // with the text, and floaters on the comfort bar (DR-0438).
+  // The lesson-chrome pass (DR-0816) must trip BOTH ways: the block grown and
+  // the title's type grown.
+  if (failures > 0 && chromeTripped > 0 && lessonTripped >= 7 && tsTripped >= 2 && readerTripped >= 1 && lessonChromeTripped >= 2 && deviceTripped >= 1) {
+    console.log(`SELFTEST-BREAK OK — the probe CAN fail (${failures} tripped: ${chromeTripped} chrome, ${lessonTripped} lesson, ${tsTripped} textscale, ${readerTripped} reader, ${lessonChromeTripped} lesson-chrome, ${deviceTripped} device)`);
+    process.exit(0);
+  }
+  console.error(`SELFTEST-BREAK FAILED — a deliberate break tripped nothing (chrome: ${chromeTripped}, lesson: ${lessonTripped}, textscale: ${tsTripped}, reader: ${readerTripped}, lesson-chrome: ${lessonChromeTripped}, device: ${deviceTripped}); the probe is theater`);
+  process.exit(1);
+}
+// The coverage assertion. A short run is a FAILED run, however clean its
+// verdicts: "nothing went wrong" is not the same claim as "everything was
+// checked," and only this line can tell them apart.
+const expectedChrome = VIEWS.length * WIDTHS.length;
+// WIDTHS at Normal + the collapsed Normal case + Big Print + Big Print collapsed.
+const expectedLesson = SWEEP ? WIDTHS.length + 5 : 0;
+if (measured !== expectedChrome) {
+  console.error(`COVERAGE FAIL — measured ${measured} of ${expectedChrome} view x width cases (${VIEWS.length} views x ${WIDTHS.length} widths). A run that skips its subjects is not a pass.`);
+  failures += 1;
+} else if (lessonMeasured !== expectedLesson) {
+  console.error(`COVERAGE FAIL — measured ${lessonMeasured} of ${expectedLesson} lesson widths. A lesson that never rendered is not a pass.`);
+  failures += 1;
+} else {
+  console.log(`coverage ok  ${measured}/${expectedChrome} chrome cases, ${lessonMeasured}/${expectedLesson} lesson cases, ${tsMeasured} text-scale cases, ${readerMeasured} reader cases, ${lessonChromeMeasured} lesson-chrome cases, ${deviceMeasured} device cases measured.`);
+}
+
+process.exit(failures > 0 ? 1 : 0);

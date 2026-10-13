@@ -1,0 +1,180 @@
+// =============================================================================
+// properties/config — the Poe Properties door identity + the launch plan
+// =============================================================================
+// DATA, not code (the office-assistant pattern): everything landlord-specific is
+// a config value, so a SECOND landlord on this engine is a new config object,
+// never a fork. Poe Properties is the first config.
+//
+// The launch plan below is the app's own account of what is built, what is
+// gated, and what is waiting on whose hand — and it VALIDATES (validateLaunchPlan)
+// so a phase can never claim "done" without naming the evidence that proves it,
+// and a deferral can never sit here without a re-review date (DR-0075/DR-0076).
+// It renders in-app, so the timeline the family reads is the timeline the repo
+// can prove, not a number typed into a chat message.
+// =============================================================================
+
+export const POE_PROPERTIES = Object.freeze({
+  id: 'poe-properties',
+  brand: Object.freeze({
+    label: 'Poe Properties',
+    tagline: 'Work orders, history, and the whole conversation — in one place.',
+    accent: '#2F5D50',
+    background: '#FAF8F4',
+  }),
+  // The installable face. Scope MUST be disjoint from every other face on the
+  // origin or Chrome collapses two apps into one (DR-0258/DR-0261).
+  scope: '/properties/',
+  startUrl: '/properties/app/?properties=1',
+  manifest: '/manifest-properties.webmanifest',
+  shareUrl: 'https://poetech.us/properties/',
+  doorParam: 'properties',
+  // The same module mounts inside PoeTech at this route — one library, two doors.
+  poetechView: 'properties',
+});
+
+// ---------------------------------------------------------------------------
+// The launch plan. `state` is one of:
+//   'built'   — shipped in this repo, with `evidence` naming the file/gate.
+//   'gated'   — built, waiting on a named GATE that must go green.
+//   'hand'    — waiting on a step only a human can take (`whoseHand`).
+//   'planned' — not built yet; carries `reReview`.
+// ---------------------------------------------------------------------------
+export const LAUNCH_PLAN = Object.freeze([
+  Object.freeze({
+    id: 'P0', title: 'The seam: invite → claim → scoped access',
+    state: 'built',
+    detail: 'A landlord invites by email; the invited person is recognized only after signing in to that same address. The role ceiling is enforced inside the database function, so an invite can never widen a grant.',
+    evidence: 'infra/supabase/migrations-auto/0150-poe-properties-app-invite-claim-and-household.sql',
+  }),
+  Object.freeze({
+    id: 'P1', title: 'The tenant, their family, and the 1099 worker each have a face',
+    state: 'built',
+    detail: 'One module, mounted by both apps: tenant + household (place, work orders, thread, history, payments, notices), 1099 worker (jobs, two-tap documentation, property history, enabled job thread), manager/landlord (board, dispatch, doors, rent, the full relationship record, invites).',
+    evidence: 'app/src/modules/properties/PropertiesApp.jsx',
+  }),
+  Object.freeze({
+    id: 'P2', title: 'Isolation proven against the real database',
+    state: 'gated',
+    detail: 'An invite grants nothing before it is claimed; a stranger claiming gets nothing; a tenant sees one door; the family shares that door but never the rent write path; a field worker’s over-asking invite has its extra capability dropped; a manager cannot post to the books; nothing crosses to another landlord.',
+    gate: 'rls-isolation / poe-properties (infra/supabase/tests/0150-poe-properties-isolation-smoke.sql)',
+    evidence: '.github/workflows/rls-isolation.yml',
+  }),
+  Object.freeze({
+    id: 'P3', title: 'The doors carry real tenancies',
+    state: 'hand',
+    detail: 'The 12 rental doors are live in the app; rental_tenancies is empty. The Doors tab now STAGES drafts from the family’s own records (name, term, and any rent the record actually states, each showing where it came from) — the landlord picks the door and confirms, and only then is a tenancy written.',
+    whoseHand: 'Darrell / Christina — the CONFIRMATION only. The DR-0108 challenge was run rather than assumed, and it removed most of this step: drafts are now read from the family\u2019s own records and staged with provenance (modules/properties/staging.js), so a door is a tap to confirm rather than a form to type. What no channel can supply is who lives where TODAY at what rent — that word is the landlord\u2019s, and nothing is written until they give it.',
+    reReview: '2026-09-02',
+  }),
+  Object.freeze({
+    id: 'P4', title: 'First live pilot — one door, one tenant, one 1099 worker',
+    state: 'planned',
+    detail: 'Invite one tenant and one worker on one door. Run a real work order end to end: reported → dispatched by text → documented → closed → the thread and history read correctly on all three phones.',
+    reReview: '2026-09-09',
+  }),
+  Object.freeze({
+    id: 'P5', title: 'Every door, every tenant, every worker',
+    state: 'planned',
+    detail: 'Roll out to all doors once the pilot round-trips. Rent records begin posting to the PoeTech books on confirm.',
+    reReview: '2026-09-23',
+  }),
+  Object.freeze({
+    id: 'P6', title: 'The policy playbook + application review',
+    state: 'planned',
+    detail: 'Written-once screening criteria, per-party acknowledgment, and the fair-housing / FCRA guardrail that DR-0101 §7 makes non-negotiable before any screening decision is recorded.',
+    reReview: '2026-10-07',
+  }),
+  Object.freeze({
+    id: 'P6b', title: 'Co-living — rent by the room, per door',
+    state: 'gated',
+    detail: 'The dual operating model from the 2026-06-09 spec (DR-026…DR-030): a door runs whole-unit OR rent-by-the-room, chosen per property. Rooms carry the spec’s own economics ($1,000/room, utilities included, 1–2 people, waitlist), housemates reuse the existing unit layer, and smart-lock access is the access layer. The model and both binding lines are BUILT (modules/properties/coliving.js); what is gated is any real door switching.',
+    gate: 'Per-property legal / zoning / licensing checklist (DR-029) — a function that REFUSES the switch until zoning, rooming-house licensing, occupancy caps, fire code, insurance and per-room tenancy law are each cleared and recorded by a named person. Real-estate questions route to counsel; the module records THAT it was cleared, never the determination.',
+    evidence: 'app/src/modules/properties/coliving.js',
+  }),
+  Object.freeze({
+    id: 'P7', title: 'The app for OTHER landlords',
+    state: 'planned',
+    detail: 'A second landlord is a new config object on this engine (their own instance, their own doors). Tier C — a new external-facing product face is the Governor’s gate, not the agent’s.',
+    gate: 'Governor review (Tier C — new external-facing publication)',
+    reReview: '2026-10-21',
+  }),
+]);
+
+// ---------------------------------------------------------------------------
+// Opportunities and constraints (Darrell asked for both, 2026-08-26). Every
+// opportunity carries a re-review date; every constraint is one we have actually
+// hit or verified, not a hypothetical.
+// ---------------------------------------------------------------------------
+export const OPPORTUNITIES = Object.freeze([
+  Object.freeze({ id: 'O1', title: 'Texting with no vendor, no spend, no registration', detail: 'Dispatch and tenant contact ride the phone’s own messaging app through sms:/tel: links with the job prefilled. It works the day it ships, costs nothing, and the durable record stays in the app’s append-only thread. A carrier gateway would mean A2P 10DLC registration and real money — this reaches the same outcome without either.', reReview: '2026-09-30' }),
+  Object.freeze({ id: 'O2', title: 'The relationship record builds itself', detail: 'Work orders, messages, notes, job documentation, payments, and notices merge into one chronological history per door. Nobody has to assemble a timeline later — responsiveness is judged on real timestamps.', reReview: '2026-10-14' }),
+  Object.freeze({ id: 'O3', title: 'Rent flows into the books instead of a spreadsheet', detail: 'A confirmed payment posts once into the PoeTech books as rental income against the property. One river: the landlord’s books stay whole without re-typing what the tenant already reported.', reReview: '2026-10-14' }),
+  Object.freeze({ id: 'O4', title: 'A product for other landlords', detail: 'The engine is landlord-agnostic: a second landlord is a config object plus their own instance. Property management sells on its own; the books, taxes, entities, and forecasting stay the reason to add PoeTech — a natural upgrade, not a bundle nobody asked for.', reReview: '2026-10-21' }),
+  Object.freeze({ id: 'O6', title: 'Tenancies stage themselves from the family\u2019s own records', detail: 'Built 2026-08-26 after the DR-0108 challenge removed a fake human step: leases and threads are read and proposed as draft tenancies carrying provenance for every value, so a door is one tap to confirm instead of a form to type. The guard rail is that staging PROPOSES and never asserts — an unconfirmed draft cannot be written, a value with no source is not emitted, and a field the record does not state stays blank and says so.', reReview: '2026-10-07' }),
+  Object.freeze({ id: 'O7', title: 'One board answers the applicant\u2019s question and the landlord\u2019s at once', detail: 'The doors board carries both views over the same rows: a GRID of squares with the property\u2019s own photograph, for looking (an applicant deciding, or the landlord seeing which door has no picture yet), and a LIST, for working (status, rent, and the actions legible in one column). Because both project the same row model through one statusWord(), the two views cannot tell different stories about the same door — the classic failure where a card says available and the table says rented. The view choice is remembered per device.', reReview: '2026-10-28' }),
+  Object.freeze({ id: 'O8', title: 'A door can say it is OPENING, not just open or shut', detail: 'A lease end inside the window reads "Opens in 34d" on the board and, when the landlord advertises it, as an available-from date to the public — so a family looking for somewhere to live can plan around a unit that is not empty yet, and the landlord markets it without waiting for it to sit vacant. Derived from lease_end, so it is never a status anyone has to remember to change.', reReview: '2026-10-28' }),
+  Object.freeze({ id: 'O5', title: 'The 1099 record and the work record become one', detail: 'The contractor list already lives in the books for taxes. When a worker documents jobs in the app, the year’s work and the year’s 1099 come from the same rows.', reReview: '2026-11-04' }),
+]);
+
+export const CONSTRAINTS = Object.freeze([
+  // A CONSTRAINT THAT STATES A MEASUREMENT CARRIES ITS DATE AND ITS RE-CHECK
+  // (2026-08-28). Darrell: "why do we have static data?... App surfaces are
+  // supposed to be latest truth." He is right about this row: it asserts the
+  // state of a live table in prose. It was true when measured and nothing in
+  // the app would ever notice if it stopped being true — the same class DR-0139
+  // closed for the opportunity-library and rentals counts. validateLaunchPlan
+  // now REFUSES a constraint that claims a measurement without both fields.
+  Object.freeze({ id: 'C1', title: 'Nobody can be invited until the doors carry tenancies', detail: 'rental_tenancies is empty on the live database. The invite seam is built; the tenant records are the landlord’s to enter.', measuredOn: '2026-08-28', reReview: '2026-09-28' }),
+  Object.freeze({ id: 'C2', title: 'Access needs a verified email on both sides', detail: 'A person is recognized only when the landlord invited their exact address AND they sign in to it. A tenant with no email address cannot be given a login — that is the security property, not a bug.' }),
+  Object.freeze({ id: 'C3', title: 'Money never moves in the app', detail: 'Rent is recorded, never charged or transferred. A balance edit changes a number and lands an audit row; it moves no money (DR-0094).' }),
+  Object.freeze({ id: 'C4', title: 'Screening is legally regulated', detail: 'Application review does not ship without the fair-housing / FCRA guardrail and consistent, documented criteria (DR-0101 §7). Guidance to verify with a licensed professional — never legal advice.' }),
+  Object.freeze({ id: 'C5', title: 'Two installed apps need disjoint scopes', detail: 'A device can only install Poe Properties beside PoeTech because the scopes do not overlap. Its manifest scope is /properties/ and a gate fails the build if that ever collides (DR-0258/DR-0261).' }),
+  Object.freeze({ id: 'C8', title: 'Rent-by-the-room is a different legal regime, per parcel', detail: 'Co-living frequently triggers zoning, rooming-house licensing, occupancy caps, fire code, insurance and per-room tenancy law that differ from a single-family lease — and differ by parcel, not just by town. The module refuses the mode switch until each is cleared and recorded by a named person, and it records that a human cleared it rather than generating the legal determination. Not legal advice.' }),
+  Object.freeze({ id: 'C9', title: 'No surveillance inside a room, ever', detail: 'Smart locks and access logs live at the door. A camera, microphone or occupancy sensor inside a room cannot be configured at any level — the check refuses the config outright, so the line holds even if someone later wants it (DR-028).' }),
+  Object.freeze({ id: 'C7', title: 'An invited person signs in with EMAIL — password or link', detail: 'Recognition matches the exact address the landlord invited, so the door leads with email rather than the phone+PIN way the congregation uses. Email + password works with no mail server at all; the magic-link path depends on the stack\u2019s SMTP and is rate-limited on the hosted plan (DR-0307 \u00a73 hit exactly that). A tenant with no email address cannot be invited today \u2014 named, not papered over.' }),
+  Object.freeze({ id: 'C6', title: 'The rent history in the v2.2 lease spine still needs an auth hook', detail: 'Payments recorded on the tenancy spine reach the tenant today. The older leases/rent_payments portal (schema-v2.10) needs a Supabase dashboard toggle only the account owner can flip — named, not silently assumed.' }),
+]);
+
+/**
+ * The plan validates itself (DR-0076): a 'built' phase must name evidence, a
+ * 'gated' phase must name its gate, a 'hand' phase must name whose hand, and
+ * anything not built must carry a re-review date (DR-0075). Returns
+ * { ok, problems: [...] } — the test fails the build on any problem.
+ */
+// Added 2026-08-27 with the two board views and the coming-available state.
+export const VIEW_CONSTRAINTS = Object.freeze([
+  Object.freeze({ id: 'C10', title: 'A photograph of an occupied home never becomes advertising', detail: 'The grid shows a cover photo per door, and the public listing path is a SEPARATE, narrower query: public_vacancy_photos returns kind = listing only, for a door that is both advertised and free, and it withholds the room, the tenancy and who took the picture. A move-in condition set, a damage shot or a work-order before/after cannot reach a stranger however the caller asks. The landlord\u2019s own board is wider only because RLS already scopes it to his instance.', reReview: '2026-10-28' }),
+  Object.freeze({ id: 'C11', title: 'A cover thumbnail is the door\u2019s own picture or nothing', detail: 'A door with no photograph reads "No photo" rather than borrowing a stock image or a sibling unit\u2019s. A stand-in photograph on a rental listing is a misrepresentation of a real place a family would come to see, and it is the kind that looks like polish.', reReview: '2026-10-28' }),
+  Object.freeze({ id: 'C12', title: '"Opens in Nd" is only as true as the lease end somebody typed', detail: 'The coming-available state is derived from rental_tenancies.lease_end, which is a field a human fills in — so a door with no end date reads simply Rented, never "available soon", and a date already past stops claiming to be coming rather than advertising an opening that may not exist. The window is 90 days and is a stated constant, not a guess buried in a component.', reReview: '2026-11-11' }),
+  Object.freeze({ id: 'C13', title: 'Photos are data URLs in the row, not a public bucket', detail: 'The showcase gallery uses a PUBLIC Supabase bucket with getPublicUrl. Property photos cannot: a public URL bypasses every RLS policy on property_photos, and these are the insides of people\u2019s homes. Compressed data URLs (app/src/lib/image.js, already the room-gallery pattern) inherit the row\u2019s RLS for free. The cost is real and accepted — a bounded ~80-250KB per photo sits in the row, so this needs revisiting if a door ever carries hundreds.', reReview: '2026-11-11' }),
+]);
+
+export function validateLaunchPlan(plan = LAUNCH_PLAN) {
+  const problems = [];
+  const seen = new Set();
+  for (const p of plan) {
+    if (!p.id || seen.has(p.id)) problems.push(`duplicate or missing phase id: ${p.id || '(none)'}`);
+    seen.add(p.id);
+    if (!p.title) problems.push(`${p.id}: no title`);
+    if (p.state === 'built' && !p.evidence) problems.push(`${p.id}: claims built with no evidence`);
+    if (p.state === 'gated' && !p.gate) problems.push(`${p.id}: claims gated with no gate named`);
+    if (p.state === 'hand' && !p.whoseHand) problems.push(`${p.id}: waits on a hand with nobody named`);
+    if (p.state !== 'built' && !p.reReview && !p.gate) problems.push(`${p.id}: not built and carries no re-review date`);
+    if (!['built', 'gated', 'hand', 'planned'].includes(p.state)) problems.push(`${p.id}: unknown state "${p.state}"`);
+  }
+  for (const o of OPPORTUNITIES) if (!o.reReview) problems.push(`${o.id}: opportunity with no re-review date`);
+  // A CONSTRAINT THAT ASSERTS A MEASUREMENT MUST SAY WHEN, AND WHEN TO LOOK
+  // AGAIN. A row reading "X is empty on the live database" is a fact with a
+  // shelf life; frozen in prose it becomes a confident lie the moment it
+  // changes, and no surface would notice. Same discipline the opportunities
+  // already carry (DR-0075 re-review dates, DR-0076 §8 unknown never reads as
+  // verified). Prose with no measurement claim is unaffected — C2..C9 state
+  // properties of the system, not readings of it.
+  for (const c of CONSTRAINTS) {
+    const claimsMeasurement = /\b(measured|is empty|live database|currently|as of)\b/i.test(c.detail || '');
+    if (!claimsMeasurement) continue;
+    if (!c.measuredOn) problems.push(`${c.id}: states a measurement with no measuredOn date`);
+    if (!c.reReview) problems.push(`${c.id}: states a measurement with no re-review date`);
+  }
+  return { ok: problems.length === 0, problems };
+}

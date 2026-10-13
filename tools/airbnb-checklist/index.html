@@ -1,0 +1,1249 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ready for Guests</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Karla:wght@400;500;600;700&display=swap">
+
+<style>
+  /* ---------- tokens: light ---------- */
+  :root {
+    --ground:      #ffffff;
+    --surface:     #fbf8f5;
+    --surface-2:   #f2ebe4;
+    --line:        #eae1d8;
+    --line-strong: #d8cabd;
+    --ink:         #211c19;
+    --ink-2:       #55483f;
+    --muted:       #8a7b70;
+    --brand:       #a24a32;
+    --brand-ink:   #8a3d28;
+    --brand-soft:  #f7eae4;
+    --done:        #2f6b4f;
+    --done-soft:   #e3efe8;
+    --wip:         #91631a;
+    --wip-soft:    #f8eeda;
+    --danger:      #b0281b;
+    --on-brand:    #ffffff;
+    --shadow-sm:   0 1px 2px rgba(33,28,25,.05);
+    --shadow-lift: 0 1px 2px rgba(33,28,25,.05), 0 14px 32px -18px rgba(33,28,25,.35);
+    --shadow-pop:  0 24px 60px -20px rgba(33,28,25,.45);
+    --r-lg: 20px;
+    --r-md: 14px;
+    --r-sm: 11px;
+  }
+  /* system-dark (no explicit stamp) — light choice still wins */
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:      #16120f;
+      --surface:     #1e1915;
+      --surface-2:   #29231e;
+      --line:        #2f2823;
+      --line-strong: #463c34;
+      --ink:         #f3ece5;
+      --ink-2:       #d3c6ba;
+      --muted:       #9d8d80;
+      --brand:       #e08a6b;
+      --brand-ink:   #f0a98c;
+      --brand-soft:  #33211a;
+      --done:        #7cc09a;
+      --done-soft:   #1d2f26;
+      --wip:         #e0b25c;
+      --wip-soft:    #2f2617;
+      --danger:      #ef8b7c;
+      --on-brand:    #241009;
+      --shadow-sm:   0 1px 2px rgba(0,0,0,.4);
+      --shadow-lift: 0 1px 2px rgba(0,0,0,.4), 0 14px 32px -18px rgba(0,0,0,.8);
+      --shadow-pop:  0 24px 60px -20px rgba(0,0,0,.85);
+    }
+  }
+  /* explicit dark choice */
+  :root[data-theme="dark"] {
+    --ground:      #16120f;
+    --surface:     #1e1915;
+    --surface-2:   #29231e;
+    --line:        #2f2823;
+    --line-strong: #463c34;
+    --ink:         #f3ece5;
+    --ink-2:       #d3c6ba;
+    --muted:       #9d8d80;
+    --brand:       #e08a6b;
+    --brand-ink:   #f0a98c;
+    --brand-soft:  #33211a;
+    --done:        #7cc09a;
+    --done-soft:   #1d2f26;
+    --wip:         #e0b25c;
+    --wip-soft:    #2f2617;
+    --danger:      #ef8b7c;
+    --on-brand:    #241009;
+    --shadow-sm:   0 1px 2px rgba(0,0,0,.4);
+    --shadow-lift: 0 1px 2px rgba(0,0,0,.4), 0 14px 32px -18px rgba(0,0,0,.8);
+    --shadow-pop:  0 24px 60px -20px rgba(0,0,0,.85);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: Karla, "Helvetica Neue", Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -webkit-text-size-adjust: 100%;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; padding-inline: 16px; padding-block: 26px 96px; }
+  @media (min-width: 620px) { .wrap { padding-inline: 24px; padding-block: 40px 120px; } }
+
+  h1, h2, h3 { margin: 0; font-family: Fraunces, Georgia, "Times New Roman", serif; font-weight: 600; text-wrap: balance; }
+  .num { font-variant-numeric: tabular-nums; }
+  .eyebrow {
+    font-size: 11px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase;
+    color: var(--brand); margin: 0 0 6px;
+  }
+  button { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 6px; }
+
+  /* ---------- dashboard ---------- */
+  .dash {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--r-lg);
+    padding: 22px;
+    box-shadow: var(--shadow-lift);
+  }
+  @media (min-width: 620px) { .dash { padding: 30px 32px; } }
+  .dash h1 { font-size: clamp(27px, 6.4vw, 38px); line-height: 1.06; letter-spacing: -.012em; }
+  .dash-sub { margin: 8px 0 0; color: var(--muted); font-size: 14.5px; max-width: 52ch; }
+
+  .pct-row { display: flex; align-items: baseline; gap: 12px; margin-top: 22px; }
+  .pct {
+    font-family: Fraunces, Georgia, serif; font-weight: 600;
+    font-size: clamp(50px, 15vw, 74px); line-height: .84; letter-spacing: -.03em;
+    font-variant-numeric: tabular-nums; color: var(--ink);
+  }
+  .pct-label { font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+
+  .bar { display: block; height: 10px; border-radius: 999px; background: var(--surface-2); overflow: hidden; margin-top: 16px; }
+  .bar > i {
+    display: block; height: 100%; border-radius: 999px; width: 0;
+    background: linear-gradient(90deg, var(--brand), #c8764f);
+    transition: width .5s cubic-bezier(.2,.7,.2,1);
+  }
+  .bar.full > i { background: var(--done); }
+
+  .stats { display: flex; flex-wrap: wrap; gap: 18px 30px; margin-top: 20px; }
+  .stat-k { font-size: 10.5px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+  .stat-v { font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; margin-top: 2px; letter-spacing: -.01em; }
+  .stat-v.accent { color: var(--brand); }
+  .tally { margin-top: 18px; font-size: 13.5px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+  .tally b { font-weight: 700; color: var(--ink); }
+
+  .sync {
+    display: inline-flex; align-items: center; gap: 7px; margin-top: 16px;
+    font-size: 11.5px; color: var(--muted);
+  }
+  .sync .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--line-strong); }
+  .sync.on .dot { background: var(--done); }
+
+  /* ---------- section tiles ---------- */
+  .tiles-h { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 34px 0 12px; }
+  .tiles-h h2 { font-size: 15px; letter-spacing: .01em; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(146px, 1fr)); gap: 9px; }
+  .tile {
+    display: block; width: 100%; text-align: left; cursor: pointer;
+    background: var(--ground); border: 1px solid var(--line); border-radius: var(--r-md);
+    padding: 12px 13px 13px; transition: border-color .18s, transform .18s;
+  }
+  .tile:hover { border-color: var(--line-strong); }
+  .tile:active { transform: scale(.985); }
+  .tile.done { background: var(--done-soft); border-color: transparent; }
+  .tile-name { display: block; font-size: 12.5px; font-weight: 700; letter-spacing: .005em; line-height: 1.25; min-height: 2.5em; }
+  .tile-row { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; margin: 6px 0 8px; }
+  .tile-pct { font-family: Fraunces, Georgia, serif; font-size: 21px; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+  .tile.done .tile-pct { color: var(--done); }
+  .tile-count { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .tile .bar { height: 5px; margin-top: 0; background: var(--surface-2); }
+  .tile.done .bar { background: color-mix(in srgb, var(--done) 22%, transparent); }
+
+  /* ---------- sticky toolbar ---------- */
+  .toolbar {
+    position: sticky; top: 0; z-index: 20;
+    margin-inline: -16px; padding: 10px 16px 0;
+    background: var(--ground); border-bottom: 1px solid var(--line);
+    margin-top: 34px;
+  }
+  @media (min-width: 620px) { .toolbar { margin-inline: -24px; padding-inline: 24px; } }
+  .tabs { display: flex; gap: 6px; }
+  .tab {
+    flex: 1; padding: 10px 6px; border: 0; background: none; cursor: pointer;
+    font-size: 13.5px; font-weight: 600; color: var(--muted);
+    border-bottom: 2px solid transparent; margin-bottom: -1px;
+    white-space: nowrap;
+  }
+  .tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--brand); }
+  .tab .n { font-variant-numeric: tabular-nums; opacity: .65; font-weight: 500; }
+
+  /* ---------- sections ---------- */
+  .sec { border-top: 1px solid var(--line); scroll-margin-top: 62px; }
+  .sec:first-of-type { border-top: 0; }
+  .sec-head {
+    display: flex; align-items: center; gap: 12px; width: 100%;
+    background: none; border: 0; padding: 18px 2px; cursor: pointer; text-align: left;
+  }
+  .sec-n {
+    flex: 0 0 auto; width: 29px; height: 29px; border-radius: 9px;
+    background: var(--surface-2); color: var(--ink-2);
+    font-family: Fraunces, Georgia, serif; font-size: 13px; font-weight: 600;
+    display: grid; place-items: center;
+  }
+  .sec.done .sec-n { background: var(--done); color: var(--ground); }
+  .sec-h { margin: 0; font: inherit; }
+  .sec-head { font-family: Karla, "Helvetica Neue", Arial, sans-serif; }
+  .sec-t { flex: 1 1 auto; min-width: 0; }
+  .sec-name {
+    display: block; font-family: Fraunces, Georgia, serif; font-weight: 600;
+    font-size: 17px; line-height: 1.25; letter-spacing: -.005em;
+  }
+  .sec-sub { display: block; margin-top: 3px; font-size: 12px; font-weight: 400; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .sec-pct { font-size: 13px; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .sec.done .sec-pct { color: var(--done); }
+  .chev { flex: 0 0 auto; color: var(--muted); transition: transform .22s; }
+  .sec.collapsed .chev { transform: rotate(-90deg); }
+  .sec.collapsed .sec-body { display: none; }
+  .sec-body { padding-bottom: 14px; }
+
+  .grp {
+    display: flex; align-items: center; gap: 10px;
+    padding: 14px 2px 8px; font-size: 11px; font-weight: 700;
+    letter-spacing: .12em; text-transform: uppercase; color: var(--muted);
+  }
+  .grp::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+
+  /* ---------- task rows ---------- */
+  .task {
+    display: grid; grid-template-columns: auto 1fr auto; gap: 13px; align-items: start;
+    padding: 13px 10px; border-top: 1px solid var(--line);
+  }
+  .task:first-child { border-top: 0; }
+  .task.open {
+    background: var(--surface); border-top-color: transparent;
+    border-radius: var(--r-md) var(--r-md) 0 0;
+  }
+  .task.open + .editor { background: var(--surface); }
+
+  .cb {
+    appearance: none; -webkit-appearance: none; position: relative;
+    width: 26px; height: 26px; margin: 1px 0 0; flex: none;
+    border: 2px solid var(--line-strong); border-radius: 9px;
+    background: var(--ground); cursor: pointer;
+    transition: background .16s, border-color .16s;
+  }
+  .cb::before { content: ""; position: absolute; inset: -10px; }
+  .cb:checked { background: var(--done); border-color: var(--done); }
+  .cb:checked::after {
+    content: ""; position: absolute; inset: 0;
+    background: no-repeat center/15px url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E");
+  }
+  .cb.wip { border-color: var(--wip); background: var(--wip-soft); }
+  .cb.wip::after {
+    content: ""; position: absolute; inset: 0;
+    background: no-repeat center/13px url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='11' fill='none' stroke='%2391631a' stroke-width='3'/%3E%3Cpath d='M12 1a11 11 0 0 1 0 22z' fill='%2391631a'/%3E%3C/svg%3E");
+  }
+
+  .t-main { min-width: 0; cursor: pointer; }
+  .t-title { font-size: 15.5px; line-height: 1.35; word-break: break-word; }
+  .task.is-done .t-title { color: var(--muted); text-decoration: line-through; text-decoration-color: var(--line-strong); }
+  .t-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin-top: 6px; }
+  .t-meta:empty { display: none; }
+  .pill {
+    font-size: 10px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase;
+    padding: 3px 8px; border-radius: 999px; white-space: nowrap;
+  }
+  .pill.ip { background: var(--wip-soft); color: var(--wip); }
+  .cost {
+    font-size: 12px; font-weight: 700; color: var(--brand); background: var(--brand-soft);
+    padding: 3px 8px; border-radius: 999px; font-variant-numeric: tabular-nums; white-space: nowrap;
+  }
+  .task.is-done .cost { color: var(--muted); background: var(--surface-2); }
+  .note-peek {
+    flex-basis: 100%; font-size: 13px; color: var(--ink-2); line-height: 1.4;
+    border-left: 2px solid var(--line-strong); padding-left: 9px; margin-top: 2px;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .t-edit {
+    flex: none; width: 34px; height: 34px; display: grid; place-items: center;
+    border: 1px solid transparent; border-radius: 10px; background: none;
+    color: var(--muted); cursor: pointer;
+  }
+  .t-edit:hover { background: var(--surface-2); color: var(--ink); }
+  .task.open .t-edit { background: var(--surface-2); color: var(--ink); }
+
+  /* ---------- inline editor ---------- */
+  .editor {
+    display: none; gap: 14px; padding: 2px 12px 18px 12px;
+    border-radius: 0 0 var(--r-md) var(--r-md);
+  }
+  .editor.open { display: grid; }
+  @media (min-width: 560px) { .editor.open { padding-left: 49px; } }
+  .field > label {
+    display: block; font-size: 10.5px; font-weight: 700; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--muted); margin-bottom: 7px;
+  }
+  .in {
+    width: 100%; font: inherit; font-size: 16px; color: var(--ink);
+    background: var(--ground); border: 1px solid var(--line-strong);
+    border-radius: var(--r-sm); padding: 11px 12px;
+  }
+  .in::placeholder { color: var(--muted); opacity: .8; }
+  textarea.in { resize: vertical; min-height: 78px; line-height: 1.45; }
+  .money { position: relative; }
+  .money span { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); font-weight: 600; }
+  .money .in { padding-left: 26px; font-variant-numeric: tabular-nums; }
+  .two { display: grid; gap: 14px; }
+  @media (min-width: 560px) { .two { grid-template-columns: 1.2fr 1fr; } }
+
+  .seg { display: flex; gap: 6px; }
+  .seg button {
+    flex: 1; padding: 11px 6px; border: 1px solid var(--line-strong); border-radius: var(--r-sm);
+    background: var(--ground); font-size: 13px; font-weight: 600; color: var(--ink-2); cursor: pointer;
+    transition: background .15s, color .15s, border-color .15s;
+  }
+  .seg button[data-v="not_started"][aria-pressed="true"] { background: var(--surface-2); color: var(--ink); border-color: var(--line-strong); }
+  .seg button[data-v="in_progress"][aria-pressed="true"] { background: var(--wip-soft); color: var(--wip); border-color: var(--wip); }
+  .seg button[data-v="completed"][aria-pressed="true"]   { background: var(--done-soft); color: var(--done); border-color: var(--done); }
+
+  .editor-actions { display: flex; align-items: center; gap: 10px; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 7px; justify-content: center;
+    padding: 11px 16px; border-radius: var(--r-sm); border: 1px solid transparent;
+    font-size: 14px; font-weight: 700; cursor: pointer; background: none;
+  }
+  .btn-primary { background: var(--brand); color: var(--on-brand); }
+  .btn-primary:hover { background: var(--brand-ink); }
+  .btn-ghost { border-color: var(--line-strong); color: var(--ink-2); background: var(--ground); }
+  .btn-ghost:hover { background: var(--surface-2); }
+  .btn-del { color: var(--danger); margin-left: auto; padding-inline: 10px; }
+  .btn-del:hover { background: var(--brand-soft); }
+  .btn-danger { background: var(--danger); color: #fff; }
+
+  /* ---------- section footer actions ---------- */
+  .sec-foot { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 10px 2px; }
+  .btn-add {
+    border: 1px dashed var(--line-strong); color: var(--ink-2); background: var(--ground);
+    padding: 9px 14px; border-radius: var(--r-sm); font-size: 13.5px; font-weight: 600; cursor: pointer;
+  }
+  .btn-add:hover { border-color: var(--brand); color: var(--brand); border-style: solid; }
+  .add-form { display: none; gap: 8px; padding: 12px 10px 2px; }
+  .add-form.open { display: flex; flex-wrap: wrap; }
+  .add-form .in { flex: 1 1 200px; width: auto; }
+
+  /* ---------- empty / footer ---------- */
+  .empty {
+    text-align: center; padding: 54px 20px; color: var(--muted);
+    border: 1px dashed var(--line); border-radius: var(--r-lg); margin-top: 26px;
+  }
+  .empty h3 { font-size: 19px; color: var(--ink); margin-bottom: 6px; }
+  .empty p { margin: 0; font-size: 14px; }
+  .page-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 40px; padding-top: 22px; border-top: 1px solid var(--line); }
+  .page-foot p { margin: 0; font-size: 12.5px; color: var(--muted); flex: 1 1 220px; }
+
+  /* ---------- modal ---------- */
+  .modal { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: 20px; }
+  .modal[hidden] { display: none; }
+  .modal::before { content: ""; position: absolute; inset: 0; background: rgba(33,28,25,.5); }
+  .modal-card {
+    position: relative; background: var(--ground); border: 1px solid var(--line);
+    border-radius: var(--r-lg); padding: 26px; max-width: 430px; width: 100%;
+    box-shadow: var(--shadow-pop);
+  }
+  .modal-card h3 { font-size: 21px; margin-bottom: 8px; }
+  .modal-card p { margin: 0 0 20px; font-size: 14.5px; color: var(--ink-2); line-height: 1.5; }
+  .modal-actions { display: flex; gap: 10px; }
+  .modal-actions .btn { flex: 1; }
+
+  .sr { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="dash">
+    <p class="eyebrow">Airbnb Apartment</p>
+    <h1>Ready for Guests</h1>
+    <p class="dash-sub">Everything that has to be finished, bought, tested, or written before the first guest books.</p>
+
+    <div class="pct-row">
+      <div class="pct num" id="pct">0%</div>
+      <div class="pct-label">Overall<br>Completion</div>
+    </div>
+    <div class="bar" id="bar"><i></i></div>
+
+    <div class="stats">
+      <div>
+        <div class="stat-k">Completed</div>
+        <div class="stat-v num" id="s-done">0</div>
+      </div>
+      <div>
+        <div class="stat-k">Remaining</div>
+        <div class="stat-v num" id="s-left">0</div>
+      </div>
+      <div>
+        <div class="stat-k">In Progress</div>
+        <div class="stat-v num" id="s-wip">0</div>
+      </div>
+      <div>
+        <div class="stat-k">Est. Remaining Cost</div>
+        <div class="stat-v num accent" id="s-cost">$0</div>
+      </div>
+    </div>
+
+    <p class="tally" id="tally">0 of 0 tasks completed</p>
+    <p class="sync" id="sync"><span class="dot"></span><span id="sync-t">Saved on this device</span></p>
+  </header>
+
+  <div class="tiles-h">
+    <h2>Progress by area</h2>
+  </div>
+  <div class="tiles" id="tiles"></div>
+
+  <div class="toolbar">
+    <div class="tabs" role="tablist" aria-label="Filter tasks">
+      <button class="tab" id="tab-all"  role="tab" data-view="all"       aria-selected="true">All <span class="n" id="n-all"></span></button>
+      <button class="tab" id="tab-left" role="tab" data-view="remaining" aria-selected="false">Still Needed <span class="n" id="n-left"></span></button>
+      <button class="tab" id="tab-done" role="tab" data-view="completed" aria-selected="false">Completed <span class="n" id="n-done"></span></button>
+    </div>
+  </div>
+
+  <main id="list"></main>
+
+  <div class="page-foot">
+    <p id="saved-note">Your progress saves automatically.</p>
+    <button class="btn btn-ghost" id="reset-btn">Reset checklist</button>
+  </div>
+</div>
+
+<div class="modal" id="modal" hidden>
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-h">
+    <h3 id="modal-h">Reset the whole checklist?</h3>
+    <p>This clears every checkmark, status, cost, and note, deletes tasks you added, and restores the original list. It cannot be undone.</p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="reset-cancel">Keep my progress</button>
+      <button class="btn btn-danger" id="reset-yes">Reset everything</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* =========================================================
+     1. The checklist template
+     ========================================================= */
+
+  var BEDROOM_TASKS = [
+    "Bed frame", "Mattress", "Mattress protector", "Two complete sheet sets",
+    "Pillows", "Pillow protectors", "Comforter or duvet", "Extra blanket",
+    "Nightstand", "Bedside lamp", "Dresser or clothing storage", "Hangers",
+    "Full-length mirror", "Curtains or blinds", "Charging access near bed", "Trash can"
+  ];
+
+  var SECTIONS = [
+    {
+      id: "construction", name: "Construction & Repairs", short: "Construction",
+      tasks: [
+        "Walls patched and repaired", "Drywall finished", "Walls painted",
+        "Ceilings finished and painted", "Baseboards installed", "Trim installed and painted",
+        "Interior doors installed", "Doors painted", "Door handles installed",
+        "Doors close and lock properly", "Flooring completed", "Windows checked",
+        "Window locks working", "Blinds or curtains installed", "Outlet covers installed",
+        "Switch covers installed", "Light fixtures installed", "All lights tested",
+        "Smoke detectors installed and tested", "Carbon monoxide detector installed if needed",
+        "Heating working", "Air conditioning working", "Plumbing checked for leaks",
+        "No exposed wiring", "No unfinished holes or construction areas"
+      ]
+    },
+    {
+      id: "kitchen", name: "Kitchen", short: "Kitchen",
+      tasks: [
+        "Refrigerator", "Stove/oven", "Microwave", "Dishwasher if applicable",
+        "Microwave/kitchen exhaust vent completed", "Cabinets completed", "Countertops completed",
+        "Kitchen sink working", "Faucet working with no leaks", "Garbage can", "Trash bags",
+        "Coffee maker", "Toaster", "Pots and pans", "Baking sheet", "Cooking utensils",
+        "Kitchen knives", "Cutting board", "Can opener", "Bottle opener", "Plates", "Bowls",
+        "Drinking glasses", "Coffee mugs", "Wine glasses", "Silverware", "Dish soap",
+        "Sponges", "Dish towels", "Paper towels", "Coffee and tea supplies"
+      ]
+    },
+    {
+      id: "bedrooms", name: "Bedrooms", short: "Bedrooms",
+      grouped: true, groupNoun: "Bedroom", tasks: BEDROOM_TASKS
+    },
+    {
+      id: "bathroom", name: "Bathroom", short: "Bathroom",
+      tasks: [
+        "Toilet working", "Bathroom sink working", "Faucet working", "Shower/tub completed",
+        "Hot water tested", "Shower curtain", "Shower liner or shower door", "Bath towels",
+        "Hand towels", "Washcloths", "Bath mat", "Toilet paper", "Extra toilet paper",
+        "Toilet brush", "Plunger", "Trash can", "Hand soap", "Shampoo", "Body wash",
+        "Hair dryer", "Towel bars/hooks"
+      ]
+    },
+    {
+      id: "living", name: "Living & Dining Area", short: "Living/Dining",
+      tasks: [
+        "Sofa", "Chairs", "Coffee table", "End tables", "TV", "TV mounted or positioned",
+        "Wi-Fi installed", "Wi-Fi tested", "Streaming/TV setup tested", "Lamps",
+        "Dining table", "Dining chairs", "Area rug if needed", "Wall art", "Decorations",
+        "Curtains/blinds", "Charging outlets accessible"
+      ]
+    },
+    {
+      id: "supplies", name: "Cleaning & Guest Supplies", short: "Supplies",
+      tasks: [
+        "Vacuum", "Broom", "Dustpan", "Mop", "Cleaning products",
+        "Laundry detergent if applicable", "Iron", "Ironing board", "Extra sheets",
+        "Extra towels", "Extra blankets", "Extra toilet paper", "Extra paper towels",
+        "Extra trash bags"
+      ]
+    },
+    {
+      id: "safety", name: "Safety & Airbnb Setup", short: "Safety",
+      tasks: [
+        "Secure exterior door lock", "Smart lock/keypad if using self check-in",
+        "Guest access procedure established", "Fire extinguisher", "Smoke detectors tested",
+        "Carbon monoxide detector tested if applicable", "Emergency exits clear",
+        "First-aid kit", "House rules written", "Wi-Fi information prepared",
+        "Check-in instructions written", "Check-out instructions written",
+        "Parking instructions written", "Emergency contact information available"
+      ]
+    },
+    {
+      id: "walkthrough", name: "Final Walk-Through", short: "Final Walk-Through",
+      tasks: [
+        "Deep clean entire apartment", "Remove construction dust", "Remove construction debris",
+        "Check every cabinet", "Check every drawer", "Test every light", "Test every appliance",
+        "Test electrical outlets", "Test hot and cold water", "Flush toilet", "Run shower",
+        "Test heating", "Test air conditioning", "Test Wi-Fi throughout apartment",
+        "Check furniture for stability", "Check apartment for odors", "Make all beds",
+        "Stage bathrooms", "Stage towels", "Stock kitchen", "Stock bathroom",
+        "Complete one-night test stay", "Fix anything discovered during test stay"
+      ]
+    },
+    {
+      id: "listing", name: "Airbnb Listing", short: "Airbnb Listing",
+      tasks: [
+        "Take high-quality photos", "Choose cover photo", "Write listing title",
+        "Write property description", "List amenities", "Enter number of guests",
+        "Enter bedrooms and beds", "Enter bathroom information", "Establish nightly rate",
+        "Establish cleaning fee", "Set minimum stay", "Set check-in time", "Set check-out time",
+        "Set cancellation policy", "Set house rules", "Add parking information",
+        "Add Wi-Fi information", "Set calendar availability", "Review listing", "Publish listing"
+      ]
+    }
+  ];
+
+  var SECTION_BY_ID = {};
+  SECTIONS.forEach(function (s) { SECTION_BY_ID[s.id] = s; });
+
+  var STATUS = {
+    not_started: { label: "Not Started", cls: "ns" },
+    in_progress: { label: "In Progress", cls: "ip" },
+    completed:   { label: "Completed",   cls: "cp" }
+  };
+
+  /* =========================================================
+     2. State
+     ========================================================= */
+
+  var KEY = "airbnb-apartment-checklist-v1";
+  var DOC_PATH = "checklist/apartment";
+  var CLIENT = Math.random().toString(36).slice(2, 10);
+
+  var state = null;
+  var openTaskId = null;
+
+  function mkTask(sectionId, group, title, id, custom) {
+    return {
+      id: id, section: sectionId, group: group || null, title: title,
+      status: "not_started", cost: null, note: "", custom: !!custom
+    };
+  }
+
+  function bedroomTasks(n) {
+    return BEDROOM_TASKS.map(function (t, i) {
+      return mkTask("bedrooms", "Bedroom " + n, t, "bedrooms-b" + n + "-" + (i + 1));
+    });
+  }
+
+  function buildDefault() {
+    var tasks = [];
+    SECTIONS.forEach(function (sec) {
+      if (sec.grouped) {
+        tasks = tasks.concat(bedroomTasks(1));
+      } else {
+        sec.tasks.forEach(function (t, i) {
+          tasks.push(mkTask(sec.id, null, t, sec.id + "-" + (i + 1)));
+        });
+      }
+    });
+    return {
+      v: 1, rev: 0, client: CLIENT, updatedAt: Date.now(),
+      view: "all", collapsed: {}, bedrooms: 1, tasks: tasks
+    };
+  }
+
+  function sanitize(raw) {
+    var base = buildDefault();
+    if (!raw || typeof raw !== "object" || !Array.isArray(raw.tasks) || !raw.tasks.length) return base;
+    var seen = {};
+    var tasks = [];
+    raw.tasks.forEach(function (t) {
+      if (!t || typeof t.id !== "string" || typeof t.title !== "string") return;
+      if (seen[t.id]) return;
+      if (!SECTION_BY_ID[t.section]) return;
+      seen[t.id] = 1;
+      tasks.push({
+        id: t.id,
+        section: t.section,
+        group: typeof t.group === "string" ? t.group : null,
+        title: t.title,
+        status: STATUS[t.status] ? t.status : "not_started",
+        cost: typeof t.cost === "number" && isFinite(t.cost) && t.cost >= 0 ? t.cost : null,
+        note: typeof t.note === "string" ? t.note : "",
+        custom: !!t.custom
+      });
+    });
+    if (!tasks.length) return base;
+    return {
+      v: 1,
+      rev: typeof raw.rev === "number" ? raw.rev : 0,
+      client: typeof raw.client === "string" ? raw.client : CLIENT,
+      updatedAt: typeof raw.updatedAt === "number" ? raw.updatedAt : Date.now(),
+      view: raw.view === "remaining" || raw.view === "completed" ? raw.view : "all",
+      collapsed: raw.collapsed && typeof raw.collapsed === "object" ? raw.collapsed : {},
+      bedrooms: typeof raw.bedrooms === "number" && raw.bedrooms > 0 ? Math.floor(raw.bedrooms) : 1,
+      tasks: tasks
+    };
+  }
+
+  function loadLocal() {
+    try {
+      var raw = localStorage.getItem(KEY);
+      return raw ? sanitize(JSON.parse(raw)) : buildDefault();
+    } catch (e) {
+      return buildDefault();
+    }
+  }
+
+  function writeLocal() {
+    try { localStorage.setItem(KEY, JSON.stringify(state)); return true; }
+    catch (e) { return false; }
+  }
+
+  function save() {
+    state.updatedAt = Date.now();
+    state.rev = (state.rev || 0) + 1;
+    state.client = CLIENT;
+    if (!writeLocal()) {
+      document.getElementById("saved-note").textContent =
+        "This browser is blocking local storage, so progress will not survive a refresh.";
+    }
+    queueRemote();
+  }
+
+  /* =========================================================
+     3. Optional cross-device sync (degrades to local-only)
+     ========================================================= */
+
+  var docRef = null, remoteTimer = null, remoteBusy = false, remoteDirty = false;
+
+  function setSync(on, text) {
+    var el = document.getElementById("sync");
+    el.classList.toggle("on", !!on);
+    document.getElementById("sync-t").textContent = text;
+  }
+
+  function queueRemote() {
+    if (!docRef) return;
+    remoteDirty = true;
+    clearTimeout(remoteTimer);
+    remoteTimer = setTimeout(flushRemote, 700);
+  }
+
+  function flushRemote() {
+    if (!docRef || remoteBusy || !remoteDirty) return;
+    remoteBusy = true;
+    remoteDirty = false;
+    docRef.set({
+      payload: JSON.stringify(state),
+      rev: state.rev,
+      updatedAt: state.updatedAt,
+      client: CLIENT
+    }).then(function () {
+      remoteBusy = false;
+      if (remoteDirty) flushRemote();
+    }, function () {
+      remoteBusy = false;
+      setSync(false, "Saved on this device (sync unavailable)");
+    });
+  }
+
+  function adoptRemote(body) {
+    if (!body || typeof body.payload !== "string") return;
+    if (body.client === CLIENT) return;
+    if (typeof body.updatedAt === "number" && body.updatedAt <= state.updatedAt) return;
+    var incoming;
+    try { incoming = sanitize(JSON.parse(body.payload)); } catch (e) { return; }
+    incoming.view = state.view;
+    state = incoming;
+    writeLocal();
+    openTaskId = null;
+    renderList();
+    renderStats();
+  }
+
+  function initSync() {
+    var c = window.claude;
+    if (!c || typeof c.use !== "function") return;
+    Promise.resolve(c.use("db")).then(function (db) {
+      if (!db) return;
+      docRef = db.doc(DOC_PATH);
+      setSync(true, "Synced across your devices");
+      return docRef.get().then(function (snap) {
+        if (snap && snap.exists) adoptRemote(snap.data());
+        queueRemote();
+        docRef.onSnapshot(function (s) {
+          if (s && s.exists) adoptRemote(s.data());
+        }, function () {
+          docRef = null;
+          setSync(false, "Saved on this device");
+        });
+      });
+    }).catch(function () {
+      docRef = null;
+      setSync(false, "Saved on this device");
+    });
+  }
+
+  /* =========================================================
+     4. Derived numbers
+     ========================================================= */
+
+  function tallyOf(tasks) {
+    var t = { total: tasks.length, done: 0, wip: 0, cost: 0 };
+    tasks.forEach(function (task) {
+      if (task.status === "completed") t.done++;
+      else {
+        if (task.status === "in_progress") t.wip++;
+        if (typeof task.cost === "number") t.cost += task.cost;
+      }
+    });
+    t.left = t.total - t.done;
+    t.pct = t.total ? Math.round((t.done / t.total) * 100) : 0;
+    return t;
+  }
+
+  function sectionTasks(id) {
+    return state.tasks.filter(function (t) { return t.section === id; });
+  }
+
+  function money(n) {
+    var whole = Math.round(n * 100) % 100 === 0;
+    return "$" + n.toLocaleString("en-US", {
+      minimumFractionDigits: whole ? 0 : 2,
+      maximumFractionDigits: whole ? 0 : 2
+    });
+  }
+
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  function visible(t) {
+    if (state.view === "remaining") return t.status !== "completed";
+    if (state.view === "completed") return t.status === "completed";
+    return true;
+  }
+
+  /* =========================================================
+     5. Rendering
+     ========================================================= */
+
+  var SVG_CHEV = '<svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
+  var SVG_PEN = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
+  var SVG_CHECK = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
+
+  function metaHtml(t) {
+    var out = "";
+    if (t.status === "in_progress") out += '<span class="pill ip">In Progress</span>';
+    if (typeof t.cost === "number") out += '<span class="cost">' + esc(money(t.cost)) + "</span>";
+    if (t.note) out += '<span class="note-peek">' + esc(t.note) + "</span>";
+    return out;
+  }
+
+  function taskHtml(t) {
+    var done = t.status === "completed";
+    return '' +
+      '<div class="task' + (done ? " is-done" : "") + '" data-id="' + t.id + '">' +
+        '<input type="checkbox" class="cb' + (t.status === "in_progress" ? " wip" : "") + '"' +
+          (done ? " checked" : "") + ' aria-label="Mark &quot;' + esc(t.title) + '&quot; completed">' +
+        '<div class="t-main" data-act="edit">' +
+          '<div class="t-title">' + esc(t.title) + "</div>" +
+          '<div class="t-meta">' + metaHtml(t) + "</div>" +
+        "</div>" +
+        '<button class="t-edit" data-act="edit" aria-label="Edit ' + esc(t.title) + '">' + SVG_PEN + "</button>" +
+      "</div>" +
+      '<div class="editor" data-editor="' + t.id + '"></div>';
+  }
+
+  function addFormHtml(secId, group, label) {
+    var key = secId + "|" + (group || "");
+    return '' +
+      '<div class="sec-foot" data-foot="' + esc(key) + '">' +
+        '<button class="btn-add" data-act="open-add" data-key="' + esc(key) + '">+ ' + esc(label) + "</button>" +
+        (group && group !== "Bedroom 1"
+          ? '<button class="btn-add" data-act="drop-group" data-group="' + esc(group) + '">Remove ' + esc(group) + "</button>"
+          : "") +
+      "</div>" +
+      '<div class="add-form" data-form="' + esc(key) + '">' +
+        '<input type="text" class="in" data-role="add-input" placeholder="What else is needed?" aria-label="New task">' +
+        '<button class="btn btn-primary" data-act="confirm-add" data-key="' + esc(key) + '">Add task</button>' +
+        '<button class="btn btn-ghost" data-act="cancel-add" data-key="' + esc(key) + '">Cancel</button>' +
+      "</div>";
+  }
+
+  function renderList() {
+    var host = document.getElementById("list");
+    var html = "";
+    var anyVisible = false;
+    var showAdders = state.view === "all";
+
+    SECTIONS.forEach(function (sec, si) {
+      var all = sectionTasks(sec.id);
+      var shown = all.filter(visible);
+      if (!shown.length && !showAdders) return;
+      if (shown.length) anyVisible = true;
+
+      var t = tallyOf(all);
+      var collapsed = !!state.collapsed[sec.id];
+      var body = "";
+
+      if (sec.grouped) {
+        var groups = [];
+        all.forEach(function (task) {
+          if (task.group && groups.indexOf(task.group) === -1) groups.push(task.group);
+        });
+        groups.forEach(function (g) {
+          var gt = all.filter(function (x) { return x.group === g; });
+          var gShown = gt.filter(visible);
+          if (!gShown.length && !showAdders) return;
+          var gTally = tallyOf(gt);
+          body += '<div class="grp">' + esc(g) + " &middot; " + gTally.done + "/" + gTally.total + "</div>";
+          body += gShown.map(taskHtml).join("");
+          if (showAdders) body += addFormHtml(sec.id, g, "Add a task to " + g);
+        });
+        if (showAdders) {
+          body += '<div class="sec-foot"><button class="btn-add" data-act="add-bedroom">+ Add another bedroom</button></div>';
+        }
+      } else {
+        body += shown.map(taskHtml).join("");
+        if (showAdders) body += addFormHtml(sec.id, null, "Add a task");
+      }
+
+      html += '' +
+        '<section class="sec' + (collapsed ? " collapsed" : "") + (t.pct === 100 ? " done" : "") +
+          '" id="sec-' + sec.id + '" data-sec="' + sec.id + '">' +
+          '<h2 class="sec-h"><button class="sec-head" data-act="toggle-sec" aria-expanded="' +
+            (collapsed ? "false" : "true") + '">' +
+            '<span class="sec-n">' + (t.pct === 100 ? SVG_CHECK : si + 1) + "</span>" +
+            '<span class="sec-t">' +
+              '<span class="sec-name">' + esc(sec.name) + "</span>" +
+              '<span class="sec-sub" data-role="sec-count">' + t.done + " of " + t.total + " done" +
+              (t.left && t.cost ? " &middot; " + money(t.cost) + " to go" : "") + "</span></span>" +
+            '<span class="sec-pct num" data-role="sec-pct">' + t.pct + "%</span>" +
+            SVG_CHEV +
+          "</button></h2>" +
+          '<div class="sec-body">' + body + "</div>" +
+        "</section>";
+    });
+
+    if (!anyVisible) {
+      html += '<div class="empty">' +
+        (state.view === "completed"
+          ? "<h3>Nothing checked off yet</h3><p>Tick a box on the Still Needed tab and it will show up here.</p>"
+          : "<h3>Every single task is done</h3><p>The apartment is ready for guests. Go publish that listing.</p>") +
+        "</div>";
+    }
+
+    host.innerHTML = html;
+    if (openTaskId) openEditor(openTaskId, false);
+  }
+
+  function renderStats() {
+    var t = tallyOf(state.tasks);
+    document.getElementById("pct").textContent = t.pct + "%";
+    var bar = document.getElementById("bar");
+    bar.classList.toggle("full", t.pct === 100);
+    bar.firstElementChild.style.width = t.pct + "%";
+    document.getElementById("s-done").textContent = t.done;
+    document.getElementById("s-left").textContent = t.left;
+    document.getElementById("s-wip").textContent = t.wip;
+    document.getElementById("s-cost").textContent = money(t.cost);
+    document.getElementById("tally").innerHTML =
+      "<b>" + t.done + " of " + t.total + "</b> tasks completed" +
+      (t.left ? " &middot; <b>" + t.left + "</b> still to go" : " &middot; every area is clear");
+    document.getElementById("n-all").textContent = t.total;
+    document.getElementById("n-left").textContent = t.left;
+    document.getElementById("n-done").textContent = t.done;
+
+    document.getElementById("tiles").innerHTML = SECTIONS.map(function (sec) {
+      var st = tallyOf(sectionTasks(sec.id));
+      return '<button class="tile' + (st.pct === 100 ? " done" : "") + '" data-jump="' + sec.id + '">' +
+        '<span class="tile-name">' + esc(sec.short) + "</span>" +
+        '<span class="tile-row"><span class="tile-pct num">' + st.pct + "%</span>" +
+        '<span class="tile-count num">' + st.done + "/" + st.total + "</span></span>" +
+        '<span class="bar"><i style="width:' + st.pct + '%"></i></span>' +
+        "</button>";
+    }).join("");
+
+    SECTIONS.forEach(function (sec) {
+      var el = document.querySelector('.sec[data-sec="' + sec.id + '"]');
+      if (!el) return;
+      var st = tallyOf(sectionTasks(sec.id));
+      el.classList.toggle("done", st.pct === 100);
+      var pctEl = el.querySelector('[data-role="sec-pct"]');
+      var cntEl = el.querySelector('[data-role="sec-count"]');
+      if (pctEl) pctEl.textContent = st.pct + "%";
+      if (cntEl) {
+        cntEl.innerHTML = st.done + " of " + st.total + " done" +
+          (st.left && st.cost ? " &middot; " + money(st.cost) + " to go" : "");
+      }
+      var nEl = el.querySelector(".sec-n");
+      if (nEl) nEl.innerHTML = st.pct === 100 ? SVG_CHECK : (SECTIONS.indexOf(sec) + 1);
+    });
+  }
+
+  function patchRow(id) {
+    var t = byId(id);
+    var row = document.querySelector('.task[data-id="' + id + '"]');
+    if (!t || !row) return;
+    var done = t.status === "completed";
+    row.classList.toggle("is-done", done);
+    var cb = row.querySelector(".cb");
+    cb.checked = done;
+    cb.classList.toggle("wip", t.status === "in_progress");
+    row.querySelector(".t-title").textContent = t.title;
+    row.querySelector(".t-meta").innerHTML = metaHtml(t);
+  }
+
+  /* =========================================================
+     6. Editor
+     ========================================================= */
+
+  function byId(id) {
+    for (var i = 0; i < state.tasks.length; i++) if (state.tasks[i].id === id) return state.tasks[i];
+    return null;
+  }
+
+  function editorHtml(t) {
+    var seg = ["not_started", "in_progress", "completed"].map(function (v) {
+      return '<button type="button" data-act="status" data-v="' + v + '" aria-pressed="' +
+        (t.status === v) + '">' + STATUS[v].label + "</button>";
+    }).join("");
+    return '' +
+      '<div class="field"><label for="e-title">Task</label>' +
+        '<input id="e-title" class="in" type="text" data-act="title" value="' + esc(t.title) + '"></div>' +
+      '<div class="two">' +
+        '<div class="field"><label for="e-status">Status</label>' +
+          '<div class="seg" id="e-status">' + seg + "</div></div>" +
+        '<div class="field"><label for="e-cost">Cost / budget</label>' +
+          '<div class="money"><span>$</span><input id="e-cost" class="in" type="text" inputmode="decimal" ' +
+          'data-act="cost" placeholder="0" value="' + (typeof t.cost === "number" ? t.cost : "") + '"></div></div>' +
+      "</div>" +
+      '<div class="field"><label for="e-note">Notes</label>' +
+        '<textarea id="e-note" class="in" data-act="note" placeholder="Measurements, brand, store, who is doing it...">' +
+        esc(t.note) + "</textarea></div>" +
+      '<div class="editor-actions">' +
+        '<button class="btn btn-primary" data-act="close">Done</button>' +
+        '<button class="btn btn-del" data-act="delete">Delete task</button>' +
+      "</div>";
+  }
+
+  function closeEditor() {
+    var open = document.querySelector(".editor.open");
+    if (open) {
+      open.classList.remove("open");
+      open.innerHTML = "";
+      var row = document.querySelector('.task[data-id="' + open.getAttribute("data-editor") + '"]');
+      if (row) row.classList.remove("open");
+    }
+    openTaskId = null;
+  }
+
+  function openEditor(id, focus) {
+    var t = byId(id);
+    var box = document.querySelector('.editor[data-editor="' + id + '"]');
+    if (!t || !box) { openTaskId = null; return; }
+    closeEditor();
+    openTaskId = id;
+    box.innerHTML = editorHtml(t);
+    box.classList.add("open");
+    var row = document.querySelector('.task[data-id="' + id + '"]');
+    if (row) row.classList.add("open");
+    if (focus) {
+      var f = box.querySelector("#e-title");
+      if (f) f.focus();
+    }
+  }
+
+  /* =========================================================
+     7. Mutations
+     ========================================================= */
+
+  function setStatus(id, status) {
+    var t = byId(id);
+    if (!t || t.status === status) return;
+    t.status = status;
+    save();
+    if (state.view !== "all") { closeEditor(); renderList(); }
+    else {
+      patchRow(id);
+      if (openTaskId === id) {
+        Array.prototype.forEach.call(
+          document.querySelectorAll(".editor.open [data-act='status']"),
+          function (b) { b.setAttribute("aria-pressed", String(b.getAttribute("data-v") === status)); }
+        );
+      }
+    }
+    renderStats();
+  }
+
+  function addTask(sectionId, group, title) {
+    title = title.trim();
+    if (!title) return;
+    var id = "custom-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    var task = mkTask(sectionId, group, title, id, true);
+    var at = -1;
+    state.tasks.forEach(function (t, i) {
+      if (t.section === sectionId && (group ? t.group === group : true)) at = i;
+    });
+    if (at < 0) state.tasks.push(task); else state.tasks.splice(at + 1, 0, task);
+    save();
+    closeEditor();
+    renderList();
+    renderStats();
+  }
+
+  function deleteTask(id) {
+    state.tasks = state.tasks.filter(function (t) { return t.id !== id; });
+    save();
+    closeEditor();
+    renderList();
+    renderStats();
+  }
+
+  function addBedroom() {
+    var max = 0;
+    state.tasks.forEach(function (t) {
+      if (t.section !== "bedrooms" || !t.group) return;
+      var m = /(\d+)\s*$/.exec(t.group);
+      if (m) max = Math.max(max, parseInt(m[1], 10));
+    });
+    var n = max + 1;
+    var fresh = bedroomTasks(n);
+    var at = -1;
+    state.tasks.forEach(function (t, i) { if (t.section === "bedrooms") at = i; });
+    if (at < 0) state.tasks = state.tasks.concat(fresh);
+    else state.tasks.splice.apply(state.tasks, [at + 1, 0].concat(fresh));
+    state.bedrooms = n;
+    save();
+    closeEditor();
+    renderList();
+    renderStats();
+    var el = document.getElementById("sec-bedrooms");
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function dropGroup(group) {
+    state.tasks = state.tasks.filter(function (t) {
+      return !(t.section === "bedrooms" && t.group === group);
+    });
+    save();
+    closeEditor();
+    renderList();
+    renderStats();
+  }
+
+  function setView(view) {
+    state.view = view;
+    writeLocal();
+    closeEditor();
+    Array.prototype.forEach.call(document.querySelectorAll(".tab"), function (b) {
+      b.setAttribute("aria-selected", String(b.getAttribute("data-view") === view));
+    });
+    renderList();
+    renderStats();
+  }
+
+  function jumpTo(secId) {
+    if (state.collapsed[secId]) {
+      delete state.collapsed[secId];
+      writeLocal();
+      renderList();
+      renderStats();
+    }
+    var el = document.getElementById("sec-" + secId);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  /* =========================================================
+     8. Events
+     ========================================================= */
+
+  var list = document.getElementById("list");
+
+  list.addEventListener("change", function (e) {
+    var cb = e.target.closest ? e.target.closest(".cb") : null;
+    if (!cb) return;
+    var row = cb.closest(".task");
+    setStatus(row.getAttribute("data-id"), cb.checked ? "completed" : "not_started");
+  });
+
+  list.addEventListener("click", function (e) {
+    var el = e.target.closest("[data-act], [data-jump]");
+    if (!el) return;
+    var act = el.getAttribute("data-act");
+    var row = el.closest(".task");
+    var edBox = el.closest(".editor");
+    var editingId = edBox ? edBox.getAttribute("data-editor") : null;
+
+    if (act === "toggle-sec") {
+      var sec = el.closest(".sec").getAttribute("data-sec");
+      if (state.collapsed[sec]) delete state.collapsed[sec];
+      else state.collapsed[sec] = true;
+      writeLocal();
+      el.closest(".sec").classList.toggle("collapsed", !!state.collapsed[sec]);
+      el.setAttribute("aria-expanded", String(!state.collapsed[sec]));
+      return;
+    }
+    if (act === "edit" && row) {
+      var id = row.getAttribute("data-id");
+      if (openTaskId === id) closeEditor(); else openEditor(id, true);
+      return;
+    }
+    if (act === "status" && editingId) {
+      setStatus(editingId, el.getAttribute("data-v"));
+      return;
+    }
+    if (act === "close") { closeEditor(); return; }
+    if (act === "delete" && editingId) {
+      if (el.getAttribute("data-armed") === "1") { deleteTask(editingId); }
+      else { el.setAttribute("data-armed", "1"); el.textContent = "Tap again to delete"; }
+      return;
+    }
+    if (act === "open-add") {
+      var form = document.querySelector('.add-form[data-form="' + el.getAttribute("data-key") + '"]');
+      if (form) { form.classList.add("open"); form.querySelector("[data-role=add-input]").focus(); }
+      return;
+    }
+    if (act === "cancel-add") {
+      var f2 = document.querySelector('.add-form[data-form="' + el.getAttribute("data-key") + '"]');
+      if (f2) { f2.classList.remove("open"); f2.querySelector("[data-role=add-input]").value = ""; }
+      return;
+    }
+    if (act === "confirm-add") {
+      var key = el.getAttribute("data-key").split("|");
+      var f3 = document.querySelector('.add-form[data-form="' + el.getAttribute("data-key") + '"]');
+      addTask(key[0], key[1] || null, f3.querySelector("[data-role=add-input]").value);
+      return;
+    }
+    if (act === "add-bedroom") { addBedroom(); return; }
+    if (act === "drop-group") {
+      if (el.getAttribute("data-armed") === "1") dropGroup(el.getAttribute("data-group"));
+      else { el.setAttribute("data-armed", "1"); el.textContent = "Tap again to remove"; }
+      return;
+    }
+  });
+
+  list.addEventListener("input", function (e) {
+    var el = e.target;
+    var act = el.getAttribute && el.getAttribute("data-act");
+    if (!act || !openTaskId) return;
+    var t = byId(openTaskId);
+    if (!t) return;
+    if (act === "title") { t.title = el.value; }
+    else if (act === "note") { t.note = el.value; }
+    else if (act === "cost") {
+      var clean = el.value.replace(/[^0-9.]/g, "");
+      if (clean !== el.value) el.value = clean;
+      var n = parseFloat(clean);
+      t.cost = isFinite(n) && n >= 0 ? n : null;
+    } else return;
+    save();
+    patchRow(openTaskId);
+    renderStats();
+  });
+
+  list.addEventListener("keydown", function (e) {
+    if (e.key !== "Enter") return;
+    var el = e.target;
+    if (el.getAttribute && el.getAttribute("data-role") === "add-input") {
+      e.preventDefault();
+      var form = el.closest(".add-form");
+      var key = form.getAttribute("data-form").split("|");
+      addTask(key[0], key[1] || null, el.value);
+    }
+  });
+
+  document.querySelector(".tabs").addEventListener("click", function (e) {
+    var b = e.target.closest(".tab");
+    if (b) setView(b.getAttribute("data-view"));
+  });
+
+  document.getElementById("tiles").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-jump]");
+    if (b) jumpTo(b.getAttribute("data-jump"));
+  });
+
+  var modal = document.getElementById("modal");
+  document.getElementById("reset-btn").addEventListener("click", function () {
+    modal.hidden = false;
+    document.getElementById("reset-cancel").focus();
+  });
+  document.getElementById("reset-cancel").addEventListener("click", function () { modal.hidden = true; });
+  modal.addEventListener("click", function (e) { if (e.target === modal) modal.hidden = true; });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") { if (!modal.hidden) modal.hidden = true; else closeEditor(); }
+  });
+  document.getElementById("reset-yes").addEventListener("click", function () {
+    var view = state.view;
+    state = buildDefault();
+    state.view = view;
+    openTaskId = null;
+    save();
+    renderList();
+    renderStats();
+    modal.hidden = true;
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  });
+
+  /* =========================================================
+     9. Boot
+     ========================================================= */
+
+  state = loadLocal();
+  Array.prototype.forEach.call(document.querySelectorAll(".tab"), function (b) {
+    b.setAttribute("aria-selected", String(b.getAttribute("data-view") === state.view));
+  });
+  renderList();
+  renderStats();
+  writeLocal();
+  initSync();
+})();
+</script>

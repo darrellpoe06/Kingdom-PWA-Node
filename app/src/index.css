@@ -3,6 +3,33 @@
 @tailwind utilities;
 
 /* ===========================================================================
+   Opt out of Android Chrome "Auto dark theme" / Force Dark (Darrell 2026-07-19)
+   ===========================================================================
+   A page that never declares color-scheme is treated by Android Chrome as
+   theme-unaware, so its "Auto dark theme" force-darkens every white surface.
+   On the Create workspace this inverted the bg-white toolbar buttons, the
+   workspace-type <select>, and the title <input> into illegible black boxes
+   with black-on-black glyphs, while the cream chrome (#FAF8F4) and the mat
+   (#EDE9E1) survived — the signature of Force Dark, not a CSS bug. Declaring
+   color-scheme here (paired with the matching <meta> in index.html) tells the
+   browser the app manages its own theming (midnight + cream, switched in JS)
+   and to stop force-darkening. */
+:root {
+  /* AMENDED 2026-08-28. This said `light dark`, which opted out of Force Dark
+     (the point above) but ALSO told the browser to pick a user-agent palette
+     from the OS setting — so on a dark-mode phone every form control with no
+     background of its own got the DARK UA background under the app's dark ink.
+     Darrell hit it on the rose theme: the Properties edit form rendered as
+     charcoal boxes with unreadable text.
+
+     Each theme now declares its own `color-scheme` (and paints form controls
+     explicitly) in lib/theme-css.js, which loads after this file. `light` here
+     is the floor for a shell that never injects the theme layer; it still
+     declares a value, so the Force Dark opt-out above is intact. */
+  color-scheme: light;
+}
+
+/* ===========================================================================
    Text-size scope split — CONTENT scales, CHROME is capped (Darrell 2026-06-17)
    ===========================================================================
    The large-print primitive (lib/text-size.js) scales the document root, so all
@@ -23,6 +50,280 @@
    that should stay roughly fixed while body content scales. */
 .ts-chrome-region {
   zoom: var(--ts-chrome-scale, 1);
+}
+
+/* ===========================================================================
+   Big-text layout safety — the page must HOLD at 2x and 2.75x (Darrell 2026-08-05)
+   ===========================================================================
+   DR-0145 doubled Largest to 2x and DR-0147 added Big Print 44 (2.75x). The old
+   claim "flex-wrap layouts absorb the 1.5x, nothing shatters" died there: at 2x+
+   a two-column card grid's min-content (photo + longest name + a nowrap VIEW →
+   chip) exceeds its track, the grid blows past the viewport, and neighboring
+   cards paint over the spilled text (the 2026-08-05 TLC screenshots). Worse, a
+   door header that scales its own size controls balloons past the viewport and
+   the reader is TRAPPED in big text — the escape hatch is off-screen.
+
+   Two utilities, both exact no-ops at Normal:
+
+   .ts-grid-collapse — a multi-column card grid drops to ONE column at the sizes
+   that break it (2x Largest, 2.75x Big Print). One big readable column IS the
+   large-print layout; two clipped ones are not.
+
+   .ts-safe-sticky — a sticky header region may never exceed the viewport: at
+   big sizes it caps to the dynamic viewport height and scrolls WITHIN itself,
+   so the controls it holds (including the text-size escape hatch) are always
+   reachable. Measured by scripts/chrome-layout-probe.mjs (--sweep textscale
+   pass, selftest-proven). */
+html[data-text-size='largest'] .ts-grid-collapse,
+html[data-text-size='bigprint'] .ts-grid-collapse {
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+
+/* THE LITTLE ONES GROW TOO (Darrell 2026-09-15, DR-0427): "all text to be able
+   to be big!!! Even the green space... some text are way bigger than others,
+   we want to see the little ones too!!!" Every rem label already scales with
+   the root — but a 0.5625rem meta line is 24px at Big Print while the prose
+   beside it is 33px: it grows and stays the little one. From Larger up, every
+   SMALL content size is floored at the prose size (0.75rem = text-xs), so the
+   step markers, the stage blurbs, the "2 / 5 · ~18 min" meta, the green Word
+   block and the verse chips all reach the size the words do. Chrome keeps its
+   cap (.ts-chrome-region, the reading panel's em-sized controls, the
+   text-size control itself), so big text stays reversible (DR-0276 rule 3). */
+html[data-text-size='larger'] .text-\[0\.5rem\]:not(.ts-chrome-region *),
+html[data-text-size='larger'] .text-\[0\.5625rem\]:not(.ts-chrome-region *),
+html[data-text-size='larger'] .text-\[0\.625rem\]:not(.ts-chrome-region *),
+html[data-text-size='larger'] .text-\[0\.6875rem\]:not(.ts-chrome-region *),
+html[data-text-size='largest'] .text-\[0\.5rem\]:not(.ts-chrome-region *),
+html[data-text-size='largest'] .text-\[0\.5625rem\]:not(.ts-chrome-region *),
+html[data-text-size='largest'] .text-\[0\.625rem\]:not(.ts-chrome-region *),
+html[data-text-size='largest'] .text-\[0\.6875rem\]:not(.ts-chrome-region *),
+html[data-text-size='bigprint'] .text-\[0\.5rem\]:not(.ts-chrome-region *),
+html[data-text-size='bigprint'] .text-\[0\.5625rem\]:not(.ts-chrome-region *),
+html[data-text-size='bigprint'] .text-\[0\.625rem\]:not(.ts-chrome-region *),
+html[data-text-size='bigprint'] .text-\[0\.6875rem\]:not(.ts-chrome-region *) {
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+html[data-text-size='larger'] .ts-safe-sticky,
+html[data-text-size='largest'] .ts-safe-sticky,
+html[data-text-size='bigprint'] .ts-safe-sticky {
+  max-height: 100dvh;
+  overflow-y: auto;
+  overflow-x: clip;
+}
+
+/* ONE PINNED BAR OVER A LESSON (DR-0652). While a lesson's own space is open
+   (ChurchLearn sets data-lesson-space), the app header flows with the page and
+   the lesson bar alone holds the top. Measured before: both pinned at top 0,
+   the header's tab row showing beneath the lesson bar, the first readable line
+   at 219px of an 844px phone. */
+html[data-lesson-space='open'] header.ts-safe-sticky {
+  position: static;
+}
+
+/* THE CHROME GIVES THE READING ITS HEIGHT BACK (DR-0749; Darrell 2026-10-02:
+   "the top staying the same after we already read it while the bottom moves
+   makes the reading space smaller"). While a lesson is under way the pinned
+   block slides up out of view as the reader scrolls down and returns on the
+   first flick up or at the top (lib/lesson-room.js). It stays sticky; only
+   its transform moves. */
+.lesson-space-sticky {
+  transition: transform 0.22s ease;
+  will-change: transform;
+}
+.lesson-space-sticky[data-chrome='hidden'] {
+  transform: translateY(-100%);
+}
+@media (prefers-reduced-motion: reduce) {
+  .lesson-space-sticky { transition: none; }
+}
+
+/* .ts-escape-hatch — the comfort-controls row (text size, voice, theme) pins to
+   the BOTTOM edge of the scrolling .ts-safe-sticky header at big sizes, so the
+   escape hatch is on screen WITHOUT scrolling no matter how tall the header
+   chrome wraps. Born 2026-08-19: at 360px Big Print the header reached 740px
+   (the whole viewport) and the controls sat 27px below the fold — "reader
+   trapped in big text", caught deterministically by chrome-layout-probe's
+   textscale pass on church/library. Reachable-by-scroll is not the contract;
+   VISIBLE is. The row carries bg-[#FAF8F4] so every theme's existing override
+   recolors it with the header. No-op at Normal/Large (rule scoped like the
+   sticky cap above). */
+html[data-text-size='larger'] .ts-safe-sticky .ts-escape-hatch {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+}
+/* At the two sizes that actually trap (2x Largest, 2.75x Big Print), sticky is
+   NOT enough: the row also carries .ts-chrome-region's `zoom`, and Chromium
+   leaves a zoomed bottom-sticky element unshifted inside an overflow-y:auto
+   ancestor — measured 2026-08-19 by the probe's ancestry flags ([hse:sticky]
+   computed, rects unmoved). `fixed` anchors to the viewport, immune to that
+   interaction: the comfort row becomes a bottom bar, on screen by
+   construction. The row's own bg-[#FAF8F4] keeps it theme-recolored; the
+   shadow separates it from content on every theme. */
+html[data-text-size='largest'] .ts-safe-sticky .ts-escape-hatch,
+html[data-text-size='bigprint'] .ts-safe-sticky .ts-escape-hatch {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 6px 12px;
+  box-shadow: 0 -1px 0 rgba(128, 128, 128, 0.6);
+  z-index: 60;
+}
+/* THE BOTTOM BLOCK FOLDS TO ONE ROW (DR-0716). Darrell 2026-10-01, at A44 on
+   his Fold: "How do I get rid of the below header?!!!!! I need a button!!!!"
+   The header's controls row is the fixed bottom block at the two sizes above;
+   only there does its Hide / Show controls toggle show (ComfortBarToggle), and
+   folded (<html data-comfort-bar="collapsed">, lib/comfort-bar.js) every other
+   item in the row is hidden, not unmounted: the toggle and the text-size
+   dropdown stay, so big text stays reversible and everything is one tap away. */
+.comfort-toggle-row {
+  display: none;
+}
+html[data-text-size='largest'] .ts-safe-sticky .header-comfort-row .comfort-toggle-row,
+html[data-text-size='bigprint'] .ts-safe-sticky .header-comfort-row .comfort-toggle-row {
+  display: flex;
+}
+html[data-text-size='largest'][data-comfort-bar='collapsed'] .ts-safe-sticky .header-comfort-row > :not(.comfort-toggle-row),
+html[data-text-size='bigprint'][data-comfort-bar='collapsed'] .ts-safe-sticky .header-comfort-row > :not(.comfort-toggle-row) {
+  display: none !important;
+}
+html[data-text-size='largest'][data-comfort-bar='collapsed'] .ts-safe-sticky .header-comfort-row,
+html[data-text-size='bigprint'][data-comfort-bar='collapsed'] .ts-safe-sticky .header-comfort-row {
+  justify-content: flex-start;
+}
+/* THE READER'S ONE SLIM ROW (DR-0716; Darrell 2026-10-01, the Fold folded,
+   L202 at A+++: "Bottom tab is too much!!!!! We needed less room undermining
+   the reader...."). Inside a lesson (data-lesson-space="open") the big-text
+   bottom block starts folded (lib/comfort-bar.js), and folded it is not even a
+   slim row of its own: the bottom bar (ChromeDock) is the one row, holding
+   Controls (which opens the block), A- / A+, Feedback, Give and the reader.
+   Both forms of the block fold (the header's controls row, and the collapsed
+   header's own row); nothing unmounts. */
+.chrome-dock .dock-controls {
+  display: none;
+}
+html[data-text-size='largest'] .chrome-dock .dock-controls,
+html[data-text-size='bigprint'] .chrome-dock .dock-controls {
+  display: inline-flex;
+}
+html[data-lesson-space='open'][data-text-size='largest'][data-comfort-bar='collapsed'] .ts-safe-sticky .ts-escape-hatch,
+html[data-lesson-space='open'][data-text-size='bigprint'][data-comfort-bar='collapsed'] .ts-safe-sticky .ts-escape-hatch {
+  display: none !important;
+}
+@media (max-width: 639.98px) {
+  /* In the reader on a phone, Top rides in More (the reader panel has its own). */
+  html[data-lesson-space='open'] .chrome-dock .dock-top-inline {
+    display: none;
+  }
+  /* While the Word plays it is STILL one row (DR-0744; Darrell 2026-10-01,
+     L206 on his phone: "the controls can't be further condensed to fit one
+     level together instead of two at the bottom?"). The mini-bar used to take
+     a second line above the row; now the row's own buttons fold into More
+     (ChromeDock.jsx, data-one-row) and the mini-bar has the line. */
+  html[data-lesson-space='open'] .chrome-dock[data-one-row='true'] .chrome-dock-reader-wrap {
+    flex: 1 1 auto;
+  }
+}
+@media (max-width: 399.98px) {
+  /* The narrowest phones: with Controls on the row, More waits until the
+     controls are opened, so the one row fits 360px. Never while the Word
+     plays: then More is where those controls went (DR-0744). */
+  html[data-lesson-space='open'][data-text-size='largest'][data-comfort-bar='collapsed'] .chrome-dock:not([data-one-row='true']) .dock-more-wrap,
+  html[data-lesson-space='open'][data-text-size='bigprint'][data-comfort-bar='collapsed'] .chrome-dock:not([data-one-row='true']) .dock-more-wrap {
+    display: none;
+  }
+}
+/* THE ONE-TAB DOOR'S TOP ROW KEEPS THE BRAND WHEN THE COLLAPSED ROW LEAVES IT
+   (DR-0640; components/TopNavRow.jsx). On a one-tab door the collapsed row
+   rides INSIDE the top row, brand and all, so the row's own lockup yields to
+   it. At the two sizes above, that collapsed row becomes the fixed bottom bar
+   and leaves the top row, so the top row's lockup comes back: the brand in
+   both places, as Darrell asked ("Both places are good... why not"). Same
+   selectors as the rule above, so the two can never disagree. */
+.one-tab-brand--float {
+  display: none;
+}
+html[data-text-size='largest'] .ts-safe-sticky .one-tab-brand--float,
+html[data-text-size='bigprint'] .ts-safe-sticky .one-tab-brand--float {
+  display: flex;
+}
+/* ON A PHONE, THE MERGED ROW ORDERS ITSELF (DR-0640). Measured at 320 px with
+   the collapsed row inside the one-tab row: back/forward + chevron held 101 px,
+   "Show header" + the size dropdown needed 220 px of the 187 px left, the
+   lockup squeezed to ~125 px ("The Love / Corner"), and the merged row came
+   out TALLER than the two rows it replaced. So below 640 px, while the row is
+   in the flow (not Largest / Big Print, where it is the bottom bar and keeps
+   its own layout): the way back and the dropdown share line one, the lockup
+   takes the full width under them, and the chevron yields to "Show header",
+   which does the same thing on the same row. */
+@media (max-width: 639.98px) {
+  html:not([data-text-size='largest']):not([data-text-size='bigprint']) .ts-hatch-inline [data-testid='collapsed-left-group'] {
+    display: contents;
+  }
+  html:not([data-text-size='largest']):not([data-text-size='bigprint']) .ts-hatch-inline [data-testid='show-full-header'] {
+    margin-right: auto;
+  }
+  html:not([data-text-size='largest']):not([data-text-size='bigprint']) .ts-hatch-inline .brand-lockup {
+    order: 9999;
+    flex-basis: 100%;
+  }
+  html:not([data-text-size='largest']):not([data-text-size='bigprint']) .one-tab-chevron-yields {
+    display: none;
+  }
+}
+
+/* THE CONTROLS NEVER GET BIGGER, AND THE TEXT DOMINATES (Darrell 2026-09-16,
+   DR-0438, three phone screenshots of a lesson at A++/A+++: "We need the text
+   to dominate the screen when the screen gets smaller... the controls should
+   never get bigger... they should get smaller or only have what is necessary
+   when the screen is reduced"). Measured before, 360px: chrome covered 52% of
+   the first viewport at Normal and 90% at A+++; the mobile build stamp read at
+   33px (a chrome label the DR-0427 floor caught because its row was never
+   marked chrome); every floater sat on top of the fixed comfort bar.
+   Three moves: (1) --ts-chrome-scale is now exactly 1/mult (lib/text-size.js,
+   CHROME_SCALE_FACTOR = 0) so every chrome region is its Normal size at every
+   step; (2) the unmarked chrome rows are marked; (3) the floaters step above
+   the fixed comfort bar by its published height (--ts-hatch-h, set by
+   TextSizeControl from the bar's real box). The floaters that are themselves
+   chrome regions are zoomed, and a zoomed element's offsets are zoomed with
+   it, so their offset is divided by the zoom to land in viewport pixels. */
+/* THE FLOATERS ARE IN THE BAR NOW (DR-0716, Darrell 2026-09-30: "Put the
+   feedback and other floating options on the task bars somewhere they make
+   sense... make the reader better and less blocked"). Feedback, Give, the
+   network dot, back-to-top and the read-aloud button / mini-bar / pill live
+   in the bottom bar (components/ChromeDock.jsx), which stands on top of the
+   fixed comfort bar by --ts-hatch-h. What still rides the reader's fixed
+   stack (its open panel, a way-back notice) and the app's passing prompts
+   stand above BOTH bars: --chrome-dock-h is the bar's published height (0px
+   on a surface with no bar, so those surfaces keep their 16px corner). */
+.tts-controls.fixed {
+  bottom: calc(16px + var(--chrome-dock-h, 0px) + var(--ts-hatch-h, 0px));
+}
+.install-prompt.fixed,
+.update-confirm.fixed,
+[data-testid='notify-offer-layer'] {
+  bottom: calc(12px + var(--chrome-dock-h, 0px) + var(--ts-hatch-h, 0px));
+}
+/* A modal owns the screen: while one is open the bar drops beneath its
+   backdrop (the app's dialogs are fixed inset-0 at z-50) rather than sit over
+   the dialog's own buttons. It stays above everything else. */
+body:has(.fixed.inset-0.z-50) .chrome-dock {
+  z-index: 40;
+}
+/* On a phone, while the reader's mini-bar or pill fills the bar, the inline
+   Top steps aside; the copy inside More carries it (ChromeDock.jsx). */
+@media (max-width: 639.98px) {
+  .chrome-dock:has([data-testid='reader-mini-bar'], [aria-label='Reading controls (minimized)']) .dock-top-inline {
+    display: none;
+  }
+  /* While the live-service bar is open it names the church at the very top
+     (LiveWorshipBar sets data-live-bar), so on a phone the public welcome line
+     beneath it folds away rather than stack a second band over the words. */
+  html[data-live-bar='open'] [data-testid='public-welcome-top'] {
+    display: none;
+  }
 }
 
 /* ===========================================================================
@@ -49,4 +350,213 @@
 }
 .tab-scroll::-webkit-scrollbar-track {
   background: transparent;
+}
+
+/* Agreement print isolation (DR-0123 — "a print stylesheet is a small
+   increment"). Without this, the Scope view's ⎙ Print printed the ENTIRE app
+   shell (header, tabs, banners) with the agreement buried inside. While
+   <body> carries .print-scope (added by the Print handler for the duration
+   of the dialog), only the .print-sheet element is visible to the printer —
+   a clean, client-handable agreement, and the browser's own "Save as PDF"
+   is the PDF export. visibility (not display) keeps layout stable so the
+   sheet positions at the page origin. */
+@media print {
+  body.print-scope #root * { visibility: hidden; }
+  body.print-scope .print-sheet,
+  body.print-scope .print-sheet * { visibility: visible; }
+  body.print-scope .print-sheet { position: absolute; left: 0; top: 0; width: 100%; }
+}
+
+/* Read-aloud follow-along (DR-0264 — "highlighted as it reads so users can see
+   their place", readers age 6 to 60). CSS Custom Highlight API: no DOM
+   mutation, no reflow; browsers without the API simply never paint these and
+   the auto-scroll floor still follows. House rust, never true red (DR-0099 —
+   red is reserved). The sentence wash is soft; the word is emphatic. */
+::highlight(poe-read-seg) {
+  background-color: rgba(184, 88, 56, 0.22);
+}
+::highlight(poe-read-word) {
+  background-color: rgba(184, 88, 56, 0.85);
+  color: #ffffff;
+}
+/* THE HIGHLIGHT IS THEMED (2026-09-15, DR-0424). Darrell, on Midnight: "The
+   reader does not have the highlighter of the sentence anymore." It did — a
+   22% rust wash on OLED black, which blends to rgb(61,38,29) behind white
+   text: MEASURED in real Chromium (scripts/read-highlight-probe.mjs) the wash
+   moved the paragraph's pixels by 3.95 on Midnight against 6.05 on the light
+   themes, a smudge no eye reads as a highlight. The word (karaoke) wash was
+   fine at 85% — but most phone engines never fire word boundaries, so the
+   sentence wash IS the highlight there. Midnight paints in its own rust
+   (#FB923C, the theme's mapping of the house rust) at a strength the probe
+   holds to no fainter than the light theme's. Still never true red (DR-0099). */
+[data-theme="midnight"] ::highlight(poe-read-seg) {
+  background-color: rgba(251, 146, 60, 0.42);
+  color: #ffffff;
+}
+/* "You were here" — the sentence a Continue lands on (DR-0631). The house
+   olive of the Continue control itself, so the mark reads as the answer to the
+   tap that made it; distinct from the rust reading wash, and never red
+   (DR-0099). */
+::highlight(poe-resume-mark) {
+  background-color: rgba(90, 110, 61, 0.28);
+}
+[data-theme="midnight"] ::highlight(poe-resume-mark) {
+  background-color: rgba(163, 190, 120, 0.42);
+  color: #ffffff;
+}
+[data-theme="midnight"] ::highlight(poe-read-word) {
+  background-color: #FB923C;
+  color: #0A0A0A;
+}
+
+/* =============================================================================
+   Focus ring — the only thing a TV remote has instead of a cursor
+   =============================================================================
+   Darrell 2026-09-20, asking how to get the app onto a Firestick. The browser
+   is the route that works there (the .apk is portrait-locked and carries no
+   leanback entry), and lib/remote-navigation.js makes the D-pad move focus
+   spatially. But focus that cannot be SEEN is focus that does not exist: on a
+   TV the viewer is across the room, there is no pointer to fall back on, and
+   before this rule the app shipped no focus styling at all — so the browser
+   route was technically navigable and practically unusable.
+
+   :focus-visible, not :focus, so a tap or click never paints a ring on a
+   phone. Keyboard and D-pad get it; touch does not.
+
+   NOT RED. True red is reserved for the Blood of Jesus and never marks
+   anything else (Color Theology, DR-0099). A focus ring is chrome, so it takes
+   a color with no such claim on it. The pairing below is a deep blue on light
+   surfaces and a bright amber on dark ones — each chosen to carry across a
+   room against its own background, and each far from red. */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 3px solid #0B4F9E;
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* On a dark theme the deep blue disappears into the background, so the ring
+   flips rather than dimming. Both halves are keyed off the app's own theme
+   attribute first and the OS preference second, matching how the rest of the
+   shell decides its palette. */
+:root[data-theme='dark'] :where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline-color: #F2B705;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) :where(a, button, input, select, textarea, [tabindex]):focus-visible {
+    outline-color: #F2B705;
+  }
+}
+
+/* A TV sits far enough away that the standard ring is thin. Any viewport this
+   wide is a television or a projector in practice, so the ring thickens rather
+   than asking anyone to configure it. */
+@media (min-width: 1280px) and (pointer: coarse), (min-width: 1600px) {
+  :where(a, button, input, select, textarea, [tabindex]):focus-visible {
+    outline-width: 4px;
+    outline-offset: 3px;
+  }
+}
+
+/* =============================================================================
+   Reading highlight — the fallback layer, for browsers without CSS.highlights
+   =============================================================================
+   The ::highlight() rules above are the preferred path and cost no DOM. They
+   need the CSS Custom Highlight API (Chromium 105+), which a Fire TV's Silk
+   predates — so on the exact screen where a highlight matters most, nothing was
+   painted at all. lib/highlight-fallback.js draws one box per line-box of the
+   range into a single overlay layer; these rules style it to match.
+
+   Same colors as the API path on purpose: the two must be indistinguishable,
+   or the feature would look like a different feature depending on the device.
+   Still never true red — red is the Blood (DR-0099). */
+#poe-read-highlight-layer {
+  position: absolute;
+  inset: 0;
+  /* The layer must never eat a click or a remote's OK press. */
+  pointer-events: none;
+  z-index: 5;
+}
+.poe-hl-box {
+  position: absolute;
+  pointer-events: none;
+  border-radius: 2px;
+}
+/* mix-blend-mode keeps the text legible THROUGH the wash rather than tinting
+   it: a solid box over white-on-dark text would grey the letters out, which is
+   the opposite of drawing the eye to them. */
+.poe-hl-poe-read-seg {
+  background-color: rgba(184, 88, 56, 0.22);
+  mix-blend-mode: multiply;
+}
+.poe-hl-poe-read-word {
+  background-color: rgba(184, 88, 56, 0.85);
+}
+.poe-hl-poe-resume-mark {
+  background-color: rgba(90, 110, 61, 0.28);
+  mix-blend-mode: multiply;
+}
+[data-theme="midnight"] .poe-hl-poe-resume-mark {
+  background-color: rgba(163, 190, 120, 0.42);
+  mix-blend-mode: screen;
+}
+/* Midnight repeats the themed strengths of the API path (DR-0424): a 22% rust
+   wash on OLED black reads as a smudge, not a highlight. `screen` rather than
+   `multiply` because on a near-black page multiply darkens toward invisible. */
+[data-theme="midnight"] .poe-hl-poe-read-seg {
+  background-color: rgba(251, 146, 60, 0.42);
+  mix-blend-mode: screen;
+}
+[data-theme="midnight"] .poe-hl-poe-read-word {
+  background-color: #FB923C;
+  mix-blend-mode: screen;
+}
+
+/* =============================================================================
+   A TV flattens its inner scroll boxes — the page is the only scroller
+   =============================================================================
+   Darrell 2026-10-07, on the Firestick: "Can't scroll lists of lessons on
+   Firestick... how can we choose from the whole list?" Silk drives a pointer
+   with the D-pad and scrolls only the PAGE (pointer at the screen edge). A list
+   in a box with its own max-height and overflow-y: auto has no edge to lean
+   on, so the Learn tree showed four of seven lessons and no road to the rest.
+   On a TV every such box inside <main> is opened flat: the list takes its full
+   height and the page carries it. Fixed overlays are not in <main> and keep
+   their scroll. The dock's ▲ Up / ▼ Down chips (lib/tv-paging.js) walk the page
+   by clicking. The class comes from device-roles markDeviceClass at boot. */
+html[data-device-class="tv"] main .overflow-y-auto:not(.tv-keep-scroll) {
+  max-height: none !important;
+  overflow-y: visible !important;
+}
+
+/* =============================================================================
+   Full screen for the reader — only the Word and the voice (DR-0785)
+   =============================================================================
+   Darrell 2026-10-07, on the Firestick: "unless we go to full screen then the
+   controls are not there just listen to the app and seeing the Word." The
+   reader sets this attribute (lib/reader-controller.js); the dock, the shell
+   header and the docked reader bar step out of the way. The reader's own
+   rails are not rendered while it holds. A faint corner mark, Esc or the
+   remote's Back clears it. */
+html[data-reader-fullscreen="true"] .chrome-dock,
+html[data-reader-fullscreen="true"] header[data-read-skip],
+html[data-reader-fullscreen="true"] .tts-docked {
+  display: none !important;
+}
+
+/* =============================================================================
+   The reader's rails — <main> makes room for them (DR-0785)
+   =============================================================================
+   On a TV the Read Aloud controls sit on the two sides of the screen
+   (lib/reader-controller.js: one column of the bottom bar's own buttons,
+   6.5rem each, or less on a narrow TV so the Word keeps 32rem; scaled with
+   the chrome size). <main> and the shell header are
+   full width, so while the rails are on both are inset by the rail plus a gap
+   on each side: the Word's column and the header's tab rows narrow between the
+   rails rather than being covered at their edges (the CI layout probe caught a
+   rail over the tab row). The expression here IS RAIL_WIDTH_CSS; a test pins
+   the two together. */
+html[data-reader-rails="sides"] main,
+html[data-reader-rails="sides"] header[data-read-skip] {
+  padding-left: calc(calc(min(6.5rem, (100vw - 32rem) / 2) * var(--ts-chrome-scale, 1)) + 1.5rem) !important;
+  padding-right: calc(calc(min(6.5rem, (100vw - 32rem) / 2) * var(--ts-chrome-scale, 1)) + 1.5rem) !important;
 }

@@ -1,0 +1,16 @@
+# Refresh the PoeTech Ways brain on a cadence so the app shows the CURRENT Ways
+# between deploys (DR-0219). DR-0186: a bounded single-shot idempotent parse that
+# spawns no compute/LLM RUNS by default — this timer ships ENABLED (the standard
+# deploy step is `systemctl enable --now poetech-ways.timer`), NOT an arming
+# ceremony. The three brakes live in the parser + the .service (budget, single-
+# flight lock, kill-switch-ships-absent); stop the timer to halt.
+[Unit]
+Description=Refresh the PoeTech Ways brain every 30 min (DR-0219 / DR-0186)
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=30min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

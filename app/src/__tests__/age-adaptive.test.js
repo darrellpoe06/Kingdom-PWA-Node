@@ -16,7 +16,7 @@ import {
 } from '../lib/venue-cast.js';
 import {
   LEARN_ENGAGEMENT_TAG, ENGAGEMENT_SIGNALS, engagementFeedbackText, parseEngagement,
-  aggregateEngagementByAge, isEngagementSignal,
+  aggregateEngagementByAge, isEngagementSignal, engagementRowsByAge,
 } from '../lib/learn-engagement.js';
 
 const sampleModule = {
@@ -160,5 +160,38 @@ describe('feedback-tuned for every age (engagement by age band)', () => {
     expect(agg.byBand.child.counts.completed).toBe(1);
     expect(agg.byBand.child.score).toBeGreaterThan(agg.byBand.adult.score); // completing > starting
     expect(agg.byBand.adult.total).toBe(1);
+  });
+
+  it('the "Engagement by age" readout shows EVERY band, even ones with zero signals (Darrell 2026-07-19)', () => {
+    // PROVEN-TO-CATCH: the render previously dropped any band with total===0, so
+    // Youth/Teen vanished from the panel — "does not explain all levels, leaves out
+    // teen." engagementRowsByAge must return one row per AGE_BAND, always, with the
+    // quiet ones flagged (not omitted). Regress to filtering zeros and this fails.
+    const feed = [
+      { id: '1', text: engagementFeedbackText({ courseKey: 'infrastructure', moduleId: 'inf1', ageBand: 'child', signal: 'completed', who: 'C' }) },
+      { id: '2', text: engagementFeedbackText({ courseKey: 'infrastructure', moduleId: 'inf1', ageBand: 'adult', signal: 'started', who: 'A' }) },
+    ];
+    const rows = engagementRowsByAge(aggregateEngagementByAge(feed));
+    // ONE row per age band, in framework order — child through senior, none dropped
+    expect(rows.map((r) => r.id)).toEqual(AGE_BANDS.map((b) => b.id));
+    // teen + youth are present even though nobody used them yet
+    const teen = rows.find((r) => r.id === 'teen');
+    const youth = rows.find((r) => r.id === 'youth');
+    expect(teen).toBeTruthy();
+    expect(youth).toBeTruthy();
+    expect(teen.quiet).toBe(true);   // no signals → dimmed "no signals yet", NOT removed
+    expect(youth.quiet).toBe(true);
+    // the bands with real use carry their real numbers, not quiet
+    const child = rows.find((r) => r.id === 'child');
+    expect(child.quiet).toBe(false);
+    expect(child.total).toBe(1);
+    expect(child.completed).toBe(1);
+    // even a totally empty feed still yields all five rows (honest zeros, DR-0076)
+    const emptyRows = engagementRowsByAge(aggregateEngagementByAge([]));
+    expect(emptyRows.length).toBe(AGE_BANDS.length);
+    expect(emptyRows.every((r) => r.quiet)).toBe(true);
+    // defends junk input without throwing
+    expect(() => engagementRowsByAge(null)).not.toThrow();
+    expect(engagementRowsByAge(null).length).toBe(AGE_BANDS.length);
   });
 });

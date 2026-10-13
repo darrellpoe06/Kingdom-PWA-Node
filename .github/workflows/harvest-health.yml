@@ -1,0 +1,259 @@
+# Harvest health — proves the transcript pipeline is ADVANCING, from outside the NAS.
+#
+# WHY THIS EXISTS (2026-08-06 ways review; executes DR-0135's lapsed 2026-07-31
+# "data-plane probe mirroring site-health: transcripts current"). On 2026-08-05 a
+# comprehensive review found the transcript pipeline had been dead for a MONTH —
+# 81 of 858 videos transcribed, last row written 2026-07-06 — and nothing rang.
+# The review of the review found out why, and it is structural:
+#   * scripts/harvest-stall-guard.mjs is real, correct, and WIRED TO NOTHING: it
+#     reads scripts/out/harvest-progress.jsonl, a gitignored path no live code
+#     writes, so it always takes its "no snapshot log yet" branch and exits 0.
+#   * The NAS loop fleet's own alarm (ntfy on loop_fail, run.mjs) requires the
+#     loop to RUN — a powered-down or de-tailnetted NAS emits no failure at all.
+#     The watchdog dies with the host.
+#   * The bell itself rides the failure domain: the ops-announce relay is a
+#     Funnel URL ON the NAS. NAS down => alarm channel down, by construction.
+#   * site-health.yml deliberately keeps NAS hops as warnings on a GREEN run
+#     ("a family box can legitimately be off"), so nothing escalated.
+# Net: the only witness to a month-long data-plane stall was a human opening the
+# app. This workflow is the missing instrument, and it lives OUTSIDE the NAS on a
+# GitHub runner precisely so it still rings when the NAS is the thing that broke.
+#
+# WHAT IT MEASURES (against prod Postgres, the same session-pooler URL the
+# migration lane uses — an OUTCOME measure, not a mechanism check, so it catches
+# the stall whatever the cause: NAS off, YouTube block, bad secrets, dead cron):
+#   1. COVERAGE  — transcripts carrying real text vs. videos owing one.
+#   2. FRESHNESS — hours since the newest transcript row landed.
+#   3. STALL     — gaps still owed AND nothing written in STALL_HOURS.
+#
+# WHAT IT DOES WITH A STALL: opens (or comments on) the single rolling
+# "harvest-health" incident issue, labeled `incident` — the queryable record that
+# answers "how long has it been stuck?" with a number instead of a memory.
+# Recovery posts the close. The run itself goes RED so it is visible in the
+# Actions list (DR-0076: a green check must mean something).
+#
+# THE THREE BRAKES (CLAUDE.md — timer-driven automation):
+#   1. BUDGET — ONE read-only SQL query + at most one issue write per fire. No
+#      compute is spawned, nothing is written to the product database, and the
+#      job is hard-capped at 5 minutes.
+#   2. LOCK   — concurrency group `harvest-health`, single-instance, never
+#      cancel-in-progress; a queued fire waits rather than stacking.
+#   3. KILL   — set repo variable HARVEST_HEALTH_ENABLED='false' (or disable in
+#      the Actions UI). Unset => runs. Same posture as site-health.yml, which is
+#      the settled precedent for a bounded, idempotent, non-spawning prober
+#      (DR-0110 class): it ships ACTIVE, because a witness that waits to be
+#      armed is exactly the failure this instrument exists to end (DR-0247).
+#
+# CADENCE: every 6h. The measured signal moves on a ~3h trickle cycle, so a
+# 6-hourly read cannot miss a real stall while a stall is, by definition, days
+# long (DR-0103 §3: match the watch to the change rate, never a reflexive poll).
+
+name: harvest-health
+
+on:
+  schedule:
+    - cron: '17 */6 * * *' # every 6 hours, off the top of the hour
+  workflow_dispatch: {}
+
+concurrency:
+  group: harvest-health
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  issues: write # the rolling stall record
+  actions: write # the SILENT heal dispatches nas-bootstrap — without this the step logged "HTTP 403: Resource not accessible by integration" on every fire (measured 2026-09-23, run 35922936285) and the heal never ran
+
+jobs:
+  probe:
+    if: ${{ vars.HARVEST_HEALTH_ENABLED != 'false' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      REPO: ${{ github.repository }}
+      # Hours of silence that count as a stall while gaps remain. The trickle
+      # fires ~8x/day, so 48h is ~16 missed fires — far past noise, far short of
+      # the month this instrument was born from.
+      STALL_HOURS: '48'
+    steps:
+      # THE VERDICT READS THE LIVE DATABASE (DR-0618 step 3). The app has read
+      # the NAS's own database since the repoint (2026-08-19). Proven on run
+      # 36028450599: hosted said 752/874 and 235h (a false SILENT, a false
+      # heal); live said 754/874 and 51h. The hosted project is read below only
+      # as a side-by-side line until the 2026-09-26 re-review removes it; it
+      # can never fail the run or raise the alarm.
+      - uses: actions/checkout@v4
+      - name: Join the tailnet (to read the live database)
+        continue-on-error: true
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+      - name: Read the retired hosted database (comparison only)
+        id: hosted
+        continue-on-error: true
+        env:
+          DATABASE_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          set -uo pipefail
+          CLEAN_URL=$(printf '%s' "${DATABASE_URL:-}" | tr -d '[:space:]')
+          if [ -n "$CLEAN_URL" ] && row=$(psql "$CLEAN_URL" -At -F '|' -c "SELECT (SELECT count(*) FROM video_transcripts WHERE length(trim(coalesce(text,''))) > 0), (SELECT count(*) FROM choir_sermons WHERE video_id IS NOT NULL), COALESCE((SELECT round(extract(epoch FROM (now() - max(created_at)))/3600)::int FROM video_transcripts WHERE length(trim(coalesce(text,''))) > 0), -1);"); then
+            echo "row=$row" >> "$GITHUB_OUTPUT"
+          else
+            echo "row=unread" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Measure coverage + freshness on the live database (read-only)
+        id: probe
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          set -uo pipefail
+          if [ -z "${NAS_SSH_KEY:-}" ]; then
+            echo "::warning::NAS_SSH_KEY not set — cannot measure. Unknown is NEVER reported as healthy (DR-0076)."
+            echo "unknown=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # ONE query, read-only, no writes anywhere, on the database the app
+          # reads: tailnet -> ssh -> psql inside supabase-db (scripts/live-sql.sh).
+          # FRESHNESS IS MEASURED ON SUCCESSES, NOT ON ROWS (fixed 2026-08-11).
+          # video_transcripts stores FAILURES as rows too — 56 of its 137 rows
+          # were errors — so the old `max(created_at)` over ALL rows meant the
+          # documented most-likely cause, a YouTube IP block, would write error
+          # rows steadily, hold the age near zero, and make this probe report
+          # ADVANCING and CLOSE the incident while producing zero transcripts.
+          # That is LESSONS P22 inside the instrument built to enforce it.
+          # Attempt-age and the recent-error count are measured SEPARATELY, and
+          # only to tell the two failure shapes apart.
+          row=$(bash scripts/live-sql.sh '|' <<SQL
+            SELECT
+              (SELECT count(*) FROM video_transcripts WHERE length(trim(coalesce(text,''))) > 0),
+              (SELECT count(*) FROM choir_sermons WHERE video_id IS NOT NULL),
+              COALESCE((SELECT round(extract(epoch FROM (now() - max(created_at)))/3600)::int
+                        FROM video_transcripts WHERE length(trim(coalesce(text,''))) > 0), -1),
+              COALESCE((SELECT round(extract(epoch FROM (now() - max(coalesce(fetched_at, created_at))))/3600)::int
+                        FROM video_transcripts), -1),
+              (SELECT count(*) FROM video_transcripts
+                 WHERE error IS NOT NULL AND coalesce(fetched_at, created_at) > now() - ('$STALL_HOURS hours')::interval),
+              (SELECT count(*) FROM video_transcripts
+                 WHERE length(trim(coalesce(text,''))) = 0
+                   AND split_part(coalesce(error,''), ':', 1) IN ('TranscriptsDisabled','NoTranscriptFound','VideoUnavailable','InvalidVideoId','AgeRestricted','VideoUnplayable','NotTranslatable','TranslationLanguageNotAvailable'));
+          SQL
+          ) || { echo "::warning::query failed — reporting UNKNOWN, never healthy"; echo "unknown=true" >> "$GITHUB_OUTPUT"; exit 0; }
+
+          done_n=$(echo "$row" | cut -d'|' -f1)
+          total=$(echo "$row"  | cut -d'|' -f2)
+          age_h=$(echo "$row"  | cut -d'|' -f3)   # hours since the newest SUCCESS
+          try_h=$(echo "$row"  | cut -d'|' -f4)   # hours since the newest ATTEMPT
+          errs=$(echo "$row"   | cut -d'|' -f5)   # error rows inside the window
+          verdicts=$(echo "$row" | cut -d'|' -f6) # durable no-caption verdicts
+          # OWED = no text AND no verdict. The loader writes a verdict row once
+          # per video that has no captions (load-transcripts.py VERDICT_ERRORS)
+          # and never retries it; those are answered, not owed, and the trickle
+          # has nothing left to do for them (Whisper's queue, reported apart).
+          # Counting them as owed made a finished drain read as a stall forever.
+          # Attempt age reads fetched_at: the loader upserts, so created_at is
+          # only the FIRST write and never moves on a retry.
+          gaps=$(( total - done_n - verdicts ))
+          [ "$gaps" -lt 0 ] && gaps=0
+
+          echo "transcribed=$done_n / $total  ·  no-caption verdicts=$verdicts  ·  owed=$gaps  ·  newest SUCCESS ${age_h}h old  ·  newest attempt ${try_h}h  ·  ${errs} recent errors"
+          {
+            echo "done_n=$done_n"; echo "total=$total"; echo "gaps=$gaps"; echo "age_h=$age_h"
+            echo "try_h=$try_h"; echo "errs=$errs"; echo "verdicts=$verdicts"
+          } >> "$GITHUB_OUTPUT"
+
+          # WHICH WAY IS IT BROKEN? The two shapes have opposite next actions and
+          # are trivially separable, so the record says which instead of pasting
+          # three guesses (on 2026-08-11 all three guesses were wrong):
+          #   SILENT  — nothing written at all, not even a failure → not EXECUTING
+          #   BLOCKED — attempts still failing, successes stale   → running, refused
+          stalled=""; shape=""
+          if [ "$gaps" -gt 0 ] && { [ "$age_h" -lt 0 ] || [ "$age_h" -ge "$STALL_HOURS" ]; }; then
+            if [ "$errs" -gt 0 ] || { [ "$try_h" -ge 0 ] && [ "$try_h" -lt "$STALL_HOURS" ]; }; then
+              shape="BLOCKED"
+              stalled="BLOCKED: transcribed ${done_n}/${total}, ${gaps} still owed. Nothing has SUCCEEDED in ${age_h}h while attempts keep failing (${errs} error rows in the last ${STALL_HOURS}h). The rider IS running and is being refused — read the newest error rows; an IP block backs off and resumes itself."
+            else
+              shape="SILENT"
+              stalled="SILENT: transcribed ${done_n}/${total}, ${gaps} still owed. NOTHING has been written in ${age_h}h — not even a failure row — so the rider is not EXECUTING. Check the NAS services-sync cycle log for the installer that died; a dependency it never installed will not announce itself."
+            fi
+          fi
+          echo "stalled=$stalled" >> "$GITHUB_OUTPUT"
+          echo "shape=$shape" >> "$GITHUB_OUTPUT"
+
+          {
+            echo "### Harvest health"
+            echo ""
+            echo "- Transcribed: **${done_n} / ${total}**; **${verdicts}** have no captions (answered, Whisper's queue); **${gaps}** still owed"
+            echo "- Newest SUCCESSFUL transcript: **${age_h}h** old"
+            echo "- Newest attempt of any kind: **${try_h}h** old (${errs} error rows in ${STALL_HOURS}h)"
+            echo ""
+            if [ -n "$stalled" ]; then echo "**STALLED** — $stalled"; else echo "**ADVANCING.**"; fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # THE ACTUATOR THE STANDARD REQUIRES (DR-0135: probe -> readout -> actuator
+      # -> announce; "a detector without an actuator is a named debt"). This
+      # witness rang 4x/day for five days into an issue nobody read while the
+      # corpus sat dead. A SILENT pipeline means the rider is not executing, and
+      # the sanctioned remote-hands repair for exactly that is nas-bootstrap's
+      # idempotent mirror-pull + services-sync — which is how the 35-day stall
+      # was actually diagnosed and fixed on 2026-08-11.
+      #
+      # Brakes kept: at most ONE dispatch per fire (budget), the dispatched
+      # workflow is single-flight in its own concurrency group (lock), and it is
+      # bounded + read-mostly. It is NOT attempted for BLOCKED — re-syncing a
+      # running-but-refused rider would spend YouTube budget against a block
+      # that clears itself.
+      - name: Compare the hosted and live readings (DR-0618)
+        if: always()
+        run: |
+          {
+            echo "### Live vs retired hosted database (the verdict reads live)"
+            echo ""
+            echo "| database | transcribed, total, newest success (h) |"
+            echo "| --- | --- |"
+            echo "| live (the NAS's own, the app's; the verdict) | ${{ steps.probe.outputs.done_n }}, ${{ steps.probe.outputs.total }}, ${{ steps.probe.outputs.age_h }} |"
+            echo "| hosted (retired; comparison until 2026-09-26) | ${{ steps.hosted.outputs.row || 'not read' }} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Heal a SILENT pipeline (one services-sync, never for BLOCKED)
+        if: ${{ steps.probe.outputs.shape == 'SILENT' }}
+        continue-on-error: true
+        run: |
+          set -uo pipefail
+          echo "harvest-health: pipeline is SILENT — dispatching one nas-bootstrap (services-sync) heal"
+          gh workflow run nas-bootstrap.yml --repo "$REPO" --ref main \
+            || echo "::warning::heal dispatch failed — the stall record still stands"
+
+      - name: Record the stall (rolling issue, labeled `incident`)
+        if: ${{ steps.probe.outputs.stalled != '' }}
+        env:
+          STALLED: ${{ steps.probe.outputs.stalled }}
+        run: |
+          set -uo pipefail
+          title="harvest-health: the transcript pipeline has stopped advancing"
+          # The shape-aware sentence IS the diagnosis now. The old body pasted a
+          # fixed list of three guesses on every fire; on 2026-08-11 all three
+          # were wrong (NAS up, YouTube not blocking, secrets fine — a python
+          # module was simply never installed), and the list had been repeated
+          # ~20 times over five days while the real cause sat in the cycle log.
+          body="$(date -u +%FT%TZ) — ${STALLED} Run: ${GITHUB_SERVER_URL}/${REPO}/actions/runs/${GITHUB_RUN_ID}"
+          open_issue=$(gh issue list --repo "$REPO" --label incident --state open --search "in:title harvest-health" --json number --jq '.[0].number // ""')
+          if [ -n "$open_issue" ]; then
+            gh issue comment "$open_issue" --repo "$REPO" --body "$body"
+          else
+            gh label create incident --repo "$REPO" --color B60205 --description "Live outage / stall record" 2>/dev/null || true
+            gh issue create --repo "$REPO" --title "$title" --label incident --body "$body"
+          fi
+          exit 1 # a stalled pipeline is a failing run — visible without opening the app
+
+      - name: Close a recovered stall
+        if: ${{ steps.probe.outputs.stalled == '' && steps.probe.outputs.unknown != 'true' }}
+        env:
+          DONE_N: ${{ steps.probe.outputs.done_n }}
+          TOTAL: ${{ steps.probe.outputs.total }}
+        run: |
+          set -uo pipefail
+          open_issue=$(gh issue list --repo "$REPO" --label incident --state open --search "in:title harvest-health" --json number --jq '.[0].number // ""')
+          if [ -n "$open_issue" ]; then
+            gh issue comment "$open_issue" --repo "$REPO" --body "$(date -u +%FT%TZ) — RECOVERED: advancing again at ${DONE_N}/${TOTAL} transcribed."
+            gh issue close "$open_issue" --repo "$REPO" || true
+          fi

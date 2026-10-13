@@ -18,6 +18,7 @@ import { describe, it, expect } from 'vitest';
 import {
   GODHEAD_ALGORITHMS, GODHEAD_SECTIONS, godheadBySection, godheadVerse, godheadToGameCards,
   BOOK_MASTERPIECES, booksInCatalog, algorithmsForBook,
+  JUDGMENT_COVENANT_REVIEW, covenantAlgorithms,
 } from '../lib/godhead-study.js';
 import { AXES, scoreRound } from '../lib/eternal-algorithms-studies.js';
 import { withStudyDeck } from '../lib/games/generations.js';
@@ -33,6 +34,8 @@ describe('verse truth — every reference resolves to verbatim KJV', () => {
     expect(godheadVerse('Matthew 6:33')).toMatch(/seek ye first the kingdom of God/);
     expect(godheadVerse('1 Corinthians 15:31')).toMatch(/I die daily/);
     expect(godheadVerse('Revelation 21:27')).toMatch(/Lamb.?s book of life/);
+    expect(godheadVerse('John 5:22-23')).toMatch(/committed all judgment unto the Son/);
+    expect(godheadVerse('Acts 17:31')).toMatch(/judge the world in righteousness/);
   });
 });
 
@@ -89,6 +92,32 @@ describe('the game — the whole catalog deals on the same eight axes', () => {
     const def = withStudyDeck(null, godheadToGameCards());
     expect(def.decks.study).toHaveLength(GODHEAD_ALGORITHMS.length);
     expect(def.decks.life?.length).toBeGreaterThan(0);
+  });
+});
+
+describe('the eternal covenant review — judgment committed to the Son (Darrell 2026-07-05)', () => {
+  it('every algorithm in the review resolves to a real catalog entry, in covenant order', () => {
+    const list = covenantAlgorithms();
+    expect(list).toHaveLength(JUDGMENT_COVENANT_REVIEW.algorithmIds.length);
+    expect(list.map((a) => a.id)).toEqual(JUDGMENT_COVENANT_REVIEW.algorithmIds);
+  });
+
+  it('the covenant is stated from the verbatim Word, and every abiding anchor resolves', () => {
+    expect(godheadVerse('John 5:22-23')).toMatch(/hath committed all judgment unto the Son/);
+    expect(godheadVerse('John 5:24')).toMatch(/shall not come into condemnation/);
+    for (const a of JUDGMENT_COVENANT_REVIEW.abiding) {
+      expect(godheadVerse(a.anchor), `abiding anchor ${a.anchor} has no verbatim text`).toBeTruthy();
+      expect(String(a.point).trim().length, 'abiding point empty').toBeGreaterThan(0);
+    }
+  });
+
+  it('the review carries the declared word, and the covenant entries deal into the game', () => {
+    expect(JUDGMENT_COVENANT_REVIEW.declared).toMatch(/His Son Jesus Christ/);
+    expect(JUDGMENT_COVENANT_REVIEW.summary.length).toBeGreaterThanOrEqual(3);
+    const cardIds = new Set(godheadToGameCards().map((c) => c.id));
+    for (const id of JUDGMENT_COVENANT_REVIEW.algorithmIds) {
+      expect(cardIds.has(`ghstudy-${id}`), `${id} missing from the game deck`).toBe(true);
+    }
   });
 });
 

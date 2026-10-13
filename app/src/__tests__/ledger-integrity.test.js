@@ -166,3 +166,24 @@ describe('proven-to-catch — each injected defect flips its matching check', ()
     expect(checkAmountPrecision(data.transactions).status).toBe('fail');
   });
 });
+
+describe('manual balance adjustment rows — every invariant stays green (Christina 2026-07-31)', () => {
+  it('an adjustment row moves the derived balance but never gross In/Out, and all checks pass', () => {
+    const data = buildLedger({ rows: 400, seed: 11 });
+    const before = checkRollupConsistency(data.transactions);
+    expect(before.status).toBe('pass');
+    // The user hand-sets the checking balance: the correction lands as a row.
+    data.transactions.push({
+      id: 'manual-set', date: '2026-06-25', accountId: 'chk', amount: -12602.58,
+      description: 'Balance set to 4350.42 — manual adjustment',
+      category: 'balance-adjustment', isBalanceAdjustment: true,
+    });
+    const report = runLedgerIntegrity(data, ASOF);
+    expect(report.failed).toBe(0);
+    // Balance derivation counts the adjustment (that is its whole job)…
+    expect(checkBalanceDerivation(data, ASOF).status).toBe('pass');
+    // …while the In/Out rollup is identical to before the correction.
+    const after = checkRollupConsistency(data.transactions);
+    expect(after.status).toBe('pass');
+  });
+});

@@ -25,18 +25,42 @@
 // (never inline color), icons are <UiIcon/> (bundled SVG, currentColor), sizes are
 // rem. Keeps consistency-guard + contrast-guard green.
 // =============================================================================
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import supabase from '../lib/supabase.js';
+import { enterReviewerMode } from '../lib/reviewer-mode.jsx';
 import UiIcon from './UiIcon.jsx';
 import QualityProof from './QualityProof.jsx';
 import AccessUsageMetrics from './AccessUsageMetrics.jsx';
+import ProvingOurWays from './ProvingOurWays.jsx';
+import FamilyDoors from './FamilyDoors.jsx';
+import SupportAccess from './SupportAccess.jsx';
 import SectionTabs from './SectionTabs.jsx';
+// Live-systems panels (each self-fetches real state at runtime — reality-traced
+// live 2026-07-30, DR-0061/DR-0076): the Admin → Systems console gathers the
+// operations view that was scattered across CommandServeCenter / Projects /
+// BuildBoard into one place a steward reaches from Admin (Darrell 2026-07-30:
+// "a live look at systems while inside the PoeTech App using admin"). Composed,
+// not reimplemented — same components, one home. Shipped ACTIVE (DR-0254).
+import OpsBoard from './OpsBoard.jsx';
+import DbHealth from './DbHealth.jsx';
+import LlmHealth from './LlmHealth.jsx';
+import LoopHealth from './LoopHealth.jsx';
+import WorkflowStatus from './WorkflowStatus.jsx';
+import NetworkStatus from './NetworkStatus.jsx';
 import {
   accessRoster,
   roleMeaning,
   systemFacts,
   previewAction,
 } from '../lib/admin-console.js';
+import { listInstanceMembersStrict, setMemberRole, grantableRoles, roleLabel, listMyAdminInstances, inviteToSpace, isInviteEmail, CAPABILITIES, canEditCapabilities, listMemberCapabilities, setMemberCapability, CLASSIFICATIONS, setMemberClassification, RELATIONSHIP_SUGGESTIONS, setMemberRelationship } from '../lib/member-roles.js';
+import { listPendingClaims, confirmInvite } from '../lib/family-invite.js';
+import { contactOf, reachLabel, whenLabel, samePersonHints, contactCoverage } from '../lib/member-contact.js';
+import { emptyIndex, loadContactIndex, labelFor } from '../lib/contact-names.js';
+import MemberInspect from './MemberInspect.jsx';
+import PersonRecord from './PersonRecord.jsx';
+import ChatPane from './ChatPane.jsx';
+import LessonShareLedger from './LessonShareLedger.jsx';
 
 const BUILD_SHA = (typeof __BUILD_SHA__ !== 'undefined') ? __BUILD_SHA__ : 'dev';
 const BUILD_TIME = (typeof __BUILD_TIME__ !== 'undefined') ? __BUILD_TIME__ : null;
@@ -111,8 +135,39 @@ export default function AdminConsole({
   backendReachable = false,
   isPublicHost = true,
   onResetSeed = null,
+  // The loop-health feed. `data` was already handed to this console by the shell
+  // and sat unread; it is the same object Projects passes as `loopData`, so the
+  // Systems panel now assesses the REAL loops instead of defaulting to an empty
+  // object (which would paint every loop "never updated" — a false problem
+  // state, DR-0076). onLoopDecision/financialDocAt come from the shell too.
+  data = {},
+  onLoopDecision = null,
+  financialDocAt = null,
 }) {
   const [roleState, setRoleState] = useState({ status: 'idle', role: null, error: null });
+  const [members, setMembers] = useState({ status: 'idle', list: [], myRole: null, error: null });
+  const [adminInstances, setAdminInstances] = useState([]);         // spaces the steward may administer (family + church)
+  const [scopeInstance, setScopeInstance] = useState(instanceId);   // which space "Manage access roles" targets
+  const [invite, setInvite] = useState({ email: '', role: 'member', msg: '', link: '' });  // "invite someone" form
+  const [pending, setPending] = useState([]);                       // claims awaiting the inviter's confirmation
+  const [inspecting, setInspecting] = useState(null);               // member userId whose stewardship record is open (0122)
+  const [knownFor, setKnownFor] = useState(null);                   // member userId whose full record is open (DR-0828)
+  const [checklistFor, setChecklistFor] = useState(null);           // member userId whose capability checklist is open (DR-0242)
+  const [capGrants, setCapGrants] = useState([]);                   // [{ userId, capability }] for the scoped space (0126)
+  // Today, read once per render rather than per row — the "last here" phrasing
+  // needs a day to count back from, and a surface with its own clock per row
+  // would read differently at the top and bottom of a long roster.
+  const todayIso = new Date().toISOString().slice(0, 10);
+  // The steward's OWN contacts (DR-0825): a roster row with no display name
+  // reads as the person this steward already knows, from the contacts they
+  // brought in (owner-only rows, DR-0736). A label beside the row, never a
+  // merge, and never another viewer's address book.
+  const [contactIdx, setContactIdx] = useState(emptyIndex);
+  useEffect(() => {
+    let alive = true;
+    loadContactIndex().then((idx) => { if (alive) setContactIdx(idx); });
+    return () => { alive = false; };
+  }, []);
 
   // No-leak defense-in-depth. The nav entry is already absent from the DOM for
   // non-stewards; this backstops any ?view=admin deep-link.
@@ -146,8 +201,96 @@ export default function AdminConsole({
     }
   };
 
+  // Load the REAL member roster + my role for a given space, so the role controls
+  // show live data and only the roles I may actually set (mirrors set_member_role,
+  // 0111). Also loads the spaces I may administer (family + COLG/Love Corner church
+  // + ministries) so the panel can offer an instance picker.
+  const loadMembers = async (targetInstance) => {
+    // Populate the picker on first load; keep the current pick if still valid.
+    // TYPE-GUARDED (measured 2026-08-23, build 0755B9C: the Load-members
+    // button passed its CLICK EVENT here; the RPC then tried to serialize an
+    // HTMLButtonElement — the circular-structure TypeError on Darrell's
+    // screen, and before the strict read, a silent empty roster): only a
+    // string can be a space id; anything else means "use the current scope".
+    const requested = typeof targetInstance === 'string' && targetInstance ? targetInstance : null;
+    const spaces = await listMyAdminInstances();
+    setAdminInstances(spaces);
+    const wanted = requested || scopeInstance
+      || (spaces.find((s) => s.instanceId === instanceId) ? instanceId : spaces[0]?.instanceId)
+      || instanceId;
+    setScopeInstance(wanted);
+    if (!wanted) { setMembers({ status: 'no-instance', list: [], myRole: null, error: null }); return; }
+    setMembers((p) => ({ ...p, status: 'loading' }));
+    try {
+      const { data: myRole } = await supabase.rpc('user_role_in_instance', { tenant_uuid: wanted });
+      const list = await listInstanceMembersStrict(wanted);
+      setMembers({ status: 'ok', list, myRole: myRole || null, error: null });
+      setCapGrants(await listMemberCapabilities(wanted));
+      loadPending();
+    } catch (e) {
+      setMembers({ status: 'error', list: [], myRole: null, error: (e && e.message) || 'query failed' });
+    }
+  };
+  const changeMemberRole = async (userId, role) => {
+    const r = await setMemberRole(scopeInstance, userId, role);
+    if (r?.skipped) { setMembers((p) => ({ ...p, error: r.error?.message || r.skipped })); return; }
+    await loadMembers(scopeInstance);
+  };
+  // Worker classification (0143) — the label axis beside the role: family /
+  // W-2 / 1099 / volunteer. A label, never a power; '' clears it.
+  const changeMemberClassification = async (userId, classification) => {
+    const r = await setMemberClassification(scopeInstance, userId, classification);
+    if (r?.skipped) { setMembers((p) => ({ ...p, error: r.error?.message || r.skipped })); return; }
+    await loadMembers(scopeInstance);
+  };
+  // Relationship (0144) — free-growing label (Son, Uncle, Brother-in-law, …).
+  const changeMemberRelationship = async (userId, relationship) => {
+    const r = await setMemberRelationship(scopeInstance, userId, relationship);
+    if (r?.skipped) { setMembers((p) => ({ ...p, error: r.error?.message || r.skipped })); return; }
+    await loadMembers(scopeInstance);
+  };
+  // One checkbox on the governance checklist (DR-0242): grant/revoke, then
+  // re-read the real grants so the boxes always show DB truth.
+  const toggleCapability = async (userId, capability, enabled) => {
+    const r = await setMemberCapability(scopeInstance, userId, capability, enabled);
+    if (r?.skipped) { setMembers((p) => ({ ...p, error: r.error?.message || r.skipped })); return; }
+    setCapGrants(await listMemberCapabilities(scopeInstance));
+  };
+
+  // The type of the space currently being managed (church vs family/other), so the
+  // invite uses the right path.
+  const scopeType = (adminInstances.find((s) => s.instanceId === scopeInstance) || {}).instanceType || null;
+
+  // Invite someone so they can start USING the app (Darrell 2026-07-22, "I want
+  // people using the apps"). Church -> access on their next sign-in; family/other
+  // -> a one-time claim LINK to deliver, then confirm below (two-party, DR-0187).
+  const doInvite = async () => {
+    if (!isInviteEmail(invite.email)) { setInvite((p) => ({ ...p, msg: 'Enter a valid email.', link: '' })); return; }
+    setInvite((p) => ({ ...p, msg: 'Inviting…', link: '' }));
+    const r = await inviteToSpace(scopeType, invite.email, invite.role, scopeInstance);
+    if (!r.ok) { setInvite((p) => ({ ...p, msg: `Couldn't invite (${r.reason || 'error'}).`, link: '' })); return; }
+    if (r.kind === 'church') {
+      setInvite({ email: '', role: 'member', msg: `Invited ${r.email}. They'll get access the next time they sign in.`, link: '' });
+    } else {
+      setInvite({ email: '', role: 'member', msg: `Invite ready for ${r.email}. Share this one-time link; then confirm them below once they open it.`, link: r.link || '' });
+      loadPending();
+    }
+  };
+  const loadPending = async () => {
+    const r = await listPendingClaims();
+    setPending(r.ok ? r.claims : []);
+  };
+  const doConfirm = async (inviteId) => {
+    const r = await confirmInvite(inviteId);
+    if (r.ok) { await loadPending(); await loadMembers(scopeInstance); }
+  };
+
   const doReload = () => { try { window.location.reload(); } catch (e) { /* no-op */ } };
   const doResetSeed = () => { if (onResetSeed) onResetSeed(); };
+  // The steward's "see it as a user" review lens (lib/reviewer-mode.jsx). Sets the
+  // per-device flag and reloads into the exact signed-in-user boot; the pinned
+  // banner's Exit brings this steward view back.
+  const doReviewAsUser = () => enterReviewerMode();
 
   const facts = systemFacts({ isPublicHost, buildSha: BUILD_SHA, buildTime: BUILD_TIME, backendReachable });
 
@@ -163,6 +306,30 @@ export default function AdminConsole({
       // THE USERS REPORT — absorbed from the retired Access tab. Real KPIs, self-
       // fetching, fail-soft, family/governor-gated at the DB.
       render: () => <AccessUsageMetrics />,
+    },
+    {
+      id: 'doors',
+      label: 'Family doors',
+      icon: 'lock',
+      // Instant access from inside the app (Darrell 2026-08-21, mid-lockout:
+      // "I should be able to give access instantly to her or anyone....
+      // especially my family"). The RPC (0142) is the gate; this is the hand.
+      render: () => <FamilyDoors />,
+    },
+    {
+      // The unified model pane (DR-0132 bus; migration 0137; green-lit
+      // 2026-08-15 via the ensemble seam). Governor-gated with the rest of
+      // Admin while the box agent is being armed; @local default, vendors
+      // dark until keys exist. Mounted as an Admin TAB so the frozen monolith
+      // is untouched (DR-0078) — Admin is already its own module.
+      id: 'models',
+      label: 'Ask the models',
+      icon: 'sliders',
+      render: () => (
+        <section className="bg-white border-2 border-[#1A1815] p-4 sm:p-5">
+          <ChatPane />
+        </section>
+      ),
     },
     {
       id: 'system',
@@ -192,8 +359,18 @@ export default function AdminConsole({
       render: () => (
         <section className="bg-white border border-[#1A1815] p-4">
           <div className="text-sm font-semibold text-[#1A1815]" style={serif}>Actions</div>
+          {/* DR-0102 — the standing post-push review discipline, stated where the
+              action lives (APP-IS-PRIMARY). Not decoration: this is the habit the
+              "Review as a user" action exists to serve. */}
+          <div className="mt-2 border border-[#5A6E3D] bg-[#FAF8F4] p-3">
+            <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold">How we review</div>
+            <p className="text-xs text-[#1A1815] mt-1 leading-relaxed" style={serif}>
+              After every push to production, review it live <strong>as a user</strong> before trusting it — the CI gates prove the build is sound; this proves it’s right on the screen the user actually meets. Use <strong>Review as a user</strong> below any time; it’s always here. A pinned strip carries the one-tap way back.
+            </p>
+          </div>
           <div className="mt-2 space-y-2">
             <GuardedAction actionId="reload-latest" onExecute={doReload} />
+            <GuardedAction actionId="review-as-user" onExecute={doReviewAsUser} />
             {onResetSeed && <GuardedAction actionId="reset-seed" onExecute={doResetSeed} />}
           </div>
         </section>
@@ -241,8 +418,332 @@ export default function AdminConsole({
               ))}
             </ul>
           </div>
+
+          {/* Real, guarded role controls (DR-0220 Phase 3). Owner/admin only —
+              set_member_role (0111) is the real enforcement; the options shown
+              mirror its guards (never owner, only an owner grants admin, no self,
+              owners untouchable). Works for family AND the COLG/Love Corner church
+              instance — same primitive. */}
+          <div className="mt-3 pt-3 border-t border-[#E8E4DC]">
+            <div className="flex items-baseline justify-between gap-2">
+              <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold">Manage access roles</div>
+              <button type="button" onClick={() => loadMembers()}
+                className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] hover:text-[#1A1815]">
+                {members.status === 'loading' ? 'Loading…' : members.status === 'ok' ? 'Refresh' : 'Load members'}
+              </button>
+            </div>
+            <p className="text-[0.6875rem] text-[#5A5751] mt-0.5 leading-relaxed" style={serif}>
+              Change a member’s access in this space. You can’t change an owner, an admin (only an owner can), or yourself — and no one is ever made owner here.
+              Child and Successor are the protective standings (child: no financial visibility; successor: sees, cannot change) — only you as owner set or lift them.
+            </p>
+            <datalist id="rel-suggestions">
+              {RELATIONSHIP_SUGGESTIONS.map((s) => <option key={s} value={s} />)}
+            </datalist>
+            {adminInstances.length > 1 && (
+              <label className="flex items-center gap-2 mt-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">
+                Space
+                <select className="text-xs p-1 border border-[#E8E4DC] bg-white normal-case tracking-normal"
+                  value={scopeInstance || ''} onChange={(e) => { setScopeInstance(e.target.value); loadMembers(e.target.value); }}>
+                  {adminInstances.map((s) => (
+                    <option key={s.instanceId} value={s.instanceId}>
+                      {s.displayName || s.instanceId}{s.instanceType === 'church' ? ' (church)' : ''}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+            {members.status === 'no-instance' && <p className="text-xs mt-2 text-[#5A5751]" style={serif}>Not connected to the backend on this device.</p>}
+            {members.status === 'error' && <p className="text-xs mt-2 text-[#7A1F1F]" style={serif}>{members.error}</p>}
+            {members.status === 'ok' && members.list.length === 0 && <p className="text-xs mt-2 text-[#5A5751]" style={serif}>No members to manage (owner/admin access required).</p>}
+            {members.status === 'ok' && members.list.length > 0 && (() => {
+              const c = contactCoverage(members.list);
+              return (
+                <p className="text-[0.625rem] text-[#8A857C] mt-1" style={serif}>
+                  {c.people} {c.people === 1 ? 'person' : 'people'} · {c.withEmail} with an email · {c.withPhone} with a phone · {c.withBoth} with both. {c.note}
+                </p>
+              );
+            })()}
+            {/* TWO DOORS, ONE PERSON. The Governor signs in through gmail AND
+                through the phone door, so he appears twice on his own roster
+                (measured on the live roster 2026-09-11: poe-family and
+                tlc-therapy-solutions both carry both rows). This SAYS so, with
+                the reason attached — and changes nothing. Merging two accounts
+                is irreversible and is the Governor's word to give, not a
+                heuristic's, so both rows stay exactly as the database has them. */}
+            {members.status === 'ok' && samePersonHints(members.list).map((h) => (
+              <p key={`${h.a.userId}-${h.b.userId}`} className="text-[0.625rem] text-[#5A5751] mt-1.5 border-l-2 border-[#C9BFA8] pl-2" style={serif}>
+                <b>{h.a.displayName || h.a.email || 'a member'}</b> and <b>{h.b.displayName || h.b.email || 'a member'}</b> look like the same person — {h.why}.
+                {h.confidence === 'declared'
+                  ? ' Shown together here; nothing is merged, and both sign-in doors keep working.'
+                  : ' Nothing has been changed. If they are, the roles are set per door.'}
+              </p>
+            ))}
+            {members.status === 'ok' && members.list.length > 0 && (
+              <ul className="mt-2 space-y-1.5">
+                {members.list.map((m) => {
+                  const isSelf = !!(m.email && email && m.email.toLowerCase() === email.toLowerCase());
+                  const options = grantableRoles(members.myRole, m.role, { isSelf });
+                  const reach = contactOf(m);
+                  const who = labelFor(contactIdx, { ownName: m.displayName, email: m.email, phone: reach.phoneDigits });
+                  return (
+                    <li key={m.userId || m.email} className="text-xs text-[#1A1815]" style={serif} data-testid="roster-row">
+                      {/* WORDS STAY WHOLE; CONTROLS WRAP UNDER THE NAME (DR-0838;
+                          Darrell 2026-10-09, Christyn's row on his phone: the
+                          name column squeezed to one letter per line, and her
+                          Checklist and Inspect panels, which open right under
+                          the row, landed thousands of pixels down). The row
+                          wraps, the name keeps a real width and breaks between
+                          words, never inside one, and the selects and buttons
+                          take the next line on a narrow screen. */}
+                      <div className="flex flex-wrap items-baseline justify-between gap-2">
+                        <span className="basis-full sm:basis-auto sm:flex-1 min-w-0 break-words" data-testid="roster-row-name">
+                          <span data-testid="roster-row-who">{who.shown || m.email || 'member'}</span>
+                          {who.note && <span className="text-[0.5625rem] text-[#5A6E3D] ml-1 normal-case" data-testid="roster-contact-note">{who.note}</span>}{isSelf && <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold ml-1">you</span>}
+                          {/* WHO, and HOW TO REACH THEM (Darrell 2026-09-11:
+                              "also see the email and try to get email and
+                              cellphone together if they have them"). A display
+                              name used to HIDE the email entirely; now both
+                              show, and a phone-door account reads as the phone
+                              it actually is rather than a synthetic address.
+                              Missing either one is stated, never flagged — it
+                              is "not allowing it to be a constraint" in the
+                              one place that could have become one. */}
+                          <span className="block text-[0.625rem] text-[#5A5751] font-normal normal-case">{reachLabel(reach)}</span>
+                          {/* ...and WHEN: when they came into this space, and
+                              when they were last here. Unknown reads as
+                              unknown, never as today (DR-0076 rule 8). */}
+                          <span className="block text-[0.625rem] text-[#8A857C] font-normal normal-case">{whenLabel(m, todayIso)}</span>
+                        </span>
+                        <span className="flex flex-wrap items-center gap-1.5 shrink-0" data-testid="roster-row-controls">
+                          {options.length ? (
+                            <select className="text-xs p-1 border border-[#E8E4DC] bg-white" value={m.role}
+                              onChange={(e) => changeMemberRole(m.userId, e.target.value)}>
+                              <option value={m.role} disabled>{roleLabel(m.role)}</option>
+                              {options.filter((o) => o !== m.role).map((o) => <option key={o} value={o}>{roleLabel(o)}</option>)}
+                            </select>
+                          ) : (
+                            <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] whitespace-nowrap">{roleLabel(m.role)}</span>
+                          )}
+                          {/* Worker classification (0143, Darrell 2026-08-22 "1099
+                              and other etc..."): what they ARE to the books —
+                              beside what they may DO. A label, never a power. */}
+                          {m.userId && (
+                            <select
+                              aria-label={`Worker classification for ${m.displayName || m.email || 'member'}`}
+                              className="text-xs p-1 border border-[#E8E4DC] bg-white"
+                              value={m.classification || ''}
+                              onChange={(e) => changeMemberClassification(m.userId, e.target.value)}
+                            >
+                              <option value="">Unclassified</option>
+                              {CLASSIFICATIONS.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}
+                            </select>
+                          )}
+                          {/* Relationship (0144) — the free-growing label: type
+                              anything (Son, Uncle, Brother-in-law…); saves on
+                              blur or Enter. Suggestions, never a whitelist. */}
+                          {m.userId && (
+                            <input
+                              type="text"
+                              list="rel-suggestions"
+                              aria-label={`Relationship for ${m.displayName || m.email || 'member'}`}
+                              className="text-xs p-1 border border-[#E8E4DC] bg-white w-28"
+                              defaultValue={m.relationship || ''}
+                              placeholder="Relationship"
+                              maxLength={40}
+                              onBlur={(e) => { if ((e.target.value || '') !== (m.relationship || '')) changeMemberRelationship(m.userId, e.target.value); }}
+                              onKeyDown={(e) => { if (e.key === 'Enter') e.target.blur(); }}
+                            />
+                          )}
+                          {/* The governance checklist (DR-0242): additive powers
+                              between the roles — per person, DB-enforced. */}
+                          {m.userId && canEditCapabilities(members.myRole, m.role, { isSelf }) && (
+                            <button type="button"
+                              className="text-[0.625rem] uppercase tracking-wider px-2 py-1 border border-[#C9BFA8] text-[#5A5751] focus:outline focus:outline-2 focus:outline-[#B85838]"
+                              aria-expanded={checklistFor === m.userId}
+                              onClick={() => setChecklistFor((cur) => (cur === m.userId ? null : m.userId))}>
+                              {checklistFor === m.userId ? 'Close' : 'Checklist'}
+                            </button>
+                          )}
+                          {/* Everything on record for this person (DR-0828):
+                              doors, ways to reach them, devices seen, and what
+                              the cloud never holds, said. */}
+                          {m.userId && (
+                            <button type="button"
+                              className="text-[0.625rem] uppercase tracking-wider px-2 py-1 border border-[#C9BFA8] text-[#5A5751] focus:outline focus:outline-2 focus:outline-[#B85838]"
+                              aria-expanded={knownFor === m.userId}
+                              data-testid="roster-known-toggle"
+                              onClick={() => setKnownFor((cur) => (cur === m.userId ? null : m.userId))}>
+                              {knownFor === m.userId ? 'Close' : 'Known'}
+                            </button>
+                          )}
+                          {/* Inspect: the stewardship record (position · status ·
+                              satisfaction · notes, 0122) — Darrell 2026-07-27. */}
+                          {m.userId && (
+                            <button type="button"
+                              className="text-[0.625rem] uppercase tracking-wider px-2 py-1 border border-[#C9BFA8] text-[#5A5751] focus:outline focus:outline-2 focus:outline-[#B85838]"
+                              aria-expanded={inspecting === m.userId}
+                              onClick={() => setInspecting((cur) => (cur === m.userId ? null : m.userId))}>
+                              {inspecting === m.userId ? 'Close' : 'Inspect'}
+                            </button>
+                          )}
+                        </span>
+                      </div>
+                      {checklistFor === m.userId && (
+                        <div className="mt-1.5 border border-[#E8E4DC] bg-[#FAF8F4] p-2.5">
+                          <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] font-semibold">
+                            Extra powers for {m.displayName || m.email || 'this person'} — on top of {roleLabel(m.role)}
+                          </div>
+                          <p className="text-[0.6875rem] text-[#5A5751] mt-0.5 leading-relaxed" style={serif}>
+                            Each box adds one specific ability without changing their role. The books, money, and membership are never unlockable here — those stay with Admin.
+                          </p>
+                          {['Governance', 'Areas'].map((group) => (
+                            <div key={group} className="mt-1.5">
+                              <div className="text-[0.5625rem] uppercase tracking-wider text-[#B85838] font-semibold">{group}</div>
+                              <ul className="mt-1 space-y-1">
+                                {CAPABILITIES.filter((c) => c.group === group).map((c) => {
+                                  const on = capGrants.some((g) => g.userId === m.userId && g.capability === c.key);
+                                  return (
+                                    <li key={c.key}>
+                                      <label className="flex items-start gap-2 text-xs text-[#1A1815] cursor-pointer" style={serif}>
+                                        <input type="checkbox" className="mt-0.5 accent-[#5A6E3D]" checked={on}
+                                          onChange={(e) => toggleCapability(m.userId, c.key, e.target.checked)} />
+                                        <span>
+                                          <span className="font-semibold">{c.label}</span>
+                                          <span className="block text-[0.6875rem] text-[#5A5751]">{c.note}</span>
+                                        </span>
+                                      </label>
+                                    </li>
+                                  );
+                                })}
+                              </ul>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {knownFor === m.userId && (
+                        <PersonRecord instanceId={scopeInstance} member={m} contactIndex={contactIdx} />
+                      )}
+                      {inspecting === m.userId && (
+                        <MemberInspect instanceId={scopeInstance} member={m} />
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+
+          {/* Get people USING the app (Darrell 2026-07-22): invite someone into
+              this space by email. Church -> access on next sign-in; family/other
+              -> a one-time claim link to deliver, then confirm below. */}
+          <div className="mt-3 pt-3 border-t border-[#E8E4DC]">
+            <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold">Invite someone to this space</div>
+            <p className="text-[0.6875rem] text-[#5A5751] mt-0.5 leading-relaxed" style={serif}>
+              {scopeType === 'church'
+                ? 'They’ll get access the next time they sign in.'
+                : 'You’ll get a one-time link to send them; confirm them here once they open it.'}
+            </p>
+            <div className="mt-2 flex items-end gap-2 flex-wrap">
+              <div className="flex-1 min-w-[160px]">
+                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] block mb-1" htmlFor="ac-invite-email">Email</label>
+                <input id="ac-invite-email" type="email" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={invite.email}
+                  onChange={(e) => setInvite((p) => ({ ...p, email: e.target.value }))} placeholder="person@email.com" />
+              </div>
+              <div>
+                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] block mb-1" htmlFor="ac-invite-role">Role</label>
+                <select id="ac-invite-role" className="text-xs p-2 border border-[#E8E4DC] bg-white" value={invite.role}
+                  onChange={(e) => setInvite((p) => ({ ...p, role: e.target.value }))}>
+                  <option value="member">Member</option>
+                  <option value="viewer">Viewer</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
+              <button type="button" disabled={!invite.email.trim()} onClick={doInvite}
+                className="text-xs uppercase tracking-wider px-3 py-2 min-h-[36px] bg-[#5A6E3D] text-white font-semibold disabled:opacity-50 focus:outline focus:outline-2 focus:outline-[#B85838]">
+                Invite
+              </button>
+            </div>
+            {invite.msg && <p className="text-[0.6875rem] text-[#1A1815] mt-2" style={serif}>{invite.msg}</p>}
+            {invite.link && (
+              <div className="mt-1 flex items-center gap-2 flex-wrap">
+                <code className="text-[0.625rem] break-all bg-[#FAF8F4] border border-[#E8E4DC] px-2 py-1 max-w-full">{invite.link}</code>
+                <button type="button" onClick={() => { try { navigator.clipboard?.writeText(invite.link); } catch { /* noop */ } }}
+                  className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] hover:text-[#1A1815]">Copy</button>
+              </div>
+            )}
+            {pending.length > 0 && (
+              <div className="mt-3">
+                <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold">Waiting for your confirmation</div>
+                <ul className="mt-1.5 space-y-1.5">
+                  {pending.map((c) => (
+                    <li key={c.invite_id} className="flex items-baseline justify-between gap-2 text-xs text-[#1A1815]" style={serif}>
+                      <span className="break-all min-w-0">{c.claimed_email || c.email}{c.role ? <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] ml-1">{c.role}</span> : null}</span>
+                      <button type="button" onClick={() => doConfirm(c.invite_id)}
+                        className="text-[0.625rem] uppercase tracking-wider px-2 py-1 bg-[#1A1815] text-white hover:bg-[#B85838]">Confirm</button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
         </section>
       ),
+    },
+    {
+      // EVERY LESSON LINK SHARED, AND WHETHER IT WORKED (DR-0698, Darrell
+      // 2026-09-30: "keep record of who does what send links etc... so we
+      // know they work and don't"). Reads lesson_share_ledger(p_all) live;
+      // the database gives all rows only to the Governor.
+      id: 'shares',
+      label: 'Lesson shares',
+      icon: 'users',
+      render: () => <LessonShareLedger all />,
+    },
+    {
+      id: 'support',
+      label: 'Support access',
+      icon: 'lock',
+      // The Governed Support Door (DR-0223): fix issues without ambient data access.
+      render: () => <SupportAccess instanceId={instanceId} />,
+    },
+    {
+      id: 'systems',
+      label: 'Systems',
+      icon: 'monitor',
+      // THE LIVE SYSTEMS LOOK, from Admin (Darrell 2026-07-30). Each panel below
+      // self-fetches real state at runtime (reality-traced live, DR-0076): the
+      // delivery lane + uptime (OpsBoard), the database (DbHealth), the sovereign
+      // local LLM / Ari's brain (LlmHealth), whether the app is still LOOPING
+      // (LoopHealth), the sovereign pipelines
+      // (WorkflowStatus), and this device's network (NetworkStatus). Rendered
+      // lazily on open. This is the operations view that used to live scattered
+      // across other tabs — now one place the steward reaches from Admin.
+      render: () => (
+        <div className="space-y-5">
+          <p className="text-sm text-[#1A1815]" style={serif}>
+            The live state of the systems that run the app — the delivery lane and uptime, the
+            database, Ari’s sovereign brain, the pipelines, and this device’s connection. Every
+            reading is fetched live; nothing here is painted.
+          </p>
+          <OpsBoard />
+          <DbHealth />
+          <LlmHealth />
+          <LoopHealth data={data} decisions={data.loopDecisions || {}} onDecision={onLoopDecision} financialDocAt={financialDocAt} />
+          <WorkflowStatus />
+          <NetworkStatus variant="inline" />
+        </div>
+      ),
+    },
+    {
+      id: 'proving',
+      label: 'Proving our ways',
+      icon: 'check',
+      // DR-0819. Darrell 2026-10-08 asked two questions in one breath: whether
+      // the family is actually testing the functions we ship, and where the
+      // framework for our evaluation and assessment lives. Both answers are
+      // here, beside the quality proof that measures the SYSTEM, because this
+      // one measures whether the ways serve the people.
+      render: () => <ProvingOurWays />,
     },
     {
       id: 'quality',

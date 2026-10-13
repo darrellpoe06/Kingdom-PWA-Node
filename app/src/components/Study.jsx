@@ -32,6 +32,9 @@ import UiIcon from './UiIcon.jsx';
 import Presenter from './Presenter.jsx';
 import { studyPresentable } from '../lib/presentable.js';
 import { unfinalizedThoughts } from '../lib/thought-finalizer.js';
+import WordInline from './WordInline.jsx';
+import ShowTheWordToggle from './ShowTheWordToggle.jsx';
+import { useOpenWithTheWord } from '../lib/show-the-word.js';
 import {
   KINDS, KIND_ORDER, DEFAULT_LABEL,
   loadStudy, saveStudy, seedIfEmpty, mergeMissingSeeds,
@@ -46,7 +49,7 @@ import {
 
 const FIELD = 'w-full p-2 border border-[#E8E4DC] text-sm bg-white text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]';
 const AREA = 'w-full p-2 border border-[#E8E4DC] text-sm bg-white text-[#1A1815] leading-relaxed focus:outline focus:outline-2 focus:outline-[#B85838]';
-const LABEL = 'text-[9px] uppercase tracking-wider text-[#5A5751] block mb-1';
+const LABEL = 'text-[0.5625rem] uppercase tracking-wider text-[#5A5751] block mb-1';
 const BTN = 'text-xs uppercase tracking-wider px-3 py-2 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]';
 
 const nowMs = () => Date.now();
@@ -107,7 +110,7 @@ function EntryEditor({ initial, kind, onSave, onCancel }) {
   });
   return (
     <div className="bg-[#FAF8F4] border-2 border-[#B85838] p-3 space-y-2 my-2">
-      <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold">{f.id ? 'Edit' : 'New'} {KINDS[kind].label.toLowerCase()}</div>
+      <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">{f.id ? 'Edit' : 'New'} {KINDS[kind].label.toLowerCase()}</div>
       <div>
         <label className={LABEL} htmlFor="se-title">Title</label>
         <input id="se-title" className={FIELD} value={f.title} onChange={set('title')} placeholder="Name the thought" />
@@ -134,14 +137,14 @@ function EntryEditor({ initial, kind, onSave, onCancel }) {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 pt-1">
         <div className="border-l-2 border-[#1A1815] pl-2">
           <div className="flex items-center justify-between mb-1">
-            <label className="text-[9px] uppercase tracking-wider text-[#1A1815] font-semibold block" htmlFor="se-deep">↓ Deep · 4th-dimensional source</label>
+            <label className="text-[0.5625rem] uppercase tracking-wider text-[#1A1815] font-semibold block" htmlFor="se-deep">↓ Deep · 4th-dimensional source</label>
             <MicButton onText={append('deep')} label="the deep layer" />
           </div>
           <textarea id="se-deep" className={AREA} rows="8" value={f.deep} onChange={set('deep')} placeholder={isResearch ? 'The full research — what this culture believes, how the truth lands, the careful version.' : 'The deep reflection / the captured exchange / the code-for-building scratch. The full-strength version.'} />
         </div>
         <div className="border-l-2 border-[#5A6E3D] pl-2">
           <div className="flex items-center justify-between mb-1">
-            <label className="text-[9px] uppercase tracking-wider text-[#5A6E3D] font-semibold block" htmlFor="se-plain">↑ Plain · wider-audience version</label>
+            <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold block" htmlFor="se-plain">↑ Plain · wider-audience version</label>
             <MicButton onText={append('plain')} label="the plain layer" />
           </div>
           <textarea id="se-plain" className={AREA} rows="8" value={f.plain} onChange={set('plain')} placeholder="The same truth in plain language — what a wide room hears first. (This is the briefing layer; the deep source unfolds one click beneath it.)" />
@@ -161,7 +164,7 @@ function EntryEditor({ initial, kind, onSave, onCancel }) {
 // one click beneath (progressive disclosure, the exact briefing motion).
 // -----------------------------------------------------------------------------
 function EntryCard({ entry, onEdit, onDelete, onPin, onDeriveFrom }) {
-  const [openDeep, setOpenDeep] = useState(false);
+  const [openDeep, toggleOpenDeep] = useOpenWithTheWord();
   const ds = distillState(entry);
   const badge = DISTILL_BADGE[ds];
   const serif = { fontFamily: '"Fraunces", serif' };
@@ -170,28 +173,28 @@ function EntryCard({ entry, onEdit, onDelete, onPin, onDeriveFrom }) {
       <div className="flex items-baseline justify-between gap-2 flex-wrap">
         <div className="flex items-baseline gap-2 flex-wrap">
           <span style={{ ...serif, fontWeight: 600 }} className="text-[#1A1815]">{entry.pinned ? <><UiIcon name="pin" /> </> : ''}<UiIcon name={KINDS[entry.kind].icon} /> {entry.title || 'Untitled'}</span>
-          {entry.seed && <span className="text-[9px] uppercase tracking-wider bg-[#FAF8F4] border border-[#E8E4DC] text-[#5A5751] px-1.5 py-0.5">seed theme</span>}
-          {entry.source && entry.source.label && <span className="text-[9px] uppercase tracking-wider bg-[#5A6E3D] text-white px-1.5 py-0.5" title={`Saved from ${entry.source.where || entry.source.label}`}>↓ {entry.source.label}</span>}
+          {entry.seed && <span className="text-[0.5625rem] uppercase tracking-wider bg-[#FAF8F4] border border-[#E8E4DC] text-[#5A5751] px-1.5 py-0.5">seed theme</span>}
+          {entry.source && entry.source.label && <span className="text-[0.5625rem] uppercase tracking-wider bg-[#5A6E3D] text-white px-1.5 py-0.5" title={`Saved from ${entry.source.where || entry.source.label}`}>↓ {entry.source.label}</span>}
         </div>
-        <span className={`text-[9px] uppercase tracking-wider px-1.5 py-0.5 ${badge.cls}`}>{badge.text}</span>
+        <span className={`text-[0.5625rem] uppercase tracking-wider px-1.5 py-0.5 ${badge.cls}`}>{badge.text}</span>
       </div>
-      {entry.scripture && <p className="text-[11px] text-[#5A6E3D] mt-0.5" style={serif}>{entry.scripture}</p>}
-      {entry.culture && <p className="text-[11px] text-[#5A5751] mt-0.5" style={serif}><span className="uppercase tracking-wider text-[9px]">For:</span> {entry.culture}</p>}
+      {entry.scripture && <WordInline text={entry.scripture} className="text-[0.6875rem] text-[#5A6E3D] mt-0.5" style={serif} />}
+      {entry.culture && <p className="text-[0.6875rem] text-[#5A5751] mt-0.5" style={serif}><span className="uppercase tracking-wider text-[0.5625rem]">For:</span> {entry.culture}</p>}
 
       {/* Plain layer — the wider-audience version reads first. */}
       {entry.plain
-        ? <p className="text-sm text-[#1A1815] whitespace-pre-wrap mt-1.5" style={serif}>{entry.plain}</p>
+        ? <WordInline text={entry.plain} className="text-sm text-[#1A1815] whitespace-pre-wrap mt-1.5" style={serif} />
         : <p className="text-xs text-[#5A5751] italic mt-1.5" style={serif}>No plain version yet — the distillation is the next step.</p>}
 
       {/* Deep source — one click deeper. */}
       {entry.deep && (
         <div className="mt-2">
-          <button type="button" onClick={() => setOpenDeep((v) => !v)} aria-expanded={openDeep} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">
+          <button type="button" onClick={toggleOpenDeep} aria-expanded={openDeep} className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">
             {openDeep ? '↑ Hide the deep source' : '↓ Open the deep source (4th-dimensional)'}
           </button>
           {openDeep && (
             <div className="mt-1.5 bg-[#FAF8F4] border-l-2 border-[#1A1815] pl-3 pr-2 py-2">
-              <p className="text-sm text-[#1A1815] whitespace-pre-wrap" style={serif}>{entry.deep}</p>
+              <WordInline text={entry.deep} className="text-sm text-[#1A1815] whitespace-pre-wrap" style={serif} />
             </div>
           )}
         </div>
@@ -199,16 +202,16 @@ function EntryCard({ entry, onEdit, onDelete, onPin, onDeriveFrom }) {
 
       {(entry.tags || []).length > 0 && (
         <div className="flex flex-wrap gap-1.5 mt-2">
-          {entry.tags.map((t) => <span key={t} className="text-[10px] bg-[#FAF8F4] border border-[#E8E4DC] text-[#5A5751] px-1.5 py-0.5">{t}</span>)}
+          {entry.tags.map((t) => <span key={t} className="text-[0.625rem] bg-[#FAF8F4] border border-[#E8E4DC] text-[#5A5751] px-1.5 py-0.5">{t}</span>)}
         </div>
       )}
 
       <div className="flex items-center gap-3 mt-2 pt-2 border-t border-[#E8E4DC] flex-wrap">
-        <span className="text-[9px] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmtDate(entry.createdAt)}</span>
-        <button type="button" onClick={() => onEdit(entry)} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">Edit</button>
-        <button type="button" onClick={() => onDeriveFrom(entry)} title="Start a new study from this one — your own notes, building on it" className="text-[10px] uppercase tracking-wider text-[#5A6E3D] hover:text-[#1A1815]">✦ Create from this</button>
-        <button type="button" onClick={() => onPin(entry.id)} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">{entry.pinned ? 'Unpin' : 'Pin'}</button>
-        <button type="button" onClick={() => { if (window.confirm('Delete this entry from your Study? It will be removed on your other devices too.')) onDelete(entry.id); }} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] ml-auto">Delete</button>
+        <span className="text-[0.5625rem] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmtDate(entry.createdAt)}</span>
+        <button type="button" onClick={() => onEdit(entry)} className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">Edit</button>
+        <button type="button" onClick={() => onDeriveFrom(entry)} title="Start a new study from this one — your own notes, building on it" className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] hover:text-[#1A1815]">✦ Create from this</button>
+        <button type="button" onClick={() => onPin(entry.id)} className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">{entry.pinned ? 'Unpin' : 'Pin'}</button>
+        <button type="button" onClick={() => { if (window.confirm('Delete this entry from your Study? It will be removed on your other devices too.')) onDelete(entry.id); }} className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] ml-auto">Delete</button>
       </div>
     </div>
   );
@@ -224,8 +227,8 @@ function CaptureBox({ onCapture }) {
   const go = () => { if (!text.trim()) return; onCapture({ title, text }); setText(''); setTitle(''); };
   return (
     <div className="bg-white border border-[#1A1815] p-3 mb-3">
-      <div className="text-[10px] uppercase tracking-[0.25em] text-[#1A1815] font-semibold mb-1.5">Capture an exchange</div>
-      <p className="text-[11px] text-[#5A5751] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>Paste a deep reflective exchange here. It lands as the <strong>deep source</strong> of a new reflection — distill the plain wider-audience version next. Private to your sign-in, just for the circle.</p>
+      <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#1A1815] font-semibold mb-1.5">Capture an exchange</div>
+      <p className="text-[0.6875rem] text-[#5A5751] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>Paste a deep reflective exchange here. It lands as the <strong>deep source</strong> of a new reflection — distill the plain wider-audience version next. Private to your sign-in, just for the circle.</p>
       <input className={`${FIELD} mb-2`} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title (optional — first line is used if blank)" aria-label="Reflection title" />
       <textarea className={AREA} rows="4" value={text} onChange={(e) => setText(e.target.value)} placeholder="Paste the exchange…" aria-label="Exchange text" />
       <div className="flex gap-2 mt-2 flex-wrap">
@@ -403,7 +406,7 @@ export default function Study({ email }) {
   }
 
   return (
-    <div className="max-w-3xl">
+    <div className="w-full">
       <SectionTitle eyebrow="Private · for the circle only">
         {renaming ? (
           <span className="inline-flex items-center gap-2">
@@ -414,7 +417,7 @@ export default function Study({ email }) {
         ) : (
           <span className="inline-flex items-center gap-2">
             {study.label || DEFAULT_LABEL}
-            <button type="button" onClick={() => { setLabelDraft(study.label || ''); setRenaming(true); }} aria-label="Rename this space" title="Rename (e.g. Father of Lights)" className="text-[11px] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">✎ rename</button>
+            <button type="button" onClick={() => { setLabelDraft(study.label || ''); setRenaming(true); }} aria-label="Rename this space" title="Rename (e.g. Father of Lights)" className="text-[0.6875rem] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">✎ rename</button>
           </span>
         )}
       </SectionTitle>
@@ -422,7 +425,7 @@ export default function Study({ email }) {
       {/* James 1:17 — the Father of lights; the room of illumination. KJV-free ESV. */}
       <blockquote className="border-l-2 border-[#5A6E3D] bg-[#FAF8F4] pl-3 pr-2 py-2 mb-4" style={serif}>
         <p className="text-sm text-[#1A1815] italic">“Every good gift and every perfect gift is from above, coming down from the Father of lights, with whom there is no variation or shadow due to change.”</p>
-        <footer className="text-[11px] text-[#5A5751] mt-1">— James 1:17 (ESV). The deep layer beneath the briefings — your thinking, processing, and reprocessing. Private to your own sign-in within the circle; your notes follow you across your devices.</footer>
+        <footer className="text-[0.6875rem] text-[#5A5751] mt-1">— James 1:17 (ESV). The deep layer beneath the briefings — your thinking, processing, and reprocessing. Private to your own sign-in within the circle; your notes follow you across your devices.</footer>
       </blockquote>
 
       {/* Space toggle — the reflective workspace vs. the Eternal Algorithms
@@ -453,6 +456,7 @@ export default function Study({ email }) {
 
       {/* Add / search */}
       <div className="flex items-center gap-2 mb-3 flex-wrap">
+        <ShowTheWordToggle />
         {editing === null && (
           <button type="button" onClick={() => setEditing({})} className={`${BTN} text-[#B85838] hover:text-[#1A1815] border border-[#B85838]`}>+ New {KINDS[kind].label.toLowerCase()}</button>
         )}
@@ -479,7 +483,7 @@ export default function Study({ email }) {
         </div>
       )}
 
-      <p className="text-[10px] text-[#5A5751] mt-6 pt-3 border-t border-[#E8E4DC]" style={serif} role="status">
+      <p className="text-[0.625rem] text-[#5A5751] mt-6 pt-3 border-t border-[#E8E4DC]" style={serif} role="status">
         {SYNC_FOOT[syncStatus] || SYNC_FOOT.local}
       </p>
       </>

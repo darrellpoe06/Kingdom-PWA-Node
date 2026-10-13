@@ -9,6 +9,18 @@
 // =============================================================================
 import { createTableSync } from './table-sync.js';
 
+// The entity types the UI offers (BooksEntities ENTITY_TYPES) and the DB CHECK
+// now allows (migration 0106). Normalize an entity's type for upload: pass a
+// known type through, fall back to 'personal' for anything unknown so a bad value
+// can never break the insert. Before migration 0106 the DB only allowed
+// personal/business, so every other type was silently flattened to 'personal' —
+// a tax classification the family set, lost on sync. Exported so the round-trip
+// is pinned by a test.
+export const ENTITY_TYPES_SYNCED = ['personal', 'business', 'nonprofit', 'trust', 'joint', 'other'];
+export function normalizeEntityType(type) {
+  return ENTITY_TYPES_SYNCED.includes(type) ? type : 'personal';
+}
+
 export const entitiesSync = createTableSync({
   localKey: 'entities',
   remoteTable: 'entities',
@@ -22,7 +34,10 @@ export const entitiesSync = createTableSync({
       created_by: userId,
       slug: item.id, // local 'e-personal' becomes the slug
       display_name: item.name,
-      entity_type: item.type === 'business' ? 'business' : 'personal',
+      // Pass the real type through (migration 0106 widened the DB CHECK to the
+      // six the UI offers). Before, everything non-'business' was flattened to
+      // 'personal', silently dropping nonprofit/trust/joint/other.
+      entity_type: normalizeEntityType(item.type),
       notes: item.notes ?? null,
     };
   },

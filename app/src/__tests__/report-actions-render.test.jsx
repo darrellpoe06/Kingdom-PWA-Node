@@ -63,4 +63,24 @@ describe('ReportActions — shared export toolbar (real mount)', () => {
     await click(byAria('Download 1099 summary as CSV'));
     expect(downloads).toContain('1099-summary.csv');
   });
+
+  it('a KPI preset offers VIEW (see it on screen, no download) alongside CSV/PRINT', async () => {
+    const viewed = [];
+    const presets = [{ key: 'kpi-material', kpi: true, label: 'Material changes', hint: 'movers', buildModel: () => MODEL }];
+    const { click, byText, byAria } = await mount({ buildModel: () => MODEL, presets, onView: (k) => viewed.push(k) });
+    await click(byText('Reports ▾'));
+    const viewBtn = byAria('View Material changes on screen');
+    expect(viewBtn, 'KPI presets get a View action').toBeTruthy();
+    expect(byAria('Download Material changes as CSV'), 'CSV stays as the option').toBeTruthy(); // download still offered
+    await click(viewBtn);
+    expect(viewed).toEqual(['kpi-material']);      // View opens it on screen; nothing downloaded
+    expect(downloads).toEqual([]);
+  });
+
+  it('a non-KPI (standard export) preset has no View action — download only', async () => {
+    const presets = [{ key: 'monthly', label: 'Monthly summary', filenameBase: 'monthly', buildModel: () => MODEL }];
+    const { click, byText, byAria } = await mount({ buildModel: () => MODEL, presets, onView: () => {} });
+    await click(byText('Reports ▾'));
+    expect(byAria('View Monthly summary on screen')).toBeFalsy();
+  });
 });

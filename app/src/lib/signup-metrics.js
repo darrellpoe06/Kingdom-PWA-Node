@@ -17,8 +17,9 @@
 // status the UI renders as-is. Pure helpers are isolated + unit-tested so the
 // shaping logic is verified independent of the network.
 // =============================================================================
-import supabase from './supabase.js';
 import { relativeTime } from './access-metrics.js';
+import { restRpc, readSnapshotToken } from './access-metrics-sync.js';
+import { isPhoneDoorEmail, phoneDoorDigits, formatPhone } from './member-contact.js';
 
 // ── fetch ────────────────────────────────────────────────────────────────────
 // Returns a discriminated status object — never throws, never paints:
@@ -27,17 +28,15 @@ import { relativeTime } from './access-metrics.js';
 //   { status: 'unavailable', error }               — RPC missing / transient
 //   { status: 'ready', data }                      — real metrics payload
 export async function fetchSignupMetrics() {
-  let session = null;
-  try {
-    const { data } = await supabase.auth.getSession();
-    session = (data && data.session) || null;
-  } catch (_) {
-    // leave session null — treated as signed-out below
-  }
-  if (!session) return { status: 'signed-out' };
+  // Read the token from the persisted session (synchronous, NO navigator.locks) and
+  // call the RPC via direct REST — bypassing the Supabase client's cross-tab lock
+  // that a wedged PoeTech tab can hold (Darrell 2026-07-22). Bounded by restRpc's
+  // AbortController, so this never strands the SIGNUPS tab on "Loading…" (DR-0076).
+  const token = readSnapshotToken();
+  if (!token) return { status: 'signed-out' };
 
   try {
-    const { data, error } = await supabase.rpc('admin_signup_metrics');
+    const { data, error } = await restRpc('admin_signup_metrics', {}, token);
     if (error) {
       // 42501 = our in-function "not authorized" raise (insufficient_privilege).
       // PostgREST may also surface it as code 'P0001' (raise) — match on text too.
@@ -104,32 +103,100 @@ export function maskEmail(email) {
   return `${first}…${domain}`;
 }
 
+// The account's EFFECTIVE last-active time: the later of "last authenticated"
+// (auth.users.last_sign_in_at, the auth stamp) and "last seen in the app"
+// (member_presence.last_seen_at, the real activity heartbeat). The RPC (0079)
+// already computes this as last_active_at; we still fall back here so an older
+// payload — or a row with only the auth stamp — degrades honestly instead of
+// reading "never". Returns an ISO string or null (never fabricated).
+//
+// WHY THIS MATTERS: a persistent PWA session refreshes its token silently and
+// does NOT bump last_sign_in_at, so a user active daily can carry a two-week-old
+// sign-in stamp. last_active_at reflects real use; last_sign_in_at alone did not.
+export function lastActiveAt(row) {
+  const r = row || {};
+  return r.last_active_at || r.last_sign_in_at || null;
+}
+
 // Has this account come back at least once since creating it? (returned vs.
-// signed-up-and-vanished). Real timestamps only — null last_sign_in => false.
+// signed-up-and-vanished). Measured against the effective last-active, so a
+// silently-refreshed session still counts as returned. Real timestamps only.
 export function hasReturned(row) {
-  if (!row || !row.last_sign_in_at || !row.created_at) return false;
-  const last = Date.parse(row.last_sign_in_at);
+  if (!row || !row.created_at) return false;
+  const activeIso = lastActiveAt(row);
+  if (!activeIso) return false;
+  const last = Date.parse(activeIso);
   const made = Date.parse(row.created_at);
   if (Number.isNaN(last) || Number.isNaN(made)) return false;
   return last - made > 5 * 60 * 1000; // > 5 min after creation
+}
+
+// Active within the last few minutes — "using the app right now". Drives the
+// "active now" readout so a signed-in-this-minute member never reads as absent.
+const ACTIVE_NOW_MS = 10 * 60 * 1000; // 10 min heartbeat-freshness window
+export function isActiveNow(row, nowMs) {
+  const activeIso = lastActiveAt(row);
+  if (!activeIso) return false;
+  const last = Date.parse(activeIso);
+  if (Number.isNaN(last)) return false;
+  return (nowMs - last) <= ACTIVE_NOW_MS && (nowMs - last) >= -ACTIVE_NOW_MS;
+}
+
+// A phone-door account's "email" is the phone it signs in with, not a mailbox
+// (member-contact.js). Printing `12173900498@phone.poetech.us` in the place an
+// email goes states something false about how to reach the person; this reads
+// it as the phone it is. Masked, only the last four digits show.
+export function reachOf(email, mask = false) {
+  const e = String(email || '').trim();
+  if (isPhoneDoorEmail(e)) {
+    const d = phoneDoorDigits(e);
+    const shown = mask ? `phone ending ${d.slice(-4)}` : formatPhone(d);
+    return { phoneDoor: true, phone: d, text: `${shown} · signs in by phone` };
+  }
+  return { phoneDoor: false, phone: '', text: mask ? maskEmail(e) : (e || '(no email)') };
+}
+
+// The account's OWN name, or null when the "name" is only its identifier: the
+// phone door names an account by the digits of its address (0140 falls back
+// to the local part of the email), so `14472209779` is not a name anybody
+// chose, and showing it as one hid the contact's real name beside it
+// (Darrell's screenshot, 2026-10-09: digits first, "in your contacts as
+// Christyn Poe" after). An email's local part is the same non-name.
+export function ownNameOf(displayName, email) {
+  const n = String(displayName || '').trim();
+  if (!n) return null;
+  const e = String(email || '').trim().toLowerCase();
+  const bare = n.replace(/[\s().+-]/g, '');
+  if (/^\d+$/.test(bare)) return null;                                  // digits, however punctuated
+  if (e && n.toLowerCase() === e) return null;                          // the whole address
+  // The local part of a PHONE-DOOR address is the digits again; an ordinary
+  // email's local part may be a name the person chose, so it stays.
+  if (isPhoneDoorEmail(e) && n.toLowerCase() === e.slice(0, e.indexOf('@'))) return null;
+  return n;
 }
 
 // Shape one RPC signup row into the fields the list renders. `mask` toggles
 // email masking; `nowMs` stamps relative times once per render.
 export function signupRowView(row, nowMs, mask = false) {
   const r = row || {};
+  const activeIso = lastActiveAt(r);
+  const reach = reachOf(r.email, mask);
   return {
     userId: r.user_id || null,
-    name: (r.display_name && String(r.display_name).trim()) || null,
-    email: mask ? maskEmail(r.email) : (r.email || '(no email)'),
+    name: ownNameOf(r.display_name, r.email),
+    email: reach.text,
     rawEmail: r.email || null,
+    phoneDoor: reach.phoneDoor,
+    phone: reach.phone,
     category: r.category || 'unknown',
     categoryLabel: categoryLabel(r.category),
     categoryTone: categoryTone(r.category),
     instanceType: r.instance_type || null,
     role: r.role || null,
     joined: relativeTime(r.created_at, nowMs),
-    lastSeen: r.last_sign_in_at ? relativeTime(r.last_sign_in_at, nowMs) : 'never',
+    // "last active" = effective last-active (auth stamp OR live heartbeat).
+    lastSeen: activeIso ? relativeTime(activeIso, nowMs) : 'never',
+    activeNow: isActiveNow(r, nowMs),
     returned: hasReturned(r),
     emailConfirmed: !!r.email_confirmed,
   };

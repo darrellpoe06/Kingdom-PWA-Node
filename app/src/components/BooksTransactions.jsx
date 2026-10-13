@@ -11,18 +11,38 @@
 // n8n base + reconciliation helpers it uses were already core libs.
 import React, { useState, useEffect, useMemo } from 'react';
 import { TabScroll } from './shared.jsx';
+import SectionTabs from './SectionTabs.jsx';
 import { fmt } from '../lib/format.js';
-import { N8N_BASE } from '../lib/n8n-base.js';
+// n8n retired (DR-0218): mark-noise persists via transaction-noise-sync (0127).
 import { isReconciled } from '../lib/reconciliation.js';
 import { versionTimeline } from '../lib/record-history.js';
-import { isSpreadsheetFile, statementFileToCsv, parseDelimitedToRows, findStatementHeader, looksImportableFile } from '../lib/statement-import.js';
-import { planBulkImport } from '../lib/bulk-statement-import.js';
+import { isSpreadsheetFile, statementFileToCsv, parseDelimitedToRows, findStatementHeader, looksImportableFile, parseAmount } from '../lib/statement-import.js';
+import { planBulkImport, planAccountImport, accountTxnIds } from '../lib/bulk-statement-import.js';
 import { recordLoopRun } from '../lib/loop-runs.js';
 import { filterTransactions, sortTransactions, categorySummary, reviewStatus } from '../lib/transaction-analysis.js';
-import { categorize, payeeKey, countPayeeMatches } from '../lib/categorize.js';
-import { compressImageFile } from '../lib/image.js';
-import { receiptShape, loadPending, addPending, removePending, suggestMatches } from '../lib/receipts.js';
+import { categorize, payeeKey, countPayeeMatches, categoryLabel } from '../lib/categorize.js';
+import { compressImageFile, isLikelyImageFile } from '../lib/image.js';
+import { receiptShape, loadPending, addPending, removePending, suggestMatches, matchKind } from '../lib/receipts.js';
+import { runningBalanceByTxId } from '../lib/imported-view.js';
+import { commitReadout } from '../lib/import-commit.js';
+import { reconcileStatement } from '../lib/statement-reconciliation.js';
+import { matchParty, needsPartyPrompt, learnParty, forgetParty, PARTY_TYPES, PARTY_AUTO_CONFIDENCE } from '../lib/payee-entity-learning.js';
+import { findImportDuplicates } from '../lib/dedupe-imports.js';
+
+// Commit a batch of imported rows and REPORT how many actually saved to the cloud
+// (Christina's books). Uses the verifying batch commit when available; falls back
+// to the per-row path so nothing breaks if the prop isn't wired.
+async function commitBatch(rows, commitImportedRows, addTransaction) {
+  if (typeof commitImportedRows === 'function') {
+    const summary = await commitImportedRows(rows);
+    return commitReadout(summary);
+  }
+  (rows || []).forEach(r => addTransaction(r));
+  return `Imported ${(rows || []).length} transaction(s).`;
+}
 import LedgerProof from './LedgerProof.jsx';
+import LedgerEdit from './LedgerEdit.jsx';
+import { motionBehavior } from '../lib/gentle-motion.js';
 
 const TX_CATEGORIES = ['salary', 'rental-income', 'transfer', 'groceries', 'fuel', 'utilities', 'dining', 'medical', 'vehicle', 'household', 'charitable', 'business', 'professional', 'insurance', 'subscription', 'debt-payment', 'other'];
 
@@ -75,10 +95,25 @@ function ReceiptModal({ attachTo, transactions, pending, onAttach, onSavePending
 
   const onPhoto = async (file) => {
     if (!file) return;
-    if (!(file.type || '').startsWith('image/')) { setBusy(`"${file.name}" is not a photo.`); return; }
-    setBusy('Compressing…');
-    try { setSrc(await compressImageFile(file, 1280, 0.6)); setBusy(''); }
-    catch (e) { setBusy(`Could not read the photo: ${e.message || 'unknown error'}`); }
+    // Loose gate (isLikelyImageFile, DR-0121 item 9): Android picks can carry
+    // a blank MIME type — a real photo used to be rejected here before the
+    // decoder ever saw it. The decoder below stays the real judge.
+    if (!isLikelyImageFile(file)) { setSrc(''); setBusy(`"${file.name}" is not a photo — pick a JPG, PNG, or HEIC image.`); return; }
+    // Clear any prior photo so a failed read can never leave a stale preview
+    // standing in for the file the user actually picked.
+    setSrc('');
+    setBusy('Reading the photo…');
+    try {
+      const out = await compressImageFile(file, 1280, 0.6);
+      // A decode that silently yields an empty/degenerate data URL would enable
+      // the button with no real photo behind it — treat it as a failure.
+      if (!out || out.length < 100) throw new Error('the image could not be decoded on this device');
+      setSrc(out);
+      setBusy('');
+    } catch (e) {
+      setSrc('');
+      setBusy(`Could not read that photo (${(e && e.message) || 'unknown error'}). Try again, or pick a different image.`);
+    }
   };
 
   const buildReceipt = () => receiptShape({ src, amount, merchant, capturedAt });
@@ -90,16 +125,24 @@ function ReceiptModal({ attachTo, transactions, pending, onAttach, onSavePending
           <div className="flex items-baseline justify-between gap-2">
             <div>
               <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">Receipts</div>
-              <h3 className="text-lg text-[#1A1815] font-semibold">{attachTo ? `Attach to: ${attachTo.description}` : 'Snap a receipt'}</h3>
+              <h3 className="text-lg text-[#1A1815] font-semibold">{attachTo ? `Attach to: ${attachTo.description}` : 'Add a receipt'}</h3>
               <p className="text-xs text-[#5A5751]">{attachTo ? 'The photo stores on this transaction and follows it to every device.' : 'No matching charge yet? Save it here — when the bank row lands, match it with one tap.'}</p>
             </div>
             <button type="button" onClick={onClose} className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">× Close</button>
           </div>
 
           <div>
-            <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">1. The photo</div>
-            <input type="file" accept="image/*" capture="environment" onChange={(e) => onPhoto(e.target.files && e.target.files[0])} className="block w-full text-xs file:mr-3 file:px-3 file:py-1.5 file:bg-[#1A1815] file:text-white file:border-0 file:uppercase file:tracking-wider file:text-[0.625rem] file:cursor-pointer" />
-            {src && <img src={src} alt="Receipt preview" className="mt-2 max-h-48 border border-[#E8E4DC]" />}
+            <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">1. The photo — take one now, or pick from your photos / files</div>
+            {/* Reset value on EVERY change: the browser fires `change` only when
+                the file value differs, so without this, re-picking the SAME
+                receipt (the common case after a save, or after a failed read)
+                fires nothing and the Save button stays stuck on step 1. Clearing
+                the value first makes the compressed preview below the single
+                source of truth for "a photo is loaded." */}
+            <input type="file" accept="image/*" onChange={(e) => { const f = e.target.files && e.target.files[0]; e.target.value = ''; onPhoto(f); }} className="block w-full text-xs file:mr-3 file:px-3 file:py-1.5 file:bg-[#1A1815] file:text-white file:border-0 file:uppercase file:tracking-wider file:text-[0.625rem] file:cursor-pointer" />
+            {src
+              ? <img src={src} alt="Receipt preview" className="mt-2 max-h-48 border border-[#E8E4DC]" />
+              : <p className="mt-1 text-[0.625rem] text-[#5A5751]">Pick a photo above — its preview appears here once it loads, then the button unlocks.</p>}
           </div>
 
           <div className="grid grid-cols-3 gap-2">
@@ -142,11 +185,21 @@ function ReceiptModal({ attachTo, transactions, pending, onAttach, onSavePending
                         <div className="text-xs text-[#1A1815]">{r.merchant || 'Receipt'} · {r.amount != null ? fmt(-r.amount) : 'no total'} · {r.capturedAt}</div>
                         {matches.length === 0 ? (
                           <p className="text-[0.625rem] text-[#5A5751] italic">No matching charge in the ledger yet — it usually lands within a few days.</p>
-                        ) : matches.map((t) => (
-                          <button key={t.id} type="button" onClick={() => { onAttach(t, { ...r }); onDeletePending(r.id); }} className="block text-left text-[0.6875rem] text-[#5A6E3D] hover:text-[#1A1815] underline">
-                            Attach → {t.description} · {fmt(t.amount)} · {t.date}
-                          </button>
-                        ))}
+                        ) : matches.map((t) => {
+                          // Label WHY this row is suggested. A tip-inclusive or
+                          // date-only pairing is inexact by design (the charge
+                          // carries a tip the paper doesn't) — flag it so the
+                          // human confirms rather than trusting a silent pair.
+                          const kind = matchKind(r, t);
+                          const tag = kind === 'exact' ? { text: 'exact', cls: 'text-[#5A6E3D]' }
+                            : kind === 'tip' ? { text: '+ tip?', cls: 'text-[#8B6F47]' }
+                            : { text: 'date only — verify', cls: 'text-[#8B6F47]' };
+                          return (
+                            <button key={t.id} type="button" onClick={() => { onAttach(t, { ...r }); onDeletePending(r.id); }} className="block text-left text-[0.6875rem] text-[#5A6E3D] hover:text-[#1A1815] underline">
+                              Attach → {t.description} · {fmt(t.amount)} · {t.date} <span className={`uppercase tracking-wider text-[0.5625rem] no-underline ${tag.cls}`}>· {tag.text}</span>
+                            </button>
+                          );
+                        })}
                         <button type="button" onClick={() => onDeletePending(r.id)} className="mt-0.5 text-[0.625rem] text-[#991B1B] hover:underline">Delete</button>
                       </div>
                     </div>
@@ -161,7 +214,7 @@ function ReceiptModal({ attachTo, transactions, pending, onAttach, onSavePending
   );
 }
 
-export default function BooksTransactions({ data, entityFilter, setEntityFilter, currentDate, addTransaction, updateTransaction, deleteTransaction, recategorizePayee = null, ingestData = null, visibleEntities = null, visibleEntityIds = null }) {
+export default function BooksTransactions({ data, entityFilter, setEntityFilter, currentDate, addTransaction, commitImportedRows = null, updateTransaction, deleteTransaction, recategorizePayee = null, ingestData = null, visibleEntities = null, visibleEntityIds = null, payeeEntityRules = {}, setPayeeEntityRules = null }) {
   // UNBREAKABLE (2026-06-25 white-screen fix) — every account/entity access in
   // this view assumed `data.accounts` and `data.entities` were always present
   // arrays. They are not guaranteed: a signed-in user's merged cloud data can
@@ -174,6 +227,16 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
   // surface must not throw at all.
   const accounts = useMemo(() => (Array.isArray(data?.accounts) ? data.accounts : []), [data?.accounts]);
   const entities = useMemo(() => (Array.isArray(data?.entities) ? data.entities : []), [data?.entities]);
+  // The category pick-list: the canonical set PLUS any category already present in
+  // the ledger (so a raw import code or a category the user CREATED earlier stays
+  // pickable). The Category field is a pick-or-type combobox, so a brand-new name
+  // typed here becomes a real category — recategorizePayee remembers it and
+  // back-applies it (Darrell 2026-07-19: "if a user creates a new category").
+  const allCategories = useMemo(() => {
+    const seen = new Set(TX_CATEGORIES);
+    for (const t of (data?.transactions || [])) { const c = t && t.category; if (c) seen.add(String(c).toLowerCase()); }
+    return [...seen].sort();
+  }, [data?.transactions]);
   // Safe entity label — never assume a string `name` exists.
   const entityLabel = (e) => ((e && e.name) || (e && e.id) || '—').split('(')[0].trim();
   const [txView, setTxView] = useState('history');
@@ -273,8 +336,11 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   // "Apply this category to every transaction from this payee" — learns the rule
-  // + back-applies (recategorizePayee). Reset each time an edit opens/closes.
-  const [applyToPayee, setApplyToPayee] = useState(false);
+  // + back-applies (recategorizePayee). Default ON (Darrell 2026-07-19: "auto-apply
+  // ... change all like it ... then retroactively change all of them"): one category
+  // change re-labels every same-payee row and teaches future imports. The user can
+  // untick it for a one-off row. Only fires when the category actually CHANGED.
+  const [applyToPayee, setApplyToPayee] = useState(true);
   const todayISO = currentDate.toISOString().slice(0, 10);
   const blank = { date: todayISO, accountId: accounts[0]?.id || '', amount: 0, description: '', category: 'other', entityOverride: '' };
   const [form, setForm] = useState(blank);
@@ -284,17 +350,21 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
   const startAdd = () => { setForm({ ...blank, accountId: accounts[0]?.id || '' }); setEditingId(null); setShowForm(true); };
   // r32 — Inline edit per IN-PLACE-FIRST: edit form drops down under the row,
   // top form reserved for Add only.
-  const startEdit = (t) => { setForm({ date: t.date, accountId: t.accountId, amount: t.amount, description: t.description, category: t.category || 'other', entityOverride: t.entityOverride || '' }); setEditingId(t.id); setApplyToPayee(false); setShowForm(false); };
-  const cancel = () => { setShowForm(false); setEditingId(null); setApplyToPayee(false); setForm(blank); };
+  const startEdit = (t) => { setForm({ date: t.date, accountId: t.accountId, amount: t.amount, description: t.description, category: t.category || 'other', entityOverride: t.entityOverride || '' }); setEditingId(t.id); setApplyToPayee(true); setShowForm(false); };
+  const cancel = () => { setShowForm(false); setEditingId(null); setApplyToPayee(true); setForm(blank); };
   const submit = () => {
     if (!form.date || !form.accountId || !form.description) { alert('Date, account, and description are required.'); return; }
     const payload = { ...form, amount: parseFloat(form.amount) || 0 };
     if (!payload.entityOverride) delete payload.entityOverride;
     if (editingId) {
+      // Only back-apply when the CATEGORY actually changed — so editing a row's
+      // amount/date never silently re-labels its same-payee siblings.
+      const orig = (data.transactions || []).find((t) => t.id === editingId);
+      const catChanged = !orig || (orig.category || 'other') !== payload.category;
       updateTransaction(editingId, payload);
       // Learn + back-apply: one correction re-labels every row from this payee
       // and teaches the rule for future imports.
-      if (applyToPayee && recategorizePayee && payload.category) recategorizePayee(payload.description, payload.category);
+      if (applyToPayee && recategorizePayee && payload.category && catChanged) recategorizePayee(payload.description, payload.category);
     } else {
       addTransaction(payload);
     }
@@ -335,17 +405,15 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
       next.add(fitid);
       return next;
     });
-    const base = N8N_BASE;
-    if (!base) return; // local-only optimism; state will not persist
+    // SOVEREIGN (DR-0218): persist to the RLS-scoped transaction_noise table
+    // (migration 0127), not n8n. Signed-out degrades to local-only optimism.
     try {
-      const url = `${base.replace(/\/+$/, '')}/webhook/mark-noise`;
-      const r = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        mode: 'cors',
-        body: JSON.stringify({ institution: inst, fitid, reason: 'pwa-tx-mark-noise' })
-      });
-      if (!r.ok) throw new Error('Mark-noise endpoint returned ' + r.status);
+      const { addNoiseFlag } = await import('../lib/transaction-noise-sync.js');
+      const res = await addNoiseFlag({ institution: inst, fitid, reason: 'pwa-tx-mark-noise' });
+      if (!res.ok) {
+        if (res.reason === 'signed-out') return; // local-only; will not persist
+        throw new Error(res.reason);
+      }
     } catch (e) {
       // Revert optimism on failure so the user knows it didn't stick.
       setNoisedLocally(prev => {
@@ -382,7 +450,7 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
     setForm(prefill);
     setEditingId(null);
     setShowForm(true);
-    try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) {}
+    try { window.scrollTo({ top: 0, behavior: motionBehavior() }); } catch (e) {}
   };
 
   const matchesEntity = (t) => {
@@ -519,6 +587,13 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
     });
     return map;
   })();
+
+  // Historical running balance per transaction — the balance AS OF each row, so
+  // the register shows a statement-style column that CHANGES date to date instead
+  // of repeating the account's single current balance on every line (Christina's
+  // books, 2026-07-18). Prefers the bank's own imported balance per row; chains
+  // the rest off the opening balance. Pure helper, unit-tested.
+  const runningBalByTx = runningBalanceByTxId(data.transactions || [], accounts || []);
 
   // Round 7 — 30/60/90 forecast revised:
   //   · Cash-only (bank/savings/cash/investment). Credit + loan are tracked
@@ -675,40 +750,58 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
       const date = normalizeDate(rawDate);
       const desc = cells[idx.desc] || '';
       let amt = 0;
-      if (idx.amount !== -1 && cells[idx.amount]) amt = parseFloat(cells[idx.amount].replace(/[$,]/g, '')) || 0;
-      else if (idx.credit !== -1 && cells[idx.credit]) amt = parseFloat(cells[idx.credit].replace(/[$,]/g, '')) || 0;
+      if (idx.amount !== -1 && cells[idx.amount]) amt = parseAmount(cells[idx.amount]);
+      else if (idx.credit !== -1 && cells[idx.credit]) amt = parseAmount(cells[idx.credit]);
       if (csvFlipSign) amt = -amt;
       const category = idx.category !== -1 ? (cells[idx.category] || 'other').toLowerCase() : 'other';
-      const ok = !!date && !!desc && /^\d{4}-\d{2}-\d{2}$/.test(date);
-      return { lineNo: headerRow + i + 2, rawDate, date, desc, amount: amt, category, ok };
+      // Name WHY a row is skipped so a lower total is never silent (Christina,
+      // 2026-07-13). An Excel date left as a serial number ("45850") is the most
+      // common cause — it fails the YYYY-MM-DD check and the row drops.
+      let reason = '';
+      if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) reason = 'unreadable or blank date';
+      else if (!desc) reason = 'missing description';
+      const ok = !reason;
+      // Capture the bank's running balance when the export has it (Chase does), so
+      // the single-file import carries it too and the account-of-record "reconciles"
+      // badge can verify this account (2026-07-18). Absent -> undefined (unchanged).
+      const balance = (idx.balance !== undefined && idx.balance !== -1 && cells[idx.balance] != null && String(cells[idx.balance]).trim() !== '')
+        ? parseAmount(cells[idx.balance]) : undefined;
+      return { lineNo: headerRow + i + 2, rawDate, date, desc, amount: amt, category, ok, reason, balance };
     });
     return { rows, headers, idx, errors };
   })();
 
-  const importCsv = () => {
+  const rowFromCsv = (r) => ({
+    date: r.date,
+    accountId: csvAccountId,
+    amount: r.amount,
+    description: r.desc.slice(0, 200),
+    category: ['salary','rental-income','transfer','groceries','fuel','utilities','dining','medical','vehicle','household','charitable','business','professional','insurance','subscription','debt-payment','other'].includes(r.category) ? r.category : 'other',
+    // Carry the bank's running balance so the account-of-record "reconciles" badge
+    // can verify this account, matching the bulk path (2026-07-18).
+    ...(r.balance != null && r.balance !== '' ? { balance: Number(r.balance) || 0 } : {}),
+  });
+  const importCsv = async () => {
     if (!csvAccountId) { setCsvError('Pick a target account first.'); return; }
     const valid = csvParsed.rows.filter(r => r.ok);
     if (valid.length === 0) { setCsvError('No valid rows to import.'); return; }
     if (!confirm(`Import ${valid.length} transaction(s) into ${(accounts.find(a => a.id === csvAccountId) || {}).name || 'this account'}?`)) return;
-    valid.forEach(r => {
-      addTransaction({
-        date: r.date,
-        accountId: csvAccountId,
-        amount: r.amount,
-        description: r.desc.slice(0, 200),
-        category: ['salary','rental-income','transfer','groceries','fuel','utilities','dining','medical','vehicle','household','charitable','business','professional','insurance','subscription','debt-payment','other'].includes(r.category) ? r.category : 'other',
-      });
-    });
-    // Emit the run-state outcome for the Loops watching layer (DR-0083) —
-    // ran-when / rows / status, read-only + non-blocking so observing can never
-    // break the import. The balance already moved off the addTransaction calls;
-    // this only RECORDS that it happened.
+    // IDEMPOTENT import (2026-07-19): give every row a stable content-addressed id and
+    // dedupe against the existing ledger, so re-importing the same statement (or the
+    // Reset & re-import repair) can NEVER stack duplicate rows — the root fix for the
+    // "many DEBIT copies though I don't re-upload" leak. Rows already present are
+    // skipped; genuine new rows commit with a deterministic id.
+    const { txns, duplicates } = planAccountImport(valid.map(rowFromCsv), csvAccountId, data.transactions || []);
+    // Commit + VERIFY: the readout reports how many actually saved to the cloud
+    // (Christina's books) instead of a silent per-row fire-and-forget.
+    const saveMsg = await commitBatch(txns, commitImportedRows, addTransaction);
+    const msg = duplicates > 0 ? `${saveMsg} (${duplicates} already in the ledger — skipped, no duplicates added.)` : saveMsg;
     const acctName = (accounts.find(a => a.id === csvAccountId) || {}).name || 'account';
-    recordLoopRun({ key: 'upload-import', status: 'success', processed: valid.length, detail: `${acctName} · CSV/Excel` });
+    recordLoopRun({ key: 'upload-import', status: 'success', processed: txns.length, detail: `${acctName} · CSV/Excel · ${duplicates} dup skipped` });
     setCsvOpen(false);
     setCsvRaw('');
     setCsvError('');
-    alert(`Imported ${valid.length} transaction(s).`);
+    alert(msg);
   };
   // Bulk import — drop MANY statement files at once, each AUTO-ROUTED to its
   // account by filename, deduped (FITID/content) so a re-upload or overlapping
@@ -736,13 +829,111 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
       setBulkPlan(null); setCsvError(`Could not read files: ${e.message || 'error'}`);
     } finally { setBulkBusy(''); }
   };
-  const commitBulk = () => {
+  const commitBulk = async () => {
     if (!bulkPlan || !bulkPlan.totalNew) return;
     if (!confirm(`Import ${bulkPlan.totalNew} transaction(s) across ${bulkPlan.routed.length} account(s)? ${bulkPlan.duplicates} duplicate(s) will be skipped.`)) return;
-    bulkPlan.routed.forEach(b => b.txns.forEach(t => addTransaction(t)));
+    const allTxns = bulkPlan.routed.flatMap(b => b.txns);
+    const msg = await commitBatch(allTxns, commitImportedRows, addTransaction);
     recordLoopRun({ key: 'upload-import', status: 'success', processed: bulkPlan.totalNew, detail: `bulk · ${bulkPlan.routed.length} accounts` });
     setBulkPlan(null); setBulkRecon(null); setCsvOpen(false);
-    alert(`Imported ${bulkPlan.totalNew} transaction(s).`);
+    alert(msg);
+  };
+  // Reset ONE account's register so a clean statement can be re-imported after a
+  // bad/collapsed earlier import (Christina's books, 2026-07-18). The family owns
+  // this destructive click: a plain confirm names the exact count + account, and
+  // the scope is STRICTLY the chosen account (accountTxnIds) so no other account's
+  // ledger is ever touched. Non-negotiably irreversible, so it says so.
+  const clearAccountRegister = () => {
+    if (!csvAccountId) { setCsvError('Pick the account to reset (step 1) first.'); return; }
+    const acct = (accounts.find(a => a.id === csvAccountId) || {}).name || 'this account';
+    const ids = accountTxnIds(data.transactions || [], csvAccountId);
+    if (ids.length === 0) { alert(`${acct} has no transactions to clear — you can import a statement now.`); return; }
+    if (!confirm(`Reset ${acct}: permanently remove all ${ids.length} transaction(s) so you can re-import a clean bank statement?\n\nThis CANNOT be undone. Manual entries in this account will also be removed.`)) return;
+    deleteTransaction(ids); // ONE batched cloud delete (chunked), not thousands of single ones
+    recordLoopRun({ key: 'account-reset', status: 'success', processed: ids.length, detail: acct });
+    alert(`Cleared ${ids.length} transaction(s) from ${acct}. Now pick the bank file above to import a clean register.`);
+  };
+  // One-tap "Reset & re-import clean" — the whole fix in a SINGLE confirmed action
+  // (Darrell 2026-07-18: "you do it"). Combines clearAccountRegister + importCsv so a
+  // bad/collapsed import is replaced in one step: remove the account's current rows,
+  // then import the chosen file's valid rows to that account. Same strict account
+  // scope (accountTxnIds) + same irreversible warning. Needs a picked account AND a
+  // parsed file; the button only shows when both are ready.
+  const resetAndImport = async () => {
+    if (!csvAccountId) { setCsvError('Pick the account (step 1) first.'); return; }
+    const valid = csvParsed.rows.filter(r => r.ok);
+    if (valid.length === 0) { setCsvError('Choose a bank file with importable rows first (step 2).'); return; }
+    const acct = (accounts.find(a => a.id === csvAccountId) || {}).name || 'this account';
+    const ids = accountTxnIds(data.transactions || [], csvAccountId);
+    if (!confirm(`Replace ${acct}: permanently remove its ${ids.length} current transaction(s) and import ${valid.length} clean row(s) from this file?\n\nThe removal CANNOT be undone.`)) return;
+    deleteTransaction(ids); // ONE batched cloud delete (chunked), not thousands of single ones
+    // Stable content-addressed ids so a LATER re-import is idempotent. Dedupe against
+    // the ledger EXCLUDING this account (its rows are being deleted in this same
+    // action), so the clean re-import is never wrongly skipped against the copies it
+    // is replacing.
+    const otherAccounts = (data.transactions || []).filter(t => t.accountId !== csvAccountId);
+    const { txns } = planAccountImport(valid.map(rowFromCsv), csvAccountId, otherAccounts);
+    // Commit + VERIFY the re-import — reports how many of the clean rows saved.
+    const msg = await commitBatch(txns, commitImportedRows, addTransaction);
+    recordLoopRun({ key: 'account-reset-reimport', status: 'success', processed: txns.length, detail: `${acct} · replaced ${ids.length}` });
+    setCsvOpen(false); setCsvRaw(''); setCsvError('');
+    alert(`Replaced ${acct}: removed ${ids.length}. ${msg}`);
+  };
+  // Validate the STORED ledger against the chosen statement, per month, BEFORE any
+  // write (Christina 2026-07-18: "validate the application against the source data
+  // rather than assuming the source data is incomplete... before asking me to
+  // reset"). A month that reads short (June's 166 of a real 323) is residue of an
+  // older buggy import; this proves the exact gap and offers the NON-destructive
+  // fix — add only the missing rows through the verified commit, never a reset.
+  const recon = useMemo(() => {
+    if (!csvAccountId) return null;
+    const valid = csvParsed.rows.filter(r => r.ok);
+    if (valid.length === 0) return null;
+    return reconcileStatement(valid, data.transactions || [], csvAccountId);
+  }, [csvAccountId, csvParsed, data.transactions]);
+  // Add ONLY the rows the statement lists that are absent from the store — the
+  // non-destructive repair. Goes through the SAME verified commit path (unique
+  // ids + retry + "N of M saved" readout), so a short month is healed and proven
+  // without removing anything. Idempotent: rows already present are never re-added.
+  const addMissingRows = async () => {
+    if (!recon || !recon.totalMissing) return;
+    const acct = (accounts.find(a => a.id === csvAccountId) || {}).name || 'this account';
+    if (!confirm(`Add ${recon.totalMissing} missing transaction(s) to ${acct} from this statement? Rows already in the ledger are skipped — nothing is removed.`)) return;
+    // Stable ids + a final content-dedup pass so the repair is idempotent even if run twice.
+    const { txns } = planAccountImport(recon.missingRows.map(rowFromCsv), csvAccountId, data.transactions || []);
+    const msg = await commitBatch(txns, commitImportedRows, addTransaction);
+    recordLoopRun({ key: 'statement-repair', status: 'success', processed: txns.length, detail: `${acct} · added missing` });
+    setCsvOpen(false); setCsvRaw(''); setCsvError('');
+    alert(`Repaired ${acct}: ${msg}`);
+  };
+  // The system removes duplicate imports ITSELF — no account-by-account reset
+  // (Darrell 2026-07-19: "can't the system do this so we have no human errors?").
+  // findImportDuplicates flags a generic-type twin ("DEBIT"/"CREDIT") only when a
+  // real-payee row with the identical account+date+amount exists; deleting those
+  // ids drops the junk copy and halves the doubled totals. Deletes hit the cloud
+  // too (deleteTransaction). Recomputed live so the count is always current.
+  const dupPreview = useMemo(() => findImportDuplicates(data.transactions || []), [data.transactions]);
+  // Delete duplicates by re-deriving them from the LIVE CLOUD rows and deleting those
+  // rows' CURRENT cloud ids — not the local copy's (Darrell 2026-07-19: after all the
+  // reset/re-import churn, the device's local rows carried stale/missing cloud ids, so
+  // a local-id delete removed the wrong rows or none and the cloud junk survived —
+  // "cleared to 3,307 then back to 6,341" on the fully-patched build). Fetching the
+  // cloud first guarantees the ids match. It AWAITS + reports the ACTUAL deleted count
+  // (DR-0076) so a partial result is visible, not a false "removed" — then drops them
+  // locally too. Falls back to the local view only if the cloud fetch is unavailable.
+  const removeDuplicateImports = async () => {
+    if (!dupPreview.count) { alert('No duplicate imports found — your ledger is clean.'); return; }
+    if (!confirm(`Remove duplicate import(s)? These are generic "DEBIT/CREDIT" copies of transactions you already have with the real payee — the real rows are kept, nothing else is touched.`)) return;
+    const { transactionsSync } = await import('../lib/transactions-sync.js'); // lazy: keep supabase out of pure-fn imports
+    const cloud = await transactionsSync.fetchAll().catch(() => null);
+    const plan = findImportDuplicates(cloud || data.transactions || []);
+    if (!plan.count) { alert('No duplicates found in the cloud ledger — it is already clean. Refresh to see the current numbers.'); return; }
+    const idSet = new Set(plan.removeIds);
+    const uuids = (cloud || data.transactions || []).filter(t => idSet.has(t.id)).map(t => t.remoteUuid).filter(Boolean);
+    const res = uuids.length ? await transactionsSync.deleteRows(uuids) : { deleted: 0 };
+    deleteTransaction(plan.removeIds); // drop them from the local view too
+    recordLoopRun({ key: 'dedupe-imports', status: 'success', processed: res.deleted || 0, detail: `cloud-deleted ${res.deleted || 0}/${plan.count}` });
+    alert(`Removed ${res.deleted || 0} of ${plan.count} duplicate(s) from the cloud ledger. Refresh — your totals should drop toward the true number and STAY there.`);
   };
   const onCsvFile = (file) => {
     if (!file) return;
@@ -782,6 +973,14 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
     const accLabel = acc
       ? `${acc.name}${acc.fragment ? ' ' + acc.fragment : ''}`
       : (t._source === 'recurring' ? 'Recurring obligation' : (ingestLabel || '—'));
+    // Per-row balance: the account's running balance AS OF this transaction, from
+    // the bank statement's own Balance column (imported per row). This is the
+    // historical running balance a statement shows — it changes date to date
+    // (Christina's books, 2026-07-18: the row used to repeat the account's SINGLE
+    // current balance on every line, so every row read the same number). Falls
+    // back to the account's current balance only for manual rows with no bank
+    // balance, so nothing is painted where there's no real per-row figure.
+    const rowBal = runningBalByTx[t.id] !== undefined ? runningBalByTx[t.id] : null;
     const currentBal = acc ? balanceByAccount[acc.id] : null;
     const afterBal = txView === 'upcoming' && acc && projectedAfter[t.id] !== undefined ? projectedAfter[t.id] : null;
     return (
@@ -789,11 +988,14 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
       <tr className="border-b border-[#E8E4DC] align-top">
         <td className="p-2 text-xs whitespace-nowrap" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{String(t.date || '').slice(5)}</td>
         <td className="p-2">
-          <div style={{ fontFamily: '"Fraunces", serif' }}>{t.description}</div>
+          {/* The shared editor (DR-0710) on ledger rows: rename or recategorize this one or every one from the payee; bank-ingest + recurring rows are not ledger rows yet. */}
+          <div style={{ fontFamily: '"Fraunces", serif' }}>{t._source === 'bank-ingest' || t._source === 'recurring' ? t.description : <LedgerEdit txn={t}>{t.description}</LedgerEdit>}</div>
           <div className="text-[0.625rem] text-[#5A5751] mt-0.5">
             <span>{accLabel}</span>
-            {currentBal !== null && <span className={`ml-1 ${currentBal < 0 ? 'text-[#B85838]' : 'text-[#5A5751]'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>(now {fmt(currentBal)})</span>}
-            {t.category && <span className="ml-2 uppercase tracking-wider">· {t.category}</span>}
+            {rowBal !== null
+              ? <span className={`ml-1 ${rowBal < 0 ? 'text-[#B85838]' : 'text-[#5A5751]'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }} title="Account balance as of this transaction (from the bank statement)">(bal {fmt(rowBal)})</span>
+              : (currentBal !== null && <span className={`ml-1 ${currentBal < 0 ? 'text-[#B85838]' : 'text-[#5A5751]'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }} title="Account's current balance">(now {fmt(currentBal)})</span>)}
+            {t.category && <span className="ml-2 uppercase tracking-wider">· {t._source === 'bank-ingest' || t._source === 'recurring' ? categoryLabel(t.category) : <LedgerEdit txn={t} show="category" />}</span>}
             {t._source === 'recurring' && <span className="ml-2 text-[#B85838] uppercase tracking-wider">· recurring · {t._frequency}</span>}
             {/* Phase 2A — ingest provenance + reconcile status pills. Stays
                 quiet on plain manual entries so the existing UX is unchanged. */}
@@ -952,7 +1154,7 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
                 <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Date</label><input type="date" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} /></div>
                 <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Amount (+ in / − out)</label><input type="number" step="0.01" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} /></div>
                 <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Account</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={form.accountId} onChange={e => setForm({ ...form, accountId: e.target.value })}>{accounts.map(a => <option key={a.id} value={a.id}>{a.name}{a.fragment ? ' ' + a.fragment : ''}</option>)}</select></div>
-                <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Category</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={form.category} onChange={e => setForm({ ...form, category: e.target.value })}>{TX_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
+                <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Category</label><input list="tx-category-options" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={form.category} placeholder="Pick or type a new one" onChange={e => setForm({ ...form, category: e.target.value.toLowerCase().trimStart() })} /><datalist id="tx-category-options">{allCategories.map(c => <option key={c} value={c}>{categoryLabel(c)}</option>)}</datalist></div>
               </div>
               <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Description</label><input className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} /></div>
               {recategorizePayee && (() => {
@@ -960,11 +1162,41 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
                 return (
                   <label className="flex items-start gap-2 text-[0.6875rem] text-[#5A5751] cursor-pointer bg-white border border-[#E8E4DC] p-2">
                     <input type="checkbox" checked={applyToPayee} onChange={e => setApplyToPayee(e.target.checked)} className="mt-0.5" />
-                    <span>Apply <strong className="capitalize">{form.category}</strong> to all <strong>{n}</strong> transaction{n === 1 ? '' : 's'} from this payee — and remember it so future imports from this payee categorize the same way.</span>
+                    <span>Apply <strong>{categoryLabel(form.category)}</strong> to all <strong>{n}</strong> transaction{n === 1 ? '' : 's'} from this payee — and remember it so future imports from this payee categorize the same way. <span className="text-[#8A857C]">On by default; untick to change only this row.</span></span>
                   </label>
                 );
               })()}
               <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Entity override (optional)</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={form.entityOverride} onChange={e => setForm({ ...form, entityOverride: e.target.value })}><option value="">— No override —</option>{entities.map(en => <option key={en.id} value={en.id}>{entityLabel(en)}</option>)}</select></div>
+              {/* "Who is this payment for?" — user-assisted learning (Christina 2026-07-18).
+                  When this payee isn't confidently known, ask once; the choice becomes a
+                  learned rule (confidence grows as it's confirmed) so future imports from
+                  the same/similar payee are recognized without asking again. */}
+              {setPayeeEntityRules && needsPartyPrompt(payeeEntityRules, form.description) && (
+                <div className="bg-white border border-[#5A6E3D] p-2 space-y-1.5">
+                  <div className="text-[0.6875rem] text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
+                    Who is this payment for? <span className="text-[#5A5751]">Teach it once — future imports from this payee learn it.</span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {PARTY_TYPES.map((pt) => (
+                      <button key={pt} type="button"
+                        onClick={() => setPayeeEntityRules((rules) => learnParty(rules, { description: form.description, partyType: pt, name: form.description }))}
+                        className="px-2.5 py-1 text-[0.625rem] uppercase tracking-wider border border-[#5A6E3D] text-[#3F5226] bg-white hover:bg-[#5A6E3D] hover:text-white rounded-full min-h-[32px]">
+                        {pt === 'personal' ? 'Personal / Ignore' : pt}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {setPayeeEntityRules && (() => {
+                const m = matchParty(payeeEntityRules, form.description);
+                if (!m || m.confidence < PARTY_AUTO_CONFIDENCE) return null;
+                return (
+                  <div className="text-[0.6875rem] text-[#3F5226] bg-white border border-[#E8E4DC] p-2">
+                    Learned: this payee is a <strong className="capitalize">{m.rule.partyType}</strong> · confidence {Math.round(m.confidence * 100)}%{m.kind === 'similar' ? ' (matched a known payee)' : ''}.{' '}
+                    <button type="button" onClick={() => setPayeeEntityRules((rules) => forgetParty(rules, m.key))} className="underline hover:text-[#B85838]">Forget</button>
+                  </div>
+                );
+              })()}
               <div className="flex gap-2">
                 <button type="button" onClick={submit} className="flex-1 bg-[#1A1815] text-white px-4 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">Save changes</button>
                 <button type="button" onClick={cancel} className="px-4 py-2 border border-[#1A1815] text-xs uppercase tracking-wider hover:bg-white focus:outline focus:outline-2 focus:outline-[#B85838]">Cancel</button>
@@ -1029,7 +1261,7 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
               </div>
             </div>
             <p className="text-[0.625rem] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
-              Full balances for every account live at the bottom of this tab. Each row also shows that account's current balance inline.
+              Full balances for every account live at the bottom of this tab. Each imported row shows the account's running balance AS OF that transaction — "(bal $…)", straight from the bank statement — so it changes date to date like a statement. Manual rows with no bank balance show the account's current balance "(now $…)" instead.
             </p>
           </section>
         );
@@ -1056,6 +1288,19 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
             <button type="button" onClick={() => showForm ? cancel() : startAdd()} className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showForm ? '× Cancel' : '+ Add transaction'}</button>
           </div>
         </div>
+
+        {/* One-tap duplicate cleanup — the system finds + removes the "DEBIT" twin
+            copies itself, so no account-by-account Reset & re-import (2026-07-19). */}
+        {dupPreview.count > 0 && (
+          <div className="mb-3 border border-[#B85838] bg-[#FAF8F4] p-3 flex items-center justify-between gap-3 flex-wrap">
+            <span className="text-[0.75rem] text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
+              Found <strong>{dupPreview.count.toLocaleString()}</strong> duplicate imported row{dupPreview.count === 1 ? '' : 's'} — generic “DEBIT/CREDIT” copies of transactions you already have with the real payee. Remove them to fix the doubled totals.
+            </span>
+            <button type="button" onClick={removeDuplicateImports} className="text-[0.6875rem] uppercase tracking-wider px-3 py-2 bg-[#5A6E3D] text-white font-semibold hover:bg-[#1A1815] focus:outline focus:outline-2 focus:outline-[#1A1815] whitespace-nowrap">
+              ✓ Remove {dupPreview.count.toLocaleString()} duplicate{dupPreview.count === 1 ? '' : 's'}
+            </button>
+          </div>
+        )}
 
         {/* Work-the-data filter bar — account / date range / text. Drives both
             History (the table) and Evaluate (the income-vs-outflow math) since
@@ -1130,9 +1375,8 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
               </div>
               <div>
                 <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Category</label>
-                <select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={form.category} onChange={e => setForm({ ...form, category: e.target.value })}>
-                  {TX_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
+                <input list="tx-category-options-add" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={form.category} placeholder="Pick or type a new one" onChange={e => setForm({ ...form, category: e.target.value.toLowerCase().trimStart() })} />
+                <datalist id="tx-category-options-add">{allCategories.map(c => <option key={c} value={c}>{categoryLabel(c)}</option>)}</datalist>
               </div>
             </div>
             <div>
@@ -1199,17 +1443,17 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-[#1A1815]">
-                      <th className="text-left p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Category</th>
-                      <th className="text-right p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">In</th>
-                      <th className="text-right p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Out</th>
-                      <th className="text-right p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Net</th>
-                      <th className="text-right p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">#</th>
+                      <th scope="col" className="text-left p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Category</th>
+                      <th scope="col" className="text-right p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">In</th>
+                      <th scope="col" className="text-right p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Out</th>
+                      <th scope="col" className="text-right p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Net</th>
+                      <th scope="col" className="text-right p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">#</th>
                     </tr>
                   </thead>
                   <tbody>
                     {evalSummary.categories.map(c => (
                       <tr key={c.category} className="border-b border-[#E8E4DC]">
-                        <td className="p-2 capitalize" style={{ fontFamily: '"Fraunces", serif' }}>{c.category}</td>
+                        <td className="p-2" style={{ fontFamily: '"Fraunces", serif' }}>{categoryLabel(c.category)}</td>
                         <td className="p-2 text-right text-[#5A6E3D]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{c.income ? fmt(c.income) : '—'}</td>
                         <td className="p-2 text-right text-[#B85838]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{c.outflow ? fmt(c.outflow) : '—'}</td>
                         <td className={`p-2 text-right ${c.net < 0 ? 'text-[#B85838]' : 'text-[#1A1815]'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(c.net)}</td>
@@ -1244,23 +1488,23 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
                     {txView === 'history' ? (
                       /* Clickable sort headers — same key flips direction. */
                       <tr className="border-b border-[#1A1815]">
-                        <th className="text-left p-2 text-[0.625rem] uppercase tracking-wider"><button type="button" onClick={() => toggleSort('date')} className="uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">Date{sortArrow('date')}</button></th>
-                        <th className="text-left p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">
+                        <th scope="col" className="text-left p-2 text-[0.625rem] uppercase tracking-wider"><button type="button" onClick={() => toggleSort('date')} className="uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">Date{sortArrow('date')}</button></th>
+                        <th scope="col" className="text-left p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">
                           <button type="button" onClick={() => toggleSort('payee')} className="uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">Description{sortArrow('payee')}</button>
                           <span className="text-[#B8B2A8]"> · </span>
                           <button type="button" onClick={() => toggleSort('account')} className="uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">Account{sortArrow('account')}</button>
                           <span className="text-[#B8B2A8]"> · </span>
                           <button type="button" onClick={() => toggleSort('category')} className="uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">Category{sortArrow('category')}</button>
                         </th>
-                        <th className="text-right p-2 text-[0.625rem] uppercase tracking-wider"><button type="button" onClick={() => toggleSort('amount')} className="uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">Amount{sortArrow('amount')}</button></th>
-                        <th className="text-right p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Actions</th>
+                        <th scope="col" className="text-right p-2 text-[0.625rem] uppercase tracking-wider"><button type="button" onClick={() => toggleSort('amount')} className="uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">Amount{sortArrow('amount')}</button></th>
+                        <th scope="col" className="text-right p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Actions</th>
                       </tr>
                     ) : (
                       <tr className="border-b border-[#1A1815]">
-                        <th className="text-left p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Date</th>
-                        <th className="text-left p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Description · Account · Category</th>
-                        <th className="text-right p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Amount</th>
-                        <th className="text-right p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Actions</th>
+                        <th scope="col" className="text-left p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Date</th>
+                        <th scope="col" className="text-left p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Description · Account · Category</th>
+                        <th scope="col" className="text-right p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Amount</th>
+                        <th scope="col" className="text-right p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Actions</th>
                       </tr>
                     )}
                   </thead>
@@ -1306,6 +1550,13 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
                   {accounts.length === 0 && <option value="">— Add an account first —</option>}
                   {accounts.map(a => <option key={a.id} value={a.id}>{a.name}{a.fragment ? ' ' + a.fragment : ''}</option>)}
                 </select>
+                {csvAccountId && (
+                  <button type="button" onClick={clearAccountRegister}
+                    className="mt-1 text-[0.5625rem] uppercase tracking-wider text-[#5A5751] underline hover:text-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]"
+                    title="Permanently remove every transaction in this account so you can re-import a clean bank statement (cannot be undone).">
+                    ↺ Reset this account &amp; re-import clean ({accountTxnIds(data.transactions || [], csvAccountId).length} in it now)
+                  </button>
+                )}
               </div>
 
               <div>
@@ -1377,11 +1628,11 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
                     <table className="w-full text-xs">
                       <thead className="sticky top-0 bg-white">
                         <tr className="border-b border-[#1A1815]">
-                          <th className="text-left p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Date</th>
-                          <th className="text-left p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Description</th>
-                          <th className="text-right p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Amount</th>
-                          <th className="text-left p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Cat</th>
-                          <th className="text-left p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Ok?</th>
+                          <th scope="col" className="text-left p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Date</th>
+                          <th scope="col" className="text-left p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Description</th>
+                          <th scope="col" className="text-right p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Amount</th>
+                          <th scope="col" className="text-left p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Cat</th>
+                          <th scope="col" className="text-left p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Ok?</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1390,16 +1641,75 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
                             <td className="p-2 whitespace-nowrap" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{r.date || r.rawDate}</td>
                             <td className="p-2" style={{ fontFamily: '"Fraunces", serif' }}>{r.desc.slice(0, 60)}</td>
                             <td className={`p-2 text-right whitespace-nowrap ${r.amount < 0 ? 'text-[#B85838]' : 'text-[#5A6E3D]'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{r.amount > 0 ? '+' : ''}{fmt(r.amount)}</td>
-                            <td className="p-2 text-[0.625rem] uppercase tracking-wider">{r.category}</td>
+                            <td className="p-2 text-[0.625rem] uppercase tracking-wider">{categoryLabel(r.category)}</td>
                             <td className="p-2 text-[0.625rem] uppercase tracking-wider">{r.ok ? <span className="text-[#5A6E3D]">✓</span> : <span className="text-[#B85838]">skip</span>}</td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
                   </div>
-                  {csvParsed.rows.length > 100 && <p className="text-[0.625rem] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>Showing first 100 rows in preview — all {csvParsed.rows.length} will import.</p>}
+                  {csvParsed.rows.length > 100 && <p className="text-[0.625rem] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>Showing first 100 rows in preview — the {csvParsed.rows.filter(r => r.ok).length} valid rows will import.</p>}
                 </div>
               )}
+
+              {/* Validate against source — per-month reconciliation of the stored
+                  ledger vs THIS statement, before any write (Christina 2026-07-18).
+                  A short month (June 166 of 323) is diagnosed and repaired by adding
+                  ONLY the missing rows — non-destructive, verified, no blind reset. */}
+              {recon && (recon.totalMissing > 0 || recon.totalExtra > 0) && (
+                <div className="border border-[#1A1815] bg-white">
+                  <div className="px-3 py-2 border-b border-[#E8E4DC] text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751]">
+                    Validate against this statement · {(accounts.find(a => a.id === csvAccountId) || {}).name || 'account'}
+                  </div>
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="border-b border-[#E8E4DC]">
+                        <th scope="col" className="text-left p-2 text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Month</th>
+                        <th scope="col" className="text-right p-2 text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">In ledger</th>
+                        <th scope="col" className="text-right p-2 text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">In file</th>
+                        <th scope="col" className="text-right p-2 text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Missing</th>
+                        <th scope="col" className="text-right p-2 text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Extra</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {recon.byMonth.map((m) => (
+                        <tr key={m.month} className="border-b border-[#E8E4DC]">
+                          <td className="p-2" style={{ fontFamily: '"Fraunces", serif' }}>{m.label}</td>
+                          <td className="p-2 text-right" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{m.stored}</td>
+                          <td className="p-2 text-right" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{m.inFile}</td>
+                          <td className={`p-2 text-right ${m.missing > 0 ? 'text-[#B85838] font-semibold' : 'text-[#5A6E3D]'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{m.missing}</td>
+                          <td className={`p-2 text-right ${m.extra > 0 ? 'text-[#B85838]' : 'text-[#5A5751]'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{m.extra}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  <div className="px-3 py-2 text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+                    {recon.totalMissing > 0
+                      ? `${recon.totalMissing} transaction(s) the bank lists are absent from the ledger — add them back without touching what's already there.`
+                      : 'Every row this statement lists is already in the ledger.'}
+                    {recon.totalExtra > 0 && ` ${recon.totalExtra} stored row(s) have no matching line in this statement (possible earlier double-count) — review before a reset.`}
+                  </div>
+                  {recon.totalMissing > 0 && (
+                    <button type="button" onClick={addMissingRows} className="w-full bg-[#5A6E3D] text-white py-3 text-xs uppercase tracking-wider font-semibold hover:bg-[#1A1815] focus:outline focus:outline-2 focus:outline-[#1A1815]"
+                      title="Add only the transactions the bank lists that are missing from the ledger — nothing is removed.">
+                      + Add {recon.totalMissing} missing transaction{recon.totalMissing === 1 ? '' : 's'} (nothing removed)
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {/* Skipped-rows summary — a lower total is never silent. Names how
+                  many rows won't import and why (Christina, 2026-07-13). */}
+              {(() => {
+                const skipped = csvParsed.rows.filter(r => !r.ok);
+                if (!skipped.length) return null;
+                const reasons = [...new Set(skipped.map(r => r.reason).filter(Boolean))];
+                return (
+                  <div className="text-[0.6875rem] text-[#B85838] px-3 py-2 bg-[#FAF8F4] border border-[#E8E4DC]" role="status" style={{ fontFamily: '"Fraunces", serif' }}>
+                    {skipped.length} row{skipped.length === 1 ? '' : 's'} won&apos;t import{reasons.length ? ` — ${reasons.join('; ')}` : ''}. If an Excel date shows as a number (e.g. 45850), format that column as a Date in Excel and re-export.
+                  </div>
+                );
+              })()}
 
               {csvError && <div className="text-xs text-[#B85838] px-3 py-2 bg-[#FAF8F4] border border-[#B85838]" role="alert" style={{ fontFamily: '"Fraunces", serif' }}>{csvError}</div>}
 
@@ -1407,6 +1717,16 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
                   transactions" (Christina 2026-07-03: "how do I upload it? I
                   don't see where it says upload"). Step 3 completes the 1-2-3. */}
               <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">3. Import into the ledger</div>
+              {/* One-tap fix for a bad/collapsed earlier import: reset this account
+                  AND import the chosen file in a single confirmed action (Darrell
+                  2026-07-18). Only appears when an account + a parseable file are both
+                  ready AND the account already has rows to replace. */}
+              {csvAccountId && csvParsed.rows.filter(r => r.ok).length > 0 && accountTxnIds(data.transactions || [], csvAccountId).length > 0 && (
+                <button type="button" onClick={resetAndImport} className="w-full bg-[#B85838] text-white py-3 text-xs uppercase tracking-wider font-semibold hover:bg-[#1A1815] focus:outline focus:outline-2 focus:outline-[#1A1815]"
+                  title="Remove this account's current transactions and import the chosen file — the one-step fix for a bad earlier import (cannot be undone).">
+                  ↺ Reset &amp; re-import — replace {accountTxnIds(data.transactions || [], csvAccountId).length} with {csvParsed.rows.filter(r => r.ok).length} clean
+                </button>
+              )}
               <button type="button" onClick={importCsv} disabled={csvParsed.rows.filter(r => r.ok).length === 0 || !csvAccountId} className="w-full bg-[#1A1815] text-white py-3 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] disabled:opacity-40 disabled:hover:bg-[#1A1815]">
                 {(() => {
                   const n = csvParsed.rows.filter(r => r.ok).length;
@@ -1514,24 +1834,44 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
         );
       })()}
 
+      {/* The below-the-ledger analysis stack — 30/60/90 forecast, the all-account
+          balance sweep, and the ledger-integrity proof — was three long sections
+          stacked (Darrell 2026-07-04 "sliding tabs instead of a long scroll";
+          2026-07-05 "a 3rd row of sliding tabs if that tab scrolls really long").
+          The Upcoming/History/Evaluate strip above stays exactly as it is (txView
+          drives real logic: the merged list, the filter bar, the per-row shortfall
+          math), so this grouping is a variant="sub" chip row per the hierarchy:
+          nav slides, tx view switches, analysis slides. Each block moved VERBATIM;
+          only the active panel mounts. */}
+      <SectionTabs
+        variant="sub"
+        ariaLabel="Ledger analysis sections"
+        idBase="books-tx-analysis"
+        defaultId="forecast"
+        sections={[
+          {
+            id: 'forecast',
+            label: '30/60/90 forecast',
+            icon: 'chart',
+            render: () => (
       <section>
         <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-2">30 / 60 / 90-Day Cash Forecast · vs prior 30 / 60 / 90 actuals</div>
         <div className="bg-white border border-[#1A1815] overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-[#1A1815] bg-[#FAF8F4]">
-                <th className="text-left p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]" rowSpan="2">Cash account</th>
-                <th className="text-center p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751] border-l border-[#E8E4DC]" colSpan="3">Previous (actual cash flow)</th>
-                <th className="text-center p-2 text-[0.625rem] uppercase tracking-wider text-[#1A1815] border-l border-[#E8E4DC]" rowSpan="2">Now</th>
-                <th className="text-center p-2 text-[0.625rem] uppercase tracking-wider text-[#B85838] border-l border-[#E8E4DC]" colSpan="3">Projected (forward)</th>
+                <th scope="col" className="text-left p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751]" rowSpan="2">Cash account</th>
+                <th scope="col" className="text-center p-2 text-[0.625rem] uppercase tracking-wider text-[#5A5751] border-l border-[#E8E4DC]" colSpan="3">Previous (actual cash flow)</th>
+                <th scope="col" className="text-center p-2 text-[0.625rem] uppercase tracking-wider text-[#1A1815] border-l border-[#E8E4DC]" rowSpan="2">Now</th>
+                <th scope="col" className="text-center p-2 text-[0.625rem] uppercase tracking-wider text-[#B85838] border-l border-[#E8E4DC]" colSpan="3">Projected (forward)</th>
               </tr>
               <tr className="border-b border-[#1A1815] bg-[#FAF8F4]">
-                <th className="text-right p-2 text-[0.5625rem] uppercase tracking-wider text-[#5A5751] border-l border-[#E8E4DC]">−90d</th>
-                <th className="text-right p-2 text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">−60d</th>
-                <th className="text-right p-2 text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">−30d</th>
-                <th className="text-right p-2 text-[0.5625rem] uppercase tracking-wider text-[#B85838] border-l border-[#E8E4DC]">+30d</th>
-                <th className="text-right p-2 text-[0.5625rem] uppercase tracking-wider text-[#B85838]">+60d</th>
-                <th className="text-right p-2 text-[0.5625rem] uppercase tracking-wider text-[#B85838]">+90d</th>
+                <th scope="col" className="text-right p-2 text-[0.5625rem] uppercase tracking-wider text-[#5A5751] border-l border-[#E8E4DC]">−90d</th>
+                <th scope="col" className="text-right p-2 text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">−60d</th>
+                <th scope="col" className="text-right p-2 text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">−30d</th>
+                <th scope="col" className="text-right p-2 text-[0.5625rem] uppercase tracking-wider text-[#B85838] border-l border-[#E8E4DC]">+30d</th>
+                <th scope="col" className="text-right p-2 text-[0.5625rem] uppercase tracking-wider text-[#B85838]">+60d</th>
+                <th scope="col" className="text-right p-2 text-[0.5625rem] uppercase tracking-wider text-[#B85838]">+90d</th>
               </tr>
             </thead>
             <tbody>
@@ -1575,8 +1915,13 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
           <strong>Cash only</strong> — credit cards and loans are tracked separately in Books → Accounts because they don't hold spendable cash. The <strong>left side</strong> is the actual net cash movement over the prior 30/60/90 days (from settled transactions, +inflow / −outflow). The <strong>right side</strong> is the projected balance at each forward window (current balance + upcoming charges + recurring). Compare the two sides to gut-check: if the forward projection drops faster than the prior 90 days bled, you're projecting tighter than reality — or you've got a real upcoming squeeze. Bold rust = below zero; plain rust = below the {fmt(FUNDS_BUFFER)} cushion. Tap any upcoming row's <strong>⚐ Cover with transfer</strong> button to move money preemptively.
         </p>
       </section>
-
-      {(accounts || []).length > 0 && (
+            ),
+          },
+          accounts.length > 0 ? {
+            id: 'balances',
+            label: 'All balances',
+            icon: 'coins',
+            render: () => (
         <section>
           <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-2">All Account Balances</div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-px bg-[#E8E4DC] border border-[#E8E4DC]">
@@ -1594,11 +1939,19 @@ export default function BooksTransactions({ data, entityFilter, setEntityFilter,
             Full balance sweep across every entity. The primary bill-pay account (★) is shown prominently at the top of this tab. Edit any account in Books · Accounts to mark it primary.
           </p>
         </section>
-      )}
-      {/* Proof of the math — the ledger-integrity invariants over the REAL rows
-          (2026-07-05, Darrell: "how do we prove the math is correct so when real
-          numbers are uploaded for years of data it can paint a picture"). */}
-      <LedgerProof data={data} currentDate={currentDate} />
+            ),
+          } : null,
+          {
+            id: 'proof',
+            label: 'Proof of the math',
+            icon: 'check',
+            // Proof of the math — the ledger-integrity invariants over the REAL rows
+            // (2026-07-05, Darrell: "how do we prove the math is correct so when real
+            // numbers are uploaded for years of data it can paint a picture").
+            render: () => <LedgerProof data={data} currentDate={currentDate} />,
+          },
+        ]}
+      />
     </div>
   );
 }

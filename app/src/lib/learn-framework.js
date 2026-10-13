@@ -191,7 +191,8 @@ export const AGE_BANDS = [
   },
   {
     id: 'youth', label: 'Youth', range: '11–14',
-    depth: 'teen', segmentMinutes: 10, breakEveryMin: 20, contentBeforeCheck: 2,
+    depth: 'youth', // its own authored level (DR-0418); falls back youth → teen → standard while unwritten
+    segmentMinutes: 10, breakEveryMin: 20, contentBeforeCheck: 2,
     visual: 'high', handsOn: 'high', tone: 'encouraging',
     hint: 'Plain language, real examples, hands-on, a check after a couple of ideas.',
     pacing: 'A couple of ideas, then check understanding. Keep it concrete and hands-on.',
@@ -230,13 +231,15 @@ export function ageBandProfile(id) {
 }
 
 // The depth (levels key) an age band reads by default, with its fallback chain.
-// child → teen → standard ; youth/teen → teen → standard ; adult → standard ;
-// senior → senior → standard. resolveForAge applies it against the module's
-// authored `levels`, then the base lesson.
+// child → teen → standard ; youth → teen → standard (DR-0418: youth has its
+// own slot, grades 6–8, and reads the teen text only while its own level is
+// unwritten) ; teen → teen → standard ; adult → standard ; senior → senior →
+// standard. resolveForAge applies it against the module's authored `levels`,
+// then the base lesson.
 export function depthChainForAge(id) {
   const band = ageBandProfile(id);
   const chain = [band.depth];
-  if (band.depth === 'child') chain.push('teen');
+  if (band.depth === 'child' || band.depth === 'youth') chain.push('teen');
   if (!chain.includes('standard')) chain.push('standard');
   return chain;
 }
@@ -248,6 +251,14 @@ export function resolveForAge(module, ageBandId = DEFAULT_AGE_BAND, levelOverrid
   const band = ageBandProfile(ageBandId);
   const m = module || {};
   const levels = m.levels && typeof m.levels === 'object' ? m.levels : null;
+  // Age bands DIVERSIFY the same message by mental capacity (Darrell 2026-08-25:
+  // "based on age mental capacity... diversification of the same messages",
+  // "full message, age-simple", "THE SHORT LESSON IS THE ONLY PROBLEM"). The
+  // band's own authored level wins when present — a child reads the child
+  // version, a teen the teen version, an adult the full `lesson`. The SHORT-
+  // LESSON fix lives in the CONTENT, not here: each age version is authored at
+  // FULL COVERAGE (every point of the lesson, in that age's words), so no band
+  // is ever handed a fragment. The framework is unchanged — the process stands.
   const chain = levelOverride ? [levelOverride, 'standard'] : depthChainForAge(ageBandId);
   if (levels) {
     for (const key of chain) {
@@ -256,15 +267,114 @@ export function resolveForAge(module, ageBandId = DEFAULT_AGE_BAND, levelOverrid
       }
     }
   }
-  return { text: m.lesson || '', levelId: chain[0], branched: false, band };
+  if (m.lesson) {
+    // THE TOP-LEVEL `lesson` IS THE ADULT VERSION -- not a fallback from one
+    // (Darrell, screenshot 2026-09-19: "Choosing to change the length?!!!!!
+    // Not the lessons to fit the level?!!!!!"). The adult band's depth key is
+    // 'standard', and almost no module carries `levels.standard`, so EVERY
+    // adult reader -- the DEFAULT band and the widest audience -- fell through
+    // to here and was flagged branched:false. ChurchLearn reads that flag as
+    // noneAuthored and printed "The Adult version has not been written yet"
+    // over the very prose it was displaying, on a lesson authored that same
+    // day. The words were right; the app called them nobody's.
+    //
+    // For any OTHER band this really IS a fallback (a child handed the adult
+    // text has not been given a child version), so the honest flag depends on
+    // which band asked. Only the adult band is being served its own text.
+    // BUT ONLY WHEN THE LESSON ACTUALLY CARRIES BANDS. A lesson with NO
+    // authored levels has ONE version written once for everybody, and the
+    // adult is not being served a version of their own -- that is the case
+    // the morning's fix pinned ("Same lesson on all levels?!!!!! Won't
+    // change?"), and it stays false so the row can still say so. When bands
+    // DO exist beside it, `lesson` is the deliberate adult version among
+    // them, and calling it a fallback is the lie this corrects.
+    const hasAuthoredBand = !!levels && Object.values(levels).some((v) => typeof v === 'string' && v);
+    return { text: m.lesson, levelId: chain[0], branched: band.depth === 'standard' && hasAuthoredBand, band };
+  }
+  // No band ever dead-ends into empty text (measured 2026-08-25: ten lessons
+  // authored with child/teen/senior levels and no `lesson` field served the
+  // ADULT band — the widest audience — zero characters, because its chain was
+  // ['standard'] alone with nothing behind it). Only when BOTH the band's own
+  // chain and the full `lesson` prose are absent, fall back to the richest
+  // text the module actually carries: senior (fullest), then teen, then
+  // child. Every word the author wrote beats a blank screen.
+  if (levels) {
+    for (const key of ['senior', 'teen', 'youth', 'child']) {
+      if (typeof levels[key] === 'string' && levels[key]) {
+        return { text: levels[key], levelId: key, branched: true, band };
+      }
+    }
+  }
+  return { text: '', levelId: chain[0], branched: false, band };
+}
+
+// THE BAND YOU PICK IS WHAT YOU READ, FROM THE FIRST WORDS (DR-0745; Darrell
+// 2026-10-01, three screenshots of L206 on his Fold with Child, Senior and
+// Adult picked in turn and the same adult paragraph under all three: "What
+// keeps happening to the options for all ages?! The features keep coming and
+// going!"). The lesson card's first paragraph was always `bigIdea`, the adult
+// register, whatever band was picked; the band's own words began only after
+// Start this lesson opened the guide. So a pick looked like nothing.
+//
+// This is the card's opening for a band: the first movement of the band's
+// own authored text when the lesson carries one for that band, else the big
+// idea as before. Pure.
+const OPENING_MARKER = /\s(?:[A-Z]{3,} )?(?:ONE|TWO|FIRST)\.\s+[A-Z]/;
+const OPENING_MAX = 900;
+
+/** The first movement of a band's text: up to the first blank line or spelled
+ *  movement marker, else the leading sentences within OPENING_MAX. Pure. */
+export function openingOf(text, max = OPENING_MAX) {
+  const clean = typeof text === 'string' ? text.trim() : '';
+  if (!clean) return '';
+  const para = clean.split(/\n\s*\n/)[0].trim();
+  const mark = para.search(OPENING_MARKER);
+  let head = mark > 120 ? para.slice(0, mark).trim() : para;
+  if (head.length > max) {
+    const sentences = head.split(/(?<=[.!?])\s+/);
+    let out = '';
+    for (const s of sentences) {
+      if (out && (out.length + s.length + 1) > max) break;
+      out = out ? `${out} ${s}` : s;
+    }
+    head = out || head.slice(0, max);
+  }
+  return head;
+}
+
+/**
+ * What the lesson card shows first for this band: { text, levelId, own, band }.
+ * `own` is true when the words are the band's own authored opening; false when
+ * the card falls back to the adult big idea (the adult band, a band without
+ * its own text, or an explicit level override).
+ */
+export function bandOpening(module, ageBandId = DEFAULT_AGE_BAND, levelOverride = null) {
+  const m = module || {};
+  const big = typeof m.bigIdea === 'string' ? m.bigIdea : '';
+  const resolved = resolveForAge(m, ageBandId, levelOverride);
+  const levels = m.levels && typeof m.levels === 'object' ? m.levels : null;
+  const ownText = !levelOverride && resolved.branched && levels && resolved.levelId !== 'standard'
+    && typeof levels[resolved.levelId] === 'string' && levels[resolved.levelId] === resolved.text;
+  if (!ownText) return { text: big, levelId: resolved.levelId, own: false, band: resolved.band };
+  const text = openingOf(resolved.text);
+  if (!text) return { text: big, levelId: resolved.levelId, own: false, band: resolved.band };
+  return { text, levelId: resolved.levelId, own: true, band: resolved.band };
 }
 
 // Split a lesson into developmentally-sized segments. Younger bands get shorter
 // chunks (fewer words per on-screen step) so a child isn't handed a wall of text;
-// the adult band returns the whole lesson as one segment. Splits on sentence
+// every band now chunks long prose into readable sections. Splits on sentence
 // boundaries and never drops content — every word of the authored lesson survives,
 // only the chunking changes. Pure + deterministic (no Date/Math.random).
-const WORDS_PER_SEGMENT = { child: 45, youth: 90, teen: 140, adult: Infinity, senior: 120 };
+// Words per on-screen segment, by band. Smaller = more, shorter reading sections.
+// Adult was once Infinity (the whole lesson as ONE block) — Darrell 2026-07-28:
+// "these lessons need to be more broken down into sections for easy reading for
+// the presenter." So the adult band now chunks into comfortable ~200-word
+// sections too; every word still survives (chunked, never summarized), it just
+// reads as sections instead of a wall.
+const SPELLED_MARKER = /^(?:[A-Z]{3,} )?(?:ONE|TWO|THREE|FOUR|FIVE|SIX|SEVEN|EIGHT|NINE|TEN|ELEVEN|TWELVE)\.$/;
+const SPELLED_HEAD = /^(?:[A-Z]{3,} )?(?:ONE|TWO|THREE|FOUR|FIVE|SIX|SEVEN|EIGHT|NINE|TEN|ELEVEN|TWELVE)\.\s+[A-Z]/;
+const WORDS_PER_SEGMENT = { child: 45, youth: 90, teen: 140, adult: 200, senior: 120 };
 
 export function chunkLessonForAge(text, ageBandId = DEFAULT_AGE_BAND) {
   const band = ageBandProfile(ageBandId);
@@ -273,12 +383,47 @@ export function chunkLessonForAge(text, ageBandId = DEFAULT_AGE_BAND) {
   const target = WORDS_PER_SEGMENT[band.id] ?? Infinity;
   if (!Number.isFinite(target)) return [clean];
   // Sentence-ish split that keeps the terminator with its sentence.
-  const sentences = clean.match(/[^.!?]+[.!?]*\s*/g) || [clean];
+  const raw = clean.match(/[^.!?]+[.!?]*\s*/g) || [clean];
+  // Two pieces that are not sentences are glued back before pacing (DR-0712),
+  // so a step never ends on a movement's number or opens on a quotation's tail.
+  // Darrell 2026-09-30, L202 youth: "SEVEN." dangled at the end of one step and
+  // its title opened the next; and a quotation ending in "?" left
+  // `" (Romans 8:35).` to open a step on its own. Only where the pieces JOIN
+  // changes; every character survives in order.
+  const sentences = [];
+  for (const piece of raw) {
+    const prev = sentences.length ? sentences[sentences.length - 1] : null;
+    const tail = prev != null ? /^(["”’)\]]+)(\s*)([\s\S]*)$/.exec(piece) : null;
+    if (tail && (!tail[3] || (tail[2] && /^[(,.;:)]/.test(tail[3])) || /^[,.;:)]/.test(tail[3]))) { sentences[sentences.length - 1] = prev + piece; continue; }
+    if (tail && tail[2] && /^[A-Z"“]/.test(tail[3])) {
+      // The quote closes the sentence before; what follows is a new sentence.
+      sentences[sentences.length - 1] = prev + tail[1] + tail[2];
+      if (SPELLED_MARKER.test(sentences[sentences.length - 1].trim())) { sentences[sentences.length - 1] += tail[3]; continue; }
+      sentences.push(tail[3]);
+      continue;
+    }
+    if (prev != null && SPELLED_MARKER.test(prev.trim())) { sentences[sentences.length - 1] = prev + piece; continue; }
+    // No whitespace followed the terminator, so the author never ended a
+    // sentence there: "A.I. The Way", "U.S.", "21.3 per 100,000",
+    // "beginning...My counsel", or a quotation that closes with ?" and runs on
+    // in lowercase. Cutting a step between the pieces would print a space the
+    // author never wrote ("A. I."); glue them so every character survives.
+    if (prev != null && !/\s$/.test(prev)) { sentences[sentences.length - 1] = prev + piece; continue; }
+    sentences.push(piece);
+  }
   const segments = [];
   let buf = '';
   let words = 0;
   for (const s of sentences) {
     const w = s.trim().split(/\s+/).filter(Boolean).length;
+    // A numbered movement ("SEVEN. STAY IN THE WORD.") opens a step when the
+    // step so far is already well along, so its heading is never stranded at
+    // the foot of a step with its teaching on the next.
+    if (buf.trim() && words >= target * 0.6 && SPELLED_HEAD.test(s.trim())) {
+      segments.push(buf.trim());
+      buf = '';
+      words = 0;
+    }
     buf += s;
     words += w;
     if (words >= target) {

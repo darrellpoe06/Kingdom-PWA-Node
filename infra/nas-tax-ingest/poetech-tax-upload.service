@@ -1,0 +1,25 @@
+# PoeTech tax upload + archive -- the sovereign /taxes/* backend.
+# Request-driven FastAPI (no timers: this is not the three-brakes class -- it
+# does no work until a browser asks it to). The Funnel mounts /taxes here, so
+# ONE process answers all three calls the app makes: the upload POST, the
+# archive.json read, and the printable PDF read.
+# Installed + kept running by infra/nas-tax-ingest/install.sh via services-sync.
+[Unit]
+Description=PoeTech tax upload + archive (Books -> Taxes)
+After=network-online.target
+
+[Service]
+Type=simple
+# The SAME family bridge bearer the app devices already carry (localStorage
+# "poetech-chat-bridge-token"), written here by install.sh from
+# /volume1/PoeTech/secrets/chat-bridge-token.txt. Never a second token: a
+# separate secret would mean a 401 on every upload with nothing to show why.
+Environment=TAX_UPLOAD_TOKEN=
+WorkingDirectory=/volume1/PoeTech/repos/Kingdom-PWA-Node/infra/nas-tax-ingest
+ExecStart=/volume1/PoeTech/venvs/tax-upload/bin/uvicorn tax_upload_server:app --host 127.0.0.1 --port 8790
+Restart=on-failure
+RestartSec=5
+Nice=10
+
+[Install]
+WantedBy=multi-user.target

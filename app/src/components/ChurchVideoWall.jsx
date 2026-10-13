@@ -22,6 +22,7 @@
 // =============================================================================
 import React, { useState, useEffect, useMemo } from 'react';
 import { KpiDot } from './KpiDot.jsx';
+import SectionTabs from './SectionTabs.jsx';
 import {
   getVideoWallAccess, subscribeProjects, subscribeBudgetLines,
   budgetTotals, donationProgress,
@@ -49,6 +50,12 @@ import {
   NOVALCT_SETUP_STEPS, PANEL_SPEC, SCREEN_CONNECTION_MAP, FINAL_CONFIG,
   TOMORROW_ACTIVATION, INSTALL_GALLERY,
 } from '../lib/led-wall-training.js';
+import {
+  LIVE_SERVICE, BOOTH_AS_BUILT, SWITCHER_SOFTWARE, LOWER_THIRDS, BOOTH_RESIDENT,
+} from '../lib/led-wall-golive.js';
+import {
+  BROADCAST_REVIEW, AUDIO_ADJUSTMENTS, CHOIR_WALKIN_CUE,
+} from '../lib/broadcast-adjustments.js';
 
 // Shared visual tokens — identical to the conference/event-center surfaces.
 const card = 'bg-white border border-[#1A1815] p-4 sm:p-5';
@@ -76,6 +83,7 @@ const TIMELINE = [
   { when: 'Jun 22, 2026', title: 'Installation started', body: 'On-site assembly began: ground-support / box-truss towers erected to mount and stack the wall; modular LED cabinet panels laid out for assembly; crew on site sizing the stage. In progress.', tone: 'good' },
   { when: 'Jun 29, 2026', title: 'Stacking + wiring', body: 'Confirmed-spec install + power + data runbook produced on site: 8 x 6 = 48 cabinets (P1.99mm, 640x480mm), 4,800 W peak across 6 power chains, 6 of 10 VX1000 data ports planned. Cabinets stacking; data + power daisy-chains being dressed.', tone: 'good' },
   { when: 'Jul 3, 2026', title: 'FIRST LIGHT — commissioned', body: 'The wall runs as one 2560x1440 screen: cabinet pixel map measured (320x240 via NovaLCT), as-built data map confirmed (8 ports, one per column, top-entry chained down), screen saved to receiving cards, Preset 1 = service state, and live sermon video played full-wall the same night. Lesson recorded: every symptom was the input/layer side — the map and cables were right all along.', tone: 'good' },
+  { when: 'Jul 5, 2026', title: 'Service live online; wall held on Freeze', body: 'Sunday service ran with the online broadcast live (YouTube + Facebook). The LED wall was held FROZEN on a holding graphic (NovaStar Freeze) for the service — NOT yet driven live — while the install continues toward running the wall from the control room over the network (IMAG was on the side screens, not the wall). CUDA roles: Proclaim on the left tower feeds the right tower for the online broadcast only. ATEM software was moved to the right tower and stopped working (troubleshoot). Claude resident installed on the booth box. Lower thirds deferred to after-service.', tone: 'attention' },
   { when: 'Punch list', title: 'Warranty + niceties', body: 'A few dark LED modules (vendor warranty swap, positions photographed); input EDID set to native 2560x1440 for 1:1 pixels; identify the Tactical RMM agent found on the control-room tower.', tone: 'attention' },
 ];
 
@@ -248,25 +256,87 @@ export default function ChurchVideoWall() {
   // default reflects reality; a live project row can still override it.
   const status = project?.status || 'operational';
 
-  return (
-    <div className="space-y-4">
-      {/* HEADER — church name pair (legal + community nickname, side by side) */}
+  // The long capital-project record, reorganized behind sliding section tabs
+  // (Darrell 2026-07-04 "sliding tabs instead of a long scroll"; 2026-07-07 "no
+  // more down scrolling"). The identity/status header card stays PINNED above
+  // the strip; every card below moved VERBATIM into its section. All state +
+  // effects (access, subscriptions, checklists) stay at the top level so a
+  // section unmount/remount never drops a subscription or a checkbox.
+  const sections = [
+    {
+      id: 'onsite',
+      label: 'On-site now',
+      icon: 'pin',
+      render: () => (
+        <div className="space-y-4">
+      {/* ===== 2026-07-05 ON-SITE — service online, wall held on Freeze ===== */}
       <div className={card}>
-        <div className={labelCls}>Capital Project · Facilities / CapEx</div>
-        <h2 className="mt-1 text-xl sm:text-2xl text-[#1A1815]" style={serif}>Sanctuary LED Video Wall</h2>
-        <div className="mt-1 text-sm text-[#1A1815]" style={serif}>
-          The Church of the Living God <span className="text-[#B85838]">&mdash; The Love Corner</span>
+        <div className="flex items-center justify-between">
+          <div className={labelCls}>On-site &middot; {LIVE_SERVICE.observedOn} &middot; service online, wall on Freeze</div>
+          <span className="inline-flex items-center gap-1.5 text-[0.6875rem] uppercase tracking-wider"><KpiDot status="attention" /> Wall held (install in progress)</span>
         </div>
-        <p className="mt-0.5 text-[0.6875rem] text-[#5A5751] italic">
-          The legal name and the community&rsquo;s name, side by side &mdash; the biblical name-pair pattern (Abram &rarr; Abraham, Simon &rarr; Peter, Saul &rarr; Paul).
-        </p>
-        <div className="mt-3"><StatusBadge status={status} /></div>
-        <p className="mt-3 text-sm text-[#5A5751]">
-          {project?.summary || 'Fine-pitch indoor LED video wall for the main sanctuary — replaces projection so the congregation reads Scripture, lyrics, and the broadcast feed at full brightness in a lit room.'}
-        </p>
-        <p className="mt-2 text-[0.75rem] text-[#1A1815]">
-          {project?.installNote || 'Commissioned 2026-07-03: one 2560x1440 screen across 48 cabinets, config saved to the receiving cards, Preset 1 = the Sunday service state, first sermon video played full-wall the same night. Remaining: warranty module swaps + EDID nicety (punch list).'}
-        </p>
+        <p className="mt-2 text-[0.8125rem] text-[#1A1815]">{LIVE_SERVICE.milestone}</p>
+        <div className="mt-1 text-[0.6875rem] text-[#5A5751] italic">{LIVE_SERVICE.service}</div>
+        <ul className="mt-2 space-y-1">
+          {LIVE_SERVICE.confirmed.map((c, i) => (
+            <li key={i} className="text-[0.8125rem] text-[#1A1815] flex gap-2"><span className="text-[#B85838]">&middot;</span><span>{c}</span></li>
+          ))}
+        </ul>
+        <p className="mt-2 text-[0.6875rem] text-[#B85838] italic">Correction: {LIVE_SERVICE.corrected}</p>
+
+        {/* Booth as-built — the device layout observed today */}
+        <div className="mt-4 text-[0.6875rem] uppercase tracking-wider text-[#5A5751]">Booth as-built &middot; observed</div>
+        <p className="mt-1 text-[0.6875rem] text-[#5A5751] italic">{BOOTH_AS_BUILT.note}</p>
+        <div className="mt-2 space-y-2">
+          {BOOTH_AS_BUILT.devices.map((d) => (
+            <div key={d.id} className="border border-[#E8E4DC] p-2.5">
+              <div className="flex items-baseline justify-between gap-2">
+                <span className="text-[0.8125rem] font-semibold text-[#1A1815]" style={serif}>{d.device}</span>
+                {d.confirm && <span className="text-[0.5625rem] uppercase tracking-wider text-[#B85838]">confirm on site</span>}
+              </div>
+              <div className="text-[0.75rem] text-[#5A5751]">{d.role}</div>
+              <div className="text-[0.75rem] text-[#1A1815]">{d.detail}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Blackmagic switcher-software resolution */}
+        <div className="mt-4 text-[0.6875rem] uppercase tracking-wider text-[#5A5751]">ATEM switcher software &middot; resolved</div>
+        <p className="mt-1 text-[0.8125rem] text-[#1A1815]"><b>Need:</b> {SWITCHER_SOFTWARE.need}</p>
+        <p className="mt-0.5 text-[0.8125rem] text-[#1A1815]"><b>Installed:</b> {SWITCHER_SOFTWARE.installed}</p>
+        <p className="mt-1 text-[0.75rem] text-[#1A1815] border-l-2 border-[#B85838] pl-2.5"><b>Three-second rule:</b> {SWITCHER_SOFTWARE.threeSecondRule}</p>
+        <div className="mt-2 text-[0.6875rem] uppercase tracking-wider text-[#5A5751]">Ruled out (wrong packages)</div>
+        <ul className="mt-1 space-y-1">
+          {SWITCHER_SOFTWARE.wrongPackages.map((w, i) => (
+            <li key={i} className="text-[0.75rem] text-[#5A5751] flex gap-2"><span className="text-[#B85838]">&times;</span><span><b className="text-[#1A1815]">{w.name}</b> &mdash; {w.why}</span></li>
+          ))}
+        </ul>
+        <p className="mt-1 text-[0.6875rem] text-[#5A5751] italic">{SWITCHER_SOFTWARE.versionNote}</p>
+        <p className="mt-0.5 text-[0.6875rem] text-[#B85838] italic">{SWITCHER_SOFTWARE.officialOnly}</p>
+
+        {/* Lower thirds — OPEN, honestly held */}
+        <div className="mt-4 text-[0.6875rem] uppercase tracking-wider text-[#5A5751]">Lower thirds &middot; open item</div>
+        <div className="mt-1"><span className="inline-flex items-center gap-1.5 text-[0.6875rem] uppercase tracking-wider"><KpiDot status="attention" /> {LOWER_THIRDS.status}</span></div>
+        <p className="mt-2 text-[0.75rem] text-[#1A1815] border-l-2 border-[#B85838] pl-2.5"><b>Principle:</b> {LOWER_THIRDS.principle}</p>
+        <div className="mt-2 text-[0.6875rem] uppercase tracking-wider text-[#5A5751]">Two questions that gate the path</div>
+        <ol className="mt-1 space-y-1">
+          {LOWER_THIRDS.openQuestions.map((q, i) => (
+            <li key={i} className="text-[0.75rem] text-[#1A1815] flex gap-2"><span className="text-[#B85838]">{i + 1}.</span><span>{q}</span></li>
+          ))}
+        </ol>
+        <div className="mt-2 text-[0.6875rem] uppercase tracking-wider text-[#5A5751]">Paths (pick once the questions are answered)</div>
+        <ul className="mt-1 space-y-1.5">
+          {LOWER_THIRDS.paths.map((p, i) => (
+            <li key={i} className="text-[0.75rem] text-[#1A1815] flex gap-2"><span className="text-[#B85838]">&middot;</span><span><b>{p.name}:</b> {p.how}</span></li>
+          ))}
+        </ul>
+
+        {/* Claude on the booth box — follow-through note with the guardrail */}
+        <div className="mt-4 text-[0.6875rem] uppercase tracking-wider text-[#5A5751]">Booth resident (Claude Code)</div>
+        <p className="mt-1 text-[0.75rem] text-[#1A1815]">{BOOTH_RESIDENT.installed} <span className="text-[#5A5751]">{BOOTH_RESIDENT.why}</span></p>
+        <p className="mt-1 text-[0.75rem] text-[#1A1815] border-l-2 border-[#B85838] pl-2.5"><b>&#9888; Guardrail:</b> {BOOTH_RESIDENT.guardrail}</p>
+
+        <p className="mt-3 text-[0.6875rem] text-[#5A5751] italic">Source: {LIVE_SERVICE.source}. Full note: docs/99-session-notes/2026-07-05-colg-first-live-service-on-the-wall.md</p>
       </div>
 
       {/* ===== ON-SITE SESSION — turnkey, sequenced, execute-not-figure-out ===== */}
@@ -323,7 +393,63 @@ export default function ChurchVideoWall() {
         </ul>
         <p className="mt-2 text-[0.6875rem] text-[#5A5751] italic">Progress saved on this device. Full runbook: docs/99-session-notes/2026-07-01-colg-onsite-session-turnkey-runbook.md</p>
       </div>
+        </div>
+      ),
+    },
+    {
+      id: 'broadcast',
+      label: 'Broadcast review',
+      icon: 'monitor',
+      render: () => (
+        <div className="space-y-4">
+      {/* ===== CHRISTINA'S BROADCAST REVIEW — mix + choir walk-in cue ===== */}
+      <div className={card}>
+        <div className="flex items-center justify-between">
+          <div className={labelCls}>Broadcast review &middot; {BROADCAST_REVIEW.reviewer} &middot; {BROADCAST_REVIEW.capturedOn}</div>
+          <span className="inline-flex items-center gap-1.5 text-[0.6875rem] uppercase tracking-wider"><KpiDot status="attention" /> Requested</span>
+        </div>
+        <p className="mt-2 text-[0.8125rem] text-[#1A1815]">{BROADCAST_REVIEW.posture}</p>
+        <div className="mt-1 text-[0.6875rem] text-[#5A5751] italic">{BROADCAST_REVIEW.service}</div>
 
+        {/* AUDIO MIX — Yamaha TF5, relative targets */}
+        <div className="mt-4 text-[0.6875rem] uppercase tracking-wider text-[#5A5751]">Audio mix &middot; Yamaha TF5 (front-of-house)</div>
+        <div className="mt-2 space-y-2">
+          {AUDIO_ADJUSTMENTS.map((a) => (
+            <div key={a.id} className="border border-[#E8E4DC] p-2.5">
+              <div className="flex items-baseline justify-between gap-2">
+                <span className="text-[0.8125rem] font-semibold text-[#1A1815]" style={serif}>{a.change}</span>
+                <span className="text-[0.5625rem] uppercase tracking-wider text-[#B85838]">{a.status}</span>
+              </div>
+              <div className="mt-0.5 text-[0.75rem] text-[#1A1815]"><b>Target:</b> {a.target}</div>
+              <div className="text-[0.75rem] text-[#5A5751]"><b>Why:</b> {a.why}</div>
+              <div className="text-[0.75rem] text-[#5A5751]"><b>How:</b> {a.how}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* VIDEO CUE — the choir walk-in reveal */}
+        <div className="mt-4 text-[0.6875rem] uppercase tracking-wider text-[#5A5751]">Choir walk-in &middot; hold, then reveal</div>
+        <p className="mt-1 text-[0.6875rem] text-[#5A5751] italic">{CHOIR_WALKIN_CUE.station}</p>
+        <p className="mt-2 text-[0.8125rem] text-[#1A1815] border-l-2 border-[#B85838] pl-2.5">{CHOIR_WALKIN_CUE.principle}</p>
+        <ol className="mt-2 space-y-1.5">
+          {CHOIR_WALKIN_CUE.steps.map((s, i) => (
+            <li key={i} className="text-[0.8125rem] text-[#1A1815] flex gap-2"><span className="text-[#B85838]">{i + 1}.</span><span>{s}</span></li>
+          ))}
+        </ol>
+        <p className="mt-2 text-[0.75rem] text-[#1A1815] border-l-2 border-[#B85838] pl-2.5"><b>&#9888; Guard:</b> {CHOIR_WALKIN_CUE.guard}</p>
+        <p className="mt-2 text-[0.6875rem] text-[#5A5751]"><b>Why:</b> {CHOIR_WALKIN_CUE.why}</p>
+
+        <p className="mt-3 text-[0.6875rem] text-[#5A5751] italic">Source: {BROADCAST_REVIEW.source} These are requested changes for the team, not a claim the mix has been reset (DR-0076). Full note: docs/99-session-notes/2026-07-14-colg-broadcast-review-christina.md</p>
+      </div>
+        </div>
+      ),
+    },
+    {
+      id: 'spec',
+      label: 'Spec & power',
+      icon: 'monitor',
+      render: () => (
+        <div className="space-y-4">
       {/* STAGE-VISUAL IMAGE SLOT — filled from the church YouTube once Darrell
           confirms the video link. Left as an explicit placeholder, not faked. */}
       <div className={card}>
@@ -407,7 +533,30 @@ export default function ChurchVideoWall() {
           <li className="flex gap-2"><span className="text-[#B85838]">&middot;</span><span>Path: VX1000 port &rarr; top cabinet of a column &rarr; daisy-chain DOWN its {ledMath.cabinetsPerLine} cabinets. DIRECT, no switch.</span></li>
         </ul>
       </div>
-
+      {/* ===== PANEL / WALL SPEC (canonical) ===== */}
+      <div className={card}>
+        <div className={labelCls}>Panel / wall spec (canonical &middot; confirmed on-site)</div>
+        <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5 text-[0.75rem]">
+          <div><dt className="text-[0.625rem] text-[#5A5751]">Panel</dt><dd className="text-[#1A1815]">{PANEL_SPEC.vendor}</dd></div>
+          <div><dt className="text-[0.625rem] text-[#5A5751]">Model / RX card</dt><dd className="text-[#1A1815]">{PANEL_SPEC.panelModel} &middot; {PANEL_SPEC.receivingCard}</dd></div>
+          <div><dt className="text-[0.625rem] text-[#5A5751]">Cabinet</dt><dd className="text-[#1A1815]">{PANEL_SPEC.cabinetPx} ({PANEL_SPEC.cabinetMm}), {PANEL_SPEC.modules}, {PANEL_SPEC.pitchMm}mm</dd></div>
+          <div><dt className="text-[0.625rem] text-[#5A5751]">Module params</dt><dd className="text-[#1A1815]">{PANEL_SPEC.moduleParams}</dd></div>
+          <div><dt className="text-[0.625rem] text-[#5A5751]">Wall</dt><dd className="text-[#1A1815]">{PANEL_SPEC.grid} = {PANEL_SPEC.nativePx}</dd></div>
+          <div><dt className="text-[0.625rem] text-[#5A5751]">RX Card Size</dt><dd className="text-[#1A1815]">{PANEL_SPEC.receivingCardSize}</dd></div>
+        </dl>
+        <p className="mt-2 text-[0.6875rem] text-[#1A1815]"><b>Per-port:</b> {PANEL_SPEC.perPortLoad}</p>
+        <p className="mt-1 text-[0.6875rem] text-[#1A1815]"><b>Source:</b> {PANEL_SPEC.source}</p>
+        <p className="mt-1 text-[0.6875rem] text-[#B85838] italic">{PANEL_SPEC.verify}</p>
+      </div>
+        </div>
+      ),
+    },
+    {
+      id: 'signal',
+      label: 'Signal chain',
+      icon: 'link',
+      render: () => (
+        <div className="space-y-4">
       {/* SIGNAL CHAIN + AV DEVICE INVENTORY — two switchers, two jobs */}
       <div className={card}>
         <div className={labelCls}>Signal chain &middot; cameras &rarr; ATEM &rarr; NovaStar &rarr; wall</div>
@@ -552,7 +701,32 @@ export default function ChurchVideoWall() {
         </div>
         <p className="mt-3 text-[0.8125rem] text-[#1A1815] border-l-2 border-[#B85838] pl-2.5"><b>{TEACHING_CARD.oneLiner}</b></p>
       </div>
-
+      {/* ===== VERIFIED SCREEN CONNECTION MAP (canonical reference) ===== */}
+      <div className={card}>
+        <div className={labelCls}>Verified screen connection map &middot; {SCREEN_CONNECTION_MAP.verifiedOn}</div>
+        <p className="mt-2 text-[0.8125rem] text-[#1A1815]">{SCREEN_CONNECTION_MAP.rule}</p>
+        <p className="mt-2 text-[0.75rem] text-[#1A1815] border-l-2 border-[#B85838] pl-2.5"><b>The mechanic to teach:</b> {SCREEN_CONNECTION_MAP.mechanic}</p>
+        <div className="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+          {SCREEN_CONNECTION_MAP.ports.map((p) => (
+            <div key={p.port} className="border border-[#E8E4DC] p-1.5 text-[0.625rem]">
+              <div className="font-semibold text-[#1A1815]">Port {p.port}</div>
+              <div className="text-[#5A5751]">{p.column}</div>
+            </div>
+          ))}
+        </div>
+        <p className="mt-2 text-[0.6875rem] text-[#B85838] italic">{SCREEN_CONNECTION_MAP.receivingCardSizeNote}</p>
+        <p className="mt-1 text-[0.6875rem] text-[#5A5751]">{SCREEN_CONNECTION_MAP.save}</p>
+        <MediaSlot base={mediaBase} photo={SCREEN_CONNECTION_MAP.photo} label={SCREEN_CONNECTION_MAP.slot} />
+      </div>
+        </div>
+      ),
+    },
+    {
+      id: 'software',
+      label: 'Software & control',
+      icon: 'tools',
+      render: () => (
+        <div className="space-y-4">
       {/* ===== VX1000 SOFTWARE — the NovaStar program stack (copy on-site) ===== */}
       <div className={card}>
         <div className={labelCls}>VX1000 software &middot; {VX1000_SOFTWARE.controller}</div>
@@ -626,41 +800,6 @@ ${VX1000_SOFTWARE.steps.map((s, i) => `${i + 1}. ${s}`).join('\n')}`
           ))}
         </ol>
       </div>
-
-      {/* ===== PANEL / WALL SPEC (canonical) ===== */}
-      <div className={card}>
-        <div className={labelCls}>Panel / wall spec (canonical &middot; confirmed on-site)</div>
-        <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5 text-[0.75rem]">
-          <div><dt className="text-[0.625rem] text-[#5A5751]">Panel</dt><dd className="text-[#1A1815]">{PANEL_SPEC.vendor}</dd></div>
-          <div><dt className="text-[0.625rem] text-[#5A5751]">Model / RX card</dt><dd className="text-[#1A1815]">{PANEL_SPEC.panelModel} &middot; {PANEL_SPEC.receivingCard}</dd></div>
-          <div><dt className="text-[0.625rem] text-[#5A5751]">Cabinet</dt><dd className="text-[#1A1815]">{PANEL_SPEC.cabinetPx} ({PANEL_SPEC.cabinetMm}), {PANEL_SPEC.modules}, {PANEL_SPEC.pitchMm}mm</dd></div>
-          <div><dt className="text-[0.625rem] text-[#5A5751]">Module params</dt><dd className="text-[#1A1815]">{PANEL_SPEC.moduleParams}</dd></div>
-          <div><dt className="text-[0.625rem] text-[#5A5751]">Wall</dt><dd className="text-[#1A1815]">{PANEL_SPEC.grid} = {PANEL_SPEC.nativePx}</dd></div>
-          <div><dt className="text-[0.625rem] text-[#5A5751]">RX Card Size</dt><dd className="text-[#1A1815]">{PANEL_SPEC.receivingCardSize}</dd></div>
-        </dl>
-        <p className="mt-2 text-[0.6875rem] text-[#1A1815]"><b>Per-port:</b> {PANEL_SPEC.perPortLoad}</p>
-        <p className="mt-1 text-[0.6875rem] text-[#1A1815]"><b>Source:</b> {PANEL_SPEC.source}</p>
-        <p className="mt-1 text-[0.6875rem] text-[#B85838] italic">{PANEL_SPEC.verify}</p>
-      </div>
-
-      {/* ===== VERIFIED SCREEN CONNECTION MAP (canonical reference) ===== */}
-      <div className={card}>
-        <div className={labelCls}>Verified screen connection map &middot; {SCREEN_CONNECTION_MAP.verifiedOn}</div>
-        <p className="mt-2 text-[0.8125rem] text-[#1A1815]">{SCREEN_CONNECTION_MAP.rule}</p>
-        <p className="mt-2 text-[0.75rem] text-[#1A1815] border-l-2 border-[#B85838] pl-2.5"><b>The mechanic to teach:</b> {SCREEN_CONNECTION_MAP.mechanic}</p>
-        <div className="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-1.5">
-          {SCREEN_CONNECTION_MAP.ports.map((p) => (
-            <div key={p.port} className="border border-[#E8E4DC] p-1.5 text-[0.625rem]">
-              <div className="font-semibold text-[#1A1815]">Port {p.port}</div>
-              <div className="text-[#5A5751]">{p.column}</div>
-            </div>
-          ))}
-        </div>
-        <p className="mt-2 text-[0.6875rem] text-[#B85838] italic">{SCREEN_CONNECTION_MAP.receivingCardSizeNote}</p>
-        <p className="mt-1 text-[0.6875rem] text-[#5A5751]">{SCREEN_CONNECTION_MAP.save}</p>
-        <MediaSlot base={mediaBase} photo={SCREEN_CONNECTION_MAP.photo} label={SCREEN_CONNECTION_MAP.slot} />
-      </div>
-
       {/* ===== VERIFIED FINAL CONFIG + the real apply procedure ===== */}
       <div className={card}>
         <div className={labelCls}>Screen configuration &middot; COMPLETE (verified)</div>
@@ -684,18 +823,6 @@ ${VX1000_SOFTWARE.steps.map((s, i) => `${i + 1}. ${s}`).join('\n')}`
         </ol>
         <p className="mt-2 text-[0.6875rem] text-[#5A5751] italic">{TOMORROW_ACTIVATION.status}</p>
       </div>
-
-      {/* ===== INSTALL GALLERY (labeled slots — attach the on-site photos) ===== */}
-      <div className={card}>
-        <div className={labelCls}>Install gallery &middot; on-site photos</div>
-        <p className="mt-1 text-[0.6875rem] text-[#5A5751]">The actual COLG install. Labeled slots until the on-site photos are attached (serving pending the NAS media host).</p>
-        <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
-          {INSTALL_GALLERY.map((g) => (
-            <MediaSlot key={g.id} base={mediaBase} photo={g.photo} label={g.label} />
-          ))}
-        </div>
-      </div>
-
       {/* ===== TOOL CACHE + CONTROL FROM ANYWHERE ===== */}
       <div className={card}>
         <div className={labelCls}>Tool cache &amp; control from anywhere</div>
@@ -767,7 +894,15 @@ ${VX1000_SOFTWARE.steps.map((s, i) => `${i + 1}. ${s}`).join('\n')}`
         <div className="mt-4 text-[0.6875rem] uppercase tracking-wider text-[#5A5751]">Send tonight &mdash; {VENDOR_MESSAGE.to}</div>
         <pre className="mt-1.5 whitespace-pre-wrap text-[0.75rem] text-[#1A1815] bg-[#FAF8F4] border border-[#E8E4DC] p-2.5 font-sans">{VENDOR_MESSAGE.body.join('\n')}</pre>
       </div>
-
+        </div>
+      ),
+    },
+    {
+      id: 'work',
+      label: 'Checklists',
+      icon: 'check',
+      render: () => (
+        <div className="space-y-4">
       {/* ===== FINISH CHECKLIST — work it down to done ===== */}
       <div className={card}>
         <div className="flex items-center justify-between">
@@ -834,7 +969,15 @@ ${VX1000_SOFTWARE.steps.map((s, i) => `${i + 1}. ${s}`).join('\n')}`
           Full on-site runbook: docs/99-session-notes/2026-06-29-colg-video-wall-install-power-data-runbook.md
         </p>
       </div>
-
+        </div>
+      ),
+    },
+    {
+      id: 'money',
+      label: 'Budget',
+      icon: 'coins',
+      render: () => (
+        <div className="space-y-4">
       {/* BUDGET — GATED. Money is fetched (owner/admin) or hidden. */}
       <div className={card}>
         <div className="flex items-center justify-between">
@@ -882,7 +1025,15 @@ ${VX1000_SOFTWARE.steps.map((s, i) => `${i + 1}. ${s}`).join('\n')}`
           </div>
         )}
       </div>
-
+        </div>
+      ),
+    },
+    {
+      id: 'story',
+      label: 'Story',
+      icon: 'calendar',
+      render: () => (
+        <div className="space-y-4">
       {/* STATUS TIMELINE — public-safe narrative */}
       <div className={card}>
         <div className={labelCls}>Timeline</div>
@@ -898,7 +1049,6 @@ ${VX1000_SOFTWARE.steps.map((s, i) => `${i + 1}. ${s}`).join('\n')}`
           ))}
         </ol>
       </div>
-
       {/* ON-SITE INSTALL — the install-milestone EVENT record (public-safe facts) */}
       <div className={card}>
         <div className={labelCls}>On site &middot; install in progress &middot; {INSTALL.observedOn}</div>
@@ -918,7 +1068,16 @@ ${VX1000_SOFTWARE.steps.map((s, i) => `${i + 1}. ${s}`).join('\n')}`
         </ul>
         <p className="mt-3 text-[0.6875rem] text-[#5A5751] italic">Source: {INSTALL.source}.</p>
       </div>
-
+      {/* ===== INSTALL GALLERY (labeled slots — attach the on-site photos) ===== */}
+      <div className={card}>
+        <div className={labelCls}>Install gallery &middot; on-site photos</div>
+        <p className="mt-1 text-[0.6875rem] text-[#5A5751]">The actual COLG install. Labeled slots until the on-site photos are attached (serving pending the NAS media host).</p>
+        <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
+          {INSTALL_GALLERY.map((g) => (
+            <MediaSlot key={g.id} base={mediaBase} photo={g.photo} label={g.label} />
+          ))}
+        </div>
+      </div>
       {/* OPPORTUNITIES */}
       <div className={card}>
         <div className={labelCls}>Opportunities</div>
@@ -952,6 +1111,33 @@ ${VX1000_SOFTWARE.steps.map((s, i) => `${i + 1}. ${s}`).join('\n')}`
           <li className="flex gap-2"><span className="text-[#B85838]">&middot;</span><span><b>COLG NAS build</b> &mdash; church-owned storage + playback the wall reads from; this CapEx record seeds the church-infrastructure accounting that gates the media-pipeline build.</span></li>
         </ul>
       </div>
+        </div>
+      ),
+    },
+  ];
+
+  return (
+    <div className="space-y-4">
+      {/* HEADER — church name pair (legal + community nickname, side by side) */}
+      <div className={card}>
+        <div className={labelCls}>Capital Project · Facilities / CapEx</div>
+        <h2 className="mt-1 text-xl sm:text-2xl text-[#1A1815]" style={serif}>Sanctuary LED Video Wall</h2>
+        <div className="mt-1 text-sm text-[#1A1815]" style={serif}>
+          The Church of the Living God <span className="text-[#B85838]">&mdash; The Love Corner</span>
+        </div>
+        <p className="mt-0.5 text-[0.6875rem] text-[#5A5751] italic">
+          The legal name and the community&rsquo;s name, side by side &mdash; the biblical name-pair pattern (Abram &rarr; Abraham, Simon &rarr; Peter, Saul &rarr; Paul).
+        </p>
+        <div className="mt-3"><StatusBadge status={status} /></div>
+        <p className="mt-3 text-sm text-[#5A5751]">
+          {project?.summary || 'Fine-pitch indoor LED video wall for the main sanctuary — replaces projection so the congregation reads Scripture, lyrics, and the broadcast feed at full brightness in a lit room.'}
+        </p>
+        <p className="mt-2 text-[0.75rem] text-[#1A1815]">
+          {project?.installNote || 'Commissioned 2026-07-03: one 2560x1440 screen across 48 cabinets, config saved to the receiving cards, Preset 1 = the Sunday service state, first sermon video played full-wall the same night. Remaining: warranty module swaps + EDID nicety (punch list).'}
+        </p>
+      </div>
+
+      <SectionTabs sections={sections} ariaLabel="Video wall sections" idBase="vwall" defaultId="onsite" />
     </div>
   );
 }

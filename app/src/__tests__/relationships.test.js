@@ -19,18 +19,63 @@ import {
   isChildCapabilityLocked,
   buildMatrix,
   capabilitiesFor,
+  ASSISTANT_GRANTABLE,
+  resolveAssistantCapability,
+  isAssistantCapabilityLocked,
+  effectiveAssistantPolicy,
 } from '../lib/relationships.js';
 
 const REL = RELATIONSHIP_TYPES;
 
 describe('relationship types', () => {
-  it('defines the three relationships with steward + roles', () => {
+  it('defines the five relationships with steward + roles', () => {
     expect(RELATIONSHIPS.map((r) => r.type).sort()).toEqual(
-      [REL.FAMILY, REL.GUARDIAN_CHILD, REL.LANDLORD_TENANT].sort(),
+      [REL.FAMILY, REL.GUARDIAN_CHILD, REL.LANDLORD_TENANT, REL.LANDLORD_MANAGER, REL.OWNER_ASSISTANT].sort(),
     );
     for (const r of RELATIONSHIPS) {
       expect(r.roles.length).toBeGreaterThanOrEqual(2);
       expect(r.roles).toContain(r.steward); // the configuring side is a real role
+    }
+  });
+});
+
+describe('landlord <-> manager: the 1099-delegation ceiling', () => {
+  // Darrell 2026-07-06: a landlord lets a 1099 worker MANAGE the business and
+  // WATCHES the workflows, separated from the day-to-day; the owner reviews the
+  // history to train and can grant that sight to new family or another worker.
+  it('a manager RUNS the full day-to-day operating set', () => {
+    for (const cap of [
+      'rentroll.view', 'maintenance.manage', 'rent.confirm', 'notice.post',
+      'lease.manage', 'tenant.contact', 'message.tenant', 'portfolio.view',
+    ]) {
+      expect(can(REL.LANDLORD_MANAGER, 'manager', cap), `manager should run ${cap}`).toBe(true);
+    }
+  });
+
+  it('a manager NEVER owns it: no watching-over, history-review, training, or delegating', () => {
+    // The four owner powers are the ceiling — a 1099 worker operates, it cannot
+    // hand the business to someone else.
+    expect(can(REL.LANDLORD_MANAGER, 'manager', 'ops.oversight')).toBe(false);
+    expect(can(REL.LANDLORD_MANAGER, 'manager', 'ops.history')).toBe(false);
+    expect(can(REL.LANDLORD_MANAGER, 'manager', 'ops.train')).toBe(false);
+    expect(can(REL.LANDLORD_MANAGER, 'manager', 'ops.delegate')).toBe(false);
+  });
+
+  it('the owner keeps the whole operating set AND the four oversight powers', () => {
+    // "With or without them" — the owner can always act…
+    expect(can(REL.LANDLORD_MANAGER, 'landlord', 'rentroll.view')).toBe(true);
+    expect(can(REL.LANDLORD_MANAGER, 'landlord', 'message.tenant')).toBe(true);
+    // …and always watch, review, train, and hand the sight to others.
+    expect(can(REL.LANDLORD_MANAGER, 'landlord', 'ops.oversight')).toBe(true);
+    expect(can(REL.LANDLORD_MANAGER, 'landlord', 'ops.history')).toBe(true);
+    expect(can(REL.LANDLORD_MANAGER, 'landlord', 'ops.train')).toBe(true);
+    expect(can(REL.LANDLORD_MANAGER, 'landlord', 'ops.delegate')).toBe(true);
+  });
+
+  it('the four oversight powers are exactly the owner/manager delta (the ceiling is visible)', () => {
+    for (const cap of ['ops.oversight', 'ops.history', 'ops.train', 'ops.delegate']) {
+      expect(can(REL.LANDLORD_MANAGER, 'landlord', cap), `owner should hold ${cap}`).toBe(true);
+      expect(can(REL.LANDLORD_MANAGER, 'manager', cap), `manager should NOT hold ${cap}`).toBe(false);
     }
   });
 });
@@ -113,6 +158,36 @@ describe('guardian <-> child: child-safety is structural', () => {
   });
 });
 
+describe('family circle: successor is read-only on the books (DR-0252)', () => {
+  // Darrell 2026-07-06: a steward-in-training being raised to take over. The
+  // staged middle rung — SEES the real books to learn on them, but cannot change
+  // them. Read, don't wreck.
+  it('a successor SEES the family finances (finance.view)', () => {
+    expect(can(REL.FAMILY, 'successor', 'finance.view')).toBe(true);
+    expect(can(REL.FAMILY, 'successor', 'family.shared')).toBe(true);
+  });
+
+  it('a successor CANNOT work the books, build, or manage members', () => {
+    expect(can(REL.FAMILY, 'successor', 'finance.manage')).toBe(false);
+    expect(can(REL.FAMILY, 'successor', 'family.build')).toBe(false);
+    expect(can(REL.FAMILY, 'successor', 'family.manage')).toBe(false);
+  });
+
+  it('the read-only cut is the ONLY difference from a member: a member can work the books, a successor cannot', () => {
+    // Both see the books…
+    expect(can(REL.FAMILY, 'member', 'finance.view')).toBe(true);
+    expect(can(REL.FAMILY, 'successor', 'finance.view')).toBe(true);
+    // …but only the member can change them. That gap IS the succession-safety.
+    expect(can(REL.FAMILY, 'member', 'finance.manage')).toBe(true);
+    expect(can(REL.FAMILY, 'successor', 'finance.manage')).toBe(false);
+  });
+
+  it('a governor can both see and work the books', () => {
+    expect(can(REL.FAMILY, 'governor', 'finance.view')).toBe(true);
+    expect(can(REL.FAMILY, 'governor', 'finance.manage')).toBe(true);
+  });
+});
+
 describe('clamp + resolve primitives', () => {
   it('clampSetting never exceeds the ceiling; unknown -> deny', () => {
     expect(clampSetting(SETTING.ALLOW, SETTING.APPROVAL)).toBe(SETTING.APPROVAL);
@@ -166,5 +241,55 @@ describe('buildMatrix', () => {
     const childBuy = rows.find((r) => r.role === 'child' && r.capability === 'purchase.any');
     expect(childMsg.configurable).toBe(true);
     expect(childBuy.configurable).toBe(false);
+  });
+});
+
+// owner<->assistant — the level boundary (Darrell 2026-07-13): an assistant
+// OPERATES scoped work surfaces and is walled off from the owner's data; the
+// owner sees down + keeps oversight. Proven-to-catch the wall so a future edit
+// that loosens it fails the build (the model half; RLS is the data-gate slice).
+describe('owner <-> assistant — per-assistant checkboxes, walls locked, owner sees down', () => {
+  const REL_OA = REL.OWNER_ASSISTANT;
+
+  it('the four work surfaces are OFF by default (a deliberate checkbox, not automatic)', () => {
+    for (const cap of ['referrals.manage', 'tasks.own', 'inbound.contact', 'crm.assigned']) {
+      expect(can(REL_OA, 'assistant', cap)).toBe(false);
+    }
+  });
+  it('the owner can CHECK each of the four work surfaces to grant it', () => {
+    for (const cap of ['referrals.manage', 'tasks.own', 'inbound.contact', 'crm.assigned']) {
+      expect(can(REL_OA, 'assistant', cap, { [cap]: 'allow' })).toBe(true);
+    }
+    expect(ASSISTANT_GRANTABLE.slice().sort()).toEqual(['crm.assigned', 'inbound.contact', 'referrals.manage', 'tasks.own']);
+  });
+  it("LOCKS the owner's data + oversight — checking the box does NOTHING (clamped to deny)", () => {
+    for (const cap of ['finance.view', 'finance.manage', 'portfolio.view', 'family.build', 'family.manage', 'ops.oversight', 'ops.history', 'ops.train', 'ops.delegate']) {
+      // even a deliberate attempt to grant it resolves to deny — the wall is structural
+      expect(can(REL_OA, 'assistant', cap, { [cap]: 'allow' })).toBe(false);
+      expect(isAssistantCapabilityLocked(cap)).toBe(true);
+      expect(resolveAssistantCapability(cap, { [cap]: 'allow' })).toBe('deny');
+    }
+  });
+  it('the four work surfaces are configurable (not locked)', () => {
+    for (const cap of ASSISTANT_GRANTABLE) expect(isAssistantCapabilityLocked(cap)).toBe(false);
+  });
+  it('effectiveAssistantPolicy reflects the owner’s checkboxes + marks the locked walls', () => {
+    const eff = effectiveAssistantPolicy({ 'referrals.manage': 'allow' });
+    expect(eff['referrals.manage'].setting).toBe('allow');
+    expect(eff['referrals.manage'].locked).toBe(false);
+    expect(eff['tasks.own'].setting).toBe('deny');           // unchecked
+    expect(eff['finance.view'].locked).toBe(true);
+    expect(eff['finance.view'].setting).toBe('deny');
+  });
+  it('lets the owner see down: everything the assistant does + the four oversight powers', () => {
+    expect(can(REL_OA, 'owner', 'referrals.manage')).toBe(true);
+    expect(can(REL_OA, 'owner', 'crm.assigned')).toBe(true);
+    expect(can(REL_OA, 'owner', 'finance.view')).toBe(true);
+    expect(can(REL_OA, 'owner', 'ops.oversight')).toBe(true);
+    expect(can(REL_OA, 'owner', 'ops.delegate')).toBe(true);
+  });
+  it('no-leak default: a capability outside the assistant policy is deny even if granted', () => {
+    expect(can(REL_OA, 'assistant', 'lease.manage', { 'lease.manage': 'allow' })).toBe(false);
+    expect(can(REL_OA, 'assistant', 'rentroll.view')).toBe(false);
   });
 });

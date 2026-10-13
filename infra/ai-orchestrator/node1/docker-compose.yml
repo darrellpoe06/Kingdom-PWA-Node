@@ -40,7 +40,13 @@ services:
       - "11434:11434"
     environment:
       - TZ=America/Chicago
-      - OLLAMA_KEEP_ALIVE=15m
+      # DR-0012 §3: this service reserves the 4070, so it must free VRAM within
+      # ~1 s when ANY non-Ollama CUDA process wants the card. Held 15m until
+      # 2026-08-14 — a quarter hour of squatting on a 12 GB card shared with
+      # creative production. Ollama reloads from page cache on the next call;
+      # the cost of 0 is latency on a cold request, which is the trade DR-0012
+      # already decided ("creative work has absolute priority over LLM jobs").
+      - OLLAMA_KEEP_ALIVE=0
       # One 14B fits 12 GB; keep a single large model + the small embedder.
       - OLLAMA_MAX_LOADED_MODELS=2
     volumes:

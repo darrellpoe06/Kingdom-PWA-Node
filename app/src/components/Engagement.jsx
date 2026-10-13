@@ -10,14 +10,22 @@
 // so every signed-in family member sees the same lane live.
 //
 // Accessibility: white cards / #1A1815 body text (>= 16:1), #5A5751 secondary
-// (~7:1), green #166534 + red #991B1B verdicts (>= 6:1), all interactive
+// (~7:1), green #166534 + terracotta #B85838 verdicts (true red stays reserved
+// for the Blood — DR-0099; 2026-07-28 review), all interactive
 // elements keyboard-reachable with a visible #B85838 focus outline, labelled
 // inputs, and aria-live regions for the verdict + the live thread.
 // =============================================================================
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { SectionTitle } from './shared.jsx';
+import SectionTabs from './SectionTabs.jsx';
 import { onAuthChange } from '../lib/supabase.js';
+import DirectMessages from './DirectMessages.jsx';
+import MyProfile from './MyProfile.jsx';
+import { ProfileAvatar } from './ProfileCard.jsx';
+import { useProfiles, preferredName } from '../lib/use-profiles.js';
+import { loadMyProfile } from '../lib/profiles-sync.js';
+import { publishDmPublicKey, loadDmContacts, loadDmInvited } from '../lib/direct-messages-sync.js';
 import {
   uploadTriviaAnswer, sendMessage, subscribeMessages,
   getActiveQuestion, getRecentQuestions, chooseTriviaSource,
@@ -200,7 +208,7 @@ function LiveTriviaCard({ question, recent }) {
               {question.scriptureRef ? ` (${question.scriptureRef})` : ''}.
             </p>
           ) : (
-            <p className="text-[#991B1B] font-semibold">
+            <p className="text-[#B85838] font-semibold">
               Not quite. The answer is {correctChoice ? correctChoice.label : String(question.correctChoice)}
               {question.scriptureRef ? ` (${question.scriptureRef})` : ''}.
             </p>
@@ -317,7 +325,7 @@ function AnchorTriviaCard({ signedIn }) {
                       &#10003; Correct &mdash; {q.answerLabel}
                     </p>
                   ) : (
-                    <p className="text-[#991B1B] font-semibold">
+                    <p className="text-[#B85838] font-semibold">
                       Not quite. The answer is {q.answerLabel}
                     </p>
                   )}
@@ -330,7 +338,7 @@ function AnchorTriviaCard({ signedIn }) {
 
       {!signedIn && (
         <p className="mt-4 text-xs text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
-          You can play now &mdash; sign in (top of the page) to save your answers across devices.
+          You can play now &mdash; sign in (top of the page) so your answers are recorded for the church.
         </p>
       )}
     </section>
@@ -345,6 +353,10 @@ function MessageThread({ signedIn }) {
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState(null);
+  // The face beside every family message (Darrell 2026-09-09: "users like to
+  // see their picture") — one cached read per person who has spoken.
+  const speakerIds = useMemo(() => messages.map((m) => m && m.userId), [messages]);
+  const threadProfiles = useProfiles(speakerIds);
   const listRef = useRef(null);
 
   useEffect(() => {
@@ -405,18 +417,34 @@ function MessageThread({ signedIn }) {
             aria-label="Message thread"
             className="border border-[#E8E4DC] bg-[#FAF8F4] p-3 mb-3 max-h-72 overflow-y-auto space-y-2"
           >
+            {/* The house's standing WELCOME opens the thread (Darrell
+                2026-07-08: "Add an initial welcome message and filler to the
+                public space"). Rendered as the house speaking — clearly ours,
+                never a painted user message (DR-0076). */}
+            <div className="border-l-2 border-[#5A6E3D] bg-white px-2.5 py-2">
+              <span className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold">The Church of the Living God · welcome</span>
+              <p className="text-sm text-[#1A1815] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>
+                Welcome to the family thread — we&apos;re glad you&apos;re here. This is the church family&apos;s living room: say hello, share a praise report, ask for prayer, or pass a word along. Everyone signed in sees it live. To reach one person privately, use the Message a member tab.
+              </p>
+              <p className="text-[0.6875rem] text-[#5A5751] mt-1 italic" style={{ fontFamily: '"Fraunces", serif' }}>
+                A few ways to start: introduce yourself and your house · share what Yahweh did this week · ask the family to stand with you in prayer · invite someone to Sunday.
+              </p>
+            </div>
             {messages.length === 0 ? (
               <p className="text-xs text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
-                No messages yet. Say hello &mdash; everyone signed in will see it live.
+                No messages from the family yet — yours can be the first. Say hello below.
               </p>
             ) : (
               messages.map((m) => (
                 <div key={m.id} className="text-sm">
+                  <span className="inline-block align-middle mr-1.5">
+                    <ProfileAvatar profile={threadProfiles[m.userId] || { displayName: m.displayName }} size={22} />
+                  </span>
                   <span
                     className="font-semibold text-[#1A1815]"
                     style={{ fontFamily: '"Fraunces", serif' }}
                   >
-                    {m.displayName}
+                    {preferredName(threadProfiles[m.userId], m.displayName)}
                     {m.mine && (
                       <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] ml-1">
                         (you)
@@ -474,6 +502,84 @@ function formatTime(iso) {
 }
 
 // -----------------------------------------------------------------------------
+// Direct — message ONE member, privately (Darrell 2026-09-09, from the church
+// door: "why can't I send a message to a user?!"). The family thread above is
+// the living room — everyone signed in sees it. This is the 1:1 the app has
+// carried since DR-0181 (`direct_messages`, RLS + users_can_dm) but had only
+// surfaced in the bus ministry, the choir and the app-wide Messages view —
+// never on the church's own Engagement tab, where he went looking for it.
+// The roster is the server's word, not ours: list_dm_contacts mirrors
+// users_can_dm (a leader may message anyone in the church; anyone may message
+// a leader; roster to roster), and list_dm_invited shows the people on their
+// way. The panel never decides who may talk to whom.
+// -----------------------------------------------------------------------------
+function DirectPanel({ signedIn }) {
+  const [contacts, setContacts] = useState([]);
+  const [invited, setInvited] = useState([]);
+  const [loaded, setLoaded] = useState(false);
+  const [editingMe, setEditingMe] = useState(false);
+  // My own face on the fold that edits it — the picture a person saved is the
+  // first thing they look for (Darrell 2026-09-09).
+  const [me, setMe] = useState(null);
+  useEffect(() => {
+    if (!signedIn) { setMe(null); return undefined; }
+    let alive = true;
+    loadMyProfile().then((p) => { if (alive) setMe(p || null); }).catch(() => {});
+    return () => { alive = false; };
+  }, [signedIn, editingMe]);
+
+  useEffect(() => {
+    if (!signedIn) { setContacts([]); setInvited([]); setLoaded(false); return undefined; }
+    let alive = true;
+    publishDmPublicKey().catch(() => {});
+    Promise.all([
+      loadDmContacts().catch(() => []),
+      loadDmInvited().catch(() => []),
+    ]).then(([c, i]) => { if (!alive) return; setContacts(c); setInvited(i); setLoaded(true); });
+    return () => { alive = false; };
+  }, [signedIn]);
+
+  return (
+    <section aria-labelledby="direct-heading" className="bg-white border border-[#1A1815] p-5">
+      <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-1">
+        One member &middot; Private
+      </div>
+      <h3 id="direct-heading" className="text-xl mb-1" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>
+        Message a member
+      </h3>
+      <p className="text-sm text-[#5A5751] mb-3" style={{ fontFamily: '"Fraunces", serif' }}>
+        Between you and one person — &ldquo;between thee and him alone&rdquo; (Matthew 18:15). Pick a name to start, or open a conversation you already have.
+      </p>
+      {!signedIn ? (
+        <p className="text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+          Sign in (top of the page) to message a member.
+        </p>
+      ) : (
+        <>
+          {loaded && contacts.length === 0 && invited.length === 0 && (
+            <p className="text-sm text-[#5A5751] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
+              No one to message here yet. A leader of the church can add members; once someone shares this church with you, their name appears below.
+            </p>
+          )}
+          <DirectMessages roster={contacts} invited={invited} title="Message a member 1:1" />
+          {/* The person's own profile (DR-0342): name, picture, house, ministries,
+              a verse, a testimony, and who may see it — edited here, shown to the
+              people who may message them. */}
+          <div className="mt-4 border-t border-[#E8E4DC] pt-3">
+            <button type="button" onClick={() => setEditingMe((v) => !v)} aria-expanded={editingMe}
+              className="w-full text-left text-[0.625rem] uppercase tracking-wider text-[#B85838] py-1.5 hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838] inline-flex items-center gap-2">
+              {me && <ProfileAvatar profile={me} size={28} />}
+              <span>{editingMe ? '↑ Close my profile' : `↓ ${me?.displayName ? `${me.displayName} — my profile` : 'My profile'} — name, picture, house, ministries, testimony`}</span>
+            </button>
+            {editingMe && <div className="mt-2"><MyProfile /></div>}
+          </div>
+        </>
+      )}
+    </section>
+  );
+}
+
+// -----------------------------------------------------------------------------
 // Surface
 // -----------------------------------------------------------------------------
 export default function Engagement() {
@@ -481,11 +587,23 @@ export default function Engagement() {
 
   useEffect(() => onAuthChange((s) => setSignedIn(!!s)), []);
 
+  // Two swipeable sections instead of a stacked scroll (Darrell 2026-07-04:
+  // "sliding tabs for all tabs instead of a long scroll"). The title stays
+  // pinned above the strip. Each card mounts lazily — the thread's realtime
+  // subscription starts only when its tab is actually opened.
+  // Order (Darrell 2026-09-09): "move messages to the first tab spot... then
+  // family then trivia" — the private door first, the family second, the game
+  // third; and the page opens on the first.
+  const sections = [
+    { id: 'direct', label: 'Message a member', icon: 'users', render: () => <DirectPanel signedIn={signedIn} /> },
+    { id: 'thread', label: 'Family thread', icon: 'chat', render: () => <MessageThread signedIn={signedIn} /> },
+    { id: 'trivia', label: 'Trivia', icon: 'dice', render: () => <TriviaCard signedIn={signedIn} /> },
+  ];
+
   return (
     <div className="max-w-2xl">
       <SectionTitle eyebrow="Church · daily">Engagement</SectionTitle>
-      <TriviaCard signedIn={signedIn} />
-      <MessageThread signedIn={signedIn} />
+      <SectionTabs sections={sections} ariaLabel="Engagement sections" idBase="engage" defaultId="direct" />
     </div>
   );
 }

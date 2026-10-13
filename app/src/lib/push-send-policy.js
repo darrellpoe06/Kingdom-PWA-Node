@@ -1,0 +1,293 @@
+// =============================================================================
+// push-send-policy — what a send request must say, and what it is allowed to say
+// =============================================================================
+// The pure decision layer under app/functions/api/push-send.js. It exists apart
+// from the function so the rules that decide WHO gets buzzed and WHY can be
+// tested without a network, an environment, or a database.
+//
+// The governing idea: a notification is an intrusion into someone's pocket, so
+// every send must be able to answer three questions before it happens —
+//   • WHAT is being claimed? (a title, always; never an empty buzz)
+//   • WHY is it true? (the live topic requires a real state transition, not a
+//     schedule guess — see migration 0170 and church-live.js)
+//   • HAS IT ALREADY BEEN SAID? (a deterministic dedupe key, so a retried
+//     webhook or a double-tapped button cannot buzz a congregation twice)
+// A request that cannot answer all three is refused here, before any device is
+// touched.
+
+// 'fault' added 2026-09-13 (DR-0378). A door that breaks now writes its own row
+// (0217), but a row still waits for somebody to open the board. This is the
+// topic that reaches the office when it does not.
+// 'lesson' added 2026-10-01 (DR-0728). A person's own lesson finished building
+// or went live (migration 0246 enqueues it; the outbox drain sends it). Like
+// `fault` it is NEVER broadcast: an explicit one-person audience is required.
+export const SENDABLE_TOPICS = ['live', 'message', 'fault', 'lesson'];
+
+/** Titles/bodies are shown on a lock screen; keep them short and unsurprising. */
+export const MAX_TITLE = 80;
+export const MAX_BODY = 160;
+
+function str(v) {
+  return typeof v === 'string' ? v.trim() : '';
+}
+
+/**
+ * A deterministic dedupe key. The SAME real-world event must always produce the
+ * SAME key, or the lock does not lock.
+ *
+ * For `live`, the key is the church plus the go-live minute: a double click
+ * inside the same minute is one announcement, while a genuinely new service
+ * later that day is a new one. (Minute rather than second, because two clicks
+ * two seconds apart are the case this is defending against.)
+ */
+export function dedupeKeyFor({ topic, churchId, videoId, messageId, faultId, at }) {
+  if (topic === 'live') {
+    const minute = new Date(at || Date.now()).toISOString().slice(0, 16); // YYYY-MM-DDTHH:MM
+    return `live:${churchId || 'church'}:${videoId || 'none'}:${minute}`;
+  }
+  if (topic === 'message') {
+    // A message is a unique row; its id IS the natural key.
+    return `message:${messageId}`;
+  }
+  // A fault's id IS the dedupe key, and that is load-bearing: 0217 FOLDS a
+  // repeat into the same row (occurrences + 1) and returns the SAME id. So a
+  // door failing four hundred times buzzes the office exactly once, and only a
+  // genuinely NEW open fault -- a different break, or the same one after the
+  // office closed it -- earns a second buzz. The storm is already one row; this
+  // makes it one notification.
+  if (topic === 'fault') return `fault:${str(faultId)}`;
+  // A lesson notice is keyed by the TEACHING and the EVENT (`lesson:<row>:ready`,
+  // `lesson:<row>:published`), written by migration 0246 on the outbox row and
+  // carried through unchanged, so a drain that runs twice sends once.
+  return `${topic}:${str(churchId) || 'x'}:${new Date(at || Date.now()).toISOString()}`;
+}
+
+/**
+ * Validate an incoming send request.
+ * @returns {{ ok: true, value: object } | { ok: false, error: string }}
+ */
+export function validateSendRequest(body) {
+  const b = body && typeof body === 'object' ? body : {};
+  const topic = str(b.topic);
+  if (!SENDABLE_TOPICS.includes(topic)) {
+    return { ok: false, error: `topic must be one of ${SENDABLE_TOPICS.join(', ')}` };
+  }
+  const instanceId = str(b.instanceId);
+  if (!instanceId) return { ok: false, error: 'instanceId is required' };
+
+  const title = str(b.title);
+  if (!title) return { ok: false, error: 'title is required — a push with no claim is just a buzz' };
+
+  // A `live` announcement is the loudest thing this system does. It may only be
+  // sent for a REAL transition into live, never on a schedule guess (DR-0076;
+  // church-live.js is explicit that a painted LIVE badge is a fabricated state).
+  if (topic === 'live') {
+    if (b.isLive !== true) {
+      return { ok: false, error: 'a live announcement requires isLive:true — we never announce a service we cannot confirm started' };
+    }
+    if (!str(b.churchId)) return { ok: false, error: 'churchId is required for a live announcement' };
+  }
+
+  if (topic === 'message' && !str(b.messageId)) {
+    return { ok: false, error: 'messageId is required for a message notification (it is the dedupe key)' };
+  }
+
+  // A FAULT IS ADDRESSED TO THE OFFICE, NEVER BROADCAST TO AN INSTANCE.
+  //
+  // This is a security decision and it is the reason `fault` does not simply
+  // inherit the `live` shape. `live` fans out to every device in a tenant that
+  // opted into the topic -- correct for a congregation, wrong here. A fault
+  // says a business's door is broken; the people entitled to hear that are the
+  // office (owner/admin), the same predicate 0216's RLS uses. Relying on "only
+  // the steward screen offers the toggle" would be a UI gate pretending to be
+  // an access gate, and a curious customer who subscribed to the topic would be
+  // told when Shay's shop is failing.
+  //
+  // So an explicit audience is REQUIRED, which routes this through the
+  // per-person path in audienceQuery() rather than the per-instance one. There
+  // is no code path that broadcasts a fault.
+  if (topic === 'fault') {
+    if (!str(b.faultId)) {
+      return { ok: false, error: 'faultId is required for a fault notification (it is the dedupe key)' };
+    }
+    const office = Array.isArray(b.userIds) ? b.userIds.filter((u) => typeof u === 'string' && u) : [];
+    if (office.length === 0) {
+      return { ok: false, error: 'a fault notification requires an explicit office audience — it is never broadcast to an instance' };
+    }
+  }
+
+  // A LESSON NOTICE IS FOR ITS ONE PERSON (DR-0728). The same wall as `fault`:
+  // an explicit audience is required, so no code path can tell a congregation
+  // that somebody's lesson is ready. Its dedupe key comes from the outbox row.
+  if (topic === 'lesson') {
+    const people = Array.isArray(b.userIds) ? b.userIds.filter((u) => typeof u === 'string' && u) : [];
+    if (people.length === 0) {
+      return { ok: false, error: 'a lesson notification requires the person it is for — it is never broadcast' };
+    }
+    if (!str(b.dedupeKey)) {
+      return { ok: false, error: 'a lesson notification carries its dedupe key from the outbox row (lesson:<row>:<event>)' };
+    }
+  }
+
+  const url = str(b.url);
+  const sameOrigin = url && url.charAt(0) === '/' && url.charAt(1) !== '/' && url.charAt(1) !== '\\';
+
+  return {
+    ok: true,
+    value: {
+      topic,
+      instanceId,
+      churchId: str(b.churchId) || null,
+      videoId: str(b.videoId) || null,
+      messageId: str(b.messageId) || null,
+      faultId: str(b.faultId) || null,
+      isLive: b.isLive === true,
+      title: title.slice(0, MAX_TITLE),
+      body: str(b.body).slice(0, MAX_BODY),
+      url: sameOrigin ? url : null,
+      // An explicit audience (a DM's recipient); absent, everyone opted in.
+      userIds: Array.isArray(b.userIds) ? b.userIds.filter((u) => typeof u === 'string' && u) : null,
+      dedupeKey: str(b.dedupeKey) || dedupeKeyFor({
+        topic, churchId: str(b.churchId), videoId: str(b.videoId),
+        messageId: str(b.messageId), faultId: str(b.faultId), at: b.at,
+      }),
+    },
+  };
+}
+
+/**
+ * The words a congregation actually sees when a service starts.
+ * Deliberately plain: it states what happened and nothing more. No hype, no
+ * claim we cannot stand behind, and the service's own label when we have one.
+ */
+export function liveAnnouncement({ churchName, serviceLabel } = {}) {
+  const who = str(churchName) || 'The Love Corner';
+  const what = str(serviceLabel);
+  return {
+    title: `${who} is live`.slice(0, MAX_TITLE),
+    body: (what ? `${what} has started.` : 'The service has started.').slice(0, MAX_BODY),
+  };
+}
+
+/**
+ * The words for an inbound message. The SENDER'S NAME is shown; the message
+ * BODY is not.
+ *
+ * That is deliberate and it is a privacy decision, not an oversight. A push
+ * notification renders on a LOCK SCREEN, in public, to whoever is holding the
+ * phone. Direct messages in this app are end-to-end encrypted
+ * (app/src/lib/dm-encryption.js) — putting the plaintext into a push would
+ * quietly undo that for the last three feet, and a prayer request or a pastoral
+ * confidence would be readable over someone's shoulder on a bus. So the push
+ * says who, and the app says what.
+ */
+export function messageAnnouncement({ senderName, spaceName } = {}) {
+  const who = str(senderName) || 'Someone';
+  const where = str(spaceName);
+  return {
+    title: `${who} sent you a message`.slice(0, MAX_TITLE),
+    // THE SPACE IS NAMED, THE MESSAGE STILL IS NOT (added 2026-09-16, DR-0444).
+    // Darrell: "I also need the message to be sent from and received from the
+    // group it belongs to originally." A thread belongs to one space, and on a
+    // phone the person needs to know WHICH house is calling before they open
+    // it -- the church, a business, or the family. The space NAME is not the
+    // message CONTENT, so the privacy rule above is untouched: still who and
+    // where, never what.
+    body: (where ? `In ${where}. Open the app to read it.` : 'Open the app to read it.').slice(0, MAX_BODY),
+  };
+}
+
+/**
+ * The words the office sees when their own door is failing.
+ *
+ * NO ERROR TEXT AND NO CUSTOMER TEXT, for the same reason messageAnnouncement
+ * withholds a message body: this renders on a lock screen, in public. A fault
+ * body can contain whatever a caller put in it, and the office board is the
+ * place to read it. The push says THAT something is wrong and how widely; the
+ * app says what.
+ *
+ * The count is carried because it is the difference between "someone hit a
+ * snag" and "your shop has been closed all morning."
+ */
+export function faultAnnouncement({ brandLabel, occurrences } = {}) {
+  const who = str(brandLabel) || 'Your door';
+  const n = Number.isFinite(occurrences) && occurrences > 1 ? Math.trunc(occurrences) : 0;
+  return {
+    title: `${who} is reporting a problem`.slice(0, MAX_TITLE),
+    body: (n
+      ? `Customers have hit it ${n} times. Open the app to see what is failing.`
+      : 'A customer hit it just now. Open the app to see what is failing.').slice(0, MAX_BODY),
+  };
+}
+
+/**
+ * The words for a lesson arrival, by event. Plain, and nothing a lock screen
+ * should not show: no lesson text, no member's name.
+ */
+export function lessonAnnouncement({ event } = {}) {
+  if (event === 'published') {
+    return { title: 'Your lesson is published'.slice(0, MAX_TITLE), body: 'Open Your lessons to read it.'.slice(0, MAX_BODY) };
+  }
+  return { title: 'Your lesson is ready to review'.slice(0, MAX_TITLE), body: 'Every version is written. Open Your lessons to choose.'.slice(0, MAX_BODY) };
+}
+
+/**
+ * WHO is read from `push_subscriptions` for this send — as PostgREST query
+ * params, built in one tested place.
+ *
+ * A `live` announcement is a CONGREGATION: every device in the church's
+ * instance that opted into `live`. A `message` is a PERSON: the recipient's
+ * devices wherever they turned notifications on. That second half is the
+ * 2026-09-09 fix — a phone is filed under whichever instance was active when
+ * its owner tapped ON (the family space, the church door, a ministry), and the
+ * message's tenant is whichever space the two people share. Filtering a
+ * person's phone by the message's instance found nothing and buzzed nobody,
+ * with every layer reporting success. The person IS the authorization here
+ * (the row's user_id is theirs; `users_can_dm` already gated the message), so
+ * the instance is dropped whenever an explicit audience is named.
+ *
+ * @returns {URLSearchParams}
+ */
+export function audienceQuery({ topic, instanceId, userIds }) {
+  const params = new URLSearchParams();
+  params.set('select', 'id,endpoint,p256dh,auth,user_id,disabled_at');
+  // A lesson notice rides the person's own `message` opt-in (DR-0728): the one
+  // consent on a device that means "tell me when something is for me". Every
+  // device subscribed from the app's offer carries exactly that topic
+  // (AppAlerts -> PushNotifications topic="message"), so a new topic name on
+  // the row would reach no phone that already said yes.
+  params.set('topics', `cs.{${topic === 'lesson' ? 'message' : topic}}`);
+  params.set('disabled_at', 'is.null');
+  const people = Array.isArray(userIds) ? userIds.filter((u) => typeof u === 'string' && u) : [];
+  if (people.length) {
+    params.set('user_id', `in.(${people.join(',')})`);
+  } else {
+    params.set('instance_id', `eq.${instanceId}`);
+  }
+  return params;
+}
+
+/**
+ * ONE PERSON, TWO DOORS, EVERY PHONE (2026-09-09, Darrell: "I text my self and
+ * never got it... why?"). He was signed in as his phone account and messaged
+ * "darrellpoe06" — his email account, a second auth.users row linked to the
+ * same person by `person_links` (0141, DR-0311). His phone's subscription is
+ * filed under the account that tapped ON; the message named the other. A
+ * person's audience is every user id that IS that person: the ids named plus
+ * every id `person_links` joins to them, either direction. Pure over the rows
+ * the sender read; order-free; never drops the ids it was given.
+ *
+ * @param {string[]} userIds   the recipients named by the send
+ * @param {Array<{primary_user:string, door_user:string}>} linkRows  person_links rows touching any of them
+ * @returns {string[]} the union, deduplicated
+ */
+export function expandAudience(userIds, linkRows) {
+  const out = new Set((userIds || []).filter((u) => typeof u === 'string' && u));
+  for (const r of linkRows || []) {
+    if (!r) continue;
+    const a = typeof r.primary_user === 'string' ? r.primary_user : '';
+    const b = typeof r.door_user === 'string' ? r.door_user : '';
+    if ((a && out.has(a)) || (b && out.has(b))) { if (a) out.add(a); if (b) out.add(b); }
+  }
+  return [...out];
+}

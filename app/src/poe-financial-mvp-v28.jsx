@@ -1,16 +1,19 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback, Suspense } from 'react';
-import { SectionTitle, MetricCell, TabScroll, NavControls } from './components/shared.jsx';
+import { SectionTitle, MetricCell, TabScroll, DmUnreadBadge } from './components/shared.jsx';
 // Contextual help — the discrete "?" that explains the current tab/tool (Ari's
 // voice) + the optional first-run roadmap tour. lib/help-content.js is the one
 // help registry every surface reads from. Small + always-present chrome, so it
 // rides the initial bundle rather than a lazy chunk.
-import HelpButton from './components/HelpButton.jsx';
+import LockedSurface from './components/LockedSurface.jsx'; import CreateSubNav from './components/CreateSubNav.jsx'; // Create's level-2 row (DR-0679)
+import HelpButton from './components/HelpButton.jsx'; import ArrivalsBell from './components/ArrivalsBell.jsx'; // every arrival counted (DR-0728)
 import HelpWalkthrough from './components/HelpWalkthrough.jsx';
 import { UpdatePrompt, InstallPrompt } from './components/PwaPrompts.jsx';
+import InstallAppButton from './components/InstallAppButton.jsx';
 import { TherapyReminder, AdvisementBanner } from './components/PromoBanners.jsx';
 import Calendar from './components/Calendar.jsx';
 import BooksAccounts from './components/BooksAccounts.jsx';
-import { REMINDER_OPTIONS } from './lib/calendar-shared.js';
+import { dueReminders } from './lib/reminders.js';
+import { commitWithRepair } from './lib/import-commit.js';
 import { fmt, monthLabel } from './lib/format.js';
 import { recordError } from './lib/error-journal.js';
 import { recordView } from './lib/usage-events.js';
@@ -18,83 +21,81 @@ import { recordView } from './lib/usage-events.js';
 // steward board (a 'saved' row that never reached the cloud is a trust break).
 const syncWarn = (label, e) => { console.warn(label, e); try { recordError({ source: 'sync', kind: 'runtime', message: `${label}: ${(e && e.message) || e}` }); } catch (_) { /* watcher never throws */ } };
 import { LegalPlaceholder } from './components/Legal.jsx';
+import BooksTaxes from './components/BooksTaxes.jsx';
 import { BooksEntities } from './components/BooksEntities.jsx';
 import { Debts } from './components/Debts.jsx';
 import { Inbound } from './components/Inbound.jsx';
 import { ProjectsWrapper } from './components/Projects.jsx';
 import AuthBanner from './components/AuthBanner.jsx';
-import PasswordAuth from './components/PasswordAuth.jsx';
-import { accessState } from './lib/access-gate.js';
+import ClaimInviteBanner from './components/ClaimInviteBanner.jsx';
+import PublicFrontDoor from './components/PublicFrontDoor.jsx';
+import { accessState, isPublicChurchRoute, wearsChurchBrand, isChurchLinkVisit, isPublicHost } from './lib/access-gate.js';
 import { PROPOSED_COHORT_START, resolveCohort, CLASS_INTEREST_TAG, extractClassRoster } from './lib/church-classes.js';
 import { COLG_DEFAULT_CHURCH } from './lib/default-church.js';
+import { LOVE_CORNER_BRAND, isChurchDoorContext } from './lib/church-own-door.js';
+import { isTlcDoorContext } from './lib/tlc-door.js';
+import TlcPublicDoor from './components/TlcPublicDoor.jsx';
 import {
   BROADCAST_META, BROADCAST_SESSION_FLOW, BROADCAST_PROPOSED_COHORT_START,
-  BROADCAST_INTEREST_TAG, BROADCAST_HELPER_TAG, BROADCAST_TUTOR_META,
+  BROADCAST_INTEREST_TAG, BROADCAST_TUTOR_META,
   buildBroadcastSchedule, broadcastProgressSummary, exportBroadcastCurriculumMarkdown,
   resolveBroadcastCohort, SOP_SEQUENCES, SOP_CAPTURE_PIPELINE,
 } from './lib/broadcast-class.js';
 import {
   INFRA_META, INFRA_SESSION_FLOW, INFRA_PROPOSED_COHORT_START,
-  INFRA_INTEREST_TAG, INFRA_HELPER_TAG, INFRA_TUTOR_META,
+  INFRA_INTEREST_TAG, INFRA_TUTOR_META,
   buildInfraSchedule, infraProgressSummary, exportInfraCurriculumMarkdown,
   resolveInfraCohort, INFRA_SOP_SEQUENCES,
 } from './lib/infrastructure-class.js';
 import {
   SOVEREIGN_AI_META, SOVEREIGN_AI_SESSION_FLOW, SOVEREIGN_AI_PROPOSED_COHORT_START,
-  SOVEREIGN_AI_INTEREST_TAG, SOVEREIGN_AI_HELPER_TAG, SOVEREIGN_AI_TUTOR_META,
+  SOVEREIGN_AI_INTEREST_TAG, SOVEREIGN_AI_TUTOR_META,
   buildSovereignAiSchedule, sovereignAiProgressSummary, exportSovereignAiCurriculumMarkdown,
   resolveSovereignAiCohort,
 } from './lib/sovereign-ai-class.js';
 import {
   AI_LEGAL_BLUEPRINT_META, AI_LEGAL_BLUEPRINT_SESSION_FLOW, AI_LEGAL_BLUEPRINT_PROPOSED_COHORT_START,
-  AI_LEGAL_BLUEPRINT_INTEREST_TAG, AI_LEGAL_BLUEPRINT_HELPER_TAG, AI_LEGAL_BLUEPRINT_TUTOR_META,
+  AI_LEGAL_BLUEPRINT_INTEREST_TAG, AI_LEGAL_BLUEPRINT_TUTOR_META,
   buildAiLegalBlueprintSchedule, aiLegalBlueprintProgressSummary, exportAiLegalBlueprintCurriculumMarkdown,
   resolveAiLegalBlueprintCohort,
 } from './lib/ai-legal-blueprint-class.js';
-import {
-  LIVING_LESSONS_META, LIVING_LESSONS_SESSION_FLOW,
-  LIVING_LESSONS_INTEREST_TAG, LIVING_LESSONS_HELPER_TAG, LIVING_LESSONS_TUTOR_META,
-  buildLivingLessonsSchedule, livingLessonsProgressSummary, exportLivingLessonsCurriculumMarkdown,
-} from './lib/living-lessons-class.js';
-import {
-  SOUND_BOARD_META, SOUND_BOARD_SESSION_FLOW,
-  SOUND_BOARD_INTEREST_TAG, SOUND_BOARD_HELPER_TAG, SOUND_BOARD_TUTOR_META,
-  buildSoundBoardSchedule, soundBoardProgressSummary, exportSoundBoardCurriculumMarkdown,
-} from './lib/sound-board-class.js';
-import {
-  WORLD_ISSUES_META, WORLD_ISSUES_SESSION_FLOW,
-  WORLD_ISSUES_INTEREST_TAG, WORLD_ISSUES_HELPER_TAG, WORLD_ISSUES_TUTOR_META,
-  buildWorldIssuesSchedule, worldIssuesProgressSummary, exportWorldIssuesCurriculumMarkdown,
-} from './lib/world-issues-class.js';
-import {
-  DATASYSTEMS_META, DATASYSTEMS_SESSION_FLOW,
-  DATASYSTEMS_INTEREST_TAG, DATASYSTEMS_HELPER_TAG, DATASYSTEMS_TUTOR_META,
-  buildDatasystemsSchedule, datasystemsProgressSummary, exportDatasystemsCurriculumMarkdown,
-} from './lib/datasystems-course.js';
+// SELF-PACED Learn courses (Living Lessons, Running the Board, World Issues,
+// Data Systems, Handed Forward, Kingdom Economics, Prophetic Voices) all derive
+// from the ONE course registry — a finished course can never again be built but
+// left unsurfaced (Darrell 2026-07-08; lib/learn-catalog.js).
+import { buildSelfPacedDescriptors, helperTagForCourse, catalogMeta } from './lib/learn-catalog.js';
 import { helperInterestText } from './lib/learn-framework.js';
 import { engagementFeedbackText, aggregateEngagementByAge } from './lib/learn-engagement.js';
 import { latestFinancialDocMs } from './lib/finance-activity.js';
 import PrivateGate from './components/PrivateGate.jsx';
-import NetworkStatus from './components/NetworkStatus.jsx';
 import TTSControl from './components/TTSControl.jsx';
-import TextSizeControl from './components/TextSizeControl.jsx';
+import FloatingPlayer from './components/FloatingPlayer.jsx';
+import TextSizeControl, { TextSizeEscapeHatch } from './components/TextSizeControl.jsx';
+import TopNavRow from './components/TopNavRow.jsx';
 import ReadingVoiceControl from './components/ReadingVoiceControl.jsx';
+import HeaderAuthButton from './components/HeaderAuthButton.jsx';
+import PublicWelcome from './components/PublicWelcome.jsx';
 import Imported from './components/Imported.jsx';
-import { useBrowserHistoryNav, useHistoryToggle } from './lib/nav-history.js';
+import { useBrowserHistoryNav, useHistoryToggle, initialBooksView, initialChurchView } from './lib/nav-history.js';
+import { isReviewerModeOn, ReviewerModeBanner } from './lib/reviewer-mode.jsx';
 import { onAuthChange, signOut } from './lib/supabase.js';
-import { ensureTenantMembership, uploadFeedback, subscribeFeedback } from './lib/feedback-sync.js';
+import { ensureTenantMembership, uploadFeedback, subscribeFeedback, newFeedbackId } from './lib/feedback-sync.js';
 import { reportPresence } from './lib/access-metrics-sync.js';
+import { useLearnerRecords } from './lib/use-learner-records.js';
 import { entitiesSync } from './lib/entities-sync.js';
-import { accountsSync } from './lib/accounts-sync.js';
+import { accountsSync, accountsMerge } from './lib/accounts-sync.js';
 import { debtsSync } from './lib/debts-sync.js';
 import { transactionsSync } from './lib/transactions-sync.js';
 import { projectsSync, mergeRemoteProjects } from './lib/projects-sync.js';
 import { discussionsSync, mergeRemoteDiscussions, DISCUSSION_COLUMN_OF } from './lib/discussions-sync.js';
 import { workspacesSync, mergeRemoteWorkspaces, WORKSPACE_COLUMN_OF } from './lib/workspaces-sync.js';
 import { recipesSync, mergeRemoteRecipes, RECIPE_COLUMN_OF } from './lib/recipes-sync.js';
+import { makeHealthActions, canSeeHealthTab, healthProgramsSync, weightEntriesSync, waterEntriesSync, foodEntriesSync, foodLibrarySync, healthRails } from './lib/health-actions.js';
 import { inquiriesSync } from './lib/inquiries-sync.js';
 import { practiceLeadsSync, mergeRemoteLeads, LEAD_COLUMN_OF } from './lib/practice-leads-sync.js';
-import { rentalsSync, mergeRemoteRentals, toRemoteStatus, toRemotePropertyType } from './lib/rentals-sync.js';
+import { rentalsSync, mergeRemoteRentals } from './lib/rentals-sync.js';
+import { useRentalBridge } from './lib/use-rental-bridge.js';
+import { syncRentalEdit } from './lib/rental-write.js';
 import { incidentsSync, incidentColumns } from './lib/incidents-sync.js';
 import { inventoryItemsSync, mergeRemoteInventoryItems, INVENTORY_ITEM_COLUMN_OF } from './lib/inventory-items-sync.js';
 import { inventoryMovementsSync, mergeRemoteMovements } from './lib/inventory-movements-sync.js';
@@ -109,7 +110,11 @@ import { FreshnessDot } from './components/FreshnessDot.jsx';
 import SelfServeWelcome from './components/SelfServeWelcome.jsx';
 import PinGate from './components/PinGate.jsx';
 import { decideAccess, decidePersonaSelect, shouldIssueDeviceTrust, isPersonaGated, NEXT_STEP } from './lib/multi-point-auth.js';
+import { useChurchAccess, isChurchOfficeRole } from './lib/church-access-store.js';
+import { useIdleLock } from './lib/use-idle-lock.jsx';
 import { hasUserPin, setUserPin, verifyUserPin, listPersonaPins, verifyPersonaPin } from './lib/pin.js';
+import { markPinResetIntent, hasPinResetIntent, clearPinResetIntent } from './lib/pin-reset-intent.js';
+import { markPresence, presenceStillValid, clearPresence } from './lib/presence-window.js';
 import { isDeviceTrusted, trustThisDevice, forgetLocalDeviceTrust } from './lib/device-trust.js';
 import { isBiometricEnrolled, isPlatformAuthenticatorAvailable, enrollBiometric, unlockWithBiometric } from './lib/webauthn.js';
 import { contractorsSync, contractorColumns } from './lib/contractors-sync.js';
@@ -119,17 +124,25 @@ import { concernsSync, mergeRemoteConcerns, CONCERN_COLUMN_OF } from './lib/conc
 import { gameSavesSync, subscriptionsSync, skillProfilesSync, prayerRequestsSync, churchVoiceSync } from './lib/doc-sync.js';
 import { uploadSymbol as uploadWatchlistSymbol, removeSymbol as removeWatchlistSymbolRemote } from './lib/watchlist-sync.js';
 import { pushModuleInterest, clearModuleInterest } from './lib/module-interest-sync.js';
+import { submitInterest as submitAppInterest } from './lib/interest-sync.js';
 import { makeSyncedListCrud, wireLiveRails } from './lib/live-rails.js';
 import { SEED_CONCERNS } from './lib/concerns.js';
+import { buildDemoPersonas, DEMO_PERSONA_META } from './lib/demo-data.js';
+import { withReleaseMeta } from './lib/release-meta.js';
+import { motionBehavior } from './lib/gentle-motion.js';
 import VerifyBalances from './components/VerifyBalances.jsx';
 // Overview dashboard — statically imported (NOT registry/lazy): overview is the
 // landing view, so it belongs in the main chunk (no loading flash on first paint).
-import { BigPictureDashboard } from './components/BigPictureDashboard.jsx';
+import { Home } from './components/BigPictureDashboard.jsx'; // the overview front door, or the Life Hub when the reader has chosen it
 import { dueDateFor, OPPORTUNITY_LIBRARY, matchOpportunities, capacityDecisionForNewProject } from './lib/opportunity-capacity.js';
 import { getAssignments, dispatchState, addAssignment, removeAssignment, markDone as markAssignmentDone, reopen as reopenAssignment, setPayout as setAssignmentPayout } from './lib/assignments.js';
-import { ChurchGiveFloater } from './components/ChurchGiving.jsx';
+import { ChurchGiveHeaderButton } from './components/ChurchGiving.jsx';
+import ChromeDock from './components/ChromeDock.jsx';
+import ComfortBarToggle from './components/ComfortBarToggle.jsx';
+import LiveWorshipBar from './components/LiveWorshipBar.jsx';
 import SectionBoundary from './components/SectionBoundary.jsx';
 import UiIcon from './components/UiIcon.jsx';
+import { BooksUploadButton, BooksUploadMount } from './components/BooksUploadButton.jsx';
 // Scroll-anchor primitive (same mechanism that powers reading-resume + the
 // font-size whiplash fix): capture the content element the reader is looking at,
 // let the sticky header change height, restore it to the same viewport spot — so
@@ -143,23 +156,33 @@ import { FeedbackModal, FeedbackPromotePanel } from './components/FeedbackCenter
 // `const X = lazy(...)` lines that every new-surface PR collided on (choke-point
 // C1). Same lazy components, same chunks; only the declaration site moved.
 import {
-  About, Contractors1099, Cart, Practice, CRM, Markets, Rentals, Opportunities,
+  About, Contractors1099, Cart, Practice, CRM, Markets, Rentals, PropertiesApp, Opportunities,
   Engagement, Choir, ServiceProgram, ChurchLearn, ConferenceModule,
-  EventCenterModule, ConferenceVariance, ChurchObservation, EventManagement,
-  Pulpit, ScriptureLibrary, CommandServeCenter, ChurchVideoWall, DeviceInventory, ThinkingSpace,
-  CreationWorkspace, VoiceStudio, Study, BooksTransactions, HarvestLedger, Library,
-  Inventory, Forecast, AdminConsole, ChefCorner, Games, TVTime,
-  EternalAlgorithmsStudy, ChurchHome, Relationships,
+  EventCenterModule, ConferenceVariance, ChurchObservation, EventManagement, BusMinistry, ChurchMinistriesTab,
+  Pulpit, ScriptureLibrary, CommandServeCenter, ChurchVideoWall, DeviceInventory, ChurchInfraPlan, ThinkingSpace,
+  CreationWorkspace, VoiceStudio, WorkflowScribe, Study, BooksTransactions, HarvestLedger, Library,
+  Inventory, Forecast, AdminConsole, ChefCorner, RoadTo150, Games, TVTime, Messages, AdvocacyCases, DataLiberation, Cameras, Vault,
+  surfaceById, AccessRequests, ChurchHome, MooreDivahs, TlcAssistant, TlcOnboarding, ChurchProjects, CohortPrograms, FamilyPlan, Obligations, ChurchMembers, ChurchMemberSpace, ChurchGivingBook, Relationships,
 } from './surfaces.js';
 import { unionPreservingLocal, getInstanceId } from './lib/table-sync.js';
+import { useInstanceRole } from './lib/instance-role.js';
+import { TIER_ORDER, TIER_LABEL, effectiveTier, tierMeets } from './lib/tiers.js';
+import TierSwitcher from './components/TierSwitcher.jsx';
+import { THEME_CSS, THEMES, useThemePref } from './lib/theme-css.js';
 import { mergeTransactionsPreferCloud } from './lib/txn-dedupe.js';
 import { syncIdentityKey } from './lib/sync-identity.js';
 import { fetchSnapshot, pushSnapshot, buildSnapshotPayload, mergeKeepingLocalRoomPhotos } from './lib/snapshot-sync.js';
+import { persistSnapshot, storageBannerMessage } from './lib/snapshot-slim.js';
 import { computeReserves } from './lib/financial-calcs.js';
 import { deriveAccountBalances, deriveEntityRollups, deriveDebts } from './lib/financial-engineering.js';
-import { payeeKey, applyCategoryToPayee } from './lib/categorize.js';
+import { createAccountsCrud } from './lib/books-accounts-crud.js';
+import { reconcileAccounts } from './lib/imported-view.js';
+import { TAX_CALENDAR_SEED } from './lib/tax-calendar-seed.js';
+import { payeeKey, applyCategoryToPayee, publishLedgerEditor } from './lib/ledger-edit.js';
 import { runVerifiedLedgerSync } from './lib/verified-ledger-sync.js';
-import { N8N_BASE } from './lib/n8n-base.js';
+import { parseStatementText, isSpreadsheetFile, spreadsheetFileToCsv } from './lib/statement-import.js';
+import { matchServices } from './lib/matched-services.js';
+import { analyzeSkills } from './lib/skill-analytics.js';
 
 // =============================================================================
 // SEED DATA — v7 adds events array
@@ -247,13 +270,7 @@ export const SEED_DATA = {
     { id: 'k5', direction: 'inbound', entityId: 'e-poetech', name: 'Mid-market churches · AV + streaming systems', role: 'Multi-site AV install + ongoing managed services retainer', ytdReceived: 0, monthlyExpected: 4500, status: 'pipeline' },
     { id: 'k6', direction: 'inbound', entityId: 'e-poetech', name: 'Regional University Facilities (1099)', role: 'BAS / Siemens controls consulting — senior architect rate', ytdReceived: 0, monthlyExpected: 12000, status: 'possible' },
   ],
-  taxCalendar: [
-    { id: 'tx-1099-nec', month: 1, day: 31, name: '1099-NEC issuance', desc: 'Issue 1099-NEC to all contractors paid ≥ $600', entityIds: ['e-tlc'], applies: true },
-    { id: 'tx-1096-paper', month: 2, day: 28, name: '1096 paper transmittal', desc: 'IRS Form 1096 for paper 1099s', entityIds: ['e-tlc'], applies: true },
-    { id: 'tx-1040', month: 4, day: 15, name: 'Form 1040 due', desc: 'Joint return with Schedule C × 2, Schedule E', entityIds: ['e-personal'], applies: true },
-    { id: 'tx-il-llc', month: 4, day: 30, name: 'IL LLC annual reports', desc: 'Illinois Secretary of State — $75/yr × 3 LLCs', entityIds: ['e-poeprops','e-poetech','e-tlc'], applies: true, amount: 225 },
-    { id: 'tx-yearend', month: 12, day: 31, name: 'Year-end tax planning', desc: 'Charitable timing, Section 179, HSA, retirement max', entityIds: ['e-personal','e-tlc','e-poetech'], applies: true },
-  ],
+  taxCalendar: TAX_CALENDAR_SEED,
   recurringObligations: [
     { id: 'ro-il-llc-3', name: 'Illinois LLC annual reports (3 LLCs)', amount: 225, frequency: 'annual', nextDue: '2026-08-01', entityId: 'e-poeprops', category: 'compliance', enabled: true },
     { id: 'ro-veh-reg-2', name: 'Vehicle registration (2 vehicles)', amount: 302, frequency: 'annual', nextDue: '2026-12-01', entityId: 'e-personal', category: 'vehicle', enabled: true },
@@ -540,361 +557,12 @@ export const EMPTY_WORLD = {
 };
 
 // =============================================================================
-// DEMO DATA — public-facing showcase loaded via ?demo=family URL param.
-//
-// Posture: this is a stewardship app. The demo speaks for itself by showing
-// what "providing for the people in your care" looks like with the books open.
-// The Big Picture, Books, and Debts tabs render with realistic-but-modest
-// family numbers — paycheck, rent, groceries, a buffer fund growing, a couple
-// of debts being chipped down — so a viewer immediately sees: "I could
-// actually use this for my household."
-//
-// What the demo deliberately shows:
-//   · Joint household (one entity, no business complexity) — accessible to
-//     anyone, not just multi-LLC owners.
-//   · Modest accounts: checking, savings, a single credit card, an auto loan.
-//   · 3 weeks of transactions with realistic descriptions + categories.
-//   · A Buffer Fund 72% funded — the "this is what it means to be ready
-//     before the 1st" story.
-//   · Recurring obligations pre-mapped so projection figures aren't blank.
-//   · Two debts on snowball so the Debts tab tells a payoff story.
-//
-// Demo mode also: disables localStorage saves, suppresses n8n ingest fetches,
-// skips the profile picker, and surfaces a header banner explaining the demo
-// and offering "start your own" CTA.
+// DEMO / SAMPLE persona datasets (the family-unit picker set) + DEMO_PERSONA_META
+// live in ./lib/demo-data.js — extracted from this shell 2026-07-06 to honor the
+// monolith freeze (DR-0078). They are built via buildDemoPersonas(SEED_DATA) just
+// below, where SEED_DATA is in scope (the module takes it as an argument, so there
+// is no back-import and no cycle). SEED_DATA itself is unchanged and stays here.
 // =============================================================================
-const DEMO_DATA_FAMILY_OF_4 = {
-  ...SEED_DATA,
-  meta: { ...SEED_DATA.meta, lastUpdated: '2026-05-28', monthOfData: 'May 2026', bufferTarget: 2000, bufferCurrent: 1450, releaseLabel: 'Sample · Family of 4' },
-  entities: [
-    { id: 'e-family', name: 'The Reeves Family', type: 'personal', notes: 'Two parents, two kids in school', visibleTo: ['darrell', 'christina', 'family'] }
-  ],
-  accounts: [
-    { id: 'a-checking', entityId: 'e-family', name: 'Main Checking', institution: 'First National', type: 'checking', fragment: '...4521', balance: 3850, isPrimary: true },
-    { id: 'a-savings',  entityId: 'e-family', name: 'Family Savings', institution: 'First National', type: 'savings',  fragment: '...8819', balance: 7200 },
-    { id: 'a-cc-1',     entityId: 'e-family', name: 'Visa Rewards',   institution: 'Capital One',     type: 'credit',   fragment: '...3344', balance: -2150 },
-    { id: 'a-auto',     entityId: 'e-family', name: 'Auto Loan',      institution: 'Credit Union',    type: 'loan',     fragment: '...1290', balance: -8400 },
-  ],
-  transactions: [
-    { id: 'dt-1',  date: '2026-05-01', accountId: 'a-checking', amount: -1800, description: 'May rent',                    category: 'household' },
-    { id: 'dt-2',  date: '2026-05-01', accountId: 'a-checking', amount: 3200,  description: 'Paycheck',                    category: 'salary' },
-    { id: 'dt-3',  date: '2026-05-03', accountId: 'a-checking', amount: -180,  description: 'Aldi · weekly groceries',     category: 'groceries' },
-    { id: 'dt-4',  date: '2026-05-05', accountId: 'a-cc-1',     amount: -55,   description: 'Shell · gas',                 category: 'fuel' },
-    { id: 'dt-5',  date: '2026-05-06', accountId: 'a-checking', amount: -150,  description: 'State Farm · auto',           category: 'insurance' },
-    { id: 'dt-6',  date: '2026-05-08', accountId: 'a-checking', amount: -220,  description: 'ComEd + Ameren · utilities',  category: 'utilities' },
-    { id: 'dt-7',  date: '2026-05-10', accountId: 'a-checking', amount: -89,   description: 'Xfinity · internet',          category: 'utilities' },
-    { id: 'dt-8',  date: '2026-05-12', accountId: 'a-cc-1',     amount: -42,   description: 'Date night dinner',           category: 'dining' },
-    { id: 'dt-9',  date: '2026-05-15', accountId: 'a-checking', amount: 1400,  description: 'Spouse · part-time income',   category: 'salary' },
-    { id: 'dt-10', date: '2026-05-15', accountId: 'a-checking', amount: 3200,  description: 'Paycheck',                    category: 'salary' },
-    { id: 'dt-11', date: '2026-05-15', accountId: 'a-checking', amount: -200,  description: 'Church giving · tithe',       category: 'charitable' },
-    { id: 'dt-12', date: '2026-05-16', accountId: 'a-checking', amount: -340,  description: 'Auto loan payment',           category: 'debt-payment' },
-    { id: 'dt-13', date: '2026-05-17', accountId: 'a-cc-1',     amount: -85,   description: 'Aldi · weekly groceries',     category: 'groceries' },
-    { id: 'dt-14', date: '2026-05-20', accountId: 'a-checking', amount: -500,  description: 'Visa payment',                category: 'debt-payment' },
-    { id: 'dt-15', date: '2026-05-22', accountId: 'a-cc-1',     amount: -130,  description: 'Kids · clothes + supplies',   category: 'household' },
-    { id: 'dt-16', date: '2026-05-25', accountId: 'a-checking', amount: -65,   description: 'Phone bill',                  category: 'utilities' },
-    { id: 'dt-17', date: '2026-05-27', accountId: 'a-savings',  amount: 250,   description: 'Buffer fund · monthly add',   category: 'transfer' },
-    // Upcoming projections (future-dated rows surface in Big Picture / Tx upcoming view)
-    { id: 'dt-18', date: '2026-06-01', accountId: 'a-checking', amount: -1800, description: 'June rent',                   category: 'household' },
-    { id: 'dt-19', date: '2026-06-01', accountId: 'a-checking', amount: 3200,  description: 'Paycheck',                    category: 'salary' },
-    { id: 'dt-20', date: '2026-06-06', accountId: 'a-checking', amount: -150,  description: 'State Farm · auto',           category: 'insurance' },
-    { id: 'dt-21', date: '2026-06-10', accountId: 'a-checking', amount: -340,  description: 'Auto loan payment',           category: 'debt-payment' },
-    { id: 'dt-22', date: '2026-06-15', accountId: 'a-checking', amount: -200,  description: 'Church giving · tithe',       category: 'charitable' },
-  ],
-  contractors1099: [],
-  taxCalendar: [],
-  recurringObligations: [
-    { id: 'ro-rent',      name: 'Rent',                       amount: 1800, frequency: 'monthly', nextDue: '2026-06-01', entityId: 'e-family', category: 'household',  enabled: true },
-    { id: 'ro-utilities', name: 'Electric + gas',             amount: 220,  frequency: 'monthly', nextDue: '2026-06-08', entityId: 'e-family', category: 'utilities',  enabled: true },
-    { id: 'ro-internet',  name: 'Internet',                   amount: 89,   frequency: 'monthly', nextDue: '2026-06-10', entityId: 'e-family', category: 'utilities',  enabled: true },
-    { id: 'ro-phone',     name: 'Phone',                      amount: 65,   frequency: 'monthly', nextDue: '2026-06-25', entityId: 'e-family', category: 'utilities',  enabled: true },
-    { id: 'ro-insurance', name: 'Auto insurance',             amount: 150,  frequency: 'monthly', nextDue: '2026-06-06', entityId: 'e-family', category: 'insurance',  enabled: true },
-    { id: 'ro-giving',    name: 'Tithe & charitable giving',  amount: 200,  frequency: 'monthly', nextDue: '2026-06-15', entityId: 'e-family', category: 'charitable', enabled: true },
-  ],
-  incidents: [],
-  scopes: [],
-  events: [],
-  projects: [],
-  subscriptions: [],
-  feedback: [],
-  welcomeDismissed: false,
-  checkoutIntents: [],
-  userTier: 'foundation',
-  inquiries: [],
-  moduleInterest: {},
-  inflows: {
-    salaries: [
-      { id: 'sal-1', who: 'You',    source: 'Primary salary',    expected: 3200, actual: 3200, entityId: 'e-family' },
-      { id: 'sal-2', who: 'Spouse', source: 'Part-time income',  expected: 1400, actual: 1400, entityId: 'e-family' },
-    ],
-    rentals: [],
-  },
-  outflows: { rentalMortgages: 0, propertyUtilities: 0, household: 1800, debtService: 1500, charitableGiving: 200 },
-  debts: [
-    { id: 'd-cc-1',  entityId: 'e-family', name: 'Visa',      balance: 2150, rate: 22.99, minPayment: 75,  payoffType: 'snowball' },
-    { id: 'd-auto',  entityId: 'e-family', name: 'Auto Loan', balance: 8400, rate: 6.50,  minPayment: 340, payoffType: 'snowball' },
-  ],
-  opportunities: [],
-  capexItems: [],
-  watchlist: ['spy.us', 'qqq.us'],
-  prayerRequests: [],
-  skillProfiles: [],
-  // Sanitized 2026-05-28 evening — these top-level fields were leaking
-  // through from SEED_DATA because they weren't overridden. The viewer would
-  // see the family's real church name + address visible in the dim background
-  // behind the welcome modal. Per the SEED-DATA-AS-ASPIRATION foundation,
-  // demo data must contain NO real personal information.
-  church: {
-    name: 'Your home church',
-    nickname: '',
-    site: '',
-    address: '',
-    phone: '',
-    officeHours: '',
-    contactEmail: '',
-    services: [],
-    media: {},
-    links: {},
-    tagline: 'Where your family worships and serves',
-    verse: { ref: 'Psalm 1:1', text: 'Blessed is the man who walks not in the counsel of the wicked.' },
-  },
-  voiceOps: {
-    apiUrl: '',
-    apiToken: '',
-    rates: { perCallMinute: 0.0085, perTranscriptMinute: 0.05, perNumberMonthly: 1.15 },
-    numbersConfigured: 0,
-    budgetAlertMonthly: 30,
-  },
-  pressureMappings: { ...SEED_DATA.pressureMappings },
-};
-
-// -----------------------------------------------------------------------------
-// DEMO · SEPARATED CO-PARENTS
-// Two households, one shared child. Coordinating expenses + child support
-// without conflict, while preserving privacy from each other. The deep
-// scenario: "We don't agree on much, but we both love the kid; can this
-// system give us a fair shared truth?" Yes. Per-household entities, the
-// child's costs roll up across both. Anxiety-clarity: every shared expense
-// has an agreed-upon split, a due date, and a paid/unpaid flag.
-// -----------------------------------------------------------------------------
-const DEMO_DATA_SEPARATED = {
-  ...SEED_DATA,
-  meta: { ...SEED_DATA.meta, lastUpdated: '2026-05-28', monthOfData: 'May 2026', bufferTarget: 1500, bufferCurrent: 850, releaseLabel: 'Sample · Separated co-parents' },
-  entities: [
-    { id: 'e-mom',    name: 'Maya (mom)',         type: 'personal', notes: 'Custodial parent · 60% time',       visibleTo: ['darrell', 'christina', 'family'] },
-    { id: 'e-dad',    name: 'Jordan (dad)',       type: 'personal', notes: 'Non-custodial parent · 40% time',   visibleTo: ['darrell', 'christina', 'family'] },
-    { id: 'e-shared', name: 'Shared · for Avery', type: 'personal', notes: 'Child expenses split per agreement', visibleTo: ['darrell', 'christina', 'family'] },
-  ],
-  accounts: [
-    { id: 'a-mom-chk',   entityId: 'e-mom',    name: 'Mom · Checking',   institution: 'Chase',  type: 'checking', fragment: '...2201', balance: 2150, isPrimary: true },
-    { id: 'a-mom-sav',   entityId: 'e-mom',    name: 'Mom · Savings',    institution: 'Chase',  type: 'savings',  fragment: '...8870', balance: 3400 },
-    { id: 'a-dad-chk',   entityId: 'e-dad',    name: 'Dad · Checking',   institution: 'BofA',   type: 'checking', fragment: '...9912', balance: 1820, isPrimary: true },
-    { id: 'a-dad-cc',    entityId: 'e-dad',    name: 'Dad · Credit',     institution: 'Capital One', type: 'credit', fragment: '...4490', balance: -1100 },
-    { id: 'a-shared',    entityId: 'e-shared', name: 'Shared · Avery',   institution: 'Ally',   type: 'savings',  fragment: '...5031', balance: 480, notes: 'For agreed split expenses' },
-  ],
-  transactions: [
-    { id: 'st-1',  date: '2026-05-01', accountId: 'a-mom-chk', amount: 2400, description: 'Mom · paycheck',                          category: 'salary' },
-    { id: 'st-2',  date: '2026-05-01', accountId: 'a-mom-chk', amount: -1450, description: 'Rent (mom\'s household)',                category: 'household' },
-    { id: 'st-3',  date: '2026-05-03', accountId: 'a-shared',  amount: 450, description: 'Child support · dad → shared',             category: 'transfer' },
-    { id: 'st-4',  date: '2026-05-04', accountId: 'a-shared',  amount: -185, description: 'Avery soccer fees (split agreement)',     category: 'household' },
-    { id: 'st-5',  date: '2026-05-05', accountId: 'a-mom-chk', amount: -135, description: 'Aldi groceries',                          category: 'groceries' },
-    { id: 'st-6',  date: '2026-05-06', accountId: 'a-dad-chk', amount: 1900, description: 'Dad · paycheck',                          category: 'salary' },
-    { id: 'st-7',  date: '2026-05-06', accountId: 'a-dad-chk', amount: -1100, description: 'Apt rent (dad\'s household)',            category: 'household' },
-    { id: 'st-8',  date: '2026-05-08', accountId: 'a-shared',  amount: -240, description: 'Avery doctor · co-pay (split 50/50)',     category: 'medical' },
-    { id: 'st-9',  date: '2026-05-10', accountId: 'a-dad-cc',  amount: -45, description: 'Dad · gas',                                category: 'fuel' },
-    { id: 'st-10', date: '2026-05-12', accountId: 'a-mom-chk', amount: -210, description: 'Utilities (mom)',                         category: 'utilities' },
-    { id: 'st-11', date: '2026-05-15', accountId: 'a-mom-chk', amount: 2400, description: 'Mom · paycheck',                          category: 'salary' },
-    { id: 'st-12', date: '2026-05-15', accountId: 'a-shared',  amount: -120, description: 'Avery school clothes (split)',            category: 'household' },
-    { id: 'st-13', date: '2026-05-18', accountId: 'a-dad-chk', amount: -150, description: 'Dad · auto insurance',                    category: 'insurance' },
-    { id: 'st-14', date: '2026-05-20', accountId: 'a-dad-chk', amount: 1900, description: 'Dad · paycheck',                          category: 'salary' },
-    { id: 'st-15', date: '2026-05-22', accountId: 'a-shared',  amount: 200, description: 'Dad → shared · extra agreed contribution', category: 'transfer' },
-    { id: 'st-16', date: '2026-05-25', accountId: 'a-mom-chk', amount: -190, description: 'Aldi groceries',                          category: 'groceries' },
-    { id: 'st-17', date: '2026-06-01', accountId: 'a-shared',  amount: 450, description: 'Child support · dad → shared (upcoming)',  category: 'transfer' },
-    { id: 'st-18', date: '2026-06-04', accountId: 'a-shared',  amount: -300, description: 'Avery summer camp deposit',               category: 'household' },
-  ],
-  contractors1099: [], taxCalendar: [], scopes: [], events: [], projects: [], subscriptions: [], feedback: [], checkoutIntents: [], inquiries: [], opportunities: [], capexItems: [], prayerRequests: [], skillProfiles: [],
-  recurringObligations: [
-    { id: 'ro-mom-rent',     name: 'Rent (mom)',                   amount: 1450, frequency: 'monthly', nextDue: '2026-06-01', entityId: 'e-mom',    category: 'household',  enabled: true },
-    { id: 'ro-dad-rent',     name: 'Apt rent (dad)',               amount: 1100, frequency: 'monthly', nextDue: '2026-06-06', entityId: 'e-dad',    category: 'household',  enabled: true },
-    { id: 'ro-child-support',name: 'Child support · dad → shared', amount: 450,  frequency: 'monthly', nextDue: '2026-06-01', entityId: 'e-shared', category: 'transfer',   enabled: true },
-    { id: 'ro-avery-care',   name: 'Avery · childcare + activities', amount: 380, frequency: 'monthly', nextDue: '2026-06-10', entityId: 'e-shared', category: 'household',  enabled: true },
-  ],
-  incidents: [],
-  welcomeDismissed: false,
-  userTier: 'foundation',
-  moduleInterest: {},
-  inflows: {
-    salaries: [
-      { id: 'sal-mom', who: 'Maya',   source: 'Primary salary',  expected: 2400, actual: 2400, entityId: 'e-mom' },
-      { id: 'sal-dad', who: 'Jordan', source: 'Primary salary',  expected: 1900, actual: 1900, entityId: 'e-dad' },
-    ],
-    rentals: [],
-  },
-  outflows: { rentalMortgages: 0, propertyUtilities: 0, household: 2925, debtService: 0, charitableGiving: 0 },
-  debts: [
-    { id: 'd-dad-cc', entityId: 'e-dad', name: 'Capital One', balance: 1100, rate: 21.99, minPayment: 40, payoffType: 'snowball' },
-  ],
-  watchlist: ['spy.us'],
-  church: { name: 'Your home church', nickname: '', site: '', address: '', phone: '', officeHours: '', contactEmail: '', services: [], media: {}, links: {}, tagline: 'Where your family worships and serves', verse: { ref: 'Psalm 1:1', text: 'Blessed is the man who walks not in the counsel of the wicked.' } },
-  voiceOps: { apiUrl: '', apiToken: '', rates: { perCallMinute: 0.0085, perTranscriptMinute: 0.05, perNumberMonthly: 1.15 }, numbersConfigured: 0, budgetAlertMonthly: 30 },
-  pressureMappings: { ...SEED_DATA.pressureMappings },
-};
-
-// -----------------------------------------------------------------------------
-// DEMO · SOLO PROFESSIONAL
-// Therapist / lawyer / consultant working alone. Personal income mixed with
-// business revenue, but kept clearly separate. The audience: "I run my own
-// practice. Can this system show me both sides without me drowning in
-// QuickBooks?" Personal household + one professional business entity. The
-// business has a 1099 contractor income flow (representative of a junior
-// associate, a clinical supervisee, a paralegal), recurring CEU/license fees,
-// and clean monthly distributions to the personal household.
-// -----------------------------------------------------------------------------
-const DEMO_DATA_PROFESSIONAL = {
-  ...SEED_DATA,
-  meta: { ...SEED_DATA.meta, lastUpdated: '2026-05-28', monthOfData: 'May 2026', bufferTarget: 5000, bufferCurrent: 3200, releaseLabel: 'Sample · Solo professional' },
-  entities: [
-    { id: 'e-pers',     name: 'Sam (personal)',     type: 'personal', notes: 'Solo household',                           visibleTo: ['darrell', 'christina', 'family'] },
-    { id: 'e-practice', name: 'Sam · Practice LLC', type: 'business', notes: 'Therapist / lawyer / consultant practice', visibleTo: ['darrell', 'christina'] },
-  ],
-  accounts: [
-    { id: 'a-pers-chk',  entityId: 'e-pers',     name: 'Personal Checking',  institution: 'Chase',         type: 'checking', fragment: '...7711', balance: 4200, isPrimary: true },
-    { id: 'a-pers-sav',  entityId: 'e-pers',     name: 'Personal Savings',   institution: 'Chase',         type: 'savings',  fragment: '...3320', balance: 18500 },
-    { id: 'a-pract-op',  entityId: 'e-practice', name: 'Practice Operating', institution: 'Local CU',      type: 'checking', fragment: '...4490', balance: 9300, isPrimary: true },
-    { id: 'a-pract-tax', entityId: 'e-practice', name: 'Practice · Tax Set-aside', institution: 'Local CU', type: 'savings', fragment: '...4495', balance: 11200 },
-    { id: 'a-pers-cc',   entityId: 'e-pers',     name: 'Personal Visa',      institution: 'Capital One',   type: 'credit',   fragment: '...8821', balance: -1850 },
-  ],
-  transactions: [
-    { id: 'pt-1',  date: '2026-05-01', accountId: 'a-pract-op',  amount: 4200, description: 'Client retainer · Smith family',           category: 'business' },
-    { id: 'pt-2',  date: '2026-05-02', accountId: 'a-pract-op',  amount: -2200, description: 'Contractor pay · junior associate',       category: 'professional' },
-    { id: 'pt-3',  date: '2026-05-03', accountId: 'a-pract-op',  amount: -185, description: 'Office rent · suite share',                category: 'professional' },
-    { id: 'pt-4',  date: '2026-05-05', accountId: 'a-pract-op',  amount: -120, description: 'Malpractice insurance',                    category: 'insurance' },
-    { id: 'pt-5',  date: '2026-05-06', accountId: 'a-pract-tax', amount: 1400, description: 'Quarterly tax set-aside',                  category: 'transfer' },
-    { id: 'pt-6',  date: '2026-05-08', accountId: 'a-pract-op',  amount: 3800, description: 'Client retainer · Lopez',                  category: 'business' },
-    { id: 'pt-7',  date: '2026-05-10', accountId: 'a-pract-op',  amount: -3500, description: 'Owner draw → personal checking',          category: 'transfer' },
-    { id: 'pt-8',  date: '2026-05-10', accountId: 'a-pers-chk',  amount: 3500, description: 'Owner draw from practice',                 category: 'salary' },
-    { id: 'pt-9',  date: '2026-05-12', accountId: 'a-pers-chk',  amount: -1650, description: 'Rent (personal)',                         category: 'household' },
-    { id: 'pt-10', date: '2026-05-13', accountId: 'a-pers-chk',  amount: -190, description: 'Whole Foods groceries',                   category: 'groceries' },
-    { id: 'pt-11', date: '2026-05-15', accountId: 'a-pers-cc',   amount: -55, description: 'Gas + coffee',                              category: 'fuel' },
-    { id: 'pt-12', date: '2026-05-16', accountId: 'a-pract-op',  amount: 2400, description: 'Client retainer · Beth M.',                category: 'business' },
-    { id: 'pt-13', date: '2026-05-18', accountId: 'a-pract-op',  amount: -240, description: 'CEU course · annual',                      category: 'professional' },
-    { id: 'pt-14', date: '2026-05-20', accountId: 'a-pers-chk',  amount: -400, description: 'Visa payment',                             category: 'debt-payment' },
-    { id: 'pt-15', date: '2026-05-22', accountId: 'a-pract-op',  amount: -350, description: 'Software · practice management',          category: 'subscription' },
-    { id: 'pt-16', date: '2026-05-25', accountId: 'a-pers-chk',  amount: -200, description: 'Tithe · home church',                      category: 'charitable' },
-    { id: 'pt-17', date: '2026-05-28', accountId: 'a-pers-sav',  amount: 600, description: 'Personal savings · monthly',                category: 'transfer' },
-    { id: 'pt-18', date: '2026-06-01', accountId: 'a-pract-op',  amount: 4200, description: 'Client retainer · Smith family (upcoming)', category: 'business' },
-    { id: 'pt-19', date: '2026-06-02', accountId: 'a-pract-op',  amount: -2200, description: 'Contractor pay (upcoming)',               category: 'professional' },
-  ],
-  contractors1099: [
-    { id: 'pk1', direction: 'outbound', entityId: 'e-practice', name: 'Jordan (junior associate)', role: 'Contracted hours @ 25/hr', ytdPaid: 11000, monthly: 2200, status: 'active' },
-  ],
-  taxCalendar: [
-    { id: 'tx-q2', month: 6, day: 15, name: 'Q2 estimated tax', desc: 'Self-employment quarterly estimated tax', entityIds: ['e-practice'], applies: true },
-  ],
-  scopes: [], events: [], projects: [], subscriptions: [], feedback: [], checkoutIntents: [], inquiries: [], opportunities: [], capexItems: [], prayerRequests: [], skillProfiles: [],
-  recurringObligations: [
-    { id: 'ro-office',     name: 'Office suite share',     amount: 185,  frequency: 'monthly', nextDue: '2026-06-03', entityId: 'e-practice', category: 'professional', enabled: true },
-    { id: 'ro-malpractice',name: 'Malpractice insurance',  amount: 120,  frequency: 'monthly', nextDue: '2026-06-05', entityId: 'e-practice', category: 'insurance',    enabled: true },
-    { id: 'ro-software',   name: 'Practice mgmt software', amount: 350,  frequency: 'monthly', nextDue: '2026-06-22', entityId: 'e-practice', category: 'subscription', enabled: true },
-    { id: 'ro-rent',       name: 'Rent (personal)',        amount: 1650, frequency: 'monthly', nextDue: '2026-06-12', entityId: 'e-pers',     category: 'household',    enabled: true },
-    { id: 'ro-ceu',        name: 'CEUs · annual budget',   amount: 1200, frequency: 'annual',  nextDue: '2026-11-01', entityId: 'e-practice', category: 'professional', enabled: true },
-    { id: 'ro-license',    name: 'License renewal',        amount: 350,  frequency: 'biennial',nextDue: '2027-08-15', entityId: 'e-practice', category: 'professional', enabled: true },
-  ],
-  incidents: [],
-  welcomeDismissed: false,
-  userTier: 'foundation',
-  moduleInterest: {},
-  inflows: {
-    salaries: [
-      { id: 'sal-pers', who: 'Sam',      source: 'Owner draw (from practice)', expected: 3500, actual: 3500, entityId: 'e-pers' },
-      { id: 'sal-prac', who: 'Practice', source: 'Client retainers',           expected: 10000, actual: 10400, entityId: 'e-practice' },
-    ],
-    rentals: [],
-  },
-  outflows: { rentalMortgages: 0, propertyUtilities: 0, household: 1650, debtService: 400, charitableGiving: 200 },
-  debts: [
-    { id: 'd-pers-cc', entityId: 'e-pers', name: 'Visa', balance: 1850, rate: 19.99, minPayment: 60, payoffType: 'snowball' },
-  ],
-  watchlist: ['spy.us', 'vt.us'],
-  church: { name: 'Your home church', nickname: '', site: '', address: '', phone: '', officeHours: '', contactEmail: '', services: [], media: {}, links: {}, tagline: 'Where your family worships and serves', verse: { ref: 'Psalm 1:1', text: 'Blessed is the man who walks not in the counsel of the wicked.' } },
-  voiceOps: { apiUrl: '', apiToken: '', rates: { perCallMinute: 0.0085, perTranscriptMinute: 0.05, perNumberMonthly: 1.15 }, numbersConfigured: 0, budgetAlertMonthly: 30 },
-  pressureMappings: { ...SEED_DATA.pressureMappings },
-};
-
-// -----------------------------------------------------------------------------
-// DEMO · LANDLORD (3 doors)
-// Small landlord with 3 rental units + a personal household. The deep
-// scenario: "I want to know per-property cash flow without spreadsheets, and
-// I want to see when a tenant goes late without finding out from a missed
-// deposit." Per-property accounts are stubbed; rental income lives in
-// inflows.rentals with a status field so the late one shows up red.
-// -----------------------------------------------------------------------------
-const DEMO_DATA_LANDLORD = {
-  ...SEED_DATA,
-  meta: { ...SEED_DATA.meta, lastUpdated: '2026-05-28', monthOfData: 'May 2026', bufferTarget: 4000, bufferCurrent: 2300, releaseLabel: 'Sample · Landlord (3 doors)' },
-  entities: [
-    { id: 'e-pers',  name: 'The Reynolds household', type: 'personal', notes: 'Joint household',  visibleTo: ['darrell', 'christina', 'family'] },
-    { id: 'e-props', name: 'Reynolds Properties LLC', type: 'business', notes: '3 rental doors', visibleTo: ['darrell'] },
-  ],
-  accounts: [
-    { id: 'a-pers-chk',  entityId: 'e-pers',  name: 'Personal Checking',     institution: 'Chase',   type: 'checking', fragment: '...4421', balance: 3100, isPrimary: true },
-    { id: 'a-pers-sav',  entityId: 'e-pers',  name: 'Personal Savings',      institution: 'Chase',   type: 'savings',  fragment: '...9990', balance: 6800 },
-    { id: 'a-props-op',  entityId: 'e-props', name: 'Properties Operating',  institution: 'Local CU', type: 'checking', fragment: '...3318', balance: 8400, isPrimary: true },
-    { id: 'a-props-res', entityId: 'e-props', name: 'Properties · Capex Reserve', institution: 'Local CU', type: 'savings', fragment: '...3320', balance: 14200 },
-    { id: 'a-pers-cc',   entityId: 'e-pers',  name: 'Visa',                  institution: 'Capital One', type: 'credit', fragment: '...7711', balance: -2050 },
-  ],
-  transactions: [
-    { id: 'lt-1',  date: '2026-05-01', accountId: 'a-props-op', amount: 1200, description: 'Rent · Unit A (Hill St)',         category: 'rental-income' },
-    { id: 'lt-2',  date: '2026-05-01', accountId: 'a-props-op', amount: 1050, description: 'Rent · Unit B (Park Ave)',        category: 'rental-income' },
-    { id: 'lt-3',  date: '2026-05-02', accountId: 'a-props-op', amount: -680, description: 'Mortgage · Hill St',              category: 'debt-payment' },
-    { id: 'lt-4',  date: '2026-05-02', accountId: 'a-props-op', amount: -540, description: 'Mortgage · Park Ave',             category: 'debt-payment' },
-    { id: 'lt-5',  date: '2026-05-05', accountId: 'a-props-op', amount: -185, description: 'Plumber · Unit B sink leak',      category: 'household' },
-    { id: 'lt-6',  date: '2026-05-06', accountId: 'a-pers-chk', amount: 2900, description: 'Day-job paycheck',                category: 'salary' },
-    { id: 'lt-7',  date: '2026-05-07', accountId: 'a-props-op', amount: -120, description: 'Property insurance · Hill St',    category: 'insurance' },
-    { id: 'lt-8',  date: '2026-05-10', accountId: 'a-pers-chk', amount: -1700, description: 'Personal mortgage',              category: 'household' },
-    { id: 'lt-9',  date: '2026-05-12', accountId: 'a-pers-chk', amount: -210, description: 'Aldi groceries',                  category: 'groceries' },
-    { id: 'lt-10', date: '2026-05-15', accountId: 'a-pers-chk', amount: 2900, description: 'Day-job paycheck',                category: 'salary' },
-    { id: 'lt-11', date: '2026-05-15', accountId: 'a-pers-chk', amount: -250, description: 'Tithe',                           category: 'charitable' },
-    { id: 'lt-12', date: '2026-05-16', accountId: 'a-props-op', amount: -380, description: 'Property mgmt software annual',   category: 'subscription' },
-    { id: 'lt-13', date: '2026-05-18', accountId: 'a-props-op', amount: -560, description: 'Mortgage · Cedar (3rd unit)',     category: 'debt-payment' },
-    { id: 'lt-14', date: '2026-05-22', accountId: 'a-props-op', amount: -55, description: 'Tenant background check',          category: 'professional' },
-    { id: 'lt-15', date: '2026-05-25', accountId: 'a-props-res', amount: 500, description: 'Capex reserve monthly contribution', category: 'transfer' },
-    { id: 'lt-16', date: '2026-06-01', accountId: 'a-props-op', amount: 1200, description: 'Rent · Unit A (upcoming)',        category: 'rental-income' },
-    { id: 'lt-17', date: '2026-06-01', accountId: 'a-props-op', amount: 1050, description: 'Rent · Unit B (upcoming)',        category: 'rental-income' },
-    { id: 'lt-18', date: '2026-06-01', accountId: 'a-props-op', amount: 0,    description: 'Rent · Unit C (Cedar) — UNPAID',  category: 'rental-income' },
-  ],
-  contractors1099: [], taxCalendar: [], scopes: [], events: [], projects: [], subscriptions: [], feedback: [], checkoutIntents: [], inquiries: [], opportunities: [], capexItems: [], prayerRequests: [], skillProfiles: [],
-  recurringObligations: [
-    { id: 'ro-mort-1', name: 'Mortgage · Hill St',    amount: 680,  frequency: 'monthly', nextDue: '2026-06-02', entityId: 'e-props', category: 'debt-payment', enabled: true },
-    { id: 'ro-mort-2', name: 'Mortgage · Park Ave',   amount: 540,  frequency: 'monthly', nextDue: '2026-06-02', entityId: 'e-props', category: 'debt-payment', enabled: true },
-    { id: 'ro-mort-3', name: 'Mortgage · Cedar',      amount: 560,  frequency: 'monthly', nextDue: '2026-06-18', entityId: 'e-props', category: 'debt-payment', enabled: true },
-    { id: 'ro-mort-h', name: 'Personal mortgage',     amount: 1700, frequency: 'monthly', nextDue: '2026-06-10', entityId: 'e-pers',  category: 'household',    enabled: true },
-    { id: 'ro-ins',    name: 'Property insurance',    amount: 240,  frequency: 'monthly', nextDue: '2026-06-07', entityId: 'e-props', category: 'insurance',    enabled: true },
-  ],
-  incidents: [
-    { id: 'lin-late', date: '2026-06-01', amount: 950, category: 'tenant', entityId: 'e-props', description: 'Unit C (Cedar) tenant has not paid June rent', urgency: 'incident', status: 'open', dueDate: '2026-06-05' },
-  ],
-  welcomeDismissed: false,
-  userTier: 'foundation',
-  moduleInterest: {},
-  inflows: {
-    salaries: [
-      { id: 'sal-day', who: 'Owner', source: 'Day-job salary', expected: 5800, actual: 5800, entityId: 'e-pers' },
-    ],
-    rentals: [
-      { id: 'rl-a', name: 'Unit A · Hill St',   address: '210 Hill St',   city: 'Cedar Heights', state: 'IL', tenantName: '', rent: 1200, actual: 1200, status: 'paying', entityId: 'e-props', mortgage: { balance: 95000, rate: 6.5, monthlyPI: 680, escrow: 175, estimated: true } },
-      { id: 'rl-b', name: 'Unit B · Park Ave',  address: '88 Park Ave',   city: 'Cedar Heights', state: 'IL', tenantName: '', rent: 1050, actual: 1050, status: 'paying', entityId: 'e-props', mortgage: { balance: 70000, rate: 6.5, monthlyPI: 540, escrow: 140, estimated: true } },
-      { id: 'rl-c', name: 'Unit C · Cedar',     address: '1402 Cedar',    city: 'Cedar Heights', state: 'IL', tenantName: '', rent: 950,  actual: 0,    status: 'late',   entityId: 'e-props', mortgage: { balance: 80000, rate: 6.5, monthlyPI: 560, escrow: 150, estimated: true } },
-    ],
-  },
-  outflows: { rentalMortgages: 1780, propertyUtilities: 200, household: 1700, debtService: 1780, charitableGiving: 250 },
-  debts: [
-    { id: 'd-cc-r', entityId: 'e-pers', name: 'Visa', balance: 2050, rate: 21.99, minPayment: 65, payoffType: 'snowball' },
-  ],
-  watchlist: ['spy.us', 'iyr.us'],
-  church: { name: 'Your home church', nickname: '', site: '', address: '', phone: '', officeHours: '', contactEmail: '', services: [], media: {}, links: {}, tagline: 'Where your family worships and serves', verse: { ref: 'Psalm 1:1', text: 'Blessed is the man who walks not in the counsel of the wicked.' } },
-  voiceOps: { apiUrl: '', apiToken: '', rates: { perCallMinute: 0.0085, perTranscriptMinute: 0.05, perNumberMonthly: 1.15 }, numbersConfigured: 0, budgetAlertMonthly: 30 },
-  pressureMappings: { ...SEED_DATA.pressureMappings },
-};
 
 // SCOPE_TEMPLATES moved to ./components/Projects.jsx (r41).
 // =============================================================================
@@ -909,51 +577,18 @@ const DEMO_DATA_LANDLORD = {
 // PROJECT_STATUSES moved to ./components/Projects.jsx
 // PROJECT_STATUSES_ACTIVE moved to ./lib/opportunity-capacity.js (2026-07-03).
 
-// =============================================================================
-// v28+ MVP v1.5 round 5 — TIER GATING
-// Single source of truth for which subscription tier unlocks which view.
-// Tiers (ordered cheapest → most expensive):
-//   foundation < poetech-plus < family < premium < business
-// Special tiers (community / sponsor / founding) inherit at least 'foundation'
-// privileges; the inherits-as map promotes them to the tier they should match.
-// Read-only preview: Real Estate is rendered with editing disabled and a
-// single seed property when the user is on 'foundation' — gives a real feel
-// of the value before paying without unlocking the full editor.
-// =============================================================================
-const TIER_ORDER = ['foundation', 'poetech-plus', 'family', 'premium', 'business'];
-const TIER_LABEL = {
-  'foundation':   'Foundation (free)',
-  'poetech-plus': 'PoeTech+ ($39/mo)',
-  // 2026-06-02 rename per tier-review (commits d3733f5 / 4cb55b9): "Family" read as
-  // the default/for-everyone tier and bounced a single-adult beta user (Freddie) who
-  // saw $89 as the headline price. "Household" keeps the warmth while dropping the
-  // "this is the multi-person family tier" misread — it is the multi-module tier for
-  // multi-entity households, landlords, or solo pros. Internal key stays 'family' so
-  // TIER_ORDER, aliases, and all gating are untouched.
-  'family':       'Household ($89/mo)',
-  'premium':      'Premium ($149/mo)',
-  'business':     'PoeTech Business ($249/mo)',
-};
-// Special tier names mapped to their effective standard tier for gating.
-const TIER_ALIASES = {
-  'loved-ones':       'poetech-plus', // Founding Family — free PoeTech+ for life
-  'community':        'poetech-plus', // Sponsored Community tier
-  'community-partner':'business',     // Mission-aligned 501(c)(3) — full features
-};
-const effectiveTier = (t) => TIER_ALIASES[t] || t || 'foundation';
-// Comparator — true if user's effective tier meets or exceeds the required tier.
-const tierMeets = (userTier, requiredTier) => {
-  const u = TIER_ORDER.indexOf(effectiveTier(userTier));
-  const r = TIER_ORDER.indexOf(requiredTier);
-  return u >= 0 && r >= 0 && u >= r;
-};
+// TIER GATING moved to ./lib/tiers.js (2026-08-04 peel; imported above).
 // Known family sign-in emails -> their profile. Module-level so BOTH the
 // profile-mapping effect and the self-serve onboarding check read one source
 // (DRY; avoids the two drifting apart).
 const FAMILY_EMAIL_PROFILES = {
   'darrellpoe06@gmail.com': 'darrell',
+  '15636502416@phone.poetech.us': 'darrell', // the phone door is the same person (0140)
   'mrspoe06@gmail.com': 'christina',
   'christina@tlctherapysolutions.com': 'christina',
+  // Darrell Jr (2026-07-05): 'family' persona = household roll-up only, not the
+  // PIN-gated business/practice views. Pairs with migration 0080.
+  'darrellpoejr@gmail.com': 'family',
   // Add the twins' sign-in emails as they get accounts.
 };
 export const isFamilyEmail = (email) =>
@@ -1054,7 +689,7 @@ function UpgradePrompt({ viewLabel, requiredTier, currentTier, setView, setUserT
   const isLogged = effectiveTier(currentTier);
   return (
     <div className="bg-white border-2 border-[#B85838] p-6 sm:p-8 max-w-2xl mx-auto">
-      <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-2">Unlock {viewLabel}</div>
+      <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-2">Unlock {viewLabel}</div>
       <h2 className="text-2xl sm:text-3xl mb-3" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>This view unlocks at <span className="text-[#B85838]">{label}</span>.</h2>
       <p className="text-sm leading-relaxed text-[#5A5751] mb-4" style={{ fontFamily: '"Fraunces", serif' }}>
         You're currently on <strong>{TIER_LABEL[isLogged] || isLogged}</strong>. {viewLabel} is built for the situations that {label.split(' ')[0]} subscribers use most. See the pricing tiers in About — the upgrade pays for itself by replacing several SaaS tools you'd otherwise stack to get the same outcome.
@@ -1066,10 +701,10 @@ function UpgradePrompt({ viewLabel, requiredTier, currentTier, setView, setUserT
       {/* Dev-only tier switcher — lets you preview what each tier looks like without paying. */}
       {setUserTier && (
         <div className="mt-5 pt-4 border-t border-[#E8E4DC]">
-          <div className="text-[9px] uppercase tracking-wider text-[#5A5751] mb-1">Dev preview — switch tier</div>
+          <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] mb-1">Dev preview — switch tier</div>
           <div className="flex gap-1 flex-wrap">
             {TIER_ORDER.map(t => (
-              <button key={t} type="button" onClick={() => setUserTier(t)} className={`text-[10px] uppercase tracking-wider px-2 py-1 border focus:outline focus:outline-2 focus:outline-[#B85838] ${effectiveTier(currentTier) === t ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'border-[#E8E4DC] text-[#5A5751]'}`}>{t}</button>
+              <button key={t} type="button" onClick={() => setUserTier(t)} className={`text-[0.625rem] uppercase tracking-wider px-2 py-1 border focus:outline focus:outline-2 focus:outline-[#B85838] ${effectiveTier(currentTier) === t ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'border-[#E8E4DC] text-[#5A5751]'}`}>{t}</button>
             ))}
           </div>
         </div>
@@ -1099,66 +734,7 @@ import {
 // =============================================================================
 // MAIN APP
 // =============================================================================
-// v28+ MVP v1.5 round 7 — TierSwitcher: controlled dropdown that closes on
-// outside click + selection, plus a 1.5s flash on the trigger when the tier
-// changes so the user sees the action took effect.
-function TierSwitcher({ userTier, setUserTier }) {
-  const [open, setOpen] = useState(false);
-  const [flash, setFlash] = useState(false);
-  const wrapRef = useRef(null);
-  const autoCloseRef = useRef(null);
-  // Round 7 fix — auto-close after 6s of no interaction inside the dropdown.
-  // Reset the timer on any pointer move or focus inside; long enough to pick
-  // a tier, not so long that the panel sticks around forever.
-  const armAutoClose = () => {
-    clearTimeout(autoCloseRef.current);
-    autoCloseRef.current = setTimeout(() => setOpen(false), 6000);
-  };
-  useEffect(() => {
-    if (!open) { clearTimeout(autoCloseRef.current); return; }
-    armAutoClose();
-    const onClick = (e) => { if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false); };
-    document.addEventListener('mousedown', onClick);
-    document.addEventListener('touchstart', onClick);
-    return () => {
-      document.removeEventListener('mousedown', onClick);
-      document.removeEventListener('touchstart', onClick);
-      clearTimeout(autoCloseRef.current);
-    };
-  }, [open]);
-  const pick = (t) => {
-    setUserTier(t);
-    setOpen(false);
-    setFlash(true);
-    setTimeout(() => setFlash(false), 1500);
-  };
-  const current = effectiveTier(userTier);
-  // Round 14 fix — compact label on narrow screens (e.g., "Premium") and full
-  // label with price on wide screens. Keeps the header from crowding the title.
-  const fullLabel = TIER_LABEL[current] || 'Foundation (free)';
-  const shortLabel = fullLabel.split(' (')[0]; // strip the "($X/mo)" suffix
-  return (
-    <div ref={wrapRef} className="relative">
-      <button type="button" onClick={() => setOpen(o => !o)} aria-expanded={open} aria-haspopup="true" className={`text-[10px] uppercase tracking-wider px-2 py-1.5 border whitespace-nowrap focus:outline focus:outline-2 focus:outline-[#B85838] transition-colors ${flash ? 'bg-[#5A6E3D] text-white border-[#5A6E3D]' : 'border-[#5A5751] text-[#5A5751] hover:border-[#1A1815] hover:text-[#1A1815]'}`} title={`Tier preview · ${fullLabel} · switch to see locked / unlocked views`}>
-        {flash ? '✓ Saved · ' : ''}
-        <span className="hidden lg:inline">{fullLabel}</span>
-        <span className="lg:hidden">{shortLabel}</span>
-        {' '}{open ? '▴' : '▾'}
-      </button>
-      {open && (
-        <div onMouseMove={armAutoClose} onTouchStart={armAutoClose} onFocus={armAutoClose} className="absolute right-0 mt-1 bg-white border border-[#1A1815] p-2 z-30 shadow-lg" style={{ minWidth: '220px' }}>
-          <div className="text-[9px] uppercase tracking-wider text-[#5A5751] mb-1 px-1">Preview tier (dev) · closes in 6s</div>
-          <div className="flex flex-col gap-1">
-            {TIER_ORDER.map(t => (
-              <button key={t} type="button" onClick={() => pick(t)} className={`text-[10px] uppercase tracking-wider px-2 py-2 text-left border focus:outline focus:outline-2 focus:outline-[#B85838] ${current === t ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815]'}`}>{TIER_LABEL[t]}</button>
-            ))}
-          </div>
-          <div className="text-[9px] text-[#5A5751] italic mt-2 px-1">Persisted on this device. Real billing happens through About.</div>
-        </div>
-      )}
-    </div>
-  );
-}
+// TierSwitcher moved to ./components/TierSwitcher.jsx (2026-08-04 peel).
 
 // Demo mode helper — reads ?demo=<persona> from the URL on initial load.
 // Returns null for normal app loads. Special value 'picker' (also reached
@@ -1180,20 +756,20 @@ function getDemoPersona() {
     // who wants the audience-cut menu.
     if (!p) return 'family-of-4';
     if (p === 'picker') return 'picker';
-    return ['family-of-4', 'separated', 'professional', 'landlord'].includes(p) ? p
+    return ['family-of-1', 'family-of-2', 'family-of-3', 'family-of-4', 'family-of-5', 'family-of-7', 'separated', 'professional', 'landlord'].includes(p) ? p
       // Shipped-soon personas land on the picker so the URL stays honest.
-      : ['family-of-1', 'family-of-2', 'family-of-3', 'family-of-5', 'family-of-7', 'community', 'church', 'lawyer', 'therapist'].includes(p) ? 'picker'
+      : ['community', 'church', 'lawyer', 'therapist'].includes(p) ? 'picker'
       // Legacy alias for the first-cut family demo.
       : p === 'family' ? 'family-of-4'
       : 'picker';
   } catch (e) { return null; }
 }
-const DEMO_DATA_BY_PERSONA = {
-  'family-of-4': DEMO_DATA_FAMILY_OF_4,
-  'separated':   DEMO_DATA_SEPARATED,
-  'professional':DEMO_DATA_PROFESSIONAL,
-  'landlord':    DEMO_DATA_LANDLORD,
-};
+// Build the demo/sample persona map from the extracted module, passing the
+// in-scope SEED_DATA so the module needs no back-import (no cycle).
+export const DEMO_DATA_BY_PERSONA = buildDemoPersonas(SEED_DATA);
+// Named local kept so the boot fallback + reset paths (and the reviewer-mode
+// source-pin test) read exactly as before the extraction.
+const DEMO_DATA_FAMILY_OF_4 = DEMO_DATA_BY_PERSONA['family-of-4'];
 
 // 2026-06-11 — every record id that exists ONLY in the demo datasets (ids the
 // demo shares with SEED_DATA are excluded so real seeded records are never
@@ -1336,65 +912,11 @@ export const stripSeedScaffolding = (d) => {
 //   audience — who this is exactly
 //   pitch    — what changes in their week when they use it
 //   vision   — honest about what's working today vs in build
-const DEMO_PERSONA_META = {
-  'family-of-4': {
-    free: true,
-    label: 'For your family',
-    headline: 'Know what\'s covered before the 1st — without guessing.',
-    summary: 'Two parents, two kids in school.',
-    audience: 'Married couples with school-age children.',
-    pitch: 'Every dollar in one place. Bills, paycheck, tithe, groceries, debt. On every screen the system tells you what to do, when, why, and how. The 1st stops being a scramble.',
-    vision: 'Multi-device per-profile views shipped — Naomi, Adam, and "Family" rollup all work today. Anonymous in-app specialist messaging is in design.',
-  },
-  'separated': {
-    free: true,
-    label: 'For co-parents apart',
-    headline: 'A fair shared truth so money stops being the fight.',
-    summary: 'Two households, one shared child.',
-    audience: 'Co-parents who don\'t live together but co-fund the kids.',
-    pitch: 'Each household sees its own books. The shared-child entity rolls up costs both sides agreed to split, with paid/unpaid plain on the screen. He didn\'t show up for the exchange? The timestamp is in the log. She says you missed a payment? The receipt\'s right there. You don\'t have to argue about it in front of the kids — the system shows the truth.',
-    vision: 'Today this is two profiles on one device. Cross-household sync (two phones, two logins, one shared-child ledger) is the next build. Anonymous coordinated counseling sits in the same workstream.',
-  },
-  'professional': {
-    free: false,
-    label: 'For solo practice owners',
-    headline: 'Practice clean, personal clean, tax set-aside running.',
-    summary: 'Therapist, lawyer, or consultant running their own practice.',
-    audience: 'Solo practitioners juggling personal income with practice revenue.',
-    pitch: 'No more "which money is whose." Owner draw clean. Quarterly tax set aside. CEUs and license renewals on the calendar so they never sneak up. Your books match what the IRS thinks they should be.',
-    vision: 'Today this is the financial backbone. Practice intake funnel + contractor 1099 management surfaces are in build. The marketplace that connects you to peer practitioners is roadmap.',
-  },
-  'landlord': {
-    free: false,
-    label: 'For landlords',
-    headline: 'Know on the 1st — not at month-end when a deposit comes up short.',
-    summary: 'Small landlord juggling rentals + a personal household.',
-    audience: 'Owner-operators with 1-10 rental units.',
-    pitch: 'Per-property cash flow without spreadsheets. Late tenants flagged on the 1st. Mortgage timing protected. Capex reserve auto-funded. The portfolio runs itself; you decide.',
-    vision: 'Today the rental tracking is here. Tenant portal + lease-doc workflow + maintenance request flow are in build. Specialist access (attorney, accountant, property manager) is roadmap.',
-  },
-};
 
 // Hostname gate — public domains (poetech.us, *.vercel.app, any host that's
 // not localhost / Tailscale-internal) must NEVER unlock Imported PII surfaces
 // regardless of localStorage state. Family accesses real data via Tailscale.
 // Returns true on any "public" host; default is SAFE (treat unknown as public).
-function isPublicHost() {
-  try {
-    if (typeof window === 'undefined') return true;
-    const host = window.location.hostname || '';
-    if (host === 'localhost' || host === '127.0.0.1' || host === '0.0.0.0') return false;
-    if (host.startsWith('100.')) return false; // Tailscale CGNAT (100.64.0.0/10)
-    if (host.endsWith('.ts.net')) return false; // Tailscale magic DNS
-    if (host.endsWith('.local')) return false; // mDNS LAN
-    if (/^192\.168\./.test(host)) return false; // RFC1918 LAN
-    if (/^10\./.test(host)) return false; // RFC1918 LAN
-    return true; // poetech.us, *.vercel.app, anything else = PUBLIC
-  } catch (e) {
-    return true; // Fail closed.
-  }
-}
-
 // Initial view from the URL query. Supports deep-links like ?view=admin — the
 // footer "Admin" link's shareable target (Darrell opens https://poetech.us/?view=admin
 // on his phone to find the NAS dispatch-status URL). Unknown/absent param falls
@@ -1403,26 +925,26 @@ function getInitialView() {
   try {
     if (typeof window === 'undefined') return 'overview';
     const sp = new URLSearchParams(window.location.search);
-    const v = (sp.get('view') || '').toLowerCase().trim();
+    const v = (sp.get('view') || sp.get('tab') || '').toLowerCase().trim(); // ?tab= is an alias, for notifications already on phones (DR-0444)
     // Engagement and Choir are sub-tabs under Church; those deep-links land on
     // the Church tab (the sub-tab is selected separately by getInitialChurchView).
-    if (v === 'engagement' || v === 'choir' || v === 'pulpit' || v === 'events') return 'church';
+    if (['engagement','choir','pulpit','events','learn','scripture','bus','harvest','conference','program'].includes(v)) return 'church';
     // The former Access tab was merged into Admin (one users report, 2026-07-04);
     // an old ?view=access deep-link lands on Admin rather than dead-ending.
     if (v === 'access') return 'admin';
-    const VALID = ['overview','books','inbound','rentals','projects','practice','opportunities','about','church','markets','notes','create','voice','library','recipes','games','tvtime','admin','center','crm','relationships','inventory','forecast'];
+    const VALID = ['overview','books','inbound','rentals','properties','projects','practice','tlc','opportunities','about','church','markets','notes','create','voice','scribe','library','recipes','games','tvtime','advocacy','databack','messages','admin','center','crm','relationships','inventory','forecast','cohorts','tlc-assistant','health','cameras','vault'];
     return VALID.includes(v) ? v : 'overview';
   } catch (e) { return 'overview'; }
 }
 
-// Engagement lives under Church. A ?view=engagement deep-link selects the
-// Engagement sub-tab; everything else defaults to the Church home sub-tab.
+// The Church sub-tab a URL deep-links to — resolved by lib/nav-history's
+// initialChurchView so boot and Back read the URL through ONE parser. Never
+// re-implement it here: reading only `?view=` is what sent every shared lesson
+// link to the Worship tab instead of the lesson (the why is in that module).
 function getInitialChurchView() {
   try {
     if (typeof window === 'undefined') return 'home';
-    const sp = new URLSearchParams(window.location.search);
-    const v = (sp.get('view') || '').toLowerCase().trim();
-    return v === 'engagement' ? 'engagement' : v === 'choir' ? 'choir' : v === 'pulpit' ? 'pulpit' : v === 'learn' ? 'learn' : v === 'events' ? 'events' : 'home';
+    return initialChurchView(window.location.search);
   } catch (e) { return 'home'; }
 }
 
@@ -1439,6 +961,10 @@ export default function PoeFinancialSystem() {
   const isDemoMode = !!demoPersona && !isPickerMode;
   // Suppress storage/save/network either way — picker is also a "demo" state.
   const isAnyDemoMode = !!demoPersona;
+  // Reviewer mode (lib/reviewer-mode.jsx) — the steward reviews this build exactly
+  // as a signed-in user sees it. STRICTLY NARROWING: it only hides privilege, and
+  // every write path to the steward's real data is suppressed while it is on.
+  const reviewerMode = isReviewerModeOn();
 
   // First-time landing: when someone hits the bare URL (poetech.us with no
   // query params), no saved profile, no landing-seen flag — show the
@@ -1478,7 +1004,7 @@ export default function PoeFinancialSystem() {
   // still surface in the Action Queue / Big Picture). The aspirational Reeves-
   // family DEMO_DATA_FAMILY_OF_4 is the only safe seed for the public domain.
   const [data, setData] = useState(
-    isPublicHost() ? DEMO_DATA_FAMILY_OF_4
+    (isPublicHost() || reviewerMode) ? DEMO_DATA_FAMILY_OF_4
       : isDemoMode ? DEMO_DATA_BY_PERSONA[demoPersona]
       : isPickerMode ? DEMO_DATA_FAMILY_OF_4
       : isFirstTimeLandingBoot ? DEMO_DATA_FAMILY_OF_4
@@ -1486,11 +1012,29 @@ export default function PoeFinancialSystem() {
   );
   const [pressure, setPressure] = useState(5);
   const [view, setView] = useState(getInitialView());
+  // Church-door mode (DR-0174): LAUNCHED via the church door (installed Love
+  // Corner app or /lovecorner → ?view=church&lovecorner=1) presents as a
+  // focused CHURCH-ONLY app; PoeTech itself is untouched. CAPTURED ONCE at
+  // first render. The door signal is the door's OWN param (?lovecorner=1, the
+  // moore=1/tlc=1 convention) or a standalone-display legacy install — NEVER
+  // bare ?view=church, which nav-history also writes for the in-app Church
+  // tab: that collision made a RELOAD of the Church tab boot as the Love
+  // Corner app (Darrell 2026-07-30). Pure signal in lib/church-own-door.js.
+  const [churchDoorOnly] = useState(() => isChurchDoorContext());
+  const churchBrandRoute = useState(() => isPublicChurchRoute())[0]; // brand follows the DOOR, not the tab (DR-0290)
+  const churchLinkVisit = isChurchLinkVisit({ route: churchBrandRoute, view }); // ALL three interruptions (DR-0292)
+  // TLC client door (Darrell 2026-07-13: "when will I be able to send a TLC
+  // Therapy Solutions App out?"). When LAUNCHED via the TLC door (poetech.us/tlc
+  // → ?tlc=1), the app presents as the focused, PUBLIC, client-facing TLC app —
+  // "Find your therapist" (provider match + services + insurance + Book) and
+  // nothing else. NOT the operator TLC tab (?view=tlc). Captured ONCE at first
+  // render, before nav-history rewrites the URL. Pure signal in lib/tlc-door.js.
+  const [tlcDoorOnly] = useState(() => isTlcDoorContext());
   // Measure how the app is used, to make it better (Darrell 2026-07-04). One
   // place captures every tab open (URL-driven + every nav button). Sovereign,
   // fail-soft, signed-out no-op, aggregate-only to the governor (usage-events).
   useEffect(() => { recordView(view); }, [view]);
-  const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false); // false | true | an area key to pre-pick
   // DR-0059 Phase 2 — a NEW non-family signed-in user gets a named welcome once,
   // instead of falling through to the family persona picker. Presentational only.
   const [selfServeWelcomeDismissed, setSelfServeWelcomeDismissed] = useState(() => {
@@ -1501,8 +1045,17 @@ export default function PoeFinancialSystem() {
     try { window.localStorage.setItem('poe-selfserve-welcomed', '1'); } catch (e) { /* ignore */ }
     setSelfServeWelcomeDismissed(true);
   };
-  const [booksView, setBooksView] = useState('calendar');
+  const [booksView, setBooksView] = useState(() => { try { return typeof window === 'undefined' ? 'calendar' : initialBooksView(window.location.search); } catch (e) { return 'calendar'; } }); // Books deep-link parity from ?sub= (tested initialBooksView, lib/nav-history.js)
   const [churchView, setChurchView] = useState(getInitialChurchView());
+  // TLC — the unified TLC Therapy Solutions workspace (Darrell 2026-07-13: "the
+  // Whole TLC App... one single tab that holds all of it"). One office, three
+  // views of the same office: Practice (operations + clinician roster), Intake
+  // (Inbound), and Assistant (referral/outreach). Condenses the three separate
+  // TLC surfaces into one entry; the individual routes stay valid for deep-links.
+  const [tlcSub, setTlcSub] = useState('practice');
+  // Which SECTION the church home opens on when a launch target names one —
+  // the Council Chamber is the 'speak' section (DR-0142); null = Worship default.
+  const [churchHomeSection, setChurchHomeSection] = useState(null);
   // Real browser BACK / FORWARD (lib/nav-history.js). Every top tab + Books/
   // Church sub-tab flows through this triple, so the device Back button, the
   // in-app NavControls, and deep-links all work app-wide without a router. The
@@ -1519,7 +1072,14 @@ export default function PoeFinancialSystem() {
   const [snowballExtra, setSnowballExtra] = useState(2000);
   const [debtSnowballSort, setDebtSnowballSort] = useState('snowball');
   const [debtSnowballExtra, setDebtSnowballExtra] = useState(500);
-  const [theme, setTheme] = useState('midnight');
+  // Theme is per-device and SHARED with the business doors (lib/theme-css.js).
+  // First-run default is LIGHT (cream); then it follows the last chosen theme.
+  // ONE THEME, EVERY PICKER (DR-0524). Was this component's own useState, which
+  // meant the reader panel's swatches -- mounted in a different tree -- could
+  // not move it. useThemePref publishes from lib/theme-css.js and persists on
+  // set, so the separate saveThemePref effect is no longer needed and every
+  // setTheme(...) call site below is unchanged.
+  const [theme, setTheme] = useThemePref('cream');
   // One-click HEADER HIDEAWAY (Darrell 2026-06-29): collapse the top chrome —
   // date/time, build line, account/business/subscribe row, voice picker, font
   // controls, theme swatches, the Sample banner — to ALL the room for the
@@ -1558,30 +1118,28 @@ export default function PoeFinancialSystem() {
   // a stable date keeps the aspirational SAMPLE numbers from drifting between visits
   // (SEED-DATA-AS-ASPIRATION). So: anchor in demo, real today for everyone else.
   const currentDate = useMemo(() => (isAnyDemoMode ? new Date(2026, 4, 15) : new Date()), [isAnyDemoMode]);
-  // D20b — Top-right header date is ALWAYS today, for EVERYONE, every mode.
-  // Per Darrell's 2026-06-03 callout: the date in the header was still showing
-  // the snapshot anchor "May '26" on poetech.us because the prior D20 split
-  // kept the snapshot label for demo / picker / first-time-landing modes.
-  // That was wrong. The header date is the "system is alive RIGHT NOW" signal —
-  // it must ALWAYS reflect today regardless of demo state.
-  const headerDateLabel = useMemo(() => {
-    try {
-      return new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date());
-    } catch (e) {
-      return monthLabel(new Date(), 0);
-    }
-  }, []);
-
-  // Live local-time readout shown under the header date. Ticks on a light
-  // 20s interval (minute-resolution display, so per-second re-renders of this
-  // large component are wasted) and cleans up on unmount — no leak. Renders
-  // in the user's own timezone via native Intl; falls back silently if the
-  // platform lacks Intl. Ties Darrell's local-date/time-stamping principle.
+  // D20b — Top-right header date is ALWAYS today, for EVERYONE, every mode
+  // (Darrell's 2026-06-03 callout: it was showing the snapshot anchor "May '26").
+  // 2026-07-08 recurrence (Darrell: "date is stale"): the date memo computed
+  // ONCE at mount, so a PWA resumed the next day still showed yesterday's date
+  // beside a live-ticking time. Date and time now BOTH derive from the same
+  // ticking clock — the header date is the "system is alive RIGHT NOW" signal
+  // and must reflect today across a suspended overnight session, every mode.
+  // Light 20s interval (minute-resolution display, so per-second re-renders of
+  // this large component are wasted); cleans up on unmount; renders in the
+  // user's own timezone via native Intl, silent fallback if the platform lacks it.
   const [headerClockNow, setHeaderClockNow] = useState(() => new Date());
   useEffect(() => {
     const id = setInterval(() => setHeaderClockNow(new Date()), 20000);
     return () => clearInterval(id);
   }, []);
+  const headerDateLabel = useMemo(() => {
+    try {
+      return new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', year: 'numeric' }).format(headerClockNow);
+    } catch (e) {
+      return monthLabel(headerClockNow, 0);
+    }
+  }, [headerClockNow]);
   const headerTimeLabel = useMemo(() => {
     try {
       return new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' }).format(headerClockNow);
@@ -1615,13 +1173,14 @@ export default function PoeFinancialSystem() {
   // docs/99-session-notes/2026-05-28-brief-multi-user-profiles.md.
   const [currentProfile, setCurrentProfile] = useState(() => {
     if (isAnyDemoMode) return 'family'; // Demo + picker skip profile picker.
-    if (isPublicHost()) return null; // SECURITY: public host never reads saved profile.
+    if (isPublicHost() || reviewerMode) return null; // SECURITY: public host never reads saved profile; a reviewer boots the public flow.
     try { return localStorage.getItem('poe-current-profile') || null; }
     catch (e) { return null; }
   });
   const setProfile = (p) => {
     setCurrentProfile(p);
-    try { if (p) localStorage.setItem('poe-current-profile', p); else localStorage.removeItem('poe-current-profile'); }
+    // A reviewer's picks never touch this device's SAVED profile (state only).
+    try { if (!reviewerMode) { if (p) localStorage.setItem('poe-current-profile', p); else localStorage.removeItem('poe-current-profile'); } }
     catch (e) {}
     // Reset entity filter when switching profiles so we never leave it
     // pointing at an entity the new profile can't see.
@@ -1641,12 +1200,12 @@ export default function PoeFinancialSystem() {
   // ---------------------------------------------------------------------------
   const [mpDeviceTrusted, setMpDeviceTrusted] = useState(false);
   const [mpHasPin, setMpHasPin] = useState(false);
+  const [mpPinResetPending, setMpPinResetPending] = useState(false); // Forgot your PIN? -> re-proved identity -> choose a new one
   const [mpBackendAvailable, setMpBackendAvailable] = useState(true);
   const [mpSignalsLoaded, setMpSignalsLoaded] = useState(false);
   // SESSION-scoped (sessionStorage) verified flag — NEVER the PIN itself, only a
   // boolean that this tab session has cleared the PIN. Cleared on sign-out.
   const [mpPinVerified, setMpPinVerified] = useState(false);
-  const mpPinOkKey = (uid) => 'poe-pin-ok:' + String(uid || 'anon');
   // Biometric (fingerprint / Face via WebAuthn — lib/webauthn.js). A faster way
   // to satisfy the SAME human-presence point as the PIN, on a known device.
   // mpHasBiometric = a credential is enrolled on THIS device; mpBioSupported =
@@ -1673,13 +1232,24 @@ export default function PoeFinancialSystem() {
   // "Christina" as selectable buttons. Real names show only to a VERIFIED family
   // email; every other state (anonymous, demo, picker, outside signed-in user)
   // keeps the sanitized pair.
-  const isFamilyMember = isFamilyEmail(authSession?.user?.email);
+  const isFamilyMember = !reviewerMode && isFamilyEmail(authSession?.user?.email);
   // Church staff get the church staff-only surfaces (Observation) and nothing
   // more — never the family/Governor scope. Family are staff too (superset).
-  const isChurchStaff = isFamilyMember || isChurchStaffEmail(authSession?.user?.email);
+  const churchAccess = useChurchAccess();  // what the OFFICE granted (0211) — lib/church-access-store.js
+  const isChurchStaff = !reviewerMode && (isFamilyMember || isChurchStaffEmail(authSession?.user?.email) || churchAccess.capabilities.includes('see:church-staff'));
   // The private Study circle (Darrell + Christina + BG). Gates both the nav entry
   // (so the wider team never sees it) and the view render (defense in depth).
-  const isStudyCircle = isStudyCircleEmail(authSession?.user?.email);
+  const isStudyCircle = !reviewerMode && isStudyCircleEmail(authSession?.user?.email);
+  // A granted ASSISTANT account (DR-0271): role from the DATABASE (0130), never
+  // an email list. Focused shell — Assistant + Messages + About — because RLS
+  // walls everything else; the nav agrees instead of painting empty tabs, and
+  // any other view (deep-links included) steers back to the workspace.
+  const instanceRoleState = useInstanceRole();
+  const isAssistantAcct = !reviewerMode && !isFamilyMember && !!authSession && instanceRoleState.role === 'assistant';
+  const surfaceViewer = { signedIn: !!authSession, isFamilyMember, isChurchStaff, isStudyCircle, capabilities: churchAccess.capabilities, instanceRole: instanceRoleState.role || '', reviewerMode };  // lib/surface-access.js
+  useEffect(() => {
+    if (isAssistantAcct && !['tlc-assistant', 'messages', 'about'].includes(view)) setView('tlc-assistant');
+  }, [isAssistantAcct, view]);
   const PROFILES = [
     { id: 'darrell', name: isFamilyMember ? 'Darrell' : 'Adam', sub: 'full owner view', accent: '#1A1815' },
     { id: 'christina', name: isFamilyMember ? 'Christina' : 'Naomi', sub: 'personal + practice', accent: '#B85838' },
@@ -1716,7 +1286,7 @@ export default function PoeFinancialSystem() {
   // the gate requires a VERIFIED family email; the internal/Tailscale family
   // device (no auth needed) is unchanged.
   const importedAllowed = isImportedAllowed({
-    isAnyDemoMode, currentProfile, isPublicHostVal: isPublicHost(), authSession, authHydrated,
+    isAnyDemoMode: isAnyDemoMode || reviewerMode, currentProfile, isPublicHostVal: isPublicHost(), authSession, authHydrated,
   });
 
   // ---------------------------------------------------------------------------
@@ -1738,18 +1308,18 @@ export default function PoeFinancialSystem() {
   // The presence gate renders for SET_PIN / ENTER_PIN / ENTER_BIOMETRIC. The PIN
   // gate IS the surface for all three (it carries the biometric button on top in
   // the ENTER cases), so the new step joins the same render condition.
-  const showPinGate = mpEnforce
+  const [idleLockNotice, setIdleLockNotice] = useState('');
+  useIdleLock({ isStaff: isChurchStaff || isFamilyMember, signedIn: !!authSession, canLock: mpEnforce && mpHasPin, view, churchView, onLock: (n) => { setIdleLockNotice(n); setMpPinVerified(false); clearPresence(authSession?.user?.id); } });
+  const showPinGate = mpEnforce && !churchLinkVisit
     && (accessDecision.nextStep === NEXT_STEP.SET_PIN
       || accessDecision.nextStep === NEXT_STEP.ENTER_PIN
       || accessDecision.nextStep === NEXT_STEP.ENTER_BIOMETRIC);
 
   const markPinVerified = () => {
-    setMpPinVerified(true);
-    try {
-      if (typeof sessionStorage !== 'undefined') {
-        sessionStorage.setItem(mpPinOkKey(authSession?.user?.id), String(new Date().toISOString()));
-      }
-    } catch (_) { /* sessionStorage unavailable */ }
+    setMpPinVerified(true); setIdleLockNotice('');
+    // lib/presence-window: also shared with sibling TABS for a bounded window,
+    // because sessionStorage alone re-demanded the PIN in every new tab.
+    try { markPresence(authSession?.user?.id); } catch (_) { /* storage blocked */ }
   };
   const markBiometricVerified = () => {
     setMpBiometricVerified(true);
@@ -1770,7 +1340,7 @@ export default function PoeFinancialSystem() {
   };
   const handleSetPin = async (pin) => {
     const r = await setUserPin(pin);
-    if (r.ok) { setMpHasPin(true); markPinVerified(); await maybeTrustDevice(); maybeOfferBiometric(); }
+    if (r.ok) { clearPinResetIntent(); setMpPinResetPending(false); setMpHasPin(true); markPinVerified(); await maybeTrustDevice(); maybeOfferBiometric(); }
     return r;
   };
   const handleEnterPin = async (pin) => {
@@ -1818,10 +1388,9 @@ export default function PoeFinancialSystem() {
   // user re-proves identity (email OTP / OAuth), then sets a new PIN. set_user_pin
   // is always allowed for the authenticated user, so identity is always a way back.
   const handleForgotPin = () => {
+    try { markPinResetIntent(authSession?.user?.id); } catch (_) { /* lib/pin-reset-intent: next sign-in opens SET-PIN */ }
     try { forgetLocalDeviceTrust(authSession?.user?.id); } catch (_) { /* ignore */ }
-    try {
-      if (typeof sessionStorage !== 'undefined') sessionStorage.removeItem(mpPinOkKey(authSession?.user?.id));
-    } catch (_) { /* ignore */ }
+    try { clearPresence(authSession?.user?.id); } catch (_) { /* ignore */ }
     try { signOut(); } catch (_) { /* ignore */ }
   };
 
@@ -1847,14 +1416,13 @@ export default function PoeFinancialSystem() {
   // top instead, which stays put until they close the tab.
   const [demoWelcomeOpen, setDemoWelcomeOpen] = useState(isDemoMode);
 
-  // Waitlist intake modal — 2026-05-28 evening, vacation-mode pivot.
-  // Originally pointed at n8n workflow 29 on the NAS, but that path requires
-  // a bind mount we can't add before Darrell leaves for Hawaii. Switched to
-  // formsubmit.co — they email darrellpoe06@gmail.com on every signup, zero
-  // NAS dependency, works from anywhere. First time anyone signs up Darrell
-  // will get a "confirm subscription" email from formsubmit; one click and
-  // every subsequent signup flows to his Gmail inbox. Post-vacation we move
-  // back to n8n once the bind mount + bearer auth land. Per Darrell:
+  // Interest intake modal — SOVEREIGN since 2026-07-30 (access evaluation):
+  // submits to the app_interest Supabase lane (migration 0025, anon-insert
+  // RLS, admin-read in-app) — no third party. History: born 2026-05-28 as a
+  // vacation-mode third-party-form stopgap ("post-vacation we move back") that
+  // outlived its window by two months, sending name/email/phone PII off-site;
+  // the vendor-form guard's allowlist is now EMPTY so that class cannot
+  // silently return (scripts/business-systems-guard.mjs). Per Darrell:
   // "this is a once in a lifetime opportunity I might meet the person who
   // makes a good fit for our services. I want to prove our MVP."
   const [waitlistOpen, setWaitlistOpen] = useState(false);
@@ -1866,33 +1434,24 @@ export default function PoeFinancialSystem() {
       return;
     }
     setWaitlistState({ submitting: true, success: false, error: null, id: null });
-    // Client-side id for the user-facing confirmation. formsubmit doesn't
-    // return one of its own, but the user expects to see a confirmation ref.
+    // Client-side id for the user-facing confirmation ref.
     const localId = 'wl-' + new Date().toISOString().replace(/[:.]/g, '-') + '-' + Math.floor(Math.random() * 10000);
     try {
-      const r = await fetch('https://formsubmit.co/ajax/darrellpoe06@gmail.com', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify({
-          _subject: 'PoeTech waitlist · new signup',
-          _captcha: 'false',
-          _template: 'table',
-          confirmation_id: localId,
-          name: waitlistForm.name || '(no name)',
-          email: waitlistForm.email,
-          phone: waitlistForm.phone || '(none)',
-          interest: waitlistForm.interest || '(not specified)',
-          notes: waitlistForm.notes || '(none)',
-          source: 'poetech.us · picker',
-          captured_at: new Date().toISOString(),
-        })
+      // SOVEREIGN intake (2026-07-30 access evaluation): the proven app_interest
+      // lane (migration 0025, anon-insert RLS, admin-read in-app) replaces the
+      // third-party form POST that sent name/email/phone PII off-site — the
+      // 2026-05-28 "vacation-mode stopgap" that outlived its window. Same
+      // no-waitlist posture as matched-services: interest + a dated timeline.
+      const r = await submitAppInterest({
+        name: waitlistForm.name,
+        email: waitlistForm.email,
+        phone: waitlistForm.phone,
+        issue: `interest: ${waitlistForm.interest || '(not specified)'} · notes: ${waitlistForm.notes || '(none)'} · ref: ${localId}`,
+        platform: 'poetech.us · picker',
+        source: 'interest-picker',
       });
-      const json = await r.json().catch(() => ({}));
-      // formsubmit returns { success: 'true'|'false' OR true|false, message }.
-      // Treat anything non-2xx OR success === 'false' as failure.
-      const succeeded = r.ok && json.success !== 'false' && json.success !== false;
-      if (!succeeded) {
-        setWaitlistState({ submitting: false, success: false, error: (json.message || `Submission failed (HTTP ${r.status}). Please try again or email darrellpoe06@gmail.com.`), id: null });
+      if (!r.ok) {
+        setWaitlistState({ submitting: false, success: false, error: 'Submission failed. Please try again or email darrellpoe06@gmail.com.', id: null });
         return;
       }
       setWaitlistState({ submitting: false, success: true, error: null, id: localId });
@@ -1916,83 +1475,69 @@ export default function PoeFinancialSystem() {
   };
   const handleUploadFile = async (file) => {
     if (!file) return;
-    const base = N8N_BASE;
-    if (!base) {
-      setUploadStage('error');
-      setUploadResult(prev => ({ ...prev, error: 'Upload endpoint not configured. Set VITE_N8N_WEBHOOK_BASE.' }));
-      return;
-    }
+    // SOVEREIGN (DR-0218 zero-n8n): parse the bank export CLIENT-SIDE with the
+    // app's own deterministic statement parser (lib/statement-import.js) — the
+    // faithful port of wf33's OFX/QFX/CSV parse. No n8n, no network hop at all,
+    // so stage 1 can never fail on a down Funnel; it is pure + unit-tested.
     setUploadStage('parsing');
     setUploadResult(prev => ({ ...prev, error: null }));
     try {
-      const text = await file.text();
       const ext = (file.name.split('.').pop() || '').toLowerCase();
-      const format = (ext === 'qfx' || ext === 'ofx' || ext === 'csv') ? ext : 'auto';
-      const r = await fetch(`${base.replace(/\/+$/, '')}/webhook/data-upload`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        mode: 'cors',
-        body: JSON.stringify({ format, content: text, filename: file.name })
-      });
-      const json = await r.json().catch(() => ({}));
-      if (!r.ok || json.ok === false) {
+      // Excel -> CSV text first (existing helper); everything else is read as text.
+      const text = isSpreadsheetFile(file) ? await spreadsheetFileToCsv(file) : await file.text();
+      const format = (ext === 'qfx' || ext === 'ofx') ? 'ofx' : (ext === 'csv' ? 'csv' : 'auto');
+      const parsed = parseStatementText(text, { format });
+      const rows = Array.isArray(parsed.rows) ? parsed.rows : [];
+      if (rows.length === 0) {
         setUploadStage('error');
-        setUploadResult(prev => ({ ...prev, error: json.error || `Parse failed (HTTP ${r.status})` }));
+        setUploadResult(prev => ({ ...prev, error: (parsed.errors && parsed.errors.length) ? parsed.errors.join(' ') : 'No transactions found in this file.' }));
         return;
       }
+      const transactions = rows.map(r => ({ date: r.date, description: r.description, amount: r.amount, category: r.category || 'other' }));
       setUploadStage('parsed');
-      setUploadResult(prev => ({ ...prev, transactions: json.transactions || [], summary: json.summary || null, format: json.format_detected || format }));
+      setUploadResult(prev => ({ ...prev, transactions, summary: parsed.reconciliation || null, format: format === 'ofx' ? 'ofx' : 'csv' }));
     } catch (e) {
       setUploadStage('error');
       setUploadResult(prev => ({ ...prev, error: `Could not read file: ${e.message}` }));
     }
   };
   const runSkillAnalytics = async () => {
-    const base = N8N_BASE;
-    if (!base) return;
+    // SOVEREIGN (DR-0218 zero-n8n): stats are deterministic + client-side; the
+    // warm profile narrative is the family's OWN local model via /llm/chat
+    // (lib/skill-analytics.js). Honest-offline: if the model is unreachable we
+    // still keep the real stats (so matched-services runs), never a fabricated
+    // profile.
     setUploadStage('analyzing');
     try {
-      const r = await fetch(`${base.replace(/\/+$/, '')}/webhook/skill-analytics`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        mode: 'cors',
-        body: JSON.stringify({ transactions: uploadResult.transactions })
-      });
-      const json = await r.json().catch(() => ({}));
-      if (!r.ok || json.ok === false) {
+      const res = await analyzeSkills(uploadResult.transactions);
+      if (!res.ok) {
         setUploadStage('error');
-        setUploadResult(prev => ({ ...prev, error: json.error || `Analytics failed (HTTP ${r.status})` }));
+        setUploadResult(prev => ({ ...prev, error: res.error || 'Analytics unavailable', stats: res.stats || prev.stats }));
         return;
       }
       setUploadStage('profile');
-      setUploadResult(prev => ({ ...prev, profile: { diagnostic_summary: json.diagnostic_summary, strengths: json.strengths, gaps_to_consider: json.gaps_to_consider, profile: json.profile }, stats: json.stats }));
+      setUploadResult(prev => ({ ...prev, profile: { diagnostic_summary: res.diagnostic_summary, strengths: res.strengths, gaps_to_consider: res.gaps_to_consider, profile: res.profile }, stats: res.stats }));
     } catch (e) {
       setUploadStage('error');
       setUploadResult(prev => ({ ...prev, error: `Analytics call failed: ${e.message}` }));
     }
   };
-  const runMatchedServices = async () => {
-    const base = N8N_BASE;
-    if (!base) return;
+  const runMatchedServices = () => {
+    // SOVEREIGN (DR-0218 zero-n8n): wf35 was a DETERMINISTIC rules engine, so it
+    // runs CLIENT-SIDE (lib/matched-services.js) — no n8n, no network. Session-
+    // only, pure, and unit-tested; it can never fail on a down Funnel.
     setUploadStage('matching');
     try {
-      const r = await fetch(`${base.replace(/\/+$/, '')}/webhook/matched-services`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        mode: 'cors',
-        body: JSON.stringify({ profile: (uploadResult.profile && uploadResult.profile.profile) || {}, transactions: uploadResult.transactions, stats: uploadResult.stats || {} })
+      const res = matchServices({
+        profile: (uploadResult.profile && uploadResult.profile.profile) || {},
+        transactions: uploadResult.transactions,
+        stats: uploadResult.stats || {},
       });
-      const json = await r.json().catch(() => ({}));
-      if (!r.ok || json.ok === false) {
-        setUploadStage('error');
-        setUploadResult(prev => ({ ...prev, error: json.error || `Matching failed (HTTP ${r.status})` }));
-        return;
-      }
       setUploadStage('matched');
-      setUploadResult(prev => ({ ...prev, matches: json.matches || [] }));
+      setUploadResult(prev => ({ ...prev, matches: res.matches || [] }));
     } catch (e) {
       setUploadStage('error');
-      setUploadResult(prev => ({ ...prev, error: `Matching call failed: ${e.message}` }));
+      setUploadResult(prev => ({ ...prev, error: `Matching failed: ${e.message}` }));
     }
   };
 
@@ -2048,7 +1593,7 @@ export default function PoeFinancialSystem() {
   // (snapshot-sync.js), so applying it cannot clobber those; matched rentals
   // additionally keep this device's room photos.
   useEffect(() => {
-    if (!authSession || isAnyDemoMode || snapshotPulledRef.current) return;
+    if (!authSession || isAnyDemoMode || reviewerMode || snapshotPulledRef.current) return;
     const readyToPull = isPublicHost() ? authHydrated : loaded;
     if (!readyToPull) return;
     snapshotPulledRef.current = true;
@@ -2100,7 +1645,7 @@ export default function PoeFinancialSystem() {
     // open. On any public host (poetech.us, *.vercel.app), anonymous visitors
     // get the demo sample + no hydration. (Signed-in hydration is handled by
     // the auth effect below — 2026-06-11, "fake data mixed with ours" fix.)
-    if (isPublicHost()) {
+    if (isPublicHost() || reviewerMode) {
       setData(DEMO_DATA_FAMILY_OF_4);
       setLoaded(true);
       return;
@@ -2144,6 +1689,7 @@ export default function PoeFinancialSystem() {
           if (parsed.data) setData(d => ({
             ...d,
             ...parsed.data,
+            meta: withReleaseMeta(parsed.data.meta || d.meta, SEED_DATA.meta), // the footer names the RELEASE, never a saved demo label (DR-0599; why: lib/release-meta.js)
             // Multi-user Layer A — backfill `visibleTo` on saved entities so
             // existing devices loading old data continue working. Defaults
             // match the seed: owner sees all, family-rollup includes business
@@ -2213,8 +1759,11 @@ export default function PoeFinancialSystem() {
   // visitors still never hydrate (the 2026-06-03 leak gate stands).
   useEffect(() => {
     if (!authSession || hydratedForAuthRef.current) return;
-    if (!isPublicHost() || isAnyDemoMode) return;
+    if ((!isPublicHost() && !reviewerMode) || isAnyDemoMode) return;
     hydratedForAuthRef.current = true;
+    // A reviewer signs in as a fresh user: EMPTY_WORLD, never this device's
+    // saved blob and never the family SEED — the exact non-family path below.
+    if (reviewerMode) { setData(EMPTY_WORLD); setAuthHydrated(true); return; }
     const email = (authSession.user?.email || '').toLowerCase();
     loadSavedSnapshot(authSession.user?.id || null).then((found) => {
       // 2026-06-14: a fresh family member starts from their aspirational SEED;
@@ -2235,6 +1784,9 @@ export default function PoeFinancialSystem() {
   // profile. Demo states keep their forced profile.
   useEffect(() => {
     if (!authSession || !authHydrated || currentProfile || isAnyDemoMode) return;
+    // A reviewer gets the self-serve profile a signed-in outside user gets —
+    // state only, never reading or writing this device's saved profile.
+    if (reviewerMode) { setCurrentProfile('self'); return; }
     try {
       const saved = localStorage.getItem('poe-current-profile');
       if (saved) { setCurrentProfile(saved); return; }
@@ -2279,7 +1831,7 @@ export default function PoeFinancialSystem() {
   // The dev tier-switcher can still preview lower tiers within a session; a
   // reload restores full access. Idempotent (no churn when already at the top).
   useEffect(() => {
-    if (!authSession || isAnyDemoMode) return;
+    if (!authSession || isAnyDemoMode || reviewerMode) return; // a reviewer stays at the user's real tier
     const email = (authSession.user?.email || '').toLowerCase();
     if (FAMILY_EMAIL_PROFILES[email]) {
       setData(d => (effectiveTier(d.userTier) === 'business' ? d : { ...d, userTier: 'business' }));
@@ -2296,7 +1848,7 @@ export default function PoeFinancialSystem() {
   // ---------------------------------------------------------------------------
   useEffect(() => {
     if (!authSession) {
-      setMpSignalsLoaded(false); setMpDeviceTrusted(false); setMpHasPin(false);
+      setMpSignalsLoaded(false); setMpDeviceTrusted(false); setMpHasPin(false); setMpPinResetPending(false);
       setMpBackendAvailable(true); setMpPinVerified(false);
       setMpHasBiometric(false); setMpBioSupported(false); setMpBiometricVerified(false);
       setBioOfferOpen(false);
@@ -2307,7 +1859,7 @@ export default function PoeFinancialSystem() {
     let cancelled = false;
     const uid = authSession.user?.id;
     try {
-      if (typeof sessionStorage !== 'undefined' && sessionStorage.getItem(mpPinOkKey(uid))) {
+      if (presenceStillValid(uid)) {
         setMpPinVerified(true);
       }
       if (typeof sessionStorage !== 'undefined' && sessionStorage.getItem(mpBioOkKey(uid))) {
@@ -2323,7 +1875,9 @@ export default function PoeFinancialSystem() {
         hasUserPin(), isDeviceTrusted(uid), isPlatformAuthenticatorAvailable(),
       ]);
       if (cancelled) return;
-      setMpHasPin(h.hasPin);
+      const resetPending = h.backendAvailable && hasPinResetIntent(uid); // Forgot -> re-proved -> SET (lib/pin-reset-intent)
+      setMpPinResetPending(resetPending);
+      setMpHasPin(resetPending ? false : h.hasPin);
       setMpDeviceTrusted(d.trusted);
       setMpBackendAvailable(h.backendAvailable && d.backendAvailable);
       setMpBioSupported(!!bioOk);
@@ -2337,7 +1891,7 @@ export default function PoeFinancialSystem() {
   // family members have the multi-persona picker; a self-serve user never does.
   useEffect(() => {
     if (!authSession || isAnyDemoMode) return;
-    if (!isFamilyEmail(authSession.user?.email)) { setMpPersonasWithPin([]); setMpInstanceId(null); return; }
+    if (reviewerMode || !isFamilyEmail(authSession.user?.email)) { setMpPersonasWithPin([]); setMpInstanceId(null); return; }
     let cancelled = false;
     (async () => {
       let instId = null;
@@ -2353,7 +1907,7 @@ export default function PoeFinancialSystem() {
 
   useEffect(() => {
     if (!loaded) return;
-    if (isAnyDemoMode) return; // Demo + picker mode never write to localStorage.
+    if (isAnyDemoMode || reviewerMode) return; // Demo + picker + reviewer never write to localStorage (or push snapshots).
     // SECURITY (2026-06-03): the public domain never persists for ANONYMOUS
     // visitors. 2026-06-11: a signed-in owner persists on their own device —
     // but only AFTER their hydration completes, so a demo snapshot can never
@@ -2364,8 +1918,13 @@ export default function PoeFinancialSystem() {
         // owner stamp (2026-06-12): binds this snapshot to the signed-in
         // account so a different account on a shared device can't hydrate it.
         // savedAt: lets the cloud-snapshot pull decide freshness (v2.15).
-        await window.storage.set('poe-financial-v28', JSON.stringify({ owner: authSession?.user?.id || undefined, savedAt: new Date().toISOString(), data, pressure, snowballSort, snowballExtra, debtSnowballSort, debtSnowballExtra, theme }));
-        setPersistIssue(prev => (prev && prev.kind === 'storage' ? null : prev));
+        // Keep the FULL snapshot (photos) when it fits; fall back to slim (photo bytes
+        // stripped) ONLY on quota overflow — a photo never costs the family their books, yet photos stay when there's room (2026-07-18).
+        const envelope = { owner: authSession?.user?.id || undefined, savedAt: new Date().toISOString(), pressure, snowballSort, snowballExtra, debtSnowballSort, debtSnowballExtra, theme };
+        const cloudSafe = !!(authSession && data.numericSyncVerifiedAt && !isAnyDemoMode);
+        const savedMode = await persistSnapshot((k, v) => window.storage.set(k, v), 'poe-financial-v28', envelope, data);
+        const bannerMsg = storageBannerMessage(savedMode, cloudSafe);
+        setPersistIssue(bannerMsg ? { kind: 'storage', message: bannerMsg } : (prev => (prev && prev.kind === 'storage' ? null : prev)));
         // v2.15 family snapshot push — the non-table-synced remainder follows
         // the account. Leading-edge throttle (15s). Two hard guards: the pull
         // must have completed (snapshotPulledRef), and a world whose remainder
@@ -2387,16 +1946,13 @@ export default function PoeFinancialSystem() {
         }
       } catch (e) {
         console.error('Storage failed', e);
-        // QuotaExceededError here means NOTHING is being saved anymore —
-        // photos are usually the weight. Say so instead of losing a week
-        // of entries silently (review finding, 2026-06-12).
-        setPersistIssue({
-          kind: 'storage',
-          message: 'This device’s storage is full — changes are NOT being saved. Export or remove a few photos (Big Picture → photos), then make any small edit to retry.',
-        });
+        // Even the extra-slim save failed. Only a genuine data-loss risk when the
+        // ledger is NOT cloud-synced; a synced ledger is safe (DR-0100 — no false alarm).
+        const cloudSafe = !!(authSession && data.numericSyncVerifiedAt && !isAnyDemoMode);
+        setPersistIssue({ kind: 'storage', message: storageBannerMessage('fail', cloudSafe) });
       }
     })();
-  }, [data, pressure, snowballSort, snowballExtra, debtSnowballSort, debtSnowballExtra, theme, loaded, isAnyDemoMode, authSession, authHydrated]);
+  }, [data, pressure, snowballSort, snowballExtra, debtSnowballSort, debtSnowballExtra, theme, loaded, isAnyDemoMode, reviewerMode, authSession, authHydrated]);
 
   // Layer 2 — auth + feedback sync wiring.
   // On every auth state change: tear down any prior subscriptions, then
@@ -2476,6 +2032,7 @@ export default function PoeFinancialSystem() {
           });
         });
       }
+
     });
     return () => {
       cleanupAuth();
@@ -2512,6 +2069,9 @@ export default function PoeFinancialSystem() {
       setShowVerifyBalances(false);
       return;
     }
+    // Reviewer mode (DR-0241): no table syncs — the lens stays a fresh user's
+    // empty world, never the steward's real cloud rows. No syncs, no writes.
+    if (reviewerMode) { setShowVerifyBalances(false); return; }
     if (!data.numericSyncVerifiedAt) {
       // A signed-in user whose numeric data is ENTIRELY seed scaffolding has
       // nothing real to verify — never show them a wizard full of sample
@@ -2545,7 +2105,7 @@ export default function PoeFinancialSystem() {
       // notDemoRow: demo rows never upload. notSeedRow (2026-06-12): seed
       // scaffolding never uploads either — see SEED_IDS above.
       const tables = [
-        { sync: accountsSync,     key: 'accounts',     localList: (latest.accounts || []).filter(notDemoRow).filter(notSeedRow) },
+        { sync: accountsSync,     key: 'accounts',     localList: (latest.accounts || []).filter(notDemoRow).filter(notSeedRow), merge: accountsMerge },
         { sync: debtsSync,        key: 'debts',        localList: (latest.debts || []).filter(notDemoRow).filter(notSeedRow) },
         { sync: transactionsSync, key: 'transactions', localList: (latest.transactions || []).filter(notDemoRow).filter(notSeedRow), merge: mergeTransactionsPreferCloud },
         { sync: projectsSync,     key: 'projects',     localList: (latest.projects || []).filter(notDemoRow).filter(notSeedRow), merge: mergeRemoteProjects },
@@ -2563,6 +2123,7 @@ export default function PoeFinancialSystem() {
         // three ship as content; this carries everything added afterward), pooled
         // to the family instance the same proven way so a recipe opens on any device.
         { sync: recipesSync,      key: 'recipes',      localList: (latest.recipes || []).filter(notDemoRow).filter(notSeedRow), merge: mergeRemoteRecipes },
+        ...healthRails(latest, (r) => notDemoRow(r) && notSeedRow(r)),
         { sync: inquiriesSync,    key: 'inquiries',    localList: (latest.inquiries || []).filter(notDemoRow).filter(notSeedRow) },
         // Practice leads (0045) — the client-acquisition (revenue agent team) CRM,
         // pooled to the family instance the same proven way.
@@ -2706,30 +2267,18 @@ export default function PoeFinancialSystem() {
     }
   }, [data]);
 
-  // v7: Reminder checking loop — fires browser notifications for upcoming events
+  // v7: Reminder loop — thin wiring over the extracted pure engine (lib/reminders
+  // dueReminders). The engine decides WHICH reminders are due now; the shell only
+  // records the fired key + raises the browser Notification. Fires only while the
+  // tab is open (a service worker calling dueReminders() is the next step).
   useEffect(() => {
     if (notifPermission !== 'granted') return;
     const checkReminders = () => {
-      const now = new Date();
-      (data.events || []).filter(e => !e.completedAt).forEach(event => {
-        const eDate = eventDateTime(event);
-        (event.reminders || []).forEach(reminderKey => {
-          const opt = REMINDER_OPTIONS.find(o => o.key === reminderKey);
-          if (!opt) return;
-          const reminderTime = new Date(eDate.getTime() - opt.offsetMinutes * 60000);
-          const firedKey = `${event.id}-${reminderKey}`;
-          // Fire if reminder time has passed but event hasn't, and we haven't fired this one
-          if (now >= reminderTime && now <= eDate && !firedRemindersRef.current.has(firedKey)) {
-            firedRemindersRef.current.add(firedKey);
-            try {
-              new Notification(`PoeTech reminder: ${event.title}`, {
-                body: opt.label === 'At event time' ? `Happening now · ${event.description || event.category}` : `${opt.label} · ${event.description || event.category}`,
-                tag: firedKey,
-              });
-            } catch (e) { console.warn('Notification failed', e); }
-          }
-        });
-      });
+      for (const r of dueReminders(data.events || [], Date.now(), firedRemindersRef.current)) {
+        firedRemindersRef.current.add(r.firedKey);
+        try { new Notification(r.title, { body: r.body, tag: r.tag }); }
+        catch (e) { console.warn('Notification failed', e); }
+      }
     };
     checkReminders(); // run once on mount
     const interval = setInterval(checkReminders, 30000); // every 30s
@@ -3314,6 +2863,7 @@ export default function PoeFinancialSystem() {
   const updateGameSave = gameSavesCrud.update;
   const deleteGameSave = gameSavesCrud.remove;
 
+  const { startHealthProgram, addWeightEntry, addWaterEntry, deleteWaterEntry, addFoodEntry, deleteFoodEntry } = makeHealthActions(railCrud, () => data, { healthProgramsSync, weightEntriesSync, waterEntriesSync, foodEntriesSync, foodLibrarySync });
   // 0077 — the subscriptions audit is family money state (doc rail).
   const subscriptionsCrud = railCrud(subscriptionsSync, 'subscriptions', 'subscriptions-sync');
   const addSubscription = (item) => { subscriptionsCrud.add({ ...item, id: `sub-${Date.now()}`, createdAt: new Date().toISOString() }); };
@@ -3322,7 +2872,7 @@ export default function PoeFinancialSystem() {
   // v2.13 — contractors sync to contractors_1099 so the worker roster (and
   // the phones one-tap dispatch depends on) is shared across the family.
   const addContractor = (item) => {
-    const seeded = { ...item, id: `k-${Date.now()}` };
+    const seeded = { ...item, id: item.id || `k-${Date.now()}` };
     setData(d => ({ ...d, contractors1099: [...(d.contractors1099 || []), seeded] }));
     if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
       contractorsSync.upload(seeded).then((res) => {
@@ -3387,7 +2937,7 @@ export default function PoeFinancialSystem() {
       ...rest,
       hasScreenshot: imgs.length > 0,
       screenshotCount: imgs.length,
-      id: `fb-${Date.now()}`,
+      id: newFeedbackId(),
       createdAt: nowIso,
       status: initialStatus,
       lifecycle: {
@@ -3399,6 +2949,7 @@ export default function PoeFinancialSystem() {
     };
     setData(d => ({ ...d, feedback: [...(d.feedback || []), seeded] }));
     uploadFeedback(seeded, { activeTab: view, appVersion: data.meta?.appVersion, screenshots: imgs });
+    return seeded; // the sender is handed this row's reference code (lib/feedback-receipt)
   };
   const deleteFeedback = (id) => setData(d => ({ ...d, feedback: (d.feedback || []).filter(f => f.id !== id) }));
   const dismissWelcome = () => setData(d => ({ ...d, welcomeDismissed: true }));
@@ -3424,65 +2975,36 @@ export default function PoeFinancialSystem() {
     setData(d => ({ ...d, incidents: (d.incidents || []).filter(i => i.id !== id) }));
   };
   const deleteEvent = (id) => setData(d => ({ ...d, events: (d.events || []).filter(e => e.id !== id) }));
-  // v28+ Session A: Accounts CRUD
-  const addAccount = (item) => {
-    const seeded = { ...item, id: `a-${Date.now()}`, balance: parseFloat(item.balance) || 0, inLegal: !!item.inLegal };
-    setData(d => ({ ...d, accounts: [...(d.accounts || []), seeded] }));
-    if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
-      // Stamp remoteUuid as soon as the insert lands so follow-on edits/deletes
-      // reach the cloud row immediately (else they silently no-op until a
-      // realtime refetch backfills it). Matches the incidents pattern.
-      accountsSync.upload(seeded).then((res) => {
-        if (res && res.remoteId) setData(d => ({ ...d, accounts: (d.accounts || []).map(a => a.id === seeded.id ? { ...a, remoteUuid: res.remoteId } : a) }));
-      }).catch(e => syncWarn('[accounts-sync] upload failed', e));
-    }
-  };
-  // 2026-05-24 — Move-to-Legal toggle: flips inLegal on an account, which
-  // removes it from cash totals and the Accounts tab and surfaces it in the
-  // Legal tab. Reversible; Legal tab has a Restore button that calls back
-  // through updateAccount with inLegal: false.
-  const toggleAccountLegal = (id) => {
-    const a = (data.accounts || []).find(x => x.id === id);
-    if (!a) return;
-    updateAccount(id, { inLegal: !a.inLegal });
-  };
-  const updateAccount = (id, updates) => {
-    setData(d => ({ ...d, accounts: (d.accounts || []).map(a => a.id === id ? { ...a, ...updates, balance: updates.balance !== undefined ? parseFloat(updates.balance) || 0 : a.balance } : a) }));
-    if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
-      const local = (data.accounts || []).find(a => a.id === id);
-      if (local && local.remoteUuid) {
-        const patch = {};
-        if (updates.name !== undefined)        patch.display_name = updates.name;
-        if (updates.institution !== undefined) patch.institution = updates.institution;
-        if (updates.type !== undefined)        patch.account_type = updates.type;
-        if (updates.fragment !== undefined)    patch.fragment = updates.fragment;
-        if (updates.balance !== undefined)     patch.balance = parseFloat(updates.balance) || 0;
-        if (updates.inLegal !== undefined)     patch.in_legal = !!updates.inLegal;
-        if (updates.isPrimary !== undefined)   patch.is_primary = !!updates.isPrimary;
-        if (updates.entityId !== undefined)    patch.entity_slug = updates.entityId;
-        accountsSync.updateRow(local.remoteUuid, patch).catch(e => syncWarn('[accounts-sync] update failed', e));
-      }
-    }
-  };
-  const deleteAccount = (id) => {
-    if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
-      const local = (data.accounts || []).find(a => a.id === id);
-      if (local && local.remoteUuid) {
-        accountsSync.deleteRow(local.remoteUuid).catch(e => syncWarn('[accounts-sync] delete failed', e));
-      }
-    }
-    setData(d => ({ ...d, accounts: (d.accounts || []).filter(a => a.id !== id) }));
-  };
+  // v28+ Session A: Accounts CRUD — peeled to lib/books-accounts-crud.js (DR-0078
+  // shrink; verbatim port, unit-tested there). postTx is a thunk: addTransaction
+  // is defined below and only evaluated at call time.
+  const { addAccount, addAccounts, toggleAccountLegal, updateAccount, deleteAccount } = createAccountsCrud({
+    data, setData, accountsSync, syncWarn, currentDate,
+    syncEnabled: !!(authSession && data.numericSyncVerifiedAt && !isAnyDemoMode),
+    postTx: (t) => addTransaction(t),
+  });
   // v28+ Session A: Transactions CRUD
   const addTransaction = (item) => {
     // Keep a caller-provided STABLE id (verified-sync's `vl-<fitid>`) so it persists as the cloud slug -> idempotent; manual/CSV adds pass none.
-    const seeded = { ...item, id: item.id || `t-${Date.now()}`, amount: parseFloat(item.amount) || 0 };
+    const seeded = { ...item, id: item.id || `t-${Date.now()}-${Math.random().toString(36).slice(2)}`, amount: parseFloat(item.amount) || 0 };
     setData(d => ({ ...d, transactions: [...(d.transactions || []), seeded] }));
     if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
       transactionsSync.upload(seeded).then((res) => {
         if (res && res.remoteId) setData(d => ({ ...d, transactions: (d.transactions || []).map(t => t.id === seeded.id ? { ...t, remoteUuid: res.remoteId } : t) }));
       }).catch(e => syncWarn('[transactions-sync] upload failed', e));
     }
+  };
+  // Batch import commit with VERIFICATION (Christina's books, 2026-07-18): add all
+  // rows locally at once, then await every cloud upload, re-upload the misses, and
+  // return a "N of M saved" summary so a partial save is visible + self-healing —
+  // never the silent per-row fire-and-forget that dropped June's rows.
+  const commitImportedRows = async (items) => {
+    const seeded = (items || []).map(item => ({ ...item, id: item.id || `t-${Date.now()}-${Math.random().toString(36).slice(2)}`, amount: parseFloat(item.amount) || 0 }));
+    setData(d => ({ ...d, transactions: [...(d.transactions || []), ...seeded] }));
+    if (!(authSession && data.numericSyncVerifiedAt && !isAnyDemoMode)) return { total: seeded.length, saved: seeded.length, failed: 0, offline: true };
+    const summary = await commitWithRepair(seeded, (row) => transactionsSync.upload(row), { passes: 2 });
+    if (summary.remoteIds && Object.keys(summary.remoteIds).length) setData(d => ({ ...d, transactions: (d.transactions || []).map(t => summary.remoteIds[t.id] ? { ...t, remoteUuid: summary.remoteIds[t.id] } : t) }));
+    return summary;
   };
   // Verified-ledger sync (DR-0083) — INACTIVE unless VITE_VERIFIED_LEDGER_URL is set (armed). Pulls the sovereign NAS verified ledger into the durable cloud ledger on sign-in: idempotent (FITID), fail-safe (unreachable=no-op), authenticated write (correct instance/RLS). The balance always derives from the durable ledger, never a live fetch.
   useEffect(() => {
@@ -3500,20 +3022,19 @@ export default function PoeFinancialSystem() {
     const before = (data.transactions || []).find(t => t.id === id) || null;
     const after = before ? { ...before, ...updates, amount: updates.amount !== undefined ? parseFloat(updates.amount) || 0 : before.amount } : null;
     setData(d => ({ ...d, transactions: (d.transactions || []).map(t => t.id === id ? { ...t, ...updates, amount: updates.amount !== undefined ? parseFloat(updates.amount) || 0 : t.amount } : t) }));
-    if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
-      const local = (data.transactions || []).find(t => t.id === id);
-      if (local && local.remoteUuid) {
-        const patch = {};
-        if (updates.date !== undefined)           patch.txn_date = updates.date;
-        if (updates.accountId !== undefined)      patch.account_slug = updates.accountId;
-        if (updates.entityOverride !== undefined) patch.entity_override_slug = updates.entityOverride;
-        if (updates.amount !== undefined)         patch.amount = parseFloat(updates.amount) || 0;
-        if (updates.description !== undefined)    patch.description = updates.description;
-        if (updates.category !== undefined)       patch.category = updates.category;
-        if (updates.isTransfer !== undefined)     patch.is_transfer = !!updates.isTransfer;
-        if (updates.receipt !== undefined)        patch.receipt = updates.receipt;
-        transactionsSync.updateRow(local.remoteUuid, patch).catch(e => syncWarn('[transactions-sync] update failed', e));
-      }
+    // Same synced-row invariant as delete: a remoteUuid row's edit MUST reach the
+    // cloud whenever signed in, or a refresh overwrites it with the stale value.
+    if (authSession && !isAnyDemoMode && before && before.remoteUuid) {
+      const patch = {};
+      if (updates.date !== undefined)           patch.txn_date = updates.date;
+      if (updates.accountId !== undefined)      patch.account_slug = updates.accountId;
+      if (updates.entityOverride !== undefined) patch.entity_override_slug = updates.entityOverride;
+      if (updates.amount !== undefined)         patch.amount = parseFloat(updates.amount) || 0;
+      if (updates.description !== undefined)    patch.description = updates.description;
+      if (updates.category !== undefined)       patch.category = updates.category;
+      if (updates.isTransfer !== undefined)     patch.is_transfer = !!updates.isTransfer;
+      if (updates.receipt !== undefined)        patch.receipt = updates.receipt;
+      transactionsSync.updateRow(before.remoteUuid, patch).catch(e => syncWarn('[transactions-sync] update failed', e));
     }
     if (before && after) recordHistoryEvent({ recordKind: 'transaction', recordId: id, action: 'update', before, after });
   };
@@ -3531,7 +3052,7 @@ export default function PoeFinancialSystem() {
       categoryRules: { ...(d.categoryRules || {}), [key]: category },
       transactions: applyCategoryToPayee(d.transactions || [], key, category).transactions,
     }));
-    if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
+    if (authSession && !isAnyDemoMode) { // synced re-label MUST reach cloud or a refresh reverts it (as update/delete)
       for (const t of changed) {
         if (t.remoteUuid) transactionsSync.updateRow(t.remoteUuid, { category }).catch(e => syncWarn('[transactions-sync] recategorize failed', e));
       }
@@ -3540,19 +3061,21 @@ export default function PoeFinancialSystem() {
       recordHistoryEvent({ recordKind: 'transaction', recordId: t.id, action: 'update', before: t, after: { ...t, category } });
     }
     return changed.length;
-  };
-  const deleteTransaction = (id) => {
-    const before = (data.transactions || []).find(t => t.id === id) || null;
-    if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
-      const local = (data.transactions || []).find(t => t.id === id);
-      if (local && local.remoteUuid) {
-        transactionsSync.deleteRow(local.remoteUuid).catch(e => syncWarn('[transactions-sync] delete failed', e));
-      }
+  }; publishLedgerEditor({ updateTransaction, recategorizePayee, demo: isAnyDemoMode, transactions: data.transactions || [] }); // every surface edits through these two (lib/ledger-edit.js, DR-0710)
+  const deleteTransaction = (idOrIds) => {
+    // Accepts ONE id or an ARRAY. The dedupe removes THOUSANDS at once; firing that
+    // many single cloud deletes floods the ~6-connection cap + rate limit so most
+    // never land (cloud stays doubled, "back on refresh", Darrell 2026-07-19) — one
+    // BATCHED .in() delete (deleteRows, chunked) clears them. A remoteUuid row is a
+    // synced CLOUD row, so its delete MUST reach the cloud when signed in + not demo.
+    const idSet = new Set(Array.isArray(idOrIds) ? idOrIds : [idOrIds]);
+    const rows = (data.transactions || []).filter(t => idSet.has(t.id));
+    if (authSession && !isAnyDemoMode) {
+      const uuids = rows.map(t => t.remoteUuid).filter(Boolean);
+      if (uuids.length) transactionsSync.deleteRows(uuids).catch(e => syncWarn('[transactions-sync] batch delete failed', e));
     }
-    setData(d => ({ ...d, transactions: (d.transactions || []).filter(t => t.id !== id) }));
-    // The deletion is recoverable: its `before` snapshot is preserved in the
-    // append-only history (the row leaves the live ledger, not the record).
-    if (before) recordHistoryEvent({ recordKind: 'transaction', recordId: id, action: 'delete', before, summary: `Transaction deleted: ${before.description || ''} ${before.amount}` });
+    setData(d => ({ ...d, transactions: (d.transactions || []).filter(t => !idSet.has(t.id)) }));
+    for (const before of rows) recordHistoryEvent({ recordKind: 'transaction', recordId: before.id, action: 'delete', before, summary: `Transaction deleted: ${before.description || ''} ${before.amount}` });
   };
   // v28+ Rentals expansion: Rental property CRUD
   // 2026-06-10 — wired for cross-device sync (schema v2.2.2 rentals). Same gate
@@ -3563,9 +3086,11 @@ export default function PoeFinancialSystem() {
   const addRental = (item) => {
     // Random suffix so rapid same-ms adds (restore-a-building's units loops
     // addRental) get distinct ids instead of colliding into one door.
-    const seeded = { ...item, id: `r-${Date.now()}-${Math.random().toString(36).slice(2, 6)}` };
+    const seeded = { ...item, id: `r-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, updatedAt: new Date().toISOString() };
     setData(d => ({ ...d, inflows: { ...d.inflows, rentals: [...(d.inflows.rentals || []), seeded] } }));
-    if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
+    // Rentals sync is NOT gated on numericSyncVerifiedAt (DR-0379) — the family
+    // rent roll syncs for a signed-in member even before the ledger verify.
+    if (authSession && !isAnyDemoMode && !reviewerMode) {
       // Stamp remoteUuid as soon as the insert lands — without it, an edit or
       // delete in the window before the next realtime refresh can't reach the
       // remote row (a delete would even resurrect on the next merge).
@@ -3577,42 +3102,25 @@ export default function PoeFinancialSystem() {
     }
   };
   const updateRental = (id, updates) => {
-    setData(d => ({ ...d, inflows: { ...d.inflows, rentals: (d.inflows.rentals || []).map(r => r.id === id ? { ...r, ...updates } : r) } }));
-    if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
+    // Stamp updatedAt on the local edit (DR-0394) so the merge can tell a fresh
+    // local change from a stale remote row and never clobbers it on a pull.
+    setData(d => ({ ...d, inflows: { ...d.inflows, rentals: (d.inflows.rentals || []).map(r => r.id === id ? { ...r, ...updates, updatedAt: new Date().toISOString() } : r) } }));
+    if (authSession && !isAnyDemoMode && !reviewerMode) {
       const local = (data.inflows.rentals || []).find(r => r.id === id);
-      if (local && local.remoteUuid) {
-        const patch = {};
-        if (updates.name !== undefined)           patch.display_name = updates.name;
-        if (updates.address !== undefined)        patch.address = updates.address;
-        if (updates.city !== undefined)           patch.city = updates.city || null;
-        if (updates.state !== undefined)          patch.state = updates.state || null;
-        if (updates.zip !== undefined)            patch.zip = updates.zip || null;
-        if (updates.tenantName !== undefined)     patch.tenant_name = updates.tenantName || null;
-        if (updates.entityId !== undefined)       patch.entity_slug = updates.entityId || null;
-        if (updates.propertyType !== undefined)   patch.property_type = toRemotePropertyType(updates.propertyType);
-        if (updates.status !== undefined)         patch.status = toRemoteStatus(updates.status);
-        if (updates.rent !== undefined)           patch.monthly_rent = parseFloat(updates.rent) || 0;
-        if (updates.actual !== undefined)         patch.rent_actual = parseFloat(updates.actual) || 0;
-        if (updates.purchasePrice !== undefined)  patch.purchase_price = parseFloat(updates.purchasePrice) || 0;
-        if (updates.purchaseDate !== undefined)   patch.purchase_date = updates.purchaseDate || null;
-        if (updates.estimatedValue !== undefined) patch.current_market_value = parseFloat(updates.estimatedValue) || 0;
-        if (updates.mortgage !== undefined) {
-          patch.mortgage_balance = parseFloat(updates.mortgage?.balance) || 0;
-          patch.mortgage_rate    = parseFloat(updates.mortgage?.rate) || 0;
-          patch.mortgage_payment = parseFloat(updates.mortgage?.monthlyPI) || 0;
-          patch.mortgage_escrow  = parseFloat(updates.mortgage?.escrow) || 0;
-        }
-        if (updates.notes !== undefined)          patch.notes = updates.notes;
-        // Device-local edits (rooms, equipment, logs, lease/tenant/market
-        // sub-objects) produce an empty patch — skip the network round-trip.
-        if (Object.keys(patch).length) {
-          rentalsSync.updateRow(local.remoteUuid, patch).catch(e => syncWarn('[rentals-sync] update failed', e));
-        }
-      }
+      // updateRow when linked, self-heal upsert-by-slug when not (DR-0379); the
+      // routing + heal lives in rental-write.js, not this budget-frozen file.
+      syncRentalEdit(rentalsSync, { local, updates, warn: syncWarn,
+        onLink: (remoteId) => setData(d => ({ ...d, inflows: { ...d.inflows, rentals: (d.inflows.rentals || []).map(r => r.id === id ? { ...r, remoteUuid: remoteId } : r) } })) });
     }
   };
+  // The Properties tab writes the Postgres row; this list is the device's own
+  // copy. useRentalBridge carries an edit from there to here so one door does
+  // not show two addresses (2026-08-28). Module, not inline: DR-0078 routes
+  // interdependence through core, and this file is budget-frozen.
+  useRentalBridge(setData);
+
   const deleteRental = (id) => {
-    if (authSession && data.numericSyncVerifiedAt && !isAnyDemoMode) {
+    if (authSession && !isAnyDemoMode && !reviewerMode) {
       const local = (data.inflows.rentals || []).find(r => r.id === id);
       if (local && local.remoteUuid) {
         rentalsSync.deleteRow(local.remoteUuid).catch(e => syncWarn('[rentals-sync] delete failed', e));
@@ -3763,15 +3271,15 @@ export default function PoeFinancialSystem() {
     if (authSession && !isAnyDemoMode) uploadWatchlistSymbol(s).catch(e => syncWarn('[watchlist-sync] upload failed', e));
   };
   const removeWatchlistSymbol = (sym) => { setData(d => ({ ...d, watchlist: (d.watchlist || []).filter(s => s !== sym) })); if (authSession && !isAnyDemoMode) removeWatchlistSymbolRemote(sym).catch(e => syncWarn('[watchlist-sync] remove failed', e)); };
-  // Life Gallery — the curated hero photos on the Big Picture page. Device-
-  // local data URLs in the poe-financial-v28 snapshot. HONEST LIMIT
-  // (2026-06-12): photos do NOT ride cloud sync — no table carries them yet —
-  // and they are NOT safe from a phone change until the sovereign photo
-  // write-path (phone → NAS) lands. This device is the only copy; the
+  // Life Gallery — the curated hero photos on the Big Picture page. Device-local
+  // data URLs in the poe-financial-v28 snapshot. HONEST LIMIT (2026-06-12): photos
+  // do NOT ride cloud sync — no table carries them yet — and are NOT safe from a
+  // phone change until the sovereign photo write-path (phone → NAS) lands; the
   // per-photo export button is the interim backup.
   const addLifePhotos = (photos) => setData(d => ({ ...d, lifePhotos: [...(d.lifePhotos || []), ...photos] }));
   const updateLifePhoto = (id, updates) => setData(d => ({ ...d, lifePhotos: (d.lifePhotos || []).map(p => p.id === id ? { ...p, ...updates } : p) }));
   const deleteLifePhoto = (id) => setData(d => ({ ...d, lifePhotos: (d.lifePhotos || []).filter(p => p.id !== id) }));
+  const setPayeeEntityRules = (fn) => setData(d => ({ ...d, payeeEntityRules: fn(d.payeeEntityRules || {}) })); // Christina's "Who is this payment for?" learned rules (rides the snapshot)
   // Conference (COLG 77th National Assembly) — local-first like the rest of
   // the Church tab; merges onto the seed so partial saves never lose fields.
   const updateConference = (updates) => setData(d => ({ ...d, conference: { ...(d.conference || {}), ...updates } }));
@@ -3787,10 +3295,11 @@ export default function PoeFinancialSystem() {
   // Church > Learn (Darrell 2026-06-15): the youth A.I. class. Progress is the
   // student's REAL record (per-module completedAt); cohort start + confirmed flag
   // are Governor-set real values that drive the computed timeline (no painted dates).
-  const toggleClassModule = (moduleId) => setData(d => {
-    const p = { ...(d.classProgress || {}) };
-    if (p[moduleId]) delete p[moduleId]; else p[moduleId] = new Date().toISOString();
-    return { ...d, classProgress: p };
+  // DR-0754 — the class record: his completion and his exam scores leave the
+  // device, so they cross his devices and reach the Governor. All of the wiring
+  // lives in lib/use-learner-records.js; this shell is frozen (DR-0078).
+  const { learnerRecords, toggleClassModule, recordClassQuiz } = useLearnerRecords({
+    authSession, demo: isAnyDemoMode, ageBand: data.learnAgeBand || 'adult', setData,
   });
   const setClassCohortStart = (date) => setData(d => ({ ...d, classCohort: { ...(d.classCohort || {}), startDate: date } }));
   const confirmClassCohort = (confirmed) => setData(d => ({ ...d, classCohort: { ...(d.classCohort || {}), confirmed: !!confirmed } }));
@@ -3809,7 +3318,6 @@ export default function PoeFinancialSystem() {
   // SHARED Learn-framework state (consumed by ALL three courses): quiz results keyed
   // by module id (real assessment record), the learner's depth override, and the
   // learner's AGE BAND (the master pacing control — one curriculum, age-right delivery).
-  const recordClassQuiz = (moduleId, result) => setData(d => ({ ...d, classQuiz: { ...(d.classQuiz || {}), [moduleId]: result } }));
   const setLearnLevel = (level) => setData(d => ({ ...d, learnLevel: level }));
   const setLearnAgeBand = (band) => setData(d => ({ ...d, learnAgeBand: band }));
   // Thinking Space — sovereign private notes + the in-app "tell PoeTech"
@@ -3817,9 +3325,9 @@ export default function PoeFinancialSystem() {
   // never synced to a shared surface — notes are siloed by design).
   // Links kept WITH the note (Darrell 2026-06-11: titles from YouTube/any
   // link stay with the thought "for easy locating it again — to think and
-  // process the implications"). Titles resolve through OUR NAS (wf22
-  // link-title), so what you're reading never leaks to a third-party
-  // metadata service. Offline/no-token → the hostname is the label.
+  // process the implications"). Titles resolve at OUR edge (/api/link-title,
+  // the n8n-free cutover — DR-0218), so what you're reading never leaks to a
+  // third-party metadata service. Offline/no-token → the hostname is the label.
   const extractNoteUrls = (text) => Array.from(new Set((String(text).match(/https?:\/\/[^\s)>\]"']{4,500}/g) || []).slice(0, 6)));
   const enrichNoteLinks = (noteId, urls) => {
     let token = '';
@@ -3827,7 +3335,7 @@ export default function PoeFinancialSystem() {
     if (!token) return;
     urls.forEach((u) => {
       try {
-        fetch(`/n8n/webhook/link-title?url=${encodeURIComponent(u)}`, { headers: { authorization: `Bearer ${token}` } })
+        fetch(`/api/link-title?url=${encodeURIComponent(u)}`)
           .then(r => r.ok ? r.json() : null)
           .then(j => {
             const o = Array.isArray(j) ? j[0] : j;
@@ -3839,12 +3347,13 @@ export default function PoeFinancialSystem() {
       } catch (_) { /* same */ }
     });
   };
-  const addNote = (text) => {
-    const id = `nt-${Date.now()}`;
+  const addNote = (text, extra = null) => { // DR-0624: a recorded note is saved on Stop with its own id + `voice` record
+    const id = (extra && extra.id) || `nt-${Date.now()}`;
     const urls = extractNoteUrls(text);
-    setData(d => ({ ...d, notes: [...(d.notes || []), { id, text, createdAt: new Date().toISOString(), pinned: false, sentToPoeTech: false, links: urls.map(u => ({ url: u, title: '' })) }] }));
-    if (urls.length) enrichNoteLinks(id, urls);
+    setData(d => ({ ...d, notes: [...(d.notes || []), { id, text, createdAt: new Date().toISOString(), pinned: false, sentToPoeTech: false, links: urls.map(u => ({ url: u, title: '' })), ...(extra && extra.voice ? { voice: extra.voice } : {}) }] }));
+    if (urls.length) enrichNoteLinks(id, urls); return id;
   };
+  const patchNote = (id, patch) => setData(d => ({ ...d, notes: (d.notes || []).map(n => n.id === id ? { ...n, ...patch, ...(patch && patch.voice ? { voice: { ...(n.voice || {}), ...patch.voice } } : {}), updatedAt: new Date().toISOString() } : n) }));
   // 📖 Spiritual-source flag — notes marked as sources (e.g. Yahweh Speaks
   // links) feed the spiritual module's source review. Word-senior posture:
   // sources that try to clarify Yahweh's perspectives are weighed against
@@ -3872,18 +3381,17 @@ export default function PoeFinancialSystem() {
     // device holding the bridge token, and sends it so wf26 can require
     // headerAuth. No token (anonymous/public visitor) → the local record
     // stands and nothing is relayed.
-    let bridgeToken = '';
-    try { bridgeToken = (localStorage.getItem('poetech-chat-bridge-token') || '').trim(); } catch (_) { /* no-op */ }
-    if (!bridgeToken) return;
-    try {
-      fetch('/n8n/webhook/thought', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json', authorization: `Bearer ${bridgeToken}` },
-        body: JSON.stringify({ text, tags: ['tell-poetech', 'poetech-app'], data: { source: 'thinking-space', directiveId: id } }),
-      }).then((r) => {
-        if (r.ok) setData(d => ({ ...d, appDirectives: (d.appDirectives || []).map(a => a.id === id ? { ...a, relayed: true } : a) }));
-      }).catch(() => { /* offline — local record stands; relays are best-effort */ });
-    } catch (_) { /* same */ }
+    // SOVEREIGN (DR-0218): relay to the RLS-scoped agent_inbox table (migration
+    // 0127), the DR-0132 outbound-poll bus — never n8n. Best-effort: signed-out
+    // or offline leaves the local record above canonical (the old behavior).
+    import('./lib/poetech-request.js')
+      .then(({ sendPoeTechRequest }) => sendPoeTechRequest({
+        body: text, directiveId: id, // relayed AND filed in the steward's Feedback queue, where it is answered (DR-0622)
+      }))
+      .then((res) => {
+        if (res && (res.relayed || res.filed)) setData(d => ({ ...d, appDirectives: (d.appDirectives || []).map(a => a.id === id ? { ...a, relayed: !!res.relayed, filed: !!res.filed } : a) }));
+      })
+      .catch(() => { /* offline — local record stands; the relay is best-effort */ });
   };
 
   // Single source of truth for displayed balances: the DERIVED "right now"
@@ -3891,6 +3399,7 @@ export default function PoeFinancialSystem() {
   // below reads this, so an entered or imported transaction moves all of them
   // (Big Picture, Accounts, Entities) in lockstep with Tx + Forecast (DR-0076).
   const derivedBalances = useMemo(() => deriveAccountBalances(data, currentDate), [data, currentDate]);
+  const accountReconciliation = useMemo(() => reconcileAccounts(data.transactions || []), [data.transactions]); // per-account "account of record" proof (reconcileAccounts docs it)
   const totals = useMemo(() => {
     const salaryActual = data.inflows.salaries.reduce((s, x) => s + x.actual, 0);
     // v28+ Real Estate restructure: only income-producing properties feed rental math.
@@ -3994,11 +3503,38 @@ export default function PoeFinancialSystem() {
   // never sample/demo data. Private host (NAS/LAN/Tailscale) is unchanged. The
   // 'loading' state renders nothing so the form never flashes at a signed-in user
   // mid auth-check. See lib/access-gate.js (proven-to-catch test).
+  // TLC CLIENT DOOR — a full, PUBLIC takeover (before the sign-in gate): a
+  // prospective client opening the TLC link meets "Find your therapist" with no
+  // account, no PoeTech chrome, and no path to anything operator/family. The
+  // door renders ONLY public marketing facts (tlc-practice.js); there is nothing
+  // here to leak. This is the sendable TLC Therapy Solutions app.
+  if (tlcDoorOnly) {
+    // No data-theme here: TlcPublicDoor owns the theme (its own comfort controls
+    // + THEME_CSS). A second data-theme wrapper here nested two theme scopes and
+    // broke color inheritance (dark text on a dark surface — a contrast failure).
+    return (
+      <div className="min-h-screen overflow-x-clip" style={{ fontFamily: '"DM Sans", system-ui, sans-serif' }}>
+        <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..900&family=DM+Sans:opsz,wght@9..40,300..700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+        {/* Reviewer strip rides the door too — with app chrome gone this Exit is the only way back (DR-0104; REV-0239). Users: flag off, door byte-identical. */}
+        {reviewerMode && <ReviewerModeBanner />}
+        <SectionBoundary name="TLC">
+          <TlcPublicDoor />
+        </SectionBoundary>
+      </div>
+    );
+  }
+
   const __gate = accessState({ isPublicHostVal: isPublicHost(), authChecked, authSession });
-  if (__gate !== 'app') {
+  const churchBrand = wearsChurchBrand({ churchDoorOnly, signedIn: !!authSession, route: churchBrandRoute });
+  // The Love Corner church door is a PUBLIC community (Darrell 2026-07-14): signed-
+  // out visitors SEE the church (no private family/financial data lives here) — the
+  // "no profile, no access" wall is only for the private PoeTech app. Sign-in stays
+  // one tap away (HeaderAuthButton) for staff / a ride account; staff surfaces self-gate.
+  // The HOMES get it too — this gate used to render the PIN form alone (DR-0958).
+  if (__gate !== 'app' && !churchDoorOnly && !isPublicChurchRoute()) {
     return (
       <div data-theme={theme} className="min-h-screen overflow-x-clip bg-[#FAF8F4] text-[#1A1815] flex items-start justify-center p-6 sm:p-12" style={{ fontFamily: '"DM Sans", system-ui, sans-serif' }}>
-        {__gate === 'gate' ? <PasswordAuth /> : null}
+        {__gate === 'gate' ? <PublicFrontDoor brand={isChurchDoorContext() ? LOVE_CORNER_BRAND : null} /> : null}
       </div>
     );
   }
@@ -4012,7 +3548,12 @@ export default function PoeFinancialSystem() {
     // and normal vertical page scroll are unaffected. This is the structural guard;
     // the root cause — tab strips that don't scroll internally — is fixed via the
     // <TabScroll> primitive so content stays REACHABLE, not just clipped away.
-    <div data-theme={theme} className="min-h-screen overflow-x-clip bg-[#FAF8F4] text-[#1A1815]" style={{ fontFamily: '"DM Sans", system-ui, sans-serif' }}>
+    <div data-theme={theme} className="min-h-screen overflow-x-clip bg-[#FAF8F4] text-[#1A1815]" style={{ fontFamily: '"DM Sans", system-ui, sans-serif', paddingTop: 'var(--lwb-h, 0px)' }}>
+      {/* LIVE WORSHIP BAR — app-wide pinned live player, mounted ONCE above the
+          view switch so tab changes never stop the stream. Self-gates to real
+          service windows; publishes --lwb-h (read by this root's padding-top and
+          the sticky header's `top`, below, so the nav pins under it). */}
+      <LiveWorshipBar church={data.church} view={view} churchView={churchView} onOpenChurch={() => { setView('church'); setChurchView('home'); setChurchHomeSection(null); try { window.scrollTo({ top: 0, behavior: motionBehavior() }); } catch (e) {} }} />
       <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..900&family=DM+Sans:opsz,wght@9..40,300..700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
       <style>{`
 /* Mobile keyboard fix */
@@ -4023,190 +3564,18 @@ html{scroll-padding-bottom:280px}
 .section-title-wrapper{position:relative}
 .section-title-text{position:relative}
 
-/* ===================================================================
-   THEME: WHITE · "Snow" — iOS-feel light surface (no brand affiliation)
-   Design DNA borrowed from iOS / macOS conventions:
-     · systemGroupedBackground (#F2F2F7) base, pure-white cards on top
-     · iOS separator gray (#C6C6C8) for hairlines
-     · Near-black text (#1D1D1F), iOS secondary (#8E8E93) for muted
-     · Generous corner rounding (12-16px) on cards
-     · Subtle stacked shadows on raised surfaces (cards + buttons)
-     · Tighter letter-spacing on body for SF-feel
-   All combinations exceed WCAG 2.1 AA (≥4.5:1 body, ≥3:1 UI).
-   =================================================================== */
-[data-theme="white"]{background-color:#F2F2F7;letter-spacing:-0.005em}
-[data-theme="white"] .bg-\\[\\#FAF8F4\\]{background-color:#F2F2F7!important}
-[data-theme="white"] .bg-white{background-color:#FFFFFF!important;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,0.06),0 1px 2px rgba(0,0,0,0.04)}
-[data-theme="white"] .bg-\\[\\#E8E4DC\\]{background-color:#E5E5EA!important}
-[data-theme="white"] .border-\\[\\#E8E4DC\\]{border-color:#C6C6C8!important}
-[data-theme="white"] .border-\\[\\#1A1815\\]{border-color:#1D1D1F!important;border-radius:12px}
-[data-theme="white"] .border-2{border-radius:14px}
-[data-theme="white"] .text-\\[\\#1A1815\\]{color:#1D1D1F!important}
-[data-theme="white"] .text-\\[\\#5A5751\\]{color:#636366!important}
-[data-theme="white"] .bg-\\[\\#1A1815\\]{background-color:#1D1D1F!important;border-radius:10px}
-/* iOS-style breathing room on body prose */
-[data-theme="white"] p,[data-theme="white"] li{line-height:1.55}
-/* iOS-style soft button feel — slightly raised, subtly rounded */
-[data-theme="white"] button{border-radius:10px}
-[data-theme="white"] input,[data-theme="white"] select,[data-theme="white"] textarea{border-radius:8px}
-
-/* ===================================================================
-   THEME: SLATE · "Glacier" — One UI-feel surface (no brand affiliation)
-   Design DNA borrowed from One UI conventions:
-     · Cool blue-tinted background (#F1F3F8) with extra-rounded cards
-     · Larger corner rounding (20-24px) for the soft, friendly feel
-     · Deeper card shadows (more elevation)
-     · Cool blue accent (#1F6FEB) where the brand accent would normally land
-     · More generous padding via inset adjustments
-     · Default body line-height for One UI's roomier feel
-   All combinations exceed WCAG 2.1 AA.
-   =================================================================== */
-[data-theme="slate"]{background-color:#F1F3F8;letter-spacing:0}
-[data-theme="slate"] .bg-\\[\\#FAF8F4\\]{background-color:#F1F3F8!important}
-[data-theme="slate"] .bg-white{background-color:#FFFFFF!important;border-radius:22px;box-shadow:0 4px 16px rgba(15,23,42,0.06),0 1px 2px rgba(15,23,42,0.04)}
-[data-theme="slate"] .bg-\\[\\#E8E4DC\\]{background-color:#E1E6EF!important}
-[data-theme="slate"] .border-\\[\\#E8E4DC\\]{border-color:#DDE3EC!important}
-[data-theme="slate"] .text-\\[\\#1A1815\\]{color:#1B1D1F!important}
-[data-theme="slate"] .text-\\[\\#5A5751\\]{color:#4A5260!important}
-[data-theme="slate"] .border-\\[\\#1A1815\\]{border-color:#1B1D1F!important;border-radius:22px}
-[data-theme="slate"] .border-2{border-radius:24px}
-[data-theme="slate"] .bg-\\[\\#1A1815\\]{background-color:#1B5FCC!important;border-radius:18px}
-[data-theme="slate"] .hover\\:bg-\\[\\#1A1815\\]:hover{background-color:#1850B0!important;color:#FFFFFF!important}
-/* Roomy body prose, One UI-style */
-[data-theme="slate"] p,[data-theme="slate"] li{line-height:1.6}
-/* Pill-shaped buttons + extra-rounded inputs */
-[data-theme="slate"] button{border-radius:18px}
-[data-theme="slate"] input,[data-theme="slate"] select,[data-theme="slate"] textarea{border-radius:14px}
-
-/* ===================================================================
-   THEME: SAPPHIRE — premium blue, refined
-   =================================================================== */
-[data-theme="sapphire"] .bg-\\[\\#FAF8F4\\]{background-color:#EFF6FF!important}
-[data-theme="sapphire"] .border-\\[\\#E8E4DC\\]{border-color:#BFDBFE!important}
-[data-theme="sapphire"] .bg-\\[\\#E8E4DC\\]{background-color:#BFDBFE!important}
-[data-theme="sapphire"] .text-\\[\\#1A1815\\]{color:#1E3A8A!important}
-[data-theme="sapphire"] .text-\\[\\#5A5751\\]{color:#1D4ED8!important}
-[data-theme="sapphire"] .border-\\[\\#1A1815\\]{border-color:#1E3A8A!important}
-[data-theme="sapphire"] .bg-\\[\\#1A1815\\]{background-color:#1E3A8A!important}
-
-/* ===================================================================
-   THEME: ROSE — soft warm pink garden
-   =================================================================== */
-[data-theme="rose"] .bg-\\[\\#FAF8F4\\]{background-color:#FDF2F8!important}
-[data-theme="rose"] .border-\\[\\#E8E4DC\\]{border-color:#FBCFE8!important}
-[data-theme="rose"] .bg-\\[\\#E8E4DC\\]{background-color:#FBCFE8!important}
-[data-theme="rose"] .text-\\[\\#1A1815\\]{color:#831843!important}
-[data-theme="rose"] .text-\\[\\#5A5751\\]{color:#9D174D!important}
-[data-theme="rose"] .border-\\[\\#1A1815\\]{border-color:#831843!important}
-[data-theme="rose"] .bg-\\[\\#1A1815\\]{background-color:#831843!important}
-
-/* ===================================================================
-   THEME: MIDNIGHT — OLED-friendly true black + smooth grey gradient
-   Battery-saving on OLED screens · soft greys merge into the deep
-   =================================================================== */
-[data-theme="midnight"]{color:#E5E5E5;background-color:#000000}
-[data-theme="midnight"] .bg-\\[\\#FAF8F4\\]{background-color:#000000!important}
-[data-theme="midnight"] .bg-white{background-color:#141414!important}
-[data-theme="midnight"] .bg-\\[\\#1A1815\\]{background-color:#1F1F1F!important}
-[data-theme="midnight"] .bg-\\[\\#E8E4DC\\]{background-color:#1A1A1A!important}
-[data-theme="midnight"] .text-\\[\\#1A1815\\]{color:#E5E5E5!important}
-[data-theme="midnight"] .text-\\[\\#FAF8F4\\]{color:#E5E5E5!important}
-[data-theme="midnight"] .text-\\[\\#5A5751\\]{color:#888888!important}
-[data-theme="midnight"] .text-\\[\\#B85838\\]{color:#FB923C!important}
-[data-theme="midnight"] .text-\\[\\#5A6E3D\\]{color:#86EFAC!important}
-[data-theme="midnight"] .border-\\[\\#1A1815\\]{border-color:#3A3A3A!important}
-[data-theme="midnight"] .border-\\[\\#E8E4DC\\]{border-color:#2A2A2A!important}
-[data-theme="midnight"] .border-\\[\\#B85838\\]{border-color:#FB923C!important}
-[data-theme="midnight"] .border-\\[\\#5A6E3D\\]{border-color:#86EFAC!important}
-[data-theme="midnight"] .bg-\\[\\#B85838\\]{background-color:#FB923C!important}
-[data-theme="midnight"] .bg-\\[\\#5A6E3D\\]{background-color:#86EFAC!important}
-/* WCAG 2.1 AA fix (2026-06-17): the #2A5A8E blue accent (Build board "Next"
-   status, links) had NO midnight remap, so it stayed dark blue on black =
-   2.84:1 — unreadable. The contrast guard never caught it because it only
-   evaluated body-text tokens, not accents. Remap to light blue #7FB3F0 (text
-   9.6:1 on #000, 8.4:1 on the #141414 card) and a brighter fill for the active
-   filled badge (white on #2563EB = 5.2:1). The accent contrast check added to
-   contrast-guard.mjs now fails the build if this drifts. */
-[data-theme="midnight"] .text-\\[\\#2A5A8E\\]{color:#7FB3F0!important}
-[data-theme="midnight"] .border-\\[\\#2A5A8E\\]{border-color:#7FB3F0!important}
-[data-theme="midnight"] .bg-\\[\\#2A5A8E\\]{background-color:#2563EB!important}
-/* #5A5751 already remaps as TEXT to #888888 (6.0:1); give its border/fill a
-   midnight value too so the "Gated" tab reads on black (was dark-gray-on-black).
-   White on the #3A3A3A fill = 11.3:1. */
-[data-theme="midnight"] .border-\\[\\#5A5751\\]{border-color:#888888!important}
-[data-theme="midnight"] .bg-\\[\\#5A5751\\]{background-color:#3A3A3A!important}
-/* WCAG 2.1 AA fix (2026-06-10): #5A6E3D remaps to bright mint #86EFAC under
-   midnight, which is readable as a text color on black but fails as a FILLED
-   badge background with white text (1.4:1). Force near-black text on the
-   mint for the filled green badges so they hit ~14:1. Other themes keep
-   #5A6E3D dark green where white text already passes (~5.6:1). */
-[data-theme="midnight"] .bg-\\[\\#5A6E3D\\].text-white{color:#1A1815!important}
-/* Same fix for the #B85838 rust accent, which remaps to bright #FB923C under
-   midnight: white text on it is only 2.26:1 (e.g. the "Drop your bank file"
-   CTA). Near-black text -> ~9.3:1. On hover these buttons go dark (the rule
-   below) and flip back to light text, so no conflict. */
-[data-theme="midnight"] .bg-\\[\\#B85838\\].text-white{color:#1A1815!important}
-/* WCAG 2.1 AA fix (2026-06-17, consolidated) — semantic color tokens that had
-   NO midnight remap. Body text flips light under midnight, but these dark text
-   tokens did NOT, so they rendered dark-on-dark (e.g. #7A1F1F error text 32x);
-   and these near-white tint BANDS did NOT, so light-flipped text sat on them
-   light-on-light (the Eternal Algorithms OUTCOME band, #F2F4EC). Both directions
-   are now covered: every semantic TEXT token remaps BRIGHT (>=9.7:1 on the
-   #141414 card), every tint BACKGROUND remaps DARK (light text >=13:1, secondary
-   #888888 >=4.68:1). The background-coverage check in contrast-guard.mjs now
-   fails the build if any used text token renders dark or any used bg token
-   renders light in midnight. */
-/* error / red text -> bright red */
-[data-theme="midnight"] .text-\\[\\#7A1F1F\\]{color:#FCA5A5!important}
-[data-theme="midnight"] .text-\\[\\#7F1D1D\\]{color:#FCA5A5!important}
-[data-theme="midnight"] .text-\\[\\#991B1B\\]{color:#FCA5A5!important}
-[data-theme="midnight"] .text-\\[\\#9A3412\\]{color:#FCA5A5!important}
-[data-theme="midnight"] .text-\\[\\#DC2626\\]{color:#FCA5A5!important}
-/* success / green text -> bright mint (matches the #5A6E3D accent remap) */
-[data-theme="midnight"] .text-\\[\\#15803D\\]{color:#86EFAC!important}
-[data-theme="midnight"] .text-\\[\\#166534\\]{color:#86EFAC!important}
-[data-theme="midnight"] .text-\\[\\#3F5226\\]{color:#86EFAC!important}
-[data-theme="midnight"] .text-\\[\\#3F5A2A\\]{color:#86EFAC!important}
-/* gold / amber / brown text -> bright amber */
-[data-theme="midnight"] .text-\\[\\#8A6E1F\\]{color:#FCD34D!important}
-[data-theme="midnight"] .text-\\[\\#8B6F47\\]{color:#FCD34D!important}
-[data-theme="midnight"] .text-\\[\\#B45309\\]{color:#FCD34D!important}
-[data-theme="midnight"] .text-\\[\\#5A4A2E\\]{color:#FCD34D!important}
-/* blue text -> bright blue */
-[data-theme="midnight"] .text-\\[\\#1F6FEB\\]{color:#93C5FD!important}
-/* purple text -> bright lavender */
-[data-theme="midnight"] .text-\\[\\#7A5A8E\\]{color:#C4B5FD!important}
-/* near-white tint BANDS -> dark, faintly hued so the band still reads as a band
-   on the #141414 card (its colored left border already carries the semantics) */
-[data-theme="midnight"] .bg-\\[\\#F2F4EC\\]{background-color:#16211A!important}
-[data-theme="midnight"] .bg-\\[\\#F2F5EC\\]{background-color:#16211A!important}
-[data-theme="midnight"] .bg-\\[\\#F0F4EA\\]{background-color:#16211A!important}
-[data-theme="midnight"] .bg-\\[\\#FDE7DC\\]{background-color:#231614!important}
-[data-theme="midnight"] .bg-\\[\\#FBEFEA\\]{background-color:#231614!important}
-[data-theme="midnight"] .bg-\\[\\#FEE2E2\\]{background-color:#231614!important}
-[data-theme="midnight"] .bg-\\[\\#FBF2F2\\]{background-color:#231614!important}
-[data-theme="midnight"] .bg-\\[\\#FAF1EC\\]{background-color:#231614!important}
-[data-theme="midnight"] .bg-\\[\\#FBF7EC\\]{background-color:#211D13!important}
-[data-theme="midnight"] .bg-\\[\\#EFE9DF\\]{background-color:#1B1916!important}
-[data-theme="midnight"] .bg-\\[\\#F0ECE4\\]{background-color:#1B1916!important}
-[data-theme="midnight"] .bg-\\[\\#F4F2EE\\]{background-color:#1B1916!important}
-[data-theme="midnight"] .bg-\\[\\#FCFBF8\\]{background-color:#1B1916!important}
-[data-theme="midnight"] .hover\\:bg-\\[\\#1A1815\\]:hover{background-color:#2A2A2A!important;color:#E5E5E5!important}
-[data-theme="midnight"] .hover\\:bg-\\[\\#FAF8F4\\]:hover{background-color:#2A2A2A!important}
-[data-theme="midnight"] .hover\\:text-\\[\\#1A1815\\]:hover{color:#E5E5E5!important}
-[data-theme="midnight"] input,[data-theme="midnight"] textarea,[data-theme="midnight"] select{color:#E5E5E5;background-color:#0A0A0A!important;border-color:#2A2A2A!important}
-[data-theme="midnight"] input::placeholder,[data-theme="midnight"] textarea::placeholder{color:#666666}
+${THEME_CSS}
       `}</style>
 
-      <div className="bg-[#1A1815] text-[#FAF8F4] text-center text-[10px] uppercase tracking-[0.2em] py-1.5 px-3 print:hidden">
+      <div className="ts-chrome-region bg-[#1A1815] text-[#FAF8F4] text-center text-[0.625rem] uppercase tracking-[0.2em] py-1.5 px-3 print:hidden">
         Projections, not promises · Verify with licensed professionals
       </div>
 
-      <AuthBanner />
+      <ClaimInviteBanner />
       {persistIssue && (
-        <div className="bg-[#7A1F1F] text-[#FAF8F4] text-[12px] py-2 px-4 flex items-center justify-between gap-3 print:hidden">
+        <div className="bg-[#7A1F1F] text-[#FAF8F4] text-[0.75rem] py-2 px-4 flex items-center justify-between gap-3 print:hidden" data-read-skip>
           <span>⚠ {persistIssue.message}</span>
-          <button onClick={() => setPersistIssue(null)} className="text-[#FAF8F4]/80 hover:text-white text-[11px] uppercase tracking-wide shrink-0">Dismiss</button>
+          <button onClick={() => setPersistIssue(null)} className="text-[#FAF8F4]/80 hover:text-white text-[0.6875rem] uppercase tracking-wide shrink-0">Dismiss</button>
         </div>
       )}
       {showVerifyBalances && (
@@ -4230,10 +3599,10 @@ html{scroll-padding-bottom:280px}
           what's shipped and what's vision. Per Darrell 2026-05-28: the
           start position is the family financial system; this front door
           appears only on first arrival. */}
-      {(isPickerMode || isFirstTimeLanding) && (
+      {!churchDoorOnly && !churchLinkVisit && (isPickerMode || isFirstTimeLanding) && (
         <div role="dialog" aria-modal="true" aria-labelledby="demo-picker-h" className="fixed inset-0 z-50 bg-[#1A1815] flex items-start justify-center p-4 overflow-y-auto">
           <div className="bg-[#FAF8F4] border border-[#1A1815] max-w-3xl w-full p-6 sm:p-8 my-8">
-            <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-2">PoeTech · Family OS {isFirstTimeLanding ? '· Welcome' : '· Pick a scenario'}</div>
+            <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-2">PoeTech · Family OS {isFirstTimeLanding ? '· Welcome' : '· Pick a scenario'}</div>
             <h2 id="demo-picker-h" className="text-2xl sm:text-3xl mb-2" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>{isFirstTimeLanding ? 'Know what to do today — for everyone in your house.' : 'Which life is closest to yours?'}</h2>
             {/* Per Option B Mars Hill progressive-disclosure
                 (project-progressive-disclosure-mars-hill-engagement):
@@ -4245,13 +3614,13 @@ html{scroll-padding-bottom:280px}
                 eye anchors on the universal-value hook first. */}
             {isFirstTimeLanding && (
               <div className="flex flex-wrap gap-1.5 mb-3 items-center">
-                <span className="inline-block text-[9px] sm:text-[10px] uppercase tracking-wider text-white bg-[#5A6E3D] px-2 py-1 font-semibold">Free forever · Financial System for Families</span>
-                <span className="inline-block text-[9px] sm:text-[10px] uppercase tracking-wider text-[#5A6E3D] bg-transparent border border-[#5A6E3D] px-2 py-1 font-medium">Free forever · Spiritual Module for the Body</span>
+                <span className="inline-block text-[0.5625rem] sm:text-[0.625rem] uppercase tracking-wider text-white bg-[#5A6E3D] px-2 py-1 font-semibold">Free forever · Financial System for Families</span>
+                <span className="inline-block text-[0.5625rem] sm:text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] bg-transparent border border-[#5A6E3D] px-2 py-1 font-medium">Free forever · Spiritual Module for the Body</span>
               </div>
             )}
             <p className="text-base text-[#1A1815] mb-3" style={{ fontFamily: '"Fraunces", serif' }}>{isFirstTimeLanding ? 'PoeTech is the family financial system that lifts anxiety by answering — every day, on every screen — what to do, when, why, and how.' : 'One modular framework, multiple lenses. The shipped tiles run on real data right now; the coming-soon tiles are vision for the same framework — they ship as the infrastructure does.'}</p>
             {isFirstTimeLanding && (
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 mb-4 text-[10px] uppercase tracking-wider text-[#5A5751]">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 mb-4 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">
                 <div className="p-2 border border-[#E8E4DC]"><span className="block text-[#1A1815] font-semibold mb-0.5">What</span> Today's next action</div>
                 <div className="p-2 border border-[#E8E4DC]"><span className="block text-[#1A1815] font-semibold mb-0.5">When</span> Date · deadline · clock</div>
                 <div className="p-2 border border-[#E8E4DC]"><span className="block text-[#1A1815] font-semibold mb-0.5">Why</span> Reason it matters</div>
@@ -4263,14 +3632,14 @@ html{scroll-padding-bottom:280px}
               {Object.entries(DEMO_PERSONA_META).map(([key, meta]) => (
                 <a key={key} href={`/?demo=${key}`} onClick={markLandingSeen} className="block p-4 border border-[#1A1815] bg-white hover:bg-[#FAF8F4] hover:border-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">
                   <div className="flex items-baseline justify-between mb-1.5 gap-2">
-                    <div className="text-[10px] uppercase tracking-[0.2em] text-[#B85838] font-semibold">{meta.label}</div>
-                    <span className="text-[8px] uppercase tracking-wider text-white bg-[#5A6E3D] px-1.5 py-0.5 whitespace-nowrap">Working sample</span>
+                    <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#B85838] font-semibold">{meta.label}</div>
+                    <span className="text-[0.5rem] uppercase tracking-wider text-white bg-[#5A6E3D] px-1.5 py-0.5 whitespace-nowrap">Working sample</span>
                   </div>
                   <div className="text-sm text-[#1A1815] mb-1.5 leading-snug" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{meta.headline}</div>
-                  <div className="text-[11px] text-[#5A5751] leading-snug mb-2" style={{ fontFamily: '"Fraunces", serif' }}>{meta.pitch}</div>
+                  <div className="text-[0.6875rem] text-[#5A5751] leading-snug mb-2" style={{ fontFamily: '"Fraunces", serif' }}>{meta.pitch}</div>
                   {meta.free
-                    ? <span className="inline-block text-[8px] uppercase tracking-wider text-[#5A6E3D] border border-[#5A6E3D] px-1.5 py-0.5 font-semibold">Free · Family financial system</span>
-                    : <span className="inline-block text-[8px] uppercase tracking-wider text-[#B85838] border border-[#B85838] px-1.5 py-0.5 font-semibold">Paid plan</span>}
+                    ? <span className="inline-block text-[0.5rem] uppercase tracking-wider text-[#5A6E3D] border border-[#5A6E3D] px-1.5 py-0.5 font-semibold">Free · Family financial system</span>
+                    : <span className="inline-block text-[0.5rem] uppercase tracking-wider text-[#B85838] border border-[#B85838] px-1.5 py-0.5 font-semibold">Paid plan</span>}
                 </a>
               ))}
             </div>
@@ -4282,17 +3651,12 @@ html{scroll-padding-bottom:280px}
                 tension and shows data-as-proof resolving it. Family-financial
                 lifecycle cards carry the Free tag; org/professional cards show
                 the paid tier. */}
-            <div className="text-[10px] uppercase tracking-[0.3em] text-[#5A5751] font-semibold mb-1 mt-5">Coming next · more lives the same system holds</div>
-            <p className="text-[11px] text-[#5A5751] mb-3" style={{ fontFamily: '"Fraunces", serif' }}>Every one of these is the same framework with a different lens — they ship as the modules do. Same family OS, never another app to learn. Each one turns a recurring money tension into a shared record, so the data holds when memory fails.</p>
+            <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#5A5751] font-semibold mb-1 mt-5">Coming next · more lives the same system holds</div>
+            <p className="text-[0.6875rem] text-[#5A5751] mb-3" style={{ fontFamily: '"Fraunces", serif' }}>Every one of these is the same framework with a different lens — they ship as the modules do. Same family OS, never another app to learn. Each one turns a recurring money tension into a shared record, so the data holds when memory fails.</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
               {[
                 { key: 'young-adults-launching',     free: true,  label: 'For young adults launching',        headline: 'First apartment, first paycheck, first 401(k).',          summary: "First apartment, first paycheck, first 401(k). When mom and dad help with first month's rent, the gift-or-loan question gets settled in writing. If support changes, it's logged — not 'I thought you said.'" },
-                { key: 'family-of-1',                free: true,  label: 'For singles starting out',          headline: 'One income, one budget, no guessing.',                    summary: "One household, one income, simple books. Every subscription and 'where did it go' is on the screen, not in your head." },
                 { key: 'engaged-pre-marriage',       free: true,  label: 'For engaged couples · before marriage', headline: 'Build the financial system before the vows.',          summary: "The conversation about money before the vows — clear, not awkward. Joint vs. separate logged in writing. If one stops contributing, the data shows it before resentment does. Two budgets becoming one — data as the prenup-conversation starter." },
-                { key: 'family-of-2',                free: true,  label: 'For couples (no kids yet)',         headline: 'Two incomes pulling in one direction.',                   summary: "Two incomes, shared books, joint goals. Who-paid-what logged, so 'I covered more' is a number, not a feeling." },
-                { key: 'family-of-3',                free: true,  label: 'For new parents',                   headline: 'First child without losing track of the rest.',           summary: 'Childcare costs, salary changes, fresh discipline. The new line items are tracked the day they start.' },
-                { key: 'family-of-5',                free: true,  label: 'For families of 5+',                headline: 'Three kids, busier rhythm — same clarity.',               summary: "More mouths, more dates, same four questions. Every kid's costs visible, nothing slips." },
-                { key: 'family-of-7',                free: true,  label: 'For large households',              headline: 'Big family, big load, lifted by the system.',             summary: 'Five+ kids, complex schedules, scaled views. The load is real; the record keeps it honest.' },
                 { key: 'empty-nesters',              free: true,  label: 'For empty nesters',                 headline: 'Last kid out, attention to retirement.',                  summary: "When grown kids ask for help, you have data, not just generosity. Here's what we gave over the years, here's the picture. Retirement runway, adult-children support logged, legacy planning — all data-driven." },
                 { key: 'widowed-or-divorced-restart',free: true,  label: 'For widowed or divorced restarting',headline: 'Rebuilding the financial picture after a life change.',    summary: "You don't rebuild from memory after a loss. The system already holds the history — every shared expense, every transfer, every receipt. Estate and benefits paperwork starts with data, not 'where did I put that.'" },
                 { key: 'community',   free: false, label: 'For community + school orgs',     headline: 'Kitchen-table discipline at the board table.',                 summary: 'Co-op, ministry, small-org books. Every shared cost agreed and recorded, so the board votes on numbers, not memory.' },
@@ -4315,14 +3679,14 @@ html{scroll-padding-bottom:280px}
                    hydration (static Tailwind, no JS-conditional styling). */
                 <div key={s.key} className="block p-4 border border-dashed border-[#1A1815] bg-white opacity-80">
                   <div className="flex items-baseline justify-between mb-1.5 gap-2">
-                    <div className="text-[10px] uppercase tracking-[0.2em] text-[#5A5751] font-semibold">{s.label}</div>
-                    <span className="text-[8px] uppercase tracking-wider text-[#5A5751] border border-[#E8E4DC] px-1.5 py-0.5 whitespace-nowrap">Vision · in build</span>
+                    <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A5751] font-semibold">{s.label}</div>
+                    <span className="text-[0.5rem] uppercase tracking-wider text-[#5A5751] border border-[#E8E4DC] px-1.5 py-0.5 whitespace-nowrap">Vision · in build</span>
                   </div>
                   <div className="text-sm text-[#1A1815] mb-1 leading-snug" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{s.headline}</div>
-                  <div className="text-[11px] text-[#5A5751] mb-2 leading-snug" style={{ fontFamily: '"Fraunces", serif' }}>{s.summary}</div>
+                  <div className="text-[0.6875rem] text-[#5A5751] mb-2 leading-snug" style={{ fontFamily: '"Fraunces", serif' }}>{s.summary}</div>
                   {s.free
-                    ? <span className="inline-block text-[8px] uppercase tracking-wider text-[#5A6E3D] border border-[#5A6E3D] px-1.5 py-0.5 font-semibold">Free · Family financial system</span>
-                    : <span className="inline-block text-[8px] uppercase tracking-wider text-[#B85838] border border-[#B85838] px-1.5 py-0.5 font-semibold">Paid plan</span>}
+                    ? <span className="inline-block text-[0.5rem] uppercase tracking-wider text-[#5A6E3D] border border-[#5A6E3D] px-1.5 py-0.5 font-semibold">Free · Family financial system</span>
+                    : <span className="inline-block text-[0.5rem] uppercase tracking-wider text-[#B85838] border border-[#B85838] px-1.5 py-0.5 font-semibold">Paid plan</span>}
                 </div>
               ))}
             </div>
@@ -4335,10 +3699,10 @@ html{scroll-padding-bottom:280px}
                 need-based. FREE labels use the working-sample green (#5A6E3D).
                 "See pricing" marks the landing seen and opens the About view. */}
             <div className="border border-[#E8E4DC] bg-white px-3 py-3 mt-3 mb-1" style={{ fontFamily: '"Fraunces", serif' }}>
-              <div className="text-[11px] text-[#1A1815] mb-1.5 leading-snug">
-                <span className="text-[9px] uppercase tracking-wider text-white bg-[#5A6E3D] px-1.5 py-0.5 font-semibold">Free forever</span> <span className="font-semibold">Financial System for Families</span> + <span className="font-semibold">Spiritual Module for the Body</span> — no credit card.
+              <div className="text-[0.6875rem] text-[#1A1815] mb-1.5 leading-snug">
+                <span className="text-[0.5625rem] uppercase tracking-wider text-white bg-[#5A6E3D] px-1.5 py-0.5 font-semibold">Free forever</span> <span className="font-semibold">Financial System for Families</span> + <span className="font-semibold">Spiritual Module for the Body</span> — no credit card.
               </div>
-              <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-[11px] text-[#1A1815]">
+              <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-[0.6875rem] text-[#1A1815]">
                 <span className="text-[#5A5751]">Paid for businesses, professionals + landlords:</span>
                 <span><span className="font-semibold">from $39</span> PoeTech+</span>
                 <span className="text-[#5A5751]">·</span>
@@ -4348,7 +3712,7 @@ html{scroll-padding-bottom:280px}
                 <span className="text-[#5A5751]">·</span>
                 <span><span className="font-semibold">$249</span> Business</span>
               </div>
-              <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 mt-1.5 text-[10px] text-[#5A5751]">
+              <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 mt-1.5 text-[0.625rem] text-[#5A5751]">
                 <span><span className="text-[#5A6E3D] font-semibold">Free for Loved Ones</span> (COLG + chosen family)</span>
                 <span>·</span>
                 <span>Sponsored for families in need (aligned-brand partners, not your data)</span>
@@ -4366,7 +3730,7 @@ html{scroll-padding-bottom:280px}
                 the waitlist is what's wired. Restore the upload onClick
                 when wf33 lands in active list. */}
             <button type="button" onClick={() => { setWaitlistOpen(true); setWaitlistState({ submitting: false, success: false, error: null, id: null }); }} className="w-full bg-[#B85838] text-white py-3 text-center text-sm uppercase tracking-wider font-semibold hover:bg-[#1A1815] focus:outline focus:outline-2 focus:outline-[#1A1815] mt-4 mb-2">Drop your bank file → join the waitlist (real-data view ships late June)</button>
-            <p className="text-[10px] text-[#5A5751] italic text-center mb-3" style={{ fontFamily: '"Fraunces", serif' }}>Browser-only file reading is in build. Sign up — we'll email when OFX, QFX, or CSV uploads go live. Your data never leaves your device.</p>
+            <p className="text-[0.625rem] text-[#5A5751] italic text-center mb-3" style={{ fontFamily: '"Fraunces", serif' }}>Browser-only file reading is in build. Sign up — we'll email when OFX, QFX, or CSV uploads go live. Your data never leaves your device.</p>
             <div className="flex gap-2 mt-4 flex-wrap">
               {/* "Start your own setup" was removed 2026-05-28 evening — the
                   real app behind it would load Darrell's SEED_DATA (real
@@ -4387,13 +3751,13 @@ html{scroll-padding-bottom:280px}
         return (
         <div role="dialog" aria-modal="true" aria-labelledby="demo-welcome-h" className="fixed inset-0 z-50 bg-[#1A1815] flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-[#FAF8F4] border border-[#1A1815] max-w-lg w-full p-6 sm:p-8 my-8">
-            <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-2">PoeTech · Family OS · Sample · {meta.label}</div>
+            <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-2">PoeTech · Family OS · Sample · {meta.label}</div>
             <h2 id="demo-welcome-h" className="text-2xl sm:text-3xl mb-3" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>{meta.headline || 'Here\'s what providing for the people in your care looks like with the books open.'}</h2>
             <div className="text-sm leading-relaxed space-y-3 mb-5" style={{ fontFamily: '"Fraunces", serif', color: '#1A1815' }}>
               <p>{meta.pitch}</p>
               <p className="text-[#5A5751]"><strong className="text-[#1A1815]">This sample:</strong> {meta.summary} {meta.audience}</p>
               <p className="text-[#5A5751]"><strong className="text-[#1A1815]">Vision in build:</strong> {meta.vision}</p>
-              <p className="text-[12px] italic text-[#5A5751]">Anxiety comes from not knowing what to do. The whole point of this is to give clarity — what, when, why, and how. With assistance and guidance, almost too much. Faith-expressed-in-works. His Will be done.</p>
+              <p className="text-[0.75rem] italic text-[#5A5751]">Anxiety comes from not knowing what to do. The whole point of this is to give clarity — what, when, why, and how. With assistance and guidance, almost too much. Faith-expressed-in-works. His Will be done.</p>
             </div>
             <div className="bg-white border border-[#E8E4DC] p-3 mb-5 text-xs text-[#5A5751] leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
               <strong className="text-[#1A1815]">Quick tour:</strong> <span className="text-[#1A1815]">Big Picture</span> = at-a-glance health · <span className="text-[#1A1815]">Books → Accounts</span> = who has what · <span className="text-[#1A1815]">Books → Tx</span> = every transaction · <span className="text-[#1A1815]">Debts</span> = payoff snowball. Tap around — nothing saves.
@@ -4404,7 +3768,7 @@ html{scroll-padding-bottom:280px}
               </button>
               <a href="/?demo=picker" className="px-4 py-3 border border-[#1A1815] text-[#1A1815] text-sm uppercase tracking-wider font-semibold hover:bg-white focus:outline focus:outline-2 focus:outline-[#B85838]">Try another scenario</a>
             </div>
-            <p className="text-[10px] text-[#5A5751] italic text-center mt-3" style={{ fontFamily: '"Fraunces", serif' }}>Built by a family for families — and the businesses and communities they steward.</p>
+            <p className="text-[0.625rem] text-[#5A5751] italic text-center mt-3" style={{ fontFamily: '"Fraunces", serif' }}>Built by a family for families — and the businesses and communities they steward.</p>
           </div>
         </div>
         );
@@ -4418,26 +3782,26 @@ html{scroll-padding-bottom:280px}
       {waitlistOpen && (
         <div role="dialog" aria-modal="true" aria-labelledby="waitlist-h" className="fixed inset-0 z-50 bg-[#1A1815] flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-[#FAF8F4] border border-[#1A1815] max-w-md w-full p-6 sm:p-8 my-8">
-            <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-2">PoeTech · Family OS · Early access</div>
+            <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-2">PoeTech · Family OS · Early access</div>
             {!waitlistState.success ? (
               <>
                 <h2 id="waitlist-h" className="text-2xl sm:text-3xl mb-2" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>Tell us how to reach you when this opens up.</h2>
                 <p className="text-sm text-[#5A5751] mb-4" style={{ fontFamily: '"Fraunces", serif' }}>No promises on a date — we engage based on opportunities + capacity. Your spot is held in order received. You can tell us as much or as little as you want.</p>
                 <div className="space-y-3">
                   <div>
-                    <label htmlFor="wl-name" className="block text-[10px] uppercase tracking-wider text-[#5A5751] mb-1">Your name</label>
+                    <label htmlFor="wl-name" className="block text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">Your name</label>
                     <input id="wl-name" type="text" autoComplete="name" value={waitlistForm.name} onChange={e => setWaitlistForm({ ...waitlistForm, name: e.target.value })} className="w-full p-2.5 border border-[#1A1815] bg-white text-sm focus:outline focus:outline-2 focus:outline-[#B85838]" placeholder="First + last (or whatever feels right)" />
                   </div>
                   <div>
-                    <label htmlFor="wl-email" className="block text-[10px] uppercase tracking-wider text-[#5A5751] mb-1">Email <span className="text-[#B85838]">*</span></label>
+                    <label htmlFor="wl-email" className="block text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">Email <span className="text-[#B85838]">*</span></label>
                     <input id="wl-email" type="email" autoComplete="email" required value={waitlistForm.email} onChange={e => setWaitlistForm({ ...waitlistForm, email: e.target.value })} className="w-full p-2.5 border border-[#1A1815] bg-white text-sm focus:outline focus:outline-2 focus:outline-[#B85838]" placeholder="you@email.com" />
                   </div>
                   <div>
-                    <label htmlFor="wl-phone" className="block text-[10px] uppercase tracking-wider text-[#5A5751] mb-1">Phone (optional)</label>
+                    <label htmlFor="wl-phone" className="block text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">Phone (optional)</label>
                     <input id="wl-phone" type="tel" autoComplete="tel" value={waitlistForm.phone} onChange={e => setWaitlistForm({ ...waitlistForm, phone: e.target.value })} className="w-full p-2.5 border border-[#1A1815] bg-white text-sm focus:outline focus:outline-2 focus:outline-[#B85838]" placeholder="(217) 555-0100" />
                   </div>
                   <div>
-                    <label htmlFor="wl-interest" className="block text-[10px] uppercase tracking-wider text-[#5A5751] mb-1">Which fits best?</label>
+                    <label htmlFor="wl-interest" className="block text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">Which fits best?</label>
                     <select id="wl-interest" value={waitlistForm.interest} onChange={e => setWaitlistForm({ ...waitlistForm, interest: e.target.value })} className="w-full p-2.5 border border-[#1A1815] bg-white text-sm focus:outline focus:outline-2 focus:outline-[#B85838]">
                       <option value="">(pick one)</option>
                       <option value="family">My family</option>
@@ -4451,7 +3815,7 @@ html{scroll-padding-bottom:280px}
                     </select>
                   </div>
                   <div>
-                    <label htmlFor="wl-notes" className="block text-[10px] uppercase tracking-wider text-[#5A5751] mb-1">Anything you want us to know (optional)</label>
+                    <label htmlFor="wl-notes" className="block text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">Anything you want us to know (optional)</label>
                     <textarea id="wl-notes" rows="3" value={waitlistForm.notes} onChange={e => setWaitlistForm({ ...waitlistForm, notes: e.target.value })} className="w-full p-2.5 border border-[#1A1815] bg-white text-sm focus:outline focus:outline-2 focus:outline-[#B85838]" placeholder="What problem are you hoping this solves? When could you use it?" />
                   </div>
                 </div>
@@ -4464,13 +3828,13 @@ html{scroll-padding-bottom:280px}
                   <button type="button" disabled={waitlistState.submitting} onClick={submitWaitlist} className="flex-1 bg-[#1A1815] text-white py-3 text-sm uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838] disabled:opacity-50">{waitlistState.submitting ? 'Adding you…' : 'Add me to the waitlist'}</button>
                   <button type="button" disabled={waitlistState.submitting} onClick={() => setWaitlistOpen(false)} className="px-4 py-3 border border-[#1A1815] text-[#1A1815] text-sm uppercase tracking-wider font-semibold hover:bg-white focus:outline focus:outline-2 focus:outline-[#B85838] disabled:opacity-50">Cancel</button>
                 </div>
-                <p className="text-[10px] text-[#5A5751] italic text-center mt-3" style={{ fontFamily: '"Fraunces", serif' }}>Your info goes to a private inbox we run on our own infrastructure. No third-party trackers. No newsletter. Just a real human reaching out when there's a fit.</p>
+                <p className="text-[0.625rem] text-[#5A5751] italic text-center mt-3" style={{ fontFamily: '"Fraunces", serif' }}>Your info goes to a private inbox we run on our own infrastructure. No third-party trackers. No newsletter. Just a real human reaching out when there's a fit.</p>
               </>
             ) : (
               <>
                 <h2 id="waitlist-h" className="text-2xl sm:text-3xl mb-2" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>You're on the list.</h2>
                 <p className="text-base text-[#1A1815] mb-3" style={{ fontFamily: '"Fraunces", serif' }}>Thanks, {waitlistForm.name || 'friend'}. We received your interest at {waitlistForm.email}. When opportunities + capacity line up with your scenario, a real human reaches out — usually within a couple weeks, sometimes longer. No spam in the meantime.</p>
-                <p className="text-sm text-[#5A5751] mb-5" style={{ fontFamily: '"Fraunces", serif' }}>Confirmation ID: <span className="font-mono text-[10px]">{waitlistState.id || '(saved)'}</span>. If you change your mind or want to update what you told us, reply to the email we send and we'll handle it.</p>
+                <p className="text-sm text-[#5A5751] mb-5" style={{ fontFamily: '"Fraunces", serif' }}>Confirmation ID: <span className="font-mono text-[0.625rem]">{waitlistState.id || '(saved)'}</span>. If you change your mind or want to update what you told us, reply to the email we send and we'll handle it.</p>
                 <div className="flex gap-2 flex-wrap">
                   <button type="button" onClick={() => { setWaitlistOpen(false); setWaitlistForm({ name: '', email: '', phone: '', interest: '', notes: '' }); }} className="flex-1 bg-[#1A1815] text-white py-3 text-sm uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">Close</button>
                   <a href="/?demo=family-of-4" onClick={() => { setWaitlistOpen(false); markLandingSeen(); }} className="px-4 py-3 border border-[#1A1815] text-[#1A1815] text-sm uppercase tracking-wider font-semibold hover:bg-white focus:outline focus:outline-2 focus:outline-[#B85838]">See a sample while you wait</a>
@@ -4485,7 +3849,7 @@ html{scroll-padding-bottom:280px}
         // Show once to a signed-in, non-family, non-demo user. Keyed only on
         // auth + email + a localStorage flag — touches no data/seed/hydration.
         const ssEmail = (authSession?.user?.email || '').toLowerCase();
-        const show = !!authSession && !!ssEmail && !isFamilyEmail(ssEmail) && !isAnyDemoMode && !selfServeWelcomeDismissed;
+        const show = !!authSession && !!ssEmail && (reviewerMode || !isFamilyEmail(ssEmail)) && !isAnyDemoMode && !selfServeWelcomeDismissed;
         return show ? <SelfServeWelcome name={ssEmail.split('@')[0]} onDismiss={dismissSelfServeWelcome} /> : null;
       })()}
 
@@ -4496,7 +3860,7 @@ html{scroll-padding-bottom:280px}
         <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 bg-[#1A1815] flex items-start sm:items-center justify-center p-3 sm:p-6 overflow-y-auto">
           <div className="bg-[#FAF8F4] border border-[#1A1815] max-w-2xl w-full p-5 sm:p-6 my-4">
             <div className="flex items-center justify-between mb-3">
-              <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold">PoeTech · Your money · Layer {uploadStage === 'idle' || uploadStage === 'parsing' || uploadStage === 'parsed' ? '1' : (uploadStage === 'analyzing' || uploadStage === 'profile' ? '2' : '3')} of 3</div>
+              <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">PoeTech · Your money · Layer {uploadStage === 'idle' || uploadStage === 'parsing' || uploadStage === 'parsed' ? '1' : (uploadStage === 'analyzing' || uploadStage === 'profile' ? '2' : '3')} of 3</div>
               <button type="button" onClick={() => setUploadOpen(false)} aria-label="Close" className="text-[#5A5751] hover:text-[#1A1815] text-lg">×</button>
             </div>
             {uploadStage === 'idle' && (
@@ -4522,22 +3886,22 @@ html{scroll-padding-bottom:280px}
                 <p className="text-xs text-[#5A5751] mb-3" style={{ fontFamily: '"Fraunces", serif' }}>{uploadResult.summary.transaction_count} transactions · {uploadResult.summary.date_range} · {uploadResult.format.toUpperCase()} format</p>
                 <div className="grid grid-cols-3 gap-2 mb-4 text-center">
                   <div className="bg-white border border-[#E8E4DC] p-2">
-                    <div className="text-[10px] uppercase tracking-wider text-[#5A5751]">Income</div>
+                    <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Income</div>
                     <div className="text-base font-semibold text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>${(uploadResult.summary.credits_total || 0).toFixed(0)}</div>
                   </div>
                   <div className="bg-white border border-[#E8E4DC] p-2">
-                    <div className="text-[10px] uppercase tracking-wider text-[#5A5751]">Spend</div>
+                    <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Spend</div>
                     <div className="text-base font-semibold text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>${Math.abs(uploadResult.summary.debits_total || 0).toFixed(0)}</div>
                   </div>
                   <div className="bg-white border border-[#E8E4DC] p-2">
-                    <div className="text-[10px] uppercase tracking-wider text-[#5A5751]">Net</div>
+                    <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Net</div>
                     <div className={`text-base font-semibold ${(uploadResult.summary.net || 0) >= 0 ? 'text-[#1A1815]' : 'text-[#B85838]'}`} style={{ fontFamily: '"Fraunces", serif' }}>${(uploadResult.summary.net || 0).toFixed(0)}</div>
                   </div>
                 </div>
                 <div className="max-h-64 overflow-y-auto border border-[#E8E4DC] bg-white mb-3">
                   <table className="w-full text-xs">
                     <thead className="bg-[#FAF8F4] sticky top-0">
-                      <tr><th className="text-left p-2">Date</th><th className="text-left p-2">Description</th><th className="text-right p-2">Amount</th></tr>
+                      <tr><th scope="col" className="text-left p-2">Date</th><th scope="col" className="text-left p-2">Description</th><th scope="col" className="text-right p-2">Amount</th></tr>
                     </thead>
                     <tbody>
                       {uploadResult.transactions.slice(0, 50).map((t, i) => (
@@ -4550,7 +3914,7 @@ html{scroll-padding-bottom:280px}
                     </tbody>
                   </table>
                   {uploadResult.transactions.length > 50 && (
-                    <div className="p-2 text-center text-[10px] text-[#5A5751] italic">Showing first 50 of {uploadResult.transactions.length} transactions.</div>
+                    <div className="p-2 text-center text-[0.625rem] text-[#5A5751] italic">Showing first 50 of {uploadResult.transactions.length} transactions.</div>
                   )}
                 </div>
                 <button type="button" onClick={runSkillAnalytics} className="w-full bg-[#1A1815] text-white py-3 text-sm uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">What does this say about your stewardship? →</button>
@@ -4568,7 +3932,7 @@ html{scroll-padding-bottom:280px}
                 <p className="text-sm text-[#1A1815] mb-3" style={{ fontFamily: '"Fraunces", serif' }}>{uploadResult.profile.diagnostic_summary}</p>
                 {Array.isArray(uploadResult.profile.strengths) && uploadResult.profile.strengths.length > 0 && (
                   <div className="mb-3">
-                    <div className="text-[10px] uppercase tracking-wider text-[#5A5751] mb-1">Strengths</div>
+                    <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">Strengths</div>
                     <ul className="text-sm text-[#1A1815] space-y-1" style={{ fontFamily: '"Fraunces", serif' }}>
                       {uploadResult.profile.strengths.map((s, i) => <li key={i}>· {s}</li>)}
                     </ul>
@@ -4576,7 +3940,7 @@ html{scroll-padding-bottom:280px}
                 )}
                 {Array.isArray(uploadResult.profile.gaps_to_consider) && uploadResult.profile.gaps_to_consider.length > 0 && (
                   <div className="mb-4">
-                    <div className="text-[10px] uppercase tracking-wider text-[#5A5751] mb-1">Worth considering</div>
+                    <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">Worth considering</div>
                     <ul className="text-sm text-[#1A1815] space-y-1" style={{ fontFamily: '"Fraunces", serif' }}>
                       {uploadResult.profile.gaps_to_consider.map((g, i) => <li key={i}>· {g}</li>)}
                     </ul>
@@ -4601,7 +3965,7 @@ html{scroll-padding-bottom:280px}
                       <div key={i} className="border border-[#E8E4DC] bg-white p-3">
                         <div className="flex items-start justify-between gap-2 mb-1">
                           <div className="text-base font-semibold text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{m.service.name}</div>
-                          <div className="text-[10px] uppercase tracking-wider text-[#B85838] font-semibold whitespace-nowrap">fit {m.fit_score}/100</div>
+                          <div className="text-[0.625rem] uppercase tracking-wider text-[#B85838] font-semibold whitespace-nowrap">fit {m.fit_score}/100</div>
                         </div>
                         <div className="text-xs text-[#5A5751] mb-2 italic" style={{ fontFamily: '"Fraunces", serif' }}>{m.fit_reason}</div>
                         <div className="text-xs text-[#1A1815] mb-1" style={{ fontFamily: '"Fraunces", serif' }}><strong>For:</strong> {m.service.audience}</div>
@@ -4628,19 +3992,23 @@ html{scroll-padding-bottom:280px}
       {/* Demo banner — thin strip across the top whenever in demo mode (not
           picker). Stays visible the whole session. CTAs: switch persona, see
           welcome modal again, or start your own. */}
-      {isDemoMode && !demoWelcomeOpen && !headerCollapsed && (
-        <div className="bg-[#B85838] text-white text-xs px-3 py-2 flex items-center justify-between gap-3 flex-wrap">
+      {isDemoMode && !demoWelcomeOpen && !headerCollapsed && !churchDoorOnly && (
+        <div className="ts-chrome-region bg-[#B85838] text-white text-xs px-3 py-2 flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-2">
             <span className="uppercase tracking-[0.2em] font-semibold">Sample · {DEMO_PERSONA_META[demoPersona]?.label || 'Family of 4'}</span>
             <span className="opacity-90 hidden sm:inline" style={{ fontFamily: '"Fraunces", serif' }}>Nothing saves.</span>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            <button type="button" onClick={() => setDemoWelcomeOpen(true)} className="text-[10px] uppercase tracking-wider px-2 py-1 border border-white/40 hover:bg-white hover:text-[#B85838] focus:outline focus:outline-2 focus:outline-white">What is this?</button>
-            <a href="/?demo=picker" className="text-[10px] uppercase tracking-wider px-2 py-1 border border-white/40 hover:bg-white hover:text-[#B85838] focus:outline focus:outline-2 focus:outline-white">Try another lens</a>
-            <a href="/" className="text-[10px] uppercase tracking-wider px-2 py-1 bg-white text-[#B85838] hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-white font-semibold">Start your own →</a>
+            <button type="button" onClick={() => setDemoWelcomeOpen(true)} className="text-[0.625rem] uppercase tracking-wider px-2 py-1 border border-white/40 hover:bg-white hover:text-[#B85838] focus:outline focus:outline-2 focus:outline-white">What is this?</button>
+            <a href="/?demo=picker" className="text-[0.625rem] uppercase tracking-wider px-2 py-1 border border-white/40 hover:bg-white hover:text-[#B85838] focus:outline focus:outline-2 focus:outline-white">Try another lens</a>
+            <a href="/" className="text-[0.625rem] uppercase tracking-wider px-2 py-1 bg-white text-[#B85838] hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-white font-semibold">Start your own →</a>
           </div>
         </div>
       )}
+
+      {/* Reviewer strip — always visible while the steward reviews as a user
+          (never collapse-gated: with Admin hidden, Exit is the only way back). */}
+      {reviewerMode && <ReviewerModeBanner />}
 
       {/* Multi-user Layer A — profile picker overlay. Shows on first launch
           (currentProfile === null) and via the "switch profile" button in the
@@ -4659,12 +4027,14 @@ html{scroll-padding-bottom:280px}
       {showPinGate && (
         <PinGate
           mode={accessDecision.nextStep === NEXT_STEP.SET_PIN ? 'set' : 'enter'}
-          title={accessDecision.nextStep === NEXT_STEP.SET_PIN ? 'Secure your space' : 'Welcome back'}
+          title={accessDecision.nextStep === NEXT_STEP.SET_PIN ? (mpPinResetPending ? 'Choose a new PIN' : 'Secure your space') : 'Welcome back'}
           subtitle={accessDecision.nextStep === NEXT_STEP.SET_PIN
-            ? 'One more step: choose a 4–8 digit PIN. It’s your second key — used with your email sign-in or this trusted device.'
-            : (mpHasBiometric
+            ? (mpPinResetPending
+              ? 'You signed back in, so the old PIN is gone. Choose a new 4–8 digit PIN — it replaces the one you couldn’t enter.'
+              : 'One more step: choose a 4–8 digit PIN. It’s your second key — used with your email sign-in or this trusted device.')
+            : (idleLockNotice || (mpHasBiometric
               ? 'Use your fingerprint / Face to unlock — or enter your PIN.'
-              : 'Enter your PIN to unlock your space.')}
+              : 'Enter your PIN to unlock your space.'))}
           submitLabel={accessDecision.nextStep === NEXT_STEP.SET_PIN ? 'Set PIN & continue' : 'Unlock'}
           onSubmit={accessDecision.nextStep === NEXT_STEP.SET_PIN ? handleSetPin : handleEnterPin}
           onForgot={accessDecision.nextStep !== NEXT_STEP.SET_PIN ? handleForgotPin : undefined}
@@ -4679,7 +4049,7 @@ html{scroll-padding-bottom:280px}
         <div role="dialog" aria-modal="true" aria-labelledby="bio-offer-h"
           className="fixed inset-0 z-[60] bg-[#1A1815]/95 flex items-end sm:items-center justify-center p-0 sm:p-4">
           <div className="bg-[#FAF8F4] border border-[#1A1815] max-w-sm w-full p-5 sm:p-6">
-            <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-2">PoeTech · Faster sign-in</div>
+            <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-2">PoeTech · Faster sign-in</div>
             <h2 id="bio-offer-h" className="text-xl sm:text-2xl mb-2" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>Unlock with your fingerprint or face?</h2>
             <p className="text-sm text-[#5A5751] mb-4" style={{ fontFamily: '"Fraunces", serif' }}>
               On this device you can skip the PIN next time and just use your fingerprint or face. It stays on this device — we never see or store it. Your PIN still works any time.
@@ -4689,7 +4059,7 @@ html{scroll-padding-bottom:280px}
               Enable fingerprint / Face
             </button>
             <button type="button" onClick={dismissBiometricOffer}
-              className="w-full py-2 text-[11px] underline text-[#5A5751] hover:text-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">
+              className="w-full py-2 text-[0.6875rem] underline text-[#5A5751] hover:text-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">
               Not now — keep using my PIN
             </button>
           </div>
@@ -4729,24 +4099,24 @@ html{scroll-padding-bottom:280px}
         />
       )}
 
-      {!currentProfile && !isAnyDemoMode && !isFirstTimeLanding && view !== 'admin' && (
+      {!currentProfile && !isAnyDemoMode && !isFirstTimeLanding && view !== 'admin' && !churchDoorOnly && !churchLinkVisit && (
         <div role="dialog" aria-modal="true" aria-labelledby="profile-picker-h" className="fixed inset-0 z-50 bg-[#1A1815] flex items-center justify-center p-4">
           <div className="bg-[#FAF8F4] border border-[#1A1815] max-w-md w-full p-6 sm:p-8">
-            <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-2">PoeTech · Family OS</div>
+            <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold mb-2">PoeTech · Family OS</div>
             <h2 id="profile-picker-h" className="text-2xl sm:text-3xl mb-1" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>Who's using this device?</h2>
-            <p className="text-sm text-[#5A5751] mb-6" style={{ fontFamily: '"Fraunces", serif' }}>Pick a profile to see the views meant for you. The practice stays private to its owner; business entities stay with the principal. You can switch any time from the header.</p>
+            <p className="text-sm text-[#5A5751] mb-6" style={{ fontFamily: '"Fraunces", serif' }}>Pick a profile to focus the screen on the parts meant for that person — handy on a shared device. This is a view convenience, not a login wall: everyone in the family space shares the same underlying data. Switch any time from the header.</p>
             <div className="space-y-2">
               {PROFILES.map(p => (
                 <button key={p.id} type="button" onClick={() => handlePersonaSelect(p)} className="w-full p-4 text-left border border-[#1A1815] hover:bg-white hover:border-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838] transition-colors flex items-baseline justify-between gap-3">
                   <div>
                     <div className="text-lg" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{p.name}</div>
-                    <div className="text-[11px] uppercase tracking-wider text-[#5A5751]">{p.sub}</div>
+                    <div className="text-[0.6875rem] uppercase tracking-wider text-[#5A5751]">{p.sub}</div>
                   </div>
                   <div className="w-3 h-3 rounded-full" style={{ backgroundColor: p.accent }} aria-hidden="true" />
                 </button>
               ))}
             </div>
-            <p className="text-[10px] text-[#5A5751] italic mt-4" style={{ fontFamily: '"Fraunces", serif' }}>Layer A · UX privacy. Layer B (sovereign PIN auth via workflow 21) ships separately. See vacation runbook.</p>
+            <p className="text-[0.625rem] text-[#5A5751] italic mt-4" style={{ fontFamily: '"Fraunces", serif' }}>Layer A · a shared-device view filter, not per-person security. Real access is set by your role in Admin → Role &amp; stewards. Layer B (sovereign PIN auth) ships separately.</p>
           </div>
         </div>
       )}
@@ -4756,7 +4126,7 @@ html{scroll-padding-bottom:280px}
           positions (fixed); placed once near the app root. */}
       <HelpWalkthrough setView={setView} setChurchView={setChurchView} setBooksView={setBooksView} />
 
-      <header className="border-b border-[#1A1815] bg-[#FAF8F4] sticky top-0 z-20 print:hidden">
+      <header className="ts-safe-sticky border-b border-[#1A1815] bg-[#FAF8F4] sticky z-20 print:hidden" style={{ top: 'var(--lwb-h, 0px)' }} data-read-skip>
         {/* Header vertical padding is CHROME: pinned to fixed px so it does not
             scale with the root multiplier (text-size scope split) — keeps the bar
             from growing taller and pushing content down at larger sizes. */}
@@ -4770,36 +4140,53 @@ html{scroll-padding-bottom:280px}
               can't crowd "Family Operating Systems." Side-by-side only on large
               screens where there's actually room. */}
           <div className="flex flex-col-reverse lg:flex-row lg:items-baseline lg:justify-between gap-2 sm:gap-3">
-            <div className="min-w-0">
-              <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] mb-1 font-semibold">PoeTech · Life, Soul & Money <span className="text-[8px] tracking-[0.15em] text-[#5A5751] ml-2 sm:hidden inline-flex items-center gap-1.5" title={`Build time: ${typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : 'unknown'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>build {typeof __BUILD_SHA__ !== 'undefined' ? __BUILD_SHA__ : '????'}<FreshnessDot compact /></span></div>
-              {/* Display title is CHROME: .ts-chrome-region caps it (font + box) via
-                  zoom so it stays roughly fixed while body content scales fully
-                  (text-size scope split, 2026-06-17). */}
-              <h1 className="ts-chrome-region text-2xl sm:text-3xl leading-none truncate" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>Family Operating Systems</h1>
+            <div className="min-w-0 lg:min-w-[13rem] lg:shrink-0">
+              {/* Wordmark ABOVE the tagline (Darrell 2026-07-29): the short brand
+                  rides the tight upper row beside the controls; the long tagline
+                  gets the roomy lower row so it fits at every width. */}
+              {/* Display title is CHROME: .ts-chrome-region caps it (font + box)
+                  via zoom while body content scales fully (2026-06-17 split). */}
+              {/* The name NEVER cuts off mid-word (Darrell 2026-07-06). */}
+              <h1 className="ts-chrome-region text-2xl sm:text-3xl leading-none whitespace-nowrap mb-1" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>
+                {/* In the church view the header wears the church, not PoeTech
+                    (DR-0174 — "it looks like the PoeTech App... why?"). */}
+                <span className="hidden sm:inline lg:hidden">{churchBrand ? 'The Love Corner' : 'Family Operating Systems'}</span>
+                <span className="sm:hidden lg:inline">{churchBrand ? 'The Love Corner' : 'PoeTech'}</span>
+              </h1>
+              <div className="ts-chrome-region text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">{churchBrand ? 'The Church of the Living God' : 'PoeTech · Life, Soul & Money'} <span className="text-[0.5rem] tracking-[0.15em] text-[#5A5751] ml-2 sm:hidden inline-flex items-center gap-1.5" title={`Build time: ${typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : 'unknown'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>build {typeof __BUILD_SHA__ !== 'undefined' ? __BUILD_SHA__ : '????'}<FreshnessDot compact /></span></div>
             </div>
-            <div className="flex items-center gap-2 sm:gap-3 flex-wrap lg:flex-nowrap lg:shrink-0 justify-end">
-              {/* Round 5 — Tier indicator + dev-only switcher. Round 7 fix:
-                  Replaced native <details> (which doesn't auto-close on outside
-                  click and felt broken) with a controlled dropdown that closes
-                  on selection and clicks outside, with a brief flash on change. */}
-              <TierSwitcher userTier={data.userTier} setUserTier={setUserTier} />
+            <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-end min-w-0 ts-chrome-region ts-escape-hatch header-comfort-row bg-[#FAF8F4]">
+              {/* "Hide ▾" / "Show controls ▴" when this row is the A44 bottom block (DR-0716; components/ComfortBarToggle.jsx). */}
+              <ComfortBarToggle />
+              {/* GIVE, first in the row, on church surfaces only (rationale in components/ChurchGiving.jsx). */}
+              {(churchBrand || view === 'church') && <ChurchGiveHeaderButton church={data.church} floaterPresent={view === 'church'} />}
+              {/* Obvious top-right Log in / Log out box, like TLC, on every app (Darrell 2026-07-14). */}
+              <HeaderAuthButton />
+              <AuthBanner />
+              {/* Tier PREVIEW — steward/demo only: a real user must never hop the paid tier wall with it (REV-0239). Hidden on the Love Corner door. */}
+              {!churchDoorOnly && (isFamilyMember || isAnyDemoMode) && <TierSwitcher userTier={data.userTier} setUserTier={setUserTier} />}
               {/* 2026-06-14 — the profile switcher is the family device-sharing
                   control; it is hidden for a self-serve ('self') user, who has
                   only their own identity. Clicking it would setProfile(null)
                   and re-trap them at the Poe-family picker (the load effect
                   won't re-fire to restore 'self'). */}
-              {currentProfile && currentProfile !== 'self' && (() => {
+              {currentProfile && currentProfile !== 'self' && !churchDoorOnly && (() => {
                 const p = PROFILES.find(x => x.id === currentProfile);
                 return (
-                  <button type="button" onClick={() => setProfile(null)} title={`Currently viewing as ${p?.name || currentProfile}. Tap to switch profile.`} aria-label={`Switch profile (currently ${p?.name || currentProfile})`} className="text-[10px] uppercase tracking-wider px-2 py-1.5 border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white font-semibold whitespace-nowrap flex items-center gap-1">
+                  <button type="button" onClick={() => setProfile(null)} title={`Currently viewing as ${p?.name || currentProfile}. Tap to switch profile.`} aria-label={`Switch profile (currently ${p?.name || currentProfile})`} className="text-[0.625rem] uppercase tracking-wider px-2 py-1.5 border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white font-semibold whitespace-nowrap flex items-center gap-1">
                     <span className="w-2 h-2 rounded-full" style={{ backgroundColor: p?.accent || '#1A1815' }} aria-hidden="true" />
                     {p?.name || currentProfile}
                   </button>
                 );
               })()}
-              <button type="button" onClick={() => { setView('about'); try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) {} }} className="text-[10px] uppercase tracking-wider px-2 py-1.5 bg-[#1A1815] text-white border border-[#1A1815] hover:bg-[#B85838] hover:border-[#B85838] font-semibold whitespace-nowrap" title="See plans & subscribe">
+              <button type="button" onClick={() => { setView('about'); try { window.scrollTo({ top: 0, behavior: motionBehavior() }); } catch (e) {} }} className="text-[0.625rem] uppercase tracking-wider px-2 py-1.5 bg-[#1A1815] text-white border border-[#1A1815] hover:bg-[#B85838] hover:border-[#B85838] font-semibold whitespace-nowrap" title="See plans & subscribe">
                 💳 Subscribe
               </button>
+              {/* Install-the-app, on every tab (Darrell 2026-07-10: "add it to
+                  the space that is on each tab top space"). One tap fires the
+                  browser's native install when available; otherwise it opens
+                  this phone's exact steps. Hides itself once installed. */}
+              <InstallAppButton />
               {/* Header feedback button removed — replaced by the persistent floating 💬 button bottom-left.
                   Single entry point keeps the header roomy and the loop unambiguous. */}
               {/* Contextual HELP — the discrete "?" Darrell asked for: tap it on any
@@ -4816,6 +4203,7 @@ html{scroll-padding-bottom:280px}
                 setChurchView={setChurchView}
                 setBooksView={setBooksView}
               />
+              <ArrivalsBell />
               {/* Large-print control (WCAG 1.4.4). Sits beside the theme swatches —
                   the two "make this comfortable to look at" controls live together.
                   Scales the whole app from one place; choice saved per device. */}
@@ -4825,21 +4213,14 @@ html{scroll-padding-bottom:280px}
                   together. Saved to the account so it follows the user to any device. */}
               <ReadingVoiceControl variant="header" isOwner={isFamilyMember} />
               <div className="flex gap-1 items-center" role="group" aria-label="Theme selector">
-                {[
-                  // White and Slate take design inspiration from the two phone
-                  // ecosystems most users come from — so the app feels familiar
-                  // on whichever phone opens it. No brand names used.
-                  { key: 'white',    color: '#F5F5F7', border: '#1D1D1F', label: 'Snow · clean light' },
-                  { key: 'slate',    color: '#F2F4F7', border: '#1F6FEB', label: 'Glacier · cool light' },
-                  { key: 'sapphire', color: '#EFF6FF', border: '#1E3A8A', label: 'Sapphire' },
-                  { key: 'rose',     color: '#FDF2F8', border: '#831843', label: 'Rose' },
-                  { key: 'midnight', color: '#000000', border: '#888888', label: 'Midnight · OLED black' },
-                ].map(t => (
+                {/* The shared registry, not a second hardcoded list: this row
+                    omitted CREAM, the first-run default (DR-0524, theme-css.js). */}
+                {THEMES.map(t => (
                   <button key={t.key} type="button" onClick={() => setTheme(t.key)} aria-label={`${t.label} theme${theme === t.key ? ' (currently selected)' : ''}`} title={t.label} className={`w-6 h-6 sm:w-7 sm:h-7 rounded-full transition-all focus:outline focus:outline-2 focus:outline-[#B85838] ${theme === t.key ? 'ring-2 ring-[#B85838] ring-offset-1 scale-110' : 'opacity-70 hover:opacity-100 hover:scale-105'}`} style={{ backgroundColor: t.color, border: `1.5px solid ${t.border}` }}></button>
                 ))}
               </div>
-              <div className="text-[9px] uppercase tracking-[0.2em] text-[#5A5751] text-right hidden sm:block">
-                <div className="font-medium">{data.meta.releaseLabel || `v${data.meta.appVersion}`}</div>
+              <div className="text-[0.5625rem] uppercase tracking-[0.2em] text-[#5A5751] text-right hidden sm:block">
+                <div className="font-medium">{churchDoorOnly ? 'The Love Corner' : (data.meta.releaseLabel || `v${data.meta.appVersion}`)}</div>
                 <div title="Today's date">{headerDateLabel}{headerTimeLabel ? <span className="text-[#B85838]"> · {headerTimeLabel}</span> : null}</div>
                 {/* 2026-05-28 — Build marker so the user can verify at a glance
                     whether the phone is on the latest deploy. iOS Safari has
@@ -4852,43 +4233,44 @@ html{scroll-padding-bottom:280px}
           </div>
         </div>
         )}
-        <nav className="border-t border-[#E8E4DC]">
-          {/* v28+ MVP v1.5 — Nav reordered (round 3): primary financial tabs
-              first, About anchors the right side of the primary group, then a
-              visible vertical divider separates the secondary "life" tabs
-              (Church + Markets) which live to the far right. */}
-          {/* THE reference tab row Darrell loves ("easy and fluid," "classy").
-              Routed through the shared <TabScroll> primitive so every other tab
-              strip in the app inherits this exact right-to-left scroll feel.
-              `chrome` = .ts-chrome-region caps the whole row (tab font + padding)
-              via zoom so the menu stays roughly fixed while body content scales
-              (text-size scope split). Holds only rem tabs — no fixed-px control
-              lives here, so nothing already-fixed is shrunk. */}
-          {/* Browser-like Back/Forward, pinned left of the tab row so it never
-              scrolls away. Real window.history nav (lib/nav-history.js): Back
-              returns to the exact prior view/sub-view across every tab. */}
-          {/* THE reference tab row Darrell loves ("easy and fluid," "classy") —
-              ONE flat row of every top-level surface, routed through the shared
-              <TabScroll> primitive (horizontal scroll reaches every tab). A 6-area
-              cluster nav was tried (#381) and reverted 2026-06-26: grouping the
-              familiar tabs behind areas read as "lost the tabs" on the live app.
-              The anti-sprawl goal stands, but the regrouping must be visually
-              obvious before it ships again — until then, every surface is one tap. */}
-          <div className="flex items-stretch">
-            <div className="pl-1 sm:pl-6 lg:pl-8 flex items-stretch">
-              <NavControls chrome {...navHistory} />
-            </div>
-            <TabScroll chrome className="pr-1 sm:pr-6 lg:pr-8 min-w-0 flex-1" rowClassName="sm:text-sm items-stretch">
+        {/* The way OUT of big text survives the hideaway (Darrell 2026-08-30:
+            "large font block the ability to change it afterwards after
+            selecting it"). Collapsing the header unmounts the comfort row
+            above — font control included — so at Big Print a reader who had
+            tucked the top bar away had ZERO size controls in the DOM, measured
+            by chrome-layout-probe. This renders the stepper back, and ONLY when
+            the header is collapsed AND the reader is above Normal: at 1x there
+            is nothing to escape, so the tucked-away header stays as clean as
+            Darrell built it. DR-0276 rule 3 — always reversible. */}
+        {/* The nav row, the header chevron, and on a one-tab door the brand row
+            (components/TopNavRow.jsx, DR-0640: "Both places are good... why not"). */}
+        <TopNavRow navHistory={navHistory} collapsed={headerCollapsed} onToggleHeader={toggleHeaderChrome} brandName={churchBrand ? 'The Love Corner' : 'Family Operating Systems'} brandTagline={churchBrand ? 'The Church of the Living God' : 'PoeTech · Life, Soul & Money'}
+          home={churchDoorOnly && isFamilyMember ? { href: '/poetech-app/?view=overview', label: 'PoeTech app', title: 'Open the whole PoeTech app (every tab)' } : null}
+          hatch={<TextSizeEscapeHatch collapsed={headerCollapsed} onShowHeader={toggleHeaderChrome} siteName={churchBrand ? 'The Love Corner' : 'Family Operating Systems'} siteTagline={churchBrand ? 'The Church of the Living God' : 'PoeTech · Life, Soul & Money'} />}>
               {[
                 ['overview','Big Picture'],
                 ['books','Books'],
                 ['inbound', <><UiIcon name="phone" /> Inbound</>],
                 ['rentals','Real Estate'],
+                ['properties','Properties'],
                 ['projects','Projects'],
-                ['practice','Practice'],
+                // TLC — the unified TLC Therapy Solutions office. Operators
+                // (family/Governor or a business-tier account) get ONE entry that
+                // holds all three TLC surfaces (Practice, Intake, Assistant) as
+                // sub-tabs; a plain premium user still reaches standalone Practice.
+                // The individual routes stay valid for deep-links either way.
+                // A granted ASSISTANT (DR-0271) gets the standalone Assistant
+                // entry instead — its whole reach.
+                ...(isAssistantAcct ? [['tlc-assistant', <><UiIcon name="heart" /> Assistant</>]]
+                  : (isFamilyMember || tierMeets(data.userTier, 'business')) ? [['tlc', <><UiIcon name="heart" /> TLC</>]]
+                  : [['practice','Practice']]),
                 ['opportunities','Dev/Ops'],
                 ['about','About'],
                 ['__sep__', null],
+                // Messages — encrypted 1:1 + roster group threads, app-wide
+                // (Darrell 2026-07-25: "how can he message me whenever
+                // encrypted?"). Open to every signed-in user.
+                ['messages', <><UiIcon name="chat" /> Messages<DmUnreadBadge /></>],
                 ['notes', <><UiIcon name="dove" /> Notes</>],
                 // Create — the document / image creation workspace (Notes group:
                 // capture (Notes) -> reflect (Study) -> compose/produce (Create)).
@@ -4898,6 +4280,8 @@ html{scroll-padding-bottom:280px}
                 // personal (cloned) voices as a subscriber feature. Notes group
                 // sibling (capture -> reflect -> compose -> hear).
                 ['voice', <><UiIcon name="volume" /> Voice</>],
+                // Scribe — record workflows on screen + meetings (2026-07-27 review); steward-only Phase 1, no-leak spread.
+                ...(isFamilyMember ? [['scribe', <><UiIcon name="monitor" /> Scribe</>]] : []),
                 // Library — books assembled from the house's own corpus, with an
                 // in-app reader whose chapters deep-link back into the live app
                 // (the books<->app flywheel). Reading is open to every signed-in
@@ -4907,6 +4291,7 @@ html{scroll-padding-bottom:280px}
                 // Vegan Recipes by Chef Mario). Open to every signed-in user;
                 // persistence is instance-scoped (family-private).
                 ['recipes', <><UiIcon name="chefHat" /> Chef's Corner</>],
+                ...(canSeeHealthTab(isFamilyMember, data.healthPrograms) ? [['health', <><UiIcon name="chart" /> Road to 150</>]] : []),
                 // Games — the family games hub ("our games"). Open to everyone
                 // (the children most of all); the first game walks an African
                 // American life journey, measured by Yahweh. Persistence is
@@ -4916,6 +4301,13 @@ html{scroll-padding-bottom:280px}
                 // 2026-07-04). Open to everyone; a PWA-native home for the circle
                 // when their old app shut down. Local-first, private to the device.
                 ['tvtime', <><UiIcon name="monitor" /> TV Time</>],
+                // Advocacy — the Case File: dated documentation of a student's
+                // (or anyone's) situations with an institution, so the family
+                // asks for help with the data already in hand (2026-08-04).
+                ['advocacy', <><UiIcon name="landmark" /> Advocacy</>],
+                ['databack', <><UiIcon name="landmark" /> Your Data</>],
+                ...(isFamilyMember ? [['cameras', <><UiIcon name="eye" /> Cameras</>]] : []),
+                ...(authSession?.user ? [['vault', <><UiIcon name="lock" /> Vault</>]] : []),
                 // Darrell's Study — private to the circle (Darrell/Christina/BG).
                 // Spread so the entry is absent from the DOM entirely for everyone
                 // else (no-leak); the feedback-area-guard still sees the literal
@@ -4933,30 +4325,46 @@ html{scroll-padding-bottom:280px}
                 // Family/Governor only (steward tooling across all businesses);
                 // spread so the entry is absent from the DOM for everyone else.
                 ...(isFamilyMember ? [['crm', <><UiIcon name="users" /> CRM</>]] : []),
-                // Relationships — the relationship-based permission model: who can
-                // do what based on the relationship (guardian<->child, family,
-                // landlord<->tenant). Family/Governor only (it SETS access); spread
-                // so the entry is absent from the DOM for everyone else (no-leak).
-                ...(isFamilyMember ? [['relationships', <><UiIcon name="users" /> Relationships</>]] : []),
+                // Relationships — the relationship permission model (guardian<->
+                // child, family, landlord<->tenant/manager). Family/Governor AND
+                // the Business tier (Darrell 2026-07-08, DR-0128: the delegation
+                // matrix IS a business feature; RLS keeps the boundary). No-leak.
+                ...((isFamilyMember || tierMeets(data.userTier, 'business')) ? [['relationships', <><UiIcon name="users" /> Relationships</>]] : []),
                 // Inventory — a real inventory-control system of record (derived
                 // on-hand over an immutable movement ledger). Family/Governor only
                 // (operations tooling); spread so the entry is absent from the DOM
                 // for everyone else, like Center / CRM.
                 ...(isFamilyMember ? [['inventory', <><UiIcon name="tools" /> Inventory</>]] : []),
+                // Moore Divahs — Shay's fashion business system (DR-0113 board;
+                // discovery 2026-07-07). The steward door: orders + the 3-week
+                // clock + change-order ladder. Family/Governor only for now (the
+                // customer-facing door ships separately as the branded /moore
+                // boot); spread so the entry is absent from the DOM for everyone
+                // else (no-leak), like Center / CRM.
+                ...(isFamilyMember ? [['moore', <><UiIcon name="palette" /> Moore Divahs</>]] : []),
                 // Forecast — the financial-engineering / forward-projection layer.
                 // Family/Governor only (it models the family's real money); spread
                 // so the entry is absent from the DOM for everyone else (no-leak),
                 // and the component carries a locked fallback for any deep-link.
                 ...(isFamilyMember ? [['forecast', <><UiIcon name="chart" /> Forecast</>]] : []),
-                // Admin — the real backend control surface. Shown to family
-                // stewards, and on the trusted NAS/home host (where being on the
-                // family network is itself the access control) — the SAME gate the
-                // render below applies, so the tab and the surface never disagree.
-                // On the public site a non-steward never gets the entry (no-leak,
-                // like Center / Forecast); the module also carries a defense-in-
-                // depth locked fallback for any deep-link.
-                ...((isFamilyMember || !isPublicHost()) ? [['admin', <><UiIcon name="lock" /> Admin</>]] : []),
-              ].map(([id, label]) => {
+                // Academy — the PoeTech Academy. Open to everyone as a parent-facing
+                // INVITE (the value/ROI pitch + register-interest): prospective
+                // families must be able to see it to decide. The operations CONSOLE
+                // inside (enroll, tuition, team, week-4 retro) stays operator-gated —
+                // the component renders the invite for non-operators and the console
+                // only for family/Governor or a business-tier operator.
+                ['cohorts', <><UiIcon name="bookOpen" /> Academy</>],
+                // Assistant is folded into the unified TLC workspace (above) as a
+                // sub-tab — no standalone top-nav entry. The 'tlc-assistant' route
+                // stays valid for deep-links; the render block below still serves it.
+                // Admin — same gate as the render below (tab and surface never
+                // disagree): family stewards anywhere; home host only in the
+                // OPEN no-session state — a signed-in guest on the house WiFi
+                // gets no Admin (DR-0241: the network trusts devices, not sessions).
+                ...((!reviewerMode && (isFamilyMember || (!isPublicHost() && !authSession))) ? [['admin', <><UiIcon name="lock" /> Admin</>]] : []),
+              ].filter(([id]) => (!churchDoorOnly || id === 'church')
+                 && (!isAssistantAcct || ['tlc-assistant', 'messages', 'about'].includes(id)))
+               .map(([id, label]) => {
                 if (id === '__sep__') {
                   return <span key="sep" aria-hidden="true" className="self-center mx-1 sm:mx-3 h-5 border-l border-[#1A1815] opacity-40" />;
                 }
@@ -4964,50 +4372,36 @@ html{scroll-padding-bottom:280px}
                   <button key={id} onClick={() => setView(id)} className={`px-2.5 sm:px-3 py-2.5 whitespace-nowrap border-b-2 transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] ${view === id ? 'border-[#B85838] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
                 );
               })}
-            </TabScroll>
-            {/* HEADER HIDEAWAY toggle — pinned to the right of the tab row so it
-                is ALWAYS visible (it never scrolls with the tabs and it is the
-                one control that survives a collapse). One tap hides the whole top
-                chrome (date/time, build line, account/subscribe row, voice + font
-                controls, theme swatches, Sample banner) for max dashboard room;
-                one tap brings it all back. The chevron points UP to "tuck away"
-                and DOWN to "bring back." Preference persists per device. The
-                color is a chrome token (#5A5751 -> 5.9:1 on the bar, remapped to
-                #888888 on midnight) and the icon inherits it via currentColor, so
-                it stays WCAG-legible in every theme. */}
-            <button
-              type="button"
-              onClick={toggleHeaderChrome}
-              aria-expanded={!headerCollapsed}
-              aria-label={headerCollapsed ? 'Show the full header (date, account, voice, font, theme controls)' : 'Hide the top bar — keep only the tabs for more room'}
-              title={headerCollapsed ? 'Show the full header' : 'Hide the top bar (keep tabs)'}
-              className="shrink-0 self-stretch px-2.5 sm:px-3 flex items-center justify-center border-l border-[#E8E4DC] text-[#5A5751] hover:text-[#1A1815] hover:bg-[#E8E4DC] focus:outline focus:outline-2 focus:outline-[#B85838]"
-            >
-              <UiIcon name={headerCollapsed ? 'chevronDown' : 'chevronUp'} className="text-base" />
-              <span className="sr-only">{headerCollapsed ? 'Show header' : 'Hide header'}</span>
-            </button>
-          </div>
-        </nav>
+        </TopNavRow>
         {view === 'books' && (
-          <div className="border-t border-[#E8E4DC] bg-white">
-            {/* Books sub-nav routes through the shared <TabScroll> primitive
-                (same fluid scroll as the main nav). `chrome` = .ts-chrome-region
-                caps the row via zoom while body text scales. */}
+          <div className="border-t border-[#E8E4DC] bg-white flex items-center">
+            {/* Books sub-nav: shared <TabScroll> (chrome caps the row via zoom); the ONE Upload sits top right on every sub-tab (DR-0709, components/BooksUploadButton.jsx). */}
             <TabScroll chrome className="px-1 sm:px-6 lg:px-8">
-                {[['entities','Entities'],['accounts','Accounts'],['debts','Debts'],['transactions','Tx'],['imported','Imported'],['cart','Cart'],['k1099','1099s'],['calendar','Calendar'],['legal', <><UiIcon name="lock" /> Legal</>]].filter(([id]) => !(id === 'imported' && !importedAllowed)).map(([id, label]) => (
+                {[['entities','Entities'],['accounts','Accounts'],['debts','Debts'],['owed','Owed'],['plan','Plan'],['transactions','Tx'],['imported','Imported'],['cart','Cart'],['k1099','1099s'],['taxes','Taxes'],['calendar','Calendar'],['legal', <><UiIcon name="lock" /> Legal</>]].filter(([id]) => !(id === 'imported' && !importedAllowed)).map(([id, label]) => (
                   <button key={id} onClick={() => setBooksView(id)} className={`px-2.5 sm:px-3 py-2 whitespace-nowrap border-b-2 transition-colors ${booksView === id ? 'border-[#1A1815] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
+                ))}
+            </TabScroll>
+            <BooksUploadButton />
+          </div>
+        )}
+        {!authSession && churchBrandRoute && <PublicWelcome placement="top" />}{view === 'create' && <CreateSubNav viewer={surfaceViewer} surfaces={Object.values(surfaceById)} />}
+        {view === 'church' && (
+          <div className="border-t border-[#E8E4DC] bg-white">
+            {/* Church sub-nav rides <TabScroll>; chrome caps the row via zoom. */}
+            <TabScroll chrome className="px-1 sm:px-6 lg:px-8">
+                {[['home','Church'],['ministries', <><UiIcon name="heart" /> Ministries</>],['pulpit', <><UiIcon name="bookOpen" /> The Word</>],['scripture', <><UiIcon name="book" /> Scripture</>],['engagement','Engagement'],['choir','Choir'],['bus', <><UiIcon name="users" /> Bus Ministry</>],['program', <><UiIcon name="bookOpen" /> Order of Service</>],['learn','Learn'],['conference','Conference'],['events','Campus Rentals'],['projects', <><UiIcon name="sliders" /> Projects</>], ...(authSession ? [['my-record', <><UiIcon name="pencil" /> My Record</>],['access', <><UiIcon name="lock" /> Access</>],['members', <><UiIcon name="users" /> Members</>]] : []), ...(!reviewerMode && isChurchOfficeRole(churchAccess.role) ? [['giving-book', <><UiIcon name="coins" /> Giving Book</>]] : []), ...(isChurchStaff ? [['harvest', <><UiIcon name="sparkle" /> Harvest</>],['videowall', <><UiIcon name="monitor" /> Video Wall</>],['devices', <><UiIcon name="tools" /> Devices</>],['infra-plan', <><UiIcon name="sliders" /> Infra Plan</>],['observe', <><UiIcon name="lock" /> Observation</>]] : [])].map(([id, label]) => (
+                  <button key={id} onClick={() => setChurchView(id)} className={`px-2.5 sm:px-3 py-2 whitespace-nowrap border-b-2 transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] ${churchView === id ? 'border-[#1A1815] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
                 ))}
             </TabScroll>
           </div>
         )}
-        {view === 'church' && (
+        {view === 'tlc' && (isFamilyMember || tierMeets(data.userTier, 'business')) && (
           <div className="border-t border-[#E8E4DC] bg-white">
-            {/* Church sub-nav routes through the shared <TabScroll> primitive
-                (same fluid scroll as the main nav). `chrome` = .ts-chrome-region
-                caps the row via zoom while body text scales. */}
+            {/* TLC sub-nav — three views of the one TLC office, routed through the
+                shared <TabScroll> primitive (same fluid scroll as the main nav). */}
             <TabScroll chrome className="px-1 sm:px-6 lg:px-8">
-                {[['home','Church'],['engagement','Engagement'],['choir','Choir'],['program', <><UiIcon name="bookOpen" /> Order of Service</>],['learn','Learn'],['eternal-algorithms', <><UiIcon name="sparkle" /> Eternal Algorithms</>],['conference','Conference'],['events','Venues'],['pulpit', <><UiIcon name="bookOpen" /> The Word</>],['scripture', <><UiIcon name="book" /> Scripture</>], ...(isChurchStaff ? [['harvest', <><UiIcon name="sparkle" /> Harvest</>],['videowall', <><UiIcon name="monitor" /> Video Wall</>],['devices', <><UiIcon name="tools" /> Devices</>],['observe', <><UiIcon name="lock" /> Observation</>]] : [])].map(([id, label]) => (
-                  <button key={id} onClick={() => setChurchView(id)} className={`px-2.5 sm:px-3 py-2 whitespace-nowrap border-b-2 transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] ${churchView === id ? 'border-[#1A1815] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
+                {[['practice', <><UiIcon name="heart" /> Practice</>],['inquiries', <><UiIcon name="phone" /> Inquiries</>],['revenue', <><UiIcon name="coins" /> Revenue</>],['growth', <><UiIcon name="chart" /> Client Growth</>],['learn', <><UiIcon name="bookOpen" /> Learn</>],['intake', <><UiIcon name="phone" /> Intake</>],['assistant', <><UiIcon name="users" /> Assistant</>],['onboard', <><UiIcon name="pencil" /> Onboarding</>]].map(([id, label]) => (
+                  <button key={id} onClick={() => setTlcSub(id)} className={`px-2.5 sm:px-3 py-2 whitespace-nowrap border-b-2 transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] ${tlcSub === id ? 'border-[#1A1815] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
                 ))}
             </TabScroll>
           </div>
@@ -5021,35 +4415,34 @@ html{scroll-padding-bottom:280px}
             <AdvisementBanner />
           </div>
         )}
-        {view === 'overview' && <SectionBoundary name="Overview"><BigPictureDashboard data={data} snowballExtra={snowballExtra} totals={totals} pressure={pressure} setPressure={setPressure} pressureCalc={pressureCalc} projection={projection} rentalSnowball={rentalSnowball} flaggedRentals={flaggedRentals} flaggedOpportunities={flaggedOpportunities} entityRollups={entityRollups} reserves={reserves} upcomingEvents={upcomingEvents} welcomeDismissed={data.welcomeDismissed} dismissWelcome={dismissWelcome} setView={setView} setFeedbackOpen={setFeedbackOpen} bufferTarget={data.meta?.bufferTarget || 0} bufferCurrent={bufferCurrentReal} capexItems={data.capexItems || []} watchlist={data.watchlist || []} rentals={data.inflows?.rentals || []} incidents={data.incidents || []} projects={data.projects || []} resolveIncident={resolveIncident} skillProfiles={data.skillProfiles || []} addIncident={addIncident} addProject={addProject} entities={data.entities || []} ingestData={ingestData} setBooksView={setBooksView} contractors={data.contractors1099 || []} workerOps={workerOps} lifePhotos={data.lifePhotos || []} addLifePhotos={addLifePhotos} updateLifePhoto={updateLifePhoto} deleteLifePhoto={deleteLifePhoto} /></SectionBoundary>}
+        {view === 'overview' && <SectionBoundary name="Overview"><Home setData={setData} setChurchView={setChurchView} data={data} addNote={addNote} snowballExtra={snowballExtra} totals={totals} pressure={pressure} setPressure={setPressure} pressureCalc={pressureCalc} projection={projection} rentalSnowball={rentalSnowball} flaggedRentals={flaggedRentals} flaggedOpportunities={flaggedOpportunities} entityRollups={entityRollups} reserves={reserves} upcomingEvents={upcomingEvents} welcomeDismissed={data.welcomeDismissed} dismissWelcome={dismissWelcome} setView={setView} setFeedbackOpen={setFeedbackOpen} bufferTarget={data.meta?.bufferTarget || 0} bufferCurrent={bufferCurrentReal} capexItems={data.capexItems || []} watchlist={data.watchlist || []} rentals={data.inflows?.rentals || []} incidents={data.incidents || []} projects={data.projects || []} resolveIncident={resolveIncident} skillProfiles={data.skillProfiles || []} addIncident={addIncident} addProject={addProject} entities={data.entities || []} ingestData={ingestData} setBooksView={setBooksView} contractors={data.contractors1099 || []} workerOps={workerOps} lifePhotos={data.lifePhotos || []} addLifePhotos={addLifePhotos} updateLifePhoto={updateLifePhoto} deleteLifePhoto={deleteLifePhoto} /></SectionBoundary>}
         {view === 'books' && (
-          <PrivateGate area="Financial" onCancel={() => setView('overview')}>
-          {/* Router-level backstop (2026-06-25): every Books sub-tab degrades to a
-              recoverable inline card instead of white-screening the whole app if it
-              throws on an unexpected data shape. Keyed by booksView so switching tabs
-              remounts a fresh boundary (a crash in one tab doesn't stick to the next).
-              Transactions keeps its own inner boundary too — defense in depth, and it
-              also catches that lazy chunk's load failures. */}
+          <PrivateGate area="Financial" onCancel={() => setView('overview')} onForgot={handleForgotPin}>
+          {/* Router-level backstop (2026-06-25): each Books sub-tab degrades to an inline card, keyed by booksView so a crash never sticks to the next tab. */}
+          <SectionBoundary name="Upload"><BooksUploadMount hint={booksView} data={data} debts={derivedDebts} demo={isAnyDemoMode || reviewerMode} commitImportedRows={commitImportedRows} addAccount={addAccount} updateAccount={updateAccount} /></SectionBoundary>
           <SectionBoundary key={booksView} name="Financial">
             {booksView === 'entities' && <BooksEntities entityRollups={entityRollups} entityFilter={entityFilter} setEntityFilter={setEntityFilter} data={data} updateEntity={updateEntity} />}
-            {booksView === 'accounts' && <BooksAccounts entityRollups={entityRollups} entities={visibleEntities} addAccount={addAccount} updateAccount={updateAccount} deleteAccount={deleteAccount} toggleAccountLegal={toggleAccountLegal} bufferTarget={data.meta?.bufferTarget || 0} bufferCurrent={bufferCurrentReal} setBufferTarget={setBufferTarget} totals={totals} ingestData={ingestData} />}
-            {booksView === 'debts' && <Debts debts={derivedDebts} entities={data.entities} debtSnowballSort={debtSnowballSort} setDebtSnowballSort={setDebtSnowballSort} debtSnowballExtra={debtSnowballExtra} setDebtSnowballExtra={setDebtSnowballExtra} debtSnowball={debtSnowball} debtMinOnly={debtMinOnly} currentDate={currentDate} netCashFlow={totals.netCashFlow} cashTotal={totals.allAccountsCash || 0} />}
+            {booksView === 'accounts' && <BooksAccounts entityRollups={entityRollups} entities={visibleEntities} addAccount={addAccount} updateAccount={updateAccount} deleteAccount={deleteAccount} toggleAccountLegal={toggleAccountLegal} bufferTarget={data.meta?.bufferTarget || 0} bufferCurrent={bufferCurrentReal} setBufferTarget={setBufferTarget} totals={totals} ingestData={ingestData} accountReconciliation={accountReconciliation} transactions={data.transactions || []} categoryRules={data.categoryRules || {}} />}
+            {booksView === 'debts' && <Debts debts={derivedDebts} entities={data.entities} debtSnowballSort={debtSnowballSort} setDebtSnowballSort={setDebtSnowballSort} debtSnowballExtra={debtSnowballExtra} setDebtSnowballExtra={setDebtSnowballExtra} debtSnowball={debtSnowball} debtMinOnly={debtMinOnly} currentDate={currentDate} netCashFlow={totals.netCashFlow} cashTotal={totals.allAccountsCash || 0} updateAccount={updateAccount} transactions={data.transactions || []} accounts={data.accounts || []} categoryRules={data.categoryRules || {}} addAccount={addAccount} addAccounts={addAccounts} deleteAccount={deleteAccount} updateRental={updateRental} recategorizePayee={recategorizePayee} />}
+            {booksView === 'owed' && <SectionBoundary name="Owed"><Obligations /></SectionBoundary>}
+            {booksView === 'plan' && <SectionBoundary name="Family Plan"><FamilyPlan /></SectionBoundary>}
             {/* BooksTransactions now lazy-loads its own chunk (Stage 1 extraction). The
                 SectionBoundary makes the unbreakable-pass hold for the migrated surface:
                 a thrown error OR a chunk-load failure degrades JUST this panel, never the
                 whole app (the new failure mode lazy-loading introduces over the old inline). */}
-            {booksView === 'transactions' && <SectionBoundary name="Transactions"><BooksTransactions data={data} entityFilter={entityFilter} setEntityFilter={setEntityFilter} currentDate={currentDate} addTransaction={addTransaction} updateTransaction={updateTransaction} deleteTransaction={deleteTransaction} recategorizePayee={recategorizePayee} ingestData={ingestData} visibleEntities={visibleEntities} visibleEntityIds={visibleEntityIds} /></SectionBoundary>}
-            {booksView === 'imported' && (importedAllowed
-              ? <Imported data={data} />
-              : <ImportedDemoGuard setBooksView={setBooksView} />)}
+            {booksView === 'transactions' && <SectionBoundary name="Transactions"><BooksTransactions data={data} entityFilter={entityFilter} setEntityFilter={setEntityFilter} currentDate={currentDate} addTransaction={addTransaction} commitImportedRows={commitImportedRows} updateTransaction={updateTransaction} deleteTransaction={deleteTransaction} recategorizePayee={recategorizePayee} ingestData={ingestData} visibleEntities={visibleEntities} visibleEntityIds={visibleEntityIds} payeeEntityRules={data.payeeEntityRules || {}} setPayeeEntityRules={setPayeeEntityRules} /></SectionBoundary>}
+            {booksView === 'imported' && (importedAllowed ? <Imported data={data} deleteTransaction={deleteTransaction} recategorizePayee={recategorizePayee} /> : <ImportedDemoGuard setBooksView={setBooksView} />)}
             {booksView === 'cart' && <Cart subscriptions={data.subscriptions || []} entities={data.entities} addSubscription={addSubscription} updateSubscription={updateSubscription} deleteSubscription={deleteSubscription} />}
-            {booksView === 'k1099' && <Contractors1099 contractors={data.contractors1099 || []} entities={data.entities || []} incidents={data.incidents || []} addContractor={addContractor} updateContractor={updateContractor} deleteContractor={deleteContractor} />}
+            {booksView === 'k1099' && <Contractors1099 contractors={data.contractors1099 || []} entities={data.entities || []} incidents={data.incidents || []} transactions={data.transactions || []} addContractor={addContractor} updateContractor={updateContractor} deleteContractor={deleteContractor} currentDate={currentDate} />}
             {booksView === 'calendar' && <Calendar data={data} reserves={reserves} addRecurring={addRecurring} addIncident={addIncident} addEvent={addEvent} completeEvent={completeEvent} deleteRecurring={deleteRecurring} deleteIncident={deleteIncident} deleteEvent={deleteEvent} updateRecurring={updateRecurring} updateEvent={updateEvent} notifPermission={notifPermission} requestNotif={requestNotificationPermission} upcomingEvents={upcomingEvents} />}
+            {booksView === 'taxes' && <SectionBoundary name="Taxes"><BooksTaxes entities={data.entities || []} /></SectionBoundary>}
             {booksView === 'legal' && <LegalPlaceholder tier={data.userTier} setView={setView} accounts={data.accounts || []} entities={data.entities || []} toggleAccountLegal={toggleAccountLegal} />}
           </SectionBoundary>
           </PrivateGate>
         )}
         {view === 'inbound' && <SectionBoundary name="Inbound"><Inbound voiceOps={data.voiceOps || {}} setVoiceOpsConfig={setVoiceOpsConfig} addIncident={addIncident} addInquiry={addInquiry} addProject={addProject} entities={data.entities || []} setView={setView} /></SectionBoundary>}
+        {/* Properties: the module the Poe Properties App also mounts (DR-0313; `books` only here — the books live in this app). */}
+        {view === 'properties' && <SectionBoundary name="Properties"><PropertiesApp surface="poetech" books={{ postEntry: (entry) => addTransaction(entry) }} onFeedback={(areaKey, where) => setFeedbackOpen(where ? { area: areaKey, ...where } : areaKey)} /></SectionBoundary>}
         {view === 'rentals' && (() => {
           // Real Estate: Foundation tier = READ-ONLY PREVIEW of one seed property.
           // PoeTech+ and above = full editor over the user's actual rentals.
@@ -5062,7 +4455,7 @@ html{scroll-padding-bottom:280px}
             <>
               {!fullEdit && (
                 <div className="bg-white border-2 border-[#B85838] p-3 sm:p-4 mb-3" role="status">
-                  <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-1">Real Estate · Read-only preview</div>
+                  <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-1">Real Estate · Read-only preview</div>
                   <p className="text-xs text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>You're seeing one sample property so the value is concrete. Unlock the full editor (lease · tenant · equipment · rooms · maintenance · evaluator · map · snowball math) at {TIER_LABEL[RENTALS_FULL_EDIT_TIER]}. <button type="button" onClick={() => setView('about')} className="underline text-[#B85838] hover:text-[#1A1815] font-semibold">See pricing tiers →</button></p>
                 </div>
               )}
@@ -5092,7 +4485,7 @@ html{scroll-padding-bottom:280px}
           );
         })()}
         {view === 'markets' && <Markets watchlist={data.watchlist || []} addWatchlistSymbol={addWatchlistSymbol} removeWatchlistSymbol={removeWatchlistSymbol} userTier={data.userTier} setView={setView} maxWatchlist={tierMeets(data.userTier, 'poetech-plus') ? Infinity : FOUNDATION_CAPS.maxWatchlistTickers} />}
-        {view === 'church' && churchView === 'home' && <ChurchHome church={data.church} prayerRequests={data.prayerRequests || []} addPrayerRequest={addPrayerRequest} markPrayerRequestSent={markPrayerRequestSent} deletePrayerRequest={deletePrayerRequest} addEvent={addEvent} conference={data.conference} updateConference={updateConference} churchVoice={data.churchVoice || []} addChurchVoice={addChurchVoice} sendToPoeTech={sendNoteToPoeTech} addIncident={addIncident} addInquiry={addInquiry} />}
+        {view === 'church' && churchView === 'home' && <ChurchHome key={churchHomeSection || 'default'} initialSection={churchHomeSection} church={data.church} prayerRequests={data.prayerRequests || []} addPrayerRequest={addPrayerRequest} markPrayerRequestSent={markPrayerRequestSent} deletePrayerRequest={deletePrayerRequest} addEvent={addEvent} conference={data.conference} updateConference={updateConference} churchVoice={data.churchVoice || []} addChurchVoice={addChurchVoice} sendToPoeTech={sendNoteToPoeTech} addIncident={addIncident} addInquiry={addInquiry} setChurchView={setChurchView} email={authSession?.user?.email} canStudy={isStudyCircle} signedIn={!!authSession} />}
         {view === 'church' && churchView === 'engagement' && <Engagement />}
         {view === 'church' && churchView === 'choir' && <Choir />}
         {/* Order of Service: ONE master program per Sunday; the component derives
@@ -5102,26 +4495,28 @@ html{scroll-padding-bottom:280px}
             gates prep/management/drafts to leadership (RLS-enforced, 0029). */}
         {view === 'church' && churchView === 'pulpit' && <Pulpit />}
         {view === 'church' && churchView === 'scripture' && <ScriptureLibrary email={authSession?.user?.email} canStudy={isStudyCircle} setChurchView={setChurchView} />}
-        {view === 'church' && churchView === 'eternal-algorithms' && <EternalAlgorithmsStudy email={authSession?.user?.email} view={view} churchView={churchView} setView={setView} setChurchView={setChurchView} />}
         {/* Harvest Ledger: no video lost — every ingested recording fully mined
             (one-source-many-harvests). Staff-gated; RLS read = choir (0050). */}
         {view === 'church' && churchView === 'harvest' && (isChurchStaff
           ? <HarvestLedger />
-          : <div className="bg-white border border-[#1A1815] p-5 text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>The Harvest Ledger is for church staff. Sign in with a church staff account to view it.</div>)}
+          : <LockedSurface surface={surfaceById['harvest']} viewer={surfaceViewer} instanceId={churchAccess.instanceId} what="Every recording the church has ingested, and everything that has been mined out of it — so no video is lost." />)}
         {view === 'church' && churchView === 'videowall' && (isChurchStaff
           ? <ChurchVideoWall />
-          : <div className="bg-white border border-[#1A1815] p-5 text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>The Video Wall capital project holds church financial data. Sign in with a church staff account to view it.</div>)}
+          : <LockedSurface surface={surfaceById['videowall']} viewer={surfaceViewer} instanceId={churchAccess.instanceId} what="The video wall capital project: what it costs, what is bought, and what is still needed. It carries church financial figures." />)}
         {/* Device Inventory: the asset register for church infrastructure +
             the idle-GPU compute pool (capability index). Staff-gated; RLS
             scopes church_devices (0056). The capability fields feed the
             deterministic, brake-gated gpu-scheduler (ships inert). */}
         {view === 'church' && churchView === 'devices' && (isChurchStaff
           ? <DeviceInventory />
-          : <div className="bg-white border border-[#1A1815] p-5 text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>The Device Inventory is church infrastructure data. Sign in with a church staff account to view it.</div>)}
+          : <LockedSurface surface={surfaceById['devices']} viewer={surfaceViewer} instanceId={churchAccess.instanceId} what="The register of what the church owns and runs — cameras, screens, machines — and what each one can do." />)}
+        {view === 'church' && churchView === 'infra-plan' && (isChurchStaff
+          ? <ChurchInfraPlan />
+          : <LockedSurface surface={surfaceById['infra-plan']} viewer={surfaceViewer} instanceId={churchAccess.instanceId} what="The plan for the church's own systems: what is standing, what is next, and what each step depends on." />)}
         {view === 'church' && churchView === 'observe' && (isChurchStaff
           ? <ChurchObservation observation={data.churchObservation} updateChurchObservation={updateChurchObservation} />
-          : <div className="bg-white border border-[#1A1815] p-5 text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>The Observation board is for church staff only. Sign in with a church staff account to view it.</div>)}
-        {view === 'church' && churchView === 'learn' && (() => {
+          : <LockedSurface surface={surfaceById['observe']} viewer={surfaceViewer} instanceId={churchAccess.instanceId} />)}
+        {view === 'church' && (churchView === 'learn' || churchView === 'eternal-algorithms') && (() => {
           // Resolve the cohort a learner SEES: the Governor's live in-instance
           // value when present, else the PUBLISHED confirmed date every build
           // carries (resolveCohort) — so a learner outside Darrell's instance no
@@ -5134,7 +4529,7 @@ html{scroll-padding-bottom:280px}
           const submitClassInterest = authSession
             ? (name) => addFeedback({ area: 'church-learn', rating: 'love', category: 'feature-request', text: `${CLASS_INTEREST_TAG} ${(name || 'A parishioner').trim()} wants to join the youth A.I. class.` })
             : null;
-          const isGov = !!authSession && isFamilyEmail(authSession.user?.email);
+          const isGov = !!authSession && !reviewerMode && isFamilyEmail(authSession.user?.email);
           const classRoster = isGov ? extractClassRoster([...(data.feedback || []), ...remoteFeedback]) : null;
 
           // The Broadcast course descriptor (second course in the Learn tab). The
@@ -5148,7 +4543,7 @@ html{scroll-padding-bottom:280px}
             : null;
           const broadcastRoster = isGov ? extractClassRoster([...(data.feedback || []), ...remoteFeedback], BROADCAST_INTEREST_TAG) : null;
           const broadcastCourse = {
-            meta: { ...BROADCAST_META, key: 'broadcast' },
+            meta: catalogMeta('broadcast', BROADCAST_META),
             sessionFlow: BROADCAST_SESSION_FLOW,
             schedule: buildBroadcastSchedule(bcStart),
             cohortStart: bcStart,
@@ -5184,7 +4579,7 @@ html{scroll-padding-bottom:280px}
           // Engagement-by-age aggregate (Governor only) from the real feedback stream.
           const engagementByAge = isGov ? aggregateEngagementByAge([...(data.feedback || []), ...remoteFeedback]) : null;
           const infrastructureCourse = {
-            meta: { ...INFRA_META, key: 'infrastructure' },
+            meta: catalogMeta('infrastructure', INFRA_META),
             sessionFlow: INFRA_SESSION_FLOW,
             schedule: buildInfraSchedule(infraStart),
             cohortStart: infraStart,
@@ -5221,7 +4616,7 @@ html{scroll-padding-bottom:280px}
             : null;
           const sovereignAiRoster = isGov ? extractClassRoster([...(data.feedback || []), ...remoteFeedback], SOVEREIGN_AI_INTEREST_TAG) : null;
           const sovereignAiCourse = {
-            meta: { ...SOVEREIGN_AI_META, key: 'sovereign-ai' },
+            meta: catalogMeta('sovereign-ai', SOVEREIGN_AI_META),
             sessionFlow: SOVEREIGN_AI_SESSION_FLOW,
             schedule: buildSovereignAiSchedule(sovereignAiStart),
             cohortStart: sovereignAiStart,
@@ -5254,7 +4649,7 @@ html{scroll-padding-bottom:280px}
             : null;
           const aiLegalBlueprintRoster = isGov ? extractClassRoster([...(data.feedback || []), ...remoteFeedback], AI_LEGAL_BLUEPRINT_INTEREST_TAG) : null;
           const aiLegalBlueprintCourse = {
-            meta: { ...AI_LEGAL_BLUEPRINT_META, key: 'ai-legal-blueprint' },
+            meta: catalogMeta('ai-legal-blueprint', AI_LEGAL_BLUEPRINT_META),
             sessionFlow: AI_LEGAL_BLUEPRINT_SESSION_FLOW,
             schedule: buildAiLegalBlueprintSchedule(aiLegalBlueprintStart),
             cohortStart: aiLegalBlueprintStart,
@@ -5276,149 +4671,31 @@ html{scroll-padding-bottom:280px}
             engagementByAge,         // Governor: real engagement-by-age aggregate
           };
 
-          // Living Lessons — a Word-first, SELF-PACED lesson series on the same
-          // shared engine (meta.unit renders it as "Lesson(s)" + drops the cohort
-          // clock). No cohort date setters (self-paced): setCohortStart/confirmCohort
-          // are null, and the schedule carries lesson numbers with no painted dates.
-          const submitLivingLessonsInterest = authSession
-            ? (name) => addFeedback({ area: 'church-learn', rating: 'love', category: 'feature-request', text: `${LIVING_LESSONS_INTEREST_TAG} ${(name || 'A reader').trim()} wants more Living Lessons.` })
-            : null;
-          const livingLessonsRoster = isGov ? extractClassRoster([...(data.feedback || []), ...remoteFeedback], LIVING_LESSONS_INTEREST_TAG) : null;
-          const livingLessonsCourse = {
-            meta: { ...LIVING_LESSONS_META, key: 'living-lessons' },
-            sessionFlow: LIVING_LESSONS_SESSION_FLOW,
-            schedule: buildLivingLessonsSchedule(),
-            cohortStart: null,
-            cohortConfirmed: false,
-            setCohortStart: null,
-            confirmCohort: null,
-            progressSummary: (p) => livingLessonsProgressSummary(p),
-            exportMarkdown: () => exportLivingLessonsCurriculumMarkdown(),
-            downloadName: 'living-lessons-from-the-word.md',
-            submitInterest: submitLivingLessonsInterest,
-            roster: livingLessonsRoster,
-            interestCopy: {
-              heading: 'Want more Living Lessons?',
-              blurb: 'Tell Darrell which Word-first lessons would help you and your family most, and he’ll add them to the series. Read at your own pace, any time, at any age.',
-              cta: 'I’d like more',
-              sent: '✓ Sent — Darrell will see what you’re hungry for. The Word feeds the whole Body.',
-            },
-            tutorCourseMeta: LIVING_LESSONS_TUTOR_META,
-            engagementByAge,         // Governor: real engagement-by-age aggregate
-          };
-
-          // Running the Board — a SELF-PACED live-sound training track for the COLG
-          // sound team, same shared engine (meta.unit renders it as "Lesson(s)", no
-          // cohort clock). Seeded to be enriched/verified by the church sound engineer
-          // via the sovereign SME pipeline; the A.I. tutor is sovereign + assistive-only.
-          const submitSoundBoardInterest = authSession
-            ? (name) => addFeedback({ area: 'church-learn', rating: 'love', category: 'feature-request', text: `${SOUND_BOARD_INTEREST_TAG} ${(name || 'A team member').trim()} wants to learn to run the sound board.` })
-            : null;
-          const soundBoardRoster = isGov ? extractClassRoster([...(data.feedback || []), ...remoteFeedback], SOUND_BOARD_INTEREST_TAG) : null;
-          const soundBoardCourse = {
-            meta: { ...SOUND_BOARD_META, key: 'sound-board' },
-            sessionFlow: SOUND_BOARD_SESSION_FLOW,
-            schedule: buildSoundBoardSchedule(),
-            cohortStart: null,
-            cohortConfirmed: false,
-            setCohortStart: null,
-            confirmCohort: null,
-            progressSummary: (p) => soundBoardProgressSummary(p),
-            exportMarkdown: () => exportSoundBoardCurriculumMarkdown(),
-            downloadName: 'running-the-board-live-sound.md',
-            submitInterest: submitSoundBoardInterest,
-            roster: soundBoardRoster,
-            interestCopy: {
-              heading: 'Want to learn the sound board?',
-              blurb: 'Tell Darrell you want to train on live sound for worship and he’ll get you started with the sound engineer. Learn at your own pace, right at the board, at any experience level.',
-              cta: 'I want to learn',
-              sent: '✓ Sent — Darrell will get you on the sound team. We mix so the Word is heard.',
-            },
-            tutorCourseMeta: SOUND_BOARD_TUTOR_META,
-            engagementByAge,         // Governor: real engagement-by-age aggregate
-          };
-
-          // World Issues & Discernment — a Word-first, SELF-PACED media-literacy +
-          // biblical-discernment track on the same shared engine (meta.unit renders
-          // it as "Issue(s)", no cohort clock). Each issue's modules carry a
-          // structured `issue` (lib/discernment-track.js) that ChurchLearn renders
-          // as the five labeled stages. Safeguards (claims labeled, dated sources,
-          // steelmanned sides, no one-sided persuasion against a named person,
-          // age-appropriate) are machine-checked in the lib + asserted in tests.
-          const submitWorldIssuesInterest = authSession
-            ? (name) => addFeedback({ area: 'church-learn', rating: 'love', category: 'feature-request', text: `${WORLD_ISSUES_INTEREST_TAG} ${(name || 'A learner').trim()} wants more World Issues discernment lessons.` })
-            : null;
-          const worldIssuesRoster = isGov ? extractClassRoster([...(data.feedback || []), ...remoteFeedback], WORLD_ISSUES_INTEREST_TAG) : null;
-          const worldIssuesCourse = {
-            meta: { ...WORLD_ISSUES_META, key: 'world-issues' },
-            sessionFlow: WORLD_ISSUES_SESSION_FLOW,
-            schedule: buildWorldIssuesSchedule(),
-            cohortStart: null,
-            cohortConfirmed: false,
-            setCohortStart: null,
-            confirmCohort: null,
-            progressSummary: (p) => worldIssuesProgressSummary(p),
-            exportMarkdown: () => exportWorldIssuesCurriculumMarkdown(),
-            downloadName: 'thinking-it-through-world-issues-discernment.md',
-            submitInterest: submitWorldIssuesInterest,
-            roster: worldIssuesRoster,
-            interestCopy: {
-              heading: 'Want more discernment lessons?',
-              blurb: 'Tell Darrell which world issue you’d like thought through The Way — media literacy + Scripture, evenhanded, never a verdict on a person. Read at your own pace, at any age.',
-              cta: 'I’d like more',
-              sent: '✓ Sent — Darrell will see what to think through next. We check sources and hold truth and grace.',
-            },
-            tutorCourseMeta: WORLD_ISSUES_TUTOR_META,
-            engagementByAge,         // Governor: real engagement-by-age aggregate
-          };
-
-          // PoeTech Data Systems & Infrastructure — a SELF-PACED staff/volunteer
-          // onboarding + operating course on the same shared engine (meta.unit
-          // renders rows as "Module(s)", no cohort clock). It teaches the whole
-          // system (data layer, the loops, modules + harvest, CRM, Ari), the church
-          // tech stack (NAS, 2x RTX 4070 GPU node, LED wall + NovaStar VX1000, the
-          // service day), the operating skills, and an onboarding path — verified
-          // facts, SME items flagged. LIVING: shares material with the in-app "?"
-          // help (datasystems-course.js imports the same HELP registry).
-          const submitDatasystemsInterest = authSession
-            ? (name) => addFeedback({ area: 'church-learn', rating: 'love', category: 'feature-request', text: `${DATASYSTEMS_INTEREST_TAG} ${(name || 'A team member').trim()} wants to learn the PoeTech data systems and infrastructure.` })
-            : null;
-          const datasystemsRoster = isGov ? extractClassRoster([...(data.feedback || []), ...remoteFeedback], DATASYSTEMS_INTEREST_TAG) : null;
-          const datasystemsCourse = {
-            meta: { ...DATASYSTEMS_META, key: 'datasystems' },
-            sessionFlow: DATASYSTEMS_SESSION_FLOW,
-            schedule: buildDatasystemsSchedule(),
-            cohortStart: null,
-            cohortConfirmed: false,
-            setCohortStart: null,
-            confirmCohort: null,
-            progressSummary: (p) => datasystemsProgressSummary(p),
-            exportMarkdown: () => exportDatasystemsCurriculumMarkdown(),
-            downloadName: 'poetech-data-systems-and-infrastructure.md',
-            submitInterest: submitDatasystemsInterest,
-            roster: datasystemsRoster,
-            interestCopy: {
-              heading: 'Want to learn the systems?',
-              blurb: 'Tell Darrell you want to come up to speed on the PoeTech data systems and the church tech stack — how it works, the equipment, and the skills — and he’ll get you started. Self-paced, plain language, at any experience level.',
-              cta: 'I want to learn',
-              sent: '✓ Sent — Darrell will get you onboarded. We steward the systems so the Body is equipped.',
-            },
-            tutorCourseMeta: DATASYSTEMS_TUTOR_META,
-            engagementByAge,         // Governor: real engagement-by-age aggregate
-          };
+          // SELF-PACED courses — Living Lessons, Running the Board, World Issues
+          // & Discernment, PoeTech Data Systems, Handed Forward, Kingdom
+          // Economics, and Prophetic Voices — ALL derive from the one course
+          // registry (lib/learn-catalog.js). The registry is the source of
+          // truth for what finished courses exist; the render gate
+          // (learn-catalog-render.test.jsx) clicks every one and holds the
+          // >= 40-lesson floor, so a course that is built but unsurfaced (the
+          // Kingdom Economics / Prophetic Voices miss, Darrell 2026-07-08)
+          // fails CI instead of shipping. Interest + Governor rosters ride the
+          // same cross-tenant feedback pipe, tagged per course.
+          const selfPacedCourses = buildSelfPacedDescriptors({
+            submitInterestFor: authSession
+              ? (e) => (name) => addFeedback({
+                  area: 'church-learn', rating: 'love', category: 'feature-request',
+                  text: e.interestText(((name || '').trim()) || 'A learner'),
+                })
+              : null,
+            rosterFor: isGov
+              ? (e) => extractClassRoster([...(data.feedback || []), ...remoteFeedback], e.interestTag)
+              : null,
+            engagementByAge,
+          });
 
           // Graduate → next-cohort helper (all courses), via the same feedback pipe.
-          const helperTagFor = (courseKey) => (
-            courseKey === 'broadcast' ? BROADCAST_HELPER_TAG
-              : courseKey === 'infrastructure' ? INFRA_HELPER_TAG
-                : courseKey === 'sovereign-ai' ? SOVEREIGN_AI_HELPER_TAG
-                  : courseKey === 'ai-legal-blueprint' ? AI_LEGAL_BLUEPRINT_HELPER_TAG
-                    : courseKey === 'living-lessons' ? LIVING_LESSONS_HELPER_TAG
-                      : courseKey === 'sound-board' ? SOUND_BOARD_HELPER_TAG
-                        : courseKey === 'world-issues' ? WORLD_ISSUES_HELPER_TAG
-                          : courseKey === 'datasystems' ? DATASYSTEMS_HELPER_TAG
-                            : '[Class helper]'
-          );
+          const helperTagFor = (courseKey) => helperTagForCourse(courseKey);
           const submitHelper = authSession
             ? (courseKey, courseTitle, who) => addFeedback({
                 area: 'church-learn', rating: 'love', category: 'feature-request',
@@ -5447,17 +4724,20 @@ html{scroll-padding-bottom:280px}
             classRoster={classRoster}
             isGovernor={isGov}
             currentUserName={authSession?.user?.email || ''}
-            onLaunch={(t) => { if (!t) return; if (t.view) setView(t.view); if (t.churchView) setChurchView(t.churchView); }}
+            onLaunch={(t) => { if (!t) return; if (t.view) setView(t.view); if (t.churchView) { setChurchView(t.churchView); if (t.churchView === 'home') setChurchHomeSection(t.churchSection || null); } }}
             broadcast={broadcastCourse}
-            extraCourses={[infrastructureCourse, sovereignAiCourse, aiLegalBlueprintCourse, livingLessonsCourse, soundBoardCourse, worldIssuesCourse, datasystemsCourse]}
+            extraCourses={[infrastructureCourse, sovereignAiCourse, aiLegalBlueprintCourse, ...selfPacedCourses]}
             quizState={data.classQuiz || {}}
             recordQuiz={authSession ? recordClassQuiz : null}
+            learnerRecords={learnerRecords} /* DR-0754: the real class record */
+            currentUserId={authSession?.user?.id || null}
             learnLevel={data.learnLevel || 'auto'}
             setLearnLevel={setLearnLevel}
             ageBand={data.learnAgeBand || 'adult'}
             setAgeBand={setLearnAgeBand}
             onEngagement={onLearnEngagement}
             submitHelper={submitHelper}
+            initialDept={churchView === 'eternal-algorithms' ? 'the-eternal-algorithms' : null} /* the retired Church route opens Learn on its department (DR-0432) */ eternalStudyProps={{ email: authSession?.user?.email, view, churchView, setView, setChurchView }} signedIn={!!authSession} /* DR-0698: downloads ask a signed-out reader for an account */
           />;
         })()}
         {view === 'church' && churchView === 'conference' && (
@@ -5478,7 +4758,22 @@ html{scroll-padding-bottom:280px}
             request front door for everyone; staff get the back-office (calendar +
             no-double-book + responsibilities + revenue), RLS-enforced. */}
         {view === 'church' && churchView === 'events' && <EventManagement isChurchStaff={isChurchStaff} />}
-        {view === 'notes' && <ThinkingSpace notes={data.notes || []} addNote={addNote} updateNote={updateNote} deleteNote={deleteNote} togglePinNote={togglePinNote} toggleNoteSource={toggleNoteSource} sendToPoeTech={sendNoteToPoeTech} appDirectives={data.appDirectives || []} addPrayerRequest={addPrayerRequest} addChurchVoice={addChurchVoice} addIncident={addIncident} addInquiry={addInquiry} />}
+
+        {/* Projects — the Love Corner's own project board (video wall, ministries,
+            the Assembly, infra, the door, outreach). Visible to church viewers;
+            church staff manage, members see it read-only (gated in-component). */}
+        {view === 'church' && churchView === 'projects' && (
+          <SectionBoundary name="Church Projects">
+            <ChurchProjects isChurchStaff={isChurchStaff} />
+          </SectionBoundary>
+        )}
+        {view === 'church' && churchView === 'ministries' && <ChurchMinistriesTab onOpen={(s) => s && s.sub && setChurchView(s.sub)} onFeedback={(k) => setFeedbackOpen(k)} />}
+        {view === 'church' && churchView === 'bus' && <BusMinistry church={data.church} />}
+        {view === 'church' && churchView === 'members' && <ChurchMembers />}
+        {view === 'church' && churchView === 'giving-book' && !reviewerMode && isChurchOfficeRole(churchAccess.role) && <ChurchGivingBook churchName={data.church?.name || ''} instanceId={churchAccess.instanceId} />}
+        {view === 'church' && churchView === 'my-record' && <ChurchMemberSpace church={data.church} myUserId={authSession?.user?.id || null} onOpen={(t) => t && t.sub && setChurchView(t.sub)} />}
+        {view === 'church' && churchView === 'access' && <AccessRequests instanceId={churchAccess.instanceId} isOffice={['owner','admin'].includes(churchAccess.role)} />}
+        {view === 'notes' && <ThinkingSpace notes={data.notes || []} addNote={addNote} patchNote={patchNote} updateNote={updateNote} deleteNote={deleteNote} togglePinNote={togglePinNote} toggleNoteSource={toggleNoteSource} sendToPoeTech={sendNoteToPoeTech} appDirectives={data.appDirectives || []} addPrayerRequest={addPrayerRequest} addChurchVoice={addChurchVoice} addIncident={addIncident} addInquiry={addInquiry} />}
         {/* Create — the document / image creation workspace. Wrapped in its own
             SectionBoundary so a thrown error degrades just this surface (no
             white-screen), per the unbreakable basics. */}
@@ -5490,6 +4785,7 @@ html{scroll-padding-bottom:280px}
               updateWorkspace={updateWorkspace}
               deleteWorkspace={deleteWorkspace}
               currentUserPersona={authSession ? personaOf(authSession.user?.email) : null}
+              station={{ signedIn: !!authSession, isGovernor: !!authSession && !reviewerMode && isFamilyEmail(authSession.user?.email), voice: { addNote, patchNote, sendToPoeTech: sendNoteToPoeTech, addPrayerRequest, addChurchVoice, addIncident, addInquiry }, governance: { discussions: data.discussions || [], concerns: data.concerns || [] }, onNavigate: (v, sub) => { if (!v) return; setView(v); if (v === 'church' && sub) setChurchView(sub); try { window.scrollTo({ top: 0, behavior: motionBehavior() }); } catch (e) { /* no scroll */ } } }}
             />
           </SectionBoundary>
         )}
@@ -5497,6 +4793,7 @@ html{scroll-padding-bottom:280px}
             Recipes by Chef Mario (canonical content) + every recipe the family
             adds (persisted, instance-scoped). Own SectionBoundary so a thrown
             error degrades just this surface. */}
+        {view === 'health' && <SectionBoundary name="Road to 150"><RoadTo150 program={(data.healthPrograms || []).find((p) => p.active !== false) || null} weightEntries={data.weightEntries || []} waterEntries={data.waterEntries || []} foodEntries={data.foodEntries || []} foodLibrary={data.foodLibrary || []} addFoodEntry={addFoodEntry} deleteFoodEntry={deleteFoodEntry} addWeightEntry={addWeightEntry} addWaterEntry={addWaterEntry} deleteWaterEntry={deleteWaterEntry} startProgram={startHealthProgram} /></SectionBoundary>}
         {view === 'recipes' && (
           <SectionBoundary name="Chef's Corner">
             <ChefCorner
@@ -5543,11 +4840,30 @@ html{scroll-padding-bottom:280px}
             Own SectionBoundary so a thrown error degrades just this surface.
             Owner list syncs cross-device (tv_watch, 0072); circle sharing is
             LIVE (tv_circle/tv_share, 0074 — flag opened 2026-07-04). */}
+        {/* Messages — encrypted 1:1 DMs + roster group threads (2026-07-25).
+            Access model server-enforced (users_can_dm / user_in_group). */}
+        {view === 'messages' && (
+          <SectionBoundary name="Messages">
+            <Messages voiceOps={data.voiceOps || {}} setVoiceOpsConfig={setVoiceOpsConfig} addIncident={addIncident} addInquiry={addInquiry} addProject={addProject} entities={data.entities || []} setView={setView} />
+          </SectionBoundary>
+        )}
         {view === 'tvtime' && (
           <SectionBoundary name="TV Time">
             <TVTime email={authSession?.user?.email || null} />
           </SectionBoundary>
         )}
+        {view === 'cameras' && isFamilyMember && <SectionBoundary name="Cameras"><Cameras /></SectionBoundary>}
+        {view === 'vault' && <SectionBoundary name="Vault"><Vault /></SectionBoundary>}
+        {/* Advocacy — the Case File (pb-advocacy-outcomes, Darrell 2026-08-04):
+            students and families document situations as they happen so the data
+            supporting their perspective is in hand when they ask for help.
+            Local-first; family-instance sync via advocacy_records (0132). */}
+        {view === 'advocacy' && (
+          <SectionBoundary name="Advocacy">
+            <AdvocacyCases />
+          </SectionBoundary>
+        )}
+        {view === 'databack' && <SectionBoundary name="Your Data"><DataLiberation /></SectionBoundary>}
         {/* Voice — "listen to anything" in a chosen voice; consent-gated personal
             (cloned) voices as a subscriber feature. Own SectionBoundary so a thrown
             error degrades just this surface. Personal-voice timbre is honest:
@@ -5555,8 +4871,8 @@ html{scroll-padding-bottom:280px}
         {view === 'voice' && (
           <SectionBoundary name="Voice">
             <VoiceStudio
-              personaKey={authSession ? personaOf(authSession.user?.email) : null}
-              isOwner={authSession ? personaOf(authSession.user?.email) === 'darrell' : false}
+              personaKey={authSession ? personaOf(authSession.user?.email) : null} reviewerMode={reviewerMode}
+              isOwner={!reviewerMode && !!authSession && personaOf(authSession.user?.email) === 'darrell'}
             />
           </SectionBoundary>
         )}
@@ -5571,6 +4887,7 @@ html{scroll-padding-bottom:280px}
               sermons={[]}
               setView={setView}
               setChurchView={setChurchView}
+              setChurchHomeSection={setChurchHomeSection}
               setBooksView={setBooksView}
             />
           </SectionBoundary>
@@ -5591,19 +4908,19 @@ html{scroll-padding-bottom:280px}
             </div>
           ))}
         {view === 'projects' && (tierMeets(data.userTier, VIEW_TIER_REQUIREMENTS.projects)
-          ? <SectionBoundary name="Projects"><ProjectsWrapper projects={data.projects || []} scopes={data.scopes || []} entities={data.entities} contractors={data.contractors1099 || []} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} addScope={addScope} deleteScope={deleteScope} capexItems={data.capexItems || []} addCapexItem={addCapexItem} updateCapexItem={updateCapexItem} deleteCapexItem={deleteCapexItem} netCashFlow={totals.netCashFlow} rentals={data.inflows?.rentals || []} accounts={data.accounts || []} transactions={data.transactions || []} debts={data.debts || []} currentUserId={authSession?.user?.id || null} currentUserPersona={authSession ? personaOf(authSession.user?.email) : null} familyMembers={(!!authSession && isFamilyEmail(authSession.user?.email)) ? FAMILY_MEMBERS : []} isGovernor={!!authSession && isFamilyEmail(authSession.user?.email)}
+          ? <SectionBoundary name="Projects"><ProjectsWrapper incidents={data.incidents || []} projects={data.projects || []} scopes={data.scopes || []} entities={data.entities} contractors={data.contractors1099 || []} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} addScope={addScope} deleteScope={deleteScope} capexItems={data.capexItems || []} addCapexItem={addCapexItem} updateCapexItem={updateCapexItem} deleteCapexItem={deleteCapexItem} netCashFlow={totals.netCashFlow} rentals={data.inflows?.rentals || []} accounts={data.accounts || []} transactions={data.transactions || []} debts={derivedDebts} demoRowIds={authSession && !isAnyDemoMode ? DEMO_ONLY_IDS : null} currentUserId={authSession?.user?.id || null} currentUserPersona={authSession ? personaOf(authSession.user?.email) : null} familyMembers={(!!authSession && isFamilyEmail(authSession.user?.email)) ? FAMILY_MEMBERS : []} isGovernor={!!authSession && isFamilyEmail(authSession.user?.email)}
               loopData={data} loopDecisions={data.loopDecisions || {}} onLoopDecision={onLoopDecision}
               discussions={data.discussions || []} addDiscussion={addDiscussion} updateDiscussion={updateDiscussion} deleteDiscussion={deleteDiscussion}
               concerns={data.concerns || []} feedback={[...(data.feedback || []), ...remoteFeedback]} addConcern={addConcern} updateConcern={updateConcern} deleteConcern={deleteConcern}
               financialDocAt={(() => { const ms = latestFinancialDocMs(ingestData); return ms ? new Date(ms).toISOString() : null; })()}
-              onNavigate={(v) => { if (v) { setView(v); try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) {} } }}
+              onNavigate={(v) => { if (v) { setView(v); try { window.scrollTo({ top: 0, behavior: motionBehavior() }); } catch (e) {} } }}
               feedbackPanel={<FeedbackPromotePanel feedback={[...(data.feedback || []), ...remoteFeedback]} addProject={addProject} addIncident={addIncident} deleteFeedback={deleteFeedback} />}
             /></SectionBoundary>
-          : <UpgradePrompt viewLabel="Projects" requiredTier={VIEW_TIER_REQUIREMENTS.projects} currentTier={data.userTier} setView={setView} setUserTier={setUserTier} />
+          : <UpgradePrompt viewLabel="Projects" requiredTier={VIEW_TIER_REQUIREMENTS.projects} currentTier={data.userTier} setView={setView} setUserTier={(isFamilyMember || isAnyDemoMode) ? setUserTier : null} />
         )}
         {view === 'practice' && (tierMeets(data.userTier, VIEW_TIER_REQUIREMENTS.practice)
           ? <Practice inquiries={data.inquiries} contractors={data.contractors1099} addInquiry={addInquiry} updateInquiry={updateInquiry} deleteInquiry={deleteInquiry} practiceLeads={data.practiceLeads} addLead={addLead} updateLead={updateLead} deleteLead={deleteLead} email={authSession?.user?.email || ''} isStaff={isFamilyMember} />
-          : <UpgradePrompt viewLabel="Practice Operations" requiredTier={VIEW_TIER_REQUIREMENTS.practice} currentTier={data.userTier} setView={setView} setUserTier={setUserTier} />
+          : <UpgradePrompt viewLabel="Practice Operations" requiredTier={VIEW_TIER_REQUIREMENTS.practice} currentTier={data.userTier} setView={setView} setUserTier={(isFamilyMember || isAnyDemoMode) ? setUserTier : null} />
         )}
         {view === 'opportunities' && (tierMeets(data.userTier, VIEW_TIER_REQUIREMENTS.opportunities)
           ? <Opportunities
@@ -5625,18 +4942,19 @@ html{scroll-padding-bottom:280px}
               tierMeets={tierMeets}
               TIER_LABEL={TIER_LABEL}
             />
-          : <UpgradePrompt viewLabel="Dev/Ops (personalized entrepreneurial options)" requiredTier={VIEW_TIER_REQUIREMENTS.opportunities} currentTier={data.userTier} setView={setView} setUserTier={setUserTier} />
+          : <UpgradePrompt viewLabel="Dev/Ops (personalized entrepreneurial options)" requiredTier={VIEW_TIER_REQUIREMENTS.opportunities} currentTier={data.userTier} setView={setView} setUserTier={(isFamilyMember || isAnyDemoMode) ? setUserTier : null} />
         )}
-        {view === 'about' && <About moduleInterest={data.moduleInterest || {}} familyModuleInterest={familyModuleInterest} toggleModuleInterest={toggleModuleInterest} theme={theme} setTheme={setTheme} feedback={[...(data.feedback || []), ...remoteFeedback]} deleteFeedback={deleteFeedback} checkoutIntents={data.checkoutIntents || []} addCheckoutIntent={addCheckoutIntent} deleteCheckoutIntent={deleteCheckoutIntent} addProject={addProject} VIEW_TIER_REQUIREMENTS={VIEW_TIER_REQUIREMENTS} authUserId={authSession && mpBackendAvailable ? (authSession.user?.id || null) : null} onChangePin={() => setChangePinOpen(true)} />}
+        {view === 'about' && <About moduleInterest={data.moduleInterest || {}} familyModuleInterest={familyModuleInterest} toggleModuleInterest={toggleModuleInterest} theme={theme} setTheme={setTheme} feedback={[...(data.feedback || []), ...remoteFeedback]} deleteFeedback={deleteFeedback} checkoutIntents={data.checkoutIntents || []} addCheckoutIntent={addCheckoutIntent} deleteCheckoutIntent={deleteCheckoutIntent} addProject={addProject} VIEW_TIER_REQUIREMENTS={VIEW_TIER_REQUIREMENTS} authUserId={authSession && mpBackendAvailable ? (authSession.user?.id || null) : null} authCreatedAt={authSession?.user?.created_at || null} familyFullAccess={!reviewerMode && !!personaOf(authSession?.user?.email)} onChangePin={() => setChangePinOpen(true)} />}
         {view === 'center' && (
           <CommandServeCenter
             isGovernor={isFamilyMember}
             persona={personaOf(authSession?.user?.email)}
             email={authSession?.user?.email || null}
-            onNavigate={(v) => { if (v) { setView(v); try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) {} } }}
+            onNavigate={(v) => { if (v) { setView(v); try { window.scrollTo({ top: 0, behavior: motionBehavior() }); } catch (e) {} } }}
             projects={data.projects || []}
             discussions={data.discussions || []}
             currentUserId={authSession?.user?.id || null}
+            familyData={data}
           />
         )}
 
@@ -5657,7 +4975,7 @@ html{scroll-padding-bottom:280px}
             this surface. */}
         {view === 'relationships' && (
           <SectionBoundary name="Relationships">
-            <Relationships isGovernor={isFamilyMember} currentUserId={authSession?.user?.id || null} />
+            <Relationships isGovernor={isFamilyMember || tierMeets(data.userTier, 'business')} currentUserId={authSession?.user?.id || null} />
           </SectionBoundary>
         )}
 
@@ -5687,28 +5005,120 @@ html{scroll-padding-bottom:280px}
             </div>
           ))}
 
+        {/* Moore Divahs — Shay's fashion business Order Board (custom orders,
+            the 3-week clock, the change-order ladder). Family/Governor only for
+            now; the branded customer door ships separately. Own SectionBoundary
+            so a thrown error degrades just this surface. */}
+        {view === 'moore' && (isFamilyMember
+          ? (
+            <SectionBoundary name="Moore Divahs">
+              <MooreDivahs />
+            </SectionBoundary>
+          )
+          : (
+            <div className="max-w-2xl mx-auto bg-white border border-[#1A1815] p-6 mt-6 text-center" style={{ fontFamily: '"Fraunces", serif' }}>
+              <div className="mb-1 flex justify-center" aria-hidden="true"><UiIcon name="lock" /></div>
+              <p className="text-sm text-[#1A1815] font-semibold">Moore Divahs is a stewardship space.</p>
+              <p className="text-xs text-[#5A5751] mt-1.5 leading-relaxed">The order board is steward-only. Sign in with a family/governor account to run the business.</p>
+            </div>
+          ))}
+
+        {view === 'scribe' && (
+          <SectionBoundary name="Scribe">
+            <WorkflowScribe isSteward={isFamilyMember} />
+          </SectionBoundary>
+        )}
+
         {view === 'forecast' && <Forecast data={data} currentDate={currentDate} isOwner={isFamilyMember} />}
+
+        {/* Academy — open to everyone as the parent-facing INVITE (value/ROI +
+            register-interest). The component itself shows the invite to non-
+            operators and the operations CONSOLE (enroll, tuition, team, retro)
+            only when isGovernor is true — so the gate lives inside, one surface
+            serving both parents and operators. Own SectionBoundary so a thrown
+            error degrades just this surface. */}
+        {view === 'cohorts' && (
+          <SectionBoundary name="Academy">
+            <CohortPrograms isGovernor={!reviewerMode && (isFamilyMember || tierMeets(data.userTier, 'business'))} />
+          </SectionBoundary>
+        )}
+
+        {/* Assistant — TLC referral database + admin/marketing assistant workspace.
+            Family/Governor, business-tier operator, OR a granted assistant
+            account (DR-0271 — the database role; their whole reach). Writes
+            gated to the operator; a non-permitted deep-link gets the locked
+            card (nav + render agree). */}
+        {view === 'tlc-assistant' && ((isFamilyMember || tierMeets(data.userTier, 'business') || isAssistantAcct)
+          ? (
+            <SectionBoundary name="Assistant">
+              <TlcAssistant isGovernor={!reviewerMode && (isFamilyMember || tierMeets(data.userTier, 'business'))} />
+            </SectionBoundary>
+          )
+          : (
+            <div className="max-w-2xl mx-auto bg-white border border-[#1A1815] p-6 mt-6 text-center">
+              <div className="mb-1 flex justify-center" aria-hidden="true"><UiIcon name="lock" /></div>
+              <p className="text-sm text-[#1A1815] font-semibold">The Assistant workspace is an operations space.</p>
+              <p className="text-xs text-[#5A5751] mt-1.5 leading-relaxed">The TLC referral database and outreach system is for a family/governor or business-tier account.</p>
+            </div>
+          ))}
+
+        {/* TLC — the unified TLC Therapy Solutions office. ONE workspace, three
+            views of the same office (Darrell 2026-07-13: "the Whole TLC App...
+            one single tab that holds all of it"): Practice (operations + the
+            clinician roster), Intake (Inbound), and Assistant (referral/outreach).
+            Gated to a family/Governor OR a business-tier operator; the sub-tab
+            strip lives in the header above. Each sub-view reuses the exact same
+            component + props as its standalone route, so this is a composition,
+            not a fork — the individual routes stay valid for deep-links. */}
+        {view === 'tlc' && ((isFamilyMember || tierMeets(data.userTier, 'business'))
+          ? (
+            <SectionBoundary name="TLC">
+              {['practice', 'inquiries', 'revenue', 'growth', 'learn'].includes(tlcSub) && (
+                <Practice inquiries={data.inquiries} contractors={data.contractors1099} addInquiry={addInquiry} updateInquiry={updateInquiry} deleteInquiry={deleteInquiry} practiceLeads={data.practiceLeads} addLead={addLead} updateLead={updateLead} deleteLead={deleteLead} email={authSession?.user?.email || ''} isStaff={isFamilyMember} section={tlcSub === 'practice' ? 'services' : tlcSub} />
+              )}
+              {tlcSub === 'intake' && (
+                <Inbound voiceOps={data.voiceOps || {}} setVoiceOpsConfig={setVoiceOpsConfig} addIncident={addIncident} addInquiry={addInquiry} addProject={addProject} entities={data.entities || []} setView={setView} />
+              )}
+              {tlcSub === 'assistant' && (
+                <TlcAssistant isGovernor={!reviewerMode && (isFamilyMember || tierMeets(data.userTier, 'business'))} />
+              )}
+              {tlcSub === 'onboard' && <TlcOnboarding />}
+            </SectionBoundary>
+          )
+          : (
+            <div className="max-w-2xl mx-auto bg-white border border-[#1A1815] p-6 mt-6 text-center">
+              <div className="mb-1 flex justify-center" aria-hidden="true"><UiIcon name="lock" /></div>
+              <p className="text-sm text-[#1A1815] font-semibold">The TLC workspace is an operations space.</p>
+              <p className="text-xs text-[#5A5751] mt-1.5 leading-relaxed">The TLC Therapy Solutions office — intake, practice operations, and outreach — is for a family/governor or business-tier account.</p>
+            </div>
+          ))}
 
         {/* Access & Usage was MERGED into Admin (one users report, 2026-07-04):
             AdminConsole now renders the AccessUsageMetrics report itself, and a
             ?view=access deep-link normalizes to 'admin'. No standalone block. */}
         {view === 'admin' && (
           <AdminConsole
-            isGovernor={isFamilyMember || !isPublicHost()}
+            isGovernor={!reviewerMode && (isFamilyMember || (!isPublicHost() && !authSession))}
             email={authSession?.user?.email || null}
             instanceId={mpInstanceId}
             backendReachable={mpBackendAvailable && !!mpInstanceId}
             data={data}
+            onLoopDecision={onLoopDecision}
+            financialDocAt={(() => { const ms = latestFinancialDocMs(ingestData); return ms ? new Date(ms).toISOString() : null; })()}
             isPublicHost={isPublicHost()}
             onResetSeed={resetToSeed}
           />
         )}
 
-        <footer className="mt-16 pt-6 border-t border-[#E8E4DC] text-center print:hidden">
-          <div className="text-[10px] uppercase tracking-[0.2em] text-[#5A5751] mb-2">PoeTech · A family data platform · {data.meta.releaseLabel || `v${data.meta.appVersion}`} · {data.meta.releaseNote || ''}</div>
-          <button type="button" onClick={resetToSeed} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] underline underline-offset-4">Reset to seed data</button>
+        {/* PoeTech platform footer — hidden in the focused church app (DR-0174). Reset-to-seed is DEMO-only (DR-0713): it replaced the signed-in family's loaded ledger with SEED_DATA and saved that over this device's copy, and it showed under the real books. The guarded Admin action remains for the steward. */}
+        {!authSession && churchBrandRoute && <PublicWelcome placement="end" />}
+        {!churchDoorOnly && (
+        <footer className="mt-16 pt-6 border-t border-[#E8E4DC] text-center print:hidden" data-read-skip>
+          <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A5751] mb-2">PoeTech · A family data platform · {data.meta.releaseLabel || `v${data.meta.appVersion}`} · {data.meta.releaseNote || ''}</div>
+          {isAnyDemoMode && (<button type="button" onClick={resetToSeed} className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] underline underline-offset-4">Reset to seed data</button>)}
         </footer>
-        {view !== 'overview' && !(view === 'books' && booksView === 'debts') && (data.userTier === 'foundation' || !data.userTier) && (
+        )}
+        {!churchDoorOnly && view !== 'overview' && !(view === 'books' && booksView === 'debts') && (data.userTier === 'foundation' || !data.userTier) && (
           <div className="mt-6">
             <AdvisementBanner />
           </div>
@@ -5716,30 +5126,15 @@ html{scroll-padding-bottom:280px}
         {view === 'books' && booksView === 'debts' && <TherapyReminder />}
         </Suspense>
       </main>
-      <TTSControl isOwner={isFamilyMember} view={view} churchView={churchView} booksView={booksView} />
+      <TTSControl isOwner={isFamilyMember} view={view} churchView={churchView} booksView={booksView} onOpenLearn={() => { setView('church'); setChurchView('learn'); }} />
+      <FloatingPlayer />
       <InstallPrompt />
       <UpdatePrompt />
-      <NetworkStatus />
-      {/* Round 15 — Persistent floating feedback button. Always reachable from
-          any tab; pre-fills the current view. Sits above TTS controls in the
-          stack. Hidden when the feedback modal is already open. */}
-      {!feedbackOpen && (
-        <button
-          type="button"
-          onClick={() => setFeedbackOpen(true)}
-          aria-label="Open feedback"
-          title="Tell us what's working / not working / missing"
-          className="fixed bottom-4 left-4 z-30 px-4 py-3 bg-[#B85838] text-white text-xs uppercase tracking-wider font-semibold border-2 border-[#B85838] hover:bg-[#1A1815] hover:border-[#1A1815] shadow-lg min-h-[48px] min-w-[48px] focus:outline focus:outline-2 focus:outline-[#1A1815] print:hidden"
-          style={{ borderRadius: '999px' }}
-        >
-          💬 Feedback
-        </button>
-      )}
-      {feedbackOpen && <FeedbackModal onClose={() => setFeedbackOpen(false)} onSubmit={(item) => { addFeedback(item); setFeedbackOpen(false); }} currentView={view} />}
-      {/* Give floater — Church surfaces only (bottom-right; Feedback owns
-          bottom-left). Links out to the congregation's own giving page + the
-          blessing of giving according to the Word. See components/ChurchGiving. */}
-      {view === 'church' && <ChurchGiveFloater church={data.church} />}
+      {feedbackOpen && <FeedbackModal initialAreaKey={typeof feedbackOpen === 'string' ? feedbackOpen : (feedbackOpen.area || null)} initialWhere={typeof feedbackOpen === 'object' && feedbackOpen.page ? feedbackOpen : null} onClose={closeFeedback} onSubmit={addFeedback} currentView={view} myFeedback={data.feedback || []} />}
+      {/* THE BOTTOM BAR (DR-0716): Feedback, Give (Church only), the network
+          dot, Top and the read-aloud controls, in one bar; nothing floats over
+          the Word. See components/ChromeDock.jsx. */}
+      <ChromeDock onFeedback={() => setFeedbackOpen(true)} feedbackOpen={!!feedbackOpen} church={data.church} showGive={view === 'church'} />
     </div>
   );
 }
@@ -5760,7 +5155,7 @@ html{scroll-padding-bottom:280px}
 // OWN sovereign data only. On the public poetech.us demo / picker state every
 // visitor would otherwise see Darrell's real transaction stream. This guard
 // renders INSTEAD of <Imported /> whenever isAnyDemoMode is true: it never
-// imports the component, never fires the /n8n/webhook/imported-transactions
+// imports the component, never fires the the retired n8n imported-transactions webhook
 // fetch, and redirects the subview back to a safe tab. Defense in depth pairs
 // with hiding the tab from the demo subnav.
 function ImportedDemoGuard({ setBooksView }) {
@@ -5770,7 +5165,7 @@ function ImportedDemoGuard({ setBooksView }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   return (
-    <div className="text-[12px] text-[#5A5751] p-4">
+    <div className="text-[0.75rem] text-[#5A5751] p-4">
       Imported transactions are private to each family and shown only when you are signed in with your own data loaded.
     </div>
   );
@@ -5880,7 +5275,7 @@ function ImportedDemoGuard({ setBooksView }) {
 // Preparatory scaffolding — Pressure-slider component pulled out of the main
 // dashboard for a planned dedicated "Pressure & Reserves" surface. Exported.
 export function Pressure({ pressure, setPressure, totals, pressureCalc, reserves, projection }) {
-  return (<div className="space-y-8"><section><SectionTitle>Pressure Slider</SectionTitle><div className="bg-white border border-[#1A1815] p-5"><div className="flex items-baseline justify-between mb-2"><div className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751]">Current</div><div className="text-2xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{pressure}/10</div></div><input type="range" min="1" max="10" step="1" value={pressure} onChange={(e) => setPressure(parseInt(e.target.value))} className="w-full accent-[#B85838] mb-2" /><div className="flex justify-between text-[10px] uppercase tracking-wider text-[#5A5751]"><span>Loose</span><span>Moderate</span><span>Sprint</span></div><div className="mt-6 pt-6 border-t border-[#E8E4DC]"><div className="text-4xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 400 }}>{projection.debtFreeYears.toFixed(1)} years</div><div className="text-sm text-[#5A5751] mt-1">to consumer debt freedom</div></div><div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-[#E8E4DC] mt-6 border border-[#E8E4DC]"><MetricCell label="Gross" value={fmt(pressureCalc.grossAvailable)} small /><MetricCell label="Reserves" value={fmt(pressureCalc.reservesDeducted)} small accent="rust" /><MetricCell label="To debt" value={fmt(pressureCalc.extraAvailable)} small /><MetricCell label="Rent capture" value={fmt(pressureCalc.rentCapture)} small /></div></div></section></div>);
+  return (<div className="space-y-8"><section><SectionTitle>Pressure Slider</SectionTitle><div className="bg-white border border-[#1A1815] p-5"><div className="flex items-baseline justify-between mb-2"><div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751]">Current</div><div className="text-2xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{pressure}/10</div></div><input type="range" min="1" max="10" step="1" value={pressure} onChange={(e) => setPressure(parseInt(e.target.value))} className="w-full accent-[#B85838] mb-2" /><div className="flex justify-between text-[0.625rem] uppercase tracking-wider text-[#5A5751]"><span>Loose</span><span>Moderate</span><span>Sprint</span></div><div className="mt-6 pt-6 border-t border-[#E8E4DC]"><div className="text-4xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 400 }}>{projection.debtFreeYears.toFixed(1)} years</div><div className="text-sm text-[#5A5751] mt-1">to consumer debt freedom</div></div><div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-[#E8E4DC] mt-6 border border-[#E8E4DC]"><MetricCell label="Gross" value={fmt(pressureCalc.grossAvailable)} small /><MetricCell label="Reserves" value={fmt(pressureCalc.reservesDeducted)} small accent="rust" /><MetricCell label="To debt" value={fmt(pressureCalc.extraAvailable)} small /><MetricCell label="Rent capture" value={fmt(pressureCalc.rentCapture)} small /></div></div></section></div>);
 }
 
 // Debts moved to ./components/Debts.jsx (r33).

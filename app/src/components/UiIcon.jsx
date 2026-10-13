@@ -67,6 +67,13 @@ const ICONS = {
       <circle cx="15.4" cy="8.6" r="1" fill="currentColor" stroke="none" />
     </>
   ),
+  // open eye — the "view as customer" reviewer lens on business doors (was 👁)
+  eye: (
+    <>
+      <path d="M2.5 12S6 5.8 12 5.8 21.5 12 21.5 12 18 18.2 12 18.2 2.5 12 2.5 12Z" />
+      <circle cx="12" cy="12" r="2.6" />
+    </>
+  ),
   // phone handset — Inbound (was 📞)
   phone: (
     <path d="M6.6 3.5h3l1.4 3.8-2 1.4a11 11 0 0 0 4.9 4.9l1.4-2 3.8 1.4v3a2 2 0 0 1-2.1 2A15.8 15.8 0 0 1 4.4 5.6 2 2 0 0 1 6.6 3.5Z" />
@@ -151,6 +158,10 @@ const ICONS = {
   check: (
     <path d="M5 12.5l4.5 4.5L19 6.5" />
   ),
+  // arrow rising out of a tray — the one Books upload (DR-0709)
+  upload: (
+    <path d="M12 15.5V4.5M7.5 9L12 4.5 16.5 9M4.5 14.5v4a1.5 1.5 0 0 0 1.5 1.5h12a1.5 1.5 0 0 0 1.5-1.5v-4" />
+  ),
   // upward trend line over an axis — Forecast tab (financial projection)
   chart: (
     <>
@@ -200,14 +211,9 @@ const ICONS = {
   shield: (
     <path d="M12 3.5l7 2.5v5.5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z" />
   ),
-  // upload — bytes leaving this device for the NAS: arrow rising from a tray
-  upload: (
-    <>
-      <path d="M12 15V5" />
-      <path d="M8 8.5L12 4.5l4 4" />
-      <path d="M4.5 15.5v3a1.5 1.5 0 0 0 1.5 1.5h12a1.5 1.5 0 0 0 1.5-1.5v-3" />
-    </>
-  ),
+  // (bytes leaving this device for the NAS reuse the `upload` arrow above —
+  // DR-0709's Books icon is the same arrow-rising-from-a-tray, so the backup
+  // card shares it rather than defining a second `upload` key.)
   // folder — back up a whole directory
   folder: (
     <path d="M3.5 7a1.5 1.5 0 0 1 1.5-1.5h4l2 2.5h8A1.5 1.5 0 0 1 20.5 9.5v8A1.5 1.5 0 0 1 19 19H5a1.5 1.5 0 0 1-1.5-1.5z" />
@@ -236,6 +242,15 @@ const ICONS = {
     <>
       <path d="M14.5 5.5l4 4L8 20l-4.5 1L4.5 16.5 15 6Z" />
       <line x1="13" y1="7.5" x2="16.5" y2="11" />
+    </>
+  ),
+  // bell — the arrivals bell in the header (DR-0728): what came in that you
+  // have not looked at yet
+  bell: (
+    <>
+      <path d="M6.5 16.5V11a5.5 5.5 0 0 1 11 0v5.5l1.5 2H5l1.5-2Z" />
+      <path d="M10 20a2 2 0 0 0 4 0" />
+      <line x1="12" y1="3.5" x2="12" y2="5.5" />
     </>
   ),
   // envelope — letters / mail links (was ✉️)
@@ -290,6 +305,27 @@ const ICONS = {
       <path d="M12 4.5L21 19.5H3L12 4.5Z" />
       <line x1="12" y1="10" x2="12" y2="14.5" />
       <circle cx="12" cy="17" r="0.4" fill="currentColor" stroke="none" />
+    </>
+  ),
+  // ---- Kingdom glyphs (DR-0198): faith iconography carried as reliable SVG so
+  // it renders on every device — the palette is Kingdom-first, not only secular,
+  // and never boxes out as tofu on COLG's older phones (was ✝ / 🔥 / 👑). ----
+  // Latin cross — the cross / redemption / the Gospel
+  cross: (
+    <>
+      <path d="M12 3.5v17" />
+      <path d="M8 8.5h8" />
+    </>
+  ),
+  // flame — Pentecost fire / the refining of the Holy Spirit (Acts 2:3)
+  flame: (
+    <path d="M12 3.2c.3 2.4 1.7 3.8 2.9 5.4 1 1.4 1.8 2.9 1.8 4.6a4.7 4.7 0 0 1-9.4 0c0-1 .3-1.9.9-2.7.3 1 1 1.7 1.9 2 .3-1.5.1-3-.6-4.4C11.6 6.3 12 4.6 12 3.2Z" />
+  ),
+  // crown — the King / His Kingdom (Revelation 19:16)
+  crown: (
+    <>
+      <path d="M4 8l3.2 3.2L12 5l4.8 6.2L20 8l-1.6 10H5.6L4 8Z" />
+      <path d="M5.6 18h12.8" />
     </>
   ),
 };

@@ -1,0 +1,85 @@
+# DR-0677 — The lessons have a home on the NAS, kept in step with the code, and Darrell previews a gated lesson at once
+
+- **Status:** accepted (Phase 1 shipped; Phase 2 planned below, not built)
+- **Tier:** C for the schema and the sync lane (a new table family on the live database, a new write path to it); B for the reader. Carried as proof, never as a stall (DR-0225): the proofs are listed under Verification.
+- **Type:** architecture / data / verification
+- **Date:** 2026-09-29
+- **Scope:** `infra/supabase/migrations-auto/0242-the-lessons-have-a-home-on-the-nas-kept-in-step-with-the-code.sql` (new); `infra/supabase/tests/0242-curriculum-preview-smoke.sql` (new, and a leg in `.github/workflows/rls-isolation.yml`); `app/src/lib/curriculum-rows.js`, `app/src/lib/lesson-store.js` (new); `app/src/components/ChurchLearn.jsx` (the overlay and the preview badge); `scripts/curriculum-snapshot.mjs`, `curriculum-gates.mjs`, `curriculum-parity.mjs`, `curriculum-cli.mjs`, `curriculum-ci-bootstrap.sql`, `lessons-sync-over-tailnet.sh` (new); `app/src/lib/curriculum-verse-baseline.json` (new); `.github/workflows/lessons-sync.yml` (new), `ci.yml` (the `curriculum` leg, now part of the required check), `deploy-cloudflare-pages.yml` (one isolated job after the deploy that dispatches the sync); `scripts/system-flow-registry.mjs`; the derived counts (below).
+- **Principles:** APP-IS-PRIMARY, SOVEREIGN-FIRST, VERIFICATION-DOCTRINE, REALITY-TRACE, THREE-BRAKES, SPEC-CONFORMANCE-REVIEW, WORD-FIRST, DR-NUMBER-ALLOCATION, DECISION-RECORDS (and, by record: the down site is the worst outcome, DR-0107 / DR-0125; the tenancy guard, DR-0060; nothing waits, DR-0236; hold the hand of the process, DR-0621)
+- **Grounds:** Darrell 2026-09-29: *"Why don't the lessons live on the nas?!!!!!!!!!!"*; then, the same morning, a direction change: *"The apps code is needed to keep context!!!!!!!%"*; then the choice of option **A+** (below). REV-0255 LP-04 (PR #1840): parallel lesson PRs serialize on shared literal count lines. The NAS builder (PR #1837, DR-0669) and Your lessons (PR #1841, DR-0672) are in flight and were read, not edited.
+
+## Context
+
+Every lesson lives in JavaScript in `app/src/lib`: 43 registered courses plus the six Eternal-Algorithms courses, **729 lessons**, `living-lessons-class.js` alone 12,044,650 bytes. They are compiled into the bundle, so publishing one lesson is a PR, CI, a merge and a full deploy, and every lesson PR edited the same literal count lines. The app's data already lives on the sovereign NAS database (REPOINT-ARMED; the app reads through `poetech.us/sb`, the same-origin transport, DR-0307).
+
+## What was measured
+
+Every consumer of lesson content, characterized before any change (DR-0076 §5):
+
+Read, not assumed. Everything that reads a lesson today reads a course file, through one of these doors:
+
+| consumer | how it reads lessons |
+|---|---|
+| `lib/learn-catalog.js` (the registry) | imports every course file; `LEARN_CATALOG[i].buildScheduleRows()`; `learnCatalogSummary`, `buildSelfPacedDescriptors`, `buildCatalogCourseDescriptors` |
+| `poe-financial-mvp-v28.jsx` (the host) | builds the cohort descriptors and `buildSelfPacedDescriptors`, passes them to `ChurchLearn` as `extraCourses` |
+| `components/ChurchLearn.jsx` (the reader) | mounts `aiCourse` + extras + `buildEternalProcessingCourses()`; every card, the lesson space, the finder, the print copy (DR-0652: light cards, print only while printing) |
+| `lib/lesson-order.js`, `learn-organize.js`, `lesson-sections.js`, `learn-units.js` | order, number, count and shelve the mounted `schedule` rows |
+| `lib/learn-crosslist.js` | pointers `course :: lessonId` resolved against the mounted courses |
+| `lib/learn-resume.js`, `learn-open.js`, `lesson-landing.js`, `lesson-links.js` | keep only `{courseKey, lessonId}` (+ sentence hash); resolve against the mounted courses |
+| `lib/use-read-aloud.js`, `tts.js`, `read-follow.js`, `lesson-flow.js` (`readAloudTextFromArc`) | read the text of the lesson that is rendered |
+| the Firestick (`tv-device.js`, `remote-navigation.js`) | the same web app and the same `ChurchLearn` path, D-pad driven |
+| offline / PWA (`public/sw.js`) | lessons ride the hashed JS chunks, cached cache-first; offline reading already works from the bundle |
+| `lib/class-tutor.js` (Ari's tutor), `lib/lessons-for-situation.js` | the module text via the descriptors |
+| `lib/book-corpus.js`, `components/PerpetualReport.jsx`, `PublicWelcome.jsx`, `BiblicalTimeline.jsx`, `TeachMode.jsx`, `lib/teach-present.js`, `lesson-timeline-context.js`, `living-lessons-dates.js` | direct imports of course modules or the catalog (book export, counts, anchors, presentation) |
+| the gates (`scripts/quoted-verse-is-the-verse.mjs`, `quotation-integrity.mjs`, `full-levels.mjs`, `reading-level.mjs`, `band-differentiation.mjs`, `course-band-coverage.mjs`, `title-in-narrative.mjs`) and ~200 per-lesson tests | import the module arrays |
+| the NAS builder (PR #1837) | writes a module into `living-lessons-class.js` and bumps the count lines (`bump_weeks`, `bump_crosslist`, `bump_json_count`) |
+
+## Impact
+
+Without this, a lesson has no sovereign home: it exists only inside a 19 MB bundle, reaching the family takes a PR, CI, a merge and a full deploy, and parallel lesson PRs conflict on shared count lines. With it, the family's own database holds every lesson in step with the code and proves it after every deploy, Darrell reads a gated lesson the moment it passes, the bundle stays the floor so the site never goes blank, and a new lesson no longer edits a count line.
+
+## Options
+
+| option | what it is | chosen? |
+|---|---|---|
+| **A** | The code stays the master. The NAS holds a synchronized copy that serves reads, fast opens, offline and the Firestick; a parity gate proves the two match. | the base of the choice |
+| **A+** | **A, plus an instant preview:** a lesson that has passed every gate on the NAS is readable at once by Darrell's two sign-ins and the Governor, marked "Preview — going public after review" with its PR; everyone else reads it once it is merged code, synced and live. Enforced by row level security, not by the app. | **CHOSEN (Darrell, 2026-09-29)** |
+| B | The NAS database is the master; the course files become a generated snapshot; a lesson publish is a gated database write. | not chosen: *"The apps code is needed to keep context"* — sessions, reviews and history read the code |
+| C | Status quo: bundle only, every lesson a PR and a full deploy. | not chosen: no sovereign home, no instant read |
+| D | Stay in the repo only, but split each lesson into its own file with a generated manifest (to end the count conflicts). | not chosen as the answer: it fixes the conflicts, not the home; the conflict half is taken here as **derived counts** |
+
+## Decision
+
+1. **The code is the master, binding.** Every lesson has its repo copy in its course file. A course file is never removed or thinned. The Phase 2 idea of turning the JS files into a generated snapshot is **dropped**.
+2. **The NAS holds a synchronized copy** (migration 0242): `curriculum_courses`, `curriculum_lessons` (named columns + `key_order` + `rest` + `status` + `pr_url` + the gate verdict), `curriculum_lesson_bands`, `curriculum_lesson_quiz`, `curriculum_lesson_movements` (the builder's shape; none in the current corpus), `curriculum_lesson_provenance` (a lesson's `sources`), `curriculum_lesson_verse_spans` (every quotation a reader meets, with the verse it names), `curriculum_sync_runs` (the receipt). One lesson id, one row, school-wide (unique index).
+3. **Row level security.** PUBLIC rows: anyone (anon and signed in), exactly who reads the bundle today. PREVIEW rows: `is_curriculum_previewer()` only — Darrell's two sign-ins (`f13843f2-…`, `c2a6c39a-…`) or the Governor (`is_lesson_governor`, 0237). Writes: the service role; the Governor may stage or withdraw a PREVIEW row of his own and nothing public. A trigger refuses any row without a passed gate verdict over exactly its content hash, and any content change without a fresh gate run. Not tenant-scoped (no `instance_id`; the curriculum is the school's), RLS on every table all the same.
+4. **The sync follows the deploy.** `deploy-cloudflare-pages.yml` dispatches `lessons-sync.yml` in a separate job after a successful deploy (it cannot touch the deploy). The sync rides the lane already proven to write the sovereign database: a runner on the tailnet with `NAS_SSH_KEY`, psql inside `supabase-db` (the db-migrate replay's idiom). It was chosen over the NAS services-sync loop because building the snapshot needs the course files evaluated and node on the NAS is not established (the builder's own node layer runs "when node is on the box"). Stop-path: the same `REPOINT-ARMED` record the migration lane rides. Budget and lock: `timeout-minutes`, one sync at a time.
+5. **Parity, lesson by lesson.** After each sync the copy is read back FROM the NAS database and compared with the code by `scripts/curriculum-parity.mjs`: missing, extra public, wrong course, status, any field (canonical JSON), the content hash, and a preview older than 72 hours (a NAS-only lesson must not outlive its PR). The verdict and every drifted id and field are written to `curriculum_sync_runs` and the run summary.
+6. **The gates move with the content** (`scripts/curriculum-gates.mjs`, importing the repo's own gate modules, not a fork): structure and id collision, the verse gate, quotation integrity (both baselines), full levels, reading level, band differentiation, course band coverage. They run (a) on a publish write — `gateLessonForPublish` judges the school as it would be with the lesson in it; the sync SQL is written only when every gate passes; the builder (PR #1837) calls the same function before it writes a preview row — and (b) in CI on a database snapshot (the `curriculum` leg, below).
+7. **The read path, bundle first.** `lib/lesson-store.js`: the bundled lessons render first and synchronously, always; the device keeps what it last read from the NAS in IndexedDB (the phone offline and the Firestick read the same cache); the network refresh is background only. A feature flag selects the mode: `bundle` (default) overlays only previews; `nas` overlays a public NAS copy that differs. Per device: `localStorage['poetech.lessons.source'] = 'nas'`; per build: `VITE_LESSON_SOURCE=nas`. The reader shows the preview badge and a link to the lesson's PR.
+8. **Counts derive from the data.** `LIVING_LESSONS_META.weeks` and the same field of seven growing courses (World Issues, Sovereign A.I., Made in Time, Project Management, Software PM, Word Out, Church Offices, Sound Board) are getters over their own arrays. `learn-crosslist.test.js`'s 49 / 729 pins, and the `measuredLessons` / `lessons` / `total` pins of six baseline tests, are replaced by counts derived from the registry, each with a proven-to-catch (a dropped or doubled lesson in transit fails). A floor (`SCHOOL_FLOOR`, 49 / 729) keeps the school from silently shrinking and is never edited by a new lesson.
+
+## Verification (evidence, not claims)
+
+- **Round trip, in vitest** (`curriculum-round-trip.test.js`): all 49 courses, 729 lessons, through JSON with the child rows reversed, recomposed deep-equal lesson for lesson (canonical JSON and vitest `toEqual`), key order kept. Proven-to-catch: an altered band, a dropped key, a lost quiz question each fail.
+- **Round trip, on a real PostgreSQL 16** (measured 2026-09-29 in the session): 0242 applied twice (idempotent); the sync wrote 729 lessons, 1,941 bands, 2,631 quiz questions, 21 provenance rows and 42,105 verse spans; a second sync wrote 0; read back (21.7 MB) and parity **IN STEP, 0 findings**. One band altered in the database → parity **DRIFT**, `field :: living-lessons/ll197-… :: levels` and its hash; a deleted lesson → `missing-on-nas`; a hand-inserted public row → `extra-on-nas`; the next sync healed all three and parity read IN STEP.
+- **The sync script end to end** (`lessons-sync-over-tailnet.sh` run against that database through stand-in `ssh`/`docker`): in step, receipt row `in-step`; with a band corrupted and a no-op apply, exit 1 naming `ll5-… :: levels`, receipt row `drift` with both findings; a real sync then healed it.
+- **The preview wall** (`0242-curriculum-preview-smoke.sql`: PASS on the local database and in the CI leg; added as a leg of the RLS matrix, which runs it against the live database once 0242 lands): anon and a member read public rows and no preview row or part; Darrell's uid and the Governor read both; the Governor stages a preview, cannot write a public row or edit one; a member stages nothing; the gate trigger refuses a failed verdict, a verdict over other content, and an edit without a fresh run. Proven-to-catch inside the smoke: with the read policy opened, the member check sees the preview.
+- **Gates on the database copy:** `curriculum-cli --gate-db` on the read-back: PASS, 729 lessons, 42,105 spans, 41,631 verbatim, 475 recorded verse faults. `curriculum-gates.test.js`: the real curriculum passes; one altered word in a quotation is refused naming the lesson; a new lesson reusing a number is refused; an id in two courses is refused; a course lesson gaining a verse fault is refused; the same lesson republished unchanged passes.
+- **CI leg `curriculum`** (in the required `app — lint + vitest` check): 0242 twice on a `postgres:16` service, gates + sync SQL, two syncs (second writes 0), the preview smoke, read-back parity + gates on the database copy, and the altered-band proof. Simulated step by step on the local database before shipping.
+- **The reader** (`lesson-store.test.jsx`): bundle-first flag; the bundle renders on the first render before any network answer; a NAS that errors leaves every lesson as bundled (DR-0107); bundle mode ignores a public NAS copy, nas mode takes it in the bundled place; a preview is added and marked; `ChurchLearn` shows exactly one badge with the PR link, on the preview lesson only.
+
+## Findings carried as work (DR-0621), each with a date
+
+- **Verse debt outside the two zero-fault courses.** The verse gate, never before run on the other courses, measured **475 faults across 23 courses** (made-in-time 280, sovereign-ai 38, historical-research-1619 36, kingdom-economics 19, world-issues 19, prophetic-voices 15, and 17 smaller). Recorded shrink-only in `curriculum-verse-baseline.json`: none may grow, none may be added. Many may be quotations of another translation under a KJV check; each needs reading, not a sweep (DR-0098, DR-0076). **re-review: 2026-10-13.**
+- **PR #1837 must accept the derived counts.** Its `bump_weeks`, `bump_crosslist` and `bump_json_count` raise when the literal line is absent, and its test reads the real files. They should become no-ops when the count is derived (the lines they bump are gone or unpinned). Posted on #1837. **re-review: 2026-10-01**, or when #1837 next merges main.
+- **The builder writes previews.** The table, the wall, the gate function and the badge are here; the builder's call (`gateLessonForPublish`, then an insert with `status = 'preview'` and `pr_url`) lands with #1837. Until then a preview row exists only when written by the service or the Governor. **re-review: 2026-10-01.**
+- **The first live sync.** Proven locally and in CI against PostgreSQL; the first run against the NAS happens on the merge of this PR (db-migrate lands 0242; the deploy dispatches the sync). Watch that run and its receipt row. **re-review: 2026-09-30.**
+- **Child rows and the gate trigger.** The trigger guards the lesson row; a hand edit to a band alone is caught by parity, not refused by the database. **re-review: 2026-10-13.**
+- The baseline JSON files still carry their `measuredLessons` / `total` fields (informational now; the builder still bumps them). Removing them waits on #1837. **re-review: 2026-10-01.**
+
+## Phase 2 (planned, not built)
+
+1. **Flip to NAS-first** only after measured live reads: the sync's receipts in step for a week, and the app's own reads through `/sb` timed on a phone and the Firestick against the bundle. Then `VITE_LESSON_SOURCE=nas` for the build, the bundle still the floor.
+2. **A lesson reaches the family in minutes, not a deploy:** the builder writes a gated preview at once (A+); the PR merges through the lane; the deploy's sync turns it public. The course file stays the master throughout (Decision 1). The JS files are **not** turned into a generated snapshot.
+3. **Course facts from the copy** (`curriculum_courses`) once the reader reads lessons NAS-first.

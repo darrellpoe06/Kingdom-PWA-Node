@@ -45,6 +45,16 @@ jobs:
     # Gate: stays skipped until Darrell flips the variable on (post-research,
     # credentials in place). Keeps the live Vercel serving untouched until then.
     if: ${{ vars.CF_PAGES_ENABLED == 'true' }}
+    outputs:
+      # This build's boot-critical JS chunk paths — the propagation sentinel
+      # verify-boot polls for on the domain (incident #722: the domain can serve
+      # the new shell minutes before the shell's own assets are reachable).
+      # ALL of them, not just the entry: index.html modulepreloads the entry,
+      # the react-vendor split, AND the monolith chunk, and the app can't boot
+      # until every one is served as JavaScript. Waiting on only the entry let
+      # boot-check race the vendor/monolith chunks and false-fail (filing bogus
+      # incidents + phone pushes) — the transient deploy failures this hardens.
+      assets: ${{ steps.sentinel.outputs.assets }}
     defaults:
       run:
         working-directory: app
@@ -59,6 +69,106 @@ jobs:
       - name: Install deps
         run: npm ci
 
+      # THE REPOINT RIDES THE RECORD (DR-0310). When the committed
+      # infra/nas-supabase/REPOINT-ARMED file exists, this build points the app
+      # at the sovereign stack: the URL is the proven /sb transport (DR-0307
+      # hop chain), and the anon key is fetched from the NAS ITSELF over the
+      # team's own tailnet channel — the same TS_AUTHKEY + NAS_SSH_KEY that
+      # nas-health/nas-clock already hold. The NAS is authoritative for its own
+      # key; no secret-store hands, no human paste (DR-0108: a "must-be-by-
+      # hand" is a premise to challenge). Fail-LOUD: armed + fetch failure =
+      # the deploy fails; the running site stays up and never ships half a
+      # backend (DR-0107). Reverting the record file is the whole off-switch.
+      - name: Join the tailnet (repoint armed only)
+        if: ${{ hashFiles('infra/nas-supabase/REPOINT-ARMED') != '' }}
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+      - name: Fetch the sovereign anon key from the NAS (repoint armed only)
+        if: ${{ hashFiles('infra/nas-supabase/REPOINT-ARMED') != '' }}
+        working-directory: .
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          umask 077
+          printf '%s\n' "$NAS_SSH_KEY" > /tmp/nas_key
+          KEY=$(ssh -i /tmp/nas_key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 \
+            dpoe@poetech.tail5a2f35.ts.net \
+            "sudo -n sed -n 's/^ANON_KEY=//p' /volume1/docker/supabase/.env" | tr -d '[:space:]')
+          rm -f /tmp/nas_key
+          case "$KEY" in
+            eyJ*.eyJ*.*) : ;;
+            *)
+              echo "::error::REPOINT-ARMED but the sovereign ANON_KEY fetch returned ${#KEY} bytes, not a JWT — failing this deploy rather than shipping half a backend (DR-0107). The live site keeps its current build."
+              exit 1
+              ;;
+          esac
+          echo "::add-mask::$KEY"
+          {
+            # ===================================================================
+            # TEMPORARY UNLOCK, 2026-10-09 — A DELIBERATE, SURFACED DEVIATION
+            # FROM CLAUDE.md LAYER 0 AND DR-0570. REVERT TO
+            # https://poetech.us/sb THE MOMENT THE PAGES FUNCTIONS RUN AGAIN.
+            # ===================================================================
+            # The binding rule says the app reaches the NAS by a SAME-ORIGIN
+            # route and never the absolute Funnel URL, because the Funnel
+            # throttles cross-origin browser fetches with a 503. That rule is
+            # right, and this line breaks it on purpose, for one reason: the
+            # same-origin route is GONE and cannot be restored from this repo.
+            #
+            # Measured, repeatedly, from a GitHub runner:
+            #   - EVERY Pages Function on the site answers with the SPA shell
+            #     (200 text/html) — /sb, /n8n, /cams, /taxes, /openers, /llm,
+            #     /reviews, /voice, /nas-photos, /ways, /scribe alike.
+            #   - The sign-in POST to poetech.us/sb answers 405 with an EMPTY
+            #     body, which is what Pages returns for a POST to a static
+            #     asset, so the browser dies on .json() of nothing.
+            #   - The NAS gateway and the Funnel both answer that identical
+            #     POST healthily: 400, 81 bytes, invalid_credentials.
+            #   - Three deploys logged "Compiled Worker successfully",
+            #     "Uploading Functions bundle" AND "Uploading _routes.json",
+            #     on the custom domain and the project's own pages.dev alias,
+            #     and nothing changed. An explicit routing table did not fix
+            #     it. The failure is on Cloudflare's side of the line.
+            #
+            # The rule's stated HAZARD was measured before taking this road,
+            # rather than assumed away: a CORS preflight answers 200, and a
+            # POST carrying Origin: https://poetech.us answers 400 with 81
+            # bytes and access-control-allow-origin: *. The throttle is not
+            # firing right now. It may begin firing under real family load —
+            # that is the risk being accepted, knowingly, against a family
+            # that is locked out of its own app with meetings to keep.
+            #
+            # Darrell, 2026-10-09: "I should never be locked out!!!!!!!!!!!!
+            # Ever!!!!!!!!!!!!!" and "I have meetings with people and work!!!!!
+            # Fix it!!!!!!!!". Being locked out is the larger harm; this is
+            # reversible in one line, and reverting it is the first thing that
+            # happens once the same-origin road carries a POST again.
+            echo "SOVEREIGN_SB_URL=https://poetech.tail5a2f35.ts.net/sb"
+            echo "SOVEREIGN_SB_ANON=$KEY"
+            # Cameras ride the SAME dead Function layer. Darrell, 2026-10-09:
+            # "Cameras tab is not working?!!!!!" Unlike /sb, the camera road
+            # carries a bearer and the Funnel sent NO CORS headers at all
+            # (measured: /cams preflight 501, GET 404, allow-origin none), so
+            # this override is only safe because the forwarder now answers
+            # CORS for exactly this one origin (infra/nas-cameras/
+            # cams_forwarder.py, CORS_ALLOWED_ORIGINS). Same lifetime as the
+            # sign-in unlock above: REMOVE BOTH once Functions run again.
+            # The name here must NOT match the build var it feeds. A step's
+            # own env: key shadows the env context, so
+            # "VITE_CAMS_BASE: ${{ env.VITE_CAMS_BASE }}" is a self-reference
+            # that resolves EMPTY -- measured 2026-10-09, the served bundle
+            # carried no Funnel camera URL at all and the Cameras tab stayed
+            # dark on the very build that was supposed to fix it. The sign-in
+            # unlock worked only because its two names differ.
+            echo "UNLOCK_CAMS_BASE=https://poetech.tail5a2f35.ts.net/cams"
+            # The reading voice, same outage, same shape. /voice-lite is the
+            # only voice road mounted on the Funnel, and a Fire TV has no local
+            # fallback (Silk exposes speechSynthesis without delivering it), so
+            # the Firestick is the device that went silent.
+            echo "UNLOCK_VOICE_LITE_BASE=https://poetech.tail5a2f35.ts.net/voice-lite"
+          } >> "$GITHUB_ENV"
+          echo "repoint: armed — TEMPORARY UNLOCK, this build carries the sovereign backend over the Funnel origin because every Pages Function is dark; revert to poetech.us/sb once /sb carries a POST again."
       - name: Build (static, base /poetech-app/)
         run: npm run build
         env:
@@ -68,15 +178,53 @@ jobs:
           # time. They are public-by-design (anon key + RLS, shared-secret bearer
           # that pairs with a server gate) — copying them into CI secrets is not a
           # secret-handling risk, but the cutover is not done until each is set.
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-          VITE_N8N_BEARER: ${{ secrets.VITE_N8N_BEARER }}
-          VITE_REVIEW_TOKEN: ${{ secrets.VITE_REVIEW_TOKEN }}
+          # Sovereign values (set by the armed repoint steps above) take
+          # precedence; the hosted secrets remain the un-armed fallback.
+          VITE_SUPABASE_URL: ${{ env.SOVEREIGN_SB_URL || secrets.VITE_SUPABASE_URL }}
+          # Unset in a normal build, so cameras.js keeps its same-origin '/cams'
+          # default and cameras.test.js keeps pinning it. Set only by the
+          # 2026-10-09 unlock step above, for as long as the Pages Functions
+          # are dark.
+          VITE_CAMS_BASE: ${{ env.UNLOCK_CAMS_BASE }}
+          VITE_VOICE_LITE_BASE: ${{ env.UNLOCK_VOICE_LITE_BASE }}
+          VITE_SUPABASE_ANON_KEY: ${{ env.SOVEREIGN_SB_ANON || secrets.VITE_SUPABASE_ANON_KEY }}
+          # THE BLOB BRIDGE (2026-08-31 — the Moore Divahs gallery regression).
+          # VITE_PUBLIC_STORAGE_URL — the public-blob bridge DR-0317 shipped on
+          # 2026-08-31 — was RETIRED here on 2026-09-08: nas-storage-sync run 1
+          # copied all 12 moore-showcase objects to the sovereign storage and
+          # read one back anonymously through kong (HTTP 200, verdict GO), so
+          # the sovereign backend now HOLDS the public blobs and the app reads
+          # them where everything else already lives. Un-set, showcase.js
+          # resolves at the sovereign origin, exactly as before the bridge.
+          # VITE_N8N_BEARER intentionally NOT injected (2026-07-30 access
+          # evaluation): a build-time var is inlined into the PUBLIC bundle, and
+          # this one carried the NAS bearer gating the bank-PII webhook — any
+          # visitor could extract it. The per-device localStorage bridge token
+          # (n8n-base.js) is the only client source now. The secret stays for
+          # the workflow-level announce path below (server-side, never bundled).
+          # VITE_REVIEW_TOKEN removed for the same reason, same day — the
+          # per-device localStorage token (ReviewFeed.jsx) is the only source.
           VITE_YOUTUBE_API_KEY: ${{ secrets.VITE_YOUTUBE_API_KEY }}
           VITE_SYNOLOGY_CHAT_BOT_URL: ${{ secrets.VITE_SYNOLOGY_CHAT_BOT_URL }}
           # NOTE: VITE_N8N_WEBHOOK_BASE is intentionally NOT set — it defaults to
           # the same-origin "/n8n" path served by the Pages Function. Setting it
           # to the bare Funnel URL would re-open the cross-origin 503 throttle.
+
+      # DR-0595 (2026-09-23 post-incident): the 2026-09-23 23:43Z deploy of
+      # main failed at wrangler with "Pages only supports files up to 25 MiB"
+      # (the entry chunk was 26.1 MiB) and the site served the previous build.
+      # Measure the real dist here, before anything touches Cloudflare, so a
+      # refused file is named in plain words and the failure is this step's.
+      - name: Asset-size guard — no built file within 1 MiB of the Pages cap
+        working-directory: app
+        run: node ../scripts/asset-size-guard.mjs dist
+
+      - name: Name this build's boot-critical chunks (the propagation sentinel)
+        id: sentinel
+        # Every JS asset index.html references (entry + react-vendor + monolith),
+        # de-duped, space-separated. verify-boot waits for ALL of them to serve as
+        # JavaScript before it boots a real browser — see the assets output above.
+        run: echo "assets=$(grep -oE 'assets/[^\"]*\.js' dist/index.html | sort -u | tr '\n' ' ' | sed 's/ *$//')" >> "$GITHUB_OUTPUT"
 
       # Create the Direct-Upload Pages project on the FIRST run so no one has to
       # click through the dashboard's flaky "Connect to Git" flow (which we do not
@@ -102,3 +250,182 @@ jobs:
           # /n8n Pages Function alongside the static dist. --branch=main marks
           # this a PRODUCTION deployment (the custom domain serves production).
           command: pages deploy dist --project-name=poetech-app --branch=main
+
+  # ---------------------------------------------------------------------------
+  # The deploy is not done until the served app BOOTS (DR-0139). CI-green and
+  # the curl probe both missed the 2026-07-10 class: the shell + assets served
+  # 200 while the family photographed recovery screens — nothing ever EXECUTED
+  # the JavaScript. This job loads the real production URL in headless Chrome
+  # (preinstalled on the runner) and fails loudly — filing the incident ledger —
+  # if the app shows a recovery screen instead of mounting. Non-required check:
+  # it never blocks the merge lane; it makes a broken serve VISIBLE in minutes.
+  # ---------------------------------------------------------------------------
+  verify-boot:
+    name: verify the served app boots (real browser)
+    needs: deploy
+    if: ${{ vars.CF_PAGES_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install playwright-core (drives the runner's installed Chrome)
+        run: npm install --no-save playwright-core@1
+      # ------------------------------------------------------------------------
+      # Propagation gate (incident #722, DR-0153 §2): for minutes after an
+      # upload the domain can serve the NEW shell while its hashed chunks are
+      # not yet reachable — the family's measured blank windows. Wait (bounded)
+      # until the domain serves THIS deploy's entry chunk as JavaScript, and put
+      # the measured window on the record every deploy. On timeout, fail — after
+      # 15 minutes a domain still not serving the deploy IS an incident, and the
+      # failure path below files it on the ledger.
+      # ------------------------------------------------------------------------
+      - name: Wait for the domain to serve this deploy (measured propagation window)
+        env:
+          ASSETS: ${{ needs.deploy.outputs.assets }}
+        run: |
+          if [ -z "$ASSETS" ]; then
+            echo "no asset sentinel from the build — skipping the gate (boot-check below is still the judge)" | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          # Wait for EVERY boot-critical chunk, on ONE shared 15-minute deadline —
+          # boot-check must not start until the entry, the react-vendor split, AND
+          # the monolith chunk are all reachable as JavaScript (else it races the
+          # slower-to-propagate chunk and false-fails).
+          start=$(date +%s)
+          deadline=$(( start + 900 ))
+          for asset in $ASSETS; do
+            url="https://poetech.us/poetech-app/${asset}"
+            while :; do
+              ctype=$(curl -sS -o /dev/null -w '%{content_type}' --max-time 20 "$url" || echo "unreachable")
+              now=$(date +%s); elapsed=$(( now - start ))
+              case "$ctype" in
+                *javascript*)
+                  echo "served ${asset} as JavaScript after ${elapsed}s" | tee -a "$GITHUB_STEP_SUMMARY"
+                  break ;;
+              esac
+              if [ "$now" -ge "$deadline" ]; then
+                echo "domain did NOT serve ${asset} within 15 minutes — propagation stuck (this is an incident)" | tee -a "$GITHUB_STEP_SUMMARY"
+                exit 1
+              fi
+              echo "t+${elapsed}s: ${url} answered content-type '${ctype}' — still propagating"
+              sleep 10
+            done
+          done
+          echo "all boot chunks served as JavaScript — propagation complete" | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Boot-check production (domain + pages.dev origin + the Moore door + the Church tab)
+        # ?view=church added 2026-07-10 after the family photographed a white
+        # screen on the Church tab during a deploy window — the tab the church
+        # actually lives in is now proven booting on every deploy, not assumed.
+        run: node scripts/boot-check.mjs https://poetech.us/poetech-app/ https://poetech-app.pages.dev/poetech-app/ "https://poetech.us/poetech-app/?moore=1" "https://poetech.us/poetech-app/?view=church"
+      - name: File the failing observation on the incident ledger
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          N8N_BEARER: ${{ secrets.VITE_N8N_BEARER }}
+        run: |
+          body="boot-check FAILED: the deployed app did not BOOT in a real browser after ${GITHUB_SHA} — recovery screen or blank mount on production. Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID} (DR-0139; probe-green is not boot-green)."
+          num=$(gh issue list --repo "$GITHUB_REPOSITORY" --label incident --state open --limit 1 --json number --jq '.[0].number // empty')
+          if [ -n "$num" ]; then
+            gh issue comment "$num" --repo "$GITHUB_REPOSITORY" --body "$body"
+          else
+            gh issue create --repo "$GITHUB_REPOSITORY" --title "incident: deployed app failed the real-browser boot-check" --label incident --body "$body"
+          fi
+          # Announce, not only record (DR-0156): phone push via the NAS relay —
+          # the ledger above stays the record either way.
+          #
+          # AND THE BELL IS CHECKED (DR-0970). `curl -sS` without -f exits 0 on
+          # a 404, so the old `|| echo "::warning::"` could not fire on the
+          # failure that was actually happening: the ops-announce webhook is
+          # not registered (caught verbatim in site-health run 38141832465).
+          # This deploy was red for two hours on 2026-10-11 with no bell, and
+          # nobody knew the bell itself was what was broken.
+          #
+          # scripts/ops-announce.mjs classifies the HTTP answer and exits 3 on
+          # a dead bell, which is then recorded on the same incident issue as
+          # the boot-check failure — where a human actually looks (P53).
+          if [ -n "${N8N_BEARER:-}" ]; then
+            set +e
+            RUN_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" \
+              node scripts/ops-announce.mjs \
+                --title="deploy failed the real-browser boot-check" \
+                --message="The deployed app did not boot after ${GITHUB_SHA}. Details on the incident ledger." \
+                --url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" \
+                --priority=5 > /tmp/bell.txt 2>&1
+            bell=$?
+            set -e
+            sed 's/^LEDGER_LINE=.*/LEDGER_LINE=(recorded on the ledger)/' /tmp/bell.txt
+            if [ "$bell" = "3" ]; then
+              # RE-READ the issue number rather than reusing `num` from above:
+              # when that block CREATED the issue, `num` is still empty, so
+              # reusing it would drop the dead-bell record on exactly the first
+              # outage — the one where the silence matters most.
+              num=$(gh issue list --repo "$GITHUB_REPOSITORY" --label incident --state open --limit 1 --json number --jq '.[0].number // empty')
+              line=$(grep '^LEDGER_LINE=' /tmp/bell.txt | head -1 | cut -d= -f2-)
+              if [ -n "$num" ] && [ -n "$line" ]; then
+                gh issue comment "$num" --repo "$GITHUB_REPOSITORY" --body "$line"
+              else
+                echo "::warning::the phone alarm is dead and there was no open incident issue to record it on"
+              fi
+            fi
+          fi
+
+  # ---------------------------------------------------------------------------
+  # The NAS copy of the curriculum follows the code that is now live (DR-0677).
+  # A SEPARATE job after the deploy: it cannot touch the deploy or the boot
+  # check, and a failure here is red on this job alone (a down site outranks
+  # everything, DR-0107 — this never stands between a merge and the site).
+  # Dispatched explicitly because a GITHUB_TOKEN merge fires no push event and
+  # workflow_run from a token-driven run is suppressed (the class db-migrate
+  # documents for rls-isolation); an explicit workflow_dispatch is not.
+  # ---------------------------------------------------------------------------
+  dispatch-lessons-sync:
+    name: dispatch the NAS lesson sync (after a successful deploy)
+    needs: deploy
+    if: ${{ vars.CF_PAGES_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      actions: write
+    steps:
+      - name: Dispatch lessons-sync.yml on main
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          curl -sS -f -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/workflows/lessons-sync.yml/dispatches" \
+            -d '{"ref":"main"}' \
+            && echo "lessons-sync dispatched for ${GITHUB_SHA}" | tee -a "$GITHUB_STEP_SUMMARY"
+
+  # ---------------------------------------------------------------------------
+  # THE CAMERA ROAD WITNESS, DISPATCHED (DR-0806; found 2026-10-08). camera-health.yml
+  # declares `workflow_run` on this deploy, and it never fired: this run is
+  # itself started by a GITHUB_TOKEN dispatch, and workflow_run from a
+  # token-driven run is suppressed (the same gap dispatch-lessons-sync closes).
+  # The explicit dispatch is not suppressed. Red here is red on this job alone.
+  # ---------------------------------------------------------------------------
+  dispatch-camera-health:
+    name: dispatch the camera road witness (after a successful deploy)
+    needs: deploy
+    if: ${{ vars.CF_PAGES_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      actions: write
+    steps:
+      - name: Dispatch camera-health.yml on main
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          curl -sS -f -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/workflows/camera-health.yml/dispatches" \
+            -d '{"ref":"main","inputs":{"probe_all":"false"}}' \
+            && echo "camera-health dispatched for ${GITHUB_SHA}" | tee -a "$GITHUB_STEP_SUMMARY"

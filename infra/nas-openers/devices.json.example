@@ -1,0 +1,8 @@
+{
+  "_comment": "Copy to devices.json ON THE NAS and fill in. This file is the ARMING: an opener absent here, or present with enabled:false, is refused with a reason and nothing is pressed. The keys are the household_openers row ids from the app. Nothing in this file ever leaves the NAS.",
+  "00000000-0000-0000-0000-000000000000": {
+    "enabled": false,
+    "kind": "relay-http",
+    "url": "http://192.168.1.50/relay/0?turn=toggle"
+  }
+}

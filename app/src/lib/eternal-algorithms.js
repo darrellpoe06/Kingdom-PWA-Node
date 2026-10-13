@@ -70,6 +70,12 @@ export function normalizeAlgorithm(raw = {}, nowMs = 0, salt = 0) {
       summary: String(threeD.summary || '').trim(),
     },
     outcome: String(raw.outcome || '').trim(),
+    // Browsing facets (Darrell 2026-07-07: "a sort based on the theme or subject
+    // ... or the character it is describing"). Optional + additive: `theme` is the
+    // subject/domain, `character` the biblical figure the pattern is drawn through
+    // (empty when it isn't about one). The catalog view sorts/filters on these.
+    theme: String(raw.theme || '').trim(),
+    character: String(raw.character || '').trim(),
     tags: Array.isArray(raw.tags)
       ? raw.tags.filter(Boolean).map((t) => String(t).trim()).filter(Boolean)
       : [],
@@ -287,6 +293,35 @@ export function seedIfEmpty(library, nowMs = 0) {
 // =============================================================================
 export const SEED_ALGORITHMS = [
   {
+    // SPOKEN BY DARRELL, 2026-08-14, mid-outage, locked out of his own apps:
+    // "If Yahweh becomes your problem then your stuck in the problem..."
+    // Captured per the Layer 0 binding rule (spoken teachings are build input).
+    // Distilled FROM HIS WORDS, not replaced with generic theology. Every verse
+    // below is VERBATIM KJV from the in-app sovereign text (app/public/bible/kjv),
+    // fetched not recalled (DR-0076); "the LORD"/"God" inside a quotation are left
+    // exactly as written and are never overwritten with "Yahweh" (DR-0076 bright line).
+    name: 'Never Make Yahweh the Problem (or you stay in it)',
+    fourD: {
+      summary: 'Darrell, 2026-08-14: "If Yahweh becomes your problem then your stuck in the problem." '
+        + 'The Word says it as a mechanism, not a mood: "The foolishness of man perverteth his way: and his heart fretteth against the LORD" (Proverbs 19:3, KJV) — the man ruins his own road, then frets against the One who is the only way off it. '
+        + 'The wilderness is that sentence made visible. Israel "murmured against Moses and against Aaron... Would God that we had died in the land of Egypt!" (Numbers 14:2), and the outcome was to "wander in the wilderness forty years" (Numbers 14:33) — literally stuck IN the problem they blamed Him for. '
+        + 'Job is the counter-witness and the way out: at the bottom of everything he says "Though he slay me, yet will I trust in him" (Job 13:15). Yahweh never became Job\'s problem, so Job was never stuck. '
+        + '"Wherefore doth a living man complain, a man for the punishment of his sins?" (Lamentations 3:39).',
+      scripture: 'Proverbs 19:3; Numbers 14:2, 14:33; Job 13:15; Lamentations 3:39',
+    },
+    threeD: {
+      summary: 'The moment you put Yahweh in the dock, you have removed your own advocate — there is no appeal left, because the only exit from the trouble is the One you are now prosecuting. '
+        + 'It is not that complaining is impolite; it is that it is STRUCTURALLY self-defeating. Fretting against Him converts a passage into a residence. '
+        + 'Practically: take the trouble TO Him instead of laying it AT Him. Ask what He is building, not why He failed. The difference between forty years and a crossing is not the wilderness — it is who you decided the wilderness was evidence about.',
+    },
+    outcome: 'You keep the only door that opens. The trouble stays a passage instead of becoming an address — you go THROUGH it rather than settling in it, because the One you are trusting is the One holding the exit.',
+    tags: ['trust', 'wilderness', 'murmuring', 'suffering', 'spoken-by-darrell', 'stuck'],
+    links: [
+      { label: 'His Will Is Being Done (lesson movement)', where: 'Church › Learn' },
+      { label: 'The Source of Answers (Worldview spine)', where: 'CLAUDE.md' },
+    ],
+  },
+  {
     name: 'Response over Circumstance (90/10)',
     fourD: {
       summary: 'Joy is located in the response, not the event. "Count it all joy, my brothers, when you meet trials of various kinds" (Jas 1:2, ESV) — the trial is not the joy; the counting is. The testing is assigned to PRODUCE steadfastness so you become "perfect and complete, lacking in nothing" (Jas 1:3-4).',
@@ -475,6 +510,31 @@ export const SEED_ALGORITHMS = [
     links: [
       { label: 'The Perfect You Were Made For (Learn lesson)', where: 'Church › Learn › Living Lessons' },
       { label: 'Verified: teleios G5046 (from telos) / tamim H8549', where: 'Strong\'s lexicon' },
+    ],
+  },
+  {
+    // Darrell 2026-07-07: use the 3rd/4th-dimensional frame — Yahweh's perspective
+    // and science ALIGNING — to explain Flesh & Spirit, the Seen & Unseen realms,
+    // humans & spirits, and the Godhead. This is the cornerstone that names the
+    // 4D/3D vocabulary the whole platform already runs on. Scripture is quoted
+    // VERBATIM from the verified KJV set (lib/scripture-kjv.js), never from memory
+    // (DR-0076). DOCTRINE/FRAMING is Darrell + Bishop's to govern — flagged.
+    name: 'The Two Dimensions (3D & 4D — Seen and Unseen)',
+    theme: 'The Unseen Realm',
+    character: '',
+    fourD: {
+      summary: 'The 4th dimension is the higher, senior reality: Spirit, not flesh; unseen, not seen; eternal, not temporal. "God is a Spirit" (Jn 4:24, KJV) — the Godhead lives and rules there, and frames and holds the seen world from outside it: "he is before all things, and by him all things consist" (Col 1:17); "in him we live, and move, and have our being" (Acts 17:28). It is a populated realm, and our real contest is in it, not in the flesh: "we wrestle not against flesh and blood, but against principalities, against powers... against spiritual wickedness in high places" (Eph 6:12). Man was made by the Godhead FOR both dimensions — "Let us make man in our image" (Gen 1:26) — a body in the 3rd, a spirit reaching the 4th. And the 4th entered the 3rd in Christ: "in him dwelleth all the fulness of the Godhead bodily" (Col 2:9).',
+      scripture: 'John 4:24; Colossians 1:17; Acts 17:27-28; Ephesians 6:12; Genesis 1:26; Colossians 2:9',
+    },
+    threeD: {
+      summary: 'The 3rd dimension is the flesh, the physical, the measurable — what humans and science can see and touch. It is real, but it is not the whole; it is the LOWER dimension, framed by the higher. And here science and Scripture ALIGN rather than argue: a true 4th dimension would contain and see all of the 3rd at once — exactly how Scripture describes the unseen holding the seen — and creation itself points past itself to its Author. "The invisible things of him from the creation of the world are clearly seen, being understood by the things that are made, even his eternal power and Godhead" (Rom 1:20, KJV). The science that keeps reaching for a higher dimension and an "outside agent" is feeling after the very realm the Word already named.',
+    },
+    outcome: 'You read reality on BOTH dimensions at once — you stop mistaking the 3rd-dimensional (flesh, seen, temporal) for all that is, and you weigh the 4th-dimensional (Spirit, unseen, eternal, the Godhead) as the senior reality that frames it. Flesh vs. Spirit, seen vs. unseen, human vs. spirit stop being vague religious words and become a working map; and science and Scripture stop being rivals — two windows on one truth.',
+    tags: ['3d-4d', 'seen-unseen', 'flesh-spirit', 'godhead', 'spirit-realm', 'science', 'dimensions', 'worldview'],
+    links: [
+      { label: 'The Word — the 4th-dimensional frame (Layer 0)', where: 'CLAUDE.md' },
+      { label: 'THE-HOLY-SPIRIT-INTEGRATION-WORLDVIEW.md', where: 'docs/00-foundations' },
+      { label: 'The 4D/3D spine (this whole library reads on two sides)', where: 'Eternal Algorithms' },
     ],
   },
 ];

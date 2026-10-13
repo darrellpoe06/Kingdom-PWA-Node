@@ -121,3 +121,39 @@ describe('installGlobalErrorCapture — window + promise wiring', () => {
     expect(() => installGlobalErrorCapture(null)()).not.toThrow();
   });
 });
+
+// --- Self-heal events (DR-0139) — recoveries counted apart from failures -----
+import { healJournalSummary } from '../lib/error-journal.js';
+
+describe("kind 'heal' — the app's recoveries are visible, never counted as errors", () => {
+  const NOW = Date.parse('2026-07-10T03:00:00Z');
+  const entries = [
+    { at: '2026-07-10T02:59:00Z', source: 'chunk-heal', kind: 'heal', message: 'auto-reloaded', count: 2 },
+    { at: '2026-07-10T02:58:00Z', source: 'window', kind: 'runtime', message: 'boom', count: 1 },
+    { at: '2026-07-01T00:00:00Z', source: 'sw-update', kind: 'heal', message: 'update landed', count: 1 },
+  ];
+  it("errorJournalSummary EXCLUDES heals (a recovery is not a failure)", () => {
+    const s = errorJournalSummary(entries, NOW);
+    expect(s.total).toBe(1);
+    expect(s.recent).toBe(1);
+    expect(s.last.kind).toBe('runtime');
+  });
+  it('healJournalSummary counts ONLY heals, newest-first last', () => {
+    const s = healJournalSummary(entries, NOW);
+    expect(s.total).toBe(3);   // 2 chunk-heals + 1 update
+    expect(s.recent).toBe(2);  // the old sw-update heal is outside 24h
+    expect(s.last).toMatchObject({ source: 'chunk-heal', kind: 'heal' });
+    expect(s.status).toBe('good');
+  });
+  it("frequent heals read 'attention' — healing works but the churn deserves eyes", () => {
+    const storm = [{ at: '2026-07-10T02:59:00Z', source: 'boot-heal', kind: 'heal', message: 'x', count: 12 }];
+    expect(healJournalSummary(storm, NOW).status).toBe('attention');
+  });
+  it("recordError accepts kind 'heal' (not coerced to runtime)", () => {
+    const m = new Map();
+    const win = { localStorage: { getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)) } };
+    expect(recordError({ source: 'boot-heal', kind: 'heal', message: 'rung 1' }, win)).toBe(true);
+    const rows = JSON.parse(m.get('poe-error-journal'));
+    expect(rows[0].kind).toBe('heal');
+  });
+});

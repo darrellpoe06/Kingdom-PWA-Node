@@ -3,19 +3,77 @@ import ReactDOM from 'react-dom/client';
 import { storage } from './shims/storage.js';
 import './index.css';
 import { ErrorBoundary } from './components/ErrorBoundary.jsx';
-import { wireUpdates, startUpdateChecks } from './lib/sw-update.js';
+import { wireUpdates, startUpdateChecks, watchLiveBuild } from './lib/sw-update.js';
+import { adoptGrantFromUrl } from './lib/cameras.js';
 import { wireChunkHeal } from './lib/chunk-reload-heal.js';
 import { showBootFallback } from './lib/boot-fallback.js';
 import { installGlobalErrorCapture } from './lib/error-journal.js';
 import { initTextSize } from './lib/text-size.js';
+import { wireDatePickerTap } from './lib/date-picker-tap.js';
+import { captureInstallPrompt } from './lib/install-app.js';
+import { startDmNotifications } from './lib/dm-notify.js';
+import { startArrivalsWatch } from './lib/arrivals-watch.js';
+import { captureDeepLink } from './lib/app-doors.js';
+import { captureShareOpen } from './lib/lesson-share-record.js';
+import { wireRemoteNavigation } from './lib/remote-navigation.js';
+import { markTvDevice } from './lib/tv-device.js';
+import { markDeviceClass } from './lib/device-roles.js';
+import { installNativeShell, isNativeShell } from './lib/native-shell.js';
+import { registerDoorWorker, rowMoverFor } from './lib/sw-door-scope.js';
+import { watchTypedIntake } from './lib/intake-guard.js';
+
+// The local app (the native shell, DR-0570) carries the house's address: the
+// same-origin NAS routes are re-homed to poetech.us before any module fetches.
+// Wired FIRST — a boot-time fetch that ran before it would ask the phone's own
+// asset server for a route only the house has. On the web this is a no-op.
+installNativeShell(window);
+
+// A notification's deep link is read HERE, at boot, before anything renders:
+// nav-history's history seed rewrites the URL within a tick and keeps only
+// view/sub/PRESERVED_PARAMS, and the surface that needs `dm=` is lazily
+// imported, so it mounts after the param is gone. One synchronous read, taken
+// once, consumed by whichever surface owns the link (app-doors.js; DR-0444).
+captureDeepLink();
+
+// A SHARED LESSON LINK (`s=` token, DR-0698) is watched from here, before the
+// history seed can rewrite the URL: the surface that shows the lesson reports
+// 'ok', a stale link reports why, and a watchdog reports 'failed' if nothing
+// shows it in time (the DR-0296 class, where the lesson surface never mounts).
+// One event per open, with nothing about the person who opened it.
+try { captureShareOpen(window.location.search); } catch (_) { /* a record never blocks boot */ }
+
+// The entry module is ALIVE — public/watchdog.js watches for this flag and
+// retries the load once (cache-busted) if it never appears (LESSONS P32:
+// a deploy-window 404 on the entry chunk used to leave a dead blank page).
+window.__PT_BOOTED = true;
 
 window.storage = storage;
+
+// A TV remote's D-pad arrives as plain arrow keydowns and OK as Enter, so the
+// browser route onto a Fire TV / streaming stick is only usable if arrows move
+// focus spatially. Bubbling listener: any surface that owns its own arrows
+// keeps them (remote-navigation.js).
+wireRemoteNavigation();
+
+// Each device its job (DR-0678): mark the document with what it IS before
+// anything paints — `data-device="tv"` from the TV list (tv-device.js, written
+// for this and never called until now), and `data-device-class` (phone /
+// tablet / laptop / tv) from what the browser measures. The class only orders
+// and lays out; it never blocks a surface. use-device-class re-measures live.
+markTvDevice();
+markDeviceClass(window);
 
 // Self-heal a stale-deploy lazy-chunk 404 (e.g. opening the Voice tab after a newer
 // deploy replaced its chunk hash): on a failed dynamic import, recover once to the
 // current shell instead of stranding the tab. No-op unless a chunk actually fails.
 // Wired before the dynamic imports below so the listener is live when they run.
 wireChunkHeal(window);
+
+// NOTHING INTERRUPTS WORDS COMING IN (DR-0748). Typing in any box holds the
+// app still: the update reload and the heal reload wait, banners stay away,
+// nothing opens itself. Recording, dictation, a reading and a download take
+// the same hold from their own hooks (lib/intake-guard.js).
+watchTypedIntake(document, { win: window });
 
 // Record every uncaught error + unhandled rejection to the device-local error
 // journal (DR-0092) — the failure stays visible to the steward on the Quality &
@@ -28,6 +86,31 @@ installGlobalErrorCapture(window);
 // Runs for the full app AND every standalone boot below — the conference page a
 // senior opens is already large if they set it large. See lib/text-size.js.
 initTextSize();
+
+// Tap a date field → the CALENDAR opens right away (no segment typing). One
+// delegated listener covers every date/datetime field on every surface and
+// every standalone boot, current and future. See lib/date-picker-tap.js.
+wireDatePickerTap();
+
+// New-message awareness beyond the Messages tab (Darrell 2026-08-22: "do the
+// users get notifications?"): the tab title carries a "(N)" unread badge and
+// a browser Notification rings when a message lands while the app is
+// off-screen. App-wide — it must work while the reader is on any tab, so it
+// mounts at boot, not inside the Messages surface. See lib/dm-notify.js.
+startDmNotifications(window);
+
+// EVERY ARRIVAL COUNTED (Darrell 2026-10-01: "the number of them if I haven't
+// checked them yet"). One watcher folds unread messages, a lesson that finished
+// building or went live, the Governor's member queue and a steward's answer on
+// a note into ONE count, sets the launcher and title badges to it, and feeds
+// the header bell. Started here, app-wide, right after the DM watcher it
+// listens to. See lib/arrivals-watch.js + lib/arrivals.js (DR-0728).
+startArrivalsWatch(window);
+
+// Catch the browser's one-shot PWA install event at boot so any surface (the
+// PwaPrompts banner, DownloadLatest's install offer) can fire the native
+// install dialog on tap. Passive; armed in every boot mode. See lib/install-app.js.
+captureInstallPrompt(window);
 
 // Lightweight boots by URL param (outside the full app):
 //   ?join=1     — the public "get the app / I'm having trouble" capture. A shareable
@@ -54,12 +137,53 @@ initTextSize();
 //                 screen opens ?room=CODE&board=1 (board + host); phones scan the
 //                 QR it shows and open ?room=CODE (a player's controller). A lean
 //                 boot like the others — the full PWA never loads here.
+//   ?link=CODE  — the PHONE approves a TV (DR-0658). poetech.us/link?c=CODE (the
+//                 TV's QR, functions/link.js) lands here. Also re-entered when a
+//                 Google full-page redirect dropped the query: the code was
+//                 stashed in sessionStorage first (lib/device-link.js).
+// A camera access link (DR-0778): `?cams-grant=` is stored on this device and
+// taken out of the address before anything else reads it.
+try { adoptGrantFromUrl(window.location, window.localStorage, window.history); } catch (_) { /* no storage: the gate says so */ }
 const __params = new URLSearchParams(window.location.search);
+const __linkCode = __params.get('link') || (() => {
+  // Only a return FROM Google (a token in the hash, or a PKCE ?code=) may
+  // resume a stashed code, and only once: a stash left behind by an abandoned
+  // approval must never hijack an ordinary visit. Read inline: importing
+  // device-link.js here would put it in the entry chunk.
+  try {
+    const fromGoogle = /access_token=|error_description=/.test(window.location.hash || '')
+      || /^\?code=/.test(window.location.search || '');
+    if (!fromGoogle || __params.get('oauth_popup')) return '';
+    const raw = window.sessionStorage.getItem('pt-device-link');
+    if (!raw) return '';
+    window.sessionStorage.removeItem('pt-device-link');
+    const { code, at } = JSON.parse(raw);
+    return (typeof code === 'string' && Date.now() - at < 10 * 60 * 1000) ? code : '';
+  } catch { return ''; }
+})();
+// THE PATH IS THE DOOR (DR-0958). /properties/app/ exists for one reason: to be
+// the Poe Properties face, in its own scope, with its own manifest and icon.
+// Booting it required `?properties=1` ON TOP of that path, so the link the app
+// itself hands out for advertising -- poetech.us/properties/app -- fell through
+// to the private PoeTech gate and showed a stranger the create-a-PIN form.
+// Darrell, 2026-10-11, holding the share panel beside that screen: "Wrong link
+// for advertising?!!!!!!!!!" The param still works, for every link already
+// printed or shared that carries it; the path now works on its own.
+const __onPropertiesPath = (() => {
+  try { return /^\/properties(\/|$)/.test(window.location.pathname || ''); } catch { return false; }
+})();
+const __isPropertiesDoor = __params.get('properties') === '1' || __onPropertiesPath;
+
 const __standalone = __params.get('join') === '1' || __params.get('invites') === '1'
+  || !!__linkCode
   || __params.get('register') === '1' || __params.get('audience') === '1'
   || __params.get('output') === '1'
   || __params.get('teach') === '1' || __params.get('login') === '1'
   || __params.get('request-space') === '1'
+  || __params.get('share') === '1' || __params.get('share') === 'church'
+  || __params.get('moore') === '1'
+  || __isPropertiesDoor
+  || !!__params.get('biz')
   || !!__params.get('room')
   || __params.get('oauth_popup') === '1';
 const __root = ReactDOM.createRoot(document.getElementById('root'));
@@ -76,6 +200,11 @@ if (__params.get('oauth_popup') === '1') {
     </React.StrictMode>
   );
   import('./lib/oauth-popup.js').then(({ completeOAuthPopup }) => { completeOAuthPopup(); }).catch(() => {});
+} else if (__linkCode) {
+  // The phone half of "sign in to the TV from the phone in your hand" (DR-0658).
+  import('./components/DeviceLinkApprove.jsx').then(({ default: DeviceLinkApprove }) => {
+    __root.render(<React.StrictMode><ErrorBoundary><DeviceLinkApprove initialCode={__linkCode === '1' ? '' : __linkCode} /></ErrorBoundary></React.StrictMode>);
+  }).catch((err) => { console.warn('link boot failed:', err); showBootFallback(document.getElementById('root'), { error: err }); });
 } else if (__params.get('join') === '1') {
   // Each standalone boot dynamically imports ONLY its own component so the
   // always-loaded entry chunk (index.js) no longer carries every boot surface
@@ -97,6 +226,12 @@ if (__params.get('oauth_popup') === '1') {
   import('./components/AudienceWindow.jsx').then(({ default: AudienceWindow }) => {
     __root.render(<React.StrictMode><ErrorBoundary><AudienceWindow /></ErrorBoundary></React.StrictMode>);
   });
+} else if (__params.get('follow')) {
+  // The congregation follows the presenter's LIVE slide on their own device (a lean,
+  // no-auth renderer that subscribes to the session's Realtime channel by code).
+  import('./components/FollowAlong.jsx').then(({ default: FollowAlong }) => {
+    __root.render(<React.StrictMode><ErrorBoundary><FollowAlong /></ErrorBoundary></React.StrictMode>);
+  });
 } else if (__params.get('output') === '1') {
   // NDI-ready program output: OBS ingests this as a Browser Source; DistroAV
   // republishes it as an NDI source on the church LAN. Lazy-imported like every
@@ -114,12 +249,18 @@ if (__params.get('oauth_popup') === '1') {
     __root.render(<React.StrictMode><ErrorBoundary><TeachMode cohortStart={__start} onClose={() => window.close()} /></ErrorBoundary></React.StrictMode>);
   });
 } else if (__params.get('login') === '1') {
-  import('./components/PasswordAuth.jsx').then(({ default: PasswordAuth }) => {
+  // P0 login-loop fix (2026-07-07): navigating the instant sign-in succeeded
+  // raced supabase's async token write to localStorage — lose the race and the
+  // reloaded app boots signed OUT, showing the sign-in wall again (the
+  // password → PIN → password loop multiple users hit). Wait for the token to
+  // be verifiably persisted before leaving; the short timeout keeps a
+  // storage-blocked webview from trapping the user (no-lockout).
+  Promise.all([import('./components/PasswordAuth.jsx'), import('./lib/session-handoff.js')]).then(([{ default: PasswordAuth }, { awaitPersistedSession }]) => {
     __root.render(
       <React.StrictMode>
         <ErrorBoundary>
           <div className="min-h-screen flex items-start justify-center p-6 sm:p-12">
-            <PasswordAuth onSignedIn={() => { window.location.search = ''; }} />
+            <PasswordAuth onSignedIn={async () => { await awaitPersistedSession(); window.location.search = ''; }} />
           </div>
         </ErrorBoundary>
       </React.StrictMode>
@@ -129,6 +270,54 @@ if (__params.get('oauth_popup') === '1') {
   import('./components/VenueRequest.jsx').then(({ default: VenueRequest }) => {
     __root.render(<React.StrictMode><ErrorBoundary><VenueRequest /></ErrorBoundary></React.StrictMode>);
   });
+} else if (__params.get('share') === 'church') {
+  // The CHURCH's projector poster (DR-0176): ?share=church shows one big QR for
+  // the church door (poetech.us/lovecorner → installs "The Love Corner") — for
+  // the sanctuary screen or the conference hall. Same poster component, church
+  // props; SHARE_DOOR_URL is the one source it and the door page/manifest share.
+  Promise.all([
+    import('./components/SharePoster.jsx'),
+    import('./lib/church-own-door.js'),
+  ]).then(([{ default: SharePoster }, { SHARE_DOOR_URL }]) => {
+    __root.render(
+      <React.StrictMode><ErrorBoundary>
+        <SharePoster
+          url={SHARE_DOOR_URL}
+          shown="poetech.us/lovecorner"
+          brandLine="The Church of the Living God · The Love Corner"
+          heading="Scan to get our church app"
+          ariaLabel="QR code to install The Love Corner church app"
+        />
+      </ErrorBoundary></React.StrictMode>
+    );
+  }).catch((err) => { console.warn('church share boot failed:', err); showBootFallback(document.getElementById('root'), { error: err }); });
+} else if (__params.get('share') === '1') {
+  // Full-screen "scan to get the app" poster for a projector/screen — a whole
+  // room scans one big QR. No account/data/auth; only displays the join URL.
+  import('./components/SharePoster.jsx').then(({ default: SharePoster }) => {
+    __root.render(<React.StrictMode><ErrorBoundary><SharePoster /></ErrorBoundary></React.StrictMode>);
+  }).catch((err) => { console.warn('share boot failed:', err); showBootFallback(document.getElementById('root'), { error: err }); });
+} else if (__isPropertiesDoor) {
+  // The Poe Properties App (DR-0313). Its own installable face at
+  // /properties/app/ (scope /properties/, disjoint from every other face), for
+  // tenants, their families, and the 1099 workers who support the doors. A LEAN
+  // boot on purpose: it mounts the properties MODULE, never the monolith — a
+  // tenant downloads a property-management app, not the family platform. The
+  // PoeTech shell mounts the SAME module at ?view=properties, so both apps stay
+  // on the same rows with no second store to fall out of sync.
+  import('./components/PropertiesDoor.jsx').then(({ default: PropertiesDoor }) => {
+    __root.render(<React.StrictMode><ErrorBoundary><PropertiesDoor /></ErrorBoundary></React.StrictMode>);
+  }).catch((err) => { console.warn('properties door boot failed:', err); showBootFallback(document.getElementById('root'), { error: err }); });
+} else if (__params.get('moore') === '1' || __params.get('biz')) {
+  // A registered business's public door (cf-registry, DR-0114): ?biz=<slug>
+  // resolves a BUSINESS_REGISTRY row and renders the door engine with it —
+  // a new client's door is a registry row, never a new component. ?moore=1
+  // stays as Moore Divahs' legacy alias (her printed QRs never break).
+  // Public faces only; captures ride forced-safe RPCs with the row's source
+  // attribution. Lean boot like the others.
+  import('./components/BusinessDoor.jsx').then(({ default: BusinessDoor }) => {
+    __root.render(<React.StrictMode><ErrorBoundary><BusinessDoor /></ErrorBoundary></React.StrictMode>);
+  }).catch((err) => { console.warn('business door boot failed:', err); showBootFallback(document.getElementById('root'), { error: err }); });
 } else if (__params.get('room')) {
   // "Game Night" multiplayer room. GameRoom reads ?room / ?board off the URL and
   // renders the big-screen board (host) or a phone controller. Lazy-imported so
@@ -144,6 +333,27 @@ if (__params.get('oauth_popup') === '1') {
   // so the one-time attendee's registration carries into their new app membership.
   // No-op when nothing is parked. Self-contained; does not touch the monolith.
   import('./lib/conference-link.js').then(({ wirePendingConferenceLink }) => { wirePendingConferenceLink(); }).catch(() => {});
+
+  // The app-wide ALERT LAYER, in its own root beside the app's.
+  //
+  // Measured 2026-09-17 against the live database: `push_subscriptions` and
+  // `push_sends` are both EMPTY and always have been, because the only control
+  // that can subscribe a device renders part-way down the Messages tab — and
+  // nothing else in the app ever said notifications were off. This layer is
+  // the offer that was missing, plus the IN-APP arrival signal that covers the
+  // case the OS doorbell declines by design (Darrell: "I was even inside the
+  // Love Corner App"). Its own root because the shell is frozen at 5355 lines
+  // and because it must not wait on the lazily-imported monolith. Every
+  // standalone boot above is excluded: none of them is a place to be offered a
+  // subscription. See components/AppAlerts.jsx + lib/notify-readiness.js.
+  import('./components/AppAlerts.jsx').then(({ default: AppAlerts }) => {
+    const host = document.createElement('div');
+    host.id = 'pt-alerts';
+    document.body.appendChild(host);
+    ReactDOM.createRoot(host).render(
+      <React.StrictMode><ErrorBoundary><AppAlerts /></ErrorBoundary></React.StrictMode>
+    );
+  }).catch(() => { /* the app itself must never fail to boot over an alert layer */ });
 
   // Full app, dynamically imported so the lightweight capture/admin/present boots
   // above never pull the entire PWA (+ its supabase/auth init) they don't need.
@@ -175,15 +385,27 @@ if (__params.get('oauth_popup') === '1') {
 // someone mid-form (?join), wipe the admin's place (?invites), drop a registrant
 // (?register), or fire a controller-swap reload inside the projector / presenter
 // window during a live class (?audience / ?teach). Those windows opt out entirely.
-if (!__standalone && 'serviceWorker' in navigator) {
+// Skipped in the native shell too (DR-0570): the shell IS the offline shell —
+// its bundle is on the device — and a worker registered against the local
+// asset server would add only a stale-cache layer with nothing to update from.
+// REGISTERED AT THE DOOR, NOT THE ROOT (2026-09-23, DR-0584). The worker file
+// is still the one /sw.js; its scope is the door this page booted in, so the
+// OS credits a notification to the installed app (name, icon, launcher count)
+// instead of to the browser. A root registration left by earlier builds is
+// retired with its push subscription carried across. See lib/sw-door-scope.js.
+if (!__standalone && !isNativeShell(window) && 'serviceWorker' in navigator) {
   window.addEventListener('load', async () => {
     try {
-      const reg = await navigator.serviceWorker.register('/sw.js');
+      const { supabase } = await import('./lib/supabase.js');
+      const { registration: reg, error } = await registerDoorWorker({ navigator, location: window.location, moveRow: rowMoverFor(supabase) });
+      if (!reg) throw new Error(error || 'no registration');
       window.__pwaReg = reg;
       wireUpdates(reg, navigator, window);
       startUpdateChecks(reg, window, navigator);
     } catch (err) {
       console.warn('Service worker registration failed:', err);
     }
+    // The server is asked which build is live, whatever the worker did (DR-0781).
+    try { watchLiveBuild(window.__pwaReg || null, window); } catch (_) { /* never blocks boot */ }
   });
 }

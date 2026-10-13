@@ -37,6 +37,17 @@ export const ATEM = {
   cameraControl: 'Remote camera control (iris / focus / color) + tally is Blackmagic-specific, carried over the SDI return. Non-BMD cameras switch fine but lack this remote control + tally integration.',
   programOut: 'ATEM program out -> NovaStar VX1000 input (the wall shows the single finished program).',
   source: 'Blackmagic Design ATEM Production Studio 4K specs (blackmagicdesign.com)',
+  // Scan-confirmed on the church LAN (2026-07-08). The mDNS advertisement is the
+  // load-bearing new fact: the ATEM advertises _blackmagic._tcp and NOT NDI, which
+  // confirms it has NO native NDI input — sources reach it over SDI/HDMI, and any
+  // NDI source must be bridged to SDI upstream (see CAMERA_CONNECTIONS 'ip-ndi').
+  scan: {
+    ipAddress: '192.168.0.60',
+    mdns: '_blackmagic._tcp',
+    nativeNdi: false,
+    confirmed: '2026-07-08',
+    note: 'Advertises _blackmagic._tcp on the LAN, NOT NDI — confirms the ATEM has NO native NDI input. Cross-ref lib/church-devices.js dev-atem-production-studio-4k (the inventory row).',
+  },
 };
 
 // --- The wall processor (NOT a switcher) — cross-ref display-targets.js --------

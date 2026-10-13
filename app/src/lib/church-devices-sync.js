@@ -42,6 +42,7 @@ export function deviceToRow(device, { tenantId, userId }) {
     confirmed:            device.confirmed === true,
     notes:                device.notes ?? null,
     active:               device.active !== false,
+    owner_user_id:        device.ownerUserId ?? null,
     author_persona:       device.authorPersona ?? null,
     sort_order:           Number.isFinite(device.sortOrder) ? device.sortOrder : 0,
   };
@@ -65,6 +66,7 @@ export function deviceFromRow(row) {
     confirmed:          row.confirmed,
     notes:              row.notes,
     active:             row.active,
+    ownerUserId:        row.owner_user_id ?? null,
     authorPersona:      row.author_persona,
     sortOrder:          row.sort_order,
   });
@@ -92,6 +94,7 @@ export const DEVICE_COLUMN_OF = {
   confirmed:          'confirmed',
   notes:              'notes',
   active:             'active',
+  ownerUserId:        'owner_user_id',
   sortOrder:          'sort_order',
 };
 

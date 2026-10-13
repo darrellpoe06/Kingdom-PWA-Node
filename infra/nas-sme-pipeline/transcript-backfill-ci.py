@@ -60,6 +60,7 @@ import re
 import sys
 import time
 import urllib.request
+from datetime import date
 
 COLG_CHANNEL_ID = "UC821pJh7YR5llBNnWUJj-ZA"
 CHANNEL_RSS = "https://www.youtube.com/feeds/videos.xml?channel_id={}"
@@ -78,6 +79,29 @@ VERDICT_ERRORS = (
 def is_verdict(err):
     """True when a stored/new error string is a durable no-caption verdict."""
     return bool(err) and err.split(":", 1)[0].strip() in VERDICT_ERRORS
+
+
+# YouTube can take a couple of days (longer for long services) to finish
+# generating a video's auto-captions; a "no captions" result on an upload newer
+# than this is TRANSIENT (still processing), not a durable verdict (Darrell
+# 2026-07-06). Mirrors load-transcripts.py.
+CAPTION_GRACE_DAYS = 4
+
+
+def within_caption_grace(service_date, today=None, grace_days=CAPTION_GRACE_DAYS):
+    """True when a video is new enough that missing captions most likely just mean
+    YouTube is still processing them (retry later) rather than a durable no-caption
+    verdict. service_date is a date / 'YYYY-MM-DD' / None. None or an unparseable
+    value returns False -- treat as old, the conservative default that never leaves
+    a genuinely caption-less old video looping forever. `today` is injectable."""
+    if not service_date:
+        return False
+    try:
+        d = date.fromisoformat(str(service_date)[:10])
+    except (ValueError, TypeError):
+        return False
+    ref = today or date.today()
+    return (ref - d).days < grace_days
 
 
 def log(msg):
@@ -239,15 +263,18 @@ def backfill_transcripts(cur, instance_id, api, max_videos, refetch, dry_run, id
     log("\n[Phase 2] Transcript backfill ...")
 
     # Ordered worklist: explicit ids or full corpus newest-first.
+    svc_date = {}  # video_id -> service_date, drives the caption-grace check
     if ids_override:
         video_ids = [v.strip() for v in ids_override.split(",") if v.strip()]
     else:
         cur.execute("""
-            SELECT video_id FROM choir_sermons
+            SELECT video_id, service_date FROM choir_sermons
             WHERE instance_id = %s AND video_id IS NOT NULL
             ORDER BY service_date DESC NULLS LAST
         """, (instance_id,))
-        video_ids = [r[0] for r in cur.fetchall()]
+        rows = cur.fetchall()
+        video_ids = [r[0] for r in rows]
+        svc_date = {r[0]: r[1] for r in rows}
 
     log(f"  Corpus size: {len(video_ids)} videos")
 
@@ -255,14 +282,19 @@ def backfill_transcripts(cur, instance_id, api, max_videos, refetch, dry_run, id
     already = sum(1 for v in state.values() if v["has_text"])
     log(f"  Already transcribed: {already}  Confirmed no-caption verdicts: {sum(1 for v in state.values() if v['has_verdict'])}")
 
-    fetched = no_caption = blocked = skipped = 0
+    fetched = no_caption = blocked = pending = skipped = 0
 
     for i, vid in enumerate(video_ids, 1):
         prior = state.get(vid)
-        if prior and not refetch and (prior["has_text"] or prior["has_verdict"]):
+        recent = within_caption_grace(svc_date.get(vid))
+        # A no-caption verdict counts as resolved UNLESS the upload is still inside
+        # the caption-processing window -- re-fetching a recent, verdict-marked
+        # video is how a premature verdict SELF-HEALS once the captions land.
+        resolved = prior and (prior["has_text"] or (prior["has_verdict"] and not recent))
+        if resolved and not refetch:
             skipped += 1
             continue
-        if max_videos and (fetched + no_caption + blocked) >= max_videos:
+        if max_videos and (fetched + no_caption + blocked + pending) >= max_videos:
             log(f"  --max {max_videos} reached; stopping (re-run to continue).")
             break
 
@@ -272,6 +304,14 @@ def backfill_transcripts(cur, instance_id, api, max_videos, refetch, dry_run, id
         if text:
             log(f"    ok  {words} words -> video_transcripts")
             fetched += 1
+        elif is_verdict(err) and recent:
+            # No caption track yet, but the upload is new enough that YouTube is
+            # likely still processing it (Darrell 2026-07-06). Write NOTHING so a
+            # later run retries -- never a durable verdict on a fresh upload.
+            log(f"    PENDING ({err}) -> uploaded < {CAPTION_GRACE_DAYS}d ago; captions still processing, will retry")
+            pending += 1
+            time.sleep(0.3)
+            continue
         elif is_verdict(err):
             log(f"    MISS ({err}) -> verdict recorded; Whisper-on-NAS fallback")
             no_caption += 1
@@ -302,7 +342,7 @@ def backfill_transcripts(cur, instance_id, api, max_videos, refetch, dry_run, id
 
         time.sleep(0.3)  # gentle rate-limit on YouTube's transcript API
 
-    return video_ids, fetched, no_caption, blocked, skipped
+    return video_ids, fetched, no_caption, blocked, pending, skipped
 
 
 # --- main --------------------------------------------------------------------
@@ -350,7 +390,7 @@ def main():
 
     # Phase 2: transcript backfill
     api = build_api(YouTubeTranscriptApi)
-    video_ids, fetched, no_caption, blocked, skipped = backfill_transcripts(
+    video_ids, fetched, no_caption, blocked, pending, skipped = backfill_transcripts(
         cur, instance_id, api, args.max, args.refetch, args.dry_run, args.ids)
 
     # Final coverage report. Split stored errors into durable verdicts vs
@@ -377,19 +417,20 @@ def main():
     gaps = total - with_text
     log("")
     log(f"This run  : {fetched} fetched, {no_caption} no-caption verdicts, "
-        f"{blocked} blocked (will retry), {skipped} already resolved.")
+        f"{pending} pending (too new; will retry), {blocked} blocked (will retry), "
+        f"{skipped} already resolved.")
     log(f"Coverage  : {with_text}/{total} videos transcribed  |  {with_verdict} confirmed no-captions  |  "
         f"{with_transient} stale transient rows pending retry  |  {gaps} gaps remaining")
     if fetched > 0:
         log("Done. The served Harvest ledger derives transcripts LIVE -- the % climbs now.")
 
     # A green check must mean transcripts moved (DR-0076). All-blocked = red.
-    if blocked > 0 and fetched == 0:
+    if blocked > 0 and (fetched + no_caption + pending) == 0:
         log(f"BLOCKED: all {blocked} attempts were rejected (YouTube blocks this runner's IP).")
         log("Fix: set WEBSHARE_PROXY_USERNAME/WEBSHARE_PROXY_PASSWORD or YT_PROXY_URL as repo")
         log("secrets (residential proxy), or run load-transcripts.py from the NAS (residential IP).")
         sys.exit(3)
-    if fetched == 0 and no_caption == 0 and gaps > 0 and not args.refetch:
+    if (fetched + no_caption + blocked + pending) == 0 and gaps > 0 and not args.refetch:
         log("STALL: 0 videos advanced while gaps remain. Check credentials / caption availability.")
         sys.exit(3)
 

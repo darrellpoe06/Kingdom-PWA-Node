@@ -1,0 +1,119 @@
+#!/bin/sh
+# services-sync -- the self-deploy loop (DR-0236: nothing waits for a hand).
+# Reads infra/nas-loops/services.json and runs each enabled service's
+# IDEMPOTENT installer from the repo checkout the NAS mirror keeps fresh.
+# Merge to main -> mirror pulls -> this loop installs/repairs/starts the
+# service. The runner (run.mjs) owns the brakes: timeout, daily cap, lock,
+# LOOPS_ARMED, KILL_SWITCH. A failing installer fails THIS run loudly (ntfy
+# via the runner) -- never silently.
+set -e
+
+REPO="${POETECH_REPO:-/volume1/PoeTech/repos/Kingdom-PWA-Node}"
+MANIFEST="$REPO/infra/nas-loops/services.json"
+
+# FRESHEN THE MIRROR FIRST (2026-08-04, measured: the checkout sat a night
+# stale at 254809ba while six merges — including a new manifest service —
+# waited; every 15-min cycle faithfully synced YESTERDAY. "Merge to main ->
+# mirror pulls -> this loop installs" is only true if THIS loop does the pull.
+# Fail-soft: offline/diverged keeps the current checkout and says so — the
+# cycle still runs what it has (an old-but-real manifest beats a dead run).
+#
+# 2026-08-15 (run 31871686957): root's pull NEVER advanced the mirror. The
+# checkout is dpoe-owned, so git-as-root aborts with "dubious ownership"
+# before touching anything; the fail-soft branch printed only to the cron log,
+# and every root cycle deployed a stale tree while the nas-clock bridge's
+# dpoe pulls were the only thing moving HEAD (mirror pinned at a33ff92b while
+# main advanced through three merges — including the supabase cure this loop
+# was supposed to be deploying). ONE OWNER for the mirror: when the loop runs
+# as root, pull AS dpoe, so every git object stays dpoe-owned and the bridge
+# and the cron can never fight over ownership again. The failure reason is
+# printed to BOTH channels — a silent stale deploy looks exactly like a
+# healthy one.
+if [ "$(id -u)" = "0" ]; then
+  PULL_CMD='sudo -n -u dpoe git -C "$REPO" pull --ff-only'
+else
+  PULL_CMD='git -C "$REPO" -c safe.directory="$REPO" pull --ff-only'
+fi
+if PULL_OUT=$(eval "$PULL_CMD" 2>&1); then
+  echo "$PULL_OUT" | tail -3
+else
+  echo "services-sync: mirror pull FAILED - deploying the EXISTING (stale) checkout. Reason:"
+  echo "$PULL_OUT" | tail -5
+  echo "services-sync: mirror pull FAILED: $(echo "$PULL_OUT" | tail -2 | tr '\n' ' ')" >&2
+fi
+
+if [ ! -f "$MANIFEST" ]; then
+  echo "services-sync: no manifest at $MANIFEST" >&2
+  exit 1
+fi
+
+# DSM ships python3; use it as the JSON reader (no jq dependency on the NAS).
+python3 - "$MANIFEST" "$REPO" <<'EOF'
+import json, os, subprocess, sys
+manifest, repo = sys.argv[1], sys.argv[2]
+doc = json.load(open(manifest, encoding="utf-8"))
+failed = []
+degraded = []
+for svc in doc.get("services", []):
+    if not svc.get("enabled"):
+        print(f"services-sync: {svc.get('name')} disabled, skip")
+        continue
+    path = os.path.join(repo, svc.get("install", ""))
+    if not os.path.isfile(path):
+        print(f"services-sync: {svc.get('name')} installer MISSING at {path}", file=sys.stderr)
+        failed.append(svc.get("name"))
+        continue
+    print(f"services-sync: installing {svc.get('name')} ...")
+    # CAPTURE THE REASON, NOT JUST THE VERDICT (2026-08-14). Measured: every
+    # recorded services-sync run since 2026-08-04 failed, and the loop event
+    # log preserved only "installing ytzero ..." -- the last line of STDOUT --
+    # while the actual error went to a stderr no one kept. Six identical
+    # failures over a week and the cause was never once recorded, so diagnosing
+    # it meant guessing. A failure that does not say WHY is barely better than
+    # a silent one (DR-0076).
+    try:
+        r = subprocess.run(["sh", path], timeout=480,
+                           stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        out = (r.stdout or b"").decode("utf-8", "replace")
+    except subprocess.TimeoutExpired as e:
+        partial = getattr(e, "output", None) or b""
+        out = partial.decode("utf-8", "replace") if isinstance(partial, bytes) else str(partial)
+        print(out, end="" if out.endswith("\n") else "\n")
+        print(f"services-sync: {svc.get('name')} TIMED OUT after 480s", file=sys.stderr)
+        failed.append(f"{svc.get('name')} (timeout 480s)")
+        continue
+    # Always echo the installer's own output so a GOOD run stays as readable as
+    # it was before this change.
+    print(out, end="" if out.endswith("\n") else "\n")
+    if r.returncode == 3:
+        # DEGRADED, NOT FAILED (2026-09-23). Exit 3 is a service saying "I am
+        # installed and healthy but could not do my work this cycle" — the
+        # choir-dates rider when YouTube will not answer, for one. Measured on
+        # 2026-09-22/23: that single rider's exit 1 made EVERY services-sync
+        # cycle read loop_run_fail for over eight hours while the photo
+        # server, the tax archive, the voice road and the sovereign stack
+        # were all fine. A fleet witness that is always red is no witness.
+        # The degraded service is named on the summary line the event log
+        # keeps; its own witness (harvest-health) owns the incident.
+        tail = [ln for ln in out.strip().splitlines() if ln.strip()][-2:]
+        why = " | ".join(tail) if tail else "(no output)"
+        print(f"services-sync: {svc.get('name')} DEGRADED :: {why}", file=sys.stderr)
+        degraded.append(f"{svc.get('name')} ({why[:140]})")
+    elif r.returncode != 0:
+        tail = [ln for ln in out.strip().splitlines() if ln.strip()][-3:]
+        why = " | ".join(tail) if tail else "(no output)"
+        print(f"services-sync: {svc.get('name')} exit={r.returncode} :: {why}", file=sys.stderr)
+        failed.append(f"{svc.get('name')} (exit {r.returncode}: {why[:180]})")
+if failed:
+    print(f"services-sync: FAILED: {'; '.join(failed)}", file=sys.stderr)
+    # ALSO to stdout: the loop runner records the last stdout line in its event
+    # detail, which is how six failures logged the service name and never the
+    # cause. Now the cause rides the channel that is actually kept.
+    print(f"services-sync: FAILED: {'; '.join(failed)}")
+    sys.exit(1)
+if degraded:
+    # Green for the fleet, loud about the one that could not work today.
+    print(f"services-sync: all services synced; DEGRADED: {'; '.join(degraded)}")
+    sys.exit(0)
+print("services-sync: all services synced")
+EOF

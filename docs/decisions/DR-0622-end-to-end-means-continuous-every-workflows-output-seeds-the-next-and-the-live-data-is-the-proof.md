@@ -1,0 +1,166 @@
+# DR-0622 — End to end means continuous: every workflow's output seeds the next, and the live data is the proof
+
+- **Status:** accepted
+- **Tier:** B (a new instance-less, governor-read table; a new scheduled read-only witness; a build gate over the whole repository)
+- **Type:** rule + gate + feature
+- **Date:** 2026-09-24
+- **Scope:** `scripts/system-flow-registry.mjs` (the declared graph, new); `scripts/system-flow-graph.mjs` (the gates, new); `scripts/system-flow-proof.mjs` + `.github/workflows/system-flow-proof.yml` (the live measurement, new); `scripts/live-sql.sh` (carried byte-for-byte from DR-0618's branch); `infra/supabase/migrations-auto/0234-every-connection-leaves-its-live-numbers.sql` + `infra/supabase/tests/0234-system-flow-proof-smoke.sql` + a leg in `.github/workflows/rls-isolation.yml`; `scripts/interconnect-manifest.mjs` + `scripts/interconnect-guard.mjs` (the graph joins the existing manifest and guard); `app/src/lib/system-flow.js`, `app/src/components/SystemFlowProof.jsx` (inside Quality / Proof → Interconnect); `app/src/lib/operations-intelligence.js` + `app/src/components/OperationsIntelligence.jsx` (the proof as escalations); `app/src/lib/lesson-inbox.js` + `app/src/components/LessonInbox.jsx` (the speaker's receipt); `app/src/__tests__/system-flow-graph.test.jsx`; `docs/00-foundations/_root/COMPREHENSIVE-REVIEW-STANDARD.md` (dimension 10); `app/src/lib/ari-integrity-guard.js` (its row)
+- **Principles:** VERIFICATION-DOCTRINE (DR-0076: the data is the evidence; unknown is never green; every gate proven to catch), REALITY-TRACE (DR-0061), SPEC-CONFORMANCE (DR-0219), DR-0057 (the fruit loop), DR-0618 (the monitors read the live database), DR-0616 (the operations board), **DR-0621 (hold the hand of the process until it is done — the sibling Way this rule serves)**, DR-0132 (no n8n: the backend is Python and SQL on the NAS)
+- **Grounds:** Darrell, 2026-09-24: *"We should have no reason why their interconnectivity of the application is not sound and solid. We should have rigorous connection points between the database and fields within the app that go through workflows that are in the end continuous loops that produce data. The data should be the proof of the end, whole end to end process. So we can actually see, and that data should seed the next process. And so that's what I mean when I say end to end, it is not to end with one workflow. All workflows will work, will flow into another workflow and all those will have a comprehensive overall solid sound workflow."* And, the same afternoon: *"It's more than just flagged when it doesn't work. It's actually analyzed and iteratively fixed ... There's a purpose for every workflow."*
+
+## The rule
+
+**End to end means continuous.** Every workflow, NAS job and screen declares what it reads, what it writes, and which one its output seeds next. The build fails when an output is read by no one (a dead end), an input is written by no one (an orphan), a declared table does not exist, a declared consumer does not really read it, or a new workflow, NAS job or table appears with no place in the graph. **The live data is the proof**: every connection shows its real latest numbers — how many rows were written, the newest one, how many were picked up downstream — and a connection with no live number is never shown as flowing.
+
+## Context — SHOULD → ARE → GAPS (DR-0219)
+
+**SHOULD.** The interconnect manifest said it proves "the loops of interconnected modules are actually moving LIVE data" (`scripts/interconnect-manifest.mjs:2-3`).
+
+## What was measured (ARE, before this record)
+
+| what | measured |
+| --- | --- |
+| what the manifest proved | a token present in a file (`scripts/interconnect-manifest.mjs:243-249`): wiring, never a row |
+| what it covered | 18 pairs; 0 of 46 GitHub workflows; 0 of 20 NAS services and loops |
+| the tables the app touches | 169 distinct names across `.from('…')`, `remoteTable:` and realtime channels in `app/src`; 271 tables created by the migrations |
+| a workflow's result reaching the app | 6 of 46: the incident issues that deploy, harvest-health, level-witness, node-availability, ops-queue-health and site-health file, and the runs of three of them, are read by the OpsBoard (`app/src/lib/site-health.js:132-135`); the other 40 wrote their verdict where no screen or job read it |
+| a spoken lesson's words reaching the speaker | none: `agent_inbox` is written by the app (`lib/agent-inbox-sync.js:23`) and read by no screen; the transcript Whisper writes (`infra/nas-lesson-voice/lesson_voice_transcribe.py:203`) reached only the cloud reader, through the mirror (DR-0614) |
+
+**GAPS.** Proof was wiring, not data; the pairs were isolated; no gate saw a new workflow join nothing; the monitors' own output fed no next step; the speaker never saw the words of their own lesson.
+
+## Decision
+
+1. **The graph** (`scripts/system-flow-registry.mjs`) declares 106 nodes — every workflow file, every NAS service and loop in `infra/nas-loops/services.json` and `registry.json`, and the screens and libraries of the named flows — built from the real code: `.from('<table>')`, `remoteTable`, `rpc(…)`, the NAS jobs' `/rest/v1/` paths, each workflow's own steps. Every read and write names the file and the token the gate greps for. 219 connections are derived from it; the cycles the data runs in are found (Tarjan), and seven continuous loops are declared.
+2. **The gates** (`scripts/system-flow-graph.mjs`, run by `interconnect-guard.mjs` in CI and in `verify:gates`): `dead-end`, `orphan`, `no-table` (the table and its proof column exist in the migrations), `no-wiring` (the declared consumer's file really carries the read), `unseeded`, `uncovered` (a workflow file, a NAS rider, or a table born after migration 0233 with no place), `open-loop` and `open-gap` (a gap passes only with a named blocker AND a re-review date). Each is proven to catch a planted break in `app/src/__tests__/system-flow-graph.test.jsx`, including against the real registry (remove the app's read of the NAS runner's outcome → `dead-end` on `db:ops_commands#finished`; add a workflow file with no node → `uncovered`).
+3. **The live numbers.** `system-flow-proof.yml` runs every 6 hours (budget: one API call per workflow, one SQL batch, 10 minutes; lock: its own concurrency group; stop-path: `SYSTEM_FLOW_PROOF_ENABLED='false'`). It reads the database the app reads through `scripts/live-sql.sh` (never the retired hosted project), each measurement in its own sub-transaction so one failure records its error instead of blanking the rest, and each workflow's latest run through the GitHub API. It writes one row per resource into `system_flow_proof` (0234): not instance-scoped, written only by the service and migration roles, read only by owners, admins and members of poe-family. The smoke proves a viewer and another instance's owner read nothing and no signed-in user can write; it was proven to catch a planted open policy on a local Postgres 16.
+4. **The data seeds the next step.** The operations board (DR-0616) reads every broken, stale, empty, unconsumed or open connection as an escalation, and says when the proof was not read. The Interconnect proof shows the whole graph as a phone-first list of chains: each step, what it writes, who picks it up, the numbers, their age, and the state in plain words.
+5. **The speaker's receipt.** "Your lessons" under the Thinking Space reads the person's own `agent_inbox` lesson rows back: received, waiting for Whisper, written down (with the words), could not be written down (with why), and carried to the lesson reader.
+6. **Comprehensive now has ten dimensions**: dimension 10, CONTINUITY, is added to `COMPREHENSIVE-REVIEW-STANDARD.md` and to the integrity guard's dimension list.
+
+## Impact — what this push fixed, and what is named with its blocker
+
+Fixed: proof by data instead of by file; the 40 workflows whose verdict reached nothing now reach the operations board through the proof; the speaker sees their lessons; every workflow and NAS job has a declared place and a new one cannot join without one.
+
+Named (each one on the surface in red, with its blocker and date; the gate refuses any without both):
+
+| gap | blocker | re-review |
+| --- | --- | --- |
+| a shipped fix does not mark the note it fixes | closed in the second push (below) | done |
+| `sermon_video_stats` has no live producer (`scripts/load-video-engagement.mjs` runs nowhere) | closed in the second push (below) | done |
+| Scribe transcripts and minutes are written on the NAS and read back by nothing | closed in the second push (below) | done |
+| office pushes wait in `push_outbox` | the drain ships off until a real phone is proven to receive (DR-0400 / DR-0334): a phone in a person's hand | 2026-10-01 |
+| the n8n wf18 bearer's only reader is n8n | n8n leaves by Darrell's decision (DR-0617); this workflow leaves with it once wf18's replacement is proven | 2026-10-01 |
+| the monitors' escalations return to the data through a person | by design: the Governor decides the fix; the next proof run shows it flowing again | 2026-10-24 |
+
+## Impact, continued — the second push closed three of them
+
+1. **The fix loop closes.** `.github/workflows/feedback-fixed.yml` (hourly; budget + lock; stop-path `FEEDBACK_FIXED_ENABLED='false'`) reads the commits on the DEPLOYED build (the head of the latest successful deploy run, never merely merged) and marks every open note a commit names — by the reference the board shows (`fixes feedback 7KQ-M4X`) or its id (`feedback 1a2b3c4d`) — as `fixed`, writing which change fixed it where the sender reads it (`scripts/feedback-fixed.mjs`). A declined note is never reopened; an unnamed note is never touched. Proven on a local Postgres 16: two named notes marked, a declined one left, a second run marked none.
+2. **The orphan has a producer.** `.github/workflows/video-stats.yml` (every 6 hours) reads each recent service video's public views and likes from the channel's own feed — no key, no quota, the feed the Church tab already reads — and upserts them onto the videos the service record holds (`scripts/video-stats-feed.mjs`). Proven on a local Postgres 16: the join wrote the one held video and skipped the other; a second run updated in place.
+3. **The Scribe chain reaches the NAS and comes back.** Measured: the app sent no credential while the server required its own token, and `/scribe` was listed UNACTUATED in `infra/nas-transport/RECORDED-STATE.md` since 2026-09-06 — no recording from the app could have landed. Now the server accepts the family key every device already provisions (DR-0613), `infra/nas-scribe/install.sh` mounts `/scribe` on the Funnel (funnel, never serve) and restarts the server when its code changes, and `GET /scribe/sessions` + `/scribe/session/{id}` give back each recording's state, transcript and minutes, shown under "Your recordings" on the Scribe screen (`app/src/components/ScribeRecordings.jsx`). A new gate, `no-route`, fails the build when a connection rides a route the Funnel does not mount; proven by removing `/scribe` from the mounted table.
+
+## What the first live measurement found (run 36059041587, 2026-09-24 21:04 UTC)
+
+The BEFORE state, on the database the app reads: 77 resources measured — **38 flowing, 18 empty, 9 stale, 10 broken, 1 unconsumed, 1 unknown**. What each finding became:
+
+| finding | root cause | state now |
+| --- | --- | --- |
+| `ci.yml`, `auto-merge.yml` read "broken" | the measurement took the newest run on any branch, a PR's `action_required` | **fixed**: runs on main first, only success/failure/timeout decide (`pickRun`) |
+| `push-outbox-drain.yml` read "broken" | every fire is `skipped` by its stop-path (DR-0400) | **fixed**: reads "switched off", never broken |
+| migration ledger 36 days stale (151 rows, newest 2026-08-19) | the live replay records in `_sovereign_replay`; `_schema_migrations` there is the repoint's frozen copy, and the app's migration panel (0060) and `sovereign-drift.yml` both read the frozen copy | **fixed**: 0235 reads the live ledger; sovereign-drift reads it first |
+| `choir_songs` "unknown" (7 rows, no date) | the rows carry no `updated_at` | **fixed**: measured on `created_at` |
+| `sermon_video_stats` empty | no producer | **fixed** in the second push (video-stats.yml); fills on its first run |
+| feedback: 60 notes, 0 answered | triage shipped today (DR-0616) | **carried** by the operations board: the escalation is on the steward's screen now |
+| empty: concerns, discussions, decision_readouts, video_harvests, saved_prompts, door_feedback, church_service_segments, push_outbox, agent_inbox lessons/transcripts | nothing yet written on the live database (several shipped this week) | **carried**: each reads "nothing written yet" and turns flowing on its first row; none is painted |
+| stale: ops_commands (80 days), projects (91), incidents (92), board_tasks (34), agent_tasks (33) | no one has used these doors since; the queue drains (ops-queue-health green) | **carried** as escalations on the operations board |
+| `mcp-health` red since 2026-08-04 | re-dispatched (run 36062034869): `HTTP 404 {"detail":"Not Found"}` — the Funnel's `--set-path /mcp` strips the mount, the call arrives as `POST /`, and the server routed only `/mcp`; its installer also never restarted a running server, so a code fix would not have been served | **fixed**: the server answers `/` and `/mcp`; the installer restarts on a code change (hash stamp), as the Scribe installer now does |
+| `nas-agent-arm`, `nas-storage-sync`, `source-transcript`, `transcript-backfill` last runs failed | dispatch-only tools whose last hand-run failed (Aug–Sep); `source-transcript` is superseded by `source-transcript-nas` (YouTube challenges runner IPs), `transcript-backfill` by the NAS trickle (874 transcripts live) | **named**: re-dispatch each when used; combining the superseded pairs is the next leanness step, `re-review: 2026-10-01` |
+| `nas-email-door` failed | needs the Google App Password only Darrell mints (DR-0111 §2) | **named**: his value, `re-review: 2026-10-01` |
+| `harvest-health` failed on schedule | the transcript stall incident it exists to raise; its live-read rewrite is DR-0618's (PR #1772) | **carried** by DR-0618 |
+| `ari-comprehensive-review` schedule stopped (59 days) | its weekly schedule has not fired since July | **named**, `re-review: 2026-10-01` |
+
+## Verification
+
+- `node scripts/interconnect-guard.mjs`: 0 findings over 106 nodes, 219 connections, 48 workflows, 20 NAS riders.
+- `app/src/__tests__/system-flow-graph.test.jsx`: every gate caught its planted break; the verdict never reads unknown as flowing; the proof SQL writes only its own table; the surfaces render the live numbers and say plainly when there are none.
+- The 0234 smoke passed on a local Postgres 16 and raised `LEAK: a poe-family VIEWER read 1 proof rows` when an open policy was planted.
+- After merge: the first dispatched `system-flow-proof.yml` run records the before-state of every connection; the fixes that follow are measured against it.
+
+## The after-state, measured live (run 36072180867, 2026-09-24 23:21 UTC)
+
+| state | before (run 36059041587, 21:04) | after (run 36072180867, 23:21) |
+| --- | --- | --- |
+| flowing | 38 | 48 |
+| empty | 18 | 16 |
+| stale | 9 | 9 |
+| broken | 10 | 7 |
+| unconsumed | 1 | 1 |
+| off | 0 | 1 |
+| unknown | 1 | 0 |
+
+**Now flowing** (on the live database, not a claim):
+- `sermon_video_stats`: 14 rows.
+- `_sovereign_replay`: 242 rows, newest 22:32 UTC.
+- `agent_inbox#voice-transcript`.
+- `ci`, `native-shell`, `harvest-health` and `deploy-cloudflare-pages`. The two deploys went out at bb093bc0 and da2d4c6e.
+
+The seven still broken, and what holds each:
+
+| connection | measured | state |
+| --- | --- | --- |
+| `auto-merge.yml` | 20 of its 20 latest completed runs ended `cancelled` or `action_required`, while #1788 and #1790 merged and their deploys ran (36070357006, 36071748931). A waiting run is cancelled when a newer event supersedes it, so its own run conclusion cannot prove it. | **fixed** in this push. Auto-merge is now judged by what it produced: the latest deploy that the lane's bot dispatched (`product:deploy-cloudflare-pages.yml`). The test proves the gate still catches a failed bot deploy, and that a hand dispatch never stands in for the lane. |
+| `mcp-health.yml` | `HTTP 404 {"detail":"Not Found"}` at 23:17 UTC (run 36071934551). The fix (#1788, which adds the `/` route and restarts on a code-hash change) is on main. The NAS copy of the repo has not pulled it: services-sync reached its 96-calls-a-day budget today (nas-bootstrap run 36065727995, `calls_today=96`), and the cap resets at 00:00 UTC. | **waiting on the budget, not bypassed.** Re-probe after the 00:00 and 00:15 UTC cycles. If it still returns 404 on current code, it is fixed then. |
+| `nas-email-door.yml` | needs the Google App Password, which only Darrell can create | **named**: a value only he holds. `re-review: 2026-10-01` |
+| `nas-agent-arm.yml`, `nas-storage-sync.yml`, `source-transcript.yml`, `transcript-backfill.yml` | dispatch-only tools whose last hand-run failed. `source-transcript` is replaced by `source-transcript-nas` (flowing). `transcript-backfill` is replaced by the NAS trickle (874 transcripts live). | **named**: combine each replaced pair once the combined path is proven, never retire it outright (DR-0621). `re-review: 2026-10-01` |
+
+The stale and empty rows are unchanged, and each one is carried as an escalation on the operations board. Nothing is painted green.
+
+## The four red lanes, carried to the route that works (2026-09-24, same push)
+
+The "combine later, re-review 2026-10-01" line above is replaced: each lane was worked now (DR-0621, DR-0236). The root cause below was read from each lane's own failing run.
+
+| lane | failing run and its root cause | fix |
+| --- | --- | --- |
+| `source-transcript.yml` | 35673574195: `Sign in to confirm you're not a bot`. YouTube challenges the runner's datacenter address. | **combined**: a challenge no longer ends the run. The same dispatch reads the video id from the link and calls `source-transcript-nas.yml`, which now also accepts `workflow_call`, from the NAS's residential address. A transcript already on main word for word is a success, not an empty failed commit. |
+| `transcript-backfill.yml` | 29162978378: 50 of 50 attempts blocked from the runner address. | **combined**: without proxy secrets, a dispatch runs the NAS trickle rider (`transcript_trickle_install.sh`) with its own stamp and budget, capped at 8 per dispatch (the runner lane asked 50). The runner lane stays as the proxy-only second lane. |
+| `nas-agent-arm.yml` | 31860587442: `install.sh: No such file`, because the NAS copy of the repo had not pulled the installer yet. The deeper fault: it placed `SUPABASE_DB_URL`, the retired hosted database, so every chat row sent after the 2026-08-19 repoint went unanswered (the live `agent_tasks` newest row is 2026-08-22). | **fixed at the root**: `agent_consumer.resolve_db` follows `REPOINT-ARMED` to the NAS's own Postgres (127.0.0.1:5433, password read on the box itself), so no credential moves through CI. The lane runs the consumer once from its own checkout and is red unless the consumer says it serves the sovereign database. It no longer overwrites `agent.env`. Selftest 26/26, including the new check that catches the retired database. |
+| `nas-storage-sync.yml` | 35906520553: dispatched from a feature branch for a private bucket. `HOSTED_SERVICE_ROLE_KEY` in `agent.env` is not a Supabase key (57 bytes, starts `cdn`). | **public route re-run on main** (moore-showcase). The six private buckets wait on the hosted service key. Moving the project's most privileged credential through CI is a decision only Darrell makes (the lane's own header), and the key is a value only he can mint. `re-review: 2026-10-01`, beside `nas-email-door`. |
+
+Proofs: `broken-lanes-combined-with-their-working-twins.test.js`, 10 tests, each pinning one combination against being quietly reverted. The flow graph's `unseeded` gate caught the new source-transcript to NAS seed until the NAS route declared what it reads from the call.
+
+**Proven on live runs, dispatched from this branch before merge:**
+
+- `nas-agent-arm` run 36073835760, green:
+  - it printed `agent-consumer: serving the sovereign database (127.0.0.1:5433)`, then `{"done": 1, "failed": 0}`;
+  - the chat request waiting since the repoint (sent 2026-08-22) is answered;
+  - the first try (run 36073583089) was refused as `postgres` (42501 on `agent_tasks`), so the consumer now connects as `supabase_admin`, the role `live-sql.sh` uses.
+- `source-transcript` run 36073587348, green:
+  - the runner was challenged, and the same run handed the link to `source-transcript-nas`;
+  - the NAS fetched the captions from its residential address;
+  - the transcript matched main word for word, so nothing needed pushing.
+- `transcript-backfill` run 36073585409, green:
+  - the runner lane was skipped because no proxy secrets are set, and the NAS trickle ran;
+  - it answered `fired 9556s ago (< 10800s gap) - no-op this cycle`, so the shared budget held;
+  - whether new transcripts are arriving is shown by `db:video_transcripts` and `harvest-health`, not by this lane.
+- `nas-storage-sync` run 36072894624 (main, public gallery): green.
+
+## The closing measurement (run 36077477281, 2026-09-25 00:26 UTC)
+
+| state | first (21:04) | after the first push (23:21) | now (00:26) |
+| --- | --- | --- | --- |
+| flowing | 38 | 48 | 54 |
+| empty | 18 | 16 | 16 |
+| stale | 9 | 9 | 8 |
+| broken | 10 | 7 | 2 |
+| unconsumed | 1 | 1 | 1 |
+| off | 0 | 1 | 1 |
+| unknown | 1 | 0 | 0 |
+
+Newly flowing since the 23:21 measurement:
+- `mcp-health`: HTTP 401 at 00:22 UTC. The server is up and refuses unauthenticated calls. It picked up the #1788 fix on the sync cycles after the daily budget reset at 00:00 UTC; the budget was not bypassed.
+- `auto-merge`: now judged by the deploy it dispatched.
+- `nas-agent-arm`, `source-transcript` and `nas-storage-sync`.
+- `agent_tasks#answered`: newest 2026-09-24 23:41, the chat row that had waited since the repoint.
+
+The two still broken:
+- `nas-email-door`: waits on a value only Darrell holds. `re-review: 2026-10-01`.
+- `transcript-backfill`: a measurement fault, fixed in this push. Its schedule is commented out (`#   - cron:`), yet the proof read it as a scheduled witness and judged it only by a July failure on main. Its combined route had just run green (36073585409). `ari-comprehensive-review`, "schedule stopped 59 days", was the same fault: its schedule is also commented out. Both `runRuleFor` and `cronFreshDays` now ignore commented lines. Proven to catch: the test now fails if a commented cron is read as a schedule.

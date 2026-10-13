@@ -39,9 +39,14 @@ function makeDoc() {
 }
 
 describe('TEXT_SIZE_STEPS shape', () => {
-  it('has four stepped options with the plain A/A+/A++/A+++ affordance', () => {
-    expect(TEXT_SIZE_STEPS.map((s) => s.label)).toEqual(['A', 'A+', 'A++', 'A+++']);
-    expect(TEXT_SIZE_STEPS.map((s) => s.key)).toEqual(['normal', 'large', 'larger', 'largest']);
+  it('has five stepped options — the plain plusses, then Big Print 44 (DR-0145 + DR-0147)', () => {
+    expect(TEXT_SIZE_STEPS.map((s) => s.label)).toEqual(['A', 'A+', 'A++', 'A+++', 'A44']);
+    expect(TEXT_SIZE_STEPS.map((s) => s.key)).toEqual(['normal', 'large', 'larger', 'largest', 'bigprint']);
+  });
+
+  it('Big Print 44 lands 16px body text at exactly 44px ("up to 44 big print" — Darrell 2026-07-10)', () => {
+    expect(stepFor('bigprint').mult * 16).toBe(44);
+    expect(stepFor('largest').mult).toBe(2); // DR-0145's doubled top holds beneath it
   });
 
   it('multipliers increase monotonically from 1x', () => {
@@ -78,7 +83,7 @@ describe('applyTextSize root scaling', () => {
   it('writes the root font-size as a percentage and stamps the attribute', () => {
     const doc = makeDoc();
     const step = applyTextSize('largest', doc);
-    expect(doc.documentElement.style.fontSize).toBe('150%');
+    expect(doc.documentElement.style.fontSize).toBe('200%'); // Largest = the WCAG 200% target, directly (DR-0145)
     expect(doc.documentElement._attrs['data-text-size']).toBe('largest');
     expect(step.key).toBe('largest');
   });
@@ -110,21 +115,19 @@ describe('content-vs-chrome scope split', () => {
     expect(chromeMultFor(1)).toBe(1);
   });
 
-  it('chromeMultFor grows far slower than content — capped, never ballooned', () => {
-    // At Largest, content is 1.5x but chrome must stay near 1x (here ~1.125x).
-    expect(chromeMultFor(1.5)).toBeCloseTo(1.125, 6);
-    // The cap must always be strictly between "no growth" and "full growth".
-    for (const s of TEXT_SIZE_STEPS) {
-      if (s.mult === 1) continue;
-      const cap = chromeMultFor(s.mult);
-      expect(cap).toBeGreaterThan(1);
-      expect(cap).toBeLessThan(s.mult);
-    }
+  it('chrome NEVER grows with the text size — exactly 1x at every step (DR-0438)', () => {
+    // Darrell 2026-09-16, phone screenshots at A++/A+++: "the controls should
+    // never get bigger." Before this the cap let chrome reach ~1.44x at Big
+    // Print and it covered 90% of a 360px viewport. Proven-to-catch: the old
+    // factor (0.25) makes chromeMultFor(2) = 1.25 and this fails.
+    expect(CHROME_SCALE_FACTOR).toBe(0);
+    for (const s of TEXT_SIZE_STEPS) expect(chromeMultFor(s.mult)).toBe(1);
+    expect(chromeMultFor(2)).toBe(1);
   });
 
   it('chrome follows exactly CHROME_SCALE_FACTOR of the content growth', () => {
     expect(chromeMultFor(1.3)).toBeCloseTo(1 + 0.3 * CHROME_SCALE_FACTOR, 6);
-    expect(CHROME_SCALE_FACTOR).toBeGreaterThan(0);
+    expect(CHROME_SCALE_FACTOR).toBeGreaterThanOrEqual(0);
     expect(CHROME_SCALE_FACTOR).toBeLessThan(1);
   });
 
@@ -137,7 +140,7 @@ describe('content-vs-chrome scope split', () => {
       // Above Normal the region zooms OUT (<1) to undo most of the root growth.
       if (s.mult > 1) expect(zoom).toBeLessThan(1);
     }
-    expect(chromeScaleFor(1.5)).toBeCloseTo(0.75, 6);
+    expect(chromeScaleFor(2)).toBeCloseTo(0.5, 6); // 1x chrome / 2x root (DR-0438)
   });
 
   it('chrome math degrades to identity for bad input, never throws', () => {
@@ -152,9 +155,9 @@ describe('content-vs-chrome scope split', () => {
     const doc = makeDoc();
     applyTextSize('largest', doc);
     const props = doc.documentElement.style._props;
-    expect(props['--ts-mult']).toBe('1.5');
-    expect(props['--ts-chrome-mult']).toBe(String(chromeMultFor(1.5)));
-    expect(props['--ts-chrome-scale']).toBe(String(chromeScaleFor(1.5)));
+    expect(props['--ts-mult']).toBe('2');
+    expect(props['--ts-chrome-mult']).toBe(String(chromeMultFor(2)));
+    expect(props['--ts-chrome-scale']).toBe(String(chromeScaleFor(2)));
   });
 
   it('at Normal every scope-split variable is 1 — the cap is an exact no-op', () => {

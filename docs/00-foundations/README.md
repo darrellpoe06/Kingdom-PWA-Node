@@ -1,6 +1,6 @@
 # 00 — Foundations
 
-The fifteen foundational documents, in order. Each is currently a placeholder.
+The fifteen foundational documents, in order. Most are stubs awaiting their build-out; 01-grace-and-mercy-standard.md and 14-naming-conventions.md carry real content. The authoritative foundations live in _root/ — routed by docs/CONTEXT.md.
 
 1. [Grace and Mercy Standard](01-grace-and-mercy-standard.md) — The unbreakable design constraint: the system never gatekeeps, never declares users outside fellowship over secondary issues, never withdraws grace based on behavior.
 2. [Falling and Rising](02-falling-and-rising.md) — The primary user-journey loop: fall, rise, gain understanding, fall again, rise again — growth measured in understanding, not behavior.

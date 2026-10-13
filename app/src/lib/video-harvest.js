@@ -108,7 +108,35 @@ const BIBLE_BOOKS = [
 // Longest names first so "Song of Solomon" wins over "Song"; "1 John" over "John".
 const BOOK_ALT = [...BIBLE_BOOKS].sort((a, b) => b.length - a.length)
   .map((b) => b.replace(/ /g, '\\s+')).join('|');
-const REF_RE = new RegExp(`\\b(${BOOK_ALT})\\.?\\s+(\\d{1,3}):(\\d{1,3})(?:\\s*[-–]\\s*\\d{1,3})?\\b`, 'gi');
+// The range end is CAPTURED (m[4]) so a caller that opens the verse can keep
+// "6:2-4" whole; extractScriptureRefs below still keys on the first verse.
+const REF_RE = new RegExp(`\\b(${BOOK_ALT})\\.?\\s+(\\d{1,3}):(\\d{1,3})(?:\\s*[-–]\\s*(\\d{1,3}))?\\b`, 'gi');
+
+// JOB THE MAN, NOT A JOB (Darrell, 2026-09-08: "train the Ari to read Job and
+// job, differentiating the work from the person"). The shape "<Book> <ch>:<vs>"
+// already keeps "a job" or "the job" out — no chapter:verse, no match. What
+// slips through is a TIME beside a common noun: "meet at the job 9:30" is a
+// real Job 9:30. Two deterministic rules close it, and they are the same rule
+// for the harvest scanner and the reader's chips (one matcher, one judgement):
+//   1. A book whose name is also an everyday word (job, mark, acts, numbers,
+//      judges) counts only when written as a NAME — an initial capital ("Job",
+//      "JOB"), the way a person's name is written. Every other book still
+//      matches in any case, because transcripts and titles arrive lowercase
+//      ("psalm 46:10") and those words are nobody's job.
+//   2. Any match followed by am / pm is a time of day, not a verse.
+// Chapter and verse must also be real numbers (no "0", no leading zero) — a
+// clock says 9:05, the Word does not.
+const COMMON_NOUN_BOOKS = new Set(['job', 'mark', 'acts', 'numbers', 'judges']);
+const TIME_AFTER_RE = /^\s*(?:a\.?m\.?|p\.?m\.?)\b/i;
+function isNotAVerse(m, text) {
+  const rawBook = m[1];
+  const key = rawBook.toLowerCase().replace(/\s+/g, ' ');
+  if (COMMON_NOUN_BOOKS.has(key) && !/^[A-Z]/.test(rawBook)) return true;  // "job", not "Job"
+  if (TIME_AFTER_RE.test(text.slice(m.index + m[0].length))) return true;   // "9:30 am"
+  const nums = [m[2], m[3], m[4]].filter((n) => n !== undefined);
+  if (nums.some((n) => /^0/.test(n))) return true;                           // "2:00", "9:05"
+  return false;
+}
 
 // Tidy one matched book name to its canonical spelling (collapse whitespace,
 // title-case via the registry so "1  john" -> "1 John").
@@ -123,12 +151,34 @@ export function extractScriptureRefs(texts) {
     let m;
     REF_RE.lastIndex = 0;
     while ((m = REF_RE.exec(raw)) !== null) {
+      if (isNotAVerse(m, raw)) continue;
       const bookKey = m[1].toLowerCase().replace(/\s+/g, ' ');
       const book = CANON_BOOK.get(bookKey) || m[1].replace(/\s+/g, ' ');
       const ref = `${book} ${m[2]}:${m[3]}`;
       const key = ref.toLowerCase();
       if (!seen.has(key)) { seen.add(key); out.push(ref); }
     }
+  }
+  return out;
+}
+
+// Every reference in a piece of text WITH ITS POSITION, range kept, so prose can
+// be cut around each one and the Word opened in place (VerseChips / WordInline,
+// DR-0340). Same regex, same canonical spelling as extractScriptureRefs — one
+// matcher, two readings of it. Order-preserving; duplicates are kept because a
+// paragraph that names a verse twice has two places to tap.
+export function findScriptureRefs(text) {
+  const out = [];
+  const s = (typeof text === 'string') ? text : '';
+  if (!s) return out;
+  let m;
+  REF_RE.lastIndex = 0;
+  while ((m = REF_RE.exec(s)) !== null) {
+    if (isNotAVerse(m, s)) continue;
+    const bookKey = m[1].toLowerCase().replace(/\s+/g, ' ');
+    const book = CANON_BOOK.get(bookKey) || m[1].replace(/\s+/g, ' ');
+    const ref = m[4] ? `${book} ${m[2]}:${m[3]}-${m[4]}` : `${book} ${m[2]}:${m[3]}`;
+    out.push({ ref, start: m.index, end: m.index + m[0].length, raw: m[0] });
   }
   return out;
 }
@@ -355,6 +405,33 @@ export function harvestLedgerSummary(videos) {
     noVideoLost: orphans.length === 0,
     byType,
     rows,
+  };
+}
+
+// The pinned banner's honest three states (surface-says-truth, DR-0239 review
+// 2026-08-05: the old two-state banner read success-green "every ingested
+// recording has been mined" over a 0/858-fully-harvested, avg-26% corpus).
+// 'lost' = orphans exist (the broken promise, red). 'mining' = no video lost
+// but harvests are still owed (the true in-progress state, amber — never a
+// victory lap). 'done' = every video fully harvested (the only green).
+export function ledgerBanner(summary) {
+  const s = summary || {};
+  const videos = s.videos || 0;
+  const orphans = s.orphans || 0;
+  const full = s.fullyHarvested || 0;
+  if (orphans > 0) {
+    return {
+      state: 'lost',
+      text: `⚠ ${orphans} recording${orphans === 1 ? '' : 's'} not yet mined — content is being lost.`,
+    };
+  }
+  if (videos > 0 && full === videos) {
+    return { state: 'done', text: '✓ No video lost — every ingested recording fully mined.' };
+  }
+  const owed = videos - full;
+  return {
+    state: 'mining',
+    text: `◐ No video lost — every recording has begun mining · ${owed} still owe${owed === 1 ? 's' : ''} harvests.`,
   };
 }
 

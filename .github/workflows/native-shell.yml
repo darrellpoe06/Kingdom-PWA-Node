@@ -1,0 +1,269 @@
+# Native shell — the family's LOCAL Android app (DR-0570), built beside the TWA.
+#
+# WHY (Darrell, 2026-09-22): "Let's make it a feature of downloading the app...
+# all the bells and whistles come from a local download... Let's do the native
+# shell... Don't undermine what we have however let's invest time and energy in
+# our own local app... We don't have to pick either or... just need to plan for
+# both." The TWA lane (android-package.yml) wraps the LIVE site: it can give the
+# phone nothing the browser does not already give it, and the evening's voice
+# fault — a per-device key the browser could not provision — is exactly that
+# limit. This lane builds the SAME Vite app INTO the package: the bundle ships
+# on the device (Capacitor), and native capability can be added to it plugin by
+# plugin. Both lanes are kept: this one publishes to its OWN shelf
+# (android-native-latest) under its OWN package ids (*.local), so nothing the
+# TWA lane serves is touched, and both can be installed on one phone.
+#
+# THE THREE BRAKES: dispatch-only (no schedule), one bounded job per brand with
+# a hard timeout, a single-instance concurrency group, no compute spawned
+# beyond the Gradle build. Nothing here self-activates.
+name: Native shell (Android, local app — sideload-testing)
+
+on:
+  workflow_dispatch: {}
+
+concurrency:
+  group: native-shell
+  cancel-in-progress: false
+
+permissions:
+  # contents: write — publishes each brand's .apk to the rolling
+  # `android-native-latest` release (a separate shelf from the TWA's).
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        # Keys MUST equal app/native/brands.json — the test holds them together.
+        brand: [poetech, lovecorner, tlc, properties, moore]
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      # JDK 21, not 17 (run 2 lesson, DR-0571): @capacitor/android 8 compiles its
+      # own module at sourceCompatibility JavaVersion.VERSION_21
+      # (node_modules/@capacitor/android/capacitor/build.gradle:66), so a 17
+      # toolchain fails with "invalid source release: 21" before the app is
+      # ever compiled. The TWA lane stays on 17 — Bubblewrap's project is not
+      # this project.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Install deps
+        run: npm ci
+
+      # THE SAME BACKEND THE WEB BUILD CARRIES (DR-0310): when the committed
+      # REPOINT-ARMED record exists, the anon key is fetched from the NAS itself
+      # over the team's tailnet channel — identical to deploy-cloudflare-pages.
+      # Armed + fetch failure = this build fails rather than shipping half a
+      # backend into a package a family member would install (DR-0107).
+      - name: Join the tailnet (repoint armed only)
+        if: ${{ hashFiles('infra/nas-supabase/REPOINT-ARMED') != '' }}
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+      - name: Fetch the sovereign anon key from the NAS (repoint armed only)
+        if: ${{ hashFiles('infra/nas-supabase/REPOINT-ARMED') != '' }}
+        working-directory: .
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          umask 077
+          printf '%s\n' "$NAS_SSH_KEY" > /tmp/nas_key
+          KEY=$(ssh -i /tmp/nas_key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 \
+            dpoe@poetech.tail5a2f35.ts.net \
+            "sudo -n sed -n 's/^ANON_KEY=//p' /volume1/docker/supabase/.env" | tr -d '[:space:]')
+          rm -f /tmp/nas_key
+          case "$KEY" in
+            eyJ*.eyJ*.*) : ;;
+            *)
+              echo "::error::REPOINT-ARMED but the sovereign ANON_KEY fetch returned ${#KEY} bytes, not a JWT — failing this build rather than packaging half a backend (DR-0107)."
+              exit 1
+              ;;
+          esac
+          echo "::add-mask::$KEY"
+          {
+            echo "SOVEREIGN_SB_URL=https://poetech.us/sb"
+            echo "SOVEREIGN_SB_ANON=$KEY"
+          } >> "$GITHUB_ENV"
+
+      - name: Build the app at base / (the local bundle)
+        run: npm run build
+        env:
+          PT_NATIVE_SHELL: '1'
+          GITHUB_SHA: ${{ github.sha }}
+          VITE_SUPABASE_URL: ${{ env.SOVEREIGN_SB_URL || secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ env.SOVEREIGN_SB_ANON || secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_YOUTUBE_API_KEY: ${{ secrets.VITE_YOUTUBE_API_KEY }}
+          VITE_SYNOLOGY_CHAT_BOT_URL: ${{ secrets.VITE_SYNOLOGY_CHAT_BOT_URL }}
+
+      - name: Stage the brand (copy dist, open its door, write capacitor.config.json)
+        run: node native/stage.mjs ${{ matrix.brand }}
+
+      - name: Generate the Android project and sync the bundle into it
+        run: |
+          set -euo pipefail
+          npx cap add android
+          npx cap sync android
+          test -f android/app/src/main/assets/public/index.html || { echo "::error::the bundle did not land in the Android project"; exit 1; }
+
+      - name: Pin the version from the run number (a store must UPDATE in place)
+        # Same rule as the TWA lane: versionCode strictly increases per run so
+        # Android accepts each new build as an upgrade; proven on the built APK
+        # below, never assumed.
+        run: |
+          set -euo pipefail
+          sed -i "s/versionCode 1$/versionCode ${{ github.run_number }}/" android/app/build.gradle
+          sed -i "s/versionName \"1.0\"$/versionName \"1.0.${{ github.run_number }}\"/" android/app/build.gradle
+          grep -n "versionCode\|versionName\|applicationId" android/app/build.gradle
+
+      - name: Point Gradle at the runner's real Android SDK (compile platform proven on disk)
+        run: |
+          set -euo pipefail
+          SDK="${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}"
+          SDKMGR="$SDK/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SDKMGR" --licenses > /dev/null 2>&1 || true
+          yes | "$SDKMGR" "platforms;android-36" "build-tools;36.0.0" > "$RUNNER_TEMP/sdkinstall.log" 2>&1 || true
+          tail -5 "$RUNNER_TEMP/sdkinstall.log"
+          test -d "$SDK/platforms/android-36" || { echo "::error::android-36 platform missing from $SDK"; exit 1; }
+          echo "sdk.dir=$SDK" > android/local.properties
+
+      - name: Signing keystore (the persistent store key if committed; else a per-run testing key)
+        id: keys
+        # Mirrors android-package.yml: PASS-only mode decrypts the committed
+        # store/android.keystore.enc so every build signs with the SAME stable
+        # identity as the TWA packages (custody: the PASS secret, DR-0152/0232).
+        # Absent the secret, a per-run testing key — updating then requires
+        # uninstall/reinstall, and the step summary says so.
+        env:
+          STORE_KS_PASS: ${{ secrets.ANDROID_STORE_KEYSTORE_PASS }}
+        working-directory: .
+        run: |
+          set -euo pipefail
+          if [ -n "${STORE_KS_PASS:-}" ] && [ -s store/android.keystore.enc ]; then
+            openssl enc -d -aes-256-cbc -pbkdf2 -in store/android.keystore.enc -out "$PWD/android.keystore" -pass env:STORE_KS_PASS
+            PASS="$STORE_KS_PASS"
+            echo "mode=store" >> "$GITHUB_OUTPUT"
+            echo "Signing with the persistent store keystore (updates install in place)."
+          else
+            PASS=$(openssl rand -hex 16)
+            keytool -genkeypair -keystore "$PWD/android.keystore" -alias poetech \
+              -keyalg RSA -keysize 2048 -validity 3650 \
+              -storepass "$PASS" -keypass "$PASS" \
+              -dname "CN=PoeTech Sideload Testing, O=PoeTech, C=US"
+            echo "mode=testing" >> "$GITHUB_OUTPUT"
+            echo "Signing with a per-run testing key."
+          fi
+          echo "::add-mask::$PASS"
+          echo "pass=$PASS" >> "$GITHUB_OUTPUT"
+
+      - name: Build the package (Gradle release, unsigned) then sign it
+        env:
+          KS_PASS: ${{ steps.keys.outputs.pass }}
+        run: |
+          set -euo pipefail
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon --console=plain -q
+          cd ..
+          SDK="${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}"
+          BT=$(ls -d "$SDK"/build-tools/* | sort -V | tail -1)
+          UNSIGNED=$(ls android/app/build/outputs/apk/release/*-unsigned.apk | head -1)
+          "$BT/zipalign" -f -p 4 "$UNSIGNED" aligned.apk
+          "$BT/apksigner" sign --ks ../android.keystore --ks-key-alias poetech \
+            --ks-pass env:KS_PASS --key-pass env:KS_PASS \
+            --out "${{ matrix.brand }}-native.apk" aligned.apk
+          "$BT/apksigner" verify "${{ matrix.brand }}-native.apk"
+          ls -la "${{ matrix.brand }}-native.apk"
+
+      - name: Verify the built APK carries the pinned version AND the brand's own id (proven, not assumed)
+        # DR-0076 §3 (anti-theater): read the REAL manifest out of the APK with
+        # aapt2 and hard-fail on any mismatch — the package id is what keeps this
+        # app beside the TWA on one phone, and the version is what lets it update.
+        run: |
+          set -euo pipefail
+          SDK="${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}"
+          AAPT2=$(ls "$SDK"/build-tools/*/aapt2 | sort -V | tail -1)
+          BADGING=$("$AAPT2" dump badging "${{ matrix.brand }}-native.apk" | head -1)
+          echo "$BADGING"
+          WANT_ID="name='$(node -e "console.log(require('./native/brands.json').brands.find(b=>b.key==='${{ matrix.brand }}').appId)")'"
+          WANT_VC="versionCode='${{ github.run_number }}'"
+          WANT_VN="versionName='1.0.${{ github.run_number }}'"
+          case "$BADGING" in
+            *"$WANT_ID"*"$WANT_VC"*"$WANT_VN"*) echo "verified: $WANT_ID $WANT_VC $WANT_VN" ;;
+            *) echo "::error::built APK does not match (wanted $WANT_ID $WANT_VC $WANT_VN): $BADGING"; exit 1 ;;
+          esac
+
+      - name: Name what was built
+        run: |
+          {
+            echo "## Native shell built (sideload-testing) — ${{ matrix.brand }}"
+            echo "- The SAME app, bundled INTO the package (Capacitor), not a wrapper around the live site."
+            echo "- Installs BESIDE the TWA package (its own id, \`*.local\`) — both lanes are kept."
+            echo "- Signing: ${{ steps.keys.outputs.mode }} key. A testing key means updating requires uninstall/reinstall."
+            echo "- NAS routes (/n8n, /voice, /api, /llm, …) leave for poetech.us from inside the shell (src/lib/native-shell.js)."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Publish to the native shelf (rolling android-native-latest release)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release create android-native-latest --title "PoeTech native shell — Android local apps (latest)" \
+            --notes "Rolling latest builds of the family's LOCAL apps (the bundle ships in the package). Sideload-testing. The TWA packages live on android-latest and are unaffected." \
+            2>/dev/null || true
+          gh release upload android-native-latest "${{ matrix.brand }}-native.apk" --clobber
+
+      - name: Attach the package as a downloadable artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.brand }}-native-sideload-testing
+          path: app/${{ matrix.brand }}-native.apk
+          retention-days: 30
+          if-no-files-found: error
+
+  # ---------------------------------------------------------------------------
+  # The shelf must hold what the store offers (DR-0573) — the same gate the TWA
+  # lane carries: every brand the in-app store lists with a local door must
+  # have a `<brand>-native.apk` on android-native-latest, or the run FAILS. A
+  # store that lists what it cannot deliver is the defect (the 2026-08-28
+  # "Bad gateway" lesson), and a green build that leaves one missing is the
+  # lie. `if: always()` so a partial run still reports what is actually there.
+  shelf:
+    needs: build
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prove every store brand has a local package on the shelf
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          names=$(gh api "repos/$REPO/releases/tags/android-native-latest" --jq '[.assets[].name] | join(",")')
+          csv=",$names,"
+          missing=""
+          for key in $(grep -oP "^\s+key: '\K[a-z]+" app/src/lib/app-store.js); do
+            case "$csv" in
+              *",$key-native.apk,"*) ;;
+              *) missing="$missing $key" ;;
+            esac
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::the store offers a local app for these brands with NO package on android-native-latest:$missing"
+            exit 1
+          fi
+          echo "every store brand has a local package on the shelf: $names"

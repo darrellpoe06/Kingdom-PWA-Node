@@ -45,6 +45,7 @@
 // wellness) are OFFERED to the client (Darrell 2026-07-04: inform, don't guard
 // — the only access gate is the clinician CE track, not client information).
 import { witnessClientModules } from './third-witness.js';
+import { findingPeaceModules } from './tlc-finding-peace.js';
 
 // Validation + reading-support flags carried by every track. Honest by default:
 // validated=false means "not yet specialist-signed-off — do not publish."
@@ -88,6 +89,7 @@ export const TLC_LESSON_TRACKS = {
           standard: 'Anxiety is the body’s threat-response system doing its job — sometimes too well. It becomes a problem when the alarm fires without real danger, or won’t switch off. Understanding the mechanism reduces secondary fear ("the fear of the fear") and opens the door to skills and, when needed, professional support.',
           senior: 'Anxiety is an adaptive arousal response that can become dysregulated. Psychoeducation reframes symptoms as an over-firing alarm rather than personal failure, which itself lowers reactivity; the lesson points toward evidence-based coping and a consult, without diagnosing the reader.',
         },
+        word: { principle: 'Yahweh does not leave a fearful heart alone; He says “fear not” and holds the right hand, and He invites every care to be cast on Him because He cares for you.', verses: ['Isaiah 41:10', '1 Peter 5:7', 'Psalms 94:19'], reflection: 'The alarm is real and the body is honest; the Word meets the alarm with presence, not shame. The same practices this lesson teaches — naming the fear, steadying the body, asking for help — are how a person casts a care rather than carrying it alone.' },
         quiz: { questions: [
           { q: 'Anxiety is best understood as…', options: ['A character flaw', 'An alarm system that can become oversensitive', 'Something only weak people feel'], answer: 1, explain: 'It’s a normal protective response that can mis-fire — not a flaw.' },
           { q: 'This lesson is…', options: ['Treatment / a diagnosis', 'Psychoeducation that invites a next step', 'A guarantee you’ll feel better'], answer: 1, explain: 'Psychoeducation educates and invites a consult; it never diagnoses or guarantees outcomes.' },
@@ -103,6 +105,7 @@ export const TLC_LESSON_TRACKS = {
           standard: 'Paced breathing (longer exhale than inhale) nudges the parasympathetic system toward calm; the 5-4-3-2-1 sensory scan interrupts a spiral by anchoring attention in the present. Both are coping supports to practice between sessions — not a replacement for therapy.',
           senior: 'These are portable self-regulation skills with a physiological rationale (vagal tone via extended exhale; attentional re-anchoring via multisensory orienting). Framed as adjuncts to care, not as treatment, and offered without any outcome promise.',
         },
+        word: { principle: 'Stillness is a command with a promise: be still and know that He is God; a longer breath out is the body learning to be still.', verses: ['Psalms 46:10', 'Isaiah 26:3', 'Philippians 4:6-7'], reflection: 'Paced breathing and the five-senses scan bring the body back to the present; the Word names the present as the place He keeps in perfect peace the mind that stays on Him. The skill and the trust work together.' },
         quiz: { questions: [
           { q: 'These grounding skills are…', options: ['A cure for anxiety', 'Coping supports to practice, not a replacement for care', 'Only for emergencies'], answer: 1, explain: 'They’re supports — helpful, but not treatment or a cure.' },
         ] },
@@ -116,6 +119,7 @@ export const TLC_LESSON_TRACKS = {
           standard: 'Caregivers help most by validating rather than problem-solving, maintaining their own regulation (co-regulation works both ways), holding routine, and encouraging professional support without coercion. The lesson includes when to seek help and how to look after the caregiver — family support is part of the patient-outcomes picture.',
           senior: 'Family psychoeducation improves outcomes: validation over advice, co-regulation, boundary-with-warmth, and recognizing escalation thresholds. The caregiver’s own support is named explicitly, with a clear, non-alarmist path to professional help.',
         },
+        word: { principle: 'Bear one another’s burdens; weep with those who weep; and a loving word in season is health to the one who hears it.', verses: ['Galatians 6:2', 'Romans 12:15', 'Proverbs 25:11'], reflection: 'Listening without fixing is what weeping-with looks like in a kitchen at midnight. Encouraging professional help without coercion is burden-bearing that respects the other person’s will, as He respects ours.' },
         quiz: { questions: [
           { q: 'The most helpful first move for a caregiver is to…', options: ['Fix the problem for them', 'Listen and validate, and encourage support', 'Take over their decisions'], answer: 1, explain: 'Listening + validating + gently encouraging support helps most.' },
         ] },
@@ -125,6 +129,9 @@ export const TLC_LESSON_TRACKS = {
       // setback lesson AND the metabolic-wellness digest are offered here —
       // informing the client, gating only the clinician CE track.
       ...witnessClientModules(),
+      // Christina's "Finding Peace" — eleven chapters as client lessons, the
+      // Word verbatim from the app's KJV (DR-0344; lib/tlc-finding-peace.js).
+      ...findingPeaceModules(),
     ],
   },
 
@@ -147,6 +154,7 @@ export const TLC_LESSON_TRACKS = {
           standard: 'Ethical faith-integration: assess the client’s own framework, obtain informed consent for any spiritual intervention, stay within competence, document appropriately, and never impose the clinician’s beliefs. The module surveys the evidence base and the ethical guardrails (ACA/NASW). CE credit + accreditation: TO CONFIRM.',
           senior: 'Covers consent, competence boundaries, multicultural humility, documentation, and the distinction between client-led spiritual integration and clinician-imposed practice — with citations to be finalized for CE accreditation.',
         },
+        word: { principle: 'Yahweh draws people with cords of love, never by force; a servant of the Lord is gentle, and each person answers Him for their own conscience.', verses: ['Hosea 11:4', '2 Timothy 2:24-25', 'Romans 14:12'], reflection: 'Following the client’s lead is not a compromise of faith; it is how He works. Consent and competence are the clinical form of gentleness, and the client’s own framework is the ground He is already working.' },
         quiz: { questions: [
           { q: 'Faith integration should be…', options: ['Imposed when the clinician believes it helps', 'Client-led, consented, and within competence', 'Avoided entirely'], answer: 1, explain: 'Client-led + consented + within competence is the ethical standard.' },
         ] },
@@ -160,6 +168,7 @@ export const TLC_LESSON_TRACKS = {
           standard: 'Moves from static "cultural competence" to cultural humility: lifelong self-reflection, redressing power imbalance, and treating the client as the expert on their own context. Includes practical intake and rupture-repair applications. CE credit + accreditation: TO CONFIRM.',
           senior: 'Frames humility vs. competence, addresses clinician bias and microaggression repair, and ties to TLC’s multicultural, historically-underserved mission — references to be finalized for accreditation.',
         },
+        word: { principle: 'Every nation stands before the throne together; the stranger is loved as oneself; and Yahweh looks on the heart, not the outward appearance.', verses: ['Revelation 7:9', 'Leviticus 19:34', '1 Samuel 16:7'], reflection: 'Cultural humility is the posture of one who knows the other person is the expert on a life the Lord has watched from the beginning. Self-examination across difference is what loving the stranger looks like in a clinic.' },
         quiz: { questions: [
           { q: 'Cultural humility treats the client as…', options: ['A diagnosis', 'The expert on their own cultural context', 'A checklist item'], answer: 1, explain: 'Client-as-expert + ongoing self-reflection is the core.' },
         ] },
@@ -173,6 +182,7 @@ export const TLC_LESSON_TRACKS = {
           standard: 'Covers note standards, informed consent, the minimum-necessary principle, and — directly relevant to this platform — the bright line that clinical detail/PHI never enters marketing or pre-intake systems. CE credit + accreditation: TO CONFIRM.',
           senior: 'Note quality, consent, minimum-necessary, mandated-reporting awareness, and the structural PHI wall the platform enforces (pre-intake/contact-level only) — references to be finalized.',
         },
+        word: { principle: 'A faithful witness does not lie; the tongue that guards its words guards a life; and what is entrusted is kept.', verses: ['Proverbs 14:5', 'Proverbs 13:3', '1 Timothy 6:20'], reflection: 'A note that holds up is a faithful witness written down. The PHI line is the guarded tongue: what a client entrusted stays where it was entrusted.' },
         quiz: { questions: [
           { q: 'Where does clinical detail / PHI belong?', options: ['In marketing if anonymized', 'In the clinical record only, never marketing', 'Anywhere, if helpful'], answer: 1, explain: 'PHI stays in the clinical record — never marketing or pre-intake systems.' },
         ] },
@@ -200,6 +210,7 @@ export const TLC_LESSON_TRACKS = {
           standard: 'Walks through the consult → intake → first sessions: what each involves, what to bring, confidentiality basics and its limits, and how fit is assessed. Setting honest expectations reduces no-shows and anxiety. Not treatment; an orientation.',
           senior: 'Orients the reader to the care pathway, confidentiality and its limits, and the collaborative nature of fit — honestly, without overpromising outcomes.',
         },
+        word: { principle: 'Counsel is safety, and the one who seeks it is wise; a person is welcomed the way Jesus welcomed the ones who came to Him, asked what they wanted, and answered.', verses: ['Proverbs 11:14', 'Proverbs 19:20', 'Mark 10:51'], reflection: 'Knowing what the first steps are is part of being welcomed. Jesus asked Bartimaeus what he wanted before He did anything; an honest intake asks the same question.' },
         quiz: { questions: [
           { q: 'The first session is mostly…', options: ['A diagnosis and a cure plan', 'Getting to know each other and your goals', 'A commitment you can’t change'], answer: 1, explain: 'It’s an orientation + fit conversation — you stay in control.' },
         ] },
@@ -213,6 +224,7 @@ export const TLC_LESSON_TRACKS = {
           standard: 'Signposts the difference between routine support (a consult) and acute crisis (emergency services / 988 in the US), normalizes help-seeking, and lists what TLC can and cannot be for. Responsible signposting — not treatment or triage.',
           senior: 'Clarifies the routine-vs-crisis distinction, names emergency resources, and sets honest scope for what the practice provides — without implying clinical care has begun.',
         },
+        word: { principle: 'Yahweh is a very present help in trouble, near to the brokenhearted; and He sets people beside each other so no one falls alone.', verses: ['Psalms 46:1', 'Psalms 34:18', 'Ecclesiastes 4:9-10'], reflection: 'Reaching for immediate help is not weakness; it is the very-present help taking a human shape. A crisis line, an emergency number and a consult are three of the ways He sets someone beside you.' },
         quiz: { questions: [
           { q: 'For an immediate emergency, the right step is…', options: ['Wait for a therapy appointment', 'Contact crisis / emergency services (e.g., 988 in the US)', 'Read another lesson'], answer: 1, explain: 'Crisis = emergency resources now; therapy is for the ongoing work.' },
         ] },

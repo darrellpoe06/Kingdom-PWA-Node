@@ -56,7 +56,19 @@ const HEADER_MATCHERS = {
   amount: /\b(amount|debit|transaction amount)\b/,
   credit: /\bcredit\b/,
   category: /\b(category|type)\b/,
+  // The running account balance AFTER the transaction (Chase checking exports it).
+  // It is the deterministic disambiguator that lets us tell a TRUE re-import (same
+  // balance) from a GENUINE repeat purchase (same date+amount+desc but a DIFFERENT
+  // running balance) — so no legitimate second identical charge is dropped as a
+  // "duplicate" (Christina's books, 2026-07-18). Optional: absent on many exports.
+  balance: /\b(running balance|balance)\b/,
 };
+// A REAL payee column, preferred over the generic "Details"/type column. Chase
+// CHECKING exports carry BOTH ("Details" = DEBIT/CREDIT/CHECK, "Description" =
+// the merchant), and a first-match scan would otherwise grab "Details" — so every
+// row's description came through as "DEBIT" (Christina's books, 2026-07-19). When a
+// payee column exists it wins; otherwise the broad `desc` match still applies.
+const DESC_PRIMARY = /\b(description|payee|merchant)\b/;
 const HEADER_SCAN_LINES = 10;
 
 // lines: the file's non-empty lines. Returns { headerRow, headers, idx, errors }
@@ -70,6 +82,10 @@ export function findStatementHeader(lines) {
     for (const [kind, re] of Object.entries(HEADER_MATCHERS)) {
       idx[kind] = cells.findIndex((c) => re.test(c));
     }
+    // Prefer a real payee column over the generic "Details"/type column when both
+    // exist, so a Chase-checking export maps the merchant, not "DEBIT/CREDIT".
+    const descPrimary = cells.findIndex((c) => DESC_PRIMARY.test(c));
+    if (descPrimary !== -1) idx.desc = descPrimary;
     const score = (idx.date !== -1 ? 1 : 0) + (idx.desc !== -1 ? 1 : 0)
       + ((idx.amount !== -1 || idx.credit !== -1) ? 1 : 0);
     if (!best || score > best.score) best = { headerRow: row, headers: cells, idx, score };
@@ -142,6 +158,29 @@ export function parseCsvLine(line) {
   return out.map((s) => s.trim());
 }
 
+// parseAmount — a money cell -> a number, honoring the negative formats that
+// spreadsheets and banks actually use (Christina's Excel, 2026-07-13). The old
+// path did `parseFloat(cell.replace(/[$,]/g,'')) || 0`, so an accounting negative
+// like "(1,234.56)" or a trailing-minus "1,234.56-" became NaN -> 0 — every
+// parenthesized negative silently zeroed out and the imported total drifted off
+// the real one. This honors: parentheses = negative, a leading OR trailing minus
+// = negative, and strips stray currency symbols / thousands separators / spaces.
+// Blank or truly non-numeric -> 0 (unchanged, so blank cells still import as 0).
+// Pure.
+export function parseAmount(raw) {
+  let s = String(raw == null ? '' : raw).trim();
+  if (!s) return 0;
+  let negative = false;
+  if (/^\(.*\)$/.test(s)) { negative = true; s = s.slice(1, -1); } // accounting ()
+  if (/-\s*$/.test(s)) { negative = true; s = s.replace(/-\s*$/, ''); } // trailing -
+  if (/^\s*-/.test(s)) { negative = true; s = s.replace(/^\s*-/, ''); } // leading -
+  s = s.replace(/[^0-9.]/g, ''); // drop $, commas, currency codes, spaces
+  if (!s || s === '.') return 0;
+  const n = parseFloat(s);
+  if (!Number.isFinite(n)) return 0;
+  return negative ? -n : n;
+}
+
 export function normalizeDate(s) {
   if (!s) return '';
   if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
@@ -150,6 +189,69 @@ export function normalizeDate(s) {
   m = s.match(/^(\d{1,2})-(\d{1,2})-(\d{2,4})$/);
   if (m) { let [, mo, da, yr] = m; if (yr.length === 2) yr = (parseInt(yr, 10) > 50 ? '19' : '20') + yr; return `${yr}-${mo.padStart(2, '0')}-${da.padStart(2, '0')}`; }
   return s;
+}
+
+// -----------------------------------------------------------------------------
+// parseOfx — OFX/QFX statement text -> the SAME normalized rows shape as the
+// delimited parser, fully in-browser (the "we read it in your browser, nothing
+// saves" promise on the landing upload was contradicted by the old path POSTing
+// the raw file to an n8n webhook). OFX/QFX are SGML/XML: each transaction is a
+// <STMTTRN> block with <DTPOSTED>, <TRNAMT>, and <NAME>/<MEMO>. Tolerant of both
+// tag styles (SGML `<TAG>value` with no close, and XML `<TAG>value</TAG>`), which
+// is why a generic XML parser is the wrong tool here. Reconciliation gate applies:
+// every <STMTTRN> block is ingested or rejected-with-a-reason, never dropped.
+// -----------------------------------------------------------------------------
+export function isOfxFile(file) {
+  if (!file) return false;
+  if (/\.(ofx|qfx)$/i.test(file.name || '')) return true;
+  const t = (file.type || '').toLowerCase();
+  return t.includes('ofx') || t.includes('quicken') || t.includes('money');
+}
+
+// Read one OFX field value whether it is SGML (`<TAG>val`, ended by the next `<`
+// or newline) or XML (`<TAG>val</TAG>`). Returns '' when absent.
+function ofxField(block, tag) {
+  const m = block.match(new RegExp(`<${tag}>([^<\\r\\n]*)`, 'i'));
+  return m ? m[1].trim() : '';
+}
+
+// OFX dates are YYYYMMDD (optionally with HHMMSS and a [tz] suffix). Normalize the
+// leading 8 digits to YYYY-MM-DD; anything else falls through to normalizeDate.
+function normalizeOfxDate(s) {
+  const m = String(s || '').match(/^(\d{4})(\d{2})(\d{2})/);
+  if (m) return `${m[1]}-${m[2]}-${m[3]}`;
+  return normalizeDate(s);
+}
+
+export function parseOfx(text, { flipSign = false } = {}) {
+  if (!text || !text.trim()) return { rows: [], rejected: [], reconciliation: reconcile(0, 0, 0), headers: [], errors: ['File is empty.'] };
+  const blocks = text.match(/<STMTTRN>[\s\S]*?<\/STMTTRN>/gi)
+    // Some exporters omit the closing tag; split on the opening tag as a fallback.
+    || text.split(/<STMTTRN>/i).slice(1).map((b) => `<STMTTRN>${b}`);
+  if (!blocks.length) {
+    return { rows: [], rejected: [], reconciliation: reconcile(0, 0, 0), headers: [], errors: ['No transactions found. This does not look like an OFX/QFX statement.'] };
+  }
+  const rows = [];
+  const rejected = [];
+  blocks.forEach((block, i) => {
+    const date = normalizeOfxDate(ofxField(block, 'DTPOSTED'));
+    const rawAmt = ofxField(block, 'TRNAMT');
+    const desc = ofxField(block, 'NAME') || ofxField(block, 'MEMO') || ofxField(block, 'PAYEE');
+    if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) { rejected.push({ line: i + 1, reason: 'unreadable-date', raw: rawAmt, value: ofxField(block, 'DTPOSTED') }); return; }
+    const num = parseFloat(String(rawAmt).replace(/[$,]/g, ''));
+    if (!Number.isFinite(num)) { rejected.push({ line: i + 1, reason: 'unparseable-amount', raw: rawAmt }); return; }
+    let amount = num;
+    if (flipSign) amount = -amount;
+    rows.push({ date, description: desc || '(no description)', amount, category: 'other', ok: true });
+  });
+  return { rows, rejected, reconciliation: reconcile(blocks.length, rows.length, rejected.length), headers: ['date', 'description', 'amount'], errors: [] };
+}
+
+// parseStatementText — one entry point: OFX/QFX -> parseOfx, else delimited/CSV.
+// (Excel is converted to CSV upstream by statementFileToCsv before this is called.)
+export function parseStatementText(text, { format = 'auto', flipSign = false } = {}) {
+  const looksOfx = format === 'ofx' || format === 'qfx' || /<OFX>|<STMTTRN>/i.test(text || '');
+  return looksOfx ? parseOfx(text, { flipSign }) : parseDelimitedToRows(text, { flipSign });
 }
 
 export function parseDelimitedToRows(text, { flipSign = false } = {}) {
@@ -178,8 +280,8 @@ export function parseDelimitedToRows(text, { flipSign = false } = {}) {
     const date = normalizeDate(cells[idx.date] || '');
     const desc = cells[idx.desc] || '';
     let amt = 0;
-    if (idx.amount !== -1 && cells[idx.amount]) amt = parseFloat(cells[idx.amount].replace(/[$,]/g, '')) || 0;
-    else if (idx.credit !== -1 && cells[idx.credit]) amt = parseFloat(cells[idx.credit].replace(/[$,]/g, '')) || 0;
+    if (idx.amount !== -1 && cells[idx.amount]) amt = parseAmount(cells[idx.amount]);
+    else if (idx.credit !== -1 && cells[idx.credit]) amt = parseAmount(cells[idx.credit]);
     if (flipSign) amt = -amt;
     const category = idx.category !== -1 ? (cells[idx.category] || 'other').toLowerCase() : 'other';
     if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
@@ -187,7 +289,15 @@ export function parseDelimitedToRows(text, { flipSign = false } = {}) {
       return;
     }
     if (!desc) { rejected.push({ line: i + 2, reason: 'missing-description', raw: line }); return; }
-    rows.push({ date, description: desc, amount: amt, category, ok: true });
+    // Carry the running balance through when the export has it (Chase does). It is
+    // the dedupe disambiguator (see HEADER_MATCHERS.balance) AND the input to the
+    // balance-continuity audit. Only attached when the cell is actually present +
+    // numeric, so exports without a balance column are unchanged.
+    const row = { date, description: desc, amount: amt, category, ok: true };
+    if (idx.balance !== -1 && cells[idx.balance] != null && String(cells[idx.balance]).trim() !== '') {
+      row.balance = parseAmount(cells[idx.balance]);
+    }
+    rows.push(row);
   });
   return { rows, rejected, reconciliation: reconcile(dataLines.length, rows.length, rejected.length), headers, errors: [] };
 }

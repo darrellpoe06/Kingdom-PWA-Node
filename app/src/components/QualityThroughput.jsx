@@ -37,7 +37,7 @@ import { fetchSchemaHealth, summary as migrationSummary, healthKpiStatus, health
 import { subscribeOpsCommands } from '../lib/ops-commands.js';
 import { fetchLedger } from '../lib/harvest-ledger.js';
 import { normalizeInterconnect, interconnectHeadline } from '../lib/interconnect-loops.js';
-import { readErrorJournal, errorJournalSummary } from '../lib/error-journal.js';
+import { readErrorJournal, errorJournalSummary, healJournalSummary } from '../lib/error-journal.js';
 
 const CENSUS = normalizeCensus(typeof __TEST_CENSUS__ !== 'undefined' ? __TEST_CENSUS__ : null);
 const LESSONS = normalizeLessons(typeof __LESSONS_PRINCIPLES__ !== 'undefined' ? __LESSONS_PRINCIPLES__ : null);
@@ -122,6 +122,7 @@ export default function QualityThroughput() {
   // Read fresh each render: the journal is device-local and cheap, and the
   // Refresh button re-renders — so a just-caught error shows without wiring.
   const errs = errorJournalSummary(readErrorJournal());
+  const heals = healJournalSummary(readErrorJournal());
   const audit = auditTile(auditArtifact);
   const harvest = harvestTile(ledger);
   const mig = migrations && migrations.status === 'ok' ? migrationSummary(migrations.data) : null;
@@ -220,6 +221,16 @@ export default function QualityThroughput() {
           label={errs.label}
           source="poe-error-journal (localStorage, device-local — boundaries + window capture)"
           metric="errors"
+        />
+        <Metric
+          name="Self-heals (this device)"
+          value={heals.total === 0
+            ? 'None needed yet — a stale chunk, a failed boot, or a landed update would be counted here.'
+            : `Healed itself ${heals.total} time${heals.total === 1 ? '' : 's'} · last: ${heals.last ? `${(heals.last.at || '').slice(0, 16).replace('T', ' ')} · ${heals.last.source} — ${heals.last.message.slice(0, 80)}` : '—'}`}
+          status={heals.status}
+          label={heals.label}
+          source="poe-error-journal kind='heal' (chunk-heal · boot-heal ladder · sw-update) — DR-0139"
+          metric="heals"
         />
         <Metric
           name="Interconnection loops"

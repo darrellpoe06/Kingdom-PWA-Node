@@ -1,7 +1,7 @@
 // delegated-pm-shape.test.js — statically pins the no-leak SHAPE of migration 0075
 // (delegated property management). This is the cheap, always-on companion to the
 // live isolation smoke test (infra/supabase/tests/0075-isolation-smoke.sql, run in
-// CI by .github/workflows/delegated-pm-isolation.yml): the SQL proves isolation
+// CI by .github/workflows/rls-isolation.yml, the delegated-pm matrix leg): the SQL proves isolation
 // against the real DB; THIS test proves the migration's security-critical structure
 // can't silently regress in a future edit (DR-0076 / DR-0101). If someone loosens an
 // arm, drops the SECURITY DEFINER pin, grants UPDATE on an append-only audit, or

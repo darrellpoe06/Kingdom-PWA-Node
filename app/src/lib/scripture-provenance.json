@@ -1,0 +1,20 @@
+{
+  "version": 2,
+  "note": "Provenance of every ATTRIBUTED inline Scripture quotation in the scanned files. \"attributed\" means it matches no edition this repository carries — NOT that it is wrong. bible-editions.js is public-domain-only by design, so a copyrighted translation (ESV among them) cannot be checked here; the remedy is a translation label at the citation, added by someone who can verify it against that text.",
+  "scanned": [
+    "app/src/lib/living-lessons-class.js",
+    "app/src/lib/yahweh-by-century.js"
+  ],
+  "editions": [
+    "kjv",
+    "web"
+  ],
+  "counts": {
+    "esv-labelled": 13,
+    "web": 2,
+    "kjv": 11659,
+    "paraphrase-declared": 15
+  },
+  "total": 11689,
+  "openRefs": []
+}

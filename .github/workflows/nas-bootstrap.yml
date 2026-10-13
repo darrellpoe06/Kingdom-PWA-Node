@@ -1,0 +1,145 @@
+# nas-bootstrap — the governed remote-hands channel (DR-0249 answer to
+# "why can't you do it?"). The sandbox has no NAS route (verified: Funnel 000
+# from the cloud, HTTPS-only, DR-0132 outbound-only design) — but a RUNNER can
+# join the tailnet ephemerally and run the one-time bootstrap itself, so the
+# only human part left is installing two repo secrets ONCE:
+#   TS_AUTHKEY   an ephemeral Tailscale auth key (Admin console -> Settings ->
+#                Keys). IDENTITY CONVENTION (verified from the Governor's own
+#                device list 2026-07-29): the tailnet is the GITHUB-login
+#                account "darrellpoe06.github" — sign in to login.tailscale.com
+#                with GitHub, never another provider (a different IdP creates a
+#                different, EMPTY tailnet; the tell: the machine list must show
+#                the NAS "poetech").
+#   NAS_SSH_KEY  a private key whose public half is in dpoe's
+#                ~/.ssh/authorized_keys on the NAS
+# Dispatch-only. Missing secrets => a clear no-op message, never a half-run.
+# Every step is idempotent (safe to dispatch again).
+name: nas-bootstrap
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check secrets (no-op with instructions when absent)
+        id: gate
+        env:
+          TS: ${{ secrets.TS_AUTHKEY != '' }}
+          KEY: ${{ secrets.NAS_SSH_KEY != '' }}
+        run: |
+          if [ "$TS" != "true" ] || [ "$KEY" != "true" ]; then
+            echo "NOT CONFIGURED: add repo secrets TS_AUTHKEY (ephemeral, ACL-scoped) and NAS_SSH_KEY, then re-dispatch."
+            echo "go=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "go=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Join the tailnet (ephemeral)
+        if: steps.gate.outputs.go == 'true'
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+          # No hard-coded ACL tag: a plain ephemeral auth key works as-is. If
+          # the key was minted with a tag, the key itself carries it — the
+          # workflow must not require an ACL edit to run (friction removed
+          # after the first setup attempt, DR-0249).
+      - name: Verify the tailnet actually joined (the action can retry-and-lie — proven run 30505444551)
+        if: steps.gate.outputs.go == 'true'
+        run: |
+          if ! tailscale status --peers=false >/dev/null 2>&1; then
+            echo "::error::Tailnet join FAILED — TS_AUTHKEY is invalid or was CONSUMED (a key not marked Reusable dies after one join; run #1 used it). Generate a new key with BOTH Reusable and Ephemeral toggled ON, update the TS_AUTHKEY secret, re-dispatch."
+            exit 1
+          fi
+          tailscale status --peers=false
+      - name: Bootstrap the NAS (idempotent — mirror pull + services-sync once)
+        if: steps.gate.outputs.go == 'true'
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          umask 077
+          printf '%s\n' "$NAS_SSH_KEY" > /tmp/nas_key
+          NAS="dpoe@poetech.tail5a2f35.ts.net"
+          SSH="ssh -i /tmp/nas_key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 $NAS"
+          $SSH 'mkdir -p /volume1/PoeTech/repos'
+          $SSH 'test -d /volume1/PoeTech/repos/Kingdom-PWA-Node/.git || git clone https://github.com/darrellpoe06/Kingdom-PWA-Node.git /volume1/PoeTech/repos/Kingdom-PWA-Node'
+          # The NAS checkout is a MIRROR — local drift (proven on run #1:
+          # 0074-isolation-smoke.sql held an uncommitted edit that aborted the
+          # pull) is STASHED, never destroyed, so the pull always lands and the
+          # drift stays recoverable via `git stash list` on the NAS.
+          $SSH 'cd /volume1/PoeTech/repos/Kingdom-PWA-Node && git stash push --include-untracked -m "nas-bootstrap auto-stash" 2>/dev/null || true'
+          $SSH 'cd /volume1/PoeTech/repos/Kingdom-PWA-Node && git pull --ff-only'
+          # Synology's non-login SSH shell lacks node on PATH (proven run
+          # 30506471422: the pull landed, then "node: command not found").
+          # Probe the standard DSM locations; if node truly isn't installed,
+          # fall back to running the manifest's IDEMPOTENT installers directly
+          # with sh — the bootstrap must not be hostage to PATH.
+          $SSH 'sh -s' <<'EOS'
+          set -e
+          PATH=/usr/local/bin:/opt/bin:/usr/bin:/bin:$PATH; export PATH
+          cd /volume1/PoeTech/repos/Kingdom-PWA-Node
+          NODE=$(command -v node 2>/dev/null || ls /volume1/@appstore/Node.js_v*/usr/local/bin/node 2>/dev/null | head -1 || true)
+          # Installers write /etc/systemd and /data — ROOT ground (proven run
+          # 30506740335: everything ran, then Permission denied as dpoe). Use
+          # the narrow NOPASSWD grant when present (/etc/sudoers.d/poetech-loops
+          # scopes sudo to exactly the braked runner, nothing else); otherwise
+          # run unprivileged and let the failure name the grant.
+          if sudo -n true 2>/dev/null; then SUDO="sudo -n"; else SUDO=""; echo "no NOPASSWD grant — running unprivileged (root writes will fail until /etc/sudoers.d/poetech-loops exists)"; fi
+          if [ -n "$NODE" ]; then
+            echo "using node at: $NODE (the braked runner path)"
+            $SUDO "$NODE" infra/nas-loops/run.mjs --loop=services-sync
+          else
+            echo "node not found on the NAS - running manifest installers directly (bootstrap fallback; each is idempotent)"
+            for inst in $(grep -o '"install": *"[^"]*"' infra/nas-loops/services.json | cut -d'"' -f4); do
+              echo "== installer: $inst"
+              sh "$inst"
+            done
+          fi
+          EOS
+          echo "Bootstrap complete. Register infra/nas-loops/run.sh in DSM Task Scheduler for boot-persistence (one-time; see infra/nas-loops/README.md), or re-dispatch this workflow to re-sync."
+      - name: Diagnose — characterize the real NAS transport state (READ-ONLY, DR-0076 §5)
+        if: steps.gate.outputs.go == 'true'
+        run: |
+          umask 077; printf '%s\n' "${{ secrets.NAS_SSH_KEY }}" > /tmp/nas_key
+          SSH="ssh -i /tmp/nas_key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 dpoe@poetech.tail5a2f35.ts.net"
+          # Synology's non-login shell lacks tailscale on PATH the same way it
+          # lacks node (proven every run: "sh: tailscale: command not found").
+          TSBIN='PATH=$PATH:/usr/local/bin:/volume1/@appstore/Tailscale/bin tailscale'
+          echo "=== tailscale funnel status ==="; $SSH "$TSBIN funnel status 2>&1 || true"
+          echo "=== tailscale serve status ==="; $SSH "$TSBIN serve status 2>&1 || true"
+          echo "=== poetech-mcp service ==="; $SSH 'systemctl is-active poetech-mcp 2>&1; systemctl status poetech-mcp --no-pager -n 5 2>&1 || true'
+          # DR-0272 open verification, answered by the channel, not by a human
+          # ask: -n never prompts, -l only LISTS the rules that apply to dpoe.
+          # A narrow grant prints exactly the run.mjs line; anything broader
+          # (the unexplained `sudo -n true` success) prints itself here.
+          echo "=== sudo -n -l (grant breadth, read-only) ==="; $SSH 'sudo -n -l 2>&1 || true'
+          # Is the fleet's cron clock registered? (DR-0272; readable output
+          # either way — a permission denial is itself the answer "needs the
+          # principal's eye", never a guess.)
+          echo "=== /etc/crontab nas-loops line (is the clock registered?) ==="; $SSH 'grep -n "nas-loops" /etc/crontab 2>&1 || echo "no nas-loops line readable as dpoe"'
+          echo "=== localhost :8795 discover (does the server itself answer?) ==="
+          $SSH "curl -sS -o /dev/null -w 'HTTP %{http_code}\n' --max-time 10 -X POST http://127.0.0.1:8795/mcp -H 'Mcp-Method: server/discover' -d '{}' 2>&1 || true"
+          echo "=== funnel --set-path help (is the syntax even supported here?) ==="; $SSH "$TSBIN funnel --help 2>&1 | head -30 || true"
+      - name: Verify — the /mcp discover answers through the Funnel
+        if: steps.gate.outputs.go == 'true'
+        run: |
+          # The MCP server is STAGED INACTIVE behind the Funnel by decision
+          # (REV-0214: built, proven on localhost, adoption = measured real
+          # use). A 404 here is therefore the DOCUMENTED staged state — the
+          # funnel path is not mapped — and must not paint the whole bootstrap
+          # red (it was masking real successes: every drained choir chunk on
+          # 2026-08-04 rode a run this step then labeled "failure", REV-0230).
+          # 401/403 = live and enforcing auth. Anything else (000 timeout,
+          # 5xx) is a real transport failure and stays red.
+          CODE=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 \
+            -X POST "https://poetech.tail5a2f35.ts.net/mcp" \
+            -H 'MCP-Protocol-Version: 2026-07-28' -H 'Mcp-Method: server/discover' \
+            -H 'Content-Type: application/json' -d '{"jsonrpc":"2.0","id":1,"method":"server/discover"}')
+          case "$CODE" in
+            401|403) echo "post-bootstrap /mcp probe: HTTP $CODE — live and enforcing auth" ;;
+            404)     echo "post-bootstrap /mcp probe: HTTP 404 — funnel path not mapped; MCP is staged inactive per REV-0214 (expected, not a failure)" ;;
+            *)       echo "post-bootstrap /mcp probe: HTTP $CODE — unexpected transport state" ; exit 1 ;;
+          esac

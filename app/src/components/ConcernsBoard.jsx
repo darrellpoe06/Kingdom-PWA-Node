@@ -23,6 +23,7 @@ import {
   daysLate, orderConcerns, composeConcerns,
 } from '../lib/concerns.js';
 import { deriveDataConcerns } from '../lib/derive-concerns.js';
+import { clusterFeedback, summarizeClusters } from '../lib/feedback-clusters.js';
 
 // Auto-triage severity chip styling — reuses the board's themeable palette (no
 // new color, so the per-theme contrast guard keeps holding). Critical is a
@@ -65,7 +66,7 @@ function ConcernRow({ c, isLast, canEdit, onUpdate, onDelete }) {
       >
         <div className="flex items-baseline justify-between gap-2 flex-wrap">
           <span className="flex-1 min-w-0" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{c.concern}</span>
-          <span className="text-[10px] uppercase tracking-wider flex items-center gap-2 flex-wrap shrink-0" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+          <span className="text-[0.625rem] uppercase tracking-wider flex items-center gap-2 flex-wrap shrink-0" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
             <span className={`inline-flex items-center gap-1 ${sm.text}`}>
               <span aria-hidden="true">{sm.symbol}</span>{sm.label}
             </span>
@@ -82,7 +83,7 @@ function ConcernRow({ c, isLast, canEdit, onUpdate, onDelete }) {
             {c.evaluation && <SeverityBadge evaluation={c.evaluation} />}
           </span>
         </div>
-        <div className="text-[10px] uppercase tracking-wider text-[#5A5751] mt-0.5" aria-hidden="true">
+        <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mt-0.5" aria-hidden="true">
           {open ? '▲ hide' : '▼ details'}{c.area ? ` · ${c.area}` : ''}
         </div>
       </button>
@@ -113,13 +114,24 @@ function ConcernRow({ c, isLast, canEdit, onUpdate, onDelete }) {
           )}
           {/* Solution */}
           {c.solution
-            ? <p className="text-sm text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}><span className="text-[#5A6E3D] font-semibold uppercase tracking-wider text-[10px] mr-1">Solution</span>{c.solution}</p>
+            ? <p className="text-sm text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}><span className="text-[#5A6E3D] font-semibold uppercase tracking-wider text-[0.625rem] mr-1">Solution</span>{c.solution}</p>
             : <p className="text-xs text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>{c.source === 'feedback' ? 'Auto-triaged above. A human solution/target hasn’t been set yet.' : 'No solution captured yet.'}</p>}
           {c.whenNote && c.status !== 'done' && !c.targetDate && (
             <p className="text-xs text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>When: {c.whenNote}</p>
           )}
+          {/* The chain (DR-0589): what proves it, what it costs unresolved, who
+              must decide what, what came of it, and who carries it — database
+              columns on this row (0228). An empty one is said to be empty. */}
+          <dl data-testid="concern-chain" className="grid grid-cols-[auto,1fr] gap-x-2 gap-y-0.5 text-xs" style={{ fontFamily: '"Fraunces", serif' }}>
+            {[['Owner', c.owner], ['Evidence', c.evidence], ['Impact', c.impact], ['Decision required', c.decisionRequired], ['Outcome', c.outcome]].map(([label, val]) => (
+              <React.Fragment key={label}>
+                <dt className={`text-[0.625rem] uppercase tracking-wider font-semibold self-start ${val ? 'text-[#5A6E3D]' : 'text-[#B85838]'}`}>{label}</dt>
+                <dd className={val ? 'text-[#1A1815] whitespace-pre-wrap' : 'text-[#B85838] italic'}>{val || 'not recorded'}</dd>
+              </React.Fragment>
+            ))}
+          </dl>
           {(c.author || c.deviceLabel) && (
-            <p className="text-[10px] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+            <p className="text-[0.625rem] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
               {c.author ? `from ${c.author}` : ''}{c.deviceLabel ? ` · ${c.deviceLabel}` : ''}{c.created ? ` · ${c.created}` : ''}
             </p>
           )}
@@ -128,14 +140,14 @@ function ConcernRow({ c, isLast, canEdit, onUpdate, onDelete }) {
             <div className="pt-2 border-t border-[#E8E4DC] space-y-2">
               {/* Status */}
               <div className="flex flex-wrap items-center gap-1.5">
-                <span className="text-[10px] uppercase tracking-wider text-[#5A5751] font-semibold mr-1">Status</span>
+                <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold mr-1">Status</span>
                 {CONCERN_STATUS_ORDER.map((k) => {
                   const st = CONCERN_STATUS[k];
                   const active = c.status === k;
                   return (
                     <button key={k} type="button" aria-pressed={active}
                       onClick={() => onUpdate(c.id, { status: k })}
-                      className={`text-[10px] uppercase tracking-wider px-2.5 py-1.5 border min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838] ${st.border} ${active ? `${st.bg} text-white` : st.text}`}>
+                      className={`text-[0.625rem] uppercase tracking-wider px-2.5 py-1.5 border min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838] ${st.border} ${active ? `${st.bg} text-white` : st.text}`}>
                       <span aria-hidden="true" className="mr-1">{st.symbol}</span>{st.label}
                     </button>
                   );
@@ -143,7 +155,7 @@ function ConcernRow({ c, isLast, canEdit, onUpdate, onDelete }) {
               </div>
               {/* Target date + solution edit */}
               <div className="flex flex-wrap items-center gap-2">
-                <label className="text-[10px] uppercase tracking-wider text-[#5A5751] font-semibold">Target
+                <label className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold">Target
                   <input type="date" value={c.targetDate || ''}
                     onChange={(e) => onUpdate(c.id, { targetDate: e.target.value || null })}
                     aria-label={`Target date for: ${c.concern}`}
@@ -155,14 +167,30 @@ function ConcernRow({ c, isLast, canEdit, onUpdate, onDelete }) {
                 placeholder="The solution we intend (saved when you tap away)"
                 aria-label={`Solution for: ${c.concern}`} rows={2}
                 className="w-full p-1.5 border border-[#E8E4DC] text-xs bg-white focus:outline focus:outline-2 focus:outline-[#5A6E3D]" style={{ fontFamily: '"Fraunces", serif' }} />
+              {/* The chain fields — each saves on blur into its own column (0228). */}
+              <input type="text" defaultValue={c.owner || ''}
+                onBlur={(e) => { const v = e.target.value.trim(); if (v !== (c.owner || '')) onUpdate(c.id, { owner: v || null }); }}
+                placeholder="Owner — who carries this (empty = an ownership gap)"
+                aria-label={`Owner for: ${c.concern}`}
+                className="w-full p-1.5 border border-[#E8E4DC] text-xs bg-white focus:outline focus:outline-2 focus:outline-[#5A6E3D]" style={{ fontFamily: '"Fraunces", serif' }} />
+              {[['evidence', 'Evidence — what proves this is a real issue (runs, rows, recordings, quotes)'],
+                ['impact', 'Impact — what happens if unresolved'],
+                ['decisionRequired', 'Decision required — who needs to decide what (empty = nothing waiting)'],
+                ['outcome', 'Outcome — the final disposition']].map(([field, ph]) => (
+                <textarea key={field} defaultValue={c[field] || ''}
+                  onBlur={(e) => { const v = e.target.value.trim(); if (v !== (c[field] || '')) onUpdate(c.id, { [field]: v || null }); }}
+                  placeholder={ph}
+                  aria-label={`${ph.split(' — ')[0]} for: ${c.concern}`} rows={2}
+                  className="w-full p-1.5 border border-[#E8E4DC] text-xs bg-white focus:outline focus:outline-2 focus:outline-[#5A6E3D]" style={{ fontFamily: '"Fraunces", serif' }} />
+              ))}
               {onDelete && c.source !== 'seed' && (
                 <button type="button" onClick={() => { if (confirm('Delete this concern? It is removed for everyone.')) onDelete(c.id); }}
-                  className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] border border-[#E8E4DC] hover:border-[#B85838] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">
+                  className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] border border-[#E8E4DC] hover:border-[#B85838] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">
                   Delete
                 </button>
               )}
               {c.source === 'seed' && (
-                <p className="text-[9px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
+                <p className="text-[0.5625rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
                   Baseline concern (defined in code, like the Build board roadmap). Status / date / solution edits sync; it can’t be deleted.
                 </p>
               )}
@@ -171,6 +199,62 @@ function ConcernRow({ c, isLast, canEdit, onUpdate, onDelete }) {
         </div>
       )}
     </div>
+  );
+}
+
+
+// -----------------------------------------------------------------------------
+// MostReported — the LOW-HANGING FRUIT strip (Darrell, 2026-09-11, demonstrating
+// the app to the COLG leadership): "it may be ten people saying the same thing.
+// There may be twenty people saying the exact same issue. So when we fix that
+// issue... that shows us our low hanging fruit."
+//
+// The board below lists every concern one card at a time, which is right for
+// working a single item and wrong for seeing WHAT THE ROOM IS SAYING. This strip
+// sits above it and answers that instead: same complaint, however it was worded,
+// collapsed into one line with the number of PEOPLE behind it, ordered so the
+// biggest fix-once-clear-many is first and a small-but-severe issue still cuts
+// the line (lib/feedback-clusters). Only repeats are shown — a list where every
+// row says "1" is the pile this strip exists to replace.
+// -----------------------------------------------------------------------------
+function MostReported({ feedback }) {
+  const clusters = useMemo(() => clusterFeedback(feedback), [feedback]);
+  const summary = useMemo(() => summarizeClusters(clusters), [clusters]);
+  const repeats = clusters.filter((c) => c.count > 1).slice(0, 6);
+  if (repeats.length === 0) return null;
+
+  return (
+    <section className="bg-white border-2 border-[#1A1815] p-4 sm:p-5">
+      <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">◎ Most reported — fix these first</div>
+      <p className="text-sm mt-1 text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
+        The same thing, said by more than one person — counted once instead of answered fifty times. Order is people-behind-it weighted by how bad it is, so a serious issue two people hit still comes before a small one twenty people mention.
+      </p>
+      <div className="text-[0.625rem] uppercase tracking-wider font-semibold mt-2 text-[#5A5751]">
+        {summary.total} notes · {summary.issues} distinct issues · {summary.duplicateRate}% were a repeat of something already said
+      </div>
+      <ol className="mt-3 divide-y divide-[#E8E4DC] border-t border-[#E8E4DC]">
+        {repeats.map((c) => (
+          <li key={`${c.area}::${c.signature}`} className="py-2 flex items-start gap-3">
+            <span className="shrink-0 mt-0.5 inline-flex items-center justify-center min-w-[2.25rem] h-7 px-1.5 bg-[#1A1815] text-white text-xs font-semibold tabular-nums"
+              aria-label={`${c.count} people reported this`}>
+              {c.count}
+            </span>
+            <span className="min-w-0">
+              <span className="block text-sm text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{c.label}</span>
+              <span className="block text-[0.625rem] uppercase tracking-wider text-[#5A5751] mt-0.5">
+                {c.area}
+                {c.reports > c.count ? ` · ${c.reports} notes` : ''}
+                {' · '}
+                <span className={c.severity === 'critical' || c.severity === 'high' ? 'text-[#B85838]' : ''}>{c.severityLabel}</span>
+              </span>
+            </span>
+          </li>
+        ))}
+      </ol>
+      <p className="text-[0.625rem] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
+        Every one of these is still its own card on the board below — this is the reading order, not a second list to keep.
+      </p>
+    </section>
   );
 }
 
@@ -235,22 +319,22 @@ export function ConcernsBoard({ concerns = [], feedback = [], transactions = [],
   return (
     <div className="space-y-4">
       <section className="bg-white border-2 border-[#1A1815] p-4 sm:p-5">
-        <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold">⚠ Concerns &amp; Solutions</div>
+        <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">⚠ Concerns &amp; Solutions</div>
         <p className="text-sm mt-1 text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
           Every concern, in the open — paired with the solution we intend, a target date we hold ourselves to, and an honest status. Your feedback shows up here automatically, and the app&apos;s own checks (a thin-import month, a collapsed multi-unit door, a mislabeled debt) file themselves here the moment a process finds them — so nothing gets lost, and no one has to type it.
         </p>
-        <div className="text-[10px] uppercase tracking-wider font-semibold mt-2">
+        <div className="text-[0.625rem] uppercase tracking-wider font-semibold mt-2">
           <span className="text-[#2A5A8E]">○ {counts.open} open</span>
           <span className="text-[#B85838]"> · ◐ {counts['in-progress']} in progress</span>
           <span className="text-[#5A6E3D]"> · ✓ {counts.done} done</span>
           {counts.overdue > 0 && <span className="text-[#B85838]"> · ⚠ {counts.overdue} past target</span>}
         </div>
-        <div className="text-[10px] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+        <div className="text-[0.625rem] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
           Auto-fed: your submitted feedback + the app&apos;s own process checks (marked &ldquo;process-found&rdquo;) — both read-through, no typing. Plus the dated concerns the family curates. {openCount} still need attention.
         </div>
         {canEdit && addConcern && (
           <button type="button" onClick={() => { setShowAdd(!showAdd); setErr(''); }}
-            className="mt-2 inline-flex items-center text-[10px] uppercase tracking-wider text-[#B85838] hover:text-white hover:bg-[#B85838] border border-[#B85838] px-2.5 py-1 min-h-[32px] focus:outline focus:outline-2 focus:outline-[#B85838]">
+            className="mt-2 inline-flex items-center text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-white hover:bg-[#B85838] border border-[#B85838] px-2.5 py-1 min-h-[32px] focus:outline focus:outline-2 focus:outline-[#B85838]">
             {showAdd ? '× Cancel' : '+ Add a concern'}
           </button>
         )}
@@ -263,12 +347,12 @@ export function ConcernsBoard({ concerns = [], feedback = [], transactions = [],
               placeholder="The solution we intend (optional)" aria-label="Solution" rows={2}
               className="w-full p-1.5 border border-[#E8E4DC] text-xs bg-white focus:outline focus:outline-2 focus:outline-[#5A6E3D]" />
             <div className="grid grid-cols-2 gap-1.5">
-              <label className="text-[10px] uppercase tracking-wider text-[#5A5751]">Target date
+              <label className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Target date
                 <input type="date" value={draft.targetDate} onChange={(e) => setDraft({ ...draft, targetDate: e.target.value })}
                   aria-label="Target date"
                   className="w-full mt-0.5 p-1.5 border border-[#E8E4DC] text-xs bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" />
               </label>
-              <label className="text-[10px] uppercase tracking-wider text-[#5A5751]">Status
+              <label className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Status
                 <select value={draft.status} onChange={(e) => setDraft({ ...draft, status: e.target.value })}
                   aria-label="Status"
                   className="w-full mt-0.5 p-1.5 border border-[#E8E4DC] text-xs bg-white focus:outline focus:outline-2 focus:outline-[#B85838]">
@@ -279,14 +363,16 @@ export function ConcernsBoard({ concerns = [], feedback = [], transactions = [],
             <input value={draft.area} onChange={(e) => setDraft({ ...draft, area: e.target.value })}
               placeholder="Area (optional — e.g. Finance, Church, PWA)" aria-label="Area"
               className="w-full p-1.5 border border-[#E8E4DC] text-xs bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" />
-            {err && <p className="text-[10px] text-[#B85838]" role="alert">{err}</p>}
+            {err && <p className="text-[0.625rem] text-[#B85838]" role="alert">{err}</p>}
             <button type="button" onClick={submitAdd}
-              className="w-full bg-[#1A1815] text-white py-1.5 text-[10px] uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">
+              className="w-full bg-[#1A1815] text-white py-1.5 text-[0.625rem] uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">
               Save concern
             </button>
           </div>
         )}
       </section>
+
+      <MostReported feedback={feedback} />
 
       {/* Status sub-tabs — Past Due leads when anything slipped */}
       <div className="flex flex-wrap gap-1.5" role="tablist" aria-label="Concern status">
@@ -305,7 +391,7 @@ export function ConcernsBoard({ concerns = [], feedback = [], transactions = [],
       </div>
 
       <section>
-        <h3 className={`text-[10px] uppercase tracking-[0.25em] font-semibold mb-2 ${s.text}`}>
+        <h3 className={`text-[0.625rem] uppercase tracking-[0.25em] font-semibold mb-2 ${s.text}`}>
           <span aria-hidden="true" className="mr-1">{s.symbol}</span>{s.label} · {s.blurb} ({items.length})
         </h3>
         {items.length === 0 ? (
@@ -322,7 +408,7 @@ export function ConcernsBoard({ concerns = [], feedback = [], transactions = [],
         )}
       </section>
 
-      <p className="text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
+      <p className="text-[0.625rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
         Dates are honest commitments and move as we learn — that&apos;s the point of showing them. No blame, just the work.
       </p>
     </div>

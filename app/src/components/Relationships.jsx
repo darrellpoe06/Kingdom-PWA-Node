@@ -23,11 +23,16 @@
 // =============================================================================
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import UiIcon from './UiIcon.jsx';
-import { TabScroll, MetricCell } from './shared.jsx';
+import { MetricCell } from './shared.jsx';
+import SectionTabs from './SectionTabs.jsx';
 import {
-  RELATIONSHIPS, relationshipByType, RELATIONSHIP_TYPES, SETTING,
+  RELATIONSHIPS, RELATIONSHIP_TYPES, SETTING,
   buildMatrix,
+  ASSISTANT_GRANTABLE, ASSISTANT_CAPABILITIES, capabilityMeta,
 } from '../lib/relationships.js';
+import {
+  useAssistantAccess, addAssistant, removeAssistant, toggleCap,
+} from '../lib/use-assistant-access.js';
 import {
   buildMaintenanceRequest, buildRentRecord, buildNotice, buildMessage,
   landlordView, tenantView, rentSafetyNote,
@@ -40,8 +45,12 @@ import {
 import { SETTING_CLASS } from './GuardianChildPanel.jsx';
 
 function Badge({ children, cls }) {
+  // shrink-0: a badge never squeezes below its label; the ROW wraps instead
+  // (its container carries flex-wrap), so at phone width + large text the
+  // badge drops under its label rather than overflowing into the next column
+  // (Darrell 2026-08-05 Relationships screenshot: "Allowed" over "Scripture").
   return (
-    <span className={`inline-flex items-center gap-1 px-2 py-0.5 border text-xs font-semibold rounded-sm ${cls.text} ${cls.border}`}>
+    <span className={`inline-flex shrink-0 items-center gap-1 px-2 py-0.5 border text-xs font-semibold rounded-sm ${cls.text} ${cls.border}`}>
       {children}
     </span>
   );
@@ -64,8 +73,6 @@ function Panel({ title, icon, children, note }) {
 // Matrix panel — the live can/can't grid for every relationship + role.
 // ---------------------------------------------------------------------------
 function MatrixPanel() {
-  const [type, setType] = useState(RELATIONSHIP_TYPES.GUARDIAN_CHILD);
-  const rel = relationshipByType[type];
   // The matrix previews the MODEL — the child-safe defaults and ceilings every
   // role starts from. Per-child grants are set AND shown on the Family Roster
   // (Center → Serve). The 2026-07-03 claims audit found the old live-config
@@ -74,47 +81,135 @@ function MatrixPanel() {
   // the defaults are the honest thing this panel can claim.
   const rows = useMemo(() => buildMatrix({}), []);
 
+  // One chip (variant="sub") per relationship type. The old hand-rolled strip's
+  // state only drove which grid rendered — nothing else read it — so it folds
+  // into SectionTabs per the sliding-tabs harmonization (Darrell 2026-07-04).
+  const relSections = RELATIONSHIPS.map((rel) => ({
+    id: rel.type,
+    label: rel.label,
+    render: () => (
+      <>
+        <p className="text-sm mb-4 text-[#5A5751]">{rel.blurb}</p>
+        {/* Role columns sit side-by-side only where they FIT. The old inline
+            gridTemplateColumns forced N columns at every width — at phone
+            width (with content-scaled text, Pattern 2b) each column was too
+            narrow for its rows, and the Allowed/Ask-first badges overflowed
+            into the neighboring column (Darrell 2026-08-05 screenshot).
+            Phones stack one role per row; sm+ goes two-up; the 4-role family
+            grid needs lg for all four abreast. */}
+        <div className={`grid gap-4 grid-cols-1 ${rel.roles.length >= 4 ? 'sm:grid-cols-2 lg:grid-cols-4' : 'sm:grid-cols-2'}`}>
+          {rel.roles.map((role) => {
+            const roleRows = rows.filter((r) => r.relationship === rel.type && r.role === role);
+            return (
+              <div key={role} className="border border-[#1A1815]">
+                <div className="px-3 py-2 border-b border-[#1A1815] text-sm font-bold capitalize text-[#1A1815] bg-[#F4F2EE]">
+                  {role}{role === rel.steward ? ' · sets access' : ''}
+                </div>
+                <ul className="divide-y divide-[#E6E0D6]">
+                  {roleRows.map((r) => {
+                    const cls = SETTING_CLASS[r.setting];
+                    return (
+                      <li key={r.capability} className="px-3 py-2 flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
+                        <span className="text-sm text-[#1A1815]">
+                          {r.label}
+                          {r.outbound ? <span className="ml-1 text-xs text-[#B85838]" title="outbound">↗</span> : null}
+                          {!r.configurable && (role === 'child' || role === 'assistant') ? <UiIcon name="lock" className="inline ml-1 w-3 h-3" /> : null}
+                        </span>
+                        <Badge cls={cls}>{cls.label}</Badge>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            );
+          })}
+        </div>
+      </>
+    ),
+  }));
+
   return (
     <Panel title="What each relationship grants" icon="users"
       note="Derived live from the permission model — the defaults and safety ceilings each role starts from. Per-child grants are made and shown on the Family Roster (Center → Serve).">
-      <TabScroll>
-        <div className="flex gap-2 mb-4">
-          {RELATIONSHIPS.map((r) => (
-            <button key={r.type} onClick={() => setType(r.type)}
-              className={`px-3 py-1.5 border border-[#1A1815] text-sm font-semibold whitespace-nowrap ${type === r.type ? 'bg-[#1A1815] text-white' : 'bg-white text-[#1A1815]'}`}>
-              {r.label}
-            </button>
-          ))}
-        </div>
-      </TabScroll>
-      <p className="text-sm mb-4 text-[#5A5751]">{rel.blurb}</p>
-      <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${rel.roles.length}, minmax(0, 1fr))` }}>
-        {rel.roles.map((role) => {
-          const roleRows = rows.filter((r) => r.relationship === type && r.role === role);
-          return (
-            <div key={role} className="border border-[#1A1815]">
-              <div className="px-3 py-2 border-b border-[#1A1815] text-sm font-bold capitalize text-[#1A1815] bg-[#F4F2EE]">
-                {role}{role === rel.steward ? ' · sets access' : ''}
+      <SectionTabs variant="sub" sections={relSections} ariaLabel="Relationship types"
+        idBase="rel-matrix" defaultId={RELATIONSHIP_TYPES.GUARDIAN_CHILD} />
+    </Panel>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Assistant access — "check boxes for what you allow for each 1099 assistant"
+// (Darrell 2026-07-13). Per assistant, the owner CHECKS the work surfaces that
+// assistant is allowed. Only the four grantable surfaces are checkboxes; the
+// owner's world (finances / portfolio / family / oversight) renders LOCKED and
+// can never be turned on — the model clamps it to deny (relationships.js), so
+// the wall is structural, not a default the owner can toggle off.
+// ---------------------------------------------------------------------------
+function AssistantAccessPanel() {
+  const { assistants } = useAssistantAccess();
+  const [name, setName] = useState('');
+  const grantable = ASSISTANT_GRANTABLE.map((cap) => ({ cap, meta: capabilityMeta(cap) }));
+  const walls = ASSISTANT_CAPABILITIES
+    .filter((cap) => !ASSISTANT_GRANTABLE.includes(cap))
+    .map((cap) => ({ cap, meta: capabilityMeta(cap) }));
+  const add = () => { const n = name.trim(); if (n) { addAssistant(n); setName(''); } };
+
+  return (
+    <Panel title="1099 Assistant access" icon="users"
+      note="Check what each 1099 assistant is allowed. Their finances, forecast, portfolio, family, and the owner's oversight are locked off and can never be checked on. This list is your PLANNING config (kept on this device). To grant a real login assistant access, use TLC → Assistant → Team access: an invited assistant account is walled by the database (row-level security) to the office workspace and nothing else (DR-0271).">
+      <div className="flex items-center gap-2 mb-4">
+        <input value={name} onChange={(e) => setName(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); add(); } }}
+          placeholder="Add a 1099 assistant (name)" aria-label="Assistant name"
+          className="flex-1 p-2 border border-[#1A1815] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" />
+        <button type="button" onClick={add}
+          className="px-3 py-2 text-sm font-semibold border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">Add</button>
+      </div>
+
+      {assistants.length === 0 ? (
+        <p className="text-sm text-[#5A5751]">No assistants yet. Add one to set exactly what they can see.</p>
+      ) : (
+        <div className="space-y-4">
+          {assistants.map((a) => (
+            <div key={a.id} className="border border-[#1A1815]">
+              <div className="px-3 py-2 border-b border-[#1A1815] flex items-center justify-between bg-[#F4F2EE]">
+                <span className="text-sm font-bold text-[#1A1815]">{a.name}</span>
+                <button type="button" onClick={() => removeAssistant(a.id)} aria-label={`Remove ${a.name}`}
+                  className="text-sm text-[#5A5751] hover:text-[#B85838] px-2 min-h-[32px] focus:outline focus:outline-2 focus:outline-[#B85838]">×</button>
               </div>
               <ul className="divide-y divide-[#E6E0D6]">
-                {roleRows.map((r) => {
-                  const cls = SETTING_CLASS[r.setting];
+                {grantable.map(({ cap, meta }) => {
+                  const checked = a.config && a.config[cap] === 'allow';
                   return (
-                    <li key={r.capability} className="px-3 py-2 flex items-center justify-between gap-2">
-                      <span className="text-sm text-[#1A1815]">
-                        {r.label}
-                        {r.outbound ? <span className="ml-1 text-xs text-[#B85838]" title="outbound">↗</span> : null}
-                        {!r.configurable && role === 'child' ? <UiIcon name="lock" className="inline ml-1 w-3 h-3" /> : null}
-                      </span>
-                      <Badge cls={cls}>{cls.label}</Badge>
+                    <li key={cap} className="px-3 py-2">
+                      <label className="flex items-start gap-2 cursor-pointer">
+                        <input type="checkbox" checked={!!checked} onChange={() => toggleCap(a.id, cap)}
+                          aria-label={`${meta ? meta.label : cap} for ${a.name}`} className="mt-0.5" />
+                        <span>
+                          <span className="text-sm text-[#1A1815]">{meta ? meta.label : cap}</span>
+                          {meta ? <span className="block text-xs text-[#5A5751]">{meta.desc}</span> : null}
+                        </span>
+                      </label>
                     </li>
                   );
                 })}
+                {walls.map(({ cap, meta }) => (
+                  <li key={cap} className="px-3 py-2 opacity-60">
+                    <label className="flex items-start gap-2 cursor-not-allowed">
+                      <input type="checkbox" checked={false} disabled aria-label={`${meta ? meta.label : cap} (locked — never allowed)`} className="mt-0.5" />
+                      <span className="flex items-center gap-1">
+                        <span className="text-sm text-[#1A1815]">{meta ? meta.label : cap}</span>
+                        <UiIcon name="lock" className="inline w-3 h-3" />
+                        <span className="text-xs text-[#5A5751]">always off</span>
+                      </span>
+                    </label>
+                  </li>
+                ))}
               </ul>
             </div>
-          );
-        })}
-      </div>
+          ))}
+        </div>
+      )}
     </Panel>
   );
 }
@@ -162,7 +257,7 @@ function LandlordPanel({ tenancies, selected, onSelect, workflows, onAction, bus
               const cls = t.status === 'active' ? SETTING_CLASS[SETTING.ALLOW] : SETTING_CLASS[SETTING.DENY];
               return (
                 <li key={t.id}>
-                  <button onClick={() => onSelect(t)} className={`w-full text-left px-3 py-2.5 flex items-center justify-between gap-2 ${selected?.id === t.id ? 'bg-[#F4F2EE]' : ''}`}>
+                  <button onClick={() => onSelect(t)} className={`w-full text-left px-3 py-2.5 flex flex-wrap items-center justify-between gap-x-2 gap-y-1 ${selected?.id === t.id ? 'bg-[#F4F2EE]' : ''}`}>
                     <span className="text-sm font-semibold text-[#1A1815]">
                       {t.property_label || 'Property'}{t.unit_label ? ` · ${t.unit_label}` : ''}
                       <span className="ml-2 text-xs font-normal text-[#5A5751]">{t.tenant_name || 'tenant'}</span>
@@ -262,7 +357,6 @@ function LandlordPanel({ tenancies, selected, onSelect, workflows, onAction, bus
 // The surface.
 // ---------------------------------------------------------------------------
 export function Relationships({ isGovernor = false, currentUserId = null }) {
-  const [tab, setTab] = useState('matrix');
   const [tenancies, setTenancies] = useState([]);
   const [selectedTenancy, setSelectedTenancy] = useState(null);
   const [workflows, setWorkflows] = useState({ maintenance: [], rent: [], notices: [], messages: [] });
@@ -353,44 +447,25 @@ export function Relationships({ isGovernor = false, currentUserId = null }) {
         <div className="mb-2 text-[#1A1815]"><UiIcon name="lock" /></div>
         <p className="text-sm font-semibold text-[#1A1815]">Relationships is a stewardship space.</p>
         <p className="text-xs mt-1.5 leading-relaxed text-[#5A5751]">
-          Setting what a child can do and managing landlord/tenant access is steward-only. Sign in with a family/governor account.
+          Setting what a child can do and managing landlord/tenant/manager access is steward-only. Sign in with a family/governor account — or run it for your own operation on the Business tier.
         </p>
       </div>
     );
   }
 
-  const TABS = [
-    ['matrix', 'Matrix', 'users'],
-    ['guardian', 'Guardian & Child', 'sliders'],
-    ['landlord', 'Landlord & Tenant', 'pin'],
-  ];
-
-  return (
-    <div className="max-w-5xl mx-auto px-3 sm:px-4 pb-12">
-      <header className="mt-6 mb-4">
-        <h2 className="text-2xl font-bold flex items-center gap-2 text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
-          <UiIcon name="users" /> Relationships
-        </h2>
-        <p className="text-sm mt-1 text-[#5A5751]">
-          Two people, a relationship, and the role each holds — that decides what each can do. See it plainly, and set the parts that are yours to set.
-        </p>
-      </header>
-
-      <TabScroll>
-        <div className="flex gap-2 mb-4">
-          {TABS.map(([id, label, icon]) => (
-            <button key={id} onClick={() => setTab(id)}
-              className={`px-3 py-1.5 border border-[#1A1815] text-sm font-semibold whitespace-nowrap flex items-center gap-1 ${tab === id ? 'bg-[#1A1815] text-white' : 'bg-white text-[#1A1815]'}`}>
-              <UiIcon name={icon} className="w-4 h-4" />{label}
-            </button>
-          ))}
-        </div>
-      </TabScroll>
-
-      {flash ? <div className="mb-3 text-xs px-3 py-2 border border-[#5A6E3D] text-[#1A1815] bg-[#F2F4EC]">{flash}</div> : null}
-
-      {tab === 'matrix' && <MatrixPanel />}
-      {tab === 'guardian' && (
+  // The section row (2nd-row sliding tabs). The old hand-rolled setTab strip's
+  // state only drove which panel rendered — no other logic read it — so it is
+  // REPLACED by SectionTabs (Darrell 2026-07-04: "sliding tabs for all tabs
+  // instead of a long scroll"). All state + effects stay at this top level;
+  // the render thunks are plain closures over them.
+  const sections = [
+    { id: 'matrix', label: 'Matrix', icon: 'users', render: () => <MatrixPanel /> },
+    { id: 'assistant', label: '1099 Assistants', icon: 'sliders', render: () => <AssistantAccessPanel /> },
+    {
+      id: 'guardian',
+      label: 'Guardian & Child',
+      icon: 'sliders',
+      render: () => (
         <Panel title="Guardian & Child — moved to its one home" icon="users"
           note="One place for the family, not four similar ones (DR-0095).">
           <p className="text-sm text-[#1A1815]">
@@ -400,12 +475,35 @@ export function Relationships({ isGovernor = false, currentUserId = null }) {
             The read-only matrix view stays here; landlord &amp; tenant stays here.
           </p>
         </Panel>
-      )}
-      {tab === 'landlord' && (
+      ),
+    },
+    {
+      id: 'landlord',
+      label: 'Landlord & Tenant',
+      icon: 'pin',
+      render: () => (
         <LandlordPanel tenancies={tenancies} selected={selectedTenancy} onSelect={setSelectedTenancy}
           workflows={workflows} onAction={onLandlordAction} busy={saving}
           onRefresh={refresh} refreshing={refreshing} />
-      )}
+      ),
+    },
+  ];
+
+  return (
+    <div className="w-full px-3 sm:px-4 pb-12">
+      <header className="mt-6 mb-4">
+        <h2 className="text-2xl font-bold flex items-center gap-2 text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
+          <UiIcon name="users" /> Relationships
+        </h2>
+        <p className="text-sm mt-1 text-[#5A5751]">
+          Two people, a relationship, and the role each holds — that decides what each can do. See it plainly, and set the parts that are yours to set.
+        </p>
+      </header>
+
+      {/* Pinned above the strip: the save flash stays visible whichever section is open. */}
+      {flash ? <div className="mb-3 text-xs px-3 py-2 border border-[#5A6E3D] text-[#1A1815] bg-[#F2F4EC]">{flash}</div> : null}
+
+      <SectionTabs sections={sections} ariaLabel="Relationships sections" idBase="relationships" defaultId="matrix" />
     </div>
   );
 }

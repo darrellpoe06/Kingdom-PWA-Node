@@ -79,3 +79,30 @@ describe('SectionTabs — one section at a time, swipeable strip', () => {
     expect(container.querySelector('[role="tablist"]')).toBeNull();
   });
 });
+
+describe('SectionTabs — explain each area, show it complete (DR-0355)', () => {
+  it('a section with explain shows the line under the strip for the OPEN area only; done marks the tab with a named check, never text; the detail rides beside', async () => {
+    const withGuide = [
+      { id: 'a', label: 'First', explain: 'First is where you start. Complete when you finish.', done: false, detail: '0 of 3', render: () => createElement('p', null, 'ALPHA-BODY') },
+      { id: 'b', label: 'Second', explain: 'Second is next.', done: true, detail: '3 of 3', render: () => createElement('p', null, 'BETA-BODY') },
+      { id: 'c', label: 'Third', done: null, render: () => createElement('p', null, 'GAMMA-BODY') },
+    ];
+    await mount({ sections: withGuide });
+    expect(container.textContent).toContain('First is where you start.');
+    expect(container.textContent).toContain('0 of 3');
+    expect(container.textContent).not.toContain('Second is next.');
+    const tabs = [...container.querySelectorAll('[role="tab"]')];
+    expect(tabs.map((t) => t.textContent.trim())).toEqual(['First', 'Second', 'Third']); // a check never changes a label
+    expect(tabs[0].querySelector('[role="img"][aria-label="complete"]')).toBeNull();
+    expect(tabs[1].querySelector('[role="img"][aria-label="complete"]')).toBeTruthy();
+    expect(tabs[2].querySelector('[role="img"][aria-label="complete"]')).toBeNull();
+    await act(async () => { tabByLabel('Second').click(); });
+    await tick();
+    expect(container.textContent).toContain('Second is next.');
+    expect(container.textContent).toContain('Complete · 3 of 3');
+    await act(async () => { tabByLabel('Third').click(); });
+    await tick();
+    expect(container.querySelector('[id$="-explain-c"]')).toBeNull();
+  });
+});
+

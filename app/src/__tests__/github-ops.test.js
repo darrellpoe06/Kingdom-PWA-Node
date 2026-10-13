@@ -64,6 +64,23 @@ describe('normalizeMainRuns', () => {
   it('idle when no runs', () => {
     expect(normalizeMainRuns({ workflow_runs: [] }).status).toBe('idle');
   });
+  it('judges from the last COMPLETED run while a new run is in flight — never "CI UNKNOWN" for a busy lane (2026-07-10 board)', () => {
+    const out = normalizeMainRuns({ workflow_runs: [
+      { status: 'in_progress', conclusion: null, head_sha: 'fresh01234', name: 'CI' },
+      { status: 'completed', conclusion: 'success', head_sha: 'green56789', name: 'CI' },
+    ] });
+    expect(out.status).toBe('good');                 // trunk health = the finished run's verdict
+    expect(out.label).toMatch(/CI green/);
+    expect(out.label).toMatch(/new run in flight/);  // the busy lane is told beside it, honestly
+    expect(out.latest.sha).toBe('green56');
+    expect(out.inFlight).toBe(true);
+    expect(out.inFlightSha).toBe('fresh01');
+  });
+  it('a genuinely un-judged trunk (every run still in flight) reads attention, not a fake verdict', () => {
+    const out = normalizeMainRuns({ workflow_runs: [{ status: 'in_progress', conclusion: null, head_sha: 'x' }] });
+    expect(out.status).toBe('attention');
+    expect(out.inFlight).toBe(true);
+  });
 });
 
 describe('landOrder — parallel-safe first, then serialized; incident>governance>feature; held excluded', () => {
@@ -80,6 +97,31 @@ describe('landOrder — parallel-safe first, then serialized; incident>governanc
     expect(order).toEqual([3, 2, 1]);
     expect(order).not.toContain(4); // held excluded
     expect(order).not.toContain(5); // draft excluded
+  });
+});
+
+describe('the lane budget is spent on the LIVE PRs first (2026-07-10 "first 8 of 24" board)', () => {
+  it('file lookups go to the most recently updated PRs; untouched stale ones read unknown, honestly', async () => {
+    const okJson = (body) => ({ status: 200, ok: true, headers: { get: () => null }, json: async () => body });
+    // Twelve open PRs, oldest-first from the API on purpose — #12 is the freshest.
+    const prs = Array.from({ length: 12 }, (_, i) => ({
+      number: i + 1, title: `pr${i + 1}`, head: { ref: `b${i + 1}`, sha: 's' }, base: { ref: 'main' },
+      labels: [], updated_at: `2026-06-${String(10 + i).padStart(2, '0')}T00:00:00Z`,
+    }));
+    const fileCalls = [];
+    const fakeFetch = async (url) => {
+      const m = url.match(/\/pulls\/(\d+)\/files/);
+      if (m) { fileCalls.push(Number(m[1])); return okJson([{ filename: 'app/src/components/Foo.jsx' }]); }
+      if (url.includes('/pulls?state=open')) return okJson(prs);
+      if (url.includes('/actions/runs')) return okJson({ workflow_runs: [] });
+      return okJson([]);
+    };
+    const out = await fetchOps({ fetch: fakeFetch });
+    // The 8-lookup budget lands on PRs 5..12 (freshest), never the stale head of the list.
+    expect(fileCalls.slice().sort((a, b) => a - b)).toEqual([5, 6, 7, 8, 9, 10, 11, 12]);
+    expect(out.notice).toMatch(/most recently updated/);
+    expect(out.pulls.find((p) => p.number === 1).lane).toBe('unknown');   // stale: honest unknown
+    expect(out.pulls.find((p) => p.number === 12).lane).toBe('parallel-safe'); // live: real lane
   });
 });
 

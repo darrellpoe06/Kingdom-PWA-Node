@@ -15,30 +15,284 @@
 // read(text) never fails silently: any clone error falls back to a browser voice;
 // the System voice always works.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useTextToSpeech } from './tts.js';
+import { useTextToSpeech, waitForVoices } from './tts.js';
 import {
   useReadingVoice, isPersonVoiceId, personKeyOf, isSystemVoiceId, SYSTEM_VOICE_ID, personVoiceId,
 } from './reading-voice.js';
 import { mergeVoiceCatalog, canCloneVoice, isVoiceEntitled, resolveVoiceProvider, KIND, SYSTEM_VOICE } from './voice-registry.js';
-import { buildStandInAssignments, resolveVoiceURIForId } from './voice-assignment.js';
+import { buildStandInAssignments, resolveVoiceURIForId, standInPitch } from './voice-assignment.js';
+// A VOICE KEEPS ITS OWN PITCH (DR-0801): picking a voice brings back the
+// sound shaped for it, so one engine voice can be several readers.
+import { loadVoiceShapes, saveVoiceShape, shapeFor, clampPitch, nextPitch, DEFAULT_PITCH as SHAPE_DEFAULT_PITCH } from './voice-shape.js';
 import { loadPersonaVoiceMap } from './persona-voice-prefs.js';
-import { isVoiceServiceReady, synthesizeSpeech } from './voice-service.js';
+import { isVoiceServiceReady, synthesizeSpeech, activeVoiceEndpoint, builtInVoiceSupport, voiceServiceHealth, probeVoiceService, speakTimeoutFor, mayAttemptStudio, isStudioRoadProblem, synthesizeLite, mayTryLiteVoice, markLiteVoiceMiss, isPlayRefusal, liteVoiceReasonText, LITE_FIRST_TIMEOUT_MS, SPEAK_TIMEOUT_MS, voiceSpeedFor, residualRate } from './voice-service.js';
+import { chunkForClips, createClipQueue } from './clip-queue.js';
+import { clipKey, createClipSource, deviceClipCache, AHEAD_CONCURRENCY } from './clip-cache.js';
+import { joinClipBlobs } from './joined-clip.js';
+import { synthesizeOnDevice, checkDeviceVoice } from './device-voice.js';
+import { mayUseDeviceVoice, keepsAhead, realtimeFactor } from './device-voice-fallback.js';
 import { loadReference, blobToDataUri } from './voice-reference.js';
 import { loadVoiceProfiles } from './voice-sync.js';
+import { createBackgroundAudio, silentWavDataUri } from './background-audio.js';
+import { toSpokenForm } from './speech-text.js';
+// THE VOICE IS HANDED SHORT, CLOSED SENTENCES (DR-0851): the written piece
+// stays the piece on the page; what the Piper voice synthesizes, and what
+// keys its cache, is the piece shaped so no inference carries a clause run.
+import { forSynthesis } from './synthesis-text.js';
+const forVoice = (t) => forSynthesis(toSpokenForm(t));
+import { clipFraction, estimateClipSeconds, seekableEndOf } from './clip-progress.js';
+import { applyClipRate, clipRateNotice } from './clip-rate.js';
 import { supabase } from './supabase.js';
+import { hrefForView } from './nav-history.js';
+import { MY_VOICE, myVoiceLabel, myVoiceStatus, myVoiceLine } from './my-voice.js';
+import { hasBridgeToken } from './nas-photos.js';
+import { provisionBridgeToken } from './bridge-provision.js';
+import { setDownloadVoice } from './lesson-downloads.js';
+import { newReadingPin, deviceVoiceForPin, genderOfDeviceVoice } from './reading-voice-pin.js';
+import { createTripLog } from './reader-trip.js';
+import { useIntakeHold } from './intake-guard.js';
 
 /**
  * @param {object} opts
  * @param {boolean} opts.isOwner       entitled to personal (subscriber) voices
  * @param {boolean} opts.sovereignVoiceReady  override (defaults to the endpoint config)
  */
-export function useReadAloud({ isOwner = false, sovereignVoiceReady = isVoiceServiceReady() } = {}) {
+// The silent clip that unlocks the voice element inside the tap (DR-0654).
+const UNLOCK_WAV = silentWavDataUri(0.05);
+const pageHidden = () => typeof document !== 'undefined' && document.visibilityState === 'hidden';
+// TRIED AGAIN IN THE DARK (DR-0738; Darrell 2026-10-01: "It still stops when
+// in the background"). A piece that cannot be fetched while the screen is off
+// used to hold the reading at once, until the app was seen again; with the
+// keep-alive still playing, the same piece is asked for again, longer apart
+// each time, before the reading is held. A refusal to play without a tap is
+// never retried: no fetch can fix a gesture.
+export const DARK_RETRY_MS = [5000, 10000, 20000, 40000, 60000, 120000];
+const sentenceCase = (t) => (t ? t.charAt(0).toUpperCase() + t.slice(1) : t);
+
+// THE VOICE ALREADY ON THIS DEVICE (DR-0881) — session state for the fallback.
+// `ready` is answered once per session (checkDeviceVoice touches Cache Storage,
+// and the answer cannot change without a download); `stoodDown` latches when a
+// piece proves this device synthesises slower than it speaks, so a slow box
+// tries once rather than stuttering through a whole reading.
+const deviceVoice = { ready: null, stoodDown: false, lastFactor: null };
+
+/** Tests only — the session latch would otherwise leak between cases. */
+export function _resetDeviceVoiceFallback() {
+  deviceVoice.ready = null; deviceVoice.stoodDown = false; deviceVoice.lastFactor = null;
+}
+
+/** Is the model already in this device's cache? Answered once. Never throws. */
+async function deviceVoiceReady() {
+  if (deviceVoice.ready !== null) return deviceVoice.ready;
+  try {
+    const v = await checkDeviceVoice({});
+    deviceVoice.ready = !!(v && v.cached);
+  } catch (_) { deviceVoice.ready = false; }
+  return deviceVoice.ready;
+}
+
+/**
+ * One piece in the Piper that lives here. Returns the synthesizeLite shape, or
+ * null when this device may not or should not serve it. Measures the first
+ * answer and stands the voice down for the session if it cannot keep ahead of
+ * its own playback — stuttering is not an improvement on the device engine.
+ */
+async function deviceVoicePiece(text, speed) {
+  if (!mayUseDeviceVoice({ speed, ready: await deviceVoiceReady(), stoodDown: deviceVoice.stoodDown })) return null;
+  let got;
+  try { got = await synthesizeOnDevice({ text }); } catch (_) { return null; }
+  if (!got || got.error) return null;
+  const ahead = keepsAhead(got);
+  if (ahead === false) {
+    deviceVoice.stoodDown = true;
+    deviceVoice.lastFactor = realtimeFactor(got);
+    // The piece itself is good — play it, and simply do not ask again.
+  }
+  return got;
+}
+
+export function useReadAloud({ isOwner = false, sovereignVoiceReady: readyOverride } = {}) {
   const tts = useTextToSpeech();
+  // READY MEANS ANSWERING (DR-0440): configured is not the same as alive. A
+  // configured studio is probed once (cached a minute) and a studio that did
+  // not answer reads as not ready — the stand-in plays and says why — instead
+  // of every read timing out. A caller's explicit override still wins (tests).
+  const [studioHealth, setStudioHealth] = useState(() => voiceServiceHealth());
+  useEffect(() => {
+    let alive = true;
+    if (readyOverride === undefined && isVoiceServiceReady()) probeVoiceService().then((h) => { if (alive) setStudioHealth(h); });
+    return () => { alive = false; };
+  }, [readyOverride]);
+  // WHAT WE SAY vs WHAT WE TRY, split on purpose (Darrell 2026-09-22: "Why does
+  // the health matter?!!! Can't we build it to work independently?").
+  //
+  // `sovereignVoiceReady` is the DISPLAY signal -- it decides the copy and
+  // whether a personal voice is labelled a stand-in. It still listens to the
+  // probe, because telling someone the studio is answering when it is not would
+  // be the lie DR-0440 was written about.
+  //
+  // `attemptStudio` is the ATTEMPT, and it does NOT consult the probe. A health
+  // check is a second system that can be wrong about the first, and when it was
+  // wrong it withheld a working feature without a word. The call itself is the
+  // only thing that proves the call works.
+  const sovereignVoiceReady = readyOverride !== undefined ? readyOverride : (isVoiceServiceReady() && studioHealth !== 'down');
+  const attemptStudio = readyOverride !== undefined ? readyOverride : mayAttemptStudio();
   const { voiceId, setVoiceId } = useReadingVoice(supabase);
   const [profiles, setProfiles] = useState([]);
   const [cloudPlaying, setCloudPlaying] = useState(false);
-  const [notice, setNotice] = useState('');
+  const [cloudPaused, setCloudPaused] = useState(false);
+  const [cloudProgress, setCloudProgress] = useState(0); // 0..1 through the cloud clip
+  // Which reading segment the NAS voice is speaking (-1 when it is not). The
+  // pieces ARE the segments, so this is exact, never a guess from the clock.
+  const [cloudPiece, setCloudPiece] = useState(-1);
+  // How much of the reading now playing is on the device (DR-0659):
+  // { saved, total, bytes, keys } while the fetch-ahead runs, else null.
+  const [offline, setOffline] = useState(null);
+  const aheadRef = useRef(null);
+  // A NOTICE MAY CARRY A DOOR (2026-09-22). Most notices are just news. One of
+  // them tells the reader to go and do something in another tab, and telling is
+  // where it failed him — so a notice can hand over `{ href, label }` and the
+  // panel draws it as a button. Every plain setNotice() call clears the action,
+  // which is why the raw setter is wrapped rather than exported: a stale door
+  // under a new message would send someone somewhere the message never meant.
+  const [notice, setNoticeRaw] = useState('');
+  const [noticeAction, setNoticeAction] = useState(null);
+  // WHY THE STAND-IN IS SPEAKING, as STATUS rather than a message (Darrell
+  // 2026-09-23: "No headaches!!!!"). '' = the chosen voice is speaking;
+  // 'studio-offline' = the road to the studio failed on this read;
+  // 'studio-unarmed' = the studio is not armed for this voice yet. The panel
+  // prints it beside Reading/Paused. Nothing here is a popup and nothing here
+  // is the reader's to fix; the house sees the studio through nas-health.
+  const [standInWhy, setStandInWhy] = useState('');
+  // WHICH KIND OF VOICE IS SPEAKING, because only one of them survives the
+  // app leaving the screen: 'audio' (a real clip — studio or NAS voice, keeps
+  // playing in the background) or 'device' (the phone's Web Speech, which
+  // Android stops when you switch apps). '' before the first read.
+  const [audioVoice, setAudioVoice] = useState('');
+  // THE READING'S OWN TRIP LOG (DR-0738; lib/reader-trip.js): which voice,
+  // which sentence, the dark, every hand-off and retry, how it ended — kept
+  // on the device and said in one line in the panel, so a stop is measured.
+  const tripRef = useRef(null);
+  const trip = () => { if (!tripRef.current) tripRef.current = createTripLog(); return tripRef.current; };
+  const markVoice = useCallback((kind) => { setAudioVoice(kind); if (tripRef.current) tripRef.current.note('voice', { kind }); }, []);
+  // The retry is reached through a ref (the deviceRestRef pattern): it needs
+  // playLiteVoice, which is defined after the callbacks that call it.
+  const armDarkRetryRef = useRef(() => {});
+  // A piece that could not be had in the dark: the retry timer and its step.
+  const darkRetryRef = useRef({ timer: null, step: 0 });
+  const clearDarkRetry = () => {
+    const d = darkRetryRef.current;
+    if (d.timer) { try { clearTimeout(d.timer); } catch (_) { /* ignore */ } }
+    d.timer = null; d.step = 0;
+  };
+  const setNotice = useCallback((msg, action = null) => {
+    setNoticeRaw(msg);
+    setNoticeAction(msg ? action : null);
+  }, []);
   const audioRef = useRef(null);
+  // The paragraph-clip player for the NAS audio voice (lib/clip-queue.js).
+  const queueRef = useRef(null);
+  // The NAS voice (DR-0654): ONE element, unlocked in the tap and reused; the
+  // reason of the last miss, so the notice can name it; and a reading held
+  // while the page was hidden, resumed in the same voice when it is seen.
+  const liteAudioRef = useRef(null);
+  const liteMissRef = useRef('');
+  const heldLiteRef = useRef('');
+  const resumeHeldRef = useRef(() => false);
+  // One reading, one voice (DR-0654): the pin made when a reading starts, the
+  // one hand-off to the device voice, and whether a reading is live now.
+  const readingPinRef = useRef(null);
+  const deviceRestRef = useRef(() => {});
+  const readingNowRef = useRef(false);
+  // WHICH READ OWNS THE VOICE (DR-0764). Darrell 2026-10-06, from his phone,
+  // a lesson whose 169 pieces were all on the device: "it gets garbled words
+  // at times even with the storage increase for cache."
+  //
+  // A read is asynchronous for seconds before it plays a note — the family
+  // key, the saved-on-device check, and, once a reading is fully saved,
+  // decoding and joining every piece into one file (DR-0718/DR-0747). A
+  // SECOND read started inside that window (a paragraph jump, a Continue, the
+  // headset's skip) called stopCloud() first, exactly as it should — and found
+  // NOTHING to stop, because the first read had not installed its queue yet.
+  // Both reads then went on to build a clip queue over the ONE shared <audio>
+  // element, and the superseded one put its own piece on that element
+  // mid-sentence. Measured against the real hook: with the first read's piece
+  // slower than the second's, the element took "Bravo one…" and then "Alpha
+  // one…" — the new reading cut off part-way and replaced by a sentence from
+  // where the listener no longer is. That is the garble, and nothing in the
+  // cache can cure it: a fully saved reading makes the window LONGER.
+  //
+  // So every read takes a number. Past each await, a read whose number is no
+  // longer the current one stops where it stands: it installs no queue, it
+  // touches no element, and it never falls through to the phone's own voice
+  // with text the listener has already moved on from.
+  const readGenRef = useRef(0);
+  const currentGen = (gen) => gen === readGenRef.current;
+  // THE SPEED CHIP HAS TO REACH THE CLIP (2026-09-18). A cloud read is one
+  // audio element, and playbackRate was never touched on it — so on the
+  // sovereign/bridge path (which since DR-0382 carries the SYSTEM voice, the
+  // default nobody changes) the chips moved the button highlight and changed
+  // nothing about the speech, while the device-voice path honoured them. One
+  // device honouring the rate and the other ignoring it IS "different on the
+  // laptop than the phone". The rate lives in a ref so a clip created inside
+  // an async read uses the CURRENT speed rather than a render's stale closure
+  // — the same class of bug tts.js was built to kill.
+  const rateRef = useRef(tts.rate);
+  rateRef.current = tts.rate;
+  // THE VOICE SPEAKS AT THE PACE; THE BROWSER STRETCHES ONLY THE REST
+  // (2026-10-07; Darrell: "the voice mumbles at times when on faster speaking
+  // especially"). Every NAS clip used to be made at 1x and sped up here with
+  // playbackRate — a time-stretch, which at 2x and beyond smears consonants
+  // into exactly that mumble. Now a reading asks the voice (Piper, XTTS) for
+  // its pace, within what the voice says clearly (voiceSpeedFor, 0.5..2.0),
+  // and the element takes only the remainder (residualRate). The studio's one
+  // long clip remembers the pace it was spoken at here; the piece queue
+  // carries it per piece (lib/clip-queue.js). A reading saved on the device is
+  // 1x pieces and is stretched exactly as before.
+  const audioSpeedRef = useRef(1);
+
+  // THE SHAPE KEPT FOR EACH VOICE (DR-0801). Pitch belongs to the VOICE, not
+  // to the device: pick a voice and the pitch shaped onto it comes back, so a
+  // device that offers one engine voice still offers several readers.
+  const [voiceShapes, setVoiceShapes] = useState(() => loadVoiceShapes());
+  const pitch = shapeFor(voiceId, voiceShapes).pitch;
+  /** Shape the voice being used now; kept on this device, applied at once. */
+  const setPitch = useCallback((p) => {
+    const next = clampPitch(p);
+    setVoiceShapes(saveVoiceShape(voiceId, { pitch: next }));
+    if (typeof tts.setPitch === 'function') tts.setPitch(next);
+    return next;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [voiceId]);
+  /** One tap: the next step up, wrapping — what the rail's button does. */
+  const stepPitch = useCallback(() => setPitch(nextPitch(shapeFor(voiceId, loadVoiceShapes()).pitch)), [setPitch, voiceId]);
+  // Picking a voice brings its own pitch with it.
+  useEffect(() => {
+    if (typeof tts.setPitch !== 'function') return;
+    tts.setPitch(shapeFor(voiceId, voiceShapes).pitch);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [voiceId, voiceShapes]);
+
+  /** Set the read speed, and carry it to a clip already playing. */
+  const setRate = useCallback((r) => {
+    rateRef.current = r;
+    tts.setRate(r);
+    // The clip queue owns its element: it re-applies the remainder on every
+    // piece and on this change, or the next paragraph snaps back to the old speed.
+    if (queueRef.current) { queueRef.current.setRate(r); return; }
+    const a = audioRef.current;
+    if (a) {
+      // An audio element takes a live rate change mid-play, unlike an
+      // utterance, so this is audible immediately rather than at the next
+      // sentence — and it is MEASURED, never assumed (DR-0076).
+      const applied = applyClipRate(a, residualRate(r, audioSpeedRef.current));
+      const msg = clipRateNotice(applied);
+      if (msg) setNotice(msg);
+    }
+  // setNotice is a useCallback with an empty dep list, so it is stable for the
+  // life of the hook; it is listed because it is now a function rather than a
+  // raw setState, and the linter cannot know that by itself.
+  }, [tts, setNotice]);
 
   useEffect(() => {
     let alive = true;
@@ -50,6 +304,34 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady = isVoiceSer
 
   const fullCatalog = useMemo(() => mergeVoiceCatalog(profiles), [profiles]);
   const personalVoices = useMemo(() => fullCatalog.filter((v) => v.kind === KIND.PERSONAL), [fullCatalog]);
+
+  // WHOSE RECORDING IS ON THIS DEVICE (DR-0721). The recording lives in this
+  // device's IndexedDB (voice-reference.js), keyed by person. A voice whose
+  // recording is here is the listener's own: the Voice tab records only under
+  // the signed-in person's own key, and recording is the consent gesture
+  // (voice-recording.js). It is offered as "My voice (Darrell)" even when the
+  // consent row did not load (nas-health logs "permission denied for table
+  // voice_profiles"), because the person picking it is the person who made it.
+  const [samplesHere, setSamplesHere] = useState(() => new Set());
+  // The last miss in my voice ('' after a read that played in it), so the
+  // panel can say why before the next press, not only during a reading.
+  const [myVoiceMiss, setMyVoiceMiss] = useState('');
+  const sampleKeys = useMemo(() => {
+    const keys = new Set(personalVoices.map((v) => v.personKey));
+    if (isPersonVoiceId(voiceId)) keys.add(personKeyOf(voiceId));
+    return [...keys].filter(Boolean);
+  }, [personalVoices, voiceId]);
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      const here = new Set();
+      for (const k of sampleKeys) {
+        try { if (await loadReference(k)) here.add(k); } catch (_) { /* no sample */ }
+      }
+      if (alive) setSamplesHere((prev) => (prev.size === here.size && [...here].every((k) => prev.has(k)) ? prev : here));
+    })();
+    return () => { alive = false; };
+  }, [sampleKeys]);
   const ctx = { isOwner, subscribed: isOwner };
 
   // Distinct, gender-correct device-voice assignment for System + each person, so a
@@ -78,12 +360,16 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady = isVoiceSer
     const sysDev = assignments[SYSTEM_VOICE.id];
     const out = [{ id: SYSTEM_VOICE_ID, label: 'System voice', group: 'Default', ai: false, entitled: true, usable: true, deviceVoice: sysDev ? sysDev.name : null }];
     for (const v of personalVoices) {
-      if (!canCloneVoice(v)) continue; // only consented personal voices are offerable
+      const mine = samplesHere.has(v.personKey);
+      // Only consented personal voices are offerable -- and the listener's
+      // own recorded voice, which they consented to by recording it (DR-0721).
+      if (!canCloneVoice(v) && !mine) continue;
       const dev = assignments[v.id];
+      const entitled = mine || isVoiceEntitled(v, ctx);
       out.push({
-        id: personVoiceId(v.personKey), label: v.name, group: 'Your voices', ai: true,
-        entitled: isVoiceEntitled(v, ctx), usable: isVoiceEntitled(v, ctx),
-        standIn: !resolveVoiceProvider(v, { sovereignVoiceReady }).real,
+        id: personVoiceId(v.personKey), label: mine ? myVoiceLabel(v.name) : v.name, group: 'Your voices', ai: true,
+        entitled, usable: entitled, mine,
+        standIn: !resolveVoiceProvider({ ...v, consentState: 'granted' }, { sovereignVoiceReady }).real,
         deviceVoice: dev ? dev.name : null,
       });
     }
@@ -94,22 +380,125 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady = isVoiceSer
     }
     return out;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [personalVoices, tts.voices, isOwner, sovereignVoiceReady, assignments]);
+  }, [personalVoices, tts.voices, isOwner, sovereignVoiceReady, assignments, samplesHere]);
 
   const currentItem = useMemo(() => catalog.find((c) => c.id === voiceId) || catalog[0], [catalog, voiceId]);
 
+  // MY VOICE, SAID PLAINLY (DR-0721): which person voice is picked (or is
+  // mine), whether it can read now, and one sentence saying why not. null
+  // when no person voice is picked and none is recorded on this device.
+  const myVoice = useMemo(() => {
+    const pickedKey = isPersonVoiceId(voiceId) ? personKeyOf(voiceId) : null;
+    const key = pickedKey || personalVoices.map((v) => v.personKey).find((k) => samplesHere.has(k)) || null;
+    if (!key) return null;
+    const v = personalVoices.find((x) => x.personKey === key);
+    const name = (v && v.name) || '';
+    const hasSample = samplesHere.has(key);
+    const status = myVoiceStatus({ hasSample, studio: studioHealth, miss: pickedKey ? myVoiceMiss : '' });
+    return {
+      personKey: key, picked: !!pickedKey, mine: hasSample, name,
+      label: myVoiceLabel(name), status, ready: status === MY_VOICE.READY,
+      line: myVoiceLine({ name, status, miss: myVoiceMiss }),
+    };
+  }, [voiceId, personalVoices, samplesHere, studioHealth, myVoiceMiss]);
+
   // Apply a chosen BROWSER voice to the engine so System/accent picks read in it.
+  //
+  // A VOICE-LIST REFRESH NEVER RESTARTS A READING (DR-0654). This effect ran on
+  // every refresh of the phone's voice list, and setVoiceURI restarts the
+  // sentence being spoken; a refresh in which the picked voice was briefly
+  // missing restarted it in the default voice. A NEW PICK still applies at
+  // once, mid-reading; a refresh of the same pick waits until nothing is read.
+  const appliedVoiceRef = useRef(null);
   useEffect(() => {
     if (!tts.supported) return;
     if (isSystemVoiceId(voiceId) || isPersonVoiceId(voiceId)) return; // system/clone handled at read()
+    const newPick = appliedVoiceRef.current !== voiceId;
+    if (!newPick && tts.isReading) return;
+    appliedVoiceRef.current = voiceId;
     tts.setVoiceURI(voiceId);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [voiceId, tts.supported, tts.voices]);
 
+  // BACKGROUND PLAYBACK (Darrell 2026-08-10: "let it run in the background
+  // while I work on other apps etc... so I can hear the Word"). A backgrounded
+  // page is frozen unless it is playing media, and Web Speech is not media — so
+  // the session holds one silent looping element for exactly as long as the
+  // reader is reading, and hands the OS lock-screen controls that drive THESE
+  // controls. See lib/background-audio.js for the mechanism and its honest
+  // limits (Android/Chromium is the proven path; iOS suspends device speech).
+  const bgRef = useRef(null);
+  const ctrlRef = useRef({});
+  // NEXT / BACK FROM THE HEADSET, THE CAR AND THE LOCK SCREEN (Darrell
+  // 2026-09-24: start anywhere, step through). The paragraph steps live in the
+  // reader bar (it holds the follow map), so the bar hands them in here and
+  // the OS 'nexttrack' / 'previoustrack' buttons call exactly what the bar's
+  // forward and back buttons call.
+  const skipRef = useRef({});
+  const setSkipHandlers = useCallback((h) => { skipRef.current = h || {}; }, []);
+  const titleRef = useRef('');
+  const bg = useCallback(() => {
+    if (!bgRef.current) bgRef.current = createBackgroundAudio();
+    return bgRef.current;
+  }, []);
+  // The OS buttons, always reading the CURRENT controls through refs.
+  const osControls = useCallback(() => ({
+    onPlay: () => { const c = ctrlRef.current; if (c.resume) c.resume(); },
+    onPause: () => { const c = ctrlRef.current; if (c.pause) c.pause(); },
+    onStop: () => { const c = ctrlRef.current; if (c.stop) c.stop(); },
+    onNext: () => { const k = skipRef.current; if (k.next) k.next(); },
+    onPrev: () => { const k = skipRef.current; if (k.prev) k.prev(); },
+  }), []);
+
+  // SILENCE EVERY AUDIO VOICE, AND LET NONE OF THEM SPEAK AGAIN (DR-0654).
+  // Pausing was not enough: a studio clip's onerror handed its text to the
+  // phone's voice, so a clip torn down during a hand-off could start a second
+  // voice after the new one had begun. Handlers are detached before the pause
+  // and the source is dropped, so a silenced element stays silent.
+  const silenceAudio = useCallback(() => {
+    heldLiteRef.current = '';
+    if (queueRef.current) { queueRef.current.stop(); queueRef.current = null; }
+    if (aheadRef.current) { aheadRef.current.aborted = true; aheadRef.current = null; }
+    setCloudPiece(-1);
+    for (const el of [audioRef.current, liteAudioRef.current]) {
+      if (!el) continue;
+      try { el.onerror = null; el.onended = null; el.ontimeupdate = null; } catch (_) { /* a fake */ }
+      try { el.pause(); } catch (_) { /* ignore */ }
+      try { if (el.getAttribute && el.getAttribute('src') && !String(el.src).startsWith('data:audio/wav')) { el.removeAttribute('src'); if (el.load) el.load(); } } catch (_) { /* ignore */ }
+    }
+    audioRef.current = null;
+  }, []);
+
   const stop = useCallback(() => {
+    // Stop supersedes a read still preparing, so one that was fetching when
+    // Stop was pressed cannot begin speaking a moment later (DR-0764).
+    readGenRef.current += 1;
+    clearDarkRetry();
+    heldLiteRef.current = '';
+    silenceAudio();
     try { tts.stop(); } catch (_) {}
-    if (audioRef.current) { try { audioRef.current.pause(); } catch (_) {} audioRef.current = null; }
+    readingPinRef.current = null;
     setCloudPlaying(false);
+    setCloudPaused(false);
+    if (bgRef.current) bgRef.current.stop();
+    trip().end('stopped');
+  }, [tts, silenceAudio]);
+
+  // Pause / continue must work in BOTH voices — a cloned-voice reading is an
+  // audio clip, not an utterance, and the panel's one Pause button has to hold
+  // whichever is actually playing.
+  const pause = useCallback(() => {
+    if (audioRef.current) { try { audioRef.current.pause(); setCloudPaused(true); } catch (_) {} }
+    tts.pause();
+  }, [tts]);
+
+  const resume = useCallback(() => {
+    // A reading held while the page was hidden picks up in the NAS voice.
+    if (heldLiteRef.current && resumeHeldRef.current()) return;
+    if (audioRef.current) {
+      try { const p = audioRef.current.play(); if (p && p.catch) p.catch(() => {}); setCloudPaused(false); } catch (_) {}
+    }
+    tts.resume();
   }, [tts]);
 
   // Stop only in-flight CLOUD audio before a fresh browser-voice read. The TTS
@@ -117,59 +506,884 @@ export function useReadAloud({ isOwner = false, sovereignVoiceReady = isVoiceSer
   // (via the full stop()) immediately before the first speak() is swallowed on
   // Chrome/mobile — the "tap Read, nothing happens" race. So we don't pre-cancel.
   const stopCloud = useCallback(() => {
-    if (audioRef.current) { try { audioRef.current.pause(); } catch (_) {} audioRef.current = null; }
+    silenceAudio();
     setCloudPlaying(false);
-  }, []);
+    setCloudProgress(0);
+  }, [silenceAudio]);
 
   // Surface a silent-start miss (mobile blocked/suspended synth) instead of a dead
   // button — the engine flips `failed` when a tap produces no audio at all.
   useEffect(() => {
     if (tts.failed) setNotice('Audio didn’t start — press play once more, or pick the System voice.');
-  }, [tts.failed]);
+  }, [tts.failed, setNotice]);
+
+  // Keep the OS transport and the keep-alive session in step with the reader:
+  // released the moment nothing is being read, so a finished reading does not
+  // hold an audio session (or a stale lock-screen card) open.
+  useEffect(() => {
+    const session = bgRef.current;
+    if (!session) return;
+    const reading = tts.isReading || cloudPlaying;
+    if (!reading) { session.stop(); return; }
+    // Stop hands every OS button back (background-audio release). A paragraph
+    // jump restarts the engine and can flicker through not-reading, so the
+    // buttons are put back the moment reading is live again.
+    if (!session.wired) { session.describe({ title: titleRef.current }); session.onControl(osControls()); }
+    session.setState((tts.isPaused || cloudPaused) ? 'paused' : 'playing');
+  }, [tts.isReading, tts.isPaused, cloudPlaying, cloudPaused, osControls]);
+
+  // NOTHING INTERRUPTS WORDS COMING IN (DR-0748): while a reading plays, the
+  // app holds still (no update reload under it; lib/intake-guard.js).
+  useIntakeHold('reading', !!(tts.isReading || cloudPlaying));
+
+  useEffect(() => () => { if (bgRef.current) bgRef.current.stop(); }, []);
 
   // The one play path, honoring the global voice preference.
-  const read = useCallback(async (text) => {
+  // `title` names the reading on the phone's lock screen / media notification.
+  // CLAIM THE AUDIO SESSION INSIDE THE TAP — the caller must be able to do this
+  // BEFORE it awaits anything.
+  //
+  // Darrell 2026-08-13: "I cant listen to a lesson in the background yet."
+  // `read()` already claimed the session before its own awaits, and that was
+  // correct but not sufficient: BOTH play paths in TTSControl reveal collapsed
+  // content and `await settled(...)` — up to ten double-rAF frames — before they
+  // ever call read(). By then the user's gesture is spent, the browser refuses
+  // to start the silent looping element, the page never becomes an audio
+  // session, and a backgrounded tab is frozen mid-sentence. The rule was written
+  // here; the call site defeated it.
+  //
+  // start() is idempotent (it begins OR keeps the loop), so claiming early and
+  // again inside read() is safe — and claiming early is the only thing that can
+  // work, because a gesture cannot be re-entered once awaited.
+  const claimAudio = useCallback((title) => {
+    try {
+      const session = bg();
+      session.start();
+      titleRef.current = title || (typeof document !== 'undefined' && document.title) || 'Reading';
+      session.describe({ title: titleRef.current });
+      session.onControl(osControls());
+      session.setState('playing');
+    } catch (_) { /* no audio session is a degraded read, never a broken one */ }
+    // ONE VOICE ELEMENT, UNLOCKED INSIDE THE TAP (DR-0654). The NAS voice's
+    // first piece arrives seconds after the press (a CPU synthesis, a
+    // Funnel), and a browser that asks for a user gesture refuses a play()
+    // made that late on a NEW element. So the element the voice will use is
+    // made and played here, silent, while the gesture is live, and the queue
+    // reuses it. Measured with a strict-gesture Chromium profile: a fresh
+    // element after the await was refused; this one plays.
+    try {
+      if (typeof Audio !== 'undefined') {
+        if (!liteAudioRef.current) liteAudioRef.current = new Audio();
+        const el = liteAudioRef.current;
+        if (!el.dataset || el.dataset.unlocked !== '1') {
+          el.src = UNLOCK_WAV;
+          const p = el.play();
+          const done = () => {
+            if (el.dataset) el.dataset.unlocked = '1';
+            // Only the silent clip is paused; a voice piece that already took
+            // the element is left playing.
+            try { if (String(el.src).startsWith('data:audio/wav')) el.pause(); } catch (_) { /* ignore */ }
+          };
+          if (p && typeof p.then === 'function') p.then(done, () => { /* refused: the queue says so */ });
+          else done();
+        }
+      }
+    } catch (_) { /* a device without media still reads in its own voice */ }
+  }, [bg, osControls]);
+
+  // Which NAS voice stands in: a man's stand-in reads as a man (DR-0138).
+  const liteVoiceFor = useCallback(() => {
+    if (isPersonVoiceId(voiceId)) {
+      const v = personalVoices.find((x) => x.personKey === personKeyOf(voiceId));
+      return v && v.gender === 'female' ? 'female' : 'male';
+    }
+    return SYSTEM_VOICE.gender === 'male' ? 'male' : 'female';
+  }, [voiceId, personalVoices]);
+  // A download saves the pieces in the voice this reader reads in (DR-0722).
+  useEffect(() => { setDownloadVoice(liteVoiceFor()); }, [liteVoiceFor]);
+
+  /** Play `clean` in the NAS audio voice. Resolves true once the first piece plays. */
+  const playLiteVoice = useCallback(async (clean, gen = readGenRef.current) => {
+    // The reading's pinned gender (DR-0654), never a fresh choice mid-reading.
+    const voice = (readingPinRef.current && readingPinRef.current.gender) || liteVoiceFor();
+    // Pieces are cut from the text AS WRITTEN, so piece i is highlight segment
+    // i; each piece is turned into its spoken form on its own way out
+    // (DR-0653). Cutting the SPOKEN form moves the cuts wherever the spoken
+    // form drops a full stop ("2 Tim." -> "2nd Timothy"), and from there on
+    // the lit sentence is not the one being heard.
+    const chunks = chunkForClips(clean);
+    if (!chunks.length || typeof Audio === 'undefined') return false;
+    trip().setPieces(chunks.length);
+    // The NAS takes two syntheses at once and answers a third with 503 busy:
+    // that is a wait, not a failure, so a busy piece is asked again shortly.
+    // THE PACE THIS READING ASKS THE VOICE FOR (DR-0794; Darrell 2026-10-07:
+    // "Why does the male voice sound like it's slowing down while it's
+    // talking? Not able to correctly enunciate words"). The pace was pinned
+    // once for the whole reading; a speed change mid-reading left the ELEMENT
+    // to stretch every later piece, and a stretch below 1x (1.5x pieces at a
+    // 1x rate = 0.667x) is exactly a voice that slows and slurs. Now the pace
+    // follows the speed chip: the queue asks the voice again at the new pace
+    // from the next sentence (lib/clip-queue.js setRate), and each pace has
+    // its own pieces, keys and source.
+    const paceFor = (r) => voiceSpeedFor(r);
+    const pinned = paceFor(rateRef.current);
+    const speakPiece = async (t, timeoutMs, sp) => {
+      let got = await synthesizeLite({ text: forVoice(t), voice, speed: sp, timeoutMs });
+      for (let tries = 0; got.error === 'voice-lite-503' && tries < 4; tries++) {
+        await new Promise((r) => setTimeout(r, 600 * (tries + 1)));
+        got = await synthesizeLite({ text: forVoice(t), voice, speed: sp, timeoutMs });
+      }
+      // THE VOICE ALREADY ON THIS DEVICE, BEFORE THE DEVICE'S OWN ENGINE
+      // (DR-0881). Darrell, 2026-10-10, on the Firestick: "Words keep slurring
+      // not articulate or even decernable."
+      //
+      // When /voice-lite cannot be reached the reading has always fallen to
+      // Web Speech, and on a Fire TV that is Fire OS's own engine — the thing
+      // he is hearing. lib/device-voice.js runs the SAME Piper model the NAS
+      // runs, on this device's CPU, with phoneme ids measured identical to the
+      // NAS binary, and its header has said since DR-0656 that it is "not
+      // wired into the reader yet". It is the better fallback by a wide
+      // margin and it was sitting there unused.
+      //
+      // Taken at THIS seam rather than at onFallback on purpose: a blob from
+      // here flows through the clip cache, the join, a saved reading and the
+      // background player exactly as a NAS clip does. Hooking the fallback
+      // would have needed all of that again.
+      if (got.error) {
+        const d = await deviceVoicePiece(forVoice(t), sp);
+        if (d) { trip().note('device-voice', { ms: d.ms, audioSeconds: d.audioSeconds }); got = d; }
+      }
+      // The source keeps the blob and makes its own URL for the player.
+      if (got.url) { try { URL.revokeObjectURL(got.url); } catch (_) { /* ignore */ } }
+      return got;
+    };
+    // EVERY PIECE FROM THE DEVICE FIRST (DR-0659; Darrell: "Can't we give
+    // everything it needs for quality without needing to reconnect with the
+    // nas?"). A piece played once is kept on the device (lib/clip-cache.js):
+    // a replay, a resume, a jump or a dropped connection plays from here.
+    // The 1x pieces are what a download saves; a reading at another pace
+    // streams and keeps its own pieces under their own keys.
+    const savedKeys = chunks.map((c) => clipKey({ voice, text: forVoice(c.text) }));
+    const keysFor = (sp) => (sp === 1 ? savedKeys : chunks.map((c) => clipKey({ voice, text: forVoice(c.text), speed: sp })));
+    const keys = keysFor(pinned);
+    const cache = deviceClipCache();
+    const sources = new Map();
+    const sourceFor = (sp) => {
+      if (!sources.has(sp)) {
+        sources.set(sp, createClipSource({
+          keys: keysFor(sp),
+          cache,
+          fetchBlob: (i, timeoutMs) => speakPiece(chunks[i].text, timeoutMs, sp),
+          makeUrl: (b) => URL.createObjectURL(b),
+        }));
+      }
+      return sources.get(sp);
+    };
+    // A SAVED READING PLAYS AS ONE FILE (DR-0718; Darrell 2026-10-01: "it
+    // stops each time on the downloaded version"). When every piece of a
+    // reading is on the device, they are joined into one WAV and played
+    // start to finish with nothing between sentences: no fetch, no network,
+    // no swap. A join that cannot be made plays piece by piece as before.
+    // THE TRIP SAYS WHETHER IT PLAYED AS ONE FILE (DR-0746; Darrell 2026-10-02,
+    // a saved lesson: "Still turns off when in the background!!!"). Whether the
+    // join was made, and if not which piece was missing or why, is the one
+    // fact that tells a background stop apart from a piece-by-piece read; it
+    // was never written down. Now the trip carries it, and the trip rides
+    // with his feedback (DR-0744).
+    // THE JOIN CARRIES ITS PACE (DR-0794): pieces spoken at the reading's pace
+    // join into a file the element plays at 1x; the saved 1x pieces join into
+    // a file the element must stretch, so that join is the LAST resort — taken
+    // only when the NAS voice cannot be reached for the pace's own pieces.
+    const joinFromDevice = async (sp, { stretched = false } = {}) => {
+      const ks = keysFor(sp);
+      const t0 = Date.now();
+      // The first piece answers for a reading that is not saved, quickly.
+      const head = await cache.get(ks[0]).catch(() => null);
+      if (!head) { trip().note('join-missed', { reason: 'not-saved', speed: sp }); return null; }
+      const blobs = [head, ...await Promise.all(ks.slice(1).map((k) => cache.get(k).catch(() => null)))];
+      const missing = blobs.findIndex((b) => !b);
+      if (missing >= 0) { trip().note('join-missed', { reason: 'missing-piece', i: missing, of: ks.length, speed: sp }); return null; }
+      const j = await joinClipBlobs(blobs);
+      if (!j) { trip().note('join-missed', { reason: 'not-joinable', of: ks.length, bytes: blobs.reduce((n, b) => n + (b.size || 0), 0), speed: sp }); return null; }
+      trip().note('join', { pieces: ks.length, bytes: j.blob.size, seconds: Math.round(j.duration || 0), speed: sp, stretched, buildMs: Date.now() - t0 });
+      return { url: URL.createObjectURL(j.blob), offsets: j.offsets, duration: j.duration, speed: sp };
+    };
+    // The pace's own pieces, all on the device: one file, nothing stretched.
+    let whole = await joinFromDevice(pinned);
+    // SUPERSEDED WHILE THE JOIN WAS BUILT: this read no longer owns the voice.
+    if (!currentGen(gen)) { if (whole) { try { URL.revokeObjectURL(whole.url); } catch (_) { /* ignore */ } } return false; }
+    // The first piece decides: if the NAS voice cannot answer it in time, the
+    // device voice speaks instead and the road is not asked again for a while.
+    // From the device if it is kept there, else from the NAS (and then kept).
+    let first = whole ? null : await sourceFor(pinned).clip(0, LITE_FIRST_TIMEOUT_MS);
+    if (!currentGen(gen)) {
+      for (const u of [whole && whole.url, first && first.url]) { if (u) { try { URL.revokeObjectURL(u); } catch (_) { /* ignore */ } } }
+      return false;
+    }
+    // THE LAST RESORT (DR-0794): the pace's first piece could not be had, but
+    // the reading is saved at 1x — it plays as one file, stretched by the
+    // element, rather than handing a saved lesson to the device voice.
+    if (first && (first.error || !first.url) && pinned !== 1) {
+      const saved = await joinFromDevice(1, { stretched: true });
+      if (!currentGen(gen)) { if (saved) { try { URL.revokeObjectURL(saved.url); } catch (_) { /* ignore */ } } return false; }
+      if (saved) { whole = saved; first = null; }
+    }
+    // The reason is KEPT (DR-0654): the notice names what the NAS voice said.
+    if (first && (first.error || !first.url)) { liteMissRef.current = first.error || 'voice-lite-empty'; markLiteVoiceMiss(liteMissRef.current); return false; }
+    liteMissRef.current = '';
+    const a = liteAudioRef.current || new Audio();
+    liteAudioRef.current = a;
+    let served = false;
+    const q = createClipQueue({
+      chunks,
+      audio: a,
+      rate: rateRef.current,
+      paceFor,
+      // Each piece says the pace the voice spoke it at, so the element
+      // stretches only the remainder (lib/clip-queue.js); the queue names the
+      // pace to ask for, which follows the speed chip (DR-0794).
+      fetchClip: (t, i, sp) => {
+        const at = Number(sp) > 0 ? Number(sp) : pinned;
+        if (i === 0 && first && !served && at === pinned) { served = true; return Promise.resolve({ ...first, speed: at }); }
+        return sourceFor(at).clip(i).then((r) => (r && r.url ? { ...r, speed: at } : r));
+      },
+      // The pace of every piece, measured (DR-0794): the trip says it in one line.
+      onPace: (d) => { if (queueRef.current === q) trip().note('pace', d); },
+      revoke: (u) => { try { URL.revokeObjectURL(u); } catch (_) { /* ignore */ } },
+      onProgress: (f) => setCloudProgress(f),
+      // The lock screen and the car show where in the lesson the voice is.
+      onPosition: (pos) => { try { if (queueRef.current === q && bgRef.current) bgRef.current.setPosition(pos); } catch (_) { /* ignore */ } },
+      onPiece: (i, w) => { if (queueRef.current === q) { setCloudPiece(i); trip().note('piece', { i, ...(w || {}) }); } },
+      onEnd: () => { if (queueRef.current === q) { queueRef.current = null; audioRef.current = null; setCloudPlaying(false); setCloudPaused(false); setCloudProgress(0); setCloudPiece(-1); trip().end('ended'); } },
+      // A piece that cannot be had: the rest of the reading continues in the
+      // device voice rather than stopping (and the panel says which voice).
+      onFallback: (rest, i, reason) => {
+        if (queueRef.current !== q) return;
+        queueRef.current = null; audioRef.current = null;
+        setCloudPiece(-1);
+        liteMissRef.current = reason || 'voice-lite-error';
+        markLiteVoiceMiss(liteMissRef.current);
+        trip().note('fallback', { i, reason: liteMissRef.current, hidden: pageHidden() });
+        // THE SCREEN IS OFF OR ANOTHER APP IS UP: never hand to Web Speech
+        // (DR-0654). Android stops Web Speech in the background, so that
+        // hand-off WAS the "stopped working in the background" report. The
+        // place is held, the reading shows as paused, and it resumes in the
+        // NAS voice the moment the page is seen again (or Play is pressed).
+        // Before it is only held, the piece is asked for again in the dark
+        // (DR-0738), with the keep-alive still playing, longer apart each time.
+        if (pageHidden()) {
+          heldLiteRef.current = rest || '';
+          setCloudPlaying(true); setCloudPaused(true);
+          try { if (bgRef.current) bgRef.current.setState('paused'); } catch (_) { /* ignore */ }
+          armDarkRetryRef.current(reason);
+          return;
+        }
+        setCloudPlaying(false); setCloudProgress(0);
+        // A play the screen refused is a gesture matter, not a voice fault:
+        // the NAS voice is not rested, and the listener is told the one thing
+        // that works.
+        if (isPlayRefusal(reason)) { setNotice(`${sentenceCase(liteVoiceReasonText(reason))}.`); return; }
+        deviceRestRef.current(rest, reason);
+      },
+    });
+    // THE LAST GATE BEFORE THE ELEMENT. Everything above is preparation; from
+    // here the queue owns the one <audio> element, so a superseded read stops
+    // here and takes its clips with it.
+    if (!currentGen(gen)) {
+      q.stop();
+      if (whole) { try { URL.revokeObjectURL(whole.url); } catch (_) { /* ignore */ } }
+      return false;
+    }
+    queueRef.current = q;
+    audioRef.current = a;
+    setCloudPlaying(true); setCloudPaused(false); setCloudProgress(0);
+    markVoice('audio');
+    if (whole) q.join(whole);
+    const ok = await q.start();
+    // CACHE-AHEAD: with the first piece playing, the rest of the reading comes
+    // down two at a time — the NAS voice's own cap, so no request of ours is
+    // ever answered 503 busy by our own fetch-ahead (DR-0786; the NAS answers
+    // a piece in about a second), so the
+    // whole reading is on the device within a minute or two and the rest of it
+    // no longer needs the NAS. Stopped with the reading. Once all of it is
+    // here, the reading moves onto ONE joined file at the next sentence
+    // boundary (DR-0718), so the rest plays with no swap between sentences.
+    if (!whole && ok && queueRef.current === q) {
+      const signal = { aborted: false };
+      aheadRef.current = signal;
+      sourceFor(pinned).ahead({ concurrency: AHEAD_CONCURRENCY, signal, onProgress: (p) => { if (aheadRef.current === signal) setOffline({ ...p, keys, voice }); } })
+        .then(async (res) => {
+          if (signal.aborted || queueRef.current !== q || !res || res.saved < res.total) return;
+          // The speed chip moved since: these pieces are at the old pace, and a
+          // joined file at the old pace would be stretched. The reading stays
+          // piece by piece at the pace it is asking for now.
+          if (q.pace !== pinned) return;
+          const j = await joinFromDevice(pinned);
+          if (!j) return;
+          if (queueRef.current !== q || !q.join(j)) { try { URL.revokeObjectURL(j.url); } catch (_) { /* ignore */ } }
+        })
+        .catch(() => { /* a piece not kept is fetched when it is reached */ });
+    }
+    return ok || queueRef.current === null;
+  }, [liteVoiceFor, setNotice, markVoice]);
+
+  // THE ONE HAND-OFF TO THE DEVICE VOICE (DR-0654). Every path that moves a
+  // reading from an audio voice to the phone's own voice comes through here:
+  // the audio element is silenced first (its handlers detached, so a late
+  // error cannot start a second voice), then the phone speaks in the voice
+  // PINNED for this reading, never a fresh pick from a list that may still be
+  // empty. The switch is said in one line. A device with no voice of its own
+  // (a Fire TV) hears nothing from a hand-off, so it is told why instead.
+  deviceRestRef.current = async (rest, reason) => {
+    silenceAudio();
+    trip().note('handoff', { reason: reason || '' });
+    const pin = readingPinRef.current || (readingPinRef.current = newReadingPin(liteVoiceFor()));
+    // The voice list can still be empty on a cold phone; wait for it rather
+    // than let the phone's default (any gender) take the reading.
+    let voices = tts.voices || [];
+    if (!voices.length && typeof window !== 'undefined' && window.speechSynthesis) {
+      try { voices = await waitForVoices(window.speechSynthesis); } catch (_) { voices = []; }
+    }
+    markVoice('device');
+    if (!tts.supported || !voices.length) {
+      const why = String(reason || '').startsWith('studio') ? 'the studio clip failed' : liteVoiceReasonText(reason, { hasKey: hasBridgeToken() });
+      setNotice(`The reading stopped: ${why}.`);
+      return;
+    }
+    const pick = deviceVoiceForPin(pin, { voices, preferredURI: resolveSpeakURI(voiceId) });
+    pin.uri = pick.uri; pin.matched = pick.matched;
+    if (rest) tts.speak(rest, pick.uri);
+    const man = pin.gender === 'male';
+    setNotice(pick.matched
+      ? `The church’s reading voice stopped, so the rest reads in this phone’s own voice: ${man ? 'a man’s' : 'a woman’s'} voice, as before.`
+      : `The church’s reading voice stopped, so the rest reads in this phone’s own voice. This phone has no ${man ? 'man’s' : 'woman’s'} voice to match it.`);
+  };
+  // A reading held in the background resumes in the NAS voice, from the piece
+  // that failed, once the page is seen (DR-0654). If the NAS voice still
+  // cannot answer then, the page is visible, so the device voice may take it.
+  resumeHeldRef.current = () => {
+    clearDarkRetry();
+    const rest = heldLiteRef.current;
+    if (!rest) return false;
+    heldLiteRef.current = '';
+    setCloudPaused(false);
+    trip().note('resumed', {});
+    playLiteVoice(rest).then((played) => {
+      if (played) return;
+      setCloudPlaying(false); setCloudProgress(0);
+      deviceRestRef.current(rest, liteMissRef.current);
+    });
+    return true;
+  };
+  // TRIED AGAIN IN THE DARK (DR-0738). The held reading asks the NAS for its
+  // piece again while the screen is still off, DARK_RETRY_MS apart; a piece
+  // that comes continues the reading in the dark, and the trip says so. When
+  // every try has failed the reading stays held, as before, for the moment
+  // the app is seen. A refusal to play without a tap is never retried.
+  armDarkRetryRef.current = (reason) => {
+    const d = darkRetryRef.current;
+    if (isPlayRefusal(reason)) { trip().end('held', { reason }); return; }
+    if (d.step >= DARK_RETRY_MS.length) { trip().end('held', { reason }); return; }
+    const wait = DARK_RETRY_MS[d.step];
+    d.step += 1;
+    if (d.timer) { try { clearTimeout(d.timer); } catch (_) { /* ignore */ } }
+    d.timer = setTimeout(() => {
+      d.timer = null;
+      // Seen again meanwhile: the visible path resumes it. Stopped: nothing to do.
+      if (!pageHidden() || !heldLiteRef.current) return;
+      const rest = heldLiteRef.current;
+      heldLiteRef.current = '';
+      trip().note('retry', { step: d.step, wait });
+      playLiteVoice(rest).then((played) => {
+        if (played) {
+          d.step = 0;
+          setCloudPaused(false);
+          try { if (bgRef.current) bgRef.current.setState('playing'); } catch (_) { /* ignore */ }
+          trip().note('resumed-in-the-dark', {});
+          return;
+        }
+        // Still dark, still nothing: hold it again and wait longer. A failure
+        // past the first piece came through onFallback, which already re-armed.
+        if (!heldLiteRef.current) { heldLiteRef.current = rest; armDarkRetryRef.current(liteMissRef.current); }
+      });
+    }, wait);
+  };
+  useEffect(() => {
+    if (typeof document === 'undefined' || !document.addEventListener) return undefined;
+    const onVisible = () => {
+      trip().note(pageHidden() ? 'hidden' : 'visible');
+      if (!pageHidden() && heldLiteRef.current) resumeHeldRef.current();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, []);
+
+  // SAVE A READING FOR LISTENING OFFLINE (DR-0659). The same pieces, the same
+  // keys and the same NAS call the player uses, fetched ahead two at a time (the NAS's own cap)
+  // without playing anything. Resolves with { saved, total, bytes, failed }.
+  const liteKeysFor = useCallback((text) => {
+    const voice = liteVoiceFor();
+    const chunks = chunkForClips(String(text || '').trim());
+    return { voice, chunks, keys: chunks.map((c) => clipKey({ voice, text: forVoice(c.text) })) };
+  }, [liteVoiceFor]);
+  const saveForListening = useCallback(async (text, { onProgress, signal } = {}) => {
+    const { voice, chunks, keys } = liteKeysFor(text);
+    if (!chunks.length) return { saved: 0, total: 0, bytes: 0, failed: 0 };
+    // The same family key a read asks for first (DR-0654): without it every
+    // piece is a 401.
+    if (!hasBridgeToken()) await provisionBridgeToken(supabase).catch(() => { /* the pieces say why */ });
+    const source = createClipSource({
+      keys,
+      cache: deviceClipCache(),
+      fetchBlob: async (i) => {
+        let got = await synthesizeLite({ text: forVoice(chunks[i].text), voice });
+        for (let tries = 0; got.error === 'voice-lite-503' && tries < 4; tries++) {
+          await new Promise((r) => setTimeout(r, 600 * (tries + 1)));
+          got = await synthesizeLite({ text: forVoice(chunks[i].text), voice });
+        }
+        if (got.url) { try { URL.revokeObjectURL(got.url); } catch (_) { /* ignore */ } }
+        return got;
+      },
+      makeUrl: (b) => URL.createObjectURL(b),
+    });
+    const res = await source.ahead({ concurrency: AHEAD_CONCURRENCY, onProgress, signal });
+    return { ...res, keys, voice };
+  }, [liteKeysFor]);
+  /** How much of this reading is on the device: { saved, total, bytes }. */
+  const offlineStatus = useCallback(async (text) => {
+    const { keys } = liteKeysFor(text);
+    return deviceClipCache().status(keys);
+  }, [liteKeysFor]);
+  /** True when every piece of this reading, in the voice it will read in, is on the device. */
+  const savedOnDevice = useCallback(async (text) => {
+    try {
+      const voice = (readingPinRef.current && readingPinRef.current.gender) || liteVoiceFor();
+      const chunks = chunkForClips(String(text || '').trim());
+      if (!chunks.length) return false;
+      const s = await deviceClipCache().status(chunks.map((c) => clipKey({ voice, text: forVoice(c.text) })));
+      return !!s && s.total > 0 && s.saved === s.total;
+    } catch (_) { return false; }
+  }, [liteVoiceFor]);
+
+  // MY VOICE AS REAL AUDIO, ONE PIECE AT A TIME (DR-0721). Each piece is a
+  // few-shot clone on the church's XTTS studio, conditioned on the listener's
+  // own recording (reference_audio) and naming the voice (voice, person_key).
+  // The pieces are the reading's own segments, so the highlight follows the
+  // piece that is playing, and they play through the element unlocked in the
+  // tap. A piece the studio cannot make hands the REST to the NAS stand-in,
+  // and the panel says so in one sentence. Resolves { ok } or { error }.
+  const playMyVoice = useCallback(async (clean, { voice, personKey, referenceDataUri, gen = readGenRef.current }) => {
+    const chunks = chunkForClips(clean);
+    if (!chunks.length || typeof Audio === 'undefined') return { error: 'empty-text' };
+    // The pace the studio speaks this reading at; it follows the speed chip
+    // from the next sentence on (DR-0794), as the NAS stand-in's does.
+    const paceFor = (r) => voiceSpeedFor(r);
+    const pinned = paceFor(rateRef.current);
+    const speakPiece = (t, timeoutMs, sp = pinned) => synthesizeSpeech({
+      text: forVoice(t), voiceId: voice.id, personKey, referenceDataUri, timeoutMs, speed: sp,
+    }).then((r) => (r && r.url ? { ...r, speed: sp } : r));
+    const first = await speakPiece(chunks[0].text, speakTimeoutFor(studioHealth));
+    // An XTTS clone takes its time; a jump made while it worked owns the voice now.
+    if (!currentGen(gen)) return { error: 'superseded' };
+    if (!first || first.error || !first.url) return { error: (first && first.error) || 'voice-service-empty' };
+    const a = liteAudioRef.current || new Audio();
+    liteAudioRef.current = a;
+    let served = false;
+    const q = createClipQueue({
+      chunks,
+      audio: a,
+      rate: rateRef.current,
+      paceFor,
+      fetchClip: (t, i, sp) => {
+        const at = Number(sp) > 0 ? Number(sp) : pinned;
+        if (i === 0 && !served && at === pinned) { served = true; return Promise.resolve(first); }
+        return speakPiece(t, SPEAK_TIMEOUT_MS, at);
+      },
+      revoke: (u) => { try { URL.revokeObjectURL(u); } catch (_) { /* ignore */ } },
+      onProgress: (f) => setCloudProgress(f),
+      onPiece: (i) => { if (queueRef.current === q) setCloudPiece(i); },
+      onPace: (d) => { if (queueRef.current === q) trip().note('pace', d); },
+      onEnd: () => { if (queueRef.current === q) { queueRef.current = null; audioRef.current = null; setCloudPlaying(false); setCloudPaused(false); setCloudProgress(0); setCloudPiece(-1); } },
+      onFallback: (rest, _i, reason) => {
+        if (queueRef.current !== q) return;
+        queueRef.current = null; audioRef.current = null;
+        setCloudPiece(-1);
+        if (isPlayRefusal(reason)) { setCloudPlaying(false); setNotice(`${sentenceCase(liteVoiceReasonText(reason))}.`); return; }
+        const miss = reason || 'voice-service-error';
+        setMyVoiceMiss(miss);
+        if (isStudioRoadProblem(miss)) setStandInWhy('studio-offline');
+        setNotice(myVoiceLine({ name: voice.name, status: myVoiceStatus({ hasSample: true, miss }), miss }));
+        if (!rest) { setCloudPlaying(false); return; }
+        playLiteVoice(rest).then((played) => { if (!played) { setCloudPlaying(false); deviceRestRef.current(rest, miss); } });
+      },
+    });
+    if (!currentGen(gen)) { q.stop(); return { error: 'superseded' }; }
+    queueRef.current = q;
+    audioRef.current = a;
+    setCloudPlaying(true); setCloudPaused(false); setCloudProgress(0);
+    markVoice('audio');
+    const ok = await q.start();
+    return ok || queueRef.current === null ? { ok: true } : { error: 'play-refused' };
+  }, [studioHealth, setNotice, playLiteVoice, markVoice]);
+
+  const read = useCallback(async (text, { title } = {}) => {
     const clean = String(text || '').trim();
     if (!clean) return;
+    // THIS READ'S NUMBER (DR-0764). Taken before anything is awaited, so every
+    // step below can ask whether it is still the reading that owns the voice.
+    readGenRef.current += 1;
+    const gen = readGenRef.current;
+    // ONE READING, ONE VOICE (DR-0654). A read called while a reading is live
+    // (a paragraph jump, the hand-over into the dark, a pick-up) CONTINUES
+    // that reading and keeps its pin; a read from rest starts a new one.
+    const continuing = readingNowRef.current && !!readingPinRef.current;
+    if (!continuing) readingPinRef.current = newReadingPin(liteVoiceFor());
+    if (!continuing) { if (trip().open()) trip().end('left'); trip().start({ title: title || '' }); }
     setNotice('');
+    setStandInWhy('');
     stopCloud();
+    // Claim the audio session INSIDE the user's tap — after an await the
+    // gesture is spent and the browser refuses to start it.
+    claimAudio(title);
+    // THE KEY BEFORE ANY NAS READ, WHATEVER THE VOICE (DR-0654). DR-0574 put
+    // this ask inside the cloned-voice branch only, so the System voice, the
+    // default nobody changes, went to /voice-lite with NO bearer on any device
+    // that had never opened Real Estate, Taxes, the Gallery or the Voice
+    // studio. The NAS answered 401, and on a Fire TV (Silk reports no device
+    // voices) that was silence. Measured in Chromium at 960x540 with a family
+    // key waiting at the RPC: one POST, Authorization absent, 401, nothing
+    // heard. Asking here, once, costs one RPC on a device without the key.
+    const nasRead = isSystemVoiceId(voiceId) || isPersonVoiceId(voiceId);
+    if (nasRead && !hasBridgeToken()) await provisionBridgeToken(supabase);
+    if (!currentGen(gen)) return;
+    // ONE VOICE AT A TIME (DR-0654). An audio voice is about to be tried, so
+    // the phone's own voice stops first; before this, a hand-over or a jump
+    // started the NAS clip while Web Speech was still mid-sentence, and the
+    // reading spoke in two voices at once. tts.stop() only cancels speech this
+    // reader's own engine is speaking (#1796), and the awaits below keep it
+    // well clear of the speak() it could otherwise swallow.
+    if (nasRead) { try { tts.stop(); } catch (_) { /* nothing to stop */ } }
 
     if (isPersonVoiceId(voiceId)) {
       const personKey = personKeyOf(voiceId);
-      const voice = personalVoices.find((v) => v.personKey === personKey);
-      if (voice && resolveVoiceProvider(voice, { sovereignVoiceReady }).real && sovereignVoiceReady) {
+      // A recording keyed by the person's own auth id (user:<uuid>) has no
+      // seed entry, and its consent row may not have loaded: it is still
+      // their voice, and it is still tried (DR-0721), never skipped in silence.
+      const voice = personalVoices.find((v) => v.personKey === personKey)
+        || { id: `voice-${personKey}`, kind: KIND.PERSONAL, personKey, name: '', gender: 'unknown' };
+      if (attemptStudio) {
+        // THE KEY PROVISIONS ITSELF BEFORE THE READ (DR-0574). /speak is gated
+        // on the family bridge key, and the key already provisions itself on a
+        // signed-in family device through the RLS-deny-all + SECURITY DEFINER
+        // RPC pair (migration 0128) — but only Real Estate ever asked for it,
+        // so a device that had never opened Rentals was refused at the studio
+        // door with a key it could have had. Ask here, once, before the first
+        // attempt; a signed-out or non-family device gets nothing and the read
+        // falls back honestly, exactly as before.
+        if (!hasBridgeToken()) await provisionBridgeToken(supabase);
         const refBlob = await loadReference(personKey);
+        if (!currentGen(gen)) return;
         if (refBlob) {
           const referenceDataUri = await blobToDataUri(refBlob);
-          const { url, error } = await synthesizeSpeech({ text: clean, voiceId: voice.id, personKey, referenceDataUri });
-          if (!error && url) {
-            try {
-              const a = new Audio(url); audioRef.current = a; setCloudPlaying(true);
-              a.onended = () => { setCloudPlaying(false); try { URL.revokeObjectURL(url); } catch (_) {} };
-              a.onerror = () => { setCloudPlaying(false); if (tts.supported) tts.speak(clean, resolveSpeakURI(voiceId)); };
-              await a.play();
-              return;
-            } catch (_) { setCloudPlaying(false); }
+          // THE READING IN MY VOICE, PIECE BY PIECE (DR-0721). This sent the
+          // WHOLE lesson as one request, up to 32,000 characters, to a studio
+          // given 45 seconds to answer: an XTTS clone of a lesson takes
+          // minutes, so even an armed studio would have timed out and the
+          // stand-in would have read. Now the reading goes to the studio one
+          // breath-sized piece at a time (the NAS voice's own pieces), each
+          // carrying his recording as the reference, and plays as it comes.
+          const got = await playMyVoice(clean, { voice, personKey, referenceDataUri, gen });
+          if (!currentGen(gen)) return;
+          if (got.ok) {
+            setMyVoiceMiss('');
+            const ep = activeVoiceEndpoint();
+            if (ep && ep.kind === 'bridge') {
+              setNotice('Read in your voice via the vendor bridge — a recorded gap; arming the church’s own voice studio closes it.');
+            }
+            return;
           }
-          setNotice('Voice endpoint unreachable — using a stand-in voice.');
+          const error = got.error || 'voice-service-error';
+          // NEVER A SILENT FALLBACK (DR-0721). A dark studio used to raise no
+          // message at all (2026-09-23, "No headaches"), so the stand-in read
+          // and the only trace was a few words after "Reading…" in a panel
+          // that folds away while it reads. He picked his voice, heard another,
+          // and was told nothing. The one sentence below says whose voice is
+          // reading and why, in the panel and on the folded pill's mark.
+          setMyVoiceMiss(error);
+          if (isStudioRoadProblem(error)) {
+            setStandInWhy('studio-offline');
+            try { console.warn('[read-aloud] studio road failed, stand-in voice used:', error); } catch (_) { /* no console */ }
+          }
+          setNotice(myVoiceLine({ name: voice.name, status: myVoiceStatus({ hasSample: true, miss: error }), miss: error }));
         } else {
-          setNotice('Record a voice sample first — then this reads in that voice.');
+          setMyVoiceMiss('no-voice-sample');
+          setNotice(
+            myVoiceLine({ name: voice.name, status: MY_VOICE.SAMPLE_MISSING }),
+            { href: hrefForView('voice'), label: 'Open the Voice tab' },
+          );
         }
       }
-      // Stand-in until the endpoint/reference is live: a gender-correct browser voice.
+      // Stand-in until the sovereign studio is live: a gender-correct browser voice —
+      // and SAY so (DR-0138), instead of silently sounding like "it never worked".
+      // Status, not a message: the panel prints "stand-in voice until the
+      // studio is armed" beside Reading. Still never silent (DR-0138).
+      if (!sovereignVoiceReady) setStandInWhy((w) => w || 'studio-unarmed');
     }
 
+    // THE SYSTEM VOICE REACHES THE SOVEREIGN STUDIO TOO (DR-0382).
+    //
+    // Darrell 2026-09-13: "can we get close to humans when talking or do we
+    // still have to sound like a computer". Shaping the text fixed the RHYTHM;
+    // this is the TIMBRE. Until now the studio was reachable only by a person's
+    // CLONED voice, because voice-service hardcoded needsReference — so the
+    // System voice, which is the default nobody changes, always fell to the
+    // device engine even on a church running its own voice studio. That one
+    // word is why every lesson sounded like Android.
+    //
+    // Fail-soft by construction: if the studio is not configured, refuses a
+    // built-in request, or errors, this falls straight through to exactly the
+    // device-voice path below. It can only ever sound better, never worse, and
+    // a refusal is remembered so the round trip is paid once.
+    if (isSystemVoiceId(voiceId) && sovereignVoiceReady && builtInVoiceSupport() !== 'no') {
+      const clipSpeed = voiceSpeedFor(rateRef.current);
+      const { url, error } = await synthesizeSpeech({
+        text: toSpokenForm(clean), voiceId: SYSTEM_VOICE.id, allowBuiltIn: true, speed: clipSpeed,
+      });
+      if (!currentGen(gen)) { if (url) { try { URL.revokeObjectURL(url); } catch (_) { /* ignore */ } } return; }
+      if (!error && url) {
+        const ep = activeVoiceEndpoint();
+        if (ep && ep.kind === 'bridge') {
+          setNotice('Read via the vendor bridge — a recorded gap; arming the church’s own voice studio closes it.');
+        }
+        try {
+          const a = new Audio(url); audioRef.current = a; audioSpeedRef.current = clipSpeed; setCloudPlaying(true); setCloudProgress(0); markVoice('audio');
+          // The chosen speed applies to the clip from its first second — the
+          // voice spoke at clipSpeed, the element takes the remainder — and a
+          // device that refuses the rate says so instead of quietly reading slow.
+          const rateApplied = applyClipRate(a, residualRate(rateRef.current, clipSpeed));
+          if (!rateApplied.honored) setNotice(clipRateNotice(rateApplied));
+          // A STREAMED CLIP NEVER REPORTS ITS LENGTH, AND THE HIGHLIGHT FROZE
+          // ON SENTENCE ONE BECAUSE OF IT (2026-09-18). This callback used to
+          // be `const d = a.duration; if (Number.isFinite(d) && d > 0)` and
+          // nothing else — so on a chunk-encoded body, where `duration` is
+          // Infinity for the whole of playback, it set nothing on every tick,
+          // cloudProgress stayed at its initial 0, and the follow highlight
+          // painted the first sentence once and never moved again while the
+          // lesson read on to the end. clipFraction takes a real duration when
+          // one exists and falls back through seekable to a named estimate, so
+          // the highlight keeps moving either way.
+          a.ontimeupdate = () => {
+            const f = clipFraction({
+              currentTime: a.currentTime,
+              duration: a.duration,
+              seekableEnd: seekableEndOf(a),
+              estimatedSeconds: estimateClipSeconds(clean),
+            });
+            if (f != null) setCloudProgress(f);
+          };
+          a.onended = () => { setCloudPlaying(false); setCloudProgress(0); try { URL.revokeObjectURL(url); } catch (_) {} trip().end('ended'); };
+          // A mid-clip failure is NOT silence: hand the same text to the device
+          // engine so the reader keeps hearing the lesson.
+          a.onerror = () => {
+            setCloudPlaying(false); setCloudProgress(0);
+            deviceRestRef.current(clean, 'studio-clip-error');
+          };
+          await a.play();
+          return;
+        } catch (_) { setCloudPlaying(false); setCloudProgress(0); }
+      }
+      // Nothing is said to the reader here on purpose. A built-in miss is not a
+      // failure they can act on — the device voice is about to speak, and the
+      // sovereignty notice above already covers the case that matters.
+    }
+
+    // THE STAND-IN IS AUDIO WHEN IT CAN BE (Darrell 2026-09-24: "Why doesn't
+    // the player remain playing in the background when I switch between
+    // apps?!!? Fix it."). Everything below this point is the phone's Web
+    // Speech engine, which Android stops the moment the app leaves the screen.
+    // So before falling to it, the System voice and a person's stand-in ask
+    // the NAS's own voice (/voice-lite, Piper) for REAL AUDIO, played piece by
+    // piece through one <audio> element: media, which the phone keeps playing.
+    // A browser accent the listener picked on purpose is left as their choice.
+    // A READING SAVED ON THE DEVICE NEEDS NO ROAD (DR-0718). This gate used
+    // to be mayTryLiteVoice() alone: after any NAS miss (offline is a miss)
+    // the saved pieces were never even looked at, and the phone's own voice
+    // read instead, which Android stops the moment he leaves the app. A
+    // reading whose pieces are all on this device plays them, NAS or not.
+    if ((isSystemVoiceId(voiceId) || isPersonVoiceId(voiceId)) && (mayTryLiteVoice() || await savedOnDevice(clean))) {
+      const played = await playLiteVoice(clean, gen);
+      if (played) return;
+    }
+    // A read the listener has already moved past must NEVER reach the phone's
+    // own voice: that is how the superseded text got spoken over the new one.
+    if (!currentGen(gen)) return;
+    markVoice('device');
     if (!tts.supported) { setNotice('This device can’t read aloud — try a different browser.'); return; }
-    tts.speak(clean, resolveSpeakURI(voiceId));
-  }, [voiceId, personalVoices, sovereignVoiceReady, tts, stopCloud, resolveSpeakURI]);
+    // Close the cold-start gap: on a fresh mobile load the device voice list can
+    // still be empty at the tap; a read resolved then falls to the raw OS default
+    // (the wrong gender / "never worked" report — DR-0138). Wait briefly for the
+    // list and resolve against what ACTUALLY arrived — the memoized assignments
+    // were built from the empty list and can't be trusted for this first read.
+    // The PROSODY diversifier rides the same resolution: on a device whose voice
+    // list can't produce a man or two distinct people (the Android one-female-
+    // voice report, 2026-07-10), the person's deterministic PITCH does.
+    const catalogIdOf = (id) => (isSystemVoiceId(id)
+      ? SYSTEM_VOICE.id
+      : isPersonVoiceId(id)
+        ? (fullCatalog.find((x) => x.personKey === personKeyOf(id)) || {}).id
+        : undefined);
+    let uri = resolveSpeakURI(voiceId);
+    let liveAssignments = assignments;
+    let deviceVoices = tts.voices || [];
+    if (!(tts.voices || []).length && typeof window !== 'undefined' && window.speechSynthesis) {
+      const fresh = await waitForVoices(window.speechSynthesis);
+      if (!currentGen(gen)) return;
+      deviceVoices = fresh;
+      if (fresh.length) {
+        liveAssignments = buildStandInAssignments(fullCatalog, fresh);
+        const overrides = loadPersonaVoiceMap();
+        const cidFresh = catalogIdOf(voiceId);
+        if (cidFresh) uri = resolveVoiceURIForId(cidFresh, { assignments: liveAssignments, overrides, available: fresh });
+      } else {
+        // NO VOICES AT ALL, after waiting. This is NOT the cold-start case the
+        // wait exists for (DR-0138) — the list is genuinely empty because the
+        // device has no speech engine installed. Fire TV is the one that found
+        // it: Silk exposes speechSynthesis and SpeechSynthesisUtterance, so
+        // isTTSSupported() answers true and the "can't read aloud" path never
+        // runs, but nothing can ever speak.
+        //
+        // Falling through here would call speak() with no voice, produce
+        // silence, and leave the start watchdog to report 'Audio didn't start
+        // — press play once more', which is ADVICE THAT CANNOT WORK: pressing
+        // again cannot install a voice engine. Naming the real cause costs one
+        // branch and saves someone pressing a button forever.
+        //
+        // AND THE MESSAGE MUST NAME THE RIGHT CAUSE. The first version of this
+        // said "open the lesson on a phone or tablet" — defeatist AND wrong,
+        // because it treats a device limit as the end of the story when the
+        // app already carries a device-independent answer. The System-voice
+        // cloud read above synthesizes server-side and plays through an
+        // <audio> element, which works on Fire TV, on a smart TV, on anything
+        // with a speaker. It did not fire here for exactly one reason: no
+        // voice endpoint is configured. So the notice says which of the two
+        // situations this actually is, because they have completely different
+        // remedies and only one of them is ours to fix.
+        // WHICH of the two it is comes from the PROBE, not from configuration.
+        // It used to come from isVoiceServiceReady(), and that stopped being a
+        // question the moment /voice became a same-origin route: the URL is now
+        // built from window.location and is therefore ALWAYS present, so the
+        // config check answers true on every device and the second branch below
+        // could never render. A message that cannot render is not a message —
+        // and the one that CAN would have told a reader the service "did not
+        // answer" on a night when it was simply never switched on. Same defect
+        // class as DR-0440, which is quoted three files away: a config check
+        // reading as armed. The studio is ASKED instead.
+        //
+        // THE NAS VOICE'S OWN REASON IS THE CAUSE (DR-0654). This notice
+        // used to name only the GPU studio, whatever the NAS voice had said.
+        // On Darrell's Firestick the NAS voice refused a device with no key
+        // (401) and the screen said "the church's voice service did not
+        // answer", sending him to wait for a service that was up. When the
+        // NAS voice was asked, its answer is what is said: no key (sign in),
+        // slow, busy, a missing route, or a play the screen refused.
+        if (nasRead && liteMissRef.current) {
+          setNotice(`This device has no voice of its own, and ${liteVoiceReasonText(liteMissRef.current, { hasKey: hasBridgeToken() })}.`);
+          return;
+        }
+        setNotice(studioHealth === 'down'
+          ? 'This device has no voice of its own, and the church’s voice service did not answer. The text is all here to read; the reading voice returns when the service is back.'
+          : studioHealth === 'up'
+            ? 'This device has no voice of its own, and the church’s voice service is answering but could not read this passage. The text is all here; try once more in a moment.'
+            : 'This device has no voice of its own — and the church’s own voice service has not answered yet. Once it is up, the lesson reads aloud HERE, on this screen, with no device voice needed.');
+        return;
+      }
+    }
+    // A PHONE VOICE PICKED ON PURPOSE IS NEVER SWAPPED IN SILENCE (2026-09-25).
+    // A pick made on another device (it follows the account) may not exist on
+    // this one; the engine then speaks its default. Say so, rather than let the
+    // listener think the pick was ignored.
+    if (!isSystemVoiceId(voiceId) && !isPersonVoiceId(voiceId) && deviceVoices.length
+      && !deviceVoices.some((v) => v && v.voiceURI === voiceId)) {
+      setNotice('The voice you picked is not on this device, so it is reading in the phone’s default voice. Pick again from the Voice list to change it.');
+    }
+    const cid = catalogIdOf(voiceId);
+    // A cast stand-in sets its own pitch to tell characters apart; everything
+    // else reads at the pitch shaped onto the chosen voice (DR-0801).
+    const castPitch = cid ? standInPitch(fullCatalog, liveAssignments, cid) : undefined;
+    const shaped = shapeFor(voiceId, loadVoiceShapes()).pitch;
+    const pitch = Number.isFinite(Number(castPitch))
+      ? castPitch
+      : (Math.abs(shaped - SHAPE_DEFAULT_PITCH) < 0.001 ? undefined : shaped);
+    // THE READING KEEPS ITS VOICE (DR-0654). A reading that already chose a
+    // device voice keeps it through every jump and hand-off; a new reading
+    // pins the voice it starts in, and its gender, so a later hand-over to the
+    // NAS voice speaks as the same kind of voice.
+    const pin = readingPinRef.current;
+    if (pin && continuing && pin.uri) uri = pin.uri;
+    else if (pin) {
+      pin.uri = uri;
+      pin.matched = true;
+      pin.gender = genderOfDeviceVoice(uri, deviceVoices) || pin.gender;
+    }
+    tts.speak(clean, uri, pitch);
+  }, [voiceId, personalVoices, sovereignVoiceReady, attemptStudio, studioHealth, tts, stopCloud, resolveSpeakURI, fullCatalog, assignments, claimAudio, setNotice, playLiteVoice, liteVoiceFor, playMyVoice, savedOnDevice, markVoice]);
+
+  // The OS media buttons drive the SAME controls the panel does — kept in a ref
+  // so a lock-screen tap can never call a stale closure.
+  ctrlRef.current = { pause, resume, stop };
+  readingNowRef.current = !!(tts.isReading || cloudPlaying || heldLiteRef.current);
+  // A reading that ends without an 'ended' of its own (the phone's voice
+  // finishing, or the page left): the trip is closed once nothing has read
+  // for a moment, so a hand-off's short gap never closes it early.
+  const readingNow = readingNowRef.current;
+  useEffect(() => {
+    if (readingNow || !tripRef.current || !tripRef.current.open()) return undefined;
+    const t = setTimeout(() => { if (!readingNowRef.current && tripRef.current && tripRef.current.open()) tripRef.current.end('ended'); }, 1500);
+    return () => clearTimeout(t);
+  }, [readingNow]);
 
   return {
     supported: tts.supported,
+    // The synchronous claim a play handler makes INSIDE the tap, before it
+    // awaits a reveal. Omitting it here is what made claimAudio undefined at
+    // the call site and threw on every press — caught by the reader suite.
+    claimAudio,
+    // The bar's paragraph steps, handed in for the OS skip buttons.
+    setSkipHandlers,
     isReading: tts.isReading || cloudPlaying,
-    isPaused: tts.isPaused,
+    isPaused: tts.isPaused || cloudPaused,
     rate: tts.rate,
     segmentIndex: tts.segmentIndex,
+    // Follow-along (DR-0264): device-voice reads report per-sentence progress
+    // via segmentIndex and, where the engine fires them, per-word boundaries
+    // via this handler. Cloud (cloned-voice) audio has neither — a caller
+    // checks deviceRead before following so a highlight never sits frozen on
+    // sentence 0 while a cloud clip plays.
+    setBoundaryHandler: tts.setBoundaryHandler,
+    deviceRead: !cloudPlaying,
+    cloudProgress,
+    // The NAS voice's piece IS the reading segment (-1 when not playing one).
+    cloudPiece,
+    // Kept on the device (DR-0659): the reading now playing, a save, a count.
+    offline, saveForListening, offlineStatus, savedOnDevice,
+    // The NAS voice reads for the System voice and a person's stand-in; a
+    // browser accent picked on purpose is the device's own voice.
+    usesNasVoice: isSystemVoiceId(voiceId) || isPersonVoiceId(voiceId),
+    liteVoice: liteVoiceFor(),
     voiceId, setVoiceId, catalog, currentItem, notice,
-    read, pause: tts.pause, resume: tts.resume, stop, setRate: tts.setRate,
+    pitch, setPitch, stepPitch, voiceShapes,
+    standInWhy,
+    // My voice, said plainly (DR-0721): { label, status, ready, line, ... } or null.
+    myVoice,
+    audioVoice,
+    // The last reading's trip, for the panel's one-line account (DR-0738).
+    lastTrip: () => trip().last(),
+    // setNotice is exported so the panel can DISMISS a notice (2026-09-22).
+    // Before this the only clear was at the start of the next read, so a
+    // fault message stayed on top of the lesson indefinitely.
+    setNotice,
+    // The door a notice carries, when it has one: { href, label }.
+    noticeAction,
+    read, pause, resume, stop, setRate,
   };
 }

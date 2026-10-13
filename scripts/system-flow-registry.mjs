@@ -1,0 +1,1674 @@
+// =============================================================================
+// system-flow-registry — the declared whole-system flow graph (DR-0622)
+// =============================================================================
+// Every workflow, NAS rider and app surface that moves data declares:
+//   reads  — the resources it reads, each with the file + token that PROVE the
+//            read is in the code (the gate greps for it; default token = the
+//            table name, default file = the node's own file);
+//   writes — the resources it writes, proven the same way;
+//   seeds  — the node(s) its output feeds next (each must share a resource).
+//
+// Resources:
+//   db:<table>[#facet]   a table on the live database (facet = a slice of it,
+//                        measured with its own WHERE);
+//   gh:<thing>           GitHub state (a PR, a check, main, an incident issue,
+//                        a release) — the lane and the witnesses;
+//   gh:run:<file>        a workflow's run result — added for EVERY workflow
+//                        node automatically; read by the flow proof, which
+//                        turns each run into a live row the app and the
+//                        decision board read (the monitors join the loop);
+//   site:, http:, nas:, file:, code:, event:, mail:, yt:, hosted:  the other
+//                        carriers the system really uses, named plainly.
+//
+// A resource written and read by no one else is a DEAD END; read and written
+// by no one is an ORPHAN. Either fails the build unless it is declared a
+// `sink` / `source` with the reason (a person reads it; the outside world
+// writes it). A gap being fixed carries `open: { blocker, reReview }`.
+// Built from the real code (grep of .from('<table>'), remoteTable, rpc, the
+// NAS jobs' /rest/v1 paths, and each workflow's own steps), 2026-09-24.
+// =============================================================================
+
+// A workflow node: its own file is the anchor; its run result is added below.
+const wf = (file, o) => ({ kind: 'workflow', workflow: file, file: `.github/workflows/${file}`, ...o });
+const rider = (ref, file, o) => ({ kind: 'nas', rider: ref, file, ...o });
+const app = (file, o) => ({ kind: 'surface', file, ...o });
+
+const NODES = [
+  // ===========================================================================
+  // 1. FEEDBACK AND TRIAGE — the loop the sender sees close
+  // ===========================================================================
+  app('app/src/lib/feedback-sync.js', {
+    id: 'feedback-door', name: 'Feedback door (any screen)',
+    purpose: 'A person says what is wrong or wanted, from any screen.',
+    writes: [{ res: 'db:feedback', token: "from('feedback').insert" }],
+    reads: [
+      { res: 'event:use-prompt', file: 'app/src/components/OneVoiceInput.jsx', token: 'USE_PROMPT_EVENT' },
+      // The sender's own notes come back with the steward's answer on them.
+      { res: 'db:feedback#triaged', token: "'triage_status'" },
+    ],
+    seeds: ['feedback-queue', 'concerns-board', 'decision-board'],
+  }),
+  app('app/src/components/FeedbackCenter.jsx', {
+    id: 'feedback-queue', name: 'Feedback queue (steward triage)',
+    purpose: 'A steward works each note: promote it to work, mark it being worked on or fixed, or answer it with the reason.',
+    reads: [{ res: 'db:feedback', file: 'app/src/lib/feedback-sync.js', token: 'FEEDBACK_LIST_COLUMNS' }],
+    writes: [
+      { res: 'db:feedback#triaged', file: 'app/src/lib/feedback-loop.js', token: "from('feedback').update" },
+      { res: 'db:projects', token: 'addProject' },
+      { res: 'db:incidents', token: 'addIncident' },
+    ],
+    seeds: ['feedback-receipt', 'projects', 'itsm-incidents'],
+  }),
+  wf('feedback-fixed.yml', {
+    id: 'feedback-fixed', name: 'The shipped fix marks its note Fixed',
+    purpose: 'Once a change that names a note (its board reference or its id) is on the deployed build, the note reads Fixed and says which change fixed it.',
+    reads: [
+      { res: 'db:feedback', token: 'FROM public.feedback' },
+      { res: 'gh:run:deploy-cloudflare-pages.yml', token: 'deploy-cloudflare-pages.yml/runs' },
+    ],
+    writes: [{ res: 'db:feedback#triaged', file: 'scripts/feedback-fixed.mjs', token: "SET triage_status = 'fixed'" }],
+    seeds: ['feedback-receipt', 'feedback-door'],
+  }),
+  app('app/src/lib/feedback-receipt.js', {
+    id: 'feedback-receipt', name: "Sender's receipt",
+    purpose: 'The sender reads where their note stands — received, being worked on, fixed, or declined with the reason.',
+    // DR-0625: the sender's own notes, each with its outcome, read by IntakeOutcomeList.
+    reads: [{ res: 'db:feedback#triaged', file: 'app/src/components/IntakeOutcomeList.jsx', token: 'receiptStatus(n, board)' }],
+    seeds: [],
+  }),
+  app('app/src/components/ConcernsBoard.jsx', {
+    id: 'concerns-board', name: 'Concerns & Solutions board',
+    purpose: 'Every concern with its solution, owner and date — feedback lands here on its own.',
+    reads: [
+      { res: 'db:feedback', file: 'app/src/lib/concerns.js', token: 'feedbackToConcernCards' },
+      { res: 'db:concerns', file: 'app/src/lib/concerns-sync.js' },
+      { res: 'file:audit-findings', file: 'app/src/lib/concerns.js', token: 'audit-findings' },
+    ],
+    writes: [{ res: 'db:concerns', file: 'app/src/lib/concerns-sync.js' }],
+    seeds: ['decision-board'],
+  }),
+  app('app/src/lib/projects-sync.js', {
+    id: 'projects', name: 'Projects',
+    purpose: 'The work a note or a decision became.',
+    reads: [{ res: 'db:projects' }],
+    writes: [{ res: 'db:projects' }],
+    seeds: ['decision-board'],
+  }),
+  app('app/src/lib/incidents-sync.js', {
+    id: 'itsm-incidents', name: 'Incidents (service desk)',
+    purpose: 'A reported fault with its due date and dispatch.',
+    reads: [{ res: 'db:incidents' }],
+    writes: [{ res: 'db:incidents' }],
+    seeds: ['decision-board'],
+  }),
+  app('app/src/lib/use-board-tasks.js', {
+    id: 'board-tasks', name: 'Project boards (tasks)',
+    purpose: 'Each item of work on a board; closing one moves the board.',
+    reads: [{ res: 'db:board_tasks', file: 'app/src/lib/board-tasks-sync.js' }],
+    writes: [{ res: 'db:board_tasks', file: 'app/src/lib/board-tasks-sync.js' }],
+    seeds: ['decision-board'],
+  }),
+  app('app/src/lib/discussions-sync.js', {
+    id: 'discussions', name: 'Discussions and hand-offs',
+    purpose: 'Who handed what to whom.',
+    reads: [{ res: 'db:discussions' }],
+    writes: [{ res: 'db:discussions' }],
+    seeds: ['decision-board'],
+  }),
+
+  // ===========================================================================
+  // 2. THE DECISION BOARD — reads everything above AND the flow proof
+  // ===========================================================================
+  app('app/src/components/DecisionIntelligence.jsx', {
+    id: 'decision-board', name: 'Decision intelligence board',
+    purpose: 'Risks, stalls, owners and decisions, derived from the live rows — and every broken or stale connection in this graph as an escalation.',
+    reads: [
+      { res: 'db:concerns', file: 'app/src/components/Projects.jsx', token: 'concerns={concerns}' },
+      { res: 'db:projects', file: 'app/src/components/Projects.jsx', token: 'projects={projects}' },
+      { res: 'db:discussions', file: 'app/src/components/Projects.jsx', token: 'discussions={discussions}' },
+      { res: 'db:board_tasks', file: 'app/src/components/Projects.jsx', token: 'boardTasks={boardTasks}' },
+      { res: 'db:feedback', file: 'app/src/components/Projects.jsx', token: 'feedback={feedback}' },
+      { res: 'db:incidents', file: 'app/src/components/Projects.jsx', token: 'incidents={incidents}' },
+      { res: 'db:decision_readouts', file: 'app/src/lib/decision-readouts.js' },
+    ],
+    writes: [{ res: 'db:decision_readouts', file: 'app/src/lib/decision-readouts.js' }],
+    seeds: ['flow-proof'],
+  }),
+  app('app/src/components/OperationsIntelligence.jsx', {
+    id: 'ops-board', name: 'PoeTech operations board',
+    purpose: 'The platform’s own escalations: open incidents, due re-reviews, stale loops — and every broken, quiet or open connection of this graph.',
+    reads: [
+      { res: 'gh:incident', token: 'fetchSiteHealth' },
+      { res: 'db:system_flow_proof', token: 'fetchFlowProof' },
+    ],
+    seeds: [],
+  }),
+
+  // ===========================================================================
+  // 3. THE FLOW PROOF — every connection measured on the live database
+  // ===========================================================================
+  wf('system-flow-proof.yml', {
+    id: 'flow-proof', name: 'System flow proof (every 6 hours)',
+    purpose: 'Reads every connection’s live numbers and every workflow’s latest run, and writes them where the app and the decision board read them.',
+    reads: [
+      { res: 'db:decision_readouts', file: 'scripts/system-flow-registry.mjs', token: "'db:decision_readouts'" },
+      { res: 'db:feedback', file: 'scripts/system-flow-registry.mjs', token: "'db:feedback'" },
+    ],
+    writes: [{ res: 'db:system_flow_proof', file: 'scripts/system-flow-graph.mjs' }],
+    seeds: ['ops-board', 'flow-surface'],
+  }),
+  app('app/src/components/QualityProof.jsx', {
+    id: 'flow-surface', name: 'Interconnect — the whole flow, with its live numbers',
+    purpose: 'Every chain, every connection, its numbers and its age, said plainly.',
+    reads: [{ res: 'db:system_flow_proof', file: 'app/src/lib/system-flow.js' }],
+    seeds: [],
+  }),
+
+  // ===========================================================================
+  // 4. OPERATIONS QUEUE — app → NAS ops-runner → app
+  // ===========================================================================
+  app('app/src/lib/ops-commands.js', {
+    id: 'ops-queue', name: 'Operations queue (in the app)',
+    purpose: 'A steward asks the NAS to do a whitelisted job and watches it finish.',
+    writes: [{ res: 'db:ops_commands', token: "from('ops_commands').insert" }],
+    reads: [{ res: 'db:ops_commands#finished', token: "from('ops_commands')" }],
+    seeds: ['ops-runner'],
+  }),
+  rider('service:ops-runner', 'infra/nas-sme-pipeline/ops-runner.py', {
+    id: 'ops-runner', name: 'NAS ops-runner',
+    purpose: 'Drains the queue, runs the job, writes the outcome back to the row.',
+    reads: [{ res: 'db:ops_commands', token: 'status=eq.queued' }],
+    writes: [
+      { res: 'db:ops_commands#finished', token: '"finished_at"' },
+      { res: 'db:video_transcripts', token: 'load-transcripts.py' },
+    ],
+    seeds: ['ops-queue', 'sermon-reader'],
+  }),
+  wf('intake-autofix.yml', {
+    id: 'intake-autofix', name: 'Intake autofix (sort, queue, hand out one fix)',
+    purpose: 'Sorts every live note into its category, queues the low-hanging ones, matches each fix to its pull request and hands out one at a time (DR-0625).',
+    reads: [
+      { res: 'db:feedback', file: 'scripts/intake-autofix-over-tailnet.sh', token: 'FROM public.feedback' },
+      { res: 'db:intake_fix_queue', file: 'scripts/intake-autofix-over-tailnet.sh', token: 'FROM public.intake_fix_queue' },
+    ],
+    writes: [
+      { res: 'db:feedback#triaged', file: 'scripts/intake-autofix.mjs', token: 'UPDATE public.feedback' },
+      { res: 'db:intake_fix_queue', file: 'scripts/intake-autofix.mjs', token: 'INSERT INTO public.intake_fix_queue' },
+    ],
+    seeds: ['feedback-receipt'],
+  }),
+  wf('ops-queue-health.yml', {
+    id: 'ops-queue-health', name: 'Ops-queue health witness',
+    purpose: 'Proves from outside the NAS that the queue still drains.',
+    reads: [{ res: 'db:ops_commands', token: 'ops_commands' }],
+    writes: [{ res: 'gh:incident', token: 'label incident' }],
+    seeds: ['ops-surface'],
+  }),
+
+  // ===========================================================================
+  // 5. LESSON INTAKE — the Gmail door, the in-app door, voice → Whisper
+  // ===========================================================================
+  wf('lesson-mail-watch.yml', {
+    id: 'lesson-mail-watch', name: 'Gmail lesson door (watch)',
+    purpose: 'A forwarded "Lesson." mail wakes the capture session.',
+    reads: [{ res: 'mail:lesson', token: 'imaplib' }],
+    writes: [{ res: 'gh:signal-pr', token: 'SIGNAL_PR' }],
+    seeds: ['lesson-capture'],
+  }),
+  {
+    kind: 'session', id: 'lesson-capture', name: 'Lesson capture (the lesson reader + the Gmail Way)',
+    file: 'docs/decisions/DR-0610-both-lesson-doors-run-in-parallel-until-the-governor-is-confident-the-in-app-reader-is-armed-for-the-parallel-run.md',
+    purpose: 'The armed reader (every 4 hours) and the Gmail Way read each lesson, verify every verse, and write it into the class.',
+    reads: [
+      { res: 'gh:signal-pr', file: '.github/workflows/lesson-mail-watch.yml', token: 'wakes the subscribed capture session' },
+      // DR-0725: the in-app lane wakes on the bell PR's comment, not an hourly clock.
+      { res: 'gh:lesson-bell', file: 'docs/decisions/DR-0725-a-saved-lesson-rings-the-bell-and-the-builders-progress-is-seen-without-a-timer.md', token: 'subscribed to the bell PR' },
+      { res: 'hosted:lesson-mirror', file: 'docs/decisions/DR-0614-the-nas-jobs-follow-the-database-the-app-reads-and-lesson-rows-are-mirrored-to-where-the-reader-can-see-them.md', token: 'the lesson reader picks it up' },
+      { res: 'file:source-transcripts', file: '.github/workflows/source-transcript.yml', token: 'docs/99-session-notes/sources/' },
+    ],
+    writes: [
+      { res: 'code:lessons', file: 'app/src/lib/sovereign-ai-class.js', token: 'Gmail-lesson-intake Way' },
+      // DR-0639: a member's lesson, once published, is tagged on the hosted copy.
+      { res: 'hosted:lesson-published', file: 'app/src/lib/lesson-review-messages.js', token: "PUBLISHED_TAG = 'lesson-published'" },
+      // DR-0672: the builder's progress (captured, its PR, the lesson id) on the hosted copy.
+      { res: 'hosted:lesson-progress', file: 'app/src/lib/lesson-pipeline.js', token: "PR_TAG = 'lesson-pr:'" },
+    ],
+    seeds: ['learn', 'lesson-voice'],
+  },
+  app('app/src/lib/sovereign-ai-class.js', {
+    id: 'learn', name: 'Learn (the classes)',
+    purpose: 'The lessons a person reads, week by week.',
+    reads: [{ res: 'code:lessons', token: 'buildSovereignAiSchedule' }],
+    seeds: [],
+  }),
+  // THE NAS COPY OF THE CURRICULUM (DR-0677): the code stays the master; after
+  // every deploy the copy is synced to the database the app reads and proven
+  // lesson by lesson; the reader overlays it (previews for Darrell and the
+  // Governor, the whole copy in the 'nas' mode) with the bundle as the floor.
+  wf('lessons-sync.yml', {
+    id: 'lessons-sync', name: 'Lessons sync (the code -> the NAS copy, then parity)',
+    purpose: 'After each deploy, gates the lessons in the code, writes them to the NAS copy, reads the copy back and proves it matches lesson by lesson (DR-0677).',
+    reads: [
+      { res: 'code:lessons', file: 'scripts/curriculum-snapshot.mjs', token: 'LEARN_CATALOG' },
+      { res: 'gh:run:deploy-cloudflare-pages.yml', file: '.github/workflows/deploy-cloudflare-pages.yml', token: 'lessons-sync.yml/dispatches' },
+    ],
+    writes: [
+      { res: 'db:curriculum_courses', file: 'scripts/curriculum-snapshot.mjs', token: 'INSERT INTO curriculum_courses' },
+      { res: 'db:curriculum_lessons', file: 'scripts/curriculum-snapshot.mjs', token: 'INSERT INTO curriculum_lessons' },
+      { res: 'db:curriculum_lesson_bands', file: 'scripts/curriculum-snapshot.mjs', token: 'INSERT INTO curriculum_lesson_bands' },
+      { res: 'db:curriculum_lesson_quiz', file: 'scripts/curriculum-snapshot.mjs', token: 'INSERT INTO curriculum_lesson_quiz' },
+      { res: 'db:curriculum_lesson_movements', file: 'scripts/curriculum-snapshot.mjs', token: 'INSERT INTO curriculum_lesson_movements' },
+      { res: 'db:curriculum_lesson_provenance', file: 'scripts/curriculum-snapshot.mjs', token: 'INSERT INTO curriculum_lesson_provenance' },
+      { res: 'db:curriculum_lesson_verse_spans', file: 'scripts/curriculum-snapshot.mjs', token: 'INSERT INTO curriculum_lesson_verse_spans' },
+      { res: 'db:curriculum_sync_runs', file: 'scripts/lessons-sync-over-tailnet.sh', token: 'insert into curriculum_sync_runs' },
+    ],
+    seeds: ['lesson-store'],
+  }),
+  app('app/src/lib/lesson-store.js', {
+    id: 'lesson-store', name: 'Learn reads the NAS copy (bundle first, previews for the Governor)',
+    purpose: 'Overlays the NAS copy on the bundled lessons without ever blanking them: a gated preview for Darrell and the Governor, the whole copy in the nas mode (DR-0677).',
+    reads: [
+      { res: 'db:curriculum_lessons', token: "from('curriculum_lessons')" },
+      { res: 'db:curriculum_lesson_bands', token: 'curriculum_lesson_bands(*)' },
+      { res: 'db:curriculum_lesson_quiz', token: 'curriculum_lesson_quiz(*)' },
+      { res: 'db:curriculum_lesson_movements', token: 'curriculum_lesson_movements(*)' },
+      { res: 'db:curriculum_lesson_provenance', token: 'curriculum_lesson_provenance(*)' },
+    ],
+    seeds: [],
+  }),
+  app('app/src/lib/agent-inbox-sync.js', {
+    id: 'lesson-door', name: 'In-app lesson door (One Voice)',
+    purpose: 'A lesson typed or spoken into the app is filed for capture, and the lessons already written from the Word for those words are shown on the spot (DR-0630).',
+    writes: [
+      { res: 'db:agent_inbox#lesson', token: "from('agent_inbox')" },
+      { res: 'db:agent_inbox#voice', file: 'app/src/lib/lesson-voice.js', token: 'voiceLessonTags' },
+    ],
+    reads: [
+      { res: 'event:use-prompt', file: 'app/src/components/OneVoiceInput.jsx', token: 'USE_PROMPT_EVENT' },
+      // DR-0630: the published lessons, ranked for the person's own words.
+      { res: 'code:lessons', file: 'app/src/lib/lessons-for-situation.js', token: 'buildSelfPacedDescriptors' },
+    ],
+    seeds: ['lesson-voice', 'lesson-inbox', 'member-lesson-queue'],
+  }),
+  // DR-0698: a shared lesson is a note with a link; each share and each open
+  // of its link is recorded, so we know which links work and which do not.
+  app('app/src/lib/lesson-share-record.js', {
+    id: 'lesson-share', name: 'Lesson share + open record',
+    purpose: 'A lesson shared from the app goes out as a note (title, summary, link, how-to) with a token on its link; the share is recorded, and each open of that link records whether the lesson showed, with nothing about the person who opened it.',
+    reads: [
+      { res: 'code:lessons', file: 'app/src/lib/lesson-share.js', token: 'lessonSummary' },
+    ],
+    writes: [
+      { res: 'db:lesson_shares', token: "'lesson_share_record'" },
+      { res: 'db:lesson_share_opens', token: "'lesson_share_open'" },
+    ],
+    seeds: ['lesson-share-ledger'],
+  }),
+  app('app/src/components/LessonShareLedger.jsx', {
+    id: 'lesson-share-ledger', name: 'Lesson shares ledger (Learn → My shares, Admin → Lesson shares)',
+    purpose: 'Shows each share with how many times its link was opened, how many opens showed the lesson and how many failed, with the last reason; the sharer sees their own, the Governor sees all (DR-0698).',
+    reads: [
+      { res: 'db:lesson_shares', file: 'app/src/lib/lesson-share-record.js', token: "'lesson_share_ledger'" },
+      { res: 'db:lesson_share_opens', file: 'app/src/lib/lesson-share-record.js', token: "'lesson_share_ledger'" },
+    ],
+    writes: [],
+    seeds: [],
+  }),
+  // DR-0754: the class record. A learner marks a lesson read or answers its
+  // exam; the same two facts become a real row, and the Governor reads every
+  // learner's (the read wall decides the scope, never the screen).
+  app('app/src/lib/learner-records-sync.js', {
+    id: 'learner-record', name: 'A learner\u2019s record leaves the device (Church \u2192 Learn)',
+    purpose: 'Keeps one row per learner per lesson as he marks it read and answers its exam, so his completion and his scores cross devices instead of living on one phone.',
+    reads: [
+      { res: 'db:learner_lesson_records', token: 'from(TABLE)' },
+    ],
+    writes: [
+      { res: 'db:learner_lesson_records', token: "onConflict: 'user_id,lesson_id'" },
+    ],
+    seeds: ['class-record'],
+  }),
+  app('app/src/components/LearnersPanel.jsx', {
+    id: 'class-record', name: 'Class record (Learn \u2192 Class record)',
+    purpose: 'Shows completion against the course and the competency band from the real exam scores; a learner sees his own, the Governor sees every learner\u2019s, and an untested learner reads \u201cNot yet tested\u201d rather than a painted zero.',
+    reads: [
+      { res: 'db:learner_lesson_records', file: 'app/src/lib/learner-records.js', token: 'aggregateLearnerRecords' },
+    ],
+    writes: [],
+    seeds: [],
+  }),
+  // DR-0720: Add my voice. A person agrees, reads Psalm 23, and the NAS makes
+  // one voiceprint (kept only on the NAS) and writes back added or why not;
+  // removal deletes the consent, and the print on the next pass.
+  app('app/src/lib/voice-enroll.js', {
+    id: 'add-my-voice', name: 'Add my voice (My profile; linked from the recorder and Your lessons)',
+    purpose: 'A signed-in person agrees in plain words, reads Psalm 23 aloud, and sees whether their voice was added or why not; Remove my voice takes it back.',
+    reads: [
+      { res: 'db:voice_enrollments#result', token: "from('voice_enrollments')" },
+    ],
+    writes: [
+      { res: 'db:voice_enrollments', token: "'give_voice_consent'" },
+      { res: 'db:voice_enrollments#sample', token: "'send_voice_sample'" },
+    ],
+    seeds: ['voice-enroll'],
+  }),
+  rider('service:lesson-voice', 'infra/nas-lesson-voice/voice_enroll.py', {
+    id: 'voice-enroll', name: 'Voice enrollment by consent (NAS)',
+    purpose: 'Deletes every voiceprint whose owner removed consent, then turns each consented sample into one voiceprint on the NAS, or a plain reason why not.',
+    reads: [
+      { res: 'db:voice_enrollments', token: 'def list_rows' },
+      { res: 'db:voice_enrollments#sample', token: 'sample-sent' },
+    ],
+    writes: [
+      { res: 'db:voice_enrollments#result', token: 'def update_row' },
+    ],
+    seeds: ['add-my-voice', 'lesson-voice'],
+  }),
+  rider('service:lesson-voice', 'infra/nas-lesson-voice/lesson_voice_transcribe.py', {
+    id: 'lesson-voice', name: 'Whisper + the lesson mirror',
+    purpose: 'Transcribes each spoken lesson on our own machines, and carries every lesson row to where the cloud reader can see it.',
+    reads: [
+      { res: 'db:agent_inbox#voice', token: '/rest/v1/agent_inbox' },
+      { res: 'db:agent_inbox#lesson', token: 'list_lesson_rows' },
+      { res: 'db:agent_inbox#voice-transcript', token: 'rows_to_mirror' },
+      // DR-0635: the Governor's decision on a member's lesson reaches the reader.
+      { res: 'db:agent_inbox#lesson-review', token: 'list_reviewed_rows' },
+      { res: 'hosted:lesson-published', token: 'list_published_rows' },
+      // DR-0672: the build's progress, carried back once each.
+      { res: 'hosted:lesson-progress', token: 'list_progress_rows' },
+      // DR-0720: a self-added voice is named only while its consent stands.
+      { res: 'db:voice_enrollments#result', token: 'consented_voiceprints' },
+    ],
+    writes: [
+      { res: 'db:agent_inbox#voice-transcript', token: '"voice-transcript"' },
+      { res: 'hosted:lesson-mirror', token: 'insert_hosted' },
+      { res: 'db:agent_inbox#lesson-published', token: 'return_published_once' },
+      { res: 'db:agent_inbox#lesson-progress', token: 'return_progress_once' },
+    ],
+    seeds: ['lesson-capture', 'lesson-inbox'],
+  }),
+  rider('service:lesson-builder', 'infra/nas-lesson-builder/lesson_builder.py', {
+    id: 'lesson-builder', name: 'The NAS lesson builder (the words land, the lesson starts)',
+    purpose: 'Starts a lesson the moment a lesson row, a Whisper transcript or an approval is written (pg_notify, no polling): one teaching one lesson, the identical prompt to every configured writer, every version gated against the KJV corpus and kept, one version shipped through the lane or all of them held for Darrell\u2019s decision (DR-0669).',
+    reads: [
+      { res: 'nas:claude-signin', token: 'signed-in Claude Code CLI' },
+      { res: 'db:agent_inbox#lesson', token: 'def pending' },
+      { res: 'db:agent_inbox#voice-transcript', token: '"voice-transcript"' },
+      { res: 'db:agent_inbox#lesson-review', token: '"lesson-approved"' },
+      { res: 'db:lesson_decisions', token: 'FROM public.lesson_decisions' },
+      { res: 'db:lesson_versions', token: 'FROM public.lesson_versions' },
+      { res: 'db:lesson_builder_settings', token: 'FROM public.lesson_builder_settings' },
+      { res: 'db:lesson_parity_promotion', token: 'FROM public.lesson_parity_promotion' },
+    ],
+    writes: [
+      { res: 'db:lesson_versions', token: 'INSERT INTO public.lesson_versions' },
+      { res: 'db:curriculum_lessons', token: 'INSERT INTO public.curriculum_lessons' },
+      { res: 'db:lesson_decisions', token: 'UPDATE public.lesson_decisions' },
+      { res: 'db:lesson_builder_settings', token: 'INSERT INTO public.lesson_builder_settings' },
+      { res: 'code:lessons', token: 'insert_module' },
+      { res: 'db:agent_inbox#lesson-published', token: '"lesson-published"' },
+      // DR-0725: the same notification, and each build milestone, rings the lesson inbox bell.
+      { res: 'event:lesson-waiting', token: 'BELL_EVENT = "lesson-waiting"' },
+      // DR-0771: a row waiting past the window is alarmed through 0252's sweep: the row
+      // gains stale-alarm@<time> (the bell's new milestone) and its person gets one push.
+      { res: 'db:agent_inbox#stale-alarm', token: 'lesson_inbox_stale_sweep' },
+      { res: 'db:push_outbox', file: 'infra/supabase/migrations-auto/0252-a-lesson-that-waits-too-long-rings-again-and-pushes-its-person.sql', token: 'INSERT INTO public.push_outbox' },
+    ],
+    seeds: ['learn', 'lesson-inbox', 'lesson-inbox-bell'],
+  }),
+  wf('voice-intake-health.yml', {
+    id: 'voice-intake-health', name: 'Voice intake witness',
+    purpose: 'Proves on the live database that a spoken recording becomes words: voice rows in, transcripts out, and which Whisper rung wrote each.',
+    reads: [{ res: 'db:agent_inbox#voice', token: 'agent_inbox' }, { res: 'db:agent_inbox#voice-transcript', token: 'voice-transcript' }],
+    writes: [], seeds: [],
+  }),
+  wf('lesson-sources-witness.yml', {
+    id: 'lesson-sources-witness', name: 'Lesson sources witness',
+    purpose: "Reads every researched figure in a lesson back from its publisher's own page on a GitHub runner (the NAS writer has no web; the cloud sandbox cannot reach epi.org or bls.gov), so a real-world claim in a lesson stands on the record, never on memory (DR-0750, DR-0100). A publisher that refuses a machine is said; a readable page that does not say the figure fails, and the lesson is corrected.",
+    reads: [{ res: 'file:app/src/lib/lesson-sources.json', token: 'lesson-sources.json' }],
+    writes: [], seeds: [],
+  }),
+  wf('inbox-lesson-body.yml', {
+    id: 'inbox-lesson-body', name: "The words of Darrell's own lesson row",
+    purpose: "Reads the words of one lesson row created by Darrell's own accounts from the live database the app reads, so a lesson he sends is built without a chat connector; any member's row is refused and never read.",
+    reads: [{ res: 'db:agent_inbox#lesson', token: 'FROM public.agent_inbox' }],
+    writes: [], seeds: [],
+  }),
+  wf('church-video-witness.yml', {
+    id: 'church-video-witness', name: 'The church video as a second witness',
+    purpose: "Reads, from the live database the app reads, whether a church class of a given date has reached the channel sync (choir_sermons) and the NAS transcript trickle (video_transcripts), with the sync's freshness, and on request prints that video's transcript encoded with an md5 round-trip, so a lesson built from an in-app recording is checked against the church's own video (DR-0712, DR-0333). Read-only; never fetches from YouTube.",
+    reads: [{ res: 'db:choir_sermons', token: 'FROM public.choir_sermons' }, { res: 'db:video_transcripts', token: 'public.video_transcripts' }],
+    writes: [], seeds: [],
+  }),
+  wf('inbox-lessons-waiting.yml', {
+    id: 'inbox-lessons-waiting', name: 'Which lesson rows wait',
+    purpose: "Lists the lesson rows not yet captured, building or awaiting review, from the live database the app reads (ids, tags and body length, never a body), so the intake sees what waits without a chat connector; and prints the NAS lesson builder's progress: its service status and, for every row in flight, stage tags, start, elapsed time, attempt, writers, gate results and PR (DR-0725).",
+    reads: [
+      { res: 'db:agent_inbox#lesson', file: 'scripts/lesson-inbox-waiting.sql', token: 'FROM public.agent_inbox' },
+      { res: 'db:lesson_versions', file: 'scripts/lesson-builder-versions.sql', token: 'FROM public.lesson_versions' },
+      { res: 'db:lesson_builder_settings', file: 'scripts/lesson-builder-status.sh', token: 'FROM public.lesson_builder_settings' },
+    ],
+    writes: [], seeds: [],
+  }),
+  wf('lesson-inbox-bell.yml', {
+    id: 'lesson-inbox-bell', name: 'The lesson inbox bell (a lesson waits, the intake wakes)',
+    purpose: "Rung by the lesson-waiting dispatch the NAS sends the moment a lesson row lands or a build reaches a milestone (no schedule): reads the lesson rows in flight and comments on the standing bell PR only when a row reached a new milestone (ids, who, when, building with start, elapsed and attempt, gates passed or failed, awaiting review, shipped with its PR; never a body), so the intake session wakes when a lesson waits instead of every hour (DR-0725).",
+    reads: [
+      { res: 'event:lesson-waiting', token: 'types: [lesson-waiting]' },
+      { res: 'db:agent_inbox#lesson', file: 'scripts/lesson-inbox-progress.sql', token: 'FROM public.agent_inbox' },
+      { res: 'db:agent_inbox#stale-alarm', file: 'scripts/lesson-inbox-bell.mjs', token: 'staleAlarms' },
+      { res: 'db:lesson_versions', file: 'scripts/lesson-builder-versions.sql', token: 'FROM public.lesson_versions' },
+    ],
+    writes: [{ res: 'gh:lesson-bell', token: 'BELL_PR' }],
+    seeds: ['lesson-capture'],
+  }),
+  wf('family-books-probe.yml', {
+    id: 'family-books-probe', name: 'Family Books probe (ledger parity + tax road)',
+    purpose: 'Measures from a runner on the tailnet why two members of one household saw different ledgers (counts and ids per member, instance and account; never a row amount or description), and how far a tax PDF of each size gets on the /taxes road; an opt-in test upload removes itself.',
+    reads: [
+      { res: 'db:transactions', token: 'FROM transactions' },
+      { res: 'http:taxes-upload', token: '/taxes/upload' },
+    ],
+    writes: [], seeds: [],
+  }),
+  wf('apt2-photos-probe.yml', {
+    id: 'apt2-photos-probe', name: 'Apartment 2 photographs probe',
+    purpose: 'Measures from a runner on the tailnet whether a door\u2019s photographs are actually in the live database, and when they arrived \u2014 because from a browser "there are none" and "the read was refused" are the same answer (DR-0876), and the sandbox has no route to the NAS (DR-0125). Counts, kinds and timestamps only: never storage_path, thumb_path or caption, since the first two ARE the photographs and the third is a person\u2019s words about the inside of somebody\u2019s home.',
+    reads: [
+      { res: 'db:property_photos', token: 'FROM property_photos' },
+      { res: 'db:rentals', token: 'FROM rentals' },
+    ],
+    writes: [], seeds: [],
+  }),
+  wf('inbox-lesson-tag.yml', {
+    id: 'inbox-lesson-tag', name: 'A shipped lesson marks its row',
+    purpose: 'Tags the agent_inbox row a lesson was built from (captured, lesson id, PR) on the live database, and published only once the deployed build contains the merge — the road that needs no chat connector.',
+    reads: [
+      { res: 'db:agent_inbox#lesson', token: 'FROM public.agent_inbox' },
+      { res: 'gh:run:deploy-cloudflare-pages.yml', token: 'deploy-cloudflare-pages.yml/runs' },
+    ],
+    writes: [{ res: 'db:agent_inbox#lesson-published', token: 'lesson-published' }],
+    seeds: ['lesson-inbox'],
+  }),
+  app('app/src/components/LessonInbox.jsx', {
+    id: 'lesson-inbox', name: 'Your lessons (sent, heard, written down)',
+    purpose: 'The speaker sees each lesson they sent: received, transcribed, and the words Whisper wrote — shown under the Lesson recorder and on the Notes tab; "Put these words in the box" hands them back to send again (DR-0636).',
+    reads: [
+      { res: 'db:agent_inbox#lesson', file: 'app/src/lib/lesson-inbox.js', token: "from('agent_inbox')" },
+      { res: 'db:agent_inbox#voice-transcript', file: 'app/src/lib/lesson-inbox.js', token: 'voice-transcript' },
+      // DR-0635: approved (being written, name not used) or declined with the reason.
+      { res: 'db:agent_inbox#lesson-review', file: 'app/src/lib/lesson-inbox.js', token: 'review_reason' },
+      { res: 'db:agent_inbox#lesson-published', file: 'app/src/lib/lesson-inbox.js', token: 'publishedLessonOf' },
+      // DR-0672: each lesson's road, arrival to live — the Governor's two doors
+      // through my_lesson_rows() (0241), the build's progress, the PR read live
+      // through the OpsBoard's reads. (lesson_versions and lesson_decisions,
+      // defined by DR-0669's migration 0240, join this list once that migration
+      // is on main: the graph refuses a db: read of a table no migration creates.)
+      { res: 'db:agent_inbox#lesson', file: 'app/src/lib/lesson-inbox.js', token: "rpc('my_lesson_rows'" },
+      { res: 'db:agent_inbox#lesson-progress', file: 'app/src/lib/lesson-inbox.js', token: 'progressTags' },
+      { res: 'gh:pr', file: 'app/src/lib/lesson-pipeline.js', token: 'fetchLessonPrs' },
+    ],
+    writes: [
+      { res: 'event:use-prompt', file: 'app/src/components/LessonInbox.jsx', token: 'sendPromptToBox' },
+      // DR-0728: a lesson row gaining awaiting-review or lesson-published
+      // enqueues a push to its one person; the drain delivers it (0246).
+      { res: 'db:push_outbox', file: 'infra/supabase/migrations-auto/0246-every-arrival-is-counted-a-lesson-ready-or-published-enqueues-a-push.sql', token: 'INSERT INTO public.push_outbox' },
+    ],
+    seeds: ['lesson-door', 'push-outbox-drain'],
+  }),
+  app('app/src/components/MemberLessonQueue.jsx', {
+    id: 'member-lesson-queue', name: 'Members\u2019 lessons to review (the Governor)',
+    purpose: 'A member\u2019s lesson is reviewed by the Governor \u2192 a lesson (approved; the reader writes it, name never used) or a reason (declined; the member reads it beside the lessons they were shown). DR-0635.',
+    reads: [
+      { res: 'db:agent_inbox#lesson', file: 'app/src/lib/member-lesson-review.js', token: "rpc('member_lesson_queue')" },
+      // DR-0639: what is still owed a Message (published, or a decision not yet sent).
+      { res: 'db:agent_inbox#lesson-published', file: 'app/src/lib/member-lesson-review.js', token: "rpc('member_lesson_outbox')" },
+    ],
+    writes: [
+      { res: 'db:agent_inbox#lesson-review', file: 'app/src/lib/member-lesson-review.js', token: "rpc('review_member_lesson'" },
+      // DR-0639: the outcome, sent to the member as an encrypted Message from his client.
+      { res: 'db:direct_messages', file: 'app/src/lib/lesson-review-messages.js', token: 'deps.sendDirectMessage' },
+    ],
+    seeds: ['lesson-voice', 'lesson-inbox'],
+  }),
+
+  // DR-0671: the tower parity loop. Every tower version of a lesson is measured
+  // against the Claude reference, by code; recurring gaps become algorithmic
+  // fixes Claude writes as PRs; a tower that holds parity becomes primary.
+  rider('service:lesson-parity', 'infra/nas-lesson-parity/parity_loop.py', {
+    id: 'lesson-parity', name: 'Tower parity loop (measure, gap, fix, promote)',
+    purpose: 'Measures each tower lesson against the Claude reference with deterministic code, cross-references every version, asks Claude for an algorithmic fix to each recurring gap, and promotes a tower that holds parity (DR-0671).',
+    reads: [
+      { res: 'db:lesson_versions', token: 'lesson_versions' },
+      { res: 'db:lesson_parity_promotion#hold', token: 'list_promotions' },
+      { res: 'nas:services', file: 'infra/nas-lesson-parity/install.sh', token: 'services-sync' },
+    ],
+    writes: [
+      { res: 'db:lesson_parity', token: 'upsert_parity' },
+      { res: 'db:lesson_crossref', token: 'upsert_crossref' },
+      { res: 'db:lesson_parity_fixes', token: 'insert_fix' },
+      { res: 'db:lesson_parity_promotion', token: 'upsert_promotion' },
+    ],
+    // The fix step pushes a branch the lane opens as a PR (gh:branch is the
+    // lane's declared outside source, so it is not re-declared here).
+    seeds: ['tower-parity'],
+  }),
+  app('app/src/components/TowerParity.jsx', {
+    id: 'tower-parity', name: 'Tower parity (the Governor)',
+    purpose: 'Per tower writer: parity over time, open gap classes, fixes written, promotion status; per lesson: every version against every other and the consensus. His Hold is the brake on a promotion (DR-0671).',
+    reads: [
+      { res: 'db:lesson_parity', file: 'app/src/lib/tower-parity.js', token: "from('lesson_parity')" },
+      { res: 'db:lesson_crossref', file: 'app/src/lib/tower-parity.js', token: "from('lesson_crossref')" },
+      { res: 'db:lesson_parity_fixes', file: 'app/src/lib/tower-parity.js', token: "from('lesson_parity_fixes')" },
+      { res: 'db:lesson_parity_promotion', file: 'app/src/lib/tower-parity.js', token: "from('lesson_parity_promotion')" },
+    ],
+    writes: [{ res: 'db:lesson_parity_promotion#hold', file: 'app/src/lib/tower-parity.js', token: "rpc('set_lesson_parity_hold'" }],
+    seeds: ['lesson-parity'],
+  }),
+
+  // ===========================================================================
+  // 6. PROMPT HISTORY — what you sent comes back to be sent again
+  // ===========================================================================
+  app('app/src/components/OneVoiceInput.jsx', {
+    id: 'one-voice', name: 'One Voice box',
+    purpose: 'The one box every lesson and request is sent from; each one is kept.',
+    writes: [
+      { res: 'db:saved_prompts', file: 'app/src/lib/saved-prompts.js', token: "rpc('remember_prompt'" },
+      // The PoeTech and Conference chips reach the steward's feedback queue (DR-0622).
+      { res: 'db:feedback', file: 'app/src/lib/poetech-request.js', token: 'uploadFeedback' },
+      { res: 'db:feedback', token: "currentView: 'Conference · One Voice'" },
+      { res: 'db:agent_inbox#poetech', file: 'app/src/lib/poetech-request.js', token: "'tell-poetech'" },
+    ],
+    reads: [{ res: 'event:use-prompt', token: 'USE_PROMPT_EVENT' }],
+    seeds: ['prompt-history', 'feedback-queue'],
+  }),
+  app('app/src/components/PromptHistory.jsx', {
+    id: 'prompt-history', name: 'Your prompts',
+    purpose: 'Every prompt, dated and reusable — "Put it in the box" sends it again.',
+    reads: [{ res: 'db:saved_prompts', file: 'app/src/lib/saved-prompts.js', token: "from('saved_prompts')" }],
+    writes: [{ res: 'event:use-prompt', file: 'app/src/lib/saved-prompts.js', token: 'USE_PROMPT_EVENT' }],
+    seeds: ['one-voice', 'lesson-door', 'feedback-door'],
+  }),
+
+  // ===========================================================================
+  // 7. ASK THE MODELS — app → NAS agent → app
+  // ===========================================================================
+  app('app/src/components/ChatPane.jsx', {
+    id: 'chat-pane', name: 'Ask the models',
+    purpose: 'A question goes to the box; the answer comes back into the pane.',
+    writes: [{ res: 'db:agent_tasks', token: "from('agent_tasks').insert" }],
+    reads: [{ res: 'db:agent_tasks#answered', token: "from('agent_tasks')" }],
+    seeds: ['agent-consumer'],
+  }),
+  rider('service:agent-consumer', 'infra/nas-agent/agent_consumer.py', {
+    id: 'agent-consumer', name: 'NAS agent (answers the pane)',
+    purpose: 'Answers each question on our own models and writes the answer to the row.',
+    reads: [{ res: 'db:agent_tasks', token: 'agent_tasks' }, { res: 'nas:agent-credential', token: 'AGENT_DB_URL' }],
+    writes: [{ res: 'db:agent_tasks#answered', token: 'result' }],
+    seeds: ['chat-pane'],
+  }),
+
+  // ===========================================================================
+  // 8. THE FAMILY KEY — NAS publishes, every device provisions itself
+  // ===========================================================================
+  rider('service:family-key', 'infra/nas-bridge-publish/publish_family_key.py', {
+    id: 'family-key', name: 'NAS publishes the family key',
+    purpose: 'The key the family NAS doors need, published by the NAS itself.',
+    writes: [{ res: 'db:family_secure_config', token: 'box_publish_family_bridge_token' }],
+    seeds: ['bridge-provision'],
+  }),
+  app('app/src/lib/bridge-provision.js', {
+    id: 'bridge-provision', name: 'Device provisions the family key',
+    purpose: 'Each family device picks up the key on its own.',
+    reads: [{ res: 'db:family_secure_config', token: 'get_family_bridge_token' }],
+    writes: [
+      { res: 'device:family-key', token: 'localStorage' },
+      { res: 'db:family_secure_config', file: 'app/src/lib/bridge-provision.js', token: 'set_family_bridge_token' },
+    ],
+    seeds: ['nas-photos', 'voice-studio', 'books-taxes'],
+  }),
+  app('app/src/lib/nas-photos.js', {
+    id: 'nas-photos', name: 'Photos from the family NAS',
+    purpose: 'Property, family and album photos served from our own box.',
+    reads: [{ res: 'device:family-key', token: 'bridgeToken' }, { res: 'http:nas-photos', token: '/nas-photos' }],
+    seeds: [],
+  }),
+  app('app/src/lib/vault-store.js', {
+    id: 'vault', name: 'Vault (passwords locked on the device, kept on our server)',
+    purpose: 'A person’s passwords, encrypted in the browser under their own passphrase; the server holds ciphertext only (0251, DR-0762).',
+    reads: [{ res: 'db:vault_header', token: "from('vault_header')" }, { res: 'db:vault_items', token: "from('vault_items')" }],
+    writes: [{ res: 'db:vault_header', token: "from('vault_header').upsert" }, { res: 'db:vault_items', token: "from('vault_items').upsert" }],
+    seeds: [],
+  }),
+  app('app/src/lib/cameras.js', {
+    id: 'cameras', name: 'Cameras (the family’s cameras in the app)',
+    purpose: 'Frames and live video from the family’s own cameras — Wyze, Ring, ONVIF, RTSP — through the NAS, behind the family key and short playback tickets (DR-0756).',
+    reads: [{ res: 'device:family-key', file: 'app/src/components/Cameras.jsx', token: 'bridgeToken' }, { res: 'http:cams', token: '/cams' }],
+    seeds: [],
+  }),
+  app('app/src/lib/clip-queue.js', {
+    id: 'reader-audio-voice', name: 'Reader audio voice (keeps playing when you switch apps)',
+    purpose: 'The reading as real audio clips from the NAS voice, so a phone keeps playing it in the background (DR-0627).',
+    reads: [{ res: 'device:family-key', file: 'app/src/lib/voice-service.js', token: 'bridgeToken' }, { res: 'http:voice-lite', file: 'app/src/lib/voice-service.js', token: '/voice-lite' }],
+    seeds: [],
+  }),
+  app('app/src/components/VoiceStudio.jsx', {
+    id: 'voice-studio', name: 'Voice studio',
+    purpose: 'The reading voice, spoken by our own studio.',
+    reads: [{ res: 'device:family-key', token: 'provisionBridgeToken' }, { res: 'http:voice', file: 'app/src/lib/voice-service.js', token: '/voice' }],
+    seeds: [],
+  }),
+  app('app/src/components/BooksTaxes.jsx', {
+    id: 'books-taxes', name: 'Books → Taxes',
+    purpose: 'Tax documents uploaded to and read back from our own box.',
+    reads: [{ res: 'device:family-key', token: 'provisionBridgeToken' }, { res: 'http:taxes', token: '/taxes' }],
+    writes: [{ res: 'http:taxes-upload', token: '/taxes' }],
+    seeds: ['tax-upload'],
+  }),
+
+  // ===========================================================================
+  // 9. TRANSCRIPTS → SERMONS → THE WORD / LEARN
+  // ===========================================================================
+  rider('service:choir-dates', 'infra/church-media-golive/choir_dates_sync.py', {
+    id: 'choir-dates', name: 'NAS dates every service video',
+    purpose: 'Gives each undated service its real date from the video itself.',
+    reads: [{ res: 'db:choir_sermons', token: 'choir_sermons' }, { res: 'yt:channel', token: 'yt-dlp' }],
+    writes: [{ res: 'db:choir_sermons', token: 'service_date' }],
+    seeds: ['sermon-reader', 'transcript-trickle'],
+  }),
+  rider('service:transcript-trickle', 'infra/nas-sme-pipeline/load-transcripts.py', {
+    id: 'transcript-trickle', name: 'NAS transcript trickle',
+    purpose: 'Fetches each service video’s words from the NAS’s own address.',
+    reads: [{ res: 'db:choir_sermons', token: 'choir_sermons' }, { res: 'yt:channel', token: 'youtube' }],
+    writes: [{ res: 'db:video_transcripts', token: 'video_transcripts' }],
+    seeds: ['sermon-reader', 'harvest-ledger', 'harvest-health'],
+  }),
+  app('app/src/lib/choir-sync.js', {
+    id: 'sermon-store', name: 'Service record (sermons + songs)',
+    purpose: 'Stewards add and correct services and songs by hand.',
+    writes: [
+      { res: 'db:choir_sermons', token: "from('choir_sermons').insert" },
+      { res: 'db:choir_songs', token: "from('choir_songs').insert" },
+    ],
+    reads: [{ res: 'db:choir_sermons', token: 'choir_sermons' }, { res: 'db:choir_songs', token: 'choir_songs' }],
+    seeds: ['sermon-reader', 'songbook', 'scripture-web', 'library'],
+  }),
+  app('app/src/components/Pulpit.jsx', {
+    id: 'sermon-reader', name: 'The Word (Pulpit) — sermons with their words',
+    purpose: 'Each service with its transcript, harvest and reach.',
+    reads: [
+      { res: 'db:choir_sermons', token: 'subscribeSermons' },
+      { res: 'db:video_transcripts', file: 'app/src/lib/sermon-library-sync.js' },
+      { res: 'db:video_harvests', file: 'app/src/lib/sermon-library-sync.js' },
+      { res: 'db:sermon_video_stats', file: 'app/src/lib/sermon-library-sync.js' },
+    ],
+    seeds: [],
+  }),
+  app('app/src/components/HarvestLedger.jsx', {
+    id: 'harvest-ledger', name: 'Harvest ledger',
+    purpose: 'What each service yielded — songs, points, words — recorded against its video.',
+    reads: [{ res: 'db:video_transcripts', file: 'app/src/lib/harvest-ledger.js' }, { res: 'db:video_harvests', file: 'app/src/lib/harvest-ledger.js' }],
+    writes: [{ res: 'db:video_harvests', file: 'app/src/lib/harvest-ledger.js', token: "from('video_harvests').insert" }],
+    seeds: ['sermon-reader'],
+  }),
+  app('app/src/components/ScriptureLibrary.jsx', {
+    id: 'scripture-web', name: 'Scripture connections',
+    purpose: 'A verse shows where the church preached and sang it.',
+    reads: [{ res: 'db:choir_sermons', token: 'subscribeSermons' }, { res: 'db:choir_songs', file: 'app/src/components/ScriptureConnections.jsx', token: 'connectionsFor' }],
+    seeds: [],
+  }),
+  app('app/src/components/Library.jsx', {
+    id: 'library', name: 'Library (sermon-based books)',
+    purpose: 'Book recipes built from the real sermons.',
+    reads: [{ res: 'db:choir_sermons', token: 'subscribeSermons' }],
+    seeds: [],
+  }),
+  app('app/src/components/ChoirSongbook.jsx', {
+    id: 'songbook', name: 'Choir songbook + order of service',
+    purpose: 'The repertoire, and the songs placed in each service.',
+    reads: [
+      { res: 'db:choir_songs', file: 'app/src/components/Choir.jsx', token: 'subscribeSongs' },
+      { res: 'db:church_service_segments', file: 'app/src/lib/service-program.js' },
+    ],
+    writes: [
+      { res: 'db:choir_songs', file: 'app/src/lib/choir-songbook-sync.js', token: "from('choir_songs').insert" },
+      { res: 'db:church_service_segments', file: 'app/src/lib/service-program.js' },
+    ],
+    seeds: ['scripture-web'],
+  }),
+  wf('harvest-health.yml', {
+    id: 'harvest-health', name: 'Harvest health witness',
+    purpose: 'Proves from outside the NAS that transcripts keep arriving; heals a silent rider.',
+    reads: [{ res: 'db:video_transcripts' }, { res: 'db:choir_sermons' }, { res: 'hosted:db', token: 'SUPABASE_DB_URL' }],
+    writes: [{ res: 'gh:incident', token: '--label incident' }, { res: 'gh:heal-nas', token: 'gh workflow run nas-bootstrap.yml' }],
+    seeds: ['ops-surface', 'nas-bootstrap'],
+  }),
+  wf('video-stats.yml', {
+    id: 'video-stats', name: 'Video reach from the channel’s own feed',
+    purpose: 'Each recent service video’s public views and likes, onto the service record the Pulpit ranks by.',
+    reads: [
+      { res: 'yt:channel', file: 'scripts/video-stats-feed.mjs', token: 'FEED_URL' },
+      { res: 'db:choir_sermons', file: 'scripts/video-stats-feed.mjs', token: 'choir_sermons' },
+    ],
+    writes: [{ res: 'db:sermon_video_stats', file: 'scripts/video-stats-feed.mjs', token: 'INSERT INTO public.sermon_video_stats' }],
+    seeds: ['sermon-reader'],
+  }),
+  wf('corpus-reconcile.yml', {
+    id: 'corpus-reconcile', name: 'Corpus reconcile (the channel vs our record)',
+    purpose: 'Compares the channel’s videos with the service record so none is missing.',
+    reads: [{ res: 'db:choir_sermons', token: 'choir_sermons' }, { res: 'yt:channel', token: 'youtube' }],
+    writes: [],
+    seeds: [],
+  }),
+  wf('transcript-backfill.yml', {
+    id: 'transcript-backfill', name: 'Transcript backfill (runs the NAS trickle on demand)',
+    purpose: 'A hand dispatch runs the transcript-trickle rider on the NAS, under the trickle’s own stamp and budget (DR-0622: combined with its working twin); the runner lane runs only with residential proxy secrets.',
+    reads: [{ res: 'yt:channel', file: 'infra/nas-sme-pipeline/transcript-backfill-ci.py', token: 'youtube' }],
+    writes: [{ res: 'db:video_transcripts', token: 'transcript_trickle_install.sh' }, { res: 'hosted:db', token: 'SUPABASE_DB_URL' }],
+    seeds: ['content-sync', 'sermon-reader'],
+  }),
+  wf('sovereign-content-sync.yml', {
+    id: 'content-sync', name: 'Sovereign content sync (retired → live)',
+    purpose: 'Carries rows the NAS pipelines filed on the retired backend to the database the app reads.',
+    reads: [{ res: 'hosted:db', file: 'infra/nas-supabase/content_sync.py', token: 'source' }],
+    writes: [
+      { res: 'db:choir_sermons', file: 'infra/nas-supabase/content_sync.py', token: 'choir_sermons' },
+      { res: 'db:video_transcripts', file: 'infra/nas-supabase/content_sync.py', token: 'video_transcripts' },
+    ],
+    seeds: ['sermon-reader'],
+  }),
+
+  // ===========================================================================
+  // 10. SITE HEALTH → INCIDENTS → THE OPERATIONS READOUT
+  // ===========================================================================
+  wf('site-health.yml', {
+    id: 'site-health', name: 'Site health witness',
+    purpose: 'Proves poetech.us is up, whole and fresh, from outside; heals a stale build.',
+    reads: [{ res: 'site:poetech.us', token: 'poetech.us' }],
+    writes: [{ res: 'gh:incident', token: '--label incident' }, { res: 'gh:deploy-heal', token: 'gh workflow run deploy-cloudflare-pages.yml' }],
+    seeds: ['ops-surface', 'deploy'],
+  }),
+  // THE STRANGER'S SCREEN, BESIDE THE PIPELINE'S (DR-0973). site-health above
+  // proves the site is UP and FRESH; it has never had an opinion about whether
+  // a listing card tells the truth. This one reads the card, and the door's
+  // own labels from the database, and fails when they disagree.
+  wf('public-shelf-witness.yml', {
+    id: 'public-shelf-witness', name: 'Public shelf witness',
+    purpose: 'Proves every advertised card says what the door actually IS — a whole unit, a private room, or a bed in a shared home.',
+    reads: [
+      { res: 'site:poetech.us', token: 'poetech.us/properties/app/' },
+      { res: 'db:rentals', token: 'public.public_vacancies()' },
+    ],
+    writes: [{ res: 'gh:incident', token: '--label incident' }],
+    seeds: ['ops-surface'],
+  }),
+  app('app/src/lib/site-health.js', {
+    id: 'ops-surface', name: 'OpsBoard uptime + incident ledger',
+    purpose: 'Every outage and stall the witnesses recorded, with its duration.',
+    reads: [{ res: 'gh:incident', token: 'labels=incident' }],
+    seeds: [],
+  }),
+  wf('openclaw-tower.yml', {
+    id: 'openclaw-tower', name: 'OpenClaw on the 4070 tower (DR-0670)',
+    purpose: 'Ships OpenClaw to the GPU tower behind its brakes, fires the report-only pilot on the lane facts, and records what it measured.',
+    reads: [{ res: 'gh:pr', token: 'pulls?state=open' }, { res: 'file:openclaw-registry', token: 'infra/openclaw-tower/registry.json' }],
+    writes: [{ res: 'tower:openclaw', token: 'docker compose up -d openclaw-gateway' }, { res: 'gh:openclaw-tower', token: '--label openclaw-tower' }],
+    seeds: ['openclaw-tower-surface'],
+  }),
+  app('app/src/lib/openclaw-tower.js', {
+    id: 'openclaw-tower-surface', name: 'OpsBoard OpenClaw tower strip',
+    purpose: 'Up, model, last run and brakes of OpenClaw on the tower, read live; unknown when unknown.',
+    reads: [{ res: 'gh:openclaw-tower', token: 'labels=openclaw-tower' }],
+    seeds: [],
+  }),
+
+  // ===========================================================================
+  // 11. THE DELIVERY LANE — branch → PR → gates → merge → deploy → witness
+  // ===========================================================================
+  wf('auto-open-pr.yml', {
+    id: 'auto-open-pr', name: 'Auto-open PR', runRule: 'any-success', purpose: 'A pushed branch becomes a PR.',
+    reads: [{ res: 'gh:branch', token: 'push:' }], writes: [{ res: 'gh:pr', token: 'gh pr create' }], seeds: ['ci', 'auto-merge', 'pr-janitor'],
+  }),
+  wf('ci.yml', {
+    id: 'ci', name: 'CI — every gate', runRule: 'any-success', purpose: 'Lint, the full test suite, every guard (this graph’s included) and a real build.',
+    reads: [{ res: 'gh:pr', token: 'pull_request' }], writes: [{ res: 'gh:check', token: 'npx vitest run' }], seeds: ['auto-merge'],
+  }),
+  wf('auto-merge.yml', {
+    id: 'auto-merge', name: 'Auto-merge on green', runRule: 'product:deploy-cloudflare-pages.yml', purpose: 'Merges the PR the moment its gates pass; dispatches the deploy.',
+    reads: [{ res: 'gh:pr', token: 'gh pr list' }, { res: 'gh:check', token: 'workflow_run' }, { res: 'gh:automerge-dispatch', token: 'workflow_dispatch' }],
+    writes: [{ res: 'gh:main', token: 'gh pr merge' }, { res: 'gh:deploy-heal', token: 'gh workflow run deploy-cloudflare-pages.yml' }],
+    seeds: ['deploy', 'db-migrate', 'deploy-freshness'],
+  }),
+  wf('deploy-cloudflare-pages.yml', {
+    id: 'deploy', name: 'Deploy to Cloudflare Pages', purpose: 'Main becomes the live site.',
+    reads: [{ res: 'gh:main', token: 'branches' }, { res: 'gh:deploy-heal', token: 'workflow_dispatch' }],
+    writes: [{ res: 'site:poetech.us', token: 'wrangler' }, { res: 'gh:incident', token: '--label incident' }],
+    seeds: ['site-health', 'install-health', 'live-link-probe', 'level-witness'],
+  }),
+  wf('deploy-freshness.yml', {
+    id: 'deploy-freshness', name: 'Deploy freshness heal', purpose: 'A merge that never deployed is deployed.',
+    reads: [{ res: 'gh:main', token: 'main' }], writes: [{ res: 'gh:deploy-heal', token: 'gh workflow run deploy-cloudflare-pages.yml' }], seeds: ['deploy'],
+  }),
+  wf('db-migrate.yml', {
+    id: 'db-migrate', name: 'Migration lane', purpose: 'A merged migration is applied to the live database and recorded in its ledger.',
+    reads: [{ res: 'gh:main', token: 'migrations-auto' }, { res: 'gh:migrate-heal', token: 'workflow_dispatch' }],
+    writes: [
+      { res: 'db:_sovereign_replay', file: 'infra/nas-supabase/replay_migrations.sh', token: 'INSERT INTO public._sovereign_replay' },
+      { res: 'hosted:db', file: 'scripts/db-migrate-apply.sh', token: '_schema_migrations' },
+      { res: 'gh:rls-dispatch', token: 'rls-isolation' },
+    ],
+    seeds: ['rls-isolation', 'schema-health'],
+  }),
+  wf('migrate-freshness.yml', {
+    id: 'migrate-freshness', name: 'Migration freshness heal', purpose: 'A merged migration that never applied is applied.',
+    reads: [{ res: 'gh:main', token: 'main' }], writes: [{ res: 'gh:migrate-heal', token: 'gh workflow run db-migrate.yml' }], seeds: ['db-migrate'],
+  }),
+  wf('rls-isolation.yml', {
+    id: 'rls-isolation', name: 'RLS isolation matrix', purpose: 'Proves on the real database that no tenant reads another’s rows.',
+    reads: [{ res: 'gh:rls-dispatch', token: 'workflow_run' }], writes: [], seeds: [],
+  }),
+  app('app/src/lib/db-health.js', {
+    id: 'schema-health', name: 'Schema health (migration ledger in the app)',
+    purpose: 'Which migrations reached the live database, read in the app.',
+    reads: [{ res: 'db:_sovereign_replay', file: 'infra/supabase/migrations-auto/0235-the-migration-ledger-the-app-shows-is-the-live-ones.sql', token: 'FROM public._sovereign_replay' }], seeds: [],
+  }),
+  wf('pr-janitor.yml', {
+    id: 'pr-janitor', name: 'PR janitor', purpose: 'Closes PRs that carry nothing beyond main.',
+    reads: [{ res: 'gh:pr', token: 'gh pr list' }], writes: [], seeds: [],
+  }),
+  wf('keep-prs-current.yml', {
+    id: 'keep-prs-current', name: 'Keep PRs current (DR-0644)',
+    purpose: 'Main is merged into every live agent PR; the two ledger files resolve themselves, anything else is named to its owner.',
+    reads: [{ res: 'gh:main', token: 'origin/main' }, { res: 'gh:pr', token: 'gh pr list' }],
+    writes: [
+      { res: 'gh:automerge-dispatch', token: 'gh workflow run auto-merge.yml' },
+      { res: 'gh:pr-advice', token: 'owner, merge main' },
+    ],
+    seeds: ['auto-merge'],
+  }),
+  wf('install-health.yml', {
+    id: 'install-health', name: 'Install health witness', purpose: 'Proves the site installs as an app.',
+    reads: [{ res: 'site:poetech.us', token: 'poetech.us' }], writes: [], seeds: [],
+  }),
+  wf('live-link-probe.yml', {
+    id: 'live-link-probe', name: 'Live link probe', purpose: 'A real browser opens a shared lesson link.',
+    reads: [{ res: 'site:poetech.us', token: 'poetech.us' }], writes: [], seeds: [],
+  }),
+  wf('level-witness.yml', {
+    id: 'level-witness', name: 'Reader level witness', purpose: 'Proves the reader’s level switch on the live site.',
+    reads: [{ res: 'site:poetech.us', token: 'poetech.us' }], writes: [{ res: 'gh:incident', token: 'incident' }], seeds: ['ops-surface'],
+  }),
+  wf('daily-review.yml', {
+    id: 'daily-review', name: 'Daily system review', purpose: 'The daily deterministic health and leverage scan.',
+    reads: [{ res: 'gh:main', token: 'checkout' }], writes: [], seeds: [],
+  }),
+  wf('review-watcher.yml', {
+    id: 'review-watcher', name: 'Review watcher', purpose: 'Every dated re-review becomes a tracked item when it falls due.',
+    reads: [{ res: 'file:decision-ledger', file: 'scripts/review-watcher.mjs', token: 'decisions' }], writes: [{ res: 'gh:review-issue', token: 'gh issue create' }], seeds: [],
+  }),
+  wf('ari-comprehensive-review.yml', {
+    id: 'ari-review', name: 'Ari comprehensive review', purpose: 'The event-activated comprehensive review, report only.',
+    reads: [{ res: 'gh:main', token: 'checkout' }], writes: [], seeds: [],
+  }),
+  wf('pm-synth.yml', {
+    id: 'pm-synth', name: 'PM synthesizer', purpose: 'A read-only portfolio brief of the open PRs.',
+    reads: [{ res: 'gh:pr', token: 'gh pr list' }], writes: [], seeds: [],
+  }),
+
+  // ===========================================================================
+  // 12. RELEASES — the installable app
+  // ===========================================================================
+  wf('android-package.yml', {
+    id: 'android-package', name: 'Android package', purpose: 'Builds the installable Android app.',
+    reads: [{ res: 'gh:main', token: 'checkout' }], writes: [{ res: 'gh:release', token: 'gh release' }], seeds: ['app-store'],
+  }),
+  wf('native-shell.yml', {
+    id: 'native-shell', name: 'Native shell', purpose: 'Builds the family’s local Android app.',
+    reads: [{ res: 'gh:main', token: 'checkout' }], writes: [{ res: 'gh:release', token: 'gh release' }], seeds: ['app-store'],
+  }),
+  app('app/src/lib/app-store.js', {
+    id: 'app-store', name: 'Get the app (download)', purpose: 'The download button reads the latest release.',
+    reads: [{ res: 'gh:release', token: 'releases/download' }], seeds: [],
+  }),
+
+  // ===========================================================================
+  // 13. NAS REMOTE HANDS — the runner reaches the box
+  // ===========================================================================
+  wf('nas-bootstrap.yml', {
+    id: 'nas-bootstrap', name: 'NAS bootstrap (remote hands)', purpose: 'Pulls the repo mirror and runs every installer.',
+    reads: [{ res: 'gh:heal-nas', token: 'workflow_dispatch' }], writes: [{ res: 'nas:mirror', token: 'services-sync' }], seeds: ['services-sync'],
+  }),
+  rider('loop:services-sync', 'infra/nas-loops/loops/services-sync.sh', {
+    id: 'services-sync', name: 'NAS self-deploy (services-sync)', purpose: 'Merging a service to main IS its NAS deploy.',
+    reads: [{ res: 'nas:mirror', token: 'services.json' }, { res: 'nas:clock', file: 'infra/nas-loops/install-clock.sh', token: 'run.mjs' }],
+    writes: [{ res: 'nas:services', token: 'install' }],
+    seeds: ['ops-runner', 'lesson-voice', 'family-key', 'transcript-trickle', 'choir-dates', 'agent-consumer', 'lesson-parity'],
+  }),
+  wf('nas-clock.yml', {
+    id: 'nas-clock', name: 'NAS clock', purpose: 'Gives the NAS loop fleet its clock.',
+    reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }], writes: [{ res: 'nas:clock', token: 'install-clock.sh' }], seeds: ['services-sync'],
+  }),
+  // The hand that puts the sign-in road back (2026-10-09). The witness says
+  // sign-in is down; this is the only thing in the repo that can DO something
+  // about it without a person at a keyboard.
+  wf('nas-signin-heal.yml', {
+    id: 'nas-signin-heal', name: 'Heal the sovereign sign-in road', purpose: 'Restarts supabase-kong/auth/rest on the NAS over the tailnet, then MEASURES a POST on the loopback and through poetech.us/sb, so a heal that did not heal fails the run.',
+    reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }, { res: 'nas:services', token: 'docker restart' }],
+    writes: [], seeds: [],
+  }),
+  wf('cams-diag.yml', {
+    id: 'cams-diag', name: 'Camera road diagnostics (look, never touch)', purpose: 'What go2rtc itself says about every camera — streams (kind, host, state), its log, the container log, the forwarder’s health and one timed probe with /why — from the NAS over the tailnet, scrubbed (DR-0774).',
+    reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }, { res: 'http:cams', token: '127.0.0.1:8773' }, { res: 'nas:services', token: 'poetech-cams' }],
+    writes: [], seeds: [],
+  }),
+  wf('camera-health.yml', {
+    id: 'camera-health', name: 'Camera road witness (DR-0806)', purpose: 'After every deploy and twice an hour: reads the forwarder’s /health, the stream health log and go2rtc’s streams over the tailnet, probes a frame from every recording or watched camera, compares with the last witness kept in the rolling camera-incident issue, and labels a regression priority:cameras so it is fixed first.',
+    reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }, { res: 'http:cams', token: '127.0.0.1:8773' }],
+    writes: [{ res: 'gh:incident', token: 'camera-incident' }], seeds: ['ops-surface'],
+  }),
+  wf('nas-health.yml', {
+    id: 'nas-health', name: 'NAS health (look, never touch)', purpose: 'What the NAS is doing right now — GPU, containers, services, and the live tables’ row counts.',
+    reads: [{ res: 'nas:services', token: 'systemctl' }, { res: 'db:feedback', token: 'FROM feedback' }, { res: 'db:board_tasks', token: 'FROM board_tasks' }],
+    writes: [], seeds: [],
+  }),
+  wf('nas-agent-arm.yml', {
+    id: 'nas-agent-arm', name: 'Arm the NAS agent', purpose: 'Runs the agent consumer once from this checkout and proves it serves the database the app reads (DR-0622: it no longer carries a credential).',
+    reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }], writes: [{ res: 'nas:agent-credential', token: 'agent' }], seeds: ['agent-consumer'],
+  }),
+  wf('nas-email-door.yml', {
+    id: 'nas-email-door', name: 'Email door (sign-in mail from our own stack)', purpose: 'Wires the sovereign stack’s mail sender from the one secret only Darrell mints.',
+    reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }], writes: [{ res: 'nas:smtp', token: 'SMTP' }], seeds: ['supabase'],
+  }),
+  wf('nas-claude-login.yml', {
+    id: 'nas-claude-login', name: 'Sign the Claude CLI in on the NAS (remote hands)',
+    purpose: 'Drives the CLI sign-in on the NAS under a pseudo-terminal from the runner, so the lesson builder’s primary writer is ready; only the sign-in URL and the one-time code pass through (DR-0669 writer; Darrell 2026-10-01 "You do it... cli... ssh").',
+    reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }], writes: [{ res: 'nas:claude-signin', token: 'claude_login.py' }], seeds: ['lesson-builder'],
+  }),
+  wf('nas-user-rescue.yml', {
+    id: 'nas-user-rescue', name: 'Get a locked-out family member back in', purpose: 'Clears a PIN or resets a password on the live stack, by dispatch.',
+    reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }], writes: [{ res: 'auth:users', token: 'reset_password.sh' }], seeds: ['supabase'],
+  }),
+  wf('nas-storage-sync.yml', {
+    id: 'nas-storage-sync', name: 'Storage copy (retired → live)', purpose: 'Copies the files the repoint left behind to the live storage.',
+    reads: [{ res: 'hosted:db', token: 'hosted' }], writes: [{ res: 'nas:storage', token: 'storage_sync.py' }], seeds: ['supabase'],
+  }),
+  wf('nas-rotate-bearer.yml', {
+    id: 'nas-rotate-bearer', name: 'Rotate the wf18 bearer (n8n)', purpose: 'Rotates the PII-webhook bearer of the n8n wf18 workflow.',
+    reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }], writes: [{ res: 'nas:wf18-bearer', token: 'wf18' }], seeds: [],
+  }),
+  wf('arm-voice-studio.yml', {
+    id: 'arm-voice-studio', name: 'Arm the voice studio (the 4070 tower)', purpose: 'Starts the sovereign reading-voice studio on the GPU tower.',
+    reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }], writes: [{ res: 'tower:voice-studio', token: 'voice' }], seeds: ['voice-transport'],
+  }),
+  wf('enable-auth-hook.yml', {
+    id: 'enable-auth-hook', name: 'Enable the renter-portal auth hook', purpose: 'Turns on the access-token hook the renter portal signs in with.',
+    reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }], writes: [{ res: 'auth:hook', token: 'hook' }], seeds: [],
+  }),
+  wf('push-vapid-keys.yml', {
+    id: 'push-vapid-keys', name: 'Push keys (VAPID)', purpose: 'Mints and installs the push signing keys with no hand on the private key.',
+    reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }], writes: [{ res: 'cf:push-env', token: 'VAPID' }], seeds: ['push-send'],
+  }),
+  wf('push-sender-credentials.yml', {
+    id: 'push-sender-credentials', name: 'Push sender credentials', purpose: 'Installs the database credentials the push sender needs.',
+    reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }], writes: [{ res: 'cf:push-env', token: 'SUPABASE_SERVICE_KEY' }], seeds: ['push-send'],
+  }),
+  app('app/functions/api/push-send.js', {
+    id: 'push-send', name: 'Push sender (buzzes a phone)', purpose: 'Sends a notification to the devices that asked for it.',
+    reads: [{ res: 'cf:push-env', token: 'VAPID_PUBLIC_KEY' }, { res: 'db:push_subscriptions', token: 'push_subscriptions' }, { res: 'http:push-send', token: 'fault' }],
+    writes: [{ res: 'push:phone', token: 'endpoint' }],
+    seeds: [],
+  }),
+  app('app/src/lib/push-subscribe.js', {
+    id: 'push-subscribe', name: 'Notifications on (this device)', purpose: 'A device asks to be told.',
+    writes: [{ res: 'db:push_subscriptions', token: 'push_subscriptions' }],
+    seeds: ['push-send'],
+  }),
+  app('app/src/lib/door-feedback-sync.js', {
+    id: 'door-feedback', name: 'A door’s own feedback + fault reports', purpose: 'A customer says a door is broken; a door that breaks reports itself; the office works each one.',
+    writes: [
+      { res: 'db:door_feedback', token: 'door_feedback_submit' },
+      { res: 'db:push_outbox', file: 'infra/supabase/migrations-auto/0220-a-new-door-fault-enqueues-an-office-push-the-outbox.sql', token: 'INSERT INTO public.push_outbox' },
+    ],
+    reads: [{ res: 'db:door_feedback', token: "from('door_feedback')" }],
+    seeds: ['push-outbox-drain'],
+  }),
+  // Work on a door (DR-0897): filed on the door itself when no tenancy holds it
+  // (a vacant unit, a short stay, the family's own home), read back as the
+  // door's open work, documented by the worker, noted on dispatch.
+  app('app/src/modules/properties/cloud.js', {
+    id: 'door-work-orders', name: 'Work on a door (Poe Properties Work board)', purpose: 'The landlord, a manager or the 1099 worker walking a door files what is wrong; the worker documents it fixed or not; every dispatch leaves a note on the door.',
+    writes: [
+      { res: 'db:tenant_maintenance_requests', token: "from('tenant_maintenance_requests')\n      .insert" },
+      { res: 'db:request_documentation', token: "from('request_documentation').insert" },
+      { res: 'db:tenancy_notes', token: "from('tenancy_notes').insert" },
+    ],
+    reads: [
+      { res: 'db:tenant_maintenance_requests', token: "scoped(client.from('tenant_maintenance_requests')" },
+      { res: 'db:request_documentation', token: "from('request_documentation').select" },
+      { res: 'db:tenancy_notes', token: "scoped(client.from('tenancy_notes')" },
+    ],
+  }),
+  // The guest card (DR-0898): the family opens a door's card; a guest with no
+  // account reports through it onto that door's Work board; the office is told.
+  app('app/src/modules/properties/GuestReport.jsx', {
+    id: 'door-guest-card', name: 'Guest card (report a problem, no account)', purpose: 'A guest in a short stay scans the card inside the door and says what is wrong; it lands on that door\u2019s Work board and the office is told.',
+    writes: [
+      { res: 'db:door_guest_links', file: 'app/src/modules/properties/cloud.js', token: "rpc('door_guest_link_open'" },
+      { res: 'db:tenant_maintenance_requests', file: 'infra/supabase/migrations-auto/0261-a-guest-reports-a-problem-from-inside-the-door.sql', token: 'INSERT INTO tenant_maintenance_requests' },
+      { res: 'db:push_outbox', file: 'infra/supabase/migrations-auto/0261-a-guest-reports-a-problem-from-inside-the-door.sql', token: 'INSERT INTO public.push_outbox' },
+    ],
+    reads: [
+      { res: 'db:door_guest_links', file: 'app/src/modules/properties/cloud.js', token: "from('door_guest_links')" },
+    ],
+    seeds: ['door-work-orders', 'push-outbox-drain'],
+  }),
+  // "I'm paying" (DR-0899): the family writes how it is paid; the tenant reads
+  // it for their door and records the payment (full or part, with the promise)
+  // before being handed off; every change to rent and work keeps its instant.
+  app('app/src/modules/properties/RentPay.jsx', {
+    id: 'rent-pay', name: "I'm paying (rent hand-off and part payments)", purpose: 'The tenant records a payment, full or part with the promised date, then is handed to Cash App, Venmo, Zelle, cash, a bank deposit or a check; the family confirms when it lands.',
+    writes: [
+      { res: 'db:rent_payee', file: 'app/src/modules/properties/cloud.js', token: "from('rent_payee').upsert" },
+      { res: 'db:rent_records', file: 'app/src/modules/properties/cloud.js', token: "from('rent_records').insert" },
+    ],
+    reads: [
+      { res: 'db:rent_payee', file: 'app/src/modules/properties/cloud.js', token: "rpc('rent_payee_for_tenancy'" },
+    ],
+    seeds: ['record-clock'],
+  }),
+  // The door keeps its money (DR-0903): the family records money received on
+  // the door, tenant or none, on the day it came; door_money_months sums each
+  // asset under the reader's RLS for the Rent tab, door header and board.
+  app('app/src/modules/properties/DoorMoney.jsx', {
+    id: 'door-money', name: 'What each door has brought in', purpose: 'Money received is recorded on the door with or without a tenant, on the day it came; each asset shows its lifetime, yearly and monthly total, and the board the whole portfolio.',
+    writes: [
+      { res: 'db:rent_records', file: 'app/src/modules/properties/cloud.js', token: "from('rent_records').insert" },
+    ],
+    reads: [
+      { res: 'db:rent_records', file: 'app/src/modules/properties/cloud.js', token: "from('door_money_months')" },
+    ],
+    seeds: ['record-clock'],
+  }),
+  // A door's cameras, asked for and given (DR-0938): the family offers names
+  // on a door; anyone on it asks; the family gives (the NAS mints the grant),
+  // gives a guest a link, and takes back; each move is on the clock.
+  app('app/src/modules/properties/CameraAccess.jsx', {
+    id: 'door-camera-access', name: 'Door cameras, asked for and given', purpose: 'A tenant, household member or 1099 worker asks for the cameras the family offers on a door; the family gives them for the days it chooses, gives a short-stay guest a link, and takes any of it back.',
+    writes: [
+      { res: 'db:door_camera_menu', file: 'app/src/modules/properties/cloud.js', token: "from('door_camera_menu').upsert" },
+      { res: 'db:door_camera_access', file: 'app/src/modules/properties/cloud.js', token: "from('door_camera_access').insert" },
+      { res: 'db:door_events', file: 'infra/supabase/migrations-auto/0266-a-door-camera-is-asked-for-and-given-to-whoever-the-family-chooses.sql', token: 'INSERT INTO door_events' },
+    ],
+    reads: [
+      { res: 'db:door_camera_menu', file: 'app/src/modules/properties/cloud.js', token: "from('door_camera_menu').select" },
+      { res: 'db:door_camera_access', file: 'app/src/modules/properties/cloud.js', token: "from('door_camera_access').select" },
+    ],
+    seeds: ['record-clock'],
+  }),
+  // A door's pictures (0153/0185) and the pictures of its systems (DR-0932,
+  // 0267): one store, property_photos; the door's gallery and each system's
+  // pictures read what the other files.
+  app('app/src/modules/properties/DoorTabs.jsx', {
+    id: 'door-pictures', name: "A door's pictures", purpose: 'Listing, condition, turn and damage pictures of a door, with thumbnails, captions and the arranged order; sharp tiles and the branded viewer.',
+    writes: [
+      { res: 'db:property_photos', file: 'app/src/modules/properties/cloud.js', token: "from('property_photos')" },
+    ],
+    reads: [
+      { res: 'db:property_photos', file: 'app/src/modules/properties/cloud.js', token: "from('property_photos')" },
+    ],
+    seeds: ['system-pictures'],
+  }),
+  app('app/src/modules/properties/SystemPictures.jsx', {
+    id: 'system-pictures', name: 'A system keeps its pictures', purpose: 'The data plate, the flue, the new unit, the before and after of a service visit: filed on the system and the visit, shown on the system in the Systems tab.',
+    writes: [
+      { res: 'db:property_photos', file: 'app/src/modules/properties/SystemPictures.jsx', token: "system_id: system.id" },
+    ],
+    reads: [
+      { res: 'db:property_photos', file: 'app/src/modules/properties/SystemPictures.jsx', token: 'p.system_id === systemId' },
+    ],
+    seeds: ['door-pictures'],
+  }),
+  // A short-stay door's calendar (DR-0930, 0269): a guest asks (no account),
+  // the family confirms, declines, blacks out and books; every move on the clock.
+  app('app/src/modules/properties/Booking.jsx', {
+    id: 'stay-calendar', name: "A short-stay door's calendar", purpose: 'Guests ask for open nights through a short form (21+, house rules, wishes, an email offers yes); the family confirms, declines, blacks out dates and books stays; taken nights show dark to the public.',
+    writes: [
+      { res: 'db:door_stays', file: 'app/src/modules/properties/cloud.js', token: "rpc('request_a_stay'" },
+      { res: 'db:door_stays', file: 'app/src/modules/properties/cloud.js', token: "from('door_stays').insert" },
+      { res: 'db:door_events', file: 'infra/supabase/migrations-auto/0269-a-short-stay-door-has-a-booking-calendar.sql', token: 'INSERT INTO door_events' },
+    ],
+    reads: [
+      { res: 'db:door_stays', file: 'app/src/modules/properties/cloud.js', token: "rpc('door_booked_nights'" },
+      { res: 'db:door_stays', file: 'app/src/modules/properties/cloud.js', token: "from('door_stays').select" },
+    ],
+    seeds: ['record-clock'],
+  }),
+  // A tenant waits for the landlord's yes (DR-0957, 0275). THE DATABASE HALF
+  // LANDS FIRST ON PURPOSE: Darrell's own instruction on this spec was that the
+  // restrictions "must be enforced through backend authorization and database
+  // security, not simply by hiding pages or buttons" — so the wall ships before
+  // the screen that stands behind it, and the screen is the next increment, not
+  // a someday. Declared here citing the migration's own statements because that
+  // is where the flow genuinely runs today; when the portal surface lands it
+  // takes over these reads and writes with its own file:token pairs.
+  app('infra/supabase/migrations-auto/0275-a-tenant-waits-for-the-landlords-yes.sql', {
+    id: 'portal-approval',
+    name: "A tenant waits for the landlord's yes",
+    purpose: 'A person asks for access to a door they already live behind; the ask is matched against the tenancies on that door by normalized phone and email without ever showing the asker who else lives there; the landlord or manager decides, and only a yes opens the private record. An invitation does not skip the yes.',
+    writes: [
+      { res: 'db:tenant_portal_requests', file: 'infra/supabase/migrations-auto/0275-a-tenant-waits-for-the-landlords-yes.sql', token: 'UPDATE tenant_portal_requests' },
+      { res: 'db:door_events', file: 'infra/supabase/migrations-auto/0275-a-tenant-waits-for-the-landlords-yes.sql', token: 'INSERT INTO door_events' },
+    ],
+    reads: [
+      { res: 'db:tenant_portal_requests', file: 'infra/supabase/migrations-auto/0275-a-tenant-waits-for-the-landlords-yes.sql', token: 'SELECT * INTO req FROM tenant_portal_requests' },
+      { res: 'db:rental_tenancies', file: 'infra/supabase/migrations-auto/0275-a-tenant-waits-for-the-landlords-yes.sql', token: 'FROM rental_tenancies t' },
+    ],
+    seeds: ['record-clock'],
+  }),
+  // The map, asked for (DR-0935, 0270, then DR-0977, 0280): the family finds a
+  // door from its own address; the open shelf draws the area only on request.
+  app('app/src/modules/properties/AreaMap.jsx', {
+    id: 'area-map', name: 'The area on a map, when asked for', purpose: 'The family finds the door from its own address (or pins it by hand); the device rounds the point and works out straight-line miles to cited places; the database keeps only the rounded area and the lines, and the public shelf draws a circle with what is nearby only when a visitor asks for the map.',
+    writes: [
+      { res: 'db:rentals', file: 'app/src/modules/properties/AreaMap.jsx', token: 'area_lat: area.lat' },
+    ],
+    reads: [
+      { res: 'db:rentals', file: 'app/src/modules/properties/cloud.js', token: "select('area_lat, area_lng, nearby')" },
+      { res: 'db:rentals', file: 'app/src/modules/properties/Storefront.jsx', token: 'area={unit.area}' },
+    ],
+  }),
+  // Each door its own order of the apartment it borrows (DR-0984, 0282): Bed B
+  // leads with the bedroom while Bed A leads with the kitchen; the public card,
+  // the board and the gallery all read the same rows.
+  app('app/src/modules/properties/DoorTabs.jsx', {
+    id: 'door-photo-order', name: 'Each listing its own cover of the apartment', purpose: 'A door with no pictures of its own arranges the apartment pictures it borrows for its own listing; the family saves the order here and the public card, the board and the gallery lead with that door\u2019s choice.',
+    writes: [
+      { res: 'db:door_photo_order', file: 'app/src/modules/properties/cloud.js', token: "from('door_photo_order').upsert" },
+    ],
+    reads: [
+      { res: 'db:door_photo_order', file: 'app/src/modules/properties/cloud.js', token: "select('photo_id, position')" },
+      { res: 'db:door_photo_order', file: 'app/src/modules/properties/cloud.js', token: "select('rental_id, photo_id, position')" },
+    ],
+  }),
+  app('app/src/modules/properties/model.js', {
+    id: 'record-clock', name: 'Every change, to the instant (record events)', purpose: 'Each report, confirmation, status move and assignment on rent and work leaves an append-only event with its own clock, read back on the door\u2019s history so a situation can be recreated.',
+    reads: [
+      { res: 'db:rent_records', file: 'app/src/modules/properties/cloud.js', token: "from('rent_records')" },
+      { res: 'db:door_events', file: 'app/src/modules/properties/cloud.js', token: "from('door_events')" },
+    ],
+    writes: [
+      { res: 'db:door_events', file: 'infra/supabase/migrations-auto/0262-rent-is-reported-the-way-it-is-paid-and-every-change-keeps-its-time.sql', token: 'INSERT INTO door_events' },
+    ],
+  }),
+  // Papers signed in the app (DR-0936): the family files and sends; the
+  // tenant files their own papers and receipts and signs; every signature is
+  // a row with the fingerprint signed, and every step is on door_events.
+  app('app/src/modules/properties/DocSigning.jsx', {
+    id: 'doc-signing', name: 'Papers and signatures (Poe Properties)', purpose: 'A lease or any paper is sent for signature, signed by the tenant and the landlord against the exact bytes shown, and stays filed in its tenancy; tenants file receipts and pictures of their own.',
+    writes: [
+      { res: 'db:property_documents', file: 'app/src/modules/properties/cloud.js', token: "from('property_documents')\n      .insert" },
+      { res: 'db:property_document_signatures', file: 'infra/supabase/migrations-auto/0263-a-document-is-signed-in-the-app-and-filed-where-it-belongs.sql', token: 'INSERT INTO property_document_signatures' },
+      { res: 'db:door_events', file: 'infra/supabase/migrations-auto/0263-a-document-is-signed-in-the-app-and-filed-where-it-belongs.sql', token: "'document', d.id, 'signed'" },
+    ],
+    reads: [
+      { res: 'db:property_documents', file: 'app/src/modules/properties/cloud.js', token: "client.from('property_documents').select('*').is('archived_at', null)" },
+      { res: 'db:property_document_signatures', file: 'app/src/modules/properties/cloud.js', token: "from('property_document_signatures')" },
+    ],
+    seeds: ['record-clock'],
+  }),
+  wf('push-outbox-drain.yml', {
+    id: 'push-outbox-drain', name: 'Office push drain', purpose: 'Delivers each new door fault to the office’s phones.',
+    reads: [{ res: 'db:push_outbox', file: 'scripts/push-outbox-drain-over-tailnet.sh', token: 'push_outbox' }],
+    writes: [{ res: 'http:push-send', file: 'scripts/push-outbox-drain-over-tailnet.sh', token: 'push-send' }, { res: 'db:push_outbox#sent', file: 'scripts/push-outbox-drain-over-tailnet.sh', token: 'sent_at' }],
+    seeds: ['push-send'],
+  }),
+  wf('node-availability.yml', {
+    id: 'node-availability', name: 'Pipeline device availability', purpose: 'Is every always-on node actually up?',
+    reads: [{ res: 'tailnet:nodes', token: 'tailscale' }], writes: [{ res: 'gh:incident', token: 'incident' }], seeds: ['ops-surface'],
+  }),
+  wf('mcp-health.yml', {
+    id: 'mcp-health', name: 'MCP server health', purpose: 'Proves the sovereign MCP server answers and enforces its token.',
+    reads: [{ res: 'http:mcp', token: '/mcp' }], writes: [], seeds: [],
+  }),
+  wf('history-voices-witness.yml', {
+    id: 'history-voices-witness', name: 'History voices witness', purpose: 'Fetches each quoted historical record and proves the quoted words are in it.',
+    reads: [{ res: 'web:primary-records', token: 'history-voices-witness.mjs' }], writes: [], seeds: [],
+  }),
+  wf('source-transcript.yml', {
+    id: 'source-transcript', name: 'Source transcript (runner, then the NAS)', purpose: 'Turns a video Darrell sends into text the capture session can read; when YouTube challenges the runner, the same run hands the link to the NAS route (DR-0622).',
+    reads: [{ res: 'yt:channel', token: 'youtube' }], writes: [{ res: 'file:source-transcripts', token: 'docs/99-session-notes/sources/' }, { res: 'gh:call:source-transcript-nas', token: 'uses: ./.github/workflows/source-transcript-nas.yml' }], seeds: ['lesson-capture', 'source-transcript-nas'],
+  }),
+  wf('source-transcript-nas.yml', {
+    id: 'source-transcript-nas', name: 'Source transcript (NAS address)', purpose: 'The same, fetched from the NAS’s residential address YouTube does not block.',
+    reads: [{ res: 'yt:channel', token: 'youtube' }, { res: 'gh:call:source-transcript-nas', token: 'workflow_call' }], writes: [{ res: 'file:source-transcripts', token: 'transcripts' }], seeds: ['lesson-capture'],
+  }),
+  wf('sovereign-read.yml', {
+    id: 'sovereign-read', name: 'Ask the live database', purpose: 'A session reads the database the app reads — feedback, tables, and the lessons waiting.',
+    reads: [{ res: 'db:feedback', file: 'scripts/sovereign-read-over-tailnet.sh', token: 'feedback' }],
+    writes: [], seeds: [],
+  }),
+  wf('sovereign-drift.yml', {
+    id: 'sovereign-drift', name: 'Migration drift witness', purpose: 'Which migrations the live database is missing.',
+    reads: [{ res: 'db:_sovereign_replay', token: '_sovereign_replay' }], writes: [], seeds: [],
+  }),
+  wf('sovereign-replay.yml', {
+    id: 'sovereign-replay', name: 'Migration replay (by hand)', purpose: 'Replays the migrations the live database is missing.',
+    reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }], writes: [{ res: 'db:_sovereign_replay', file: 'infra/nas-supabase/replay_migrations.sh', token: 'INSERT INTO public._sovereign_replay' }], seeds: ['schema-health'],
+  }),
+
+  // ===========================================================================
+  // 14. THE NAS SERVICES AND LOOPS
+  // ===========================================================================
+  rider('service:supabase', 'infra/nas-supabase/docker-compose.yml', {
+    id: 'supabase', name: 'The live database (our own Supabase)', purpose: 'Every table above lives here; the app and every rider reach it.',
+    reads: [{ res: 'nas:smtp', file: 'infra/nas-supabase/enable_email_smtp.sh', token: 'SMTP' }, { res: 'nas:storage', token: 'storage' }, { res: 'auth:users', file: 'infra/nas-supabase/reset_password.sh', token: 'auth.users' }],
+    writes: [{ res: 'http:supabase', token: 'kong' }],
+    seeds: ['app-client'],
+  }),
+  app('app/src/lib/supabase.js', {
+    id: 'app-client', name: 'The app’s database client', purpose: 'Every screen reads and writes through it.',
+    reads: [{ res: 'http:supabase', token: 'createClient' }], seeds: [],
+  }),
+  rider('service:mcp', 'infra/nas-mcp/mcp_server.py', {
+    id: 'mcp', name: 'Sovereign MCP server', purpose: 'Read-only tools over the dispatch reel and the task snapshot, for the sessions.',
+    reads: [{ res: 'nas:reel', token: '_reel.jsonl' }], writes: [{ res: 'http:mcp', token: 'dispatch_reel' }], seeds: ['mcp-health'],
+  }),
+  rider('service:scribe', 'infra/nas-scribe/scribe_ingest_server.py', {
+    id: 'scribe', name: 'Scribe ingest (recordings in)', purpose: 'Takes each Scribe recording in and queues it for transcription.',
+    reads: [{ res: 'http:scribe-upload', token: 'complete' }, { res: 'nas:scribe-minutes', file: 'infra/nas-scribe/scribe_results.py', token: 'minutes.md' }],
+    writes: [{ res: 'nas:scribe-queue', token: 'whisper-queue.jsonl' }, { res: 'http:scribe-results', token: '/scribe/sessions' }],
+    seeds: ['scribe-transcribe', 'scribe-surface'],
+  }),
+  app('app/src/components/WorkflowScribe.jsx', {
+    id: 'scribe-surface', name: 'Scribe (record a workflow or a meeting)', purpose: 'Records, uploads, and hands the recording to our own box.',
+    writes: [{ res: 'http:scribe-upload', token: '/scribe/complete' }],
+    reads: [{ res: 'http:scribe-results', file: 'app/src/components/ScribeRecordings.jsx', token: 'fetchScribeSessions' }],
+    seeds: ['scribe'],
+  }),
+  rider('loop:scribe-transcribe', 'infra/nas-scribe/scribe_queue_consumer.py', {
+    id: 'scribe-transcribe', name: 'Scribe transcription (queue → words → minutes)', purpose: 'Turns each recording into a transcript and minutes.',
+    reads: [{ res: 'nas:scribe-queue', token: 'whisper-queue.jsonl' }], writes: [{ res: 'nas:scribe-minutes', token: 'minutes.md' }], seeds: ['scribe'],
+  }),
+  rider('service:property-photos', 'infra/nas-property-photos/photo_server.py', {
+    id: 'property-photos', name: 'Photo server', purpose: 'Serves property, family and album photos from our own box, takes new ones in, and takes one off an address without deleting it (DR-0758).',
+    writes: [{ res: 'http:nas-photos', token: 'photo' }], seeds: ['nas-photos'],
+  }),
+  rider('service:tax-upload', 'infra/nas-tax-ingest/tax_upload_server.py', {
+    id: 'tax-upload', name: 'Tax archive server', purpose: 'Takes tax documents in and serves the archive back.',
+    reads: [{ res: 'http:taxes-upload', token: 'upload' }], writes: [{ res: 'http:taxes', token: 'archive.json' }], seeds: ['books-taxes'],
+  }),
+  rider('service:voice-transport', 'infra/voice-studio/install.sh', {
+    id: 'voice-transport', name: 'Voice transport (the road to the studio)', purpose: 'Carries the app’s /voice requests to the studio on the tower.',
+    reads: [{ res: 'tower:voice-studio', token: 'tlcmediadpt' }], writes: [{ res: 'http:voice', token: '/voice' }], seeds: ['voice-studio'],
+  }),
+  rider('service:voice-lite', 'infra/nas-voice-lite/voice_lite_server.py', {
+    id: 'voice-lite', name: 'NAS audio voice (Piper)', purpose: 'Speaks a paragraph as a real audio clip on the NAS CPU, so the stand-in voice keeps playing in the background (DR-0627).',
+    reads: [{ res: 'nas:services', file: 'infra/nas-loops/services.json', token: 'voice-lite' }], writes: [{ res: 'http:voice-lite', token: '/voice-lite' }], seeds: ['reader-audio-voice'],
+  }),
+  wf('voice-lite-probe.yml', {
+    id: 'voice-lite-probe', name: 'Voice-lite probe (a real clip, end to end)', purpose: 'Asks /voice-lite for a paragraph the way the app does and keeps the clip.',
+    reads: [{ res: 'http:voice-lite', token: 'voice-lite' }], writes: [], seeds: [],
+  }),
+  rider('service:cameras', 'infra/nas-cameras/cams_forwarder.py', {
+    id: 'cameras-road', name: 'Camera road (go2rtc behind the locked door)', purpose: 'Restreams the family’s cameras from the NAS to the app as frames and live video; the forwarder is the lock on the public Funnel (DR-0756).',
+    reads: [{ res: 'nas:services', file: 'infra/nas-loops/services.json', token: 'cameras' }], writes: [{ res: 'http:cams', token: '/cams' }], seeds: ['cameras'],
+  }),
+  rider('service:funnel', 'infra/nas-loops/loops/funnel_watchdog.py', {
+    id: 'funnel', name: 'Public Funnel (the NAS’s front door)', purpose: 'Keeps the recorded sovereign routes served to the app’s proxy.',
+    reads: [{ res: 'nas:services', file: 'infra/nas-loops/services.json', token: 'funnel' }], writes: [{ res: 'http:funnel', token: 'funnel' }], seeds: ['transport'],
+  }),
+  rider('loop:funnel-watchdog', 'infra/nas-loops/loops/funnel-watchdog.sh', {
+    id: 'funnel-watchdog', name: 'Funnel watchdog (loop)', purpose: 'The same restore on its own clock.',
+    reads: [{ res: 'nas:clock', file: 'infra/nas-loops/registry.json', token: 'funnel-watchdog' }], writes: [{ res: 'http:funnel', token: 'funnel_watchdog.py' }], seeds: ['transport'],
+  }),
+  app('app/functions/_lib/funnel-proxy.js', {
+    id: 'transport', name: 'Same-origin transport to the NAS', purpose: 'Every NAS-backed route the app calls rides this proxy.',
+    reads: [{ res: 'http:funnel', token: 'Funnel' }], seeds: [],
+  }),
+  // THE HOUSE OPENERS (Darrell 2026-10-08; DR-0823). The header presses, the
+  // NAS drives the relay, and the ledger keeps what came back. Three nodes
+  // because the flow really has three: who asks, who acts, and who records.
+  app('app/src/components/OpenerButton.jsx', {
+    id: 'opener-press', name: 'Opener button (the header)',
+    purpose: 'A hold on the header button presses the garage door, or any other registered opener, while a lesson is playing in the car.',
+    reads: [{ res: 'db:household_openers', file: 'app/src/lib/openers-sync.js', token: "from('household_openers')" }],
+    writes: [
+      { res: 'http:openers', file: 'app/src/lib/openers.js', token: 'PRESS_PATH' },
+      { res: 'db:opener_presses', file: 'app/src/lib/openers-sync.js', token: "from('opener_presses').insert" },
+    ],
+    seeds: ['openers-service', 'openers-registry'],
+  }),
+  app('app/src/components/OpenersPanel.jsx', {
+    id: 'openers-registry', name: 'House openers (Dev/Ops)',
+    purpose: 'Register an opener, arm or disarm it, and read the record of every press. An opener that is not armed here puts no button in the header.',
+    reads: [{ res: 'db:opener_presses', token: "from('opener_presses')" }],
+    writes: [{ res: 'db:household_openers', token: "from('household_openers').insert" }],
+    seeds: ['opener-press'],
+  }),
+  rider('service:openers', 'infra/nas-openers/openers.py', {
+    id: 'openers-service', name: 'House openers (the only code that drives a relay)',
+    purpose: 'Resolves an opener id to the real device from a NAS-local devices.json and pulses it, with a per-opener hourly budget, a single-flight lock, and armed-by-record. Ships disabled.',
+    reads: [{ res: 'http:openers', file: 'app/functions/openers/[[path]].js', token: 'openers' }],
+    writes: [{ res: 'relay:opener', file: 'infra/nas-openers/openers.py', token: 'press_device' }],
+    seeds: [],
+  }),
+  rider('service:ytzero', 'infra/nas-ytzero/docker-compose.yml', {
+    id: 'ytzero', name: 'YT Zero (chosen channels only)', purpose: 'A YouTube inbox of only the channels chosen, on our own box.',
+    reads: [{ res: 'yt:channel', file: 'infra/nas-ytzero/README.md', token: 'RSS' }], writes: [{ res: 'nas:ytzero-inbox', file: 'infra/nas-ytzero/README.md', token: 'SQLite' }], seeds: [],
+  }),
+  rider('loop:health-check', 'infra/nas-loops/loops/health-check.sh', {
+    id: 'health-check', name: 'Is-the-system-up probe (loop)', purpose: 'Probes each health target every 10 minutes; a failure rings the phone.',
+    reads: [{ res: 'nas:clock', file: 'infra/nas-loops/registry.json', token: 'health-check' }], writes: [{ res: 'nas:reel', file: 'infra/nas-loops/run.mjs', token: '_reel.jsonl' }], seeds: ['mcp'],
+  }),
+  rider('loop:surface-audit', 'infra/nas-loops/loops/surface-audit.sh', {
+    id: 'surface-audit', name: 'Surface audit (loop)', purpose: 'Runs the human-needs rubric against every surface.',
+    reads: [{ res: 'nas:clock', file: 'infra/nas-loops/registry.json', token: 'surface-audit' }], writes: [{ res: 'nas:reel', file: 'infra/nas-loops/run.mjs', token: '_reel.jsonl' }], seeds: ['mcp'],
+  }),
+  rider('loop:transcript-backfill', 'infra/nas-loops/loops/transcript-backfill.sh', {
+    id: 'transcript-backfill-loop', name: 'Transcript backfill (dedicated clock, off by record)', purpose: 'The same loader as the trickle on its own clock; combined into the trickle, off by record.',
+    reads: [{ res: 'nas:clock', file: 'infra/nas-loops/registry.json', token: 'transcript-backfill' }], writes: [{ res: 'db:video_transcripts', token: 'load-transcripts.py' }], seeds: ['sermon-reader'],
+  }),
+
+  // ===========================================================================
+  // 15. THE TV SIGNS IN FROM THE PHONE IN YOUR HAND (DR-0658)
+  // ===========================================================================
+  app('app/src/components/PhoneSignInPanel.jsx', {
+    id: 'tv-signin', name: 'Sign in with your phone (the TV)',
+    purpose: 'The TV shows a QR and a short code, waits for the phone, and becomes signed in.',
+    writes: [{ res: 'db:device_link', file: 'app/src/lib/device-link-client.js', token: "rpc('device_link_start'" }],
+    reads: [
+      { res: 'db:device_link#approved', file: 'app/src/lib/device-link-client.js', token: "rpc('device_link_poll'" },
+      { res: 'auth:session#tv', file: 'app/src/lib/device-link-client.js', token: 'auth.setSession' },
+    ],
+    seeds: ['tv-signin-approve'],
+  }),
+  app('app/src/components/DeviceLinkApprove.jsx', {
+    id: 'tv-signin-approve', name: 'Sign in the TV? (the phone, /link)',
+    purpose: 'A signed-in person sees which screen is asking and approves or denies it.',
+    reads: [{ res: 'db:device_link', file: 'app/src/lib/device-link-client.js', token: "rpc('device_link_describe'" }],
+    writes: [
+      { res: 'db:device_link#approved', file: 'app/src/lib/device-link-client.js', token: "rpc('device_link_decide'" },
+      // Every look-up and decision is metered per person (20 per 10 minutes).
+      { res: 'db:device_link_rate', file: 'infra/supabase/migrations-auto/0239-the-television-signs-in-from-the-phone-in-your-hand.sql', token: 'device_link_meter' },
+    ],
+    seeds: ['tv-signin-mint'],
+  }),
+  app('app/functions/api/device-link.js', {
+    id: 'tv-signin-mint', name: '/api/device-link (turns an approval into a session)',
+    purpose: 'Claims an approved link once with the service role and hands the TV a one-time session.',
+    reads: [{ res: 'db:device_link#approved', token: 'device_link_claim' }],
+    writes: [{ res: 'auth:session#tv', token: '/auth/v1/verify' }],
+    seeds: ['tv-signin'],
+  }),
+  // DR-0736: a person's contacts come from the phone in their hand (the Contact
+  // Picker where the phone has it, a .vcf file everywhere) and are kept on their
+  // own server, read by them alone; the device list is the cache. Nothing is
+  // merged with anyone's account; a match is a hint with its reason.
+  app('app/src/lib/contacts-store.js', {
+    id: 'contacts-from-the-phone', name: 'Contacts from the phone (Messages \u2192 Add a contact)',
+    purpose: 'A person brings their phone\u2019s contacts into the app, sees the plan first (new, already saved, already on PoeTech), and keeps them on their own server, theirs alone.',
+    reads: [
+      { res: 'db:contacts', token: "from('contacts')" },
+      { res: 'file:vcf', file: 'app/src/lib/vcard-parse.js', token: 'parseVCardFile' },
+    ],
+    writes: [{ res: 'db:contacts', token: "from('contacts').upsert" }],
+    seeds: [],
+  }),
+  // A SEALED MESSAGE OPENS ON EVERY DEVICE (DR-0737). Each device publishes its
+  // own public key; a message is sealed once and wrapped for every device of
+  // both people. The private half never leaves the device that made it.
+  app('app/src/lib/direct-messages-sync.js', {
+    id: 'sealed-messages-for-every-device', name: 'Sealed messages, every device (Messages)',
+    purpose: 'A direct message is sealed end to end for every device of both people, so it opens on each phone and desktop they hold; the server stores only ciphertext.',
+    reads: [
+      { res: 'db:dm_device_keys', token: "from('dm_device_keys').select" },
+      { res: 'db:direct_messages', token: "from('direct_messages').select" },
+    ],
+    writes: [
+      { res: 'db:dm_device_keys', token: "from('dm_device_keys')" },
+      { res: 'db:direct_messages', token: "from('direct_messages').insert" },
+    ],
+    seeds: [],
+  }),
+  // A LAN DEVICE BELONGS TO A PERSON (DR-0830). The church device register
+  // (0056) holds the MACs a real scan read; 0256 adds whose device each is,
+  // set only by an editor's hand. The person's record reads it back.
+  app('app/src/lib/church-devices-sync.js', {
+    id: 'device-register', name: 'Device register (Devices, church infrastructure)',
+    purpose: 'The church’s devices as identified assets with specs, status, steward and, since 0256, the person each one belongs to, assigned from the roster by an editor.',
+    reads: [{ res: 'db:church_devices', token: "remoteTable: 'church_devices'" }],
+    writes: [{ res: 'db:church_devices', token: "remoteTable: 'church_devices'" }],
+    seeds: ['person-record'],
+  }),
+  // EVERYTHING ON RECORD FOR A PERSON (DR-0828): the Known fold on the Admin
+  // roster reads the rows a steward may already read and says what the cloud
+  // never holds.
+  app('app/src/lib/person-record-sync.js', {
+    id: 'person-record', name: 'Everything on record for a person (Admin → Known)',
+    purpose: 'One read per roster row: sign-in doors, the ways to reach them, the devices seen (message devices, presence) and the LAN devices assigned to them with the MAC the scan recorded; absences stated, nothing painted.',
+    reads: [
+      { res: 'db:dm_device_keys', token: "from('dm_device_keys')" },
+      { res: 'db:church_devices', token: "from('church_devices')" },
+    ],
+    writes: [],
+    seeds: [],
+  }),
+  // A DOOR SHARES ITS CAMERAS WITH ITS HOUSEHOLD (DR-0841): the landlord
+  // mints a camera grant on the NAS (DR-0778) for a door and the tenancy row
+  // carries it (0258); the tenant's Cameras tab reads it from their own row.
+  app('app/src/modules/properties/door-cameras.js', {
+    id: 'door-cameras', name: 'A door shares its cameras with its household (Properties → Cameras)',
+    purpose: 'The landlord picks the cameras at a door, the NAS mints a grant for that door, the tenancy row carries the token and a plain note; the household reads it as their Cameras tab; taking it back clears the row and revokes the grant on the NAS.',
+    reads: [{ res: 'db:rental_tenancies', token: "from('rental_tenancies')" }],
+    writes: [{ res: 'db:rental_tenancies', token: "from('rental_tenancies')" }],
+    seeds: [],
+  }),
+  // EVERY TAB OPEN AND FUNCTION EXERCISED (0073, DR-0819): the shell records a
+  // view per tab and a use per function into usage_events; each person owns
+  // and can delete their own trail.
+  app('app/src/lib/usage-events.js', {
+    id: 'usage-record', name: 'Usage recorded (every tab open, every function exercised)',
+    purpose: 'recordView on each tab open and recordUse on each function exercised write one usage_events row per event for the signed-in person; the aggregate, the per-person read (0145) and the calendar (0259) all read from here.',
+    reads: [],
+    writes: [{ res: 'db:usage_events', token: "from('usage_events')" }],
+    seeds: ['usage-calendar'],
+  }),
+  // WHEN, AND BY WHOM (DR-0843): the governor's calendar of opens and uses per
+  // person per day (0259 over usage_events), on Admin → Users & usage.
+  app('app/src/lib/usage-calendar-sync.js', {
+    id: 'usage-calendar', name: 'When, and by whom, the apps are used (Admin → Users & usage)',
+    purpose: 'Per person, per day, per kind, a count from usage_events: who has done the evaluating and their share, the weekdays the apps are used most, and each person\'s calendar; counts only, never a view name.',
+    reads: [{ res: 'db:usage_events', token: "usage_calendar_metrics" }],
+    writes: [],
+    seeds: [],
+  }),
+];
+
+// Every service rider and loop reads nas:services (the install services-sync
+// did) — declared once here instead of on each node.
+for (const n of NODES) {
+  if (n.kind === 'nas' && n.id !== 'services-sync' && String(n.rider).startsWith('service:')) {
+    n.reads = [...(n.reads || []), { res: 'nas:services', file: 'infra/nas-loops/services.json', token: n.rider ? n.rider.split(':')[1] : n.id }];
+  }
+}
+
+// Every workflow's run result is a written resource; the flow proof reads it.
+for (const n of NODES) {
+  if (n.kind === 'workflow') {
+    n.writes = [...(n.writes || []), { res: `gh:run:${n.workflow}`, token: 'runs-on:' }];
+  }
+}
+const proof = NODES.find((n) => n.id === 'flow-proof');
+proof.reads = [
+  ...proof.reads,
+  ...NODES.filter((n) => n.kind === 'workflow').map((n) => ({ res: `gh:run:${n.workflow}`, file: 'scripts/system-flow-proof.mjs', token: 'actions/workflows/' })),
+];
+
+// ---------------------------------------------------------------------------
+// RESOURCES — what each carrier is, how it is measured live, sinks + sources.
+// proof: { ts, fresh (days), consumed (SQL predicate), where (facet) }.
+// ---------------------------------------------------------------------------
+const RESOURCES = {
+  'db:feedback': { label: 'feedback notes', proof: { ts: 'submitted_at', fresh: 14, consumed: "triage_status <> 'new'", where: "feedback_text !~* '^\\s*\\[learn engagement\\]'" } },
+  'db:feedback#triaged': { label: 'feedback notes a steward has answered', proof: { ts: 'submitted_at', fresh: 30, where: "triage_status <> 'new' AND feedback_text !~* '^\\s*\\[learn engagement\\]'", consumed: "triage_status IN ('fixed','declined')" } },
+  'db:concerns': { label: 'concerns', proof: { ts: 'updated_at', fresh: 21 } },
+  'db:projects': { label: 'projects', proof: { ts: 'updated_at', fresh: 30 } },
+  'db:incidents': { label: 'service-desk incidents', proof: { ts: 'updated_at', fresh: 60, consumed: "status IN ('resolved','closed','done','declined','duplicate')" } },
+  'db:board_tasks': { label: 'board tasks', proof: { ts: 'updated_at', fresh: 14, consumed: "status = 'done'" } },
+  'db:discussions': { label: 'discussions and hand-offs', proof: { ts: 'updated_at', fresh: 30 } },
+  'db:decision_readouts': { label: 'the decision board’s daily record', proof: { ts: 'created_at', fresh: 3 } },
+  'db:system_flow_proof': { label: 'the flow proof’s own readings', proof: { ts: 'measured_at', fresh: 1 } },
+  'db:ops_commands': { label: 'operations queue', proof: { ts: 'created_at', fresh: 30, consumed: "status <> 'queued'" } },
+  'db:ops_commands#finished': { label: 'operations finished by the NAS', proof: { ts: 'finished_at', fresh: 30, where: 'finished_at IS NOT NULL' } },
+  'db:agent_inbox#lesson': { label: 'lessons sent from the app', proof: { ts: 'created_at', fresh: 30, where: "tags ? 'lesson' AND NOT tags ? 'voice' AND NOT tags ? 'voice-transcript' AND NOT tags ? 'voice-failed'", consumed: "tags ? 'mirrored'" } },
+  'db:agent_inbox#voice': { label: 'spoken lessons waiting for Whisper', proof: { ts: 'created_at', fresh: 30, where: "tags ? 'voice'", consumed: "tags ? 'voice-transcribed' OR tags ? 'voice-failed'" } },
+  'db:agent_inbox#lesson-review': { label: 'members\u2019 lessons the Governor decided', proof: { ts: 'reviewed_at', fresh: 30, where: "tags ? 'lesson-approved' OR tags ? 'lesson-declined'", consumed: "tags ? 'review-mirrored'" } },
+  'db:agent_inbox#voice-transcript': { label: 'spoken lessons written down', proof: { ts: 'created_at', fresh: 30, where: "tags ? 'voice-transcript'", consumed: "tags ? 'mirrored'" } },
+  'hosted:lesson-published': { label: 'a member\u2019s lesson marked published by the reader (DR-0639)' },
+  'db:agent_inbox#lesson-published': { label: 'members\u2019 lessons published', proof: { ts: 'created_at', fresh: 30, where: "tags ? 'lesson-published'", consumed: "tags ? 'messaged:published'" } },
+  'db:direct_messages': { label: 'Messages', sink: 'The member reads the Message in their own Messages thread and may reply; a reply is an ordinary Message to Darrell (DR-0639).' },
+  'db:agent_inbox#poetech': { label: 'PoeTech requests relayed to the inbox', proof: { ts: 'created_at', fresh: 60, where: "tags ? 'tell-poetech'" },
+    open: { blocker: 'Nothing reads these rows (measured 2026-09-24: no code, NAS job or routine reads the tell-poetech tag). The same words now also reach the feedback queue; this relay retires once a PoeTech request is seen landing there on the live database, not before (never dismantle what may still deliver until its replacement is proven).', reReview: '2026-10-01' } },
+  'hosted:lesson-mirror': { label: 'lessons carried to the cloud reader (DR-0614)' },
+  'hosted:lesson-progress': { label: 'the lesson builder\u2019s progress on the hosted copy: captured, its PR, the lesson id (DR-0672)' },
+  'db:agent_inbox#lesson-progress': { label: 'lessons the builder has captured', proof: { ts: 'created_at', fresh: 30, where: "tags ? 'lesson-captured'" } },
+  'db:saved_prompts': { label: 'kept prompts', proof: { ts: 'last_used_at', fresh: 30, consumed: 'use_count > 1' } },
+  'db:agent_tasks': { label: 'questions to the models', proof: { ts: 'created_at', fresh: 30, consumed: "status <> 'queued'" } },
+  'db:agent_tasks#answered': { label: 'answers from the NAS agent', proof: { ts: 'updated_at', fresh: 30, where: "status IN ('done','failed','error')" } },
+  'db:family_secure_config': { label: 'family key published', proof: { ts: 'updated_at', fresh: 365 } },
+  'db:choir_sermons': { label: 'service record', proof: { ts: 'updated_at', fresh: 14, consumed: 'service_date IS NOT NULL' } },
+  'db:choir_songs': { label: 'songs', proof: { ts: 'created_at', fresh: 60 } },
+  'db:video_transcripts': { label: 'service transcripts', proof: { ts: 'created_at', fresh: 7, consumed: "length(coalesce(text,'')) > 0" } },
+  'db:video_harvests': { label: 'harvests recorded', proof: { ts: 'updated_at', fresh: 60 } },
+  'db:sermon_video_stats': { label: 'video reach', proof: { ts: 'fetched_at', fresh: 2 } },
+  'db:church_service_segments': { label: 'order of service', proof: { ts: 'updated_at', fresh: 30 } },
+  'db:_sovereign_replay': { label: 'the live database’s migration ledger', proof: { ts: 'applied_at', fresh: 30 } },
+  // TV sign-in rows live at most ten minutes plus the hour-late sweep, so a
+  // freshness reading would read "stale" on any quiet day; they are carriers,
+  // not records (DR-0658).
+  'db:device_link': { label: 'TV sign-in requests (ten minutes each)' },
+  'db:device_link#approved': { label: 'TV sign-in requests a phone approved' },
+  'db:device_link_rate': { label: 'TV sign-in look-ups, metered per person', sink: 'Read only by device_link_meter inside the database to refuse the 21st look-up in ten minutes; swept after an hour.' },
+  'auth:session#tv': { label: 'a TV’s signed-in session', sink: 'The television keeps it and uses the app as that person; nothing else reads it.' },
+
+  'event:use-prompt': { label: '“Put it in the box” (reuse a prompt)' },
+  'event:lesson-waiting': { label: 'the lesson-waiting dispatch (a lesson row landed, or a build reached a milestone)' },
+  'device:family-key': { label: 'the family key on this device' },
+  'code:lessons': { label: 'lessons written into the classes' },
+  'db:lesson_versions': { label: 'every writer\u2019s version of a teaching, gated and kept (DR-0669)' },
+  'db:lesson_decisions': { label: 'Darrell\u2019s choice or merge of the versions, and its outcome (DR-0669)' },
+  'db:lesson_builder_settings': { label: 'the writer mode, the backfill request, and what the builder sees (DR-0669)' },
+  'db:curriculum_courses': { label: 'the NAS copy: courses', sink: 'Carried with each lesson so the copy is whole; the reader takes course facts from the bundle today (DR-0677 Phase 2 reads them).' },
+  'db:curriculum_lesson_verse_spans': { label: 'the NAS copy: every quotation and the verse it names', sink: 'Derived from the lessons for the verse gate and for looking a verse up across the school; rewritten whole on every sync (DR-0677).' },
+  'db:curriculum_sync_runs': { label: 'the receipt of every lessons sync and its parity verdict', sink: 'A steward reads the verdict and the drifted lesson ids; the workflow summary carries the same (DR-0677).' },
+  'file:audit-findings': { label: 'surface audit findings', source: 'Written by scripts/surface-audit.mjs, run on the NAS every 30 minutes and by an agent before a commit; the committed file is what the app reads.' },
+  'db:transactions': { label: 'the family ledger', source: 'Written by every family device through lib/transactions-sync.js (imports, edits, deletes); the family-books-probe counts it.' },
+  'file:decision-ledger': { label: 'the decision ledger', source: 'The decision records in docs/decisions, written by the sessions that decide.' },
+  'file:app/src/lib/lesson-sources.json': { label: 'the sources behind a lesson’s researched figures', source: 'Written by the research pass that follows a NAS lesson build (the session that reads the public record and names each publisher, url and the strings its page must say; DR-0750); the witness reads it back from the publishers on a GitHub runner.' },
+
+  'mail:lesson': { label: 'forwarded “Lesson.” mail', source: 'Darrell forwards a lesson from his own mailbox.' },
+  'yt:channel': { label: 'the church’s YouTube channel', source: 'The church publishes each service on its channel.' },
+  'gh:branch': { label: 'a pushed branch', source: 'An agent session or a person pushes a branch.' },
+  'gh:pr-advice': { label: 'the "owner, merge main" comment on a PR', sink: 'The owner of the PR reads it and merges main (DR-0644); nothing else reads it.' },
+  'gh:automerge-dispatch': { label: 'the auto-merge sweep dispatched after PRs were refreshed' },
+  'gh:dispatch': { label: 'a hand dispatch', source: 'A person or a session dispatches a remote-hands workflow on purpose.' },
+  'gh:signal-pr': { label: 'the lesson signal PR (#1346)' },
+  'gh:lesson-bell': { label: 'the lesson inbox bell PR (#1879)' },
+  'gh:pr': { label: 'pull requests' },
+  'gh:check': { label: 'the gates’ verdict' },
+  'gh:main': { label: 'main (merged)' },
+  'gh:deploy-heal': { label: 'a deploy dispatch' },
+  'gh:migrate-heal': { label: 'a migration dispatch' },
+  'gh:rls-dispatch': { label: 'the isolation matrix dispatch' },
+  'gh:heal-nas': { label: 'a NAS heal dispatch' },
+  'gh:incident': { label: 'incident issues (the downtime ledger)' },
+  'gh:release': { label: 'the app release' },
+  'gh:review-issue': { label: 'due re-review items', sink: 'A due re-review opens an issue a steward works; the ledger itself is the record.' },
+  'site:poetech.us': { label: 'the live site' },
+  'hosted:db': { label: 'the retired hosted database' },
+  'http:nas-photos': { label: 'photo server on the NAS', route: '/nas-photos' },
+  'http:voice': { label: 'the reading voice studio', route: '/voice' },
+  'http:voice-lite': { label: 'the NAS audio voice (Piper)', route: '/voice-lite' },
+  'http:cams': { label: 'the family camera road on the NAS (go2rtc)', route: '/cams' },
+  'db:vault_header': { label: 'a person’s vault header: KDF parameters, salt and a verifier, never a key (0251, DR-0762; owner only)' },
+  'db:vault_items': { label: 'a person’s vault records as ciphertext made in their browser (0251, DR-0762; owner only)' },
+  'http:taxes': { label: 'the tax archive on the NAS', route: '/taxes' },
+  'http:taxes-upload': { label: 'a tax document uploaded', route: '/taxes' },
+  'nas:mirror': { label: 'the NAS repo mirror' },
+  'nas:clock': { label: 'the NAS loop clock' },
+  'nas:services': { label: 'installed NAS services' },
+  'nas:reel': { label: 'the NAS event reel' },
+  'nas:smtp': { label: 'the sign-in mail sender' },
+  'nas:storage': { label: 'the live file storage' },
+  'nas:agent-credential': { label: 'the NAS agent’s credential' },
+  'nas:claude-signin': { label: 'the Claude CLI’s sign-in on the NAS (dpoe)' },
+  'nas:scribe-queue': { label: 'Scribe recordings waiting' },
+  'nas:scribe-minutes': { label: 'Scribe transcripts + minutes' },
+  'http:scribe-results': { label: 'what each recording became, read back', route: '/scribe' },
+  'nas:ytzero-inbox': { label: 'the chosen-channels inbox', sink: 'Darrell reads it himself at its LAN page (port 3701); it is a personal inbox by design, not data another workflow uses.' },
+  'nas:wf18-bearer': { label: 'the n8n wf18 bearer', open: { blocker: 'Its only reader is n8n wf18, which leaves by Darrell’s decision (DR-0617, PR #1774). This workflow leaves with n8n once wf18’s replacement is proven.', reReview: '2026-10-01' } },
+  'auth:users': { label: 'sign-in accounts' },
+  'db:push_subscriptions': { label: 'devices that asked for notifications', proof: { ts: 'last_seen_at', fresh: 30 } },
+  'db:door_feedback': { label: 'door feedback + fault reports', proof: { ts: 'created_at', fresh: 30, consumed: "status <> 'new'" } },
+  'db:push_outbox': { label: 'office pushes waiting', proof: { ts: 'created_at', fresh: 30, consumed: 'sent_at IS NOT NULL' } },
+  'db:push_outbox#sent': { label: 'office pushes delivered', proof: { ts: 'sent_at', fresh: 30, where: 'sent_at IS NOT NULL' },
+    open: { blocker: 'The drain ships OFF until a real phone is proven to receive a push (DR-0400 / DR-0334) — a phone in a person’s hand is the proof, which this session cannot hold. Until then the outbox fills and the board shows every fault.', reReview: '2026-10-01' } },
+  'http:push-send': { label: 'a push sent' },
+  'push:phone': { label: 'a notification on a phone', sink: 'A person reads it on their phone.' },
+  'cf:push-env': { label: 'the push sender’s settings' },
+  'tower:voice-studio': { label: 'the reading-voice studio on the tower' },
+  'tower:openclaw': { label: 'the OpenClaw gateway on the tower', sink: 'Runs on the tower loopback behind the poetech-gate plugin; a person on the tower talks to it (role a, no channel paired), and the lane measures it into the openclaw-tower record (DR-0670).' },
+  'file:openclaw-registry': { label: 'the OpenClaw role registry + ARMED-BY-RECORD', source: 'Committed in infra/openclaw-tower by the PRs that arm, stop or resume a role (DR-0670).' },
+  'auth:hook': { label: 'the renter-portal sign-in hook', sink: 'GoTrue calls it on every renter sign-in; its effect is the renter portal’s own access, proven by the renter-portal isolation smokes.' },
+  'tailnet:nodes': { label: 'the always-on devices', source: 'The tailnet itself reports which devices answer.' },
+  'http:mcp': { label: 'the MCP server' },
+  'web:primary-records': { label: 'the historical primary records', source: 'Yale Avalon, Cornell LII, the National Archives, Gutenberg and the other named record holders.' },
+  'file:source-transcripts': { label: 'a sent video’s transcript text' },
+  'http:scribe-upload': { label: 'a Scribe recording uploaded', route: '/scribe' },
+  'http:supabase': { label: 'the live database’s API', route: '/sb' },
+  'http:funnel': { label: 'the NAS’s public routes' },
+  'db:contacts': { label: 'a person\u2019s own address book (0247, DR-0736; read by its owner alone)' },
+  'db:dm_device_keys': { label: 'the public key of each device a person holds (0249, DR-0737; read by anyone signed in, written by its owner alone)' },
+  'db:usage_events': { label: 'every tab open and function exercised, per person with the time (0073, DR-0819); each person owns and can delete their own trail' },
+  'db:rental_tenancies': { label: 'the tenancies (0055): who lives behind which door, the lease, the rent and, since 0258, the camera grant the door shares with its household (DR-0841)' },
+  'db:church_devices': { label: 'the church device register (0056): identified assets with the MACs a scan read and, since 0256, the person each belongs to (DR-0830)' },
+  'file:vcf': { label: 'a phone\u2019s exported contacts file', source: 'The phone\u2019s Contacts app or Google Contacts shares it; the person uploads it in Messages.' },
+  'db:household_openers': { label: 'the openers this household owns, and which are armed (0254, DR-0823)' },
+  'db:opener_presses': { label: 'every press of an opener and what came back', sink: 'A steward reads it in Dev/Ops; it is append-only, with no update or delete policy, so the record of who opened the house and when cannot be tidied away.' },
+  'http:openers': { label: 'a press on its way to the house', route: '/openers',
+    open: { blocker: 'The Funnel mounts nothing at /openers yet, and that is on purpose: this is the only service in the fleet that drives a physical actuator on the family\u2019s house, so it ships disabled in services.json and is armed by hand rather than by a merge (DR-0823). It is recorded in the UNACTUATED section of infra/nas-transport/RECORDED-STATE.md, which is the honest state until Darrell names the opener hardware and fills in devices.json on the NAS.', reReview: '2026-11-08' } },
+  'relay:opener': { label: 'the garage door, or another opener, actually moving', sink: 'The door itself is the end of this flow. Only a device that reports its own position sends anything back, and a press nobody confirmed is recorded as unanswered rather than as opened (DR-0076).' },
+};
+
+// ---------------------------------------------------------------------------
+// LOOPS — the chains that must close into continuous loops.
+// ---------------------------------------------------------------------------
+const LOOPS = [
+  { id: 'feedback-loop', name: 'Feedback → triage → the sender’s receipt → new feedback', path: ['feedback-door', 'feedback-queue'] },
+  { id: 'fix-loop', name: 'Feedback → the fix ships naming it → the note reads Fixed → the sender', path: ['feedback-door', 'feedback-fixed'] },
+  { id: 'ops-loop', name: 'Ops command → NAS runner → outcome back in the app', path: ['ops-queue', 'ops-runner'] },
+  { id: 'models-loop', name: 'Question → NAS agent → answer in the pane', path: ['chat-pane', 'agent-consumer'] },
+  { id: 'prompt-loop', name: 'Prompt sent → kept → put back in the box → sent again', path: ['one-voice', 'prompt-history'] },
+  { id: 'monitor-loop', name: 'Every workflow’s run → the flow proof → the operations board', path: ['site-health', 'flow-proof', 'ops-board'],
+    open: { blocker: 'The board’s escalations reach a steward, who fixes and ships; the next proof run shows the connection flowing again. That return passes through a person by design (the Governor decides), so this loop closes through the delivery lane, not a table.', reReview: '2026-10-24' } },
+  { id: 'spoken-lesson-loop', name: 'A spoken lesson → our own Whisper → its words back to the speaker → the box', path: ['lesson-door', 'lesson-voice', 'lesson-inbox'] },
+  { id: 'scribe-loop', name: 'A recording → our own Whisper → its words back on the Scribe screen', path: ['scribe-surface', 'scribe'] },
+  { id: 'lane-loop', name: 'Merge → deploy → site witness → heal → deploy', path: ['deploy', 'site-health'] },
+];
+
+// Chains shown on the surface, in reading order (phone-first list).
+const CHAINS = [
+  { id: 'feedback', name: 'Feedback and triage', nodes: ['feedback-door', 'feedback-queue', 'feedback-fixed', 'feedback-receipt', 'concerns-board', 'projects', 'itsm-incidents', 'board-tasks', 'decision-board'] },
+  { id: 'lessons', name: 'Lesson intake', nodes: ['lesson-mail-watch', 'lesson-door', 'lesson-voice', 'voice-intake-health', 'lesson-inbox', 'lesson-capture', 'learn'] },
+  { id: 'prompts', name: 'Prompt history', nodes: ['one-voice', 'prompt-history'] },
+  { id: 'ops', name: 'Operations queue', nodes: ['ops-queue', 'ops-runner', 'ops-queue-health', 'ops-surface'] },
+  { id: 'models', name: 'Ask the models', nodes: ['chat-pane', 'agent-consumer'] },
+  { id: 'sermons', name: 'Transcripts → sermons → The Word', nodes: ['choir-dates', 'transcript-trickle', 'transcript-backfill', 'video-stats', 'content-sync', 'sermon-store', 'sermon-reader', 'harvest-ledger', 'scripture-web', 'library', 'songbook', 'harvest-health', 'corpus-reconcile'] },
+  { id: 'family-key', name: 'The family key', nodes: ['family-key', 'bridge-provision', 'nas-photos', 'voice-studio', 'books-taxes'] },
+  { id: 'health', name: 'Site health → incidents → operations readout', nodes: ['site-health', 'level-witness', 'node-availability', 'harvest-health', 'ops-queue-health', 'ops-surface', 'ops-board', 'openclaw-tower', 'openclaw-tower-surface'] },
+  { id: 'decisions', name: 'Decision readouts, the flow proof and the operations board', nodes: ['decision-board', 'flow-proof', 'ops-board', 'flow-surface'] },
+  { id: 'scribe', name: 'Scribe: recording → words → back to the person', nodes: ['scribe-surface', 'scribe', 'scribe-transcribe'] },
+  { id: 'lane', name: 'Delivery lane', nodes: ['auto-open-pr', 'ci', 'auto-merge', 'deploy', 'deploy-freshness', 'db-migrate', 'migrate-freshness', 'rls-isolation', 'schema-health', 'pr-janitor', 'keep-prs-current'] },
+];
+
+export const SYSTEM_FLOW = { nodes: NODES, resources: RESOURCES, loops: LOOPS, chains: CHAINS };

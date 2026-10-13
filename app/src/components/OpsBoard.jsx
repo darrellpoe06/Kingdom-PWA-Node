@@ -14,6 +14,11 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { KpiDot } from './KpiDot.jsx';
 import { fetchOps, landOrder, GITHUB_SLUG } from '../lib/github-ops.js';
+import { fetchSiteHealth } from '../lib/site-health.js';
+import { fetchHarvestHealth } from '../lib/harvest-health.js';
+import { fetchOpenclawTower } from '../lib/openclaw-tower.js';
+import DataIntegrityReport from './DataIntegrityReport.jsx';
+import { REPEATABLE_GOVERNANCE } from '../lib/purpose.js';
 
 function laneBadge(lane) {
   if (lane === 'parallel-safe') return { status: 'good', label: 'parallel-safe' };
@@ -28,13 +33,163 @@ function prKpi(p) {
   return { status: 'attention', label: 'open — no auto-merge' };
 }
 
+// The uptime verdict, from the outside-in probe's real runs (DR-0125). Deploy
+// green is NOT site-up (2026-07-08; LESSONS P26) — this is the site's own line.
+// HarvestStrip — the transcript pipeline, where a steward will actually see it.
+//
+// Darrell 2026-08-11: "fix the witness too... in app surface." The probe had
+// rung four times a day for five days into a GitHub issue while the corpus sat
+// at 81 of 860 for 35 days. DR-0135's standard is probe -> READOUT -> actuator
+// -> announce, and the readout was the missing half: a stalled data plane was
+// visible only to whoever opened the repo's issues.
+//
+// Every number here is the PROBE's own measurement, read live (DR-0121) — this
+// never computes a second, possibly-disagreeing figure. Unreadable is stated as
+// unreadable, never drawn as green (DR-0076).
+function HarvestStrip({ harvest }) {
+  if (!harvest) return null;
+  if (!harvest.ok) {
+    return (
+      <p className="text-[0.625rem] text-[#5A5751] mb-2">
+        Harvest record unreadable right now — {harvest.notice}
+      </p>
+    );
+  }
+  const { stats, latest, incident } = harvest;
+  const stalled = incident ? incident.open : (stats && stats.measured ? !stats.ok : null);
+  const kpi = stalled === null
+    ? { status: 'idle', label: 'not yet measured' }
+    : stalled
+      ? { status: 'problem', label: latest && latest.state === 'blocked' ? 'blocked — running, being refused' : 'silent — the rider is not executing' }
+      : { status: 'good', label: 'transcripts advancing' };
+  return (
+    <div className="border border-[#E8E4DC] bg-[#FAF8F4] p-2 mb-3 text-[0.6875rem]">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <span className="font-semibold text-[#1A1815]">Transcript harvest — the data plane</span>
+        <KpiDot status={kpi.status} label={kpi.label} />
+      </div>
+      <p className="text-[0.625rem] text-[#5A5751] mt-1">
+        {latest && latest.transcribed != null && latest.total != null
+          ? <>{latest.transcribed} of {latest.total} transcribed{latest.owed != null ? ` · ${latest.owed} still owed` : ''}.{' '}</>
+          : <>The probe has not recorded counts yet.{' '}</>}
+        {latest && latest.quietHours != null && stalled
+          ? <>Nothing has succeeded in {latest.quietHours}h.{' '}</>
+          : null}
+        {stats && stats.measured
+          ? <>{stats.checks} checks read, {stats.failing} failing{stats.streak > 1 ? ` (${stats.streak} in a row the same way)` : ''}.{' '}</>
+          : null}
+        {incident && incident.url
+          ? <a href={incident.url} target="_blank" rel="noopener noreferrer" className="text-[#B85838] underline">the record</a>
+          : null}
+      </p>
+    </div>
+  );
+}
+
+function UptimeStrip({ health }) {
+  if (!health) return null;
+  if (!health.ok) {
+    return (
+      <p className="text-[0.625rem] text-[#5A5751] mb-2">
+        Uptime record unreadable right now — {health.notice}
+      </p>
+    );
+  }
+  const { probe, incidents, freshness: fr } = health;
+  const openIncident = incidents.find((i) => i.state === 'open');
+  const up = openIncident ? false : (probe.latest ? probe.latest.verdict === 'up' : null);
+  const kpi = up === null
+    ? { status: 'idle', label: 'not yet measured' }
+    : up
+      ? { status: 'good', label: 'site up (probed from outside)' }
+      : { status: 'problem', label: 'site failing the probe' };
+  return (
+    <div className="border border-[#E8E4DC] bg-[#FAF8F4] p-2 mb-3 text-[0.6875rem]">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <span className="font-semibold text-[#1A1815]">poetech.us — live site</span>
+        <span className="flex items-center gap-2">
+          <KpiDot status={kpi.status} label={kpi.label} />
+          {fr && fr.known && (
+            <KpiDot
+              status={fr.fresh ? 'good' : 'attention'}
+              label={fr.fresh ? `serving main (${fr.deployedSha})` : `stale: serving ${fr.deployedSha}, main is ${fr.mainSha}`}
+            />
+          )}
+        </span>
+      </div>
+      <p className="text-[0.625rem] text-[#5A5751] mt-1">
+        {probe.measured
+          ? <>Today: {probe.checksToday} outside-in checks, {probe.downToday} failing.{' '}</>
+          : <>The probe has not completed a run yet — the record starts measuring on its first fire.{' '}</>}
+        {openIncident ? (
+          <a href={openIncident.url} target="_blank" rel="noreferrer" className="underline decoration-dotted font-semibold">
+            Open incident #{openIncident.number} ({openIncident.observations} observations)
+          </a>
+        ) : (
+          incidents.length > 0
+            ? <>Downtime ledger: {incidents.length} recorded incident{incidents.length === 1 ? '' : 's'}, none open.</>
+            : <>No recorded incidents yet.</>
+        )}
+      </p>
+    </div>
+  );
+}
+
+// OpenClaw on the 4070 tower (DR-0670) — up, model, last run, brakes armed,
+// read live from the witness record the openclaw-tower lane writes. Unknown is
+// drawn as unknown, with the reason in words; it is never drawn green.
+const brakeWord = (v) => (v === true ? 'armed' : v === false ? 'NOT armed' : 'unknown');
+
+export function OpenclawTowerStrip({ tower }) {
+  const t = tower && tower.status ? tower.status : null;
+  if (!t) return null;
+  const kpi = t.state === 'up'
+    ? { status: 'good', label: t.label }
+    : t.state === 'down'
+      ? { status: 'problem', label: t.label }
+      : { status: 'idle', label: 'unknown' };
+  const run = t.lastRun;
+  return (
+    <div className="border border-[#E8E4DC] bg-[#FAF8F4] p-2 mb-3 text-[0.6875rem]" data-testid="openclaw-tower-strip">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <span className="font-semibold text-[#1A1815]">OpenClaw — the 4070 tower</span>
+        <KpiDot status={kpi.status} label={kpi.label} />
+      </div>
+      <p className="text-[0.625rem] text-[#5A5751] mt-1">
+        {t.state === 'unknown' ? <>State unknown: {t.reason}.{' '}</> : null}
+        Model: {t.model && t.model.name ? <span className="font-mono">{t.model.name}</span> : 'unknown'}
+        {t.model && t.model.present === false ? ' (not pulled)' : ''}.{' '}
+        Last run: {run && run.at
+          ? <>{run.role || 'run'} {run.verdict || ''} {String(run.at).slice(0, 16).replace('T', ' ')} UTC{run.reason ? ` — ${run.reason}` : ''}.{' '}</>
+          : <>none recorded.{' '}</>}
+        Brakes — budget {brakeWord(t.brakes.budget)}, lock {brakeWord(t.brakes.lock)}, kill {t.brakes.kill === true ? 'armed (every role live by record)' : t.brakes.kill === false ? `holding: ${t.brakes.killReason}` : 'unknown'}.{' '}
+        The chat-ops pilot is report-only; the family agent is under evaluation with no channel paired.{' '}
+        {tower.url
+          ? <a href={tower.url} target="_blank" rel="noopener noreferrer" className="text-[#B85838] underline">the record</a>
+          : null}
+      </p>
+    </div>
+  );
+}
+
 export default function OpsBoard() {
   const [state, setState] = useState({ phase: 'loading', data: null });
+  const [health, setHealth] = useState(null);
+  const [harvest, setHarvest] = useState(null);
+  const [tower, setTower] = useState(null);
 
   const load = useCallback(async () => {
     setState((s) => ({ phase: 'loading', data: s.data }));
-    const data = await fetchOps();
+    const [data, sh, hh, oc] = await Promise.all([
+      fetchOps(),
+      fetchSiteHealth().catch(() => null),
+      fetchHarvestHealth().catch(() => null),
+      fetchOpenclawTower().catch(() => null),
+    ]);
     setState({ phase: 'ready', data });
+    setHealth(sh);
+    setHarvest(hh);
+    setTower(oc);
   }, []);
 
   useEffect(() => { load(); }, [load]);
@@ -59,6 +214,48 @@ export default function OpsBoard() {
             {state.phase === 'loading' ? 'Reading…' : 'Refresh'}
           </button>
         </div>
+      </div>
+
+      {/* WHY THIS BOARD EXISTS, in the Governor's declared words (DR-0607, read
+          from lib/purpose.js): a governance surface recognizes patterns,
+          surfaces risks, and helps the decision — without depending on one
+          person's institutional knowledge. This board is that purpose applied
+          to the delivery lane: the lane's state lives HERE, read live, never in
+          one steward's memory of which PR was parked. */}
+      <p className="text-[0.6875rem] leading-relaxed text-[#5A5751] mb-2" data-testid="ops-board-purpose" style={{ fontFamily: '"Fraunces", serif' }}>
+        {REPEATABLE_GOVERNANCE.statement} This board is that purpose applied to the delivery lane: what merged, what is in flight, what is parked, and whether the site is up — read live, never from one person's memory.
+      </p>
+
+      {/* The model, documented beside its live proof (DR-0103 / DR-0065). This
+          is static-by-design operating documentation; the state BELOW it is the
+          live proof it's true. */}
+      <div className="border border-[#E8E4DC] bg-[#FAF8F4] p-2 mb-3 text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+        <span className="font-semibold text-[#1A1815]">The delivery lane.</span>{' '}
+        Work lands on green without a manual merge: an agent (<span className="font-mono">claude/*</span>)
+        or release-lane branch opens a PR and auto-merges the instant the gates pass
+        (lint · full test suite · tenancy/contrast/isolation guards · real build) — merge = deploy.
+        The gate is the brake; the <span className="font-semibold">hold</span> label is the
+        governor's hand to park a PR for a soak or review. Cadence is minutes, not a reflexive hour.
+        <span className="block mt-1 text-[0.625rem]">
+          Governed by{' '}
+          <a
+            href={`https://github.com/${GITHUB_SLUG}/blob/main/docs/decisions/DR-0103-streamlined-delivery-loop-agent-prs-auto-merge-on-green.md`}
+            target="_blank" rel="noreferrer"
+            className="font-mono underline decoration-dotted"
+          >DR-0103</a>. The live lane below is the proof.
+        </span>
+      </div>
+
+      {/* The site's own line — up + fresh, measured from outside (DR-0125). */}
+      <UptimeStrip health={health} />
+      <HarvestStrip harvest={harvest} />
+      <OpenclawTowerStrip tower={tower} />
+
+      {/* Data-integrity standard report — how much of the app is verified
+          live-data vs painted, and the trend over time (DR-0196; Darrell
+          2026-07-20 "add these audits to the reports as a standard"). */}
+      <div className="mb-3">
+        <DataIntegrityReport />
       </div>
 
       {state.phase === 'loading' && !data && (

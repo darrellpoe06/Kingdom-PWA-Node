@@ -39,6 +39,17 @@ export function isTransferTxn(t) {
   return String(t.category || '').toLowerCase() === 'transfer';
 }
 
+// A balance-adjustment row is the ledger form of a MANUAL balance entry
+// (applyManualBalance, financial-engineering.js): it moves the account's derived
+// balance to the number the user typed, but it is not income or spend — so it is
+// excluded from In/Out/Net the same way transfers are. The flag survives the
+// sync round-trip via the category string (transactions-sync carries category).
+export function isBalanceAdjustment(t) {
+  if (!t) return false;
+  if (t.isBalanceAdjustment === true) return true;
+  return String(t.category || '').toLowerCase() === 'balance-adjustment';
+}
+
 // Parse a transaction's posted date to epoch ms. Accepts 'YYYY-MM-DD' (treated
 // as local midnight, matching the component's formatDate) or a full ISO string.
 // Returns null when unparseable so undated rows are handled honestly, never
@@ -64,7 +75,7 @@ export function postedMs(t) {
 export function totals(txns) {
   let inSum = 0, outSum = 0;
   for (const t of txns) {
-    if (isTransferTxn(t)) continue;
+    if (isTransferTxn(t) || isBalanceAdjustment(t)) continue;
     const a = typeof t.amount === 'number' ? t.amount : Number(t.amount);
     if (!Number.isFinite(a)) continue;
     if (a < 0) outSum += -a; else inSum += a;
@@ -297,4 +308,104 @@ export function runningBalances(rows, openingBalance = 0) {
     map.set(r.id, bal);
   }
   return map;
+}
+
+// auditBalanceContinuity — prove ONE account's ledger is complete and NOT
+// double-counted, using ONLY the bank's own arithmetic (Christina's books,
+// 2026-07-18; Darrell: "so no two transactions are the same... it should have
+// metadata"). This is the quantitative integrity engine: data validates data,
+// no human judgment that could be gamed or undermined.
+//
+// Every row that carries the bank's running `balance` implies two facts:
+//   before = balance - amount   (the balance the instant BEFORE it posted)
+//   after  = balance            (the balance the instant AFTER it posted)
+// In a complete, un-duplicated statement the rows form ONE chain: each row's
+// `after` is exactly the next row's `before`. So across the whole set, every
+// `after` value is consumed as some other row's `before` value EXACTLY once —
+// leaving exactly ONE unmatched `before` (the opening balance) and exactly ONE
+// unmatched `after` (the closing balance). This is ORDER-INDEPENDENT (it never
+// re-sorts, so same-day ordering can't create a false alarm) and it localizes a
+// break: if a row was dropped or double-counted, the chain splits and MORE than
+// one balance is left unmatched on each side — those unmatched values bracket the
+// gap. Integer cents throughout so float drift (0.1+0.2) can never fake a break.
+//
+// Pass ONE account's full row set (like runningBalances). Rows without a numeric
+// balance are ignored (honest: an export without a balance column can't be
+// audited this way — ok:true with reason, never a fake pass). Truthful-or-absent.
+export function auditBalanceContinuity(rows) {
+  const cents = (v) => Math.round(Number(v) * 100);
+  const withBal = (rows || []).filter((r) => r && r.balance != null && r.balance !== '' && Number.isFinite(Number(r.balance)));
+  if (withBal.length < 2) {
+    return { ok: true, checked: withBal.length, breaks: [], reason: 'not enough balance data to audit' };
+  }
+  const after = new Map();  // 'balance after' value (cents) -> count
+  const before = new Map(); // 'balance before' value (cents) -> count
+  const bump = (m, k) => m.set(k, (m.get(k) || 0) + 1);
+  for (const r of withBal) {
+    const bal = cents(r.balance);
+    const amt = Number.isFinite(Number(r.amount)) ? cents(r.amount) : 0;
+    bump(after, bal);
+    bump(before, bal - amt);
+  }
+  const unmatchedBefore = []; // opening candidate(s)
+  for (const [k, c] of before) { const d = c - (after.get(k) || 0); for (let j = 0; j < d; j++) unmatchedBefore.push(k / 100); }
+  const unmatchedAfter = [];  // closing candidate(s)
+  for (const [k, c] of after) { const d = c - (before.get(k) || 0); for (let j = 0; j < d; j++) unmatchedAfter.push(k / 100); }
+  const ok = unmatchedBefore.length === 1 && unmatchedAfter.length === 1;
+  return {
+    ok,
+    checked: withBal.length,
+    opening: ok ? unmatchedBefore[0] : null,   // the account's starting balance
+    closing: ok ? unmatchedAfter[0] : null,    // the account's current balance
+    // On a break, these unmatched balances bracket the missing/duplicated row(s).
+    breaks: ok ? [] : { unmatchedBefore, unmatchedAfter },
+  };
+}
+
+// runningBalanceByTxId — the balance AS OF each transaction, keyed by tx id, so a
+// register can show a statement-style running-balance column that CHANGES date to
+// date (Christina's books, 2026-07-18: the row used to repeat the account's single
+// current balance on every line). Per account, oldest-first from the opening
+// balance: the bank's OWN imported balance (t.balance) is authoritative and used
+// as-is when present; rows without it accumulate their amount off the last known
+// balance, so a manual row between two bank rows still chains correctly. Pure.
+export function runningBalanceByTxId(transactions, accounts) {
+  const byAccount = {};
+  for (const t of transactions || []) {
+    if (t && t.accountId) (byAccount[t.accountId] = byAccount[t.accountId] || []).push(t);
+  }
+  const out = {};
+  for (const a of accounts || []) {
+    const rows = byAccount[a.id] || [];
+    const asc = [...rows].sort((x, y) => String(x.date || '').localeCompare(String(y.date || '')));
+    let bal = a.openingBalance != null ? a.openingBalance : (a.balance || 0);
+    for (const t of asc) {
+      if (typeof t.balance === 'number' && Number.isFinite(t.balance)) {
+        bal = t.balance;                    // bank's own running balance — authoritative
+      } else {
+        bal += Number(t.amount) || 0;       // no bank balance — chain off the last known
+      }
+      out[t.id] = Math.round(bal * 100) / 100;
+    }
+  }
+  return out;
+}
+
+// reconcileAccounts — run the balance-continuity audit PER account across a flat
+// ledger. Returns { [accountId]: auditResult }. This is the "correct account of
+// record" proof (Darrell 2026-07-18): each account's rows must form ONE self-
+// consistent balance chain, so if a transaction were filed to the WRONG account,
+// that account's chain would not reconcile. A per-account `ok:true` (with real
+// checked>0) therefore means those rows genuinely belong to that account. Pure;
+// accounts whose rows carry no bank balance return the honest "not enough" result.
+export function reconcileAccounts(transactions) {
+  const byAcct = new Map();
+  for (const t of transactions || []) {
+    if (!t || !t.accountId) continue;
+    if (!byAcct.has(t.accountId)) byAcct.set(t.accountId, []);
+    byAcct.get(t.accountId).push(t);
+  }
+  const out = {};
+  for (const [accountId, rows] of byAcct) out[accountId] = auditBalanceContinuity(rows);
+  return out;
 }

@@ -1,0 +1,309 @@
+// =============================================================================
+// ari-app-review.test.js — Ari's comprehensive app review, proven-to-catch
+// =============================================================================
+// Pins (DR-0076): each dimension fires on a REAL contradiction and stays SILENT
+// when the records are clean; findings rank most-severe first; the summary
+// counts and headline are honest. Deterministic (nowMs injected).
+import { describe, it, expect } from 'vitest';
+import { buildAppReview, reviewHeadline, rankFindings, REVIEW_DIMENSIONS } from '../lib/ari-app-review.js';
+import { seedTasksForBoard } from '../lib/board.js';
+
+const NOW = Date.parse('2026-07-11T12:00:00Z');
+
+// A real drifted task: the build record (seed spec) marks this shipped ('done')
+// while the live board row reads 'not-started' — the exact screenshot case.
+const DRIFT_BOARD = 'board-modular-cutover';
+const DRIFT_SLUG = 'bt-seed-board-modular-cutover-s0';
+const driftedTask = { slug: DRIFT_SLUG, boardSlug: DRIFT_BOARD, status: 'not-started' };
+
+describe('buildAppReview — eleven dimensions, all evidence-backed', () => {
+  it('has the named dimensions in order, even on empty input', () => {
+    const r = buildAppReview({}, NOW);
+    expect(r.dimensions.map((d) => d.key)).toEqual(REVIEW_DIMENSIONS.map((d) => d[0]));
+    expect(r.dimensions.every((d) => Array.isArray(d.findings))).toBe(true);
+  });
+
+  it('delivery: flags the build-record-vs-board drift with a count and the sync action', () => {
+    const r = buildAppReview({ tasks: [driftedTask] }, NOW);
+    const delivery = r.dimensions.find((d) => d.key === 'delivery');
+    const drift = delivery.findings.find((f) => /still read "Not started"/.test(f.title));
+    expect(drift).toBeTruthy();
+    expect(drift.severity).toBe('warning');
+    expect(drift.count).toBe(1);
+    expect(drift.action).toBe('Sync statuses from the build record');
+    expect(delivery.status).toBe('warning');
+  });
+
+  it('rentals: Ari flags an income door with rent but no tenant (answers "why no tenant?")', () => {
+    const rentals = [
+      { id: 'd1', name: '805 N Prospect', rent: 950 },                                              // rent, no tenant
+      { id: 'd2', name: 'Home', rent: 0, personal: true },                                           // personal → excluded
+      { id: 'd3', name: '12 Oak', rent: 800, tenantName: 'Alex', lease: { start: '2026-01-01', end: '2026-12-31', monthlyRent: 800 } }, // complete → no finding
+    ];
+    const dim = buildAppReview({ rentals }, NOW).dimensions.find((d) => d.key === 'rentals');
+    const noTenant = dim.findings.find((f) => /no tenant yet/.test(f.title));
+    expect(noTenant).toBeTruthy();
+    expect(noTenant.severity).toBe('warning');
+    expect(noTenant.evidence).toContain('805 N Prospect');
+    expect(noTenant.evidence).not.toContain('12 Oak'); // the complete door is not flagged
+    expect(dim.metrics.noTenant).toBe(1);
+  });
+  it('rentals: flags a door that HAS a tenant but no trackable lease, and stays clean when complete', () => {
+    const withTenantNoLease = [{ id: 'd1', name: '9 Elm', rent: 700, tenantName: 'Sam' }]; // tenant, no lease dates
+    const dim = buildAppReview({ rentals: withTenantNoLease }, NOW).dimensions.find((d) => d.key === 'rentals');
+    expect(dim.findings.some((f) => /no trackable lease/.test(f.title))).toBe(true);
+    expect(dim.metrics.tenantNoLease).toBe(1);
+    // A fully complete door produces no rentals findings at all.
+    const complete = [{ id: 'd2', name: 'OK', rent: 800, tenantName: 'Alex', lease: { start: '2026-01-01', end: '2026-12-31', monthlyRent: 800 } }];
+    const clean = buildAppReview({ rentals: complete }, NOW).dimensions.find((d) => d.key === 'rentals');
+    expect(clean.findings).toHaveLength(0);
+    expect(clean.status).toBe('ok');
+  });
+
+  it('plan: flags undated open items and overdue open items separately', () => {
+    const tasks = [
+      { slug: 'a', boardSlug: 'b', status: 'not-started' },                       // undated open
+      { slug: 'c', boardSlug: 'b', status: 'in-progress', dueDate: '2026-01-01' }, // overdue
+      { slug: 'd', boardSlug: 'b', status: 'done', dueDate: '2020-01-01' },        // done -> ignored
+    ];
+    const plan = buildAppReview({ tasks }, NOW).dimensions.find((d) => d.key === 'plan');
+    expect(plan.metrics.undated).toBe(1);  // only 'a' is open+undated ('c' is dated, 'd' is done)
+    expect(plan.metrics.overdue).toBe(1);   // 'c' is open and past due
+    expect(plan.findings.some((f) => /no target date/.test(f.title))).toBe(true);
+    expect(plan.findings.some((f) => /past the committed target date/.test(f.title))).toBe(true);
+  });
+
+  it('reviews: an overdue dated re-review from the ledger becomes a warning', () => {
+    const reviews = [{ id: 'REV-9', title: 't', findings: 'We will revisit this. re-review: 2026-01-01' }];
+    const rev = buildAppReview({ reviews }, NOW).dimensions.find((d) => d.key === 'reviews');
+    expect(rev.findings.some((f) => /overdue/.test(f.title))).toBe(true);
+    expect(rev.status).toBe('warning');
+  });
+
+  it('reviews: NAMES the specific overdue decision + its date (no rotting date hides in a count)', () => {
+    const decisions = [{ id: 'DR-0172', title: 'phone door', decision: 'ship it. re-review: 2026-01-05' }];
+    const rev = buildAppReview({ decisions }, NOW).dimensions.find((d) => d.key === 'reviews');
+    const named = rev.findings.find((f) => /DR-0172/.test(f.title));
+    expect(named).toBeTruthy();
+    expect(named.title).toMatch(/overdue \d+d/);        // how overdue, not just "some are"
+    expect(named.evidence).toMatch(/2026-01-05/);        // the actual due date is shown
+    expect(named.action).toMatch(/re-date it with a reason/); // owned outcome, not a shelf
+  });
+
+  it('reviews: a deep overdue backlog names the first few and rolls the rest into one remainder', () => {
+    // 7 distinct overdue dated re-reviews across the DR ledger.
+    const decisions = Array.from({ length: 7 }, (_, i) => ({
+      id: `DR-90${i}`, title: `d${i}`, decision: `x. re-review: 2026-01-0${i + 1}`,
+    }));
+    const rev = buildAppReview({ decisions }, NOW).dimensions.find((d) => d.key === 'reviews');
+    const named = rev.findings.filter((f) => /re-review overdue/.test(f.title));
+    const remainder = rev.findings.find((f) => /more dated re-review/.test(f.title));
+    expect(named.length).toBe(5);          // capped at OVERDUE_NAMED_CAP
+    expect(remainder).toBeTruthy();
+    expect(remainder.title).toMatch(/2 more/);
+    expect(rev.metrics.overdue).toBe(7);   // the count is still whole
+  });
+
+  it('backlog: open concerns are a warning, in-progress a nit, and open feedback a nit', () => {
+    const concerns = [{ status: 'open', concern: 'x' }, { status: 'in-progress', concern: 'y' }, { status: 'done', concern: 'z' }];
+    const feedback = [{ status: 'open' }, { status: 'resolved' }];
+    const bl = buildAppReview({ concerns, feedback }, NOW).dimensions.find((d) => d.key === 'backlog');
+    expect(bl.metrics).toEqual({ openConcerns: 1, wipConcerns: 1, openFeedback: 1 });
+    expect(bl.findings.find((f) => /open \(named/.test(f.title)).severity).toBe('warning');
+  });
+
+  it('inputs: a declared debt with no balance is a warning (the inert-input bug class)', () => {
+    // A manual debt at $0 owed — the "Add as debt, leave balance blank" record that
+    // used to vanish. Ari now catches it so the tap never silently goes nowhere.
+    const debts = [{ id: 'd1', manual: true, balance: 0, needsTerms: true, leaveAlone: false }];
+    const inp = buildAppReview({ debts }, NOW).dimensions.find((d) => d.key === 'inputs');
+    expect(inp.metrics.noBalance).toBe(1);
+    expect(inp.findings.find((f) => /no amount owed/.test(f.title)).severity).toBe('warning');
+  });
+  it('inputs: a debt with a balance but missing terms is a nit, not a no-balance warning', () => {
+    const debts = [{ id: 'd1', manual: true, balance: 9843, needsTerms: true, leaveAlone: false }];
+    const inp = buildAppReview({ debts }, NOW).dimensions.find((d) => d.key === 'inputs');
+    expect(inp.metrics).toEqual({ noBalance: 0, needTerms: 1 });
+    expect(inp.findings.find((f) => /payoff date until terms/.test(f.title)).severity).toBe('nit');
+  });
+  it('inputs: a fully-termed debt raises nothing, and leaveAlone debts are ignored', () => {
+    const debts = [
+      { id: 'd1', manual: true, balance: 9843, needsTerms: false, leaveAlone: false },
+      { id: 'd2', manual: true, balance: 0, needsTerms: true, leaveAlone: true },
+    ];
+    const inp = buildAppReview({ debts }, NOW).dimensions.find((d) => d.key === 'inputs');
+    expect(inp.findings).toHaveLength(0);
+    expect(inp.status).toBe('ok');
+  });
+
+  it('recommends Avalanche when the highest-rate debt is only visible across the whole picture', () => {
+    const debts = [
+      { id: 'd1', name: 'Store Card', rate: 24.99, balance: 1200, leaveAlone: false },
+      { id: 'd2', name: 'Auto Loan', rate: 6.5, balance: 18000, leaveAlone: false },
+    ];
+    const r = buildAppReview({ debts }, NOW);
+    expect(r.recommendations).toHaveLength(1);
+    expect(r.recommendations[0].recommendation).toMatch(/Store Card/);
+    expect(r.recommendations[0].recommendation).toMatch(/Avalanche/);
+    expect(r.recommendations[0].basis).toMatch(/24.99%/);
+  });
+  it('no upgrade recommendation with fewer than two rated debts (nothing to compare)', () => {
+    const debts = [{ id: 'd1', name: 'Only Card', rate: 24.99, balance: 1200, leaveAlone: false }];
+    expect(buildAppReview({ debts }, NOW).recommendations).toHaveLength(0);
+  });
+
+  it('recurrence P30: an open concern aged past the bar fires, naming the principle', () => {
+    // NOW is 2026-07-11; created 2026-06-01 = 40 days — past QUEUE_AGE_DAYS (21).
+    const concerns = [{ status: 'open', concern: 'x', created: '2026-06-01' }];
+    const rec = buildAppReview({ concerns }, NOW).dimensions.find((d) => d.key === 'recurrence');
+    expect(rec.metrics.agedConcerns).toBe(1);
+    const f = rec.findings.find((x) => /P30 recurrence/.test(x.title) && /sitting open/.test(x.title));
+    expect(f.severity).toBe('warning');
+    expect(f.principle).toBe('P30');
+    expect(f.title).toMatch(/oldest 40d/);
+  });
+  it('recurrence P30: a concern past its own targetDate fires; a done one does not', () => {
+    const concerns = [
+      { status: 'in-progress', concern: 'slipping', created: '2026-07-01', targetDate: '2026-07-05' },
+      { status: 'done', concern: 'finished', created: '2026-06-01', targetDate: '2026-06-05' },
+    ];
+    const rec = buildAppReview({ concerns }, NOW).dimensions.find((d) => d.key === 'recurrence');
+    expect(rec.metrics.slippedTargets).toBe(1);
+    expect(rec.findings.find((x) => /past (its|their) own target date/.test(x.title)).severity).toBe('warning');
+  });
+  it('recurrence: a FRESH open concern raises nothing (age is the signal, not existence)', () => {
+    const concerns = [{ status: 'open', concern: 'new', created: '2026-07-08' }];
+    const rec = buildAppReview({ concerns }, NOW).dimensions.find((d) => d.key === 'recurrence');
+    expect(rec.findings).toHaveLength(0);
+    expect(rec.status).toBe('ok');
+  });
+  it('recurrence: a REFRESHED old concern stops firing — refresh actually clears the finding (DR-0225)', () => {
+    // Created 40d ago (would fire) but refreshed 3d ago: the refresh pass counts.
+    const concerns = [{ status: 'open', concern: 'tended', created: '2026-06-01', refreshed: '2026-07-08' }];
+    const rec = buildAppReview({ concerns }, NOW).dimensions.find((d) => d.key === 'recurrence');
+    expect(rec.metrics.agedConcerns).toBe(0);
+    // And a STALE refreshed date does NOT shield it: refreshed 30d ago still fires.
+    const stale = [{ status: 'open', concern: 'slid', created: '2026-05-01', refreshed: '2026-06-11' }];
+    const rec2 = buildAppReview({ concerns: stale }, NOW).dimensions.find((d) => d.key === 'recurrence');
+    expect(rec2.metrics.agedConcerns).toBe(1);
+  });
+  it('recurrence P30: aged open feedback fires; addressed feedback does not', () => {
+    const feedback = [
+      { status: 'open', createdAt: '2026-06-01T10:00:00Z' },
+      { status: 'resolved', createdAt: '2026-05-01T10:00:00Z' },
+    ];
+    const rec = buildAppReview({ feedback }, NOW).dimensions.find((d) => d.key === 'recurrence');
+    expect(rec.metrics.agedFeedback).toBe(1);
+    expect(rec.findings.find((x) => /feedback item/.test(x.title)).severity).toBe('warning');
+  });
+  it('recurrence P14: a demo-only row in the live signed-in data is a BUG-severity leak', () => {
+    const transactions = [{ id: 'demo-t1', amount: -5 }, { id: 't-real', amount: -10 }];
+    const r = buildAppReview({ transactions, demoRowIds: new Set(['demo-t1']) }, NOW);
+    const rec = r.dimensions.find((d) => d.key === 'recurrence');
+    expect(rec.metrics.demoLeaks).toBe(1);
+    expect(rec.metrics.provenanceChecked).toBe(true);
+    expect(rec.findings.find((x) => /P14 recurrence/.test(x.title)).severity).toBe('bug');
+    expect(r.summary.status).toBe('bug'); // a provenance leak tops the whole review
+  });
+  it('recurrence P14: without demoRowIds the provenance check honestly reports unchecked (never a silent pass)', () => {
+    const transactions = [{ id: 'demo-t1', amount: -5 }];
+    const rec = buildAppReview({ transactions }, NOW).dimensions.find((d) => d.key === 'recurrence');
+    expect(rec.metrics.provenanceChecked).toBe(false);
+    expect(rec.metrics.demoLeaks).toBe(0);
+    expect(rec.findings).toHaveLength(0);
+  });
+
+  it('oversight: an active fleet member without proven brakes fires the P10 warning', () => {
+    const fleet = {
+      members: [{ id: 'wf-a.json', name: 'Photos webhook', kind: 'n8n-workflow', active: true, braked: false }],
+      counts: { total: 1, active: 1, braked: 0, activeUnbraked: 1 },
+      activeUnbraked: [{ id: 'wf-a.json', name: 'Photos webhook' }],
+    };
+    const ov = buildAppReview({ fleet }, NOW).dimensions.find((d) => d.key === 'oversight');
+    expect(ov.metrics.fleetChecked).toBe(true);
+    const f = ov.findings.find((x) => /without proven brakes/.test(x.title));
+    expect(f.severity).toBe('warning');
+    expect(f.principle).toBe('P10');
+    expect(f.evidence).toMatch(/Photos webhook/);
+  });
+  it('oversight: an active automation with no recorded WHY fires the intention-consistency gap (DR-0158)', () => {
+    const fleet = {
+      members: [{ id: 'wf-c.json', name: 'Mystery job', kind: 'n8n-workflow', active: true, braked: true, whyRecorded: false }],
+      counts: { total: 1, active: 1, braked: 1, activeUnbraked: 0, whyRecorded: 0, activeNoWhy: 1 },
+      activeUnbraked: [],
+      activeNoWhy: [{ id: 'wf-c.json', name: 'Mystery job' }],
+    };
+    const ov = buildAppReview({ fleet }, NOW).dimensions.find((d) => d.key === 'oversight');
+    const f = ov.findings.find((x) => /no recorded intention/.test(x.title));
+    expect(f.severity).toBe('warning');
+    expect(f.principle).toBe('DR-0158');
+    expect(f.evidence).toMatch(/Mystery job/);
+    expect(ov.metrics.activeNoWhy).toBe(1);
+  });
+  it('oversight: no fleet input reports fleetChecked=false — an unchecked fleet never reads safe', () => {
+    const ov = buildAppReview({}, NOW).dimensions.find((d) => d.key === 'oversight');
+    expect(ov.metrics.fleetChecked).toBe(false);
+    expect(ov.findings).toHaveLength(0);
+    expect(ov.status).toBe('ok');
+  });
+
+  // A "clean" review now requires that the workflow and live-system signals were
+  // actually READ. Handing in nothing used to report nine clean dimensions;
+  // since 2026-09-05 an unread signal is a finding, not a silent pass
+  // (DR-0076 / DR-0125), so a genuinely clean review supplies them.
+  const READ_AND_HEALTHY = {
+    workflows: [{ file: 'wf1.json', name: 'wf1', active: true, why: 'recorded' }],
+    loops: [{ key: 'ledger', label: 'Transaction ledger', status: 'fresh', daysSince: 1, staleDays: 45 }],
+    site: {
+      ok: true,
+      freshness: { known: true, fresh: true, deployedSha: 'abc1234', mainSha: 'abc1234' },
+      probe: { measured: true, checksToday: 3, downToday: 0, lastDown: null },
+      incidents: [],
+    },
+  };
+
+  it('clean input reports every dimension ok and a clean headline (no painted score)', () => {
+    const r = buildAppReview({ ...READ_AND_HEALTHY }, NOW);
+    expect(r.summary.total).toBe(0);
+    expect(r.summary.status).toBe('ok');
+    expect(r.dimensions.every((d) => d.status === 'ok')).toBe(true);
+    expect(reviewHeadline(r)).toMatch(/clean/);
+  });
+
+  it('but an EMPTY input is not clean — the unread workflow and live signals speak up', () => {
+    const r = buildAppReview({}, NOW);
+    expect(r.summary.status).not.toBe('ok');
+    const keys = r.findings.map((f) => f.dimension);
+    expect(keys).toContain('workflows');
+    expect(keys).toContain('capacity');
+  });
+
+  it('summary ranks most-severe first, counts by severity, and dedupes top actions', () => {
+    const tasks = [driftedTask, { slug: 'u', boardSlug: 'b', status: 'not-started' }];
+    const concerns = [{ status: 'open', concern: 'x' }];
+    const r = buildAppReview({ tasks, concerns }, NOW);
+    // ranking: warnings before nits
+    const sevSeq = r.findings.map((f) => f.severity);
+    const firstNit = sevSeq.indexOf('nit');
+    const lastWarn = sevSeq.lastIndexOf('warning');
+    if (firstNit !== -1 && lastWarn !== -1) expect(lastWarn).toBeLessThan(firstNit);
+    expect(r.summary.counts.warning).toBeGreaterThanOrEqual(2);
+    expect(r.summary.topActions.length).toBeGreaterThan(0);
+    expect(reviewHeadline(r)).toMatch(/to address/);
+  });
+
+  it('rankFindings is pure and stable within a severity', () => {
+    const input = [
+      { severity: 'nit', title: 'n1' }, { severity: 'warning', title: 'w1' },
+      { severity: 'nit', title: 'n2' }, { severity: 'bug', title: 'b1' },
+    ];
+    expect(rankFindings(input).map((f) => f.title)).toEqual(['b1', 'w1', 'n1', 'n2']);
+  });
+});
+
+describe('ari-app-review — the drift signal matches the build record exactly', () => {
+  it('a task whose seed spec is done but live status is not-started is the drift', () => {
+    const spec = seedTasksForBoard(DRIFT_BOARD).find((s) => s.slug === DRIFT_SLUG);
+    expect(spec.status).toBe('done'); // guards the fixture against seed-data drift
+  });
+});

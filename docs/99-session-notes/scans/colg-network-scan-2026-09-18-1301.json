@@ -1,0 +1,756 @@
+{
+    "arp":  [
+                {
+                    "ip":  "192.168.0.1",
+                    "mac":  "90-EC-77-34-86-FC",
+                    "type":  "dynamic",
+                    "oui":  "90-EC-77"
+                },
+                {
+                    "ip":  "192.168.0.9",
+                    "mac":  "A0-D2-B1-F6-5D-5D",
+                    "type":  "dynamic",
+                    "oui":  "A0-D2-B1"
+                },
+                {
+                    "ip":  "192.168.0.10",
+                    "mac":  "54-B5-6C-25-38-46",
+                    "type":  "dynamic",
+                    "oui":  "54-B5-6C"
+                },
+                {
+                    "ip":  "192.168.0.29",
+                    "mac":  "B0-F7-C4-96-C1-A8",
+                    "type":  "dynamic",
+                    "oui":  "B0-F7-C4"
+                },
+                {
+                    "ip":  "192.168.0.39",
+                    "mac":  "1C-CE-51-39-EB-86",
+                    "type":  "dynamic",
+                    "oui":  "1C-CE-51"
+                },
+                {
+                    "ip":  "192.168.0.42",
+                    "mac":  "F4-E2-C6-6D-77-28",
+                    "type":  "dynamic",
+                    "oui":  "F4-E2-C6"
+                },
+                {
+                    "ip":  "192.168.0.44",
+                    "mac":  "60-22-32-16-C0-45",
+                    "type":  "dynamic",
+                    "oui":  "60-22-32"
+                },
+                {
+                    "ip":  "192.168.0.45",
+                    "mac":  "F4-8C-50-34-38-CF",
+                    "type":  "dynamic",
+                    "oui":  "F4-8C-50"
+                },
+                {
+                    "ip":  "192.168.0.57",
+                    "mac":  "74-6D-FA-28-FD-E0",
+                    "type":  "dynamic",
+                    "oui":  "74-6D-FA"
+                },
+                {
+                    "ip":  "192.168.0.60",
+                    "mac":  "7C-2E-0D-0D-6C-32",
+                    "type":  "dynamic",
+                    "oui":  "7C-2E-0D"
+                },
+                {
+                    "ip":  "192.168.0.100",
+                    "mac":  "00-11-32-41-CF-3D",
+                    "type":  "dynamic",
+                    "oui":  "00-11-32"
+                },
+                {
+                    "ip":  "192.168.0.103",
+                    "mac":  "80-5E-0C-E3-B7-79",
+                    "type":  "dynamic",
+                    "oui":  "80-5E-0C"
+                },
+                {
+                    "ip":  "192.168.0.107",
+                    "mac":  "38-F7-CD-C4-6C-4A",
+                    "type":  "dynamic",
+                    "oui":  "38-F7-CD"
+                },
+                {
+                    "ip":  "192.168.0.109",
+                    "mac":  "FC-2A-54-00-26-B4",
+                    "type":  "dynamic",
+                    "oui":  "FC-2A-54"
+                },
+                {
+                    "ip":  "192.168.0.122",
+                    "mac":  "F8-B1-56-B5-C8-E7",
+                    "type":  "dynamic",
+                    "oui":  "F8-B1-56"
+                },
+                {
+                    "ip":  "192.168.0.125",
+                    "mac":  "00-10-36-0A-3B-28",
+                    "type":  "dynamic",
+                    "oui":  "00-10-36"
+                },
+                {
+                    "ip":  "192.168.0.133",
+                    "mac":  "08-A1-89-7E-2E-30",
+                    "type":  "dynamic",
+                    "oui":  "08-A1-89"
+                },
+                {
+                    "ip":  "192.168.0.135",
+                    "mac":  "00-A0-DE-5C-A5-A6",
+                    "type":  "dynamic",
+                    "oui":  "00-A0-DE"
+                },
+                {
+                    "ip":  "192.168.0.136",
+                    "mac":  "10-DA-43-3C-88-2E",
+                    "type":  "dynamic",
+                    "oui":  "10-DA-43"
+                },
+                {
+                    "ip":  "192.168.0.137",
+                    "mac":  "10-DA-43-42-7F-8D",
+                    "type":  "dynamic",
+                    "oui":  "10-DA-43"
+                },
+                {
+                    "ip":  "192.168.0.142",
+                    "mac":  "60-22-32-15-03-5D",
+                    "type":  "dynamic",
+                    "oui":  "60-22-32"
+                },
+                {
+                    "ip":  "192.168.0.147",
+                    "mac":  "56-13-BA-1B-61-B7",
+                    "type":  "dynamic",
+                    "oui":  "56-13-BA"
+                },
+                {
+                    "ip":  "192.168.0.150",
+                    "mac":  "6C-55-B1-8E-C0-20",
+                    "type":  "dynamic",
+                    "oui":  "6C-55-B1"
+                },
+                {
+                    "ip":  "192.168.0.155",
+                    "mac":  "00-26-73-70-5D-E6",
+                    "type":  "dynamic",
+                    "oui":  "00-26-73"
+                },
+                {
+                    "ip":  "192.168.0.158",
+                    "mac":  "58-D5-0A-C3-6A-38",
+                    "type":  "dynamic",
+                    "oui":  "58-D5-0A"
+                },
+                {
+                    "ip":  "192.168.0.200",
+                    "mac":  "58-38-79-6D-52-B4",
+                    "type":  "dynamic",
+                    "oui":  "58-38-79"
+                },
+                {
+                    "ip":  "192.168.0.205",
+                    "mac":  "68-55-D4-7D-12-26",
+                    "type":  "dynamic",
+                    "oui":  "68-55-D4"
+                },
+                {
+                    "ip":  "192.168.0.215",
+                    "mac":  "80-5E-0C-AE-B3-06",
+                    "type":  "dynamic",
+                    "oui":  "80-5E-0C"
+                },
+                {
+                    "ip":  "192.168.1.18",
+                    "mac":  "D4-E8-53-7B-81-50",
+                    "type":  "dynamic",
+                    "oui":  "D4-E8-53"
+                },
+                {
+                    "ip":  "192.168.1.19",
+                    "mac":  "70-A7-41-E0-FE-DB",
+                    "type":  "dynamic",
+                    "oui":  "70-A7-41"
+                },
+                {
+                    "ip":  "192.168.1.22",
+                    "mac":  "70-A7-41-B4-F4-8B",
+                    "type":  "dynamic",
+                    "oui":  "70-A7-41"
+                },
+                {
+                    "ip":  "192.168.1.59",
+                    "mac":  "C6-20-56-BC-5A-4D",
+                    "type":  "dynamic",
+                    "oui":  "C6-20-56"
+                },
+                {
+                    "ip":  "192.168.1.75",
+                    "mac":  "6C-24-08-DB-21-2F",
+                    "type":  "dynamic",
+                    "oui":  "6C-24-08"
+                },
+                {
+                    "ip":  "192.168.1.102",
+                    "mac":  "A8-60-B6-1B-A1-15",
+                    "type":  "dynamic",
+                    "oui":  "A8-60-B6"
+                },
+                {
+                    "ip":  "192.168.1.118",
+                    "mac":  "60-E9-AA-B6-4D-65",
+                    "type":  "dynamic",
+                    "oui":  "60-E9-AA"
+                },
+                {
+                    "ip":  "192.168.1.120",
+                    "mac":  "00-84-E4-26-37-34",
+                    "type":  "dynamic",
+                    "oui":  "00-84-E4"
+                },
+                {
+                    "ip":  "192.168.1.123",
+                    "mac":  "DC-ED-84-A0-B4-CA",
+                    "type":  "dynamic",
+                    "oui":  "DC-ED-84"
+                },
+                {
+                    "ip":  "192.168.1.126",
+                    "mac":  "DC-ED-84-A0-B4-59",
+                    "type":  "dynamic",
+                    "oui":  "DC-ED-84"
+                },
+                {
+                    "ip":  "192.168.1.127",
+                    "mac":  "DC-ED-84-A0-B3-B4",
+                    "type":  "dynamic",
+                    "oui":  "DC-ED-84"
+                },
+                {
+                    "ip":  "192.168.1.165",
+                    "mac":  "80-5E-0C-B7-06-F2",
+                    "type":  "dynamic",
+                    "oui":  "80-5E-0C"
+                },
+                {
+                    "ip":  "192.168.1.178",
+                    "mac":  "74-58-F3-07-5C-E3",
+                    "type":  "dynamic",
+                    "oui":  "74-58-F3"
+                },
+                {
+                    "ip":  "192.168.1.179",
+                    "mac":  "34-17-EB-C4-77-A8",
+                    "type":  "dynamic",
+                    "oui":  "34-17-EB"
+                },
+                {
+                    "ip":  "192.168.1.192",
+                    "mac":  "BC-45-5B-96-FA-12",
+                    "type":  "dynamic",
+                    "oui":  "BC-45-5B"
+                },
+                {
+                    "ip":  "192.168.1.214",
+                    "mac":  "80-5E-0C-B6-F9-F8",
+                    "type":  "dynamic",
+                    "oui":  "80-5E-0C"
+                },
+                {
+                    "ip":  "192.168.1.220",
+                    "mac":  "24-9A-D8-10-12-44",
+                    "type":  "dynamic",
+                    "oui":  "24-9A-D8"
+                },
+                {
+                    "ip":  "192.168.1.255",
+                    "mac":  "FF-FF-FF-FF-FF-FF",
+                    "type":  "static",
+                    "oui":  "FF-FF-FF"
+                },
+                {
+                    "ip":  "224.0.0.7",
+                    "mac":  "01-00-5E-00-00-07",
+                    "type":  "static",
+                    "oui":  "01-00-5E"
+                },
+                {
+                    "ip":  "224.0.0.22",
+                    "mac":  "01-00-5E-00-00-16",
+                    "type":  "static",
+                    "oui":  "01-00-5E"
+                },
+                {
+                    "ip":  "224.0.0.251",
+                    "mac":  "01-00-5E-00-00-FB",
+                    "type":  "static",
+                    "oui":  "01-00-5E"
+                },
+                {
+                    "ip":  "224.0.0.252",
+                    "mac":  "01-00-5E-00-00-FC",
+                    "type":  "static",
+                    "oui":  "01-00-5E"
+                },
+                {
+                    "ip":  "224.224.125.119",
+                    "mac":  "01-00-5E-60-7D-77",
+                    "type":  "static",
+                    "oui":  "01-00-5E"
+                },
+                {
+                    "ip":  "239.192.152.143",
+                    "mac":  "01-00-5E-40-98-8F",
+                    "type":  "static",
+                    "oui":  "01-00-5E"
+                },
+                {
+                    "ip":  "239.255.255.250",
+                    "mac":  "01-00-5E-7F-FF-FA",
+                    "type":  "static",
+                    "oui":  "01-00-5E"
+                },
+                {
+                    "ip":  "255.255.255.255",
+                    "mac":  "FF-FF-FF-FF-FF-FF",
+                    "type":  "static",
+                    "oui":  "FF-FF-FF"
+                }
+            ],
+    "services":  [
+                     {
+                         "openPorts":  [
+                                           53,
+                                           80
+                                       ],
+                         "ip":  "192.168.0.1"
+                     },
+                     {
+                         "openPorts":  [
+                                           22
+                                       ],
+                         "ip":  "192.168.0.42"
+                     },
+                     {
+                         "openPorts":  [
+                                           22,
+                                           8080
+                                       ],
+                         "ip":  "192.168.0.44"
+                     },
+                     {
+                         "openPorts":  [
+                                           8080
+                                       ],
+                         "ip":  "192.168.0.57"
+                     },
+                     {
+                         "openPorts":  [
+                                           22,
+                                           23,
+                                           80,
+                                           443,
+                                           554,
+                                           5000,
+                                           5001
+                                       ],
+                         "ip":  "192.168.0.100"
+                     },
+                     {
+                         "openPorts":  [
+                                           22,
+                                           80,
+                                           443
+                                       ],
+                         "ip":  "192.168.0.125"
+                     },
+                     {
+                         "openPorts":  [
+                                           554,
+                                           8000,
+                                           8443
+                                       ],
+                         "ip":  "192.168.0.133"
+                     },
+                     {
+                         "openPorts":  [
+                                           22,
+                                           8080
+                                       ],
+                         "ip":  "192.168.0.142"
+                     },
+                     {
+                         "openPorts":  [
+                                           23,
+                                           80
+                                       ],
+                         "ip":  "192.168.0.155"
+                     },
+                     {
+                         "openPorts":  [
+                                           23,
+                                           80,
+                                           443
+                                       ],
+                         "ip":  "192.168.0.200"
+                     },
+                     {
+                         "openPorts":  [
+                                           80,
+                                           443
+                                       ],
+                         "ip":  "192.168.0.205"
+                     },
+                     {
+                         "openPorts":  [
+                                           80,
+                                           443,
+                                           554,
+                                           8000,
+                                           8443
+                                       ],
+                         "ip":  "192.168.1.18"
+                     },
+                     {
+                         "openPorts":  [
+                                           22,
+                                           8080
+                                       ],
+                         "ip":  "192.168.1.19"
+                     },
+                     {
+                         "openPorts":  [
+                                           22,
+                                           8080
+                                       ],
+                         "ip":  "192.168.1.22"
+                     },
+                     {
+                         "openPorts":  [
+                                           22,
+                                           8080,
+                                           8443
+                                       ],
+                         "ip":  "192.168.1.73"
+                     },
+                     {
+                         "openPorts":  [
+                                           22,
+                                           80
+                                       ],
+                         "ip":  "192.168.1.75"
+                     },
+                     {
+                         "openPorts":  [
+                                           22
+                                       ],
+                         "ip":  "192.168.1.102"
+                     },
+                     {
+                         "openPorts":  [
+                                           22,
+                                           81
+                                       ],
+                         "ip":  "192.168.1.118"
+                     },
+                     {
+                         "openPorts":  [
+                                           80
+                                       ],
+                         "ip":  "192.168.1.120"
+                     },
+                     {
+                         "openPorts":  [
+                                           80,
+                                           443,
+                                           554
+                                       ],
+                         "ip":  "192.168.1.123"
+                     },
+                     {
+                         "openPorts":  [
+                                           80,
+                                           443,
+                                           554
+                                       ],
+                         "ip":  "192.168.1.126"
+                     },
+                     {
+                         "openPorts":  [
+                                           80,
+                                           81,
+                                           443,
+                                           554
+                                       ],
+                         "ip":  "192.168.1.127"
+                     }
+                 ],
+    "scan":  {
+                 "subnets":  [
+                                 "192.168.0.0/24",
+                                 "192.168.1.0/24"
+                             ],
+                 "method":  "ICMP sweep + ARP/MAC + TCP probe + HTTP banner + route table. Read-only.",
+                 "scannedAt":  "2026-09-18T13:05:05.1175399-05:00",
+                 "version":  "1",
+                 "stamp":  "2026-09-18-1301"
+             },
+    "banners":  [
+                    {
+                        "port":  80,
+                        "status":  "error",
+                        "ip":  "192.168.0.1",
+                        "server":  "",
+                        "title":  "The underlying connection was closed: Could not establish trust relationship for the SSL/TLS secure channel."
+                    },
+                    {
+                        "port":  8080,
+                        "status":  "error",
+                        "ip":  "192.168.0.44",
+                        "server":  "",
+                        "title":  "The underlying connection was closed: The connection was closed unexpectedly."
+                    },
+                    {
+                        "port":  8080,
+                        "status":  "error",
+                        "ip":  "192.168.0.57",
+                        "server":  "",
+                        "title":  "The remote server returned an error: (403) Forbidden."
+                    },
+                    {
+                        "port":  80,
+                        "status":  200,
+                        "ip":  "192.168.0.100",
+                        "server":  "nginx",
+                        "title":  ""
+                    },
+                    {
+                        "port":  80,
+                        "status":  "error",
+                        "ip":  "192.168.0.125",
+                        "server":  "",
+                        "title":  "The underlying connection was closed: Could not establish trust relationship for the SSL/TLS secure channel."
+                    },
+                    {
+                        "port":  8000,
+                        "status":  "error",
+                        "ip":  "192.168.0.133",
+                        "server":  "",
+                        "title":  "The underlying connection was closed: An unexpected error occurred on a receive."
+                    },
+                    {
+                        "port":  8080,
+                        "status":  "error",
+                        "ip":  "192.168.0.142",
+                        "server":  "",
+                        "title":  "The underlying connection was closed: The connection was closed unexpectedly."
+                    },
+                    {
+                        "port":  80,
+                        "status":  200,
+                        "ip":  "192.168.0.155",
+                        "server":  "Web-Server/3.0",
+                        "title":  "Web Image Monitor"
+                    },
+                    {
+                        "port":  80,
+                        "status":  200,
+                        "ip":  "192.168.0.200",
+                        "server":  "Web-Server/3.0",
+                        "title":  "Web Image Monitor"
+                    },
+                    {
+                        "port":  80,
+                        "status":  "error",
+                        "ip":  "192.168.0.205",
+                        "server":  "",
+                        "title":  "The underlying connection was closed: Could not establish trust relationship for the SSL/TLS secure channel."
+                    },
+                    {
+                        "port":  80,
+                        "status":  200,
+                        "ip":  "192.168.1.18",
+                        "server":  "webserver",
+                        "title":  ""
+                    },
+                    {
+                        "port":  8000,
+                        "status":  "error",
+                        "ip":  "192.168.1.18",
+                        "server":  "",
+                        "title":  "The underlying connection was closed: An unexpected error occurred on a receive."
+                    },
+                    {
+                        "port":  8080,
+                        "status":  "error",
+                        "ip":  "192.168.1.19",
+                        "server":  "",
+                        "title":  "The underlying connection was closed: The connection was closed unexpectedly."
+                    },
+                    {
+                        "port":  8080,
+                        "status":  "error",
+                        "ip":  "192.168.1.22",
+                        "server":  "",
+                        "title":  "The underlying connection was closed: The connection was closed unexpectedly."
+                    },
+                    {
+                        "port":  8080,
+                        "status":  "error",
+                        "ip":  "192.168.1.73",
+                        "server":  "",
+                        "title":  "The operation has timed out."
+                    },
+                    {
+                        "port":  80,
+                        "status":  200,
+                        "ip":  "192.168.1.75",
+                        "server":  null,
+                        "title":  "NDI Studio Monitor"
+                    },
+                    {
+                        "port":  81,
+                        "status":  200,
+                        "ip":  "192.168.1.118",
+                        "server":  null,
+                        "title":  "NDI Studio Monitor"
+                    },
+                    {
+                        "port":  80,
+                        "status":  200,
+                        "ip":  "192.168.1.120",
+                        "server":  "Boa/0.94.13",
+                        "title":  ""
+                    },
+                    {
+                        "port":  80,
+                        "status":  200,
+                        "ip":  "192.168.1.123",
+                        "server":  "lighttpd/1.4.56-devel-lighttpd-1.4.55-341-gd2d5f2",
+                        "title":  ""
+                    },
+                    {
+                        "port":  80,
+                        "status":  200,
+                        "ip":  "192.168.1.126",
+                        "server":  "lighttpd/1.4.56-devel-lighttpd-1.4.55-341-gd2d5f2",
+                        "title":  ""
+                    },
+                    {
+                        "port":  80,
+                        "status":  200,
+                        "ip":  "192.168.1.127",
+                        "server":  "lighttpd/1.4.56-devel-lighttpd-1.4.55-341-gd2d5f2",
+                        "title":  ""
+                    },
+                    {
+                        "port":  81,
+                        "status":  200,
+                        "ip":  "192.168.1.127",
+                        "server":  "gSOAP/2.8",
+                        "title":  ""
+                    }
+                ],
+    "local":  {
+                  "adapters":  [
+                                   {
+                                       "prefix":  16,
+                                       "ip":  "169.254.213.23",
+                                       "interface":  "Bluetooth Network Connection",
+                                       "origin":  "WellKnown"
+                                   },
+                                   {
+                                       "prefix":  16,
+                                       "ip":  "169.254.165.201",
+                                       "interface":  "Local Area Connection* 2",
+                                       "origin":  "WellKnown"
+                                   },
+                                   {
+                                       "prefix":  16,
+                                       "ip":  "169.254.84.244",
+                                       "interface":  "Local Area Connection* 1",
+                                       "origin":  "WellKnown"
+                                   },
+                                   {
+                                       "prefix":  23,
+                                       "ip":  "192.168.1.73",
+                                       "interface":  "Ethernet",
+                                       "origin":  "Dhcp"
+                                   },
+                                   {
+                                       "prefix":  16,
+                                       "ip":  "169.254.160.22",
+                                       "interface":  "Wi-Fi",
+                                       "origin":  "WellKnown"
+                                   },
+                                   {
+                                       "prefix":  32,
+                                       "ip":  "100.72.5.90",
+                                       "interface":  "Tailscale",
+                                       "origin":  "Manual"
+                                   }
+                               ],
+                  "scannedAt":  "2026-09-18T13:01:04.8003459-05:00",
+                  "user":  "ITDepartment",
+                  "hostname":  "LIVESTREAM-MAIN"
+              },
+    "liveHosts":  [
+                      "192.168.0.1",
+                      "192.168.0.9",
+                      "192.168.0.10",
+                      "192.168.0.29",
+                      "192.168.0.39",
+                      "192.168.0.42",
+                      "192.168.0.44",
+                      "192.168.0.45",
+                      "192.168.0.57",
+                      "192.168.0.60",
+                      "192.168.0.100",
+                      "192.168.0.103",
+                      "192.168.0.125",
+                      "192.168.0.133",
+                      "192.168.0.135",
+                      "192.168.0.136",
+                      "192.168.0.137",
+                      "192.168.0.142",
+                      "192.168.0.147",
+                      "192.168.0.150",
+                      "192.168.0.155",
+                      "192.168.0.158",
+                      "192.168.0.200",
+                      "192.168.0.205",
+                      "192.168.0.215",
+                      "192.168.1.18",
+                      "192.168.1.19",
+                      "192.168.1.22",
+                      "192.168.1.59",
+                      "192.168.1.73",
+                      "192.168.1.75",
+                      "192.168.1.102",
+                      "192.168.1.118",
+                      "192.168.1.120",
+                      "192.168.1.123",
+                      "192.168.1.126",
+                      "192.168.1.127",
+                      "192.168.1.165",
+                      "192.168.1.179",
+                      "192.168.1.214",
+                      "192.168.1.220"
+                  ],
+    "routes":  [
+                   {
+                       "destination":  "0.0.0.0/0",
+                       "interface":  "Ethernet",
+                       "metric":  0,
+                       "nextHop":  "192.168.0.1"
+                   }
+               ]
+}

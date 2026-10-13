@@ -29,7 +29,9 @@
 import { bridgeToken } from './nas-photos.js';
 
 // Same sovereign server, same same-origin base as property photos. Pinned by
-// test so this can never silently route back through /n8n/webhook.
+// test so this can never silently route back through the legacy n8n webhook
+// lane (the literal path is not written here — business-systems-guard contains
+// that string to the legacy files, and this one is sovereign from birth).
 export const MEDIA_BASE = '/nas-photos';
 export const MEDIA_LEDGER_KEY = 'poetech-media-backup-ledger';
 export const MEDIA_DEVICE_KEY = 'poetech-media-backup-device';

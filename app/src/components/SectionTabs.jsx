@@ -20,6 +20,11 @@
 // so a heavy section (a fetch, a chart) does its work only when you open it.
 //
 // Reusable by design: pass a `sections` array of { id, label, icon?, render }. The
+// optional `explain` (what the area is, what to do there, when it is
+// complete) shows under the strip for the open area, and `done: true` marks
+// the tab complete with a check (an image with a name, never text — a tab's
+// text stays its label). `detail` is the honest count beside the explain
+// line ("3 of 30 hours"). (DR-0355: explain each area; show it complete.)
 // Admin report is the first surface to adopt it; other long tabs follow the same call.
 //
 // THE THIRD ROW (Darrell 2026-07-05: "we need a 3rd row of sliding tabs if that
@@ -41,12 +46,24 @@ export default function SectionTabs({
   defaultId = null,
   idBase = 'sect',
   variant = 'section', // 'section' (2nd row, underline) | 'sub' (3rd row, chips)
+  // Optional CONTROLLED mode (DR-0344): a parent may drive the active tab
+  // (activeId) and hear changes (onActiveChange) so a panel can send the
+  // reader to a sister tab ("Open Training"). Uncontrolled by default.
+  activeId = null,
+  onActiveChange = null,
+  // Optional control that rides at the END of the tab row instead of taking a
+  // row of its own (Darrell 2026-09-24, of "Try the Life Hub" alone on a full
+  // line: "taking up a lot of space... why?!"). The tabs keep the room and
+  // scroll; the control never shrinks.
+  trailing = null,
 }) {
   const valid = sections.filter(Boolean);
-  const [active, setActive] = useState(() => {
+  const [activeState, setActiveState] = useState(() => {
     if (defaultId && valid.some((s) => s.id === defaultId)) return defaultId;
     return valid.length ? valid[0].id : null;
   });
+  const active = activeId != null && valid.some((s) => s.id === activeId) ? activeId : activeState;
+  const setActive = useCallback((id) => { setActiveState(id); if (onActiveChange) onActiveChange(id); }, [onActiveChange]);
   const btnRefs = useRef({});
 
   // Arrow / Home / End move focus AND selection along the strip (roving tabindex).
@@ -65,42 +82,60 @@ export default function SectionTabs({
       const el = btnRefs.current[next.id];
       if (el && el.focus) el.focus();
     }
-  }, [active, valid]);
+  }, [active, valid, setActive]);
 
   if (!valid.length) return null;
   const current = valid.find((s) => s.id === active) || valid[0];
   const sub = variant === 'sub';
 
+  const strip = (
+    <TabScroll label={ariaLabel} rowClassName={sub ? 'items-center gap-1.5 py-0.5' : 'items-stretch'} className={sub || trailing ? '' : 'border-b border-[#E8E4DC]'}>
+      {valid.map((s) => {
+        const on = s.id === current.id;
+        // Sub (3rd-row) tabs are chips — active fills with ink — so a nested
+        // strip never reads as a duplicate of the underline row above it.
+        const cls = sub
+          ? `px-2.5 py-1.5 whitespace-nowrap text-[0.6875rem] uppercase tracking-wider border transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] inline-flex items-center gap-1.5 ${on ? 'bg-[#1A1815] border-[#1A1815] text-white font-medium' : 'bg-transparent border-[#C9BFA8] text-[#5A5751] hover:text-[#1A1815] hover:border-[#1A1815]'}`
+          : `px-2.5 sm:px-3 py-2.5 whitespace-nowrap border-b-2 transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] inline-flex items-center gap-1.5 ${on ? 'border-[#B85838] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`;
+        return (
+          <button
+            key={s.id}
+            type="button"
+            ref={(el) => { btnRefs.current[s.id] = el; }}
+            role="tab"
+            id={`${idBase}-tab-${s.id}`}
+            aria-selected={on}
+            aria-controls={`${idBase}-panel-${s.id}`}
+            tabIndex={on ? 0 : -1}
+            onClick={() => setActive(s.id)}
+            onKeyDown={onKeyDown}
+            className={cls}
+          >
+            {s.icon ? <UiIcon name={s.icon} /> : null}
+            {s.label}
+            {s.done === true ? <span role="img" aria-label="complete" title="Complete" className={`inline-flex items-center justify-center w-4 h-4 rounded-full ${on ? 'bg-white text-[#1A1815]' : 'bg-[#5A6E3D] text-white'}`}><UiIcon name="check" className="w-3 h-3" /></span> : null}
+          </button>
+        );
+      })}
+    </TabScroll>
+  );
+
   return (
     <div className={sub ? 'space-y-3' : 'space-y-4'}>
-      <TabScroll label={ariaLabel} rowClassName={sub ? 'items-center gap-1.5 py-0.5' : 'items-stretch'} className={sub ? '' : 'border-b border-[#E8E4DC]'}>
-        {valid.map((s) => {
-          const on = s.id === current.id;
-          // Sub (3rd-row) tabs are chips — active fills with ink — so a nested
-          // strip never reads as a duplicate of the underline row above it.
-          const cls = sub
-            ? `px-2.5 py-1.5 whitespace-nowrap text-[0.6875rem] uppercase tracking-wider border transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] inline-flex items-center gap-1.5 ${on ? 'bg-[#1A1815] border-[#1A1815] text-white font-medium' : 'bg-transparent border-[#C9BFA8] text-[#5A5751] hover:text-[#1A1815] hover:border-[#1A1815]'}`
-            : `px-2.5 sm:px-3 py-2.5 whitespace-nowrap border-b-2 transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] inline-flex items-center gap-1.5 ${on ? 'border-[#B85838] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`;
-          return (
-            <button
-              key={s.id}
-              type="button"
-              ref={(el) => { btnRefs.current[s.id] = el; }}
-              role="tab"
-              id={`${idBase}-tab-${s.id}`}
-              aria-selected={on}
-              aria-controls={`${idBase}-panel-${s.id}`}
-              tabIndex={on ? 0 : -1}
-              onClick={() => setActive(s.id)}
-              onKeyDown={onKeyDown}
-              className={cls}
-            >
-              {s.icon ? <UiIcon name={s.icon} /> : null}
-              {s.label}
-            </button>
-          );
-        })}
-      </TabScroll>
+      {trailing ? (
+        <div className={`flex items-center gap-2 ${sub ? '' : 'border-b border-[#E8E4DC]'}`} data-testid={`${idBase}-tab-row`}>
+          <div className="min-w-0 flex-1">{strip}</div>
+          <div className="shrink-0">{trailing}</div>
+        </div>
+      ) : strip}
+      {current.explain ? (
+        <p id={`${idBase}-explain-${current.id}`} className="text-[0.6875rem] text-[#5A5751] leading-relaxed flex flex-wrap items-baseline gap-x-2" aria-live="polite">
+          <span>{current.explain}</span>
+          {current.done === true
+            ? <span className="font-semibold text-[#3F5226]">Complete{current.detail ? ` · ${current.detail}` : ''}</span>
+            : current.detail ? <span className="text-[#8A857C]">{current.detail}</span> : null}
+        </p>
+      ) : null}
       <div
         role="tabpanel"
         id={`${idBase}-panel-${current.id}`}

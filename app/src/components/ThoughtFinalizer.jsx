@@ -34,7 +34,7 @@ import {
 
 const FIELD = 'w-full p-2 border border-[#E8E4DC] text-sm bg-white text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]';
 const AREA = 'w-full p-2 border border-[#E8E4DC] text-sm bg-white text-[#1A1815] leading-relaxed focus:outline focus:outline-2 focus:outline-[#B85838]';
-const LABEL = 'text-[9px] uppercase tracking-wider text-[#5A5751] block mb-1';
+const LABEL = 'text-[0.5625rem] uppercase tracking-wider text-[#5A5751] block mb-1';
 const BTN = 'text-xs uppercase tracking-wider px-3 py-2 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]';
 const serif = { fontFamily: '"Fraunces", serif' };
 
@@ -89,25 +89,25 @@ function FinalizeCard({ entry, onSave, busy, onPromote, inLibrary }) {
       <div className="flex items-baseline justify-between gap-2 flex-wrap mb-1">
         <span style={{ ...serif, fontWeight: 600 }} className="text-[#1A1815]">{entry.title || 'Untitled thought'}</span>
         {ready
-          ? <span className="text-[9px] uppercase tracking-wider bg-[#5A6E3D] text-white px-1.5 py-0.5">✓ Teaching-ready</span>
+          ? <span className="text-[0.5625rem] uppercase tracking-wider bg-[#5A6E3D] text-white px-1.5 py-0.5">✓ Teaching-ready</span>
           : status === 'suggested'
-            ? <span className="text-[9px] uppercase tracking-wider bg-[#FAF8F4] border border-[#B85838] text-[#B85838] px-1.5 py-0.5">Suggested · review it</span>
-            : <span className="text-[9px] uppercase tracking-wider bg-[#FAF8F4] border border-[#E8E4DC] text-[#5A5751] px-1.5 py-0.5">Not finalized</span>}
+            ? <span className="text-[0.5625rem] uppercase tracking-wider bg-[#FAF8F4] border border-[#B85838] text-[#B85838] px-1.5 py-0.5">Suggested · review it</span>
+            : <span className="text-[0.5625rem] uppercase tracking-wider bg-[#FAF8F4] border border-[#E8E4DC] text-[#5A5751] px-1.5 py-0.5">Not finalized</span>}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
         {/* The owner's own words — READ-ONLY, never overwritten. */}
         <div className="border-l-2 border-[#1A1815] pl-2">
-          <div className="text-[9px] uppercase tracking-wider text-[#1A1815] font-semibold mb-1">Your thought · unchanged</div>
-          {entry.scripture && <p className="text-[11px] text-[#5A6E3D] mb-1" style={serif}>{entry.scripture}</p>}
+          <div className="text-[0.5625rem] uppercase tracking-wider text-[#1A1815] font-semibold mb-1">Your thought · unchanged</div>
+          {entry.scripture && <p className="text-[0.6875rem] text-[#5A6E3D] mb-1" style={serif}>{entry.scripture}</p>}
           {entry.plain && <p className="text-sm text-[#1A1815] whitespace-pre-wrap" style={serif}>{entry.plain}</p>}
-          {entry.deep && <p className="text-[13px] text-[#5A5751] whitespace-pre-wrap mt-1.5" style={serif}>{entry.deep}</p>}
+          {entry.deep && <p className="text-[0.8125rem] text-[#5A5751] whitespace-pre-wrap mt-1.5" style={serif}>{entry.deep}</p>}
           {!entry.plain && !entry.deep && <p className="text-xs text-[#5A5751] italic" style={serif}>No body — just a title.</p>}
         </div>
 
         {/* The framework treatment — editable suggestion. */}
         <div className="border-l-2 border-[#5A6E3D] pl-2 space-y-2">
-          <div className="text-[9px] uppercase tracking-wider text-[#5A6E3D] font-semibold">
+          <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold">
             The 4D framework treatment {fin.source ? <span className="text-[#5A5751] normal-case">· {fin.source === 'manual' ? 'your words' : fin.source === 'vendor' ? 'vendor model' : 'local model'}</span> : ''}
           </div>
           <div>
@@ -151,7 +151,7 @@ function FinalizeCard({ entry, onSave, busy, onPromote, inLibrary }) {
         )}
       </div>
       {ready && inLibrary && (
-        <p className="text-[10px] text-[#5A6E3D] mt-1.5" style={serif}>✓ In the Eternal Algorithms library. Edits here re-accept; press Update to refresh the finished entry.</p>
+        <p className="text-[0.625rem] text-[#5A6E3D] mt-1.5" style={serif}>✓ In the Eternal Algorithms library. Edits here re-accept; press Update to refresh the finished entry.</p>
       )}
     </div>
   );
@@ -238,14 +238,14 @@ export default function ThoughtFinalizer({ entries = [], onSaveEntry, email }) {
       <div className="bg-white border border-[#1A1815] p-3 mb-3">
         <div className="flex items-baseline justify-between gap-2 flex-wrap">
           <div>
-            <div className="text-[10px] uppercase tracking-[0.25em] text-[#1A1815] font-semibold">Finalize my thoughts</div>
-            <p className="text-[11px] text-[#5A5751] mt-0.5" style={serif}>
+            <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#1A1815] font-semibold">Finalize my thoughts</div>
+            <p className="text-[0.6875rem] text-[#5A5751] mt-0.5" style={serif}>
               Review every unfinalized thought and apply your 4th-dimensional framework — 4D (eternal / scriptural), 3D (practical), and the Outcome — so each looks finished and is ready to teach from. Your own words are never changed.
             </p>
           </div>
           <div className="text-right shrink-0">
-            <div className="text-[10px] uppercase tracking-wider text-[#5A6E3D] font-semibold">{prog.finalized} teaching-ready</div>
-            <div className="text-[10px] uppercase tracking-wider text-[#5A5751]">{prog.pending} to finalize</div>
+            <div className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold">{prog.finalized} teaching-ready</div>
+            <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">{prog.pending} to finalize</div>
           </div>
         </div>
         <div className="flex items-center gap-2 mt-2 flex-wrap">
@@ -259,10 +259,10 @@ export default function ThoughtFinalizer({ entries = [], onSaveEntry, email }) {
               <button type="button" onClick={stop} className={`${BTN} border border-[#B85838] text-[#B85838] hover:bg-[#FAF8F4]`}>⏹ Stop</button>
             </>
           )}
-          <span className="text-[10px] text-[#5A5751] italic" style={serif}>On-demand only — runs when you press it, never on its own.</span>
+          <span className="text-[0.625rem] text-[#5A5751] italic" style={serif}>On-demand only — runs when you press it, never on its own.</span>
         </div>
         {notice && (
-          <div className={`mt-2 text-[11px] p-2 border ${notice.kind === 'offline' ? 'border-[#B45309] bg-[#FAF8F4] text-[#9A3412]' : notice.kind === 'promoted' ? 'border-[#5A6E3D] bg-[#F2F4EC] text-[#5A6E3D]' : 'border-[#E8E4DC] bg-[#FAF8F4] text-[#5A5751]'}`} style={serif} role="status">
+          <div className={`mt-2 text-[0.6875rem] p-2 border ${notice.kind === 'offline' ? 'border-[#B45309] bg-[#FAF8F4] text-[#9A3412]' : notice.kind === 'promoted' ? 'border-[#5A6E3D] bg-[#F2F4EC] text-[#5A6E3D]' : 'border-[#E8E4DC] bg-[#FAF8F4] text-[#5A5751]'}`} style={serif} role="status">
             {notice.text}
           </div>
         )}
@@ -282,7 +282,7 @@ export default function ThoughtFinalizer({ entries = [], onSaveEntry, email }) {
         </div>
       )}
 
-      <p className="text-[10px] text-[#5A5751] mt-6 pt-3 border-t border-[#E8E4DC]" style={serif}>
+      <p className="text-[0.625rem] text-[#5A5751] mt-6 pt-3 border-t border-[#E8E4DC]" style={serif}>
         Teaching-ready thoughts feed the content engine downstream (lessons, courses, the Eternal Algorithms library). Sovereign &amp; private: this lives on this device only, reviewed by the family&apos;s local model — never sent to the cloud, never mined, never used to train anything.
       </p>
     </div>

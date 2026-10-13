@@ -11,8 +11,29 @@
 // baseline debt on purpose.
 import React, { useState } from 'react';
 import { Queue } from './Queue.jsx';
-import { compressImageFile } from '../lib/image.js';
+import { queueFreshness, QUEUE_STALE_DAYS } from '../lib/queue-freshness.js';
+import { compressImageFile, isLikelyImageFile } from '../lib/image.js';
+import { filesFromClipboardEvent } from '../lib/paste-input.js';
+import { receiptMessage, receiptCode } from '../lib/feedback-receipt.js';
+import IntakeOutcomeList, { tallyText } from './IntakeOutcomeList.jsx';
+import FeedbackScreenshots from './FeedbackScreenshots.jsx';
+import { propertiesSurfaces, areaKeyFor } from '../modules/properties/addressing.js';
+import { fetchMyFeedback } from '../lib/feedback-sync.js';
+import { recentTripLine } from '../lib/reader-trip.js';
+import { fetchDeliveryRecord } from '../lib/github-ops.js';
+import { categorizeIntake, basisLine, outcomeFor, INTAKE_CATEGORIES, CATEGORY_ORDER, categoryCounts } from '../lib/intake-outcome.js';
+import { extractRequirementsFromThoughts } from '../lib/requirements-intake.js';
+import { saveExtraction } from '../lib/use-discovery.js';
+// The library count derives from the registry itself (DR-0121 — the hand-typed
+// "~46" was already stale at 49 when the 2026-07-10 static-data hunt found it).
+import { OPPORTUNITY_LIBRARY } from '../lib/opportunity-capacity.js';
 import UiIcon from './UiIcon.jsx';
+import { setFeedbackTriage, triageLabel } from '../lib/feedback-loop.js';
+import { markArrivalsSeen, SCREEN_KINDS } from '../lib/arrivals.js';
+import supabase from '../lib/supabase.js';
+
+// What a signed-out sender is told (DR-0629): the note is kept, where it is.
+const SIGNED_OUT_RECEIPT = 'You are signed out, so this note stayed on this device and no one has read it yet. Sign in and send it again so a steward sees it and you can follow its status under Your feedback.';
 
 // Round 12 — Feedback form refreshed to reflect every surface we've actually
 // shipped through MVP v1.5. Area dropdown now mirrors the live nav + the major
@@ -35,6 +56,36 @@ import UiIcon from './UiIcon.jsx';
 // indented under their page on purpose — that granularity is what makes SME
 // feedback actionable. Existing keys are STABLE (stored feedback rows reference
 // them); only add, don't rename.
+//
+// THE POE PROPERTIES GROUP IS DERIVED, NOT LISTED (DR-0901). Darrell,
+// 2026-10-10: "make sure thr fields and pages are all able to be linked to as
+// the page with said issue/s". Measured that day: all 17 of the module's
+// manager tabs collapsed into the single 'properties' entry below, while the
+// OLDER Real Estate tab it replaces carried eleven sub-entries -- so the
+// newer surface was the LESS reportable one, and a reviewer standing on Guest
+// ready or Dispatch could only file against "the Poe Properties module".
+//
+// The header above says "when a tab is added there, add a matching entry
+// here". That instruction is the defect: it is a hand-maintained mirror, and
+// it has now gone stale three times (Inbound, Notes, the Choir sub-tabs, and
+// this). So this group is BUILT from the module's own face definitions at
+// import time -- a tab added to model.js appears in this form with no second
+// edit, and cannot be forgotten. The hand-listed groups above keep their
+// shape; only the one that measurably drifted is derived.
+//
+// The bare ['properties', ...] pair below stays a LITERAL inside this array on
+// purpose: scripts/feedback-area-guard.mjs scrapes these keys with a regex
+// over the source (it is a plain .mjs and cannot import a .jsx), so a key it
+// needs to see has to be written out. The 21 derived rows beside it are proven
+// by the runtime gate instead, which imports both lists and compares them.
+const propertiesPages = () => propertiesSurfaces().map((s) => [
+  areaKeyFor(s.id),
+  // The faces are named because a report wants to say WHO was looking: the
+  // manager's "History" and the worker's "Property history" are the same tab
+  // id showing different things to different people.
+  `└ ${s.labels.join(' / ')} (${s.faces.join(', ')})`,
+]);
+
 export const FEEDBACK_AREAS = [
   { group: 'Big Picture', items: [
     ['overview', 'Big Picture · dashboard'],
@@ -59,8 +110,14 @@ export const FEEDBACK_AREAS = [
   { group: 'Inbound', items: [
     ['inbound', 'Inbound · call / inquiry capture → routing'],
   ]},
+  { group: 'Messages', items: [
+    ['messages', 'Messages · encrypted 1:1 + group threads'],
+  ]},
   { group: 'Real Estate', items: [
     ['rentals', 'Real Estate · property list + map'],
+    // 'properties' moved to its own group (DR-0901), where its 21 pages are
+    // now listed under it. The KEY is unchanged, so every report already
+    // filed against it still means what it meant.
     ['rentals-edit', '└ Inline quick-edit on property rows'],
     ['rentals-valuation', '└ Property Valuation (Zillow/Realtor/Redfin lookup + save)'],
     ['rentals-lease', '└ Lease & Tenant Contact'],
@@ -71,6 +128,9 @@ export const FEEDBACK_AREAS = [
     ['rentals-snowball', '└ 7-year mortgage payoff snowball'],
     ['rentals-evaluator', '└ Investment evaluator (cap rate · DSCR · 1%)'],
     ['rentals-tenant-issue', '└ Tenant Not Paying → issue affordance'],
+  ]},
+  { group: 'Moore Divahs', items: [
+    ['moore', 'Moore Divahs · order board (custom orders · 3-week clock · change orders)'],
   ]},
   { group: 'Projects · Ops', items: [
     ['projects', 'Projects · Timeline + workload'],
@@ -83,6 +143,7 @@ export const FEEDBACK_AREAS = [
     ['build-workflows', '└ Workflow status feed'],
     ['build-llm-health', '└ Local-LLM health card'],
     ['concerns-board', 'Projects · Concerns & Solutions board (open · in-progress · done + feedback read-through)'],
+    ['perpetual-report', 'Projects · Perpetual Report (portable cross-system history + failures & fixes coverage)'],
     ['governance-decisions', 'Projects · Decisions (Governor governance queue)'],
     ['review-feed', 'Projects · Review (freshness-loop staged proposals)'],
     ['loop-health', 'Projects · Loops (loop-health keep / retire)'],
@@ -91,7 +152,7 @@ export const FEEDBACK_AREAS = [
   { group: 'Practice · Dev/Ops', items: [
     ['practice', 'Practice · inquiry capture & conversion'],
     ['opportunities', 'Dev/Ops · personalized options engine'],
-    ['opportunities-library', '└ Curated opportunity library (~46 entries)'],
+    ['opportunities-library', `└ Curated opportunity library (${OPPORTUNITY_LIBRARY.length} entries)`],
     ['opportunities-wrap', '└ "Wrap me with the tech" handoff'],
     ['opportunities-pipeline', '└ Active pipeline'],
     ['services-portfolio', '└ PoeTech Services Portfolio'],
@@ -101,10 +162,16 @@ export const FEEDBACK_AREAS = [
     ['notes', 'Notes · thinking space (capture → prayer / voice / incident / inquiry)'],
     ['create', 'Create · creation workspace (document → image export)'],
     ['voice', 'Voice · listen to anything (choose a voice · consent-gated enrollment)'],
+    ['scribe', 'Scribe · record workflows on screen + meetings (consent-gated)'],
     ['library', 'Library · books from the corpus + in-app reader (companion deep-links)'],
     ['recipes', "Chef's Corner · recipes (Poe Family Vegan, by Chef Mario · add + paste-import)"],
+    ['health', 'Road to 150 · health program (dashboard · weight + graph · water)'],
     ['games', 'Games · the family games hub (Generations: Walking in the Way · life journey measured by Yahweh)'],
     ['tvtime', 'TV Time · the friend-group show tracker + discussion (track · talk · laugh together · watch it through The Way)'],
+    ['cameras', 'Cameras · the family’s cameras from the family’s own server (snapshots · live view · adding a system you own)'],
+    ['vault', 'Vault \u00b7 your passwords, locked on your device and kept on your own server (create \u00b7 unlock \u00b7 import \u00b7 export \u00b7 generator \u00b7 audit)'],
+    ['advocacy', 'Advocacy · the Case File (dated documentation of situations with institutions · evidence tiers · escalation ladder · context pack)'],
+    ['databack', 'Your Data · bringing your photos, mail and files home from a company\u2019s cloud (guided steps \u00b7 the safety check before deleting \u00b7 progress across your devices)'],
   ]},
   { group: "Study (private · circle only)", items: [
     ['study', "Darrell's Study · reflections / processing / cultural research (device-local)"],
@@ -129,8 +196,20 @@ export const FEEDBACK_AREAS = [
     ['forecast-scenarios', '└ Scenarios · best/base/worst · add property / tier / capital purchase (editable assumptions)'],
     ['forecast-track', '└ Track · projected-vs-actual over time (forecast accuracy)'],
   ]},
+  { group: 'Academy (steward/business · cohort operations)', items: [
+    ['cohorts', 'Academy · cohort operations (enrollment · tuition/payment plans · weekly-track schedule · team · week-4 retro)'],
+  ]},
+  { group: 'TLC (steward/business · the whole TLC office)', items: [
+    ['tlc', 'TLC · the unified TLC Therapy Solutions workspace (Practice · Intake · Assistant, three views of one office)'],
+    ['tlc-assistant', 'Assistant · TLC referral database + admin/marketing assistant (referral network · outreach · content calendar · weekly goals · Ari path)'],
+  ]},
   { group: 'Access & Usage (steward · access governance)', items: [
-    ['access', 'Access & Usage · who has access (role · scope) + counts/activity + build-freshness (rollout management)'],
+    // The standalone Access tab was retired into Admin (2026-07-04) but this
+    // entry kept saying "Access & Usage" as if it were still its own place —
+    // Darrell, 2026-09-11, hunting for a tab in this very list: "this already
+    // says access... I know I gotta change it." The KEY is stable (stored
+    // feedback rows point at it); only the label tells the truth now.
+    ['access', 'Admin · Access & Usage report — who has access (role · scope) + counts/activity + build-freshness'],
   ]},
   { group: "Chef's Corner — Kitchen Inventory (steward · homed in Chef's Corner)", items: [
     ['kitchen', "Kitchen Inventory · Chef Mario's inventory, in Chef's Corner (count by weight/unit · par alerts · value)"],
@@ -140,22 +219,73 @@ export const FEEDBACK_AREAS = [
   ]},
   { group: 'Church', items: [
     ['church', 'Church · service times / media / prayer / ministry'],
-    ['church-conference', '└ Conference · COLG National Assembly (schedule · meals · sessions)'],
-    ['church-event-center', '└ Event Center · room / event requests'],
-    ['church-events', '└ Venues · community use of the two campuses (requests · calendar · responsibilities · revenue)'],
+    // Three things wore overlapping names and only two of them are tabs, which
+    // is the confusion Darrell named on 2026-09-11 ("conference center vs event
+    // center for the church"). Traced to what the code actually does:
+    //   · the Assembly is an EVENT the church holds (Church > Conference);
+    //   · the Event Center is the BUILDING it is held in — South Campus,
+    //     1109 N 4th St (lib/venue-rental.js) — and in the app its room/session
+    //     operations are a staff panel INSIDE Conference, not a tab of its own,
+    //     so the old label pointed at a place you could not navigate to;
+    //   · Venues is the community renting either campus (Church > Venues).
+    // Keys are stable (stored rows point at them); the labels now say which is
+    // which and where it lives.
+    ['church-conference', '└ Conference · the COLG National Assembly, the event itself (identity · registration · schedule · meals)'],
+    ['church-event-center', '└ Conference · Rooms & Sessions — the rooms, capacity and registration roll inside the E-MEG Christian Center (South Campus) (staff panel within Conference)'],
+    ['church-events', '└ Campus Rentals · community use of the two campuses — North (the church) and South (the Event Center) (requests · calendar · responsibilities · revenue)'],
+    ['church-projects', 'Church · Projects (the Love Corner project board — video wall · ministries · Assembly · infra · door · outreach)'],
     ['church-engagement', 'Church · Engagement (trivia + messages)'],
+    ['church-bus', 'Church · Bus Ministry (rides to service · drivers · routes · schedule · reminders)'],
+    // A ministry the church really has, with no page of its own yet — named by
+    // Darrell 2026-09-11 while hunting this list: "I don't see the church band."
+    // A ministry you cannot even FILE ON is a ministry the app is pretending
+    // does not exist; the entry comes first, the surface follows.
+    ['church-band', 'Church · Church Band (the musicians — no page yet; tell us what it needs)'],
+    // THE CHURCH'S OWN FLYER, 2026-09-20. The "Love Corner Experience"
+    // volunteer call names twenty-one ministries and carries a QR code to
+    // this app; the app carried nine. Every one of these is now nameable AND
+    // fileable, on the same principle as the band above — the entry comes
+    // first, the surface follows. Back to Church and Volunteer Sunday is the
+    // day this has to hold.
+    ['church-music', 'Church · Music Ministry (singing and leading worship — no page yet)'],
+    ['church-it', 'Church · IT Ministry (computers, network, the screens that carry the service — no page yet)'],
+    ['church-parking', 'Church · Parking & Traffic Ministry (safe arrivals and departures — no page yet)'],
+    ['church-deacons', 'Church · Deacons (serving the congregation, supporting the pastor — no page yet)'],
+    ['church-prayer', 'Church · Prayer Ministry (standing in prayer for the house — no page yet)'],
+    ['church-missions', 'Church · Missions & Evangelism (carrying the Word beyond the building — no page yet)'],
+    ['church-children', 'Church · Children’s Ministry (the youngest of the house — no page yet)'],
+    ['church-youth', 'Church · Youth Ministry (the teenagers — no page yet)'],
+    ['church-college', 'Church · College Ministry (students away from home — no page yet)'],
+    ['church-school-outreach', 'Church · School Outreach & Youth Education (tutoring and mentoring — no page yet)'],
+    ['church-administration', 'Church · Administration (the office work behind everything else — no page yet)'],
+    ['church-events-programs', 'Church · Events & Special Programs (programs and banquets — distinct from Campus Rentals — no page yet)'],
+    ['church-care', 'Church · Care & Benevolence (practical help, quietly given — no page yet)'],
+    ['church-counseling', 'Church · Counseling Support (walking with people through hard seasons — no page yet)'],
+    ['church-ministries', 'Church · Ministries directory (ushers · security · hospitality · outreach · new members)'],
+    ['church-members', 'Church · Members (the way in · people by standing with faces · may / may-not · invite · remove — DR-0348)'],
+    ['church-my-record', 'Church · My Record (your own answers · your shelf of documents · and, for the office, the roll and what it says)'],
+    ['church-giving-book', 'Church · Giving Book (the office only — upload the Cash App statement · split one deposit back into each person’s gift · say who gave · month-end reports)'],
+    ['church-access', 'Church · Access (ask the office for a staff tab · and, for the office, the queue and the decision)'],
     ['church-program', 'Church · Order of Service (master program → per-sector derived views · timing reflow)'],
     ['church-learn', 'Church · Learn (Learning A.I. The Way class)'],
     ['church-eternal-algorithms', 'Church · Eternal Algorithms (if/then studies · self-examination → game)'],
     ['church-harvest', 'Church · Harvest Ledger (staff: no video lost — every recording fully mined)'],
     ['church-videowall', 'Church · Video Wall (sanctuary LED capital project — budget · donations · spec)'],
     ['church-devices', 'Church · Device Inventory (staff: asset register — NAS · GPU nodes · VX1000 · LED wall · network · cameras · sound + idle-GPU compute pool)'],
+    ['church-infra-plan', 'Church · Infra Plan (staff: 5x3090 sovereign rig + on-prem cameras roadmap; VISION-FAIRNESS gate)'],
     ['church-observe', 'Church · Observation (staff room-photo board)'],
     ['church-pulpit', "Church · The Word — Migdal (Bishop's study — historical sermons + corpus-grounded prep)"],
     ['church-scripture', 'Church · Scripture (themed, depth-adaptive KJV library — His perspective + His love, for the soul)'],
     ['pulpit-library', '└ The Word — Migdal · Message library (watch · document · reuse)'],
     ['pulpit-prep', '└ The Word — Migdal · Prep from your corpus'],
-    ['church-choir', 'Church · Choir (director hub)'],
+  ]},
+  // Choir is its OWN group now. Ten of the Church group's entries were Choir
+  // sub-tabs, so someone looking for the church itself had to read past the
+  // whole worship team to find it — Darrell, 2026-09-11, doing exactly that:
+  // "which one is it — the church, and his choir, and his choir? We don't want
+  // the choir. We want the church." Keys are unchanged; only where they sit is.
+  { group: 'Choir (the worship team)', items: [
+    ['church-choir', 'Choir · director hub'],
     ['choir-week', '└ Choir · This week'],
     ['choir-songs', '└ Choir · Songs (Song Workshop)'],
     ['choir-songbook', '└ Choir · Songbook (cross-referenced)'],
@@ -193,7 +323,45 @@ export const FEEDBACK_AREAS = [
     ['copy', 'Copy / wording / clarity'],
     ['other', 'Other'],
   ]},
+  // Last, beside the cross-cutting group, because its own pages are reached
+  // from inside the module rather than from this shell's nav.
+  { group: 'Poe Properties', items: [
+    ['properties', 'Poe Properties · the module in general'],
+    ...propertiesPages(),
+  ]},
 ];
+// filterAreas — type-to-find over the "Which area?" list.
+//
+// The list is 138 entries deep and grouped, which is right for completeness and
+// hopeless for finding one thing. Darrell, 2026-09-11, with the COLG leadership
+// watching him try: "Okay. Now where is it at?... you can literally find which
+// tab it is and say that specific" — and then, hunting: "Do you see it in there
+// yet? I don't. I don't see the church band."
+//
+// Every word in the query must appear somewhere in the group name or the item
+// label (order-free), so "bus" finds the Bus Ministry and "church bus" still
+// does. `keepKey` is the currently-selected area: it always survives the filter,
+// because a <select> whose value vanished from its own options silently resets
+// the user's answer.
+export function filterAreas(groups, query, keepKey) {
+  const q = String(query || '').trim().toLowerCase();
+  if (!q) return groups;
+  const words = q.split(/\s+/).filter(Boolean);
+  return groups
+    .map((grp) => ({
+      group: grp.group,
+      items: grp.items.filter(([k, label]) => {
+        if (k === keepKey) return true;
+        const hay = `${grp.group} ${k} ${label}`.toLowerCase();
+        return words.every((w) => hay.includes(w));
+      }),
+    }))
+    .filter((grp) => grp.items.length > 0);
+}
+
+// The receipt the sender keeps, and the status of the notes they already sent.
+// There is no mail transport out of this app; the code IS the reference.
+// (Darrell, 2026-09-11: "I'm not getting the link in my email.")
 export const FEEDBACK_CATEGORIES = [
   { key: 'bug',          label: 'Bug',           accent: '#B85838' },
   { key: 'confusion',    label: '❓ Confusion',     accent: '#D97706' },
@@ -204,14 +372,34 @@ export const FEEDBACK_CATEGORIES = [
   { key: 'praise',       label: '✨ Praise',         accent: '#5A6E3D' },
 ];
 
-export function FeedbackModal({ onClose, onSubmit, currentView }) {
+// The sender's own notes, read live (lib/feedback-sync fetchMyFeedback) and
+// merged with this device's local copies not yet in the database, newest
+// first. The live read is what carries a steward's triage and a fix's outcome
+// back to the person (DR-0625); the local copy never changes after it is
+// written. The delivery record gives each on-board note its measured window.
+const OUTCOME_DEPS = {
+  fetchMine: fetchMyFeedback,
+  fetchDelivery: () => ((import.meta.env && import.meta.env.MODE === 'test') ? Promise.resolve({ ok: false, merges: [] }) : fetchDeliveryRecord()),
+};
+export function mergeMine(remote = [], local = []) {
+  const seen = new Set((remote || []).map((r) => r && r.id));
+  return [...(remote || []), ...(local || []).filter((l) => l && !seen.has(l.id))]
+    .sort((a, b) => String(b.createdAt || b.submittedAt || '').localeCompare(String(a.createdAt || a.submittedAt || '')));
+}
+
+export function FeedbackModal({ onClose, onSubmit, currentView, initialAreaKey = null, initialWhere = null, myFeedback = [], outcomeDeps = OUTCOME_DEPS }) {
   const [rating, setRating] = useState('');
   // Pre-fill area from the currently-active view if it maps to an area key.
+  // `initialAreaKey` wins: a surface that KNOWS what this note is about (the
+  // Ministries directory naming the ministry) hands the answer over, so nobody
+  // hunts the list for something the app already knew.
   const initialArea = (() => {
+    if (initialAreaKey) return initialAreaKey;
     if (currentView === 'rentals') return 'rentals';
     if (currentView === 'books') return 'books-accounts';
     if (currentView === 'debts') return 'debts';
     if (currentView === 'projects') return 'projects';
+    if (currentView === 'tlc') return 'tlc';
     if (currentView === 'practice') return 'practice';
     if (currentView === 'opportunities') return 'opportunities';
     if (currentView === 'markets') return 'markets';
@@ -223,9 +411,20 @@ export function FeedbackModal({ onClose, onSubmit, currentView }) {
     return 'overview';
   })();
   const [area, setArea] = useState(initialArea);
+  const [areaQuery, setAreaQuery] = useState('');
   const [categories, setCategories] = useState([]);
   const [whatsWorking, setWhatsWorking] = useState('');
-  const [whatsNot, setWhatsNot] = useState('');
+  // THE PAGE THE REPORT CAME FROM, ALREADY WRITTEN DOWN (DR-0901). A surface
+  // that knows exactly which page and which door the person was standing on
+  // hands both over, and they are seeded into the "what's not working" box
+  // rather than hidden in metadata -- so it survives into the report body a
+  // person reads, and the reporter can see what is being sent on their behalf
+  // and edit or delete it. Nothing is attached invisibly.
+  const [whatsNot, setWhatsNot] = useState(
+    initialWhere && initialWhere.page
+      ? `On: ${initialWhere.page}\n${initialWhere.link || ''}\n\n`
+      : '',
+  );
   const [whatsMissing, setWhatsMissing] = useState('');
   // 2026-06-16 — multi-image. Christina/parishioners asked to attach more than
   // one screenshot at a time ("I can only select one at a time"). `screenshots`
@@ -233,34 +432,108 @@ export function FeedbackModal({ onClose, onSubmit, currentView }) {
   // a new pick APPENDS so several batches accumulate.
   const [screenshots, setScreenshots] = useState([]);
   const [formError, setFormError] = useState('');
+  // The receipt shown after a successful submit — the sender's reference code
+  // and where to check its status. Null until they actually send something.
+  const [receipt, setReceipt] = useState(null);
+  // Images still compressing. Submit WAITS on this — without it, submitting
+  // while a big photo was still reading sent the feedback with screenshots:[]
+  // and the image silently vanished (Darrell 2026-07-07: "couldn't upload an
+  // image last time I tried into the Feedback importer").
+  const [readingImages, setReadingImages] = useState(false);
+  // DR-0625: the sender's notes with their outcomes, and the note a reply answers.
+  const [myRemote, setMyRemote] = useState([]);
+  const [delivery, setDelivery] = useState(null);
+  const [replyTo, setReplyTo] = useState(null);
+  const refreshMine = React.useCallback(() => {
+    // DR-0728: reading the replies here is looking; the answered notes stop
+    // counting on the icon and the header bell.
+    Promise.resolve(outcomeDeps.fetchMine()).then((r) => { if (r && r.ok) { setMyRemote(r.items); markArrivalsSeen(SCREEN_KINDS.feedback); } }, () => {});
+  }, [outcomeDeps]);
+  React.useEffect(() => {
+    refreshMine();
+    let live = true;
+    Promise.resolve(outcomeDeps.fetchDelivery()).then((d) => { if (live && d && d.ok) setDelivery({ merges: d.merges }); }, () => {});
+    return () => { live = false; };
+  }, [outcomeDeps, refreshMine]);
+  const myNotes = mergeMine(myRemote, myFeedback);
+  const outcomeDelivery = delivery ? { ...delivery, outcomes: myRemote.filter((n) => n.outcomeAt).map((n) => ({ submittedAt: n.submittedAt, outcomeAt: n.outcomeAt, category: n.intakeCategory })) } : null;
+  // The fold of earlier notes (DR-0740): closed by default, and while closed
+  // it still says where every note stands, in one line.
+  const [earlierOpen, setEarlierOpen] = React.useState(false);
+  const earlierTally = tallyText(myNotes, { delivery: outcomeDelivery, board: myFeedback });
 
   const toggleCategory = (k) => setCategories(prev => prev.includes(k) ? prev.filter(c => c !== k) : [...prev, k]);
 
   const onPickImage = async (fileList) => {
-    const files = Array.from(fileList || []).filter(f => /^image\//.test(f.type || ''));
+    const all = Array.from(fileList || []);
+    // Loose gate (isLikelyImageFile): Android picks can carry a blank MIME
+    // type — a real photo used to be rejected here as "not an image."
+    const files = all.filter(isLikelyImageFile);
+    const notImages = all.filter(f => !isLikelyImageFile(f));
     if (files.length === 0) {
       setFormError('That file is not an image — a screenshot or photo works best.');
       return;
     }
-    try {
-      // Compress each hard: images only need to be legible and they travel in
-      // the row, so keep them small. Append so multiple picks accumulate.
-      const dataUrls = await Promise.all(files.map(f => compressImageFile(f, 1280, 0.6)));
-      setScreenshots(prev => [...prev, ...dataUrls]);
-      setFormError('');
-    } catch (_) {
-      setFormError('Could not read one of those images. Try again, or submit without it.');
-    }
+    setReadingImages(true);
+    setFormError('');
+    // Compress each hard: images only need to be legible and they travel in
+    // the row, so keep them small. Append so multiple picks accumulate.
+    // allSettled: ONE unreadable photo no longer throws away the whole batch.
+    const results = await Promise.allSettled(files.map(f => compressImageFile(f, 1280, 0.6)));
+    const good = [];
+    const failed = [];
+    results.forEach((r, i) => {
+      // A decode that silently yields an empty/degenerate data URL is a
+      // failure too (same guard as the receipts modal) — never attach a blank.
+      if (r.status === 'fulfilled' && r.value && r.value.length >= 100) good.push(r.value);
+      else failed.push(files[i].name || `image ${i + 1}`);
+    });
+    if (good.length > 0) setScreenshots(prev => [...prev, ...good]);
+    const problems = [];
+    if (failed.length) problems.push(`Could not read ${failed.join(', ')}${good.length ? ` — the other ${good.length} attached fine` : ''}. Try again, or pick a different image.`);
+    if (notImages.length) problems.push(`Skipped ${notImages.map(f => f.name).join(', ')} (not an image).`);
+    setFormError(problems.join(' '));
+    setReadingImages(false);
   };
   const removeScreenshot = (i) => setScreenshots(prev => prev.filter((_, j) => j !== i));
 
   const handleSubmit = () => {
+    if (readingImages) {
+      setFormError('Still reading your photo — one moment, then tap Submit again.');
+      return;
+    }
     if (!rating && categories.length === 0 && !whatsWorking && !whatsNot && !whatsMissing && screenshots.length === 0) {
       setFormError('Pick a rating, a category, jot a note, or attach an image — anything is helpful.');
       return;
     }
-    onSubmit({ rating, area, categories, whatsWorking, whatsNot, whatsMissing, screenshots });
+    // The last reading's trip rides with the note (DR-0744): a recent one,
+    // in one line, so "it stopped" arrives with which voice and what happened.
+    const readerTrip = recentTripLine();
+    const saved = onSubmit({ rating, area, categories, whatsWorking, whatsNot, whatsMissing, screenshots, ...(readerTrip ? { readerTrip } : {}), ...(replyTo ? { replyTo: replyTo.id } : {}) });
+    setReplyTo(null);
+    setTimeout(refreshMine, 1500);
+    // Hand the sender their reference instead of closing on them. If the host
+    // did not give us back a stored row there is no honest code to show, so we
+    // close as before rather than inventing one.
+    if (saved && saved.id) {
+      setReceipt(receiptMessage(saved.id));
+      // SIGNED OUT, SAID PLAINLY (DR-0629: connected is not answered, for
+      // every audience). Signed out, the note is kept on this device only —
+      // no steward can read it — so the receipt says that instead of a status
+      // that will never move.
+      Promise.resolve(supabase && supabase.auth ? supabase.auth.getSession() : null).then((res) => {
+        if (!(res && res.data && res.data.session)) setReceipt((r) => (r ? { ...r, headline: 'Kept on this device only.', body: SIGNED_OUT_RECEIPT } : r));
+      }).catch(() => {});
+    } else onClose();
   };
+
+  // The filtered list the picker actually renders, plus the count the hint
+  // reads from. `area` is always kept so a search can never blank the answer.
+  const areaGroups = filterAreas(FEEDBACK_AREAS, areaQuery, area);
+  // Counted WITHOUT the always-kept selection, so "3 matches" means three things
+  // the search actually found — not two plus whatever was already picked.
+  const areaMatches = filterAreas(FEEDBACK_AREAS, areaQuery, null)
+    .reduce((n, g) => n + g.items.length, 0);
 
   const ratings = [
     { key: 'love', label: '✨ Love it', color: '#5A6E3D' },
@@ -270,9 +543,53 @@ export function FeedbackModal({ onClose, onSubmit, currentView }) {
     { key: 'broken', label: 'Broken', color: '#B85838' },
   ];
 
+  // ── The receipt ───────────────────────────────────────────────────────────
+  // Shown the moment a note is sent. It hands over a reference the sender can
+  // read aloud or screenshot, says plainly that no email is coming, and lists
+  // their earlier notes with an HONEST status — including the "this is a known
+  // issue, N people reported it, we're working on it" sentence Darrell
+  // described giving people by hand, now said by the app itself.
+  if (receipt) {
+    return (
+      <div data-read-skip className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-3 sm:p-6 print:hidden" style={{ backgroundColor: 'rgba(0, 0, 0, 0.6)' }} onClick={onClose}>
+        <div className="bg-white border-2 border-[#1A1815] w-full max-h-[90vh] overflow-y-auto" style={{ maxWidth: '32rem' }} onClick={(e) => e.stopPropagation()}>
+          <div className="p-5 sm:p-6 space-y-4">
+            <div>
+              <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#5A6E3D] font-semibold mb-1">Feedback sent</div>
+              <h3 className="text-xl sm:text-2xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, letterSpacing: '-0.02em' }}>{receipt.headline}</h3>
+            </div>
+
+            <div className="border-2 border-[#1A1815] bg-[#FAF8F4] p-4 text-center">
+              <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold">Your reference</div>
+              <div className="text-2xl sm:text-3xl font-semibold tracking-[0.15em] text-[#1A1815] mt-1 tabular-nums">{receipt.code}</div>
+            </div>
+
+            <p className="text-sm text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{receipt.body}</p>
+
+            <IntakeOutcomeList notes={myNotes} board={myFeedback} delivery={outcomeDelivery} onReply={(n) => { setReceipt(null); setReplyTo(n); }} />
+
+            <div className="flex gap-2 pt-2 border-t border-[#E8E4DC]">
+              <button type="button" onClick={() => { setReceipt(null); setRating(''); setCategories([]); setWhatsWorking(''); setWhatsNot(''); setWhatsMissing(''); setScreenshots([]); setFormError(''); }}
+                className="border border-[#1A1815] text-[#1A1815] px-5 py-2.5 text-xs uppercase tracking-wider hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]">
+                Send another
+              </button>
+              <button type="button" onClick={onClose}
+                className="bg-[#1A1815] text-[#FAF8F4] px-6 py-2.5 text-xs uppercase tracking-wider hover:bg-[#B85838] font-semibold focus:outline focus:outline-2 focus:outline-[#B85838]">
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-3 sm:p-6 print:hidden" style={{ backgroundColor: 'rgba(0, 0, 0, 0.6)' }} onClick={onClose}>
-      <div className="bg-white border-2 border-[#1A1815] w-full max-h-[90vh] overflow-y-auto" style={{ maxWidth: '42rem' }} onClick={(e) => e.stopPropagation()}>
+    <div data-read-skip className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-3 sm:p-6 print:hidden" style={{ backgroundColor: 'rgba(0, 0, 0, 0.6)' }} onClick={onClose}>
+      {/* Paste-to-attach (Darrell 2026-07-24): Ctrl/Cmd+V anywhere in the form
+          drops a copied screenshot straight into the same compress-and-attach
+          pipeline as the file picker — paste is an equal door, not a replacement. */}
+      <div className="bg-white border-2 border-[#1A1815] w-full max-h-[90vh] overflow-y-auto" style={{ maxWidth: '42rem' }} onClick={(e) => e.stopPropagation()} onPaste={(e) => { const fs = filesFromClipboardEvent(e); if (fs.length) { e.preventDefault(); onPickImage(fs); } }}>
         <div className="p-5 sm:p-6">
           <div className="flex items-baseline justify-between gap-3 mb-3">
             <div>
@@ -281,8 +598,34 @@ export function FeedbackModal({ onClose, onSubmit, currentView }) {
             </div>
             <button type="button" onClick={onClose} className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">× Close</button>
           </div>
+          {replyTo && (
+            <div className="mb-3 border border-[#2A5A8E] bg-[#FAF8F4] p-3 text-sm text-[#1A1815]" role="status" data-testid="feedback-replying">
+              Replying to <span className="font-semibold tabular-nums">{receiptCode(replyTo.id)}</span>. A reply always goes to a person.
+              <button type="button" onClick={() => setReplyTo(null)} className="ml-2 min-h-[44px] px-2 text-xs uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">Cancel reply</button>
+            </div>
+          )}
+          {myNotes.length > 0 && !replyTo && (
+            // YOUR EARLIER FEEDBACK IS EASY TO FIND (DR-0740). Darrell 2026-10-01,
+            // on this box: "Can users see their feedback logs... can I see them?!!!
+            // Where are they and what's what?" The fold was here, but a flex
+            // summary draws no disclosure arrow, so it read as an empty box. Now
+            // it says tap to open, carries the arrow, and tallies where every
+            // note stands while it is still closed.
+            <details className="mb-3 border border-[#E8E4DC] p-3" open={earlierOpen} onToggle={(e) => setEarlierOpen(e.currentTarget.open)} data-testid="feedback-earlier">
+              <summary data-testid="feedback-earlier-fold" aria-expanded={earlierOpen} aria-label={`Your earlier feedback, ${myNotes.length} notes: ${earlierOpen ? 'tap to close the list' : 'tap to open the list'}`}
+                className="cursor-pointer list-none text-xs uppercase tracking-wider text-[#1A1815] font-semibold min-h-[44px] flex flex-wrap items-center gap-x-2 gap-y-1">
+                <span aria-hidden="true">{earlierOpen ? '▾' : '▸'}</span>
+                <span>Your earlier feedback ({myNotes.length}): where each one stands</span>
+                <span className="normal-case tracking-normal font-normal text-[#5A5751]">{earlierOpen ? 'tap to close' : 'tap to open'}</span>
+                {earlierTally && <span className="w-full normal-case tracking-normal font-normal text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }} data-testid="feedback-earlier-tally">{earlierTally}</span>}
+              </summary>
+              <div className="mt-2">
+                <IntakeOutcomeList notes={myNotes} board={myFeedback} delivery={outcomeDelivery} onReply={(n) => setReplyTo(n)} />
+              </div>
+            </details>
+          )}
           <p className="text-sm text-[#5A5751] mb-4" style={{ fontFamily: '"Fraunces", serif' }}>
-            Anything you share helps. Skip any section — partial feedback is more useful than no feedback. Saved locally; nothing leaves your device until you choose to share it.
+            Anything you share helps. Skip any section — partial feedback is more useful than no feedback. When you send it you get a reference code to keep; we don&apos;t send email about feedback, so the status lives here in the app.
           </p>
 
           <div className="space-y-4">
@@ -299,13 +642,28 @@ export function FeedbackModal({ onClose, onSubmit, currentView }) {
 
             <div>
               <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-1 font-semibold">Which area? (sub-features indented)</div>
-              <select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={area} onChange={e => setArea(e.target.value)}>
-                {FEEDBACK_AREAS.map(grp => (
+              {/* Type to find it. The list is long on purpose — this is how you
+                  stop scrolling it (Darrell, 2026-09-11: "now where is it at?"). */}
+              <input
+                type="search" value={areaQuery} onChange={e => setAreaQuery(e.target.value)}
+                aria-label="Find an area by name"
+                placeholder="Type to find it — e.g. bus, choir, giving, band"
+                className="w-full p-2 mb-1 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" />
+              <select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={area} onChange={e => setArea(e.target.value)}
+                size={areaQuery.trim() ? 8 : undefined}>
+                {areaGroups.map(grp => (
                   <optgroup key={grp.group} label={grp.group}>
                     {grp.items.map(([k, label]) => <option key={k} value={k}>{label}</option>)}
                   </optgroup>
                 ))}
               </select>
+              {areaQuery.trim() && (
+                <p className="mt-1 text-[0.625rem] text-[#5A5751]" aria-live="polite">
+                  {areaMatches === 0
+                    ? 'Nothing matches that — clear the search, or just describe it below and we\u2019ll route it.'
+                    : `${areaMatches} match${areaMatches === 1 ? '' : 'es'} \u00b7 pick one, or clear the search to see everything.`}
+                </p>
+              )}
             </div>
 
             <div>
@@ -347,15 +705,16 @@ export function FeedbackModal({ onClose, onSubmit, currentView }) {
                 </div>
               )}
               <label className="flex items-center justify-center gap-2 w-full p-2 border border-dashed border-[#1A1815] text-xs text-[#5A5751] cursor-pointer hover:bg-[#FAF8F4] focus-within:outline focus-within:outline-2 focus-within:outline-[#B85838]">
-                <span>{screenshots.length > 0 ? 'Add another image' : 'Attach one or more images to show us what you mean'}</span>
+                <span>{readingImages ? 'Reading your photo…' : screenshots.length > 0 ? 'Add another image — or paste one (Ctrl+V)' : 'Attach images to show us what you mean — or copy a screenshot and paste it here (Ctrl+V)'}</span>
                 <input type="file" accept="image/*" multiple className="hidden" onChange={e => { onPickImage(e.target.files); e.target.value = ''; }} />
               </label>
+              {readingImages && <p className="mt-1 text-[0.625rem] text-[#5A5751]" aria-live="polite">Reading and compressing — the preview appears here when it&apos;s in.</p>}
             </div>
           </div>
 
           <div className="flex gap-2 mt-5 pt-4 border-t border-[#E8E4DC]">
             {formError && <div className="text-xs text-[#B85838] mb-2 px-3 py-2 bg-[#FAF8F4] border border-[#B85838] w-full" role="alert" style={{ fontFamily: '"Fraunces", serif' }}>{formError}</div>}
-            <button type="button" onClick={handleSubmit} className="bg-[#1A1815] text-[#FAF8F4] px-6 py-2.5 text-xs uppercase tracking-wider hover:bg-[#B85838] font-semibold">Submit Feedback</button>
+            <button type="button" onClick={handleSubmit} disabled={readingImages} className="bg-[#1A1815] text-[#FAF8F4] px-6 py-2.5 text-xs uppercase tracking-wider hover:bg-[#B85838] font-semibold disabled:opacity-50">{readingImages ? 'Reading photo…' : 'Submit Feedback'}</button>
             <button type="button" onClick={onClose} className="border border-[#E8E4DC] text-[#5A5751] px-6 py-2.5 text-xs uppercase tracking-wider hover:border-[#1A1815]">Cancel</button>
           </div>
         </div>
@@ -395,9 +754,61 @@ function feedbackSummary(f, maxLen = 60) {
   return summary.length > maxLen ? summary.slice(0, maxLen - 3) + '...' : summary;
 }
 
-export function FeedbackPromotePanel({ feedback = [], addProject, addIncident, deleteFeedback }) {
+// The steward's view of every intake (DR-0625): each note's category and the
+// basis it stands on, and the exact outcome the sender reads, so nobody writes
+// a reply by hand and every automatic answer can be checked.
+const PANEL_LEDGER = (typeof __DR_LEDGER__ !== 'undefined') ? __DR_LEDGER__ : { ok: false, items: [] };
+const INTAKE_FILTERS = [['people', 'All from people'], ...CATEGORY_ORDER.map((k) => [k, INTAKE_CATEGORIES[k].label])];
+
+export function categorizeBoard(feedback = [], ledger = PANEL_LEDGER) {
+  const history = feedback || [];
+  const byId = new Map();
+  for (const f of history) {
+    if (!f || !f.id) continue;
+    const cat = categorizeIntake(f, { ledger, history });
+    byId.set(f.id, { cat, out: outcomeFor(f, cat) });
+  }
+  return byId;
+}
+
+export function FeedbackPromotePanel({ feedback = [], addProject, addIncident, deleteFeedback, triageDeps = null, ledger = PANEL_LEDGER, fetchImages = null }) {
+  // THE LOOP CLOSES HERE (DR-0616): every move a steward makes is written to
+  // the note's row, and the sender's receipt reads it. `triaged` shows the move
+  // at once while the realtime refresh catches up.
+  const [triaged, setTriaged] = React.useState({});
+  const [triageSaid, setTriageSaid] = React.useState('');
+  const triage = async (f, status, askWhy = '', optional = false) => {
+    let notes = '';
+    if (askWhy) {
+      const said = window.prompt(askWhy);
+      if (said === null) { setTriageSaid('Not changed.'); return; }
+      notes = said || '';
+      if (!notes.trim() && !optional) { setTriageSaid('Not changed: a reason is needed so the sender is told why.'); return; }
+    }
+    const res = await setFeedbackTriage({ ...(triageDeps || { supabase }), id: f.id, status, notes });
+    if (res.ok) {
+      setTriaged((t) => ({ ...t, [f.id]: status }));
+      setTriageSaid(`Marked "${triageLabel(status)}". The sender sees it on their receipt.`);
+    } else {
+      setTriageSaid(`Not saved (${res.reason}).`);
+    }
+  };
+  const statusOf = (f) => triaged[f.id] || f.triageStatus || 'new';
+  const [intakeFilter, setIntakeFilter] = React.useState('people');
+  const board = React.useMemo(() => categorizeBoard(feedback, ledger), [feedback, ledger]);
   if (!feedback || feedback.length === 0) return null;
-  const sorted = [...feedback].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  const counts = categoryCounts([...board.values()].map((b) => b.cat));
+  const people = feedback.length - counts.signal;
+  const inFilter = (f) => {
+    const c = board.get(f.id);
+    if (!c) return intakeFilter === 'people';
+    return intakeFilter === 'people' ? c.cat.category !== 'signal' : c.cat.category === intakeFilter;
+  };
+  const sorted = [...feedback].filter(inFilter).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  // Staleness made legible (DR-0120 / P30): a queue is WORKED, not stored.
+  // When items have waited past the threshold, the queue says so at the top —
+  // an unworked queue must never look fine.
+  const freshness = queueFreshness(sorted);
 
   const promoteToProject = (f) => {
     const name = `${f.area || 'Feedback'}: ${feedbackSummary(f)}`;
@@ -409,6 +820,7 @@ export function FeedbackPromotePanel({ feedback = [], addProject, addIncident, d
       _note: `promoted from feedback (${f.area || 'tester note'})`,
     });
     alert(`Project created: "${name}"`);
+    triage(f, 'promoted');
   };
 
   const promoteToIncident = (f) => {
@@ -424,6 +836,24 @@ export function FeedbackPromotePanel({ feedback = [], addProject, addIncident, d
       _note: `promoted from feedback (${f.area || 'tester note'})`,
     });
     alert('Incident created. Fill in amount + entity on the incident.');
+    triage(f, 'promoted');
+  };
+
+  // → Requirements (DR-0121 item 10): the family's own feedback words ride the
+  // SAME extraction contract as a client recording — each sentence becomes a
+  // reviewable item (literal words as the receipt) in the Requirements review
+  // gate (Projects → Clients), steward-confirmed before anything becomes work.
+  const promoteToRequirements = async (f) => {
+    const raw = [f.whatsNot, f.whatsMissing].filter(Boolean).join('\n');
+    if (!raw.trim()) { alert('This item has no "not working / missing" text to extract from.'); return; }
+    const parsed = extractRequirementsFromThoughts(raw, {
+      source: `feedback:${f.id}`,
+      extractedAt: new Date().toISOString(),
+    });
+    if (!parsed.items.length) { alert('No requirement-shaped sentences found in this feedback — promote it as a Project/Change instead.'); return; }
+    const n = await saveExtraction(parsed);
+    alert(`${n} requirement item${n === 1 ? '' : 's'} sent to the Requirements review gate (Projects → Clients)${parsed.unclear.length ? ` · ${parsed.unclear.length} sentence(s) kept aside as unclear` : ''}. Confirm each there to put it on a build board.`);
+    triage(f, 'promoted');
   };
 
   const promoteToChange = (f) => {
@@ -440,10 +870,38 @@ export function FeedbackPromotePanel({ feedback = [], addProject, addIncident, d
       _note: `promoted from feedback as change-request (${f.area || 'tester note'})`,
     });
     alert(`Change request created (tagged as 'change-request' in projects).`);
+    triage(f, 'promoted');
   };
 
   return (
     <div className="mt-8">
+      {freshness.stale > 0 && (
+        <div className="mb-2 border border-[#B85838] bg-[#FAF8F4] p-3 text-sm text-[#1A1815]" role="status">
+          <span className="text-[#B85838] font-semibold" aria-hidden="true">▲</span>{' '}
+          <span className="font-medium">{freshness.stale} of {freshness.total} item{freshness.stale > 1 ? 's have' : ' has'} waited over {QUEUE_STALE_DAYS} days</span>
+          {freshness.oldestDays != null && <span className="text-[#5A5751]"> (oldest: {freshness.oldestDays} days)</span>}
+          <span className="text-[#5A5751]"> — a queue is worked, not stored. Promote each to a Change / Incident / Project, or delete it.</span>
+        </div>
+      )}
+      {triageSaid && <p role="status" className="text-xs text-[#5A6E3D] mb-2" style={{ fontFamily: '"Fraunces", serif' }} data-testid="feedback-triage-said">{triageSaid}</p>}
+      <div className="mb-2 border border-[#E8E4DC] bg-white p-3" data-testid="intake-queue">
+        <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold">Every intake, categorized by rule</div>
+        <p className="text-xs text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+          Each note is placed by the rules in lib/intake-outcome.js, and the sender reads the outcome without anyone writing it. Tap a category to see its notes and the basis for each.
+        </p>
+        <div className="flex flex-wrap gap-1.5 mt-2" role="group" aria-label="Show notes by category">
+          {INTAKE_FILTERS.map(([k, label]) => {
+            const n = k === 'people' ? people : counts[k];
+            const on = intakeFilter === k;
+            return (
+              <button key={k} type="button" aria-pressed={on} onClick={() => setIntakeFilter(k)} data-testid={`intake-filter-${k}`}
+                className={`min-h-[44px] px-3 text-xs uppercase tracking-wider border focus:outline focus:outline-2 focus:outline-[#B85838] ${on ? 'bg-[#1A1815] text-[#FAF8F4] border-[#1A1815]' : 'bg-white text-[#1A1815] border-[#E8E4DC]'}`}>
+                {label} · {n}
+              </button>
+            );
+          })}
+        </div>
+      </div>
       <Queue
         title="Feedback Log · Promote queue"
         subtitle="Focused item is in full detail at top. Browse the rest below and click any card to bring it into focus."
@@ -455,6 +913,20 @@ export function FeedbackPromotePanel({ feedback = [], addProject, addIncident, d
         pageSizeOptions={[5, 25, 50]}
         renderFocus={(f) => (
           <div>
+            <p className="text-[0.625rem] uppercase tracking-wider mb-1 text-[#2A5A8E] font-semibold" data-testid="feedback-triage-status">
+              Status: {triageLabel(statusOf(f))}
+            </p>
+            {board.get(f.id) && (() => {
+              const { cat, out } = board.get(f.id);
+              return (
+                <div className="mb-2 border-l-2 pl-2" style={{ borderColor: INTAKE_CATEGORIES[cat.category]?.accent || '#5A5751' }} data-testid="intake-basis">
+                  <p className="text-xs text-[#1A1815]"><span className="font-semibold">{INTAKE_CATEGORIES[cat.category]?.label}</span>: {INTAKE_CATEGORIES[cat.category]?.steward}</p>
+                  <p className="text-xs text-[#5A5751]">Basis: {basisLine(cat)}</p>
+                  <p className="text-xs text-[#5A5751]">The sender reads: <span className="text-[#1A1815]">{out.label}</span>{out.reason ? `, "${out.reason}"` : ''}{out.cite ? ` (${out.cite})` : ''}</p>
+                  {out.owner && <p className="text-xs text-[#5A5751]">Owner: {out.owner}</p>}
+                </div>
+              );
+            })()}
             <div className="flex items-baseline justify-between gap-2 mb-2 flex-wrap">
               <div className="text-[0.625rem] uppercase tracking-wider">
                 <span className="font-semibold text-[#B85838]">{f.area || 'Note'}</span>
@@ -483,30 +955,17 @@ export function FeedbackPromotePanel({ feedback = [], addProject, addIncident, d
               </div>
             )}
             {(() => {
-              // Prefer the multi-image array; fall back to the legacy single
-              // `screenshot`, then to the marker for rows synced without images.
+              // THE PICTURES, INSIDE THE APP (DR-0742). A row from the list
+              // carries the count, not the bytes; a local row may carry both.
+              // Either way the steward sees them here, each a tap from full
+              // size, and never a line telling them to go find the sender's
+              // phone or the database.
               const imgs = Array.isArray(f.screenshots) && f.screenshots.length > 0
                 ? f.screenshots
                 : (f.screenshot ? [f.screenshot] : []);
-              if (imgs.length > 0) {
-                return (
-                  <div className="mb-2">
-                    <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] font-semibold">{imgs.length > 1 ? `${imgs.length} screenshots` : 'Screenshot'}</div>
-                    <div className="flex flex-wrap gap-2 mt-1">
-                      {imgs.map((src, i) => (
-                        <a key={i} href={src} target="_blank" rel="noreferrer" title="Open full size">
-                          <img src={src} alt={`Feedback screenshot ${i + 1}`} className="max-h-48 border border-[#1A1815]" />
-                        </a>
-                      ))}
-                    </div>
-                  </div>
-                );
-              }
-              if (f.hasScreenshot) {
-                const n = f.screenshotCount || 1;
-                return <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] mb-2">{n > 1 ? `${n} screenshots` : 'Screenshot'} attached (open on the submitter's device or in Supabase)</div>;
-              }
-              return null;
+              const n = imgs.length > 0 ? imgs.length : (f.hasScreenshot ? (f.screenshotCount || 1) : 0);
+              if (n === 0) return null;
+              return <FeedbackScreenshots id={f.id} count={n} initial={imgs} {...(fetchImages ? { fetchImages } : {})} />;
             })()}
           </div>
         )}
@@ -519,6 +978,7 @@ export function FeedbackPromotePanel({ feedback = [], addProject, addIncident, d
                 <div className="text-[0.625rem] uppercase tracking-wider">
                   <span className="font-semibold text-[#B85838]">{f.area || 'Note'}</span>
                   {f.rating && <span className="text-[#5A5751]"> · {f.rating}</span>}
+                  {board.get(f.id) && <span className="text-[#2A5A8E]"> · {INTAKE_CATEGORIES[board.get(f.id).cat.category]?.label}</span>}
                 </div>
                 <div className="text-sm truncate" style={{ fontFamily: '"Fraunces", serif' }}>
                   {feedbackSummary(f, 80)}
@@ -531,9 +991,17 @@ export function FeedbackPromotePanel({ feedback = [], addProject, addIncident, d
           );
         }}
         actions={[
+          { label: '→ Requirements', onClick: promoteToRequirements, color: '#B85838' },
           { label: '+ Change', onClick: promoteToChange, color: '#5A6E3D' },
           { label: '+ Incident', onClick: promoteToIncident, color: '#B85838' },
           { label: '+ Project', onClick: promoteToProject, color: '#1A1815' },
+          // THE LOOP'S OWN MOVES (DR-0616): each is written to the note and
+          // shown on the sender's receipt; a decline or a question carries the
+          // reason the sender reads.
+          { label: 'Working on it', onClick: (f) => triage(f, 'in-progress'), color: '#2A5A8E' },
+          { label: 'Fixed', onClick: (f) => triage(f, 'fixed', 'What changed? The sender reads this.', true), color: '#5A6E3D' },
+          { label: 'Need more info', onClick: (f) => triage(f, 'needs-info', 'What do you need from the sender? They will read this.'), color: '#8B6F47' },
+          { label: 'Decline', onClick: (f) => triage(f, 'declined', 'Why is this not changing? The sender will read this.'), color: '#5A5751' },
           { label: '× Delete', onClick: (f) => { if (confirm('Delete this feedback? It will be removed from the queue but any projects/incidents/changes you already created from it remain.')) deleteFeedback(f.id); }, secondary: true },
         ]}
       />

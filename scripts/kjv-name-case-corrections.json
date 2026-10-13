@@ -1,0 +1,861 @@
+{
+ "version": 1,
+ "found": "2026-09-06",
+ "witnesses": [
+  "thiagobodruk/bible en_kjv.json (public domain)",
+  "app/public/bible/web (World English Bible, public domain) — Yahweh/Lord as the Tetragrammaton oracle",
+  "scrollmapper/bible_databases KJV.json (public domain; 1769 text with Strong's) — for the non-Name case class only: it prints \"Lord\" everywhere and cannot arbitrate LORD vs Lord"
+ ],
+ "undecided": [
+  "1Kings 13:22",
+  "2Chronicles 17:4",
+  "2Chronicles 18:21",
+  "Deuteronomy 33:12",
+  "Genesis 18:3",
+  "Genesis 19:18",
+  "Joshua 7:7",
+  "Leviticus 24:16"
+ ],
+ "corrections": [
+  {
+   "ref": "Genesis 15:2",
+   "before": "And Abram said, LORD God, what wilt thou give me, seeing I go childless, and the steward of my house is this Eliezer of Damascus?",
+   "after": "And Abram said, Lord GOD, what wilt thou give me, seeing I go childless, and the steward of my house is this Eliezer of Damascus?",
+   "class": "name"
+  },
+  {
+   "ref": "Genesis 15:8",
+   "before": "And he said, LORD God, whereby shall I know that I shall inherit it?",
+   "after": "And he said, Lord GOD, whereby shall I know that I shall inherit it?",
+   "class": "name"
+  },
+  {
+   "ref": "Genesis 18:27",
+   "before": "And Abraham answered and said, Behold now, I have taken upon me to speak unto the LORD, which am but dust and ashes:",
+   "after": "And Abraham answered and said, Behold now, I have taken upon me to speak unto the Lord, which am but dust and ashes:",
+   "class": "name"
+  },
+  {
+   "ref": "Genesis 18:30",
+   "before": "And he said unto him, Oh let not the LORD be angry, and I will speak: Peradventure there shall thirty be found there. And he said, I will not do it, if I find thirty there.",
+   "after": "And he said unto him, Oh let not the Lord be angry, and I will speak: Peradventure there shall thirty be found there. And he said, I will not do it, if I find thirty there.",
+   "class": "name"
+  },
+  {
+   "ref": "Genesis 20:4",
+   "before": "But Abimelech had not come near her: and he said, LORD, wilt thou slay also a righteous nation?",
+   "after": "But Abimelech had not come near her: and he said, Lord, wilt thou slay also a righteous nation?",
+   "class": "name"
+  },
+  {
+   "ref": "Exodus 5:22",
+   "before": "And Moses returned unto the LORD, and said, LORD, wherefore hast thou so evil entreated this people? why is it that thou hast sent me?",
+   "after": "And Moses returned unto the LORD, and said, Lord, wherefore hast thou so evil entreated this people? why is it that thou hast sent me?",
+   "class": "name"
+  },
+  {
+   "ref": "Exodus 15:17",
+   "before": "Thou shalt bring them in, and plant them in the mountain of thine inheritance, in the place, O LORD, which thou hast made for thee to dwell in, in the Sanctuary, O LORD, which thy hands have established.",
+   "after": "Thou shalt bring them in, and plant them in the mountain of thine inheritance, in the place, O LORD, which thou hast made for thee to dwell in, in the Sanctuary, O Lord, which thy hands have established.",
+   "class": "name"
+  },
+  {
+   "ref": "Exodus 23:17",
+   "before": "Three times in the year all thy males shall appear before the LORD God.",
+   "after": "Three times in the year all thy males shall appear before the Lord GOD.",
+   "class": "name"
+  },
+  {
+   "ref": "Exodus 33:9",
+   "before": "And it came to pass, as Moses entered into the tabernacle, the cloudy pillar descended, and stood at the door of the tabernacle, and the Lord talked with Moses.",
+   "after": "And it came to pass, as Moses entered into the tabernacle, the cloudy pillar descended, and stood at the door of the tabernacle, and the LORD talked with Moses.",
+   "class": "name"
+  },
+  {
+   "ref": "Exodus 34:9",
+   "before": "And he said, If now I have found grace in thy sight, O LORD, let my LORD, I pray thee, go among us; for it is a stiffnecked people; and pardon our iniquity and our sin, and take us for thine inheritance.",
+   "after": "And he said, If now I have found grace in thy sight, O Lord, let my Lord, I pray thee, go among us; for it is a stiffnecked people; and pardon our iniquity and our sin, and take us for thine inheritance.",
+   "class": "name"
+  },
+  {
+   "ref": "Numbers 14:17",
+   "before": "And now, I beseech thee, let the power of my LORD be great, according as thou hast spoken, saying,",
+   "after": "And now, I beseech thee, let the power of my Lord be great, according as thou hast spoken, saying,",
+   "class": "name"
+  },
+  {
+   "ref": "Numbers 31:28",
+   "before": "And levy a tribute unto the Lord of the men of war which went out to battle: one soul of five hundred, both of the persons, and of the beeves, and of the asses, and of the sheep:",
+   "after": "And levy a tribute unto the LORD of the men of war which went out to battle: one soul of five hundred, both of the persons, and of the beeves, and of the asses, and of the sheep:",
+   "class": "name"
+  },
+  {
+   "ref": "Joshua 3:11",
+   "before": "Behold, the ark of the covenant of the LORD of all the earth passeth over before you into Jordan.",
+   "after": "Behold, the ark of the covenant of the Lord of all the earth passeth over before you into Jordan.",
+   "class": "name"
+  },
+  {
+   "ref": "Joshua 3:13",
+   "before": "And it shall come to pass, as soon as the soles of the feet of the priests that bear the ark of the LORD, the LORD of all the earth, shall rest in the waters of Jordan, that the waters of Jordan shall be cut off from the waters that come down from above; and they shall stand upon an heap.",
+   "after": "And it shall come to pass, as soon as the soles of the feet of the priests that bear the ark of the LORD, the Lord of all the earth, shall rest in the waters of Jordan, that the waters of Jordan shall be cut off from the waters that come down from above; and they shall stand upon an heap.",
+   "class": "name"
+  },
+  {
+   "ref": "Judges 6:22",
+   "before": "And when Gideon perceived that he was an angel of the LORD, Gideon said, Alas, O LORD God! for because I have seen an angel of the LORD face to face.",
+   "after": "And when Gideon perceived that he was an angel of the LORD, Gideon said, Alas, O Lord GOD! for because I have seen an angel of the LORD face to face.",
+   "class": "name"
+  },
+  {
+   "ref": "Judges 16:28",
+   "before": "And Samson called unto the LORD, and said, O Lord God, remember me, I pray thee, and strengthen me, I pray thee, only this once, O God, that I may be at once avenged of the Philistines for my two eyes.",
+   "after": "And Samson called unto the LORD, and said, O Lord GOD, remember me, I pray thee, and strengthen me, I pray thee, only this once, O God, that I may be at once avenged of the Philistines for my two eyes.",
+   "class": "name"
+  },
+  {
+   "ref": "1Kings 3:10",
+   "before": "And the speech pleased the LORD, that Solomon had asked this thing.",
+   "after": "And the speech pleased the Lord, that Solomon had asked this thing.",
+   "class": "name"
+  },
+  {
+   "ref": "1Kings 8:53",
+   "before": "For thou didst separate them from among all the people of the earth, to be thine inheritance, as thou spakest by the hand of Moses thy servant, when thou broughtest our fathers out of Egypt, O LORD God.",
+   "after": "For thou didst separate them from among all the people of the earth, to be thine inheritance, as thou spakest by the hand of Moses thy servant, when thou broughtest our fathers out of Egypt, O Lord GOD.",
+   "class": "name"
+  },
+  {
+   "ref": "2Kings 7:6",
+   "before": "For the LORD had made the host of the Syrians to hear a noise of chariots, and a noise of horses, even the noise of a great host: and they said one to another, Lo, the king of Israel hath hired against us the kings of the Hittites, and the kings of the Egyptians, to come upon us.",
+   "after": "For the Lord had made the host of the Syrians to hear a noise of chariots, and a noise of horses, even the noise of a great host: and they said one to another, Lo, the king of Israel hath hired against us the kings of the Hittites, and the kings of the Egyptians, to come upon us.",
+   "class": "name"
+  },
+  {
+   "ref": "2Kings 23:19",
+   "before": "And all the houses also of the high places that were in the cities of Samaria, which the kings of Israel had made to provoke the Lord to anger, Josiah took away, and did to them according to all the acts that he had done in Bethel.",
+   "after": "And all the houses also of the high places that were in the cities of Samaria, which the kings of Israel had made to provoke the LORD to anger, Josiah took away, and did to them according to all the acts that he had done in Bethel.",
+   "class": "name"
+  },
+  {
+   "ref": "Nehemiah 3:5",
+   "before": "And next unto them the Tekoites repaired; but their nobles put not their necks to the work of their LORD.",
+   "after": "And next unto them the Tekoites repaired; but their nobles put not their necks to the work of their Lord.",
+   "class": "name"
+  },
+  {
+   "ref": "Nehemiah 4:14",
+   "before": "And I looked, and rose up, and said unto the nobles, and to the rulers, and to the rest of the people, Be not ye afraid of them: remember the LORD, which is great and terrible, and fight for your brethren, your sons, and your daughters, your wives, and your houses.",
+   "after": "And I looked, and rose up, and said unto the nobles, and to the rulers, and to the rest of the people, Be not ye afraid of them: remember the Lord, which is great and terrible, and fight for your brethren, your sons, and your daughters, your wives, and your houses.",
+   "class": "name"
+  },
+  {
+   "ref": "Nehemiah 8:10",
+   "before": "Then he said unto them, Go your way, eat the fat, and drink the sweet, and send portions unto them for whom nothing is prepared: for this day is holy unto our LORD: neither be ye sorry; for the joy of the LORD is your strength.",
+   "after": "Then he said unto them, Go your way, eat the fat, and drink the sweet, and send portions unto them for whom nothing is prepared: for this day is holy unto our Lord: neither be ye sorry; for the joy of the LORD is your strength.",
+   "class": "name"
+  },
+  {
+   "ref": "Job 28:28",
+   "before": "And unto man he said, Behold, the fear of the LORD, that is wisdom; and to depart from evil is understanding.",
+   "after": "And unto man he said, Behold, the fear of the Lord, that is wisdom; and to depart from evil is understanding.",
+   "class": "name"
+  },
+  {
+   "ref": "Psalms 2:4",
+   "before": "He that sitteth in the heavens shall laugh: the LORD shall have them in derision.",
+   "after": "He that sitteth in the heavens shall laugh: the Lord shall have them in derision.",
+   "class": "name"
+  },
+  {
+   "ref": "Psalms 37:13",
+   "before": "The LORD shall laugh at him: for he seeth that his day is coming.",
+   "after": "The Lord shall laugh at him: for he seeth that his day is coming.",
+   "class": "name"
+  },
+  {
+   "ref": "Psalms 78:65",
+   "before": "Then the LORD awaked as one out of sleep, and like a mighty man that shouteth by reason of wine.",
+   "after": "Then the Lord awaked as one out of sleep, and like a mighty man that shouteth by reason of wine.",
+   "class": "name"
+  },
+  {
+   "ref": "Isaiah 1:24",
+   "before": "Therefore saith the LORD, the LORD of hosts, the mighty One of Israel, Ah, I will ease me of mine adversaries, and avenge me of mine enemies:",
+   "after": "Therefore saith the Lord, the LORD of hosts, the mighty One of Israel, Ah, I will ease me of mine adversaries, and avenge me of mine enemies:",
+   "class": "name"
+  },
+  {
+   "ref": "Isaiah 21:6",
+   "before": "For thus hath the LORD said unto me, Go, set a watchman, let him declare what he seeth.",
+   "after": "For thus hath the Lord said unto me, Go, set a watchman, let him declare what he seeth.",
+   "class": "name"
+  },
+  {
+   "ref": "Isaiah 21:16",
+   "before": "For thus hath the LORD said unto me, Within a year, according to the years of an hireling, and all the glory of Kedar shall fail:",
+   "after": "For thus hath the Lord said unto me, Within a year, according to the years of an hireling, and all the glory of Kedar shall fail:",
+   "class": "name"
+  },
+  {
+   "ref": "Isaiah 25:1",
+   "before": "O Lord, thou art my God; I will exalt thee, I will praise thy name; for thou hast done wonderful things; thy counsels of old are faithfulness and truth.",
+   "after": "O LORD, thou art my God; I will exalt thee, I will praise thy name; for thou hast done wonderful things; thy counsels of old are faithfulness and truth.",
+   "class": "name"
+  },
+  {
+   "ref": "Isaiah 38:16",
+   "before": "O LORD, by these things men live, and in all these things is the life of my spirit: so wilt thou recover me, and make me to live.",
+   "after": "O Lord, by these things men live, and in all these things is the life of my spirit: so wilt thou recover me, and make me to live.",
+   "class": "name"
+  },
+  {
+   "ref": "Lamentations 1:14",
+   "before": "The yoke of my transgressions is bound by his hand: they are wreathed, and come up upon my neck: he hath made my strength to fall, the LORD hath delivered me into their hands, from whom I am not able to rise up.",
+   "after": "The yoke of my transgressions is bound by his hand: they are wreathed, and come up upon my neck: he hath made my strength to fall, the Lord hath delivered me into their hands, from whom I am not able to rise up.",
+   "class": "name"
+  },
+  {
+   "ref": "Lamentations 2:1",
+   "before": "How hath the LORD covered the daughter of Zion with a cloud in his anger, and cast down from heaven unto the earth the beauty of Israel, and remembered not his footstool in the day of his anger!",
+   "after": "How hath the Lord covered the daughter of Zion with a cloud in his anger, and cast down from heaven unto the earth the beauty of Israel, and remembered not his footstool in the day of his anger!",
+   "class": "name"
+  },
+  {
+   "ref": "Lamentations 2:5",
+   "before": "The LORD was as an enemy: he hath swallowed up Israel, he hath swallowed up all her palaces: he hath destroyed his strong holds, and hath increased in the daughter of Judah mourning and lamentation.",
+   "after": "The Lord was as an enemy: he hath swallowed up Israel, he hath swallowed up all her palaces: he hath destroyed his strong holds, and hath increased in the daughter of Judah mourning and lamentation.",
+   "class": "name"
+  },
+  {
+   "ref": "Lamentations 2:18",
+   "before": "Their heart cried unto the LORD, O wall of the daughter of Zion, let tears run down like a river day and night: give thyself no rest; let not the apple of thine eye cease.",
+   "after": "Their heart cried unto the Lord, O wall of the daughter of Zion, let tears run down like a river day and night: give thyself no rest; let not the apple of thine eye cease.",
+   "class": "name"
+  },
+  {
+   "ref": "Lamentations 2:19",
+   "before": "Arise, cry out in the night: in the beginning of the watches pour out thine heart like water before the face of the LORD: lift up thy hands toward him for the life of thy young children, that faint for hunger in the top of every street.",
+   "after": "Arise, cry out in the night: in the beginning of the watches pour out thine heart like water before the face of the Lord: lift up thy hands toward him for the life of thy young children, that faint for hunger in the top of every street.",
+   "class": "name"
+  },
+  {
+   "ref": "Lamentations 3:31",
+   "before": "For the LORD will not cast off for ever:",
+   "after": "For the Lord will not cast off for ever:",
+   "class": "name"
+  },
+  {
+   "ref": "Lamentations 3:58",
+   "before": "O LORD, thou hast pleaded the causes of my soul; thou hast redeemed my life.",
+   "after": "O Lord, thou hast pleaded the causes of my soul; thou hast redeemed my life.",
+   "class": "name"
+  },
+  {
+   "ref": "Ezekiel 16:23",
+   "before": "And it came to pass after all thy wickedness, (woe, woe unto thee! saith the LORD GOD;)",
+   "after": "And it came to pass after all thy wickedness, (woe, woe unto thee! saith the Lord GOD;)",
+   "class": "name"
+  },
+  {
+   "ref": "Ezekiel 16:30",
+   "before": "How weak is thine heart, saith the LORD GOD, seeing thou doest all these things, the work of an imperious whorish woman;",
+   "after": "How weak is thine heart, saith the Lord GOD, seeing thou doest all these things, the work of an imperious whorish woman;",
+   "class": "name"
+  },
+  {
+   "ref": "Ezekiel 18:25",
+   "before": "Yet ye say, The way of the LORD is not equal. Hear now, O house of Israel; Is not my way equal? are not your ways unequal?",
+   "after": "Yet ye say, The way of the Lord is not equal. Hear now, O house of Israel; Is not my way equal? are not your ways unequal?",
+   "class": "name"
+  },
+  {
+   "ref": "Ezekiel 18:29",
+   "before": "Yet saith the house of Israel, The way of the LORD is not equal. O house of Israel, are not my ways equal? are not your ways unequal?",
+   "after": "Yet saith the house of Israel, The way of the Lord is not equal. O house of Israel, are not my ways equal? are not your ways unequal?",
+   "class": "name"
+  },
+  {
+   "ref": "Daniel 9:16",
+   "before": "O LORD, according to all thy righteousness, I beseech thee, let thine anger and thy fury be turned away from thy city Jerusalem, thy holy mountain: because for our sins, and for the iniquities of our fathers, Jerusalem and thy people are become a reproach to all that are about us.",
+   "after": "O Lord, according to all thy righteousness, I beseech thee, let thine anger and thy fury be turned away from thy city Jerusalem, thy holy mountain: because for our sins, and for the iniquities of our fathers, Jerusalem and thy people are become a reproach to all that are about us.",
+   "class": "name"
+  },
+  {
+   "ref": "Amos 5:16",
+   "before": "Therefore the LORD, the God of hosts, the LORD, saith thus; Wailing shall be in all streets; and they shall say in all the highways, Alas! alas! and they shall call the husbandman to mourning, and such as are skilful of lamentation to wailing.",
+   "after": "Therefore the LORD, the God of hosts, the Lord, saith thus; Wailing shall be in all streets; and they shall say in all the highways, Alas! alas! and they shall call the husbandman to mourning, and such as are skilful of lamentation to wailing.",
+   "class": "name"
+  },
+  {
+   "ref": "Amos 7:7",
+   "before": "Thus he shewed me: and, behold, the LORD stood upon a wall made by a plumbline, with a plumbline in his hand.",
+   "after": "Thus he shewed me: and, behold, the Lord stood upon a wall made by a plumbline, with a plumbline in his hand.",
+   "class": "name"
+  },
+  {
+   "ref": "Amos 7:8",
+   "before": "And the LORD said unto me, Amos, what seest thou? And I said, A plumbline. Then said the LORD, Behold, I will set a plumbline in the midst of my people Israel: I will not again pass by them any more:",
+   "after": "And the LORD said unto me, Amos, what seest thou? And I said, A plumbline. Then said the Lord, Behold, I will set a plumbline in the midst of my people Israel: I will not again pass by them any more:",
+   "class": "name"
+  },
+  {
+   "ref": "Zechariah 9:4",
+   "before": "Behold, the LORD will cast her out, and he will smite her power in the sea; and she shall be devoured with fire.",
+   "after": "Behold, the Lord will cast her out, and he will smite her power in the sea; and she shall be devoured with fire.",
+   "class": "name"
+  },
+  {
+   "ref": "Zechariah 9:14",
+   "before": "And the LORD shall be seen over them, and his arrow shall go forth as the lightning: and the LORD God shall blow the trumpet, and shall go with whirlwinds of the south.",
+   "after": "And the LORD shall be seen over them, and his arrow shall go forth as the lightning: and the Lord GOD shall blow the trumpet, and shall go with whirlwinds of the south.",
+   "class": "name"
+  },
+  {
+   "ref": "Malachi 3:1",
+   "before": "Behold, I will send my messenger, and he shall prepare the way before me: and the LORD, whom ye seek, shall suddenly come to his temple, even the messenger of the covenant, whom ye delight in: behold, he shall come, saith the LORD of hosts.",
+   "after": "Behold, I will send my messenger, and he shall prepare the way before me: and the Lord, whom ye seek, shall suddenly come to his temple, even the messenger of the covenant, whom ye delight in: behold, he shall come, saith the LORD of hosts.",
+   "class": "name"
+  },
+  {
+   "ref": "Luke 2:23",
+   "before": "(As it is written in the law of the LORD, Every male that openeth the womb shall be called holy to the Lord;)",
+   "after": "(As it is written in the law of the Lord, Every male that openeth the womb shall be called holy to the Lord;)",
+   "class": "name"
+  },
+  {
+   "ref": "Luke 10:1",
+   "before": "After these things the LORD appointed other seventy also, and sent them two and two before his face into every city and place, whither he himself would come.",
+   "after": "After these things the Lord appointed other seventy also, and sent them two and two before his face into every city and place, whither he himself would come.",
+   "class": "name"
+  },
+  {
+   "ref": "John 4:1",
+   "before": "When therefore the LORD knew how the Pharisees had heard that Jesus made and baptized more disciples than John,",
+   "after": "When therefore the Lord knew how the Pharisees had heard that Jesus made and baptized more disciples than John,",
+   "class": "name"
+  },
+  {
+   "ref": "John 20:2",
+   "before": "Then she runneth, and cometh to Simon Peter, and to the other disciple, whom Jesus loved, and saith unto them, They have taken away the LORD out of the sepulchre, and we know not where they have laid him.",
+   "after": "Then she runneth, and cometh to Simon Peter, and to the other disciple, whom Jesus loved, and saith unto them, They have taken away the Lord out of the sepulchre, and we know not where they have laid him.",
+   "class": "name"
+  },
+  {
+   "ref": "John 20:13",
+   "before": "And they say unto her, Woman, why weepest thou? She saith unto them, Because they have taken away my LORD, and I know not where they have laid him.",
+   "after": "And they say unto her, Woman, why weepest thou? She saith unto them, Because they have taken away my Lord, and I know not where they have laid him.",
+   "class": "name"
+  },
+  {
+   "ref": "John 20:18",
+   "before": "Mary Magdalene came and told the disciples that she had seen the LORD, and that he had spoken these things unto her.",
+   "after": "Mary Magdalene came and told the disciples that she had seen the Lord, and that he had spoken these things unto her.",
+   "class": "name"
+  },
+  {
+   "ref": "John 20:20",
+   "before": "And when he had so said, he shewed unto them his hands and his side. Then were the disciples glad, when they saw the LORD.",
+   "after": "And when he had so said, he shewed unto them his hands and his side. Then were the disciples glad, when they saw the Lord.",
+   "class": "name"
+  },
+  {
+   "ref": "John 20:25",
+   "before": "The other disciples therefore said unto him, We have seen the LORD. But he said unto them, Except I shall see in his hands the print of the nails, and put my finger into the print of the nails, and thrust my hand into his side, I will not believe.",
+   "after": "The other disciples therefore said unto him, We have seen the Lord. But he said unto them, Except I shall see in his hands the print of the nails, and put my finger into the print of the nails, and thrust my hand into his side, I will not believe.",
+   "class": "name"
+  },
+  {
+   "ref": "John 20:28",
+   "before": "And Thomas answered and said unto him, My LORD and my God.",
+   "after": "And Thomas answered and said unto him, My Lord and my God.",
+   "class": "name"
+  },
+  {
+   "ref": "Acts 2:34",
+   "before": "For David is not ascended into the heavens: but he saith himself, The Lord said unto my Lord, Sit thou on my right hand,",
+   "after": "For David is not ascended into the heavens: but he saith himself, The LORD said unto my Lord, Sit thou on my right hand,",
+   "class": "name"
+  },
+  {
+   "ref": "Acts 2:39",
+   "before": "For the promise is unto you, and to your children, and to all that are afar off, even as many as the LORD our God shall call.",
+   "after": "For the promise is unto you, and to your children, and to all that are afar off, even as many as the Lord our God shall call.",
+   "class": "name"
+  },
+  {
+   "ref": "Acts 7:31",
+   "before": "When Moses saw it, he wondered at the sight: and as he drew near to behold it, the voice of the LORD came unto him,",
+   "after": "When Moses saw it, he wondered at the sight: and as he drew near to behold it, the voice of the Lord came unto him,",
+   "class": "name"
+  },
+  {
+   "ref": "Acts 8:24",
+   "before": "Then answered Simon, and said, Pray ye to the LORD for me, that none of these things which ye have spoken come upon me.",
+   "after": "Then answered Simon, and said, Pray ye to the Lord for me, that none of these things which ye have spoken come upon me.",
+   "class": "name"
+  },
+  {
+   "ref": "Acts 11:20",
+   "before": "And some of them were men of Cyprus and Cyrene, which, when they were come to Antioch, spake unto the Grecians, preaching the LORD Jesus.",
+   "after": "And some of them were men of Cyprus and Cyrene, which, when they were come to Antioch, spake unto the Grecians, preaching the Lord Jesus.",
+   "class": "name"
+  },
+  {
+   "ref": "Acts 12:11",
+   "before": "And when Peter was come to himself, he said, Now I know of a surety, that the LORD hath sent his angel, and hath delivered me out of the hand of Herod, and from all the expectation of the people of the Jews.",
+   "after": "And when Peter was come to himself, he said, Now I know of a surety, that the Lord hath sent his angel, and hath delivered me out of the hand of Herod, and from all the expectation of the people of the Jews.",
+   "class": "name"
+  },
+  {
+   "ref": "Acts 15:11",
+   "before": "But we believe that through the grace of the LORD Jesus Christ we shall be saved, even as they.",
+   "after": "But we believe that through the grace of the Lord Jesus Christ we shall be saved, even as they.",
+   "class": "name"
+  },
+  {
+   "ref": "Acts 15:36",
+   "before": "And some days after Paul said unto Barnabas, Let us go again and visit our brethren in every city where we have preached the word of the LORD, and see how they do.",
+   "after": "And some days after Paul said unto Barnabas, Let us go again and visit our brethren in every city where we have preached the word of the Lord, and see how they do.",
+   "class": "name"
+  },
+  {
+   "ref": "Acts 19:13",
+   "before": "Then certain of the vagabond Jews, exorcists, took upon them to call over them which had evil spirits the name of the LORD Jesus, saying, We adjure you by Jesus whom Paul preacheth.",
+   "after": "Then certain of the vagabond Jews, exorcists, took upon them to call over them which had evil spirits the name of the Lord Jesus, saying, We adjure you by Jesus whom Paul preacheth.",
+   "class": "name"
+  },
+  {
+   "ref": "Acts 20:19",
+   "before": "Serving the LORD with all humility of mind, and with many tears, and temptations, which befell me by the lying in wait of the Jews:",
+   "after": "Serving the Lord with all humility of mind, and with many tears, and temptations, which befell me by the lying in wait of the Jews:",
+   "class": "name"
+  },
+  {
+   "ref": "Acts 22:10",
+   "before": "And I said, What shall I do, LORD? And the Lord said unto me, Arise, and go into Damascus; and there it shall be told thee of all things which are appointed for thee to do.",
+   "after": "And I said, What shall I do, Lord? And the Lord said unto me, Arise, and go into Damascus; and there it shall be told thee of all things which are appointed for thee to do.",
+   "class": "name"
+  },
+  {
+   "ref": "1Corinthians 14:21",
+   "before": "In the law it is written, With men of other tongues and other lips will I speak unto this people; and yet for all that will they not hear me, saith the LORD.",
+   "after": "In the law it is written, With men of other tongues and other lips will I speak unto this people; and yet for all that will they not hear me, saith the Lord.",
+   "class": "name"
+  },
+  {
+   "ref": "Revelation 11:17",
+   "before": "Saying, We give thee thanks, O LORD God Almighty, which art, and wast, and art to come; because thou hast taken to thee thy great power, and hast reigned.",
+   "after": "Saying, We give thee thanks, O Lord God Almighty, which art, and wast, and art to come; because thou hast taken to thee thy great power, and hast reigned.",
+   "class": "name"
+  },
+  {
+   "ref": "Proverbs 22:1",
+   "before": "A GOOD name is rather to be chosen than great riches, and loving favour rather than silver and gold.",
+   "after": "A good name is rather to be chosen than great riches, and loving favour rather than silver and gold.",
+   "class": "name"
+  },
+  {
+   "ref": "Genesis 6:5",
+   "before": "And God saw that the wickedness of man was great in the earth, and that every imagination of the thoughts of his heart was only evil continually.",
+   "after": "And GOD saw that the wickedness of man was great in the earth, and that every imagination of the thoughts of his heart was only evil continually.",
+   "class": "name"
+  },
+  {
+   "ref": "Genesis 18:31",
+   "before": "And he said, Behold now, I have taken upon me to speak unto the LORD: Peradventure there shall be twenty found there. And he said, I will not destroy it for twenty’s sake.",
+   "after": "And he said, Behold now, I have taken upon me to speak unto the Lord: Peradventure there shall be twenty found there. And he said, I will not destroy it for twenty’s sake.",
+   "class": "name"
+  },
+  {
+   "ref": "Genesis 18:32",
+   "before": "And he said, Oh let not the LORD be angry, and I will speak yet but this once: Peradventure ten shall be found there. And he said, I will not destroy it for ten’s sake.",
+   "after": "And he said, Oh let not the Lord be angry, and I will speak yet but this once: Peradventure ten shall be found there. And he said, I will not destroy it for ten’s sake.",
+   "class": "name"
+  },
+  {
+   "ref": "Exodus 4:10",
+   "before": "And Moses said unto the LORD, O my LORD, I am not eloquent, neither heretofore, nor since thou hast spoken unto thy servant: but I am slow of speech, and of a slow tongue.",
+   "after": "And Moses said unto the LORD, O my Lord, I am not eloquent, neither heretofore, nor since thou hast spoken unto thy servant: but I am slow of speech, and of a slow tongue.",
+   "class": "name"
+  },
+  {
+   "ref": "Exodus 4:13",
+   "before": "And he said, O my LORD, send, I pray thee, by the hand of him whom thou wilt send.",
+   "after": "And he said, O my Lord, send, I pray thee, by the hand of him whom thou wilt send.",
+   "class": "name"
+  },
+  {
+   "ref": "Exodus 34:23",
+   "before": "Thrice in the year shall all your menchildren appear before the LORD God, the God of Israel.",
+   "after": "Thrice in the year shall all your menchildren appear before the Lord GOD, the God of Israel.",
+   "class": "name"
+  },
+  {
+   "ref": "Joshua 7:8",
+   "before": "O LORD, what shall I say, when Israel turneth their backs before their enemies!",
+   "after": "O Lord, what shall I say, when Israel turneth their backs before their enemies!",
+   "class": "name"
+  },
+  {
+   "ref": "1Kings 2:26",
+   "before": "And unto Abiathar the priest said the king, Get thee to Anathoth, unto thine own fields; for thou art worthy of death: but I will not at this time put thee to death, because thou barest the ark of the LORD God before David my father, and because thou hast been afflicted in all wherein my father was afflicted.",
+   "after": "And unto Abiathar the priest said the king, Get thee to Anathoth, unto thine own fields; for thou art worthy of death: but I will not at this time put thee to death, because thou barest the ark of the Lord GOD before David my father, and because thou hast been afflicted in all wherein my father was afflicted.",
+   "class": "name"
+  },
+  {
+   "ref": "1Kings 22:6",
+   "before": "Then the king of Israel gathered the prophets together, about four hundred men, and said unto them, Shall I go against Ramothgilead to battle, or shall I forbear? And they said, Go up; for the LORD shall deliver it into the hand of the king.",
+   "after": "Then the king of Israel gathered the prophets together, about four hundred men, and said unto them, Shall I go against Ramothgilead to battle, or shall I forbear? And they said, Go up; for the Lord shall deliver it into the hand of the king.",
+   "class": "name"
+  },
+  {
+   "ref": "2Kings 19:23",
+   "before": "By thy messengers thou hast reproached the LORD, and hast said, With the multitude of my chariots I am come up to the height of the mountains, to the sides of Lebanon, and will cut down the tall cedar trees thereof, and the choice fir trees thereof: and I will enter into the lodgings of his borders, and into the forest of his Carmel.",
+   "after": "By thy messengers thou hast reproached the Lord, and hast said, With the multitude of my chariots I am come up to the height of the mountains, to the sides of Lebanon, and will cut down the tall cedar trees thereof, and the choice fir trees thereof: and I will enter into the lodgings of his borders, and into the forest of his Carmel.",
+   "class": "name"
+  },
+  {
+   "ref": "2Chronicles 3:1",
+   "before": "Then Solomon began to build the house of the LORD at Jerusalem in mount Moriah, where the Lord appeared unto David his father, in the place that David had prepared in the threshingfloor of Ornan the Jebusite.",
+   "after": "Then Solomon began to build the house of the LORD at Jerusalem in mount Moriah, where the LORD appeared unto David his father, in the place that David had prepared in the threshingfloor of Ornan the Jebusite.",
+   "class": "name"
+  },
+  {
+   "ref": "Nehemiah 1:11",
+   "before": "O LORD, I beseech thee, let now thine ear be attentive to the prayer of thy servant, and to the prayer of thy servants, who desire to fear thy name: and prosper, I pray thee, thy servant this day, and grant him mercy in the sight of this man. For I was the king’s cupbearer.",
+   "after": "O Lord, I beseech thee, let now thine ear be attentive to the prayer of thy servant, and to the prayer of thy servants, who desire to fear thy name: and prosper, I pray thee, thy servant this day, and grant him mercy in the sight of this man. For I was the king’s cupbearer.",
+   "class": "name"
+  },
+  {
+   "ref": "Psalms 3:1",
+   "before": "Lord, how are they increased that trouble me! many are they that rise up against me.",
+   "after": "LORD, how are they increased that trouble me! many are they that rise up against me.",
+   "class": "name"
+  },
+  {
+   "ref": "Psalms 15:1",
+   "before": "Lord, who shall abide in thy tabernacle? who shall dwell in thy holy hill?",
+   "after": "LORD, who shall abide in thy tabernacle? who shall dwell in thy holy hill?",
+   "class": "name"
+  },
+  {
+   "ref": "Psalms 70:1",
+   "before": "MAKE HASTE, O GOD, TO DELIVER ME; MAKE HASTE TO HELP ME, O LORD.",
+   "after": "MAKE HASTE, O God, TO DELIVER ME; MAKE HASTE TO HELP ME, O LORD.",
+   "class": "name"
+  },
+  {
+   "ref": "Psalms 79:1",
+   "before": "O GOD, the heathen are come into thine inheritance; thy holy temple have they defiled; they have laid Jerusalem on heaps.",
+   "after": "O God, the heathen are come into thine inheritance; thy holy temple have they defiled; they have laid Jerusalem on heaps.",
+   "class": "name"
+  },
+  {
+   "ref": "Psalms 85:1",
+   "before": "Lord, thou hast been favourable unto thy land: thou hast brought back the captivity of Jacob.",
+   "after": "LORD, thou hast been favourable unto thy land: thou hast brought back the captivity of Jacob.",
+   "class": "name"
+  },
+  {
+   "ref": "Psalms 131:1",
+   "before": "Lord, my heart is not haughty, nor mine eyes lofty: neither do I exercise myself in great matters, or in things too high for me.",
+   "after": "LORD, my heart is not haughty, nor mine eyes lofty: neither do I exercise myself in great matters, or in things too high for me.",
+   "class": "name"
+  },
+  {
+   "ref": "Psalms 132:1",
+   "before": "Lord, remember David, and all his afflictions:",
+   "after": "LORD, remember David, and all his afflictions:",
+   "class": "name"
+  },
+  {
+   "ref": "Psalms 141:1",
+   "before": "Lord, I cry unto thee: make haste unto me; give ear unto my voice, when I cry unto thee.",
+   "after": "LORD, I cry unto thee: make haste unto me; give ear unto my voice, when I cry unto thee.",
+   "class": "name"
+  },
+  {
+   "ref": "Isaiah 3:17",
+   "before": "Therefore the LORD will smite with a scab the crown of the head of the daughters of Zion, and the LORD will discover their secret parts.",
+   "after": "Therefore the Lord will smite with a scab the crown of the head of the daughters of Zion, and the LORD will discover their secret parts.",
+   "class": "name"
+  },
+  {
+   "ref": "Isaiah 6:1",
+   "before": "In the year that king Uzziah died I saw also the LORD sitting upon a throne, high and lifted up, and his train filled the temple.",
+   "after": "In the year that king Uzziah died I saw also the Lord sitting upon a throne, high and lifted up, and his train filled the temple.",
+   "class": "name"
+  },
+  {
+   "ref": "Isaiah 9:17",
+   "before": "Therefore the LORD shall have no joy in their young men, neither shall have mercy on their fatherless and widows: for every one is an hypocrite and an evildoer, and every mouth speaketh folly. For all this his anger is not turned away, but his hand is stretched out still.",
+   "after": "Therefore the Lord shall have no joy in their young men, neither shall have mercy on their fatherless and widows: for every one is an hypocrite and an evildoer, and every mouth speaketh folly. For all this his anger is not turned away, but his hand is stretched out still.",
+   "class": "name"
+  },
+  {
+   "ref": "Lamentations 1:15",
+   "before": "The LORD hath trodden under foot all my mighty men in the midst of me: he hath called an assembly against me to crush my young men: the LORD hath trodden the virgin, the daughter of Judah, as in a winepress.",
+   "after": "The Lord hath trodden under foot all my mighty men in the midst of me: he hath called an assembly against me to crush my young men: the Lord hath trodden the virgin, the daughter of Judah, as in a winepress.",
+   "class": "name"
+  },
+  {
+   "ref": "Lamentations 2:2",
+   "before": "The LORD hath swallowed up all the habitations of Jacob, and hath not pitied: he hath thrown down in his wrath the strong holds of the daughter of Judah; he hath brought them down to the ground: he hath polluted the kingdom and the princes thereof.",
+   "after": "The Lord hath swallowed up all the habitations of Jacob, and hath not pitied: he hath thrown down in his wrath the strong holds of the daughter of Judah; he hath brought them down to the ground: he hath polluted the kingdom and the princes thereof.",
+   "class": "name"
+  },
+  {
+   "ref": "Lamentations 2:7",
+   "before": "The LORD hath cast off his altar, he hath abhorred his sanctuary, he hath given up into the hand of the enemy the walls of her palaces; they have made a noise in the house of the LORD, as in the day of a solemn feast.",
+   "after": "The Lord hath cast off his altar, he hath abhorred his sanctuary, he hath given up into the hand of the enemy the walls of her palaces; they have made a noise in the house of the LORD, as in the day of a solemn feast.",
+   "class": "name"
+  },
+  {
+   "ref": "Lamentations 3:36",
+   "before": "To subvert a man in his cause, the LORD approveth not.",
+   "after": "To subvert a man in his cause, the Lord approveth not.",
+   "class": "name"
+  },
+  {
+   "ref": "Daniel 9:7",
+   "before": "O LORD, righteousness belongeth unto thee, but unto us confusion of faces, as at this day; to the men of Judah, and to the inhabitants of Jerusalem, and unto all Israel, that are near, and that are far off, through all the countries whither thou hast driven them, because of their trespass that they have trespassed against thee.",
+   "after": "O Lord, righteousness belongeth unto thee, but unto us confusion of faces, as at this day; to the men of Judah, and to the inhabitants of Jerusalem, and unto all Israel, that are near, and that are far off, through all the countries whither thou hast driven them, because of their trespass that they have trespassed against thee.",
+   "class": "name"
+  },
+  {
+   "ref": "Hosea 12:14",
+   "before": "Ephraim provoked him to anger most bitterly: therefore shall he leave his blood upon him, and his reproach shall his LORD return unto him.",
+   "after": "Ephraim provoked him to anger most bitterly: therefore shall he leave his blood upon him, and his reproach shall his Lord return unto him.",
+   "class": "name"
+  },
+  {
+   "ref": "Amos 9:1",
+   "before": "I saw the LORD standing upon the altar: and he said, Smite the lintel of the door, that the posts may shake: and cut them in the head, all of them; and I will slay the last of them with the sword: he that fleeth of them shall not flee away, and he that escapeth of them shall not be delivered.",
+   "after": "I saw the Lord standing upon the altar: and he said, Smite the lintel of the door, that the posts may shake: and cut them in the head, all of them; and I will slay the last of them with the sword: he that fleeth of them shall not flee away, and he that escapeth of them shall not be delivered.",
+   "class": "name"
+  },
+  {
+   "ref": "Micah 1:2",
+   "before": "Hear, all ye people; hearken, O earth, and all that therein is: and let the Lord GOD be witness against you, the LORD from his holy temple.",
+   "after": "Hear, all ye people; hearken, O earth, and all that therein is: and let the Lord GOD be witness against you, the Lord from his holy temple.",
+   "class": "name"
+  },
+  {
+   "ref": "Zechariah 4:14",
+   "before": "Then said he, These are the two anointed ones, that stand by the LORD of the whole earth.",
+   "after": "Then said he, These are the two anointed ones, that stand by the Lord of the whole earth.",
+   "class": "name"
+  },
+  {
+   "ref": "Zechariah 6:5",
+   "before": "And the angel answered and said unto me, These are the four spirits of the heavens, which go forth from standing before the LORD of all the earth.",
+   "after": "And the angel answered and said unto me, These are the four spirits of the heavens, which go forth from standing before the Lord of all the earth.",
+   "class": "name"
+  },
+  {
+   "ref": "Malachi 1:14",
+   "before": "But cursed be the deceiver, which hath in his flock a male, and voweth, and sacrificeth unto the LORD a corrupt thing: for I am a great King, saith the LORD of hosts, and my name is dreadful among the heathen.",
+   "after": "But cursed be the deceiver, which hath in his flock a male, and voweth, and sacrificeth unto the Lord a corrupt thing: for I am a great King, saith the LORD of hosts, and my name is dreadful among the heathen.",
+   "class": "name"
+  },
+  {
+   "ref": "Matthew 1:20",
+   "before": "But while he thought on these things, behold, the angel of the LORD appeared unto him in a dream, saying, Joseph, thou son of David, fear not to take unto thee Mary thy wife: for that which is conceived in her is of the Holy Ghost.",
+   "after": "But while he thought on these things, behold, the angel of the Lord appeared unto him in a dream, saying, Joseph, thou son of David, fear not to take unto thee Mary thy wife: for that which is conceived in her is of the Holy Ghost.",
+   "class": "name"
+  },
+  {
+   "ref": "1Corinthians 15:31",
+   "before": "I protest by your rejoicing which I have in Christ Jesus our LORD, I die daily.",
+   "after": "I protest by your rejoicing which I have in Christ Jesus our Lord, I die daily.",
+   "class": "name"
+  },
+  {
+   "ref": "2Corinthians 3:18",
+   "before": "But we all, with open face beholding as in a glass the glory of the Lord, are changed into the same image from glory to glory, even as by the Spirit of the LORD.",
+   "after": "But we all, with open face beholding as in a glass the glory of the Lord, are changed into the same image from glory to glory, even as by the Spirit of the Lord.",
+   "class": "name"
+  },
+  {
+   "ref": "Revelation 4:8",
+   "before": "And the four beasts had each of them six wings about him; and they were full of eyes within: and they rest not day and night, saying, Holy, holy, holy, LORD God Almighty, which was, and is, and is to come.",
+   "after": "And the four beasts had each of them six wings about him; and they were full of eyes within: and they rest not day and night, saying, Holy, holy, holy, Lord God Almighty, which was, and is, and is to come.",
+   "class": "name"
+  },
+  {
+   "ref": "Deuteronomy 32:8",
+   "before": "When the Most High divided to the nations their inheritance, when he separated the sons of Adam, he set the bounds of the people according to the number of the children of Israel.",
+   "after": "When the most High divided to the nations their inheritance, when he separated the sons of Adam, he set the bounds of the people according to the number of the children of Israel.",
+   "class": "case",
+   "witnesses": [
+    "thiagobodruk/bible en_kjv.json",
+    "scrollmapper/bible_databases KJV.json"
+   ]
+  },
+  {
+   "ref": "Job 33:4",
+   "before": "The spirit of God hath made me, and the breath of the Almighty hath given me life.",
+   "after": "The Spirit of God hath made me, and the breath of the Almighty hath given me life.",
+   "class": "case",
+   "witnesses": [
+    "thiagobodruk/bible en_kjv.json",
+    "scrollmapper/bible_databases KJV.json"
+   ]
+  },
+  {
+   "ref": "Psalms 117:1",
+   "before": "O Praise the LORD, all ye nations: praise him, all ye people.",
+   "after": "O praise the LORD, all ye nations: praise him, all ye people.",
+   "class": "case",
+   "witnesses": [
+    "thiagobodruk/bible en_kjv.json",
+    "scrollmapper/bible_databases KJV.json"
+   ]
+  },
+  {
+   "ref": "Lamentations 3:1",
+   "before": "I AM the man that hath seen affliction by the rod of his wrath.",
+   "after": "I am the man that hath seen affliction by the rod of his wrath.",
+   "class": "case",
+   "witnesses": [
+    "thiagobodruk/bible en_kjv.json",
+    "scrollmapper/bible_databases KJV.json"
+   ]
+  },
+  {
+   "ref": "Matthew 9:27",
+   "before": "And when Jesus departed thence, two blind men followed him, crying, and saying, Thou son of David, have mercy on us.",
+   "after": "And when Jesus departed thence, two blind men followed him, crying, and saying, Thou Son of David, have mercy on us.",
+   "class": "case",
+   "witnesses": [
+    "thiagobodruk/bible en_kjv.json",
+    "scrollmapper/bible_databases KJV.json"
+   ]
+  },
+  {
+   "ref": "Matthew 15:22",
+   "before": "And, behold, a woman of Canaan came out of the same coasts, and cried unto him, saying, Have mercy on me, O Lord, thou son of David; my daughter is grievously vexed with a devil.",
+   "after": "And, behold, a woman of Canaan came out of the same coasts, and cried unto him, saying, Have mercy on me, O Lord, thou Son of David; my daughter is grievously vexed with a devil.",
+   "class": "case",
+   "witnesses": [
+    "thiagobodruk/bible en_kjv.json",
+    "scrollmapper/bible_databases KJV.json"
+   ]
+  },
+  {
+   "ref": "Matthew 20:30",
+   "before": "And, behold, two blind men sitting by the way side, when they heard that Jesus passed by, cried out, saying, Have mercy on us, O Lord, thou son of David.",
+   "after": "And, behold, two blind men sitting by the way side, when they heard that Jesus passed by, cried out, saying, Have mercy on us, O Lord, thou Son of David.",
+   "class": "case",
+   "witnesses": [
+    "thiagobodruk/bible en_kjv.json",
+    "scrollmapper/bible_databases KJV.json"
+   ]
+  },
+  {
+   "ref": "Matthew 20:31",
+   "before": "And the multitude rebuked them, because they should hold their peace: but they cried the more, saying, Have mercy on us, O Lord, thou son of David.",
+   "after": "And the multitude rebuked them, because they should hold their peace: but they cried the more, saying, Have mercy on us, O Lord, thou Son of David.",
+   "class": "case",
+   "witnesses": [
+    "thiagobodruk/bible en_kjv.json",
+    "scrollmapper/bible_databases KJV.json"
+   ]
+  },
+  {
+   "ref": "Matthew 21:9",
+   "before": "And the multitudes that went before, and that followed, cried, saying, Hosanna to the son of David: Blessed is he that cometh in the name of the Lord; Hosanna in the highest.",
+   "after": "And the multitudes that went before, and that followed, cried, saying, Hosanna to the Son of David: Blessed is he that cometh in the name of the Lord; Hosanna in the highest.",
+   "class": "case",
+   "witnesses": [
+    "thiagobodruk/bible en_kjv.json",
+    "scrollmapper/bible_databases KJV.json"
+   ]
+  },
+  {
+   "ref": "Matthew 21:15",
+   "before": "And when the chief priests and scribes saw the wonderful things that he did, and the children crying in the temple, and saying, Hosanna to the son of David; they were sore displeased,",
+   "after": "And when the chief priests and scribes saw the wonderful things that he did, and the children crying in the temple, and saying, Hosanna to the Son of David; they were sore displeased,",
+   "class": "case",
+   "witnesses": [
+    "thiagobodruk/bible en_kjv.json",
+    "scrollmapper/bible_databases KJV.json"
+   ]
+  },
+  {
+   "ref": "Mark 10:47",
+   "before": "And when he heard that it was Jesus of Nazareth, he began to cry out, and say, Jesus, thou son of David, have mercy on me.",
+   "after": "And when he heard that it was Jesus of Nazareth, he began to cry out, and say, Jesus, thou Son of David, have mercy on me.",
+   "class": "case",
+   "witnesses": [
+    "thiagobodruk/bible en_kjv.json",
+    "scrollmapper/bible_databases KJV.json"
+   ]
+  },
+  {
+   "ref": "Mark 10:48",
+   "before": "And many charged him that he should hold his peace: but he cried the more a great deal, Thou son of David, have mercy on me.",
+   "after": "And many charged him that he should hold his peace: but he cried the more a great deal, Thou Son of David, have mercy on me.",
+   "class": "case",
+   "witnesses": [
+    "thiagobodruk/bible en_kjv.json",
+    "scrollmapper/bible_databases KJV.json"
+   ]
+  },
+  {
+   "ref": "Mark 12:35",
+   "before": "And Jesus answered and said, while he taught in the temple, How say the scribes that Christ is the son of David?",
+   "after": "And Jesus answered and said, while he taught in the temple, How say the scribes that Christ is the Son of David?",
+   "class": "case",
+   "witnesses": [
+    "thiagobodruk/bible en_kjv.json",
+    "scrollmapper/bible_databases KJV.json"
+   ]
+  },
+  {
+   "ref": "Luke 18:38",
+   "before": "And he cried, saying, Jesus, thou son of David, have mercy on me.",
+   "after": "And he cried, saying, Jesus, thou Son of David, have mercy on me.",
+   "class": "case",
+   "witnesses": [
+    "thiagobodruk/bible en_kjv.json",
+    "scrollmapper/bible_databases KJV.json"
+   ]
+  },
+  {
+   "ref": "Luke 18:39",
+   "before": "And they which went before rebuked him, that he should hold his peace: but he cried so much the more, Thou son of David, have mercy on me.",
+   "after": "And they which went before rebuked him, that he should hold his peace: but he cried so much the more, Thou Son of David, have mercy on me.",
+   "class": "case",
+   "witnesses": [
+    "thiagobodruk/bible en_kjv.json",
+    "scrollmapper/bible_databases KJV.json"
+   ]
+  },
+  {
+   "ref": "Daniel 4:8",
+   "before": "But at the last Daniel came in before me, whose name was Belteshazzar, according to the name of my God, and in whom is the spirit of the holy gods: and before him I told the dream, saying,",
+   "after": "But at the last Daniel came in before me, whose name was Belteshazzar, according to the name of my god, and in whom is the spirit of the holy gods: and before him I told the dream, saying,",
+   "class": "case",
+   "witnesses": [
+    "thiagobodruk/bible en_kjv.json",
+    "scrollmapper/bible_databases KJV.json"
+   ]
+  }
+ ],
+ "webPhrasesDifferently": [
+  "Habakkuk 3:19",
+  "Isaiah 10:16",
+  "Isaiah 38:14",
+  "Joshua 22:22",
+  "Nahum 1:2",
+  "Numbers 23:15",
+  "Psalms 118:27",
+  "Psalms 30:8",
+  "Psalms 90:17",
+  "Psalms 94:1"
+ ],
+ "note": "Case-only. Each correction: our verse with the tokens LORD/Lord/GOD/God re-cased to the second KJV witness, applied only where the WEB oracle (Yahweh=LORD/GOD, Lord=Lord) agrees with that witness (OT), or where the NT convention (LORD only inside OT quotations of the Name) and the second witness agree (NT). The adversary-name lowercasing of #1397 is a directive and is untouched.",
+ "undecidedNote": "Genesis 18:3 / 19:18 and the other `undecided` refs: the two KJV witnesses that carry small-caps LORD differ, the WEB abstains, and the third witness never prints LORD at all — no second witness exists for either reading. Not corrected."
+}

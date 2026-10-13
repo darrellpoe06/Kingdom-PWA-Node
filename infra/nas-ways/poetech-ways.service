@@ -1,0 +1,20 @@
+# PoeTech Ways brain — parse the Ways docs into /ways/brain.json (DR-0219).
+# A Type=oneshot bounded single-shot parse: no LLM, no compute-spawn, no loop.
+# DR-0186 class -> RUNS by default; the timer that fires it ships ENABLED.
+[Unit]
+Description=PoeTech Ways brain parser (DR-0219 / DR-0186)
+After=network-online.target
+
+[Service]
+Type=oneshot
+# Budget brake (DR-0186): systemd kills an overrun; the parser's own SIGALRM
+# (WAYS_TIMEOUT_SEC) is the in-process ceiling under it.
+TimeoutStartSec=120
+Environment=WAYS_TIMEOUT_SEC=110
+# Adjust the paths to this NAS if they differ.
+ExecStart=/usr/bin/python3 /volume1/PoeTech/repos/Kingdom-PWA-Node/infra/nas-ways/ways_ingest.py \
+  --run \
+  --repo /volume1/PoeTech/repos/Kingdom-PWA-Node \
+  --out /volume1/PoeTech/caddy/site/poetech-app/ways/brain.json
+Nice=10
+IOSchedulingClass=idle

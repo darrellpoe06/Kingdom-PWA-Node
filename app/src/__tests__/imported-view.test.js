@@ -11,6 +11,7 @@ import { describe, it, expect } from 'vitest';
 import {
   postedMs, totals, sortByDate, periodRange, effectiveRange, filterByRange, groupByMonth, groupByField,
   monthKeyOf, isMonthKey, monthRange, monthLabelOf, shiftMonthKey, runningBalances, isTransferTxn,
+  isBalanceAdjustment, auditBalanceContinuity, reconcileAccounts, runningBalanceByTxId,
 } from '../lib/imported-view.js';
 
 // A slice shaped like wf18's /imported-transactions rows.
@@ -144,6 +145,23 @@ describe('totals — internal transfers do NOT inflate gross In / Out', () => {
     expect(t.in).toBe(1700);
     expect(t.out).toBe(115);
     expect(t.net).toBe(1585); // net over MOVEMENTS, not over transfer legs
+  });
+});
+
+describe('isBalanceAdjustment + totals — a manual balance correction is not income or spend', () => {
+  it('recognizes both markers (category survives the sync round-trip; the flag is local)', () => {
+    expect(isBalanceAdjustment({ category: 'balance-adjustment', amount: -12602.58 })).toBe(true);
+    expect(isBalanceAdjustment({ isBalanceAdjustment: true, amount: 40 })).toBe(true);
+    expect(isBalanceAdjustment({ category: 'groceries', amount: -50 })).toBe(false);
+    expect(isBalanceAdjustment(null)).toBe(false);
+  });
+  it('a balance-adjustment row is excluded from In, Out, and Net', () => {
+    const adj = { id: 'adj', posted: '2026-06-25', amount: -12602.58, category: 'balance-adjustment' };
+    const t = totals([...ROWS, adj]);
+    expect(t.in).toBe(1700);   // unchanged
+    expect(t.out).toBe(115);   // NOT 12717.58 — the correction is not spending
+    expect(t.net).toBe(1585);  // unchanged
+    expect(t.count).toBe(6);   // the row is still a real row in the set
   });
 });
 
@@ -283,5 +301,128 @@ describe('groupByField — repeated payees roll up to ONE subtotaled group', () 
     const dash = groups.find((g) => g.key === '—');
     expect(dash.rows).toHaveLength(2);
     expect(dash.label).toBe('Uncategorized');
+  });
+});
+
+// auditBalanceContinuity — the quantitative integrity engine (Christina's books).
+// It proves ONE account's ledger is complete and un-double-counted using ONLY the
+// bank's own running balances, order-independently. Proven-to-catch: a dropped row
+// and a double-counted row each break the chain; a clean chain (even with a genuine
+// same-amount repeat) passes and reports the real opening + closing.
+describe('auditBalanceContinuity', () => {
+  // A clean chain: opening 900, then -20, +500, -80  ->  880, 1380, 1300.
+  const CHAIN = [
+    { id: '1', date: '2026-06-01', amount: -20, balance: 880 },
+    { id: '2', date: '2026-06-02', amount: 500, balance: 1380 },
+    { id: '3', date: '2026-06-03', amount: -80, balance: 1300 },
+  ];
+  it('passes a complete chain and reports the real opening + closing', () => {
+    const res = auditBalanceContinuity(CHAIN);
+    expect(res.ok).toBe(true);
+    expect(res.checked).toBe(3);
+    expect(res.opening).toBe(900);   // 880 - (-20)
+    expect(res.closing).toBe(1300);  // newest balance
+  });
+  it('passes even with a GENUINE same-day same-amount repeat (different balances)', () => {
+    const rows = [
+      { id: '1', date: '2026-07-17', amount: 200, balance: 1000 },
+      { id: '2', date: '2026-07-17', amount: 200, balance: 1200 }, // real 2nd deposit
+    ];
+    const res = auditBalanceContinuity(rows);
+    expect(res.ok).toBe(true);
+    expect(res.opening).toBe(800);
+    expect(res.closing).toBe(1200);
+  });
+  it('CATCHES a dropped transaction (chain splits — more than one unmatched balance)', () => {
+    const dropped = [CHAIN[0], CHAIN[2]]; // the +500 row is missing
+    const res = auditBalanceContinuity(dropped);
+    expect(res.ok).toBe(false);
+    // The gap is bracketed: 880 (after row 1) and 1380 (before row 3) don't meet.
+    expect(res.breaks.unmatchedAfter).toContain(880);
+    expect(res.breaks.unmatchedBefore).toContain(1380);
+  });
+  it('CATCHES a double-counted transaction (same row twice breaks the chain)', () => {
+    const dup = [CHAIN[0], CHAIN[1], CHAIN[1], CHAIN[2]]; // row 2 imported twice
+    const res = auditBalanceContinuity(dup);
+    expect(res.ok).toBe(false);
+  });
+  it('float-safe: cents that would drift under + still reconcile', () => {
+    const rows = [
+      { id: '1', date: '2026-06-01', amount: 0.1, balance: 0.1 },
+      { id: '2', date: '2026-06-02', amount: 0.2, balance: 0.3 }, // 0.1+0.2 !== 0.3 in float
+    ];
+    const res = auditBalanceContinuity(rows);
+    expect(res.ok).toBe(true);
+    expect(res.closing).toBe(0.3);
+  });
+  it('is honest when there is no balance data to audit (never a fake pass)', () => {
+    const res = auditBalanceContinuity([{ id: '1', date: '2026-06-01', amount: -20 }]);
+    expect(res.ok).toBe(true);
+    expect(res.reason).toMatch(/not enough balance/);
+  });
+});
+
+describe('runningBalanceByTxId — a per-row balance that CHANGES date to date', () => {
+  const accounts = [{ id: 'A', openingBalance: 1000 }];
+  it('uses the bank imported balance per row when present (authoritative, distinct per row)', () => {
+    const txns = [
+      { id: 't1', accountId: 'A', date: '2026-06-01', amount: -20, balance: 980 },
+      { id: 't2', accountId: 'A', date: '2026-06-02', amount: 500, balance: 1480 },
+      { id: 't3', accountId: 'A', date: '2026-06-03', amount: -80, balance: 1400 },
+    ];
+    const map = runningBalanceByTxId(txns, accounts);
+    expect(map.t1).toBe(980);
+    expect(map.t2).toBe(1480);
+    expect(map.t3).toBe(1400);
+    // the whole point: NOT the same number on every row
+    expect(new Set([map.t1, map.t2, map.t3]).size).toBe(3);
+  });
+  it('computes a running balance from opening when rows have NO bank balance', () => {
+    const txns = [
+      { id: 't1', accountId: 'A', date: '2026-06-01', amount: -20 },
+      { id: 't2', accountId: 'A', date: '2026-06-02', amount: 500 },
+      { id: 't3', accountId: 'A', date: '2026-06-03', amount: -80 },
+    ];
+    const map = runningBalanceByTxId(txns, accounts);
+    expect(map.t1).toBe(980);   // 1000 - 20
+    expect(map.t2).toBe(1480);  // 980 + 500
+    expect(map.t3).toBe(1400);  // 1480 - 80
+  });
+  it('chains a manual (no-balance) row off the last bank balance', () => {
+    const txns = [
+      { id: 't1', accountId: 'A', date: '2026-06-01', amount: -20, balance: 980 },
+      { id: 't2', accountId: 'A', date: '2026-06-02', amount: -30 }, // no bank balance
+    ];
+    const map = runningBalanceByTxId(txns, accounts);
+    expect(map.t1).toBe(980);
+    expect(map.t2).toBe(950);   // chained off 980
+  });
+  it('is float-safe (0.1 + 0.2 kind of drift)', () => {
+    const map = runningBalanceByTxId([
+      { id: 't1', accountId: 'A', date: '2026-06-01', amount: 0.1 },
+      { id: 't2', accountId: 'A', date: '2026-06-02', amount: 0.2 },
+    ], [{ id: 'A', openingBalance: 0 }]);
+    expect(map.t2).toBe(0.3);
+  });
+});
+
+describe('reconcileAccounts — correct account of record', () => {
+  it('audits each account independently and flags the one that does not reconcile', () => {
+    const txns = [
+      // account A — a clean chain (opening 900): -20 -> 880, +500 -> 1380
+      { id: 'a1', accountId: 'A', date: '2026-06-01', amount: -20, balance: 880 },
+      { id: 'a2', accountId: 'A', date: '2026-06-02', amount: 500, balance: 1380 },
+      // account B — a broken chain (a row misfiled/missing): balances don't meet
+      { id: 'b1', accountId: 'B', date: '2026-06-01', amount: -10, balance: 200 },
+      { id: 'b2', accountId: 'B', date: '2026-06-03', amount: -10, balance: 50 }, // 200-10 != 50
+    ];
+    const rec = reconcileAccounts(txns);
+    expect(rec.A.ok).toBe(true);
+    expect(rec.A.opening).toBe(900);
+    expect(rec.B.ok).toBe(false); // the misfiled/missing row is caught, per account
+  });
+  it('ignores rows with no accountId and returns {} for an empty ledger', () => {
+    expect(reconcileAccounts([{ id: 'x', amount: 5 }])).toEqual({});
+    expect(reconcileAccounts([])).toEqual({});
   });
 });

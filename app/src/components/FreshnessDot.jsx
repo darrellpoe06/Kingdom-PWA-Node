@@ -41,7 +41,9 @@ export function FreshnessDot({ className = '', compact = false }) {
       onClick={stale && !stuck
         ? () => {
             try {
-              applyUpdate(typeof window !== 'undefined' ? window.__pwaReg : null, window);
+              const reg = typeof window !== 'undefined' ? window.__pwaReg : null;
+              if (reg && (reg.waiting || reg.installing)) applyUpdate(reg, window);
+              else window.location.reload(); // behind by the server's measure with no worker to apply: the shell is network-first, no-store (DR-0781)
             } catch (_) {
               /* noop — best effort; the SW update flow is the source of truth */
             }

@@ -124,4 +124,114 @@ describe('Presenter — time-adaptive render', () => {
     const addBtn = [...container.querySelectorAll('button')].find((b) => /add a section/i.test(b.textContent));
     expect(addBtn).toBeFalsy();
   });
+
+  it('presents on THIS screen (no popup) with the age toggle reachable, and re-pitches live', () => {
+    // A slide that carries per-band wording so switching the band changes the room's text.
+    const aged = {
+      id: 'aged:deck', title: 'Aged deck', targetMin: 10,
+      scenes: [{
+        id: 's1', indexLabel: 'Part 1 of 1', estimatedMin: 10,
+        audience: { title: 'The big idea', lead: 'grown-up wording', leadByAge: { child: 'kid wording', teen: 'teen wording', adult: 'grown-up wording' } },
+        notes: [],
+      }],
+    };
+    act(() => root.render(createElement(Presenter, { presentable: aged, storage: store, initialAge: 'adult' })));
+    // enter present-on-this-screen (no window.open needed)
+    const onScreenBtn = [...container.querySelectorAll('button')].find((b) => /present on this screen/i.test(b.textContent));
+    expect(onScreenBtn).toBeTruthy();
+    act(() => onScreenBtn.click());
+    // the room sees the adult wording, and the age toggle is right there on the bar
+    expect(container.textContent).toMatch(/grown-up wording/);
+    const childChip = [...container.querySelectorAll('button')].find((b) => b.textContent.trim() === 'Children');
+    expect(childChip).toBeTruthy();
+    // switch the room to Children mid-slide -> the wording re-pitches instantly, no navigation
+    act(() => childChip.click());
+    expect(container.textContent).toMatch(/kid wording/);
+    expect(container.textContent).not.toMatch(/grown-up wording/);
+    // and back out to the speaker console without losing the place
+    const exitBtn = [...container.querySelectorAll('button')].find((b) => /speaker view/i.test(b.textContent));
+    act(() => exitBtn.click());
+    expect(container.querySelector('input[aria-label="Minutes available"]')).toBeTruthy();
+  });
+
+  it('goes live for the congregation — shows a session code, a follow link, and a Stop', () => {
+    act(() => root.render(createElement(Presenter, { presentable: PRESENTABLE, storage: store })));
+    const goLive = [...container.querySelectorAll('button')].find((b) => /go live for the congregation/i.test(b.textContent));
+    expect(goLive).toBeTruthy();
+    act(() => goLive.click());
+    // a code appears, the shareable ?follow= link is shown, and Stop is offered
+    expect(container.textContent).toMatch(/\bcode\b/i);
+    expect(container.textContent).toMatch(/\?follow=[A-Z0-9]+/);
+    const stop = [...container.querySelectorAll('button')].find((b) => /^stop$/i.test(b.textContent.trim()));
+    expect(stop).toBeTruthy();
+    act(() => stop.click());
+    // stopping returns to the "Go live" offer
+    expect([...container.querySelectorAll('button')].some((b) => /go live for the congregation/i.test(b.textContent))).toBe(true);
+  });
+
+  it('shows bullet POINTS under the main idea on the class screen, re-pitched by band', () => {
+    const deck = {
+      id: 'points:deck', title: 'Points deck', targetMin: 10,
+      scenes: [{
+        id: 's1', indexLabel: 'Part 1 of 1', estimatedMin: 10,
+        audience: {
+          title: 'The big idea',
+          lead: 'Keep pride out of the music.',
+          leadByAge: { child: 'Keep pride out of the music.', teen: 'Keep pride out of the music.', adult: 'Keep pride out of the music.' },
+          points: ['This is the Lord’s choir, not mine.', 'The greatest servant is the king.'],
+          pointsByAge: {
+            child: ['Stay kind when notes go wrong.'],
+            teen: ['This is the Lord’s choir, not mine.', 'The greatest servant is the king.'],
+            adult: ['This is the Lord’s choir, not mine.', 'The greatest servant is the king.'],
+          },
+        },
+        notes: [{ kind: 'body', heading: 'The teaching — say it in your own words', body: 'FULL PRESENTER-ONLY TEACHING TEXT' }],
+      }],
+    };
+    act(() => root.render(createElement(Presenter, { presentable: deck, storage: store, initialAge: 'adult' })));
+    const onScreenBtn = [...container.querySelectorAll('button')].find((b) => /present on this screen/i.test(b.textContent));
+    act(() => onScreenBtn.click());
+    // The room sees the main idea immediately…
+    expect(container.textContent).toMatch(/Keep pride out of the music/);
+    // …but the points are HIDDEN until the presenter advances to them — a point
+    // appears AFTER it's made, never before (Darrell 2026-07-28, progressive reveal).
+    expect(container.querySelectorAll('li').length).toBe(0);
+    expect(container.textContent).not.toMatch(/the greatest servant is the king/i);
+    // Advance twice → both points revealed, in order.
+    act(() => { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' })); });
+    act(() => { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' })); });
+    expect(container.querySelectorAll('li').length).toBeGreaterThanOrEqual(2);
+    expect(container.textContent).toMatch(/the greatest servant is the king/i);
+    // presenter-only full text NEVER reaches the projected class screen (no-leak)
+    expect(container.textContent).not.toMatch(/FULL PRESENTER-ONLY TEACHING TEXT/);
+    // switch to Children -> the bullets re-pitch to the child variant (reveal clamps
+    // to the single child point, which is now shown)
+    const childChip = [...container.querySelectorAll('button')].find((b) => b.textContent.trim() === 'Children');
+    act(() => childChip.click());
+    expect(container.textContent).toMatch(/Stay kind when notes go wrong/);
+    expect(container.textContent).not.toMatch(/the greatest servant is the king/i);
+  });
+
+  it('speaker view is a CONSOLE, not a copy: phone hides the mirror by default, labels the script, one tap shows the room (2026-07-30)', () => {
+    // Darrell 2026-07-30 (screenshot): "this shows the same thing on the screen
+    // for the audience as the speakers... why?" On a narrow screen the 50%-scale
+    // mirror is unreadable and repeats the script — so it defaults CLOSED there,
+    // the legible block is labeled as the speaker's script, and the mirror is
+    // one tap away (never gone — the speaker can always verify the room).
+    const original = window.innerWidth;
+    Object.defineProperty(window, 'innerWidth', { value: 375, configurable: true, writable: true });
+    try {
+      act(() => { root.render(createElement(Presenter, { presentable: PRESENTABLE, storage: store, onClose: () => {} })); });
+      const toggle = [...container.querySelectorAll('button')].find((b) => /show what the room sees/i.test(b.textContent));
+      expect(toggle, 'mirror toggle missing').toBeTruthy();
+      expect(toggle.getAttribute('aria-expanded')).toBe('false');
+      expect(container.textContent).toMatch(/Your script — say it to the room/i);
+      act(() => toggle.click());
+      const shown = [...container.querySelectorAll('button')].find((b) => /hide mirror/i.test(b.textContent));
+      expect(shown, 'toggle did not open the mirror').toBeTruthy();
+      expect(shown.getAttribute('aria-expanded')).toBe('true');
+    } finally {
+      Object.defineProperty(window, 'innerWidth', { value: original, configurable: true, writable: true });
+    }
+  });
 });

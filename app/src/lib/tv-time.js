@@ -163,6 +163,11 @@ export function normalize(parsed) {
       network: typeof raw.network === 'string' ? raw.network : '',
       seasons: raw.kind === 'movie' ? [] : normalizeSeasons(raw.seasons),
     };
+    // Where this entry's metadata came from (a TVmaze id once hydrated). Marks a
+    // zip-imported/hand-added show as "already brought in" so the catalog
+    // hydration runs once, not on every open. Conditional (like updatedAt) so
+    // un-hydrated entries keep their original shape.
+    if (typeof raw.sourceId === 'string' && raw.sourceId) custom[id].sourceId = raw.sourceId;
   }
   const out = { version: STORE_VERSION, shows, custom };
   // Conditional: carried only when a blob was actually stamped (cross-device
@@ -263,13 +268,17 @@ export function setStatus(state, showId, status) {
   return { version: STORE_VERSION, shows: { ...base.shows, [showId]: { ...cur, status } }, custom: base.custom };
 }
 
-// Clear a show from your list entirely (untrack).
+// Clear a show from your list entirely (untrack). The cached metadata goes with
+// it — leaving custom[id] behind orphaned the entry forever (it landed in the
+// never-rendered `untracked` bucket and re-imported as a duplicate; 2026-08-04).
 export function untrack(state, showId) {
   const base = normalize(state);
   if (!base.shows[showId]) return base;
   const shows = { ...base.shows };
   delete shows[showId];
-  return { version: STORE_VERSION, shows, custom: base.custom };
+  const custom = { ...base.custom };
+  delete custom[showId];
+  return { version: STORE_VERSION, shows, custom };
 }
 
 export function rateShow(state, showId, rating) {
@@ -321,6 +330,33 @@ export function addShowFromCatalog(state, show, status = 'watching') {
   const cur = base.shows[id] || { status: DEFAULT_STATUS, rating: 0, comments: [], watched: {} };
   const st = STATUS_KEYS.has(status) ? status : cur.status;
   return { version: STORE_VERSION, shows: { ...base.shows, [id]: { ...cur, status: st } }, custom };
+}
+
+// Hydrate an ALREADY-TRACKED show with the catalog's full record — the missing
+// half of the TV Time zip migration (2026-08-04 comprehensive review, G1). An
+// imported show carried only the episodes ALREADY WATCHED as its "seasons" (so
+// there was nothing left to check off and progress always read 100%), plus
+// genre:'Show' (which emptied the genre chips) and poster:''. This merges the
+// looked-up show in place — KEEPING the id (the watch-state key) and every
+// checkmark — and stamps sourceId so it runs once. Fuller seasons win; a stored
+// real genre/poster/year is never overwritten. Pure; returns a NEW state.
+export function hydrateShow(state, showId, full) {
+  const base = normalize(state);
+  const cur = base.custom[showId];
+  if (!cur || cur.kind === 'movie' || !full || !full.title) return base;
+  const incoming = normalizeSeasons(full.seasons);
+  const count = (ss) => ss.reduce((n, s) => n + s.episodes.length, 0);
+  const meta = {
+    ...cur,
+    genre: (cur.genre && cur.genre !== 'Show') ? cur.genre : (full.genre || cur.genre),
+    poster: cur.poster || (typeof full.poster === 'string' ? full.poster : ''),
+    year: cur.year || (typeof full.year === 'string' ? full.year : ''),
+    network: cur.network || (typeof full.network === 'string' ? full.network : ''),
+    seasons: count(incoming) > count(cur.seasons || []) ? incoming : (cur.seasons || []),
+    sourceId: cur.sourceId || (full.id != null ? String(full.id) : ''),
+  };
+  if (!meta.sourceId) delete meta.sourceId;
+  return { version: STORE_VERSION, shows: base.shows, custom: { ...base.custom, [showId]: meta } };
 }
 
 // --- Movies: one watch, then rate + talk (Darrell 2026-07-04: "movies too?") ---

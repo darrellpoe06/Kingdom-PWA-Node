@@ -1,0 +1,556 @@
+# nas-health — READ-ONLY observation over the remote-hands channel (DR-0249,
+# DR-0108). Answers "what is the NAS actually doing right now?" — GPU state,
+# container state, service state — WITHOUT the bootstrap's services-sync, so
+# diagnosing never mutates what it observes (DR-0076 §5: characterize before
+# you change; born from 2026-08-03, "did whatever we did shut down the CUDA
+# GPUs?" — the channel could re-sync services but could not simply LOOK).
+# Same secrets + tailnet join as nas-bootstrap.yml; missing secrets => a clear
+# no-op with instructions. Dispatch-only, never a timer (three-brakes rule:
+# this is observation, but the runner still only fires on a hand or a session).
+name: nas-health
+on:
+  workflow_dispatch: {}
+  # A CLOCK, AT LAST (2026-09-23). This is the only instrument that can see
+  # the NAS — the forwarder, the fleet's own event log, the cutover status —
+  # and until now it ran only when a person dispatched it. The 2026-09-22
+  # services-sync red (eight hours of loop_run_fail on one rider) was found
+  # by a hand dispatch, not by the system. Read-only, ~2 minutes of ssh, no
+  # compute spawned: not the three-brakes class. Six-hourly; GitHub throttles
+  # busy-repo schedules, so a missed tick is not an incident.
+  schedule:
+    - cron: '23 */6 * * *'
+
+permissions:
+  contents: read
+
+jobs:
+  observe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check secrets (no-op with instructions when absent)
+        id: gate
+        env:
+          TS: ${{ secrets.TS_AUTHKEY != '' }}
+          KEY: ${{ secrets.NAS_SSH_KEY != '' }}
+        run: |
+          if [ "$TS" != "true" ] || [ "$KEY" != "true" ]; then
+            echo "NOT CONFIGURED: add repo secrets TS_AUTHKEY (Reusable + Ephemeral) and NAS_SSH_KEY, then re-dispatch."
+            echo "go=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "go=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Join the tailnet (ephemeral)
+        if: steps.gate.outputs.go == 'true'
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+      - name: Verify the tailnet actually joined
+        if: steps.gate.outputs.go == 'true'
+        run: |
+          if ! tailscale status --peers=false >/dev/null 2>&1; then
+            echo "::error::Tailnet join FAILED — TS_AUTHKEY invalid or consumed (needs Reusable + Ephemeral). Update the secret, re-dispatch."
+            exit 1
+          fi
+          tailscale status --peers=false
+      - name: Outside-in transport proof (the runner IS the outside)
+        if: steps.gate.outputs.go == 'true'
+        run: |
+          # DR-0125 applied to the cutover transport: the sandbox has no route
+          # to poetech.us, so THIS runner is the team's outside eye. Three
+          # hops measured end-to-end: Pages function /sb -> Funnel path-mount
+          # -> kong mirror route -> GoTrue. The literal code, never inferred.
+          curl -s -o /dev/null -w 'OUTSIDE-IN https://poetech.us/sb/auth/v1/health HTTP %{http_code}\n' --max-time 20 https://poetech.us/sb/auth/v1/health || echo "OUTSIDE-IN probe unreachable"
+          # SIGN-IN SHAPED probes (2026-08-19, live report: "We can't reach our
+          # service" on the repointed app while health answered 200). Health
+          # never exercises the routes sign-in needs; these do, with junk
+          # creds. A 400/401/422 means the SERVICE answered (route alive); a
+          # 404/5xx/000 names the missing hop.
+          BODY=$(mktemp)
+          C=$(curl -sS -o "$BODY" -w '%{http_code}' --max-time 20 -X POST \
+            -H 'Content-Type: application/json' \
+            -d '{"email":"probe@example.invalid","password":"probe-not-real"}' \
+            "https://poetech.us/sb/auth/v1/token?grant_type=password" 2>/dev/null) || C="000"
+          echo "OUTSIDE-IN POST /sb/auth/v1/token HTTP $C :: $(head -c 200 "$BODY")"
+          # Deep path on purpose: the /sb proxy re-joins segments and drops a
+          # trailing slash, and kong's /sb/rest/v1/ PREFIX needs the slash -- a
+          # bare /sb/rest/v1/ probe 404s as an artifact (measured 2026-08-19)
+          # while every real app call, which goes deeper, matches fine.
+          # KEYLESS on purpose, so know what its 401 MEANS: kong's key-auth
+          # answering "No API key found" proves ROUTING only. It says NOTHING
+          # about whether a real key is accepted — the 2026-08-20 incident hid
+          # exactly there (this probe read "route alive" while key-auth was
+          # rejecting every real key). The keyed probes below carry that proof.
+          C=$(curl -sS -o "$BODY" -w '%{http_code}' --max-time 20 \
+            "https://poetech.us/sb/rest/v1/rpc/probe_nonexistent" 2>/dev/null) || C="000"
+          echo "OUTSIDE-IN GET /sb/rest/v1/rpc/... (keyless, routing only) HTTP $C :: $(head -c 200 "$BODY")"
+          # The app's REAL create-profile shape (phone-pin synthetic email,
+          # DR-0172) with a PROBE phone -- captures the true signup verdict a
+          # reader hit ("can't reach our service", 2026-08-19). A 200 creates
+          # one deletable probe user; any 4xx/5xx prints GoTrue's own reason.
+          C=$(curl -sS -o "$BODY" -w '%{http_code}' --max-time 20 -X POST \
+            -H 'Content-Type: application/json' \
+            -d '{"email":"15555550100@phone.poetech.us","password":"090909","data":{"name":"Probe User","phone":"+15555550100","login_method":"phone-pin"}}' \
+            "https://poetech.us/sb/auth/v1/signup" 2>/dev/null) || C="000"
+          echo "OUTSIDE-IN POST /sb/auth/v1/signup (app shape) HTTP $C :: $(head -c 300 "$BODY")"
+          # Sign the probe user IN (its hash was minted BY sovereign GoTrue at
+          # creation): 200 = password verification works end-to-end; anything
+          # else = GoTrue itself cannot verify, and no migrated hash stood a
+          # chance (2026-08-19 "same PIN doesn't work" triage).
+          C=$(curl -sS -o "$BODY" -w '%{http_code}' --max-time 20 -X POST \
+            -H 'Content-Type: application/json' \
+            -d '{"email":"15555550100@phone.poetech.us","password":"090909"}' \
+            "https://poetech.us/sb/auth/v1/token?grant_type=password" 2>/dev/null) || C="000"
+          echo "OUTSIDE-IN probe-user SIGN-IN HTTP $C :: $(head -c 120 "$BODY" | sed -E 's/\"(access|refresh)_token\":\"[^\"]+\"/\"\1_token\":\"<present>\"/g')"
+          # Keep the probe session's token IN MEMORY for the keyed REST probe
+          # below — never printed (the sed above is what reaches the log).
+          PROBE_TOKEN=$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1])).get("access_token",""))' "$BODY" 2>/dev/null || true)
+          # WHICH key does the LIVE app carry? The bundle inlines the anon key
+          # (public-by-design); its decoded payload names it -- a hosted key
+          # carries a "ref" claim, the sovereign-minted one is iss-only with
+          # iat 2026-08-14. Answers whether the repoint's key half is already
+          # done without touching the secret store.
+          # Prior run: bare urllib got HTTP 403 (Cloudflare challenges the
+          # default python UA) while curl passed -- so curl fetches, python
+          # only decodes.
+          UA='Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36'
+          HTML=$(curl -sL -A "$UA" --max-time 20 https://poetech.us/poetech-app/) || echo "LIVE-BUNDLE html fetch failed"
+          # Vite MPA input names the entry chunk "main", and the key can sit
+          # in any chunk -- scan every .js the shell references.
+          ASSETS=$(printf '%s' "$HTML" | grep -oE 'assets/[A-Za-z0-9_.-]+\.js' | sort -u | head -12)
+          echo "LIVE-BUNDLE assets found: $(printf '%s' "$ASSETS" | tr '\n' ' ')"
+          if [ -z "$ASSETS" ]; then echo "LIVE-BUNDLE: no assets in html ($(printf '%s' "$HTML" | wc -c) bytes)"; fi
+          # The key may be a legacy JWT (eyJ...) OR the new sb_publishable_
+          # format; the inlined *.supabase.co / poetech.us URL names the URL
+          # half directly. Report all three signatures per chunk.
+          FOUND=0
+          for A in $ASSETS; do
+            OUT=$(curl -sL -A "$UA" --max-time 30 "https://poetech.us/poetech-app/$A" | python3 -c '
+          import re, base64, sys
+          js = sys.stdin.read()
+          for tok in dict.fromkeys(re.findall(r"eyJ[\w-]{8,}\.eyJ[\w-]{8,}\.[\w-]{8,}", js)):
+              p = tok.split(".")[1]
+              print("LIVE-BUNDLE KEY PAYLOAD:", base64.urlsafe_b64decode(p + "=" * (-len(p) % 4)).decode())
+          for k in dict.fromkeys(re.findall(r"sb_(?:publishable|secret)_[A-Za-z0-9_-]{8,}", js)):
+              print("LIVE-BUNDLE KEY (new format):", k[:24] + "...")
+          for u in dict.fromkeys(re.findall(r"https://[a-z0-9-]+\.supabase\.co", js)):
+              print("LIVE-BUNDLE SUPABASE URL:", u)
+          if re.search(r"poetech\.us/sb", js): print("LIVE-BUNDLE SUPABASE URL: poetech.us/sb (sovereign transport)")
+          ' 2>&1) || OUT="LIVE-BUNDLE decode failed for $A"
+            if [ -n "$OUT" ]; then echo "[$A] $OUT"; FOUND=1; fi
+          done
+          [ "$FOUND" = 1 ] || echo "LIVE-BUNDLE: no key or supabase URL signature in any referenced chunk"
+          # THE APP'S FIRST DATA CALL, exactly as the served bundle makes it
+          # (2026-08-20 incident: sign-in passed — the auth route carries no
+          # key-auth — then every data call answered kong's own "Invalid
+          # authentication credentials", because the mounted kong.yml still
+          # held the un-substituted $SUPABASE_ANON_KEY placeholder as the
+          # key-auth credential; kong 2.8 never templates declarative config).
+          # This probe uses the LIVE BUNDLE's own anon key (public-by-design),
+          # so it fails exactly when a real reader fails, whatever the cause:
+          # placeholder config, key rotation drift, or a broken route. The
+          # kong rejection text is the tripwire — PostgREST answers anything
+          # else (200/401/404 with its own wording) once the key is accepted.
+          BKEY=""
+          for A in $ASSETS; do
+            BKEY=$(curl -sL -A "$UA" --max-time 30 "https://poetech.us/poetech-app/$A" | grep -oE 'eyJ[A-Za-z0-9_-]{8,}\.eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}' | head -1)
+            [ -n "$BKEY" ] && break
+          done
+          if [ -z "$BKEY" ]; then
+            echo "OUTSIDE-IN REST-with-key: SKIPPED — no anon key found in the live bundle"
+          else
+            C=$(curl -sS -o "$BODY" -w '%{http_code}' --max-time 20 -X POST \
+              -H "apikey: $BKEY" -H "Authorization: Bearer $BKEY" \
+              -H 'Content-Type: application/json' -d '{}' \
+              "https://poetech.us/sb/rest/v1/rpc/has_user_pin" 2>/dev/null) || C="000"
+            echo "OUTSIDE-IN REST rpc has_user_pin (bundle key, anon bearer) HTTP $C :: $(head -c 160 "$BODY")"
+            if grep -q 'Invalid authentication credentials' "$BODY"; then
+              echo "::error::KONG REJECTS THE LIVE BUNDLE'S KEY — every reader's data calls are failing right now (sign-in still passes; the failure appears one screen later)"
+            fi
+            if [ -n "$PROBE_TOKEN" ]; then
+              # Signed-in shape: the probe user's real session, the same call
+              # PinGate makes on Darrell's screen. 200 = the whole signed-in
+              # data path is open end-to-end from outside.
+              C=$(curl -sS -o "$BODY" -w '%{http_code}' --max-time 20 -X POST \
+                -H "apikey: $BKEY" -H "Authorization: Bearer $PROBE_TOKEN" \
+                -H 'Content-Type: application/json' -d '{}' \
+                "https://poetech.us/sb/rest/v1/rpc/has_user_pin" 2>/dev/null) || C="000"
+              echo "OUTSIDE-IN REST rpc has_user_pin (probe user's SESSION) HTTP $C :: $(head -c 160 "$BODY")"
+            else
+              echo "OUTSIDE-IN REST (session shape): SKIPPED — probe sign-in returned no token above"
+            fi
+          fi
+      - name: Observe (read-only — GPU, containers, services, disk, uptime)
+        if: steps.gate.outputs.go == 'true'
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          umask 077
+          printf '%s\n' "$NAS_SSH_KEY" > /tmp/nas_key
+          SSH="ssh -i /tmp/nas_key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 dpoe@poetech.tail5a2f35.ts.net"
+          # Run #1 (30869376840) taught two Synology facts: nvidia-smi is not
+          # on the non-login PATH (probe the @appstore package paths), and the
+          # docker socket denies dpoe's plain shell (fall back to sudo -n when
+          # the narrow grant covers it, else PROCESS-level observation via ps,
+          # which needs no socket at all). Every command remains read-only.
+          $SSH 'sh -s' <<'EOS'
+          PATH=/usr/local/bin:/opt/bin:/usr/bin:/bin:$PATH; export PATH
+          SUDO=""; sudo -n true 2>/dev/null && SUDO="sudo -n"
+          echo "=== uptime / load ==="
+          uptime
+          echo "=== GPU driver (proc — no PATH or root needed) ==="
+          cat /proc/driver/nvidia/version 2>/dev/null || echo "no /proc/driver/nvidia — NVIDIA kernel driver not loaded"
+          ls /proc/driver/nvidia/gpus 2>/dev/null && echo "^ GPUs enumerated by the driver" || true
+          echo "=== GPU (nvidia-smi, probed paths) ==="
+          NSMI=$(command -v nvidia-smi 2>/dev/null || ls /usr/local/bin/nvidia-smi /volume1/@appstore/NVIDIARuntimeLibrary/nvidia/bin/nvidia-smi /volume1/@appstore/*/bin/nvidia-smi 2>/dev/null | head -1)
+          if [ -n "$NSMI" ]; then "$NSMI" 2>&1 || $SUDO "$NSMI" 2>&1 || true; else echo "nvidia-smi binary not found on known Synology paths"; fi
+          echo "=== containers (docker, when the grant allows) ==="
+          $SUDO docker ps --format "table {{.Names}}\t{{.Status}}" 2>&1 || docker ps --format "table {{.Names}}\t{{.Status}}" 2>&1 || true
+          $SUDO docker ps -a --filter status=exited --format "table {{.Names}}\t{{.Status}}" 2>&1 || true
+          echo "=== GPU/AI service PROCESSES (no socket needed) ==="
+          ps aux 2>/dev/null | grep -iE "ollama|whisper|xtts|voice-studio|llama" | grep -v grep || echo "no ollama/whisper/xtts/voice-studio/llama processes running"
+          echo "=== poetech systemd units ==="
+          systemctl list-units --type=service --all --no-pager 2>/dev/null | grep -iE "poetech|ollama|whisper|voice" || echo "no matching units listed"
+          echo "=== python + pip (the assumption two installers made and got wrong) ==="
+          # 2026-08-11: the transcript rider's dependency fix used `python3 -m pip
+          # install --user`, and choir_dates_install.sh line 22 already recorded
+          # that this DSM ships WITHOUT pip. Two installers assumed a package
+          # manager nobody had verified. Measure it instead of assuming it again.
+          command -v python3 && python3 -V 2>&1 || echo "no python3 on PATH"
+          python3 -m pip --version 2>&1 | head -1 || echo "python3 -m pip: NOT AVAILABLE"
+          python3 -c 'import youtube_transcript_api; print("youtube_transcript_api: importable")' 2>&1 | tail -1
+          python3 -c 'import yt_dlp; print("yt_dlp: importable")' 2>&1 | tail -1
+          echo "=== the SAME import, as ROOT (which is who services-sync runs it as) ==="
+          # The whole hypothesis in one line. dpoe can import it; the loop runs
+          # as root via sudo -n. If these two disagree, the per-user site-packages
+          # are the fault and nothing about YouTube or the network matters yet.
+          ${SUDO} python3 -c 'import youtube_transcript_api; print("as root: importable")' 2>&1 | tail -1
+          ls -d /volume1/PoeTech/repos/Kingdom-PWA-Node/infra/nas-sme-pipeline/.vendor 2>&1 | tail -1
+          echo "=== docker reachability, unprivileged vs sudo -n ==="
+          docker ps >/dev/null 2>&1 && echo "docker: OK unprivileged" || echo "docker: DENIED unprivileged"
+          sudo -n docker ps >/dev/null 2>&1 && echo "docker: OK via sudo -n" || echo "docker: not available via sudo -n"
+          echo "=== can a container reach YouTube at all? (the choir-dates wrapper path) ==="
+          ${SUDO} docker run --rm --network host curlimages/curl:latest -s -o /dev/null -w 'youtube HTTP %{http_code}\n' --max-time 20 https://www.youtube.com 2>&1 | tail -1
+          echo "=== the trickle stamp (read-only; running the installer would burn a slot) ==="
+          ls -la /volume1/PoeTech/repos/Kingdom-PWA-Node/infra/nas-sme-pipeline/out/.transcript-trickle.last 2>&1 | tail -1
+          # ---------------------------------------------------------------
+          # 2026-08-14: IS THE LOOP EVEN RUNNING? The file-level trace of
+          # transcript_trickle_install.sh CONTRADICTS ITSELF against the
+          # 2026-08-11 reading, which is why these lines exist:
+          #   .vendor absent  => `mkdir -p "$VENDOR"` (line 105) never ran
+          #                   => the import check (line 103) SUCCEEDED
+          #   but if 103 succeeded, control reaches line 125 and the stamp is
+          #   rewritten -- and the stamp has not moved since Aug 11.
+          # Both branches cannot be true. So the installer is probably not
+          # being RUN at all, and the fault is upstream in services-sync, not
+          # in the installer. Everything below discriminates that: an armed,
+          # clocked, freshly-pulled loop that is firing looks completely
+          # different from one that never starts. Measure it (DR-0076 §5:
+          # characterize before you change) instead of patching a script that
+          # may be innocent.
+          REPO=/volume1/PoeTech/repos/Kingdom-PWA-Node
+          LOOPS=$REPO/infra/nas-loops
+          echo "=== is the fleet ARMED? (all three arms — DR-0247) ==="
+          ls -la "$LOOPS/ARMED-BY-RECORD" 2>&1 | tail -1
+          ls -la "$LOOPS/.env" 2>&1 | tail -1
+          grep -c LOOPS_ARMED "$LOOPS/.env" 2>/dev/null || echo "no LOOPS_ARMED in .env (or no .env)"
+          ls -la "$LOOPS/state/LOOPS_ARMED" 2>&1 | tail -1
+          echo "=== is it CLOCKED? (an enabled-but-unclocked loop reads GREEN while nothing fires) ==="
+          ${SUDO} crontab -l 2>&1 | grep -iE "run\.mjs|nas-loops|services-sync" || echo "root crontab: no nas-loops entry"
+          crontab -l 2>&1 | grep -iE "run\.mjs|nas-loops|services-sync" || echo "dpoe crontab: no nas-loops entry"
+          ${SUDO} cat /etc/crontab 2>/dev/null | grep -iE "run\.mjs|nas-loops" || echo "/etc/crontab: no nas-loops entry"
+          echo "=== DID IT RUN? the runner's own event log (last 12) ==="
+          ls -la "$LOOPS/events/events.jsonl" 2>&1 | tail -1
+          tail -12 "$LOOPS/events/events.jsonl" 2>/dev/null || echo "no events.jsonl — the runner has never written an event here"
+          echo "=== per-loop state: locks + today's call caps ==="
+          ls -la "$LOOPS/state/" 2>&1 | tail -20
+          echo "=== KILL_SWITCH / brakes in the loop tree ==="
+          ls -la "$LOOPS/state/KILL_SWITCH" 2>&1 | tail -1
+          echo "=== is the MIRROR fresh? (services-sync pulls FIRST; a stale mirror runs yesterday) ==="
+          git -C "$REPO" log -1 --format='mirror HEAD: %h %ci %s' 2>&1 | tail -1
+          git -C "$REPO" status --porcelain 2>&1 | head -5
+          git -C "$REPO" rev-parse --abbrev-ref HEAD 2>&1 | tail -1
+          echo "=== the reel the Dispatch Status surface reads (last 8) ==="
+          tail -8 /data/poetech-briefing/_reel.jsonl 2>/dev/null || echo "no reel at /data/poetech-briefing/_reel.jsonl"
+          echo "=== node present? (run.mjs needs it; no node = no loop, silently) ==="
+          command -v node && node -v 2>&1 || echo "NO node on PATH — run.mjs cannot execute"
+          ${SUDO} sh -c 'command -v node' 2>/dev/null || echo "NO node on root PATH either"
+          echo "=== disk (the volume the services live on) ==="
+          df -h /volume1 2>&1 | tail -1
+          # ---------------------------------------------------------------
+          # 2026-08-15: WHY do the sovereign Supabase legs restart? Observed
+          # at 05:06Z: storage restart-looping since birth, studio unhealthy,
+          # and now auth + rest joining the restart loop — and NO probe ever
+          # captured a single container log line, so the cutover sprint's
+          # first target had a symptom but never a reason. Read-only tails,
+          # restarting/unhealthy legs only; healthy legs stay unlogged (noise
+          # discipline). docker logs needs the socket => sudo -n, same grant
+          # as the ps table above.
+          # The installer's own words from the last cycles — the reconcile
+          # verdict lines the event capture kept truncating (three blind
+          # passes of the password cure). The cron log holds full stdout.
+          # The direct witness (DR-0076): the literal HTTP code from kong,
+          # read fresh -- a passing installer is inferred; this is measured.
+          echo "=== sovereign gateway: does kong answer? (direct probe) ==="
+          curl -s -o /dev/null -w 'auth/v1/health HTTP %{http_code}\n' --max-time 5 http://127.0.0.1:8800/auth/v1/health 2>&1 || echo "gateway unreachable"
+          # The reading voice's road home (DR-0566): the forwarder on :8771
+          # passes the STUDIO's own /health through, so one code answers two
+          # questions -- 200 = the 4070 studio is up and reachable from the NAS;
+          # 502 = the road is built and the studio is dark; no answer = the
+          # forwarder itself is not running. Without this line the only way to
+          # learn any of it was a person on the 4070 (2026-09-22).
+          echo "=== voice road: does the forwarder pass the studio's answer through? ==="
+          curl -s --max-time 8 -w '\nforwarder /health HTTP %{http_code}\n' http://127.0.0.1:8771/health 2>&1 | tail -2 || echo "forwarder unreachable (poetech-voice-forwarder not running)"
+          ${SUDO} systemctl is-active poetech-voice-forwarder 2>&1 | sed 's/^/poetech-voice-forwarder: /' || true
+          # The Whisper ladder (DR-0611): the spoken-lesson rider tries the 4070
+          # tower first. 200 = Whisper answers from the NAS; anything else = the
+          # rider falls to the NAS CPU rung. Plus the rider's own last words.
+          echo "=== whisper ladder: does the tower's Whisper answer from the NAS? ==="
+          curl -s --max-time 8 -w '\nwhisper tlcmediadpt:8771 /health HTTP %{http_code}\n' http://tlcmediadpt:8771/health 2>&1 | tail -2 || echo "tower whisper unreachable"
+          ${SUDO} grep -a "lesson-voice" "$LOOPS/events/cron-services-sync.log" 2>/dev/null | tail -5 || echo "no lesson-voice lines yet"
+          echo "=== the installer's own words (nas-supabase lines, cron log) ==="
+          ${SUDO} grep -a "nas-supabase:" "$LOOPS/events/cron-services-sync.log" 2>/dev/null | tail -10 || echo "no cron log readable"
+          # FOURTH blindness (2026-08-15 22:52Z): the cron log records only
+          # FAILING installers -- the moment the gateway went green every
+          # verdict line vanished from it. The status file is written by
+          # install.sh every run regardless of exit; this is its reader.
+          echo "=== does MAINTAIN survive the dump filter? (measure, not infer) ==="
+          ${SUDO} grep -n "MAINTAIN" /volume1/docker/supabase/hosted-baseline.sql 2>/dev/null | head -4 || echo "no MAINTAIN lines in the filtered dump"
+          echo "=== cutover status file (written EVERY run, success included) ==="
+          ${SUDO} cat /volume1/docker/supabase/cutover.status 2>/dev/null || echo "no cutover.status yet — installer predates the status-file fix or has not run"
+          echo "=== replay ledger, read straight from the database (not inferred) ==="
+          SUPA_PW=$(${SUDO} grep '^POSTGRES_PASSWORD=' /volume1/docker/supabase/.env 2>/dev/null | head -1 | cut -d= -f2-)
+          if [ -n "$SUPA_PW" ]; then
+            ${SUDO} docker exec -e PGPASSWORD="$SUPA_PW" supabase-db \
+              psql -h 127.0.0.1 -U supabase_admin -d postgres -t -A \
+              -c "SELECT 'ledger '||count(*)||' applied, latest: '||COALESCE(max(fname),'none') FROM public._sovereign_replay;" 2>&1 | tail -2
+            ${SUDO} docker exec -e PGPASSWORD="$SUPA_PW" supabase-db \
+              psql -h 127.0.0.1 -U supabase_admin -d postgres -t -A \
+              -c "SELECT 'sovereign auth.users: '||count(*) FROM auth.users;" 2>&1 | tail -1
+            # CONTENT PARITY, from the box itself (DR-0443/DR-0445 open item).
+            # The witness counted auth.users and nothing the family actually
+            # reads -- so "where are the September messages?" (Darrell,
+            # 2026-09-16) had no answer here, and the repoint's writer gap went
+            # unseen for four weeks. These are the carry tables The Word reads,
+            # with the newest service DATE beside the count: a count alone
+            # cannot tell a whole database from a stale one, and unknown
+            # freshness must never read as fresh (DR-0076/DR-0125). The daily
+            # content-sync lane owns the hosted-vs-sovereign COMPARISON; this
+            # row is the sovereign side's own answer, so the two never drift
+            # into re-implementing each other.
+            ${SUDO} docker exec -e PGPASSWORD="$SUPA_PW" supabase-db \
+              psql -h 127.0.0.1 -U supabase_admin -d postgres -t -A \
+              -c "SELECT 'sovereign content: choir_sermons '||(SELECT count(*) FROM public.choir_sermons)
+                        ||' (newest service '||COALESCE((SELECT max(service_date)::text FROM public.choir_sermons),'none')||')'
+                        ||' | video_transcripts '||(SELECT count(*) FROM public.video_transcripts)
+                        ||' | sermon_prep '||(SELECT count(*) FROM public.sermon_prep)
+                        ||' | instances '||(SELECT count(*) FROM public.instances);" 2>&1 | tail -1
+          else
+            echo "no POSTGRES_PASSWORD readable — ledger not queryable this probe"
+          fi
+          echo "=== the sovereign ANON_KEY (public-by-design: inlined into every client bundle; the repoint's paste value) ==="
+          ${SUDO} grep '^ANON_KEY=' /volume1/docker/supabase/.env 2>/dev/null | head -1 || echo "no ANON_KEY readable"
+          # The raw key printed *** -- the runner masks values equal to ANY repo
+          # secret, which is itself evidence the sovereign key EQUALS a stored
+          # one (most plausibly the hosted VITE_SUPABASE_ANON_KEY, i.e. the box
+          # .env was minted hosted-compatible and the repoint needs only the
+          # URL). Verify by DECODING the JWT payload: its text differs from the
+          # key string so masking cannot hide it, and its iss/ref names which
+          # key this is.
+          echo "=== the ANON_KEY's decoded payload (names WHICH key; cannot be masked) ==="
+          ${SUDO} python3 -c "import base64; t=[l for l in open('/volume1/docker/supabase/.env') if l.startswith('ANON_KEY=')][0].strip().split('=',1)[1]; p=t.split('.')[1]; print(base64.urlsafe_b64decode(p+'='*(-len(p)%4)).decode())" 2>&1 | tail -2
+          echo "=== triggers by schema (naming the +1 the parity comparator flagged) ==="
+          if [ -n "$SUPA_PW" ]; then
+            ${SUDO} docker exec -e PGPASSWORD="$SUPA_PW" supabase-db \
+              psql -h 127.0.0.1 -U supabase_admin -d postgres -t -A \
+              -c "SELECT n.nspname||' schema: '||count(*)||' triggers' FROM pg_trigger t JOIN pg_class c ON c.oid=t.tgrelid JOIN pg_namespace n ON n.oid=c.relnamespace WHERE NOT t.tgisinternal GROUP BY n.nspname ORDER BY 1;" 2>&1 | tail -8
+          fi
+          echo "=== /sb mirror routes: does kong answer on the CUTOVER path? ==="
+          curl -s -o /dev/null -w '/sb/auth/v1/health HTTP %{http_code}\n' --max-time 5 http://127.0.0.1:8800/sb/auth/v1/health 2>&1 || echo "/sb probe unreachable"
+          # Sign-in's follow-up leg (2026-08-19 live 404): rest through kong.
+          # 401 "No API key" = route ALIVE (key-auth answered); 404 = kong is
+          # serving a config older than the repo's kong.yml.
+          curl -s -o /dev/null -w '/sb/rest/v1/ HTTP %{http_code}\n' --max-time 5 http://127.0.0.1:8800/sb/rest/v1/ 2>&1 || echo "/sb/rest probe unreachable"
+          echo "=== kong config freshness (mirror file vs stamped hash vs container age) ==="
+          md5sum /volume1/PoeTech/repos/Kingdom-PWA-Node/infra/nas-supabase/kong.yml 2>/dev/null || echo "mirror kong.yml unreadable"
+          echo "stamped: $(cat /volume1/docker/supabase/.kong.hash 2>/dev/null || echo 'no hash stamped')"
+          ${SUDO} docker inspect -f 'kong started: {{.State.StartedAt}}' supabase-kong 2>/dev/null || echo "kong inspect unavailable"
+          echo "=== sovereign auth forensics (2026-08-19: 'Invalid login credentials' + 'Database error saving new user') ==="
+          # COUNTS ONLY -- no email or phone ever prints to this public log.
+          PWA=$(${SUDO} grep '^POSTGRES_PASSWORD=' /volume1/docker/supabase/.env 2>/dev/null | head -1 | cut -d= -f2-)
+          PSQLA() { ${SUDO} docker exec -e PGPASSWORD="$PWA" supabase-db psql -h 127.0.0.1 -U supabase_admin -d postgres -t -A -c "$1" 2>&1; }
+          echo "auth.users total: $(PSQLA 'SELECT count(*) FROM auth.users;')"
+          echo "phone-pin users (@phone.poetech.us): $(PSQLA "SELECT count(*) FROM auth.users WHERE email LIKE '%@phone.poetech.us';")"
+          echo "darrell gmail user present: $(PSQLA "SELECT count(*) FROM auth.users WHERE email='darrellpoe06@gmail.com';")"
+          echo "darrell phone-pin user present: $(PSQLA "SELECT count(*) FROM auth.users WHERE email LIKE '%5636502416@phone.poetech.us';")"
+          echo "users with EMPTY password hash: $(PSQLA "SELECT count(*) FROM auth.users WHERE encrypted_password IS NULL OR encrypted_password='';")"
+          echo "identities total: $(PSQLA 'SELECT count(*) FROM auth.identities;')"
+          echo "users with NO identity row (GoTrue may refuse them): $(PSQLA 'SELECT count(*) FROM auth.users u WHERE NOT EXISTS (SELECT 1 FROM auth.identities i WHERE i.user_id=u.id);')"
+          echo "hash fingerprint for the 5636502416 phone-pin user (md5 OF the bcrypt hash -- hosted prints 5ca6e40523d87f15b30f358b68114d04; a DIFFERENT value means the reset landed):"
+          PSQLA "SELECT md5(encrypted_password), updated_at, email_confirmed_at IS NOT NULL FROM auth.users WHERE email LIKE '%5636502416@phone.poetech.us';"
+          echo "exact-form check (the reset script and the app both use the 11-digit form):"
+          echo "exact 11-digit match: $(PSQLA "SELECT count(*) FROM auth.users WHERE email='15636502416@phone.poetech.us';")"
+          echo "stored form (length + first char only): $(PSQLA "SELECT length(split_part(email,'@',1)) || ':' || left(email,1) FROM auth.users WHERE email LIKE '%2416@phone.poetech.us';")"
+          echo "pgcrypto available (the reset needs crypt/gen_salt): $(PSQLA "SELECT count(*) FROM pg_proc WHERE proname='crypt';")"
+          echo "aud / instance_id / role by group (sovereign GoTrue scopes every lookup by these -- a mismatch makes copied users INVISIBLE to sign-in while the unique index still knows them: 'invalid credentials' + 'Database error saving new user'):"
+          PSQLA "SELECT coalesce(aud,'<null>') || ' | ' || coalesce(instance_id::text,'<null>') || ' | ' || coalesce(role,'<null>') || ' | n=' || count(*) FROM auth.users GROUP BY aud, instance_id, role ORDER BY count(*) DESC;"
+          echo "probe user's tags (minted BY sovereign GoTrue -- the shape lookups expect): $(PSQLA "SELECT coalesce(aud,'<null>') || ' | ' || coalesce(instance_id::text,'<null>') || ' | ' || coalesce(role,'<null>') FROM auth.users WHERE email='15555550100@phone.poetech.us';")"
+          echo "identity providers in use (which DOORS the family signed in with):"
+          PSQLA "SELECT provider || ': ' || count(*) FROM auth.identities GROUP BY provider ORDER BY provider;"
+          echo "darrell gmail user's providers: $(PSQLA "SELECT string_agg(i.provider, ',') FROM auth.identities i JOIN auth.users u ON u.id=i.user_id WHERE u.email='darrellpoe06@gmail.com';")"
+          echo "-- triggers on auth.users (a failing one breaks every INSERT):"
+          PSQLA "SELECT tgname FROM pg_trigger WHERE tgrelid='auth.users'::regclass AND NOT tgisinternal;"
+          echo "=== instance membership forensics (2026-08-20: phone account lacks family identity — Imported tab hidden, persona wrong, admin absent) ==="
+          echo "-- every instance, with member count:"
+          PSQLA "SELECT i.slug || ' | ' || i.instance_type || ' | members=' || count(im.user_id) FROM instances i LEFT JOIN instance_members im ON im.instance_id=i.id GROUP BY i.id, i.slug, i.instance_type ORDER BY i.slug;"
+          echo "-- memberships of Darrell's PHONE account (15636502416@phone.poetech.us):"
+          PSQLA "SELECT i.slug || ' | ' || i.instance_type || ' | role=' || im.role || ' | joined=' || im.joined_at FROM instance_members im JOIN instances i ON i.id=im.instance_id WHERE im.user_id=(SELECT id FROM auth.users WHERE email='15636502416@phone.poetech.us');"
+          echo "-- memberships of Darrell's GMAIL account:"
+          PSQLA "SELECT i.slug || ' | ' || i.instance_type || ' | role=' || im.role || ' | joined=' || im.joined_at FROM instance_members im JOIN instances i ON i.id=im.instance_id WHERE im.user_id=(SELECT id FROM auth.users WHERE email='darrellpoe06@gmail.com');"
+          echo "-- memberships of every OTHER phone-pin account (numbers masked to last 4):"
+          PSQLA "SELECT '…' || right(split_part(u.email,'@',1),4) || ' -> ' || i.slug || ' | role=' || im.role FROM auth.users u JOIN instance_members im ON im.user_id=u.id JOIN instances i ON i.id=im.instance_id WHERE u.email LIKE '%@phone.poetech.us' ORDER BY 1;"
+          echo "-- where the family DATA actually lives (row counts per instance, main tables):"
+          PSQLA "SELECT 'transactions: ' || coalesce(i.slug,'<null-instance>') || ' n=' || count(*) FROM transactions t LEFT JOIN instances i ON i.id=t.instance_id GROUP BY i.slug ORDER BY count(*) DESC LIMIT 6;"
+          PSQLA "SELECT 'debts: ' || coalesce(i.slug,'<null-instance>') || ' n=' || count(*) FROM debts d LEFT JOIN instances i ON i.id=d.instance_id GROUP BY i.slug ORDER BY count(*) DESC LIMIT 6;"
+          PSQLA "SELECT 'accounts: ' || coalesce(i.slug,'<null-instance>') || ' n=' || count(*) FROM accounts a LEFT JOIN instances i ON i.id=a.instance_id GROUP BY i.slug ORDER BY count(*) DESC LIMIT 6;"
+          PSQLA "SELECT 'family_plans: ' || coalesce(i.slug,'<null-instance>') || ' n=' || count(*) FROM family_plans f LEFT JOIN instances i ON i.id=f.instance_id GROUP BY i.slug ORDER BY count(*) DESC LIMIT 6;"
+          echo "=== UUID footprint census (2026-08-20: account unification — the remap list must be a RECEIPT, not memory) ==="
+          echo "-- every public column referencing auth.users (declared FKs + conventional user columns), row counts per UUID:"
+          # BOTH uuids resolved LIVE by email — the first census run hardcoded
+          # the hosted-era gmail id from memory and every gmail count read 0
+          # while the membership witness (same run) showed 3 rows by email
+          # lookup: the receipt caught its own instrument (run 32417274320).
+          GML=$(PSQLA "SELECT id FROM auth.users WHERE email='darrellpoe06@gmail.com';")
+          PHN=$(PSQLA "SELECT id FROM auth.users WHERE email='15636502416@phone.poetech.us';")
+          echo "gmail uuid: $GML | phone uuid: $PHN"
+          PAIRS=$(PSQLA "SELECT DISTINCT pair FROM (
+              SELECT tc.table_name||'|'||kcu.column_name AS pair
+                FROM information_schema.table_constraints tc
+                JOIN information_schema.key_column_usage kcu ON kcu.constraint_name=tc.constraint_name AND kcu.table_schema=tc.table_schema
+                JOIN information_schema.constraint_column_usage ccu ON ccu.constraint_name=tc.constraint_name
+               WHERE tc.constraint_type='FOREIGN KEY' AND tc.table_schema='public'
+                 AND ccu.table_schema='auth' AND ccu.table_name='users'
+              UNION
+              SELECT c.table_name||'|'||c.column_name
+                FROM information_schema.columns c
+                JOIN information_schema.tables t ON t.table_schema='public' AND t.table_name=c.table_name AND t.table_type='BASE TABLE'
+               WHERE c.table_schema='public' AND c.data_type='uuid'
+                 AND c.column_name IN ('user_id','created_by','owner_id','updated_by','invited_by','author_id','member_id','requested_by')
+            ) u ORDER BY pair;")
+          for P in $PAIRS; do
+            TBL=${P%%|*}; COL=${P##*|}
+            PSQLA "SELECT '$TBL.$COL: gmail=' || count(*) FILTER (WHERE \"$COL\"='$GML'::uuid) || ' phone=' || count(*) FILTER (WHERE \"$COL\"='$PHN'::uuid) || ' total=' || count(*) FROM \"$TBL\";" | grep -v ': gmail=0 phone=0 ' || true
+          done
+          echo "-- (columns where both UUIDs count 0 are suppressed; suppressed columns are still enumerated above by the PAIRS query)"
+          echo "=== DR-0311 proof: same_person() serves ONE library to both doors (migration 0141) ==="
+          PSQLA "SELECT 'person_links rows=' || count(*) || ' | seeded gmail<->phone=' || count(*) FILTER (WHERE primary_user='$GML'::uuid AND door_user='$PHN'::uuid) FROM person_links;" || true
+          echo "-- ground truth as admin (RLS bypassed): the gmail-owned library sizes"
+          PSQLA "SELECT 'gmail-owned: study_entries=' || (SELECT count(*) FROM study_entries WHERE owner='$GML'::uuid) || ' study_spaces=' || (SELECT count(*) FROM study_spaces WHERE owner='$GML'::uuid) || ' eternal_algorithms=' || (SELECT count(*) FROM eternal_algorithms WHERE owner='$GML'::uuid) || ' tv_watch=' || (SELECT count(*) FROM tv_watch WHERE owner='$GML'::uuid);"
+          echo "-- RLS proof AS THE PHONE DOOR (SET ROLE authenticated, jwt sub = phone uuid): counts must MATCH the gmail-owned library above"
+          PSQLA "SET ROLE authenticated; SELECT set_config('request.jwt.claims', '{\"sub\":\"$PHN\",\"role\":\"authenticated\"}', false); SELECT 'phone door sees: study_entries=' || (SELECT count(*) FROM study_entries) || ' study_spaces=' || (SELECT count(*) FROM study_spaces) || ' eternal_algorithms=' || (SELECT count(*) FROM eternal_algorithms) || ' tv_watch=' || (SELECT count(*) FROM tv_watch);" | grep -a 'phone door sees' || echo "::error::DR-0311 phone-door RLS probe produced no output — same_person() not proving"
+          echo "-- RLS control AS A NON-LINKED USER (random authenticated uuid): must see ZERO of the library"
+          PSQLA "SET ROLE authenticated; SELECT set_config('request.jwt.claims', '{\"sub\":\"00000000-0000-4000-8000-000000000000\",\"role\":\"authenticated\"}', false); SELECT 'non-linked control sees: study_entries=' || (SELECT count(*) FROM study_entries) || ' eternal_algorithms=' || (SELECT count(*) FROM eternal_algorithms);" | grep -a 'control sees' || echo "::error::DR-0311 control probe produced no output"
+          echo "-- remap EXHAUSTION (phone-attributed rows in the five census columns; every value must be 0 after 0141):"
+          PSQLA "SELECT 'phone-attributed remaining: board_tasks.created_by=' || (SELECT count(*) FROM board_tasks WHERE created_by='$PHN'::uuid) || ' usage_events.owner=' || (SELECT count(*) FROM usage_events WHERE owner='$PHN'::uuid) || ' feedback.user_id=' || (SELECT count(*) FROM feedback WHERE user_id='$PHN'::uuid) || ' market_watchlist.created_by=' || (SELECT count(*) FROM market_watchlist WHERE created_by='$PHN'::uuid) || ' family_snapshots.updated_by=' || (SELECT count(*) FROM family_snapshots WHERE updated_by='$PHN'::uuid);"
+          echo "-- remap FLOORS (gmail-side; census sums from run 32417595488: board>=17 usage>=2164 feedback>=135 watchlist>=4 snapshots>=1):"
+          PSQLA "SELECT 'gmail-side after remap: board_tasks=' || (SELECT count(*) FROM board_tasks WHERE created_by='$GML'::uuid) || ' usage_events=' || (SELECT count(*) FROM usage_events WHERE owner='$GML'::uuid) || ' feedback=' || (SELECT count(*) FROM feedback WHERE user_id='$GML'::uuid) || ' market_watchlist=' || (SELECT count(*) FROM market_watchlist WHERE created_by='$GML'::uuid) || ' family_snapshots=' || (SELECT count(*) FROM family_snapshots WHERE updated_by='$GML'::uuid);"
+          echo "=== 0144 proof: the child wall holds (the live adversarial RLS test 0082 owed) ==="
+          JRU=$(PSQLA "SELECT id FROM auth.users WHERE email='darrellpoejr@gmail.com';")
+          PSQLA "SELECT 'jr standing: ' || coalesce(im.role,'<none>') || ' | relationship: ' || coalesce(im.relationship,'<unset>') || ' | classification: ' || coalesce(im.classification,'<unset>') FROM instance_members im JOIN instances i ON i.id=im.instance_id WHERE i.slug='poe-family' AND im.user_id='$JRU'::uuid;" || true
+          echo "-- ground truth as admin: family books row counts"
+          PSQLA "SELECT 'books ground truth: transactions=' || (SELECT count(*) FROM transactions) || ' accounts=' || (SELECT count(*) FROM accounts) || ' debts=' || (SELECT count(*) FROM debts);"
+          echo "-- DR-0708 witness: the books are in the realtime publication (an open screen hears another device's change)"
+          RTMISS=$(PSQLA "SELECT coalesce(string_agg(t, ','), '') FROM unnest(ARRAY['transactions','accounts','debts','entities','projects']) t WHERE NOT EXISTS (SELECT 1 FROM pg_publication_tables p WHERE p.pubname='supabase_realtime' AND p.schemaname='public' AND p.tablename=t);")
+          if [ -z "$RTMISS" ]; then echo "books realtime publication: whole"; else echo "::error::books missing from supabase_realtime (open screens go stale, DR-0708): $RTMISS"; fi
+          echo "-- RLS AS THE CHILD (SET ROLE authenticated, jwt sub = jr): every count must be ZERO"
+          PSQLA "SET ROLE authenticated; SELECT set_config('request.jwt.claims', '{\"sub\":\"$JRU\",\"role\":\"authenticated\"}', false); SELECT 'child sees: transactions=' || (SELECT count(*) FROM transactions) || ' accounts=' || (SELECT count(*) FROM accounts) || ' debts=' || (SELECT count(*) FROM debts);" | grep -a 'child sees' || echo "::error::0144 child-wall probe produced no output"
+          echo "-- child WRITE refusal: an INSERT must die on the RLS wall"
+          WOUT=$(PSQLA "SET ROLE authenticated; SELECT set_config('request.jwt.claims', '{\"sub\":\"$JRU\",\"role\":\"authenticated\"}', false); INSERT INTO transactions (instance_id, amount, description) SELECT id, 1, 'wall-probe' FROM instances WHERE slug='poe-family';")
+          echo "$WOUT" | grep -aqi 'row-level security\|violates\|permission denied' && echo "child write refused (RLS wall held)" || echo "::error::0144 child WRITE was NOT refused: $WOUT"
+          echo "-- Christina: does she have a phone-pin account, and does her gmail account have memberships?"
+          PSQLA "SELECT 'mrspoe06 present: ' || count(*) FROM auth.users WHERE email='mrspoe06@gmail.com';"
+          PSQLA "SELECT 'mrspoe06 memberships: ' || coalesce(string_agg(i.slug || '(' || im.role || ')', ', '), '<none>') FROM instance_members im JOIN instances i ON i.id=im.instance_id WHERE im.user_id=(SELECT id FROM auth.users WHERE email='mrspoe06@gmail.com');"
+          echo "-- auth container's own words (emails masked):"
+          ${SUDO} docker logs --tail 60 supabase-auth 2>&1 | grep -iE 'error|failed|500' | tail -6 | sed -E 's/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+/<masked>/g' || echo "no recent auth errors logged"
+          echo "=== the SIGN-IN witness: can each identity CLASS actually get in? (counts only) ==="
+          # Born 2026-09-07: Shay tapped the emailed sign-in link door on her own
+          # business app, got "Sign-in link sent", and nothing ever arrived. The
+          # app told the truth it could ("email sending may not be set up yet")
+          # but NOTHING here could confirm or deny it, so the first question
+          # asked of the witness had no answer in the witness. DR-0307 §3 keeps
+          # SMTP out of sovereign auth's critical path deliberately; that is a
+          # decision, and a decision still has to be OBSERVABLE (DR-0076 §8:
+          # unknown never reads as fine).
+          #
+          # PRESENCE ONLY, never the value: `test -n` on the container's own
+          # env. A credential must never be one grep away from a public log.
+          SMTPH=$(${SUDO} docker exec supabase-auth sh -c 'test -n "$GOTRUE_SMTP_HOST" && echo yes || echo no' 2>/dev/null || echo "unknown")
+          echo "SMTP wired in supabase-auth (presence only, never the value): $SMTPH"
+          if [ "$SMTPH" != "yes" ]; then
+            echo "  -> EMAIL SIGN-IN LINKS CANNOT ARRIVE. This is DR-0307 §3's named gap, not a fault."
+            echo "     Working doors: phone + PIN, and email + password. Recovery for an email"
+            echo "     account is infra/nas-supabase/reset_password.sh (root, on this box)."
+          fi
+          # Mailer failures the container itself recorded — the differentiating
+          # detail that lived only inside the box until now.
+          MAILERR=$(${SUDO} docker logs --tail 400 supabase-auth 2>&1 | grep -ciE 'smtp|mailer|error sending' || true)
+          echo "mailer/smtp complaints in the last 400 auth log lines: ${MAILERR:-0}"
+          # Recovery census by identity CLASS. An account with no password and no
+          # deliverable email has NO door at all — that is the state worth
+          # catching before a person reports it, not after (P15: a surface is a
+          # live view of real state).
+          PSQLA "SELECT 'email-identity accounts: ' || count(*) || ' | with a password set: ' || count(*) FILTER (WHERE encrypted_password IS NOT NULL AND encrypted_password <> '') || ' | unconfirmed: ' || count(*) FILTER (WHERE email_confirmed_at IS NULL) || ' | banned: ' || count(*) FILTER (WHERE banned_until IS NOT NULL AND banned_until > now()) FROM auth.users WHERE email NOT LIKE '%@phone.poetech.us';"
+          PSQLA "SELECT 'phone-pin accounts: ' || count(*) || ' | with a PIN set: ' || count(*) FILTER (WHERE encrypted_password IS NOT NULL AND encrypted_password <> '') FROM auth.users WHERE email LIKE '%@phone.poetech.us';"
+          # THE DOORLESS COUNT is the one that matters. With SMTP off, an email
+          # account with no password cannot sign in by any route we serve.
+          if [ "$SMTPH" != "yes" ]; then
+            PSQLA "SELECT 'accounts with NO working door (no password, and no email delivery): ' || count(*) FROM auth.users WHERE email NOT LIKE '%@phone.poetech.us' AND (encrypted_password IS NULL OR encrypted_password = '');"
+          fi
+          echo "=== the PIN-DOOR witness: does the second key still turn on this box? (verdicts only) ==="
+          # Born 2026-09-07 22:04 UTC: Darrell (phone door) and Shay (email door)
+          # were both stopped at "Secure your space" — the SET-PIN gate — within
+          # minutes of each other, on a box whose user_credentials holds both
+          # rows. The app renders SET-PIN whenever has_user_pin() returns
+          # false OR any error that is not "function missing" (lib/pin.js
+          # callRpc), so a grant, an owner, or an auth.uid() fault all wear the
+          # same face as "you never set a PIN". Nothing here could tell them
+          # apart. Now it can — measured the way PostgREST calls it (SET ROLE
+          # authenticated + request.jwt.claims), never as a superuser.
+          PSQLA "SELECT 'pin functions: ' || string_agg(p.proname || ' owner=' || pg_get_userbyid(p.proowner) || ' secdef=' || p.prosecdef || ' owner_bypassrls=' || r.rolbypassrls || ' owner_super=' || r.rolsuper || ' exec_authenticated=' || has_function_privilege('authenticated', p.oid, 'EXECUTE'), ' | ' ORDER BY p.proname) FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace JOIN pg_roles r ON r.oid=p.proowner WHERE n.nspname='public' AND p.proname IN ('has_user_pin','set_user_pin','verify_user_pin');"
+          # The grants PostgREST's roles need to even reach these functions and the
+          # policies behind them (run 34165810216: a bare auth.uid() as the app role
+          # raised "permission denied for schema auth" on this box).
+          PSQLA "SELECT 'role plumbing: authenticator->authenticated=' || pg_has_role('authenticator','authenticated','MEMBER') || ' authenticator->anon=' || pg_has_role('authenticator','anon','MEMBER') || ' authenticator->service_role=' || pg_has_role('authenticator','service_role','MEMBER') || ' storage_admin->anon/authenticated/service_role=' || pg_has_role('supabase_storage_admin','anon','MEMBER') || '/' || pg_has_role('supabase_storage_admin','authenticated','MEMBER') || '/' || pg_has_role('supabase_storage_admin','service_role','MEMBER')|| ' authenticated USAGE on auth schema=' || has_schema_privilege('authenticated','auth','USAGE') || ' | storage USAGE anon/authenticated=' || has_schema_privilege('anon','storage','USAGE') || '/' || has_schema_privilege('authenticated','storage','USAGE') || ' objects SELECT/INSERT as authenticated=' || coalesce(has_table_privilege('authenticated','storage.objects','SELECT')::text,'n/a') || '/' || coalesce(has_table_privilege('authenticated','storage.objects','INSERT')::text,'n/a') || ' anon USAGE on auth schema=' || has_schema_privilege('anon','auth','USAGE');"
+          # STORAGE SCHEMA (2026-09-07 23:47Z, first request after the role grant):
+          # storage-api answered 500 'relation "buckets" does not exist'. Its own
+          # migrations create storage.buckets/objects at boot; if they never ran
+          # (843 restarts) the tables are absent, and if the role's search_path
+          # does not include storage, an unqualified "buckets" cannot resolve.
+          PSQLA "SELECT 'storage schema: buckets=' || coalesce(to_regclass('storage.buckets')::text,'MISSING') || ' objects=' || coalesce(to_regclass('storage.objects')::text,'MISSING') || ' migrations=' || coalesce(to_regclass('storage.migrations')::text,'MISSING') || ' storage_admin search_path=' || coalesce((SELECT array_to_string(rolconfig, ';') FROM pg_roles WHERE rolname='supabase_storage_admin'),'<unset>');"
+          PSQLA "SELECT 'storage rows: buckets=' || (SELECT count(*) FROM storage.buckets) || ' objects=' || (SELECT count(*) FROM storage.objects);" 2>&1 | grep -a 'storage rows' || echo "storage rows: (tables absent)"
+          # WHICH buckets (ids are code constants, not PII). 2026-09-08 01:15Z:
+          # the first served request after the grants answered "Bucket not
+          # found" for moore-showcase while buckets=1 - the count alone hid it.
+          PSQLA "SELECT 'storage buckets: ' || coalesce(string_agg(id || '(' || CASE WHEN public THEN 'public' ELSE 'private' END || ')', ', ' ORDER BY id), '<none>') FROM storage.buckets;" 2>&1 | grep -a 'storage buckets' || echo "storage buckets: (table absent)"
+          PSQLA "SELECT 'user_credentials: rows=' || count(*) || ' with_hash=' || count(*) FILTER (WHERE pin_hash IS NOT NULL) || ' rls=' || (SELECT relrowsecurity FROM pg_class WHERE relname='user_credentials') FROM user_credentials;"
+          PHU=$(PSQLA "SELECT id FROM auth.users WHERE email='15636502416@phone.poetech.us';")
+          GMU=$(PSQLA "SELECT id FROM auth.users WHERE email='darrellpoe06@gmail.com';")
+          for DOOR in "phone:$PHU" "gmail:$GMU"; do
+            NAME=${DOOR%%:*}; UID_=${DOOR#*:}
+            [ -n "$UID_" ] || { echo "$NAME door: no auth user on this box"; continue; }
+            # Exactly PostgREST's shape for a signed-in call. auth.uid() first
+            # (is the identity even seen?), then the RPC the app calls.
+            PSQLA "SET ROLE authenticated; SELECT set_config('request.jwt.claims', '{\"sub\":\"$UID_\",\"role\":\"authenticated\"}', false); SELECT '$NAME door: has_user_pin()=' || coalesce(public.has_user_pin()::text, 'NULL');" 2>&1 | grep -a "door:" || echo "::error::$NAME door: has_user_pin() RAISED under the authenticated role — this is the SET-PIN loop's cause (see the postgres tail below)"
+          done
+          echo "-- postgres's own words on the PIN path (last 400 lines, emails masked):"
+          ${SUDO} docker logs --tail 400 supabase-db 2>&1 | grep -iaE 'ERROR|FATAL' | grep -iaE 'pin|credential|permission|does not exist|jwt|claims|set_config' | tail -6 | sed -E 's/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+/<masked>/g' || echo "no PIN-path errors in the postgres tail"
+          echo "=== sovereign supabase: WHY the sick legs restart (log tails) ==="
+          for c in supabase-auth supabase-rest supabase-storage supabase-studio supabase-realtime; do
+            ST=$(${SUDO} docker inspect --format '{{.State.Status}} restarts={{.RestartCount}} health={{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$c" 2>/dev/null)
+            case "$ST" in
+              running*health=healthy*) echo "--- $c: $ST (healthy — logs skipped)";;
+              "") echo "--- $c: not present";;
+              *) echo "--- $c: $ST"; ${SUDO} docker logs --tail 12 "$c" 2>&1 | tail -12;;
+            esac
+          done
+          EOS

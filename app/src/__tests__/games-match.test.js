@@ -54,14 +54,51 @@ describe('lobby + joining', () => {
     expect(m.players[0].game.seed).toBe(seedBefore); // journey preserved
   });
 
-  it('rejects joining once full or once started', () => {
+  it('rejects joining once the table is full', () => {
     let m = fresh();
     for (let i = 0; i < MAX_PLAYERS; i++) m = addPlayer(def, m, { id: `p${i}`, name: `P${i}`, token: TOKENS[i].id });
     const full = addPlayer(def, m, { id: 'x', name: 'X', token: 'lion' });
     expect(full.error).toBe('full');
-    const started = startMatch(m);
-    const late = addPlayer(def, started, { id: 'y', name: 'Y' });
-    expect(late.error).toBe('in-progress');
+  });
+
+  it('WELCOMES a late joiner mid-game (family game night — people wander in)', () => {
+    let m = fresh();
+    m = addPlayer(def, m, { id: 'a', name: 'Ada', token: 'lion' });
+    m = startMatch(m);                                   // game underway
+    const late = addPlayer(def, m, { id: 'y', name: 'Yara', token: 'dove' });
+    expect(late.error).toBeUndefined();                 // no "already started" wall
+    expect(late.players.map((p) => p.id)).toContain('y');
+    expect(late.order).toContain('y');
+    expect(late.players.find((p) => p.id === 'y').game.status).toBe('choosing-path');
+  });
+
+  it('only turns a joiner away once the journeys are FINISHED', () => {
+    let m = fresh();
+    m = addPlayer(def, m, { id: 'a', name: 'Ada', token: 'lion' });
+    m = { ...m, phase: 'finished' };
+    const late = addPlayer(def, m, { id: 'y', name: 'Y', token: 'dove' });
+    expect(late.error).toBe('finished');
+  });
+
+  it('RECOVERS a lost seat: a phone that went off rejoins by token, points intact', () => {
+    let m = fresh();
+    m = addPlayer(def, m, { id: 'a', name: 'Ada', token: 'lion' });
+    m = addPlayer(def, m, { id: 'b', name: 'Bo', token: 'dove' });
+    m = startMatch(m);
+    m = choosePathAction(def, m, 'a', 'college'); // Ada builds up some score/state
+    const adaGameSeed = m.players.find((p) => p.id === 'a').game.seed;
+    // Ada's phone goes off -> host marks her disconnected (journey preserved).
+    m = setConnected(m, 'a', false);
+    // She comes back on a device that lost its saved id (new id), re-picks Lion.
+    const back = addPlayer(def, m, { id: 'a-new', name: 'Ada', token: 'lion' });
+    expect(back.error).toBeUndefined();
+    expect(back.players).toHaveLength(2);                // NOT a new third seat
+    const seat = back.players.find((p) => p.token === 'lion');
+    expect(seat.id).toBe('a-new');                       // re-keyed to the new device
+    expect(seat.connected).toBe(true);
+    expect(seat.game.seed).toBe(adaGameSeed);            // her points/journey survived
+    expect(back.order).toContain('a-new');
+    expect(back.order).not.toContain('a');
   });
 });
 

@@ -26,10 +26,11 @@
 // =============================================================================
 import React, { useEffect, useState, useCallback } from 'react';
 import { SectionTitle } from './shared.jsx';
+import SectionTabs from './SectionTabs.jsx';
 import RecordsLog from './RecordsLog.jsx';
 import { onAuthChange } from '../lib/supabase.js';
 import { getChoirAccess } from '../lib/choir-sync.js';
-import { HARVEST_TYPES, harvestMapFor, harvestType, TRANSCRIPT_DERIVED_KEYS } from '../lib/video-harvest.js';
+import { HARVEST_TYPES, harvestMapFor, harvestType, TRANSCRIPT_DERIVED_KEYS, ledgerBanner } from '../lib/video-harvest.js';
 import { aboutFor } from '../lib/surface-help.js';
 
 // LIGHT inline self-explanation — declared centrally in surface-help.js so the
@@ -40,6 +41,7 @@ const HARVEST_ABOUT = aboutFor('church:harvest');
 // video's YouTube captions, no GPU) vs. derived from the row the instant it lands.
 const FROM_TRANSCRIPT = new Set(TRANSCRIPT_DERIVED_KEYS);
 import { subscribeLedger, recordHarvest, markHarvestNotApplicable } from '../lib/harvest-ledger.js';
+import { corpusCoverage } from '../lib/corpus-coverage.js';
 import { OPS_JOBS, queueCommand, cancelCommand, subscribeOpsCommands, runnerHint } from '../lib/ops-commands.js';
 
 const fmtDate = (d) => {
@@ -85,7 +87,7 @@ function TypeChip({ typeKey, record, canEdit, onRecord, onNa }) {
       <button
         type="button"
         onClick={() => canEdit && setOpen((o) => !o)}
-        className="text-[10px] px-1.5 py-0.5 border rounded mr-1 mb-1 focus:outline focus:outline-2 focus:outline-[#B85838]"
+        className="text-[0.625rem] px-1.5 py-0.5 border rounded mr-1 mb-1 focus:outline focus:outline-2 focus:outline-[#B85838]"
         style={{ color: st.color, borderColor: st.border, background: st.bg, cursor: canEdit ? 'pointer' : 'default', textDecoration: record.status === 'na' ? 'line-through' : 'none' }}
         title={title}
         aria-label={title}
@@ -94,10 +96,10 @@ function TypeChip({ typeKey, record, canEdit, onRecord, onNa }) {
       </button>
       {open && canEdit && (
         <span className="absolute z-10 left-0 top-full mt-1 flex flex-col bg-white border border-[#1A1815] shadow text-left min-w-[150px]" role="menu">
-          <span className="px-2 py-1 text-[9px] uppercase tracking-wider text-[#5A5751] border-b border-[#E8E4DC]">{t.label}</span>
-          <button type="button" role="menuitem" className="px-2 py-1.5 text-left text-[11px] hover:bg-[#FAF8F4]" style={{ color: '#166534' }} onClick={() => { onRecord('complete'); setOpen(false); }}>✓ Mark fully harvested</button>
-          <button type="button" role="menuitem" className="px-2 py-1.5 text-left text-[11px] hover:bg-[#FAF8F4]" style={{ color: '#92400E' }} onClick={() => { onRecord('partial'); setOpen(false); }}>◐ Mark partly harvested</button>
-          <button type="button" role="menuitem" className="px-2 py-1.5 text-left text-[11px] hover:bg-[#FAF8F4] text-[#5A5751]" onClick={() => { onNa(); setOpen(false); }}>— Not in this video</button>
+          <span className="px-2 py-1 text-[0.5625rem] uppercase tracking-wider text-[#5A5751] border-b border-[#E8E4DC]">{t.label}</span>
+          <button type="button" role="menuitem" className="px-2 py-1.5 text-left text-[0.6875rem] hover:bg-[#FAF8F4]" style={{ color: '#166534' }} onClick={() => { onRecord('complete'); setOpen(false); }}>✓ Mark fully harvested</button>
+          <button type="button" role="menuitem" className="px-2 py-1.5 text-left text-[0.6875rem] hover:bg-[#FAF8F4]" style={{ color: '#92400E' }} onClick={() => { onRecord('partial'); setOpen(false); }}>◐ Mark partly harvested</button>
+          <button type="button" role="menuitem" className="px-2 py-1.5 text-left text-[0.6875rem] hover:bg-[#FAF8F4] text-[#5A5751]" onClick={() => { onNa(); setOpen(false); }}>— Not in this video</button>
         </span>
       )}
     </span>
@@ -115,9 +117,9 @@ function VideoRow({ video, canEdit, onRecord, onNa }) {
         <div className="flex items-baseline justify-between gap-2 flex-wrap">
           <div className="flex items-baseline gap-2 flex-wrap">
             <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }} className="text-[#1A1815]">{video.title || 'Untitled service'}</span>
-            <span className="text-[11px] text-[#5A5751]">{fmtDate(video.serviceDate)} · {serviceLabel(video.serviceType)}</span>
+            <span className="text-[0.6875rem] text-[#5A5751]">{fmtDate(video.serviceDate)} · {serviceLabel(video.serviceType)}</span>
           </div>
-          <span className="text-[10px] px-2 py-0.5 border rounded" style={{ color: fs.color, background: fs.bg, borderColor: fs.border }}>{fs.label} · {video.coverage.pct}%</span>
+          <span className="text-[0.625rem] px-2 py-0.5 border rounded" style={{ color: fs.color, background: fs.bg, borderColor: fs.border }}>{fs.label} · {video.coverage.pct}%</span>
         </div>
         <div className="mt-2"><CoverageBar pct={video.coverage.pct} flag={video.flag} /></div>
         <div className="mt-2 flex flex-wrap items-center">
@@ -132,25 +134,25 @@ function VideoRow({ video, canEdit, onRecord, onNa }) {
             />
           ))}
         </div>
-        <button type="button" onClick={() => setOpen((o) => !o)} className="mt-1 text-[11px] text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]" aria-expanded={open}>
+        <button type="button" onClick={() => setOpen((o) => !o)} className="mt-1 text-[0.6875rem] text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]" aria-expanded={open}>
           {open ? '▾ Hide detail' : `▸ ${gaps.length ? `${gaps.length} harvest${gaps.length === 1 ? '' : 's'} still owed` : 'Detail'}`}
         </button>
       </div>
       {open && (
         <div className="px-3 pb-3 border-t border-[#E8E4DC] bg-[#FAF8F4]">
           {video.youtubeUrl && (
-            <a href={video.youtubeUrl} target="_blank" rel="noopener noreferrer" className="inline-block mt-2 text-[11px] text-[#B85838] underline hover:text-[#1A1815]">▶ Source recording</a>
+            <a href={video.youtubeUrl} target="_blank" rel="noopener noreferrer" className="inline-block mt-2 text-[0.6875rem] text-[#B85838] underline hover:text-[#1A1815]">▶ Source recording</a>
           )}
           {gaps.length === 0 ? (
-            <p className="mt-2 text-[12px]" style={{ fontFamily: '"Fraunces", serif', color: '#166534' }}>Every applicable harvest is settled. Nothing lost from this service.</p>
+            <p className="mt-2 text-[0.75rem]" style={{ fontFamily: '"Fraunces", serif', color: '#166534' }}>Every applicable harvest is settled. Nothing lost from this service.</p>
           ) : (
             <div className="mt-2">
-              <p className="text-[10px] uppercase tracking-wider text-[#5A5751] mb-1">Still to harvest from this recording</p>
+              <p className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">Still to harvest from this recording</p>
               <ul className="space-y-1">
                 {gaps.map((k) => {
                   const t = harvestType(k);
                   return (
-                    <li key={k} className="text-[12px] text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
+                    <li key={k} className="text-[0.75rem] text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
                       <span className="font-semibold">{t.label}</span> — <span className="text-[#5A5751]">{t.description}</span>
                     </li>
                   );
@@ -158,7 +160,7 @@ function VideoRow({ video, canEdit, onRecord, onNa }) {
               </ul>
             </div>
           )}
-          {!canEdit && <p className="mt-2 text-[11px] text-[#5A5751] italic">A church steward records harvests as each recording is mined.</p>}
+          {!canEdit && <p className="mt-2 text-[0.6875rem] text-[#5A5751] italic">A church steward records harvests as each recording is mined.</p>}
         </div>
       )}
     </div>
@@ -266,12 +268,16 @@ function OpsAdminCard() {
   );
 }
 
+// Value color rides CLASS tokens (never inline) because the card background is
+// the class token bg-white, which theme-css remaps per theme (midnight ->
+// #141414). An inline color on a remapped background is exactly the bug the
+// 2026-08-05 review photographed: near-black "858" on a near-black card.
 function Stat({ label, value, tone }) {
-  const color = tone === 'bad' ? '#991B1B' : tone === 'good' ? '#166534' : '#1A1815';
+  const toneClass = tone === 'bad' ? 'text-[#991B1B]' : tone === 'good' ? 'text-[#166534]' : 'text-[#1A1815]';
   return (
     <div className="bg-white border border-[#E8E4DC] p-3 text-center">
-      <div className="text-2xl font-semibold" style={{ color, fontFamily: '"Fraunces", serif' }}>{value}</div>
-      <div className="text-[10px] uppercase tracking-wider text-[#5A5751] mt-0.5">{label}</div>
+      <div className={`text-2xl font-semibold ${toneClass}`} style={{ fontFamily: '"Fraunces", serif' }}>{value}</div>
+      <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mt-0.5">{label}</div>
     </div>
   );
 }
@@ -319,7 +325,109 @@ export default function HarvestLedger() {
     return <div className="bg-white border border-[#1A1815] p-5 text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>The harvest ledger is for the choir / church team. Ask a steward to add you.</div>;
   }
 
-  const l = ledger || { videos: 0, rows: [], orphans: 0, fullyHarvested: 0, partiallyHarvested: 0, avgPct: 0, fullyPct: 0, noVideoLost: true, byType: {} };
+  const l = ledger || { videos: 0, rows: [], orphans: 0, fullyHarvested: 0, partiallyHarvested: 0, avgPct: 0, fullyPct: 0, noVideoLost: true, byType: {}, transcribedVideos: 0 };
+
+  // Corpus wholeness (DR-0135): is what the app HOLDS everything the channel
+  // HAS? The 125-of-335 gap hid for weeks because nothing compared them.
+  const wholeness = corpusCoverage(l.rows);
+
+  // Sliding section tabs (Darrell 2026-07-04 / 2026-07-05): the KPI banner +
+  // stat strip stay PINNED above the strip (always visible — "no more down
+  // scrolling to see KPIs"); the long stacked content moves behind sections.
+  // All hooks stay at this top level; the render thunks are plain closures.
+  const sections = [
+    {
+      id: 'recordings',
+      label: 'Recordings',
+      icon: 'volume',
+      render: () => (
+        <>
+          {busy && <div className="text-[0.6875rem] text-[#B85838] mb-2" aria-live="polite">Saving…</div>}
+
+          {/* Corpus wholeness strip (DR-0135) — the channel-vs-app comparison
+              the 125-of-335 gap never had. Amber until whole; never silent.
+              CLASS tokens throughout: the old inline #FAF8F4 background stayed
+              cream under midnight while the class text tokens remapped light —
+              the washed-out box the 2026-08-05 review photographed. */}
+          <div
+            className={`border p-3 mb-3 bg-[#FAF8F4] ${wholeness.manifestReady && wholeness.missing.length === 0 ? 'border-[#5A6E3D]' : 'border-[#B85838]'}`}
+            role="status"
+          >
+            <p className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">Corpus wholeness — channel vs app</p>
+            <p className="text-[0.75rem] text-[#1A1815] leading-relaxed">
+              {wholeness.livePresent} service videos live in the app. {wholeness.note}
+            </p>
+          </div>
+
+          <RecordsLog
+            items={l.rows}
+            getDate={(v) => v.serviceDate}
+            getText={(v) => `${v.title || ''} ${v.serviceType || ''}`}
+            countNoun="recording"
+            about={HARVEST_ABOUT}
+            facets={[
+              { key: 'flag', label: 'coverage', getValue: (v) => (v.flag === 'orphan' ? 'orphans' : v.flag === 'partial' ? 'partial' : 'covered') },
+              { key: 'type', label: 'services', getValue: (v) => (v.serviceType === 'wednesday' ? 'Wednesday' : 'Sunday') },
+            ]}
+            renderRow={(v) => <VideoRow video={v} canEdit={!!access.canEdit} onRecord={onRecord} onNa={onNa} />}
+          />
+          <p className="mt-3 text-[0.6875rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
+            ✦ marks a harvest verified against real app data. The <span className="font-semibold not-italic">now</span> harvests — message, Scripture cited, worship songs, and the service event — are mined in-app the moment a recording is ingested. The <span className="font-semibold not-italic">caption</span> harvests — transcript, lessons, discernment, testimony, trivia — are mined from the service transcript, sourced automatically from the video’s YouTube auto-captions (no GPU). Whisper-on-NAS is only the fallback for a video that has no captions at all.
+          </p>
+        </>
+      ),
+    },
+    {
+      id: 'coverage',
+      label: 'Coverage by type',
+      icon: 'chart',
+      render: () => (
+        <div className="bg-white border border-[#E8E4DC] p-3 mb-4">
+          <div className="flex items-baseline justify-between gap-2 flex-wrap mb-2">
+            <p className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Harvest coverage across the corpus</p>
+            <p className="text-[0.625rem] text-[#5A5751]">
+              <span className="font-semibold" style={{ color: '#166534' }}>now</span> = mined the moment a recording lands ·
+              <span className="font-semibold" style={{ color: '#1D4ED8' }}> caption</span> = mined automatically from the video’s YouTube transcript (no GPU)
+            </p>
+          </div>
+          <div className="space-y-1">
+            {HARVEST_TYPES.map((t) => {
+              // count a partial harvest as progress too, so an auto type that
+              // lights partially (scripture / songs) still shows movement.
+              const bt = l.byType[t.key] || { complete: 0, partial: 0, none: 0, na: 0 };
+              const done = bt.complete + bt.partial * 0.5;
+              const pct = l.videos ? Math.round((done / l.videos) * 100) : 0;
+              const fromTranscript = FROM_TRANSCRIPT.has(t.key);
+              return (
+                <div key={t.key} className="flex items-center gap-2">
+                  <span className="text-[0.6875rem] text-[#1A1815] w-28 shrink-0 flex items-center gap-1" title={t.description}>
+                    <span className="truncate">{t.label}</span>
+                    <span
+                      className="text-[0.5rem] px-1 rounded leading-tight shrink-0"
+                      style={fromTranscript
+                        ? { color: '#1D4ED8', background: '#EFF4FF', border: '1px solid #1D4ED8' }
+                        : { color: '#166534', background: '#F0FAF1', border: '1px solid #166534' }}
+                      title={fromTranscript ? 'Mined automatically from the video’s YouTube auto-captions (no GPU). Whisper-on-NAS is the fallback for a video with no captions.' : 'Derived in-app the moment the recording is ingested.'}
+                    >{fromTranscript ? 'caption' : 'now'}</span>
+                  </span>
+                  <div className="flex-1 h-2 rounded" style={{ background: '#EFEBE3' }}><div className="h-2 rounded" style={{ width: `${pct}%`, background: fromTranscript ? '#1D4ED8' : '#5A6E3D' }} /></div>
+                  <span className="text-[0.625rem] text-[#5A5751] w-24 text-right shrink-0">{bt.complete}✓ {bt.partial}◐ {bt.none}·{bt.na ? ` ${bt.na}—` : ''}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ),
+    },
+    // Gated section — steward-only pipeline controls (RLS 0068 is the real wall);
+    // SectionTabs filters the falsy entry so nothing leaks to non-editors.
+    access?.canEdit ? {
+      id: 'pipeline',
+      label: 'Pipeline controls',
+      icon: 'tools',
+      render: () => <OpsAdminCard />,
+    } : null,
+  ];
 
   return (
     <div>
@@ -335,77 +443,48 @@ export default function HarvestLedger() {
         </div>
       ) : (
         <>
-          <div className="mb-3 p-3 border" style={{ borderColor: l.noVideoLost ? '#166534' : '#991B1B', background: l.noVideoLost ? '#F0FAF1' : '#FCEDEC' }}>
-            <div className="flex items-baseline justify-between gap-2 flex-wrap">
-              <span className="text-sm font-semibold" style={{ color: l.noVideoLost ? '#166534' : '#991B1B', fontFamily: '"Fraunces", serif' }}>
-                {l.noVideoLost ? '✓ No video lost — every ingested recording has been mined.' : `⚠ ${l.orphans} recording${l.orphans === 1 ? '' : 's'} not yet mined — content is being lost.`}
-              </span>
-              <span className="text-[11px] text-[#5A5751]">{l.fullyHarvested}/{l.videos} fully harvested · avg {l.avgPct}%</span>
-            </div>
-          </div>
+          {/* PINNED above the strip — the no-video-lost banner + the KPI strip
+              stay visible whichever section is open (Darrell 2026-07-07: "no
+              more down scrolling to see a surface with KPIs"). Three honest
+              states via ledgerBanner (surface-says-truth): green is reserved
+              for a corpus that is actually FULLY mined — an in-progress corpus
+              reads amber, never a victory lap. Inline bg + inline text stay
+              PAIRED (the light card reads AA in every theme); the sub-line is
+              inline too so it never remaps light onto the light band. */}
+          {(() => {
+            const banner = ledgerBanner(l);
+            const tone = banner.state === 'lost'
+              ? { border: '#991B1B', bg: '#FCEDEC', color: '#991B1B' }
+              : banner.state === 'done'
+                ? { border: '#166534', bg: '#F0FAF1', color: '#166534' }
+                : { border: '#B8893B', bg: '#FBF6EC', color: '#92400E' };
+            return (
+              <div className="mb-3 p-3 border" style={{ borderColor: tone.border, background: tone.bg }}>
+                <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                  <span className="text-sm font-semibold" style={{ color: tone.color, fontFamily: '"Fraunces", serif' }}>
+                    {banner.text}
+                  </span>
+                  <span className="text-[0.6875rem]" style={{ color: tone.color }}>
+                    {l.fullyHarvested}/{l.videos} fully harvested · avg {l.avgPct}% · {l.transcribedVideos ?? 0}/{l.videos} transcribed
+                  </span>
+                </div>
+              </div>
+            );
+          })()}
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-4">
             <Stat label="Videos ingested" value={l.videos} />
             <Stat label="Fully mined" value={l.fullyHarvested} tone="good" />
             <Stat label="Partly mined" value={l.partiallyHarvested} />
             <Stat label="Not yet mined" value={l.orphans} tone={l.orphans ? 'bad' : 'good'} />
+            {/* The stall signal the wiring promised the surface would show
+                (harvest-ledger.js transcribedVideos) — until 2026-08-05 it was
+                fetched and never rendered, so a month-long pipeline stall was
+                invisible in-app. */}
+            <Stat label="Transcribed" value={l.transcribedVideos ?? 0} tone={l.videos > 0 && l.transcribedVideos === l.videos ? 'good' : undefined} />
           </div>
 
-          <div className="bg-white border border-[#E8E4DC] p-3 mb-4">
-            <div className="flex items-baseline justify-between gap-2 flex-wrap mb-2">
-              <p className="text-[10px] uppercase tracking-wider text-[#5A5751]">Harvest coverage across the corpus</p>
-              <p className="text-[10px] text-[#5A5751]">
-                <span className="font-semibold" style={{ color: '#166534' }}>now</span> = mined the moment a recording lands ·
-                <span className="font-semibold" style={{ color: '#1D4ED8' }}> caption</span> = mined automatically from the video’s YouTube transcript (no GPU)
-              </p>
-            </div>
-            <div className="space-y-1">
-              {HARVEST_TYPES.map((t) => {
-                // count a partial harvest as progress too, so an auto type that
-                // lights partially (scripture / songs) still shows movement.
-                const bt = l.byType[t.key] || { complete: 0, partial: 0, none: 0, na: 0 };
-                const done = bt.complete + bt.partial * 0.5;
-                const pct = l.videos ? Math.round((done / l.videos) * 100) : 0;
-                const fromTranscript = FROM_TRANSCRIPT.has(t.key);
-                return (
-                  <div key={t.key} className="flex items-center gap-2">
-                    <span className="text-[11px] text-[#1A1815] w-28 shrink-0 flex items-center gap-1" title={t.description}>
-                      <span className="truncate">{t.label}</span>
-                      <span
-                        className="text-[8px] px-1 rounded leading-tight shrink-0"
-                        style={fromTranscript
-                          ? { color: '#1D4ED8', background: '#EFF4FF', border: '1px solid #1D4ED8' }
-                          : { color: '#166534', background: '#F0FAF1', border: '1px solid #166534' }}
-                        title={fromTranscript ? 'Mined automatically from the video’s YouTube auto-captions (no GPU). Whisper-on-NAS is the fallback for a video with no captions.' : 'Derived in-app the moment the recording is ingested.'}
-                      >{fromTranscript ? 'caption' : 'now'}</span>
-                    </span>
-                    <div className="flex-1 h-2 rounded" style={{ background: '#EFEBE3' }}><div className="h-2 rounded" style={{ width: `${pct}%`, background: fromTranscript ? '#1D4ED8' : '#5A6E3D' }} /></div>
-                    <span className="text-[10px] text-[#5A5751] w-24 text-right shrink-0">{bt.complete}✓ {bt.partial}◐ {bt.none}·{bt.na ? ` ${bt.na}—` : ''}</span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {access?.canEdit && <OpsAdminCard />}
-
-          {busy && <div className="text-[11px] text-[#B85838] mb-2" aria-live="polite">Saving…</div>}
-
-          <RecordsLog
-            items={l.rows}
-            getDate={(v) => v.serviceDate}
-            getText={(v) => `${v.title || ''} ${v.serviceType || ''}`}
-            countNoun="recording"
-            about={HARVEST_ABOUT}
-            facets={[
-              { key: 'flag', label: 'coverage', getValue: (v) => (v.flag === 'orphan' ? 'orphans' : v.flag === 'partial' ? 'partial' : 'covered') },
-              { key: 'type', label: 'services', getValue: (v) => (v.serviceType === 'wednesday' ? 'Wednesday' : 'Sunday') },
-            ]}
-            renderRow={(v) => <VideoRow video={v} canEdit={!!access.canEdit} onRecord={onRecord} onNa={onNa} />}
-          />
-          <p className="mt-3 text-[11px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
-            ✦ marks a harvest verified against real app data. The <span className="font-semibold not-italic">now</span> harvests — message, Scripture cited, worship songs, and the service event — are mined in-app the moment a recording is ingested. The <span className="font-semibold not-italic">caption</span> harvests — transcript, lessons, discernment, testimony, trivia — are mined from the service transcript, sourced automatically from the video’s YouTube auto-captions (no GPU). Whisper-on-NAS is only the fallback for a video that has no captions at all.
-          </p>
+          <SectionTabs sections={sections} ariaLabel="Harvest ledger sections" idBase="harvest" defaultId="recordings" />
         </>
       )}
     </div>

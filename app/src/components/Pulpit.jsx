@@ -37,6 +37,9 @@ import {
 } from '../lib/choir-sync.js';
 import { corpusPrep, speakerRoster, theWordTabs } from '../lib/pulpit-prep.js';
 import { extractYoutubeId } from '../lib/youtube-title-parse.js';
+import { parseYoutubeFeed } from '../lib/youtube-feed.js';
+import { COLG_DEFAULT_CHURCH } from '../lib/default-church.js';
+import GoLiveControl from './GoLiveControl.jsx';
 import { pointsForVideo, pointsSearchText } from '../lib/sermon-points.js';
 import { serviceKindLabel } from '../lib/service-day.js';
 import { sortByReactions, reactionsFor } from '../lib/reactions.js';
@@ -44,7 +47,7 @@ import { subscribeReactions, toggleReaction, fetchReactors } from '../lib/reacti
 import { churchInstanceId } from '../lib/church-instance.js';
 import ReactionBar from './ReactionBar.jsx';
 import HelpButton from './HelpButton.jsx';
-import { fetchPointsData, fetchVideoStats } from '../lib/sermon-library-sync.js';
+import { fetchPointsData, fetchPublicPoints, fetchVideoStats } from '../lib/sermon-library-sync.js';
 import Presenter from './Presenter.jsx';
 import RecordsLog from './RecordsLog.jsx';
 import { wordLibrary, messagePresentable } from '../lib/presentable.js';
@@ -123,7 +126,7 @@ function MessageForm({ initial, onSave, onCancel, busy, speakers = [] }) {
           <datalist id="pm-speaker-list">
             {speakers.map((sp) => <option key={sp.id} value={sp.canonicalName} />)}
           </datalist>
-          <p className="text-[9px] text-[#5A5751] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>Pick an existing name so the roster stays one person per preacher; a new name starts a new guest entry.</p>
+          <p className="text-[0.5625rem] text-[#5A5751] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>Pick an existing name so the roster stays one person per preacher; a new name starts a new guest entry.</p>
         </div>
         <div><label className={LABEL} htmlFor="pm-scr">Scripture</label><input id="pm-scr" className={FIELD} value={f.scriptureRef} onChange={set('scriptureRef')} placeholder="e.g. 1 Peter 5" /></div>
       </div>
@@ -237,25 +240,48 @@ function MessageRow({ sermon, canEdit, onEdit, onDelete, onReuse, points = null,
   return (
     <div className="p-3 border-b border-[#E8E4DC]">
       <div className="flex gap-3">
-        {/* Thumbnail — the consumer-video-library affordance; click to play inline. */}
-        {thumb && (
+        {/* Thumbnail — the consumer-video-library affordance; click to play inline.
+            When a message has NO video (e.g. it came from BG's emailed outline, not
+            a stream), render a PLACEHOLDER in the same slot instead of collapsing
+            the layout (Darrell 2026-07-14: "a video placeholder so the flow stays
+            the same and we can find potential lost videos"). Same shape on every
+            card; a message missing its video is now visible — and for leadership,
+            the placeholder is a one-tap way into Edit to attach the found video. */}
+        {thumb ? (
           <button type="button" onClick={play} aria-label={playing ? 'Hide video' : `Play ${sermon.title}`}
             className="relative shrink-0 w-28 sm:w-36 focus:outline focus:outline-2 focus:outline-[#B85838]">
             <img src={thumb} alt="" loading="lazy" className="w-full aspect-video object-cover border border-[#1A1815]" />
             <span aria-hidden className="absolute inset-0 flex items-center justify-center text-white text-lg" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}>{playing ? '▾' : '▶'}</span>
             {typeof rank === 'number' && <span className="absolute top-0 left-0 bg-[#1A1815] text-white text-[0.625rem] px-1.5 py-0.5" style={{ fontFamily: '"JetBrains Mono", monospace' }}>#{rank}</span>}
           </button>
+        ) : canEdit && onEdit ? (
+          <button type="button" onClick={() => onEdit(sermon)} aria-label={`No video attached — add one for ${sermon.title}`}
+            className="shrink-0 w-28 sm:w-36 aspect-video border border-dashed border-[#5A5751] bg-[#FAF8F4] flex flex-col items-center justify-center gap-0.5 hover:border-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">
+            <span aria-hidden className="text-[#5A5751] text-lg leading-none">▶</span>
+            <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">No video · add</span>
+          </button>
+        ) : (
+          <div aria-label="No video attached yet" className="shrink-0 w-28 sm:w-36 aspect-video border border-dashed border-[#5A5751] bg-[#FAF8F4] flex flex-col items-center justify-center gap-0.5">
+            <span aria-hidden className="text-[#5A5751] text-lg leading-none">▶</span>
+            <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">No video yet</span>
+          </div>
         )}
         <div className="min-w-0 flex-1">
-          <div className="flex items-baseline justify-between gap-2 flex-wrap">
-            <div className="flex items-baseline gap-2 flex-wrap">
-              <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{sermon.title}</span>
-              {sermon.status === 'draft' && <span className="text-[0.5625rem] uppercase tracking-wider bg-[#5A6E3D] text-white px-1.5 py-0.5">Draft</span>}
-              {sermon.scriptureRef && <span className="text-[0.6875rem] text-[#5A5751]">{sermon.scriptureRef}</span>}
-            </div>
-            <span className="text-[0.6875rem] text-[#5A5751]">{fmtDate(sermon.serviceDate)} · {serviceKindLabel(sermon.serviceType)}{sermon.serviceSlot ? ` ${sermon.serviceSlot}` : ''}</span>
+          {/* Title — always line 1. */}
+          <div className="flex items-baseline gap-2 flex-wrap">
+            <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{sermon.title}</span>
+            {sermon.status === 'draft' && <span className="text-[0.5625rem] uppercase tracking-wider bg-[#5A6E3D] text-white px-1.5 py-0.5">Draft</span>}
           </div>
-          {sermon.speaker && <p className="text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>{sermon.speaker}</p>}
+          {/* The FIXED "when · what · who" metadata line — SAME place on EVERY card so
+              the eye trains to one spot (Darrell 2026-07-14: "keep the same data format
+              for each video"). Never right-floated: justify-between moved the date to a
+              different line depending on title length. Always directly under the title,
+              in a fixed order — date · kind · slot · speaker · scripture. */}
+          <p className="text-[0.6875rem] text-[#5A5751] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>
+            {fmtDate(sermon.serviceDate)} · {serviceKindLabel(sermon.serviceType)}{sermon.serviceSlot ? ` ${sermon.serviceSlot}` : ''}
+            {sermon.speaker ? ` · ${sermon.speaker}` : ''}
+            {sermon.scriptureRef ? ` · ${sermon.scriptureRef}` : ''}
+          </p>
           {sermon.repreachSourceName && (
             <p className="text-[0.6875rem] text-[#5A6E3D]" style={{ fontFamily: '"Fraunces", serif' }}>
               ↻ Re-preached — original by {sermon.repreachSourceName}{sermon.repreachSourceTitle ? `: “${sermon.repreachSourceTitle}”` : ''}
@@ -309,7 +335,7 @@ function MessageRow({ sermon, canEdit, onEdit, onDelete, onReuse, points = null,
 // -----------------------------------------------------------------------------
 const LIB_SORTS = [['newest', 'Newest'], ['reacted', 'Most reacted'], ['viewed', 'Most viewed']];
 
-function LibraryPanel({ sermons, canEdit, onSave, onDelete, onReuse, onImport, busy, speakers = [], userKey, pointsBySermon = {}, reactionMap = {}, statsMap = {}, onReact = null, onShowWho = null, signedIn = false }) {
+function LibraryPanel({ sermons, canEdit, onSave, onDelete, onReuse, onImport, busy, speakers = [], userKey, pointsBySermon = {}, reactionMap = {}, statsMap = {}, onReact = null, onShowWho = null, signedIn = false, libLoading = false, libError = false, onRetry = null, justPosted = [] }) {
   const [form, setForm] = useState(null); // {initial}|null
   const [importMsg, setImportMsg] = useState('');
   const [sortMode, setSortMode] = useState('newest'); // newest | reacted (in-app, primary) | viewed (YouTube, secondary)
@@ -320,6 +346,7 @@ function LibraryPanel({ sermons, canEdit, onSave, onDelete, onReuse, onImport, b
     const r = await onImport();
     if (r?.imported >= 0 && r.imported !== undefined) setImportMsg(`Imported ${r.imported} new message(s) from the channel.`);
     else if (r?.skipped === 'no-key') setImportMsg('Add VITE_YOUTUBE_API_KEY (Vercel env) to enable channel import.');
+    else if (r?.skipped === 'api-error') setImportMsg(`YouTube API error — ${r?.detail || 'request failed'}. A 403 usually means the key's referrer restriction blocks this site, or "YouTube Data API v3" is not enabled for the key.`);
     else setImportMsg(`Import skipped (${r?.skipped || 'error'}).`);
   };
   // Display-dedupe (migration 0061 mirror): collapse the harvest's duplicate
@@ -414,6 +441,26 @@ function LibraryPanel({ sermons, canEdit, onSave, onDelete, onReuse, onImport, b
         </div>
       ))}
 
+      {/* JUST POSTED — the channel's newest uploads not yet in the archive
+          (live RSS union, DR-0061): visible the day they land on YouTube. */}
+      {justPosted.length > 0 && (
+        <div className="mb-3">
+          <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] mb-1">Just posted · joins the archive shortly</div>
+          <div className="bg-white border border-[#B85838] divide-y divide-[#E8E4DC]">
+            {justPosted.map((v) => (
+              <div key={v.videoId} className="p-2.5 flex items-center gap-3">
+                {v.thumbnail && <img src={v.thumbnail} alt="" className="w-20 h-12 object-cover shrink-0" loading="lazy" />}
+                <div className="min-w-0 flex-1">
+                  <div className="text-[0.8125rem] text-[#1A1815] truncate" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{v.title}</div>
+                  {v.published && <div className="text-[0.625rem] text-[#5A5751]">{new Date(v.published).toLocaleDateString()}</div>}
+                </div>
+                <a href={v.url} target="_blank" rel="noreferrer" className="text-[0.6875rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] whitespace-nowrap focus:outline focus:outline-2 focus:outline-[#B85838]">▶ Watch</a>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {canEdit && drafts.length > 0 && (
         <div className="mb-3">
           <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#5A6E3D] mb-1">In progress (private)</div>
@@ -423,7 +470,14 @@ function LibraryPanel({ sermons, canEdit, onSave, onDelete, onReuse, onImport, b
         </div>
       )}
 
-      {historyEnriched.length === 0 ? (
+      {libLoading ? (
+        <p className="text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>Loading the Word…</p>
+      ) : libError ? (
+        <div className="text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+          <p className="mb-1">The Word didn’t load — this is a connection hiccup, your messages are safe.</p>
+          <button type="button" onClick={() => onRetry && onRetry()} className={`${BTN} text-[#B85838] hover:text-[#1A1815]`}>↻ Retry</button>
+        </div>
+      ) : historyEnriched.length === 0 ? (
         <p className="text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>No messages yet.</p>
       ) : sortMode === 'newest' ? (
         // NEWEST — the office-like, date-grouped view (no death-scroll). Points
@@ -518,20 +572,20 @@ function MessagePicker({ library, onPick, onClose }) {
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 60, background: '#FAF8F4', color: '#1A1815', overflowY: 'auto', fontFamily: '"Fraunces", Georgia, serif' }} role="dialog" aria-label="Pick a message to present">
       <div style={{ position: 'sticky', top: 0, background: '#1A1815', color: '#FAF8F4', padding: '12px clamp(12px, 3vw, 28px)', display: 'flex', alignItems: 'center', gap: 12 }}>
-        <span style={{ fontSize: 11, letterSpacing: '0.3em', textTransform: 'uppercase', color: '#EBA77E', fontFamily: '"JetBrains Mono", monospace' }}>Present a message</span>
-        <strong style={{ fontFamily: '"Fraunces", serif', fontSize: 15 }}>Pick one to put on the screen</strong>
-        <button type="button" onClick={onClose} style={{ marginLeft: 'auto', cursor: 'pointer', fontFamily: '"JetBrains Mono", monospace', textTransform: 'uppercase', letterSpacing: '0.08em', minHeight: 40, padding: '8px 16px', border: '1px solid #B85838', background: 'transparent', color: '#FAF8F4', fontSize: 12 }}>Close ✕</button>
+        <span style={{ fontSize: '0.6875rem', letterSpacing: '0.3em', textTransform: 'uppercase', color: '#EBA77E', fontFamily: '"JetBrains Mono", monospace' }}>Present a message</span>
+        <strong style={{ fontFamily: '"Fraunces", serif', fontSize: '0.9375rem' }}>Pick one to put on the screen</strong>
+        <button type="button" onClick={onClose} style={{ marginLeft: 'auto', cursor: 'pointer', fontFamily: '"JetBrains Mono", monospace', textTransform: 'uppercase', letterSpacing: '0.08em', minHeight: 40, padding: '8px 16px', border: '1px solid #B85838', background: 'transparent', color: '#FAF8F4', fontSize: '0.75rem' }}>Close ✕</button>
       </div>
       <div style={{ maxWidth: 760, margin: '0 auto', padding: 'clamp(16px, 3vw, 28px)' }}>
-        <p style={{ fontSize: 13, color: '#5A5751', margin: '0 0 14px' }}>
+        <p style={{ fontSize: '0.8125rem', color: '#5A5751', margin: '0 0 14px' }}>
           Each message is its own presentation — newest first. {items.length} message{items.length === 1 ? '' : 's'}.
         </p>
-        {items.length === 0 && <p style={{ fontSize: 14, color: '#7A1F1F' }}>No published messages to present yet.</p>}
+        {items.length === 0 && <p style={{ fontSize: '0.875rem', color: '#7A1F1F' }}>No published messages to present yet.</p>}
         {items.map((m) => (
           <button key={m.id} type="button" onClick={() => onPick(m.id)}
             style={{ display: 'block', width: '100%', textAlign: 'left', cursor: 'pointer', border: '1px solid #E8E4DC', background: '#fff', color: '#1A1815', padding: '12px 14px', marginBottom: 10 }}>
-            <strong style={{ fontFamily: '"Fraunces", serif', fontSize: 16, display: 'block' }}>{m.title}</strong>
-            <span style={{ fontSize: 12, color: '#5A5751', fontFamily: '"JetBrains Mono", monospace' }}>
+            <strong style={{ fontFamily: '"Fraunces", serif', fontSize: '1rem', display: 'block' }}>{m.title}</strong>
+            <span style={{ fontSize: '0.75rem', color: '#5A5751', fontFamily: '"JetBrains Mono", monospace' }}>
               {m.dateLabel || 'date TBD'} · {m.dayLabel}{m.speaker ? ` · ${m.speaker}` : ''}{m.scriptureRef ? ` · ${m.scriptureRef}` : ''}
             </span>
           </button>
@@ -561,6 +615,25 @@ export default function Pulpit() {
   const [churchInstId, setChurchInstId] = useState(null); // resolved church instance for keying reactions
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
+  // The library load has THREE honest states, never a false "empty" (Darrell
+  // 2026-07-15): loading (fetch in flight) / error (fetch failed -> Retry) /
+  // loaded (only then does an empty list mean "No messages yet."). reloadKey
+  // re-fires the load for Retry.
+  const [libLoading, setLibLoading] = useState(true);
+  const [libError, setLibError] = useState(false);
+  // Live channel top-up (Darrell 2026-07-23: "historical YouTube videos should
+  // be popping onto the Word Tab... right away"). The archive imports ONLY when
+  // a manager tapped "Import from channel" — nobody tapped it after Jul 8, so
+  // two weeks of videos showed on the live Church feed but not here. Two closes:
+  //  1) EVERYONE sees the channel's newest uploads immediately: the same no-key
+  //     RSS the Church tab reads (same-origin /api/church-recent) unions in as
+  //     "just posted" cards for videos the archive doesn't hold yet. Live view
+  //     first (DR-0061); degrades to nothing on any failure.
+  //  2) A MANAGER's visit refreshes the archive itself automatically (throttled,
+  //     idempotent importSermonsFromChannel) — the button stays, the tap is no
+  //     longer load-bearing. (The P30 class: a queue is worked, not stored.)
+  const [channelFresh, setChannelFresh] = useState([]);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => onAuthChange((s) => { setSignedIn(!!s); setEmail(s?.user?.email || ''); }), []);
 
@@ -573,18 +646,59 @@ export default function Pulpit() {
   }, [signedIn]);
 
   // Leadership streams the table (all messages incl. drafts + the private docs).
+  // The load reports its state so a fetch that fails/hasn't-arrived shows Loading
+  // or Retry, never a false "No messages yet." (Darrell 2026-07-15).
   useEffect(() => {
     if (!canManage) return undefined;
-    const unsubs = [subscribeSermons(setSermons), subscribeSermonDocuments(setSermonDocs), subscribeSpeakers(setSpeakers)];
+    setLibLoading(true); setLibError(false);
+    const onSermons = (rows) => { setSermons(rows); setLibLoading(false); setLibError(false); };
+    const onLoadError = () => { setLibError(true); setLibLoading(false); };
+    const unsubs = [subscribeSermons(onSermons, onLoadError), subscribeSermonDocuments(setSermonDocs), subscribeSpeakers(setSpeakers)];
     return () => unsubs.forEach((u) => { try { u && u(); } catch { /* noop */ } });
-  }, [canManage]);
+  }, [canManage, reloadKey]);
 
   // EVERYONE ELSE (incl. signed-out / unchurched) gets the PUBLIC library via the
   // RPC — published messages only, RLS/SECURITY-DEFINER enforced, no drafts/prep.
   useEffect(() => {
     if (canManage) return undefined; // leadership uses the richer table view
     let alive = true;
-    fetchPublicSermons().then((rows) => { if (alive) setPublicSermons(Array.isArray(rows) ? rows : []); });
+    setLibLoading(true); setLibError(false);
+    fetchPublicSermons()
+      .then((rows) => { if (alive) { setPublicSermons(Array.isArray(rows) ? rows : []); setLibLoading(false); } })
+      .catch(() => { if (alive) { setLibError(true); setLibLoading(false); } });
+    return () => { alive = false; };
+  }, [canManage, reloadKey]);
+
+  // LIVE CHANNEL TOP-UP — everyone, no key: the channel's newest uploads from
+  // the same-origin RSS proxy, so a video shows here the day it lands on
+  // YouTube even before the archive import runs. Failure degrades to nothing.
+  useEffect(() => {
+    let alive = true;
+    const ch = (COLG_DEFAULT_CHURCH.youtubeChannelId || '').trim();
+    if (!/^UC[A-Za-z0-9_-]{22}$/.test(ch)) return undefined;
+    fetch(`/api/church-recent?channel=${encodeURIComponent(ch)}`)
+      .then((r) => (r.ok ? r.text() : ''))
+      .then((xml) => { if (alive) setChannelFresh(parseYoutubeFeed(xml, 8)); })
+      .catch(() => { if (alive) setChannelFresh([]); });
+    return () => { alive = false; };
+  }, [reloadKey]);
+
+  // MANAGER AUTO-REFRESH of the archive — the import the button used to gate,
+  // fired on a manager's visit instead, throttled to once per 6h per device
+  // (the budget brake; the importer itself is idempotent by video_id and
+  // honest-skips without a key). Success reloads the list in place.
+  useEffect(() => {
+    if (!canManage) return undefined;
+    const STAMP = 'poetech-sermon-autoimport-at';
+    try {
+      const last = Date.parse(localStorage.getItem(STAMP) || '') || 0;
+      if (Date.now() - last < 6 * 3600000) return undefined;
+      localStorage.setItem(STAMP, new Date().toISOString());
+    } catch { return undefined; }
+    let alive = true;
+    importSermonsFromChannel()
+      .then((r) => { if (alive && r && r.imported > 0) setReloadKey((k) => k + 1); })
+      .catch(() => { /* the button + its error surface remain the manual path */ });
     return () => { alive = false; };
   }, [canManage]);
 
@@ -595,13 +709,26 @@ export default function Pulpit() {
   // points fall back to title scriptures, reactions read as no-signal-yet — and
   // never throws. Signed-out skips it. Points/reactions come alive as data lands.
   useEffect(() => {
-    if (!signedIn) {
-      setPointsData({ prepBySermon: {}, transcriptsByVideo: {}, harvestsByVideo: {} });
-      setReactionMap({}); setStatsMap({}); setChurchInstId(null);
-      return undefined;
-    }
     let alive = true;
-    fetchPointsData().then((d) => { if (alive) setPointsData(d || { prepBySermon: {}, transcriptsByVideo: {}, harvestsByVideo: {} }); });
+    // PUBLIC teaching outline — EVERYONE (signed in or not) sees the published key
+    // points + scriptures via the SECURITY DEFINER RPC (0101). The prep table
+    // itself is leadership-only; this is the public window, no notes, no drafts.
+    fetchPublicPoints().then((prep) => { if (alive) setPointsData((cur) => ({ ...cur, prepBySermon: prep || {} })); });
+    if (!signedIn) {
+      setReactionMap({}); setStatsMap({}); setChurchInstId(null);
+      return () => { alive = false; };
+    }
+    // Signed-in enrichment: transcripts/harvests (RLS-gated), YouTube stats,
+    // reactions. Leadership's own prep read (incl. drafts) overlays the public
+    // outline for the management view; a non-leader's prep read is {} (harmless).
+    fetchPointsData().then((d) => {
+      if (!alive || !d) return;
+      setPointsData((cur) => ({
+        prepBySermon: { ...cur.prepBySermon, ...(d.prepBySermon || {}) },
+        transcriptsByVideo: d.transcriptsByVideo || {},
+        harvestsByVideo: d.harvestsByVideo || {},
+      }));
+    });
     fetchVideoStats().then((m) => { if (alive) setStatsMap(m || {}); });
     let unsub = null;
     churchInstanceId(email).then((id) => {
@@ -723,6 +850,15 @@ export default function Pulpit() {
           control. A duplicate per-module stepper used to live here; removed so there
           is one control to learn, not two that look the same. */}
 
+      {/* SectionTabs harmonization (2026-07-07, sliding-tabs pass): this strip
+          stays the hand-rolled TabScroll ON PURPOSE — `tab` is WRITTEN
+          programmatically outside the strip (onReuse jumps back to 'library'
+          after a re-preach), which the uncontrolled SectionTabs cannot do; the
+          tab ids come from the unit-tested access rule theWordTabs() (public
+          library vs leadership prep — RLS-mirrored); and DR-0079 plans a future
+          "Sermon Stories" sub-tab on these SAME stable ids. It already rides the
+          shared TabScroll primitive, so the overflow/consistency guards hold.
+          For non-leadership there is one tab and no strip renders at all. */}
       {tabs.length > 1 && (
         <TabScroll className="mb-3">
           {tabs.map(([id, label]) => (
@@ -740,10 +876,32 @@ export default function Pulpit() {
           <button
             type="button"
             onClick={() => { setPresentId(null); setPresenting(true); }}
-            className="text-[10px] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+            className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
           >
             ▶ Present a message (pick + class screen)
           </button>
+        </div>
+      )}
+
+      {/* GO LIVE (DR-0334). The ONLY thing in the app allowed to announce a
+          service to the congregation's phones. church-live.js computes a
+          schedule-window `live` flag and says in its own header that it cannot
+          truthfully detect live state; a wrong badge is small, but that same
+          guess pushed into pockets is not, and a phone cannot be un-buzzed. So
+          this is a DECLARATION by someone who knows. Leadership only here, and
+          the database checks the roster again on the write. Renders nothing
+          without a resolved church instance. */}
+      {tab === 'library' && canManage && (
+        <div className="mb-3">
+          <GoLiveControl
+            instanceId={churchInstId}
+            /* COLG_DEFAULT_CHURCH carries no id/slug/key — measured, not
+               assumed — so the stable identifier available is the channel id.
+               church_live_state is keyed (instance_id, church_id), and this is
+               a real present value rather than a literal invented here. */
+            churchId={COLG_DEFAULT_CHURCH.youtubeChannelId}
+            churchName={COLG_DEFAULT_CHURCH.name}
+          />
         </div>
       )}
 
@@ -754,6 +912,9 @@ export default function Pulpit() {
           onReact={onReact} onShowWho={onShowWho} signedIn={signedIn}
           onSave={onSave} onDelete={onDelete} onReuse={onReuse}
           onImport={canManage ? (() => importSermonsFromChannel()) : null}
+          justPosted={channelFresh.filter((v) => v.videoId && !libraryItems.some((s) => videoIdOf(s) === v.videoId))}
+          libLoading={libLoading} libError={libError}
+          onRetry={() => { setLibError(false); setLibLoading(true); setReloadKey((k) => k + 1); }}
         />
       )}
 
@@ -765,4 +926,4 @@ export default function Pulpit() {
   );
 }
 
-export { Pulpit };
+export { Pulpit, MessageRow };

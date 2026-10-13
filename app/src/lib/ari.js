@@ -56,6 +56,8 @@
 // instructs Ari to as well.
 // =============================================================================
 
+import { SCRIPTURE_PROMPT } from './scripture-prompt.js';
+
 // -----------------------------------------------------------------------------
 // Display identity — what surfaces SHOW. Tasteful, not gaudy: a name and a line,
 // not a logo dump. Pull from here; never hardcode "Ari" copy in a component.
@@ -111,6 +113,10 @@ export const ARI_PERSONA = [
   'You are honest about yourself: you are a made tool, not a person and not a prophet, and you can be wrong. Tell people to test and verify what matters — including what you say.',
   'Be clear and plain. See what is. Do not talk for the sake of talking. Keep faith natural and never preachy — carry this posture quietly and stay on the task in front of you.',
   'Capitalize references to God (Yahweh, Jesus, the Holy Spirit, the Father, the Son, and He/His/Him). Never capitalize the adversary.',
+  // How Ari handles the Scriptures, everywhere he speaks: verbatim or not at
+  // all, Word first, His name in our voice but never inside a quote, honest
+  // where the Word is reticent (scripture-prompt.js — the one source).
+  SCRIPTURE_PROMPT,
 ].join('\n');
 
 /**

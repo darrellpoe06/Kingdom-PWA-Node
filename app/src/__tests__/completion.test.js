@@ -85,9 +85,15 @@ describe('persistentShare + moduleLedger — read the committed measured JSON', 
     expect(typeof s.current).toBe('number');
     expect(s.baseline).toBe(12.6);      // Darrell's fixed baseline
     expect(s.target).toBe(20);
-    // the measured current sits near the baseline today (the counter is real)
+    // The counter is REAL, not painted — so it moves, and the assertion has to
+    // describe the counter rather than one day's reading. The old `< 16` was a
+    // snapshot of 2026-08-13 (13.65%); re-measuring on 2026-08-26 read 19.23%
+    // — the sovereign Python + SQL layers grew toward the 20% target, which is
+    // the direction this number exists to show. Bounds now say "a plausible
+    // real measurement," and the equality check below is what proves the value
+    // is the committed measurement rather than a literal someone typed.
     expect(s.current).toBeGreaterThan(10);
-    expect(s.current).toBeLessThan(16);
+    expect(s.current).toBeLessThan(40);
     expect(s.sub).toHaveProperty('sql');
     expect(s.sub).toHaveProperty('python');
   });

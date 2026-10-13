@@ -1,5 +1,5 @@
 // =============================================================================
-// nas-photos — live photo reads from the family NAS (wf-property-photos)
+// nas-photos — live photo reads from the family NAS (sovereign photo server)
 // =============================================================================
 // 2026-06-12, Darrell: "the images are already there for each rental and my
 // home... why should I [file them] when you can start it — I'll adjust after."
@@ -12,7 +12,7 @@
 // per-photo exception (the existing flows).
 //
 // Bridge contract (wf-property-photos, live on the NAS):
-//   GET /n8n/webhook/property-photos?channel=<name>&limit=N&offset=M
+//   GET the retired n8n property-photos webhook (channel,limit,offset)
 //   Authorization: Bearer <poetech-chat-bridge-token>   (per-device token)
 //   -> { photos: [{ id, thumb, date, text }] }
 //
@@ -21,10 +21,16 @@
 // sanitized upload workflow (wf-photo-upload) writes a photo to the family's
 // own NAS, so every family device's gallery loads the same shared, backed-up
 // pictures live-from-NAS instead of one phone's localStorage.
-//   POST /n8n/webhook/photo-upload
+//   POST /nas-photos/upload
 //   Authorization: Bearer <token>
 //   { dest: 'family'|<property-channel>, filename, dataUrl } -> { ok, id }
-//   GET /n8n/webhook/family-photos?limit=N -> { photos: [...] }   (read back)
+//   GET /nas-photos/family-photos?limit=N -> { photos: [...] }   (read back)
+//
+// 2026-07-21 (DR-0218 zero-n8n): the family + album reads joined the property
+// reads on the SOVEREIGN Python image server (`/nas-photos`, photo_server.py) —
+// no n8n webhook anywhere in the photo path. family-photos lists the sovereign
+// upload folder; album-photos is served honestly-empty until the Synology Photos
+// service-account lane ships.
 // =============================================================================
 
 export const CHAT_BRIDGE_TOKEN_KEY = 'poetech-chat-bridge-token';
@@ -32,16 +38,30 @@ export const CHAT_BRIDGE_TOKEN_KEY = 'poetech-chat-bridge-token';
 // Property photos are served by the SOVEREIGN PYTHON IMAGE SERVER on the NAS
 // (infra/nas-property-photos/photo_server.py) via the same-origin `/nas-photos`
 // Vercel rewrite -> Tailscale-fronted NAS. This REPLACED the old n8n bridge
-// (/n8n/webhook/property-photos) after the 2026-07-01 regression: the count
+// (the retired n8n property-photos webhook) after the 2026-07-01 regression: the count
 // (psql, live) kept working while every thumbnail came back null, because the
 // old n8n->SSH->resolver chain's thumbnail-path assumption drifted. One
 // deterministic Python process now owns the whole path -- no n8n hop. The
 // wire contract is unchanged: { count, total, photos:[{id,date,name,text,thumb}] }.
-// (family/album galleries are separate workflows and still ride `/n8n`.)
+// (The family/album galleries ride this same /nas-photos base too — no n8n
+// anywhere on the photo path; DR-0617.)
 export const NAS_PHOTO_BASE = '/nas-photos';
 
 export function propertyPhotosUrl(channel, { limit = 24, offset = 0 } = {}) {
   return `${NAS_PHOTO_BASE}/property-photos?channel=${encodeURIComponent(channel)}&limit=${limit}&offset=${offset}`;
+}
+
+// Family gallery + curated-album reads join the SAME sovereign `/nas-photos`
+// server (DR-0218 zero-n8n): /family-photos lists the photos the sovereign upload
+// path wrote back; /album-photos is served honestly-empty until the Synology
+// Photos service-account lane ships. Both are relative same-origin paths, never
+// an n8n webhook — matching propertyPhotosUrl, so a stray edit can't route them
+// back through /n8n (the 2026-07-01 regression class).
+export function familyPhotosUrl({ limit = 12 } = {}) {
+  return `${NAS_PHOTO_BASE}/family-photos?limit=${limit}`;
+}
+export function albumPhotosUrl(album, { limit = 60 } = {}) {
+  return `${NAS_PHOTO_BASE}/album-photos?album=${encodeURIComponent(album)}&limit=${limit}`;
 }
 
 export function bridgeToken() {
@@ -50,6 +70,21 @@ export function bridgeToken() {
 
 export function hasBridgeToken() {
   return !!bridgeToken();
+}
+
+// Set (or clear) the NAS photo-bridge token on THIS device (Darrell 2026-07-18:
+// "the bridge needs wiring"). Once set, uploadPhoto() authenticates and new
+// photos flow to the NAS instead of piling up in localStorage. Per-device by
+// design (the token is a device credential, never synced). A blank/whitespace
+// value clears it. Returns the trimmed token that is now in effect ('' if
+// cleared). Trims + length-caps so a stray paste can't store garbage.
+export function setBridgeToken(token) {
+  const clean = String(token || '').trim().slice(0, 512);
+  try {
+    if (clean) localStorage.setItem(CHAT_BRIDGE_TOKEN_KEY, clean);
+    else localStorage.removeItem(CHAT_BRIDGE_TOKEN_KEY);
+  } catch (_) { /* private mode / quota — non-fatal, the field just won't persist */ }
+  return clean;
 }
 
 // Map a property to its Synology Chat channel name (the project-base channels
@@ -111,7 +146,7 @@ export async function fetchFamilyPhotos({ limit = 12 } = {}) {
   const token = bridgeToken();
   if (!token) return null;
   try {
-    const resp = await fetch(`/n8n/webhook/family-photos?limit=${limit}`, {
+    const resp = await fetch(familyPhotosUrl({ limit }), {
       headers: { authorization: `Bearer ${token}` },
     });
     if (!resp.ok) return null;
@@ -134,9 +169,10 @@ export async function fetchFamilyPhotos({ limit = 12 } = {}) {
 // Served-not-surveilled: thumbnails fetched live per visit, never copied to the
 // device. Same bearer-token + fail-quiet contract as the family/property reads.
 //
-// Bridge contract (wf-album-photos, NAS-side — pending, owned by the Synology
-// Photos source lane):
-//   GET /n8n/webhook/album-photos?album=<name>&limit=N
+// Bridge contract (album read, NAS-side — the Synology Photos service-account
+// integration is pending; the sovereign server answers honestly-empty until it
+// ships, DR-0218 zero-n8n):
+//   GET /nas-photos/album-photos?album=<name>&limit=N
 //   Authorization: Bearer <poetech-chat-bridge-token>
 //   -> { photos: [{ id, thumb, date, text }] }
 //
@@ -192,7 +228,7 @@ export async function fetchAlbumPhotos(album, { limit = 60 } = {}) {
   const token = bridgeToken();
   if (!token || !album || !isValidAlbum(album)) return null;
   try {
-    const resp = await fetch(`/n8n/webhook/album-photos?album=${encodeURIComponent(album)}&limit=${limit}`, {
+    const resp = await fetch(albumPhotosUrl(album, { limit }), {
       headers: { authorization: `Bearer ${token}` },
     });
     if (!resp.ok) return null;
@@ -204,7 +240,29 @@ export async function fetchAlbumPhotos(album, { limit = 60 } = {}) {
   }
 }
 
-// Upload one photo (a compressed data URL) to the NAS. Returns { ok } | null.
+// THE ORIGINAL GOES TO THE NAS WHEN IT FITS (Darrell 2026-09-23: "There's no
+// path to upload photos from my cellphone to the nas!!!!! ... I should be able
+// to back up my phone"). There was a path — Big Picture › Life Gallery — but it
+// sent a 1600px/0.75 JPEG re-encode of every photo, which is a preview, not a
+// backup. The sovereign photo server takes up to MAX_UPLOAD_BYTES of decoded
+// image (photo_server.py:129, 8 MiB) and decides the type from the bytes'
+// magic number (jpg / png / webp only). So the plan is pure and honest: the
+// original bytes when they fit and are a type the server keeps; the reduced
+// copy otherwise, with the reason named so the note can say it.
+export const NAS_UPLOAD_MAX_BYTES = 8 * 1024 * 1024;
+const NAS_KEPT_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+
+export function uploadPlan(file, { maxBytes = NAS_UPLOAD_MAX_BYTES } = {}) {
+  const size = file && Number.isFinite(file.size) ? file.size : 0;
+  const type = String((file && file.type) || '').toLowerCase();
+  if (!size) return { mode: 'reduced', reason: 'unknown-size' };
+  if (!NAS_KEPT_TYPES.includes(type)) return { mode: 'reduced', reason: 'type-not-kept' };
+  if (size > maxBytes) return { mode: 'reduced', reason: 'too-large' };
+  return { mode: 'original', reason: 'fits' };
+}
+
+// Upload one photo (a data URL — the original when it fits, see uploadPlan)
+// to the NAS. Returns { ok } | null.
 // dest defaults to the shared family gallery. The caller falls back to
 // device-local storage when this returns null (no token, offline, rejected) —
 // the NAS is the better home, but a photo is never lost for lack of it.
@@ -214,7 +272,9 @@ export async function uploadPhoto(dataUrl, { dest = 'family', filename = '' } = 
   // Keep the name to image chars only; the workflow re-sanitizes.
   const safeName = (filename || `photo-${Date.now()}.jpg`).replace(/[^A-Za-z0-9._-]/g, '_').slice(0, 80);
   try {
-    const resp = await fetch('/n8n/webhook/photo-upload', {
+    // Sovereign Python photo server (same-origin /nas-photos rewrite), NOT n8n —
+    // the write path now matches the read path (Ways: Python-first, off n8n).
+    const resp = await fetch(`${NAS_PHOTO_BASE}/upload`, {
       method: 'POST',
       headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
       body: JSON.stringify({ dest, filename: safeName, dataUrl }),

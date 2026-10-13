@@ -6,10 +6,6 @@
     "components/BooksAccounts.jsx": [
       "inline-dark-text|#1f6feb|midnight/card"
     ],
-    "components/Bookstore.jsx": [
-      "inline-dark-text|#216e39|midnight/card",
-      "inline-dark-text|#216e39|midnight/card"
-    ],
     "components/BooksTransactions.jsx": [
       "inline-dark-text|#1f6feb|midnight/card",
       "inline-dark-text|#db4444|midnight/card"
@@ -25,37 +21,6 @@
       "inline-dark-text|#b85838|midnight/card",
       "inline-dark-text|#b85838|midnight/card"
     ],
-    "components/CreationWorkspace.jsx": [
-      "inline-dark-text|#1a1815|midnight/card",
-      "inline-dark-text|#1a1815|midnight/card",
-      "inline-dark-text|#1a1815|midnight/card",
-      "inline-dark-text|#1a1815|midnight/card",
-      "inline-dark-text|#1a1815|midnight/card",
-      "inline-dark-text|#1a1815|midnight/card",
-      "inline-dark-text|#1a1815|midnight/card",
-      "inline-dark-text|#1a1815|midnight/card",
-      "inline-dark-text|#1a1815|midnight/card",
-      "inline-dark-text|#1a1815|midnight/card",
-      "inline-dark-text|#1a1815|midnight/card",
-      "inline-dark-text|#3f7a4f|midnight/card",
-      "inline-dark-text|#5a5751|midnight/card",
-      "inline-dark-text|#5a5751|midnight/card",
-      "inline-dark-text|#5a5751|midnight/card",
-      "inline-dark-text|#5a5751|midnight/card",
-      "inline-dark-text|#5a5751|midnight/card",
-      "inline-dark-text|#5a5751|midnight/card",
-      "inline-dark-text|#5a5751|midnight/card",
-      "inline-dark-text|#5a5751|midnight/card",
-      "inline-dark-text|#5a5751|midnight/card",
-      "inline-dark-text|#5a5751|midnight/card",
-      "inline-dark-text|#5a6e3d|midnight/card",
-      "inline-dark-text|#b85838|midnight/card",
-      "inline-dark-text|#b85838|midnight/card",
-      "inline-dark-text|#b85838|midnight/card",
-      "inline-dark-text|#b85838|midnight/card",
-      "inline-dark-text|#b85838|midnight/card",
-      "inline-dark-text|#b85838|midnight/card"
-    ],
     "components/EventCenterModule.jsx": [
       "inline-dark-text|#5a6e3d|midnight/card",
       "inline-dark-text|#b85838|midnight/card"
@@ -64,9 +29,7 @@
       "inline-dark-text|#1a1815|midnight/card",
       "inline-dark-text|#2f6b3a|midnight/card",
       "inline-dark-text|#2f6b3a|midnight/card",
-      "inline-dark-text|#2f6b3a|midnight/card",
       "inline-dark-text|#5a5751|midnight/card",
-      "inline-dark-text|#9b2c2c|midnight/card",
       "inline-dark-text|#9b2c2c|midnight/card",
       "inline-dark-text|#9b2c2c|midnight/card",
       "inline-dark-text|#9b2c2c|midnight/card"
@@ -75,23 +38,9 @@
       "inline-dark-text|#166534|midnight/card",
       "inline-dark-text|#166534|midnight/card",
       "inline-dark-text|#166534|midnight/card",
-      "inline-dark-text|#166534|midnight/card",
       "inline-dark-text|#1d4ed8|midnight/card",
       "inline-dark-text|#92400e|midnight/card",
-      "inline-dark-text|#991b1b|midnight/card"
-    ],
-    "components/Imported.jsx": [
-      "inline-dark-text|#166534|midnight/card",
-      "inline-dark-text|#166534|midnight/card",
-      "inline-dark-text|#166534|midnight/card",
-      "inline-dark-text|#166534|midnight/card",
-      "inline-dark-text|#166534|midnight/card",
-      "inline-dark-text|#b85838|midnight/card",
-      "inline-dark-text|#b85838|midnight/card",
-      "inline-dark-text|#b85838|midnight/card",
-      "inline-dark-text|#b85838|midnight/card",
-      "inline-dark-text|#b85838|midnight/card",
-      "inline-dark-text|#b85838|midnight/card"
+      "inline-dark-text|#92400e|midnight/card"
     ],
     "components/Inbound.jsx": [
       "inline-dark-text|#1f6feb|midnight/card",
@@ -105,6 +54,7 @@
       "inline-dark-text|#1a1815|midnight/card",
       "inline-dark-text|#1a1815|midnight/card",
       "inline-dark-text|#1a1815|midnight/card",
+      "inline-dark-text|#1a1815|midnight/card",
       "inline-dark-text|#5a5751|midnight/card",
       "inline-dark-text|#5a5751|midnight/card",
       "inline-dark-text|#5a5751|midnight/card",
@@ -120,6 +70,12 @@
       "inline-dark-text|#5a5751|midnight/card",
       "inline-dark-text|#5a5751|midnight/card",
       "inline-dark-text|#5a5751|midnight/card",
+      "inline-dark-text|#5a5751|midnight/card",
+      "inline-dark-text|#5a5751|midnight/card",
+      "inline-dark-text|#5a5751|midnight/card",
+      "inline-dark-text|#5a5751|midnight/card",
+      "inline-dark-text|#5a6e3d|midnight/card",
+      "inline-dark-text|#5a6e3d|midnight/card",
       "inline-dark-text|#5a6e3d|midnight/card",
       "inline-dark-text|#5a6e3d|midnight/card",
       "inline-dark-text|#5a6e3d|midnight/card",
@@ -152,9 +108,7 @@
       "inline-dark-text|#b85838|midnight/card"
     ],
     "poe-financial-mvp-v28.jsx": [
-      "inline-dark-text|#1a1815|midnight/card",
-      "inline-dark-text|#5a5751|midnight/card",
-      "inline-dark-text|#b85838|midnight/card"
+      "inline-dark-text|#1a1815|midnight/card"
     ]
   }
 }

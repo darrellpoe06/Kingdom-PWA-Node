@@ -1,0 +1,39 @@
+# mcp-health — the outside-in liveness probe for the sovereign MCP server
+# (DR-0244). The cloud sandbox has NO route to the NAS/Funnel; the runner is
+# the team's eye (the site-health pattern, DR-0125). Dispatch-only.
+#
+# The probe carries NO token (the token never leaves the NAS): a live server
+# answers an unauthenticated request with 401/403 (up + enforcing auth — the
+# healthy signal), or 200 only if auth were unset (flagged loudly as a
+# misconfig). 000/404/5xx means not serving yet (e.g. the services-sync loop
+# has not ticked since the manifest merge) — reported honestly, never dressed
+# as "live" (DR-0076: unknown never reads as healthy).
+name: mcp-health
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Probe /mcp via the Funnel (unauthenticated discover)
+        run: |
+          set -u
+          URL="https://poetech.tail5a2f35.ts.net/mcp"
+          CODE=$(curl -sS -o /tmp/body -w '%{http_code}' --max-time 20 \
+            -X POST "$URL" \
+            -H 'MCP-Protocol-Version: 2026-07-28' \
+            -H 'Mcp-Method: server/discover' \
+            -H 'Content-Type: application/json' \
+            -d '{"jsonrpc":"2.0","id":1,"method":"server/discover"}' 2>&1) || CODE=000
+          echo "HTTP $CODE from $URL"
+          head -c 400 /tmp/body || true; echo ""
+          case "$CODE" in
+            401|403) echo "RESULT: LIVE — server up and refusing unauthenticated calls (correct posture)"; exit 0 ;;
+            200)     echo "RESULT: UP BUT UNAUTHENTICATED 200 — auth appears unset; investigate the token stamp"; exit 1 ;;
+            *)       echo "RESULT: NOT SERVING (HTTP $CODE) — services-sync may not have ticked yet, or Caddy /mcp route absent"; exit 1 ;;
+          esac

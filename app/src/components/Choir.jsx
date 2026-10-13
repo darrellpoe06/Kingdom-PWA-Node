@@ -17,21 +17,27 @@
 // labelled inputs, visible #B85838 focus outline, aria-live on the thread.
 // =============================================================================
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { SectionTitle, TabScroll } from './shared.jsx';
+import { SectionTitle } from './shared.jsx';
+import SectionTabs from './SectionTabs.jsx';
 import ChoirSongWorkshop from './ChoirSongWorkshop.jsx';
 import ChoirSongbook from './ChoirSongbook.jsx';
 import { onAuthChange } from '../lib/supabase.js';
 import {
   getChoirAccess, youtubeEmbedUrl, youtubeTimedUrl, parseTimecode, formatTimecode,
-  sortServices, songsForService, buildPastServices, weekBucket, isOutOnDate, suggestBackups,
+  sortServices, songsForService, buildPastServices, weekBucket, isOutOnDate, suggestBackups, backupsAreCrossSection, canRespondToBackup,
   subscribeSongs, subscribeSchedule, subscribeSermons, subscribeMembers, subscribeChoirMessages, subscribeAbsences,
   subscribeResources, subscribeTeamDocuments, saveTeamDocument, deleteTeamDocument, openTeamDocument,
   saveSong, deleteSong, reuseSong, distinctSongCatalog, saveService, deleteService, addMember, removeMember, sendChoirMessage,
   saveAbsence, deleteAbsence, respondToBackup,
   saveResource, deleteResource,
-  inviteToChurch, classifyUpload,
+  inviteToChurch, subscribeChurchInvites, sortInvites, deriveInviteStatus, classifyUpload,
+  mintClaimCode, claimChoirMember, getMyChoirMembership, normalizeClaimCode, updateChoirRole,
 } from '../lib/choir-sync.js';
+import { listInstanceMembers, setMemberRole, grantableRoles, roleLabel as instanceRoleLabel } from '../lib/member-roles.js';
 import { serviceDayLabel } from '../lib/service-day.js';
+import { extractHeardQuote, draftWordsFromTranscript } from '../lib/choir-words.js';
+import { isAutoDraft } from '../lib/ari-words-training.js';
+import { fetchTranscriptsByVideo } from '../lib/sermon-library-sync.js';
 import { compressImageFile, fileToDataUrl } from '../lib/image.js';
 
 const ROLE_OPTS = [['member', 'Member'], ['assistant', 'Assistant director'], ['director', 'Director'], ['musician', 'Musician'], ['sound', 'Sound'], ['media', 'Media'], ['tech', 'Tech']];
@@ -51,12 +57,23 @@ const LABEL = 'text-[0.5625rem] uppercase tracking-wider text-[#5A5751] block mb
 // -----------------------------------------------------------------------------
 // Song display (link + collapsible embedded video)
 // -----------------------------------------------------------------------------
-function SongRow({ song, canEdit, onEdit, onDelete, onReuse }) {
+function SongRow({ song, canEdit, onEdit, onDelete, onReuse, onDraftWords }) {
   const [open, setOpen] = useState(false);
   const [wordsOpen, setWordsOpen] = useState(false);
   const [reuseOpen, setReuseOpen] = useState(false);
   const [reuseDate, setReuseDate] = useState(todayIso());
   const [reuseType, setReuseType] = useState('sunday');
+  // Draft-words flow (DR: choir starting point) — status shown inline, never a
+  // native alert (the 2026-07-10 UI/UX review's alert class).
+  const [draftMsg, setDraftMsg] = useState('');
+  const draftWords = async () => {
+    setDraftMsg('Reading the recording…');
+    const r = await onDraftWords(song);
+    if (r?.ok) { setDraftMsg(''); return; }
+    setDraftMsg(r?.reason === 'no-transcript'
+      ? 'No transcript for this recording yet — the loader fills these in; check back, or add words by hand with Edit.'
+      : 'Could not locate this song in the recording — add the words by hand with Edit.');
+  };
   const baseEmbed = youtubeEmbedUrl(song.youtubeUrl);
   const embed = baseEmbed && song.startSeconds ? `${baseEmbed}?start=${Math.floor(song.startSeconds)}` : baseEmbed;
   const watchLabel = song.startSeconds ? `▶ Watch @ ${formatTimecode(song.startSeconds)}` : '▶ Watch';
@@ -85,14 +102,24 @@ function SongRow({ song, canEdit, onEdit, onDelete, onReuse }) {
                "most spots don't have a place to add words") — opens the edit form
                wherever Edit itself is available. */
             : (canEdit && onEdit && <button type="button" onClick={() => onEdit(song)} className={`${BTN} text-[#5A6E3D] hover:text-[#1A1815]`}>+ Words</button>)}
+          {!song.lyrics && canEdit && onDraftWords && song.videoId && (
+            <button type="button" onClick={draftWords} title="Pull a starting draft of the words from this service's transcript — then trim it to what the choir sings."
+              className={`${BTN} text-[#5A6E3D] hover:text-[#1A1815]`}>+ Draft words from the recording</button>
+          )}
           {canEdit && onReuse && <button type="button" onClick={() => setReuseOpen((o) => !o)} className={`${BTN} text-[#5A6E3D] hover:text-[#1A1815]`}>↻ Reuse</button>}
           {canEdit && onEdit && <button type="button" onClick={() => onEdit(song)} className={`${BTN} text-[#5A5751] hover:text-[#1A1815]`}>Edit</button>}
           {canEdit && onDelete && <button type="button" onClick={() => onDelete(song)} className={`${BTN} text-[#991B1B] hover:underline`}>Delete</button>}
         </div>
       </div>
       {song.notes && <p className="text-[0.6875rem] text-[#5A5751] italic mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{song.notes}</p>}
+      {draftMsg && <p role="status" className="text-[0.6875rem] text-[#B85838] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{draftMsg}</p>}
       {wordsOpen && song.lyrics && (
-        <pre className="mt-2 p-2 bg-[#FAF8F4] border border-[#E8E4DC] text-sm whitespace-pre-wrap" style={{ fontFamily: '"Fraunces", serif' }}>{song.lyrics}</pre>
+        <div className="mt-2">
+          {isAutoDraft(song.lyrics) && (
+            <p className="text-[0.5625rem] uppercase tracking-wider text-[#B85838] mb-1">Auto-draft from the recording — Edit to trim it to the sung words; the confirmed sheet becomes Ari's next lesson</p>
+          )}
+          <pre className="p-2 bg-[#FAF8F4] border border-[#E8E4DC] text-sm whitespace-pre-wrap" style={{ fontFamily: '"Fraunces", serif' }}>{song.lyrics}</pre>
+        </div>
       )}
       {reuseOpen && onReuse && (
         <div className="mt-2 flex items-end gap-2 flex-wrap bg-[#FAF8F4] border border-[#5A6E3D] p-2">
@@ -198,6 +225,7 @@ function ServiceForm({ initial, onSave, onCancel, busy }) {
         <div><label className={LABEL} htmlFor="cv-type">Type</label>
           <select id="cv-type" className={FIELD} value={f.serviceType} onChange={set('serviceType')}>
             <option value="sunday">Sunday service</option>
+            <option value="wednesday">Wednesday</option>
             <option value="rehearsal">Thursday rehearsal</option>
           </select>
         </div>
@@ -246,7 +274,7 @@ function SongPicker({ songs, onPick }) {
   );
 }
 
-function ServiceCard({ svc, songs, absences, canEdit, onAddSong, onEditSong, onDeleteSong, onReuse, past }) {
+function ServiceCard({ svc, songs, absences, canEdit, onAddSong, onEditSong, onDeleteSong, onReuse, onDraftWords, past }) {
   const list = songsForService(songs, svc.serviceDate, svc.serviceType);
   const out = (absences || []).filter((a) => isOutOnDate(a, svc.serviceDate));
   return (
@@ -264,7 +292,7 @@ function ServiceCard({ svc, songs, absences, canEdit, onAddSong, onEditSong, onD
         <SongRow key={s.id} song={s} canEdit={canEdit}
           onEdit={(!past || s.needsReview) ? onEditSong : null}
           onDelete={(!past || s.needsReview) ? onDeleteSong : null}
-          onReuse={onReuse} />
+          onReuse={onReuse} onDraftWords={onDraftWords} />
       ))
         : <p className="text-xs text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No songs {past ? 'recorded' : 'assigned'} yet.</p>}
       {canEdit && !past && onReuse && (
@@ -283,15 +311,25 @@ function ServiceCard({ svc, songs, absences, canEdit, onAddSong, onEditSong, onD
 // Christina can plan songs as far out as she wants; a collapsible history lets
 // her browse past Sundays and reuse old songs onto a future date (Darrell
 // 2026-06-14).
-function ThisWeekPanel({ schedule, sermons, songs, absences, canEdit, onAddSong, onEditSong, onDeleteSong, onReuse }) {
+// The history renders in derived pages, not a cap: every watchable service in
+// the corpus (300+) is reachable via "Show more", while a phone only mounts a
+// batch at a time. The count on the toggle is the WHOLE corpus, always.
+const PAST_PAGE_SIZE = 15;
+
+function ThisWeekPanel({ schedule, sermons, songs, absences, canEdit, onAddSong, onEditSong, onDeleteSong, onReuse, onDraftWords }) {
   const today = todayIso();
   const [showPast, setShowPast] = useState(false);
+  const [pastShown, setPastShown] = useState(PAST_PAGE_SIZE);
   const ordered = sortServices(schedule, today);
   const upcoming = ordered.filter((s) => s.serviceDate >= today);
-  // Past history is the REAL service corpus (sermons + any service that has a
-  // setlist), not just the planning calendar — so a service the worship-song
-  // harvester drafted songs for shows up with its setlist instead of vanishing.
+  // Past history is the REAL service corpus — every past service with a plan, a
+  // setlist, OR a recording to watch (DR-0137: a recorded service IS history;
+  // the old planned-or-songs filter is why only 7 of 300+ videos showed).
   const past = buildPastServices(schedule, sermons, songs, today);
+  // The truthful remainder (DR-0100): channel videos whose title carried no
+  // parseable date can't sit on a dated list — say how many are waiting
+  // instead of letting the count read as the whole archive.
+  const undatedVideos = (sermons || []).filter((s) => s && !s.serviceDate && s.youtubeUrl).length;
   return (
     <div className="space-y-5">
       {upcoming.length ? WEEK_GROUPS.map(([bucket, label]) => {
@@ -302,7 +340,7 @@ function ThisWeekPanel({ schedule, sermons, songs, absences, canEdit, onAddSong,
             <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#5A5751] mb-2">{label}</div>
             <div className="space-y-3">
               {group.map((svc) => (
-                <ServiceCard key={svc.id} svc={svc} songs={songs} absences={absences} canEdit={canEdit} onAddSong={onAddSong} onEditSong={onEditSong} onDeleteSong={onDeleteSong} onReuse={onReuse} />
+                <ServiceCard key={svc.id} svc={svc} songs={songs} absences={absences} canEdit={canEdit} onAddSong={onAddSong} onEditSong={onEditSong} onDeleteSong={onDeleteSong} onReuse={onReuse} onDraftWords={onDraftWords} />
               ))}
             </div>
           </div>
@@ -320,10 +358,21 @@ function ThisWeekPanel({ schedule, sermons, songs, absences, canEdit, onAddSong,
           </button>
           {showPast && (
             <div className="space-y-3 mt-2">
-              <p className="text-[0.6875rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>Open a past Sunday to see what was sung, watch the service, and reuse a song onto a future date. A “Draft · verify” song was auto-drafted from the service recording — edit it to confirm the title.</p>
-              {past.map((svc) => (
-                <ServiceCard key={svc.id} svc={svc} songs={songs} absences={absences} canEdit={canEdit} onEditSong={onEditSong} onDeleteSong={onDeleteSong} onReuse={onReuse} past />
+              <p className="text-[0.6875rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>Open a past service to see what was sung, watch the service, and reuse a song onto a future date. A “Draft · verify” song was auto-drafted from the service recording — edit it to confirm the title.</p>
+              {undatedVideos > 0 && (
+                <p className="text-[0.6875rem] text-[#8A6E1F]" style={{ fontFamily: '"Fraunces", serif' }}>
+                  {undatedVideos} more channel videos are in the library without a service date yet — they join this list as the corpus pipeline dates them.
+                </p>
+              )}
+              {past.slice(0, pastShown).map((svc) => (
+                <ServiceCard key={svc.id} svc={svc} songs={songs} absences={absences} canEdit={canEdit} onEditSong={onEditSong} onDeleteSong={onDeleteSong} onReuse={onReuse} onDraftWords={onDraftWords} past />
               ))}
+              {past.length > pastShown && (
+                <button type="button" onClick={() => setPastShown((n) => n + PAST_PAGE_SIZE)}
+                  className={`${BTN} w-full border border-[#5A6E3D] text-[#5A6E3D] hover:bg-white`}>
+                  Show more services ({past.length - pastShown} more)
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -335,7 +384,7 @@ function ThisWeekPanel({ schedule, sermons, songs, absences, canEdit, onAddSong,
 // The schedule: each date shows its SONG LIST right inside it (Christina 2026-07-04:
 // "inside the date… a place for each song we are singing"), where songs are added
 // new OR chosen from the already-imported Songs. Edit/Delete manage the date itself.
-function SchedulePanel({ schedule, songs, absences, canEdit, onAdd, onEdit, onDelete, onAddSong, onEditSong, onDeleteSong, onReuse }) {
+function SchedulePanel({ schedule, songs, absences, canEdit, onAdd, onEdit, onDelete, onAddSong, onEditSong, onDeleteSong, onReuse, onDraftWords }) {
   const ordered = sortServices(schedule, todayIso());
   return (
     <div>
@@ -345,7 +394,7 @@ function SchedulePanel({ schedule, songs, absences, canEdit, onAdd, onEdit, onDe
           {ordered.map((svc) => (
             <div key={svc.id}>
               <ServiceCard svc={svc} songs={songs} absences={absences} canEdit={canEdit}
-                onAddSong={onAddSong} onEditSong={onEditSong} onDeleteSong={onDeleteSong} onReuse={onReuse} />
+                onAddSong={onAddSong} onEditSong={onEditSong} onDeleteSong={onDeleteSong} onReuse={onReuse} onDraftWords={onDraftWords} />
               {canEdit && (
                 <div className="flex justify-end gap-3 px-1 pt-1">
                   <button type="button" onClick={() => onEdit(svc)} className={`${BTN} text-[#5A5751] hover:text-[#1A1815]`}>Edit date</button>
@@ -385,7 +434,76 @@ function MessagesPanel({ messages, onSend }) {
   );
 }
 
-function RosterPanel({ members, canEdit, onAdd, onRemove, onInvite }) {
+const inviteRoleLabel = (r) => (r === 'admin' ? 'Co-director' : r === 'viewer' ? 'Viewer' : 'Member');
+// Traffic-light status, all from tokens that already carry a midnight (dark-
+// theme) remap in theme-css.js — no new colors, so the contrast + legibility
+// guards stay green in both themes: green = joined, rust = still pending, grey
+// = expired.
+const INVITE_BADGE = {
+  accepted: { label: 'Joined', cls: 'bg-[#5A6E3D] text-white' },
+  pending: { label: 'Pending', cls: 'bg-[#B85838] text-white' },
+  expired: { label: 'Expired', cls: 'bg-[#E8E4DC] text-[#5A5751]' },
+};
+
+// A director's per-member control: an UNLINKED roster row (userId null) gets an
+// "Issue claim code" button; a LINKED row shows a quiet "linked" note. The code
+// is shown for the director to read to the member (DR-0220).
+function MemberClaimControl({ member, onMintCode }) {
+  const [code, setCode] = useState('');
+  const [msg, setMsg] = useState('');
+  const [busy, setBusy] = useState(false);
+  if (member.userId) {
+    return <span className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D]" title="This member has linked their account">✓ linked</span>;
+  }
+  const issue = async () => {
+    setBusy(true); setMsg('');
+    const r = await onMintCode(member.id);
+    setBusy(false);
+    if (r?.code) { setCode(r.code); setMsg('Read this code to them — it works once, for 30 days.'); }
+    else setMsg(`Couldn't issue a code (${r?.skipped || 'error'}).`);
+  };
+  return (
+    <div className="text-right">
+      {code
+        ? <div><span className="font-mono tracking-[0.3em] text-sm text-[#1A1815] bg-[#FAF8F4] border border-[#5A6E3D] px-2 py-1">{code}</span></div>
+        : <button type="button" disabled={busy} onClick={issue} className={`${BTN} text-[#5A6E3D] hover:text-[#1A1815] disabled:opacity-50`}>Issue claim code</button>}
+      {msg && <p className="text-[0.625rem] text-[#5A5751] mt-1 max-w-[180px]" style={{ fontFamily: '"Fraunces", serif' }}>{msg}</p>}
+    </div>
+  );
+}
+
+// The director's edit-access control for a LINKED member: shows the member's real
+// instance role and offers only the roles the director may actually set (mirrors
+// the set_member_role guards). Unlinked members (no app account) show nothing here.
+function MemberAccessControl({ member, myRole, instanceRoleOf, onSetMemberRole }) {
+  const [msg, setMsg] = useState('');
+  if (!member.userId) return null;                 // not linked to an account yet
+  const targetRole = instanceRoleOf(member.userId);
+  if (!targetRole) return null;                    // role not resolved yet
+  const options = grantableRoles(myRole, targetRole);
+  if (!options.length) {
+    return <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]" title="This person's access role">{instanceRoleLabel(targetRole)}</span>;
+  }
+  const change = async (role) => {
+    setMsg('Saving…');
+    const r = await onSetMemberRole(member.userId, role);
+    setMsg(r?.skipped ? `Couldn't change access (${r.skipped}).` : '');
+  };
+  return (
+    <div className="flex items-center gap-1">
+      <label className="sr-only" htmlFor={`acc-${member.id}`}>Access role</label>
+      <select id={`acc-${member.id}`} className="text-xs p-1 border border-[#E8E4DC] bg-white" value={targetRole}
+        onChange={(e) => change(e.target.value)}>
+        <option value={targetRole} disabled>{instanceRoleLabel(targetRole)}</option>
+        {options.filter((o) => o !== targetRole).map((o) => <option key={o} value={o}>{instanceRoleLabel(o)}</option>)}
+      </select>
+      {msg && <span className="text-[0.625rem] text-[#5A5751]">{msg}</span>}
+    </div>
+  );
+}
+
+function RosterPanel({ members, invites = [], canEdit, onAdd, onRemove, onInvite, onMintCode,
+  onUpdateChoirRole, myRole, instanceRoleOf, onSetMemberRole }) {
   const [f, setF] = useState({ displayName: '', section: '', choirRole: 'member' });
   const [adding, setAdding] = useState(false);
   const [inv, setInv] = useState({ email: '', role: 'member' });
@@ -406,12 +524,37 @@ function RosterPanel({ members, canEdit, onAdd, onRemove, onInvite }) {
             <div className="flex-1 min-w-[180px]"><label className={LABEL} htmlFor="ci-email">Email</label><input id="ci-email" type="email" className={FIELD} value={inv.email} onChange={(e) => setInv((p) => ({ ...p, email: e.target.value }))} placeholder="member@email.com" /></div>
             <div><label className={LABEL} htmlFor="ci-role">Access</label>
               <select id="ci-role" className={FIELD} value={inv.role} onChange={(e) => setInv((p) => ({ ...p, role: e.target.value }))}>
-                <option value="member">Member (view)</option><option value="admin">Co-director (edit)</option>
+                {/* Surface-says-truth (DR-0241): 'member' is participation, not
+                    read-only — the false "(view)" parenthetical is gone. */}
+                <option value="member">Member</option><option value="admin">Co-director (edit)</option>
               </select>
             </div>
             <button type="button" disabled={!inv.email.trim()} onClick={sendInvite} className={`${BTN} bg-[#5A6E3D] text-white font-semibold disabled:opacity-50`}>Invite</button>
           </div>
           {invMsg && <p className="text-[0.6875rem] text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{invMsg}</p>}
+        </div>
+      )}
+      {canEdit && onInvite && (
+        <div className="bg-white border border-[#E8E4DC] p-3 mb-3">
+          <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold mb-2">Invites you've sent</div>
+          {invites.length ? (
+            <ul className="space-y-2">
+              {invites.map((iv) => {
+                const badge = INVITE_BADGE[deriveInviteStatus(iv, Date.now())] || INVITE_BADGE.pending;
+                return (
+                  <li key={iv.id} className="flex items-baseline justify-between gap-2">
+                    <div className="min-w-0">
+                      <span className="text-sm text-[#1A1815] break-all" style={{ fontFamily: '"Fraunces", serif' }}>{iv.email}</span>
+                      <span className="text-[0.6875rem] text-[#5A5751] ml-2">{inviteRoleLabel(iv.role)}{iv.invitedAt ? ` · sent ${fmtDate(String(iv.invitedAt).slice(0, 10))}` : ''}</span>
+                    </div>
+                    <span className={`text-[0.5625rem] uppercase tracking-wider px-2 py-1 whitespace-nowrap ${badge.cls}`}>{badge.label}</span>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <p className="text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>No invites sent yet. When you invite someone above, they'll show here — pending until they sign in, then marked joined.</p>
+          )}
         </div>
       )}
       {canEdit && (adding ? (
@@ -438,12 +581,38 @@ function RosterPanel({ members, canEdit, onAdd, onRemove, onInvite }) {
       {members.length ? (
         <div className="bg-white border border-[#1A1815]">
           {members.map((m) => (
-            <div key={m.id} className="flex items-baseline justify-between gap-2 p-3 border-b border-[#E8E4DC]">
-              <div>
-                <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{m.displayName}</span>
-                <span className="text-[0.6875rem] text-[#5A5751] ml-2">{[m.section, m.choirRole !== 'member' ? roleLabel(m.choirRole) : null].filter(Boolean).join(' · ')}</span>
+            <div key={m.id} className="p-3 border-b border-[#E8E4DC]">
+              <div className="flex items-baseline justify-between gap-2">
+                <div>
+                  <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{m.displayName}</span>
+                  <span className="text-[0.6875rem] text-[#5A5751] ml-2">{[m.section, m.choirRole !== 'member' ? roleLabel(m.choirRole) : null].filter(Boolean).join(' · ')}</span>
+                </div>
+                {canEdit && (
+                  <div className="flex items-center gap-3">
+                    {onMintCode && <MemberClaimControl member={m} onMintCode={onMintCode} />}
+                    <button type="button" onClick={() => onRemove(m)} className={`${BTN} text-[#991B1B] hover:underline`}>Remove</button>
+                  </div>
+                )}
               </div>
-              {canEdit && <button type="button" onClick={() => onRemove(m)} className={`${BTN} text-[#991B1B] hover:underline`}>Remove</button>}
+              {canEdit && (
+                <div className="flex items-center gap-2 flex-wrap mt-2">
+                  {onUpdateChoirRole && (
+                    <label className="flex items-center gap-1 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">
+                      Team
+                      <select className="text-xs p-1 border border-[#E8E4DC] bg-white normal-case tracking-normal" value={m.choirRole}
+                        onChange={(e) => onUpdateChoirRole(m.id, e.target.value)}>
+                        {ROLE_OPTS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+                      </select>
+                    </label>
+                  )}
+                  {instanceRoleOf && onSetMemberRole && (
+                    <label className="flex items-center gap-1 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">
+                      Access
+                      <MemberAccessControl member={m} myRole={myRole} instanceRoleOf={instanceRoleOf} onSetMemberRole={onSetMemberRole} />
+                    </label>
+                  )}
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -470,7 +639,10 @@ function AvailabilityPanel({ absences, members, canEdit, onSave, onDelete, onRes
     const bm = members.find((m) => m.id === f.backupMemberId) || null;
     onSave({
       memberId: f.memberId || null,
-      memberName: absentMember?.displayName || 'Me',
+      // When "Me" is selected (no member picked), leave the name null so the sync
+      // falls back to the signed-in user's REAL displayName — never the literal
+      // string "Me" (which everyone else would then see in the who's-out list).
+      memberName: absentMember?.displayName || null,
       startDate: f.startDate,
       endDate: f.endDate || null,
       reason: f.reason || null,
@@ -500,12 +672,17 @@ function AvailabilityPanel({ absences, members, canEdit, onSave, onDelete, onRes
           </div>
           <div><label className={LABEL} htmlFor="av-reason">Reason (optional)</label><input id="av-reason" className={FIELD} value={f.reason} onChange={(e) => setF((p) => ({ ...p, reason: e.target.value }))} placeholder="Out of town, etc." /></div>
           <div>
-            <label className={LABEL} htmlFor="av-backup">Request a backup{absentMember?.section ? ` (${absentMember.section}, available)` : ''}</label>
+            <label className={LABEL} htmlFor="av-backup">Request a backup{absentMember?.section ? ` (${absentMember.section} preferred)` : ''}</label>
             <select id="av-backup" className={FIELD} value={f.backupMemberId} onChange={(e) => setF((p) => ({ ...p, backupMemberId: e.target.value }))}>
               <option value="">No backup requested</option>
               {suggestions.map((m) => <option key={m.id} value={m.id}>{m.displayName}{m.section ? ` (${m.section})` : ''}</option>)}
             </select>
-            {f.memberId !== '' && !suggestions.length && <p className="text-[0.6875rem] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>No same-section members are free that day.</p>}
+            {f.memberId !== '' && backupsAreCrossSection(suggestions, absentMember) && (
+              <p className="text-[0.6875rem] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>No same-section singer is free that day &mdash; showing others who can cover.</p>
+            )}
+            {f.memberId !== '' && !suggestions.length && (
+              <p className="text-[0.6875rem] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>No one else is free that day &mdash; try different dates, or leave it as no backup.</p>
+            )}
           </div>
           <div className="flex gap-2">
             <button type="button" disabled={!f.startDate} onClick={submit} className={`${BTN} bg-[#1A1815] text-white font-semibold hover:bg-[#B85838] disabled:opacity-50`}>Schedule out</button>
@@ -530,9 +707,13 @@ function AvailabilityPanel({ absences, members, canEdit, onSave, onDelete, onRes
                 </p>
               )}
               <div className="flex gap-2 mt-1 flex-wrap">
-                {a.iAmBackup && a.backupStatus === 'requested' && (
+                {/* The requested backup responds — OR the director (canEdit) does
+                    it on their behalf, so a requested backup is never stuck at
+                    "requested" forever when the chosen singer has no linked
+                    account yet (RLS already allows owner/admin to update). */}
+                {canRespondToBackup(a, canEdit) && (
                   <>
-                    <button type="button" onClick={() => onRespond(a, true)} className={`${BTN} text-[#166534] hover:underline`}>Confirm backup</button>
+                    <button type="button" onClick={() => onRespond(a, true)} className={`${BTN} text-[#166534] hover:underline`}>Confirm backup{!a.iAmBackup ? ' (director)' : ''}</button>
                     <button type="button" onClick={() => onRespond(a, false)} className={`${BTN} text-[#991B1B] hover:underline`}>Decline</button>
                   </>
                 )}
@@ -681,10 +862,43 @@ function TeamDocsPanel({ docs, canEdit, onAdd, onDelete }) {
 // -----------------------------------------------------------------------------
 const TABS = [['week', 'This week'], ['songs', 'Songs'], ['songbook', 'Songbook'], ['schedule', 'Schedule'], ['teamdocs', 'Team Docs'], ['availability', 'Availability'], ['messages', 'Messages'], ['resources', 'Resources'], ['roster', 'Roster']];
 
+// A rostered member whose account isn't linked yet redeems the one-time code the
+// director read to them (DR-0220). Lives in the no-access fallback because an
+// unlinked member can't see the surface until this succeeds. On 'linked' it calls
+// onLinked() so the parent re-checks access and the Choir surface opens.
+function ClaimCodeCard({ onLinked }) {
+  const [code, setCode] = useState('');
+  const [msg, setMsg] = useState('');
+  const [busy, setBusy] = useState(false);
+  const submit = async () => {
+    setBusy(true); setMsg('Checking…');
+    const r = await claimChoirMember(code);
+    setBusy(false);
+    if (r?.status === 'linked') { setMsg(`Linked — welcome, ${r.display_name || 'to the choir'}!`); onLinked && onLinked(); }
+    else if (r?.status === 'already-linked') setMsg("You're already linked to a spot on this roster.");
+    else if (r?.status === 'invalid') setMsg("That code didn't match. Check it with your director — codes expire after 30 days.");
+    else setMsg(`Couldn't check the code (${r?.skipped || 'error'}). Try again.`);
+  };
+  return (
+    <div className="bg-[#FAF8F4] border border-[#5A6E3D] p-4 mt-3 text-left">
+      <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold mb-1">On the roster? Enter your code</div>
+      <p className="text-[0.6875rem] text-[#5A5751] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>Your director can give you a short one-time code. Enter it to link your account to your spot on the roster.</p>
+      <div className="flex items-end gap-2 flex-wrap">
+        <div className="flex-1 min-w-[140px]">
+          <label className={LABEL} htmlFor="claim-code">Claim code</label>
+          <input id="claim-code" className={`${FIELD} font-mono tracking-[0.3em] uppercase`} value={code}
+            onChange={(e) => setCode(normalizeClaimCode(e.target.value))} placeholder="ABC234" maxLength={6} autoCapitalize="characters" autoComplete="off" />
+        </div>
+        <button type="button" disabled={busy || code.length < 6} onClick={submit} className={`${BTN} bg-[#5A6E3D] text-white font-semibold disabled:opacity-50`}>Link me</button>
+      </div>
+      {msg && <p className="text-[0.6875rem] text-[#5A5751] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>{msg}</p>}
+    </div>
+  );
+}
+
 export default function Choir() {
   const [signedIn, setSignedIn] = useState(false);
   const [access, setAccess] = useState({ canSee: false, canEdit: false });
-  const [tab, setTab] = useState('week');
   const [songs, setSongs] = useState([]);
   const [schedule, setSchedule] = useState([]);
   const [sermons, setSermons] = useState([]);
@@ -693,6 +907,9 @@ export default function Choir() {
   const [absences, setAbsences] = useState([]);
   const [teamDocs, setTeamDocs] = useState([]);
   const [resources, setResources] = useState([]);
+  const [invites, setInvites] = useState([]);
+  const [myMembership, setMyMembership] = useState([]);  // the caller's own linked roster row(s)
+  const [instanceMembers, setInstanceMembers] = useState([]);  // real instance roles (owner/admin can read) for the co-director control
   const [songForm, setSongForm] = useState(null);     // { initial } | null
   const [serviceForm, setServiceForm] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -700,12 +917,34 @@ export default function Choir() {
 
   useEffect(() => onAuthChange((s) => setSignedIn(!!s)), []);
 
+  const refreshAccess = () => { getChoirAccess().then(setAccess); };
   useEffect(() => {
     let alive = true;
-    if (!signedIn) { setAccess({ canSee: false, canEdit: false }); return; }
+    if (!signedIn) { setAccess({ canSee: false, canEdit: false }); setMyMembership([]); return; }
     getChoirAccess().then((a) => { if (alive) setAccess(a); });
     return () => { alive = false; };
   }, [signedIn]);
+
+  // Once the surface is visible, resolve which roster row is ME (for the
+  // "you're linked as X" badge) — real data via my_choir_membership (0110).
+  useEffect(() => {
+    let alive = true;
+    if (!signedIn || !access.canSee) { setMyMembership([]); return undefined; }
+    getMyChoirMembership().then((rows) => { if (alive) setMyMembership(rows); });
+    return () => { alive = false; };
+  }, [signedIn, access.canSee, members]);
+
+  // Directors (owner/admin) can read the real instance roster, so the co-director
+  // control (promote/demote edit access) shows each linked member's true role.
+  const loadInstanceMembers = () => {
+    if (access.canEdit && access.tenantId) listInstanceMembers(access.tenantId).then(setInstanceMembers);
+  };
+  useEffect(() => {
+    let alive = true;
+    if (!access.canEdit || !access.tenantId) { setInstanceMembers([]); return undefined; }
+    listInstanceMembers(access.tenantId).then((rows) => { if (alive) setInstanceMembers(rows); });
+    return () => { alive = false; };
+  }, [access.canEdit, access.tenantId, members]);
 
   // Subscribe to the streams once the user can see the surface.
   useEffect(() => {
@@ -719,14 +958,34 @@ export default function Choir() {
       subscribeAbsences(setAbsences),
       subscribeTeamDocuments(setTeamDocs),
       subscribeResources(setResources),
+      subscribeChurchInvites(setInvites),
     ];
     return () => unsubs.forEach((u) => { try { u && u(); } catch { /* noop */ } });
   }, [signedIn, access.canSee]);
 
   const reportSkip = (res) => { if (res && res.skipped) setErr(`Could not save (${res.skipped}). Your changes were not stored — try again.`); else setErr(''); };
 
-  const onSaveSong = async (f) => { setBusy(true); reportSkip(await saveSong(f)); setBusy(false); setSongForm(null); };
-  const onSaveService = async (f) => { setBusy(true); reportSkip(await saveService(f)); setBusy(false); setServiceForm(null); };
+  // A failed save must never discard what was typed (feedback bf8ad82f: "tapped
+  // Add and the information disappeared"). Close the form ONLY on a confirmed
+  // save; otherwise the entry stays on screen with the error banner saying why.
+  const onSaveSong = async (f) => { setBusy(true); const r = await saveSong(f); reportSkip(r); setBusy(false); if (r?.saved) setSongForm(null); };
+  // Draft a STARTING POINT of words from the service transcript (Darrell
+  // 2026-07-10: "we don't have the words for each one so the choir can have a
+  // starting point"). One transcript source, many harvests (DR-0134's recipe);
+  // the draft lands in the song's lyrics clearly labeled auto-draft for
+  // trimming. Transcripts are fetched once per visit and cached.
+  const transcriptsRef = useRef(null);
+  const onDraftWords = async (song) => {
+    if (!song?.videoId) return { ok: false, reason: 'no-video' };
+    if (!transcriptsRef.current) transcriptsRef.current = await fetchTranscriptsByVideo();
+    const t = transcriptsRef.current[song.videoId];
+    const r = draftWordsFromTranscript({ transcriptText: t && t.text, heardQuote: extractHeardQuote(song.notes), title: song.title });
+    if (!r.ok) return r;
+    const saved = await saveSong({ ...song, lyrics: r.draft });
+    reportSkip(saved);
+    return saved?.saved ? { ok: true } : { ok: false, reason: 'save-failed' };
+  };
+  const onSaveService = async (f) => { setBusy(true); const r = await saveService(f); reportSkip(r); setBusy(false); if (r?.saved) setServiceForm(null); };
 
   if (!signedIn) {
     return (
@@ -744,93 +1003,110 @@ export default function Choir() {
           <div className="text-2xl mb-1" aria-hidden="true">🎵</div>
           <p className="text-sm text-[#1A1815] font-semibold" style={{ fontFamily: '"Fraunces", serif' }}>This is the choir's space.</p>
           <p className="text-xs text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>Ask the choir director to add you to the roster, then the week's music, schedule, and messages will show up here.</p>
+          <ClaimCodeCard onLinked={refreshAccess} />
         </div>
       </div>
     );
   }
 
+  // One panel per tab id — plain closures over the top-level state (SectionTabs
+  // mounts only the active one, same lazy behavior the hand-rolled strip had).
+  // Keyed off `const TABS` above, which scripts/feedback-area-guard.mjs scrapes:
+  // the ids must keep matching the `choir-<id>` FEEDBACK_AREAS keys.
+  const PANELS = {
+    week: () => (
+      <>
+        {songForm && access.canEdit && <SongForm initial={songForm.initial} busy={busy} onSave={onSaveSong} onCancel={() => setSongForm(null)} />}
+        <ThisWeekPanel
+          schedule={schedule} sermons={sermons} songs={songs} absences={absences} canEdit={access.canEdit}
+          onAddSong={(svc) => setSongForm({ initial: { serviceDate: svc.serviceDate, serviceType: svc.serviceType } })}
+          onEditSong={(s) => setSongForm({ initial: s })}
+          onDeleteSong={async (s) => { reportSkip(await deleteSong(s.id)); }}
+          onReuse={async (s, date, type) => { reportSkip(await reuseSong(s, date, type)); }}
+          onDraftWords={onDraftWords}
+        />
+      </>
+    ),
+    songs: () => <ChoirSongWorkshop access={access} />,
+    songbook: () => <ChoirSongbook songs={songs} access={access} />,
+    schedule: () => (
+      <>
+        {serviceForm && access.canEdit && <ServiceForm initial={serviceForm.initial} busy={busy} onSave={onSaveService} onCancel={() => setServiceForm(null)} />}
+        {songForm && access.canEdit && <SongForm initial={songForm.initial} busy={busy} onSave={onSaveSong} onCancel={() => setSongForm(null)} />}
+        <SchedulePanel
+          schedule={schedule} songs={songs} absences={absences} canEdit={access.canEdit}
+          onAdd={() => setServiceForm({ initial: null })}
+          onEdit={(svc) => setServiceForm({ initial: svc })}
+          onDelete={async (svc) => { reportSkip(await deleteService(svc.id)); }}
+          onAddSong={(svc) => setSongForm({ initial: { serviceDate: svc.serviceDate, serviceType: svc.serviceType } })}
+          onEditSong={(s) => setSongForm({ initial: s })}
+          onDeleteSong={async (s) => { reportSkip(await deleteSong(s.id)); }}
+          onReuse={async (s, date, type) => { reportSkip(await reuseSong(s, date, type)); }}
+          onDraftWords={onDraftWords}
+        />
+      </>
+    ),
+    teamdocs: () => (
+      <TeamDocsPanel
+        docs={teamDocs} canEdit={access.canEdit}
+        onAdd={async (d) => { reportSkip(await saveTeamDocument(d)); }}
+        onDelete={async (d) => { reportSkip(await deleteTeamDocument(d.id)); }}
+      />
+    ),
+    availability: () => (
+      <AvailabilityPanel
+        absences={absences} members={members} canEdit={access.canEdit}
+        onSave={async (a) => { reportSkip(await saveAbsence(a)); }}
+        onDelete={async (a) => { reportSkip(await deleteAbsence(a.id)); }}
+        onRespond={async (a, accept) => { reportSkip(await respondToBackup(a.id, accept)); }}
+      />
+    ),
+    messages: () => (
+      <MessagesPanel messages={messages} onSend={async (t) => { reportSkip(await sendChoirMessage(t)); }} />
+    ),
+    resources: () => (
+      <ResourcesPanel
+        resources={resources} canEdit={access.canEdit}
+        onAdd={async (r) => { reportSkip(await saveResource(r)); }}
+        onDelete={async (r) => { reportSkip(await deleteResource(r.id)); }}
+      />
+    ),
+    roster: () => (
+      <RosterPanel
+        members={members} invites={sortInvites(invites)} canEdit={access.canEdit}
+        onAdd={async (m) => { reportSkip(await addMember(m)); }}
+        onRemove={async (m) => { reportSkip(await removeMember(m.id)); }}
+        onInvite={(email, role) => inviteToChurch(email, role)}
+        onMintCode={(memberId) => mintClaimCode(memberId)}
+        onUpdateChoirRole={async (id, choirRole) => { reportSkip(await updateChoirRole(id, choirRole)); }}
+        myRole={access.role}
+        instanceRoleOf={(userId) => instanceMembers.find((im) => im.userId === userId)?.role || null}
+        onSetMemberRole={async (userId, role) => { const r = await setMemberRole(access.tenantId, userId, role); if (!r?.skipped) loadInstanceMembers(); return r; }}
+      />
+    ),
+  };
+
+  // The sliding section row is the shared SectionTabs primitive ("sliding tabs
+  // instead of a long scroll", Darrell 2026-07-04) — same TabScroll motion the
+  // old strip had, now with the real tablist a11y. The error banner stays PINNED
+  // above the strip so a failed save is visible from any tab.
+  const sections = TABS.map(([id, label]) => ({ id, label, render: PANELS[id] }));
+
   return (
     <div className="max-w-2xl">
       <SectionTitle eyebrow="Church · choir">Choir</SectionTitle>
-      <TabScroll className="mb-3">
-        {TABS.map(([id, label]) => (
-          <button key={id} type="button" onClick={() => setTab(id)} className={`px-3 py-2 whitespace-nowrap border-b-2 focus:outline focus:outline-2 focus:outline-[#B85838] ${tab === id ? 'border-[#1A1815] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
-        ))}
-      </TabScroll>
 
       {err && <div role="alert" className="bg-[#FAF8F4] border-2 border-[#B85838] p-2 mb-2 text-xs" style={{ fontFamily: '"Fraunces", serif' }}>{err}</div>}
 
-      {tab === 'week' && (
-        <>
-          {songForm && access.canEdit && <SongForm initial={songForm.initial} busy={busy} onSave={onSaveSong} onCancel={() => setSongForm(null)} />}
-          <ThisWeekPanel
-            schedule={schedule} sermons={sermons} songs={songs} absences={absences} canEdit={access.canEdit}
-            onAddSong={(svc) => setSongForm({ initial: { serviceDate: svc.serviceDate, serviceType: svc.serviceType } })}
-            onEditSong={(s) => setSongForm({ initial: s })}
-            onDeleteSong={async (s) => { reportSkip(await deleteSong(s.id)); }}
-            onReuse={async (s, date, type) => { reportSkip(await reuseSong(s, date, type)); }}
-          />
-        </>
+      {myMembership.length > 0 && (
+        <p className="text-[0.6875rem] text-[#5A6E3D] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
+          You're on the roster as <span className="font-semibold">{myMembership[0].displayName}</span>
+          {[myMembership[0].section, myMembership[0].choirRole !== 'member' ? roleLabel(myMembership[0].choirRole) : null].filter(Boolean).length
+            ? ` (${[myMembership[0].section, myMembership[0].choirRole !== 'member' ? roleLabel(myMembership[0].choirRole) : null].filter(Boolean).join(' · ')})` : ''}.
+        </p>
       )}
 
-      {tab === 'songs' && <ChoirSongWorkshop access={access} />}
-
-      {tab === 'songbook' && <ChoirSongbook songs={songs} access={access} />}
-
-      {tab === 'schedule' && (
-        <>
-          {serviceForm && access.canEdit && <ServiceForm initial={serviceForm.initial} busy={busy} onSave={onSaveService} onCancel={() => setServiceForm(null)} />}
-          {songForm && access.canEdit && <SongForm initial={songForm.initial} busy={busy} onSave={onSaveSong} onCancel={() => setSongForm(null)} />}
-          <SchedulePanel
-            schedule={schedule} songs={songs} absences={absences} canEdit={access.canEdit}
-            onAdd={() => setServiceForm({ initial: null })}
-            onEdit={(svc) => setServiceForm({ initial: svc })}
-            onDelete={async (svc) => { reportSkip(await deleteService(svc.id)); }}
-            onAddSong={(svc) => setSongForm({ initial: { serviceDate: svc.serviceDate, serviceType: svc.serviceType } })}
-            onEditSong={(s) => setSongForm({ initial: s })}
-            onDeleteSong={async (s) => { reportSkip(await deleteSong(s.id)); }}
-            onReuse={async (s, date, type) => { reportSkip(await reuseSong(s, date, type)); }}
-          />
-        </>
-      )}
-
-      {tab === 'teamdocs' && (
-        <TeamDocsPanel
-          docs={teamDocs} canEdit={access.canEdit}
-          onAdd={async (d) => { reportSkip(await saveTeamDocument(d)); }}
-          onDelete={async (d) => { reportSkip(await deleteTeamDocument(d.id)); }}
-        />
-      )}
-
-      {tab === 'resources' && (
-        <ResourcesPanel
-          resources={resources} canEdit={access.canEdit}
-          onAdd={async (r) => { reportSkip(await saveResource(r)); }}
-          onDelete={async (r) => { reportSkip(await deleteResource(r.id)); }}
-        />
-      )}
-
-      {tab === 'availability' && (
-        <AvailabilityPanel
-          absences={absences} members={members} canEdit={access.canEdit}
-          onSave={async (a) => { reportSkip(await saveAbsence(a)); }}
-          onDelete={async (a) => { reportSkip(await deleteAbsence(a.id)); }}
-          onRespond={async (a, accept) => { reportSkip(await respondToBackup(a.id, accept)); }}
-        />
-      )}
-
-      {tab === 'messages' && (
-        <MessagesPanel messages={messages} onSend={async (t) => { reportSkip(await sendChoirMessage(t)); }} />
-      )}
-
-      {tab === 'roster' && (
-        <RosterPanel
-          members={members} canEdit={access.canEdit}
-          onAdd={async (m) => { reportSkip(await addMember(m)); }}
-          onRemove={async (m) => { reportSkip(await removeMember(m.id)); }}
-          onInvite={(email, role) => inviteToChurch(email, role)}
-        />
-      )}
+      <SectionTabs sections={sections} ariaLabel="Choir sections" idBase="choir" defaultId="week" />
     </div>
   );
 }

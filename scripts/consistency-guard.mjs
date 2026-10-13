@@ -38,6 +38,7 @@
 import { readFileSync, writeFileSync, existsSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { stripCommentLines } from './large-print-guard.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const SRC = join(ROOT, 'app/src');
@@ -63,30 +64,107 @@ const EMOJI_RE = /[\u{2600}-\u{26FF}\u{2B00}-\u{2BFF}\u{FE0F}\u{1F000}-\u{1FAFF}
 const FIXED_PX_RE = /text-\[\d+(?:\.\d+)?px\]/g;
 // Per-surface width cap: max-w-md, max-w-[640px], max-w-screen-lg, ...
 const WIDTH_CAP_RE = /\bmax-w-(?:\[[^\]]+\]|[a-z0-9-]+)/g;
+// Any quoted span — the shape a className always takes.
+const CLASS_SPAN_RE = /"[^"]*"|'[^']*'|`[^`]*`/g;
 
 function countMatches(src, re) {
   const m = src.match(re);
   return m ? m.length : 0;
 }
 
+// A width cap on a FIXED-POSITION OVERLAY is not the drift this rule exists to
+// stop, and counting it was a blind spot rather than a standard.
+//
+// DR-0246's target is named exactly in the violation's own fix text: "tab
+// content stretches the full width... prose measure and modals live INSIDE the
+// full-width container, NEVER AS THE TAB WRAPPER." A `fixed` element is by
+// definition not a tab wrapper — it is lifted out of the tab's flow entirely
+// and painted over the app. It is the modal/toast class the rule already
+// allows, and it MUST carry a cap: a banner stretched edge-to-edge on a 27"
+// monitor is the defect, not the standard.
+//
+// The house already writes them this way — PwaPrompts' UpdatePrompt
+// (`fixed bottom-4 left-1/2 -translate-x-1/2 z-50 max-w-sm`) and InstallPrompt
+// (`fixed bottom-4 left-4 right-20 ... max-w-xs`) are both grandfathered in the
+// baseline for exactly this, which is the tell that the count, not the code,
+// was wrong. Found 2026-09-17 when the app-wide alert layer (AppAlerts.jsx, a
+// `fixed` toast) was refused by a rule that was never about it.
+//
+// Narrow on purpose: the exemption is per CLASS SPAN and requires `fixed` in
+// that same span, so a tab wrapper one line away is still counted. Comment
+// lines are stripped first, for the same reason fixedPx strips them — a header
+// that names `max-w-md` while explaining the rule is documentation, not drift.
+//
+// The same class, handed to the shared dialog shell by name: `<Modal
+// maxWidthClass="max-w-4xl">`. Modal.jsx paints that value on the panel inside
+// its own `fixed inset-0` overlay, so the cap IS an overlay cap; it only reads
+// as a bare span because it travels as a prop. Found 2026-09-25 (DR-0658) when
+// the sign-in dialog gained a TV width so it fits a 960x540 Fire TV: the rule
+// allows modals and this is one. Only the prop value is exempt; a max-w
+// anywhere else in the same file still counts.
+export const MODAL_WIDTH_PROP_RE = /\bmaxWidthClass=(?:"[^"]*"|'[^']*'|\{\s*(?:"[^"]*"|'[^']*')\s*\})/g;
+export function countWidthCaps(src) {
+  const code = stripCommentLines(src).replace(MODAL_WIDTH_PROP_RE, ' ');
+  let total = 0;
+  for (const span of code.match(CLASS_SPAN_RE) || []) {
+    const caps = countMatches(span, WIDTH_CAP_RE);
+    if (!caps) continue;
+    if (/\bfixed\b/.test(span)) continue;
+    total += caps;
+  }
+  // A cap written outside any quoted span still counts — the exemption is for
+  // overlays, not for anything that dodges the string form.
+  return total + countMatches(code.replace(CLASS_SPAN_RE, ' '), WIDTH_CAP_RE);
+}
+
 // Per-file counts for the three drift classes. emoji is 0 for exempt files.
+// fixedPx counts CODE only: comment lines are stripped first (via the
+// large-print guard's helper) so documentation that names the bug pattern
+// (text-[10px] -> text-[0.625rem]) is never counted as drift — the same
+// reasoning as the UiIcon emoji exemption, made general.
+// WORDS STAY WHOLE (DR-0838; Darrell 2026-10-09, Christyn's roster row on his
+// phone one letter per line): `break-all` belongs to URLs, codes, keys and log
+// lines, where breaking inside the string is the point. On a line that renders
+// a PERSON'S NAME it is drift: the name should keep a real width and break
+// between words (`break-words`), and the row's controls should wrap under it.
+// Counted on code lines only; a comment that names the rule is documentation.
+export const NAME_EXPR_RE = /\b(?:displayName|who\.shown|tenant_name|nickname|fullName|firstName|lastName|[A-Za-z_]+\.name)\b/;
+// JSX puts the class on one line and the name on the next, so the element is
+// read as its opening line plus the two that follow it (the roster row that
+// bit had the name one line under its `break-all`).
+export const NAME_BREAK_WINDOW = 3;
+export function countNameBreaks(src) {
+  const lines = stripCommentLines(src).split('\n');
+  let n = 0;
+  for (let i = 0; i < lines.length; i += 1) {
+    if (!/\bbreak-all\b/.test(lines[i])) continue;
+    if (NAME_EXPR_RE.test(lines.slice(i, i + NAME_BREAK_WINDOW).join('\n'))) n += 1;
+  }
+  return n;
+}
+
 export function fileCounts(src, basename) {
   return {
     emoji: EMOJI_EXEMPT.has(basename) ? 0 : countMatches(src, EMOJI_RE),
-    fixedPx: countMatches(src, FIXED_PX_RE),
-    widthCap: countMatches(src, WIDTH_CAP_RE),
+    fixedPx: countMatches(stripCommentLines(src), FIXED_PX_RE),
+    widthCap: countWidthCaps(src),
+    nameBreak: countNameBreaks(src),
   };
 }
 
 // Pure ratchet: given live per-file counts and the frozen baseline, return the
-// HARD violations (emoji + fixedPx over baseline, or any in a new file) and the
-// WARN list (widthCap over baseline — tracked, never fails). Importable so a
-// vitest can prove the ratchet catches a synthetic NEW offender with no FS.
+// HARD violations — emoji, fixedPx, AND widthCap over baseline (or any in a new
+// file). widthCap graduated from WARN to HARD on 2026-07-29 (DR-0246): the
+// full-width sweep converted every app-tab container, so a NEW per-surface
+// max-w is no longer "tracked drift" — it is the exact regression Darrell had
+// to ask about twice (2026-07-24 ThinkingSpace, 2026-07-29 every tab), and the
+// gate is what makes saying it once enough. Importable so a vitest can prove
+// the ratchet catches a synthetic NEW offender with no FS.
 export function ratchet(liveCounts, baseline) {
   const violations = [];
   const warnings = [];
   for (const [rel, live] of Object.entries(liveCounts)) {
-    const base = baseline[rel] || { emoji: 0, fixedPx: 0, widthCap: 0 };
+    const base = baseline[rel] || { emoji: 0, fixedPx: 0, widthCap: 0, nameBreak: 0 };
     if (live.emoji > base.emoji) {
       violations.push({ file: rel, kind: 'emoji-as-icon', live: live.emoji, baseline: base.emoji,
         fix: 'replace the device-font emoji with <UiIcon name="..."/> (components/UiIcon.jsx)' });
@@ -96,8 +174,12 @@ export function ratchet(liveCounts, baseline) {
         fix: 'author the size in rem at the 16px baseline (text-[10px] -> text-[0.625rem]) so the global text-size control scales it' });
     }
     if (live.widthCap > base.widthCap) {
-      warnings.push({ file: rel, kind: 'width-cap', live: live.widthCap, baseline: base.widthCap,
-        fix: 'use the full-width layout container; a per-surface max-w is per-tab width drift (tracked — full-width-layout lane)' });
+      violations.push({ file: rel, kind: 'width-cap', live: live.widthCap, baseline: base.widthCap,
+        fix: 'tab content stretches the full width (CONSISTENCY-STANDARD rule 1, DR-0246); prose measure and modals live INSIDE the full-width container, never as the tab wrapper' });
+    }
+    if ((live.nameBreak || 0) > (base.nameBreak || 0)) {
+      violations.push({ file: rel, kind: 'name-break-all', live: live.nameBreak, baseline: base.nameBreak || 0,
+        fix: 'a person\'s name breaks between words, never inside one: break-words (and flex-wrap on the row so the controls go under the name) — break-all is for URLs, codes and log lines (DR-0838)' });
     }
   }
   return { violations, warnings };
@@ -136,7 +218,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
     // readable; a file absent from the baseline defaults to {0,0,0} (new-file rule).
     const frozen = {};
     for (const [rel, c] of Object.entries(live)) {
-      if (c.emoji || c.fixedPx || c.widthCap) frozen[rel] = c;
+      if (c.emoji || c.fixedPx || c.widthCap || c.nameBreak) frozen[rel] = c;
     }
     writeFileSync(BASELINE_PATH, JSON.stringify(frozen, null, 2) + '\n');
     const totals = Object.values(live).reduce((a, c) => ({ emoji: a.emoji + c.emoji, fixedPx: a.fixedPx + c.fixedPx, widthCap: a.widthCap + c.widthCap }), { emoji: 0, fixedPx: 0, widthCap: 0 });

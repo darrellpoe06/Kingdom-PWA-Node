@@ -12,9 +12,23 @@
     <title>PoeTech Family OS</title>
     <meta name="description" content="Sovereign family stewardship — financial, household, ministry. Local-first by design." />
     <link rel="manifest" href="/manifest.webmanifest" />
-    <meta name="theme-color" content="#1A1815" />
+    <!-- Light (cream) is the first-run default theme (Darrell 2026-07-19), so
+         the browser chrome bar matches it on first paint. -->
+    <meta name="theme-color" content="#FAF8F4" />
+    <!-- Declare color-scheme so Android Chrome's "Auto dark theme" (Force Dark)
+         stops force-darkening the app. Without this, Chrome treats the page as
+         theme-unaware and inverts every white control (the Create toolbar
+         buttons, type <select>, and title <input> rendered as illegible black
+         boxes). The app manages its own themes (midnight + cream) in JS, so we
+         declare support for both and let the app, not the browser, do the
+         theming. Reported 2026-07-19 from an Android screenshot. -->
+    <meta name="color-scheme" content="light dark" />
     <link rel="icon" type="image/svg+xml" href="/icon.svg" />
-    <link rel="apple-touch-icon" href="/icon.svg" />
+    <!-- iOS ignores SVG apple-touch-icons on several versions; ship a real PNG so
+         Add-to-Home-Screen shows the brand mark (also required for the App Store). -->
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="PoeTech" />
@@ -29,7 +43,7 @@
     <script>
       (function () {
         var p = new URLSearchParams(location.search);
-        var standalone = ['join', 'invites', 'register', 'audience', 'teach', 'login', 'request-space', 'oauth_popup']
+        var standalone = ['join', 'invites', 'register', 'audience', 'teach', 'login', 'request-space', 'share', 'oauth_popup']
           .some(function (k) { return p.get(k) === '1'; });
         var href = '__MONOLITH_PRELOAD_HREF__';
         if (!standalone && href.charAt(0) === '/') {
@@ -44,6 +58,12 @@
   </head>
   <body>
     <div id="root"></div>
+    <!-- The watchdog is the only script that survives a build whose assets
+         can't load (deploy window, LESSONS P32): stable unhashed path, CSP
+         'self' (inline scripts are blocked — measured 2026-07-10). It retries
+         once with a cache-bust if main.jsx never sets __PT_BOOTED, then says
+         something honest instead of staying blank. -->
+    <script defer src="/poetech-app/watchdog.js"></script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

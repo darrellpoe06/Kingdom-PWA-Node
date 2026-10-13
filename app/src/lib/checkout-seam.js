@@ -23,11 +23,14 @@ export const PROCESSOR_NOTE =
   'with his own account and keys. No card details or secrets are handled in the ' +
   'app or this repo — the secret key and webhook verification live server-side.';
 
-// The same-origin endpoints Darrell configures (per the n8n same-origin rule —
-// never the absolute Funnel URL). The server behind these holds the secret key
-// and creates the Stripe Checkout Session.
-export function checkoutEndpoint(base = '/n8n') { return `${base}/webhook/book-checkout`; }
-export function subscriptionEndpoint(base = '/n8n') { return `${base}/webhook/subscribe`; }
+// The same-origin endpoints Darrell configures. The server behind these holds
+// the secret key and creates the Stripe Checkout Session — a Cloudflare Pages
+// Function (or a serverless fn Darrell owns) with his Stripe secret in its env,
+// NOT n8n (DR-0218 zero-n8n cutover; a Postgres RPC cannot safely hold a Stripe
+// secret, so this is a CF-function path, not a Supabase RPC). Checkout ships
+// DISABLED until Darrell wires his processor, so this default only ever previews.
+export function checkoutEndpoint(base = '/api') { return `${base}/checkout`; }
+export function subscriptionEndpoint(base = '/api') { return `${base}/subscribe`; }
 
 // Is a processor wired up? Until Darrell configures it, the store previews the
 // request but cannot charge.

@@ -2,6 +2,10 @@
 // the Build board's "live build" stamp.
 //
 //   GREEN ("Latest")            = the running build is the newest deployed build.
+//                                 Since DR-0781 this is MEASURED: the server's
+//                                 build.json is fetched (never cached) and
+//                                 compared with the running sha; a difference
+//                                 flips RED even when no worker is waiting.
 //   RED   ("Update available")  = a newer build has downloaded and is waiting to
 //                                 take over — the user is on a STALE build.
 //
@@ -19,7 +23,7 @@
 // .. midnight OLED black).
 
 import { useEffect, useState } from 'react';
-import { UPDATE_EVENT, UPDATE_STUCK_EVENT, isUpdateStuck } from './sw-update.js';
+import { UPDATE_EVENT, UPDATE_STUCK_EVENT, BUILD_BEHIND_EVENT, isUpdateStuck } from './sw-update.js';
 import { KPI_STATUS } from './kpi-status.js';
 
 // Build freshness is the FIRST instance of the shared KPI status system
@@ -93,11 +97,15 @@ export function useStaleBuild(win) {
     const mark = () => setStale(true);
     w.addEventListener(UPDATE_EVENT, mark);
     w.addEventListener(UPDATE_STUCK_EVENT, mark);
+    // THE SERVER'S VERDICT (DR-0781): the deployed build.json names a newer sha
+    // than this page runs. Stale is said even when no worker is waiting here.
+    w.addEventListener(BUILD_BEHIND_EVENT, mark);
     // Late-mount catch: the event may have fired before we subscribed.
-    if (updateWaiting(w)) setStale(true);
+    if (updateWaiting(w) || (w.__pwaBehindSha && w.__pwaBehindSha !== (typeof __BUILD_SHA__ !== 'undefined' ? __BUILD_SHA__ : ''))) setStale(true);
     return () => {
       w.removeEventListener(UPDATE_EVENT, mark);
       w.removeEventListener(UPDATE_STUCK_EVENT, mark);
+      w.removeEventListener(BUILD_BEHIND_EVENT, mark);
     };
   }, [w]);
   return stale;

@@ -41,6 +41,7 @@ import ReactionKey from './ReactionKey.jsx';
 import { useReadAloud } from '../lib/use-read-aloud.js';
 import { digestFromHelp } from '../lib/surface-digest.js';
 import { narrateDigest } from '../lib/talk-about.js';
+import { motionBehavior } from '../lib/gentle-motion.js';
 
 // A single roadmap journey, rendered as a numbered list of clickable stops.
 function RoadmapSection({ section, onNavigate }) {
@@ -150,7 +151,7 @@ export default function HelpButton({
     if (to.view && setView) setView(to.view);
     if (to.churchView && setChurchView) setChurchView(to.churchView);
     if (to.booksView && setBooksView) setBooksView(to.booksView);
-    try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) { /* ignore */ }
+    try { window.scrollTo({ top: 0, behavior: motionBehavior() }); } catch (e) { /* ignore */ }
     closeSheet();
   }
 

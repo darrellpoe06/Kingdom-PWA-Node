@@ -1,0 +1,26 @@
+# PoeTech cams recorder -- recorded loops to the NAS (DR-0775).
+# One ffmpeg per enabled camera (the ffmpeg inside the go2rtc container, via
+# docker exec), ten-minute segments, owner-chosen retention per camera, one
+# disk budget pruning oldest-first. Reads recording.json beside go2rtc.yaml
+# (written by the forwarder's PUT /recording), writes recording.status.json.
+# Installed + kept running by infra/nas-cameras/install.sh via services-sync;
+# the @...@ values are filled in by the installer.
+[Unit]
+Description=PoeTech cams recorder (recorded loops to the NAS, owner-chosen retention)
+After=network-online.target docker.service poetech-cams.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+Environment=GO2RTC_DATA=@DATA@
+Environment=CAMS_RECORDINGS=@RECORDINGS@
+WorkingDirectory=@SRC@
+ExecStart=@PYTHON@ -u @SRC@/cams_recorder.py
+Restart=on-failure
+RestartSec=10
+Nice=10
+KillMode=mixed
+TimeoutStopSec=20
+
+[Install]
+WantedBy=multi-user.target

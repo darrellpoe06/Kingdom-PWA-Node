@@ -116,16 +116,21 @@ export function normalizeLevel(id) {
   return EXPERIENCE_LEVELS.some((l) => l.id === id) ? id : DEFAULT_LEVEL;
 }
 
-// Resolve the framing for an experience level, falling back to standard then to
-// the standard depth tier so a level is never empty. Returns { levelId, text,
-// branched }.
+// Resolve the framing for an experience level. An AUTHORED level variant is
+// always senior. Where none is authored, the level DERIVES from the theme's
+// own depth tiers — the SAME truth at the depth that fits the level (child /
+// new believer ← essential, standard ← standard, scholar ← deep) — instead of
+// silently handing every level the standard adult text (the 2026-07-08 gap:
+// the level switch rendered but 12 of 20 themes had nothing to branch to).
+// Depth selection over the theme's own authored words, never an invented
+// rephrase (DR-0076/DR-0127). Returns { levelId, text, branched, adaptedFrom }.
+const LEVEL_DEPTH_FALLBACK = { child: 'essential', 'new-believer': 'essential', standard: 'standard', scholar: 'deep' };
 export function resolveLevel(theme, levelId = DEFAULT_LEVEL) {
   const levels = theme && theme.levels && typeof theme.levels === 'object' ? theme.levels : {};
   const want = normalizeLevel(levelId);
   if (typeof levels[want] === 'string' && levels[want].trim()) return { levelId: want, text: levels[want], branched: false };
-  if (typeof levels[DEFAULT_LEVEL] === 'string' && levels[DEFAULT_LEVEL].trim()) return { levelId: DEFAULT_LEVEL, text: levels[DEFAULT_LEVEL], branched: true };
-  const d = resolveDepth(theme, 'standard');
-  return { levelId: want, text: d.text, branched: true };
+  const d = resolveDepth(theme, LEVEL_DEPTH_FALLBACK[want] || 'standard');
+  return { levelId: want, text: d.text, branched: true, adaptedFrom: d.tierId };
 }
 
 // Universal Design for Learning + accessibility posture (the app already ships

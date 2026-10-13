@@ -26,17 +26,33 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 
 // ── pure location <-> URL helpers (no DOM; unit-testable) ───────────────────
 
-// Top-level views that are real routes. Mirrors getInitialView()'s VALID list
-// in the shell; kept here so the URL round-trip is a single source of truth.
+// Top-level views that are real routes. This MIRRORS getInitialView()'s VALID
+// list in the shell, and "mirrors" is load-bearing: when the two drifted, half
+// the app's tabs were unknown to parseNav, so the seed's sameUrl check
+// disagreed with the booted view and rewrote the URL on arrival — dropping
+// every query param that is not view/sub/PRESERVED_PARAMS. Measured 2026-08-13
+// while auditing DR-0296's own remainder: 15 of the shell's 30 views were
+// missing here (tlc, voice, scribe, library, recipes, games, tvtime, advocacy,
+// databack, messages, relationships, inventory, forecast, cohorts,
+// tlc-assistant). The drift is now GUARDED — nav-history.test.jsx derives the
+// shell's list from source and fails if these two ever disagree again.
 export const VALID_VIEWS = [
-  'overview', 'books', 'inbound', 'rentals', 'projects', 'practice',
-  'opportunities', 'about', 'church', 'markets', 'notes', 'create',
-  'admin', 'center', 'crm',
+  'overview', 'books', 'inbound', 'rentals', 'properties', 'projects', 'practice', 'tlc',
+  'opportunities', 'about', 'church', 'markets', 'notes', 'create', 'voice',
+  'scribe', 'library', 'recipes', 'games', 'tvtime', 'advocacy', 'databack',
+  'messages', 'admin', 'center', 'crm', 'relationships', 'inventory',
+  'forecast', 'cohorts', 'tlc-assistant', 'health', 'cameras', 'vault',
 ];
 
-// Legacy church deep-links shipped as ?view=engagement|choir|pulpit|learn|events
+// Legacy church deep-links shipped as ?view=engagement|choir|pulpit|learn|...
 // (pre-history-nav). parseNav keeps honoring them so old bookmarks/links work.
-const CHURCH_ALIASES = ['engagement', 'choir', 'pulpit', 'learn', 'events'];
+// This list must stay a SUPERSET of every alias the shell ever honored, because
+// the shell now resolves its boot sub-tab through parseNav (initialChurchView
+// below) — a name dropped from here would silently stop being a working link.
+const CHURCH_ALIASES = [
+  'engagement', 'choir', 'pulpit', 'learn', 'events',
+  'scripture', 'bus', 'harvest', 'conference', 'program',
+];
 
 // Defaults the shell boots with; a location equal to default writes a clean URL.
 const DEFAULT_VIEW = 'overview';
@@ -62,7 +78,15 @@ export function parseNav(search) {
   const out = { view: DEFAULT_VIEW, booksView: DEFAULT_BOOKS, churchView: DEFAULT_CHURCH };
   try {
     const sp = new URLSearchParams(search || '');
-    const v = (sp.get('view') || '').toLowerCase().trim();
+    // `?tab=` IS AN ALIAS FOR `?view=`, and it is not a convenience (added
+    // 2026-09-16, DR-0444). push-announce shipped its notification landings as
+    // `/poetech-app/?tab=messages` -- a param this app has never read -- so
+    // every message notification fell through to the default view and opened
+    // Big Picture with the welcome card on it. The landings are fixed to
+    // `?view=`, but the notifications ALREADY DELIVERED are sitting on phones
+    // with `?tab=` in them, and a tap on one must still work. Honored here,
+    // once, in the one parser the shell and Back both read through.
+    const v = (sp.get('view') || sp.get('tab') || '').toLowerCase().trim();
     const sub = (sp.get('sub') || '').toLowerCase().trim();
     if (CHURCH_ALIASES.includes(v)) { out.view = 'church'; out.churchView = v; return out; }
     if (VALID_VIEWS.includes(v)) out.view = v;
@@ -70,6 +94,58 @@ export function parseNav(search) {
     if (out.view === 'books' && sub) out.booksView = sub;
   } catch (e) { /* malformed query -> defaults */ }
   return out;
+}
+
+// The Books sub-tabs that are real routes, in nav order. Mirrors the Books
+// sub-nav id list in the shell; kept here beside VALID_VIEWS so a ?sub= deep-link
+// resolves through ONE validated source. An unknown sub must fall back to the
+// default, never route to a branch that renders nothing (the "blank Books tab"
+// class this module exists to prevent).
+export const VALID_BOOKS_SUBS = [
+  'entities', 'accounts', 'debts', 'owed', 'plan', 'transactions', 'imported', 'cart', 'k1099', 'taxes', 'calendar', 'legal',
+];
+
+// initialBooksView — the Books sub-tab a URL deep-links to, validated. The shell
+// boots booksView from THIS (getInitialBooksView), restoring the parity that view
+// (getInitialView) and churchView (getInitialChurchView) already had: before, the
+// shell hard-coded 'calendar' and ignored ?sub=, so ?view=books&sub=imported
+// opened Calendar and the history seed then dropped the sub from the URL — the
+// deep-link "didn't work at all." Only honored when view is books; an unknown or
+// absent sub returns the default so no deep-link can route to a dead branch.
+export function initialBooksView(search) {
+  const { view, booksView } = parseNav(search);
+  return view === 'books' && VALID_BOOKS_SUBS.includes(booksView) ? booksView : DEFAULT_BOOKS;
+}
+
+// The Church sub-tabs that are real routes. Mirrors the Church sub-nav id list
+// in the shell (the staff-only ids are included on purpose: their render branches
+// exist and do their OWN staff gating, so a deep-link resolves to a real branch
+// and the gate — not to a blank screen).
+export const VALID_CHURCH_SUBS = [
+  'home', 'ministries', 'pulpit', 'scripture', 'engagement', 'choir', 'bus', 'program',
+  'learn', 'eternal-algorithms', 'conference', 'events', 'projects',
+  'harvest', 'videowall', 'devices', 'infra-plan', 'observe', 'members', 'my-record', 'access', 'giving-book',
+];
+
+// initialChurchView — the Church sub-tab a URL deep-links to, validated.
+//
+// THE BUG THIS EXISTS TO KILL (Darrell 2026-08-13, opening a shared lesson link:
+// "doesnt even take the user to the actual lessons.... Only to the live stream
+// tab with the player open for nothing!!!"). The shell's getInitialChurchView
+// read ONLY `?view=`, never `?sub=`. Every share link this app produces is
+// `?view=church&sub=learn&course=…&lesson=…` — and because 'church' is not a
+// sub-tab NAME, that boot resolved to 'home', the Worship tab, with the live
+// player mounted over nothing. ChurchLearn's own deep-link reader was correct
+// and was simply never reached: the lesson tests mounted ChurchLearn directly,
+// so nothing in the suite ever walked the SHELL's routing decision. That is the
+// gap (LESSONS P16 — verify the surface the user actually uses), and it is why
+// this resolution now lives HERE, pure and asserted, with the shell delegating.
+//
+// Only honored when the view is church; an unknown or absent sub returns the
+// default so no deep-link can route to a dead branch.
+export function initialChurchView(search) {
+  const { view, churchView } = parseNav(search);
+  return view === 'church' && VALID_CHURCH_SUBS.includes(churchView) ? churchView : DEFAULT_CHURCH;
 }
 
 // Stable equality key — keys off the ACTIVE view's sub only, so switching tabs
@@ -84,11 +160,88 @@ export function navKey(loc) {
 
 // ── the browser-history spine hook (used once, in the shell) ────────────────
 
+// Door/context params that must SURVIVE in-app navigation. A door launch
+// (?lovecorner=1 / ?moore=1 / ?tlc=1 / ?biz=slug) scopes the whole session;
+// serializeNav writes only view/sub, so without this a door visitor's first
+// tab-tap rewrote the URL bare and the NEXT reload booted as full PoeTech —
+// while the reverse collision (a PoeTech reload booting as the church door off
+// bare ?view=church) is fixed in church-own-door.js. Exported for tests.
+//
+// `demo` joined them 2026-08-13, and it is the most consequential of the set.
+// The shell re-derives the persona from the URL on EVERY render
+// (`const demoPersona = getDemoPersona()`, not a useState initializer), and
+// `isAnyDemoMode` is the single flag the save effect opens with — "Demo +
+// picker + reviewer never write to localStorage (or push snapshots)." So
+// dropping `demo` from the URL did not merely change the address bar: the next
+// render lost the persona, the suppression lifted, and the sample household's
+// fabricated balances were free to be written into the user's real storage and
+// pushed as a snapshot. One tab tap was enough. Proven in a live render harness
+// before the fix (src/__tests__/demo-param-survives-nav.test.jsx).
+//
+// `join` is deliberately NOT here: it is a one-time claim token, read once into
+// state by ClaimInviteBanner, and keeping it in the URL would leave an invite
+// token sitting in every screenshot and shared link.
+//
+// `course`/`lesson` joined 2026-08-12 (DR-0293) for the opposite reason to
+// `demo`: they are not a scope, they are the DESTINATION. ChurchLearn reads
+// them ONCE on mount, and the history seed ran first and stripped them, so a
+// shared lesson link opened the church home with no lesson. Darrell, from his
+// phone: "it takes me to the Love Corner App... no lesson... just the app."
+// Unlike `join` these carry no token — a course/lesson id in a screenshot is
+// exactly what the sharer meant to send.
+export const PRESERVED_PARAMS = ['lovecorner', 'moore', 'tlc', 'biz', 'demo', 'course', 'lesson'];
+
+// hrefForView — a real, openable address for a top-level tab, from anywhere.
+//
+// WHY THIS EXISTS. Darrell, 2026-09-22, on a read-aloud notice that told him to
+// record a voice sample in the Voice tab: "I can't find how to do that add a
+// voice?!!!!!!" The tab is real, and on a phone it sits past the right edge of
+// the scrolling nav as "Voi" plus a chevron. Naming a route is not the same as
+// offering it — Drive-Don't-Delegate applies to the product, not only to the
+// agent: a surface that tells someone to go somewhere should TAKE them.
+//
+// A plain href rather than a setView call ON PURPOSE. TTSControl is mounted in
+// four places and three of them (FollowAlong, PracticeLearn, TlcPublicDoor) have
+// no nav shell to call into, so a prop would be undefined exactly where a
+// stranded reader is most likely to be. The shell reads `?view=` on boot
+// (parseNav), so this address works from all four.
+//
+// The door params ride along, or a Love Corner visitor who taps it lands in the
+// wrong face of the app — the same defect PRESERVED_PARAMS was written for.
+export function hrefForView(view, opts = {}) {
+  const loc = (typeof window !== 'undefined' && window.location) || {};
+  const pathname = opts.pathname != null ? opts.pathname : (loc.pathname || '/');
+  const search = opts.search != null ? opts.search : (loc.search || '');
+  const out = new URLSearchParams();
+  out.set('view', String(view));
+  try {
+    const cur = new URLSearchParams(search);
+    for (const p of PRESERVED_PARAMS) {
+      const v = cur.get(p);
+      if (v != null) out.set(p, v);
+    }
+  } catch (e) { /* no search to preserve — the bare view address still works */ }
+  return `${pathname}?${out.toString()}`;
+}
+
 // Compose the full URL for a location, preserving the app's base path
-// (/poetech-app/ on the NAS, / on Vercel) — serializeNav only owns the query.
+// (/poetech-app/ on the NAS, / on Vercel) — serializeNav only owns the query —
+// and carrying the door/context params through every push.
 function urlFor(loc) {
   const path = (typeof window !== 'undefined' && window.location && window.location.pathname) || '/';
-  return path + serializeNav(loc);
+  const nav = serializeNav(loc);
+  try {
+    const cur = new URLSearchParams((typeof window !== 'undefined' && window.location && window.location.search) || '');
+    const out = new URLSearchParams(nav ? nav.slice(1) : '');
+    for (const p of PRESERVED_PARAMS) {
+      const v = cur.get(p);
+      if (v != null) out.set(p, v);
+    }
+    const s = out.toString();
+    return path + (s ? `?${s}` : '');
+  } catch (e) {
+    return path + nav;
+  }
 }
 
 // useBrowserHistoryNav — wires the shell's nav triple to window.history.

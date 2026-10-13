@@ -1,0 +1,99 @@
+// =============================================================================
+// The office's hierarchy as data, and the door's gates agreeing with it
+// (DR-0346, 2026-09-10). Darrell: "Assistants and others need hierarchy for
+// making sure we have appropriate governance and resources for our business"
+// / "Owners and managers etc need to be able to govern using the same app."
+// =============================================================================
+import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { join, dirname } from 'node:path';
+import { TLC_POSITIONS, TLC_RESOURCES, positionForRole, resourcesFor, canReach, chainOfCommand, resourceMatrix, doorTabsFor, DOOR_TABS } from '../lib/tlc-governance.js';
+import { grantableRoles, ROLE_LABELS } from '../lib/member-roles.js';
+
+const here = dirname(fileURLToPath(import.meta.url));
+const src = (rel) => readFileSync(join(here, '..', rel), 'utf8');
+
+describe('the seats, top down', () => {
+  it('eleven seats (nine office seats, the AI & Systems Specialist among them, and the two standings before membership); every reportsTo names a seat above; the owner is the top; every seat’s role is a database role or none (the client)', () => {
+    expect(TLC_POSITIONS).toHaveLength(11);
+    const ai = TLC_POSITIONS.find((p) => p.key === 'aispecialist');
+    expect(ai.role).toBe('assistant');
+    expect(ai.reportsTo).toBe('admin');
+    const keys = TLC_POSITIONS.map((p) => p.key);
+    for (const p of TLC_POSITIONS) {
+      if (p.reportsTo) expect(keys.indexOf(p.reportsTo), p.key).toBeLessThan(keys.indexOf(p.key));
+      expect(p.role === null || ROLE_LABELS[p.role], `${p.key} role ${p.role}`).toBeTruthy();
+      expect(p.governs.length).toBeGreaterThan(30);
+      expect(p.may.length).toBeGreaterThan(0);
+      for (const r of p.resources) expect(TLC_RESOURCES.map((x) => x.id), `${p.key} reaches unknown ${r}`).toContain(r);
+    }
+    expect(TLC_POSITIONS[0].key).toBe('owner');
+    expect(TLC_POSITIONS[0].reportsTo).toBeNull();
+    expect(chainOfCommand('trainee').map((p) => p.key)).toEqual(['owner', 'supervisor']);
+    expect(chainOfCommand('assistant').map((p) => p.key)).toEqual(['owner', 'admin']);
+  });
+  it('resources narrow down the chart: managers ⊇ staff ⊇ everyone; an assistant never reaches inquiries, revenue, packets or roles', () => {
+    const owner = resourcesFor('owner'), admin = resourcesFor('admin'), member = resourcesFor('member'), assistant = resourcesFor('assistant'), viewer = resourcesFor('viewer'), client = resourcesFor(null);
+    for (const r of admin) expect(owner).toContain(r);
+    for (const r of member) expect(admin).toContain(r);
+    for (const r of assistant) expect(member).toContain(r);
+    expect(viewer).toEqual(assistant);
+    // a client reaches LESS than the assistant: never the office documents or its workspace (DR-0350 §17)
+    for (const r of client) expect(assistant, r).toContain(r);
+    expect(client).not.toContain('team');
+    expect(client).not.toContain('assistant');
+    expect(canReach(null, 'training')).toBe(true);
+    expect(canReach(null, 'door:jobs')).toBe(true);
+    for (const r of ['inquiries', 'revenue', 'growth', 'onboarding', 'team:governance', 'training:assign']) expect(canReach('assistant', r), r).toBe(false);
+    expect(canReach('assistant', 'assistant')).toBe(true);
+    expect(canReach('member', 'onboarding')).toBe(false);
+    expect(canReach('admin', 'onboarding')).toBe(true);
+    expect(canReach('owner', 'team:governance')).toBe(true);
+    // an approved colleague without a membership row is staff (DR-0344 §7)
+    expect(positionForRole(null, { approvedColleague: true }).key).toBe('therapist');
+    expect(positionForRole(null).key).toBe('client');
+    expect(resourceMatrix()).toHaveLength(TLC_RESOURCES.length);
+  });
+  it('the chart’s "may" mirrors the guarded role function: only an owner makes an admin; an admin moves member/viewer/assistant; no one edits an owner', () => {
+    expect(grantableRoles('owner', 'member')).toContain('admin');
+    expect(grantableRoles('admin', 'member')).not.toContain('admin');
+    expect(grantableRoles('admin', 'admin')).toEqual([]);
+    expect(grantableRoles('owner', 'owner')).toEqual([]);
+    expect(grantableRoles('owner', 'member', { isSelf: true })).toEqual([]);
+    expect(TLC_POSITIONS.find((p) => p.key === 'owner').may.join(' ')).toMatch(/only an owner may make or unmake an admin/);
+    expect(TLC_POSITIONS.find((p) => p.key === 'admin').may.join(' ')).toMatch(/never admin/);
+  });
+});
+
+describe('the door’s gates say what the chart says', () => {
+  const door = src('components/TlcPublicDoor.jsx');
+  const team = src('components/TlcTeamResources.jsx');
+  const learn = src('components/PracticeLearn.jsx');
+  it('office tabs for staff (owner/admin/member or an approved colleague); Onboarding and Governance for owner/admin only; assistants are not staff', () => {
+    expect(door).toMatch(/const operatorRole = \['owner', 'admin', 'member'\]\.includes/);
+    expect(door).toMatch(/const staff = operatorRole \|\| \(colleague && colleague\.status === 'approved'\)/);
+    expect(door).toMatch(/canManageTeam\(roleState\) \? \[\{ id: 'onboarding'/);
+    expect(team).toMatch(/roleState && canManageTeam\(roleState\) \? \{ id: 'governance'/);
+    expect(team).toMatch(/staff \? \{ id: 'launch'/);
+    expect(learn).toMatch(/isStaff && onAssign && <AssignLessonForm/);
+  });
+});
+
+describe('the tabs each group sees (Darrell 2026-09-10: "what tabs do each group need to see and or not?")', () => {
+  it('is derived from the same resources as the matrix, per standing', () => {
+    expect(doorTabsFor('applicant')).toEqual(['find', 'learn', 'jobs']);
+    // a client account: their lessons, the people, the open positions — never the office
+    expect(doorTabsFor('client')).toEqual(['find', 'training', 'jobs']);
+    expect(doorTabsFor('newhire')).toEqual(['find', 'training', 'team']);
+    expect(doorTabsFor('reviewer')).toEqual(['find', 'training', 'team', 'assistant']);
+    expect(doorTabsFor('assistant')).toEqual(['find', 'training', 'team', 'assistant']);
+    expect(doorTabsFor('aispecialist')).toEqual(['find', 'training', 'team', 'assistant']);
+    expect(doorTabsFor('therapist')).toEqual(['find', 'inquiries', 'growth', 'revenue', 'training', 'team', 'assistant']);
+    expect(doorTabsFor('admin')).toEqual(['find', 'inquiries', 'growth', 'revenue', 'training', 'team', 'assistant', 'onboarding']);
+    expect(doorTabsFor('owner')).toEqual(doorTabsFor('admin'));
+    expect(doorTabsFor('nope')).toEqual([]);
+    for (const tab of DOOR_TABS) expect(TLC_RESOURCES.some((r) => r.id === tab.resource), tab.id).toBe(true);
+  });
+});
+

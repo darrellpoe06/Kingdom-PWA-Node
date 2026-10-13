@@ -171,6 +171,57 @@ The binding **open-source + portable + vendor-independent** principle landed in 
 
 ---
 
+## NAS execution conventions — what a script running on the NAS must assume
+
+These are the standards a script that executes **on the Synology NAS** meets —
+whether it is run by `install.sh`, by a services-sync cycle, by a scheduled
+task, or over ssh from a GitHub runner. Each one exists because it was
+measured, not because it sounds prudent.
+
+1. **Resolve `docker` before calling it — never rely on the PATH.** DSM does not
+   put docker on the PATH of a **non-login shell**, which is exactly the shell an
+   ssh command and a scheduled task get. A bare `docker` therefore fails as
+   *command not found*, and so does the usual `sudo -n docker` fallback, because
+   sudo resolves against the same PATH. Resolve first, then use the resolved
+   value:
+
+   ```sh
+   DOCKER_BIN=$(command -v docker 2>/dev/null || true)
+   if [ -z "$DOCKER_BIN" ]; then
+     for c in /usr/local/bin/docker /usr/bin/docker; do
+       if [ -x "$c" ]; then DOCKER_BIN="$c"; break; fi
+     done
+   fi
+   [ -n "$DOCKER_BIN" ] || { echo "docker binary not found" >&2; exit 1; }
+   DOCKER="$DOCKER_BIN"
+   "$DOCKER_BIN" ps >/dev/null 2>&1 || DOCKER="sudo -n $DOCKER_BIN"
+   ```
+
+   Reference implementations: `scripts/sovereign-replay-over-tailnet.sh`,
+   `infra/nas-supabase/replay_migrations.sh`,
+   `infra/church-media-golive/choir_dates_install.sh`, and the ten
+   `scripts/nas-update-*.sh` scripts that call `/usr/local/bin/docker` outright.
+   **Gate:** `scripts/nas-docker-path-guard.mjs`, run by
+   `app/src/__tests__/nas-docker-path-guard.test.js`, with a named exception
+   list carrying each exception's reason.
+
+   *Why it is written down:* on 2026-09-02 the first migration to ride the
+   sovereign replay lane never applied — `sudo: docker: command not found`, zero
+   files applied, the app's database left behind the repo — because
+   `replay_migrations.sh` assumed the PATH while **its own caller** already
+   resolved the binary and even carried a comment saying DSM does not provide
+   it. The standard existed in ten implementations and zero rules, so the
+   sibling missed it (DR-0314). It is a rule now.
+
+2. **Modern python rides a container, never DSM's system python** (3.8).
+   `python:3.12-slim` via the NAS's own docker (DR-0272 §1).
+
+3. **The NAS repo mirror self-pulls before it reads files.** Local drift is
+   stashed, never destroyed, then `git pull --ff-only`; the replayed commit is
+   printed so a stale checkout cannot read as "no drift" (DR-0272 §2).
+
+---
+
 ## Safety practices — non-negotiable
 
 1. **Never expose NAS to public internet without VPN.** Use Tailscale (free) or Synology QuickConnect to reach the NAS from outside the LAN. Don't open ports.

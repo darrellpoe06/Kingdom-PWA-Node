@@ -57,6 +57,8 @@ export const RELATIONSHIP_TYPES = Object.freeze({
   GUARDIAN_CHILD: 'guardian-child',
   FAMILY: 'family',
   LANDLORD_TENANT: 'landlord-tenant',
+  LANDLORD_MANAGER: 'landlord-manager',
+  OWNER_ASSISTANT: 'owner-assistant',
 });
 
 export const RELATIONSHIPS = Object.freeze([
@@ -76,8 +78,11 @@ export const RELATIONSHIPS = Object.freeze([
     label: 'Family circle',
     blurb:
       'Family members share family-scoped surfaces by their role. Governors build and ' +
-      'steward; members use the shared family circle; children see only their child-safe slice.',
-    roles: ['governor', 'member', 'child'],
+      'steward; members use the shared family circle and can work the books; a SUCCESSOR ' +
+      '(a steward-in-training being raised to take over) SEES the real books but cannot ' +
+      'change them — read-only, so they learn on the family’s actual numbers without ' +
+      'risk (DR-0252, formerly duplicate DR-0111); children see only their child-safe slice.',
+    roles: ['governor', 'member', 'successor', 'child'],
     steward: 'governor',
   },
   {
@@ -89,6 +94,73 @@ export const RELATIONSHIPS = Object.freeze([
       'landlord manages the lease + requests for their properties only.',
     roles: ['landlord', 'tenant'],
     steward: 'landlord',
+  },
+  // LANDLORD ↔ MANAGER — the 1099-delegation relationship (Darrell 2026-07-06:
+  // "a landlord can let 1099 workers manage the business while they watch the
+  // workflows and live separated from the day to day… seeing the nuance to
+  // train their 1099 management… review the historical text exchanges… and even
+  // give that sight to new family to run the business or a 1099 worker").
+  //
+  // The MANAGER (a 1099 contractor OR a family member being raised to run it)
+  // RUNS the day-to-day — the full landlord operating set (rent roll, maintenance,
+  // rent-confirm, notices, lease, tenant contact, messaging). But the manager is
+  // NOT the owner: they cannot WATCH-over the business as an owner, review the
+  // whole message history for training, train another manager, or GRANT access
+  // to anyone else. Those four are the owner's, and they are the ceiling — a 1099
+  // worker runs the business, they do not get to hand it to someone else.
+  //
+  // The LANDLORD (owner) lives separated from the day-to-day yet keeps the whole
+  // operating set PLUS the four oversight powers: watch the workflows, review the
+  // historical exchanges to see the nuance, train for quality, and delegate that
+  // same sight to new family or another 1099 worker. "With or without them" — the
+  // owner can always act, and can always watch. Same staged, revocable pattern as
+  // guardian↔child and the family successor: run within an envelope the steward
+  // sets and can pull back.
+  {
+    type: RELATIONSHIP_TYPES.LANDLORD_MANAGER,
+    label: 'Landlord ↔ Manager (1099)',
+    blurb:
+      'The delegation relationship: a landlord lets a 1099 worker (or a family member ' +
+      'being raised to run it) MANAGE the business day-to-day, while the owner stays ' +
+      'separated from the day-to-day and WATCHES the workflows. The manager runs the ' +
+      'full operating set — rent roll, maintenance, rent, notices, lease, messaging — ' +
+      'but never owns it: watching over the business, reviewing the whole message ' +
+      'history to train, and granting access to others stay the owner’s. The owner ' +
+      'trains from the nuance and can give that same sight to new family or another ' +
+      '1099 worker, so quality holds with or without them.',
+    roles: ['landlord', 'manager'],
+    steward: 'landlord',
+  },
+  // OWNER ↔ ASSISTANT — the business-level delegation for a working assistant
+  // (Darrell 2026-07-13: "make sure assistants can't see the owner's data,
+  // however the owners or governors can see [down the level] — level and data
+  // controls for leadership and owners"). The ASSISTANT (e.g. an executive
+  // admin / marketing assistant in training) OPERATES a scoped set of work
+  // surfaces — the referral database + marketing ops, their own tasks/calendar,
+  // pre-intake inbound inquiries (contact-level, NO PHI), and the CRM scoped to
+  // their OWN assigned leads. They are walled off from the owner's world: the
+  // finances, the forecast, the whole portfolio, family governance, the other
+  // businesses, and the oversight powers — all DENY, explicitly (a data gate,
+  // not just a hidden tab; the DB half is the load-bearing next slice, RLS, the
+  // same way `child`/`successor` are role-gated at the row level, DR-0074/0082).
+  //
+  // The OWNER (leadership / governor) sees DOWN: everything the assistant does,
+  // plus the four oversight powers (watch the workflows, review the history to
+  // train, coach for quality, delegate the same sight). Leadership sees the
+  // level below; the level below never sees up. Same staged, revocable pattern
+  // as landlord↔manager and the family successor.
+  {
+    type: RELATIONSHIP_TYPES.OWNER_ASSISTANT,
+    label: 'Owner ↔ Assistant',
+    blurb:
+      'The business delegation for a working assistant: the owner hands an assistant a ' +
+      'scoped set of work surfaces — the referral database + marketing, their own ' +
+      'tasks, pre-intake inbound (contact-level, no PHI), and the CRM leads assigned to ' +
+      'them — while the finances, forecast, portfolio, family data, and the other ' +
+      'businesses stay walled off. The owner sees everything the assistant does and ' +
+      'keeps the oversight powers; the assistant never sees up the level.',
+    roles: ['owner', 'assistant'],
+    steward: 'owner',
   },
 ]);
 
@@ -115,6 +187,7 @@ export const CAPABILITIES = Object.freeze({
   'content.unrated':   { label: 'Unfiltered content',     desc: 'Reach content not vetted as age-appropriate.',     outbound: true,  sensitive: true  },
   'purchase.any':      { label: 'Buy / spend',            desc: 'Purchase or spend money on their own.',            outbound: true,  sensitive: true  },
   'finance.view':      { label: 'See family finances',    desc: 'View the family books, forecast, or accounts.',    outbound: false, sensitive: true  },
+  'finance.manage':    { label: 'Work the books',          desc: 'Record, edit, or remove financial transactions.',  outbound: false, sensitive: true  },
   'account.security':  { label: 'Change security',        desc: 'Change PINs, sign-in, or account settings.',       outbound: false, sensitive: true  },
 
   // ---- landlord<->tenant capabilities -------------------------------------
@@ -133,6 +206,22 @@ export const CAPABILITIES = Object.freeze({
   'tenant.contact':    { label: 'See tenant contact',     desc: 'See tenant contact details for their units.',      outbound: false, sensitive: true  },
   'message.tenant':    { label: 'Message tenant',         desc: 'Message a tenant of their property.',              outbound: false, sensitive: false },
   'portfolio.view':    { label: 'See whole portfolio',    desc: 'See the entire property portfolio.',               outbound: false, sensitive: true  },
+
+  // ---- landlord<->manager (1099-delegation) oversight capabilities ---------
+  // The four OWNER powers that a 1099 manager runs the business WITHOUT. They are
+  // the ceiling on delegation: a manager operates, an owner oversees + hands off.
+  'ops.oversight':     { label: 'Watch the workflows',    desc: 'See all workflow activity a manager runs, live.',  outbound: false, sensitive: true  },
+  'ops.history':       { label: 'Review message history', desc: 'Review the historical tenant/manager exchanges.',  outbound: false, sensitive: true  },
+  'ops.train':         { label: 'Train for quality',      desc: 'Coach a manager on workflow quality from the nuance.', outbound: false, sensitive: false },
+  'ops.delegate':      { label: 'Grant access to others', desc: 'Give running/oversight access to family or a 1099 worker.', outbound: false, sensitive: true  },
+
+  // ---- owner<->assistant (business delegation) work surfaces ---------------
+  // The scoped set an assistant OPERATES. Each is a work surface, never the
+  // owner's finances/portfolio/family data (those stay in the deny set below).
+  'referrals.manage':  { label: 'Referral DB + marketing', desc: 'Operate the referral database + marketing/content ops.', outbound: false, sensitive: false },
+  'tasks.own':         { label: 'Own tasks / calendar',   desc: 'Manage their own task list and schedule.',          outbound: false, sensitive: false },
+  'inbound.contact':   { label: 'Inbound (contact-level)', desc: 'Work pre-intake inbound inquiries — contact-level only, NO PHI.', outbound: false, sensitive: true  },
+  'crm.assigned':      { label: 'CRM — assigned leads',   desc: 'See + work only the CRM leads assigned to them (not the whole pipeline).', outbound: false, sensitive: true  },
 
   // ---- family / governance capabilities -----------------------------------
   'family.shared':     { label: 'Shared family surfaces', desc: 'Use the shared family circle data + surfaces.',     outbound: false, sensitive: false },
@@ -210,6 +299,77 @@ export function effectiveChildPolicy(config = {}) {
 }
 
 // ---------------------------------------------------------------------------
+// ASSISTANT capability policy + the safety ceiling — the "check boxes for what
+// you allow for each 1099 assistant" (Darrell 2026-07-13). Mirrors the child
+// policy exactly: `default` is OFF, so the owner deliberately CHECKS each work
+// surface an assistant gets; `maxGrant` is the most an owner may grant. The
+// owner's world — finances, portfolio, family governance, the oversight powers —
+// is LOCKED (default === maxGrant === deny): no checkbox can ever grant an
+// assistant the owner's data. The wall is structural, not a default the owner
+// can toggle off — the same way a guardian cannot grant a child purchase.any.
+// ---------------------------------------------------------------------------
+export const ASSISTANT_CAPABILITY_POLICY = Object.freeze({
+  // Configurable work surfaces — OFF by default; the owner checks what to grant.
+  'referrals.manage': { default: SETTING.DENY, maxGrant: SETTING.ALLOW },
+  'tasks.own':        { default: SETTING.DENY, maxGrant: SETTING.ALLOW },
+  'inbound.contact':  { default: SETTING.DENY, maxGrant: SETTING.ALLOW },
+  'crm.assigned':     { default: SETTING.DENY, maxGrant: SETTING.ALLOW },
+  // LOCKED walls — the owner's data + oversight; an assistant can NEVER be granted
+  // these (default === maxGrant === deny, so the checkbox renders locked/off).
+  'finance.view':     { default: SETTING.DENY, maxGrant: SETTING.DENY },
+  'finance.manage':   { default: SETTING.DENY, maxGrant: SETTING.DENY },
+  'portfolio.view':   { default: SETTING.DENY, maxGrant: SETTING.DENY },
+  'family.build':     { default: SETTING.DENY, maxGrant: SETTING.DENY },
+  'family.manage':    { default: SETTING.DENY, maxGrant: SETTING.DENY },
+  'ops.oversight':    { default: SETTING.DENY, maxGrant: SETTING.DENY },
+  'ops.history':      { default: SETTING.DENY, maxGrant: SETTING.DENY },
+  'ops.train':        { default: SETTING.DENY, maxGrant: SETTING.DENY },
+  'ops.delegate':     { default: SETTING.DENY, maxGrant: SETTING.DENY },
+});
+
+export const ASSISTANT_CAPABILITIES = Object.freeze(Object.keys(ASSISTANT_CAPABILITY_POLICY));
+
+// The capabilities the owner can actually CHECK (a real toggle) vs. the locked
+// walls — so the UI shows a live checkbox for the grantable set and a locked
+// row for the rest.
+export const ASSISTANT_GRANTABLE = Object.freeze(
+  ASSISTANT_CAPABILITIES.filter((cap) => rank(ASSISTANT_CAPABILITY_POLICY[cap].maxGrant) > rank(SETTING.DENY)),
+);
+
+export const isAssistantCapabilityLocked = (cap) => {
+  const p = ASSISTANT_CAPABILITY_POLICY[cap];
+  return !!p && rank(p.default) >= rank(p.maxGrant) && p.maxGrant === p.default;
+};
+
+// Resolve an assistant's effective setting for a capability given the owner's
+// checkbox config (cap -> setting). Missing => the OFF default. Always clamped
+// to the ceiling, so checking a locked wall resolves to deny (no-leak).
+export function resolveAssistantCapability(cap, config = {}) {
+  const policy = ASSISTANT_CAPABILITY_POLICY[cap];
+  if (!policy) return SETTING.DENY; // unknown capability => deny (no-leak)
+  const chosen = Object.prototype.hasOwnProperty.call(config, cap) ? config[cap] : policy.default;
+  return clampSetting(chosen, policy.maxGrant);
+}
+
+// The full effective assistant policy (every capability resolved), for the
+// checkbox UI + the RLS payload. Returns cap -> { setting, default, maxGrant,
+// locked, meta } — the same shape as effectiveChildPolicy.
+export function effectiveAssistantPolicy(config = {}) {
+  const out = {};
+  for (const cap of ASSISTANT_CAPABILITIES) {
+    const policy = ASSISTANT_CAPABILITY_POLICY[cap];
+    out[cap] = {
+      setting: resolveAssistantCapability(cap, config),
+      default: policy.default,
+      maxGrant: policy.maxGrant,
+      locked: isAssistantCapabilityLocked(cap),
+      meta: CAPABILITIES[cap] || null,
+    };
+  }
+  return out;
+}
+
+// ---------------------------------------------------------------------------
 // The MATRIX for the non-child, fixed roles. Each role maps a capability to a
 // fixed setting. (Children are NOT in here — their settings come from the policy
 // above so a guardian can configure them.) Anything not listed is DENY by
@@ -234,6 +394,7 @@ export const MATRIX = Object.freeze({
       'family.manage': ALLOW,
       'child.configure': ALLOW,
       'finance.view': ALLOW,
+      'finance.manage': ALLOW,
     },
     member: {
       'family.shared': ALLOW,
@@ -241,7 +402,28 @@ export const MATRIX = Object.freeze({
       // manage other members unless promoted to governor.
       'family.build': DENY,
       'family.manage': DENY,
+      // A member both SEES and can WORK the books (record/edit transactions).
       'finance.view': ALLOW,
+      'finance.manage': ALLOW,
+    },
+    // SUCCESSOR — the steward-in-training being raised to take over (DR-0252, formerly duplicate DR-0111;
+    // Darrell 2026-07-06: "we can't expect our heirs to learn how we did… there
+    // are new issues that older people want young people to take care of"). The
+    // whole point of this role is a STAGED, REVOCABLE middle rung between a
+    // member (sees + works the books) and a child (walled out): the successor
+    // SEES the real books so they learn on the family's actual numbers, but
+    // finance.manage is DENY so a read never becomes an accidental write. Read,
+    // don't wreck. Deepening this to write access is a deliberate promotion to
+    // member/governor, never automatic. (RLS enforcement of the read-only cut
+    // SHIPPED in migration 0082 — successor reads the books, cannot write
+    // them, at the database. Open remainder: the LIVE smoke proof in the
+    // rls-isolation matrix, on DR-0252's re-review line — 2026-07-30.)
+    successor: {
+      'family.shared': ALLOW,
+      'finance.view': ALLOW,
+      'finance.manage': DENY,
+      'family.build': DENY,
+      'family.manage': DENY,
     },
     // child: resolved from CHILD_CAPABILITY_POLICY.
   },
@@ -270,6 +452,74 @@ export const MATRIX = Object.freeze({
       'portfolio.view': ALLOW,
     },
   },
+  // LANDLORD ↔ MANAGER — the 1099-delegation matrix. The manager RUNS the full
+  // operating set; the owner keeps that whole set AND the four oversight powers.
+  // The delta between the two rows IS the delegation ceiling: watch / review-
+  // history / train / delegate are the owner's alone. Explicit DENY rows (not
+  // omission) so the matrix visibly SHOWS the manager "Not allowed" on the four,
+  // the same way the tenant row visibly shows the portfolio walled off.
+  [RELATIONSHIP_TYPES.LANDLORD_MANAGER]: {
+    manager: {
+      // Runs the business day-to-day — the full landlord operating set.
+      'rentroll.view': ALLOW,
+      'maintenance.manage': ALLOW,
+      'rent.confirm': ALLOW,
+      'notice.post': ALLOW,
+      'lease.manage': ALLOW,
+      'tenant.contact': ALLOW,
+      'message.tenant': ALLOW,
+      'portfolio.view': ALLOW,
+      // …but never owns it. A 1099 worker cannot watch-over as an owner, mine the
+      // whole history to train, coach another manager, or hand access to anyone.
+      'ops.oversight': DENY,
+      'ops.history': DENY,
+      'ops.train': DENY,
+      'ops.delegate': DENY,
+    },
+    landlord: {
+      // The owner can still do everything the manager does — "with or without them."
+      'rentroll.view': ALLOW,
+      'maintenance.manage': ALLOW,
+      'rent.confirm': ALLOW,
+      'notice.post': ALLOW,
+      'lease.manage': ALLOW,
+      'tenant.contact': ALLOW,
+      'message.tenant': ALLOW,
+      'portfolio.view': ALLOW,
+      // …plus the four oversight powers that make delegation safe and trainable.
+      'ops.oversight': ALLOW,
+      'ops.history': ALLOW,
+      'ops.train': ALLOW,
+      'ops.delegate': ALLOW,
+    },
+  },
+  // OWNER ↔ ASSISTANT — the business delegation. The delta between the two rows
+  // IS the level boundary Darrell asked for: the assistant OPERATES four scoped
+  // work surfaces; the owner's finances, portfolio, family governance, and the
+  // oversight powers are the assistant's explicit DENY set (a visible wall, the
+  // same way the tenant row shows the portfolio walled off). The owner sees
+  // everything the assistant does + keeps oversight — leadership sees down, the
+  // level below never sees up.
+  [RELATIONSHIP_TYPES.OWNER_ASSISTANT]: {
+    // assistant: NOT a fixed row — resolved from ASSISTANT_CAPABILITY_POLICY +
+    // the owner's per-assistant checkbox config (like a child), so the owner
+    // grants each work surface deliberately and the walls stay locked-deny.
+    owner: {
+      // The owner sees everything the assistant does…
+      'referrals.manage': ALLOW,
+      'tasks.own': ALLOW,
+      'inbound.contact': ALLOW,
+      'crm.assigned': ALLOW,
+      // …can see the finances the assistant cannot…
+      'finance.view': ALLOW,
+      'portfolio.view': ALLOW,
+      // …and keeps the four oversight powers over the assistant's work.
+      'ops.oversight': ALLOW,
+      'ops.history': ALLOW,
+      'ops.train': ALLOW,
+      'ops.delegate': ALLOW,
+    },
+  },
 });
 
 // ---------------------------------------------------------------------------
@@ -278,8 +528,13 @@ export const MATRIX = Object.freeze({
 // the matrix is. Unknown type/role/capability => safe deny.
 // ---------------------------------------------------------------------------
 const isChildRole = (role) => role === 'child';
+const isAssistantRole = (role, relationship) =>
+  role === 'assistant' && relationship === RELATIONSHIP_TYPES.OWNER_ASSISTANT;
 
-export function decide({ relationship, role, capability, childConfig = {} } = {}) {
+// `config` is the per-person checkbox config for whichever role is CONFIGURABLE
+// in this call (a child's guardian config, or an assistant's owner config). It
+// aliases the legacy `childConfig` name so every existing caller keeps working.
+export function decide({ relationship, role, capability, childConfig = {}, config = childConfig } = {}) {
   const meta = CAPABILITIES[capability] || null;
   const fail = (reason) => ({ allowed: false, requiresApproval: false, setting: DENY, reason, meta });
 
@@ -294,8 +549,14 @@ export function decide({ relationship, role, capability, childConfig = {} } = {}
     if (!CHILD_CAPABILITY_POLICY[capability]) {
       return fail(`"${capability}" is not a capability a child can hold`);
     }
-    setting = resolveChildCapability(capability, childConfig);
+    setting = resolveChildCapability(capability, config);
     configurable = !isChildCapabilityLocked(capability);
+  } else if (isAssistantRole(role, relationship)) {
+    if (!ASSISTANT_CAPABILITY_POLICY[capability]) {
+      return fail(`"${capability}" is not a capability an assistant can hold`);
+    }
+    setting = resolveAssistantCapability(capability, config);
+    configurable = !isAssistantCapabilityLocked(capability);
   } else {
     const row = (MATRIX[relationship] && MATRIX[relationship][role]) || {};
     setting = row[capability] || DENY;
@@ -333,6 +594,7 @@ export function capabilitiesFor(relationship, role) {
   const rel = relationshipByType[relationship];
   if (!rel || !rel.roles.includes(role)) return [];
   if (isChildRole(role)) return CHILD_CAPABILITIES.slice();
+  if (isAssistantRole(role, relationship)) return ASSISTANT_CAPABILITIES.slice();
   return Object.keys((MATRIX[relationship] && MATRIX[relationship][role]) || {});
 }
 

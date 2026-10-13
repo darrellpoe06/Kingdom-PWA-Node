@@ -1,0 +1,892 @@
+// =============================================================================
+// read-follow — highlight-as-it-reads + keep-the-words-in-sight (DR-0264)
+// =============================================================================
+// Darrell 2026-08-03: "the words that are being read to the users could be 6 or
+// 60 years old... they should be able highlighted as it reads so users can see
+// their place and the screen should move with the location of the words."
+//
+// The engine (lib/tts.js) already speaks SENTENCE-SIZED segments and reports
+// segmentIndex on each one. This module supplies the other half: a map from
+// those exact segments back to LIVE DOM ranges, so the control can highlight
+// the sentence being spoken (word-level where the device fires boundaries) and
+// scroll it into view.
+//
+// ALIGNMENT IS BY CONSTRUCTION, never by guess: buildFollowMap normalizes the
+// container's visible text with the SAME whitespace collapse segmentText
+// applies, keeps a char→(node,offset) map, and segments the normalized text
+// with segmentText ITSELF. Feeding that same normalized text to read() means
+// the engine's segment N and our range N are the same sentence, always.
+//
+// HIGHLIGHTING uses the CSS Custom Highlight API (no DOM mutation, no reflow,
+// theme-safe styling via ::highlight() in index.css). Where the API is absent
+// the highlight is a silent no-op and the auto-scroll still follows — the
+// place-keeping floor works everywhere speech works.
+import { segmentText } from './tts.js';
+import { motionBehavior } from './gentle-motion.js';
+import { paint as paintFallback, clearAll as clearFallback } from './highlight-fallback.js';
+
+// WHAT IS SKIPPED — and the bug that was hiding in this one line.
+//
+// `.print\:hidden` used to be here as a proxy for "floating chrome". It is not
+// one. `print:hidden` means "not on the printed sheet", which is exactly how
+// this app marks the whole SCREEN half of a screen-vs-print split — ChurchLearn
+// wraps its ENTIRE view in `<div className="print:hidden">`
+// (ChurchLearn.jsx:1619, :1864). So on Learn the map skipped every word on the
+// page, buildFollowMap returned null, the reader fell back to unmapped speech,
+// and the highlight had nothing to paint on — while Eternal Algorithms, which
+// has no such wrapper, highlighted perfectly. That is the whole of "the
+// highlighted Words work inside Eternal Algorithms not the Learn space"
+// (Darrell 2026-08-10), measured in reader-learn-follow.test.jsx.
+//
+// The replacement is explicit rather than inferred: `[data-read-skip]` is a
+// surface's own statement that something is chrome, not reading — a stage
+// counter, a Next button, the tutor chat, facilitator-only notes — and
+// `.ts-chrome-region` / `[role="dialog"]` are the app's existing names for
+// floating chrome. A visibility rule for PAPER never again decides what a
+// person is allowed to hear.
+// CONTROLS ARE NOT CONTENT — and THIS is the list that decides it.
+//
+// Darrell 2026-08-14, on Eternal Algorithms: "this page just reads without a
+// reader highlighting the words." Tracing that exposed a miss in the DR-0299
+// fix: that change taught `readablePageText()` to strip nav/buttons/menus, but
+// `readablePageText` is only the FALLBACK. The primary page path speaks
+// `buildFollowMap(main).text` — alignment by construction — and the map was
+// built with THIS selector, which excluded the reader's own panel and dialogs
+// but not a single button, nav, or tab strip.
+//
+// So on every page-read surface (everything except the three that register
+// their own reading) the listener still heard the furniture, and every button
+// label also became a mapped RANGE — highlights landing on chrome instead of
+// the Word.
+//
+// The two lists must agree, because the same words are spoken and highlighted.
+// They are kept in step by a test that derives one from the other rather than
+// by a promise in a comment — the failure mode this codebase keeps repeating.
+const SKIP_SELECTOR = [
+  '.tts-controls', '.feedback-modal', '[data-read-skip]', '[aria-hidden="true"]',
+  'script', 'style', 'noscript',
+  '.install-prompt', '.update-confirm', '.ts-chrome-region',
+  'nav', 'button', 'select', 'input', 'textarea',
+  '[role="menu"]', '[role="menubar"]', '[role="tablist"]', '[role="dialog"]',
+  '[role="listbox"]', '[role="toolbar"]', '[role="navigation"]',
+].join(', ');
+
+const isWs = (ch) => /\s/.test(ch);
+
+// Elements that put their content on its own line, so the text either side of
+// them is not one running word. Kept as a NAME list rather than a computed
+// style read: buildFollowMap must stay a pure DOM read that works in jsdom (no
+// layout) exactly as it does in a browser, and getComputedStyle would make the
+// map depend on whether CSS had loaded.
+// (The narrower BLOCK_TAGS regex further down serves paragraph JUMPS — the
+// units a reader skips between. This set is the wider question of where text
+// simply cannot run together, so it includes DIV, SECTION, BR and the list and
+// table containers too.)
+// Characters that already end a sentence, so no separator is synthesised.
+const SENTENCE_END = new Set(['.', '!', '?', ':', ';', '—']);
+
+const BLOCK_BOUNDARY_TAGS = new Set([
+  'ADDRESS', 'ARTICLE', 'ASIDE', 'BLOCKQUOTE', 'BR', 'DD', 'DETAILS', 'DIV', 'DL', 'DT',
+  'FIELDSET', 'FIGCAPTION', 'FIGURE', 'FOOTER', 'FORM', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6',
+  'HEADER', 'HR', 'LI', 'MAIN', 'NAV', 'OL', 'P', 'PRE', 'SECTION', 'SUMMARY',
+  'TABLE', 'TBODY', 'TD', 'TFOOT', 'TH', 'THEAD', 'TR', 'UL',
+  // ADDED 2026-09-14, measured in the running app. Adjacent BUTTONs and
+  // LABELs (a quiz's option list is a stack of them) were treated as ONE
+  // block, so their text concatenated with nothing between: the reader
+  // said "front of youWhatsoever things are true" and "seenThe things
+  // which are not seen". Captured from a real reading of a real lesson.
+  'BUTTON', 'LABEL', 'LEGEND', 'OPTION', 'FIGURE',
+]);
+
+/** The nearest block-level ancestor of `el` within `root` (or root itself). */
+function closestBlock(el, root) {
+  let n = el;
+  while (n && n !== root) {
+    if (BLOCK_BOUNDARY_TAGS.has(n.tagName)) return n;
+    n = n.parentElement;
+  }
+  return root;
+}
+
+/**
+ * Walk the container's visible text nodes and build the normalized text plus a
+ * per-character map back to (node, offset). Normalization mirrors segmentText:
+ * every whitespace run collapses to one space. Pure DOM-read; no mutation.
+ */
+export function buildFollowMap(root, doc = typeof document !== 'undefined' ? document : null) {
+  if (!root || !doc) return null;
+  const chars = [];   // normalized characters
+  const map = [];     // map[i] = { node, offset } for chars[i]
+  // WHERE EACH BLOCK'S WORDS BEGIN, in normalized-character positions — the
+  // paragraph grid, recorded BY CONSTRUCTION (DR-0764). This walk already
+  // knows every block boundary (it puts the separator in, just below); writing
+  // those positions down costs nothing and gives paragraphStarts the one thing
+  // it could not get from the DOM afterwards: a boundary for EVERY kind of
+  // block, not only the handful of tags a second list happened to name.
+  const blocks = [];
+  let pendingBlock = true; // the next real character opens a block
+  let lastWasSpace = true; // leading whitespace never lands
+  let lastBlock = null;    // the block element the previous text node sat in
+  const walker = doc.createTreeWalker(root, 4 /* NodeFilter.SHOW_TEXT */, null);
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+    const parent = node.parentElement;
+    if (!parent) continue;
+    // A REFERENCE IN THE SENTENCE IS THE SENTENCE (DR-0417). Since DR-0402 the
+    // lesson prose renders "…as 1 Corinthians 13:4 says…" with the reference
+    // as a WordInline chip — a <button>. `button` is chrome here by default
+    // (DR-0299: the furniture was being read), so the primary reading path
+    // dropped the reference from the middle of its own sentence: the listener
+    // heard "Love is patient, as says". The fallback path (TTSControl's
+    // readablePageText) already honours `data-read-keep`; this path now does
+    // too, with the same meaning — an element that says it IS reading is read
+    // even though a skip rule would have muted it, provided the keep sits at
+    // or inside the muted element (a keep cannot un-mute a whole dialog).
+    const muted = parent.closest ? parent.closest(SKIP_SELECTOR) : null;
+    if (muted) {
+      const kept = parent.closest('[data-read-keep]');
+      if (!kept || !muted.contains(kept)) continue;
+    }
+
+    // A BLOCK BOUNDARY IS A WORD BOUNDARY.
+    //
+    // Darrell 2026-08-31, second report on the same surface: "The words in the
+    // system don't highlight the words as the reader reads."
+    //
+    // The walker concatenated the text of adjacent BLOCKS with nothing between
+    // them, because only whitespace INSIDE a text node was normalized and a
+    // block boundary carries no whitespace of its own. So a heading followed by
+    // a paragraph mapped to "Think on These ThingsWhatsoever things are true"
+    // — measured in real Chromium against this very function.
+    //
+    // That single missing space breaks the reader twice over. The engine speaks
+    // the run-on word, and — worse for following — segmentText only splits on
+    // . ! ?, so a heading with no terminal punctuation is welded onto the
+    // sentence after it. The "sentence" highlight then washes a heading plus
+    // half a paragraph, and every word offset inside that merged segment is
+    // measured from the wrong origin, so the word highlight lands off the word
+    // it is speaking. The page-read fallback never had this bug: it reads
+    // innerText, which inserts a line break between blocks.
+    //
+    // One space at the boundary restores both: real words for the engine, and a
+    // segmentation that matches what the fallback path has always produced.
+    const block = closestBlock(parent, root);
+    if (lastBlock && block !== lastBlock) pendingBlock = true;
+    if (lastBlock && block !== lastBlock && !lastWasSpace) {
+      // Anchor the separator to the END of the text we just left, so a range
+      // that stops here stops at the real last character of that block.
+      const prev = map[map.length - 1];
+      // A BLOCK BOUNDARY ENDS A SENTENCE, NOT JUST A WORD (2026-09-14).
+      //
+      // The space added in 2026-08-31 fixed the run-on WORD and the comment
+      // above already names what it could not fix: segmentText splits only on
+      // . ! ?, so a heading or a label with no terminal punctuation is still
+      // welded onto the sentence after it. Captured from a real reading:
+      //   '"...and without blame before him in love:"KJV Ephesians 1:4
+      //    Engage · Discuss Talk it through together, everyone speaks.'
+      // — a verse, its citation, the next SECTION's heading and its blurb, all
+      // spoken as one sentence. And the reverse, a list exploded into
+      // one-word utterances ("honest?" "just?" "pure?") because the only
+      // splits available were the question marks inside it.
+      //
+      // So when the text we are leaving does not already end a sentence, the
+      // separator IS one. It is mapped to the previous block's last character,
+      // exactly like the space, so every range and word offset still lands on
+      // real text — and the engine does not pronounce a full stop, it pauses,
+      // which is what a block boundary sounds like when a person reads it.
+      const last = chars[chars.length - 1];
+      if (!SENTENCE_END.has(last)) {
+        chars.push('.');
+        map.push({ node: prev.node, offset: prev.offset });
+      }
+      chars.push(' ');
+      map.push({ node: prev.node, offset: prev.offset });
+      lastWasSpace = true;
+    }
+    lastBlock = block;
+
+    const text = node.textContent || '';
+    for (let i = 0; i < text.length; i++) {
+      const ch = text[i];
+      if (isWs(ch)) {
+        if (lastWasSpace) continue;
+        chars.push(' ');
+        map.push({ node, offset: i });
+        lastWasSpace = true;
+      } else {
+        if (pendingBlock) { blocks.push(chars.length); pendingBlock = false; }
+        chars.push(ch);
+        map.push({ node, offset: i });
+        lastWasSpace = false;
+      }
+    }
+  }
+  // Trailing collapsed space never reaches segmentText (it trims); drop it so
+  // positions match exactly.
+  while (chars.length && chars[chars.length - 1] === ' ') { chars.pop(); map.pop(); }
+  if (!chars.length) return null;
+
+  const text = chars.join('');
+  const segments = segmentText(text);
+  // Locate each segment sequentially — segmentText emits them in order, so a
+  // moving cursor pins every one even when sentences repeat.
+  const located = [];
+  let cursor = 0;
+  for (const seg of segments) {
+    const at = text.indexOf(seg, cursor);
+    if (at === -1) { located.push(null); continue; } // never expected; stay honest
+    located.push({ text: seg, start: at, end: at + seg.length });
+    cursor = at + seg.length;
+  }
+  return { text, map, segments: located, blocks };
+}
+
+/** The live DOM Range covering normalized positions [start, end). */
+export function rangeFor(follow, start, end, doc = typeof document !== 'undefined' ? document : null) {
+  if (!follow || !doc || !(end > start)) return null;
+  const a = follow.map[start];
+  const b = follow.map[end - 1];
+  if (!a || !b) return null;
+  try {
+    const r = doc.createRange();
+    r.setStart(a.node, a.offset);
+    r.setEnd(b.node, b.offset + 1);
+    return r;
+  } catch (_) { return null; }
+}
+
+/** The Range of segment N, or null. */
+export function segmentRange(follow, index, doc) {
+  const seg = follow && follow.segments ? follow.segments[index] : null;
+  return seg ? rangeFor(follow, seg.start, seg.end, doc) : null;
+}
+
+/**
+ * The Range of the word at charIndex within segment N (from the engine's
+ * boundary event). Expands to the next whitespace in normalized space.
+ */
+export function wordRange(follow, index, charIndex, doc) {
+  const seg = follow && follow.segments ? follow.segments[index] : null;
+  return seg ? wordRangeIn(follow, seg, charIndex, doc) : null;
+}
+
+/**
+ * The same word lookup, inside ANY span of the mapped text rather than only a
+ * segment the map found for itself.
+ *
+ * WHY THIS EXISTS (2026-10-09). `wordRange` could only take an INDEX into
+ * `follow.segments`, so word-level following was available on exactly one
+ * path: the read whose spoken text IS the mapped text. A read that speaks its
+ * OWN registered text and locates it in the page by search (`alignSegments`)
+ * held ranges but no indexes, so it ran with word highlighting switched off —
+ * on screen, a sentence block that sits still while the voice moves through
+ * it. Darrell, 2026-10-09, from the lesson reader: "Not keeping up with the
+ * words anymore." A span is all this lookup ever needed.
+ */
+export function wordRangeIn(follow, span, charIndex, doc) {
+  if (!follow || !span || !(span.end > span.start)) return null;
+  let start = span.start + Math.max(0, charIndex | 0);
+  if (start >= span.end) return null;
+  // If the boundary landed on a space, step to the word it introduces.
+  while (start < span.end && follow.text[start] === ' ') start++;
+  let end = start;
+  while (end < span.end && follow.text[end] !== ' ') end++;
+  return end > start ? rangeFor(follow, start, end, doc) : null;
+}
+
+/**
+ * The segment index containing a DOM point (node + character offset) — the
+ * "start where I tap" bridge (DR-0265): the tapped position resolves to its
+ * normalized-text position via the char map, then to the sentence holding it.
+ * Returns -1 when the point isn't part of the readable text.
+ */
+export function segmentIndexAtDomPoint(follow, node, offset) {
+  if (!follow || !node) return -1;
+  let pos = -1;
+  for (let i = 0; i < follow.map.length; i++) {
+    const m = follow.map[i];
+    if (m.node === node && m.offset >= (offset | 0)) { pos = i; break; }
+    if (m.node === node) pos = i; // last char of this node before the offset
+  }
+  if (pos === -1) return -1;
+  for (let s = 0; s < follow.segments.length; s++) {
+    const seg = follow.segments[s];
+    if (seg && pos >= seg.start && pos < seg.end) return s;
+    if (seg && pos < seg.start) return s; // point fell in inter-segment space
+  }
+  return follow.segments.length ? follow.segments.length - 1 : -1;
+}
+
+/**
+ * Align independently-spoken segments to this container's text by moving-cursor
+ * search — the "read this lesson start-to-finish" bridge (DR-0265). The spoken
+ * text (the registered FULL lesson) can contain passages that are not rendered
+ * (paced tutor steps); those return null and simply carry no highlight, while
+ * every sentence that IS on screen highlights and scrolls. Never guesses.
+ */
+export function alignSegments(follow, spokenSegments, doc) {
+  return alignSegmentSpans(follow, spokenSegments)
+    .map((s) => (s ? rangeFor(follow, s.start, s.end, doc) : null));
+}
+
+/**
+ * The same walk, returning WHERE each spoken segment landed in the mapped text
+ * ({start, end}) instead of only its Range — so the caller can also ask for a
+ * word inside it (`wordRangeIn`). A Range is a live DOM object and tells you
+ * nothing about position in the normalized text, which is why the aligned read
+ * had no word-level following until this existed (2026-10-09).
+ *
+ * A segment that is spoken but NOT on screen returns null: an honest gap, not
+ * a guess. All-null means the spoken text is not this container's text at all,
+ * which is a finding the caller should act on rather than highlight nothing.
+ */
+export function alignSegmentSpans(follow, spokenSegments) {
+  if (!follow || !Array.isArray(spokenSegments)) return [];
+  let cursor = 0;
+  return spokenSegments.map((seg) => {
+    const s = String(seg || '');
+    if (!s) return null;
+    const at = follow.text.indexOf(s, cursor);
+    if (at === -1) return null; // spoken but not rendered — honest gap, no highlight
+    cursor = at + s.length;
+    return { start: at, end: at + s.length };
+  });
+}
+
+/**
+ * Which spoken segment a playback fraction (0..1) falls in, weighted by each
+ * segment's character length — the CLOUD-audio sentence-follow bridge
+ * (DR-0265): a cloned-voice clip has no word timings, but uniform-rate speech
+ * maps fraction→characters well enough for sentence-level follow.
+ */
+/**
+ * Where a reading RESUMES after the words change under it (a level switch
+ * mid-read, DR-0426): the same fraction of the way through, in the new text's
+ * own sentence count. The same law as DR-0418's step mapping — half-way stays
+ * half-way — applied to sentences. Pure; clamps to the last sentence.
+ */
+export function startIndexForFraction(fraction, count) {
+  const n = Math.max(0, Math.floor(Number(count) || 0));
+  if (!n) return 0;
+  const f = Math.min(1, Math.max(0, Number(fraction) || 0));
+  return Math.min(n - 1, Math.round(f * n));
+}
+
+export function segmentIndexAtFraction(lens, fraction) {
+  const list = Array.isArray(lens) ? lens : [];
+  const total = list.reduce((t, n) => t + (n > 0 ? n : 0), 0);
+  if (!total) return -1;
+  const f = Math.min(1, Math.max(0, Number(fraction) || 0));
+  const pos = f * total;
+  let acc = 0;
+  for (let i = 0; i < list.length; i++) {
+    acc += list[i] > 0 ? list[i] : 0;
+    if (pos < acc) return i;
+  }
+  return list.length - 1;
+}
+
+export function supportsHighlight(win = typeof window !== 'undefined' ? window : null) {
+  return !!(win && win.CSS && win.CSS.highlights && typeof win.Highlight === 'function');
+}
+
+// One named highlight per role; setting replaces the previous range so the
+// "current sentence" and "current word" each exist at most once.
+//
+// `win` carries the SAME default as supportsHighlight. Without it, a caller that
+// omits the argument (every call in TTSControl) passed `win === undefined` past a
+// support check that had quietly defaulted to the real window and returned true —
+// so `win.CSS` threw a TypeError into the bare catch below and every highlight
+// was a silent no-op on every device. The support probe and the paint must read
+// the same window or the check is answering about a different one.
+function setNamed(name, range, win = typeof window !== 'undefined' ? window : null) {
+  // NO API IS NOT NO HIGHLIGHT (2026-09-20). This used to `return false` here
+  // and paint nothing, which index.css described as an accepted degradation:
+  // "browsers without the API simply never paint these and the auto-scroll
+  // floor still follows." That trade holds on a phone, where the page still
+  // moves to the right place and the reader's eye is a hand's width away. It
+  // does not hold on a television. Darrell, watching a lesson read itself on a
+  // Fire TV whose Silk predates Chromium 105: "Make sure the highlighting
+  // works with the reader." Across a room the highlight IS how you keep your
+  // place, and DR-0264 asked for exactly that for readers aged 6 to 60.
+  if (!supportsHighlight(win)) return paintFallback(name, range, win) > 0 || !range;
+  try {
+    if (!range) { win.CSS.highlights.delete(name); return true; }
+    win.CSS.highlights.set(name, new win.Highlight(range));
+    return true;
+  } catch (_) { return false; }
+}
+
+export const SEGMENT_HIGHLIGHT = 'poe-read-seg';
+export const WORD_HIGHLIGHT = 'poe-read-word';
+
+export function highlightSegment(range, win) { return setNamed(SEGMENT_HIGHLIGHT, range, win); }
+export function highlightWord(range, win) { return setNamed(WORD_HIGHLIGHT, range, win); }
+// "YOU WERE HERE" (DR-0631). The sentence a Continue lands on is marked for a
+// few seconds so the eye finds it without searching. Its own name, never the
+// reading wash: a read that starts right after the landing must not have its
+// highlight cleared by the landing's timer, and vice versa. Pass null to clear.
+export const RESUME_HIGHLIGHT = 'poe-resume-mark';
+export function highlightResume(range, win) { return setNamed(RESUME_HIGHLIGHT, range, win); }
+export function clearReadingHighlights(win = typeof window !== 'undefined' ? window : null) {
+  // Clear BOTH mechanisms unconditionally. Clearing only the one this browser
+  // is using would strand the other's boxes on screen if support ever changed
+  // mid-session, and clearing an absent layer is a no-op anyway.
+  clearFallback(win);
+  if (!supportsHighlight(win)) return;
+  try { win.CSS.highlights.delete(SEGMENT_HIGHLIGHT); win.CSS.highlights.delete(WORD_HIGHLIGHT); } catch (_) { /* no-op */ }
+}
+
+/** Keep the spoken words in sight: center the range's nearest element. */
+// THE SENTENCE BEING READ MUST BE VISIBLE, NOT UNDER THE HEADER.
+//
+// Darrell 2026-08-13, reading a lesson with the app's sticky chrome on screen:
+// "the words are blocked at the top of the highlighted text while reading
+// possibly because of the banner or whatever."
+//
+// Two things were wrong with `el.scrollIntoView({ block: 'center' })`:
+//
+//   1. It scrolled the ELEMENT, not the RANGE. The element is the whole
+//      paragraph; the range is the sentence actually being spoken. Centring a
+//      tall paragraph puts its opening lines above the viewport top — so on
+//      exactly the long teaching paragraphs this app is made of, the words
+//      being read were off-screen while the paragraph looked "centred".
+//   2. It knew nothing about the fixed/sticky chrome. This app stacks a session
+//      bar, the church banner and the sub-tab strip at the top, so "the top of
+//      the viewport" is not where content becomes visible.
+//
+// The inset is MEASURED from the live document rather than typed as a constant:
+// the chrome's height changes with the large-print setting, with which banners
+// are dismissed, and between the church door and the PoeTech shell. A hardcoded
+// number would be wrong for most readers on most screens.
+
+/**
+ * How far down the viewport the first genuinely visible pixel is — the combined
+ * height of whatever fixed/sticky chrome is pinned to the top.
+ *
+ * Probed at three x positions so a narrow floating control cannot be mistaken
+ * for a full-width bar, and clamped: a chrome claiming more than 45% of the
+ * screen is an overlay or a mis-measure, and honouring it would scroll the
+ * reading out of view instead of into it.
+ */
+export function stickyTopInset(win = (typeof window !== 'undefined' ? window : null),
+  doc = (typeof document !== 'undefined' ? document : null)) {
+  if (!win || !doc || typeof doc.elementsFromPoint !== 'function') return 0;
+  try {
+    const vh = win.innerHeight || 0;
+    const vw = win.innerWidth || 0;
+    if (!vh || !vw) return 0;
+    let inset = 0;
+    for (const x of [vw * 0.25, vw * 0.5, vw * 0.75]) {
+      for (const el of doc.elementsFromPoint(Math.round(x), 2) || []) {
+        if (!el || !el.getBoundingClientRect) continue;
+        let pos = '';
+        try { pos = (win.getComputedStyle(el) || {}).position || ''; } catch (_) { /* ignore */ }
+        if (pos !== 'fixed' && pos !== 'sticky') continue;
+        const r = el.getBoundingClientRect();
+        // A fixed element that covers the viewport is a SURFACE the reading is
+        // on (the presenter's full-screen mode is `position: fixed; inset: 0`),
+        // not a bar above it. Counting it made the "top chrome" 45% of the
+        // screen and pushed every followed sentence into the lower half.
+        if (r.bottom - r.top >= vh * 0.9) continue;
+        // Only bars actually pinned at the top count; a fixed footer or a
+        // floating button elsewhere must never push the reading down.
+        if (r.top <= 2 && r.bottom > inset) inset = r.bottom;
+      }
+    }
+    return Math.max(0, Math.min(inset, vh * 0.45));
+  } catch (_) {
+    return 0;
+  }
+}
+
+/**
+ * How far to scroll so the spoken sentence sits in comfortable reading space.
+ * Pure arithmetic, so the rule is unit-testable without layout (jsdom has none).
+ *
+ * Returns the delta to scroll BY: positive scrolls down. 0 means it is already
+ * well placed — a sentence that is merely low in the viewport is not moved,
+ * because re-centring on every sentence makes the page twitch under the reader.
+ */
+/**
+ * The same measurement for the BOTTOM — because the reader's own panel is chrome.
+ *
+ * Darrell 2026-08-13, after the top fix landed: "now blocked by the reader."
+ * The reading pill ("READING… · KEEPS GOING") floats over the bottom of the
+ * screen, and so do GIVE and FEEDBACK. Clearing the banner only to park the
+ * sentence under the reader's own controls is the same defect with the page
+ * turned upside down — and it was introduced by fixing the top half, which is
+ * why it ships with it.
+ *
+ * Bottom-anchored fixed/sticky boxes only, so the header can never be counted
+ * twice, and clamped the same way.
+ */
+// Floating chrome that DECLARES itself. Anything pinned over the reading can
+// add `data-reading-chrome` and be measured without this file knowing it exists.
+// `.tts-controls` is listed because it is the reader's own panel — the single
+// most likely thing to cover the words it is reading.
+const READING_CHROME = '.tts-controls, [data-reading-chrome]';
+
+export function stickyBottomInset(win = (typeof window !== 'undefined' ? window : null),
+  doc = (typeof document !== 'undefined' ? document : null)) {
+  if (!win || !doc) return 0;
+  try {
+    const vh = win.innerHeight || 0;
+    const vw = win.innerWidth || 0;
+    if (!vh || !vw) return 0;
+
+    // The lowest point that is still readable; anything pinned below it eats
+    // into the reading band.
+    let boundary = vh;
+    const consider = (el) => {
+      if (!el || !el.getBoundingClientRect) return;
+      let pos;
+      try { pos = (win.getComputedStyle(el) || {}).position; } catch (_) { return; }
+      if (pos !== 'fixed' && pos !== 'sticky') return;
+      const r = el.getBoundingClientRect();
+      if (!r || r.height <= 0) return;
+      // Lower half only — a top banner is the other function's business, and
+      // counting it here would double-charge the reading band.
+      if (r.top < vh / 2 || r.top >= vh) return;
+      if (r.top < boundary) boundary = r.top;
+    };
+
+    // 1. Chrome that names itself. THE FIX: the reading pill is
+    //    `fixed bottom-4 right-4` — INSET from the bottom and pinned RIGHT, so
+    //    a point-probe along the bottom edge at 25/50/75% width missed it on
+    //    both axes and reported no bottom chrome at all. That is why it kept
+    //    covering the very sentence it was reading. Asking the element is not a
+    //    fallback for probing; it is the reliable half.
+    if (typeof doc.querySelectorAll === 'function') {
+      for (const el of doc.querySelectorAll(READING_CHROME) || []) consider(el);
+    }
+
+    // 2. Unknown chrome, found by probing — a grid rather than one line, so an
+    //    inset or edge-hugging bar is still seen. Cheap and bounded.
+    if (typeof doc.elementsFromPoint === 'function') {
+      for (const x of [vw * 0.15, vw * 0.5, vw * 0.85]) {
+        for (const dy of [2, 40, 90, 150]) {
+          const y = Math.round(vh - dy);
+          if (y <= vh / 2) continue;
+          for (const el of doc.elementsFromPoint(Math.round(x), y) || []) consider(el);
+        }
+      }
+    }
+
+    const inset = vh - boundary;
+    return Math.max(0, Math.min(inset, vh * 0.45));
+  } catch (_) {
+    return 0;
+  }
+}
+
+// WHERE THE SENTENCE LANDS (DR-0659; Darrell 2026-09-24: "Still need the
+// reader to keep up with the sentence"). With a `place`, every new sentence is
+// brought to the same line of the reading band — the top third, or the centre
+// — so the eye stays in one spot and the text moves under it. Without one, the
+// original rule holds: move only when the sentence has left the band.
+// PLACE_SLACK is how close counts as there, so a sentence already on its line
+// does not nudge the page by a pixel or two.
+export const PLACE_SLACK = 12;
+// TOP (the default; Darrell 2026-09-25: "the reader should keep the reading at
+// the top of the page as much as possible... currently it's almost at the
+// bottom of the page"). The sentence sits TOP_GAP below whatever is pinned at
+// the top (measured, never a constant), with one line of what came before
+// still visible above it when there is room for it.
+//
+// Why it sat at the bottom: without a place, this moved the page only once
+// the sentence had LEFT the band, and then only far enough to bring its
+// bottom edge back inside — so every next sentence landed on the bottom edge.
+export const TOP_GAP = 14;
+// A MANUAL JUMP KEEPS THE SCREEN STILL (2026-10-07, DR-0790; Darrell: "Reader
+// screen jumps and moves everytime a user selected the prev/next buttons...
+// it makes it difficult to refind your place"). Back / Next restart the voice
+// at the paragraph before or after, and the follow then PLACED that
+// sentence at the top of the band — the whole page lurched under a reader
+// who had just looked at where the voice was. `mode: 'reveal'` keeps the
+// chosen place out of it: the page moves only when the sentence is hidden or
+// off the fold, and then by the least that shows it. The reader stays in
+// reveal until a move was genuinely needed; then the chosen place resumes.
+export const FOLLOW_MODES = Object.freeze(['place', 'reveal']);
+export function readingScrollDelta({
+  rangeTop = 0, rangeBottom = 0, topInset = 0, bottomInset = 0, viewportHeight = 0, margin = 24, place, lineHeight = 0, mode = 'place',
+} = {}) {
+  const vh = Number(viewportHeight) || 0;
+  if (!vh) return 0;
+  const safeTop = Number(topInset) || 0;
+  const top = Number(rangeTop) || 0;
+  const bottom = Number(rangeBottom) || top;
+  const restTop = safeTop + margin;          // first line that is genuinely readable
+  const restBottom = vh - (Number(bottomInset) || 0) - margin;
+
+  if ((place === 'top' || place === 'centre') && mode !== 'reveal') {
+    const height = Math.max(0, bottom - top);
+    const line = Math.max(0, Number(lineHeight) || 0);
+    let target;
+    if (place === 'top') {
+      const first = safeTop + TOP_GAP;
+      const floor = vh - (Number(bottomInset) || 0) - TOP_GAP;
+      // One line of context above, when the sentence still fits below it.
+      target = first + line + height <= floor ? first + line : first;
+      target = Math.max(first, Math.min(target, floor - height));
+    } else {
+      // Centre: the sentence's middle on the band's middle; a sentence taller
+      // than the room starts at the top of the band, never above it.
+      const room = Math.max(0, restBottom - restTop);
+      target = Math.max(restTop, Math.min(restTop + (room - height) / 2, restBottom - height));
+    }
+    const d = Math.round(top - target);
+    return Math.abs(d) <= PLACE_SLACK ? 0 : d;
+  }
+
+  // Hidden behind the chrome, or above the viewport entirely: bring it down to
+  // just under the chrome. This is the case Darrell hit.
+  if (top < restTop) return top - restTop;
+
+  // Below the fold: lift it so the sentence STARTS in the reading band rather
+  // than centring a tall one, which would push its opening back under the top.
+  if (bottom > restBottom) {
+    const height = Math.max(0, bottom - top);
+    const room = Math.max(0, restBottom - restTop);
+    return height >= room ? top - restTop : bottom - restBottom;
+  }
+  return 0;
+}
+
+/**
+ * The breathing room to leave around the spoken sentence, in px.
+ *
+ * Darrell 2026-08-13: "Account for different font sizes as well." This app ships
+ * five reading sizes (A through A44, lib/text-size), and a fixed 24px gap that
+ * looks generous at A is thinner than a single line at A44 — the sentence would
+ * sit jammed against the chrome for exactly the readers who most need space.
+ *
+ * So the margin is ONE LINE of whatever the reader has chosen, measured from
+ * the text being read, with the old 24px kept only as a floor for when line
+ * height cannot be resolved.
+ */
+export function readingMargin(el, win = (typeof window !== 'undefined' ? window : null)) {
+  const FLOOR = 24;
+  if (!el || !win || typeof win.getComputedStyle !== 'function') return FLOOR;
+  try {
+    const cs = win.getComputedStyle(el) || {};
+    const lh = parseFloat(cs.lineHeight);
+    if (Number.isFinite(lh) && lh > 0) return Math.max(FLOOR, Math.round(lh));
+    // `line-height: normal` does not resolve to px — approximate from font size,
+    // which is what the browser does anyway (~1.2x).
+    const fs = parseFloat(cs.fontSize);
+    if (Number.isFinite(fs) && fs > 0) return Math.max(FLOOR, Math.round(fs * 1.4));
+    return FLOOR;
+  } catch (_) {
+    return FLOOR;
+  }
+}
+
+/**
+ * The nearest ancestor that SCROLLS — an element whose overflow-y is auto or
+ * scroll — or null when the page itself is the scroller.
+ *
+ * The presenter's full-screen mode is a `position: fixed; inset: 0` overlay
+ * whose inner panel scrolls; the console's slide mirror is an `overflow-y: auto`
+ * box; `window.scrollBy` moves neither (the document under a fixed overlay does
+ * not move, and a box's own overflow is not the window's). Darrell 2026-09-06:
+ * "the scroll ... as the TTS reads is not working on the presentations". The
+ * body and the root element are the WINDOW's scroller, never a container.
+ */
+export function scrollContainerFor(el, win = (typeof window !== 'undefined' ? window : null),
+  doc = (typeof document !== 'undefined' ? document : null)) {
+  if (!el || !win || typeof win.getComputedStyle !== 'function') return null;
+  const body = doc && doc.body;
+  const html = doc && doc.documentElement;
+  let node = el.nodeType === 1 ? el : el.parentElement;
+  while (node && node !== body && node !== html) {
+    let oy;
+    try { oy = (win.getComputedStyle(node) || {}).overflowY || ''; } catch (_) { oy = ''; }
+    if (oy === 'auto' || oy === 'scroll') return node;
+    node = node.parentElement;
+  }
+  return null;
+}
+
+export function followRange(range, { place, mode = 'place' } = {}) {
+  if (!range) return 0;
+  try {
+    const win = typeof window !== 'undefined' ? window : null;
+    const doc = typeof document !== 'undefined' ? document : null;
+    if (!win) return 0;
+    // The RANGE's own box — the sentence — not the paragraph that contains it.
+    const rect = typeof range.getBoundingClientRect === 'function' ? range.getBoundingClientRect() : null;
+    const usable = rect && (rect.height > 0 || rect.width > 0);
+    if (!usable) {
+      // No layout for the range (a collapsed range, or a non-layout environment)
+      // — fall back to the old element scroll rather than doing nothing.
+      const el = range.startContainer && (range.startContainer.nodeType === 1
+        ? range.startContainer
+        : range.startContainer.parentElement);
+      if (el && el.scrollIntoView) el.scrollIntoView({ block: mode === 'reveal' ? 'nearest' : 'center', behavior: motionBehavior() });
+      return 0;
+    }
+    const textEl = range.startContainer && (range.startContainer.nodeType === 1
+      ? range.startContainer
+      : range.startContainer.parentElement);
+    // Inside a scrolling container (the presenter's overlay panel, the console
+    // mirror): the container IS the viewport. Its box replaces the window's,
+    // the app's sticky chrome is outside it and does not apply, and the
+    // container — not the window — is what moves.
+    // The text's own line, for the one line of context above a TOP sentence.
+    let lineHeight = 0;
+    try {
+      const cs = textEl ? win.getComputedStyle(textEl) : null;
+      const lh = cs ? parseFloat(cs.lineHeight) : NaN;
+      lineHeight = Number.isFinite(lh) ? lh : (cs ? (parseFloat(cs.fontSize) || 16) * 1.5 : 24);
+    } catch (_) { lineHeight = 24; }
+    const container = scrollContainerFor(textEl, win, doc);
+    if (container && typeof container.getBoundingClientRect === 'function') {
+      const box = container.getBoundingClientRect();
+      const inner = readingScrollDelta({
+        rangeTop: rect.top - box.top,
+        rangeBottom: rect.bottom - box.top,
+        topInset: 0,
+        bottomInset: 0,
+        viewportHeight: box.height,
+        margin: readingMargin(textEl, win),
+        place,
+        lineHeight,
+        mode,
+      });
+      if (!inner) return 0;
+      if (typeof container.scrollBy === 'function') container.scrollBy({ top: inner, behavior: motionBehavior() });
+      else container.scrollTop += inner;
+      return inner;
+    }
+    const delta = readingScrollDelta({
+      rangeTop: rect.top,
+      rangeBottom: rect.bottom,
+      topInset: stickyTopInset(win, doc),
+      bottomInset: stickyBottomInset(win, doc),
+      viewportHeight: win.innerHeight || 0,
+      margin: readingMargin(textEl, win),
+      place,
+      lineHeight,
+      mode,
+    });
+    if (!delta) return 0;
+    if (typeof win.scrollBy === 'function') win.scrollBy({ top: delta, behavior: motionBehavior() });
+    return delta;
+  } catch (_) { return 0; /* scrolling is best-effort */ }
+}
+
+// =============================================================================
+// PARAGRAPH NAVIGATION (Darrell 2026-08-15: "a way to get back to the top or
+// relisten to the last paragraph or pages/s and forward to the whatever number
+// of page/s")
+// =============================================================================
+// The reader speaks SENTENCES; a listener thinks in PARAGRAPHS. These map the
+// follow map's sentence segments onto the real block elements they render in,
+// so Back/Forward can move by the unit a person actually asked for. Pure over
+// an injected follow map + rangeFor, so a jsdom test can pin the grouping.
+
+const BLOCK_TAGS = /^(P|LI|H[1-6]|BLOCKQUOTE|TD|TH|DT|DD|FIGCAPTION|PRE)$/;
+
+/**
+ * The segment indexes where a new paragraph begins, read from the follow map's
+ * OWN block grid (buildFollowMap records where each block's words start).
+ *
+ * THE BUG THIS REPLACES (DR-0764). Darrell 2026-10-06, from his phone, reading
+ * a lesson in the NAS voice: "The reader does not go to the next section or
+ * paragraph... it goes to the beginning of the lessons."
+ *
+ * Both halves of that sentence came from one line — the BLOCK_TAGS whitelist
+ * below. It names P, LI, H1-6, BLOCKQUOTE, TD, TH, DT, DD, FIGCAPTION and PRE,
+ * and nothing else; `buildFollowMap`'s own BLOCK_BOUNDARY_TAGS names twenty
+ * more, DIV and SECTION among them. So on a surface whose prose renders in
+ * DIVs — which is most of this app — every sentence walked past every DIV and
+ * landed on the one element the whole lesson is wrapped in
+ * (`<li id="learn-lesson-…">`, ChurchLearn.jsx:2856). One block for the whole
+ * lesson, so `starts` came back `[0]`, and paragraphJumpTarget then answered
+ * `null` for Forward (nothing moved) and `starts[0]` — SEGMENT 0, THE TOP OF
+ * THE LESSON — for Back. Measured in jsdom over a DIV-rendered lesson: six
+ * sentences, `starts` `[0]`, Forward `null`, Back `0`.
+ *
+ * The two lists cannot be kept in step by hand, so the second list is gone:
+ * the map that decides where a block ENDS now also says where one BEGINS, and
+ * paragraphs are read from that. It is the same "alignment by construction"
+ * this file is built on, and it survives what the DOM walk could not — a
+ * lesson that re-rendered under the reading, where the ranges resolve to
+ * detached nodes.
+ *
+ * The DOM walk is kept for a follow map built by hand (tests, callers that
+ * assemble `{segments}` themselves) — those carry no `blocks`.
+ */
+export function paragraphStarts(follow, doc = typeof document !== 'undefined' ? document : null) {
+  const starts = [];
+  if (!follow || !Array.isArray(follow.segments)) return starts;
+  if (Array.isArray(follow.blocks) && follow.blocks.length) {
+    // Both lists are in ascending order, so one moving cursor pins every one.
+    let b = 0;
+    let prev = -1;
+    follow.segments.forEach((s, i) => {
+      if (s) {
+        while (b + 1 < follow.blocks.length && follow.blocks[b + 1] <= s.start) b += 1;
+      }
+      if (i === 0 || b !== prev) starts.push(i);
+      prev = b;
+    });
+    return starts;
+  }
+  let prevBlock;
+  follow.segments.forEach((s, i) => {
+    const r = s ? rangeFor(follow, s.start, s.end, doc) : null;
+    let n = r ? r.startContainer : null;
+    while (n && n.nodeType !== 1) n = n.parentNode;
+    while (n && n.tagName && !BLOCK_TAGS.test(n.tagName) && n.parentElement) n = n.parentElement;
+    const block = n || prevBlock || null;
+    if (i === 0 || (block && block !== prevBlock)) starts.push(i);
+    if (block) prevBlock = block;
+  });
+  return starts;
+}
+
+/**
+ * Where a Back/Forward tap should land, in segment indexes.
+ *   dir -1: the start of the CURRENT paragraph when we are past its first
+ *           sentence (re-listen what was just heard), else the previous
+ *           paragraph's start — so tapping again keeps walking back.
+ *   dir +1: the next paragraph's start; null at the end (nothing to skip to).
+ */
+export function paragraphJumpTarget(starts, current, dir) {
+  if (!Array.isArray(starts) || starts.length === 0) return null;
+  const cur = Math.max(0, Number(current) || 0);
+  let idx = 0;
+  for (let i = 0; i < starts.length; i++) { if (starts[i] <= cur) idx = i; else break; }
+  if (dir < 0) {
+    if (cur > starts[idx]) return starts[idx];
+    return idx > 0 ? starts[idx - 1] : starts[0];
+  }
+  return idx < starts.length - 1 ? starts[idx + 1] : null;
+}
+
+/**
+ * TAP BACK AGAIN TO KEEP WALKING BACK (Darrell 2026-10-07: "Can't go back
+ * using the back button... it can't be pushed again before it reads the exact
+ * same paragraph"). Back first re-listens the paragraph the voice is in; the
+ * promise since 2026-08-15 was that a SECOND tap walks to the one before. But
+ * the second tap was judged by where the voice IS, and a fast voice is past
+ * the paragraph's first sentence within a second (at 3x, every sentence is
+ * about a second), while a NAS voice spends seconds preparing — so by the
+ * time a listener could tap again, Back re-listened the same paragraph. Every
+ * time. The way out was never reachable.
+ *
+ * The rule a music player uses: a Back pressed within a short window of the
+ * previous Back is "the one before THAT", judged from where the previous Back
+ * LANDED, not from where the voice has wandered since. Pure; `now` injected.
+ *   starts   paragraph starts (segment indexes)
+ *   current  the voice's absolute segment now
+ *   lastBack {at, target} of the previous Back, or null
+ */
+export const BACK_AGAIN_MS = 4000;
+export function paragraphBackTarget(starts, current, lastBack, now = Date.now(), windowMs = BACK_AGAIN_MS) {
+  const again = lastBack && Number.isFinite(lastBack.at) && Number.isFinite(lastBack.target)
+    && (now - lastBack.at) >= 0 && (now - lastBack.at) < windowMs;
+  if (again) return paragraphJumpTarget(starts, lastBack.target, -1);
+  return paragraphJumpTarget(starts, current, -1);
+}

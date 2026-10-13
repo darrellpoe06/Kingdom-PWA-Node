@@ -1,0 +1,123 @@
+{
+  "v": 1,
+  "_comment": "The self-deploy manifest (DR-0236): repo-declared NAS services the services-sync loop installs/repairs on the NAS's own clock. Each entry is an IDEMPOTENT installer script (safe to run every cycle; every step no-ops when already done). Adding a service here + merging to main IS its deploy -- the nas mirror pulls, services-sync runs the installer, the service starts. 'enabled' is the committed greenlight. Installers never edit configs they cannot verify (DR-0076).",
+  "services": [
+    {
+      "name": "transcript-trickle",
+      "install": "infra/nas-sme-pipeline/transcript_trickle_install.sh",
+      "enabled": true,
+      "description": "Drain the transcript backlog (2026-08-05 harvest review: 81/858 transcribed, loader parked on a manual app button while the CI path is YouTube-IP-blocked). Rides the ALREADY-ARMED services-sync clock (choir-dates pattern, zero new DSM entries): stamp-gated to ~8 fires/day x 4 captions from the NAS's residential IP (~32 videos/day = ~64-96 HTTP calls against the measured ~180/day IpBlocked ceiling), draining ~770 gaps in ~4 weeks then keeping pace with the channel. Registered FIRST so a slow sibling (docker pull, the choir-dates drain) can never starve it before the cycle-wide timeout. Loader carries --max budget + single-flight lock + a TIME-DECAYED backoff that clears itself (DR-0248; the 2026-08-06 fix -- the previous human-cleared pause pointed at ops-runner.py, which nothing installs, so it would have stopped the drain permanently and silently). Witness: harvest-health.yml probes the count from OUTSIDE the NAS and files an incident when it stops advancing."
+    },
+    {
+      "name": "family-key",
+      "install": "infra/nas-bridge-publish/install.sh",
+      "enabled": true,
+      "description": "The NAS publishes the family key itself (DR-0613), so no steward pastes it: measured 2026-09-24, family_secure_config held zero rows and the Voice page told people to paste the key by hand. Each services-sync cycle calls box_publish_family_bridge_token (0231, service role only) with the key the photo and voice installers already minted and the committed owners.txt; it writes only to non-church instances a named family account owns or administers, and only when the key differs (steady state writes nothing). Every family device then provisions itself (lib/bridge-provision.js). Missing pieces are a named quiet no-op; the key is never printed. Proofs: test_publish_family_key.py (7) in ci.yml; the no-leak smoke 0231 in the RLS matrix."
+    },
+    {
+      "name": "lesson-voice",
+      "install": "infra/nas-lesson-voice/install.sh",
+      "enabled": true,
+      "description": "Spoken lessons become words (DR-0611). Rides the ALREADY-ARMED services-sync clock (the transcript-trickle pattern; a registry.json loop would have no clock). Each 15-min cycle: one pass of lesson_voice_transcribe.py polls agent_inbox OUTBOUND for rows tagged lesson+voice, downloads the audio from the private lesson-audio bucket (0229), keeps it on the NAS, transcribes it on the Whisper ladder (WHISPER_URLS, default the 4070 tower tlcmediadpt:8771 large-v3-turbo; then faster-whisper on this NAS's CPU, installed once, retried at most daily), files the transcript as a lesson+voice-transcript row, tags the original, deletes the cloud copy. Idempotent by the database (a filed transcript is never filed twice). Brakes (DR-0248): 3 rows + 400 s per pass inside the 480 s installer ceiling, single-flight lock; a row that fails 3 times is tagged voice-failed with its reason, so the failure reaches Darrell instead of looping. No credential = named quiet no-op. Recorded notes ride the same pass (DR-0624): note+voice rows, words to the owner's own folder (<audio>.txt), proof-only inbox row; a voice-failed row is retried once a rung answers again; a long recording on the CPU rung resumes across passes. WHO SPOKE (DR-0712), armed by record (stop-path LESSON_VOICE_SPEAKERS=0 in lesson-voice.env): sherpa-onnx (onnxruntime only) marks each turn by voice on the NAS CPU; voiceprints name DP and BG (enrolled once, detached, from words Darrell attributed: enroll.json, 3600 s budget, one attempt per day), every other voice is S1, S2; the transcript row is tagged speakers:marked or speakers:unmarked. ADD MY VOICE (DR-0720): each cycle voice_enroll.py first deletes every voiceprint whose owner removed their consent (never stopped), then turns up to 3 consented samples (voice_enrollments, 0248) into one voiceprint each, kept only on the NAS, or a plain reason why not; budget 150 s, lock voice-enroll.lock, stop-path LESSON_VOICE_SELF_ENROLL=0; the transcriber names a self-added voice only while its consent row stands. Proofs: test_lesson_voice.py, test_speaker_turns.py and test_voice_enroll.py gate merge in ci.yml."
+    },
+    {
+      "name": "lesson-parity",
+      "install": "infra/nas-lesson-parity/install.sh",
+      "enabled": true,
+      "fix_enabled": true,
+      "description": "The tower parity loop (DR-0671). Darrell 2026-09-29: 'The final goal is to not need any no local model... claude needs to create the specific algorithmic fixes for our workflows to work on the towers'. Each 15-min cycle: one deterministic measure pass over lesson_versions (DR-0669's builder output) -- every tower version scored against the Claude reference (gates side by side, verse + movement coverage, structure, band completeness, quiz soundness, reading level, length per band; no model judges a score) -> lesson_parity; every version against every other plus the consensus (verse gate failures excluded; a one-writer contribution is a candidate insight) -> lesson_crossref; the promotion streak per tower writer -> lesson_parity_promotion (0.95 and 14 in a row; the Governor's hold is the brake). Then, DETACHED, at most one braked Claude fix step for the most frequent recurring tower gap: wall-clock 1800 s + 40 turns, single-flight lock, time-decayed auto-pause after 3 failures; it pushes a normal PR with a before/after re-measure test. Stop-paths: enabled:false here (all), fix_enabled:false (Claude step only), or delete ARMED-BY-RECORD. No count cap on lessons. Proofs: test_lesson_parity.py gates merge in ci.yml; the 0240 smoke in the RLS matrix."
+    },
+    {
+      "name": "ops-runner",
+      "install": "infra/nas-sme-pipeline/ops_runner_install.sh",
+      "enabled": true,
+      "description": "Drain the app's operations queue (DR-0088 ops_commands) on the ALREADY-ARMED services-sync clock. Measured 2026-08-31: the queue's last row was 2026-07-06 and a zero-effect probe (unknown job, which the runner marks 'skipped' without executing) sat 'queued' with started_at NULL past a 60s poll -- the runner was dead for eight weeks. The cause was already written down in this file's own transcript-trickle note: 'ops-runner.py, which is installed by nothing.' DR-0088 shipped it inactive and armed by hand as a DSM boot task, and a hand-placed daemon does not survive a reboot; every other service here self-deploys, this one was never registered. The fix is NO daemon: --once per cycle, so there is nothing to outlive a reboot and nothing to re-arm (DR-0236/DR-0247). Latency moves from ~1 min to <=15 min, which is invisible for the two whitelisted jobs and is the whole distance between 'usually nothing' and 'every time.' Brakes unchanged (3/cycle budget, subprocess timeout, single-instance lock) plus the cycle timeout above; the runner's human-cleared pause becomes TIME-DECAYED so it can no longer stop the lane permanently and silently (DR-0248, the transcript-trickle precedent). Witness: ops-queue-health.yml probes the queue from OUTSIDE the NAS and files an incident when a command sits queued."
+    },
+    {
+      "name": "agent-consumer",
+      "install": "infra/nas-agent/install.sh",
+      "enabled": true,
+      "description": "The box agent (DR-0132 P1, built 2026-08-15 on Darrell's arm: 'you arm it dont make it not work to start'). Drains agent_tasks (migration 0137) through the DIRECT Postgres pooler -- measured open while the REST gateway is 402-restricted, so the Ask-the-models pane answers BEFORE the Aug 23 reset -- and serves @local on the NAS's own Ollama (Up 5 weeks, 127.0.0.1:11434) with keep_alive 0 (DR-0012). Deterministic class per DR-0248: --max budget + single-flight lock, no kill-switch. Keyless vendor rows FAIL with the why instead of spinning (the pane's honesty rules, mirrored server-side; selftest 12/12 gates merge in ci.yml). Credential placed by nas-agent-arm.yml over remote-hands; absent env = polite no-op naming exactly what is missing."
+    },
+    {
+      "name": "supabase",
+      "install": "infra/nas-supabase/install.sh",
+      "enabled": true,
+      "description": "The SOVEREIGN Supabase stack (DR-0306). Born 2026-08-14: the hosted free tier restricted the project for exceeding its egress quota and locked all 23 users out of all four apps for 86 hours; Darrell: 'I'm not paying them... other options!!!!!!!?' -> 'start the NAS supabase stack.' Self-hosted Supabase serves the IDENTICAL API, so cutover is a URL + anon key rather than a rewrite -- measured: 196 .from(), 68 .auth, 64 .rpc(), 3 .storage, 2 .channel, all unchanged, and RLS stays enforced by Postgres so DR-0060's guard carries over. Eight containers on their own supabase-net, every port bound 127.0.0.1 ONLY (8800 kong / 5433 postgres / 8801 studio -- all clear of the ports measured live on this NAS), data under /volume1/docker/supabase. NOTHING POINTS AT IT YET, deliberately: standing it up proves it works and costs nothing, while the cutover stays a separate deliberate step so a half-proven stack can never take the family's app down. Secrets minted ONCE by the stdlib-only mint_keys.py (root cannot import dpoe's site-packages on this box) and never re-minted over a live stack -- re-minting JWT_SECRET signs out every user at once. The installer PROVES rather than claims: it polls the gateway's /auth/v1/health and exits non-zero with `compose ps` if it never answers 200. Selftest (12 checks, 2 proven-to-catch) gates merge in ci.yml. Runbook: infra/nas-supabase/README.md."
+    },
+    {
+      "name": "mcp",
+      "install": "infra/nas-mcp/install.sh",
+      "enabled": true,
+      "description": "Sovereign MCP server (poetech-mcp.service on 127.0.0.1:8795, MCP 2026-07-28 stateless, READ-ONLY v1 over dispatch reel / task snapshot / Cage brake view) + token + venv + best-effort Caddy /mcp snippet. DR-0244."
+    },
+    {
+      "name": "scribe",
+      "install": "infra/nas-scribe/install.sh",
+      "enabled": true,
+      "description": "Scribe ingest server (poetech-scribe.service on 127.0.0.1:8791) + data dir + token + venv + best-effort Caddy /scribe/* snippet. Pairs with the scribe-transcribe loop (the braked whisper-queue consumer)."
+    },
+    {
+      "name": "property-photos",
+      "install": "infra/nas-property-photos/install.sh",
+      "enabled": true,
+      "description": "Sovereign property/family/album photo image server (photo_server.py, poetech-photo-server.service on 127.0.0.1:8099, reached via the same-origin /nas-photos route). Ends the 'NAS deploy pending Darrell' hand-deploy class: merge installs/repairs/starts it (DR-0268). Token kept, never regenerated over a live one."
+    },
+    {
+      "name": "tax-upload",
+      "install": "infra/nas-tax-ingest/install.sh",
+      "enabled": true,
+      "description": "The sovereign /taxes/* backend for Books -> Taxes (upload POST + archive.json + printable PDF reads), closing the 2026-09-06 \"I am also unable to upload my taxes\" defect. Root cause was NOT the app: tax_upload_server.py had no installer and appeared in no manifest, the Funnel carried no /taxes path mount (RECORDED-STATE listed only /, /mcp, /nas-photos), and the Caddy route existed only in a docstring -- so the upload POST hit a backend that was never started and the archive GET fell through the Funnel root to n8n, which is why one screen said 'could not reach the NAS upload service' and 'NO RETURNS INDEXED YET' at once. Same class as the /nas-photos gap (DR-0268): built, correct, never actuated. Not the three-brakes class -- request-driven only, no timer, no compute spawned, no work done until a browser asks. Installer is idempotent, reuses the EXISTING family bridge token (never regenerates over a live one), publishes any already-dropped returns on the cycle, mounts /taxes on the funnel additively, and probes 127.0.0.1:8790/health. Witness: site-health's outside-in probe plus the health route the installer curls."
+    },
+    {
+      "name": "voice-transport",
+      "install": "infra/voice-studio/install.sh",
+      "enabled": true,
+      "description": "The road home for the sovereign reading voice: mounts /voice on the PUBLIC Funnel so the app's same-origin /voice/* transport terminates at the church's own XTTS studio. Born 2026-09-20 from Darrell reading a lesson on a Fire TV -- \"No sounds yet for the tts... but it does click and do what it should.\" Fire OS's Silk may carry no speechSynthesis voice at all, so the device-independent studio is the only path that can ever speak there, and the Funnel had no /voice mount for it to arrive on. The studio itself is a GPU container on the 4070 (tlcmediadpt), armed by arm-voice-studio.yml; what the NAS owns is the Funnel and poetech-voice-forwarder.service (voice_forwarder.py, 127.0.0.1:8771), which this installs. The forwarder exists because tailscale will only proxy to localhost (tailscale#8751) AND because the studio has no auth of its own on a PUBLIC route -- it gates /speak on the family bridge bearer, caps concurrency, and passes the studio's own /health through so a dark GPU never reads as up. The installer points it only at a studio that ANSWERED /health on that cycle (DR-0076) -- a path pointed at a dark host hangs the reader instead of failing it and reads as actuated in every check -- so a cycle that finds no studio mounts nothing, says so, and exits 0. The two halves arm independently and in either order; whichever runs second finds the other already there."
+    },
+    {
+      "name": "funnel",
+      "install": "infra/nas-loops/loops/funnel-watchdog.sh",
+      "enabled": true,
+      "description": "Ensure the public Funnel serves the RECORDED-STATE sovereign rows (/mcp, /nas-photos) — the funnel_watchdog.py restore riding the ALREADY-ARMED services-sync clock, so the 2026-08-03 dark-funnel class heals with ZERO new DSM entries (Darrell: humans don't do anything). Idempotent and silent when the endpoint answers; bounded re-assert + one package restart when dark (DR-0268; RECORDED-STATE rule 1)."
+    },
+    {
+      "name": "choir-dates",
+      "install": "infra/church-media-golive/choir_dates_install.sh",
+      "enabled": true,
+      "description": "Drain the undated choir_sermons backlog (2026-08-04): yt-dlp reads each video's own release/upload stamp from the NAS's residential IP (CI runners are bot-checked and the stored Data-API key is rejected), PATCHes service_date ONLY where NULL via the youtube_load.py REST helpers, ~90 videos per 15-min cycle until drained, then a DONE marker no-ops every later cycle. Budget in-script (chunk + time), lock/timeout in the runner (DR-0248). Selftest gates merge in ci.yml. yt-dlp is the NAS's own (DR-0723): infra/nas-yt-dlp/install.sh installs the pinned, sha256-verified standalone build into /volume1/PoeTech/yt-dlp (no docker, no PyPI; the NAS python is 3.8 and current yt-dlp needs 3.10), retried at most every 6 h on failure; the docker wrapper is the fallback only."
+    },
+    {
+      "name": "ytzero",
+      "install": "infra/nas-ytzero/install.sh",
+      "enabled": true,
+      "description": "YT Zero (ghcr.io/pelski/ytzero pinned 0.25.3) -- sovereign chosen-channels-only YouTube inbox on host port 3701. Public RSS -> own SQLite at /volume1/docker/ytzero; no Google account, no API key, no recommendation feed; optional yt-dlp downloads; LAN/Tailscale only. Runbook: infra/nas-ytzero/README.md."
+    },
+    {
+      "name": "voice-lite",
+      "install": "infra/nas-voice-lite/install.sh",
+      "enabled": true,
+      "description": "The NAS's own REAL-AUDIO reading voice (DR-0627): Piper on the NAS CPU behind /voice-lite. Born 2026-09-24 from Darrell on his Android phone: \"Why doesn't the player remain playing in the background when I switch between apps?!!? Fix it.\" With the GPU studio dark the reader fell back to Web Speech, which Android stops when the app leaves the screen; a real audio clip keeps playing like music. The installer downloads piper + two voices once (ryan = male, amy = female), PROVES piper synthesizes a real sentence on this box, installs poetech-voice-lite.service (voice_lite_server.py, 127.0.0.1:8772, family bearer, 2 in flight, 1500 chars, 90 s, 400 MB cache), and mounts /voice-lite only after /health answers 200. Any failed step mounts nothing, says which, and exits 0. Registered LAST so its one-time downloads (one file per cycle, bounded) can never starve a sibling. Request-driven, no timers. Proof: voice_lite_server.py --selftest gates merge in ci.yml."
+    },
+    {
+      "name": "lesson-builder",
+      "install": "infra/nas-lesson-builder/install.sh",
+      "enabled": true,
+      "description": "A lesson starts THE MOMENT the words land (DR-0669). Darrell 2026-09-29: \"Do we need claude? Can we build the workflows inside the PoeTech App?\" -> \"Yes build it all in the app!!!\"; \"Voice recordings are another lane!!!!!!! No limits!!!!\". poetech-lesson-builder.service LISTENs on the NAS's own Postgres: migration 0243 rings pg_notify('lesson_inbox') when a lesson row (typed, a Whisper transcript, a Governor's approval) is written, when Darrell writes a decision, or asks for a backfill -- no polling interval. Deterministic stages (one teaching one lesson, atomic lesson/DR numbers, KJV verses from the corpus, the pinned verse test, the count baselines, branch/commit/push through the lane, tags after the push) around ONE writing stage: pluggable writers from NAS config only (the Claude Code CLI signed in on the NAS or over SSH first; Anthropic, Gemini, OpenAI, Ollama, any OpenAI-compatible endpoint, or a command seam, each optional), the identical prompt to every writer, every version gated the same way and kept in lesson_versions; more than one version waits for Darrell's decision in the app (lesson_decisions), which is gated again before it ships. Brakes (DR-0248 + DR-0667): NO count cap; a wall-clock budget per build (its own process, killed at the ceiling, rows marked failed with the reason); a per-row lock (O_EXCL file + atomic database claim); the stop-paths enabled:false here or ARMED-BY-RECORD removed. DORMANT UNTIL A WRITER: with none reachable it claims nothing, reports each writer tried and why, and the hourly Routine stays the builder. Registered LAST so its once-a-day CLI install and first clone can never starve a sibling. Proofs: test_lesson_builder.py gates merge in ci.yml."
+    },
+    {
+      "name": "cameras",
+      "install": "infra/nas-cameras/install.sh",
+      "enabled": true,
+      "description": "The family camera road (DR-0756). Darrell 2026-10-06: \"I want to be able to see my wyze cam feeds inside my PoeTech App... and any system I own...\" ONE restreamer, go2rtc (alexxit/go2rtc:1.9.14, pinned; native Wyze P2P since v1.9.14, native Ring since v1.9.9, ONVIF, RTSP), host-networked so it can reach the cameras' own LAN but bound to 127.0.0.1 ONLY by its seed config -- so 'any system I own' is one more config line, never a new program. In front of it poetech-cams.service (cams_forwarder.py, 127.0.0.1:8773): the family bridge bearer on /list and /ticket, 90-second one-camera playback tickets on the media URLs (an <img>/<video> cannot send a header), an allowlist of read-only paths, and NEVER a source URL out (they carry credentials). Not the three-brakes class -- request-driven, no timer, no compute until a browser asks -- but a public door still has bounds: 12 live streams by default and no per-view clock (DR-0774: the 2-stream/300 s caps protected nothing real on a 1 Gbps link and are env-settable mechanisms now), 6 snapshots in flight, per-call timeouts. DR-0775: poetech-cams-recorder.service records the cameras the owner switches on into ten-minute clips with owner-chosen retention and one disk budget. The installer seeds go2rtc.yaml ONCE and never overwrites a live config (the WebUI writes the generated wyze:// lines into it), adds the Wyze sign-in block once from /volume1/PoeTech/secrets/wyze.env (a secret value only Darrell holds; without it every non-Wyze system still works and the app says plainly what is missing), and mounts /cams only after go2rtc answers /api AND the forwarder answers /health 200. Registered LAST so its one-time image pull can never starve a sibling. DR-0777: the Wyze sign-in typed once in the app is KEPT by the forwarder (root-only wyze.env) and is never typed again -- GET /devices and POST /action open the garage over Wyze's own cloud (wyze_cloud.py, the Wyze app's own garage_door_trigger call) with no video in the path, and a restreamer that comes back with zero streams gets its cameras re-added from the kept sign-in by the forwarder itself (SELF_HEAL: one check per 10 min, one cloud call at most, the setup lock). Proof: cams_forwarder.py --selftest and wyze_cloud.py --selftest gate merge in ci.yml (the live time brake was a real catch on its first run). Witness: site-health GET /cams/health from OUTSIDE the NAS."
+    },
+    {
+      "name": "openers",
+      "install": "infra/nas-openers/install.sh",
+      "enabled": false,
+      "description": "The house openers (garage door and any other opener), pressed from the PoeTech header while a lesson is playing in the car (Darrell 2026-10-08; DR-0823). SHIPPED DISABLED ON PURPOSE. This is the only service here that drives a physical actuator on the family's house, which makes it Tier C by definition, so it is armed by hand and never by a merge. Three brakes, all in infra/nas-openers/openers.py: a BUDGET of OPENERS_MAX_PER_HOUR presses per opener (default 12), so nothing can cycle a door all night; a single-flight LOCK per opener, because a door that gets two presses stops halfway; and ARMED-BY-RECORD, where an opener missing from the NAS-local devices.json, or present with enabled:false, is refused with a stated reason and nothing is pressed. devices.json ships only as an example, so installing this service opens nothing. The cloud never learns a device address, pin, topic or URL: the app sends only the opener's row id over the same-origin /openers route, and this service resolves the hardware locally. It never reports a door as moved unless the device itself said so.",
+      "disabledWhy": "This is the only service in the fleet that drives a PHYSICAL ACTUATOR on the family's house, which makes it Tier C by definition, so it is armed by hand and never by a merge (DR-0823). Its three brakes are built and proven in CI (a per-opener hourly budget, a single-flight lock, and armed-by-record from a NAS-local devices.json that ships only as an example), so this is not work parked on a human start: the whole road is shipped and verified, and what waits is one value only Darrell holds, which opener hardware the house has. Nothing in the app is broken by the wait either, because the header renders no button at all until an opener row exists and is armed.",
+      "reReview": "2026-11-08"
+    }
+  ]
+}

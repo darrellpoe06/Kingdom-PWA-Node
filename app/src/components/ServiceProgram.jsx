@@ -27,7 +27,11 @@ import {
   deriveSectorView, reflowProgram, formatClock,
   getServiceProgramAccess, subscribePrograms, subscribeSegments, subscribeChanges, subscribeFinalizerMembers,
   saveProgram, deleteProgram, saveSegment, deleteSegment, seedProgramSegments, seedDefaultOrder, setFinalizer,
+  importSegmentsFromEmail,
 } from '../lib/service-program.js';
+import { parseEmailOrder } from '../lib/order-import.js';
+import UiIcon from './UiIcon.jsx';
+import SectionTabs from './SectionTabs.jsx';
 import ServiceActuals from './ServiceActuals.jsx';
 import { subscribeActuals, blueprintFromActual, pickBlueprintProgram, seedSegmentsFromBlueprint } from '../lib/service-actuals.js';
 
@@ -171,6 +175,56 @@ function SegmentForm({ initial, programSongs, programSermons, busy, onSave, onCa
 }
 
 // -----------------------------------------------------------------------------
+// Paste-from-email import: the church sends the order of service by email; the
+// steward pastes it here, previews what was recognized (and what was skipped —
+// nothing drops silently, DR-0076), then inserts. Segments land through the
+// normal lane and stay editable like any hand-entered segment.
+// -----------------------------------------------------------------------------
+function EmailImportForm({ existingCount, busy, onInsert, onCancel }) {
+  const [text, setText] = useState('');
+  const parsed = useMemo(() => parseEmailOrder(text), [text]);
+  return (
+    <div className="bg-white border-2 border-[#B85838] p-3 mb-3">
+      <label className={LABEL} htmlFor="sp-email-paste">Paste the emailed order of service</label>
+      <textarea id="sp-email-paste" rows={8} className={FIELD} value={text} onChange={(e) => setText(e.target.value)}
+        placeholder={'Copy the order from the church email (or the attached document) and paste it here, one item per line:\n\nCall to Worship\nPraise & Worship (20 min)\nWelcome & Announcements\nOffering\nSermon — Pastor McCray · 2 Kings 9:30-37\nBenediction'} />
+      {text.trim() && (
+        <div className="mt-2 text-xs" style={{ fontFamily: '"Fraunces", serif' }}>
+          {parsed.segments.length > 0 ? (
+            <>
+              <p className="text-[#1A1815] font-semibold">Recognized {parsed.segments.length} segment{parsed.segments.length === 1 ? '' : 's'}:</p>
+              <ul className="mt-1 space-y-0.5">
+                {parsed.segments.map((s, i) => (
+                  <li key={i} className="text-[0.6875rem] text-[#5A5751]">
+                    <span className="text-[#1A1815]">{s.title}</span>
+                    {' · '}{sectorShort(s.sector)} · {s.plannedMinutes}′{s.flexible === false ? ' · fixed' : ''}
+                    {s.ownerName ? ` · ${s.ownerName}` : ''}{s.scriptureRef ? ` · ${s.scriptureRef}` : ''}
+                  </li>
+                ))}
+              </ul>
+            </>
+          ) : (
+            <p className="text-[#B85838]">Nothing recognized yet — paste the order with one item per line.</p>
+          )}
+          {parsed.skipped.length > 0 && (
+            <p className="text-[0.6875rem] text-[#8A857C] mt-1">Skipped {parsed.skipped.length} line{parsed.skipped.length === 1 ? '' : 's'} (greetings, signatures, links) — add anything missed as a segment afterward.</p>
+          )}
+          {parsed.startTime && <p className="text-[0.6875rem] text-[#5A6E3D] mt-1">Email mentions a {parsed.startTime} start — set it in Edit master if the service time changed.</p>}
+          {existingCount > 0 && parsed.segments.length > 0 && (
+            <p className="text-[0.6875rem] text-[#B85838] mt-1">This service already has {existingCount} segment{existingCount === 1 ? '' : 's'} — imported ones are added after them.</p>
+          )}
+        </div>
+      )}
+      <div className="flex gap-2 mt-3">
+        <button type="button" disabled={busy || parsed.segments.length === 0} onClick={() => onInsert(parsed.segments)}
+          className={`${BTN} bg-[#B85838] text-white font-semibold disabled:opacity-50`}>{busy ? 'Inserting…' : `Insert ${parsed.segments.length || ''} segments`}</button>
+        <button type="button" onClick={onCancel} className={`${BTN} text-[#5A5751] hover:text-[#1A1815]`}>Cancel</button>
+      </div>
+    </div>
+  );
+}
+
+// -----------------------------------------------------------------------------
 // One flow row (read). Shows time, who's up, the viewer's own cue + real links.
 // -----------------------------------------------------------------------------
 function FlowRow({ item, adjustedMin, isStewardLens }) {
@@ -222,6 +276,7 @@ export default function ServiceProgram() {
   const [lens, setLens] = useState('worship');
   const [programForm, setProgramForm] = useState(null);
   const [segmentForm, setSegmentForm] = useState(null);
+  const [emailImportOpen, setEmailImportOpen] = useState(false);
   const [reflowMin, setReflowMin] = useState('');
   const [changes, setChanges] = useState([]);
   const [members, setMembers] = useState([]);
@@ -326,6 +381,17 @@ export default function ServiceProgram() {
     report(await seedProgramSegments(program.id));
     setBusy(false);
   };
+  // Imported segments append after any existing ones (sortOrder offset by the
+  // current max) so a mid-week email never scrambles a hand-built order.
+  const onImportEmail = async (parsedSegments) => {
+    if (!program) return;
+    const maxSort = programSegments.reduce((n, s) => Math.max(n, s.sortOrder || 0), 0);
+    const rows = parsedSegments.map((s) => ({ ...s, sortOrder: s.sortOrder + maxSort }));
+    setBusy(true);
+    const res = report(await importSegmentsFromEmail(program.id, rows));
+    setBusy(false);
+    if (res?.saved) setEmailImportOpen(false);
+  };
   const onToggleFinalizer = async (m) => {
     setBusy(true);
     report(await setFinalizer(m.userId, !m.isFinalizer));
@@ -400,7 +466,12 @@ export default function ServiceProgram() {
 
       {program && (
         <>
-          {/* Lens selector — the per-sector view-as strip */}
+          {/* Lens selector — the per-sector view-as strip. KEPT as this
+              surface's own section row (not folded into SectionTabs): `lens`
+              drives deriveSectorView / the header's mineCount, i.e. the state
+              is read beyond the strip's own conditional rendering. The new
+              grouping below rides variant="sub" chips so there is never a
+              second underline row. */}
           <TabScroll className="mb-3" label="View as sector">
             {lensButtons.map((key) => (
               <button key={key} type="button" role="tab" aria-selected={lens === key} onClick={() => setLens(key)}
@@ -431,6 +502,21 @@ export default function ServiceProgram() {
             {program.notes && <p className="text-xs text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{program.notes}</p>}
           </div>
 
+          {/* THIRD-ROW chips (Darrell 2026-07-05): the stack below the header
+              was still a multi-screen scroll — run of show, the actual/blueprint
+              reconciliation, and the steward's team/changes panels are each one
+              chip away now. Blocks moved verbatim; state stays above. */}
+          <SectionTabs
+            variant="sub"
+            ariaLabel="Order of service sections"
+            idBase="svcflow"
+            defaultId="flow"
+            sections={[
+              {
+                id: 'flow',
+                label: 'Run of show',
+                render: () => (
+                  <>
           {/* Reflow control */}
           <div className="flex items-end gap-2 flex-wrap mb-3 bg-[#FAF8F4] border border-[#E8E4DC] p-2">
             <div>
@@ -445,6 +531,7 @@ export default function ServiceProgram() {
             <div className="flex gap-2 flex-wrap mb-3">
               <button type="button" onClick={() => setSegmentForm({ initial: { sortOrder: (programSegments.length + 1) * 10 } })} className={`${BTN} bg-[#5A6E3D] text-white font-semibold`}>＋ Add segment</button>
               <button type="button" onClick={() => setProgramForm({ initial: program })} className={`${BTN} text-[#5A5751] hover:text-[#1A1815] border border-[#E8E4DC]`}>Edit master</button>
+              <button type="button" onClick={() => setEmailImportOpen((o) => !o)} className={`${BTN} text-[#B85838] border border-[#B85838]`} aria-expanded={emailImportOpen}><UiIcon name="mail" /> Paste from church email</button>
               {programSegments.length === 0 && <button type="button" onClick={onSeed} disabled={busy} className={`${BTN} text-[#B85838] border border-[#B85838] disabled:opacity-50`}>Start from standard order ({seedDefaultOrder().length})</button>}
               {programSegments.length === 0 && blueprint && (
                 <button type="button" onClick={onSeedBlueprint} disabled={busy} className={`${BTN} bg-[#1A1815] text-white font-semibold disabled:opacity-50`}>
@@ -455,9 +542,54 @@ export default function ServiceProgram() {
             </div>
           )}
           {segmentForm && isStewardEditing && <SegmentForm initial={segmentForm.initial} programSongs={programSongs} programSermons={programSermons} busy={busy} onSave={onSaveSegment} onCancel={() => setSegmentForm(null)} />}
+          {emailImportOpen && isStewardEditing && <EmailImportForm existingCount={programSegments.length} busy={busy} onInsert={onImportEmail} onCancel={() => setEmailImportOpen(false)} />}
 
+          {/* The flow */}
+          {view && view.flow.length === 0 && (
+            <p className="text-sm text-[#5A5751] text-center py-6" style={{ fontFamily: '"Fraunces", serif' }}>No segments yet.{isStewardEditing ? ' Add the first one above, or start from the standard order.' : ' A steward is still building this order.'}</p>
+          )}
+          {view && view.flow.length > 0 && (
+            <div className="space-y-1">
+              {!isStewardEditing && view.mineCount === 0 && (
+                <p className="text-xs text-[#5A5751] bg-[#FAF8F4] border border-[#E8E4DC] p-2 mb-1" style={{ fontFamily: '"Fraunces", serif' }}>You don't own a segment in this service — here's the full flow for context.</p>
+              )}
+              {view.flow.map((item) => (
+                <div key={item.id} className="group">
+                  <FlowRow item={item} adjustedMin={adjById.get(item.id)} isStewardLens={isStewardEditing} />
+                  {isStewardEditing && (
+                    <div className="flex gap-2 ml-3 mb-1 opacity-70">
+                      <button type="button" onClick={() => setSegmentForm({ initial: item.__seg || programSegments.find((s) => s.id === item.id) })} className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">Edit</button>
+                      <button type="button" onClick={async () => { report(await deleteSegment(item.id, { programId: program.id, title: item.title })); }} className="text-[0.625rem] uppercase tracking-wider text-[#991B1B] hover:underline">Delete</button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+                  </>
+                ),
+              },
+              // The ACTUAL side: what really happened -> reconcile -> blueprint.
+              // Shown to the whole team (read); the finalizer circle reconciles.
+              // Gated exactly like the original block — no chip (and no empty
+              // panel) until the flow exists.
+              view && view.flow.length > 0 ? {
+                id: 'actuals',
+                label: 'Actuals & blueprint',
+                render: () => (
+                  <ServiceActuals program={program} plannedSegments={programSegments} actuals={actuals} songs={songs} sermons={sermons} canEdit={access.canEdit} />
+                ),
+              } : null,
+              // Steward-only (gated section — absent for sector lenses and any
+              // non-editing viewer, so nothing leaks): the finalizer circle +
+              // the who-changed-what activity trail.
+              isStewardEditing ? {
+                id: 'team',
+                label: 'Team & changes',
+                render: () => (
+                  <>
           {/* Finalizer circle — who can finalize the whole master (collaborative) */}
-          {isStewardEditing && (
             <div className="bg-[#FAF8F4] border border-[#E8E4DC] p-2 mb-3">
               <div className="flex items-center justify-between gap-2 flex-wrap">
                 <p className="text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
@@ -486,10 +618,9 @@ export default function ServiceProgram() {
                 </div>
               )}
             </div>
-          )}
 
           {/* Activity trail — who changed what (institutional memory) */}
-          {isStewardEditing && programChanges.length > 0 && (
+          {programChanges.length > 0 && (
             <details className="bg-white border border-[#E8E4DC] p-2 mb-3">
               <summary className="text-[0.6875rem] uppercase tracking-wider text-[#5A5751] cursor-pointer">Recent changes ({programChanges.length})</summary>
               <ul className="mt-2 space-y-0.5">
@@ -502,35 +633,11 @@ export default function ServiceProgram() {
               </ul>
             </details>
           )}
-
-          {/* The flow */}
-          {view && view.flow.length === 0 && (
-            <p className="text-sm text-[#5A5751] text-center py-6" style={{ fontFamily: '"Fraunces", serif' }}>No segments yet.{isStewardEditing ? ' Add the first one above, or start from the standard order.' : ' A steward is still building this order.'}</p>
-          )}
-          {view && view.flow.length > 0 && (
-            <div className="space-y-1">
-              {!isStewardEditing && view.mineCount === 0 && (
-                <p className="text-xs text-[#5A5751] bg-[#FAF8F4] border border-[#E8E4DC] p-2 mb-1" style={{ fontFamily: '"Fraunces", serif' }}>You don't own a segment in this service — here's the full flow for context.</p>
-              )}
-              {view.flow.map((item) => (
-                <div key={item.id} className="group">
-                  <FlowRow item={item} adjustedMin={adjById.get(item.id)} isStewardLens={isStewardEditing} />
-                  {isStewardEditing && (
-                    <div className="flex gap-2 ml-3 mb-1 opacity-70">
-                      <button type="button" onClick={() => setSegmentForm({ initial: item.__seg || programSegments.find((s) => s.id === item.id) })} className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">Edit</button>
-                      <button type="button" onClick={async () => { report(await deleteSegment(item.id, { programId: program.id, title: item.title })); }} className="text-[0.625rem] uppercase tracking-wider text-[#991B1B] hover:underline">Delete</button>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* The ACTUAL side: what really happened -> reconcile -> blueprint.
-              Shown to the whole team (read); the finalizer circle reconciles. */}
-          {view && view.flow.length > 0 && (
-            <ServiceActuals program={program} plannedSegments={programSegments} actuals={actuals} songs={songs} sermons={sermons} canEdit={access.canEdit} />
-          )}
+                  </>
+                ),
+              } : null,
+            ]}
+          />
         </>
       )}
     </div>

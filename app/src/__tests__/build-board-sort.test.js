@@ -41,24 +41,34 @@ describe('sortByWhen', () => {
   });
 });
 
-// recently-shipped continuity strip (build backlog #5) — real, dated ships only,
-// newest-first, build-stamped at the call site.
+// recently-shipped continuity strip — since DR-0121 it derives from the
+// decision ledger (the maintained ship record), never a hand-kept list. A
+// fixture ledger proves the derivation: dated records only, newest-first.
 describe('recentlyShipped', () => {
-  it('returns at most n items, all shipped', () => {
-    const r = recentlyShipped(4);
-    expect(r.length).toBeLessThanOrEqual(4);
+  const LEDGER = {
+    ok: true,
+    count: 4,
+    items: [
+      { id: 'DR-0001', title: 'First', date: '2026-06-10', status: 'accepted', decision: 'a' },
+      { id: 'DR-0002', title: 'Second', date: '2026-07-01', status: 'accepted', decision: 'b' },
+      { id: 'DR-0003', title: 'Undated', date: '', status: 'accepted', decision: 'c' },
+      { id: 'DR-0004', title: 'Third', date: '2026-06-20', status: 'accepted', decision: 'd' },
+    ],
+  };
+  it('returns at most n items, all marked shipped', () => {
+    const r = recentlyShipped(2, LEDGER);
+    expect(r.length).toBe(2);
     expect(r.every(x => x.status === 'shipped')).toBe(true);
   });
   it('is ordered newest-date-first', () => {
-    const r = recentlyShipped(10);
-    for (let i = 1; i < r.length; i++) {
-      expect(Date.parse(r[i - 1].when)).toBeGreaterThanOrEqual(Date.parse(r[i].when));
-    }
+    const r = recentlyShipped(10, LEDGER);
+    expect(r.map(x => x.id)).toEqual(['DR-0002', 'DR-0004', 'DR-0001']);
   });
-  it('only includes dated ships (excludes prose-condition "when")', () => {
-    expect(recentlyShipped(50).every(x => /^\d{4}-\d{2}(-\d{2})?$/.test(x.when))).toBe(true);
+  it('only includes dated records (an undated ledger row is excluded, never given an invented date)', () => {
+    expect(recentlyShipped(50, LEDGER).some(x => x.id === 'DR-0003')).toBe(false);
+    expect(recentlyShipped(50, LEDGER).every(x => /^\d{4}-\d{2}(-\d{2})?$/.test(x.when))).toBe(true);
   });
-  it('respects the count limit', () => {
-    expect(recentlyShipped(2).length).toBeLessThanOrEqual(2);
+  it('degrades to empty on a missing ledger (honest empty, no crash)', () => {
+    expect(recentlyShipped(4, { ok: false, items: [] })).toEqual([]);
   });
 });

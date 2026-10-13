@@ -13,9 +13,11 @@ import {
 import { makeDevice } from '../lib/church-devices.js';
 
 // A fully-armed, in-budget, window-open state — the ONLY state where work runs.
+// streamingHold must be RELEASED explicitly here because it ships engaged
+// (makeInertState defaults it true) — that default is itself under test below.
 function liveState(over = {}) {
   return makeInertState({
-    killSwitch: false, armed: true, gpuSchedArmed: true,
+    killSwitch: false, streamingHold: false, armed: true, gpuSchedArmed: true,
     maxJobsPerRun: 5, maxJobsPerDay: 50, jobsToday: 0, ...over,
   });
 }
@@ -45,6 +47,33 @@ describe('INERT default — the shipped state never runs (proven-to-catch)', () 
     const g = brakeGate(liveState({ killSwitch: true }), OVERNIGHT, CFG);
     expect(g.go).toBe(false);
     expect(g.reasons.join(' ')).toMatch(/KILL_SWITCH/);
+  });
+});
+
+describe('STREAMING_HOLD — the live stream is senior to everything (DR-0012)', () => {
+  it('the streaming hold ships ENGAGED in the inert default', () => {
+    const g = brakeGate(makeInertState(), OVERNIGHT, CFG);
+    expect(g.go).toBe(false);
+    expect(g.brakes.streamingHold).toBe(true);
+    expect(g.reasons.join(' ')).toMatch(/STREAMING_HOLD/);
+  });
+  it('streaming hold alone blocks a FULLY-ARMED, in-budget, in-window state', () => {
+    const g = brakeGate(liveState({ streamingHold: true }), OVERNIGHT, CFG);
+    expect(g.go).toBe(false);
+    expect(g.reasons.join(' ')).toMatch(/STREAMING_HOLD engaged/);
+    expect(g.reasons.join(' ')).toMatch(/DR-0012/);
+  });
+  it('with the hold engaged, selectRunnable runs NOTHING even for approved jobs', () => {
+    const queue = { items: [{ id: 'j', type: 'transcription', units: 5, approved: true, status: 'queued' }] };
+    const { runnable, skipped } = selectRunnable(queue, [GPU], liveState({ streamingHold: true }), OVERNIGHT, CFG);
+    expect(runnable).toHaveLength(0);
+    expect(skipped[0].reason).toMatch(/STREAMING_HOLD/);
+  });
+  it('a device with status "streaming" is NEVER a routing candidate, hold or not', () => {
+    const streamingBox = makeDevice({ id: 'live', name: 'Livestream PC', deviceType: 'gpu-node', status: 'streaming', capabilities: ['transcription', 'llm-inference'] });
+    const { node, reason } = routeJob({ type: 'transcription' }, [streamingBox]);
+    expect(node).toBeNull();
+    expect(reason).toMatch(/no idle device/);
   });
 });
 

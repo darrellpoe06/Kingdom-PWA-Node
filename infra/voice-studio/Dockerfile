@@ -27,9 +27,11 @@ ENV PYTHONUNBUFFERED=1 \
     VOICE_DEVICE=cuda \
     PORT=8770
 
-# git is needed by some TTS model fetches; the rest are the server deps.
+# git is needed by some TTS model fetches; ffmpeg turns the browser's webm/opus
+# (or iOS mp4) recording into the WAV XTTS conditions on (DR-0721); the rest
+# are the server deps.
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends git curl \
+    && apt-get install -y --no-install-recommends git curl ffmpeg \
     && rm -rf /var/lib/apt/lists/* \
     && pip install --no-cache-dir "TTS==0.22.0" "fastapi>=0.110,<1" "uvicorn[standard]>=0.29,<1"
 

@@ -1,6 +1,6 @@
 # SKOS Documentation
 
-The architectural foundation for SKOS, organized into seven subfolders.
+The architectural foundation for SKOS, organized into 17 subfolders (see docs/CONTEXT.md, the Layer 1 router, for the map — including docs/decisions/, the source of truth for what is decided).
 
 - [`00-foundations/`](00-foundations/) — The fifteen foundational documents: the biblical, scientific, and historical commitments the whole system rests on.
 - [`01-architecture/`](01-architecture/) — The SKOS three-layer architecture and the Siemens DDC metaphor applied to human flourishing.

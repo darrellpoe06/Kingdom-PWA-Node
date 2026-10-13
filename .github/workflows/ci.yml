@@ -1,6 +1,6 @@
 # CI — the mechanical floor under RELEASE-TIERS.md.
 # Every PR and every push to main runs lint + the Vitest suite + a real
-# production build + the wf36 Quality Gatekeeper harness. Nothing merges with a
+# production build. (The wf36 n8n harness job left with n8n, DR-0617.) Nothing merges with a
 # red suite, regardless of tier. Added per
 # docs/99-session-notes/2026-06-11-test-coverage-analysis.md (P2); the suite runs
 # without app/.env.local because vitest.config.js stubs the Supabase env (P1).
@@ -23,24 +23,54 @@ on:
     # main, plus the release lanes — a push to a lane runs CI on that commit so
     # the checks attach to the SHA a token-opened PR uses (see auto-open-pr.yml;
     # PRs opened by GITHUB_TOKEN don't trigger pull_request workflows).
-    branches: [main, 'feat/**', 'fix/**', 'merge/**', 'docs/**']
+    branches: [main, 'feat/**', 'fix/**', 'merge/**', 'docs/**', 'claude/**', 'ccr-**']  # ccr-**: DR-0773
   # Required checks must also run inside the merge queue's temporary ref, or a
   # queued PR would wait forever. Harmless when the queue is off.
   merge_group:
+  # keep-prs-current.yml (DR-0644) merges main into a PR branch with
+  # GITHUB_TOKEN, whose push fires no `push`/`pull_request` run — so it
+  # dispatches this workflow on the branch, and the required check lands on
+  # the new head. The one event a GITHUB_TOKEN may fire.
+  workflow_dispatch:
+
+# A newer commit on the same branch (or PR) supersedes the older run: the old
+# run's legs are cancelled so they stop holding runners the new commit needs
+# (DR-0645; measured 2026-09-24, 17 CI runs queued at once). Push runs and
+# pull_request runs have different refs, so they never cancel each other, and
+# main is never cancelled — every main commit keeps its full run.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+# PARALLEL, NOT SERIAL (DR-0645, 2026-09-24). Darrell: "Our processes work way
+# faster than this!" The one required job used to run every gate in a single
+# line: ~20 minutes a PR (run 36066491340: 22:16:29 -> 22:36:28; vitest 11:34 of
+# it, the chrome-layout sweep 5:48, everything else ~2 min). The same gates now
+# run as parallel legs, and the required check keeps its exact name as the
+# AGGREGATOR at the bottom (job id `app`): it `needs:` every leg, runs
+# `if: always()`, and fails unless EVERY leg reported success. A red, cancelled
+# or skipped leg is a red required check, so nothing that used to block a merge
+# stops blocking it. No gate was removed; each one moved to a leg.
+#
+# Test coverage is whole: `vitest --shard=i/N` splits the file list into N
+# disjoint parts that together are the full suite, and every shard must pass.
 
 jobs:
-  app:
-    # Name is load-bearing: the main-lane ruleset requires a status check named
-    # exactly "app — lint + vitest". Do NOT rename this job — the build step
-    # below runs INSIDE this job, so a failed build still fails this required
-    # check. Renaming would orphan the required check and block every PR.
-    name: app — lint + vitest
+  # Lint + every node guard. Kept textually BEFORE the vitest step: the
+  # verify-covers-ci-guards test reads the guard list between `npm run lint`
+  # and `npx vitest run`.
+  guards:
+    name: app — lint + guards
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: app
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Full history: the lesson-dates check below reads each lesson's
+          # first commit, which a shallow clone cannot see (DR-0687).
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -48,6 +78,10 @@ jobs:
           cache-dependency-path: app/package-lock.json
       - run: npm ci
       - run: npm run lint
+      # Every lesson's creation day (app/src/lib/lesson-dates.json) is re-derived
+      # from git and must match what is committed — no hand-edited day, no new
+      # lesson without one (DR-0687). Proven-to-catch in lesson-dates.test.js.
+      - run: npm run lesson-dates:check
       # Hybrid-modular boundary gate (DR-0078 §4.1 / DR-0076): the surface-mount
       # registry stays core — mounts via lazy thunks only, is shell-only, and no
       # feature reaches back into the monolith shell (outside the dated baseline).
@@ -68,6 +102,8 @@ jobs:
       # read its live source — a loop can't silently go static. Also covered by
       # vitest, run as a named step so the live-data promise is a visible check.
       - run: node ../scripts/interconnect-guard.mjs
+      # A DR cited in the code is a DR that exists (DR-0952).
+      - run: node ../scripts/decision-citation-guard.mjs
       # Source-adapter seam guard (docs/design/SOURCE-ADAPTER-INTERFACE.md / 0066):
       # fails the build if the backbone seam migration is missing, any *-ingest.py
       # adapter lacks a PLATFORM declaration, fewer than two platforms are registered,
@@ -75,7 +111,364 @@ jobs:
       # before 0066 landed (no content_sources) and before rss-ingest.py existed
       # (only one platform declared).
       - run: node ../scripts/source-adapter-guard.mjs
-      - run: npx vitest run
+      # Business-systems completion guard (Darrell 2026-07-25): decisions-ledger
+      # integrity (every DR file has an INDEX row, Next-ID pointer correct) +
+      # retired-n8n-transport and vendor-form-endpoint containment. Proven-to-
+      # catch in vitest (business-systems-guard.test.js).
+      - run: node ../scripts/business-systems-guard.mjs
+      # Infra transport guard (DR-0250; the 2026-07-30 outage class): any infra
+      # shell script mutating the Tailscale transport must cite RECORDED-STATE.
+      # Proven-to-catch in vitest (infra-transport-guard.test.js).
+      - run: node ../scripts/infra-transport-guard.mjs
+      # DR-0108 capability re-sync (COMPREHENSIVE-REVIEW-STANDARD dim 5; the
+      # 2026-07-30 "(your hand)" miss): a review-ledger line that parks work as
+      # human-only must name why no team channel drives it, or it is a fake
+      # boundary. Proven-to-catch in vitest (his-hand-guard.test.js).
+      - run: node ../scripts/his-hand-guard.mjs
+      # Lessons→gate citation meter (DR-0239: "a miss that leaves no gate behind
+      # will recur"). Every NEW extracted lesson must name its machine check or
+      # its why-no-gate; shrink-only baseline grandfathers the currently-uncited.
+      # Proven-to-catch in vitest (lessons-gate-coverage.test.js).
+      - run: node ../scripts/lessons-gate-coverage.mjs
+      # rls-isolation matrix file-reference guard (DR-0239 gate-the-class): every
+      # migration + smoke the isolation matrix names by string must exist on disk.
+      # The matrix runs only when db-migrate dispatches it against prod, so a
+      # dangling reference is otherwise invisible until a prod dispatch — this
+      # makes it RED here. Proven-to-catch in rls-isolation-matrix-guard.test.js.
+      - run: node ../scripts/rls-isolation-matrix-guard.mjs
+      # A replay must converge on the CURRENT definition, never restore an older
+      # one (measured live 2026-08-27: the matrix had been reverting 0144's
+      # set_member_role and 0151's claim_property_access on production).
+      - run: node ../scripts/migration-replay-order-guard.mjs
+      # The sovereign replay must decide success by asking whether every
+      # migration FILE is applied, not by comparing a ledger count to a file
+      # count. Measured live 2026-09-06: renaming an already-applied migration
+      # left a stale ledger row, the counts diverged, and the lane reported
+      # "the app's database is BEHIND the repo" about a database that was fully
+      # up to date. Proven-to-catch in replay-completeness-guard.test.js.
+      - run: node ../scripts/replay-completeness-guard.mjs
+      # A smoke that stops at its first statement proves nothing. Measured
+      # 2026-09-12: 0209's smoke opened with two top-level PERFORM statements
+      # (plpgsql-only — a syntax error at the psql top level), so psql died at
+      # line 52 on every run and its fourteen listed assertions were never
+      # reached. The rls-isolation leg was RED from the day it was written and
+      # merged anyway, because that workflow is not a required check on the PR.
+      # This makes the same mistake RED here, where it is required.
+      # Proven-to-catch in smoke-sql-language-guard.test.js, against the exact
+      # line that shipped.
+      - run: node ../scripts/smoke-sql-language-guard.mjs
+      # Widening a RETURNS TABLE with a plain CREATE OR REPLACE is refused by
+      # Postgres, and because db-migrate applies each file in its own
+      # transaction it rolls the WHOLE migration back (measured live
+      # 2026-08-27: 0153's two derived vacancy columns took property_rooms,
+      # property_photos and the rentals coordinates down with them).
+      - run: node ../scripts/migration-return-type-guard.mjs
+
+      # No-prompt guard (DR-0239 gate-the-class; the 2026-07-30 "add as debt /
+      # new category button not working" report): window.prompt() is blocked /
+      # a no-op in the installed standalone PWA, so any input flow built on it
+      # silently dies on a phone. Fails the build if a prompt() input dialog
+      # returns to app/src. Proven-to-catch in no-prompt-guard.test.js.
+      - run: node ../scripts/no-prompt-guard.mjs
+
+  # The Vitest suite, split into disjoint shards that run at the same time.
+  # fail-fast is OFF so a red shard still lets the others finish and report
+  # every failing test, not just the first shard's.
+  vitest:
+    name: app — vitest shard ${{ matrix.shard }}/${{ strategy.job-total }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: npm ci
+      - run: npx vitest run --shard=${{ matrix.shard }}/${{ strategy.job-total }}
+
+  # Python selftests, the repo-root guards, the real production build and the
+  # browser probes that judge it (SW navigation, read-highlight, scripture).
+  probes:
+    name: app — selftests + build + probes
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      # Python for the infra unit tests and selftests (stdlib only).
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: npm ci
+      # Transcript-loader unit tests (DR-0076 / 2026-07-06): the caption-grace
+      # classification — a fresh upload's missing captions are TRANSIENT (YouTube
+      # is still processing them), not a durable no-caption verdict. Proven-to-catch:
+      # this fails if within_caption_grace regresses to marking a day-old sermon
+      # permanently caption-less. Runs inside this required job so it gates merge.
+      - name: transcript loader unit tests
+        working-directory: infra/nas-sme-pipeline
+        run: python3 -m unittest test_load_transcripts -v
+      # Sovereign LLM-health builder unit tests (DR-0218 zero-n8n / DR-0076): the
+      # pure ollama_health.build_health + is_pinned that replaced the wf-llm-health
+      # n8n Code node. Proven-to-catch: fails if the pinned (2026-06-06 runaway)
+      # detection or the envelope shape LlmHealth.jsx reads regresses. Gates merge.
+      - name: sovereign llm-health builder unit tests
+        working-directory: infra/nas-llm
+        run: python3 -m unittest test_ollama_health -v
+      # Scribe queue-consumer brake tests (DR-0236 / DR-0068 / DR-0225): the three
+      # brakes on the whisper-queue consumer — item+time budget, single-instance
+      # lock, PAUSED kill-switch with auto-pause-on-consecutive-failures — each
+      # FIRED by a test, plus idempotent reprocessing. Proven-to-catch: fails if
+      # any brake regresses to stacking, runaway, or silent auto-continue. Gates
+      # merge — these checks ARE the governance (DR-0225).
+      - name: scribe queue-consumer brake tests
+        working-directory: infra/nas-scribe
+        run: python3 -m unittest test_scribe_consumer -v
+      # Spoken-lesson Whisper loop proofs (DR-0611): the road (voice row ->
+      # transcript row -> cloud copy removed), idempotency by the database, the
+      # Whisper ladder order (tower first, NAS CPU last), multipart upload shape,
+      # path traversal refused, budget + lock, and the honest voice-failed row
+      # after three tries. Proven-to-catch; gates merge.
+      - name: lesson-voice whisper loop proofs
+        working-directory: infra/nas-lesson-voice
+        run: python3 -m unittest test_lesson_voice test_speaker_turns -v
+      # Tower parity loop proofs (DR-0671): every measure deterministic, every
+      # gap class fires on a planted defect, no single defect counts toward
+      # promotion, the cross-reference excludes a verse-gate failure, the
+      # brakes stop (budget: wall-clock + turns; lock; kill by ARMED-BY-RECORD
+      # or services.json; time-decayed auto-pause), and the first fix
+      # re-measured before/after. Proven-to-catch; gates merge.
+      - name: tower parity loop proofs
+        working-directory: infra/nas-lesson-parity
+        run: python3 -m unittest test_lesson_parity -v
+      # The NAS publishes the family key itself (DR-0613): publish to named
+      # owners, steady state writes nothing, missing pieces are quiet no-ops,
+      # a failed call never raises, the key is never printed. Gates merge.
+      - name: family-key publisher proofs
+        working-directory: infra/nas-bridge-publish
+        run: python3 -m unittest test_publish_family_key -v
+      # The NAS lesson builder proofs (DR-0669): the verse re-verification
+      # (a one-word change fails the build), the identical prompt to every
+      # writer (a writer that alters it is caught), the modes, the budget, the
+      # per-row lock, the stop-paths, dormant-until-a-writer, a failed push
+      # never marks the row, more than one version never auto-ships, the
+      # decision's composite gated again (a merged part with a drifted verse
+      # fails on that part), and a backfill never replaces a lesson. Parity:
+      # the repo's own gates (band_gates.mjs) agree with the Python gates on
+      # a published lesson. Gates merge.
+      - name: lesson-builder proofs
+        working-directory: infra/nas-lesson-builder
+        run: python3 -m unittest test_lesson_builder -v
+      # Sovereign photo server selftest (DR-0218 zero-n8n / DR-0076): the offline
+      # logic checks for the property + family photo image server, including the
+      # new list_uploaded family read-back. Proven-to-catch: fails if dest path
+      # containment or the read-back regresses. Gates merge.
+      - name: sovereign photo server selftest
+        working-directory: infra/nas-property-photos
+        run: python3 photo_server.py --selftest
+      # Voice forwarder selftest (DR-0076): the NAS-side lock + road for the
+      # sovereign reading voice. Proven-to-catch: fails if /speak ever accepts a
+      # missing or wrong bearer, if the studio's own refusal stops passing
+      # through (the DR-0394 probe reads it), if the concurrency cap stops
+      # refusing immediately, or if a dark studio ever reads as this process's
+      # own 200 on /health. Gates merge: this is the door in front of the GPU.
+      - name: sovereign voice forwarder selftest
+        working-directory: infra/voice-studio
+        run: python3 voice_forwarder.py --selftest
+      # Voice-lite selftest (DR-0627): the NAS's own real-audio reading voice
+      # (Piper), which keeps the reader playing when the phone leaves the app.
+      # Proven-to-catch: fails if /speak accepts a missing or wrong bearer, if
+      # /health ever reads 200 without piper installed, if a cached paragraph
+      # is synthesized twice, or if the concurrency cap stops refusing at once.
+      - name: voice-lite selftest
+        working-directory: infra/nas-voice-lite
+        run: python3 voice_lite_server.py --selftest
+      # Cams forwarder selftest (DR-0756): the locked door in front of go2rtc,
+      # the family camera road. Proven-to-catch: fails if /list or /ticket ever
+      # accept a missing or wrong bearer, if a source URL (credentials) leaks in
+      # /list, if a ticket opens another camera, if the live cap stops refusing
+      # at once, if the live time brake stops ending a stream (caught a real
+      # defect on its first run), if the HLS rewrite drops the ticket from a
+      # segment line, or if a dark go2rtc ever reads as this process's own 200.
+      - name: cams forwarder selftest
+        working-directory: infra/nas-cameras
+        run: python3 cams_forwarder.py --selftest
+      # Recorded loops to the NAS (DR-0775): proven-to-catch -- fails if a bad
+      # config is not normalized, if a disabled camera keeps recording, if a
+      # dead ffmpeg is restarted without backoff, if retention or the disk
+      # budget stops pruning oldest-first, or if the clip being written is
+      # ever deleted.
+      - name: cams recorder selftest
+        working-directory: infra/nas-cameras
+        run: python3 cams_recorder.py --selftest
+      # The garage opens with no video in the way (DR-0777): the Wyze cloud
+      # client. Proven-to-catch -- fails if the login stops sending the API
+      # key headers or the triple-md5 password, if a device without the garage
+      # dongle can be told to open a door, if a double tap cycles a door twice,
+      # if an expired token is not refreshed once and retried, or if the
+      # credential readers invent values.
+      - name: wyze cloud selftest
+        working-directory: infra/nas-cameras
+        run: python3 wyze_cloud.py --selftest
+      # Sovereign review-queue server selftest (DR-0218 zero-n8n / DR-0076): the
+      # byte-faithful port of wf-review-feed + wf-review-action. Proven-to-catch:
+      # fails if the dismissed-filter, id path-containment, or status-write
+      # regresses. Gates merge.
+      - name: sovereign review-queue server selftest
+        working-directory: infra/nas-review-feed
+        run: python3 review_server.py --selftest
+      # Choir-dates drainer selftest (DR-0076): the pure date/classify/patch
+      # logic behind the NAS backlog dater — church-local calendar day from a
+      # stream's epoch start (an 8pm EST Wednesday must not file Thursday),
+      # never-invent-a-date, never-clobber a stored service_type. Gates merge.
+      - name: choir-dates drainer selftest
+        working-directory: infra/church-media-golive
+        run: python3 choir_dates_sync.py --selftest
+      # The NAS's own yt-dlp (DR-0723): pinned version + sha256, a mismatch
+      # deleted and never run, a failed download retried at most every 6 h,
+      # a binary answering another version refused. Offline (file:// release).
+      - name: nas yt-dlp installer tests
+        working-directory: infra/nas-yt-dlp
+        run: sh test_install.sh
+      # Blob-copy selftest (DR-0317): the pure URL/skip/parity logic behind the
+      # hosted -> sovereign storage copy. The repoint moved the rows on
+      # 2026-08-19 and left 455 objects behind, breaking Shay's gallery and
+      # Christina's 322 team documents silently for twelve days. Proven-to-catch:
+      # fails if an object name's structural slash is collapsed, if a space or
+      # '+' in a real name stops being encoded, if an identical object stops
+      # being skipped (a re-run must stay cheap), or if a bucket that copied
+      # ZERO objects is ever allowed to read as parity GO.
+      - name: storage blob-copy selftest
+        working-directory: infra/nas-supabase
+        run: python3 storage_sync.py --selftest
+      # Content-sync planner selftest (DR-0442): the pure plan/insert/verdict
+      # logic behind the hosted -> sovereign content copy. The repoint moved the
+      # readers on 2026-08-19 and left the NAS writers behind: four September
+      # services and 699 transcripts sat on the retired backend while The Word
+      # showed "0 of 901 messages". Proven-to-catch: fails if a hosted-only row
+      # is not planned, if a hosted-newer edit is not planned, if a sovereign-
+      # only row (the app's own write) ever enters the plan, if the insert stops
+      # being conflict-safe, or if a table that copied ZERO while hosted holds
+      # more is ever allowed to read GO.
+      - name: sovereign content-sync selftest
+        working-directory: infra/nas-supabase
+        run: python3 content_sync.py --selftest
+      # Writer-target resolver selftest (DR-0442): every NAS loader now resolves
+      # its backend through one function that follows REPOINT-ARMED the way the
+      # deploy does (DR-0310). Proven-to-catch: fails if the record + the box's
+      # own sovereign .env does not resolve to the sovereign door, if the record
+      # alone (no local .env: a tower, a laptop) ever leaves the secrets file,
+      # or if a missing key is ever returned blank instead of falling through.
+      - name: sovereign writer-target selftest
+        working-directory: infra/nas-supabase
+        run: python3 sovereign_target.py --selftest
+      # Sovereign Ways-brain parser selftest (DR-0219): the bounded, single-shot
+      # parser that turns PRINCIPLES.md + the DR files (incl. re-review dates) into
+      # the live /ways/brain.json. Proven-to-catch: fails if principle parsing, DR
+      # front-matter, re-review de-dup, or the newest-first order regresses.
+      - name: sovereign ways-brain parser selftest
+        working-directory: infra/nas-ways
+        run: python3 ways_ingest.py --selftest
+      # Sovereign mail archive selftest (DR-0238): the Takeout mbox -> owned
+      # index. Proven-to-catch: fails if dedupe, per-year/label stats, or
+      # attachment extraction regress. Was never gated until the DR-0238
+      # re-review (2026-08-11) wired it in.
+      - name: sovereign mail archive selftest
+        working-directory: infra/nas-mail-archive
+        run: python3 mail_archive.py --selftest
+      # Sovereign photos archive selftest (DR-0238 re-review / DR-0291): the
+      # Takeout -> owned archive for the service that actually holds the ~200 GB.
+      # Proven-to-catch on BOTH halves: the re-dating/pairing/dedupe logic, and
+      # the --verify DELETION GATE itself (a flipped byte and a removed file must
+      # each flip GO -> NO-GO). Photos are irreplaceable; the gate that says
+      # "safe to delete" is not allowed to be theater.
+      - name: sovereign photos archive selftest
+        working-directory: infra/nas-photos-archive
+        run: python3 photos_archive.py --selftest
+      # Sovereign Supabase key minter (DR-0306). The three secrets must AGREE:
+      # a JWT signed by anything other than JWT_SECRET 401s every request with a
+      # message that says nothing useful, and the failure surfaces only once the
+      # stack is live. Proven-to-catch at its two real risks: a key signed by the
+      # WRONG secret is rejected, and a payload escalated anon -> service_role is
+      # rejected. Stdlib-only on purpose — this NAS runs Python 3.8.15 and root
+      # cannot import dpoe's site-packages, so an installer needing pip fails.
+      - name: sovereign supabase key minter selftest
+        working-directory: infra/nas-supabase
+        run: python3 mint_keys.py --selftest
+      # Migration parity verifier (DR-0306). The DR-0291 photos lesson in SQL:
+      # a partial migration is byte-perfect -- every copied row correct, and the
+      # stack still wrong because rows are missing. INTEGRITY IS NOT
+      # COMPLETENESS. Proven-to-catch at the three ways this bites: tables
+      # short, users left behind, and the silent one -- all 183 tables and all
+      # the data present with ZERO policies, which is a total tenancy breach
+      # (DR-0060) that "the data is all there" hides completely.
+      - name: sovereign supabase migration parity selftest
+        working-directory: infra/nas-supabase
+        run: python3 migrate_verify.py --selftest
+      # Cutover-sync selftest (2026-09-23): the post-repoint parity verdict —
+      # a public schema object missing BY NAME is NO-GO; the live side being
+      # ahead is expected; the blob gap carries its record (DR-0317). Was
+      # never gated before; the pre-repoint column-plan checks ride along.
+      - name: sovereign cutover-sync selftest (post-repoint parity)
+        working-directory: infra/nas-supabase
+        run: python3 cutover_sync.py --selftest
+      # Box agent consumer (DR-0132 P1; built on Darrell's arm 2026-08-15).
+      # Proven-to-catch: keyless vendor rows FAIL with the why (never spin),
+      # Ollama errors land verbatim, empty responses read as failure, the
+      # --max budget caps every pass, and keep_alive '0' rides every Ollama
+      # call (DR-0012). Pure logic; no network or db in the selftest.
+      - name: box agent consumer selftest
+        working-directory: infra/nas-agent
+        run: python3 agent_consumer.py --selftest
+      # Table a11y gate (DR-0298) — the screen-reader sibling of large-print and
+      # legibility. Measured 2026-08-14: 131 <th>, only 18 scoped, so a blind
+      # steward heard values with no idea which column they were in. All 131 now
+      # carry scope and this holds it at zero. Captions are tracked debt.
+      # working-directory is required: this job defaults to `app`, and both
+      # guards live at the repo root. Without it the step resolves
+      # app/scripts/… and dies MODULE_NOT_FOUND — which is a red build, not a
+      # false green, but it does mean the a11y gate never actually ran on the
+      # commit that introduced it.
+      - name: table a11y guard (screen-reader navigability)
+        working-directory: ${{ github.workspace }}
+        run: node scripts/table-a11y-guard.mjs
+      # Intake auto-fix scope gate (DR-0625). A claude/intake-fix-* branch is a
+      # SYSTEM fix of a low-hanging note, made by an AI session: it may change
+      # only components, stylesheets and tests, 30 lines at most, with no link,
+      # email, phone number or bright-line subject added. Every other branch
+      # passes untouched. Selftest first, so a guard that stopped catching is red.
+      - name: intake auto-fix scope guard (a system fix stays small)
+        working-directory: ${{ github.workspace }}
+        run: |
+          node scripts/intake-autofix-scope-guard.mjs --selftest-break
+          node scripts/intake-autofix-scope-guard.mjs
+      # GPU preemption gate (DR-0012 §3). A compose service that is ollama/ollama
+      # AND reserves `driver: nvidia` must set OLLAMA_KEEP_ALIVE=0 — the reasoner
+      # frees VRAM within ~1 s when any non-Ollama CUDA process (Premiere, C4D,
+      # OBS encoding a service) wants the card. Measured 2026-08-14: church-gpu-node
+      # held 5m while CITING DR-0012, node1 held 15m, both on a 12 GB 4070 — and
+      # one of those boxes feeds the NovaStar -> wall. A CPU/RAM-bound Ollama is
+      # out of scope and never flagged. Proven-to-catch in gpu-preemption-guard.test.js.
+      - name: gpu preemption guard (a GPU Ollama yields VRAM in ~1s)
+        working-directory: ${{ github.workspace }}
+        run: node scripts/gpu-preemption-guard.mjs
       # Static->live sweep gate (DR-0086 / 2026-07-01, Darrell: "no static data
       # unless it's a label"). The proactive surface audit runs the dynamic-not-static
       # + reachability rubric over EVERY served surface. --fail-on=critical hard-fails
@@ -86,8 +479,792 @@ jobs:
       - run: node ../scripts/surface-audit.mjs --fail-on=critical --fail-on-new
       # Real production bundle. Rollup hard-fails on a missing named export, so
       # this catches the cross-module-export break that lint+vitest let through.
+      #
+      # STUB env (2026-07-10, the gate-tested-an-unbootable-build finding): an
+      # env-less build inlines undefined into createClient (lib/supabase.js),
+      # which THROWS at module scope — so the dist this job built could NEVER
+      # boot, and the SW gate below was judging the heal ladder, not the
+      # worker. Same rationale as vitest.config.js's stub (the header comment
+      # above): the gate tests the WORKER and the boot chain, not Supabase.
+      # These are the vitest stub values; they are not secrets.
       - run: npm run build
+        env:
+          VITE_SUPABASE_URL: https://test-stub.supabase.co
+          VITE_SUPABASE_ANON_KEY: test-stub-anon-key
+      # Asset-size guard (DR-0595, 2026-09-23 post-incident): Cloudflare Pages
+      # refuses any single file over 25 MiB, and the #1756 merge's entry chunk
+      # was 26.1 MiB — CI green, deploy failed, site stale. This measures the
+      # REAL dist this job just built and fails within 1 MiB of the cap, so the
+      # next course or lesson that would take the site stale is caught here,
+      # before a merge, not by wrangler after one. Selftest first (DR-0076 §3).
+      - name: Asset-size guard — selftest (must be able to fail)
+        run: node ../scripts/asset-size-guard.mjs --selftest
+      - name: Asset-size guard — no built file within 1 MiB of the Pages cap
+        run: node ../scripts/asset-size-guard.mjs dist
+      # Service-worker-controlled navigation gate (DR-0076 / 2026-07-10 outage):
+      # a fresh browser's FIRST visit is never SW-controlled, so a broken worker
+      # fetch handler passes lint, vitest, the build, verify-boot, AND
+      # site-health while ERR_FAILING every INSTALLED device on every visit
+      # (PR #750's cache-first shell did exactly that to the whole family
+      # fleet). This serves the freshly built dist the way Cloudflare Pages
+      # serves poetech.us (root files, /poetech-app alias, /index.html 301,
+      # sw.js no-store) and proves the SECOND — worker-controlled — navigation
+      # still answers. Proven-to-catch: exits 1 against the #750 worker
+      # (net::ERR_FAILED), passes the network-first worker, and fails loudly
+      # if the worker never takes control (no vacuous green).
+      - name: Install playwright-core (drives the runner's installed Chrome)
+        run: npm install --no-save playwright-core@1
+        working-directory: ${{ github.workspace }}
+      - name: SW-controlled navigation gate
+        run: node scripts/sw-nav-check.mjs
+        working-directory: ${{ github.workspace }}
+      # Chrome-layout probe selftest (DR-0239 / DR-0076 §3): proves the probe
+      # CAN fail on this commit's build. The real sweep runs in the `layout`
+      # leg in parallel (DR-0645); both must pass for the required check.
+      - name: Chrome-layout probe — selftest (must be able to fail)
+        run: node scripts/chrome-layout-probe.mjs --selftest-break
+        working-directory: ${{ github.workspace }}
+      # Read-highlight probe (DR-0264/DR-0265 follow-along; the 2026-08-06 miss):
+      # the follow-along highlight is PAINTED, not merely called. jsdom has no
+      # CSS Custom Highlight API, so read-follow.test.js could only exercise the
+      # unsupported branch — and a missing `win` default made every highlight a
+      # silent no-op on real hardware while all pins stayed green. This asserts
+      # the pixels change in a real Chromium using the exact call shape
+      # TTSControl makes. Selftest FIRST (re-introduces the defect and requires
+      # the paint checks to fail — anti-theater, DR-0076 §3), then the real pass.
+      - name: Read-highlight probe — selftest (must be able to fail)
+        run: node scripts/read-highlight-probe.mjs --selftest-break
+        working-directory: ${{ github.workspace }}
+      - name: Read-highlight probe — the follow-along highlight actually paints
+        run: node scripts/read-highlight-probe.mjs
+        working-directory: ${{ github.workspace }}
+      # Microphone probe (DR-0636, "Never recorded" on 2026-09-24): the real
+      # spoken-lesson recorder, bundled and driven in Chromium with a fake
+      # microphone fed a voice-level tone. Record 5 s: bytes captured, the
+      # level bar moves, the take decodes to sound, playback shows. The
+      # selftest mutes the microphone first and must see the silence alert and
+      # "Nothing was recorded" (anti-theater, DR-0076 §3).
+      - name: Microphone probe — selftest (a muted mic must be told apart)
+        run: node scripts/mic-record-probe.mjs --selftest-break
+        working-directory: ${{ github.workspace }}
+      - name: Microphone probe — the recorder really records in a real browser
+        run: node scripts/mic-record-probe.mjs
+        working-directory: ${{ github.workspace }}
 
+      # SCRIPTURE INFERENCE (DR-0281). The verse-verbatim gates prove every quote
+      # matches the KJV; they cannot see an error living BETWEEN two correct
+      # quotes. Issue 8 shipped Genesis 15:13's 400 years and Exodus 12:41's 430
+      # as one kept schedule — both quotes verbatim, every gate green, the
+      # reasoning across them wrong. This guard enforces the registry of known
+      # cross-verse tensions: cite both sides in one claim and the passage must
+      # name what each side measures. Selftest FIRST (re-injects the exact
+      # shipped defect and requires a failure — anti-theater, DR-0076 §3).
+      - name: Scripture inference guard — selftest (must be able to fail)
+        run: node scripts/scripture-inference-guard.mjs --selftest-break
+        working-directory: ${{ github.workspace }}
+      - name: Scripture inference guard — reasoning across verses holds
+        run: node scripts/scripture-inference-guard.mjs
+        working-directory: ${{ github.workspace }}
+  # The chrome-layout sweep (real-browser page loads, the longest single
+  # step) gets its own leg with its own build, so it runs beside the shards
+  # instead of after them.
+  layout:
+    name: app — chrome-layout probe
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - run: npm ci
+      - run: npm run build
+        env:
+          VITE_SUPABASE_URL: https://test-stub.supabase.co
+          VITE_SUPABASE_ANON_KEY: test-stub-anon-key
+      - name: Install playwright-core (drives the runner's installed Chrome)
+        run: npm install --no-save playwright-core@1
+        working-directory: ${{ github.workspace }}
+      # Chrome-layout probe (DR-0239 / COMPREHENSIVE-REVIEW-STANDARD dim 4):
+      # the header/chrome is MEASURED in a real browser at phone/tablet/laptop
+      # widths — no page overflow, the brand reads horizontally, nothing
+      # overlaps the name. jsdom cannot measure geometry, which is how the
+      # 2026-07-28 letter-stacked-wordmark defect survived every prior gate.
+      # The selftest-break run FIRST proves the probe can fail (anti-theater,
+      # DR-0076 §3) — that selftest runs in the `probes` leg on its own build
+      # of the same commit, beside this sweep (DR-0645); the real pass here
+      # judges the built dist.
+      - name: Chrome-layout probe — chrome measured at real widths (surface sweep)
+        run: node scripts/chrome-layout-probe.mjs --sweep
+        working-directory: ${{ github.workspace }}
+
+  # THE NAS COPY OF THE CURRICULUM (DR-0677). The lessons stay in the code;
+  # the sovereign database holds a synchronized copy. This leg proves, on a real
+  # PostgreSQL before anything merges: 0242 applies twice (idempotent); every
+  # curriculum gate passes on the code and the sync SQL is written only then;
+  # the sync applies twice and the second writes nothing; the preview wall holds
+  # (the 0242 smoke, which also opens the wall and must see the leak); the copy
+  # READ BACK from the database is lesson-for-lesson equal to the code (parity)
+  # and passes every gate AS THE DATABASE HOLDS IT; and — proven-to-catch — one
+  # altered band in the database is reported by lesson id and field.
+  curriculum:
+    name: app — curriculum NAS copy (snapshot through PostgreSQL)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      PGHOST: localhost
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - run: npm ci
+      - name: Install postgresql-client
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client > /dev/null
+      - name: 0242 applies, twice (idempotent)
+        run: |
+          set -euo pipefail
+          psql -v ON_ERROR_STOP=1 -q -f ../scripts/curriculum-ci-bootstrap.sql
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f ../infra/supabase/migrations-auto/0242-the-lessons-have-a-home-on-the-nas-kept-in-step-with-the-code.sql; done
+      - name: Every curriculum gate on the code, then the sync SQL (refused on any failure)
+        run: npx vite-node ../scripts/curriculum-cli.mjs --sql "$RUNNER_TEMP/sync.sql" --commit "${{ github.sha }}"
+      - name: The sync applies, and a second sync writes nothing
+        run: |
+          set -euo pipefail
+          psql -At -f "$RUNNER_TEMP/sync.sql" | tee "$RUNNER_TEMP/first.txt"
+          psql -At -f "$RUNNER_TEMP/sync.sql" | tee "$RUNNER_TEMP/second.txt"
+          grep -qx 'WRITTEN=0' "$RUNNER_TEMP/second.txt" || { echo "::error::a second sync of the same code wrote rows"; exit 1; }
+      - name: The preview wall (0242 smoke; rolls back)
+        run: |
+          set -euo pipefail
+          psql -v ON_ERROR_STOP=1 -f ../infra/supabase/tests/0242-curriculum-preview-smoke.sql 2>&1 | tee "$RUNNER_TEMP/smoke.txt"
+          grep -q 'CURRICULUM PREVIEW SMOKE: PASS' "$RUNNER_TEMP/smoke.txt"
+      - name: Read the copy back; parity with the code, and every gate on the database copy
+        run: |
+          set -euo pipefail
+          node -e "import('../scripts/curriculum-snapshot.mjs').then((m) => process.stdout.write(m.READ_BACK_SQL))" > "$RUNNER_TEMP/readback.sql"
+          psql -At -f "$RUNNER_TEMP/readback.sql" > "$RUNNER_TEMP/readback.json"
+          npx vite-node ../scripts/curriculum-cli.mjs --parity "$RUNNER_TEMP/readback.json" --gate-db "$RUNNER_TEMP/readback.json" | grep -v '^PARITY-JSON='
+      - name: PROVEN-TO-CATCH — one altered band in the database is named by lesson and field
+        run: |
+          # The runner's default shell is `bash -e`; the parity call is EXPECTED
+          # to exit 1 here, so -e is turned off to read its exit code.
+          set +e
+          set -uo pipefail
+          psql -qc "update curriculum_lesson_bands set text = text || ' (edited)' where (course_key, lesson_id, band) = (select course_key, lesson_id, band from curriculum_lesson_bands order by lesson_id, band limit 1)"
+          psql -At -f "$RUNNER_TEMP/readback.sql" > "$RUNNER_TEMP/drifted.json"
+          npx vite-node ../scripts/curriculum-cli.mjs --parity "$RUNNER_TEMP/drifted.json" > "$RUNNER_TEMP/drift.txt" 2>&1
+          rc=$?
+          grep -v '^PARITY-JSON=' "$RUNNER_TEMP/drift.txt" | head -5
+          [ "$rc" -eq 1 ] || { echo "::error::parity did not fail on an altered band (exit $rc) - the witness is theater"; exit 1; }
+          grep -q ':: levels' "$RUNNER_TEMP/drift.txt" || { echo "::error::parity failed without naming the field"; exit 1; }
+          echo "parity caught the altered band, by lesson and field."
+
+  # THE SHARE RECORD'S WALLS, ON A REAL POSTGRESQL (DR-0698). 0244 applies
+  # twice (idempotent), then the smoke proves: a signed-out browser records a
+  # share and an open and reads nothing; a sharer reads only their own; opens
+  # row by row are the Governor's; shape and flood limits refuse. Every check
+  # RAISEs, so a leaked grant or a widened policy is a red leg.
+  lesson-shares:
+    name: app — lesson share record (PostgreSQL)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      PGHOST: localhost
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install postgresql-client
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client > /dev/null
+      - name: 0244 applies, twice (idempotent), and every wall holds
+        run: |
+          set -euo pipefail
+          psql -v ON_ERROR_STOP=1 -q -f scripts/curriculum-ci-bootstrap.sql
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0244-a-shared-lesson-link-keeps-its-record.sql; done
+          psql -v ON_ERROR_STOP=1 -q -f scripts/lesson-share-ci-smoke.sql | tee "$RUNNER_TEMP/smoke.txt"
+          grep -q 'every wall held' "$RUNNER_TEMP/smoke.txt"
+
+  # EVERY ARRIVAL COUNTED, THE CLOSED-APP HALF, ON A REAL POSTGRESQL (DR-0728),
+  # AND THE STALE-ROW ALARM (DR-0771): 0252's sweep alarms exactly the root row
+  # past the first window, once per repeat window, pushes its own person with no
+  # lesson text, and leaves transcripts, young, captured and canary rows alone.
+  # 0246 applies twice (idempotent), then the smoke proves: a lesson row gaining
+  # `awaiting-review` or `lesson-published` enqueues ONE push_outbox row for its
+  # one person (one per teaching per event, keyed lesson:<row>:<event>); an
+  # insert, a repeat, an unrelated tag or a non-lesson row enqueues nothing; the
+  # person reads only their own rows and anon none. Every check RAISEs.
+  arrivals-push:
+    name: app — lesson arrival push (PostgreSQL)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      PGHOST: localhost
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install postgresql-client
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client > /dev/null
+      - name: 0246 and 0252 apply, twice (idempotent); the enqueue is one per teaching per event; a stale row alarms once per window
+        run: |
+          set -euo pipefail
+          psql -v ON_ERROR_STOP=1 -q -f scripts/curriculum-ci-bootstrap.sql
+          psql -v ON_ERROR_STOP=1 -q -f scripts/arrivals-ci-bootstrap.sql
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0246-every-arrival-is-counted-a-lesson-ready-or-published-enqueues-a-push.sql; done
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0252-a-lesson-that-waits-too-long-rings-again-and-pushes-its-person.sql; done
+          psql -v ON_ERROR_STOP=1 -q -f scripts/arrivals-ci-smoke.sql | tee "$RUNNER_TEMP/smoke.txt"
+          grep -q 'every wall held' "$RUNNER_TEMP/smoke.txt"
+
+  # YOUR CONTACTS, YOURS ALONE, ON A REAL POSTGRESQL (DR-0736). 0247 applies
+  # twice (idempotent), then the smoke proves the walls: the owner reads their
+  # own rows, a re-import updates instead of duplicating, another signed-in
+  # person reads none and cannot insert, update or delete them, anon reads none,
+  # a blank key is refused. Every check RAISEs.
+  contacts-walls:
+    name: app — contacts walls (PostgreSQL)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      PGHOST: localhost
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install postgresql-client
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client > /dev/null
+      - name: 0247 applies, twice (idempotent), and every wall holds
+        run: |
+          set -euo pipefail
+          psql -v ON_ERROR_STOP=1 -q -f scripts/curriculum-ci-bootstrap.sql
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0247-your-contacts-come-with-you-from-the-phone-kept-on-the-nas-yours-alone.sql; done
+          psql -v ON_ERROR_STOP=1 -q -f scripts/contacts-ci-smoke.sql | tee "$RUNNER_TEMP/smoke.txt"
+          grep -q 'every wall held' "$RUNNER_TEMP/smoke.txt"
+
+  # ADD MY VOICE'S WALLS, ON A REAL POSTGRESQL (DR-0720). 0248 applies twice
+  # (idempotent), then the smoke proves: no sample without consent, a sample
+  # only from the person's own folder, each person reads only their own row,
+  # no client writes the table, BG held and DP the Governor's alone, removal
+  # deletes the consent, and the label list is the Governor's and carries no
+  # path. Every check RAISEs; the smoke was shown to fail with each wall open.
+  voice-enrollments:
+    name: app — add my voice consent walls (PostgreSQL)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      PGHOST: localhost
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install postgresql-client
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client > /dev/null
+      - name: 0248 applies, twice (idempotent), and every wall holds
+        run: |
+          set -euo pipefail
+          psql -v ON_ERROR_STOP=1 -q -f scripts/curriculum-ci-bootstrap.sql
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0248-a-person-adds-their-own-voice-and-can-take-it-back.sql; done
+          psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0248-voice-enrollment-smoke.sql 2>&1 | tee "$RUNNER_TEMP/smoke.txt"
+          grep -q 'VOICE ENROLLMENT SMOKE: PASS' "$RUNNER_TEMP/smoke.txt"
+
+  # A SEALED MESSAGE OPENS ON EVERY DEVICE: 0249'S WALLS, ON A REAL POSTGRESQL
+  # (DR-0737). 0249 applies twice (idempotent), then the smoke proves: a
+  # person reads every device key (a sender needs every device of the
+  # recipient), only the owner publishes, re-publishes or forgets their own
+  # devices, anon reads none, and a short device id is refused.
+  dm-device-keys:
+    name: app — sealed-message device keys walls (PostgreSQL)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      PGHOST: localhost
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install postgresql-client
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client > /dev/null
+      - name: 0249 applies, twice (idempotent), and every wall holds
+        run: |
+          set -euo pipefail
+          psql -v ON_ERROR_STOP=1 -q -f scripts/curriculum-ci-bootstrap.sql
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0249-a-sealed-message-opens-on-every-device-of-both-people.sql; done
+          psql -v ON_ERROR_STOP=1 -q -f scripts/dm-device-keys-ci-smoke.sql | tee "$RUNNER_TEMP/smoke.txt"
+          grep -q 'every wall held' "$RUNNER_TEMP/smoke.txt"
+
+  # THE VAULT HOLDS ONLY WHAT THE OWNER CAN OPEN: 0251'S WALLS, ON A REAL
+  # POSTGRESQL (DR-0762). 0251 applies twice (idempotent), then the smoke
+  # proves: the owner reads and writes their own header and ciphertext rows,
+  # updated_at moves on update, a soft delete stays readable by the owner,
+  # another signed-in person reads NONE and cannot plant/alter/delete, anon
+  # reads none, and the table refuses a weak KDF, an oversized ciphertext and
+  # a short IV.
+  vault-walls:
+    name: app — password vault walls (PostgreSQL)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      PGHOST: localhost
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install postgresql-client
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client > /dev/null
+      - name: 0251 applies, twice (idempotent), and every vault wall holds
+        run: |
+          set -euo pipefail
+          psql -v ON_ERROR_STOP=1 -q -f scripts/curriculum-ci-bootstrap.sql
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0251-the-vault-holds-only-what-the-owner-can-open.sql; done
+          psql -v ON_ERROR_STOP=1 -q -f scripts/vault-ci-smoke.sql | tee "$RUNNER_TEMP/smoke.txt"
+          grep -q 'every vault wall held' "$RUNNER_TEMP/smoke.txt"
+
+  # A LEARNER'S RECORD: 0250'S WALLS, ON A REAL POSTGRESQL (DR-0754). 0250
+  # applies twice (idempotent), then the smoke proves: a learner keeps and
+  # reads his own record, the row lands under his own account even when the
+  # payload lies, a second reading corrects the row instead of duplicating it,
+  # one learner cannot read, correct or delete another learner's, the Governor
+  # reads every learner's and writes none, anon reads nothing, and an
+  # out-of-range score is refused by the wall. Every check RAISEs.
+  learner-records:
+    name: app — learner record walls (PostgreSQL)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      PGHOST: localhost
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install postgresql-client
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client > /dev/null
+      - name: 0250 applies, twice (idempotent), and every wall holds
+        run: |
+          set -euo pipefail
+          psql -v ON_ERROR_STOP=1 -q -f scripts/curriculum-ci-bootstrap.sql
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q -f infra/supabase/migrations-auto/0250-a-learners-record-reaches-the-governor.sql; done
+          psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0250-learner-records-smoke.sql 2>&1 | tee "$RUNNER_TEMP/smoke.txt"
+          grep -q 'LEARNER RECORD SMOKE: PASS' "$RUNNER_TEMP/smoke.txt"
+
+  # WORK IS FILED ON THE DOOR (DR-0897), ON A REAL POSTGRESQL. The real schema
+  # files and migrations that own the work-order tables apply in order, 0260
+  # applies twice (idempotent), then the smoke proves: the landlord files on a
+  # vacant door and on the family's own home with no tenancy; a row naming
+  # neither is refused; another landlord cannot hang a row on this door; a
+  # 1099 worker reads and files on the door he was granted only, as himself,
+  # cannot move a job, and documents a job whose scope comes from the request
+  # (a lie about the door is overwritten) and whose "fixed" closes it; a
+  # manager moves jobs on his door only; a tenant never sees the landlord's
+  # door work. Then 0261 applies twice and the guest smoke proves (DR-0898): only
+  # the family opens a door's guest link and reads it; a guest with the card
+  # sees which door and files a report that lands on it as 'guest' with no
+  # account, reads nothing back, is told to call after five in an hour, and a
+  # replaced or closed card stops working; the office push names the door,
+  # never the guest's words. Then 0262 applies twice and the rent smoke proves
+  # (DR-0899): the family writes how it is paid, never an account number; a
+  # tenant reads it for their own door only; a part payment records what was
+  # due, what remains and when; a remainder over what was due is refused; every
+  # report, confirmation and work-order move leaves an event to the instant
+  # with who did it, read where the record is read, edited by nobody. Every
+  # check RAISEs. Then 0263 applies twice and the signing smoke proves
+  # (DR-0936): an insert never arrives signed; only the family sends for
+  # signature, and a generated draft only with counsel's review recorded;
+  # only the right person signs, only the exact fingerprinted version, once;
+  # nobody writes the sign state directly; signatures are read where the
+  # document is read and edited by nobody; everything is on the clock. Then
+  # 0264 applies twice and the proof smoke proves (DR-0937): only the family
+  # sets a job's proof; "Fixed" is refused until the pictures (and video) are
+  # on the job; a non-video is refused as a video; a job with no proof is
+  # fixed as before; the requirement is on the clock. Then 0265 applies twice
+  # and the door-money smoke proves (DR-0903): money is recorded on a door
+  # with no tenancy, by the family only, never on a day not yet come; a
+  # tenant's payment finds its door; the door keeps every tenant's money
+  # while each tenant sees only their own; a reported payment is never
+  # counted as received; a manager reads and records only by grant on that
+  # door. Then 0266 applies twice and the door-camera smoke proves (DR-0938):
+  # only the family offers a door's cameras; anyone on the door reads the
+  # names and asks, stamped with their real role, once at a time, only for
+  # what is offered; only the family gives, declines and takes back; a grant's
+  # token is read by its holder and the family alone; the ledger keeps every
+  # row and the clock every move. Then 0267 (system pictures), 0269 (the booking
+  # calendar) and 0270 apply twice; the area smoke proves (DR-0935): the exact
+  # point sent is kept only as its rounded area; half an area, a nearby list of
+  # the wrong shape, and a line naming the door's street are refused; a
+  # stranger moves nothing; the public shelf carries the area and the lines and
+  # never the street or the exact point. Every smoke also runs on the live
+  # database in the rls-isolation leg.
+  door-work:
+    name: app — door work orders (PostgreSQL)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      PGHOST: localhost
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install postgresql-client
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client > /dev/null
+      - name: The work-order chain, 0260/0261 twice (idempotent), and every wall holds
+        run: |
+          set -euo pipefail
+          psql -v ON_ERROR_STOP=1 -q -f scripts/door-work-ci-bootstrap.sql
+          for f in schema-v1.sql schema-v1.1-tenant-join.sql schema-v2.1-infra.sql schema-v2.2-rentals.sql schema-v2.2.1-rentals-amendments.sql schema-v2.2.2-rentals-sync-amendments.sql; do
+            psql -v ON_ERROR_STOP=1 -q --single-transaction -f "infra/supabase/$f"
+          done
+          psql -v ON_ERROR_STOP=1 -q -f scripts/door-work-ci-rentals-shape.sql
+          for f in 0052-systems-of-record.sql 0055-relationship-permissions.sql 0062-per-unit-management.sql 0075-delegated-property-management.sql 0150-poe-properties-app-invite-claim-and-household.sql 0152-vacancies-and-no-account-applications.sql 0153-property-timeline-photos.sql 0154-photo-captions-editable-and-archivable.sql 0155-what-a-door-is-offered-as.sql 0156-our-own-home-is-not-a-rental-door.sql 0157-the-landlord-orders-his-own-shelf.sql 0158-the-address-is-shown-when-he-says-so.sql 0159-nothing-a-landlord-types-lives-only-on-his-phone.sql 0160-a-door-says-what-it-is-unit-room-or-bed.sql 0161-the-landlord-orders-a-doors-pictures.sql 0185-a-picture-list-never-carries-the-bytes-and-a-worker-can-file-to-a-vacant-door.sql; do
+            psql -v ON_ERROR_STOP=1 -q --single-transaction -f "infra/supabase/migrations-auto/$f"
+          done
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0260-work-is-filed-on-the-door-not-only-on-a-tenancy.sql; done
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0261-a-guest-reports-a-problem-from-inside-the-door.sql; done
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0262-rent-is-reported-the-way-it-is-paid-and-every-change-keeps-its-time.sql; done
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0263-a-document-is-signed-in-the-app-and-filed-where-it-belongs.sql; done
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0264-a-job-can-require-proof-before-it-is-done-and-paid.sql; done
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0265-the-door-keeps-its-money-with-or-without-a-tenant.sql; done
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0266-a-door-camera-is-asked-for-and-given-to-whoever-the-family-chooses.sql; done
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0267-a-system-keeps-its-pictures.sql; done
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0269-a-short-stay-door-has-a-booking-calendar.sql; done
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0270-the-public-shelf-shows-the-area-on-a-map.sql; done
+          # 0276 (DR-0982) MUST FOLLOW 0269 HERE, and this leg is the reason the
+          # rule needs stating twice. 0269 creates door_stays with CREATE TABLE
+          # IF NOT EXISTS, and its two length caps
+          # (door_stays_guest_asks_under_30_nights, door_stays_at_most_a_year)
+          # are INLINE CONSTRAINTs. Against the LIVE database the rls-isolation
+          # leg uses, that CREATE is a no-op and the caps 0276 dropped stay
+          # dropped. THIS leg runs on a FRESH container, so the CREATE really
+          # runs and really re-creates both caps -- a state production has not
+          # been in since 2026-10-11. 0276 is omitted and 0269's smoke asserts
+          # the new rule, and the two disagree. 0276 guards on the table
+          # existing, so it is safe anywhere after 0269.
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0276-a-guest-may-stay-as-long-as-they-like.sql; done
+          psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0260-door-work-orders-smoke.sql 2>&1 | tee "$RUNNER_TEMP/smoke.txt"
+          grep -q 'DOOR WORK SMOKE: PASS' "$RUNNER_TEMP/smoke.txt"
+          psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0261-guest-report-smoke.sql 2>&1 | tee "$RUNNER_TEMP/guest.txt"
+          grep -q 'GUEST REPORT SMOKE: PASS' "$RUNNER_TEMP/guest.txt"
+          psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0262-rent-and-clock-smoke.sql 2>&1 | tee "$RUNNER_TEMP/rent.txt"
+          grep -q 'RENT AND CLOCK SMOKE: PASS' "$RUNNER_TEMP/rent.txt"
+          psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0263-document-signing-smoke.sql 2>&1 | tee "$RUNNER_TEMP/sign.txt"
+          grep -q 'DOCUMENT SIGNING SMOKE: PASS' "$RUNNER_TEMP/sign.txt"
+          psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0264-proof-before-paid-smoke.sql 2>&1 | tee "$RUNNER_TEMP/proof.txt"
+          grep -q 'PROOF SMOKE: PASS' "$RUNNER_TEMP/proof.txt"
+          psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0265-door-money-smoke.sql 2>&1 | tee "$RUNNER_TEMP/money.txt"
+          grep -q 'DOOR MONEY SMOKE: PASS' "$RUNNER_TEMP/money.txt"
+          psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0266-door-camera-access-smoke.sql 2>&1 | tee "$RUNNER_TEMP/cams.txt"
+          grep -q 'DOOR CAMERA ACCESS SMOKE: PASS' "$RUNNER_TEMP/cams.txt"
+          psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0267-system-pictures-smoke.sql 2>&1 | tee "$RUNNER_TEMP/syspics.txt"
+          grep -q 'SYSTEM PICTURES SMOKE: PASS' "$RUNNER_TEMP/syspics.txt"
+          psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0269-booking-calendar-smoke.sql 2>&1 | tee "$RUNNER_TEMP/booking.txt"
+          grep -q 'BOOKING CALENDAR SMOKE: PASS' "$RUNNER_TEMP/booking.txt"
+          psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0270-area-map-smoke.sql 2>&1 | tee "$RUNNER_TEMP/area.txt"
+          grep -q 'AREA MAP SMOKE: PASS' "$RUNNER_TEMP/area.txt"
+          # 0273 (DR-0952): a shared home says so, and the separated listings
+          # of one apartment share their pictures. Needs 0160 (rentable_level,
+          # room_label) and 0161 (the public photo RPC), both above.
+          for f in 0160-a-door-says-what-it-is-unit-room-or-bed.sql 0161-the-landlord-orders-a-doors-pictures.sql; do
+            psql -v ON_ERROR_STOP=1 -q --single-transaction -f "infra/supabase/migrations-auto/$f"
+          done
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0273-a-shared-home-says-so-on-the-shelf.sql; done
+          psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0273-shared-home-smoke.sql 2>&1 | tee "$RUNNER_TEMP/shared.txt"
+          grep -q 'SHARED HOME SMOKE: PASS' "$RUNNER_TEMP/shared.txt"
+          # 0271 (DR-0943): the upload date is the anchor, the taken date is a
+          # claim. Needs the photo chain, so 0153/0154 go on before it.
+          #
+          # AND 0154 CANNOT GO ON AFTER 0273 WITHOUT THIS DROP (DR-0956). 0273
+          # widened public_vacancy_photos()'s RETURNS TABLE with DROP + CREATE;
+          # 0154's CREATE OR REPLACE carries the four-column shape, and
+          # Postgres refuses the replay outright — "cannot change return type of
+          # existing function". migration-replay-order-guard already enforced
+          # this rule on rls-isolation.yml and could not see ci.yml, so the fix
+          # went only where the guard was looking and this leg shipped red. The
+          # guard now reads both files.
+          psql -v ON_ERROR_STOP=1 -q -c 'DROP FUNCTION IF EXISTS public.public_vacancy_photos(uuid);'
+          for f in 0153-property-timeline-photos.sql 0154-photo-captions-editable-and-archivable.sql; do
+            psql -v ON_ERROR_STOP=1 -q --single-transaction -f "infra/supabase/migrations-auto/$f"
+          done
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0271-the-upload-date-is-the-anchor-the-taken-date-is-a-claim.sql; done
+          psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0271-photo-dates-smoke.sql 2>&1 | tee "$RUNNER_TEMP/photo-dates.txt"
+          grep -q 'PHOTO DATES SMOKE: PASS' "$RUNNER_TEMP/photo-dates.txt"
+          # THE CHAIN CONVERGES, which is the part a passing replay does not
+          # prove on its own. Replaying 0154 left the shelf back at the
+          # four-column shape — a door that borrows its sibling's pictures
+          # would have silently stopped borrowing. So 0273 goes on again and
+          # its smoke runs a SECOND time: whatever order the chain is replayed
+          # in, it ends where it is supposed to (DR-0944's lesson, which is that
+          # halfway through a chain is a real state somebody can read).
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0273-a-shared-home-says-so-on-the-shelf.sql; done
+          # AND IT CONVERGES ON THE DEFINITION PRODUCTION ACTUALLY HAS (DR-0983).
+          # Until 2026-10-13 this leg stopped at 0273's own public_vacancies()
+          # and called the second run convergence. It was converging on a
+          # composition the live database left behind three migrations ago: 0278
+          # infers the level, 0280 adds the street and branches the label on it,
+          # 0281 puts the room/bed descriptor back in front of that branch. So
+          # the leg was GREEN on 0273's smoke while the live database failed the
+          # same smoke — the regression 0281 fixes was invisible here for
+          # exactly as long as this chain ended early. The second run is the
+          # right place for them: the first proves 0273 in its own terms, this
+          # one proves the chain's END state, which is what a replay is for.
+          for f in 0278-a-bed-is-not-a-bedroom.sql 0280-the-address-shows-unless-the-family-holds-it.sql 0281-a-bed-still-says-it-is-a-bed-when-the-street-shows.sql; do
+            for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f "infra/supabase/migrations-auto/$f"; done
+          done
+          psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0273-shared-home-smoke.sql 2>&1 | tee "$RUNNER_TEMP/shared-again.txt"
+          grep -q 'SHARED HOME SMOKE: PASS' "$RUNNER_TEMP/shared-again.txt"
+          # 0275 (DR-0957): a tenant waits for the landlord's yes. The whole
+          # point of this migration is the DENY, so the smoke asserts it as a
+          # stranger with `SET LOCAL ROLE authenticated` — postgres BYPASSES RLS
+          # and the first version of the smoke, run as superuser, happily read
+          # three other tenancies and called that a pass. It needs
+          # rental_tenancies (0055) and door_events (0262), both already applied
+          # above.
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0275-a-tenant-waits-for-the-landlords-yes.sql; done
+          psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0275-portal-approval-smoke.sql 2>&1 | tee "$RUNNER_TEMP/portal.txt"
+          grep -q 'PORTAL APPROVAL SMOKE: PASS' "$RUNNER_TEMP/portal.txt"
+          # 0279 (DR-0976): 0275 rebuilt door_events_subject_check from 0262's
+          # two values plus 'stay', DELETING 0263's 'document' and 0266's
+          # 'camera'. Lease signing (three writes) and door-camera access (a
+          # trigger) raised on every write for ~28 hours live while
+          # rls-isolation failed 10 straight runs on 0263's smoke, which nobody
+          # read. 0279 restores the UNION and gives door_events_read the
+          # portal-request arm 0275 never added -- without which 0275's own
+          # audit rows were written and then invisible (CASE ... ELSE false).
+          # It MUST come after 0275 here, or this leg replays the bug.
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0279-an-allow-list-is-added-to-never-rewritten.sql; done
+          psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0279-allow-list-smoke.sql 2>&1 | tee "$RUNNER_TEMP/allowlist.txt"
+          grep -q 'ALLOW-LIST SMOKE: PASS' "$RUNNER_TEMP/allowlist.txt"
+          # 0280 (DR-0977): the street shows unless the family holds it. It
+          # needs 0278's public_vacancies (rentable_level_of), so 0278 goes on
+          # first. Then the guard that matters most: 0280 is re-applied by the
+          # replay and the isolation matrix forever, and a re-run must NEVER
+          # undo a family's hold -- a held door is committed, 0280 re-applied,
+          # and the door must still read after-application.
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0278-a-bed-is-not-a-bedroom.sql; done
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0280-the-address-shows-unless-the-family-holds-it.sql; done
+          psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0280-address-shows-smoke.sql 2>&1 | tee "$RUNNER_TEMP/address.txt"
+          grep -q 'ADDRESS SHOWS SMOKE: PASS' "$RUNNER_TEMP/address.txt"
+          psql -v ON_ERROR_STOP=1 -q -c "INSERT INTO auth.users (instance_id,id,aud,role,email,encrypted_password,created_at,updated_at) VALUES ('00000000-0000-0000-0000-000000000000','00000000-0000-4000-a000-0000000f0280','authenticated','authenticated','hold280@test.local','',now(),now()) ON CONFLICT (id) DO NOTHING; INSERT INTO instances (id, slug, display_name, instance_type) VALUES ('00000000-0000-4000-b000-0000000f0280','hold-280','Hold 280','business') ON CONFLICT (id) DO NOTHING; INSERT INTO rentals (id, instance_id, created_by, slug, display_name, address, city, property_type, status, address_visibility) VALUES ('00000000-0000-4000-c000-0000000f0280','00000000-0000-4000-b000-0000000f0280','00000000-0000-4000-a000-0000000f0280','HOLD-280','Held','1 Held Way','Champaign','multi-family','vacant','after-application')"
+          psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0280-the-address-shows-unless-the-family-holds-it.sql
+          test "$(psql -qAt -c "SELECT address_visibility FROM rentals WHERE slug = 'HOLD-280'")" = "after-application" || { echo "::error::re-applying 0280 undid a family's hold on the street"; exit 1; }
+          psql -v ON_ERROR_STOP=1 -q -c "DELETE FROM rentals WHERE slug = 'HOLD-280'; DELETE FROM instances WHERE id = '00000000-0000-4000-b000-0000000f0280'"
+          # 0282 (DR-0984): each door shows the apartment in its own order. It
+          # needs same_apartment (0273) and 0278's public_vacancy_photos, both
+          # above. The smoke proves the shelf honours sort_order again (lost in
+          # 0273), that Bed B leads with the cover it chose while Bed A keeps
+          # its own, and the four refusals: a door's own picture, another
+          # apartment's door, a stranger's write, a stranger's read.
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0282-each-door-shows-the-apartment-in-its-own-order.sql; done
+          psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0282-door-photo-order-smoke.sql 2>&1 | tee "$RUNNER_TEMP/photo-order.txt"
+          grep -q 'DOOR PHOTO ORDER SMOKE: PASS' "$RUNNER_TEMP/photo-order.txt"
+
+  # THE REQUIRED CHECK (DR-0645). Branch protection and native auto-merge wait
+  # on a check named EXACTLY "app — lint + vitest". Do NOT rename this job.
+  # It runs `if: always()` because a job whose `needs` failed is otherwise
+  # SKIPPED, and a skipped required check counts as passing. Here, anything but
+  # success in any leg (failure, cancelled, skipped) turns this check red.
+  # THE DOOR JOURNEYS, END TO END (DR-0934). Every other leg stops short of the
+  # whole: the smokes prove the walls with no app, vitest proves the screens on
+  # a fake data layer. This one walks what a person walks, in the runner's
+  # Chrome, on the real built app, through PostgREST 12.2.12 (production's
+  # version) over a PostgreSQL built from the real migration chain
+  # (scripts/e2e/build-door-db.sh, 0260-0280 each applied twice), and reads the
+  # database after each step: a stranger sees the place but never its street,
+  # books two nights with both attestations; the family sees the address,
+  # confirms the ask (the clock reads asked,confirmed); records $300 cash on the
+  # door with no tenant (the door's total reads 300.00); the next stranger finds
+  # those nights dark; a real phone HEIC (Chromium has no HEIC decoder, like
+  # Chrome on Android) is converted on the device under production's CSP and
+  # filed as a full JPEG (DR-0939). Then PROVEN TO CATCH, every run: four faults (the street
+  # shown, the family unable to confirm, money refused without a tenancy, the
+  # calendar emptied) must each fail their own step, or this leg is red.
+  door-journeys:
+    name: app — door journeys end to end (Chrome + PostgREST + PostgreSQL)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      PGHOST: localhost
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+      E2E_PSQL: psql
+      E2E_DB_URI: postgres://postgres:postgres@localhost:5432/postgres
+      E2E_POSTGREST: ${{ github.workspace }}/.e2e/postgrest
+      E2E_SHOTS: ${{ github.workspace }}/e2e-shots
+      E2E_HEIC: ${{ github.workspace }}/.e2e/example.heic
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - name: Install postgresql-client
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client > /dev/null
+      - name: PostgREST 12.2.12 (pinned release, checksum verified)
+        run: |
+          set -euo pipefail
+          mkdir -p .e2e
+          curl -sSLo .e2e/postgrest.tar.xz https://github.com/PostgREST/postgrest/releases/download/v12.2.12/postgrest-v12.2.12-linux-static-x86-64.tar.xz
+          echo "5de4092f1719da3353c40bf96c8dec6913f2254a7cd0b61cc05f233153b557d5  .e2e/postgrest.tar.xz" | sha256sum -c -
+          tar -xJf .e2e/postgrest.tar.xz -C .e2e
+          .e2e/postgrest --version
+      - name: A real phone HEIC (libheif's example at v1.20.2, checksum verified)
+        run: |
+          set -euo pipefail
+          curl -sSLo .e2e/example.heic https://raw.githubusercontent.com/strukturag/libheif/v1.20.2/examples/example.heic
+          echo "7f8b363e4936c0666a25f64f3a92fda10bd8e5453be4592530b65a55dd98f3f2  .e2e/example.heic" | sha256sum -c -
+      - name: The database, from the real chain
+        run: scripts/e2e/build-door-db.sh
+      - name: Install playwright-core (drives the runner's installed Chrome)
+        run: npm install --no-save playwright-core@1
+      - name: Build the app against the journeys' own stack
+        working-directory: app
+        run: |
+          set -euo pipefail
+          npm ci
+          VITE_SUPABASE_URL=http://127.0.0.1:4173/sb VITE_SUPABASE_ANON_KEY="$(node ../scripts/e2e/door-journeys.mjs --anon-key)" npm run build
+      - name: The journeys
+        run: node scripts/e2e/door-journeys.mjs app/dist
+      - name: Proven to catch — each fault fails its own step
+        run: |
+          set -euo pipefail
+          for b in street confirm payment area calendar; do
+            echo "=== --break=$b"
+            node scripts/e2e/door-journeys.mjs app/dist --break=$b
+          done
+      - name: Screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: door-journeys-screens
+          path: e2e-shots
+          retention-days: 14
+
+  app:
+    name: app — lint + vitest
+    if: always()
+    needs: [guards, vitest, probes, layout, curriculum, lesson-shares, arrivals-push, contacts-walls, voice-enrollments, dm-device-keys, learner-records, vault-walls, door-work, door-journeys]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Every leg passed (lint + guards, every vitest shard, build + probes, layout, curriculum, lesson shares, lesson arrival push, contacts walls, voice consent walls, sealed-message device keys walls, learner record walls, door work orders, door journeys end to end)
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+        run: |
+          echo "$NEEDS" | jq -r 'to_entries[] | "\(.key): \(.value.result)"'
+          bad=$(echo "$NEEDS" | jq -r '[to_entries[] | select(.value.result != "success") | .key] | join(", ")')
+          if [ -n "$bad" ]; then
+            echo "::error::required legs did not pass: $bad"
+            exit 1
+          fi
+          echo "All legs passed."
+
+  # THE REQUIRED CHECK KEEPS ITS NAME; ITS JOB CHANGED (DR-0617). Branch
+  # protection requires a check with this exact name, and removing the job
+  # left every PR waiting on it forever (measured 2026-09-24: #1774 green on
+  # lint + vitest and still "blocked"). The n8n exports and the wf36 harness
+  # are gone, so the job now proves what replaced them: n8n stays contained to
+  # the files held until their replacement is proven (business-systems-guard),
+  # and the guard test that fails on any new n8n call. Renaming the check is a
+  # branch-protection change for the repository admin; until then the name
+  # stays and the work under it is real.
   workflows:
     name: n8n workflows — wf36 gatekeeper harness
     runs-on: ubuntu-latest
@@ -96,4 +1273,5 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: node scripts/test-wf36-quality-gatekeeper.js
+      - name: n8n stays contained to the held files (the ledger and transport guard)
+        run: node scripts/business-systems-guard.mjs

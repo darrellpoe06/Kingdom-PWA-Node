@@ -27,6 +27,7 @@ import {
   SETTING, CHILD_CAPABILITIES, CAPABILITIES, isChildCapabilityLocked, CHILD_CAPABILITY_POLICY,
 } from '../lib/relationships.js';
 import { childAccessSummary, decideChildAction } from '../lib/guardian-child.js';
+import ChildBooksPreview from './ChildBooksPreview.jsx';
 
 // Setting -> themeable classes (text + border + active fill). Class hexes remap
 // per-theme; inline hexes would not (and would fail on midnight).
@@ -57,7 +58,7 @@ function Panel({ title, icon, children, note }) {
   );
 }
 
-export default function GuardianChildPanel({ personas, configByPersona, onSetCapability, requests, onResolve, saving }) {
+export default function GuardianChildPanel({ personas, configByPersona, onSetCapability, requests, onResolve, saving, familyData = null }) {
   const [persona, setPersona] = useState(personas[0]?.id || 'child');
   const activePersona = personas.some((p) => p.id === persona) ? persona : (personas[0]?.id || 'child');
   const config = useMemo(
@@ -66,6 +67,13 @@ export default function GuardianChildPanel({ personas, configByPersona, onSetCap
   );
   const summary = useMemo(() => childAccessSummary(config), [config]);
   const pending = (requests || []).filter((r) => r.status === 'pending');
+  // When "See family finances" is granted (allow or ask-first), the guardian can
+  // preview exactly what this child would see — both modes (DR-0094 "both, per
+  // child"), in the provoke-to-good-works posture (DR-0112). Only when the real
+  // books are supplied; there is no child SESSION yet (DR-0093), so this guardian
+  // preview is where the view first renders.
+  const financeGranted = decideChildAction('finance.view', config).verdict !== 'deny';
+  const activeLabel = personas.find((p) => p.id === activePersona)?.label || 'this child';
 
   return (
     <>
@@ -132,6 +140,9 @@ export default function GuardianChildPanel({ personas, configByPersona, onSetCap
             );
           })}
         </ul>
+        {financeGranted && familyData ? (
+          <ChildBooksPreview data={familyData} childLabel={activeLabel} />
+        ) : null}
       </Panel>
 
       <Panel title="Approval queue" icon="check"

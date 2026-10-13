@@ -17,8 +17,10 @@
 // "Autonomous Automation Requires Three Brakes"). Modeled exactly on the
 // cap-resume brakeGate. SHIPS INERT — makeInertState() is the shipped default:
 //   1. KILL-SWITCH present  => engaged => nothing runs (global panic stop)
-//   2. ARMED absent          => disarmed
-//   3. GPU_SCHED_ARMED absent => no scheduler consent (dedicated second arm)
+//   2. STREAMING_HOLD present => live stream in progress => nothing runs
+//      (DR-0012: never load a CUDA tower while it is in the live chain)
+//   3. ARMED absent          => disarmed
+//   4. GPU_SCHED_ARMED absent => no scheduler consent (dedicated second arm)
 //   PLUS budget ceilings = 0 (unset = missing brake = inert)
 //   PLUS single-flight lock (a second run that finds the lock held SKIPS)
 //   PLUS append-only event log (observability — every decision recorded)
@@ -48,6 +50,9 @@ export function jobTypeOf(id) {
 }
 
 // A device counts as "idle / free" for batch work in these operational states.
+// 'streaming' is DELIBERATELY not here (DR-0012): a box in the live chain —
+// the LEFT (tlcmediadpt) or RIGHT (livestream-main-pc) CUDA tower while a
+// service streams — is never a batch-job target, whatever else says go.
 export const IDLE_STATES = ['online', 'standby'];
 
 // --- Inert state (the shipped default) ---------------------------------------
@@ -55,6 +60,7 @@ export const IDLE_STATES = ['online', 'standby'];
 export function makeInertState(overrides = {}) {
   return {
     killSwitch:    true,   // present => engaged (global stop). Ships engaged.
+    streamingHold: true,   // present => live stream in progress => nothing runs (DR-0012). Ships engaged.
     armed:         false,  // master arm absent
     gpuSchedArmed: false,  // dedicated scheduler arm absent
     lockHeld:      false,  // single-flight lock not held by another run
@@ -144,6 +150,7 @@ export function brakeGate(state, nowMs, idleCfg) {
   const s = state || {};
   const reasons = [];
   const killEngaged = s.killSwitch === true;
+  const streamingHold = s.streamingHold === true;
   const armed = s.armed === true;
   const schedArmed = s.gpuSchedArmed === true;
   const lockFree = s.lockHeld !== true;
@@ -154,6 +161,7 @@ export function brakeGate(state, nowMs, idleCfg) {
   const window = idleWindowOpen(nowMs, idleCfg);
 
   if (killEngaged) reasons.push('KILL_SWITCH engaged');
+  if (streamingHold) reasons.push('STREAMING_HOLD engaged — live stream in progress; CUDA towers reserved (DR-0012)');
   if (!armed) reasons.push('not ARMED');
   if (!schedArmed) reasons.push('GPU_SCHED not armed');
   if (!lockFree) reasons.push('single-flight lock held by another run');
@@ -162,12 +170,12 @@ export function brakeGate(state, nowMs, idleCfg) {
   if (perDay > 0 && jobsToday >= perDay) reasons.push(`daily budget exhausted (${jobsToday}/${perDay})`);
   if (!window.open) reasons.push(window.reason);
 
-  const go = !killEngaged && armed && schedArmed && lockFree && budgetOk && window.open;
+  const go = !killEngaged && !streamingHold && armed && schedArmed && lockFree && budgetOk && window.open;
   return {
     go,
     reasons,
     budget: { perRun, perDay, jobsToday, remaining: Math.max(0, perDay - jobsToday) },
-    brakes: { killEngaged, armed, schedArmed, lockFree, budgetOk, windowOpen: window.open },
+    brakes: { killEngaged, streamingHold, armed, schedArmed, lockFree, budgetOk, windowOpen: window.open },
   };
 }
 

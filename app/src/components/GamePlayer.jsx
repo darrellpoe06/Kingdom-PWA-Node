@@ -18,13 +18,17 @@
 // moment, the scoreboard leads with the Kingdom axes, and the finish is a
 // LEGACY measured by faithfulness and what is passed on.
 // =============================================================================
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { SectionTitle } from './shared.jsx';
 import UiIcon from './UiIcon.jsx';
 import {
-  choosePath, takeTurn, resolveChoice, computeTotals, progress, boardFor,
+  choosePath, takeTurn, resolveChoice, computeTotals, progress, boardFor, lastSpin,
 } from '../lib/games/engine.js';
 import { resolveScripture } from '../lib/games/scripture-link.js';
+import { revealPolicy, displayOrder } from '../lib/games/difficulty.js';
+import { FamilyPortrait, JourneyStart, PathEmblem } from './games/GameArt.jsx';
+import SpinnerWheel, { SPIN_MS } from './games/SpinnerWheel.jsx';
+import HeritageGallery from './games/HeritageGallery.jsx';
 
 // Theme tokens — shared classes the midnight theme remaps to AA-legible values.
 const T_INK = 'text-[#1A1815]';
@@ -130,6 +134,7 @@ function PathPicker({ def, state, onChange }) {
   return (
     <div>
       <div className={`${BG_CREAM} border ${BORDER} rounded-lg p-4 mb-4`}>
+        <JourneyStart className="mb-3 border border-[#E8E4DC]" />
         <Eyebrow>Where the journey begins</Eyebrow>
         <p className={`text-sm leading-relaxed ${T_INK} mt-1`}>
           Every life starts at a crossroads. Choose the road you&rsquo;ll set out on. There is no wrong door &mdash;
@@ -143,11 +148,16 @@ function PathPicker({ def, state, onChange }) {
             onClick={() => onChange(choosePath(def, state, p.id))}
             className={`text-left ${BG_CARD} border ${BORDER} rounded-lg p-4 hover:border-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838] transition-colors`}
           >
-            <div className="flex items-center justify-between">
-              <span className={`text-base font-semibold ${T_INK}`}>{p.label}</span>
-              <UiIcon name="pin" className={T_ACCENT} />
+            <div className="flex items-start gap-3">
+              <PathEmblem pathId={p.id} />
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between">
+                  <span className={`text-base font-semibold ${T_INK}`}>{p.label}</span>
+                  <UiIcon name="pin" className={T_ACCENT} />
+                </div>
+                <p className={`text-sm leading-relaxed ${T_MUTE} mt-1`}>{p.blurb}</p>
+              </div>
             </div>
-            <p className={`text-sm leading-relaxed ${T_MUTE} mt-1`}>{p.blurb}</p>
             <LensCallout>{p.lens}</LensCallout>
           </button>
         ))}
@@ -172,30 +182,41 @@ function MomentCard({ def, state, onChange }) {
     return null;
   }, [state.log]);
 
+  const policy = revealPolicy(state.level);
+
   if (pending) {
+    // Reveal per level: higher levels hide the "second chance" tell, withhold
+    // Yahweh's perspective until AFTER the choice, and shuffle the choice order so
+    // the Kingdom option isn't simply "the last one". Scoring is unchanged — the
+    // display order maps back to the REAL choice index.
+    const order = displayOrder(pending.spaceId, state.seed, state.level, pending.choices.length);
     return (
       <div className={`${BG_CARD} border ${BORDER} rounded-lg p-4`}>
         <Eyebrow>{pending.kind === 'card' ? 'A card from the community' : 'A crossroads'}</Eyebrow>
         <h3 className={`text-lg font-semibold ${T_INK} mt-1`} style={{ fontFamily: 'Fraunces, serif' }}>{pending.title}</h3>
         {pending.body ? <p className={`text-sm leading-relaxed ${T_MUTE} mt-1`}>{pending.body}</p> : null}
-        <LensCallout>{pending.lens}</LensCallout>
-        <ScriptureCallout scripture={pendingScripture(pending)} />
+        {policy.showLensBeforeChoice ? <LensCallout>{pending.lens}</LensCallout> : null}
+        {policy.showLensBeforeChoice ? <ScriptureCallout scripture={pendingScripture(pending)} /> : null}
         <div className="mt-4 grid grid-cols-1 gap-2">
-          {pending.choices.map((c, i) => (
-            <button
-              key={i}
-              onClick={() => onChange(resolveChoice(def, state, i))}
-              className={`text-left ${BG_CREAM} border ${BORDER} rounded-lg p-3 hover:border-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838] transition-colors`}
-            >
-              <div className="flex items-start gap-2">
-                <span className="mt-0.5"><UiIcon name={c.redemption ? 'dove' : 'check'} className={c.redemption ? T_ACCENT : T_GREEN} /></span>
-                <span>
-                  <span className={`text-sm font-semibold ${T_INK}`}>{c.label}</span>
-                  {c.body ? <span className={`block text-sm ${T_MUTE} mt-0.5`}>{c.body}</span> : null}
-                </span>
-              </div>
-            </button>
-          ))}
+          {order.map((realIdx) => {
+            const c = pending.choices[realIdx];
+            const flagRedemption = policy.showRedemptionHint && c.redemption;
+            return (
+              <button
+                key={realIdx}
+                onClick={() => onChange(resolveChoice(def, state, realIdx))}
+                className={`text-left ${BG_CREAM} border ${BORDER} rounded-lg p-3 hover:border-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838] transition-colors`}
+              >
+                <div className="flex items-start gap-2">
+                  <span className="mt-0.5"><UiIcon name={flagRedemption ? 'dove' : 'check'} className={flagRedemption ? T_ACCENT : T_GREEN} /></span>
+                  <span>
+                    <span className={`text-sm font-semibold ${T_INK}`}>{c.label}</span>
+                    {c.body ? <span className={`block text-sm ${T_MUTE} mt-0.5`}>{c.body}</span> : null}
+                  </span>
+                </div>
+              </button>
+            );
+          })}
         </div>
       </div>
     );
@@ -210,7 +231,7 @@ function MomentCard({ def, state, onChange }) {
       {lastEvent.body ? <p className={`text-sm leading-relaxed ${T_MUTE} mt-1`}>{lastEvent.body}</p> : null}
       <LensCallout>{lastEvent.lens}</LensCallout>
       <ScriptureCallout scripture={lastEvent.scripture} />
-      <EffectChips def={def} effects={lastEvent.effects} />
+      {policy.showEffects ? <EffectChips def={def} effects={lastEvent.effects} /> : null}
     </div>
   );
 }
@@ -247,6 +268,8 @@ function LegacyFinish({ def, state, onPlayAgain, onExit }) {
         <Eyebrow>Legacy</Eyebrow>
         <h2 className={`text-2xl font-semibold ${T_INK} mt-1`} style={{ fontFamily: 'Fraunces, serif' }}>{legacy.tier}</h2>
         <p className={`text-sm leading-relaxed ${T_INK} mt-2 max-w-prose mx-auto`}>{legacy.headline}</p>
+        <FamilyPortrait className="mt-4 border border-[#E8E4DC] max-w-sm mx-auto" />
+        <p className={`text-[0.625rem] ${T_MUTE} mt-2`}>The generation you walked for &mdash; and the one you hand it to.</p>
       </div>
 
       <div className="mt-4">
@@ -280,6 +303,11 @@ function LegacyFinish({ def, state, onPlayAgain, onExit }) {
         <p className={`text-[0.6875rem] ${T_MUTE} mt-1 text-center`}>Legacy is weighted toward the things that last &mdash; faith, family and souls above provision (Matthew 6:33). Kingdom-weighted total: {totals.weighted}.</p>
       </div>
 
+      {/* the legacy the game just measured, standing on the family's real one */}
+      <div className="mt-4">
+        <HeritageGallery on="light" />
+      </div>
+
       <div className="mt-5 flex flex-wrap gap-2 justify-center">
         <button onClick={onPlayAgain} className={`${BG_INK} text-[#FAF8F4] rounded-lg px-4 py-2.5 text-sm font-medium`}>Walk it again</button>
         <button onClick={onExit} className={`${BG_CARD} border ${BORDER} ${T_INK} rounded-lg px-4 py-2.5 text-sm font-medium`}>Back to games</button>
@@ -290,6 +318,18 @@ function LegacyFinish({ def, state, onPlayAgain, onExit }) {
 
 // ---- the player -------------------------------------------------------------
 export default function GamePlayer({ def, state, onChange, onExit, onPlayAgain }) {
+  // The spin veil: while the wheel is visibly turning, the landing stays
+  // face-down. Engine state commits IMMEDIATELY on the tap (the save row is
+  // authoritative; exiting mid-spin loses nothing) — the veil is presentation
+  // only, cleared when the wheel rests (plus a backstop timer so no browser
+  // quirk can leave the moment hidden).
+  const [veil, setVeil] = useState(false);
+  useEffect(() => {
+    if (!veil) return undefined;
+    const t = setTimeout(() => setVeil(false), SPIN_MS + 900);
+    return () => clearTimeout(t);
+  }, [veil]);
+
   if (!def || !state) return null;
 
   if (state.status === 'choosing-path') {
@@ -297,6 +337,8 @@ export default function GamePlayer({ def, state, onChange, onExit, onPlayAgain }
       <div className="space-y-4">
         <SectionTitle eyebrow={`${def.title} &middot; ${def.subtitle}`}>{def.title}</SectionTitle>
         <PathPicker def={def} state={state} onChange={onChange} />
+        {/* the real foundation under the game — the family photos Darrell declared (lib/games/heritage.js) */}
+        <HeritageGallery on="light" />
         <div className="flex">
           <button onClick={onExit} className={`text-sm ${T_MUTE} hover:${T_INK} underline`}>Back to games</button>
         </div>
@@ -310,7 +352,7 @@ export default function GamePlayer({ def, state, onChange, onExit, onPlayAgain }
 
   // playing
   const prog = progress(def, state);
-  const lastSpin = [...state.log].reverse().find((e) => e.type === 'spin');
+  const spin = lastSpin(state);
   const board = boardFor(def, state.pathId);
   const stage = board[state.position]?.stage || '';
 
@@ -335,20 +377,31 @@ export default function GamePlayer({ def, state, onChange, onExit, onPlayAgain }
         </div>
       </div>
 
-      <MomentCard def={def} state={state} onChange={onChange} />
-
-      {/* turn control */}
-      {!state.pending && (
-        <div className="text-center">
-          {lastSpin ? <p className={`text-sm ${T_MUTE} mb-2`}>You spun a <span className={`font-semibold ${T_INK}`}>{(lastSpin.title || '').replace('Spin: ', '')}</span>.</p> : null}
-          <button
-            onClick={() => onChange(takeTurn(def, state))}
-            className={`${BG_INK} text-[#FAF8F4] rounded-lg px-6 py-3 text-base font-medium inline-flex items-center gap-2`}
-          >
-            <UiIcon name="dice" /> Spin the wheel
-          </button>
+      {veil ? (
+        <div className={`${BG_CARD} border ${BORDER} rounded-lg p-4 text-center`}>
+          <p className={`text-sm ${T_MUTE}`}>The wheel is turning&hellip;</p>
         </div>
+      ) : (
+        <MomentCard def={def} state={state} onChange={onChange} />
       )}
+
+      {/* the wheel — the ACTUAL spinner; it lands on the engine's real spin */}
+      <div className="text-center">
+        <SpinnerWheel value={spin ? spin.value : null} spinSeq={spin ? spin.index : null} size="10rem" onRest={() => setVeil(false)} />
+        {spin && spin.value != null && !veil ? (
+          <p className={`text-sm ${T_MUTE} mt-2`}>You spun a <span className={`font-semibold ${T_INK}`}>{spin.value}</span>.</p>
+        ) : null}
+        {!state.pending && !veil && (
+          <div className="mt-3">
+            <button
+              onClick={() => { setVeil(true); onChange(takeTurn(def, state)); }}
+              className={`${BG_INK} text-[#FAF8F4] rounded-lg px-6 py-3 text-base font-medium inline-flex items-center gap-2`}
+            >
+              <UiIcon name="dice" /> Spin the wheel
+            </button>
+          </div>
+        )}
+      </div>
 
       <Scoreboard def={def} state={state} />
       <JourneyLog state={state} />

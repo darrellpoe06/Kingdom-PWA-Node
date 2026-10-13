@@ -26,8 +26,12 @@
 // control >=36px and keyboard-reachable with a visible #B85838 focus ring; the
 // stage rail is an aria progress context; aria-live on the active stage.
 // =============================================================================
+import WordInline from './WordInline.jsx';
+import { anchorIsRun } from '../lib/verse-refs.js';
+import ShowTheWordToggle from './ShowTheWordToggle.jsx';
 import React, { useState } from 'react';
 import { buildLessonArc } from '../lib/lesson-flow.js';
+import { announceStep, useFlowMode, FLOW_MODES, FLOW_WORDS } from '../lib/lesson-room.js';
 import { DEFAULT_AGE_BAND } from '../lib/learn-framework.js';
 
 const SERIF = { fontFamily: '"Fraunces", serif' };
@@ -41,11 +45,13 @@ const MONO = { fontFamily: '"JetBrains Mono", monospace' };
 function StageRail({ segments, current = -1, onJump = null }) {
   if (!Array.isArray(segments) || segments.length === 0) return null;
   return (
-    <ol className="flex flex-wrap gap-1.5 mb-3" aria-label="Lesson stages">
+    // Navigation, not reading: the rail is how you MOVE through the lesson,
+    // so the voice must not recite "Open 15m Teach 15m…" before the lesson.
+    <ol className="flex flex-wrap gap-1.5 mb-3" aria-label="Lesson stages" data-read-skip>
       {segments.map((s, i) => {
         const on = i === current;
         const done = current > -1 && i < current;
-        const base = 'flex items-center gap-1 text-[10px] uppercase tracking-wider px-2 py-1.5 min-h-[32px] border focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]';
+        const base = 'flex items-center gap-1 text-[0.625rem] uppercase tracking-wider px-2 py-1.5 min-h-[32px] border focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]';
         const tone = on
           ? 'border-[#1A1815] bg-[#1A1815] text-white'
           : done
@@ -81,12 +87,120 @@ function StageRail({ segments, current = -1, onJump = null }) {
 //     renderStage  — (segment, index) => ReactNode  (the stage body; host-wired)
 //     unitNoun     — "week" | "lesson" (label only)
 //     onComplete   — fired once when the learner reaches the final stage
+//     initialIndex — stage to open on (resume-your-place; clamped to the arc)
+//     onStageChange— (index) => void, fired on every move (persists the place)
+//     showAll      — READ-ALONG mode: render EVERY stage at once, in order, so
+//                    the whole lesson is on screen while it is read aloud. The
+//                    paced one-at-a-time view is the learner's default; this is
+//                    what the reader turns on (via the read-target's prepare)
+//                    so the words being spoken are the words being shown —
+//                    "deeper doesn't get read at all" was exactly this: four of
+//                    five stages were never in the DOM, so they were never read
+//                    and never highlighted (Darrell 2026-08-10).
+//     flush        — the lesson is open in its OWN space (DR-0264) and takes
+//                    the page's full width: the stage box drops its side walls
+//                    (border-y / py) so five nested paddings stop eating a
+//                    phone's width (measured 2026-09-14: 262px of 390 before).
+//
+// THE BLURBS READ CLEAN (Darrell 2026-09-14, "No tabs, none ever"): a stage
+// blurb that names a verse renders as plain text with the green chip strip
+// beneath it (WordInline refsBelow), never a boxed button mid-sentence.
 // -----------------------------------------------------------------------------
-export function LessonFlowAudience({ arc, renderStage, unitNoun = 'lesson', onComplete = null }) {
+// stageExtra — (segment, index) => ReactNode, rendered under EVERY stage's
+// header, before its body (Darrell 2026-09-15, DR-0426: "choose the level from
+// the beginning and at each section change"). The host hands in the
+// "Who is learning?" row; the flow puts it where each section begins — the
+// Open stage included, so the first thing a learner meets is the choice.
+// -----------------------------------------------------------------------------
+// onAllUnits / onStartOver — THE END OF A LESSON IS A DOOR, NOT A WALL
+// (Darrell 2026-09-16, from his phone at part 7/7: "There's a little bitty
+// button to get back to all... you can't really find the all button... All
+// should just pop up with all every time you get done, anytime you want" —
+// and, of the same screen, "if it's over, it's over... you want to re-listen
+// to the same freaking lesson").
+//
+// Measured before this: at the last part the footer showed "◀ Previous part",
+// the words "End of this lesson", and a DISABLED "Done ✓". Three controls and
+// not one of them went anywhere — the only way back to the list was the 10px
+// "← All" in the sticky bar far above the fold. So a reader who finished was
+// left at a dead end with the top of the app off screen.
+//
+// Both doors now stand at the end, full-width and primary: START OVER (part 1
+// again, the place cleared, which is what re-listening needs) and ALL LESSONS.
+// Optional props — a host that passes neither keeps the old footer exactly.
+// -----------------------------------------------------------------------------
+// STEP BY STEP, OR SCROLL IT ALL, ON EVERY LESSON SURFACE (DR-0784). DR-0749
+// gave the Learn tab's guide a switch between the pager and the whole lesson
+// at once; this flow is used by other doors too (the TLC door's training and
+// lessons among them), and there the switch never existed, so a reader was
+// held to one part at a time (Christina, 2026-10-07: the TLC app needs full
+// scrolling for lessons; Darrell: "the scrolling function should be added to
+// all lessons areas as an option"). The switch now lives in the flow itself,
+// reading the same device-wide choice (lib/lesson-room.js), so one tap on any
+// lesson holds on every lesson. A host that renders its own switch (the Learn
+// guide) passes flowSwitch={false}; showAll from a host still wins.
+// -----------------------------------------------------------------------------
+export function LessonFlowAudience({ arc, renderStage, unitNoun = 'lesson', onComplete = null, initialIndex = 0, onStageChange = null, showAll = false, flush = false, stageExtra = null, onAllUnits = null, onStartOver = null, flowSwitch = true }) {
   const segments = (arc && arc.audienceSegments) || [];
-  const [idx, setIdx] = useState(0);
+  const [idx, setIdx] = useState(() => Math.max(0, initialIndex));
+  const [flowMode, setFlowMode] = useFlowMode();
+  const everything = showAll || (flowSwitch && flowMode === 'scroll');
+  const flowSwitchRow = flowSwitch ? (
+    <div className="flex items-center justify-end gap-1 mb-2" role="group" aria-label={`How to move through the ${unitNoun}`} data-testid="lesson-flow-mode" data-read-skip>
+      {FLOW_MODES.map((m) => (
+        <button
+          key={m}
+          type="button"
+          onClick={() => setFlowMode(m)}
+          aria-pressed={flowMode === m}
+          data-flow={m}
+          className={`text-[0.625rem] uppercase tracking-wider px-2.5 py-1.5 min-h-[36px] border focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] ${flowMode === m ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#B8B4AC] bg-white text-[#1A1815]'}`}
+        >
+          {FLOW_WORDS[m]}
+        </button>
+      ))}
+    </div>
+  ) : null;
   const firedRef = React.useRef(false);
+  // THE PART LANDS UNDER THE CHROME (DR-0749): a move to another part is
+  // announced once it has painted, and the lesson space scrolls the part's
+  // first line to just under its bar — the reader never hunts for the start.
+  const stageBoxRef = React.useRef(null);
+  const [landNonce, setLandNonce] = useState(0);
+  React.useEffect(() => {
+    if (!landNonce) return;
+    announceStep(stageBoxRef.current);
+  }, [landNonce]);
   if (segments.length === 0) return null;
+  const stageBox = flush ? 'border-y border-[#E8E4DC] bg-white py-3' : 'border border-[#E8E4DC] bg-white p-3';
+
+  if (everything) {
+    return (
+      <div className="mb-2">
+        {flowSwitchRow}
+        <p className="text-[0.625rem] uppercase tracking-wider text-[#B85838] mb-2" data-read-skip>
+          Reading the whole {unitNoun} — every part is shown
+        </p>
+        {/* Every verse this lesson names opens in place; one tap opens them all (DR-0341). */}
+        <ShowTheWordToggle className="mb-2" />
+        {segments.map((s, i) => (
+          <div key={s.kind} className={`${stageBox} mb-2`}>
+            <div className="flex items-baseline justify-between gap-2 mb-1">
+              <span className="text-sm font-semibold text-[#1A1815]" style={SERIF}>
+                <span aria-hidden="true">{s.icon}</span> {s.title} <span className="text-[#5A5751] font-normal">· {s.subtitle}</span>
+              </span>
+              <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]" style={MONO} data-read-skip>
+                {i + 1} / {segments.length}{s.minutes > 0 ? ` · ~${s.minutes} min` : ''}
+              </span>
+            </div>
+            <WordInline text={s.blurb} refsBelow className="text-[0.6875rem] text-[#5A5751] mb-2" style={SERIF} />
+            {stageExtra ? stageExtra(s, i) : null}
+            <div>{renderStage(s, i)}</div>
+          </div>
+        ))}
+      </div>
+    );
+  }
 
   const clamped = Math.min(idx, segments.length - 1);
   const seg = segments[clamped];
@@ -96,55 +210,162 @@ export function LessonFlowAudience({ arc, renderStage, unitNoun = 'lesson', onCo
   const goTo = (i) => {
     const n = Math.max(0, Math.min(segments.length - 1, i));
     setIdx(n);
+    if (onStageChange) onStageChange(n);
     if (n === segments.length - 1 && !firedRef.current) { firedRef.current = true; if (onComplete) onComplete(); }
+    setLandNonce((k) => k + 1);
   };
 
   return (
     <div className="mb-2">
+      {flowSwitchRow}
       <StageRail segments={segments} current={clamped} onJump={goTo} />
+      <ShowTheWordToggle className="mb-2" />
 
-      <div className="border border-[#E8E4DC] bg-white p-3" aria-live="polite">
+      <div className={stageBox} aria-live="polite" ref={stageBoxRef} data-testid="lesson-part-box">
         <div className="flex items-baseline justify-between gap-2 mb-1">
           <span className="text-sm font-semibold text-[#1A1815]" style={SERIF}>
             <span aria-hidden="true">{seg.icon}</span> {seg.title} <span className="text-[#5A5751] font-normal">· {seg.subtitle}</span>
           </span>
-          <span className="text-[10px] uppercase tracking-wider text-[#5A5751]" style={MONO}>
+          <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]" style={MONO} data-read-skip>
             {clamped + 1} / {segments.length}{seg.minutes > 0 ? ` · ~${seg.minutes} min` : ''}
           </span>
         </div>
-        <p className="text-[11px] text-[#5A5751] mb-2" style={SERIF}>{seg.blurb}</p>
+        <WordInline text={seg.blurb} refsBelow className="text-[0.6875rem] text-[#5A5751] mb-2" style={SERIF} />
+        {stageExtra ? stageExtra(seg, clamped) : null}
 
         <div>{renderStage(seg, clamped)}</div>
 
-        <div className="flex items-center justify-between gap-2 mt-3 pt-2 border-t border-[#E8E4DC]">
+        <div className="flex items-center justify-between gap-2 mt-3 pt-2 border-t border-[#E8E4DC]" data-read-skip>
           <button
             type="button"
             onClick={() => goTo(clamped - 1)}
             disabled={atFirst}
-            className="text-[10px] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white disabled:opacity-40 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+            className="text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white disabled:opacity-40 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
           >
             ◀ Previous part
           </button>
-          <span className="text-[10px] text-[#5A5751] uppercase tracking-wider" style={SERIF}>
+          <span className="text-[0.625rem] text-[#5A5751] uppercase tracking-wider" style={SERIF}>
             {atLast ? `End of this ${unitNoun}` : seg.cue}
           </span>
           <button
             type="button"
             onClick={() => goTo(clamped + 1)}
             disabled={atLast}
-            className={`text-[10px] uppercase tracking-wider px-3 py-2 min-h-[36px] border-2 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] ${atLast ? 'border-[#5A6E3D] bg-[#5A6E3D] text-white opacity-60' : 'border-[#1A1815] bg-[#1A1815] text-white hover:bg-[#3a352f]'}`}
+            className={`text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border-2 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] ${atLast ? 'border-[#5A6E3D] bg-[#5A6E3D] text-white opacity-60' : 'border-[#1A1815] bg-[#1A1815] text-white hover:bg-[#3a352f]'}`}
           >
             {atLast ? 'Done ✓' : 'Next part ▶'}
           </button>
         </div>
+        {/* THE TWO DOORS AT THE END (see onAllUnits/onStartOver above). Their
+            own row, so they are not competing for a phone's width with the
+            part pager: full-width targets, 13px words, 48px tall, chrome-capped
+            by the region they sit in so Big Print grows the WORDS and not the
+            frame (DR-0410). */}
+        {atLast && (onStartOver || onAllUnits) && (
+          <div className="ts-chrome-region mt-3 pt-3 border-t-2 border-[#1A1815] flex flex-col sm:flex-row gap-2" data-read-skip data-testid="lesson-end-doors">
+            {onStartOver && (
+              <button
+                type="button"
+                onClick={() => { goTo(0); onStartOver(); }}
+                data-testid="lesson-start-over"
+                className="flex-1 text-[0.8125rem] uppercase tracking-wider px-4 py-3 min-h-[48px] border-2 border-[#5A6E3D] text-[#5A6E3D] font-semibold hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+              >
+                ↺ Start this {unitNoun} over
+              </button>
+            )}
+            {onAllUnits && (
+              <button
+                type="button"
+                onClick={onAllUnits}
+                data-testid="lesson-end-all"
+                className="flex-1 text-[0.8125rem] uppercase tracking-wider px-4 py-3 min-h-[48px] border-2 border-[#1A1815] bg-[#1A1815] text-white font-semibold hover:bg-[#3a352f] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+              >
+                ← All {unitNoun}s
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
-// Common reflow presets the facilitator can pick (minutes). The current total is
-// always shown even if it isn't one of these.
-const REFLOW_PRESETS = [20, 30, 45, 60, 75, 90];
+// Common reflow presets (minutes). The current total is always shown even if it
+// isn't one of these.
+//
+// Darrell 2026-08-10: "each lesson should be about 25 minutes or combine similar
+// lessons as our Ways and documentation state and demand... do they?" and
+// "capable of being scaled down to the most minimal times and full lesson for
+// those that have time all in the Ways."
+//
+// Two corrections live in this list. The old set was [20, 30, 45, 60, 75, 90]:
+//   • 25 — the DR-0215 DESIGN UNIT ("these lessons will be about 25 minutes at
+//     the Love Corner") — was not offered at all; the list stepped 20 → 30 right
+//     over the one number the Ways actually name.
+//   • The floor was 20 minutes, so "the most minimal time" did not exist. A
+//     person with five minutes before work had nothing to pick.
+// Nothing is CUT at any of these lengths — reflowArcMinutes paces the same
+// authored arc, and anything longer than the chosen slot flows across sessions
+// (DR-0215 §2, content-preserving by design).
+export const REFLOW_PRESETS = [5, 10, 15, 25, 45, 60, 90];
+
+// -----------------------------------------------------------------------------
+// TimeFit — "how much time do you have?"
+// -----------------------------------------------------------------------------
+// One control, used by BOTH audiences. It was previously inline inside the
+// facilitator's run-of-show, which is how the learner ended up unable to reach
+// the one mechanism DR-0215 built for them. Sharing it means a preset added
+// here is offered to everyone at once, and neither view can silently drift to a
+// different set of options.
+//
+// `value` may be null, which shows nothing as pressed and means "use the
+// course's own session length" — the honest representation of not having chosen
+// rather than a default masquerading as a choice.
+export function TimeFit({
+  value,
+  onChange,
+  label = 'How much time do you have?',
+  groupLabel = 'Fit the lesson to the time you have',
+  note = null,
+}) {
+  const set = (n) => { if (typeof onChange === 'function') onChange(n); };
+  return (
+    <div className="mb-3" data-read-skip>
+      <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold mb-1">{label}</div>
+      <div role="group" aria-label={groupLabel} className="flex flex-wrap gap-1.5 items-center">
+        {REFLOW_PRESETS.map((p) => {
+          const on = p === value;
+          return (
+            <button
+              key={p}
+              type="button"
+              aria-pressed={on}
+              onClick={() => set(p)}
+              className={`text-[0.625rem] uppercase tracking-wider px-2.5 py-1.5 min-h-[32px] border focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] ${on ? 'border-[#7A1F1F] bg-[#7A1F1F] text-white' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#7A1F1F] hover:text-[#7A1F1F]'}`}
+            >
+              {p}m
+            </button>
+          );
+        })}
+        <span className="inline-flex items-center gap-1 ml-1">
+          <button
+            type="button"
+            onClick={() => set(Math.max(5, (Number(value) || 25) - 5))}
+            aria-label="Five minutes shorter"
+            className="text-[0.6875rem] px-2 py-1.5 min-h-[32px] min-w-[32px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+          >−</button>
+          <button
+            type="button"
+            onClick={() => set(Math.min(240, (Number(value) || 25) + 5))}
+            aria-label="Five minutes longer"
+            className="text-[0.6875rem] px-2 py-1.5 min-h-[32px] min-w-[32px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
+          >+</button>
+        </span>
+      </div>
+      {note && <p className="text-[0.6875rem] text-[#5A5751] mt-1" style={SERIF}>{note}</p>}
+    </div>
+  );
+}
 
 // -----------------------------------------------------------------------------
 // LessonRunOfShow — the facilitator's smooth, timed run-of-show for one module.
@@ -170,44 +391,41 @@ export function LessonRunOfShow({
   return (
     <div className="mt-3 border-l-4 border-[#7A1F1F] bg-[#FAF8F4] p-3">
       <div className="flex items-baseline justify-between gap-2 mb-2 flex-wrap">
-        <div className="text-[10px] uppercase tracking-[0.25em] text-[#7A1F1F] font-semibold">{sessionLabel}</div>
-        <div className="text-[10px] uppercase tracking-wider text-[#5A5751]" style={MONO}>{arc.totalMinutes} min total</div>
+        <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#7A1F1F] font-semibold">{sessionLabel}</div>
+        <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]" style={MONO}>{arc.totalMinutes} min total</div>
       </div>
 
-      {/* Time-adaptive reflow — re-time the whole plan to any length (#309). */}
-      <div className="mb-3">
-        <div className="text-[10px] uppercase tracking-wider text-[#5A5751] font-semibold mb-1">Fit the time you have</div>
-        <div role="group" aria-label="Reflow the session length" className="flex flex-wrap gap-1.5 items-center">
-          {REFLOW_PRESETS.map((p) => {
-            const on = p === target;
-            return (
-              <button
-                key={p}
-                type="button"
-                aria-pressed={on}
-                onClick={() => setTarget(p)}
-                className={`text-[10px] uppercase tracking-wider px-2.5 py-1.5 min-h-[32px] border focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838] ${on ? 'border-[#7A1F1F] bg-[#7A1F1F] text-white' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#7A1F1F] hover:text-[#7A1F1F]'}`}
-              >
-                {p}m
-              </button>
-            );
-          })}
-          <span className="inline-flex items-center gap-1 ml-1">
-            <button
-              type="button"
-              onClick={() => setTarget((t) => Math.max(5, t - 5))}
-              aria-label="Five minutes shorter"
-              className="text-[11px] px-2 py-1.5 min-h-[32px] min-w-[32px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
-            >−</button>
-            <button
-              type="button"
-              onClick={() => setTarget((t) => Math.min(240, t + 5))}
-              aria-label="Five minutes longer"
-              className="text-[11px] px-2 py-1.5 min-h-[32px] min-w-[32px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
-            >+</button>
-          </span>
+      {/* Course-split (DR-0215 §2): when the spoken teaching runs longer than the
+          chosen slot, the lesson FLOWS across more than one session — content-
+          preserving (every word is carried, nothing cut). A single-session lesson
+          shows nothing here. */}
+      {arc.sessionPlan && arc.sessionPlan.multiSession && (
+        <div className="mb-3 border border-[#7A1F1F] bg-white p-2">
+          <div className="text-[0.625rem] uppercase tracking-wider text-[#7A1F1F] font-semibold mb-1">
+            Runs across {arc.sessionPlan.sessionCount} sessions · ~{arc.sessionPlan.estMinutes} min of teaching
+          </div>
+          <p className="text-[0.6875rem] text-[#5A5751] mb-1" style={SERIF}>
+            This lesson is longer than one {arc.totalMinutes}-minute slot, so teach it across {arc.sessionPlan.sessionCount} sittings — nothing is cut, it is paced across sessions.
+          </p>
+          <ol className="text-[0.6875rem] text-[#1A1815] space-y-0.5" style={SERIF}>
+            {arc.sessionPlan.sessions.map((sp) => (
+              <li key={sp.index}>
+                <strong className="text-[#5A6E3D]">{sp.label}</strong> · ~{sp.estMinutes} min
+              </li>
+            ))}
+          </ol>
         </div>
-      </div>
+      )}
+
+      {/* Time-adaptive reflow — re-time the whole plan to any length (#309).
+          The SAME control the learner now gets (TimeFit), so a facilitator and
+          the person on their sofa are choosing from one set of options. */}
+      <TimeFit
+        value={target}
+        onChange={setTarget}
+        label="Fit the time you have"
+        groupLabel="Reflow the session length"
+      />
 
       <StageRail segments={segments} />
 
@@ -218,25 +436,27 @@ export function LessonRunOfShow({
               <span className="text-sm font-semibold text-[#1A1815]" style={SERIF}>
                 <span aria-hidden="true">{s.icon}</span> {s.title} <span className="text-[#5A5751] font-normal">· {s.subtitle}</span>
               </span>
-              <span className="text-[10px] uppercase tracking-wider text-[#5A6E3D]" style={MONO}>~{s.minutes} min</span>
+              <span className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D]" style={MONO}>~{s.minutes} min</span>
             </div>
 
             {/* What the audience sees this stage (so the leader has context) */}
             {s.kind === 'open' && (s.audience.anchorRef || s.audience.bigIdea) && (
-              <p className="text-[11px] text-[#5A5751] mb-1" style={SERIF}>
-                {s.audience.anchorRef && <><strong className="text-[#5A6E3D]">Anchor — {s.audience.anchorRef}:</strong> {s.audience.anchorTheme} </>}
+              <p className="text-[0.6875rem] text-[#5A5751] mb-1" style={SERIF}>
+                {s.audience.anchorRef && !anchorIsRun(s.audience.anchorRef)
+                  && <><strong className="text-[#5A6E3D]">Anchor — {s.audience.anchorRef}:</strong> </>}
+                {s.audience.anchorRef ? <>{s.audience.anchorTheme} </> : null}
               </p>
             )}
             {s.kind === 'apply' && s.audience.inApp && (
-              <p className="text-[11px] text-[#5A5751] mb-1" style={SERIF}><strong className="text-[#1A1815]">{s.audience.handsOnLabel}:</strong> {s.audience.inApp}</p>
+              <p className="text-[0.6875rem] text-[#5A5751] mb-1" style={SERIF}><strong className="text-[#1A1815]">{s.audience.handsOnLabel}:</strong> {s.audience.inApp}</p>
             )}
 
             {/* SAY */}
             {Array.isArray(s.facilitator.say) && s.facilitator.say.length > 0 && (
               <div className="mb-1.5">
-                <div className="text-[10px] uppercase tracking-wider text-[#5A5751] font-semibold mb-0.5">Say</div>
+                <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold mb-0.5">Say</div>
                 <ul className="list-disc pl-5 space-y-0.5">
-                  {s.facilitator.say.map((t, i) => <li key={i} className="text-[11px] text-[#1A1815]" style={SERIF}>{t}</li>)}
+                  {s.facilitator.say.map((t, i) => <li key={i} className="text-[0.6875rem] text-[#1A1815]" style={SERIF}>{t}</li>)}
                 </ul>
               </div>
             )}
@@ -244,9 +464,9 @@ export function LessonRunOfShow({
             {/* DO */}
             {Array.isArray(s.facilitator.do) && s.facilitator.do.length > 0 && (
               <div className="mb-1.5">
-                <div className="text-[10px] uppercase tracking-wider text-[#5A5751] font-semibold mb-0.5">Do</div>
+                <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold mb-0.5">Do</div>
                 <ul className="list-disc pl-5 space-y-0.5">
-                  {s.facilitator.do.map((t, i) => <li key={i} className="text-[11px] text-[#1A1815]" style={SERIF}>{t}</li>)}
+                  {s.facilitator.do.map((t, i) => <li key={i} className="text-[0.6875rem] text-[#1A1815]" style={SERIF}>{t}</li>)}
                 </ul>
               </div>
             )}
@@ -254,18 +474,18 @@ export function LessonRunOfShow({
             {/* Discussion prompts surface on the engage stage */}
             {s.kind === 'engage' && Array.isArray(s.facilitator.prompts) && s.facilitator.prompts.length > 0 && (
               <div className="mb-1.5">
-                <div className="text-[10px] uppercase tracking-wider text-[#5A5751] font-semibold mb-0.5">Prompts</div>
+                <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold mb-0.5">Prompts</div>
                 <ul className="list-disc pl-5 space-y-0.5">
-                  {s.facilitator.prompts.map((t, i) => <li key={i} className="text-[11px] text-[#1A1815]" style={SERIF}>{t}</li>)}
+                  {s.facilitator.prompts.map((t, i) => <li key={i} className="text-[0.6875rem] text-[#1A1815]" style={SERIF}>{t}</li>)}
                 </ul>
               </div>
             )}
 
             {s.kind === 'apply' && s.facilitator.watchFor && (
-              <p className="text-[11px] text-[#7A1F1F] mb-1" style={SERIF}><strong>Watch for:</strong> {s.facilitator.watchFor}</p>
+              <p className="text-[0.6875rem] text-[#7A1F1F] mb-1" style={SERIF}><strong>Watch for:</strong> {s.facilitator.watchFor}</p>
             )}
 
-            <p className="text-[10px] text-[#5A5751] uppercase tracking-wider mt-1" style={SERIF}>→ {s.cue}</p>
+            <p className="text-[0.625rem] text-[#5A5751] uppercase tracking-wider mt-1" style={SERIF}>→ {s.cue}</p>
           </li>
         ))}
       </ol>

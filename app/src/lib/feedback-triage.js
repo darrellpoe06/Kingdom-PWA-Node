@@ -103,11 +103,23 @@ export function feedbackText(item = {}) {
   return parts.join(' · ');
 }
 
-function screenshotCount(item) {
+// feedbackScreenshotCount — how many images a feedback item carries, across
+// every shape it can arrive in: the multi-image `screenshots` array, the
+// count-only column the list query selects (images are fetched one row at a
+// time, feedback-sync's own note), the boolean `hasScreenshot`, and the legacy
+// single `screenshot`. EXPORTED because a surface that renders a feedback row
+// has to be able to say "this one is a picture" rather than drawing an empty
+// box — the About tester log did exactly that until 2026-09-22. One counter,
+// so a second surface cannot drift from this one.
+export function feedbackScreenshotCount(item = {}) {
   if (Array.isArray(item.screenshots)) return item.screenshots.length;
   if (typeof item.screenshotCount === 'number') return item.screenshotCount;
   if (item.hasScreenshot) return 1;
   return item.screenshot ? 1 : 0;
+}
+
+function screenshotCount(item) {
+  return feedbackScreenshotCount(item);
 }
 
 export function evaluateFeedback(item = {}) {

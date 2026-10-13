@@ -49,7 +49,7 @@
 // Vocabulary — the claim labels. A claim is NEVER unlabeled (Stage 1 binding).
 // ---------------------------------------------------------------------------
 export const CLAIM_LABELS = [
-  { id: 'allegation', label: 'Allegation', hint: 'A serious assertion made AGAINST someone, not (yet) a proven verdict.' },
+  { id: 'allegation', label: 'Allegation', hint: 'A serious assertion made AGAINST someone that no court has yet judged — distinct from an adjudicated finding, which IS a verdict and is said plainly.' },
   { id: 'claim', label: 'Claim', hint: 'A factual assertion put forward — to be checked against sources, not assumed true.' },
   { id: 'opinion', label: 'Opinion', hint: 'A value judgment or interpretation — reasonable people can hold different ones.' },
   { id: 'call-to-action', label: 'Call to action', hint: 'A request to DO something (boycott, support, vote). A position, not a fact.' },
@@ -155,6 +155,16 @@ export function normalizeIssue(issue) {
       },
       threeD: lens.threeD || '',
       benefits: arr(lens.benefits),
+      // Accountability — stated plainly, never implied (Darrell 2026-07-08:
+      // "Accountability is not being clearly stated"). Carries the two-courts
+      // doctrine: man's court is not the court of record — dismissed evidence,
+      // settled suits, and government-permitted wrongs all enter the eternal
+      // court (Ecclesiastes 12:14; Luke 12:2-3; Hebrews 4:13), and the impact
+      // on lives DURING life is seen and weighed (James 5:4).
+      accountability: {
+        statement: lens.accountability?.statement || '',
+        scripture: lens.accountability?.scripture || '',
+      },
       graceNote: lens.graceNote || '',
       stewardship: lens.stewardship || '',
       anchor: {
@@ -169,6 +179,14 @@ export function normalizeIssue(issue) {
     },
     levels: i.levels && typeof i.levels === 'object' ? i.levels : {},
     quiz: i.quiz && typeof i.quiz === 'object' ? i.quiz : null,
+    // AUTHORED source limits — what the way this lesson was OBTAINED does and
+    // does not let it say. A count can measure the lesson's shape; it cannot
+    // know that the recording was never watched, so this is never derived.
+    // Absent is a real state and lesson-context.js reports it as one.
+    limits: arr(i.limits).map((l, idx) => ({
+      id: l?.id || `limit-${idx}`,
+      text: typeof l === 'string' ? l : (l?.text || ''),
+    })).filter((l) => l.text),
   };
 }
 
@@ -251,10 +269,56 @@ export function lintEvenhanded(issue) {
 export function lintNoOneSidedPersuasion(issue) {
   const i = normalizeIssue(issue);
   const out = [];
+
+  // RENDERABILITY IS PART OF CORRECTNESS (2026-08-14). Every other check here
+  // asks whether a field is TRUTHY. React asks something stricter: an object
+  // handed to it as a child throws, and the whole curriculum renders EMPTY.
+  // Issue 10 shipped `lens.threeD` as { practical: '...' } instead of a string;
+  // this audit passed it (truthy), the verse gate passed it, and the render
+  // test 40 files away was the only thing that caught it -- by then reporting
+  // "expected '' to match /(Issue)\s*1/", which names the symptom and not the
+  // cause. Check the shape HERE, where the message can say what is wrong.
+  // These four are interpolated directly as React children by the modules.
+  for (const key of ['threeD', 'graceNote', 'stewardship']) {
+    const v = i.lens?.[key];
+    if (v != null && typeof v !== 'string') {
+      out.push({
+        code: `lens/${key}-not-a-string`,
+        severity: 'error',
+        message: `lens.${key} must be a STRING — it is rendered directly as a React child, and an object there throws and blanks the whole curriculum (got ${Array.isArray(v) ? 'array' : typeof v}${v && typeof v === 'object' ? ` with keys {${Object.keys(v).join(', ')}}` : ''}).`,
+      });
+    }
+  }
+  if (i.lens?.fourD != null && typeof i.lens.fourD.deepSource !== 'string') {
+    out.push({ code: 'lens/fourD-deepSource-not-a-string', severity: 'error', message: 'lens.fourD.deepSource must be a STRING (fourD is the one lens field that IS an object — its deepSource is the rendered child).' });
+  }
+
   if (!i.subject.isNamedRealPerson) return out; // safeguard targets named-person lessons
 
   if (!isNonEmptyStr(i.lens.graceNote)) {
     out.push({ code: 'persuasion/no-grace', severity: 'error', message: 'A named-person lesson must carry a grace-note (truth-and-grace, no condemnation of the person).' });
+  }
+  // Accountability must be STATED, not implied: any named-person lesson with
+  // documented harm carries an explicit accountability statement — what the
+  // Word requires of the wrongdoer and of us, on both courts (man's and the
+  // eternal court where every dismissed or hidden thing is still evidence).
+  const hasDocumented = i.verifiable.some((v) => v.status === 'documented');
+  if (hasDocumented && !isNonEmptyStr(i.lens.accountability?.statement)) {
+    out.push({ code: 'accountability/missing', severity: 'error', message: 'A named-person lesson with documented harm must state accountability plainly (lens.accountability): what the Word requires of the wrongdoer (confession, restitution, fruits of repentance) and of us — never left implied.' });
+  }
+  // The TWO COURTS must be visible in the benefits, not only in the deep lens
+  // (Darrell 2026-07-11 sharpening, DR-0171): where a lesson carries documented
+  // accountability, at least one benefit must name that judgment lands in BOTH
+  // courts — some in this life (imperfectly: the guilty escape and the innocent
+  // suffer) and all in the ETERNAL court after this life. Scoped to hasDocumented
+  // so a lesson that does not deal with documented wrongdoing is never forced to
+  // carry it ("unless it's not about that subject").
+  const ETERNAL_COURT_RE = /eternal court|after this life|Ecclesiastes 12:14|Hebrews 9:27|both courts|two courts|judgment seat|eternal (reward|weight|glory)/i;
+  if (hasDocumented && isNonEmptyStr(i.lens.accountability?.statement)) {
+    const benefits = Array.isArray(i.lens.benefits) ? i.lens.benefits : [];
+    if (!benefits.some((b) => typeof b === 'string' && ETERNAL_COURT_RE.test(b))) {
+      out.push({ code: 'accountability/eternal-court-not-in-benefits', severity: 'error', message: 'A lesson with documented accountability must make the TWO COURTS visible in its benefits (lens.benefits): that judgment lands both in this life (imperfectly) and in the eternal court after it — not only in the deep lens.' });
+    }
   }
   if (i.perspectives.filter((p) => isNonEmptyStr(p.steelman)).length < 2) {
     out.push({ code: 'persuasion/one-sided', severity: 'error', message: 'A named-person lesson must present multiple steelmanned perspectives, not one side.' });
@@ -271,14 +335,14 @@ export function lintNoOneSidedPersuasion(issue) {
   // those are reported, not asserted.)
   const ownVoice = [
     i.skill, i.title,
-    i.lens.threeD, i.lens.fourD.deepSource, i.lens.graceNote, i.lens.stewardship,
+    i.lens.threeD, i.lens.fourD.deepSource, i.lens.graceNote, i.lens.stewardship, i.lens.accountability?.statement || '',
     i.reflection.skill, i.reflection.practice,
     ...i.reflection.prompts,
     ...i.lens.benefits,
   ].filter(isNonEmptyStr).join(' \n ').toLowerCase();
   DIRECTIVE_PERSUASION.forEach((phrase) => {
     if (ownVoice.includes(phrase)) {
-      out.push({ code: 'persuasion/directive', severity: 'error', message: `The lesson's own voice contains a persuasive directive ("${phrase}"). The platform teaches discernment, not a verdict on a person.` });
+      out.push({ code: 'persuasion/directive', severity: 'error', message: `The lesson's own voice contains a persuasive directive ("${phrase}"). The lesson speaks the Word's verdict on documented deeds plainly, but it never campaigns against a person or pronounces on a soul.` });
     }
   });
   return out;
@@ -331,7 +395,7 @@ export function auditAllIssues(issues) {
 function buildLessonProse(i) {
   const parts = [];
   parts.push(
-    `This is a discernment lesson, not a verdict. We take one charged claim and learn HOW to think it through — checking sources and weighing it in the light of Scripture — rather than being told what to conclude.`,
+    `This lesson speaks the documented truth plainly and teaches HOW to weigh the rest — checking sources, hearing every side, and letting the Word say what it says about justice and accountability. What is proven is named; what is unproven is labeled; the verdict on a soul is left to God.`,
   );
   if (i.source.creator) {
     parts.push(
@@ -339,7 +403,7 @@ function buildLessonProse(i) {
     );
   }
   if (i.claims.length) {
-    parts.push(`STAGE 1 — THE CLAIM. ${i.claims.map((c) => `[${c.label}] ${c.text}`).join(' ')} Each is labeled and attributed; none is presented as settled fact.`);
+    parts.push(`STAGE 1 — THE CLAIM. ${i.claims.map((c) => `[${c.label}] ${c.text}`).join(' ')} Each is labeled and attributed; documented parts are named as documented, and unproven parts stay labeled unproven.`);
   }
   if (i.verifiable.length || i.interpretation.length) {
     const facts = i.verifiable.map((v) => `${v.statement} (${v.status}; see ${v.sources.map((s) => `${s.title}${s.asOf ? `, as of ${s.asOf}` : ''}`).join('; ')})`).join(' ');
@@ -350,7 +414,7 @@ function buildLessonProse(i) {
     parts.push(`STAGE 3 — PERSPECTIVES. ${i.perspectives.map((p) => `${p.label}: ${p.steelman}`).join(' ')} We state each at its strongest before we weigh any of them.`);
   }
   if (i.lens.fourD.deepSource || i.lens.threeD) {
-    parts.push(`STAGE 4 — THE BELIEVER'S LENS. ${i.lens.fourD.deepSource} ${i.lens.threeD} ${i.lens.stewardship} ${i.lens.graceNote}`.replace(/\s+/g, ' ').trim());
+    parts.push(`STAGE 4 — THE BELIEVER'S LENS. ${i.lens.fourD.deepSource} ${i.lens.threeD} ${i.lens.accountability?.statement ? `ACCOUNTABILITY — WHAT THE WORD REQUIRES. ${i.lens.accountability.statement}` : ''} ${i.lens.stewardship} ${i.lens.graceNote}`.replace(/\s+/g, ' ').trim());
   }
   if (i.reflection.skill) {
     parts.push(`STAGE 5 — REFLECTION + SKILL. ${i.reflection.skill}`);
@@ -378,11 +442,11 @@ export function buildDiscernmentModule(issue) {
     lesson: buildLessonProse(i),
     facilitator: {
       talkingPoints: [
-        'This is a discernment lesson, not a verdict — we teach HOW to think it through, never WHAT to conclude about a person.',
+        'We speak what is documented plainly, label what is unproven, and leave the verdict on a soul to God — proven harm is never muted as "balance."',
         'Stage 1: every claim is LABELED (allegation / claim / opinion / call-to-action) and attributed to its source. We never repeat a contested allegation as settled fact.',
         'Stage 2: separate DOCUMENTED fact (checkable against primary sources, with dates) from INTERPRETATION. Model checking a source live.',
-        'Stage 3: steelman every side — state each perspective at its strongest before weighing any.',
-        'Stage 4: the believer\'s lens — truth AND grace, Scripture on justice and stewardship, and NO condemnation of any person made in God\'s image.',
+        'Stage 3: steelman every side — state each perspective at its strongest before weighing any. Perspectives judge ONLY the unresolved parts: the documented facts were stated plainly in Stage 2 and are not up for a vote.',
+        'Stage 4: the believer\'s lens — the Word\'s justice spoken plainly, and ACCOUNTABILITY stated, never implied: man\'s court is not the court of record (dismissed evidence and permitted wrongs still enter the eternal court, Ecclesiastes 12:14), the wrongdoer owes confession + restitution + fruits of repentance, and NO condemnation of any person made in God\'s image.',
         'Stage 5: name the transferable skill — check sources, choose righteous engagement over outrage, and keep your peace in a divisive world.',
       ],
       howToRun: [

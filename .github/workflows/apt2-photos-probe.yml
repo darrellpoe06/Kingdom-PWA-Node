@@ -1,0 +1,82 @@
+# apt2-photos-probe — did the move-out set for 805 Apt 2 ever land? (read-only)
+#
+# WHY (2026-10-10). Darrell: "What happened to the pictures in Apartment 2?!"
+# Earlier the same evening, on the same door: "After trying to upload it did
+# not work.... pictures looked like they would upload and never did."
+#
+# The sandbox has no route to the NAS or poetech.us, so the runner is the eye
+# (DR-0125). And an absence must be MEASURED, never inferred — "no pictures"
+# and "the read was refused" look identical from a browser, which is the whole
+# of DR-0876. This answers one question with rows: do the photographs for that
+# door EXIST in the database, and when did they arrive?
+#
+# WHAT IT READS, AND WHAT IT REFUSES TO. Counts, kinds and timestamps ONLY,
+# inside BEGIN READ ONLY. It never selects storage_path, thumb_path or
+# caption: the first two ARE the photographs (base64 data URLs) and the third
+# is a person's words about the inside of somebody's home. A diagnostic has no
+# business printing any of them into an Actions log.
+#
+# The door match is a FIXED literal, not an input. A dispatch input would be a
+# string going straight into SQL for no benefit worth that.
+#
+# BRAKES (deterministic class, DR-0248: budget + lock): dispatch only, 10
+# minutes, concurrency group `apt2-photos-probe`. Read-only by construction.
+
+name: apt2-photos-probe
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: apt2-photos-probe
+  cancel-in-progress: false
+
+jobs:
+  count:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Join the tailnet (to reach the live database)
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+      - name: Count the door's photographs (counts, kinds and times only)
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          set -uo pipefail
+          cat > /tmp/photos.sql <<'SQL'
+          BEGIN READ ONLY;
+          \echo == 1. the doors that match prospect (id8|slug|name|status) ==
+          SELECT left(r.id::text,8), r.slug, r.display_name, r.status
+            FROM rentals r
+           WHERE r.display_name ILIKE '%prospect%' OR r.address ILIKE '%prospect%' OR r.slug ILIKE '%prospect%'
+           ORDER BY r.display_name;
+          \echo == 2. photographs per matching door per kind (id8|kind|live|archived|first|last) ==
+          SELECT left(r.id::text,8), p.kind,
+                 count(*) FILTER (WHERE p.archived_at IS NULL),
+                 count(*) FILTER (WHERE p.archived_at IS NOT NULL),
+                 min(p.uploaded_at), max(p.uploaded_at)
+            FROM property_photos p JOIN rentals r ON r.id = p.rental_ref
+           WHERE r.display_name ILIKE '%prospect%' OR r.address ILIKE '%prospect%' OR r.slug ILIKE '%prospect%'
+           GROUP BY 1,2 ORDER BY 1,2;
+          \echo == 3. anything that arrived in the last 48 hours, any door (kind|count|last) ==
+          SELECT p.kind, count(*), max(p.uploaded_at)
+            FROM property_photos p
+           WHERE p.uploaded_at > now() - interval '48 hours'
+           GROUP BY 1 ORDER BY 3 DESC;
+          \echo == 4. the whole table, so a zero above is read correctly (rows|doors|kinds) ==
+          SELECT count(*), count(DISTINCT rental_ref), count(DISTINCT kind) FROM property_photos;
+          \echo == 5. did 0271 land? (uploaded_by default|taken_at CHECK present) ==
+          SELECT (SELECT column_default FROM information_schema.columns
+                   WHERE table_name='property_photos' AND column_name='uploaded_by'),
+                 EXISTS (SELECT 1 FROM pg_constraint WHERE conname='property_photos_taken_at_sane');
+          COMMIT;
+          SQL
+          if ! out=$(bash scripts/live-sql.sh '|' < /tmp/photos.sql); then
+            echo "::error::could not read the live database — that is itself the finding"
+            printf '%s\n' "$out"
+            exit 1
+          fi
+          printf '%s\n' "$out"

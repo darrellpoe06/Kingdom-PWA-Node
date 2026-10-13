@@ -11,9 +11,9 @@ import {
 import { MODULES } from '../lib/church-classes.js';
 
 describe('the tutor routes local-first (sovereign), not to a vendor', () => {
-  it('uses the same-origin /n8n NAS path, not an absolute vendor/Funnel URL', () => {
+  it('uses the same-origin sovereign LLM path, not an absolute vendor/Funnel URL', () => {
     const url = tutorEndpoint();
-    expect(url).toContain('/n8n/webhook/class-tutor');
+    expect(url).toContain('/llm/chat');
     expect(url).not.toMatch(/^https?:\/\//); // same-origin relative path
     expect(url).not.toMatch(/openai|anthropic|googleapis|tail5a2f35/i);
   });

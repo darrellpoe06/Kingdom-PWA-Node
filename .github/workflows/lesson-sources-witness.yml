@@ -1,0 +1,34 @@
+name: lesson-sources-witness
+# Every researched figure in a lesson is read back from its publisher's own
+# page by a GitHub runner (the NAS writer has no web; the cloud sandbox cannot
+# reach epi.org or bls.gov). Darrell 2026-10-02: "We are supposed to
+# independently research those American policies". Runs on a change to the
+# sources file and on demand; red means a figure no longer stands on its
+# source and the LESSON is corrected, never the check (DR-0076 / DR-0100).
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - app/src/lib/lesson-sources.json
+      - scripts/lesson-sources-witness.mjs
+      - .github/workflows/lesson-sources-witness.yml
+concurrency:
+  group: lesson-sources-witness
+  cancel-in-progress: false
+permissions:
+  contents: read
+jobs:
+  witness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: pdftotext for the sources published as PDF (BLS Monthly Labor Review)
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq poppler-utils >/dev/null
+      - name: The witness can fail (selftest)
+        run: node scripts/lesson-sources-witness.mjs --selftest
+      - name: Every researched figure read back from its source
+        run: node scripts/lesson-sources-witness.mjs

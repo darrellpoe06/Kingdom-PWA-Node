@@ -1,0 +1,20 @@
+ARMED BY RECORD -- DR-0670 (Darrell, 2026-09-29): "Can we make the open claw
+work on the towers?"
+
+This committed file IS the arm for OpenClaw on the 4070 tower (tlcmediadpt),
+under the amended law (DR-0247): agreed work starts itself through the lane,
+and the Governor's hand is the BRAKE, never the starter.
+
+OpenClaw is the AI class, so all three brakes stay (the 2026-07-29 amendment
+removed the manual kill-switch only from the DETERMINISTIC class):
+  - BUDGET: per-turn wall clock (timeoutSeconds), per-run tool-call ceiling in
+    the gate, per-run turns and runs-per-day in registry.json.
+  - LOCK:   one gateway container; the pilot runner's lockdir skips a second fire.
+  - KILL:   set a role enabled:false in registry.json, or delete THIS file, in a
+            PR. The openclaw-tower lane reads both from main on every fire and
+            stops what they say is off. An overrun auto-pauses a role until a
+            PR raises its arm_epoch.
+
+Bright lines are denied in code whatever this file says: money, credentials,
+PHI, the family's theological voice, irreversible OS actions (infra/openclaw-
+tower/gate.mjs). Not in build/CI, ever (STEP 4, role c).

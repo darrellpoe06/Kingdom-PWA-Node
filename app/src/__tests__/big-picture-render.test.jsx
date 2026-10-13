@@ -128,12 +128,100 @@ describe('BigPictureDashboard — the overview survived the extraction', () => {
     expect(container.textContent).not.toMatch(/Things to try/i);
   });
 
+  // Darrell 2026-09-11: "dashboard debt tracker all subtabs!!!!!!!" — Now was a
+  // 265-line read-down, so it carries a third row (SectionTabs variant="sub").
+  // The capacity meter therefore lives in its own lazily-mounted panel: this
+  // test OPENS it before asserting, because the strip's "Capacity" LABEL would
+  // otherwise satisfy a /capacity/i match with the meter nowhere on the page.
+  function openSub(label) {
+    const tab = [...container.querySelectorAll('[role="tab"]')].find((b) => b.textContent.trim() === label);
+    if (!tab) throw new Error(`no tab "${label}" — tabs: ${[...container.querySelectorAll('[role="tab"]')].map((b) => b.textContent.trim()).join(', ')}`);
+    act(() => tab.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+  }
+
+  it('Now carries a third row, so neither half is a long read-down', () => {
+    mount({ welcomeDismissed: true });
+    const labels = [...container.querySelectorAll('[role="tab"]')].map((b) => b.textContent.trim());
+    expect(labels).toContain('What needs you');
+    expect(labels).toContain('Capacity');
+    // The Action Queue opens by default — it is what "Now" means.
+    expect(container.textContent).toMatch(/Action Queue/i);
+  });
+
   it('capacity meter reads from real project + skill-profile hours', () => {
     mount({
+      welcomeDismissed: true,
       projects: [{ id: 'p1', title: 'Deck rebuild', status: 'active', hoursPerWeek: 10, startDate: '2026-06-01', endDate: '2026-08-01' }],
       skillProfiles: [{ id: 's1', person: 'Adam', hoursPerWeek: 20 }],
     });
-    expect(container.textContent).toMatch(/capacity/i);
-    expect(container.textContent).toMatch(/10/);
+    openSub('Capacity');
+    // The METER, not the tab label: the heading, the hrs/wk read-out and the
+    // real numbers computed from the rows above.
+    expect(container.textContent).toMatch(/Family Capacity/i);
+    expect(container.textContent).toMatch(/hrs\/wk/);
+    expect(container.textContent).toMatch(/10 \/ 20/);
+    expect(container.querySelector('[role="progressbar"]')).toBeTruthy();
+  });
+
+  // DR-0690 — Darrell 2026-09-30, over a phone screenshot of an EMPTY Capacity
+  // tab: "Capacity workflows work?" The tab must never be blank: each state
+  // below says what it measures, what is missing, and traces its number to
+  // real project rows. Reverting CapacityPanel to the old conditional meter
+  // fails the two empty-state tests (nothing renders under the tab).
+  const PROJECTS = [
+    { id: 'p1', title: 'Deck rebuild', status: 'active', hoursPerWeek: 10 },
+    { id: 'p2', title: 'Rental turnover', status: 'planning', hoursPerWeek: 6 },
+    { id: 'p3', title: 'Old job', status: 'complete', hoursPerWeek: 40 },
+    { id: 'p4', title: 'Idea parked', status: 'tbd', hoursPerWeek: 8 },
+    { id: 'p5', title: 'No hours yet', status: 'active' },
+  ];
+  const panel = () => container.querySelector('section[aria-labelledby="capacity-h"]');
+
+  it('no skill profiles: the tab says capacity is not checked, shows committed hours from real rows, and links to where hours are set', () => {
+    const views = [];
+    mount({ welcomeDismissed: true, projects: PROJECTS, skillProfiles: [], setView: (v) => views.push(v) });
+    openSub('Capacity');
+    const p = panel();
+    expect(p).toBeTruthy();
+    expect(p.getAttribute('data-capacity-state')).toBe('no-profiles');
+    const t = p.textContent;
+    expect(t).toMatch(/weekly hours are set yet, so capacity isn't being checked/);
+    expect(t).toMatch(/What it measures/);
+    // 10 + 6 from active/planning; complete (40) and tbd (8) do not count.
+    expect(t).toMatch(/16hrs\/wk committed/);
+    expect(t).toMatch(/Deck rebuild/);
+    expect(t).toMatch(/Rental turnover/);
+    expect(t).not.toMatch(/Old job/);
+    expect(t).not.toMatch(/Idea parked/);
+    expect(t).toMatch(/1 active project has no hrs\/wk set/);
+    expect(t).toMatch(/Action Queue/);
+    expect(p.querySelector('[role="progressbar"]')).toBeNull();
+    const btn = [...p.querySelectorAll('button')].find((b) => /Set weekly hours/.test(b.textContent));
+    expect(btn).toBeTruthy();
+    act(() => btn.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+    expect(views).toEqual(['opportunities']);
+  });
+
+  it('profiles with zero hours: says which is missing instead of painting 0%', () => {
+    mount({ welcomeDismissed: true, projects: PROJECTS, skillProfiles: [{ id: 's1', name: 'Adam', hoursPerWeek: 0 }, { id: 's2', name: 'Eve', hoursPerWeek: '' }] });
+    openSub('Capacity');
+    const p = panel();
+    expect(p).toBeTruthy();
+    expect(p.getAttribute('data-capacity-state')).toBe('no-hours');
+    expect(p.textContent).toMatch(/2 skill profiles exist, but none has weekly hours set/);
+    expect(p.textContent).not.toMatch(/0%/);
+    expect(p.querySelector('[role="progressbar"]')).toBeNull();
+  });
+
+  it('with hours set: keeps the meter and lists the projects the number is summed from, largest first', () => {
+    mount({ welcomeDismissed: true, projects: PROJECTS, skillProfiles: [{ id: 's1', name: 'Adam', hoursPerWeek: 20 }] });
+    openSub('Capacity');
+    const p = panel();
+    expect(p.getAttribute('data-capacity-state')).toBe('measured');
+    expect(p.querySelector('[role="progressbar"]').getAttribute('aria-valuenow')).toBe('80');
+    expect(p.textContent).toMatch(/16 \/ 20 hrs\/wk/);
+    const rows = [...p.querySelectorAll('[data-testid="capacity-contributors"] li')].map((li) => li.textContent);
+    expect(rows).toEqual(['Deck rebuild10 hrs/wk', 'Rental turnover6 hrs/wk']);
+    expect(p.textContent).not.toMatch(/Tenant-as-Project/);
   });
 });

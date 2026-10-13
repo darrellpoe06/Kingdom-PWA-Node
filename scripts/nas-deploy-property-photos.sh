@@ -1,4 +1,7 @@
 #!/bin/sh
+# RECORDED-STATE: infra/nas-transport/RECORDED-STATE.md — this mounts the
+# /nas-photos funnel path (-> 127.0.0.1:8099, the sovereign photo server).
+# Additive funnel path mount; never touch the root or use `serve` (DR-0250).
 # nas-deploy-property-photos.sh   (run ON the NAS host, as dpoe)
 #
 # 2026-07-01  Sovereign property-photo image server (no n8n). Installs

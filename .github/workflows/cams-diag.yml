@@ -1,0 +1,169 @@
+# cams-diag — the team's EYE on the camera road, from the NAS itself (DR-0774).
+#
+# The cloud sandbox has no route to the NAS and the Funnel exposes only the
+# forwarder's allowlisted paths, so when a tile says "no frame" the agent could
+# only guess. This workflow joins the tailnet (the same ephemeral runner the
+# clock installer uses), SSHes to the NAS as dpoe, and prints what go2rtc
+# itself says: its streams (kind + host, never a url), its recent log, the
+# container's log, the forwarder's /health, and one timed frame probe for a
+# named camera. Every line is scrubbed of enr/password/key/token values before
+# it reaches the run log. Read-only: it changes nothing on the box.
+name: cams-diag
+
+on:
+  workflow_dispatch:
+    inputs:
+      camera:
+        description: 'A stream id to probe with one timed frame request (e.g. front_door_view). Empty = no probe.'
+        type: string
+        default: ''
+      log_lines:
+        description: 'How many recent go2rtc log lines to print'
+        type: string
+        default: '120'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cams-diag
+  cancel-in-progress: false
+
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check secrets (no-op with instructions when absent)
+        id: gate
+        env:
+          TS: ${{ secrets.TS_AUTHKEY != '' }}
+          KEY: ${{ secrets.NAS_SSH_KEY != '' }}
+        run: |
+          if [ "$TS" != "true" ] || [ "$KEY" != "true" ]; then
+            echo "NOT CONFIGURED: add repo secrets TS_AUTHKEY (Reusable + Ephemeral) and NAS_SSH_KEY, then re-dispatch."
+            echo "go=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "go=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Join the tailnet (ephemeral)
+        if: steps.gate.outputs.go == 'true'
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+
+      - name: Verify the tailnet actually joined
+        if: steps.gate.outputs.go == 'true'
+        run: |
+          if ! tailscale status --peers=false >/dev/null 2>&1; then
+            echo "::error::Tailnet join FAILED — TS_AUTHKEY invalid or consumed (needs Reusable + Ephemeral)."
+            exit 1
+          fi
+
+      - name: What go2rtc says (read-only, scrubbed)
+        if: steps.gate.outputs.go == 'true'
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+          CAMERA: ${{ inputs.camera }}
+          LOG_LINES: ${{ inputs.log_lines }}
+        run: |
+          umask 077
+          printf '%s\n' "$NAS_SSH_KEY" > /tmp/nas_key
+          SSH="ssh -i /tmp/nas_key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 dpoe@poetech.tail5a2f35.ts.net"
+          $SSH "CAMERA='$CAMERA' LOG_LINES='$LOG_LINES' sh -s" <<'EOS'
+          PATH=/usr/local/bin:/opt/bin:/usr/bin:/bin:$PATH; export PATH
+          # Scrub every credential-shaped value before anything is printed.
+          # Masks by NAME and by SHAPE: a 32-hex token is a key whatever it is called (the bridge's access log carries ?api=<key> verbatim; fifth field read, DR-0809).
+          scrub() { sed -E 's/([?&"]?(enr|password|pass|pwd|token|api|api_key|key|refresh_token|access_token|secret)[=:"]+)[^&" ]*/\1***/Ig; s#://[^/@ ]+@#://***@#g; s/\b[0-9a-f]{32}\b/***/g'; }
+          SUDO=""; sudo -n true 2>/dev/null && SUDO="sudo -n"
+          echo "=== forwarder /health (127.0.0.1:8773) ==="
+          curl -s -m 8 http://127.0.0.1:8773/health | scrub; echo
+          echo "=== stream-health.json (the forwarder's sampler, DR-0798; last hour per camera) ==="
+          if [ -f /volume1/docker/go2rtc/stream-health.json ]; then head -c 6000 /volume1/docker/go2rtc/stream-health.json | scrub; echo; else echo "(no stream-health.json yet: the forwarder on this box predates DR-0798 or has not sampled)"; fi
+          echo "=== go2rtc /api ==="
+          curl -s -m 8 http://127.0.0.1:1984/api | scrub | head -c 400; echo
+          echo "=== go2rtc streams: id, kind, host, state (never a url) ==="
+          curl -s -m 10 http://127.0.0.1:1984/api/streams | python3 -c '
+          import json,sys
+          from urllib.parse import urlsplit
+          d=json.load(sys.stdin)
+          for k in sorted(d, key=str.lower):
+              e=d[k] or {}
+              for p in (e.get("producers") or []):
+                  u=str(p.get("url",""))
+                  try: host=urlsplit(u).hostname or ""
+                  except Exception: host=""
+                  print("%-40s %-6s %-16s state=%s medias=%s" % (k, u.split(":",1)[0], host, p.get("state",""), len(p.get("medias") or [])))
+              if not e.get("producers"): print("%-40s (no producers)" % k)
+          ' 2>&1 | scrub
+          echo "=== go2rtc config SHAPE (never a value): files, size, mtime, top-level keys, stream lines, wyze block present ==="
+          DATA=/volume1/docker/go2rtc
+          ls -la "$DATA" 2>/dev/null || $SUDO ls -la "$DATA" 2>/dev/null || echo "(cannot list $DATA)"
+          CFG="$DATA/go2rtc.yaml"
+          if [ -r "$CFG" ] || $SUDO test -r "$CFG"; then
+            $SUDO python3 - "$CFG" <<'PY'
+          import re,sys
+          lines=open(sys.argv[1],encoding="utf-8",errors="replace").read().splitlines()
+          top=[l.split(":")[0] for l in lines if re.match(r"^[A-Za-z_][A-Za-z0-9_-]*:",l)]
+          print("top-level keys:", top)
+          n=0; i=0
+          while i<len(lines) and not lines[i].startswith("streams:"): i+=1
+          if i<len(lines):
+              print("streams line:", lines[i][:40])
+              for l in lines[i+1:]:
+                  if l and not l.startswith((" ","\t")): break
+                  if re.match(r"^\s{2}[^\s#].*:",l): n+=1
+          print("streams defined:", n)
+          print("wyze block present:", any(re.match(r"^wyze:",l) for l in lines))
+          print("total lines:", len(lines))
+          PY
+          else
+            echo "(go2rtc.yaml unreadable)"
+          fi
+          echo "=== go2rtc /api/log (last $LOG_LINES lines, scrubbed) ==="
+          curl -s -m 10 http://127.0.0.1:1984/api/log | tail -n "${LOG_LINES:-120}" | scrub
+          echo "=== docker logs poetech-go2rtc (last 80 lines, scrubbed) ==="
+          DOCKER=""
+          for CAND in docker /usr/local/bin/docker /var/packages/ContainerManager/target/usr/bin/docker; do
+            command -v "$CAND" >/dev/null 2>&1 || continue
+            if "$CAND" ps >/dev/null 2>&1; then DOCKER="$CAND"; break; fi
+            if $SUDO "$CAND" ps >/dev/null 2>&1; then DOCKER="$SUDO $CAND"; break; fi
+          done
+          if [ -n "$DOCKER" ]; then $DOCKER logs --tail 80 poetech-go2rtc 2>&1 | scrub; else echo "(docker not runnable by this user)"; fi
+          echo "=== docker logs poetech-wyze-bridge (last 60 lines, scrubbed; DR-0809) ==="
+          if [ -n "$DOCKER" ]; then $DOCKER logs --tail 60 poetech-wyze-bridge 2>&1 | scrub; else echo "(docker not runnable by this user)"; fi
+          echo "=== the bridge's own word on each camera (connected / status / enabled; never a credential) ==="
+          BENV=/volume1/PoeTech/secrets/wyze-bridge.env
+          # The env file quotes its values (_env_quote); the bridge compares the bare key, so the quotes come off (sixth field read: 401 with them on).
+          WBK="$($SUDO grep -s '^WB_API=' "$BENV" | head -1 | cut -d= -f2- | tr -d '"' | tr -d "'")"
+          if [ -n "$WBK" ]; then
+            curl -s -m 10 -H "api: $WBK" http://127.0.0.1:8597/api | python3 -c '
+          import json,sys
+          try: d=json.load(sys.stdin)
+          except Exception as e: print("(bridge /api unreadable: %s)" % e); sys.exit(0)
+          cams=d.get("cameras") if isinstance(d,dict) else None
+          if not isinstance(cams,dict): print("(no cameras key; keys=%s; error=%r)" % (list(d)[:8], d.get("error")) if isinstance(d,dict) else "(not an object)"); sys.exit(0)
+          for k in sorted(cams):
+              c=cams[k] if isinstance(cams[k],dict) else {}
+              print("%-36s connected=%-5s enabled=%-5s status=%-12s on_demand=%s" % (k, c.get("connected"), c.get("enabled"), c.get("status"), c.get("on_demand")))
+          '
+          else echo "(bridge env unreadable by this user)"; fi
+          echo "=== forwarder journal (last 40 lines) ==="
+          $SUDO journalctl -u poetech-cams -n 40 --no-pager 2>&1 | scrub || true
+          echo "=== NAS network: which LAN is this box on (the restreamer reaches only THIS LAN) ==="
+          ip -4 addr show 2>/dev/null | grep -E "inet " | grep -v 127.0.0.1 || ifconfig 2>/dev/null | grep "inet " | grep -v 127.0.0.1
+          if [ -n "$CAMERA" ]; then
+            echo "=== one timed frame probe: $CAMERA ==="
+            curl -s -m 20 -o /tmp/probe.jpg -w 'HTTP %{http_code} in %{time_total}s, %{size_download} bytes\n' "http://127.0.0.1:1984/api/frame.jpeg?src=$CAMERA" || echo "probe failed/timed out"
+            head -c 300 /tmp/probe.jpg 2>/dev/null | scrub | strings | head -5; rm -f /tmp/probe.jpg
+            echo "=== forwarder /why/$CAMERA (bearer from the box's own secret file) ==="
+            TOK="$(cat /volume1/PoeTech/secrets/chat-bridge-token.txt 2>/dev/null || $SUDO cat /volume1/PoeTech/secrets/chat-bridge-token.txt 2>/dev/null)"
+            if [ -n "$TOK" ]; then curl -s -m 25 -H "Authorization: Bearer $TOK" "http://127.0.0.1:8773/why/$CAMERA" | scrub; echo; else echo "(token file unreadable by this user)"; fi
+            echo "=== a 35s stream probe: $CAMERA (bytes received while go2rtc waits up to #timeout=30 for the on-demand camera) ==="
+            curl -s -m 35 -o /dev/null -w 'HTTP %{http_code} in %{time_total}s, %{size_download} bytes\n' "http://127.0.0.1:1984/api/stream.mp4?src=$CAMERA" || echo "stream probe ended/timed out"
+            echo "=== docker logs poetech-wyze-bridge AFTER the probes (last 30 lines, scrubbed): the bridge's reaction to $CAMERA ==="
+            if [ -n "$DOCKER" ]; then $DOCKER logs --tail 30 poetech-wyze-bridge 2>&1 | scrub; fi
+          fi
+          echo "=== done ==="
+          EOS

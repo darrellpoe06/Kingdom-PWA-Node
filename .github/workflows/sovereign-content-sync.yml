@@ -1,0 +1,84 @@
+# Sovereign content sync — the rows the NAS pipelines filed on the retired
+# backend are carried to the database the app reads (DR-0442)
+#
+# WHY THIS EXISTS. The app has read the sovereign stack since REPOINT-ARMED
+# (2026-08-19, DR-0310). The NAS ingest scripts (youtube_load, proclaim_load,
+# the transcript loaders) kept writing to the HOSTED project. Measured
+# 2026-09-16 from The Word -> Migdal: "0 of 901 messages . September 2026" on the
+# app, 911 choir_sermons on hosted with four September services, and 699
+# video_transcripts rows hosted-only. Third instance of one class after the
+# blobs (DR-0317) and the migrations (sovereign-replay): a repoint is complete
+# only when readers, writers, blobs and lanes ALL follow the record.
+#
+# TWO MODES, ONE SCRIPT (scripts/content-sync-over-tailnet.sh):
+#   dry-run  reads both databases and goes RED when any hosted-only row remains
+#            (the witness — a red run is the finding, DR-0076)
+#   apply    copies the difference (insert missing, update where hosted is
+#            newer), then re-measures and goes red unless nothing remains
+#
+# ARMED, BY DARRELL'S OWN WORD (2026-09-16): "You switch it!!!!!!!!! Obviously!!!!!
+# Why wouldn't that just happen????!" Parking the carry-across on a human
+# dispatch was the DR-0111/DR-0247 violation — agreed work starts itself. So the
+# schedule below APPLIES daily, and a dispatch can still measure first.
+#
+# This is the deterministic class of DR-0247/DR-0248: no model, no spawned work,
+# idempotent by construction (ON CONFLICT DO NOTHING; updates only where hosted
+# is newer; sovereign-only rows never touched). It carries the two brakes that
+# class keeps — a budget (timeout-minutes) and a single-instance lock
+# (concurrency, cancel-in-progress false) — and its stop-paths are deterministic
+# too: remove the schedule block, or revert this file. The durable fix rides
+# with it: the loaders now follow the record (sovereign_target.py), so hosted
+# stops receiving new rows at all, and this lane's daily verdict is what proves
+# that — a GO with nothing copied means the writers are landing in the right
+# place, and a copy means one has not been repointed yet.
+name: Sovereign content sync (hosted -> sovereign)
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "dry-run measures and reports; apply copies the difference"
+        type: choice
+        options: [dry-run, apply]
+        default: dry-run
+      table:
+        description: "one table only (blank = every content table)"
+        type: string
+        default: ""
+  schedule:
+    # 06:20 UTC daily — after the NAS's overnight ingest window and before the
+    # US morning, offset from the hour so it never stacks on the other clocks.
+    - cron: '20 6 * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sovereign-content-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    name: carry hosted-only content rows to the sovereign database
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Join the tailnet
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+
+      - name: Measure, and carry across when applying
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+          # A scheduled run has no inputs, and it APPLIES: the daily carry is
+          # the point (Darrell 2026-09-16). A dispatch does what it was told.
+          MODE: ${{ github.event_name == 'schedule' && 'apply' || inputs.mode }}
+          ONLY_TABLE: ${{ github.event_name == 'schedule' && '' || inputs.table }}
+        run: bash scripts/content-sync-over-tailnet.sh
+
+      - name: Say how to confirm it independently
+        if: always()
+        run: echo "Open The Word -> Migdal on poetech.us, step the month to September 2026, and count the services there against the channel. The surface is the proof; this run only reports (DR-0076)." >> "$GITHUB_STEP_SUMMARY"

@@ -43,21 +43,41 @@ export function pairIds(slice) {
   return out;
 }
 
-// Walk back from the `]` that sits immediately before a `.map(` whose callback
-// body contains `bodyMarker`, to its matching `[`, and return that array slice.
-// This targets ONE specific nav array without a whole-file regex sweep.
+// Walk back from a `.map(` whose callback body contains `bodyMarker`, past any
+// chained method calls (e.g. a `.filter((row) => ...)` that scopes the nav down
+// in one door mode), to the array literal's OWN `]`, then to its matching `[`,
+// and return that array slice. This targets ONE specific nav array without a
+// whole-file regex sweep, and is robust to `.filter(...).map(...)` chains whose
+// callbacks themselves contain brackets (e.g. `([id]) => ...`).
 export function mappedArraySlice(src, bodyMarker) {
   const bodyIdx = src.indexOf(bodyMarker);
   if (bodyIdx === -1) throw new Error(`feedback-area-guard: body marker not found: ${bodyMarker}`);
   const mapIdx = src.lastIndexOf('.map(', bodyIdx);
   if (mapIdx === -1) throw new Error(`feedback-area-guard: no .map( before ${bodyMarker}`);
-  const closeIdx = src.lastIndexOf(']', mapIdx);
-  if (closeIdx === -1) throw new Error(`feedback-area-guard: no ] before .map( for ${bodyMarker}`);
+  // Step left from just before `.map(`, skipping whitespace and any number of
+  // chained `.method(...)` calls, so a `.filter((\[id]) => ...)` between the
+  // array's `]` and `.map(` can't fool us into grabbing a destructuring bracket.
+  let i = mapIdx - 1;
+  const skipWs = () => { while (i >= 0 && /\s/.test(src[i])) i--; };
+  skipWs();
+  while (src[i] === ')') {
+    // Match this chained call's parens back to its opening `(` (nested parens
+    // inside the callback are balanced; brackets don't affect paren depth).
+    let pd = 0;
+    for (; i >= 0; i--) {
+      if (src[i] === ')') pd++;
+      else if (src[i] === '(') { pd--; if (pd === 0) { i--; break; } }
+    }
+    while (i >= 0 && /[\w.]/.test(src[i])) i--; // skip the `.filter` / `.sort` name
+    skipWs();
+  }
+  if (src[i] !== ']') throw new Error(`feedback-area-guard: no array ] before .map( chain for ${bodyMarker} (got "${src[i]}")`);
+  const closeIdx = i;
   let depth = 0;
-  for (let i = closeIdx; i >= 0; i--) {
-    const c = src[i];
+  for (let j = closeIdx; j >= 0; j--) {
+    const c = src[j];
     if (c === ']') depth++;
-    else if (c === '[') { depth--; if (depth === 0) return src.slice(i, closeIdx + 1); }
+    else if (c === '[') { depth--; if (depth === 0) return src.slice(j, closeIdx + 1); }
   }
   throw new Error(`feedback-area-guard: unbalanced brackets before ${bodyMarker}`);
 }

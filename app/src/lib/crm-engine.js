@@ -86,6 +86,16 @@ export const BUSINESSES = {
     phiBoundary: false,
     accent: '#6E5A3D',
   },
+  moore: {
+    key: 'moore',
+    label: 'Moore Divahs',
+    // Family-stewarded until Shay's own instance is provisioned — leads land
+    // where Darrell's CRM tab already reads (the union data he asked for,
+    // 2026-07-07). Re-point to a dedicated 'moore-divahs' instance at onboarding.
+    instanceSlug: 'poe-family',
+    phiBoundary: false,
+    accent: '#B85838',
+  },
 };
 
 export function getBusiness(key) {
@@ -113,6 +123,7 @@ export const STAGE_META = {
   'application':      { label: 'Application',        group: 'active' },
   'held':             { label: 'Held (tentative)',  group: 'active' },
   // won (converted)
+  'referring':        { label: 'Referring partner', group: 'won' },
   'intake-scheduled': { label: 'Intake scheduled',  group: 'won' },
   'onboarded':        { label: 'Onboarded',         group: 'won' },
   'enrolled':         { label: 'Enrolled',          group: 'won' },
@@ -162,6 +173,17 @@ export const PIPELINES = {
     phiSensitive: false, // B2B/clinician relationship; not PHI
     complianceNote: 'B2B clinician recruiting — not PHI-bound, but outcome/earnings claims still follow truthful-advertising ethics.',
   },
+  'tlc-community-outreach': {
+    id: 'tlc-community-outreach',
+    business: 'tlc',
+    label: 'Community outreach',
+    leadNoun: 'community partner',
+    stages: ['new', 'contacted', 'engaged', 'referring', 'declined', 'lost'],
+    sources: ['community-list', 'church-network', 'referral', 'clinician-referral', 'website', 'phone', 'other'],
+    sequenceKey: 'tlc-community-nurture',
+    phiSensitive: false, // org-level public contacts; the org, never a person in care
+    complianceNote: 'Organizational referral outreach — public institutional contacts only (schools, shelters, hospitals, clinics, nonprofits). Org-level always: never a client or patient name in notes or messages. The first introduction is a human-sent email/call; recorded consent (their reply / opt-in) unlocks nurture drafts.',
+  },
   'tlc-training-enrollment': {
     id: 'tlc-training-enrollment',
     business: 'tlc',
@@ -205,6 +227,17 @@ export const PIPELINES = {
     sequenceKey: 'realestate-nurture',
     phiSensitive: false,
     complianceNote: 'Fair-housing posture: same process, same criteria for every applicant. No payment processing by us.',
+  },
+  'moore-orders': {
+    id: 'moore-orders',
+    business: 'moore',
+    label: 'Custom-order inquiries',
+    leadNoun: 'custom-order inquiry',
+    stages: ['new', 'contacted', 'engaged', 'booked', 'declined', 'lost'],
+    sources: ['instagram', 'facebook', 'tiktok', 'email', 'whats-going-on-qc', 'partner-business', 'moore-divahs-app', 'referral', 'other'],
+    sequenceKey: 'moore-nurture',
+    phiSensitive: false,
+    complianceNote: 'Contact-level only. A booked inquiry converts into a custom_orders row (the fulfillment domain); payment is always the owner\'s hand.',
   },
 };
 
@@ -269,12 +302,18 @@ export const SOURCES = [
   { key: 'instagram',        label: 'Instagram' },
   { key: 'facebook',         label: 'Facebook' },
   { key: 'social',           label: 'Social' },
+  { key: 'tiktok',           label: 'TikTok' },
+  { key: 'email',            label: 'Email' },
+  { key: 'whats-going-on-qc', label: "What's Going On QC" },
+  { key: 'partner-business', label: 'Partner business' },
+  { key: 'moore-divahs-app', label: 'Moore Divahs app' },
   { key: 'youtube',          label: 'YouTube' },
   { key: 'linkedin',         label: 'LinkedIn' },
   { key: 'google',           label: 'Google search' },
   { key: 'zillow',           label: 'Zillow' },
   { key: 'sign',             label: 'Yard sign / signage' },
   { key: 'content-engine',   label: 'Content engine' },
+  { key: 'community-list',   label: 'Community outreach list' },
   { key: 'clinician-referral', label: 'Clinician referral' },
   { key: 'job-board',        label: 'Job board' },
   { key: 'webinar',          label: 'Webinar / event' },
@@ -404,6 +443,15 @@ export const SEQUENCES = {
       { step: 2, channel: 'phone', dayOffset: 7, intent: 'Screening call scheduling.' },
     ],
   },
+  'tlc-community-nurture': {
+    key: 'tlc-community-nurture',
+    label: 'Community partner nurture',
+    steps: [
+      { step: 0, channel: 'email', dayOffset: 0, intent: 'Introduce the practice to the organization: who TLC serves, faith-integrated + multicultural care, and how a referral works. Ask for their best referral contact. Org-level only — never a client name.' },
+      { step: 1, channel: 'email', dayOffset: 5, intent: 'Gentle follow-up + offer printable referral materials or a short lunch-and-learn for staff.' },
+      { step: 2, channel: 'phone', dayOffset: 10, intent: 'Call the front office to confirm the right referral contact and answer questions.' },
+    ],
+  },
   'tlc-training-nurture': {
     key: 'tlc-training-nurture',
     label: 'Training enrollment nurture',
@@ -434,6 +482,14 @@ export const SEQUENCES = {
     steps: [
       { step: 0, channel: 'email', dayOffset: 0, intent: 'Property details + how to schedule a showing. Same process for everyone.' },
       { step: 1, channel: 'phone', dayOffset: 2, intent: 'Offer a showing time + answer questions.' },
+    ],
+  },
+  'moore-nurture': {
+    key: 'moore-nurture',
+    label: 'Custom-order inquiry follow-up',
+    steps: [
+      { step: 0, channel: 'email', dayOffset: 0, intent: 'Warm welcome + what to send (what you want, inspo pictures, size). Quote comes per item; materials included; 3-week turnaround once paid.' },
+      { step: 1, channel: 'email', dayOffset: 3, intent: 'Gentle check-in + invite the details that unlock the quote.' },
     ],
   },
 };

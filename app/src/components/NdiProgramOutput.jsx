@@ -141,7 +141,7 @@ export default function NdiProgramOutput() {
           onClick={goFullscreen}
           style={{
             position: 'fixed', top: 16, right: 16, cursor: 'pointer',
-            fontSize: 12, letterSpacing: '0.15em', textTransform: 'uppercase',
+            fontSize: '0.75rem', letterSpacing: '0.15em', textTransform: 'uppercase',
             color: DIM, background: 'transparent', border: '1px solid #4A453D',
             padding: '8px 14px', fontFamily: '"JetBrains Mono", monospace',
           }}

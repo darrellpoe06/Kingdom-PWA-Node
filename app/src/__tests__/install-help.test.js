@@ -11,6 +11,35 @@ describe('install-help', () => {
     expect(detectPlatform('something-weird')).toBe('other');
   });
 
+  it('a desktop-shaped Linux UA on a TOUCH screen is a phone, not a computer (the Fold, 2026-07-10)', () => {
+    const foldUA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36';
+    const real = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(navigator), 'maxTouchPoints');
+    Object.defineProperty(navigator, 'maxTouchPoints', { value: 5, configurable: true });
+    try {
+      expect(detectPlatform(foldUA)).toBe('android');
+    } finally {
+      delete navigator.maxTouchPoints;
+      if (real) Object.defineProperty(Object.getPrototypeOf(navigator), 'maxTouchPoints', real);
+    }
+    // The same UA with NO touch screen stays a computer.
+    Object.defineProperty(navigator, 'maxTouchPoints', { value: 0, configurable: true });
+    try {
+      expect(detectPlatform(foldUA)).toBe('desktop');
+    } finally {
+      delete navigator.maxTouchPoints;
+    }
+  });
+
+  it('Android steps name the menu path AND the stale "already installed" recovery', () => {
+    const joined = installSteps('android').steps.join(' ');
+    expect(joined).toContain('Add to Home screen');
+    expect(joined).toContain('app drawer');
+    // The ghost case (2026-07-14): Chrome falsely reports "already installed"
+    // while the icon is absent from the drawer — the steps must name the fix.
+    expect(joined).toContain('already installed');
+    expect(joined).toContain('Site settings');
+  });
+
   it('installSteps always returns non-empty steps for every platform', () => {
     for (const p of ['ios', 'android', 'desktop', 'other']) {
       const s = installSteps(p);

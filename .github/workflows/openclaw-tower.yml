@@ -1,0 +1,256 @@
+# =============================================================================
+# OpenClaw on the 4070 tower -- ship, brake, fire the report-only pilot, and
+# witness it, from CI with no human at a keyboard (DR-0670)
+# =============================================================================
+# Darrell 2026-09-29: "Can we make the open claw work on the towers?"
+#
+# THE ROAD IS THE VOICE STUDIO'S. arm-voice-studio.yml proved how CI reaches the
+# 4070 (tlcmediadpt, the LEFT tower, the designated AI worker): join the tailnet
+# with TS_AUTHKEY, ssh as `creed` with NAS_SSH_KEY, speak PowerShell, ship the
+# folders by scp so the tower needs no clone and no token (DR-0579). This lane
+# rides the same road and does NOT duplicate its key placement: arm-voice-studio
+# owns that (DR-0581). If the tower refuses the key, this run records exactly
+# that and goes red -- it never guesses.
+#
+# WHAT A FIRE DOES
+#   1. Reads registry.json + ARMED-BY-RECORD from THIS checkout of main -- the
+#      kill brake. A role that is enabled:false, or a missing ARMED-BY-RECORD,
+#      is stopped on the tower on this fire, whatever else happens.
+#   2. Reads the lane facts the OpsBoard reads (open PRs, hold labels, main runs).
+#   3. On a push to main that touches the folder, or a dispatch with
+#      deploy=true: ships infra/church-gpu-node + infra/openclaw-tower, brings up
+#      Ollama, pulls the model, VALIDATES the config with the pinned image's own
+#      `config validate`, and only then starts the gateway.
+#   4. Fires the report-only pilot once through run.mjs, which owns the budget,
+#      the lock and the auto-pause on the tower.
+#   5. Measures the tower (gateway health, model pulled, last run, brakes) and
+#      rewrites the `openclaw-tower` issue the OpsBoard reads live.
+#
+# BRAKES ON THIS LANE ITSELF: concurrency group (one fire at a time, never
+# stacked), timeout-minutes, and every mutating step gated on the record.
+# =============================================================================
+name: OpenClaw tower
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'infra/openclaw-tower/**'
+      - '.github/workflows/openclaw-tower.yml'
+  schedule:
+    - cron: '17 */6 * * *'
+  workflow_dispatch:
+    inputs:
+      deploy:
+        description: Ship the folder, pull the model and (re)start the gateway before measuring
+        required: false
+        default: 'false'
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: openclaw-tower
+  cancel-in-progress: false
+
+env:
+  TOWER_HOST: tlcmediadpt.tail5a2f35.ts.net
+  TOWER_USER: creed
+  MODEL: qwen3:8b
+
+jobs:
+  tower:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      # THE KILL BRAKE, read from main. Pure logic from brakes.mjs; no network.
+      - name: Read the record (registry + ARMED-BY-RECORD) from main
+        id: arm
+        run: |
+          node --input-type=module -e '
+            import { readFileSync, existsSync, writeFileSync, appendFileSync } from "node:fs";
+            import { validateRegistry, findRole, killState } from "./infra/openclaw-tower/brakes.mjs";
+            const reg = JSON.parse(readFileSync("infra/openclaw-tower/registry.json", "utf8"));
+            const errors = validateRegistry(reg);
+            const armed = existsSync("infra/openclaw-tower/ARMED-BY-RECORD");
+            const roles = reg.roles.map((r) => ({ name: r.name, role: r.role, ...killState({ entry: r, armedByRecord: armed, paused: null }) }));
+            writeFileSync("/tmp/roles.json", JSON.stringify({ errors, roles }));
+            const live = (n) => { const x = roles.find((r) => r.name === n); return x && x.live && errors.length === 0 ? "true" : "false"; };
+            appendFileSync(process.env.GITHUB_OUTPUT, `gateway_live=${live("family-agent-eval")}\npilot_live=${live("chat-ops-report")}\nbudget_ok=${errors.length === 0}\n`);
+            console.log(JSON.stringify({ armed, errors, roles }, null, 2));
+          '
+          if [ -f infra/gpu-scheduler/state/STREAMING_HOLD ]; then echo "hold=--streaming-hold" >> "$GITHUB_OUTPUT"; else echo "hold=" >> "$GITHUB_OUTPUT"; fi
+
+      - name: Join the tailnet
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+
+      - name: Write the key
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          umask 077
+          printf '%s\n' "$NAS_SSH_KEY" > /tmp/k
+          test -s /tmp/k || { echo "NAS_SSH_KEY is empty"; exit 1; }
+
+      - name: Can the witness get in?
+        id: road
+        run: |
+          if ssh -i /tmp/k -o BatchMode=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 "$TOWER_USER@$TOWER_HOST" 'exit' 2>/dev/null; then
+            echo "reachable=true" >> "$GITHUB_OUTPUT"
+            echo "the tower trusts the CI key"
+          else
+            echo "reachable=false" >> "$GITHUB_OUTPUT"
+            echo "the tower refuses the CI key for $TOWER_USER -- arm-voice-studio.yml places it (DR-0581): set TOWER_CREED_PASSWORD once and dispatch it"
+          fi
+
+      # The same facts the OpsBoard reads (app/src/lib/github-ops.js), read here
+      # with the run's own token and CARRIED to the tower. The tower holds no
+      # GitHub credential and makes no GitHub call.
+      - name: Read the lane facts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api "repos/${{ github.repository }}/pulls?state=open&per_page=50" > /tmp/pulls.json
+          gh api "repos/${{ github.repository }}/actions/runs?branch=main&per_page=10" > /tmp/runs.json
+          node --input-type=module -e '
+            import { readFileSync, writeFileSync } from "node:fs";
+            import { normalizeLane } from "./infra/openclaw-tower/lane.mjs";
+            const lane = normalizeLane({ pulls: JSON.parse(readFileSync("/tmp/pulls.json","utf8")), runs: JSON.parse(readFileSync("/tmp/runs.json","utf8")), measuredAt: new Date().toISOString() });
+            writeFileSync("/tmp/lane.json", JSON.stringify(lane, null, 2));
+            console.log(`lane: ${lane.openCount} open, ${lane.held.length} on hold, ${lane.mainRuns.length} main runs read`);
+          '
+
+      - name: Ship the folders and start what the record says is on
+        if: steps.road.outputs.reachable == 'true' && (github.event_name == 'push' || github.event.inputs.deploy == 'true')
+        run: |
+          S="ssh -i /tmp/k -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 -o ServerAliveInterval=30 $TOWER_USER@$TOWER_HOST"
+          SCP="scp -i /tmp/k -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 -r"
+          $S 'New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\poetech-gpu-node\infra" | Out-Null'
+          $SCP infra/church-gpu-node infra/openclaw-tower "$TOWER_USER@$TOWER_HOST:poetech-gpu-node/infra/"
+          $S 'powershell -NoProfile -Command -' <<PS
+            \$ErrorActionPreference = 'Continue'
+            Set-Location "\$env:USERPROFILE\poetech-gpu-node\infra\church-gpu-node"
+            if (-not (Test-Path .env)) { Copy-Item .env.example .env }
+            docker compose up -d ollama
+            if (\$LASTEXITCODE -ne 0) { Write-Output "ollama did not come up"; exit 1 }
+            docker exec church-ollama ollama pull $MODEL
+            if (\$LASTEXITCODE -ne 0) { Write-Output "model pull failed: $MODEL"; exit 1 }
+            Set-Location "\$env:USERPROFILE\poetech-gpu-node\infra\openclaw-tower"
+            if (-not (Test-Path .env)) {
+              \$b = New-Object byte[] 32
+              [Security.Cryptography.RandomNumberGenerator]::Create().GetBytes(\$b)
+              \$t = -join (\$b | ForEach-Object { \$_.ToString('x2') })
+              Set-Content -Path .env -Value ("OPENCLAW_GATEWAY_TOKEN=" + \$t) -Encoding ascii
+              Write-Output "gateway token generated on the tower (it never leaves the box)"
+            }
+            docker compose pull openclaw-gateway
+            if (\$LASTEXITCODE -ne 0) { Write-Output "image pull failed"; exit 1 }
+            docker compose run --rm --no-deps --entrypoint node openclaw-gateway dist/index.js config validate --json
+            if (\$LASTEXITCODE -ne 0) { Write-Output "CONFIG INVALID under the pinned image -- the gateway is NOT started"; exit 1 }
+            docker compose run --rm --no-deps -e OPENCLAW_CONFIG_PATH=/home/node/.openclaw/poetech/report.json --entrypoint node openclaw-gateway dist/index.js config validate --json
+            if (\$LASTEXITCODE -ne 0) { Write-Output "REPORT CONFIG INVALID -- the pilot will not run"; exit 1 }
+            if ('${{ steps.arm.outputs.gateway_live }}' -eq 'true') {
+              docker compose up -d openclaw-gateway
+              if (\$LASTEXITCODE -ne 0) { Write-Output "gateway did not start"; exit 1 }
+              Write-Output "gateway started (armed by record)"
+            } else {
+              Write-Output "gateway NOT started: the record says it is off"
+            }
+          PS
+
+      # THE KILL, enforced on EVERY fire (schedule included): what the record
+      # says is off is stopped, whether or not anything was shipped.
+      - name: Stop what the record says is off
+        if: steps.road.outputs.reachable == 'true' && steps.arm.outputs.gateway_live != 'true'
+        run: |
+          ssh -i /tmp/k -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 "$TOWER_USER@$TOWER_HOST" 'powershell -NoProfile -Command -' <<'PS'
+            $d = "$env:USERPROFILE\poetech-gpu-node\infra\openclaw-tower"
+            if (Test-Path $d) { Set-Location $d; docker compose stop openclaw-gateway; Write-Output "gateway stopped by record" } else { Write-Output "nothing installed to stop" }
+          PS
+
+      - name: Fire the report-only pilot (the runner enforces budget, lock, pause)
+        if: steps.road.outputs.reachable == 'true' && steps.arm.outputs.pilot_live == 'true'
+        continue-on-error: true
+        run: |
+          S="ssh -i /tmp/k -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 -o ServerAliveInterval=30 $TOWER_USER@$TOWER_HOST"
+          scp -i /tmp/k -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 infra/openclaw-tower/registry.json infra/openclaw-tower/ARMED-BY-RECORD /tmp/lane.json "$TOWER_USER@$TOWER_HOST:poetech-gpu-node/infra/openclaw-tower/"
+          $S 'powershell -NoProfile -Command -' <<PS
+            Set-Location "\$env:USERPROFILE\poetech-gpu-node\infra\openclaw-tower"
+            docker compose run --rm --no-deps -e POETECH_OPENCLAW_ROLE=report --entrypoint node openclaw-gateway /home/node/.openclaw/poetech/run.mjs --role=chat-ops-report --lane=/home/node/.openclaw/poetech/lane.json ${{ steps.arm.outputs.hold }}
+            exit \$LASTEXITCODE
+          PS
+
+      # READ-ONLY. Every line reports; none changes the machine.
+      - name: Measure the tower
+        if: steps.road.outputs.reachable == 'true'
+        continue-on-error: true
+        run: |
+          S="ssh -i /tmp/k -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 $TOWER_USER@$TOWER_HOST"
+          HZ=$($S 'curl.exe -s -m 5 -o NUL -w "%{http_code}" http://127.0.0.1:18789/healthz' 2>/dev/null || echo "")
+          RZ=$($S 'curl.exe -s -m 5 -o NUL -w "%{http_code}" http://127.0.0.1:18789/readyz' 2>/dev/null || echo "")
+          CS=$($S 'docker inspect -f "{{.State.Status}}" poetech-openclaw' 2>/dev/null | tr -d '\r' || echo "")
+          ML=$($S 'docker exec church-ollama ollama list' 2>/dev/null | tr -d '\r' || echo "")
+          ST=$($S 'powershell -NoProfile -Command "Set-Location $env:USERPROFILE\poetech-gpu-node\infra\openclaw-tower; docker compose run --rm --no-deps --entrypoint node openclaw-gateway /home/node/.openclaw/poetech/run.mjs --status --role=chat-ops-report"' 2>/dev/null | tr -d '\r' | grep '^{' | tail -1 || echo "")
+          printf '%s' "$HZ" > /tmp/hz; printf '%s' "$RZ" > /tmp/rz; printf '%s' "$CS" > /tmp/cs; printf '%s' "$ML" > /tmp/ml; printf '%s' "$ST" > /tmp/st
+          echo "healthz=$HZ readyz=$RZ container=$CS"; echo "$ML"; echo "$ST"
+
+      - name: Write the record the OpsBoard reads
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REACHABLE: ${{ steps.road.outputs.reachable }}
+          BUDGET_OK: ${{ steps.arm.outputs.budget_ok }}
+        run: |
+          node --input-type=module -e '
+            import { readFileSync, existsSync, writeFileSync } from "node:fs";
+            import { composeRecord, renderIssueBody } from "./app/src/lib/openclaw-tower-record.js";
+            const rd = (p) => (existsSync(p) ? readFileSync(p, "utf8").trim() : "");
+            const reachable = process.env.REACHABLE === "true";
+            let st = null; try { st = JSON.parse(rd("/tmp/st") || "null"); } catch { st = null; }
+            const roles = existsSync("/tmp/roles.json") ? JSON.parse(rd("/tmp/roles.json")).roles : null;
+            const model = process.env.MODEL;
+            const ml = rd("/tmp/ml");
+            const imageRef = (readFileSync("infra/openclaw-tower/docker-compose.yml","utf8").match(/OPENCLAW_IMAGE:-([^}]+)\}/) || [])[1] || null;
+            const rec = composeRecord({
+              measuredAt: new Date().toISOString(),
+              host: process.env.TOWER_HOST,
+              reachable,
+              road: reachable ? "key" : "none",
+              healthz: rd("/tmp/hz"), readyz: rd("/tmp/rz"),
+              containerState: rd("/tmp/cs") || null,
+              model, modelPresent: reachable && ml ? ml.split("\n").some((l) => l.startsWith(model)) : null,
+              imageRef,
+              status: st && st.status ? st.status : null,
+              roles,
+              budgetOk: process.env.BUDGET_OK === "true" ? true : process.env.BUDGET_OK === "false" ? false : null,
+              lockHeld: st && st.lock ? st.lock.held : null,
+              lockAgeSeconds: st && st.lock ? st.lock.ageSeconds : null,
+              reason: reachable ? null : "the tower refuses the CI key for creed (arm-voice-studio.yml places it, DR-0581)",
+            });
+            writeFileSync("/tmp/body.md", renderIssueBody(rec));
+            console.log(JSON.stringify(rec, null, 2));
+          '
+          R="${{ github.repository }}"
+          gh label create openclaw-tower --repo "$R" --color 5A6E3D --description "OpenClaw on the 4070 tower -- witness record (DR-0670)" 2>/dev/null || true
+          N=$(gh issue list --repo "$R" --label openclaw-tower --state all --json number --jq '.[0].number // ""')
+          if [ -z "$N" ]; then
+            gh issue create --repo "$R" --label openclaw-tower --title "openclaw-tower: OpenClaw on the 4070 tower -- witness record" --body-file /tmp/body.md
+          else
+            gh issue edit "$N" --repo "$R" --body-file /tmp/body.md
+          fi
+
+      - name: Always drop the key
+        if: always()
+        run: rm -f /tmp/k
+
+      # Say it plainly. A fire that could not reach the tower did not do its job.
+      - name: Red when the tower could not be reached
+        if: steps.road.outputs.reachable != 'true'
+        run: |
+          echo "::error::The tower refused the CI key -- nothing was shipped, fired or measured. arm-voice-studio.yml places the key (DR-0581)."
+          exit 1

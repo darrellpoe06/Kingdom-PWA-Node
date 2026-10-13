@@ -35,7 +35,10 @@ export function parseValidViews(src) {
 // (inbound/projects). A view leaves this list by BECOMING a registered surface
 // (then it's caught by registration, not the allow-list). Adding to this list is
 // a deliberate, reviewable act — the reminder is that you must choose.
-export const NON_MODULE_VIEWS = new Set(['overview', 'books', 'inbound', 'projects', 'church']);
+// 'tlc' is a CONTAINER (like books/church): it holds three views of one office
+// (Practice / Intake / Assistant) that are themselves already mounted surfaces —
+// it composes them, it is not its own module.
+export const NON_MODULE_VIEWS = new Set(['overview', 'books', 'inbound', 'projects', 'church', 'tlc']);
 
 // Pure checker: which accepted views are neither a registered top-level surface
 // nor an allowed non-module view. Non-empty => a feature that skipped being a

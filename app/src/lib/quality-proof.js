@@ -47,15 +47,28 @@ export function shortSha(sha) {
 }
 
 // Build freshness: is the SERVED build the latest on main?
-//   served  = __BUILD_SHA__ baked into this bundle (7-char, or 'dev' locally)
-//   mainSha = live main HEAD short SHA from the GitHub API (github-ops)
+//   served        = __BUILD_SHA__ baked into this bundle (7-char, or 'dev' locally)
+//   mainSha       = live main HEAD short SHA from the GitHub API (github-ops)
+//   updateWaiting = the DEVICE's own signal — a newer build's service worker has
+//                   downloaded and is waiting behind this open tab
 // Returns a KPI-ready descriptor. 'dev'/unknown => idle (honest "can't tell"),
 // never a misleading green.
-export function freshnessVerdict(servedSha, mainSha) {
+//
+// The two clocks, reconciled (Darrell 2026-08-20, one screenshot: the header
+// dot said "Update available — reload" while this card said "LATEST"): the
+// header speaks the DEVICE's now — a waiting worker is physical proof a newer
+// build exists — while this card compared against a main-HEAD snapshot fetched
+// at load. When the device knows better, the card concedes: a waiting update
+// outranks a matching snapshot, because the snapshot can be stale and the
+// downloaded worker cannot.
+export function freshnessVerdict(servedSha, mainSha, updateWaiting = false) {
   const served = shortSha(servedSha);
   const main = shortSha(mainSha);
   if (!served || served === 'dev') {
     return { status: 'idle', label: 'Local / unknown build', latest: null, served, main };
+  }
+  if (updateWaiting) {
+    return { status: 'problem', label: `Superseded · ${served} — a newer build is waiting, reload`, latest: false, served, main };
   }
   if (!main) {
     return { status: 'idle', label: 'Latest build unknown (offline)', latest: null, served, main };
@@ -127,6 +140,33 @@ export function reviewStatus(status) {
   if (s === 'addressed') return { status: 'good', label: 'addressed' };
   if (s === 'open') return { status: 'attention', label: 'open' };
   return { status: 'idle', label: s || 'logged' };
+}
+
+// The registry polices its own freshness (DR-0102): reviews are only
+// "consistent and perpetual" if new records keep landing. Compares the newest
+// record date to now; past staleDays the verdict is attention -- the panel
+// says "stale" about its own registry instead of letting it age silently
+// (REV-0005 sat 20 days across ~200 merges before this existed). Never green
+// without a real date AND a real clock.
+export function reviewFreshness(reviews, nowMs, staleDays = 7) {
+  const items = reviews && Array.isArray(reviews.items) ? reviews.items : [];
+  let latest = null;
+  for (const it of items) {
+    const t = Date.parse(String((it && it.date) || ''));
+    if (Number.isFinite(t) && (latest == null || t > latest)) latest = t;
+  }
+  if (latest == null) return { ok: false, lastDate: '', daysSince: null, stale: false, status: 'idle', label: 'no dated reviews' };
+  if (!Number.isFinite(nowMs)) return { ok: false, lastDate: new Date(latest).toISOString().slice(0, 10), daysSince: null, stale: false, status: 'idle', label: 'clock unavailable' };
+  const daysSince = Math.max(0, Math.floor((nowMs - latest) / 86400000));
+  const stale = daysSince > staleDays;
+  return {
+    ok: true,
+    lastDate: new Date(latest).toISOString().slice(0, 10),
+    daysSince,
+    stale,
+    status: stale ? 'attention' : 'good',
+    label: stale ? `stale — ${daysSince}d since last review` : `fresh — ${daysSince}d ago`,
+  };
 }
 
 // Normalize the reviews registry (__UIUX_REVIEWS__) into a safe shape.

@@ -137,19 +137,12 @@ JOBS = {
 # --- secrets + REST (mirrors load-transcripts.py) -----------------------------
 
 def load_secrets(path):
-    url = os.environ.get("SUPABASE_URL")
-    key = os.environ.get("SUPABASE_SERVICE_KEY")
-    if url and key:
-        return url.rstrip("/"), key
-    if path and os.path.exists(path):
-        with open(path, "r", encoding="utf-8") as fh:
-            d = json.load(fh)
-        url = (d.get("url") or "").rstrip("/")
-        key = d.get("service_key") or d.get("service_role_key")
-        if url and key:
-            return url, key
-    log(f"ERROR: no Supabase credentials (env or {path}).")
-    sys.exit(2)
+    # DR-0442: the writers follow the repoint record. The shared resolver picks
+    # env -> the sovereign door (REPOINT-ARMED + this box's own supabase .env)
+    # -> the secrets file, and says which one to stderr. Same (url, key) shape.
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "nas-supabase"))
+    from sovereign_target import load_target
+    return load_target(path)
 
 
 def rest(url, key, method, path, body=None, extra_headers=None):

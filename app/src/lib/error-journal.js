@@ -21,7 +21,11 @@
 
 export const ERROR_JOURNAL_KEY = 'poe-error-journal';
 export const ERROR_JOURNAL_CAP = 30;
-export const ERROR_KINDS = ['render', 'runtime', 'promise'];
+// 'heal' (DR-0139): a SELF-HEAL event — the app recovered on its own (chunk-heal
+// reload, boot-fallback ladder rung, a landed SW update). Journaled so healing is
+// VISIBLE ("the app healed itself N times") instead of silent; excluded from the
+// error roll-up so a successful recovery never reads as a failure.
+export const ERROR_KINDS = ['render', 'runtime', 'promise', 'heal'];
 
 function safeStorage(win) {
   try {
@@ -94,7 +98,8 @@ export function clearErrorJournal(win) {
 export const RECENT_PROBLEM_THRESHOLD = 10;
 
 export function errorJournalSummary(entries, nowMs) {
-  const list = Array.isArray(entries) ? entries : [];
+  // Heals are recoveries, not failures — they get their own roll-up below.
+  const list = (Array.isArray(entries) ? entries : []).filter((e) => e && e.kind !== 'heal');
   const now = Number.isFinite(nowMs) ? nowMs : Date.now();
   let total = 0;
   let recent = 0;
@@ -109,6 +114,27 @@ export function errorJournalSummary(entries, nowMs) {
   const label = recent > 0
     ? `${recent} in 24h`
     : total > 0 ? 'None in 24h' : 'None recorded';
+  return { total, recent, distinct: list.length, last, status, label };
+}
+
+// Roll-up of SELF-HEAL events (kind 'heal') for the quality board: how many
+// times the app recovered on its own, and the most recent one. Frequent heals
+// read 'attention' — healing works, but the underlying churn (deploy skew, a
+// flaky network) deserves eyes; that is a signal, not a failure.
+export function healJournalSummary(entries, nowMs) {
+  const list = (Array.isArray(entries) ? entries : []).filter((e) => e && e.kind === 'heal');
+  const now = Number.isFinite(nowMs) ? nowMs : Date.now();
+  let total = 0;
+  let recent = 0;
+  for (const e of list) {
+    const n = Number(e.count) || 1;
+    total += n;
+    const t = Date.parse(e.at || '');
+    if (Number.isFinite(t) && now - t < 24 * 60 * 60 * 1000) recent += n;
+  }
+  const last = list[0] || null;
+  const status = recent >= RECENT_PROBLEM_THRESHOLD ? 'attention' : 'good';
+  const label = recent > 0 ? `${recent} in 24h` : total > 0 ? 'None in 24h' : 'None yet';
   return { total, recent, distinct: list.length, last, status, label };
 }
 

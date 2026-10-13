@@ -1,0 +1,48 @@
+{
+  "name": "Moore Divahs",
+  "short_name": "Moore Divahs",
+  "description": "Custom clothing, scrub caps, custom shoes, and sewing classes — Moore Divahs, Quad Cities. Powered by PoeTech.",
+  "id": "/moore/",
+  "start_url": "/moore/app/?moore=1",
+  "scope": "/moore/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#FAF8F4",
+  "theme_color": "#B85838",
+  "categories": [
+    "shopping",
+    "lifestyle"
+  ],
+  "icons": [
+    {
+      "src": "/moore-icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any"
+    },
+    {
+      "src": "/moore-icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any"
+    },
+    {
+      "src": "/moore-icon-maskable-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/moore-icon-maskable-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/moore-icon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any"
+    }
+  ]
+}

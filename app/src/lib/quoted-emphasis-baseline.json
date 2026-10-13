@@ -1,0 +1,65 @@
+{
+  "note": "Known instances of OUR emphasis added inside a quotation of the Word (ALL-CAPS applied to a word the KJV carries lowercase). Recorded 2026-09-17; L96 paid off the same day (it entered the gated set) so the count can only shrink. A new instance fails the build; removing one requires deleting its line here. See DR-0418 and the gate in app/src/__tests__/living-lessons-quoted-emphasis.test.js.",
+  "recorded": "2026-09-17",
+  "distinctSpans": 25,
+  "lessons": 16,
+  "byLesson": {
+    "ll7-let-peace-be-the-umpire": [
+      "let the peace of God RULE in your hearts"
+    ],
+    "ll18-the-flinch-comes-first": [
+      "whatsoever things are TRUE"
+    ],
+    "ll20-the-ladder-and-the-door": [
+      "We speak that we do KNOW, and testify that we have SEEN",
+      "that ye may KNOW,"
+    ],
+    "ll21-hidden-vs-known": [
+      "Blessed is he whose transgression is FORGIVEN, whose sin is COVERED",
+      "Confess your faults one to another, and pray one for another, that ye may be HEALED",
+      "shout for JOY",
+      "we have not an high priest which cannot be TOUCHED with the feeling of our infirmities"
+    ],
+    "ll23-the-blessed-hope": [
+      "ye shall hear of wars and rumours of wars: see that ye be not troubled: for all these things must come to pass, but THE END IS NOT YET"
+    ],
+    "ll24-yahweh-is-the-only-way": [
+      "WHOSOEVER will"
+    ],
+    "ll27-the-god-who-documents-his-grief": [
+      "Jesus WEPT"
+    ],
+    "ll31-the-best-way-preferred-accepted-natural-against": [
+      "PROVE",
+      "good, and acceptable, and PERFECT, will of God",
+      "seek ye FIRST the kingdom",
+      "that good, and acceptable, and PERFECT, will of God."
+    ],
+    "ll36-fruit-root-and-the-empty-house": [
+      "this thy SON"
+    ],
+    "ll43-the-war-is-for-the-mind": [
+      "whom he MAY devour"
+    ],
+    "ll50-the-mind-of-christ-thinking-yahwehs-thoughts-proven-in-works": [
+      "that ye may PROVE",
+      "that ye may PROVE what is that good"
+    ],
+    "ll57-power-to-tread-the-authority-he-gave-and-the-better-joy": [
+      "I GIVE unto you power"
+    ],
+    "ll74-church-hurt-the-counterfeit-comfort-and-the-blood": [
+      "such WERE"
+    ],
+    "ll86-luke-research-meets-inspiration-son-of-man-for-all": [
+      "before the face of ALL people"
+    ],
+    "ll93-come-let-us-reason-truth-in-any-language-the-mind-rewired-real": [
+      "COME."
+    ],
+    "ll94-lord-of-hosts-the-two-ways-sealed-in-time-and-the-mind-of-christ": [
+      "HOST.",
+      "TIME"
+    ]
+  }
+}

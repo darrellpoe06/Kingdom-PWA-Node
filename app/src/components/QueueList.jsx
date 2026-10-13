@@ -70,7 +70,7 @@ export function QueueList({
       <div className="flex items-baseline justify-between gap-3 mb-3 flex-wrap">
         <div>
           <div
-            className="text-[10px] uppercase tracking-[0.3em] font-semibold"
+            className="text-[0.625rem] uppercase tracking-[0.3em] font-semibold"
             style={{ color: accent }}
           >
             {emoji && <span className="mr-1">{emoji}</span>}{title}
@@ -90,7 +90,7 @@ export function QueueList({
 
         {/* Page-size selector */}
         <div className="flex items-center gap-2 text-xs">
-          <label className="text-[10px] uppercase tracking-wider text-[#5A5751]">
+          <label className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">
             Show
           </label>
           <select
@@ -127,8 +127,8 @@ export function QueueList({
                     onClick={() => a.onClick(item)}
                     className={
                       a.secondary
-                        ? 'text-[10px] uppercase tracking-wider px-2.5 py-1 border border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815] hover:text-[#1A1815]'
-                        : 'text-[10px] uppercase tracking-wider px-3 py-1.5 text-[#FAF8F4] font-semibold'
+                        ? 'text-[0.625rem] uppercase tracking-wider px-2.5 py-1 border border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815] hover:text-[#1A1815]'
+                        : 'text-[0.625rem] uppercase tracking-wider px-3 py-1.5 text-[#FAF8F4] font-semibold'
                     }
                     style={
                       a.secondary
@@ -156,7 +156,7 @@ export function QueueList({
           >
             ← Prev
           </button>
-          <div className="text-[10px] uppercase tracking-wider text-[#5A5751]">
+          <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">
             Page {page + 1} of {totalPages} · showing {startIdx + 1}–{endIdx} of {total}
           </div>
           <button

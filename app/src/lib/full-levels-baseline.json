@@ -1,0 +1,394 @@
+{
+  "floor": {
+    "child": 0.5,
+    "youth": 0.6,
+    "teen": 0.6,
+    "senior": 0.6
+  },
+  "note": "Shrink-only debt (DR-0418). Each entry names the bands of a lesson that are missing or below the floor share of the adult lesson. A NEW short band fails the build; entries are removed as full levels are authored, never added. 2026-09-20: ll57 (Power to Tread) was re-authored whole — the child band rewritten from grade 10.1 to 1.5, a youth band authored where none existed, and teen and senior extended past the floor. It leaves this list because its CONTENT changed, not because an entry was edited out. All four of its bands now clear their floors (child 0.59, youth 0.68, teen 0.71, senior 0.66), so it is removed rather than reduced; lessonsShort 68 -> 67. 2026-10-10: ll72 (The Berean Foundation) was made whole -- a youth band authored where none existed (338 words, 0.77 of the adult prose, reading grade 6.01, which sits between its own child band at 5.20 and its teen band at 6.69) and the teen band extended past the floor to 0.61. It leaves this list because its CONTENT changed, not because an entry was edited out; all four bands now clear their floors. lessonsShort 66 -> 65.",
+  "measuredLessons": 196,
+  "lessonsShort": 65,
+  "short": {
+    "ll10-strength-and-honour-are-her-clothing": [
+      "child",
+      "youth",
+      "teen"
+    ],
+    "ll15-seasoned-with-salt": [
+      "child",
+      "youth",
+      "teen",
+      "senior"
+    ],
+    "ll153-precept-upon-precept-the-voice-that-programs-the-world": [
+      "child",
+      "youth",
+      "teen",
+      "senior"
+    ],
+    "ll16-rule-your-spirit-repair-the-bond": [
+      "child",
+      "youth",
+      "teen",
+      "senior"
+    ],
+    "ll17-taste-and-see": [
+      "child",
+      "youth",
+      "teen",
+      "senior"
+    ],
+    "ll18-the-flinch-comes-first": [
+      "child",
+      "youth",
+      "teen",
+      "senior"
+    ],
+    "ll19-not-ignorant-of-his-devices": [
+      "child",
+      "youth",
+      "teen",
+      "senior"
+    ],
+    "ll20-the-ladder-and-the-door": [
+      "child",
+      "youth",
+      "teen",
+      "senior"
+    ],
+    "ll21-hidden-vs-known": [
+      "child",
+      "youth",
+      "teen",
+      "senior"
+    ],
+    "ll22-goshen-and-the-watch": [
+      "child",
+      "youth",
+      "teen",
+      "senior"
+    ],
+    "ll23-the-blessed-hope": [
+      "child",
+      "youth",
+      "teen",
+      "senior"
+    ],
+    "ll24-yahweh-is-the-only-way": [
+      "child",
+      "youth",
+      "teen",
+      "senior"
+    ],
+    "ll25-the-threshold-and-the-two-patterns": [
+      "child",
+      "youth",
+      "teen",
+      "senior"
+    ],
+    "ll26-how-the-king-knows-his-kings": [
+      "child",
+      "youth",
+      "teen",
+      "senior"
+    ],
+    "ll27-the-god-who-documents-his-grief": [
+      "child",
+      "youth",
+      "teen",
+      "senior"
+    ],
+    "ll28-prove-all-things": [
+      "child",
+      "youth",
+      "teen",
+      "senior"
+    ],
+    "ll29-the-unseen-realm-and-the-nations": [
+      "child",
+      "youth",
+      "teen",
+      "senior"
+    ],
+    "ll30-the-whole-story-yahweh-and-humanity": [
+      "child",
+      "youth",
+      "teen",
+      "senior"
+    ],
+    "ll31-the-best-way-preferred-accepted-natural-against": [
+      "child",
+      "youth",
+      "teen",
+      "senior"
+    ],
+    "ll32-salt-light-and-anchor-the-church-in-the-city": [
+      "child",
+      "youth",
+      "teen",
+      "senior"
+    ],
+    "ll33-from-good-intentions-to-lasting-impact": [
+      "child",
+      "youth",
+      "teen",
+      "senior"
+    ],
+    "ll34-the-tower-the-race-and-the-sovereign": [
+      "child",
+      "youth",
+      "teen",
+      "senior"
+    ],
+    "ll35-sovereign-and-small": [
+      "child",
+      "youth",
+      "teen",
+      "senior"
+    ],
+    "ll36-fruit-root-and-the-empty-house": [
+      "child",
+      "youth",
+      "teen",
+      "senior"
+    ],
+    "ll37-one-blood-truth-over-the-debate": [
+      "child",
+      "youth",
+      "teen",
+      "senior"
+    ],
+    "ll38-become-the-message-tactics-to-essence": [
+      "child",
+      "youth",
+      "teen",
+      "senior"
+    ],
+    "ll39-roots-lead-to-the-king-hidden-jerusalem": [
+      "child",
+      "youth",
+      "teen",
+      "senior"
+    ],
+    "ll40-the-thread-did-not-snap-remnant": [
+      "child",
+      "youth",
+      "teen"
+    ],
+    "ll41-truth-with-a-capital-t": [
+      "child",
+      "youth",
+      "teen",
+      "senior"
+    ],
+    "ll42-keep-the-adversary-out-of-the-music": [
+      "child",
+      "youth",
+      "teen"
+    ],
+    "ll43-the-war-is-for-the-mind": [
+      "child",
+      "youth",
+      "teen",
+      "senior"
+    ],
+    "ll44-safe-to-speak-psychological-safety": [
+      "child",
+      "youth",
+      "teen",
+      "senior"
+    ],
+    "ll45-give-honour-where-it-is-due-recognition-and-equity": [
+      "child",
+      "youth",
+      "teen",
+      "senior"
+    ],
+    "ll46-ye-fathers-provoke-to-good-works": [
+      "child",
+      "youth",
+      "teen",
+      "senior"
+    ],
+    "ll47-navigating-the-age-faith-critical-thinking-identity": [
+      "child",
+      "youth",
+      "teen",
+      "senior"
+    ],
+    "ll48-world-class-as-unto-the-lord-work-ownership-resilience": [
+      "child",
+      "youth",
+      "teen",
+      "senior"
+    ],
+    "ll49-mastery-without-manipulation-lifes-task-envy-sober-mind": [
+      "child",
+      "youth",
+      "teen",
+      "senior"
+    ],
+    "ll50-the-mind-of-christ-thinking-yahwehs-thoughts-proven-in-works": [
+      "child",
+      "youth",
+      "teen",
+      "senior"
+    ],
+    "ll51-the-mind-of-christ-situationally-how-scripture-addresses-each-person": [
+      "child",
+      "youth",
+      "teen",
+      "senior"
+    ],
+    "ll52-how-a-lie-gets-wired-in-neuroplasticity-memory-and-the-mind-of-christ": [
+      "child",
+      "youth",
+      "teen",
+      "senior"
+    ],
+    "ll53-the-emotional-cycles-of-brain-and-body-stewarding-feeling-by-the-renewed-mind": [
+      "child",
+      "youth",
+      "teen"
+    ],
+    "ll54-the-same-word-different-soil-the-parable-of-the-sower": [
+      "child",
+      "youth",
+      "teen",
+      "senior"
+    ],
+    "ll55-the-connector-not-the-expert-the-body-that-works-together": [
+      "child",
+      "youth",
+      "teen",
+      "senior"
+    ],
+    "ll56-the-person-of-the-holy-spirit-seek-the-deliverer-not-deliverance": [
+      "child",
+      "youth",
+      "teen",
+      "senior"
+    ],
+    "ll58-the-wind-you-can-hear-perceiving-the-holy-spirit": [
+      "child",
+      "youth",
+      "teen",
+      "senior"
+    ],
+    "ll59-not-by-measure-all-of-him-from-day-one": [
+      "child",
+      "youth",
+      "teen",
+      "senior"
+    ],
+    "ll60-fearfully-and-wonderfully-maintained-thyroid-hair-temple": [
+      "child",
+      "youth",
+      "teen",
+      "senior"
+    ],
+    "ll61-the-audit-fruit-not-photographs-accountable-shepherds": [
+      "child",
+      "youth",
+      "teen",
+      "senior"
+    ],
+    "ll62-the-age-of-counterfeits-meekness-over-manipulation": [
+      "child",
+      "youth",
+      "teen",
+      "senior"
+    ],
+    "ll63-the-family-in-the-field-offense-defense-why-yahweh-allows": [
+      "child",
+      "youth",
+      "teen",
+      "senior"
+    ],
+    "ll64-as-thy-soul-prospereth-spirit-soul-and-the-will": [
+      "child",
+      "youth",
+      "teen",
+      "senior"
+    ],
+    "ll65-processed-for-righteousness-works-words-and-the-verdict": [
+      "child",
+      "youth",
+      "teen",
+      "senior"
+    ],
+    "ll66-watch-and-pray-the-secret-place-and-the-predators-within": [
+      "child",
+      "youth",
+      "teen",
+      "senior"
+    ],
+    "ll67-made-in-his-image-we-make-why-ai-is-not-a-soul": [
+      "child",
+      "youth",
+      "teen",
+      "senior"
+    ],
+    "ll68-out-of-the-way-consecration-and-the-broken-bread": [
+      "child",
+      "youth",
+      "teen",
+      "senior"
+    ],
+    "ll69-faithful-over-a-few-things-stewardship-and-increase": [
+      "child",
+      "youth",
+      "teen",
+      "senior"
+    ],
+    "ll70-the-bridegrooms-answer-only-the-father-names-the-day": [
+      "child",
+      "youth",
+      "teen",
+      "senior"
+    ],
+    "ll71-the-two-gates-and-the-father-of-the-fatherless": [
+      "child",
+      "youth",
+      "teen"
+    ],
+    "ll73-the-house-of-el-and-the-only-saviour": [
+      "child",
+      "youth",
+      "teen",
+      "senior"
+    ],
+    "ll74-church-hurt-the-counterfeit-comfort-and-the-blood": [
+      "child",
+      "youth",
+      "teen"
+    ],
+    "ll75-the-greater-yeshua": [
+      "child",
+      "youth",
+      "teen"
+    ],
+    "ll76-the-sky-the-speculation-and-the-test-that-works": [
+      "child",
+      "youth",
+      "teen",
+      "senior"
+    ],
+    "ll77-the-king-over-the-children-of-pride": [
+      "child",
+      "youth",
+      "teen"
+    ],
+    "ll78-the-snare-of-the-fear-of-man": [
+      "child",
+      "youth",
+      "teen",
+      "senior"
+    ],
+    "ll80-the-four-warnings-of-a-hardening-heart": [
+      "child",
+      "youth",
+      "teen"
+    ]
+  }
+}

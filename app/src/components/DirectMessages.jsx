@@ -1,0 +1,402 @@
+// =============================================================================
+// DirectMessages — reusable 1:1 messaging panel (choir, bus, app-wide).
+// =============================================================================
+// Declared by Darrell 2026-07-12: users speak INDIVIDUALLY, inside a ministry
+// and across the app. This panel renders MY threads (an inbox) + the open
+// conversation + a compose box, and lets me start a new 1:1 with anyone on a
+// roster I'm handed. The privacy MODEL is server-enforced (RLS + users_can_dm);
+// a blocked send simply surfaces "couldn't send" — the panel never decides who
+// may talk to whom.
+//
+// Word-first: 1:1 is the Word's own pattern — "go and tell him his fault between
+// thee and him alone" (Matthew 18:15) — and every message is held to Ephesians
+// 4:29 ("that which is good to the use of edifying").
+//
+// A11y: white cards, #1A1815 body / #5A5751 secondary, labelled inputs, visible
+// #B85838 focus outline, aria-live on the thread.
+// =============================================================================
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { onAuthChange } from '../lib/supabase.js';
+import {
+  subscribeDirectMessages, sendDirectMessage, markThreadRead,
+  groupDmThreads, threadMessages, isSendableBody, markThreadReadLocal,
+  loadMyDmDevices, forgetDmDevice,
+} from '../lib/direct-messages-sync.js';
+import { receiptLabels } from '../lib/direct-messages.js';
+import { useProfiles, preferredName } from '../lib/use-profiles.js';
+import { pushReportText } from '../lib/push-announce.js';
+import { useVoiceDictation } from '../lib/voice-dictation.js';
+import { requestDmNotificationPermission } from '../lib/dm-notify.js';
+import PushNotifications from './PushNotifications.jsx';
+import { pushSupported } from '../lib/push-subscribe.js';
+import { useVapidPublicKey } from '../lib/push-key.js';
+import UiIcon from './UiIcon.jsx';
+import ProfileCard, { ProfileAvatar } from './ProfileCard.jsx';
+
+// Long inputs grow with the writer (Darrell 2026-07-27: "also long inputs"):
+// the composer rises with its content up to a screen-friendly cap, then
+// scrolls inside itself — a paragraph is as welcome as a sentence. The DB
+// body is unbounded text, so the only limit was the two-row box.
+const COMPOSER_MAX_PX = 320;
+export function autoGrow(el, cap = COMPOSER_MAX_PX) {
+  if (!el || !el.style) return;
+  el.style.height = 'auto';
+  el.style.height = `${Math.min(el.scrollHeight || 0, cap)}px`;
+}
+
+const BTN = 'text-xs uppercase tracking-wider px-3 py-2 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]';
+const FIELD = 'w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]';
+const LABEL = 'text-[0.5625rem] uppercase tracking-wider text-[#5A5751] block mb-1';
+
+const fmtTime = (iso) => {
+  if (!iso) return '';
+  try { return new Date(iso).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }); }
+  catch { return ''; }
+};
+
+// `roster` is an optional list of { userId, displayName, instanceId } I may
+// start a DM with (e.g. the bus drivers, the choir members). `invited` is an
+// optional list of { inviteId, email } — people whose invite is out but who
+// have not signed in yet, shown as visible-but-pending (0124), never hidden.
+// `title` labels the panel.
+export default function DirectMessages({ roster = [], invited = [], displayName = '', title = 'Direct messages', openWithUserId = null }) {
+  const [signedIn, setSignedIn] = useState(false);
+  const [rows, setRows] = useState([]);
+  const [openWith, setOpenWith] = useState(null); // otherUserId
+  // The person's full profile (DR-0342) opens from their name in the thread
+  // header — one tap, in place, closed by the same tap.
+  const [showProfile, setShowProfile] = useState(false);
+  const [draft, setDraft] = useState('');
+  const [err, setErr] = useState('');
+  // What the push did for the last send — measured by the sender, one line.
+  const [pushNote, setPushNote] = useState('');
+  const [busy, setBusy] = useState(false);
+  // Browser-notification permission — asked ONLY on the reader's own tap.
+  // Push renders its own control when it is BOTH supported and configured;
+  // the legacy permission-only button stays as the fallback for everywhere
+  // else, so the foreground bell is never lost.
+  // `undefined` while the key lookup is in flight, '' once it resolves to
+  // "not configured here". The legacy foreground-only button is offered ONLY in
+  // that resolved-and-unconfigured state — showing it during the lookup would
+  // flash a control that is about to be replaced by the real one.
+  const vapidKey = useVapidPublicKey();
+  const pushResolved = vapidKey !== undefined;
+  const pushAvailable = pushSupported() && !!vapidKey;
+  const [notifPerm, setNotifPerm] = useState(() => (
+    typeof Notification !== 'undefined' && Notification.permission ? Notification.permission : 'unsupported'
+  ));
+  const endRef = useRef(null);
+  const taRef = useRef(null);
+  // THE DEVICES MY SEALED MESSAGES OPEN ON (DR-0737). Each device I have
+  // opened Messages on holds its own key, and every message to me is sealed
+  // for all of them; the list says which, marks this one, and lets me forget
+  // a phone I no longer hold so nothing new is sealed for it.
+  const [devices, setDevices] = useState(null);
+  const refreshDevices = () => { loadMyDmDevices().then(setDevices).catch(() => setDevices(null)); };
+  useEffect(() => { if (signedIn && openWith) refreshDevices(); }, [signedIn, openWith]);
+
+  // Speak instead of type (Darrell 2026-07-27) — the one shared dictation
+  // primitive (lib/voice-dictation.js: push-to-end through pauses, 5-minute
+  // brake, honest type-instead fallback), finally adopted by Messages.
+  const mic = useVoiceDictation({
+    onTranscript: (t) => setDraft((d) => (d ? `${d} ${t}` : t)),
+  });
+  useEffect(() => { autoGrow(taRef.current); }, [draft]);
+
+  useEffect(() => onAuthChange((s) => setSignedIn(!!s)), []);
+  // The subscription handle carries .refresh() — pulled the instant the user
+  // acts (open, send) so the thread never waits on the realtime stream or the
+  // heartbeat (measured 2026-08-22: both readers had to leave and re-enter to
+  // see new messages while the sovereign realtime leg was sick).
+  const subRef = useRef(null);
+  useEffect(() => {
+    if (!signedIn) { setRows([]); return undefined; }
+    const sub = subscribeDirectMessages(setRows);
+    subRef.current = sub;
+    return () => { subRef.current = null; sub(); };
+  }, [signedIn]);
+
+  const threads = useMemo(() => groupDmThreads(rows), [rows]);
+
+  // Roster people I don't yet have a thread with — so I can start fresh.
+  const startable = useMemo(() => {
+    const known = new Set(threads.map((t) => t.otherUserId));
+    return (roster || []).filter((p) => p && p.userId && !known.has(p.userId));
+  }, [roster, threads]);
+
+  // Every person on this surface — threads and the roster — carries their
+  // chosen name and picture (DR-0342; Darrell 2026-09-09: "users like to see
+  // their picture"). One cached read per person; a person without a profile
+  // falls back to the roster's name, then the name their messages carried.
+  const peopleIds = useMemo(() => [
+    ...threads.map((t) => t.otherUserId),
+    ...(roster || []).map((p) => p && p.userId),
+  ], [threads, roster]);
+  const profiles = useProfiles(peopleIds);
+  const nameFor = (otherUserId) => {
+    const t = threads.find((x) => x.otherUserId === otherUserId);
+    const r = (roster || []).find((p) => p.userId === otherUserId);
+    return preferredName(profiles[otherUserId], r?.displayName, t?.otherName);
+  };
+  const avatarFor = (otherUserId, size) => (
+    <ProfileAvatar profile={profiles[otherUserId] || { displayName: nameFor(otherUserId) }} size={size} />
+  );
+
+  const openThread = (otherUserId) => {
+    setOpenWith(otherUserId);
+    setErr('');
+    setPushNote('');
+    // Viewed = read, INSTANTLY: clear the badge locally the moment the reader
+    // looks (Darrell 2026-08-22: "once I view the message I should not have it
+    // look like I didn't view it yet"), persist server-side, and pull fresh.
+    setRows((prev) => markThreadReadLocal(prev, otherUserId));
+    markThreadRead(otherUserId).then(() => subRef.current?.refresh?.());
+  };
+
+  // A NOTIFICATION TAP OPENS THE THREAD, NOT THE LIST (2026-09-16, DR-0444).
+  //
+  // Darrell: "the messages notifications don't work fully... the open the app
+  // to the welcome instead of the text message." The landing bug is fixed in
+  // app-doors.js; this is the other half -- arriving at Messages with the
+  // person's own thread already open, which is what he asked for and what
+  // every phone's messaging app does. `openWithUserId` is the peer the deep
+  // link named; it runs ONCE (the ref), and only once signed in, so a later
+  // manual choice of another thread is never yanked back.
+  const deepLinkedRef = useRef(false);
+  useEffect(() => {
+    if (deepLinkedRef.current || !openWithUserId || !signedIn) return;
+    deepLinkedRef.current = true;
+    openThread(openWithUserId);
+  }, [openWithUserId, signedIn]);
+
+  const convo = useMemo(() => (openWith ? threadMessages(rows, openWith) : []), [rows, openWith]);
+  // "Seen 8:57 PM" / "Delivered" under the last of MY messages — a real row
+  // value (read_at, stamped by the reader's device), refreshed by the same
+  // three triggers the thread rides (stream, 15s heartbeat, visibility).
+  const receipts = useMemo(() => receiptLabels(convo, fmtTime), [convo]);
+  useEffect(() => { try { endRef.current?.scrollIntoView({ block: 'end' }); } catch { /* noop */ } }, [convo.length, openWith]);
+
+  // A message that arrives WHILE the thread is open is read the moment it
+  // renders — never a stale badge for a conversation the reader is inside.
+  useEffect(() => {
+    if (!openWith) return;
+    if (convo.some((m) => m && !m.mine && !m.readAt)) {
+      setRows((prev) => markThreadReadLocal(prev, openWith));
+      markThreadRead(openWith);
+    }
+  }, [convo, openWith]);
+
+  const send = async () => {
+    if (!isSendableBody(draft) || !openWith) return;
+    const text = draft;
+    setBusy(true);
+    const contact = (roster || []).find((p) => p && p.userId === openWith);
+    const r = await sendDirectMessage(openWith, text, displayName, contact?.instanceId);
+    setBusy(false);
+    if (r?.sent) {
+      setDraft('');
+      setErr('');
+      setPushNote('Sent.');
+      if (r.push && typeof r.push.then === 'function') {
+        r.push.then((p) => setPushNote(pushReportText(p))).catch(() => setPushNote('Sent.'));
+      }
+      // The message shows in the thread IMMEDIATELY (optimistic row), then the
+      // refresh replaces it with the server's truth — no waiting on realtime.
+      const nowIso = new Date().toISOString();
+      setRows((prev) => [...prev, {
+        id: `local-${nowIso}`, otherUserId: openWith, mine: true, body: text,
+        createdAt: nowIso, readAt: null, encrypted: !!r.encrypted, locked: false, senderName: displayName || '',
+      }]);
+      markThreadRead(openWith);
+      subRef.current?.refresh?.();
+      try { taRef.current?.focus(); } catch { /* noop */ }
+    } else {
+      setErr(r?.skipped === 'send-blocked'
+        ? 'Message not sent — you may not have a shared ministry with this person.'
+        : `Message not sent (${r?.skipped || 'error'}). Your words are still in the box — try again.`);
+    }
+  };
+
+  if (!signedIn) {
+    return <p className="text-sm text-[#5A5751]">Sign in to send a direct message.</p>;
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-baseline justify-between gap-2">
+        <h4 className="text-sm font-medium text-[#1A1815]">{title}</h4>
+        {openWith && (
+          <div className="flex items-center gap-1.5">
+            <button type="button" onClick={() => setShowProfile((v) => !v)} aria-expanded={showProfile} aria-label={`${showProfile ? 'Hide' : 'See'} ${nameFor(openWith)}'s profile`} className={`${BTN} border border-[#C9BFA8] text-[#1A1815] hover:border-[#1A1815] inline-flex items-center gap-1.5`}>
+              {avatarFor(openWith, 22)} {nameFor(openWith)} {showProfile ? '▾' : '▸'}
+            </button>
+            <button type="button" onClick={() => { setOpenWith(null); setShowProfile(false); }} className={`${BTN} text-[#5A5751] hover:text-[#1A1815]`}>← Inbox</button>
+          </div>
+        )}
+      </div>
+      {openWith && showProfile && <ProfileCard userId={openWith} fallbackName={nameFor(openWith)} />}
+
+      {/* Notifications the reader chooses (2026-08-22 "do the users get
+          notifications?").
+          UPGRADED 2026-09-06 (DR-0334): this used to grant permission for a
+          FOREGROUND bell only, which rings just while the tab is open — so a
+          closed phone heard nothing. PushNotifications registers a real Web
+          Push subscription, and the same tap grants the same permission, so
+          the foreground bell below keeps working exactly as before. It renders
+          nothing where push is unconfigured or unsupported, and falls back to
+          the original permission-only grant there so no one loses the bell. */}
+      <PushNotifications topic="message" />
+      {notifPerm === 'default' && pushResolved && !pushAvailable && (
+        <button
+          type="button"
+          onClick={async () => setNotifPerm(await requestDmNotificationPermission())}
+          className={`${BTN} w-full border border-dashed border-[#C9BFA8] text-[#5A5751] hover:text-[#1A1815] hover:border-[#1A1815]`}
+        >
+          <UiIcon name="alert" /> Notify me when a message arrives — turn on notifications
+        </button>
+      )}
+
+      {err && <p className="text-xs text-[#991B1B]" role="alert">{err}</p>}
+
+      {!openWith ? (
+        <div className="space-y-2">
+          {threads.length === 0 && startable.length === 0 && (
+            <p className="text-sm text-[#5A5751]">
+              {invited.length > 0
+                ? 'No conversations yet — your invited people appear below and become startable the first time they sign in.'
+                : 'No conversations yet. People you can message appear here once you share a space — add someone below with their email.'}
+            </p>
+          )}
+          {threads.map((t) => (
+            <button
+              key={t.otherUserId}
+              type="button"
+              onClick={() => openThread(t.otherUserId)}
+              className="w-full text-left border border-[#E8E4DC] bg-white p-3 hover:border-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838] flex items-center gap-3"
+              data-thread={t.otherUserId}
+            >
+              <span className="shrink-0">{avatarFor(t.otherUserId, 40)}</span>
+              <span className="min-w-0 flex-1">
+                <span className="flex items-baseline justify-between gap-2">
+                  <span className="text-sm font-medium text-[#1A1815] truncate">{nameFor(t.otherUserId)}</span>
+                  <span className="text-[0.625rem] text-[#5A5751] shrink-0">{fmtTime(t.lastAt)}</span>
+                </span>
+                <span className="flex items-center justify-between gap-2">
+                  <span className="text-xs text-[#5A5751] truncate">{t.last?.body || ''}</span>
+                  {t.unread > 0 && <span className="text-[0.625rem] px-1.5 py-0.5 bg-[#B85838] text-white rounded-full shrink-0">{t.unread}</span>}
+                </span>
+              </span>
+            </button>
+          ))}
+          {startable.length > 0 && (
+            <div className="pt-2">
+              <span className={LABEL}>Start a message</span>
+              <div className="flex flex-wrap gap-1.5">
+                {startable.map((p) => (
+                  <button key={p.userId} type="button" onClick={() => openThread(p.userId)} className={`${BTN} border border-[#C9BFA8] text-[#5A5751] hover:text-[#1A1815] hover:border-[#1A1815] inline-flex items-center gap-1.5`}>
+                    {avatarFor(p.userId, 20)} {nameFor(p.userId)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          {invited.length > 0 && (
+            <div className="pt-2">
+              <span className={LABEL}>Invited — waiting for their first sign-in</span>
+              <div className="flex flex-wrap gap-1.5">
+                {invited.map((p) => (
+                  <span key={p.inviteId} title="Their invite is out. They become messageable the first time they sign in with this email." className={`${BTN} border border-dashed border-[#C9BFA8] text-[#5A5751] cursor-default inline-flex items-center`}>
+                    {p.email} · pending
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-2">
+          <div className="border border-[#E8E4DC] bg-[#FAF8F4] p-3 max-h-72 overflow-y-auto space-y-2" aria-live="polite">
+            {convo.length === 0 && <p className="text-xs text-[#5A5751]">No messages yet — say hello.</p>}
+            {convo.map((m) => (
+              <div key={m.id} className={`text-sm ${m.mine ? 'text-right' : 'text-left'}`}>
+                {!m.mine && <span className="inline-block align-bottom mr-1.5">{avatarFor(openWith, 20)}</span>}
+                <div className={`inline-block px-3 py-1.5 max-w-[85%] ${m.locked ? 'italic text-[#5A5751] bg-white border border-dashed border-[#C9BFA8]' : m.mine ? 'bg-[#1A1815] text-white' : 'bg-white border border-[#E8E4DC] text-[#1A1815]'}`}>
+                  {m.body}
+                </div>
+                <div className="text-[0.5625rem] text-[#5A5751] mt-0.5">
+                  {fmtTime(m.createdAt)}
+                  {/* Honest per-message state: sealed end-to-end vs legacy plaintext. */}
+                  {m.encrypted ? ' · encrypted' : ''}
+                </div>
+                {receipts[m.id] && (
+                  <div className="text-[0.5625rem] text-[#5A5751]" data-receipt={m.id} aria-label={`${receipts[m.id]} — ${receipts[m.id].startsWith('Seen') ? `${nameFor(openWith)} opened this` : 'on the server, not yet opened'}`}>
+                    {receipts[m.id].startsWith('Seen') ? '✓✓ ' : '✓ '}{receipts[m.id]}
+                  </div>
+                )}
+              </div>
+            ))}
+            <div ref={endRef} />
+          </div>
+          <p className="text-[0.625rem] text-[#5A5751]">
+            Sealed end-to-end for every device you and they have opened Messages on —
+            keys live on your devices, never on the server. A device that joins later
+            opens what is sent after it joined.
+          </p>
+          {devices && devices.length > 0 && (
+            <div className="text-[0.625rem] text-[#5A5751] flex flex-wrap items-center gap-x-2 gap-y-1" data-testid="dm-devices">
+              <span>
+                Opens on {devices.length === 1 ? 'this device only' : `your ${devices.length} devices`}:{' '}
+                {devices.map((d) => (d.thisDevice ? `${d.label || 'this device'} (this one)` : (d.label || 'a device'))).join(' · ')}
+              </span>
+              {devices.filter((d) => !d.thisDevice).map((d) => (
+                <button
+                  key={d.deviceId} type="button" data-testid="dm-device-forget"
+                  onClick={async () => { await forgetDmDevice(d.deviceId); refreshDevices(); }}
+                  className="underline underline-offset-2 min-h-[36px] px-1 focus:outline focus:outline-2 focus:outline-[#B85838]"
+                  title="New messages will no longer be sealed for this device"
+                >
+                  Forget {d.label || 'that device'}
+                </button>
+              ))}
+            </div>
+          )}
+          <label className="block">
+            <span className={LABEL}>Message {nameFor(openWith)}</span>
+            <textarea
+              ref={taRef}
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => {
+                // The messenger feel (Darrell 2026-08-22: "make it flow better"):
+                // Enter sends, Shift+Enter makes a new line — long-form still
+                // welcome via Shift+Enter or Speak.
+                if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+              }}
+              rows={2}
+              className={`${FIELD} overflow-y-auto`}
+              placeholder="Words that edify (Ephesians 4:29)… Enter sends · Shift+Enter for a new line"
+            />
+          </label>
+          {mic.error && <p className="text-[0.625rem] text-[#B85838]" role="status">{mic.error}</p>}
+          {pushNote && <p className="text-[0.625rem] text-[#5A5751]" role="status" data-push-report>{pushNote}</p>}
+          <div className="flex items-center justify-between gap-2">
+            {mic.supported ? (
+              <button
+                type="button"
+                onClick={mic.toggle}
+                aria-pressed={mic.listening}
+                aria-label={mic.listening ? 'Stop voice input' : 'Speak your message instead of typing'}
+                className={`${BTN} border-2 ${mic.listening ? 'bg-[#B85838] text-white border-[#B85838]' : 'border-[#1A1815] text-[#1A1815] bg-white hover:bg-[#1A1815] hover:text-white'}`}
+              >
+                {mic.listening ? <><UiIcon name="stop" /> Stop</> : <><UiIcon name="mic" /> Speak</>}
+              </button>
+            ) : <span />}
+            <button type="button" disabled={busy || !isSendableBody(draft)} onClick={send} className={`${BTN} bg-[#B85838] text-white disabled:opacity-50`}>
+              {busy ? 'Sending…' : 'Send'}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

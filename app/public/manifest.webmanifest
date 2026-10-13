@@ -2,12 +2,13 @@
   "name": "PoeTech Family OS",
   "short_name": "PoeTech",
   "description": "Sovereign family stewardship — financial, household, ministry. Local-first by design.",
+  "id": "/poetech-app/",
   "start_url": "/poetech-app/",
   "scope": "/poetech-app/",
   "display": "standalone",
   "orientation": "portrait-primary",
   "background_color": "#FAF8F4",
-  "theme_color": "#1A1815",
+  "theme_color": "#FAF8F4",
   "categories": ["finance", "productivity", "lifestyle"],
   "icons": [
     {
@@ -20,6 +21,30 @@
       "src": "/poetech-app/icon-maskable.svg",
       "type": "image/svg+xml",
       "sizes": "any",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/poetech-app/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any"
+    },
+    {
+      "src": "/poetech-app/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any"
+    },
+    {
+      "src": "/poetech-app/icon-maskable-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/poetech-app/icon-maskable-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
       "purpose": "maskable"
     }
   ]

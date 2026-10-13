@@ -1,0 +1,814 @@
+// =============================================================================
+// MooreDoor — the Moore Divahs public app (/?moore=1), customer-facing
+// =============================================================================
+// The branded door Shay shows clients in the Quad Cities (Darrell 2026-07-07):
+// HER brand first — classes with real seats-left + an order inquiry — then the
+// family of businesses PoeTech supports, and PoeTech itself with visible,
+// price-out-able pricing. PUBLIC FACES ONLY: no steward data, no auth required;
+// every interaction goes through forced-safe seams (moore_public_classes RPC,
+// crm_capture_lead RPC, app_interest capture) — never direct tables. Every
+// capture carries source='moore-divahs-app' so the union's inbound is visible
+// on the CRM from day one.
+// =============================================================================
+import React, { useEffect, useMemo, useRef, useState, lazy, Suspense } from 'react';
+import supabase, { readPersistedSession, signOut, identityLabel } from '../lib/supabase.js';
+import { publicRpc } from '../lib/public-rpc.js';
+import { THEME_CSS, THEMES, useThemePref } from '../lib/theme-css.js';
+import { useTextSize } from '../lib/text-size.js';
+import PasswordAuth from './PasswordAuth.jsx';
+
+// The steward board renders IN-DOOR for an owner/admin (Darrell 2026-07-07:
+// "she as an admin login on her front screen of her app, others say user
+// login"). Lazy so customers never download the steward chunk.
+const StewardBoard = lazy(() => import('./MooreDivahs.jsx'));
+import { captureLead } from '../lib/crm-sync.js';
+import { CLASS_FORMATS, orderStageMeta, orderClock, MOORE_POLICIES } from '../lib/moore-divahs.js';
+import { POETECH_TIERS, PRICE_OUT_NEEDS, priceOut, buildReorderNote, doorView } from '../lib/moore-door.js';
+import { getBusiness } from '../lib/business-registry.js';
+
+// The active registry row (cf-registry, DR-0114). Assigned by MooreDoor from
+// its prop before the subtree renders; module-level because one page load
+// serves exactly one business (the standalone-boot pattern). Defaults to
+// Moore Divahs so every existing entry keeps working unchanged.
+let BIZ = getBusiness('moore-divahs');
+import AppInterestCapture from './AppInterestCapture.jsx';
+import UiIcon from './UiIcon.jsx';
+import { TLC_INSURANCE } from '../lib/tlc-practice.js';
+import { useTlcRoster } from '../lib/tlc-roster.js';
+import { COLG_DEFAULT_CHURCH } from '../lib/default-church.js';
+import { liveStatus, liveStreamEmbedUrl, latestUploadEmbedUrl } from '../lib/church-live.js';
+import { osmLink } from './AddressField.jsx';
+import { isInAppBrowser, IN_APP_BROWSER_HINT } from '../lib/session-handoff.js';
+import { fetchMessages, sendMessage } from '../lib/business-messages.js';
+import { fetchShowcase, showcaseImageUrl, sortPieces } from '../lib/showcase.js';
+import { motionBehavior } from '../lib/gentle-motion.js';
+import DoorFeedback from './DoorFeedback.jsx';
+import { reportDoorFault, faultSentence, reportIfFailed } from '../lib/door-feedback-sync.js';
+
+const SERIF = { fontFamily: '"Fraunces", serif' };
+const fmt$ = (cents) => `$${(cents / 100).toFixed(2)}`;
+
+// ---- shared: a public capture form that lands a forced-safe CRM lead --------
+function ContactCaptureForm({ pipeline, instanceSlug, promptLabel, notePlaceholder, okMessage, prefillNotes = '', fallback = null }) {
+  const [f, setF] = useState({ name: '', contactValue: '', notes: '' });
+  const [state, setState] = useState('idle'); // idle | sending | ok | error
+  const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
+  // One-click reorder drops the prior piece into the note — editable, and a
+  // fresh reorder resets a sent form so "again" is one tap, not a page hunt.
+  useEffect(() => {
+    if (prefillNotes) { setF((cur) => ({ ...cur, notes: prefillNotes })); setState('idle'); }
+  }, [prefillNotes]);
+  const submit = async (e) => {
+    e.preventDefault();
+    if (!f.name.trim() || !f.contactValue.trim()) return;
+    setState('sending');
+    const res = await captureLead(pipeline, instanceSlug, {
+      name: f.name, contactMethod: 'email', contactValue: f.contactValue,
+      source: BIZ.captureSource, sourceDetail: `${BIZ.brand.label} app`, notes: f.notes,
+      consentOutreachOk: true, consentChannels: ['email'], consentNote: `Asked to be contacted via the ${BIZ.brand.label} app`,
+    });
+    if (res && res.captured) { setState('ok'); return; }
+    // A customer was told to "try again in a moment" for a cause that could
+    // never improve by waiting (0215: the pipeline was refused by the database
+    // for as long as this door has existed, and a real order was lost to it).
+    // So the failure now says the one thing that actually matters -- it did NOT
+    // reach her -- and the raw reason goes to the console for whoever reads a
+    // screenshot, the same posture lib/auth-error-message.js takes.
+    console.warn('[capture] inquiry not sent:', pipeline, res && res.error);
+    // THE DOOR REPORTS ITSELF (0217). A console line on the customer's own
+    // phone is what let Sterling's order vanish for months. This files the
+    // fault into the book the office already reads, whether or not he then
+    // chooses to type anything -- and it is awaited only for its own sake:
+    // the customer's error state below does not depend on it.
+    reportDoorFault(BIZ.slug, BIZ.instanceSlug, {
+      area: 'order',
+      body: faultSentence(`The ${promptLabel.toLowerCase()} form`, res && res.error && res.error.message),
+    });
+    setState('error');
+  };
+  if (state === 'ok') {
+    return <div className="rounded-xl border border-[#5A6E3D] bg-white p-3 text-sm text-[#5A6E3D]">✓ {okMessage}</div>;
+  }
+  return (
+    <form onSubmit={submit} className="grid grid-cols-1 gap-2 rounded-xl border border-[#E8E2D8] bg-white p-3 text-sm sm:grid-cols-3">
+      {/* Entrance-review 2026-07-07: autofill + the right mobile keyboard on the
+          money path, comfortable tap heights (~44px), and a real multi-line
+          field for a sentence-length ask. */}
+      <input aria-label="Your name" required placeholder="Your name" autoComplete="name" className="rounded border border-[#E8E2D8] px-3 py-2.5" value={f.name} onChange={set('name')} />
+      <input aria-label="Your email or handle" required placeholder="Email or @handle" autoComplete="email" inputMode="email" className="rounded border border-[#E8E2D8] px-3 py-2.5" value={f.contactValue} onChange={set('contactValue')} />
+      <textarea aria-label="Details" rows={2} placeholder={notePlaceholder} className="rounded border border-[#E8E2D8] px-3 py-2.5 sm:col-span-3" value={f.notes} onChange={set('notes')} />
+      <button type="submit" disabled={state === 'sending'} className="rounded-lg bg-[#B85838] px-3 py-2.5 font-semibold text-white sm:col-span-3">
+        {state === 'sending' ? 'Sending…' : promptLabel}
+      </button>
+      {state === 'error' && (
+        <div role="alert" className="rounded-lg border border-[#B85838] bg-white p-2.5 text-xs text-[#B85838] sm:col-span-3">
+          <strong>This did not send — she has not received it.</strong>{' '}
+          Your details are still on this screen, so nothing you typed is lost.
+          {fallback
+            ? ' There is a second way in that does work, and it goes straight to her board:'
+            : ` Please reach ${BIZ.brand.label} the way you normally would and mention what you wrote here, rather than waiting on a reply that is not coming.`}
+          {fallback && (
+            <button
+              type="button"
+              onClick={fallback.onClick}
+              className="mt-2 block w-full rounded-lg bg-[#B85838] px-3 py-2.5 text-sm font-semibold text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[#B85838] focus-visible:ring-offset-2"
+            >
+              {fallback.label}
+            </button>
+          )}
+        </div>
+      )}
+      <p className="text-xs text-[#5A5751] sm:col-span-3">Contact info only — you choose how we reach you. Never sold, ever.</p>
+    </form>
+  );
+}
+
+// ---- Moore Divahs tab --------------------------------------------------------
+function PublicClasses() {
+  const [state, setState] = useState({ phase: 'loading', rows: [] });
+  useEffect(() => {
+    let on = true;
+    // publicRpc, NOT the shared client: anon read with a hard deadline — a
+    // wedged auth lock in another PoeTech window can never hang this again.
+    publicRpc('moore_public_classes', { p_instance_slug: BIZ.doorDataInstanceSlug })
+      .then(({ data, error }) => { if (on) setState({ phase: error ? 'error' : 'ready', rows: data || [] }); });
+    return () => { on = false; };
+  }, []);
+  if (state.phase === 'loading') return <p className="text-sm text-[#5A5751]">Loading classes…</p>;
+  if (state.phase === 'error' || state.rows.length === 0) {
+    return <p className="text-sm text-[#5A5751]">New class dates post about a month ahead — send an order inquiry above and ask to hear about the next one first.</p>;
+  }
+  return (
+    <div className="space-y-2">
+      {state.rows.map((c) => (
+        <div key={c.slug} className="flex items-start justify-between gap-2 rounded-xl border border-[#E8E2D8] bg-white p-3">
+          <div>
+            <div className="font-semibold text-[#1A1815]" style={SERIF}>
+              {(CLASS_FORMATS[c.format] || {}).label || c.format}{c.project ? ` — ${c.project}` : ''}
+            </div>
+            <div className="text-xs text-[#5A5751]">
+              {c.date_iso ? new Date(c.date_iso).toLocaleString() : ''}{c.location ? ` · ${c.location}` : ''} · {fmt$(c.price_cents)}
+              {c.format === 'one-on-one' ? ' · 2.5-hour private session · Mon-Fri, 9 AM-1 PM' : ''}
+              {osmLink(c.location_lat, c.location_lon) && (
+                <> · <a className="underline" href={osmLink(c.location_lat, c.location_lon)} target="_blank" rel="noreferrer">map</a></>
+              )}
+            </div>
+            <div className="text-xs text-[#5A5751]">Machines + materials provided — just show up and create.</div>
+          </div>
+          <span className={`shrink-0 rounded-full border px-2 py-0.5 text-xs ${c.seats_left > 0 ? 'text-[#5A6E3D] border-[#5A6E3D]' : 'text-[#B85838] border-[#B85838]'}`}>
+            {c.seats_left > 0 ? `${c.seats_left} seats left` : 'Full'}
+          </span>
+        </div>
+      ))}
+      <p className="text-xs text-[#5A5751]">A seat is held when it&rsquo;s paid — send an inquiry above to book yours and Shay will reach out.</p>
+    </div>
+  );
+}
+
+// ---- My Orders — the signed-in client's OWN history (0087 read-own lane) ----
+function MyOrders({ onReorder = null }) {
+  const [state, setState] = useState({ phase: 'checking', rows: [] });
+  useEffect(() => {
+    let on = true;
+    supabase.auth.getSession().then(({ data }) => {
+      if (!on) return;
+      if (!data?.session) { setState({ phase: 'signed-out', rows: [] }); return; }
+      supabase.rpc('my_moore_orders')
+        .then(({ data: rows, error }) => { if (on) setState({ phase: error ? 'error' : 'ready', rows: rows || [] }); })
+        .catch(() => { if (on) setState({ phase: 'error', rows: [] }); });
+    }).catch(() => { if (on) setState({ phase: 'signed-out', rows: [] }); });
+    return () => { on = false; };
+  }, []);
+  if (state.phase === 'checking') return null;
+  if (state.phase === 'signed-out') {
+    return (
+      <div className="text-xs text-[#5A5751]">
+        <p>
+          Have an account? <a className="inline-block px-1 py-2 font-semibold underline" href="/?login=1">Sign in</a> and come back — your orders and class seats show up here.
+        </p>
+        {isInAppBrowser() && <p className="mt-1 text-[#B85838]">{IN_APP_BROWSER_HINT}</p>}
+      </div>
+    );
+  }
+  if (state.phase === 'error' || state.rows.length === 0) {
+    return <p className="text-xs text-[#5A5751]">No orders on your account yet — your history appears here the moment your first order is in.</p>;
+  }
+  return (
+    <div className="space-y-2">
+      {state.rows.map((o) => {
+        const meta = orderStageMeta(o.stage);
+        const clock = orderClock({ stage: o.stage, paidAt: o.paid_at, turnaroundDays: o.turnaround_days });
+        return (
+          <div key={o.slug} className="flex items-start justify-between gap-2 rounded-xl border border-[#E8E2D8] bg-white p-3">
+            <div>
+              <div className="text-sm font-semibold text-[#1A1815]" style={SERIF}>{o.description || o.product_type}</div>
+              <div className="text-xs text-[#5A5751]">
+                {o.quote_cents ? `${fmt$(o.quote_cents)} · ` : ''}
+                {o.paid_at ? 'paid' : 'awaiting payment'} · {o.delivery === 'pickup' ? 'pickup' : 'ships to you'}
+                {clock.running && clock.daysLeft != null ? ` · ${clock.overdue ? 'finishing up' : `about ${clock.daysLeft} days to go`}` : ''}
+              </div>
+            </div>
+            <span className="shrink-0 rounded-full border border-[#5A6E3D] px-2 py-0.5 text-xs text-[#5A6E3D]">{meta.symbol} {meta.label}</span>
+            {onReorder && (
+              <button
+                type="button"
+                className="shrink-0 rounded-lg border border-[#B85838] px-2 py-0.5 text-xs text-[#B85838]"
+                onClick={() => onReorder(o)}
+              >
+                ↺ Order again
+              </button>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ---- Messages — the customer's own thread with Shay (0091 lane) -------------
+function MyMessages() {
+  const [state, setState] = useState({ phase: 'checking', rows: [] });
+  const [draft, setDraft] = useState('');
+  const load = () => fetchMessages(BIZ.instanceSlug).then((r) => {
+    reportIfFailed(BIZ.slug, BIZ.instanceSlug, 'messages', 'The message thread', r);
+    setState({ phase: r.ok ? 'ready' : 'error', rows: r.rows });
+  });
+  useEffect(() => {
+    let on = true;
+    supabase.auth.getSession().then(({ data }) => {
+      if (!on) return;
+      if (!data?.session) { setState({ phase: 'signed-out', rows: [] }); return; }
+      load();
+    }).catch(() => { if (on) setState({ phase: 'signed-out', rows: [] }); });
+    return () => { on = false; };
+  }, []);
+  if (state.phase === 'checking') return null;
+  if (state.phase === 'signed-out') {
+    return <p className="text-xs text-[#5A5751]">Sign in above and your conversation with Shay lives right here — no more DM digging.</p>;
+  }
+  const send = async (e) => {
+    e.preventDefault();
+    if (!draft.trim()) return;
+    const r = await sendMessage(BIZ.instanceSlug, draft);
+    reportIfFailed(BIZ.slug, BIZ.instanceSlug, 'messages', 'Sending a message', r);
+    if (r.ok) { setDraft(''); load(); }
+  };
+  return (
+    <div>
+      {state.rows.length === 0
+        ? <p className="text-xs text-[#5A5751]">No messages yet — say hello and Shay gets it on her board.</p>
+        : (
+          <div className="max-h-64 space-y-1.5 overflow-y-auto rounded-xl border border-[#E8E2D8] bg-white p-2">
+            {state.rows.map((m, i) => (
+              <div key={i} className={`max-w-[85%] rounded-lg px-2 py-1 text-sm ${m.sender === 'customer' ? 'ml-auto border border-[#B85838] text-[#1A1815]' : 'border border-[#E8E2D8] text-[#1A1815]'}`}>
+                <span className="block text-xs text-[#5A5751]">{m.sender === 'customer' ? 'You' : 'Moore Divahs'} · {new Date(m.created_at).toLocaleString()}</span>
+                {m.body}
+              </div>
+            ))}
+          </div>
+        )}
+      <form onSubmit={send} className="mt-2 flex gap-2">
+        <input aria-label="Message Shay" placeholder="Message Shay…" className="flex-1 rounded border border-[#E8E2D8] bg-white px-3 py-2.5 text-sm" value={draft} onChange={(e) => setDraft(e.target.value)} />
+        <button type="submit" className="rounded-lg bg-[#B85838] px-4 py-2.5 text-sm font-semibold text-white">Send</button>
+      </form>
+    </div>
+  );
+}
+
+// ---- Gallery — her work greets everyone who enters (0092) -------------------
+// The READ lives here, one call, so the split grid below (a few pieces → the
+// order path → the rest) never fetches her showcase twice.
+function useShowcase() {
+  const [state, setState] = useState({ phase: 'loading', pieces: [] });
+  useEffect(() => {
+    let on = true;
+    fetchShowcase(BIZ.instanceSlug).then((r) => {
+      reportIfFailed(BIZ.slug, BIZ.instanceSlug, 'gallery', 'The gallery', r);
+      if (on) setState({ phase: 'ready', pieces: sortPieces(r.pieces) });
+    });
+    return () => { on = false; };
+  }, []);
+  return state;
+}
+
+// Purely presentational: it renders the pieces it is handed and owns no state,
+// so the same grid serves both halves of the split.
+function GalleryGrid({ pieces, onInspired }) {
+  return (
+    <div className="grid grid-cols-2 gap-3">
+      {pieces.map((p) => {
+        const url = showcaseImageUrl(p.image_path);
+        return (
+          <figure key={p.slug} className="overflow-hidden rounded-2xl border border-[#E8E2D8] bg-white">
+            {url && <img src={url} alt={p.title} loading="lazy" className="aspect-square w-full object-cover" />}
+            <figcaption className="p-2">
+              <div className="text-sm font-semibold text-[#1A1815]" style={SERIF}>{p.title}{p.pinned ? ' ✦' : ''}</div>
+              {/* Price shows ONLY where Shay set one (0094) — never painted. */}
+              {p.price_cents != null && <div className="text-sm font-semibold text-[#5A6E3D]">{fmt$(p.price_cents).replace(/\.00$/, '')}</div>}
+              {p.description && <div className="text-xs text-[#5A5751]">{p.description}</div>}
+              <button
+                type="button"
+                className="mt-1.5 w-full rounded-lg border border-[#B85838] px-2 py-2 text-xs font-semibold text-[#B85838]"
+                onClick={() => onInspired?.(p)}
+              >
+                Order inspired by this
+              </button>
+            </figcaption>
+          </figure>
+        );
+      })}
+    </div>
+  );
+}
+
+// How many pieces greet a customer BEFORE the order path appears (Darrell
+// 2026-08-31: "move the ordering aspect to the top... maybe after the first 3
+// images/product spots so Shay's customers can see how to order"). He said 3;
+// the grid is 2-up, so 3 leaves an orphan card alone on its row — 4 is two
+// clean rows and the same beat: see her work, learn how to order, see more.
+const PIECES_BEFORE_ORDER = 4;
+
+function MooreTab() {
+  // One-click reorder: a tap on a past order pre-fills the inquiry note
+  // (editable before sending — she quotes fresh; her flyer policies hold).
+  const [reorderNote, setReorderNote] = useState('');
+  const { phase, pieces } = useShowcase();
+  const orderRef = useRef(null);
+  // The order form can fail (0215 proved it had, silently, for the whole life of
+  // this door). When it does, the customer is walked to the channel that works
+  // -- her own message thread -- instead of being left to guess. Sterling is the
+  // reason this ref exists.
+  const messagesRef = useRef(null);
+  // Take her TO the form it just filled in. This used to scrollTo(top), which
+  // threw the customer to the top of the page — away from the very form the tap
+  // had prefilled. The order block is no longer at the bottom, so the honest
+  // move is to scroll to it by ref.
+  const scrollToOrder = () => {
+    try { orderRef.current?.scrollIntoView({ behavior: motionBehavior(), block: 'start' }); }
+    catch { /* no-op */ }
+  };
+  const scrollToMessages = () => {
+    try { messagesRef.current?.scrollIntoView({ behavior: motionBehavior(), block: 'start' }); }
+    catch { /* no-op */ }
+  };
+  const onInspired = (p) => {
+    setReorderNote(`Inspired by "${p.title}" in the gallery — I want my own (she creates her way).`);
+    scrollToOrder();
+  };
+  const firstPieces = pieces.slice(0, PIECES_BEFORE_ORDER);
+  const restPieces = pieces.slice(PIECES_BEFORE_ORDER);
+  return (
+    <div className="space-y-5">
+      <div>
+        <h2 className="text-lg font-bold text-[#1A1815]" style={SERIF}>Her work</h2>
+        <div className="mt-2">
+          {phase === 'loading' ? null : pieces.length === 0 ? (
+            <p className="rounded-2xl border border-dashed border-[#B85838] p-4 text-center text-sm text-[#5A5751]" style={SERIF}>
+              The gallery is being curated — Shay&rsquo;s favorite pieces post here soon.
+            </p>
+          ) : (
+            <GalleryGrid pieces={firstPieces} onInspired={onInspired} />
+          )}
+        </div>
+      </div>
+      {/* The order path, moved up under her first pieces. Deliberately OUTSIDE
+          the gallery's conditional: an empty or still-loading showcase must
+          never take "how do I order?" off her page. scroll-mt keeps the heading
+          clear of the top edge when a tap scrolls us here. */}
+      <div ref={orderRef} className="scroll-mt-4">
+        <h2 className="text-lg font-bold text-[#1A1815]" style={SERIF}>Custom work, made for you</h2>
+        <div className="mt-1 flex flex-wrap gap-1.5 text-xs">
+          {['Custom clothing', 'Scrub caps', 'Custom shoes', 'Team & group apparel'].map((s) => (
+            <span key={s} className="rounded-full border border-[#B85838] px-2 py-0.5 text-[#B85838]">{s}</span>
+          ))}
+        </div>
+        <p className="mt-2 text-sm text-[#5A5751]">
+          Tell her what you want, send inspiration pictures, share your size — she quotes each piece
+          (materials included), payment books it, and your piece is made within three weeks.
+        </p>
+        <h3 className="mt-4 font-semibold text-[#1A1815]" style={SERIF}>Start an order</h3>
+        <div className="mt-2">
+          <ContactCaptureForm
+            pipeline={BIZ.capturePipeline}
+            instanceSlug={BIZ.captureInstanceSlug}
+            promptLabel="Send my order inquiry"
+            notePlaceholder="What do you want made?"
+            okMessage="Sent! Shay will reach out to talk through your piece."
+            prefillNotes={reorderNote}
+            fallback={{ label: 'Message Shay directly instead', onClick: scrollToMessages }}
+          />
+        </div>
+        {/* Her house rules — her own flyer's words, agreed at the point of order. */}
+        <ul className="mt-2 list-disc pl-4 text-xs text-[#5A5751]">
+          <li>{MOORE_POLICIES.leadTime} No rush orders.</li>
+          <li>{MOORE_POLICIES.paymentUpfront} {MOORE_POLICIES.nonRefundable}</li>
+          <li>{MOORE_POLICIES.inspoHerWay}</li>
+          <li>{MOORE_POLICIES.finalFitting}</li>
+          <li>{MOORE_POLICIES.madeWithLove}</li>
+        </ul>
+      </div>
+      {restPieces.length > 0 && (
+        <div>
+          <h2 className="text-lg font-bold text-[#1A1815]" style={SERIF}>More of her work</h2>
+          <div className="mt-2"><GalleryGrid pieces={restPieces} onInspired={onInspired} /></div>
+        </div>
+      )}
+      <div>
+        <h3 className="font-semibold text-[#1A1815]" style={SERIF}>Sewing classes</h3>
+        <div className="mt-2"><PublicClasses /></div>
+      </div>
+      <div ref={messagesRef}>
+        <h3 className="font-semibold text-[#1A1815]" style={SERIF}>Messages</h3>
+        <div className="mt-2"><MyMessages /></div>
+      </div>
+      <div>
+        <h3 className="font-semibold text-[#1A1815]" style={SERIF}>My orders</h3>
+        <div className="mt-2"><MyOrders onReorder={(o) => { setReorderNote(buildReorderNote(o)); scrollToOrder(); }} /></div>
+      </div>
+    </div>
+  );
+}
+
+// ---- family-of-businesses tabs -------------------------------------------------
+// The Practice tab shows the REAL clinical team (Darrell 2026-07-07) — the same
+// TLC_TEAM record the main app's Practice tab renders (one source, no drift).
+// Public marketing facts only; the capture form stays contact-info-only.
+function PracticeTab() {
+  const team = useTlcRoster(); // seed cards + approved colleagues (DR-0344)
+  return (
+    <div className="space-y-3">
+      <h2 className="text-lg font-bold text-[#1A1815]" style={SERIF}>TLC Therapy Solutions</h2>
+      <p className="text-sm text-[#5A5751]">
+        Faith-aware counseling and wellness. Ask for a call about fit — contact info only here; everything
+        clinical stays in the counseling room where it belongs.
+      </p>
+      <div>
+        <h3 className="font-semibold text-[#1A1815]" style={SERIF}>Meet the therapists</h3>
+        <div className="ts-grid-collapse mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+          {team.map((t) => (
+            <a key={t.name} href={t.url} target="_blank" rel="noopener noreferrer"
+              className="flex items-start gap-3 rounded-xl border border-[#E8E2D8] bg-white p-3">
+              {t.photo
+                ? <img src={t.photo} alt={t.name} loading="lazy" className="h-16 w-16 shrink-0 rounded-lg border border-[#E8E2D8] object-cover" />
+                : <div aria-hidden="true" className="h-16 w-16 shrink-0 rounded-lg border border-[#E8E2D8] bg-[#E8E4DC]" />}
+              <div className="min-w-0 flex-1">
+                <div className="flex items-baseline justify-between gap-2">
+                  <span className="text-sm font-semibold text-[#1A1815] min-w-0 break-words" style={SERIF}>{t.name}</span>
+                  <span className="shrink-0 text-[0.625rem] uppercase tracking-wider text-[#B85838]">View →</span>
+                </div>
+                <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">{t.role}</div>
+                <p className="mt-1 text-xs leading-snug text-[#5A5751]">{t.specialty}</p>
+              </div>
+            </a>
+          ))}
+        </div>
+        <p className="mt-2 text-xs text-[#5A5751]"><span className="font-semibold text-[#B85838]">Insurance accepted:</span> {TLC_INSURANCE}</p>
+      </div>
+      <ContactCaptureForm
+        pipeline="tlc-client-intake"
+        instanceSlug="tlc"
+        promptLabel="Request a call about counseling"
+        notePlaceholder="Anything you want us to know (optional)"
+        okMessage="Received. The practice will reach out about fit and scheduling."
+      />
+    </div>
+  );
+}
+
+// The Church tab plays the latest live service (Darrell 2026-07-07) — the same
+// no-API-key rolling-latest player the main app's Church tab uses: live embed
+// inside a service window, the channel's latest upload otherwise.
+function ChurchTab() {
+  const c = COLG_DEFAULT_CHURCH;
+  const { live } = liveStatus(c.services);
+  const embed = live ? liveStreamEmbedUrl(c.youtubeChannelId) : latestUploadEmbedUrl(c.youtubeChannelId);
+  return (
+    <div className="space-y-3">
+      <h2 className="text-lg font-bold text-[#1A1815]" style={SERIF}>The Church of the Living God</h2>
+      <p className="text-sm text-[#5A5751]">
+        The Poe family&rsquo;s home church in Champaign-Urbana — worship, community, and a place at the table.
+        {live ? ' Streaming live right now — join in below.' : ' Between services the most recent message plays here; the next live stream rolls in on its own.'}
+      </p>
+      {embed && (
+        <iframe
+          src={embed}
+          title={live ? `${c.name} — live service` : `${c.name} — latest message`}
+          loading="lazy"
+          allow="autoplay; encrypted-media; picture-in-picture"
+          allowFullScreen
+          className="aspect-video w-full rounded-xl border border-[#E8E2D8] bg-black"
+        />
+      )}
+      <p className="text-xs text-[#5A5751]">
+        <span className="font-semibold text-[#B85838]">Service times:</span>{' '}
+        {c.services.map((s) => `${s.day} ${s.time}`).join(' · ')}
+      </p>
+      <div className="flex flex-wrap gap-2">
+        {c.media?.youtube && (
+          <a className="inline-block rounded-lg border border-[#5A5751] px-3 py-1.5 text-sm text-[#5A5751]" href={c.media.youtube} target="_blank" rel="noopener noreferrer">
+            Watch on YouTube
+          </a>
+        )}
+        <a className="inline-block rounded-lg border border-[#2A5A8E] px-3 py-1.5 text-sm font-semibold text-[#2A5A8E]" href="/?join=1">
+          Get connected →
+        </a>
+      </div>
+    </div>
+  );
+}
+
+function PoeTechTab() {
+  const [picked, setPicked] = useState([]);
+  const quote = useMemo(() => priceOut(picked), [picked]);
+  const toggle = (k) => setPicked((cur) => (cur.includes(k) ? cur.filter((x) => x !== k) : [...cur, k]));
+  return (
+    <div className="space-y-5">
+      <div>
+        <h2 className="text-lg font-bold text-[#1A1815]" style={SERIF}>The platform behind this app</h2>
+        <p className="mt-1 text-sm text-[#5A5751]">
+          This Moore Divahs app runs on PoeTech — one platform for a family&rsquo;s money, projects, church life,
+          and businesses. Built to serve, never to extract: your data is yours, exportable, never sold.
+        </p>
+      </div>
+      <div>
+        <h3 className="font-semibold text-[#1A1815]" style={SERIF}>Pricing</h3>
+        <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+          {POETECH_TIERS.map((t) => (
+            <div key={t.key} className="rounded-xl border border-[#E8E2D8] bg-white p-3">
+              <div className="flex items-baseline justify-between">
+                <span className="font-semibold text-[#1A1815]" style={SERIF}>{t.label}</span>
+                <span className="text-[#1A1815]">{t.monthly === 0 ? 'Free' : `$${t.monthly}/mo`}</span>
+              </div>
+              <p className="mt-1 text-xs text-[#5A5751]">{t.blurb}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div>
+        <h3 className="font-semibold text-[#1A1815]" style={SERIF}>Price it out</h3>
+        <p className="text-xs text-[#5A5751]">Pick what you need — the price follows.</p>
+        <div className="mt-2 space-y-1.5">
+          {PRICE_OUT_NEEDS.map((n) => (
+            <label key={n.key} className="flex items-center gap-2 text-sm text-[#1A1815]">
+              <input type="checkbox" checked={picked.includes(n.key)} onChange={() => toggle(n.key)} />
+              {n.label}
+            </label>
+          ))}
+        </div>
+        <div className="mt-2 rounded-xl border border-[#E8E2D8] bg-white p-3 text-sm text-[#1A1815]">
+          {quote.tier
+            ? <><strong>{quote.label}{quote.monthly != null ? ` — ${quote.monthly === 0 ? 'Free' : `$${quote.monthly}/mo`}` : ''}</strong>{quote.customQuote ? ' + build from $2,000' : ''}<div className="mt-1 text-xs text-[#5A5751]">{quote.note}</div></>
+            : <span className="text-[#5A5751]">{quote.note}</span>}
+        </div>
+      </div>
+      <div>
+        <h3 className="font-semibold text-[#1A1815]" style={SERIF}>Want in?</h3>
+        <div className="mt-2"><AppInterestCapture source={BIZ.captureSource} /></div>
+      </div>
+    </div>
+  );
+}
+
+// ---- Admin login / User login — one auth, role decides ----------------------
+// The buttons are honest signage; my_business_role() (0090, definer, signed-in
+// only) is the gate's input, and table RLS remains the real wall.
+function DoorAuth({ role, onRole }) {
+  const [open, setOpen] = useState(null); // null | 'admin' | 'user'
+  const [checking, setChecking] = useState(true);
+  const [who, setWho] = useState('');          // the signed-in identity, as the app names it
+  const [roleFault, setRoleFault] = useState(false); // the role RPC errored (not "none")
+  useEffect(() => {
+    let on = true;
+    // Hard deadline on the whole check: getSession() waits on a CROSS-TAB auth
+    // lock a wedged PoeTech window can hold forever (the 2026-07-07 "no login
+    // buttons on the front page" hang). If the check can't answer in time, the
+    // door defaults to signed-out — the honest state that always shows the
+    // User/Admin login buttons instead of a blank header.
+    const deadline = new Promise((resolve) => setTimeout(() => resolve({ timedOut: true }), 5000));
+    (async () => {
+      const s = await Promise.race([supabase.auth.getSession(), deadline]);
+      if (!on) return;
+      // A TIMEOUT IS NOT A SIGN-OUT (fixed 2026-08-28 with the same bug in
+      // PropertiesDoor, found on Darrell's phone). getSession() takes a
+      // cross-tab auth lock, so with another PoeTech window open the deadline
+      // wins routinely — and treating that as "no session" signs a shop owner
+      // out of her own board. The persisted session is a synchronous storage
+      // read: no lock, no network, cannot hang. Ask it before concluding.
+      const live = s?.timedOut ? readPersistedSession() : (s?.data?.session || null);
+      if (!live) { setChecking(false); onRole('signed-out'); return; }
+      const r = await Promise.race([
+        supabase.rpc('my_business_role', { p_instance_slug: BIZ.instanceSlug }),
+        deadline,
+      ]);
+      if (!on) return;
+      if (r?.timedOut) { setChecking(false); onRole('signed-out'); return; }
+      setWho(identityLabel(live));
+      // An RPC ERROR is not "not a member". Collapsing the two hid a real
+      // backend fault behind a customer's view (2026-09-07: the sovereign
+      // box answering wrong looked exactly like "you're just a customer").
+      if (r?.error) { setRoleFault(true); onRole('none'); setChecking(false); return; }
+      onRole(r?.data || 'none');
+      setChecking(false);
+    })().catch(() => { if (on) { setChecking(false); onRole('signed-out'); } });
+    return () => { on = false; };
+  }, [onRole]);
+  if (checking) return null;
+  const signOutBtn = <button type="button" className="underline" onClick={() => signOut().then(() => window.location.reload())}>Sign out</button>;
+  if (role === 'owner' || role === 'admin') {
+    return <p className="text-xs text-[#5A6E3D]">Signed in as the shop — your board is below. {signOutBtn}</p>;
+  }
+  // 'customer-view' = a real steward looking through the customer lens: render
+  // exactly what a signed-in customer gets here — the strip above the header
+  // is the only tell.
+  if (role === 'customer-view') return null;
+  // A SIGNED-IN PERSON ALWAYS HAS A WAY OUT (Darrell 2026-09-07, on his own
+  // tablet: "where is the logout button?"). This branch used to render
+  // NOTHING for a signed-in non-steward — no name, no sign-out, no way to
+  // sign in as someone else. A door with no handle on the inside is a lockout
+  // that looks like a blank header: the shop owner whose session is a
+  // different account than her seat could never get to the seat, and a
+  // steward whose role could not be read looked like a customer forever.
+  if (role !== 'signed-out') {
+    return (
+      <p className="text-xs text-[#5A5751]">
+        Signed in as <span className="font-semibold text-[#1A1815]">{who || 'you'}</span>
+        {roleFault
+          ? <> — we couldn&rsquo;t read your role here just now. {signOutBtn} and sign back in.</>
+          : <> — your orders show below. Not you? {signOutBtn}</>}
+      </p>
+    );
+  }
+  if (open) {
+    return (
+      <div className="mx-auto max-w-sm">
+        <PasswordAuth mode="signin" embedded onSignedIn={() => window.location.reload()} />
+        <button type="button" className="mt-1 text-xs text-[#5A5751] underline" onClick={() => setOpen(null)}>Close</button>
+      </div>
+    );
+  }
+  return (
+    <div className="flex justify-center gap-2">
+      <button type="button" className="rounded-lg border border-[#B85838] px-4 py-2.5 text-sm font-semibold text-[#B85838]" onClick={() => setOpen('user')}>User login</button>
+      <button type="button" className="rounded-lg border border-[#5A5751] px-4 py-2.5 text-sm text-[#5A5751]" onClick={() => setOpen('admin')}>Admin login</button>
+    </div>
+  );
+}
+
+// ---- the door ------------------------------------------------------------------
+export default function MooreDoor({ business = null }) {
+  // Bind the registry row FIRST so every section below reads this business.
+  BIZ = business || getBusiness('moore-divahs');
+  const [tab, setTab] = useState('moore'); // Moore Divahs first, always
+  // The chooser now lives at the BOTTOM, so a tap must carry the reader up to
+  // the business they just picked — otherwise they land mid-page on a section
+  // they never scrolled to.
+  const selectTab = (id) => {
+    setTab(id);
+    try { window.scrollTo({ top: 0, behavior: motionBehavior() }); } catch { /* no-op */ }
+  };
+  const [role, setRole] = useState('signed-out');
+  // Comfort controls — the SAME theme + text-size the PoeTech app uses (shared
+  // libs; the per-device choice follows the user between shells).
+  // ONE CHOICE, EVERY SURFACE (DR-0878). Darrell, 2026-10-10: "can't change
+  // the color of the system using the reader controller... fix it".
+  //
+  // This door used to hold its OWN copy of the theme — useState(readThemePref)
+  // plus an effect that saved it — and never subscribed to the shared
+  // preference. The reader's color picker calls setThemePref, which publishes
+  // to every subscriber, and this door was not one: it had read the value once
+  // at mount and had no way to learn it had changed. So the picker genuinely
+  // set the preference, the preference was genuinely saved, and the screen the
+  // reader was looking at never repainted. The PoeTech shell
+  // (the monolith) used useThemePref and therefore worked, which
+  // is exactly why this read as "the reader can't change the system" rather
+  // than "the picker is broken" — it depended on which door you were standing
+  // in. useThemePref both subscribes and saves, so the effect goes with it.
+  const [theme, setTheme] = useThemePref('cream');
+  const [sizeKey, setSizeKey, sizeSteps] = useTextSize();
+  // View-as-customer — the door's reviewer lens (session-only on purpose: a
+  // reload always boots Shay back to her own board, never stuck in the lens).
+  // Strictly narrowing (doorView): it can only HIDE the steward board.
+  const [customerView, setCustomerView] = useState(false);
+  const view = doorView(role, customerView);
+  const isSteward = view.isSteward;
+  // Title carries HER name while the door is mounted. The manifest-link swap
+  // that used to live here is RETIRED (DR-0261/DR-0258): install identity is a
+  // page-load property, and Moore's manifest now has its own disjoint scope
+  // (/moore/) linked STATICALLY by her served page (app/moore/app/index.html) —
+  // a runtime swap on a /poetech-app/ page would make that page un-installable
+  // as anything (the linked manifest's scope wouldn't contain the page).
+  useEffect(() => {
+    document.title = `${BIZ.brand.label} — ${BIZ.brand.tagline}`;
+  }, []);
+  return (
+    <div data-theme={theme === 'cream' ? undefined : theme} className="min-h-screen overflow-x-clip bg-[#FAF8F4] text-[#1A1815]">
+      <style>{THEME_CSS}</style>
+      <div className="mx-auto max-w-2xl px-4 pb-16">
+        {view.customerView && (
+          <div className="sticky top-0 z-40 -mx-4 flex items-center justify-between gap-2 border-b border-[#B85838] bg-[#FAF8F4] px-4 py-2 text-xs text-[#1A1815]">
+            <span className="flex items-center gap-1.5"><UiIcon name="eye" className="h-4 w-4 shrink-0" /><span><strong>Viewing as a customer</strong> — this is exactly what your customers see. Anything you submit here is real.</span></span>
+            <button type="button" className="whitespace-nowrap rounded-lg border border-[#B85838] px-2 py-1 font-semibold text-[#B85838]" onClick={() => setCustomerView(false)}>Exit</button>
+          </div>
+        )}
+        <header className="pt-6 text-center">
+          <h1 className="text-3xl font-bold text-[#1A1815]" style={SERIF}>{BIZ.brand.label}</h1>
+          <p className="mt-1 text-sm text-[#5A5751]">{BIZ.brand.tagline}</p>
+          {/* ts-chrome-region + flex-wrap (2026-08-05): un-capped, the theme
+              dots alone outgrew a phone at Big Print and the no-wrap row pushed
+              every size button past the clipped edge — trapping the reader in
+              big text. Chrome never compounds with its own setting. */}
+          <div className="mt-2 flex flex-wrap items-center justify-center gap-2 ts-chrome-region" role="group" aria-label="Comfort controls">
+            {/* Entrance-review 2026-07-07: the dot stays small, the HITBOX does
+                not — 36px buttons around 20px swatches, for the hands this
+                platform serves (COMMUNITY-FIRST). */}
+            {THEMES.map((t) => (
+              <button key={t.key} type="button" aria-label={`${t.label} theme`} title={t.label}
+                className="flex h-9 w-9 items-center justify-center rounded-full"
+                onClick={() => setTheme(t.key)}>
+                <span aria-hidden="true"
+                  className={`h-5 w-5 rounded-full ${theme === t.key ? 'ring-2 ring-[#B85838] ring-offset-1' : 'opacity-70'}`}
+                  style={{ backgroundColor: t.color, border: `1.5px solid ${t.border}`, display: 'inline-block' }} />
+              </button>
+            ))}
+            <span className="mx-1 h-4 border-l border-[#E8E2D8]" aria-hidden="true" />
+            {sizeSteps.map((s) => (
+              <button key={s.key} type="button" aria-label={`Text size ${s.label}`}
+                className={`min-h-[2.25rem] min-w-[2rem] rounded border px-1.5 text-xs ${sizeKey === s.key ? 'border-[#B85838] text-[#B85838] font-semibold' : 'border-[#E8E2D8] text-[#5A5751]'}`}
+                onClick={() => setSizeKey(s.key)}>A</button>
+            ))}
+          </div>
+          <div className="mt-3"><DoorAuth role={view.authRole} onRole={setRole} /></div>
+        </header>
+        {isSteward && (
+          <Suspense fallback={<p className="mt-4 text-center text-xs text-[#5A5751]">Loading your board…</p>}>
+            <div className="mt-2 rounded-2xl border border-[#B85838] p-2">
+              <div className="flex justify-end px-1 pt-1">
+                <button type="button" className="flex items-center gap-1.5 rounded-lg border border-[#E8E2D8] px-2 py-1 text-xs text-[#5A5751]"
+                  onClick={() => setCustomerView(true)}><UiIcon name="eye" className="h-3.5 w-3.5" /> View as customer</button>
+              </div>
+              <StewardBoard />
+            </div>
+          </Suspense>
+        )}
+        {/* THE SIBLING BUSINESSES MOVED TO THE BOTTOM (Darrell 2026-08-31:
+            "keep Moore Divahs at the top... move the other business tabs to the
+            bottom of the page"). Her door now OPENS on her work instead of on a
+            four-way chooser — a customer arriving from her flyer or a DM should
+            meet scrub caps, not a menu of businesses she did not come for.
+            The constraint that comes with it: a chooser only at the bottom
+            would strand a reader who taps through to another business, so a
+            sibling tab keeps a back control at the top. Moore Divahs itself
+            never needs one — it is where the door already opens. */}
+        {tab !== 'moore' && (
+          <div className="mt-4 border-b border-[#E8E2D8] pb-3">
+            <button
+              type="button"
+              onClick={() => selectTab('moore')}
+              className="rounded-lg border border-[#B85838] px-3 py-2 text-sm font-semibold text-[#B85838]"
+            >
+              ← {BIZ.brand.label}
+            </button>
+          </div>
+        )}
+        <main className="mt-4">
+          {tab === 'moore' && <MooreTab />}
+          {tab === 'practice' && <PracticeTab />}
+          {tab === 'church' && <ChurchTab />}
+          {tab === 'poetech' && <PoeTechTab />}
+        </main>
+        {/* The way to say "this is broken", on every tab, signed in or not
+            (DR-0376). It sits BELOW the content and above the sibling nav: a
+            safety net, never a call to action competing with her order form.
+            Before this, a customer who hit a dead form -- as Sterling did --
+            had no route at all except telling the owner in person. */}
+        <DoorFeedback
+          doorSlug={BIZ.slug}
+          instanceSlug={BIZ.instanceSlug}
+          brandLabel={BIZ.brand.label}
+          accent={BIZ.brand.accent}
+        />
+        {/* Each sibling carries its own blurb (DOOR_TABS) — at the bottom there
+            is room to say what a business IS, which a one-word tab never did. */}
+        <nav className="mt-10 border-t border-[#E8E2D8] pt-5" aria-label="More from the family">
+          <h2 className="text-lg font-bold text-[#1A1815]" style={SERIF}>Also from the family</h2>
+          <div className="mt-3 grid gap-2">
+            {BIZ.tabs.filter((t) => t.id !== tab).map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => selectTab(t.id)}
+                className="rounded-2xl border border-[#E8E2D8] bg-white p-3 text-left"
+              >
+                <span className="block text-sm font-semibold text-[#1A1815]" style={SERIF}>{t.label}</span>
+                <span className="mt-0.5 block text-xs text-[#5A5751]">{t.blurb}</span>
+              </button>
+            ))}
+          </div>
+        </nav>
+        <footer className="mt-10 text-center text-xs text-[#5A5751]">
+          A family of businesses · Powered by PoeTech
+        </footer>
+      </div>
+    </div>
+  );
+}

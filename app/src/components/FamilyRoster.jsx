@@ -36,7 +36,7 @@ const DEFAULT_IO = {
   patchRequest: patchRow,
 };
 
-export default function FamilyRoster({ io = DEFAULT_IO, currentUserId = null }) {
+export default function FamilyRoster({ io = DEFAULT_IO, currentUserId = null, familyData = null }) {
   const [state, setState] = useState({ phase: 'loading', rows: [], error: null });
   const [form, setForm] = useState({ displayName: '', persona: '', minorTier: 'under13', childUserId: '' });
   const [saving, setSaving] = useState(false);
@@ -226,6 +226,7 @@ export default function FamilyRoster({ io = DEFAULT_IO, currentUserId = null }) 
             requests={requests}
             onResolve={onResolve}
             saving={saving}
+            familyData={familyData}
           />
         </div>
       )}

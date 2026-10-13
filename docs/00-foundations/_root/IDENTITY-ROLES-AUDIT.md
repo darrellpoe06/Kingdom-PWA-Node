@@ -1,5 +1,17 @@
 # Identity, Roles, and Audit — Multi-user permissions and accountability
 
+> **Enforcement-enum reconciliation (2026-07-21, DR-0220).** The role NAMES in this
+> doc (`Owner / Editor / Contributor / Viewer / Specialist`) are the original
+> *persona* framing. The **shipped, enforced** role enum in `instance_members.role`
+> is `owner / admin / member / viewer / specialist / child / successor / assistant`
+> (`schema-v2.1-infra.sql:224-226` + `0082` + `0100`) — `editor`/`contributor` do
+> not exist in code and are superseded for enforcement (map: editor→admin,
+> contributor→member). The `specialist` persona here — "an Editor with a tight
+> scope… roles + scope + duration" — is the documented basis for the Dev/Ops
+> Specialist role, realized via the `role_capabilities` capability-checkbox layer
+> (`ROLES-MEMBERSHIP-MULTITENANCY-ADR.md:99-118`; DR-0220 §2b/Phase 6). Read the
+> persona table below for INTENT; read the shipped enum for what actually gates.
+
 > Founder framing (2026-05-18):
 > *"We want the user to have granular and edit privileges, we just want a record of who did what so the main administrators can see who did what. We do expect the main user to have other users who can also do what they need, according to what they need access. I want this to scale well, so all the issues need to be understood that can undermine. However, we want granular and details that all families, one-person businesses, and small business teams — also easily upgradeable for an Enterprise company will want."*
 

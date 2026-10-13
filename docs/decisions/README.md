@@ -43,20 +43,28 @@ source: <session / research-review that produced it>
 ---
 
 ## Context
-What forced the decision (1–3 sentences).
+What forced the decision (1–3 sentences). THE CONCERN.
+
+## What was measured
+The runs, rows, screenshots, quotes or files that prove the concern is real. THE EVIDENCE. Cite `file:line`, a run id, a query.
+
+## Impact
+What happens if it stays unresolved, and what the call obligates, enables, or forecloses. Dependencies. Reversibility.
 
 ## Decision
-What we decided — and explicitly what we did NOT decide.
+What we decided — and explicitly what we did NOT decide — and who decided (Darrell governs the bright lines).
 
 ## Rationale
 Because … (the "what and not-what, because" pattern).
 
-## Consequences
-What this obligates, enables, or forecloses. Dependencies. Reversibility.
+## Verification
+How it was (or will be) proven after merge: the gate, the run, the measurement; `re-review: YYYY-MM-DD` where a step is deliberately deferred. THE OUTCOME.
 
 ## Links
 DR-XXXX (related), research-review / spec by path.
 ```
+
+**The five-step chain is required from DR-0588 on (2026-09-23; [DR-0588]).** Every record answers Concern → Evidence → Impact → Decision → Outcome under its own headings; the in-app ledger (Projects → Governance → Decided) renders each record as that chain, read from its sections by `app/src/lib/decision-chain.js`, and shows a step the record lacks as *not recorded* rather than filling it. The heading families it recognizes are listed in that file (Context / What was measured / Impact or Consequences / Decision or Directive / Verification, Measured after merge, Proven-to-catch, Re-review). `decision-chain.test.js` fails the build for a new record that misses a step, and holds the older records' measured debt as a shrink-only baseline.
 
 ## Statuses
 

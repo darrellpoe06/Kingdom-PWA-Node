@@ -24,7 +24,9 @@
 // conversationLog, lat/lon, market/lease/tenant sub-objects. Because of
 // that, the monolith merges remote rows INTO the local shape
 // (mergeRemoteRentals below) instead of replacing the list wholesale.
-import { createTableSync } from './table-sync.js';
+import { createTableSync, getDoorsInstanceId } from './table-sync.js';
+import supabase from './supabase.js';
+import { syncLeaseForRental, syncAllLeases } from './lease-sync.js';
 
 // The UI vocab (Rentals.jsx selects). The live table has no CHECKs; these
 // passthrough-with-fallback helpers exist so garbage never syncs and the
@@ -37,6 +39,10 @@ const PROPERTY_TYPES = new Set([
 export function toRemotePropertyType(t) {
   return PROPERTY_TYPES.has(t) ? t : 'single-family';
 }
+
+// What a door rents (0160). The database CHECK allows these three or NULL;
+// this set keeps anything else from being sent in the first place.
+const RENTABLE_LEVELS = new Set(['unit', 'room', 'bed']);
 
 const LOCAL_STATUSES = new Set([
   'paying', 'late', 'vacant', 'rehab', 'for-sale', 'sold',
@@ -62,6 +68,13 @@ export function fromRemoteStatus(s) {
 export const rentalsSync = createTableSync({
   localKey: 'rentals',
   remoteTable: 'rentals',
+  // The doors live in the landlord instance since 0207 (DR-0365); reading them
+  // through the family instance showed 13 real doors as none (DR-0743).
+  instanceId: getDoorsInstanceId,
+  // The live table's UNIQUE (instance_id, slug) index (partial: WHERE slug IS
+  // NOT NULL). Lets upsert() heal an edit to a door whose local row never linked
+  // to the cloud — resolve by slug and UPDATE, instead of silently skipping.
+  conflictKey: 'instance_id,slug',
 
   toRow(item, { tenantId, userId }) {
     return {
@@ -87,6 +100,18 @@ export const rentalsSync = createTableSync({
       mortgage_payment:     Number(item.mortgage?.monthlyPI) || 0,
       mortgage_escrow:      Number(item.mortgage?.escrow) || 0,
       notes:                item.notes ?? null,
+      // THE STRUCTURE SYNCS NOW (0160). `unit` has existed on this table the
+      // whole time and toRow never wrote it; `building` and the room/level were
+      // device-local with no columns at all. So a multi-unit building looked
+      // like unrelated doors on a second device, and Apt 4's two beds lost every
+      // trace of being beds that share a room. Measured 2026-08-28.
+      unit:                 item.unitLabel || null,
+      building_label:       item.building || null,
+      room_label:           item.roomLabel || null,
+      // NULL, never a guess. An unset level means nobody has said yet, and the
+      // app infers from the label; writing 'unit' here would turn that honest
+      // silence into a claim about twelve doors (DR-0076 §8).
+      rentable_level:       RENTABLE_LEVELS.has(item.rentableLevel) ? item.rentableLevel : null,
     };
   },
 
@@ -116,6 +141,10 @@ export const rentalsSync = createTableSync({
         estimated: false,
       },
       notes:          row.notes ?? '',
+      unitLabel:      row.unit ?? '',
+      building:       row.building_label ?? '',
+      roomLabel:      row.room_label ?? '',
+      rentableLevel:  RENTABLE_LEVELS.has(row.rentable_level) ? row.rentable_level : '',
       updatedAt:      row.updated_at,
       createdAt:      row.created_at,
     };
@@ -133,9 +162,30 @@ const SYNCED_FIELDS = [
   'tenantName', 'entityId',
 ];
 
+// Structure fields (0160): they overlay from remote like the rest, EXCEPT that
+// a blank remote value never erases a local one — the twelve doors that predate
+// these columns hold their labels locally and must not be flattened by a row
+// that simply has not been written yet. Same discipline as FILL_FIELDS.
+const STRUCTURE_FIELDS = ['unitLabel', 'building', 'roomLabel', 'rentableLevel'];
+
 // Location fields fill in from remote but a blank remote value never
 // erases locally-typed detail.
 const FILL_FIELDS = ['city', 'state', 'zip'];
+
+// A value that carries no information — treated as "unset" so it can never
+// ERASE a real local value during a merge. Numeric 0 counts as blank for this
+// guard (a stale remote rent of 0 must not overwrite a local $1,150).
+function isBlankValue(v) {
+  return v === '' || v === null || v === undefined || v === 0 || v === '0' || v === '0.00';
+}
+
+// Compare two ISO timestamps: 1 = a newer, -1 = b newer, 0 = equal OR unknown
+// (either missing). ISO-8601 strings sort chronologically, so a lexical compare
+// is a time compare. Unknown collapses to 0 so the blank-guard decides instead.
+function cmpUpdatedAt(a, b) {
+  if (!a || !b) return 0;
+  return a > b ? 1 : a < b ? -1 : 0;
+}
 
 // Merge remote rows into the local list, preserving device-local detail:
 //   - local item matched remotely (by slug or remoteUuid) → overlay the
@@ -144,19 +194,97 @@ const FILL_FIELDS = ['city', 'state', 'zip'];
 //   - local item never uploaded (no remoteUuid, no match) → keep it;
 //     initialSync / addRental will push it.
 //   - local item with a remoteUuid whose row is gone → deleted on another
-//     device → drop it. EXCEPT when the remote list is empty while local
-//     synced items exist: RLS returns 200 with 0 rows on a membership or
-//     visibility hiccup (LESSONS-LEARNED 2026-06-11: "treat 0-rows-returned
-//     as failure, not success"), and interpreting that as "every property
-//     was deleted elsewhere" would destroy rooms, photo galleries, and
-//     maintenance/conversation logs that exist nowhere else. An empty read
-//     against a non-empty synced local list aborts the merge unchanged —
-//     real single-property deletions still propagate (the read returns the
-//     remaining rows, not zero rows).
+//     device → drop it, but ONLY when dropping it cannot destroy anything.
+//
+//     THE LOSS THIS NOW PREVENTS (2026-09-14). Christina's rental doors and
+//     tenant information went missing on her MacBook, which had a broken
+//     login. Asked of the database the app reads, with statistics never reset:
+//     rentals held 13 rows with 0 ever deleted, and rental_tenancies,
+//     tenancy_household, tenancy_notes, rent_records and property_rooms each
+//     held 0 rows with 0 EVER INSERTED. Nothing was deleted anywhere; the
+//     tenant fields had never reached a database at all, because — as the
+//     header of this file says — rooms, equipment, maintenanceLog,
+//     conversationLog, lat/lon and the market/lease/tenant sub-objects have no
+//     cloud columns. For those fields the device IS the database.
+//
+//     The old guard covered ONE case: a read returning ZERO rows. A read
+//     returning SOME rows but not hers — an instance mismatch, a partial RLS
+//     visibility hiccup, a half-applied membership after the sovereign repoint
+//     — walked straight into the drop branch and deleted those doors locally,
+//     along with the only copy of every field above. Silently, with nothing in
+//     any database to restore from.
+//
+//     So absence is no longer treated as proof of deletion when the cost of
+//     being wrong is unrecoverable:
+//
+//       · a door carrying local-only detail is KEPT and marked
+//         `remoteMissing`, never dropped. A stale row is a nuisance a person
+//         can delete in one tap; a destroyed room list, lease and tenant
+//         record cannot be recovered by anyone. The asymmetry decides it.
+//       · a read missing MOST of the synced local doors aborts the merge
+//         unchanged — the 0-row guard generalized, because 1 row back out of
+//         13 is the same failure as 0 rows back, and the old test for it
+//         passed only at exactly zero.
+//       · a plain door with nothing local-only still drops, so a genuine
+//         deletion on another device still propagates.
+//
+//     (LESSONS-LEARNED 2026-06-11: "treat 0-rows-returned as failure, not
+//     success" — this is that lesson applied to a partial read as well.)
 //   - remote row with no local match → new from another device → adopt the
 //     fromRow shape as-is.
+// A door whose only copy of something lives on this device. These fields have
+// no cloud columns (see the file header), so dropping such a door destroys
+// them outright. Kept deliberately broad: a field that MIGHT be local-only
+// counts, because a false "keep" costs a stale row and a false "drop" costs
+// the record itself.
+export function hasLocalOnlyDetail(rental) {
+  if (!rental || typeof rental !== 'object') return false;
+  for (const key of ['rooms', 'equipment', 'maintenanceLog', 'conversationLog', 'photos']) {
+    if (Array.isArray(rental[key]) && rental[key].length > 0) return true;
+  }
+  for (const key of ['lease', 'tenant', 'market']) {
+    const v = rental[key];
+    if (v && typeof v === 'object' && Object.keys(v).length > 0) return true;
+  }
+  // Typed coordinates exist nowhere else either.
+  if (Number.isFinite(rental.lat) && Number.isFinite(rental.lon)) return true;
+  return false;
+}
+
+// How many synced doors may vanish from one read before the READ, not the
+// data, is what is in doubt. A person deletes doors one at a time on another
+// device; a membership or visibility failure takes out everything it touches at
+// once. So two shapes are treated as a failed read:
+//
+//   · NONE of this device's synced doors came back. This is the old 0-row
+//     guard generalized from "the read was empty" to "none of mine are in it",
+//     which is the shape an instance mismatch actually produces -- the read is
+//     not empty, it just contains somebody else's rows, or none of hers.
+//   · THREE OR MORE vanished at once. Below that a real multi-door cleanup is
+//     plausible; at three the balance tips to a failure, and the cost of being
+//     wrong is unrecoverable.
+const MISSING_READ_BURST = 3;
+
+// readLooksBroken(localItems, remoteItems) — true when a read is missing so
+// much of what this device has already synced that treating the absences as
+// deletions is more likely to destroy data than to reflect one. Exported so
+// the decision is testable on its own rather than only through the merge.
+export function readLooksBroken(localItems = [], remoteItems = []) {
+  const synced = (localItems || []).filter((l) => l && l.remoteUuid);
+  if (synced.length === 0) return false;
+  const present = new Set();
+  for (const r of remoteItems || []) {
+    if (r && r.remoteUuid) present.add(r.remoteUuid);
+    if (r && r.id) present.add(r.id);
+  }
+  const missing = synced.filter((l) => !present.has(l.remoteUuid) && !present.has(l.id)).length;
+  if (missing === 0) return false;
+  return missing === synced.length || missing >= MISSING_READ_BURST;
+}
+
 export function mergeRemoteRentals(localItems = [], remoteItems = []) {
-  if ((remoteItems || []).length === 0 && (localItems || []).some((l) => l.remoteUuid)) {
+  // The 0-row case, and every partial read bad enough to be the same failure.
+  if (readLooksBroken(localItems, remoteItems)) {
     return localItems;
   }
   const remoteById = new Map();
@@ -172,17 +300,43 @@ export function mergeRemoteRentals(localItems = [], remoteItems = []) {
       || (local.remoteUuid ? remoteByUuid.get(local.remoteUuid) : null);
     if (remote) {
       claimed.add(remote.remoteUuid);
-      const next = { ...local, remoteUuid: remote.remoteUuid, updatedAt: remote.updatedAt };
-      for (const f of SYNCED_FIELDS) next[f] = remote[f];
+      // RECENCY-AWARE OVERLAY (DR-0394). The old code overwrote every synced
+      // field with the remote value unconditionally AND discarded the local
+      // updatedAt — so a STALE cloud row (blank rent, no notes, from weeks ago)
+      // silently erased a fresher local edit the moment a device pulled. That is
+      // how a family member's rent/notes/fix-ups were wiped (Christina 2026-09;
+      // the cloud was frozen while her device held the real values). A local
+      // edit stamps updatedAt=now (see updateRental), so we can tell who is
+      // newer: a fresher LOCAL edit is never clobbered by an older remote, and
+      // even at equal/unknown age a BLANK remote never erases a real local value.
+      const cmp = cmpUpdatedAt(local.updatedAt, remote.updatedAt);
+      const localNewer = cmp > 0;
+      const next = { ...local, remoteUuid: remote.remoteUuid };
+      next.updatedAt = localNewer ? local.updatedAt : remote.updatedAt;
+      for (const f of SYNCED_FIELDS) {
+        if (localNewer) continue;                                        // fresher local edit wins
+        if (cmp === 0 && isBlankValue(remote[f]) && !isBlankValue(local[f])) continue; // blank remote never erases a real local value
+        next[f] = remote[f];                                             // remote is newer, or has a real value to apply
+      }
       for (const f of FILL_FIELDS) if (remote[f]) next[f] = remote[f];
+      for (const f of STRUCTURE_FIELDS) if (remote[f]) next[f] = remote[f];
       // The whole mortgage object syncs now (v2.13 added rate / P&I /
-      // escrow columns); only the local 'estimated' flag is preserved.
-      next.mortgage = local.mortgage
-        ? { ...remote.mortgage, estimated: local.mortgage.estimated }
-        : remote.mortgage;
+      // escrow columns); only the local 'estimated' flag is preserved. A
+      // fresher local edit keeps its own mortgage object rather than being
+      // overwritten by a stale remote one.
+      next.mortgage = (localNewer && local.mortgage)
+        ? local.mortgage
+        : (local.mortgage
+          ? { ...remote.mortgage, estimated: local.mortgage.estimated }
+          : remote.mortgage);
       merged.push(next);
     } else if (!local.remoteUuid) {
       merged.push(local);
+    } else if (hasLocalOnlyDetail(local)) {
+      // Absent from the read, but this device holds the only copy of part of
+      // it. Kept, and marked so a surface can say so honestly rather than
+      // implying it is synced.
+      merged.push({ ...local, remoteMissing: true });
     }
   }
   for (const r of remoteItems) {
@@ -190,3 +344,40 @@ export function mergeRemoteRentals(localItems = [], remoteItems = []) {
   }
   return merged;
 }
+
+// -----------------------------------------------------------------------------
+// LEASE SYNC RIDES THE DOOR SYNC (Darrell 2026-07-27: "Start the lease sync
+// build now" — per-door paid-vs-due step a). The monolith's call sites stay
+// untouched (budget-frozen shell): upload() and initialSync() are decorated
+// HERE so a door that reaches the cloud carries its complete lease sub-object
+// with it (lease-sync.js: renter find-or-create + active-lease upsert,
+// idempotent, honest skips). Fire-and-forget — lease sync can never break the
+// door sync it rides on.
+// -----------------------------------------------------------------------------
+async function leaseIds() {
+  try {
+    const [tenantId, u] = await Promise.all([getDoorsInstanceId(), supabase.auth.getUser()]);
+    return { tenantId, userId: u && u.data && u.data.user ? u.data.user.id : null };
+  } catch { return { tenantId: null, userId: null }; }
+}
+
+const baseUpload = rentalsSync.upload.bind(rentalsSync);
+rentalsSync.upload = async (item) => {
+  const res = await baseUpload(item);
+  try {
+    const ids = await leaseIds();
+    const withUuid = res && res.remoteId ? { ...item, remoteUuid: res.remoteId } : item;
+    if (ids.tenantId && ids.userId) syncLeaseForRental(supabase, withUuid, ids);
+  } catch { /* lease sync never blocks the door upload */ }
+  return res;
+};
+
+const baseInitialSync = rentalsSync.initialSync.bind(rentalsSync);
+rentalsSync.initialSync = async (localItems) => {
+  const merged = await baseInitialSync(localItems);
+  try {
+    const ids = await leaseIds();
+    if (ids.tenantId && ids.userId) syncAllLeases(supabase, merged, ids);
+  } catch { /* boot lease sweep is best-effort; next boot retries */ }
+  return merged;
+};

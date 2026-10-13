@@ -19,6 +19,7 @@
 // Everything shown is the authored, source-checked issue data — nothing painted.
 // =============================================================================
 import React, { useState } from 'react';
+import { lessonContext } from '../lib/lesson-context.js';
 
 const serif = { fontFamily: '"Fraunces", serif' };
 const mono = { fontFamily: '"JetBrains Mono", monospace' };
@@ -65,6 +66,11 @@ export default function DiscernmentStages({ issue }) {
   const lens = issue.lens || {};
   const reflection = issue.reflection || {};
   const src = issue.source || {};
+  // Opportunities + constraints, COUNTED from this issue's own arrays. Darrell
+  // 2026-09-22: "we need to be able to have full context before lessons....
+  // opportunities and constraints?" — so it sits above Stage 1, where a reader
+  // meets it before he has invested anything, not at the end as a disclaimer.
+  const ctx = lessonContext(issue);
 
   return (
     <section className="mt-3 border border-[#E8E4DC] bg-[#FAF8F4]" aria-label="Five-step discernment">
@@ -93,10 +99,46 @@ export default function DiscernmentStages({ issue }) {
             </p>
           )}
 
+          {/* BEFORE YOU BEGIN — the lesson's own opportunities and constraints,
+              measured from its arrays (lib/lesson-context.js). Not a disclaimer
+              at the end; the terms of the thing, stated before it starts. */}
+          <div className="mt-3 border border-[#E8E4DC] bg-white" data-testid="lesson-context">
+            <div className="px-2 py-1.5 border-b border-[#E8E4DC]">
+              <h4 className="text-[0.6875rem] uppercase tracking-[0.2em] text-[#1A1815] font-semibold" style={serif}>
+                Before you begin
+              </h4>
+              <p className="text-[0.625rem] text-[#5A5751] mt-0.5" style={serif}>
+                What this lesson can do for you, and what it cannot do — counted from the lesson itself, not claimed.
+              </p>
+            </div>
+            <div className="sm:grid sm:grid-cols-2">
+              <div className="px-2 py-2 border-b sm:border-b-0 sm:border-r border-[#E8E4DC]">
+                <div className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold mb-1">
+                  Opportunities — what you get
+                </div>
+                <ul className="list-disc pl-4 space-y-1" data-testid="lesson-context-opportunities">
+                  {ctx.opportunities.map((o) => (
+                    <li key={o.id} className="text-[0.6875rem] text-[#1A1815]" style={serif}>{o.text}</li>
+                  ))}
+                </ul>
+              </div>
+              <div className="px-2 py-2">
+                <div className="text-[0.625rem] uppercase tracking-wider text-[#B85838] font-semibold mb-1">
+                  Constraints — what this cannot do
+                </div>
+                <ul className="list-disc pl-4 space-y-1" data-testid="lesson-context-constraints">
+                  {ctx.constraints.map((k) => (
+                    <li key={k.id} className="text-[0.6875rem] text-[#1A1815]" style={serif}>{k.text}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+
           {/* STAGE 1 — THE CLAIM */}
           <StageHeading n={1} title="The claim" />
           <p className="text-[0.625rem] text-[#5A5751] mb-2" style={serif}>
-            Each point below is stated AS MADE, labeled, and attributed — never presented as a settled verdict.
+            Each point below is stated AS the creator MADE it, labeled, and attributed. Where a court has already ruled, we say so plainly — a jury finding is a verdict, not an allegation. Documented deeds are named; no one’s soul is judged.
           </p>
           <ul className="space-y-2">
             {claims.map((c) => {
@@ -157,8 +199,14 @@ export default function DiscernmentStages({ issue }) {
             </>
           )}
 
-          {/* STAGE 3 — PERSPECTIVES */}
+          {/* STAGE 3 — PERSPECTIVES. The sharpened preamble (DR-0129/DR-0130,
+              routed 2026-07-15) rides the ENGINE so every issue carries it:
+              documented facts were stated plainly in Stage 2 and are not up
+              for a vote — perspectives judge only the unresolved parts. */}
           <StageHeading n={3} title="Perspectives — every side, at its strongest" />
+          <p className="text-[0.6875rem] text-[#5A5751] mb-2" style={serif}>
+            The documented facts are not up for a vote here — Stage 2 already stated them plainly. These perspectives judge only what remains genuinely unresolved: the unadjudicated claims, motives, and what should happen next.
+          </p>
           <ul className="space-y-2">
             {perspectives.map((p) => (
               <li key={p.id} className="border border-[#E8E4DC] bg-white p-2">
@@ -179,6 +227,15 @@ export default function DiscernmentStages({ issue }) {
             <p className="text-[0.625rem] text-[#5A6E3D] mb-2" style={mono}>{lens.fourD.scripture}</p>
           )}
           {lens.threeD && <p className="text-xs text-[#1A1815] mb-2" style={serif}>{lens.threeD}</p>}
+          {lens.accountability?.statement && (
+            <div className="border-l-4 border-[#1A1815] bg-[#1A1815]/[0.04] pl-3 py-2 mb-2">
+              <div className="text-[0.625rem] uppercase tracking-wider text-[#1A1815] font-semibold mb-1">Accountability — what the Word requires (the two courts)</div>
+              <p className="text-xs text-[#1A1815]" style={serif}>{lens.accountability.statement}</p>
+              {lens.accountability.scripture && (
+                <p className="text-[0.625rem] text-[#5A6E3D] mt-1" style={mono}>{lens.accountability.scripture}</p>
+              )}
+            </div>
+          )}
           {lens.stewardship && (
             <div className="border-l-4 border-[#5A6E3D] bg-[#5A6E3D]/[0.06] pl-3 py-2 mb-2">
               <div className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold mb-1">Stewardship — build, don't just react</div>

@@ -20,16 +20,31 @@
 // absolute px and do not inherit the root scale. The fix is to author those as
 // rem at the SAME 16px baseline (text-[10px] -> text-[0.625rem]): pixel-identical
 // at Normal, but now scaling with the control. Converted across the named reading
-// surfaces (The Word, Engagement, the Center/ops boards, Choir); flex-wrap layouts
-// absorb the 1.5x at Largest, so nothing shatters. New reading text uses rem, never
-// fixed px. (Deep-chrome px in the financial monolith stays a tracked follow-up.)
+// surfaces (The Word, Engagement, the Center/ops boards, Choir). New reading text
+// uses rem, never fixed px. (Deep-chrome px in the financial monolith stays a
+// tracked follow-up.)
+//
+// LAYOUT AT THE BIG STEPS (corrected 2026-08-05, DR-0276): the old claim
+// "flex-wrap layouts absorb the 1.5x at Largest, so nothing shatters" was
+// written when Largest WAS 1.5x — it did not survive the 2x/2.75x steps below
+// (clipped card grids; a door header that hid its own size controls and
+// trapped the reader in big text). Three standing rules now carry the layout:
+//   1. Multi-column card grids take `.ts-grid-collapse` (index.css) — ONE
+//      readable column at Largest/Big Print.
+//   2. A sticky header takes `.ts-safe-sticky` — capped to the viewport,
+//      scrolls within itself, so its controls stay reachable.
+//   3. Text-size CONTROLS are chrome (a `.ts-chrome-region`, or fixed-px
+//      labels like TextSizeControl) — the control never compounds with its
+//      own setting, so big text is ALWAYS reversible.
+// Measured, not assumed: scripts/chrome-layout-probe.mjs runs a Big Print
+// pass in CI (no overflow + escape hatch on screen, selftest-proven).
 //
 // Persistence is PER DEVICE in localStorage (process-don't-store default), kept
 // separate from the cloud-synced theme so a member sets it ONCE on their own
 // phone — and it applies even before sign-in, on the public conference page.
 //
 // Pure functions are exported and unit-tested; the React hook is thin glue.
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 // The shared scroll-anchor mechanism (also powers reading-position resume). One-
 // way dependency: reading-position.js never imports this, so no cycle.
 import { captureAnchor, applyAnchor } from './reading-position.js';
@@ -37,15 +52,25 @@ import { captureAnchor, applyAnchor } from './reading-position.js';
 const STORAGE_KEY = 'poe-text-size';
 
 // Stepped, plain-language options with an "A / A+ / A++ / A+++" affordance.
-// Multipliers: Largest = 1.5x root. On the reading bodies (which already use
-// Tailwind text-base/lg/xl) that lands large-print text at ~200% of the smallest
-// chrome baseline — the WCAG 1.4.4 target — while staying inside a layout that
-// does not break. Big, plain labels for non-technical readers.
+// Multipliers: Largest = 2x root — WCAG 1.4.4's 200% applied DIRECTLY to the
+// content scale, not reached only via the reading bodies' own headroom. Raised
+// from 1.5x on 2026-07-10 after Darrell, at A+++ on a small phone: "The largest
+// size text is still very small on a small cellphone" (DR-0145). The chrome cap
+// (below) keeps headers/tabs bounded (~1.25x at Largest) so the layout holds
+// while CONTENT truly doubles. Big, plain labels for non-technical readers.
 export const TEXT_SIZE_STEPS = [
   { key: 'normal',  mult: 1,    label: 'A',    name: 'Normal'  },
-  { key: 'large',   mult: 1.15, label: 'A+',   name: 'Large'   },
-  { key: 'larger',  mult: 1.3,  label: 'A++',  name: 'Larger'  },
-  { key: 'largest', mult: 1.5,  label: 'A+++', name: 'Largest' },
+  { key: 'large',   mult: 1.2,  label: 'A+',   name: 'Large'   },
+  { key: 'larger',  mult: 1.5,  label: 'A++',  name: 'Larger'  },
+  { key: 'largest', mult: 2,    label: 'A+++', name: 'Largest' },
+  // "Can we get up to 44 big print for our users if needed and still make it
+  // look good and not overcrowded" (Darrell, 2026-07-10 — DR-0147, atop the
+  // same day's DR-0145 doubling of Largest). One step above the doubled top,
+  // for elders and for children learning to learn: Big Print 44 lands 16px
+  // body text at exactly 44px — true large-print territory. The chrome cap
+  // below keeps the nav and page titles from ballooning with it, so the WORDS
+  // grow, not the frame.
+  { key: 'bigprint', mult: 2.75, label: 'A44', name: 'Big Print 44' },
 ];
 
 export const DEFAULT_TEXT_SIZE = 'normal';
@@ -78,9 +103,15 @@ export const DEFAULT_TEXT_SIZE = 'normal';
 // chrome (no fixed-px controls), so nothing already-fixed is shrunk.
 //
 // CHROME_SCALE_FACTOR controls how much of the content growth the chrome is
-// allowed to follow. 0.25 => at Largest (1.5x content) the chrome is ~1.125x —
-// "maybe slightly larger, capped," never ballooned.
-export const CHROME_SCALE_FACTOR = 0.25;
+// allowed to follow. It was 0.25 from 2026-06-17 ("maybe slightly larger,
+// capped": ~1.44x at Big Print). ZERO since 2026-09-16 (DR-0438) — Darrell,
+// with three phone screenshots of a lesson at A++/A+++: "the controls should
+// never get bigger." Measured at 360px before the change: the chrome covered
+// 90% of the first viewport at A+++ (header 594px, comfort bar 222px, floaters
+// stacked on top of it). Chrome is now exactly its Normal size at every step —
+// the WORDS grow, the frame does not move — and the floor rule for small
+// content text (DR-0427) keeps excluding every chrome region.
+export const CHROME_SCALE_FACTOR = 0;
 
 /**
  * The capped multiplier for display/nav chrome, given the full content multiplier.
@@ -89,7 +120,7 @@ export const CHROME_SCALE_FACTOR = 0.25;
  *   mult 1    -> 1      (Normal: identical)
  *   mult 1.15 -> 1.0375
  *   mult 1.3  -> 1.075
- *   mult 1.5  -> 1.125  (Largest: chrome ~12.5% larger vs content 50% larger)
+ *   mult 1.5  -> 1.125  (with the 2026-06-17 factor; 1 — unchanged — since DR-0438)
  */
 export function chromeMultFor(mult) {
   const m = typeof mult === 'number' && mult > 0 ? mult : 1;
@@ -109,6 +140,19 @@ export function chromeScaleFor(mult) {
 /** Resolve a step record by key, falling back to Normal for anything unknown. */
 export function stepFor(key) {
   return TEXT_SIZE_STEPS.find((s) => s.key === key) || TEXT_SIZE_STEPS[0];
+}
+
+/**
+ * The step `delta` places from `key` (-1 = smaller, +1 = bigger), clamped to the
+ * ends of TEXT_SIZE_STEPS. Unknown keys start from Normal. Pure; drives the
+ * A- / A+ quick control (TextSizeQuick) so it walks the SAME five steps the
+ * header row and the reader panel offer: one ladder, never a second scale.
+ */
+export function stepTextSizeKey(key, delta) {
+  const i = Math.max(0, TEXT_SIZE_STEPS.findIndex((s) => s.key === key));
+  const d = delta > 0 ? 1 : delta < 0 ? -1 : 0;
+  const j = Math.min(TEXT_SIZE_STEPS.length - 1, Math.max(0, i + d));
+  return TEXT_SIZE_STEPS[j].key;
 }
 
 /** True when key names a real step. */
@@ -193,7 +237,34 @@ export function setTextSize(key) {
   applyTextSize(k);
   saveTextSize(k);
   if (anchor) { try { applyAnchor(anchor); } catch (e) { /* non-fatal */ } }
+  notifyTextSize(k);
   return k;
+}
+
+// -----------------------------------------------------------------------------
+// ONE SIZE, EVERY CONTROL — the store (added 2026-09-19)
+// -----------------------------------------------------------------------------
+// useTextSize used to keep its own useState, which was fine while exactly ONE
+// control existed. The moment a second one renders (the reader panel, DR-0524),
+// each copy holds its own idea of the active step: the DOM is right, but the
+// OTHER control's highlighted chip goes stale, so the reader is told a size he
+// is not on. That is a surface saying something untrue, which is the one thing
+// a comfort control must never do.
+//
+// So the active key is published from one place. Every useTextSize() consumer
+// subscribes, and setTextSize — wherever it is called from — moves all of them.
+// Deliberately a plain subscriber set rather than a context: these controls are
+// mounted in unrelated trees (the header, the floating reader panel, the doors),
+// and a provider that has to wrap all of them is the thing this avoids.
+const sizeListeners = new Set();
+function notifyTextSize(key) {
+  for (const fn of [...sizeListeners]) { try { fn(key); } catch (e) { /* a dead subscriber never blocks the rest */ } }
+}
+/** Subscribe to text-size changes. Returns the unsubscribe function. */
+export function subscribeTextSize(fn) {
+  if (typeof fn !== 'function') return () => {};
+  sizeListeners.add(fn);
+  return () => { sizeListeners.delete(fn); };
 }
 
 /**
@@ -203,6 +274,8 @@ export function setTextSize(key) {
  */
 export function useTextSize() {
   const [key, setKey] = useState(() => loadTextSize());
+  // Every control reflects the ONE active size, not its own copy of it.
+  useEffect(() => subscribeTextSize(setKey), []);
   const update = useCallback((next) => {
     setKey(setTextSize(next));
   }, []);

@@ -7,10 +7,22 @@ import { useHistoryValue } from '../lib/nav-history.js';
 import { MetricCell, SectionTitle, TabScroll } from './shared.jsx';
 import { BuildBoard } from './BuildBoard.jsx';
 import { ConcernsBoard } from './ConcernsBoard.jsx';
+import PerpetualReport from './PerpetualReport.jsx';
 import ProjectBoards from './ProjectBoards.jsx';
 import AppFirmUp from './AppFirmUp.jsx';
+import AriReview from './AriReview.jsx';
+import MinistryOps from './MinistryOps.jsx';
 import GovernanceQueue from './GovernanceQueue.jsx';
+import MemberLessonQueue from './MemberLessonQueue.jsx';
+import LessonReviewQueue from './LessonReviewQueue.jsx';
+import TowerParity from './TowerParity.jsx';
+import DecisionIntelligence from './DecisionIntelligence.jsx';
+import OperationsIntelligence from './OperationsIntelligence.jsx';
 import { deriveAppDecisions } from '../lib/decisions.js';
+import { useBoardTasks } from '../lib/use-board-tasks.js';
+import { boardDueByMonth, boardTimelineLanes, phaseCompletions } from '../lib/board.js';
+import DelayReport from './DelayReport.jsx';
+import ClientDiscovery from './ClientDiscovery.jsx';
 import ReviewFeed from './ReviewFeed.jsx';
 import LoopHealth from './LoopHealth.jsx';
 import DbHealth from './DbHealth.jsx';
@@ -18,9 +30,10 @@ import Discussions from './Discussions.jsx';
 import {
   ETERNAL_STAGES, stageOfProject, stageMeta, statusForStage, nextStage,
   stageProgress, lifecycleTrail, archivePatch, isArchived,
-  markCompletePatch, reschedulePatch,
+  markCompletePatch, reschedulePatch, projectTimelineLanes,
 } from '../lib/project-management.js';
 import { discussionsForProject, kindMeta } from '../lib/discussions.js';
+import { CLIENT_BUILD_TEMPLATE } from '../lib/client-build-agreement.js';
 import { evaluateHandoffGate, buildHandoff } from '../lib/orchestrator-handoff.js';
 
 const fmt = (n) => n == null || !isFinite(n) ? '—' : `${n < 0 ? '-' : ''}$${Math.abs(Math.round(n)).toLocaleString()}`;
@@ -37,6 +50,117 @@ const safeDate = (s) => {
   return isNaN(d.getTime()) ? null : d;
 };
 const dateMs = (s) => { const d = safeDate(s); return d ? d.getTime() : Infinity; };
+
+// -----------------------------------------------------------------------------
+// BoardsOnTimeline — the work boards rendered ON the Projects timeline (DR-0120).
+// One lane per live board: the phase walk (each group / swim lane as a chip —
+// ✓ complete, ◐ current, ○ ahead), the honest done/total, and the nearest real
+// due date. Under the lanes: the timeline CONTEXT feed — every recorded
+// phase-complete moment (written by the finish ripple the instant a phase's
+// last item goes done). Derived entirely from real board_tasks rows; an empty
+// state says so honestly instead of painting lanes.
+// -----------------------------------------------------------------------------
+function BoardsOnTimeline({ tasks, projects = [] }) {
+  const lanes = useMemo(() => boardTimelineLanes(tasks), [tasks]);
+  const completions = useMemo(() => phaseCompletions(tasks), [tasks]);
+  const projectLanes = useMemo(() => projectTimelineLanes(projects), [projects]);
+  const when = (iso) => {
+    const d = safeDate(iso);
+    return d ? d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : 'date not recorded';
+  };
+  return (
+    <section>
+      <SectionTitle eyebrow="Coordination">Boards on the Timeline · Phase Walk</SectionTitle>
+      {lanes.length === 0 ? (
+        projectLanes.length > 0 ? (
+          /* No program board loaded yet — but real projects exist, so each one
+             rides this timeline by its stage (one engine, two views; DR-0187).
+             The section is a LIVE view instead of a dead "go load a board" end. */
+          <div className="bg-[#FAF8F4] border border-[#E8E4DC] p-3">
+            <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A5751] font-semibold mb-1">Your projects on the timeline</div>
+            <p className="text-xs text-[#5A5751] mb-2 leading-relaxed">
+              No program board is loaded yet, so each project rides the timeline by its stage. Open <span aria-hidden="true">▦</span> Boards and load a board to add the phase-by-phase walk.
+            </p>
+            <div className="space-y-1">
+              {projectLanes.map((lane) => (
+                <div key={lane.id} className="bg-white border border-[#E8E4DC] p-2.5">
+                  <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                    <span className="text-sm font-medium text-[#1A1815]">{lane.title}</span>
+                    <span className="text-xs text-[#5A5751]">
+                      {lane.stageLabel}{lane.pct != null ? ` · ${lane.pct}%` : ' · parked'}
+                      {lane.endDate ? ` · due ${when(lane.endDate)}` : ''}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="bg-white border border-[#E8E4DC] p-4 text-sm text-[#5A5751]">
+            No board items yet — open <span aria-hidden="true">▦</span> Boards and load a program board&apos;s real items; each board then rides this timeline as a lane.
+          </div>
+        )
+      ) : (
+        <div className="space-y-2">
+          {lanes.map((lane) => (
+            <div key={lane.slug} className="bg-white border border-[#E8E4DC] p-3">
+              <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                <span className="text-sm font-medium text-[#1A1815]"><span aria-hidden="true">▦</span> {lane.title}</span>
+                <span className="text-xs text-[#5A5751]">
+                  {lane.progress.done}/{lane.progress.total} done · {lane.progress.pct}%
+                  {lane.nextDue ? ` · next due ${when(lane.nextDue)}` : ''}
+                </span>
+              </div>
+              {/* The phase walk — the board's groups (swim lanes) in order. */}
+              <div className="tab-scroll w-full overflow-x-auto overscroll-x-contain mt-2">
+                <div className="flex items-center gap-1.5 min-w-max">
+                  {lane.phases.map((ph, i) => {
+                    const state = ph.complete ? 'complete' : (ph.label === lane.currentPhase ? 'current' : 'ahead');
+                    const cls = state === 'complete'
+                      ? 'border-[#5A6E3D] text-[#5A6E3D]'
+                      : state === 'current' ? 'border-[#2A5A8E] text-[#2A5A8E]' : 'border-[#E8E4DC] text-[#5A5751]';
+                    return (
+                      <React.Fragment key={ph.label}>
+                        {i > 0 && <span aria-hidden="true" className="text-[#5A5751] text-xs shrink-0">→</span>}
+                        <span
+                          className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs whitespace-nowrap ${cls}`}
+                          title={`${ph.label}: ${ph.done}/${ph.total} done${ph.blocked ? ` · ${ph.blocked} blocked` : ''}`}
+                        >
+                          <span aria-hidden="true">{state === 'complete' ? '✓' : state === 'current' ? '◐' : '○'}</span>
+                          {ph.label} <span className="text-[#5A5751]">{ph.done}/{ph.total}</span>
+                          {ph.blocked > 0 && <span className="text-[#B85838]" aria-hidden="true">▲</span>}
+                        </span>
+                      </React.Fragment>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          ))}
+          {/* The timeline context feed — recorded phase completions, newest first. */}
+          <div className="bg-[#FAF8F4] border border-[#E8E4DC] p-3">
+            <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A5751] font-semibold mb-1">Timeline context · phases completed</div>
+            {completions.length === 0 ? (
+              <p className="text-xs text-[#5A5751]">
+                None recorded yet. From now on, the moment a phase&apos;s last item is marked done, its completion lands here on its own — with the board, the phase, and the real moment it happened.
+              </p>
+            ) : (
+              <ul className="space-y-1">
+                {completions.map((c, i) => (
+                  <li key={`${c.boardSlug}-${c.phase}-${c.at || i}`} className="text-xs text-[#1A1815]">
+                    <span className="text-[#5A6E3D]" aria-hidden="true">✓</span>{' '}
+                    Phase <span className="font-medium">“{c.phase}”</span> completed — {c.boardTitle}
+                    <span className="text-[#5A5751]"> · {when(c.at)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
 
 // Per-user project scope (Darrell, 2026-06-13): "show me my projects since I'm
 // logged in ... each user has their own list ... the whole family's projects can
@@ -160,18 +284,29 @@ const SCOPE_TEMPLATES = [
     defaults: { title: 'Clinical Contractor Agreement', scopeOfWork: 'Provide licensed clinical mental health services to assigned clients of the practice.', deliverables: '• Documented clinical sessions within 48 hours\n• Monthly caseload report\n• Quarterly case review participation', materials: 'Practice provides: EHR access, billing infrastructure, referral pipeline.\nContractor provides: Personal LCSW license, individual malpractice coverage.', schedule: 'Minimum 15 client hours/week. Maximum 30/week.', paymentTerms: '60/40 split. Paid bi-monthly via 1099. W-9 required.', acceptanceCriteria: 'Sessions documented per state LCSW standards.', requirements: '• Active state LCSW license\n• Individual professional liability insurance\n• W-9 on file\n• HIPAA training current', warranty: 'Services meet state LCSW standards of care.', terminationClause: '30-day notice from either party.' }},
   { id: 'tmpl-prop', name: 'Property Contractor', type: 'property', description: 'For tradespeople servicing the real estate portfolio', entityId: 'e-poeprops',
     defaults: { title: 'Property Service Agreement', scopeOfWork: '[Describe specific work — what gets done, where, with what materials]', deliverables: '• Work meeting Illinois code\n• Photos of completed work\n• Final walkthrough', materials: '[Specify who provides what]', schedule: 'Start: [date]. Completion: [date].', paymentTerms: '50% deposit upon acceptance. 50% upon completion. Paid via 1099 if > $600/yr.', acceptanceCriteria: 'Work passes inspection. All systems function.', requirements: '• Active Illinois trade license\n• General liability insurance $1M+\n• W-9 on file', warranty: 'Labor warranty: 1 year. Materials per manufacturer.', terminationClause: '7 days written notice with cure opportunity.' }},
+  // The PoeTech CLIENT contract — derived from the recorded terms module
+  // (lib/client-build-agreement.js ← client-engagements.js, DR-0117/DR-0123),
+  // so the agreement, the door price-out, and the deposit gate can never
+  // disagree. Never hand-typed here (DR-0121).
+  CLIENT_BUILD_TEMPLATE,
   { id: 'tmpl-blank', name: 'Custom Scope (blank)', type: 'custom', description: 'Start from scratch', entityId: 'e-personal', defaults: { title: 'Service Agreement', scopeOfWork: '', deliverables: '', materials: '', schedule: '', paymentTerms: '', acceptanceCriteria: '', requirements: '', warranty: '', terminationClause: '' }},
 ];
 
-function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProject, updateProject, deleteProject, addScope, deleteScope, capexItems = [], addCapexItem, updateCapexItem, deleteCapexItem, netCashFlow = 0, rentals = [], accounts = [], transactions = [], debts = [], feedbackPanel = null, currentUserId = null, currentUserPersona = null, familyMembers = [], isGovernor = false, loopData = {}, loopDecisions = {}, onLoopDecision = null, financialDocAt = null, discussions = [], addDiscussion = null, updateDiscussion = null, deleteDiscussion = null, wakeData = null, onNavigate = null, concerns = [], feedback = [], addConcern = null, updateConcern = null, deleteConcern = null }) {
+function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProject, updateProject, deleteProject, addScope, deleteScope, capexItems = [], addCapexItem, updateCapexItem, deleteCapexItem, netCashFlow = 0, rentals = [], accounts = [], transactions = [], debts = [], feedbackPanel = null, currentUserId = null, currentUserPersona = null, familyMembers = [], isGovernor = false, loopData = {}, loopDecisions = {}, onLoopDecision = null, financialDocAt = null, discussions = [], addDiscussion = null, updateDiscussion = null, deleteDiscussion = null, wakeData = null, onNavigate = null, concerns = [], feedback = [], addConcern = null, updateConcern = null, deleteConcern = null, demoRowIds = null, incidents = [] }) {
   const [subView, setSubView] = useState('list');
   // Back returns from a Projects sub-tab (Discussions/Concerns/Scopes/etc.) to
   // the timeline list, then on up the app history — the device Back button no
   // longer jumps straight out of Projects. (lib/nav-history.js; base = 'list'.)
   useHistoryValue(subView, setSubView, { base: 'list', key: 'projects-sub' });
+  // The board's own tasks (board_tasks, the Monday-style boards) feed the
+  // Decision Intelligence readouts (DR-0612).
+  const boardTasks = useBoardTasks();
   // The governance queue names credentials, spend, and Tier-C activations — it
   // shows only for a signed-in family/governor account.
-  const tabs = [['list','Projects · Timeline'],['boards','▦ Boards'],['discussions','💬 Discussions'],['concerns','⚠ Concerns & Solutions'],['scopes','Scopes · Agreements'],['inventory','Inventory · Capital Forecast'],['build','🛠 PoeTech Build']];
+  // Feedback rides its OWN visible sub-tab with a live count (Darrell
+  // 2026-07-07: he submitted feedback and couldn't find it — it rendered buried
+  // below the fold of the list view). Count = real rows, shown even at zero.
+  const tabs = [['list','Projects · Timeline'],['boards','▦ Boards'],['ministry-ops','Ministry Ops'],['ari-review','✓ Ari Review'],['feedback', `◍ Feedback (${feedback.length})`],['discussions','💬 Discussions'],['concerns','⚠ Concerns & Solutions'],['report','∞ Perpetual Report'],['scopes','Scopes · Agreements'],['inventory','Inventory · Capital Forecast'],['build','🛠 PoeTech Build']];
   if (isGovernor) tabs.push(['governance','⚖ Decisions']);
   // Loop Health (DR-0061/0075) — the app reviews its own loops; stagnant ones
   // ask the Governor to keep or retire them. Governor-gated like the rest.
@@ -184,6 +319,13 @@ function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProj
   // ledger (what applied / what failed / when), read from inside the app so a
   // governor never has to open a shell or Studio to confirm a migration landed.
   if (isGovernor) tabs.push(['db','DB Health']);
+  // The delay ledger (DR-0115): request-to-finish vs should-have-taken, the
+  // data-driven model-choice report Darrell ordered. Governor-only.
+  if (isGovernor) tabs.push(['delays','◔ Delays']);
+  // Recorded client discovery (cf-voice-discovery, DR-0114/0117): the review
+  // gate where extracted requirements become build-board items by a steward's
+  // hand. Governor-gated like the rest of the factory surfaces.
+  if (isGovernor) tabs.push(['clients','◈ Clients']);
   return (
     <div className="space-y-4">
       {/* App Firm-Up / Completion headline — the live rollup of the whole build.
@@ -205,11 +347,9 @@ function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProj
       {subView === 'list' && (
         <>
           <Projects projects={projects} entities={entities} contractors={contractors} addProject={addProject} updateProject={updateProject} deleteProject={deleteProject} currentUserId={currentUserId} currentUserPersona={currentUserPersona} familyMembers={familyMembers} isGovernor={isGovernor} discussions={discussions} addDiscussion={addDiscussion} wakeData={wakeData} onOpenDiscussions={() => setSubView('discussions')} />
-          {/* 2026-05-24 — Feedback Log → Promote queue is now positioned
-              between All Projects (above) and the 12-Month Capital Forecast
-              (below) so the "decide what becomes a project" loop is visually
-              adjacent to the projects list itself. */}
-          {feedbackPanel}
+          {/* Feedback moved to its OWN sub-tab with a count (2026-07-07) — it
+              rendered buried below the fold here and Darrell lost his own
+              submission. See the 'feedback' branch below. */}
           {/* v28+ MVP v1.5 round 3 — Inventory + forecast also appears at the
               bottom of the Projects list so the connection is obvious. The
               dedicated Inventory sub-tab is where the editing/adding lives. */}
@@ -219,21 +359,62 @@ function ProjectsWrapper({ projects, scopes, entities, contractors = [], addProj
       {subView === 'boards' && (
         <ProjectBoards isGovernor={isGovernor} currentUserPersona={currentUserPersona} projects={projects} />
       )}
+      {subView === 'ari-review' && (
+        <AriReview concerns={concerns} feedback={feedback} transactions={transactions} rentals={rentals} debts={debts} demoRowIds={demoRowIds} loopData={loopData} financialDocAt={financialDocAt} />
+      )}
+      {subView === 'feedback' && (
+        <div className="space-y-4">
+          {feedbackPanel || <p className="text-sm text-[#5A5751]">No feedback submissions yet — the FEEDBACK button on any page lands here.</p>}
+        </div>
+      )}
       {subView === 'discussions' && (
         <Discussions discussions={discussions} projects={projects} addDiscussion={addDiscussion} updateDiscussion={updateDiscussion} deleteDiscussion={deleteDiscussion} currentUserId={currentUserId} currentUserPersona={currentUserPersona} isGovernor={isGovernor} />
       )}
       {subView === 'concerns' && (
         <ConcernsBoard concerns={concerns} feedback={feedback} transactions={transactions} rentals={rentals} debts={debts} addConcern={addConcern} updateConcern={updateConcern} deleteConcern={deleteConcern} isGovernor={isGovernor} currentUserId={currentUserId} />
       )}
+      {subView === 'report' && (
+        <PerpetualReport projects={projects} concerns={concerns} feedback={feedback} discussions={discussions} scopes={scopes} />
+      )}
       {subView === 'scopes' && <Scope scopes={scopes} projects={projects} entities={entities} addScope={addScope} deleteScope={deleteScope} />}
       {subView === 'inventory' && <ProjectInventory projects={projects} entities={entities} capexItems={capexItems} addCapexItem={addCapexItem} updateCapexItem={updateCapexItem} deleteCapexItem={deleteCapexItem} netCashFlow={netCashFlow} rentals={rentals} accounts={accounts} />}
       {subView === 'build' && <BuildBoard isGovernor={isGovernor} onViewDecisions={() => setSubView('governance')} onNavigate={onNavigate} />}
+      {subView === 'ministry-ops' && <MinistryOps />}
+      {subView === 'delays' && isGovernor && <DelayReport />}
+      {subView === 'clients' && isGovernor && <ClientDiscovery />}
       {subView === 'governance' && isGovernor && (
-        <GovernanceQueue
-          appDecisions={deriveAppDecisions({ discussions, concerns })}
-          familyInstanceId={(concerns.find((c) => c && c.tenantId)?.tenantId) || null}
-          signedIn={!!currentUserId}
-        />
+        <div className="space-y-6">
+          <DecisionIntelligence concerns={concerns} projects={projects} discussions={discussions} boardTasks={boardTasks} feedback={feedback} incidents={incidents} record={!!currentUserId} />
+          <OperationsIntelligence loopData={loopData} loopEnv={{ financialDocAt }} discussions={discussions} feedback={feedback} />
+          {/* DR-0672: his own lessons, arrival to live, and every writer's
+              version side by side, live on the Thinking Space. */}
+          <p className="text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }} data-testid="governor-your-lessons-link">
+            Your own lessons, from arrival to live, with every writer&rsquo;s version side by side:{' '}
+            <button
+              type="button"
+              disabled={!onNavigate}
+              onClick={() => {
+                if (!onNavigate) return;
+                onNavigate('notes');
+                setTimeout(() => { try { document.getElementById('your-lessons')?.scrollIntoView({ block: 'start' }); } catch (e) { /* no scroll */ } }, 400);
+              }}
+              className="inline-flex items-center min-h-[44px] px-1 underline text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838] disabled:opacity-50"
+            >
+              Thinking Space &rarr; Your lessons
+            </button>
+          </p>
+          {/* DR-0672: lessons more than one writer wrote, waiting for his decision. */}
+          <LessonReviewQueue />
+          {/* DR-0635: members' lessons wait here for the Governor's word. */}
+          <MemberLessonQueue signedIn={!!currentUserId} />
+          {/* DR-0671: how close our own towers are to the reference lessons. */}
+          <TowerParity signedIn={!!currentUserId} />
+          <GovernanceQueue
+            appDecisions={deriveAppDecisions({ discussions, concerns })}
+            familyInstanceId={(concerns.find((c) => c && c.tenantId)?.tenantId) || null}
+            signedIn={!!currentUserId}
+          />
+        </div>
       )}
       {subView === 'loops' && isGovernor && (
         <div className="space-y-6">
@@ -271,7 +452,7 @@ function ProjectConversationLog({ project, updateProject }) {
   return (
     <div className="mt-3 pt-2 border-t border-[#E8E4DC]">
       <div className="flex items-baseline justify-between gap-2 mb-1.5">
-        <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold">💬 Conversations · {log.length}</div>
+        <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">💬 Conversations · {log.length}</div>
         <button type="button" onClick={(e) => { e.preventDefault(); setShowForm(!showForm); setForm(blank()); }} className="text-xs uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] hover:bg-[#FAF8F4] border border-transparent hover:border-[#B85838] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">{showForm ? '× Cancel' : '+ Log a touchpoint'}</button>
       </div>
       {showForm && (
@@ -282,20 +463,20 @@ function ProjectConversationLog({ project, updateProject }) {
           </div>
           <input className="w-full p-1.5 border border-[#E8E4DC] text-xs bg-[#FAF8F4]" placeholder="Summary (required) — e.g., 'kickoff call, requirements confirmed'" value={form.summary} onChange={e => setForm({ ...form, summary: e.target.value })} />
           <textarea className="w-full p-1.5 border border-[#E8E4DC] text-xs bg-[#FAF8F4]" rows="2" placeholder="Notes · decisions · next step · who owns what" value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} />
-          <button type="button" onClick={addNote} className="w-full bg-[#1A1815] text-white py-1.5 text-[10px] uppercase tracking-wider font-semibold hover:bg-[#B85838]">Save Note</button>
+          <button type="button" onClick={addNote} className="w-full bg-[#1A1815] text-white py-1.5 text-[0.625rem] uppercase tracking-wider font-semibold hover:bg-[#B85838]">Save Note</button>
         </div>
       )}
       {log.length === 0 && !showForm ? (
-        <p className="text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No conversation notes yet.</p>
+        <p className="text-[0.625rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No conversation notes yet.</p>
       ) : (
         <div className="space-y-1">
           {[...log].sort((a, b) => b.date.localeCompare(a.date)).map(e => (
             <div key={e.id} className="bg-[#FAF8F4] border border-[#E8E4DC] p-1.5">
               <div className="flex items-baseline justify-between gap-2">
                 <div className="flex-1 min-w-0">
-                  <div className="text-[10px]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{e.date}{e.person ? ` · ${e.person}` : ''}</div>
+                  <div className="text-[0.625rem]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{e.date}{e.person ? ` · ${e.person}` : ''}</div>
                   <div className="text-xs mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{e.summary}</div>
-                  {e.notes && <div className="text-[10px] text-[#5A5751] italic mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{e.notes}</div>}
+                  {e.notes && <div className="text-[0.625rem] text-[#5A5751] italic mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{e.notes}</div>}
                 </div>
                 <button type="button" onClick={() => deleteNote(e.id)} aria-label="Delete" className="text-sm text-[#5A5751] hover:text-[#B85838] hover:bg-[#FAF8F4] border border-transparent hover:border-[#B85838] px-3 py-1.5 min-h-[36px] min-w-[36px] shrink-0 focus:outline focus:outline-2 focus:outline-[#B85838]">×</button>
               </div>
@@ -338,12 +519,12 @@ function ProjectClarity({ project, updateProject }) {
           className="w-full p-1.5 border border-[#5A6E3D] text-xs bg-white focus:outline focus:outline-2 focus:outline-[#5A6E3D]" />
       ) : nextStep ? (
         <button type="button" onClick={() => begin('next', nextStep)} aria-label={`Edit next step for ${project.title}`}
-          className="w-full text-left text-[11px] text-[#1A1815] hover:bg-[#FAF8F4] border border-transparent hover:border-[#5A6E3D] px-1.5 py-1 min-h-[32px] focus:outline focus:outline-2 focus:outline-[#5A6E3D]" style={{ fontFamily: '"Fraunces", serif' }}>
-          <span className="text-[#5A6E3D] font-semibold uppercase tracking-wider text-[10px] mr-1">▶ Next</span>{nextStep}
+          className="w-full text-left text-[0.6875rem] text-[#1A1815] hover:bg-[#FAF8F4] border border-transparent hover:border-[#5A6E3D] px-1.5 py-1 min-h-[32px] focus:outline focus:outline-2 focus:outline-[#5A6E3D]" style={{ fontFamily: '"Fraunces", serif' }}>
+          <span className="text-[#5A6E3D] font-semibold uppercase tracking-wider text-[0.625rem] mr-1">▶ Next</span>{nextStep}
         </button>
       ) : (
         <button type="button" onClick={() => begin('next', '')} aria-label={`Add a next step for ${project.title}`}
-          className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#5A6E3D] border border-transparent hover:border-[#5A6E3D] px-1.5 py-1 min-h-[32px] focus:outline focus:outline-2 focus:outline-[#5A6E3D]">
+          className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#5A6E3D] border border-transparent hover:border-[#5A6E3D] px-1.5 py-1 min-h-[32px] focus:outline focus:outline-2 focus:outline-[#5A6E3D]">
           ▶ Add next step
         </button>
       )}
@@ -354,12 +535,12 @@ function ProjectClarity({ project, updateProject }) {
           className="w-full p-1.5 border border-[#B85838] text-xs bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" />
       ) : blocker ? (
         <button type="button" onClick={() => begin('blocker', blocker)} aria-label={`Edit blocker for ${project.title}`}
-          className="w-full text-left text-[11px] text-[#1A1815] bg-[#FAF8F4] hover:bg-white border-l-2 border border-transparent border-l-[#B85838] hover:border-[#B85838] px-1.5 py-1 min-h-[32px] focus:outline focus:outline-2 focus:outline-[#B85838]" style={{ fontFamily: '"Fraunces", serif' }}>
-          <span className="text-[#B85838] font-semibold uppercase tracking-wider text-[10px] mr-1">⛔ Blocked</span>{blocker}
+          className="w-full text-left text-[0.6875rem] text-[#1A1815] bg-[#FAF8F4] hover:bg-white border-l-2 border border-transparent border-l-[#B85838] hover:border-[#B85838] px-1.5 py-1 min-h-[32px] focus:outline focus:outline-2 focus:outline-[#B85838]" style={{ fontFamily: '"Fraunces", serif' }}>
+          <span className="text-[#B85838] font-semibold uppercase tracking-wider text-[0.625rem] mr-1">⛔ Blocked</span>{blocker}
         </button>
       ) : (
         <button type="button" onClick={() => begin('blocker', '')} aria-label={`Flag a blocker for ${project.title}`}
-          className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] border border-transparent hover:border-[#B85838] px-1.5 py-1 min-h-[32px] focus:outline focus:outline-2 focus:outline-[#B85838]">
+          className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] border border-transparent hover:border-[#B85838] px-1.5 py-1 min-h-[32px] focus:outline focus:outline-2 focus:outline-[#B85838]">
           + Flag a blocker
         </button>
       )}
@@ -418,13 +599,13 @@ function ProjectManage({ project, updateProject, discussions = [], addDiscussion
         <div className="mt-2 p-3 bg-[#FAF8F4] border border-[#2A5A8E] space-y-3">
           {/* Eternal-sequence stage control */}
           <div>
-            <div className="text-[10px] uppercase tracking-[0.2em] text-[#2A5A8E] font-semibold mb-1.5">Eternal sequence · Research → Plan → Execute</div>
+            <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#2A5A8E] font-semibold mb-1.5">Eternal sequence · Research → Plan → Execute</div>
             <div className="flex flex-wrap items-center gap-1.5">
               {ETERNAL_STAGES.filter((s) => !s.terminal).map((s) => {
                 const here = s.key === stage;
                 return (
                   <button key={s.key} type="button" aria-pressed={here} onClick={() => moveToStage(s.key)}
-                    className="text-[10px] px-2.5 py-1.5 border uppercase tracking-wider min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]"
+                    className="text-[0.625rem] px-2.5 py-1.5 border uppercase tracking-wider min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]"
                     style={here ? { backgroundColor: '#2A5A8E', color: 'white', borderColor: '#2A5A8E' } : { color: '#5A5751', borderColor: '#E8E4DC' }}>
                     {s.glyph} {s.label}
                   </button>
@@ -432,25 +613,25 @@ function ProjectManage({ project, updateProject, discussions = [], addDiscussion
               })}
               {next && (
                 <button type="button" onClick={() => moveToStage(next, `advanced to ${stageMeta(next).label}`)}
-                  className="text-[10px] px-2.5 py-1.5 border border-[#5A6E3D] text-[#5A6E3D] uppercase tracking-wider min-h-[36px] hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">
+                  className="text-[0.625rem] px-2.5 py-1.5 border border-[#5A6E3D] text-[#5A6E3D] uppercase tracking-wider min-h-[36px] hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">
                   ▶ Advance to {stageMeta(next).label}
                 </button>
               )}
             </div>
-            <p className="text-[10px] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+            <p className="text-[0.625rem] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
               {sm.blurb}{prog.pct != null ? ` · ${prog.step} of ${prog.of}` : ' · parked'}
             </p>
           </div>
 
           {/* Real lifecycle trail */}
           <div>
-            <div className="text-[10px] uppercase tracking-wider text-[#5A5751] font-semibold mb-1">How it moved ({trail.length})</div>
+            <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold mb-1">How it moved ({trail.length})</div>
             {trail.length === 0 ? (
-              <p className="text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No transitions logged yet.</p>
+              <p className="text-[0.625rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No transitions logged yet.</p>
             ) : (
               <ul className="space-y-0.5">
                 {trail.slice(0, 6).map((e, i) => (
-                  <li key={i} className="text-[10px] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+                  <li key={i} className="text-[0.625rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
                     <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>{String(e.at || '').slice(0, 10)}</span>
                     {' · '}{e.fromPhase ? `${e.fromPhase} → ` : ''}<span className="text-[#1A1815]">{e.toPhase}</span>
                     {e.note ? ` — ${e.note}` : ''}
@@ -463,18 +644,18 @@ function ProjectManage({ project, updateProject, discussions = [], addDiscussion
           {/* Driving discussions */}
           <div>
             <div className="flex items-baseline justify-between gap-2">
-              <div className="text-[10px] uppercase tracking-wider text-[#5A5751] font-semibold mb-1">Discussions driving this ({driving.length})</div>
+              <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold mb-1">Discussions driving this ({driving.length})</div>
               {onOpenDiscussions && (
-                <button type="button" onClick={onOpenDiscussions} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">+ open Discussions</button>
+                <button type="button" onClick={onOpenDiscussions} className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">+ open Discussions</button>
               )}
             </div>
             {driving.length === 0 ? (
-              <p className="text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>None linked yet — capture one in the Discussions tab and link it to this project.</p>
+              <p className="text-[0.625rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>None linked yet — capture one in the Discussions tab and link it to this project.</p>
             ) : (
               <ul className="space-y-0.5">
                 {driving.slice(0, 5).map((d) => (
-                  <li key={d.id} className="text-[11px]" style={{ fontFamily: '"Fraunces", serif' }}>
-                    <span aria-hidden="true">{kindMeta(d.kind).glyph}</span> <span className="text-[#5A5751] uppercase tracking-wider text-[9px]">{kindMeta(d.kind).label}</span> · {d.title}
+                  <li key={d.id} className="text-[0.6875rem]" style={{ fontFamily: '"Fraunces", serif' }}>
+                    <span aria-hidden="true">{kindMeta(d.kind).glyph}</span> <span className="text-[#5A5751] uppercase tracking-wider text-[0.5625rem]">{kindMeta(d.kind).label}</span> · {d.title}
                   </li>
                 ))}
               </ul>
@@ -484,9 +665,9 @@ function ProjectManage({ project, updateProject, discussions = [], addDiscussion
           {/* Archive */}
           <div className="flex items-center gap-2 flex-wrap pt-2 border-t border-[#E8E4DC]">
             {archived ? (
-              <span className="text-[10px] uppercase tracking-wider text-[#5A5751]">⏸ Archived — kept for the record</span>
+              <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">⏸ Archived — kept for the record</span>
             ) : (
-              <button type="button" onClick={doArchive} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] hover:bg-white border border-[#E8E4DC] hover:border-[#5A5751] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">⏸ Archive</button>
+              <button type="button" onClick={doArchive} className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] hover:bg-white border border-[#E8E4DC] hover:border-[#5A5751] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">⏸ Archive</button>
             )}
           </div>
 
@@ -494,18 +675,18 @@ function ProjectManage({ project, updateProject, discussions = [], addDiscussion
               Cage governs whether it could ever run. Never auto-dispatches. */}
           {isGovernor && addDiscussion && (
             <div className="pt-2 border-t border-[#E8E4DC]">
-              <div className="text-[10px] uppercase tracking-[0.2em] text-[#2A5A8E] font-semibold mb-1">🛰 Hand off to a lane (braked)</div>
+              <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#2A5A8E] font-semibold mb-1">🛰 Hand off to a lane (braked)</div>
               <div className="flex flex-wrap items-center gap-1.5">
                 <input value={lane} onChange={(e) => setLane(e.target.value)} placeholder="lane (e.g. church-build)"
                   aria-label={`Lane to hand ${project.title} off to`}
                   className="flex-1 min-w-[140px] p-1.5 border border-[#E8E4DC] text-xs bg-white focus:outline focus:outline-2 focus:outline-[#2A5A8E]" />
                 <button type="button" onClick={doHandoff}
-                  className="text-[10px] px-2.5 py-1.5 border border-[#2A5A8E] text-[#2A5A8E] uppercase tracking-wider min-h-[36px] hover:bg-[#2A5A8E] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">
+                  className="text-[0.625rem] px-2.5 py-1.5 border border-[#2A5A8E] text-[#2A5A8E] uppercase tracking-wider min-h-[36px] hover:bg-[#2A5A8E] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">
                   Stage hand-off
                 </button>
               </div>
-              {handoffMsg && <p className="text-[10px] text-[#1A1815] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{handoffMsg}</p>}
-              <p className="text-[9px] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+              {handoffMsg && <p className="text-[0.625rem] text-[#1A1815] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{handoffMsg}</p>}
+              <p className="text-[0.5625rem] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
                 Records the intent as a hand-off discussion. It stays behind the Cage (budget + lock + kill-switch) — nothing auto-runs; the deep autonomous-drive is staged.
               </p>
             </div>
@@ -538,12 +719,12 @@ function ProjectCloseControls({ project, updateProject, isOverdue }) {
   return (
     <div className="mb-2 flex flex-wrap items-center gap-1.5">
       <button type="button" onClick={markComplete} aria-label={`Mark ${project.title} complete`}
-        className="text-[10px] uppercase tracking-wider text-[#5A6E3D] hover:text-white hover:bg-[#5A6E3D] border border-[#5A6E3D] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">
+        className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] hover:text-white hover:bg-[#5A6E3D] border border-[#5A6E3D] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">
         ✓ Mark complete
       </button>
       {isOverdue && !rescheduling && (
         <button type="button" onClick={() => { setNewEnd(project.endDate || ''); setRescheduling(true); }} aria-label={`Reschedule ${project.title}`}
-          className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-white hover:bg-[#B85838] border border-[#B85838] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">
+          className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-white hover:bg-[#B85838] border border-[#B85838] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">
           ↻ Reschedule
         </button>
       )}
@@ -552,9 +733,9 @@ function ProjectCloseControls({ project, updateProject, isOverdue }) {
           <input type="date" value={newEnd} onChange={e => setNewEnd(e.target.value)} aria-label={`New end date for ${project.title}`}
             className="p-1.5 border border-[#B85838] text-xs bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" />
           <button type="button" onClick={saveReschedule} disabled={!newEnd}
-            className="text-[10px] uppercase tracking-wider text-white bg-[#1A1815] hover:bg-[#B85838] border border-[#1A1815] px-3 py-1.5 min-h-[36px] disabled:opacity-40 focus:outline focus:outline-2 focus:outline-[#B85838]">Save</button>
+            className="text-[0.625rem] uppercase tracking-wider text-white bg-[#1A1815] hover:bg-[#B85838] border border-[#1A1815] px-3 py-1.5 min-h-[36px] disabled:opacity-40 focus:outline focus:outline-2 focus:outline-[#B85838]">Save</button>
           <button type="button" onClick={() => setRescheduling(false)}
-            className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] border border-transparent hover:border-[#5A5751] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">Cancel</button>
+            className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] border border-transparent hover:border-[#5A5751] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">Cancel</button>
         </span>
       )}
     </div>
@@ -697,6 +878,12 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
     return months;
   }, [scoped, now]);
 
+  // The boards ARE on the timeline (Darrell 2026-07-01 ruling; asked again
+  // 2026-07-07): dated, not-done board items count into each forecast month.
+  // HONEST count, never invented hours — a board item carries no hours/week.
+  const boardTasks = useBoardTasks();
+  const boardDue = useMemo(() => boardDueByMonth(boardTasks, { now }), [boardTasks, now]);
+
   // Preparatory scaffolding — pending "current month's committed hours" chip.
   // eslint-disable-next-line no-unused-vars
   const totalActiveHours = Object.values(monthlyWorkload).length > 0 ? Object.values(monthlyWorkload)[0].hours : 0;
@@ -709,7 +896,7 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
   return (
     <div className="space-y-6">
       <section className="bg-white border border-[#1A1815] p-5 sm:p-6">
-        <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] mb-2 font-medium">Projects · Timeline · Workload</div>
+        <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] mb-2 font-medium">Projects · Timeline · Workload</div>
         <h2 className="text-2xl mb-3" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>See your whole life at once.</h2>
         <p className="text-base leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
           Personal projects · family commitments · friend time · church work · day job · tech consulting · rental real estate · clinical practice · tech repairs. Every project has a start, an end, and a weekly load. Track them all in one place so you can see when things are heavy and when they ease up. Coordinate, not just survive.
@@ -723,7 +910,7 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
       {currentUserId && projects.length > 0 && (
         <section className="bg-[#FAF8F4] border border-[#E8E4DC] p-3">
           <div className="flex items-center gap-3 flex-wrap">
-            <span className="text-[10px] uppercase tracking-[0.2em] text-[#5A5751] font-semibold">Whose projects</span>
+            <span className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A5751] font-semibold">Whose projects</span>
             <div className="flex" role="group" aria-label="Whose projects to show">
               {[['mine', `Mine (${mineCount})`], ['all', `Everyone (${everyoneCount})`]].map(([k, label]) => (
                 <button
@@ -736,7 +923,7 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
                 >{label}</button>
               ))}
             </div>
-            <span className="text-[11px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
+            <span className="text-[0.6875rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
               {scope === 'mine' ? 'The projects you own.' : "Everyone's projects, in one place."}
             </span>
           </div>
@@ -767,11 +954,14 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
                 const isModerate = m.hours > 20 && m.hours <= 40;
                 return (
                   <div key={key} className="flex items-center gap-2">
-                    <div className="text-[10px] uppercase tracking-wider text-[#5A5751] w-12 shrink-0" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{m.label}</div>
+                    <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] w-12 shrink-0" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{m.label}</div>
                     <div className="flex-1 h-5 bg-[#FAF8F4] border border-[#E8E4DC] relative">
                       <div className={`h-full ${isHeavy ? 'bg-[#B85838]' : isModerate ? 'bg-[#8B6F47]' : 'bg-[#5A6E3D]'}`} style={{ width: `${Math.min(pct, 100)}%` }}></div>
-                      {m.hours > 0 && <div className="absolute inset-0 flex items-center px-2 text-[10px]" style={{ fontFamily: '"JetBrains Mono", monospace', color: isHeavy ? '#FAF8F4' : '#1A1815' }}>{m.hours}h/wk · {m.projects.length} active</div>}
+                      {m.hours > 0 && <div className="absolute inset-0 flex items-center px-2 text-[0.625rem]" style={{ fontFamily: '"JetBrains Mono", monospace', color: isHeavy ? '#FAF8F4' : '#1A1815' }}>{m.hours}h/wk · {m.projects.length} active</div>}
                     </div>
+                    {(boardDue[key] || 0) > 0 && (
+                      <div className="text-xs text-[#5A5751] shrink-0">▦ {boardDue[key]} due</div>
+                    )}
                   </div>
                 );
               })}
@@ -783,17 +973,27 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
         </section>
       )}
 
+      {/* Boards ON the timeline (DR-0120; Darrell 2026-07-01 + 2026-07-07: "why
+          don't the boards show up on the timelines?"). Each live board is a
+          LANE: its phase walk (the groups / swim lanes, in board order), the
+          honest roll-up, and the phase it is currently in. Below the lanes,
+          the timeline CONTEXT feed — every recorded phase completion, written
+          the moment the last item of a phase went done (the finish ripple in
+          use-board-tasks.patchTask). All derived from the real board_tasks
+          rows and real recorded moments — never an invented date (DR-0076). */}
+      <BoardsOnTimeline tasks={boardTasks} projects={scoped} />
+
       {/* Filter + add */}
       <section>
         <div className="flex items-baseline justify-between mb-3 pb-2 border-b border-[#1A1815] gap-2 flex-wrap">
-          <h2 className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751]">All Projects</h2>
+          <h2 className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751]">All Projects</h2>
           <div className="flex gap-2 flex-wrap items-center">
             {/* Order: Timeline (by date) vs Priority (hand-set order you can
                 rearrange). Switching to Priority reveals up/down controls. */}
             <div className="flex" role="group" aria-label="Order the list">
               {[['timeline', 'Timeline'], ['priority', 'Priority']].map(([k, label]) => (
                 <button key={k} type="button" aria-pressed={orderMode === k} onClick={() => setOrderMode(k)}
-                  className="text-[10px] uppercase tracking-wider px-2.5 py-1.5 border min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]"
+                  className="text-[0.625rem] uppercase tracking-wider px-2.5 py-1.5 border min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]"
                   style={orderMode === k ? { backgroundColor: '#1A1815', color: 'white', borderColor: '#1A1815' } : { color: '#5A5751', borderColor: '#E8E4DC' }}
                 >{label}</button>
               ))}
@@ -814,12 +1014,12 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
                 effect then). (2026-06-23 closure-lifecycle fix.) */}
             {filterStatus === 'all' && (
               <button type="button" aria-pressed={showCompleted} onClick={() => setShowCompleted(v => !v)}
-                className="text-[10px] uppercase tracking-wider px-2.5 py-1.5 border min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]"
+                className="text-[0.625rem] uppercase tracking-wider px-2.5 py-1.5 border min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]"
                 style={showCompleted ? { backgroundColor: '#1A1815', color: 'white', borderColor: '#1A1815' } : { color: '#5A5751', borderColor: '#E8E4DC' }}>
                 {showCompleted ? '✓ Showing completed' : `Show completed${hiddenClosedCount > 0 ? ` (${hiddenClosedCount})` : ''}`}
               </button>
             )}
-            <button type="button" onClick={() => { setEditingId(null); setNewProject({ title: '', startDate: '', endDate: '', status: 'planning', domain: 'personal', description: '', hoursPerWeek: 0, entityId: 'e-personal', contractorIds: [] }); setShowForm(!showForm); }} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showForm ? '× Cancel' : '+ Add project'}</button>
+            <button type="button" onClick={() => { setEditingId(null); setNewProject({ title: '', startDate: '', endDate: '', status: 'planning', domain: 'personal', description: '', hoursPerWeek: 0, entityId: 'e-personal', contractorIds: [] }); setShowForm(!showForm); }} className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showForm ? '× Cancel' : '+ Add project'}</button>
           </div>
         </div>
 
@@ -843,27 +1043,27 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
             the edited row (see renderProjectForm + the row map below). */}
         {showForm && !editingId && (
           <div className="bg-white border border-[#B85838] p-4 mb-3 space-y-3">
-            <div className="text-[10px] uppercase tracking-[0.2em] text-[#B85838] font-medium">New project</div>
+            <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#B85838] font-medium">New project</div>
             <input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="Project title (e.g., PoeTech v1 launch, kitchen renovation, mom's care plan)" value={newProject.title} onChange={e => setNewProject({...newProject, title: e.target.value})} />
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Start date</label>
+                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Start date</label>
                 <input type="date" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={newProject.startDate} onChange={e => setNewProject({...newProject, startDate: e.target.value})} />
               </div>
               <div>
-                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">End date (target)</label>
+                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">End date (target)</label>
                 <input type="date" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={newProject.endDate} onChange={e => setNewProject({...newProject, endDate: e.target.value})} />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Domain</label>
+                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Domain</label>
                 <select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={newProject.domain} onChange={e => setNewProject({...newProject, domain: e.target.value})}>
                   {PROJECT_DOMAINS.map(d => <option key={d.key} value={d.key}>{d.label}</option>)}
                 </select>
               </div>
               <div>
-                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Status</label>
+                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Status</label>
                 <select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={newProject.status} onChange={e => setNewProject({...newProject, status: e.target.value})}>
                   {PROJECT_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
@@ -871,40 +1071,40 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Hours / week (estimate)</label>
+                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Hours / week (estimate)</label>
                 <input type="number" min="0" step="1" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={newProject.hoursPerWeek} onChange={e => setNewProject({...newProject, hoursPerWeek: parseInt(e.target.value) || 0})} />
               </div>
               <div>
-                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Entity (optional)</label>
+                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Entity (optional)</label>
                 <select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={newProject.entityId} onChange={e => setNewProject({...newProject, entityId: e.target.value})}>
                   <option value="e-personal">Personal</option><option value="e-poeprops">Steward Real Estate</option><option value="e-poetech">Cornerstone Tech</option><option value="e-tlc">Wellness Practice</option>
                 </select>
               </div>
             </div>
             <div>
-              <label className="text-[9px] uppercase tracking-wider text-[#5A5751] block mb-1.5">1099 contractors assigned (optional)</label>
+              <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] block mb-1.5">1099 contractors assigned (optional)</label>
               {contractors.length === 0 ? (
-                <div className="text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No contractors yet — add them in Books · 1099s. They'll appear here as toggleable chips.</div>
+                <div className="text-[0.625rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No contractors yet — add them in Books · 1099s. They'll appear here as toggleable chips.</div>
               ) : (
                 <div className="flex flex-wrap gap-1.5">
                   {contractors.map(k => {
                     const assigned = (newProject.contractorIds || []).includes(k.id);
                     return (
-                      <button type="button" key={k.id} onClick={() => setNewProject({ ...newProject, contractorIds: assigned ? (newProject.contractorIds || []).filter(id => id !== k.id) : [...(newProject.contractorIds || []), k.id] })} className={`text-[10px] px-2 py-1 border uppercase tracking-wider ${assigned ? 'border-[#B85838] bg-[#B85838] text-white' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#B85838] hover:text-[#1A1815]'}`}>
+                      <button type="button" key={k.id} onClick={() => setNewProject({ ...newProject, contractorIds: assigned ? (newProject.contractorIds || []).filter(id => id !== k.id) : [...(newProject.contractorIds || []), k.id] })} className={`text-[0.625rem] px-2 py-1 border uppercase tracking-wider ${assigned ? 'border-[#B85838] bg-[#B85838] text-white' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#B85838] hover:text-[#1A1815]'}`}>
                         {assigned ? '✓ ' : ''}{k.name}
                       </button>
                     );
                   })}
                 </div>
               )}
-              <p className="text-[10px] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>Optional — attach the 1099 workers helping with this project so YTD tracking and tax docs flow correctly.</p>
+              <p className="text-[0.625rem] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>Optional — attach the 1099 workers helping with this project so YTD tracking and tax docs flow correctly.</p>
             </div>
             {/* Round 7 fix — bumped rows from 2 → 8 so multi-line descriptions
                 (especially the auto-created "Wrap me with the tech" handoff
                 from Dev/Ops, which includes the opportunity context) are fully
                 visible and editable without scrolling inside the textarea. */}
             <div>
-              <label htmlFor="proj-desc" className="text-[9px] uppercase tracking-wider text-[#5A5751] block mb-1">Description · key milestones · who's involved · opportunity context (for auto-created projects from Dev/Ops, this carries the example + tech-stack details — feel free to edit)</label>
+              <label htmlFor="proj-desc" className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] block mb-1">Description · key milestones · who's involved · opportunity context (for auto-created projects from Dev/Ops, this carries the example + tech-stack details — feel free to edit)</label>
               <textarea id="proj-desc" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]" rows="8" value={newProject.description} onChange={e => setNewProject({...newProject, description: e.target.value})} />
             </div>
             {projError && <div className="text-xs text-[#B85838] mb-2 px-3 py-2 bg-[#FAF8F4] border border-[#B85838]" role="alert" style={{ fontFamily: '"Fraunces", serif' }}>{projError}</div>}
@@ -920,7 +1120,7 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
             <p className="text-sm text-[#5A5751] italic mb-4" style={{ fontFamily: '"Fraunces", serif' }}>
               None of these projects are yours yet. Switch to <strong>Everyone</strong> to see the whole family&apos;s, or add one of your own — it&apos;ll show up in your list.
             </p>
-            <button type="button" onClick={() => setScope('all')} className="text-[10px] uppercase tracking-wider px-4 py-2 border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white">
+            <button type="button" onClick={() => setScope('all')} className="text-[0.625rem] uppercase tracking-wider px-4 py-2 border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white">
               See everyone&apos;s projects ({projects.length})
             </button>
           </div>
@@ -933,7 +1133,7 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
             <p className="text-sm text-[#5A5751] italic mb-4" style={{ fontFamily: '"Fraunces", serif' }}>
               No projects yet. Add the things you&apos;re working on across your life — work, family, ministry, side projects, repairs. They&apos;re yours, saved to your account and synced across your devices.
             </p>
-            <button type="button" onClick={() => { setEditingId(null); setShowForm(true); }} className="text-[10px] uppercase tracking-wider px-4 py-2 border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white">
+            <button type="button" onClick={() => { setEditingId(null); setShowForm(true); }} className="text-[0.625rem] uppercase tracking-wider px-4 py-2 border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white">
               + Add your first project
             </button>
           </div>
@@ -956,10 +1156,10 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
                 { title: 'Worldview teaching book · finish + publish', startDate: '2026-05-16', endDate: '2026-11-30', status: 'active', domain: 'business-poetech', description: 'Complete the book. Publishing submission. Print proof. Launch alongside Spiritual Life module.', hoursPerWeek: 6, entityId: 'e-poetech' },
               ];
               examples.forEach(ex => addProject(ex));
-            }} className="text-[10px] uppercase tracking-wider px-4 py-2 border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white">
+            }} className="text-[0.625rem] uppercase tracking-wider px-4 py-2 border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white">
               📋 Load 6 example projects to see how it works
             </button>
-            <p className="text-[10px] text-[#5A5751] mt-3" style={{ fontFamily: '"Fraunces", serif' }}>
+            <p className="text-[0.625rem] text-[#5A5751] mt-3" style={{ fontFamily: '"Fraunces", serif' }}>
               You can delete any of the examples and add your own — they're just there to show the workload visualization at work.
             </p>
           </div>
@@ -982,15 +1182,15 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
                     <div className="flex items-center gap-2 min-w-0">
                       {canReorder && (
                         <span className="flex flex-col shrink-0">
-                          <button type="button" onClick={() => moveProject(index, 'up')} disabled={index === 0} aria-label={`Move ${p.title} up`} className="text-[10px] leading-none px-1.5 py-0.5 border border-[#E8E4DC] text-[#5A5751] hover:text-white hover:bg-[#1A1815] disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-[#5A5751] focus:outline focus:outline-2 focus:outline-[#B85838]">▲</button>
-                          <button type="button" onClick={() => moveProject(index, 'down')} disabled={index === filtered.length - 1} aria-label={`Move ${p.title} down`} className="text-[10px] leading-none px-1.5 py-0.5 border border-t-0 border-[#E8E4DC] text-[#5A5751] hover:text-white hover:bg-[#1A1815] disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-[#5A5751] focus:outline focus:outline-2 focus:outline-[#B85838]">▼</button>
+                          <button type="button" onClick={() => moveProject(index, 'up')} disabled={index === 0} aria-label={`Move ${p.title} up`} className="text-[0.625rem] leading-none px-1.5 py-0.5 border border-[#E8E4DC] text-[#5A5751] hover:text-white hover:bg-[#1A1815] disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-[#5A5751] focus:outline focus:outline-2 focus:outline-[#B85838]">▲</button>
+                          <button type="button" onClick={() => moveProject(index, 'down')} disabled={index === filtered.length - 1} aria-label={`Move ${p.title} down`} className="text-[0.625rem] leading-none px-1.5 py-0.5 border border-t-0 border-[#E8E4DC] text-[#5A5751] hover:text-white hover:bg-[#1A1815] disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-[#5A5751] focus:outline focus:outline-2 focus:outline-[#B85838]">▼</button>
                         </span>
                       )}
-                      {canReorder && <span className="text-[10px] text-[#5A5751] shrink-0" style={{ fontFamily: '"JetBrains Mono", monospace' }}>#{index + 1}</span>}
+                      {canReorder && <span className="text-[0.625rem] text-[#5A5751] shrink-0" style={{ fontFamily: '"JetBrains Mono", monospace' }}>#{index + 1}</span>}
                       <h4 className="text-base truncate" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{p.title}</h4>
                     </div>
                     {/* Round 7 — properly-sized Edit / Delete tap targets, divider between them. */}
-                    <div className="flex items-center gap-1 text-[10px] uppercase tracking-wider">
+                    <div className="flex items-center gap-1 text-[0.625rem] uppercase tracking-wider">
                       <span style={{ color: statusColor(p.status) }} className="font-medium px-2">{p.status}{p.status === 'tbd' && ' · parked'}</span>
                       {/* Round 11 — TBD projects show a "Promote → Active" button so the user
                           can flip them when capacity opens up. Plain text-only edit otherwise. */}
@@ -1020,7 +1220,7 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
                       reschedule a slipped-but-not-done project. (2026-06-23 fix.) */}
                   <ProjectCloseControls project={p} updateProject={updateProject} isOverdue={isOverdue} />
                   {Array.isArray(p.contractorIds) && p.contractorIds.length > 0 && (
-                    <div className="text-[10px] text-[#5A5751] mb-2 flex flex-wrap gap-1.5">
+                    <div className="text-[0.625rem] text-[#5A5751] mb-2 flex flex-wrap gap-1.5">
                       <span className="uppercase tracking-wider">👤 1099:</span>
                       {p.contractorIds.map(cid => {
                         const k = contractors.find(c => c.id === cid);
@@ -1032,7 +1232,7 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
                       member and it shows up in their "Mine" list too. In-place
                       toggle chips; persists + syncs immediately. */}
                   {familyMembers.length > 0 && (
-                    <div className="text-[10px] text-[#5A5751] mb-2 flex flex-wrap items-center gap-1.5">
+                    <div className="text-[0.625rem] text-[#5A5751] mb-2 flex flex-wrap items-center gap-1.5">
                       <span className="uppercase tracking-wider">🧑‍🤝‍🧑 Assigned:</span>
                       {familyMembers.map(m => {
                         const on = Array.isArray(p.assigneePersonas) && p.assigneePersonas.includes(m.key);
@@ -1081,32 +1281,32 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
                   {editingId === p.id && (
                     <div className="mt-3 p-3 bg-[#FAF8F4] border-2 border-[#B85838] space-y-3">
                       <div className="flex items-baseline justify-between gap-2">
-                        <div className="text-[10px] uppercase tracking-[0.2em] text-[#B85838] font-medium">Quick edit · {p.title}</div>
-                        <button type="button" onClick={cancelEdit} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">× Cancel</button>
+                        <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#B85838] font-medium">Quick edit · {p.title}</div>
+                        <button type="button" onClick={cancelEdit} className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">× Cancel</button>
                       </div>
                       <input className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" placeholder="Project title" value={newProject.title} onChange={e => setNewProject({...newProject, title: e.target.value})} />
                       <div className="grid grid-cols-2 gap-2">
-                        <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Start date</label><input type="date" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={newProject.startDate} onChange={e => setNewProject({...newProject, startDate: e.target.value})} /></div>
-                        <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">End date (target)</label><input type="date" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={newProject.endDate} onChange={e => setNewProject({...newProject, endDate: e.target.value})} /></div>
+                        <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Start date</label><input type="date" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={newProject.startDate} onChange={e => setNewProject({...newProject, startDate: e.target.value})} /></div>
+                        <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">End date (target)</label><input type="date" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={newProject.endDate} onChange={e => setNewProject({...newProject, endDate: e.target.value})} /></div>
                       </div>
                       <div className="grid grid-cols-2 gap-2">
-                        <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Domain</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={newProject.domain} onChange={e => setNewProject({...newProject, domain: e.target.value})}>{PROJECT_DOMAINS.map(d => <option key={d.key} value={d.key}>{d.label}</option>)}</select></div>
-                        <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Status</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={newProject.status} onChange={e => setNewProject({...newProject, status: e.target.value})}>{PROJECT_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}</select></div>
+                        <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Domain</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={newProject.domain} onChange={e => setNewProject({...newProject, domain: e.target.value})}>{PROJECT_DOMAINS.map(d => <option key={d.key} value={d.key}>{d.label}</option>)}</select></div>
+                        <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Status</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={newProject.status} onChange={e => setNewProject({...newProject, status: e.target.value})}>{PROJECT_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}</select></div>
                       </div>
                       <div className="grid grid-cols-2 gap-2">
-                        <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Hours / week</label><input type="number" min="0" step="1" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={newProject.hoursPerWeek} onChange={e => setNewProject({...newProject, hoursPerWeek: parseInt(e.target.value) || 0})} /></div>
-                        <div><label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Entity</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={newProject.entityId} onChange={e => setNewProject({...newProject, entityId: e.target.value})}><option value="e-personal">Personal</option><option value="e-poeprops">Steward Real Estate</option><option value="e-poetech">Cornerstone Tech</option><option value="e-tlc">Wellness Practice</option></select></div>
+                        <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Hours / week</label><input type="number" min="0" step="1" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={newProject.hoursPerWeek} onChange={e => setNewProject({...newProject, hoursPerWeek: parseInt(e.target.value) || 0})} /></div>
+                        <div><label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Entity</label><select className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={newProject.entityId} onChange={e => setNewProject({...newProject, entityId: e.target.value})}><option value="e-personal">Personal</option><option value="e-poeprops">Steward Real Estate</option><option value="e-poetech">Cornerstone Tech</option><option value="e-tlc">Wellness Practice</option></select></div>
                       </div>
                       <div>
-                        <label className="text-[9px] uppercase tracking-wider text-[#5A5751] block mb-1.5">1099 contractors assigned</label>
+                        <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] block mb-1.5">1099 contractors assigned</label>
                         {contractors.length === 0 ? (
-                          <div className="text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No contractors yet — add them in Books · 1099s.</div>
+                          <div className="text-[0.625rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No contractors yet — add them in Books · 1099s.</div>
                         ) : (
                           <div className="flex flex-wrap gap-1.5">
                             {contractors.map(k => {
                               const assigned = (newProject.contractorIds || []).includes(k.id);
                               return (
-                                <button type="button" key={k.id} onClick={() => setNewProject({ ...newProject, contractorIds: assigned ? (newProject.contractorIds || []).filter(id => id !== k.id) : [...(newProject.contractorIds || []), k.id] })} className={`text-[10px] px-2 py-1 border uppercase tracking-wider ${assigned ? 'border-[#B85838] bg-[#B85838] text-white' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#B85838] hover:text-[#1A1815]'}`}>
+                                <button type="button" key={k.id} onClick={() => setNewProject({ ...newProject, contractorIds: assigned ? (newProject.contractorIds || []).filter(id => id !== k.id) : [...(newProject.contractorIds || []), k.id] })} className={`text-[0.625rem] px-2 py-1 border uppercase tracking-wider ${assigned ? 'border-[#B85838] bg-[#B85838] text-white' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#B85838] hover:text-[#1A1815]'}`}>
                                   {assigned ? '✓ ' : ''}{k.name}
                                 </button>
                               );
@@ -1115,7 +1315,7 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
                         )}
                       </div>
                       <div>
-                        <label htmlFor={`proj-desc-edit-${p.id}`} className="text-[9px] uppercase tracking-wider text-[#5A5751] block mb-1">Description · milestones · context</label>
+                        <label htmlFor={`proj-desc-edit-${p.id}`} className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] block mb-1">Description · milestones · context</label>
                         <textarea id={`proj-desc-edit-${p.id}`} className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" rows="6" value={newProject.description} onChange={e => setNewProject({...newProject, description: e.target.value})} />
                       </div>
                       {projError && <div className="text-xs text-[#B85838] px-3 py-2 bg-white border border-[#B85838]" role="alert" style={{ fontFamily: '"Fraunces", serif' }}>{projError}</div>}
@@ -1241,14 +1441,14 @@ function ProjectInventory({ projects = [], entities = [], capexItems = [], addCa
     .sort((a, b) => a.monthsLeft - b.monthsLeft || b.perMonth - a.perMonth);
 
   const fieldCls = 'w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]';
-  const labelCls = 'text-[9px] uppercase tracking-wider text-[#5A5751]';
+  const labelCls = 'text-[0.5625rem] uppercase tracking-wider text-[#5A5751]';
   const projectLookup = Object.fromEntries(projects.map(p => [p.id, p]));
 
   return (
     <div className="space-y-6">
       {!compact && (
         <section className="bg-white border border-[#1A1815] p-5">
-          <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] mb-1 font-medium">Project Inventory · Capital Forecast</div>
+          <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] mb-1 font-medium">Project Inventory · Capital Forecast</div>
           <h2 className="text-2xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>Tools you need · when you'll buy them · whether the money will be there.</h2>
           <p className="text-sm leading-relaxed mt-2 text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
             Add equipment a project needs, give it a target purchase date, and the forecast below shows the month-by-month outflow against your current net cash flow. If a month doesn't pencil, the row turns amber so you know to push the date back or save harder before then.
@@ -1266,11 +1466,11 @@ function ProjectInventory({ projects = [], entities = [], capexItems = [], addCa
       </section>
 
       <section aria-labelledby="forecast-h">
-        <h3 id="forecast-h" className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-2 pb-2 border-b border-[#1A1815]">12-Month Capital Forecast</h3>
+        <h3 id="forecast-h" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-2 pb-2 border-b border-[#1A1815]">12-Month Capital Forecast</h3>
         <div className="bg-white border border-[#1A1815] overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-[9px] uppercase tracking-wider text-[#5A5751] border-b border-[#1A1815] bg-[#FAF8F4]">
+              <tr className="text-left text-[0.5625rem] uppercase tracking-wider text-[#5A5751] border-b border-[#1A1815] bg-[#FAF8F4]">
                 <th scope="col" className="p-3">Month</th>
                 <th scope="col" className="p-3 text-right">Projected outflow</th>
                 <th scope="col" className="p-3 text-right">Gap vs net cash</th>
@@ -1302,8 +1502,8 @@ function ProjectInventory({ projects = [], entities = [], capexItems = [], addCa
                           {m.items.map(it => (
                             <span key={it.id} className={`inline-flex items-baseline gap-1 px-2 py-0.5 border ${it._overdue ? 'border-[#B85838] text-[#B85838]' : 'border-[#E8E4DC] text-[#5A5751]'}`}>
                               {it.name} <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>· {fmt(parseFloat(it.cost) || 0)}</span>
-                              {it._overdue && <span className="text-[9px] uppercase tracking-wider">overdue</span>}
-                              {it.projectId && projectLookup[it.projectId] && <span className="text-[9px] uppercase tracking-wider">· {(projectLookup[it.projectId].title || 'Untitled').slice(0, 20)}</span>}
+                              {it._overdue && <span className="text-[0.5625rem] uppercase tracking-wider">overdue</span>}
+                              {it.projectId && projectLookup[it.projectId] && <span className="text-[0.5625rem] uppercase tracking-wider">· {(projectLookup[it.projectId].title || 'Untitled').slice(0, 20)}</span>}
                             </span>
                           ))}
                         </div>
@@ -1314,9 +1514,9 @@ function ProjectInventory({ projects = [], entities = [], capexItems = [], addCa
               })}
               {forecast.unscheduled.items.length > 0 && (
                 <tr className="border-t-2 border-[#1A1815] bg-[#FAF8F4]" style={{ fontFamily: '"Fraunces", serif' }}>
-                  <td className="p-3 text-[10px] uppercase tracking-wider text-[#5A5751]">Unscheduled</td>
+                  <td className="p-3 text-[0.625rem] uppercase tracking-wider text-[#5A5751]">Unscheduled</td>
                   <td className="p-3 text-right" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(forecast.unscheduled.total)}</td>
-                  <td className="p-3 text-right text-[10px] text-[#5A5751]">no target date set</td>
+                  <td className="p-3 text-right text-[0.625rem] text-[#5A5751]">no target date set</td>
                   <td className="p-3 text-xs">
                     <div className="flex flex-wrap gap-1">
                       {forecast.unscheduled.items.map(it => (
@@ -1329,14 +1529,14 @@ function ProjectInventory({ projects = [], entities = [], capexItems = [], addCa
             </tbody>
           </table>
         </div>
-        <p className="text-[10px] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
+        <p className="text-[0.625rem] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
           Each row compares projected outflows for that month against your <strong>current</strong> net cash flow ({fmt(netCashFlow)}/mo). Real net cash will shift with seasonality and rent collection — treat the gap column as a "talk about it now" signal, not a hard ledger.
         </p>
       </section>
 
       {savingsPrompts.length > 0 && (
         <section aria-labelledby="prompts-h">
-          <h3 id="prompts-h" className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-2 pb-2 border-b border-[#1A1815]">Savings Prompts · per item with a target date</h3>
+          <h3 id="prompts-h" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-2 pb-2 border-b border-[#1A1815]">Savings Prompts · per item with a target date</h3>
           <div className="bg-white border border-[#1A1815]">
             {savingsPrompts.map((p, i, arr) => {
               const overdue = p.monthsLeft === 0;
@@ -1357,17 +1557,17 @@ function ProjectInventory({ projects = [], entities = [], capexItems = [], addCa
                       <div className={`text-lg ${accent}`} style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>
                         {overdue ? `${fmt(parseFloat(p.cost) || 0)} now` : `${fmt(p.perMonth)}/mo`}
                       </div>
-                      <div className="text-[10px] uppercase tracking-wider text-[#5A5751]">{p.monthsLeft} month{p.monthsLeft === 1 ? '' : 's'} left</div>
+                      <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">{p.monthsLeft} month{p.monthsLeft === 1 ? '' : 's'} left</div>
                     </div>
                   </div>
-                  <div className={`text-[10px] uppercase tracking-wider mt-2 ${accent}`}>
+                  <div className={`text-[0.625rem] uppercase tracking-wider mt-2 ${accent}`}>
                     {overdue ? '⚠' : stretch ? '⚠' : '✓'} <span className="sr-only">{overdue ? 'overdue ' : stretch ? 'stretch ' : 'fits '}</span>{tag}
                   </div>
                 </div>
               );
             })}
           </div>
-          <p className="text-[10px] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
+          <p className="text-[0.625rem] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
             Per-item set-aside = remaining cost ÷ months until target date. If the per-item ask exceeds your monthly net, the row warns — either push the date, lower the cost, or raise net (cut discretionary, close the rent gap).
           </p>
         </section>
@@ -1376,11 +1576,11 @@ function ProjectInventory({ projects = [], entities = [], capexItems = [], addCa
       {!compact && (
         <section aria-labelledby="items-h">
           <div className="flex items-baseline justify-between mb-2 pb-2 border-b border-[#1A1815] gap-2 flex-wrap">
-            <h3 id="items-h" className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751]">All Inventory Items · {capexItems.length}</h3>
-            <button type="button" onClick={() => { setShowCapexForm(!showCapexForm); setCapexForm(blankCapex()); }} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">{showCapexForm ? '× Cancel' : '+ Add inventory item'}</button>
+            <h3 id="items-h" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751]">All Inventory Items · {capexItems.length}</h3>
+            <button type="button" onClick={() => { setShowCapexForm(!showCapexForm); setCapexForm(blankCapex()); }} className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">{showCapexForm ? '× Cancel' : '+ Add inventory item'}</button>
           </div>
 
-          <div className="flex flex-wrap gap-1 mb-3 text-[10px] uppercase tracking-wider items-center">
+          <div className="flex flex-wrap gap-1 mb-3 text-[0.625rem] uppercase tracking-wider items-center">
             <span className="text-[#5A5751] mr-1">Status:</span>
             <button type="button" onClick={() => setCapexFilter('all')} className={`px-2 py-1 border focus:outline focus:outline-2 focus:outline-[#B85838] ${capexFilter === 'all' ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'border-[#E8E4DC] text-[#5A5751]'}`}>All</button>
             {CAPEX_STATUSES.map(s => (
@@ -1449,30 +1649,30 @@ function ProjectInventory({ projects = [], entities = [], capexItems = [], addCa
                   <div className="flex items-baseline justify-between gap-2 flex-wrap">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-baseline gap-2 flex-wrap">
-                        <span className="text-[10px] uppercase tracking-wider text-[#B85838] font-semibold" style={{ fontFamily: '"JetBrains Mono", monospace' }}>P{c.priority || '?'}</span>
-                        <span className="text-[10px] uppercase tracking-wider text-[#5A5751]">{c.category}</span>
+                        <span className="text-[0.625rem] uppercase tracking-wider text-[#B85838] font-semibold" style={{ fontFamily: '"JetBrains Mono", monospace' }}>P{c.priority || '?'}</span>
+                        <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">{c.category}</span>
                         <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{c.name}</span>
-                        {c.link && <a href={c.link} target="_blank" rel="noopener noreferrer" className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] underline">link →</a>}
+                        {c.link && <a href={c.link} target="_blank" rel="noopener noreferrer" className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] underline">link →</a>}
                       </div>
                       {c.description && <div className="text-xs text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{c.description}</div>}
-                      <div className="text-[10px] uppercase tracking-wider text-[#5A5751] mt-1">
+                      <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mt-1">
                         {c.purchaseTargetDate && <>target {c.purchaseTargetDate}{c.projectId && projectLookup[c.projectId] ? ' · ' : ''}</>}
                         {c.projectId && projectLookup[c.projectId] && <>project: {projectLookup[c.projectId].title}</>}
                         {!c.purchaseTargetDate && !c.projectId && <span className="italic">unscheduled · unlinked</span>}
                       </div>
                       {(c.locationId || c.purchasedFromAccountId || c.make || c.model || c.serial) && (
-                        <div className="text-[10px] text-[#5A5751] mt-1 space-x-2" style={{ fontFamily: '"Fraunces", serif' }}>
+                        <div className="text-[0.625rem] text-[#5A5751] mt-1 space-x-2" style={{ fontFamily: '"Fraunces", serif' }}>
                           {c.locationId && rentals.find(r => r.id === c.locationId) && <span>📍 for <strong>{rentals.find(r => r.id === c.locationId).name}</strong></span>}
                           {c.purchasedFromAccountId && accounts.find(a => a.id === c.purchasedFromAccountId) && <span>💳 paid via <strong>{accounts.find(a => a.id === c.purchasedFromAccountId).name}</strong></span>}
                           {(c.make || c.model) && <span>🔖 {[c.make, c.model].filter(Boolean).join(' ')}</span>}
                           {c.serial && <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>S/N {c.serial}</span>}
                         </div>
                       )}
-                      {c.notes && <div className="text-[11px] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{c.notes}</div>}
+                      {c.notes && <div className="text-[0.6875rem] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{c.notes}</div>}
                     </div>
                     <div className="text-right shrink-0">
                       <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{c.cost ? fmt(c.cost) : '—'}</div>
-                      <div className="text-[10px] uppercase tracking-wider text-[#5A5751]">{c.status}{c.neededBy ? ` · ${c.neededBy}` : ''}</div>
+                      <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">{c.status}{c.neededBy ? ` · ${c.neededBy}` : ''}</div>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 mt-2 flex-wrap">
@@ -1498,7 +1698,7 @@ function ProjectInventory({ projects = [], entities = [], capexItems = [], addCa
       )}
 
       {compact && (
-        <p className="text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
+        <p className="text-[0.625rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
           Add or edit inventory items in the <strong>Inventory · Capital Forecast</strong> sub-tab above.
         </p>
       )}
@@ -1531,15 +1731,15 @@ function Scope({ scopes, projects = [], entities, addScope, deleteScope }) {
   return (
     <div className="space-y-6">
       <section>
-        <SectionTitle eyebrow="Scope of Work">Contractor Agreements</SectionTitle>
-        <p className="text-sm text-[#5A5751] leading-relaxed max-w-prose" style={{ fontFamily: '"Fraunces", serif' }}>Before work begins, write the scope. Both sides agree. Reviews anchor to the scope, not evolving wishes. Each scope can stand alone OR link to an internal project so the work is tracked in the right timeline.</p>
+        <SectionTitle eyebrow="Scope of Work">Contractor &amp; Client Agreements</SectionTitle>
+        <p className="text-sm text-[#5A5751] leading-relaxed max-w-prose" style={{ fontFamily: '"Fraunces", serif' }}>Before work begins, write the scope. Both sides agree. Reviews anchor to the scope, not evolving wishes. Each scope can stand alone OR link to an internal project so the work is tracked in the right timeline. The PoeTech Build Client agreement derives its numbers from the recorded terms — the same source the door prices from.</p>
       </section>
       <section>
-        <h3 className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-3 pb-2 border-b border-[#1A1815]">Start from a template</h3>
+        <h3 className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-3 pb-2 border-b border-[#1A1815]">Start from a template</h3>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {SCOPE_TEMPLATES.map(t => (
             <button key={t.id} onClick={() => startNew(t)} className="bg-white border border-[#1A1815] p-4 text-left hover:border-[#B85838]">
-              <div className="text-[10px] uppercase tracking-[0.2em] text-[#B85838] font-medium mb-1">{t.type}</div>
+              <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#B85838] font-medium mb-1">{t.type}</div>
               <h4 className="text-lg mb-2" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{t.name}</h4>
               <p className="text-xs text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>{t.description}</p>
             </button>
@@ -1547,7 +1747,7 @@ function Scope({ scopes, projects = [], entities, addScope, deleteScope }) {
         </div>
       </section>
       <section>
-        <h3 className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-3 pb-2 border-b border-[#1A1815]">Your scopes ({scopes.length})</h3>
+        <h3 className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-3 pb-2 border-b border-[#1A1815]">Your scopes ({scopes.length})</h3>
         {scopes.length === 0 ? (
           <div className="bg-white border border-[#E8E4DC] p-8 text-center"><p className="text-sm text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No scopes yet. Pick a template above.</p></div>
         ) : (
@@ -1558,10 +1758,10 @@ function Scope({ scopes, projects = [], entities, addScope, deleteScope }) {
                   <div>
                     <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{s.title}</div>
                     <div className="text-xs text-[#5A5751] mt-1">{s.contractorName} · {entity?.name.split('(')[0].trim()}</div>
-                    {proj && <div className="text-[10px] uppercase tracking-wider text-[#5A6E3D] mt-1 font-medium">⛓ Linked to: {proj.title}</div>}
-                    {!proj && s.projectId === '' && <div className="text-[10px] uppercase tracking-wider text-[#5A5751] mt-1">Standalone</div>}
+                    {proj && <div className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] mt-1 font-medium">⛓ Linked to: {proj.title}</div>}
+                    {!proj && s.projectId === '' && <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mt-1">Standalone</div>}
                   </div>
-                  <div className="text-[10px] uppercase tracking-wider text-[#5A5751]">{s.status}</div>
+                  <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">{s.status}</div>
                 </div>
               </button>
             );})}
@@ -1575,10 +1775,10 @@ function Scope({ scopes, projects = [], entities, addScope, deleteScope }) {
 function ScopeForm({ formData, setFormData, projects = [], entities, templateName, onSave, onCancel }) {
   const update = (f) => (e) => setFormData({ ...formData, [f]: e.target.value });
   return (
-    <div className="space-y-4 max-w-3xl">
+    <div className="space-y-4 w-full">
       <section className="flex items-baseline justify-between border-b border-[#1A1815] pb-3">
-        <div><div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-medium">New Scope · {templateName}</div><h2 className="text-xl mt-1" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>Fill out the agreement</h2></div>
-        <button type="button" onClick={onCancel} className="text-[10px] uppercase tracking-wider text-[#5A5751]">× Cancel</button>
+        <div><div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-medium">New Scope · {templateName}</div><h2 className="text-xl mt-1" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>Fill out the agreement</h2></div>
+        <button type="button" onClick={onCancel} className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">× Cancel</button>
       </section>
       <FormField label="Job title *"><input className="w-full p-2 border border-[#E8E4DC] text-sm bg-white" value={formData.title || ''} onChange={update('title')} /></FormField>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1614,7 +1814,7 @@ function ScopeForm({ formData, setFormData, projects = [], entities, templateNam
           <option value="owner">Owner supplies materials → pay at completion (or 20% start)</option>
           <option value="split">Split → negotiated terms</option>
         </select>
-        <p className="text-[10px] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+        <p className="text-[0.625rem] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
           <strong>Policy:</strong> When the owner pays for materials, the contractor isn't fronting that cost — so a 50% material-style deposit isn't fair. Default is "pay full at completion," with a 20% labor-only start fee available if the contractor needs help-hire money or small startup outlay. Picking an option auto-fills the Payment Terms below; you can still edit.
         </p>
       </FormField>
@@ -1633,31 +1833,43 @@ function ScopeForm({ formData, setFormData, projects = [], entities, templateNam
 
 function ScopeView({ scope, projects = [], entities, onBack, onDelete }) {
   const entity = entities.find(e => e.id === scope.entityId);
+  // Print ONLY the agreement sheet (DR-0123): body.print-scope + .print-sheet
+  // (index.css) isolate the sheet for the dialog; afterprint (with a timeout
+  // fallback for browsers that never fire it) removes the class.
+  const printScope = () => {
+    try {
+      document.body.classList.add('print-scope');
+      const done = () => { try { document.body.classList.remove('print-scope'); window.removeEventListener('afterprint', done); } catch (e) { /* no-op */ } };
+      window.addEventListener('afterprint', done);
+      setTimeout(done, 3000);
+      window.print();
+    } catch (e) { /* no-op */ }
+  };
   // Preparatory scaffolding — pending "Linked to: <project>" header in this view.
   // eslint-disable-next-line no-unused-vars
   const linkedProject = projects.find(p => p.id === scope.projectId);
   return (
-    <div className="space-y-4 max-w-3xl">
+    <div className="space-y-4 w-full">
       <section className="flex items-baseline justify-between border-b border-[#1A1815] pb-3 print:hidden">
-        <button type="button" onClick={onBack} className="text-[10px] uppercase tracking-wider">← Back</button>
-        <div className="flex gap-3"><button type="button" onClick={() => window.print()} className="text-[10px] uppercase tracking-wider text-[#B85838]">⎙ Print</button><button type="button" onClick={onDelete} className="text-[10px] uppercase tracking-wider">× Delete</button></div>
+        <button type="button" onClick={onBack} className="text-[0.625rem] uppercase tracking-wider">← Back</button>
+        <div className="flex gap-3"><button type="button" onClick={printScope} className="text-[0.625rem] uppercase tracking-wider text-[#B85838]">⎙ Print / Save as PDF</button><button type="button" onClick={onDelete} className="text-[0.625rem] uppercase tracking-wider">× Delete</button></div>
       </section>
-      <div className="bg-white border border-[#1A1815] p-6 sm:p-8 print:border-0 print:p-0">
+      <div className="print-sheet bg-white border border-[#1A1815] p-6 sm:p-8 print:border-0 print:p-0">
         <div className="text-center mb-6 pb-6 border-b border-[#E8E4DC]">
-          <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] mb-1">Scope of Work · {scope.templateType}</div>
+          <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] mb-1">Scope of Work · {scope.templateType}</div>
           <h1 className="text-2xl sm:text-3xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{scope.title}</h1>
         </div>
         <div className="space-y-5 text-sm leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
           <div className="grid grid-cols-2 gap-4 pb-4 border-b border-[#E8E4DC]">
-            <div><div className="text-[10px] uppercase tracking-[0.2em] text-[#5A5751] mb-1">Engaging Entity</div><div>{entity?.name}</div></div>
-            <div><div className="text-[10px] uppercase tracking-[0.2em] text-[#5A5751] mb-1">Contractor</div><div>{scope.contractorName}</div></div>
+            <div><div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A5751] mb-1">Engaging Entity</div><div>{entity?.name}</div></div>
+            <div><div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A5751] mb-1">Contractor</div><div>{scope.contractorName}</div></div>
           </div>
           {[['Scope of Work', scope.scopeOfWork], ['Deliverables', scope.deliverables], ['Materials', scope.materials], ['Schedule', scope.schedule], ['Payment Terms', scope.paymentTerms], ['Acceptance', scope.acceptanceCriteria], ['Requirements', scope.requirements], ['Warranty', scope.warranty], ['Termination', scope.terminationClause]].map(([t, c]) => c && c.trim() ? (
-            <div key={t}><div className="text-[10px] uppercase tracking-[0.2em] text-[#B85838] font-medium mb-1.5">{t}</div><div className="whitespace-pre-line">{c}</div></div>
+            <div key={t}><div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#B85838] font-medium mb-1.5">{t}</div><div className="whitespace-pre-line">{c}</div></div>
           ) : null)}
         </div>
         <div className="mt-8 pt-6 border-t border-[#1A1815]">
-          <div className="text-[10px] uppercase tracking-[0.2em] text-[#5A5751] mb-4">Acknowledgement</div>
+          <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A5751] mb-4">Acknowledgement</div>
           <div className="grid grid-cols-2 gap-8">
             <div><div className="border-b border-[#1A1815] h-8"></div><div className="text-xs text-[#5A5751] mt-1">{entity?.name.split('(')[0].trim()}</div></div>
             <div><div className="border-b border-[#1A1815] h-8"></div><div className="text-xs text-[#5A5751] mt-1">{scope.contractorName}</div></div>
@@ -1668,7 +1880,7 @@ function ScopeView({ scope, projects = [], entities, onBack, onDelete }) {
   );
 }
 
-function FormField({ label, children }) { return (<div><label className="text-[10px] uppercase tracking-[0.2em] text-[#5A5751] mb-1 block">{label}</label>{children}</div>); }
+function FormField({ label, children }) { return (<div><label className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A5751] mb-1 block">{label}</label>{children}</div>); }
 
 export { ProjectsWrapper, Projects, ProjectInventory, ProjectConversationLog, DateField, PROJECT_DOMAINS, PROJECT_STATUSES };
 export default ProjectsWrapper;

@@ -1,0 +1,133 @@
+# inbox-lesson-body — read the words of ONE of Darrell's own lesson rows
+#
+# WHY (2026-09-30). The in-app lesson intake builds a lesson from the words in
+# an agent_inbox row. It read them through a chat connector to the hosted
+# Supabase project; when that connector dropped, a lesson Darrell sent from
+# his phone could be listed (inbox-lessons-waiting.yml) but not built. This
+# reads the row's words from the NAS database the app reads
+# (scripts/live-sql.sh), so the build never waits on a connector.
+#
+# SCOPE, ON PURPOSE: ONLY a row created by one of Darrell's own two accounts
+# (the principal, who owns this repository and whose words already go into
+# the lesson's session notes). Any other member's row is REFUSED here, with no
+# body read: a member's words never reach a log (DR-0635 / DR-0639).
+#
+# BRAKES (deterministic class, DR-0248: budget + lock): dispatch only, one row
+# per run, 5 minutes; concurrency group `inbox-lesson-body`.
+
+name: inbox-lesson-body
+
+on:
+  workflow_dispatch:
+    inputs:
+      row_id:
+        description: 'agent_inbox row id (uuid) of one of Darrell''s own lesson rows'
+        required: true
+
+concurrency:
+  group: inbox-lesson-body
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  read:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      ROW_ID: ${{ inputs.row_id }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate the input
+        run: |
+          [[ "$ROW_ID" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$ ]] || { echo "::error::row_id is not a uuid"; exit 1; }
+      - name: Join the tailnet (to reach the live database)
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+      - name: Read the words (Darrell's own rows only)
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          set -uo pipefail
+          # The base64 is asked for as ONE line (chr(10) removed in the query),
+          # so the whole row is a single line and no pipe is needed to take it
+          # apart. That matters more than it looks -- see NO `head` below.
+          SQL="SELECT created_by::text, tags::text, md5(convert_to(coalesce(body,''),'UTF8')), replace(encode(convert_to(coalesce(body,''),'UTF8'),'base64'), chr(10), '') FROM public.agent_inbox WHERE id = '$ROW_ID' AND created_by IN ('f13843f2-742b-4f8a-82af-7ecfbdc536ec','c2a6c39a-ae99-4ff7-83c6-b927e2e7f1cc');"
+          out=$(printf '%s' "$SQL" | bash scripts/live-sql.sh '|') || { echo "::error::could not read the live database"; exit 1; }
+          [ -n "$out" ] || { echo "::error::no row $ROW_ID from Darrell's own accounts (a member's row is never read here)"; exit 1; }
+          # NO `head`, ON PURPOSE (2026-10-06). This step used to do
+          # `db_md5=$(printf '%s' "$out" | head -1 | cut -d'|' -f3)`. GitHub's
+          # default shell is `bash -e` and this script adds `pipefail`, so when
+          # the body is long enough that `head` closes the pipe before `printf`
+          # has finished writing, printf takes SIGPIPE, the pipeline exits 141,
+          # and a BARE ASSIGNMENT carries that status -- so `-e` killed the step
+          # with no reason printed. The same substitution one line earlier
+          # survived only because it sat inside an `echo`, whose own status is
+          # what `-e` sees. That is exactly how it failed on 2026-10-06 for
+          # Christyn's Homework (run 37542689782: "printf: write error: Broken
+          # pipe" at the tags line, again at the md5 line, then exit 1 with no
+          # error annotation), and why shorter bodies had always worked. Bash
+          # string operations cannot raise SIGPIPE, so they are used instead.
+          # Fields are taken from the END, so a '|' inside tags cannot shift
+          # them: base64 is last, the md5 before it.
+          line=${out%%$'\n'*}
+          b64=${line##*|}
+          rest=${line%|*}
+          db_md5=${rest##*|}
+          rest=${rest%|*}
+          tags=${rest#*|}
+          echo "row: $ROW_ID"
+          echo "tags: $tags"
+          # GitHub masks any run of characters that equals a secret, even inside
+          # base64, and blanked parts of L201's words (2026-09-30); a 3-character secret still caught one run. A '.' after
+          # every 2 characters breaks every run longer than 2, so nothing can
+          # match a secret; strip the dots, then base64-decode, to read.
+          # ROUND-TRIP (P63, DR-0697): the database's own md5 of the words is
+          # compared here with the md5 of what the runner decoded, so a
+          # transport that altered them fails the run; and the md5 is printed
+          # dotted the same way, so whoever reads the log checks the words they
+          # decoded against it (a masked character changes the md5).
+          got_md5=$(printf '%s' "$b64" | base64 -d 2>/dev/null | md5sum | cut -d' ' -f1) || true
+          if [ "$db_md5" != "$got_md5" ]; then
+            dot() { printf '%s' "$1" | sed 's/../&./g'; }
+            echo "::error::round-trip failed: the words decoded on the runner do not match the database. database md5 $(dot "$db_md5"), runner md5 $(dot "$got_md5"), base64 characters ${#b64}"
+            exit 1
+          fi
+          echo "round-trip: the runner's decode matches the database"
+          echo "md5 of the words (a '.' after every 2 characters): $(printf '%s' "$db_md5" | sed 's/../&./g')"
+          echo "bytes: $(printf '%s' "$b64" | base64 -d | wc -c)"
+          echo "----- words (base64 with a '.' after every 2 characters; strip the dots, then decode, then check the md5 above) -----"
+          printf '%s' "$b64" | sed 's/../&./g'
+          echo
+          echo "----- end -----"
+          # THE SAME WORDS AGAIN, IN CHUNKS THAT CHECK THEMSELVES (2026-10-09).
+          # P63 put a round-trip md5 on this transport, and it did its job: it
+          # proved a copy wrong. What it cannot say is WHERE, and that is the
+          # difference between a transfer you can repair and one you can only
+          # abandon. Measured on row 7a74eae4 the same day: a reader carried the
+          # 4012-character line out of this log, decoded exactly the right 3007
+          # bytes, read clean English end to end -- and still missed the md5.
+          # One substituted character in 4012 is invisible and fatal, and there
+          # is no other road: in a cloud session the proxy refuses both the log
+          # download and the artifact blob (403 CONNECT), so this relayed log
+          # text is the only channel and it is copied out by hand.
+          #
+          # So the words are printed again in numbered 256-character chunks, each
+          # tagged with the first 8 hex of the md5 of that chunk's UNDOTTED
+          # characters. Strip the dots of one chunk, hash it, compare; then
+          # concatenate the chunks in order and the whole-body md5 above must
+          # match too. A bad copy now names its own chunk instead of condemning
+          # the whole body. The dotting is unchanged, so masking still cannot
+          # touch a run longer than two characters.
+          echo "----- the same words in chunks: NNN <first 8 of md5 of that chunk, dots stripped> <chunk, dotted> -----"
+          chunks=$b64
+          n=0
+          while [ -n "$chunks" ]; do
+            chunk=${chunks:0:256}
+            chunks=${chunks:256}
+            n=$((n+1))
+            printf '%03d %s %s\n' "$n" "$(printf '%s' "$chunk" | md5sum | cut -c1-8)" "$(printf '%s' "$chunk" | sed 's/../&./g')"
+          done
+          echo "----- end chunks ($n of them, 256 characters each; concatenate in order, strip the dots, then decode) -----"

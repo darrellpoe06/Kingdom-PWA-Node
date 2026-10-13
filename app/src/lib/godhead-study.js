@@ -2,6 +2,24 @@
 // godhead-study — THE GODHEAD STUDY: the Bible's deterministic algorithms,
 // Torah through Revelation (Darrell 2026-07-03).
 // =============================================================================
+// >> WHERE WHAT YOU ADD HERE SHOWS UP (read before authoring — DR-0126/DR-0285)
+//    Add an entry below and it reaches users in TWO places, with no re-typing:
+//      1. Church -> Eternal Algorithms -> "The Godhead Study" (the catalog room)
+//      2. Church -> LEARN, as a derived lesson inside one of the six
+//         "Deep Processing" courses, chosen by this entry's `section:` field
+//         (torah | wisdom | prophets | gospels | epistles | revelation).
+//         Derivation lives in lib/eternal-algorithms-course.js.
+//    Verses: refs here are NEVER quoted from memory. Add the ref, then run
+//      node scripts/fetch-godhead-verses.mjs
+//    which materializes verbatim KJV into godhead-study-verses.json.
+//    A new BOOK also needs a line in BOOK_MASTERPIECES below (the gate demands it).
+//    Gates: godhead-study.test.js, authored-content-reaches-its-surface.test.js.
+//
+//    This header exists because on 2026-08-09 seven entries were authored here
+//    and the agent could not answer "where are the lessons?" — the routing was
+//    documented in a DR it had not read. Routing now travels WITH the code, so
+//    the question is answered by the file you are already editing.
+// =============================================================================
 // "Can you go through the entire Bible and find the deterministic algorithms
 // so we can have that as a Thorough Study Of The Living GodHead — Forever
 // Eternal Beings asking us to become a bloodline family... everyone gets their
@@ -46,6 +64,7 @@ export const GODHEAD_SECTIONS = [
 export const BOOK_MASTERPIECES = {
   'Genesis':       'The book of beginnings — the Word speaking worlds into being, the garden, the fall, the giants in the earth, and the seed of the woman promised against the serpent.',
   'Exodus':        'The rescue masterpiece — the Blood, the passover, and a people walked out of what owned them.',
+  'Leviticus':     'The nearness manual — how a holy God is safely approached: blood applied, the offering appointed even for the sin a man never knew he committed, and a people taught that access is His to define.',
   'Numbers':       'The wilderness-census book — a generation numbered and sifted between the promise and the land; the giants seen, and the report that believed them over God.',
   'Deuteronomy':   'The covenant restated on the doorstep — the choice set before every generation about to cross over.',
   'Joshua':        'The taking of what was promised — allegiance declared out loud, house by house.',
@@ -55,11 +74,16 @@ export const BOOK_MASTERPIECES = {
   'Nehemiah':      'The rebuilding book — the wall up in fifty-two days, the Word read aloud to the people, and joy as the strength of the restored.',
   'Job':           'The suffering-and-sovereignty masterpiece — the righteous man stripped to nothing, and the Voice from the whirlwind; in whose hand is the soul of every living thing and the breath of all mankind.',
   'Psalms':        'The heart\'s whole range before Yahweh — praise, ache, war, rest — each psalm its own room in the masterpiece.',
+  'Zechariah':     'The night-visions book — the unseen court shown in pictures, and the Man on the red horse who turns out to be the LORD; it ends with the pierced One looked upon and everything common made holy.',
+  '2 Kings':       'The book of eyes opened and eyes shut — chariots of fire the servant could not see until he was shown, and kings who saw nothing though the prophets told them plainly.',
+  '1 Thessalonians': 'The waiting-well letter — how a young church works, grieves, and holds together while it looks up; it keeps spirit, soul and body in one blessing.',
   'Proverbs':      'The kings\' algorithm book — written for the kings of The Eternal King and simultaneously for The Way; wisdom as executable one-liners.',
+  'Ecclesiastes':  'The Preacher\'s audit of everything under the sun — vanity weighed to the bottom, and the conclusion of the whole matter: fear God and keep His commandments, for He brings every work into judgment with every secret thing.',
   'Isaiah':        'The masterpiece of majesty and the Servant — the throne room and the wounds, in one scroll.',
   'Jeremiah':      'The weeping prophet\'s book — the Word found and EATEN as the heart\'s joy, fire shut up in the bones, and a new covenant written on hearts.',
   'Ezekiel':       'The watchman\'s book — every soul answers for itself, and dead bones learn to stand.',
   'Daniel':        'The furnace-and-throne book — allegiance under empire, and the Kingdom that outlasts them all.',
+  'Amos':          'The herdsman-prophet’s book — a working man sent to a prosperous nation to say that solemn assemblies do not cover a rigged gate: let judgment run down as waters, and the poor stop being turned aside from their right.',
   'Malachi':       'The last word before the silence — prove Me now, and the Sun of righteousness rising.',
   'Matthew':       'The King\'s gospel — the Kingdom\'s constitution preached from a mountain.',
   'Mark':          'The servant\'s gospel — the Son of man come not to be ministered unto but to minister; immediate and active, the Word done more than discussed.',
@@ -75,6 +99,7 @@ export const BOOK_MASTERPIECES = {
   'Philippians':   'The joy-from-a-cell letter — the mind of Christ descending, and every knee bowing.',
   '1 Timothy':     'The house-conduct letter — how to behave in the house of God; godliness with contentment is great gain, and the good fight of faith is fought, not felt.',
   '2 Timothy':     'The baton letter — study approved, endure hardness, commit the Word to faithful men who teach others also; a crown laid up at the finish.',
+  'Titus':         'The sound-doctrine letter — order set in the house, good works maintained, and the anchor under it all: the God who CANNOT lie promised eternal life before the world began.',
   'Hebrews':       'The better-covenant masterpiece — a great High Priest, faith\'s hall, and the assembling not forsaken.',
   'James':         'The doing book — faith with its sleeves rolled up; hearers become doers or deceive themselves.',
   '1 Peter':       'The furnace letter — tried gold, a royal priesthood, and hope that suffering cannot repossess.',
@@ -112,6 +137,74 @@ export function algorithmsForBook(book) {
 // outcome (what you win with it), tags.
 export const GODHEAD_ALGORITHMS = [
   // ── TORAH & HISTORY ────────────────────────────────────────────────────────
+  // ---------------------------------------------------------------------------
+  // THE HUMAN SPIRIT AND THE GODHEAD (Darrell 2026-08-14: "what does the Bible
+  // say about the human spirit and the relationship between The GodHead and us
+  // comprehensively... and impacts of the relationship?" and "John 10:9 unseen
+  // realm?"). Built because Issue 10's every error traced back to one unclear
+  // line: what a human spirit IS, and what its relation to Him is. Every ref
+  // below is verbatim in godhead-study-verses.json, fetched not recalled.
+  // ---------------------------------------------------------------------------
+  {
+    id: 'gh-the-door', section: 'gospels', name: 'I Am The Door (there is no other way in)',
+    refs: ['John 10:9', 'John 10:1'],
+    condition: 'Access to the Father, to the fold, and to anything real in the unseen is THROUGH Him: "I am the door: by me if any man enter in..." And the alternative is named in the same passage, four verses earlier: "he that entereth not by the door into the sheepfold, but climbeth up some other way, the same is a thief and a robber."',
+    consequence: 'Entering by the Door: saved, and free movement with provision — "shall go in and out, and find pasture." Climbing up some other way does not fail to reach the fold; it reaches it as a thief.',
+    threeD: 'This is the answer to every technique that offers access — frequencies, encounters, asking your own spirit, seeking angels. The question is never "is the unseen real?" (it is) but "which way did you come in?" Jesus does not describe Himself as the best door or the recommended door. He is THE door, and He put the other route in the same breath so nobody could miss it.',
+    outcome: 'Confidence without curiosity-driven risk: you can hold the unseen realm as real, refuse every side entrance, and lose nothing — because everything on the other side is reached through Him anyway.',
+    psyche: 'A single clear gate removes an enormous decision load. When access has one door, every offered shortcut is answered without deliberation — the mind stops auditing techniques and rests.',
+    tags: ['access', 'the-door', 'unseen-realm', 'discernment', 'salvation'],
+  },
+  {
+    id: 'gh-one-mediator', section: 'epistles', name: 'One Mediator (the traffic all goes through the Son)',
+    refs: ['1 Timothy 2:5', 'John 15:5'],
+    condition: 'There is one God and ONE mediator — "the man Christ Jesus." Not one preferred among several; one. And the life that flows is His: "without me ye can do nothing."',
+    consequence: 'Every route that adds a mediator — an angel, a technique, a trained spirit-sense, a teacher — adds something the text says does not exist, and subtracts confidence from the one that does.',
+    threeD: 'Test any spiritual practice with one question: does this add a middleman? Angels are real and serve, but they are not mediators; they refuse the role when offered it. A branch bears fruit by staying joined, not by developing branch-powers.',
+    outcome: 'Direct, unbrokered access — you never have to qualify, tune, or ascend to be heard.',
+    psyche: 'Removing intermediaries collapses performance anxiety: there is no technique to get right, so failure to feel something is not evidence of failure to be heard.',
+    tags: ['mediator', 'access', 'christ-alone', 'abiding'],
+  },
+  {
+    id: 'gh-spirit-formed-and-returns', section: 'prophets', name: 'He Forms The Spirit Within (and it returns to Him)',
+    refs: ['Zechariah 12:1', 'Ecclesiastes 12:7', 'Job 32:8'],
+    condition: 'The human spirit is not self-existent and not a spark of deity. It is FORMED: the same LORD who "stretcheth forth the heavens, and layeth the foundation of the earth" also "formeth the spirit of man within him." Understanding likewise comes from outside: "there is a spirit in man: and the inspiration of the Almighty giveth them understanding."',
+    consequence: 'What He formed returns to Him: "the spirit shall return unto God who gave it." Origin and destination are both Him — so the spirit is a creature at both ends, never a deity at either.',
+    threeD: 'This is the line every inflation crosses. Your spirit is real, God-formed, and precious — and it is made, on loan, and accountable. Made-by-Him is the highest thing that can be said of it, and it is enough.',
+    outcome: 'A settled identity that needs no inflating: creaturely, dignified, His workmanship, and going home.',
+    psyche: 'Knowing the spirit is given rather than self-generated removes both pride and the exhausting project of self-divinization — you steward something entrusted instead of manufacturing something.',
+    tags: ['human-spirit', 'creation', 'identity', 'mortality'],
+  },
+  {
+    id: 'gh-spirit-bears-witness-with', section: 'epistles', name: 'His Spirit Bears Witness WITH Your Spirit (two, not one)',
+    refs: ['Romans 8:16', '1 Corinthians 2:11'],
+    condition: 'The assurance of sonship comes from a joint testimony: "The Spirit itself beareth witness WITH our spirit." Two witnesses. And the knowing runs one direction — a man’s own spirit knows a man’s things, but "the things of God knoweth no man, but the Spirit of God."',
+    consequence: 'Your spirit is a genuine witness and never the sole one; and it is not the organ that knows God’s things. His Spirit supplies that, not introspection.',
+    threeD: 'This is why "ask your spirit questions" runs backwards. Your spirit is a witness, not an oracle — it testifies alongside His Spirit, it does not brief you. When you want to know the things of God, you go to His Spirit and His Word, and your spirit says amen.',
+    outcome: 'Assurance you can rest on because it does not depend on your own instrument being reliable today — the confirming witness is His.',
+    psyche: 'Two-witness assurance survives a bad mental day. Feelings fluctuate; the joint testimony does not, so a low mood stops functioning as evidence about your standing.',
+    tags: ['witness', 'assurance', 'human-spirit', 'holy-spirit', 'sonship'],
+  },
+  {
+    id: 'gh-eyes-opened-by-prayer', section: 'prophets', name: 'Open His Eyes (the unseen is shown, never seized)',
+    refs: ['2 Kings 6:17', 'Ephesians 6:12', 'Colossians 1:16'],
+    condition: 'The unseen realm is real and populated — "we wrestle not against flesh and blood, but against principalities... spiritual wickedness in high places" — and it is all created: "by him were all things created... visible and invisible, whether they be thrones, or dominions, or principalities, or powers."',
+    consequence: 'When a servant needed to SEE it, the pattern was a prayer to Yahweh — "LORD, I pray thee, open his eyes" — and Yahweh opened them. Elisha asked God; he did not train the young man in a technique.',
+    threeD: 'Both errors are cut off here. Denying the unseen contradicts the text. Seeking access to it by method also contradicts the text — the one recorded instance of a man seeing it comes by another man’s prayer and Yahweh’s act. It was shown, not achieved. Notice also that Elisha was not anxious BEFORE the eyes opened: he already knew.',
+    outcome: 'Courage without curiosity: you can know the chariots are there without needing to see them, and you never have to bargain for sight.',
+    psyche: 'Believing a protection you cannot see steadies fear at the root, while removing the compulsion to verify it — which is what drives people into practices that promise sight.',
+    tags: ['unseen-realm', 'angels', 'prayer', 'fear', 'protection'],
+  },
+  {
+    id: 'gh-whole-spirit-soul-body', section: 'epistles', name: 'Whole: Spirit AND Soul AND Body (He keeps all three)',
+    refs: ['1 Thessalonians 5:23', 'Hebrews 4:12'],
+    condition: 'The blessing is over the whole person — "your whole spirit and soul and body be preserved blameless" — and the divider is His word, "piercing even to the dividing asunder of soul and spirit."',
+    consequence: 'The three are distinguished by Scripture and kept together by God. Only the Word does the dividing; we are not given a technique for sorting our own inner parts.',
+    threeD: 'This answers the "let the spirit rule the body" teaching from the other side. He preserves all three; He does not rank them so the body can be overridden by a trained spirit. And if the Word is what divides soul from spirit, then introspection is not the instrument for it — reading is.',
+    outcome: 'Wholeness rather than internal hierarchy: the body is kept, not conquered; the spirit is kept, not deified; the soul is kept, not bypassed.',
+    psyche: 'Being told all three are preserved removes the war between them — the sick or tired body stops being read as a spiritual failure, because God’s keeping covers it too.',
+    tags: ['human-spirit', 'soul', 'body', 'wholeness', 'the-word'],
+  },
   {
     id: 'gh-choose-life', section: 'torah', name: 'Choose This Day (life and death set before you)',
     refs: ['Deuteronomy 30:19'],
@@ -162,6 +255,31 @@ export const GODHEAD_ALGORITHMS = [
     tags: ['joy', 'strength', 'untakeable', 'nehemiah'],
   },
   {
+    // Darrell 2026-09-08, spoken into the app: happiness depends on what
+    // happens; joy is a steady strength carried IN, even on a hard day, said
+    // in the Word to people who were crying at the time. His ask: what do a
+    // bad day, an okay day and a great day look like run on the Word as the
+    // code? The pattern side of Living Lesson L131 (one teaching, two surfaces).
+    id: 'gh-joy-three-days', section: 'torah', name: 'Three Days, One Strength (the code that does not change when the day does)',
+    refs: ['Nehemiah 8:10', 'James 1:2-3', 'John 16:22', 'Galatians 5:22-23'],
+    condition: 'Any day — bad, okay, or great — READ honestly (the Word records the tears before it commands the joy); joy LOCATED in its source (of the LORD; fruit of the Spirit; His joy given, not the day\'s); the joy ACT done regardless of input (eat, drink, send portions; count it all joy; give thanks in every thing).',
+    consequence: 'STRENGTH as the output on every day — "the joy of the LORD is your strength" — because strength was wired to joy and not to the mood; and the supply is theft-proof: "your joy no man taketh from you".',
+    threeD: 'Happiness is a function of what happens; joy is a function of Yahweh. Run the same four lines on a bad day (Habakkuk\'s Yet after six failures), an okay day (rejoice because He MADE the day — the drift day is the dangerous one), and a great day (re-source the win to the Giver, as Jesus did with the seventy in Luke 10:20). The first line changes daily; the last line does not.',
+    outcome: 'Strength available on the day the mood is gone — and a great day that never gets to become the power supply.',
+    psyche: 'Mood tracks events; an affect sourced outside events stays stable under load. Counting (James\'s ledger word) and giving to others (send portions) are the two levers behavioural research keeps finding lift affect most reliably — the Word assigned both to a weeping crowd first.',
+    tags: ['joy', 'strength', 'three-days', 'happiness', 'nehemiah', 'habakkuk'],
+  },
+  {
+    id: 'gh-genesis-holds-the-whole-plan', section: 'torah', name: 'Genesis Holds the Whole Plan (the Three on page one, the enemy sentenced in chapter three)',
+    refs: ['Genesis 1:1-3', 'Genesis 1:26', 'Genesis 3:15', 'Genesis 3:21', 'Genesis 15:6', 'Genesis 22:8'],
+    condition: 'Read Genesis on its own terms, without importing a later book to make the case: count the Persons on page one (the Father creating, the Spirit moving on the waters in verse two, the Word speaking light into being), hear Yahweh speak of Himself in the plural (Let us / our image; and again, one of us), and then watch what He does the moment the enemy succeeds — He SEEKS before He sentences, and He publishes the rescue inside the curse on the adversary.',
+    consequence: 'The whole salvation plan is legible from one book: the Seed of the woman who takes a bruised heel and leaves a crushed head (3:15); a covering Yahweh made at the cost of a life and put on them Himself (3:21); an accepted offering with blood in it (4:4); grace FOUND, not earned (6:8); righteousness COUNTED to a man who only believed (15:6); a covenant Yahweh walked alone while the other party slept (15:17); a lamb He said He would provide, and did, in the stead of the son (22:8, 22:13); a King named before there was a kingdom (49:10); and evil overruled to save much people alive (50:20).',
+    threeD: 'The Godhead is not organised BY the crisis — the crisis walks into a room where the Three are already at work. And the adversary is never an equal and opposite power in these books: he is introduced as a CREATURE, subtil rather than strong, and he is sentenced in the third chapter; everything after is that sentence being carried out. His method is on the record in his first three sentences and has never been updated — a QUESTION about what Yahweh said, a flat CONTRADICTION of it, then a PROMOTION offered for taking it.',
+    outcome: 'A case for the gospel that stands in front of a reader who receives ONLY the first five books — no prophet or apostle borrowed to make it work — while the enemies stay named soberly from the Torah itself: the serpent, the giants, the name-making at Babel, the gods of Egypt, the enchantments, devils, molech, baalpeor, with Deuteronomy 32:17 as the verdict.',
+    psyche: 'A belief held because it was argued from a source the hearer already accepts is far harder to dislodge than one that depended on a source they had to concede first. Building the case inside the Torah removes the exit that lets a listener set it down before hearing it — which is why the supporting witnesses from the rest of the canon are kept separate and marked as confirmation rather than foundation.',
+    tags: ['genesis', 'salvation-plan', 'godhead', 'trinity', 'protoevangelium', 'enemies', 'torah'],
+  },
+  {
     id: 'gh-humble-heal', section: 'torah', name: 'If My People Humble Themselves',
     refs: ['2 Chronicles 7:14'],
     condition: 'HIS people humble themselves, pray, seek His face, and TURN from their wicked ways.',
@@ -172,6 +290,20 @@ export const GODHEAD_ALGORITHMS = [
   },
 
   // ── WISDOM & PSALMS ───────────────────────────────────────────────────────
+  {
+    id: 'gh-taste-and-see', section: 'wisdom', name: 'Taste and See (the empirical invitation)',
+    // Captured from Darrell's question spoken into the app, 2026-07-10: "how
+    // do you taste and see in a practical sense?" — answered as the algorithm
+    // it is: Yahweh invites a firsthand TRIAL, and the seeing is the trial's
+    // observed result. Psalm 34 is David's own published lab report (34:4,6).
+    refs: ['Psalms 34:8', 'John 7:17', 'Malachi 3:10', '1 Peter 2:2-3'],
+    condition: 'TASTE — run the firsthand trial yourself: trust Him in a real matter, act on one promise, do His will, take refuge in a real trouble. Tasting cannot be delegated; no one can taste by watching another eat.',
+    consequence: 'SEE — the trial returns its result: you will know by experience that the LORD is good, and "blessed is the man that trusteth in him." Doing His will is how the doctrine is KNOWN (John 7:17); the tithe test is the one place He says "prove me now" (Malachi 3:10); and one real taste creates appetite for more (1 Peter 2:2-3).',
+    threeD: 'Stop evaluating God from the audience. Pick ONE trial this week and run it: act on one promise and record what happens; eat the Word daily until it is ingested, not sampled (Jeremiah 15:16); bring a real trouble to Him FIRST and write down what He does (Psalm 34:4,6 is exactly that record); run the tithe test He Himself invited. Then read your results — that reading IS the seeing.',
+    outcome: 'Firsthand knowledge that cannot be argued away — a faith built on your own tasted-and-seen record, not on secondhand reports.',
+    psyche: 'Experiential evidence rewires conviction in a way argument never does; the recorded trial (watch, recognize, record) turns one taste into a permanent, retrievable memory of His goodness — "forget not all his benefits."',
+    tags: ['taste-and-see', 'trial', 'experience', 'proof', 'testimony'],
+  },
   {
     id: 'gh-trust-paths', section: 'wisdom', name: 'Trust → Directed Paths',
     refs: ['Proverbs 3:5-6'],
@@ -418,6 +550,23 @@ export const GODHEAD_ALGORITHMS = [
   },
 
   // ── THE GOSPELS ───────────────────────────────────────────────────────────
+  {
+    id: 'gh-door-christ', section: 'gospels', name: 'The Door (no way to eternity but through Christ)',
+    // Captured from Darrell's spoken word into the app, 2026-07-09: "Yahweh
+    // expects us to understand situational analysis — the only way for us to
+    // listen to Him is to analyze His algorithms, His ways... comprehend what
+    // Yahweh means when He says certain things, like when you're not going to
+    // go through His door, or if you don't come through Christ you can't get
+    // to the eternity — these are the algorithms we want to process and
+    // understand."
+    refs: ['John 10:9', 'John 14:6', 'Matthew 7:13-14', 'Acts 4:12'],
+    condition: 'Jesus IS the door and the way — entry to the Father, salvation, and eternity runs through Him and Him alone; the gate is strait and the way narrow.',
+    consequence: 'Enter by Him and you are saved, go in and out, and find pasture; refuse the door and there is no other — "neither is there salvation in any other."',
+    threeD: 'Run the situational analysis Yahweh expects: every path you are weighing — a belief, a plan, an identity, a hope of eternity — either goes through the Door or it does not. There is no side gate, no negotiated entrance, no equivalent way. Analyze His algorithm exactly as He states it: the condition is THROUGH CHRIST; the consequence is eternity or exclusion. Process it, comprehend it, and choose the Door while it stands open.',
+    outcome: 'Certainty about the one entrance — a life that stops auditioning alternate doors and walks through the only one that opens into eternity.',
+    psyche: 'Ambiguity about ultimate things breeds either anxiety or presumption; a single, stated, analyzable condition (through Christ, or not at all) replaces both with a decision that can actually be made.',
+    tags: ['door', 'salvation', 'eternity', 'the way', 'situational-analysis'],
+  },
   {
     id: 'gh-seek-first', section: 'gospels', name: 'Seek First the Kingdom',
     refs: ['Matthew 6:33'],
@@ -993,6 +1142,21 @@ export const GODHEAD_ALGORITHMS = [
     tags: ['money', 'redemption', 'only-yahweh', 'day-of-wrath', 'psalm'],
   },
   {
+    // Darrell 2026-07-08 (DR-0130): "Not just what the jury says, evidence we
+    // have even the evidence the judge dismisses comes into the eternal 4th
+    // dimensional courts and the impact on life during life... is what is
+    // still seen and impacts." The two-courts doctrine, seeded as the named
+    // pattern (the DR's routed opportunity, 2026-07-15).
+    id: 'gh-two-courts', section: 'wisdom', name: 'The Two Courts (man’s court is not the court of record)',
+    refs: ['Ecclesiastes 12:14', 'Luke 12:2', 'Hebrews 4:13'],
+    condition: 'Every work — WITH every secret thing, whether good or evil — stands before Him: "nothing covered, that shall not be revealed," and "all things are naked and opened unto the eyes of him with whom we have to do."',
+    consequence: 'God shall bring every work into judgment. The evidence a judge dismisses, the case that settles sealed, the wrong a government permits — none of it leaves the record; man’s court is real, but it is not the court of record.',
+    threeD: 'Live for the senior docket. Never measure your integrity by what human systems catch or excuse — a cleared name before men can still be a full file before Yahweh, and a conviction before men is not His verdict either. Confess and restore on the record that counts (the Zacchaeus road), and never help hide what He has already seen.',
+    outcome: 'Integrity calibrated to the eternal 4th-dimensional court — free from both the false comfort of "never charged" and the false despair of man’s misjudgment.',
+    psyche: 'Accountability to an all-seeing standard removes the moral hazard of "what I can get away with" — conduct stabilizes when the audit is understood to be total and certain.',
+    tags: ['two-courts', 'judgment', 'accountability', 'record', 'justice'],
+  },
+  {
     id: 'gh-god-of-this-world', section: 'epistles', name: 'The God of This World (we left Him; the world is occupied, not neutral)',
     refs: ['2 Corinthians 4:4', 'John 8:44', '1 John 5:19'],
     condition: 'We left Him, and "the whole world lieth in wickedness": "the god of this world hath blinded the minds of them which believe not," and to those who follow the lie Jesus says, "Ye are of your father the devil."',
@@ -1178,6 +1342,574 @@ export const GODHEAD_ALGORITHMS = [
     psyche: 'Comfort-motivated denial soothes the observer, not the wounded; naming a hard truth plainly is the harder, kinder act, and it is the only path that actually leads to healing.',
     tags: ['truth', 'healing', 'honesty', 'no-minimizing', 'dr-0100'],
   },
+
+  // ── THE JUDGMENT COMMITTED TO THE SON (Darrell 2026-07-05) ──────────────────
+  // "Yahweh gives judging the souls on earth over to His Son Jesus Christ — I
+  // want to make sure I'm abiding by that eternal covenant, and so do the
+  // Kingdom Believers." Taught as the Word states it (DR-0098), every verse
+  // verbatim (DR-0076): the Father has committed ALL judgment to the Son
+  // (John 5:22), so abiding by the covenant means honoring the Son as the
+  // Father is honored, walking through the door the Judge Himself opened,
+  // living toward His judgment seat, vacating the seat ourselves, and growing
+  // into the under-Judge role promised to the saints. Companion review:
+  // docs/99-session-notes/2026-07-05-eternal-covenant-judgment-committed-to-the-son-review.md
+  {
+    id: 'gh-judgment-committed-to-son', section: 'gospels', name: 'All Judgment Committed unto the Son (the eternal covenant of the court)',
+    refs: ['John 5:22-23', 'John 5:26-27'],
+    condition: 'The covenant is stated by the Son Himself: "the Father judgeth no man, but hath committed all judgment unto the Son" — with the authority "to execute judgment also, because he is the Son of man."',
+    consequence: 'ALL judging of souls runs through Jesus Christ — and the stated purpose of the transfer: "That all men should honour the Son, even as they honour the Father." Withholding that honor from the Son withholds it from the Father who sent Him.',
+    threeD: 'Abide by the covenant on purpose: every question of judging a soul routes to His seat, never yours. Honor the Son with the same honor the Father receives — in worship, in speech, in how every soul is handled — because every soul you meet is His case, not yours.',
+    outcome: 'A life aligned with Heaven\'s own court order — the Son honored as the Father is honored, and no soul judged from a seat that was never yours.',
+    psyche: 'Settled jurisdiction removes two anxieties at once: the dread of a faceless judgment (the Judge has a face and a Name, and He bled for the defendants) and the exhausting burden of playing judge yourself.',
+    tags: ['judgment', 'covenant', 'the-son', 'honour', 'jurisdiction'],
+  },
+  {
+    id: 'gh-hear-believe-no-condemnation', section: 'gospels', name: 'Hear and Believe → No Condemnation (the Judge published the exemption)',
+    refs: ['John 5:24'],
+    condition: '"He that heareth my word, and believeth on him that sent me" — hearing and believing, stated by the Judge Himself in the very breath after the covenant.',
+    consequence: '"HATH everlasting life, and shall not come into condemnation; but IS passed from death unto life" — present tense: the verdict moves BEFORE the court date, from the Judge\'s own mouth.',
+    threeD: 'The Judge published the exemption clause personally, so take Him at His word: hear the Word, believe the Father who sent Him, and live as one already passed from death unto life. That assurance IS abiding by the covenant — not presumption.',
+    outcome: 'The court date without terror — everlasting life already possessed, condemnation already ruled out, on the word of the very Judge who will preside.',
+    tags: ['no-condemnation', 'everlasting-life', 'belief', 'assurance'],
+  },
+  {
+    id: 'gh-word-judges-last-day', section: 'gospels', name: 'The Word Judges at the Last Day (the standard is already published)',
+    refs: ['John 12:47-48'],
+    condition: 'His first advent leads with rescue — "I came not to judge the world, but to save the world" — and for the one who rejects Him: "the word that I have spoken, the same shall judge him in the last day."',
+    consequence: 'The standard of the last day is ALREADY PUBLISHED: the Judge\'s own spoken Word. No surprise statutes, no sealed rubric — the exam and the mercy arrived together, and the mercy came first.',
+    threeD: 'Study the standard you will be measured by — it is on the table now, in mercy, before it presides then, in judgment. Eat the Word, obey the Word, and teach the Word to the ones you love, because it is the same Word that will judge them.',
+    outcome: 'No ambush at the last day — measured by a Word you were given decades to know, love, and live.',
+    tags: ['the-word', 'last-day', 'standard', 'mercy-first'],
+  },
+  {
+    id: 'gh-appointed-day-ordained-judge', section: 'epistles', name: 'A Day Appointed, a Judge Ordained (the resurrection is the assurance)',
+    refs: ['Acts 17:31', 'Acts 10:42', '2 Timothy 4:1'],
+    condition: '"He hath appointed a day, in the which he will judge the world in righteousness by that man whom he hath ordained" — the Lord Jesus Christ, "ordained of God to be the Judge of quick and dead."',
+    consequence: 'The day is fixed, the Judge is named, righteousness is the rubric — and the raising of Him from the dead is the "assurance unto all men" that the appointment stands.',
+    threeD: 'Preach and testify what the apostles were commanded to: the risen Jesus IS the ordained Judge of the living and the dead. The empty tomb is Heaven\'s public notice of the court date — treat every soul you meet as someone with that appointment on their calendar.',
+    outcome: 'A witness with the whole message — not judgment without rescue, and not rescue without the appointed day — sealed by a resurrection nobody can repeal.',
+    tags: ['appointed-day', 'ordained', 'resurrection', 'quick-and-dead'],
+  },
+  {
+    id: 'gh-judgment-seat-of-christ', section: 'epistles', name: 'The Judgment Seat of Christ (every one gives account of himself)',
+    refs: ['2 Corinthians 5:9-10', 'Romans 14:10-12'],
+    condition: '"We must ALL appear before the judgment seat of Christ" — believers included — and "every one of us shall give account of himself to God"; wherefore we labour to be "accepted of him."',
+    consequence: 'Each receives "the things done in his body... whether it be good or bad" — the Son reviewing His own family\'s stewardship at His own seat; and every knee bows, every tongue confesses.',
+    threeD: 'Live TOWARD that seat: labour to be accepted of Him, keep your own account short — and notice the same passage asks "why dost thou judge thy brother?" The believer\'s energy goes to his OWN account, not his brother\'s case file.',
+    outcome: 'A stewardship ready for review — your account current with the Judge, and your brother\'s account left where the covenant put it: with the Son.',
+    psyche: 'Auditing your own conduct is actionable and calming; auditing everyone else\'s is unactionable and embittering. The seat assigns each person the one docket they can actually do something about — their own.',
+    tags: ['judgment-seat', 'account', 'stewardship', 'acceptance'],
+  },
+  {
+    id: 'gh-vacate-the-seat', section: 'epistles', name: 'One Lawgiver — Vacate the Seat (who art thou that judgest another?)',
+    refs: ['James 4:12', 'Romans 14:4', '1 Corinthians 4:5'],
+    condition: '"There is one lawgiver, who is able to save and to destroy: who art thou that judgest another?" — "Who art thou that judgest another man\'s servant?" — and "judge nothing before the time, until the Lord come."',
+    consequence: 'The seat is occupied — by covenant. Passing verdict on a soul is not merely unkind; it is sitting in the Son\'s chair, before His session, without His commission. And His servant stands anyway: "God is able to make him stand."',
+    threeD: 'Abiding by the covenant is mostly a vacating: discern fruit (the Word commands that much), but hand every VERDICT on a soul to the Judge it was covenanted to. When the urge to sentence someone rises, say it plainly: that case is the Son\'s, before the time is His too.',
+    outcome: 'Clean hands and a light docket — souls handed to their actual Judge, and a heart free of cases it was never assigned.',
+    psyche: 'Carrying verdicts on other people is a load the mind was never built for — resentment is the interest on a case you cannot close. Transferring jurisdiction is the release that judging never delivers.',
+    tags: ['one-lawgiver', 'vacate-the-seat', 'no-usurping', 'before-the-time'],
+  },
+  {
+    id: 'gh-saints-judge-with-him', section: 'epistles', name: 'The Saints Shall Judge the World (Kingdom Believers in training for the bench)',
+    refs: ['1 Corinthians 6:2-3', 'Revelation 20:4'],
+    condition: '"Do ye not know that the saints shall judge the world?... Know ye not that we shall judge angels?" — and John "saw thrones, and they sat upon them, and judgment was given unto them."',
+    consequence: 'Kingdom Believers are being trained for the bench UNDER the Judge: judgment is GIVEN to them at His seat, on His terms, in His session — never seized ahead of Him. The same covenant that forbids usurping the seat now promises seats then.',
+    threeD: 'Practice the under-Judge role exactly where the Word assigns it now: settle the small matters inside the Body instead of dragging brethren before the world, and grow the discernment the future bench requires — under His commission, on His clock.',
+    outcome: 'A Believer in training for real thrones — faithful with the smallest matters in the Body now, seated with the Judge then.',
+    psyche: 'Deferred authority is the deepest test of character: the one who can hold real capability without grabbing the gavel early is the one safe to hand it to — which is exactly what the training period is measuring.',
+    tags: ['saints-judge', 'kingdom-believers', 'thrones', 'training', 'body'],
+  },
+  {
+    id: 'gh-judge-comes-with-reward', section: 'revelation', name: 'The Judge Comes With the Reward in His Hand (love His appearing)',
+    refs: ['Revelation 22:12', '2 Timothy 4:8'],
+    condition: '"Behold, I come quickly; and my reward is with me, to give every man according as his work shall be" — the Lord, "the righteous judge," with a crown for "all them also that love his appearing."',
+    consequence: 'The Judge arrives carrying the payroll: reward in hand, work the unit of account, and a crown of righteousness laid up for everyone who loved the sight of Him coming.',
+    threeD: 'Work like the reward is already in His hand — it is — and check your posture toward the Judge: the covenant turns His appearing from a courtroom summons into the family\'s payday. Love His appearing; literally look forward to the Judge.',
+    outcome: 'Judgment day reframed by covenant — the Judge you honored arriving as the Rewarder you loved.',
+    tags: ['reward', 'appearing', 'crown', 'righteous-judge'],
+  },
+  // --- Spoken teaching captured (Darrell, 2026-07-21): Pastor A.R. Bernard,
+  // "navigating modern society through faith, critical thinking, and spiritual
+  // maturity." Twelve deterministic studies distilled FROM the sermon; every verse
+  // fetched verbatim KJV (DR-0076). Theme 2 is framed as owning the Word, not
+  // relativizing it, to honor DR-0098 (teach the Word, don't stage a both-sides
+  // debate). Theme 5 grounds Bernard's "God is beyond our dimension" in the
+  // existing 4th-dimensional frame (DR-0097, Colossians 1:16-17). ---
+  {
+    id: 'gh-god-not-colorblind', section: 'revelation', name: 'God Is Not Colorblind (every kindred, tongue, people, and nation)',
+    refs: ['Revelation 5:9'],
+    condition: 'Before the throne the redeemed are gathered "out of every kindred, and tongue, and people, and nation" — their distinctions named and KEPT, not erased, bought by the Blood.',
+    consequence: 'God sees each of us in the totality of our lived experience; the Kingdom\'s vision is CELEBRATED diversity, not flattened sameness. "God is colorblind" sounds fair but blurs a person\'s context — and a context you refuse to see is one whose real obstacles and marginalization you stop being sensitive to.',
+    threeD: 'Do not claim to "not see" someone\'s tribe, tongue, or story to feel unbiased; see it the way Heaven does — name it, honor it, and stay awake to how those differences are actually treated in a broken world. Recognized dignity is the justice; pretended blindness is not.',
+    outcome: 'A community that looks like Revelation 5:9 now — distinctions gathered and celebrated around one throne, no one\'s story erased.',
+    psyche: 'Naming a person\'s real context (not erasing it) is what lets them feel SEEN — the opposite of the invalidation that "I don\'t see color" quietly performs.',
+    tags: ['diversity', 'dignity', 'kingdom', 'context'],
+  },
+  {
+    id: 'gh-own-your-faith', section: 'wisdom', name: 'Iron Sharpens Iron (own the why of your faith)',
+    refs: ['Proverbs 27:17', '1 Peter 3:15'],
+    condition: '"Iron sharpeneth iron; so a man sharpeneth the countenance of his friend" — and you are told to "be ready always to give an answer to every man that asketh you a reason of the hope that is in you."',
+    consequence: 'You think only to the level of what you are exposed to; a faith you cannot answer "why" for is still borrowed. Wrestling with the Word — asking, being challenged by sharper minds, going and finding the reason — turns inherited belief into your OWN relationship with God.',
+    threeD: 'Surround yourself with people who challenge you instead of only your own internal knowledge; ask the "why" behind what you believe and hunt the answer in the Word; do it "with meekness and fear," never anger — the goal is understanding and growth, not winning. This is owning the Word, not relativizing it: the Word stays the authority; you are the one being sharpened.',
+    outcome: 'The next generation owning their faith instead of leaning on their parents\' — conviction that lasts because it was examined.',
+    tags: ['critical-thinking', 'ownership', 'discipleship', 'humility'],
+  },
+  {
+    id: 'gh-made-in-his-image', section: 'torah', name: 'Identity Received, Not Constructed (in His image, wonderfully made)',
+    refs: ['Genesis 1:27', 'Psalms 139:14'],
+    condition: '"So God created man in his own image" — you are "fearfully and wonderfully made," your identity RECEIVED from the Maker rather than constructed by the self.',
+    consequence: 'Because He made you, dignity, purpose, intelligence, and the capacity to build a meaningful life are inherent — not earned, not self-assigned, and not the culture\'s to redefine. And because He is your Maker, He alone truly knows who you are and your full capacity: your identity is tied to His purpose for you — the divine blueprint. Being created by God settles what self-invention can never secure.',
+    threeD: 'Stop building an identity to prove your worth; receive the one He already gave, and read your dignity off His workmanship. Think critically about the identity narratives the world throws at you — an identity you never examined is one the world will gladly write for you. Then extend it — treat every other person as image-bearing too.',
+    outcome: 'A settled self — worth and purpose anchored in the Maker, immune to the market of self-invention.',
+    tags: ['identity', 'image-of-god', 'dignity', 'purpose'],
+  },
+  {
+    id: 'gh-thief-targets-identity', section: 'gospels', name: 'Why the thief Comes for Your Identity (steal the potential, redirect the credit)',
+    refs: ['John 10:10', 'Genesis 1:27'],
+    condition: '"The thief cometh not, but for to steal, and to kill, and to destroy" — and the identity he comes for is the one rooted in your being created by God (Genesis 1:27).',
+    consequence: 'the adversary targets your identity for two reasons: to STEAL your potential — the dignity, purpose, intelligence, and capacity to build a meaningful life that came with being made by God — and to REDIRECT the credit, because an identity received from God gives the glory back to Him. Make you doubt who God made you to be, and he weakens your life and your worship in one move; Jesus came instead that you "might have life... more abundantly."',
+    threeD: 'When your worth, purpose, or capacity is under attack, name the source: that doubt is a robbery attempt on an identity God gave, not a verdict on your value. Refuse the theft — return the credit to the Maker (the very acknowledgment the adversary is trying to stop) and take back the abundant life Jesus came to give.',
+    outcome: 'An identity too rooted in the Maker to be stolen — and a life and worship the thief cannot bleed off.',
+    psyche: 'Attacking identity is leverage: doubt about WHO you are quietly disables everything you would build and everything you would worship — which is why it is the adversary\'s first target, not his last.',
+    tags: ['identity', 'adversary', 'spiritual-warfare', 'worth'],
+  },
+  {
+    id: 'gh-testing-not-temptation', section: 'epistles', name: 'Temptation vs. Testing (the way of escape is already built in)',
+    refs: ['James 1:13-14', '1 Corinthians 10:13'],
+    condition: '"Let no man say when he is tempted, I am tempted of God... but every man is tempted, when he is drawn away of his own lust." Yet the trial is "common to man," and "God is faithful, who will not suffer you to be tempted above that ye are able."',
+    consequence: 'Temptation is a solicitation toward sin, drawn out of the fallen nature and exploited by the adversary — NEVER from God; if you are being seduced to do evil, it is not from Him. Testing is God growing character, and it is not designed for you to FAIL: the test does not inform God — He is omniscient and already knows the outcome — it reveals YOU to yourself, surfacing the character, faith, and capacity you did not know you had, and it MARKS A TRANSITION, moving you to greater trust and preparing you for the next level. And He has "with the temptation also" already made "a way to escape"; the way of victory is prepared before the trial arrives.',
+    threeD: 'When pressure hits, ask which it is: bait from your own desire (resist it) or a test that grows you (endure it). Read the test as a MIRROR (it shows you to yourself, not God) and a DOORWAY (it is marking a transition up), and look for the escape He already built in — the way out is provided, not invented in panic.',
+    outcome: 'Character forged in trials you no longer fear — because the Faithful One prepared the exit before the test began.',
+    tags: ['temptation', 'testing', 'character', 'faithfulness'],
+  },
+  {
+    id: 'gh-pray-for-protection', section: 'gospels', name: 'Lead Us Not Into Temptation (a prayer for protection, kept by vigilance)',
+    refs: ['Matthew 6:13', '1 Peter 5:8'],
+    condition: '"And lead us not into temptation, but deliver us from evil" — Jesus teaches us to PRAY for protection; and "Be sober, be vigilant; because your adversary the devil, as a roaring lion, walketh about, seeking whom he may devour."',
+    consequence: '"Lead us not into temptation" is not a hint that God tempts — He never does; it is a requested guard, a prayer for protection. Because sin exploits our own desires, that guard is both asked-for (prayer) AND manned (vigilance): stay sober, keep watch, and keep your desires in check so they cannot be turned into the adversary\'s instruments.',
+    threeD: 'Pray the protection Jesus taught — actually ask to be kept from the place of testing beyond you — and then live sober and alert, because an unwatched desire is the handle the adversary reaches for. Prayer requests the guard; vigilance keeps it.',
+    outcome: 'A desire kept in check and a watch kept up — the adversary finding no handle, and the Father\'s protection actively prayed for.',
+    tags: ['prayer', 'protection', 'vigilance', 'temptation'],
+  },
+  {
+    id: 'gh-see-father-in-son', section: 'gospels', name: 'Show Us the Father (he that hath seen Me hath seen the Father)',
+    refs: ['John 14:8-9'],
+    condition: 'Philip — after three and a half years with Jesus — still asks, "Lord, shew us the Father"; and Jesus answers, "Have I been so long time with you, and yet hast thou not known me, Philip? he that hath seen me hath seen the Father."',
+    consequence: 'To see the Son IS to see the Father — the revelation was standing in front of Philip the whole time. And note the warning in it: you can walk three and a half years CLOSE to the Truth and still not "get" the deeper revelation. Proximity is not comprehension; a revelation has to land, not just be near.',
+    threeD: 'Look for the Father in the face of Jesus — stop asking to be shown what you have already been given. And stay humble about your own grasp: if a disciple that close could miss it, keep asking, keep looking, and let the Spirit turn nearness into sight.',
+    outcome: 'The Father seen where He always was — in the Son — and a learner humble enough to keep receiving the revelation instead of assuming he already holds it.',
+    psyche: 'Nearness breeds the illusion of understanding — the more familiar a truth feels, the less we examine whether it has actually landed; Philip is the caution against mistaking proximity for comprehension.',
+    tags: ['revelation', 'father-and-son', 'humility', 'seeing'],
+  },
+  {
+    id: 'gh-he-already-knew', section: 'gospels', name: 'He Said This to Prove Him (the test He already knew the answer to)',
+    refs: ['John 6:5-6'],
+    condition: 'Jesus asks Philip, "Whence shall we buy bread, that these may eat?" — "And this he said to prove him: for he himself knew what he would do."',
+    consequence: 'The question was a TEST, not a request for information: Jesus already knew what He would do. The test was never to find something OUT for Heaven; it was to prove Philip — to surface his faith and move him toward a new level. Nothing about the outcome was in doubt to the One asking.',
+    threeD: 'When God asks you something you feel you must solve, remember He already knows what He will do — the question is proving you, not stumping Him. Answer from faith, not from your own limited math ("two hundred pennyworth is not enough"), and let the test grow you into the next level.',
+    outcome: 'A test received as formation, not interrogation — you proved and grown, while the One testing already held the answer.',
+    psyche: 'Reframing a test from "solve this or fail" to "He already knows what He will do; this is proving me" removes the panic and restores faith as the right response to pressure.',
+    tags: ['testing', 'faith', 'philip', 'transition'],
+  },
+  {
+    id: 'gh-strengthen-your-brethren', section: 'gospels', name: 'When Thou Art Converted, Strengthen Thy Brethren (the growth is spent outward)',
+    refs: ['Luke 22:32'],
+    condition: 'Jesus to Peter, before the test: "I have prayed for thee, that thy faith fail not: and when thou art converted, strengthen thy brethren."',
+    consequence: 'The test has an OUTWARD purpose: once you are converted and moved to a new level, the growth is not for you to keep — you turn and strengthen the brethren, pulling up those standing where you used to stand. Testing prepares you to become a catalyst for others, not just a personal success story.',
+    threeD: 'When a trial matures you, look immediately for who is where you used to be, and pull them up — that is the point of the level you just gained. Leadership is the growth spent outward: strengthen the brethren.',
+    outcome: 'A community lifted level by level — each person tested, grown, and then turning to raise the next; the growth completing its purpose in someone else\'s rise.',
+    tags: ['leadership', 'testing', 'community', 'discipleship'],
+  },
+  {
+    id: 'gh-all-things-work-together', section: 'epistles', name: 'All Things Work Together for Good (the outcome is already rigged)',
+    refs: ['Romans 8:28'],
+    condition: '"And we know that all things work together for good to them that love God, to them who are the called according to his purpose."',
+    consequence: 'The outcome is, in the pastor\'s word, "rigged" — God is never caught off guard; He already knows the end and has worked the details for your good. The test is not aimed at your failure but at your victory; every transition is marked by a trial that is already bending toward the good of those who love Him.',
+    threeD: 'When the trial hits, stand on the settled outcome: not that the moment is painless, but that it is already being worked together for good. Refuse the panic that says the surprise surprised God — He worked the end before the test began; face it as someone the outcome already favors.',
+    outcome: 'Confidence in the trial — not because it is easy, but because the God who loves you already worked the ending in your favor.',
+    psyche: 'Knowing the end is already secured for good converts a threat-response into an endurance-response — the mind stops fighting for survival and starts working the growth, because the outcome is not in question.',
+    tags: ['testing', 'providence', 'romans8-28', 'confidence'],
+  },
+  {
+    id: 'gh-admit-wrong-to-grow', section: 'wisdom', name: 'Confess and Forsake (admitting you are wrong opens the correction)',
+    refs: ['Proverbs 28:13', 'Proverbs 12:1'],
+    condition: '"He that covereth his sins shall not prosper: but whoso confesseth and forsaketh them shall have mercy" — and "whoso loveth instruction loveth knowledge: but he that hateth reproof is brutish."',
+    consequence: 'Admitting you are wrong is the doorway to correction, and correction is the doorway to growth. The one who never admits a mistake never gets corrected — and so never gets it right; covering a fault forfeits the mercy and the progress that confessing it would have unlocked.',
+    threeD: 'When you are wrong, say so quickly — to God and to the person — because the admission is what opens the correction. Love reproof instead of resenting it; treat being challenged (iron sharpening iron) as the gift that keeps you growing.',
+    outcome: 'A life that keeps getting it right because it keeps admitting where it got it wrong — mercy received, correction accepted, growth unblocked.',
+    tags: ['humility', 'correction', 'confession', 'growth'],
+  },
+  {
+    id: 'gh-god-beyond-dimension', section: 'epistles', name: 'Beyond Our Dimension (by Him all things consist)',
+    refs: ['Colossians 1:16-17', 'Acts 8:39-40'],
+    condition: '"By him were all things created... and by him all things consist" — He is before all things and outside them; not "up" past the ceiling but BEYOND our dimension. And "the Spirit of the Lord caught away Philip," setting him down in another city — God moves in ways our physics cannot cage.',
+    consequence: 'You will not reach God by traveling through space; He frames and HOLDS the dimensions He made, present here and now, able to appear and act at will. Our grasp is limited by our exposure — the smallness is ours, not His.',
+    threeD: 'Stop shrinking God to a location or a physics you can measure; He is the Outside Agent by whom all things consist. Worship the One who holds the frame, and hold your certainties about "what is possible" loosely before Him.',
+    outcome: 'Awe restored — a God too large for our dimension, yet nearer than the room, running the whole frame we live inside.',
+    psyche: 'The felt distance of God is a dimensional category error, not His absence: He is not far "up" but outside-and-holding — which is why He can be beyond comprehension and closer than the walls at the same time.',
+    tags: ['transcendence', 'dimension', 'sovereignty', 'awe'],
+  },
+  {
+    // --- Spoken lesson captured (Darrell, 2026-08-03): Galatians 5:22-23 —
+    // "against such there is no law." Distilled from his lesson input: the
+    // ninefold fruit read as three triads (a heart at rest before Yahweh; how
+    // we treat the people around us; steady character under command), and the
+    // no-law clause taught from the Word's own logic (Galatians 5:18; Romans
+    // 13:10) — laws are written to stop the works of the flesh, never the
+    // Spirit's harvest (DR-0098: taught from the Word, not staged as a poll
+    // of opinions). Verses fetched verbatim KJV (DR-0076). ---
+    id: 'gh-fruit-no-law', section: 'epistles', name: 'The Fruit of the Spirit (against such there is no law)',
+    refs: ['Galatians 5:22-23', 'Galatians 5:18', 'Romans 13:10'],
+    condition: 'Be LED of the Spirit — connected, walking, abiding. The chapter itself draws the contrast: the flesh has WORKS (Galatians 5:19), manufactured by effort; the Spirit has FRUIT — grown from the connection, never ground out by willpower.',
+    consequence: 'Love, joy, peace, longsuffering, gentleness, goodness, faith, meekness, temperance — and "against such there is no law." No statute in any code forbids this life: laws are written to stop the works of the flesh, never the Spirit\'s harvest. "If ye be led of the Spirit, ye are not under the law" — and "love is the fulfilling of the law": the fruit does not dodge what the law demands; it completes it.',
+    threeD: 'Read the fruit as three triads and audit each honestly: a heart at rest in Yahweh (love, joy, peace); how you treat the people around you (longsuffering, gentleness, goodness); steady character under the General\'s command (faith, meekness, temperance). When a fruit is missing, fix the root, not the branch — white-knuckling a virtue is flesh-work in fruit\'s clothing; reconnect to the Vine that grows it. No legislature ever criminalized kindness: live the one life no court can prosecute.',
+    outcome: 'A life beyond legislation — character no law forbids and every good law was reaching for, grown from the Spirit instead of extracted by rules.',
+    psyche: 'Rule-based change fights the desire and exhausts; source-based change replaces the desire and lasts. And the fruit is SINGULAR on purpose — one life from one root, not nine separate merit badges to earn.',
+    tags: ['fruit-of-the-spirit', 'no-law', 'galatians', 'led-of-the-spirit', 'character'],
+  },
+  // ===========================================================================
+  // CREDIT vs WORSHIP (Darrell 2026-08-09: "differences between credit and
+  // worship... Why Yahweh Gets Both... no other god"). Three algorithms, because
+  // the teaching has three moving parts: the DISTINCTION, the CLAIM (why both
+  // belong to Him), and the LINE (what happens when either is misdirected).
+  // ===========================================================================
+  {
+    id: 'gh-credit-vs-worship', section: 'prophets', name: 'Credit vs. Worship (two different debts, one Owner)',
+    refs: ['Isaiah 42:8', 'Deuteronomy 8:17-18', '1 Corinthians 4:7', 'Acts 17:25', 'James 1:17'],
+    condition: 'Separate the two debts before you pay either. CREDIT is owed for what was DONE — the source of a result, an ability, a harvest. WORSHIP is owed for who someone IS — worth, not output. Men collapse them constantly, and the collapse runs both directions: crediting a creature for what the Creator did, and worshipping a thing that at most deserved acknowledgment.',
+    consequence: 'The Word settles ownership of both. On CREDIT: "thou say in thine heart, My power and the might of mine hand hath gotten me this wealth. But thou shalt remember the LORD thy God: for it is he that giveth thee power to get wealth" — He gives the very CAPACITY that produced the result, so the credit for the result was never independently yours. Paul closes the loop: "what hast thou that thou didst not receive? now if thou didst receive it, why dost thou glory, as if thou hadst not received it?" And He needs nothing back — "he giveth to all life, and breath, and all things," "every good gift and every perfect gift is from above." On WORSHIP: "I am the LORD: that is my name: and my glory will I not give to another." Not WILL NOT SHARE — will not GIVE. It is not available.',
+    threeD: 'Run the audit on your own sentences. When you say "I built this," finish it honestly: who gave the hands, the years, the mind, the door that opened? Credit the people who genuinely worked — that is honest crediting, not idolatry — and then trace the chain up to the One who supplied what they worked with. Then check the other direction: what are you WORSHIPPING that only deserved credit? A method, a mentor, a system, a platform, a nation, a gift, your own discipline. The test is simple: what do you organize your life around, and what would you not give up? That is worship, whatever you call it.',
+    outcome: 'Honesty about the source without false humility, and a heart with only one throne in it — able to honor real work in real people while reserving worship for the One who cannot give His glory away.',
+    psyche: 'The two errors feel opposite and are the same move: putting glory on the wrong object. Self-credit and creature-worship both take what belongs to Yahweh and set it somewhere it will not hold. And note the mercy in Deuteronomy 8 — He tells you the temptation BEFORE the prosperity arrives, because the danger is not failure; it is success remembered wrongly.',
+    tags: ['credit', 'worship', 'glory', 'source', 'humility', 'idolatry'],
+  },
+  {
+    id: 'gh-yahweh-gets-both', section: 'revelation', name: 'Why Yahweh Gets Both (He made it, and He is worthy)',
+    refs: ['Revelation 4:11', 'Exodus 20:3-5', 'Deuteronomy 6:4-5', 'Isaiah 45:5', 'Matthew 4:10'],
+    condition: 'Ask what qualifies anyone to receive credit AND worship. Credit requires having actually DONE it. Worship requires BEING worthy in oneself. Almost nothing qualifies for either; nothing else in existence qualifies for both.',
+    consequence: 'Heaven states the double claim in one breath: "Thou art worthy, O Lord, to receive glory and honour and power: for thou hast created all things, and for thy pleasure they are and were created." WORTHY covers the worship; FOR THOU HAST CREATED covers the credit. He is not receiving worship because He demands it from a position of strength — He is worthy, and He also did the work. So the command follows the fact rather than inventing it: "Thou shalt have no other gods before me... for I the LORD thy God am a jealous God"; "The LORD our God is one LORD: And thou shalt love the LORD thy God with all thine heart"; "I am the LORD, and there is none else, there is no God beside me." The Son repeated it under pressure with nothing added: "Thou shalt worship the Lord thy God, and him only shalt thou serve."',
+    threeD: 'Stop treating "no other god" as an arbitrary rule you are graded on and read it as a description of reality: there IS no other that did the creating, so there is no other that could hold the worship. Love with heart, soul, and might is not one obligation among many — it is the whole self pointed at the only place it fits. And when someone asks why exclusivity is not narrow: it is not a preference He is enforcing; it is a fact He is stating. Anything else offered the position cannot occupy it.',
+    outcome: 'Worship that rests on WHO HE IS rather than on how you feel that morning, and a settled answer to "why only Him" that does not depend on winning an argument.',
+    psyche: 'Jealousy in a creature is insecurity; in the Creator it is accuracy. He guards worship the way truth guards itself — misdirected worship does not merely offend Him, it wrecks the worshipper, because a soul built to rest on the Rock will crack on anything smaller.',
+    tags: ['worship', 'worthy', 'no-other-god', 'creator', 'shema', 'exclusivity'],
+  },
+  {
+    id: 'gh-glory-refused-or-taken', section: 'gospels', name: 'Glory Refused or Taken (the line, and what happens at it)',
+    refs: ['Acts 12:23', 'Daniel 4:30', 'Daniel 4:37', 'Revelation 22:8-9', 'Acts 14:15', 'Romans 1:21', 'Romans 1:25'],
+    condition: 'Watch what a being does when glory that belongs to Yahweh is offered to it. This is the clearest character test in Scripture, and the Word gives both sides with the outcomes attached.',
+    consequence: 'THOSE WHO TOOK IT: Herod accepted the crowd\'s acclaim and "the angel of the Lord smote him, because he gave not God the glory" — the charge is not what he SAID, but what he FAILED to redirect. Nebuchadnezzar surveyed his work — "Is not this great Babylon, that I have built... by the might of my power, and for the honour of my majesty?" — and lost his mind until he could say "those that walk in pride he is able to abase." THOSE WHO REFUSED IT: an angel of enormous stature stopped John cold — "See thou do it not: for I am thy fellowservant... worship God." Paul and Barnabas, offered worship after a genuine miracle, tore their clothes: "Sirs, why do ye these things? We also are men of like passions with you." And Romans names the root of the whole failure: "when they knew God, they glorified him not as God, neither were thankful... worshipped and served the creature more than the Creator."',
+    threeD: 'The practical rule is redirection, not self-deprecation. Refusing credit you actually earned is false; refusing WORSHIP you were never owed is obedience. When praise arrives, receive the part that is honest thanks between people and hand the glory up. And when you are the one giving it, notice which one you are handing over — a hand shaken and a knee bowed are different acts, and only one of them has an exclusive Owner.',
+    outcome: 'A reflex that survives success: glory passes through you instead of sticking to you, which is the only condition under which real ability is safe to hold.',
+    psyche: 'The angel and the apostles refused worship instantly, without deliberating — the reflex was already set BEFORE the moment. Herod and Nebuchadnezzar had no such reflex, and the moment found them. This is why the audit is practiced in ordinary weeks: nobody builds it during the applause.',
+    tags: ['glory', 'pride', 'herod', 'nebuchadnezzar', 'redirect', 'idolatry', 'humility'],
+  },
+
+  // ── THE NAMES HE GAVE, AND THE COUNTERFEIT ─────────────────────────────────
+  // Darrell 2026-08-10, bringing a teaching on the divine names into the app:
+  // the progression El Elyon -> El Shaddai -> Yahweh -> Yeshua, and the claim
+  // that the fallen ones counterfeited each revelation.
+  //
+  // These cards teach ONLY what the Word itself says and shows (DR-0098): the
+  // names, the verses that give them, and what each one asks of a person. The
+  // extra-biblical parts of that teaching -- the Sumerian "An", the Chinese
+  // Shangdi glyph, and reading "Shaddai" as "mountain" so that ziggurats are a
+  // deliberate counterfeit -- are NOT asserted here, because they are not
+  // established the way the verses are (DR-0100 tier 2: genuinely open, flagged
+  // narrowly). What Scripture DOES say plainly is that Babel was an engineered
+  // ascent built to make a name (Genesis 11:4) -- so the counterfeit motive is
+  // taught from the text, not from an etymology that is still argued.
+  {
+    id: 'gh-el-elyon-possessor', section: 'torah', name: 'El Elyon — the Most High, Possessor of heaven and earth',
+    refs: ['Genesis 14:18-22'],
+    condition: 'Melchizedek blesses Abram by "the most high God, possessor of heaven and earth" — and Abram answers by lifting his hand to "the LORD, the most high God," naming them as ONE.',
+    consequence: 'The title is not a rival deity Abram is borrowing; he binds the Most High to the covenant LORD in the same breath, before Israel exists.',
+    threeD: 'Possessor of heaven and earth is a deed, not a compliment. If He owns both, there is no neutral ground to stand on and nothing you hold that is outside His title.',
+    outcome: 'You stop negotiating over what is His and start stewarding what was never yours.',
+    tags: ['names', 'el-elyon', 'melchizedek', 'ownership', 'covenant'],
+  },
+  {
+    id: 'gh-el-shaddai-almighty', section: 'torah', name: 'El Shaddai — God Almighty, before the covenant name',
+    refs: ['Genesis 17:1', 'Exodus 6:3'],
+    condition: 'He appeared to Abraham, Isaac and Jacob as God Almighty, and says plainly that by His name JEHOVAH He was NOT known to them.',
+    consequence: 'The revelation is progressive on purpose — He gives as much of Himself as the covenant stage requires, and He says so out loud.',
+    threeD: 'He is not hiding; He is pacing. What you have not been shown yet is not absence, it is sequence — and the command that comes with the name is the same either way: walk before Me, and be thou perfect.',
+    outcome: 'You stop demanding the next revelation as proof and walk in the one already given.',
+    psyche: 'A person told the whole plan at once cannot obey it; a person given the next step can. Progressive disclosure is how trust is actually built, and He uses it deliberately.',
+    tags: ['names', 'el-shaddai', 'almighty', 'progressive-revelation', 'abraham'],
+  },
+  {
+    id: 'gh-i-am-that-i-am', section: 'torah', name: 'I AM THAT I AM — the Name that answers to nothing',
+    refs: ['Exodus 3:14'],
+    condition: 'Moses asks who to say sent him; the answer is not a description but existence itself — I AM THAT I AM.',
+    consequence: 'Every other name in the ancient world located a god inside creation — a storm, a mountain, a city. This Name refuses the category: He is not a being among beings.',
+    threeD: 'You cannot leverage Him with a title, a place, or a ritual, because He is not derived from anything. That is exactly why He can be trusted — nothing He depends on can be taken from Him.',
+    outcome: 'Your security stops resting on what He is like and starts resting on the fact that He simply IS.',
+    tags: ['names', 'yahweh', 'i-am', 'moses', 'burning-bush'],
+  },
+  {
+    id: 'gh-babel-make-us-a-name', section: 'torah', name: 'Let us make us a name — the counterfeit ascent',
+    refs: ['Genesis 11:4'],
+    condition: 'They build a city and a tower "whose top may reach unto heaven" with the stated motive: let us make us a NAME.',
+    consequence: 'The Word names the counterfeit by its motive, not its architecture — heaven reached by construction, and a name taken rather than received.',
+    threeD: 'Every counterfeit of Yahweh runs this exact algorithm: climb up by your own works, and self-issue the name. He gives a name (Abram to Abraham); Babel takes one.',
+    outcome: 'You can tell the true from the counterfeit by asking one question — was this name GIVEN, or was it built?',
+    psyche: 'Self-made identity has to be defended forever because it was never conferred; a given name needs no defending, which is why it produces rest instead of striving.',
+    tags: ['names', 'babel', 'counterfeit', 'pride', 'identity'],
+  },
+  {
+    id: 'gh-nations-divided-portion', section: 'torah', name: 'The Most High divided the nations — and kept a portion',
+    refs: ['Deuteronomy 32:8-9'],
+    condition: 'The Most High divided the nations their inheritance and set their bounds — and in the same breath: the LORD\'s portion is His people.',
+    consequence: 'The nations are apportioned; Israel is not apportioned to anyone else. He keeps that one for Himself.',
+    threeD: 'Being His portion is not a status you earn into — it is a claim He makes and keeps. The bounds of every other allotment are set by Him too, so nothing is loose.',
+    outcome: 'You live as an owned people rather than an unclaimed one, which changes who you answer to.',
+    tags: ['names', 'el-elyon', 'nations', 'inheritance', 'portion'],
+  },
+  {
+    id: 'gh-before-abraham-i-am', section: 'gospels', name: 'Before Abraham was, I am — the Name on Jesus\' own lips',
+    refs: ['John 8:58'],
+    condition: 'Jesus does not say "before Abraham was, I WAS." He takes the present-tense Name given at the bush and applies it to Himself.',
+    consequence: 'The room understood exactly what was claimed — which is why the next verse has them reaching for stones.',
+    threeD: 'This is the hinge of the whole progression: the One who gave the Name to Moses is standing in front of them wearing it. The names were never separate Gods; they were the same One, revealing more.',
+    outcome: 'You cannot hold Jesus as a good teacher — He closed that option Himself with one sentence.',
+    tags: ['names', 'yahweh', 'jesus', 'i-am', 'deity-of-christ'],
+  },
+  {
+    id: 'gh-name-that-saves', section: 'gospels', name: 'Call His name JESUS — for He shall save',
+    refs: ['Matthew 1:21'],
+    condition: 'The name is assigned before birth, with the reason attached: He shall save His people from their sins.',
+    consequence: 'The name is not a label placed on the work — it IS the work, stated in advance and then performed.',
+    threeD: 'The whole arc of the names lands here: the Most High who owns heaven and earth, the Almighty who paced His own revealing, the I AM who answers to nothing — arrives with a name that means salvation and then does it.',
+    outcome: 'The Name you call on is the Name that saves; there is nothing further to find.',
+    tags: ['names', 'jesus', 'yeshua', 'salvation', 'incarnation'],
+  },
+
+  // -- FREEDOM IS A PERSON, NOT A PROCEDURE ----------------------------------
+  // Darrell 2026-08-11, bringing in a conversation with Anthony Serino (a former
+  // New Age hypnotist who turned to Jesus) on deliverance: the sufficiency of
+  // Jesus over checklists and ritual, the believer as a conduit of delegated
+  // power rather than its source, and relationship over ritual as what KEEPS a
+  // person free.
+  //
+  // Captured the way this repo captures every teaching: the CARDS below teach
+  // only what the Word itself states, each anchored to a verse fetched verbatim.
+  // The parts that are his TESTIMONY -- that his hypnosis and manifestation work
+  // opened doors to oppression, that pride and money were burned away -- are his
+  // account of his own life, which is exactly what a testimony is, and they are
+  // not restated here as a general mechanism the Word asserts (DR-0076). What
+  // the Word does say about that territory is already taught, and this set
+  // deliberately sits beside the Law of Assumption lesson in World Issues, which
+  // walks the same ground from the other end.
+  {
+    id: 'gh-all-power-is-his', section: 'gospels', name: 'All power is given unto Me — so what you carry is delegated',
+    refs: ['Matthew 28:18', 'Luke 10:19'],
+    condition: 'Jesus states the whole holding first -- ALL power in heaven and in earth is given unto Him -- and only then hands out authority to tread on serpents and over all the power of the enemy.',
+    consequence: 'Authority in a believer is issued, never generated. It is His power under His name, and it is enough.',
+    threeD: 'A police officer does not write the law he enforces; his whole authority is that someone above him did. Anyone straining to build up enough power has misread the arrangement -- there is nothing to build, only something to stand in.',
+    outcome: 'You stop trying to be strong enough and start acting on the authority already given.',
+    psyche: 'Striving for power you already hold produces anxiety in the very moment that calls for calm. Settled delegated authority is why an officer can speak quietly and still be obeyed.',
+    tags: ['deliverance', 'authority', 'power', 'sufficiency-of-jesus'],
+  },
+  {
+    id: 'gh-triumph-already-public', section: 'epistles', name: 'He made a shew of them openly — you enforce a verdict, not fight for one',
+    refs: ['Colossians 2:15'],
+    condition: 'Having SPOILED principalities and powers, He made a shew of them openly, triumphing over them in it -- past tense, finished, and public.',
+    consequence: 'The contest was settled at the cross. What remains is enforcement of a verdict already handed down.',
+    threeD: 'This is why studying the enemy is not the path to freedom. You do not research a defeated party to defeat it again; you announce the judgment that already stands.',
+    outcome: 'Your attention moves off the darkness and onto the One who already stripped it.',
+    tags: ['deliverance', 'the-cross', 'victory', 'authority'],
+  },
+  {
+    id: 'gh-will-worship-frees-no-one', section: 'epistles', name: 'A shew of wisdom — why rules cannot deliver anybody',
+    refs: ['Colossians 2:23'],
+    condition: 'Ordinances and self-imposed severity have indeed a SHEW of wisdom in will worship, and humility, and neglecting of the body.',
+    consequence: 'And the verse states the yield plainly: not in any honour to the satisfying of the flesh. It looks like power and produces none.',
+    threeD: 'Every deliverance checklist, every ladder of conditions to satisfy first, is measured right here by the Word itself. A method that looks rigorous and changes nothing is the exact thing Colossians names.',
+    outcome: 'You stop grading yourself against a procedure and come to the Person who actually frees.',
+    psyche: 'Rule-keeping feels productive because it is measurable, which is precisely why it survives long after it stops working. The Word cuts it off at the yield, not the appearance.',
+    tags: ['deliverance', 'legalism', 'ritual', 'grace'],
+  },
+  {
+    id: 'gh-jesus-i-know-who-are-ye', section: 'epistles', name: 'Jesus I know, and Paul I know; but who are ye?',
+    refs: ['Acts 19:15-16'],
+    condition: 'The sons of Sceva use the right NAME with no relationship behind it -- and the spirit answers by naming exactly who it recognises, and who it does not.',
+    consequence: 'They are overcome and flee wounded. The formula was correct; the standing was absent.',
+    threeD: 'Scripture puts its own guard on borrowed authority, and it is not a rule -- it is a question. The name is not an incantation that works on presentation; it works for those the name knows.',
+    outcome: 'You seek to be KNOWN rather than to be equipped, because that is what the encounter actually tested.',
+    tags: ['deliverance', 'authority', 'relationship', 'sceva', 'warning'],
+  },
+  {
+    id: 'gh-presence-is-the-liberty', section: 'epistles', name: 'Where the Spirit of the Lord is, there is liberty',
+    refs: ['2 Corinthians 3:17'],
+    condition: 'The Lord is that Spirit -- and where His Spirit is, liberty is, as a property of the place rather than a reward for the visit.',
+    consequence: 'Freedom is not a state you achieve and then guard; it is what is true wherever He is.',
+    threeD: 'This is why staying free is a matter of staying near rather than of vigilance. You are not defending ground you took; you are remaining where liberty simply is.',
+    outcome: 'Your practice becomes communion instead of patrol.',
+    tags: ['deliverance', 'presence', 'liberty', 'holy-spirit'],
+  },
+  {
+    id: 'gh-submit-then-resist', section: 'epistles', name: 'Submit, THEN resist — the order is the instruction',
+    refs: ['James 4:7-8'],
+    condition: 'Submit yourselves therefore to God. Resist the devil, and he will flee from you -- and immediately: draw nigh to God, and He will draw nigh to you.',
+    consequence: 'Resistance is the middle term, framed on both sides by nearness to Yahweh. Taken alone it is a man shouting at an enemy with nothing behind him.',
+    threeD: 'Most failed resisting is correctly-ordered words in the wrong sequence. Submission is not the warm-up before the real work; it is what makes the resisting mean anything.',
+    outcome: 'You quit leading with confrontation and lead with surrender, which is what actually makes him flee.',
+    tags: ['deliverance', 'submission', 'resist', 'order'],
+  },
+  {
+    id: 'gh-without-me-nothing', section: 'gospels', name: 'Without Me ye can do nothing — the conduit is not the source',
+    refs: ['John 15:5'],
+    condition: 'He is the vine, we are the branches; the one who ABIDES bears much fruit, and apart from Him -- nothing.',
+    consequence: 'A branch produces nothing it did not receive. Fruit is evidence of connection, never of the branch.',
+    threeD: 'Abiding is the whole ministry. A branch that detaches to go be fruitful somewhere else has misunderstood what made it fruitful in the first place.',
+    outcome: 'You measure your life by connection rather than by output, and the output follows.',
+    tags: ['deliverance', 'abiding', 'conduit', 'fruit'],
+  },
+  {
+    id: 'gh-not-bondage-again', section: 'epistles', name: 'Not the spirit of bondage AGAIN to fear',
+    refs: ['Romans 8:15', 'Galatians 5:1'],
+    condition: 'You did not receive the spirit of bondage again to fear, but the Spirit of adoption, whereby we cry, Abba, Father -- so stand fast in that liberty, and be not entangled again with the yoke of bondage.',
+    consequence: 'Both verses use the same word: AGAIN. The danger named is not falling short of freedom but returning to a yoke already broken.',
+    threeD: 'Fear-driven religion re-enters through the back door as carefulness. The test is the cry: a son says Abba; a slave checks whether he is still allowed in.',
+    outcome: 'You hold your freedom as a son rather than rent it as a servant.',
+    tags: ['deliverance', 'adoption', 'liberty', 'fear', 'sonship'],
+  },
+
+  // -- THE BORROWED CROWN AND THE INSCRIPTION THAT ASKED FOR ETERNITY --------
+  // Darrell 2026-08-11 brought in the Met's "Color the Temple" projection on the
+  // Temple of Dendur -- the carvings lit back to their original reds, yellows,
+  // blues and greens. Two verified facts in that story are the Word's own
+  // subject matter, so they are taught here rather than admired and dropped.
+  //
+  // FACT ONE: the lit scene shows the Roman emperor Augustus dressed and posed
+  // as an Egyptian pharaoh, offering to Egyptian deities. Rome held Egypt; its
+  // rulers wore the imagery of a religion they did not hold in order to be seen
+  // as legitimate. That is the Sceva pattern (gh-jesus-i-know-who-are-ye) and
+  // the Babel pattern (gh-babel-make-us-a-name) cut into a wall.
+  //
+  // FACT TWO: the last dated hieroglyphic inscription is the Graffito of
+  // Esmet-Akhom, 24 August AD 394, on Hadrian's gate at Philae -- in which the
+  // priest asks that it endure "for all time and eternity." Within about a
+  // generation there was likely no one alive who could read it.
+  //
+  // The colors themselves are the smaller lesson and an honest one: what we
+  // picture as austere bare stone was vivid. Our image of antiquity is a
+  // DECAYED image, not the thing itself -- worth remembering before treating
+  // any faded thing as though its faded state were its true state.
+  {
+    id: 'gh-borrowed-crown', section: 'torah', name: 'The borrowed crown — wearing the imagery to be counted legitimate',
+    refs: ['Exodus 12:12'],
+    condition: 'Yahweh announces judgment not merely on Pharaoh but "against all the gods of Egypt" -- naming the whole system a ruler dressed himself in to be obeyed.',
+    consequence: 'The costume never conferred what it depicted. When judgment came it fell on the gods themselves, and the imagery protected no one wearing it.',
+    threeD: 'A foreign emperor can be carved on a temple wall in a pharaoh\'s crown, offering to gods he does not serve, and the wall will say he is legitimate for two thousand years. Stone records the claim; it does not verify it.',
+    outcome: 'You test standing by relationship rather than by presentation -- of rulers, of teachers, and of yourself.',
+    psyche: 'Borrowed legitimacy is cheap to display and expensive to hold, which is why it is always over-displayed. The louder the insignia, the more worth asking who conferred it.',
+    tags: ['egypt', 'counterfeit', 'legitimacy', 'idolatry', 'authority'],
+  },
+  {
+    id: 'gh-inscription-that-asked-eternity', section: 'prophets', name: 'It asked for eternity — and His Word outlived it',
+    refs: ['Isaiah 40:8', 'Matthew 24:35'],
+    condition: 'The grass withereth, the flower fadeth -- but the word of our God shall stand for ever; and the Son says heaven and earth shall pass away, but His words shall not.',
+    consequence: 'Two claims to permanence can be laid side by side and simply watched. One of them is still being read.',
+    threeD: 'The final hieroglyph ever dated was a priest asking that his inscription last for all time and eternity, and within a generation nobody could read the script it was written in. The Word he did not have is quoted this morning by people who have never seen his gate.',
+    outcome: 'You anchor what you want to endure to the only thing that has.',
+    tags: ['egypt', 'the-word', 'permanence', 'philae', 'eternity'],
+  },
+  {
+    id: 'gh-they-that-make-them', section: 'wisdom', name: 'They that make them are like unto them',
+    refs: ['Psalms 115:4', 'Psalms 115:8'],
+    condition: 'Their idols are the work of men\'s hands -- and the verdict lands on the makers: they that make them are like unto them, and so is every one that trusteth in them.',
+    consequence: 'Worship is formative in both directions. What is trusted shapes the truster into its own likeness, including its lifelessness.',
+    threeD: 'This is why the question is never only whether a thing is false. It is what that thing is making of the person holding it -- which is the same test the platform runs on every system it teaches.',
+    outcome: 'You choose what to trust by what it is turning you INTO, not only by whether it works.',
+    tags: ['idolatry', 'formation', 'trust', 'egypt'],
+  },
+  // ===========================================================================
+  // KEEPING YOURSELF BY THE WORD (Darrell 2026-08-09: "How do we keep ourselves
+  // by following the Word... iteratively... as we learn... can't sin unless you
+  // know what to do Yahweh's Way... or you're sinning but guilt comes from").
+  // Three algorithms: the ITERATIVE WALK, what KNOWLEDGE does and does not
+  // change about sin, and where GUILT actually comes from. The middle one
+  // carries a premise correction the Word itself makes (Leviticus 5:17), stated
+  // plainly per DR-0098 — the Word explains the Word, no camps staged.
+  // ===========================================================================
+  {
+    id: 'gh-keep-yourself-by-the-word', section: 'epistles', name: 'Keeping Yourself by the Word (line upon line, and both hands on it)',
+    refs: ['Psalms 119:9', 'Psalms 119:11', 'Isaiah 28:10', 'Proverbs 4:18', 'Philippians 2:12-13', 'Jude 1:21', 'Jude 1:24', 'James 1:22', 'James 1:25', '2 Corinthians 3:18'],
+    condition: 'Stop looking for the single decision that settles it and take the daily one. "Wherewithal shall a young man cleanse his way? by taking heed thereto ACCORDING TO THY WORD" — the method is named in the same breath as the question. And it arrives the way Yahweh says it arrives: "precept must be upon precept, precept upon precept; line upon line, line upon line; here a little, and there a little."',
+    consequence: 'Two hands hold you, and Jude states both in one chapter. Yours: "Keep yourselves in the love of God." His: "Now unto him that is able to keep you from falling, and to present you faultless before the presence of his glory." Paul says the same without contradiction — "work out your own salvation with fear and trembling. FOR it is God which worketh in you both to will and to do of his good pleasure." Your working out is possible BECAUSE of His working in; that is why the command and the promise never compete. The result is a direction rather than an arrival: "the path of the just is as the shining light, that shineth more and more unto the perfect day," and "changed into the same image from glory to glory."',
+    threeD: 'Hide the Word IN you, not just near you — "Thy word have I hid in mine heart, that I might not sin against thee" is a storage decision made before the pressure, because you cannot consult what you did not load. Then close the loop the same day: "be ye doers of the word, and not hearers only, DECEIVING YOUR OWN SELVES" — the self-deception is the danger, and it is specifically the feeling of having grown because you understood something. Take the next line, do the next thing, and expect the light to widen rather than arrive.',
+    outcome: 'A walk that compounds — small obedience repeated until the senses are trained — instead of a cycle of big resolutions and quiet collapses.',
+    psyche: 'Line-upon-line is mercy, not slowness. All of it at once would crush, and none of it would stick; the pace is set so obedience can actually be practiced. And note who keeps whom: a person trying to keep himself with one hand exhausts, while a person who has let go entirely drifts. Jude gives both hands on purpose.',
+    tags: ['keeping', 'iterative', 'line-upon-line', 'doers', 'sanctification', 'growth'],
+  },
+  {
+    id: 'gh-knowledge-and-sin', section: 'torah', name: 'What Knowing Changes (ignorance lowers the stripes, never the guilt)',
+    refs: ['Leviticus 5:17', 'Luke 12:47-48', 'James 4:17', 'John 15:22', 'John 9:41', 'Numbers 15:30', 'Acts 17:30', '1 Timothy 1:13'],
+    condition: 'Test the common assumption — that a thing is not sin until you know it is. Scripture is direct, and it does not say that: "if a soul sin, and commit any of these things which are forbidden to be done by the commandments of the LORD; THOUGH HE WIST IT NOT, YET IS HE GUILTY, and shall bear his iniquity." Sin is measured against what Yahweh forbade, not against what you had gotten around to learning.',
+    consequence: 'What knowing DOES change is the weight, the excuse, and the remedy. THE WEIGHT: "that servant, which KNEW his lord\'s will, and prepared not himself... shall be beaten with many stripes. But he that KNEW NOT, and did commit things worthy of stripes, shall be beaten with FEW stripes" — few, not none, and the principle is stated outright: "unto whomsoever much is given, of him shall be much required." THE EXCUSE: "If I had not come and spoken unto them, they had not had sin: but now they have no cloak for their sin," and to men insisting on their sight, "now ye say, We see; therefore your sin remaineth." THE REMEDY: ignorance had an offering appointed for it, while "the soul that doeth ought PRESUMPTUOUSLY... the same reproacheth the LORD." And mercy is real on that road — "I obtained mercy, BECAUSE I did it ignorantly in unbelief" — with a deadline attached: "the times of this ignorance God winked at; but now commandeth all men every where to repent."',
+    threeD: 'Two errors die here. The first says "I did not know, so it was not sin" — Leviticus 5:17 removes that shelter, which is why the honest response to new light is repentance rather than a defense of the years before it. The second says "now that I know, my past ignorance is as damnable as present rebellion" — Luke 12:48 removes that too. So learn eagerly rather than defensively: every line you receive raises what is required of you, and that is a promotion, not a trap. And never engineer ignorance to stay comfortable; James closes that door from the other side — "to him that knoweth to do good, and doeth it not, TO HIM IT IS SIN."',
+    outcome: 'Freedom from both self-excusing and self-torturing — a conscience that takes new light as a call forward instead of a verdict on the past.',
+    psyche: 'The instinct behind "you cannot sin unless you know" is usually a good one: it is reaching for the justice of degrees, and the Word grants exactly that in Luke 12:47-48. What it gets wrong is treating sin as a violation of MY awareness rather than of HIS standard — which would make the standard move every time I looked away. Yahweh keeps the standard fixed and scales the accountability instead. That is a harder truth and a far kinder one.',
+    tags: ['sin', 'ignorance', 'knowledge', 'accountability', 'stripes', 'repentance'],
+  },
+  {
+    id: 'gh-conviction-vs-condemnation', section: 'epistles', name: 'Where Guilt Comes From (conviction walks you home; accusation walks you off)',
+    refs: ['2 Corinthians 7:10', 'Romans 8:1', 'Revelation 12:10', '1 John 3:20-21', 'Romans 2:15', 'Hebrews 10:22'],
+    condition: 'Two things feel identical in the chest and come from opposite directions. Do not ask how BAD the guilt feels; ask which way it is pointing you.',
+    consequence: 'Scripture separates them by their FRUIT, not their intensity: "godly sorrow worketh repentance to salvation not to be repented of: but the sorrow of the world worketh death." One produces a turn and leaves no regret behind it; the other produces death and calls it seriousness. The source of the second is named: "the accuser of our brethren... which accused them before our God day and night." And the standing verdict for those in Christ is published: "There is therefore now no condemnation to them which are in Christ Jesus." The conscience is real equipment — "their conscience also bearing witness, and their thoughts the mean while accusing or else excusing" — but it is not the final court: "if our heart condemn us, GOD IS GREATER THAN OUR HEART, and knoweth all things."',
+    threeD: 'Run the direction test the moment it lands. Conviction is SPECIFIC (this deed, this word, this omission), it is ACTIONABLE (there is something to confess, restore, or stop), and it moves you TOWARD Him. Accusation is VAGUE and total (you are worthless, you always do this, you are beyond it), it offers nothing to do, and it moves you AWAY — from prayer, from the Word, from people. When it is conviction, obey it quickly and be done. When it is accusation, answer it with the verdict rather than with your own defense: hearts are "sprinkled from an evil conscience," and the accuser has already been cast down.',
+    outcome: 'A conscience that stays tender without becoming a torturer — quick to repent, unwilling to re-serve a sentence Christ already served.',
+    psyche: 'The accuser rarely invents charges; he prefers TRUE ones, kept past their expiration. That is what makes the counterfeit convincing and why intensity is a useless test — real guilt over a real sin can be weaponized after it has already been dealt with. The tell is always the direction: toward the Father, or away from Him.',
+    tags: ['guilt', 'conviction', 'condemnation', 'conscience', 'accuser', 'repentance'],
+  },
+  {
+    id: 'gh-mind-of-christ-in-the-hidden-part', section: 'wisdom', name: 'Truth in the Hidden Part (He reshapes the depths, and hands you the work)',
+    refs: ['Psalms 51:6', 'Psalms 51:10', 'Philippians 2:5', 'Proverbs 23:7', 'Jeremiah 31:33', 'Ezekiel 36:26-27', 'Joshua 1:8', 'Philippians 4:8', 'Colossians 3:2'],
+    condition: 'Aim below the part of you that answers questions. "Behold, thou desirest truth in the INWARD PARTS: and in the HIDDEN PART thou shalt make me to know wisdom" — Yahweh names a layer under the one you narrate with, and He wants the truth THERE. It matters because that layer, not your stated position, is what you actually are: "as he thinketh in his heart, so is he."',
+    consequence: 'He does the part you cannot: "A new heart also will I give you, and a new spirit will I put within you: and I will take away the stony heart"; "I will put my law in their inward parts, and write it in their hearts." That is His writing, in a place you have no pen for. AND HE HANDS YOU REAL WORK — "Let this mind be in you, which was also in Christ Jesus" is addressed to you as a command, not a wish; "whatsoever things are true, whatsoever things are honest... THINK ON THESE THINGS"; "SET your affection on things above"; "thou shalt MEDITATE therein day and night." The prayer and the labor sit in the same psalm: "Create in me a clean heart" is asked of Him, while the meditating, thinking, and setting are done by you.',
+    threeD: 'You cannot edit the hidden part directly — you can only choose what goes in and what gets repeated, and it does the rest. So govern the inputs: what you read, replay, rehearse, and refuse. Run the sequence when a thought surfaces — NOTICE it, TEST it against Philippians 4:8, CAPTURE it (2 Corinthians 10:5), REDIRECT to the Word — and understand why repetition is the method rather than intensity. Day and night, line upon line, until the reaction that used to come out of you is replaced by one you did not have to manufacture. Ask Him for the clean heart while you do the meditating; asking without inputs is superstition, and inputs without asking is willpower.',
+    outcome: 'A reshaped default — the answer that comes out before you compose one begins to match His, because the hidden part was rewritten rather than merely supervised.',
+    psyche: 'This is why the transformation feels slow and then sudden. Conscious effort is the only lever you hold, but the change registers in the layer you do not control, so nothing seems to move for a long while and then a reaction is simply different. He asks for the work not because He needs your help, but because the meditating IS the mechanism He uses to write.',
+    tags: ['mind-of-christ', 'subconscious', 'hidden-part', 'meditation', 'renewed-mind', 'inputs'],
+  },
+  {
+    id: 'gh-word-is-4d-fact', section: 'epistles', name: 'The Word Is 4th-Dimensional Fact (it outranks 3rd-dimensional fact)',
+    refs: ['2 Corinthians 4:18', 'Matthew 24:35', 'Psalms 119:89', 'Isaiah 40:8', 'Numbers 23:19', 'Titus 1:2', 'Romans 3:4', '1 Corinthians 13:12', 'Hebrews 11:1'],
+    condition: 'Decide the ranking BEFORE the two ever appear to disagree, because in the moment you will rank by whichever one you can currently see. The materialist ordering treats 3rd-dimensional observation as the hard fact and revelation as the soft claim that must earn its way up. Scripture inverts it: "the things which are seen are TEMPORAL; but the things which are not seen are ETERNAL."',
+    consequence: 'His Word outranks on every test we already use to rank evidence. DURABILITY: "Heaven and earth shall pass away, but my words shall not pass away" — the entire 3rd-dimensional dataset has an expiration date that His Word does not; "the grass withereth, the flower fadeth: but the word of our God shall stand for ever." STABILITY: "For ever, O LORD, thy word is settled in heaven" — settled, past tense, not pending revision. RELIABILITY OF THE WITNESS: "God is not a man, that he should lie... hath he said, and shall he not do it?"; "God, that cannot lie"; and where the two testimonies conflict, the verdict is already published — "let God be true, but every man a liar." AND THE INSTRUMENT: the dim one is OURS, not His — "now we see through a glass, DARKLY... now I know IN PART." Faith is therefore not the absence of evidence but a class of it: "the evidence of things not seen."',
+    threeD: 'Keep the distinction clean so this never becomes an excuse for sloppiness. This does NOT mean 3rd-dimensional facts are false or that measurement is worthless — He made the thing being measured, and real data is real (a documented harm, a denied claim, a tested number). It means His Word is the FRAME the data is read inside, and the higher court when they appear to collide. So verify your 3D claims rigorously AND do not let a verified 3D reading overturn a settled 4D fact; the usual resolution is that our reading of one or the other is still partial, and the part more likely to be partial is ours. When you cannot reconcile them yet, hold the Word and keep working — that is not anti-intellectual, it is ranking the more reliable witness first.',
+    outcome: 'A mind that can hold hard data and hard doctrine at once without either collapsing — rigorous about measurement, unshaken when measurement runs ahead of understanding.',
+    psyche: 'Notice which way the humility actually runs. The frame that calls itself humble — "I only believe what I can see" — quietly makes a partial, expiring, provably fallible instrument the final arbiter of everything. Ranking His Word first is the humbler position, because it starts by admitting the glass is dark on OUR side.',
+    tags: ['the-word', '4d', 'evidence', 'truth', 'epistemology', 'frame'],
+  },
+  // ===========================================================================
+  // JUSTICE YOU HAVE TO BUY (Darrell 2026-08-09: "When suing someone for justice
+  // is the only way to get it... the rich are the only ones who will"). Two
+  // algorithms: the DIAGNOSIS Scripture already names, and the DESIGN Yahweh
+  // built to make the remedy un-purchasable.
+  // ===========================================================================
+  {
+    id: 'gh-justice-rationed-at-the-gate', section: 'prophets', name: 'Turned Aside at the Gate (when justice must be bought, only the rich get it)',
+    refs: ['Amos 5:12', 'James 2:6', 'Isaiah 1:23', 'Proverbs 22:22-23', 'Exodus 23:6', 'Deuteronomy 16:19'],
+    condition: 'Watch what happens when the ONLY road to a remedy runs through a proceeding you must fund. The gate in Scripture was the courthouse — where elders heard cases — so read this as the courthouse door: "they afflict the just, they take a bribe, and they turn aside THE POOR IN THE GATE from their right."',
+    consequence: 'Yahweh files it among "your mighty sins," not among unfortunate outcomes. James states the same from the other end: "Do not rich men oppress you, and DRAW YOU BEFORE THE JUDGMENT SEATS?" — the court appears there as the wealthy man\'s instrument, not as neutral ground. And Isaiah names the subtlest form, which is not a lost verdict but an unheard case: "every one loveth gifts, and followeth after rewards: they judge not the fatherless, NEITHER DOTH THE CAUSE OF THE WIDOW COME UNTO THEM." The widow\'s case never arrives. The commands are therefore aimed at the powerful, never at the victim: "Thou shalt not wrest the judgment of thy poor in his cause"; "thou shalt not respect persons, neither take a gift: for A GIFT DOTH BLIND THE EYES OF THE WISE." And where the gate stays shut, He appoints Himself counsel: "Rob not the poor, because he is poor... FOR THE LORD WILL PLEAD THEIR CAUSE."',
+    threeD: 'Stop reading "everyone can sue" as though access were equal — filing fees, years of time, and counsel are the real gate, and a system where the remedy costs more than the injury has quietly repealed the remedy for most people. So measure a justice system by whether the poor man\'s case ARRIVES, not by whether the law is written fairly. Where you have standing, means, or a voice, spend it on the case that cannot be brought without you (Proverbs 31:8-9); where you are the one shut out, keep coming (Luke 18) and know who has taken the brief.',
+    outcome: 'Clear sight about a real injustice without cynicism about justice itself — because the same Word that names the closed gate promises the Advocate who does not bill.',
+    psyche: 'A closed gate is more corrosive than a hostile verdict. A verdict can be appealed and at least says the system saw you; a case that never arrives teaches a person that their injury does not register at all — which is exactly what breeds the fury that later gets aimed at the wrong target.',
+    tags: ['justice', 'the-gate', 'poor', 'courts', 'access', 'advocate'],
+  },
+  {
+    id: 'gh-remedy-that-arrives-on-a-calendar', section: 'torah', name: 'The Remedy Arrives on a Calendar (His justice is not adversarial or purchased)',
+    refs: ['Deuteronomy 15:1', 'Leviticus 25:10', 'Leviticus 25:25', 'Leviticus 19:9-10', 'Deuteronomy 24:17', 'Psalms 140:12', 'Psalms 12:5'],
+    condition: 'Compare the two designs before you assume ours is the only shape justice can take. Man\'s justice is ADVERSARIAL and PURCHASED: the wronged party must discover the wrong, prove standing, fund counsel, and win. Yahweh built remedies that require NONE of that.',
+    consequence: 'His arrive by schedule and by structure, with the burden on the system and the strong: "At the end of every seven years THOU SHALT MAKE A RELEASE" — the debtor files nothing; "ye shall return every man unto his possession" — Jubilee restores by the calendar, not by verdict; "if any of his kin come to redeem it, then shall he redeem that which his brother sold" — the redeemer is a FAMILY OBLIGATION, not a service you retain; "thou shalt not wholly reap the corners of thy field... thou shalt leave them for the poor and stranger" — the poor do not apply, they simply come and reap. And the protected classes are named so no one has to argue their way in: "Thou shalt not pervert the judgment of the stranger, nor of the fatherless." Where a case still cannot be brought, He takes it: "I know that the LORD will maintain the cause of the afflicted, and the right of the poor"; "for the sighing of the needy, NOW WILL I ARISE, saith the LORD."',
+    threeD: 'Build like He builds. In anything you run — a business, a household, a church, a platform — put the remedy on a schedule instead of on a complaint: the audit that runs whether or not anyone objects, the correction that triggers automatically, the margin left standing for whoever needs it. Any protection that requires the weakest party to notice, object, and press is a protection the weakest party does not have. And apply it to your own house first: forgive on the calendar rather than when confronted, restore before you are asked.',
+    outcome: 'Systems whose justice does not depend on the victim\'s strength — the pattern that makes Jubilee possible and makes "you have to sue for it" unnecessary.',
+    psyche: 'Adversarial justice quietly taxes the injured a second time: to be made whole you must relive the injury, fund the fight, and outlast the stronger party. Calendared justice removes that second tax entirely, which is why it reaches people who could never win a case — and why Yahweh legislated it rather than merely recommending mercy.',
+    tags: ['justice', 'jubilee', 'release', 'gleaning', 'redeemer', 'automatic', 'design'],
+  },
 ];
 
 // Verbatim KJV text for a catalog ref — from the verified fetch ONLY.
@@ -1190,6 +1922,56 @@ export function godheadBySection() {
     ...s,
     entries: GODHEAD_ALGORITHMS.filter((a) => a.section === s.key),
   }));
+}
+
+// =============================================================================
+// THE ETERNAL COVENANT REVIEW (Darrell 2026-07-05) — the in-app comprehensive
+// review of the judgment committed to the Son, surfaced INSIDE the Godhead
+// Study room (the app is the primary artifact — DR-0065). The review teaches
+// the covenant as the Word states it (DR-0098), anchors every point to a
+// verbatim-fetched verse (DR-0076 — `anchor` refs reuse catalog refs already
+// verified in godhead-study-verses.json), and walks the covenant's algorithm
+// list in order. Repo companion (the Layer 4 memory of this review):
+// docs/99-session-notes/2026-07-05-eternal-covenant-judgment-committed-to-the-son-review.md
+// =============================================================================
+export const JUDGMENT_COVENANT_REVIEW = {
+  id: 'covenant-judgment-son',
+  title: 'The Eternal Covenant — All Judgment Committed unto the Son',
+  declared: '"Yahweh gives judging the souls on earth over to His Son Jesus Christ. I want to make sure I\'m abiding by that eternal covenant — and so do the Kingdom Believers." — declared into the platform, 2026-07-05',
+  summary: [
+    'The covenant is stated by the Son Himself: "the Father judgeth no man, but hath committed all judgment unto the Son" — with the authority to execute it "because he is the Son of man" (John 5:22, 27). And the stated purpose of the transfer: "That all men should honour the Son, even as they honour the Father."',
+    'The same Word shows the order of the court. The first advent leads with rescue — "I came not to judge the world, but to save the world" — while the standard is already published: the Word He has spoken judges at the last day (John 12:47-48). A day is appointed, the risen Jesus is the ordained Judge of quick and dead, and the raising of Him from the dead is Heaven\'s assurance unto all men (Acts 17:31; Acts 10:42).',
+    'Abiding by the covenant is therefore concrete for every Kingdom Believer: honour the Son as the Father is honoured; walk through the door the Judge Himself opened; live toward His judgment seat with your own account current; vacate the seat on every other soul; train for the under-Judge role the saints are promised; and love His appearing — because the Judge arrives with the reward in His hand.',
+  ],
+  // Abiding by the covenant — each point anchored to a verse already fetched
+  // verbatim for the catalog (the test suite verifies every anchor resolves).
+  abiding: [
+    { point: 'Honour the Son even as the Father is honoured — worship, speech, and how every soul is handled all route through His seat.', anchor: 'John 5:22-23' },
+    { point: 'Walk through the door the Judge Himself opened: hear His Word, believe the Father who sent Him — and live as one already passed from death unto life.', anchor: 'John 5:24' },
+    { point: 'Live toward His judgment seat: labour to be accepted of Him and keep your OWN account current — the believer\'s energy goes to his own docket, not his brother\'s case file.', anchor: '2 Corinthians 5:9-10' },
+    { point: 'Vacate the seat on every other soul: discern fruit as the Word commands, but hand every VERDICT to the one Lawgiver — judge nothing before the time.', anchor: 'James 4:12' },
+    { point: 'Train for the bench under Him: settle the smallest matters inside the Body now — judgment is GIVEN at His seat, on His terms, never seized ahead of Him.', anchor: '1 Corinthians 6:2-3' },
+    { point: 'Love His appearing: the covenant turns the court date into the family\'s payday — the Judge comes with the reward in His hand.', anchor: 'Revelation 22:12' },
+  ],
+  // The covenant's algorithm list, in covenant order: the grant, the exemption,
+  // the standard, the appointment, the seat, the vacating, the training, the reward.
+  algorithmIds: [
+    'gh-judgment-committed-to-son',
+    'gh-hear-believe-no-condemnation',
+    'gh-word-judges-last-day',
+    'gh-appointed-day-ordained-judge',
+    'gh-judgment-seat-of-christ',
+    'gh-vacate-the-seat',
+    'gh-saints-judge-with-him',
+    'gh-judge-comes-with-reward',
+  ],
+};
+
+// The review's algorithms resolved from the catalog, in covenant order.
+export function covenantAlgorithms() {
+  return JUDGMENT_COVENANT_REVIEW.algorithmIds
+    .map((id) => GODHEAD_ALGORITHMS.find((a) => a.id === id))
+    .filter(Boolean);
 }
 
 // The game hand-off (Darrell: "All eternal algorithms going into the game so

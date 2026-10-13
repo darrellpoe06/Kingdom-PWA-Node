@@ -87,7 +87,95 @@ The local-LLM orchestrator should:
 - **Memory is a cache only.** It speeds the agent up between context windows; it is
   never the system of record. If it and this doc disagree, this doc governs.
 
-## 7. Cross-references
+## 7. Before you build: review the DRs, then keep the Don'ts (added 2026-09-30, DR-0697)
+
+Darrell, 2026-09-30: *"Review the DRs... make sure our previous failures are accounted and you understand what not to do"* and *"Add reviewing the DRs... so we don't repeat obvious failures."*
+
+**Before you build: review the DRs.** Every builder brief and every routine prompt names the DRs and the LESSONS-LEARNED principles for its area and has them read first. Start from `docs/templates/builder-brief.md` (one outcome, a done-condition, MUST NOT TOUCH, READ FIRST, brakes). The required-reading hook hands the same don't-repeat pointers at the moment of writing, for workflows and lesson catalogs on edits too, once per area per session.
+
+**The Don'ts, read before orchestrating** (each was paid for on 2026-09-30):
+- **Don't launch without a budget.** Before fanning out builders, run `node scripts/capacity-budget.mjs <n>`: it measures memory and disk now and says whether <n> more builders fit (measured cost 3.1 GB memory + 1.5 GB disk each). Over budget = launch what fits and queue the rest. Local test runs queue themselves through two slots (`app/vitest.local-slot.js`), so parallel builders wait instead of filling memory (Darrell 2026-09-30: "Make sure we have room for our max and we know our budget is good or not first").
+- **Don't throttle on an assumption.** Measure memory and disk first and quote the number; clean every artifact a job leaves, `/tmp` build folders as well as worktrees (P65).
+- **Don't run a standing lane on one chat connector.** Give it a sovereign road through the NAS, and diagnose your own side before asking Darrell to act (P61).
+- **Don't decide by list order.** Ask by exact identity (`head_sha=`); `workflow-list-order-guard` fails the build otherwise (P62).
+- **Don't burst dispatches into one concurrency group.** One pending run survives; dispatch one at a time and confirm each run (P64).
+- **Don't trust work to a session that can die.** Give it a durable, braked driver, and call the driver working only after its first run is seen doing real work (P66, P53).
+- **Don't send a spawned session with a wide brief.** One outcome, what it must not touch, watched; stop scope creep at once (P67).
+- **Don't cite what doesn't exist yet.** Reserve a DR number privately; cite a record only once its file exists (the cited-but-unread check, P41).
+- **Don't hold a requirement without a close.** It binds new work at once, and its backlog gets an owner, a schedule and a done-condition (P60, P29).
+
+## 8. The delivery lane — work lands on green without a manual merge (DR-0103)
+
+The lanes in §2 describe how work is *built*; this is how it *lands*. The default
+state of the work is **motion**, not waiting on Darrell to push each step
+(declared 2026-07-05: *"we don't move when I'm not pushing... remedy asap"*).
+
+- **The lane:** `auto-open-pr.yml` opens a PR to `main` for a pushed
+  `claude/*` / `feat|fix|merge|docs` branch and arms native auto-merge (squash);
+  `ci.yml` runs the required gates on the commit; `auto-merge.yml` sweeps eligible
+  open PRs (belt-and-suspenders). The PR **squash-merges the instant the gates
+  pass** — lint + the full Vitest suite + tenancy/contrast/isolation guards + a
+  real production build. Merge = deploy (DR-0054). No human click.
+- **The `claude/*` fix (2026-07-05):** the lane originally filtered head branches
+  to `^(feat|fix|merge|docs)/`, excluding the `claude/*` branches every remote/web
+  session uses — so every agent PR was invisible to it and only a manual merge
+  could land it. `claude/**` was added to the CI push trigger, the auto-open-PR
+  trigger, and the auto-merge eligibility. That exclusion was the stall; keep it
+  fixed.
+- **`npm run ship`, never a bare `git push` (DR-0393).** The lane's speed is the
+  point, and it creates one hazard: `verify` takes ~4 minutes, and the lane can
+  squash-merge another PR inside that window. A squash commit does not contain the
+  branch's own commits as ancestors, so a push afterwards puts freshly-verified
+  work on history `main` no longer has — and **the push succeeds**, silently. It
+  happened twice on 2026-09-13 (#1565 stranded `fcdc9253`; #1566 stranded
+  `60f627a7`), costing two recovery cycles. `ship` chains
+  **stamp → verify → check → push**: `scripts/push-stranding-guard.mjs` records
+  `origin/main` when verification starts and re-reads it before the push, failing
+  with both shas and the replay remedy if the base moved. It is not in
+  `verify:gates` and cannot be — CI runs *after* the push, so no CI gate can catch
+  this by construction. It does **not** fire merely because a branch is behind
+  `main`; that is the normal state of nearly every branch.
+
+- **The gate is the brake; `hold` is the governor's hand.** A red PR never merges
+  (DR-0076). The `hold` label parks a PR out of the lane to soak or await Governor
+  review (Tier B/C; RELEASE-TIERS). Reverting the three workflows is the
+  off-switch. This is the integration gate deferring to verified truth — NOT the
+  timer-driven, compute-spawning class the three-brakes rule governs.
+- **Cadence + no idling (DR-0255):** watch in-flight work EVENT-DRIVEN first
+  (the PR webhook, site-health, review-watcher, OpsBoard — no cadence to guess);
+  a timer is a short FALLBACK matched to the real change rate (~3–5 min for a
+  ~3-min CI, re-armed short — never a reflexive hour; a 60-min timer for a 3-min
+  CI is the defect). A longer heartbeat is only for a genuinely slow external
+  wait, named. Between prompts, pull the next dated backlog item forward instead
+  of parking on a timer. Every processing lane is watched (Ari + bots/LLMs),
+  fail-visible on OpsBoard.
+- **In the app:** the OpsBoard renders the live lane (auto-merge armed / `hold`
+  parked / land order / merged SHAs, read live from the repo) beside a short
+  statement of this model — the model and its proof in one place (DR-0065).
+
+## 9. The proof ladder — what "not a fake test" means here (added 2026-09-10, DR-0347)
+
+Darrell, 2026-09-10, after two findings in one hour (a database function silently rewritten; a Cloudflare error page printed as a message): *"we need to be creating tests that catch these failures... did we?"* and *"not fake test... also documenting the best workflows behavior."* The answer is a ladder, and every rung has a rule.
+
+| Rung | What it proves | What it can NOT prove | The rule |
+|---|---|---|---|
+| **1. Pure unit** (node, no DOM) | The data and the arithmetic: a plan, a rule registry, a verse against the corpus | Anything that touches a screen or a database | Every figure a surface shows has a pure test that computes it from the real data file, never from a fixture that copies the answer |
+| **2. Source pin** | A file still says what a decision says (a gate string, an import, an absent url, a NULL-safe guard) | Behaviour | A source pin names the exact line it guards and fails on the exact breaking edit (proven-to-catch, DR-0076 §3); it is never the only rung for behaviour |
+| **3. Real component render** (jsdom, the seam mocked) | The surface the person meets: the tab exists, the click lands, the words are right, the write goes through the seam once with the right arguments | The database's answer | The mock is the seam's contract, captured (`sent.*`), never a stand-in for the policy; the mocked seam must have a rung-4 twin |
+| **4. Database smoke on the real database** (`infra/supabase/tests/*-smoke.sql`, the rls-isolation matrix, rolled back) | The policy itself: who may write, who may read, what a trigger keeps, what an overlay denies | The app's wiring | Every migration that creates an instance-scoped table or redefines a shared function gets a leg or joins one; the smoke asserts the deny as well as the allow; it runs after every db-migrate, and a red leg on `main` is work now, never "pre-existing" |
+| **5. Live verification** | What production actually holds: a policy's text (`pg_policies`), a deploy's head sha, the site's own answer (site-health) | Tomorrow | A claim of "applied", "deployed", "live" is a query or a run id in the record, never a sentence |
+
+**The two failures of 2026-09-10, on the ladder.** The overlay drop lived at rung 4 (the smoke was red for four days) with no rung-2 gate for the class; `viewer-overlay-lineage.test.js` is that gate, proven against 0181's own body. The 502 page lived at rung 3 with no pin on the artifact; `tlc-error-text.test.js` pins the exact body from the screen and the seams' source. The TLC office tables lived at rungs 1–3 and 5 with no rung 4; `0189-tlc-office-smoke.sql` is the leg.
+
+**The incident workflow that worked, written as the way (DR-0108):**
+1. A red check on `main` is pulled as the next item the moment the current increment ships; it is never left as "flagged".
+2. Trace on the real database first (`pg_policies`, `pg_proc`), then in the migrations in order; name the exact commit that broke it and the exact reason the gate did not catch it.
+3. One PR carries the fix, the gate for the class (proven-to-catch against the real breaking body, not a synthetic one only), the matrix leg that proves it on the database, the DR, the LESSONS principle, and the ledger row.
+4. The record states the live proof still pending, with a date, and the check-in is armed before the turn ends.
+
+**The delivery behaviours that worked today, kept:** ship in increments of one directive each, roughly every forty minutes, each with its own DR or amendment, INDEX row and session-note section in the same commit; merge `main` by merge commit and resolve by taking the branch's files, never rewriting history; the PR body carries the proof and the honest limits; the deploy is proven by run id after every merge; a screenshot from Darrell is treated as a failing test on the real artifact and pinned before it is fixed.
+
+## 10. Cross-references
 
 DR-0076 (Verification Doctrine), DR-0075 (perpetual improvement), DR-0073
 (capability-aware routing), DR-0063 (learn-from-experience), DR-0062/0066

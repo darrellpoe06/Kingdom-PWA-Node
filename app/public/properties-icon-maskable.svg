@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Maskable variant, mirroring icon-maskable.svg exactly: full-bleed dark so
+       Android's adaptive mask never clips into a background, the PP held well
+       inside the 80% safe zone, and the ring pulled to r=160 so the mask cannot
+       crop it. Green ring = Poe Properties; rust = PoeTech. -->
+  <rect width="512" height="512" fill="#1A1815"/>
+  <g font-family="Georgia, 'Fraunces', serif" font-size="180" font-weight="700" text-anchor="middle" fill="#FAF8F4">
+    <text x="214" y="322">P</text>
+    <text x="298" y="322" stroke="#1A1815" stroke-width="18" paint-order="stroke" stroke-linejoin="round">P</text>
+  </g>
+  <circle cx="256" cy="256" r="160" fill="none" stroke="#2F5D50" stroke-width="6"/>
+</svg>

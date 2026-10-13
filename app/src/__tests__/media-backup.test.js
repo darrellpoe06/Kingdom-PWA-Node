@@ -27,9 +27,9 @@ function fakeFile(name, size, lastModified = 1751700000000) {
 beforeEach(() => { localStorage.clear(); });
 afterEach(() => { vi.unstubAllGlobals(); });
 
-// Videos CANNOT ride /n8n/webhook/photo-upload (JSON/base64, 8 MB cap, image
-// only) — this pins the media lane to the sovereign raw-byte server so a stray
-// edit can't silently route it back through n8n.
+// Videos CANNOT ride the legacy n8n photo-upload webhook (JSON/base64, 8 MB
+// cap, image only) — this pins the media lane to the sovereign raw-byte server
+// so a stray edit can't silently route it back through n8n.
 describe('media endpoints target the sovereign /nas-photos server', () => {
   it('all three URLs ride /nas-photos, never /n8n', () => {
     const urls = [

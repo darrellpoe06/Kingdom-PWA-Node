@@ -33,7 +33,7 @@ export const GIVING_SCRIPTURES = [
     ref: 'Malachi 3:10',
     translation: 'ESV',
     text: 'Bring the full tithe into the storehouse, that there may be food in my house. And thereby put me to the test, says the LORD of hosts, if I will not open the windows of heaven for you and pour down for you a blessing until there is no more need.',
-    benefit: 'The tithe — the full 10% — is brought into the storehouse so there is provision in God’s house. The open windows are His covenant faithfulness to a faithful people, not a lever we pull for ourselves.',
+    benefit: 'The tithe — the full 10% — is brought into the storehouse so there is provision in Yahweh’s house. The open windows are His covenant faithfulness to a faithful people, not a lever we pull for ourselves.',
   },
   {
     ref: '2 Corinthians 9:6-8',
@@ -45,7 +45,7 @@ export const GIVING_SCRIPTURES = [
     ref: 'Luke 6:38',
     translation: 'ESV',
     text: 'Give, and it will be given to you. Good measure, pressed down, shaken together, running over, will be put into your lap.',
-    benefit: 'Generosity is met by God’s generosity, in His measure and His timing — the open hand, not a formula that obligates Him.',
+    benefit: 'Generosity is met by Yahweh’s generosity, in His measure and His timing — the open hand, not a formula that obligates Him.',
   },
   {
     ref: 'Proverbs 11:25',
@@ -126,12 +126,65 @@ export function resolveGiveDestination(church) {
   try { host = new URL(url).hostname.replace(/^www\./, ''); } catch { host = ''; }
 
   const confirmed = isDeepLink(url);
+  // The two taps that get there once the site opens. Only meaningful while the
+  // link lands on the site root: a real deep-link already IS the giving page, so
+  // directions to it would be noise (and, worse, wrong).
+  const hint = confirmed ? null : ((church && church.givingPageHint) || '').trim() || null;
   return {
     url,
     host,
     confirmed,
+    hint,
     note: confirmed
       ? `Opens ${host} — the church’s own secure giving page. No payment information is collected by this app.`
-      : `Opens ${host} — the church’s website, where their secure giving page is published. No payment information is collected by this app.`,
+      : hint
+        ? `Opens ${host} — the church’s website. Their giving page is one step in: ${hint}. No payment information is collected by this app.`
+        : `Opens ${host} — the church’s website, where their secure giving page is published. No payment information is collected by this app.`,
   };
 }
+
+// ---------------------------------------------------------------------------
+// GIVING_CHANNELS — COLG's REAL published giving channels (DR-0136).
+// PROVENANCE (the never-invent-a-URL rule, satisfied at the source): each URL
+// was decoded verbatim from the QR codes on the church's own "GIVE ONLINE"
+// slide, provided by Darrell 2026-07-10 (zxing-cpp decode of the slide photo;
+// the Zelle QR's payload names "THE CHURCH OF THE LIVING GOD" with token
+// info@thechurchofthelivinggod.com — the church's own domain identity).
+// The app links OUT; no payment data ever touches this app. The family's
+// live reviewer pass (DR-0104) confirms each channel opens correctly on
+// production before the office publicizes the app as a giving path.
+// ---------------------------------------------------------------------------
+export const GIVING_CHANNELS = [
+  {
+    id: 'zelle',
+    label: 'Zelle',
+    url: 'https://enroll.zellepay.com/qr-codes/?data=eyJuYW1lIjoiVEhFIENIVVJDSCBPRiBUSEUgTElWSU5HIEdPRCwgVEhFIiwidG9rZW4iOiJpbmZvQHRoZWNodXJjaG9mdGhlbGl2aW5nZ29kLmNvbSIsImFjdGlvbiI6InBheW1lbnQifQ==',
+    display: 'info@thechurchofthelivinggod.com',
+    how: 'In your bank app, send with Zelle to the church’s email — or tap to open Zelle.',
+    provenance: 'decoded from the church’s GIVE ONLINE slide (Darrell, 2026-07-10)',
+  },
+  {
+    id: 'cashapp',
+    label: 'Cash App',
+    url: 'https://cash.app/$TheLoveCorner?qr=1',
+    display: '$TheLoveCorner',
+    how: 'Opens the church’s Cash App — $TheLoveCorner.',
+    provenance: 'decoded from the church’s GIVE ONLINE slide (Darrell, 2026-07-10)',
+  },
+  {
+    id: 'givelify',
+    label: 'Givelify',
+    url: 'https://www.givelify.com/donate/church-of-the-living-god-champaign-il-2j7wy5NjQzOQ==/donation/amount',
+    display: 'Church of the Living God — Champaign, IL',
+    how: 'Opens the church’s Givelify page — built for church giving, keeps a record for you.',
+    provenance: 'decoded from the church’s GIVE ONLINE slide (Darrell, 2026-07-10)',
+  },
+  {
+    id: 'paypal',
+    label: 'PayPal',
+    url: 'https://www.paypal.com/donate?token=g0iw2P0m9kXccU0tUhWhMzyVH6is35xkfYyIQwzX6Fapmm2VOFY37cRqim3y_TPvZKpTjVi_3MO9cpfk',
+    display: 'PayPal donate',
+    how: 'Opens the church’s PayPal donation page.',
+    provenance: 'decoded from the church’s GIVE ONLINE slide (Darrell, 2026-07-10)',
+  },
+];

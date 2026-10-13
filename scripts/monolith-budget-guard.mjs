@@ -32,6 +32,8 @@
 //   node scripts/monolith-budget-guard.mjs --generate      # re-freeze DOWN only
 // =============================================================================
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+
+const DEFAULT_NOTE = 'Frozen ceiling for the hybrid-modular cutover. The monolith is bug-fixes only; this line count may only go DOWN. Re-freeze with `node scripts/monolith-budget-guard.mjs --generate` after an extraction shrinks it. To RAISE this number, edit by hand with a stated reason in the PR — --generate refuses to. See docs/00-foundations/HYBRID-MODULAR-IMPLEMENTATION-PLAN.md.';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -110,7 +112,19 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
       file: MONOLITH_REL,
       budget: live,
       frozen: budgetDoc && budgetDoc.frozen && live === prior ? budgetDoc.frozen : '(stamp the date in the PR)',
-      note: 'Frozen ceiling for the hybrid-modular cutover. The monolith is bug-fixes only; this line count may only go DOWN. Re-freeze with `node scripts/monolith-budget-guard.mjs --generate` after an extraction shrinks it. To RAISE this number, edit by hand with a stated reason in the PR — --generate refuses to. See docs/00-foundations/HYBRID-MODULAR-IMPLEMENTATION-PLAN.md.',
+      // THE NOTE IS A LEDGER, NOT BOILERPLATE — PRESERVE IT (2026-09-14).
+      // Every RAISE ever granted is recorded in this field, each with the
+      // reason the note itself demands ("edit by hand with a stated reason in
+      // the PR"). Until today `--generate` wrote the boilerplate unconditionally
+      // and DESTROYED all of it: one re-freeze of a two-line shrink replaced
+      // ~13,000 characters of documented history with a stub, silently and with
+      // a success message. A tool that reports success while deleting the audit
+      // trail it exists to protect is the harmful-success class (P56). An
+      // existing note is now carried through untouched; the boilerplate is only
+      // ever written when there is no note to keep.
+      note: (budgetDoc && typeof budgetDoc.note === 'string' && budgetDoc.note.trim())
+        ? budgetDoc.note
+        : DEFAULT_NOTE,
     };
     writeFileSync(BUDGET_PATH, JSON.stringify(next, null, 2) + '\n');
     console.log(`monolith-budget-guard: re-froze budget at ${live} lines (was ${prior === Infinity ? 'unset' : prior}).`);

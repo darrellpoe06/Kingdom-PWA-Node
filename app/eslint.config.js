@@ -33,9 +33,9 @@ export default [
         // Vite build-time injected constants (see vite.config.js define block).
         __BUILD_TIME__: 'readonly',
         __BUILD_SHA__: 'readonly',
-        __WORKFLOW_STATS__: 'readonly',
         __GOVERNANCE_QUEUE__: 'readonly',
         __DR_LEDGER__: 'readonly',
+        __DR_PRINCIPLES__: 'readonly',
         __QUALITY_PROOF__: 'readonly',
         __INTERCONNECT_LOOPS__: 'readonly',
         __CONFLICT_LOOP__: 'readonly',
@@ -77,6 +77,16 @@ export default [
       'react/jsx-uses-react': 'error',
       'react/jsx-uses-vars': 'error',
       'react/jsx-no-undef': 'error',
+
+      // A SECOND className (or any repeated prop) silently wins and the first
+      // is DROPPED — no error, no warning, the element just renders without
+      // its sizing, spacing and border classes. Seventeen of these were live
+      // on 2026-10-10, produced by mechanical inline-color -> class passes
+      // (the oldest since PR #1149) and invisible to every other gate: the
+      // colour was right, so the colour checker was happy, while the layout
+      // quietly fell off the element. Darrell found one of them on the Guest
+      // Ready panel. Error, not warn — this is always a bug.
+      'react/jsx-no-duplicate-props': 'error',
 
       // React 17+ automatic JSX transform: React doesn't need to be in scope
       // for JSX. The repo still imports React explicitly for hooks, so that

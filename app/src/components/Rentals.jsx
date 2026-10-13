@@ -8,15 +8,35 @@ import { findRelatedAuto } from '../poe-financial-mvp-v28.jsx';
 import { DispatchPanel } from './DispatchPanel.jsx';
 import { parseChatHistory, toConversationEntries } from '../lib/chat-import.js';
 import { compressImageFile } from '../lib/image.js';
+import {
+  loadDoorPhotos as loadCloudDoorPhotos, loadPhotoImages as loadCloudPhotoImages,
+  loadPhotoThumbs as loadCloudPhotoThumbs, PHOTO_THUMB_BATCH, loadDoorTenancies,
+} from '../modules/properties/cloud.js';
+import { listImage as cloudListImage } from '../modules/properties/photo-order.js';
 import { hasBridgeToken, chatChannelFor, fetchChannelPhotos, propertyPhotosUrl } from '../lib/nas-photos.js';
+import PropertyPhotoActions, { PhotoRemoveButton } from './PropertyPhotoActions.jsx';
+import { fetchPropertyUploads, applyPropertyPhotoEdits, destinationFor } from '../lib/property-photo-edit.js';
+import { provisionBridgeToken, publishBridgeToken } from '../lib/bridge-provision.js';
 import Lightbox from './Lightbox.jsx';
 import { summarizePhotoSource } from '../lib/photo-source-health.js';
 import { KpiDot } from './KpiDot.jsx';
-import { derivePortfolio, isPersonalProp } from '../lib/rental-portfolio.js';
+import { derivePortfolio, isPersonalProp, unitsOf } from '../lib/rental-portfolio.js';
+import { recordSummary } from '../lib/property-record-counts.js';
 import { loadLeaflet } from '../lib/leaflet-loader.js';
 import UnitManagement from './UnitManagement.jsx';
-import { groupDoorsByBuilding, buildRestoreUnits } from '../lib/building-group.js';
+import CarryUpRecords from './CarryUpRecords.jsx';
+import {
+  LEVELS, LEVEL_LABEL, LEVEL_PLURAL, levelOf, splitTarget, refuseSplit,
+  defaultLabels, planSplit, describeSplit,
+} from '../lib/rentable-levels.js';
+import { groupDoorsByBuilding, buildRestoreUnits, buildNewBuildingDoors, defaultUnitLabels, unitLabelOf } from '../lib/building-group.js';
 import SectionTabs from './SectionTabs.jsx';
+import RentLedger, { PaidBar } from './RentLedger.jsx';
+import TenantRoster from './TenantRoster.jsx';
+import supabase from '../lib/supabase.js';
+import { getInstanceId } from '../lib/table-sync.js';
+import { loadPortfolioPaid } from '../lib/rent-portfolio-paid.js';
+import { motionBehavior } from '../lib/gentle-motion.js';
 
 // Local helpers (avoid main-monolith dep).
 const fmt = (n) => n == null || !isFinite(n) ? '—' : `${n < 0 ? '-' : ''}$${Math.abs(Math.round(n)).toLocaleString()}`;
@@ -139,8 +159,256 @@ function occupancyRollup(rooms = []) {
   return { actual, potential, opportunity: potential - actual, vacantSpots };
 }
 
-function PropertyDetails({ rental, updateRental, voiceOps = {} }) {
+// PropertyGallery — THE PROPERTY'S PHOTO STORY, FIRST AND CHRONOLOGICAL
+// (Darrell 2026-07-08: "The images for properties need to be first and
+// chronological up until the latest images for each property.") One strip at
+// the top of the records panel combining every photo the property actually
+// has — room-filed photos, maintenance receipts/shots, and the live NAS chat
+// archive (served newest-first by the sovereign photo server; we fetch the
+// most recent page and sort EVERYTHING oldest → latest so the story reads
+// forward in time and ends at the latest picture). "Load earlier" pages
+// deeper into the archive. Real dates only — an undated photo sorts first
+// and is labeled undated, never given an invented date (DR-0076).
+function PropertyGallery({ rental, nasTotal = null }) {
   const [lightbox, setLightbox] = useState(null);
+  const [nas, setNas] = useState({ status: 'idle', photos: [], total: 0 });
+  const [nasLimit, setNasLimit] = useState(24);
+  const channel = chatChannelFor(rental);
+  // ONE STORE, TWO SURFACES (Darrell 2026-09-08: "upload these into the app
+  // inside of the property section as well as inside of the other section for
+  // rentals"). The pictures taken on the Poe Properties door (property_photos,
+  // keyed by the rentals uuid this record syncs as remoteUuid) are the same
+  // pictures here. The list carries NO image at all (DR-0955) — thumbnails are
+  // base64 too, and 67 of them in one answer is what froze the Properties tab.
+  // Thumbnails arrive by id in small batches, the full image when one is opened.
+  const cloudRef = rental.remoteUuid || null;
+  const [cloud, setCloud] = useState([]);
+  const [cloudFull, setCloudFull] = useState({});
+  const [cloudThumb, setCloudThumb] = useState({});
+  useEffect(() => {
+    let cancelled = false;
+    if (!cloudRef) { setCloud([]); return undefined; }
+    loadCloudDoorPhotos(cloudRef).then((r) => { if (!cancelled) setCloud(r.ok ? r.photos.filter((p) => !p.archived_at) : []); });
+    return () => { cancelled = true; };
+  }, [cloudRef]);
+
+  // THE PICTURES DO NOT VANISH WHILE THEY ARE ON THEIR WAY (DR-0955). This
+  // strip drops any item with no `src`, so with thumbnails out of the list a
+  // Poe Properties picture would simply not appear here — the Apartment 2
+  // failure in a second place, and silent (DR-0946).
+  //
+  // A BATCH AT A TIME, PAINTING AS EACH LANDS. Twelve thumbnails is ~660 KB;
+  // a 39-picture door is four answers rather than one 2.1 MB answer that the
+  // Funnel road may never finish. The strip is already on screen with its
+  // other sources while these fill in.
+  useEffect(() => {
+    let cancelled = false;
+    const ids = cloud.map((p) => p.id).filter((id) => id && !cloudThumb[id]);
+    if (!ids.length) return undefined;
+    (async () => {
+      for (let i = 0; i < ids.length && !cancelled; i += PHOTO_THUMB_BATCH) {
+        const r = await loadCloudPhotoThumbs(ids.slice(i, i + PHOTO_THUMB_BATCH));
+        if (cancelled || !r.ok || !Object.keys(r.thumbs).length) continue;
+        setCloudThumb((m) => ({ ...m, ...r.thumbs }));
+      }
+    })();
+    return () => { cancelled = true; };
+    // cloudThumb is read to skip what is already held, not to re-run on it.
+  }, [cloud]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!hasBridgeToken() || !channel) { setNas({ status: 'off', photos: [], total: 0 }); return undefined; }
+    setNas(n => ({ ...n, status: 'loading' }));
+    (async () => {
+      const res = await fetchChannelPhotos(channel, { limit: nasLimit, offset: 0 });
+      if (cancelled) return;
+      if (!res) { setNas({ status: 'error', photos: [], total: 0 }); return; }
+      setNas({ status: 'ready', photos: res.photos || [], total: res.total || (res.photos || []).length });
+    })();
+    return () => { cancelled = true; };
+  }, [rental.id, channel, nasLimit]);
+
+  // THE OTHER HALF OF THIS ADDRESS'S STORY (Christina 2026-10-06). The archive
+  // above is Synology Chat; this is the address's own folder on the NAS — the
+  // photos the family ADDED here — plus the ids they have taken OFF this address.
+  // `edits` bumps after an add or a removal so the strip reflects both at once,
+  // with no manual refresh. Honest-empty when the NAS is unreachable.
+  const dest = destinationFor(channel);
+  const [added, setAdded] = useState({ photos: [], hidden: [] });
+  const [edits, setEdits] = useState(0);
+  useEffect(() => {
+    let cancelled = false;
+    if (!hasBridgeToken() || !dest) { setAdded({ photos: [], hidden: [] }); return undefined; }
+    (async () => {
+      const res = await fetchPropertyUploads(dest);
+      if (cancelled) return;
+      setAdded({ photos: (res && res.photos) || [], hidden: (res && res.hidden) || [] });
+    })();
+    return () => { cancelled = true; };
+  }, [rental.id, dest, edits]);
+
+  // Combine the streams, de-duped (a chat photo already filed to a room keeps
+  // its room copy), then sort oldest → latest — chronological up to the latest.
+  const items = useMemo(() => {
+    const out = [];
+    for (const rm of (rental.rooms || [])) {
+      for (const p of (rm.photos || [])) {
+        out.push({ id: p.id, src: p.src, date: p.date || '', caption: p.caption || '', source: `room · ${rm.name}` });
+      }
+    }
+    for (const e of (rental.maintenanceLog || [])) {
+      (e.photos || []).forEach((src, i) => {
+        out.push({ id: `${e.id}-ph-${i}`, src, date: e.date || '', caption: e.description || '', source: 'maintenance' });
+      });
+    }
+    // Drop what the family has taken OFF this address, and bring in what they
+    // have added to it. Both decisions are made by the pure merge in
+    // lib/property-photo-edit.js so every branch is pinned by a test.
+    const edited = applyPropertyPhotoEdits({ archive: nas.photos || [], added: added.photos, hidden: added.hidden });
+    const seen = new Set(out.map(x => x.id));
+    for (const p of edited.archive) {
+      if (!p || !p.thumb) continue;
+      if (seen.has(`ph-chat-${p.id}`)) continue; // already filed to a room
+      out.push({
+        id: `nas-${p.id}`, src: p.thumb, date: p.date || '', caption: p.text || '',
+        source: 'NAS archive', removeId: String(p.id), removeKind: 'archive', removeName: p.name || p.text || '',
+      });
+    }
+    for (const p of edited.added) {
+      out.push({
+        id: `added-${p.id}`, src: p.thumb, date: p.date || '', caption: p.text || '',
+        source: 'added here', removeId: String(p.id), removeKind: 'added', removeName: p.name || p.id,
+      });
+    }
+    for (const p of cloud) {
+      // Sharpest first, then the fetched thumbnail, then whatever the row
+      // itself carries (a picture just uploaded in this session has its
+      // thumbnail on the row already). A picture whose bytes have not arrived
+      // yet waits for the next render rather than being dropped for good.
+      const src = cloudFull[p.id] || cloudThumb[p.id] || cloudListImage(p);
+      if (!src) continue;
+      out.push({
+        id: `cloud-${p.id}`, cloudId: p.id, src,
+        date: String(p.taken_at || p.uploaded_at || '').slice(0, 10),
+        caption: p.caption || '',
+        source: `Poe Properties · ${String(p.kind || '').replace(/-/g, ' ')}`,
+      });
+    }
+    return out.sort((a, b) => (a.date || '').localeCompare(b.date || '') || String(a.id).localeCompare(String(b.id)));
+  }, [rental, nas.photos, added, cloud, cloudFull, cloudThumb]);
+
+  // Opening a Poe Properties picture fetches its full image once; the strip
+  // and the lightbox re-render from `items` when it lands.
+  const openCloud = (p) => {
+    if (!p?.cloudId || cloudFull[p.cloudId]) return;
+    loadCloudPhotoImages([p.cloudId]).then((r) => {
+      if (r.ok && r.images[p.cloudId]) setCloudFull((m) => ({ ...m, [p.cloudId]: r.images[p.cloudId] }));
+    });
+  };
+  const lightboxItems = useMemo(() => items.map(x => ({ src: x.src, alt: x.caption || 'Property photo', caption: [x.caption, x.source].filter(Boolean).join(' · '), date: x.date || '' })), [items]);
+
+  const totalKnown = (typeof nasTotal === 'number' ? nasTotal : nas.total) || 0;
+  const nasUnloaded = Math.max(0, (nas.total || 0) - (nas.photos || []).length);
+  if (items.length === 0 && nas.status !== 'loading') {
+    return (
+      <div className="bg-white border border-[#E8E4DC] p-3">
+        <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">Property Photos · the story in pictures</div>
+        <p className="text-[0.6875rem] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+          {nas.status === 'off'
+            ? 'No photos filed yet on this device — room and maintenance photos land here, and connecting the NAS bridge (Dev/Ops → bridge token) brings this property’s whole chat archive in live.'
+            : nas.status === 'error'
+              ? 'No local photos yet, and the NAS archive is not reachable right now — it reconnects on its own next visit.'
+              : 'No photos yet for this property. Room photos, maintenance shots, the pictures taken on its Poe Properties door, and the NAS chat archive all land here, oldest to latest.'}
+        </p>
+        {/* THE LINK IS NAMED WHEN IT IS MISSING (Darrell, 2026-10-10: "Does it
+            interconnect to each other inside the appropriate locations? Images
+            transferred to the Properties tab inside PoeTech... however not to
+            the Real Estate tab.... data should be end to end workflows").
+
+            It DOES interconnect, and this panel already merges the door's
+            pictures — but on ONE hinge: rental.remoteUuid, the cloud rentals
+            id that property_photos.rental_ref points at. Until this record has
+            been synced it has no remoteUuid, so cloudRef is null, the door
+            query never runs, and the door's pictures simply never appear —
+            while the sentence above still PROMISES them. A surface that
+            promises what it cannot deliver is the fault (DR-0076 §1), and a
+            surface must say what is missing and how to fix it (P15/DR-0381).
+            So the missing link now says so, in its own line. */}
+        {!cloudRef && (
+          <p className="text-[0.6875rem] text-[#B85838] mt-1" style={{ fontFamily: '"Fraunces", serif' }} data-testid="door-not-linked">
+            This property is not linked to its Poe Properties door yet, so the pictures taken on that door cannot
+            appear here. Sign in and let Real Estate sync once — the link is the record’s cloud id, and it is made
+            for you the first time this property reaches the cloud.
+          </p>
+        )}
+        {/* An empty address is exactly where someone wants to add the first
+            picture, so the control is here too — not only once a strip exists. */}
+        {dest
+          ? <PropertyPhotoActions dest={dest} addressLabel={propertyLabel(rental)} onAdded={() => setEdits(k => k + 1)} />
+          : null}
+      </div>
+    );
+  }
+  return (
+    <div className="bg-white border border-[#E8E4DC] p-3">
+      <div className="flex items-baseline justify-between gap-2 flex-wrap">
+        <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">Property Photos · oldest → latest{totalKnown ? ` · ${totalKnown} in the archive` : ''}</div>
+        {nas.status === 'loading' && <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">reading the NAS archive…</span>}
+      </div>
+      {/* Same truth on the populated strip: a property with room and archive
+          photos but no cloud id is STILL missing every picture taken on its
+          Poe Properties door, and a full-looking strip hides that better than
+          an empty one does. */}
+      {!cloudRef && (
+        <p className="text-[0.6875rem] text-[#B85838] mt-1" style={{ fontFamily: '"Fraunces", serif' }} data-testid="door-not-linked">
+          Not linked to its Poe Properties door yet — pictures taken on that door are not in this strip. Sign in and
+          let Real Estate sync once to make the link.
+        </p>
+      )}
+      <div className="flex flex-wrap gap-2 mt-2">
+        {items.map((p, pi) => (
+          <div key={p.id} className="w-24">
+            <button type="button" onClick={() => { openCloud(p); setLightbox({ index: pi }); }} title="Open full size" className="block">
+              <img src={p.src} alt={p.caption || 'Property photo'} loading="lazy" className="w-24 h-24 object-cover border border-[#E8E4DC] hover:border-[#1A1815] cursor-zoom-in" />
+            </button>
+            <div className="text-[0.5625rem] text-[#5A5751] mt-0.5" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{p.date || 'undated'}</div>
+            {/* Removable only where the NAS can actually act: a photo this app
+                added here, or a chat-archive photo it can take off this address.
+                Room / maintenance / Poe Properties pictures are removed where
+                they live (P68 — a control lives where its scope lives). */}
+            {dest && p.removeId ? (
+              <PhotoRemoveButton
+                photo={{ id: p.removeId, kind: p.removeKind, name: p.removeName, date: p.date, caption: p.caption }}
+                dest={dest}
+                addressLabel={propertyLabel(rental)}
+                onRemoved={() => setEdits(k => k + 1)}
+              />
+            ) : null}
+          </div>
+        ))}
+      </div>
+      {dest ? <PropertyPhotoActions dest={dest} addressLabel={propertyLabel(rental)} onAdded={() => setEdits(k => k + 1)} /> : null}
+      {nasUnloaded > 0 && (
+        <button type="button" onClick={() => setNasLimit(l => l + 48)} disabled={nas.status === 'loading'}
+          className="mt-2 w-full text-[0.625rem] uppercase tracking-wider px-3 py-2 border border-[#E8E4DC] text-[#5A5751] hover:border-[#B85838] hover:text-[#B85838] disabled:opacity-50 focus:outline focus:outline-2 focus:outline-[#B85838]">
+          Load earlier photos · {nasUnloaded} more in the archive
+        </button>
+      )}
+      <p className="text-[0.5625rem] text-[#5A5751] italic mt-1.5" style={{ fontFamily: '"Fraunces", serif' }}>
+        Room photos, maintenance shots, the pictures on this door in Poe Properties, and the live NAS chat archive, in time order — the property&apos;s transformation, ending at the latest picture. File any archive photo to a room in “Property Photos from Chat” below.
+        {' '}Remove sits on the pictures this address keeps on the NAS — one added here, or one from its chat archive. A room, maintenance or Poe Properties picture is removed where it was filed, so nothing is taken off twice.
+      </p>
+      <Lightbox items={lightbox ? lightboxItems : undefined} index={lightbox?.index || 0} onClose={() => setLightbox(null)} />
+    </div>
+  );
+}
+
+// PropertyValuation — the Market Valuation & Property Info card, split out of
+// PropertyDetails (Darrell 2026-07-08: "put the property details at the bottom
+// then from the top images then room details then tenant information etc") so
+// the records panel can mount it LAST while the work-facing blocks lead.
+function PropertyValuation({ rental, updateRental, voiceOps = {} }) {
   // v28+ MVP v1.5 round 8 — Property valuation block (Zillow-style)
   // Characteristics + a market-value field + auto-built lookup links.
   // No paid API — links pre-fill each major site's search with the address,
@@ -232,6 +500,156 @@ function PropertyDetails({ rental, updateRental, voiceOps = {} }) {
   const mortgageBalance = parseFloat(rental.mortgage?.balance) || 0;
   const estimatedEquity = currentMarketValue > 0 ? currentMarketValue - mortgageBalance : null;
 
+  const fieldCls = 'w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]';
+  const labelCls = 'text-[0.5625rem] uppercase tracking-wider text-[#5A5751]';
+
+  return (
+    <div>
+      <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-2">🏠 Property Details · valuation &amp; characteristics</div>
+      {/* MARKET VALUATION — round 8 */}
+      <details className="bg-white border border-[#E8E4DC] p-3">
+        <summary className="cursor-pointer text-xs font-semibold" style={{ fontFamily: '"Fraunces", serif' }}>
+          🏘 Market Valuation &amp; Property Info
+          {currentMarketValue > 0 && (
+            <span className="ml-2 text-[0.625rem] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+              · est value {fmt(currentMarketValue)}
+              {estimatedEquity != null && <> · equity {fmt(estimatedEquity)}</>}
+            </span>
+          )}
+        </summary>
+        <div className="mt-3 space-y-3">
+          {/* Lookup links — auto-built from this property's address */}
+          {addressQuery ? (
+            <div>
+              <div className={labelCls + ' mb-1.5'}>Look up market value (opens in new tab → asks to save)</div>
+              {/* r27 — Auto-fill via RentCast BYOK. Each customer brings their
+                  own free RentCast key (50 calls/mo per key, no credit card).
+                  PoeTech central pays nothing. When the customer hits their
+                  50/mo cap, this falls back gracefully to the manual links
+                  below. Per MODULAR-EXTENSIBILITY.md + IDENTITY-ROLES-AUDIT
+                  + the founder's "no paid tier" direction (r27). */}
+              <div className="mb-2">
+                <RentCastPrefill
+                  rental={rental}
+                  apiUrl={voiceOps.apiUrl || ''}
+                  apiToken={voiceOps.apiToken || ''}
+                  onConfirm={(updates) => {
+                    const today = new Date().toISOString().slice(0, 10);
+                    setMarketForm(f => ({ ...f, marketValue: updates.marketValue, valueSource: 'rentcast', valueAsOf: today }));
+                    updateRental(rental.id, {
+                      market: { ...(rental.market || {}), ...updates, valueAsOf: today },
+                    });
+                  }}
+                />
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {lookupLinks.map(l => (
+                  <a
+                    key={l.name}
+                    href={l.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => onLookupClick(l.name)}
+                    className="text-[0.625rem] uppercase tracking-wider px-2 py-1.5 border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]"
+                  >{l.name} ↗</a>
+                ))}
+              </div>
+              <p className="text-[0.625rem] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+                Tap a link to open the property on that site via Google search (always finds the right address, even when site URLs change). When you come back, we'll ask if you want to save the value you saw — your call, nothing auto-stamps.
+              </p>
+
+              {/* Round 10 — Capture prompt. Opens after clicking any lookup link.
+                  Asks explicitly whether to save the value the user saw. Nothing
+                  in the data changes until they confirm. Skip closes without
+                  touching anything. */}
+              {capturePrompt && (
+                <div className="mt-2 p-3 bg-[#FAF8F4] border-2 border-[#B85838]">
+                  <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-1">Save the value you saw on {capturePrompt.source}?</div>
+                  <p className="text-xs text-[#5A5751] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
+                    If {capturePrompt.source} shows a value for this property, type it here. We'll save it as the current market value and stamp <strong>{capturePrompt.source}</strong> as the source with today's date. Skip if you don't want to change anything.
+                  </p>
+                  <div className="flex items-end gap-2 flex-wrap">
+                    <div className="flex-1 min-w-[140px]">
+                      <label htmlFor={`cap-val-${rental.id}`} className={labelCls}>Value from {capturePrompt.source}</label>
+                      <input
+                        id={`cap-val-${rental.id}`}
+                        type="number"
+                        min="0"
+                        step="100"
+                        inputMode="decimal"
+                        autoFocus
+                        placeholder="e.g., 145000"
+                        value={capturePrompt.value}
+                        onChange={e => setCapturePrompt({ ...capturePrompt, value: e.target.value })}
+                        className="w-full p-2 border border-[#1A1815] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]"
+                      />
+                    </div>
+                    <button type="button" onClick={confirmSaveValue} className="bg-[#1A1815] text-white px-4 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">✓ Yes, save it</button>
+                    <button type="button" onClick={skipCapture} className="border border-[#1A1815] px-4 py-2 text-xs uppercase tracking-wider hover:bg-white min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">Skip</button>
+                  </div>
+                  {currentMarketValue > 0 && (
+                    <p className="text-[0.625rem] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
+                      Current saved value: {fmt(currentMarketValue)}{rental.market?.valueAsOf ? ` (as of ${rental.market.valueAsOf}${rental.market?.valueSource ? ` · ${rental.market.valueSource}` : ''})` : ''}. Confirming overwrites it.
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          ) : (
+            <p className="text-[0.625rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>Add a street address to this property (Edit → Address) to enable Zillow / Realtor / Redfin lookup links.</p>
+          )}
+
+          {/* Display vs edit toggle */}
+          {!editingMarket ? (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs" style={{ fontFamily: '"Fraunces", serif' }}>
+              <div><div className={labelCls}>Beds</div><div>{rental.market?.beds || '—'}</div></div>
+              <div><div className={labelCls}>Baths</div><div>{rental.market?.baths || '—'}</div></div>
+              <div><div className={labelCls}>Sqft</div><div>{rental.market?.sqft ? Number(rental.market.sqft).toLocaleString() : '—'}</div></div>
+              <div><div className={labelCls}>Lot</div><div>{rental.market?.lotSize || '—'}</div></div>
+              <div><div className={labelCls}>Year built</div><div>{rental.market?.yearBuilt || '—'}</div></div>
+              <div><div className={labelCls}>Tax-assessed</div><div style={{ fontFamily: '"JetBrains Mono", monospace' }}>{rental.market?.taxAssessedValue ? fmt(rental.market.taxAssessedValue) : '—'}</div></div>
+              <div>
+                <div className={labelCls}>Market value</div>
+                <div style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600 }}>{currentMarketValue > 0 ? fmt(currentMarketValue) : '—'}</div>
+                <div className="text-[0.5625rem] text-[#5A5751]">{rental.market?.valueAsOf ? `as of ${rental.market.valueAsOf}` : 'not set'}{rental.market?.valueSource ? ` · ${rental.market.valueSource}` : ''}</div>
+              </div>
+              <div>
+                <div className={labelCls}>Estimated equity</div>
+                <div className={`${estimatedEquity != null && estimatedEquity < 0 ? 'text-[#B85838]' : 'text-[#5A6E3D]'}`} style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600 }}>{estimatedEquity != null ? fmt(estimatedEquity) : '—'}</div>
+                <div className="text-[0.5625rem] text-[#5A5751]">value − mortgage</div>
+              </div>
+              <div className="col-span-2 sm:col-span-4">
+                <button type="button" onClick={() => { setMarketForm(blankMarket()); setEditingMarket(true); }} className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">✎ Edit valuation &amp; characteristics</button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <div><label htmlFor={`mk-beds-${rental.id}`} className={labelCls}>Beds</label><input id={`mk-beds-${rental.id}`} type="number" min="0" step="1" className={fieldCls} value={marketForm.beds} onChange={e => setMarketForm({ ...marketForm, beds: e.target.value })} /></div>
+                <div><label htmlFor={`mk-baths-${rental.id}`} className={labelCls}>Baths</label><input id={`mk-baths-${rental.id}`} type="number" min="0" step="0.5" className={fieldCls} value={marketForm.baths} onChange={e => setMarketForm({ ...marketForm, baths: e.target.value })} /></div>
+                <div><label htmlFor={`mk-sqft-${rental.id}`} className={labelCls}>Sqft</label><input id={`mk-sqft-${rental.id}`} type="number" min="0" step="10" className={fieldCls} value={marketForm.sqft} onChange={e => setMarketForm({ ...marketForm, sqft: e.target.value })} /></div>
+                <div><label htmlFor={`mk-lot-${rental.id}`} className={labelCls}>Lot size</label><input id={`mk-lot-${rental.id}`} className={fieldCls} placeholder="e.g., 0.25 ac · 7,800 sqft" value={marketForm.lotSize} onChange={e => setMarketForm({ ...marketForm, lotSize: e.target.value })} /></div>
+                <div><label htmlFor={`mk-year-${rental.id}`} className={labelCls}>Year built</label><input id={`mk-year-${rental.id}`} type="number" min="1800" max="2099" step="1" className={fieldCls} value={marketForm.yearBuilt} onChange={e => setMarketForm({ ...marketForm, yearBuilt: e.target.value })} /></div>
+                <div><label htmlFor={`mk-tax-${rental.id}`} className={labelCls}>Tax-assessed value</label><input id={`mk-tax-${rental.id}`} type="number" min="0" step="100" inputMode="decimal" className={fieldCls} value={marketForm.taxAssessedValue} onChange={e => setMarketForm({ ...marketForm, taxAssessedValue: e.target.value })} /></div>
+                <div><label htmlFor={`mk-val-${rental.id}`} className={labelCls}>Market value (manual)</label><input id={`mk-val-${rental.id}`} type="number" min="0" step="100" inputMode="decimal" className={fieldCls} value={marketForm.marketValue} onChange={e => setMarketForm({ ...marketForm, marketValue: e.target.value })} /></div>
+                <div><label htmlFor={`mk-asof-${rental.id}`} className={labelCls}>Value as of</label><input id={`mk-asof-${rental.id}`} type="date" className={fieldCls} value={marketForm.valueAsOf} onChange={e => setMarketForm({ ...marketForm, valueAsOf: e.target.value })} /></div>
+                <div className="col-span-2 sm:col-span-2"><label htmlFor={`mk-src-${rental.id}`} className={labelCls}>Source (where the number came from)</label><input id={`mk-src-${rental.id}`} className={fieldCls} placeholder="e.g., Zillow Zestimate · Redfin · 2024 appraisal · county records" value={marketForm.valueSource} onChange={e => setMarketForm({ ...marketForm, valueSource: e.target.value })} /></div>
+              </div>
+              <div className="flex gap-2">
+                <button type="button" onClick={saveMarket} className="bg-[#1A1815] text-white px-4 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">Save</button>
+                <button type="button" onClick={() => setEditingMarket(false)} className="bg-white border border-[#1A1815] px-4 py-2 text-xs uppercase tracking-wider hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]">Cancel</button>
+              </div>
+            </div>
+          )}
+        </div>
+      </details>
+
+    </div>
+  );
+}
+
+function PropertyDetails({ rental, updateRental, paid = null }) {
+  const [lightbox, setLightbox] = useState(null);
   // Lease + tenant — single edit form (collapsible).
   const blankLease = () => ({
     start: rental.lease?.start || '',
@@ -252,6 +670,43 @@ function PropertyDetails({ rental, updateRental, voiceOps = {} }) {
   const [leaseForm, setLeaseForm] = useState(blankLease());
   const [tenantForm, setTenantForm] = useState(blankTenant());
   const [editingLeaseTenant, setEditingLeaseTenant] = useState(false);
+
+  // =========================================================================
+  // THE TENANCIES STARTED ON THE POE PROPERTIES DOOR, SHOWN HERE
+  // =========================================================================
+  // Darrell, 2026-10-10: "Working?!!!!! Tenant information?" and "End to end?"
+  //
+  // Measured before writing this: Real Estate kept its OWN tenant object
+  // (rental.tenant — name, phone, email, move-in, emergency contact) and read
+  // `rental_tenancies` ZERO times, while Start-the-tenancy on the Poe
+  // Properties door writes a full row there. So a tenancy begun on the door —
+  // lease start, rent, phone, email, the subsidised flag — never reached this
+  // tab at all; the only thing crossing was a bare tenant_name string on the
+  // rentals row. Two stores, one address, no wire.
+  //
+  // THE DOOR IS THE SYSTEM OF RECORD for a tenancy, because that is where the
+  // workflow writes it and where RLS already governs it. This tab SHOWS what
+  // the door holds; it does not copy it into the local object, because two
+  // writable copies of a real person's lease is how records get lost.
+  // Starting or ending a tenancy stays on the door (P68 — a control lives
+  // where its scope lives).
+  //
+  // KEYED BY THE SLUG, deliberately. The catalog was measured on 2026-08-27
+  // after the wrong key was passed to both: rental_tenancies.rental_ref is
+  // TEXT (the rentals SLUG), while property_rooms and property_photos use the
+  // UUID. Handing the uuid here would match nothing and show an empty panel
+  // that looks exactly like "no tenants" — the quiet failure this whole
+  // question is about.
+  const tenancyRef = rental.slug || rental.id || null;
+  const [doorTenancies, setDoorTenancies] = useState(null); // null = not asked yet
+  useEffect(() => {
+    let cancelled = false;
+    if (!tenancyRef) { setDoorTenancies([]); return undefined; }
+    loadDoorTenancies(tenancyRef).then((r) => {
+      if (!cancelled) setDoorTenancies(r.ok ? (r.tenancies || []) : []);
+    });
+    return () => { cancelled = true; };
+  }, [tenancyRef]);
 
   const saveLeaseTenant = () => {
     updateRental(rental.id, {
@@ -359,155 +814,158 @@ function PropertyDetails({ rental, updateRental, voiceOps = {} }) {
   const occ = occupancyRollup(rental.rooms || []);
 
   const fieldCls = 'w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]';
-  const labelCls = 'text-[9px] uppercase tracking-wider text-[#5A5751]';
+  const labelCls = 'text-[0.5625rem] uppercase tracking-wider text-[#5A5751]';
 
   return (
     <div>
-      <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-2">🏠 Property Details</div>
-
-      {/* MARKET VALUATION — round 8 */}
+      {/* ROOMS & NEEDED WORK */}
       <details className="bg-white border border-[#E8E4DC] p-3 mb-2" open>
         <summary className="cursor-pointer text-xs font-semibold" style={{ fontFamily: '"Fraunces", serif' }}>
-          🏘 Market Valuation &amp; Property Info
-          {currentMarketValue > 0 && (
-            <span className="ml-2 text-[10px] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-              · est value {fmt(currentMarketValue)}
-              {estimatedEquity != null && <> · equity {fmt(estimatedEquity)}</>}
-            </span>
-          )}
+          Rooms &amp; Needed Work <span className="text-[0.625rem] text-[#5A5751] ml-1" style={{ fontFamily: '"JetBrains Mono", monospace' }}>· {(rental.rooms || []).length} rooms · {((rental.rooms || []).reduce((s, rm) => s + (rm.items || []).length, 0))} items</span>
         </summary>
         <div className="mt-3 space-y-3">
-          {/* Lookup links — auto-built from this property's address */}
-          {addressQuery ? (
-            <div>
-              <div className={labelCls + ' mb-1.5'}>Look up market value (opens in new tab → asks to save)</div>
-              {/* r27 — Auto-fill via RentCast BYOK. Each customer brings their
-                  own free RentCast key (50 calls/mo per key, no credit card).
-                  PoeTech central pays nothing. When the customer hits their
-                  50/mo cap, this falls back gracefully to the manual links
-                  below. Per MODULAR-EXTENSIBILITY.md + IDENTITY-ROLES-AUDIT
-                  + the founder's "no paid tier" direction (r27). */}
-              <div className="mb-2">
-                <RentCastPrefill
-                  rental={rental}
-                  apiUrl={voiceOps.apiUrl || ''}
-                  apiToken={voiceOps.apiToken || ''}
-                  onConfirm={(updates) => {
-                    const today = new Date().toISOString().slice(0, 10);
-                    setMarketForm(f => ({ ...f, marketValue: updates.marketValue, valueSource: 'rentcast', valueAsOf: today }));
-                    updateRental(rental.id, {
-                      market: { ...(rental.market || {}), ...updates, valueAsOf: today },
-                    });
-                  }}
-                />
-              </div>
-              <div className="flex flex-wrap gap-1">
-                {lookupLinks.map(l => (
-                  <a
-                    key={l.name}
-                    href={l.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={() => onLookupClick(l.name)}
-                    className="text-[10px] uppercase tracking-wider px-2 py-1.5 border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]"
-                  >{l.name} ↗</a>
-                ))}
-              </div>
-              <p className="text-[10px] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
-                Tap a link to open the property on that site via Google search (always finds the right address, even when site URLs change). When you come back, we'll ask if you want to save the value you saw — your call, nothing auto-stamps.
-              </p>
-
-              {/* Round 10 — Capture prompt. Opens after clicking any lookup link.
-                  Asks explicitly whether to save the value the user saw. Nothing
-                  in the data changes until they confirm. Skip closes without
-                  touching anything. */}
-              {capturePrompt && (
-                <div className="mt-2 p-3 bg-[#FAF8F4] border-2 border-[#B85838]">
-                  <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-1">Save the value you saw on {capturePrompt.source}?</div>
-                  <p className="text-xs text-[#5A5751] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
-                    If {capturePrompt.source} shows a value for this property, type it here. We'll save it as the current market value and stamp <strong>{capturePrompt.source}</strong> as the source with today's date. Skip if you don't want to change anything.
-                  </p>
-                  <div className="flex items-end gap-2 flex-wrap">
-                    <div className="flex-1 min-w-[140px]">
-                      <label htmlFor={`cap-val-${rental.id}`} className={labelCls}>Value from {capturePrompt.source}</label>
-                      <input
-                        id={`cap-val-${rental.id}`}
-                        type="number"
-                        min="0"
-                        step="100"
-                        inputMode="decimal"
-                        autoFocus
-                        placeholder="e.g., 145000"
-                        value={capturePrompt.value}
-                        onChange={e => setCapturePrompt({ ...capturePrompt, value: e.target.value })}
-                        className="w-full p-2 border border-[#1A1815] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]"
-                      />
-                    </div>
-                    <button type="button" onClick={confirmSaveValue} className="bg-[#1A1815] text-white px-4 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">✓ Yes, save it</button>
-                    <button type="button" onClick={skipCapture} className="border border-[#1A1815] px-4 py-2 text-xs uppercase tracking-wider hover:bg-white min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">Skip</button>
-                  </div>
-                  {currentMarketValue > 0 && (
-                    <p className="text-[10px] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
-                      Current saved value: {fmt(currentMarketValue)}{rental.market?.valueAsOf ? ` (as of ${rental.market.valueAsOf}${rental.market?.valueSource ? ` · ${rental.market.valueSource}` : ''})` : ''}. Confirming overwrites it.
-                    </p>
-                  )}
+          <div className="flex flex-wrap items-end gap-2">
+            <div className="flex-1 min-w-[140px]">
+              <label htmlFor={`rm-name-${rental.id}`} className={labelCls}>Add room</label>
+              <input id={`rm-name-${rental.id}`} list={`rm-presets-${rental.id}`} className={fieldCls} placeholder="e.g., Kitchen" value={roomName} onChange={e => setRoomName(e.target.value)} />
+              <datalist id={`rm-presets-${rental.id}`}>
+                {ROOM_PRESETS.map(p => <option key={p} value={p} />)}
+              </datalist>
+            </div>
+            <button type="button" onClick={addRoom} className="bg-[#1A1815] text-white py-2 px-3 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838]">+ Room</button>
+          </div>
+          {/* ROOM INCOME — occupancy-revenue model. Always shows the full
+              potential so the opportunity gap motivates filling vacant space. */}
+          {occ.potential > 0 && (
+            <div className="bg-white border-2 border-[#5A6E3D] p-3">
+              <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold mb-1">💵 Room Income · per-room potential</div>
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <div>
+                  <div className="text-base" style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600 }}>{fmt(occ.actual)}</div>
+                  <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">collecting now</div>
                 </div>
+                <div>
+                  <div className="text-base text-[#5A6E3D]" style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600 }}>{fmt(occ.potential)}</div>
+                  <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">full potential</div>
+                </div>
+                <div>
+                  <div className="text-base text-[#B85838]" style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600 }}>{fmt(occ.opportunity)}</div>
+                  <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">opportunity</div>
+                </div>
+              </div>
+              {occ.opportunity > 0 ? (
+                <p className="text-[0.6875rem] text-[#1A1815] mt-2 text-center" style={{ fontFamily: '"Fraunces", serif' }}>
+                  <strong>{fmt(occ.opportunity)}/mo</strong> on the table across <strong>{occ.vacantSpots}</strong> open {occ.vacantSpots === 1 ? 'spot' : 'spots'} — market them and the building funds itself faster.
+                </p>
+              ) : (
+                <p className="text-[0.6875rem] text-[#5A6E3D] mt-2 text-center font-semibold" style={{ fontFamily: '"Fraunces", serif' }}>Fully occupied — every spot earning. 🎯</p>
               )}
             </div>
-          ) : (
-            <p className="text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>Add a street address to this property (Edit → Address) to enable Zillow / Realtor / Redfin lookup links.</p>
           )}
-
-          {/* Display vs edit toggle */}
-          {!editingMarket ? (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs" style={{ fontFamily: '"Fraunces", serif' }}>
-              <div><div className={labelCls}>Beds</div><div>{rental.market?.beds || '—'}</div></div>
-              <div><div className={labelCls}>Baths</div><div>{rental.market?.baths || '—'}</div></div>
-              <div><div className={labelCls}>Sqft</div><div>{rental.market?.sqft ? Number(rental.market.sqft).toLocaleString() : '—'}</div></div>
-              <div><div className={labelCls}>Lot</div><div>{rental.market?.lotSize || '—'}</div></div>
-              <div><div className={labelCls}>Year built</div><div>{rental.market?.yearBuilt || '—'}</div></div>
-              <div><div className={labelCls}>Tax-assessed</div><div style={{ fontFamily: '"JetBrains Mono", monospace' }}>{rental.market?.taxAssessedValue ? fmt(rental.market.taxAssessedValue) : '—'}</div></div>
-              <div>
-                <div className={labelCls}>Market value</div>
-                <div style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600 }}>{currentMarketValue > 0 ? fmt(currentMarketValue) : '—'}</div>
-                <div className="text-[9px] text-[#5A5751]">{rental.market?.valueAsOf ? `as of ${rental.market.valueAsOf}` : 'not set'}{rental.market?.valueSource ? ` · ${rental.market.valueSource}` : ''}</div>
-              </div>
-              <div>
-                <div className={labelCls}>Estimated equity</div>
-                <div className={`${estimatedEquity != null && estimatedEquity < 0 ? 'text-[#B85838]' : 'text-[#5A6E3D]'}`} style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600 }}>{estimatedEquity != null ? fmt(estimatedEquity) : '—'}</div>
-                <div className="text-[9px] text-[#5A5751]">value − mortgage</div>
-              </div>
-              <div className="col-span-2 sm:col-span-4">
-                <button type="button" onClick={() => { setMarketForm(blankMarket()); setEditingMarket(true); }} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">✎ Edit valuation &amp; characteristics</button>
-              </div>
-            </div>
+          {(rental.rooms || []).length === 0 ? (
+            <p className="text-[0.6875rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No rooms yet. Add a room above to start tracking needed work.</p>
           ) : (
-            <div className="space-y-2">
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                <div><label htmlFor={`mk-beds-${rental.id}`} className={labelCls}>Beds</label><input id={`mk-beds-${rental.id}`} type="number" min="0" step="1" className={fieldCls} value={marketForm.beds} onChange={e => setMarketForm({ ...marketForm, beds: e.target.value })} /></div>
-                <div><label htmlFor={`mk-baths-${rental.id}`} className={labelCls}>Baths</label><input id={`mk-baths-${rental.id}`} type="number" min="0" step="0.5" className={fieldCls} value={marketForm.baths} onChange={e => setMarketForm({ ...marketForm, baths: e.target.value })} /></div>
-                <div><label htmlFor={`mk-sqft-${rental.id}`} className={labelCls}>Sqft</label><input id={`mk-sqft-${rental.id}`} type="number" min="0" step="10" className={fieldCls} value={marketForm.sqft} onChange={e => setMarketForm({ ...marketForm, sqft: e.target.value })} /></div>
-                <div><label htmlFor={`mk-lot-${rental.id}`} className={labelCls}>Lot size</label><input id={`mk-lot-${rental.id}`} className={fieldCls} placeholder="e.g., 0.25 ac · 7,800 sqft" value={marketForm.lotSize} onChange={e => setMarketForm({ ...marketForm, lotSize: e.target.value })} /></div>
-                <div><label htmlFor={`mk-year-${rental.id}`} className={labelCls}>Year built</label><input id={`mk-year-${rental.id}`} type="number" min="1800" max="2099" step="1" className={fieldCls} value={marketForm.yearBuilt} onChange={e => setMarketForm({ ...marketForm, yearBuilt: e.target.value })} /></div>
-                <div><label htmlFor={`mk-tax-${rental.id}`} className={labelCls}>Tax-assessed value</label><input id={`mk-tax-${rental.id}`} type="number" min="0" step="100" inputMode="decimal" className={fieldCls} value={marketForm.taxAssessedValue} onChange={e => setMarketForm({ ...marketForm, taxAssessedValue: e.target.value })} /></div>
-                <div><label htmlFor={`mk-val-${rental.id}`} className={labelCls}>Market value (manual)</label><input id={`mk-val-${rental.id}`} type="number" min="0" step="100" inputMode="decimal" className={fieldCls} value={marketForm.marketValue} onChange={e => setMarketForm({ ...marketForm, marketValue: e.target.value })} /></div>
-                <div><label htmlFor={`mk-asof-${rental.id}`} className={labelCls}>Value as of</label><input id={`mk-asof-${rental.id}`} type="date" className={fieldCls} value={marketForm.valueAsOf} onChange={e => setMarketForm({ ...marketForm, valueAsOf: e.target.value })} /></div>
-                <div className="col-span-2 sm:col-span-2"><label htmlFor={`mk-src-${rental.id}`} className={labelCls}>Source (where the number came from)</label><input id={`mk-src-${rental.id}`} className={fieldCls} placeholder="e.g., Zillow Zestimate · Redfin · 2024 appraisal · county records" value={marketForm.valueSource} onChange={e => setMarketForm({ ...marketForm, valueSource: e.target.value })} /></div>
+            (rental.rooms || []).map(rm => (
+              <div key={rm.id} className="bg-[#FAF8F4] border border-[#E8E4DC] p-2">
+                {/* Primary action (+ Item) sits left-of-center; destructive (× Room)
+                    is pushed right with a divider + larger tap target to prevent
+                    accidental destructive taps next to the create action. */}
+                <div className="flex items-center justify-between gap-3 mb-1">
+                  <div className="text-xs font-semibold" style={{ fontFamily: '"Fraunces", serif' }}>{rm.name}</div>
+                  <div className="flex items-center gap-1">
+                    <button type="button" onClick={() => { setRoomItem({ roomId: rm.id, name: '', status: 'needs-work', notes: '' }); setShowRoomForm(true); }} className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] px-3 py-2 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">+ Item</button>
+                    <span aria-hidden="true" className="h-5 w-px bg-[#E8E4DC] mx-1" />
+                    <button type="button" onClick={() => deleteRoom(rm.id)} aria-label={`Delete room ${rm.name}`} className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] hover:bg-white px-3 py-2 min-h-[36px] border border-transparent hover:border-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">× Room</button>
+                  </div>
+                </div>
+                {/* Occupancy — drives the room-income model. Empty / half / full. */}
+                <div className="flex items-center gap-1.5 mb-2 flex-wrap">
+                  <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Occupancy:</span>
+                  {OCCUPANCY_OPTIONS.map(o => {
+                    const active = (Number(rm.occupants) || 0) === o.occupants;
+                    return (
+                      <button key={o.occupants} type="button" onClick={() => setRoomOccupancy(rm.id, o.occupants)} aria-pressed={active} className={`text-[0.625rem] uppercase tracking-wider px-2 py-1 border ${active ? 'bg-[#5A6E3D] text-white border-[#5A6E3D]' : 'text-[#5A5751] border-[#E8E4DC] hover:border-[#1A1815]'}`}>{o.label}</button>
+                    );
+                  })}
+                  <span className="text-[0.625rem] ml-auto" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                    <span className={roomActualMonthly(rm) > 0 ? 'text-[#5A6E3D] font-semibold' : 'text-[#5A5751]'}>{fmt(roomActualMonthly(rm))}</span>
+                    <span className="text-[#5A5751]"> / {fmt(roomPotentialMonthly(rm))}</span>
+                  </span>
+                </div>
+                {showRoomForm && roomItem.roomId === rm.id && (
+                  <div className="bg-white border border-[#B85838] p-2 mb-2 space-y-1">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      <div><label htmlFor={`it-name-${rm.id}`} className={labelCls}>Item</label><input id={`it-name-${rm.id}`} list={`it-presets-${rm.id}`} className={fieldCls} placeholder="e.g., Plumbing — Sink" value={roomItem.name} onChange={e => setRoomItem({ ...roomItem, name: e.target.value })} /><datalist id={`it-presets-${rm.id}`}>{ROOM_ITEM_PRESETS.map(p => <option key={p} value={p} />)}</datalist></div>
+                      <div><label htmlFor={`it-status-${rm.id}`} className={labelCls}>Status</label><select id={`it-status-${rm.id}`} className={fieldCls} value={roomItem.status} onChange={e => setRoomItem({ ...roomItem, status: e.target.value })}>{ROOM_ITEM_STATUSES.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}</select></div>
+                      <div><label htmlFor={`it-notes-${rm.id}`} className={labelCls}>Notes (optional)</label><input id={`it-notes-${rm.id}`} className={fieldCls} value={roomItem.notes} onChange={e => setRoomItem({ ...roomItem, notes: e.target.value })} /></div>
+                    </div>
+                    <div className="flex gap-2 pt-1">
+                      <button type="button" onClick={addRoomItem} className="bg-[#1A1815] text-white py-1.5 px-3 text-[0.625rem] uppercase tracking-wider font-semibold hover:bg-[#B85838]">Save Item</button>
+                      <button type="button" onClick={() => setShowRoomForm(false)} className="bg-white border border-[#1A1815] py-1.5 px-3 text-[0.625rem] uppercase tracking-wider hover:bg-[#FAF8F4]">Cancel</button>
+                    </div>
+                  </div>
+                )}
+                {/* Room note — persistent property memory about this room/bathroom. */}
+                <textarea
+                  className="w-full p-2 border border-[#E8E4DC] text-xs bg-white mb-2"
+                  rows="2"
+                  placeholder={`Notes about ${rm.name} (remembered for every tenant — finishes, quirks, what's where)`}
+                  defaultValue={rm.note || ''}
+                  onBlur={e => { if ((e.target.value || '') !== (rm.note || '')) setRoomNote(rm.id, e.target.value); }}
+                />
+                {/* Room photo gallery — the transformation timeline, oldest first. */}
+                <div className="mb-2">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">📷 {rm.name} photos · {(rm.photos || []).length}</span>
+                    <label className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] cursor-pointer">
+                      + Add photos
+                      <input type="file" accept="image/*" multiple className="hidden" onChange={e => { addRoomPhotos(rm.id, e.target.files); e.target.value = ''; }} />
+                    </label>
+                  </div>
+                  {(rm.photos || []).length === 0 ? (
+                    <p className="text-[0.625rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No photos yet. Add before/after shots to see this room change over the years.</p>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {(() => { const roomPhotos = [...(rm.photos || [])].sort((a, b) => (a.date || '').localeCompare(b.date || '')); return roomPhotos.map((p, pi) => (
+                        <div key={p.id} className="w-24">
+                          <button type="button" onClick={() => setLightbox({ items: roomPhotos.map(x => ({ src: x.src, alt: x.caption || `${rm.name} photo`, caption: x.caption || '', date: x.date || '' })), index: pi })} title="Open full size" className="block"><img src={p.src} alt={p.caption || `${rm.name} photo`} className="w-24 h-24 object-cover border border-[#E8E4DC] hover:border-[#1A1815] cursor-zoom-in" /></button>
+                          <div className="text-[0.5625rem] text-[#5A5751] mt-0.5" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{p.date || ''}</div>
+                          <input className="w-full text-[0.625rem] p-1 border border-[#E8E4DC] bg-white mt-0.5" placeholder="caption" defaultValue={p.caption || ''} onBlur={e => { if ((e.target.value || '') !== (p.caption || '')) setRoomPhotoCaption(rm.id, p.id, e.target.value); }} />
+                          <button type="button" onClick={() => deleteRoomPhoto(rm.id, p.id)} className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] mt-0.5">× remove</button>
+                        </div>
+                      )); })()}
+                    </div>
+                  )}
+                </div>
+                {(rm.items || []).length === 0 ? (
+                  <p className="text-[0.6875rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No items yet.</p>
+                ) : (
+                  <ul className="space-y-1">
+                    {(rm.items || []).map(it => {
+                      const stat = ROOM_ITEM_STATUSES.find(s => s.key === it.status) || ROOM_ITEM_STATUSES[1];
+                      return (
+                        <li key={it.id} className="flex items-center gap-2 text-xs py-1" style={{ fontFamily: '"Fraunces", serif' }}>
+                          <span aria-hidden="true" className="inline-block w-5 text-center font-bold" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{stat.symbol}</span>
+                          <span className="flex-1 min-w-0">{it.name}{it.notes ? <span className="text-[#5A5751] italic"> — {it.notes}</span> : ''}</span>
+                          <label className="sr-only" htmlFor={`it-sel-${it.id}`}>Status for {it.name}</label>
+                          <select id={`it-sel-${it.id}`} className="text-xs border border-[#E8E4DC] bg-white px-2 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]" value={it.status} onChange={e => updateRoomItemStatus(rm.id, it.id, e.target.value)}>{ROOM_ITEM_STATUSES.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}</select>
+                          <span aria-hidden="true" className="h-5 w-px bg-[#E8E4DC] mx-1" />
+                          <button type="button" onClick={() => { if (confirm(`Delete item "${it.name}"?`)) deleteRoomItem(rm.id, it.id); }} aria-label={`Delete ${it.name}`} className="text-xs text-[#5A5751] hover:text-[#B85838] hover:bg-white border border-transparent hover:border-[#B85838] px-3 py-1.5 min-h-[36px] min-w-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">×</button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
               </div>
-              <div className="flex gap-2">
-                <button type="button" onClick={saveMarket} className="bg-[#1A1815] text-white px-4 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">Save</button>
-                <button type="button" onClick={() => setEditingMarket(false)} className="bg-white border border-[#1A1815] px-4 py-2 text-xs uppercase tracking-wider hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]">Cancel</button>
-              </div>
-            </div>
+            ))
           )}
         </div>
       </details>
-
       {/* LEASE + TENANT */}
       <details className="bg-white border border-[#E8E4DC] p-3 mb-2">
         <summary className="cursor-pointer text-xs font-semibold" style={{ fontFamily: '"Fraunces", serif' }}>
           Lease &amp; Tenant Contact
-          {rental.lease?.end && <span className="ml-2 text-[10px] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>· lease ends {rental.lease.end}</span>}
+          {rental.lease?.end && <span className="ml-2 text-[0.625rem] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>· lease ends {rental.lease.end}</span>}
         </summary>
         {!editingLeaseTenant ? (
           <div className="mt-3 space-y-2 text-xs" style={{ fontFamily: '"Fraunces", serif' }}>
@@ -527,11 +985,44 @@ function PropertyDetails({ rental, updateRental, voiceOps = {} }) {
                 <div><span className="text-[#5A5751]">Emergency contact:</span> {rental.tenant?.emergencyContactName || '—'}{rental.tenant?.emergencyContactPhone ? ` · ${rental.tenant.emergencyContactPhone}` : ''}</div>
               </div>
             )}
-            <button type="button" onClick={() => { setLeaseForm(blankLease()); setTenantForm(blankTenant()); setEditingLeaseTenant(true); }} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] mt-1">Edit lease &amp; tenant</button>
+            {/* What the DOOR holds, in the same panel, so the two surfaces
+                stop disagreeing about who lives here. */}
+            {doorTenancies && doorTenancies.length > 0 && (
+              <div className="mt-2 border-t border-[#F0EDE6] pt-2" data-testid="door-tenancies">
+                {/* #5A6E3D, not the #2F5D50 this first reached for: that token
+                    has no midnight remap, so the header measured 2.46:1 on the
+                    dark card and the legibility guard failed the build. This
+                    one is remapped (#86EFAC) and is already the file's
+                    emphasis header at L1870. */}
+                <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A6E3D] font-semibold">
+                  {`On its Poe Properties door · ${doorTenancies.length} ${doorTenancies.length === 1 ? 'tenancy' : 'tenancies'}`}
+                </div>
+                {doorTenancies.map((t) => (
+                  <div key={t.id} className="mt-1 grid grid-cols-1 sm:grid-cols-2 gap-x-2">
+                    <div><span className="text-[#5A5751]">Tenant:</span> {t.tenant_name || '—'}</div>
+                    <div><span className="text-[#5A5751]">Lease start:</span> {t.lease_start || '—'}</div>
+                    <div><span className="text-[#5A5751]">Rent:</span> {t.monthly_rent ? fmt(t.monthly_rent) : '—'}</div>
+                    <div><span className="text-[#5A5751]">Status:</span> {t.status || '—'}</div>
+                    {t.tenant_phone && <div><span className="text-[#5A5751]">Phone:</span> <a href={`tel:${t.tenant_phone}`} className="underline text-[#B85838]">{t.tenant_phone}</a></div>}
+                    {t.tenant_email && <div><span className="text-[#5A5751]">Email:</span> <a href={`mailto:${t.tenant_email}`} className="underline text-[#B85838]">{t.tenant_email}</a></div>}
+                    {t.subsidised && <div className="sm:col-span-2 text-[#5A5751]">Subsidised (Section 8 / voucher)</div>}
+                  </div>
+                ))}
+                <p className="text-[0.625rem] text-[#5A5751] mt-1 italic">
+                  Started on the door, and edited there — this is the record, shown here so both tabs agree.
+                </p>
+              </div>
+            )}
+            {doorTenancies && doorTenancies.length === 0 && (
+              <p className="text-[0.625rem] text-[#5A5751] mt-2 italic" data-testid="door-tenancies-none">
+                No tenancy started on its Poe Properties door. One begun there appears here too.
+              </p>
+            )}
+            <button type="button" onClick={() => { setLeaseForm(blankLease()); setTenantForm(blankTenant()); setEditingLeaseTenant(true); }} className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] mt-1">Edit lease &amp; tenant</button>
           </div>
         ) : (
           <div className="mt-3 space-y-3">
-            <div className="text-[10px] uppercase tracking-[0.2em] text-[#5A5751] font-semibold">Lease</div>
+            <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A5751] font-semibold">Lease</div>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               <div><label htmlFor={`ls-start-${rental.id}`} className={labelCls}>Lease start</label><input id={`ls-start-${rental.id}`} type="date" className={fieldCls} value={leaseForm.start} onChange={e => setLeaseForm({ ...leaseForm, start: e.target.value })} /></div>
               <div><label htmlFor={`ls-end-${rental.id}`} className={labelCls}>Lease end</label><input id={`ls-end-${rental.id}`} type="date" className={fieldCls} value={leaseForm.end} onChange={e => setLeaseForm({ ...leaseForm, end: e.target.value })} /></div>
@@ -540,7 +1031,7 @@ function PropertyDetails({ rental, updateRental, voiceOps = {} }) {
               <div className="sm:col-span-2"><label htmlFor={`ls-late-${rental.id}`} className={labelCls}>Late-fee policy</label><input id={`ls-late-${rental.id}`} className={fieldCls} placeholder="e.g., $50 after the 5th, then $10/day" value={leaseForm.lateFeePolicy} onChange={e => setLeaseForm({ ...leaseForm, lateFeePolicy: e.target.value })} /></div>
               <div className="sm:col-span-3"><label htmlFor={`ls-url-${rental.id}`} className={labelCls}>Signed-lease URL (Google Drive, Dropbox, etc.)</label><input id={`ls-url-${rental.id}`} type="url" className={fieldCls} placeholder="https://..." value={leaseForm.signedDocURL} onChange={e => setLeaseForm({ ...leaseForm, signedDocURL: e.target.value })} /></div>
             </div>
-            <div className="text-[10px] uppercase tracking-[0.2em] text-[#5A5751] font-semibold mt-2">Tenant</div>
+            <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A5751] font-semibold mt-2">Tenant</div>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               <div><label htmlFor={`tn-name-${rental.id}`} className={labelCls}>Name</label><input id={`tn-name-${rental.id}`} className={fieldCls} value={tenantForm.name} onChange={e => setTenantForm({ ...tenantForm, name: e.target.value })} /></div>
               <div><label htmlFor={`tn-phone-${rental.id}`} className={labelCls}>Phone</label><input id={`tn-phone-${rental.id}`} type="tel" className={fieldCls} placeholder="(217) 555-0100" value={tenantForm.phone} onChange={e => setTenantForm({ ...tenantForm, phone: e.target.value })} /></div>
@@ -557,13 +1048,35 @@ function PropertyDetails({ rental, updateRental, voiceOps = {} }) {
         )}
       </details>
 
+      {/* TENANTS (build step b2) — the people who live in this door: the
+          primary (the lease renter) + co-tenants you add, integrated with the
+          same lease the rent ledger uses. */}
+      <TenantRoster rental={rental} />
+
+      {/* At-a-glance this-month paid bar (build step c) — the portfolio load
+          feeds it, so it shows even while the ledger below is collapsed. Only
+          when this door has a synced lease with something DUE. */}
+      {paid && paid.expected > 0 && (
+        <div className="bg-white border border-[#E8E4DC] p-3 mb-2">
+          <div className="flex items-baseline justify-between gap-2 mb-1">
+            <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Rent this month</span>
+            <span className="text-[0.625rem] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(paid.received)} of {fmt(paid.expected)}</span>
+          </div>
+          <PaidBar received={paid.received} expected={paid.expected} />
+        </div>
+      )}
+
+      {/* RENT — PAID VS DUE (build step b): per-door-month payment entry +
+          history over the shipped ledger (lib/rent-payments.js). */}
+      <RentLedger rental={rental} />
+
       {/* EQUIPMENT */}
       <details className="bg-white border border-[#E8E4DC] p-3 mb-2">
         <summary className="cursor-pointer text-xs font-semibold" style={{ fontFamily: '"Fraunces", serif' }}>
-          Mechanical &amp; Equipment <span className="text-[10px] text-[#5A5751] ml-1" style={{ fontFamily: '"JetBrains Mono", monospace' }}>· {(rental.equipment || []).length}</span>
+          Mechanical &amp; Equipment <span className="text-[0.625rem] text-[#5A5751] ml-1" style={{ fontFamily: '"JetBrains Mono", monospace' }}>· {(rental.equipment || []).length}</span>
         </summary>
         <div className="mt-3 space-y-2">
-          <button type="button" onClick={() => { setShowEquipForm(!showEquipForm); setEquipForm(blankEquip()); }} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showEquipForm ? '× Cancel' : '+ Add equipment'}</button>
+          <button type="button" onClick={() => { setShowEquipForm(!showEquipForm); setEquipForm(blankEquip()); }} className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showEquipForm ? '× Cancel' : '+ Add equipment'}</button>
           {showEquipForm && (
             <div className="bg-[#FAF8F4] border border-[#B85838] p-3 space-y-2">
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -579,11 +1092,11 @@ function PropertyDetails({ rental, updateRental, voiceOps = {} }) {
             </div>
           )}
           {(rental.equipment || []).length === 0 ? (
-            <p className="text-[11px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No equipment recorded yet.</p>
+            <p className="text-[0.6875rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No equipment recorded yet.</p>
           ) : (
             <table className="w-full text-xs">
               <thead>
-                <tr className="text-left text-[9px] uppercase tracking-wider text-[#5A5751] border-b border-[#E8E4DC]">
+                <tr className="text-left text-[0.5625rem] uppercase tracking-wider text-[#5A5751] border-b border-[#E8E4DC]">
                   <th scope="col" className="py-1 pr-2">Category</th>
                   <th scope="col" className="py-1 pr-2">Make / Model</th>
                   <th scope="col" className="py-1 pr-2">Serial</th>
@@ -607,153 +1120,34 @@ function PropertyDetails({ rental, updateRental, voiceOps = {} }) {
         </div>
       </details>
 
-      {/* ROOMS & NEEDED WORK */}
-      <details className="bg-white border border-[#E8E4DC] p-3">
-        <summary className="cursor-pointer text-xs font-semibold" style={{ fontFamily: '"Fraunces", serif' }}>
-          Rooms &amp; Needed Work <span className="text-[10px] text-[#5A5751] ml-1" style={{ fontFamily: '"JetBrains Mono", monospace' }}>· {(rental.rooms || []).length} rooms · {((rental.rooms || []).reduce((s, rm) => s + (rm.items || []).length, 0))} items</span>
-        </summary>
-        <div className="mt-3 space-y-3">
-          <div className="flex flex-wrap items-end gap-2">
-            <div className="flex-1 min-w-[140px]">
-              <label htmlFor={`rm-name-${rental.id}`} className={labelCls}>Add room</label>
-              <input id={`rm-name-${rental.id}`} list={`rm-presets-${rental.id}`} className={fieldCls} placeholder="e.g., Kitchen" value={roomName} onChange={e => setRoomName(e.target.value)} />
-              <datalist id={`rm-presets-${rental.id}`}>
-                {ROOM_PRESETS.map(p => <option key={p} value={p} />)}
-              </datalist>
-            </div>
-            <button type="button" onClick={addRoom} className="bg-[#1A1815] text-white py-2 px-3 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838]">+ Room</button>
-          </div>
-          {/* ROOM INCOME — occupancy-revenue model. Always shows the full
-              potential so the opportunity gap motivates filling vacant space. */}
-          {occ.potential > 0 && (
-            <div className="bg-white border-2 border-[#5A6E3D] p-3">
-              <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold mb-1">💵 Room Income · per-room potential</div>
-              <div className="grid grid-cols-3 gap-2 text-center">
-                <div>
-                  <div className="text-base" style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600 }}>{fmt(occ.actual)}</div>
-                  <div className="text-[9px] uppercase tracking-wider text-[#5A5751]">collecting now</div>
-                </div>
-                <div>
-                  <div className="text-base text-[#5A6E3D]" style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600 }}>{fmt(occ.potential)}</div>
-                  <div className="text-[9px] uppercase tracking-wider text-[#5A5751]">full potential</div>
-                </div>
-                <div>
-                  <div className="text-base text-[#B85838]" style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600 }}>{fmt(occ.opportunity)}</div>
-                  <div className="text-[9px] uppercase tracking-wider text-[#5A5751]">opportunity</div>
-                </div>
-              </div>
-              {occ.opportunity > 0 ? (
-                <p className="text-[11px] text-[#1A1815] mt-2 text-center" style={{ fontFamily: '"Fraunces", serif' }}>
-                  <strong>{fmt(occ.opportunity)}/mo</strong> on the table across <strong>{occ.vacantSpots}</strong> open {occ.vacantSpots === 1 ? 'spot' : 'spots'} — market them and the building funds itself faster.
-                </p>
-              ) : (
-                <p className="text-[11px] text-[#5A6E3D] mt-2 text-center font-semibold" style={{ fontFamily: '"Fraunces", serif' }}>Fully occupied — every spot earning. 🎯</p>
-              )}
-            </div>
-          )}
-          {(rental.rooms || []).length === 0 ? (
-            <p className="text-[11px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No rooms yet. Add a room above to start tracking needed work.</p>
-          ) : (
-            (rental.rooms || []).map(rm => (
-              <div key={rm.id} className="bg-[#FAF8F4] border border-[#E8E4DC] p-2">
-                {/* Primary action (+ Item) sits left-of-center; destructive (× Room)
-                    is pushed right with a divider + larger tap target to prevent
-                    accidental destructive taps next to the create action. */}
-                <div className="flex items-center justify-between gap-3 mb-1">
-                  <div className="text-xs font-semibold" style={{ fontFamily: '"Fraunces", serif' }}>{rm.name}</div>
-                  <div className="flex items-center gap-1">
-                    <button type="button" onClick={() => { setRoomItem({ roomId: rm.id, name: '', status: 'needs-work', notes: '' }); setShowRoomForm(true); }} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] px-3 py-2 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">+ Item</button>
-                    <span aria-hidden="true" className="h-5 w-px bg-[#E8E4DC] mx-1" />
-                    <button type="button" onClick={() => deleteRoom(rm.id)} aria-label={`Delete room ${rm.name}`} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] hover:bg-white px-3 py-2 min-h-[36px] border border-transparent hover:border-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">× Room</button>
-                  </div>
-                </div>
-                {/* Occupancy — drives the room-income model. Empty / half / full. */}
-                <div className="flex items-center gap-1.5 mb-2 flex-wrap">
-                  <span className="text-[9px] uppercase tracking-wider text-[#5A5751]">Occupancy:</span>
-                  {OCCUPANCY_OPTIONS.map(o => {
-                    const active = (Number(rm.occupants) || 0) === o.occupants;
-                    return (
-                      <button key={o.occupants} type="button" onClick={() => setRoomOccupancy(rm.id, o.occupants)} aria-pressed={active} className={`text-[10px] uppercase tracking-wider px-2 py-1 border ${active ? 'bg-[#5A6E3D] text-white border-[#5A6E3D]' : 'text-[#5A5751] border-[#E8E4DC] hover:border-[#1A1815]'}`}>{o.label}</button>
-                    );
-                  })}
-                  <span className="text-[10px] ml-auto" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-                    <span className={roomActualMonthly(rm) > 0 ? 'text-[#5A6E3D] font-semibold' : 'text-[#5A5751]'}>{fmt(roomActualMonthly(rm))}</span>
-                    <span className="text-[#5A5751]"> / {fmt(roomPotentialMonthly(rm))}</span>
-                  </span>
-                </div>
-                {showRoomForm && roomItem.roomId === rm.id && (
-                  <div className="bg-white border border-[#B85838] p-2 mb-2 space-y-1">
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                      <div><label htmlFor={`it-name-${rm.id}`} className={labelCls}>Item</label><input id={`it-name-${rm.id}`} list={`it-presets-${rm.id}`} className={fieldCls} placeholder="e.g., Plumbing — Sink" value={roomItem.name} onChange={e => setRoomItem({ ...roomItem, name: e.target.value })} /><datalist id={`it-presets-${rm.id}`}>{ROOM_ITEM_PRESETS.map(p => <option key={p} value={p} />)}</datalist></div>
-                      <div><label htmlFor={`it-status-${rm.id}`} className={labelCls}>Status</label><select id={`it-status-${rm.id}`} className={fieldCls} value={roomItem.status} onChange={e => setRoomItem({ ...roomItem, status: e.target.value })}>{ROOM_ITEM_STATUSES.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}</select></div>
-                      <div><label htmlFor={`it-notes-${rm.id}`} className={labelCls}>Notes (optional)</label><input id={`it-notes-${rm.id}`} className={fieldCls} value={roomItem.notes} onChange={e => setRoomItem({ ...roomItem, notes: e.target.value })} /></div>
-                    </div>
-                    <div className="flex gap-2 pt-1">
-                      <button type="button" onClick={addRoomItem} className="bg-[#1A1815] text-white py-1.5 px-3 text-[10px] uppercase tracking-wider font-semibold hover:bg-[#B85838]">Save Item</button>
-                      <button type="button" onClick={() => setShowRoomForm(false)} className="bg-white border border-[#1A1815] py-1.5 px-3 text-[10px] uppercase tracking-wider hover:bg-[#FAF8F4]">Cancel</button>
-                    </div>
-                  </div>
-                )}
-                {/* Room note — persistent property memory about this room/bathroom. */}
-                <textarea
-                  className="w-full p-2 border border-[#E8E4DC] text-xs bg-white mb-2"
-                  rows="2"
-                  placeholder={`Notes about ${rm.name} (remembered for every tenant — finishes, quirks, what's where)`}
-                  defaultValue={rm.note || ''}
-                  onBlur={e => { if ((e.target.value || '') !== (rm.note || '')) setRoomNote(rm.id, e.target.value); }}
-                />
-                {/* Room photo gallery — the transformation timeline, oldest first. */}
-                <div className="mb-2">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-[9px] uppercase tracking-wider text-[#5A5751]">📷 {rm.name} photos · {(rm.photos || []).length}</span>
-                    <label className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] cursor-pointer">
-                      + Add photos
-                      <input type="file" accept="image/*" multiple className="hidden" onChange={e => { addRoomPhotos(rm.id, e.target.files); e.target.value = ''; }} />
-                    </label>
-                  </div>
-                  {(rm.photos || []).length === 0 ? (
-                    <p className="text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No photos yet. Add before/after shots to see this room change over the years.</p>
-                  ) : (
-                    <div className="flex flex-wrap gap-2">
-                      {(() => { const roomPhotos = [...(rm.photos || [])].sort((a, b) => (a.date || '').localeCompare(b.date || '')); return roomPhotos.map((p, pi) => (
-                        <div key={p.id} className="w-24">
-                          <button type="button" onClick={() => setLightbox({ items: roomPhotos.map(x => ({ src: x.src, alt: x.caption || `${rm.name} photo`, caption: x.caption || '', date: x.date || '' })), index: pi })} title="Open full size" className="block"><img src={p.src} alt={p.caption || `${rm.name} photo`} className="w-24 h-24 object-cover border border-[#E8E4DC] hover:border-[#1A1815] cursor-zoom-in" /></button>
-                          <div className="text-[9px] text-[#5A5751] mt-0.5" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{p.date || ''}</div>
-                          <input className="w-full text-[10px] p-1 border border-[#E8E4DC] bg-white mt-0.5" placeholder="caption" defaultValue={p.caption || ''} onBlur={e => { if ((e.target.value || '') !== (p.caption || '')) setRoomPhotoCaption(rm.id, p.id, e.target.value); }} />
-                          <button type="button" onClick={() => deleteRoomPhoto(rm.id, p.id)} className="text-[9px] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] mt-0.5">× remove</button>
-                        </div>
-                      )); })()}
-                    </div>
-                  )}
-                </div>
-                {(rm.items || []).length === 0 ? (
-                  <p className="text-[11px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No items yet.</p>
-                ) : (
-                  <ul className="space-y-1">
-                    {(rm.items || []).map(it => {
-                      const stat = ROOM_ITEM_STATUSES.find(s => s.key === it.status) || ROOM_ITEM_STATUSES[1];
-                      return (
-                        <li key={it.id} className="flex items-center gap-2 text-xs py-1" style={{ fontFamily: '"Fraunces", serif' }}>
-                          <span aria-hidden="true" className="inline-block w-5 text-center font-bold" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{stat.symbol}</span>
-                          <span className="flex-1 min-w-0">{it.name}{it.notes ? <span className="text-[#5A5751] italic"> — {it.notes}</span> : ''}</span>
-                          <label className="sr-only" htmlFor={`it-sel-${it.id}`}>Status for {it.name}</label>
-                          <select id={`it-sel-${it.id}`} className="text-xs border border-[#E8E4DC] bg-white px-2 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]" value={it.status} onChange={e => updateRoomItemStatus(rm.id, it.id, e.target.value)}>{ROOM_ITEM_STATUSES.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}</select>
-                          <span aria-hidden="true" className="h-5 w-px bg-[#E8E4DC] mx-1" />
-                          <button type="button" onClick={() => { if (confirm(`Delete item "${it.name}"?`)) deleteRoomItem(rm.id, it.id); }} aria-label={`Delete ${it.name}`} className="text-xs text-[#5A5751] hover:text-[#B85838] hover:bg-white border border-transparent hover:border-[#B85838] px-3 py-1.5 min-h-[36px] min-w-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">×</button>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                )}
-              </div>
-            ))
-          )}
-        </div>
-      </details>
       <Lightbox items={lightbox?.items} index={lightbox?.index || 0} onClose={() => setLightbox(null)} />
     </div>
   );
 }
+
+// The sub-tabs inside an opened property record. NOTES leads because that is
+// what people open a record for (Darrell, 2026-08-28: "Notes is the main reason
+// someone or a user hits edit on the Real Estate tab"). Counts read the same
+// arrays property-record-counts reads, so a tab label and its panel agree.
+
+// The labels one split would propose, for a level and a shape. Kept beside the
+// component (not inside it) so the panel and the confirm path derive labels the
+// same way and cannot drift apart.
+function splitLabels(base, level, count, bedsPerRoom) {
+  const plan = planSplit({ ...base, building: (base.building || base.address || base.name || 'x') }, {
+    level, count, bedsPerRoom,
+  });
+  if (plan.ok) return plan.children.map((c) => c.label);
+  return defaultLabels(level, Math.max(2, count || 2), base);
+}
+
+const RECORD_TABS = [
+  { id: 'notes', label: 'Notes', count: (r) => (r.unitNotes || []).length + (r.conversationLog || []).length },
+  { id: 'work', label: 'Work', count: (r) => (r.maintenanceLog || []).length },
+  { id: 'photos', label: 'Photos', count: (r) => (r.photos || []).length },
+  { id: 'property', label: 'Property', count: (r) => (r.rooms || []).length + (r.equipment || []).length },
+  { id: 'tenancy', label: 'Tenancy', count: null },
+];
 
 function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, snowballExtra, setSnowballExtra, rentalSnowball, sevenYearTarget, currentDate, addRental, updateRental, deleteRental, readOnly = false, incidents = [], addIncident, resolveIncident, contractors = [], workerOps = {}, voiceOps = {} }) {
   // Round 10 — Tenant-late affordance helpers. Given a rental, find the open
@@ -763,6 +1157,37 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
   // before the user clicks an urgency button. Keyed by rental.id so multiple
   // late-rent prompts don't share state.
   const [tenantLateSelectedLinks, setTenantLateSelectedLinks] = useState({});
+  // Real this-month paid-vs-due across every door (build step c) — ONE batched
+  // read of the rent_payments ledger, keyed by the door's cloud uuid. Powers the
+  // portfolio "collected this month" strip and each door's at-a-glance bar. A
+  // door with a synced lease but no row yet is DUE-but-unpaid, never invisible
+  // (DR-0061/DR-0076). Signed-out / no-lease → empty, honestly.
+  const [paidPortfolio, setPaidPortfolio] = useState({ byDoor: {}, rollup: { received: 0, expected: 0, percent: 0, doors: 0, doorsPaid: 0, doorsPartial: 0, doorsUnpaid: 0 } });
+  useEffect(() => {
+    let live = true;
+    (async () => {
+      try {
+        const { data: sess } = await supabase.auth.getUser();
+        if (!sess || !sess.user) return;
+        const tenantId = await getInstanceId();
+        const out = await loadPortfolioPaid(supabase, tenantId);
+        if (live) setPaidPortfolio(out);
+      } catch { /* keep the honest empty default */ }
+    })();
+    return () => { live = false; };
+  }, []);
+  // The bridge token provisions ITSELF on a signed-in family device (0128 /
+  // DR-0268 — "Humans don't do anything"): a device without the token pulls it
+  // through the owner-gated RPC into localStorage, so the photos/history
+  // panels open working instead of on a paste gate. Signed-out / demo gets
+  // nothing and keeps the honest gate. The state bump re-renders the panels
+  // that read hasBridgeToken() at open time.
+  const [, setBridgeReady] = useState(0);
+  useEffect(() => {
+    let live = true;
+    provisionBridgeToken(supabase).then((r) => { if (live && r === 'provisioned') setBridgeReady((n) => n + 1); });
+    return () => { live = false; };
+  }, []);
   // Real per-property photo count: the live NAS chat-channel archive (the photos
   // you actually see), fetched once per property. Falls back to locally filed
   // (room + maintenance) photos when the NAS isn't reachable.
@@ -831,6 +1256,25 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
   const [editingPropId, setEditingPropId] = useState(null);
   const blankProp = () => ({ name: '', address: '', city: '', state: '', zip: '', tenantName: '', lat: null, lon: null, propertyType: 'single-family', units: 1, building: '', unitLabel: '', rent: 0, status: 'paying', entityId: 'e-poeprops', purchasePrice: 0, purchaseDate: '', estimatedValue: 0, mortgageBalance: 0, mortgageRate: 6.5, monthlyPI: 0, escrow: 0, notes: '' });
   const [propForm, setPropForm] = useState(blankProp());
+  // Multi-unit add flow (2026-07-05, Darrell: "a drop down for number of doors
+  // and it automatically makes the 4 apts with same address"). Picking 2+ doors
+  // on ADD seeds editable unit labels (Apt 1..N); saving creates one door PER
+  // unit sharing the address — never one card carrying a units:N counter (the
+  // shape that collapsed 805 N Prospect and lost its per-unit records).
+  const [addUnitLabels, setAddUnitLabels] = useState([]);
+  const setDoorCount = (n, editing) => {
+    const count = Math.max(1, parseInt(n, 10) || 1);
+    if (!editing) setAddUnitLabels(prev => (count >= 2 ? defaultUnitLabels(count).map((d, i) => prev[i] ?? d) : []));
+    setPropForm(f => ({
+      ...f,
+      units: count,
+      // A 2+ door pick on a "one-unit" type is a multi building — flip the type
+      // so the family never has to know the taxonomy. Explicit picks stand.
+      propertyType: count >= 2 && ['single-family', 'condo', 'townhouse'].includes(f.propertyType)
+        ? (count === 2 ? 'duplex' : 'multi-family')
+        : f.propertyType,
+    }));
+  };
   const [suggestions, setSuggestions] = useState([]);
   const [suggestLoading, setSuggestLoading] = useState(false);
   const suggestTimer = useRef(null);
@@ -973,7 +1417,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
   // the row being edited (drop-down style) — see renderPropertyRow's
   // {editingPropId === r.id && renderPropertyForm()} block below. Only "Add new"
   // uses the top form.
-  const startAddProp = () => { setPropForm(blankProp()); setEditingPropId(null); setShowPropForm(true); setSuggestions([]); try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) {} };
+  const startAddProp = () => { setPropForm(blankProp()); setEditingPropId(null); setShowPropForm(true); setSuggestions([]); setAddUnitLabels([]); try { window.scrollTo({ top: 0, behavior: motionBehavior() }); } catch (e) {} };
   const startEditProp = (r) => {
     setPropForm({
       name: r.name || '', address: r.address || '', city: r.city || '', state: r.state || '', zip: r.zip || '',
@@ -988,15 +1432,17 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
       monthlyPI: r.mortgage?.monthlyPI || 0, escrow: r.mortgage?.escrow || 0,
       notes: r.notes || '',
     });
-    setEditingPropId(r.id); setShowPropForm(false); setSuggestions([]);
+    setEditingPropId(r.id); setShowPropForm(false); setSuggestions([]); setAddUnitLabels([]);
     // NO scroll — inline form opens right under the row, eyes stay where you tapped.
   };
-  const cancelPropForm = () => { setShowPropForm(false); setEditingPropId(null); setSuggestions([]); };
+  const cancelPropForm = () => { setShowPropForm(false); setEditingPropId(null); setSuggestions([]); setAddUnitLabels([]); };
 
   const submitProp = () => {
-    if (!propForm.name || !propForm.address) { alert('Property name and address are required.'); return; }
+    if (!propForm.address && !propForm.name) { alert('Enter the address (or a property name).'); return; }
+    // Name derives from the address when left blank — the app never makes the
+    // family re-type a value it already holds.
     const payload = {
-      name: propForm.name,
+      name: propForm.name || propForm.address,
       address: propForm.address, city: propForm.city, state: propForm.state, zip: propForm.zip,
       tenantName: propForm.tenantName,
       lat: propForm.lat, lon: propForm.lon,
@@ -1020,8 +1466,18 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
       },
       notes: propForm.notes,
     };
-    if (editingPropId) updateRental(editingPropId, payload);
-    else addRental(payload);
+    if (editingPropId) { updateRental(editingPropId, payload); cancelPropForm(); return; }
+    // Multi-unit ADD: 2+ doors picked → one door record PER unit, all sharing
+    // this address under one building. Each door is its own card afterwards —
+    // its own tenant, rent, records, photos, thread. Building-level figures
+    // (mortgage, purchase, notes) land on the first door only (see
+    // buildNewBuildingDoors), so portfolio totals count them once.
+    const labels = addUnitLabels.map((s) => s.trim()).filter(Boolean);
+    if (labels.length >= 2) {
+      buildNewBuildingDoors(payload, labels).forEach((d) => addRental(d));
+    } else {
+      addRental(payload);
+    }
     cancelPropForm();
   };
   const confirmDeleteProp = (r) => { if (confirm(`Delete property "${r.name}"? Snowball math will recompute without it.`)) deleteRental(r.id); };
@@ -1034,38 +1490,86 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
   // so each apartment regains its own notes / maintenance / photos / thread /
   // requests. Names come from the family (never invented), defaulting to the
   // four apartments the Synology-Chat source records for 805 (apt 1..4).
-  const restoreUnits = (base) => {
-    const suggested = base.address ? `${base.address}` : (base.name || 'Building');
-    const buildingName = (base.building && base.building.trim())
-      || (prompt('Building name (groups the units):', suggested) || '').trim();
-    if (!buildingName) return;
-    const raw = prompt(
-      `Unit labels for "${buildingName}", comma-separated:`,
-      'Apt 1, Apt 2, Apt 3, Apt 4'
-    );
-    if (!raw) return;
-    const labels = raw.split(',').map((s) => s.trim()).filter(Boolean);
-    if (labels.length < 2) { alert('Enter at least two units (e.g. Apt 1, Apt 2).'); return; }
-    // The existing door becomes the first unit under the building.
+  // Split panel state (2026-07-05): replaces the old two-prompt() restoreUnits
+  // flow with an inline form — a door-count dropdown seeds editable Apt 1..N
+  // labels, one tap creates the doors. { id, building, labels } or null.
+  const [splitFor, setSplitFor] = useState(null);
+  // THE SPLIT IS THE SAME MOVE AT EVERY LEVEL (Darrell 2026-08-28: "all rooms
+  // should be able to do what I had to do"). A unit splits into rooms; a room
+  // splits into beds; a bed is the floor and says so. The labels the panel
+  // proposes are the ones he was typing by hand — "Room 1 - Bed A" — and every
+  // one stays editable before Save, exactly as before.
+  const openSplit = (r) => {
+    if (splitFor && splitFor.id === r.id) { setSplitFor(null); return; }
+    const target = splitTarget(r);
+    if (!target) { alert(refuseSplit(r)); return; }
+    const n = Math.max(2, target === 'room' ? Math.max(2, unitsOf(r)) : 2);
+    setSplitFor({
+      id: r.id,
+      level: target,
+      bedsPerRoom: 1,
+      building: (r.building || '').trim() || String(r.address || r.name || '').trim(),
+      labels: splitLabels(r, target, n, 1),
+    });
+  };
+  // Every control on the panel re-proposes the labels for the new shape, but a
+  // label the landlord has already edited is HIS — re-deriving over the top of
+  // his typing is the thing that made him do this by hand in the first place.
+  const reshapeSplit = (patch) => setSplitFor((sp) => {
+    if (!sp) return sp;
+    const next = { ...sp, ...patch };
+    const base = rentals.find((x) => x.id === sp.id) || {};
+    const fresh = splitLabels(base, next.level, patch.count ?? sp.labels.length, next.bedsPerRoom);
+    const prior = splitLabels(base, sp.level, sp.labels.length, sp.bedsPerRoom);
+    next.labels = fresh.map((d, i) => (sp.labels[i] !== undefined && sp.labels[i] !== prior[i] ? sp.labels[i] : d));
+    return next;
+  });
+  const setSplitCount = (n) => reshapeSplit({ count: Math.max(2, parseInt(n, 10) || 2) });
+  const confirmSplit = (base) => {
+    if (!splitFor || splitFor.id !== base.id) return;
+    const buildingName = splitFor.building.trim();
+    const labels = splitFor.labels.map((s) => s.trim()).filter(Boolean);
+    if (!buildingName || labels.length < 2) { alert('Give the building a name and at least two unit labels.'); return; }
+    // The shape the panel is showing, so the level and room land on every door
+    // rather than only the labels. Its own labels are replaced by whatever the
+    // landlord typed — the plan decides the STRUCTURE, he decides the words.
+    const plan = planSplit({ ...base, building: buildingName }, {
+      level: splitFor.level,
+      count: splitFor.level === 'room' ? Math.ceil(labels.length / Math.max(1, splitFor.bedsPerRoom)) : labels.length,
+      bedsPerRoom: splitFor.bedsPerRoom,
+    });
+    const shape = (i) => (plan.ok && plan.children[i]) || { level: splitFor.level, roomLabel: null };
+
+    // The existing door becomes the first child under the building — it keeps
+    // its tenant, rent, records, photos, and thread.
     updateRental(base.id, {
       building: buildingName,
       unitLabel: labels[0],
+      rentableLevel: shape(0).level,
+      roomLabel: shape(0).roomLabel || null,
       propertyType: base.propertyType && base.propertyType !== 'single-family' ? base.propertyType : 'multi-family',
       units: 1,
       name: base.address ? `${base.address} ${labels[0]}` : `${buildingName} ${labels[0]}`,
     });
-    // The remaining units become their own doors, sharing the building.
+    // The rest become their own doors, sharing the building — each carrying the
+    // level and room it was created as, so a second device can see the nesting.
     let n = 0;
-    const newDoors = buildRestoreUnits({ ...base, building: buildingName }, labels.slice(1),
-      () => `r-unit-${base.id}-${(++n)}`);
-    newDoors.forEach((d) => addRental(d));
-    alert(`Restored ${labels.length} doors under "${buildingName}". Each unit now has its own records, notes, requests, and thread.`);
+    buildRestoreUnits({ ...base, building: buildingName }, labels.slice(1),
+      () => `r-unit-${base.id}-${(++n)}`)
+      .forEach((d, i) => addRental({
+        ...d,
+        rentableLevel: shape(i + 1).level,
+        roomLabel: shape(i + 1).roomLabel || null,
+      }));
+    setSplitFor(null);
   };
 
   // v28+ Maintenance trio: per-property records (maintenance log + conversations)
   // Stored on the rental record itself. All local, zero ongoing cost.
   const MAINT_CATEGORIES = ['roof','plumbing','hvac','electrical','appliance','exterior','interior','lawn','pest','flooring','windows','general','other'];
   const [openRecordsId, setOpenRecordsId] = useState(null); // which property's records are expanded
+  // Which sub-tab of the open record is showing. Notes first, always.
+  const [recTab, setRecTab] = useState('notes');
   const [showMaintForm, setShowMaintForm] = useState(false);
   const [showConvForm, setShowConvForm] = useState(false);
   // Round 10 — Maintenance entries carry an ITSM urgency band so the family
@@ -1088,6 +1592,9 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
   const openRecords = (r) => {
     const opening = r.id !== openRecordsId;
     setOpenRecordsId(opening ? r.id : null);
+    // Every open starts on Notes — a record remembering the tab you left it on
+    // means the next property opens somewhere you did not choose.
+    if (opening) setRecTab('notes');
     setShowMaintForm(false); setShowConvForm(false); setMaintForm(blankMaint()); setConvForm(blankConv());
     // 2026-06-12 auto-populate (Darrell: "the images are already there...
     // why should I [start it]"): when this device holds the bridge token,
@@ -1161,7 +1668,11 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
     }
     setChatImport({ rentalId: r.id, status: 'loading', messages: [], already: 0 });
     try {
-      const resp = await fetch(`/n8n/webhook/property-history?channel=${encodeURIComponent(chatChannelFor(r))}`, {
+      // Sovereign-neutral route (DR-0218 zero-n8n): reads the rental's chat
+      // history from the NAS through the same-origin transport, served by a
+      // Python endpoint (not n8n). Not live until that endpoint + its Caddy
+      // route are stood up; the app degrades cleanly (need-token / error) until.
+      const resp = await fetch(`/property-history?channel=${encodeURIComponent(chatChannelFor(r))}`, {
         headers: { authorization: `Bearer ${token}` },
       });
       if (resp.status === 401 || resp.status === 403) {
@@ -1240,6 +1751,9 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
   };
   const startPhotoImport = (r) => fetchPhotoPage(r, 0);
   const setPhotoRoom = (photoId, room) => setPhotoImport(p => p ? { ...p, photos: p.photos.map(x => x.id === photoId ? { ...x, room } : x) } : p);
+  // Which photo is naming a brand-new room inline ("Other room…"). Replaces the
+  // old blocking window.prompt() with a small text field next to the picker.
+  const [customRoomFor, setCustomRoomFor] = useState(null);
   const filePhotoToRoom = (r, photo) => {
     if (!photo.room || !photo.thumb) return;
     const entry = { id: `ph-chat-${photo.id}`, src: photo.thumb, date: photo.date || '', caption: photo.text || '' };
@@ -1249,7 +1763,8 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
     // (or reuse one with the same name) before filing the photo into it, so you
     // can pick an obvious room like "Living Room" without adding it first.
     if (photo.room.startsWith('new:')) {
-      const name = photo.room.slice(4);
+      const name = photo.room.slice(4).trim();
+      if (!name) return;
       const existing = rooms.find(rm => (rm.name || '').toLowerCase() === name.toLowerCase());
       if (existing) {
         targetId = existing.id;
@@ -1328,20 +1843,22 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
         <>
       <section>
         <div className="flex items-baseline justify-between mb-3 pb-2 border-b border-[#1A1815] gap-2 flex-wrap">
-          <h2 className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751]">Properties · {rentals.length}</h2>
-          <button type="button" onClick={() => showPropForm ? cancelPropForm() : startAddProp()} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showPropForm ? '× Cancel' : '+ Add property'}</button>
+          <h2 className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751]">Properties · {rentals.length}</h2>
+          <button type="button" onClick={() => showPropForm ? cancelPropForm() : startAddProp()} className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showPropForm ? '× Cancel' : '+ Add property'}</button>
         </div>
 
-        {/* Round 7 — Top form is for ADD only. When editing, the same form
-            renders inline inside the row being edited via {propFormBlock} below. */}
-        {showPropForm && !editingPropId && (
+        {/* Round 7 — Top form is for ADD, and for FULL-EDIT when "Full editor ↗"
+            is tapped from a row's quick edit (2026-07-05 fix: the old
+            !editingPropId guard made that link scroll to a form that never
+            rendered). Quick edits still happen inline under the row. */}
+        {showPropForm && (
           <div className="bg-white border border-[#B85838] p-4 mb-3 space-y-3">
-            <div className="text-[10px] uppercase tracking-[0.2em] text-[#B85838] font-medium">{editingPropId ? 'Edit property' : 'New property · address autocomplete via OpenStreetMap'}</div>
+            <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#B85838] font-medium">{editingPropId ? 'Edit property' : 'New property · address autocomplete via OpenStreetMap'}</div>
 
             <div>
-              <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Address (start typing — suggestions appear)</label>
+              <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Address (start typing — suggestions appear)</label>
               <input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="123 Main St, Cedar Heights" value={propForm.address} onChange={e => { setPropForm({ ...propForm, address: e.target.value }); fetchSuggestions(e.target.value); }} />
-              {suggestLoading && <div className="text-[10px] text-[#5A5751] italic mt-1">Searching...</div>}
+              {suggestLoading && <div className="text-[0.625rem] text-[#5A5751] italic mt-1">Searching...</div>}
               {suggestions.length > 0 && (
                 <div className="border border-[#E8E4DC] bg-white mt-1 max-h-48 overflow-y-auto">
                   {suggestions.map((s, i) => (
@@ -1355,63 +1872,90 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               <div>
-                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Property name</label>
-                <input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="e.g., 805 Apt 1" value={propForm.name} onChange={e => setPropForm({ ...propForm, name: e.target.value })} />
+                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Property name (optional — defaults to address)</label>
+                <input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="e.g., 805 N Prospect" value={propForm.name} onChange={e => setPropForm({ ...propForm, name: e.target.value })} />
               </div>
               <div>
-                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">City</label>
+                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">City</label>
                 <input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={propForm.city} onChange={e => setPropForm({ ...propForm, city: e.target.value })} />
               </div>
               <div>
-                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">State</label>
+                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">State</label>
                 <input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={propForm.state} onChange={e => setPropForm({ ...propForm, state: e.target.value })} />
               </div>
               <div>
-                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Zip</label>
+                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Zip</label>
                 <input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={propForm.zip} onChange={e => setPropForm({ ...propForm, zip: e.target.value })} />
               </div>
             </div>
 
             <div>
-              <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Current tenant name (optional)</label>
+              <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Current tenant name (optional)</label>
               <input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="e.g., Tracy Williams — leave blank for personal or vacant" value={propForm.tenantName} onChange={e => setPropForm({ ...propForm, tenantName: e.target.value })} />
-              <p className="text-[10px] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>If set, the tenant name shows on the property card. Property name (address) stays the property's primary label.</p>
+              <p className="text-[0.625rem] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>If set, the tenant name shows on the property card. Property name (address) stays the property's primary label.</p>
             </div>
             <div>
-              <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Doors / units</label>
-              <input type="number" min="1" step="1" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={propForm.units} onChange={e => setPropForm({ ...propForm, units: e.target.value })} />
-              <p className="text-[10px] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>Rentable doors in this property — a single-family = 1, a fourplex = 4. Feeds the portfolio door count up top.</p>
+              <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Doors / units</label>
+              <select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={String(Math.max(1, parseInt(propForm.units, 10) || 1))} onChange={e => setDoorCount(e.target.value, !!editingPropId)}>
+                {[1,2,3,4,5,6,7,8,9,10,11,12].map(n => <option key={n} value={n}>{n === 1 ? '1 · single door' : `${n} doors`}</option>)}
+              </select>
+              <p className="text-[0.625rem] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>A single-family home = 1 · duplex = 2 · fourplex = 4. Pick 2+ and saving creates every unit for you.</p>
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Building (groups units)</label>
-                <input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="e.g., 805 N Prospect" value={propForm.building} onChange={e => setPropForm({ ...propForm, building: e.target.value })} />
-                <p className="text-[0.625rem] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>Give the same building name to each apartment to group them as one building with separate doors.</p>
+            {/* Multi-unit add: the labels the doors will carry — auto Apt 1..N,
+                every one editable before saving. */}
+            {!editingPropId && addUnitLabels.length >= 2 && (
+              <div className="bg-[#FAF8F4] border-2 border-[#5A6E3D] p-3 space-y-2">
+                <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A6E3D] font-semibold">One save · {addUnitLabels.length} doors at this address</div>
+                <p className="text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+                  Each unit becomes its own door under <strong>{(propForm.address || propForm.name || 'this building').trim() || 'this building'}</strong> — its own tenant, rent, records, photos, and message thread. Rename any unit:
+                </p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {addUnitLabels.map((label, i) => (
+                    <input key={i} aria-label={`Unit ${i + 1} label`} className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#5A6E3D]" value={label} onChange={e => setAddUnitLabels(ls => ls.map((l, j) => j === i ? e.target.value : l))} />
+                  ))}
+                </div>
+                <p className="text-[0.625rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>Monthly rent below applies to EACH door. Mortgage, purchase figures, tenant, and notes save on {addUnitLabels[0] || 'the first unit'} — the building's totals count them once.</p>
               </div>
-              <div>
-                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Unit label (optional)</label>
-                <input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="e.g., Apt 3" value={propForm.unitLabel} onChange={e => setPropForm({ ...propForm, unitLabel: e.target.value })} />
+            )}
+            {/* Single door: joining an EXISTING building (e.g. adding Apt 5
+                later) is still one field away. */}
+            {(editingPropId || addUnitLabels.length < 2) && (
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Building (groups units)</label>
+                  <input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="e.g., 805 N Prospect" value={propForm.building} onChange={e => setPropForm({ ...propForm, building: e.target.value })} />
+                  <p className="text-[0.625rem] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>Give the same building name to each apartment to group them as one building with separate doors.</p>
+                </div>
+                <div>
+                  <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Unit label (optional)</label>
+                  <input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="e.g., Apt 3" value={propForm.unitLabel} onChange={e => setPropForm({ ...propForm, unitLabel: e.target.value })} />
+                </div>
               </div>
-            </div>
+            )}
+            {editingPropId && (parseInt(propForm.units, 10) || 1) >= 2 && !(propForm.building || '').trim() && (
+              <p className="text-[0.625rem] text-[#B85838] italic" style={{ fontFamily: '"Fraunces", serif' }}>
+                This counts {parseInt(propForm.units, 10)} doors on ONE card. To give every unit its own card and records, save, then tap “Split into doors” on the property card.
+              </p>
+            )}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               <div>
-                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Property type</label>
+                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Property type</label>
                 <select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={propForm.propertyType} onChange={e => setPropForm({ ...propForm, propertyType: e.target.value })}>
                   {['single-family','multi-family','commercial','condo','townhouse','duplex','primary-home','secondary-home','vacation','land','other'].map(t => <option key={t} value={t}>{t}</option>)}
                 </select>
               </div>
               <div>
-                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Monthly rent</label>
+                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">{!editingPropId && addUnitLabels.length >= 2 ? 'Monthly rent · per door' : 'Monthly rent'}</label>
                 <input type="number" step="0.01" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={propForm.rent} onChange={e => setPropForm({ ...propForm, rent: e.target.value })} />
               </div>
               <div>
-                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Status</label>
+                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Status</label>
                 <select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={propForm.status} onChange={e => setPropForm({ ...propForm, status: e.target.value })}>
                   {['paying','late','vacant','rehab','for-sale','sold','owner-occupied','seasonal','unrented'].map(t => <option key={t} value={t}>{t}</option>)}
                 </select>
               </div>
               <div>
-                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Entity</label>
+                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Entity</label>
                 <select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={propForm.entityId} onChange={e => setPropForm({ ...propForm, entityId: e.target.value })}>
                   {entities.map(en => <option key={en.id} value={en.id}>{en.name.split('(')[0].trim()}</option>)}
                 </select>
@@ -1420,34 +1964,34 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               <div>
-                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Purchase price</label>
+                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Purchase price</label>
                 <input type="number" step="100" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={propForm.purchasePrice} onChange={e => setPropForm({ ...propForm, purchasePrice: e.target.value })} />
               </div>
               <div>
-                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Purchase date</label>
+                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Purchase date</label>
                 <input type="date" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={propForm.purchaseDate} onChange={e => setPropForm({ ...propForm, purchaseDate: e.target.value })} />
               </div>
               <div>
-                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Est. value (today)</label>
+                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Est. value (today)</label>
                 <input type="number" step="100" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={propForm.estimatedValue} onChange={e => setPropForm({ ...propForm, estimatedValue: e.target.value })} />
               </div>
               <div>
-                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Mortgage balance</label>
+                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Mortgage balance</label>
                 <input type="number" step="100" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={propForm.mortgageBalance} onChange={e => setPropForm({ ...propForm, mortgageBalance: e.target.value })} />
               </div>
             </div>
 
             <div className="grid grid-cols-3 gap-2">
               <div>
-                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Mortgage rate %</label>
+                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Mortgage rate %</label>
                 <input type="number" step="0.01" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={propForm.mortgageRate} onChange={e => setPropForm({ ...propForm, mortgageRate: e.target.value })} />
               </div>
               <div>
-                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Monthly P&I</label>
+                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Monthly P&I</label>
                 <input type="number" step="0.01" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={propForm.monthlyPI} onChange={e => setPropForm({ ...propForm, monthlyPI: e.target.value })} />
               </div>
               <div>
-                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Escrow / mo</label>
+                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Escrow / mo</label>
                 <input type="number" step="0.01" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={propForm.escrow} onChange={e => setPropForm({ ...propForm, escrow: e.target.value })} />
               </div>
             </div>
@@ -1456,41 +2000,41 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
 
             {/* Auto-evaluator */}
             <div className="bg-[#FAF8F4] border border-[#1A1815] p-3">
-              <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-2">Auto-Evaluator · Live as you type</div>
+              <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-2">Auto-Evaluator · Live as you type</div>
               <div className="grid grid-cols-2 sm:grid-cols-5 gap-px bg-[#E8E4DC] border border-[#E8E4DC]">
                 <div className="bg-white p-2">
-                  <div className="text-[9px] uppercase tracking-wider text-[#5A5751]">Cap rate</div>
+                  <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Cap rate</div>
                   <div className="text-base" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{evaluator.capRate.toFixed(2)}%</div>
-                  <div className={`text-[9px] ${evaluator.capRate >= 8 ? 'text-[#5A6E3D]' : evaluator.capRate >= 5 ? 'text-[#5A5751]' : 'text-[#B85838]'}`}>{evaluator.capRate >= 8 ? 'Strong' : evaluator.capRate >= 5 ? 'OK' : 'Weak'}</div>
+                  <div className={`text-[0.5625rem] ${evaluator.capRate >= 8 ? 'text-[#5A6E3D]' : evaluator.capRate >= 5 ? 'text-[#5A5751]' : 'text-[#B85838]'}`}>{evaluator.capRate >= 8 ? 'Strong' : evaluator.capRate >= 5 ? 'OK' : 'Weak'}</div>
                 </div>
                 <div className="bg-white p-2">
-                  <div className="text-[9px] uppercase tracking-wider text-[#5A5751]">Cash-on-cash</div>
+                  <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Cash-on-cash</div>
                   <div className="text-base" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{evaluator.cashOnCash.toFixed(2)}%</div>
-                  <div className={`text-[9px] ${evaluator.cashOnCash >= 10 ? 'text-[#5A6E3D]' : evaluator.cashOnCash >= 6 ? 'text-[#5A5751]' : 'text-[#B85838]'}`}>{evaluator.cashOnCash >= 10 ? 'Strong' : evaluator.cashOnCash >= 6 ? 'OK' : 'Weak'}</div>
+                  <div className={`text-[0.5625rem] ${evaluator.cashOnCash >= 10 ? 'text-[#5A6E3D]' : evaluator.cashOnCash >= 6 ? 'text-[#5A5751]' : 'text-[#B85838]'}`}>{evaluator.cashOnCash >= 10 ? 'Strong' : evaluator.cashOnCash >= 6 ? 'OK' : 'Weak'}</div>
                 </div>
                 <div className="bg-white p-2">
-                  <div className="text-[9px] uppercase tracking-wider text-[#5A5751]">1% rule</div>
+                  <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">1% rule</div>
                   <div className="text-base" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{evaluator.onePct.toFixed(2)}%</div>
-                  <div className={`text-[9px] ${evaluator.onePct >= 1 ? 'text-[#5A6E3D]' : 'text-[#B85838]'}`}>{evaluator.onePct >= 1 ? '✓ pass' : '✗ below 1%'}</div>
+                  <div className={`text-[0.5625rem] ${evaluator.onePct >= 1 ? 'text-[#5A6E3D]' : 'text-[#B85838]'}`}>{evaluator.onePct >= 1 ? '✓ pass' : '✗ below 1%'}</div>
                 </div>
                 <div className="bg-white p-2">
-                  <div className="text-[9px] uppercase tracking-wider text-[#5A5751]">DSCR</div>
+                  <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">DSCR</div>
                   <div className="text-base" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{evaluator.dscr.toFixed(2)}</div>
-                  <div className={`text-[9px] ${evaluator.dscr >= 1.25 ? 'text-[#5A6E3D]' : evaluator.dscr >= 1 ? 'text-[#5A5751]' : 'text-[#B85838]'}`}>{evaluator.dscr >= 1.25 ? 'Lender OK' : evaluator.dscr >= 1 ? 'Tight' : 'Below 1'}</div>
+                  <div className={`text-[0.5625rem] ${evaluator.dscr >= 1.25 ? 'text-[#5A6E3D]' : evaluator.dscr >= 1 ? 'text-[#5A5751]' : 'text-[#B85838]'}`}>{evaluator.dscr >= 1.25 ? 'Lender OK' : evaluator.dscr >= 1 ? 'Tight' : 'Below 1'}</div>
                 </div>
                 <div className="bg-white p-2">
-                  <div className="text-[9px] uppercase tracking-wider text-[#5A5751]">GRM</div>
+                  <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">GRM</div>
                   <div className="text-base" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{evaluator.grm.toFixed(1)}</div>
-                  <div className="text-[9px] text-[#5A5751]">lower = better</div>
+                  <div className="text-[0.5625rem] text-[#5A5751]">lower = better</div>
                 </div>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-[#E8E4DC] border border-[#E8E4DC] mt-2">
-                <div className="bg-white p-2"><div className="text-[9px] uppercase tracking-wider text-[#5A5751]">Annual rent</div><div className="text-sm" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(evaluator.annualRent)}</div></div>
-                <div className="bg-white p-2"><div className="text-[9px] uppercase tracking-wider text-[#5A5751]">NOI</div><div className="text-sm" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(evaluator.noi)}</div></div>
-                <div className="bg-white p-2"><div className="text-[9px] uppercase tracking-wider text-[#5A5751]">Annual debt service</div><div className="text-sm" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(evaluator.annualDS)}</div></div>
-                <div className="bg-white p-2"><div className="text-[9px] uppercase tracking-wider text-[#5A5751]">Annual cash flow</div><div className={`text-sm ${evaluator.annualCF < 0 ? 'text-[#B85838]' : 'text-[#5A6E3D]'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(evaluator.annualCF)}</div></div>
+                <div className="bg-white p-2"><div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Annual rent</div><div className="text-sm" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(evaluator.annualRent)}</div></div>
+                <div className="bg-white p-2"><div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">NOI</div><div className="text-sm" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(evaluator.noi)}</div></div>
+                <div className="bg-white p-2"><div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Annual debt service</div><div className="text-sm" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(evaluator.annualDS)}</div></div>
+                <div className="bg-white p-2"><div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Annual cash flow</div><div className={`text-sm ${evaluator.annualCF < 0 ? 'text-[#B85838]' : 'text-[#5A6E3D]'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(evaluator.annualCF)}</div></div>
               </div>
-              <p className="text-[10px] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
+              <p className="text-[0.625rem] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
                 Cap rate = NOI ÷ purchase price. Cash-on-cash assumes 20% down. 1% rule = monthly rent ÷ purchase price. DSCR = NOI ÷ annual debt service (lenders want ≥ 1.25). GRM = price ÷ annual rent. NOI uses your escrow plus a 10% maintenance/vacancy buffer; refine the buffer in your head for the property type.
               </p>
             </div>
@@ -1511,17 +2055,21 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
             // buttons. If an open issue already exists, show its band + Resolve.
             const existingIssue = r.status === 'late' && !readOnly ? openIncidentFor(r) : null;
             const showLatePrompt = r.status === 'late' && !readOnly && !existingIssue;
+            // A door grouped under a building leads with its UNIT label (Apt 1,
+            // Apt 2…) — the building header already says the address, and four
+            // doors all titled by the same address were indistinguishable.
+            const rowTitle = (r.building || '').trim() ? unitLabelOf(r) : propertyLabel(r);
             return (
                 <div key={r.id} className={`p-4 ${i < lastIdx ? 'border-b border-[#E8E4DC]' : ''}`}>
                   {showLatePrompt && addIncident && (
                     <div className="mb-3 p-3 bg-[#FAF8F4] border-2 border-[#B85838]">
                       <div className="flex items-baseline justify-between gap-2 flex-wrap mb-2">
-                        <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold">⚐ Tenant Not Paying · open this as</div>
+                        <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">⚐ Tenant Not Paying · open this as</div>
                         <div className="text-xs text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>{fmt((r.rent || 0) - (r.actual || 0))} short</div>
                       </div>
                       <div className="flex flex-wrap gap-1">
                         {URGENCY_BANDS.map(u => (
-                          <button key={u.key} type="button" onClick={() => openTenantIssue(r, u.key)} className="text-[10px] uppercase tracking-wider px-3 py-2 border min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]" style={{ color: u.accent, borderColor: u.accent }}>
+                          <button key={u.key} type="button" onClick={() => openTenantIssue(r, u.key)} className="text-[0.625rem] uppercase tracking-wider px-3 py-2 border min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]" style={{ color: u.accent, borderColor: u.accent }}>
                             <span aria-hidden="true">{u.symbol}</span> {u.label} <span className="opacity-70 normal-case">· {u.tagline}</span>
                           </button>
                         ))}
@@ -1536,7 +2084,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                         const selected = tenantLateSelectedLinks[r.id] || [];
                         return (
                           <div className="mt-3 pt-3 border-t border-[#B85838]/40" aria-labelledby={`auto-link-h-${r.id}`}>
-                            <div id={`auto-link-h-${r.id}`} className="text-[10px] uppercase tracking-wider text-[#5A5751] mb-2 font-semibold">
+                            <div id={`auto-link-h-${r.id}`} className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-2 font-semibold">
                               🔗 Possibly related — tap to pre-link ({candidates.length})
                             </div>
                             <div className="flex flex-wrap gap-1.5">
@@ -1548,7 +2096,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                                     type="button"
                                     onClick={() => toggleTenantLink(r.id, link)}
                                     aria-pressed={isSelected}
-                                    className={`text-[10px] uppercase tracking-wider px-2.5 py-1.5 border min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838] ${isSelected ? 'bg-[#5A6E3D] text-white border-[#5A6E3D]' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815] bg-white'}`}
+                                    className={`text-[0.625rem] uppercase tracking-wider px-2.5 py-1.5 border min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838] ${isSelected ? 'bg-[#5A6E3D] text-white border-[#5A6E3D]' : 'border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815] bg-white'}`}
                                   >
                                     <span aria-hidden="true">{isSelected ? '✓ ' : '+ '}</span>
                                     {incidentDisplay(link.toEntityId)} <span className="opacity-70 normal-case italic">· {link.kind}</span>
@@ -1556,13 +2104,13 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                                 );
                               })}
                             </div>
-                            <p className="text-[9px] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
+                            <p className="text-[0.5625rem] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
                               Prior incidents at this property. Selected chips get linked to the new incident when you tap a band above.
                             </p>
                           </div>
                         );
                       })()}
-                      <p className="text-[10px] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
+                      <p className="text-[0.625rem] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
                         Change = same-day action. Incident = 3-day resolution window. Project = formal eviction / multi-week plan. The chosen item shows on Big Picture → Action Queue with a due date.
                       </p>
                     </div>
@@ -1571,7 +2119,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                     <div className="mb-3 p-3 bg-white border border-[#B85838] flex items-center justify-between gap-2 flex-wrap">
                       <div className="flex items-baseline gap-2 flex-wrap">
                         <span className="text-base" aria-hidden="true" style={{ color: URGENCY_INDEX[existingIssue.urgency]?.accent }}>{URGENCY_INDEX[existingIssue.urgency]?.symbol}</span>
-                        <span className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: URGENCY_INDEX[existingIssue.urgency]?.accent }}>{URGENCY_INDEX[existingIssue.urgency]?.label}</span>
+                        <span className="text-[0.625rem] uppercase tracking-wider font-semibold" style={{ color: URGENCY_INDEX[existingIssue.urgency]?.accent }}>{URGENCY_INDEX[existingIssue.urgency]?.label}</span>
                         <span className="text-xs" style={{ fontFamily: '"Fraunces", serif' }}>open · due {existingIssue.dueDate}</span>
                       </div>
                       {resolveIncident && (
@@ -1581,14 +2129,14 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                   )}
                   <div className="flex items-baseline justify-between gap-3 flex-wrap">
                     <div className="flex-1 min-w-0">
-                      <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{propertyLabel(r)}</div>
+                      <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{rowTitle}</div>
                       <div className="text-xs text-[#5A5751]">
-                        {(() => { const full = [r.address, r.city, r.state, r.zip].filter(Boolean).join(', '); return (full && full !== propertyLabel(r)) ? <span className="mr-2">{full}</span> : null; })()}
-                        {r.propertyType && <span className="uppercase tracking-wider text-[9px]">· {r.propertyType}</span>}
-                        {photoCountFor(r) > 0 && <span className="uppercase tracking-wider text-[9px] text-[#B85838] ml-2">· 📷 {photoCountFor(r)} photo{photoCountFor(r) === 1 ? '' : 's'}</span>}
+                        {(() => { const full = [r.address, r.city, r.state, r.zip].filter(Boolean).join(', '); return (full && full !== rowTitle) ? <span className="mr-2">{full}</span> : null; })()}
+                        {r.propertyType && <span className="uppercase tracking-wider text-[0.5625rem]">· {r.propertyType}</span>}
+                        {photoCountFor(r) > 0 && <span className="uppercase tracking-wider text-[0.5625rem] text-[#B85838] ml-2">· 📷 {photoCountFor(r)} photo{photoCountFor(r) === 1 ? '' : 's'}</span>}
                       </div>
                       {r.tenantName && (
-                        <div className="text-[11px] text-[#5A5751] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>
+                        <div className="text-[0.6875rem] text-[#5A5751] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>
                           👤 <strong>{r.tenantName}</strong>
                         </div>
                       )}
@@ -1597,11 +2145,11 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                       {(r.rent || 0) > 0 ? (
                         <>
                           <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{fmt(r.rent)}<span className="text-xs text-[#5A5751]">/mo</span></div>
-                          <div className={`text-[10px] uppercase tracking-wider ${r.status === 'late' ? 'text-[#B85838]' : r.status === 'vacant' ? 'text-[#B85838]' : 'text-[#5A5751]'}`}>{r.status}</div>
+                          <div className={`text-[0.625rem] uppercase tracking-wider ${r.status === 'late' ? 'text-[#B85838]' : r.status === 'vacant' ? 'text-[#B85838]' : 'text-[#5A5751]'}`}>{r.status}</div>
                         </>
                       ) : (
                         <>
-                          <div className="text-[10px] uppercase tracking-wider text-[#5A5751]">{r.status || 'personal'}</div>
+                          <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">{r.status || 'personal'}</div>
                           {r.mortgage?.monthlyPI ? <div className="text-xs text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt((r.mortgage?.monthlyPI || 0) + (r.mortgage?.escrow || 0))}/mo PITI</div> : null}
                         </>
                       )}
@@ -1611,71 +2159,243 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                     <div><span className="text-[#5A5751]">Mortgage:</span> <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>{r.mortgage?.balance ? fmt(r.mortgage.balance) : '—'}</span></div>
                     <div><span className="text-[#5A5751]">Rate:</span> <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>{r.mortgage?.rate ? r.mortgage.rate + '%' : '—'}</span></div>
                     <div><span className="text-[#5A5751]">P&I:</span> <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>{r.mortgage?.monthlyPI ? fmt(r.mortgage.monthlyPI) : '—'}</span></div>
-                    <div><span className="text-[#5A5751]">Coords:</span> {typeof r.lat === 'number' ? <span className="text-[10px]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{r.lat.toFixed(3)}, {r.lon.toFixed(3)}</span> : <button type="button" onClick={() => startEditProp(r)} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] underline">📍 Set address</button>}</div>
+                    <div><span className="text-[#5A5751]">Coords:</span> {typeof r.lat === 'number' ? <span className="text-[0.625rem]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{r.lat.toFixed(3)}, {r.lon.toFixed(3)}</span> : <button type="button" onClick={() => startEditProp(r)} className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] underline">📍 Set address</button>}</div>
                   </div>
                   <div className="flex gap-2 mt-2 items-baseline flex-wrap">
                     <button type="button" onClick={() => editingPropId === r.id ? cancelPropForm() : startEditProp(r)} aria-expanded={editingPropId === r.id} className="text-xs uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815] hover:bg-[#FAF8F4] border border-transparent hover:border-[#1A1815] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">{editingPropId === r.id ? '× Cancel edit' : '✎ Edit'}</button>
                     <button type="button" onClick={() => openRecords(r)} className="text-xs uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] hover:bg-[#FAF8F4] border border-transparent hover:border-[#B85838] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">
-                      {openRecordsId === r.id ? '× Close records' : `📋 Records (${(r.maintenanceLog || []).length} maint · ${(r.conversationLog || []).length} notes · ${photoCountFor(r)} photos)`}
+                      {/* COUNTS WHAT THE OPEN RECORD ACTUALLY HOLDS (fixed 2026-08-28).
+                          This read "0 maint · 0 notes · 0 photos" on a property whose
+                          record held three unit notes: it counted conversationLog and
+                          called it "notes", which is also the name of the OTHER store
+                          that had them — and it ignored unitNotes, rooms and equipment
+                          entirely. recordSummary counts all six, names only what is
+                          there, and is the same function any other surface must use, so
+                          the card and the record cannot drift again. */}
+                      {openRecordsId === r.id ? '× Close records' : `📋 ${recordSummary(r, { photoOverride: photoCountFor(r) })}`}
                     </button>
                     {(r.maintenanceLog || []).length > 0 && (
-                      <span className="text-[10px] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                      <span className="text-[0.625rem] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                         Lifetime maint: {fmt((r.maintenanceLog || []).reduce((s, e) => s + (e.cost || 0), 0))}
                       </span>
+                    )}
+                    {/* WHO GETS THIS CONTROL (widened 2026-08-28). It used to
+                        require `!building && (units > 1 || multi-family)` — so
+                        it VANISHED the moment a door joined a building, which
+                        is every door the split itself creates. That is why
+                        Darrell's "Room 1- Bed B" offers no split, and why he
+                        said "all rooms should be able to do what I had to do":
+                        he could not reach the control from a room, so he made
+                        the beds by hand.
+
+                        Now any door that HAS something inside it to rent shows
+                        it — a unit splits into rooms, a room into beds. A bed
+                        is the floor and shows nothing, which is the truth
+                        rather than a disabled button. Our own home still never
+                        offers it. */}
+                    {!isPersonalProp(r) && splitTarget(r) && (
+                      <button type="button" onClick={() => openSplit(r)} aria-expanded={splitFor?.id === r.id} className="text-xs uppercase tracking-wider text-[#5A6E3D] hover:text-[#1A1815] hover:bg-[#FAF8F4] border border-transparent hover:border-[#5A6E3D] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#5A6E3D]">
+                        {splitFor?.id === r.id ? '× Cancel split' : `⌗ Split into ${LEVEL_PLURAL[splitTarget(r)]}`}
+                      </button>
                     )}
                     <span aria-hidden="true" className="h-5 w-px bg-[#E8E4DC] ml-auto" />
                     <button type="button" onClick={() => confirmDeleteProp(r)} aria-label={`Delete property ${r.name}`} className="text-xs uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] hover:bg-[#FAF8F4] border border-transparent hover:border-[#B85838] px-3 py-1.5 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">Delete</button>
                   </div>
-                  {r.notes && <p className="text-[11px] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>{r.notes}</p>}
+                  {/* Inline split panel — dropdown for the door count, auto Apt 1..N
+                      labels (each editable), one tap creates the doors. Replaces the
+                      old browser prompt() dialogs. */}
+                  {splitFor && splitFor.id === r.id && (
+                    <div className="mt-3 p-3 bg-[#FAF8F4] border-2 border-[#5A6E3D] space-y-2">
+                      <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A6E3D] font-semibold">
+                        Split this {LEVEL_LABEL[levelOf(r)].toLowerCase()} into {LEVEL_PLURAL[splitFor.level]}
+                      </div>
+                      <p className="text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+                        This card becomes <strong>{splitFor.labels[0] || 'the first one'}</strong> (keeping its tenant, rent, and records). The rest are created as their own doors at the same address — each with its own records, photos, and thread.
+                      </p>
+                      {/* WHAT IS BEING MADE (Darrell 2026-08-28). A unit splits
+                          into rooms; a room splits into beds. The panel used to
+                          offer "Apt 1..N" and nothing else, which is why he
+                          typed "Room 1 - Bed A" by hand. */}
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label htmlFor={`split-lvl-${r.id}`} className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">What are you renting out?</label>
+                          <select id={`split-lvl-${r.id}`} className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#5A6E3D]" value={splitFor.level} onChange={e => reshapeSplit({ level: e.target.value, bedsPerRoom: 1 })}>
+                            {LEVELS.filter((l) => l !== 'unit' || levelOf(r) === 'unit').map(l => (
+                              <option key={l} value={l}>{LEVEL_PLURAL[l].replace(/^./, (c) => c.toUpperCase())}</option>
+                            ))}
+                          </select>
+                        </div>
+                        {splitFor.level === 'room' && (
+                          <div>
+                            <label htmlFor={`split-b-per-${r.id}`} className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Beds in each room</label>
+                            <select id={`split-b-per-${r.id}`} className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#5A6E3D]" value={String(splitFor.bedsPerRoom)} onChange={e => reshapeSplit({ bedsPerRoom: parseInt(e.target.value, 10) || 1 })}>
+                              <option value="1">The room itself (1 tenant per room)</option>
+                              {[2,3,4].map(n => <option key={n} value={n}>{n} beds — each rented separately</option>)}
+                            </select>
+                          </div>
+                        )}
+                        <div>
+                          <label htmlFor={`split-n-${r.id}`} className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">
+                            How many {splitFor.level === 'room' ? 'rooms' : LEVEL_PLURAL[splitFor.level]}?
+                          </label>
+                          <select id={`split-n-${r.id}`} className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#5A6E3D]" value={String(splitFor.level === 'room' ? Math.ceil(splitFor.labels.length / Math.max(1, splitFor.bedsPerRoom)) : splitFor.labels.length)} onChange={e => setSplitCount(e.target.value)}>
+                            {[2,3,4,5,6,7,8,9,10,11,12].map(n => <option key={n} value={n}>{n}</option>)}
+                          </select>
+                        </div>
+                        <div>
+                          <label htmlFor={`split-b-${r.id}`} className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Building name (groups the doors)</label>
+                          <input id={`split-b-${r.id}`} className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#5A6E3D]" value={splitFor.building} onChange={e => setSplitFor(s => s && ({ ...s, building: e.target.value }))} />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        {splitFor.labels.map((label, i) => (
+                          <input key={i} aria-label={`Unit ${i + 1} label`} className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#5A6E3D]" value={label} onChange={e => setSplitFor(s => s && ({ ...s, labels: s.labels.map((l, j) => j === i ? e.target.value : l) }))} />
+                        ))}
+                      </div>
+                      <p className="text-[0.6875rem] text-[#5A6E3D]">
+                        {describeSplit(planSplit({ ...r, building: splitFor.building || r.address || r.name }, {
+                          level: splitFor.level,
+                          count: splitFor.level === 'room' ? Math.ceil(splitFor.labels.length / Math.max(1, splitFor.bedsPerRoom)) : splitFor.labels.length,
+                          bedsPerRoom: splitFor.bedsPerRoom,
+                        }))}
+                      </p>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <button type="button" onClick={() => confirmSplit(r)} className="bg-[#5A6E3D] text-white px-4 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#1A1815] focus:outline focus:outline-2 focus:outline-[#5A6E3D]">Create {splitFor.labels.length} doors</button>
+                        <button type="button" onClick={() => setSplitFor(null)} className="border border-[#1A1815] px-4 py-2 text-xs uppercase tracking-wider hover:bg-white focus:outline focus:outline-2 focus:outline-[#5A6E3D]">Cancel</button>
+                      </div>
+                    </div>
+                  )}
+                  {r.notes && <p className="text-[0.6875rem] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>{r.notes}</p>}
 
                   {/* Round 7 — Inline quick-edit form drops down right under the property row.
                       Covers the common-edit fields (name · address · tenant · rent · status · notes
                       · monthly P&I · mortgage balance). For the full editor (purchase price,
                       cap-rate evaluator, address autocomplete) tap "Full editor ↗" — opens the
                       top form. Keeps the eye where it was, no jump-to-top. */}
-                  {editingPropId === r.id && (
+                  {editingPropId === r.id && !showPropForm && (
                     <div className="mt-3 p-3 bg-[#FAF8F4] border-2 border-[#B85838]">
-                      <div className="text-[10px] uppercase tracking-[0.2em] text-[#B85838] font-medium mb-2">Quick edit · {r.name}</div>
+                      <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#B85838] font-medium mb-2">Quick edit · {r.name}</div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        <div><label htmlFor={`qe-name-${r.id}`} className="text-[9px] uppercase tracking-wider text-[#5A5751]">Property name</label><input id={`qe-name-${r.id}`} className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" value={propForm.name} onChange={e => setPropForm({ ...propForm, name: e.target.value })} /></div>
-                        <div><label htmlFor={`qe-addr-${r.id}`} className="text-[9px] uppercase tracking-wider text-[#5A5751]">Address</label><input id={`qe-addr-${r.id}`} className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" value={propForm.address} onChange={e => setPropForm({ ...propForm, address: e.target.value })} /></div>
-                        <div><label htmlFor={`qe-tenant-${r.id}`} className="text-[9px] uppercase tracking-wider text-[#5A5751]">Tenant name</label><input id={`qe-tenant-${r.id}`} className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" value={propForm.tenantName} onChange={e => setPropForm({ ...propForm, tenantName: e.target.value })} /></div>
-                        <div><label htmlFor={`qe-rent-${r.id}`} className="text-[9px] uppercase tracking-wider text-[#5A5751]">Monthly rent</label><input id={`qe-rent-${r.id}`} type="number" step="0.01" min="0" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" value={propForm.rent} onChange={e => setPropForm({ ...propForm, rent: e.target.value })} /></div>
-                        <div><label htmlFor={`qe-stat-${r.id}`} className="text-[9px] uppercase tracking-wider text-[#5A5751]">Status</label><select id={`qe-stat-${r.id}`} className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" value={propForm.status} onChange={e => setPropForm({ ...propForm, status: e.target.value })}>{['paying','late','vacant','rehab','for-sale','sold','owner-occupied','seasonal','unrented'].map(t => <option key={t} value={t}>{t}</option>)}</select></div>
-                        <div><label htmlFor={`qe-ent-${r.id}`} className="text-[9px] uppercase tracking-wider text-[#5A5751]">Entity</label><select id={`qe-ent-${r.id}`} className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" value={propForm.entityId} onChange={e => setPropForm({ ...propForm, entityId: e.target.value })}>{entities.map(en => <option key={en.id} value={en.id}>{en.name.split('(')[0].trim()}</option>)}</select></div>
-                        <div><label htmlFor={`qe-mtg-${r.id}`} className="text-[9px] uppercase tracking-wider text-[#5A5751]">Mortgage balance</label><input id={`qe-mtg-${r.id}`} type="number" step="100" min="0" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" value={propForm.mortgageBalance} onChange={e => setPropForm({ ...propForm, mortgageBalance: e.target.value })} /></div>
-                        <div><label htmlFor={`qe-pi-${r.id}`} className="text-[9px] uppercase tracking-wider text-[#5A5751]">Monthly P&amp;I</label><input id={`qe-pi-${r.id}`} type="number" step="0.01" min="0" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" value={propForm.monthlyPI} onChange={e => setPropForm({ ...propForm, monthlyPI: e.target.value })} /></div>
+                        <div><label htmlFor={`qe-name-${r.id}`} className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Property name</label><input id={`qe-name-${r.id}`} className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" value={propForm.name} onChange={e => setPropForm({ ...propForm, name: e.target.value })} /></div>
+                        {/* Address pulls like every other address in the app
+                            (Darrell 2026-07-08): the same OpenStreetMap
+                            autocomplete as the full editor — picking a
+                            suggestion fills city/state/zip AND the coords, so
+                            "Set address" resolves and the lookup links + map
+                            pin light up from the one pick. */}
+                        <div className="relative">
+                          <label htmlFor={`qe-addr-${r.id}`} className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Address (start typing — suggestions appear)</label>
+                          <input id={`qe-addr-${r.id}`} className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" value={propForm.address} onChange={e => { setPropForm({ ...propForm, address: e.target.value }); fetchSuggestions(e.target.value); }} />
+                          {suggestions.length > 0 && (
+                            <div className="absolute z-10 left-0 right-0 border border-[#E8E4DC] bg-white mt-1 max-h-48 overflow-y-auto shadow-sm">
+                              {suggestions.map((s, si) => (
+                                <button key={si} type="button" onClick={() => pickSuggestion(s)} className="block w-full text-left p-2 text-xs hover:bg-[#FAF8F4] border-b border-[#E8E4DC]" style={{ fontFamily: '"Fraunces", serif' }}>
+                                  {s.display_name}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                          {(propForm.city || propForm.zip) && <div className="text-[0.5625rem] text-[#5A5751] mt-0.5" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{[propForm.city, propForm.state, propForm.zip].filter(Boolean).join(', ')}{typeof propForm.lat === 'number' ? ' · pinned to the map' : ''}</div>}
+                        </div>
+                        <div><label htmlFor={`qe-tenant-${r.id}`} className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Tenant name</label><input id={`qe-tenant-${r.id}`} className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" value={propForm.tenantName} onChange={e => setPropForm({ ...propForm, tenantName: e.target.value })} /></div>
+                        <div><label htmlFor={`qe-rent-${r.id}`} className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Monthly rent</label><input id={`qe-rent-${r.id}`} type="number" step="0.01" min="0" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" value={propForm.rent} onChange={e => setPropForm({ ...propForm, rent: e.target.value })} /></div>
+                        <div><label htmlFor={`qe-stat-${r.id}`} className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Status</label><select id={`qe-stat-${r.id}`} className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" value={propForm.status} onChange={e => setPropForm({ ...propForm, status: e.target.value })}>{['paying','late','vacant','rehab','for-sale','sold','owner-occupied','seasonal','unrented'].map(t => <option key={t} value={t}>{t}</option>)}</select></div>
+                        <div><label htmlFor={`qe-ent-${r.id}`} className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Entity</label><select id={`qe-ent-${r.id}`} className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" value={propForm.entityId} onChange={e => setPropForm({ ...propForm, entityId: e.target.value })}>{entities.map(en => <option key={en.id} value={en.id}>{en.name.split('(')[0].trim()}</option>)}</select></div>
+                        <div><label htmlFor={`qe-mtg-${r.id}`} className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Mortgage balance</label><input id={`qe-mtg-${r.id}`} type="number" step="100" min="0" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" value={propForm.mortgageBalance} onChange={e => setPropForm({ ...propForm, mortgageBalance: e.target.value })} /></div>
+                        <div><label htmlFor={`qe-pi-${r.id}`} className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Monthly P&amp;I</label><input id={`qe-pi-${r.id}`} type="number" step="0.01" min="0" className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" value={propForm.monthlyPI} onChange={e => setPropForm({ ...propForm, monthlyPI: e.target.value })} /></div>
+                        <div><label htmlFor={`qe-bldg-${r.id}`} className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Building (groups units)</label><input id={`qe-bldg-${r.id}`} className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" placeholder="e.g., 805 N Prospect" value={propForm.building} onChange={e => setPropForm({ ...propForm, building: e.target.value })} /></div>
+                        <div><label htmlFor={`qe-unit-${r.id}`} className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Unit label</label><input id={`qe-unit-${r.id}`} className="w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]" placeholder="e.g., Apt 3" value={propForm.unitLabel} onChange={e => setPropForm({ ...propForm, unitLabel: e.target.value })} /></div>
                       </div>
                       <textarea className="w-full p-2 border border-[#E8E4DC] text-sm bg-white mt-2 focus:outline focus:outline-2 focus:outline-[#B85838]" rows="2" placeholder="Notes" value={propForm.notes} onChange={e => setPropForm({ ...propForm, notes: e.target.value })} />
                       <div className="flex items-center gap-2 mt-2 flex-wrap">
                         <button type="button" onClick={submitProp} className="bg-[#1A1815] text-white px-4 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">Save changes</button>
                         <button type="button" onClick={cancelPropForm} className="border border-[#1A1815] px-4 py-2 text-xs uppercase tracking-wider hover:bg-white focus:outline focus:outline-2 focus:outline-[#B85838]">Cancel</button>
-                        <button type="button" onClick={() => { setShowPropForm(true); try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) {} }} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] underline ml-auto focus:outline focus:outline-2 focus:outline-[#B85838]">Full editor ↗ (purchase price · evaluator · address autocomplete)</button>
+                        <button type="button" onClick={() => { setShowPropForm(true); try { window.scrollTo({ top: 0, behavior: motionBehavior() }); } catch (e) {} }} className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815] underline ml-auto focus:outline focus:outline-2 focus:outline-[#B85838]">Full editor ↗ (purchase price · evaluator · address autocomplete)</button>
                       </div>
                     </div>
                   )}
 
                   {openRecordsId === r.id && (
                     <div className="mt-3 pt-3 border-t border-[#E8E4DC] space-y-4">
-                      {/* v28+ MVP v1.5: lease/tenant/equipment/rooms — Real Estate App carryover */}
-                      <PropertyDetails rental={r} updateRental={updateRental} voiceOps={voiceOps} />
-                      {/* Restore a collapsed multi-unit building into separate
-                          doors — the fix for 805 N Prospect showing as one door. */}
-                      <div className="text-[0.625rem]">
-                        <button type="button" onClick={() => restoreUnits(r)} className="uppercase tracking-wider text-[#5A6E3D] hover:text-[#1A1815]">
-                          Multi-unit building? Restore its separate doors
-                        </button>
+                      {/* Records order (Darrell 2026-07-08: "from the top images
+                          then room details then tenant information etc" with
+                          property details at the bottom): the chronological
+                          photo story LEADS, the work-facing blocks follow, and
+                          the valuation card closes the panel (mounted last,
+                          below the conversations). */}
+                      {/* SUB-TABS INSIDE THE RECORD (Darrell, 2026-08-28:
+                          "the subtab features can be used here and that would have a
+                          better feel", and "should[n't] have to scroll unless you want
+                          more below").
+
+                          This panel had become a single stacked column ~1400px tall,
+                          with Unit notes — the thing people actually open a record FOR
+                          ("Notes is the main reason someone or a user hits edit on the
+                          Real Estate tab") — buried below photos, rooms, lease, tenants,
+                          rent and mechanical. Reordering the stack would only move the
+                          burial somewhere else. Sub-tabs mean nothing is buried: NOTES
+                          opens first, and the rest is one tap away instead of a scroll.
+
+                          This supersedes the 2026-07-08 order ("from the top images then
+                          room details") — that was the right call for a stack and this
+                          is no longer a stack. Recorded rather than quietly flipped. */}
+                      <div className="flex flex-wrap gap-1 mb-1">
+                        {RECORD_TABS.map((t) => {
+                          const n = t.count ? t.count(r) : 0;
+                          return (
+                            <button
+                              key={t.id}
+                              type="button"
+                              onClick={() => setRecTab(t.id)}
+                              aria-pressed={recTab === t.id}
+                              className={`text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border focus:outline focus:outline-2 focus:outline-[#B85838] ${
+                                recTab === t.id
+                                  ? 'bg-[#B85838] text-white border-[#B85838]'
+                                  : 'bg-transparent text-[#5A5751] border-[#E8E4DC] hover:border-[#B85838] hover:text-[#1A1815]'}`}
+                            >
+                              {t.label}{n > 0 ? ` · ${n}` : ''}
+                            </button>
+                          );
+                        })}
                       </div>
+                      {/* Above the tabs' content, not inside one of them: what
+                          is stranded on this device is true of the WHOLE record,
+                          not of Notes or Work in particular, and a landlord who
+                          only ever opens Notes would never find it filed under
+                          Property. Renders nothing when there is nothing to
+                          carry, which is the normal case once a door is up. */}
+                      <CarryUpRecords rental={r} />
+                      {recTab === 'photos' && (<>
+                      <PropertyGallery rental={r} nasTotal={channelCounts[r.id]} />
+                      </>)}
+                      {recTab === 'property' && (<>
+                      <PropertyDetails rental={r} updateRental={updateRental} paid={paidPortfolio.byDoor[r.remoteUuid]} />
+                      </>)}
+                      {recTab === 'property' && (<>
+                      {/* Restore a collapsed multi-unit building into separate
+                          doors — the fix for 805 N Prospect showing as one door.
+                          Opens the same inline split panel as the card button. */}
+                      {!(r.building || '').trim() && (
+                        <div className="text-[0.625rem]">
+                          <button type="button" onClick={() => openSplit(r)} className="uppercase tracking-wider text-[#5A6E3D] hover:text-[#1A1815]">
+                            Multi-unit building? Split it into separate doors
+                          </button>
+                        </div>
+                      )}
+                      </>)}
                       {/* Per-unit MANAGEMENT: notes (property memory) + service
                           requests (assignable to the PM) + tenant/manager/owner
                           thread (draft->preview->approve-send). The app RUNS the
                           workflow per door, not just displays it. */}
+                      {recTab === 'notes' && (<>
                       <UnitManagement rental={r} updateRental={updateRental} />
+                      </>)}
+                      {recTab === 'work' && (<>
                       {/* MAINTENANCE LOG */}
                       <div>
                         <div className="flex items-baseline justify-between gap-2 mb-2">
-                          <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold">🔧 Maintenance Log · {(r.maintenanceLog || []).length}</div>
-                          <button type="button" onClick={() => { setShowMaintForm(!showMaintForm); setMaintForm(blankMaint()); }} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showMaintForm ? '× Cancel' : '+ Add entry'}</button>
+                          <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">🔧 Maintenance Log · {(r.maintenanceLog || []).length}</div>
+                          <button type="button" onClick={() => { setShowMaintForm(!showMaintForm); setMaintForm(blankMaint()); }} className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showMaintForm ? '× Cancel' : '+ Add entry'}</button>
                         </div>
                         {showMaintForm && (
                           <div className="bg-white border border-[#B85838] p-3 mb-2 space-y-2">
@@ -1684,10 +2404,10 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                                 stamps a same-day due. Picking Project surfaces a hint about
                                 also opening a formal project record. */}
                             <div>
-                              <label className="text-[9px] uppercase tracking-wider text-[#5A5751] block mb-1">Urgency</label>
+                              <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] block mb-1">Urgency</label>
                               <div className="flex flex-wrap gap-1">
                                 {URGENCY_BANDS.map(u => (
-                                  <button key={u.key} type="button" onClick={() => setMaintForm({ ...maintForm, urgency: u.key })} className={`text-[10px] uppercase tracking-wider px-3 py-2 border min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]`} style={maintForm.urgency === u.key ? { backgroundColor: u.accent, color: 'white', borderColor: u.accent } : { color: u.accent, borderColor: u.accent }}>
+                                  <button key={u.key} type="button" onClick={() => setMaintForm({ ...maintForm, urgency: u.key })} className={`text-[0.625rem] uppercase tracking-wider px-3 py-2 border min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]`} style={maintForm.urgency === u.key ? { backgroundColor: u.accent, color: 'white', borderColor: u.accent } : { color: u.accent, borderColor: u.accent }}>
                                     <span aria-hidden="true">{u.symbol}</span> {u.label} <span className="opacity-70 normal-case">· {u.tagline}</span>
                                   </button>
                                 ))}
@@ -1695,62 +2415,62 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                             </div>
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                               <div>
-                                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Date</label>
+                                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Date</label>
                                 <input type="date" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={maintForm.date} onChange={e => setMaintForm({ ...maintForm, date: e.target.value })} />
                               </div>
                               <div>
-                                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Category</label>
+                                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Category</label>
                                 <select className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={maintForm.category} onChange={e => setMaintForm({ ...maintForm, category: e.target.value })}>
                                   {MAINT_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                                 </select>
                               </div>
                               <div>
-                                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Cost</label>
+                                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Cost</label>
                                 <input type="number" step="0.01" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={maintForm.cost} onChange={e => setMaintForm({ ...maintForm, cost: e.target.value })} />
                               </div>
                               <div>
-                                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Vendor</label>
+                                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Vendor</label>
                                 <input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="e.g., Roofing Contractor" value={maintForm.vendor} onChange={e => setMaintForm({ ...maintForm, vendor: e.target.value })} />
                               </div>
                             </div>
                             <input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="What was done? (required)" value={maintForm.description} onChange={e => setMaintForm({ ...maintForm, description: e.target.value })} />
                             <textarea className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" rows="2" placeholder="Notes · warranty · parts numbers" value={maintForm.notes} onChange={e => setMaintForm({ ...maintForm, notes: e.target.value })} />
                             <div>
-                              <label className="text-[9px] uppercase tracking-wider text-[#5A5751] block mb-1">📷 Receipts / photos</label>
-                              <input type="file" accept="image/*" multiple onChange={e => onMaintPhotoFiles(e.target.files)} className="block w-full text-xs file:mr-2 file:px-2 file:py-1 file:bg-[#1A1815] file:text-white file:border-0 file:uppercase file:tracking-wider file:text-[10px] file:cursor-pointer" />
+                              <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] block mb-1">📷 Receipts / photos</label>
+                              <input type="file" accept="image/*" multiple onChange={e => onMaintPhotoFiles(e.target.files)} className="block w-full text-xs file:mr-2 file:px-2 file:py-1 file:bg-[#1A1815] file:text-white file:border-0 file:uppercase file:tracking-wider file:text-[0.625rem] file:cursor-pointer" />
                               {(maintForm.photos || []).length > 0 && (
                                 <div className="flex flex-wrap gap-2 mt-2">
                                   {maintForm.photos.map((src, i) => (
                                     <div key={i} className="relative">
                                       <img src={src} alt={`Receipt ${i+1}`} className="w-20 h-20 object-cover border border-[#1A1815]" />
-                                      <button type="button" onClick={() => setMaintForm(f => ({ ...f, photos: f.photos.filter((_, j) => j !== i) }))} className="absolute -top-1 -right-1 bg-[#B85838] text-white text-[10px] w-4 h-4 leading-4 text-center rounded-full">×</button>
+                                      <button type="button" onClick={() => setMaintForm(f => ({ ...f, photos: f.photos.filter((_, j) => j !== i) }))} className="absolute -top-1 -right-1 bg-[#B85838] text-white text-[0.625rem] w-4 h-4 leading-4 text-center rounded-full">×</button>
                                     </div>
                                   ))}
                                 </div>
                               )}
-                              <p className="text-[10px] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>Images are compressed to ~1200px JPEG before saving locally. No upload, no server.</p>
+                              <p className="text-[0.625rem] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>Images are compressed to ~1200px JPEG before saving locally. No upload, no server.</p>
                             </div>
                             <button type="button" onClick={() => addMaintEntry(r)} className="w-full bg-[#1A1815] text-white py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838]">Save Maintenance Entry</button>
                           </div>
                         )}
                         {(r.maintenanceLog || []).length === 0 && !showMaintForm ? (
-                          <p className="text-[11px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No maintenance entries yet.</p>
+                          <p className="text-[0.6875rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No maintenance entries yet.</p>
                         ) : (
                           <div className="space-y-2">
                             {[...(r.maintenanceLog || [])].sort((a, b) => b.date.localeCompare(a.date)).map(e => (
                               <div key={e.id} className="bg-[#FAF8F4] border border-[#E8E4DC] p-2">
                                 <div className="flex items-baseline justify-between gap-2 flex-wrap">
                                   <div className="flex-1 min-w-0">
-                                    <div className="text-[11px] flex items-center gap-1.5 flex-wrap" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                                    <div className="text-[0.6875rem] flex items-center gap-1.5 flex-wrap" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
                                       {e.urgency && URGENCY_INDEX[e.urgency] && (
-                                        <span className="px-1.5 py-0.5 border text-[9px] uppercase tracking-wider font-semibold" style={{ color: URGENCY_INDEX[e.urgency].accent, borderColor: URGENCY_INDEX[e.urgency].accent }} title={URGENCY_INDEX[e.urgency].tagline}>
+                                        <span className="px-1.5 py-0.5 border text-[0.5625rem] uppercase tracking-wider font-semibold" style={{ color: URGENCY_INDEX[e.urgency].accent, borderColor: URGENCY_INDEX[e.urgency].accent }} title={URGENCY_INDEX[e.urgency].tagline}>
                                           {URGENCY_INDEX[e.urgency].symbol} {URGENCY_INDEX[e.urgency].label}
                                         </span>
                                       )}
                                       <span>{e.date} · <span className="uppercase tracking-wider">{e.category}</span>{e.vendor ? ` · ${e.vendor}` : ''}</span>
                                     </div>
                                     <div className="text-xs mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{e.description}</div>
-                                    {e.notes && <div className="text-[11px] text-[#5A5751] italic mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{e.notes}</div>}
+                                    {e.notes && <div className="text-[0.6875rem] text-[#5A5751] italic mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{e.notes}</div>}
                                   </div>
                                   <div className="flex items-baseline gap-2 shrink-0">
                                     <div className="text-sm" style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 500 }}>{fmt(e.cost || 0)}</div>
@@ -1775,17 +2495,17 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                                   if (!e.incidentId) {
                                     return (
                                       <div className="mt-2 pt-2 border-t border-[#E8E4DC]">
-                                        <button type="button" onClick={() => createWorkOrder(r, e)} className="text-[10px] uppercase tracking-wider px-3 py-1.5 min-h-[36px] border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">🛠 Create work order → dispatch a worker</button>
+                                        <button type="button" onClick={() => createWorkOrder(r, e)} className="text-[0.625rem] uppercase tracking-wider px-3 py-1.5 min-h-[36px] border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">🛠 Create work order → dispatch a worker</button>
                                       </div>
                                     );
                                   }
                                   const wo = incidents.find(i => i.id === e.incidentId);
                                   if (!wo) {
-                                    return <div className="mt-2 pt-2 border-t border-[#E8E4DC] text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>Work order was removed from the queue.</div>;
+                                    return <div className="mt-2 pt-2 border-t border-[#E8E4DC] text-[0.625rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>Work order was removed from the queue.</div>;
                                   }
                                   return (
                                     <div className="mt-2 pt-2 border-t border-[#E8E4DC] space-y-1.5">
-                                      <div className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: wo.status === 'resolved' ? '#5A6E3D' : '#B85838' }}>
+                                      <div className="text-[0.625rem] uppercase tracking-wider font-semibold" style={{ color: wo.status === 'resolved' ? '#5A6E3D' : '#B85838' }}>
                                         🛠 Work order {wo.status === 'resolved' ? 'done' : `open · due ${wo.dueDate || '—'}`} · also on the Action Queue
                                       </div>
                                       <DispatchPanel incident={wo} property={r} contractors={contractors} {...workerOps} onResolve={resolveIncident} />
@@ -1797,34 +2517,36 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                           </div>
                         )}
                       </div>
+                      </>)}
 
+                      {recTab === 'tenancy' && (<>
                       {/* TENANT TURNOVER + PAST TENANCIES (landlord records) */}
                       {!readOnly && (
                         <div className="mb-3 pb-3 border-b border-[#E8E4DC]">
                           <div className="flex items-baseline justify-between gap-2 flex-wrap">
-                            <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold">🔑 Tenancy{(r.tenancyHistory || []).length > 0 ? ` · ${(r.tenancyHistory || []).length} past` : ''}</div>
+                            <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold">🔑 Tenancy{(r.tenancyHistory || []).length > 0 ? ` · ${(r.tenancyHistory || []).length} past` : ''}</div>
                             {(r.tenantName || r.tenant?.name) && (
-                              <button type="button" onClick={() => tenantTurnover(r)} className="text-[10px] uppercase tracking-wider px-3 py-1.5 min-h-[36px] border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">→ Tenant moved out / turnover</button>
+                              <button type="button" onClick={() => tenantTurnover(r)} className="text-[0.625rem] uppercase tracking-wider px-3 py-1.5 min-h-[36px] border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">→ Tenant moved out / turnover</button>
                             )}
                           </div>
-                          <p className="text-[10px] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+                          <p className="text-[0.625rem] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
                             Turnover gives the next tenant a clean slate. Rooms, photos, equipment, and maintenance history stay; the tenant&apos;s lease, contacts, conversations, and open issues archive below for your records.
                           </p>
                           {(r.tenancyHistory || []).length > 0 && (
                             <details className="mt-2">
-                              <summary className="cursor-pointer text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">Past tenancies ({(r.tenancyHistory || []).length}) — landlord records</summary>
+                              <summary className="cursor-pointer text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">Past tenancies ({(r.tenancyHistory || []).length}) — landlord records</summary>
                               <div className="mt-2 space-y-2">
                                 {[...(r.tenancyHistory || [])].reverse().map(t => (
                                   <div key={t.id} className="bg-[#FAF8F4] border border-[#E8E4DC] p-2">
-                                    <div className="text-[11px] font-semibold" style={{ fontFamily: '"Fraunces", serif' }}>{t.tenantName || '(unnamed tenant)'} <span className="text-[#5A5751] font-normal">· moved out {t.movedOutAt}</span></div>
+                                    <div className="text-[0.6875rem] font-semibold" style={{ fontFamily: '"Fraunces", serif' }}>{t.tenantName || '(unnamed tenant)'} <span className="text-[#5A5751] font-normal">· moved out {t.movedOutAt}</span></div>
                                     {t.lease && (t.lease.start || t.lease.end) && (
-                                      <div className="text-[10px] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>lease {t.lease.start || '?'} → {t.lease.end || '?'}{t.lease.monthlyRent ? ` · ${fmt(t.lease.monthlyRent)}/mo` : ''}</div>
+                                      <div className="text-[0.625rem] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>lease {t.lease.start || '?'} → {t.lease.end || '?'}{t.lease.monthlyRent ? ` · ${fmt(t.lease.monthlyRent)}/mo` : ''}</div>
                                     )}
                                     {(t.conversationLog || []).length > 0 && (
-                                      <div className="text-[10px] text-[#5A5751] mt-1">{(t.conversationLog || []).length} archived conversation note{(t.conversationLog || []).length === 1 ? '' : 's'}</div>
+                                      <div className="text-[0.625rem] text-[#5A5751] mt-1">{(t.conversationLog || []).length} archived conversation note{(t.conversationLog || []).length === 1 ? '' : 's'}</div>
                                     )}
                                     {(t.closedIssues || []).length > 0 && (
-                                      <div className="text-[10px] text-[#5A5751] mt-0.5">{(t.closedIssues || []).length} issue{(t.closedIssues || []).length === 1 ? '' : 's'} closed at turnover: {(t.closedIssues || []).map(i => i.description).slice(0, 3).join('; ')}{(t.closedIssues || []).length > 3 ? '…' : ''}</div>
+                                      <div className="text-[0.625rem] text-[#5A5751] mt-0.5">{(t.closedIssues || []).length} issue{(t.closedIssues || []).length === 1 ? '' : 's'} closed at turnover: {(t.closedIssues || []).map(i => i.description).slice(0, 3).join('; ')}{(t.closedIssues || []).length > 3 ? '…' : ''}</div>
                                     )}
                                   </div>
                                 ))}
@@ -1834,24 +2556,26 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                         </div>
                       )}
 
+                      </>)}
+                      {recTab === 'photos' && (<>
                       {/* PHOTO IMPORT FROM CHAT — file the property's photos to rooms */}
                       {!readOnly && (
                         <div className="mb-3">
                           <div className="flex items-baseline justify-between gap-2 flex-wrap mb-1">
-                            <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold">📷 Property Photos from Chat</div>
-                            <button type="button" onClick={() => (photoImport && photoImport.rentalId === r.id) ? setPhotoImport(null) : startPhotoImport(r)} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">{photoImport && photoImport.rentalId === r.id ? '× Close' : '📷 Browse & file to rooms'}</button>
+                            <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold">📷 Property Photos from Chat</div>
+                            <button type="button" onClick={() => (photoImport && photoImport.rentalId === r.id) ? setPhotoImport(null) : startPhotoImport(r)} className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">{photoImport && photoImport.rentalId === r.id ? '× Close' : '📷 Browse & file to rooms'}</button>
                           </div>
                           {photoImport && photoImport.rentalId === r.id && (
                             <div className="bg-white border border-[#5A6E3D] p-3 space-y-2">
                               {photoImport.status === 'need-token' && (
-                                <p className="text-[11px] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>{photoImport.badToken ? 'Token rejected.' : 'Enter the history-bridge token first (use the “Import property-chat history” button below — same token).'}</p>
+                                <p className="text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>{photoImport.badToken ? 'Token rejected.' : 'Enter the history-bridge token first (use the “Import property-chat history” button below — same token).'}</p>
                               )}
-                              {photoImport.status === 'loading' && <p className="text-[11px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>Loading photos from the #{r.name} channel…</p>}
-                              {photoImport.status === 'error' && <p className="text-[11px] text-[#B85838]" style={{ fontFamily: '"Fraunces", serif' }}>Photo bridge not reachable ({photoImport.error}). Nothing changed.</p>}
+                              {photoImport.status === 'loading' && <p className="text-[0.6875rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>Loading photos from the #{r.name} channel…</p>}
+                              {photoImport.status === 'error' && <p className="text-[0.6875rem] text-[#B85838]" style={{ fontFamily: '"Fraunces", serif' }}>Photo bridge not reachable ({photoImport.error}). Nothing changed.</p>}
                               {photoImport.status === 'staged' && (
                                 <>
-                                  {(r.rooms || []).length === 0 && <p className="text-[11px] text-[#B85838]" style={{ fontFamily: '"Fraunces", serif' }}>Add a room above first, then assign photos to it.</p>}
-                                  <p className="text-[11px] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>Tap any photo to view it full-size and browse the set. Pick a room and tap Add to file one — see the place change over the years.</p>
+                                  {(r.rooms || []).length === 0 && <p className="text-[0.6875rem] text-[#B85838]" style={{ fontFamily: '"Fraunces", serif' }}>Add a room above first, then assign photos to it.</p>}
+                                  <p className="text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>Tap any photo to view it full-size and browse the set. Pick a room and tap Add to file one — see the place change over the years.</p>
                                   {/* Honest source readout — every tile resolves from a real source (your
                                       Synology Chat archive -> the NAS preview that property already has).
                                       A tile with no preview is a photo never backed up to your NAS; this
@@ -1860,9 +2584,9 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                                     const h = summarizePhotoSource(photoImport.photos, { total: photoImport.total });
                                     return (
                                       <div className="flex items-center gap-2 flex-wrap my-1">
-                                        <KpiDot status={h.status} label={h.label} className="text-[10px]" />
+                                        <KpiDot status={h.status} label={h.label} className="text-[0.625rem]" />
                                         {h.missing > 0 && (
-                                          <span className="text-[9px] text-[#8A8580] italic" style={{ fontFamily: '"Fraunces", serif' }}>
+                                          <span className="text-[0.5625rem] text-[#8A8580] italic" style={{ fontFamily: '"Fraunces", serif' }}>
                                             “not in backup” = shared into chat but never backed up to your NAS (screenshots, other phones).
                                           </span>
                                         )}
@@ -1870,11 +2594,11 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                                     );
                                   })()}
                                   <div className="flex items-center gap-1.5 my-1.5 flex-wrap">
-                                    <span className="text-[9px] uppercase tracking-wider text-[#5A5751]">Show:</span>
+                                    <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Show:</span>
                                     {[50, 100, 500].map(n => (
-                                      <button key={n} type="button" onClick={() => { setPhotoShowN(n); loadPhotosUpTo(r, n); }} className={`text-[10px] uppercase tracking-wider px-2 py-1 border ${photoShowN === n ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'text-[#5A5751] border-[#E8E4DC] hover:border-[#1A1815]'}`}>{n === 500 ? '500+' : n}</button>
+                                      <button key={n} type="button" onClick={() => { setPhotoShowN(n); loadPhotosUpTo(r, n); }} className={`text-[0.625rem] uppercase tracking-wider px-2 py-1 border ${photoShowN === n ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'text-[#5A5751] border-[#E8E4DC] hover:border-[#1A1815]'}`}>{n === 500 ? '500+' : n}</button>
                                     ))}
-                                    <span className="text-[9px] text-[#5A5751] italic">{photoImport.photos.length} loaded</span>
+                                    <span className="text-[0.5625rem] text-[#5A5751] italic">{photoImport.photos.length} loaded</span>
                                   </div>
                                   {(() => {
                                     // The lightbox browses only the photos that actually have a NAS
@@ -1897,29 +2621,31 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                                             <img src={p.thumb} alt={p.text || 'property photo'} className="w-full h-24 object-cover border border-[#E8E4DC] hover:border-[#1A1815] cursor-zoom-in" loading="lazy" />
                                           </button>
                                         ) : (
-                                          <div className="w-full h-24 flex flex-col items-center justify-center gap-0.5 text-[8px] text-[#8A8580] italic border border-dashed border-[#D8D4CC] bg-[#F4F2EE] text-center px-1" title="Shared into chat but not backed up to your NAS — no preview to show.">
+                                          <div className="w-full h-24 flex flex-col items-center justify-center gap-0.5 text-[0.5rem] text-[#8A8580] italic border border-dashed border-[#D8D4CC] bg-[#F4F2EE] text-center px-1" title="Shared into chat but not backed up to your NAS — no preview to show.">
                                             <span aria-hidden="true" className="text-base not-italic">🖼️</span>
                                             <span>not in backup</span>
                                           </div>
                                         )}
-                                        <div className="text-[9px] text-[#5A5751] mt-0.5" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{p.date}</div>
-                                        {p.text && <div className="text-[9px] text-[#5A5751] truncate" title={p.text} style={{ fontFamily: '"Fraunces", serif' }}>{p.text}</div>}
+                                        <div className="text-[0.5625rem] text-[#5A5751] mt-0.5" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{p.date}</div>
+                                        {p.text && <div className="text-[0.5625rem] text-[#5A5751] truncate" title={p.text} style={{ fontFamily: '"Fraunces", serif' }}>{p.text}</div>}
                                         {p.filed ? (
-                                          <div className="text-[9px] uppercase tracking-wider text-[#5A6E3D] font-semibold mt-1">✓ filed</div>
+                                          <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold mt-1">✓ filed</div>
                                         ) : p.thumb ? (
-                                          <div className="flex gap-1 mt-1">
-                                            <select value={p.room} onChange={e => {
+                                          <div className="flex gap-1 mt-1 flex-wrap">
+                                            <select value={customRoomFor === p.id ? '__other__' : p.room} onChange={e => {
                                               const v = e.target.value;
                                               if (v === '__other__') {
-                                                const name = (typeof window !== 'undefined' ? (window.prompt('New room name (Den, Sunroom, Bedroom 7, …)') || '') : '').trim();
-                                                setPhotoRoom(p.id, name ? `new:${name}` : '');
+                                                // Inline naming — no blocking browser prompt.
+                                                setCustomRoomFor(p.id);
+                                                setPhotoRoom(p.id, 'new:');
                                                 return;
                                               }
+                                              if (customRoomFor === p.id) setCustomRoomFor(null);
                                               setPhotoRoom(p.id, v);
-                                            }} className="flex-1 text-[10px] p-1 border border-[#E8E4DC] bg-white min-w-0">
+                                            }} className="flex-1 text-[0.625rem] p-1 border border-[#E8E4DC] bg-white min-w-0">
                                               <option value="">room…</option>
                                               {(r.rooms || []).map(rm => <option key={rm.id} value={rm.id}>{rm.name}</option>)}
-                                              {p.room && p.room.startsWith('new:') && <option value={p.room}>{p.room.slice(4)} (new)</option>}
+                                              {customRoomFor !== p.id && p.room && p.room.startsWith('new:') && <option value={p.room}>{p.room.slice(4)} (new)</option>}
                                               <optgroup label="Add a room">
                                                 {allRoomChoices(rentals).filter(name => !(r.rooms || []).some(rm => (rm.name || '').toLowerCase() === name.toLowerCase())).map(name => (
                                                   <option key={`new-${name}`} value={`new:${name}`}>+ {name}</option>
@@ -1927,7 +2653,17 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                                                 <option value="__other__">✏️ Other room…</option>
                                               </optgroup>
                                             </select>
-                                            <button type="button" disabled={!p.room} onClick={() => filePhotoToRoom(r, p)} className="text-[10px] uppercase tracking-wider px-2 py-1 border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white disabled:opacity-30">Add</button>
+                                            {customRoomFor === p.id && (
+                                              <input
+                                                autoFocus
+                                                placeholder="Room name…"
+                                                aria-label="New room name"
+                                                value={(p.room || '').startsWith('new:') ? p.room.slice(4) : ''}
+                                                onChange={e => setPhotoRoom(p.id, `new:${e.target.value}`)}
+                                                className="flex-1 text-[0.625rem] p-1 border border-[#5A6E3D] bg-white min-w-0"
+                                              />
+                                            )}
+                                            <button type="button" disabled={!p.room || p.room === 'new:'} onClick={() => { setCustomRoomFor(null); filePhotoToRoom(r, p); }} className="text-[0.625rem] uppercase tracking-wider px-2 py-1 border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white disabled:opacity-30">Add</button>
                                           </div>
                                         ) : null}
                                       </div>
@@ -1936,7 +2672,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                                     );
                                   })()}
                                   {photoImport.lastCount === PHOTO_PAGE && (
-                                    <button type="button" onClick={() => fetchPhotoPage(r, photoImport.offset + PHOTO_PAGE)} className="w-full text-[10px] uppercase tracking-wider py-1.5 border border-[#1A1815] hover:bg-[#FAF8F4]">Load more photos</button>
+                                    <button type="button" onClick={() => fetchPhotoPage(r, photoImport.offset + PHOTO_PAGE)} className="w-full text-[0.625rem] uppercase tracking-wider py-1.5 border border-[#1A1815] hover:bg-[#FAF8F4]">Load more photos</button>
                                   )}
                                 </>
                               )}
@@ -1945,42 +2681,44 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                         </div>
                       )}
 
+                      </>)}
+                      {recTab === 'notes' && (<>
                       {/* CONVERSATION LOG */}
                       <div>
                         <div className="flex items-baseline justify-between gap-2 mb-2 flex-wrap">
-                          <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold">💬 Tenant & Vendor Conversations · {(r.conversationLog || []).length}</div>
+                          <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">💬 Tenant & Vendor Conversations · {(r.conversationLog || []).length}</div>
                           <div className="flex gap-2">
                             {!readOnly && (
-                              <button type="button" onClick={() => (chatImport && chatImport.rentalId === r.id) ? setChatImport(null) : startChatImport(r)} className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">{chatImport && chatImport.rentalId === r.id ? '× Cancel import' : '📥 Import property-chat history'}</button>
+                              <button type="button" onClick={() => (chatImport && chatImport.rentalId === r.id) ? setChatImport(null) : startChatImport(r)} className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">{chatImport && chatImport.rentalId === r.id ? '× Cancel import' : '📥 Import property-chat history'}</button>
                             )}
-                            <button type="button" onClick={() => { setShowConvForm(!showConvForm); setConvForm(blankConv()); }} className="text-[10px] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showConvForm ? '× Cancel' : '+ Log a conversation'}</button>
+                            <button type="button" onClick={() => { setShowConvForm(!showConvForm); setConvForm(blankConv()); }} className="text-[0.625rem] uppercase tracking-wider text-[#B85838] hover:text-[#1A1815]">{showConvForm ? '× Cancel' : '+ Log a conversation'}</button>
                           </div>
                         </div>
                         {chatImport && chatImport.rentalId === r.id && (
                           <div className="bg-white border border-[#5A6E3D] p-3 mb-2 space-y-2">
-                            <div className="text-[10px] uppercase tracking-[0.2em] text-[#5A6E3D] font-semibold">📥 Property-chat history · #{r.name}</div>
+                            <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A6E3D] font-semibold">📥 Property-chat history · #{r.name}</div>
                             {chatImport.status === 'loading' && (
-                              <p className="text-[11px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>Fetching channel history from the NAS…</p>
+                              <p className="text-[0.6875rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>Fetching channel history from the NAS…</p>
                             )}
                             {chatImport.status === 'need-token' && (
                               <div className="space-y-1.5">
-                                <p className="text-[11px] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+                                <p className="text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
                                   {chatImport.badToken ? 'That token was rejected — check it and try again.' : 'Enter the family history-bridge token (one time on this device). It protects your property history from anyone else reaching the bridge.'}
                                 </p>
                                 <div className="flex gap-1.5">
                                   <input type="password" className="flex-1 p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="paste the bridge token" value={bridgeTokenInput} onChange={ev => setBridgeTokenInput(ev.target.value)} />
-                                  <button type="button" onClick={() => { localStorage.setItem(CHAT_BRIDGE_TOKEN_KEY, bridgeTokenInput.trim()); setBridgeTokenInput(''); startChatImport(r); }} disabled={!bridgeTokenInput.trim()} className="px-3 py-1.5 text-[10px] uppercase tracking-wider border border-[#1A1815] bg-[#1A1815] text-white hover:bg-[#B85838] disabled:opacity-30">Save & fetch</button>
+                                  <button type="button" onClick={() => { const tok = bridgeTokenInput.trim(); localStorage.setItem(CHAT_BRIDGE_TOKEN_KEY, tok); publishBridgeToken(supabase, tok); setBridgeTokenInput(''); startChatImport(r); }} disabled={!bridgeTokenInput.trim()} className="px-3 py-1.5 text-[0.625rem] uppercase tracking-wider border border-[#1A1815] bg-[#1A1815] text-white hover:bg-[#B85838] disabled:opacity-30">Save & fetch</button>
                                 </div>
                               </div>
                             )}
                             {chatImport.status === 'error' && (
-                              <p className="text-[11px] text-[#B85838]" style={{ fontFamily: '"Fraunces", serif' }}>
+                              <p className="text-[0.6875rem] text-[#B85838]" style={{ fontFamily: '"Fraunces", serif' }}>
                                 History bridge not reachable ({chatImport.error}). The NAS-side workflow isn't live yet — see infra/n8n/README-property-history.md. Nothing was changed.
                               </p>
                             )}
                             {chatImport.status === 'staged' && (
                               <>
-                                <p className="text-[11px] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+                                <p className="text-[0.6875rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
                                   {chatImport.messages.length === 0
                                     ? `Nothing new to import${chatImport.already > 0 ? ` — all ${chatImport.already} channel messages are already on this log` : ' — the channel returned no messages'}.`
                                     : `Check what's true, uncheck what isn't. ${chatImport.messages.length} new message${chatImport.messages.length === 1 ? '' : 's'}${chatImport.already > 0 ? ` (${chatImport.already} already imported)` : ''}. Nothing saves until you accept.`}
@@ -1989,7 +2727,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                                   <>
                                     <div className="max-h-64 overflow-y-auto space-y-1 border border-[#E8E4DC] p-2">
                                       {chatImport.messages.map(m => (
-                                        <label key={m.sourceId} className="flex items-start gap-2 text-[11px] cursor-pointer hover:bg-[#FAF8F4] p-1">
+                                        <label key={m.sourceId} className="flex items-start gap-2 text-[0.6875rem] cursor-pointer hover:bg-[#FAF8F4] p-1">
                                           <input type="checkbox" checked={m.accepted} onChange={() => toggleChatImportItem(m.sourceId)} className="mt-0.5" />
                                           <span style={{ fontFamily: '"JetBrains Mono", monospace' }} className="text-[#5A5751] shrink-0">{m.date || '—'}{m.person ? ` · ${m.person}` : ''}</span>
                                           <span style={{ fontFamily: '"Fraunces", serif' }}>{m.summary}</span>
@@ -2009,11 +2747,11 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                           <div className="bg-white border border-[#B85838] p-3 mb-2 space-y-2">
                             <div className="grid grid-cols-2 gap-2">
                               <div>
-                                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Date</label>
+                                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Date</label>
                                 <input type="date" className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" value={convForm.date} onChange={e => setConvForm({ ...convForm, date: e.target.value })} />
                               </div>
                               <div>
-                                <label className="text-[9px] uppercase tracking-wider text-[#5A5751]">Who</label>
+                                <label className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Who</label>
                                 <input className="w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4]" placeholder="e.g., tenant Tracy, plumber Joe" value={convForm.person} onChange={e => setConvForm({ ...convForm, person: e.target.value })} />
                               </div>
                             </div>
@@ -2023,16 +2761,16 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                           </div>
                         )}
                         {(r.conversationLog || []).length === 0 && !showConvForm ? (
-                          <p className="text-[11px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No conversation notes yet.</p>
+                          <p className="text-[0.6875rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No conversation notes yet.</p>
                         ) : (
                           <div className="space-y-1">
                             {[...(r.conversationLog || [])].sort((a, b) => b.date.localeCompare(a.date)).map(e => (
                               <div key={e.id} className="bg-[#FAF8F4] border border-[#E8E4DC] p-2">
                                 <div className="flex items-baseline justify-between gap-2 flex-wrap">
                                   <div className="flex-1 min-w-0">
-                                    <div className="text-[11px]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{e.date}{e.person ? ` · ${e.person}` : ''}</div>
+                                    <div className="text-[0.6875rem]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{e.date}{e.person ? ` · ${e.person}` : ''}</div>
                                     <div className="text-xs mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{e.summary}</div>
-                                    {e.notes && <div className="text-[11px] text-[#5A5751] italic mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{e.notes}</div>}
+                                    {e.notes && <div className="text-[0.6875rem] text-[#5A5751] italic mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{e.notes}</div>}
                                   </div>
                                   <button type="button" onClick={() => deleteConvEntry(r, e.id)} aria-label="Delete" className="text-sm text-[#5A5751] hover:text-[#B85838] hover:bg-[#FAF8F4] border border-transparent hover:border-[#B85838] px-3 py-1.5 min-h-[36px] min-w-[36px] shrink-0 focus:outline focus:outline-2 focus:outline-[#B85838]">×</button>
                                 </div>
@@ -2041,6 +2779,12 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                           </div>
                         )}
                       </div>
+                      </>)}
+                      {recTab === 'property' && (<>
+                      {/* PROPERTY DETAILS — valuation & characteristics, at the
+                          bottom by design (the work story reads first). */}
+                      <PropertyValuation rental={r} updateRental={updateRental} voiceOps={voiceOps} />
+                      </>)}
                     </div>
                   )}
                 </div>
@@ -2064,7 +2808,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                 let gi = 0;
                 return (
                   <div>
-                    <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-2">Income-Producing · {incomeProducing.length}{doorCount !== incomeProducing.length ? ` · ${doorCount} doors` : ''}</div>
+                    <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-2">Income-Producing · {incomeProducing.length}{doorCount !== incomeProducing.length ? ` · ${doorCount} doors` : ''}</div>
                     <div className="space-y-3">
                       {entries.map((e) => e.type === 'building' ? (
                         <div key={`b-${e.key}`} className="bg-white border border-[#1A1815]">
@@ -2088,7 +2832,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
               })()}
               {personal.length > 0 && (
                 <div>
-                  <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-2">Personal & Non-Rental · {personal.length}</div>
+                  <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-2">Personal & Non-Rental · {personal.length}</div>
                   <div className="bg-white border border-[#1A1815]">
                     {personal.map((r, i) => renderPropertyRow(r, i, personal.length - 1))}
                   </div>
@@ -2106,160 +2850,222 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
       label: 'Portfolio & payoff',
       icon: 'coins',
       render: () => (
-        <>
-      <section>
-        <SectionTitle>{doorCount} {doorCount === 1 ? 'Door' : 'Doors'} · {portfolioLabel}</SectionTitle>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-[#E8E4DC] border border-[#E8E4DC] mb-4">
-          <MetricCell label="Mortgage debt" value={fmtCompact(rollup.mortgageDebt)} sub={rollup.missingDebt > 0 ? `${portfolioCount - rollup.missingDebt} of ${portfolioCount}` : 'est.'} small accent="rust" />
-          <MetricCell label="Monthly P&I" value={fmt(rollup.monthlyPI)} small />
-          <MetricCell label="Monthly rent" value={fmt(rollup.monthlyRent)} sub={`${collectionRate.toFixed(0)}%`} small accent="green" />
-          <MetricCell label="Rent gap" value={fmt(rentGap)} small accent={rentGap > 0 ? 'rust' : 'green'} />
-        </div>
-        {(rollup.missingDebt > 0 || rollup.missingRent > 0) && (
-          <p className="text-[11px] text-[#5A5751] -mt-3 mb-4" style={{ fontFamily: '"Fraunces", serif' }}>
-            {rollup.missingDebt > 0 && <>{rollup.missingDebt} {rollup.missingDebt === 1 ? 'property needs a mortgage figure' : 'properties need mortgage figures'}</>}
-            {rollup.missingDebt > 0 && rollup.missingRent > 0 && ' · '}
-            {rollup.missingRent > 0 && <>{rollup.missingRent} {rollup.missingRent === 1 ? 'needs rent entered' : 'need rent entered'}</>}
-            {' '}— excluded from the totals above, not zeroed in.
-          </p>
-        )}
-        {/* Portfolio room-income opportunity — sums the per-room occupancy
-            model across every property so the total money-on-the-table from
-            vacant rooms is one glance away. Only shows when rooms are tracked. */}
-        {(() => {
-          const port = (rentals || []).reduce((acc, r) => {
-            const o = occupancyRollup(r.rooms || []);
-            acc.actual += o.actual; acc.potential += o.potential; acc.opportunity += o.opportunity; acc.vacantSpots += o.vacantSpots;
-            return acc;
-          }, { actual: 0, potential: 0, opportunity: 0, vacantSpots: 0 });
-          if (port.potential <= 0) return null;
-          return (
-            <div className="bg-[#FAF8F4] border-2 border-[#5A6E3D] p-3 mb-4 flex items-center justify-between gap-3 flex-wrap">
-              <div>
-                <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold">💵 Room-income opportunity · portfolio</div>
-                <div className="text-xs text-[#1A1815] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>
-                  Collecting <strong>{fmt(port.actual)}</strong>/mo of <strong>{fmt(port.potential)}</strong> possible.
+              // Darrell 2026-09-11: "dashboard debt tracker all subtabs!!!!!!!"
+              // Portfolio & payoff stacked five unrelated reads: the door rollup,
+              // the snowball, the 7-year feasibility, the strategy comparison and
+              // the cascade. Third row, so each is one tap rather than a scroll.
+              <SectionTabs
+                variant="sub"
+                idBase="rentals-portfolio"
+                ariaLabel="Portfolio sections"
+                defaultId="doors"
+                sections={[
+                  {
+                    id: 'doors',
+                    label: 'The doors',
+                    icon: 'home',
+                    render: () => (
+                      <>
+          <section>
+            <SectionTitle>{doorCount} {doorCount === 1 ? 'Door' : 'Doors'} · {portfolioLabel}</SectionTitle>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-[#E8E4DC] border border-[#E8E4DC] mb-4">
+              <MetricCell label="Mortgage debt" value={fmtCompact(rollup.mortgageDebt)} sub={rollup.missingDebt > 0 ? `${portfolioCount - rollup.missingDebt} of ${portfolioCount}` : 'est.'} small accent="rust" />
+              <MetricCell label="Monthly P&I" value={fmt(rollup.monthlyPI)} small />
+              <MetricCell label="Monthly rent" value={fmt(rollup.monthlyRent)} sub={`${collectionRate.toFixed(0)}%`} small accent="green" />
+              <MetricCell label="Rent gap" value={fmt(rentGap)} small accent={rentGap > 0 ? 'rust' : 'green'} />
+            </div>
+            {/* REAL this-month collected — from the rent_payments ledger, not the
+                device-local status above (build step c). Only shows once a door's
+                lease has synced and there's something DUE to collect against. */}
+            {paidPortfolio.rollup.doors > 0 && (
+              <div className="bg-white border border-[#E8E4DC] p-3 mb-4">
+                <div className="flex items-baseline justify-between gap-2 mb-1.5">
+                  <span className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A6E3D] font-semibold">Collected this month</span>
+                  <span className="text-[0.625rem] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{paidPortfolio.rollup.doorsPaid} of {paidPortfolio.rollup.doors} doors paid</span>
+                </div>
+                <PaidBar received={paidPortfolio.rollup.received} expected={paidPortfolio.rollup.expected} />
+                <div className="text-[0.625rem] text-[#5A5751] mt-1">
+                  {fmt(paidPortfolio.rollup.received)} of {fmt(paidPortfolio.rollup.expected)} due
+                  {paidPortfolio.rollup.doorsPartial > 0 && <> · {paidPortfolio.rollup.doorsPartial} partial</>}
+                  {paidPortfolio.rollup.doorsUnpaid > 0 && <> · {paidPortfolio.rollup.doorsUnpaid} not yet</>}
                 </div>
               </div>
-              {port.opportunity > 0 ? (
-                <div className="text-right">
-                  <div className="text-lg text-[#B85838]" style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600 }}>{fmt(port.opportunity)}/mo</div>
-                  <div className="text-[10px] uppercase tracking-wider text-[#5A5751]">open across {port.vacantSpots} {port.vacantSpots === 1 ? 'spot' : 'spots'} — market them</div>
+            )}
+            {(rollup.missingDebt > 0 || rollup.missingRent > 0) && (
+              <p className="text-[0.6875rem] text-[#5A5751] -mt-3 mb-4" style={{ fontFamily: '"Fraunces", serif' }}>
+                {rollup.missingDebt > 0 && <>{rollup.missingDebt} {rollup.missingDebt === 1 ? 'property needs a mortgage figure' : 'properties need mortgage figures'}</>}
+                {rollup.missingDebt > 0 && rollup.missingRent > 0 && ' · '}
+                {rollup.missingRent > 0 && <>{rollup.missingRent} {rollup.missingRent === 1 ? 'needs rent entered' : 'need rent entered'}</>}
+                {' '}— excluded from the totals above, not zeroed in.
+              </p>
+            )}
+            {/* Portfolio room-income opportunity — sums the per-room occupancy
+                model across every property so the total money-on-the-table from
+                vacant rooms is one glance away. Only shows when rooms are tracked. */}
+            {(() => {
+              const port = (rentals || []).reduce((acc, r) => {
+                const o = occupancyRollup(r.rooms || []);
+                acc.actual += o.actual; acc.potential += o.potential; acc.opportunity += o.opportunity; acc.vacantSpots += o.vacantSpots;
+                return acc;
+              }, { actual: 0, potential: 0, opportunity: 0, vacantSpots: 0 });
+              if (port.potential <= 0) return null;
+              return (
+                <div className="bg-[#FAF8F4] border-2 border-[#5A6E3D] p-3 mb-4 flex items-center justify-between gap-3 flex-wrap">
+                  <div>
+                    <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold">💵 Room-income opportunity · portfolio</div>
+                    <div className="text-xs text-[#1A1815] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>
+                      Collecting <strong>{fmt(port.actual)}</strong>/mo of <strong>{fmt(port.potential)}</strong> possible.
+                    </div>
+                  </div>
+                  {port.opportunity > 0 ? (
+                    <div className="text-right">
+                      <div className="text-lg text-[#B85838]" style={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600 }}>{fmt(port.opportunity)}/mo</div>
+                      <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">open across {port.vacantSpots} {port.vacantSpots === 1 ? 'spot' : 'spots'} — market them</div>
+                    </div>
+                  ) : (
+                    <div className="text-sm text-[#5A6E3D] font-semibold">Every spot filled 🎯</div>
+                  )}
                 </div>
-              ) : (
-                <div className="text-sm text-[#5A6E3D] font-semibold">Every spot filled 🎯</div>
-              )}
-            </div>
-          );
-        })()}
-      </section>
-
-      <section>
-        <SectionTitle>Snowball Strategy</SectionTitle>
-        <div className="bg-white border border-[#1A1815] p-5 space-y-5">
-          <div>
-            <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-2">Payoff order</div>
-            <div className="grid grid-cols-3 gap-1">
-              {[['smallest-balance','Smallest','Momentum'],['highest-rate','Highest rate','Math optimum'],['best-cashflow','Best cash flow','Strong earners']].map(([id, label, sub]) => (
-                <button key={id} onClick={() => setSnowballSort(id)} className={`px-2 py-2 text-left border ${snowballSort === id ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#5A5751]'}`}>
-                  <div className="text-xs" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{label}</div>
-                  <div className="text-[9px] uppercase tracking-wider opacity-75">{sub}</div>
-                </button>
-              ))}
-            </div>
-          </div>
-          <div>
-            <div className="flex items-baseline justify-between mb-2 flex-wrap gap-2">
+              );
+            })()}
+          </section>
+                      </>
+                    ),
+                  },
+                  {
+                    id: 'snowball',
+                    label: 'Snowball & 7-year',
+                    icon: 'coins',
+                    render: () => (
+                      <>
+          <section>
+            <SectionTitle>Snowball Strategy</SectionTitle>
+            <div className="bg-white border border-[#1A1815] p-5 space-y-5">
               <div>
-                <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751]">Monthly snowball</div>
-                <div className="text-[10px] text-[#5A5751] mt-0.5">Total mortgage debt: <strong>{fmtCompact(rentals.reduce((s, r) => s + r.mortgage.balance, 0))}</strong> across {rentals.length} properties · P&I: <strong>{fmt(rentals.reduce((s, r) => s + r.mortgage.monthlyPI, 0))}/mo</strong></div>
+                <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-2">Payoff order</div>
+                <div className="grid grid-cols-3 gap-1">
+                  {[['smallest-balance','Smallest','Momentum'],['highest-rate','Highest rate','Math optimum'],['best-cashflow','Best cash flow','Strong earners']].map(([id, label, sub]) => (
+                    <button key={id} onClick={() => setSnowballSort(id)} className={`px-2 py-2 text-left border ${snowballSort === id ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#E8E4DC] text-[#5A5751]'}`}>
+                      <div className="text-xs" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{label}</div>
+                      <div className="text-[0.5625rem] uppercase tracking-wider opacity-75">{sub}</div>
+                    </button>
+                  ))}
+                </div>
               </div>
-              <div className="text-xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{fmt(snowballExtra)}</div>
+              <div>
+                <div className="flex items-baseline justify-between mb-2 flex-wrap gap-2">
+                  <div>
+                    <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751]">Monthly snowball</div>
+                    <div className="text-[0.625rem] text-[#5A5751] mt-0.5">Total mortgage debt: <strong>{fmtCompact(rentals.reduce((s, r) => s + r.mortgage.balance, 0))}</strong> across {rentals.length} properties · P&I: <strong>{fmt(rentals.reduce((s, r) => s + r.mortgage.monthlyPI, 0))}/mo</strong></div>
+                  </div>
+                  <div className="text-xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{fmt(snowballExtra)}</div>
+                </div>
+                <input type="range" min="0" max="20000" step="250" value={snowballExtra} onChange={(e) => setSnowballExtra(parseInt(e.target.value))} className="w-full accent-[#B85838]" />
+                <details className="mt-2">
+                  <summary className="text-[0.625rem] uppercase tracking-wider text-[#B85838] cursor-pointer hover:text-[#1A1815]">▸ Show individual property balances</summary>
+                  <div className="mt-2 space-y-1 text-xs">
+                    {[...rentals].sort((a, b) => b.mortgage.balance - a.mortgage.balance).map(r => (
+                      <div key={r.id} className="flex justify-between border-b border-[#E8E4DC] pb-1">
+                        <span style={{ fontFamily: '"Fraunces", serif' }}>{r.address} <span className="text-[#5A5751]">· {r.mortgage.rate}%</span></span>
+                        <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(r.mortgage.balance)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </details>
+              </div>
+              <div className="grid grid-cols-3 gap-px bg-[#E8E4DC] border border-[#E8E4DC]">
+                <MetricCell label="All paid in" value={yearsAndMonths(rentalSnowball.allClearedMonth)} small />
+                <MetricCell label="Interest" value={fmt(rentalSnowball.totalInterest)} small />
+                <MetricCell label="Final freed" value={fmt(rentalSnowball.finalFreedCashFlow)} small accent="green" />
+              </div>
             </div>
-            <input type="range" min="0" max="20000" step="250" value={snowballExtra} onChange={(e) => setSnowballExtra(parseInt(e.target.value))} className="w-full accent-[#B85838]" />
-            <details className="mt-2">
-              <summary className="text-[10px] uppercase tracking-wider text-[#B85838] cursor-pointer hover:text-[#1A1815]">▸ Show individual property balances</summary>
-              <div className="mt-2 space-y-1 text-xs">
-                {[...rentals].sort((a, b) => b.mortgage.balance - a.mortgage.balance).map(r => (
-                  <div key={r.id} className="flex justify-between border-b border-[#E8E4DC] pb-1">
-                    <span style={{ fontFamily: '"Fraunces", serif' }}>{r.address} <span className="text-[#5A5751]">· {r.mortgage.rate}%</span></span>
-                    <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmt(r.mortgage.balance)}</span>
+          </section>
+          <section>
+            <SectionTitle>7-Year Goal · Feasibility</SectionTitle>
+            <div className="bg-white border border-[#1A1815] p-5">
+              {sevenYrFeasible ? <p style={{ fontFamily: '"Fraunces", serif' }}>At {fmt(snowballExtra)}/mo snowball, all {doorCount} doors pay off in <strong>{rentalSnowball.allClearedYears.toFixed(1)} years</strong>.</p> : sevenYrAchievable ? <p style={{ fontFamily: '"Fraunces", serif' }}>At {fmt(snowballExtra)}/mo: cascade completes in <strong>{rentalSnowball.allClearedYears.toFixed(1)} years</strong>. 7-year goal needs <strong>{fmt(sevenYrExtra)}/mo</strong> — gap of <strong>{fmt(gapMonthly)}/mo</strong>.</p> : <p style={{ fontFamily: '"Fraunces", serif' }}>At {fmt(snowballExtra)}/mo: cascade completes in <strong>{rentalSnowball.allClearedYears.toFixed(1)} years</strong>. The 7-year goal is <strong>not reachable</strong> even at {fmt(sevenYearTarget?.cap || 0)}/mo extra — the honest levers are rent, principal, or the target year, not a bigger snowball.</p>}
+            </div>
+          </section>
+                      </>
+                    ),
+                  },
+                  {
+                    id: 'compare',
+                    label: 'Compare strategies',
+                    icon: 'chart',
+                    render: () => (
+                      <>
+          <section>
+            <SectionTitle>Strategy Comparison</SectionTitle>
+            <div className="bg-white border border-[#1A1815] p-5">
+              <p className="text-xs text-[#5A5751] mb-4" style={{ fontFamily: '"Fraunces", serif' }}>
+                All three strategies side by side at your current ${'{'}fmt(snowballExtra){'}'}/mo snowball. Differences show up most in <em>payoff order</em> (which property clears first) and <em>cash flow timing</em>, less so in total interest when mortgage rates are similar.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-[#E8E4DC] border border-[#E8E4DC]">
+                {strategyComparison.map(s => (
+                  <div key={s.id} className={`p-4 ${s.id === snowballSort ? 'bg-[#FAF8F4]' : 'bg-white'}`}>
+                    <div className="flex items-baseline justify-between gap-2 mb-2">
+                      <div>
+                        <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751]">{s.label}</div>
+                        <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] opacity-75">{s.sub}</div>
+                      </div>
+                      {s.id === snowballSort && <span className="text-[0.5625rem] uppercase tracking-wider text-[#B85838] font-semibold">Selected</span>}
+                    </div>
+                    <div className="text-xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{fmt(s.totalInterest)}</div>
+                    <div className="text-[0.625rem] text-[#5A5751] mt-0.5">total interest</div>
+                    <div className={`text-[0.625rem] mt-1 ${s.isCheapest ? 'text-[#5A6E3D] font-semibold' : 'text-[#5A5751]'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                      {s.isCheapest ? '✓ cheapest' : `+${fmt(s.delta)}`}
+                    </div>
+                    <div className="text-[0.625rem] text-[#5A5751] mt-2 pt-2 border-t border-[#E8E4DC]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                      All clear: {s.allClearedYears.toFixed(1)} yrs
+                    </div>
                   </div>
                 ))}
               </div>
-            </details>
-          </div>
-          <div className="grid grid-cols-3 gap-px bg-[#E8E4DC] border border-[#E8E4DC]">
-            <MetricCell label="All paid in" value={yearsAndMonths(rentalSnowball.allClearedMonth)} small />
-            <MetricCell label="Interest" value={fmt(rentalSnowball.totalInterest)} small />
-            <MetricCell label="Final freed" value={fmt(rentalSnowball.finalFreedCashFlow)} small accent="green" />
-          </div>
-        </div>
-      </section>
-      <section>
-        <SectionTitle>7-Year Goal · Feasibility</SectionTitle>
-        <div className="bg-white border border-[#1A1815] p-5">
-          {sevenYrFeasible ? <p style={{ fontFamily: '"Fraunces", serif' }}>At {fmt(snowballExtra)}/mo snowball, all {doorCount} doors pay off in <strong>{rentalSnowball.allClearedYears.toFixed(1)} years</strong>.</p> : sevenYrAchievable ? <p style={{ fontFamily: '"Fraunces", serif' }}>At {fmt(snowballExtra)}/mo: cascade completes in <strong>{rentalSnowball.allClearedYears.toFixed(1)} years</strong>. 7-year goal needs <strong>{fmt(sevenYrExtra)}/mo</strong> — gap of <strong>{fmt(gapMonthly)}/mo</strong>.</p> : <p style={{ fontFamily: '"Fraunces", serif' }}>At {fmt(snowballExtra)}/mo: cascade completes in <strong>{rentalSnowball.allClearedYears.toFixed(1)} years</strong>. The 7-year goal is <strong>not reachable</strong> even at {fmt(sevenYearTarget?.cap || 0)}/mo extra — the honest levers are rent, principal, or the target year, not a bigger snowball.</p>}
-        </div>
-      </section>
-      <section>
-        <SectionTitle>Strategy Comparison</SectionTitle>
-        <div className="bg-white border border-[#1A1815] p-5">
-          <p className="text-xs text-[#5A5751] mb-4" style={{ fontFamily: '"Fraunces", serif' }}>
-            All three strategies side by side at your current ${'{'}fmt(snowballExtra){'}'}/mo snowball. Differences show up most in <em>payoff order</em> (which property clears first) and <em>cash flow timing</em>, less so in total interest when mortgage rates are similar.
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-[#E8E4DC] border border-[#E8E4DC]">
-            {strategyComparison.map(s => (
-              <div key={s.id} className={`p-4 ${s.id === snowballSort ? 'bg-[#FAF8F4]' : 'bg-white'}`}>
-                <div className="flex items-baseline justify-between gap-2 mb-2">
-                  <div>
-                    <div className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751]">{s.label}</div>
-                    <div className="text-[9px] uppercase tracking-wider text-[#5A5751] opacity-75">{s.sub}</div>
-                  </div>
-                  {s.id === snowballSort && <span className="text-[9px] uppercase tracking-wider text-[#B85838] font-semibold">Selected</span>}
-                </div>
-                <div className="text-xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{fmt(s.totalInterest)}</div>
-                <div className="text-[10px] text-[#5A5751] mt-0.5">total interest</div>
-                <div className={`text-[10px] mt-1 ${s.isCheapest ? 'text-[#5A6E3D] font-semibold' : 'text-[#5A5751]'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-                  {s.isCheapest ? '✓ cheapest' : `+${fmt(s.delta)}`}
-                </div>
-                <div className="text-[10px] text-[#5A5751] mt-2 pt-2 border-t border-[#E8E4DC]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>
-                  All clear: {s.allClearedYears.toFixed(1)} yrs
-                </div>
-              </div>
-            ))}
-          </div>
-          {allRatesEqual && (
-            <p className="text-[11px] text-[#5A5751] italic mt-3" style={{ fontFamily: '"Fraunces", serif' }}>
-              All 11 rentals are seeded at the same mortgage rate ({rentals[0].mortgage.rate}%), so "Highest rate" doesn't differentiate from the others. Once you enter the actual per-property rates the spread widens — strategy choice will matter more.
-            </p>
-          )}
-        </div>
-      </section>
-      <section>
-        <SectionTitle>Payoff Cascade</SectionTitle>
-        <div className="bg-white border border-[#1A1815]">
-          {orderedByPayoff.map((r, i) => {
-            const freedSoFar = orderedByPayoff.slice(0, i + 1).reduce((s, x) => s + x.mortgage.monthlyPI, 0);
-            return (
-              <div key={r.id} className={`p-4 ${i < orderedByPayoff.length - 1 ? 'border-b border-[#E8E4DC]' : ''}`}>
-                <div className="flex items-start gap-3">
-                  <div className="text-[#B85838] shrink-0 w-8 text-center" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{i + 1}</div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-baseline justify-between gap-2 flex-wrap">
-                      <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{r.name}</div>
-                      <div className="text-sm text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{monthLabel(currentDate, r.clearedAtMonth)}</div>
+              {allRatesEqual && (
+                <p className="text-[0.6875rem] text-[#5A5751] italic mt-3" style={{ fontFamily: '"Fraunces", serif' }}>
+                  All {rentals.length} rentals are seeded at the same mortgage rate ({rentals[0].mortgage.rate}%), so "Highest rate" doesn't differentiate from the others. Once you enter the actual per-property rates the spread widens — strategy choice will matter more.
+                </p>
+              )}
+            </div>
+          </section>
+                      </>
+                    ),
+                  },
+                  {
+                    id: 'cascade',
+                    label: 'Payoff cascade',
+                    icon: 'check',
+                    render: () => (
+                      <>
+          <section>
+            <SectionTitle>Payoff Cascade</SectionTitle>
+            <div className="bg-white border border-[#1A1815]">
+              {orderedByPayoff.map((r, i) => {
+                const freedSoFar = orderedByPayoff.slice(0, i + 1).reduce((s, x) => s + x.mortgage.monthlyPI, 0);
+                return (
+                  <div key={r.id} className={`p-4 ${i < orderedByPayoff.length - 1 ? 'border-b border-[#E8E4DC]' : ''}`}>
+                    <div className="flex items-start gap-3">
+                      <div className="text-[#B85838] shrink-0 w-8 text-center" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{i + 1}</div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                          <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{r.name}</div>
+                          <div className="text-sm text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{monthLabel(currentDate, r.clearedAtMonth)}</div>
+                        </div>
+                        <div className="text-xs text-[#5A5751] mt-1">Paid in {yearsAndMonths(r.clearedAtMonth)} · {fmt(r.mortgage.balance)} · Frees {fmt(r.mortgage.monthlyPI)}/mo</div>
+                        <div className="text-xs text-[#5A6E3D] mt-1">Snowball after: <strong>{fmt(snowballExtra + freedSoFar)}/mo</strong></div>
+                      </div>
                     </div>
-                    <div className="text-xs text-[#5A5751] mt-1">Paid in {yearsAndMonths(r.clearedAtMonth)} · {fmt(r.mortgage.balance)} · Frees {fmt(r.mortgage.monthlyPI)}/mo</div>
-                    <div className="text-xs text-[#5A6E3D] mt-1">Snowball after: <strong>{fmt(snowballExtra + freedSoFar)}/mo</strong></div>
                   </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </section>
-        </>
+                );
+              })}
+            </div>
+          </section>
+                      </>
+                    ),
+                  },
+                ]}
+              />
       ),
     },
     {
@@ -2269,7 +3075,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
       render: () => (
         <>
       <section className="bg-white border border-[#1A1815] p-5">
-        <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] mb-2 font-medium">The 7-Year Pattern</div>
+        <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] mb-2 font-medium">The 7-Year Pattern</div>
         <h2 className="text-2xl mb-3" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>Six years to build. The seventh year to rest.</h2>
         <p className="text-base leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>Own each property outright within seven years, so the seventh year is real rest.</p>
       </section>
@@ -2292,7 +3098,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
         <SectionTitle>{mapAreaLabel ? `Property Map · ${mapAreaLabel}` : 'Property Map'}</SectionTitle>
         <div className="bg-white border border-[#1A1815] p-3">
           <div ref={mapRef} style={{ height: '360px', width: '100%' }} aria-label="Map of rental properties" />
-          <p className="text-[10px] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
+          <p className="text-[0.625rem] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
             Pins appear for properties with saved coordinates. Use Edit on a property to add an address — the autocomplete fills coordinates automatically.
           </p>
         </div>

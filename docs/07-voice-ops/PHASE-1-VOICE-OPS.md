@@ -777,3 +777,14 @@ Phase 3 (TLC) is the bigger architectural shift — separate infrastructure enti
    - Poe Properties line: *"Thank you for calling Poe Properties. Please leave a brief message and we'll call you back."*
    - PoeTech line: *"Thank you for calling PoeTech. Please leave a brief message and we'll call you back."*
    - **TLC line: NOT in Phase 1** — see HIPAA boundary section 10. Christina's existing intake handles TLC. When Phase 3 TLC architecture lands, the greeting will read *"Thank you for call
+
+---
+
+## 15. Surface additions (2026-07-29 — the visual-voicemail parity pass)
+
+Recorded so SHOULD matches ARE (DR-0219 / DR-0239 dimension 1). Prompted by two carrier visual-voicemail screenshots: the third-party app paywalls transcription ("READ YOUR VOICEMAILS — GO PREMIUM") behind a `CALL · MESSAGE · MOVE · DELETE` bar. PoeTech already transcribes free on our own Worker; this pass added the sovereign parity actions and placed the surface where the family lives.
+
+1. ✅ **Per-voicemail reply row — Call back + Text back.** Each row renders a native **Call back** (`tel:`) and **Text back** (`sms:`, prefilled with a line-named callback message) beside the existing Convert/Discard. No premium tier — the honest answer to the carrier app's CALL/MESSAGE. Pure helper `buildCallerActions(row)` in `app/src/components/Inbound.jsx` derives the hrefs from the caller number and **refuses to paint a dead action** for an undialable/unknown caller (DR-0076). Tested: `inbound-convert.test.js`, `inbound-render.test.jsx`.
+2. ✅ **In BOTH places, cross-linked.** The full visual voicemail lives on the **📞 Inbound** tab AND as a **Voicemail** sub-tab inside **Messages** (which *reuses* the same `Inbound` component — one source of truth, no fork). Inbound header links → Messages; the Messages Voicemail tab links → the full Inbound tab. This is "convenient locations, and in both places you can get to either."
+3. ✅ **Honest states + isolation preserved.** An unconfigured Worker shows the real connect form, never a fake voicemail. Voicemail stays a distinct, labelled data class in Messages — never mixed into the E2E DM threads. TLC/HIPAA line isolation stays enforced at the Worker (section 10).
+4. ⏳ **Next (queued, not shipped):** route `voicemail_url → NAS/GPU Whisper` for **sovereign, ~$0 transcription** (drop Twilio's ~$0.05/min and keep audio fully in-house) — `re-review: 2026-08-12`. A "Save caller to Contacts" action tying into the Messages saved-contacts work — `re-review: 2026-08-05`.

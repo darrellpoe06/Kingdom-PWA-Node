@@ -9,10 +9,11 @@
 // window onto it. An empty feed says so honestly; it never paints rows.
 //
 // DATA + AUTH (Reality-Trace, CLAUDE.md):
-//   - Real data: GET {N8N_BASE}/webhook/review-feed -> wf-review-feed reads the
-//     real /data/finance-events/_freshness/*.json files the v1 loop writes.
-//     POST {N8N_BASE}/webhook/review-action sets a proposal's status
-//     (dismissed/kept) on the same real files — dismissed drop out of the feed.
+//   - Real data: GET /review-feed -> the sovereign Python server
+//     (infra/nas-review-feed/review_server.py, DR-0218 zero-n8n) reads the real
+//     /data/finance-events/_freshness/*.json files the v1 loop writes.
+//     POST /review-action sets a proposal's status (dismissed/kept) on the same
+//     real files — dismissed drop out of the feed. No n8n hop.
 //   - This endpoint carries ONLY low-sensitivity PUBLIC-web summaries. Family
 //     feedback (family-private) is NOT served here — its home is the Supabase
 //     `feedback` table via RLS. That's what lets a build-time shared token be an
@@ -21,24 +22,33 @@
 //     anything to the system; bright lines stay manual.
 //   - Governor-gated at the call site (Projects.jsx), like the decision queue.
 import React, { useEffect, useState } from 'react';
-import { N8N_BASE } from '../lib/n8n-base.js';
 import EmojiText from './EmojiText.jsx';
 
+// SOVEREIGN (DR-0218 zero-n8n): the governance review queue is served by the
+// family's own Python server (infra/nas-review-feed/review_server.py) at these
+// same-origin RELATIVE paths — a byte-faithful port of the old wf-review-feed /
+// wf-review-action Code nodes, reading/writing the same /data/finance-events/
+// _freshness/*.json files. No n8n webhook, never an absolute Funnel URL. The GET
+// degrades to an honest 'error' state and the POST to a 'couldn’t' notice until
+// that server + its Caddy route are stood up.
+export const REVIEW_FEED_URL = '/review-feed';
+export const REVIEW_ACTION_URL = '/review-action';
+
 // Review token — PER-DEVICE first (typed once, localStorage, never in the
-// bundle), VITE_ build var only as a transition fallback (2026-07-03: a VITE_
-// var is inlined into the PUBLIC bundle, so it was extractable by any visitor;
-// same fix as the n8n bearer — once family devices carry the device token,
-// delete VITE_REVIEW_TOKEN from the Vercel project and rotate). Resolved at
-// call time so pasting the token takes effect without a reload.
+// bundle). The VITE_ transition fallback is DELETED (2026-07-30 access
+// evaluation, same class-close as the bridge bearer in lib/bridge-auth.js): a VITE_
+// var is inlined into the PUBLIC bundle, extractable by any visitor, and the
+// 2026-07-03 transition window has closed. The per-device token is the only
+// source; rotate the NAS-side value to finish (N8N-WEBHOOK-AUTH-PATTERN.md).
+// Resolved at call time so pasting the token takes effect without a reload.
 export const REVIEW_DEVICE_TOKEN_KEY = 'poetech-review-token';
-const REVIEW_TOKEN_FALLBACK = (import.meta.env?.VITE_REVIEW_TOKEN || '').trim();
 export function resolveReviewToken(win) {
   try {
     const w = win || (typeof window !== 'undefined' ? window : null);
     const device = (w && w.localStorage && w.localStorage.getItem(REVIEW_DEVICE_TOKEN_KEY)) || '';
     if (device.trim()) return device.trim();
-  } catch { /* private mode — fall through */ }
-  return REVIEW_TOKEN_FALLBACK;
+  } catch { /* private mode — no device token readable */ }
+  return '';
 }
 
 // Pure shape-normalizer (exported for tests): tolerate a missing/garbled
@@ -122,7 +132,7 @@ export default function ReviewFeed() {
         return;
       }
       try {
-        const res = await fetch(`${N8N_BASE}/webhook/review-feed`, {
+        const res = await fetch(REVIEW_FEED_URL, {
           method: 'GET',
           headers: { 'X-Review-Token': token },
           cache: 'no-store',
@@ -147,7 +157,7 @@ export default function ReviewFeed() {
     setActionError(null);
     setActing((a) => ({ ...a, [id]: true }));
     try {
-      const res = await fetch(`${N8N_BASE}/webhook/review-action`, {
+      const res = await fetch(REVIEW_ACTION_URL, {
         method: 'POST',
         headers: { 'content-type': 'application/json', 'X-Review-Token': token },
         body: JSON.stringify({ id, action }),
@@ -171,7 +181,7 @@ export default function ReviewFeed() {
   return (
     <div className="space-y-4">
       <section className="bg-white border-2 border-[#1A1815] p-4 sm:p-5">
-        <div className="text-[10px] uppercase tracking-[0.3em] text-[#5A6E3D] font-semibold">🔄 Review · What the freshness loop is flowing</div>
+        <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#5A6E3D] font-semibold">🔄 Review · What the freshness loop is flowing</div>
         <p className="text-sm mt-1 text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
           When you save a link, the local AI reads it and stages a short summary of the current best practice it asserts — optionally cross-checked by a vendor model. Review them here: <strong>Keep</strong> the ones worth acting on, <strong>Dismiss</strong> the rest. Nothing is auto-applied to the system; you decide what becomes a change. Family feedback lives in its own panels, not here.
         </p>
@@ -222,8 +232,8 @@ export default function ReviewFeed() {
             return (
               <div key={p.id} className="bg-white border-l-4 border border-[#E8E4DC] p-4" style={{ borderLeftColor: kept ? '#8B6F47' : '#5A6E3D' }}>
                 <div className="flex items-baseline justify-between gap-2 flex-wrap">
-                  <span className="text-[10px] uppercase tracking-wider text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmtWhen(p.captured_at)}</span>
-                  {p.status && <span className="text-[10px] uppercase tracking-wider font-semibold text-[#8B6F47]">{p.status}</span>}
+                  <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{fmtWhen(p.captured_at)}</span>
+                  {p.status && <span className="text-[0.625rem] uppercase tracking-wider font-semibold text-[#8B6F47]">{p.status}</span>}
                 </div>
                 {p.url && (
                   <a href={p.url} target="_blank" rel="noopener noreferrer"
@@ -237,39 +247,39 @@ export default function ReviewFeed() {
                 )}
                 {vendorState.kind === 'synthesized' ? (
                   <p className="text-xs text-[#5A6E3D] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
-                    <span className="uppercase tracking-wider text-[10px] mr-1">Vendor cross-check ·</span>{vendorState.text}
+                    <span className="uppercase tracking-wider text-[0.625rem] mr-1">Vendor cross-check ·</span>{vendorState.text}
                   </p>
                 ) : vendorState.kind === 'checking' ? (
-                  <p className="text-[11px] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
-                    <span className="uppercase tracking-wider text-[10px] mr-1">Vendor cross-check ·</span>checking…
+                  <p className="text-[0.6875rem] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
+                    <span className="uppercase tracking-wider text-[0.625rem] mr-1">Vendor cross-check ·</span>checking…
                   </p>
                 ) : (
                   // Terminal local-first state — the local summary IS the result;
                   // the optional vendor cross-check was deferred, not left hanging.
-                  <p className="text-[11px] text-[#5A6E3D] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
-                    <span className="uppercase tracking-wider text-[10px] mr-1">✓ Local-verified ·</span>vendor cross-check deferred (optional)
+                  <p className="text-[0.6875rem] text-[#5A6E3D] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
+                    <span className="uppercase tracking-wider text-[0.625rem] mr-1">✓ Local-verified ·</span>vendor cross-check deferred (optional)
                   </p>
                 )}
                 {p.note && (
-                  <p className="text-[11px] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>Note · <EmojiText text={p.note} /></p>
+                  <p className="text-[0.6875rem] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>Note · <EmojiText text={p.note} /></p>
                 )}
                 {/* Controls (DR-0061): Keep / Dismiss act on the real staged file. */}
                 <div className="mt-3 pt-2 border-t border-[#E8E4DC] flex items-center gap-2 flex-wrap">
                   {kept ? (
-                    <span className="text-[10px] uppercase tracking-wider text-[#5A6E3D] font-semibold">✓ Kept for action</span>
+                    <span className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold">✓ Kept for action</span>
                   ) : (
                     <button type="button" onClick={() => onAction(p.id, 'keep')} disabled={busy}
                       aria-label={`Keep ${hostOf(p.url)} for action`}
-                      className="text-[10px] uppercase tracking-wider px-3 py-1.5 min-h-[32px] border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white disabled:opacity-50 focus:outline focus:outline-2 focus:outline-[#5A6E3D]">
+                      className="text-[0.625rem] uppercase tracking-wider px-3 py-1.5 min-h-[32px] border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white disabled:opacity-50 focus:outline focus:outline-2 focus:outline-[#5A6E3D]">
                       Keep
                     </button>
                   )}
                   <button type="button" onClick={() => onAction(p.id, 'dismiss')} disabled={busy}
                     aria-label={`Dismiss ${hostOf(p.url)}`}
-                    className="text-[10px] uppercase tracking-wider px-3 py-1.5 min-h-[32px] border border-[#E8E4DC] text-[#5A5751] hover:border-[#B85838] hover:text-[#B85838] disabled:opacity-50 focus:outline focus:outline-2 focus:outline-[#B85838]">
+                    className="text-[0.625rem] uppercase tracking-wider px-3 py-1.5 min-h-[32px] border border-[#E8E4DC] text-[#5A5751] hover:border-[#B85838] hover:text-[#B85838] disabled:opacity-50 focus:outline focus:outline-2 focus:outline-[#B85838]">
                     Dismiss
                   </button>
-                  {busy && <span className="text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>working…</span>}
+                  {busy && <span className="text-[0.625rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>working…</span>}
                 </div>
               </div>
             );
@@ -277,7 +287,7 @@ export default function ReviewFeed() {
         </div>
       )}
 
-      <p className="text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
+      <p className="text-[0.625rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
         These are proposals, not changes. Bright lines (money, credentials, clinical data, the family&apos;s voice) are never auto-decided — applying anything from here stays your call.
       </p>
     </div>

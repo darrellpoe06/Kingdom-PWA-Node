@@ -6,6 +6,11 @@
       "main": true
     }
   },
+  "redirects": [
+    { "source": "/mooredivahs", "destination": "/moore/", "permanent": true },
+    { "source": "/mooredivahs/", "destination": "/moore/", "permanent": true },
+    { "source": "/", "destination": "/poetech-app/", "permanent": false }
+  ],
   "rewrites": [
     { "source": "/n8n/:path*", "destination": "https://poetech.tail5a2f35.ts.net/:path*" },
     { "source": "/nas-photos/:path*", "destination": "https://poetech.tail5a2f35.ts.net/nas-photos/:path*" },
@@ -36,6 +41,48 @@
       "source": "/poetech-app/assets/:path*",
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+      ]
+    },
+    {
+      "source": "/lovecorner/app/:path*",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" },
+        { "key": "Pragma", "value": "no-cache" },
+        { "key": "Expires", "value": "0" }
+      ]
+    },
+    {
+      "source": "/manifest-lovecorner.webmanifest",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/moore/app/:path*",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" },
+        { "key": "Pragma", "value": "no-cache" },
+        { "key": "Expires", "value": "0" }
+      ]
+    },
+    {
+      "source": "/tlc/app/:path*",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" },
+        { "key": "Pragma", "value": "no-cache" },
+        { "key": "Expires", "value": "0" }
+      ]
+    },
+    {
+      "source": "/manifest-moore.webmanifest",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/manifest-tlc.webmanifest",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
       ]
     }
   ]

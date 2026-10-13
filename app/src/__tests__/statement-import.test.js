@@ -129,6 +129,27 @@ describe('findStatementHeader — the header row is found wherever it is', () =>
     expect(h.idx.desc).toBe(1);
     expect(h.idx.amount).toBe(2);
   });
+  it('Chase checking (Details BEFORE Description): maps the PAYEE column, not "DEBIT/CREDIT" (Christina 2026-07-19)', () => {
+    const h = findStatementHeader([
+      'Details,Posting Date,Description,Amount,Type,Balance',
+      'DEBIT,07/16/2026,MCDONALD\'S F15879 CHAMPAIGN IL,-30.60,ACH_DEBIT,1234.56',
+    ]);
+    expect(h.errors).toEqual([]);
+    expect(h.idx.desc).toBe(2);   // "Description" (payee) — NOT column 0 ("Details" = DEBIT/CREDIT)
+    expect(h.idx.date).toBe(1);
+    expect(h.idx.amount).toBe(3);
+    expect(h.idx.balance).toBe(5);
+    // And the row parses the real merchant, not the transaction type.
+    const p = parseDelimitedToRows(
+      'Details,Posting Date,Description,Amount,Type,Balance\nDEBIT,07/16/2026,MCDONALD\'S F15879 CHAMPAIGN IL,-30.60,ACH_DEBIT,1234.56'
+    );
+    expect(p.rows[0].description).toContain("MCDONALD'S");
+    expect(p.rows[0].description).not.toBe('DEBIT');
+  });
+  it('falls back to Details/Memo when there is NO Description/Payee column', () => {
+    const h = findStatementHeader(['Date,Details,Amount', '07/16/2026,SOME MEMO,-5.00']);
+    expect(h.idx.desc).toBe(1); // Details is still accepted when it's the only description-ish column
+  });
   it('a file with no usable header anywhere still fails loudly with the column errors', () => {
     const h = findStatementHeader(['just,some,garbage', 'more,random,cells']);
     expect(h.errors.join(' ')).toMatch(/No Date column/);
@@ -156,5 +177,34 @@ describe('looksImportableFile — photos and PDFs are named, not parsed', () => 
     expect(looksImportableFile({ name: 'imported-transactions.csv', type: 'text/csv' })).toBe(true);
     expect(looksImportableFile({ name: 'June.xlsx', type: '' })).toBe(true);
     expect(looksImportableFile({ name: 'export', type: 'text/plain' })).toBe(true);
+  });
+});
+
+import { parseAmount } from '../lib/statement-import.js';
+
+describe('parseAmount — accounting negatives stop importing as 0 (Christina 2026-07-13)', () => {
+  it('parses plain, currency, and thousands-separated positives', () => {
+    expect(parseAmount('1234.56')).toBe(1234.56);
+    expect(parseAmount('$1,234.56')).toBe(1234.56);
+    expect(parseAmount('1,234.56')).toBe(1234.56);
+  });
+  it('reads parenthesized accounting negatives as negative, NOT 0 (the bug)', () => {
+    expect(parseAmount('(1,234.56)')).toBe(-1234.56);
+    expect(parseAmount('($50.00)')).toBe(-50);
+  });
+  it('reads leading and trailing minus as negative', () => {
+    expect(parseAmount('-1,234.56')).toBe(-1234.56);
+    expect(parseAmount('1,234.56-')).toBe(-1234.56);
+  });
+  it('blank / non-numeric -> 0 (unchanged), so blank cells still import as 0', () => {
+    expect(parseAmount('')).toBe(0);
+    expect(parseAmount(null)).toBe(0);
+    expect(parseAmount('N/A')).toBe(0);
+  });
+  it('a parenthesized negative reaches the ledger through the delimited parser', () => {
+    // The end-to-end proof: before the fix this row imported as 0.
+    const r = parseDelimitedToRows('Date,Description,Amount\n06/01/2026,REFUND,(21.00)');
+    expect(r.rows).toHaveLength(1);
+    expect(r.rows[0].amount).toBe(-21);
   });
 });

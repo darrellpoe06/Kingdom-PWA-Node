@@ -70,7 +70,9 @@ describe('the three seams stay wired', () => {
     expect(migrationSrc).toMatch(/ALTER PUBLICATION supabase_realtime ADD TABLE ops_commands/);
   });
   it('the Harvest surface renders the admin card only for stewards (canEdit)', () => {
-    expect(surfaceSrc).toMatch(/access\?\.canEdit && <OpsAdminCard \/>/);
+    // Since the SectionTabs conversion the card is a canEdit-gated SECTION entry
+    // (SectionTabs filters the falsy branch) — same steward-only mount property.
+    expect(surfaceSrc).toMatch(/access\?\.canEdit \? \{[\s\S]{0,200}?render: \(\) => <OpsAdminCard \/>,[\s\S]{0,20}?\} : null/);
   });
   it('cancel only touches still-queued rows (race with the runner is a no-op)', () => {
     expect(libSrc).toMatch(/\.eq\('status',\s*'queued'\)/);

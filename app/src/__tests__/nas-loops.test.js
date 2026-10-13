@@ -98,11 +98,14 @@ describe('decideRun — the three brakes, proven to BOTH block and open', () => 
     expect(d.reason).toMatch(/GO/);
   });
 
-  // KILL-SWITCH (panic stop)
-  it('BLOCKS when the kill-switch is engaged — even fully armed and under cap', () => {
+  // KILL-SWITCH REMOVED (DR-0248, Darrell 2026-07-29: "Get rid of the kill
+  // switch... we have over 6000 checks... they are all switching deterministic
+  // logic"). A stray killSwitch input is IGNORED — the stop-paths are the lane
+  // (registry enabled:false, delete ARMED-BY-RECORD, DSM toggle).
+  it('IGNORES a killSwitch input — the manual override is removed from this class (DR-0248)', () => {
     const d = decideRun({ ...armedClear, killSwitch: true });
-    expect(d.go).toBe(false);
-    expect(d.reason).toMatch(/kill-switch engaged/);
+    expect(d.go).toBe(true);
+    expect(d.reason).not.toMatch(/kill-switch/i);
   });
 
   // ARM flag (ships absent => inert)
@@ -191,5 +194,32 @@ describe('the shipped registry.json is valid and ships inert', () => {
     const hc = findLoop(reg, 'health-check');
     expect(hc).not.toBeNull();
     expect(hc.kind).toBe('deterministic');
+  });
+
+  // Gate-the-class (DR-0239 review 2026-08-05): the transcript loader sat
+  // parked on a manual app button for a month (81/858 transcribed) while the
+  // deterministic fleet ran without it — the waiting-by-default miss. This pin
+  // keeps the harvest's transcript source ON the armed fleet with real brakes;
+  // its loop script must exist and stay bounded (trickle pace, not a burst the
+  // YouTube block punishes).
+  // CORRECTED 2026-08-06 by the ways review. This test originally asserted
+  // `enabled: true` — but the loop has no DSM/cron entry, so enabled read GREEN
+  // while nothing fired it (DR-0076 §3: a check that means nothing). The LIVE
+  // path is the transcript-trickle services.json rider on the already-armed
+  // services-sync clock; this entry is the documented DSM upgrade, held off by
+  // record because arming it would ADD ~64 videos/day on top of the rider's ~32
+  // and push the pair past the measured ~180/day IpBlocked ceiling.
+  it('keeps the transcript-backfill loop braked and honest about not being clocked', () => {
+    const reg = JSON.parse(readFileSync(regPath, 'utf8'));
+    const tb = findLoop(reg, 'transcript-backfill');
+    expect(tb).not.toBeNull();
+    expect(tb.kind).toBe('deterministic');
+    expect(tb.enabled).toBe(false);
+    expect(tb.disabled_why).toBeTruthy();
+    expect(tb.re_review).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(tb.max_calls_per_day).toBeGreaterThan(0);
+    expect(tb.max_calls_per_day).toBeLessThanOrEqual(8);
+    expect(tb.timeout_seconds).toBeGreaterThan(0);
+    expect(existsSync(join(repoRoot, 'infra/nas-loops/loops', tb.script))).toBe(true);
   });
 });

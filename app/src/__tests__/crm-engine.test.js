@@ -23,9 +23,9 @@ import {
 const NOW = '2026-06-24T12:00:00.000Z';
 
 describe('businesses + pipelines registry — one engine, per-business config', () => {
-  it('registers TLC three pipelines + GTM + Boxcar + real estate', () => {
+  it('registers TLC four pipelines + GTM + Boxcar + real estate', () => {
     expect(pipelinesForBusiness('tlc').map(p => p.id).sort()).toEqual(
-      ['tlc-client-intake', 'tlc-therapist-recruiting', 'tlc-training-enrollment']);
+      ['tlc-client-intake', 'tlc-community-outreach', 'tlc-therapist-recruiting', 'tlc-training-enrollment']);
     expect(pipelinesForBusiness('gtm').map(p => p.id)).toEqual(['gtm-subscriber']);
     expect(pipelinesForBusiness('boxcar').map(p => p.id)).toEqual(['boxcar-booking']);
     expect(pipelinesForBusiness('realestate').map(p => p.id)).toEqual(['realestate-leads']);

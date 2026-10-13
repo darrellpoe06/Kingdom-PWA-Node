@@ -59,17 +59,35 @@ function OpBadge({ op }) {
   );
 }
 
-function TraceRow({ item }) {
+function TraceRow({ item, action = null }) {
+  const selectId = useId();
   return (
     <div className="flex items-baseline justify-between gap-3 py-1.5 border-b border-[#E8E4DC] last:border-b-0">
       <div className="flex items-baseline gap-1 min-w-0">
         <OpBadge op={item.op} />
         <div className="min-w-0">
-          <div className="text-sm text-[#1A1815] truncate" style={{ fontFamily: '"Fraunces", serif' }}>
-            {item.label}
+          <div className={`text-sm text-[#1A1815] ${action && action.render ? '' : 'truncate'}`} style={{ fontFamily: '"Fraunces", serif' }}>
+            {action && action.render ? action.render(item) : item.label}
           </div>
           {item.meta && (
-            <div className="text-[10px] uppercase tracking-wider text-[#5A5751]">{item.meta}</div>
+            <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">{item.meta}</div>
+          )}
+          {/* Optional per-record action (e.g. recategorize a purchase in place —
+              the same control the Tx tab has, so no drill-down is a dead end). */}
+          {action && !action.render && (
+            <div className="mt-1">
+              <label htmlFor={selectId} className="sr-only">{`${action.label || 'Set'} for ${item.label}`}</label>
+              <select
+                id={selectId}
+                value={action.value(item)}
+                onChange={(e) => action.onPick(item, e.target.value)}
+                className="text-[0.6875rem] border border-[#8A857B] bg-white text-[#1A1815] px-1.5 py-1 min-h-[32px] focus:outline focus:outline-2 focus:outline-[#B85838]"
+              >
+                {action.options.map((o) => (
+                  <option key={o} value={o}>{o}</option>
+                ))}
+              </select>
+            </div>
           )}
         </div>
       </div>
@@ -89,6 +107,10 @@ export default function TraceableNumber({
   label,
   className = '',
   align = 'left',
+  // Optional action rendered on every SOURCE row: { label, options: [...],
+  // value(item), onPick(item, value) }. Lets a drill-down act on its records
+  // in place (recategorize a purchase) instead of sending the user elsewhere.
+  sourceAction = null,
 }) {
   const [open, setOpen] = useState(false);
   const triggerRef = useRef(null);
@@ -149,7 +171,7 @@ export default function TraceableNumber({
         {children}
         <span
           aria-hidden="true"
-          className="self-start ml-0.5 text-[9px] leading-none text-[#5A5751] border border-[#8A857B] rounded-full w-[13px] h-[13px] inline-flex items-center justify-center shrink-0 group-hover:text-[#B85838] group-hover:border-[#B85838]"
+          className="self-start ml-0.5 text-[0.5625rem] leading-none text-[#5A5751] border border-[#8A857B] rounded-full w-[13px] h-[13px] inline-flex items-center justify-center shrink-0 group-hover:text-[#B85838] group-hover:border-[#B85838]"
           style={{ fontFamily: 'Georgia, serif', fontStyle: 'italic', fontWeight: 700 }}
         >
           i
@@ -173,7 +195,7 @@ export default function TraceableNumber({
             {/* Header */}
             <div className="sticky top-0 bg-white border-b border-[#1A1815] px-4 py-3 flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold">
+                <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">
                   Where this number comes from
                 </div>
                 <h2
@@ -198,7 +220,7 @@ export default function TraceableNumber({
             <div className="px-4 py-3 space-y-4">
               {/* The result */}
               <div className="bg-[#FAF8F4] border border-[#E8E4DC] px-3 py-2.5 flex items-baseline justify-between gap-3">
-                <span className="text-[10px] uppercase tracking-[0.2em] text-[#5A5751]">This number</span>
+                <span className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A5751]">This number</span>
                 <span
                   className="text-2xl text-[#1A1815] tabular-nums"
                   style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}
@@ -209,7 +231,7 @@ export default function TraceableNumber({
 
               {/* (b) the math in plain terms */}
               <section>
-                <div className="text-[10px] uppercase tracking-[0.2em] text-[#5A6E3D] font-semibold mb-1">
+                <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A6E3D] font-semibold mb-1">
                   How it's calculated
                 </div>
                 <p className="text-sm leading-relaxed text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
@@ -220,7 +242,7 @@ export default function TraceableNumber({
               {/* (a) the inputs that feed it */}
               {trace.inputs && trace.inputs.length > 0 && (
                 <section>
-                  <div className="text-[10px] uppercase tracking-[0.2em] text-[#5A6E3D] font-semibold mb-1">
+                  <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A6E3D] font-semibold mb-1">
                     The inputs that feed it
                   </div>
                   <div>
@@ -234,12 +256,12 @@ export default function TraceableNumber({
               {/* (c) the real source rows it traces to */}
               {trace.sources && trace.sources.length > 0 && (
                 <section>
-                  <div className="text-[10px] uppercase tracking-[0.2em] text-[#5A6E3D] font-semibold mb-1">
+                  <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A6E3D] font-semibold mb-1">
                     The records it comes from <span className="text-[#5A5751] normal-case tracking-normal font-normal">· {trace.sources.length}</span>
                   </div>
                   <div>
                     {trace.sources.map((it, i) => (
-                      <TraceRow key={`src-${i}`} item={it} />
+                      <TraceRow key={`src-${i}`} item={it} action={sourceAction} />
                     ))}
                   </div>
                 </section>

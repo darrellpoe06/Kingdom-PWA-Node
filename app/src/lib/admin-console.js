@@ -117,6 +117,18 @@ export const PREVIEW_ACTIONS = {
       'Use this when a merged fix isn’t showing yet (a stale cached build).',
     ],
   },
+  'review-as-user': {
+    label: 'Review as a user',
+    what: 'See this live build exactly as a signed-in user outside the family sees it — the review pass after a push to production.',
+    danger: false,
+    confirmLabel: 'Enter reviewer mode',
+    preview: [
+      'The app reloads once into Reviewer mode on THIS device: every steward surface (Admin, Center, CRM, Relationships, Inventory, Forecast, staff boards) disappears, and the books open as a fresh user’s own empty world at the user’s real tier.',
+      'Your real data is safe by construction: while reviewing, nothing writes to this device’s saved books, your saved profile, or the family cloud snapshot.',
+      'You stay signed in as yourself — anything you deliberately submit through a module (feedback, an entry) still lands in your own account, exactly as it would for any user.',
+      'A dark “Reviewer mode” strip stays pinned across the top with the one-tap Exit that brings the steward view back.',
+    ],
+  },
   'reset-seed': {
     label: 'Reset to sample data',
     what: 'Replace what’s on THIS device with the fresh starter (demo) dataset.',

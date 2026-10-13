@@ -1,0 +1,24 @@
+# PoeTech cams forwarder -- the locked door in front of go2rtc (DR-0756).
+# Request-driven (no timers): it does no work until a browser asks for a
+# frame. The Funnel mounts /cams here. The family bridge bearer is read from
+# /volume1/PoeTech/secrets/chat-bridge-token.txt at start (never a second
+# token); playback tickets are derived from it, 90 s, one camera each.
+# Installed + kept running by infra/nas-cameras/install.sh via services-sync;
+# the @...@ values are filled in by the installer.
+[Unit]
+Description=PoeTech cams forwarder (/cams -> go2rtc on 127.0.0.1:1984)
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+Environment=PORT=@PORT@
+Environment=CAMS_UPSTREAM=http://127.0.0.1:1984
+WorkingDirectory=@SRC@
+ExecStart=@PYTHON@ -u @SRC@/cams_forwarder.py --port @PORT@
+Restart=on-failure
+RestartSec=5
+Nice=10
+
+[Install]
+WantedBy=multi-user.target

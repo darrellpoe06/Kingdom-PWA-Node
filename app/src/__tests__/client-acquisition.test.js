@@ -17,6 +17,7 @@ import {
   newOutboundItem, canApproveOutbound,
   CADENCE_DEFAULT, evaluateCadenceGate, cadenceStatusLabel,
   pipelineSummary, sensitivityFor, PRACTICE_GROWTH_WEBHOOK,
+  GROWTH_FRAMEWORKS, growthPlaysForStage,
 } from '../lib/client-acquisition.js';
 
 describe('the 4-stage team', () => {
@@ -82,6 +83,45 @@ describe('per-side prompts weave the side framing + guardrails', () => {
   });
   it('never leaks an unfilled token', () => {
     for (const side of SIDE_KEYS) for (const k of STAGE_KEYS) expect(buildStagePrompt(k, configForSide(side))).not.toMatch(/\{\{\w+\}\}/);
+  });
+});
+
+describe('adopted growth plays (DR-0140) — attributed, honesty-bent, woven into the prompts', () => {
+  it('every play carries its attribution, honesty bend, DR ref, and a REAL stage', () => {
+    expect(GROWTH_FRAMEWORKS.length).toBeGreaterThanOrEqual(5);
+    for (const f of GROWTH_FRAMEWORKS) {
+      expect(f.attribution, f.key).toMatch(/Priestley/);
+      expect(f.honestyBend, f.key).toBeTruthy();
+      expect(f.drRef, f.key).toBe('DR-0140');
+      expect(STAGE_KEYS, `${f.key} rides a real stage`).toContain(f.stageKey);
+    }
+  });
+  it('the 7-11-4 play is named as a HEURISTIC, never as verified research', () => {
+    const t = GROWTH_FRAMEWORKS.find((f) => f.key === 'trust-touch');
+    expect(t.play).toMatch(/7 hours|~11|~4/);
+    expect(`${t.label} ${t.honestyBend}`.toLowerCase()).toMatch(/heuristic/);
+    expect(t.honestyBend.toLowerCase()).toMatch(/not research we verified/);
+  });
+  it('the demand-proof play demands HONEST tests (no fake scarcity)', () => {
+    const d = GROWTH_FRAMEWORKS.find((f) => f.key === 'demand-proof');
+    expect(d.stageKey).toBe('market-signal');
+    expect(d.play.toLowerCase()).toMatch(/waiting list|discussion group|needs analysis/);
+    expect(d.honestyBend.toLowerCase()).toMatch(/never manufactured|must be real/);
+  });
+  it('each stage prompt weaves in exactly its own plays, after the guardrails', () => {
+    for (const k of STAGE_KEYS) {
+      const p = buildStagePrompt(k, configForSide('client'));
+      const plays = growthPlaysForStage(k);
+      for (const f of plays) {
+        expect(p, `${k} carries ${f.key}`).toContain(f.label);
+        expect(p.indexOf(f.label), `${k}: plays come after guardrails`).toBeGreaterThan(p.indexOf('Non-negotiable guardrails'));
+      }
+      for (const f of GROWTH_FRAMEWORKS.filter((x) => x.stageKey !== k)) {
+        expect(p, `${k} does not carry ${f.key}`).not.toContain(f.label);
+      }
+    }
+    // offer-architect carries no plays by design — the offer stays the preset's honest packaging
+    expect(growthPlaysForStage('offer-architect')).toHaveLength(0);
   });
 });
 
@@ -200,8 +240,8 @@ describe('output approval + reality-trace + webhook', () => {
     expect(s.won).toBe(1);
     expect(s.outputsByStage['market-signal'].total).toBe(1);
   });
-  it('uses the same-origin /n8n rewrite', () => {
-    expect(PRACTICE_GROWTH_WEBHOOK.startsWith('/n8n/')).toBe(true);
-    expect(PRACTICE_GROWTH_WEBHOOK).not.toMatch(/^https?:/);
+  it('is EMPTY — n8n RETIRED (DR-0218, 2026-07-30); the growth run degrades, never calls n8n', () => {
+    expect(PRACTICE_GROWTH_WEBHOOK).toBe('');
+    expect(PRACTICE_GROWTH_WEBHOOK).not.toMatch(/n8n/);
   });
 });

@@ -80,8 +80,9 @@ describe('account sync (cross-device)', () => {
   it('writes the pref to the account (updateUser data), swallowing errors', async () => {
     let written = null;
     const client = { auth: { updateUser: async ({ data }) => { written = data; } } };
-    await saveReadingVoiceToAccount('Samantha', client);
-    expect(written).toEqual({ reading_voice_id: 'Samantha' });
+    await saveReadingVoiceToAccount('Samantha', client, 1234);
+    // The pick travels WITH its stamp, so an older one never overwrites it.
+    expect(written).toEqual({ reading_voice_id: 'Samantha', reading_voice_at: 1234 });
     // signed out → updateUser throws → no throw out
     await expect(saveReadingVoiceToAccount('x', { auth: { updateUser: async () => { throw new Error('no session'); } } })).resolves.toBeUndefined();
   });

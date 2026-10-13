@@ -93,16 +93,40 @@ describe('mergeRemoteRentals', () => {
     expect(merged.map((r) => r.id)).toEqual(['r-176000', 'r-remote-uuid-9']);
   });
 
-  it('drops a previously-synced local item whose remote row was deleted', () => {
+  it('drops a previously-synced PLAIN door whose remote row was deleted', () => {
     // 2026-06-12 contract change: deletion propagates only via a NON-EMPTY
     // read (the read returns the remaining rows). An all-empty read is
     // treated as a failed read, not a mass deletion — see the empty-read
     // guard test below and the sync-data-safety suite.
+    //
+    // NARROWED 2026-09-14, after real loss. This case used to be asserted with
+    // localSeed as the dropped door — and localSeed carries
+    // `rooms: [{ name: 'Kitchen' }]`, a field with NO cloud column. So the old
+    // contract said: a door absent from one read is deleted locally along with
+    // the only copy of its room list, lease and tenant sub-objects. That is
+    // exactly what happened to Christina's doors on a MacBook with a broken
+    // login, and the database proved nothing was ever deleted there (rentals:
+    // 13 rows, 0 ever deleted; property_rooms and rental_tenancies: 0 rows, 0
+    // ever INSERTED). Deletion still propagates — for a door whose every field
+    // is in the cloud, which is what this now asserts. The door holding
+    // local-only detail is covered by the case below.
+    const plainGone = { id: 'r-plain', remoteUuid: 'uuid-gone', name: 'Plain Door', mortgage: {} };
+    const survivor = { id: 'r-other', remoteUuid: 'uuid-stays', name: 'Other Property', mortgage: {} };
+    const merged = mergeRemoteRentals([plainGone, { ...survivor }], [survivor]);
+    expect(merged.some((r) => r.remoteUuid === 'uuid-gone')).toBe(false);
+    expect(merged.some((r) => r.remoteUuid === 'uuid-stays')).toBe(true);
+  });
+
+  it('KEEPS a door absent from the read when this device holds the only copy', () => {
+    // localSeed's Kitchen exists in no database. Kept, and marked so a surface
+    // can say it is not in the cloud instead of implying it is synced.
     const syncedLocal = { ...localSeed, remoteUuid: 'uuid-gone' };
     const survivor = { id: 'r-other', remoteUuid: 'uuid-stays', name: 'Other Property', mortgage: {} };
-    const localPair = [syncedLocal, { ...survivor }];
-    const merged = mergeRemoteRentals(localPair, [survivor]);
-    expect(merged.some((r) => r.remoteUuid === 'uuid-gone')).toBe(false);
+    const merged = mergeRemoteRentals([syncedLocal, { ...survivor }], [survivor]);
+    const kept = merged.find((r) => r.remoteUuid === 'uuid-gone');
+    expect(kept, 'a door holding the only copy of its rooms must never be dropped').toBeTruthy();
+    expect(kept.rooms).toEqual([{ id: 'rm-1', name: 'Kitchen' }]);
+    expect(kept.remoteMissing).toBe(true);
     expect(merged.some((r) => r.remoteUuid === 'uuid-stays')).toBe(true);
   });
 
@@ -123,6 +147,49 @@ describe('mergeRemoteRentals', () => {
     const once = mergeRemoteRentals([localSeed], [remoteTwin]);
     const twice = mergeRemoteRentals(once, [remoteTwin]);
     expect(twice).toEqual(once);
+  });
+});
+
+// DR-0394 — the data-loss guard. A fresher LOCAL edit must never be clobbered by
+// a STALE remote row on a pull; a blank remote never erases a real local value.
+// This is the exact failure that wiped a family member's rent/notes/fix-ups
+// (Christina 2026-09): her device held the real values, the cloud was frozen and
+// blank, and the merge overwrote her edits with the blanks.
+describe('mergeRemoteRentals — a fresh local edit survives a stale/blank remote (DR-0394)', () => {
+  it('PROVEN-TO-CATCH: a newer local edit keeps its rent + notes against an older, blank remote', () => {
+    const localEdited = {
+      ...localSeed, remoteUuid: 'uuid-1',
+      rent: 1150, tenantName: 'Delores Tracy', notes: 'new roof 2026; furnace serviced',
+      status: 'paying',
+      updatedAt: '2026-09-12T18:00:00Z', // she edited it yesterday
+    };
+    const staleRemote = {
+      ...remoteTwin,
+      rent: 0, actual: 0, tenantName: '', notes: '', status: 'paying',
+      updatedAt: '2026-08-07T21:56:48Z', // the frozen cloud row
+    };
+    const [m] = mergeRemoteRentals([localEdited], [staleRemote]);
+    expect(m.rent).toBe(1150);                                  // NOT clobbered to 0
+    expect(m.notes).toBe('new roof 2026; furnace serviced');    // notes survive
+    expect(m.tenantName).toBe('Delores Tracy');
+    expect(m.updatedAt).toBe('2026-09-12T18:00:00Z');           // keeps the newer stamp
+    // Revert the guard (overlay remote unconditionally) and every line above flips to the blank.
+  });
+
+  it('a blank remote never erases a real local value even at equal/unknown age', () => {
+    const local = { ...localSeed, remoteUuid: 'uuid-1', rent: 1150, notes: 'keep me' }; // no updatedAt
+    const blankRemote = { ...remoteTwin, rent: 0, notes: '', tenantName: '', updatedAt: undefined };
+    const [m] = mergeRemoteRentals([local], [blankRemote]);
+    expect(m.rent).toBe(1150);
+    expect(m.notes).toBe('keep me');
+  });
+
+  it('a genuinely NEWER remote still overlays (normal cross-device sync is intact)', () => {
+    const localOld = { ...localSeed, remoteUuid: 'uuid-1', rent: 1000, updatedAt: '2026-06-01T00:00:00Z' };
+    const remoteNew = { ...remoteTwin, rent: 1250, tenantName: 'New Tenant', updatedAt: '2026-09-13T00:00:00Z' };
+    const [m] = mergeRemoteRentals([localOld], [remoteNew]);
+    expect(m.rent).toBe(1250);                 // the real remote update lands
+    expect(m.tenantName).toBe('New Tenant');
   });
 });
 

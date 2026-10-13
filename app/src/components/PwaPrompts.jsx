@@ -19,12 +19,48 @@
 //     Safari shows manual "Share -> Add to Home Screen" instructions. Dismissal
 //     is stored in localStorage for 30 days. Auto-hides once installed.
 // =============================================================================
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useIntakeHeld } from '../lib/intake-guard.js';
 
 const UPDATED_TOAST_MS = 4000;
 
+// currentFace — which installable identity this page booted as (DR-0133 install-
+// identity). PoeTech and The Love Corner are TWO installable PWAs on the SAME
+// origin (poetech.us). Since DR-0258 they live under DISJOINT install scopes
+// (/poetech-app/ vs /lovecorner/), each served by its OWN static HTML that
+// links its OWN manifest — the DR-0227 runtime <link rel=manifest> swap is
+// retired (install identity is a page-load property; mid-session swaps were
+// flaky and, post-split, would have made the /poetech-app/ Church tab
+// un-installable as PoeTech). The face is therefore decided by WHERE the page
+// booted: the church's path (/lovecorner/…) or a church-door launch param
+// (?lovecorner=1) — never the in-app ?view=church tab, which is a PoeTech page
+// whose installable identity IS PoeTech.
+// Everything keyed to the install prompt (the dismissal flag, the banner
+// label) stays per-face. THE 2026-07-30 BUG this preserves the fix for
+// ("I can't download the PoeTech App when I already have the Love Corner
+// App"): a single per-ORIGIN 'pwa-install-dismissed' flag let one face's
+// dismissal suppress the other's banner for 30 days. Per-face keys keep the
+// two independent.
+export function currentFace(search, pathname) {
+  try {
+    const path = pathname !== undefined ? pathname
+      : (typeof window !== 'undefined' && window.location ? window.location.pathname : '');
+    if (typeof path === 'string' && path.startsWith('/lovecorner/')) {
+      return { key: 'lovecorner', label: 'The Love Corner' };
+    }
+    if (new URLSearchParams(search || '').get('lovecorner') === '1') {
+      return { key: 'lovecorner', label: 'The Love Corner' };
+    }
+  } catch { /* fall through to default */ }
+  return { key: 'poetech', label: 'PoeTech' };
+}
+const DISMISS_KEY = (face) => `pwa-install-dismissed:${face.key}`;
+
 export function UpdatePrompt() {
   const [confirmed, setConfirmed] = useState(false);
+  // NOTHING INTERRUPTS WORDS COMING IN (DR-0748): no toast over a recording,
+  // a dictation or a box being typed in.
+  const held = useIntakeHeld();
 
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;
@@ -41,7 +77,7 @@ export function UpdatePrompt() {
     };
   }, []);
 
-  if (!confirmed) return null;
+  if (!confirmed || held) return null;
 
   return (
     <div className="update-confirm fixed bottom-4 left-1/2 -translate-x-1/2 z-50 max-w-sm px-2 print:hidden" role="status" aria-live="polite">
@@ -58,6 +94,12 @@ export function InstallPrompt() {
   const [isIOS, setIsIOS] = useState(false);
   const [installed, setInstalled] = useState(false);
   const [dismissed, setDismissed] = useState(true); // assume dismissed until we check storage
+  // NOTHING INTERRUPTS WORDS COMING IN (DR-0748): the nudge waits until the
+  // person is not recording, speaking or typing. The deferred event is kept,
+  // so the nudge shows once they are free.
+  const held = useIntakeHeld();
+  // Install identity is a page-load property — read the launch URL once (stable).
+  const face = useMemo(() => (typeof window !== 'undefined' ? currentFace(window.location.search) : { key: 'poetech', label: 'PoeTech' }), []);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -72,9 +114,10 @@ export function InstallPrompt() {
     const ios = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
     setIsIOS(ios);
 
-    // Read dismissal flag
+    // Read dismissal flag — PER FACE, so installing/declining one app on this
+    // origin never suppresses the other's install prompt (the 2026-07-30 bug).
     try {
-      const stamp = window.localStorage.getItem('pwa-install-dismissed');
+      const stamp = window.localStorage.getItem(DISMISS_KEY(face));
       if (stamp) {
         const days = (Date.now() - parseInt(stamp, 10)) / 86400000;
         if (days < 30) { setDismissed(true); return; }
@@ -91,10 +134,10 @@ export function InstallPrompt() {
     window.addEventListener('beforeinstallprompt', onPrompt);
     window.addEventListener('appinstalled', () => { setInstalled(true); setDeferredEvt(null); });
     return () => window.removeEventListener('beforeinstallprompt', onPrompt);
-  }, []);
+  }, [face]);
 
   const dismiss = () => {
-    try { window.localStorage.setItem('pwa-install-dismissed', String(Date.now())); } catch (e) {}
+    try { window.localStorage.setItem(DISMISS_KEY(face), String(Date.now())); } catch (e) {}
     setDismissed(true);
   };
 
@@ -113,20 +156,20 @@ export function InstallPrompt() {
     dismiss();
   };
 
-  if (installed || dismissed) return null;
+  if (installed || dismissed || held) return null;
   if (!deferredEvt && !isIOS) return null;
 
   return (
     <div className="install-prompt fixed bottom-4 left-4 right-20 sm:right-auto z-[60] max-w-xs print:hidden">
       <div className="bg-white border-2 border-[#1A1815] shadow-lg p-3">
         <div className="flex items-baseline justify-between gap-2 mb-2">
-          <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold">📲 Install PoeTech</div>
-          <button type="button" onClick={dismiss} aria-label="Dismiss install prompt" className="text-[10px] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">×</button>
+          <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">📲 Install {face.label}</div>
+          <button type="button" onClick={dismiss} aria-label="Dismiss install prompt" className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#1A1815]">×</button>
         </div>
         {deferredEvt ? (
           <>
             <p className="text-xs leading-snug mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
-              Add PoeTech to your home screen so you can open it like a regular app — works offline, no browser bar, faster launch.
+              Add {face.label} to your home screen so you can open it like a regular app — works offline, no browser bar, faster launch.
             </p>
             <button type="button" onClick={installAndroid} className="w-full bg-[#1A1815] text-white px-3 py-2 text-xs uppercase tracking-wider font-semibold hover:bg-[#B85838]">
               Install on this device
@@ -137,8 +180,8 @@ export function InstallPrompt() {
             <p className="text-xs leading-snug mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
               On iPhone or iPad: tap the <strong>Share</strong> button at the bottom of Safari, then choose <strong>Add to Home Screen</strong>.
             </p>
-            <p className="text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
-              Once added, PoeTech opens like a regular app — works offline, no browser bar.
+            <p className="text-[0.625rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
+              Once added, {face.label} opens like a regular app — works offline, no browser bar.
             </p>
           </>
         ) : null}

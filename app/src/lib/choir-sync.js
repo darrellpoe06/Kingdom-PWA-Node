@@ -14,6 +14,7 @@
 // real enforcement either way.
 // =============================================================================
 import supabase from './supabase.js';
+import { publicRpc } from './public-rpc.js';
 import { churchInstanceId } from './church-instance.js';
 
 async function currentSession() {
@@ -32,7 +33,7 @@ function resolveDisplayName(session, explicit) {
 export function toSongShape(row) {
   return {
     id: row.id,
-    title: row.title,
+    title: decodeHtmlEntities(row.title),
     youtubeUrl: row.youtube_url ?? null,
     scriptureRef: row.scripture_ref ?? null,
     notes: row.notes ?? null,
@@ -71,7 +72,9 @@ export function toSermonShape(row) {
     id: row.id,
     serviceDate: row.service_date ?? null,
     serviceType: row.service_type ?? 'sunday',
-    title: row.title,
+    // Decoded at the mapper (DR-0139): harvested titles arrive entity-encoded
+    // ('&QUOT;DON'T…'), and rows already stored that way heal at render.
+    title: decodeHtmlEntities(row.title),
     speaker: row.speaker ?? null,
     speakerId: row.speaker_id ?? null,   // canonical speaker entity (0037); null on the public RPC path
     scriptureRef: row.scripture_ref ?? null,
@@ -137,7 +140,7 @@ export function toScheduleShape(row) {
     id: row.id,
     serviceDate: row.service_date,
     serviceType: row.service_type,
-    title: row.title ?? null,
+    title: decodeHtmlEntities(row.title) ?? null,
     youtubeUrl: row.youtube_url ?? null,
     notes: row.notes ?? null,
   };
@@ -241,10 +244,13 @@ export function songsForService(songs, serviceDate, serviceType) {
 
 // The past-services list for the Choir "This week" panel. HISTORY is the real
 // service corpus, not just the planning calendar: a card shows for any past
-// service that has a planned schedule row OR at least one song on it (manual OR a
-// harvested draft). This is why a service the worship-song harvester wrote drafts
-// for (keyed by its choir_sermons date/type) now appears with its setlist instead
-// of being invisible — the schedule table only ever holds the few planned dates.
+// service that has a planned schedule row, OR at least one song on it (manual OR
+// a harvested draft), OR a service RECORDING to watch. The watchable rule is the
+// 2026-07-10 fix (DR-0137): the history read only 7 services because the corpus's
+// recorded-but-songless services were filtered out as "empty cards" — but to the
+// choir a recorded service IS history (Darrell: "the Choir tab still only has 7
+// videos in the history"). Only a row with none of the three — no plan, no
+// setlist, no video — stays hidden as noise.
 // Deduped by date|type, newest-first. Pure + channel-agnostic (callers pass the
 // already tenant-scoped rows). Each entry is a service-card shape:
 //   { id, serviceDate, serviceType, title, youtubeUrl }
@@ -269,12 +275,19 @@ export function buildPastServices(schedule, sermons, songs, todayIso) {
   };
   for (const s of schedule || []) consider(s, true);
   for (const s of sermons || []) consider(s, false);
-  // Keep a service only if it was planned OR actually has a setlist (a card with
-  // neither is just noise — the corpus has 130+ services with no songs yet).
+  // Keep a service if it was planned, has a setlist, or is WATCHABLE (any
+  // dated recording). The old Sunday-only rule (2026-07-10) hid 142 dated
+  // weekday recordings and left 52 of an 897-row corpus visible — superseded
+  // by Darrell 2026-08-03 ("only 52 of the 800 plus"): every dated service
+  // with a recording is the choir's browsable history; the card's own
+  // day/type label says which weekday it was. Rows with no date at all still
+  // cannot render on a dated list — they surface via the undated-remainder
+  // note until the corpus pipeline dates them (DR-0266/DR-0267).
   const out = [];
   for (const svc of byKey.values()) {
     const hasSongs = songsForService(songs, svc.serviceDate, svc.serviceType).length > 0;
-    if (svc._scheduled || hasSongs) {
+    const watchable = !!svc.youtubeUrl;
+    if (svc._scheduled || hasSongs || watchable) {
       const { _scheduled, ...clean } = svc;
       out.push(clean);
     }
@@ -316,11 +329,36 @@ export function membersOutOnDate(absences, dateIso) {
 export function suggestBackups(members, absences, dateIso, absentMember) {
   const out = new Set(membersOutOnDate(absences, dateIso));
   const section = absentMember?.section || null;
-  return (members || [])
+  // Everyone who could actually stand in that day: not the absent member, not
+  // already scheduled out, not a tech/sound/media role (they don't sing a part).
+  const freeSingers = (members || [])
     .filter((m) => m.id !== absentMember?.id)
     .filter((m) => !out.has(m.id))
-    .filter((m) => (section ? m.section === section : true))
     .filter((m) => m.choirRole !== 'sound' && m.choirRole !== 'media' && m.choirRole !== 'tech');
+  if (!section) return freeSingers;
+  // PREFER same-section (they cover the exact part) — but never DEAD-END the
+  // request: if no same-section singer is free, fall back to any free singer so a
+  // backup can always be asked for (the surface promises "request a backup").
+  const sameSection = freeSingers.filter((m) => m.section === section);
+  return sameSection.length ? sameSection : freeSingers;
+}
+
+// Who may respond (confirm/decline) to a REQUESTED backup: the chosen backup
+// themselves (iAmBackup), OR the director (canEdit — owner/admin, which RLS
+// already permits) on their behalf. The director path keeps a request from being
+// stuck at 'requested' forever when the chosen singer has no linked account yet.
+export function canRespondToBackup(absence, canEdit) {
+  if (!absence || !absence.backupName || absence.backupStatus !== 'requested') return false;
+  return !!(absence.iAmBackup || canEdit);
+}
+
+// Are the offered backups a cross-section fallback? (True when the absent member
+// has a section but NO same-section singer is free, so suggestBackups returned
+// others.) Lets the UI label the list honestly instead of claiming "same-section".
+export function backupsAreCrossSection(suggestions, absentMember) {
+  const section = absentMember?.section || null;
+  if (!section || !Array.isArray(suggestions) || suggestions.length === 0) return false;
+  return !suggestions.some((m) => m.section === section);
 }
 
 // --- Timestamps (jump to the exact music / sermon moment in a service video) -
@@ -357,8 +395,8 @@ export function youtubeTimedUrl(url, startSeconds) {
 
 // The YouTube title parser lives in a dependency-free module so the local
 // backfill script can share it. Re-exported here for the app + tests.
-import { parseServiceTitle as _parseTitle } from './youtube-title-parse.js';
-export { parseServiceTitle, extractYoutubeId } from './youtube-title-parse.js';
+import { parseServiceTitle as _parseTitle, decodeHtmlEntities } from './youtube-title-parse.js';
+export { parseServiceTitle, extractYoutubeId, decodeHtmlEntities } from './youtube-title-parse.js';
 
 // Pure: turn raw {videoId, title} channel items into NEW choir_sermons rows —
 // parse the title, keep only dated ones, drop any whose video is already stored
@@ -369,16 +407,22 @@ export function selectNewSermonImports(items, existingVideoIds) {
   for (const it of items || []) {
     if (!it.videoId || have.has(it.videoId)) continue;
     const p = _parseTitle(it.title);
-    if (!p.serviceDate) continue;
+    // EVERY new channel video is imported — the archive must match the channel
+    // (Darrell 2026-07-16: "there are 850 videos on YouTube... get the others").
+    // Date, best-effort: the title's date, else the YouTube UPLOAD date; a video
+    // with no date anywhere still lands (dateless, sorted last) — never dropped.
+    const uploadDate = (typeof it.publishedAt === 'string' && /^\d{4}-\d{2}-\d{2}/.test(it.publishedAt)) ? it.publishedAt.slice(0, 10) : null;
+    const serviceDate = p.serviceDate || uploadDate || null;
     out.push({
       videoId: it.videoId,
       youtubeUrl: `https://www.youtube.com/watch?v=${it.videoId}`,
-      serviceDate: p.serviceDate,
+      serviceDate,
       serviceType: p.serviceType,
-      title: p.title || String(it.title || '').trim(),
+      title: p.title || String(it.title || '').trim() || 'Untitled message',
       speaker: p.speaker,
       source: 'youtube',
     });
+    have.add(it.videoId); // dedup WITHIN this call too (the same video across pages)
   }
   return out;
 }
@@ -431,19 +475,31 @@ export async function getChoirAccess(displayName) {
 // --- Generic fetch + realtime subscribe --------------------------------------
 
 function makeSubscriber(table, mapRow, orderBy) {
-  return function subscribe(onChange) {
+  return function subscribe(onChange, onError) {
     let channel = null;
     let cancelled = false;
     (async () => {
-      const session = await currentSession();
-      if (!session || cancelled) return;
+      // Cold-start race (Darrell 2026-07-15, "we don't have any Word in the Word
+      // Tab"): getSession() can return null for a beat on a fresh load, BEFORE
+      // the persisted session is read. The old code bailed silently on that null
+      // -> onChange never fired -> the list sat at "No messages yet." though the
+      // session and the rows were both there a moment later. Retry briefly; only
+      // after the session truly doesn't arrive do we report an honest empty.
+      let session = null;
+      for (let i = 0; i < 8 && !cancelled; i += 1) {
+        session = await currentSession();
+        if (session) break;
+        await new Promise((r) => setTimeout(r, 250));
+      }
+      if (cancelled) return;
+      if (!session) { onChange([]); return; } // genuinely signed out -> honest empty, never a hang
       const myUserId = session.user.id;
       const fetchAll = async () => {
         const q = supabase.from(table).select('*');
         const { data, error } = orderBy
           ? await q.order(orderBy.col, { ascending: orderBy.asc })
           : await q;
-        if (error) { console.warn(`[choir-sync] ${table} fetch failed:`, error); return null; }
+        if (error) { console.warn(`[choir-sync] ${table} fetch failed:`, error); if (onError) onError(error); return null; }
         return (data || []).map((r) => mapRow(r, myUserId));
       };
       const initial = await fetchAll();
@@ -478,10 +534,23 @@ export const subscribeSpeakers = makeSubscriber('church_speakers', toSpeakerShap
 // Works for ANYONE, including signed-out/anon (the RPC is granted to anon), so
 // the congregation + the unchurched can watch the sermon library (Father's-
 // Business reach). The table itself stays owner/admin (RLS), so prep/drafts never
-// leak. Degrades to [] on error — the public surface never throws.
+// leak.
+//
+// Rides publicRpc (anon key + hard 12s deadline), NEVER the shared supabase
+// client: the shared client awaits auth.getSession() first, which waits on a
+// CROSS-TAB navigator lock shared by every PoeTech window on this origin. A
+// wedged/backgrounded PoeTech tab holds that lock and — because browser fetch()
+// has no timeout — the library request never returns, stranding the surface on
+// "Loading the Word…" forever with no Retry (Darrell 2026-07-19, many PoeTech
+// tabs open). Same fix as fetchShowcase (2026-07-07 gallery hang).
+//
+// On a hard error/timeout this THROWS so the caller lights up its honest
+// error+Retry state — a false "No messages yet." on a real failure is exactly
+// the dishonest empty the three-state design forbids (DR-0076). A genuine empty
+// library still resolves to [].
 export async function fetchPublicSermons() {
-  const { data, error } = await supabase.rpc('theword_public_sermons');
-  if (error) { console.warn('[the-word] public library fetch failed:', error); return []; }
+  const { data, error } = await publicRpc('theword_public_sermons');
+  if (error) throw new Error(error.message || 'theword-public-library-failed');
   return (data || []).map((r) => toSermonShape(r));
 }
 
@@ -630,6 +699,16 @@ export async function removeMember(id) {
   return error ? { skipped: 'delete-error', error } : { deleted: true };
 }
 
+// Change a roster member's DESCRIPTIVE choir role (member/musician/sound/media/tech/
+// director/assistant). This is the section-team label, not app authority —
+// choir_members_update RLS (0011) already lets owner/admin update it. Edit ACCESS
+// (co-director) is a separate instance-role change via member-roles.setMemberRole.
+export async function updateChoirRole(id, choirRole) {
+  if (!id || !choirRole) return { skipped: 'bad-args' };
+  const { error } = await supabase.from('choir_members').update({ choir_role: choirRole }).eq('id', id);
+  return error ? { skipped: 'update-error', error } : { updated: true };
+}
+
 // Invite a choir/media member into the church instance by email + role. They get
 // access (and see the Choir tab) the next time they sign in — join_church_instance
 // accepts the pending invite. Owner/admin only (enforced in the RPC).
@@ -645,6 +724,143 @@ export async function inviteToChurch(email, role) {
     role_in: role || 'member',
   });
   return error ? { skipped: 'invite-error', error } : { invited: true, id: data };
+}
+
+// --- Roster self-claim (DR-0220 / DR-0187 leg 1) ------------------------------
+// A roster row with user_id = NULL is INERT — user_in_choir() never matches it,
+// so a rostered singer can't see the Choir surface until their account is linked
+// to their row. Migration 0110 closes that with a director-issued one-time code:
+// the director mints a code for the unclaimed row and reads it to the member
+// (human-to-human — "DMs not SMS", no external channel required); the member
+// redeems it here, which links choir_members.user_id = auth.uid(). Linking grants
+// READ + own-absence only; it never touches instance_members.role, so claiming a
+// 'director' roster row does NOT make anyone an owner/admin (choir_role is
+// descriptive — 0011:43).
+
+// Normalize a typed code to EXACTLY what the RPC compares against — uppercase +
+// whitespace stripped (the server does upper(trim()); codes contain no spaces).
+// Deliberately NO confusable-folding: the alphabet is already confusable-free
+// (no 0/O/1/I/L/U), so any substitution here could only turn a VALID typed code
+// invalid. Keep the client and server normalization identical.
+export function normalizeClaimCode(raw) {
+  return String(raw || '').toUpperCase().replace(/\s+/g, '');
+}
+
+// Owner/admin mints a one-time claim code for an unclaimed roster row.
+// Returns { code, expiresAt, displayName } or { skipped, error }.
+export async function mintClaimCode(memberId) {
+  if (!memberId) return { skipped: 'no-member' };
+  const { data, error } = await supabase.rpc('mint_choir_claim_code', { member_id_in: memberId });
+  if (error) return { skipped: 'mint-error', error };
+  return { code: data?.code ?? null, expiresAt: data?.expires_at ?? null, displayName: data?.display_name ?? null };
+}
+
+// The signed-in member redeems a code. Returns the RPC envelope:
+// { status: 'linked'|'invalid'|'already-linked', ... } or { skipped, error }.
+export async function claimChoirMember(rawCode) {
+  const code = normalizeClaimCode(rawCode);
+  if (!code) return { skipped: 'no-code' };
+  const { data, error } = await supabase.rpc('claim_choir_member', { code_in: code });
+  if (error) return { skipped: 'claim-error', error };
+  return data || { status: 'invalid' };
+}
+
+// The caller's own linked roster row(s) in the church instance, so the surface can
+// show "you're linked as X (section)" + personalize "songs you're leading". Returns
+// an array of { memberId, displayName, section, choirRole } (empty if unlinked).
+export async function getMyChoirMembership(displayName) {
+  const session = await currentSession();
+  if (!session) return [];
+  const tenantId = await churchInstanceId(displayName);
+  if (!tenantId) return [];
+  const { data, error } = await supabase.rpc('my_choir_membership', { instance_uuid: tenantId });
+  if (error) { console.warn('[choir-sync] my_choir_membership failed:', error); return []; }
+  return (data || []).map((r) => ({
+    memberId: r.member_id,
+    displayName: r.display_name,
+    section: r.section ?? null,
+    choirRole: r.choir_role ?? 'member',
+  }));
+}
+
+// --- Sent invites (the director's "who have I already invited?" view) --------
+// Christina (2026-07-12): she needs to SEE who she already sent an invite to, so
+// she doesn't guess or double-invite. The rows already exist in instance_invites
+// (written by invite_to_church) and owner/admin already have a SELECT on them
+// (policy instance_invites_admin_read, schema-v2.1-infra) — so this reads the
+// real rows directly, no new migration. SCOPED to the church instance so a
+// governor who ALSO owns the family instance never sees family invites bleed
+// into the choir roster. Live: a new invite or an acceptance updates the list.
+
+// instance_invites has no created_at; expires_at defaults to (invited + 14 days)
+// in migration 0014, so the SEND date is derivable for display.
+const INVITE_TTL_MS = 14 * 24 * 60 * 60 * 1000;
+
+export function toInviteShape(row) {
+  const expiresAt = row.expires_at ?? null;
+  const invitedAt = expiresAt
+    ? new Date(Date.parse(expiresAt) - INVITE_TTL_MS).toISOString()
+    : null;
+  return {
+    id: row.id,
+    email: row.email,
+    role: row.role ?? 'member',
+    invitedBy: row.invited_by ?? null,
+    acceptedAt: row.accepted_at ?? null,
+    expiresAt,
+    invitedAt,
+  };
+}
+
+// Pure: an invite is 'accepted' once it's been consumed at sign-in; otherwise
+// 'expired' if past its window, else still 'pending' (the actionable state).
+export function deriveInviteStatus(invite, nowMs) {
+  if (!invite) return 'pending';
+  if (invite.acceptedAt) return 'accepted';
+  const exp = invite.expiresAt ? Date.parse(invite.expiresAt) : NaN;
+  if (Number.isFinite(exp) && Number.isFinite(nowMs) && exp <= nowMs) return 'expired';
+  return 'pending';
+}
+
+// Pure: newest invite first, so "who did I just invite?" is at the top.
+export function sortInvites(invites) {
+  return [...(invites || [])].sort((a, b) =>
+    String(b.invitedAt || '').localeCompare(String(a.invitedAt || '')));
+}
+
+// Scoped, live subscriber (mirrors makeSubscriber but pinned to the church
+// instance — the generic all-rows read would mix in family invites for a
+// governor who owns both). Non-admins get [] (RLS), so it degrades quietly.
+export function subscribeChurchInvites(onChange, displayName) {
+  let channel = null;
+  let cancelled = false;
+  (async () => {
+    const session = await currentSession();
+    if (!session || cancelled) return;
+    const tenantId = await churchInstanceId(displayName);
+    if (!tenantId || cancelled) return;
+    const fetchAll = async () => {
+      const { data, error } = await supabase
+        .from('instance_invites')
+        .select('*')
+        .eq('instance_id', tenantId)
+        .order('expires_at', { ascending: false });
+      if (error) { console.warn('[choir-sync] instance_invites fetch failed:', error); return null; }
+      return (data || []).map(toInviteShape);
+    };
+    const initial = await fetchAll();
+    if (initial && !cancelled) onChange(initial);
+    channel = supabase
+      .channel('church-invites-stream')
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'instance_invites', filter: `instance_id=eq.${tenantId}` },
+        () => { fetchAll().then((rows) => { if (rows && !cancelled) onChange(rows); }); })
+      .subscribe();
+  })();
+  return function unsubscribe() {
+    cancelled = true;
+    if (channel) supabase.removeChannel(channel);
+  };
 }
 
 export async function sendChoirMessage(body, displayName) {
@@ -911,7 +1127,14 @@ async function fetchUploadsItems(uploads, key, maxPages) {
     const tok = pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : '';
     const pl = await ytApi(`playlistItems?part=snippet,contentDetails&maxResults=50${tok}&playlistId=${encodeURIComponent(uploads)}`, key);
     for (const i of pl?.items || []) {
-      items.push({ videoId: i?.contentDetails?.videoId, title: i?.snippet?.title });
+      items.push({
+        videoId: i?.contentDetails?.videoId,
+        title: i?.snippet?.title,
+        // The video's real upload date (contentDetails.videoPublishedAt is the
+        // publish time; snippet.publishedAt is when it was added to the playlist).
+        // Used as the service-date fallback so a dateless title still lands dated.
+        publishedAt: i?.contentDetails?.videoPublishedAt || i?.snippet?.publishedAt || null,
+      });
     }
     pageToken = pl?.nextPageToken || '';
     pages += 1;
@@ -925,7 +1148,9 @@ export async function importSermonsFromChannel(displayName, opts = {}) {
   if (!key) return { skipped: 'no-key' };
   const ctx = await writeContext(displayName);
   if (ctx.error) return { skipped: ctx.error };
-  const maxPages = Number.isFinite(opts.maxPages) && opts.maxPages > 0 ? Math.floor(opts.maxPages) : 12;
+  // Scan the WHOLE channel by default (~850 videos = 17 pages of 50); 40 pages
+  // is 2000-video headroom so nothing older is left unscanned (Darrell 2026-07-16).
+  const maxPages = Number.isFinite(opts.maxPages) && opts.maxPages > 0 ? Math.floor(opts.maxPages) : 40;
   try {
     // Resolve the channel's uploads playlist from its handle.
     const ch = await ytApi(`channels?part=contentDetails&forHandle=${encodeURIComponent('@' + CHURCH_CHANNEL_HANDLE)}`, key);
@@ -947,11 +1172,21 @@ export async function importSermonsFromChannel(displayName, opts = {}) {
       title: r.title,
       speaker: r.speaker,
       source: 'youtube',
+      // PUBLISHED, not draft. An archived channel video is already public on
+      // YouTube, and The Word library is public by design (migration 0029/0103):
+      // it must be watchable the moment it is archived. BG's prep (points /
+      // scriptures) stays private separately (0101) and fills in over the next
+      // days — the video does not wait on it.
+      status: 'active',
     }));
     const { error } = await supabase.from('choir_sermons').insert(rows);
     if (error) return { skipped: 'insert-error', error };
     return { imported: rows.length, scanned: items.length, more };
   } catch (e) {
-    return { skipped: 'api-error', error: e };
+    // Surface the REAL reason (status + body) so a manager can fix it from the
+    // screen (DR-0076). ytApi throws "YouTube API 403: ..." — a 403 is almost
+    // always the key's HTTP-referrer restriction not allowing this site, or the
+    // "YouTube Data API v3" not being enabled on the key's Google Cloud project.
+    return { skipped: 'api-error', error: e, detail: (e && e.message) || String(e) };
   }
 }

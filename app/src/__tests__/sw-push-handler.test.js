@@ -1,0 +1,513 @@
+// @vitest-environment node
+// =============================================================================
+// sw-push-handler — the service worker's push path, tested on the REAL file
+// =============================================================================
+// This suite loads `app/public/sw.js` itself and drives its handlers against a
+// fake ServiceWorkerGlobalScope. It deliberately does NOT test a copy of the
+// logic: the shipped artifact is the thing that has to work, and a duplicate
+// would drift from it silently — which is the whole failure class here.
+//
+// WHY IT EXISTS. Darrell, 2026-09-06: "My phone didn't notify me of the
+// livestream inside the Love Corner App... why not." The measured answer was
+// that sw.js had FOUR listeners — install, activate, message, fetch — and no
+// `push` handler whatsoever, so a phone with the app closed could not be
+// notified of anything, ever. These tests are the standing proof that the
+// handler exists and behaves, so the gap cannot silently reopen.
+//
+// THE RULE THAT SHAPES MOST OF THESE CASES: a push handler must never throw.
+// Push services may deliver an EMPTY push as a "wake up" ping, bodies can be
+// malformed, and on some platforms a handler that rejects costs the origin its
+// push permission outright. So every malformed input below must still produce
+// an honest notification rather than an exception.
+import { describe, it, expect, beforeEach } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const HERE = dirname(fileURLToPath(import.meta.url));
+const SW_PATH = join(HERE, '..', '..', 'public', 'sw.js');
+const SW_SRC = readFileSync(SW_PATH, 'utf8');
+const BASE = '/poetech-app';
+const ORIGIN = 'https://poetech.us';
+
+/** Load the real sw.js into a fake worker scope and hand back what it registered.
+ *  `scope` is the registration's scope: since DR-0584 the worker is registered
+ *  once per door, and the push path reads which door it serves from it. The
+ *  default is the legacy ROOT registration (no door). */
+function loadServiceWorker({ scope = `${ORIGIN}/` } = {}) {
+  const handlers = {};
+  const shown = [];
+  const opened = [];
+  const posted = [];
+  const clientList = [];
+
+  const badge = { set: [], cleared: 0 };
+  const self = {
+    addEventListener(type, fn) { handlers[type] = fn; },
+    skipWaiting() {},
+    // A real worker scope HAS a location, and the notificationclick handler
+    // resolves its target against it (DR-0444 door routing). Without this the
+    // door cases below silently take the fallback path and prove nothing.
+    location: { origin: ORIGIN, href: `${ORIGIN}/sw.js` },
+    navigator: {
+      setAppBadge(n) { badge.set.push(n); return Promise.resolve(); },
+      clearAppBadge() { badge.cleared += 1; return Promise.resolve(); },
+    },
+    registration: {
+      scope,
+      showNotification(title, options) {
+        shown.push({ title, options });
+        return Promise.resolve();
+      },
+      // The notifications currently in the shade — what the app badge counts.
+      getNotifications() { return Promise.resolve(shown.slice()); },
+    },
+    clients: {
+      claim() { return Promise.resolve(); },
+      matchAll() { return Promise.resolve(clientList); },
+      openWindow(url) { opened.push(url); return Promise.resolve({ url }); },
+    },
+  };
+  const caches = {
+    open: () => Promise.resolve({ add: () => Promise.resolve(), match: () => Promise.resolve(undefined), put: () => Promise.resolve() }),
+    keys: () => Promise.resolve([]),
+    delete: () => Promise.resolve(true),
+  };
+  new Function('self', 'caches', 'fetch', SW_SRC)(self, caches, () => Promise.resolve(new Response('')));
+  return { handlers, shown, opened, posted, clientList, self, badge };
+}
+
+/** A push event whose data.text() returns `raw`; `waitUntil` collects the promise. */
+function pushEvent(raw, { throwOnRead = false } = {}) {
+  const waited = [];
+  return {
+    waited,
+    data: raw === null ? null : {
+      text() {
+        if (throwOnRead) throw new Error('decryption failed');
+        return raw;
+      },
+    },
+    waitUntil(p) { waited.push(p); },
+  };
+}
+
+describe('the real sw.js registers the handlers a closed phone needs', () => {
+  let sw;
+  beforeEach(() => { sw = loadServiceWorker(); });
+
+  it('registers a push handler — the listener whose absence started this work', () => {
+    expect(typeof sw.handlers.push, 'sw.js must have a push listener').toBe('function');
+  });
+
+  it('registers notificationclick, so a tap lands somewhere', () => {
+    expect(typeof sw.handlers.notificationclick).toBe('function');
+  });
+
+  it('registers pushsubscriptionchange, so a rotated subscription is not lost silently', () => {
+    expect(typeof sw.handlers.pushsubscriptionchange).toBe('function');
+  });
+
+  it('keeps the four listeners that were already there (no regression)', () => {
+    for (const t of ['install', 'activate', 'message', 'fetch']) {
+      expect(typeof sw.handlers[t], `${t} listener lost`).toBe('function');
+    }
+  });
+});
+
+describe('a live-service push becomes the right notification', () => {
+  let sw;
+  beforeEach(() => { sw = loadServiceWorker(); });
+
+  it('shows the title, body and deep link the sender chose', async () => {
+    const ev = pushEvent(JSON.stringify({
+      kind: 'live',
+      title: 'The Love Corner is live',
+      body: 'Sunday Worship has started.',
+      url: `${BASE}/?tab=church`,
+    }));
+    sw.handlers.push(ev);
+    await Promise.all(ev.waited);
+
+    expect(sw.shown).toHaveLength(1);
+    expect(sw.shown[0].title).toBe('The Love Corner is live');
+    expect(sw.shown[0].options.body).toBe('Sunday Worship has started.');
+    expect(sw.shown[0].options.data.url).toBe(`${BASE}/?tab=church`);
+  });
+
+  it('always calls waitUntil, so the browser cannot kill the worker mid-show', async () => {
+    const ev = pushEvent(JSON.stringify({ title: 'x' }));
+    sw.handlers.push(ev);
+    expect(ev.waited.length).toBe(1);
+    await Promise.all(ev.waited);
+  });
+
+  it('tags by kind so a repeated announcement REPLACES rather than buzzing twice', async () => {
+    const ev = pushEvent(JSON.stringify({ kind: 'live', title: 'live' }));
+    sw.handlers.push(ev);
+    await Promise.all(ev.waited);
+    expect(sw.shown[0].options.tag).toBe('poetech-live');
+    expect(sw.shown[0].options.renotify).toBe(false);
+  });
+
+  it('honours an explicit tag and an explicit renotify', async () => {
+    const ev = pushEvent(JSON.stringify({ title: 't', tag: 'colg-2026-09-06', renotify: true }));
+    sw.handlers.push(ev);
+    await Promise.all(ev.waited);
+    expect(sw.shown[0].options.tag).toBe('colg-2026-09-06');
+    expect(sw.shown[0].options.renotify).toBe(true);
+  });
+
+  it('carries an icon and a badge so the shade shows the app, not a blank dot', async () => {
+    const ev = pushEvent(JSON.stringify({ title: 't' }));
+    sw.handlers.push(ev);
+    await Promise.all(ev.waited);
+    // The legacy root registration serves no door: PoeTech's own icon.
+    expect(sw.shown[0].options.icon).toBe(`${BASE}/icon.svg`);
+    // The status-bar glyph must be a monochrome RASTER: Android masks it to
+    // white and cannot use the seal SVG (a generic bell showed instead,
+    // Darrell's shade 2026-09-09). badge-96.png is the church's cross.
+    expect(sw.shown[0].options.badge).toBe(`${BASE}/badge-96.png`);
+  });
+});
+
+// THE SHADE WEARS THE DOOR'S OWN FACE (Darrell 2026-10-02: "Why does it show up
+// as PoeTech App instead of the Love Corner App logo... why doesn't it have the
+// correct logo?"). Measured before the change: NOTIFY_DEFAULTS.icon was ONE
+// file, /poetech-app/icon.svg (the "P"), for every registration, so a push
+// shown by the Love Corner's own worker (registered at /lovecorner/app/,
+// DR-0584) wore PoeTech's mark; and a push with no title said "The Love Corner"
+// under every door, the family's included.
+describe('the notification wears the icon and name of the door its registration serves', () => {
+  it('the Love Corner worker shows the church’s own emblem and name', async () => {
+    const sw = loadServiceWorker({ scope: `${ORIGIN}/lovecorner/app/` });
+    const ev = pushEvent(JSON.stringify({ body: 'Bible study tonight' }));
+    sw.handlers.push(ev);
+    await Promise.all(ev.waited);
+    expect(sw.shown[0].options.icon).toBe('/lovecorner-icon-192.png');
+    expect(sw.shown[0].title).toBe('The Love Corner');
+    expect(sw.shown[0].options.badge).toBe(`${BASE}/badge-96.png`);
+  });
+
+  it('the PoeTech worker shows PoeTech’s icon and name — proven to catch', async () => {
+    const sw = loadServiceWorker({ scope: `${ORIGIN}/poetech-app/` });
+    const ev = pushEvent(null);
+    sw.handlers.push(ev);
+    await Promise.all(ev.waited);
+    expect(sw.shown[0].options.icon).toBe('/icon-192.png');
+    expect(sw.shown[0].title).toBe('PoeTech');
+  });
+
+  it('every door wears its own icon, and a scope given as a bare path is read too', async () => {
+    const expected = {
+      '/lovecorner/app/': '/lovecorner-icon-192.png', '/moore/app/': '/moore-icon-192.png',
+      '/tlc/app/': '/tlc-icon-192.png', '/properties/app/': '/properties-icon-192.png', '/poetech-app/': '/icon-192.png',
+    };
+    for (const [door, icon] of Object.entries(expected)) {
+      const sw = loadServiceWorker({ scope: door });
+      const ev = pushEvent(JSON.stringify({ title: 't' }));
+      sw.handlers.push(ev);
+      await Promise.all(ev.waited);
+      expect(sw.shown[0].options.icon, door).toBe(icon);
+    }
+  });
+
+  it('a registration whose scope cannot be read still notifies, with PoeTech’s icon', async () => {
+    const sw = loadServiceWorker({ scope: 'not a url' });
+    const ev = pushEvent(JSON.stringify({ title: 't' }));
+    expect(() => sw.handlers.push(ev)).not.toThrow();
+    await Promise.all(ev.waited);
+    expect(sw.shown[0].options.icon).toBe(`${BASE}/icon.svg`);
+  });
+
+  it('knows the SAME icons app-doors.js knows — drift here is the wrong face in the shade', () => {
+    const swIcons = (/var DOOR_ICONS = \{([^}]+)\}/.exec(SW_SRC) || [])[1];
+    expect(swIcons, 'sw.js has no DOOR_ICONS map').toBeTruthy();
+    const inSw = Object.fromEntries(swIcons.split(',').map((kv) => kv.split(':').map((x) => x.trim().replace(/^'|'$/g, ''))));
+    const libSrc = readFileSync(join(HERE, '..', 'lib', 'app-doors.js'), 'utf8');
+    const inLib = {};
+    const re = /^\s*path: (?:PERSONAL_DOOR|'([^']+)'),[\s\S]*?^\s*icon: '([^']+)',/gm;
+    for (const m of libSrc.matchAll(re)) inLib[m[1] || '/poetech-app/'] = m[2];
+    expect(inSw).toEqual(inLib);
+    const swLabels = (/var DOOR_LABELS = \{([^}]+)\}/.exec(SW_SRC) || [])[1];
+    const labels = Object.fromEntries(swLabels.split(',').map((kv) => kv.split(/:(.+)/).slice(0, 2).map((x) => x.trim().replace(/^'|'$/g, ''))));
+    const libLabels = {};
+    for (const m of libSrc.matchAll(/^\s*path: (?:PERSONAL_DOOR|'([^']+)'),\s*\n\s*key: '[^']+',\s*\n\s*label: '([^']+)',/gm)) libLabels[m[1] || '/poetech-app/'] = m[2];
+    expect(labels).toEqual(libLabels);
+  });
+});
+
+describe('malformed and hostile payloads still notify, and never throw', () => {
+  let sw;
+  beforeEach(() => { sw = loadServiceWorker(); });
+
+  it('an EMPTY push (a legitimate wake-up ping) shows an honest generic notice', async () => {
+    const ev = pushEvent(null);
+    expect(() => sw.handlers.push(ev)).not.toThrow();
+    await Promise.all(ev.waited);
+    expect(sw.shown).toHaveLength(1);
+    // The root registration serves no door, so the platform's own name.
+    expect(sw.shown[0].title).toBe('PoeTech');
+    // It must not invent a claim it was not given — no "we are live" here.
+    expect(sw.shown[0].options.body).not.toMatch(/live/i);
+  });
+
+  it('a body that is not JSON is shown as text rather than dropped', async () => {
+    const ev = pushEvent('Bible study starts in ten minutes');
+    sw.handlers.push(ev);
+    await Promise.all(ev.waited);
+    expect(sw.shown[0].options.body).toBe('Bible study starts in ten minutes');
+  });
+
+  it('truncates an absurdly long non-JSON body instead of pasting a wall into the shade', async () => {
+    const ev = pushEvent('x'.repeat(5000));
+    sw.handlers.push(ev);
+    await Promise.all(ev.waited);
+    expect(sw.shown[0].options.body.length).toBe(200);
+  });
+
+  it('JSON that is not an object falls back cleanly', async () => {
+    for (const raw of ['null', '42', '"just a string"', '[1,2,3]']) {
+      const local = loadServiceWorker();
+      const ev = pushEvent(raw);
+      expect(() => local.handlers.push(ev)).not.toThrow();
+      await Promise.all(ev.waited);
+      expect(local.shown).toHaveLength(1);
+      expect(local.shown[0].title.length).toBeGreaterThan(0);
+    }
+  });
+
+  it('a payload with no title still gets one: the name of the door the worker serves', async () => {
+    const church = loadServiceWorker({ scope: `${ORIGIN}/lovecorner/app/` });
+    const ev = pushEvent(JSON.stringify({ body: 'no title here' }));
+    church.handlers.push(ev);
+    await Promise.all(ev.waited);
+    expect(church.shown[0].title).toBe('The Love Corner');
+    expect(church.shown[0].options.body).toBe('no title here');
+  });
+
+  it('does not throw when reading event.data itself fails', async () => {
+    const ev = pushEvent('{}', { throwOnRead: true });
+    expect(() => sw.handlers.push(ev)).not.toThrow();
+    await Promise.all(ev.waited);
+    expect(sw.shown).toHaveLength(1);
+  });
+
+  it('PROVEN-TO-CATCH: an off-origin url is refused, so a push cannot redirect the app', async () => {
+    // A push body is attacker-influenceable if a sender is ever compromised.
+    // An absolute URL in `url` would let a notification tap open any site while
+    // wearing the church's icon — a phishing primitive. Only same-origin,
+    // leading-slash paths are honoured.
+    for (const hostile of [
+      'https://evil.example/steal',
+      '//evil.example/steal',
+      '/\\evil.example/steal',
+      'javascript:alert(1)',
+      'http://poetech.us.evil.example/',
+    ]) {
+      const local = loadServiceWorker();
+      const ev = pushEvent(JSON.stringify({ title: 'Tap me', url: hostile }));
+      local.handlers.push(ev);
+      await Promise.all(ev.waited);
+      expect(local.shown[0].options.data.url, `accepted hostile url: ${hostile}`).toBe(`${BASE}/`);
+    }
+  });
+
+  it('accepts a same-origin path', async () => {
+    const ev = pushEvent(JSON.stringify({ title: 't', url: `${BASE}/?tab=messages` }));
+    sw.handlers.push(ev);
+    await Promise.all(ev.waited);
+    expect(sw.shown[0].options.data.url).toBe(`${BASE}/?tab=messages`);
+  });
+});
+
+describe('tapping the notification reuses an open tab instead of stacking copies', () => {
+  let sw;
+  beforeEach(() => { sw = loadServiceWorker(); });
+
+  function clickEvent(url) {
+    const waited = [];
+    let closed = false;
+    return {
+      waited,
+      closed: () => closed,
+      notification: { close() { closed = true; }, data: { url } },
+      waitUntil(p) { waited.push(p); },
+    };
+  }
+
+  it('closes the notification when tapped', async () => {
+    const ev = clickEvent(`${BASE}/`);
+    sw.handlers.notificationclick(ev);
+    await Promise.all(ev.waited);
+    expect(ev.closed()).toBe(true);
+  });
+
+  it('opens a window when no tab is open', async () => {
+    const ev = clickEvent(`${BASE}/?tab=church`);
+    sw.handlers.notificationclick(ev);
+    await Promise.all(ev.waited);
+    expect(sw.opened).toEqual([`${ORIGIN}${BASE}/?tab=church`]);
+  });
+
+  it('focuses an existing app tab rather than opening a second one', async () => {
+    let focused = false;
+    sw.clientList.push({
+      url: `https://poetech.us${BASE}/?tab=church`,
+      focus() { focused = true; return Promise.resolve(this); },
+    });
+    const ev = clickEvent(`${BASE}/?tab=church`);
+    sw.handlers.notificationclick(ev);
+    await Promise.all(ev.waited);
+    expect(focused).toBe(true);
+    expect(sw.opened).toEqual([]);
+  });
+
+  it('navigates an open tab that is on a DIFFERENT screen', async () => {
+    let navigatedTo = null;
+    sw.clientList.push({
+      url: `https://poetech.us${BASE}/?tab=money`,
+      focus() { return Promise.resolve(this); },
+      navigate(u) { navigatedTo = u; return Promise.resolve({ focus() { return Promise.resolve(); } }); },
+    });
+    const ev = clickEvent(`${BASE}/?tab=church`);
+    sw.handlers.notificationclick(ev);
+    await Promise.all(ev.waited);
+    expect(navigatedTo).toBe(`${ORIGIN}${BASE}/?tab=church`);
+    expect(sw.opened).toEqual([]);
+  });
+
+  // ── THE DOOR DECIDES (2026-09-16, DR-0444) ────────────────────────────────
+  // Darrell: "I text Christina from the Love Corner App and receive a text
+  // from the PoeTech App." Half of that was the landing URL; this half was
+  // here. The handler matched clients by indexOf('/poetech-app'), so a phone
+  // standing in the church door was never matched, and a church notification
+  // was handed to whatever family window happened to be open.
+
+  it('focuses the window that is already in the notification\'s own door', async () => {
+    const focused = [];
+    sw.clientList.push({
+      url: `${ORIGIN}${BASE}/?view=overview`,
+      focus() { focused.push('poetech'); return Promise.resolve(this); },
+      navigate(u) { focused.push(`poetech-nav:${u}`); return Promise.resolve(this); },
+    });
+    sw.clientList.push({
+      url: `${ORIGIN}/lovecorner/app/?view=church`,
+      focus() { focused.push('lovecorner'); return Promise.resolve(this); },
+      navigate(u) { focused.push(`lovecorner-nav:${u}`); return Promise.resolve({ focus() { focused.push('lovecorner'); return Promise.resolve(); } }); },
+    });
+    const ev = clickEvent('/lovecorner/app/?view=messages&dm=11111111-2222-3333-4444-555555555555');
+    sw.handlers.notificationclick(ev);
+    await Promise.all(ev.waited);
+    // The church window was used; the family window was never touched.
+    expect(focused.some((x) => x.startsWith('lovecorner'))).toBe(true);
+    expect(focused.some((x) => x.startsWith('poetech'))).toBe(false);
+    expect(sw.opened).toEqual([]);
+  });
+
+  it('opens the church door rather than reusing a family window on the wrong door', async () => {
+    // Only a family window is open, and the notification is for the church.
+    // Reusing it is still correct (one window, navigated) -- what must NOT
+    // happen is landing on the family door's URL.
+    let navigatedTo = null;
+    sw.clientList.push({
+      url: `${ORIGIN}${BASE}/?view=overview`,
+      focus() { return Promise.resolve(this); },
+      navigate(u) { navigatedTo = u; return Promise.resolve({ focus() { return Promise.resolve(); } }); },
+    });
+    const ev = clickEvent('/lovecorner/app/?view=messages');
+    sw.handlers.notificationclick(ev);
+    await Promise.all(ev.waited);
+    expect(navigatedTo).toBe(`${ORIGIN}/lovecorner/app/?view=messages`);
+  });
+
+  it('ignores a window on another origin entirely', async () => {
+    sw.clientList.push({ url: 'https://example.com/', focus() { return Promise.resolve(this); } });
+    const ev = clickEvent(`${BASE}/?view=messages`);
+    sw.handlers.notificationclick(ev);
+    await Promise.all(ev.waited);
+    expect(sw.opened).toEqual([`${ORIGIN}${BASE}/?view=messages`]);
+  });
+
+  it('knows the SAME doors app-doors.js knows — drift here is a stacked window', () => {
+    const swDoors = (/var DOOR_PATHS = \[([^\]]+)\]/.exec(SW_SRC) || [])[1];
+    expect(swDoors, 'sw.js has no DOOR_PATHS list').toBeTruthy();
+    const inSw = swDoors.split(',').map((x) => x.trim().replace(/^'|'$/g, '')).sort();
+    const libSrc = readFileSync(join(HERE, '..', 'lib', 'app-doors.js'), 'utf8');
+    const inLib = [...libSrc.matchAll(/^\s*path: (?:PERSONAL_DOOR|'([^']+)'),/gm)]
+      .map((m) => m[1] || '/poetech-app/').sort();
+    expect(inSw).toEqual(inLib);
+  });
+
+  it('falls back to the app root when the notification carries no url', async () => {
+    const ev = { notification: { close() {}, data: null }, waitUntil(p) { this.waited = [p]; }, waited: [] };
+    sw.handlers.notificationclick(ev);
+    await Promise.all(ev.waited);
+    expect(sw.opened).toEqual([`${ORIGIN}${BASE}/`]);
+  });
+});
+
+describe('a rotated subscription tells the page to re-register', () => {
+  it('posts PUSH_SUBSCRIPTION_CHANGED to every open client', async () => {
+    const sw = loadServiceWorker();
+    const got = [];
+    sw.clientList.push({ url: `https://poetech.us${BASE}/`, postMessage: (m) => got.push(m) });
+    const ev = { waited: [], waitUntil(p) { this.waited.push(p); } };
+    sw.handlers.pushsubscriptionchange(ev);
+    await Promise.all(ev.waited);
+    expect(got).toEqual([{ type: 'PUSH_SUBSCRIPTION_CHANGED' }]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// THE APP-ICON BADGE (Darrell, 2026-09-09: "on the app and in the notification
+// list"). ConnectBot wore a "1" beside a bare church icon: the shade was one
+// place, the launcher the other. The worker sets the badge to the number of
+// notifications it is showing, and clears it when a tap empties the shade.
+// ---------------------------------------------------------------------------
+describe('the app-icon badge follows the notifications in the shade', () => {
+  it('a push sets the badge to the count of notifications showing', async () => {
+    const sw = loadServiceWorker();
+    const ev = pushEvent(JSON.stringify({ title: 'mrspoe06 sent you a message', kind: 'message', tag: 'message:1' }));
+    sw.handlers.push(ev);
+    await Promise.all(ev.waited);
+    expect(sw.badge.set).toEqual([1]);
+    const ev2 = pushEvent(JSON.stringify({ title: 'darrellpoejr sent you a message', kind: 'message', tag: 'message:2' }));
+    sw.handlers.push(ev2);
+    await Promise.all(ev2.waited);
+    expect(sw.badge.set).toEqual([1, 2]);
+  });
+
+  it('a tap that empties the shade clears the badge', async () => {
+    const sw = loadServiceWorker();
+    // Nothing left showing after the tap closes the notification.
+    sw.self.registration.getNotifications = () => Promise.resolve([]);
+    const waited = [];
+    sw.handlers.notificationclick({
+      notification: { close() {}, data: { url: `${BASE}/?tab=messages` } },
+      waitUntil(p) { waited.push(p); },
+    });
+    await Promise.all(waited);
+    expect(sw.badge.cleared).toBe(1);
+    // Absolute now: a client's own href is COMPARED to the target rather than
+    // substring-matched, which is what lets the door be honored (DR-0444).
+    expect(sw.opened).toEqual([`${ORIGIN}${BASE}/?tab=messages`]);
+  });
+
+  it('a worker scope without the Badging API is a no-op, never a throw', async () => {
+    const sw = loadServiceWorker();
+    delete sw.self.navigator;
+    const ev = pushEvent(JSON.stringify({ title: 'x' }));
+    sw.handlers.push(ev);
+    await expect(Promise.all(ev.waited)).resolves.toBeTruthy();
+    expect(sw.shown).toHaveLength(1);
+  });
+
+  it('the badge glyph the worker names is a real 96x96 PNG in public/', () => {
+    const png = readFileSync(join(HERE, '..', '..', 'public', 'badge-96.png'));
+    expect(png.subarray(0, 8)).toEqual(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
+    expect(png.readUInt32BE(16)).toBe(96);
+    expect(png.readUInt32BE(20)).toBe(96);
+    expect(SW_SRC).toContain("badge: BASE + '/badge-96.png'");
+  });
+});

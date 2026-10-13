@@ -52,7 +52,7 @@ describe('ConferenceRegister presents as PoeTech’s branded outward face', () =
     const text = container.textContent;
     expect(text).toMatch(/You’re invited|You're invited/i);
     expect(text).toMatch(/77th National Assembly/);          // the experience they feel
-    expect(text).toMatch(/Reviving Faith/);                  // the theme carries
+    expect(text).toMatch(/Positioned for Purpose/);          // the announced theme carries
     expect(text).toMatch(/no account needed/i);              // the easy path is promised
   });
 

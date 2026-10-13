@@ -1,0 +1,20 @@
+# PoeTech Scribe ingest -- the sovereign /scribe/* receiver (DR-0236 same-day build).
+# Request-driven FastAPI (no timers -- the three-brakes class is the consumer,
+# not this). Caddy routes  handle /scribe/*  ->  reverse_proxy 127.0.0.1:8791.
+[Unit]
+Description=PoeTech Scribe ingest (workflow + meeting recordings)
+After=network-online.target
+
+[Service]
+Type=simple
+Environment=SCRIBE_DATA=/data/poetech-scribe
+# Set the real token before enabling:  systemctl edit poetech-scribe
+Environment=SCRIBE_TOKEN=
+WorkingDirectory=/volume1/PoeTech/repos/Kingdom-PWA-Node/infra/nas-scribe
+ExecStart=/volume1/PoeTech/venvs/scribe/bin/uvicorn scribe_ingest_server:app --host 127.0.0.1 --port 8791
+Restart=on-failure
+RestartSec=5
+Nice=10
+
+[Install]
+WantedBy=multi-user.target

@@ -1,5 +1,5 @@
 // =============================================================================
-// NetworkStatus — small floating status pill (bottom-left, above Feedback)
+// NetworkStatus — the network status dot (in the app's bottom bar since DR-0716)
 // =============================================================================
 // Surfaces, at a glance, whether the device is reaching:
 //   1. the device's network (online / offline, WiFi vs cellular vs other)
@@ -23,6 +23,7 @@
 // =============================================================================
 
 import React, { useEffect, useRef, useState } from 'react';
+import { DOCK_BTN, DOCK_LABEL } from '../lib/chrome-dock.js';
 
 const COLOR = {
   ok: '#16A34A',          // green
@@ -139,7 +140,16 @@ async function runProbes(currentLastOk) {
   return { internet, nas, lastOk: next };
 }
 
-export default function NetworkStatus() {
+// variant (DR-0716):
+//   'floating' — the original fixed pill, bottom-left (kept for any caller
+//                that still wants it; nothing in the app shell uses it now).
+//   'dock'     — a square bar button inside the bottom bar (ChromeDock), the
+//                family look of the text-size chips; the detail opens upward
+//                above the bar instead of over the page.
+//   'inline'   — in the page flow (Admin > Systems), not fixed at all.
+// onHealthChange(healthy) lets the bar mark its overflow button when the
+// status is folded away on a phone and something is wrong.
+export default function NetworkStatus({ variant = 'floating', onHealthChange = null }) {
   const [net, setNet] = useState(() => readNetwork());
   const [probes, setProbes] = useState({ internet: 'pending', nas: 'pending' });
   const [lastOk, setLastOk] = useState({ internet: null, nas: null });
@@ -217,14 +227,58 @@ export default function NetworkStatus() {
 
   const deviceState = net.online ? 'ok' : 'failed';
   const connLabel = connectionLabel(net);
+  // Recede when healthy (DR-0075): all-green collapses to ONE quiet dot so the
+  // status stops competing with content and stops stacking a loud 3-dot pill
+  // above the Feedback button. It SHOUTS (full 3-dot + label) the instant any
+  // check is pending/failed — the diagnostic value (Darrell's travel "no
+  // network" scenario) is exactly when it goes loud. Tap opens the detail panel
+  // in either state. NAS not-configured counts as healthy (nothing to reach).
+  const healthy = deviceState === 'ok' && probes.internet === 'ok'
+    && (probes.nas === 'ok' || probes.nas === 'not-configured');
 
-  // Compact pill: 3 dots side-by-side, plus the connection label on wider screens.
+  const docked = variant === 'dock';
+  useEffect(() => {
+    if (typeof onHealthChange === 'function') onHealthChange(healthy);
+  }, [healthy, onHealthChange]);
+
+  const dots = healthy ? (
+    <span
+      className="w-2.5 h-2.5 rounded-full inline-block"
+      style={{ backgroundColor: dotColor('ok') }}
+      aria-label="All connections healthy — tap for detail"
+    />
+  ) : (
+    <span className="inline-flex items-center gap-1">
+      <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: dotColor(deviceState) }} aria-label={`device ${deviceState}`} />
+      <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: dotColor(probes.internet) }} aria-label={`internet ${probes.internet}`} />
+      <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: dotColor(probes.nas) }} aria-label={`nas ${probes.nas}`} />
+    </span>
+  );
+
+  // Compact pill: one dot when healthy; 3 dots + connection label when not.
   return (
     <div
-      className="fixed bottom-20 left-4 z-30 print:hidden"
+      data-read-skip
+      data-testid={docked ? 'dock-network' : undefined}
+      className={docked ? 'relative flex print:hidden' : variant === 'inline' ? 'relative inline-block print:hidden' : 'fixed bottom-20 left-4 z-30 print:hidden'}
       role="status"
       aria-label="Network status"
     >
+      {docked ? (
+        // THE DOT, DOCKED (DR-0716): the same one-dot-when-healthy rule, in a
+        // square bar button beside Feedback, with a word under it. When a
+        // check fails the three dots show and the word says which.
+        <button
+          type="button"
+          onClick={() => setExpanded(e => !e)}
+          className={DOCK_BTN}
+          title="Network status — tap for details"
+          aria-expanded={expanded}
+        >
+          <span className="h-[1rem] inline-flex items-center">{dots}</span>
+          <span className={DOCK_LABEL}>{healthy ? 'Online' : connLabel}</span>
+        </button>
+      ) : (
       <button
         type="button"
         onClick={() => setExpanded(e => !e)}
@@ -233,30 +287,31 @@ export default function NetworkStatus() {
         title="Network status — tap for details"
         aria-expanded={expanded}
       >
-        <span className="inline-flex items-center gap-1">
-          <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: dotColor(deviceState) }} aria-label={`device ${deviceState}`} />
-          <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: dotColor(probes.internet) }} aria-label={`internet ${probes.internet}`} />
-          <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: dotColor(probes.nas) }} aria-label={`nas ${probes.nas}`} />
-        </span>
-        {/* Color must mirror the pill background, which is OS-color-scheme driven
-            (bg-white/95 dark:bg-[#1A1815]/95) and theme-INDEPENDENT — the data-theme
-            remap doesn't touch these variant classes. So the label color tracks the
-            same dark: signal, not the theme. text-black (not text-[#1A1815]) is used
-            for the light pill because the midnight remap lightens text-[#1A1815] to
-            #E5E5E5, which would fail on a white pill (midnight theme + light OS). */}
-        <span className="text-[10px] uppercase tracking-wider text-black dark:text-[#FAF8F4] font-semibold hidden sm:inline">
-          {connLabel}
-        </span>
+        {healthy ? dots : (
+          <>
+            {dots}
+            {/* Color must mirror the pill background, which is OS-color-scheme driven
+                (bg-white/95 dark:bg-[#1A1815]/95) and theme-INDEPENDENT — the data-theme
+                remap doesn't touch these variant classes. So the label color tracks the
+                same dark: signal, not the theme. text-black (not text-[#1A1815]) is used
+                for the light pill because the midnight remap lightens text-[#1A1815] to
+                #E5E5E5, which would fail on a white pill (midnight theme + light OS). */}
+            <span className="text-[0.625rem] uppercase tracking-wider text-black dark:text-[#FAF8F4] font-semibold hidden sm:inline">
+              {connLabel}
+            </span>
+          </>
+        )}
       </button>
+      )}
 
       {expanded && (
         <div
-          className="absolute bottom-12 right-0 w-72 bg-white dark:bg-[#1A1815] text-[#1A1815] dark:text-[#FAF8F4] border border-[#1A1815]/20 shadow-xl p-3 text-xs"
+          className={`absolute ${docked ? 'bottom-full mb-2 left-0' : 'bottom-12 right-0'} w-72 bg-white dark:bg-[#1A1815] text-[#1A1815] dark:text-[#FAF8F4] border border-[#1A1815]/20 shadow-xl p-3 text-xs`}
           style={{ borderRadius: '12px' }}
           role="dialog"
           aria-label="Network status detail"
         >
-          <div className="text-[10px] uppercase tracking-[0.2em] text-[#5A5751] mb-2 font-semibold">
+          <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A5751] mb-2 font-semibold">
             Connection Health
           </div>
 
@@ -273,16 +328,16 @@ export default function NetworkStatus() {
           />
 
           {(net.downlink || net.rtt) && (
-            <div className="mt-3 pt-2 border-t border-[#E8E4DC] text-[10px] text-[#5A5751]">
+            <div className="mt-3 pt-2 border-t border-[#E8E4DC] text-[0.625rem] text-[#5A5751]">
               {net.downlink ? `${net.downlink} Mbps` : ''}{net.downlink && net.rtt ? ' · ' : ''}{net.rtt ? `${net.rtt} ms RTT` : ''}{net.saveData ? ' · Data Saver on' : ''}
             </div>
           )}
 
-          <div className="mt-2 text-[10px] text-[#5A5751]">
+          <div className="mt-2 text-[0.625rem] text-[#5A5751]">
             Last check {formatRelative(lastProbe)}
           </div>
 
-          <div className="mt-3 pt-2 border-t border-[#E8E4DC] text-[10px] text-[#5A5751] leading-relaxed">
+          <div className="mt-3 pt-2 border-t border-[#E8E4DC] text-[0.625rem] text-[#5A5751] leading-relaxed">
             Three checks: your device's connection, the public internet, and the family NAS. A red dot tells you where to look.
           </div>
         </div>
@@ -298,7 +353,7 @@ function Row({ label, state, detail }) {
         <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ backgroundColor: dotColor(state) }} />
         <span className="font-medium">{label}</span>
       </div>
-      <span className="text-[10px] text-[#5A5751]">{detail}</span>
+      <span className="text-[0.625rem] text-[#5A5751]">{detail}</span>
     </div>
   );
 }

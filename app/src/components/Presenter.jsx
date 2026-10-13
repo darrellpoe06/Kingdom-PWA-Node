@@ -34,11 +34,22 @@
 // #5A6E3D + #7A1F1F + #B85838 accents (>=4.5:1), focus ring #B85838, controls >=36px.
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
-  formatClock, TEACH_CHANNEL, buildSlideForScene, holdingSlide,
+  formatClock, TEACH_CHANNEL, buildSlideForScene, holdingSlide, resolveAudienceLead, resolveAudiencePoints,
   PRESENT_AGE_BANDS, DEFAULT_PRESENT_AGE, ageHint,
-  PRIORITY, fitToBudget, makeScene,
+  PRIORITY, fitToBudget, makeScene, humanMinutes,
   loadOverlay, saveOverlay, applyOverlay, EMPTY_OVERLAY,
 } from '../lib/presentable.js';
+import { setReadTarget, clearReadTarget } from '../lib/read-target.js';
+import { requestRead } from '../lib/read-request.js';
+import {
+  READ_MODES, DEFAULT_READ_MODE, isReadMode, NOTE_LAYOUTS, DEFAULT_NOTE_LAYOUT, isNoteLayout,
+  audienceLive, effectiveReadMode, scriptSuppressed, notesToSpeech, readingTextFor, readingLabel,
+} from '../lib/presenter-read-mode.js';
+import AudienceSlide from './AudienceSlide.jsx';
+import { useSlideSize, SLIDE_SIZE_STEPS } from '../lib/slide-size.js';
+import {
+  FOLLOW_ALONG_ENABLED, makeFollowCode, createFollowBroadcaster, followLink,
+} from '../lib/follow-along-sync.js';
 
 // The presenter's own device localStorage, guarded (SSR / private-mode safe). The
 // living-curriculum overlay is personal to the presenter and never touches the
@@ -53,12 +64,12 @@ const BUDGET_PRESETS = [15, 30, 45, 60, 90];
 function NoteSection({ note }) {
   const card = { border: '1px solid #E8E4DC', padding: 16, marginBottom: 16 };
   const calloutCard = { ...card, background: '#FBF3EE', borderColor: '#E7C9BC' };
-  const h = { fontFamily: '"Fraunces", serif', fontWeight: 600, fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.12em', color: '#7A1F1F', margin: '0 0 10px' };
+  const h = { fontFamily: '"Fraunces", serif', fontWeight: 600, fontSize: '0.8125rem', textTransform: 'uppercase', letterSpacing: '0.12em', color: '#7A1F1F', margin: '0 0 10px' };
   if (note.kind === 'steps') {
     return (
       <div style={card}>
         <h4 style={h}>{note.heading}</h4>
-        <ol style={{ margin: 0, paddingLeft: 22, fontSize: 14, lineHeight: 1.6 }}>
+        <ol style={{ margin: 0, paddingLeft: 22, fontSize: '0.875rem', lineHeight: 1.6 }}>
           {note.items.map((s, i) => <li key={i} style={{ marginBottom: 6 }}>{s}</li>)}
         </ol>
       </div>
@@ -68,7 +79,7 @@ function NoteSection({ note }) {
     return (
       <div style={card}>
         <h4 style={h}>{note.heading}</h4>
-        <ul style={{ margin: 0, paddingLeft: 22, fontSize: 15, lineHeight: 1.6 }}>
+        <ul style={{ margin: 0, paddingLeft: 22, fontSize: '0.9375rem', lineHeight: 1.6 }}>
           {note.items.map((s, i) => <li key={i} style={{ marginBottom: 6 }}>{s}</li>)}
         </ul>
       </div>
@@ -78,7 +89,7 @@ function NoteSection({ note }) {
   return (
     <div style={note.kind === 'callout' ? calloutCard : card}>
       <h4 style={h}>{note.heading}</h4>
-      <p style={{ margin: 0, fontSize: 15, lineHeight: 1.6 }}>{note.body}</p>
+      <p style={{ margin: 0, fontSize: '0.9375rem', lineHeight: 1.6 }}>{note.body}</p>
     </div>
   );
 }
@@ -94,19 +105,19 @@ function RunOfShowPanel({ segments, budgetMin }) {
   return (
     <div style={card}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap', marginBottom: 10 }}>
-        <h4 style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, fontSize: 13, margin: 0, textTransform: 'uppercase', letterSpacing: '0.12em', color: '#7A1F1F' }}>Run of show</h4>
-        <span style={{ fontSize: 12, color: reflowed ? '#5A6E3D' : '#5A5751', fontFamily: '"JetBrains Mono", monospace' }}>
-          {reflowed ? `rescaled to ${Math.round(budgetMin)} min (full ${fit.fullMin})` : `${fit.fullMin} min total`}
+        <h4 style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, fontSize: '0.8125rem', margin: 0, textTransform: 'uppercase', letterSpacing: '0.12em', color: '#7A1F1F' }}>Run of show</h4>
+        <span style={{ fontSize: '0.75rem', color: reflowed ? '#5A6E3D' : '#5A5751', fontFamily: '"JetBrains Mono", monospace' }}>
+          {reflowed ? `rescaled to ${humanMinutes(budgetMin)} (full ${humanMinutes(fit.fullMin)})` : `${humanMinutes(fit.fullMin)} total`}
         </span>
       </div>
       {fit.plan.map((seg, i) => (
         <div key={seg.id || i} style={{ display: 'flex', gap: 12, padding: '7px 0', borderBottom: i < fit.plan.length - 1 ? '1px solid #F0EDE6' : 'none', opacity: seg.skipped ? 0.5 : 1 }}>
           <span style={{ flex: 1 }}>
-            <strong style={{ display: 'block', fontFamily: '"Fraunces", serif', fontSize: 14, textDecoration: seg.skipped ? 'line-through' : 'none' }}>{seg.name}</strong>
-            {seg.detail && <span style={{ fontSize: 12, color: '#5A5751', lineHeight: 1.4, fontFamily: '"Fraunces", serif' }}>{seg.detail}</span>}
+            <strong style={{ display: 'block', fontFamily: '"Fraunces", serif', fontSize: '0.875rem', textDecoration: seg.skipped ? 'line-through' : 'none' }}>{seg.name}</strong>
+            {seg.detail && <span style={{ fontSize: '0.75rem', color: '#5A5751', lineHeight: 1.4, fontFamily: '"Fraunces", serif' }}>{seg.detail}</span>}
           </span>
           <span title={seg.atFloor ? 'At its minimum time' : (seg.skipped ? 'Dropped to fit the budget' : (reflowed ? 'original → adjusted' : 'authored minutes'))}
-            style={{ fontSize: 13, fontFamily: '"JetBrains Mono", monospace', color: seg.skipped ? '#7A1F1F' : (seg.atFloor ? '#B85838' : '#1A1815'), minWidth: reflowed ? 96 : 56, textAlign: 'right', whiteSpace: 'nowrap' }}>
+            style={{ fontSize: '0.8125rem', fontFamily: '"JetBrains Mono", monospace', color: seg.skipped ? '#7A1F1F' : (seg.atFloor ? '#B85838' : '#1A1815'), minWidth: reflowed ? 96 : 56, textAlign: 'right', whiteSpace: 'nowrap' }}>
             {seg.skipped
               ? 'skip'
               : reflowed
@@ -131,9 +142,9 @@ function SceneEditor({ initial = null, onSave, onCancel }) {
   const [importance, setImportance] = useState(initial?.importance != null ? String(initial.importance) : '1');
   const [priority, setPriority] = useState(initial?.priority === PRIORITY.SUPPLEMENTARY ? PRIORITY.SUPPLEMENTARY : PRIORITY.CORE);
 
-  const field = { display: 'block', width: '100%', boxSizing: 'border-box', padding: '8px 10px', marginTop: 4, border: '1px solid #CFC9BD', fontFamily: '"Fraunces", serif', fontSize: 15, background: '#fff', color: '#1A1815' };
-  const lbl = { fontSize: 12, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#5A5751', fontFamily: '"JetBrains Mono", monospace' };
-  const btn = { cursor: 'pointer', fontFamily: '"JetBrains Mono", monospace', textTransform: 'uppercase', letterSpacing: '0.08em', minHeight: 40, padding: '8px 16px', fontSize: 12 };
+  const field = { display: 'block', width: '100%', boxSizing: 'border-box', padding: '8px 10px', marginTop: 4, border: '1px solid #CFC9BD', fontFamily: '"Fraunces", serif', fontSize: '0.9375rem', background: '#fff', color: '#1A1815' };
+  const lbl = { fontSize: '0.75rem', letterSpacing: '0.08em', textTransform: 'uppercase', color: '#5A5751', fontFamily: '"JetBrains Mono", monospace' };
+  const btn = { cursor: 'pointer', fontFamily: '"JetBrains Mono", monospace', textTransform: 'uppercase', letterSpacing: '0.08em', minHeight: 40, padding: '8px 16px', fontSize: '0.75rem' };
 
   const submit = () => {
     if (!title.trim()) return;
@@ -155,7 +166,7 @@ function SceneEditor({ initial = null, onSave, onCancel }) {
 
   return (
     <div style={{ border: '1px solid #1A1815', padding: 16, marginBottom: 16, background: '#fff' }}>
-      <h4 style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, fontSize: 15, margin: '0 0 12px' }}>
+      <h4 style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, fontSize: '0.9375rem', margin: '0 0 12px' }}>
         {initial ? 'Edit this section' : 'Add a section'}
       </h4>
       <label style={lbl}>Title (the room sees this)
@@ -189,7 +200,7 @@ function SceneEditor({ initial = null, onSave, onCancel }) {
           })}
         </div>
       </div>
-      <p style={{ fontSize: 12, color: '#5A5751', margin: '12px 0', fontFamily: '"Fraunces", serif' }}>
+      <p style={{ fontSize: '0.75rem', color: '#5A5751', margin: '12px 0', fontFamily: '"Fraunces", serif' }}>
         Weight is how essential this is (1 = normal). The weightiest material is protected and gets the
         minutes when time is short; lower-weight material compresses, and supplementary sections drop first.
       </p>
@@ -203,13 +214,28 @@ function SceneEditor({ initial = null, onSave, onCancel }) {
   );
 }
 
+// data-reading="true" on every root below is the marker the idle lock reads
+// (lib/use-idle-lock.jsx). The Presenter can be opened from ANY surface, so the
+// shell cannot know it is up; rather than thread a flag through the whole tree,
+// the full-screen reader says so where it already lives in the DOM. Somebody
+// being read to is never locked out mid-sentence.
 export default function Presenter({
   presentable,
   onClose = null,
+  // startOnScreen: PLAY STARTS THE LESSON (Darrell 2026-09-13: "Let the Play
+  // buttons just start the lessons"). Play used to land on the console — a
+  // setup screen with its own START button — so the button called Play played
+  // nothing until a second tap. The speaker can still leave the on-screen view;
+  // this only decides where Play LANDS.
+  startOnScreen = false,
   // Respect the surface's visibility/permissions: a surface that should not let the
   // presenter grow its curriculum passes canEdit={false} (the add/edit controls then
   // never render). Default true — present mode is already behind each surface's gate.
   canEdit = true,
+  // The pace already chosen on the surface (child/teen/adult), so present mode does
+  // NOT re-ask it (Darrell 2026-07-16: "shouldn't have to reintroduce everything we
+  // wanted before presenting"). Presenter-only; never changes the audience screen.
+  initialAge = DEFAULT_PRESENT_AGE,
   // Persistence seam. By default the living-curriculum overlay is saved to the
   // presenter's own localStorage; a surface that wants server-shared curriculum
   // passes onCurriculumChange to persist the overlay itself.
@@ -245,8 +271,57 @@ export default function Presenter({
   const [elapsed, setElapsed] = useState(0);      // seconds
   const [running, setRunning] = useState(false);
   const [showNotes, setShowNotes] = useState(true);
-  const [age, setAge] = useState(DEFAULT_PRESENT_AGE);
+  // WHAT the reading reads, and HOW the notes are laid out — both the speaker's
+  // own choice, both remembered on his device (Darrell 2026-09-13: "maybe a
+  // toggle that has all options?" and "long scroll or per section depending on
+  // the choice the user makes"). Per-viewer conveniences, so localStorage is
+  // the right home; a throwing accessor (private mode) just yields the default.
+  const [readMode, setReadMode] = useState(() => {
+    try { const v = defaultStorage()?.getItem('presenter.readMode'); return isReadMode(v) ? v : DEFAULT_READ_MODE; } catch { return DEFAULT_READ_MODE; }
+  });
+  const [noteLayout, setNoteLayout] = useState(() => {
+    try { const v = defaultStorage()?.getItem('presenter.noteLayout'); return isNoteLayout(v) ? v : DEFAULT_NOTE_LAYOUT; } catch { return DEFAULT_NOTE_LAYOUT; }
+  });
+  const chooseReadMode = (id) => {
+    setReadMode(id);
+    try { defaultStorage()?.setItem('presenter.readMode', id); } catch { /* private mode: the choice just does not persist */ }
+  };
+  const chooseNoteLayout = (id) => {
+    setNoteLayout(id);
+    try { defaultStorage()?.setItem('presenter.noteLayout', id); } catch { /* as above */ }
+  };
+  const [openNote, setOpenNote] = useState(0);
+  const [age, setAge] = useState(PRESENT_AGE_BANDS.some((b) => b.id === initialAge) ? initialAge : DEFAULT_PRESENT_AGE);
   const [audienceState, setAudienceState] = useState('closed'); // closed | open | blocked | live | blank
+  // Clean present-on-THIS-screen mode: the room's slide fills this device (a tablet
+  // held up / cast to a TV), no popup, no second browser. The age toggle + nav stay
+  // reachable so the speaker adjusts the pitch to the room live (Darrell 2026-07-16).
+  // startOnScreen: Play STARTS the lesson (Darrell 2026-09-13: "Let the Play
+  // buttons just start the lessons"). Arriving on the console with its own
+  // START button meant the button called Play played nothing until a second
+  // tap. The speaker can still leave the on-screen view; this only decides
+  // where Play LANDS.
+  const [onScreen, setOnScreen] = useState(() => !!startOnScreen);
+  // THE ROOM'S TEXT SIZE, AND THE SPEAKER'S OWN PANEL, MOVE SEPARATELY
+  // (DR-0451). Darrell 2026-09-17: "Need to be able to work the text sizes on
+  // the PowerPoint and the controls are taking over the screen real-estate."
+  // Raising his own reading size would have done both at once — bigger slide
+  // words AND a control bar that ate the screen — so the slide carries its own
+  // multiplier (lib/slide-size.js) and every bar below sits in the capped
+  // chrome region (DR-0410).
+  const slideSize = useSlideSize();
+  // Read by sendCurrent, which is a useCallback the size must not re-create.
+  const slideScaleRef = useRef(slideSize.scale);
+  slideScaleRef.current = slideSize.scale;
+
+  // THE SPEAKER'S PANEL FOLDS. On a phone the bar wrapped to three and four
+  // rows because every control is always present; the essentials stay, the
+  // rest live behind More. Open by default on a wide screen, closed on a
+  // phone, and the choice is remembered for the session.
+  const [barOpen, setBarOpen] = useState(() => {
+    try { return typeof window !== 'undefined' ? window.innerWidth >= 640 : true; } catch { return true; }
+  });
+  const [followCode, setFollowCode] = useState(null); // set when broadcasting to congregation devices
 
   // --- time-adaptive: budget + per-scene skip overrides -----------------------
   const [budgetMin, setBudgetMin] = useState(0);  // 0 = no budget (full curriculum)
@@ -282,23 +357,62 @@ export default function Presenter({
   const effectiveTarget = budgetMin > 0 ? budgetMin : targetMin;
 
   // Refs so the once-bound channel handler + resend timeouts read the LIVE index /
-  // blank state without stale closures.
+  // blank state / age without stale closures.
   const idxRef = useRef(idx);
   useEffect(() => { idxRef.current = idx; }, [idx]);
   const blankRef = useRef(false);
+  const followRef = useRef(null); // the congregation follow-along broadcaster, when live
+  const followCodeRef = useRef(null); // live join code, read by sendCurrent for the on-screen invite QR
   useEffect(() => { blankRef.current = (audienceState === 'blank'); }, [audienceState]);
+  const ageRef = useRef(age);
+  useEffect(() => { ageRef.current = age; }, [age]);
+  // Progressive reveal (Darrell 2026-07-28): how many of the current scene's points
+  // the room has been shown. A point appears AFTER the presenter advances to it,
+  // never before — so it can't be read ahead and distract from the point being made.
+  const [reveal, setReveal] = useState(0);
+  const revealRef = useRef(0);
+  useEffect(() => { revealRef.current = reveal; }, [reveal]);
+  const pointsCountAt = useCallback((i) => {
+    const s = scenes[i];
+    return s ? resolveAudiencePoints(s.audience || {}, ageRef.current).length : 0;
+  }, [scenes]);
+  // Reveal-aware nav bounds: "Next" must stay live while there are still points to
+  // reveal on the last scene; "Back" while any point is still revealed on the first.
+  const curPointCount = resolveAudiencePoints((scenes[idx] && scenes[idx].audience) || {}, age).length;
+  const moreToReveal = reveal < curPointCount;
+  const atEnd = idx >= Math.max(0, scenes.length - 1) && !moreToReveal;
+  const atStart = idx <= 0 && reveal <= 0;
 
   // The single broadcast path. Honors "blank": while blanked it sends the holding
-  // slide, NOT the scene — so navigating (or a ready/resend) never pops content
-  // back onto a deliberately-held projector.
+  // slide, NOT the scene. Carries the LIVE age so switching the band re-pitches the
+  // room's slide instantly (leadByAge), without leaving the current slide.
   const sendCurrent = useCallback(() => {
+    const base = blankRef.current
+      ? holdingSlide(title, kicker)
+      : buildSlideForScene(scenes, idxRef.current, { kicker, lessonTitle: title, age: ageRef.current, reveal: revealRef.current });
+    // Invite-the-room (Darrell 2026-07-24): while the congregation broadcast is
+    // LIVE, the projected slide carries the join QR + code so the room can scan
+    // and follow on their own phones — zero typing (COMMUNITY-FIRST). Audience-
+    // safe fields only (a URL + code the presenter already shows on screen).
+    const inviteCode = followCodeRef.current;
+    // THE PROJECTOR FOLLOWS THE ONE DIAL (DR-0453). DR-0451 gave the room's
+    // text size a control on the presenting screen, and left the second
+    // display on the default — which is backwards, because a projector across
+    // a hall is exactly where a big step matters. Nobody stands at the
+    // projector, so it gets no control of its own: the size rides the slide
+    // it is already following, and the speaker's dial moves both screens at
+    // once. A payload without it renders at 1, as it did before.
+    const payload = {
+      ...base,
+      ...(inviteCode ? { invite: { code: inviteCode, url: followLink(inviteCode) } } : {}),
+      slideScale: slideScaleRef.current,
+    };
+    // 1) the same-browser projector (BroadcastChannel)
     const ch = chRef.current;
-    if (!ch) return;
-    try {
-      ch.postMessage(blankRef.current
-        ? holdingSlide(title, kicker)
-        : buildSlideForScene(scenes, idxRef.current, { kicker }));
-    } catch (e) { /* non-fatal */ }
+    if (ch) { try { ch.postMessage(payload); } catch (e) { /* non-fatal */ } }
+    // 2) the congregation on their OWN devices (Supabase Realtime), when live
+    const f = followRef.current;
+    if (f) { try { if (blankRef.current) f.hold(); else f.publish(payload); } catch (e) { /* non-fatal */ } }
   }, [scenes, title, kicker]);
 
   // --- BroadcastChannel: own it, answer the audience's "ready" handshake ---
@@ -316,8 +430,12 @@ export default function Presenter({
     return () => { try { ch.removeEventListener('message', onMsg); ch.close(); } catch (e) { /* noop */ } chRef.current = null; };
   }, [sendCurrent]);
 
-  // Broadcast on scene change (and on mount) — blank-aware via sendCurrent.
-  useEffect(() => { sendCurrent(); }, [idx, sendCurrent]);
+  // Broadcast on scene change, on AGE change (live re-pitch to the room), and on
+  // mount — blank-aware via sendCurrent.
+  // slideSize.scale joins idx/age/reveal: the room's size is part of what the
+  // second screen is showing, so a change to it re-sends at once rather than
+  // waiting for the next slide (DR-0453).
+  useEffect(() => { sendCurrent(); }, [idx, age, reveal, slideSize.scale, sendCurrent]);
 
   // If the projector window is closed (or the display unplugged), reflect it.
   useEffect(() => {
@@ -338,9 +456,32 @@ export default function Presenter({
   // Keep the cursor in range as the curriculum changes (e.g. switching surfaces).
   useEffect(() => { setIdx((w) => Math.min(w, Math.max(0, scenes.length - 1))); }, [scenes.length]);
 
+  // Advance reveals the next point first; only once every point on the scene is
+  // shown does the next step move to the next scene (and reset the reveal). Back
+  // un-reveals, then steps into the PRIOR scene fully revealed (so you re-enter a
+  // finished slide whole). Broadcast follows via the reveal-aware effect below.
   const go = useCallback((dir) => {
-    setIdx((w) => Math.min(last, Math.max(0, w + dir)));
-  }, [last]);
+    if (dir > 0) {
+      const n = pointsCountAt(idxRef.current);
+      if (revealRef.current < n) { setReveal((r) => r + 1); return; }
+      setIdx((w) => { const nx = Math.min(last, w + 1); if (nx !== w) setReveal(0); return nx; });
+    } else {
+      if (revealRef.current > 0) { setReveal((r) => Math.max(0, r - 1)); return; }
+      setIdx((w) => { const pv = Math.max(0, w - 1); if (pv !== w) setReveal(pointsCountAt(pv)); return pv; });
+    }
+  }, [last, pointsCountAt]);
+
+  // STRAIGHT TO ONE PART (DR-0451). `go` only ever steps, which is right for a
+  // clicker and wrong for "present just the one that we want": in a 163-week
+  // deck the only route to week 45 was forty-four taps. This lands on a scene
+  // whole — every point already revealed, as if you had walked in — and the
+  // broadcast follows through the same reveal-aware effect as a step does.
+  const goTo = useCallback((n) => {
+    const target = Math.max(0, Math.min(last, Math.floor(Number(n))));
+    if (!Number.isFinite(target)) return;
+    setIdx(target);
+    setReveal(pointsCountAt(target));
+  }, [last, pointsCountAt]);
 
   // --- keyboard / presentation-remote control ---
   useEffect(() => {
@@ -372,14 +513,143 @@ export default function Presenter({
 
   const resumeAudience = useCallback(() => {
     blankRef.current = false;
-    try { chRef.current?.postMessage(buildSlideForScene(scenes, idxRef.current, { kicker })); } catch (e) { /* noop */ }
+    try { chRef.current?.postMessage(buildSlideForScene(scenes, idxRef.current, { kicker, lessonTitle: title, age: ageRef.current, reveal: revealRef.current })); } catch (e) { /* noop */ }
     setAudienceState('live');
-  }, [scenes, kicker]);
+  }, [scenes, kicker, title]);
+
+  // --- congregation follow-along: broadcast the live slide to their own devices ---
+  const goLiveForCongregation = useCallback(() => {
+    if (!FOLLOW_ALONG_ENABLED || followRef.current) return;
+    const code = makeFollowCode();
+    followRef.current = createFollowBroadcaster(code);
+    followCodeRef.current = code;
+    setFollowCode(code);
+    // re-send so the PROJECTED screen immediately gains the invite QR + code
+    setTimeout(() => { try { sendCurrent(); } catch (e) { /* non-fatal */ } }, 0);
+    // push the current slide immediately so a follower who joins right away sees it
+    const payload = blankRef.current
+      ? holdingSlide(title, kicker)
+      : buildSlideForScene(scenes, idxRef.current, { kicker, lessonTitle: title, age: ageRef.current, reveal: revealRef.current });
+    try { if (blankRef.current) followRef.current.hold(); else followRef.current.publish(payload); } catch (e) { /* non-fatal */ }
+  }, [scenes, title, kicker, sendCurrent]);
+
+  const stopFollow = useCallback(() => {
+    try { followRef.current?.end(); followRef.current?.close(); } catch (e) { /* non-fatal */ }
+    followRef.current = null;
+    followCodeRef.current = null;
+    setFollowCode(null);
+    // re-send so the projected screen drops the invite QR the moment we go dark
+    setTimeout(() => { try { sendCurrent(); } catch (e) { /* non-fatal */ } }, 0);
+  }, [sendCurrent]);
+
+  // Close the follow channel if the presenter unmounts mid-session.
+  useEffect(() => () => { try { followRef.current?.close(); } catch (e) { /* noop */ } followRef.current = null; }, []);
 
   const overMin = Math.floor(elapsed / 60) >= effectiveTarget;
   const a = cur?.audience || {};
+  // The lead pitched to the CURRENT age band — switching the band re-pitches the
+  // mirror + the projector + the on-screen view instantly, on this same slide.
+  const liveLead = resolveAudienceLead(a, age);
+  const canRepitch = !!(a.leadByAge && (a.leadByAge.child || a.leadByAge.teen || a.leadByAge.adult));
+  // A live PREVIEW of exactly what the class screen shows (age-resolved), so the
+  // presenter view holds the slide AND the notes together — no window to drag, no
+  // backing out (Darrell 2026-07-16).
+  const previewSlide = cur ? buildSlideForScene(scenes, idx, { kicker, lessonTitle: title, age, reveal }) : null;
+
+  // ONE-BUTTON READ ALOUD FOR THE SPEAKER (Darrell 2026-08-10: "I should be able
+  // to also listen to the full message or lesson/s from here... speakers are
+  // supposed to be able to push play for reading whatever... especially
+  // Scriptures"). The presenter registers the CURRENT slide as the screen's
+  // reading — exactly what the room sees, age-pitched, never the presenter-only
+  // notes (the no-leak law holds: what is read aloud is what is projected) — and
+  // hands the reader a next() that advances the deck, so pressing play once
+  // reads the whole message slide by slide with no hand on the screen.
+  // The mini mirror defaults OPEN on a wide screen (side console next to a
+  // projector) and CLOSED on a phone, where it is unreadable at 50% scale and
+  // only repeats the script (Darrell 2026-07-30 screenshot). One tap toggles.
+  const [showMirror, setShowMirror] = useState(() => {
+    try { return typeof window !== 'undefined' && window.innerWidth >= 900; } catch { return true; }
+  });
+  // Read without stale closures, and remember what the mirror was BEFORE a
+  // reading opened it, so stopping restores the speaker's own choice.
+  const showMirrorRef = useRef(showMirror);
+  showMirrorRef.current = showMirror;
+  const mirrorWasRef = useRef(null);
+
+  useEffect(() => {
+    if (!cur) return undefined;
+    const aud = cur.audience || {};
+    const slideText = [
+      aud.title || '',
+      resolveAudienceLead(aud, age) || '',
+      ...resolveAudiencePoints(aud, age),
+    ].filter(Boolean).join('. ').replace(/\.\.+/g, '.');
+    // WHAT PLAY MEANS HAS TO BE ON THE BUTTON, AND THE SPEAKER CHOOSES WHAT IT
+    // READS — but a live room outranks his choice every time.
+    //
+    // Darrell 2026-08-10 asked to listen to the full message from the console;
+    // 2026-09-13 he asked for "the options for both one or the other... maybe a
+    // toggle that has all options?" Both are honoured here, with the no-leak law
+    // kept STRUCTURAL rather than clever: lib/presenter-read-mode.js decides, on
+    // EVERY render, and `audienceLive` fails CLOSED — an audience state it does
+    // not recognise counts as live. So casting mid-reading drops the script at
+    // the moment the screen goes up, and the speaker never has to remember to
+    // switch back before he presents, because forgetting is the failure a room
+    // would hear.
+    const live = audienceLive({ onScreen, audienceState, followCode });
+    const mode = effectiveReadMode(readMode, live);
+    const scriptText = mode === 'room' ? '' : notesToSpeech(cur.notes);
+    const spoken = readingTextFor(mode, slideText, scriptText);
+    const partLabel = cur.indexLabel ? `${cur.indexLabel} — ${aud.title || 'this part'}` : (aud.title || 'this part of the message');
+    const owner = `presenter-${presentableId}-${idx}`;
+    setReadTarget(owner, {
+      label: readingLabel(partLabel, mode),
+      text: spoken,
+      // `presenter-slide` is rendered by BOTH views — the full-screen presenting
+      // mode and, since 2026-08-31, the console's class mirror — so the reader
+      // always has a real element to map and follow, whichever screen the
+      // speaker pressed play on. Only one of the two is mounted at a time.
+      elementId: 'presenter-slide',
+      // FOLLOW-ALONG NEEDS THE READING ON SCREEN (Darrell 2026-08-31: "it
+      // doesn't follow the text as it reads"). In the console the mirror is
+      // collapsible — and on a phone it starts collapsed — so the element the
+      // reader maps may not exist when play is pressed. prepare(true) opens it;
+      // prepare(false) puts it back the way the speaker had it.
+      //
+      // The mirror is deliberately the target rather than the presenter's
+      // script block: it renders the SAME AudienceSlide the room sees, so the
+      // spoken words and the highlighted words are the same words by
+      // construction, and the no-leak law holds — the presenter-only notes are
+      // never read to the room.
+      prepare: (on) => {
+        if (on) {
+          if (mirrorWasRef.current === null) mirrorWasRef.current = showMirrorRef.current;
+          setShowMirror(true);
+          return;
+        }
+        const was = mirrorWasRef.current;
+        mirrorWasRef.current = null;
+        if (was !== null) setShowMirror(was);
+      },
+      next: () => {
+        if (idx >= last) return false;
+        setIdx((i2) => Math.min(last, i2 + 1));
+        return true;
+      },
+    });
+    return () => clearReadTarget(owner);
+  }, [cur, idx, age, presentableId, last, readMode, onScreen, audienceState, followCode]);
   const notes = Array.isArray(cur?.notes) ? cur.notes : [];
   const hasNotes = notes.length > 0;
+  // The same three facts the read-target effect uses, surfaced for the controls
+  // so the UI and the registration can never disagree about what is in force.
+  const roomIsLive = audienceLive({ onScreen, audienceState, followCode });
+  const readModeInForce = effectiveReadMode(readMode, roomIsLive);
+  const scriptIsSuppressed = scriptSuppressed(readMode, roomIsLive);
+  // Advancing the deck opens the first note of the new part. Without this a
+  // speaker moving on would land with section four expanded and section one
+  // collapsed, which is the opposite of where he is about to teach.
+  useEffect(() => { setOpenNote(0); }, [idx]);
 
   // --- budget + override + curriculum-edit handlers ---
   const applyBudget = useCallback((raw) => {
@@ -408,48 +678,255 @@ export default function Presenter({
   }, [overlay, commitOverlay]);
 
   const btn = {
-    base: { cursor: 'pointer', fontFamily: '"JetBrains Mono", monospace', textTransform: 'uppercase', letterSpacing: '0.08em', minHeight: 40, padding: '8px 16px', border: '2px solid #1A1815', background: '#1A1815', color: '#fff', fontSize: 12 },
-    ghost: { cursor: 'pointer', fontFamily: '"JetBrains Mono", monospace', textTransform: 'uppercase', letterSpacing: '0.08em', minHeight: 40, padding: '8px 16px', border: '1px solid #5A5751', background: '#fff', color: '#1A1815', fontSize: 12 },
-    nav: { cursor: 'pointer', fontFamily: '"JetBrains Mono", monospace', minHeight: 36, minWidth: 40, padding: '6px 12px', border: '1px solid #CFC9BD', background: 'transparent', color: '#FAF8F4', fontSize: 16, lineHeight: 1 },
+    base: { cursor: 'pointer', fontFamily: '"JetBrains Mono", monospace', textTransform: 'uppercase', letterSpacing: '0.08em', minHeight: 40, padding: '8px 16px', border: '2px solid #1A1815', background: '#1A1815', color: '#fff', fontSize: '0.75rem' },
+    ghost: { cursor: 'pointer', fontFamily: '"JetBrains Mono", monospace', textTransform: 'uppercase', letterSpacing: '0.08em', minHeight: 40, padding: '8px 16px', border: '1px solid #5A5751', background: '#fff', color: '#1A1815', fontSize: '0.75rem' },
+    nav: { cursor: 'pointer', fontFamily: '"JetBrains Mono", monospace', minHeight: 36, minWidth: 40, padding: '6px 12px', border: '1px solid #CFC9BD', background: 'transparent', color: '#FAF8F4', fontSize: '1rem', lineHeight: 1 },
   };
   const card = { border: '1px solid #E8E4DC', padding: 16, marginBottom: 16 };
 
   if (!cur) {
     return (
-      <div style={{ position: 'fixed', inset: 0, zIndex: 60, background: '#FAF8F4', color: '#1A1815', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, textAlign: 'center', fontFamily: '"Fraunces", Georgia, serif' }} role="dialog" aria-label={`Present — ${title}`}>
+      <div style={{ position: 'fixed', inset: 0, zIndex: 60, background: '#FAF8F4', color: '#1A1815', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, textAlign: 'center', fontFamily: '"Fraunces", Georgia, serif' }} data-reading="true" role="dialog" aria-label={`Present — ${title}`}>
         <div>
-          <p style={{ fontSize: 18, marginBottom: 16 }}>There’s nothing to present here yet.</p>
+          <p style={{ fontSize: '1.125rem', marginBottom: 16 }}>There’s nothing to present here yet.</p>
           {onClose && <button type="button" onClick={onClose} style={btn.ghost}>Close ✕</button>}
         </div>
       </div>
     );
   }
 
+  // PRESENT ON THIS SCREEN — the room's slide fills THIS device, no popup, no second
+  // browser. The speaker taps to advance; the age chips stay on the bar the whole way,
+  // so the pitch can be switched to the room instantly, on the same slide, never
+  // leaving to the top (Darrell 2026-07-16). A connected class-screen window still
+  // mirrors this via the broadcast (age + index carry through sendCurrent).
+  if (onScreen) {
+    const cleanSlide = buildSlideForScene(scenes, idx, { kicker, lessonTitle: title, age, reveal });
+    const chip = (on) => ({ cursor: 'pointer', fontFamily: '"JetBrains Mono", monospace', textTransform: 'uppercase', letterSpacing: '0.06em', fontSize: '0.75rem', minHeight: 40, padding: '8px 14px', border: `1px solid ${on ? '#C9D9A6' : '#4A453D'}`, background: on ? '#C9D9A6' : 'transparent', color: on ? '#14110E' : '#CFC9BD' });
+    const navBtn = { cursor: 'pointer', fontFamily: '"JetBrains Mono", monospace', minHeight: 44, minWidth: 52, padding: '8px 16px', border: '1px solid #4A453D', background: 'transparent', color: '#FAF8F4', fontSize: '1.25rem', lineHeight: 1 };
+    // GO STRAIGHT TO THE ONE YOU WANT (Darrell 2026-09-17: "each Lesson should
+    // be able to present just the one that we want without having to scroll
+    // through the whole list to get to the one lesson that we want to
+    // understand"). A 163-week deck had exactly two ways through it, ← and →.
+    // Reaching week 45 in front of a room meant forty-four taps. This names
+    // every scene and goes there in one, and it is a plain <select> on purpose:
+    // it is the one control a phone renders as a full-height native picker with
+    // its own scrolling and type-ahead, which is better than anything a custom
+    // menu would give a speaker holding a tablet up.
+    const jump = scenes.length > 2 ? (
+      <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <span style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>Go to</span>
+        <select
+          data-testid="presenting-jump"
+          value={idx}
+          onChange={(e) => { const n = parseInt(e.target.value, 10); if (Number.isFinite(n)) goTo(n); }}
+          aria-label={`Go to any of the ${scenes.length} parts`}
+          style={{ ...chip(false), minWidth: 116, maxWidth: '38vw', cursor: 'pointer', appearance: 'auto', textTransform: 'none', letterSpacing: 0 }}
+        >
+          {scenes.map((s, i) => (
+            <option key={s.id || i} value={i}>
+              {`${s.indexLabel || `Part ${i + 1}`} — ${(s.audience && s.audience.title) || s.title || ''}`.slice(0, 70)}
+            </option>
+          ))}
+        </select>
+      </label>
+    ) : null;
+    // THE ROOM'S TEXT SIZE, on the presenting screen itself (DR-0451). Two taps
+    // reach every step; the label shows where you are so a speaker never has to
+    // guess. It writes --slide-scale, which only the slide reads.
+    const roomSize = (
+      <span data-testid="presenting-room-size" style={{ display: 'flex', alignItems: 'center', gap: 4 }} title="How big the words are for the room">
+        <button
+          type="button"
+          onClick={() => slideSize.bump(-1)}
+          disabled={slideSize.size === SLIDE_SIZE_STEPS[0].key}
+          aria-label="Smaller words for the room"
+          style={{ ...chip(false), minWidth: 44, opacity: slideSize.size === SLIDE_SIZE_STEPS[0].key ? 0.4 : 1 }}
+        >
+          A−
+        </button>
+        <span aria-live="polite" style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '0.6875rem', color: '#CFC9BD', minWidth: 42, textAlign: 'center' }}>{slideSize.step.label}</span>
+        <button
+          type="button"
+          onClick={() => slideSize.bump(1)}
+          disabled={slideSize.size === SLIDE_SIZE_STEPS[SLIDE_SIZE_STEPS.length - 1].key}
+          aria-label="Bigger words for the room"
+          style={{ ...chip(false), minWidth: 44, opacity: slideSize.size === SLIDE_SIZE_STEPS[SLIDE_SIZE_STEPS.length - 1].key ? 0.4 : 1 }}
+        >
+          A+
+        </button>
+      </span>
+    );
+    return (
+      <div style={{ position: 'fixed', inset: 0, zIndex: 70, background: '#14110E', color: '#FAF8F4', display: 'flex', flexDirection: 'column', fontFamily: '"Fraunces", Georgia, serif' }} data-reading="true" role="dialog" aria-label={`Presenting — ${title}`}>
+        {/* THE SLIDE CARRIES THE ROOM'S SIZE (DR-0451). --slide-scale multiplies
+            every font size on the slide and nothing else on the screen, so the
+            words for the room grow without the speaker's own panel growing
+            with them. */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', padding: 'clamp(24px, 5vw, 72px)', overflowY: 'auto', ...slideSize.style }} onClick={() => go(1)} title="Tap to advance">
+          <div id="presenter-slide"><AudienceSlide slide={cleanSlide} invite={followCode ? { code: followCode, url: followLink(followCode) } : null} /></div>
+        </div>
+        {/* Always-on speaker bar — never projected content, just the controls.
+            IT IS CHROME, AND IT FOLDS (DR-0451). Measured on a 360px phone
+            before this: ten always-present controls wrapped to four rows and
+            took a third of the screen from the slide. Now the essentials hold
+            one row — move, position, time, the room's size, and the way out —
+            and everything else waits behind More. .ts-chrome-region caps it at
+            Big Print so the words on the SLIDE grow and this frame does not
+            (DR-0410). */}
+        <div className="ts-chrome-region" data-testid="presenting-bar" style={{ background: '#0E0C0A', borderTop: '1px solid #2A2620', padding: '8px clamp(10px, 2.5vw, 24px)', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}
+          onClick={(e) => e.stopPropagation()}>
+          <button type="button" onClick={() => go(-1)} disabled={atStart} aria-label="Previous" style={{ ...navBtn, opacity: atStart ? 0.4 : 1 }}>←</button>
+          <span style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '0.75rem', color: '#CFC9BD', minWidth: 88, textAlign: 'center' }}>{idx + 1} / {scenes.length}</span>
+          <button type="button" onClick={() => go(1)} disabled={atEnd} aria-label="Next" style={{ ...navBtn, opacity: atEnd ? 0.4 : 1 }}>→</button>
+          {/* GO STRAIGHT TO THE ONE YOU WANT (DR-0451) — see the jump control's
+              own note at its definition. Never make a speaker press → forty
+              times in front of a room. */}
+          {jump}
+          <span aria-live="polite" style={{ marginLeft: 'auto', fontFamily: '"JetBrains Mono", monospace', fontSize: '1rem', color: overMin ? '#FF9B7A' : '#C9D9A6' }}>{formatClock(elapsed)}</span>
+          {/* THE ROOM'S TEXT SIZE — the one he asked for, on the screen he asked
+              for it on, never more than a tap away while presenting. */}
+          {roomSize}
+          {/* The chip helper owns both states' colors (and their contrast); this
+              adds no inline color of its own — an un-themeable literal here is
+              exactly what the legibility guard catches, and it caught mine. */}
+          <button type="button" onClick={() => setBarOpen((o) => !o)} aria-expanded={barOpen} data-testid="presenting-bar-more" style={chip(barOpen)}>
+            {barOpen ? 'Less ▴' : 'More ▾'}
+          </button>
+          <button type="button" onClick={() => setOnScreen(false)} style={{ ...chip(false), borderColor: '#EBA77E', color: '#EBA77E' }}>Speaker view ✕</button>
+          {barOpen && (
+            <div data-testid="presenting-bar-rest" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', width: '100%' }}>
+              {/* THE audience choice, reachable the whole way through — switch instantly */}
+              <div role="radiogroup" aria-label="Who is in the room" style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {PRESENT_AGE_BANDS.map((b) => (
+                  <button key={b.id} type="button" role="radio" aria-checked={age === b.id} onClick={() => setAge(b.id)} style={chip(age === b.id)}>{b.label}</button>
+                ))}
+              </div>
+              {canRepitch && <span style={{ fontSize: '0.6875rem', color: '#C9D9A6', fontFamily: '"JetBrains Mono", monospace' }}>re-pitches live</span>}
+              <button type="button" onClick={() => setRunning((r) => !r)} style={chip(false)}>{running ? 'Pause' : 'Start'}</button>
+              {/* PUSH PLAY — reads this slide aloud and keeps going through the
+                  message, hands-free, in the speaker's chosen voice. */}
+              <button type="button" onClick={() => requestRead({ from: 'presenter' })} style={chip(false)} title="Read this message aloud, slide by slide">▶ Read aloud</button>
+              <button type="button" onClick={() => { try { document.documentElement.requestFullscreen?.(); } catch (e) { /* F11 */ } }} style={chip(false)}>Full screen</button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 60, background: '#FAF8F4', color: '#1A1815', overflowY: 'auto', fontFamily: '"Fraunces", Georgia, serif' }} role="dialog" aria-label={`Present — ${title}`}>
-      {/* sticky control bar — controls-in-context: scene nav + timer reachable at any scroll */}
-      <div style={{ position: 'sticky', top: 0, zIndex: 2, background: '#1A1815', color: '#FAF8F4', padding: '10px clamp(12px, 3vw, 28px)', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-        <span style={{ fontSize: 11, letterSpacing: '0.3em', textTransform: 'uppercase', color: '#EBA77E', fontFamily: '"JetBrains Mono", monospace' }}>Presenting</span>
-        <button type="button" onClick={() => go(-1)} disabled={idx === 0} aria-label="Previous" title="Previous (←)" style={{ ...btn.nav, opacity: idx === 0 ? 0.4 : 1 }}>←</button>
-        <strong style={{ fontFamily: '"Fraunces", serif', fontSize: 15 }}>{cur.indexLabel}</strong>
-        <button type="button" onClick={() => go(1)} disabled={idx === last} aria-label="Next" title="Next (→)" style={{ ...btn.nav, opacity: idx === last ? 0.4 : 1 }}>→</button>
-        <span style={{ color: '#CFC9BD', fontSize: 13, maxWidth: '30vw', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.title}</span>
-        <span aria-live="polite" title="Session timer" style={{ marginLeft: 'auto', fontFamily: '"JetBrains Mono", monospace', fontSize: 18, color: overMin ? '#FF9B7A' : '#C9D9A6' }}>
-          {formatClock(elapsed)} <span style={{ fontSize: 11, color: '#CFC9BD' }}>/ {effectiveTarget}:00{budgetMin > 0 ? ' budget' : ''}</span>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 60, background: '#FAF8F4', color: '#1A1815', overflowY: 'auto', fontFamily: '"Fraunces", Georgia, serif' }} data-reading="true" role="dialog" aria-label={`Present — ${title}`}>
+      {/* Sticky control bar — controls-in-context: scene nav + timer reachable at
+          any scroll. IT IS CHROME, AND IT FOLDS (DR-0451). Darrell 2026-09-17,
+          from this exact bar on his phone: "the controls are taking over the
+          screen real-estate." Measured before this at 360px: nine always-on
+          controls with rem-sized words, wrapping to three and four rows, and at
+          Big Print the whole band pushed the lesson off the screen. Now the
+          essentials hold the first row and the rest wait behind More, with
+          .ts-chrome-region capping the lot at Big Print (DR-0410). */}
+      <div className="ts-chrome-region ts-safe-sticky" data-testid="present-setup-bar" style={{ position: 'sticky', top: 0, zIndex: 2, background: '#1A1815', color: '#FAF8F4', padding: '10px clamp(12px, 3vw, 28px)', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+        <button type="button" onClick={() => go(-1)} disabled={atStart} aria-label="Previous" title="Previous (←)" style={{ ...btn.nav, opacity: atStart ? 0.4 : 1 }}>←</button>
+        {/* THE JUMP IS AN ESSENTIAL, NOT A SECONDARY (DR-0451). I first put it
+            behind More and the layout probe caught it at 360px: on the phone he
+            was holding, the one control he asked for was folded away. On a long
+            deck it REPLACES the static position label, because it shows the
+            current part and changes it — one control doing two jobs is also how
+            it fits a phone's first row. */}
+        {scenes.length > 2 ? (
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+            <span style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>Go to</span>
+            <select
+              data-testid="present-setup-jump"
+              value={idx}
+              onChange={(e) => { const n = parseInt(e.target.value, 10); if (Number.isFinite(n)) goTo(n); }}
+              aria-label={`Go to any of the ${scenes.length} parts`}
+              style={{ ...btn.ghost, maxWidth: '46vw', cursor: 'pointer', appearance: 'auto', textTransform: 'none', letterSpacing: 0, fontFamily: '"Fraunces", serif', fontSize: '0.9375rem' }}
+            >
+              {scenes.map((s, i) => (
+                <option key={s.id || i} value={i}>
+                  {`${s.indexLabel || `Part ${i + 1}`} — ${(s.audience && s.audience.title) || s.title || ''}`.slice(0, 70)}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : (
+          <strong style={{ fontFamily: '"Fraunces", serif', fontSize: '0.9375rem' }}>{cur.indexLabel}</strong>
+        )}
+        <button type="button" onClick={() => go(1)} disabled={atEnd} aria-label="Next" title="Next (→)" style={{ ...btn.nav, opacity: atEnd ? 0.4 : 1 }}>→</button>
+        <span aria-live="polite" title="Session timer" style={{ marginLeft: 'auto', fontFamily: '"JetBrains Mono", monospace', fontSize: '1.125rem', color: overMin ? '#FF9B7A' : '#C9D9A6' }}>
+          {formatClock(elapsed)} <span style={{ fontSize: '0.6875rem', color: '#CFC9BD' }}>/ {effectiveTarget}:00{budgetMin > 0 ? ' budget' : ''}</span>
         </span>
-        <button type="button" onClick={() => setRunning((r) => !r)} style={btn.ghost}>{running ? 'Pause' : 'Start'}</button>
-        <button type="button" onClick={() => { setElapsed(0); setRunning(false); }} style={btn.ghost}>Reset</button>
+        {/* btn.base already carries the on-state pair (dark ground, light text)
+            and btn.ghost the off-state; neither adds an inline dark literal, so
+            the legibility guard has nothing new to track. It caught the version
+            of this button that did. */}
+        <button type="button" onClick={() => setBarOpen((o) => !o)} aria-expanded={barOpen} data-testid="present-setup-bar-more" style={barOpen ? btn.base : btn.ghost}>
+          {barOpen ? 'Less ▴' : 'More ▾'}
+        </button>
         {onClose && <button type="button" onClick={onClose} style={{ ...btn.ghost, borderColor: '#B85838', color: '#FAF8F4', background: 'transparent' }}>Exit ✕</button>}
+        {barOpen && (
+          <div data-testid="present-setup-bar-rest" style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', width: '100%' }}>
+            <span style={{ fontSize: '0.6875rem', letterSpacing: '0.3em', textTransform: 'uppercase', color: '#EBA77E', fontFamily: '"JetBrains Mono", monospace' }}>Presenting</span>
+            {curPointCount > 0 && (
+              <span title="Points reveal one at a time as you advance; → shows the next point, then the next scene" style={{ fontSize: '0.6875rem', fontFamily: '"JetBrains Mono", monospace', color: moreToReveal ? '#C9D9A6' : '#CFC9BD' }}>
+                {moreToReveal ? `→ reveals point ${reveal + 1} of ${curPointCount}` : `all ${curPointCount} shown`}
+              </span>
+            )}
+            <span style={{ color: '#CFC9BD', fontSize: '0.8125rem', maxWidth: '60vw', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.title}</span>
+            <button type="button" onClick={() => setRunning((r) => !r)} style={btn.ghost}>{running ? 'Pause' : 'Start'}</button>
+            <button type="button" onClick={() => { setElapsed(0); setRunning(false); }} style={btn.ghost}>Reset</button>
+          </div>
+        )}
       </div>
 
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: 'clamp(16px, 3vw, 32px)' }}>
         {/* audience-screen controls + "through the church" framing */}
         <div style={{ ...card, background: '#fff', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-          <strong style={{ fontFamily: '"Fraunces", serif', fontSize: 14 }}>Class screen (projector):</strong>
-          {audienceState === 'closed' && <button type="button" onClick={openAudience} style={btn.base}>Open class screen →</button>}
+          {/* The no-setup path: present on THIS device (tablet held up / cast to a TV) —
+              no popup, no second browser, no second person. */}
+          <button type="button" onClick={() => setOnScreen(true)} style={btn.base}>▶ Present on this screen</button>
+          {/* PUSH PLAY, from the console too (Darrell 2026-08-10: "I should be
+              able to also listen to the full message or lesson/s from here").
+              One button: it reads this part in the chosen voice and keeps going
+              through the whole message — no panel to find, nothing to set up. */}
+          <button type="button" onClick={() => requestRead({ from: 'presenter-console' })} style={btn.ghost} title="Read the message aloud from here, part by part">▶ Read it aloud</button>
+          <span style={{ fontSize: '0.75rem', color: '#5A5751', fontFamily: '"Fraunces", serif' }}>fills this screen — cast or hold it up; the age toggle stays with you. Read it aloud plays the message in your chosen voice and keeps going, part by part.</span>
+          {/* WHAT it reads — the speaker's choice, overridden by a live room.
+              The script options are not merely disabled while a room can hear:
+              lib/presenter-read-mode.js collapses the mode on every render, so
+              the guard holds even if this control were bypassed. */}
+          <div style={{ flexBasis: '100%', marginTop: 4 }}>
+            <div role="radiogroup" aria-label="What Read it aloud reads" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.625rem', letterSpacing: '0.25em', textTransform: 'uppercase', color: '#5A5751', fontFamily: '"JetBrains Mono", monospace' }}>Read aloud</span>
+              {READ_MODES.map((m) => {
+                const blocked = m.id !== DEFAULT_READ_MODE && roomIsLive;
+                const on = readModeInForce === m.id;
+                return (
+                  <button key={m.id} type="button" role="radio" aria-checked={on} disabled={blocked}
+                    onClick={() => chooseReadMode(m.id)}
+                    title={blocked ? 'A screen is live — the reading stays on what the room sees' : m.hint}
+                    style={{
+                      cursor: blocked ? 'not-allowed' : 'pointer', opacity: blocked ? 0.45 : 1,
+                      fontFamily: '"JetBrains Mono", monospace', textTransform: 'uppercase', letterSpacing: '0.06em',
+                      fontSize: '0.6875rem', minHeight: 40, padding: '8px 12px',
+                      border: `1px solid ${on ? '#5A6E3D' : '#CFC9BD'}`,
+                      background: on ? '#5A6E3D' : '#fff', color: on ? '#fff' : '#1A1815',
+                    }}>{m.label}</button>
+                );
+              })}
+            </div>
+            <p style={{ margin: '6px 0 0', fontSize: '0.75rem', color: scriptIsSuppressed ? '#7A1F1F' : '#5A5751', lineHeight: 1.5 }}>
+              {scriptIsSuppressed
+                ? 'A screen is live, so the reading is the room\u2019s slide only — your script is never spoken where a room can hear it. Close the class screen to hear your notes.'
+                : (READ_MODES.find((m) => m.id === readModeInForce) || READ_MODES[0]).hint}
+            </p>
+          </div>
+          <strong style={{ flexBasis: '100%', fontFamily: '"Fraunces", serif', fontSize: '0.875rem', marginTop: 4 }}>Two screens? Class screen (projector):</strong>
+          {audienceState === 'closed' && <button type="button" onClick={openAudience} style={btn.ghost}>Open class screen →</button>}
           {audienceState !== 'closed' && audienceState !== 'blocked' && (
             <>
-              <span style={{ fontSize: 13, color: '#5A6E3D' }}>● {audienceState === 'blank' ? 'holding slide up' : 'live & synced'}</span>
+              <span style={{ fontSize: '0.8125rem', color: '#5A6E3D' }}>● {audienceState === 'blank' ? 'holding slide up' : 'live & synced'}</span>
               {audienceState === 'blank'
                 ? <button type="button" onClick={resumeAudience} style={btn.base}>Resume</button>
                 : <button type="button" onClick={blankAudience} style={btn.ghost}>Blank screen</button>}
@@ -457,22 +934,42 @@ export default function Presenter({
             </>
           )}
           {audienceState === 'blocked' && (
-            <span style={{ fontSize: 13, color: '#7A1F1F' }}>
+            <span style={{ fontSize: '0.8125rem', color: '#7A1F1F' }}>
               Popup blocked — allow popups for this site, then{' '}
               <button type="button" onClick={openAudience} style={{ ...btn.ghost, display: 'inline' }}>try again</button>.
             </span>
           )}
-          <span style={{ marginLeft: 'auto', fontSize: 12, color: '#5A5751', fontFamily: '"JetBrains Mono", monospace' }}>
+          <span style={{ marginLeft: 'auto', fontSize: '0.75rem', color: '#5A5751', fontFamily: '"JetBrains Mono", monospace' }}>
             ← / → or a clicker to advance
           </span>
-          <p style={{ flexBasis: '100%', margin: '4px 0 0', fontSize: 12, color: '#5A6E3D', fontFamily: '"Fraunces", serif' }}>
+          {/* Congregation follows the LIVE slide on their OWN phones/tablets (Love
+              Corner staging) — a shareable code/link, synced to whatever slide you're on. */}
+          {FOLLOW_ALONG_ENABLED && (
+            <div style={{ flexBasis: '100%', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', borderTop: '1px solid #EFEADF', marginTop: 8, paddingTop: 12 }}>
+              <strong style={{ fontFamily: '"Fraunces", serif', fontSize: '0.875rem' }}>Congregation follows on their phones:</strong>
+              {!followCode ? (
+                <button type="button" onClick={goLiveForCongregation} style={btn.base}>Go live for the congregation</button>
+              ) : (
+                <>
+                  <span style={{ fontSize: '0.8125rem', color: '#5A6E3D' }}>● live · code <strong style={{ fontFamily: '"JetBrains Mono", monospace', letterSpacing: '0.15em' }}>{followCode}</strong></span>
+                  <span style={{ fontSize: '0.75rem', color: '#5A5751', fontFamily: '"JetBrains Mono", monospace', wordBreak: 'break-all' }}>{followLink(followCode)}</span>
+                  <button type="button" onClick={() => { try { navigator.clipboard?.writeText(followLink(followCode)); } catch (e) { /* noop */ } }} style={btn.ghost}>Copy link</button>
+                  <button type="button" onClick={stopFollow} style={btn.ghost}>Stop</button>
+                </>
+              )}
+              <span style={{ flexBasis: '100%', margin: 0, fontSize: '0.75rem', color: '#5A5751', fontFamily: '"Fraunces", serif' }}>
+                They open the link (or enter the code) — they see the same clean slide you do, following whatever you're on.
+              </span>
+            </div>
+          )}
+          <p style={{ flexBasis: '100%', margin: '4px 0 0', fontSize: '0.75rem', color: '#5A6E3D', fontFamily: '"Fraunces", serif' }}>
             Presented through {kicker || 'The Church of the Living God'} — the works of every family, every age, go up on the screen here.
           </p>
         </div>
 
         {/* age-adaptive presenter hook (presenter-only — never changes the audience screen) */}
         <div style={{ ...card, background: '#fff', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 12, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#5A5751', fontFamily: '"JetBrains Mono", monospace' }}>Presenting to</span>
+          <span style={{ fontSize: '0.75rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#5A5751', fontFamily: '"JetBrains Mono", monospace' }}>Presenting to</span>
           <div role="radiogroup" aria-label="Who is in the room" style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {PRESENT_AGE_BANDS.map((b) => {
               const on = age === b.id;
@@ -484,21 +981,22 @@ export default function Presenter({
               );
             })}
           </div>
-          <span style={{ flexBasis: '100%', margin: 0, fontSize: 13, color: '#5A5751', fontFamily: '"Fraunces", serif' }}>{ageHint(age)}</span>
+          {canRepitch && <span style={{ fontSize: '0.6875rem', color: '#5A5751', fontFamily: '"JetBrains Mono", monospace' }}>· switches the room’s wording live</span>}
+          <span style={{ flexBasis: '100%', margin: 0, fontSize: '0.8125rem', color: '#5A5751', fontFamily: '"Fraunces", serif' }}>{ageHint(age)}</span>
         </div>
 
         {/* time-adaptive: "I have ___ minutes" -> fit-to-budget reflow + skip-suggest */}
         <div style={{ ...card, background: '#fff' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 12, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#5A5751', fontFamily: '"JetBrains Mono", monospace' }}>I have</span>
+            <span style={{ fontSize: '0.75rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#5A5751', fontFamily: '"JetBrains Mono", monospace' }}>I have</span>
             <input
               type="number" min="0" inputMode="numeric" aria-label="Minutes available"
               value={budgetInput}
               onChange={(e) => { setBudgetInput(e.target.value); applyBudget(e.target.value); }}
               placeholder="—"
-              style={{ width: 80, padding: '8px 10px', border: '1px solid #CFC9BD', fontFamily: '"JetBrains Mono", monospace', fontSize: 16, textAlign: 'center', background: '#fff', color: '#1A1815' }}
+              style={{ width: 80, padding: '8px 10px', border: '1px solid #CFC9BD', fontFamily: '"JetBrains Mono", monospace', fontSize: '1rem', textAlign: 'center', background: '#fff', color: '#1A1815' }}
             />
-            <span style={{ fontSize: 12, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#5A5751', fontFamily: '"JetBrains Mono", monospace' }}>minutes</span>
+            <span style={{ fontSize: '0.75rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: '#5A5751', fontFamily: '"JetBrains Mono", monospace' }}>minutes</span>
             {BUDGET_PRESETS.map((m) => (
               <button key={m} type="button" onClick={() => applyBudget(m)}
                 style={{ ...btn.ghost, minHeight: 34, padding: '5px 12px', borderColor: budgetMin === m ? '#5A6E3D' : '#5A5751', background: budgetMin === m ? '#5A6E3D' : '#fff', color: budgetMin === m ? '#fff' : '#1A1815' }}>
@@ -508,11 +1006,11 @@ export default function Presenter({
             {budgetMin > 0 && (
               <button type="button" onClick={() => { applyBudget(0); setOverrides({}); }} style={{ ...btn.ghost, minHeight: 34, padding: '5px 12px' }}>Full curriculum</button>
             )}
-            <span style={{ marginLeft: 'auto', fontSize: 12, color: '#5A5751', fontFamily: '"JetBrains Mono", monospace' }}>
-              full = {fit.fullMin} min
+            <span style={{ marginLeft: 'auto', fontSize: '0.75rem', color: '#5A5751', fontFamily: '"JetBrains Mono", monospace' }}>
+              full = {humanMinutes(fit.fullMin)}
             </span>
           </div>
-          <p style={{ margin: '12px 0 0', fontSize: 14, lineHeight: 1.5, color: fit.overBudget ? '#7A1F1F' : '#5A6E3D', fontFamily: '"Fraunces", serif' }}>
+          <p style={{ margin: '12px 0 0', fontSize: '0.875rem', lineHeight: 1.5, color: fit.overBudget ? '#7A1F1F' : '#5A6E3D', fontFamily: '"Fraunces", serif' }}>
             {fit.summary}
           </p>
           {(budgetMin > 0 || Object.keys(overrides).length > 0) && (
@@ -529,28 +1027,28 @@ export default function Presenter({
                 const forced = overrides[key];
                 return (
                   <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: i < fit.plan.length - 1 ? '1px solid #F0EDE6' : 'none', opacity: row.skipped ? 0.55 : 1 }}>
-                    <span aria-hidden style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', padding: '2px 6px', border: `1px solid ${isCore ? '#5A6E3D' : '#B85838'}`, color: isCore ? '#5A6E3D' : '#B85838', fontFamily: '"JetBrains Mono", monospace', whiteSpace: 'nowrap' }}>
+                    <span aria-hidden style={{ fontSize: '0.625rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', padding: '2px 6px', border: `1px solid ${isCore ? '#5A6E3D' : '#B85838'}`, color: isCore ? '#5A6E3D' : '#B85838', fontFamily: '"JetBrains Mono", monospace', whiteSpace: 'nowrap' }}>
                       {isCore ? 'Core' : 'Supp'}
                     </span>
-                    <span style={{ flex: 1, fontSize: 14, textDecoration: row.skipped ? 'line-through' : 'none', fontFamily: '"Fraunces", serif' }}>
+                    <span style={{ flex: 1, fontSize: '0.875rem', textDecoration: row.skipped ? 'line-through' : 'none', fontFamily: '"Fraunces", serif' }}>
                       {row.audience?.title || row.indexLabel || key}
                     </span>
                     <span title={row.atFloor ? 'At its minimum time' : (row.skipped ? 'Skipped to fit the budget' : 'Computed share of the budget')}
-                      style={{ fontSize: 12, color: row.atFloor ? '#B85838' : '#5A5751', fontFamily: '"JetBrains Mono", monospace', minWidth: 78, textAlign: 'right' }}>
+                      style={{ fontSize: '0.75rem', color: row.atFloor ? '#B85838' : '#5A5751', fontFamily: '"JetBrains Mono", monospace', minWidth: 78, textAlign: 'right' }}>
                       {row.skipped ? `skip${row.skipReason === 'forced' ? ' (you)' : ''}` : `${row.allocatedMin} min${row.atFloor ? ' · floor' : ''}`}
                     </span>
                     {canEdit && (
-                      <button type="button" onClick={() => setEditorOpen(editorOpen === key ? null : key)} aria-label={`Edit ${row.audience?.title || key}`} style={{ ...btn.ghost, minHeight: 30, padding: '3px 8px', fontSize: 11 }}>Edit</button>
+                      <button type="button" onClick={() => setEditorOpen(editorOpen === key ? null : key)} aria-label={`Edit ${row.audience?.title || key}`} style={{ ...btn.ghost, minHeight: 30, padding: '3px 8px', fontSize: '0.6875rem' }}>Edit</button>
                     )}
                     <button type="button" onClick={() => setOverride(key, row.skipped ? 'keep' : 'skip')}
                       aria-label={row.skipped ? `Force keep ${key}` : `Force skip ${key}`}
-                      style={{ ...btn.ghost, minHeight: 30, padding: '3px 8px', fontSize: 11, borderColor: forced ? '#1A1815' : '#5A5751' }}>
+                      style={{ ...btn.ghost, minHeight: 30, padding: '3px 8px', fontSize: '0.6875rem', borderColor: forced ? '#1A1815' : '#5A5751' }}>
                       {row.skipped ? 'Keep' : 'Skip'}
                     </button>
                   </div>
                 );
               })}
-              <p style={{ margin: '12px 0 0', fontSize: 12, color: '#5A5751', fontFamily: '"Fraunces", serif' }}>
+              <p style={{ margin: '12px 0 0', fontSize: '0.75rem', color: '#5A5751', fontFamily: '"Fraunces", serif' }}>
                 Time is split proportionally — heavier sections keep more of the clock. A section at its{' '}
                 <span style={{ color: '#B85838' }}>floor</span> can’t shrink further; when floors don’t fit, supplementary
                 sections are skipped first (core is protected). Tap “Keep”/“Skip” to override any of it.
@@ -570,20 +1068,46 @@ export default function Presenter({
           )}
         </div>
 
-        {/* what the room sees right now (mirror) */}
+        {/* PRESENTER VIEW — two ROLES, visibly distinct (Darrell 2026-07-30,
+            screenshot: "this shows the same thing on the screen for the audience
+            as the speakers... why?"): the room's slide is a CONFIDENCE MONITOR
+            (a mini mirror, opt-in — on a phone it is unreadable at 50% scale and
+            merely repeats the script below), and the legible block is YOUR
+            SCRIPT — the speaker's console, not a copy. The projector/broadcast
+            is untouched either way; the mirror stays one tap away so the
+            speaker can always verify what the room actually sees (DR-0076). */}
         <div style={{ ...card, background: '#fff', borderLeft: '4px solid #1A1815' }}>
-          <div style={{ fontSize: 10, letterSpacing: '0.25em', textTransform: 'uppercase', color: '#B85838', marginBottom: 6, fontFamily: '"JetBrains Mono", monospace', display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            <span>On the class screen now{cur.dateLabel ? ` · ${cur.dateLabel}` : ''}</span>
+          <div style={{ fontSize: '0.625rem', letterSpacing: '0.25em', textTransform: 'uppercase', color: '#B85838', marginBottom: 8, fontFamily: '"JetBrains Mono", monospace', display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+            <span>Class screen{cur.dateLabel ? ` · ${cur.dateLabel}` : ''}</span>
             {curPlan && budgetMin > 0 && (
               <span style={{ color: curPlan.skipped ? '#7A1F1F' : (curPlan.atFloor ? '#B85838' : '#5A6E3D') }}>
                 {curPlan.skipped ? '· planned skip' : `· planned ${curPlan.allocatedMin} min${curPlan.atFloor ? ' (floor)' : ''}`}
               </span>
             )}
+            <button type="button" onClick={() => setShowMirror((s) => !s)} aria-expanded={showMirror}
+              style={{ cursor: 'pointer', fontFamily: '"JetBrains Mono", monospace', textTransform: 'uppercase', letterSpacing: '0.06em', fontSize: '0.625rem', padding: '4px 10px', minHeight: 28, border: '1px solid #CFC9BD', background: showMirror ? '#1A1815' : '#fff', color: showMirror ? '#fff' : '#1A1815' }}>
+              {showMirror ? 'Hide mirror' : 'Show what the room sees'}
+            </button>
           </div>
-          <h2 style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, fontSize: 'clamp(22px, 3vw, 32px)', margin: '0 0 10px', letterSpacing: '-0.01em' }}>{a.title}</h2>
-          {a.lead && <p style={{ fontSize: 17, lineHeight: 1.5, margin: '0 0 10px' }}>{a.lead}</p>}
-          {a.detail && <p style={{ fontSize: 14, lineHeight: 1.5, color: '#5A5751', margin: '0 0 10px' }}><strong style={{ color: '#1A1815' }}>{a.detailLabel || 'In the app'}:</strong> {a.detail}</p>}
-          {a.anchorRef && <p style={{ fontSize: 14, lineHeight: 1.5, color: '#5A6E3D', margin: 0 }}><strong>{a.anchorRef}{a.anchorTheme ? ' —' : ''}</strong> {a.anchorTheme || ''}</p>}
+          {/* the real audience slide, miniaturized — a faithful mirror of the projector */}
+          {showMirror && (
+            // overflowY auto, not hidden: while the reader follows along it
+            // scrolls the spoken line into view, and a slide taller than 16:9
+            // used to be clipped with no way to reach the rest.
+            <div style={{ position: 'relative', background: '#14110E', borderRadius: 4, overflowX: 'hidden', overflowY: 'auto', width: '100%', aspectRatio: '16 / 9', marginBottom: 14 }}>
+              {/* height auto (was a fixed 200%) so the scrollable extent follows
+                  the real content; the 0.5 scale halves it back to the visual
+                  size, so the box still shows the slide at true 16:9 proportion. */}
+              <div id="presenter-slide" style={{ position: 'absolute', top: 0, left: 0, width: '200%', height: 'auto', transform: 'scale(0.5)', transformOrigin: 'top left', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', padding: 'clamp(24px, 5vw, 72px)', boxSizing: 'border-box', color: '#FAF8F4', fontFamily: '"Fraunces", Georgia, serif' }}>
+                <AudienceSlide slide={previewSlide} />
+              </div>
+            </div>
+          )}
+          <div style={{ fontSize: '0.625rem', letterSpacing: '0.25em', textTransform: 'uppercase', color: '#5A6E3D', marginBottom: 6, fontFamily: '"JetBrains Mono", monospace' }}>Your script — say it to the room</div>
+          <h2 style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, fontSize: 'clamp(1.375rem, 3vw, 2rem)', margin: '0 0 10px', letterSpacing: '-0.01em' }}>{a.title}</h2>
+          {liveLead && <p style={{ fontSize: '1.0625rem', lineHeight: 1.5, margin: '0 0 10px' }}>{liveLead}</p>}
+          {a.detail && <p style={{ fontSize: '0.875rem', lineHeight: 1.5, color: '#5A5751', margin: '0 0 10px' }}><strong style={{ color: '#1A1815' }}>{a.detailLabel || 'In the app'}:</strong> {a.detail}</p>}
+          {a.anchorRef && <p style={{ fontSize: '0.875rem', lineHeight: 1.5, color: '#5A6E3D', margin: 0 }}><strong>{a.anchorRef}{a.anchorTheme ? ' —' : ''}</strong> {a.anchorTheme || ''}</p>}
         </div>
 
         {/* the session's reflowable run-of-show (rescales with the time budget) */}
@@ -593,36 +1117,80 @@ export default function Presenter({
 
         {/* presenter-only notes */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, margin: '20px 0 12px' }}>
-          <h3 style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, fontSize: 18, margin: 0 }}>Your notes <span style={{ fontSize: 12, color: '#5A5751', fontWeight: 400 }}>(only you see these)</span></h3>
-          <button type="button" onClick={() => setShowNotes((s) => !s)} style={btn.ghost}>{showNotes ? 'Hide notes' : 'Show notes'}</button>
+          <h3 style={{ fontFamily: '"Fraunces", serif', fontWeight: 600, fontSize: '1.125rem', margin: 0 }}>Your notes <span style={{ fontSize: '0.75rem', color: '#5A5751', fontWeight: 400 }}>(only you see these)</span></h3>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+            {/* HOW the notes sit — the speaker's choice (Darrell 2026-09-13:
+                "long scroll or per section depending on the choice the user
+                makes"). Routing the whole lesson into the deck made these
+                panels long on purpose; a speaker mid-sermon should not have to
+                scroll past four points to reach the one he is teaching. */}
+            {showNotes && hasNotes && (
+              <div role="radiogroup" aria-label="Notes layout" style={{ display: 'flex', gap: 6 }}>
+                {NOTE_LAYOUTS.map((l) => {
+                  const on = noteLayout === l.id;
+                  return (
+                    <button key={l.id} type="button" role="radio" aria-checked={on} onClick={() => chooseNoteLayout(l.id)} title={l.hint}
+                      style={{
+                        cursor: 'pointer', fontFamily: '"JetBrains Mono", monospace', textTransform: 'uppercase',
+                        letterSpacing: '0.06em', fontSize: '0.6875rem', minHeight: 36, padding: '6px 10px',
+                        border: `1px solid ${on ? '#5A6E3D' : '#CFC9BD'}`,
+                        background: on ? '#5A6E3D' : '#fff', color: on ? '#fff' : '#1A1815',
+                      }}>{l.label}</button>
+                  );
+                })}
+              </div>
+            )}
+            <button type="button" onClick={() => setShowNotes((s) => !s)} style={btn.ghost}>{showNotes ? 'Hide notes' : 'Show notes'}</button>
+          </div>
         </div>
 
         {showNotes && (
           <>
             {!hasNotes && (
               <div style={{ ...card, background: '#FBF3EE', borderColor: '#E7C9BC' }}>
-                <p style={{ margin: 0, fontSize: 14, color: '#7A1F1F', lineHeight: 1.5 }}>
+                <p style={{ margin: 0, fontSize: '0.875rem', color: '#7A1F1F', lineHeight: 1.5 }}>
                   No presenter notes for this one — present from the title, the idea, and the anchor on the screen above.
                 </p>
               </div>
             )}
-            {notes.map((n, i) => <NoteSection key={i} note={n} />)}
+            {noteLayout === 'scroll'
+              ? notes.map((n, i) => <NoteSection key={i} note={n} />)
+              : notes.map((n, i) => {
+                const open = openNote === i;
+                return (
+                  <div key={i} style={{ border: '1px solid #E8E4DC', marginBottom: 8, background: '#fff' }}>
+                    <button type="button" aria-expanded={open} onClick={() => setOpenNote(open ? -1 : i)}
+                      style={{
+                        display: 'flex', width: '100%', gap: 10, alignItems: 'center', justifyContent: 'space-between',
+                        cursor: 'pointer', textAlign: 'left', minHeight: 48, padding: '10px 14px',
+                        border: 'none', background: open ? '#F4F1EA' : '#fff', color: '#1A1815',
+                        fontFamily: '"Fraunces", serif', fontWeight: 600, fontSize: '0.9375rem',
+                      }}>
+                      <span>{n.heading || `Note ${i + 1}`}</span>
+                      <span aria-hidden="true" style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '0.75rem', color: '#5A5751' }}>{open ? '\u2212' : '+'}</span>
+                    </button>
+                    {open && <div style={{ padding: '0 4px' }}><NoteSection note={n} /></div>}
+                  </div>
+                );
+              })}
           </>
         )}
 
         {/* next up */}
         {nxt && (
           <div style={{ ...card, background: '#fff', opacity: 0.95 }}>
-            <div style={{ fontSize: 10, letterSpacing: '0.25em', textTransform: 'uppercase', color: '#5A5751', marginBottom: 6, fontFamily: '"JetBrains Mono", monospace' }}>Up next · {nxt.indexLabel}</div>
-            <strong style={{ fontFamily: '"Fraunces", serif', fontSize: 16 }}>{nxt.audience?.title}</strong>
-            {nxt.audience?.lead && <p style={{ fontSize: 13, color: '#5A5751', margin: '6px 0 0', lineHeight: 1.5 }}>{nxt.audience.lead}</p>}
+            <div style={{ fontSize: '0.625rem', letterSpacing: '0.25em', textTransform: 'uppercase', color: '#5A5751', marginBottom: 6, fontFamily: '"JetBrains Mono", monospace' }}>Up next · {nxt.indexLabel}</div>
+            <strong style={{ fontFamily: '"Fraunces", serif', fontSize: '1rem' }}>{nxt.audience?.title}</strong>
+            {/* the next slide, pitched to the CURRENT age band too (so the preview
+                matches what the room will see after you advance). */}
+            {resolveAudienceLead(nxt.audience, age) && <p style={{ fontSize: '0.8125rem', color: '#5A5751', margin: '6px 0 0', lineHeight: 1.5 }}>{resolveAudienceLead(nxt.audience, age)}</p>}
           </div>
         )}
 
         {/* big prev / next */}
         <div style={{ display: 'flex', gap: 12, marginTop: 8, marginBottom: 40 }}>
-          <button type="button" onClick={() => go(-1)} disabled={idx === 0} style={{ ...btn.ghost, flex: 1, minHeight: 56, fontSize: 14, opacity: idx === 0 ? 0.4 : 1 }}>← Previous</button>
-          <button type="button" onClick={() => go(1)} disabled={idx === last} style={{ ...btn.base, flex: 2, minHeight: 56, fontSize: 14, opacity: idx === last ? 0.4 : 1 }}>Next →</button>
+          <button type="button" onClick={() => go(-1)} disabled={atStart} style={{ ...btn.ghost, flex: 1, minHeight: 56, fontSize: '0.875rem', opacity: atStart ? 0.4 : 1 }}>← Previous</button>
+          <button type="button" onClick={() => go(1)} disabled={atEnd} style={{ ...btn.base, flex: 2, minHeight: 56, fontSize: '0.875rem', opacity: atEnd ? 0.4 : 1 }}>Next →</button>
         </div>
       </div>
     </div>

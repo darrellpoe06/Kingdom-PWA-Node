@@ -1,0 +1,50 @@
+# =============================================================================
+# YT Zero -- sovereign chosen-channels-only YouTube inbox for the DS1621xs
+# =============================================================================
+# What it is: a self-hosted YouTube inbox that pulls PUBLIC RSS feeds for only
+# the channels we choose to follow into its own SQLite database. No Google
+# account, no API key, no recommendation algorithm -- the exact both-sides/
+# ratings feed posture this platform exists to remove, applied to video.
+# Optional yt-dlp integration downloads videos for offline playback; profiles
+# + locks fit household use (kids' profiles see only followed channels).
+#
+# Source guide: mariushosting 2026-08-02 (verified against the 0.25.x line).
+# Image tags verified on ghcr.io 2026-08-03 (DR-0076: measured, not assumed).
+#
+# PINNED VERSION, not :latest -- a version bump is a one-line PR through the
+# gates (the sovereign lane), never a silent moving target. yt-dlp breaks when
+# YouTube changes; expect periodic bumps (re-review cadence in README.md).
+#
+# Access: LAN/Tailscale only. Do NOT expose publicly. If it is ever fronted by
+# Caddy/HTTPS, WebSocket must be enabled on the proxy route (upstream note).
+#
+# Deploy: the services-sync loop runs infra/nas-ytzero/install.sh from the NAS
+# repo mirror -- merge to main IS the deploy (DR-0236). No Portainer needed.
+#
+# Verify:
+#   curl http://192.168.1.26:3701/   # YT Zero UI
+# =============================================================================
+
+services:
+  ytzero:
+    image: ghcr.io/pelski/ytzero:0.25.3
+    container_name: ytzero
+    environment:
+      - TZ=America/Chicago
+    healthcheck:
+      test: timeout 10s bash -c ':> /dev/tcp/127.0.0.1/3001' || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 90s
+    ports:
+      # Host 3701 -> container 3001. 3701 is unclaimed across infra/ (checked
+      # 2026-08-03; n8n 5678, ntfy 8081, Ollama 11434, scribe 8791, mcp 8795).
+      - "3701:3001"
+    volumes:
+      # SQLite db + downloads land here (downloads/ subfolder appears once the
+      # per-profile "Allow downloads" toggle is switched on in the UI).
+      - /volume1/docker/ytzero:/data:rw
+    # unless-stopped (our NAS convention, boot-persistent) rather than the
+    # guide's on-failure:5 -- a reboot must bring the inbox back by itself.
+    restart: unless-stopped

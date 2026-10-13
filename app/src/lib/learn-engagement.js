@@ -99,3 +99,25 @@ export function aggregateEngagementByAge(items = []) {
   }
   return { byBand, totals: { records: total } };
 }
+
+// Rows for the "Engagement by age" readout — ONE per age band, ALWAYS all of them.
+// "Engagement by age does not explain all levels, leaves out teen" (Darrell 2026-07-19):
+// a band with zero signals must still show (quiet=true → "no signals yet"), never be
+// dropped — an invisible band hides a gap in the pacing data instead of naming it.
+// Honest zeros (DR-0076), not omitted rows. Order follows AGE_BANDS (child → senior).
+export function engagementRowsByAge(agg) {
+  const byBand = (agg && agg.byBand) || {};
+  return AGE_BANDS.map((b) => {
+    const row = byBand[b.id] || { counts: {}, total: 0, score: 0 };
+    const total = row.total || 0;
+    return {
+      id: b.id,
+      label: b.label,
+      range: b.range,
+      total,
+      score: row.score || 0,
+      completed: (row.counts && row.counts['completed']) || 0,
+      quiet: total === 0,
+    };
+  });
+}

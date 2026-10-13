@@ -151,9 +151,18 @@ describe('mergeRemoteWorkspaces (no data loss)', () => {
     expect(merged.find((x) => x.id === 'ws-local-1')).toBeTruthy();
     expect(merged.find((x) => x.id === cloudRow.id)).toBeTruthy();
   });
-  it('drops a synced (UUID) row absent from the cloud list (a real cross-device delete)', () => {
+  it('drops a synced (UUID) row absent from a NON-EMPTY cloud list (a real cross-device delete)', () => {
+    // A real delete is signalled by a non-empty read that no longer lists the row.
     const syncedGone = { id: '11111111-2222-3333-4444-555555555555', title: 'deleted elsewhere' };
-    const merged = mergeRemoteWorkspaces([syncedGone], []);
-    expect(merged).toEqual([]);
+    const stillThere = { id: '99999999-8888-7777-6666-555555555555', title: 'kept' };
+    const merged = mergeRemoteWorkspaces([syncedGone, stillThere], [stillThere]);
+    expect(merged.find((x) => x.id === syncedGone.id)).toBeFalsy();
+    expect(merged.find((x) => x.id === stillThere.id)).toBeTruthy();
+  });
+  it('an EMPTY read keeps synced rows — a failed read is not a mass delete (REV-0139)', () => {
+    // Same empty-read guard that protected the Books tabs: an out-of-space device can
+    // hiccup a read to [] — do NOT blank the workspace list on it.
+    const synced = { id: '11111111-2222-3333-4444-555555555555', title: 'do not blank' };
+    expect(mergeRemoteWorkspaces([synced], [])).toHaveLength(1);
   });
 });

@@ -20,10 +20,29 @@ describe('unionPreservingLocal', () => {
     expect(out.some((i) => i.id === 'inc-1749680000000')).toBe(true);
   });
 
-  it('lets a genuine cross-device deletion propagate (UUID row absent stays dropped)', () => {
-    const local = [{ id: UUID, description: 'deleted elsewhere' }];
-    const out = unionPreservingLocal(local, []);
-    expect(out).toHaveLength(0);
+  it('lets a genuine cross-device deletion propagate (UUID row absent from a NON-EMPTY read stays dropped)', () => {
+    // A real cross-device delete is signalled by a NON-EMPTY read that no longer
+    // contains the row — here the cloud still returns another row, and the deleted
+    // UUID row is correctly dropped.
+    const local = [
+      { id: UUID, description: 'deleted elsewhere' },
+      { id: 'b1b2c3d4-e5f6-7890-abcd-ef1234567890', description: 'still there' },
+    ];
+    const remaining = [{ id: 'b1b2c3d4-e5f6-7890-abcd-ef1234567890', description: 'still there (cloud copy)' }];
+    const out = unionPreservingLocal(local, remaining);
+    expect(out.some((i) => i.id === UUID)).toBe(false);            // the deleted row propagates out
+    expect(out.some((i) => i.id === 'b1b2c3d4-e5f6-7890-abcd-ef1234567890')).toBe(true);
+  });
+
+  it('an EMPTY read against synced local items aborts the merge unchanged (REV-0139 — the blank-Books-tabs incident)', () => {
+    // Post-incident (Darrell 2026-07-19): an out-of-space device hiccuped a cloud
+    // read to [] and the OLD behavior dropped every synced (UUID) row at once —
+    // every Books tab blanked + the app wedged. An empty read is a FAILED read, not
+    // a mass deletion (the rentals path already guards this below). Keep local.
+    const local = [{ id: UUID, description: 'synced, do not blank on an empty read' }];
+    expect(unionPreservingLocal(local, [])).toHaveLength(1);
+    // PROVEN-TO-CATCH: without the `if (!remote.length) return currentLocal` guard,
+    // this drops to 0 — the exact blank-ledger incident.
   });
 
   it('does not duplicate a row already represented remotely', () => {

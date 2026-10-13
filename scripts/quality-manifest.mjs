@@ -95,7 +95,6 @@ function readCiFloor() {
     out.exists = true;
     if (/npm run lint/.test(raw)) out.steps.push('lint (eslint, 0 warnings)');
     if (/vitest run/.test(raw)) out.steps.push('vitest (full suite)');
-    if (/wf36|quality-gatekeeper/i.test(raw)) out.steps.push('wf36 quality-gatekeeper harness');
   } catch { /* exists stays false */ }
   return out;
 }

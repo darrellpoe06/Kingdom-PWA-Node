@@ -27,6 +27,14 @@
 export const PENDING_KEY = 'poe-receipts-pending';
 export const PENDING_CAP = 20;          // pool is a waiting room, not an archive
 export const MATCH_WINDOW_DAYS = 4;     // card settlements trail the paper by days
+// A settled card charge for a tipped service = the printed paper total PLUS the
+// handwritten tip. The paper says $72.60 (balance due); the card settles $86.68.
+// Exact-cent matching (the original DR-0090 rule) therefore NEVER pairs a
+// restaurant receipt to its real charge — the exact defect Darrell hit
+// 2026-07-05 on the very Aspen Tap House receipt this feature was built around.
+// Tip only ADDS, so the tolerance is one-directional (charge >= paper total) and
+// bounded, which keeps false positives low; the match is still human-confirmed.
+export const TIP_TOLERANCE_PCT = 0.30;  // charge may exceed the paper total by up to 30% (tip)
 
 function defaultStorage() {
   try { return typeof window !== 'undefined' && window.localStorage ? window.localStorage : null; }
@@ -88,16 +96,59 @@ function daysBetween(aIso, bIso) {
   return Math.abs(a - b) / 86400000;
 }
 
-// Candidate transactions for a pending receipt: same absolute amount (to the
-// cent) when the receipt carries one, within the settlement window, and not
-// already carrying a receipt. Sorted nearest-date-first, capped at 5.
-export function suggestMatches(receipt, transactions, { windowDays = MATCH_WINDOW_DAYS } = {}) {
-  const rAmt = receipt && receipt.amount != null ? Math.round(Math.abs(receipt.amount) * 100) : null;
+// Absolute amount in whole cents (sign-agnostic — a charge is negative, a
+// receipt total positive; we compare magnitudes).
+function cents(n) { return Math.round(Math.abs(Number(n) || 0) * 100); }
+
+// How well a receipt's merchant name overlaps a transaction description — the
+// count of receipt-merchant words (>=3 chars, so "the"/"to" don't count) that
+// appear in the bank description. Pure, case-insensitive. Used only to RANK
+// ties; it never widens or narrows the candidate set, so it cannot mis-pair.
+export function merchantOverlap(receipt, txn) {
+  const m = ((receipt && receipt.merchant) || '').toLowerCase();
+  const d = ((txn && txn.description) || '').toLowerCase();
+  if (!m || !d) return 0;
+  const words = m.split(/[^a-z0-9]+/).filter((w) => w.length >= 3);
+  return words.filter((w) => d.includes(w)).length;
+}
+
+// Why a transaction is (or isn't) a candidate for a receipt — pure, exported
+// for the surface (which labels each suggestion so an INEXACT pairing is
+// flagged for the human to confirm) and for the tests:
+//   'exact' — magnitudes equal to the cent
+//   'tip'   — the charge is the paper total plus up to TIP_TOLERANCE_PCT
+//   'date'  — the receipt carries no total; paired on the settlement window only
+//   null    — not a candidate
+export function matchKind(receipt, txn, { tolerance = TIP_TOLERANCE_PCT } = {}) {
+  if (!receipt || !txn) return null;
+  if (receipt.amount == null) return 'date';
+  const rAmt = cents(receipt.amount);
+  const tAmt = cents(txn.amount);
+  if (tAmt === rAmt) return 'exact';
+  if (tAmt > rAmt && tAmt <= Math.round(rAmt * (1 + tolerance))) return 'tip';
+  return null;
+}
+
+const KIND_RANK = { exact: 0, tip: 1, date: 2 };
+
+// Candidate transactions for a pending receipt: within the settlement window,
+// not already carrying a receipt, and a matchKind other than null (exact, or a
+// bounded tip-inclusive charge, or — when the receipt has no total — the date
+// window alone). Ranked best-match-first: match quality, then merchant-name
+// overlap, then nearest settlement date. Capped at 5.
+export function suggestMatches(receipt, transactions, { windowDays = MATCH_WINDOW_DAYS, tolerance = TIP_TOLERANCE_PCT } = {}) {
   const when = receipt?.capturedAt;
   return (transactions || [])
     .filter((t) => t && !t.receipt && t.date)
     .filter((t) => daysBetween(t.date, when) <= windowDays)
-    .filter((t) => rAmt === null || Math.round(Math.abs(Number(t.amount) || 0) * 100) === rAmt)
-    .sort((a, b) => daysBetween(a.date, when) - daysBetween(b.date, when))
-    .slice(0, 5);
+    .map((t) => ({ t, kind: matchKind(receipt, t, { tolerance }) }))
+    .filter((x) => x.kind !== null)
+    .sort((a, b) => {
+      if (KIND_RANK[a.kind] !== KIND_RANK[b.kind]) return KIND_RANK[a.kind] - KIND_RANK[b.kind];
+      const mo = merchantOverlap(receipt, b.t) - merchantOverlap(receipt, a.t);
+      if (mo !== 0) return mo;
+      return daysBetween(a.t.date, when) - daysBetween(b.t.date, when);
+    })
+    .slice(0, 5)
+    .map((x) => x.t);
 }

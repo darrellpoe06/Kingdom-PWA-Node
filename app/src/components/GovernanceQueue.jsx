@@ -18,10 +18,12 @@
 // the call site).
 import React, { useEffect, useState } from 'react';
 import { DECISION_KIND } from '../lib/decisions.js';
+import { CHAIN_SLOTS, CHAIN_LABELS, CHAIN_QUESTIONS, chainCoverage } from '../lib/decision-chain.js';
 import supabase from '../lib/supabase.js';
 import ReactionBar from './ReactionBar.jsx';
 import HelpButton from './HelpButton.jsx';
 import { reactionsFor } from '../lib/reactions.js';
+import ReReviewTimeline from './ReReviewTimeline.jsx';
 import { subscribeReactions, toggleReaction, fetchReactors } from '../lib/reactions-sync.js';
 
 // Guarded so tests / SSR that don't run the vite define still render.
@@ -40,6 +42,70 @@ export function normalizeGovernanceQueue(raw) {
   return { ok: q.ok === true, openCount: items.length, items };
 }
 
+// Pure shape-normalizer for the review findings the same file carries under
+// "## REVIEW FINDINGS" (lib/governance-queue-parse.js). Findings are NOT
+// decisions: they render in their own section so the queue never tells the
+// Governor a finding is waiting on him (DR-0239 dimension 3, surface-says-truth).
+export function normalizeReviewFindings(raw) {
+  const q = raw && typeof raw === 'object' ? raw : {};
+  const reviews = Array.isArray(q.reviews) ? q.reviews : [];
+  return reviews
+    .filter((g) => g && g.title && Array.isArray(g.findings))
+    .map((g) => ({
+      title: String(g.title),
+      source: String(g.source || ''),
+      findings: g.findings.filter((f) => f && f.id && f.finding).map((f) => ({
+        id: String(f.id),
+        finding: String(f.finding),
+        evidence: String(f.evidence || ''),
+        severity: ['high', 'medium', 'low'].includes(f.severity) ? f.severity : '',
+        owner: String(f.owner || ''),
+        closeBy: String(f.closeBy || ''),
+      })),
+    }))
+    .filter((g) => g.findings.length);
+}
+
+// Severity is a working priority, not a verdict; no true red (DR-0099).
+const severityColor = (s) => (s === 'high' ? '#B85838' : s === 'medium' ? '#8B6F47' : '#5A6E3D');
+
+function ReviewFindings({ reviews }) {
+  if (!reviews.length) return null;
+  return (
+    <div className="space-y-3" data-testid="review-findings">
+      <section className="bg-white border-2 border-[#1A1815] p-4 sm:p-5">
+        <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#2A5A8E] font-semibold">Governance · Review findings</div>
+        <p className="text-sm mt-1 text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
+          What a governance review found, each with its evidence, who carries it and when it closes. These are not waiting on you; the decisions that are sit in the queue above.
+        </p>
+      </section>
+      {reviews.map((g) => (
+        <section key={g.title} className="bg-white border border-[#E8E4DC] p-4">
+          <h4 className="text-base" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{g.title}</h4>
+          {g.source && <p className="text-[0.625rem] text-[#5A5751] mt-0.5 break-all" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{g.source}</p>}
+          <ol className="mt-2 space-y-2">
+            {g.findings.map((f) => (
+              <li key={f.id} data-testid="review-finding" className="border-l-4 pl-3 py-1" style={{ borderLeftColor: severityColor(f.severity) }}>
+                <div className="flex items-baseline gap-2 flex-wrap">
+                  <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{f.id}</span>
+                  {f.severity && <span className="text-[0.625rem] uppercase tracking-wider font-semibold" style={{ color: severityColor(f.severity) }}>{f.severity}</span>}
+                </div>
+                <p className="text-sm text-[#1A1815] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>{f.finding}</p>
+                {f.evidence && <p className="text-xs text-[#5A5751] mt-0.5 break-words" style={{ fontFamily: '"Fraunces", serif' }}><span className="uppercase tracking-wider text-[0.625rem]">Evidence · </span>{f.evidence}</p>}
+                <p className="text-xs text-[#5A6E3D] mt-0.5" style={{ fontFamily: '"Fraunces", serif' }}>
+                  {f.owner && <><span className="uppercase tracking-wider text-[0.625rem]">Owner · </span>{f.owner}</>}
+                  {f.owner && f.closeBy && ' · '}
+                  {f.closeBy && <><span className="uppercase tracking-wider text-[0.625rem]">Close · </span>{f.closeBy}</>}
+                </p>
+              </li>
+            ))}
+          </ol>
+        </section>
+      ))}
+    </div>
+  );
+}
+
 // Pure shape-normalizer for the decided ledger (exported for tests).
 export function normalizeDecisionLedger(raw) {
   const q = raw && typeof raw === 'object' ? raw : {};
@@ -56,9 +122,63 @@ export function normalizeDecisionLedger(raw) {
         rationale: it.rationale || '',
         owner: it.owner || '',
         source: it.source || '',
+        // Concern → Evidence → Impact → Decision → Outcome (DR-0588): read at
+        // build time from the record's own sections; absent = not recorded.
+        chain: normalizeChain(it.chain),
       }))
     : [];
   return { ok: q.ok === true, count: items.length, items };
+}
+
+function normalizeChain(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+  const slot = (v) => (v && typeof v === 'object' ? { heading: String(v.heading || ''), text: typeof v.text === 'string' ? v.text : '' } : null);
+  const out = {};
+  for (const k of CHAIN_SLOTS) out[k] = slot(raw[k]);
+  out.missing = CHAIN_SLOTS.filter((k) => !out[k]);
+  out.complete = out.missing.length === 0;
+  out.reReview = typeof raw.reReview === 'string' ? raw.reReview : '';
+  return out;
+}
+
+// How a steward reads one record's chain: five rows, in order, each either
+// the record's own words under its own heading or the plain fact that the
+// record never wrote that step down. Nothing is inferred to fill a row.
+function DecisionChain({ chain }) {
+  if (!chain) return null;
+  return (
+    <div data-testid="decision-chain" className="mt-2 border-t border-[#E8E4DC] pt-2">
+      <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A5751] font-semibold">
+        Concern → Evidence → Impact → Decision → Outcome
+        {chain.complete
+          ? <span className="ml-2 text-[#5A6E3D]">whole chain recorded</span>
+          : <span className="ml-2 text-[#B85838]">{chain.missing.length} of 5 not recorded</span>}
+      </div>
+      <ol className="mt-1 space-y-1.5">
+        {CHAIN_SLOTS.map((k) => {
+          const s = chain[k];
+          return (
+            <li key={k} className="text-xs" style={{ fontFamily: '"Fraunces", serif' }}>
+              <span className={`uppercase tracking-wider text-[0.625rem] font-semibold ${s ? 'text-[#5A6E3D]' : 'text-[#B85838]'}`}>{CHAIN_LABELS[k]}</span>
+              <span className="text-[0.625rem] text-[#5A5751] ml-1">· {CHAIN_QUESTIONS[k]}</span>
+              {s ? (
+                <p className="text-[#1A1815] mt-0.5 whitespace-pre-wrap">
+                  {s.text
+                    ? s.text
+                    : <em className="text-[#5A5751]">recorded under “{s.heading}” — open the record for the words</em>}
+                </p>
+              ) : (
+                <p className="text-[#B85838] italic mt-0.5">not recorded in this decision</p>
+              )}
+            </li>
+          );
+        })}
+      </ol>
+      {chain.reReview && (
+        <p className="text-[0.625rem] text-[#5A5751] mt-1" style={{ fontFamily: '"JetBrains Mono", monospace' }}>re-review · {chain.reReview}</p>
+      )}
+    </div>
+  );
 }
 
 const tierColor = (t) => (t === 'C' ? '#B85838' : t === 'B' ? '#8B6F47' : '#5A6E3D');
@@ -100,7 +220,7 @@ export default function GovernanceQueue({ appDecisions = [], familyInstanceId = 
       {/* ---- OPEN: decisions waiting on the governor ---- */}
       <div className="space-y-4">
         <section className="bg-white border-2 border-[#1A1815] p-4 sm:p-5">
-          <div className="text-[10px] uppercase tracking-[0.3em] text-[#B85838] font-semibold">⚖ Governance · Decisions waiting on you</div>
+          <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">⚖ Governance · Decisions waiting on you</div>
           <p className="text-sm mt-1 text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
             The work that needs your call, batched so you decide a stack at once instead of one ping at a time. This is the live queue from the repo, rendered here — the AI keeps building everything that doesn&apos;t need you; these are the {openCount} that do.
           </p>
@@ -117,22 +237,25 @@ export default function GovernanceQueue({ appDecisions = [], familyInstanceId = 
             {items.map((it) => (
               <div key={it.id} className="bg-white border-l-4 border border-[#E8E4DC] p-4" style={{ borderLeftColor: tierColor(it.tier) }}>
                 <div className="flex items-baseline justify-between gap-2 flex-wrap">
-                  <span className="text-[10px] uppercase tracking-wider text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{it.id}</span>
-                  {it.tier && <span className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: tierColor(it.tier) }}>Tier {it.tier}</span>}
+                  <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{it.id}</span>
+                  {it.tier && <span className="text-[0.625rem] uppercase tracking-wider font-semibold" style={{ color: tierColor(it.tier) }}>Tier {it.tier}</span>}
                 </div>
                 <h4 className="text-base mt-0.5" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{it.title}</h4>
-                {it.unblocks && <p className="text-xs text-[#1A1815] mt-1" style={{ fontFamily: '"Fraunces", serif' }}><span className="uppercase tracking-wider text-[#5A5751] text-[10px]">Unblocks · </span>{it.unblocks}</p>}
-                {it.recommendation && <p className="text-xs text-[#5A6E3D] mt-1" style={{ fontFamily: '"Fraunces", serif' }}><span className="uppercase tracking-wider text-[10px]">My rec · </span>{it.recommendation}</p>}
-                {it.track && <p className="text-[10px] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>Track · {it.track}</p>}
+                {it.unblocks && <p className="text-xs text-[#1A1815] mt-1" style={{ fontFamily: '"Fraunces", serif' }}><span className="uppercase tracking-wider text-[#5A5751] text-[0.625rem]">Unblocks · </span>{it.unblocks}</p>}
+                {it.recommendation && <p className="text-xs text-[#5A6E3D] mt-1" style={{ fontFamily: '"Fraunces", serif' }}><span className="uppercase tracking-wider text-[0.625rem]">My rec · </span>{it.recommendation}</p>}
+                {it.track && <p className="text-[0.625rem] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>Track · {it.track}</p>}
               </div>
             ))}
           </div>
         )}
 
-        <p className="text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
+        <p className="text-[0.625rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
           Bright lines (money, credentials, clinical data, the family&apos;s voice) are never auto-decided — they always wait here for you.
         </p>
       </div>
+
+      {/* ---- REVIEW FINDINGS: what a governance review found (not decisions) ---- */}
+      <ReviewFindings reviews={normalizeReviewFindings(QUEUE)} />
 
       {/* ---- RECORDED BY THE APP: live decisions the running system logged ---- */}
       <div className="space-y-3">
@@ -174,6 +297,7 @@ export default function GovernanceQueue({ appDecisions = [], familyInstanceId = 
                   <p className="text-[0.625rem] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
                     Source · {d.source}{d.owner ? ` · ${d.owner}` : ''}
                   </p>
+                  {d.chain && <DecisionChain chain={normalizeChain(d.chain)} />}
                   {/* React to a family/financial decision — encouragement + a
                       teaching moment (a kid "crowning" mom's stewardship call). */}
                   <div className="mt-2">
@@ -195,11 +319,30 @@ export default function GovernanceQueue({ appDecisions = [], familyInstanceId = 
       {/* ---- DECIDED: the Decision Record ledger, rendered natively ---- */}
       <div className="space-y-3">
         <section className="bg-white border-2 border-[#1A1815] p-4 sm:p-5">
-          <div className="text-[10px] uppercase tracking-[0.3em] text-[#5A6E3D] font-semibold">📜 Governance · Decided — the ledger</div>
+          <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#5A6E3D] font-semibold">📜 Governance · Decided — the ledger</div>
           <p className="text-sm mt-1 text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
             Every decision that has landed, in full — number, title, the decision, the why, and the date. {ledger.count > 0 ? `${ledger.count} records` : 'No records'}, read straight from the repo at build time and rendered here. Nothing to open elsewhere.
           </p>
+          {ledger.count > 0 && (() => {
+            // Only a record with sections can be read as a chain; the index-only
+            // rows (DR-0017..0049, a title and a date) are counted separately
+            // and never as "missing every step".
+            const withChain = ledger.items.filter((it) => it.chain);
+            const indexOnly = ledger.items.length - withChain.length;
+            const cov = chainCoverage(withChain);
+            const worst = CHAIN_SLOTS.map((k) => [k, cov.missingBySlot[k]]).sort((a, b) => b[1] - a[1])[0];
+            return (
+              <p data-testid="chain-coverage" className="text-xs mt-2 text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
+                <span className="uppercase tracking-wider text-[0.625rem] font-semibold text-[#5A6E3D]">Traceability · </span>
+                Each record opens as Concern → Evidence → Impact → Decision → Outcome, read from its own sections. {cov.complete} of the {cov.total} records with sections carry all five; {cov.incomplete} are missing at least one step, most often <em>{CHAIN_LABELS[worst[0]]}</em> ({worst[1]}).{indexOnly > 0 ? ` ${indexOnly} early rows live only in the index (a title and a date) and are not read as a chain.` : ''} A missing step is shown as missing, never filled in. Every record from DR-0588 on must carry all five.
+              </p>
+            );
+          })()}
         </section>
+
+        {/* THE TIMELINE (DR-0832): when each decision comes back, read from the
+            same ledger; passed dates first and named as passed. */}
+        {ledger.items.length > 0 && <ReReviewTimeline items={ledger.items} />}
 
         {ledger.items.length === 0 ? (
           <div className="bg-white border border-[#E8E4DC] p-6 text-center">
@@ -213,15 +356,15 @@ export default function GovernanceQueue({ appDecisions = [], familyInstanceId = 
               <details key={dr.id} className="bg-white border-l-4 border border-[#E8E4DC] group" style={{ borderLeftColor: tierColor(dr.tier) }}>
                 <summary className="p-4 cursor-pointer list-none focus:outline focus:outline-2 focus:outline-[#B85838]">
                   <div className="flex items-baseline justify-between gap-2 flex-wrap">
-                    <span className="text-[10px] uppercase tracking-wider text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{dr.id}</span>
+                    <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{dr.id}</span>
                     <span className="flex items-center gap-2 flex-wrap">
-                      {dr.tier && <span className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: tierColor(dr.tier) }}>Tier {dr.tier}</span>}
+                      {dr.tier && <span className="text-[0.625rem] uppercase tracking-wider font-semibold" style={{ color: tierColor(dr.tier) }}>Tier {dr.tier}</span>}
                       {dr.status && (
-                        <span className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: statusColor(dr.status) }}>
+                        <span className="text-[0.625rem] uppercase tracking-wider font-semibold" style={{ color: statusColor(dr.status) }}>
                           {dr.status}{dr.supersededBy ? ` → ${dr.supersededBy}` : ''}
                         </span>
                       )}
-                      {dr.date && <span className="text-[10px] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{dr.date}</span>}
+                      {dr.date && <span className="text-[0.625rem] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{dr.date}</span>}
                     </span>
                   </div>
                   <h4 className="text-base mt-0.5" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{dr.title || dr.id}</h4>
@@ -229,20 +372,20 @@ export default function GovernanceQueue({ appDecisions = [], familyInstanceId = 
                 <div className="px-4 pb-4 -mt-1 space-y-3">
                   {dr.decision && (
                     <div>
-                      <div className="text-[10px] uppercase tracking-wider text-[#5A6E3D] font-semibold">Decision</div>
+                      <div className="text-[0.625rem] uppercase tracking-wider text-[#5A6E3D] font-semibold">Decision</div>
                       <p className="text-xs text-[#1A1815] mt-0.5 whitespace-pre-wrap" style={{ fontFamily: '"Fraunces", serif' }}>{dr.decision}</p>
                     </div>
                   )}
                   {dr.rationale && (
                     <div>
-                      <div className="text-[10px] uppercase tracking-wider text-[#5A5751] font-semibold">Why</div>
+                      <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold">Why</div>
                       <p className="text-xs text-[#5A5751] mt-0.5 whitespace-pre-wrap" style={{ fontFamily: '"Fraunces", serif' }}>{dr.rationale}</p>
                     </div>
                   )}
                   {(dr.owner || dr.source) && (
                     <div className="flex flex-col gap-0.5">
-                      {dr.owner && <p className="text-[10px] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}><span className="uppercase tracking-wider">Owner · </span>{dr.owner}</p>}
-                      {dr.source && <p className="text-[10px] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>Source · {dr.source}</p>}
+                      {dr.owner && <p className="text-[0.625rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}><span className="uppercase tracking-wider">Owner · </span>{dr.owner}</p>}
+                      {dr.source && <p className="text-[0.625rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>Source · {dr.source}</p>}
                     </div>
                   )}
                   {!dr.decision && !dr.rationale && !dr.owner && !dr.source && (
@@ -250,6 +393,7 @@ export default function GovernanceQueue({ appDecisions = [], familyInstanceId = 
                       Recorded in the ledger; see the title above for the decision.
                     </p>
                   )}
+                  <DecisionChain chain={dr.chain} />
                 </div>
               </details>
             ))}

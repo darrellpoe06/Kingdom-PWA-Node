@@ -18,6 +18,8 @@
 import React, { useState, useEffect } from 'react';
 import Modal from './Modal.jsx';
 import { RoadmapOverview } from './HelpButton.jsx';
+import { isChurchDoorContext } from '../lib/church-own-door.js';
+import { motionBehavior } from '../lib/gentle-motion.js';
 
 // Bumping this key re-offers the tour after a major experience change.
 const SEEN_KEY = 'poetech.help.tour.v1';
@@ -36,9 +38,21 @@ export default function HelpWalkthrough({ setView, setChurchView, setBooksView }
   const [showCard, setShowCard] = useState(false);
   const [openTour, setOpenTour] = useState(false);
 
+  // A church-door launch (the installed Love Corner app, or /lovecorner/…)
+  // NEVER gets the PoeTech quick tour — it introduced "PoeTech: money,
+  // business, CRM, inventory" inside the church's own app (Darrell's
+  // 2026-08-01 screenshot), surfaces a congregation member doesn't even have.
+  // The church door's own welcome is a separate COLG-facing content build
+  // (DR-0261 follow-up, re-review: 2026-08-07); until it lands, no tour is
+  // more honest than the wrong tour.
+  const churchDoor = isChurchDoorContext();
+
   useEffect(() => {
+    if (churchDoor) return;
     if (!hasSeen()) setShowCard(true);
-  }, []);
+  }, [churchDoor]);
+
+  if (churchDoor) return null;
 
   function dismissForNow() {
     // "Maybe later" — keep it out of the way this session but offer again next
@@ -62,7 +76,7 @@ export default function HelpWalkthrough({ setView, setChurchView, setBooksView }
     if (to.view && setView) setView(to.view);
     if (to.churchView && setChurchView) setChurchView(to.churchView);
     if (to.booksView && setBooksView) setBooksView(to.booksView);
-    try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) { /* ignore */ }
+    try { window.scrollTo({ top: 0, behavior: motionBehavior() }); } catch (e) { /* ignore */ }
     setOpenTour(false);
   }
 
@@ -72,7 +86,7 @@ export default function HelpWalkthrough({ setView, setChurchView, setBooksView }
         <div
           role="region"
           aria-label="Welcome — take a quick tour"
-          className="fixed inset-x-0 bottom-0 z-[110] flex justify-center px-3 pb-3 print:hidden pointer-events-none"
+          className="ts-chrome-region fixed inset-x-0 bottom-0 z-[110] flex justify-center px-3 pb-3 print:hidden pointer-events-none"
         >
           <div className="pointer-events-auto w-full max-w-md bg-white border border-[#1A1815] shadow-2xl p-4">
             <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-1">New here?</div>

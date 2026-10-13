@@ -26,8 +26,8 @@
 import { createClient } from '@supabase/supabase-js';
 import { resolveAuthSession, isPossibleLogout } from './auth-session-guard.js';
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+export const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+export const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
   // Fail loud during dev so a missing .env.local is caught immediately,
@@ -43,7 +43,16 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     // Persist the session so signed-in users stay signed in across reloads
     // and across PWA app launches. Family + church users sign in once.
     persistSession: true,
-    storage: window.localStorage,
+    // Guarded like every other window read in this file (there are four more
+    // below). Reaching for window.localStorage at MODULE EVALUATION means this
+    // module cannot be imported anywhere window is absent — a node-environment
+    // test, an SSR render, or, the way it actually bit: a lazily-imported
+    // component whose import promise resolved AFTER vitest tore the jsdom
+    // environment down, which failed the whole CI job with 13,754 tests green
+    // and nothing red. Undefined here is not a downgrade: supabase-js falls
+    // back to its own in-memory store, which is the right thing in every
+    // context that has no browser to persist to.
+    storage: (typeof window !== 'undefined' && window.localStorage) ? window.localStorage : undefined,
 
     // Refresh the access token automatically in the background so a phone
     // left signed-in for a week still has a valid token when picked up.
@@ -66,6 +75,35 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     // (the token returns as a fragment on the device where the user
     // clicked the Google button).
     flowType: 'implicit',
+
+    // A FROZEN TAB MUST NOT COST EVERY READ FIVE SECONDS (2026-09-03).
+    //
+    // Every PostgREST call routes through _getAccessToken() -> getSession(),
+    // which serialises on a cross-tab Web Lock. That lock is right to exist:
+    // two tabs refreshing one session can rotate the refresh token out from
+    // under each other. But Chrome FREEZES background tabs, and this family
+    // runs ~35 across three doors on this one origin — a frozen holder never
+    // runs the code that would release it.
+    //
+    // auth-js 2.106 already recovers: on its own acquire timeout it STEALS the
+    // orphaned lock (`{ steal: true }`, supabase/supabase#42505), which frees
+    // it for everyone, so the cost is paid once rather than per call. The
+    // defect is only the DEFAULT WINDOW — 5000ms, which does not fit:
+    // bounded-read.js gives a whole read 6000ms, so a contended read spends
+    // nearly all of its budget waiting and reports 'not-reached'. That is
+    // exactly what Darrell's Properties card showed while the NAS was healthy,
+    // PostgREST was serving, the database was answering, and the same URL
+    // loaded perfectly in an incognito window with no sibling tab.
+    //
+    // 1200ms is generous for a real refresh round trip to the NAS (~100-300ms
+    // measured), so live-tab contention still serialises exactly as before,
+    // and it leaves 4.8s of the read budget for the read itself.
+    //
+    // MUST stay > 0 and well under READ_TIMEOUT_MS: 0 means "fail immediately
+    // on any contention", a negative value means "wait forever" — the
+    // permanent deadlock the vendor's own docs warn about. Gated by
+    // auth-lock-window.test.js against bounded-read's real constant.
+    lockAcquireTimeout: 1200,
   },
 });
 
@@ -85,7 +123,7 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
  * Caller is responsible for the email format (basic check) and for
  * surfacing the returned error to the user.
  */
-export async function sendRoyaltyLink(email) {
+export async function sendRoyaltyLink(email, { name } = {}) {
   const trimmed = (email || '').trim();
   if (!trimmed || !trimmed.includes('@')) {
     return { error: { message: 'Please enter a valid email address.' } };
@@ -97,9 +135,15 @@ export async function sendRoyaltyLink(email) {
   // on the Synology PWA URL, localhost dev, and any future church host.
   const redirectTo = window.location.origin + window.location.pathname;
 
+  // A first-time signer-up via the link still gets their NAME on the account
+  // (user metadata) — the link-first door collects it up front (DR: sign-in
+  // your way), so the passwordless path is never a nameless profile.
+  const options = { emailRedirectTo: redirectTo };
+  const cleanName = (name || '').trim();
+  if (cleanName) options.data = { full_name: cleanName };
   const { data, error } = await supabase.auth.signInWithOtp({
     email: trimmed,
-    options: { emailRedirectTo: redirectTo },
+    options,
   });
   return { data, error };
 }
@@ -117,10 +161,36 @@ export async function sendRoyaltyLink(email) {
 // password itself is the credential; RLS + roles are the real gate.
 // -----------------------------------------------------------------------------
 
+// SIGNING UP sets a new credential, so it may demand a strong one.
 export function validateCredentials(email, password) {
   const e = (email || '').trim();
   if (!e || !e.includes('@')) return { error: { message: 'Please enter a valid email address.' } };
   if (!password || password.length < 8) return { error: { message: 'Password must be at least 8 characters.' } };
+  return { email: e };
+}
+
+// SIGNING IN CHECKS AN EXISTING CREDENTIAL, AND MAY NOT SECOND-GUESS IT
+// (2026-09-14, reported by Christina: "I can't get into the app on my Mac book").
+//
+// Her screen said "Password must be at least 8 characters." over a password she
+// was typing correctly. Both sign-in and sign-up ran validateCredentials, so the
+// SIGNUP minimum was being applied to a sign-in -- and her account's password is
+// six characters, set when the minimum was lower (the phone+PIN path documents
+// that same history below: Supabase's own default minimum is 6). The check ran
+// BEFORE the network call, so the server was never asked. She was not failing to
+// authenticate; she was being refused the chance to try, by her own app,
+// permanently, with a message that read as her mistake.
+//
+// A client-side rule about credential STRENGTH belongs where a credential is
+// CREATED. On sign-in the only thing the client can honestly judge is whether
+// there is something to send; whether it is right is the server's answer to give.
+// So this validates the address shape and a non-empty secret, and nothing else.
+//
+// Raising a password minimum must never lock out the accounts that predate it.
+export function validateSignIn(email, password) {
+  const e = (email || '').trim();
+  if (!e || !e.includes('@')) return { error: { message: 'Please enter a valid email address.' } };
+  if (!password) return { error: { message: 'Please enter your password.' } };
   return { email: e };
 }
 
@@ -139,11 +209,179 @@ export async function signUpWithPassword(email, password, displayName) {
   });
 }
 
-/** Sign in an existing account with email + password. Returns { data, error }. */
+/**
+ * Sign in an existing account with email + password. Returns { data, error }.
+ * Uses validateSignIn, NOT validateCredentials: the signup minimum must never
+ * decide whether an existing password is allowed to be tried (see above).
+ */
 export async function signInWithPassword(email, password) {
-  const v = validateCredentials(email, password);
+  const v = validateSignIn(email, password);
   if (v.error) return v;
   return supabase.auth.signInWithPassword({ email: v.email, password });
+}
+
+// -----------------------------------------------------------------------------
+// Phone + PIN sign-in (Darrell 2026-07-11: "can we allow a pin to begin instead
+// of an email ... everyone doesn't have an email so cellphone and pin and etc").
+//
+// COMMUNITY-FIRST (commitment: the elderly, tech-novice COLG member is the first
+// user): many people have a phone but no email. Supabase Auth requires SOME
+// identifier, so we make the PHONE the identity and the PIN the credential —
+// WITHOUT paying for SMS (Darrell's governed choice 2026-07-11: collected, not
+// text-verified). The mechanism REUSES the existing email+password path via a
+// SYNTHETIC, never-delivered identifier `<digits>@phone.poetech.us`; the real
+// phone is stored in user_metadata so it is displayable + recoverable. Email is
+// collected LATER (saveContactEmail) — optional, and it never blocks starting.
+//
+// SECURITY, stated plainly (DR-0100): the phone is NOT proven-owned (no SMS), so
+// this is a family/church-TRUST identity, not a bank's. The PIN is the guard and
+// Supabase Auth rate-limits sign-in attempts server-side (a 6-digit PIN is 1e6
+// combinations behind that limit). Stronger later = SMS verify (costs money) or
+// a longer PIN. The synthetic domain never receives mail, so it can never be a
+// password-reset / account-takeover vector.
+//
+// ONE dashboard prerequisite (Darrell): Auth → Providers → Email "Minimum
+// password length" must be ≤ 6 (6 is the Supabase default), or a 6-digit PIN is
+// rejected at signup. Nothing else to configure — no SMS provider, no secrets.
+// -----------------------------------------------------------------------------
+
+// The synthetic-email domain — one place, so the mapping never drifts. It never
+// receives mail; it only gives Supabase Auth a well-formed identifier.
+export const PHONE_LOGIN_DOMAIN = 'phone.poetech.us';
+
+// Strip a typed phone to digits; normalize a US 10-digit number to 11 (lead 1).
+// Returns '' when the digits can't be a real number. Pure.
+export function normalizePhone(raw) {
+  const digits = String(raw || '').replace(/\D+/g, '');
+  if (digits.length === 10) return '1' + digits;                 // US national → E.164 digits
+  if (digits.length >= 11 && digits.length <= 15) return digits; // already country-coded
+  return '';                                                     // too short / too long
+}
+
+// The Supabase identifier for a phone login. Pure; '' in → '' out.
+export function phoneLoginEmail(rawPhone) {
+  const d = normalizePhone(rawPhone);
+  return d ? `${d}@${PHONE_LOGIN_DOMAIN}` : '';
+}
+
+// Validate phone + PIN before any network call. A PIN is 6 digits (meets the
+// Supabase default 6-char minimum). Returns { email (synthetic), pin } or
+// { error }. Pure.
+export function validatePhonePin(rawPhone, pin) {
+  const email = phoneLoginEmail(rawPhone);
+  if (!email) return { error: { message: 'Please enter a valid phone number.' } };
+  const p = String(pin || '');
+  if (!/^\d{6}$/.test(p)) return { error: { message: 'Your PIN must be 6 digits.' } };
+  return { email, pin: p };
+}
+
+/**
+ * Create an account with phone + PIN. Reuses signUp; the real phone + method go
+ * in user_metadata so the app can greet "(xxx) xxx-xxxx" and offer to add an
+ * email later. Returns { data, error }.
+ */
+export async function signUpWithPhonePin(rawPhone, pin, displayName) {
+  const v = validatePhonePin(rawPhone, pin);
+  if (v.error) return v;
+  return supabase.auth.signUp({
+    email: v.email,
+    password: v.pin,
+    options: { data: {
+      name: (displayName || '').trim() || null,
+      phone: normalizePhone(rawPhone),
+      login_method: 'phone-pin',
+    } },
+  });
+}
+
+/** Sign in an existing phone + PIN account. Returns { data, error }. */
+export async function signInWithPhonePin(rawPhone, pin) {
+  const v = validatePhonePin(rawPhone, pin);
+  if (v.error) return v;
+  return supabase.auth.signInWithPassword({ email: v.email, password: v.pin });
+}
+
+/**
+ * "Add your email later" — stores a real contact email in user_metadata WITHOUT
+ * the Supabase secure-email-change round-trip (the synthetic login email never
+ * receives mail, so an email-change confirmation could never be clicked).
+ * Promoting this contact email to a real LOGIN identity is a separate, explicit
+ * step routed for later. Returns { data, error }.
+ */
+export async function saveContactEmail(email) {
+  const e = (email || '').trim();
+  if (!e || !e.includes('@')) return { error: { message: 'Please enter a valid email address.' } };
+  return supabase.auth.updateUser({ data: { contact_email: e } });
+}
+
+// -----------------------------------------------------------------------------
+// Promote a phone+PIN account to ALSO log in by a real, VERIFIED email.
+// -----------------------------------------------------------------------------
+// This is the DR-0172 follow-up — BUILT, not deferred to a re-review date no one
+// owned (Darrell 2026-07-13: "we should have NO FOLLOWUP LATER"). The key fact
+// that made "merging" sound hard: it is NOT a merge. A phone user adding their
+// email has only ever had ONE account. updateUser({ email }) attaches the email
+// to that SAME user id — the id never changes, so the phone-number → unique-ID
+// mapping is preserved exactly (the deterministic synthetic identifier still
+// resolves to the same row). Supabase emails a confirmation link to the new
+// address; clicking it makes that email the account's VERIFIED login identifier,
+// which UPGRADES the account (a collected-not-verified phone identity becomes a
+// proven-owned email one) with no SMS and no second account. The phone stays in
+// user_metadata for greeting + recovery. After confirmation the person signs in
+// with email + PIN. Front-door identity = Tier C (DR-0172): this rides behind
+// the Governor reviewer pass, never the auto-merge lane.
+
+// The friendly domain check — a real email is never the synthetic placeholder.
+export function isSyntheticPhoneEmail(email) {
+  return typeof email === 'string' && email.endsWith('@' + PHONE_LOGIN_DOMAIN);
+}
+
+// Is this session a phone+PIN account whose login identifier is still the
+// synthetic phone email (no real email attached yet)? Pure.
+export function isPhoneLoginSession(session) {
+  const email = session && session.user ? session.user.email : '';
+  const method = session && session.user && session.user.user_metadata
+    ? session.user.user_metadata.login_method : undefined;
+  return method === 'phone-pin' || isSyntheticPhoneEmail(email || '');
+}
+
+// Format normalized phone digits as (xxx) xxx-xxxx for display; leaves anything
+// non-standard untouched. Pure — never throws.
+export function formatPhoneDisplay(rawPhone) {
+  const d = String(rawPhone || '').replace(/\D+/g, '');
+  const local = d.length === 11 && d[0] === '1' ? d.slice(1) : d;
+  if (local.length === 10) return `(${local.slice(0, 3)}) ${local.slice(3, 6)}-${local.slice(6)}`;
+  return String(rawPhone || '');
+}
+
+// The friendly identity label for the signed-in strip + admin list: a phone user
+// sees their formatted number, NEVER the raw <digits>@phone.poetech.us; everyone
+// else sees their email. Pure. (Fixes the ugly synthetic address in the Access
+// & Usage list.)
+export function identityLabel(session) {
+  if (!session || !session.user) return '';
+  if (isPhoneLoginSession(session)) {
+    const meta = session.user.user_metadata || {};
+    const phone = meta.phone || (session.user.email || '').split('@')[0];
+    return formatPhoneDisplay(phone);
+  }
+  return session.user.email || '';
+}
+
+/**
+ * Attach a real, verified login email to the CURRENT account (same user id — not
+ * a merge). Supabase sends a confirmation link to the address; the account gains
+ * email login once it's clicked. Returns { data, error }. Rejects the synthetic
+ * placeholder so a phone user can't "add" the fake address.
+ */
+export async function promoteEmailToLogin(email) {
+  const e = (email || '').trim();
+  if (!e || !e.includes('@')) return { error: { message: 'Please enter a valid email address.' } };
+  if (isSyntheticPhoneEmail(e)) {
+    return { error: { message: 'That is the placeholder address — enter your real email.' } };
+  }
+  const redirectTo = window.location.origin + window.location.pathname;
+  return supabase.auth.updateUser({ email: e }, { emailRedirectTo: redirectTo });
 }
 
 /**
@@ -202,25 +440,111 @@ export async function linkIdentity(provider) {
   return supabase.auth.linkIdentity({ provider, options: { redirectTo } });
 }
 
-// True only for the brief window around a user-initiated sign-out. The auth
-// guard reads this so a DELIBERATE sign-out clears immediately, while a
-// transient SIGNED_OUT (PWA resume / rotated-token race) gets the recovery
-// refresh first. Module-level (not per-subscriber) because the SIGNED_OUT
-// event fans out to every onAuthChange subscriber.
-let deliberateSignOut = false;
+// -----------------------------------------------------------------------------
+// The boot-gate's bounded fallback — read the persisted session from storage
+// WITHOUT the network/lock path getSession() takes (2026-07-13).
+// -----------------------------------------------------------------------------
+// The "left the tab open, came back to a white screen after a while" hang:
+// on the public host the app renders NOTHING until the first getSession()
+// resolves (access-gate.js → the 'loading' blank). But getSession() can block
+// INDEFINITELY in exactly the return-after-time case:
+//   - the stored access token has expired, so init triggers a NETWORK refresh
+//     before it resolves — a congested network stalls it; and/or
+//   - supabase-js's cross-tab Navigator lock is held by a frozen/discarded tab
+//     (several poetech.us tabs open), so the lock is never released.
+// Either one strands the boot gate on blank forever — and nothing is rendered
+// to tap, so no in-app button can recover it. The session itself is fine: the
+// refresh token is sitting in localStorage. So we read it DIRECTLY (synchronous,
+// no network, no lock) to render from the last-known session at once; the real
+// getSession()/refresh reconciles in the background, and a genuinely-dead
+// session still falls to the sign-in gate via the SIGNED_OUT recovery path.
+// Pure + injectable so it is unit-testable without a live client.
+
+/**
+ * Synchronously read the persisted Supabase session from a Storage-like object
+ * (defaults to window.localStorage). supabase-js persists it under the key
+ * `sb-<project-ref>-auth-token`; we match by shape so no ref is needed. Returns
+ * the session object or null. Best-effort — never throws (blocked/malformed
+ * storage → null).
+ */
+export function readPersistedSession(store) {
+  try {
+    const ls = store || (typeof window !== 'undefined' ? window.localStorage : null);
+    if (!ls || typeof ls.length !== 'number') return null;
+    for (let i = 0; i < ls.length; i++) {
+      const key = ls.key(i);
+      if (!key || !/^sb-.*-auth-token$/.test(key)) continue;
+      const raw = ls.getItem(key);
+      if (!raw) continue;
+      let parsed;
+      try { parsed = JSON.parse(raw); } catch (_) { continue; }
+      // v2 stores the session object directly; v1 wrapped it in { currentSession }.
+      const session = parsed && parsed.currentSession ? parsed.currentSession : parsed;
+      if (session && session.access_token && session.user) return session;
+    }
+  } catch (_) { /* storage blocked / SecurityError → treat as no session */ }
+  return null;
+}
+
+/**
+ * Bounded initial auth resolution for onAuthChange. Fires `emit` with the
+ * persisted session IMMEDIATELY (storage read — synchronous, can't hang), then
+ * reconciles with getSession() when/if it resolves. Guarantees `emit` runs at
+ * least once synchronously, so a hung getSession() can NEVER strand the boot
+ * gate on a white screen. Injectable (getSession, readStored) for tests.
+ *
+ * @param {(session: object|null) => void} emit
+ * @param {{ getSession: () => Promise<any>, readStored: () => (object|null) }} io
+ */
+export function resolveInitialSession(emit, { getSession, readStored }) {
+  let stored;
+  try { stored = readStored(); } catch (_) { stored = null; }
+  emit(stored ?? null); // immediate + bounded — the gate resolves no matter what
+  try {
+    Promise.resolve(getSession())
+      .then((res) => {
+        const s = res && res.data ? res.data.session : undefined;
+        if (s !== undefined) emit(s ?? null); // reconcile with the source of truth
+      })
+      .catch(() => { /* keep the optimistic read; onAuthStateChange corrects later */ });
+  } catch (_) { /* getSession threw synchronously — the storage read already fired */ }
+}
+
+// True during the window around a user-initiated sign-out. The auth guard
+// reads this so a DELIBERATE sign-out clears immediately, while a transient
+// SIGNED_OUT (PWA resume / rotated-token race) gets the recovery refresh first.
+//
+// A TIME WINDOW, not a consumed boolean (the "can't log out" fix, Darrell's
+// fold 2026-07-24): the SIGNED_OUT event fans out to EVERY onAuthChange
+// subscriber (the monolith, HeaderAuthButton, AuthBanner, ...). The old
+// capture-and-reset let only the FIRST subscriber see deliberate=true; every
+// later subscriber read false, treated the user's own sign-out as transient,
+// and its recovery refreshSession() could land before the server revoke —
+// re-persisting the session and signing the whole app back in. Within this
+// window, ALL subscribers agree the sign-out is deliberate; a real transient
+// logout in the same few seconds is correctly not "recovered" either, because
+// the user just asked to leave. Exported for tests.
+const DELIBERATE_SIGNOUT_WINDOW_MS = 15000;
+let deliberateSignOutUntil = 0;
+
+export function isDeliberateSignOutActive(now = Date.now()) {
+  return now < deliberateSignOutUntil;
+}
 
 /** Sign the user out. Returns the supabase-js result. */
 export async function signOut() {
-  // Flag BEFORE calling signOut() so the SIGNED_OUT event it emits is treated
-  // as deliberate (no recovery attempt). onAuthChange clears the flag once the
-  // event is consumed.
-  deliberateSignOut = true;
+  // Open the window BEFORE calling signOut() so the SIGNED_OUT event it emits
+  // is treated as deliberate by every subscriber (no recovery attempt).
+  deliberateSignOutUntil = Date.now() + DELIBERATE_SIGNOUT_WINDOW_MS;
   try {
     return await supabase.auth.signOut();
   } catch (e) {
-    // If signOut itself throws, don't leave the flag stuck — a later transient
-    // SIGNED_OUT would then be misread as deliberate and skip recovery.
-    deliberateSignOut = false;
+    // The global sign-out needs the network (server-side token revoke). If it
+    // throws — offline, congested church wifi — the user still asked to LEAVE:
+    // fall back to a local-scope sign-out, which clears the persisted session
+    // on this device without the server round-trip. Never strand "Log out"
+    // doing nothing. The window stays open: the sign-out remains deliberate.
+    try { await supabase.auth.signOut({ scope: 'local' }); } catch (_) { /* storage-level failure — nothing left to clear */ }
     throw e;
   }
 }
@@ -234,9 +558,17 @@ export async function signOut() {
  *   useEffect(() => onAuthChange(setSession), []);
  */
 export function onAuthChange(callback) {
-  // Fire immediately with the current session so callers don't need a
-  // separate getSession() call. Then subscribe to future changes.
-  supabase.auth.getSession().then(({ data }) => callback(data.session ?? null));
+  // Fire immediately with the current session so callers don't need a separate
+  // getSession() call — but resolve it with a BOUND (read storage first, then
+  // reconcile with getSession) so a hung getSession() can never strand the app
+  // on the blank boot gate. This is the fix for the "left the tab open, came
+  // back to a white screen after a while" resume hang: getSession() blocks on an
+  // expired-token network refresh / cross-tab lock, and the gate waits on it
+  // forever. See readPersistedSession + resolveInitialSession above.
+  resolveInitialSession(callback, {
+    getSession: () => supabase.auth.getSession(),
+    readStored: () => readPersistedSession(),
+  });
 
   // Re-arm the background token refresher whenever the app/tab returns to the
   // foreground. A PWA resume or a long-backgrounded tab lets the service
@@ -271,10 +603,11 @@ export function onAuthChange(callback) {
       return;
     }
 
-    // A null / SIGNED_OUT event. Capture-and-reset the deliberate flag now so
-    // concurrent subscribers all see the same intent for THIS event.
-    const deliberate = deliberateSignOut;
-    deliberateSignOut = false;
+    // A null / SIGNED_OUT event. Read the deliberate WINDOW (no reset): every
+    // subscriber — first or last to run — sees the same intent for this event,
+    // so no subscriber's recovery refresh can resurrect a session the user
+    // just asked to end (the fold "can't log out" bug, 2026-07-24).
+    const deliberate = isDeliberateSignOutActive();
 
     // Defer the recovery refresh: calling supabase.auth.* synchronously inside
     // the onAuthStateChange callback can deadlock on supabase-js's internal
@@ -300,5 +633,31 @@ export function onAuthChange(callback) {
     }
   };
 }
+
+// --- DM key on sign-in (0118/0124; Darrell 2026-07-28) -----------------------
+// The Messages footer used to promise "their first Messages visit creates
+// their encryption key" — which meant a member who signed in but never opened
+// Messages could not be encrypted TO. Publish the device's public DM key once
+// per signed-in user per page load, at sign-in itself, so every signed-in
+// member is sealable-to from their first session. Fire-and-forget: a failure
+// degrades to the existing honest plaintext fallback (direct-messages-sync).
+// Dynamic import avoids a module cycle; skipped under tests.
+const publishedDmKeyFor = new Set();
+function publishDmKeyOnSignIn(session) {
+  const userId = session?.user?.id;
+  if (!userId || publishedDmKeyFor.has(userId)) return;
+  if (typeof window === 'undefined') return;
+  try { if (import.meta.env && import.meta.env.TEST) return; } catch (_) { /* not vitest */ }
+  publishedDmKeyFor.add(userId);
+  import('./direct-messages-sync.js')
+    .then((m) => m.publishDmPublicKey())
+    .catch(() => { publishedDmKeyFor.delete(userId); });
+}
+try {
+  supabase.auth.onAuthStateChange((event, session) => {
+    if (session?.user?.id) setTimeout(() => publishDmKeyOnSignIn(session), 0);
+  });
+  setTimeout(() => publishDmKeyOnSignIn(readPersistedSession()), 0);
+} catch (_) { /* auth unavailable (tests/SSR) — Messages still publishes on open */ }
 
 export default supabase;

@@ -17,7 +17,8 @@ import { useSyncExternalStore } from 'react';
 import { boardTasksSync, mergeRemoteBoardTasks } from './board-tasks-sync.js';
 import {
   newTaskSlug, seedTasksForBoard, nextStatus, tasksForBoard, groupLabelOf,
-  normalizeOwner, canonicalSeedOwner, taskHistory, makeHandoff, appendHistory,
+  normalizeOwner, canonicalSeedOwner, seedDueDate, taskHistory, makeHandoff, appendHistory,
+  withPhaseCompletion,
 } from './board.js';
 
 const LS_KEY = 'poetech-board-tasks-v1';
@@ -71,6 +72,7 @@ function ensureSubscribed() {
     // still-backwards seed owner and persist it. Idempotent — a converged board
     // is a no-op, so this cannot loop.
     reconcileSeedOwners();
+    reconcileSeedDueDates();
   });
 }
 
@@ -81,6 +83,38 @@ function subscribe(listener) {
 }
 function getSnapshot() {
   return state;
+}
+
+// ---- write outcomes (DR-0076: a failed write is never silent) -------------
+// table-sync returns an HONEST result for every write — {skipped:'signed-out'},
+// {skipped:'insert-error'}, and a deleteRow that detects an RLS-blocked 0-row
+// delete. This store threw all of it away and every consumer rendered success
+// unconditionally, which is how a surface comes to CLAIM "saved for everyone"
+// while nothing left the device. Consumers subscribe to the last outcome and
+// say what is actually true.
+let lastWrite = { ok: true, reason: null, at: 0 };
+const writeListeners = new Set();
+
+function noteWrite(res) {
+  const reason = !res ? null
+    : res.skipped === 'signed-out' ? 'signed-out'
+      : res.skipped === 'no-tenant' ? 'no-tenant'
+        : res.skipped === 'no-op' ? 'blocked'
+          : res.skipped ? 'failed' : null;
+  lastWrite = { ok: !reason, reason, at: Date.now() };
+  for (const l of writeListeners) l();
+  return lastWrite;
+}
+
+export function subscribeWrites(listener) {
+  writeListeners.add(listener);
+  return () => writeListeners.delete(listener);
+}
+export function lastWriteState() {
+  return lastWrite;
+}
+export function useWriteState() {
+  return useSyncExternalStore(subscribeWrites, lastWriteState, lastWriteState);
 }
 
 // ---- CRUD (shared by every consumer) --------------------------------------
@@ -100,20 +134,76 @@ export async function addTask({ boardSlug, boardTitle, group, title, owner = nul
   }
 }
 
+// ensureTask — insert a row whose slug the CALLER owns (idempotent by slug).
+// addTask above mints its own slug for a person typing into a board; a surface
+// built on a fixed TEMPLATE needs the opposite: a stable slug it can compute,
+// so the same checklist item is the same row on every device and a re-touch
+// updates instead of duplicating (board_tasks is UNIQUE on instance_id+slug).
+// Returns the local row either way — already present is a no-op, not an error.
+export async function ensureTask(item) {
+  const slug = item && item.slug;
+  if (!slug) return null;
+  const existing = state.find((t) => t.slug === slug);
+  if (existing) return existing;
+  const row = {
+    id: slug, slug,
+    boardSlug: item.boardSlug, boardTitle: item.boardTitle,
+    title: (item.title || '').trim(),
+    status: item.status || 'not-started',
+    owner: item.owner ?? null,
+    group: item.group || null,
+    startDate: item.startDate ?? null,
+    dueDate: item.dueDate ?? null,
+    sortRank: item.sortRank ?? null,
+    notes: item.notes ?? null,
+    links: item.links && typeof item.links === 'object' ? item.links : {},
+  };
+  setState((cur) => [...cur, row]);
+  const res = await boardTasksSync.upload(row);
+  noteWrite(res);
+  if (res && res.uploaded && res.remoteId) {
+    setState((cur) => cur.map((t) => (t.slug === slug ? { ...t, remoteUuid: res.remoteId } : t)));
+  }
+  return state.find((t) => t.slug === slug) || row;
+}
+
 export function patchTask(task, patch) {
-  setState((cur) => cur.map((t) => (t.slug === task.slug ? { ...t, ...patch } : t)));
+  // The finish ripple (DR-0120): a status patch that completes the LAST open
+  // item of a phase (board group / swim lane) records the completion as an
+  // append-only links.history entry in the SAME write — so the Timeline's
+  // context feed and the board's phase walk update themselves the moment the
+  // phase actually finishes, on every status path (chip tap, select, lane
+  // cell, seed-sync). Real recorded moment, never an invented date (DR-0076).
+  const full = withPhaseCompletion(state, task, patch, { at: new Date().toISOString() });
+  setState((cur) => cur.map((t) => (t.slug === task.slug ? { ...t, ...full } : t)));
   if (task.remoteUuid) {
-    boardTasksSync.updateRow(task.remoteUuid, toColumnPatch(patch))
-      .catch((e) => console.warn('[board-tasks-sync] update failed', e));
+    boardTasksSync.updateRow(task.remoteUuid, toColumnPatch(full))
+      .then(noteWrite, (e) => { console.warn('[board-tasks-sync] update failed', e); noteWrite({ skipped: 'update-error' }); });
   }
 }
 
+// A delete the database refuses (0059's DELETE policy is owner/admin — a
+// 'member' cannot) removed the row LOCALLY and then let the next cloud merge
+// resurrect it. deleteRow already detects that 0-row case; now the row goes
+// back where it was and the outcome is reported, so the screen never shows a
+// deletion that did not happen.
 export function removeTask(task) {
+  const restore = state.find((t) => t.slug === task.slug) || task;
   setState((cur) => cur.filter((t) => t.slug !== task.slug));
-  if (task.remoteUuid) {
-    boardTasksSync.deleteRow(task.remoteUuid)
-      .catch((e) => console.warn('[board-tasks-sync] delete failed', e));
-  }
+  if (!task.remoteUuid) return Promise.resolve(noteWrite(null));
+  return boardTasksSync.deleteRow(task.remoteUuid).then(
+    (res) => {
+      if (res && (res.skipped === 'no-op' || res.skipped === 'delete-error')) {
+        setState((cur) => (cur.some((t) => t.slug === restore.slug) ? cur : [...cur, restore]));
+      }
+      return noteWrite(res);
+    },
+    (e) => {
+      console.warn('[board-tasks-sync] delete failed', e);
+      setState((cur) => (cur.some((t) => t.slug === restore.slug) ? cur : [...cur, restore]));
+      return noteWrite({ skipped: 'delete-error' });
+    },
+  );
 }
 
 export function cycleStatus(task) {
@@ -167,6 +257,25 @@ function reconcileSeedOwners() {
   }
 }
 
+// ---- dueDate gap-fill (DR-0170: fill the timeline, never overwrite) ---------
+// A loaded seed row with NO dueDate adopts its seed item's PLANNED target date
+// (Ari's PM forecast) so it lands on the 12-Month Workload Forecast instead of
+// counting as "undated". Gap-fill ONLY: a row that already carries a dueDate —
+// the family set it, or a prior heal did — is never touched, so the governor's
+// real date is always senior to the forecast. Idempotent (after one pass the
+// row has a date, so it never fires again). Runs client-side, where the family
+// instance is writable (the cloud agent cannot write these rows — DR-0060).
+function reconcileSeedDueDates() {
+  for (const t of state) {
+    if (!t || !t.slug || !String(t.slug).startsWith('bt-seed-')) continue;
+    if (t.status === 'done') continue;          // a finished item needs no target
+    if (t.dueDate) continue;                    // family/prior date is senior — never overwrite
+    const planned = seedDueDate(t.boardSlug, t.slug);
+    if (!planned) continue;
+    patchTask(t, { dueDate: planned });
+  }
+}
+
 // Load a seed board's real items — only the ones not already present (idempotent
 // by stable slug), so a re-load fills gaps without clobbering edits.
 export async function loadSeed(boardSlug) {
@@ -187,6 +296,7 @@ export async function loadSeed(boardSlug) {
 // Correct any locally-cached rows on first load too (covers the signed-out /
 // offline path where the cloud subscription is a no-op). Idempotent.
 reconcileSeedOwners();
+reconcileSeedDueDates();
 
 // The hook every consumer uses — returns the live task list, re-rendering on any
 // change from any consumer or the realtime stream.

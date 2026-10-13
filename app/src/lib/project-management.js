@@ -157,6 +157,39 @@ export function isArchived(project) {
 }
 
 // -----------------------------------------------------------------------------
+// projectTimelineLanes — the Projects-hub fallback so the timeline is a LIVE
+// view, never a dead "go load a board" end when real projects exist (Darrell
+// 2026-07-13: "why does the Project tab have the timelines section empty?").
+// Each live (non-archived) project rides the SAME timeline as the boards — a
+// lane derived from the shared project engine (its eternal-stage + real dates).
+// This is the one-engine-two-views model (DR-0187) in miniature: a board lane
+// carries the phase-by-phase walk; a project lane carries the stage until a
+// board is loaded. REAL fields only (DR-0076) — stage from status, dates from
+// the row; an empty list stays empty, never a painted lane.
+// -----------------------------------------------------------------------------
+export function projectTimelineLanes(projects) {
+  return (Array.isArray(projects) ? projects : [])
+    // The live timeline shows OPEN work — completed + archived projects are kept
+    // for the record but stay off the default timeline, the same rule the list
+    // uses (isClosed = complete OR archived). Parked (on-hold, not archived) is
+    // still in-flight, so it stays.
+    .filter((p) => p && p.status !== 'complete' && !isArchived(p))
+    .map((p) => {
+      const prog = stageProgress(p);
+      return {
+        id: p.id,
+        title: (typeof p.title === 'string' && p.title.trim()) ? p.title : 'Untitled project',
+        stage: prog.stage,
+        stageLabel: stageMeta(prog.stage).label,
+        pct: prog.pct,                       // null when parked — honest, not 0
+        startDate: p.startDate || null,
+        endDate: p.endDate || null,
+        domain: p.domain || null,
+      };
+    });
+}
+
+// -----------------------------------------------------------------------------
 // stageBoard — the real roll-up that drives the cockpit + the management pulse:
 // how many projects sit in each eternal-stage right now. Counts only the projects
 // passed in (already role/scope filtered by the caller), so the board never shows

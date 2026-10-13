@@ -1,0 +1,84 @@
+// =============================================================================
+// ari-review-render.test.jsx — the comprehensive-review surface mounts and shows
+// the real, dimensional read (proven-to-catch the render + the drift signal)
+// =============================================================================
+import { describe, it, expect, beforeEach } from 'vitest';
+import { createElement, act } from 'react';
+import { createRoot } from 'react-dom/client';
+import AriReview from '../components/AriReview.jsx';
+
+globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+beforeEach(() => {
+  document.body.innerHTML = '';
+  try { window.localStorage.clear(); } catch { /* noop */ }
+});
+
+function mount(props) {
+  const host = document.createElement('div');
+  document.body.appendChild(host);
+  const root = createRoot(host);
+  act(() => { root.render(createElement(AriReview, props)); });
+  return host;
+}
+
+describe('AriReview — the surface renders its dimensions', () => {
+  it('shows every dimension label and an honest headline on empty data', () => {
+    const host = mount({ concerns: [], feedback: [] });
+    const text = host.textContent;
+    expect(text).toContain('comprehensive review');
+    for (const label of ['Delivery integrity', 'Plan health', 'Review freshness', 'Concern & feedback backlog', 'Data integrity', 'Workflow currency', 'Live-system capacity']) {
+      expect(text).toContain(label);
+    }
+  });
+
+  it('surfaces a real open-concern backlog finding from the props (not painted)', () => {
+    const host = mount({ concerns: [{ status: 'open', concern: 'x' }], feedback: [] });
+    expect(host.textContent).toMatch(/1 concern open/);
+    expect(host.textContent).toContain('Start or schedule the open concerns');
+    // and the top-actions strip surfaces it
+    expect(host.textContent).toContain('Pull these next');
+  });
+
+  // WHAT "CLEAR" MEANS CHANGED, on purpose (Darrell 2026-09-05). The review now
+  // also asks whether the app's picture of its WORKFLOWS is current and whether
+  // the LIVE system is up and serving the current build. In this test
+  // environment neither signal is available — no build-injected workflow
+  // registry, no network — so the honest read is UNMEASURED, not clear. A
+  // surface that painted "clean" over two signals nobody read would be the
+  // exact lie DR-0076 / DR-0125 exist to stop, so that is what is pinned here.
+  it('says UNMEASURED rather than painting clear when the live signals cannot be read', () => {
+    const host = mount({ concerns: [], feedback: [] });
+    const text = host.textContent;
+    expect(text).not.toMatch(/clean — no open findings/);
+    // n8n is retired (DR-0617): the registry is empty on purpose and
+    // the surface says so in words rather than reading as blind.
+    expect(text).toMatch(/n8n workflows are retired/);
+    expect(text).toMatch(/live system was not measured/);
+  });
+
+  it('still reports no OPEN CONCERN backlog when nothing is open — the other dimensions stay quiet', () => {
+    const host = mount({ concerns: [], feedback: [] });
+    expect(host.textContent).not.toMatch(/concern open/);
+    expect(host.textContent).not.toMatch(/Sync statuses from the build record/);
+  });
+});
+
+// DR-0243 — one item renders ONCE. "Pull these next" and the MAPE-K loop are a
+// single merged queue; the per-item boilerplate reason is stated once in the
+// header, never repeated per row (the duplication Darrell flagged 2026-07-29:
+// "data hidden because it just keeps going and duplicate information").
+describe('AriReview — the merged queue does not duplicate (DR-0243)', () => {
+  it('renders the queue once with the loop, without per-item boilerplate', () => {
+    const host = mount({ concerns: [{ status: 'open', concern: 'x' }], feedback: [] });
+    const text = host.textContent;
+    expect(text).toContain('Pull these next');
+    expect(text).toContain('loop (MAPE-K)');
+    expect(text).toContain('Needs your call');
+    // The generic reason is folded into the header sentence — never per item.
+    expect(text).not.toContain('Needs human judgment or isn’t provably safe to apply automatically.');
+  });
+  it('states where the evidence lives instead of rendering a third copy', () => {
+    const host = mount({ concerns: [{ status: 'open', concern: 'x' }], feedback: [] });
+    expect(host.textContent).toMatch(/dimension card/);
+  });
+});

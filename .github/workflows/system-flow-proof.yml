@@ -1,0 +1,98 @@
+# system-flow-proof — every connection of the whole system, measured LIVE
+# (DR-0622: end to end means continuous; the live data is the proof).
+#
+# Darrell 2026-09-24: "We should have rigorous connection points between the
+# database and fields within the app that go through workflows that are in the
+# end continuous loops that produce data. The data should be the proof of the
+# end, whole end to end process ... and that data should seed the next process."
+#
+# WHAT IT DOES. The flow graph (scripts/system-flow-registry.mjs) names every
+# workflow, NAS rider and app surface, what each reads and writes, and what it
+# seeds next; the build gate (scripts/interconnect-guard.mjs) fails on a dead
+# end, an orphan, a missing table or a consumer that does not really read. That
+# proves the WIRING. This run proves the DATA: for every table-backed
+# connection it reads, on the database the app actually reads (the NAS's own
+# Supabase, through scripts/live-sql.sh), how many rows were written, the
+# newest one, and how many were picked up downstream; for every workflow in the
+# graph it reads the latest run and whether it succeeded. One row per
+# resource lands in system_flow_proof (migration 0234).
+#
+# WHERE IT GOES NEXT (the loop closes). The app's Interconnect proof shows each
+# chain with these numbers and their age, in plain words; the Decision
+# Intelligence board reads every broken, stale, empty or unconsumed connection
+# as an ESCALATION, and records its counts in decision_readouts — which this
+# run measures in turn. The monitors' own output seeds the next readout.
+#
+# BRAKES (deterministic class, DR-0248: budget + lock):
+#   BUDGET — one GitHub API call per workflow, ONE SQL batch, a 10-minute cap.
+#            Read-only on every product table; the only rows it writes are its
+#            own (and it prunes its own rows older than 30 days).
+#   LOCK   — concurrency group `system-flow-proof`, single-instance, a queued
+#            fire waits rather than stacking.
+#   STOP   — repo variable SYSTEM_FLOW_PROOF_ENABLED='false' skips the job
+#            (the deterministic stop-path; unset => runs, DR-0247).
+#
+# CADENCE: every 6 hours. The slowest connections it judges are measured in
+# days, so four readings a day cannot miss a stall (DR-0103 §3).
+
+name: system-flow-proof
+
+on:
+  schedule:
+    - cron: '41 */6 * * *'
+  workflow_dispatch: {}
+
+concurrency:
+  group: system-flow-proof
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  measure:
+    if: ${{ vars.SYSTEM_FLOW_PROOF_ENABLED != 'false' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GITHUB_REPOSITORY: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: The wiring gate still holds (the graph this run measures)
+        run: node scripts/interconnect-guard.mjs
+      - name: Read every workflow's latest run
+        run: node scripts/system-flow-proof.mjs runs > runs.json
+      - name: Build the one read-only measurement batch
+        run: |
+          RUN_ID="gh-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          echo "RUN_ID=$RUN_ID" >> "$GITHUB_ENV"
+          node scripts/system-flow-proof.mjs sql "$RUN_ID" runs.json > proof.sql
+          echo "measurement batch: $(wc -l < proof.sql) lines"
+      - name: Join the tailnet (to reach the live database)
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+      - name: Measure on the live database and record the proof rows
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          set -uo pipefail
+          if [ -z "${NAS_SSH_KEY:-}" ]; then
+            echo "::error::NAS_SSH_KEY is not set: nothing was measured. Unknown is never reported as healthy (DR-0076)."
+            exit 1
+          fi
+          bash scripts/live-sql.sh '|' < proof.sql > out.txt
+          rc=$?
+          if [ "$rc" -ne 0 ]; then
+            echo "::error::the live database did not take the measurement (exit $rc) — no proof rows were written this run"
+            cat out.txt || true
+            exit "$rc"
+          fi
+          echo "rows recorded: $(grep -c '|' out.txt)"
+          node scripts/system-flow-proof.mjs summary "$RUN_ID" < out.txt >> "$GITHUB_STEP_SUMMARY"
+          node scripts/system-flow-proof.mjs summary "$RUN_ID" < out.txt

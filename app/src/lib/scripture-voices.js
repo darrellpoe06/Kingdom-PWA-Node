@@ -16,7 +16,7 @@
 // shipped Bible. Where a speaker is not verified, the words render plain — never
 // attributed by guess. The set is small and TRUE, and it grows verse by verified
 // verse. Verbatim quotes keep their source capitalization inside the quote
-// (DR-0076 honest edge) — e.g. the KJV's own "Satan".
+// (DR-0076 honest edge) — e.g. the KJV's own "satan".
 // =============================================================================
 
 // The voices palette. `css` is spread onto the spoken text; every color clears
@@ -43,6 +43,14 @@ export const VOICES = [
   {
     key: 'wisdom', label: 'Wise counsel', meaning: 'godly, faithful human words',
     swatch: '#2F6B33', css: { color: '#2F6B33', fontWeight: 600 },
+  },
+  {
+    key: 'mary', label: 'Mary', meaning: 'Mary’s own words — a woman’s voice, heard as a woman',
+    swatch: '#6B21A8', css: { color: '#6B21A8', fontWeight: 600 },
+  },
+  {
+    key: 'woman', label: 'A faithful woman', meaning: 'a woman of faith speaking — Elizabeth, Ruth, Martha',
+    swatch: '#9D174D', css: { color: '#9D174D', fontWeight: 600 },
   },
   {
     key: 'adversary', label: 'the adversary', meaning: 'the tempter, the deceiver — a cold, dishonored voice',
@@ -90,10 +98,19 @@ export const VOICE_QUOTES = [
   { ref: 'Matthew 4:6', voice: 'adversary', quote: 'If thou be the Son of God, cast thyself down: for it is written, He shall give his angels charge concerning thee: and in their hands they shall bear thee up, lest at any time thou dash thy foot against a stone.' },
   { ref: 'Matthew 4:7', voice: 'jesus', quote: 'It is written again, Thou shalt not tempt the Lord thy God.' },
   { ref: 'Matthew 4:9', voice: 'adversary', quote: 'All these things will I give thee, if thou wilt fall down and worship me.' },
-  { ref: 'Matthew 4:10', voice: 'jesus', quote: 'Get thee hence, Satan: for it is written, Thou shalt worship the Lord thy God, and him only shalt thou serve.' },
+  { ref: 'Matthew 4:10', voice: 'jesus', quote: 'Get thee hence, satan: for it is written, Thou shalt worship the Lord thy God, and him only shalt thou serve.' },
   // The great I AM saying (John 14) and the Luke parallel of the Temptation.
   { ref: 'John 14:6', voice: 'jesus', quote: 'I am the way, the truth, and the life: no man cometh unto the Father, but by me.' },
-  { ref: 'Luke 4:8', voice: 'jesus', quote: 'Get thee behind me, Satan: for it is written, Thou shalt worship the Lord thy God, and him only shalt thou serve.' },
+  { ref: 'Luke 4:8', voice: 'jesus', quote: 'Get thee behind me, satan: for it is written, Thou shalt worship the Lord thy God, and him only shalt thou serve.' },
+  // The WOMEN heard as women (Darrell 2026-07-10: "it actually sounds like a man
+  // or woman based on who is speaking"). Every quote fetched verbatim from the
+  // shipped KJV before landing here (DR-0076).
+  { ref: 'Luke 1:38', voice: 'mary', quote: 'Behold the handmaid of the Lord; be it unto me according to thy word.' },
+  { ref: 'Luke 1:46', voice: 'mary', quote: 'My soul doth magnify the Lord' },
+  { ref: 'Luke 1:47', voice: 'mary', quote: 'And my spirit hath rejoiced in God my Saviour.' },
+  { ref: 'Luke 1:42', voice: 'woman', quote: 'Blessed art thou among women, and blessed is the fruit of thy womb.' },
+  { ref: 'Ruth 1:16', voice: 'woman', quote: 'Intreat me not to leave thee, or to return from following after thee: for whither thou goest, I will go; and where thou lodgest, I will lodge: thy people shall be my people, and thy God my God:' },
+  { ref: 'John 11:27', voice: 'woman', quote: 'Yea, Lord: I believe that thou art the Christ, the Son of God, which should come into the world.' },
 ];
 
 // Attributions grouped by reference for O(1) lookup while rendering a chapter.

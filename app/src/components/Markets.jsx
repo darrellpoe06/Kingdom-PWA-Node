@@ -119,7 +119,7 @@ function Markets({ watchlist, addWatchlistSymbol, removeWatchlistSymbol, userTie
   return (
     <div className="space-y-6">
       <section className="bg-white border border-[#1A1815] p-5">
-        <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] mb-1 font-medium">Markets · Watchlist</div>
+        <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] mb-1 font-medium">Markets · Watchlist</div>
         <h2 className="text-2xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>One place for your financial data.</h2>
         <p className="text-sm leading-relaxed mt-2 text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>
           Add the tickers you actually watch — indices, ETFs, individual stocks, crypto, FX. Quotes refresh automatically every minute. Free data: <a href="https://stooq.com" target="_blank" rel="noopener noreferrer" className="underline text-[#B85838] hover:text-[#1A1815]">stooq.com</a> · served through poetech.us's own relay (public proxies as backup). No API key, no signup, no cost.
@@ -128,10 +128,10 @@ function Markets({ watchlist, addWatchlistSymbol, removeWatchlistSymbol, userTie
 
       {/* Add form */}
       <section aria-labelledby="add-ticker-h">
-        <h3 id="add-ticker-h" className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751] mb-2 pb-2 border-b border-[#1A1815]">Add a ticker</h3>
+        <h3 id="add-ticker-h" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-2 pb-2 border-b border-[#1A1815]">Add a ticker</h3>
         <form onSubmit={handleAdd} className="flex flex-wrap gap-2 items-end">
           <div className="flex-1 min-w-[160px]">
-            <label htmlFor="ticker-input" className="text-[9px] uppercase tracking-wider text-[#5A5751]">Symbol (Stooq format)</label>
+            <label htmlFor="ticker-input" className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">Symbol (Stooq format)</label>
             <input
               id="ticker-input"
               list="ticker-suggestions"
@@ -150,10 +150,10 @@ function Markets({ watchlist, addWatchlistSymbol, removeWatchlistSymbol, userTie
         </form>
         {inputError && <p id="ticker-input-error" role="alert" className="text-xs text-[#B85838] mt-2" style={{ fontFamily: '"Fraunces", serif' }}>{inputError}</p>}
         <div className="mt-3">
-          <div className="text-[9px] uppercase tracking-wider text-[#5A5751] mb-1">Quick add</div>
+          <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751] mb-1">Quick add</div>
           <div className="flex flex-wrap gap-1">
             {SUGGESTED_TICKERS.filter(t => !watchlist.includes(t.sym)).map(t => (
-              <button key={t.sym} type="button" onClick={() => addWatchlistSymbol(t.sym)} className="px-2 py-1 text-[10px] border border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">
+              <button key={t.sym} type="button" onClick={() => addWatchlistSymbol(t.sym)} className="px-2 py-1 text-[0.625rem] border border-[#E8E4DC] text-[#5A5751] hover:border-[#1A1815] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">
                 <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>{t.sym}</span> <span className="text-[#5A5751]">· {t.label}</span>
               </button>
             ))}
@@ -164,15 +164,15 @@ function Markets({ watchlist, addWatchlistSymbol, removeWatchlistSymbol, userTie
       {/* Watchlist */}
       <section aria-labelledby="watchlist-h">
         <div className="flex items-baseline justify-between mb-2 pb-2 border-b border-[#1A1815] gap-2 flex-wrap">
-          <h3 id="watchlist-h" className="text-[10px] uppercase tracking-[0.25em] text-[#5A5751]">Watchlist · {watchlist.length} {watchlist.length === 1 ? 'ticker' : 'tickers'}</h3>
-          <div className="flex items-baseline gap-3 text-[10px] uppercase tracking-wider">
+          <h3 id="watchlist-h" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751]">Watchlist · {watchlist.length} {watchlist.length === 1 ? 'ticker' : 'tickers'}</h3>
+          <div className="flex items-baseline gap-3 text-[0.625rem] uppercase tracking-wider">
             {lastUpdated && <span className="text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }} aria-live="polite">updated {lastUpdated.toLocaleTimeString()}</span>}
             <button type="button" onClick={refresh} aria-busy={loading} className="text-[#B85838] hover:text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]" disabled={loading}>{loading ? 'Refreshing…' : '↻ Refresh'}</button>
           </div>
         </div>
         {globalError && (
           <div role="alert" className="bg-[#FAF8F4] border-2 border-[#B85838] p-3 mb-2">
-            <div className="text-[10px] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-1">⚠ Market data fetch failed</div>
+            <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold mb-1">⚠ Market data fetch failed</div>
             <p className="text-xs leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>{globalError}</p>
           </div>
         )}
@@ -184,7 +184,7 @@ function Markets({ watchlist, addWatchlistSymbol, removeWatchlistSymbol, userTie
           <div className="bg-white border border-[#1A1815] overflow-x-auto" aria-live="polite">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-[9px] uppercase tracking-wider text-[#5A5751] border-b border-[#1A1815] bg-[#FAF8F4]">
+                <tr className="text-left text-[0.5625rem] uppercase tracking-wider text-[#5A5751] border-b border-[#1A1815] bg-[#FAF8F4]">
                   <th scope="col" className="p-3">Symbol</th>
                   <th scope="col" className="p-3 text-right">Last</th>
                   <th scope="col" className="p-3 text-right">Day change</th>
@@ -225,7 +225,7 @@ function Markets({ watchlist, addWatchlistSymbol, removeWatchlistSymbol, userTie
                       <td className="p-3 text-right hidden sm:table-cell" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{isErr ? '—' : fmtPrice(q.high)}</td>
                       <td className="p-3 text-right hidden sm:table-cell" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{isErr ? '—' : fmtPrice(q.low)}</td>
                       <td className="p-3 text-right hidden md:table-cell text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{isErr ? '—' : fmtVol(q.volume)}</td>
-                      <td className="p-3 text-right hidden md:table-cell text-[10px] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{isErr ? <span title={q.error}>error</span> : `${q.date || ''} ${q.time || ''}`}</td>
+                      <td className="p-3 text-right hidden md:table-cell text-[0.625rem] text-[#5A5751]" style={{ fontFamily: '"JetBrains Mono", monospace' }}>{isErr ? <span title={q.error}>error</span> : `${q.date || ''} ${q.time || ''}`}</td>
                       <td className="p-3 text-right">
                         <button type="button" onClick={() => removeWatchlistSymbol(sym)} aria-label={`Remove ${sym.toUpperCase()} from watchlist`} className="text-base text-[#5A5751] hover:text-[#B85838] hover:bg-white border border-transparent hover:border-[#B85838] px-3 py-1.5 min-h-[36px] min-w-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]">×</button>
                       </td>
@@ -236,7 +236,7 @@ function Markets({ watchlist, addWatchlistSymbol, removeWatchlistSymbol, userTie
             </table>
           </div>
         )}
-        <p className="text-[10px] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
+        <p className="text-[0.625rem] text-[#5A5751] italic mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
           Day change is computed from open vs. last (intraday). Quotes are delayed by the data source and meant for awareness — not for executing trades. The change column shows direction in text (up / down) and symbol (▲ / ▼) in addition to color, so the meaning carries through for screen readers and color-blind users (WCAG 2.1 AA).
         </p>
       </section>

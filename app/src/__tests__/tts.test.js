@@ -11,6 +11,7 @@ import {
   segmentText, clampRate, pickDefaultVoice, isTTSSupported,
   loadTTSPrefs, saveTTSPrefs, createBrowserTTS,
   RATE_STEPS, MIN_RATE, MAX_RATE, DEFAULT_RATE,
+  utteranceSpan, MAX_SPAN_CHARS, MAX_SPAN_SEGMENTS,
 } from '../lib/tts.js';
 
 // In-memory localStorage stand-in (Node test env has no DOM storage).
@@ -251,5 +252,78 @@ describe('isTTSSupported', () => {
     expect(isTTSSupported({})).toBe(false);
     expect(isTTSSupported({ speechSynthesis: {}, SpeechSynthesisUtterance: function () {} })).toBe(true);
     expect(isTTSSupported(undefined)).toBe(false);
+  });
+});
+
+describe('engine — fast speech is spoken in longer breaths (2026-10-07, proven-to-catch)', () => {
+  // Darrell: "the voice mumbles at times when on faster speaking especially".
+  // At speed, every clause-sized utterance costs the engine an onset, and the
+  // onsets ARE the mumble. From RATE_SPAN_FROM, consecutive segments ride in
+  // ONE utterance; the segment index still steps per sentence from the word
+  // boundaries, and at the utterance's end.
+  const TEXT = 'First one here. Second one here. Third one here. Fourth one here.';
+
+  it('utteranceSpan: one segment per utterance at normal pace, several at speed, within the budget', () => {
+    const segs = segmentText(TEXT);
+    expect(segs).toHaveLength(4);
+    expect(utteranceSpan(segs, 0, 1.0)).toBe(1);
+    expect(utteranceSpan(segs, 0, 1.4)).toBe(1);
+    expect(utteranceSpan(segs, 0, 3.0)).toBe(4);          // 4 short sentences fit at 3x
+    expect(utteranceSpan(segs, 3, 3.0)).toBe(1);          // the last one stands alone
+    expect(utteranceSpan(segs, 4, 3.0)).toBe(0);          // past the end: nothing
+    const long = Array.from({ length: 12 }, (_, i) => `Sentence number ${i} is exactly this long and no longer, friend.`);
+    const n = utteranceSpan(long, 0, 5.0);
+    expect(n).toBeGreaterThan(1);
+    expect(n).toBeLessThanOrEqual(MAX_SPAN_SEGMENTS);
+    const chars = long.slice(0, n).join(' ').length;
+    expect(chars).toBeLessThanOrEqual(MAX_SPAN_CHARS);
+  });
+
+  it('at 1x the engine speaks one segment per utterance (unchanged)', () => {
+    const { synth, engine } = makeEngine({ rate: 1.0 });
+    engine.load(TEXT);
+    engine.play();
+    expect(synth.spoken[0].text).toBe('First one here.');
+    synth.spoken[0].onend();
+    expect(synth.spoken[1].text).toBe('Second one here.');
+    expect(engine.idx).toBe(1);
+  });
+
+  it('at 3x the four sentences ride in ONE utterance; word boundaries step the segment index; the end lands past them all', () => {
+    const states = [];
+    const synth = makeSynth();
+    const engine = createBrowserTTS({ synth, Utterance: FakeUtterance, onState: (s) => states.push(s), prefs: { rate: 3.0 } });
+    const words = [];
+    engine.onBoundary = (seg, charIndex) => words.push([seg, charIndex]);
+    engine.load(TEXT);
+    engine.play();
+    expect(synth.spoken).toHaveLength(1);
+    const u = synth.spoken[0];
+    expect(u.text).toBe(TEXT);
+    expect(u.rate).toBe(3.0);
+    // The voice reaches "Second" (char 16) and "Third" (char 33).
+    u.onboundary({ name: 'word', charIndex: 0, charLength: 5 });
+    expect(engine.idx).toBe(0);
+    u.onboundary({ name: 'word', charIndex: 16, charLength: 6 });
+    expect(engine.idx).toBe(1);
+    expect(states.at(-1).segmentIndex).toBe(1);
+    u.onboundary({ name: 'word', charIndex: 33, charLength: 5 });
+    expect(engine.idx).toBe(2);
+    // Boundaries are reported RELATIVE to the segment the word is in.
+    expect(words).toEqual([[0, 0], [1, 0], [2, 0]]);
+    u.onend();
+    expect(engine.status).toBe('idle');        // all four were in that one utterance
+    expect(synth.spoken).toHaveLength(1);      // no second utterance was needed
+  });
+
+  it('a speed change mid-utterance re-speaks from the sentence the voice had reached, grouped for the new pace', () => {
+    const { synth, engine } = makeEngine({ rate: 3.0 });
+    engine.load(TEXT);
+    engine.play();
+    synth.spoken[0].onboundary({ name: 'word', charIndex: 33, charLength: 5 }); // in "Third"
+    engine.setRate(1.0);
+    const last = synth.spoken.at(-1);
+    expect(last.text).toBe('Third one here.');  // from where the voice was, one segment at 1x
+    expect(last.rate).toBe(1.0);
   });
 });

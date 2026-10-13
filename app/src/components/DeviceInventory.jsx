@@ -16,6 +16,12 @@
 //                  row updates in place; editing a seed device writes a row
 //                  whose slug overrides the seed twin on merge (the documented
 //                  church-devices.js path). Members/visitors see no controls.
+//   Topology     — HOW the register is connected: the segments derived from the
+//                  recorded addresses, the routing spine between them, the tailnet
+//                  overlay, and the eyes-on queue that would finish the map.
+//                  <NetworkTopology /> owns the render; church-network-topology.js
+//                  owns the derivation. Addresses render for editors only, matching
+//                  the Registry's gate.
 //   Compute Pool — the capability index (which node can run which job) that feeds
 //                  the deterministic idle-GPU router (gpu-scheduler.js), plus the
 //                  live INERT brake state. Read-only observability; nothing runs.
@@ -28,6 +34,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { KpiDot } from './KpiDot.jsx';
 import UiIcon from './UiIcon.jsx';
+import SectionTabs from './SectionTabs.jsx';
 import {
   SEED_DEVICES, DEVICE_TYPES, DEVICE_STATUSES, CAPABILITIES, GPU_JOB_CAPABILITIES,
   typeLabel, typeIcon, statusTone, statusLabel, capabilityLabel,
@@ -38,18 +45,20 @@ import {
   planRun, makeInertState, JOB_TYPES, DEFAULT_IDLE_WINDOWS,
 } from '../lib/gpu-scheduler.js';
 import { getDeviceAccess, subscribeDevices, saveDevice } from '../lib/church-devices-sync.js';
+import { listInstanceMembersStrict } from '../lib/member-roles.js';
+import NetworkTopology from './NetworkTopology.jsx';
 
 // Shared visual tokens — identical to the Video Wall / conference surfaces
 // (already passing contrast-guard + legibility).
 const card = 'bg-white border border-[#1A1815] p-4 sm:p-5';
-const labelCls = 'text-[9px] uppercase tracking-wider text-[#5A5751]';
+const labelCls = 'text-[0.5625rem] uppercase tracking-wider text-[#5A5751]';
 const serif = { fontFamily: '"Fraunces", serif' };
-const chip = 'inline-flex items-center gap-1 px-2 py-0.5 text-[11px] border border-[#C9C2B6] bg-[#FAF8F4] text-[#1A1815]';
+const chip = 'inline-flex items-center gap-1 px-2 py-0.5 text-[0.6875rem] border border-[#C9C2B6] bg-[#FAF8F4] text-[#1A1815]';
 const fieldCls = 'w-full p-2 border border-[#E8E4DC] text-sm bg-[#FAF8F4] text-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]';
 
 function StatusBadge({ status }) {
   return (
-    <span className="inline-flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-[#5A5751]">
+    <span className="inline-flex items-center gap-1.5 text-[0.6875rem] uppercase tracking-wider text-[#5A5751]">
       <KpiDot status={statusTone(status)} /> {statusLabel(status)}
     </span>
   );
@@ -79,7 +88,7 @@ function DeviceCard({ device, canEdit, onEdit }) {
         </div>
       </div>
 
-      <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-[#5A5751]">
+      <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.6875rem] text-[#5A5751]">
         <span>{typeLabel(device.deviceType)}</span>
         {device.makeModel && <span style={serif} className="text-[#1A1815]">{device.makeModel}</span>}
         {device.location && <span>· {device.location}</span>}
@@ -102,7 +111,7 @@ function DeviceCard({ device, canEdit, onEdit }) {
       {specEntries.length > 0 && (
         <dl className="mt-2 space-y-1">
           {specEntries.map(([k, v]) => (
-            <div key={k} className="flex gap-2 text-[11px]">
+            <div key={k} className="flex gap-2 text-[0.6875rem]">
               <dt className="text-[#5A5751] capitalize whitespace-nowrap">{k}</dt>
               <dd className="text-[#1A1815]">{String(v)}</dd>
             </div>
@@ -112,28 +121,28 @@ function DeviceCard({ device, canEdit, onEdit }) {
 
       {/* Sensitive fields — editors only */}
       {canEdit && (device.serial || device.ipAddress) && (
-        <div className="mt-2 flex flex-wrap gap-x-3 text-[11px] text-[#5A5751]">
+        <div className="mt-2 flex flex-wrap gap-x-3 text-[0.6875rem] text-[#5A5751]">
           {device.ipAddress && <span>IP: <span className="text-[#1A1815] tabular-nums">{device.ipAddress}</span></span>}
           {device.serial && <span>S/N: <span className="text-[#1A1815]">{device.serial}</span></span>}
         </div>
       )}
 
       {device.capitalProjectSlug && (
-        <div className="mt-2 text-[11px] text-[#5A5751]">
+        <div className="mt-2 text-[0.6875rem] text-[#5A5751]">
           Linked capital project: <span className="text-[#1A1815]">{device.capitalProjectSlug}</span> — see the Video Wall surface for budget &amp; timeline.
         </div>
       )}
 
-      {device.notes && <p className="mt-2 text-[12px] text-[#5A5751]">{device.notes}</p>}
+      {device.notes && <p className="mt-2 text-[0.75rem] text-[#5A5751]">{device.notes}</p>}
 
       {/* Honesty flags (Verification Doctrine) */}
       <div className="mt-2 flex flex-wrap items-center gap-2">
         {device.smeNeeded && (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] border border-[#B85838] text-[#B85838]">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[0.6875rem] border border-[#B85838] text-[#B85838]">
             <UiIcon name="pin" /> Needs Darrell&rsquo;s confirmation
           </span>
         )}
-        <span className={`text-[10px] uppercase tracking-wider ${device.confirmed ? 'text-[#5A5751]' : 'text-[#B85838]'}`}>
+        <span className={`text-[0.625rem] uppercase tracking-wider ${device.confirmed ? 'text-[#5A5751]' : 'text-[#B85838]'}`}>
           {device.confirmed ? 'Confirmed' : 'Unverified spec'}
         </span>
       </div>
@@ -151,7 +160,7 @@ function DeviceCard({ device, canEdit, onEdit }) {
 // optimistic paint — the register refreshes when the realtime stream returns
 // the real row (DR-0076: the screen shows what the DB actually holds).
 // -----------------------------------------------------------------------------
-function DeviceEditor({ target, onClose }) {
+function DeviceEditor({ target, onClose, members = [] }) {
   const [form, setForm] = useState({
     name: target?.name || '',
     deviceType: target?.deviceType || 'other',
@@ -160,6 +169,8 @@ function DeviceEditor({ target, onClose }) {
     steward: target?.steward || '',
     notes: target?.notes || '',
     confirmed: target?.confirmed === true,
+    // WHOSE device (DR-0830): a member of the space, by hand; '' = nobody.
+    ownerUserId: target?.ownerUserId || '',
   });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -177,6 +188,7 @@ function DeviceEditor({ target, onClose }) {
       steward: form.steward.trim() || null,
       notes: form.notes.trim() || null,
       confirmed: form.confirmed,
+      ownerUserId: form.ownerUserId || null,
     });
     const check = validateDevice(device);
     if (!check.ok) { setError(check.errors.join('; ')); return; }
@@ -217,6 +229,16 @@ function DeviceEditor({ target, onClose }) {
           <label htmlFor="dev-ed-steward" className={labelCls}>Steward</label>
           <input id="dev-ed-steward" className={fieldCls} value={form.steward} onChange={(e) => set('steward', e.target.value)} placeholder="Who keeps this device" />
         </div>
+        {/* BELONGS TO (DR-0830): the person whose device this is, from the
+            space's own roster, so their record (Admin > Known) shows it with
+            the MAC the scan read. A hand's choice, never derived. */}
+        <div className="sm:col-span-2">
+          <label htmlFor="dev-ed-owner" className={labelCls}>Belongs to</label>
+          <select id="dev-ed-owner" className={fieldCls} value={form.ownerUserId} onChange={(e) => set('ownerUserId', e.target.value)} data-testid="dev-ed-owner">
+            <option value="">Nobody assigned</option>
+            {members.map((m) => <option key={m.userId} value={m.userId}>{m.displayName || m.email || m.userId}</option>)}
+          </select>
+        </div>
         <div className="sm:col-span-2">
           <label htmlFor="dev-ed-notes" className={labelCls}>Notes</label>
           <textarea id="dev-ed-notes" rows="2" className={fieldCls} value={form.notes} onChange={(e) => set('notes', e.target.value)} />
@@ -253,15 +275,23 @@ function DeviceEditor({ target, onClose }) {
 export default function DeviceInventory() {
   const [access, setAccess] = useState({ signedIn: false, canSee: false, canEdit: false });
   const [rows, setRows] = useState(null); // null = loading / not subscribed
-  const [section, setSection] = useState('registry');
   // editor: null = closed; { target: null } = add form; { target: device } = edit.
   const [editor, setEditor] = useState(null);
+  // The space's roster, for Belongs to (DR-0830); read only when the editor
+  // can be opened at all.
+  const [members, setMembers] = useState([]);
 
   useEffect(() => {
     let alive = true;
     getDeviceAccess().then((a) => { if (alive) setAccess(a); });
     return () => { alive = false; };
   }, []);
+  useEffect(() => {
+    if (!access.canEdit || !access.tenantId) return undefined;
+    let alive = true;
+    listInstanceMembersStrict(access.tenantId).then((list) => { if (alive) setMembers(Array.isArray(list) ? list : []); }).catch(() => {});
+    return () => { alive = false; };
+  }, [access.canEdit, access.tenantId]);
 
   useEffect(() => {
     if (!access.canSee) return undefined;
@@ -295,7 +325,7 @@ export default function DeviceInventory() {
           The asset register for every church device — type, location, specs, status, steward, and the job capabilities each can run. The capability fields feed the idle-GPU compute pool.
         </p>
         {!access.signedIn && (
-          <p className="mt-2 text-[12px] text-[#5A5751]">Showing the known infrastructure baseline. Sign in with a church staff account to see live status and sensitive fields.</p>
+          <p className="mt-2 text-[0.75rem] text-[#5A5751]">Showing the known infrastructure baseline. Sign in with a church staff account to see live status and sensitive fields.</p>
         )}
         {access.signedIn && access.canSee && !access.canEdit && (
           <p className="mt-2 text-[0.75rem] text-[#5A5751]">Read-only view — adding or editing devices is reserved for the register&rsquo;s governors (owner/admin).</p>
@@ -303,7 +333,7 @@ export default function DeviceInventory() {
         {access.canEdit && (
           <button
             type="button"
-            onClick={() => { setSection('registry'); setEditor({ target: null }); }}
+            onClick={() => setEditor({ target: null })}
             className="mt-3 text-xs uppercase tracking-wider px-3 py-2 border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]"
           >
             + Add device
@@ -311,92 +341,106 @@ export default function DeviceInventory() {
         )}
       </div>
 
-      {/* SECTION TABS */}
-      <div className="flex gap-2">
-        {[['registry', 'Registry'], ['compute', 'Compute Pool']].map(([k, label]) => (
-          <button
-            key={k}
-            onClick={() => setSection(k)}
-            className={`px-3 py-1.5 text-sm border transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] ${section === k ? 'border-[#1A1815] bg-[#1A1815] text-white' : 'border-[#C9C2B6] text-[#5A5751] hover:text-[#1A1815]'}`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-
-      {section === 'registry' && (
-        <>
-          {/* STEWARD EDITOR — governors only; keyed so switching target resets the form */}
-          {access.canEdit && editor && (
-            <DeviceEditor
-              key={editor.target ? editor.target.id : 'dev-ed-new'}
-              target={editor.target}
-              onClose={() => setEditor(null)}
-            />
-          )}
-
-          {/* SUMMARY KPIs */}
-          <div className={card}>
-            <div className={labelCls}>At a glance</div>
-            <div className="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {[
-                ['Devices', summary.total],
-                ['Online (steward-set)', summary.online],
-                ['Compute nodes', summary.computeNodes],
-                ['Need confirmation', summary.smeNeeded],
-              ].map(([k, v]) => (
-                <div key={k}>
-                  <div className="text-2xl text-[#1A1815] tabular-nums" style={serif}>{v}</div>
-                  <div className="text-[11px] text-[#5A5751]">{k}</div>
-                </div>
-              ))}
-            </div>
-            {summary.smeNeeded > 0 && (
-              <p className="mt-3 text-[12px] text-[#B85838]">
-                {summary.smeNeeded} device(s) carry specs not yet read off the hardware — flagged for Darrell rather than fabricated.
-              </p>
-            )}
-          </div>
-
-          {/* DEVICES BY TYPE */}
-          {DEVICE_TYPES.filter((t) => (grouped[t.id] || []).length > 0).map((t) => (
-            <div key={t.id} className={card}>
-              <div className={`${labelCls} flex items-center gap-1.5`}>
-                <span className="text-[#B85838]" aria-hidden="true"><UiIcon name={t.icon} /></span> {t.label}
-                <span className="text-[#C9C2B6]">· {grouped[t.id].length}</span>
-              </div>
-              <div className="mt-2 space-y-2.5">
-                {grouped[t.id].map((d) => (
-                  <DeviceCard key={d.id} device={d} canEdit={access.canEdit} onEdit={(dev) => setEditor({ target: dev })} />
-                ))}
-              </div>
-            </div>
-          ))}
-        </>
+      {/* STEWARD EDITOR — governors only; keyed so switching target resets the
+          form. PINNED above the section strip so the form stays visible (and
+          survives a tab switch) no matter which section the steward is on. */}
+      {access.canEdit && editor && (
+        <DeviceEditor
+          key={editor.target ? editor.target.id : 'dev-ed-new'}
+          target={editor.target}
+          members={members}
+          onClose={() => setEditor(null)}
+        />
       )}
 
-      {section === 'compute' && (
-        <>
+      {/* SUMMARY KPIs — pinned above the section strip (2026-07-07: "no more
+          down scrolling to see a surface with KPIs"; the numbers stay visible
+          whichever section is open). */}
+      <div className={card}>
+        <div className={labelCls}>At a glance</div>
+        <div className="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {[
+            ['Devices', summary.total],
+            ['Online (steward-set)', summary.online],
+            ['Compute nodes', summary.computeNodes],
+            ['Need confirmation', summary.smeNeeded],
+          ].map(([k, v]) => (
+            <div key={k}>
+              <div className="text-2xl text-[#1A1815] tabular-nums" style={serif}>{v}</div>
+              <div className="text-[0.6875rem] text-[#5A5751]">{k}</div>
+            </div>
+          ))}
+        </div>
+        {summary.smeNeeded > 0 && (
+          <p className="mt-3 text-[0.75rem] text-[#B85838]">
+            {summary.smeNeeded} device(s) carry specs not yet read off the hardware — flagged for Darrell rather than fabricated.
+          </p>
+        )}
+      </div>
+
+      {/* SECTION TABS — the shared sliding-tabs primitive ("sliding tabs for
+          all tabs instead of a long scroll", Darrell 2026-07-04). Same two
+          sections as the old hand-rolled strip; each block moved verbatim. */}
+      <SectionTabs
+        ariaLabel="Device Inventory sections"
+        idBase="devinv"
+        defaultId="registry"
+        sections={[
+          {
+            id: 'registry',
+            label: 'Registry',
+            icon: 'monitor',
+            render: () => (
+              <div className="space-y-4">
+                {/* DEVICES BY TYPE */}
+                {DEVICE_TYPES.filter((t) => (grouped[t.id] || []).length > 0).map((t) => (
+                  <div key={t.id} className={card}>
+                    <div className={`${labelCls} flex items-center gap-1.5`}>
+                      <span className="text-[#B85838]" aria-hidden="true"><UiIcon name={t.icon} /></span> {t.label}
+                      <span className="text-[#C9C2B6]">· {grouped[t.id].length}</span>
+                    </div>
+                    <div className="mt-2 space-y-2.5">
+                      {grouped[t.id].map((d) => (
+                        <DeviceCard key={d.id} device={d} canEdit={access.canEdit} onEdit={(dev) => setEditor({ target: dev })} />
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ),
+          },
+          {
+            id: 'topology',
+            label: 'Topology',
+            icon: 'globe',
+            render: () => <NetworkTopology devices={devices} canEdit={access.canEdit} />,
+          },
+          {
+            id: 'compute',
+            label: 'Compute Pool',
+            icon: 'chart',
+            render: () => (
+              <div className="space-y-4">
           {/* SCHEDULER STATE — INERT */}
           <div className={card}>
             <div className="flex items-center justify-between">
               <div className={labelCls}>Idle-GPU compute pool · scheduler</div>
-              <span className="inline-flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-[#B85838]">
+              <span className="inline-flex items-center gap-1.5 text-[0.6875rem] uppercase tracking-wider text-[#B85838]">
                 <KpiDot status="problem" /> Inert — not armed
               </span>
             </div>
-            <p className="mt-2 text-[12px] text-[#5A5751]">
+            <p className="mt-2 text-[0.75rem] text-[#5A5751]">
               A deterministic router (plain code, no AI) that would queue heavy jobs — voice clone, transcription, batch LLM — to run only when a capable node is free, the idle window is open, and every brake is go. It ships OFF; arming is reserved for Darrell, attended.
             </p>
             <div className="mt-3">
-              <div className="text-[11px] uppercase tracking-wider text-[#5A5751]">Brakes holding it inert</div>
+              <div className="text-[0.6875rem] uppercase tracking-wider text-[#5A5751]">Brakes holding it inert</div>
               <ul className="mt-1.5 space-y-1">
                 {plan.gate.reasons.map((r, i) => (
-                  <li key={i} className="flex gap-2 text-[12px] text-[#1A1815]"><span className="text-[#B85838]" aria-hidden="true">·</span><span>{r}</span></li>
+                  <li key={i} className="flex gap-2 text-[0.75rem] text-[#1A1815]"><span className="text-[#B85838]" aria-hidden="true">·</span><span>{r}</span></li>
                 ))}
               </ul>
             </div>
-            <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
+            <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2 text-[0.6875rem]">
               {[
                 ['Kill-switch', plan.gate.brakes.killEngaged ? 'Engaged' : 'Clear'],
                 ['Armed', plan.gate.brakes.armed ? 'Yes' : 'No'],
@@ -409,7 +453,7 @@ export default function DeviceInventory() {
                 </div>
               ))}
             </div>
-            <p className="mt-3 text-[12px] text-[#5A5751]">
+            <p className="mt-3 text-[0.75rem] text-[#5A5751]">
               Would run now: <span className="text-[#1A1815]">{plan.wouldRun.length}</span> job(s) — the queue is empty and the brakes are engaged, so nothing dispatches.
             </p>
           </div>
@@ -417,17 +461,17 @@ export default function DeviceInventory() {
           {/* IDLE WINDOWS */}
           <div className={card}>
             <div className={labelCls}>Idle windows (when batch work may run, once armed)</div>
-            <ul className="mt-2 space-y-1 text-[12px] text-[#1A1815]">
+            <ul className="mt-2 space-y-1 text-[0.75rem] text-[#1A1815]">
               <li className="flex gap-2"><span className="text-[#B85838]" aria-hidden="true">·</span><span>22:00 → 06:00 — overnight</span></li>
               <li className="flex gap-2"><span className="text-[#B85838]" aria-hidden="true">·</span><span>13:00 → 15:00 — the between-services lull</span></li>
             </ul>
-            <p className="mt-2 text-[11px] text-[#5A5751]">DR-0012: inference never runs on the box encoding a live stream during a service.</p>
+            <p className="mt-2 text-[0.6875rem] text-[#5A5751]">DR-0012: inference never runs on the box encoding a live stream during a service.</p>
           </div>
 
           {/* CAPABILITY INDEX — which node can take which job */}
           <div className={card}>
             <div className={labelCls}>Which node can take which job (capability index)</div>
-            <p className="mt-1 text-[12px] text-[#5A5751]">Routed jobs are matched to nodes by the capability tokens in the register — this is the single source the router reads.</p>
+            <p className="mt-1 text-[0.75rem] text-[#5A5751]">Routed jobs are matched to nodes by the capability tokens in the register — this is the single source the router reads.</p>
             <div className="mt-2 space-y-2">
               {JOB_TYPES.map((jt) => {
                 const nodes = capIndex[jt.requires] || [];
@@ -435,9 +479,9 @@ export default function DeviceInventory() {
                   <div key={jt.id} className="flex items-start justify-between gap-3 border-b border-[#E8E4DC] pb-2 last:border-0">
                     <div>
                       <div className="text-sm text-[#1A1815]" style={serif}>{jt.id}</div>
-                      <div className="text-[11px] text-[#5A5751]">requires “{capabilityLabel(jt.requires)}”</div>
+                      <div className="text-[0.6875rem] text-[#5A5751]">requires “{capabilityLabel(jt.requires)}”</div>
                     </div>
-                    <div className="text-right text-[12px]">
+                    <div className="text-right text-[0.75rem]">
                       {nodes.length > 0
                         ? nodes.map((n) => <div key={n.id} className="text-[#1A1815]">{n.name}</div>)
                         : <span className="text-[#B85838]">no capable node</span>}
@@ -463,8 +507,11 @@ export default function DeviceInventory() {
               })}
             </div>
           </div>
-        </>
-      )}
+              </div>
+            ),
+          },
+        ]}
+      />
     </div>
   );
 }

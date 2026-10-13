@@ -26,6 +26,17 @@ on:
       - 'fix/**'
       - 'merge/**'
       - 'docs/**'
+      # The remote/web sessions (Claude Code on the web) push their work on
+      # `claude/*` branches. They were excluded from the merge lane, so EVERY
+      # agent PR was invisible to auto-open + auto-merge and could only be
+      # landed by Darrell's hand -- the "we don't move when I'm not pushing"
+      # stall (2026-07-05). Bringing `claude/**` into the same sanctioned
+      # default (auto-merge on green; `hold` to soak) closes that gap.
+      - 'claude/**'
+      # The cloud sessions (claude.ai/code) push on `ccr-<id>` branches, not
+      # `claude/*`; PR #1987 sat 40 minutes on a green head because neither
+      # this trigger nor auto-merge's filter knew the prefix (DR-0773).
+      - 'ccr-**'
 
 permissions:
   contents: write
@@ -53,12 +64,33 @@ jobs:
           set -euo pipefail
           # Idempotent: skip creation if a PR for this branch is already open.
           existing=$(gh pr list --repo "$REPO" --head "$BRANCH" --state open --json number --jq '.[0].number // empty')
+          # A branch that is AT main has nothing to open (2026-09-22): after a
+          # merge the working branch is restarted on main's tip, and that push
+          # fires this workflow with zero commits ahead. `gh pr create` then
+          # hard-fails ("No commits between main and <branch>") and the lane
+          # shows a red run for a state that is entirely correct. Red must
+          # mean something; this is a clean no-op, said out loud.
+          ahead=$(gh api "repos/$REPO/compare/main...$BRANCH" --jq '.ahead_by' 2>/dev/null || echo "?")
+          if [ -z "$existing" ] && [ "$ahead" = "0" ]; then
+            echo "$BRANCH is at main (0 commits ahead) — nothing to open. Not an error."
+            exit 0
+          fi
           if [ -n "$existing" ]; then
             num="$existing"
             echo "PR #$num already open for $BRANCH."
           else
-            title=$(git log -1 --pretty=%s)
+            subject=$(git log -1 --pretty=%s)
             body=$(git log -1 --pretty=%b)
+            # GitHub caps a PR title at 256 chars; a longer commit subject makes
+            # `gh pr create` hard-fail ("GraphQL: Title is too long") and the
+            # branch is left with NO PR — invisible until someone notices the
+            # missing PR (2026-07-30 incident, REV-0217). pr-safe-title.sh
+            # truncates; when it had to, we carry the FULL subject into the body
+            # so nothing is lost. (Script is proven-to-catch in vitest.)
+            title=$(bash scripts/pr-safe-title.sh "$subject")
+            if [ "$title" != "$subject" ]; then
+              body="$(printf '%s\n\n%s' "$subject" "$body")"
+            fi
             num=$(gh pr create --repo "$REPO" --base main --head "$BRANCH" \
                     --title "$title" \
                     --body "${body:-Opened automatically on push. Rides auto-merge on green CI; label \`hold\` to keep it out of the merge lane.}" \

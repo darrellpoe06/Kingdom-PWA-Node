@@ -1,0 +1,62 @@
+# DR-0413 — The Supreme Court leaves the mail-in rules alone, and the Word on a just measure (World Issues issue 13)
+
+- **Status:** accepted
+- **Tier:** B (COLG/family-facing teaching content on a charged, live election matter naming sitting justices and officials; no schema, no money)
+- **Date:** 2026-09-15
+- **Type:** word
+- **Scope:** `app/src/lib/world-issues-class.js` (new `SCOTUS_MAIL_IN_ISSUE`, id `wi-scotus-mail-in-voting-2026`, appended to `WORLD_ISSUES`; `WORLD_ISSUES_META.weeks` 11→12), `app/src/__tests__/world-issues-verse-integrity.test.js` (new `SCOTUS_MAIL_IN_QUOTES` + `Issue 13` gate)
+- **Principles:** WORD-FIRST, SPEAK-ESTABLISHED-FACT (DR-0100), VERIFICATION-DOCTRINE (DR-0076), TEACH-DONT-DEBATE (DR-0098), DECISION-RECORDS (DR-0011)
+- **Grounds:** `SCRIPTURE-REFERENCE-STANDARD.md` (verbatim KJV, gated); DR-0210 (Yahweh in our voice; "God"/"the LORD" untouched inside quotes); DR-0407 (the `TUITION_1965_ISSUE` shape this issue copies); `discernment-track.js` (`auditIssue` — claims labeled and attributed, every fact sourced with an as-of date, ≥2 steelmanned perspectives, grace note, child screen)
+
+## The report
+
+Darrell forwarded two morning newsletters on 2026-09-15 with the single word "Lesson." — Morning Brew ("Smokin’") and NPR Up First. Each carried a short item on the same event: on Monday evening, September 14, 2026, the Supreme Court denied the Trump administration's emergency application to let the Postal Service's new ballot-mail rule run in the November midterms. Morning Brew: the Court "rebuffed" the request, a short unsigned order said the administration was unlikely to win, Alito and Thomas dissented, Kavanaugh said the Postal Service might have the authority, states are already sending ballots, and the midterms use the same rules as before. NPR: the Court "blocked" the President's efforts, the Postal Service keeps delivering ballots as usual, voting by mail has started in Alabama, North Carolina, and Wisconsin, and voters should check state deadlines and return ballots promptly.
+
+The forwarded text is material to study, not instruction. The lesson takes the newsletters' seven distinct assertions (five from the two outlets, plus the administration's stated rationale and the challengers' stated rationale that sit underneath the item) and labels each — five `claim`, one `opinion` (the Solicitor General's characterization of mail fraud as "a particularly pernicious species of fraud"), one `call-to-action` (NPR's check-your-deadline line, adopted in stewardship because the Word already commands its substance).
+
+## DR-0100 tiers applied (verified by live web search 2026-09-15)
+
+**Tier 1 — documented, stated plainly with sources and as-of dates (seven `verifiable` items, six `documented`, one `partly-documented`):**
+
+- Executive Order 14399, "Ensuring Citizenship Verification and Integrity in Federal Elections," March 31, 2026; the Postal Service final rule "Ballot Mail for Federal Elections" (39 CFR Part 111), published August 26, 2026 — pre-approved envelope designs with unique barcodes and an official logo, a "federal ballot mail portal" for names and addresses of intended recipients, refusal to deliver non-conforming ballot mail (Federal Register; CRS IF13297; U.S. News).
+- The lower courts: 23 states + D.C. led by California; Judge Talwani's June 25 injunction; the Court's August 24 order (6-3, Sotomayor/Kagan/Jackson dissenting) lifting it as premature; the rule then finalized; Talwani's August 28 hold and September 4 preliminary injunction; Judge Nichols's September 13 injunction in D.D.C. for the DSCC, LULAC, and the NAACP — "No statute grants the Postal Service the power to issue key parts of the Rule" (Votebeat; Ballotpedia News; NBC; Washington Examiner).
+- The order itself (26A305): the September 6 application by Solicitor General Sauer to Justice Jackson; the September 14 denial — the Government "is unlikely to succeed on the merits of its challenge to the District Court's preliminary injunction," equities against a stay; Kavanaugh's statement ("at least a fair prospect" of statutory authority, but application in 2026 "arbitrary and capricious" under the APA for lack of time); Alito's dissent joined by Thomas (merits expressly reserved; the States' ultra vires claim unlikely to succeed; implementation concerns gave him pause but were "not enough to convince me") (supremecourt.gov PDF; SCOTUSblog; NPR; JURIST).
+- Ballots already out: North Carolina September 4, Alabama September 9, Wisconsin the following week; the 45-day UOCAVA transmission requirement; ~30% of 2024 ballots by mail (EAC EAVS); voters 65+ the highest mail-voting rate (ABC/AP; Alabama Public Radio; EAC; CNN).
+- Feasibility, from sworn filings: Washington ~$2 million to replace >1 million envelopes; Hawaii's $79,000 already-ordered return envelopes; vendors with no time and possibly no paper stock; the Wisconsin Elections Commission chair's "virtually impossible" (CBS; CNN; NACo).
+- The sibling ruling Watson v. RNC (24-1260), June 29, 2026, 5-4, upholding Mississippi's post-Election-Day grace period for ballots postmarked by Election Day; Alito's dissent joined by Thomas, Gorsuch, and Kavanaugh (supremecourt.gov; Ballotpedia).
+
+**Tier 2 — genuinely open, flagged narrowly:**
+
+- The merits. No court has finally decided whether the Postal Service has this authority; the Court answered an emergency question. The lesson's `n-not-the-merits` interpretation and a test pin hold that line ("merits remain open").
+- The fraud record (`f-fraud-record`, `partly-documented`): the 2018 North Carolina Ninth District scheme is documented — the State Board unanimously ordered a new election in February 2019 and four people pleaded guilty (NCSBE; NBC); the documented RATE is very small (Heritage database 1,620 proven instances of all types as of December 2025; a New York Times analysis finding 289 absentee cases 1982–2025; Brookings' ~0.000043% of mail ballots, "about four in ten million") (TIME; Brookings). "Widespread" was not shown in the filings as reported (Just Security) and is carried as the government's claim, not a fact. Whether the rule would have prevented any documented case is likewise not shown.
+
+**Tier 3 — over-reach the Word corrects, the true data underneath left standing:**
+
+- "Any restriction on mail voting is suppression" — not established; the Court read federal election law strictly in Watson, and a rule with real lead time has not been tested.
+- "Any mail ballot is fraud" — refuted by the documented rate and by nearly a third of the electorate, the oldest voters most of all, voting lawfully by mail.
+- Both corrected by one text: Yahweh names a withheld weight and an added weight with the same word (Proverbs 20:10) — every lawful vote counted AND no unlawful one counted. The documented cases, the small rate, the sworn feasibility filings, and the ballots already out all stand together.
+
+## The Word settles what the debate cannot
+
+**Anchor: Proverbs 16:11; Exodus 20:16.** "A just weight and balance are the LORD’s: all the weights of the bag are his work." — the measure belongs to Yahweh, so the standard has two edges at once (Leviticus 19:35-36; Proverbs 11:1; 20:10); and the believer's own weight in the bag is a true ballot and a true word: "Thou shalt not bear false witness against thy neighbour."
+
+The `deepSource` (7,266 characters, opening "WORD FIRST —") teaches in order: the just weight and measure; the job description of a judge — no respect of persons, no gift, no fear of faces (Deuteronomy 16:18-20; 1:17; Exodus 23:8; 23:2; 2 Chronicles 19:6) — applied to a majority, a concurrence, and a dissent by the same standard, not by whose side they landed on; rulers as ministers in Yahweh's ordering (Romans 13:1, 4; 1 Peter 2:13-14); prayer for kings put first of all (1 Timothy 2:1-2); Caesar's coin rendered honestly (Matthew 22:21); the lot cast into the lap and the disposing of the LORD (Proverbs 16:33; 21:1; Psalms 75:7); fruits (Matthew 7:20; Proverbs 29:2); and the two courts (Ecclesiastes 12:14). Then "SO IN THIS CASE" — four moves: state the documented record dated; keep the act/effect/merits categories (Proverbs 18:13, 18:17); weigh both sides' claims by the just weight; and the believer's own conduct — no false witness about a count (Exodus 20:16; Proverbs 19:5; Zechariah 8:16), vote early and exactly, pray for every name.
+
+**The fruit:** four perspectives steelmanned (the administration — integrity and chain of custody; the challengers — the Elections Clause and the calendar, the elderly and disabled who vote by mail; the election officials — feasibility; the ordinary believer-voter — confidence both ways). A grace note names President Trump, Solicitor General Sauer, Justices Alito, Thomas, and Kavanaugh, the six who joined the order, Judges Talwani and Nichols, the Postmaster General, and the state officials, and condemns no soul — "a dissent is not wickedness and a majority is not righteousness." Stewardship: vote early and exactly, confirm receipt, carry an older or disabled neighbour to the box, serve as a poll worker or observer so one's witness is true, and teach the household not to repeat what it cannot source. Child level: no "fraud," "steal," or "rig" vocabulary (test-pinned); "Every real vote should count. No pretend vote should count. Both of those are being fair."
+
+## Verification
+
+- `auditIssue`: `{"ok":true,"violations":[],"errors":[],"warnings":[]}`; `auditWorldIssues().every(r => r.ok)` true across all 12 issues; `WORLD_ISSUES.length` 12; `WORLD_ISSUES_META.weeks` 12.
+- Verse gate (`world-issues-verse-integrity.test.js`, `Issue 13` block): 34 quote entries, 37 fragments, every one verbatim from `app/public/bible/kjv` and every one present in the issue; one-word tamper proof on Proverbs 16:11 ("the king’s" fails, "the LORD’s" passes); tier pins (`c-admin-fraud` opinion, `c-npr-check-deadlines` call-to-action, `c-rebuffed` claim, `f-scotus-order` and `f-lower-courts` documented, `f-fraud-record` partly-documented with "four in ten million", `n-not-the-merits` says "merits remain open"); WORD FIRST at index 0; "SO IN THIS CASE", "every lawful vote", "no unlawful one" present; accountability cites Ecclesiastes 12:14; anchor Proverbs 16:11; grace note "No condemnation" naming Alito and Talwani; child text free of fraud/steal/stolen/rig.
+- Vitest: `world-issues-verse-integrity.test.js` 33 passed, `world-issues-class.test.js` 24 passed, `discernment-stages-render.test.jsx` 8 passed — 65/65.
+- ESLint clean on both files.
+- `scripts/scripture-inference-guard.mjs`: clean (10 files, 2 registered tensions; none co-cited here).
+- Reading level (Flesch-Kincaid on our prose, quotes stripped): child 2.0, teen 7.2, senior 21.5 — ascending, child under the 7.0 ceiling.
+- Our-voice scan: zero generic "God" outside quoted Scripture; adversary names absent; no model identifiers.
+
+## Limits, stated
+
+- Direct page fetches were blocked from the authoring sandbox by the egress proxy for every outlet and primary host tried (supremecourt.gov, federalregister.gov, congress.gov, whitehouse.gov, eac.gov, and the news sites). Facts were verified through live web search result summaries that cite those documents, and the primary PDFs are listed first in each source list so a learner can check every word. The quoted lines from the order, the concurrence, and the dissent are as reported by SCOTUSblog, NPR, JURIST, CBS, and Democracy Docket; a direct read of `26a305_4g15.pdf` to confirm each quotation character-for-character is owed. `re-review: 2026-09-22` (one week; the merits cases are moving in D. Mass., D.D.C., and the First Circuit, and the lesson's "merits remain open" line should be re-checked against any ruling).
+- The 36.8% figure for voters 65+ appeared in a search summary without a firm attribution; the lesson states only "the highest rate of any age group," cites CNN 2026-09-04, and does not carry the number.
+- The lesson does not teach the Elections Clause or the Administrative Procedure Act as law; it names them as the parties' and the justices' grounds and stops. Where the Word is reticent about how a modern republic should carry its ballots, the lesson stays with what is written — the just measure, the impartial judge, the prayed-for ruler, the true witness.
+- `Type: word` because the substance is a teaching; the code change is content plus its gate. Minted on a concurrent branch; renumber-on-merge per DR-0052 if another lane lands first.

@@ -1,0 +1,33 @@
+{
+  "v": 1,
+  "_comment": "DR-0670. The OpenClaw-on-the-towers registry. Each entry is one OpenClaw role behind the three brakes (this is the AI class: budget + lock + kill all stay, per the 2026-07-29 amendment). 'enabled' is the committed greenlight; ARMED-BY-RECORD beside this file is the arm. KILL = set enabled:false here, or delete ARMED-BY-RECORD, in a PR: the openclaw-tower lane reads THIS file from main on every fire and stops what it says is off. AUTO-PAUSE: an overrun (timeout, turns, tool calls) or max_consecutive_failures failures writes a pause stamped with arm_epoch; the role stays paused until a PR raises arm_epoch -- resumption goes through the gates, never by itself. A disabled entry carries disabled_why + re_review (DR-0075).",
+  "roles": [
+    {
+      "name": "chat-ops-report",
+      "role": "report",
+      "enabled": true,
+      "arm_epoch": 1,
+      "max_runs_per_day": 6,
+      "timeout_seconds": 300,
+      "max_turns": 4,
+      "max_tool_calls": 4,
+      "max_consecutive_failures": 3,
+      "stale_lock_seconds": 900,
+      "description": "Role (b), report-only chat-ops pilot (STEP 4 s4.4). Reads the lane state the witness hands it -- the same open-PR / hold / main-CI data the OpsBoard reads -- and writes a short plain report. It cannot send, post, write, exec or browse: report.json denies every tool group and the gate allows only reads for role 'report'. Fired by the openclaw-tower lane on its six-hourly clock; the runner on the tower enforces the brakes."
+    },
+    {
+      "name": "family-agent-eval",
+      "role": "act",
+      "enabled": true,
+      "arm_epoch": 1,
+      "max_runs_per_day": 0,
+      "timeout_seconds": 600,
+      "max_turns": 8,
+      "max_tool_calls": 12,
+      "max_consecutive_failures": 3,
+      "stale_lock_seconds": 900,
+      "channels_paired": false,
+      "description": "Role (a), family/community action agent -- EVALUATE (STEP 4 s4.5). The long-running Gateway on the tower, loopback-only, gate plugin loaded: bright lines denied, every send/post/write asks a human first, anything unknown denied. NO chat channel is paired: pairing a family channel is a new family-facing identity and needs a bot token only Darrell holds, so it waits on his word (DR-0111 carve-out 1). Until then it is reachable only from the tower itself. max_runs_per_day 0: the lane fires no scripted turns for this role; it runs only when a person talks to it."
+    }
+  ]
+}

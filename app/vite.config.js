@@ -7,33 +7,13 @@ import { buildInterconnectManifest } from '../scripts/interconnect-manifest.mjs'
 import { buildConflictManifest } from '../scripts/orchestration/conflict-analytics.mjs';
 import { buildTestCensus } from '../scripts/test-census.mjs';
 import { buildLessonsManifest } from '../scripts/lessons-manifest.mjs';
+import { chainOf } from './src/lib/decision-chain.js';
+import { parseGovernanceQueue } from './src/lib/governance-queue-parse.js';
 
-// DR-0061 (surfaces are live views of real flow): the Build board's automation
-// count must be a REAL number, not hand-typed. Count the actual n8n workflow
-// files in the repo at build time — `built` is the file count (a fact), `active`
-// is how many carry "active": true in the repo JSON (REPO state, not live
-// run-status; live status arrives in Stage 2 via the dispatch feed). Best-effort:
-// a missing dir or unparseable file degrades the count, never crashes the build.
-function countWorkflowFiles() {
-  const dirs = ['../docs/00-foundations/n8n-workflows/', '../infra/n8n/'];
-  let built = 0;
-  let active = 0;
-  for (const rel of dirs) {
-    let names = [];
-    try { names = readdirSync(fileURLToPath(new URL(rel, import.meta.url))); } catch { continue; }
-    for (const f of names) {
-      if (!f.endsWith('.json')) continue;
-      built++;
-      try {
-        let raw = readFileSync(fileURLToPath(new URL(rel + f, import.meta.url)), 'utf8');
-        if (raw.charCodeAt(0) === 0xFEFF) raw = raw.slice(1);
-        if (JSON.parse(raw).active === true) active++;
-      } catch { /* still a built workflow even if unparseable */ }
-    }
-  }
-  return { built, active };
-}
-const workflowStats = countWorkflowFiles();
+// (The build-time n8n workflow counter + registry — countWorkflowFiles /
+// buildWorkflowRegistry, DR-0061 / DR-0158 — were removed when n8n left the
+// app's picture, DR-0617: the app lists no n8n workflows any more.
+// lib/workflow-registry.js now says so plainly on every surface that asked.)
 
 // Governance decision queue (Darrell, 2026-06-13: "built inside and outside of
 // the app ... for comprehensive review and continuity of work"). The repo file
@@ -45,28 +25,11 @@ function readGovernanceQueue() {
   let raw = '';
   try {
     raw = readFileSync(fileURLToPath(new URL('../docs/governance/decision-queue.md', import.meta.url)), 'utf8');
-  } catch { return { ok: false, openCount: 0, items: [] }; }
-  // Isolate the "## OPEN" section (everything up to "## DECIDED").
-  const openSection = (raw.split(/^##\s+OPEN\b.*$/m)[1] || '').split(/^##\s+DECIDED\b/m)[0];
-  const blocks = openSection.split(/^###\s+/m).slice(1);
-  const field = (block, label) => {
-    const m = block.match(new RegExp(`\\*\\*${label}:\\*\\*\\s*([^\\n]+)`, 'i'));
-    return m ? m[1].trim() : '';
-  };
-  const items = blocks.map((b) => {
-    const head = (b.split('\n')[0] || '').trim();
-    const [idPart, ...titleParts] = head.split('·');
-    const tierMatch = b.match(/Tier\s+([ABC])\b/);
-    return {
-      id: (idPart || '').trim(),
-      title: titleParts.join('·').trim(),
-      unblocks: field(b, 'Unblocks'),
-      recommendation: field(b, 'My recommendation') || field(b, 'Recommendation'),
-      track: field(b, 'Track'),
-      tier: tierMatch ? tierMatch[1] : '',
-    };
-  }).filter((it) => /^OPEN-\d+/.test(it.id));
-  return { ok: true, openCount: items.length, items };
+  } catch { return { ok: false, openCount: 0, items: [], reviews: [] }; }
+  // The parser lives in src/lib so the tests prove exactly what the app shows;
+  // each section now ends at the next "## " heading (2026-09-29: the OPEN
+  // section used to run on into BUILD BACKLOG and mislabel OPEN-5's tier).
+  return parseGovernanceQueue(raw);
 }
 const governanceQueue = readGovernanceQueue();
 
@@ -90,13 +53,33 @@ function readDecisionLedger() {
     return raw.replace(/\r\n/g, '\n');
   };
   // Lightweight YAML-frontmatter scalar reader (no dep): first --- ... --- block.
+  // FALLBACK (2026-07-07, the "no static data" cleaning pass): 28 of the DR
+  // files use the list-style header instead ("# DR-XXXX — Title" + "- **Date:**
+  // 2026-07-07" bullets) — including the newest records. Without this fallback
+  // they parsed as empty (no title, no date) and silently dropped out of every
+  // date-derived surface (the Build tab's ship story, Ari's notes, the
+  // Perpetual Report). Parse both shapes so the in-app ledger carries the
+  // whole real record.
   const frontmatter = (raw) => {
-    const m = /^---\n([\s\S]*?)\n---/.exec(raw);
     const out = {};
-    if (!m) return out;
-    for (const line of m[1].split('\n')) {
-      const mm = /^([A-Za-z_-]+):\s*(.*)$/.exec(line);
-      if (mm) out[mm[1]] = mm[2].trim();
+    const m = /^---\n([\s\S]*?)\n---/.exec(raw);
+    if (m) {
+      for (const line of m[1].split('\n')) {
+        const mm = /^([A-Za-z_-]+):\s*(.*)$/.exec(line);
+        if (mm) out[mm[1]] = mm[2].trim();
+      }
+      return out;
+    }
+    // List-style: title from the H1 ("# DR-0121 — <title>"), scalars from the
+    // "- **Field:** value" bullets near the top.
+    const h1 = /^#\s+(DR-\d{4})\s*[—-]\s*(.+)$/m.exec(raw);
+    if (h1) { out.id = h1[1]; out.title = h1[2].trim(); }
+    for (const mm of raw.matchAll(/^-\s+\*\*([A-Za-z-]+):\*\*\s*(.+)$/gm)) {
+      const key = mm[1].toLowerCase();
+      if (key === 'status') out.status = mm[2].trim();
+      else if (key === 'date') out.date = mm[2].trim().slice(0, 10);
+      else if (key === 'tier') out.tier = mm[2].trim().split(/\s/)[0];
+      else if (key === 'superseded-by') out['superseded-by'] = mm[2].trim();
     }
     return out;
   };
@@ -121,6 +104,7 @@ function readDecisionLedger() {
   const stripNull = (v) => (v && v !== 'null' && v !== '[]' ? v : '');
 
   const byNum = new Map();
+  const newestNum = names.reduce((mx, f) => { const m = /^DR-(\d{4})-/.exec(f); return m ? Math.max(mx, parseInt(m[1], 10)) : mx; }, 0);
 
   // 1) Per-DR files: DR-XXXX-*.md (skips INDEX.md / README.md / PRINCIPLES.md).
   for (const f of names) {
@@ -139,9 +123,17 @@ function readDecisionLedger() {
       tier: stripNull(meta.tier),
       supersededBy: stripNull(meta['superseded-by']),
       decision: plain(section(raw, 'Decision')),
-      rationale: plain(section(raw, 'Context')),
+      // Older records carry "## Context"; the list-style ones carry the
+      // directive quote under "## Directive" — either is the why.
+      rationale: plain(section(raw, 'Context') || section(raw, 'Directive')),
       owner: '',
       source: stripNull(meta.source),
+      // Concern → Evidence → Impact → Decision → Outcome, read from the
+      // record's own sections (lib/decision-chain.js; DR-0588). The newest
+      // forty carry each slot's text (bounded); every
+      // record carries which slots it has and which it lacks, so the
+      // surface can say "not recorded" instead of painting one.
+      chain: chainOf(raw, { max: 500, withText: num > newestNum - 40 }),
     });
   }
 
@@ -173,6 +165,29 @@ function readDecisionLedger() {
   return { ok: items.length > 0, count: items.length, items };
 }
 const decisionLedger = readDecisionLedger();
+
+// Binding-principle registry (docs/decisions/PRINCIPLES.md) — the cite-once Ways
+// vocabulary (TLC-FIREWALL, THREE-BRAKES, VERIFICATION-DOCTRINE, …). Baked so the
+// app can SHOW the binding Ways live (the family/Governor sees the principles that
+// govern the build), not only have them cited in commit trailers. Same evidence
+// discipline as the DR ledger: every row is a real registry line, nothing painted
+// (DR-0076). Best-effort: a missing/garbled file degrades to an honest empty
+// registry, never crashes the build.
+function readPrinciples() {
+  let raw = '';
+  try { raw = readFileSync(fileURLToPath(new URL('../docs/decisions/PRINCIPLES.md', import.meta.url)), 'utf8'); }
+  catch { return { ok: false, count: 0, items: [] }; }
+  const items = [];
+  for (const line of raw.split('\n')) {
+    // | **ID** | one-line | source |  — the header (| ID | …) and | --- | rows
+    // never match because the first cell must be **BOLD-ID**.
+    const m = /^\|\s*\*\*([A-Z0-9][A-Z0-9-]*)\*\*\s*\|\s*(.+?)\s*\|\s*(.+?)\s*\|\s*$/.exec(line);
+    if (!m) continue;
+    items.push({ id: m[1].trim(), summary: m[2].trim(), source: m[3].replace(/`/g, '').trim() });
+  }
+  return { ok: items.length > 0, count: items.length, items };
+}
+const drPrinciples = readPrinciples();
 
 // UI/UX & accessibility review registry (Darrell, 2026-06-16: "our app UI/UX
 // reviews -- are they in there?"). docs/reviews/REVIEWS.md is the single source
@@ -259,6 +274,15 @@ catch (e) { interconnectLoops = { ok: false, error: (e && e.message) || 'manifes
 // Actions' GITHUB_SHA (the off-Vercel pipeline; see
 // docs/99-session-notes/2026-06-16-research-review-off-vercel-hosting.md and
 // .github/workflows/deploy-cloudflare-pages.yml). Locally falls back to 'dev'.
+// THE NATIVE SHELL BUILDS THE SAME APP AT BASE '/' (DR-0570). The web build is
+// published at the site root with /poetech-app/ rewritten onto it (_redirects),
+// so both are ONE layout seen from two doors; the local app has no rewrite
+// layer, so it is built at the root it is served from. Env unset → the web
+// build, exactly as before. The base is used in two places below and nowhere
+// else, so the two builds cannot drift apart.
+const NATIVE_SHELL = process.env.PT_NATIVE_SHELL === '1';
+const BASE = NATIVE_SHELL ? '/' : '/poetech-app/';
+
 const buildTime = new Date().toISOString();
 const buildSha = (
   process.env.VERCEL_GIT_COMMIT_SHA ||
@@ -283,6 +307,14 @@ const swVersionStamp = () => ({
       throw new Error('sw-version-stamp: __SW_VERSION__ placeholder missing from dist/sw.js');
     }
     writeFileSync(swPath, src.replace("'__SW_VERSION__'", JSON.stringify(swVersion)));
+    // THE LIVE BUILD NAMES ITSELF (2026-10-07, DR-0781). Darrell's tablet read
+    // "build 847EC24 · LATEST" six deploys behind: "Latest" meant only "no new
+    // worker is waiting", a claim about the device, never a measurement of the
+    // server. dist/build.json carries the deployed sha and time; the app fetches
+    // it with cache: 'no-store' (and _headers forbids caching it) and compares
+    // it with its own __BUILD_SHA__. Different = behind, said and acted on.
+    const buildJsonPath = fileURLToPath(new URL('./dist/build.json', import.meta.url));
+    writeFileSync(buildJsonPath, JSON.stringify({ sha: buildSha, time: buildTime, sw: swVersion }));
   },
 });
 
@@ -304,15 +336,11 @@ const modulepreloadMonolith = () => ({
       if (!bundle) return html;
       const fileName = Object.keys(bundle).find((f) => /poe-financial-mvp-v28-.*\.js$/.test(f));
       if (!fileName) return html;
-      return html.replace('__MONOLITH_PRELOAD_HREF__', '/poetech-app/' + fileName);
+      return html.replace('__MONOLITH_PRELOAD_HREF__', BASE + fileName);
     },
   },
 });
 
-// Dev-only proxy so the NAS-backed bridges (/n8n/webhook/*) work in `vite dev`
-// exactly as the production Vercel rewrite makes them work. LAN-reachable
-// NAS; never used in the production build (Vercel handles /n8n there).
-const N8N_DEV_TARGET = process.env.N8N_DEV_TARGET || 'http://192.168.1.26:5678';
 // The sovereign property-photo image server (infra/nas-property-photos) runs on
 // its own NAS port. In dev we reach it directly (prod goes via the /nas-photos
 // Vercel rewrite -> Tailscale-fronted NAS). Prefix stripped so the server sees
@@ -320,11 +348,41 @@ const N8N_DEV_TARGET = process.env.N8N_DEV_TARGET || 'http://192.168.1.26:5678';
 const NAS_PHOTOS_DEV_TARGET = process.env.NAS_PHOTOS_DEV_TARGET || 'http://192.168.1.26:8099';
 
 export default defineConfig({
-  base: '/poetech-app/',
+  base: BASE,
   plugins: [react(), swVersionStamp(), modulepreloadMonolith()],
+  // The on-device voice's worker (lib/device-voice.worker.js, DR-0656) imports
+  // onnxruntime-web's ESM build, which reads import.meta.url; the default
+  // 'iife' worker format cannot carry that, so workers are built as modules.
+  worker: { format: 'es' },
   build: {
     rollupOptions: {
+      // MPA inputs (DR-0258 install-scope split): the church's app page at
+      // /lovecorner/app/ serves the SAME app from a second HTML whose STATIC
+      // markup links manifest-lovecorner — install identity is a page-load
+      // property, so each installable face gets its own served HTML instead of
+      // a flaky runtime <link> swap. Scopes are disjoint (/poetech-app/ vs
+      // /lovecorner/), which is what lets Chrome install both on one device.
+      input: {
+        main: fileURLToPath(new URL('./index.html', import.meta.url)),
+        lovecorner: fileURLToPath(new URL('./lovecorner/app/index.html', import.meta.url)),
+        moore: fileURLToPath(new URL('./moore/app/index.html', import.meta.url)),
+        tlc: fileURLToPath(new URL('./tlc/app/index.html', import.meta.url)),
+        properties: fileURLToPath(new URL('./properties/app/index.html', import.meta.url)),
+      },
       output: {
+        // Per-BUILD banner on every JS chunk (DR-0139 incident, 2026-07-10).
+        // Cloudflare Pages' wrangler upload DEDUPES by content hash: a chunk
+        // whose bytes never change (react-vendor, by design below) is never
+        // re-uploaded — so when its stored blob went bad, four consecutive
+        // fresh deploys all served a module answered as text/html and the app
+        // failed to BOOT everywhere (probe-green, boot-red; issue #715). The
+        // stamp makes every chunk byte-unique per build → new hashed filename
+        // → a fresh upload every deploy; a poisoned stored blob can never be
+        // reused. Costs cross-deploy cache reuse on the vendor chunk (~50KB gz
+        // per deploy per device) — uptime outranks that (DR-0107). Executable
+        // code, not a comment: the minifier strips comments (verified — a
+        // banner left the hash unchanged), but keeps a side-effecting stamp.
+        intro: `globalThis.__PT_BUILD__ = ${JSON.stringify(`${buildSha || 'dev'}.${buildTime}`)};`,
         // Vendor chunk split (PERFORMANCE-REVIEW §5 #2). Pin React + ReactDOM
         // (and their runtime deps) into a stable `react-vendor` chunk so the
         // ~50KB gz of framework code stays cache-warm across deploys instead of
@@ -334,7 +392,25 @@ export default defineConfig({
             if (/[\\/]node_modules[\\/](react|react-dom|scheduler|use-sync-external-store)[\\/]/.test(id)) {
               return 'react-vendor';
             }
+            return undefined;
           }
+          // DR-0595 (2026-09-23, post-incident): Cloudflare Pages refuses any
+          // single file over 25 MiB, and the entry chunk crossed it on the
+          // #1756 merge (26.1 MiB measured by wrangler) — the deploy failed and
+          // the site served a stale build. The course libraries are the bulk:
+          // living-lessons-class.js alone is ~11 MB of source and every other
+          // course adds 130–860 KB. They are still imported eagerly (nothing
+          // about load order changes — index.html modulepreloads every static
+          // chunk), but each lands in its OWN file, so no file approaches the
+          // cap and the entry chunk stops growing with every lesson. The
+          // asset-size guard in ci.yml fails the build before a merge if any
+          // file is within 1 MiB of the cap.
+          // DR-0675: the Who He Is data (every passage of the whole Word that
+          // tells Who He Is, ~0.8 MB) rides in its own file, like the courses.
+          if (/[\\/]src[\\/]lib[\\/]who-he-is(-data\.json|-rules\.js|\.js)$/.test(id)) return 'who-he-is';
+          if (/[\\/]src[\\/]lib[\\/]living-lessons-class\.js$/.test(id)) return 'living-lessons';
+          if (/[\\/]src[\\/]lib[\\/][a-z0-9-]+-(course|class|study)\.js$/.test(id)) return 'learn-courses';
+          return undefined;
         },
       },
     },
@@ -342,9 +418,9 @@ export default defineConfig({
   define: {
     __BUILD_TIME__: JSON.stringify(buildTime),
     __BUILD_SHA__: JSON.stringify(buildSha),
-    __WORKFLOW_STATS__: JSON.stringify(workflowStats),
     __GOVERNANCE_QUEUE__: JSON.stringify(governanceQueue),
     __DR_LEDGER__: JSON.stringify(decisionLedger),
+    __DR_PRINCIPLES__: JSON.stringify(drPrinciples),
     __QUALITY_PROOF__: JSON.stringify(qualityProof),
     __INTERCONNECT_LOOPS__: JSON.stringify(interconnectLoops),
     __CONFLICT_LOOP__: JSON.stringify(conflictLoop),
@@ -354,7 +430,6 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      '/n8n': { target: N8N_DEV_TARGET, changeOrigin: true, rewrite: (p) => p.replace(/^\/n8n/, '') },
       '/nas-photos': { target: NAS_PHOTOS_DEV_TARGET, changeOrigin: true, rewrite: (p) => p.replace(/^\/nas-photos/, '') },
     },
   },

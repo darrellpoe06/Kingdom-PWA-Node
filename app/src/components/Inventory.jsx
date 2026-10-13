@@ -31,6 +31,7 @@
 import React, { useMemo, useState } from 'react';
 import { SectionTitle, MetricCell } from './shared.jsx';
 import UiIcon from './UiIcon.jsx';
+import SectionTabs from './SectionTabs.jsx';
 import {
   decorateItems, filterItems, summarizeInventory, onHandByItemLocation,
   onHandFor, validateMovement, buildTransfer, lowStockItems, dedupeBySku,
@@ -105,7 +106,7 @@ export default function Inventory({
   if (!addItem) {
     // Defensive: never white-screen if wiring is incomplete.
     return (
-      <div className="max-w-2xl">
+      <div className="w-full">
         <SectionTitle eyebrow="System of record">Inventory</SectionTitle>
         <div className="bg-[#FAF8F4] border border-[#E8E4DC] p-6 text-sm text-[#5A5751]">
           Inventory is not wired to persistence in this view.
@@ -115,7 +116,7 @@ export default function Inventory({
   }
 
   return (
-    <div className="max-w-5xl">
+    <div className="w-full">
       <SectionTitle eyebrow="System of record · derived on-hand · immutable ledger">Inventory</SectionTitle>
 
       <p className="text-sm text-[#5A5751] mb-4 max-w-3xl">
@@ -224,12 +225,12 @@ export default function Inventory({
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-[#F4F2EE] text-left text-[0.625rem] uppercase tracking-wider text-[#5A5751]">
-                <th className="px-2 py-2">Item</th>
-                <th className="px-2 py-2 hidden sm:table-cell">Category</th>
-                <th className="px-2 py-2 hidden md:table-cell">Location</th>
-                <th className="px-2 py-2 text-right">On hand</th>
-                <th className="px-2 py-2">Status</th>
-                <th className="px-2 py-2 text-right hidden sm:table-cell">Value</th>
+                <th scope="col" className="px-2 py-2">Item</th>
+                <th scope="col" className="px-2 py-2 hidden sm:table-cell">Category</th>
+                <th scope="col" className="px-2 py-2 hidden md:table-cell">Location</th>
+                <th scope="col" className="px-2 py-2 text-right">On hand</th>
+                <th scope="col" className="px-2 py-2">Status</th>
+                <th scope="col" className="px-2 py-2 text-right hidden sm:table-cell">Value</th>
               </tr>
             </thead>
             <tbody>
@@ -347,31 +348,30 @@ function AddItemForm({ onAdd, onCancel, existingSkus }) {
 // ItemDetail — record a movement, edit the item, and read its full history.
 // ---------------------------------------------------------------------------
 function ItemDetail({ item, movements, recordEvents, byLoc, onPostMovement, onTransfer, onEditItem, currentUserPersona }) {
-  const [tab, setTab] = useState('move');
   const ledger = useMemo(() => itemHistoryFromMovements(movements, item.id), [movements, item.id]);
   const timeline = useMemo(() => versionTimeline(recordEvents, 'inventory_item', item.id), [recordEvents, item.id]);
   const locEntries = Object.entries(byLoc).filter(([, v]) => v !== 0);
 
-  return (
-    <div className="border border-[#E8E4DC] bg-white">
-      <div className="flex gap-1 border-b border-[#E8E4DC] text-xs">
-        {[['move', 'Record movement'], ['edit', 'Edit item'], ['ledger', `Stock ledger (${ledger.length})`], ['history', `Edit history (${timeline.length})`]].map(([k, label]) => (
-          <button key={k} type="button" onClick={() => setTab(k)} className={`px-3 py-2 ${tab === k ? 'border-b-2 border-[#B85838] text-[#1A1815] font-medium' : 'text-[#5A5751] hover:text-[#1A1815]'}`}>{label}</button>
-        ))}
-      </div>
+  // Harmonized to the shared SectionTabs primitive (Darrell 2026-07-04: "sliding
+  // tabs for all tabs"): the hand-rolled move/edit/ledger/history strip is now
+  // the same guarded, keyboard-navigable tablist every other surface slides on.
+  // Nothing outside the strip read the old tab state, so the strip + state fold
+  // straight into sections; each panel still mounts lazily, on open.
+  const sections = [
+    { id: 'move', label: 'Record movement', render: () => <MovementForm item={item} onPost={onPostMovement} onTransfer={onTransfer} /> },
+    { id: 'edit', label: 'Edit item', render: () => <EditItemForm item={item} onSave={onEditItem} /> },
+    { id: 'ledger', label: `Stock ledger (${ledger.length})`, render: () => <LedgerView ledger={ledger} unit={item.unit} /> },
+    { id: 'history', label: `Edit history (${timeline.length})`, render: () => <HistoryView timeline={timeline} /> },
+  ];
 
+  return (
+    <div className="border border-[#E8E4DC] bg-white p-3">
       {locEntries.length > 1 && (
-        <div className="px-3 pt-2 text-[0.625rem] text-[#5A5751]">
+        <div className="pb-2 text-[0.625rem] text-[#5A5751]">
           By location: {locEntries.map(([loc, v]) => `${loc}: ${qtyFmt(v)}`).join(' · ')}
         </div>
       )}
-
-      <div className="p-3">
-        {tab === 'move' && <MovementForm item={item} onPost={onPostMovement} onTransfer={onTransfer} />}
-        {tab === 'edit' && <EditItemForm item={item} onSave={onEditItem} />}
-        {tab === 'ledger' && <LedgerView ledger={ledger} unit={item.unit} />}
-        {tab === 'history' && <HistoryView timeline={timeline} />}
-      </div>
+      <SectionTabs sections={sections} ariaLabel="Item detail sections" idBase="invdetail" defaultId="move" />
     </div>
   );
 }
@@ -449,7 +449,7 @@ function LedgerView({ ledger, unit }) {
       <table className="w-full text-xs">
         <thead>
           <tr className="text-left text-[0.625rem] uppercase tracking-wider text-[#5A5751]">
-            <th className="py-1 pr-2">When</th><th className="py-1 pr-2">Type</th><th className="py-1 pr-2 text-right">Change</th><th className="py-1 pr-2 text-right">On hand</th><th className="py-1 pr-2">Where</th><th className="py-1 pr-2">Reason</th><th className="py-1 pr-2">By</th>
+            <th scope="col" className="py-1 pr-2">When</th><th scope="col" className="py-1 pr-2">Type</th><th scope="col" className="py-1 pr-2 text-right">Change</th><th scope="col" className="py-1 pr-2 text-right">On hand</th><th scope="col" className="py-1 pr-2">Where</th><th scope="col" className="py-1 pr-2">Reason</th><th scope="col" className="py-1 pr-2">By</th>
           </tr>
         </thead>
         <tbody>
@@ -501,7 +501,7 @@ function CategoryRollup({ items, movements }) {
         <table className="w-full text-xs">
           <thead>
             <tr className="bg-[#F4F2EE] text-left text-[0.625rem] uppercase tracking-wider text-[#5A5751]">
-              <th className="px-2 py-1.5">Category</th><th className="px-2 py-1.5 text-right">Items</th><th className="px-2 py-1.5 text-right">Units</th><th className="px-2 py-1.5 text-right">Value</th><th className="px-2 py-1.5 text-right">Low / Out</th>
+              <th scope="col" className="px-2 py-1.5">Category</th><th scope="col" className="px-2 py-1.5 text-right">Items</th><th scope="col" className="px-2 py-1.5 text-right">Units</th><th scope="col" className="px-2 py-1.5 text-right">Value</th><th scope="col" className="px-2 py-1.5 text-right">Low / Out</th>
             </tr>
           </thead>
           <tbody>

@@ -123,19 +123,53 @@ let fetcher = (typeof fetch !== 'undefined') ? fetch.bind(globalThis) : null;
 // Test seam: inject a fetcher (or null to reset to the global).
 export function __setBibleFetcher(fn) { fetcher = fn || ((typeof fetch !== 'undefined') ? fetch.bind(globalThis) : null); }
 
-const cache = new Map(); // file -> { name, chapters:[[text,...],...] }
+const cache = new Map(); // `${edition}/${file}` -> { name, chapters:[[text,...],...] }
 
-export async function loadBook(nameOrFile) {
+// EDITIONS ON DISK. Both corpora are written by their ingest scripts in the SAME
+// per-book shape, under the same base path, with book names taken from the KJV
+// index — so one loader serves both and a new public-domain edition is a folder,
+// not a code path (Darrell 2026-08-13: "yes ingest the WEB translation").
+//
+// Only editions bible-editions.js marks `reproduce: true` may appear here; that
+// registry is the licence gate and this is just the reader. `kjv` stays the
+// default so every existing caller is untouched.
+export const EDITIONS_ON_DISK = ['kjv', 'web'];
+
+// THE READER'S EDITION, remembered per device. Darrell 2026-09-06: "we want
+// kjv and esv" / "why can't we carry a cited esv corpus? Or build our own
+// quickly". The ESV cannot be carried (Crossway; bible-editions.js), so the
+// readable second edition is the public-domain WEB already on disk. Only an
+// edition on disk is ever remembered; anything else reads as KJV.
+export const READER_EDITION_KEY = 'poetech.bible.edition';
+const storeOrNull = () => { try { return typeof localStorage !== 'undefined' ? localStorage : null; } catch (_) { return null; } };
+export function readerEdition(store = storeOrNull()) {
+  try {
+    const v = store ? String(store.getItem(READER_EDITION_KEY) || '').toLowerCase() : '';
+    return EDITIONS_ON_DISK.includes(v) ? v : 'kjv';
+  } catch (_) { return 'kjv'; }
+}
+export function rememberReaderEdition(edition, store = storeOrNull()) {
+  try {
+    if (!store) return;
+    const v = String(edition || '').toLowerCase();
+    if (EDITIONS_ON_DISK.includes(v)) store.setItem(READER_EDITION_KEY, v);
+  } catch (_) { /* a blocked store never breaks the reader */ }
+}
+const editionDir = (e) => (EDITIONS_ON_DISK.includes(String(e || '').toLowerCase()) ? String(e).toLowerCase() : 'kjv');
+
+export async function loadBook(nameOrFile, edition = 'kjv') {
   const meta = bookMeta(nameOrFile);
   if (!meta) return null;
-  if (cache.has(meta.file)) return cache.get(meta.file);
+  const dir = editionDir(edition);
+  const key = `${dir}/${meta.file}`;
+  if (cache.has(key)) return cache.get(key);
   if (!fetcher) return null;
   try {
-    const res = await fetcher(`${BASE}bible/kjv/${meta.file}.json`);
+    const res = await fetcher(`${BASE}bible/${dir}/${meta.file}.json`);
     if (!res || !res.ok) return null;
     const data = await res.json();
     if (!data || !Array.isArray(data.chapters)) return null;
-    cache.set(meta.file, data);
+    cache.set(key, data);
     return data;
   } catch {
     return null;
@@ -144,10 +178,10 @@ export async function loadBook(nameOrFile) {
 
 // Verbatim KJV text for a reference (a range is joined by spaces), or '' if the
 // ref is unparseable or the book/verse is missing.
-export async function verseText(ref) {
+export async function verseText(ref, edition = 'kjv') {
   const p = parseRef(ref);
   if (!p) return '';
-  const book = await loadBook(p.file);
+  const book = await loadBook(p.file, edition);
   const ch = book && book.chapters[p.chapter - 1];
   if (!ch) return '';
   const parts = [];
@@ -160,8 +194,8 @@ export async function verseText(ref) {
 }
 
 // The verses of a chapter as [{ v, text }], or [] on any miss. Powers the reader.
-export async function chapterVerses(nameOrFile, chapter) {
-  const book = await loadBook(nameOrFile);
+export async function chapterVerses(nameOrFile, chapter, edition = 'kjv') {
+  const book = await loadBook(nameOrFile, edition);
   const ch = book && book.chapters[Number(chapter) - 1];
   if (!ch) return [];
   return ch.map((text, i) => ({ v: i + 1, text }));

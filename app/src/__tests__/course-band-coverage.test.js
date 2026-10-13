@@ -1,0 +1,252 @@
+// @vitest-environment node
+// =============================================================================
+// THE FOUR-BAND REQUIREMENT NEVER REACHED THE OTHER 211 LESSONS
+// =============================================================================
+// Darrell 2026-09-18: "Fill up the lessons and don't stop or not always do all
+// of these lessons for each group asap." His words were about the lessons and
+// the groups, not about one series.
+//
+// WHAT WAS MEASURED, and it is the reason this file exists. Three ratchets hold
+// the four-band requirement — full-levels (share of the adult lesson),
+// reading-level (the FK ladder) and band-differentiation (four versions rather
+// than one repeated four times). ALL THREE SCAN `LIVING_LESSONS_MODULES` AND
+// NOTHING ELSE. Across the whole catalog:
+//
+//     211  lessons outside the Living Lessons series (235 after DR-0500/0501/0504)
+//       0  carrying all four authored bands
+//      43  carrying no authored band at all  (37 after the first pass)
+//       5  of those 43 reading ABOVE grade 9 in the text actually served (now 0)
+//
+// Whoever opens one of the 43 gets the single `lesson` field through
+// resolveForAge's fallback, and no gate in the house has ever said so. That is
+// L178's own subject committed by the instruments: the need is real, the gate
+// reports nothing, and a defect no instrument reports reads as a defect that
+// does not exist.
+//
+// AND THE COUNT ALONE WOULD HAVE LIED. The first version of this file said a
+// child opening any of the 43 "is handed the adult words". Measured: that is
+// true of 5 of them. `little-learners` reads at grade 0.3 and `mathematics` at
+// 1.5 in that single field — already written for the youngest readers, so the
+// missing bands there are a LABEL gap. `broadcast` reads at 12.4 and is the
+// real defect. The register measure below exists because the count over-claimed
+// (DR-0076 §1 no claim without evidence, §4 measure don't claim), and it is
+// ratcheted so the distinction is instrumented rather than remembered.
+//
+// THEN THE FIVE WERE FIXED, which is what a measurement is for. broadcast bc2,
+// bc3, bc4, bc6 and bc7 and the ai course's wk3-the-test now carry authored
+// teen and senior bands, so adultRegister across the whole catalog is ZERO and
+// this file holds it there: a new bandless lesson reading above grade 9 fails
+// the build. The 37 still bandless all read at or below grade 9 in the text
+// they serve — a label gap with a dated re-review, not a reader who cannot
+// reach the words.
+//
+// WHAT THIS FILE DOES AND DELIBERATELY DOES NOT DO. It does NOT impose the
+// Living-Lessons floors on a paced course lesson — that is a different
+// artifact, and imposing them would be a decision rather than a measurement,
+// and it would add 211 entries to shrink-only baselines that may never be
+// added to. What it does is COUNT honestly and refuse to let the count get
+// worse, which is the smallest thing that turns an invisible need into a
+// visible one.
+import { describe, it, expect } from 'vitest';
+import { LEARN_CATALOG, learnCatalogSummary } from '../lib/learn-catalog.js';
+import { LIVING_LESSONS_MODULES } from '../lib/living-lessons-class.js';
+import {
+  BANDS, bandsPresent, lessonsOfCourse, scanCourseBands, ratchetCourseBands,
+  servedGrade, median, ADULT_REGISTER_CEILING,
+  FOUR_BAND_GAP_CEILING, fourBandGapFindings, buildCourseBandBaseline,
+} from '../../../scripts/course-band-coverage.mjs';
+import baseline from '../lib/course-band-coverage-baseline.json';
+
+const OWNED = new Set(LIVING_LESSONS_MODULES.map((m) => m.id));
+const scan = scanCourseBands(LEARN_CATALOG, OWNED);
+
+describe('the measure reads the real catalog', () => {
+  it('finds lessons in every course that has any', () => {
+    // If the row-shape walk breaks, this whole file silently measures nothing,
+    // which is the failure mode it exists to prevent. So the count is pinned.
+    // DERIVED (DR-0677): the count comes from the data, so a new lesson never edits a baseline line.
+    expect(scan.total, 'the walk missed catalog lessons outside the Living Lessons').toBe(learnCatalogSummary().lessons - OWNED.size);
+    expect(Object.keys(scan.courses).length).toBe(Object.keys(baseline.courses).length);
+  });
+
+  it('reads the two row shapes a course can hand back', () => {
+    // Courses return either the module or a row wrapping it. Both must resolve,
+    // and anything without an id or any text must not be counted as a lesson.
+    const asModule = lessonsOfCourse({ buildScheduleRows: () => [{ id: 'x', lesson: 'words' }] });
+    const asRow = lessonsOfCourse({ buildScheduleRows: () => [{ module: { id: 'y', lesson: 'words' } }] });
+    expect(asModule.map((m) => m.id)).toEqual(['x']);
+    expect(asRow.map((m) => m.id)).toEqual(['y']);
+    expect(lessonsOfCourse({ buildScheduleRows: () => [{ id: 'no-text' }, null, 'junk'] })).toEqual([]);
+  });
+
+  it('reports a course whose builder throws as zero rather than crashing the scan', () => {
+    // An unreadable course is a finding, not an exception: a throw here would
+    // take down every other course's measurement with it.
+    expect(lessonsOfCourse({ buildScheduleRows: () => { throw new Error('bad course'); } })).toEqual([]);
+  });
+
+  it('counts only bands that actually carry text', () => {
+    expect(bandsPresent({ levels: { child: 'a', youth: '  ', teen: null, senior: 'b' } })).toEqual(['child', 'senior']);
+    expect(bandsPresent({})).toEqual([]);
+    expect(BANDS).toEqual(['child', 'youth', 'teen', 'senior']);
+  });
+
+  it('never double-counts a Living Lessons lesson, which the other ratchets own', () => {
+    const withoutOwner = scanCourseBands(LEARN_CATALOG, new Set());
+    expect(withoutOwner.total, 'the Living Lessons series is being counted twice').toBeGreaterThan(scan.total);
+  });
+});
+
+describe('the debt, recorded as it actually is', () => {
+  it('is the number measured, not a number anybody hoped for', () => {
+    // 211 when this gate was written, then the Real Estate department: 219 with
+    // its footing (DR-0500), 227 with its capstone (DR-0501), 235 with the
+    // buying course (DR-0504), 245 with the leasing course (DR-0507) and the
+    // two lessons another session landed in between, 253 with the maintenance
+    // course (DR-0508), 261 with the partnerships course (DR-0510), 269 with the financing course (DR-0513), 277 with the taxes and records course (DR-0515), 285 with the Banking course (DR-0522), 293 with the Insurance and Risk course (DR-0523), 301 with the Inspections course (DR-0525) 309 with the Evictions course (DR-0527) and 317 with the Appraisal course (DR-0528), and 325 when the STOCK MARKET department opened with its first course (stocks, DR-0548) -- the first addition that is a whole new DEPARTMENT rather than another shelf in an existing one -- 333 with its second course (bonds, DR-0549), 341 with its third (world-market, DR-0553) and 349 with its fourth and last (investing, DR-0554), then 350 with World Issues issue 17 (biology walks back the selfish gene, DR-0555). Then 358 on 2026-09-23 when the HISTORY department opened with its first course (history-truth, 8 lessons, DR-0572), every lesson carrying both bands. A hundred and twelve new course
+    // lessons, every one carrying authored bands — which is why adultOnly did
+    // NOT move with any of them. That is the shape a new course is supposed to
+    // have, and the shape this pin exists to prove: the total may grow, the
+    // DEBT may not.
+    // baseline.total is no longer pinned here (DR-0677): the total is derived above; the DEBT below is what may never grow.
+    expect(baseline.allFour).toBe(235); // 235 on 2026-10-10: lil9 (Abraham -- the promise, the stars, and the lamb Yahweh provided, DR-0868), the third lesson of the children's spine, carries all four age bands; regenerated from the real catalog by course-band-baseline-write.mjs (was 234); 234 on 2026-10-10: lil8 (Noah -- grace, the door Yahweh shut, and the bow in the cloud, DR-0867), the second lesson of the Genesis-to-Revelation children's spine, carries all four age bands; regenerated from the real catalog by course-band-baseline-write.mjs (was 233); 233 on 2026-10-10: lil7 (Adam and Eve, Little Learners slice 2 -- Darrell's "Genesis - Revelation... Adam and Eve... basic building blocks of Yahweh's Perspectives explicitly for the children") carries all four age bands, regenerated from the real catalog by course-band-baseline-write.mjs (was 232); 232 on 2026-10-09: Sovereign A.I. weeks 1 to 8, 14 and 16 carry all four age bands (DR-0692), regenerated from the real catalog by course-band-baseline-write.mjs after merging main (was 222); 222 on 2026-10-09: the Rent-to-Own Business course carries all four age bands on every lesson (DR-0692), regenerated from the real catalog by course-band-baseline-write.mjs after merging main, and adultOnly reaches 0 (was 214); 214 on 2026-10-09: the Development course carries all four age bands on every lesson (DR-0692), regenerated from the real catalog by course-band-baseline-write.mjs after merging main (was 206); 206 on 2026-10-09: the Mathematics course carries all four age bands on every lesson (DR-0692), regenerated from the real catalog by course-band-baseline-write.mjs after merging main (was 198); 198 on 2026-10-08: Sovereign A.I. week 37 (sov37, stop paying a model to redecide what is already settled - a just weight answers the same every time, DR-0824) carries all four bands, regenerated from the real catalog by course-band-baseline-write.mjs (was 197); 197 on 2026-10-07: Sovereign A.I. week 36 (sov36, the pile the machine made - 722 manuscripts carried as a claim and the proving that is the work, DR-0792) carries all four bands, regenerated from the real catalog by course-band-baseline-write.mjs after merging week 35 (was 196); 196 on 2026-10-07: Sovereign A.I. week 35 (sov35, the new players - open weights, a just weight, DR-0791) carries all four bands, regenerated from the real catalog by course-band-baseline-write.mjs (was 195); 195 on 2026-10-06: Sovereign A.I. week 34 (sov34, the bounded answer, DR-0760) carries all four bands, regenerated from the real catalog by course-band-baseline-write.mjs after merging week 33 (was 194); 194 on 2026-10-06: Sovereign A.I. week 33 (sov33, peace, peace; when there is no peace - the tool trained on approval and the faithful witness, DR-0761) carries all four bands, regenerated from the real catalog (was 193); 193 on 2026-10-02: Sovereign A.I. week 32 (sov32, the "I’m fine" problem, DR-0752) is the first lesson of that course to carry all four bands, regenerated from the real catalog (was 192); 192 on 2026-10-01: bands-e-stocks-bonds carries all four bands, regenerated from the real catalog after merging main (was 176); 176 on 2026-10-01: bands-e-prophetic-voices carries all four bands, regenerated from the real catalog after merging main (was 170); 170 on 2026-10-01: bands-ai-little-learners carries all four bands, regenerated from the real catalog after merging main (was 156); 156 on 2026-10-01: partnerships and taxes-records join them (DR-0696), merged onto main's 62, merged onto main's 74, merged onto main's 81, merged onto main's 92, merged onto main's 108, merged onto main's 128, merged onto main's 140; 140 on 2026-10-01: project-management carries all four bands on all 12 lessons (DR-0693), merged onto main's 62, merged onto main's 74, merged onto main's 81, merged onto main's 92, merged onto main's 108, merged onto main's 128; 128 on 2026-10-01: group C (DR-0694) adds software-project-management and infrastructure, all four bands on all 20 lessons, merged onto main's 62, merged onto main's 74, merged onto main's 81, merged onto main's 92, merged onto main's 108; 108 on 2026-10-01: world-market and investing carry all four bands on all 16 lessons (DR-0695), merged onto main's 62, merged onto main's 74, merged onto main's 81, merged onto main's 92; 92 on 2026-10-01: ai-legal-blueprint and handed-forward carry all four bands on all 11 lessons (DR-0695), merged onto main's 62, merged onto main's 74, merged onto main's 81; 81 on 2026-10-01: legacy-provisions carries all four bands on all 7 lessons (DR-0695), merged onto main's 62, merged onto main's 74; 74 on 2026-10-01: church-offices and word-out carry all four bands on all 12 lessons (DR-0695), merged onto main's 62; 62 on 2026-09-30: history-truth carries all four bands on all 8 lessons (DR-0695); 54 on 2026-09-30: leasing-tenants and maintenance-trades join them (DR-0696); 38 on 2026-09-30: property-principle and management-stewardship carry child and youth beside teen and senior on all 16 lessons (DR-0696); 22 on 2026-09-29: Who He Is (DR-0675) carries all four bands on all 14 lessons; 8 on 2026-09-24: the rebuilt historical-research-1619 (DR-0597) carries child, youth, teen and senior on every lesson — the first catalog course with all four bands; a course may only add to this number
+    expect(baseline.adultOnly).toBe(0);
+  });
+
+  it('matches the live catalog exactly', () => {
+    expect(scan.allFour).toBe(baseline.allFour);
+    expect(scan.adultOnly).toBe(baseline.adultOnly);
+    expect(scan.adultRegister).toBe(baseline.adultRegister);
+  });
+
+  it('separates a missing label from adult prose served to a child', () => {
+    // The correction that made the fix aimable. 43 bandless lessons were NOT
+    // 43 lessons serving adult words: 5 were, and measuring said which. A
+    // course written for the youngest readers, reading at grade 0.3, must
+    // never be counted the same as one reading at 12.4, or the number stops
+    // being information and starts being an impression with a digit on it.
+    // Once a course carries all four bands it has no bandless lessons and so
+    // no bandless grade (DR-0692): the distinction is then moot, not violated.
+    for (const key of ['little-learners', 'mathematics']) {
+      const row = baseline.courses[key];
+      if (row.bandlessGrade !== undefined) expect(row.bandlessGrade, key).toBeLessThan(3);
+      else expect(row.adultOnly, `${key} has bandless lessons but no bandless grade`).toBe(0);
+      expect(row.adultRegister, key).toBe(0);
+    }
+  });
+
+  it('holds the register defect at zero, everywhere, now that the five are authored', () => {
+    // broadcast read at 12.4 and rose to 16.3; ai wk3-the-test read at 10.3.
+    // All six of those lessons now carry authored teen and senior bands, so
+    // NOTHING bandless in the catalog reads above the ceiling — and this is
+    // the assertion that keeps it that way, because a ratchet held at zero is
+    // the only kind that cannot drift.
+    expect(baseline.adultRegister).toBe(0);
+    expect(scan.adultRegister).toBe(0);
+    expect(baseline.courses.broadcast.adultOnly).toBe(0);
+    for (const [key, row] of Object.entries(baseline.courses)) {
+      expect(row.adultRegister, `${key} carries a bandless lesson above grade ${ADULT_REGISTER_CEILING}`).toBe(0);
+      if (row.bandlessGrade !== undefined) {
+        expect(row.bandlessGrade, `${key} median bandless grade`).toBeLessThanOrEqual(ADULT_REGISTER_CEILING);
+      }
+    }
+  });
+
+  it('measures the served text the way the reading-level ratchet does', () => {
+    // Quoted spans are verbatim Scripture: not ours to simplify, and not
+    // scored against the author. And no prose means no number, never a zero
+    // that would read as a perfectly easy lesson.
+    const quoted = { lesson: 'He said it. "Notwithstanding the everlasting consideration of righteousness."' };
+    const plain = { lesson: 'He said it.' };
+    expect(servedGrade(quoted)).toBe(servedGrade(plain));
+    expect(servedGrade({ lesson: '' })).toBeNull();
+    expect(servedGrade({})).toBeNull();
+    expect(median([1, 9, 2])).toBe(2);
+    expect(median([])).toBeNull();
+  });
+
+  it('gets no worse — a course that loses bands, or a new bare lesson, fails here', () => {
+    const { worse } = ratchetCourseBands(scan, baseline);
+    expect(worse, `course band coverage went backwards:\n${worse.join('\n')}`).toEqual([]);
+  });
+
+  it('NEW WORK MEETS THE FULL STANDARD AT ONCE: no course gains a lesson without all four bands (DR-0697)', () => {
+    const findings = fourBandGapFindings(scan, FOUR_BAND_GAP_CEILING, baseline);
+    expect(findings, `the four-band requirement binds new work:\n${findings.join('\n')}`).toEqual([]);
+  });
+
+  it('records no course the catalog no longer carries', () => {
+    const { stale } = ratchetCourseBands(scan, baseline);
+    expect(stale, `recorded courses that no longer exist: ${stale.join(', ')}`).toEqual([]);
+  });
+});
+
+describe('proven-to-catch (DR-0076 §3)', () => {
+  it('sees a course that adds a bare lesson', () => {
+    const worseScan = { ...scan, courses: { ...scan.courses, ai: { lessons: 9, allFour: 0, adultOnly: 8 } } };
+    expect(ratchetCourseBands(worseScan, baseline).worse.join(' ')).toMatch(/ai: 8 adult-only/);
+  });
+
+  it('sees a course that LOSES an authored band', () => {
+    // The direction nobody watches: bands can be deleted as easily as added.
+    // Claim one more four-band lesson for ai than the catalog carries: the
+    // scan then reads as having LOST one, whatever ai carries today.
+    const claimed = (scan.courses.ai ? scan.courses.ai.allFour : 0) + 1;
+    const padded = { ...baseline, courses: { ...baseline.courses, ai: { ...(baseline.courses.ai || {}), lessons: 8, allFour: claimed, adultOnly: 8 - claimed } } };
+    expect(ratchetCourseBands(scan, padded).worse.join(' ')).toMatch(/ai: \d+ four-band/);
+  });
+
+  it('sees a WHOLE NEW COURSE that arrives unrecorded', () => {
+    // A new course with no baseline row would otherwise slip in carrying any
+    // amount of debt at all, which is how 211 lessons got here unnoticed.
+    const withNew = { ...scan, courses: { ...scan.courses, 'real-estate-principle': { lessons: 4, allFour: 0, adultOnly: 4 } } };
+    expect(ratchetCourseBands(withNew, baseline).worse.join(' ')).toMatch(/real-estate-principle: not recorded/);
+  });
+
+  it('sees a bandless lesson that climbs above the adult-register ceiling', () => {
+    // The register dimension moving the wrong way: same band count, harder text.
+    const worseScan = { ...scan, courses: { ...scan.courses, ai: { ...scan.courses.ai, adultRegister: 1 } } };
+    expect(ratchetCourseBands(worseScan, baseline).worse.join(' ')).toMatch(/ai: 1 bandless lessons above the adult-register ceiling/);
+  });
+
+  it('refuses a baseline row that carries no register number at all', () => {
+    // An absent measurement is not a licence. A row written before this
+    // measure existed is reported, the same way an unrecorded course is —
+    // otherwise the gate would silently stop watching the dimension.
+    const unmeasured = { ...baseline, courses: { ...baseline.courses, ai: { lessons: 8, allFour: 0, adultOnly: 8 } } };
+    expect(ratchetCourseBands(scan, unmeasured).worse.join(' ')).toMatch(/ai: no adultRegister recorded/);
+  });
+
+  it('THE 2026-09-30 MISS: sees a two-band lesson added to an existing course, which the old ratchet passed', () => {
+    // Teen + senior only: neither adult-only nor a lost four-band lesson, so
+    // ratchetCourseBands sees nothing. The gap gate must.
+    const row = scan.courses.banking;
+    const grown = { ...scan, courses: { ...scan.courses, banking: { ...row, lessons: row.lessons + 1 } } };
+    expect(ratchetCourseBands(grown, baseline).worse.filter((w) => w.startsWith('banking'))).toEqual([]);
+    expect(fourBandGapFindings(grown).join(' ')).toMatch(/banking: .*a lesson was added below the standard/);
+  });
+
+  it('THE 2026-09-30 MISS: sees a whole new course built to two bands, and passes one built to four', () => {
+    const twoBand = { ...scan, courses: { ...scan.courses, 'a-new-course': { lessons: 8, allFour: 0, adultOnly: 0, adultRegister: 0 } } };
+    expect(fourBandGapFindings(twoBand).join(' ')).toMatch(/a-new-course: a new course must carry child, youth, teen and senior/);
+    const fourBand = { ...scan, courses: { ...scan.courses, 'a-new-course': { lessons: 8, allFour: 8, adultOnly: 0, adultRegister: 0 } } };
+    expect(fourBandGapFindings(fourBand)).toEqual([]);
+  });
+
+  it('a course that closed its gap in the baseline is held there without editing the frozen table', () => {
+    // banking frozen at 8; once the baseline records it at 0, one two-band lesson fails.
+    const closed = { ...baseline, courses: { ...baseline.courses, banking: { ...baseline.courses.banking, lessons: 8, allFour: 8 } } };
+    const oneShort = { ...scan, courses: { ...scan.courses, banking: { ...scan.courses.banking, lessons: 9, allFour: 8 } } };
+    expect(fourBandGapFindings(oneShort, FOUR_BAND_GAP_CEILING, closed).join(' ')).toMatch(/banking: 1 lessons without all four bands, ceiling 0/);
+  });
+
+  it('the ceilings are frozen by hand and never written by the baseline generator', () => {
+    expect(Object.isFrozen(FOUR_BAND_GAP_CEILING)).toBe(true);
+    expect(buildCourseBandBaseline.toString()).not.toMatch(/FOUR_BAND_GAP_CEILING/);
+  });
+
+  it('sees a recorded course that has vanished from the catalog', () => {
+    const ghost = { ...baseline, courses: { ...baseline.courses, 'a-course-that-was-deleted': { lessons: 1, allFour: 0, adultOnly: 1 } } };
+    expect(ratchetCourseBands(scan, ghost).stale).toContain('a-course-that-was-deleted');
+  });
+});

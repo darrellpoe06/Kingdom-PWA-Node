@@ -14,13 +14,15 @@
 // Contrast (WCAG AA, on #14110E near-black): #FAF8F4 body (>16:1), #CFC9BD
 // secondary (~9:1), #C9D9A6 green + #EBA77E orange accents (>=4.5:1) — all verified
 // against the rendered tokens, all at large sizes.
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { TEACH_CHANNEL } from '../lib/teach-present.js';
+import AudienceSlide from './AudienceSlide.jsx';
 
 export default function AudienceWindow() {
   const [slide, setSlide] = useState(null);
   const [hold, setHold] = useState(null);
   const [canFs, setCanFs] = useState(false);
+  const lastScaleRef = useRef(1);
   const [isFs, setIsFs] = useState(false);
 
   useEffect(() => {
@@ -50,14 +52,31 @@ export default function AudienceWindow() {
   }, []);
 
   const showHold = !!hold || !slide;
+  // Held across a blank/hold: the speaker's choice belongs to the session, not
+  // to one slide, so blanking the screen and coming back keeps the size.
+  const slideScale = (slide && Number.isFinite(Number(slide.slideScale)) && Number(slide.slideScale) > 0)
+    ? Number(slide.slideScale)
+    : lastScaleRef.current;
+  if (slide && Number.isFinite(Number(slide.slideScale)) && Number(slide.slideScale) > 0) {
+    lastScaleRef.current = Number(slide.slideScale);
+  }
 
   return (
     <div
       style={{
         minHeight: '100vh', background: '#14110E', color: '#FAF8F4',
-        display: 'flex', flexDirection: 'column', justifyContent: 'center',
+        // Top-aligned on purpose: on an LED wall the speaker stands BELOW the words,
+        // so the slide sits at the TOP and the black fills the bottom — the speaker
+        // never blocks the text (Darrell 2026-07-19, Love Corner).
+        display: 'flex', flexDirection: 'column', justifyContent: 'flex-start',
         padding: 'clamp(24px, 5vw, 72px)', fontFamily: '"Fraunces", Georgia, serif',
         cursor: (!showHold && isFs) ? 'none' : 'default', // only hide the pointer once projected fullscreen
+        // THE ROOM'S SIZE, SET BY THE SPEAKER, APPLIED HERE (DR-0453). The
+        // presenter's A-/A+ dial rides the broadcast, so the projector follows
+        // the one control instead of carrying a second one nobody is standing
+        // at. A slide with no scale (an older presenter, or a hold) renders at
+        // 1, exactly as this window always has.
+        ...(slideScale && slideScale !== 1 ? { '--slide-scale': String(slideScale) } : {}),
       }}
     >
       {canFs && !isFs && (
@@ -66,7 +85,7 @@ export default function AudienceWindow() {
           onClick={goFullscreen}
           style={{
             position: 'fixed', top: 16, right: 16, cursor: 'pointer',
-            fontSize: 12, letterSpacing: '0.15em', textTransform: 'uppercase',
+            fontSize: '0.75rem', letterSpacing: '0.15em', textTransform: 'uppercase',
             color: '#CFC9BD', background: 'transparent', border: '1px solid #4A453D',
             padding: '8px 14px', fontFamily: '"JetBrains Mono", monospace',
           }}
@@ -75,58 +94,7 @@ export default function AudienceWindow() {
         </button>
       )}
 
-      {showHold ? (
-        <div style={{ textAlign: 'center', margin: 'auto' }}>
-          <div style={{ fontSize: 'clamp(13px, 1.4vw, 18px)', letterSpacing: '0.35em', textTransform: 'uppercase', color: '#EBA77E', marginBottom: 24 }}>
-            {hold?.kicker || 'The Church of the Living God'}
-          </div>
-          <h1 style={{ fontSize: 'clamp(40px, 7vw, 104px)', fontWeight: 600, lineHeight: 1.04, letterSpacing: '-0.02em', margin: 0 }}>
-            {hold?.title || 'Learning A.I. The Way'}
-          </h1>
-          <p style={{ fontSize: 'clamp(16px, 1.8vw, 24px)', color: '#CFC9BD', marginTop: 28 }}>
-            {slide ? 'Ready when you are.' : 'Waiting for the teacher to begin…'}
-          </p>
-        </div>
-      ) : (
-        <div style={{ maxWidth: 1400, margin: '0 auto', width: '100%' }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', marginBottom: 'clamp(16px, 2vw, 28px)' }}>
-            {/* Generic position label (indexLabel) for any surface; falls back to the
-                original "Week X of Y" if an older presenter posts the legacy shape. */}
-            {(slide.indexLabel || slide.week) && (
-              <span style={{ fontSize: 'clamp(13px, 1.4vw, 18px)', letterSpacing: '0.3em', textTransform: 'uppercase', color: '#EBA77E' }}>
-                {slide.indexLabel || `Week ${slide.week} of ${slide.total}`}
-              </span>
-            )}
-            {slide.dateLabel && (
-              <span style={{ fontSize: 'clamp(12px, 1.2vw, 16px)', color: '#CFC9BD', fontFamily: '"JetBrains Mono", monospace' }}>
-                {slide.dateLabel}
-              </span>
-            )}
-          </div>
-
-          <h1 style={{ fontSize: 'clamp(36px, 6vw, 96px)', fontWeight: 600, lineHeight: 1.03, letterSpacing: '-0.02em', margin: 0 }}>
-            {slide.title}
-          </h1>
-
-          {(slide.lead || slide.bigIdea) && (
-            <p style={{ fontSize: 'clamp(20px, 2.8vw, 42px)', lineHeight: 1.3, marginTop: 'clamp(20px, 3vw, 40px)', marginBottom: 0 }}>
-              {slide.lead || slide.bigIdea}
-            </p>
-          )}
-
-          {(slide.detail || slide.inApp) && (
-            <p style={{ fontSize: 'clamp(16px, 2vw, 30px)', lineHeight: 1.35, marginTop: 'clamp(18px, 2.4vw, 32px)', color: '#CFC9BD' }}>
-              <span style={{ color: '#C9D9A6', fontWeight: 600 }}>{slide.detailLabel || 'In the app'}: </span>{slide.detail || slide.inApp}
-            </p>
-          )}
-
-          {slide.anchorRef && (
-            <p style={{ fontSize: 'clamp(15px, 1.8vw, 26px)', lineHeight: 1.35, marginTop: 'clamp(20px, 3vw, 40px)', color: '#C9D9A6' }}>
-              <strong>{slide.anchorRef}</strong>{slide.anchorTheme ? ` — ${slide.anchorTheme}` : ''}
-            </p>
-          )}
-        </div>
-      )}
+      <AudienceSlide slide={showHold ? null : slide} hold={hold} invite={(showHold ? hold : slide)?.invite || null} />
     </div>
   );
 }

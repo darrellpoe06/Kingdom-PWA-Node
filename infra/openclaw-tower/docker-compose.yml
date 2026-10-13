@@ -1,0 +1,87 @@
+# =============================================================================
+# OpenClaw on the 4070 tower (tlcmediadpt, the LEFT tower, the designated AI
+# worker) -- DR-0670
+# =============================================================================
+# Darrell 2026-09-29: "Can we make the open claw work on the towers?"
+#
+# ONE service, pinned, local-first, loopback-only:
+#   openclaw-gateway  127.0.0.1:18789 -> the OpenClaw Gateway (Control UI + API)
+#
+# Image: the OFFICIAL release image, pinned by tag AND digest (verified
+# 2026-09-29 against ghcr.io: tag 2026.9.6 = index digest below; npm `openclaw`
+# latest is the same 2026.9.6). A moving tag never reaches this box.
+#
+# The model is NOT here: it is church-ollama from infra/church-gpu-node on the
+# same tower (:11434, OLLAMA_KEEP_ALIVE=0 per DR-0012), reached through
+# host.docker.internal exactly as OpenClaw's Docker guide prescribes for a
+# host-side Ollama. No vendor provider, no vendor key: the config names only
+# ollama/qwen3:8b.
+#
+# The command and hardening lines mirror the official compose at the pinned tag
+# (github.com/openclaw/openclaw/blob/v2026.9.6/docker-compose.yml): same
+# `node dist/index.js gateway --bind lan --port 18789`, same cap_drop,
+# no-new-privileges and init. Differences, on purpose:
+#   * the port is published on 127.0.0.1 ONLY -- nothing on the LAN, nothing on
+#     the tailnet, nothing public. The witness reads it over ssh on the box.
+#   * the bridge / Teams ports are not published at all.
+#   * the docker socket is NOT mounted. Sandboxed (non-main) sessions therefore
+#     have no sandbox backend here; their tool execution cannot fall through to
+#     the host. Giving the gateway the host's docker socket would be handing it
+#     the machine -- the irreversible-os bright line.
+#   * our config and gate plugin are mounted READ-ONLY at
+#     /home/node/.openclaw/poetech, and OPENCLAW_CONFIG_PATH points there, so
+#     the running gateway cannot rewrite its own policy.
+#
+# Brakes (the three, DR-0670; CLAUDE.md "Autonomous Automation Requires Three
+# Brakes" -- this is the AI class, which keeps all three):
+#   BUDGET  agents.defaults.timeoutSeconds 600 per turn + the gate's per-run
+#           tool-call ceiling; the pilot runner adds turns / runs-per-day.
+#   LOCK    one container name, one gateway; the pilot runner holds a lockdir.
+#   KILL    registry.json enabled:false or deleting ARMED-BY-RECORD (a PR) --
+#           the lane then STOPS this service on its next fire; the runner also
+#           auto-pauses itself on an overrun.
+#
+# Deploy: .github/workflows/openclaw-tower.yml ships this folder by scp and runs
+# compose over ssh, the same road the voice studio uses (arm-voice-studio.yml).
+# =============================================================================
+
+services:
+  openclaw-gateway:
+    image: ${OPENCLAW_IMAGE:-ghcr.io/openclaw/openclaw:2026.9.6@sha256:0a5ff5e682e62afa19149df126aa50063bf65ef885b5c94713ce32dc0eb12e15}
+    container_name: poetech-openclaw
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      HOME: /home/node
+      OPENCLAW_HOME: /home/node
+      OPENCLAW_STATE_DIR: /home/node/.openclaw
+      OPENCLAW_CONFIG_PATH: /home/node/.openclaw/poetech/openclaw.json
+      OPENCLAW_GATEWAY_PORT: "18789"
+      OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN:-}
+      OPENCLAW_DISABLE_BONJOUR: "1"
+      TZ: America/Chicago
+    volumes:
+      - openclaw-home:/home/node/.openclaw
+      - ./:/home/node/.openclaw/poetech:ro
+    cap_drop:
+      - NET_RAW
+      - NET_ADMIN
+    security_opt:
+      - no-new-privileges:true
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "127.0.0.1:18789:18789"
+    init: true
+    restart: unless-stopped
+    command: ["node", "dist/index.js", "gateway", "--bind", "lan", "--port", "18789"]
+    healthcheck:
+      test: ["CMD", "node", "dist/docker-healthcheck.js"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+volumes:
+  openclaw-home:

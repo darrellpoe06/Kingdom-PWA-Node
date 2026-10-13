@@ -68,4 +68,37 @@ describe('DeviceInventory — the register renders (no white screen)', () => {
     expect(text).toMatch(/KILL_SWITCH|not ARMED|budget unset/i);
     await act(async () => { root.unmount(); });
   });
+
+  it('the Topology tab renders the derived map on the real register', async () => {
+    const { container, root } = await mount();
+    const btns = Array.from(container.querySelectorAll('button'));
+    const topoBtn = btns.find((b) => /Topology/i.test(b.textContent));
+    expect(topoBtn).toBeTruthy();
+    await act(async () => { topoBtn.dispatchEvent(new globalThis.MouseEvent('click', { bubbles: true })); });
+    const text = container.textContent;
+    // Both scan-recorded segments are drawn.
+    expect(text).toMatch(/192\.168\.0\.0\/24/);
+    expect(text).toMatch(/192\.168\.1\.0\/24/);
+    // The routing spine names the real gateway device.
+    expect(text).toMatch(/pfSense/);
+    // The tailnet is shown as an OVERLAY, never as a church segment.
+    expect(text).toMatch(/100\.64\.0\.0\/10/);
+    expect(text).toMatch(/overlay/i);
+    // It states its own limit instead of implying a complete wiring diagram.
+    expect(text).toMatch(/cabling not yet mapped/i);
+    await act(async () => { root.unmount(); });
+  });
+
+  it('Topology hides addresses from non-editors (same gate as the Registry)', async () => {
+    // Signed-out mount => canEdit false. Segment CIDRs are structure and stay; a
+    // device HOST address is a sensitive field and must not render.
+    const { container, root } = await mount();
+    const btns = Array.from(container.querySelectorAll('button'));
+    const topoBtn = btns.find((b) => /Topology/i.test(b.textContent));
+    await act(async () => { topoBtn.dispatchEvent(new globalThis.MouseEvent('click', { bubbles: true })); });
+    const text = container.textContent;
+    expect(text).not.toMatch(/192\.168\.1\.123/); // a PTZ camera host address
+    expect(text).not.toMatch(/192\.168\.0\.100/); // the RackStation host address
+    await act(async () => { root.unmount(); });
+  });
 });

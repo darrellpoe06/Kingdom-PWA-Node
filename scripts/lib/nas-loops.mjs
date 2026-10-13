@@ -94,15 +94,33 @@ export function findLoop(reg, name) {
   return loops.find((l) => l && l.name === name) || null;
 }
 
+// resolveArmed(input) -> bool  (DR-0247 — started by default, the hand is a brake)
+// The arm is satisfied by ANY of: the LOOPS_ARMED env/.env parameter, the legacy
+// state/LOOPS_ARMED file, or the COMMITTED arm record (infra/nas-loops/
+// ARMED-BY-RECORD) — the Governor's standing word that agreed work starts itself
+// through the lane. The kill-switch stays SENIOR to every arm (decideRun checks
+// it first) and stays NAS-local, never committed: one touch halts the fleet.
+export function resolveArmed(input = {}) {
+  const v = String(input.envValue ?? '').trim().toLowerCase();
+  if (v === '1' || v === 'true' || v === 'yes' || v === 'on') return true;
+  if (input.legacyFileExists === true) return true;
+  return input.armRecordExists === true;
+}
+
 // decideRun(input) -> { go, reason }
 // THE braked gate for a DETERMINISTIC loop. input = {
-//   loop, killSwitch:bool, loopsArmed:bool, lockHeld:bool, callsToday:int }.
-// GO only when the loop is valid + deterministic + enabled AND every brake is
-// satisfied: kill-switch CLEAR, LOOPS_ARMED set, under the daily call cap, lock
-// free. Order is chosen so the most important refusal (panic stop) reads first.
+//   loop, loopsArmed:bool, lockHeld:bool, callsToday:int }.
+// GO when the loop is valid + deterministic + enabled AND every remaining brake
+// is satisfied: armed (record/env/legacy), under the daily call cap, lock free.
+// KILL-SWITCH REMOVED (DR-0248, Darrell 2026-07-29: "Get rid of the kill
+// switch... we will rebuild it after... we have over 6000 checks... they are
+// all switching deterministic logic"): the manual override is gone from this
+// class; the deterministic gate suite is the protection, and the STOP-PATHS
+// are the lane itself — registry enabled:false, delete ARMED-BY-RECORD, or the
+// DSM scheduler toggle. A killSwitch input, if passed, is IGNORED by design.
 // kind:'ai' is REFUSED here — it is delegated to the cap-resume gate by the runner.
 export function decideRun(input = {}) {
-  const { loop, killSwitch, loopsArmed, lockHeld } = input;
+  const { loop, loopsArmed, lockHeld } = input;
   const callsToday = Number(input.callsToday || 0);
 
   const v = validateLoop(loop);
@@ -112,8 +130,7 @@ export function decideRun(input = {}) {
     return { go: false, reason: "kind 'ai': delegated to the cap-resume/wake gate (not run by the deterministic dispatcher)" };
   }
   if (loop.enabled !== true) return { go: false, reason: 'loop disabled in registry (enabled !== true)' };
-  if (killSwitch === true) return { go: false, reason: 'kill-switch engaged (panic stop; one touch halts the fleet)' };
-  if (loopsArmed !== true) return { go: false, reason: 'deterministic runner disarmed (LOOPS_ARMED not set; ships inert)' };
+  if (loopsArmed !== true) return { go: false, reason: 'deterministic runner disarmed (no LOOPS_ARMED and no committed ARMED-BY-RECORD — DR-0247)' };
 
   const cap = Number(loop.max_calls_per_day);
   if (!(cap > 0)) return { go: false, reason: 'call-cap unset (missing budget brake)' };
@@ -121,7 +138,7 @@ export function decideRun(input = {}) {
 
   if (lockHeld === true) return { go: false, reason: 'single-flight lock held (another run of this loop is in progress; skipping)' };
 
-  return { go: true, reason: `GO (calls ${callsToday}/${cap}, armed, kill-switch clear, lock free)` };
+  return { go: true, reason: `GO (calls ${callsToday}/${cap}, armed, lock free)` };
 }
 
 // reelLine(rec) -> a single JSONL string for the event reel (the observability

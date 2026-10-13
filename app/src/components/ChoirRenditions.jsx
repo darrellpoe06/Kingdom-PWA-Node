@@ -36,7 +36,7 @@ const fmtDate = (d) => {
 };
 const SERVICE_LABEL = { sunday: 'Sunday', wednesday: 'Wednesday', rehearsal: 'Rehearsal', both: 'Sun + Wed' };
 
-// An ad-lib chip — type-coloured, with a time deep-link and honest review state.
+// An ad-lib chip — type-colored, with a time deep-link and honest review state.
 function AdLibChip({ adLib, onJump }) {
   const kind = AD_LIB_TYPES[adLib.type]?.label || 'Variation';
   const detected = adLib.source === 'detected';

@@ -28,12 +28,14 @@
 //     artifact is rasterized at standard size on purpose (large print is a
 //     viewing aid for composing; the saved/exported document stays standard).
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { entryStampHtml, needsEntryStamp, formatEntryStamp } from '../lib/entry-stamp.js';
 import {
   WORKSPACE_TYPES, typeFor, exportFormatsFor, blankWorkspace,
   validateWorkspace, sanitizeHtml, exportNodeToImage, triggerDownload,
 } from '../lib/creation-workspace.js';
 import Presenter from './Presenter.jsx';
 import { documentPresentable } from '../lib/presentable.js';
+import CreatingStation from './CreatingStation.jsx';
 
 const FORMAT_LABEL = { png: 'PNG', jpg: 'JPG', jpeg: 'JPG' };
 
@@ -45,7 +47,23 @@ const TOOLS = [
   { cmd: 'underline', label: 'U', title: 'Underline', style: { textDecoration: 'underline' } },
 ];
 
-export default function CreationWorkspace({
+// The Create page (DR-0679, amending DR-0678). Darrell 2026-09-29: "Why take
+// away my type texting place?!!!!!!!!!!!! Where is it?!!!!!!!!!!!!!!" then
+// "Obviously give us a actual tabs like so we can know!!!!!!!!!!!!!!!!" then
+// "Subtabs". With a station, the page is a subtab bar and the canvas below is
+// its FIRST subtab, "Workspace", the default on every device and kept mounted
+// while another subtab is open (CreatingStation). Without one it is the canvas
+// alone, as before. The shell passes the station on ONE line: isGovernor is
+// the same predicate Projects -> Decisions uses (signed in, not reviewer mode,
+// a family email), and voice carries the Thinking Space write paths so the
+// lesson entry saves the same way.
+export default function CreationWorkspace({ station = null, ...canvasProps }) {
+  const canvas = <WorkspaceCanvas {...canvasProps} />;
+  return station ? <CreatingStation {...station} workspace={canvas} /> : canvas;
+}
+
+// The Creation Workspace canvas itself, exactly as it was before DR-0678.
+function WorkspaceCanvas({
   workspaces = [],
   addWorkspace,
   updateWorkspace,
@@ -128,6 +146,33 @@ export default function CreationWorkspace({
 
   const list = (ordered) => exec(ordered ? 'insertOrderedList' : 'insertUnorderedList');
 
+  // EVERY ENTRY CARRIES ITS OWN DATE (Darrell 2026-09-22: "Make sure each entry
+  // automatically adds a date and time stamp to the document... like Christina
+  // is already doing at times... that why it reads chronological").
+  //
+  // Her hand-typed lines -- 9.22.26, 8.24.26, 8.25.26 -- are the only reason his
+  // document has an order at all, and where nobody typed one a block of tasks
+  // floats belonging to no day. So the app types it, in HER format, and a day
+  // gets exactly one.
+  const stamp = (withTime = false) => {
+    if (typeof document === 'undefined') return;
+    editorRef.current?.focus();
+    try { document.execCommand('insertHTML', false, entryStampHtml(new Date(), { withTime })); } catch (_) { /* non-fatal */ }
+    setDirty(true);
+  };
+
+  // AUTOMATIC, ONCE A DAY, AND ONLY WHEN HE IS ACTUALLY WRITING. It fires on the
+  // first input of the day rather than on mount, because stamping a document the
+  // moment it opens would date entries he never wrote.
+  const stampedRef = useRef(false);
+  const autoStamp = () => {
+    if (stampedRef.current || typeof document === 'undefined') return;
+    const html = editorRef.current?.innerHTML || '';
+    if (!needsEntryStamp(html)) { stampedRef.current = true; return; }
+    stampedRef.current = true;
+    try { document.execCommand('insertHTML', false, entryStampHtml(new Date())); } catch (_) { /* non-fatal */ }
+  };
+
   // Save: update the open workspace, or create a new one. Returns the id saved.
   // The draft is collected from the live editor + controls at save time.
   const save = useCallback(() => {
@@ -203,9 +248,12 @@ export default function CreationWorkspace({
   }, [save, activeId, title]);
 
   // ----- styles (palette-matched, rem-based so the global text-size scales it)
+  // Only the values still used by intentional inline styles remain here (focus
+  // outlines, the WYSIWYG paper ink, the active-item ring, the mat border). All
+  // themeable chrome colors moved to Tailwind classes so [data-theme] can remap
+  // them — an inline hex renders dark-on-dark in midnight (the guarded bug).
   const accent = '#B85838';
   const ink = '#1A1815';
-  const muted = '#5A5751';
   const border = '#E8E4DC';
 
   // Live present mode takes over the surface — a clean document screen pops in a
@@ -216,11 +264,18 @@ export default function CreationWorkspace({
   }
 
   return (
-    <div className="max-w-6xl">
-      <div className="mb-4">
-        <div className="text-[10px] uppercase tracking-[0.25em] font-semibold" style={{ color: accent }}>Create</div>
-        <h1 className="text-2xl" style={{ fontFamily: '"Fraunces", serif', color: ink }}>Creation Workspace</h1>
-        <p className="text-sm mt-1" style={{ color: muted }}>
+    <div className="w-full">
+      {/* SHORT SCREENS (DR-0679): on a Fire TV at 960x540, or any screen under
+          600px tall, the intro's eyebrow, its sentence and the type blurb fold
+          away and the mat's padding tightens, so the canvas itself starts above
+          the fold. Measured by the chrome-layout probe's device pass (the
+          Workspace canvas must start above the fold): before this it started
+          at 578px of a 540px screen, his writing place buried. The heading and
+          every control stay; only the explaining lines fold. */}
+      <div className="mb-4 [@media(max-height:600px)]:mb-2" data-testid="workspace-intro">
+        <div className="text-[0.625rem] uppercase tracking-[0.25em] font-semibold text-[#B85838] [@media(max-height:600px)]:hidden">Create</div>
+        <h1 className="text-2xl [@media(max-height:600px)]:text-xl text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>Creation Workspace</h1>
+        <p className="text-sm mt-1 text-[#5A5751] [@media(max-height:600px)]:hidden">
           A big space for composing a document — then save it, or export it as an image file.
         </p>
       </div>
@@ -229,9 +284,9 @@ export default function CreationWorkspace({
         {/* ---- working column: controls + canvas ---- */}
         <div>
           {/* Controls row: type dropdown + title */}
-          <div className="flex flex-wrap items-end gap-3 mb-3">
+          <div className="flex flex-wrap items-end gap-3 mb-3 [@media(max-height:600px)]:mb-2">
             <label className="block">
-              <span className="block text-[10px] uppercase tracking-wider mb-1" style={{ color: muted }}>Workspace type</span>
+              <span className="block text-[0.625rem] uppercase tracking-wider mb-1 text-[#5A5751]">Workspace type</span>
               <select
                 value={type}
                 onChange={(e) => {
@@ -239,8 +294,8 @@ export default function CreationWorkspace({
                   setType(next);
                   setDirty(true);
                 }}
-                className="border bg-white px-2 py-2 text-sm focus:outline focus:outline-2"
-                style={{ borderColor: border, color: ink, outlineColor: accent }}
+                className="border border-[#E8E4DC] bg-white px-2 py-2 text-sm text-[#1A1815] focus:outline focus:outline-2"
+                style={{ outlineColor: accent }}
                 aria-label="Workspace type"
               >
                 {WORKSPACE_TYPES.map((t) => (
@@ -249,22 +304,27 @@ export default function CreationWorkspace({
               </select>
             </label>
             <label className="block flex-1 min-w-[12rem]">
-              <span className="block text-[10px] uppercase tracking-wider mb-1" style={{ color: muted }}>Title</span>
+              <span className="block text-[0.625rem] uppercase tracking-wider mb-1 text-[#5A5751]">Title</span>
               <input
                 type="text"
                 value={title}
                 onChange={(e) => { setTitle(e.target.value); setDirty(true); }}
                 placeholder="Untitled"
-                className="w-full border bg-white px-2 py-2 text-sm focus:outline focus:outline-2"
-                style={{ borderColor: border, color: ink, outlineColor: accent }}
+                className="w-full border border-[#E8E4DC] bg-white px-2 py-2 text-sm text-[#1A1815] focus:outline focus:outline-2"
+                style={{ outlineColor: accent }}
                 aria-label="Document title"
               />
             </label>
           </div>
-          <p className="text-xs mb-3" style={{ color: muted }}>{cfg.blurb}</p>
+          <p className="text-xs mb-3 text-[#5A5751] [@media(max-height:600px)]:hidden">{cfg.blurb}</p>
 
-          {/* Formatting toolbar */}
-          <div className="flex flex-wrap items-center gap-1 border-x border-t p-2" style={{ borderColor: border, background: '#FAF8F4' }} role="toolbar" aria-label="Formatting">
+          {/* Formatting toolbar. Colors ride themeable CLASSES (not inline hex),
+              so [data-theme] remaps them per theme — under midnight the toolbar
+              goes black, the buttons #141414, and the glyphs #E5E5E5 (legible).
+              An inline color here would bypass the remap and render dark-on-dark
+              in midnight (the 2026-06-17 bug class the contrast guard polices).
+              outlineColor stays inline: it's a focus ring, not body legibility. */}
+          <div className="flex flex-wrap items-center gap-1 border-x border-t border-[#E8E4DC] bg-[#FAF8F4] p-2" role="toolbar" aria-label="Formatting">
             {TOOLS.map((t) => (
               <button
                 key={t.cmd}
@@ -272,23 +332,30 @@ export default function CreationWorkspace({
                 onClick={() => exec(t.cmd)}
                 title={t.title}
                 aria-label={t.title}
-                className="w-9 h-9 border bg-white text-sm hover:bg-[#F0ECE4] focus:outline focus:outline-2"
-                style={{ borderColor: border, color: ink, outlineColor: accent, ...t.style }}
+                className="w-9 h-9 border border-[#E8E4DC] bg-white text-[#1A1815] text-sm hover:bg-[#F0ECE4] focus:outline focus:outline-2"
+                style={{ outlineColor: accent, ...t.style }}
               >
                 {t.label}
               </button>
             ))}
-            <span className="mx-1 h-6 border-l" style={{ borderColor: border }} aria-hidden="true" />
-            <button type="button" onClick={() => formatBlock('h1')} title="Heading 1" className="px-2 h-9 border bg-white text-sm font-bold hover:bg-[#F0ECE4] focus:outline focus:outline-2" style={{ borderColor: border, color: ink, outlineColor: accent }}>H1</button>
-            <button type="button" onClick={() => formatBlock('h2')} title="Heading 2" className="px-2 h-9 border bg-white text-sm font-bold hover:bg-[#F0ECE4] focus:outline focus:outline-2" style={{ borderColor: border, color: ink, outlineColor: accent }}>H2</button>
-            <button type="button" onClick={() => formatBlock('p')} title="Normal text" className="px-2 h-9 border bg-white text-xs hover:bg-[#F0ECE4] focus:outline focus:outline-2" style={{ borderColor: border, color: ink, outlineColor: accent }}>Body</button>
-            <span className="mx-1 h-6 border-l" style={{ borderColor: border }} aria-hidden="true" />
-            <button type="button" onClick={() => list(false)} title="Bulleted list" aria-label="Bulleted list" className="w-9 h-9 border bg-white text-sm hover:bg-[#F0ECE4] focus:outline focus:outline-2" style={{ borderColor: border, color: ink, outlineColor: accent }}>•</button>
-            <button type="button" onClick={() => list(true)} title="Numbered list" aria-label="Numbered list" className="w-9 h-9 border bg-white text-xs hover:bg-[#F0ECE4] focus:outline focus:outline-2" style={{ borderColor: border, color: ink, outlineColor: accent }}>1.</button>
+            <span className="mx-1 h-6 border-l border-[#E8E4DC]" aria-hidden="true" />
+            <button type="button" onClick={() => formatBlock('h1')} title="Heading 1" className="px-2 h-9 border border-[#E8E4DC] bg-white text-[#1A1815] text-sm font-bold hover:bg-[#F0ECE4] focus:outline focus:outline-2" style={{ outlineColor: accent }}>H1</button>
+            <button type="button" onClick={() => formatBlock('h2')} title="Heading 2" className="px-2 h-9 border border-[#E8E4DC] bg-white text-[#1A1815] text-sm font-bold hover:bg-[#F0ECE4] focus:outline focus:outline-2" style={{ outlineColor: accent }}>H2</button>
+            <button type="button" onClick={() => formatBlock('p')} title="Normal text" className="px-2 h-9 border border-[#E8E4DC] bg-white text-[#1A1815] text-xs hover:bg-[#F0ECE4] focus:outline focus:outline-2" style={{ outlineColor: accent }}>Body</button>
+            <span className="mx-1 h-6 border-l border-[#E8E4DC]" aria-hidden="true" />
+            <button type="button" onClick={() => list(false)} title="Bulleted list" aria-label="Bulleted list" className="w-9 h-9 border border-[#E8E4DC] bg-white text-[#1A1815] text-sm hover:bg-[#F0ECE4] focus:outline focus:outline-2" style={{ outlineColor: accent }}>•</button>
+            <button type="button" onClick={() => list(true)} title="Numbered list" aria-label="Numbered list" className="w-9 h-9 border border-[#E8E4DC] bg-white text-[#1A1815] text-xs hover:bg-[#F0ECE4] focus:outline focus:outline-2" style={{ outlineColor: accent }}>1.</button>
+            <span className="mx-1 h-6 border-l border-[#E8E4DC]" aria-hidden="true" />
+            <button type="button" onClick={() => stamp(false)} data-testid="insert-date-stamp" title={`Insert today's date (${formatEntryStamp(new Date())})`} className="px-2 h-9 border border-[#E8E4DC] bg-white text-[#1A1815] text-xs hover:bg-[#F0ECE4] focus:outline focus:outline-2" style={{ outlineColor: accent }}>{formatEntryStamp(new Date())}</button>
+            <button type="button" onClick={() => stamp(true)} data-testid="insert-date-time-stamp" title="Insert today's date AND the time" className="px-2 h-9 border border-[#E8E4DC] bg-white text-[#1A1815] text-xs hover:bg-[#F0ECE4] focus:outline focus:outline-2" style={{ outlineColor: accent }}>+ time</button>
           </div>
 
-          {/* The big working canvas — a page on a neutral mat. */}
-          <div className="border p-4 sm:p-6 overflow-auto" style={{ borderColor: border, background: '#EDE9E1', maxHeight: '70vh' }}>
+          {/* The big working canvas — a page on a neutral mat. The mat + page
+              colors are INTENTIONALLY inline (not themeable classes): this is a
+              WYSIWYG document you compose and rasterize to an image, so it stays
+              a light page in every app theme, matching the exported artifact.
+              (The chrome around it themes normally; only the paper is fixed.) */}
+          <div className="border p-4 sm:p-6 [@media(max-height:600px)]:p-2 overflow-auto" style={{ borderColor: border, background: '#EDE9E1', maxHeight: '70vh' }}>
             <div
               className="mx-auto shadow-sm"
               style={{
@@ -306,7 +373,7 @@ export default function CreationWorkspace({
                 aria-multiline="true"
                 aria-label="Document canvas"
                 data-placeholder={cfg.placeholder}
-                onInput={() => { setDirty(true); }}
+                onInput={() => { autoStamp(); setDirty(true); }}
                 className="creation-canvas outline-none"
                 style={{
                   minHeight: `${Math.min(cfg.page.height, 640)}px`,
@@ -325,8 +392,8 @@ export default function CreationWorkspace({
             <button
               type="button"
               onClick={save}
-              className="px-4 py-2 text-sm font-medium text-white focus:outline focus:outline-2"
-              style={{ background: accent, outlineColor: ink }}
+              className="px-4 py-2 text-sm font-medium text-white bg-[#B85838] focus:outline focus:outline-2"
+              style={{ outlineColor: ink }}
             >
               Save
             </button>
@@ -335,22 +402,22 @@ export default function CreationWorkspace({
                 type="button"
                 onClick={() => exportImage(formats[0])}
                 disabled={busy}
-                className="px-4 py-2 text-sm font-medium border focus:outline focus:outline-2 disabled:opacity-50"
-                style={{ borderColor: accent, color: accent, outlineColor: ink }}
+                className="px-4 py-2 text-sm font-medium border border-[#B85838] text-[#B85838] focus:outline focus:outline-2 disabled:opacity-50"
+                style={{ outlineColor: ink }}
               >
                 {busy ? 'Exporting…' : `Export ${FORMAT_LABEL[formats[0]] || 'image'}`}
               </button>
             ) : (
-              <span className="inline-flex items-stretch border" style={{ borderColor: accent }}>
-                <span className="px-3 py-2 text-sm font-medium" style={{ color: accent }}>Export</span>
+              <span className="inline-flex items-stretch border border-[#B85838]">
+                <span className="px-3 py-2 text-sm font-medium text-[#B85838]">Export</span>
                 {formats.map((f) => (
                   <button
                     key={f}
                     type="button"
                     onClick={() => exportImage(f)}
                     disabled={busy}
-                    className="px-3 py-2 text-sm font-medium border-l hover:bg-[#FAF1EC] focus:outline focus:outline-2 disabled:opacity-50"
-                    style={{ borderColor: accent, color: accent, outlineColor: ink }}
+                    className="px-3 py-2 text-sm font-medium border-l border-[#B85838] text-[#B85838] hover:bg-[#FAF1EC] focus:outline focus:outline-2 disabled:opacity-50"
+                    style={{ outlineColor: ink }}
                   >
                     {busy ? '…' : FORMAT_LABEL[f] || f.toUpperCase()}
                   </button>
@@ -361,8 +428,8 @@ export default function CreationWorkspace({
               <button
                 type="button"
                 onClick={presentDoc}
-                className="px-4 py-2 text-sm font-medium border focus:outline focus:outline-2"
-                style={{ borderColor: '#5A6E3D', color: '#5A6E3D', outlineColor: ink }}
+                className="px-4 py-2 text-sm font-medium border border-[#5A6E3D] text-[#5A6E3D] focus:outline focus:outline-2"
+                style={{ outlineColor: ink }}
                 title="Put this document on a screen, one section at a time"
               >
                 ▶ Present
@@ -371,23 +438,23 @@ export default function CreationWorkspace({
             <button
               type="button"
               onClick={() => startNew(type)}
-              className="px-3 py-2 text-sm border focus:outline focus:outline-2"
-              style={{ borderColor: border, color: muted, outlineColor: accent }}
+              className="px-3 py-2 text-sm border border-[#E8E4DC] text-[#5A5751] focus:outline focus:outline-2"
+              style={{ outlineColor: accent }}
             >
               New
             </button>
-            <span className="text-xs ml-1" style={{ color: muted }} aria-live="polite">
+            <span className="text-xs ml-1 text-[#5A5751]" aria-live="polite">
               {dirty ? 'Unsaved changes' : savedAt ? `Saved ${new Date(savedAt).toLocaleString()}` : 'Not saved yet'}
             </span>
           </div>
 
           {errs.length > 0 && (
-            <ul className="mt-2 text-sm" style={{ color: accent }} role="alert">
+            <ul className="mt-2 text-sm text-[#B85838]" role="alert">
               {errs.map((e, i) => <li key={i}>• {e}</li>)}
             </ul>
           )}
           {notice && (
-            <p className="mt-2 text-sm" role="status" style={{ color: notice.kind === 'err' ? accent : '#3F7A4F' }}>
+            <p className={`mt-2 text-sm ${notice.kind === 'err' ? 'text-[#B85838]' : 'text-[#3F7A4F]'}`} role="status">
               {notice.text}
             </p>
           )}
@@ -395,20 +462,20 @@ export default function CreationWorkspace({
 
         {/* ---- sidebar: saved documents ---- */}
         <aside>
-          <div className="text-[10px] uppercase tracking-wider mb-2 font-semibold" style={{ color: muted }}>Your documents</div>
+          <div className="text-[0.625rem] uppercase tracking-wider mb-2 font-semibold text-[#5A5751]">Your documents</div>
           {saved.length === 0 ? (
-            <div className="border p-4 text-center" style={{ borderColor: border, background: 'white' }}>
+            <div className="border border-[#E8E4DC] bg-white p-4 text-center">
               <div className="text-2xl mb-1" aria-hidden="true">📄</div>
-              <p className="text-sm font-semibold" style={{ fontFamily: '"Fraunces", serif', color: ink }}>Nothing saved yet</p>
-              <p className="text-xs mt-1" style={{ color: muted }}>Compose something on the canvas, then press Save. It’ll appear here and sync to your other devices.</p>
+              <p className="text-sm font-semibold text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>Nothing saved yet</p>
+              <p className="text-xs mt-1 text-[#5A5751]">Compose something on the canvas, then press Save. It’ll appear here and sync to your other devices.</p>
             </div>
           ) : (
             <ul className="space-y-1">
               {saved.map((ws) => (
                 <li key={ws.id}>
                   <div
-                    className={`border px-3 py-2 ${ws.id === activeId ? 'ring-2' : ''}`}
-                    style={{ borderColor: border, background: 'white', ...(ws.id === activeId ? { boxShadow: `inset 0 0 0 2px ${accent}` } : {}) }}
+                    className={`border border-[#E8E4DC] bg-white px-3 py-2 ${ws.id === activeId ? 'ring-2' : ''}`}
+                    style={ws.id === activeId ? { boxShadow: `inset 0 0 0 2px ${accent}` } : undefined}
                   >
                     <button
                       type="button"
@@ -416,16 +483,16 @@ export default function CreationWorkspace({
                       className="block w-full text-left focus:outline focus:outline-2"
                       style={{ outlineColor: accent }}
                     >
-                      <span className="block text-sm font-medium truncate" style={{ color: ink }}>{ws.title || 'Untitled'}</span>
-                      <span className="block text-[10px] uppercase tracking-wider" style={{ color: muted }}>
+                      <span className="block text-sm font-medium truncate text-[#1A1815]">{ws.title || 'Untitled'}</span>
+                      <span className="block text-[0.625rem] uppercase tracking-wider text-[#5A5751]">
                         {typeFor(ws.type).label}{ws.updatedAt ? ` · ${new Date(ws.updatedAt).toLocaleDateString()}` : ''}
                       </span>
                     </button>
                     <button
                       type="button"
                       onClick={() => removeWorkspace(ws)}
-                      className="mt-1 text-[11px] focus:outline focus:outline-2"
-                      style={{ color: muted, outlineColor: accent }}
+                      className="mt-1 text-[0.6875rem] text-[#5A5751] focus:outline focus:outline-2"
+                      style={{ outlineColor: accent }}
                       aria-label={`Delete ${ws.title || 'Untitled'}`}
                     >
                       Delete

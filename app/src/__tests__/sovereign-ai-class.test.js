@@ -1,7 +1,7 @@
 // @vitest-environment node
 //
 // sovereign-ai-class — "Sovereign A.I.: Why We Build Local" must use the SHARED
-// Learn framework (8-week set, computed timeline, multi-modal fields), teach the
+// Learn framework (12-week set, computed timeline, multi-modal fields), teach the
 // REAL, VERIFIED model + hardware landscape (DR-0076 — no fabrication), carry the
 // age-adaptive levels (teen + senior on every module) and the Research → Plan →
 // Execute primitive, and never assert the illustrative "provider banned a model"
@@ -18,15 +18,57 @@ import { tutorSystemPrompt } from '../lib/class-tutor.js';
 import { resolveForAge, lessonPlanForAge } from '../lib/learn-framework.js';
 
 describe('curriculum shape', () => {
-  it('has the full 8-week module set', () => {
-    expect(SOVEREIGN_AI_MODULES).toHaveLength(8);
-    expect(SOVEREIGN_AI_META.weeks).toBe(8);
+  it('has the full module set, its count DERIVED from the series and contiguous sov1..sovN (DR-0677): no lesson PR edits a literal count line', () => {
+    // Floor, never edited by a new week: the course may grow, not shrink.
+    expect(SOVEREIGN_AI_MODULES.length).toBeGreaterThanOrEqual(30);
+    expect(SOVEREIGN_AI_META.weeks).toBe(SOVEREIGN_AI_MODULES.length);
+    // Each week's number is its place, EXCEPT for a number recorded below as held
+    // by a lane still in flight: a dropped, doubled or misfiled week fails here.
+    // The convention is the one living-lessons-id-collision.test.js documents —
+    // the held number is named, dated and deleted in the merge that brings its
+    // week in, so the hold cannot quietly become a permanent gap. 33 WAS held
+    // here for Sovereign A.I. week 33 (Peace, peace; when there is no peace,
+    // DR-0761) while week 34 (the bounded answer, DR-0760) was being written in
+    // parallel. Week 33 merged first, so the entry was deleted, which is exactly
+    // what this assertion forces: it fails once a held number is no longer
+    // missing, and a gap that is not recorded here fails.
+    // 35 WAS HELD here, recorded 2026-10-07, while Sovereign A.I. week 35 (the
+    // new players, DR-0791) was written on a parallel branch and week 36 (the
+    // pile the machine made, DR-0792) was written here. Week 35 merged first,
+    // so the entry is DELETED in the merge that brought it in -- which is
+    // exactly what this assertion forces: it fails the moment a held number is
+    // no longer missing, so a hold cannot quietly become a permanent gap.
+    const HELD_IN_FLIGHT = [];
+    const weeks = SOVEREIGN_AI_MODULES.map((m) => Number(m.id.match(/^sov(\d+)-/)?.[1]));
+    // Strictly ascending: a doubled or misfiled week still fails.
+    expect(weeks.every((n, i) => i === 0 || n > weeks[i - 1]), `weeks ascend: ${weeks.join(',')}`).toBe(true);
+    // Every number from 1 to the highest week is present, apart from the holds.
+    const missing = [];
+    for (let n = 1; n <= weeks[weeks.length - 1]; n += 1) if (!weeks.includes(n)) missing.push(n);
+    expect(missing, 'a missing week number that is not recorded as held in flight').toEqual(HELD_IN_FLIGHT);
     expect(SOVEREIGN_AI_MODULES.every((m) => m.id && m.title && m.bigIdea && m.inApp && m.anchor?.ref)).toBe(true);
     const ids = SOVEREIGN_AI_MODULES.map((m) => m.id);
     expect(ids).toContain('sov1-generator-in-the-garage');     // the thesis
     expect(ids).toContain('sov3-model-tier-landscape');        // the tiers
     expect(ids).toContain('sov7-five-opportunities');          // the strategy
     expect(ids).toContain('sov8-build-sovereign-hand-it-on');  // the capstone
+    expect(ids).toContain('sov9-verification-earns-trust');    // DR-0076 taught (from Darrell's forwarded article)
+    expect(ids).toContain('sov17-the-judge-and-the-just-weight'); // LLMs-as-a-judge, righteous judgment (forwarded 2026-09-14)
+    expect(ids).toContain('sov18-precept-upon-precept-the-voice-that-programs-the-world'); // the program picture, one source with Living Lesson L153 (spoken 2026-09-15)
+    expect(ids).toContain('sov19-the-servant-under-authority-who-keeps-the-guardrails'); // who keeps powerful A.I. under control - the servant under authority (forwarded 2026-09-15)
+    expect(ids).toContain('sov23-the-swarm-that-agreed-together-and-the-plumbline-held-from-outside'); // cooperation without a standard becomes collusion; the plumbline is held from outside (forwarded 2026-09-18)
+    expect(ids).toContain('sov24-changing-the-engine-in-flight-and-the-word-that-is-not-a-schema'); // migration at 30,000 feet; the system migrates, the Word does not (forwarded 2026-09-17)
+    expect(ids).toContain('sov25-the-ten-day-test-and-the-one-hidden-in-the-ninety-and-nine'); // deployed is not released; Daniel's ten days; the one measured separately; never put the Word in a variant (forwarded 2026-09-24)
+    expect(ids).toContain('sov26-the-roll-the-king-burned-and-the-roll-written-again');
+    expect(ids).toContain('sov27-the-seed-is-in-itself-and-every-workflow-seeds-the-next'); // every workflow seeds the next; the data is the proof of the whole (spoken 2026-09-24)
+    expect(ids).toContain('sov29-the-agent-that-went-past-the-bound');
+    expect(ids).toContain('sov33-peace-peace-when-there-is-no-peace-and-the-faithful-witness'); // a reward that blends being right with being liked; the hurt healed slightly; the audience that ordered smooth things; four hundred agreed and one told the truth; faithful wounds (forwarded 2026-10-06)
+    expect(ids).toContain('sov34-the-bounded-answer-count-the-cost-before-you-build-and-except-yahweh-build-the-house'); // the bounded answer: declare the allowed answers before the model runs; count the cost first; rock against sand; the just weight; the judgment no tool may be handed (forwarded 2026-10-06)
+    expect(ids).toContain('sov32-the-im-fine-problem-and-the-one-who-looketh-on-the-heart'); // the transcript hears the words, Yahweh hears the heart; Hannah and Eli; groanings the Spirit carries; our own voices marked on our own machine (forwarded 2026-10-01)
+    expect(ids).toContain('sov31-whose-errand-does-your-agent-carry'); // one Mediator; Abraham's servant; no man can serve two masters; the owner answers for what he sets loose (forwarded 2026-09-29)
+    expect(ids).toContain('sov30-the-watcher-the-agent-cannot-see-and-the-door-with-no-hidden-hatch'); // one door, the watcher out of reach, quarantine that looks again (forwarded 2026-09-29) // agents chase the goal, not your rules; Yahweh sets the bound; proved before trusted (forwarded 2026-09-28)
+    expect(ids).toContain('sov36-the-pile-the-machine-made-and-the-labourers-who-must-prove-it'); // the pile the machine made: 722 manuscripts carried as a claim with the publisher's own caveat, the proving that is the work, Job 28, chaff and tares, what a machine-checked proof cannot settle (forwarded 2026-10-07)
+    expect(ids).toContain('sov28-holding-the-hand-of-the-process-until-it-is-finished'); // not just flagged - analyzed, fixed and done; nothing discarded (spoken 2026-09-24) // disaster recovery that has been restored; the Word is not our data (forwarded 2026-09-24)
   });
   it('every module id is unique and prefixed sov*', () => {
     const ids = SOVEREIGN_AI_MODULES.map((m) => m.id);
@@ -76,7 +118,7 @@ describe('age-adaptive content (teen + senior on every module)', () => {
     const childPlan = lessonPlanForAge(m, 'child');
     expect(childPlan.totalSegments).toBeGreaterThan(1);
     const adult = lessonPlanForAge(m, 'adult');
-    expect(adult.totalSegments).toBe(1);               // full base lesson at once
+    expect(adult.totalSegments).toBeGreaterThanOrEqual(1);               // the base lesson, now chunked into readable sections (DR-0076: every word kept)
   });
 });
 
@@ -163,16 +205,16 @@ describe('no fabrication of the "provider banned a model" scenario (DR-0076)', (
 describe('shared machinery (computed timeline, progress, export, cohort, tutor)', () => {
   it('the timeline is COMPUTED (not painted) from the cohort start', () => {
     const sched = buildSovereignAiSchedule('2026-08-01');
-    expect(sched).toHaveLength(8);
+    expect(sched).toHaveLength(SOVEREIGN_AI_MODULES.length);
     expect(sched[0].week).toBe(1);
     expect(sched[0].date instanceof Date).toBe(true);
     expect(sched[1].date.getTime() - sched[0].date.getTime()).toBe(7 * 86400000);
   });
   it('progress is counted from the real record', () => {
     const r = sovereignAiProgressSummary({ 'sov1-generator-in-the-garage': true, 'sov2-what-a-model-costs-to-run': true });
-    expect(r.total).toBe(8);
+    expect(r.total).toBe(SOVEREIGN_AI_MODULES.length);
     expect(r.done).toBe(2);
-    expect(r.pct).toBe(25);
+    expect(r.pct).toBe(Math.round((2 / SOVEREIGN_AI_MODULES.length) * 100)); // derived (DR-0677); 7 at 29 and 30 weeks
   });
   it('the cohort starts PROPOSED (not confirmed) until Darrell locks it', () => {
     expect(SOVEREIGN_AI_CONFIRMED_COHORT.confirmed).toBe(false);

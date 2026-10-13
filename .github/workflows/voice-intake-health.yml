@@ -1,0 +1,319 @@
+# voice-intake-health -- is a spoken recording actually becoming words, on the
+# LIVE database? (DR-0611 lessons, DR-0624 recorded conversations)
+#
+# WHY THIS EXISTS (2026-09-24). Darrell recorded a conversation on the Notes
+# box and nothing was saved. The fix records the audio and lets Whisper on our
+# own machines write the words -- and "the rider ran" is not proof that it did.
+# The proof is rows on the database the app reads (HOLD-THE-HAND, DR-0621):
+# a voice row in, a transcript row out, with the rung that wrote it.
+#
+# WHAT IT READS (read-only; no write anywhere):
+#   1. The live database (scripts/live-sql.sh: tailnet -> ssh -> psql in
+#      supabase-db): agent_inbox voice rows by class -- lesson+voice,
+#      note+voice, voice-transcript, voice-failed -- with counts and newest
+#      timestamps, which Whisper rung wrote each transcript, the rows still
+#      owed, and what waits in the lesson-audio bucket. Never a body: a
+#      transcript holds a person's words, and this output is public to the repo.
+#   2. The NAS side of the same road: is the tower's Whisper answering, is
+#      the CPU rung (faster-whisper) installed, the rider's own last lines.
+#
+# BRAKES: dispatch or a push that touches the road; ONE query + one read-only
+# ssh per fire, 8-minute cap, single-instance. Not a timer, spawns nothing.
+name: voice-intake-health
+
+on:
+  workflow_dispatch: {}
+  push:
+    paths:
+      - '.github/workflows/voice-intake-health.yml'
+      - 'infra/nas-lesson-voice/**'
+
+concurrency:
+  group: voice-intake-health
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  measure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check secrets (unknown is never reported as healthy)
+        id: gate
+        env:
+          TS: ${{ secrets.TS_AUTHKEY != '' }}
+          KEY: ${{ secrets.NAS_SSH_KEY != '' }}
+        run: |
+          if [ "$TS" != "true" ] || [ "$KEY" != "true" ]; then
+            echo "::warning::TS_AUTHKEY / NAS_SSH_KEY not set -- cannot read the live database. UNKNOWN."
+            echo "go=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "go=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Join the tailnet (ephemeral)
+        if: steps.gate.outputs.go == 'true'
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+      - name: Voice rows on the live database (read-only)
+        if: steps.gate.outputs.go == 'true'
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          set -uo pipefail
+          out=$(bash scripts/live-sql.sh '|' <<'SQL'
+          SELECT 'class', k, count(*), coalesce(to_char(max(created_at),'YYYY-MM-DD"T"HH24:MI:SS"Z"'),'-')
+          FROM (
+            SELECT created_at, CASE
+              WHEN tags @> '["voice-transcript"]' AND tags @> '["lesson"]' THEN 'transcript (lesson)'
+              WHEN tags @> '["voice-transcript"]' AND tags @> '["note"]' THEN 'transcript (note)'
+              WHEN tags @> '["voice-transcript"]' THEN 'transcript (other)'
+              WHEN tags @> '["voice-failed"]' AND NOT tags @> '["voice"]' THEN 'failure report'
+              WHEN tags @> '["voice"]' AND tags @> '["lesson"]' THEN 'lesson recording'
+              WHEN tags @> '["voice"]' AND tags @> '["note"]' THEN 'note recording'
+              WHEN tags @> '["voice"]' THEN 'other recording'
+            END AS k
+            FROM agent_inbox
+            WHERE tags @> '["voice"]' OR tags @> '["voice-transcript"]' OR tags @> '["voice-failed"]'
+          ) s WHERE k IS NOT NULL GROUP BY k;
+          SELECT 'rung', coalesce((SELECT t FROM jsonb_array_elements_text(tags::jsonb) t WHERE t LIKE 'whisper:%' LIMIT 1),'whisper:?'),
+                 count(*), to_char(max(created_at),'YYYY-MM-DD"T"HH24:MI:SS"Z"')
+          FROM agent_inbox WHERE tags @> '["voice-transcript"]' GROUP BY 2;
+          SELECT 'recording', left(id::text,8), to_char(created_at,'YYYY-MM-DD"T"HH24:MI:SS"Z"'), source,
+                 CASE WHEN tags @> '["voice-transcribed"]' THEN 'transcribed'
+                      WHEN tags @> '["voice-failed"]' THEN 'failed'
+                      ELSE 'owed' END,
+                 coalesce((SELECT string_agg(t, ',') FROM jsonb_array_elements_text(tags::jsonb) t
+                           WHERE t IN ('lesson','note','mirrored','consent:all-agreed')),'')
+          FROM agent_inbox WHERE tags @> '["voice"]' ORDER BY created_at DESC LIMIT 20;
+          SELECT 'of', left(id::text,8), to_char(created_at,'YYYY-MM-DD"T"HH24:MI:SS"Z"'),
+                 coalesce((SELECT string_agg(t, ',') FROM jsonb_array_elements_text(tags::jsonb) t
+                           WHERE t LIKE 'of:%' OR t LIKE 'whisper:%' OR t IN ('voice-transcript','voice-failed')),'')
+          FROM agent_inbox WHERE tags @> '["voice-transcript"]' OR (tags @> '["voice-failed"]' AND NOT tags @> '["voice"]')
+          ORDER BY created_at DESC LIMIT 20;
+          SELECT 'bucket', count(*), coalesce(to_char(max(created_at),'YYYY-MM-DD"T"HH24:MI:SS"Z"'),'-')
+          FROM storage.objects WHERE bucket_id = 'lesson-audio';
+          SELECT 'bucket-exists', count(*) FROM storage.buckets WHERE id = 'lesson-audio';
+          -- ADD MY VOICE (DR-0720), Darrell 2026-10-02: "I've added my voice multiple
+          -- times... Why don't it work". The consent rows themselves, never a sample:
+          -- status + the plain reason the NAS wrote back, and whether a sample waits.
+          SELECT 'enroll', left(user_id::text,8), label, status, left(coalesce(reason,''),100),
+                 coalesce(to_char(consented_at,'YYYY-MM-DD"T"HH24:MI:SS"Z"'),'-'),
+                 coalesce(to_char(enrolled_at,'YYYY-MM-DD"T"HH24:MI:SS"Z"'),'-'),
+                 coalesce(to_char(updated_at,'YYYY-MM-DD"T"HH24:MI:SS"Z"'),'-'),
+                 CASE WHEN sample_path IS NULL THEN 'no-sample-waiting' ELSE 'sample-waiting' END
+          FROM voice_enrollments ORDER BY updated_at DESC NULLS LAST LIMIT 20;
+          SELECT 'enroll-count', count(*) FROM voice_enrollments;
+          -- WHO SPOKE (DR-0712): did the transcripts come back marked by voice at all?
+          SELECT 'speakers', CASE WHEN tags @> '["speakers:marked"]' THEN 'marked'
+                                  WHEN tags @> '["speakers:unmarked"]' THEN 'unmarked' ELSE 'untagged' END,
+                 count(*), to_char(max(created_at),'YYYY-MM-DD"T"HH24:MI:SS"Z"')
+          FROM agent_inbox WHERE tags @> '["voice-transcript"]' GROUP BY 2;
+          SQL
+          ) || { echo "::warning::live query failed -- UNKNOWN, never healthy"; echo "$out"; exit 0; }
+          echo "$out"
+          {
+            echo "### Voice intake on the live database"
+            echo ""
+            echo '```'
+            echo "$out"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Spoken words that landed as an Action Queue item (read-only)
+        # 2026-09-24, Darrell's screenshot: raw spoken conversation shown as
+        # an INCIDENT on Big Picture -> Now -> Action Queue. Which door wrote
+        # it is answered by the row itself: the slug stamps the moment, the
+        # lifecycle log names who. Never the words (this log is public).
+        if: steps.gate.outputs.go == 'true'
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          set -uo pipefail
+          bash scripts/live-sql.sh '|' <<'SQL' || echo "::warning::incident query failed"
+          SELECT 'incident', slug, to_char(created_at,'YYYY-MM-DD"T"HH24:MI:SS"Z"'),
+                 CASE WHEN slug ~ '^in-[0-9]{13}$' THEN to_char(to_timestamp(substr(slug,4)::bigint/1000.0),'YYYY-MM-DD"T"HH24:MI:SS"Z"') ELSE '-' END,
+                 category, urgency, status, length(description),
+                 (description ILIKE '%paint and everything else%')::text,
+                 coalesce(left(lifecycle::text, 160), '-')
+          FROM incidents
+          WHERE length(description) > 300 OR description ILIKE '%paint and everything else%'
+          ORDER BY created_at DESC LIMIT 10;
+          SQL
+      - name: The NAS side of the road (read-only)
+        if: steps.gate.outputs.go == 'true'
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          umask 077
+          printf '%s\n' "$NAS_SSH_KEY" > /tmp/nas_key
+          SSH="ssh -i /tmp/nas_key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 dpoe@poetech.tail5a2f35.ts.net"
+          $SSH 'sh -s' <<'EOS' || echo "::warning::NAS did not answer"
+          PATH=/usr/local/bin:/opt/bin:/usr/bin:/bin:$PATH; export PATH
+          SUDO=""; sudo -n true 2>/dev/null && SUDO="sudo -n"
+          REPO=/volume1/PoeTech/repos/Kingdom-PWA-Node
+          LOOPS=$REPO/infra/nas-loops
+          echo "=== repo HEAD on the NAS (is the rider the one on main?) ==="
+          git -C "$REPO" log -1 --format='%h %cI %s' 2>/dev/null | cut -c1-120 || echo "repo unreadable"
+          echo "=== rung 1: the tower's Whisper, from the NAS ==="
+          for u in http://tlcmediadpt.tail5a2f35.ts.net:8771 http://100.69.19.13:8771 http://tlcmediadpt:8771; do curl -s --max-time 8 -o /dev/null -w "$u /health HTTP %{http_code}\n" $u/health 2>&1 || echo "$u unreachable"; done
+          echo "=== last rung: faster-whisper on the NAS CPU ==="
+          V=/volume1/PoeTech/venvs/lesson-voice
+          if [ -x "$V/bin/python" ]; then
+            ${SUDO} "$V/bin/python" -c "import faster_whisper,sys; print('faster_whisper', faster_whisper.__version__, 'python', sys.version.split()[0])" 2>&1 | tail -1
+          else
+            echo "no venv at $V"
+          fi
+          python3 --version 2>&1
+          uname -m; nproc 2>/dev/null | sed 's/^/cpus: /'; grep -m1 'model name' /proc/cpuinfo 2>/dev/null
+          free -m 2>/dev/null | head -2
+          ldd --version 2>&1 | head -1
+          [ -x "$V/bin/pip" ] && ${SUDO} "$V/bin/python" -m pip --version 2>&1 | tail -1 || echo "no pip in $V"
+          ${SUDO} cat /volume1/PoeTech/lesson-voice/.pip-attempt 2>/dev/null | sed 's/^/last pip attempt stamp: /' || echo "no pip-attempt stamp"
+          echo "--- the CPU rung's install log (tail) ---"
+          ${SUDO} tail -25 /volume1/PoeTech/lesson-voice/pip.log 2>/dev/null || echo "no pip.log yet"
+          echo "--- a transcription still in progress on the CPU rung ---"
+          ${SUDO} ls -la /volume1/PoeTech/lesson-voice/partial 2>/dev/null || echo "none"
+          echo "=== rider state (attempts per row, lock, kept audio) ==="
+          ${SUDO} cat /volume1/PoeTech/lesson-voice/attempts.json 2>/dev/null | head -c 600 || echo "no attempts.json (the rider has not failed a row, or has never run)"
+          ${SUDO} ls -la /volume1/PoeTech/lesson-voice/ 2>&1 | head -12
+          ${SUDO} find /volume1/PoeTech/lesson-voice/audio -type f 2>/dev/null | wc -l | sed 's/^/audio files kept on the NAS: /'
+          echo "=== the rider's own last words (services-sync cycle log) ==="
+          ${SUDO} grep -a "lesson-voice\|lesson_voice\|transcribe" "$LOOPS/events/cron-services-sync.log" 2>/dev/null | tail -25 || echo "no lesson-voice lines in the cycle log"
+          echo "=== the rider's newest JSON report, if the cycle log kept it ==="
+          ${SUDO} grep -a -A12 '"transcribe"' "$LOOPS/events/cron-services-sync.log" 2>/dev/null | tail -30 || true
+          ${SUDO} tail -c 1500 /volume1/PoeTech/lesson-voice/last-run.json 2>/dev/null || echo "no last-run.json yet"
+          echo "=== why a transcript came back unmarked (the rider's skipped reasons, newest last) ==="
+          ${SUDO} grep -a -o 'speakers-not-marked: [^"]*' "$LOOPS/events/cron-services-sync.log" 2>/dev/null | tail -6 || echo "no speakers-not-marked line in the cycle log"
+          echo "=== who spoke (DR-0712): speaker marking, voiceprints, enrollment ==="
+          ${SUDO} cat /volume1/PoeTech/lesson-voice/.speakers-recipe 2>/dev/null | sed 's/^/speakers recipe installed: /' || echo "speaker marking not installed yet"
+          ${SUDO} ls -la /volume1/PoeTech/lesson-voice/models/speakers 2>/dev/null || echo "no speaker models yet"
+          ${SUDO} tail -8 /volume1/PoeTech/lesson-voice/speakers-install.log 2>/dev/null || echo "no speakers-install.log yet"
+          ${SUDO} ls /volume1/PoeTech/lesson-voice/voiceprints 2>/dev/null | sed 's/^/voiceprint: /' || echo "no voiceprints yet"
+          ${SUDO} cat /volume1/PoeTech/lesson-voice/.enroll-attempt 2>/dev/null | sed 's/^/last enroll attempt (epoch): /' || echo "no enroll attempt yet"
+          ${SUDO} cat /volume1/PoeTech/lesson-voice/enroll-result.json 2>/dev/null || echo "no enroll-result.json yet"
+          ${SUDO} tail -6 /volume1/PoeTech/lesson-voice/enroll.log 2>/dev/null || echo "no enroll.log yet"
+          echo "=== the rider's own answer: is speaker marking armed, in the rider's own interpreter? ==="
+          PY=/volume1/PoeTech/venvs/lesson-voice/bin/python; [ -x "$PY" ] || PY=python3
+          ${SUDO} grep -a '^LESSON_VOICE_\(SPEAKERS\|SELF_ENROLL\)=' /volume1/PoeTech/lesson-voice/lesson-voice.env 2>/dev/null | sed 's/^/env file: /' || echo "env file: no LESSON_VOICE_SPEAKERS / LESSON_VOICE_SELF_ENROLL line (both default on)"
+          ${SUDO} "$PY" - <<'PYEOF' 2>&1 | head -24
+          import os, sys, importlib.util
+          sys.path.insert(0, "/volume1/PoeTech/repos/Kingdom-PWA-Node/infra/nas-lesson-voice")
+          D = "/volume1/PoeTech/lesson-voice"
+          print("interpreter:", sys.executable)
+          print("sherpa_onnx importable here:", importlib.util.find_spec("sherpa_onnx") is not None)
+          try:
+              import diarize_local as dl
+              seg, emb = dl.model_paths(D)
+              print("speaker models present:", os.path.isfile(seg), os.path.isfile(emb))
+              print("speakers_enabled:", dl.speakers_enabled(D))
+          except Exception as e:
+              print("diarize_local:", type(e).__name__, str(e)[:160])
+          try:
+              import voice_enroll as ve
+              print("enrolling_enabled:", ve.enrolling_enabled())
+          except Exception as e:
+              print("voice_enroll:", type(e).__name__, str(e)[:160])
+          try:
+              import speaker_turns as st
+              for k, r in sorted(st.load_voiceprint_records(D).items()):
+                  print("voiceprint", k, "owner", ((r.get("user_id") or "word-attributed"))[:14], "source", str(r.get("source") or "")[:40])
+          except Exception as e:
+              print("voiceprints:", type(e).__name__, str(e)[:160])
+          PYEOF
+          echo "=== add my voice (DR-0720): self-enrollment by consent ==="
+          ${SUDO} cat /volume1/PoeTech/lesson-voice/voice-enroll-result.json 2>/dev/null || echo "no voice-enroll-result.json yet"
+          ${SUDO} tail -4 /volume1/PoeTech/lesson-voice/voice-enroll.log 2>/dev/null || echo "no voice-enroll.log yet"
+          ${SUDO} cat /volume1/PoeTech/lesson-voice/voiceprints/withdrawn.json 2>/dev/null | sed 's/^/withdrawn labels: /' || echo "no withdrawn labels"
+          EOS
+      - name: The church video road on the NAS (read-only, DR-0723)
+        # The second witness for a church class (DR-0712) rides two NAS
+        # riders: transcript-trickle (captions -> video_transcripts) and
+        # choir-dates (yt-dlp -> service_date). This prints each one's own
+        # last words and the state of the yt-dlp it needs. Read-only: it
+        # never fetches from YouTube; `--version` makes no network call.
+        if: steps.gate.outputs.go == 'true'
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          umask 077
+          printf '%s\n' "$NAS_SSH_KEY" > /tmp/nas_key
+          SSH="ssh -i /tmp/nas_key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 dpoe@poetech.tail5a2f35.ts.net"
+          $SSH 'sh -s' <<'EOS' || echo "::warning::NAS did not answer"
+          PATH=/usr/local/bin:/opt/bin:/usr/bin:/bin:$PATH; export PATH
+          SUDO=""; sudo -n true 2>/dev/null && SUDO="sudo -n"
+          REPO=/volume1/PoeTech/repos/Kingdom-PWA-Node
+          LOOPS=$REPO/infra/nas-loops
+          echo "=== the trickle's own last words (cycle log) ==="
+          ${SUDO} grep -a "transcript-trickle\|This run:\|Coverage:\|STALL\|owe\|BLOCKED\|BACKOFF\|fetching captions" "$LOOPS/events/cron-services-sync.log" 2>/dev/null | grep -v "loop_run_done\|\[done\]" | tail -15 || echo "no trickle lines in the cycle log"
+          echo "=== the trickle's state files ==="
+          ${SUDO} ls -la "$REPO/infra/nas-sme-pipeline/out/" 2>&1 | grep -i "trickle\|transcripts\|lock" || echo "no trickle state"
+          echo "=== yt-dlp for the road (DR-0723) ==="
+          ${SUDO} cat /volume1/PoeTech/yt-dlp/.recipe 2>/dev/null | sed 's/^/installed recipe: /' || echo "no sovereign yt-dlp recipe yet"
+          for y in /volume1/PoeTech/yt-dlp/yt-dlp "$REPO/infra/church-media-golive/state/yt-dlp"; do
+            if [ -e "$y" ]; then
+              ${SUDO} ls -la "$y"
+              out=$(${SUDO} timeout 120 "$y" --version 2>&1); rc=$?
+              echo "$y --version -> exit $rc: $(printf '%s' "$out" | tail -3 | tr '\n' ' ' | cut -c1-300)"
+            else
+              echo "$y absent"
+            fi
+          done
+          ${SUDO} tail -8 /volume1/PoeTech/yt-dlp/install.log 2>/dev/null || echo "no yt-dlp install.log yet"
+          echo "--- the docker the old wrapper needs ---"
+          D=$(command -v docker 2>/dev/null || ls /usr/local/bin/docker /usr/bin/docker 2>/dev/null | head -1)
+          echo "docker binary: ${D:-none}"
+          [ -n "$D" ] && { "$D" ps >/dev/null 2>&1 && echo "docker ps as $(id -un): ok" || echo "docker ps as $(id -un): refused"; }
+          [ -n "$D" ] && { sudo -n "$D" ps >/dev/null 2>&1 && echo "sudo -n docker ps: ok" || echo "sudo -n docker ps: refused"; }
+          echo "--- the box (what a standalone binary needs) ---"
+          getconf GNU_LIBC_VERSION 2>/dev/null || echo "getconf: no glibc version"
+          ls /lib/libc.so.6 /lib64/libc.so.6 2>/dev/null
+          ls /usr/local/bin/python3* /usr/bin/python3* /bin/python3* 2>/dev/null | tr '\n' ' '; echo
+          ls /volume1/PoeTech/venvs 2>/dev/null | sed 's/^/venv: /'
+          curl -sI --max-time 15 -o /dev/null -w "github releases reachable: HTTP %{http_code}\n" https://github.com/yt-dlp/yt-dlp/releases 2>&1 || echo "github releases unreachable"
+          echo "--- why choir-dates printed nothing: one metadata read FROM THE NAS (the read choir-dates makes each cycle; never from this runner) ---"
+          /lib/libc.so.6 2>/dev/null | head -1
+          Y=/volume1/PoeTech/yt-dlp/yt-dlp; [ -x "$Y" ] || Y="$REPO/infra/church-media-golive/state/yt-dlp"
+          V=B6aZq8dPRT0
+          for extra in "" "--ignore-no-formats-error"; do
+            out=$(${SUDO} timeout 150 "$Y" --skip-download --no-warnings --ignore-errors $extra --print '%(id)s %(release_timestamp,upload_date)s' "https://www.youtube.com/watch?v=$V" 2>/tmp/ytdlp.err); rc=$?
+            echo "[${extra:-default args}] exit $rc, stdout: ${out:-<empty>}; stderr: $(tail -2 /tmp/ytdlp.err | tr '\n' ' ' | cut -c1-300)"
+          done
+          rm -f /tmp/ytdlp.err
+          echo "--- the undated rows choir-dates reads: how many, and what yt-dlp says about five of them ---"
+          ${SUDO} python3 - "$REPO/infra/church-media-golive" > /tmp/undated.txt 2>/tmp/undated.err <<'PYEOF'
+          import sys
+          sys.path.insert(0, sys.argv[1])
+          from youtube_load import load_secrets, _req, resolve_instance
+          url, key = load_secrets("/volume1/PoeTech/secrets/supabase.json")
+          inst = resolve_instance(url, key, "colg")
+          rows = _req(url, key, "GET", "choir_sermons", params={"instance_id": f"eq.{inst}", "service_date": "is.null", "video_id": "not.is.null", "select": "video_id", "order": "created_at.asc", "limit": "1000"}) or []
+          print(len(rows))
+          for r in rows[:5]:
+              print(r["video_id"])
+          PYEOF
+          echo "undated rows: $(head -1 /tmp/undated.txt) $(tail -2 /tmp/undated.err | tr '\n' ' ' | cut -c1-200)"
+          for v in $(tail -n +2 /tmp/undated.txt); do
+            out=$(${SUDO} timeout 90 "$Y" --skip-download --no-warnings --ignore-errors --ignore-no-formats-error --print '%(id)s %(release_timestamp,upload_date)s' "https://www.youtube.com/watch?v=$v" 2>/tmp/ytdlp.err); rc=$?
+            echo "$v exit $rc, stdout: ${out:-<empty>}; stderr: $(tail -1 /tmp/ytdlp.err | cut -c1-200)"
+          done
+          rm -f /tmp/ytdlp.err /tmp/undated.txt /tmp/undated.err
+          echo "--- the rider's exact call, in a cron-like environment (PATH as the installer sets it; read-only) ---"
+          ${SUDO} env -i HOME=/root PATH="$REPO/infra/church-media-golive/state:/usr/bin:/bin" python3 - <<'PYEOF'
+          import subprocess
+          a = ["--skip-download", "--no-warnings", "--ignore-errors", "--print", "%(id)s\t%(release_timestamp,upload_date)s",
+               "https://www.youtube.com/watch?v=UJTFeExcgEU", "https://www.youtube.com/watch?v=DlfJRko4Pzc"]
+          try:
+              r = subprocess.run(["yt-dlp"] + a, capture_output=True, text=True, timeout=200)
+              print("rider-context exit", r.returncode, "stdout:", (r.stdout or "<empty>").strip()[:200])
+              print("rider-context stderr:", " | ".join((r.stderr or "").strip().splitlines()[-3:])[:400])
+          except Exception as e:
+              print("rider-context raised:", type(e).__name__, str(e)[:200])
+          PYEOF
+          echo "=== choir-dates' own last words ==="
+          ${SUDO} grep -a "choir-dates\|choir_dates" "$LOOPS/events/cron-services-sync.log" 2>/dev/null | grep -v "loop_run_done\|\[done\]" | tail -8 || true
+          ${SUDO} tail -3 "$REPO/infra/church-media-golive/events/events.jsonl" 2>/dev/null || echo "no choir events"
+          ${SUDO} ls -la "$REPO/infra/church-media-golive/state/" 2>&1 | head -12
+          EOS

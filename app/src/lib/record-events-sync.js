@@ -59,6 +59,20 @@ export const recordEventsSync = createTableSync({
   toRow: recordEventToRow,
   fromRow: recordEventFromRow,
   idOf: (item) => item.id,
+  // Refresh by DELTA, not by re-downloading the log (2026-08-14). This table is
+  // the single largest egress source in the app: 20,129 rows / 15 MB, fat
+  // before/after blobs, and it gains a row on EVERY edit to ANY tracked record
+  // — so the old refetch-everything-on-every-change behaviour re-pulled 15 MB
+  // per edit per device. That is what exhausted the free-tier egress quota and
+  // hard-restricted the project (`exceed_egress_quota`), locking every account
+  // across all four apps out for 3.5 days.
+  //
+  // Safe HERE specifically because mergeRemoteRecordEvents below is a UNION:
+  // handing the consumer only the new rows folds them in without losing the
+  // history already held. Append-only is what makes that true — the DB grants
+  // SELECT + INSERT only (migration 0052), so a row can never change after it
+  // is written, and there is nothing an incremental read could miss.
+  appendOnly: true,
 });
 
 // Append-only: union so an event written offline survives the first refetch.

@@ -12,6 +12,10 @@
 // deploy 404s → React.lazy throws → the ErrorBoundary shows a dead tab. That is the
 // EXACT "Voice broken, everything else fine" signature, and nothing self-healed it.
 //
+// NOTHING INTERRUPTS WORDS COMING IN (DR-0748): while a recording, a dictation,
+// typing, a reading or a download is in progress the heal reload is deferred
+// (lib/intake-guard.js) and the error is left to the boundary, which says so.
+//
 // Vite fires a `vite:preloadError` event on window whenever a dynamic-import chunk
 // fails to load. This module listens for it and, ONCE, reloads the page — the SW's
 // network-first/no-store navigation (app/public/sw.js) then pulls the CURRENT shell
@@ -24,10 +28,25 @@
 // vitest with no real browser — mirrors lib/sw-update.js. The healthy path is a
 // no-op: `vite:preloadError` never fires unless a chunk actually failed, so a
 // well-served user is never reloaded.
+//
+// PREVENT-DEFAULT ONLY WHEN HEALING (root-caused 2026-07-10, DR-0139, live).
+// Vite's preload helper works like: catch(err) { dispatch vite:preloadError;
+// if (!defaultPrevented) throw err; } — so preventDefault() makes the failed
+// import() RESOLVE UNDEFINED instead of rejecting. The old handler prevented
+// unconditionally; on the 'gave-up' rung (loop guard, no reload coming) the
+// import resolved undefined, main.jsx destructured it ("Cannot destructure
+// property 'default' of 'undefined'"), and the REAL error (a 404'd chunk, a
+// module that threw) was destroyed — reproduced in a real Chromium run of the
+// live build. Now: prevent ONLY when we are about to reload (the error is
+// moot — the page is leaving); on gave-up we let Vite rethrow so the import
+// REJECTS with the truth, the boundary shows it, and the journal records it.
 
 // sessionStorage key holding the ms timestamp of the last heal-reload. sessionStorage
 // survives the reload (same tab / PWA standalone window) so the post-reload load can
 // detect a too-soon second failure = loop, instead of spinning.
+import { recordError } from './error-journal.js';
+import { intakeHeld, intakeWords, whenIntakeFree } from './intake-guard.js';
+
 export const HEAL_TS_KEY = 'poetech:chunk-heal-ts';
 
 // If a chunk fails AGAIN within this window after a heal-reload, treat it as a loop
@@ -55,16 +74,16 @@ function safeSession(win) {
  */
 export function decideChunkHeal(win, now) {
   const ss = safeSession(win);
+  // No sessionStorage (private mode / blocked) = no way to COUNT attempts, so a
+  // persistently broken serve would reload-loop forever. Same brake as the
+  // boot-heal ladder (DR-0139): can't count → don't loop; let the error surface.
+  if (!ss) return 'gave-up';
   let prev = NaN;
-  if (ss) {
-    try { prev = parseInt(ss.getItem(HEAL_TS_KEY) || '', 10); } catch (_) { /* ignore */ }
-  }
+  try { prev = parseInt(ss.getItem(HEAL_TS_KEY) || '', 10); } catch (_) { /* ignore */ }
   if (Number.isFinite(prev) && now - prev >= 0 && now - prev < HEAL_WINDOW_MS) {
     return 'gave-up'; // we already reloaded recently and a chunk STILL failed → loop guard
   }
-  if (ss) {
-    try { ss.setItem(HEAL_TS_KEY, String(now)); } catch (_) { /* ignore */ }
-  }
+  try { ss.setItem(HEAL_TS_KEY, String(now)); } catch (_) { /* ignore */ }
   return 'reload';
 }
 
@@ -86,9 +105,29 @@ export function wireChunkHeal(win, opts = {}) {
     } catch (_) { /* ignore */ }
   });
   const handler = (event) => {
-    // Stop Vite's default (which rethrows / logs); we own the recovery.
-    try { if (event && typeof event.preventDefault === 'function') event.preventDefault(); } catch (_) { /* ignore */ }
-    if (decideChunkHeal(w, nowFn()) === 'reload') reload();
+    if (decideChunkHeal(w, nowFn()) === 'reload') {
+      // NOTHING INTERRUPTS WORDS COMING IN (DR-0748): while a recording, a
+      // dictation, typing, a reading or a download is in progress, the heal
+      // reload waits for it. The error is NOT swallowed then, so the screen
+      // that failed to load says so in its boundary; the reload runs once the
+      // person is free.
+      if (intakeHeld()) {
+        try {
+          recordError({ source: 'chunk-heal', kind: 'heal', message: `stale chunk after a deploy — reload waited: ${intakeWords()}` }, w);
+        } catch (_) { /* watcher never blocks the heal */ }
+        whenIntakeFree(() => reload(), { setTimeout: w && typeof w.setTimeout === 'function' ? w.setTimeout.bind(w) : undefined });
+        return;
+      }
+      // We own the recovery: swallow the error (the reload replaces the page)
+      // and journal the heal so the recovery is visible on the quality board.
+      try { if (event && typeof event.preventDefault === 'function') event.preventDefault(); } catch (_) { /* ignore */ }
+      try {
+        recordError({ source: 'chunk-heal', kind: 'heal', message: 'stale chunk after a deploy — auto-reloaded to the current shell' }, w);
+      } catch (_) { /* watcher never blocks the heal */ }
+      reload();
+    }
+    // 'gave-up': do NOT preventDefault — Vite rethrows, the import rejects with
+    // the REAL error, and the boundary/fallback + journal report the truth.
   };
   w.addEventListener('vite:preloadError', handler);
   return () => { try { w.removeEventListener('vite:preloadError', handler); } catch (_) { /* ignore */ } };

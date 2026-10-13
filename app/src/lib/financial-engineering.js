@@ -27,6 +27,8 @@
 // poe-financial-mvp-v28.jsx (which would drag React into the projection math).
 // =============================================================================
 
+import { deriveApr, debtPayoffInsight, looksLikeDebtAccount, linkedDebtPaymentStats, estimatePayoff } from './debt-payments.js';
+
 const MONTHS_ABBR = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 // Cash = spendable balances only. Mirrors the Big Picture `allAccountsCash`
@@ -103,6 +105,72 @@ export function deriveAccountBalances(data, asOf = new Date()) {
 }
 
 // -----------------------------------------------------------------------------
+// applyManualBalance — honor a hand-entered CURRENT balance (Christina's books,
+// 2026-07-31). The number typed into the account editor is the account's current
+// available balance — it must be what every surface displays, immediately.
+//
+// The defect this closes: for an account with imported history, the stored
+// `balance` is only the derivation ANCHOR (`openingBalance ?? balance` at the
+// start of the ledger), so writing the manual entry into `balance` made the app
+// display entered + the whole imported history on top ($4,350.42 typed,
+// $16,953 shown). And `openingBalance` cannot carry the correction because the
+// accounts sync round-trip strips it (schema v1.2 has no such column — see
+// accounts-sync.js fromRow), which would leave each device with a different
+// balance (DR-0076 forbids device-dependent truth).
+//
+// So the correction is expressed IN the ledger, where it syncs like everything
+// else: a visible `balance-adjustment` transaction of exactly (entered − derived
+// now), which lands deriveAccountBalances on the entered number on every device
+// and every surface. Imported rows (and their bank running balances) stay
+// historical reference; they can never override the manual entry again.
+//
+// Three outcomes:
+//  · anchor     — account has no cleared ledger rows: the stored balance IS the
+//                 current balance; write it directly (fresh accounts, manual debts).
+//  · adjustment — account has cleared rows: post the delta row, leave the anchor
+//                 untouched (moving it would double-apply the correction).
+//  · noop       — entered equals what is already displayed; nothing to record.
+// -----------------------------------------------------------------------------
+export function applyManualBalance(data, accountId, entered, asOf = new Date()) {
+  const amount = round2(entered);
+  const hasCleared = (data?.transactions || []).some((t) => {
+    if (!t || t.accountId !== accountId) return false;
+    const d = new Date(t.date);
+    return !isNaN(d.getTime()) && d <= asOf;
+  });
+  if (!hasCleared) return { mode: 'anchor', balance: amount };
+  const derivedNow = deriveAccountBalances(data, asOf)[accountId] ?? 0;
+  const delta = round2(amount - derivedNow);
+  if (Math.abs(delta) < 0.005) return { mode: 'noop' };
+  return {
+    mode: 'adjustment',
+    adjustment: {
+      date: asOf.toISOString().slice(0, 10),
+      accountId,
+      amount: delta,
+      description: `Balance set to ${amount.toFixed(2)} — manual adjustment`,
+      category: 'balance-adjustment',
+      isBalanceAdjustment: true,
+    },
+  };
+}
+
+// -----------------------------------------------------------------------------
+// resolveAccountUpdates — updateAccount's front door for the manual balance
+// edit. Returns the updates the account row should actually store, posting the
+// balance-adjustment row through `postTx` when applyManualBalance says this
+// ledgered account needs one. In that case `balance` is blanked (undefined) so
+// the stored anchor never moves — moving it too would double-apply the edit.
+// -----------------------------------------------------------------------------
+export function resolveAccountUpdates(data, accountId, updates, asOf = new Date(), postTx = () => {}) {
+  if (!updates || updates.balance === undefined) return updates;
+  const manual = applyManualBalance(data, accountId, parseFloat(updates.balance) || 0, asOf);
+  if (manual.mode === 'anchor') return updates;
+  if (manual.mode === 'adjustment') postTx(manual.adjustment);
+  return { ...updates, balance: undefined };
+}
+
+// -----------------------------------------------------------------------------
 // liveCashOnHand — TODAY'S spendable cash, derived from the real ledger. Cash =
 // spendable balances only (excludes credit/loan debts + inLegal accounts).
 // Reads deriveAccountBalances so it can never drift from the rest of the app.
@@ -112,7 +180,7 @@ export function deriveAccountBalances(data, asOf = new Date()) {
 export function liveCashOnHand(data, currentDate = new Date()) {
   const balances = deriveAccountBalances(data, currentDate);
   const accounts = (data?.accounts || []).filter(
-    (a) => CASH_TYPES.includes(a.type) && !a.inLegal,
+    (a) => CASH_TYPES.includes(a.type) && !a.inLegal && !a.treatAsDebt,
   );
   let total = 0;
   const byAccount = [];
@@ -138,19 +206,122 @@ export function liveCashOnHand(data, currentDate = new Date()) {
 // -----------------------------------------------------------------------------
 export function deriveDebts(data, asOf = new Date()) {
   const balances = deriveAccountBalances(data, asOf);
+  const txns = data?.transactions || [];
   const out = [];
   for (const a of (data?.accounts || [])) {
-    if (a.type !== 'credit' && a.type !== 'loan') continue;
     const bal = balances[a.id] != null ? balances[a.id] : (a.balance || 0);
-    const owed = bal < 0 ? -bal : 0; // only the owed (negative) side is debt
-    if (owed <= 0.01) continue;
-    const rate = Number(a.rate) || 0;
+    // A debt account is one of three, most-authoritative first:
+    //  · TYPED credit/loan (bank feed / the account editor);
+    //  · MANUALLY declared a debt (treatAsDebt) — the user's own "this is a debt
+    //    account" toggle (Darrell 2026-07-20), which counts its balance MAGNITUDE
+    //    as the amount owed, so an account whose owed balance is stored positive
+    //    (a card the bank reports as a positive "balance owed") still shows;
+    //  · NAME-classified AND genuinely owed (negative) — surfaces an imported card
+    //    that synced as 'checking'. Non-destructive: the stored account is untouched.
+    const typedDebt = a.type === 'credit' || a.type === 'loan';
+    const manualDebt = a.treatAsDebt === true;
+    // Type/name debts count only the negative (owed) side; a manually-declared debt
+    // treats its balance magnitude as owed (the user said it's a debt).
+    const owed = manualDebt ? Math.abs(bal) : (bal < 0 ? -bal : 0);
+    const nameDebt = !typedDebt && !manualDebt && owed > 0.01 && looksLikeDebtAccount(a);
+    if (!typedDebt && !manualDebt && !nameDebt) continue;
+    // A manually-declared debt (treatAsDebt) stays on the tab even at $0 owed, so
+    // the "Add as debt" / "Treat as debt" flows always produce a VISIBLE row the
+    // family can then set the balance on inline (the "+ owed" editor). The add
+    // panel literally invites "Leave blank to add it now and set the balance later"
+    // — dropping the row when they do exactly that made the tap go nowhere (the
+    // reported Debts-tab bug; DR-0061 the surface must show the real record).
+    // Derived (typed/name) debts still drop at ~0 owed — a paid-off credit account
+    // read from the feed is not a debt worth listing.
+    if (owed <= 0.01 && !manualDebt) continue;
+    // Interest RATE: the account's OWN interest charges are authoritative — a rate
+    // read from the data can't be undermined by a wrong manual entry (Darrell
+    // 2026-07-20). Fall back to the stored (user-editable) rate ONLY when the data
+    // shows no interest line. rateSource tells the UI which it is.
+    //
+    // A person may still CORRECT a derived rate (Christina 2026-08-10: "I need
+    // to be able to edit each line ... manually"). The data stays the default
+    // and stays visible — an override is explicit, marked on the row, and
+    // revertible in one tap — so the original rule holds (the data is not
+    // silently undermined) while the person is no longer locked out of their
+    // own number. `dataRate` carries what the statements say, always.
+    const derived = deriveApr(txns, a.id, owed, asOf);
+    const storedRate = Number(a.rate) || 0;
+    const overridden = a.rateOverridden === true;
+    const rate = overridden ? storedRate : (derived.apr != null ? derived.apr : storedRate);
+    const rateSource = overridden ? 'override'
+      : (derived.apr != null ? 'derived' : (storedRate > 0 ? 'manual' : 'none'));
+    // Expected payoff from their REAL payments (not a fabricated minimum): the pace
+    // they actually pay, the net paydown, and the truthful reach-zero date.
+    let insight = debtPayoffInsight(txns, a.id, owed, asOf);
+    // A debt with no ledger rows of its own — manual, typed, or name-classified —
+    // still gets PAID: its payments ride in checking under the payee name.
+    // Recover that pace by cleaned-name match (+ issuer aliases + the row's own
+    // payeeAlias "payment name") so the row shows the real "$110/mo" instead of
+    // "no payments seen" (the 2026-08-04 Debts bug; widened 2026-08-24 — the
+    // manual-only gate left every typed credit/loan account blind to its own
+    // payment history in checking). Checking-side data shows payments only (a
+    // card's new charges never hit this ledger), so the pace is the payment
+    // pace, and the payoff is dated at that pace.
+    let paceSource = 'own';
+    if (!insight.hasPayments) {
+      const linked = linkedDebtPaymentStats(txns, a.name, a.id, asOf, 6, a.payeeAlias || null);
+      if (linked.paymentCount > 0) {
+        const payoff = estimatePayoff(owed, linked.grossPaymentPerMonth, asOf);
+        insight = {
+          ...insight,
+          grossPaymentPerMonth: linked.grossPaymentPerMonth,
+          netPaydownPerMonth: linked.grossPaymentPerMonth,
+          paymentCount: linked.paymentCount,
+          payoffMonths: payoff.months,
+          payoffDate: payoff.date,
+          onTrack: payoff.onTrack,
+          clear: payoff.clear,
+          growing: false,
+          hasPayments: true,
+        };
+        paceSource = 'linked';
+      }
+    }
     const minPayment = Number(a.minPayment) || 0;
+    // A rate of 0 means two completely different things, and conflating them
+    // was a real defect (0133): a genuine 0% promo card is FULLY specified,
+    // while a card nobody has entered a rate for is not. Twelve of this
+    // family's cards are 0%; without this distinction every one of them reads
+    // "Add terms" forever and the debt-free date can never be projected no
+    // matter how much they fill in. `rateKnown` is the family's own explicit
+    // "yes, this is zero percent"; a derived rate is known by definition.
+    const rateKnown = rateSource === 'derived' || rateSource === 'override' || rate > 0 || a.rateKnown === true;
+    // The card's own terms — unknown stays unknown (null), never 0.
+    const num = (v) => (v == null || v === '' || !isFinite(Number(v)) ? null : Number(v));
+    const creditLimit = num(a.creditLimit);
+    const highestBalance = num(a.highestBalance);
     out.push({
       id: `debt-acct-${a.id}`, name: (a.name || 'Credit account') + (a.fragment ? ' ' + a.fragment : ''),
-      balance: round2(owed), rate, minPayment, entityId: a.entityId ?? null,
-      debtType: a.type, source: 'account', leaveAlone: false,
-      needsTerms: !(rate > 0 && minPayment > 0),
+      balance: round2(owed), rate, rateSource, rateKnown, rateMin: num(a.rateMin), minPayment,
+      // What the statements themselves say, kept alongside an override so the
+      // row can show both and offer a one-tap revert.
+      dataRate: derived.apr != null ? derived.apr : null,
+      entityId: a.entityId ?? null,
+      creditLimit, highestBalance,
+      // Utilization is arithmetic on their own two figures — shown only when a
+      // real limit exists, never guessed from a balance alone.
+      utilization: creditLimit != null && creditLimit > 0 ? round2((owed / creditLimit) * 100) : null,
+      availableCredit: creditLimit != null ? round2(Math.max(0, creditLimit - owed)) : null,
+      debtType: typedDebt ? a.type : 'credit', accountId: a.id, source: 'account',
+      // manual = the user's own "treat as debt" declaration: its owed balance is
+      // hand-set (editable), vs a ledger-derived balance that stays truthful.
+      manual: manualDebt,
+      // Terms are complete when the rate is KNOWN (a confirmed 0% counts) and a
+      // monthly payment exists — that is everything the payoff math needs.
+      leaveAlone: a.leaveAlone === true, needsTerms: !(rateKnown && minPayment > 0),
+      // Payment-derived payoff — independent of the rate-based snowball engine.
+      // paceSource 'linked' = pace recovered from checking-side payee payments.
+      // payeeAlias = the bank ledger's own name for this debt's payment (Edit).
+      payeeAlias: a.payeeAlias || null,
+      payPace: insight.grossPaymentPerMonth, netPaydown: insight.netPaydownPerMonth,
+      estPayoffMonths: insight.payoffMonths, estPayoffOnTrack: insight.onTrack,
+      growing: insight.growing, hasPayments: insight.hasPayments, paceSource,
     });
   }
   for (const r of (data?.inflows?.rentals || [])) {
@@ -162,7 +333,12 @@ export function deriveDebts(data, asOf = new Date()) {
     out.push({
       id: `debt-rental-${r.id}`, name: (r.name || r.address || 'Rental') + ' mortgage',
       balance: round2(bal), rate, minPayment, entityId: r.entityId ?? null,
-      debtType: 'mortgage', source: 'rental', leaveAlone: false,
+      // The property's own id, so a mortgage line is editable from this tab too
+      // rather than being the one row a person cannot touch here.
+      rentalId: r.id,
+      rateKnown: rate > 0, dataRate: null, rateMin: null,
+      creditLimit: null, highestBalance: null, utilization: null, availableCredit: null,
+      debtType: 'mortgage', source: 'rental', leaveAlone: r.leaveAlone === true,
       needsTerms: !(rate > 0 && minPayment > 0),
     });
   }
@@ -184,8 +360,22 @@ export function deriveEntityRollups(data, visibleEntities, asOf = new Date()) {
   const debts = data?.debts || [];
   const salaries = data?.inflows?.salaries || [];
   const rentals = data?.inflows?.rentals || [];
-  const isCash = (a) => CASH_TYPES.includes(a.type);
-  const isCredit = (a) => a.type === 'credit' || a.type === 'loan';
+  // A manually-declared debt (treatAsDebt) is a debt, not cash — so it never
+  // double-counts as both (it leaves cash, joins credit).
+  const isCash = (a) => CASH_TYPES.includes(a.type) && !a.treatAsDebt;
+  const isCredit = (a) => a.type === 'credit' || a.type === 'loan' || a.treatAsDebt === true;
+  // Credit balances are NEGATIVE by house convention — money owed (see the sign
+  // convention in debt-payments.js). A manually-declared debt is the exception:
+  // its balance is stored as the owed MAGNITUDE (positive), because that is what
+  // a person types when asked "how much do you owe on this card?" (deriveDebts
+  // reads it with Math.abs for exactly that reason).
+  //
+  // Summed raw, those positive magnitudes land in the Credit rollup as though
+  // the cards were assets. On this family's list that is a $172,683 debt pile
+  // displayed as a positive number — the worst kind of wrong, a debt that reads
+  // like money (DR-0076). Normalize an owed magnitude to its owed sign here so
+  // the rollup states the truth regardless of how the row was entered.
+  const owedSigned = (a) => (a.treatAsDebt === true ? -Math.abs(a.derivedBalance) : a.derivedBalance);
   const sorted = [...entities].sort((a, b) => (a.type === b.type ? 0 : a.type === 'personal' ? -1 : 1));
   return sorted.map((entity) => {
     const entAccounts = accounts
@@ -205,7 +395,9 @@ export function deriveEntityRollups(data, visibleEntities, asOf = new Date()) {
       accounts: entAccounts,
       balance: sumBal(() => true), // legacy total (all non-legal types)
       cashBalance: sumBal(isCash),
-      creditBalance: sumBal(isCredit),
+      creditBalance: round2(
+        entAccounts.filter((a) => isCredit(a) && !a.inLegal).reduce((s, a) => s + owedSigned(a), 0),
+      ),
       inflow,
       debts: entDebts,
       debtBalance,

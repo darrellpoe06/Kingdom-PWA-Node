@@ -5,4 +5,5 @@ jobs-today.json
 ARMED
 GPU_SCHED_ARMED
 !KILL_SWITCH
+!STREAMING_HOLD
 !.gitignore

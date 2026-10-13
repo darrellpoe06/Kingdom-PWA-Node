@@ -1,0 +1,73 @@
+# nas-claude-login -- sign the Claude Code CLI in on the NAS as dpoe, with no
+# browser on the NAS, over the same governed SSH road as nas-bootstrap
+# (DR-0249). The NAS lesson builder's primary writer (DR-0669, cli-local) is
+# "not ready -- NOT signed in" until this runs. Darrell, 2026-10-01:
+# "You do it... cli... ssh".
+#   step=start   begins the login on the NAS; it prints the sign-in URL
+#   step=status  prints the URL and `claude auth status`
+#   step=code    hands the one-time code Darrell got from that URL to the login
+# Only the sign-in URL and the one-time code pass through; the CLI keeps its
+# own credentials in dpoe's home, exactly as a hand sign-in would.
+name: nas-claude-login
+on:
+  workflow_dispatch:
+    inputs:
+      step:
+        description: 'start | status | code'
+        required: true
+        default: 'status'
+        type: choice
+        options: [start, status, code]
+      code:
+        description: 'The one-time code from the sign-in page (step=code only)'
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+jobs:
+  login:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check secrets
+        id: gate
+        env:
+          TS: ${{ secrets.TS_AUTHKEY != '' }}
+          KEY: ${{ secrets.NAS_SSH_KEY != '' }}
+        run: |
+          if [ "$TS" != "true" ] || [ "$KEY" != "true" ]; then
+            echo "NOT CONFIGURED: TS_AUTHKEY and NAS_SSH_KEY are needed (see nas-bootstrap.yml)."
+            echo "go=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "go=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Join the tailnet (ephemeral)
+        if: steps.gate.outputs.go == 'true'
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+      - name: Verify the tailnet joined
+        if: steps.gate.outputs.go == 'true'
+        run: |
+          tailscale status --peers=false >/dev/null 2>&1 || { echo "::error::Tailnet join failed (TS_AUTHKEY invalid or consumed)"; exit 1; }
+      - name: Drive the sign-in on the NAS
+        if: steps.gate.outputs.go == 'true'
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+          STEP: ${{ inputs.step }}
+          CODE: ${{ inputs.code }}
+        run: |
+          umask 077
+          printf '%s\n' "$NAS_SSH_KEY" > /tmp/nas_key
+          NAS="dpoe@poetech.tail5a2f35.ts.net"
+          SSH="ssh -i /tmp/nas_key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 $NAS"
+          $SSH 'cat > /tmp/claude_login.py' < infra/nas-lesson-builder/claude_login.py
+          case "$STEP" in
+            start) $SSH 'python3 /tmp/claude_login.py start' ; sleep 20 ; $SSH 'python3 /tmp/claude_login.py status' ;;
+            code)  [ -n "$CODE" ] || { echo "::error::step=code needs the code input"; exit 1; }
+                   $SSH "python3 /tmp/claude_login.py code '$CODE'" ;;
+            *)     $SSH 'python3 /tmp/claude_login.py status' ;;
+          esac

@@ -1,0 +1,353 @@
+# rls-isolation — ONE matrix workflow proves every feature's RLS isolation
+# against the real database, replacing six near-identical copies
+# (choir-claim / delegated-pm / role-control / support-door / tv-sharing /
+# viewer-readonly), 362 lines -> this file (2026-07-30 comprehensive review).
+#
+# WHY ONE FILE (gate-the-class, DR-0239): the 2026-07-29 never-firing
+# workflow_run fix was applied to viewer-readonly only; the other five stayed
+# silently inert — five shipped features' DR-0076 enablement gates producing
+# no observations while green history said otherwise. A single workflow can't
+# drift feature-by-feature: db-migrate dispatches THIS file once and every
+# proof runs.
+#
+# WHY max-parallel: 1 — the smokes run against the REAL production database
+# (same SUPABASE_DB_URL secret db-migrate uses), and migration 0075 runs
+# ALTER PUBLICATION supabase_realtime, the statement class that deadlocked two
+# concurrent runs on 2026-07-01 (db-migrate.yml's own lock exists for this).
+# Serial keeps the proofs deadlock-free; fail-fast: false keeps each feature's
+# red/green independent, visible per matrix leg.
+#
+# Each leg is self-contained + idempotent, safe against prod:
+#   1. Applies the feature's migrations (idempotent; db-migrate applies them on
+#      merge anyway — this just removes ordering doubt).
+#   2. Runs the feature's isolation smoke(s): each sets up its actors IN A
+#      TRANSACTION, asserts the isolation contract, then ROLLS BACK (leaves no
+#      data). A leak RAISEs -> psql exits non-zero -> RED.
+#
+# Fired by db-migrate's explicit workflow_dispatch call after every migration
+# apply (workflow_run from token-driven runs is suppressed — the DR-0107
+# class), or by hand. Deploy-path only; not self-arming (respects the Cage).
+name: rls-isolation
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: rls-isolation
+  cancel-in-progress: false
+
+jobs:
+  isolate:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        include:
+          - feature: tv-sharing
+            migrations: "0074-tv-circle-sharing.sql 0141-account-unification-person-links.sql"
+            smokes: "0074-isolation-smoke.sql"
+          - feature: delegated-pm
+            migrations: "0075-delegated-property-management.sql 0150-poe-properties-app-invite-claim-and-household.sql 0151-invite-by-phone-and-linked-identity.sql"
+            smokes: "0075-isolation-smoke.sql"
+          # The Poe Properties App's own gate (DR-0313): the invite->claim seam,
+          # the tenant's family arms, the field-worker ceiling, and the books-side
+          # posting guard. 0075 applies first — 0150 extends its policies.
+          # 2026-09-06: this leg has been the red one on every dispatch since
+          # 2026-08-31 (runs 82-87). Run 87's cause, read from its log: 0152 is
+          # the FIRST definition of public_vacancies(), so it carries no DROP —
+          # and the live DB already holds the 0158 shape, so replaying 0152
+          # fails with "cannot change return type of existing function" and the
+          # leg never reaches its smokes. Same dependency-order principle as role-control:
+          # drop the function first (pre), then the FULL chain rebuilds it
+          # through 0153/0155/0157/0158 to the current shape inside the same
+          # job. Run 88 (the first to reach the smokes) then showed the 0152
+          # vacancy smoke still asserting 0152's `label = 'Maple Street'`
+          # against 0158's function, which withholds the display name until
+          # the landlord marks the address public — the smoke now proves the
+          # full chain's contract, both sides of that switch.
+          - feature: poe-properties
+            pre: "DROP FUNCTION IF EXISTS public.public_vacancies(); DROP FUNCTION IF EXISTS public.public_vacancy_photos(uuid);"
+            migrations: "0075-delegated-property-management.sql 0150-poe-properties-app-invite-claim-and-household.sql 0151-invite-by-phone-and-linked-identity.sql 0152-vacancies-and-no-account-applications.sql 0153-property-timeline-photos.sql 0154-photo-captions-editable-and-archivable.sql 0155-what-a-door-is-offered-as.sql 0156-our-own-home-is-not-a-rental-door.sql 0157-the-landlord-orders-his-own-shelf.sql 0158-the-address-is-shown-when-he-says-so.sql 0159-nothing-a-landlord-types-lives-only-on-his-phone.sql 0160-a-door-says-what-it-is-unit-room-or-bed.sql 0161-the-landlord-orders-a-doors-pictures.sql 0207-poe-properties-runs-in-its-own-instance.sql 0260-work-is-filed-on-the-door-not-only-on-a-tenancy.sql 0261-a-guest-reports-a-problem-from-inside-the-door.sql 0262-rent-is-reported-the-way-it-is-paid-and-every-change-keeps-its-time.sql 0263-a-document-is-signed-in-the-app-and-filed-where-it-belongs.sql 0264-a-job-can-require-proof-before-it-is-done-and-paid.sql 0265-the-door-keeps-its-money-with-or-without-a-tenant.sql 0266-a-door-camera-is-asked-for-and-given-to-whoever-the-family-chooses.sql 0267-a-system-keeps-its-pictures.sql 0268-the-public-shelf-shows-where-never-the-street.sql 0269-a-short-stay-door-has-a-booking-calendar.sql 0270-the-public-shelf-shows-the-area-on-a-map.sql 0271-the-upload-date-is-the-anchor-the-taken-date-is-a-claim.sql 0273-a-shared-home-says-so-on-the-shelf.sql 0275-a-tenant-waits-for-the-landlords-yes.sql 0276-a-guest-may-stay-as-long-as-they-like.sql 0277-a-guest-can-pay-for-the-nights-they-asked-for.sql 0278-a-bed-is-not-a-bedroom.sql 0279-an-allow-list-is-added-to-never-rewritten.sql 0280-the-address-shows-unless-the-family-holds-it.sql 0281-a-bed-still-says-it-is-a-bed-when-the-street-shows.sql 0282-each-door-shows-the-apartment-in-its-own-order.sql"
+            smokes: "0150-poe-properties-isolation-smoke.sql 0152-public-vacancy-smoke.sql 0207-poe-properties-instance-smoke.sql 0260-door-work-orders-smoke.sql 0261-guest-report-smoke.sql 0262-rent-and-clock-smoke.sql 0263-document-signing-smoke.sql 0264-proof-before-paid-smoke.sql 0265-door-money-smoke.sql 0266-door-camera-access-smoke.sql 0267-system-pictures-smoke.sql 0269-booking-calendar-smoke.sql 0270-area-map-smoke.sql 0271-photo-dates-smoke.sql 0273-shared-home-smoke.sql 0275-portal-approval-smoke.sql 0279-allow-list-smoke.sql 0280-address-shows-smoke.sql 0282-door-photo-order-smoke.sql"
+          # ONE FORMS ENGINE FOR EVERY PRODUCT (DR-0357): the household's own
+          # record and shelf, and the product-keyed forms both PoeTech and Poe
+          # Properties edit. Nothing here names an instance_type — the wall is
+          # RLS on instance_id (DR-0060), which is what "each has their own
+          # database" means in this system.
+          # + 2026-09-24 (the Books → Plan end-to-end review): the two tables the
+          # Plan tab stands on had policy text and no live proof — 0138 family_plans
+          # (a cross-household SELECT must be empty; 0206 only proved the import
+          # wall) and 0167 family_trust_records (owner/admin/member read, a child
+          # reads nothing, a member writes only in his own name and deletes only
+          # his own rows). If 0167 is absent on the database under test the smoke
+          # raises "relation does not exist" — the DR-0322 answer, measured.
+          - feature: product-forms
+            migrations: "0200-one-forms-engine-for-every-product-the-office-of-each-instance-edits-its-own-questions-and-documents.sql 0201-the-household-keeps-its-own-record-and-its-own-shelf-of-documents.sql 0202-what-is-owed-what-was-paid-and-the-document-that-proves-it.sql 0203-a-mortgage-in-line-items-and-what-each-door-costs-against-what-it-collects.sql 0204-the-days-post-and-the-child-who-sorts-it.sql 0205-the-sum-rule-refuses-inside-the-function-not-at-commit.sql 0206-the-plan-becomes-rows-the-dated-bills-import-into-the-ledger.sql 0208-the-bus-runs-on-sunday-and-wednesday.sql 0209-the-church-keeps-each-persons-record-and-their-own-shelf.sql 0210-the-signature-door-and-a-roster-that-says-when.sql 0211-ask-for-a-tab-and-the-office-decides.sql 0212-a-congregant-could-not-open-their-own-record.sql 0213-the-roster-shows-what-the-person-told-us.sql"
+            smokes: "0200-product-forms-smoke.sql 0201-household-and-vault-smoke.sql 0202-obligations-smoke.sql 0203-door-economics-smoke.sql 0204-the-days-post-smoke.sql 0206-plan-import-smoke.sql 0138-family-plans-isolation-smoke.sql 0167-family-trust-records-isolation-smoke.sql 0209-church-record-and-shelf-smoke.sql 0210-signature-door-and-roster-smoke.sql 0211-access-request-smoke.sql 0213-roster-declared-contact-smoke.sql"
+          - feature: choir-claim
+            migrations: "0110-choir-member-self-claim.sql 0131-stale-role-constraint-and-nullsafe-guards.sql 0144-standings-at-will-and-the-sons-wall.sql 0210-the-signature-door-and-a-roster-that-says-when.sql 0212-a-congregant-could-not-open-their-own-record.sql 0213-the-roster-shows-what-the-person-told-us.sql"
+            smokes: "0110-choir-claim-smoke.sql"
+          # 2026-08-24: 0143/0144 legitimately RE-CREATED list_instance_members
+          # with new columns (classification, relationship), and CREATE OR
+          # REPLACE cannot change a return type — 0111 alone now fails with
+          # "cannot change return type of existing function" (runs 30/31).
+          # Same dependency-order principle as books-role-wall below: drop the
+          # function first (pre), then apply the FULL chain so the live DB only
+          # ever reaches the final combined state. The smoke counts rows, so it
+          # holds across the shape change.
+          # list_my_admin_instances joined the same class on 2026-09-23: 0221
+          # widened its RETURNS (slug), so re-applying 0112's narrow shape was
+          # refused on every run since (8 of 9 red). Dropped here for the same
+          # reason; the guard (checkReplayShapes) now names this class.
+          - feature: role-control
+            pre: "DROP FUNCTION IF EXISTS public.list_instance_members(uuid); DROP FUNCTION IF EXISTS public.list_my_admin_instances();"
+            migrations: "0111-set-member-role.sql 0112-list-my-admin-instances.sql 0130-assistant-provisioning-and-office-workspace.sql 0131-stale-role-constraint-and-nullsafe-guards.sql 0143-member-worker-classification.sql 0144-standings-at-will-and-the-sons-wall.sql 0210-the-signature-door-and-a-roster-that-says-when.sql 0212-a-congregant-could-not-open-their-own-record.sql 0213-the-roster-shows-what-the-person-told-us.sql 0221-the-space-picker-can-name-the-door-it-belongs-to.sql 0255-make-an-account-that-already-exists-family-by-the-governors-hand.sql 0257-the-family-outranks-the-persons-own-space-on-the-signups-list.sql 0259-when-and-by-whom-the-apps-are-used.sql"
+            smokes: "0111-role-control-smoke.sql 0255-add-user-to-instance-smoke.sql 0257-signups-family-outranks-own-space-smoke.sql 0259-usage-calendar-smoke.sql"
+          - feature: support-door
+            migrations: "0114-governed-support-door.sql 0115-support-user-initiated-self-grant.sql 0131-stale-role-constraint-and-nullsafe-guards.sql 0144-standings-at-will-and-the-sons-wall.sql 0210-the-signature-door-and-a-roster-that-says-when.sql 0212-a-congregant-could-not-open-their-own-record.sql 0213-the-roster-shows-what-the-person-told-us.sql"
+            smokes: "0114-support-door-smoke.sql 0115-support-self-grant-smoke.sql"
+          - feature: viewer-readonly
+            migrations: "0125-viewer-true-readonly-and-invite-target.sql 0126-member-capability-checklist.sql 0130-assistant-provisioning-and-office-workspace.sql 0131-stale-role-constraint-and-nullsafe-guards.sql 0144-standings-at-will-and-the-sons-wall.sql 0181-push-subscriptions-and-the-live-signal.sql 0190-the-viewer-overlay-keeps-the-checklist-a-redefinition-carries-every-earlier-exception.sql 0210-the-signature-door-and-a-roster-that-says-when.sql 0211-ask-for-a-tab-and-the-office-decides.sql 0212-a-congregant-could-not-open-their-own-record.sql 0213-the-roster-shows-what-the-person-told-us.sql 0227-the-overlay-removes-what-it-no-longer-stamps.sql"
+            smokes: "0125-viewer-readonly-smoke.sql 0126-capability-checklist-smoke.sql 0211-access-request-smoke.sql"
+          # Folded in 2026-07-30 (access evaluation): 0127 briefly lived in its
+          # own sovereign-noise-thought-isolation.yml — the exact per-feature
+          # drift class this matrix was created to end, reintroduced the same
+          # day the matrix landed. One matrix, every proof, no siblings.
+          # 0237 (DR-0635) and 0238 (DR-0639, the name choice) redefines agent_inbox_read (each person reads only
+          # their own rows) and adds the Governor's member-lesson review, so it
+          # rides this leg after 0127 and its smoke runs here. 0241 (DR-0672)
+          # adds my_lesson_rows(): the Governor reads his own two doors' lessons,
+          # a member only their own; its smoke proves no member row reaches him.
+          # 0243 (DR-0669) rides this leg after 0237: its stewards are the
+          # Governor's doors (is_lesson_governor), and its ring sits on
+          # agent_inbox. The smoke proves versions, decisions and the builder's
+          # settings are read and written only as the migration says.
+          - feature: sovereign-noise-thought
+            migrations: "0127-sovereign-noise-and-thought.sql 0237-a-members-lesson-is-reviewed-by-the-governor-before-it-is-written.sql 0238-a-member-may-choose-to-be-named-and-the-governor-may-keep-it-anonymous.sql 0241-your-lessons-reads-the-governors-own-two-doors.sql 0243-the-lesson-builder-rings-on-the-words-keeps-every-version-and-reads-the-decision.sql"
+            smokes: "0127-sovereign-noise-thought-smoke.sql 0237-member-lesson-review-smoke.sql 0238-member-lesson-name-smoke.sql 0241-my-lesson-rows-smoke.sql 0243-lesson-builder-smoke.sql"
+          # Added 2026-09-24 (DR-0615): each person's prompt history is private
+          # to its author, even inside the same instance.
+          # Added 2026-09-25 (DR-0658): the TV signs in from the phone in your
+          # hand. anon starts and polls and reads no row; only a signed-in
+          # person looks up or approves; only the service role claims, once;
+          # the user_code, a denied link or an expired link claims nothing;
+          # the 21st look-up in ten minutes is refused. 0222 first: 0239
+          # replaces its functions and grants.
+          - feature: device-link
+            migrations: "0222-sign-in-to-the-television-from-the-phone-in-your-hand.sql 0239-the-television-signs-in-from-the-phone-in-your-hand.sql"
+            smokes: "0239-device-link-smoke.sql"
+          - feature: saved-prompts
+            migrations: "0232-your-prompts-are-kept-dated-and-yours-alone.sql"
+            smokes: "0232-saved-prompts-smoke.sql"
+          # Added 2026-09-29 (DR-0671): the tower parity tables are the
+          # Governor's alone. A member and anon read nothing; nobody signed in
+          # writes a score; only the Governor holds a promotion, and a held
+          # ready writer stays 'ready' until he releases it. Rides 0237's
+          # is_lesson_governor(), already live.
+          - feature: lesson-parity
+            migrations: "0240-a-tower-writer-is-measured-against-the-reference-until-it-matches.sql"
+            smokes: "0240-lesson-parity-smoke.sql"
+          # Added 2026-09-24 (DR-0625): every intake carried to an outcome. A
+          # sender cannot write an outcome onto their own note; the owner writes
+          # it and the sender reads it; the fix queue is the stewards' room —
+          # member, viewer, assistant and outsider read none of it, nobody
+          # signed in inserts into it, only the owner/admin moves a row.
+          - feature: intake-outcome
+            migrations: "0233-a-feedback-note-can-be-in-progress-and-fixed.sql 0236-every-intake-is-carried-to-an-outcome.sql"
+            smokes: "0236-intake-outcome-smoke.sql"
+          # Added 2026-09-24 (DR-0613): the NAS publishes the family key; only
+          # the family's own instances receive it, only the service role can
+          # publish, a church or unnamed owner never receives it.
+          - feature: box-family-key
+            migrations: "0128-family-bridge-token-provisioning.sql 0231-the-nas-publishes-the-family-key-itself.sql"
+            smokes: "0231-box-publishes-family-key-smoke.sql"
+          # Added 2026-09-24 (DR-0612): the Decision Intelligence board's daily
+          # readout record: members write their own day, viewers read, non-
+          # members see nothing.
+          - feature: decision-readouts
+            migrations: "0230-the-board-keeps-a-daily-record-of-what-it-saw.sql"
+            smokes: "0230-decision-readouts-smoke.sql"
+          # Added 2026-09-24 (DR-0622): the whole-system flow proof. The
+          # platform's live numbers are read by the poe-family governors only
+          # (never a viewer, never another instance) and written by no client.
+          - feature: system-flow-proof
+            migrations: "0234-every-connection-leaves-its-live-numbers.sql"
+            smokes: "0234-system-flow-proof-smoke.sql"
+          # Added 2026-09-29 (DR-0677): the curriculum's NAS copy. Anyone reads
+          # a PUBLIC lesson; a PREVIEW (gated, not yet merged code) is read only
+          # by Darrell's two sign-ins and the Governor; only the service writes a
+          # public row; no row without a passed gate over exactly its content.
+          # The smoke opens the wall at the end and must SEE the leak it guards.
+          # Added 2026-09-30 (DR-0708): every table the app syncs is in the
+          # supabase_realtime publication, so an open screen hears a change made
+          # on another device. The NAS never received schema-v2.14's list; the
+          # ledger went unpublished and two family screens showed two ledgers.
+          - feature: realtime-publication
+            migrations: "0245-every-synced-table-tells-open-screens-when-it-changes.sql"
+            smokes: "0245-realtime-publication-smoke.sql"
+          - feature: curriculum-preview
+            migrations: "0242-the-lessons-have-a-home-on-the-nas-kept-in-step-with-the-code.sql"
+            smokes: "0242-curriculum-preview-smoke.sql"
+          # Added 2026-10-01 (DR-0720): Add my voice. No sample without
+          # consent, each person reads only their own consent row, no client
+          # writes it, BG held, DP the Governor's, removal deletes the consent,
+          # the label list is the Governor's and carries no sample path.
+          - feature: voice-enrollment
+            migrations: "0248-a-person-adds-their-own-voice-and-can-take-it-back.sql"
+            smokes: "0248-voice-enrollment-smoke.sql"
+          # Added 2026-10-05 (DR-0754): a learner's class record. A learner
+          # keeps and reads only his own row, the row lands under his own
+          # account even when the payload names another, a second reading
+          # corrects it instead of duplicating, the Governor reads every
+          # learner's and writes none, anon reads nothing, and a score outside
+          # 0-100 is refused at the wall.
+          - feature: learner-records
+            migrations: "0250-a-learners-record-reaches-the-governor.sql"
+            smokes: "0250-learner-records-smoke.sql"
+          # Added 2026-07-30 (REV-0216 access-evaluation carried item): the
+          # core-books ROLE wall. 0082 (child walled / successor read-only) and
+          # 0100 (assistant walled) both shipped their DB gate but had NO live
+          # proof here — their own headers name an "adversarial LIVE RLS test"
+          # as the DR-0111 re-review item, and until now nothing ran it. ONE
+          # leg, BOTH migrations in dependency order (0100 re-gates the same
+          # five tables 0082 does — applying 0082 alone would DROP the assistant
+          # exclusion and REGRESS the wall on prod), so the live DB only ever
+          # reaches the final combined state. Two smokes assert the full
+          # contract against that state: child+successor (0082) and assistant +
+          # a no-regression guard (0100). Proven-to-catch: a books read/write
+          # policy that stops excluding child/assistant, or narrows successor
+          # read / member write, RAISEs -> the leg goes RED.
+          # Added 2026-09-10 (DR-0345 / DR-0347, Darrell: "not fake test"): the
+          # TLC office board and lesson assignments, proven on the real policies —
+          # a therapist assigns, the client reads only their own rows by the email
+          # on their session and may only mark reviewed, the assistant and viewer
+          # never write, a member cannot delete the board, the owner can.
+          # + 2026-09-10 (DR-0350): hiring — jobs posted by the owner/admin, read
+          # by the team, open ones public; applications only through tlc_apply
+          # (anon), read by owner/admin only; hire mints the 0187 invite atomically.
+          # 0193 (DR-0351): the office is its own therapy-practice instance and the
+          # office resolvers answer only from one; 0194: the office clock stamps every
+          # signed acknowledgment; 0195: the interest form (roles of interest), a
+          # honeypot on apply, views per posting and the hiring report. 0196: the
+          # office edits its own forms (versioned; the live required questions
+          # enforced at submit); 0197: a prefilled invite claimed by email; 0198: a
+          # cell for every item, filled later by the office or the colleague.
+          - feature: tlc-office
+            migrations: "0187-tlc-colleague-onboarding-the-intake-packet-lives-in-the-app.sql 0188-tlc-office-tasks-the-launch-board-lives-in-the-app.sql 0189-tlc-lesson-assignments-a-therapist-schedules-a-lesson-for-a-client.sql 0190-the-viewer-overlay-keeps-the-checklist-a-redefinition-carries-every-earlier-exception.sql 0191-tlc-hiring-jobs-posted-on-the-door-applicants-hired-into-onboarding.sql 0192-tlc-hiring-audit-actions-within-the-allow-list-the-smoke-caught-it.sql 0193-tlc-therapy-solutions-runs-in-its-own-instance.sql 0194-by-checking-here-you-agree-the-office-stamps-the-time.sql 0195-join-the-team-the-interest-form-roles-of-interest-and-who-looks-at-what.sql 0196-the-office-edits-its-own-forms-the-intake-questions-and-the-documents-versioned-in-the-app.sql 0197-colleagues-already-on-the-form-a-prefilled-invite-claimed-by-email-at-sign-in.sql 0198-a-cell-for-every-item-on-the-intake-form-the-office-and-the-colleague-fill-any-cell-later.sql 0199-a-check-at-the-bottom-of-every-document-the-colleague-acknowledges-in-place-the-office-stamps-the-time.sql 0227-the-overlay-removes-what-it-no-longer-stamps.sql"
+            smokes: "0189-tlc-office-smoke.sql 0191-tlc-hiring-smoke.sql 0193-tlc-own-instance-smoke.sql 0194-tlc-acknowledgment-stamp-smoke.sql 0195-tlc-interest-and-views-smoke.sql 0196-tlc-office-forms-smoke.sql 0197-tlc-prefilled-invite-smoke.sql 0198-tlc-cells-smoke.sql 0199-tlc-acknowledge-in-place-smoke.sql"
+          - feature: books-role-wall
+            migrations: "0082-successor-role-and-books-rls.sql 0100-assistant-role-and-books-rls.sql 0131-stale-role-constraint-and-nullsafe-guards.sql 0144-standings-at-will-and-the-sons-wall.sql 0210-the-signature-door-and-a-roster-that-says-when.sql 0212-a-congregant-could-not-open-their-own-record.sql 0213-the-roster-shows-what-the-person-told-us.sql"
+            smokes: "0082-successor-books-smoke.sql 0100-assistant-books-smoke.sql"
+          # Added 2026-08-04 (DR-0271, Christina's assistant-rights request):
+          # the ASSISTANT becomes grantable (invite/role/remove RPCs) and is
+          # scoped by a RESTRICTIVE deny-overlay to the shared office_records
+          # workspace + the six participation tables — "everything in the
+          # Assistant tab", nothing on the other tabs. The smoke proves both
+          # directions live: the assistant works the workspace, a member sees
+          # the assistant's rows, and the books + membership-gated family data
+          # (inquiries) read as ZERO rows for the assistant. Static shape proof
+          # runs every merge in scripts/assistant-scope-guard.mjs.
+          - feature: assistant-scope
+            migrations: "0130-assistant-provisioning-and-office-workspace.sql 0131-stale-role-constraint-and-nullsafe-guards.sql 0144-standings-at-will-and-the-sons-wall.sql 0210-the-signature-door-and-a-roster-that-says-when.sql 0212-a-congregant-could-not-open-their-own-record.sql 0213-the-roster-shows-what-the-person-told-us.sql"
+            smokes: "0130-assistant-scope-smoke.sql"
+    name: isolate — ${{ matrix.feature }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install postgresql-client
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client > /dev/null
+      - name: Apply ${{ matrix.feature }} migrations (idempotent) then run the isolation smoke(s)
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          set -euo pipefail
+          # Sanitize the URL EXACTLY like scripts/db-migrate-apply.sh does — the
+          # SUPABASE_DB_URL secret carries a trailing newline, and raw
+          # `psql "$SUPABASE_DB_URL"` reads it into the dbname (FATAL: database
+          # "postgres\n" does not exist). Match its proven handling.
+          DBURL=$(printf '%s' "${SUPABASE_DB_URL:-}" | tr -d '[:space:]')
+          if [ -z "$DBURL" ]; then
+            echo "::error::SUPABASE_DB_URL secret is not set (same secret db-migrate uses)."
+            exit 1
+          fi
+          # A leg's optional pre-step SQL (matrix.pre) runs BEFORE its chain —
+          # e.g. role-control drops list_instance_members so 0111 can recreate
+          # it and 0143/0144 can rebuild it to the current shape (run 33 proved
+          # the key alone does nothing without this executor).
+          #
+          # ONE TRANSACTION for the pre-step AND the whole chain (2026-09-25,
+          # db-migrate run 36090407494). This leg runs against SUPABASE_DB_URL,
+          # the HOSTED project; the app has read the sovereign database since
+          # REPOINT-ARMED (2026-08-19), so no visitor reads what this leg
+          # touches. The pre-step used to commit its DROP on its own, and the
+          # chain then rebuilt the function file by file, so for the length of
+          # the chain (~40 s) the hosted project had no public_vacancies(). The
+          # live-definition witness of a concurrent db-migrate, which also reads
+          # hosted, read that gap ("public_vacancies — absent from the live
+          # database") and failed the run. Inside one transaction, other
+          # sessions see the old definition until COMMIT and then the newest,
+          # never nothing. Pinned by
+          # scripts/rls-isolation-matrix-guard.mjs (checkAtomicApply).
+          # ONE TRANSACTION FOR THE PRE-STEP AND WHAT REBUILDS IT; THE REST ONE
+          # FILE AT A TIME (2026-10-09, DR-0831). Applying a whole chain in one
+          # transaction ran the hosted project out of lock slots: the overlay
+          # functions (assistant-scope, viewer-readonly) DROP and CREATE a policy
+          # on every instance-scoped table each time a file calls them, every
+          # lock held until COMMIT, and four legs (product-forms,
+          # viewer-readonly, poe-properties, tlc-office) died on "out of shared
+          # memory / max_locks_per_transaction" before any smoke ran (runs 282,
+          # 283). The gap the single transaction closed is only ever between the
+          # pre-step's DROP and the first file that defines the function again,
+          # so that group stays atomic: the pre-step plus the chain up to the
+          # first definition of each dropped function. Every later file commits
+          # on its own, which releases its locks; a file that changes a
+          # function's shape drops and recreates it inside its own transaction
+          # (migration-return-type-guard), so no file leaves a gap behind it.
+          # Pinned by scripts/rls-isolation-matrix-guard.mjs (checkAtomicApply).
+          PRE=${{ toJSON(matrix.pre || '') }}
+          MIGS=(${{ matrix.migrations }})
+          ATOMIC_N=0
+          if [ -n "$PRE" ]; then
+            echo "=== pre-step SQL (inside the atomic group's transaction) ==="
+            NAMES=$(printf '%s' "$PRE" | grep -oE 'FUNCTION IF EXISTS public\.[a-z_0-9]+' | sed 's/.*public\.//' || true)
+            for n in $NAMES; do
+              i=0
+              for mig in "${MIGS[@]}"; do
+                i=$((i+1))
+                if grep -qiE "FUNCTION public\.${n}\(" "infra/supabase/migrations-auto/${mig}"; then
+                  [ "$i" -gt "$ATOMIC_N" ] && ATOMIC_N=$i
+                  break
+                fi
+              done
+            done
+            if [ "$ATOMIC_N" -eq 0 ]; then
+              echo "::error::the pre-step drops a function no file in the chain defines again; the chain would leave it absent"
+              exit 1
+            fi
+          fi
+          ARGS=()
+          if [ -n "$PRE" ]; then ARGS+=(-c "$PRE"); fi
+          REST=()
+          i=0
+          for mig in "${MIGS[@]}"; do
+            i=$((i+1))
+            if [ "$i" -le "$ATOMIC_N" ]; then
+              echo "=== will apply ${mig} (idempotent, in the atomic group) ==="
+              ARGS+=(-f "infra/supabase/migrations-auto/${mig}")
+            else
+              REST+=("infra/supabase/migrations-auto/${mig}")
+            fi
+          done
+          if [ "${#ARGS[@]}" -gt 0 ]; then
+            psql "$DBURL" --single-transaction -v ON_ERROR_STOP=1 "${ARGS[@]}"
+          fi
+          for f in "${REST[@]}"; do
+            echo "=== applying ${f##*/} (idempotent, its own transaction) ==="
+            psql "$DBURL" --single-transaction -v ON_ERROR_STOP=1 -f "$f"
+          done
+          for smoke in ${{ matrix.smokes }}; do
+            echo "=== running ${smoke} (rolls back) ==="
+            psql "$DBURL" -v ON_ERROR_STOP=1 \
+              -f "infra/supabase/tests/${smoke}"
+          done
+          echo "isolation smoke(s) completed without a leak for ${{ matrix.feature }}"

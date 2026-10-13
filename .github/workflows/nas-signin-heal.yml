@@ -1,0 +1,757 @@
+# nas-signin-heal — bring the sovereign sign-in road back, from the NAS itself.
+#
+# WHY THIS EXISTS. On 2026-10-09 Darrell was locked out of his own app: a POST
+# to poetech.us/sb/auth/v1/token returned an EMPTY BODY, so the browser called
+# .json() on nothing and died with "Unexpected end of JSON input", on both the
+# email-link path and the phone-PIN path. A GET to /sb/auth/v1/health answered
+# 200 the whole time, which is why every probe read green. The cloud sandbox
+# has no route to the NAS, so the only thing the agent could do was hand him
+# commands to paste. His answer: "You do it!!!!!!"
+#
+# So this is the hand. It joins the tailnet the same way cams-diag does, SSHes
+# to the NAS as dpoe, and restarts ONLY the sovereign Supabase containers that
+# carry sign-in. The container list is HARDCODED on purpose: this workflow
+# takes no command input of any kind, so there is nothing to inject into it on
+# a public repository. It restarts what it names and nothing else.
+#
+# It then MEASURES rather than assumes (DR-0076): the same POST that failed,
+# first from the NAS loopback (is the stack itself answering?) and then from
+# the runner through poetech.us/sb (does the whole road carry a body?). An
+# empty body after the restart fails the run, so a heal that did not heal says
+# so instead of reporting success.
+name: nas-signin-heal
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nas-signin-heal
+  cancel-in-progress: false
+
+jobs:
+  heal:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Check secrets (no-op with instructions when absent)
+        id: gate
+        env:
+          TS: ${{ secrets.TS_AUTHKEY != '' }}
+          KEY: ${{ secrets.NAS_SSH_KEY != '' }}
+        run: |
+          if [ "$TS" != "true" ] || [ "$KEY" != "true" ]; then
+            echo "NOT CONFIGURED: add repo secrets TS_AUTHKEY (Reusable + Ephemeral) and NAS_SSH_KEY, then re-dispatch."
+            echo "go=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "go=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Join the tailnet (ephemeral)
+        if: steps.gate.outputs.go == 'true'
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+
+      - name: Verify the tailnet actually joined
+        if: steps.gate.outputs.go == 'true'
+        run: |
+          if ! tailscale status --peers=false >/dev/null 2>&1; then
+            echo "::error::Tailnet join FAILED — TS_AUTHKEY invalid or consumed (needs Reusable + Ephemeral)."
+            exit 1
+          fi
+
+      - name: Before — what the stack says, and does a POST work on the box
+        if: steps.gate.outputs.go == 'true'
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          umask 077
+          printf '%s\n' "$NAS_SSH_KEY" > /tmp/nas_key
+          SSH="ssh -i /tmp/nas_key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 dpoe@poetech.tail5a2f35.ts.net"
+          $SSH 'sh -s' <<'EOS'
+          PATH=/usr/local/bin:/opt/bin:/usr/bin:/bin:$PATH; export PATH
+          scrub() { sed -E 's/([?&"]?(password|pass|pwd|token|api_key|key|secret|anon|service_role)[=:"]+)[^&" ,}]*/\1***/Ig'; }
+          SUDO=""; sudo -n true 2>/dev/null && SUDO="sudo -n"
+          echo "=== supabase containers, before ==="
+          $SUDO docker ps -a --format '{{.Names}}\t{{.Status}}' 2>/dev/null | grep -i supabase | scrub || echo "(docker ps gave nothing)"
+          echo
+          echo "=== the auth container's own last words ==="
+          $SUDO docker logs --tail 40 supabase-auth 2>&1 | scrub | tail -40 || echo "(no supabase-auth log)"
+          echo
+          # NEVER GUESS THE PORT AGAIN. Measured 2026-10-09: the first cut of
+          # this workflow probed 127.0.0.1:8000 because that is kong's default,
+          # and got "Failed to connect ... after 0 ms" — which the probe then
+          # counted as a 68-byte body because it folded stderr in with 2>&1.
+          # Two bugs reading as one outage. The real door on this box is the
+          # Caddy gateway on :8800, which nas-health.yml has probed all along
+          # (nas-health.yml:295 /auth/v1/health, :369 /sb/auth/v1/health); kong
+          # itself is docker-internal. So the ports are LISTED here, every run,
+          # and the probe reads the door the app actually rides.
+          echo "=== what is actually listening on this box (so no probe guesses) ==="
+          { netstat -lnt 2>/dev/null || ss -lnt 2>/dev/null; } | awk 'NR==1 || /:(8000|8800|8771|5432|3000|9999)[^0-9]/' || echo "(no netstat/ss)"
+          echo
+          echo "=== kong's published ports, from docker itself ==="
+          $SUDO docker port supabase-kong 2>/dev/null || echo "(kong publishes no host ports — it is reached through the gateway)"
+          echo
+          # What the Funnel is pointed at. If this says :8800 the road is whole;
+          # if it says something dark, THAT is the outage, not the stack.
+          echo "=== what the Funnel serves (the road Cloudflare rides to get here) ==="
+          tailscale serve status 2>/dev/null || tailscale funnel status 2>/dev/null || echo "(tailscale serve/funnel status unavailable to this user)"
+          echo
+          # Bodies and codes measured SEPARATELY, and stderr kept OUT of the
+          # body, so "N bytes" means N bytes of answer and nothing else.
+          probe_post() {
+            _u="$1"; _label="$2"
+            _code=$(curl -s -o /dev/null -m 20 -w '%{http_code}' -X POST \
+                      -H 'Content-Type: application/json' \
+                      -d '{"email":"heal-probe@poetech.invalid","password":"not-a-real-password"}' \
+                      "$_u" 2>/dev/null || echo "000")
+            _body=$(curl -s -m 20 -X POST -H 'Content-Type: application/json' \
+                      -d '{"email":"heal-probe@poetech.invalid","password":"not-a-real-password"}' \
+                      "$_u" 2>/dev/null || printf '')
+            echo "$_label -> HTTP $_code, ${#_body} bytes"
+            printf '%s' "$_body" | head -c 200 | scrub; echo
+          }
+          # THE BELL THAT DID NOT RING. On 2026-10-09 Darrell found his own
+          # outage; the alert never reached a phone, because the announce path
+          # is runner -> Funnel /webhook/ops-announce -> n8n -> ntfy, and n8n
+          # answers 404 "The requested webhook POST ops-announce is not
+          # registered". DR-0218 wants that n8n hop gone rather than revived,
+          # so the question is whether ntfy can be rung directly. This only
+          # LOOKS — it sends no notification to anybody's phone.
+          # IS THERE A BELL THAT CAN RING AT ALL? Darrell found every one of
+          # today's failures himself — the lockout, the dark cameras, the
+          # Firestick going silent — because the announce path is runner ->
+          # Funnel /webhook/ops-announce -> n8n -> ntfy and n8n answers 404,
+          # the webhook is not registered. DR-0218 wants that n8n hop gone
+          # rather than revived, and the NAS loops already carry NTFY_URL and
+          # NTFY_TOPIC for their own failure pings. If those are filled there
+          # is a topic his phone already listens to, and a run can ring it over
+          # SSH with no Pages Function and no new public exposure.
+          #
+          # SET-OR-NOT ONLY. An ntfy topic is a shared secret — anyone holding
+          # it can publish to the family's phones — so this log says whether a
+          # value exists and never what it is.
+          echo "=== the alert bell: what is actually there to ring ==="
+          $SUDO docker ps --format '{{.Names}}\t{{.Status}}\t{{.Ports}}' 2>/dev/null | grep -iE 'ntfy|n8n' | scrub || echo "(no ntfy or n8n container listed)"
+          for P in 8090 2586 8080 80; do
+            C=$(curl -s -o /dev/null -m 5 -w '%{http_code}' "http://127.0.0.1:$P/v1/health" 2>/dev/null || echo "000")
+            [ "$C" != "000" ] && echo "  something answers /v1/health on :$P -> HTTP $C"
+          done
+          echo "=== POST on the box itself — the verb sign-in actually uses ==="
+          probe_post 'http://127.0.0.1:8800/sb/auth/v1/token?grant_type=password' 'gateway :8800 /sb (the app path)'
+          probe_post 'http://127.0.0.1:8800/auth/v1/token?grant_type=password'    'gateway :8800 bare  (the mirror path)'
+          probe_post 'http://127.0.0.1:8000/auth/v1/token?grant_type=password'    'kong :8000 direct   (expected closed)'
+          EOS
+
+      # DO NOT RESTART A HEALTHY STACK. Measured 2026-10-09 run 37958313908:
+      # the NAS answered the sign-in POST with a healthy 81-byte 400 BOTH
+      # before and after a restart of kong, auth and rest — the restart was
+      # pure risk to a live service the family depends on, taken because the
+      # earlier probe asked a port that was never open. A heal only heals what
+      # is actually broken, so the restart is now gated on the box's own
+      # answer: if the gateway returns a body, the containers are left alone
+      # and the run goes straight to measuring the road.
+      - name: Does the box already answer? (decides whether to restart at all)
+        id: precheck
+        if: steps.gate.outputs.go == 'true'
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          umask 077
+          printf '%s\n' "$NAS_SSH_KEY" > /tmp/nas_key
+          SSH="ssh -i /tmp/nas_key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 dpoe@poetech.tail5a2f35.ts.net"
+          PRE=$($SSH 'curl -s --max-time 20 -X POST -H "Content-Type: application/json" -d "{\"email\":\"heal-probe@poetech.invalid\",\"password\":\"not-a-real-password\"}" "http://127.0.0.1:8800/sb/auth/v1/token?grant_type=password" 2>/dev/null || printf ""')
+          echo "pre-restart gateway POST bytes: ${#PRE}"
+          if [ -n "$PRE" ]; then
+            echo "The stack ALREADY answers a sign-in POST (${#PRE} bytes). Not restarting anything."
+            echo "- Stack already answering (**${#PRE} bytes**) — no restart performed" >> "$GITHUB_STEP_SUMMARY"
+            echo "stack_ok=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "The stack does NOT answer a sign-in POST. Restarting the sign-in containers."
+            echo "- Stack silent on a sign-in POST — restarting kong/auth/rest" >> "$GITHUB_STEP_SUMMARY"
+            echo "stack_ok=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # BRING THE NAS-SIDE FIXES FORWARD. The forwarders that answer CORS live
+      # on the NAS and reach it through services-sync, a cron on a ~15 minute
+      # cycle. Measured 2026-10-09: the camera CORS change was merged to main
+      # and the box was still running the old code (mirror grep 0, live
+      # preflight 501), so the Cameras tab stayed dark after a fix that had
+      # genuinely shipped. This pulls the mirror and restarts ONLY the two
+      # named services — the same operation the sync performs on its own
+      # schedule, just not fifteen minutes later. The service list is
+      # HARDCODED and this workflow takes no input of any kind.
+      - name: Pull the NAS mirror and restart the two CORS services
+        if: steps.gate.outputs.go == 'true'
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          umask 077
+          printf '%s\n' "$NAS_SSH_KEY" > /tmp/nas_key
+          SSH="ssh -i /tmp/nas_key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 dpoe@poetech.tail5a2f35.ts.net"
+          $SSH 'sh -s' <<'EOS' || echo "(mirror pull/restart unavailable)"
+          PATH=/usr/local/bin:/opt/bin:/usr/bin:/bin:$PATH; export PATH
+          SUDO=""; sudo -n true 2>/dev/null && SUDO="sudo -n"
+          REPO=/volume1/PoeTech/repos/Kingdom-PWA-Node
+          echo "mirror HEAD before: $(git -C "$REPO" rev-parse --short HEAD 2>/dev/null || echo unknown)"
+          $SUDO git -C "$REPO" fetch origin main --quiet 2>&1 | tail -2
+          $SUDO git -C "$REPO" reset --hard origin/main --quiet 2>&1 | tail -2
+          echo "mirror HEAD after:  $(git -C "$REPO" rev-parse --short HEAD 2>/dev/null || echo unknown)"
+          echo "cams_forwarder has CORS: $(grep -c CORS_ALLOWED_ORIGINS "$REPO/infra/nas-cameras/cams_forwarder.py" 2>/dev/null || echo 0)"
+          echo "voice_lite has CORS:     $(grep -c CORS_ALLOWED_ORIGINS "$REPO/infra/nas-voice-lite/voice_lite_server.py" 2>/dev/null || echo 0)"
+          for S in poetech-cams poetech-voice-lite; do
+            $SUDO systemctl restart "$S" 2>/dev/null && echo "  $S restarted" || echo "  $S restart not permitted or not a unit"
+          done
+          sleep 6
+          echo "cams preflight  :8773 -> $(curl -s -o /dev/null -m 8 -w '%{http_code}' -H 'Origin: https://poetech.us' -X OPTIONS http://127.0.0.1:8773/list 2>/dev/null || echo 000)"
+          echo "voice preflight :8772 -> $(curl -s -o /dev/null -m 8 -w '%{http_code}' -H 'Origin: https://poetech.us' -X OPTIONS http://127.0.0.1:8772/speak 2>/dev/null || echo 000)"
+          EOS
+
+      - name: Restart the sign-in road (hardcoded containers, nothing else)
+        if: steps.gate.outputs.go == 'true' && steps.precheck.outputs.stack_ok != 'true'
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          umask 077
+          printf '%s\n' "$NAS_SSH_KEY" > /tmp/nas_key
+          SSH="ssh -i /tmp/nas_key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 dpoe@poetech.tail5a2f35.ts.net"
+          $SSH 'sh -s' <<'EOS'
+          PATH=/usr/local/bin:/opt/bin:/usr/bin:/bin:$PATH; export PATH
+          SUDO=""; sudo -n true 2>/dev/null && SUDO="sudo -n"
+          # ONLY these, and only if they exist. No input reaches this list.
+          for c in supabase-kong supabase-auth supabase-rest; do
+            if $SUDO docker inspect "$c" >/dev/null 2>&1; then
+              echo "restarting $c ..."
+              $SUDO docker restart "$c" >/dev/null 2>&1 && echo "  $c restarted" || echo "  $c RESTART FAILED"
+            else
+              echo "$c is not a container on this box (skipped)"
+            fi
+          done
+          echo "waiting 25s for the stack to come back up"
+          sleep 25
+          $SUDO docker ps --format '{{.Names}}\t{{.Status}}' 2>/dev/null | grep -i supabase || true
+          EOS
+
+      - name: After — measure the POST, on the box and through poetech.us
+        if: steps.gate.outputs.go == 'true'
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+          SB_ANON: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          # Read-only here: the deployments list, to tell a stuck production
+          # alias apart from a deployment that never ran its Functions.
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          umask 077
+          printf '%s\n' "$NAS_SSH_KEY" > /tmp/nas_key
+          SSH="ssh -i /tmp/nas_key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 dpoe@poetech.tail5a2f35.ts.net"
+
+          echo "### After the restart" >> "$GITHUB_STEP_SUMMARY"
+
+          # No key material reaches this public log, even from an error body.
+          scrub_edge() { sed -E 's/([?&"]?(password|pass|pwd|token|api_key|key|secret|anon|service_role)[=:"]+)[^&" ,}]*/\1***/Ig'; }
+
+          # The gateway on :8800, /sb path — the door the app rides (see the
+          # before-step comment; :8000 is kong-internal and never answered).
+          LOOP=$($SSH 'curl -s --max-time 20 -X POST -H "Content-Type: application/json" -d "{\"email\":\"heal-probe@poetech.invalid\",\"password\":\"not-a-real-password\"}" "http://127.0.0.1:8800/sb/auth/v1/token?grant_type=password" 2>/dev/null || printf ""')
+          echo "- POST on the NAS gateway (:8800 /sb) -> **${#LOOP} bytes**" >> "$GITHUB_STEP_SUMMARY"
+          echo "loopback POST body bytes: ${#LOOP}"
+
+          # The whole road, the way a browser rides it.
+          EDGE=""
+          if [ -n "${SB_ANON:-}" ]; then
+            EDGE=$(curl -sS --max-time 25 -X POST \
+              -H "apikey: $SB_ANON" -H 'Content-Type: application/json' \
+              -d '{"email":"heal-probe@poetech.invalid","password":"not-a-real-password"}' \
+              "https://poetech.us/sb/auth/v1/token?grant_type=password" 2>/dev/null || echo "")
+            [ -n "$EDGE" ] || { sleep 8; EDGE=$(curl -sS --max-time 25 -X POST \
+              -H "apikey: $SB_ANON" -H 'Content-Type: application/json' \
+              -d '{"email":"heal-probe@poetech.invalid","password":"not-a-real-password"}' \
+              "https://poetech.us/sb/auth/v1/token?grant_type=password" 2>/dev/null || echo ""); }
+          fi
+          echo "- POST through poetech.us/sb -> **${#EDGE} bytes**" >> "$GITHUB_STEP_SUMMARY"
+          echo "edge POST body bytes: ${#EDGE}"
+
+          # WHAT IS THE EDGE ACTUALLY SAYING? Measured 2026-10-09 run
+          # 37958313908: the NAS answered this POST with a healthy 81-byte
+          # 400 (invalid_credentials) while the SAME POST through poetech.us
+          # came back 0 bytes. "0 bytes" alone cannot tell a dropped body from
+          # a bodiless 503 throttle from a connection reset — and this file's
+          # own factory comment says the Funnel throttles with 503. So the
+          # status line, curl's exit code and the response headers are all
+          # captured, and the Funnel is asked DIRECTLY, bypassing Cloudflare,
+          # so the leg that breaks is named rather than inferred.
+          echo "### Where the POST dies" >> "$GITHUB_STEP_SUMMARY"
+          if [ -n "${SB_ANON:-}" ]; then
+            E_CODE=$(curl -s -o /dev/null -m 25 -w '%{http_code}' -X POST \
+              -H "apikey: $SB_ANON" -H 'Content-Type: application/json' \
+              -d '{"email":"heal-probe@poetech.invalid","password":"not-a-real-password"}' \
+              -D /tmp/edge_hdr.txt \
+              "https://poetech.us/sb/auth/v1/token?grant_type=password" 2>/dev/null); E_RC=$?
+            echo "- edge POST \`poetech.us/sb\` -> HTTP **${E_CODE}**, curl exit **${E_RC}**" >> "$GITHUB_STEP_SUMMARY"
+            echo "edge POST: HTTP $E_CODE, curl exit $E_RC"
+            echo "--- edge response headers ---"
+            sed -E 's/([Ss]et-[Cc]ookie:).*/\1 ***/' /tmp/edge_hdr.txt 2>/dev/null | head -25 || echo "(no headers captured)"
+
+            # The Funnel, asked directly. If THIS 503s, Cloudflare is innocent
+            # and the throttle is Tailscale's.
+            F_CODE=$(curl -s -o /tmp/funnel_body.txt -m 25 -w '%{http_code}' -X POST \
+              -H "apikey: $SB_ANON" -H 'Content-Type: application/json' \
+              -d '{"email":"heal-probe@poetech.invalid","password":"not-a-real-password"}' \
+              "https://poetech.tail5a2f35.ts.net/sb/auth/v1/token?grant_type=password" 2>/dev/null); F_RC=$?
+            F_BYTES=$(wc -c < /tmp/funnel_body.txt 2>/dev/null | tr -d ' ')
+            echo "- Funnel direct (no Cloudflare) -> HTTP **${F_CODE}**, ${F_BYTES} bytes, curl exit **${F_RC}**" >> "$GITHUB_STEP_SUMMARY"
+            echo "funnel direct POST: HTTP $F_CODE, $F_BYTES bytes, curl exit $F_RC"
+            head -c 300 /tmp/funnel_body.txt 2>/dev/null | scrub_edge; echo
+
+            # A GET through the SAME Funnel path, for contrast: if GET passes
+            # and POST does not on the same leg, the verb is the variable.
+            G_CODE=$(curl -s -o /dev/null -m 20 -w '%{http_code}' \
+              "https://poetech.tail5a2f35.ts.net/sb/auth/v1/health" 2>/dev/null || echo "000")
+            echo "- Funnel direct GET health -> HTTP **${G_CODE}**" >> "$GITHUB_STEP_SUMMARY"
+            echo "funnel direct GET health: HTTP $G_CODE"
+          fi
+
+          # ARE THE PAGES FUNCTIONS DEPLOYED AT ALL? Measured 2026-10-09: the
+          # edge answered the sign-in POST with HTTP 405 and content-length 0,
+          # which is what Cloudflare Pages returns when a path is served as a
+          # STATIC asset — static answers GET and refuses POST with an empty
+          # body. That would mean /sb/* never reaches functions/sb/[[path]].js
+          # at all, and the "healthy" GET /sb/auth/v1/health 200 was our own
+          # SPA shell, not GoTrue. One probe separates "this one route is
+          # unrouted" from "no Function is deployed": ask a DIFFERENT Function
+          # route that must answer a plain GET with JSON. If it answers HTML,
+          # the whole Functions bundle is missing from the live deployment.
+          # WHICH DEPLOYMENT IS THE DOMAIN SERVING? The 16:11 deploy of this
+          # same commit logged "Compiled Worker successfully" and "Uploading
+          # Functions bundle", and fifteen minutes later every Function route
+          # on poetech.us was answering with the SPA shell. So the bundle is
+          # not missing from the DEPLOYMENT — the custom domain is not serving
+          # the deployment that holds it. Asking the project's own pages.dev
+          # alias separates those two: JSON there and HTML on poetech.us means
+          # the domain is pinned to an older deployment, which is a Cloudflare
+          # routing repair, not a code one.
+          # WOULD POINTING THE APP STRAIGHT AT THE FUNNEL ACTUALLY UNLOCK THEM?
+          # With every Pages Function dark, the app's auth URL
+          # (SOVEREIGN_SB_URL=https://poetech.us/sb) is a dead path, and the
+          # obvious rescue is to build against the Funnel origin instead. But
+          # funnel-proxy.js exists BECAUSE the Funnel throttles cross-origin
+          # BROWSER fetches from poetech.us with a 503 before they reach the
+          # NAS — and every probe above sent no Origin header, so none of them
+          # tested the thing a browser does. This sends the same sign-in POST
+          # WITH the browser's Origin and a preflight, so the rescue is
+          # measured before it is shipped rather than hoped for (DR-0076).
+          echo "=== the Funnel, asked the way a BROWSER asks (Origin + preflight) ==="
+          if [ -n "${SB_ANON:-}" ]; then
+            PRE_CODE=$(curl -s -o /dev/null -m 20 -w '%{http_code}' -X OPTIONS \
+              -H 'Origin: https://poetech.us' \
+              -H 'Access-Control-Request-Method: POST' \
+              -H 'Access-Control-Request-Headers: apikey,content-type' \
+              "https://poetech.tail5a2f35.ts.net/sb/auth/v1/token?grant_type=password" 2>/dev/null || echo "000")
+            echo "CORS preflight (OPTIONS) -> HTTP $PRE_CODE"
+            O_CODE=$(curl -s -o /tmp/origin_body.txt -m 25 -w '%{http_code}' -X POST \
+              -H 'Origin: https://poetech.us' \
+              -H "apikey: $SB_ANON" -H 'Content-Type: application/json' \
+              -d '{"email":"heal-probe@poetech.invalid","password":"not-a-real-password"}' \
+              -D /tmp/origin_hdr.txt \
+              "https://poetech.tail5a2f35.ts.net/sb/auth/v1/token?grant_type=password" 2>/dev/null || echo "000")
+            O_BYTES=$(wc -c < /tmp/origin_body.txt 2>/dev/null | tr -d ' ')
+            echo "browser-shaped POST to the Funnel -> HTTP $O_CODE, $O_BYTES bytes"
+            echo "- Funnel with \`Origin\` -> **$O_CODE**, ${O_BYTES} bytes; preflight **$PRE_CODE**" >> "$GITHUB_STEP_SUMMARY"
+            grep -i -E '^access-control-allow-(origin|headers|methods)' /tmp/origin_hdr.txt 2>/dev/null || echo "(no CORS headers on the answer)"
+            head -c 200 /tmp/origin_body.txt 2>/dev/null | scrub_edge; echo
+            if [ "$O_CODE" = "503" ]; then
+              echo "::warning::THE FUNNEL THROTTLE IS REAL AND ACTIVE — a browser-shaped POST (Origin: https://poetech.us) got 503 while the same POST without an Origin succeeded. Repointing the app at the Funnel would NOT unlock anyone."
+            elif [ "${O_BYTES:-0}" -gt 0 ] 2>/dev/null; then
+              echo "The Funnel answers a browser-shaped POST ($O_BYTES bytes). Repointing the app at it is a viable unlock."
+            fi
+          fi
+
+          # WHICH LAYER IS SWALLOWING THE FUNCTIONS? Asking Cloudflare's own
+          # API, because three deploys have now logged "Compiled Worker
+          # successfully", "Uploading Functions bundle" AND "Uploading
+          # _routes.json" while every Function route still answered with the
+          # SPA shell. A deployment carries its OWN immutable hostname
+          # (<id>.poetech-app.pages.dev) alongside the production alias, and
+          # the two can disagree: if the per-deployment host runs Functions and
+          # the alias does not, the deployment is sound and the alias is stuck,
+          # which is a promote/retry repair rather than a code one.
+          # WHERE IS HIS DAUGHTER'S HOMEWORK? Darrell, 2026-10-09, reading a
+          # thread in the app: "How do we have the last message and not the one
+          # with my daughter's homework?!" The daily carry-across lane handles
+          # THE WORD's content and has never carried a conversation table, so
+          # nobody has ever counted these. It runs in THIS step, the last one,
+          # because the job log is read from its tail. COUNTS AND DATES ONLY —
+          # no body, no sender, no subject is read or printed; this log is
+          # public.
+          # THE OTHER DARK ROADS. Darrell, 2026-10-09: "Cameras tab is not
+          # working?!!!!!" — correct, and the same cause as the lockout: /cams
+          # is a Pages Function and no Function is running. Sign-in was routed
+          # around the dead layer; these were not. Before claiming any of them
+          # can be routed the same way, ask the Funnel for each one the way a
+          # BROWSER asks — with an Origin and a preflight — because a bearer
+          # route needs CORS to allow Authorization, and that is not proven by
+          # /sb answering. Any 2xx/4xx WITH CORS headers means the road carries
+          # it; a 000 or a preflight refusal means it does not.
+          # DID THE CAMERA FIX ACTUALLY LAND, ON BOTH SIDES? Darrell's screen
+          # still reads ROAD UNREACHABLE on build 1fa9ba5, which IS the commit
+          # carrying the fix. Two different failures look identical from the
+          # sofa: the BUILD may not have picked up VITE_CAMS_BASE, or it did
+          # and the NAS has not yet synced the forwarder that answers CORS
+          # (services-sync runs every ~15 min). These two lines separate them.
+          echo "=== camera fix: is it on the client, and is it on the NAS? ==="
+          # SCAN THE LAZY CHUNKS TOO. The first cut of this check read only the
+          # chunks index.html names, reported 0 for the camera URL, and that 0
+          # was MY probe's fault: camera code is lazy-loaded, so it is not in
+          # the entry. A measurement that looks in the wrong file is worse than
+          # none, because it reads like proof. So the entry chunks are mined
+          # for the asset names they themselves import, one level deep, and
+          # every one of those is searched as well.
+          # FETCH THE INDEX HERE. This check runs BEFORE the /sb block that
+          # used to define CHUNKS, so reading that variable gave an EMPTY list
+          # and the scan reported 0 twice while looking at nothing at all.
+          # Second time this same probe lied by aiming at the wrong files, so
+          # it now owns its own input and PRINTS the count it is scanning —
+          # a zero there is visibly a broken probe, not a failed fix.
+          curl -s -m 20 "https://poetech.us/poetech-app/" -o /tmp/idx_c.html 2>/dev/null || true
+          ENTRY=$(grep -oE '/?(poetech-app/)?assets/[A-Za-z0-9._-]+\.js' /tmp/idx_c.html 2>/dev/null | sort -u)
+          [ -n "$ENTRY" ] || echo "::warning::could not read any entry chunk from poetech.us/poetech-app/ — the bundle scan below proves nothing"
+          ALL_CHUNKS="$ENTRY"
+          for C in $ENTRY; do
+            U="https://poetech.us/poetech-app/${C#/}"
+            U=$(printf '%s' "$U" | sed 's#/poetech-app/poetech-app/#/poetech-app/#')
+            curl -s -m 30 "$U" -o /tmp/entry.js 2>/dev/null || continue
+            MORE=$(grep -oE '"\./[A-Za-z0-9._-]+\.js"|assets/[A-Za-z0-9._-]+\.js' /tmp/entry.js 2>/dev/null \
+                   | tr -d '"' | sed 's#^\./#assets/#' | sort -u | head -400)
+            ALL_CHUNKS="$ALL_CHUNKS $MORE"
+          done
+          ALL_CHUNKS=$(printf '%s\n' $ALL_CHUNKS | sort -u)
+          echo "scanning $(printf '%s\n' $ALL_CHUNKS | grep -c . ) chunks (entry + one level of lazy imports)"
+          CAMS_IN_BUNDLE=0
+          VOICE_IN_BUNDLE=0
+          for C in $ALL_CHUNKS; do
+            U="https://poetech.us/poetech-app/${C#/}"
+            U=$(printf '%s' "$U" | sed 's#/poetech-app/poetech-app/#/poetech-app/#')
+            curl -s -m 30 "$U" -o /tmp/chunk2.js 2>/dev/null || continue
+            grep -q 'tail5a2f35\.ts\.net/cams' /tmp/chunk2.js 2>/dev/null && CAMS_IN_BUNDLE=1
+            grep -q 'tail5a2f35\.ts\.net/voice-lite' /tmp/chunk2.js 2>/dev/null && VOICE_IN_BUNDLE=1
+          done
+          echo "client: served bundle names the Funnel /voice-lite -> $VOICE_IN_BUNDLE"
+          echo "- client carries Funnel /voice-lite: **$VOICE_IN_BUNDLE**" >> "$GITHUB_STEP_SUMMARY"
+          echo "client: served bundle names the Funnel /cams -> $CAMS_IN_BUNDLE"
+          echo "- client carries Funnel /cams: **$CAMS_IN_BUNDLE**" >> "$GITHUB_STEP_SUMMARY"
+          NAS_HAS_CORS=$($SSH 'grep -c "CORS_ALLOWED_ORIGINS" /volume1/PoeTech/repos/Kingdom-PWA-Node/infra/nas-cameras/cams_forwarder.py 2>/dev/null || echo 0' 2>/dev/null | tail -1)
+          echo "NAS mirror: cams_forwarder.py mentions CORS_ALLOWED_ORIGINS -> ${NAS_HAS_CORS:-?}"
+          echo "- NAS mirror has the CORS fix: **${NAS_HAS_CORS:-?}**" >> "$GITHUB_STEP_SUMMARY"
+          LIVE_CORS=$($SSH 'curl -s -o /dev/null -m 8 -w "%{http_code}" -H "Origin: https://poetech.us" -X OPTIONS http://127.0.0.1:8773/list 2>/dev/null || echo 000' 2>/dev/null | tail -1)
+          echo "NAS running service: preflight on :8773 -> ${LIVE_CORS:-?} (204 means the new code is RUNNING, not just synced)"
+          echo "- running forwarder preflight: **${LIVE_CORS:-?}**" >> "$GITHUB_STEP_SUMMARY"
+
+          echo "=== the other dark roads, asked the way a browser asks ==="
+          for R in cams taxes llm reviews ways scribe nas-photos voice voice-lite openers; do
+            PF=$(curl -s -o /dev/null -m 15 -w '%{http_code}' -X OPTIONS \
+              -H 'Origin: https://poetech.us' -H 'Access-Control-Request-Method: GET' \
+              -H 'Access-Control-Request-Headers: authorization,content-type' \
+              "https://poetech.tail5a2f35.ts.net/$R/" 2>/dev/null || echo "000")
+            GC=$(curl -s -o /dev/null -m 15 -w '%{http_code}' -H 'Origin: https://poetech.us' \
+              -D /tmp/r_hdr.txt "https://poetech.tail5a2f35.ts.net/$R/" 2>/dev/null || echo "000")
+            ACAO=$(grep -i '^access-control-allow-origin' /tmp/r_hdr.txt 2>/dev/null | head -1 | tr -d '\r' | cut -d' ' -f2-)
+            echo "  /$R -> preflight $PF, GET $GC, allow-origin: ${ACAO:-none}"
+            echo "- \`/$R\` preflight **$PF**, GET **$GC**, ACAO \`${ACAO:-none}\`" >> "$GITHUB_STEP_SUMMARY"
+          done
+
+          echo "=== the family's conversations: counted on both sides ==="
+          $SSH 'sh -s' <<'EOS' || echo "(conversation count unavailable)"
+          PATH=/usr/local/bin:/opt/bin:/usr/bin:/bin:$PATH; export PATH
+          SUDO=""; sudo -n true 2>/dev/null && SUDO="sudo -n"
+          SUPA_PW=$($SUDO sed -n 's/^POSTGRES_PASSWORD=//p' /volume1/docker/supabase/.env 2>/dev/null | head -1)
+          HOSTED_URL=$($SUDO sed -n 's/^AGENT_DB_URL=//p' /volume1/docker/poetech/agent.env 2>/dev/null | head -1)
+          # The date column is DISCOVERED, not assumed: the first pass hardcoded
+          # created_at and family_messages — the likeliest home for a child's
+          # homework — answered only with a hint about read_at. A table whose
+          # dates cannot be read is the one table you most need to read.
+          for T in messages family_messages direct_messages group_messages choir_messages; do
+            echo "  $T"
+            for SIDE in sovereign hosted; do
+              if [ "$SIDE" = "sovereign" ]; then
+                [ -n "$SUPA_PW" ] || { echo "     sovereign: (no password readable)"; continue; }
+                RUN="$SUDO docker exec -e PGPASSWORD=$SUPA_PW supabase-db psql -h 127.0.0.1 -U supabase_admin -d postgres -t -A"
+              else
+                [ -n "$HOSTED_URL" ] || { echo "     hosted: (no hosted url readable)"; continue; }
+                RUN="$SUDO docker exec supabase-db psql $HOSTED_URL -t -A"
+              fi
+              DC=$($RUN -c "select column_name from information_schema.columns where table_schema='public' and table_name='$T' and data_type like 'timestamp%' order by ordinal_position limit 1" 2>/dev/null | tail -1)
+              if [ -n "$DC" ]; then
+                R=$($RUN -c "select count(*)||' rows, '||'$DC'||' '||coalesce(min(\"$DC\")::text,'none')||' .. '||coalesce(max(\"$DC\")::text,'none') from public.$T" 2>&1 | tail -1)
+              else
+                R=$($RUN -c "select count(*)||' rows (no timestamp column)' from public.$T" 2>&1 | tail -1)
+              fi
+              echo "     $SIDE: $R"
+            done
+          done
+          EOS
+
+          # WHY NO FEEDS? Darrell, 2026-10-09: "Cameras tab is back... not
+          # the feeds." cams-diag showed go2rtc up, the forwarder running the
+          # new CORS code, and every camera on_demand (connected=False until
+          # something asks) with two actually connected — so the pipeline
+          # works and the open question is whether the call the TAB makes
+          # lands: the Funnel path, carrying the family bearer AND an Origin.
+          # Run over SSH so the token never leaves the box, and never printed.
+          # Camera names are rooms in a family's house, so only a COUNT.
+          # WHAT HAPPENED TO THEIR LESSON? Darrell, 2026-10-09: "Christina and
+          # I had a lesson sent in today whatever happened to it?" The intake
+          # only ever looks at rows TAGGED 'lesson', so a row that arrived
+          # without that tag -- or a write that died part-way -- is invisible
+          # to every check we have. Today every POST through poetech.us
+          # answered 405 with an empty body for hours, so a recording made in
+          # the app during that window may never have been written at all.
+          #
+          # This lists EVERY agent_inbox row from the last two days: id, who
+          # made it, its tags, its source, its time and the SIZE of its body.
+          # NEVER A BODY -- the intake's own standing rule, and this is public.
+          # A RECORDING THAT UPLOADED BUT NEVER GOT ITS ROW. Darrell,
+          # 2026-10-09: "there was another one after the street video." Only
+          # the street video has an inbox row, so the second recording never
+          # got one -- and today every POST through poetech.us answered 405
+          # with an empty body for hours, which is exactly how that insert
+          # would have died. But lesson-voice.js uploads the AUDIO FIRST and
+          # files the row second (lesson-voice.js:9-12), so if the upload
+          # survived, the webm is still in the private lesson-audio bucket
+          # with no row pointing at it. That is a recoverable lesson.
+          #
+          # Names and times only. The audio is the family speaking; nothing
+          # here reads or moves it.
+          # AND IT MUST BE ASKED ON BOTH SIDES. The first run of this probe asked
+          # only the sovereign database and answered: lesson-audio holds exactly
+          # 1 object, nothing at all was created in the last 2 days, and the
+          # street video's own object -- whose name the 13:51 inbox row carries
+          # -- is NOT there. A file the row names must exist somewhere, so the
+          # single-sided answer located the bucket, not the file. The inbox rows
+          # themselves carry a "mirrored" tag, which is the clue: the app may be
+          # writing the HOSTED project and the row arriving sovereign by mirror.
+          # So both sides are asked, the same four questions, and whichever side
+          # holds the street video's object is the side the recording went to.
+          echo "=== lesson-audio uploads in the last two days, and which are ORPHANED ==="
+          $SSH 'sh -s' <<'EOS' || echo "(storage listing unavailable)"
+          PATH=/usr/local/bin:/opt/bin:/usr/bin:/bin:$PATH; export PATH
+          SUDO=""; sudo -n true 2>/dev/null && SUDO="sudo -n"
+          PW=$($SUDO sed -n 's/^POSTGRES_PASSWORD=//p' /volume1/docker/supabase/.env 2>/dev/null | head -1)
+          HOSTED_URL=$($SUDO sed -n 's/^AGENT_DB_URL=//p' /volume1/docker/poetech/agent.env 2>/dev/null | head -1)
+          for SIDE in sovereign hosted; do
+            if [ "$SIDE" = "sovereign" ]; then
+              [ -n "$PW" ] || { echo "  sovereign: no password readable"; continue; }
+              RUN="$SUDO docker exec -e PGPASSWORD=$PW supabase-db psql -h 127.0.0.1 -U supabase_admin -d postgres -t -A -F| "
+            else
+              [ -n "$HOSTED_URL" ] || { echo "  hosted: no url readable"; continue; }
+              RUN="$SUDO docker exec supabase-db psql $HOSTED_URL -t -A -F| "
+            fi
+            echo "  ===== $SIDE ====="
+            echo "  -- buckets that exist, and how many objects each holds --"
+            $RUN -c "select b.id, count(o.id) from storage.buckets b left join storage.objects o on o.bucket_id=b.id group by b.id order by b.id" 2>&1 | tail -20
+            echo "  -- EVERY object created in the last 2 days, any bucket --"
+            $RUN -c "select o.bucket_id, o.created_at, o.name from storage.objects o where o.created_at > now() - interval '2 days' order by o.created_at asc" 2>&1 | tail -20
+            echo "  -- the street video's own object, by name (it MUST exist on ONE of these sides) --"
+            $RUN -c "select bucket_id, created_at, name from storage.objects where name like '%20261009T135103Z%'" 2>&1 | tail -5
+            echo "  -- anything recorded at 14:0x today, any bucket (the lost one) --"
+            $RUN -c "select bucket_id, created_at, name from storage.objects where name like '%20261009T14%'" 2>&1 | tail -10
+            echo "  -- every lesson-audio object ever, newest first (the bucket is small) --"
+            $RUN -c "select created_at, name from storage.objects where bucket_id='lesson-audio' order by created_at desc" 2>&1 | tail -15
+          done
+          EOS
+
+          # AND THE AUDIO IS NOT SUPPOSED TO BE IN THE BUCKET AT ALL. Both sides
+          # answered the same: lesson-audio holds nothing from today, on either
+          # database, and the street video's object -- whose name its 13:51 row
+          # carries -- is on neither. That is BY DESIGN, not loss:
+          # lesson-voice.js:14-18 says the NAS loop downloads the audio,
+          # transcribes it, KEEPS THE AUDIO ON THE NAS and deletes the cloud
+          # copy. So the bucket is a letterbox, and the NAS filesystem
+          # (/volume1/PoeTech/lesson-voice, lesson_voice_transcribe.py:80) is
+          # where a recording that arrived actually lives.
+          #
+          # This is therefore the question that settles it: did a 14:0x
+          # recording ever REACH the box? Names, sizes and times only -- the
+          # audio is the family speaking, and nothing here opens it.
+          echo "=== the recordings the NAS itself is holding (names and times only) ==="
+          $SSH 'sh -s' <<'EOS' || echo "(nas recording listing unavailable)"
+          PATH=/usr/local/bin:/opt/bin:/usr/bin:/bin:$PATH; export PATH
+          SUDO=""; sudo -n true 2>/dev/null && SUDO="sudo -n"
+          D=/volume1/PoeTech/lesson-voice
+          if [ ! -d "$D" ]; then echo "  $D does not exist"; else
+            echo "  -- newest 15 files anywhere under $D --"
+            $SUDO find "$D" -type f -printf '%TY-%Tm-%Td %TH:%TM  %10s  %p\n' 2>/dev/null | sort -r | head -15
+            echo "  -- anything stamped today at 14:0x --"
+            $SUDO find "$D" -type f -name '*20261009T14*' -printf '%TY-%Tm-%Td %TH:%TM  %10s  %p\n' 2>/dev/null | head -10
+            echo "  -- and the street video, to prove the listing can see a known file --"
+            $SUDO find "$D" -type f -name '*20261009T135103Z*' -printf '%TY-%Tm-%Td %TH:%TM  %10s  %p\n' 2>/dev/null | head -5
+          fi
+          EOS
+
+          echo "=== every inbox row from the last two days (no bodies) ==="
+          $SSH 'sh -s' <<'EOS' || echo "(inbox listing unavailable)"
+          PATH=/usr/local/bin:/opt/bin:/usr/bin:/bin:$PATH; export PATH
+          SUDO=""; sudo -n true 2>/dev/null && SUDO="sudo -n"
+          PW=$($SUDO sed -n 's/^POSTGRES_PASSWORD=//p' /volume1/docker/supabase/.env 2>/dev/null | head -1)
+          if [ -z "$PW" ]; then echo "  no database password readable"; else
+            $SUDO docker exec -e PGPASSWORD="$PW" supabase-db psql -h 127.0.0.1 -U supabase_admin -d postgres -t -A -F' | ' \
+              -c "select left(id::text,8), created_at, coalesce(left(created_by::text,8),'(none)'), coalesce(source,'(none)'), coalesce(tags::text,'(no tags)'), length(coalesce(body,'')) from public.agent_inbox where created_at > now() - interval '2 days' order by created_at asc" 2>&1 | tail -40
+            echo "  --- totals ---"
+            $SUDO docker exec -e PGPASSWORD="$PW" supabase-db psql -h 127.0.0.1 -U supabase_admin -d postgres -t -A \
+              -c "select 'rows in the last 2 days: '||count(*)||' | distinct authors: '||count(distinct created_by) from public.agent_inbox where created_at > now() - interval '2 days'" 2>&1 | tail -1
+          fi
+          EOS
+
+          echo "=== cameras, asked the way the TAB asks (Funnel + bearer + Origin) ==="
+          $SSH 'sh -s' <<'EOS' || echo "(camera tab probe unavailable)"
+          PATH=/usr/local/bin:/opt/bin:/usr/bin:/bin:$PATH; export PATH
+          SUDO=""; sudo -n true 2>/dev/null && SUDO="sudo -n"
+          TOK=$($SUDO cat /volume1/PoeTech/secrets/chat-bridge-token.txt 2>/dev/null | tr -d '[:space:]')
+          if [ -z "$TOK" ]; then
+            echo "  no bridge token readable — cannot ask the way the tab asks"
+          else
+            echo "  bridge token: present (${#TOK} characters, never printed)"
+            for EP in health list; do
+              C=$(curl -s -o /tmp/cam_$EP.txt -m 20 -w '%{http_code}' \
+                    -H "Authorization: Bearer $TOK" -H 'Origin: https://poetech.us' \
+                    "https://poetech.tail5a2f35.ts.net/cams/$EP" 2>/dev/null || echo 000)
+              B=$(wc -c < /tmp/cam_$EP.txt 2>/dev/null | tr -d ' ')
+              echo "  GET /cams/$EP -> HTTP $C, $B bytes"
+            done
+            echo "  cameras named in the list answer: $(grep -o '\"name\"' /tmp/cam_list.txt 2>/dev/null | wc -l | tr -d ' ')"
+          fi
+          EOS
+
+          # WHICH ROAD DOES THE SHIPPED APP ACTUALLY CARRY? VITE_SUPABASE_URL
+          # is inlined into the client bundle at build time, so the only
+          # trustworthy answer is the bytes poetech.us is serving right now —
+          # not the workflow file, not the deploy log. This reads index.html,
+          # finds its entry chunks, and reports which auth origin they name.
+          echo "=== the auth origin baked into the SERVED bundle ==="
+          curl -s -m 20 "https://poetech.us/poetech-app/" -o /tmp/idx.html 2>/dev/null || true
+          CHUNKS=$(grep -oE '/?(poetech-app/)?assets/[A-Za-z0-9._-]+\.js' /tmp/idx.html 2>/dev/null | sort -u | head -6)
+          FOUND_FUNNEL=0; FOUND_SAMEORIGIN=0
+          for C in $CHUNKS; do
+            U="https://poetech.us/poetech-app/${C#/}"
+            U=$(printf '%s' "$U" | sed 's#/poetech-app/poetech-app/#/poetech-app/#')
+            curl -s -m 30 "$U" -o /tmp/chunk.js 2>/dev/null || continue
+            if grep -q 'poetech\.tail5a2f35\.ts\.net/sb' /tmp/chunk.js 2>/dev/null; then FOUND_FUNNEL=1; fi
+            if grep -q 'poetech\.us/sb' /tmp/chunk.js 2>/dev/null; then FOUND_SAMEORIGIN=1; fi
+          done
+          echo "bundle names the Funnel /sb: $FOUND_FUNNEL ; bundle names poetech.us/sb: $FOUND_SAMEORIGIN"
+          echo "- served bundle: Funnel=**$FOUND_FUNNEL** sameorigin=**$FOUND_SAMEORIGIN**" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$FOUND_FUNNEL" = "1" ]; then
+            echo "UNLOCK IS LIVE — the served app signs in over the Funnel, which answers a browser-shaped POST with a real JSON body."
+          elif [ "$FOUND_SAMEORIGIN" = "1" ]; then
+            echo "::warning::The served app still points at poetech.us/sb, which is the dead Function path. The unlock has not reached the browser yet."
+          fi
+
+          echo "=== what Cloudflare itself says about the newest deployments ==="
+          if [ -n "${CF_TOKEN:-}" ] && [ -n "${CF_ACCOUNT:-}" ]; then
+            curl -s -m 25 -H "Authorization: Bearer $CF_TOKEN" \
+              "https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT/pages/projects/poetech-app/deployments?per_page=3" \
+              -o /tmp/cf_deploys.json 2>/dev/null || true
+            # THE PROJECT'S OWN CONFIG. A Pages project that accepts a Functions
+            # bundle and never invokes it is not explained by anything in this
+            # repo, so the next place to look is what Cloudflare thinks this
+            # project IS: its compatibility date and flags, its build config,
+            # and whether a deployment config exists for production at all. A
+            # missing or malformed production config is the shape that would
+            # make the Worker upload fine and never run.
+            curl -s -m 25 -H "Authorization: Bearer $CF_TOKEN" \
+              "https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT/pages/projects/poetech-app" \
+              -o /tmp/cf_project.json 2>/dev/null || true
+            if [ "$(jq -r '.success' /tmp/cf_project.json 2>/dev/null)" = "true" ]; then
+              jq -r '.result | "project: \(.name) | production_branch: \(.production_branch)",
+                     "build_config: \(.build_config // "none")",
+                     "production compat_date: \(.deployment_configs.production.compatibility_date // "NONE")",
+                     "production compat_flags: \(.deployment_configs.production.compatibility_flags // [])",
+                     "production usage_model: \(.deployment_configs.production.usage_model // "unset")",
+                     "production placement: \(.deployment_configs.production.placement // "unset")",
+                     "production binding names: \([.deployment_configs.production.env_vars // {} | keys[]] | join(", "))"' \
+                /tmp/cf_project.json 2>/dev/null || echo "(project fields unreadable)"
+            else
+              echo "project config: API did not answer success — $(jq -rc '.errors // "unreadable"' /tmp/cf_project.json 2>/dev/null | head -c 200)"
+            fi
+
+            if [ "$(jq -r '.success' /tmp/cf_deploys.json 2>/dev/null)" = "true" ]; then
+              jq -r '.result[:3][] | "deployment \(.short_id) | \(.url)\n   env \(.environment) | stages \([.stages[]? | "\(.name)=\(.status)"] | join(", "))"' /tmp/cf_deploys.json 2>/dev/null || true
+              NEWEST=$(jq -r '.result[0].url // ""' /tmp/cf_deploys.json 2>/dev/null)
+            else
+              echo "deployments: API did not answer success — $(jq -rc '.errors // "unreadable"' /tmp/cf_deploys.json 2>/dev/null | head -c 200)"
+              NEWEST=""
+            fi
+            if [ -n "$NEWEST" ]; then
+              D_CT=$(curl -s -o /dev/null -m 20 -w '%{content_type}' "$NEWEST/automation-status" 2>/dev/null || echo "?")
+              echo "per-deployment host /automation-status -> $D_CT"
+              echo "- per-deployment host -> \`$D_CT\`" >> "$GITHUB_STEP_SUMMARY"
+              case "$D_CT" in
+                *json*) echo "::warning::THE DEPLOYMENT IS FINE AND THE ALIAS IS STUCK — Functions run on the per-deployment host but not on poetech.us. This is a promote/retry repair at Cloudflare, not a code change." ;;
+                *text/html*) echo "The deployment itself does not run Functions either — the bundle is accepted and never invoked." ;;
+              esac
+            fi
+          else
+            echo "(no Cloudflare API token/account in this workflow's env — skipped)"
+          fi
+
+          echo "=== the same Function route, on the domain vs the project alias ==="
+          for HOST in poetech.us poetech-app.pages.dev; do
+            H_CT=$(curl -s -o /dev/null -m 20 -w '%{content_type}' "https://$HOST/automation-status" 2>/dev/null || echo "?")
+            H_CODE=$(curl -s -o /dev/null -m 20 -w '%{http_code}' "https://$HOST/automation-status" 2>/dev/null || echo "000")
+            echo "$HOST /automation-status -> HTTP $H_CODE, $H_CT"
+            echo "- \`$HOST/automation-status\` -> **$H_CODE**, \`$H_CT\`" >> "$GITHUB_STEP_SUMMARY"
+          done
+
+          echo "=== are the Pages Functions deployed at all? ==="
+          for R in automation-status review-feed; do
+            A_CODE=$(curl -s -o /tmp/fn_body.txt -m 20 -w '%{http_code}' "https://poetech.us/$R" 2>/dev/null || echo "000")
+            A_CT=$(curl -s -o /dev/null -m 20 -w '%{content_type}' "https://poetech.us/$R" 2>/dev/null || echo "?")
+            echo "GET /$R -> HTTP $A_CODE, content-type: $A_CT"
+            head -c 120 /tmp/fn_body.txt 2>/dev/null | tr -d '\n' | scrub_edge; echo
+            echo "- \`GET /$R\` -> **$A_CODE**, \`$A_CT\`" >> "$GITHUB_STEP_SUMMARY"
+            case "$A_CT" in
+              *text/html*)
+                echo "::warning::/$R served HTML — that route is NOT reaching its Pages Function; the SPA shell answered instead." ;;
+            esac
+          done
+
+          # IS THAT GREEN GET EVEN THE NAS ANSWERING? Measured 2026-10-09: a
+          # GET to /sb/auth/v1/health returned 200 the whole time Darrell was
+          # locked out, while nothing on the box answered a POST. A cached GET
+          # at Cloudflare looks identical to a healthy origin, so the GET is
+          # asked TWICE — once plainly, once with a cache-busting query that
+          # cannot have been cached before. If the plain GET is 200 and the
+          # busted one is not, the green light was the edge talking to itself.
+          GET_PLAIN=$(curl -s -o /dev/null -m 20 -w '%{http_code}' "https://poetech.us/sb/auth/v1/health" 2>/dev/null || echo "000")
+          GET_FRESH=$(curl -s -o /dev/null -m 20 -w '%{http_code}' -H 'Cache-Control: no-cache' "https://poetech.us/sb/auth/v1/health?cachebust=${GITHUB_RUN_ID}${GITHUB_RUN_ATTEMPT}" 2>/dev/null || echo "000")
+          echo "- \`GET /sb/auth/v1/health\` plain **$GET_PLAIN** / cache-busted **$GET_FRESH**" >> "$GITHUB_STEP_SUMMARY"
+          echo "edge GET health: plain $GET_PLAIN, cache-busted $GET_FRESH"
+          if [ "$GET_PLAIN" = "200" ] && [ "$GET_FRESH" != "200" ]; then
+            echo "::warning::THE GREEN LIGHT WAS CACHED — a plain GET to /sb/auth/v1/health answered 200 but the same GET with a cache-busting query answered $GET_FRESH. Cloudflare has been serving a stored copy; the NAS is not answering this road."
+          fi
+
+          # A HEAL THAT DID NOT HEAL SAYS SO (DR-0076).
+          if [ -z "$LOOP" ]; then
+            echo "::error::STILL DOWN on the box — a POST to the NAS gateway (127.0.0.1:8800/sb/auth/v1/token) returned an empty body after the restart. The sovereign stack itself is not answering POSTs; this is not the Funnel and not Cloudflare. Read the before-step port listing in this same run: it names what is actually listening."
+            exit 1
+          fi
+          # THE NAS ANSWERS AND THE EDGE DOES NOT — name WHICH leg, because the
+          # Funnel and the Pages Function are different repairs. The direct
+          # Funnel probe above is what separates them.
+          if [ -n "${SB_ANON:-}" ] && [ -z "$EDGE" ]; then
+            if [ "${F_BYTES:-0}" -gt 0 ] 2>/dev/null; then
+              echo "::error::THE PAGES FUNCTION IS THE BREAK — the NAS answered this POST (${#LOOP} bytes) AND the Tailscale Funnel answered it directly (HTTP ${F_CODE}, ${F_BYTES} bytes), but the same POST through poetech.us/sb came back empty (HTTP ${E_CODE:-?}, curl exit ${E_RC:-?}). Both ends of the road are healthy, so the drop is in app/functions/sb/[[path]].js over app/functions/_lib/funnel-proxy.js. Fix that Function and deploy; nothing on the NAS needs touching."
+            elif [ "${F_CODE:-000}" = "503" ]; then
+              echo "::error::THE FUNNEL IS THROTTLING — the NAS answers this POST on its own gateway (${#LOOP} bytes) but the Tailscale Funnel returns a bodiless 503 to a direct POST, and poetech.us/sb returns HTTP ${E_CODE:-?} with no body. This is the documented Funnel throttle (see app/functions/_lib/funnel-proxy.js), not the stack and not Cloudflare."
+            else
+              echo "::error::THE ROAD IS THE BREAK — the NAS answers this POST (${#LOOP} bytes) but poetech.us/sb returns HTTP ${E_CODE:-?} with no body, and a direct POST to the Funnel returned HTTP ${F_CODE:-?} with ${F_BYTES:-?} bytes (curl exit ${F_RC:-?}). The stack healed; the carriage between Cloudflare and the NAS is dropping sign-in bodies."
+            fi
+            exit 1
+          fi
+          echo "SIGN-IN ROAD CARRIES A POST AGAIN (loopback ${#LOOP} bytes, edge ${#EDGE} bytes)."
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Sign-in road carries a POST again.**" >> "$GITHUB_STEP_SUMMARY"

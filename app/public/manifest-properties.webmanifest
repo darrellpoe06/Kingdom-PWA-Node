@@ -1,0 +1,48 @@
+{
+  "name": "Poe Properties",
+  "short_name": "Poe Properties",
+  "description": "Work orders, history, and the whole conversation between tenants, their families, 1099 workers, and management — in one place. Powered by PoeTech.",
+  "id": "/properties/",
+  "start_url": "/properties/app/?properties=1",
+  "scope": "/properties/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#FAF8F4",
+  "theme_color": "#2F5D50",
+  "categories": [
+    "productivity",
+    "business"
+  ],
+  "icons": [
+    {
+      "src": "/properties-icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any"
+    },
+    {
+      "src": "/properties-icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any"
+    },
+    {
+      "src": "/properties-icon-maskable-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/properties-icon-maskable-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/properties-icon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any"
+    }
+  ]
+}

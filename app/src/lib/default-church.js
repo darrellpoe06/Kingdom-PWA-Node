@@ -30,12 +30,19 @@ export const COLG_DEFAULT_CHURCH = {
   name: 'The Church of the Living God',
   nickname: 'Also known as The Love Corner — Champaign IL',
   site: COLG_SITE,
-  address: '312 E. Bradley Ave, Champaign, IL',
-  phone: '',
-  officeHours: '',
+  address: '312 E. Bradley Ave, Champaign, IL 61820',
+  // Verified against the church's own printed documents (2026-07-12: the July
+  // 2026 calendar + orders of service + Bible-quiz headers, all carrying the
+  // official letterhead). Senior Bishop Lloyd E. Gwin, Pastor.
+  pastor: 'Senior Bishop Lloyd E. Gwin',
+  phone: '217-359-6920',
+  officeHours: 'Mon–Fri 11:00 AM – 6:00 PM · Closed Sat & Sun',
   contactEmail: '',
+  // Founded July 1946 (verified: Bishop Gwin migration brief + the official
+  // letterhead on the July 2026 calendar/orders of service, 2026-07-12).
+  founded: 1946,
   services: [
-    { id: 'svc-sun',  day: 'Sunday',    time: '11:00 AM', label: 'Sunday Worship', online: true },
+    { id: 'svc-sun',  day: 'Sunday',    time: '11:00 AM', endTime: '12:15 PM', label: 'Sunday Worship', online: true },
     { id: 'svc-wed1', day: 'Wednesday', time: '1:00 PM',  label: 'Bible Study',    online: true },
     { id: 'svc-wed2', day: 'Wednesday', time: '6:00 PM',  label: 'Bible Study',    online: true },
   ],
@@ -55,7 +62,31 @@ export const COLG_DEFAULT_CHURCH = {
     give: COLG_SITE,
     about: COLG_SITE,
   },
+  // WHERE THE GIVING PAGE LIVES ON THE SITE.
+  //
+  // Darrell, 2026-09-11, opening this very button in front of the COLG
+  // leadership and landing on the homepage: "And, actually, this should go
+  // straight to the pay page... is this the pay page? No. That's not the pay
+  // page. So we wanted to go to the actual Menu, and then Tithes and Offering
+  // guest page. This is the link we need."
+  //
+  // The exact URL is not in this record yet — he had it on his screen, not in
+  // the transcript, and this repo's binding rule is that we NEVER invent a
+  // giving URL (lib/giving.js). So what ships is the part that IS verified: his
+  // own words for the two taps that get there. Until the office hands over the
+  // deep-link, the app stops dropping someone on a homepage with no directions
+  // and tells them exactly where to go. When the URL arrives it goes in
+  // `links.give` above and the hint retires itself (resolveGiveDestination
+  // suppresses it the moment a real deep-link is set).
+  givingPageHint: 'On the church website: Menu → Tithes and Offering',
   tagline: 'Reviving Faith · Restoring Hope · Rebuilding Communities',
-  verse: { ref: 'Psalm 34:3', text: 'O magnify the LORD with me, and let us exalt His name together.' },
+  // Announced events — the church's own published announcements (identity-class
+  // data like the service times; announced from the pulpit in the 2026-07
+  // "Celebration" service). Each renders in Parish Life with save-to-calendar.
+  announcedEvents: [
+    { id: 'evt-77th-assembly', name: '77th National Assembly — Positioned for Purpose', date: '2026-07-14', endDate: '2026-07-16', detail: 'E-MEG Christian Center (South Campus), 1109 N. Fourth St, Champaign' },
+    { id: 'evt-gospel-fest', name: 'Gospel Fest', date: '2026-08-29', detail: 'Featuring Leandrea Johnson' },
+  ],
+  verse: { ref: 'Psalm 34:3', text: 'O magnify the LORD with me, and let us exalt his name together.' },
   isDefaultHome: true,
 };
