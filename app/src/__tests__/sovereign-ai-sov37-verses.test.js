@@ -104,12 +104,18 @@ describe('sov37 exists, is whole, and is week 37', () => {
     expect(L.title).toContain('a just weight answers the same every time');
   });
 
-  it('is week 37, and every other week parses lower', () => {
+  // This read "every other week parses lower" until sov38 arrived (2026-10-13),
+  // which is a newest-forever pin: true the hour it was written and false the
+  // moment the course gains its next week, so it fails on the lesson AFTER this
+  // one rather than on anything wrong. What is actually sov37's to guarantee is
+  // that it is week 37 and that no other week claims 37; the course's ordering
+  // and id-uniqueness are pinned course-wide in sovereign-ai-class.test.js.
+  it('is week 37, and no other week claims that number', () => {
     const n = (id) => Number((String(id).match(/^sov(\d+)-/) || [])[1]);
     expect(n(L.id)).toBe(37);
     for (const m of SOVEREIGN_AI_MODULES) {
       if (m.id === L.id) continue;
-      expect(n(m.id), `${m.id} is not below 37`).toBeLessThan(37);
+      expect(n(m.id), `${m.id} also claims week 37`).not.toBe(37);
     }
   });
 
