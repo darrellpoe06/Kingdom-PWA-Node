@@ -45,7 +45,7 @@
 // lib/nas-photos.js — there is no second photo road.
 // =============================================================================
 
-import { NAS_PHOTO_BASE, isValidDest, bridgeToken, uploadPlan } from './nas-photos.js';
+import { NAS_PHOTO_BASE, isValidDest, bridgeToken, uploadPlan, nasFetch } from './nas-photos.js';
 
 /** The ceiling on a file this device will even try to read into memory. The NAS
  *  keeps up to 8 MiB of decoded image (photo_server.py MAX_UPLOAD_BYTES) and
@@ -56,10 +56,14 @@ export const PHOTO_PICK_MAX_BYTES = 64 * 1024 * 1024;
 export const PROPERTY_UPLOADS_PATH = `${NAS_PHOTO_BASE}/property-uploads`;
 export const PROPERTY_PHOTO_REMOVE_PATH = `${NAS_PHOTO_BASE}/property-photo-remove`;
 
-let fetcher = (typeof fetch !== 'undefined') ? fetch.bind(globalThis) : null;
+// By road (DR-0999): same-origin first, the Funnel when the Functions are
+// dark. nasFetch takes the same-origin path whole and swaps the base for the
+// Funnel's on the direct road.
+const byRoad = (url, init) => nasFetch(String(url), init);
+let fetcher = (typeof fetch !== 'undefined') ? byRoad : null;
 /** Tests inject the network; nothing else ever calls this. */
 export function __setPhotoEditFetcher(fn) {
-  fetcher = fn || ((typeof fetch !== 'undefined') ? fetch.bind(globalThis) : null);
+  fetcher = fn || ((typeof fetch !== 'undefined') ? byRoad : null);
 }
 
 export function propertyUploadsUrl(dest, { limit = 200 } = {}) {
