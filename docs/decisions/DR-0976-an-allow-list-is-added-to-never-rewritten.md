@@ -256,11 +256,22 @@ so it carries real-database proof rather than a reading.
 - All 17 prior `verify:gates` green, including `migration-replay-order-guard`
   and the `rls-isolation` matrix guard, after 0279 and its smoke joined both
   the rls-isolation poe-properties leg and ci.yml's leg.
-- **Not verified from this sandbox:** the live database's current constraint,
+- ~~**Not verified from this sandbox:** the live database's current constraint,
   read directly. The sandbox has no tailnet route, so the live state is
   inferred from db-migrate 675–677 succeeding on a tree containing 0275 — which
   is strong but is an inference, not a reading. The reading arrives when
-  db-migrate applies 0279. `re-review: 2026-10-13`.
+  db-migrate applies 0279. `re-review: 2026-10-13`.~~
+  **CLOSED 2026-10-13 — the reading arrived, and it is a reading and not an
+  inference.** `0279-allow-list-smoke.sql` queries `pg_constraint` and
+  `pg_get_constraintdef` on the live database directly (its lines 44 and 58-64),
+  then writes every subject the constraint names. It passed at 02:00:22Z in
+  `rls-isolation` run 38334645684 (job 115091894643), head `7feb2da1`, 2026-10-13T02:00Z: `0279-allow-list-smoke.sql:94: ALLOW-LIST SMOKE: PASS`. So
+  the union is in force on the hosted database, `'document'` and `'camera'` are
+  both present, and `door_events_read` carries an arm for each subject except
+  the deliberately-armless `'application'`. The whole poe-properties leg ran to
+  completion in that run — *"isolation smoke(s) completed without a leak"* — and
+  all 23 legs of the matrix were green, the first time since
+  2026-10-10T23:44:45Z.
 - **Not verified:** whether anybody tried to sign a lease or grant a camera in
   those 28 hours. The events table would answer it and the sandbox cannot reach
   it. Recorded as unknown rather than assumed to be nobody.

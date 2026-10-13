@@ -207,7 +207,16 @@ change, no product change, nothing on the merge path.
   proof is the next pair of runs after merge: a green `app — door work orders
   (PostgreSQL)` (the fresh-container half, which is what went red) and a green
   poe-properties leg in `rls-isolation` (the live-database half, the first since
-  2026-10-10T23:44:45Z). Both, not either. `re-review: 2026-10-13`.
+  2026-10-10T23:44:45Z). Both, not either. ~~`re-review: 2026-10-13`.~~
+  **CLOSED 2026-10-13 — both halves, as this record required.** The
+  fresh-container half: `app — door work orders (PostgreSQL)` green on
+  `50e69577` (PR #2134, merged as `fe22fd3e`). The live-database half:
+  `0269-booking-calendar-smoke.sql:225: BOOKING CALENDAR SMOKE: PASS` in
+  `rls-isolation` run 38329136075, and the leg then ran past it to the next
+  failure — which was 0273, the stale-expectation successor this record named as
+  unverified (now DR-0983). By `rls-isolation` run 38334645684 (job 115091894643), head `7feb2da1`, 2026-10-13T02:00Z the whole leg
+  passes and all 23 legs are green. Deploy proven on the exact merge SHA:
+  `head_sha` = main tip = merge commit `fe22fd3e`.
 - **Not verified:** whether any other smoke in that leg carries a stale
   expectation behind this one. 0269 was simply the next to fail; the leg still
   stops at the first failure, so the same masking applies to anything after it.
