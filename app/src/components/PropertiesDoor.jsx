@@ -53,6 +53,7 @@ import TTSControl from './TTSControl.jsx';
 import { UpdatePrompt } from './PwaPrompts.jsx';
 import UiIcon from './UiIcon.jsx';
 import AccessibilityNote from './AccessibilityNote.jsx';
+import { WELCOME_CSS, PoePropertiesMark, WelcomeHero, PortalCards, DoorFooter } from './PoePropertiesWelcome.jsx';
 
 /** The door's own address, the one a tenant shares or scans (DR-0258 scope). */
 export const PROPERTIES_SHARE_URL = 'https://poetech.us/properties/app/';
@@ -150,22 +151,34 @@ export default function PropertiesDoor() {
   const [showShare, setShowShare] = useState(false);
 
   return (
-    <div data-theme={theme === 'cream' ? undefined : theme} className="min-h-screen overflow-x-clip bg-[#FAF8F4] text-[#1A1815]">
+    <div data-theme={theme === 'cream' ? undefined : theme} className="pp-door min-h-screen overflow-x-clip flex flex-col text-[#1A1815]">
       <style>{THEME_CSS}</style>
+      {/* The front page's own look (2026-10-13, Darrell's mock-up): the red /
+          black / gold palette as custom properties, remapped for midnight, and
+          the self-hosted headline face. Presentation only; see the file. */}
+      <style>{WELCOME_CSS}</style>
       {/* The top space, controlled like PoeTech's header: a compact bar that
           is always present, and a hideaway (tagline, comfort controls, install,
           share) the chevron tucks away per device. Sticky and auto-hiding on
           top of that. ts-safe-sticky keeps the size controls reachable at big
           text (DR-0276). */}
       <header
-        className={`ts-safe-sticky sticky top-0 z-40 bg-white border-b-2 transition-transform duration-300 will-change-transform ${headerHidden ? '-translate-y-full' : 'translate-y-0'}`}
-        style={{ borderColor: brand.accent }}
+        className={`pp-header ts-safe-sticky sticky top-0 z-40 transition-transform duration-300 will-change-transform ${headerHidden ? '-translate-y-full' : 'translate-y-0'}`}
         data-testid="properties-door-header"
       >
         <div className="px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between gap-2 py-2.5 sm:py-3">
-            <div className="min-w-0 ts-chrome-region">
-              <h1 className="text-lg sm:text-xl leading-none whitespace-nowrap truncate" style={{ ...serif, fontWeight: 600, letterSpacing: '-0.02em', color: brand.accent }}>{brand.label}</h1>
+            <div className="min-w-0 ts-chrome-region pp-lockup">
+              {/* The roof mark + wordmark from the mock-up: "Poe" red,
+                  "Properties" black, PROPERTY MANAGEMENT between gold rules.
+                  The h1's text stays exactly the brand label. */}
+              <PoePropertiesMark />
+              <div className="min-w-0">
+                <h1 className="pp-wordmark text-xl sm:text-2xl">
+                  <span className="pp-red">Poe</span> Properties
+                </h1>
+                <p className="pp-strap">Property Management</p>
+              </div>
             </div>
             <div className="shrink-0 flex items-center gap-1.5 sm:gap-2 ts-chrome-region">
               {shown && (
@@ -271,7 +284,7 @@ export default function PropertiesDoor() {
         <TextSizeEscapeHatch collapsed={headerCollapsed} onShowHeader={toggleHeaderChrome} />
       </header>
 
-      <main className="w-full p-3 sm:p-4 lg:px-8">
+      <main className="w-full flex-1 p-3 sm:p-4 lg:px-8">
         {/* A GUEST'S CARD (DR-0898). A code scanned inside a short stay opens
             the report form, signed in or not: the guest came to say what is
             wrong, and nothing about a session changes what they may do. */}
@@ -289,11 +302,12 @@ export default function PropertiesDoor() {
         </>)}
       </main>
 
-      <footer className="px-4 py-6 text-center">
-        <p className="text-[0.625rem] uppercase tracking-[0.2em] text-[#8A867E]">Poe Properties · powered by PoeTech</p>
-        {/* What the app holds itself to, where renters and guests are (DR-0995). */}
-        <div className="mt-2 flex justify-center"><AccessibilityNote /></div>
-      </footer>
+      {/* What the app holds itself to, where renters and guests are (DR-0996);
+          above the band, so the band keeps its exact wording. */}
+      <div className="px-4 pb-4 flex justify-center"><AccessibilityNote /></div>
+      {/* POE PROPERTIES · POWERED BY POETECH -- the black band, on every
+          screen size, with the exact wording Darrell asked for. */}
+      <DoorFooter />
       {/* Read aloud, on every page, in the person's one chosen voice; renders
           nothing where the device has no speech. */}
       <TTSControl />
@@ -359,43 +373,18 @@ function SignedOutDoor({ left = false, onReturn } = {}) {
 
   if (!chosen) {
     return (
-      <div className="bg-white border border-[#E8E4DC] p-4">
+      <div className="pp-welcome">
         {/* You LEFT this door — you were not thrown out of it, and your PoeTech
             sign-in is untouched. Saying so is the difference between a door you
             closed and an account that vanished; the second reading is what the
-            2026-08-28 screenshots showed and it is alarming for no reason. */}
-        {left && (
-          <div className="mb-3 border-l-2 pl-3" style={{ borderColor: brand.accent }}>
-            <p className="text-[0.8125rem] text-[#1A1815] leading-relaxed">
-              You signed out of Poe Properties on this device. Your PoeTech sign-in is still
-              active — this door only forgot you.
-            </p>
-            <button
-              type="button"
-              className="mt-1 text-[0.625rem] uppercase tracking-wider underline"
-              style={{ color: brand.accent }}
-              onClick={() => onReturn?.()}
-            >Come back in</button>
-          </div>
-        )}
-        <h2 className="text-lg text-[#1A1815] mb-1" style={serif}>Who are you?</h2>
-        <p className="text-xs text-[#5A5751] mb-3" style={serif}>
-          Pick the one that fits. Only the first needs no account.
-        </p>
-        <div className="grid sm:grid-cols-2 gap-2">
-          {WHO_OPTIONS.map((w) => (
-            <button
-              key={w.id} type="button" onClick={() => setWho(w.id)}
-              className="text-left border border-[#E8E4DC] p-3 hover:border-[#2F5D50] focus:outline focus:outline-2 focus:outline-[#2F5D50]"
-            >
-              <div className="text-sm text-[#1A1815]" style={serif}>{w.label}</div>
-              <div className="text-xs text-[#5A5751]" style={serif}>{w.blurb}</div>
-              {!w.needsAccount && (
-                <div className="text-[0.625rem] uppercase tracking-wider mt-1" style={{ color: brand.accent }}>No account needed</div>
-              )}
-            </button>
-          ))}
-        </div>
+            2026-08-28 screenshots showed and it is alarming for no reason. The
+            notice renders ONLY when `left` is true: "You're signed out on this
+            device. Your PoeTech sign-in is still active -- this door only forgot you."
+            with the "Come back in" action (PoePropertiesWelcome.jsx). */}
+        <WelcomeHero left={left} onReturn={onReturn} />
+        {/* The six portals are WHO_OPTIONS, unchanged: same ids, same
+            needsAccount, same handler (setWho). Only the look is new. */}
+        <PortalCards options={WHO_OPTIONS} onPick={setWho} />
       </div>
     );
   }

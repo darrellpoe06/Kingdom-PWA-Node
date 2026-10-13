@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0283 SMOKE — a held door shows its building's area (DR-0994)
+-- 0283 SMOKE — a held door shows its building's area (DR-0995)
 -- =============================================================================
 -- One transaction; ROLLS BACK. PASS prints 'BUILDING AREA SMOKE: PASS'.
 --

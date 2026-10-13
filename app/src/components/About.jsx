@@ -875,7 +875,7 @@ function About({ moduleInterest, familyModuleInterest = null, toggleModuleIntere
         </div>
       )}
 
-      {/* What the app holds itself to (DR-0995). */}
+      {/* What the app holds itself to (DR-0996). */}
       <AccessibilityNote className="mt-6" />
 
       {/* Credits — the borrowed artwork is named (CC-BY 4.0 requires it, and

@@ -893,7 +893,7 @@ export async function loadDoorArea(id, client = supabase) {
 }
 
 /**
- * Which of this person's doors are already on the map (DR-0995): one read, the
+ * Which of this person's doors are already on the map (DR-0996): one read, the
  * ids that carry a rounded area. RLS scopes it to the doors they can see.
  */
 export async function loadDoorAreas(client = supabase) {

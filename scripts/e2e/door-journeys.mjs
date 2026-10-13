@@ -189,7 +189,7 @@ const CENSUS_RECORDED = async () => ({
   json: async () => ({ result: { addressMatches: [{ matchedAddress: '805 N PROSPECT AVE, CHAMPAIGN, IL, 61820', coordinates: { x: -88.25828, y: 40.123364 } }] } }),
 });
 const GEOCODES = [];
-// OpenStreetMap's Overpass answer around 805, recorded (DR-0995): one park the
+// OpenStreetMap's Overpass answer around 805, recorded (DR-0996): one park the
 // Champaign research does not list, and a supermarket it does (so the merge
 // keeps the researched line and drops the duplicate). Every ask is counted.
 const OVERPASS_RECORDED = { elements: [
@@ -314,7 +314,7 @@ async function run() {
     // fetched before the visitor asks for the map (DR-0977).
     const hermetic = async (ctx, name = '') => {
       await ctx.route('https://tile.openstreetmap.org/**', (r) => { if (name) TILE_FETCHES[name] = (TILE_FETCHES[name] || 0) + 1; return r.fulfill({ status: 200, contentType: 'image/png', body: PNG }); });
-      // What is nearby (DR-0995) is asked of Overpass; answered here, never fetched.
+      // What is nearby (DR-0996) is asked of Overpass; answered here, never fetched.
       await ctx.route('https://overpass-api.de/**', (r) => { OVERPASS_ASKS.push(name || 'ctx'); return r.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify(OVERPASS_RECORDED) }); });
       return ctx;
     };
@@ -400,7 +400,7 @@ async function run() {
     });
 
     // E. The family puts the door's area on the map; only the area is kept.
-    await step('E1 the family\'s app places the door from its own address BY ITSELF; the database keeps the rounded area and what is near it (DR-0995)', async () => {
+    await step('E1 the family\'s app places the door from its own address BY ITSELF; the database keeps the rounded area and what is near it (DR-0996)', async () => {
       // Nobody pressed anything: opening the family's app (B1) placed it.
       await waitFor(() => sql(`SELECT coalesce(area_lat::text,'') || ',' || coalesce(area_lng::text,'') FROM rentals WHERE id = '${DOOR}'`) === '40.12500,-88.26000', 'the area to read 40.12500,-88.26000 in the database', 30000);
       if (GEOCODES.join('|') !== `${STREET}, Champaign, Illinois`) throw new Error(`the address was looked up as "${GEOCODES.join('|')}", not once for this door`);
@@ -471,7 +471,7 @@ async function run() {
     });
 
     // H. The family shows the street (DR-0977: the default, which this door had held).
-    await step('H1 the family shows the street; the next visitor gets a pin on the house and Street view at it (DR-0994)', async () => {
+    await step('H1 the family shows the street; the next visitor gets a pin on the house and Street view at it (DR-0995)', async () => {
       await op.getByRole('button', { name: /^Doors$/ }).first().click({ timeout: 15000 });
       const edit = op.getByRole('button', { name: /^Edit( door)?$/ }).first();
       if (!(await op.getByTestId('address-visibility').count())) await edit.click({ timeout: 15000 });

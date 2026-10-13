@@ -1,5 +1,5 @@
 // =============================================================================
-// place-on-map — every door with an address is on the map, by default (DR-0995)
+// place-on-map — every door with an address is on the map, by default (DR-0996)
 // =============================================================================
 // Darrell, 2026-10-13, looking at "What's nearby" under the map on Apt 2:
 // "I love that it shows what's close!!! Shouldn't this be default?" And on

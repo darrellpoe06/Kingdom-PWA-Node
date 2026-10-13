@@ -1146,7 +1146,7 @@ jobs:
           for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0282-each-door-shows-the-apartment-in-its-own-order.sql; done
           psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0282-door-photo-order-smoke.sql 2>&1 | tee "$RUNNER_TEMP/photo-order.txt"
           grep -q 'DOOR PHOTO ORDER SMOKE: PASS' "$RUNNER_TEMP/photo-order.txt"
-          # 0283 (DR-0994): a held door shows its BUILDING's area when it stored
+          # 0283 (DR-0995): a held door shows its BUILDING's area when it stored
           # none. It is the newest public_vacancies(), so it goes on LAST (0280
           # was re-applied above) and this leg ends on production's definition.
           # The smoke proves the held bed draws its building's area and lines

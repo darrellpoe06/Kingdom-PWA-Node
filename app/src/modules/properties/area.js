@@ -103,7 +103,7 @@ export function roundMiles(m) {
 
 /**
  * "about 1.9 miles" — what a line says on the shelf. The word in full
- * (DR-0995): the read-aloud speaks the page's own text, and "mi" is spoken as
+ * (DR-0996): the read-aloud speaks the page's own text, and "mi" is spoken as
  * "my" or spelled out; a person listening hears "miles". WCAG 2.2 AA (DR-0315).
  */
 export function milesText(m) {
@@ -127,7 +127,7 @@ export function nearbyFrom(point, places = PLACES) {
     .slice(0, NEARBY_MAX);
 }
 
-// --- What is nearby ANY property (DR-0995) -----------------------------------
+// --- What is nearby ANY property (DR-0996) -----------------------------------
 // Darrell, 2026-10-13: "Make sure it's accurate for each property... Not just
 // 805". PLACES above is the Champaign research; a door anywhere else is near
 // none of it. So when a door is placed, the places around ITS OWN exact point
@@ -311,7 +311,7 @@ export function mapsUrl({ query = '', area = null } = {}) {
 }
 
 /**
- * Street View, straight in, at a point (DR-0994). Google's documented Maps URL
+ * Street View, straight in, at a point (DR-0995). Google's documented Maps URL
  * (map_action=pano) opens the Maps app's Street View on Android and iOS and
  * the website elsewhere; no key. Only ever built for a door whose street the
  * family SHOWS: a held door has no point to stand at, only an area.

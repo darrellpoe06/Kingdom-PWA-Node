@@ -666,7 +666,7 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
 
   const face = useMemo(() => resolveFace(role, grants), [role, grants]);
 
-  // EVERY DOOR WITH AN ADDRESS IS ON THE MAP, BY DEFAULT (DR-0995). Once a
+  // EVERY DOOR WITH AN ADDRESS IS ON THE MAP, BY DEFAULT (DR-0996). Once a
   // session, in the background, for the family only: each building with a
   // door not yet on the map is looked up once and its doors saved with the
   // rounded area and what is nearby, so every public card shows "What's

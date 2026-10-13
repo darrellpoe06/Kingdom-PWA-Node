@@ -85,7 +85,7 @@ describe('0281 puts the room/bed descriptor in front of the street branch', () =
     const b = s280.indexOf('END AS label,', a);
     const l280 = s280.slice(a, b);
     expect(l280.indexOf('WHEN v.shown')).toBeLessThan(l280.indexOf("WHEN 'bed'  THEN 'Bed in a shared'"));
-    // 0283 (DR-0994) redefined it again after 0281, keeping 0281's label arm;
+    // 0283 (DR-0995) redefined it again after 0281, keeping 0281's label arm;
     // the newest definer moves with the chain, the premise above does not.
     expect(newestDefiner().get('public_vacancies')).toBe(F283);
     expect(mig(F283)).toContain("WHEN v.level IN ('room', 'bed') THEN");

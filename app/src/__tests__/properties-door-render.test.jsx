@@ -101,8 +101,10 @@ describe('the signed-out door', () => {
     await mount();
     expect(container.textContent).toMatch(/Who are you\?/i);
     const text = container.textContent;
+    // The front page (2026-10-13) sets these in title case ("I Live Here");
+    // the portals themselves are unchanged, so the match ignores case.
     for (const label of ['Looking for a place', 'I live here', 'I do the work', 'I manage properties', 'I own properties']) {
-      expect(text, `"${label}" is not offered`).toContain(label);
+      expect(text, `"${label}" is not offered`).toMatch(new RegExp(label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'));
     }
     // No sign-in form until a person says which one they are.
     expect(container.querySelectorAll('input')).toHaveLength(0);

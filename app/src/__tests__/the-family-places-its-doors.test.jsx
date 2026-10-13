@@ -1,5 +1,5 @@
 // =============================================================================
-// The family's app places its doors on the map by itself (DR-0995)
+// The family's app places its doors on the map by itself (DR-0996)
 // =============================================================================
 // Darrell, 2026-10-13: "I love that it shows what's close!!! Shouldn't this be
 // default?" -- so the family's own session places every door not yet on the

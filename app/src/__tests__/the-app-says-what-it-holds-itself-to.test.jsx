@@ -1,5 +1,5 @@
 // =============================================================================
-// The app says what accessibility standard it holds itself to (DR-0995)
+// The app says what accessibility standard it holds itself to (DR-0996)
 // =============================================================================
 // Darrell, 2026-10-13: "Explain this somewhere in the app so people know...
 // WCAG is the W3C's accessibility standard, with AA being the legally-required
