@@ -1503,7 +1503,7 @@ export function NasShelf({ door, archive = '', nasFiled = null, recordKind = 'mo
             <input type="month" className="block border border-[#E8E4DC] bg-white px-2 py-2 text-sm min-h-[36px]" value={month} data-testid="nas-month" onChange={(e) => setMonth(e.target.value)} />
           </label>
         )}
-        <button type="button" className="min-h-[36px] px-3 border border-[#E8E4DC] text-sm" onClick={load} disabled={state.status === 'loading'}>Look again</button>
+        <button type="button" className="min-h-[36px] px-3 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#2F5D50] border border-[#E8E4DC] text-sm" onClick={load} disabled={state.status === 'loading'}>Look again</button>
       </div>
       {state.status === 'loading' && <p className="text-sm text-[#5A5751]">Reading the NAS&hellip;</p>}
       {state.status === 'unreachable' && (
@@ -1530,10 +1530,10 @@ export function NasShelf({ door, archive = '', nasFiled = null, recordKind = 'mo
                     <p className="text-[0.75rem] text-[#2F5D50] mt-1" data-testid={`nas-tile-${p.id}-filed`}>On this door already.</p>
                   ) : (
                     <div className="flex flex-col gap-1 mt-1">
-                      <button type="button" className="min-h-[36px] px-2 text-[0.75rem] border border-[#2F5D50] text-[#2F5D50]" disabled={busy === p.id} data-testid={`nas-use-${p.id}`} onClick={() => file(p, 'listing')}>
+                      <button type="button" className="min-h-[36px] px-2 text-[0.75rem] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#2F5D50] border border-[#2F5D50] text-[#2F5D50]" disabled={busy === p.id} data-testid={`nas-use-${p.id}`} onClick={() => file(p, 'listing')}>
                         {busy === p.id ? 'Filing…' : 'Use on the listing'}
                       </button>
-                      <button type="button" className="min-h-[36px] px-2 text-[0.75rem] border border-[#E8E4DC] text-[#5A5751]" disabled={busy === p.id} data-testid={`nas-keep-${p.id}`} onClick={() => file(p, recordKind)}>
+                      <button type="button" className="min-h-[36px] px-2 text-[0.75rem] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#2F5D50] border border-[#E8E4DC] text-[#5A5751]" disabled={busy === p.id} data-testid={`nas-keep-${p.id}`} onClick={() => file(p, recordKind)}>
                         Keep as a record ({recordKind.replace(/-/g, ' ')})
                       </button>
                     </div>
