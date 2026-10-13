@@ -218,6 +218,21 @@ export function mapsUrl({ query = '', area = null } = {}) {
   return q ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}` : '';
 }
 
+/**
+ * Street View, straight in, at a point (DR-0994). Google's documented Maps URL
+ * (map_action=pano) opens the Maps app's Street View on Android and iOS and
+ * the website elsewhere; no key. Only ever built for a door whose street the
+ * family SHOWS: a held door has no point to stand at, only an area.
+ */
+export function streetViewUrl(point) {
+  const lat = Number(point?.lat); const lng = Number(point?.lng);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return '';
+  return `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat.toFixed(6)},${lng.toFixed(6)}`;
+}
+
+/** The zoom a shown street's pin is drawn at: the block, not the town. */
+export const PIN_ZOOM = 17;
+
 export const NOMINATIM_DIRECT = 'https://nominatim.openstreetmap.org/search';
 
 /**

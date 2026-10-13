@@ -131,6 +131,9 @@ export const FAULTS = Object.freeze({
       `${MIG}/0273-a-shared-home-says-so-on-the-shelf.sql`,
       `${MIG}/0278-a-bed-is-not-a-bedroom.sql`,
       `${MIG}/0280-the-address-shows-unless-the-family-holds-it.sql`,
+      `${MIG}/0281-a-bed-still-says-it-is-a-bed-when-the-street-shows.sql`,
+      `${MIG}/0282-each-door-shows-the-apartment-in-its-own-order.sql`,
+      `${MIG}/0283-a-held-door-shows-its-buildings-area.sql`,
     ],
   },
   calendar: {
@@ -443,13 +446,15 @@ async function run() {
       const html = await np.content();
       if (html.includes(STREET)) throw new Error('the held street is in the public page');
       if (/40\.1233|88\.2582/.test(html)) throw new Error('the exact point is in the public page');
-      if (await np.getByTestId('open-in-maps').count()) throw new Error('a held street offered Open in Maps');
+      if (await np.getByTestId('street-view').count()) throw new Error('a held street offered Street view');
+      if (await np.getByTestId('area-map-pin').count()) throw new Error('a held street was given a pin');
+      if (!(await np.getByTestId('area-map-circle').count())) throw new Error('the held door drew no area circle');
       await np.getByTestId('area-map').first().scrollIntoViewIfNeeded();
       await np.screenshot({ path: join(SHOTS, 'C2-area-map.png'), fullPage: true });
     });
 
     // H. The family shows the street (DR-0977: the default, which this door had held).
-    await step('H1 the family shows the street; the next visitor sees it with Open in Maps', async () => {
+    await step('H1 the family shows the street; the next visitor gets a pin on the house and Street view at it (DR-0994)', async () => {
       await op.getByRole('button', { name: /^Doors$/ }).first().click({ timeout: 15000 });
       const edit = op.getByRole('button', { name: /^Edit( door)?$/ }).first();
       if (!(await op.getByTestId('address-visibility').count())) await edit.click({ timeout: 15000 });
@@ -460,11 +465,19 @@ async function run() {
       const tp = watch(await third.newPage(), 'third'); current = tp;
       await tp.goto(`${BASE}/properties/app/?properties=1`, { waitUntil: 'domcontentloaded' });
       await tp.getByRole('button', { name: /Looking for a place/i }).click({ timeout: 15000 });
-      await tp.getByTestId('open-in-maps').first().waitFor({ timeout: 15000 });
+      await tp.getByTestId('street-view').first().waitFor({ timeout: 15000 });
       const text = await tp.locator('body').innerText();
       if (!text.includes(STREET)) throw new Error('the shown street is not on the public page');
-      const href = await tp.getByTestId('open-in-maps').first().getAttribute('href');
-      if (href !== `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${STREET}, Champaign, Illinois`)}`) throw new Error(`Open in Maps points at ${href}`);
+      const before = await tp.getByTestId('street-view').first().getAttribute('href');
+      if (before !== `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${STREET}, Champaign, Illinois`)}`) throw new Error(`Street view points at ${before} before the house is known`);
+      const asked = GEOCODES.length;
+      await tp.getByTestId('show-map').first().click();
+      await tp.getByTestId('area-map-pin').first().waitFor({ timeout: 15000 });
+      if (GEOCODES.length !== asked + 1 || GEOCODES[GEOCODES.length - 1] !== `${STREET}, Champaign, Illinois`) throw new Error(`the house was looked up as "${GEOCODES.slice(asked).join('|')}"`);
+      if (await tp.getByTestId('area-map-circle').count()) throw new Error('a shown street drew the area circle instead of the house');
+      const after = await tp.getByTestId('street-view').first().getAttribute('href');
+      if (after !== 'https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=40.123364,-88.258280') throw new Error(`Street view points at ${after}`);
+      await tp.getByTestId('area-map').first().scrollIntoViewIfNeeded();
       await tp.screenshot({ path: join(SHOTS, 'H1-street-shown.png'), fullPage: true });
     });
   } finally {

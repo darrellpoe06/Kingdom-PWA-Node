@@ -23,7 +23,7 @@ vi.mock('../modules/properties/cloud.js', () => ({
   loadVacancyPhotos: async () => ({ ok: true, photos: [] }),
 }));
 vi.mock('../lib/bounded-read.js', () => ({ boundedRead: (p) => p }));
-import { AreaMap, NearbyList, AreaEditor } from '../modules/properties/AreaMap.jsx';
+import { AreaMap, NearbyList, AreaEditor, MapOnRequest } from '../modules/properties/AreaMap.jsx';
 import { VacancyCard } from '../modules/properties/Storefront.jsx';
 
 // 805 N Prospect, Champaign: the parcel point from the research note.
@@ -113,11 +113,14 @@ describe('on the public shelf', () => {
     expect(container.querySelectorAll('[data-testid="area-map-tile"]')).toHaveLength(0);
     expect(container.querySelector('[data-testid="nearby"]').textContent).toContain('University of Illinois Main Quad');
     expect(container.textContent).toContain('about 0.7 mi');
-    // A held street gets no Open in Maps: a pin on the rounded area would read as the house.
+    // A held street gets no link out and no pin (DR-0994): a pin on the rounded
+    // area would read as the house.
+    expect(container.querySelector('[data-testid="street-view"]')).toBeNull();
     expect(container.querySelector('[data-testid="open-in-maps"]')).toBeNull();
     await tap(container.querySelector('[data-testid="show-map"]'));
     expect(container.querySelectorAll('[data-testid="area-map-tile"]')).toHaveLength(15);
     expect(container.querySelector('[data-testid="area-map-circle"]')).not.toBeNull();
+    expect(container.querySelector('[data-testid="area-map-pin"]')).toBeNull();
     const label = container.querySelector('[data-testid="area-map"]').getAttribute('aria-label');
     expect(label).toContain('Champaign, Illinois');
     expect(label).toContain('The street is not shown');
@@ -127,7 +130,7 @@ describe('on the public shelf', () => {
     expect(container.querySelectorAll('[data-testid="area-map-tile"]')).toHaveLength(0);
   });
 
-  it('a shown street: the street line, Open in Maps by the address, and a map found from the address on tap', async () => {
+  it('a shown street (DR-0994): Show on map pins the HOUSE, and Street view stands at it', async () => {
     const calls = [];
     const real = globalThis.fetch;
     globalThis.fetch = async (url) => { calls.push(String(url)); return { json: async () => ({ ok: true, lat: APT2.lat, lng: APT2.lng, matched: '805 N PROSPECT AVE, CHAMPAIGN, IL, 61820', source: 'census' }) }; };
@@ -135,15 +138,28 @@ describe('on the public shelf', () => {
       await mount(createElement(VacancyCard, { unit: {
         id: 'r3', rentalId: 'r3', label: 'Apt 2 at Prospect', where: 'Champaign, Illinois', unit: 'Apt 2',
         offering: 'long-term', addressShown: true, street: '805 North Prospect Avenue', city: 'Champaign', state: 'Illinois',
-        area: null, nearby: [],
+        // The family's rounded area is stored, as on the live Apt 2: a shown
+        // street is pinned on the house anyway, never drawn as the circle.
+        area: { lat: 40.125, lng: -88.26 }, nearby: [],
       } }));
       expect(container.querySelector('[data-testid="vacancy-street"]').textContent).toBe('805 North Prospect Avenue');
-      expect(container.querySelector('[data-testid="open-in-maps"]').getAttribute('href'))
+      // Before anything is looked up, the link is the address in Maps.
+      expect(container.querySelector('[data-testid="street-view"]').getAttribute('href'))
         .toBe('https://www.google.com/maps/search/?api=1&query=805%20North%20Prospect%20Avenue%2C%20Champaign%2C%20Illinois');
+      expect(container.querySelector('[data-testid="open-in-maps"]')).toBeNull();
       expect(calls).toEqual([]); // nothing looked up on render
       await tap(container.querySelector('[data-testid="show-map"]'));
       expect(calls).toEqual(['/geocode?q=805%20North%20Prospect%20Avenue%2C%20Champaign%2C%20Illinois']);
-      expect(container.querySelectorAll('[data-testid="area-map-tile"]')).toHaveLength(15);
+      expect(container.querySelector('[data-testid="area-map-pin"]')).not.toBeNull();
+      expect(container.querySelector('[data-testid="area-map-circle"]')).toBeNull();
+      const tiles = [...container.querySelectorAll('[data-testid="area-map-tile"]')].map((t) => t.getAttribute('src'));
+      expect(tiles).toHaveLength(15);
+      expect(tiles.every((u) => u.startsWith('https://tile.openstreetmap.org/17/'))).toBe(true);
+      expect(container.querySelector('[data-testid="area-map"]').getAttribute('aria-label'))
+        .toBe('Map of 805 North Prospect Avenue, Champaign, Illinois. The pin is on the house.');
+      // Now the point is known, Street view is a plain link into Street View.
+      expect(container.querySelector('[data-testid="street-view"]').getAttribute('href'))
+        .toBe('https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=40.123364,-88.258280');
       // No stored lines, so the ones worked out from the found point are shown.
       expect(container.querySelector('[data-testid="nearby"]').textContent).toContain('University of Illinois Main Quad');
       // Shown, not looked up again.
@@ -151,6 +167,66 @@ describe('on the public shelf', () => {
       await tap(container.querySelector('[data-testid="show-map"]'));
       expect(calls).toHaveLength(1);
     } finally { globalThis.fetch = real; }
+  });
+
+  it('a shown street whose house cannot be found falls back to its area, and says so', async () => {
+    const real = globalThis.fetch;
+    globalThis.fetch = async () => ({ json: async () => ({ ok: false, reason: 'census: no match; openstreetmap: no match' }) });
+    try {
+      await mount(createElement(MapOnRequest, { area: { lat: 40.125, lng: -88.26 }, query: '805 North Prospect Avenue, Champaign, Illinois', streetShown: true }));
+      await tap(container.querySelector('[data-testid="show-map"]'));
+      expect(container.textContent).toContain('The map could not find this address. This is its area.');
+      expect(container.querySelector('[data-testid="area-map-circle"]')).not.toBeNull();
+      expect(container.querySelector('[data-testid="area-map-pin"]')).toBeNull();
+    } finally { globalThis.fetch = real; }
+  });
+
+  it('ONE TAP: Street view before the house is known opens a tab inside the tap and sends it into Street View', async () => {
+    const real = globalThis.fetch;
+    let release;
+    globalThis.fetch = () => new Promise((ok) => { release = () => ok({ json: async () => ({ ok: true, lat: APT2.lat, lng: APT2.lng }) }); });
+    const tab = { location: { href: 'about:blank' } };
+    let openedDuringTap = false;
+    try {
+      await mount(createElement(MapOnRequest, { query: '805 North Prospect Avenue, Champaign, Illinois', streetShown: true, openTab: () => { openedDuringTap = !release; return tab; } }));
+      const link = container.querySelector('[data-testid="street-view"]');
+      const ev = new MouseEvent('click', { bubbles: true, cancelable: true });
+      await act(async () => { link.dispatchEvent(ev); });
+      // The tab was opened before the lookup was even sent, so no blocker refuses it.
+      expect(openedDuringTap).toBe(true);
+      expect(ev.defaultPrevented).toBe(true);
+      await act(async () => { release(); });
+      for (let i = 0; i < 4; i += 1) await act(async () => { await Promise.resolve(); });
+      expect(tab.location.href).toBe('https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=40.123364,-88.258280');
+    } finally { globalThis.fetch = real; }
+  });
+
+  it('Street view with the house not found sends the tab to the address in Maps; a blocked tab is asked for again', async () => {
+    const real = globalThis.fetch;
+    globalThis.fetch = async () => ({ json: async () => ({ ok: false, reason: 'no match' }) });
+    const tab = { location: { href: 'about:blank' } };
+    try {
+      await mount(createElement(MapOnRequest, { query: '1 Imaginary Lane, Nowhere, Illinois', streetShown: true, openTab: () => tab }));
+      await tap(container.querySelector('[data-testid="street-view"]'));
+      expect(tab.location.href).toBe('https://www.google.com/maps/search/?api=1&query=1%20Imaginary%20Lane%2C%20Nowhere%2C%20Illinois');
+      expect(container.textContent).toContain('Opened the address in Maps instead.');
+    } finally { globalThis.fetch = real; }
+    globalThis.fetch = async () => ({ json: async () => ({ ok: true, lat: APT2.lat, lng: APT2.lng }) });
+    try {
+      if (root) act(() => root.unmount()); container.remove();
+      await mount(createElement(MapOnRequest, { query: '805 North Prospect Avenue, Champaign, Illinois', streetShown: true, openTab: () => null }));
+      await tap(container.querySelector('[data-testid="street-view"]'));
+      expect(container.textContent).toContain('Street view is ready: tap it again.');
+      expect(container.querySelector('[data-testid="street-view"]').getAttribute('href')).toContain('map_action=pano');
+    } finally { globalThis.fetch = real; }
+  });
+
+  it('PROVEN-TO-CATCH: a HELD street is never given a pin or a Street view, even with an address in hand elsewhere', async () => {
+    await mount(createElement(MapOnRequest, { area: { lat: 40.125, lng: -88.26 }, query: '', where: 'Champaign, Illinois' }));
+    expect(container.querySelector('[data-testid="street-view"]')).toBeNull();
+    await tap(container.querySelector('[data-testid="show-map"]'));
+    expect(container.querySelector('[data-testid="area-map-pin"]')).toBeNull();
+    expect(container.querySelector('[data-testid="area-map-circle"]')).not.toBeNull();
   });
 
   it('an address the map cannot find says so and draws nothing', async () => {
