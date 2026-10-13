@@ -85,7 +85,10 @@ describe('0281 puts the room/bed descriptor in front of the street branch', () =
     const b = s280.indexOf('END AS label,', a);
     const l280 = s280.slice(a, b);
     expect(l280.indexOf('WHEN v.shown')).toBeLessThan(l280.indexOf("WHEN 'bed'  THEN 'Bed in a shared'"));
-    expect(newestDefiner().get('public_vacancies')).toBe(F281);
+    // 0283 (DR-0994) redefined it again after 0281, keeping 0281's label arm;
+    // the newest definer moves with the chain, the premise above does not.
+    expect(newestDefiner().get('public_vacancies')).toBe(F283);
+    expect(mig(F283)).toContain("WHEN v.level IN ('room', 'bed') THEN");
   });
 
   it('nothing else about the shelf moved: the street, the area and shared_home are unchanged', () => {
@@ -154,13 +157,13 @@ describe('every chain that runs a shelf smoke converges on the newest definition
     expect(all).toContain('public_vacancy_photos()');
   });
 
-  it('FAILS the live leg the moment 0281 is taken back out', () => {
+  it('FAILS the live leg the moment the newest definition (0283, after 0281) is taken back out', () => {
     const byFile = definitionsByFile();
     const newest = newestDefiner(byFile);
     const leg = isolationLegsWithSmokes().find((l) => l.feature === 'poe-properties');
-    const problems = checkChain(leg.migrations.filter((f) => f !== F281), leg.smokes, 'live', byFile, newest);
+    const problems = checkChain(leg.migrations.filter((f) => f !== F283), leg.smokes, 'live', byFile, newest);
     expect(problems.length).toBeGreaterThanOrEqual(1);
-    expect(problems.join('\n')).toContain(F281);
+    expect(problems.join('\n')).toContain(F283);
   });
 
   it('reads definitions and the newest definer honestly', () => {

@@ -25,7 +25,7 @@ export default function AccessibilityNote({ className = '' }) {
       <summary className="cursor-pointer inline-block py-2 min-h-[36px] text-[0.625rem] uppercase tracking-[0.2em] text-[#5A5751] underline underline-offset-2 focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#2F5D50]">
         Accessibility
       </summary>
-      <div className="mt-2 space-y-2 max-w-prose">
+      <div className="mt-2 space-y-2">
         <p>
           <strong className="text-[#1A1815]">WCAG</strong> (the Web Content Accessibility Guidelines) is the accessibility
           standard from the W3C, the body that sets the web&rsquo;s standards. Its <strong className="text-[#1A1815]">AA</strong> level
