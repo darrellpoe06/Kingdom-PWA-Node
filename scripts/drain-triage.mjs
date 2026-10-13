@@ -40,6 +40,30 @@
 // PR #1217 drained cleanly (DR-0989) precisely because it answered NO to all
 // three: catalog content, verse text and a test. That is the shape that drains.
 //
+// A FOURTH QUESTION, added 2026-10-13 after PR #789 (DR-0991):
+//
+//   4. Is every file it adds ALREADY on main? Then its content may have landed
+//      by another route, and merging it can REGRESS what is there.
+//
+// #789 is the case. Its own body says "shipped via PR #787", which merged
+// 2026-07-11T21:49:37Z -- the same day #789 was opened. Every line of it is on
+// main (SHARE_DOOR_URL, the aliases, INSTALL_MANIFEST, status 'verified', the
+// door page, the manifest, 23 redirect lines, and a byte-identical DR-0174).
+// And main has moved PAST it: its test differs by 165 lines and
+// church-own-door.js by 66, in main's favour. Merging it would have dragged the
+// church's door back to its July shape.
+//
+// NEITHER EXISTING TOOL SEES THIS. pr-janitor closes only PROVABLY EMPTY PRs
+// (`git diff --quiet origin/main...branch`), and #789 is not empty -- its diff
+// against its own merge-base is real; it is MAIN that moved. The three
+// structural questions above ask about the monolith, the budget and migration
+// ordinals, none of which notices that the work already shipped.
+//
+// This question FLAGS for a human read rather than deciding on its own:
+// "every added file already exists" is strong evidence of supersession, but
+// whether the PR still carries something main lacks needs eyes. The verdict is
+// 'superseded?' -- a question mark, deliberately.
+//
 // NOT A BUILD GATE. This reads the GitHub API, so it cannot live in
 // verify:gates alongside the $0/no-network guards. It is a triage TOOL, run
 // when choosing the next drain. Its classification logic is pure and tested.
@@ -76,6 +100,19 @@ export function newestOrdinal(dir = join(ROOT, 'infra/supabase/migrations-auto')
 export function classify(facts) {
   const files = facts.files || [];
   const reasons = [];
+  // THE FOURTH QUESTION FIRST, because it changes what the others mean: if the
+  // work already shipped, "can this be drained?" is the wrong question
+  // entirely. Reported as a QUESTION (superseded?), never an auto-verdict --
+  // only a reader can say whether anything here is still missing (DR-0991).
+  // Reported ALONGSIDE the structural reasons, not instead of them. The first
+  // version returned early here, which threw away the fact that (say) #286 also
+  // touches the frozen monolith — exactly what a reader who RULES OUT
+  // supersession needs next. Caught by reading the tool's own output.
+  const added = facts.added || null;      // files the PR ADDS, that exist on main
+  const superseded = Boolean(added && added.total > 0 && added.alreadyOnMain === added.total);
+  if (superseded) {
+    reasons.push(`every one of the ${added.total} file(s) it adds already exists on main — its content may have landed by another route, and merging it could REGRESS what is there; read it before any merge`);
+  }
   if (files.includes(MONOLITH)) {
     reasons.push(`touches the frozen monolith (${MONOLITH}) — predates the extraction of whatever it edits`);
   }
@@ -90,6 +127,7 @@ export function classify(facts) {
       reasons.push(`adds migration ${m[1]} while main is at ${String(facts.newest).padStart(4, '0')} — ${behind} behind, so its replay position is wrong`);
     }
   }
+  if (superseded) return { verdict: 'superseded?', reasons };
   return { verdict: reasons.length ? 'rebuild' : 'drain', reasons };
 }
 
@@ -103,7 +141,14 @@ export function factsFor(number, newest) {
   const insertions = git('diff', '--numstat', base, ref)
     .split('\n').filter(Boolean)
     .reduce((t, l) => t + (Number(l.split('\t')[0]) || 0), 0);
-  return { number, files, insertions, newest };
+  // Which of the files this PR ADDS are already present on main. A PR whose
+  // every addition is already there is the #789 shape (DR-0991).
+  const addedPaths = git('diff', '--diff-filter=A', '--name-only', base, ref).split('\n').filter(Boolean);
+  let alreadyOnMain = 0;
+  for (const f of addedPaths) {
+    try { git('cat-file', '-e', `origin/main:${f}`); alreadyOnMain += 1; } catch { /* not there */ }
+  }
+  return { number, files, insertions, newest, added: { total: addedPaths.length, alreadyOnMain } };
 }
 
 if (process.argv[1] && process.argv[1].endsWith('drain-triage.mjs')) {
@@ -123,10 +168,11 @@ if (process.argv[1] && process.argv[1].endsWith('drain-triage.mjs')) {
   }
   out.sort((a, b) => a.created.localeCompare(b.created));
   const drains = out.filter((r) => r.verdict === 'drain');
+  const sup = out.filter((r) => r.verdict === 'superseded?');
   for (const r of out) {
     if (onlyDrains && r.verdict !== 'drain') continue;
     console.log(`#${r.n}  ${r.created}  ${String(r.files).padStart(3)}f ${String(r.insertions).padStart(5)}+  ${r.verdict.toUpperCase()}  ${r.title.slice(0, 48)}`);
     for (const why of r.reasons) console.log(`        · ${why}`);
   }
-  console.log(`\n${out.length} open (not hold, not draft): ${drains.length} drain, ${out.length - drains.length} rebuild. Newest migration on disk: ${String(newest).padStart(4, '0')}.`);
+  console.log(`\n${out.length} open (not hold, not draft): ${drains.length} drain, ${out.length - drains.length - sup.length} rebuild, ${sup.length} superseded? (read before merging). Newest migration on disk: ${String(newest).padStart(4, '0')}.`);
 }
