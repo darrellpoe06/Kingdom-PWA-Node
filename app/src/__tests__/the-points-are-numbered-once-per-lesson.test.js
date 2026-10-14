@@ -151,7 +151,19 @@ describe('NOT ONE WORD CHANGES — the reconstruction still holds', () => {
 
 describe('a single-text caller is unaffected', () => {
   it('formats a whole lesson exactly as it always did when no plan is passed', () => {
-    const m = LIVING_LESSONS_MODULES[LIVING_LESSONS_MODULES.length - 1];
+    // THIS CHECK NOW FINDS ITS EXAMPLE RATHER THAN PINNING THE NEWEST LESSON.
+    // It used to read LIVING_LESSONS_MODULES[length - 1], so whatever landed
+    // last silently became its subject. ll243 is continuous prose with 2
+    // sections — legitimate for that lesson, and it broke a check that is
+    // about NUMBERING, not about the newest lesson's shape. Same class as the
+    // three checks the L79 gap disarmed (DR-1025): a check whose evidence can
+    // expire stops meaning something while still printing green. The
+    // assertions below are unchanged; only their subject is now chosen
+    // because it can actually exercise them.
+    const m = [...LIVING_LESSONS_MODULES]
+      .reverse()
+      .find((x) => typeof x.lesson === 'string' && formatLessonText(x.lesson).sectionCount > 3);
+    expect(m, 'no lesson in the catalog carries more than three sections').toBeTruthy();
     const { items, sectionCount } = formatLessonText(m.lesson);
     expect(sectionCount).toBeGreaterThan(3);
     const ns = items.filter((i) => i.kind === 'heading').map((i) => i.n);
