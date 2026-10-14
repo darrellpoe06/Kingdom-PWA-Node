@@ -24,7 +24,7 @@ describe('the doors the database hands over', () => {
   it('keeps only rows that are doors: a uuid and an address', () => {
     const doors = doorsFromJson(JSON.stringify([APT2, { id: 'nope', address: '1 Main' }, { id: APT2.id, address: '  ' }, null]));
     expect(doors).toHaveLength(1);
-    expect(doors[0]).toEqual(APT2);
+    expect(doors[0]).toEqual({ ...APT2, had_area: false });
     expect(doorsFromJson('not json')).toEqual([]);
     expect(doorsFromJson('{}')).toEqual([]);
   });
@@ -75,7 +75,9 @@ describe('placement with the app\'s own rules', () => {
     expect(sql2).not.toContain('"far"');
     expect(sql2).toContain(`"${'x'.repeat(80)}"`);
     expect(sql2).toContain("$n$[2026-10-14] Edited — it's fine$n$");
-    expect(updatesSql([{ ...base, nearby: [] }])).toContain('nearby = NULL');
+    // An honest empty answer is an ANSWER ([]), so NULL keeps meaning "never asked" (DR-1018).
+    expect(updatesSql([{ ...base, nearby: [] }])).toContain("nearby = '[]'::jsonb");
+    expect(updatesSql([{ ...base, nearby: [] }])).not.toContain('nearby = NULL');
   });
 });
 
@@ -95,9 +97,40 @@ describe('the lane', () => {
     expect(deploy).toMatch(/workflows\/place-doors\.yml\/dispatches/);
     expect(deploy).toMatch(/place-doors:\s*\n\s*name: dispatch the door placer \(after a successful deploy\)\s*\n\s*needs: deploy/);
     const sh = read('scripts/place-doors-over-tailnet.sh');
-    expect(sh).toMatch(/area_lat is null/);                           // only doors not on the map
+    expect(sh).toMatch(/area_lat is null or nearby is null/);          // doors not on the map, or never asked what is nearby (DR-1018)
+    expect(sh).toMatch(/'had_area', area_lat is not null/);
     expect(sh).toMatch(/node scripts\/place-doors\.mjs/);
     expect(sh).toMatch(/MODE=write/);
     expect(UA).toMatch(/^PoeTech door placer/);
+  });
+});
+
+describe('a door that has its area but was never asked what is nearby (DR-1018)', () => {
+  const base = { id: APT2.id, area_lat: 40.125, area_lng: -88.26, nearby: [{ label: 'x', miles: 1 }], summary: 's', had_area: true };
+
+  it('keeps had_area through the JSON read, as the database prints it', () => {
+    const doors = doorsFromJson(JSON.stringify([{ ...APT2, had_area: true }, { ...APT2, id: '11111111-1111-4111-8111-111111111111', had_area: 't' }, { ...APT2, id: '22222222-2222-4222-8222-222222222222' }]));
+    expect(doors.map((d) => d.had_area)).toEqual([true, true, false]);
+  });
+
+  it('writes only the list, only where none was ever written, and leaves the area alone', () => {
+    const sql = updatesSql([base], { today: '2026-10-14' });
+    expect(sql).toMatch(/^UPDATE public\.rentals SET nearby = \$j\$/);
+    expect(sql).not.toContain('area_lat =');
+    expect(sql).toContain(`WHERE id = '${APT2.id}' AND nearby IS NULL;`);
+    expect(sql).toContain('[2026-10-14] Edited — What is nearby, read from its address (automatic, by the lane): 1 nearby line');
+  });
+
+  it('nothing found is nothing to write: the door is asked again next run', () => {
+    expect(updatesSql([{ ...base, nearby: [] }])).toBe('');
+  });
+
+  it('the placer carries had_area from the door onto what it would save', async () => {
+    const doors = doorsFromJson(JSON.stringify([{ ...APT2, had_area: true }]));
+    const find = async () => ({ ok: true, point: { lat: 40.1234, lng: -88.2583 }, matched: '805 N PROSPECT AVE, CHAMPAIGN, IL, 61820' });
+    const around = async () => ({ ok: true, lines: [{ label: 'Schnucks (grocery)', miles: 1.2 }] });
+    const r = await placeDoors(doors, { find, around, wait: async () => {} });
+    expect(r.placements[0].had_area).toBe(true);
+    expect(updatesSql(r.placements)).toContain('AND nearby IS NULL;');
   });
 });
