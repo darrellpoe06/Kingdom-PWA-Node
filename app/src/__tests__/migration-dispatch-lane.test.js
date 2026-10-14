@@ -143,6 +143,26 @@ describe('auto-merge — the migration question is asked after the deploy wait',
     expect(step).toMatch(/\[ "\$main_sha" = "\$last_sha" \]/);
   });
 
+  it('the POLL asks whether db-migrate already has a run for the tip before it dispatches (DR-1017)', () => {
+    // Measured 2026-10-14 (sweep 38580006680): the heal jobs started 23 minutes
+    // after the sweep was created, and the poll dispatched a THIRD db-migrate
+    // for a tip two other roads had already migrated green. The re-check step
+    // above had this guard; the poll function did not.
+    const start = src.indexOf('migrate_if_tip_migration() {');
+    const end = src.indexOf('# DO NOT EXIT ON THE FIRST DISPATCH (2026-08-28, the SIXTH miss');
+    expect(start).toBeGreaterThan(-1);
+    expect(end).toBeGreaterThan(start);
+    const fn = src.slice(start, end);
+    const ask = fn.indexOf('actions/workflows/db-migrate.yml/runs?head_sha=$main_sha&per_page=1');
+    const run = fn.indexOf('gh workflow run db-migrate.yml');
+    expect(ask, 'the poll must ask for a db-migrate run FOR main\u2019s exact tip').toBeGreaterThan(-1);
+    expect(run).toBeGreaterThan(ask);
+    expect(fn).toMatch(/if \[ "\$already" = "\$main_sha" \]; then/);
+    // An unreadable answer never reads as done (DR-0076 §8): the failed read
+    // empties the variable so the dispatch still happens.
+    expect(fn).toMatch(/could not read the db-migrate runs for main's tip: \$already"; already=""/);
+  });
+
   it('the job may still write actions, or no dispatch can happen', () => {
     expect(src).toMatch(/actions: write/);
   });

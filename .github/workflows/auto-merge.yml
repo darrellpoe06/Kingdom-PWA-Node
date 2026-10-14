@@ -407,6 +407,25 @@ jobs:
             touched=$(timeout 25 gh api "repos/$REPO/commits/$main_sha" \
               --jq 'any(.files[]?.filename; startswith("infra/supabase/migrations-auto/"))' 2>&1) || { echo "poll: could not read the tip's files: $touched"; touched=false; }
             if [ "$touched" = "true" ]; then
+              # A LATE SWEEP ASKS WHETHER THE WORK WAS ALREADY DONE (DR-1017).
+              # Measured 2026-10-14 on sweep 38580006680: created 14:22:57, its
+              # heal jobs did not START until 14:46:13 (23 minutes queued), by
+              # which time main's tip had merged, deployed, and been migrated
+              # TWICE (38581924041, 38582084345, both green) by the other roads.
+              # This poll knew only "the tip touched a migration" and dispatched
+              # a third run — and every db-migrate dispatches an rls-isolation
+              # matrix behind it. The deploy poll above already asks the exact
+              # question (a run FOR main's tip, any status); this is the same
+              # question of db-migrate.yml. Unreadable reads as NOT done
+              # (DR-0076 §8): db-migrate is idempotent and single-flight, so a
+              # spare dispatch costs minutes, a missed one costs the schema.
+              already=$(timeout 25 gh api "repos/$REPO/actions/workflows/db-migrate.yml/runs?head_sha=$main_sha&per_page=1" \
+                --jq '.workflow_runs[0].head_sha // ""' 2>&1) || { echo "poll: could not read the db-migrate runs for main's tip: $already"; already=""; }
+              if [ "$already" = "$main_sha" ]; then
+                echo "main tip $main_sha touched a migration and db-migrate already has a run for it — standing down."
+                dispatched_for="$main_sha"
+                return 1
+              fi
               echo "main tip $main_sha touched a migration — dispatching db-migrate."
               timeout 25 gh workflow run db-migrate.yml --repo "$REPO" --ref main \
                 || echo "::warning::could not dispatch db-migrate (it can be run manually)"
