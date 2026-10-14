@@ -25,7 +25,7 @@
 // already on the map is never touched -- the family's own area always wins.
 // A lookup that finds nothing leaves the door as it was. Never throws.
 // =============================================================================
-import { addressLine, findPoint, roundArea, nearbyAround, namesStreet } from './area.js';
+import { addressLine, findPoint, roundArea, nearbyAround, namesStreet, streetName } from './area.js';
 import { buildingKey } from './apartment.js';
 
 // ACCURATE FOR EACH PROPERTY (Darrell, 2026-10-13: "Make sure it's accurate
@@ -103,9 +103,20 @@ export async function placeDoorsOnTheMap({
     try { near = await around(r.point); } catch { near = { ok: false }; }
     if (!near || !near.ok) { out.missed.push(...g.doors.map((d) => d.id)); continue; }
     const all = near.lines;
+    // A nearby line never names the door's street (0270 refuses it) -- and
+    // never the BUILDING's either (DR-1015): a bed whose address folds its
+    // unit in ("805 North Prospect Avenue Apt 4") has a street name of
+    // "North Prospect Avenue Apt 4", which "Target on North Prospect Avenue"
+    // slips past; the building key folds the unit out, and every door in the
+    // building lends its street to the check.
+    const streets = new Set();
     for (const d of g.doors) {
-      // A nearby line never names the door's street (0270 refuses it).
-      const lines = all.filter((l) => !namesStreet(l.label, d.address));
+      const st = streetName(d.address); if (st) streets.add(st.toLowerCase());
+      const bk = streetName(buildingKey(d.address, d.unit)); if (bk) streets.add(bk.toLowerCase());
+    }
+    const namesBuilding = (label) => { const l = String(label || '').toLowerCase(); return [...streets].some((st) => l.includes(st)); };
+    for (const d of g.doors) {
+      const lines = all.filter((l) => !namesStreet(l.label, d.address) && !namesBuilding(l.label));
       const summary = `Placed on the map from its address (automatic): the area${lines.length ? ` and ${lines.length} nearby line${lines.length === 1 ? '' : 's'}` : ''}`;
       let res;
       try { res = await save(d.id, { area_lat: area.lat, area_lng: area.lng, nearby: lines.length ? lines : null }, summary); } catch { res = { ok: false }; }

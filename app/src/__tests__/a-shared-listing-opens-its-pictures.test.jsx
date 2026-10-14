@@ -31,9 +31,12 @@ vi.mock('../lib/supabase.js', () => {
   }
   const rpc = async (name, args) => (name === 'public_vacancies'
     ? { data: VACANCIES, error: null }
-    : name === 'public_vacancy_photos'
+    : name === 'public_vacancy_photos' || name === 'public_vacancy_photo_list'
       ? { data: PHOTOS[args?.p_rental] || [], error: null }
-      : { data: null, error: null });
+      // One picture at a time (DR-1016): the bytes by id.
+      : name === 'public_vacancy_picture'
+        ? { data: (PHOTOS[args?.p_rental] || []).find((p) => p.id === args?.p_id)?.storage_path || null, error: null }
+        : { data: null, error: null });
   const auth = { getSession: async () => ({ data: { session: null } }), onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }), signOut: async () => ({}) };
   return {
     supabase: { auth, from: () => queryStub(), rpc },
