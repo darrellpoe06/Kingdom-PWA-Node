@@ -274,4 +274,9 @@ export const LIVING_LESSONS_ADDED = {
   // of the series, so an August day would make ll243 older than ll242 while
   // numbered after it, and split that one order into two.
   'll243-the-stork-knows-her-appointed-times': '2026-10-14',
+  // WRITTEN 2026-08-15 on PR #1255's branch as that branch's own "L79" — the
+  // LAST unmined teaching in that PR — and rebuilt here 2026-10-14. Same call
+  // as ll243's and for the same reason: this sits at the END of the series, so
+  // an August day would make ll244 older than ll243 while numbered after it.
+  'll244-the-heavens-declare-and-the-timetable-is-held-open': '2026-10-14',
 };
