@@ -93,7 +93,8 @@ for f in \
   0286-a-door-is-priced-by-any-cadence.sql \
   0287-a-landlord-gets-their-own-space.sql \
   0288-a-short-stays-only-season-advertises-the-night-alone.sql \
-  0289-a-stay-picture-joins-the-wall-with-the-familys-yes.sql; do
+  0289-a-stay-picture-joins-the-wall-with-the-familys-yes.sql \
+  0290-a-listing-list-never-carries-the-bytes.sql; do
   for i in 1 2; do P -f "$MIG/$f"; done
 done
 
