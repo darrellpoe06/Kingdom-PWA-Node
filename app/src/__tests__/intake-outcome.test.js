@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url';
 import {
   categorizeIntake, outcomeFor, deliveryWindow, matchDecision, matchHistory, noteParts, basisLine,
   plainReason, tokensOf, categoryCounts, ownerRoleFor, humanDuration, DECIDED_MATCH, FIX_MAX_CHARS,
-  CATEGORY_ORDER, INTAKE_CATEGORIES, WINDOW_MIN_SAMPLES,
+  CATEGORY_ORDER, INTAKE_CATEGORIES, WINDOW_MIN_SAMPLES, ledgerIndex,
 } from '../lib/intake-outcome.js';
 import { readLedger } from '../../../scripts/lib/intake-ledger.mjs';
 import { censusOf, renderCensus } from '../../../scripts/intake-census.mjs';
@@ -150,6 +150,59 @@ describe('already decided: the ledger match cites the record and its reason', ()
     expect(matchDecision('Add the giving link from the church website thechurchofthelivinggod.com', REAL_LEDGER)).toBeNull();
     expect(cat(t, { ledger: REAL_LEDGER }).category).toBe('work');
     expect([...tokensOf('visit https://poetech.us/x and www.example.org or thechurchofthelivinggod.com')]).toEqual(['visit']);
+  });
+  it('PROVEN TO CATCH: GROWING THE LEDGER ALONE NEVER MAKES A WORD RARER', () => {
+    // MEASURED 2026-10-14, TWICE, because the first fix was wrong and this
+    // test is the corrected one.
+    //
+    // `isRare` was `df <= floor(n * rareShare)` — a step function whose
+    // ceiling rose every tenth decided record. Adding DR-1027 took the count
+    // 789 -> 790, rareMax 78 -> 79, `church` (df 79) became "rare", and a REAL
+    // bug report ("add the giving link from the church website") came back
+    // "already decided" citing DR-0136.
+    //
+    // The first fix was a strict ratio, `df / n < rareShare`, and the FIRST
+    // VERSION OF THIS TEST PASSED IT — because the fixture's words sat nowhere
+    // near the boundary, so it never exercised the thing it claimed. One more
+    // record exposed it: 79/791 = 0.09987 IS below 0.1, so `church` went rare
+    // again. The floor form loosens by raising the ceiling; the ratio form
+    // loosens by shrinking the quotient. The denominator was the problem both
+    // times.
+    //
+    // So the invariant is stated on `isRare` DIRECTLY, where it can be proven,
+    // rather than on one note's verdict: appending records can only ever make
+    // a word LESS rare, never more. `df` never falls, so a cap on `df` alone
+    // is monotone; anything with `n` in it is not.
+    // THE FIXTURE IS BUILT TO STRADDLE THE BOUNDARY ON PURPOSE. The first
+    // version of this test used ordinary fixture words, every one of them far
+    // below any threshold, so the rare set never changed and the test passed
+    // against BOTH broken forms while claiming to catch them. A test that
+    // cannot fail on the defect it names is worse than no test.
+    //
+    // So: one word in exactly 6 records, and two ledgers that differ ONLY in
+    // how many unrelated records sit beside them.
+    const widgets = Array.from({ length: 6 }, (_, i) => ({
+      id: `DR-60${i}`, title: `The widget decision ${i}`, status: 'accepted',
+      decision: `The widget matter number ${i} is settled and kept for the house.`,
+    }));
+    const fillerN = (n, from) => Array.from({ length: n }, (_, i) => ({
+      id: `DR-${from + i}`, title: `An unrelated decision ${from + i}`, status: 'accepted',
+      decision: `This record concerns something else entirely, numbered ${from + i}, and is kept.`,
+    }));
+    const small = { ok: true, items: [...widgets, ...fillerN(44, 7000)] };   // n = 50
+    const large = { ok: true, items: [...widgets, ...fillerN(94, 7000)] };   // n = 100
+    // df("widget") is 6 in BOTH. Only the denominator differs.
+    expect(ledgerIndex(small).docs.filter((d) => d.tokens.has('widget'))).toHaveLength(6);
+    expect(ledgerIndex(large).docs.filter((d) => d.tokens.has('widget'))).toHaveLength(6);
+    expect(ledgerIndex(small).n).toBe(50);
+    expect(ledgerIndex(large).n).toBe(100);
+    // The invariant: same df, same verdict. Under `df <= floor(n * 0.1)` the
+    // verdicts differ (6 > 5, then 6 <= 10); under `df / n < 0.1` they differ
+    // too (0.12, then 0.06). Under a cap on df alone they cannot.
+    expect(
+      ledgerIndex(large).isRare('widget'),
+      'rareness changed when only the number of UNRELATED records changed',
+    ).toBe(ledgerIndex(small).isRare('widget'));
   });
   it('PROVEN TO CATCH: a note tagged as a bug, or about money or security, is never answered "already decided"', () => {
     expect(cat('Missing: please send an email receipt for my feedback through a mail transport | [bug]', { ledger: LEDGER }).category).toBe('work');
