@@ -98,7 +98,19 @@ export const PLACES = Object.freeze([
 
 /** One decimal, never "0.0": under a tenth of a mile reads as 0.1. */
 export function roundMiles(m) {
-  return Math.max(0.1, Math.round(m * 10) / 10);
+  // Under a tenth of a mile the line is read in FEET (DR-1019: a bus stop
+  // "out front" is not "about 0.1 miles"), so the hundredth is kept there.
+  if (m < 0.1) return Math.max(0.01, Math.round(m * 100) / 100);
+  return Math.round(m * 10) / 10;
+}
+
+/** "about 175 feet" for a short walk, else the miles line. 25-foot steps. */
+export function feetText(m) {
+  const n = Number(m);
+  if (!Number.isFinite(n)) return '';
+  if (n >= 0.1) return milesText(n);
+  const ft = Math.max(25, Math.round((n * 5280) / 25) * 25);
+  return `about ${ft} feet`;
 }
 
 /**
@@ -109,6 +121,7 @@ export function roundMiles(m) {
 export function milesText(m) {
   const n = Number(m);
   if (!Number.isFinite(n)) return '';
+  if (n < 0.1) return feetText(n);
   return `about ${n.toFixed(1)} ${n === 1 ? 'mile' : 'miles'}`;
 }
 
@@ -173,11 +186,26 @@ export const NEARBY_KINDS = Object.freeze([
 ]);
 
 /** The one Overpass query for a point: every kind, each in its own radius. */
-export function overpassQuery(point) {
+export function overpassQuery(point, { serverTimeoutS = 25 } = {}) {
   const at = `${point.lat.toFixed(6)},${point.lng.toFixed(6)}`;
   const parts = NEARBY_KINDS.flatMap(([, sel, miles]) =>
     sel.split(';').map((one) => `${one}(around:${Math.round(miles * MI)},${at});`));
-  return `[out:json][timeout:25];(${parts.join('')});out center tags;`;
+  const t = Math.min(180, Math.max(5, Math.round(Number(serverTimeoutS) || 25)));
+  return `[out:json][timeout:${t}];(${parts.join('')});out center tags;`;
+}
+
+/**
+ * Overpass answers its OWN timeout with HTTP 200, no elements and a remark
+ * ("runtime error: Query timed out in ... after 26 seconds."). Read as an
+ * answer, that is "nothing near" saved on the door (DR-1019: 1213 Koehn Dr,
+ * Danville, placed with 0 lines in a town with a hospital, a college and a
+ * Walmart within fifteen miles; the witness's answer took 31 s, the 25 s
+ * server limit plus transport). A remark that says the server gave up is a
+ * failure, not an empty list.
+ */
+export function overpassGaveUp(body) {
+  const remark = String(body?.remark || '');
+  return /timed out|runtime error|out of memory|too busy|load too high/i.test(remark) ? remark.replace(/\s+/g, ' ').trim().slice(0, 140) : '';
 }
 
 /** The lines from an Overpass answer, measured from `point`: nearest of each kind. */
@@ -219,7 +247,7 @@ export function nearbyFromOverpass(point, body) {
  * real answer (nothing near) -- or {ok:false, reason} when Overpass could not
  * be asked, so the caller can try again rather than save nothing as truth.
  */
-export async function nearbyAround(point, { fetchImpl = (typeof fetch === 'function' ? fetch : null), timeoutMs = 30000, places = PLACES, userAgent = '' } = {}) {
+export async function nearbyAround(point, { fetchImpl = (typeof fetch === 'function' ? fetch : null), timeoutMs = 30000, places = PLACES, userAgent = '', serverTimeoutS = 25 } = {}) {
   if (!point || !Number.isFinite(point.lat) || !Number.isFinite(point.lng)) return { ok: false, reason: 'no point' };
   const researched = nearbyFrom(point, places);
   if (!fetchImpl) return { ok: false, reason: 'This device cannot look up what is nearby.' };
@@ -232,13 +260,19 @@ export async function nearbyAround(point, { fetchImpl = (typeof fetch === 'funct
   // the interpreter runs (witness runs 38434388889 / 38434844861, 2026-10-13,
   // read from the server's own body). The servers' own words ride in the
   // reason, so the next witness run says why (DR-0076).
-  const body = `data=${encodeURIComponent(overpassQuery(point))}`;
+  const body = `data=${encodeURIComponent(overpassQuery(point, { serverTimeoutS }))}`;
   const headers = { 'content-type': 'application/x-www-form-urlencoded', ...(userAgent ? { 'user-agent': userAgent } : {}) };
   let last = { ok: false, reason: 'What is nearby could not be reached just now.' };
   for (const endpoint of OVERPASS_MIRRORS) {
     try {
       const res = await fetchImpl(endpoint, { method: 'POST', headers, body, signal: AbortSignal.timeout(timeoutMs) });
-      if (res.ok) { found = nearbyFromOverpass(point, await res.json()); break; }
+      if (res.ok) {
+        const answer = await res.json();
+        const gaveUp = overpassGaveUp(answer);
+        // The server's own "I gave up" is its trouble, worth the next mirror.
+        if (gaveUp) { last = { ok: false, reason: `What is nearby timed out on the server (${gaveUp}).` }; continue; }
+        found = nearbyFromOverpass(point, answer); break;
+      }
       let said = '';
       try { said = String(await res.text()).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 160); } catch (_) { said = ''; }
       last = { ok: false, reason: `What is nearby could not be looked up (HTTP ${res.status}${said ? `: ${said}` : ''}).` };

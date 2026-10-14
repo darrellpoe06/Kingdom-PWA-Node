@@ -1,0 +1,76 @@
+# Bus witness — the city bus at a real address, from the agency's own feed (DR-1019)
+#
+# "What's nearby" reads the city bus from OpenStreetMap (DR-1014). The schedule
+# is the agency's: this reads the Champaign-Urbana MTD GTFS feed on a runner
+# (the cloud sandbox has no route to mtd.org) and prints every stop within a
+# half-mile walk of the house: feet, routes, days, buses a day, and the feed's
+# own date window so a stale feed says so.
+#
+# Dispatch only: no schedule, nothing spawned, read-only (it saves nothing).
+# BUDGET: one runner, 10-minute timeout, one lookup + one feed download.
+# LOCK: concurrency group.
+name: Bus witness
+
+on:
+  workflow_dispatch:
+    inputs:
+      street:
+        description: 'Street address (house number first)'
+        required: true
+        default: '805 North Prospect Avenue'
+      city:
+        description: 'City'
+        required: true
+        default: 'Champaign'
+      state:
+        description: 'State'
+        required: true
+        default: 'Illinois'
+      gtfs_url:
+        description: 'GTFS zip URL (blank = try the MTD feed addresses in order)'
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bus-witness
+  cancel-in-progress: false
+
+jobs:
+  witness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Fetch the agency's GTFS feed (the first address that answers with a zip)
+        env:
+          GTFS_URL: ${{ inputs.gtfs_url }}
+        run: |
+          set -uo pipefail
+          mkdir -p "$RUNNER_TEMP/gtfs"
+          # MTD publishes its GTFS for developers; the addresses it has used are
+          # tried in order and the one that answered is printed, so the next
+          # run reads which is current (DR-0076: the source is named).
+          candidates="${GTFS_URL:-https://developer.mtd.org/gtfs/google_transit.zip https://developer.cumtd.com/gtfs/google_transit.zip https://mtd.org/gtfs/google_transit.zip}"
+          got=""
+          for u in $candidates; do
+            echo "trying $u"
+            if curl -fsSL --max-time 120 -A 'PoeTech bus witness/1 (+https://poetech.us)' -o "$RUNNER_TEMP/gtfs.zip" "$u" \
+               && unzip -tq "$RUNNER_TEMP/gtfs.zip" >/dev/null 2>&1; then got="$u"; break; fi
+            echo "  no zip from $u"
+          done
+          if [ -z "$got" ]; then echo "::error::no GTFS feed answered — the witness cannot read the schedule"; exit 1; fi
+          echo "FEED-SOURCE=$got"
+          unzip -o -q "$RUNNER_TEMP/gtfs.zip" -d "$RUNNER_TEMP/gtfs"
+          ls -l "$RUNNER_TEMP/gtfs"
+      - name: Look the address up and list the stops within a walk
+        env:
+          STREET: ${{ inputs.street }}
+          CITY: ${{ inputs.city }}
+          STATE: ${{ inputs.state }}
+        run: node scripts/bus-witness.mjs "$RUNNER_TEMP/gtfs" "$STREET" "$CITY" "$STATE"

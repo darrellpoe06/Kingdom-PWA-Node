@@ -279,7 +279,7 @@ export function VacancyCard({ unit, onApply = null, openPictures = 0 }) {
           <div className="text-[0.75rem] text-[#2F5D50]" data-testid="vacancy-utilities">All utilities paid.</div>
         )}
         {unit.utilities === false && (
-          <div className="text-[0.75rem] text-[#5A5751]" data-testid="vacancy-utilities">Utilities are not included.</div>
+          <div className="text-[0.75rem] text-[#5A5751]" data-testid="vacancy-utilities">Not included: the tenant pays their own utilities.</div>
         )}
         {cadence.line && (
           <div className="text-[0.75rem] text-[#1A1815] mt-1 leading-snug" data-testid="vacancy-cadence">{cadence.line}</div>

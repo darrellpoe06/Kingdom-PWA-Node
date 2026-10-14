@@ -56,6 +56,9 @@ export function describeListing(v = {}) {
   const c = cadenceChoice({ monthly: v.rent, weekly: v.weekly_rate, biweekly: v.biweekly_rate });
   if (c.line) parts.push(c.line);
   if (shortStay && Number(v.nightly_rate) > 0) parts.push(`Short stay ${money(v.nightly_rate)}/night`);
+  // Utilities, as the family said them (DR-1020); unsaid stays unsaid.
+  if (v.utilities_included === true) parts.push('All utilities paid');
+  else if (v.utilities_included === false) parts.push('Tenant pays utilities');
   if (v.shared_home) parts.push(v.rentable_level === 'room' ? 'A private room in a shared home' : 'A bed in a shared bedroom, two to a room, in a shared home');
   if (v.building_note) parts.push(`The building: ${String(v.building_note).trim()}`);
   return parts.join(' · ');

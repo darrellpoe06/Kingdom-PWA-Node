@@ -49,13 +49,17 @@ export function doorsFromJson(text) {
       id: String(d.id), instance_id: d.instance_id ? String(d.instance_id) : '',
       address: String(d.address).trim(), unit: String(d.unit || '').trim(),
       city: String(d.city || '').trim(), state: String(d.state || '').trim(),
+      // A door that HAS an area but was never asked what is nearby (nearby
+      // NULL; DR-1019): the lane fills the list and leaves the area alone.
+      had_area: d.had_area === true || d.had_area === 't' || d.had_area === 'true',
     }));
 }
 
 /** The app's own placement, with the lane's lookups; collects what it would save. */
 export async function placeDoors(doors, { find, around, wait } = {}) {
   const placements = [];
-  const save = async (id, patch, summary) => { placements.push({ id, ...patch, summary }); return { ok: true }; };
+  const byId = new Map((doors || []).map((d) => [d.id, d]));
+  const save = async (id, patch, summary) => { placements.push({ id, ...patch, summary, had_area: Boolean(byId.get(id)?.had_area) }); return { ok: true }; };
   const r = await placeDoorsOnTheMap({ rentals: doors, placed: new Set(), find, around, save, ...(wait ? { wait } : {}) });
   return { placements, placed: r.placed, missed: r.missed, looked: r.looked };
 }
@@ -78,11 +82,27 @@ export function updatesSql(placements, { today = new Date().toISOString().slice(
       .filter((l) => l.miles >= 0 && l.miles <= 100)
       .slice(0, 12);
     const json = JSON.stringify(lines);
+    if (p.had_area) {
+      // The family's (or an earlier run's) area stands; only the list is
+      // written, and only where none was ever written. Nothing found is
+      // nothing to write: the door is asked again next run.
+      if (!lines.length) continue;
+      const note = `[${today}] Edited — What is nearby, read from its address (automatic, by the lane): ${lines.length} nearby line${lines.length === 1 ? '' : 's'}`;
+      if (json.includes('$j$') || note.includes('$n$')) continue;
+      out.push(
+        `UPDATE public.rentals SET nearby = $j$${json}$j$::jsonb, `
+        + `notes = btrim(concat_ws(E'\\n', nullif(btrim(coalesce(notes, '')), ''), $n$${note}$n$)) `
+        + `WHERE id = '${p.id.toLowerCase()}' AND nearby IS NULL;`,
+      );
+      continue;
+    }
     const note = `[${today}] Edited — ${String(p.summary || 'Placed on the map from its address (automatic, by the lane)').replace(/\s+/g, ' ').trim()}`;
     if (json.includes('$j$') || note.includes('$n$')) continue;
+    // An honest empty answer is written as [] (an answer), so NULL keeps
+    // meaning "never asked" and the lane asks such a door again (DR-1019).
     out.push(
       `UPDATE public.rentals SET area_lat = ${lat.toFixed(5)}, area_lng = ${lng.toFixed(5)}, `
-      + `nearby = ${lines.length ? `$j$${json}$j$::jsonb` : 'NULL'}, `
+      + `nearby = ${lines.length ? `$j$${json}$j$::jsonb` : `'[]'::jsonb`}, `
       + `notes = btrim(concat_ws(E'\\n', nullif(btrim(coalesce(notes, '')), ''), $n$${note}$n$)) `
       + `WHERE id = '${p.id.toLowerCase()}' AND area_lat IS NULL;`,
     );
@@ -108,9 +128,11 @@ async function main() {
     return out;
   };
   // The runner names itself (Overpass's usage policy) and can wait longer
-  // than a phone (the nearby witness measured the servers' own 504s).
+  // than a phone (the nearby witness measured the servers' own 504s; on
+  // 2026-10-14 witness 38585240741 timed out at 60 s while a bare GET of the
+  // same query answered in about 30 s, so the wait is two minutes, DR-1019).
   const around = async (point) => {
-    const n = await nearbyAround(point, { userAgent: UA, timeoutMs: 60000 });
+    const n = await nearbyAround(point, { userAgent: UA, timeoutMs: 120000, serverTimeoutS: 90 });
     const last = trace[trace.length - 1];
     if (last) last.near = n.ok ? `${n.lines.length} line(s)` : `FAILED: ${n.reason}`;
     return n;

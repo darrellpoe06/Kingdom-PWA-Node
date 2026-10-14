@@ -11,7 +11,7 @@ import {
   buildingsToPlace, placeDoorsOnTheMap, matchesAddress, townOf, PLACE_MAX_LOOKUPS,
 } from '../modules/properties/place-on-map.js';
 import {
-  nearbyAround, nearbyFromOverpass, overpassQuery, OVERPASS, milesText, NEARBY_MAX, busStopLabel,
+  nearbyAround, nearbyFromOverpass, overpassQuery, overpassGaveUp, OVERPASS, milesText, NEARBY_MAX, busStopLabel,
 } from '../modules/properties/area.js';
 import { buildingKey } from '../modules/properties/apartment.js';
 
@@ -96,6 +96,23 @@ describe('what is nearby, for ANY property (not just 805)', () => {
     expect(r).toEqual({ ok: false, reason: 'What is nearby could not be reached just now.' });
     const busy = await nearbyAround(AT_DANVILLE, { fetchImpl: async () => ({ ok: false, status: 429 }) });
     expect(busy.ok).toBe(false);
+  });
+
+  it('a server that gave up is a failure, not "nothing near" (DR-1019: Koehn Dr placed with 0 lines)', async () => {
+    const asked = [];
+    const gaveUp = { version: 0.6, remark: 'runtime error: Query timed out in "query" at line 1 after 26 seconds.', elements: [] };
+    const r = await nearbyAround(AT_DANVILLE, { fetchImpl: async (url) => { asked.push(url); return { ok: true, status: 200, json: async () => gaveUp }; } });
+    expect(r.ok).toBe(false);
+    expect(r.reason).toMatch(/timed out on the server/);
+    expect(asked.length).toBe(2); // the server's own trouble is worth the next mirror
+    expect(overpassGaveUp({ elements: [] })).toBe('');
+    expect(overpassGaveUp({ remark: 'runtime error: Query run out of memory' })).toMatch(/out of memory/);
+  });
+
+  it('a runner may ask the server for more patience than a phone', () => {
+    expect(overpassQuery(AT_805)).toContain('[timeout:25]');
+    expect(overpassQuery(AT_805, { serverTimeoutS: 90 })).toContain('[timeout:90]');
+    expect(overpassQuery(AT_805, { serverTimeoutS: 9999 })).toContain('[timeout:180]');
   });
 
   it('read aloud as words: "about 0.7 miles", never "mi" (WCAG 2.2 AA, the read-aloud)', () => {
