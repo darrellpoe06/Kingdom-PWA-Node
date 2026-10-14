@@ -189,14 +189,21 @@ describe('placing the family\'s doors', () => {
     expect(r.missed).toEqual(['apt2']);
   });
 
-  it('PROVEN-TO-CATCH: what is nearby unreachable saves nothing (tried again next time, never saved as "nothing near")', async () => {
+  it('PROVEN-TO-CATCH: what is nearby unreachable saves the AREA with no list (asked again next time), never "nothing near" (DR-1019)', async () => {
+    // Placer 38592341539, 2026-10-14: three Danville doors matched their
+    // house, Overpass timed out on every one, and the old rule left them
+    // off the map entirely. The circle costs nothing; NULL means never asked.
     const saved = [];
     const r = await placeDoorsOnTheMap({
       rentals: [APT2], find: async () => ({ ok: true, point: AT_805, matched: '805 N PROSPECT AVE, CHAMPAIGN, IL' }),
-      around: async () => ({ ok: false, reason: 'unreachable' }), save: async (id) => { saved.push(id); return { ok: true }; }, wait: async () => {},
+      around: async () => ({ ok: false, reason: 'What is nearby took too long to answer.' }),
+      save: async (id, patch, summary) => { saved.push({ id, patch, summary }); return { ok: true }; }, wait: async () => {},
     });
-    expect(saved).toEqual([]);
-    expect(r.missed).toEqual(['apt2']);
+    expect(r.placed).toEqual(['apt2']);
+    expect(saved).toHaveLength(1);
+    expect(saved[0].patch.area_lat).toBe(40.125);
+    expect(saved[0].patch.nearby).toBeNull();
+    expect(saved[0].summary).toBe('Placed on the map from its address (automatic): the area; what is nearby could not be read (What is nearby took too long to answer.) and will be asked again');
   });
 
   it('bounded: at most a few lookups a session, one a second apart', async () => {

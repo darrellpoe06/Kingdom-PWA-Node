@@ -98,11 +98,13 @@ export function updatesSql(placements, { today = new Date().toISOString().slice(
     }
     const note = `[${today}] Edited — ${String(p.summary || 'Placed on the map from its address (automatic, by the lane)').replace(/\s+/g, ' ').trim()}`;
     if (json.includes('$j$') || note.includes('$n$')) continue;
-    // An honest empty answer is written as [] (an answer), so NULL keeps
-    // meaning "never asked" and the lane asks such a door again (DR-1019).
+    // An honest empty answer ([]) is written as [] (an answer); a read that
+    // FAILED arrives as null and is written as NULL, "never asked", so the
+    // lane asks such a door again (DR-1019).
+    const asked = Array.isArray(p.nearby);
     out.push(
       `UPDATE public.rentals SET area_lat = ${lat.toFixed(5)}, area_lng = ${lng.toFixed(5)}, `
-      + `nearby = ${lines.length ? `$j$${json}$j$::jsonb` : `'[]'::jsonb`}, `
+      + `nearby = ${!asked ? 'NULL' : lines.length ? `$j$${json}$j$::jsonb` : `'[]'::jsonb`}, `
       + `notes = btrim(concat_ws(E'\\n', nullif(btrim(coalesce(notes, '')), ''), $n$${note}$n$)) `
       + `WHERE id = '${p.id.toLowerCase()}' AND area_lat IS NULL;`,
     );
