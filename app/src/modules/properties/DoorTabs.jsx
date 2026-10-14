@@ -2299,7 +2299,13 @@ export function GalleryTab({
         <NasShelf door={door} archive={archive} nasFiled={nasFiled} recordKind={isAdvertising(f.kind) ? rememberedKind() : f.kind} onAdd={onAdd} onDone={onDone} />
       )}
 
-      <Card title={only ? `${only.replace(/-/g, ' ')} (${shown.length} of ${allShots.length})` : `Pictures (${allShots.length})`}>
+      {/* WHAT IS THIS DOOR'S AND WHAT IS SHARED (DR-1022). Darrell read
+          "PICTURES (3)" over a door whose buttons said "Tick all 40 shown"
+          and concluded 37 were gone; they were in the shared card below.
+          The heading now says both counts when the apartment lends any. */}
+      <Card title={only
+        ? `${only.replace(/-/g, ' ')} (${shown.length} of ${allShots.length})`
+        : (sharedPhotos.length ? `Pictures (${allShots.length} of this door · ${sharedPhotos.length} shared with the apartment, below)` : `Pictures (${allShots.length})`)}>
         {/* LOOK BY KIND (DR-0908). Only the kinds this door actually has, so
             the strip never offers an empty answer. "Every kind" stays first
             and is the default. */}
