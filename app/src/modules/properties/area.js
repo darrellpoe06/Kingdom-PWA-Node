@@ -152,7 +152,13 @@ export const OVERPASS = 'https://overpass-api.de/api/interpreter';
 // (nearby-witness run 38434844861, 2026-10-13: overpass-api.de reached its
 // interpreter and answered 504 "runtime error: open64" -- its own fault at
 // that moment). Same data, same query; the first that answers wins.
-export const OVERPASS_MIRRORS = Object.freeze([OVERPASS, 'https://overpass.kumi.systems/api/interpreter']);
+// A third (DR-1023; measured 2026-10-14 16:50 to 17:00, two witness runs a
+// minute apart, Danville and Champaign alike: the first mirror answered seven
+// of ten kinds HTTP 504 in 5 to 15 s and gave up on the rest at its own 25 s,
+// and the second took longer than two minutes on the whole -- the servers'
+// trouble that afternoon, not either town's query, since 805 had answered in
+// seconds that morning). Same data, same query; the first that answers wins.
+export const OVERPASS_MIRRORS = Object.freeze([OVERPASS, 'https://overpass.kumi.systems/api/interpreter', 'https://overpass.private.coffee/api/interpreter']);
 const MI = 1609.344;
 
 /**
