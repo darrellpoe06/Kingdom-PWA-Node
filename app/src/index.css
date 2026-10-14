@@ -52,6 +52,22 @@
   zoom: var(--ts-chrome-scale, 1);
 }
 
+/* THE FRAME HOLDS WHILE THE WORDS GROW (DR-1011). Darrell, 2026-10-14, at
+   A44 on the Poe Properties door: "The words/text need to be the only thing
+   getting bigger." The root scale grows every rem, so padding, gaps, discs
+   and radii ballooned with the text. --ts-fixed is "one rem as it is at
+   Normal": a length written in it is pixel-identical at Normal and does not
+   move at any step. Tailwind's padding / margin / gap / space / radius scales
+   are written in it (tailwind.config.js), and so is the welcome door's own
+   frame. Inside a chrome region the zoom already undoes the root scale, so
+   the unit is a plain rem there — otherwise it would be undone twice. */
+:root {
+  --ts-fixed: calc(1rem / var(--ts-mult, 1));
+}
+.ts-chrome-region {
+  --ts-fixed: 1rem;
+}
+
 /* ===========================================================================
    Big-text layout safety — the page must HOLD at 2x and 2.75x (Darrell 2026-08-05)
    ===========================================================================
