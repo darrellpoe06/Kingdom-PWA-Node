@@ -11,7 +11,7 @@ import {
   buildingsToPlace, placeDoorsOnTheMap, matchesAddress, townOf, PLACE_MAX_LOOKUPS,
 } from '../modules/properties/place-on-map.js';
 import {
-  nearbyAround, nearbyFromOverpass, overpassQuery, OVERPASS, milesText, NEARBY_MAX,
+  nearbyAround, nearbyFromOverpass, overpassQuery, OVERPASS, milesText, NEARBY_MAX, busStopLabel,
 } from '../modules/properties/area.js';
 import { buildingKey } from '../modules/properties/apartment.js';
 
@@ -34,6 +34,11 @@ const DANVILLE_OSM = { elements: [
   // Kinds it should drop: no name, and a supermarket past its 5-mile radius.
   { type: 'node', lat: 40.1260, lon: -87.6290, tags: { shop: 'supermarket' } },
   { type: 'node', lat: 40.3000, lon: -87.6300, tags: { shop: 'supermarket', name: 'Far Foods' } },
+  // THE CITY BUS (DR-1014): three stops, the two nearest kept, never by their
+  // corner names (which name streets); the third is past a mile.
+  { type: 'node', lat: 40.1252, lon: -87.6305, tags: { highway: 'bus_stop', name: 'Oak & Main', route_ref: '2;100' } },
+  { type: 'node', lat: 40.1190, lon: -87.6350, tags: { highway: 'bus_stop', name: 'Oak & Vine' } },
+  { type: 'node', lat: 40.1500, lon: -87.6300, tags: { highway: 'bus_stop', name: 'Far & Away', route_ref: '9' } },
 ] };
 
 describe('what is nearby, for ANY property (not just 805)', () => {
@@ -43,6 +48,21 @@ describe('what is nearby, for ANY property (not just 805)', () => {
     expect(q).toContain('nwr["shop"="supermarket"]["name"](around:8047,40.124500,-87.630000);');
     expect(q).toContain('nwr["amenity"="hospital"]["name"](around:24140,40.124500,-87.630000);');
     expect(q).toContain('out center tags;');
+    // The city bus: stops within a mile (DR-1014).
+    expect(q).toContain('node["highway"="bus_stop"](around:1609,40.124500,-87.630000);');
+  });
+
+  it('THE CITY BUS (DR-1014): the two nearest stops, nearest first, with the routes the map carries, never the corner name', () => {
+    const lines = nearbyFromOverpass(AT_DANVILLE, DANVILLE_OSM);
+    const bus = lines.filter((l) => /bus stop/i.test(l.label));
+    expect(bus.map((l) => l.label)).toEqual(['City bus stop (routes 2, 100)', 'Another city bus stop']);
+    expect(bus[0].miles).toBeLessThan(bus[1].miles);
+    // PROVEN-TO-CATCH: a stop's own name is a street corner; it never reaches
+    // the line, so a held door's street is never handed over through the bus.
+    expect(lines.some((l) => /Oak|Main|Vine/.test(l.label) && /bus/i.test(l.label))).toBe(false);
+    expect(lines.some((l) => /Far & Away|route 9/.test(l.label))).toBe(false); // past a mile
+    expect(busStopLabel({ route_ref: '7' }, 0)).toBe('City bus stop (route 7)');
+    expect(busStopLabel({}, 1)).toBe('Another city bus stop');
   });
 
   it('a Danville door gets Danville\'s places, measured from its own point — none of Champaign\'s', () => {
