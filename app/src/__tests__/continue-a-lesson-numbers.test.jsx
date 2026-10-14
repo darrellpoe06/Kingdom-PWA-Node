@@ -55,9 +55,17 @@ const openedLessonId = () => {
 const barButtons = () => [...byTestId('lesson-space-bar').querySelectorAll('button')];
 
 describe('the facts this rests on (measured, not assumed)', () => {
-  it('L192 sits at array position 191, and L61 is written before L60', () => {
+  it('some lesson sits at a position that is not its number, and L61 is written before L60', () => {
+    // L192 at position 191 was the worked example until 2026-10-14, when the 79
+    // hole was filled (DR-1013) and every later lesson moved up one — putting
+    // L192 at position 192 exactly, where the defect this suite exists to catch
+    // becomes invisible. So the example is FOUND, not pinned: as long as a hole
+    // is open or a renumbering stands, some lesson's position is not its number,
+    // and a hole closing can never again quietly disarm the check.
     const ids = living.schedule.map((m) => m.id);
-    expect(living.schedule.find((m) => m.id === fullId('ll192-')).week).toBe(191);
+    const num = (id) => Number((String(id).match(/^ll(\d+)-/) || [])[1]);
+    const drifted = living.schedule.filter((m) => num(m.id) && m.week !== num(m.id));
+    expect(drifted.length, 'no lesson left whose position differs from its number').toBeGreaterThan(0);
     expect(ids.indexOf(fullId('ll61-'))).toBeLessThan(ids.indexOf(fullId('ll60-')));
   });
 });

@@ -44,11 +44,12 @@ export function duplicateNumbers(modules) {
  *
  * A number claimed twice is loud; a number claimed never is silent, and that is
  * why ll79 sat missing from 2026-08-14 until a drain triage went looking on
- * 2026-10-13. The lesson that was meant to fill it is still sitting in #1255,
- * whose catalog holds 81 modules against this one's 238 — so the file cannot be
- * merged, only the module mined out of it.
+ * 2026-10-13. The lesson that was meant to fill it was sitting in #1255, whose
+ * catalog holds 81 modules against this one's 239 — so the file could not be
+ * merged, only the module mined out of it, which is what 2026-10-14 did. 79 is
+ * PAID; the gap list is the proof it was ever open.
  *
- * Gaps are RECORDED DEBT, not an error: the three below are real holes awaiting
+ * Gaps are RECORDED DEBT, not an error: the two below are real holes awaiting
  * their lessons. The ratchet below is shrink-only, so paying one off is always
  * allowed and opening a NEW one fails.
  */
@@ -68,7 +69,13 @@ export function unclaimedNumbers(modules) {
 // The holes as measured on main `83d06328b`, 2026-10-13. Shrink-only: a lesson
 // that fills one of these removes it from the list, which the test allows; a
 // number that goes missing is not on this list, which fails.
-const KNOWN_GAPS = [79, 211, 212];
+//
+// 79 was PAID on 2026-10-14: "A Gospel With a Hole In It — Why Justice and
+// Righteousness Travel Together" was mined out of #1255, rebuilt to the band
+// floors in all four bands, and spliced between ll78 and ll80. The entry comes
+// off the list rather than being left as a passing-but-stale allowance, which
+// is the whole point of a shrink-only ratchet.
+const KNOWN_GAPS = [211, 212];
 
 describe('Living Lessons — the lesson number is unique', () => {
   it('no two modules share a lesson number', () => {

@@ -17,7 +17,21 @@
 //
 // Measured when written: 191 of 191 lessons dated; in number order the dates
 // never go backwards (L1 2026-06-24 ... L192 2026-09-24), so "by number" and
-// "by date" agree. L79 does not exist (the id was never minted).
+// "by date" agree. L79 did not exist then (the id was never minted).
+//
+// THE ONE DATE HERE THAT IS NOT A COMMIT DAY, AND WHY (2026-10-14). L79 is the
+// exception and is written down rather than smoothed over. Its slot opened on
+// 2026-08-14, beside L78 and before L80, and then stayed EMPTY: the text meant
+// to fill it sat in PR #1255 on a branch whose catalog held 81 modules against
+// main's 238, so the file could never be merged — only the module mined out of
+// it, which happened on 2026-10-14. The commit day is therefore 2026-10-14 and
+// the course's own slot day is 2026-08-15. The SLOT day is recorded, on the
+// same ground the L153/L164/L189 lines stand on: where the course itself
+// recorded a day, the course's day is kept. It also keeps the product claim
+// true — living-lessons-order.test.jsx asserts that in number order the days
+// never go backwards, which is what lets the app offer "By number, oldest
+// first" as one order instead of two. Read this line as the slot, not the
+// commit; the commit is in the history and in the lesson's own banner.
 //
 // A NEW LESSON JOINS AT BIRTH (DR-0621): living-lessons-order.test.jsx fails
 // when a lesson in LIVING_LESSONS_MODULES has no line here, or when its date
@@ -103,6 +117,8 @@ export const LIVING_LESSONS_ADDED = {
   'll76-the-sky-the-speculation-and-the-test-that-works': '2026-08-11', // commit e882d3cd
   'll77-the-king-over-the-children-of-pride': '2026-08-14', // commit ee27ff39
   'll78-the-snare-of-the-fear-of-man': '2026-08-15', // commit 8abbde4a
+  // The slot day, not the commit day — see the note at the head of this file.
+  'll79-justice-and-righteousness-travel-together': '2026-08-15', // slot 2026-08-14/15; mined out of #1255 and committed 2026-10-14
   'll80-the-four-warnings-of-a-hardening-heart': '2026-08-18', // commit 51ae4738
   'll81-tongues-weighed-word-first': '2026-08-18', // commit 51ae4738
   'll82-love-fulfils-the-law-wake-up-and-get-dressed': '2026-08-20', // commit 0015c6cb

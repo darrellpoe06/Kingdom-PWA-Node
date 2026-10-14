@@ -42,14 +42,27 @@ describe('the number is the lesson’s own, read from its id', () => {
     expect(lessonNumber(null)).toBe(null);
   });
 
-  it('MEASURED: the authored array is not in number order and has no L79, so a position would mislabel', () => {
+  it('MEASURED: the authored array is not in number order and still has holes, so a position would mislabel', () => {
+    // 79 was the hole this test used as its evidence until 2026-10-14, when the
+    // lesson was mined out of #1255 and the number was claimed. The CLAIM is
+    // unchanged and is what matters: a lesson's number is its own, never its
+    // position in the array. The evidence moves to the holes that are still
+    // open (211 and 212, recorded in living-lessons-numbers-are-unique), plus
+    // the renumberings that leave the array itself out of order.
     const nums = LIVING_LESSONS_MODULES.map(lessonNumber);
-    expect(nums).not.toContain(79);
+    expect(nums).toContain(79);
+    expect(nums).not.toContain(211);
+    expect(nums.length, 'a position cannot be the number while a hole is open').toBeLessThan(Math.max(...nums));
     expect(ascending(LIVING_LESSONS_MODULES)).toBe(false);
+    // L192 was the worked example here until 2026-10-14. Filling the 79 hole
+    // moved every lesson after it up one, and L192's POSITION became 192 — so
+    // at L192 the defect this test exists to catch is now invisible. That is
+    // the whole reason the example is found rather than pinned: a hole closing
+    // must not quietly disarm the check.
     const sched = buildLivingLessonsSchedule();
-    const l192 = sched.find((m) => m.id.startsWith('ll192-'));
-    expect(l192.week, 'the position the old rows printed').not.toBe(192);
-    expect(ownNumber(l192, sched)).toBe(192);
+    const drifted = sched.filter((m) => m.week !== lessonNumber(m));
+    expect(drifted.length, 'no lesson left where position differs from number').toBeGreaterThan(0);
+    for (const m of drifted) expect(ownNumber(m, sched), `${m.id} position ${m.week}`).toBe(lessonNumber(m));
   });
 
   it('a course is numbered only when every lesson has its own, unshared number', () => {
