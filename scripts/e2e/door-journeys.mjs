@@ -181,6 +181,13 @@ export const FAULTS = Object.freeze({
     sql: 'REVOKE EXECUTE ON FUNCTION public.public_vacancy_photos(uuid) FROM anon;',
     restore: 'GRANT EXECUTE ON FUNCTION public.public_vacancy_photos(uuid) TO anon;',
   },
+  pictures: {
+    step: 'G3',
+    // The single-picture road refused to anon (DR-1016): the list still
+    // arrives, the pictures open, and no picture ever carries its bytes.
+    sql: 'REVOKE EXECUTE ON FUNCTION public.public_vacancy_picture(uuid, uuid, text) FROM anon;',
+    restore: 'GRANT EXECUTE ON FUNCTION public.public_vacancy_picture(uuid, uuid, text) TO anon;',
+  },
   own: {
     step: 'L1',
     // The claim refused to signed-in people: the chooser's pick fails and
@@ -751,6 +758,9 @@ async function run() {
       // and the unit's pictures open by themselves.
       await gp.goto(`${BASE}/properties/l/${DOOR}/`, { waitUntil: 'domcontentloaded' });
       await gp.locator('[role="dialog"][aria-modal="true"]').first().waitFor({ timeout: 20000 });
+      // THE PICTURE ITSELF ARRIVES (DR-1016): the list carries no bytes, and
+      // the opened picture is asked for by id; its bytes must be on the page.
+      await waitFor(async () => /^data:image\//.test(String(await gp.locator('[role="dialog"][aria-modal="true"] img').first().getAttribute('src') || '')), 'the opened picture to carry its bytes', 20000);
       await gp.screenshot({ path: join(SHOTS, 'G3-shared-listing-open.png'), fullPage: true });
       const text = await gp.locator('body').innerText();
       if (text.includes(STREET)) throw new Error(`the held street "${STREET}" is on the shared page (DR-0977)`);

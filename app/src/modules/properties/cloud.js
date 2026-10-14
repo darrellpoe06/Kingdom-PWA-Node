@@ -1265,13 +1265,33 @@ export async function addSystemEvent(row, client = supabase) {
 export async function loadVacancyPhotos(rentalId, client = supabase) {
   if (!rentalId) return ok({ photos: [] });
   try {
-    const { data, error } = await client.rpc('public_vacancy_photos', { p_rental: rentalId });
+    // THE LIST NEVER CARRIES THE BYTES (DR-1016; 0290). Darrell, 2026-10-14:
+    // "It takes about 10 - 20 seconds to populate". public_vacancy_photos
+    // returned every picture's whole data URL -- 37 full images for one card.
+    // The list is now ids, captions and whether a thumbnail exists; a card
+    // asks loadVacancyPicture for ONE picture at a time.
+    const { data, error } = await client.rpc('public_vacancy_photo_list', { p_rental: rentalId });
     if (error) {
       const msg = error.message || String(error);
-      const reason = /function .*public_vacancy_photos.* does not exist/i.test(msg) ? 'not-enabled-yet' : 'rpc-error';
+      const reason = /function .*public_vacancy_photo_list.* does not exist/i.test(msg) ? 'not-enabled-yet' : 'rpc-error';
       return no(reason, error);
     }
     return ok({ photos: data || [] });
+  } catch (e) { return no('unexpected', e); }
+}
+
+/**
+ * ONE listing picture's bytes, for the open shelf (DR-1016; 0290): the
+ * thumbnail ('thumb', the default; the full image when the upload wrote no
+ * thumbnail) or the full image ('full'), only while that picture is in the
+ * unit's showable set. A picture that is not answers null, never an error.
+ */
+export async function loadVacancyPicture(rentalId, photoId, size = 'thumb', client = supabase) {
+  if (!rentalId || !photoId) return ok({ src: null });
+  try {
+    const { data, error } = await client.rpc('public_vacancy_picture', { p_rental: rentalId, p_id: photoId, p_size: size === 'full' ? 'full' : 'thumb' });
+    if (error) return no('rpc-error', error);
+    return ok({ src: typeof data === 'string' && data ? data : null });
   } catch (e) { return no('unexpected', e); }
 }
 

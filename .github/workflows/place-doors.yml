@@ -1,0 +1,48 @@
+# =============================================================================
+# Place doors — the lane puts every door with an address on the map (DR-1015)
+# =============================================================================
+# Darrell, 2026-10-14: "What's nearby should be on all of them!!! Just not the
+# address!!!" A held door's card can show only what the shelf hands it (its
+# area and nearby lines, 0270 / 0283), and the in-app placement (DR-0998) runs
+# in a phone session and fails silently when its roads are dark. This runs the
+# SAME placement from a runner against the database the app reads, so every
+# door advertises its area and amenities whether or not a phone ever did.
+#
+# Runs on dispatch, and is dispatched by deploy-cloudflare-pages.yml after a
+# successful deploy (the same explicit-dispatch pattern as lessons-sync and
+# camera-health: a workflow_run on a token-started deploy never fires).
+#
+# THE BRAKES (CLAUDE.md): budget — at most 8 lookups a run (place-on-map.js),
+# timeout 10 minutes; lock — single instance, a new fire queues; kill — the
+# repo variable PLACE_DOORS_ENABLED='false' pauses it. Deterministic, no
+# compute spawned, no loop.
+name: Place doors (area + nearby on the database the app reads)
+
+on:
+  workflow_dispatch: {}
+
+concurrency:
+  group: place-doors
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  place:
+    if: ${{ vars.PLACE_DOORS_ENABLED != 'false' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Join the tailnet
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+      - name: Place every door with an address and no area
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: bash scripts/place-doors-over-tailnet.sh

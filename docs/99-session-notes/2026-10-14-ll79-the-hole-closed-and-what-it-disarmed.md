@@ -1,6 +1,6 @@
 # 2026-10-14 — L79: the hole closed, and the two checks that closing disarmed
 
-**Record:** DR-1016 · **Branch:** `claude/account-backup-storage-purge-xr35o0` · **Base:** `63245eb7f` · **Tier:** B/C, pushed with `hold`
+**Record:** DR-1019 · **Branch:** `claude/account-backup-storage-purge-xr35o0` · **Base:** `63245eb7f` · **Tier:** B/C, pushed with `hold`
 
 ## What this session was
 

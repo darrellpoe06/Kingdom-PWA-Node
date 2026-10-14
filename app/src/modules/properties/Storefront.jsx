@@ -20,7 +20,7 @@
 // family shows it (the default since DR-0977), and a map only when asked for.
 // =============================================================================
 import React, { useEffect, useState, useCallback } from 'react';
-import { loadVacancyPhotos } from './cloud.js';
+import { loadVacancyPhotos, loadVacancyPicture } from './cloud.js';
 import { applyUrl, shareListingUrl, listingShareText } from './apply-link.js';
 import ShareButton from '../../components/ShareButton.jsx';
 import Lightbox from '../../components/Lightbox.jsx';
@@ -79,6 +79,43 @@ export function VacancyCard({ unit, onApply = null, openPictures = 0 }) {
     return () => { on = false; };
   }, [unit.rentalId]);
 
+  // ONE PICTURE AT A TIME (DR-1016). The list above carries no bytes; the
+  // picture on the card (and the next one, so a swipe does not wait) is asked
+  // for by id when it is needed, the thumbnail first. Opening a picture large
+  // asks for its full image. A row that already carries storage_path (an
+  // older list, a test) is used as it is. Each picture is asked for once.
+  const [pics, setPics] = useState({}); // id -> { thumb, full }
+  const asked = React.useRef(new Set());
+  const ask = useCallback((shotRow, size) => {
+    if (!shotRow || !shotRow.id || !unit.rentalId) return;
+    const key = `${shotRow.id}:${size}`;
+    if (asked.current.has(key)) return;
+    asked.current.add(key);
+    loadVacancyPicture(unit.rentalId, shotRow.id, size).then((r) => {
+      if (!r.ok || !r.src) return;
+      setPics((cur) => ({ ...cur, [shotRow.id]: { ...(cur[shotRow.id] || {}), [size]: r.src } }));
+    });
+  }, [unit.rentalId]);
+  const srcOf = useCallback((shotRow, size = 'thumb') => {
+    if (!shotRow) return '';
+    if (shotRow.storage_path) return shotRow.storage_path;
+    const p = pics[shotRow.id] || {};
+    return size === 'full' ? (p.full || p.thumb || '') : (p.thumb || p.full || '');
+  }, [pics]);
+  useEffect(() => {
+    if (!shots.length) return;
+    const cur = shots[i]; const next = shots[(i + 1) % shots.length];
+    if (cur && !cur.storage_path) ask(cur, 'thumb');
+    if (next && next !== cur && !next.storage_path) ask(next, 'thumb');
+  }, [shots, i, ask]);
+  useEffect(() => {
+    if (open == null || !shots.length) return;
+    // The open picture's full image first, then the rest in order so a swipe
+    // inside the lightbox finds its picture ready.
+    const order = [...shots.slice(open), ...shots.slice(0, open)];
+    for (const row of order) if (row && !row.storage_path) ask(row, 'full');
+  }, [open, shots, ask]);
+
   // A SHARED LINK OPENS THE PICTURES (DR-1006). Once the shots are here and
   // the caller asked, scroll the card into view and open the first picture;
   // a unit with no pictures yet is scrolled to and left as it is — nothing is
@@ -112,7 +149,7 @@ export function VacancyCard({ unit, onApply = null, openPictures = 0 }) {
   return (
     <li ref={rootRef} className="border border-[#E8E4DC] bg-white overflow-hidden" data-testid={`vacancy-card-${unit.rentalId || unit.id}`}>
       <div className="aspect-[4/3] w-full bg-[#FAF8F4] flex items-center justify-center overflow-hidden">
-        {shot?.storage_path ? (
+        {shot && srcOf(shot) ? (
           /* THE PICTURE OPENS. Darrell, 2026-10-10: "Applications can't review
              the pictures of the place... just a placeholder for one image...
              can't click to see all images" and "image doesn't get bigger...
@@ -128,12 +165,18 @@ export function VacancyCard({ unit, onApply = null, openPictures = 0 }) {
             className="w-full h-full block cursor-zoom-in focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#B85838]"
           >
             <img
-              src={shot.storage_path}
+              src={srcOf(shot)}
               alt={shot.caption || `${unit.label}${unit.unit ? ` ${unit.unit}` : ''}`}
               loading="lazy"
               className="w-full h-full object-cover"
             />
           </button>
+        ) : shot ? (
+          /* The list is here and this picture is on its way (DR-1016): one
+             small read, not a broken frame. */
+          <span className="text-[0.5625rem] uppercase tracking-wider text-[#8A867E] px-2 text-center" role="status" data-testid="vacancy-photo-loading">
+            {`Loading picture ${i + 1} of ${shots.length}`}
+          </span>
         ) : (
           /* Said plainly rather than shown as a broken frame or a stock photo of
              somewhere else — a stand-in picture of a different building is a
@@ -185,7 +228,7 @@ export function VacancyCard({ unit, onApply = null, openPictures = 0 }) {
       {open != null && (
         <Lightbox
           items={shots.map((p, n) => ({
-            src: p.storage_path,
+            src: srcOf(p, 'full'),
             alt: p.caption || placeName,
             caption: p.caption || '',
             fileName: stampFileName(placeName, n + 1),

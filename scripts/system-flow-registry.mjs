@@ -967,6 +967,11 @@ const NODES = [
     reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }],
     writes: [], seeds: [],
   }),
+  wf('place-doors.yml', {
+    id: 'place-doors', name: 'The lane places the doors (DR-1015)', purpose: 'After every successful deploy and on dispatch: reads every door with an address and no area from the sovereign database over the tailnet, looks each building up once on the runner with the app’s own placement (the house matched by number and town, the area rounded, what is nearby incl. the city bus, no line naming the building’s street), and writes one guarded UPDATE per door so a held door’s public card advertises its area and amenities; the family’s own area always wins.',
+    reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }, { res: 'db:rentals', file: 'scripts/place-doors-over-tailnet.sh', token: 'from public.rentals' }],
+    writes: [{ res: 'db:rentals', file: 'scripts/place-doors.mjs', token: 'UPDATE public.rentals' }], seeds: ['public-shelf-witness'],
+  }),
   wf('camera-health.yml', {
     id: 'camera-health', name: 'Camera road witness (DR-0806)', purpose: 'After every deploy and twice an hour: reads the forwarder’s /health, the stream health log and go2rtc’s streams over the tailnet, probes a frame from every recording or watched camera, compares with the last witness kept in the rolling camera-incident issue, and labels a regression priority:cameras so it is fixed first.',
     reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }, { res: 'http:cams', token: '127.0.0.1:8773' }],
