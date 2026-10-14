@@ -423,6 +423,32 @@ jobs:
             && echo "lessons-sync dispatched for ${GITHUB_SHA}" | tee -a "$GITHUB_STEP_SUMMARY"
 
   # ---------------------------------------------------------------------------
+  # THE DOORS ARE PLACED (DR-1015). After a successful deploy, place-doors.yml
+  # puts every door with an address and no area on the map, on the database
+  # the app reads, so a held door's card advertises its area and amenities
+  # with no phone session involved. Same explicit dispatch as lessons-sync
+  # (a workflow_run on this token-started deploy never fires).
+  place-doors:
+    name: dispatch the door placer (after a successful deploy)
+    needs: deploy
+    if: ${{ vars.CF_PAGES_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      actions: write
+    steps:
+      - name: Dispatch place-doors.yml on main
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          curl -sS -f -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/workflows/place-doors.yml/dispatches" \
+            -d '{"ref":"main"}' \
+            && echo "place-doors dispatched for ${GITHUB_SHA}" | tee -a "$GITHUB_STEP_SUMMARY"
+
+  # ---------------------------------------------------------------------------
   # THE CAMERA ROAD WITNESS, DISPATCHED (DR-0806; found 2026-10-08). camera-health.yml
   # declares `workflow_run` on this deploy, and it never fired: this run is
   # itself started by a GITHUB_TOKEN dispatch, and workflow_run from a
