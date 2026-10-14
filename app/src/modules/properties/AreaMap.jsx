@@ -17,6 +17,12 @@
 // when the address is showing can be the direct link to the street view"):
 //   * street HELD  -> "Show on map" draws the rounded area as a circle, and
 //     nothing else: no pin, no point, no link to a maps app.
+//   * street HELD and NO AREA yet (DR-1013; Darrell, 2026-10-14: "Show on Map
+//     should be on every door/property so it's informative... Area so they
+//     only get the address afterwards") -> "Show on map" looks the TOWN up
+//     ("Champaign, Illinois", never a street) and draws the town: no circle,
+//     no pin, no Street view. The family's own area replaces it the moment
+//     a door in the building is placed (DR-0998).
 //   * street SHOWN -> "Show on map" looks the address up and puts a PIN on the
 //     house; "Street view" opens Google's Street View standing at it.
 // No tile and no lookup happens until somebody taps.
@@ -31,7 +37,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   roundArea, parsePoint, nearbyFrom, cleanNearby, tileLayout, milesText,
   namesStreet, CIRCLE_METERS, NEARBY_MAX, addressLine, mapsUrl, findPoint,
-  streetViewUrl, PIN_ZOOM, nearbyAround,
+  streetViewUrl, PIN_ZOOM, TOWN_ZOOM, nearbyAround, streetOfLine,
 } from './area.js';
 import { loadDoorArea } from './cloud.js';
 import { boundedRead } from '../../lib/bounded-read.js';
@@ -59,14 +65,25 @@ const acrossMiles = ((2 * CIRCLE_METERS) / 1609.344).toFixed(1);
  * house at block zoom (DR-0997). A held door is only ever given `area`.
  * `where` names the town (or the street, when shown) for the screen reader.
  */
-export function AreaMap({ area, pin = null, where = '', height = 200, streetShown = false }) {
-  const at = pin || area;
-  const L = useMemo(() => (at ? tileLayout(at, pin ? { z: PIN_ZOOM } : undefined) : null), [at, pin]);
+export function AreaMap({ area, pin = null, town = null, where = '', street = '', height = 200, streetShown = false }) {
+  // THE STREET'S OWN NAME ON THE MAP (DR-1013; Darrell, 2026-10-14: "highlight
+  // Prospect on the map... 150 may not be known by out of town people"). The
+  // tiles label the road by its route number ("US 150"); a visitor from out
+  // of town knows "North Prospect Avenue". Drawn under the pin, and ONLY in
+  // pin mode: a held door's map never names its street.
+  const streetLabel = pin ? String(street || '').trim() : '';
+  // `town` is the town's own point, drawn at town zoom with no circle and no
+  // pin (DR-1013): the one map a held door with no area may show.
+  const mode = pin ? 'pin' : area ? 'area' : town ? 'town' : '';
+  const at = pin || area || town;
+  const L = useMemo(() => (at ? tileLayout(at, mode === 'pin' ? { z: PIN_ZOOM } : mode === 'town' ? { z: TOWN_ZOOM } : undefined) : null), [at, mode]);
   if (!L) return null;
   const r = L.radiusPx;
-  const label = pin
-    ? `Map of ${where || 'the address'}. The pin is on the house.`
-    : `Map of the area${where ? ` in ${where}` : ''}. The place is inside the circle, about ${acrossMiles} miles across.${streetShown ? '' : ' The street is not shown.'}`;
+  const label = mode === 'pin'
+    ? `Map of ${where || 'the address'}. The pin is on the house${streetLabel ? `, on ${streetLabel}` : ''}.`
+    : mode === 'town'
+      ? `Map of ${where || 'the town'}. The place is somewhere in this town; the street is shared when you apply.`
+      : `Map of the area${where ? ` in ${where}` : ''}. The place is inside the circle, about ${acrossMiles} miles across.${streetShown ? '' : ' The street is not shown.'}`;
   return (
     <div
       className="relative w-full overflow-hidden border border-[#E8E4DC]"
@@ -74,6 +91,7 @@ export function AreaMap({ area, pin = null, where = '', height = 200, streetShow
       role="img"
       aria-label={label}
       data-testid="area-map"
+      data-mode={mode}
     >
       <div
         aria-hidden="true"
@@ -88,7 +106,7 @@ export function AreaMap({ area, pin = null, where = '', height = 200, streetShow
           />
         ))}
       </div>
-      {pin ? (
+      {mode === 'town' ? null : mode === 'pin' ? (
         // The pin's tip sits on the point: the SVG is 28 x 36 and its tip is
         // its bottom-center, so it is lifted by its full height.
         <svg
@@ -109,6 +127,14 @@ export function AreaMap({ area, pin = null, where = '', height = 200, streetShow
         >
           <circle cx={r + 2} cy={r + 2} r={r} fill="rgba(47,93,80,0.18)" stroke="#2F5D50" strokeWidth="2" />
         </svg>
+      )}
+      {streetLabel && (
+        <span
+          aria-hidden="true"
+          className="absolute whitespace-nowrap bg-white/92 border border-[#2F5D50] text-[#1A1815] text-[0.75rem] font-semibold px-2 py-0.5 pointer-events-none"
+          style={{ left: '50%', top: 'calc(50% + 6px)', transform: 'translateX(-50%)' }}
+          data-testid="area-map-street"
+        >{streetLabel}</span>
       )}
       {/* The tiles' licence asks for this on the map; it is not the listing,
           so the read-aloud passes over it (data-read-skip). */}
@@ -161,11 +187,17 @@ const linkCls = 'inline-flex items-center text-[0.625rem] uppercase tracking-wid
 export function MapOnRequest({ area = null, query = '', where = '', streetShown = false, nearby = [], openTab = defaultOpenTab }) {
   const [open, setOpen] = useState(false);
   const [point, setPoint] = useState(null); // the exact point of a SHOWN street, once looked up
+  const [townPoint, setTownPoint] = useState(null); // the TOWN's point, for a held door with no area (DR-1013)
   const [lines, setLines] = useState([]);
   const [state, setState] = useState('idle'); // idle | finding
   const [said, setSaid] = useState('');
   const shownStreet = Boolean(query);
-  if (!area && !shownStreet) return null;
+  // EVERY DOOR HAS A MAP (DR-1013). A held door with no area of its own (and
+  // none to borrow from its building, 0283) still names its town, and the
+  // town is what it may show.
+  const townName = String(where || '').trim();
+  const townOnly = !shownStreet && !area && Boolean(townName);
+  if (!area && !shownStreet && !townName) return null;
 
   const lookUp = async () => {
     if (point) return { ok: true, point };
@@ -175,6 +207,18 @@ export function MapOnRequest({ area = null, query = '', where = '', streetShown 
   };
   const show = async () => {
     if (open) { setOpen(false); return; }
+    if (townOnly) {
+      if (townPoint) { setOpen(true); return; }
+      // The TOWN is looked up, never the street: the query is the card's own
+      // "City, State" line, which is already printed on it.
+      setState('finding'); setSaid('');
+      let r;
+      try { r = await findPoint(townName); } catch { r = { ok: false, reason: 'The map could not be reached just now.' }; }
+      setState('idle');
+      if (r.ok) { setTownPoint(r.point); setOpen(true); return; }
+      setSaid(r.reason);
+      return;
+    }
     if (!shownStreet || point) { setOpen(true); return; }
     setState('finding'); setSaid('');
     const r = await lookUp();
@@ -214,8 +258,10 @@ export function MapOnRequest({ area = null, query = '', where = '', streetShown 
       </div>
       {said && <p className="text-xs text-[#5A5751] mt-1" role="status">{said}</p>}
       {open && (point
-        ? <div className="mt-2"><AreaMap pin={point} where={query} streetShown /></div>
-        : area && <div className="mt-2"><AreaMap area={area} where={where} streetShown={streetShown} /></div>)}
+        ? <div className="mt-2"><AreaMap pin={point} where={query} street={streetOfLine(query)} streetShown /></div>
+        : area
+          ? <div className="mt-2"><AreaMap area={area} where={where} streetShown={streetShown} /></div>
+          : townPoint && <div className="mt-2"><AreaMap town={townPoint} where={townName} /></div>)}
       {open && extra.length > 0 && <NearbyList lines={extra} />}
     </div>
   );

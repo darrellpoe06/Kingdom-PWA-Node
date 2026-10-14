@@ -142,8 +142,25 @@ export const OVERPASS = 'https://overpass-api.de/api/interpreter';
 export const OVERPASS_MIRRORS = Object.freeze([OVERPASS, 'https://overpass.kumi.systems/api/interpreter']);
 const MI = 1609.344;
 
-// [kind, Overpass selector, radius in miles, how many, how the line reads]
+/**
+ * THE CITY BUS (DR-1014; Darrell, 2026-10-14: "Bus stop location is close...
+ * add those too... People who need to ride the bus will want to know... city
+ * buses"). The two nearest stops within a mile, each a plain "City bus stop"
+ * with the route numbers the map carries (route_ref) -- NEVER the stop's own
+ * name, which is a street corner ("Prospect & Harvard") and would hand a
+ * stranger the street of a held door (0270 refuses such a line anyway).
+ * Route numbers are what OpenStreetMap has mapped; the family can edit a
+ * line, and the research note's own caution stands: verify at mtd.org.
+ */
+export function busStopLabel(tags = {}, i = 0) {
+  const routes = String(tags.route_ref || '').split(/[;,\s]+/).map((r) => r.trim()).filter(Boolean).slice(0, 6);
+  const head = i === 0 ? 'City bus stop' : 'Another city bus stop';
+  return routes.length ? `${head} (route${routes.length === 1 ? '' : 's'} ${routes.join(', ')})` : head;
+}
+
+// [kind, Overpass selector, radius in miles, how many, how the line reads (name, tags, index)]
 export const NEARBY_KINDS = Object.freeze([
+  ['bus',        'node["highway"="bus_stop"]',                                 1,  2, (n, t, i) => busStopLabel(t, i)],
   ['grocery',    'nwr["shop"="supermarket"]["name"]',                          5,  2, (n) => `${n} (grocery)`],
   ['pharmacy',   'nwr["amenity"="pharmacy"]["name"]',                          5,  1, (n) => `${n} (pharmacy)`],
   ['hospital',   'nwr["amenity"="hospital"]["name"]',                          15, 1, (n) => n],
@@ -179,12 +196,18 @@ export function nearbyFromOverpass(point, body) {
       if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
       const m = roundMiles(haversineMiles(point, { lat, lng }));
       if (m > miles) continue;
-      const label = String(read(String(t.name || t.ref || '').trim(), t)).replace(/\s+/g, ' ').trim().slice(0, 80);
-      if (!label || seen.has(label.toLowerCase())) continue;
-      found.push({ label, miles: m });
+      found.push({ t, miles: m });
     }
+    // Nearest first, THEN read: a kind whose line says "another" (the bus
+    // stops) names the nearest one plainly and the next one as the other.
     found.sort((a, b) => a.miles - b.miles);
-    for (const l of found.slice(0, count)) { seen.add(l.label.toLowerCase()); lines.push(l); }
+    let kept = 0;
+    for (const f of found) {
+      if (kept >= count) break;
+      const label = String(read(String(f.t.name || f.t.ref || '').trim(), f.t, kept)).replace(/\s+/g, ' ').trim().slice(0, 80);
+      if (!label || seen.has(label.toLowerCase())) continue;
+      seen.add(label.toLowerCase()); lines.push({ label, miles: f.miles }); kept += 1;
+    }
   }
   return lines;
 }
@@ -306,6 +329,10 @@ export function streetName(address) {
   const s = String(address || '').trim().replace(/^\s*\d+[A-Za-z]?\s+/, '').trim();
   return s.length >= 4 ? s : '';
 }
+/** The street NAME out of an address LINE ("805 North Prospect Avenue, Champaign, Illinois" -> "North Prospect Avenue"). */
+export function streetOfLine(line) {
+  return streetName(String(line || '').split(',')[0]);
+}
 export function namesStreet(label, address) {
   const st = streetName(address);
   return Boolean(st) && String(label || '').toLowerCase().includes(st.toLowerCase());
@@ -343,6 +370,8 @@ export function streetViewUrl(point) {
 
 /** The zoom a shown street's pin is drawn at: the block, not the town. */
 export const PIN_ZOOM = 17;
+/** The zoom a TOWN is drawn at when a held door has no area yet (DR-1013): the town, not a block. */
+export const TOWN_ZOOM = 12;
 
 export const NOMINATIM_DIRECT = 'https://nominatim.openstreetmap.org/search';
 

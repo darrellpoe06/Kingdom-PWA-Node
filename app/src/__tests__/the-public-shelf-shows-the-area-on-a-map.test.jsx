@@ -121,6 +121,7 @@ describe('on the public shelf', () => {
     expect(container.querySelectorAll('[data-testid="area-map-tile"]')).toHaveLength(15);
     expect(container.querySelector('[data-testid="area-map-circle"]')).not.toBeNull();
     expect(container.querySelector('[data-testid="area-map-pin"]')).toBeNull();
+    expect(container.querySelector('[data-testid="area-map-street"]')).toBeNull();
     const label = container.querySelector('[data-testid="area-map"]').getAttribute('aria-label');
     expect(label).toContain('Champaign, Illinois');
     expect(label).toContain('The street is not shown');
@@ -156,7 +157,10 @@ describe('on the public shelf', () => {
       expect(tiles).toHaveLength(15);
       expect(tiles.every((u) => u.startsWith('https://tile.openstreetmap.org/17/'))).toBe(true);
       expect(container.querySelector('[data-testid="area-map"]').getAttribute('aria-label'))
-        .toBe('Map of 805 North Prospect Avenue, Champaign, Illinois. The pin is on the house.');
+        .toBe('Map of 805 North Prospect Avenue, Champaign, Illinois. The pin is on the house, on North Prospect Avenue.');
+      // THE STREET'S OWN NAME UNDER THE PIN (DR-1013): the tiles say "US 150",
+      // which a visitor from out of town does not know; the card says Prospect.
+      expect(container.querySelector('[data-testid="area-map-street"]').textContent).toBe('North Prospect Avenue');
       // Now the point is known, Street view is a plain link into Street View.
       expect(container.querySelector('[data-testid="street-view"]').getAttribute('href'))
         .toBe('https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=40.123364,-88.258280');
@@ -243,8 +247,63 @@ describe('on the public shelf', () => {
     } finally { globalThis.fetch = real; }
   });
 
-  it('a door with no area set shows no map and no empty heading', async () => {
-    await mount(createElement(VacancyCard, { unit: { id: 'r2', rentalId: 'r2', label: 'Place', where: 'Danville, Illinois', offering: 'long-term', addressShown: false, area: null, nearby: [] } }));
+  it('EVERY DOOR HAS A MAP (DR-1013): a held door with no area shows its TOWN on request, no circle, no pin, no Street view', async () => {
+    // Darrell, 2026-10-14, on the Apt 4 bed with no "Show on map": "Show on
+    // Map should be on every door/property so it's informative... Area so
+    // they only get the address afterwards." The town is looked up, never a
+    // street, and only on the tap.
+    const calls = [];
+    const real = globalThis.fetch;
+    globalThis.fetch = async (url) => { calls.push(String(url)); return { json: async () => ({ ok: true, lat: 40.1164, lng: -88.2434, matched: 'Champaign, Champaign County, Illinois', source: 'census' }) }; };
+    try {
+      await mount(createElement(VacancyCard, { unit: {
+        id: 'r2', rentalId: 'r2', label: 'Bed in a shared multi-family in Champaign, Illinois', where: 'Champaign, Illinois', unit: '',
+        offering: 'long-term', rent: 750, addressShown: false, street: '', city: 'Champaign', state: 'Illinois', area: null, nearby: [],
+      } }));
+      expect(container.querySelector('[data-testid="nearby"]')).toBeNull();
+      expect(container.querySelector('[data-testid="show-map"]')).not.toBeNull();
+      expect(container.querySelector('[data-testid="street-view"]')).toBeNull();
+      expect(container.querySelectorAll('[data-testid="area-map-tile"]')).toHaveLength(0);
+      expect(calls).toEqual([]);
+      await tap(container.querySelector('[data-testid="show-map"]'));
+      expect(calls).toEqual(['/geocode?q=Champaign%2C%20Illinois']);
+      const map = container.querySelector('[data-testid="area-map"]');
+      expect(map.getAttribute('data-mode')).toBe('town');
+      expect(map.getAttribute('aria-label')).toBe('Map of Champaign, Illinois. The place is somewhere in this town; the street is shared when you apply.');
+      const tiles = [...container.querySelectorAll('[data-testid="area-map-tile"]')].map((t) => t.getAttribute('src'));
+      expect(tiles).toHaveLength(15);
+      expect(tiles.every((u) => u.startsWith('https://tile.openstreetmap.org/12/'))).toBe(true);
+      expect(container.querySelector('[data-testid="area-map-circle"]')).toBeNull();
+      expect(container.querySelector('[data-testid="area-map-pin"]')).toBeNull();
+      expect(container.querySelector('[data-testid="area-map-street"]')).toBeNull();
+      expect(container.querySelector('[data-testid="street-view"]')).toBeNull();
+      expect(container.textContent).toContain('Address shared when you apply');
+      // Hidden and shown again: looked up once.
+      await tap(container.querySelector('[data-testid="show-map"]'));
+      await tap(container.querySelector('[data-testid="show-map"]'));
+      expect(calls).toHaveLength(1);
+    } finally { globalThis.fetch = real; }
+  });
+
+  it('PROVEN-TO-CATCH: a held door with no area never sends a street to the lookup, and a town the map cannot find says so', async () => {
+    const calls = [];
+    const real = globalThis.fetch;
+    globalThis.fetch = async (url) => { calls.push(String(url)); return { json: async () => ({ ok: false, reason: 'no match' }) }; };
+    try {
+      // The shelf never hands a held door its street (0288), so even a card
+      // built with one by mistake looks the TOWN up, not the street.
+      await mount(createElement(MapOnRequest, { area: null, query: '', where: 'Nowhere, Illinois' }));
+      await tap(container.querySelector('[data-testid="show-map"]'));
+      expect(calls).toEqual(['/geocode?q=Nowhere%2C%20Illinois']);
+      expect(calls.join(' ')).not.toMatch(/Prospect|805/);
+      expect(container.textContent).toContain('The map could not find this address.');
+      expect(container.querySelector('[data-testid="area-map"]')).toBeNull();
+    } finally { globalThis.fetch = real; }
+  });
+
+  it('a door with no area and no town shows no map control and no empty heading', async () => {
+    await mount(createElement(VacancyCard, { unit: { id: 'r2b', rentalId: 'r2b', label: 'Place', where: '', offering: 'long-term', addressShown: false, area: null, nearby: [] } }));
+    expect(container.querySelector('[data-testid="show-map"]')).toBeNull();
     expect(container.querySelector('[data-testid="area-map"]')).toBeNull();
     expect(container.querySelector('[data-testid="nearby"]')).toBeNull();
   });

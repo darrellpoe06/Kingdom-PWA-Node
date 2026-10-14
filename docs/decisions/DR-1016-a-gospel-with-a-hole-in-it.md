@@ -1,4 +1,4 @@
-# DR-1013: A gospel with a hole in it — L79 was a hole before it was a lesson, and the hole closing disarmed two checks
+# DR-1016: A gospel with a hole in it — L79 was a hole before it was a lesson, and the hole closing disarmed the checks keyed on it
 
 **Date:** 2026-10-14
 **Status:** accepted
