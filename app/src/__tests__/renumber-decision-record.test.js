@@ -22,7 +22,8 @@ import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, readdi
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
-  recordsOnDisk, firstFreeNumber, planRenumber, rewriteText, renumberInTree, idOf, pad,
+  recordsOnDisk, firstFreeNumber, planRenumber, rewriteText, rewriteIndexRow,
+  ambiguousCitations, renumberInTree, idOf, pad,
 } from '../../../scripts/renumber-decision-record.mjs';
 
 const disk = (pairs) => new Map(pairs);
@@ -78,11 +79,26 @@ describe('the plan, and every case it refuses', () => {
     expect(() => planRenumber(disk([[1016, 'a.md']]), 1015)).toThrow(/no decision file holds DR-1015/);
   });
 
-  it('REFUSES a source two files hold, naming both rather than guessing', () => {
-    const d = disk([[1016, ['DR-1016-one.md', 'DR-1016-two.md']]]);
-    expect(() => planRenumber(d, 1016)).toThrow(/two files already hold DR-1016/);
-    expect(() => planRenumber(d, 1016)).toThrow(/DR-1016-one\.md and DR-1016-two\.md/);
-    expect(() => planRenumber(d, 1016)).toThrow(/a person reads those two/);
+  it('asks WHICH record moves when two hold the number, rather than guessing (found by using it)', () => {
+    // The first real invocation refused this case outright, which was wrong:
+    // straight after a base merge BOTH records sit on disk, and that is the
+    // case this tool exists for.
+    const d = disk([[1020, ['DR-1020-mine.md', 'DR-1020-theirs.md']]]);
+    expect(() => planRenumber(d, 1020)).toThrow(/two files hold DR-1020/);
+    expect(() => planRenumber(d, 1020)).toThrow(/expected right after a base merge/);
+    expect(() => planRenumber(d, 1020)).toThrow(/--file DR-1020-mine\.md/);
+    // told which, it plans the move
+    expect(planRenumber(d, 1020, null, { file: 'DR-1020-mine.md' })).toMatchObject({
+      oldFile: 'DR-1020-mine.md', newFile: 'DR-1021-mine.md', to: 1021,
+    });
+  });
+
+  it('REFUSES a --file that does not hold the number', () => {
+    const d = disk([[1020, ['DR-1020-mine.md', 'DR-1020-theirs.md']]]);
+    expect(() => planRenumber(d, 1020, null, { file: 'DR-1020-other.md' }))
+      .toThrow(/does not hold DR-1020/);
+    expect(() => planRenumber(disk([[1016, 'DR-1016-a.md']]), 1016, null, { file: 'DR-1016-b.md' }))
+      .toThrow(/DR-1016-a\.md does/);
   });
 
   it('REFUSES a no-op', () => {
@@ -183,5 +199,62 @@ describe('the whole rename, in a real tree', () => {
     const before = readdirSync(join(root, 'docs/decisions')).length;
     renumberInTree(root, 1016, 1097, { force: true, log: () => {} });
     expect(readdirSync(join(root, 'docs/decisions')).length, 'the file count is unchanged').toBe(before);
+  });
+});
+
+describe('a bare id is never rewritten when two records share the number', () => {
+  // THE WORST DEFECT THIS TOOL HAD, found on its first real use: it renamed the
+  // moved record correctly and then rewrote main's OWN DR-1020 record and four
+  // of main's files, turning their legitimate ids into the new number. A bare
+  // id is ambiguous while two records hold it, so it is reported, not rewritten.
+  const plan = { from: 1020, to: 1021, oldFile: 'DR-1020-mine.md', newFile: 'DR-1021-mine.md' };
+
+  it('rewrites the file name but NOT a bare id when the number is shared (proven-to-catch)', () => {
+    const theirs = '# DR-1020: utilities are the family\u2019s to say\n\ncited as DR-1020 throughout\n';
+    expect(rewriteText(theirs, plan, { exclusive: false }), "another record's text is untouched").toBeNull();
+    const mixed = 'see DR-1020-mine.md and also DR-1020';
+    expect(rewriteText(mixed, plan, { exclusive: false })).toBe('see DR-1021-mine.md and also DR-1020');
+  });
+
+  it('does rewrite a bare id when the moved record holds the number alone', () => {
+    expect(rewriteText('cited as DR-1020 here', plan, { exclusive: true })).toBe('cited as DR-1021 here');
+  });
+
+  it('counts the bare citations it declined to touch', () => {
+    expect(ambiguousCitations('DR-1020 and DR-1020 and DR-10200', plan)).toBe(2);
+  });
+
+  it('relinks the moved record\'s INDEX row by its LINK, not by its id', () => {
+    const index = '| [DR-1020](DR-1021-mine.md) | mine |\n| [DR-1020](DR-1020-theirs.md) | theirs |\n';
+    const out = rewriteIndexRow(index, plan);
+    expect(out).toContain('| [DR-1021](DR-1021-mine.md) | mine |');
+    expect(out, "the other record's row keeps its own number").toContain('| [DR-1020](DR-1020-theirs.md) | theirs |');
+  });
+
+  it('leaves the other record entirely alone through a whole run (proven-to-catch)', () => {
+    const root = mkdtempSync(join(tmpdir(), 'dr-share-'));
+    mkdirSync(join(root, 'docs/decisions'), { recursive: true });
+    mkdirSync(join(root, 'app/src'), { recursive: true });
+    writeFileSync(join(root, 'docs/decisions/DR-1020-mine.md'), '# DR-1020: mine\n');
+    const theirsText = '# DR-1020: theirs\n\nthis record IS DR-1020 and must stay so\n';
+    writeFileSync(join(root, 'docs/decisions/DR-1020-theirs.md'), theirsText);
+    writeFileSync(join(root, 'docs/decisions/INDEX.md'),
+      '**Next ID:** DR-1021.\n'
+      + '| [DR-1020](DR-1020-mine.md) | mine |\n'
+      + '| [DR-1020](DR-1020-theirs.md) | theirs |\n');
+    const appText = '// implements DR-1020 (theirs)\n';
+    writeFileSync(join(root, 'app/src/theirs.js'), appText);
+
+    const r = renumberInTree(root, 1020, null, { force: true, file: 'DR-1020-mine.md', log: () => {} });
+    expect(r.to).toBe(1021);
+    expect(readFileSync(join(root, 'docs/decisions/DR-1021-mine.md'), 'utf8')).toContain('# DR-1021: mine');
+    expect(readFileSync(join(root, 'docs/decisions/DR-1020-theirs.md'), 'utf8'),
+      "the other record is byte-for-byte untouched").toBe(theirsText);
+    expect(readFileSync(join(root, 'app/src/theirs.js'), 'utf8'),
+      "a file citing only the other record is untouched").toBe(appText);
+    const index = readFileSync(join(root, 'docs/decisions/INDEX.md'), 'utf8');
+    expect(index).toContain('| [DR-1021](DR-1021-mine.md) | mine |');
+    expect(index).toContain('| [DR-1020](DR-1020-theirs.md) | theirs |');
+    expect(r.ambiguous, 'the bare citations it declined are reported').toBeGreaterThan(0);
   });
 });
