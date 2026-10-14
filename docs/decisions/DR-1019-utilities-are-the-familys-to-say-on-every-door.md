@@ -6,7 +6,7 @@
 - `app/src/modules/properties/DoorTabs.jsx` (the door editor's "Utilities" select, three states; `utilitiesWord` / `utilitiesValue` / `rentalPatchOut` turn the word back into the column)
 - `app/src/modules/properties/Storefront.jsx` (a door whose tenant pays says "Not included: the tenant pays their own utilities.")
 - `scripts/listing-share-pages.mjs` (the share page's one line says "All utilities paid" or "Tenant pays utilities")
-- `app/src/__tests__/utilities-are-the-familys-to-say.test.jsx` (6; proven to catch)
+- `app/src/__tests__/utilities-are-the-familys-to-say.test.jsx` (5; proven to catch)
 
 **Amends:** DR-0952 / 0273 (utilities as a listed fact with three states on the card — now the family can SET the fact on any door), the co-living split (`coliving.js` `ROOM_DEFAULTS.utilitiesIncluded = true` stays the default for a new room or bed)
 **Declared by:** Darrell, 2026-10-14: *"All utilities paid for the shared room tenants... single person renting a whole unit pays their own utilities... make sense?"*; *"Currently... it may change in the future... however we eat that cost..."*
