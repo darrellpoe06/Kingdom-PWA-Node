@@ -98,7 +98,8 @@ describe('what is nearby, for ANY property (not just 805)', () => {
 
   it('Overpass unreachable is NOT "nothing near": it says so, so the caller tries again', async () => {
     const r = await nearbyAround(AT_DANVILLE, { fetchImpl: async () => { throw new TypeError('Failed to fetch'); } });
-    expect(r).toEqual({ ok: false, reason: 'What is nearby could not be reached just now.' });
+    expect(r).toMatchObject({ ok: false, reason: 'What is nearby could not be reached just now.' });
+    expect(r.tried).toHaveLength(OVERPASS_MIRRORS.length); // each mirror was reached for, and each said so
     const busy = await nearbyAround(AT_DANVILLE, { fetchImpl: async () => ({ ok: false, status: 429 }) });
     expect(busy.ok).toBe(false);
   });
@@ -110,6 +111,9 @@ describe('what is nearby, for ANY property (not just 805)', () => {
     expect(r.ok).toBe(false);
     expect(r.reason).toMatch(/timed out on the server/);
     expect(asked.length).toBe(OVERPASS_MIRRORS.length); // the server's own trouble is worth every next mirror (three since DR-1023)
+    // Every mirror's own answer rides on the failure, so a witness says which said what.
+    expect(r.tried.map((t) => t.endpoint)).toEqual([...OVERPASS_MIRRORS]);
+    expect(r.tried.every((t) => /timed out on the server/.test(t.reason))).toBe(true);
     expect(overpassGaveUp({ elements: [] })).toBe('');
     expect(overpassGaveUp({ remark: 'runtime error: Query run out of memory' })).toMatch(/out of memory/);
   });

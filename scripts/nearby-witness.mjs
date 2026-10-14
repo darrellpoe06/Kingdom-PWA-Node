@@ -40,6 +40,7 @@ const UA = 'PoeTech nearby witness/1 (+https://poetech.us)';
 const near = await nearbyAround({ lat: g.lat, lng: g.lng }, { userAgent: UA, timeoutMs: 75000, serverTimeoutS: 60 });
 if (!near.ok) {
   console.error(`NEARBY FAILED: ${near.reason}`);
+  for (const t of near.tried || []) console.error(`  mirror ${new URL(t.endpoint).host}: ${t.reason}`);
   // ONE KIND AT A TIME (DR-1023). The whole query asks ten kinds in ten
   // radii at once; Danville timed out on it at 90 s of server patience on
   // both mirrors, four runs running (placer 38592341539, witness
