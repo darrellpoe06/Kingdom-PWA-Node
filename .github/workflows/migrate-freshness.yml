@@ -88,6 +88,17 @@ on:
     # minutes. Better than forever, which is what it was before this file
     # existed. Not the same as prompt.
     - cron: '*/5 * * * *' # a REQUEST for every 5 min; see the measurement above
+  # ON CI COMPLETING (2026-10-14, DR-1012): the sweep a bot-opened PR starts
+  # never runs (`action_required`, 0 jobs — measured on #2162's own sweep), so a
+  # single-push PR's merge had no watcher for its migration unless an older
+  # sweep was alive. CI's run on the PR branch completes normally and native
+  # auto-merge squashes within seconds of green, so this fire lands in the
+  # seconds around the merge; the job settles 75 s on this event before it
+  # reads main, so the new tip is readable. Bounded: one queued run per CI
+  # completion, under the 5-minute budget.
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
   workflow_dispatch: {}
 
 # LOCK: single-instance. A new fire while one runs is queued, never stacked.
@@ -111,6 +122,13 @@ jobs:
           REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
+
+          # On a CI-completion fire the merge is seconds away or seconds past
+          # (DR-1012); main read at once would still show the previous tip.
+          if [ "${GITHUB_EVENT_NAME:-}" = "workflow_run" ]; then
+            echo "CI completed; settling 75 s so the merge's tip is readable before deciding."
+            sleep 75
+          fi
 
           main_sha=$(gh api "repos/$REPO/commits/main" --jq '.sha')
           if [ -z "$main_sha" ]; then

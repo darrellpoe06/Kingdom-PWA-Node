@@ -163,6 +163,16 @@ describe('migrate-freshness — the outer net a poll window can never be', () =>
     expect(src).toMatch(/workflow_dispatch/);
   });
 
+  it('also hears CI completing and settles before it reads main (DR-1012)', () => {
+    // A single-push PR's merge has no sweep watching it (the bot-started one
+    // sits at action_required); CI's completion is the event that lands in the
+    // seconds around the merge, and main's new tip is readable a beat later.
+    const ci = (read('ci.yml').match(/^name:\s*(.+)$/m) || [])[1];
+    expect(ci).toBe('CI');
+    expect(src).toMatch(/workflow_run:\s*\n\s*workflows: \["CI"\]\s*\n\s*types: \[completed\]/);
+    expect(src).toMatch(/if \[ "\$\{GITHUB_EVENT_NAME:-\}" = "workflow_run" \]; then\s*\n[^\n]*\n\s*sleep 75/);
+  });
+
   it('carries the three brakes the timer-driven class requires', () => {
     expect(src).toMatch(/concurrency:\s*\n\s*group: migrate-freshness/);   // LOCK
     expect(src).toMatch(/cancel-in-progress: false/);                       // never abandon a half-run

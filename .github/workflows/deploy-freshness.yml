@@ -75,8 +75,21 @@ on:
   # rather than assumed — see DR-0458's "what is still not proven", and the
   # cron and auto-merge's own dispatch both stay in place, so the worst case of
   # being wrong is exactly today's behaviour and nothing worse.
+  #
+  # AND ON CI COMPLETING (2026-10-14, DR-1012, the TENTH miss, #2161). The hook
+  # above hears Auto-merge's sweep END — and the sweep a bot-opened PR starts
+  # never runs at all: it sits at `action_required` (DR-0458 measured the
+  # state; measured again live on #2162's own sweep, 38495287155, 0 jobs) and
+  # emits no completion a healer could hear. A single-push PR has no other
+  # sweep, so its merge had NO watcher unless an older sweep happened to be
+  # alive (#2159, #2160: luck; #2161: nothing alive, no deploy). CI's own run
+  # on the PR branch is started by a person's push, completes normally, and
+  # native auto-merge squashes within seconds of it going green — so CI's
+  # completion is the event that lands in the exact seconds around the merge.
+  # The same 5-look watch below covers the gap between the two. Bounded: one
+  # queued run per CI completion, at most five reads-pairs, no compute.
   workflow_run:
-    workflows: ["Auto-merge"]
+    workflows: ["Auto-merge", "CI"]
     types: [completed]
   workflow_dispatch: {}
 
