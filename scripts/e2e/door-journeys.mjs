@@ -142,6 +142,7 @@ export const FAULTS = Object.freeze({
       `${MIG}/0283-a-held-door-shows-its-buildings-area.sql`,
       `${MIG}/0286-a-door-is-priced-by-any-cadence.sql`,
       `${MIG}/0288-a-short-stays-only-season-advertises-the-night-alone.sql`,
+      `${MIG}/0291-borrowing-goes-both-ways.sql`,
     ],
   },
   confirm: {
@@ -221,6 +222,7 @@ export const FAULTS = Object.freeze({
       `${MIG}/0283-a-held-door-shows-its-buildings-area.sql`,
       `${MIG}/0286-a-door-is-priced-by-any-cadence.sql`,
       `${MIG}/0288-a-short-stays-only-season-advertises-the-night-alone.sql`,
+      `${MIG}/0291-borrowing-goes-both-ways.sql`,
     ],
   },
   calendar: {
