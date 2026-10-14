@@ -16,7 +16,7 @@
 // Usage: node scripts/nearby-witness.mjs "805 North Prospect Avenue" Champaign Illinois
 // =============================================================================
 import { geocode } from '../app/functions/geocode.js';
-import { nearbyAround, roundArea, milesText, OVERPASS, overpassQuery } from '../app/src/modules/properties/area.js';
+import { nearbyAround, roundArea, milesText, OVERPASS, overpassGaveUp, NEARBY_KINDS } from '../app/src/modules/properties/area.js';
 import { matchesAddress } from '../app/src/modules/properties/place-on-map.js';
 
 const [street, city = '', state = ''] = process.argv.slice(2);
@@ -40,22 +40,30 @@ const UA = 'PoeTech nearby witness/1 (+https://poetech.us)';
 const near = await nearbyAround({ lat: g.lat, lng: g.lng }, { userAgent: UA, timeoutMs: 120000, serverTimeoutS: 90 });
 if (!near.ok) {
   console.error(`NEARBY FAILED: ${near.reason}`);
-  // Map the space in this one run, so the next change is measured, not
-  // guessed (2026-10-13: two runs answered 406 with and without an Accept
-  // header; what differs between a runner and a phone is the User-Agent and
-  // the verb).
-  const q = overpassQuery({ lat: g.lat, lng: g.lng });
-  const said = async (label, url, init) => {
+  // ONE KIND AT A TIME (DR-1023). The whole query asks ten kinds in ten
+  // radii at once; Danville timed out on it at 90 s of server patience on
+  // both mirrors, four runs running (placer 38592341539, witness
+  // 38593963107, placer 38597571793), while Champaign answers in seconds.
+  // Which kind is the heavy one is not knowable from the whole; each is
+  // asked alone here, timed, with the server's own remark, so the next
+  // change is measured rather than guessed (DR-0076 §4).
+  console.error('per kind (each alone, 25 s of server patience, first mirror):');
+  for (const [kind, sel, miles] of NEARBY_KINDS) {
+    const parts = sel.split(';').map((one) => `${one}(around:${Math.round(miles * 1609.344)},${g.lat.toFixed(6)},${g.lng.toFixed(6)});`);
+    const q = `[out:json][timeout:25];(${parts.join('')});out center tags;`;
+    const t0 = Date.now();
     try {
-      const r = await fetch(url, { ...init, signal: AbortSignal.timeout(30000) });
-      const body = String(await r.text()).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 120);
-      console.error(`  probe ${label}: HTTP ${r.status}${r.ok ? ' (answered)' : `: ${body}`}`);
-    } catch (e) { console.error(`  probe ${label}: ${e?.name || 'failed'}`); }
-  };
-  await said('POST, no User-Agent', OVERPASS, { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: `data=${encodeURIComponent(q)}` });
-  await said('POST, browser-like headers', OVERPASS, { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded', 'user-agent': 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/126.0 Mobile Safari/537.36', accept: '*/*' }, body: `data=${encodeURIComponent(q)}` });
-  await said('GET ?data=, named', `${OVERPASS}?data=${encodeURIComponent(q)}`, { method: 'GET', headers: { 'user-agent': UA } });
-  await said('GET ?data=, browser-like', `${OVERPASS}?data=${encodeURIComponent(q)}`, { method: 'GET', headers: { 'user-agent': 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/126.0 Mobile Safari/537.36', accept: '*/*' } });
+      const r = await fetch(OVERPASS, { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded', 'user-agent': UA }, body: `data=${encodeURIComponent(q)}`, signal: AbortSignal.timeout(45000) });
+      const secs = ((Date.now() - t0) / 1000).toFixed(1);
+      if (!r.ok) { console.error(`  ${kind.padEnd(9)} HTTP ${r.status} after ${secs} s`); continue; }
+      const body = await r.json();
+      const gaveUp = overpassGaveUp(body);
+      const n = Array.isArray(body?.elements) ? body.elements.length : 0;
+      console.error(`  ${kind.padEnd(9)} ${gaveUp ? `GAVE UP after ${secs} s: ${gaveUp}` : `${n} element(s) in ${secs} s (${miles} mi)`}`);
+    } catch (e) {
+      console.error(`  ${kind.padEnd(9)} ${e?.name === 'TimeoutError' ? 'no answer in 45 s' : (e?.name || 'failed')}`);
+    }
+  }
   process.exit(1);
 }
 console.log(`what is nearby (${near.lines.length}):`);

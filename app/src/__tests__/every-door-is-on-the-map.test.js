@@ -7,6 +7,9 @@
 // The Census and Overpass answers are RECORDED shapes; the cloud sandbox has no
 // route to either. The live answer is witnessed after merge (nearby-witness.yml).
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import {
   buildingsToPlace, placeDoorsOnTheMap, matchesAddress, townOf, PLACE_MAX_LOOKUPS,
 } from '../modules/properties/place-on-map.js';
@@ -14,6 +17,8 @@ import {
   nearbyAround, nearbyFromOverpass, overpassQuery, overpassGaveUp, OVERPASS, milesText, NEARBY_MAX, busStopLabel,
 } from '../modules/properties/area.js';
 import { buildingKey } from '../modules/properties/apartment.js';
+
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 
 const FAM = 'fam-1';
 const door = (id, address, unit, extra = {}) => ({ id, instance_id: FAM, address, unit, city: 'Champaign', state: 'Illinois', ...extra });
@@ -222,5 +227,19 @@ describe('placing the family\'s doors', () => {
       rentals: [APT2], find: async () => { throw new Error('boom'); }, save: async () => { throw new Error('boom'); }, wait: async () => {},
     });
     expect(r.missed).toEqual(['apt2']);
+  });
+});
+
+describe('the nearby witness measures one kind at a time when the whole query fails (DR-1023)', () => {
+  // Danville timed out on the whole query on both mirrors four runs running
+  // while Champaign answers in seconds; which kind is heavy is not knowable
+  // from the whole. The witness asks each alone, timed, with the server's
+  // own remark, and the workflow gives it the minutes to do so.
+  it('asks each NEARBY_KINDS entry alone with its own radius, and the workflow allows the time', () => {
+    const src = readFileSync(join(ROOT, 'scripts/nearby-witness.mjs'), 'utf8');
+    expect(src).toMatch(/for \(const \[kind, sel, miles\] of NEARBY_KINDS\)/);
+    expect(src).toMatch(/\[out:json\]\[timeout:25\]/);
+    expect(src).toMatch(/GAVE UP after/);
+    expect(readFileSync(join(ROOT, '.github/workflows/nearby-witness.yml'), 'utf8')).toMatch(/timeout-minutes: 15/);
   });
 });
