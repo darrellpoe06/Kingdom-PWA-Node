@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 0291 — Borrowing goes both ways: a door shows its own pictures AND the
---        apartment's, in every direction (DR-1021)
+--        apartment's, in every direction (DR-1022)
 -- =============================================================================
 -- Darrell, 2026-10-14, after adding three foyer pictures to Apt 4 B: "they got
 -- rid of the ones already there... I wanted to simply add 3 images!!!!! Now it
@@ -88,6 +88,6 @@ REVOKE ALL ON FUNCTION public.public_vacancy_photos(uuid) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.public_vacancy_photos(uuid) TO anon, authenticated;
 
 COMMENT ON FUNCTION public.public_vacancy_photos(uuid) IS
-  'DR-1021 (0291): a listed door''s own showable pictures first, then every sibling door''s in this door''s own order — both ways within one apartment, never across instances, never for a door without a unit. from_sibling says which is which. Showable = listing kind, not archived, owning door listed and empty.';
+  'DR-1022 (0291): a listed door''s own showable pictures first, then every sibling door''s in this door''s own order — both ways within one apartment, never across instances, never for a door without a unit. from_sibling says which is which. Showable = listing kind, not archived, owning door listed and empty.';
 
 NOTIFY pgrst, 'reload schema';

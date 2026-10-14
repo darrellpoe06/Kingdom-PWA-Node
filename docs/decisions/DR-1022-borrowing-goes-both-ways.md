@@ -1,4 +1,4 @@
-# DR-1021: Borrowing goes both ways — a door shows its own pictures and the apartment's, in every direction (0291)
+# DR-1022: Borrowing goes both ways — a door shows its own pictures and the apartment's, in every direction (0291)
 
 **Date:** 2026-10-14
 **Status:** accepted

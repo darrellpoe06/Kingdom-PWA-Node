@@ -182,7 +182,7 @@ describe('a door with its OWN pictures keeps them separate from the shared ones'
     await settle();
   }
 
-  it('its own count does not include the shared ones, and the heading says where the rest are (DR-1021)', async () => {
+  it('its own count does not include the shared ones, and the heading says where the rest are (DR-1022)', async () => {
     // Darrell, 2026-10-14, reading "PICTURES (3)" over "Tick all 40 shown":
     // "they got rid of the ones already there... Now it wont show the 40
     // pictures only the 3!!" They were in the shared card below; the heading

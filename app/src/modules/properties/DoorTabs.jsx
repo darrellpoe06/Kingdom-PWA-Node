@@ -2299,7 +2299,7 @@ export function GalleryTab({
         <NasShelf door={door} archive={archive} nasFiled={nasFiled} recordKind={isAdvertising(f.kind) ? rememberedKind() : f.kind} onAdd={onAdd} onDone={onDone} />
       )}
 
-      {/* WHAT IS THIS DOOR'S AND WHAT IS SHARED (DR-1021). Darrell read
+      {/* WHAT IS THIS DOOR'S AND WHAT IS SHARED (DR-1022). Darrell read
           "PICTURES (3)" over a door whose buttons said "Tick all 40 shown"
           and concluded 37 were gone; they were in the shared card below.
           The heading now says both counts when the apartment lends any. */}

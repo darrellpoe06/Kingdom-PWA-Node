@@ -1,5 +1,5 @@
 -- =============================================================================
--- 0291 SMOKE — borrowing goes both ways (DR-1021)
+-- 0291 SMOKE — borrowing goes both ways (DR-1022)
 -- =============================================================================
 -- One transaction; ROLLS BACK. PASS prints 'BORROW BOTH WAYS SMOKE: PASS'.
 --
