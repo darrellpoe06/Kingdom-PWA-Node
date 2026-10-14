@@ -37,7 +37,7 @@ const UA = 'PoeTech nearby witness/1 (+https://poetech.us)';
 // A runner can wait longer than a phone: the public servers answered their
 // own 504s and timeouts on 2026-10-13, and a short patience here would hide
 // a slow-but-honest answer behind "took too long".
-const near = await nearbyAround({ lat: g.lat, lng: g.lng }, { userAgent: UA, timeoutMs: 60000 });
+const near = await nearbyAround({ lat: g.lat, lng: g.lng }, { userAgent: UA, timeoutMs: 120000, serverTimeoutS: 90 });
 if (!near.ok) {
   console.error(`NEARBY FAILED: ${near.reason}`);
   // Map the space in this one run, so the next change is measured, not
