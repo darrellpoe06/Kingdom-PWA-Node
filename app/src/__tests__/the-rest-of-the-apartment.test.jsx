@@ -116,7 +116,7 @@ describe('a bed in a shared apartment sees the apartment’s pictures', () => {
     expect(note).toMatch(/changes the picture itself, on both listings/i);
     expect(note).not.toMatch(/never a way to give this door its own/i);
     // And the door's own count is still honestly zero.
-    expect(container.textContent).toMatch(/Pictures \(0\)/);
+    expect(container.textContent).toMatch(/Pictures \(0 of this door · 3 shared with the apartment, below\)/);
   });
 
   it('PROVEN-TO-CATCH: the ticked apartment pictures can actually be moved', async () => {
@@ -182,10 +182,21 @@ describe('a door with its OWN pictures keeps them separate from the shared ones'
     await settle();
   }
 
-  it('its own count does not include the shared ones', async () => {
+  it('its own count does not include the shared ones, and the heading says where the rest are (DR-1021)', async () => {
+    // Darrell, 2026-10-14, reading "PICTURES (3)" over "Tick all 40 shown":
+    // "they got rid of the ones already there... Now it wont show the 40
+    // pictures only the 3!!" They were in the shared card below; the heading
+    // now says so.
     await mountBedA();
-    expect(container.textContent).toMatch(/Pictures \(2\)/);
+    expect(container.textContent).toMatch(/Pictures \(2 of this door · 1 shared with the apartment, below\)/);
+    expect(container.textContent).not.toMatch(/Pictures \(2\)/);
     expect(container.textContent).toMatch(/Shared with this apartment \(1\)/);
+  });
+
+  it('a door the apartment lends nothing to keeps the plain count', async () => {
+    await mountBedA({ sharedPhotos: [], sharedDoors: [] });
+    expect(container.textContent).toMatch(/Pictures \(2\)/);
+    expect(container.textContent).not.toMatch(/shared with the apartment, below/);
   });
 
   it('PROVEN-TO-CATCH: a tick in another KIND tab is still not dragged along', async () => {

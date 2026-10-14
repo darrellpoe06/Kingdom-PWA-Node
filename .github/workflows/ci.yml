@@ -1217,6 +1217,14 @@ jobs:
           for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0290-a-listing-list-never-carries-the-bytes.sql; done
           psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0290-listing-bytes-smoke.sql 2>&1 | tee "$RUNNER_TEMP/listing-bytes.txt"
           grep -q 'LISTING BYTES SMOKE: PASS' "$RUNNER_TEMP/listing-bytes.txt"
+          # 0291 (DR-1021): borrowing goes both ways. A listed door shows its
+          # own showable pictures first, then every sibling door's in the same
+          # apartment, whatever the door is and whether or not it has its own;
+          # never across instances, never for a door without a unit. Same
+          # RETURNS shape as 0282/0290; 0290's wrappers read it.
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0291-borrowing-goes-both-ways.sql; done
+          psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0291-borrowing-both-ways-smoke.sql 2>&1 | tee "$RUNNER_TEMP/borrow-both-ways.txt"
+          grep -q 'BORROW BOTH WAYS SMOKE: PASS' "$RUNNER_TEMP/borrow-both-ways.txt"
 
   # THE REQUIRED CHECK (DR-0645). Branch protection and native auto-merge wait
   # on a check named EXACTLY "app — lint + vitest". Do NOT rename this job.
