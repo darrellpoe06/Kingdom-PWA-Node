@@ -13,7 +13,7 @@
 # camera-health: a workflow_run on a token-started deploy never fires).
 #
 # THE BRAKES (CLAUDE.md): budget — at most 8 lookups a run (place-on-map.js),
-# timeout 10 minutes; lock — single instance, a new fire queues; kill — the
+# timeout 20 minutes (8 lookups x up to 2 min each, DR-1018); lock — single instance, a new fire queues; kill — the
 # repo variable PLACE_DOORS_ENABLED='false' pauses it. Deterministic, no
 # compute spawned, no loop.
 name: Place doors (area + nearby on the database the app reads)
@@ -32,7 +32,7 @@ jobs:
   place:
     if: ${{ vars.PLACE_DOORS_ENABLED != 'false' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

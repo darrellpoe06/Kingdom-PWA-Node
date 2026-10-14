@@ -98,7 +98,19 @@ export const PLACES = Object.freeze([
 
 /** One decimal, never "0.0": under a tenth of a mile reads as 0.1. */
 export function roundMiles(m) {
-  return Math.max(0.1, Math.round(m * 10) / 10);
+  // Under a tenth of a mile the line is read in FEET (DR-1018: a bus stop
+  // "out front" is not "about 0.1 miles"), so the hundredth is kept there.
+  if (m < 0.1) return Math.max(0.01, Math.round(m * 100) / 100);
+  return Math.round(m * 10) / 10;
+}
+
+/** "about 175 feet" for a short walk, else the miles line. 25-foot steps. */
+export function feetText(m) {
+  const n = Number(m);
+  if (!Number.isFinite(n)) return '';
+  if (n >= 0.1) return milesText(n);
+  const ft = Math.max(25, Math.round((n * 5280) / 25) * 25);
+  return `about ${ft} feet`;
 }
 
 /**
@@ -109,6 +121,7 @@ export function roundMiles(m) {
 export function milesText(m) {
   const n = Number(m);
   if (!Number.isFinite(n)) return '';
+  if (n < 0.1) return feetText(n);
   return `about ${n.toFixed(1)} ${n === 1 ? 'mile' : 'miles'}`;
 }
 

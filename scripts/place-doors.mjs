@@ -108,9 +108,11 @@ async function main() {
     return out;
   };
   // The runner names itself (Overpass's usage policy) and can wait longer
-  // than a phone (the nearby witness measured the servers' own 504s).
+  // than a phone (the nearby witness measured the servers' own 504s; on
+  // 2026-10-14 witness 38585240741 timed out at 60 s while a bare GET of the
+  // same query answered in about 30 s, so the wait is two minutes, DR-1018).
   const around = async (point) => {
-    const n = await nearbyAround(point, { userAgent: UA, timeoutMs: 60000 });
+    const n = await nearbyAround(point, { userAgent: UA, timeoutMs: 120000 });
     const last = trace[trace.length - 1];
     if (last) last.near = n.ok ? `${n.lines.length} line(s)` : `FAILED: ${n.reason}`;
     return n;

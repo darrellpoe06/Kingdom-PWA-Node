@@ -967,6 +967,11 @@ const NODES = [
     reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }],
     writes: [], seeds: [],
   }),
+  wf('bus-witness.yml', {
+    id: 'bus-witness', name: 'Bus witness (the agency\u2019s own feed)', purpose: 'Looks a real address up from a runner and reads the Champaign-Urbana MTD GTFS feed (the sandbox has no route to mtd.org): every stop within a half-mile walk, in feet, with its routes, days and buses a day, and the feed\u2019s own date window (DR-1018). Read-only, dispatch only.',
+    reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }],
+    writes: [], seeds: [],
+  }),
   wf('place-doors.yml', {
     id: 'place-doors', name: 'The lane places the doors (DR-1015)', purpose: 'After every successful deploy and on dispatch: reads every door with an address and no area from the sovereign database over the tailnet, looks each building up once on the runner with the app’s own placement (the house matched by number and town, the area rounded, what is nearby incl. the city bus, no line naming the building’s street), and writes one guarded UPDATE per door so a held door’s public card advertises its area and amenities; the family’s own area always wins.',
     reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }, { res: 'db:rentals', file: 'scripts/place-doors-over-tailnet.sh', token: 'from public.rentals' }],

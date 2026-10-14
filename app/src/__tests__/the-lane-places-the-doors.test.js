@@ -87,7 +87,7 @@ describe('the lane', () => {
     expect(wf).not.toMatch(/cron:/);                                  // never on a clock
     expect(wf).toMatch(/group: place-doors/);                         // LOCK
     expect(wf).toMatch(/cancel-in-progress: false/);
-    expect(wf).toMatch(/timeout-minutes: 10/);                        // BUDGET
+    expect(wf).toMatch(/timeout-minutes: 20/);                        // BUDGET (8 lookups x up to 2 min, DR-1018)
     expect(wf).toMatch(/PLACE_DOORS_ENABLED != 'false'/);             // KILL
     expect(wf).toMatch(/tailscale\/github-action@v3/);
     expect(wf).toMatch(/bash scripts\/place-doors-over-tailnet\.sh/);
