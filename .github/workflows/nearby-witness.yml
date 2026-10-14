@@ -36,7 +36,7 @@ concurrency:
 jobs:
   witness:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 15  # the whole query twice (2 min each) then ten kinds alone (45 s each) when it fails
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
