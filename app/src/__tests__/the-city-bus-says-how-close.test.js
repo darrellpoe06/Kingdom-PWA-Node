@@ -17,7 +17,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { feetText, milesText, roundMiles } from '../modules/properties/area.js';
 import {
-  parseCsv, readGtfs, stopsNear, routesAtStop, serviceDays, daysText, feedWindow, report, WALK_MILES,
+  parseCsv, readGtfs, stopsNear, routesAtStop, serviceDays, serviceDates, weekdayOf, daysText, feedWindow, report, WALK_MILES,
 } from '../../../scripts/bus-witness.mjs';
 
 const HOUSE = { lat: 40.1234, lng: -88.2583 };
@@ -32,7 +32,7 @@ const FEED = {
   'routes.txt': 'route_id,route_short_name,route_long_name\nR30,30,Lavender\nR7,7,Grey\nR2,2,Red\n',
   'trips.txt': [
     'route_id,service_id,trip_id',
-    'R30,WEEKEND,t1', 'R30,WEEKEND,t2', 'R7,WEEKDAY,t3', 'R2,WEEKDAY,t4', 'R2,WEEKDAY,t5', 'R2,WEEKEND,t6',
+    'R30,WEEKEND,t1', 'R30,WEEKEND,t2', 'R7,WEEKDAY,t3', 'R2,WEEKDAY,t4', 'R2,WEEKDAY,t5', 'R2,WEEKEND,t6', 'R2,DATES_ONLY,t7',
   ].join('\n'),
   'stop_times.txt': [
     'trip_id,stop_id,stop_sequence',
@@ -42,8 +42,9 @@ const FEED = {
     'service_id,monday,tuesday,wednesday,thursday,friday,saturday,sunday,start_date,end_date',
     'WEEKDAY,1,1,1,1,1,0,0,20260809,20261219',
     'WEEKEND,0,0,0,0,0,1,1,20260809,20261219',
+    'DATES_ONLY,0,0,0,0,0,0,0,20260809,20261219',
   ].join('\n'),
-  'calendar_dates.txt': 'service_id,date,exception_type\nWEEKDAY,20261126,2\n',
+  'calendar_dates.txt': 'service_id,date,exception_type\nWEEKDAY,20261126,2\nDATES_ONLY,20261003,1\nDATES_ONLY,20261004,1\nDATES_ONLY,20261010,1\n',
 };
 const dir = mkdtempSync(join(tmpdir(), 'gtfs-'));
 for (const [name, text] of Object.entries(FEED)) writeFileSync(join(dir, name), text);
@@ -91,11 +92,30 @@ describe('the bus witness reads the agency’s feed', () => {
     expect(daysText(['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'])).toBe('every day');
   });
 
+  it('a service defined only by dates (MTD\u2019s own feed) still has days and a busiest-day count', () => {
+    // Read live 2026-10-14 (bus-witness 38591896367): every calendar.txt row
+    // at MTD is all zeros and 12,395 calendar_dates rows carry the service,
+    // so the weekly pattern alone said "no days in the calendar" for every
+    // route at every stop within a walk of 805.
+    expect(weekdayOf('20261003')).toBe('saturday');
+    expect(weekdayOf('20261126')).toBe('thursday');
+    const dates = serviceDates(gtfs);
+    expect([...dates.get('DATES_ONLY')].sort()).toEqual(['20261003', '20261004', '20261010']);
+    expect(dates.get('WEEKDAY').has('20261126')).toBe(false); // Thanksgiving removed
+    expect(dates.get('WEEKDAY').has('20261125')).toBe(true);
+    expect(dates.get('WEEKEND').has('20261003')).toBe(true);
+    const r2 = routesAtStop(gtfs, ['FAR']).find((r) => r.route.route_id === 'R2');
+    // R2: WEEKDAY t4,t5 (2 a weekday), WEEKEND t6 (1), DATES_ONLY t7 on two
+    // Saturdays and a Sunday -> Sat 2 on those dates; busiest day stays 2.
+    expect(daysText(r2.days)).toBe('every day');
+    expect(r2.tripsPerDay).toBe(2);
+  });
+
   it('the report says the window, the exceptions, the stop in feet and each route', () => {
     const r = report(gtfs, HOUSE);
     expect(r.stops).toBe(1);
     expect(r.lines[0]).toBe('feed window: 20260809 to 20261219');
-    expect(r.lines).toContain('calendar exceptions (holidays, not applied here): 1');
+    expect(r.lines).toContain('calendar exceptions (applied: added days counted, removed days dropped): 4');
     expect(r.lines.some((l) => /^ {2}Prospect & Harvard · about \d+ feet$/.test(l))).toBe(true);
     expect(r.lines).toContain('    30 Lavender — Sat, Sun · about 2 buses on its busiest day');
     expect(r.lines).toContain('    7 Grey — Mon–Fri · about 1 buses on its busiest day');
