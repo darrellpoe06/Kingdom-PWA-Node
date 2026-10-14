@@ -306,6 +306,10 @@ export function streetName(address) {
   const s = String(address || '').trim().replace(/^\s*\d+[A-Za-z]?\s+/, '').trim();
   return s.length >= 4 ? s : '';
 }
+/** The street NAME out of an address LINE ("805 North Prospect Avenue, Champaign, Illinois" -> "North Prospect Avenue"). */
+export function streetOfLine(line) {
+  return streetName(String(line || '').split(',')[0]);
+}
 export function namesStreet(label, address) {
   const st = streetName(address);
   return Boolean(st) && String(label || '').toLowerCase().includes(st.toLowerCase());
@@ -343,6 +347,8 @@ export function streetViewUrl(point) {
 
 /** The zoom a shown street's pin is drawn at: the block, not the town. */
 export const PIN_ZOOM = 17;
+/** The zoom a TOWN is drawn at when a held door has no area yet (DR-1013): the town, not a block. */
+export const TOWN_ZOOM = 12;
 
 export const NOMINATIM_DIRECT = 'https://nominatim.openstreetmap.org/search';
 
