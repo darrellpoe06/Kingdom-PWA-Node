@@ -152,7 +152,13 @@ export const OVERPASS = 'https://overpass-api.de/api/interpreter';
 // (nearby-witness run 38434844861, 2026-10-13: overpass-api.de reached its
 // interpreter and answered 504 "runtime error: open64" -- its own fault at
 // that moment). Same data, same query; the first that answers wins.
-export const OVERPASS_MIRRORS = Object.freeze([OVERPASS, 'https://overpass.kumi.systems/api/interpreter']);
+// A third (DR-1023; measured 2026-10-14 16:50 to 17:00, two witness runs a
+// minute apart, Danville and Champaign alike: the first mirror answered seven
+// of ten kinds HTTP 504 in 5 to 15 s and gave up on the rest at its own 25 s,
+// and the second took longer than two minutes on the whole -- the servers'
+// trouble that afternoon, not either town's query, since 805 had answered in
+// seconds that morning). Same data, same query; the first that answers wins.
+export const OVERPASS_MIRRORS = Object.freeze([OVERPASS, 'https://overpass.kumi.systems/api/interpreter', 'https://overpass.private.coffee/api/interpreter']);
 const MI = 1609.344;
 
 /**
@@ -263,6 +269,10 @@ export async function nearbyAround(point, { fetchImpl = (typeof fetch === 'funct
   const body = `data=${encodeURIComponent(overpassQuery(point, { serverTimeoutS }))}`;
   const headers = { 'content-type': 'application/x-www-form-urlencoded', ...(userAgent ? { 'user-agent': userAgent } : {}) };
   let last = { ok: false, reason: 'What is nearby could not be reached just now.' };
+  // Every mirror's own answer rides on a failure (DR-1023: three mirrors
+  // failed 805 in 156 s on 2026-10-14 17:03 and the one reason kept was the
+  // last one's), so a witness can say which mirror said what.
+  const tried = [];
   for (const endpoint of OVERPASS_MIRRORS) {
     try {
       const res = await fetchImpl(endpoint, { method: 'POST', headers, body, signal: AbortSignal.timeout(timeoutMs) });
@@ -270,20 +280,22 @@ export async function nearbyAround(point, { fetchImpl = (typeof fetch === 'funct
         const answer = await res.json();
         const gaveUp = overpassGaveUp(answer);
         // The server's own "I gave up" is its trouble, worth the next mirror.
-        if (gaveUp) { last = { ok: false, reason: `What is nearby timed out on the server (${gaveUp}).` }; continue; }
+        if (gaveUp) { last = { ok: false, reason: `What is nearby timed out on the server (${gaveUp}).` }; tried.push({ endpoint, reason: last.reason }); continue; }
         found = nearbyFromOverpass(point, answer); break;
       }
       let said = '';
       try { said = String(await res.text()).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 160); } catch (_) { said = ''; }
       last = { ok: false, reason: `What is nearby could not be looked up (HTTP ${res.status}${said ? `: ${said}` : ''}).` };
+      tried.push({ endpoint, reason: last.reason });
       // A refusal of the request itself (4xx other than 429) is the same on
       // every mirror; a server's own trouble (5xx, 429) is worth the next one.
       if (res.status < 500 && res.status !== 429) break;
     } catch (e) {
       last = { ok: false, reason: e?.name === 'TimeoutError' ? 'What is nearby took too long to answer.' : 'What is nearby could not be reached just now.' };
+      tried.push({ endpoint, reason: last.reason });
     }
   }
-  if (!found) return last;
+  if (!found) return { ...last, tried };
   const have = new Set(researched.map((l) => l.label.toLowerCase()));
   const lines = [...researched, ...found.filter((l) => ![...have].some((h) => h.includes(l.label.toLowerCase().replace(/ \(.*\)$/, ''))))]
     .sort((a, b) => a.miles - b.miles)

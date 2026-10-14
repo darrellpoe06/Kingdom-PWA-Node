@@ -97,12 +97,17 @@ export async function placeDoorsOnTheMap({
     const area = roundArea(r.point?.lat, r.point?.lng);
     if (!area) { out.missed.push(...g.doors.map((d) => d.id)); continue; }
     // What is near THIS building, from its own exact point. If it cannot be
-    // asked, nothing is saved: the door is tried again next time rather than
-    // stored with an empty list that would read as "nothing near".
+    // asked, the AREA is still saved and the list is left NULL -- "never
+    // asked", which the lane asks again next run (DR-1019) -- never an empty
+    // list that would read as "nothing near". Measured 2026-10-14 (placer
+    // 38592341539): three Danville doors matched their house and then
+    // Overpass timed out on every one, and under the old rule the doors
+    // stayed off the map entirely; the circle and the town cost nothing.
     let near;
     try { near = await around(r.point); } catch { near = { ok: false }; }
-    if (!near || !near.ok) { out.missed.push(...g.doors.map((d) => d.id)); continue; }
-    const all = near.lines;
+    const nearOk = Boolean(near && near.ok);
+    const all = nearOk ? near.lines : [];
+    const nearWhy = nearOk ? '' : String(near?.reason || 'it could not be asked').replace(/\s+/g, ' ').trim().slice(0, 120);
     // A nearby line never names the door's street (0270 refuses it) -- and
     // never the BUILDING's either (DR-1015): a bed whose address folds its
     // unit in ("805 North Prospect Avenue Apt 4") has a street name of
@@ -117,9 +122,12 @@ export async function placeDoorsOnTheMap({
     const namesBuilding = (label) => { const l = String(label || '').toLowerCase(); return [...streets].some((st) => l.includes(st)); };
     for (const d of g.doors) {
       const lines = all.filter((l) => !namesStreet(l.label, d.address) && !namesBuilding(l.label));
-      const summary = `Placed on the map from its address (automatic): the area${lines.length ? ` and ${lines.length} nearby line${lines.length === 1 ? '' : 's'}` : ''}`;
+      const summary = nearOk
+        ? `Placed on the map from its address (automatic): the area${lines.length ? ` and ${lines.length} nearby line${lines.length === 1 ? '' : 's'}` : ''}`
+        : `Placed on the map from its address (automatic): the area; what is nearby could not be read (${nearWhy}) and will be asked again`;
       let res;
-      try { res = await save(d.id, { area_lat: area.lat, area_lng: area.lng, nearby: lines.length ? lines : null }, summary); } catch { res = { ok: false }; }
+      // [] is an ANSWER (nothing near); null is "never asked" (DR-1019).
+      try { res = await save(d.id, { area_lat: area.lat, area_lng: area.lng, nearby: nearOk ? lines : null }, summary); } catch { res = { ok: false }; }
       (res && res.ok ? out.placed : out.missed).push(d.id);
     }
   }

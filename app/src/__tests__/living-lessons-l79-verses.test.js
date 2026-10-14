@@ -1,6 +1,6 @@
 // @vitest-environment node
 // =============================================================================
-// L79 — A Gospel With a Hole In It (DR-1022)
+// L79 — A Gospel With a Hole In It (DR-1025)
 // =============================================================================
 // This lesson was a HOLE before it was a lesson. Living Lessons claimed 1-238
 // and never claimed 79; the gap sat silent from 2026-08-14 until the gap check

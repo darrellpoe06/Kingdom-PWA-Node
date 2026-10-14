@@ -55,6 +55,19 @@ describe('placement with the app\'s own rules', () => {
     expect(sql).not.toContain('North Prospect Avenue'); // the street never reaches SQL
   });
 
+  it('a nearby read that failed writes the area with NULL for the list (asked again), and nothing at all for a door that already had its area', async () => {
+    const find = async () => ({ ok: true, point: POINT, matched: '805 N PROSPECT AVE, CHAMPAIGN, IL, 61820' });
+    const around = async () => ({ ok: false, reason: 'What is nearby took too long to answer.' });
+    const r = await placeDoors([APT2], { find, around, wait: async () => {} });
+    expect(r.placed).toEqual([APT2.id]);
+    const sql = updatesSql(r.placements, { today: '2026-10-14' });
+    expect(sql).toContain('nearby = NULL');
+    expect(sql).not.toContain("'[]'::jsonb");
+    expect(sql).toContain('what is nearby could not be read (What is nearby took too long to answer.) and will be asked again');
+    const again = await placeDoors(doorsFromJson(JSON.stringify([{ ...APT2, had_area: true }])), { find, around, wait: async () => {} });
+    expect(updatesSql(again.placements)).toBe('');
+  });
+
   it('a house the lookup cannot confirm is left as it is', async () => {
     const find = async () => ({ ok: true, point: POINT, matched: 'North Prospect Avenue, Champaign' }); // no house number
     const r = await placeDoors([APT2], { find, around: async () => ({ ok: true, lines: [] }), wait: async () => {} });
@@ -78,6 +91,7 @@ describe('placement with the app\'s own rules', () => {
     // An honest empty answer is an ANSWER ([]), so NULL keeps meaning "never asked" (DR-1019).
     expect(updatesSql([{ ...base, nearby: [] }])).toContain("nearby = '[]'::jsonb");
     expect(updatesSql([{ ...base, nearby: [] }])).not.toContain('nearby = NULL');
+    expect(updatesSql([{ ...base, nearby: null }])).toContain('nearby = NULL'); // a read that failed: never asked
   });
 });
 
@@ -101,6 +115,10 @@ describe('the lane', () => {
     expect(sh).toMatch(/'had_area', area_lat is not null/);
     expect(sh).toMatch(/node scripts\/place-doors\.mjs/);
     expect(sh).toMatch(/MODE=write/);
+    // Two different nothings (DR-1023): a door that had its area and could
+    // not be read again is not "no house matched".
+    expect(sh).toMatch(/matched their house but already had their area, and what is nearby could not be read again/);
+    expect(sh).toMatch(/placed=\$\(grep -oE 'placed \[0-9\]\+' "\$WORK\/place\.log"/);
     expect(UA).toMatch(/^PoeTech door placer/);
   });
 });

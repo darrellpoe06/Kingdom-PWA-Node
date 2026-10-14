@@ -70,6 +70,45 @@ export function serviceDays(cal) {
   return DAYS.filter((d) => String(cal?.[d] || '') === '1');
 }
 
+/** YYYYMMDD -> Mon..Sun name (UTC; a date, not an instant). */
+export function weekdayOf(yyyymmdd) {
+  const m = /^(\d{4})(\d{2})(\d{2})$/.exec(String(yyyymmdd || ''));
+  if (!m) return '';
+  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])));
+  return DAYS[(d.getUTCDay() + 6) % 7];
+}
+
+function addDays(yyyymmdd, n) {
+  const m = /^(\d{4})(\d{2})(\d{2})$/.exec(yyyymmdd);
+  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]) + n));
+  return `${d.getUTCFullYear()}${String(d.getUTCMonth() + 1).padStart(2, '0')}${String(d.getUTCDate()).padStart(2, '0')}`;
+}
+
+/**
+ * Every date each service runs: calendar.txt's weekly pattern across its
+ * range, plus calendar_dates.txt's additions (exception_type 1), minus its
+ * removals (2). MTD's feed (read 2026-10-14) keeps every calendar.txt row at
+ * all zeros and defines the whole service in 12,395 calendar_dates rows, so
+ * a reader of the weekly pattern alone says "no days" for every route.
+ * Ranges are capped at 400 days so a malformed feed cannot run away.
+ */
+export function serviceDates(gtfs) {
+  const dates = new Map();
+  const add = (sid, d) => { if (!dates.has(sid)) dates.set(sid, new Set()); dates.get(sid).add(d); };
+  for (const c of gtfs.calendar || []) {
+    const days = new Set(serviceDays(c));
+    if (!days.size || !/^\d{8}$/.test(c.start_date || '') || !/^\d{8}$/.test(c.end_date || '')) continue;
+    for (let d = c.start_date, i = 0; d <= c.end_date && i < 400; d = addDays(d, 1), i += 1) {
+      if (days.has(weekdayOf(d))) add(c.service_id, d);
+    }
+  }
+  for (const e of gtfs.calendar_dates || []) {
+    if (String(e.exception_type) === '1') add(e.service_id, e.date);
+    else if (String(e.exception_type) === '2') dates.get(e.service_id)?.delete(e.date);
+  }
+  return dates;
+}
+
 /** "Mon–Fri", "Sat, Sun", "every day", or "" for none. */
 export function daysText(days) {
   const set = DAYS.filter((d) => days.includes(d));
@@ -109,25 +148,34 @@ export function stopsNear(gtfs, point, miles = WALK_MILES) {
   return [...byKey.values()].sort((a, b) => a.miles - b.miles);
 }
 
-/** Routes serving a set of stop ids: [{route, days, tripsPerDay}], most trips first. */
+/**
+ * Routes serving a set of stop ids: [{route, days, tripsPerDay}], most trips
+ * first. Grouped by the route's NAME, not its id: MTD carries one name on
+ * several route_ids (a weekday, a Saturday and a Sunday pattern, or a seasonal
+ * variant), and read live 2026-10-14 (bus-witness 38597296070) the id-keyed
+ * list printed "70 Grey — Sat · about 23 buses" and "70 Grey — Sat · about 9
+ * buses" at one corner. Trips of every id with the same name are summed per
+ * date, so the busiest day is the day's whole count.
+ */
 export function routesAtStop(gtfs, stopIds) {
   const ids = new Set(stopIds);
   const tripIds = new Set();
   for (const st of gtfs.stop_times) if (ids.has(st.stop_id)) tripIds.add(st.trip_id);
-  const cal = new Map(gtfs.calendar.map((c) => [c.service_id, c]));
+  const dates = gtfs._dates || (gtfs._dates = serviceDates(gtfs));
   const routes = new Map(gtfs.routes.map((r) => [r.route_id, r]));
   const acc = new Map();
   for (const t of gtfs.trips) {
     if (!tripIds.has(t.trip_id)) continue;
     const r = routes.get(t.route_id); if (!r) continue;
-    const days = serviceDays(cal.get(t.service_id));
-    const a = acc.get(t.route_id) || { route: r, days: new Set(), perDay: Object.fromEntries(DAYS.map((d) => [d, 0])) };
-    for (const d of days) { a.days.add(d); a.perDay[d] += 1; }
-    acc.set(t.route_id, a);
+    const key = routeName(r);
+    const a = acc.get(key) || { route: r, perDate: new Map() };
+    for (const d of dates.get(t.service_id) || []) a.perDate.set(d, (a.perDate.get(d) || 0) + 1);
+    acc.set(key, a);
   }
   return [...acc.values()].map((a) => {
-    const days = DAYS.filter((d) => a.days.has(d));
-    const busiest = Math.max(0, ...days.map((d) => a.perDay[d]));
+    const seen = new Set([...a.perDate.keys()].map(weekdayOf));
+    const days = DAYS.filter((d) => seen.has(d));
+    const busiest = Math.max(0, ...a.perDate.values());
     return { route: a.route, days, tripsPerDay: busiest };
   }).sort((a, b) => b.tripsPerDay - a.tripsPerDay);
 }
@@ -142,14 +190,14 @@ export function report(gtfs, point, { withinMiles = WALK_MILES } = {}) {
   const lines = [];
   const w = feedWindow(gtfs);
   lines.push(w ? `feed window: ${w.start} to ${w.end}` : 'feed window: not stated');
-  if (gtfs.calendar_dates.length) lines.push(`calendar exceptions (holidays, not applied here): ${gtfs.calendar_dates.length}`);
+  if (gtfs.calendar_dates.length) lines.push(`calendar exceptions (applied: added days counted, removed days dropped): ${gtfs.calendar_dates.length}`);
   const near = stopsNear(gtfs, point, withinMiles);
   lines.push(`stops within ${milesText(withinMiles)}: ${near.length}`);
   for (const s of near) {
     lines.push(`  ${s.name} · ${feetText(s.miles)}`);
     const rs = routesAtStop(gtfs, s.ids);
     if (!rs.length) lines.push('    no route in the feed stops here');
-    for (const r of rs) lines.push(`    ${routeName(r.route)} — ${daysText(r.days) || 'no days in the calendar'} · about ${r.tripsPerDay} buses on its busiest day`);
+    for (const r of rs) lines.push(`    ${routeName(r.route)} — ${daysText(r.days) || 'no days in the calendar'} · about ${r.tripsPerDay} ${r.tripsPerDay === 1 ? 'bus' : 'buses'} on its busiest day`);
   }
   return { lines, stops: near.length };
 }

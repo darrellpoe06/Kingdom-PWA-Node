@@ -98,11 +98,13 @@ export function updatesSql(placements, { today = new Date().toISOString().slice(
     }
     const note = `[${today}] Edited — ${String(p.summary || 'Placed on the map from its address (automatic, by the lane)').replace(/\s+/g, ' ').trim()}`;
     if (json.includes('$j$') || note.includes('$n$')) continue;
-    // An honest empty answer is written as [] (an answer), so NULL keeps
-    // meaning "never asked" and the lane asks such a door again (DR-1019).
+    // An honest empty answer ([]) is written as [] (an answer); a read that
+    // FAILED arrives as null and is written as NULL, "never asked", so the
+    // lane asks such a door again (DR-1019).
+    const asked = Array.isArray(p.nearby);
     out.push(
       `UPDATE public.rentals SET area_lat = ${lat.toFixed(5)}, area_lng = ${lng.toFixed(5)}, `
-      + `nearby = ${lines.length ? `$j$${json}$j$::jsonb` : `'[]'::jsonb`}, `
+      + `nearby = ${!asked ? 'NULL' : lines.length ? `$j$${json}$j$::jsonb` : `'[]'::jsonb`}, `
       + `notes = btrim(concat_ws(E'\\n', nullif(btrim(coalesce(notes, '')), ''), $n$${note}$n$)) `
       + `WHERE id = '${p.id.toLowerCase()}' AND area_lat IS NULL;`,
     );
@@ -131,14 +133,17 @@ async function main() {
   // than a phone (the nearby witness measured the servers' own 504s; on
   // 2026-10-14 witness 38585240741 timed out at 60 s while a bare GET of the
   // same query answered in about 30 s, so the wait is two minutes, DR-1019).
+  // Three mirrors now (DR-1023), so the patience per mirror is 60 s of the
+  // server's and 75 s of ours: three Danville doors on a bad afternoon cost
+  // 3 x 3 x 75 s, about eleven minutes, inside the lane's twenty.
   const around = async (point) => {
-    const n = await nearbyAround(point, { userAgent: UA, timeoutMs: 120000, serverTimeoutS: 90 });
+    const n = await nearbyAround(point, { userAgent: UA, timeoutMs: 75000, serverTimeoutS: 60 });
     const last = trace[trace.length - 1];
     if (last) last.near = n.ok ? `${n.lines.length} line(s)` : `FAILED: ${n.reason}`;
     return n;
   };
   const r = await placeDoors(doors, { find, around });
-  process.stderr.write(`place-doors: ${doors.length} door(s) without an area; ${r.looked} building(s) looked up; placed ${r.placed.length}; missed ${r.missed.length}\n`);
+  process.stderr.write(`place-doors: ${doors.length} door(s) to place or ask (no area, or never asked what is nearby); ${r.looked} building(s) looked up; placed ${r.placed.length}; missed ${r.missed.length}\n`);
   for (const t of trace) {
     const verdict = !t.ok ? `no match: ${t.reason}` : t.thisHouse === false ? `NOT THIS HOUSE (matched "${t.matched}")` : t.near == null ? 'matched; nearby not asked' : `matched "${t.matched}"; nearby ${t.near}`;
     process.stderr.write(`  ${t.q} -> ${verdict}\n`);

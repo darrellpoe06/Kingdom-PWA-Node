@@ -136,6 +136,25 @@ jobs:
             exit 1
           fi
 
+          # A RUN IN FLIGHT IS A RUN (DR-1023). Measured 2026-10-14 (run
+          # 38597189803): this hook fired on CI for the PREVIOUS tip, settled
+          # 75 s, read the new tip aa4078dd, and — counting only SUCCESSFUL
+          # runs below — did not see db-migrate 38597283265 fifty seconds into
+          # applying that very tip. It dispatched a second (38597404534), and
+          # every db-migrate dispatches an rls-isolation matrix behind it.
+          # deploy-freshness has asked this question since DR-0458 ("ALREADY
+          # IN FLIGHT"); the migration hook now asks it too. A run that is not
+          # yet complete, queued or running, is the lane doing the work; a
+          # finished failure is still not counted (below), so a red lane still
+          # re-fires. Unreadable reads as "none in flight" and falls through to
+          # the success check (DR-0076 §8: never infer done from silence).
+          inflight=$(gh api "repos/$REPO/actions/workflows/db-migrate.yml/runs?head_sha=$main_sha&per_page=10" \
+            --jq '[.workflow_runs[] | select(.status != "completed")] | length' 2>/dev/null || echo 0)
+          if [ "${inflight:-0}" != "0" ]; then
+            echo "ALREADY IN FLIGHT: a db-migrate run exists for main's tip ($main_sha) and has not finished; not dispatching."
+            exit 0
+          fi
+
           # The commit db-migrate last ran SUCCESSFULLY against. A failed run is
           # deliberately not counted: a red lane means production is behind the
           # repo, and that is precisely when this should dispatch, not stand down.
