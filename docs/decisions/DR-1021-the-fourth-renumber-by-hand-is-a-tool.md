@@ -1,4 +1,4 @@
-# DR-1020: The fourth renumber by hand is a tool — and DR-0644's refusal keeps its teeth
+# DR-1021: The fourth renumber by hand is a tool — and DR-0644's refusal keeps its teeth
 
 **Date:** 2026-10-14
 **Status:** accepted
@@ -55,4 +55,7 @@ Not done, and said plainly: **this does not stop collisions, it only makes the c
 - **Proven to catch, twice, on things that would really happen:** `rewriteText` must not match inside a longer number (a naive replace turns `DR-10160` into `DR-10190`, and the ledger reaches five digits eventually); and renumbering onto a held number is refused with the tree asserted untouched afterwards.
 - **Verified on the live ledger**, not only on fixtures: against main's real `docs/decisions`, the tool independently chose 1019 for a record sitting on 1016 — the number the session chose by hand — and refused 1018 by naming `DR-1018-shyness-can-be-pride.md`.
 - 20 gates green; lint clean.
-- This record takes **DR-1020** rather than main's pointer value of 1019, because the held PR #2166 already carries DR-1019 in its pushed files. The tool's own subject, applied to itself.
+- **This record was renumbered BY THE TOOL, and that run is the only verification that counts.** It was written as DR-1020; main's #2168 then took 1019 AND 1020 while it was under test, so the tool was run on its own record. That first run found **two defects in it**:
+  - It **refused outright** when two files held the number — but that is the ordinary state straight after a base merge, the very case the tool exists for, so the refusal was wrong. It now asks which record moves (`--file`) rather than guessing.
+  - Far worse, it **rewrote main's own DR-1020 record and four of main's files**, turning their legitimate ids into the new number. A bare `DR-nnnn` is genuinely ambiguous while two records hold it. The rewrite is now scoped to what is unambiguous — the moved record's own heading, references that name the FILE, and the INDEX row found by its LINK — and every remaining bare citation is REPORTED rather than rewritten. That corruption was discarded with a hard reset, not shipped.
+  - Re-run after the fix: it renamed this record to DR-1021 and left main's record and all four of its files **byte-identical to `origin/main`**, verified by diff, while reporting 48 bare citations for a person to read. A tool that moves decision records had to be tried on a real collision before it could be trusted, and it was wrong in two ways until it was.

@@ -1101,8 +1101,25 @@ export const OFFERINGS = Object.freeze([
  * single piece of this feature only he holds, so the app hands him the field
  * instead of guessing, and every other door is untouched.
  */
+// UTILITIES ARE THE FAMILY'S TO SAY, ON EVERY DOOR (DR-1020). Darrell,
+// 2026-10-14: "All utilities paid for the shared room tenants... single person
+// renting a whole unit pays their own utilities"; "Currently... it may change
+// in the future... however we eat that cost." Until now utilities_included was
+// written only by the co-living split (true on every room and bed) and no
+// editor could change it or say it on a whole unit. Three words, three states.
+export const UTILITIES_WORDS = Object.freeze({ paid: 'all paid', tenant: 'tenant pays' });
+export function utilitiesWord(v) { return v === true ? UTILITIES_WORDS.paid : v === false ? UTILITIES_WORDS.tenant : ''; }
+export function utilitiesValue(word) { return word === UTILITIES_WORDS.paid ? true : word === UTILITIES_WORDS.tenant ? false : null; }
+/** The editor's patch, with the utilities word turned back into the column's boolean (or NULL). */
+export function rentalPatchOut(patch = {}) {
+  if (!('utilities' in patch)) return patch;
+  const { utilities, ...rest } = patch;
+  return { ...rest, utilities_included: utilitiesValue(utilities) };
+}
+
 function EditRental({ rental, onSave, busy, knownBuildings = [], archive = '' }) {
   const [f, setF] = useState({
+    utilities: utilitiesWord(rental.utilities_included),
     photo_channel: archive || rental.photo_channel || '',
     address: rental.address || '',
     unit: rental.unit || '',
@@ -1163,6 +1180,7 @@ function EditRental({ rental, onSave, busy, knownBuildings = [], archive = '' })
     display_name: rental.display_name || '',
     photo_channel: archive || rental.photo_channel || '',
     building_note: rental.building_note || '',
+    utilities: utilitiesWord(rental.utilities_included),
   }), [rental, archive]);
   const edit = useMemo(() => buildEdit(before, {
     ...f,
@@ -1184,6 +1202,7 @@ function EditRental({ rental, onSave, busy, knownBuildings = [], archive = '' })
     { key: 'weekly_rate', label: 'Weekly rate', numeric: true },
     { key: 'biweekly_rate', label: 'Rate every two weeks', numeric: true },
     { key: 'building_note', label: 'What the building offers' },
+    { key: 'utilities', label: 'Utilities' },
     { key: 'address_visibility', label: 'Street on the public listing' },
     { key: 'photo_channel', label: 'Picture archive on the NAS' },
   ]), [before, f, shortStay]);
@@ -1322,10 +1341,17 @@ function EditRental({ rental, onSave, busy, knownBuildings = [], archive = '' })
         <label className="sm:col-span-2"><span className={lbl}>What the building offers (shared by every door in it)</span>
           <input type="text" className={field} value={f.building_note} onChange={set('building_note')} maxLength={300} placeholder="Laundry in the entry" aria-label="What the building offers" />
         </label>
+        <label className="sm:col-span-2"><span className={lbl}>Utilities (said on the listing)</span>
+          <select className={field} value={f.utilities} onChange={set('utilities')} aria-label="Utilities" data-testid="edit-utilities">
+            <option value="">Not said</option>
+            <option value={UTILITIES_WORDS.paid}>All utilities paid</option>
+            <option value={UTILITIES_WORDS.tenant}>The tenant pays their own utilities</option>
+          </select>
+        </label>
       </div>
       {edit.changed && <p className="text-[0.8125rem] text-[#1A1815] leading-relaxed mt-2">{edit.summary}</p>}
       <div className="mt-2">
-        <Btn tone="primary" disabled={busy || !edit.changed} onClick={() => onSave(edit.patch, edit.summary)}>
+        <Btn tone="primary" disabled={busy || !edit.changed} onClick={() => onSave(rentalPatchOut(edit.patch), edit.summary)}>
           {edit.changed ? 'Save the change' : 'Nothing changed'}
         </Btn>
       </div>
