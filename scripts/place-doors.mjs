@@ -33,7 +33,7 @@ import { pathToFileURL } from 'node:url';
 import { readFileSync } from 'node:fs';
 import { geocode } from '../app/functions/geocode.js';
 import { nearbyAround } from '../app/src/modules/properties/area.js';
-import { placeDoorsOnTheMap } from '../app/src/modules/properties/place-on-map.js';
+import { placeDoorsOnTheMap, matchesAddress } from '../app/src/modules/properties/place-on-map.js';
 
 export const UA = 'PoeTech door placer/1 (+https://poetech.us)';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -94,15 +94,37 @@ async function main() {
   const file = process.argv[2];
   if (!file) { process.stderr.write('usage: place-doors.mjs doors.json > updates.sql\n'); process.exit(2); }
   const doors = doorsFromJson(readFileSync(file, 'utf8'));
+  // EVERY MISS SAYS WHY (DR-0076; the first live run, 38582219189, placed 6
+  // of 12 and named the other six by id alone). Each building's lookup and
+  // its nearby read are recorded as they happen and printed per building:
+  // what was asked, what the geocoder matched, whether that is THIS house
+  // (the number and the town), and whether the nearby read answered.
+  const trace = [];
   const find = async (q) => {
     const g = await geocode(q);
-    return g.ok ? { ok: true, point: { lat: g.lat, lng: g.lng }, matched: String(g.matched || '') } : { ok: false, reason: g.reason };
+    const out = g.ok ? { ok: true, point: { lat: g.lat, lng: g.lng }, matched: String(g.matched || '') } : { ok: false, reason: g.reason };
+    const door = doors.find((d) => q.startsWith(d.address)) || null;
+    trace.push({ q, ok: out.ok, matched: out.matched || '', reason: out.reason || '', thisHouse: out.ok && door ? matchesAddress(out.matched, door) : null, near: null });
+    return out;
   };
   // The runner names itself (Overpass's usage policy) and can wait longer
   // than a phone (the nearby witness measured the servers' own 504s).
-  const around = (point) => nearbyAround(point, { userAgent: UA, timeoutMs: 60000 });
+  const around = async (point) => {
+    const n = await nearbyAround(point, { userAgent: UA, timeoutMs: 60000 });
+    const last = trace[trace.length - 1];
+    if (last) last.near = n.ok ? `${n.lines.length} line(s)` : `FAILED: ${n.reason}`;
+    return n;
+  };
   const r = await placeDoors(doors, { find, around });
-  process.stderr.write(`place-doors: ${doors.length} door(s) without an area; ${r.looked} building(s) looked up; placed ${r.placed.length}; missed ${r.missed.length}${r.missed.length ? ` (${r.missed.join(', ')})` : ''}\n`);
+  process.stderr.write(`place-doors: ${doors.length} door(s) without an area; ${r.looked} building(s) looked up; placed ${r.placed.length}; missed ${r.missed.length}\n`);
+  for (const t of trace) {
+    const verdict = !t.ok ? `no match: ${t.reason}` : t.thisHouse === false ? `NOT THIS HOUSE (matched "${t.matched}")` : t.near == null ? 'matched; nearby not asked' : `matched "${t.matched}"; nearby ${t.near}`;
+    process.stderr.write(`  ${t.q} -> ${verdict}\n`);
+  }
+  for (const id of r.missed) {
+    const d = doors.find((x) => x.id === id);
+    process.stderr.write(`  missed ${id}: ${d ? `${d.address}${d.unit ? ` (${d.unit})` : ''}, ${d.city || 'NO CITY'}` : 'unknown door'}\n`);
+  }
   process.stdout.write(updatesSql(r.placements));
 }
 
