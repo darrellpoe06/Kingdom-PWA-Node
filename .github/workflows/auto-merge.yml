@@ -358,8 +358,23 @@ jobs:
               still=$(timeout 25 gh pr list --repo "$REPO" --state open --base main \
                 --json autoMergeRequest --jq '[.[] | select(.autoMergeRequest != null)] | length' 2>&1) || { echo "poll: could not list armed PRs: $still"; still=1; }
               if [ "$still" = "0" ]; then
-                # One last look after the last merge lands, then leave.
-                sleep 20; deploy_if_stale || true
+                # THE LAST LOOK IS A WINDOW, NOT A GLANCE (2026-10-14, the TENTH
+                # miss, PR #2161, DR-1012). Measured: the merge commit is dated
+                # 01:10:03, this run ended 01:10:05, and no deploy was dispatched
+                # (heal-deploy's own log is unreadable: the run reports failure
+                # with no jobs listed). The armed count reads 0 the moment GitHub
+                # takes the PR off the open list to perform the squash, and one
+                # look 20 s later read main BEFORE the new tip was readable — so
+                # the loop left believing the tip was already deployed. Now it
+                # keeps looking for up to two minutes (8 x 15 s) and leaves early
+                # the moment a dispatch goes out. Bounded: two reads per look,
+                # only after the last armed PR has left.
+                last_dispatch="$dispatched_for"
+                for k in $(seq 1 8); do
+                  sleep 15
+                  deploy_if_stale || true
+                  [ "$dispatched_for" = "$last_dispatch" ] || break
+                done
                 echo "No armed PRs remain; the last merge (if any) was checked. Leaving."
                 break
               fi
@@ -421,7 +436,16 @@ jobs:
               still=$(timeout 25 gh pr list --repo "$REPO" --state open --base main \
                 --json autoMergeRequest --jq '[.[] | select(.autoMergeRequest != null)] | length' 2>&1) || { echo "poll: could not list armed PRs: $still"; still=1; }
               if [ "$still" = "0" ]; then
-                sleep 20; migrate_if_tip_migration || true
+                # The same two-minute last look as heal-deploy (DR-1012): the
+                # merge's new tip is readable a beat AFTER the PR leaves the
+                # open list, and a migration that lands in that beat is the
+                # worst shape there is (code live against a schema it never got).
+                last_dispatch="$dispatched_for"
+                for k in $(seq 1 8); do
+                  sleep 15
+                  migrate_if_tip_migration || true
+                  [ "$dispatched_for" = "$last_dispatch" ] || break
+                done
                 echo "No armed PRs remain; the last merge (if any) was checked. Leaving."
                 break
               fi

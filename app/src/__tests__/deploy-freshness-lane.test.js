@@ -54,6 +54,21 @@ describe('deploy-freshness hears the merge, not a timer', () => {
     expect(block, `deploy-freshness must list "${upstream}"`).toContain(`"${upstream}"`);
   });
 
+  it('also hears CI completing, named EXACTLY as ci.yml names itself (DR-1012)', () => {
+    // THE TENTH MISS (2026-10-14, #2161). The sweep a bot-opened PR starts
+    // never runs (`action_required`, 0 jobs; measured live on #2162's own
+    // sweep), so it never completes, so the Auto-merge hook above never fires
+    // for a single-push PR. CI's run on the branch is started by a person's
+    // push and completes normally; native auto-merge squashes within seconds
+    // of it going green. Same rename hazard as above, so the name is read.
+    const ci = workflowName(read('ci.yml'));
+    expect(ci).toBeTruthy();
+    const at = FRESH.indexOf('workflow_run:');
+    const block = FRESH.slice(at, at + 200);
+    expect(block, `deploy-freshness must list "${ci}"`).toContain(`"${ci}"`);
+    expect(block).toMatch(/workflows:\s*\["Auto-merge", "CI"\]/);
+  });
+
   it('keeps the cron and the manual dispatch — the hook is ADDITIVE', () => {
     // The event hook is a claim about GitHub's behaviour until a real merge
     // proves it. Removing either older net would make being wrong cost the
