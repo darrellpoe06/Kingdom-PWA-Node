@@ -7,6 +7,7 @@
 - `.github/workflows/auto-merge.yml` (the settled-tip re-check beneath the deploy poll: the same question, after its success read and before its dispatch)
 - `.github/workflows/public-shelf-witness.yml` (the incident step is keyed on the COMPARISON's outcome, never on the job's; carried in the same PR)
 - `scripts/bus-witness.mjs` (routes grouped by name across MTD's several route_ids; "1 bus"; carried in the same PR)
+- `scripts/place-doors-over-tailnet.sh` (two different nothings: a door that had its area and could not be read again is not "no house matched"; carried in the same PR)
 - `app/src/__tests__/migration-dispatch-lane.test.js` (+2; proven to catch), `app/src/__tests__/the-city-bus-says-how-close.test.js` (two pins sharpened; proven to catch)
 
 **Amends:** DR-1017 (the sweep's poll asks whether db-migrate has a run for the tip; the hook and the re-check now ask too), DR-1012 (the hooks that hear CI), DR-0458 (deploy-freshness's own "ALREADY IN FLIGHT", which the migration hook never had), DR-0973 (the shelf witness's incident ledger)
@@ -47,4 +48,5 @@ Not done, and said: the sweep's poll (DR-1017) treats ANY run for the tip, a fin
 - **`the-city-bus-says-how-close` (9):** the fixture carries one name on two ids (R7 and R7B, "7 Grey") and a one-trip route; the corner names "7 Grey" once with its two trips summed, and "9 Brown — Mon–Fri · about 1 bus".
 - The three workflows parse (PyYAML); lint clean; the 20 gates green.
 - **Live proof of #2171 (DR-1022), read this session:** Deploy 38597269575 green, boot-check 16:23:20; db-migrate 703 applied 0291 hosted + sovereign (above); rls-isolation 38597583379's poe-properties leg green at 16:26:23 with `BORROW BOTH WAYS SMOKE: PASS`; public-shelf witness: 40 and 40 on the two beds, 16 on the unit.
+- **Placer 38597571793 (dispatched by the 16:22 deploy, 16:23 to 16:31):** read 7 doors (3 with an area and `nearby` NULL, 4 never placed); the three Danville houses matched again and Overpass timed out on each again (about 2.5 minutes a door at 90 s of server patience over two mirrors), so by DR-1019's rule nothing was written; the four misses are the family's hand (DR-1017's list). The wrapper then printed "no door could be placed this run (the lookups found no house that matched)", which was false for this run: it now says the two nothings apart (`the-lane-places-the-doors` +2 pins, 10; proven to catch with the script stashed: 1 fails). The Danville Overpass trouble itself stands as measured in DR-1019; the lane keeps asking.
 - **DR-0107 proof owed:** the next migration-carrying merge's migrate-freshness hook log must read either "ALREADY IN FLIGHT" or "dispatching" exactly once across the roads, with ONE db-migrate run for that sha. Read at the re-review.
