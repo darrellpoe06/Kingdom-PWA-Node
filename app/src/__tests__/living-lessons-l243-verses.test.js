@@ -41,7 +41,35 @@
 //   6. TALK DIRECTIONS ABSENT FROM ALL FIVE PLACES. The talk-together rule
 //      post-dates the module (2026-10-01), so all three directions were
 //      authored into the lesson and each of the four bands.
-//   7. TWO STALE CROSS-REFERENCES. The senior band cited "L79" for the
+//   7. THREE QUOTED SPANS CARRYING THE HOST SENTENCE'S OWN PUNCTUATION, in
+//      the quiz and the facilitator notes: "the poor of thy people may eat,"
+//      (Exodus 23:11 reads a colon there), "a sabbath for the LORD."
+//      (Leviticus 25:4 continues with a colon), and "some say." (our own
+//      phrase, our own period). CAUGHT BY CI, NOT BY ME — I ran the 20 gates,
+//      the curriculum gates, this file and six related suites locally, but
+//      pushed while the full suite was still running, and
+//      living-lessons-quoted-terminal.test.js is in it. The lesson is right
+//      now; the process note is that "the gates I thought to run" is not the
+//      same set as "the gates that exist".
+//   8. NO STORIES AT ALL. Darrell set the standard 2026-07-21 — "Add at least
+//      2 stories to each 25 minute lesson" (DR-0215 / DR-0855) — and this
+//      module carried none. Two parables were authored, one light and one
+//      solemn, which is the house pattern across the catalog. Neither body
+//      contains a double quote, deliberately: the terminal-punctuation ratchet
+//      records our OWN short dialogue tripping it by coincidence against
+//      28,737 spans of corpus text, so a parable with no quoted spans cannot
+//      add to that debt.
+//   9. TWO CHECKS DISARMED BY THIS LESSON BEING APPENDED, not by anything
+//      wrong in it. living-lessons-stories' proof case and
+//      the-points-are-numbered-once-per-lesson both read
+//      MODULES[length - 1] — so the newest lesson silently became their
+//      subject. The first broke on `stories` being undefined; the second
+//      asserted sectionCount > 3 against a lesson that is legitimately
+//      2-section prose. The same class the L79 record named, from the other
+//      direction: filling a gap disarmed three checks, appending past the end
+//      disarmed two. The numbering check now FINDS a lesson that can exercise
+//      it (ll242, 11 sections) instead of assuming the last one does.
+//  10. TWO STALE CROSS-REFERENCES. The senior band cited "L79" for the
 //      three-bucket discipline, which is #1255's OWN numbering; ll79 does not
 //      exist on main at all (it is the held lesson of #2166, a different
 //      teaching). On main that discipline is ll213, and the citation now says
@@ -269,6 +297,40 @@ describe('four bands, each carrying the whole message', () => {
     const faked = { ...L, levels: { ...L.levels, child: 'The stork knows her appointed times and the land keeps a sabbath.' } };
     const gaps = placesMissingDirections(faked).find((g) => g.place === 'child');
     expect(gaps && gaps.missing.length).toBeGreaterThan(0);
+  });
+});
+
+describe('it carries its two stories, which the mined module had none of', () => {
+  it('carries at least two real stories', () => {
+    const real = (L.stories || []).filter((s) => s.kind === 'parable' || s.kind === 'testimony');
+    expect(real.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('follows the house pattern of one light and one solemn', () => {
+    const tones = (L.stories || []).map((s) => s.tone);
+    expect(tones).toContain('light');
+    expect(tones).toContain('solemn');
+  });
+
+  it('every story says truthfully what it is, and carries a title and a body', () => {
+    for (const s of L.stories) {
+      expect(['parable', 'testimony']).toContain(s.kind);
+      expect(String(s.title).length).toBeGreaterThan(8);
+      expect(String(s.body).trim().split(/\s+/).length).toBeGreaterThan(120);
+    }
+  });
+
+  it('holds no double-quoted span at all, so it cannot grow the terminal debt', () => {
+    // Deliberate: the terminal ratchet records our own short dialogue matching
+    // corpus text by coincidence ("some say", "when", "watch"). A parable with
+    // no quoted spans cannot add to that debt.
+    for (const s of L.stories) expect(String(s.body)).not.toMatch(/"/);
+  });
+
+  it('teaches the lesson rather than decorating it', () => {
+    const bodies = L.stories.map((s) => s.body).join(' ').toLowerCase();
+    expect(/margin/.test(bodies), 'neither story reaches the margin').toBe(true);
+    expect(/rest|tired/.test(bodies), 'neither story reaches the rest').toBe(true);
   });
 });
 
