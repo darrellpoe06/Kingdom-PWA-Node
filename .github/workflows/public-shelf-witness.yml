@@ -139,6 +139,7 @@ jobs:
       # DOM-only reading can never see.
       # ---------------------------------------------------------------------
       - name: Do the two readings agree?
+        id: compare
         if: always()
         run: |
           set -uo pipefail
@@ -178,8 +179,15 @@ jobs:
             gh issue create --repo "$REPO" --title "public shelf witness run log" --body-file /tmp/runlog-body.md
           fi
 
+      # The finding is the COMPARISON's, not the job's. Measured 2026-10-14
+      # (run 38597741280): both readings agreed (40 pictures on each bed, the
+      # shelf as the doors are called), then GitHub answered the run-log write
+      # with a GraphQL error, the job went red, and this step — keyed on the
+      # job — filed "the public shelf disagrees" on the incident ledger. A log
+      # line that could not be written is the run-log's own silence (the job
+      # stays red so it is seen); it is never a shelf finding.
       - name: File the finding on the incident ledger
-        if: failure()
+        if: failure() && steps.compare.outcome != 'success'
         run: |
           set -uo pipefail
           body="$(date -u +%FT%TZ) — **the public shelf disagrees with what the doors are called**, or could not be read. Base: ${BASE}. Run: ${GITHUB_SERVER_URL}/${REPO}/actions/runs/${GITHUB_RUN_ID} (DR-0973)."

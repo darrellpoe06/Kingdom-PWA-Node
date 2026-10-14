@@ -148,7 +148,15 @@ export function stopsNear(gtfs, point, miles = WALK_MILES) {
   return [...byKey.values()].sort((a, b) => a.miles - b.miles);
 }
 
-/** Routes serving a set of stop ids: [{route, days, tripsPerDay}], most trips first. */
+/**
+ * Routes serving a set of stop ids: [{route, days, tripsPerDay}], most trips
+ * first. Grouped by the route's NAME, not its id: MTD carries one name on
+ * several route_ids (a weekday, a Saturday and a Sunday pattern, or a seasonal
+ * variant), and read live 2026-10-14 (bus-witness 38597296070) the id-keyed
+ * list printed "70 Grey — Sat · about 23 buses" and "70 Grey — Sat · about 9
+ * buses" at one corner. Trips of every id with the same name are summed per
+ * date, so the busiest day is the day's whole count.
+ */
 export function routesAtStop(gtfs, stopIds) {
   const ids = new Set(stopIds);
   const tripIds = new Set();
@@ -159,9 +167,10 @@ export function routesAtStop(gtfs, stopIds) {
   for (const t of gtfs.trips) {
     if (!tripIds.has(t.trip_id)) continue;
     const r = routes.get(t.route_id); if (!r) continue;
-    const a = acc.get(t.route_id) || { route: r, perDate: new Map() };
+    const key = routeName(r);
+    const a = acc.get(key) || { route: r, perDate: new Map() };
     for (const d of dates.get(t.service_id) || []) a.perDate.set(d, (a.perDate.get(d) || 0) + 1);
-    acc.set(t.route_id, a);
+    acc.set(key, a);
   }
   return [...acc.values()].map((a) => {
     const seen = new Set([...a.perDate.keys()].map(weekdayOf));
@@ -188,7 +197,7 @@ export function report(gtfs, point, { withinMiles = WALK_MILES } = {}) {
     lines.push(`  ${s.name} · ${feetText(s.miles)}`);
     const rs = routesAtStop(gtfs, s.ids);
     if (!rs.length) lines.push('    no route in the feed stops here');
-    for (const r of rs) lines.push(`    ${routeName(r.route)} — ${daysText(r.days) || 'no days in the calendar'} · about ${r.tripsPerDay} buses on its busiest day`);
+    for (const r of rs) lines.push(`    ${routeName(r.route)} — ${daysText(r.days) || 'no days in the calendar'} · about ${r.tripsPerDay} ${r.tripsPerDay === 1 ? 'bus' : 'buses'} on its busiest day`);
   }
   return { lines, stops: near.length };
 }
