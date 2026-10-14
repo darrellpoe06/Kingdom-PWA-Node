@@ -14,7 +14,7 @@ import {
   buildingsToPlace, placeDoorsOnTheMap, matchesAddress, townOf, PLACE_MAX_LOOKUPS,
 } from '../modules/properties/place-on-map.js';
 import {
-  nearbyAround, nearbyFromOverpass, overpassQuery, overpassGaveUp, OVERPASS, milesText, NEARBY_MAX, busStopLabel,
+  nearbyAround, nearbyFromOverpass, overpassQuery, overpassGaveUp, OVERPASS, OVERPASS_MIRRORS, milesText, NEARBY_MAX, busStopLabel,
 } from '../modules/properties/area.js';
 import { buildingKey } from '../modules/properties/apartment.js';
 
@@ -98,7 +98,8 @@ describe('what is nearby, for ANY property (not just 805)', () => {
 
   it('Overpass unreachable is NOT "nothing near": it says so, so the caller tries again', async () => {
     const r = await nearbyAround(AT_DANVILLE, { fetchImpl: async () => { throw new TypeError('Failed to fetch'); } });
-    expect(r).toEqual({ ok: false, reason: 'What is nearby could not be reached just now.' });
+    expect(r).toMatchObject({ ok: false, reason: 'What is nearby could not be reached just now.' });
+    expect(r.tried).toHaveLength(OVERPASS_MIRRORS.length); // each mirror was reached for, and each said so
     const busy = await nearbyAround(AT_DANVILLE, { fetchImpl: async () => ({ ok: false, status: 429 }) });
     expect(busy.ok).toBe(false);
   });
@@ -109,7 +110,10 @@ describe('what is nearby, for ANY property (not just 805)', () => {
     const r = await nearbyAround(AT_DANVILLE, { fetchImpl: async (url) => { asked.push(url); return { ok: true, status: 200, json: async () => gaveUp }; } });
     expect(r.ok).toBe(false);
     expect(r.reason).toMatch(/timed out on the server/);
-    expect(asked.length).toBe(2); // the server's own trouble is worth the next mirror
+    expect(asked.length).toBe(OVERPASS_MIRRORS.length); // the server's own trouble is worth every next mirror (three since DR-1023)
+    // Every mirror's own answer rides on the failure, so a witness says which said what.
+    expect(r.tried.map((t) => t.endpoint)).toEqual([...OVERPASS_MIRRORS]);
+    expect(r.tried.every((t) => /timed out on the server/.test(t.reason))).toBe(true);
     expect(overpassGaveUp({ elements: [] })).toBe('');
     expect(overpassGaveUp({ remark: 'runtime error: Query run out of memory' })).toMatch(/out of memory/);
   });
@@ -235,6 +239,20 @@ describe('the nearby witness measures one kind at a time when the whole query fa
   // while Champaign answers in seconds; which kind is heavy is not knowable
   // from the whole. The witness asks each alone, timed, with the server's
   // own remark, and the workflow gives it the minutes to do so.
+  it('three mirrors are asked in turn, and a runner waits 75 s on each so three bad doors fit the placer\u2019s budget', () => {
+    // Measured 2026-10-14 (witness runs 38601486705 Danville and 38602222743
+    // Champaign, four minutes apart): the first mirror 504'd seven of ten
+    // kinds, the second exceeded two minutes on the whole; the control proved
+    // it the servers' afternoon, not the town. A third mirror joins; the
+    // runner's patience per mirror drops so 3 doors x 3 mirrors x 75 s stays
+    // inside place-doors.yml's twenty minutes.
+    expect(OVERPASS_MIRRORS).toHaveLength(3);
+    expect(OVERPASS_MIRRORS[2]).toBe('https://overpass.private.coffee/api/interpreter');
+    for (const f of ['scripts/place-doors.mjs', 'scripts/nearby-witness.mjs']) {
+      expect(readFileSync(join(ROOT, f), 'utf8')).toMatch(/timeoutMs: 75000, serverTimeoutS: 60/);
+    }
+  });
+
   it('asks each NEARBY_KINDS entry alone with its own radius, and the workflow allows the time', () => {
     const src = readFileSync(join(ROOT, 'scripts/nearby-witness.mjs'), 'utf8');
     expect(src).toMatch(/for \(const \[kind, sel, miles\] of NEARBY_KINDS\)/);
