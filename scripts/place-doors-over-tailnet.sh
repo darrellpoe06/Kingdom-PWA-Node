@@ -81,7 +81,7 @@ psql_run() {
 }
 if [ "$MODE" = "read" ]; then
   # Doors not on the map, AND doors on the map that were never asked what is
-  # nearby (nearby NULL; an honest empty answer is [] -- DR-1018). The second
+  # nearby (nearby NULL; an honest empty answer is [] -- DR-1019). The second
   # kind keeps its area; only the list is written.
   Q="select coalesce(json_agg(json_build_object('id', id, 'instance_id', instance_id, 'address', address, 'unit', unit, 'city', city, 'state', state, 'had_area', area_lat is not null) order by address, unit), '[]'::json) from public.rentals where nullif(btrim(coalesce(address, '')), '') is not null and (area_lat is null or nearby is null)"
   echo "DOORS-JSON=$(psql_run -c "$Q" | tr -d '\n')"

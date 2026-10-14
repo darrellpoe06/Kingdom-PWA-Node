@@ -1,4 +1,4 @@
-# DR-1019: Utilities are the family's to say, on every door — all paid for the shared rooms, the tenant's own on a whole unit, and a season can change it
+# DR-1020: Utilities are the family's to say, on every door — all paid for the shared rooms, the tenant's own on a whole unit, and a season can change it
 
 **Date:** 2026-10-14
 **Status:** accepted

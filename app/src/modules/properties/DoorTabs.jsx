@@ -1101,7 +1101,7 @@ export const OFFERINGS = Object.freeze([
  * single piece of this feature only he holds, so the app hands him the field
  * instead of guessing, and every other door is untouched.
  */
-// UTILITIES ARE THE FAMILY'S TO SAY, ON EVERY DOOR (DR-1019). Darrell,
+// UTILITIES ARE THE FAMILY'S TO SAY, ON EVERY DOOR (DR-1020). Darrell,
 // 2026-10-14: "All utilities paid for the shared room tenants... single person
 // renting a whole unit pays their own utilities"; "Currently... it may change
 // in the future... however we eat that cost." Until now utilities_included was

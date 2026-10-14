@@ -1,4 +1,4 @@
-# DR-1018: The bus stop says how close, from the agency's own feed — a short walk reads in feet, and a runner reads the MTD schedule
+# DR-1019: The bus stop says how close, from the agency's own feed — a short walk reads in feet, and a runner reads the MTD schedule
 
 **Date:** 2026-10-14
 **Status:** accepted

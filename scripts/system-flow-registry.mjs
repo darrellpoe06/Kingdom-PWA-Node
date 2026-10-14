@@ -968,7 +968,7 @@ const NODES = [
     writes: [], seeds: [],
   }),
   wf('bus-witness.yml', {
-    id: 'bus-witness', name: 'Bus witness (the agency\u2019s own feed)', purpose: 'Looks a real address up from a runner and reads the Champaign-Urbana MTD GTFS feed (the sandbox has no route to mtd.org): every stop within a half-mile walk, in feet, with its routes, days and buses a day, and the feed\u2019s own date window (DR-1018). Read-only, dispatch only.',
+    id: 'bus-witness', name: 'Bus witness (the agency\u2019s own feed)', purpose: 'Looks a real address up from a runner and reads the Champaign-Urbana MTD GTFS feed (the sandbox has no route to mtd.org): every stop within a half-mile walk, in feet, with its routes, days and buses a day, and the feed\u2019s own date window (DR-1019). Read-only, dispatch only.',
     reads: [{ res: 'gh:dispatch', token: 'workflow_dispatch' }],
     writes: [], seeds: [],
   }),

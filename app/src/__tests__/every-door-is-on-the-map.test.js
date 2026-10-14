@@ -98,7 +98,7 @@ describe('what is nearby, for ANY property (not just 805)', () => {
     expect(busy.ok).toBe(false);
   });
 
-  it('a server that gave up is a failure, not "nothing near" (DR-1018: Koehn Dr placed with 0 lines)', async () => {
+  it('a server that gave up is a failure, not "nothing near" (DR-1019: Koehn Dr placed with 0 lines)', async () => {
     const asked = [];
     const gaveUp = { version: 0.6, remark: 'runtime error: Query timed out in "query" at line 1 after 26 seconds.', elements: [] };
     const r = await nearbyAround(AT_DANVILLE, { fetchImpl: async (url) => { asked.push(url); return { ok: true, status: 200, json: async () => gaveUp }; } });

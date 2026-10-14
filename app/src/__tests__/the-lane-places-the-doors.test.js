@@ -75,7 +75,7 @@ describe('placement with the app\'s own rules', () => {
     expect(sql2).not.toContain('"far"');
     expect(sql2).toContain(`"${'x'.repeat(80)}"`);
     expect(sql2).toContain("$n$[2026-10-14] Edited — it's fine$n$");
-    // An honest empty answer is an ANSWER ([]), so NULL keeps meaning "never asked" (DR-1018).
+    // An honest empty answer is an ANSWER ([]), so NULL keeps meaning "never asked" (DR-1019).
     expect(updatesSql([{ ...base, nearby: [] }])).toContain("nearby = '[]'::jsonb");
     expect(updatesSql([{ ...base, nearby: [] }])).not.toContain('nearby = NULL');
   });
@@ -89,7 +89,7 @@ describe('the lane', () => {
     expect(wf).not.toMatch(/cron:/);                                  // never on a clock
     expect(wf).toMatch(/group: place-doors/);                         // LOCK
     expect(wf).toMatch(/cancel-in-progress: false/);
-    expect(wf).toMatch(/timeout-minutes: 20/);                        // BUDGET (8 lookups x up to 2 min, DR-1018)
+    expect(wf).toMatch(/timeout-minutes: 20/);                        // BUDGET (8 lookups x up to 2 min, DR-1019)
     expect(wf).toMatch(/PLACE_DOORS_ENABLED != 'false'/);             // KILL
     expect(wf).toMatch(/tailscale\/github-action@v3/);
     expect(wf).toMatch(/bash scripts\/place-doors-over-tailnet\.sh/);
@@ -97,7 +97,7 @@ describe('the lane', () => {
     expect(deploy).toMatch(/workflows\/place-doors\.yml\/dispatches/);
     expect(deploy).toMatch(/place-doors:\s*\n\s*name: dispatch the door placer \(after a successful deploy\)\s*\n\s*needs: deploy/);
     const sh = read('scripts/place-doors-over-tailnet.sh');
-    expect(sh).toMatch(/area_lat is null or nearby is null/);          // doors not on the map, or never asked what is nearby (DR-1018)
+    expect(sh).toMatch(/area_lat is null or nearby is null/);          // doors not on the map, or never asked what is nearby (DR-1019)
     expect(sh).toMatch(/'had_area', area_lat is not null/);
     expect(sh).toMatch(/node scripts\/place-doors\.mjs/);
     expect(sh).toMatch(/MODE=write/);
@@ -105,7 +105,7 @@ describe('the lane', () => {
   });
 });
 
-describe('a door that has its area but was never asked what is nearby (DR-1018)', () => {
+describe('a door that has its area but was never asked what is nearby (DR-1019)', () => {
   const base = { id: APT2.id, area_lat: 40.125, area_lng: -88.26, nearby: [{ label: 'x', miles: 1 }], summary: 's', had_area: true };
 
   it('keeps had_area through the JSON read, as the database prints it', () => {

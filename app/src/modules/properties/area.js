@@ -98,7 +98,7 @@ export const PLACES = Object.freeze([
 
 /** One decimal, never "0.0": under a tenth of a mile reads as 0.1. */
 export function roundMiles(m) {
-  // Under a tenth of a mile the line is read in FEET (DR-1018: a bus stop
+  // Under a tenth of a mile the line is read in FEET (DR-1019: a bus stop
   // "out front" is not "about 0.1 miles"), so the hundredth is kept there.
   if (m < 0.1) return Math.max(0.01, Math.round(m * 100) / 100);
   return Math.round(m * 10) / 10;
@@ -197,7 +197,7 @@ export function overpassQuery(point, { serverTimeoutS = 25 } = {}) {
 /**
  * Overpass answers its OWN timeout with HTTP 200, no elements and a remark
  * ("runtime error: Query timed out in ... after 26 seconds."). Read as an
- * answer, that is "nothing near" saved on the door (DR-1018: 1213 Koehn Dr,
+ * answer, that is "nothing near" saved on the door (DR-1019: 1213 Koehn Dr,
  * Danville, placed with 0 lines in a town with a hospital, a college and a
  * Walmart within fifteen miles; the witness's answer took 31 s, the 25 s
  * server limit plus transport). A remark that says the server gave up is a

@@ -50,7 +50,7 @@ export function doorsFromJson(text) {
       address: String(d.address).trim(), unit: String(d.unit || '').trim(),
       city: String(d.city || '').trim(), state: String(d.state || '').trim(),
       // A door that HAS an area but was never asked what is nearby (nearby
-      // NULL; DR-1018): the lane fills the list and leaves the area alone.
+      // NULL; DR-1019): the lane fills the list and leaves the area alone.
       had_area: d.had_area === true || d.had_area === 't' || d.had_area === 'true',
     }));
 }
@@ -99,7 +99,7 @@ export function updatesSql(placements, { today = new Date().toISOString().slice(
     const note = `[${today}] Edited — ${String(p.summary || 'Placed on the map from its address (automatic, by the lane)').replace(/\s+/g, ' ').trim()}`;
     if (json.includes('$j$') || note.includes('$n$')) continue;
     // An honest empty answer is written as [] (an answer), so NULL keeps
-    // meaning "never asked" and the lane asks such a door again (DR-1018).
+    // meaning "never asked" and the lane asks such a door again (DR-1019).
     out.push(
       `UPDATE public.rentals SET area_lat = ${lat.toFixed(5)}, area_lng = ${lng.toFixed(5)}, `
       + `nearby = ${lines.length ? `$j$${json}$j$::jsonb` : `'[]'::jsonb`}, `
@@ -130,7 +130,7 @@ async function main() {
   // The runner names itself (Overpass's usage policy) and can wait longer
   // than a phone (the nearby witness measured the servers' own 504s; on
   // 2026-10-14 witness 38585240741 timed out at 60 s while a bare GET of the
-  // same query answered in about 30 s, so the wait is two minutes, DR-1018).
+  // same query answered in about 30 s, so the wait is two minutes, DR-1019).
   const around = async (point) => {
     const n = await nearbyAround(point, { userAgent: UA, timeoutMs: 120000, serverTimeoutS: 90 });
     const last = trace[trace.length - 1];
