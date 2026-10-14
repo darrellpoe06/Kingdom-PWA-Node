@@ -98,6 +98,14 @@ describe('auto-merge — the migration question is asked after the deploy wait',
     // armed PR exists and stops when none does; `seq 1 120` x 30 s is a
     // 60-minute CEILING (a brake), not the window. Pinned as a shape.
     for (const l of loops) expect(l).toContain('seq 1 120');
+    // THE TENTH MISS (2026-10-14, #2161, DR-1012): the last look after the
+    // last armed PR leaves the open list was ONE read 20 s later, and the
+    // merge's new tip was not yet readable at that read, so the loop left
+    // with nothing dispatched. Each loop's last look is now a window of eight
+    // 15 s looks that ends early on the first dispatch. Pinned as a shape.
+    const lastLooks = src.match(/last_dispatch="\$dispatched_for"\n\s*for k in \$\(seq 1 8\); do\n\s*sleep 15\n\s*(deploy_if_stale|migrate_if_tip_migration) \|\| true\n\s*\[ "\$dispatched_for" = "\$last_dispatch" \] \|\| break\n\s*done/g) || [];
+    expect(lastLooks.length, 'both heal loops keep looking for the merge after the last armed PR leaves').toBe(2);
+    expect(src, 'the single 20 s glance is gone').not.toMatch(/sleep 20; (deploy_if_stale|migrate_if_tip_migration)/);
     // THE NINTH MISS (2026-09-23, #1735): the loop was alive and silent. A
     // failed dispatch must never mark the tip done, and no gh error may be
     // swallowed — the log has to say why nothing happened.
