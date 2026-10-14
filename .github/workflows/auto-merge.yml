@@ -522,6 +522,15 @@ jobs:
             echo "db-migrate already ran against main's tip ($main_sha); nothing to re-dispatch."
             exit 0
           fi
+          # A RUN IN FLIGHT IS A RUN (DR-1023): the success read above cannot
+          # see a run still applying the tip, and this re-check runs minutes
+          # after the merge, exactly when one is. Same guard as the poll's.
+          inflight=$(gh api "repos/$REPO/actions/workflows/db-migrate.yml/runs?head_sha=$main_sha&per_page=10" \
+            --jq '[.workflow_runs[] | select(.status != "completed")] | length' 2>/dev/null || echo 0)
+          if [ "${inflight:-0}" != "0" ]; then
+            echo "ALREADY IN FLIGHT: a db-migrate run exists for main's tip ($main_sha) and has not finished; nothing to re-dispatch."
+            exit 0
+          fi
           touched=$(gh api "repos/$REPO/commits/$main_sha" \
             --jq 'any(.files[]?.filename; startswith("infra/supabase/migrations-auto/"))' 2>&1) || { echo "re-check: could not read the tip's files: $touched"; touched="unknown"; }
           if [ "$touched" = "true" ]; then

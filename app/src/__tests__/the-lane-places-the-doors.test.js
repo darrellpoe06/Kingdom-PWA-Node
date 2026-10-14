@@ -115,6 +115,10 @@ describe('the lane', () => {
     expect(sh).toMatch(/'had_area', area_lat is not null/);
     expect(sh).toMatch(/node scripts\/place-doors\.mjs/);
     expect(sh).toMatch(/MODE=write/);
+    // Two different nothings (DR-1023): a door that had its area and could
+    // not be read again is not "no house matched".
+    expect(sh).toMatch(/matched their house but already had their area, and what is nearby could not be read again/);
+    expect(sh).toMatch(/placed=\$\(grep -oE 'placed \[0-9\]\+' "\$WORK\/place\.log"/);
     expect(UA).toMatch(/^PoeTech door placer/);
   });
 });

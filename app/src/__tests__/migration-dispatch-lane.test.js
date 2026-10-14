@@ -163,6 +163,17 @@ describe('auto-merge — the migration question is asked after the deploy wait',
     expect(fn).toMatch(/could not read the db-migrate runs for main's tip: \$already"; already=""/);
   });
 
+  it('the RE-CHECK asks whether a db-migrate run is still IN FLIGHT for the tip before it dispatches (DR-1023)', () => {
+    // Measured 2026-10-14: the success-only read cannot see a run that is
+    // applying the tip at that moment, which is exactly when a late road asks.
+    const step = src.slice(src.indexOf('Re-check for a migration once the deploy wait has resolved'));
+    const ask = step.indexOf('select(.status != "completed")');
+    const run = step.indexOf('gh workflow run db-migrate.yml');
+    expect(ask, 'the re-check must count the runs for main\u2019s tip that have not finished').toBeGreaterThan(-1);
+    expect(run).toBeGreaterThan(ask);
+    expect(step).toMatch(/ALREADY IN FLIGHT: a db-migrate run exists for main's tip/);
+  });
+
   it('the job may still write actions, or no dispatch can happen', () => {
     expect(src).toMatch(/actions: write/);
   });
@@ -218,6 +229,19 @@ describe('migrate-freshness — the outer net a poll window can never be', () =>
     // because db-migrate is idempotent by house rule.
     expect(src).toMatch(/UNREADABLE/);
     expect(src).toMatch(/dispatching rather than assuming/);
+  });
+
+  it('a run IN FLIGHT for the tip is a run: the hook stands down instead of dispatching a second (DR-1023)', () => {
+    // Measured 2026-10-14 (run 38597189803): fired on CI for the previous
+    // tip, settled 75 s, read the new tip, counted only successes, did not
+    // see db-migrate 38597283265 fifty seconds into applying it, and
+    // dispatched 38597404534 — a second run and a second isolation matrix.
+    const ask = src.indexOf('select(.status != "completed")');
+    const walk = src.indexOf('for c in $(gh api "repos/$REPO/commits?sha=$main_sha');
+    expect(ask, 'the hook must count the runs for main\u2019s tip that have not finished').toBeGreaterThan(-1);
+    expect(ask, 'and ask BEFORE it walks main for the last success').toBeLessThan(walk);
+    expect(src).toMatch(/ALREADY IN FLIGHT: a db-migrate run exists for main's tip/);
+    expect(src).toMatch(/head_sha=\$main_sha&per_page=10/);
   });
 
   it('counts only SUCCESSFUL db-migrate runs as "applied"', () => {

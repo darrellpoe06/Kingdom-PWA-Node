@@ -137,7 +137,17 @@ if [ "$rc" -ne 0 ]; then
 fi
 stmts=$(grep -c '^UPDATE ' "$WORK/updates.sql" || true)
 if [ "${stmts:-0}" = "0" ]; then
-  say "- no door could be placed this run (the lookups found no house that matched); nothing written. The next run tries again."
+  # Two different nothings (DR-1023; read live on placer 38597571793, which
+  # matched three Danville houses, timed out on what is nearby for each, and
+  # then said "no house matched"): a door that already had its area and
+  # could not be read again writes nothing by DR-1019's rule, which is not
+  # the same as no house matching.
+  placed=$(grep -oE 'placed [0-9]+' "$WORK/place.log" | grep -oE '[0-9]+' | head -1)
+  if [ "${placed:-0}" != "0" ]; then
+    say "- nothing to write: ${placed} door(s) matched their house but already had their area, and what is nearby could not be read again (asked again next run)."
+  else
+    say "- no door could be placed this run (the lookups found no house that matched); nothing written. The next run tries again."
+  fi
   exit 0
 fi
 

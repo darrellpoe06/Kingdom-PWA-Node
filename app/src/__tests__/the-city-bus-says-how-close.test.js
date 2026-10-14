@@ -29,14 +29,17 @@ const FEED = {
     'CORNER:2,"Prospect & Harvard (SW)",40.12370,-88.25810,0,CORNER',
     'FAR,"Market Place",40.14244,-88.24307,0,',
   ].join('\n'),
-  'routes.txt': 'route_id,route_short_name,route_long_name\nR30,30,Lavender\nR7,7,Grey\nR2,2,Red\n',
+  // R7 and R7B carry ONE name on two ids, as MTD's feed does (weekday /
+  // Saturday / seasonal patterns of a route are separate route_ids).
+  'routes.txt': 'route_id,route_short_name,route_long_name\nR30,30,Lavender\nR7,7,Grey\nR7B,7,Grey\nR9,9,Brown\nR2,2,Red\n',
   'trips.txt': [
     'route_id,service_id,trip_id',
-    'R30,WEEKEND,t1', 'R30,WEEKEND,t2', 'R7,WEEKDAY,t3', 'R2,WEEKDAY,t4', 'R2,WEEKDAY,t5', 'R2,WEEKEND,t6', 'R2,DATES_ONLY,t7',
+    'R30,WEEKEND,t1', 'R30,WEEKEND,t2', 'R7,WEEKDAY,t3', 'R7B,WEEKDAY,t8', 'R9,WEEKDAY,t9',
+    'R2,WEEKDAY,t4', 'R2,WEEKDAY,t5', 'R2,WEEKEND,t6', 'R2,DATES_ONLY,t7',
   ].join('\n'),
   'stop_times.txt': [
     'trip_id,stop_id,stop_sequence',
-    't1,CORNER:1,4', 't2,CORNER:2,4', 't3,CORNER:1,2', 't4,FAR,1', 't5,FAR,1', 't6,FAR,1',
+    't1,CORNER:1,4', 't2,CORNER:2,4', 't3,CORNER:1,2', 't8,CORNER:2,2', 't9,CORNER:2,3', 't4,FAR,1', 't5,FAR,1', 't6,FAR,1',
   ].join('\n'),
   'calendar.txt': [
     'service_id,monday,tuesday,wednesday,thursday,friday,saturday,sunday,start_date,end_date',
@@ -83,11 +86,15 @@ describe('the bus witness reads the agency’s feed', () => {
     expect(stopsNear(gtfs, HOUSE, 5).map((s) => s.name)).toEqual(['Prospect & Harvard', 'Market Place']);
   });
 
-  it('names every route at the corner with its days and its busiest day’s count', () => {
+  it('names every route at the corner ONCE, by name, with its days and its busiest day’s whole count', () => {
+    // Read live 2026-10-14 (bus-witness 38597296070): keyed by route_id the
+    // witness printed "70 Grey — Sat · about 23 buses" AND "70 Grey — Sat ·
+    // about 9 buses" at one corner. One name, every id's trips summed per date.
     const rs = routesAtStop(gtfs, ['CORNER:1', 'CORNER:2']);
     expect(rs.map((r) => `${r.route.route_short_name} ${daysText(r.days)} ${r.tripsPerDay}`)).toEqual([
-      '30 Sat, Sun 2', '7 Mon–Fri 1',
+      '30 Sat, Sun 2', '7 Mon–Fri 2', '9 Mon–Fri 1',
     ]);
+    expect(rs.filter((r) => r.route.route_short_name === '7')).toHaveLength(1);
     expect(serviceDays(gtfs.calendar[0])).toEqual(['monday', 'tuesday', 'wednesday', 'thursday', 'friday']);
     expect(daysText(['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'])).toBe('every day');
   });
@@ -118,7 +125,9 @@ describe('the bus witness reads the agency’s feed', () => {
     expect(r.lines).toContain('calendar exceptions (applied: added days counted, removed days dropped): 4');
     expect(r.lines.some((l) => /^ {2}Prospect & Harvard · about \d+ feet$/.test(l))).toBe(true);
     expect(r.lines).toContain('    30 Lavender — Sat, Sun · about 2 buses on its busiest day');
-    expect(r.lines).toContain('    7 Grey — Mon–Fri · about 1 buses on its busiest day');
+    expect(r.lines).toContain('    7 Grey — Mon–Fri · about 2 buses on its busiest day');
+    expect(r.lines).toContain('    9 Brown — Mon–Fri · about 1 bus on its busiest day'); // one bus, not "1 buses"
+    expect(r.lines.filter((l) => l.includes('7 Grey'))).toHaveLength(1);
   });
 
   it('a house with no stop within the walk reports zero, never a far stop as near', () => {

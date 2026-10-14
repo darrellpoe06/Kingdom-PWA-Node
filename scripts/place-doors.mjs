@@ -140,7 +140,7 @@ async function main() {
     return n;
   };
   const r = await placeDoors(doors, { find, around });
-  process.stderr.write(`place-doors: ${doors.length} door(s) without an area; ${r.looked} building(s) looked up; placed ${r.placed.length}; missed ${r.missed.length}\n`);
+  process.stderr.write(`place-doors: ${doors.length} door(s) to place or ask (no area, or never asked what is nearby); ${r.looked} building(s) looked up; placed ${r.placed.length}; missed ${r.missed.length}\n`);
   for (const t of trace) {
     const verdict = !t.ok ? `no match: ${t.reason}` : t.thisHouse === false ? `NOT THIS HOUSE (matched "${t.matched}")` : t.near == null ? 'matched; nearby not asked' : `matched "${t.matched}"; nearby ${t.near}`;
     process.stderr.write(`  ${t.q} -> ${verdict}\n`);
