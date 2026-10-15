@@ -305,10 +305,11 @@ function Playbook({ book }) {
       <style>{`@media print { body * { visibility: hidden; } [data-testid="playbook"], [data-testid="playbook"] * { visibility: visible; } [data-testid="playbook"] { position: absolute; left: 0; top: 0; width: 100%; } [data-testid="playbook"] button { display: none; } }`}</style>
       <div className="overflow-x-auto mb-3">
         <table className="w-full text-[0.6875rem]" style={serif} data-testid="playbook-order">
+          <caption className="sr-only">The {day} playbook: every line of the order with its clock, who carries it, and each team’s cue</caption>
           <thead>
             <tr className="text-left text-[#5A5751] uppercase tracking-wider text-[0.5625rem]">
-              <th className="py-1 pr-2">Clock</th><th className="py-1 pr-2">Line</th><th className="py-1 pr-2">Who</th><th className="py-1 pr-2 text-right">Min</th>
-              {book.sectors.map((sec) => <th key={sec.key} className="py-1 pr-2">{sec.short}</th>)}
+              <th scope="col" className="py-1 pr-2">Clock</th><th scope="col" className="py-1 pr-2">Line</th><th scope="col" className="py-1 pr-2">Who</th><th scope="col" className="py-1 pr-2 text-right">Min</th>
+              {book.sectors.map((sec) => <th scope="col" key={sec.key} className="py-1 pr-2">{sec.short}</th>)}
             </tr>
           </thead>
           <tbody>
