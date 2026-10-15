@@ -56,7 +56,12 @@ now is built now. The guard caught a process defect in me, not in the code.
   co-presence in a 50KB file is not a statement.
 - **The debt, measured and then reduced.** Of the 27 email-sourced records,
   **11** named no thread id. Two were recovered the same session, leaving
-  **9**:
+  **9**. (The population is **28** as this merges, not 27: DR-1049 landed on
+  main between the measurement and this push, and it complies — so the total
+  moved and the debt did not. Re-measured after that merge: 28 records, the
+  same 9 outstanding, guard green. The count is a dated measurement, not a
+  constant, which is why the suite asserts the debt and not the population.)
+  The two recovered:
   - `DR-1005` → **`1a135f165fe391e3`**, verified directly today by reading the
     thread and matching its source, its forward time and its one word.
   - `DR-1004` → **`1a135b7ba6605c98`** ("Fw: 91% of finance AI pilots are
