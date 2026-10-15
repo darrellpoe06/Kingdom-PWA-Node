@@ -88,6 +88,20 @@ jobs:
           - feature: choir-claim
             migrations: "0110-choir-member-self-claim.sql 0131-stale-role-constraint-and-nullsafe-guards.sql 0144-standings-at-will-and-the-sons-wall.sql 0210-the-signature-door-and-a-roster-that-says-when.sql 0212-a-congregant-could-not-open-their-own-record.sql 0213-the-roster-shows-what-the-person-told-us.sql 0294-the-church-knows-one-person-at-either-door.sql"
             smokes: "0110-choir-claim-smoke.sql 0294-church-either-door-smoke.sql"
+          # 2026-10-15 (DR-1052): the church runs many teams and exactly ONE of
+          # them had a membership model. 0296 gives every team the roster the
+          # choir has had since 0011, so the wall that matters is the one
+          # BETWEEN teams: a generic roster whose predicate ignored its own
+          # ministry column would silently make every team one team, which is a
+          # worse failure than the gap it closes. The smoke asserts that in both
+          # directions (media is not bus, bus is not media), asserts a plain
+          # church seat is not a team seat, and asserts the CHOIR is unchanged —
+          # choir_members still answers user_in_choir, and a media seat grants
+          # no choir. Only 0296 is listed: this leg runs against the real
+          # database, which already carries the choir chain the smoke reads.
+          - feature: church-teams
+            migrations: "0296-every-team-has-a-roster-not-just-the-choir.sql"
+            smokes: "0296-every-team-smoke.sql"
           # 2026-08-24: 0143/0144 legitimately RE-CREATED list_instance_members
           # with new columns (classification, relationship), and CREATE OR
           # REPLACE cannot change a return type — 0111 alone now fails with

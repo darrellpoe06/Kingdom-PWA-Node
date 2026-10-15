@@ -28,6 +28,7 @@ import { SectionTitle } from './shared.jsx';
 import {
   CHURCH_MINISTRIES, MINISTRY_ROSTER_NOTE, matchesMinistry,
 } from '../lib/church-ministries.js';
+import { MinistryRoster } from './MinistryRoster.jsx';
 
 const CARD = 'border border-[#E8E4DC] bg-white p-3';
 const FIELD = 'w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]';
@@ -35,6 +36,7 @@ const BTN = 'text-xs uppercase tracking-wider px-3 py-2 min-h-[36px] focus:outli
 
 export function ChurchMinistries({ onOpen = null, onFeedback = null }) {
   const [query, setQuery] = useState('');
+  const [openRoster, setOpenRoster] = useState(null);
   const shown = useMemo(
     () => CHURCH_MINISTRIES.filter((m) => matchesMinistry(m, query)),
     [query],
@@ -62,7 +64,17 @@ export function ChurchMinistries({ onOpen = null, onFeedback = null }) {
           className={`${BTN} border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white`}>
           {m.surface ? 'Tell us about it' : 'Tell us what it needs'}
         </button>
+        {/* EVERY ministry gets this, not only the ones with a page (DR-1052).
+            A team without its own surface still has people on it, and before
+            0296 only the choir could say who. The roster is read on demand so
+            23 tiles do not each open a query on first paint. */}
+        <button type="button" onClick={() => setOpenRoster((o) => (o === m.id ? null : m.id))}
+          aria-expanded={openRoster === m.id}
+          className={`${BTN} border border-[#E8E4DC] text-[#1A1815] hover:border-[#B85838]`}>
+          {openRoster === m.id ? "Hide who's on this team" : "Who's on this team"}
+        </button>
       </div>
+      {openRoster === m.id && <MinistryRoster ministry={m.id} ministryName={m.name} />}
     </div>
   );
 
