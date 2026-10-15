@@ -230,6 +230,33 @@ jobs:
           PHOTO_CODE="$CODE"
           note "- \`GET /nas-photos/healthz\` -> **$CODE** (sovereign photo server, via Funnel)"
           [ "$PHOTO_CODE" = "200" ] || echo "::warning::photo path DOWN — /nas-photos/healthz returned HTTP $PHOTO_CODE (photo_server.py / Funnel / Pages Function hop)"
+          # 6b. THE BELL (DR-1047), and it is the ONE NAS road that does NOT go
+          # through poetech.us. Every probe above hops Pages Function -> Funnel,
+          # so while #2057 holds the Functions dark they are all dark together
+          # and prove nothing about the backend behind them. scripts/ops-announce.mjs
+          # posts STRAIGHT to the Funnel (RELAY_URL = poetech.tail5a2f35.ts.net/
+          # announce/ops-announce), bypassing Cloudflare entirely -- which is
+          # exactly why the alarm can work while #2057 is still open, and why
+          # this probe must go direct too. Probing it through poetech.us would
+          # report the bell dead whenever Cloudflare is, which is a lie about
+          # the bell.
+          #
+          # WHY IT EXISTS AT ALL: every other row in infra/nas-transport/
+          # RECORDED-STATE.md names an outside-in witness, and /announce shipped
+          # without one. That file's whole lesson is that unwatched routes go
+          # dark unnoticed -- /nas-photos seven weeks, /taxes seven weeks,
+          # /scribe eighteen days. A bell nobody watches is the worst case of
+          # it, because its failure mode is silence and silence is what a
+          # working bell looks like until you need it.
+          #
+          # /healthz is unauthenticated liveness, so this sends no notification
+          # to anybody's phone. Same v1 scope as the photo and camera paths: a
+          # loud warning and its own output, never the site-incident ledger,
+          # because the NAS is a family box that can legitimately be off.
+          fetch "https://poetech.tail5a2f35.ts.net/announce/healthz"
+          BELL_CODE="$CODE"
+          note "- \`GET /announce/healthz\` (DIRECT to the Funnel, not via poetech.us) -> **$CODE** (the sovereign phone bell)"
+          [ "$BELL_CODE" = "200" ] || echo "::warning::THE BELL IS NOT ANSWERING — /announce/healthz returned HTTP $BELL_CODE direct to the Funnel. Either poetech-announce.service is down on 127.0.0.1:8796 or nothing is mounted at /announce; infra/nas-announce/install.sh does both on every services-sync cycle. While this is true every alarm raised reaches nobody."
           # The family camera road (DR-0756): /cams/health passes go2rtc's OWN
           # answer through, so a 200 here proves Pages Function + Funnel +
           # forwarder + go2rtc in one hop. Same v1 scope as the photo path: a
