@@ -15,7 +15,8 @@
 // =============================================================================
 import supabase from './supabase.js';
 import { publicRpc } from './public-rpc.js';
-import { churchInstanceId } from './church-instance.js';
+import { churchInstanceId, churchInstanceResolve } from './church-instance.js';
+import { askRole, askPredicate, knownOrUnavailable } from './church-access.js';
 
 async function currentSession() {
   const { data } = await supabase.auth.getSession();
@@ -464,17 +465,35 @@ export function dedupeSermons(rows) {
 
 // --- Access ------------------------------------------------------------------
 
+// A read that could not be made is NOT a no (DR-1053). Until 2026-10-15 this
+// function destructured `{ data: role }` and threw the `error` on the floor, so
+// a stalled read on a phone produced role=undefined, inChoir=undefined,
+// deriveAccess(undefined, undefined) = canSee:false, and the Choir tab told the
+// person to ask the director to add them to the roster. That is not an empty
+// state; it is a false statement about their standing in the church.
+//
+// deriveAccess below is UNCHANGED and is still called with exactly the two
+// values it always received. The only new outcome is `unavailable: true`, for
+// the case where one of the three questions never came back.
 export async function getChoirAccess(displayName) {
   const session = await currentSession();
-  if (!session) return { signedIn: false, canSee: false, canEdit: false, tenantId: null, role: null };
-  const tenantId = await churchInstanceId(displayName);
-  if (!tenantId) return { signedIn: true, canSee: false, canEdit: false, tenantId: null, role: null };
-  const [{ data: role }, { data: inChoir }] = await Promise.all([
-    supabase.rpc('user_role_in_instance', { tenant_uuid: tenantId }),
-    supabase.rpc('user_in_choir', { instance_uuid: tenantId }),
+  if (!session) {
+    return { signedIn: false, canSee: false, canEdit: false, tenantId: null, role: null, unavailable: false, reason: 'signed-out' };
+  }
+  const church = await churchInstanceResolve(displayName);
+  if (!church.ok) {
+    return { signedIn: true, tenantId: null, role: null, ...knownOrUnavailable([church], () => ({})) };
+  }
+  const tenantId = church.value ?? null;
+  if (!tenantId) {
+    return { signedIn: true, canSee: false, canEdit: false, tenantId: null, role: null, unavailable: false, reason: 'no-church' };
+  }
+  const [roleAnswer, choirAnswer] = await Promise.all([
+    askRole(tenantId),
+    askPredicate('user_in_choir', { instance_uuid: tenantId }),
   ]);
-  const { canEdit, canSee } = deriveAccess(role, inChoir);
-  return { signedIn: true, canSee, canEdit, tenantId, role: role ?? null };
+  const verdict = knownOrUnavailable([roleAnswer, choirAnswer], deriveAccess);
+  return { signedIn: true, ...verdict, tenantId, role: roleAnswer.ok ? (roleAnswer.value ?? null) : null };
 }
 
 // --- Generic fetch + realtime subscribe --------------------------------------

@@ -18,6 +18,7 @@
 // =============================================================================
 import supabase from './supabase.js';
 import { churchInstanceId } from './church-instance.js';
+import { askRole, knownOrUnavailable } from './church-access.js';
 import { createTableSync, unionPreservingLocal } from './table-sync.js';
 import { makeDevice } from './church-devices.js';
 
@@ -129,9 +130,12 @@ export async function getDeviceAccess(displayName) {
   if (!session) return { signedIn: false, canSee: false, canEdit: false, tenantId: null, role: null };
   const tenantId = await churchInstanceId(displayName);
   if (!tenantId) return { signedIn: true, canSee: false, canEdit: false, tenantId: null, role: null };
-  const { data: role } = await supabase.rpc('user_role_in_instance', { tenant_uuid: tenantId });
-  const { canSee, canEdit } = deriveAccess(role);
-  return { signedIn: true, canSee, canEdit, tenantId, role: role ?? null };
+  // A read that could not be made is NOT a no (DR-1053). deriveAccess is
+  // unchanged and still gets the same role it always got; the only new outcome
+  // is unavailable:true, for when the question never came back.
+  const roleAnswer = await askRole(tenantId);
+  const verdict = knownOrUnavailable([roleAnswer], deriveAccess);
+  return { signedIn: true, ...verdict, tenantId, role: roleAnswer.ok ? (roleAnswer.value ?? null) : null };
 }
 
 // Realtime register subscription. onChange(devices) fires with the mapped list

@@ -13,6 +13,7 @@
 // being invited into. Only the WRITE asks who you are.
 import supabase from './supabase.js';
 import { churchInstanceId } from './church-instance.js';
+import { askRole, knownOrUnavailable } from './church-access.js';
 import { mergeMinistries, ministryToRow, CHURCH_MINISTRIES } from './church-ministries.js';
 
 /** Who may edit. Reading is everyone's; only the office writes. */
@@ -22,8 +23,17 @@ export async function getMinistryAccess(displayName) {
     if (!session) return { signedIn: false, canEdit: false, tenantId: null, role: null };
     const tenantId = await churchInstanceId(displayName);
     if (!tenantId) return { signedIn: true, canEdit: false, tenantId: null, role: null };
-    const { data: role } = await supabase.rpc('user_role_in_instance', { tenant_uuid: tenantId });
-    return { signedIn: true, canEdit: role === 'owner' || role === 'admin', tenantId, role: role ?? null };
+    // A read that could not be made is NOT a no (DR-1053).
+    const roleAnswer = await askRole(tenantId);
+    const verdict = knownOrUnavailable([roleAnswer], (role) => ({ canEdit: role === 'owner' || role === 'admin' }));
+    return {
+      signedIn: true,
+      canEdit: verdict.canEdit === true,
+      unavailable: verdict.unavailable,
+      reason: verdict.reason,
+      tenantId,
+      role: roleAnswer.ok ? (roleAnswer.value ?? null) : null,
+    };
   } catch (_) {
     // A failed access check means NO EDIT, never a guess in the permissive
     // direction. RLS is the real gate regardless; this only shapes the UI.
