@@ -56,6 +56,18 @@ Six machine checks refused this lesson across its first full runs, every one of 
 
 The lesson that generalizes: a lesson PR that trips a product ratchet has found a product defect, and the lesson is not the thing to shrink. Six refusals, six fixes, and not one of them was answered by weakening a gate.
 
+## Decision
+
+**Decided by Darrell**, by forwarding the letter into the lesson lane with the single word **"Lesson"** — which CLAUDE.md's "Spoken Teachings Are Build Input" makes a build directive, not a comment. What that directive is taken to mean here, and what is decided downstream of it:
+
+1. **This newsletter becomes ONE World Issues lesson — issue 20, week 20 — and not two.** The Ukraine/Starlink item is a real teaching and a different one, so it is left for its own lesson rather than folded in; the advertisements, the commission-earning product recommendations, the reader poll, the celebrity-video item and the headline game are discarded and the module is gated against them by name.
+2. **The spine is the report's own first sentence**, and the Word that settles it is the measure-and-wage corpus — Haggai 1:5-6, Revelation 6:5-6 read with Matthew 20:2, the just-measure passages signed with Yahweh's own name, and the hire owed in full and on the day. The measure passages are taught as a principle about MEASURE, which reaches a currency and an index, **while accusing no living person of falsifying anything** — that charge would need evidence this lesson does not have, and the lesson says so.
+3. **The figures are tiered and labeled rather than averaged.** Tier 1 is stated plainly with the newsletter named as the intermediary every time; Tier 2 is flagged in one sentence each, narrowly; Tier 3 corrects the slogan and leaves every figure underneath it untouched. **Our own unfinished checking is recorded, not rounded up to done**, with a dated re-review.
+4. **Where a gate and this lesson disagreed, the gate won and the lesson changed** — including giving up two verses another course had measured as exclusively its own. The one exception is the gate that was itself reporting a product defect: there the PRODUCT was fixed, because that ratchet forbids raising its own ceiling and the honest move was the one it named.
+5. **All four age bands are authored**, which the course's four-band gap ceiling of 19 made a build requirement rather than a flourish, and the band baseline moves in the same commit.
+
+Nothing in this record decides anything about monetary policy, an election, or any named person's heart; those are deliberately outside what a lesson may settle.
+
 ## Verification
 
 - **Audit gate:** `auditIssue()` on `wi-the-wage-that-no-longer-buys-the-day` → `ok: true`, **zero error-severity violations** (claims labelled and attributed, every source carrying an as-of date, ≥2 — in fact 5 — steelmanned perspectives, string lens fields, accountability stated, the two courts present in `lens.benefits`, child rendering screened).
