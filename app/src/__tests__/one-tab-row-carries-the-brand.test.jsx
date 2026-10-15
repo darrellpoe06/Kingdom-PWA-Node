@@ -157,6 +157,9 @@ describe('the shell wires it', () => {
     expect(shell).toMatch(/hatch=\{<TextSizeEscapeHatch collapsed=\{headerCollapsed\}/);
   });
   it('the church door still filters the top tabs down to Church alone (the one-tab case)', () => {
-    expect(shell).toMatch(/\.filter\(\(\[id\]\) => \(!churchDoorOnly \|\| id === 'church'\)/);
+    // The list moved to lib/nav-items.jsx (DR-1046); the shell draws it as navTabs.
+    const navItemsSrc = readFileSync(join(HERE, '..', 'lib', 'nav-items.jsx'), 'utf8');
+    expect(navItemsSrc).toMatch(/\.filter\(\(\[id\]\) => \(!churchDoorOnly \|\| id === 'church'\)/);
+    expect(shell).toMatch(/\{navTabs\.map\(\(\[id, label\]\) =>/);
   });
 });

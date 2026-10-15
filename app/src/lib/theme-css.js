@@ -387,6 +387,7 @@ input::placeholder,textarea::placeholder{color:var(--form-hint)}
 [data-theme="midnight"] .bg-\\[\\#2F6B4F\\]{background-color:#86EFAC!important}
 [data-theme="midnight"] .bg-\\[\\#2F6B4F\\].text-white{color:#1A1815!important}
 [data-theme="midnight"] .bg-\\[\\#C9A227\\]{background-color:#FCD34D!important}
+[data-theme="midnight"] .text-\\[\\#C9A227\\]{color:#FCD34D!important}
 [data-theme="midnight"] .border-\\[\\#DED5C3\\]{border-color:#2A2A2A!important}
 [data-theme="midnight"] .border-\\[\\#1F3A2E\\]{border-color:#86EFAC!important}
 [data-theme="midnight"] .border-\\[\\#1B2A4A\\]{border-color:#93C5FD!important}

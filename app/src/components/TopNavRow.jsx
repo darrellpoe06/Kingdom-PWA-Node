@@ -39,7 +39,7 @@ export function loneTab(children) {
   return tabs.length === 1 ? tabs[0] : null;
 }
 
-export default function TopNavRow({ hatch = null, navHistory = {}, collapsed = false, onToggleHeader, brandName = '', brandTagline = '', home = null, children }) {
+export default function TopNavRow({ hatch = null, navHistory = {}, collapsed = false, onToggleHeader, brandName = '', brandTagline = '', home = null, tabsHidden = false, children }) {
   const lone = loneTab(children);
   // ONE WAY BACK PER PHONE ROW (DR-0640). When the collapsed row sits inside
   // the one-tab row, its "Show header" button and this chevron do the same
@@ -88,9 +88,17 @@ export default function TopNavRow({ hatch = null, navHistory = {}, collapsed = f
         <nav className="border-t border-[#E8E4DC]">
           <div className="flex items-stretch">
             {back}
-            <TabScroll chrome className="pr-1 sm:pr-6 lg:pr-8 min-w-0 flex-1" rowClassName="sm:text-sm items-stretch">
-              {children}
-            </TabScroll>
+            {/* THE SIDEBAR CARRIES THE TABS AT LAPTOP WIDTH (DR-1046, Phase 2):
+                with `tabsHidden` the strip steps aside from `lg` up, where
+                components/shell/SideNav.jsx draws the same list beside the
+                page; back/forward, the opener and the chevron keep the row.
+                Below `lg` nothing changes: the flat row Darrell loves is the
+                nav on every phone and tablet. */}
+            <div data-testid="top-nav-tabs" className={`min-w-0 flex-1 flex items-stretch ${tabsHidden ? 'lg:hidden' : ''}`}>
+              <TabScroll chrome className="pr-1 sm:pr-6 lg:pr-8 min-w-0 flex-1" rowClassName="sm:text-sm items-stretch">
+                {children}
+              </TabScroll>
+            </div>
             {/* THE OPENER (Darrell 2026-10-08, driving home with a lesson
                 playing: "the garage door opener button is there for easy
                 access"). Pinned beside the chevron so it never scrolls away

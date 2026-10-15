@@ -28,6 +28,11 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const MONOLITH = join(ROOT, 'app/src/poe-financial-mvp-v28.jsx');
+// 2026-10-15 (DR-1046): the top-level tab array moved out of the shell into
+// lib/nav-items.jsx, so the sidebar, the tab strip and the bottom bar draw ONE
+// list. The guard follows the list: it walks back from the `/* top-level-nav */`
+// marker there, exactly as it walked back from `setView(id)` in the shell.
+const NAV_ITEMS = join(ROOT, 'app/src/lib/nav-items.jsx');
 // FEEDBACK_AREAS moved out of the monolith with the FeedbackCenter extraction.
 const FEEDBACK_CENTER = join(ROOT, 'app/src/components/FeedbackCenter.jsx');
 const CHOIR = join(ROOT, 'app/src/components/Choir.jsx');
@@ -115,7 +120,7 @@ export function coverageGaps({ topNav, churchSub, choirTabs, keys }) {
 export function scan() {
   const mono = readFileSync(MONOLITH, 'utf8');
   const choir = readFileSync(CHOIR, 'utf8');
-  const topNav = pairIds(mappedArraySlice(mono, 'setView(id)'));
+  const topNav = pairIds(mappedArraySlice(readFileSync(NAV_ITEMS, 'utf8'), '/* top-level-nav */'));
   const churchSub = pairIds(mappedArraySlice(mono, 'setChurchView(id)'));
   const choirStart = choir.indexOf('const TABS = [');
   const choirTabs = pairIds(choir.slice(choirStart, choir.indexOf('];', choirStart)));
