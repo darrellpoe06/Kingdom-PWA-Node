@@ -69,14 +69,14 @@ describe('the collapsed header row names the door', () => {
     // name the header shows at tablet width, and the same tagline beneath it.
     expect(shell).toMatch(/<TextSizeEscapeHatch [^\n]*siteName=\{churchBrand \? 'The Love Corner' : 'Family Operating Systems'\}/);
     expect(shell).toMatch(/\{churchBrand \? 'The Love Corner' : 'Family Operating Systems'\}<\/span>/);
-    expect(shell).toMatch(/<TextSizeEscapeHatch [^\n]*siteTagline=\{churchBrand \? 'The Church of the Living God' : 'PoeTech · Life, Soul & Money'\}/);
-    expect(shell).toMatch(/\{churchBrand \? 'The Church of the Living God' : 'PoeTech · Life, Soul & Money'\}/);
+    expect(shell).toMatch(/<TextSizeEscapeHatch [^\n]*siteTagline=\{churchBrand \? 'The Church of the Living God' : 'Life · Soul · Money · Family'\}/);
+    expect(shell).toMatch(/\{churchBrand \? 'The Church of the Living God' : 'Life · Soul · Money · Family'\}/);
   });
 
   it('carries the tagline under the name, and draws no empty tagline', async () => {
-    const el = await mount(TextSizeEscapeHatch, { collapsed: true, onShowHeader: () => {}, siteName: 'Family Operating Systems', siteTagline: 'PoeTech · Life, Soul & Money' });
+    const el = await mount(TextSizeEscapeHatch, { collapsed: true, onShowHeader: () => {}, siteName: 'Family Operating Systems', siteTagline: 'Life · Soul · Money · Family' });
     expect(el.querySelector('[data-testid="collapsed-site-name"]').textContent).toBe('Family Operating Systems');
-    expect(el.querySelector('[data-testid="collapsed-site-tagline"]').textContent).toBe('PoeTech · Life, Soul & Money');
+    expect(el.querySelector('[data-testid="collapsed-site-tagline"]').textContent).toBe('Life · Soul · Money · Family');
     // The name wraps; it is never cut off mid-word (the 2026-07-06 rule).
     expect(el.querySelector('[data-testid="collapsed-site-name"]').className).not.toMatch(/truncate/);
     const bare = await mount(TextSizeEscapeHatch, { collapsed: true, onShowHeader: () => {}, siteName: 'PoeTech' });
@@ -111,7 +111,7 @@ describe('on a phone the text sizes are one dropdown in the corner', () => {
   // smaller screen or a drop down with all options?" / "Keeping the screen
   // real-estate as clear as possible?"
   it('offers all five sizes in one dropdown, and choosing one sets the size', async () => {
-    const el = await mount(TextSizeEscapeHatch, { collapsed: true, onShowHeader: () => {}, siteName: 'Family Operating Systems', siteTagline: 'PoeTech · Life, Soul & Money' });
+    const el = await mount(TextSizeEscapeHatch, { collapsed: true, onShowHeader: () => {}, siteName: 'Family Operating Systems', siteTagline: 'Life · Soul · Money · Family' });
     const sel = el.querySelector('[data-testid="text-size-compact"]');
     expect(sel, 'the compact dropdown renders on the collapsed row').toBeTruthy();
     expect([...sel.options].map((o) => o.textContent)).toEqual(['A', 'A+', 'A++', 'A+++', 'A44']);
@@ -158,8 +158,11 @@ describe('the Messages tab carries the unread count', () => {
     expect(el.querySelector('[data-testid="dm-unread-badge"]')).toBeNull();
   });
 
-  it('is mounted on the Messages nav entry of the shell', () => {
+  it('is mounted on the Messages nav entry of the one nav list the shell draws', () => {
+    // The list moved to lib/nav-items.jsx (DR-1046); the shell renders it as navTabs.
+    const nav = readFileSync(join(HERE, '..', 'lib', 'nav-items.jsx'), 'utf8');
+    expect(nav).toMatch(/\['messages', <><UiIcon name="chat" \/> Messages<DmUnreadBadge \/><\/>\]/);
     const shell = readFileSync(join(HERE, '..', 'poe-financial-mvp-v28.jsx'), 'utf8');
-    expect(shell).toMatch(/\['messages', <><UiIcon name="chat" \/> Messages<DmUnreadBadge \/><\/>\]/);
+    expect(shell).toMatch(/\{navTabs\.map\(/);
   });
 });

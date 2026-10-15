@@ -171,7 +171,7 @@ import { unionPreservingLocal, getInstanceId } from './lib/table-sync.js';
 import { useInstanceRole } from './lib/instance-role.js';
 import { TIER_ORDER, TIER_LABEL, effectiveTier, tierMeets } from './lib/tiers.js';
 import TierSwitcher from './components/TierSwitcher.jsx';
-import { THEME_CSS, THEMES, useThemePref } from './lib/theme-css.js';
+import { THEME_CSS, THEMES, useThemePref, DEFAULT_THEME } from './lib/theme-css.js';
 import { mergeTransactionsPreferCloud } from './lib/txn-dedupe.js';
 import { syncIdentityKey } from './lib/sync-identity.js';
 import { fetchSnapshot, pushSnapshot, buildSnapshotPayload, mergeKeepingLocalRoomPhotos } from './lib/snapshot-sync.js';
@@ -1082,7 +1082,7 @@ export default function PoeFinancialSystem() {
   // not move it. useThemePref publishes from lib/theme-css.js and persists on
   // set, so the separate saveThemePref effect is no longer needed and every
   // setTheme(...) call site below is unchanged.
-  const [theme, setTheme] = useThemePref('cream');
+  const [theme, setTheme] = useThemePref(DEFAULT_THEME);
   // One-click HEADER HIDEAWAY (Darrell 2026-06-29): collapse the top chrome —
   // date/time, build line, account/business/subscribe row, voice picker, font
   // controls, theme swatches, the Sample banner — to ALL the room for the
@@ -4163,7 +4163,7 @@ ${THEME_CSS}
                 <span className="hidden sm:inline lg:hidden">{churchBrand ? 'The Love Corner' : 'Family Operating Systems'}</span>
                 <span className="sm:hidden lg:inline">{churchBrand ? 'The Love Corner' : 'PoeTech'}</span>
               </h1>
-              <div className="ts-chrome-region text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">{churchBrand ? 'The Church of the Living God' : 'PoeTech · Life, Soul & Money'} <span className="text-[0.5rem] tracking-[0.15em] text-[#5A5751] ml-2 sm:hidden inline-flex items-center gap-1.5" title={`Build time: ${typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : 'unknown'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>build {typeof __BUILD_SHA__ !== 'undefined' ? __BUILD_SHA__ : '????'}<FreshnessDot compact /></span></div>
+              <div className="ts-chrome-region text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">{churchBrand ? 'The Church of the Living God' : 'Life · Soul · Money · Family'} <span className="text-[0.5rem] tracking-[0.15em] text-[#5A5751] ml-2 sm:hidden inline-flex items-center gap-1.5" title={`Build time: ${typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : 'unknown'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>build {typeof __BUILD_SHA__ !== 'undefined' ? __BUILD_SHA__ : '????'}<FreshnessDot compact /></span></div>
             </div>
             <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-end min-w-0 ts-chrome-region ts-escape-hatch header-comfort-row bg-[#FAF8F4]">
               {/* "Hide ▾" / "Show controls ▴" when this row is the A44 bottom block (DR-0716; components/ComfortBarToggle.jsx). */}
@@ -4254,9 +4254,9 @@ ${THEME_CSS}
             Darrell built it. DR-0276 rule 3 — always reversible. */}
         {/* The nav row, the header chevron, and on a one-tab door the brand row
             (components/TopNavRow.jsx, DR-0640: "Both places are good... why not"). */}
-        <TopNavRow navHistory={navHistory} tabsHidden={showSideNav} collapsed={headerCollapsed} onToggleHeader={toggleHeaderChrome} brandName={churchBrand ? 'The Love Corner' : 'Family Operating Systems'} brandTagline={churchBrand ? 'The Church of the Living God' : 'PoeTech · Life, Soul & Money'}
+        <TopNavRow navHistory={navHistory} tabsHidden={showSideNav} collapsed={headerCollapsed} onToggleHeader={toggleHeaderChrome} brandName={churchBrand ? 'The Love Corner' : 'Family Operating Systems'} brandTagline={churchBrand ? 'The Church of the Living God' : 'Life · Soul · Money · Family'}
           home={churchDoorOnly && isFamilyMember ? { href: '/poetech-app/?view=overview', label: 'PoeTech app', title: 'Open the whole PoeTech app (every tab)' } : null}
-          hatch={<TextSizeEscapeHatch collapsed={headerCollapsed} onShowHeader={toggleHeaderChrome} siteName={churchBrand ? 'The Love Corner' : 'Family Operating Systems'} siteTagline={churchBrand ? 'The Church of the Living God' : 'PoeTech · Life, Soul & Money'} />}>
+          hatch={<TextSizeEscapeHatch collapsed={headerCollapsed} onShowHeader={toggleHeaderChrome} siteName={churchBrand ? 'The Love Corner' : 'Family Operating Systems'} siteTagline={churchBrand ? 'The Church of the Living God' : 'Life · Soul · Money · Family'} />}>
               {navTabs.map(([id, label]) => {
                 if (id === '__sep__') {
                   return <span key="sep" aria-hidden="true" className="self-center mx-1 sm:mx-3 h-5 border-l border-[#1A1815] opacity-40" />;
@@ -4308,7 +4308,7 @@ ${THEME_CSS}
             <AdvisementBanner />
           </div>
         )}
-        {view === 'overview' && <SectionBoundary name="Overview"><Home setData={setData} setChurchView={setChurchView} data={data} addNote={addNote} snowballExtra={snowballExtra} totals={totals} pressure={pressure} setPressure={setPressure} pressureCalc={pressureCalc} projection={projection} rentalSnowball={rentalSnowball} flaggedRentals={flaggedRentals} flaggedOpportunities={flaggedOpportunities} entityRollups={entityRollups} reserves={reserves} upcomingEvents={upcomingEvents} welcomeDismissed={data.welcomeDismissed} dismissWelcome={dismissWelcome} setView={setView} setFeedbackOpen={setFeedbackOpen} bufferTarget={data.meta?.bufferTarget || 0} bufferCurrent={bufferCurrentReal} capexItems={data.capexItems || []} watchlist={data.watchlist || []} rentals={data.inflows?.rentals || []} incidents={data.incidents || []} projects={data.projects || []} resolveIncident={resolveIncident} skillProfiles={data.skillProfiles || []} addIncident={addIncident} addProject={addProject} entities={data.entities || []} ingestData={ingestData} setBooksView={setBooksView} contractors={data.contractors1099 || []} workerOps={workerOps} lifePhotos={data.lifePhotos || []} addLifePhotos={addLifePhotos} updateLifePhoto={updateLifePhoto} deleteLifePhoto={deleteLifePhoto} /></SectionBoundary>}
+        {view === 'overview' && <SectionBoundary name="Overview"><Home welcomeName={(PROFILES.find((p) => p.id === currentProfile) || {}).name || ''} setData={setData} setChurchView={setChurchView} data={data} addNote={addNote} snowballExtra={snowballExtra} totals={totals} pressure={pressure} setPressure={setPressure} pressureCalc={pressureCalc} projection={projection} rentalSnowball={rentalSnowball} flaggedRentals={flaggedRentals} flaggedOpportunities={flaggedOpportunities} entityRollups={entityRollups} reserves={reserves} upcomingEvents={upcomingEvents} welcomeDismissed={data.welcomeDismissed} dismissWelcome={dismissWelcome} setView={setView} setFeedbackOpen={setFeedbackOpen} bufferTarget={data.meta?.bufferTarget || 0} bufferCurrent={bufferCurrentReal} capexItems={data.capexItems || []} watchlist={data.watchlist || []} rentals={data.inflows?.rentals || []} incidents={data.incidents || []} projects={data.projects || []} resolveIncident={resolveIncident} skillProfiles={data.skillProfiles || []} addIncident={addIncident} addProject={addProject} entities={data.entities || []} ingestData={ingestData} setBooksView={setBooksView} contractors={data.contractors1099 || []} workerOps={workerOps} lifePhotos={data.lifePhotos || []} addLifePhotos={addLifePhotos} updateLifePhoto={updateLifePhoto} deleteLifePhoto={deleteLifePhoto} /></SectionBoundary>}
         {view === 'books' && (
           <PrivateGate area="Financial" onCancel={() => setView('overview')} onForgot={handleForgotPin}>
           {/* Router-level backstop (2026-06-25): each Books sub-tab degrades to an inline card, keyed by booksView so a crash never sticks to the next tab. */}

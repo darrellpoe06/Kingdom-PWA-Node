@@ -387,6 +387,10 @@ input::placeholder,textarea::placeholder{color:var(--form-hint)}
 [data-theme="midnight"] .bg-\\[\\#2F6B4F\\]{background-color:#86EFAC!important}
 [data-theme="midnight"] .bg-\\[\\#2F6B4F\\].text-white{color:#1A1815!important}
 [data-theme="midnight"] .bg-\\[\\#C9A227\\]{background-color:#FCD34D!important}
+[data-theme="midnight"] .bg-\\[\\#1C3F38\\]{background-color:#0F1A14!important}
+[data-theme="midnight"] .bg-\\[\\#8A6510\\]{background-color:#3A2E0E!important}
+[data-theme="midnight"] .text-\\[\\#F0D58A\\]{color:#FCD34D!important}
+[data-theme="midnight"] .bg-\\[\\#1A1D1B\\]{background-color:#000000!important}
 [data-theme="midnight"] .text-\\[\\#C9A227\\]{color:#FCD34D!important}
 [data-theme="midnight"] .border-\\[\\#DED5C3\\]{border-color:#2A2A2A!important}
 [data-theme="midnight"] .border-\\[\\#1F3A2E\\]{border-color:#86EFAC!important}
@@ -412,8 +416,8 @@ input::placeholder,textarea::placeholder{color:var(--form-hint)}
 // STAY: it is the first-run default, and the header's inline copy had omitted
 // it, so a reader who chose any other palette could never return to it.
 export const THEMES = [
-  { key: 'cream',    color: '#FAF8F4', border: '#1A1815', label: 'Cream · warm light' },
   { key: 'heritage', color: '#F6F1E7', border: '#1F3A2E', label: 'Heritage · forest & gold' },
+  { key: 'cream',    color: '#FAF8F4', border: '#1A1815', label: 'Cream · warm light' },
   { key: 'white',    color: '#F5F5F7', border: '#1D1D1F', label: 'Snow · clean light' },
   { key: 'slate',    color: '#F2F4F7', border: '#1F6FEB', label: 'Glacier · cool light' },
   { key: 'sapphire', color: '#EFF6FF', border: '#1E3A8A', label: 'Sapphire' },
@@ -421,6 +425,12 @@ export const THEMES = [
   { key: 'midnight', color: '#000000', border: '#888888', label: 'Midnight · OLED black' },
 ];
 const THEME_KEYS = new Set(THEMES.map((t) => t.key));
+// THE FIRST-RUN THEME OF THE FAMILY APP (DR-1046; Darrell's approval, relayed by
+// Christina 2026-10-15). Heritage is what a device with no saved choice gets;
+// a device that chose a palette keeps it (DR-0524), and Cream stays in the
+// picker one tap away. The business doors pass their own fallback ('cream'):
+// they carry their own brands and were not part of the approval.
+export const DEFAULT_THEME = 'heritage';
 
 // THE PHONE'S OWN BARS WEAR THE THEME (DR-0744; Darrell 2026-10-01, Midnight
 // on his phone in the installed app, a white strip above the page and a white
@@ -434,7 +444,7 @@ const THEME_KEYS = new Set(THEMES.map((t) => t.key));
 // the page's color, not the browser's.
 /** The page color of a theme key (cream for an unknown key). Pure. */
 export function themeColorFor(theme) {
-  const t = THEMES.find((x) => x.key === theme);
+  const t = THEMES.find((x) => x.key === theme) || THEMES.find((x) => x.key === DEFAULT_THEME);
   return (t || THEMES[0]).color;
 }
 /**
@@ -465,7 +475,7 @@ export function syncThemeChrome(theme, doc = (typeof document !== 'undefined' ? 
 // picked this returns THAT — so the default follows the last chosen color
 // (Darrell 2026-07-19).
 const THEME_PREF_KEY = 'poe-theme-pref';
-export function readThemePref(fallback = 'cream') {
+export function readThemePref(fallback = DEFAULT_THEME) {
   try {
     const v = typeof localStorage !== 'undefined' ? localStorage.getItem(THEME_PREF_KEY) : null;
     return v && THEME_KEYS.has(v) ? v : fallback;
@@ -511,7 +521,7 @@ export function setThemePref(theme) {
  * React glue: [activeKey, setTheme]. Drop-in for the useState the monolith
  * carried, so every existing setTheme(...) call site is unchanged.
  */
-export function useThemePref(fallback = 'cream') {
+export function useThemePref(fallback = DEFAULT_THEME) {
   const [theme, setTheme] = useState(() => readThemePref(fallback));
   useEffect(() => subscribeThemePref(setTheme), []);
   // VALUE ONLY, deliberately. A functional updater would have to run

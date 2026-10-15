@@ -86,12 +86,12 @@ const hubProps = (over = {}) => ({ data: world, setData: noop, setView: noop, se
 const render = (el) => { act(() => root.render(el)); };
 const text = () => container.textContent || '';
 
-describe('nobody is moved off the front door they already have', () => {
-  it('defaults to the current view', () => {
+describe('the Life Hub is the front door (DR-1046, Darrell\'s approval 2026-10-15); a chosen view is kept', () => {
+  it('defaults to the Life Hub', () => {
     // Checked at the SINGLE source the module actually reads, because a break
     // that flipped the real default used to hide behind the test reset.
-    expect(DEFAULT_HOME_VIEW).toBe('current');
-    expect(getHomeView()).toBe('current');
+    expect(DEFAULT_HOME_VIEW).toBe('lifehub');
+    expect(getHomeView()).toBe('lifehub');
     const src = readFileSync(join(ROOT, 'app', 'src', 'lib', 'home-view-prefs.js'), 'utf8');
     expect(src).toMatch(/homeView: read\(HOME_VIEW_KEY, HOME_VIEWS, DEFAULT_HOME_VIEW\)/);
   });
@@ -110,15 +110,19 @@ describe('nobody is moved off the front door they already have', () => {
     expect(readPref(() => { throw new Error('blocked'); }, ['a', 'b'], 'z')).toBe('z');
   });
 
-  it('Home renders the existing dashboard until the reader chooses otherwise', () => {
+  it('Home renders the Life Hub by default, and the dashboard when the reader chooses the Current View', () => {
+    render(createElement(Home, { data: world, setView: noop, setData: noop, dismissWelcome: noop, totals: {}, entityRollups: [], reserves: {}, upcomingEvents: [] }));
+    expect(text()).toContain('Life Hub');
+    expect(text()).not.toContain('Try the Life Hub');
+    act(() => setHomeView('current'));
     render(createElement(Home, { data: world, setView: noop, dismissWelcome: noop, totals: {}, entityRollups: [], reserves: {}, upcomingEvents: [] }));
     expect(text()).toContain('Try the Life Hub');
-    expect(text()).not.toContain('Life Hub’s');
   });
 
   it('rides at the end of the Overview tab row, never on a line of its own', () => {
     // Darrell 2026-09-24, of the button alone on a full-width row above the
     // tabs: "Try the hub is taking up a lot of space... why?!"
+    act(() => setHomeView('current'));
     render(createElement(Home, { data: world, setView: noop, dismissWelcome: noop, totals: {}, entityRollups: [], reserves: {}, upcomingEvents: [] }));
     const btn = container.querySelector('[data-testid="try-life-hub"]');
     const row = container.querySelector('[data-testid="overview-tab-row"]');
@@ -392,16 +396,16 @@ describe('the furniture stays furniture', () => {
 
 describe('the preference is remembered on the device, honestly', () => {
   it('writes the choice under a namespaced key', () => {
-    act(() => setHomeView('lifehub'));
+    act(() => setHomeView('current'));
     let stored = null;
     try { stored = localStorage.getItem(HOME_VIEW_KEY); } catch { /* blocked */ }
     expect(HOME_VIEW_KEY).toBe('poetech:home-view');
-    expect(stored).toBe('lifehub');
+    expect(stored).toBe('current');
   });
 
   it('refuses a value it does not know', () => {
     act(() => setHomeView('whatever'));
-    expect(getHomeView()).toBe('current');
+    expect(getHomeView()).toBe('lifehub');
   });
 
   it('and says out loud that per-person means per-device here', () => {

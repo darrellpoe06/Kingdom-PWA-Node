@@ -105,7 +105,7 @@ describe('the Reports section: visible, one set of controls, theme tokens only',
   it('every theme the app offers is covered by the checks (enumerated from THEMES)', () => {
     const parsed = parseThemes(THEME_CSS);
     const keys = THEMES.map((t) => t.key);
-    expect(keys).toEqual(['cream', 'heritage', 'white', 'slate', 'sapphire', 'rose', 'midnight']);
+    expect(keys).toEqual(['heritage', 'cream', 'white', 'slate', 'sapphire', 'rose', 'midnight']);
     for (const k of keys.filter((x) => x !== 'cream')) expect(parsed[k], `${k} parsed`).toBeTruthy();
   });
 });

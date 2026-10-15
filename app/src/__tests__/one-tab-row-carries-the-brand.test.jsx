@@ -153,7 +153,7 @@ describe('loneTab', () => {
 describe('the shell wires it', () => {
   const shell = readFileSync(join(HERE, '..', 'poe-financial-mvp-v28.jsx'), 'utf8');
   it('mounts TopNavRow with the same brand the header wordmark and the collapsed row show', () => {
-    expect(shell).toMatch(/<TopNavRow [^\n]*brandName=\{churchBrand \? 'The Love Corner' : 'Family Operating Systems'\} brandTagline=\{churchBrand \? 'The Church of the Living God' : 'PoeTech · Life, Soul & Money'\}/);
+    expect(shell).toMatch(/<TopNavRow [^\n]*brandName=\{churchBrand \? 'The Love Corner' : 'Family Operating Systems'\} brandTagline=\{churchBrand \? 'The Church of the Living God' : 'Life · Soul · Money · Family'\}/);
     expect(shell).toMatch(/hatch=\{<TextSizeEscapeHatch collapsed=\{headerCollapsed\}/);
   });
   it('the church door still filters the top tabs down to Church alone (the one-tab case)', () => {

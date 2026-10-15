@@ -29,7 +29,7 @@ const MUTE = '#B8B2A6';
 export default function SharePoster({
   url: urlProp = null,
   shown: shownProp = null,
-  brandLine = 'PoeTech · Life, Soul & Money',
+  brandLine = 'PoeTech · Life · Soul · Money · Family',
   heading = 'Scan to get the app',
   ariaLabel = 'QR code to install the PoeTech app',
 }) {

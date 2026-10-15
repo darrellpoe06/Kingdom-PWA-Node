@@ -54,9 +54,10 @@ describe('every door hears the shared theme, not a copy of it', () => {
     });
   }
 
-  it('the PoeTech shell was already right, and stays right', () => {
+  it('the PoeTech shell was already right, and stays right (its fallback is the family app\'s DEFAULT_THEME, DR-1046)', () => {
     const shell = readFileSync(join(HERE, '..', 'poe-financial-mvp-v28.jsx'), 'utf8');
-    expect(shell).toContain("useThemePref('cream')");
+    expect(shell).toContain('useThemePref(DEFAULT_THEME)');
+    expect(shell).not.toMatch(/useState\(\(\)\s*=>\s*readThemePref\(/);
   });
 });
 

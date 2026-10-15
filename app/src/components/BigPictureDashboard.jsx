@@ -68,6 +68,7 @@ export function Home(props) {
   if (homeView === 'lifehub') {
     return (
       <LifeHub
+        welcomeName={props.welcomeName || ''}
         data={props.data}
         setData={props.setData}
         setView={props.setView}
