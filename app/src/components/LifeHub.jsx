@@ -57,7 +57,12 @@ const CHIP = 'border border-[#E8E4DC] px-2.5 py-1 rounded-full text-[0.625rem] u
 // charcoal, terracotta); white reads on each at 5.2:1 or better, measured.
 const TILE_STYLE = {
   bigPicture: { fill: 'bg-[#1F3A2E]', icon: 'chart' },
-  learn:      { fill: 'bg-[#1B2A4A]', icon: 'bookOpen' },
+  // DR-1055: this tile was keyed 'learn' and carried an open book until
+  // Darrell said "Books doesn't currently go to the Books tab it goes to
+  // Church Learn...". It now opens the ledger, so the ICON MOVES WITH IT —
+  // an open book over the family's accounts is the same lie the sub-label
+  // was. The fill is unchanged (navy, white on it measured at 5.2:1+).
+  books:      { fill: 'bg-[#1B2A4A]', icon: 'coins' },
   messages:   { fill: 'bg-[#1C3F38]', icon: 'chat' },
   realEstate: { fill: 'bg-[#8A6510]', icon: 'home' },
   projects:   { fill: 'bg-[#2B2F2D]', icon: 'folder' },
