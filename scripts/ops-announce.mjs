@@ -43,7 +43,7 @@
 // header, and never echoed — not in a reason string, not in a debug line.
 import { pathToFileURL } from 'node:url';
 
-// CUT OVER TO THE SOVEREIGN BELL 2026-10-15 (DR-1043). This was
+// CUT OVER TO THE SOVEREIGN BELL 2026-10-15 (DR-1045). This was
 // `/webhook/ops-announce` -- the Funnel's n8n root -- which answered 404
 // "webhook not registered" for five weeks while every alarm it carried
 // reached nobody. The n8n-is-gone HELD entry for this file named its own
@@ -90,7 +90,7 @@ export function classifyBellResponse({ code, body = '', transportError = null } 
       rang: false,
       dead: true,
       // The n8n branch is kept because its body shape is exact and the history
-      // is real; it only fires on n8n's own words. After the DR-1043 cut-over
+      // is real; it only fires on n8n's own words. After the DR-1045 cut-over
       // the OTHER branch is the one that will fire, so it now names the cause
       // it will actually have: the Funnel mount. A 404 on the sovereign road
       // means tailscale is serving nothing at /announce, which is precisely

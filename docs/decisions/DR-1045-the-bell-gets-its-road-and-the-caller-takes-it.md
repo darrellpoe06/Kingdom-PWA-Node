@@ -1,4 +1,4 @@
-# DR-1043: The bell gets its road and the caller takes it — `active` on loopback is not reachable
+# DR-1045: The bell gets its road and the caller takes it — `active` on loopback is not reachable
 
 **Date:** 2026-10-15
 **Status:** accepted
