@@ -17,13 +17,14 @@
 // WHAT EACH TILE READS, traced to the record (measured 2026-09-17):
 //   Big Picture  — no count. It IS the overview; a number on it would be a
 //                  summary of a summary.
-//   Learn & Grow — no count. There is NO per-person lesson-progress record in
-//                  this app: `grep -rn "lessonProgress|lessonsCompleted|
-//                  completedLessons|lesson_progress|learnProgress" app/src/lib`
-//                  returns nothing. The catalog's 169 lessons are platform
-//                  content, not her progress, so printing it here would answer
-//                  a question she did not ask. When a progress record ships,
-//                  this is the one line to change.
+//   Books        — no count. The ledger's honest number is a BALANCE, and a
+//                  balance is not a badge: a bare figure on the family's front
+//                  screen, with no account beside it and no sign of whether it
+//                  is an asset or a debt, is the painted-number defect this
+//                  file exists to refuse. The Books tab itself says it
+//                  properly. (Until 2026-10-15 this tile opened Learn and
+//                  carried no count for a different reason — there is still NO
+//                  per-person lesson-progress record in this app.)
 //   Messages     — the REAL unread count, passed in from the single DM watcher
 //                  (lib/dm-notify.js, which owns the only subscription in the
 //                  page). Shown only when it is above zero.
@@ -36,13 +37,25 @@
 //                  (DR-0351); this world cannot see its rows, and a number
 //                  invented from nothing is precisely what is forbidden above.
 //
-// THE "BOOKS" AMBIGUITY, NAMED RATHER THAN GUESSED. Her tile reads "Books" with
-// the sub-label "Learn & Grow". In this app "Books" is the FINANCIAL surface
-// (BooksAccounts / BooksEntities / Debts), while "Learn & Grow" plainly
-// describes the Learn door. The sub-label is the clearer statement of intent,
-// so this tile opens LEARN, and the financial books stay one tap away behind
-// Big Picture. If she meant the money books, it is one line here — and the
-// question is in DR-0464 rather than silently resolved.
+// THE "BOOKS" AMBIGUITY, ASKED AND NOW ANSWERED (DR-1055). Christina's tile
+// read "Books" with the sub-label "Learn & Grow". In this app "Books" is the
+// FINANCIAL surface (BooksAccounts / BooksEntities / Debts), while "Learn &
+// Grow" plainly describes the Learn door. The two halves of one tile pointed at
+// two different places, so DR-0464 §g recorded the question for Christina
+// rather than guessing, and the tile opened LEARN on the sub-label's reading.
+//
+// Darrell answered it on 2026-10-15, from the home grid on his phone: "Books
+// doesn't currently go to the Books tab it goes to Church Learn..."
+//
+// So the tile opens BOOKS — and the SUB-LABEL CHANGES WITH IT. Pointing the
+// label at the ledger while leaving "Learn & Grow" under it would be the same
+// lie inverted, and a worse one: a tile that says it teaches and opens the
+// family's money. The honest consequence, stated rather than hidden: LEARN
+// LOSES ITS HOME TILE. It stays two taps away at Church → Learn, and one tap
+// away in the Quick Actions as "Open a lesson", which is why the check that
+// used to guard the Learn tile now guards that action instead — the property
+// it protects (there is no `view === 'learn'` in this app, so anything aimed at
+// Learn must travel as church + learn) is still true and still worth a gate.
 import { PROJECT_STATUSES_ACTIVE } from './opportunity-capacity.js';
 import { DENSITY_ACTIONS } from './home-view-prefs.js';
 
@@ -56,7 +69,7 @@ import { DENSITY_ACTIONS } from './home-view-prefs.js';
 // pair: the top-level view, and the church sub-view where one is needed.
 export const HUB_TILES = [
   { key: 'bigPicture', label: 'Big Picture', sub: 'My Life Overview', view: 'overview', churchView: null },
-  { key: 'learn', label: 'Books', sub: 'Learn & Grow', view: 'church', churchView: 'learn' },
+  { key: 'books', label: 'Books', sub: 'Accounts & Debts', view: 'books', churchView: null },
   { key: 'messages', label: 'Messages', sub: 'Stay Connected', view: 'messages', churchView: null },
   { key: 'realEstate', label: 'Real Estate', sub: 'Properties', view: 'rentals', churchView: null },
   { key: 'projects', label: 'Projects', sub: 'Ideas to Reality', view: 'projects', churchView: null },
@@ -65,7 +78,7 @@ export const HUB_TILES = [
 
 // The router's real top-level view names, read from the host on 2026-09-17 and
 // pinned here so a renamed route fails a check instead of a family member's tap.
-export const HOST_VIEWS = ['overview', 'church', 'messages', 'rentals', 'projects', 'tlc'];
+export const HOST_VIEWS = ['overview', 'church', 'books', 'messages', 'rentals', 'projects', 'tlc'];
 
 // The Quick Actions, in the order her densest mockup shows them. Every one of
 // these has real machinery behind it in this app; none is a placeholder.
