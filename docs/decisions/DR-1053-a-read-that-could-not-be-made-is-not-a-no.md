@@ -70,7 +70,9 @@ it into a statement about his standing in the house of Yahweh that was not
 true.** That second one is the defect. It is DR-0076's "unknown is never up"
 turned inside out: **unknown is never a no.**
 
-## GAPS — measured, not estimated
+## What was measured
+
+**GAPS, counted rather than estimated.**
 
 Counted on the real tree at `5da26a971`, in `app/src`:
 
@@ -90,6 +92,32 @@ Counted on the real tree at `5da26a971`, in `app/src`:
 `service-program.js` was **already right** and is left alone: it keeps every
 `error` and renders them on the refused screen. It is the pattern the rest
 should have copied.
+
+## Impact
+
+**What it buys.** The two surfaces Darrell photographed stop lying and stop
+dead-ending: a church read that cannot be made now says so, in plain words that
+name it as a failure to ASK rather than a verdict about the person, with a Try
+again. Eight access paths stop discarding the one piece of information that
+distinguishes the two. And a single stalled request on a phone is no longer the
+whole answer.
+
+**What it costs.** Nothing in access: the combinator proves it. A few hundred
+milliseconds of backoff on a genuinely unreachable read, inside the same total
+patience the person already spent.
+
+**What it obligates.** Seven surfaces now receive `unavailable` and still draw
+their old empty state; each needs the third panel Choir and My Record got.
+`re-review: 2026-10-29`.
+
+**What it does NOT reach, and this matters most.** It does not fix the outage.
+The measurement that arrived while this was being written (site-health run
+38811322129, 2026-10-15 21:37 UTC) says **every Cloudflare Pages Function has
+been dead since 2026-10-09 — #2057, day 6 — and `/sb`, the road to the church's
+records, is first on the list of dark roads.** Three retries against a road
+that has been dark for six days still fail. This change makes the app honest
+about that; it does not make the app work. The cure is Cloudflare-side and no
+change in this repository reaches it.
 
 ## Decision
 

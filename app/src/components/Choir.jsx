@@ -1002,7 +1002,11 @@ export default function Choir() {
   // below and told the person they were not on the team.
   if (access.unavailable) {
     return (
-      <div className="max-w-2xl">
+      // Full width, no per-surface cap (CONSISTENCY-STANDARD rule 1, DR-0246).
+      // The consistency ratchet refused the first version of this panel for
+      // copying the max-w-2xl wrapper off the state below it, and it was right:
+      // that wrapper is grandfathered debt, not a pattern to extend.
+      <div>
         <SectionTitle eyebrow="Church · choir">Choir</SectionTitle>
         <div className="bg-white border border-[#B85838] p-6 text-center" role="alert">
           <p className="text-sm text-[#1A1815] font-semibold" style={{ fontFamily: '"Fraunces", serif' }}>
