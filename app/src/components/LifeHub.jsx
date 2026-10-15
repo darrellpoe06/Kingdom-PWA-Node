@@ -198,7 +198,7 @@ export default function LifeHub({ data = {}, setData = null, setView = null, set
           </div>
           <div className="mt-2 flex flex-wrap gap-1.5">
             {['Direct', 'Groups', 'Voicemail'].map((k) => (
-              <button key={k} type="button" onClick={openMessages} className={`${CHIP} ${FOCUS_RING} ${k === 'Direct' ? 'bg-[#E8E4DC] border-[#1A1815]' : ''}`}>{k}</button>
+              <button key={k} type="button" onClick={openMessages} aria-label={`Open ${k} messages`} className={`${CHIP} ${FOCUS_RING} ${k === 'Direct' ? 'bg-[#E8E4DC] border-[#1A1815]' : ''}`}>{k}</button>
             ))}
           </div>
           <div className="mt-3 text-sm" data-testid="hub-messages-body">
