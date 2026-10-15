@@ -1158,7 +1158,7 @@ export const LIVING_LESSONS_MODULES = [
   // chain, and pain surfaces where the problem never was. The science is the
   // WITNESS; the SOURCE is the Body of Christ's INTERDEPENDENCE -- "whether one member
   // suffer, all the members suffer with it" (1 Corinthians 12:26); "every joint supplieth" (Eph
-  // 4:16); "Bear ye one another's burdens" (Galatians 6:2). Distinct from L3 (which is
+  // 4:16); "Bear ye one another’s burdens" (Galatians 6:2). Distinct from L3 (which is
   // division-of-labor / many-members); this is mutual care + tending the weak
   // link. GUARDRAIL: interdependence, NOT codependence -- each part still works
   // "in the measure of every part." Verses KJV, VERBATIM (DR-0076). Grace-centered.
@@ -2881,7 +2881,7 @@ export const LIVING_LESSONS_MODULES = [
     // 14:8-9) from the God who "is not the author of confusion" (14:33); his word
     // pictures are the Lord's own parables (Matthew 13:34; Mark 4:33). GUARDRAIL:
     // Golden teaches business/communication; we keep the Word senior -- the goal is
-    // to serve, "Neither as being lords over God's heritage, but being ensamples to the flock" (1 Peter 5:3),
+    // to serve, "Neither as being lords over God’s heritage, but being ensamples to the flock" (1 Peter 5:3),
     // "your servant" (Matthew 23:11), never to use an audience to validate self.
     // All verses KJV-verbatim, spot-checked against public/bible/kjv (DR-0076).
     title: 'Become the Message — Teaching Truth from Tactics to Essence',
