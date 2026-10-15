@@ -25,7 +25,7 @@ import {
   CAMPUSES, eventTypeLabel, findCampus, findSpace,
   responsibilitiesFor, responsibilityProgress, bookingConflicts,
   revenueSummary, formatPrice, mediaExpectedLabels, hasCueSheet,
-  subscribeBookings, updateBooking, toggleResponsibility, deleteBooking,
+  subscribeBookings, updateBooking, toggleResponsibility, nextResponsibilities, deleteBooking,
   fetchBookingMessages, sendBookingMessage, fetchMyVenueRequests,
   subscribeRateCard, isCommercialBooking, bookingQuote,
 } from '../lib/venue-rental.js';
@@ -401,9 +401,61 @@ function StaffConsole() {
   }, []);
   useEffect(() => subscribeRateCard((card) => setRateCard(card)), []);
 
-  const onUpdate = async (id, patch) => { await updateBooking(id, patch); };
-  const onToggle = async (booking, key) => { await toggleResponsibility(booking, key); };
-  const onDelete = async (id) => { await deleteBooking(id); };
+  // A SURFACE MUST NOT WAIT ON A WEBSOCKET TO SHOW ITS OWN WORK (DR-1058).
+  // Darrell, 2026-10-15, on a responsibility checkbox: "Doesn't work!!!!"
+  //
+  // Every control here wrote to the database and then waited for a realtime
+  // postgres_changes event to come back and tell it what it had just done.
+  // setBookings was called from NOTHING ELSE. So when that WebSocket is not
+  // delivering -- and the app currently reaches the NAS cross-origin over the
+  // Funnel, because every Pages Function is dark (#2057) -- the write lands,
+  // the screen never moves, the tick springs back, and nothing is said.
+  //
+  // Now the saved row is applied from the WRITE'S OWN ANSWER. Realtime still
+  // runs and still carries other people's changes; it is no longer the only
+  // way this screen learns what this person did.
+  const [saveErr, setSaveErr] = useState('');
+  const applySaved = (saved) => {
+    if (!saved) return;
+    setBookings((cur) => cur.map((b) => (b.id === saved.id ? saved : b)));
+  };
+  // Say WHICH refusal it was. "refused" is the RLS case: a PostgREST update
+  // filtered out by a policy returns no error and changes nothing, so this is
+  // the only place a person could ever learn it happened.
+  const sayFailure = (res) => {
+    const e = res && res.error;
+    setSaveErr(e === 'refused'
+      ? 'The database would not accept that change — your account may not have the church office role on this booking. Nothing was saved.'
+      : `That did not save (${(e && (e.message || e)) || 'no reason given'}). Nothing was changed.`);
+  };
+
+  const onUpdate = async (id, patch) => {
+    setSaveErr('');
+    const res = await updateBooking(id, patch);
+    if (res && res.ok) { applySaved(res.booking); return res; }
+    sayFailure(res);
+    return res;
+  };
+  const onToggle = async (booking, key) => {
+    setSaveErr('');
+    // Optimistic: the tick moves on the tap, so the control feels like a
+    // control. The server's own row replaces it a moment later, and a refusal
+    // puts it back where it was rather than leaving a tick that is not true.
+    const optimistic = { ...booking, responsibilities: nextResponsibilities(booking, key) };
+    applySaved(optimistic);
+    const res = await toggleResponsibility(booking, key);
+    if (res && res.ok) { applySaved(res.booking); return res; }
+    applySaved(booking);
+    sayFailure(res);
+    return res;
+  };
+  const onDelete = async (id) => {
+    setSaveErr('');
+    const res = await deleteBooking(id);
+    if (res && res.ok) { setBookings((cur) => cur.filter((b) => b.id !== id)); return res; }
+    sayFailure(res);
+    return res;
+  };
 
   const revenue = useMemo(() => revenueSummary(bookings), [bookings]);
   const open = useMemo(() => bookings.filter((b) => OPEN_STATUSES.has(b.status)), [bookings]);
@@ -440,6 +492,15 @@ function StaffConsole() {
           <KpiDot status={totalConflicts ? 'problem' : 'good'} label={totalConflicts ? `${totalConflicts} conflict${totalConflicts === 1 ? '' : 's'}` : 'no double-bookings'} className="text-[0.6875rem] mt-1" />
         </div>
       </div>
+
+      {/* A refused save has to be SAID. It is otherwise unknowable: a PostgREST
+          write filtered out by RLS returns no error and changes nothing, so
+          before DR-1058 the only sign was a tick that sprang back. */}
+      {saveErr && (
+        <div className="mb-4 border-l-4 border-[#7A1F1F] bg-[#FBF2F2] px-3 py-2" role="alert">
+          <p className="text-xs text-[#1A1815]" style={serif}>{saveErr}</p>
+        </div>
+      )}
 
       {!loaded && <p className="text-sm text-[#5A5751]" style={serif}>Loading bookings…</p>}
 
