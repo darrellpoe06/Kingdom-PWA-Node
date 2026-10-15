@@ -55,36 +55,8 @@ const OUTSTANDING = [
     why: 'not a lesson built from one forward at all — it is the record that CREATED the email lane, and it quotes the one-word instruction while describing how the door works. The detector cannot tell a record about the door from a record built through it, and tightening it further would start losing real lessons. Carried as a known, deliberate false positive rather than weakening the check.',
   },
   {
-    file: 'DR-0411-who-keeps-powerful-ai-under-control-the-servant-under-authority-and-the-guardrails-this-house-built.md',
-    why: '2026-09 Morning Brew forward, built before thread ids were recorded. Recoverable by searching Gmail for the issue by source and date, which needs the Gmail connector and a per-record match; not done blind.',
-  },
-  {
-    file: 'DR-0412-the-epa-unwinds-the-power-plant-carbon-rules-and-the-word-on-the-land.md',
-    why: 'one of TWO items Darrell forwarded on 2026-09-15, so source-and-day alone cannot tell it from DR-0416. Needs the subject matched against the thread before an id is written, and a guessed id is worse than none.',
-  },
-  {
-    file: 'DR-0413-the-supreme-court-leaves-the-mail-in-rules-alone-and-the-word-on-a-just-measure.md',
-    why: '2026-09 Morning Brew forward from before the convention. Same recovery as DR-0411.',
-  },
-  {
-    file: 'DR-0414-the-kennedy-center-on-the-brink-whose-name-goes-on-the-house-and-the-word-on-names-patrons-and-the-arts.md',
-    why: '2026-09 forward from before the convention. Same recovery as DR-0411.',
-  },
-  {
-    file: 'DR-0415-evanstons-reparations-and-the-equal-protection-suit-restitution-respect-of-persons-and-a-wrong-that-can-be-documented.md',
-    why: '2026-09 forward from before the convention. Same recovery as DR-0411.',
-  },
-  {
-    file: 'DR-0416-the-trades-are-hiring-the-non-degree-job-market-and-the-word-on-work-with-your-hands.md',
-    why: 'the second of the two items forwarded on 2026-09-15 (its own text says so), so it has the same ambiguity as DR-0412 and needs the same subject match.',
-  },
-  {
-    file: 'DR-0436-do-the-tools-have-the-memory-of-a-goldfish-the-desk-the-book-of-remembrance-and-the-one-who-brings-all-things-to-your-remembrance.md',
-    why: 'a ByteByteGo forward from 2026-09, before the convention. Recoverable by subject; not guessed.',
-  },
-  {
     file: 'DR-0505-the-swarm-that-agreed-together-and-the-plumbline-held-from-outside.md',
-    why: 'a forward from before the convention. Recoverable by subject; not guessed.',
+    why: 'its provenance line names the sender but not the publication or the date ("Darrell forwarded, from dpoe@illinois..."), so unlike the seven recovered on 2026-10-15 there is nothing to match a thread on. Recovering it means reading the record for which teaching it carries and finding that newsletter by subject. A guessed id is worse than none, so it waits for that reading.',
   },
 ];
 
@@ -165,7 +137,7 @@ describe('the real ledger — the rule for new records, and a shrink-only debt',
 
   it('the debt may only SHRINK', () => {
     const older = missing.filter((f) => numOf(f) < FIRST_RECORD_UNDER_THE_RULE);
-    expect(older.length, 'this number may go down and never up').toBeLessThanOrEqual(9);
+    expect(older.length, 'this number may go down and never up').toBeLessThanOrEqual(2);
   });
 
   it('every outstanding entry states a real why, not a shrug', () => {
