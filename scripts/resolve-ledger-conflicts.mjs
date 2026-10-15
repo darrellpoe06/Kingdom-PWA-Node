@@ -216,7 +216,26 @@ export function normalizeLedger(text, { nextId } = {}) {
             `normalizeLedger: two different decisions claim DR-${row[1]} — ${first} and ${row[2]}. `
             + 'This is a number collision, not a duplicate row, and folding them would delete one '
             + `decision from the ledger. Renumber the newer file to DR-${String(maxRowId(text) + 1).padStart(4, '0')} `
-            + '(its file name, its INDEX row and every reference to it), then run this again.');
+            + '(its file name, its INDEX row and every reference to it), then run this again.\n'
+            // THE ORDER IS PART OF THE CURE, and it was learned by failing it
+            // three times on one record on 2026-10-15 (DR-1020's re-review
+            // asked for the week's collision count; one record hit THREE in
+            // ninety minutes). Renumbering mid-merge does not work, and the
+            // reason is not obvious: THIS script reads git's merge STAGES, and
+            // stage 2 is the branch's own commit, so it keeps seeing the old
+            // file name no matter what the working tree says. Worse, with two
+            // records holding the number every bare `DR-xxxx` citation is
+            // ambiguous, so renumber-decision-record correctly refuses to
+            // rewrite them and they must each be read by hand. Do it on a clean
+            // tree and that whole class disappears: one record holds the
+            // number, so the tool rewrites every citing file itself.
+            + '\nDO IT IN THIS ORDER — renumbering mid-merge cannot work:\n'
+            + '  1. git merge --abort\n'
+            + `  2. node scripts/renumber-decision-record.mjs ${row[1]} ${String(maxRowId(text) + 1).padStart(4, '0')} --file <the record that moves>\n`
+            + '     (on a clean tree only ONE record holds the number, so it rewrites every\n'
+            + '      citing file for you; mid-merge it must refuse them as ambiguous)\n'
+            + '  3. commit that rename on its own, so it is reviewable\n'
+            + '  4. git merge origin/main, then run this script again\n');
         }
         removedRows.push(`DR-${row[1]}`);
         continue;
