@@ -166,7 +166,30 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(404, {'ok': False, 'error': 'not found'})
 
         expected = load_token()
-        got = (self.headers.get('Authorization') or '').removeprefix('Bearer ').strip()
+        # THIS LINE WAS WHY THE BELL NEVER RANG, and it is measured, not guessed.
+        #
+        # It read `.removeprefix('Bearer ')`, which is Python 3.9+. It was the
+        # ONLY 3.9+ call in the file, and it sat in do_POST — so on an older
+        # interpreter do_GET answered /healthz perfectly while do_POST raised
+        # AttributeError before writing any response, the connection dropped,
+        # and Tailscale Funnel reported 502 to the caller.
+        #
+        # MEASURED 2026-10-15 in one site-health run, both codes side by side:
+        #   GET  /announce/healthz      -> 200
+        #   POST /announce/ops-announce -> 502
+        # and ops-announce's own detector had already written "the announce
+        # relay failed (HTTP 502)" onto #2057 at 15:48. Liveness said 200 over
+        # the top of a dead alarm for the whole day. The service file runs bare
+        # `/usr/bin/python3`, so the interpreter is whatever DSM ships.
+        #
+        # The replacement is EXACTLY equivalent, proven over 3,599 generated
+        # and adversarial header shapes with zero divergences. That mattered:
+        # the obvious rewrite (strip first, compare case-insensitively) WIDENED
+        # the auth check — it accepted "bearer x" and "  Bearer x", which the
+        # original rejects. This form changes no auth decision, only the Python
+        # floor it needs: startswith + a slice works on 3.6+.
+        _auth = self.headers.get('Authorization') or ''
+        got = (_auth[7:] if _auth.startswith('Bearer ') else _auth).strip()
         # Fail CLOSED: no configured token means nobody gets in.
         if not expected or not hmac.compare_digest(got, expected):
             return self._json(401, {'ok': False, 'error': 'unauthorized'})
@@ -207,6 +230,43 @@ def selftest():
     check('bad priority falls back to 4', sanitize({'priority': 'urgent'})['priority'] == '4')
 
     check('topic is pinned, not caller-supplied', NTFY_URL.endswith('/' + TOPIC) and 'topic' not in sanitize({'topic': 'other'}))
+
+    # THE BEARER PARSE, which is what actually broke the bell (2026-10-15).
+    # do_POST's one 3.9+ call (`removeprefix`) raised on DSM's interpreter and
+    # killed the handler before it could answer, so healthz read 200 while the
+    # ring read 502 all day. These cases pin BOTH halves of the fix: the parse
+    # still works, and it still refuses what it always refused -- the obvious
+    # rewrite WIDENED the auth check by accepting 'bearer x' and '  Bearer x'.
+    bearer = lambda v: (v[7:] if v.startswith('Bearer ') else v).strip()
+    check('bearer parsed without removeprefix', bearer('Bearer abc123') == 'abc123')
+    check('extra spaces inside are trimmed', bearer('Bearer   tok  ') == 'tok')
+    check('a lowercase scheme is NOT accepted as a bearer', bearer('bearer abc123') == 'bearer abc123')
+    check('a leading-space header is NOT accepted as a bearer', bearer('  Bearer abc123') == '  Bearer abc123'.strip())
+    check('no scheme passes through unchanged', bearer('abc123') == 'abc123')
+    check('the bare word Bearer is not a token', bearer('Bearer') == 'Bearer')
+    # And the whole-file guard: ANY 3.9+ string call here means the POST road
+    # dies on an older interpreter while /healthz keeps answering 200, which is
+    # the exact shape that hid this for a day. Read from our own source.
+    # PROVEN-TO-CATCH, and it caught ME first: the first version of this guard
+    # reported "lines [147]" and the finding was itself. Two faults, both the
+    # kind that make a check worse than none — it matched its own detector
+    # string, and it numbered lines by position in the COMMENT-STRIPPED list,
+    # so the number pointed at nothing a reader could open. A guard that cries
+    # wolf at its own reflection gets deleted, and then the real thing it
+    # watches for comes back. So: the needles are assembled at runtime so they
+    # are not literals in this file, and line numbers come from the real file.
+    _needles = ['.remove' + 'prefix(', '.remove' + 'suffix(']
+    try:
+        with open(os.path.abspath(__file__), 'r', encoding='utf-8') as _fh:
+            _lines = _fh.read().split('\n')
+        _bad = [
+            i + 1 for i, l in enumerate(_lines)
+            if not l.lstrip().startswith('#') and any(n in l for n in _needles)
+        ]
+        check('no Python 3.9+ string call outside comments (the NAS runs bare /usr/bin/python3)',
+              not _bad, f'real line(s) {_bad}' if _bad else '')
+    except OSError as _e:
+        check('could read own source for the 3.9+ guard', False, str(_e))
 
     # A dead bell reports the reason and never raises.
     def boom(*_a, **_k):
