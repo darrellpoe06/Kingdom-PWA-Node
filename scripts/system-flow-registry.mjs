@@ -788,6 +788,24 @@ const NODES = [
     writes: [{ res: 'gh:incident', token: '--label incident' }, { res: 'gh:deploy-heal', token: 'gh workflow run deploy-cloudflare-pages.yml' }],
     seeds: ['ops-surface', 'deploy'],
   }),
+  // THE FIRST THING THAT ASKS CLOUDFLARE (#2057). site-health above proves the
+  // site is up and fresh and has correctly said, 35 times, that no Pages
+  // Function runs -- but it can only re-measure the symptom. Nothing in this
+  // repository had ever asked Cloudflare what it believes is deployed, so a
+  // five-day outage carried five days of identical notes and no diagnosis. This
+  // is dispatch-only and read-only: it GETs the live roads and the Pages API and
+  // writes ONE comment with the whole reading, because a finding nobody reads is
+  // the P53 failure, and 35 notes that say the same nothing is how it looks.
+  wf('cf-pages-diagnose.yml', {
+    id: 'cf-pages-diagnose', name: 'Pages Functions diagnosis (#2057)',
+    purpose: 'Asks the live site and the Cloudflare Pages API why no Function is invoked, and records the answer.',
+    reads: [
+      { res: 'site:poetech.us', token: 'poetech.us' },
+      { res: 'cf:pages-api', token: 'api.cloudflare.com' },
+    ],
+    writes: [{ res: 'gh:incident', token: 'gh issue comment 2057' }],
+    seeds: ['ops-surface'],
+  }),
   // THE STRANGER'S SCREEN, BESIDE THE PIPELINE'S (DR-0973). site-health above
   // proves the site is UP and FRESH; it has never had an opinion about whether
   // a listing card tells the truth. This one reads the card, and the door's
@@ -1627,6 +1645,10 @@ const RESOURCES = {
   'gh:release': { label: 'the app release' },
   'gh:review-issue': { label: 'due re-review items', sink: 'A due re-review opens an issue a steward works; the ledger itself is the record.' },
   'site:poetech.us': { label: 'the live site' },
+  // Cloudflare's own record of what it believes is deployed. Nothing here can
+  // write it, which is exactly why #2057 ran five days on inference: the
+  // ledger re-measured the symptom 35 times and never asked the authority.
+  'cf:pages-api': { label: "Cloudflare's Pages API", source: 'Cloudflare holds the deployment and routing state; this repository can only ask it, and until #2057 nothing ever did.' },
   'hosted:db': { label: 'the retired hosted database' },
   'http:nas-photos': { label: 'photo server on the NAS', route: '/nas-photos' },
   'http:voice': { label: 'the reading voice studio', route: '/voice' },
