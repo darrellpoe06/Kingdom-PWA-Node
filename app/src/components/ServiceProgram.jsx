@@ -798,7 +798,7 @@ export default function ServiceProgram() {
               {
                 id: 'record',
                 label: 'Track record',
-                render: () => <TrackRecord programs={programs} segments={segments} actuals={actuals} />,
+                render: () => <TrackRecord programs={programs} segments={segments} actuals={actuals} sermons={sermons} />,
               },
               // Steward-only (gated section — absent for sector lenses and any
               // non-editing viewer, so nothing leaks): the finalizer circle +

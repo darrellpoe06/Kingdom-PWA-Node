@@ -676,6 +676,13 @@ const NODES = [
     writes: [{ res: 'db:choir_sermons', token: 'service_date' }],
     seeds: ['sermon-reader', 'transcript-trickle'],
   }),
+  rider('service:stream-length', 'infra/church-media-golive/stream_length_sync.py', {
+    id: 'stream-length', name: 'NAS reads how long each service ran',
+    purpose: 'Gives each service video its length, so the order can be read against the 75\u201390 window.',
+    reads: [{ res: 'db:choir_sermons', token: 'choir_sermons' }, { res: 'yt:channel', token: 'yt-dlp' }],
+    writes: [{ res: 'db:choir_sermons', token: 'stream_seconds' }],
+    seeds: ['songbook'],
+  }),
   rider('service:transcript-trickle', 'infra/nas-sme-pipeline/load-transcripts.py', {
     id: 'transcript-trickle', name: 'NAS transcript trickle',
     purpose: 'Fetches each service video’s words from the NAS’s own address.',
@@ -729,6 +736,8 @@ const NODES = [
     reads: [
       { res: 'db:choir_songs', file: 'app/src/components/Choir.jsx', token: 'subscribeSongs' },
       { res: 'db:church_service_segments', file: 'app/src/lib/service-program.js' },
+      // DR-1045: Track record reads each service video's stream length.
+      { res: 'db:choir_sermons', file: 'app/src/components/ServiceActuals.jsx', token: 'streamRecord' },
     ],
     writes: [
       { res: 'db:choir_songs', file: 'app/src/lib/choir-songbook-sync.js', token: "from('choir_songs').insert" },

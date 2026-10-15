@@ -82,6 +82,11 @@ export function toSermonShape(row) {
     youtubeUrl: row.youtube_url ?? null,
     videoId: row.video_id ?? null,
     startSeconds: row.start_seconds ?? null,
+    // How long the service video runs, read by the NAS stream-length rider
+    // (0295, DR-1045): an upper bound on the service, never its clocked length.
+    streamSeconds: Number.isFinite(row.stream_seconds) ? row.stream_seconds : null,
+    streamStartedAt: row.stream_started_at ?? null,
+    streamReadAt: row.stream_read_at ?? null,
     notes: row.notes ?? null,
     status: row.status ?? 'active',
     source: row.source ?? 'manual',
