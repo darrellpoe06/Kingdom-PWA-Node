@@ -44,14 +44,19 @@ export function nextCollapsed(prev) { return !prev; }
 // the safe side when the stored value cannot be trusted. No storage at all
 // (SSR, blocked) reads as open too, so a device that cannot remember never
 // hides controls it could not bring back by memory.
+//
+// `fallback` is what an ABSENT value means on this surface: the family shell
+// passes nothing (tucked, DR-1046); the business doors (Poe Properties, TLC)
+// pass `false` so a tenant or visitor meets the door with its comfort
+// controls and Install in view, the way the doors' own tests pin them.
 export const DEFAULT_HEADER_COLLAPSED = true;
-export function readHeaderCollapsed(store) {
+export function readHeaderCollapsed(store, fallback = DEFAULT_HEADER_COLLAPSED) {
   const ls = safeStore(store);
   if (!ls) return false;
   try {
     const v = ls.getItem(HEADER_COLLAPSED_KEY);
     if (v === '1') return true;
-    if (v === null || v === undefined) return DEFAULT_HEADER_COLLAPSED;
+    if (v === null || v === undefined) return !!fallback;
     return false;
   } catch (e) { return false; }
 }

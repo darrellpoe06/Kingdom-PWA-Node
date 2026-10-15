@@ -216,7 +216,7 @@ export default function TlcPublicDoor() {
   // The header HIDEAWAY (the PoeTech shell's own control of the top space):
   // tucked away or shown per device, the same key the shell writes, so one
   // choice follows the reader between shells.
-  const [headerCollapsed, setHeaderCollapsed] = useState(() => readHeaderCollapsed());
+  const [headerCollapsed, setHeaderCollapsed] = useState(() => readHeaderCollapsed(undefined, false));
   const toggleHeaderChrome = () => setHeaderCollapsed((prev) => { const next = nextCollapsed(prev); writeHeaderCollapsed(next); return next; });
   const loginOpen = showLogin && !signedIn;
 

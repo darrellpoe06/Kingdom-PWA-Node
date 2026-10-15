@@ -7,10 +7,15 @@
 // standard / UiIcon contract). Proven-to-catch (DR-0076): each assert fails
 // if the behavior it guards is broken.
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import {
   HEADER_COLLAPSED_KEY, nextCollapsed, readHeaderCollapsed, writeHeaderCollapsed, DEFAULT_HEADER_COLLAPSED,
 } from '../lib/header-hideaway.js';
 import { UI_ICON_NAMES } from '../components/UiIcon.jsx';
+
+const HERE = dirname(fileURLToPath(import.meta.url));
 
 // A tiny in-memory localStorage stand-in (Node test env has no DOM storage).
 function makeStore() {
@@ -43,6 +48,17 @@ describe('readHeaderCollapsed', () => {
   it('defaults to TUCKED AWAY (true) with no saved preference — the Heritage first run (DR-1046)', () => {
     expect(readHeaderCollapsed(makeStore())).toBe(true);
     expect(DEFAULT_HEADER_COLLAPSED).toBe(true);
+  });
+
+  it('a surface may name what ABSENT means: the business doors open with the header shown, a saved choice still wins', () => {
+    expect(readHeaderCollapsed(makeStore(), false)).toBe(false);
+    const s = makeStore();
+    s.setItem(HEADER_COLLAPSED_KEY, '1');
+    expect(readHeaderCollapsed(s, false)).toBe(true);
+    for (const door of ['PropertiesDoor', 'TlcPublicDoor']) {
+      const src = readFileSync(join(HERE, '..', 'components', `${door}.jsx`), 'utf8');
+      expect(src, `${door} opens with the header shown`).toContain('readHeaderCollapsed(undefined, false)');
+    }
   });
 
   it('reads collapsed only for the exact "1" string', () => {
