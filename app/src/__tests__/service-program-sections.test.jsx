@@ -37,13 +37,14 @@ const SEGMENT = {
 };
 
 let access = { signedIn: true, canSee: true, canEdit: true, isFinalizer: true, role: 'owner', sector: 'worship' };
+let programsFixture = null; // null = [PROGRAM]
 
 vi.mock('../lib/service-program.js', async (importOriginal) => {
   const real = await importOriginal();
   return {
     ...real,
     getServiceProgramAccess: vi.fn(async () => access),
-    subscribePrograms: (cb) => { cb([PROGRAM]); return () => {}; },
+    subscribePrograms: (cb) => { cb(programsFixture || [PROGRAM]); return () => {}; },
     subscribeSegments: (cb) => { cb([SEGMENT]); return () => {}; },
     subscribeChanges: (cb) => { cb([{ id: 'c1', programId: 'p1', actorName: 'Darrell', summary: 'added Call to Worship', createdAt: '2026-07-07T10:00:00Z' }]); return () => {}; },
     subscribeFinalizerMembers: (cb) => { cb([]); return () => {}; },
@@ -159,3 +160,30 @@ describe('the Playbook chip (Darrell 2026-10-15: a playbook for that Sunday or W
     expect([...container.querySelectorAll('button')].some((b) => b.textContent === 'Print')).toBe(true);
   });
 });
+
+describe('never a blank start (DR-1044; Darrell 2026-10-15: "We should not have repeated start from scratch situations")', () => {
+  afterEach(() => { programsFixture = null; });
+  beforeEach(() => { access = { signedIn: true, canSee: true, canEdit: true, isFinalizer: true, role: 'owner', sector: 'worship' }; });
+
+  it('with no order yet, the owner gets one tap that starts Sunday\u2019s order from Bishop Gwin\u2019s order', async () => {
+    programsFixture = [];
+    await mount();
+    const start = container.querySelector('[data-testid="sp-start-first"]');
+    expect(start).not.toBeNull();
+    expect(start.textContent).toContain('Bishop Gwin');
+    expect(container.textContent).toContain('carries the last one forward');
+  });
+
+  it('the new-order button says Next service, and its form says what it starts from', async () => {
+    await mount();
+    const next = [...container.querySelectorAll('button')].find((b) => (b.textContent || '').includes('Next service'));
+    expect(next).toBeDefined();
+    expect([...container.querySelectorAll('button')].some((b) => /New service/.test(b.textContent || ''))).toBe(false);
+    await act(async () => { next.dispatchEvent(new window.MouseEvent('click', { bubbles: true })); });
+    const says = container.querySelector('[data-testid="sp-starts-from"]');
+    expect(says).not.toBeNull();
+    expect(says.textContent).toMatch(/archived, never deleted/);
+    expect(container.querySelector('label[for="sp-start"]').textContent).toBe('Start time');
+  });
+});
+

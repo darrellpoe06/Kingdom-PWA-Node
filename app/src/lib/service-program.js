@@ -139,6 +139,124 @@ export function formatClock(mins) {
   return `${h12}:${String(min).padStart(2, '0')} ${ampm}`;
 }
 
+// --- The service day and its posted times (pure) ----------------------------
+// Darrell's Fold, 2026-10-15: a new Sunday order opened dated that Thursday,
+// and its "today" was read in UTC, so after 7 PM Central it was tomorrow.
+// A new order now opens on the next day its service meets, in local time,
+// and offers the times the church posts for that service.
+const SERVICE_WEEKDAY = Object.freeze({ sunday: 0, wednesday: 3 });
+
+// A Date -> 'YYYY-MM-DD' on the device's own calendar, never UTC.
+export function localIsoDate(d = new Date()) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+// The next date the service meets, today included. A special service has no
+// fixed day, so it opens on today.
+export function nextServiceDate(serviceType, now = new Date()) {
+  const want = SERVICE_WEEKDAY[serviceType];
+  const d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  if (want != null) d.setDate(d.getDate() + ((want - d.getDay() + 7) % 7));
+  return localIsoDate(d);
+}
+
+// The weekday a stored 'YYYY-MM-DD' falls on, or '' when it is not a date.
+export function weekdayOf(iso) {
+  const m = typeof iso === 'string' && iso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return '';
+  const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  return ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][d.getDay()];
+}
+
+// True when a Sunday or Wednesday order is dated on another day of the week.
+export function dayMismatch(iso, serviceType) {
+  const want = SERVICE_WEEKDAY[serviceType];
+  const day = weekdayOf(iso);
+  if (want == null || !day) return false;
+  return day.toLowerCase() !== serviceType;
+}
+
+// '1:00 PM' -> '13:00'; anything else -> null.
+export function clockTo24(text) {
+  const m = typeof text === 'string' && text.trim().match(/^(\d{1,2}):(\d{2})\s*([AaPp])[Mm]$/);
+  if (!m) return null;
+  let h = Number(m[1]) % 12;
+  if (/p/i.test(m[3])) h += 12;
+  return `${String(h).padStart(2, '0')}:${m[2]}`;
+}
+
+// The start times a church posts for a service type, as 'HH:MM', in posted
+// order. Reads the church's own posted schedule; never invents a time.
+export function postedStartTimes(serviceType, services = []) {
+  const day = { sunday: 'Sunday', wednesday: 'Wednesday' }[serviceType];
+  if (!day) return [];
+  return services.filter((s) => s && s.day === day).map((s) => clockTo24(s.time)).filter(Boolean);
+}
+
+// --- One live order, carried forward (pure) ---------------------------------
+// Darrell 2026-10-15: "We need to edit the last one or update the last one and
+// archive the previous ones... We should not have repeated start from scratch
+// situations." A new service starts from the last order of the same service,
+// its lines, people and minutes carried; the earlier orders are archived, never
+// deleted; and a date that already has an order opens that order instead.
+
+// The order a page opens on: the one chosen, else the newest that is not
+// archived, else the newest of all. `programs` arrive newest first.
+export function currentProgram(programs, selectedId = null) {
+  const list = programs || [];
+  return list.find((p) => p.id === selectedId) || list.find((p) => p.status !== 'archived') || list[0] || null;
+}
+
+// The order already holding this date and service, if one exists.
+export function existingOrderFor(programs, serviceDate, serviceType) {
+  return (programs || []).find((p) => p.serviceDate === serviceDate && p.serviceType === serviceType) || null;
+}
+
+// The last order of this service before the given date, any status.
+export function lastOrderOf(programs, serviceType, beforeDate) {
+  return (programs || [])
+    .filter((p) => p.serviceType === serviceType && (!beforeDate || String(p.serviceDate || '') < String(beforeDate)))
+    .sort((a, b) => String(b.serviceDate || '').localeCompare(String(a.serviceDate || '')))[0] || null;
+}
+
+// The lines of an order, ready to be a new order's lines: title, team, people,
+// auxiliary, minutes, cues and notes carry; the scripture, sermon and songs are
+// that day's and are chosen fresh. Kept in their order.
+export function carryForwardSegments(segments) {
+  return [...(segments || [])].sort(bySortOrder).map((s, i) => ({
+    title: s.title || '',
+    sector: s.sector || 'general',
+    personnel: peopleOf(s),
+    auxiliary: s.auxiliary || null,
+    plannedMinutes: Number.isFinite(s.plannedMinutes) ? s.plannedMinutes : 5,
+    flexible: s.flexible !== false,
+    cues: (s.cues && typeof s.cues === 'object') ? { ...s.cues } : {},
+    notes: s.notes || '',
+    scriptureRef: '',
+    sermonId: null,
+    songIds: [],
+    sortOrder: (i + 1) * 10,
+  }));
+}
+
+// The orders a new one dated `newDate` retires: every earlier one not already
+// archived, never the new one itself.
+export function ordersToArchive(programs, newDate, keepId = null) {
+  return (programs || [])
+    .filter((p) => p.id !== keepId && p.status !== 'archived' && String(p.serviceDate || '') < String(newDate || ''))
+    .map((p) => p.id);
+}
+
+// What a new order will start from, in words the form can show.
+export function startsFromSay(programs, segments, serviceType, serviceDate) {
+  const last = lastOrderOf(programs, serviceType, serviceDate);
+  const lines = last ? (segments || []).filter((s) => s.programId === last.id).length : 0;
+  if (last && lines > 0) return { from: 'last', programId: last.id, lines, say: `Starts from the ${last.serviceDate} order, ${lines} lines carried forward.` };
+  return { from: 'standard', programId: null, lines: seedDefaultOrder().length, say: `Starts from Bishop Gwin’s order, ${seedDefaultOrder().length} lines.` };
+}
+
+const bySortOrder = (a, b) => ((a.sortOrder ?? 0) - (b.sortOrder ?? 0)) || String(a.id ?? '').localeCompare(String(b.id ?? ''));
+
 const bySort = (a, b) => (a.sortOrder - b.sortOrder) || String(a.id).localeCompare(String(b.id));
 
 // --- The service window (pure) ----------------------------------------------
@@ -373,28 +491,41 @@ export function deriveSectorView(program, segments, sector, { songs = [], sermon
 }
 
 // A one-tap starting order so a steward's first build is a real run-of-show, not
-// a blank page (SEED-DATA-AS-ASPIRATION). The order is the church's own, as
-// Darrell handed it over on 2026-10-15: Prayer · Announcements · Choir, 1 song ·
-// Special events (if we have one) · Offering / Givers' Creed · Choir, 2 songs ·
-// Speaker · Benediction. The Choir lines carry the Choir as their auxiliary;
-// the Speaker is FIXED (flexible:false) so a reflow never compresses the Word.
-// Returns template segment shapes (no ids / no DB) the surface inserts.
+// a blank page (SEED-DATA-AS-ASPIRATION). It is the church's own order as it
+// last ran: Christina's Order of Service for 10-11-2026, which Darrell sent on
+// 2026-10-15 ("From Christina this is the most recent one"). Every line carries
+// the people named on it, the TLC Ensemble carries both selections with the
+// band, and the media cues are the sheet's own (headphone levels, the Giver's
+// Creed PowerPoint after the Call to Give, the mic plan). The two items that
+// belonged to that Sunday alone (the Pastor's Appreciation Presentation and the
+// Park District signatures) are not repeated; the special line stays open for
+// whatever a Sunday brings. The Message is FIXED (flexible:false) so a reflow
+// never compresses the Word. Returns template segment shapes (no ids / no DB).
+export const TLC_ENSEMBLE_BAND = Object.freeze([
+  'Brother Fontaine Love (organ)',
+  'Brother Christian Cunningham (piano)',
+  'Brother Pancho Moore (drums)',
+  'Brother Charles Wilson (bass)',
+  'Brother Kenneth Odom (saxophone)',
+]);
+const LEVELS_CUE = 'Check levels in headphones (soloist, singers and instruments)';
+export const MIC_PLAN = 'Speakers\u2019 and lead singers\u2019 mics HOT until the message, then mute. Singers\u2019 mics HOT until the message, then mute. Bishop Gwin\u2019s mic HOT the entire service.';
 export function seedDefaultOrder() {
   const t = [
-    { title: 'Prayer',                          sector: 'pastoral',    planned: 5,  flexible: true,  auxiliary: '' },
-    { title: 'Announcements',                   sector: 'hospitality', planned: 5,  flexible: true,  auxiliary: '' },
-    { title: 'Choir \u2014 1 song',               sector: 'worship',     planned: 5,  flexible: true,  auxiliary: 'Choir' },
-    { title: 'Special events (if we have one)',  sector: 'general',     planned: 10, flexible: true,  auxiliary: '' },
-    { title: 'Offering / Givers\u2019 Creed',      sector: 'ushers',      planned: 8,  flexible: true,  auxiliary: 'Ushers' },
-    { title: 'Choir \u2014 2 songs',              sector: 'worship',     planned: 10, flexible: true,  auxiliary: 'Choir' },
-    { title: 'Speaker',                         sector: 'pulpit',      planned: 35, flexible: false, auxiliary: '' },
-    { title: 'Benediction',                     sector: 'pulpit',      planned: 3,  flexible: true,  auxiliary: '' },
+    { title: 'Call to Worship and Prayer', sector: 'pastoral', planned: 5, flexible: true, people: ['Brother Clifton Reed'], auxiliary: '', cues: { media: MIC_PLAN } },
+    { title: 'Announcements', sector: 'hospitality', planned: 5, flexible: true, people: ['Sister Kristy Reed'], auxiliary: '', cues: {} },
+    { title: 'Special presentation (if we have one)', sector: 'general', planned: 10, flexible: true, people: [], auxiliary: '', cues: {} },
+    { title: 'Selection', sector: 'worship', planned: 5, flexible: true, people: [...TLC_ENSEMBLE_BAND], auxiliary: 'TLC Ensemble', cues: { media: LEVELS_CUE } },
+    { title: 'The Call to Give', sector: 'ushers', planned: 8, flexible: true, people: ['Bishop Gwin'], auxiliary: 'Ushers', cues: { media: 'Play The Giver\u2019s Creed PowerPoint after The Call to Give' } },
+    { title: 'Selection', sector: 'worship', planned: 10, flexible: true, people: [...TLC_ENSEMBLE_BAND], auxiliary: 'TLC Ensemble', cues: { media: LEVELS_CUE } },
+    { title: 'Message / Invitation to Christ / Prayer / Benediction', sector: 'pulpit', planned: 38, flexible: false, people: ['Bishop Gwin'], auxiliary: '', cues: { media: 'Mute the speakers\u2019 and singers\u2019 mics at the message; Bishop Gwin\u2019s mic stays HOT' } },
+    { title: 'Closing', sector: 'music', planned: 3, flexible: true, people: ['Musicians'], auxiliary: '', cues: {} },
   ];
   return t.map((x, i) => ({
     title: x.title,
     sector: x.sector,
-    ownerName: '',
-    personnel: [],
+    ownerName: x.people[0] || '',
+    personnel: [...x.people],
     auxiliary: x.auxiliary || null,
     plannedMinutes: x.planned,
     flexible: x.flexible,
@@ -402,7 +533,7 @@ export function seedDefaultOrder() {
     scriptureRef: '',
     sermonId: null,
     songIds: [],
-    cues: {},
+    cues: { ...x.cues },
     notes: '',
   }));
 }
@@ -571,6 +702,8 @@ export function summarizeChange(action, title) {
     case 'delete-segment': return `Removed segment${t}`;
     case 'seed-order':     return 'Started from the standard order';
     case 'import-email':   return `Imported the order from the church email${t}`;
+    case 'carry-forward':  return `Carried the order forward from${t}`;
+    case 'archive-program': return `Archived the earlier order${t}`;
     default:               return action;
   }
 }
@@ -689,6 +822,45 @@ async function insertTemplateSegments(programId, templateSegments, action, title
 
 export async function seedProgramSegments(programId, displayName) {
   return insertTemplateSegments(programId, seedDefaultOrder(), 'seed-order', null, displayName);
+}
+
+// A new order takes the last order's lines (carryForwardSegments), recorded in
+// the change trail as carried forward from that date.
+export async function carryForwardOrder(programId, sourceSegments, fromDate, displayName) {
+  return insertTemplateSegments(programId, carryForwardSegments(sourceSegments), 'carry-forward', fromDate || null, displayName);
+}
+
+// Archive the earlier orders: a status change, never a delete, so every past
+// order and its actual times stay on the record and can be reopened.
+export async function archivePrograms(ids, displayName) {
+  const list = (ids || []).filter(Boolean);
+  if (!list.length) return { saved: true, count: 0 };
+  const ctx = await writeContext(displayName);
+  if (ctx.error) return { skipped: ctx.error };
+  const { error } = await supabase.from('church_service_programs')
+    .update({ status: 'archived', updated_by: ctx.userId }).in('id', list);
+  if (error) return { skipped: 'update-error', error };
+  for (const id of list) await logChange(ctx, id, null, 'archive-program', null);
+  return { saved: true, count: list.length };
+}
+
+// The one road a new order takes (DR-1044): an order already on that date and
+// service is opened, never doubled; otherwise the order is made, its lines come
+// from the last order of the same service (or Bishop Gwin's order when there is
+// none), and the earlier orders are archived.
+export async function startOrder(form, { programs = [], segments = [] } = {}, displayName) {
+  const dup = existingOrderFor(programs, form.serviceDate, form.serviceType);
+  if (dup) return { opened: true, id: dup.id };
+  const made = await saveProgram({ ...form, id: null }, displayName);
+  if (!made?.id) return made;
+  const last = lastOrderOf(programs, form.serviceType, form.serviceDate);
+  const lastSegs = last ? segments.filter((s) => s.programId === last.id) : [];
+  const lines = lastSegs.length
+    ? await carryForwardOrder(made.id, lastSegs, last.serviceDate, displayName)
+    : await seedProgramSegments(made.id, displayName);
+  if (lines?.skipped) return { ...lines, id: made.id };
+  const archived = await archivePrograms(ordersToArchive(programs, form.serviceDate, made.id), displayName);
+  return { saved: true, id: made.id, from: lastSegs.length ? 'last' : 'standard', lines: lines?.count || 0, archived: archived?.count || 0, skipped: archived?.skipped };
 }
 
 // The paste-from-email import lands its parsed segments through the same lane,
