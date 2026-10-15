@@ -151,6 +151,116 @@ describe('the adversary is never capitalized in anything we author', () => {
   });
 });
 
+// =============================================================================
+// THE SAME RULE OVER THE LAYER 3 FOUNDATION DOCS (added 2026-10-15)
+// =============================================================================
+// The block above reaches app/src/**/*.{js,jsx}. That is the app, and it was
+// clean. But CLAUDE.md says the rule applies to "file content ... and every
+// other artifact", and the foundation docs in docs/00-foundations are Layer 3:
+// the authoritative reference an agent READS BEFORE generating substantive
+// content. A wrong form there is worse than a wrong form in one lesson, because
+// it is the thing new lessons are written from.
+//
+// MEASURED across 148 foundation docs, with straight AND curly quoted spans
+// stripped, there was exactly ONE violation, and it was self-refuting:
+//
+//   docs/00-foundations/_root/ACCESS-TO-THE-HUMAN-MIND.md:64
+//     "## PART TWO · The Adversary's Access"
+//
+// That document's OWN line 9 carries its capitalization binding -- "lucifer,
+// satan, the devil, the adversary are never capitalized" -- and its prose
+// writes "the adversary" correctly eleven times at lines 66, 70, 74 and on.
+// Only the heading carried the capital. Fixed to "The adversary's Access",
+// which is PART ONE's "Yahweh's Access" shape with the name left lower case.
+//
+// AND IT IS THE NAME WORD, which is what makes it unambiguous rather than a
+// judgement call. Darrell ruled on exactly this distinction (DR-0532, shown
+// the finding in his own terms): "the definite article is English, and the
+// NAME is what must never carry the capital. A sentence opening 'The
+// adversary' is correct as written, because `adversary` is already lower
+// case." Here `Adversary` was not. It is the same class as L42's shipped title
+// "Keep the Adversary Out of the Music".
+//
+// docs/decisions IS DELIBERATELY NOT SCANNED, and the reason is stated rather
+// than left to the scope. The ledger's job is to RECORD violations, so it
+// quotes them on purpose: DR-0532 names `the Adversary` as the form it added
+// after L42, DR-0987 tables the corpus's "Satan" against our `satan`, and
+// DR-0418 records a guard clause that died to a corpus read. Twelve such hits
+// across four records, every one the ledger working correctly. A gate over
+// them would have to be taught to tell a record of a violation from a
+// violation, and would fail on honest history.
+const FOUNDATIONS = join(HERE, '..', '..', '..', 'docs', '00-foundations');
+// Markdown quotes verses with curly marks as often as straight ones, so both
+// kinds of quoted span come out before the scan. The app-source helper above
+// only needs straight quotes; widening it there would change what that older,
+// green assertion measures.
+const ourVoiceProse = (src) => withoutExempt(src)
+  .replace(/"[^"]*"/g, ' ')
+  .replace(/“[^”]*”/g, ' ')
+  .replace(/‘[^’]*’/g, ' ');
+
+const collectMd = (dir) => {
+  const out = [];
+  for (const entry of readdirSync(dir)) {
+    const full = join(dir, entry);
+    if (statSync(full).isDirectory()) out.push(...collectMd(full));
+    else if (entry.endsWith('.md')) out.push(full);
+  }
+  return out;
+};
+
+const FOUNDATION_DOCS = collectMd(FOUNDATIONS);
+
+describe('the adversary is never capitalized in the Layer 3 foundation docs either', () => {
+  it('scans the real foundation corpus, so a pass means something', () => {
+    // Anti-theater, the same shape as the app-source block: a broken walk must
+    // fail here rather than pass vacuously.
+    expect(FOUNDATION_DOCS.length).toBeGreaterThan(100);
+    const joined = FOUNDATION_DOCS.map((f) => readFileSync(f, 'utf8')).join(' ');
+    expect(joined.length).toBeGreaterThan(1_000_000);
+    // And these docs really do discuss him, so the scan is reading prose that
+    // could carry the fault at all.
+    expect(joined).toMatch(/\bthe adversary\b/);
+  });
+
+  it('no capitalized adversary name appears in our voice in any foundation doc', () => {
+    const offenders = [];
+    for (const file of FOUNDATION_DOCS) {
+      const ours = ourVoiceProse(readFileSync(file, 'utf8'));
+      for (const m of ours.matchAll(FORBIDDEN)) {
+        const at = Math.max(0, m.index - 70);
+        offenders.push(`${file.slice(file.indexOf('/docs/'))}: ...${ours.slice(at, m.index + m[0].length + 40).replace(/\s+/g, ' ')}...`);
+      }
+    }
+    expect(offenders, `the adversary is capitalized in our voice here:\n  ${offenders.join('\n  ')}`).toEqual([]);
+  });
+
+  it('PROVEN TO CATCH: the exact heading that was shipped fails this gate', () => {
+    // The literal string from ACCESS-TO-THE-HUMAN-MIND.md:64 as it stood
+    // before this change. If the pattern ever stops seeing it, this gate has
+    // been loosened and says so.
+    const shipped = "## PART TWO · The Adversary's Access";
+    expect([...ourVoiceProse(shipped).matchAll(FORBIDDEN)].map((m) => m[0])).toEqual(['The Adversary']);
+    // And the correction passes, so the fix is not merely a different fault.
+    const corrected = "## PART TWO · The adversary's Access";
+    expect([...ourVoiceProse(corrected).matchAll(FORBIDDEN)]).toEqual([]);
+  });
+
+  it('PROVEN TO CATCH: the article alone is English and never fires (Darrell, DR-0532)', () => {
+    // The ruling this gate must not overreach past. "The adversary" opening a
+    // sentence is correct, and twelve shipped sentences depend on it.
+    expect([...ourVoiceProse('The adversary works outside-in.').matchAll(FORBIDDEN)]).toEqual([]);
+    expect([...ourVoiceProse('The devil').matchAll(FORBIDDEN)].map((m) => m[0])).toEqual(['The devil']);
+  });
+
+  it('a quoted verse keeps the corpus spelling, in straight or curly marks', () => {
+    // Our voice only. A foundation doc quoting a translation that capitalises
+    // the name must not be dragged into house style (DR-0210's bright line).
+    expect([...ourVoiceProse('He said "Get thee behind me, Satan" to him.').matchAll(FORBIDDEN)]).toEqual([]);
+    expect([...ourVoiceProse('He said “Get thee behind me, Satan” to him.').matchAll(FORBIDDEN)]).toEqual([]);
+  });
+});
+
 describe('the hosted Word already renders the name lowercase, and that is gated elsewhere', () => {
   it('Job 1:6 reads "satan" in the text the app serves -- measured, not assumed', () => {
     // I first wrote this block asserting the OPPOSITE, from memory: that the
