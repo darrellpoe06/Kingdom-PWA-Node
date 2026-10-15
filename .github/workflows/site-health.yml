@@ -543,6 +543,7 @@ jobs:
           echo "stale=$stale" >> "$GITHUB_OUTPUT"
           echo "pages_code=$PAGES_CODE" >> "$GITHUB_OUTPUT"
           echo "photo_code=$PHOTO_CODE" >> "$GITHUB_OUTPUT"
+          echo "bell_code=$BELL_CODE" >> "$GITHUB_OUTPUT"
           echo "history_code=$HIST_CODE" >> "$GITHUB_OUTPUT"
           echo "served_sha=${served_sha:-unknown}" >> "$GITHUB_OUTPUT"
           echo "main_sha=${main_sha:-unknown}" >> "$GITHUB_OUTPUT"
@@ -649,6 +650,7 @@ jobs:
           MAIN: ${{ steps.probe.outputs.main_sha }}
           PAGES_CODE: ${{ steps.probe.outputs.pages_code }}
           BACKEND_CODE: ${{ steps.probe.outputs.backend_code }}
+          BELL_CODE: ${{ steps.probe.outputs.bell_code }}
           OUTCOME: ${{ steps.probe.outcome }}
           VERDICT: ${{ steps.verdict.outputs.verdict }}
           ANY_NEW: ${{ steps.verdict.outputs.any_new }}
@@ -673,7 +675,7 @@ jobs:
               verdict="DOWN/BROKEN (nothing new, known outage day ${DAYS:-?}) - ${REASONS:-the probe crashed before reporting}"
             fi
           fi
-          line="$(date -u +%FT%TZ) - ${verdict}. Served build: ${SERVED:-unknown} (main: ${MAIN:-unknown}). pages.dev shell: HTTP ${PAGES_CODE:-unknown}. backend auth: HTTP ${BACKEND_CODE:-unknown}. Run: ${GITHUB_SERVER_URL}/${REPO}/actions/runs/${GITHUB_RUN_ID}"
+          line="$(date -u +%FT%TZ) - ${verdict}. Served build: ${SERVED:-unknown} (main: ${MAIN:-unknown}). pages.dev shell: HTTP ${PAGES_CODE:-unknown}. backend auth: HTTP ${BACKEND_CODE:-unknown}. bell (/announce/healthz, direct to the Funnel): HTTP ${BELL_CODE:-unknown}. Run: ${GITHUB_SERVER_URL}/${REPO}/actions/runs/${GITHUB_RUN_ID}"
           log_issue=$(gh issue list --repo "$REPO" --state all --search "in:title site-health: the live site, run log" --json number --jq '.[0].number // ""')
           if [ -n "$log_issue" ]; then
             gh issue comment "$log_issue" --repo "$REPO" --body "$line"
@@ -702,6 +704,7 @@ jobs:
           SERVED: ${{ steps.probe.outputs.served_sha }}
           MAIN: ${{ steps.probe.outputs.main_sha }}
           BACKEND_CODE: ${{ steps.probe.outputs.backend_code }}
+          BELL_CODE: ${{ steps.probe.outputs.bell_code }}
           N8N_BEARER: ${{ secrets.VITE_N8N_BEARER }}
           VERDICT: ${{ steps.verdict.outputs.verdict }}
           ANY_NEW: ${{ steps.verdict.outputs.any_new }}
