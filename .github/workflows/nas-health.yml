@@ -553,4 +553,44 @@ jobs:
               *) echo "--- $c: $ST"; ${SUDO} docker logs --tail 12 "$c" 2>&1 | tail -12;;
             esac
           done
+                    echo ""
+          echo "=================================================================="
+          echo "=== THE VERDICT - read this first; it is LAST on purpose ==="
+          echo "=================================================================="
+          # FIFTH blindness, named 2026-10-15 (DR-1042), and it is the same
+          # shape as the four above with the sign flipped: the MEASUREMENT was
+          # never the problem, its POSITION was.
+          #
+          # From a cloud sandbox none of the output above is readable. The
+          # signed log-blob host is blocked there, so `gh run view --log` and
+          # the API log download both answer Forbidden, and the only reader
+          # left is a TAIL of the job log. The container log tails just above
+          # run to megabytes, so a tail deep enough to reach the service list
+          # is not affordable -- which is exactly how the sovereign bell's
+          # install went unverified on the day it shipped (DR-1040: the one
+          # line that would have proved it sat upstream of every tail I could
+          # take, twice).
+          #
+          # So the handful of facts anyone actually asks this workflow for are
+          # repeated here, compactly, at the END where a short tail reaches
+          # them. Nothing new is measured and nothing is mutated; this is the
+          # same read, printed where it can be read.
+          echo "-- every poetech unit, active state only:"
+          PU=$(systemctl list-unit-files --type=service --no-pager 2>/dev/null | awk '/^poetech-/{print $1}')
+          if [ -n "$PU" ]; then
+            for U in $PU; do
+              printf '   %-36s %s\n' "$U" "$(systemctl is-active "$U" 2>&1)"
+            done
+          else
+            echo "   NO poetech-* units installed on this box"
+          fi
+          echo "-- the mirror services-sync installs FROM (a stale mirror installs yesterday):"
+          if [ -d "$REPO/.git" ]; then
+            echo "   HEAD $(cd "$REPO" && git rev-parse --short HEAD 2>/dev/null) committed $(cd "$REPO" && git log -1 --format=%cI HEAD 2>/dev/null)"
+          else
+            echo "   MIRROR MISSING at $REPO"
+          fi
+          echo "-- services-sync last said:"
+          ${SUDO} tail -1 "$LOOPS/events/cron-services-sync.log" 2>/dev/null || echo "   cron-services-sync.log unreadable"
+          echo "=== END OF VERDICT ==="
           EOS
