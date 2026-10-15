@@ -26,7 +26,11 @@ describe('Relationships surface is fully wired', () => {
 
   it('is a valid route, a gated nav entry, has a render branch + a feedback area', () => {
     expect(mono).toMatch(/'relationships'/);                                  // VALID routes
-    expect(mono).toMatch(/\(isFamilyMember \|\| tierMeets\(data.userTier, 'business'\)\)\s*\?\s*\[\['relationships'/); // no-leak nav spread — family/governor OR Business tier (DR-0128)
+    // The top-level tab list lives in lib/nav-items.jsx since DR-1046; the
+    // shell draws it as navTabs. The same gate, on the list's own argument.
+    const navItems = read('lib/nav-items.jsx');
+    expect(navItems).toMatch(/\(isFamilyMember \|\| tierMeets\(userTier, 'business'\)\)\s*\?\s*\[\['relationships'/);
+    expect(mono).toMatch(/\{navTabs\.map\(/); // no-leak nav spread — family/governor OR Business tier (DR-0128)
     expect(mono).toMatch(/view === 'relationships'/);                          // render branch
     expect(mono).toMatch(/<Relationships\s+isGovernor=\{isFamilyMember \|\| tierMeets\(data.userTier, 'business'\)\}/); // steward render — own instance on the Business tier (DR-0128)
     // FEEDBACK_AREAS moved to components/FeedbackCenter.jsx with the extraction.
