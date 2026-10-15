@@ -1369,6 +1369,18 @@ const NODES = [
     id: 'voice-lite-probe', name: 'Voice-lite probe (a real clip, end to end)', purpose: 'Asks /voice-lite for a paragraph the way the app does and keeps the clip.',
     reads: [{ res: 'http:voice-lite', token: 'voice-lite' }], writes: [], seeds: [],
   }),
+  // THE BELL, SOVEREIGN (DR-1040). It reads only its manifest entry and writes
+  // only the push, and it deliberately declares NO http: resource: the caller
+  // (scripts/ops-announce.mjs) still posts to the retired n8n relay and is NOT
+  // cut over in this change, so declaring a route would paint a connection that
+  // is not live (P15). The cut-over adds it, once a runner has proved /healthz.
+  rider('service:announce', 'infra/nas-announce/announce_server.py', {
+    id: 'announce-bell', name: 'The bell (sovereign ops-announce)',
+    purpose: 'Pushes an incident to the family\u2019s phones through our own ntfy, with the topic pinned server-side so a leaked bearer can only ring the family\u2019s own bell; replaces the retired n8n wf-ops-announce (DR-0218).',
+    reads: [{ res: 'nas:services', file: 'infra/nas-loops/services.json', token: 'announce' }],
+    writes: [{ res: 'push:phone', token: 'TOPIC' }],
+    seeds: [],
+  }),
   rider('service:cameras', 'infra/nas-cameras/cams_forwarder.py', {
     id: 'cameras-road', name: 'Camera road (go2rtc behind the locked door)', purpose: 'Restreams the family’s cameras from the NAS to the app as frames and live video; the forwarder is the lock on the public Funnel (DR-0756).',
     reads: [{ res: 'nas:services', file: 'infra/nas-loops/services.json', token: 'cameras' }], writes: [{ res: 'http:cams', token: '/cams' }], seeds: ['cameras'],
