@@ -2186,7 +2186,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                       {(r.rent || 0) > 0 ? (
                         <>
                           <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{fmt(r.rent)}<span className="text-xs text-[#5A5751]">/mo</span></div>
-                          <div className={`text-[0.625rem] uppercase tracking-wider ${r.status === 'late' ? 'text-[#B85838]' : r.status === 'vacant' ? 'text-[#B85838]' : 'text-[#5A5751]'}`}>{r.status}</div>
+                          <div className="mt-1 flex justify-end"><span data-testid="re-status-pill" className={`inline-block rounded-full px-2 py-0.5 text-[0.625rem] uppercase tracking-wider ${r.status === 'late' || r.status === 'vacant' ? 'bg-[#B85838] text-white' : 'bg-[#E8E4DC] text-[#1A1815]'}`}>{r.status}</span></div>
                         </>
                       ) : (
                         <>
@@ -2840,7 +2840,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
           return (
             <div className="space-y-4">
               {rentals.length === 0 && (
-                <div className="bg-white border border-[#E8E4DC] p-6 text-center">
+                <div className="bg-white border border-[#E8E4DC] rounded-2xl p-6 text-center">
                   <p className="text-sm text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No properties yet. Use + Add property above.</p>
                 </div>
               )}
@@ -2858,8 +2858,8 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                     <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-2">Income-Producing · {incomeProducing.length}{doorCount !== incomeProducing.length ? ` · ${doorCount} doors` : ''}</div>
                     <div className="space-y-3">
                       {entries.map((e) => e.type === 'building' ? (
-                        <div key={`b-${e.key}`} className="bg-white border border-[#1A1815]">
-                          <div className="bg-[#FAF8F4] border-b border-[#1A1815] px-3 py-2 flex items-center justify-between gap-2 flex-wrap">
+                        <div key={`b-${e.key}`} className="bg-white border border-[#E8E4DC] rounded-2xl shadow-sm overflow-hidden">
+                          <div className="bg-[#FAF8F4] border-b border-[#E8E4DC] px-3 py-2 flex items-center justify-between gap-2 flex-wrap">
                             <span className="flex items-baseline gap-2">
                               <span className="text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{e.building}</span>
                               <span className="text-[0.625rem] uppercase tracking-wider text-[#5A5751]">{e.rollup.doorCount} {e.rollup.doorCount === 1 ? 'door' : 'doors'}</span>
@@ -2869,7 +2869,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
                           {e.units.map((u) => renderPropertyRow(u, gi++, lastIdx))}
                         </div>
                       ) : (
-                        <div key={`s-${e.rental.id}`} className="bg-white border border-[#1A1815]">
+                        <div key={`s-${e.rental.id}`} className="bg-white border border-[#E8E4DC] rounded-2xl shadow-sm overflow-hidden">
                           {renderPropertyRow(e.rental, gi++, lastIdx)}
                         </div>
                       ))}
@@ -2880,7 +2880,7 @@ function Rentals({ rentals, entities, totals, snowballSort, setSnowballSort, sno
               {personal.length > 0 && (
                 <div>
                   <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-2">Personal & Non-Rental · {personal.length}</div>
-                  <div className="bg-white border border-[#1A1815]">
+                  <div className="bg-white border border-[#E8E4DC] rounded-2xl shadow-sm overflow-hidden">
                     {personal.map((r, i) => renderPropertyRow(r, i, personal.length - 1))}
                   </div>
                 </div>
