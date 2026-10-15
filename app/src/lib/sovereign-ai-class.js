@@ -681,7 +681,7 @@ export const SOVEREIGN_AI_MODULES = [
       talkingPoints: [
         'WORD FIRST: only Yahweh truly reads the full reasoning trace of a heart (1 Kings 8:39; Psalms 139:1-4; Hebrews 4:13); nothing hidden stays hidden (Luke 12:2-3).',
         'The mechanism: three texts (answer / shown summary / hidden trace); the AEAD envelope authenticates model+version but not account or session; cross-session/user/MODEL validity; strong model queried benignly, weak sibling transcribes the block. "A little leaven leaveneth the whole lump" (1 Corinthians 5:6).',
-        'The trace holds the secrets (abandoned steps, tool output, the credentials a "remove the secrets" task had to READ) - "keep thy heart with all diligence" (Proverbs 4:23); our law: keys never enter the trace.',
+        'The trace holds the secrets (abandoned steps, tool output, the credentials a "remove the secrets" task had to READ) - "Keep thy heart with all diligence" (Proverbs 4:23); our law: keys never enter the trace.',
         'The scan: 6,708 sessions, 315,320 blocks -> 62 API keys / 33 passwords / 24 tokens / 7 private keys / 30 emails; visible-text sanitization cannot touch the blocks ("thieves break through," Matthew 6:19-21). And prompt injection via a planted block ("his enemy sowed tares while men slept," Matthew 13:25; "an angel of light," 2 Corinthians 11:14) - resumed content is studied, never obeyed.',
         'The core: not a crypto failure - a missing binding of content to CONTEXT (the seal proved WHAT, not WHO). Cure = bind identity to the sealed thing: the Lamb worthy to open the book (Revelation 5:2-5); our RLS-per-person (DR-0060) and evidence-per-claim (DR-0076). The Word held the pattern first: a thing is safe only when bound to the One worthy to open it.',
       ],
@@ -840,7 +840,7 @@ export const SOVEREIGN_AI_MODULES = [
       discussionPrompts: [
         'Name the last "this will replace/end/destroy X" headline you believed. Held to Deuteronomy 18:22 — did it come to pass? What would reading it from "a sound mind" (2 Timothy 1:7) instead of fear have changed?',
         'The fear said the models would "eat everything"; the report says they are customers. Where in your own work are you fearing a TOOL as if it were a master, when "the sabbath was made for man" (Mark 2:27) says it was made to serve you?',
-        'The panic itself erased nearly a trillion dollars before anything happened — "the fear of man bringeth a snare" (Proverbs 29:25). Where is fear (or hype) about to move a decision you should instead build on the Rock of the Word done (Matthew 7:24)?',
+        'The panic itself erased nearly a trillion dollars before anything happened — "The fear of man bringeth a snare" (Proverbs 29:25). Where is fear (or hype) about to move a decision you should instead build on the Rock of the Word done (Matthew 7:24)?',
       ],
     },
   },
@@ -940,7 +940,7 @@ export const SOVEREIGN_AI_MODULES = [
       howToRun: 'Prayer + the anchor (5): read Proverbs 3:5-6 and Psalms 118:8 aloud (KJV). | Recap last week (10): watch, brake, the city without walls - where did we test a claim from a source that profits? | Teach the arc (15): whose counsel sets the path (Psalms 1:1; Proverbs 3:5-6) -> the headline (distrust A.I. yet follow it) -> the double mind (James 1:6-8; Proverbs 14:12) -> the One who cannot lie (Psalms 118:8; Numbers 23:19; John 16:13) -> test everything (1 Thessalonians 5:21; Acts 17:11; Isaiah 8:20) -> health soul-first (1 Timothy 4:8; 3 John 1:2) -> treasure and experience that last (Matthew 6:19-21; Ecclesiastes 2:11; Psalms 16:11) -> stewardship (Luke 16:10; John 6:12). | Hands-on in the app (25): each names one decision handed to a distrusted source, and brings it to trustworthy counsel + a test. | Discussion (15): the prompts below. | Send-off (5): the R->P->E - acknowledge Him first, prove the tool, aim at lasting treasure.',
       discussionPrompts: [
         'Name one decision you handed to a source you do not actually trust (an A.I. answer, a feed, a crowd). What would "acknowledge him, and he shall direct thy paths" (Proverbs 3:6) change about how you decide it?',
-        'Where are you double-minded - leaning on man while distrusting him (James 1:8)? What does it look like to "prove all things" (1 Thessalonians 5:21) and hold the tool to "the law and to the testimony" (Isaiah 8:20) instead of just following the top result?',
+        'Where are you double-minded - leaning on man while distrusting him (James 1:8)? What does it look like to "Prove all things" (1 Thessalonians 5:21) and hold the tool to "the law and to the testimony" (Isaiah 8:20) instead of just following the top result?',
         'You have wellness data and a growing pile of experiences. Held to "even as thy soul prospereth" (3 John 1:2) and "where your treasure is, there will your heart be also" (Matthew 6:21) - what one thing would you re-aim at what actually lasts?',
       ],
     },
