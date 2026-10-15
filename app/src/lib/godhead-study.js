@@ -1235,7 +1235,7 @@ export const GODHEAD_ALGORITHMS = [
     // world have enmity with Yahweh." Taught, not debated (DR-0098); verbatim.
     id: 'gh-handling-word-deceitfully', section: 'epistles', name: 'Having the Word Is Not Obeying It (they wield it to defend their ways)',
     refs: ['2 Corinthians 4:2', 'Mark 7:13', '2 Peter 3:16', '2 Timothy 2:15'],
-    condition: 'Those who hold the Word can wield it to defend themselves: "handling the word of God deceitfully" (2 Corinthians 4:2), "making the word of God of none effect through your tradition" (Mark 7:13), wresting the scriptures "unto their own destruction" (2 Peter 3:16).',
+    condition: 'Those who hold the Word can wield it to defend themselves: "handling the word of God deceitfully" (2 Corinthians 4:2), "Making the word of God of none effect through your tradition" (Mark 7:13), wresting the scriptures "unto their own destruction" (2 Peter 3:16).',
     consequence: 'Possessing the Word is not submitting to it. The same text that gives the solution can be twisted to defend the sin — and the twisting destroys the twister. The line is not who HOLDS the Word but who OBEYS it.',
     threeD: 'Do not use the Word to justify your way; let it judge your way. "Rightly dividing the word of truth" (2 Timothy 2:15) means reading it for Yahweh\'s will, not for permission — even when it corrects you, especially when it corrects you.',
     outcome: 'A conscience under the Word instead of over it — using Scripture to find His will, never to defend your own.',

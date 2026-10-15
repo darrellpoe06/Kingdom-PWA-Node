@@ -248,7 +248,7 @@ export const TIMELINE_EPOCHS = Object.freeze([
     possibilities: [
       {
         question: 'WHEN, and in what order, does the end unfold?',
-        plumbLine: 'Not in dispute: Jesus WILL return, bodily and visibly ("this same Jesus... shall so come in like manner," Acts 1:11); the dead in Christ will rise (1 Thessalonians 4:16-17); and He told us the timetable is not ours to know -- "it is not for you to know the times or the seasons" (Acts 1:7).',
+        plumbLine: 'Not in dispute: Jesus WILL return, bodily and visibly ("this same Jesus... shall so come in like manner," Acts 1:11); the dead in Christ will rise (1 Thessalonians 4:16-17); and He told us the timetable is not ours to know -- "It is not for you to know the times or the seasons" (Acts 1:7).',
         views: [
           { view: 'Premillennial (pre- / mid- / post-tribulation)', tie: 'a literal thousand-year reign after the return; differs on the timing of the gathering relative to tribulation.' },
           { view: 'Amillennial', tie: 'reads the thousand years symbolically of the present reign of Christ.' },

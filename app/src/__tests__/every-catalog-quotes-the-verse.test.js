@@ -33,8 +33,18 @@
 // point. A FIXED fault is also red, with a message saying to lower the number,
 // because a ceiling nobody lowers stops describing the building -- and this whole
 // file exists because a number nobody re-read ("two catalogs") stopped being
-// true. 29 catalogs are pinned at zero; 13 carry their debt in the open where it
+// true. 30 catalogs are pinned at zero; 12 carry their debt in the open where it
 // can be worked down, which is DR-0621: the flag is where the work starts.
+//
+// WORKED DOWN ONCE ALREADY (DR-1031, 2026-10-15): 403 -> 247. 186 capitals the
+// writers had lowered are restored by fix-quote-case.mjs, now pointed at the
+// derived QUOTED_SOURCES instead of its own two-file list, restricted to RAISING
+// (its first cut also proposed 33 edits the other way -- our opening capital
+// lowered to match a word mid-verse -- which is a house-style call about His
+// words and is NOT decided here), and validating every fix against the EXACTLY
+// cited verse. 145 of those closed gated faults; succession-class.js reached
+// zero. What remains is 99 order-or-punctuation, 70 of the open capital
+// question, 57 shouted, 17 paraphrases and 4 unresolvable.
 //
 // THE ONE CLASS CLOSED OUTRIGHT IS THE APOSTROPHE, because the corpus settles it
 // rather than a human: 1,997 apostrophes in app/public/bible/kjv and every one of
@@ -149,21 +159,27 @@ const MODULES_BY_FILE = {
 };
 
 // Measured, not chosen. See the header.
+// LOWERED 2026-10-15 by DR-1031: 186 capitals the writers had lowered are
+// restored, closing 145 gated faults. succession-class.js reaches ZERO and
+// leaves this list entirely; every other number is the pin it measured after.
 const PINNED = {
-  'broadcast-class.js': 5,
+  'broadcast-class.js': 4,
   'business-research-course.js': 1,
-  'buying-terms-course.js': 6,
+  'buying-terms-course.js': 4,
   'datasystems-course.js': 1,
-  'economics-class.js': 19,
+  'economics-class.js': 13,
+  // Untouched at 36, and it is the ONE catalog whose whole debt is the open
+  // question: every fault here is our capital on a word sitting mid-verse
+  // ("Searched the scriptures daily" for Acts 17:11's "and searched the
+  // scriptures daily"), which DR-1031 declines to decide. See its record.
   'historical-research-course.js': 36,
   'infrastructure-class.js': 3,
   'legacy-provisions-course.js': 1,
-  'made-in-time-course.js': 280,
-  'prophetic-voices.js': 10,
+  'made-in-time-course.js': 152,
+  'prophetic-voices.js': 5,
   'sound-board-class.js': 3,
-  // 36 before this change: eleven apostrophe restorations brought it to 25.
-  'sovereign-ai-class.js': 25,
-  'succession-class.js': 2,
+  // 36 -> 25 by DR-1030's apostrophes, 25 -> 24 by DR-1031's capitals.
+  'sovereign-ai-class.js': 24,
 };
 
 const KJV_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'public', 'bible', 'kjv');
