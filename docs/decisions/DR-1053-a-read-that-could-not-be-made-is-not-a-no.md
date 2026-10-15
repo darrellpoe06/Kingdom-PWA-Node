@@ -195,7 +195,13 @@ change in this repository reaches it.
   do not yet render a third panel** — their libs stopped lying; their screens
   still show the old empty state. Choir and My Record, the two he photographed,
   are complete. **`re-review: 2026-10-29`** for the remaining panels.
-- **`ministry-roster.js` (DR-1052) gets the same cure when it merges.** It sits
-  on an unmerged branch, where `listMinistryMembers` returns `[]` for both an
-  empty roster and an unread one — the identical defect, in the surface built
-  for the Media team this morning. Applied the moment that PR lands.
+- **`ministry-roster.js` (DR-1052) HAS the same cure — it merged, so it is in
+  this one.** DR-1052 landed as `9dfe5226e` while this was in review, and
+  merging main in brought the Media roster into the same tree as the
+  primitive, so the promise was kept in this merge rather than deferred.
+  `listMinistryMembers` returned `[]` for both an empty roster and an unread
+  one, and the panel then said *"nobody is listed for Media that you can see —
+  ask a director to add you"*: the identical defect, in the surface built for
+  Darrell's own question about Media, an hour after the Choir tab showed him
+  the first one. It now returns `{ ok, rows, reason }`, and the panel draws the
+  third state with a Try again.
