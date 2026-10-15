@@ -493,6 +493,13 @@ export function buildLessonIndex(courses) {
         hayTitle: title.toLowerCase(),
         hayRef: ref.toLowerCase(),
         hayBody,
+        // The course's DECLARED plain words, kept separately as well as inside
+        // hayBody (which stays whole, so nothing reading it changes). Separate
+        // because a declared word is a course-level promise to the reader —
+        // "money finds Kingdom Economics" — and searchLessons must be able to
+        // tell that promise apart from an incidental body hit. See the rank
+        // tiers there.
+        hayPlain: plain,
       });
     }
   }
@@ -511,17 +518,40 @@ export function searchLessons(index, query, limit = 40) {
   const scored = [];
   for (let i = 0; i < index.length; i++) {
     const e = index[i];
-    let inTitle = 0, inRef = 0, inAny = 0;
+    let inTitle = 0, inRef = 0, inPlain = 0, inAny = 0;
     for (const t of tokens) {
       const hitTitle = e.hayTitle.includes(t);
       const hitRef = e.hayRef.includes(t);
       const hitBody = e.hayBody.includes(t);
+      const hitPlain = e.hayPlain ? e.hayPlain.includes(t) : false;
       if (hitTitle) inTitle++;
       if (hitRef) inRef++;
+      if (hitPlain) inPlain++;
       if (hitTitle || hitRef || hitBody) inAny++;
     }
     if (inAny < tokens.length) continue; // AND semantics: every token must land
-    const rank = inTitle === tokens.length ? 3 : (inRef > 0 ? 2 : 1);
+    // A DECLARED PLAIN WORD CARRIES ITS OWN WEIGHT (2026-10-15, DR-1049).
+    //
+    // Before this, a plain-word match scored the same rank 1 as any incidental
+    // body hit, so a course-level promise to the reader — "government finds the
+    // Prophetic Voices course" — sat behind every title hit, every anchor hit
+    // AND every lesson in the catalog whose big idea happens to mention the
+    // word. The product's window is 40, so those promises died quietly, and
+    // they died FASTER as the catalog grew: adding a twentieth World Issues
+    // issue pushed `prophetic-voices: government` out of reach, and nothing
+    // about that lesson's prose could have prevented it, because `government`
+    // is declared for the whole World Issues course and so every one of its
+    // lessons matches. `course-plain-words.test.js` recorded that defect with a
+    // date and named the fix: "it needs the plain-word connection to carry
+    // weight of its own". This is that fix, and it is the one the ratchet asks
+    // for rather than a raised ceiling.
+    //
+    // The tier sits ABOVE a body match and BELOW an anchor-reference hit, so
+    // typing a verse reference still wins and a reader's own word still finds
+    // the course that declared it. It requires EVERY token to be a declared
+    // word, so a two-word query is never promoted by one incidental overlap.
+    const rank = inTitle === tokens.length ? 4
+      : (inRef > 0 ? 3 : (inPlain === tokens.length ? 2 : 1));
     scored.push({ rank, i, e });
   }
   scored.sort((a, b) => (b.rank - a.rank) || (a.i - b.i));
