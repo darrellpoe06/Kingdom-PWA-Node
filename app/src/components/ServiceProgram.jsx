@@ -27,18 +27,20 @@ import {
   deriveSectorView, reflowProgram, formatClock,
   getServiceProgramAccess, subscribePrograms, subscribeSegments, subscribeChanges, subscribeFinalizerMembers,
   saveProgram, deleteProgram, saveSegment, deleteSegment, seedProgramSegments, seedDefaultOrder, setFinalizer,
-  importSegmentsFromEmail,
+  importSegmentsFromEmail, parsePeople, peopleOf, whoServes, SERVICE_WINDOW,
 } from '../lib/service-program.js';
 import { parseEmailOrder } from '../lib/order-import.js';
 import UiIcon from './UiIcon.jsx';
 import SectionTabs from './SectionTabs.jsx';
-import ServiceActuals from './ServiceActuals.jsx';
+import ServiceActuals, { TrackRecord } from './ServiceActuals.jsx';
 import { subscribeActuals, blueprintFromActual, pickBlueprintProgram, seedSegmentsFromBlueprint } from '../lib/service-actuals.js';
 
 const BTN = 'text-xs uppercase tracking-wider px-3 py-2 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]';
 const FIELD = 'w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]';
 const LABEL = 'text-[0.5625rem] uppercase tracking-wider text-[#5A5751] block mb-1';
 const SECTOR_OPTS = SECTORS.map((s) => [s.key, `${s.emoji} ${s.label}`]);
+// The auxiliaries a church names most; free text takes any other (DR-1024).
+const AUXILIARIES = ['Choir', 'Praise Team', 'Ushers', 'Deacons', 'Deaconesses', 'Trustees', 'Nurses', 'Media', 'Hospitality', 'Youth', 'Mothers'];
 
 const todayIso = () => new Date().toISOString().slice(0, 10);
 const fmtDate = (d) => {
@@ -82,7 +84,7 @@ function ProgramForm({ initial, busy, onSave, onCancel }) {
           </select>
         </div>
         <div><label className={LABEL} htmlFor="sp-start">Start time (24h)</label><input id="sp-start" type="time" className={FIELD} value={f.startTime} onChange={set('startTime')} /></div>
-        <div><label className={LABEL} htmlFor="sp-target">Target length (min)</label><input id="sp-target" type="number" min="0" className={FIELD} value={f.targetMinutes} onChange={set('targetMinutes')} placeholder="e.g. 90" /></div>
+        <div><label className={LABEL} htmlFor="sp-target">Target length (min)</label><input id="sp-target" type="number" min="0" className={FIELD} value={f.targetMinutes} onChange={set('targetMinutes')} placeholder={`${SERVICE_WINDOW.minMinutes}–${SERVICE_WINDOW.maxMinutes}`} /></div>
         <div className="col-span-2"><label className={LABEL} htmlFor="sp-title">Title</label><input id="sp-title" className={FIELD} value={f.title} onChange={set('title')} /></div>
         <div className="col-span-2"><label className={LABEL} htmlFor="sp-theme">Theme / series</label><input id="sp-theme" className={FIELD} value={f.theme} onChange={set('theme')} placeholder="optional" /></div>
         <div className="col-span-2"><label className={LABEL} htmlFor="sp-scr">Anchoring scripture</label><input id="sp-scr" className={FIELD} value={f.scriptureRef} onChange={set('scriptureRef')} placeholder="e.g. Psalm 100:1-5 (ESV)" /></div>
@@ -111,6 +113,8 @@ function SegmentForm({ initial, programSongs, programSermons, busy, onSave, onCa
     title: initial?.title || '',
     sector: initial?.sector || 'worship',
     ownerName: initial?.ownerName || '',
+    personnelText: peopleOf(initial || {}).join(', '),
+    auxiliary: initial?.auxiliary || '',
     plannedMinutes: initial?.plannedMinutes != null ? String(initial.plannedMinutes) : '5',
     flexible: initial?.flexible !== false,
     scriptureRef: initial?.scriptureRef || '',
@@ -125,7 +129,7 @@ function SegmentForm({ initial, programSongs, programSermons, busy, onSave, onCa
   const toggleSong = (id) => setF((p) => ({ ...p, songIds: p.songIds.includes(id) ? p.songIds.filter((x) => x !== id) : [...p.songIds, id] }));
   const setCue = (sectorKey) => (e) => setF((p) => ({ ...p, cues: { ...p.cues, [sectorKey]: e.target.value } }));
   return (
-    <form className="bg-white border-2 border-[#5A6E3D] p-3 mb-3" onSubmit={(e) => { e.preventDefault(); onSave({ ...f, plannedMinutes: Number(f.plannedMinutes) || 0, sermonId: f.sermonId || null }); }}>
+    <form className="bg-white border-2 border-[#5A6E3D] p-3 mb-3" onSubmit={(e) => { e.preventDefault(); const personnel = parsePeople(f.personnelText); onSave({ ...f, personnel, ownerName: personnel[0] || '', auxiliary: f.auxiliary.trim() || null, plannedMinutes: Number(f.plannedMinutes) || 0, sermonId: f.sermonId || null }); }}>
       <div className="grid grid-cols-2 gap-2">
         <div className="col-span-2"><label className={LABEL} htmlFor="sg-title">Segment</label><input id="sg-title" className={FIELD} value={f.title} onChange={set('title')} placeholder="Call to Worship, Sermon, Benediction…" required /></div>
         <div><label className={LABEL} htmlFor="sg-sector">Owned by sector</label>
@@ -133,8 +137,10 @@ function SegmentForm({ initial, programSongs, programSermons, busy, onSave, onCa
             {SECTOR_OPTS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
           </select>
         </div>
-        <div><label className={LABEL} htmlFor="sg-owner">Owner (person)</label><input id="sg-owner" className={FIELD} value={f.ownerName} onChange={set('ownerName')} placeholder="Bishop Gwin / Christina" /></div>
-        <div><label className={LABEL} htmlFor="sg-min">Planned minutes</label><input id="sg-min" type="number" min="0" className={FIELD} value={f.plannedMinutes} onChange={set('plannedMinutes')} /></div>
+        <div><label className={LABEL} htmlFor="sg-aux">Auxiliary (the group carrying it)</label><input id="sg-aux" className={FIELD} list="sg-aux-list" value={f.auxiliary} onChange={set('auxiliary')} placeholder="Choir / Ushers / Deacons" />
+          <datalist id="sg-aux-list">{AUXILIARIES.map((a) => <option key={a} value={a} />)}</datalist></div>
+        <div className="col-span-2"><label className={LABEL} htmlFor="sg-people">Key personnel (comma-separated)</label><input id="sg-people" className={FIELD} value={f.personnelText} onChange={set('personnelText')} placeholder="Bishop Gwin, Sis. Jones" /></div>
+        <div><label className={LABEL} htmlFor="sg-min">Minutes</label><input id="sg-min" type="number" min="0" className={FIELD} value={f.plannedMinutes} onChange={set('plannedMinutes')} /></div>
         <div className="flex items-end"><label className="flex items-center gap-2 text-xs text-[#1A1815]"><input type="checkbox" checked={f.flexible} onChange={(e) => setF((p) => ({ ...p, flexible: e.target.checked }))} /> Flexible (compress on reflow)</label></div>
         <div><label className={LABEL} htmlFor="sg-order">Order</label><input id="sg-order" type="number" className={FIELD} value={f.sortOrder} onChange={(e) => setF((p) => ({ ...p, sortOrder: Number(e.target.value) || 0 }))} /></div>
         <div><label className={LABEL} htmlFor="sg-scr">Scripture</label><input id="sg-scr" className={FIELD} value={f.scriptureRef} onChange={set('scriptureRef')} placeholder="optional" /></div>
@@ -238,7 +244,7 @@ function FlowRow({ item, adjustedMin, isStewardLens }) {
           {mine && <span className="text-[0.5625rem] uppercase tracking-wider bg-[#B85838] text-white px-1.5 py-0.5">You're up</span>}
         </div>
         <div className="flex items-center gap-2 text-[0.6875rem] text-[#5A5751]">
-          <span>{sectorShort(item.ownerSector)}{item.ownerName ? ` · ${item.ownerName}` : ''}</span>
+          <span>{sectorShort(item.ownerSector)}{item.who ? ` · ${item.who}` : ''}</span>
           <span className="tabular-nums">{Number.isFinite(adjustedMin) && adjustedMin !== item.plannedMinutes ? `${adjustedMin}′ (was ${item.plannedMinutes}′)` : `${item.plannedMinutes}′`}{item.flexible === false ? ' · fixed' : ''}</span>
         </div>
       </div>
@@ -340,6 +346,7 @@ export default function ServiceProgram() {
     return m;
   }, [reflow]);
   const programChanges = useMemo(() => (program ? changes.filter((c) => c.programId === program.id).slice(0, 20) : []), [changes, program]);
+  const serving = useMemo(() => whoServes(programSegments), [programSegments]);
   const finalizerMembers = useMemo(() => members.filter((m) => m.userId), [members]);
 
   // The BLUEPRINT for THIS service: the most recent reconciled service of the
@@ -496,6 +503,8 @@ export default function ServiceProgram() {
               <p className="text-[0.6875rem] text-[#5A5751] mt-1.5 tabular-nums">
                 {view.plannedTotalMinutes}′ planned across {view.flow.length} segment{view.flow.length === 1 ? '' : 's'}
                 {program.targetMinutes ? ` · target ${program.targetMinutes}′` : ''}
+                {view.flow.length > 0 && view.window.say && <span className={view.window.ok ? 'text-[#5A6E3D]' : 'text-[#B85838]'} data-testid="plan-window"> · {view.window.say}</span>}
+                {serving.length > 0 && ` · ${serving.filter((w) => w.kind === 'person').length} people · ${serving.filter((w) => w.kind === 'auxiliary').length} auxiliar${serving.filter((w) => w.kind === 'auxiliary').length === 1 ? 'y' : 'ies'}`}
                 {!isStewardEditing && ` · you own ${view.mineCount}`}
               </p>
             )}
@@ -532,7 +541,7 @@ export default function ServiceProgram() {
               <button type="button" onClick={() => setSegmentForm({ initial: { sortOrder: (programSegments.length + 1) * 10 } })} className={`${BTN} bg-[#5A6E3D] text-white font-semibold`}>＋ Add segment</button>
               <button type="button" onClick={() => setProgramForm({ initial: program })} className={`${BTN} text-[#5A5751] hover:text-[#1A1815] border border-[#E8E4DC]`}>Edit master</button>
               <button type="button" onClick={() => setEmailImportOpen((o) => !o)} className={`${BTN} text-[#B85838] border border-[#B85838]`} aria-expanded={emailImportOpen}><UiIcon name="mail" /> Paste from church email</button>
-              {programSegments.length === 0 && <button type="button" onClick={onSeed} disabled={busy} className={`${BTN} text-[#B85838] border border-[#B85838] disabled:opacity-50`}>Start from standard order ({seedDefaultOrder().length})</button>}
+              {programSegments.length === 0 && <button type="button" onClick={onSeed} disabled={busy} className={`${BTN} text-[#B85838] border border-[#B85838] disabled:opacity-50`}>Start from our order ({seedDefaultOrder().length})</button>}
               {programSegments.length === 0 && blueprint && (
                 <button type="button" onClick={onSeedBlueprint} disabled={busy} className={`${BTN} bg-[#1A1815] text-white font-semibold disabled:opacity-50`}>
                   Start from last {program.serviceType === 'wednesday' ? 'Wednesday' : program.serviceType === 'sunday' ? 'Sunday' : program.serviceType}&apos;s actual ({blueprint.segments.length})
@@ -567,6 +576,22 @@ export default function ServiceProgram() {
             </div>
           )}
 
+          {/* Who serves, and for how long (DR-1024): each person and auxiliary
+              named on the order, their minutes summed, the lines they carry. */}
+          {serving.length > 0 && (
+            <div className="bg-[#FAF8F4] border border-[#E8E4DC] p-2 mt-3" data-testid="who-serves">
+              <p className="text-[0.6875rem] uppercase tracking-wider text-[#5A5751] mb-1">Who serves</p>
+              <ul className="space-y-0.5">
+                {serving.map((w) => (
+                  <li key={`${w.kind}:${w.name}`} className="flex items-baseline justify-between gap-2 text-xs">
+                    <span className="text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{w.name}<span className="text-[0.625rem] uppercase tracking-wider text-[#8A857C]"> · {w.kind === 'auxiliary' ? 'auxiliary' : 'person'}</span><span className="text-[#5A5751]"> · {w.titles.join(', ')}</span></span>
+                    <span className="tabular-nums text-[#5A5751] whitespace-nowrap">{w.minutes}′ · {w.count} line{w.count === 1 ? '' : 's'}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
                   </>
                 ),
               },
@@ -576,11 +601,18 @@ export default function ServiceProgram() {
               // panel) until the flow exists.
               view && view.flow.length > 0 ? {
                 id: 'actuals',
-                label: 'Actuals & blueprint',
+                label: 'Actual times',
                 render: () => (
                   <ServiceActuals program={program} plannedSegments={programSegments} actuals={actuals} songs={songs} sermons={sermons} canEdit={access.canEdit} />
                 ),
               } : null,
+              // The track record across every clocked service (DR-1024): how
+              // often each Sunday and Wednesday kept its timeline. Whole team.
+              {
+                id: 'record',
+                label: 'Track record',
+                render: () => <TrackRecord programs={programs} segments={segments} actuals={actuals} />,
+              },
               // Steward-only (gated section — absent for sector lenses and any
               // non-editing viewer, so nothing leaks): the finalizer circle +
               // the who-changed-what activity trail.

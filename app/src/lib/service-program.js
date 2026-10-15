@@ -103,6 +103,11 @@ export function toSegmentShape(row) {
     title: row.title ?? '',
     sector: row.sector ?? 'general',
     ownerName: row.owner_name ?? null,
+    // Key personnel + the auxiliary carrying the line (0292, DR-1024). A row
+    // from before 0292 names its one owner as its first key person.
+    personnel: Array.isArray(row.personnel) && row.personnel.length ? row.personnel.map((x) => String(x).trim()).filter(Boolean)
+      : (row.owner_name && String(row.owner_name).trim() ? [String(row.owner_name).trim()] : []),
+    auxiliary: row.auxiliary && String(row.auxiliary).trim() ? String(row.auxiliary).trim() : null,
     plannedMinutes: Number.isFinite(row.planned_minutes) ? row.planned_minutes : 5,
     flexible: row.flexible !== false,
     scriptureRef: row.scripture_ref ?? null,
@@ -135,6 +140,79 @@ export function formatClock(mins) {
 }
 
 const bySort = (a, b) => (a.sortOrder - b.sortOrder) || String(a.id).localeCompare(String(b.id));
+
+// --- The service window (pure) ----------------------------------------------
+// Darrell 2026-10-15: "Services time needs to be between 1 hour and 15 minutes
+// to 1 hour 30 minutes max." Both orders are read against it: the plan's total
+// says whether the order fits, the clocked total whether the service did, and
+// the track record counts a service kept only inside it.
+export const SERVICE_WINDOW = Object.freeze({ minMinutes: 75, maxMinutes: 90 });
+
+/** Where a total stands against the window: { ok, over, under, say }. */
+export function windowSay(minutes, w = SERVICE_WINDOW) {
+  if (!Number.isFinite(minutes)) return { ok: false, over: 0, under: 0, say: '' };
+  if (minutes > w.maxMinutes) return { ok: false, over: minutes - w.maxMinutes, under: 0, say: `${minutes - w.maxMinutes}\u2032 over the ${w.maxMinutes}\u2032 limit` };
+  if (minutes < w.minMinutes) return { ok: false, over: 0, under: w.minMinutes - minutes, say: `${w.minMinutes - minutes}\u2032 under the ${w.minMinutes}\u2032 floor` };
+  return { ok: true, over: 0, under: 0, say: `within ${w.minMinutes}\u2013${w.maxMinutes}\u2032` };
+}
+
+// --- People (pure) -----------------------------------------------------------
+// Darrell 2026-10-15: "add key personnel to each task on the order of services
+// list... or add a auxiliary." A line names the people carrying it (several,
+// not one) and, when a whole group carries it, the auxiliary (Choir, Ushers,
+// Deacons). The names are the church's own words; nothing is looked up.
+
+/** "Bishop Gwin, Sis. Jones; Bro. Lee" -> ['Bishop Gwin', 'Sis. Jones', 'Bro. Lee'] (deduped, order kept). */
+export function parsePeople(text) {
+  const seen = new Set();
+  const out = [];
+  for (const raw of String(text || '').split(/[,;\n]/)) {
+    const name = raw.replace(/\s+/g, ' ').trim();
+    if (!name) continue;
+    const key = name.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key); out.push(name);
+  }
+  return out;
+}
+
+/** The key people on a segment: its personnel, or its one legacy owner. */
+export function peopleOf(seg) {
+  const list = Array.isArray(seg?.personnel) ? seg.personnel.map((x) => String(x).trim()).filter(Boolean) : [];
+  if (list.length) return list;
+  const owner = seg?.ownerName ? String(seg.ownerName).trim() : '';
+  return owner ? [owner] : [];
+}
+
+/** "Choir · Bishop Gwin, Sis. Jones" — the auxiliary first, then the people; '' when none. */
+export function whoText(seg) {
+  const aux = seg?.auxiliary ? String(seg.auxiliary).trim() : '';
+  const people = peopleOf(seg);
+  return [aux, people.join(', ')].filter(Boolean).join(' · ');
+}
+
+/**
+ * Who serves, and for how long: one row per person and per auxiliary across the
+ * order, with their minutes summed and the lines they carry, most minutes first.
+ * A church reads its people's load from this; the header still totals the whole.
+ */
+export function whoServes(segments) {
+  const acc = new Map();
+  const add = (name, kind, seg) => {
+    const key = `${kind}:${name.toLowerCase()}`;
+    const row = acc.get(key) || { name, kind, minutes: 0, count: 0, titles: [] };
+    row.minutes += Number.isFinite(seg.plannedMinutes) ? seg.plannedMinutes : 0;
+    row.count += 1;
+    row.titles.push(seg.title || '');
+    acc.set(key, row);
+  };
+  for (const seg of [...(segments || [])].sort(bySort)) {
+    for (const name of peopleOf(seg)) add(name, 'person', seg);
+    const aux = seg?.auxiliary ? String(seg.auxiliary).trim() : '';
+    if (aux) add(aux, 'auxiliary', seg);
+  }
+  return [...acc.values()].sort((a, b) => (b.minutes - a.minutes) || a.name.localeCompare(b.name));
+}
 
 // Attach a running clock to each segment from the program start time. Pure: each
 // segment gets startMin/endMin (minutes-since-midnight) + startClock label.
@@ -199,6 +277,9 @@ export function deriveSectorView(program, segments, sector, { songs = [], sermon
       ownerSector: s.sector,
       ownerSectorLabel: sectorLabel(s.sector),
       ownerName: s.ownerName || null,
+      personnel: peopleOf(s),
+      auxiliary: s.auxiliary || null,
+      who: whoText(s),
       plannedMinutes: s.plannedMinutes,
       flexible: s.flexible,
       startClock: s.startClock,
@@ -231,30 +312,34 @@ export function deriveSectorView(program, segments, sector, { songs = [], sermon
     myStops: isSteward ? flow : flow.filter((f) => f.isOwner),
     mineCount: isSteward ? flow.length : flow.filter((f) => f.isOwner).length,
     plannedTotalMinutes,
+    window: windowSay(plannedTotalMinutes),
   };
 }
 
 // A one-tap starting order so a steward's first build is a real run-of-show, not
-// a blank page (SEED-DATA-AS-ASPIRATION: the starter state shows what a faithful,
-// well-ordered service looks like). Returns template segment shapes (no ids /
-// no DB) the surface inserts. The sermon is FIXED (flexible:false) so a reflow
-// never compresses the Word.
+// a blank page (SEED-DATA-AS-ASPIRATION). The order is the church's own, as
+// Darrell handed it over on 2026-10-15: Prayer · Announcements · Choir, 1 song ·
+// Special events (if we have one) · Offering / Givers' Creed · Choir, 2 songs ·
+// Speaker · Benediction. The Choir lines carry the Choir as their auxiliary;
+// the Speaker is FIXED (flexible:false) so a reflow never compresses the Word.
+// Returns template segment shapes (no ids / no DB) the surface inserts.
 export function seedDefaultOrder() {
   const t = [
-    { title: 'Call to Worship',        sector: 'pulpit',      planned: 5,  flexible: true,  owner: '' },
-    { title: 'Praise & Worship',       sector: 'worship',     planned: 20, flexible: true,  owner: '' },
-    { title: 'Welcome & Announcements',sector: 'hospitality', planned: 5,  flexible: true,  owner: '' },
-    { title: 'Offering',               sector: 'ushers',      planned: 7,  flexible: true,  owner: '' },
-    { title: 'Choir Selection',        sector: 'worship',     planned: 6,  flexible: true,  owner: '' },
-    { title: 'Scripture Reading',      sector: 'pulpit',      planned: 4,  flexible: true,  owner: '' },
-    { title: 'Sermon',                 sector: 'pulpit',      planned: 35, flexible: false, owner: '' },
-    { title: 'Altar Call',             sector: 'pastoral',    planned: 8,  flexible: true,  owner: '' },
-    { title: 'Benediction',            sector: 'pulpit',      planned: 3,  flexible: true,  owner: '' },
+    { title: 'Prayer',                          sector: 'pastoral',    planned: 5,  flexible: true,  auxiliary: '' },
+    { title: 'Announcements',                   sector: 'hospitality', planned: 5,  flexible: true,  auxiliary: '' },
+    { title: 'Choir \u2014 1 song',               sector: 'worship',     planned: 5,  flexible: true,  auxiliary: 'Choir' },
+    { title: 'Special events (if we have one)',  sector: 'general',     planned: 10, flexible: true,  auxiliary: '' },
+    { title: 'Offering / Givers\u2019 Creed',      sector: 'ushers',      planned: 8,  flexible: true,  auxiliary: 'Ushers' },
+    { title: 'Choir \u2014 2 songs',              sector: 'worship',     planned: 10, flexible: true,  auxiliary: 'Choir' },
+    { title: 'Speaker',                         sector: 'pulpit',      planned: 35, flexible: false, auxiliary: '' },
+    { title: 'Benediction',                     sector: 'pulpit',      planned: 3,  flexible: true,  auxiliary: '' },
   ];
   return t.map((x, i) => ({
     title: x.title,
     sector: x.sector,
-    ownerName: x.owner,
+    ownerName: '',
+    personnel: [],
+    auxiliary: x.auxiliary || null,
     plannedMinutes: x.planned,
     flexible: x.flexible,
     sortOrder: (i + 1) * 10,
@@ -437,11 +522,16 @@ export async function deleteProgram(id) {
   return error ? { skipped: 'delete-error', error } : { deleted: true };
 }
 
-function segmentRow(seg) {
+export function segmentRow(seg) {
+  const personnel = peopleOf(seg);
   return {
     title: seg.title || '',
     sector: seg.sector || 'general',
-    owner_name: seg.ownerName || null,
+    // The first key person doubles as the legacy owner so older readers
+    // (the email import's preview, the blueprint) keep a name to show.
+    owner_name: personnel[0] || seg.ownerName || null,
+    personnel,
+    auxiliary: seg.auxiliary && String(seg.auxiliary).trim() ? String(seg.auxiliary).trim().slice(0, 80) : null,
     planned_minutes: Number.isFinite(seg.plannedMinutes) ? seg.plannedMinutes : 5,
     flexible: seg.flexible !== false,
     scripture_ref: seg.scriptureRef || null,

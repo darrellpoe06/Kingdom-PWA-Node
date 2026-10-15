@@ -7,11 +7,17 @@
 // sermon segment is NOT compressed when the service is short — the whole point of
 // the fixed flag. If reflow ever scales fixed segments, that test fails.
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import {
   toProgramShape, toSegmentShape, sectorForRole, sectorLabel, STEWARD,
   parseClock, formatClock, computeSchedule, reflowProgram, deriveSectorView,
   seedDefaultOrder, deriveAccess, summarizeChange, toChangeShape, toFinalizerMemberShape,
+  parsePeople, peopleOf, whoText, whoServes, segmentRow, windowSay, SERVICE_WINDOW,
 } from '../lib/service-program.js';
+
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 
 describe('mappers', () => {
   it('toProgramShape defaults missing fields', () => {
@@ -155,11 +161,19 @@ describe('deriveSectorView', () => {
 });
 
 describe('seedDefaultOrder + deriveAccess', () => {
-  it('seed is a real ordered run-of-show with a fixed sermon', () => {
+  it('seed is the church\u2019s own order, with the Speaker fixed and the Choir lines carried by the Choir (DR-1024)', () => {
+    // Darrell 2026-10-15: Prayer · Announcements · Choir, 1 song · Special
+    // events (if we have one) · Offering / Givers' Creed · Choir, 2 songs ·
+    // Speaker · Benediction.
     const seed = seedDefaultOrder();
-    expect(seed.length).toBeGreaterThanOrEqual(8);
-    const sermon = seed.find((s) => s.title === 'Sermon');
+    expect(seed.map((s) => s.title)).toEqual([
+      'Prayer', 'Announcements', 'Choir \u2014 1 song', 'Special events (if we have one)', 'Offering / Givers\u2019 Creed', 'Choir \u2014 2 songs', 'Speaker', 'Benediction',
+    ]);
+    const sermon = seed.find((s) => s.title === 'Speaker');
     expect(sermon.flexible).toBe(false);
+    expect(seed.filter((s) => s.auxiliary === 'Choir')).toHaveLength(2);
+    expect(seed.find((s) => s.title.startsWith('Offering')).auxiliary).toBe('Ushers');
+    expect(seed.reduce((n, s) => n + s.plannedMinutes, 0)).toBe(81);
     // strictly increasing sortOrder
     const orders = seed.map((s) => s.sortOrder);
     expect([...orders].sort((a, b) => a - b)).toEqual(orders);
@@ -203,5 +217,85 @@ describe('change log (institutional memory)', () => {
   it('toFinalizerMemberShape coerces the is_finalizer flag to a real boolean', () => {
     expect(toFinalizerMemberShape({ id: 'm1', user_id: 'u1', display_name: 'Christian', choir_role: 'musician', is_finalizer: true }).isFinalizer).toBe(true);
     expect(toFinalizerMemberShape({ id: 'm2', user_id: 'u2', display_name: 'Member', choir_role: 'member' }).isFinalizer).toBe(false);
+  });
+});
+
+describe('key personnel and auxiliaries on every line (DR-1024; 0292)', () => {
+  // Darrell 2026-10-15: "add the ability to add time to each section so any
+  // church can total their time and add key personnel to each task on the
+  // order of services list... or add a auxiliary."
+  it('parsePeople splits on commas, semicolons and lines, trims, and keeps one of each', () => {
+    expect(parsePeople('Bishop Gwin, Sis. Jones; Bro. Lee\n bishop gwin ,, ')).toEqual(['Bishop Gwin', 'Sis. Jones', 'Bro. Lee']);
+    expect(parsePeople('')).toEqual([]);
+    expect(parsePeople(null)).toEqual([]);
+  });
+  it('toSegmentShape carries personnel and the auxiliary; a row from before 0292 names its one owner', () => {
+    const s = toSegmentShape({ id: 's1', program_id: 'p1', title: 'Offering', personnel: ['Deacon Hill', ' Sis. Ray '], auxiliary: ' Ushers ' });
+    expect(s.personnel).toEqual(['Deacon Hill', 'Sis. Ray']);
+    expect(s.auxiliary).toBe('Ushers');
+    const old = toSegmentShape({ id: 's2', program_id: 'p1', title: 'Speaker', owner_name: 'Bishop Gwin', personnel: [] });
+    expect(old.personnel).toEqual(['Bishop Gwin']);
+    expect(old.auxiliary).toBeNull();
+    expect(toSegmentShape({ id: 's3', program_id: 'p1', title: 'Prayer' }).personnel).toEqual([]);
+  });
+  it('peopleOf and whoText read the line as the card prints it: auxiliary first, then the people', () => {
+    expect(whoText({ auxiliary: 'Choir', personnel: ['Christina'] })).toBe('Choir · Christina');
+    expect(whoText({ personnel: ['Bishop Gwin', 'Sis. Jones'] })).toBe('Bishop Gwin, Sis. Jones');
+    expect(whoText({ ownerName: 'Elder Cole' })).toBe('Elder Cole');
+    expect(whoText({})).toBe('');
+    expect(peopleOf({ personnel: [' '], ownerName: 'Elder Cole' })).toEqual(['Elder Cole']);
+  });
+  it('segmentRow writes personnel and the auxiliary, and the first key person doubles as the legacy owner', () => {
+    const row = segmentRow({ title: 'Choir \u2014 1 song', sector: 'worship', personnel: ['Christina', 'Sis. Jones'], auxiliary: 'Choir', plannedMinutes: 5 });
+    expect(row.personnel).toEqual(['Christina', 'Sis. Jones']);
+    expect(row.auxiliary).toBe('Choir');
+    expect(row.owner_name).toBe('Christina');
+    expect(segmentRow({ title: 'Prayer', personnel: [], auxiliary: '   ' }).auxiliary).toBeNull();
+  });
+  it('whoServes totals the minutes per person and per auxiliary across the order, most first', () => {
+    const segs = [
+      { id: 'a', sortOrder: 10, title: 'Prayer', plannedMinutes: 5, personnel: ['Elder Cole'] },
+      { id: 'b', sortOrder: 30, title: 'Choir \u2014 1 song', plannedMinutes: 5, auxiliary: 'Choir', personnel: ['Christina'] },
+      { id: 'c', sortOrder: 60, title: 'Choir \u2014 2 songs', plannedMinutes: 10, auxiliary: 'choir', personnel: ['Christina'] },
+      { id: 'd', sortOrder: 70, title: 'Speaker', plannedMinutes: 35, ownerName: 'Bishop Gwin' },
+      { id: 'e', sortOrder: 20, title: 'Announcements', plannedMinutes: 5 },
+    ];
+    const who = whoServes(segs);
+    expect(who.map((w) => `${w.kind}:${w.name}:${w.minutes}:${w.count}`)).toEqual([
+      'person:Bishop Gwin:35:1', 'auxiliary:Choir:15:2', 'person:Christina:15:2', 'person:Elder Cole:5:1',
+    ]);
+    expect(who.find((w) => w.name === 'Choir').titles).toEqual(['Choir \u2014 1 song', 'Choir \u2014 2 songs']); // in the order's order
+    expect(whoServes([])).toEqual([]);
+  });
+  it('deriveSectorView hands the flow its people, auxiliary and the who line', () => {
+    const v = deriveSectorView({ id: 'p1', startTime: '11:00' }, [{ id: 's1', programId: 'p1', sortOrder: 10, title: 'Choir \u2014 1 song', sector: 'worship', plannedMinutes: 5, auxiliary: 'Choir', personnel: ['Christina'] }], STEWARD);
+    expect(v.flow[0]).toMatchObject({ personnel: ['Christina'], auxiliary: 'Choir', who: 'Choir · Christina' });
+  });
+  it('0292 adds the two columns additively and backfills the one owner once (idempotent)', () => {
+    const sql = readFileSync(join(ROOT, 'infra/supabase/migrations-auto/0292-every-line-of-the-order-names-its-people.sql'), 'utf8');
+    expect(sql).toMatch(/ADD COLUMN IF NOT EXISTS personnel jsonb NOT NULL DEFAULT '\[\]'::jsonb/);
+    expect(sql).toMatch(/ADD COLUMN IF NOT EXISTS auxiliary text/);
+    expect(sql).toMatch(/WHERE personnel = '\[\]'::jsonb/);
+    expect(sql).not.toMatch(/DROP (TABLE|COLUMN)/);
+  });
+});
+
+describe('the service window: 75 to 90 minutes (DR-1024)', () => {
+  // Darrell 2026-10-15: "Services time needs to be between 1 hour and 15
+  // minutes to 1 hour 30 minutes max."
+  it('reads a total against the window in the church\u2019s own words', () => {
+    expect(SERVICE_WINDOW).toEqual({ minMinutes: 75, maxMinutes: 90 });
+    expect(windowSay(81)).toMatchObject({ ok: true, say: 'within 75\u201390\u2032' });
+    expect(windowSay(75).ok).toBe(true);
+    expect(windowSay(90).ok).toBe(true);
+    expect(windowSay(97)).toMatchObject({ ok: false, over: 7, say: '7\u2032 over the 90\u2032 limit' });
+    expect(windowSay(60)).toMatchObject({ ok: false, under: 15, say: '15\u2032 under the 75\u2032 floor' });
+    expect(windowSay(null).say).toBe('');
+  });
+  it('the plan carries its verdict: the church\u2019s own order fits, a padded one does not', () => {
+    const seed = seedDefaultOrder().map((s, i) => ({ ...s, id: `s${i}`, programId: 'p1' }));
+    expect(deriveSectorView({ id: 'p1' }, seed, STEWARD).window.ok).toBe(true); // 81'
+    const padded = seed.map((s) => (s.title === 'Speaker' ? { ...s, plannedMinutes: 50 } : s)); // 96'
+    expect(deriveSectorView({ id: 'p1' }, padded, STEWARD).window).toMatchObject({ ok: false, over: 6 });
   });
 });
