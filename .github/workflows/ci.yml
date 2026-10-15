@@ -343,6 +343,13 @@ jobs:
       - name: choir-dates drainer selftest
         working-directory: infra/church-media-golive
         run: python3 choir_dates_sync.py --selftest
+      # DR-1045: every service video keeps its length. The parse that turns
+      # yt-dlp's duration + release_timestamp into stream_seconds / started_at,
+      # never writing a missing, zero or absurd length, and the same
+      # gone-vs-refused split choir-dates uses. Gates merge.
+      - name: stream-length rider selftest
+        working-directory: infra/church-media-golive
+        run: python3 stream_length_sync.py --selftest
       # The NAS's own yt-dlp (DR-0723): pinned version + sha256, a mismatch
       # deleted and never run, a failed download retried at most every 6 h,
       # a binary answering another version refused. Offline (file:// release).
