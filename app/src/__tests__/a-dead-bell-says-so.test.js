@@ -43,7 +43,7 @@ describe('classifyBellResponse — the measured failure', () => {
     expect(classifyBellResponse({ code: 404, body: REAL_404 }).reason).toMatch(/reaches nobody/i);
   });
 
-  it('a 404 without that body is still dead, and now names the MOUNT (DR-1045)', () => {
+  it('a 404 without that body is still dead, and now names the MOUNT (DR-1047)', () => {
     // RE-PINNED 2026-10-15. This asserted /webhook path is wrong/, which was
     // true while the road was n8n's. After the cut-over a bare 404 on the
     // sovereign road means one specific thing: tailscale is serving nothing at
@@ -71,7 +71,7 @@ describe('classifyBellResponse — the measured failure', () => {
     expect(classifyBellResponse({ code: 404, body: '{}' }).reason).not.toMatch(/NOT REGISTERED/);
   });
 
-  it('the caller points at the sovereign road, not the n8n root (DR-1045)', () => {
+  it('the caller points at the sovereign road, not the n8n root (DR-1047)', () => {
     // The cut-over itself, pinned: the n8n hop is gone from the live path, and
     // the full spelling is what tailscale's mount-point stripping expects.
     expect(RELAY_URL).toBe('https://poetech.tail5a2f35.ts.net/announce/ops-announce');

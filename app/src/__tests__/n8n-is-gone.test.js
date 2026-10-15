@@ -83,7 +83,7 @@ function walk(dir, acc = []) {
 
 // Each held piece: the file, the pattern it still carries, and WHY it is held.
 const HELD = [
-  // RELEASED 2026-10-15 (DR-1045), on the condition this entry itself named:
+  // RELEASED 2026-10-15 (DR-1047), on the condition this entry itself named:
   // "Held until a sovereign bell replaces it end to end." scripts/ops-announce.mjs
   // no longer carries an n8n webhook path -- RELAY_URL is the sovereign
   // /announce road, poetech-announce.service was proven `active` on the box by

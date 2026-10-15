@@ -53,7 +53,7 @@ echo "== announce install: funnel path mount (guarded, additive, reversible) =="
 # RECORDED-STATE: infra/nas-transport/RECORDED-STATE.md
 # ACTUATOR of the /announce row added by the same merge (rule 2).
 #
-# WHY A MOUNT AT ALL, measured rather than assumed (DR-1045). The server binds
+# WHY A MOUNT AT ALL, measured rather than assumed (DR-1047). The server binds
 # 127.0.0.1 on purpose, and the caller is scripts/ops-announce.mjs running on a
 # GitHub runner -- and site-health.yml does NOT join the tailnet (it checks the
 # repo out solely for that script). So a tailnet-only road reaches nobody: the
