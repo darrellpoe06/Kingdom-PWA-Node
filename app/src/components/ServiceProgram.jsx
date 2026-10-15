@@ -25,7 +25,7 @@ import { subscribeSongs, subscribeSermons } from '../lib/choir-sync.js';
 import {
   SECTORS, STEWARD, sectorShort,
   deriveSectorView, reflowProgram, formatClock,
-  getServiceProgramAccess, accessDiagnosis, subscribePrograms, subscribeSegments, subscribeChanges, subscribeFinalizerMembers,
+  getServiceProgramAccess, accessDiagnosis, playbookFor, subscribePrograms, subscribeSegments, subscribeChanges, subscribeFinalizerMembers,
   saveProgram, deleteProgram, saveSegment, deleteSegment, seedProgramSegments, seedDefaultOrder, setFinalizer,
   importSegmentsFromEmail, parsePeople, peopleOf, whoServes, SERVICE_WINDOW,
 } from '../lib/service-program.js';
@@ -275,6 +275,77 @@ function FlowRow({ item, adjustedMin, isStewardLens }) {
 // -----------------------------------------------------------------------------
 // Main surface
 // -----------------------------------------------------------------------------
+// The playbook panel: the whole order with its clock and its people, then what
+// each team does and when. Printable, because it is handed out on Sunday.
+function Playbook({ book }) {
+  const serif = { fontFamily: '"Fraunces", serif' };
+  const day = book.serviceType === 'wednesday' ? 'Wednesday' : book.serviceType === 'sunday' ? 'Sunday' : book.serviceType;
+  return (
+    <div data-testid="playbook" className="bg-white border border-[#E8E4DC] p-3">
+      <div className="flex items-start justify-between gap-2 flex-wrap mb-2">
+        <div>
+          <p className="text-sm text-[#1A1815] font-semibold" style={serif}>{book.title} — the {day} playbook{book.serviceDate ? ` · ${book.serviceDate}` : ''}</p>
+          <p className="text-[0.6875rem] text-[#5A5751]" style={serif}>
+            {book.startTime ? `Starts ${book.startTime}${book.endClock ? `, ends ${book.endClock}` : ''} · ` : 'No start time set yet · '}
+            {book.total}′ planned{book.window ? ` · ${book.window.say}` : ''}
+          </p>
+          <p className="text-[0.6875rem] text-[#5A5751]" style={serif} data-testid="playbook-governance">
+            <span className="text-[#1A1815] font-semibold">Presiding:</span> {book.presiding.length ? book.presiding.join(', ') : 'name the Speaker line’s key personnel'}
+            {' · '}<span className="text-[#1A1815] font-semibold">The order is signed by:</span> the stewards (BG · Christina · Darrell){book.finalizers.length ? ` and ${book.finalizers.join(', ')}` : ''}
+            {' · '}everyone else follows their stops below.
+          </p>
+        </div>
+        <button type="button" onClick={() => { try { window.print(); } catch { /* no-op */ } }} className={`${BTN} text-[#1A1815] border border-[#1A1815] bg-white`}>Print</button>
+      </div>
+      {/* ONE FULL SHEET (Darrell 2026-10-15: "All one full print because we
+          all have to be in sync across the whole service"): every line, and
+          every team's cue on that line, in one table — so Media, the Choir,
+          the ushers and the welcome team read the same page at the same
+          clock. The per-team cards below are the same sheet, folded by team. */}
+      <style>{`@media print { body * { visibility: hidden; } [data-testid="playbook"], [data-testid="playbook"] * { visibility: visible; } [data-testid="playbook"] { position: absolute; left: 0; top: 0; width: 100%; } [data-testid="playbook"] button { display: none; } }`}</style>
+      <div className="overflow-x-auto mb-3">
+        <table className="w-full text-[0.6875rem]" style={serif} data-testid="playbook-order">
+          <thead>
+            <tr className="text-left text-[#5A5751] uppercase tracking-wider text-[0.5625rem]">
+              <th className="py-1 pr-2">Clock</th><th className="py-1 pr-2">Line</th><th className="py-1 pr-2">Who</th><th className="py-1 pr-2 text-right">Min</th>
+              {book.sectors.map((sec) => <th key={sec.key} className="py-1 pr-2">{sec.short}</th>)}
+            </tr>
+          </thead>
+          <tbody>
+            {book.lines.map((l) => (
+              <tr key={l.id} className="border-t border-[#E8E4DC] align-top">
+                <td className="py-1 pr-2 whitespace-nowrap text-[#5A5751]">{l.startClock || '—'}</td>
+                <td className="py-1 pr-2 text-[#1A1815]">{l.title}{l.flexible ? '' : ' (fixed)'}</td>
+                <td className="py-1 pr-2 text-[#5A5751]">{l.who || l.sectorLabel}</td>
+                <td className="py-1 pr-2 text-right text-[#5A5751]">{l.minutes}′</td>
+                {book.sectors.map((sec) => {
+                  const st = sec.stops.find((x) => x.id === l.id);
+                  const text = st ? [st.owns ? 'yours' : null, st.cue].filter(Boolean).join(' — ') : '';
+                  return <td key={sec.key} className={`py-1 pr-2 ${st && st.owns ? 'text-[#1A1815]' : 'text-[#5A5751]'}`}>{text}</td>;
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="grid gap-2 sm:grid-cols-2">
+        {book.sectors.map((sec) => (
+          <div key={sec.key} className="bg-[#FAF8F4] border border-[#E8E4DC] p-2" data-testid={`playbook-sector-${sec.key}`}>
+            <p className="text-[0.6875rem] text-[#1A1815] font-semibold mb-1" style={serif}>What {sec.label} does on {day}</p>
+            <ul className="space-y-0.5">
+              {sec.stops.map((st) => (
+                <li key={`${sec.key}-${st.id}`} className="text-[0.6875rem] text-[#5A5751]" style={serif}>
+                  <span className="text-[#1A1815]">{st.startClock || '—'}</span> · {st.title}{st.owns ? ` — ${st.who || 'yours'}` : ''}{st.cue ? ` — ${st.cue}` : ''}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function ServiceProgram() {
   const [signedIn, setSignedIn] = useState(false);
   const [access, setAccess] = useState({ canSee: false, canEdit: false, sector: 'worship', loading: true, failed: null });
@@ -639,6 +710,14 @@ export default function ServiceProgram() {
                   </>
                 ),
               },
+              // The PLAYBOOK for this Sunday or Wednesday (Darrell 2026-10-15):
+              // every sector's stops on the one master, with the clock and the
+              // cue, under who presides and who signs the order. Whole team.
+              view && view.flow.length > 0 ? {
+                id: 'playbook',
+                label: 'Playbook',
+                render: () => <Playbook book={playbookFor(program, programSegments, { members })} />,
+              } : null,
               // The ACTUAL side: what really happened -> reconcile -> blueprint.
               // Shown to the whole team (read); the finalizer circle reconciles.
               // Gated exactly like the original block — no chip (and no empty

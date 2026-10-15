@@ -146,3 +146,16 @@ describe('a refused screen says what it read (DR-0076; the owner\u2019s own scre
     expect([...container.querySelectorAll('button')].some((b) => b.textContent === 'Retry')).toBe(true);
   });
 });
+
+describe('the Playbook chip (Darrell 2026-10-15: a playbook for that Sunday or Wednesday)', () => {
+  it('renders the whole order with its clock, who presides, and each team\u2019s stops, with Print', async () => {
+    access = { signedIn: true, canSee: true, canEdit: false, isFinalizer: false, role: 'member', sector: 'media' };
+    await mount();
+    await clickTab('Playbook');
+    const book = container.querySelector('[data-testid="playbook"]');
+    expect(book, 'the playbook panel renders').toBeTruthy();
+    expect(container.querySelector('[data-testid="playbook-order"]')).toBeTruthy();
+    expect(container.querySelector('[data-testid="playbook-governance"]').textContent).toContain('The order is signed by');
+    expect([...container.querySelectorAll('button')].some((b) => b.textContent === 'Print')).toBe(true);
+  });
+});

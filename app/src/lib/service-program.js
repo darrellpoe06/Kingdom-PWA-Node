@@ -196,6 +196,62 @@ export function whoText(seg) {
  * order, with their minutes summed and the lines they carry, most minutes first.
  * A church reads its people's load from this; the header still totals the whole.
  */
+/**
+ * The PLAYBOOK for a Sunday or a Wednesday (Darrell, 2026-10-15: "Governance
+ * comes from a team and is distributed; BG is the key figure in the process and
+ * Christina is also; everyone else follows these processes, so we need that as
+ * a playbook for that Sunday or Wednesday"). One read across EVERY sector of
+ * the one master order: the clock of each line from the start time, who
+ * carries it, and what each team does and when — the Media team's stops, the
+ * Choir's stops, the ushers', each with its cue. Pure; the view reads it and
+ * prints it. `presiding` is the people on the fixed pulpit line (the Speaker —
+ * Bishop Gwin on this order); `finalizers` the roster members who sign the
+ * master, beside the stewards who always do.
+ */
+export function playbookFor(program, segments, { members = [] } = {}) {
+  const scheduled = computeSchedule(segments, program?.startTime);
+  const lines = scheduled.map((s) => ({
+    id: s.id,
+    order: s.sortOrder,
+    startClock: s.startClock,
+    endClock: s.endClock,
+    minutes: Number.isFinite(s.plannedMinutes) ? s.plannedMinutes : 0,
+    title: s.title,
+    sector: s.sector,
+    sectorLabel: sectorLabel(s.sector),
+    who: whoText(s),
+    personnel: peopleOf(s),
+    auxiliary: s.auxiliary || null,
+    cues: s.cues || {},
+    flexible: s.flexible !== false,
+    scriptureRef: s.scriptureRef || null,
+    notes: s.notes || null,
+  }));
+  const total = lines.reduce((n, l) => n + l.minutes, 0);
+  const pulpit = scheduled.find((s) => s.sector === 'pulpit' && s.flexible === false) || scheduled.find((s) => s.sector === 'pulpit') || null;
+  const presiding = pulpit ? peopleOf(pulpit) : [];
+  const finalizers = (members || []).filter((m) => m && m.isFinalizer && m.displayName).map((m) => m.displayName);
+  const sectors = SECTORS.filter((sec) => sec.key !== 'general').map((sec) => {
+    const stops = lines
+      .filter((l) => l.sector === sec.key || l.sector === 'general' || !!l.cues[sec.key])
+      .map((l) => ({ ...l, cue: l.cues[sec.key] || null, owns: l.sector === sec.key }));
+    return { key: sec.key, label: sec.label, short: sec.short, stops };
+  }).filter((sec) => sec.stops.some((st) => st.owns || st.cue));
+  return {
+    title: program?.title || 'Order of Worship',
+    serviceDate: program?.serviceDate || null,
+    serviceType: program?.serviceType || 'sunday',
+    startTime: program?.startTime || null,
+    endClock: lines.length ? lines[lines.length - 1].endClock : null,
+    lines,
+    total,
+    window: lines.length ? windowSay(total) : null,
+    presiding,
+    finalizers,
+    sectors,
+  };
+}
+
 export function whoServes(segments) {
   const acc = new Map();
   const add = (name, kind, seg) => {
