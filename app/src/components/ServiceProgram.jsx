@@ -511,7 +511,7 @@ export default function ServiceProgram() {
   }
   if (access.loading) {
     return (
-      <div className="max-w-2xl">
+      <div>
         <SectionTitle eyebrow="Church · order of service">Order of Service</SectionTitle>
         <div className="bg-white border border-[#E8E4DC] p-6 text-center" data-testid="order-access-checking">
           <p className="text-sm text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>Checking your place on the team…</p>
@@ -521,7 +521,7 @@ export default function ServiceProgram() {
   }
   if (access.failed) {
     return (
-      <div className="max-w-2xl">
+      <div>
         <SectionTitle eyebrow="Church · order of service">Order of Service</SectionTitle>
         <div className="bg-white border border-[#E8E4DC] p-6 text-center" data-testid="order-access-failed">
           <p className="text-sm text-[#1A1815] font-semibold" style={{ fontFamily: '"Fraunces", serif' }}>The team check did not finish.</p>
@@ -540,7 +540,7 @@ export default function ServiceProgram() {
           <p className="text-sm text-[#1A1815] font-semibold" style={{ fontFamily: '"Fraunces", serif' }}>This is the worship team's order of service.</p>
           <p className="text-xs text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>Ask a steward to add you to the team, then Sunday's run-of-show — and your sector's part — will show up here.</p>
           {/* What was READ, so a refusal is a diagnosis and not a mystery (DR-0076). */}
-          <ul className="mt-3 text-left text-[11px] text-[#5A5751] space-y-0.5" style={{ fontFamily: '"Fraunces", serif' }} data-testid="order-access-diagnosis">
+          <ul className="mt-3 text-left text-[0.6875rem] text-[#5A5751] space-y-0.5" style={{ fontFamily: '"Fraunces", serif' }} data-testid="order-access-diagnosis">
             {accessDiagnosis(access).map((line) => <li key={line}>{line}</li>)}
           </ul>
           <button type="button" onClick={() => reload()} className="mt-3 text-xs px-3 py-1.5 border border-[#1A1815] bg-white text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>Retry</button>
