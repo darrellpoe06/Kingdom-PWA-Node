@@ -153,10 +153,13 @@ describe('loneTab', () => {
 describe('the shell wires it', () => {
   const shell = readFileSync(join(HERE, '..', 'poe-financial-mvp-v28.jsx'), 'utf8');
   it('mounts TopNavRow with the same brand the header wordmark and the collapsed row show', () => {
-    expect(shell).toMatch(/<TopNavRow [^\n]*brandName=\{churchBrand \? 'The Love Corner' : 'Family Operating Systems'\} brandTagline=\{churchBrand \? 'The Church of the Living God' : 'PoeTech · Life, Soul & Money'\}/);
+    expect(shell).toMatch(/<TopNavRow [^\n]*brandName=\{churchBrand \? 'The Love Corner' : 'Family Operating Systems'\} brandTagline=\{churchBrand \? 'The Church of the Living God' : 'Life · Soul · Money · Family'\}/);
     expect(shell).toMatch(/hatch=\{<TextSizeEscapeHatch collapsed=\{headerCollapsed\}/);
   });
   it('the church door still filters the top tabs down to Church alone (the one-tab case)', () => {
-    expect(shell).toMatch(/\.filter\(\(\[id\]\) => \(!churchDoorOnly \|\| id === 'church'\)/);
+    // The list moved to lib/nav-items.jsx (DR-1046); the shell draws it as navTabs.
+    const navItemsSrc = readFileSync(join(HERE, '..', 'lib', 'nav-items.jsx'), 'utf8');
+    expect(navItemsSrc).toMatch(/\.filter\(\(\[id\]\) => \(!churchDoorOnly \|\| id === 'church'\)/);
+    expect(shell).toMatch(/\{navTabs\.map\(\(\[id, label\]\) =>/);
   });
 });

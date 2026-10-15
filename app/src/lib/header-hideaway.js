@@ -14,8 +14,14 @@
 // exported + unit-tested; the React component is thin glue (read on mount, write
 // on toggle), exactly like the other accessibility/comfort primitives.
 //
-// Default = OPEN (false): a first-time visitor sees the full, familiar header;
-// only a user who chose to tuck it away gets the collapsed state on return.
+// Default = OPEN (false) until 2026-10-15. THE HERITAGE REDESIGN (DR-1046,
+// approved by Darrell, relayed by Christina: "That's nowhere near what I want
+// to see" of a phone whose first screen was the stack of controls) makes the
+// first-run default TUCKED AWAY: a new device opens on the slim row — the way
+// back in words, the brand, the text size — with the full header one tap
+// away, exactly as Darrell left it when he chose to tuck it. "It should stay
+// however I leave it" still holds: a saved '0' means OPEN and a saved '1'
+// means collapsed; only the ABSENT value changed meaning.
 
 export const HEADER_COLLAPSED_KEY = 'poe-header-collapsed';
 
@@ -33,13 +39,26 @@ function safeStore(store) {
 // the component never re-derives the boolean inline.
 export function nextCollapsed(prev) { return !prev; }
 
-// Read the saved preference. Only the exact string '1' means collapsed; anything
-// else (absent, '0', garbage) means OPEN — the safe, familiar default.
-export function readHeaderCollapsed(store) {
+// Read the saved preference. '1' means collapsed, '0' means OPEN; ABSENT
+// means the first-run default, collapsed (DR-1046). Garbage reads as open,
+// the safe side when the stored value cannot be trusted. No storage at all
+// (SSR, blocked) reads as open too, so a device that cannot remember never
+// hides controls it could not bring back by memory.
+//
+// `fallback` is what an ABSENT value means on this surface: the family shell
+// passes nothing (tucked, DR-1046); the business doors (Poe Properties, TLC)
+// pass `false` so a tenant or visitor meets the door with its comfort
+// controls and Install in view, the way the doors' own tests pin them.
+export const DEFAULT_HEADER_COLLAPSED = true;
+export function readHeaderCollapsed(store, fallback = DEFAULT_HEADER_COLLAPSED) {
   const ls = safeStore(store);
   if (!ls) return false;
-  try { return ls.getItem(HEADER_COLLAPSED_KEY) === '1'; }
-  catch (e) { return false; }
+  try {
+    const v = ls.getItem(HEADER_COLLAPSED_KEY);
+    if (v === '1') return true;
+    if (v === null || v === undefined) return !!fallback;
+    return false;
+  } catch (e) { return false; }
 }
 
 // Persist the preference. Fails soft (returns false) when storage is unavailable

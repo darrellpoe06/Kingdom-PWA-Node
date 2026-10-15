@@ -112,9 +112,15 @@ describe('the facts this rests on are read from the repository, not recalled', (
   it('the monolith budget equals the shell line count — the freeze is at its floor', () => {
     const budget = JSON.parse(readFileSync(join(ROOT, BUDGET_FILE), 'utf8')).budget;
     const lines = readFileSync(join(ROOT, MONOLITH), 'utf8').split('\n').length;
-    expect(budget).toBe(5302);
+    // The record was written at 5,302 (2026-10-14). DR-1046 moved the top-level
+    // tab array out of the shell and re-froze the ratchet LOWER (5,193 on
+    // 2026-10-15); the fact this rests on is that the freeze sits at the
+    // shell's floor, so it is asserted from the two files, not as a literal
+    // that every honest extraction would break.
+    expect(budget).toBeLessThanOrEqual(5302);
     // The shell is AT the ceiling, which is why any addition is a decision.
     expect(lines).toBeLessThanOrEqual(budget + 1);
+    expect(lines).toBeGreaterThanOrEqual(budget - 1);
   });
 
   it('the newest migration ordinal is read from disk', () => {

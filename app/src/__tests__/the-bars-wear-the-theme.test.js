@@ -33,8 +33,8 @@ describe('themeColorFor', () => {
   it('is the page color of each theme, and cream for a key it does not know', () => {
     for (const t of THEMES) expect(themeColorFor(t.key)).toBe(t.color);
     expect(themeColorFor('midnight')).toBe('#000000');
-    expect(themeColorFor('nope')).toBe('#FAF8F4');
-    expect(themeColorFor(undefined)).toBe('#FAF8F4');
+    expect(themeColorFor('nope')).toBe('#F6F1E7');
+    expect(themeColorFor(undefined)).toBe('#F6F1E7');
   });
 });
 
@@ -77,13 +77,13 @@ describe('the store paints the bars on every change', () => {
 });
 
 describe('the shell and the manifest keep the first-paint color', () => {
-  it('index.html still ships a theme-color meta for the first paint, cream like the first-run theme', () => {
+  it('index.html still ships a theme-color meta for the first paint, ivory like the first-run theme (Heritage, DR-1046)', () => {
     const html = readFileSync(join(ROOT, 'index.html'), 'utf8');
-    expect(html).toMatch(/<meta name="theme-color" content="#FAF8F4" \/>/);
+    expect(html).toMatch(/<meta name="theme-color" content="#F6F1E7" \/>/);
   });
   it('the installed app manifest keeps the same first-paint color, so the splash and the first frame agree', () => {
     const manifest = JSON.parse(readFileSync(join(ROOT, 'public', 'manifest.webmanifest'), 'utf8'));
-    expect(manifest.theme_color).toBe('#FAF8F4');
+    expect(manifest.theme_color).toBe('#F6F1E7');
     expect(manifest.display).toBe('standalone');
   });
 });

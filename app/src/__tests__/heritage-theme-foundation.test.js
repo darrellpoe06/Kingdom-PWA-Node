@@ -21,12 +21,12 @@ const H = {
 };
 
 describe('the Heritage theme is registered and remaps the base literals', () => {
-  it('sits in THEMES beside Cream, which stays the first-run default (DR-0524)', () => {
+  it('is the first-run theme of the family app; Cream stays in the picker (DR-0524)', () => {
     const keys = THEMES.map((t) => t.key);
-    expect(keys[0]).toBe('cream');
-    expect(keys).toContain('heritage');
+    expect(keys[0]).toBe('heritage');
+    expect(keys).toContain('cream');
     expect(themeColorFor('heritage')).toBe(H.ivory);
-    expect(themeColorFor('nope')).toBe('#FAF8F4');
+    expect(themeColorFor('nope')).toBe(H.ivory);
   });
 
   it('remaps every base literal the other themes remap (a missing one renders cream inside heritage)', () => {

@@ -68,6 +68,7 @@ export function Home(props) {
   if (homeView === 'lifehub') {
     return (
       <LifeHub
+        welcomeName={props.welcomeName || ''}
         data={props.data}
         setData={props.setData}
         setView={props.setView}
@@ -328,7 +329,7 @@ export function BigPictureDashboard({ data = {}, snowballExtra = 0, totals, pres
               can log a Change / Incident / Project at any time. Empty-state copy
               appears in place of the queue rows when nothing's open. */}
           {(
-            <section aria-labelledby="action-queue-h" className="bg-white border border-[#1A1815] p-4 sm:p-5">
+            <section aria-labelledby="action-queue-h" className="bg-white border border-[#E8E4DC] rounded-2xl p-4 sm:p-5">
               <div className="flex items-baseline justify-between gap-2 flex-wrap mb-3">
                 <div>
                   <h2 id="action-queue-h" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">Action Queue · what needs you</h2>
@@ -406,7 +407,7 @@ export function BigPictureDashboard({ data = {}, snowballExtra = 0, totals, pres
                   </div>
                 </div>
               )}
-              <div className="bg-white border border-[#E8E4DC]">
+              <div className="space-y-2">
                 {queue.length === 0 && (
                   <div className="p-6 text-center">
                     <div className="text-2xl mb-1" aria-hidden="true">✓</div>
@@ -430,7 +431,7 @@ export function BigPictureDashboard({ data = {}, snowballExtra = 0, totals, pres
                   const jumpLabelMap = { 'real-estate': 'Real Estate', 'projects': 'Projects', 'practice': 'Practice', 'books': 'Books', 'inbound': 'Inbound', 'capex': 'Projects · Inventory' };
                   const jumpLabel = jumpLabelMap[q.jump] || (q.jump ? q.jump.replace(/-/g, ' ') : 'source');
                   return (
-                    <div key={q.id} className={`${i < arr.length - 1 ? 'border-b border-[#E8E4DC]' : ''} ${q.overdue ? 'bg-[#FAF8F4]' : ''}`}>
+                    <div key={q.id} className={`rounded-xl border border-[#E8E4DC] border-l-4 bg-white overflow-hidden ${q.overdue ? 'border-l-[#B85838]' : (q.kind === 'incident' ? 'border-l-[#8A6E1F]' : 'border-l-[#2A5A8E]')}`}>
                       <div className="p-3 flex items-center gap-3 flex-wrap">
                         <span aria-hidden="true" className="inline-block w-6 text-center text-base font-bold" style={{ color: band.accent }} title={band.label}>{band.symbol}</span>
                         {/* The whole left side is one big button — tap anywhere on it
@@ -616,7 +617,7 @@ export function BigPictureDashboard({ data = {}, snowballExtra = 0, totals, pres
         return (
           <section aria-labelledby="bank-recon-h">
             <h2 id="bank-recon-h" className="sr-only">Bank reconciliation status</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-[#E8E4DC] border border-[#E8E4DC]">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-[#E8E4DC] border border-[#E8E4DC] rounded-2xl overflow-hidden">
               <button type="button" onClick={() => { setView('books'); setBooksView && setBooksView('accounts'); }} className="bg-white p-3 text-left hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]">
                 <div className="text-[0.5625rem] uppercase tracking-[0.2em] text-[#5A5751]">Bank cash · linked</div>
                 <div className={`text-lg ${bankCash < 0 ? 'text-[#B85838]' : 'text-[#1A1815]'}`} style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{fmtCompact(bankCash)}</div>
@@ -646,7 +647,7 @@ export function BigPictureDashboard({ data = {}, snowballExtra = 0, totals, pres
       {(capexItems.length > 0 || watchlist.length > 0 || equipmentTracked > 0 || roomItemsNeedingWork > 0 || leasesEndingSoon > 0) && (
         <section aria-labelledby="xref-strip-h">
           <h2 id="xref-strip-h" className="sr-only">Cross-reference summary</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-px bg-[#E8E4DC] border border-[#E8E4DC]">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-px bg-[#E8E4DC] border border-[#E8E4DC] rounded-2xl overflow-hidden">
             <button type="button" onClick={() => setView('rentals')} className="bg-white p-3 text-left hover:bg-[#FAF8F4] focus:outline focus:outline-2 focus:outline-[#B85838]">
               <div className="text-[0.5625rem] uppercase tracking-[0.2em] text-[#5A5751]">Property work</div>
               <div className="text-lg" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{roomItemsNeedingWork}</div>
@@ -682,7 +683,7 @@ export function BigPictureDashboard({ data = {}, snowballExtra = 0, totals, pres
       {/* ENTITY STRIP — horizontal on all screens */}
       <section>
         <div className="text-[0.5625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-1.5">Entities</div>
-        <div className="grid grid-cols-4 gap-px bg-[#E8E4DC] border border-[#E8E4DC]">
+        <div className="grid grid-cols-4 gap-px bg-[#E8E4DC] border border-[#E8E4DC] rounded-2xl overflow-hidden">
           {entityRollups.map((r) => (
             <div key={r.entity.id} className="bg-[#FAF8F4] p-2 sm:p-3">
               <div className="text-[0.5625rem] uppercase tracking-[0.15em] text-[#5A5751]">{r.entity.type}</div>
@@ -705,7 +706,7 @@ export function BigPictureDashboard({ data = {}, snowballExtra = 0, totals, pres
               <>
       {/* PRESSURE + WHAT CHANGES side-by-side on tablet+, stacked on mobile */}
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
-        <div className="bg-white border border-[#1A1815] p-4 sm:p-5">
+        <div className="bg-white border border-[#E8E4DC] rounded-2xl shadow-sm p-4 sm:p-5">
           <div className="flex items-baseline justify-between mb-2">
             <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751]">Pressure</div>
             <div className="text-xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{pressure}/10</div>
@@ -717,9 +718,9 @@ export function BigPictureDashboard({ data = {}, snowballExtra = 0, totals, pres
           <p className="text-xs sm:text-sm italic" style={{ fontFamily: '"Fraunces", serif' }}>{pressureCalc.stress} pressure — {pressureCalc.desc}.</p>
         </div>
 
-        <div className="bg-white border border-[#1A1815] p-4 sm:p-5">
+        <div className="bg-white border border-[#E8E4DC] rounded-2xl shadow-sm p-4 sm:p-5">
           <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-2">What changes at this setting</div>
-          <div className="grid grid-cols-2 gap-px bg-[#E8E4DC] border border-[#E8E4DC]">
+          <div className="grid grid-cols-2 gap-px bg-[#E8E4DC] border border-[#E8E4DC] rounded-2xl overflow-hidden">
             <MetricCell label="Debt free in" value={`${projection.debtFreeYears.toFixed(1)} yr`} small trace={traceDebtFree(data, totals, projection, pressureCalc, 'years')} />
             <MetricCell label="Interest" value={fmtCompact(projection.totalInterestPaid)} small trace={traceDebtFree(data, totals, projection, pressureCalc, 'interest')} />
             <MetricCell label="To debt/mo" value={fmt(pressureCalc.extraAvailable)} small trace={traceToDebt(data, totals, pressureCalc)} />
@@ -730,7 +731,7 @@ export function BigPictureDashboard({ data = {}, snowballExtra = 0, totals, pres
 
       {/* Money Date + Upcoming Events */}
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
-        <div className="bg-white border border-[#1A1815] p-4 sm:p-5">
+        <div className="bg-white border border-[#E8E4DC] rounded-2xl shadow-sm p-4 sm:p-5">
           <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] mb-2 font-medium">Money Date Packet</div>
           <div className="space-y-2.5">
             {flaggedRentals.length > 0 && (
@@ -764,7 +765,7 @@ export function BigPictureDashboard({ data = {}, snowballExtra = 0, totals, pres
           </div>
         </div>
 
-        <div className="bg-white border border-[#1A1815] p-4 sm:p-5">
+        <div className="bg-white border border-[#E8E4DC] rounded-2xl shadow-sm p-4 sm:p-5">
           <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] mb-2">Upcoming Events</div>
           {upcomingEvents.length === 0 ? (
             <p className="text-xs text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>No events scheduled. Add one in Books → Calendar.</p>
@@ -817,7 +818,7 @@ function CompactHero({ label, value, sub, accent, trace }) {
     <div className={`text-base sm:text-2xl leading-tight truncate ${colorClass}`} style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>{value}</div>
   );
   return (
-    <div className="bg-white border border-[#1A1815] p-2.5 sm:p-4 min-w-0">
+    <div className="bg-white border border-[#E8E4DC] rounded-2xl shadow-sm p-2.5 sm:p-4 min-w-0">
       <div className="text-[0.5625rem] sm:text-[0.625rem] uppercase tracking-[0.2em] text-[#5A5751] mb-1 leading-tight">{label}</div>
       {trace ? <TraceableNumber trace={trace} label={label} className="max-w-full">{valueEl}</TraceableNumber> : valueEl}
       {sub && <div className="text-[0.5625rem] sm:text-xs text-[#5A5751] mt-1 leading-tight">{sub}</div>}

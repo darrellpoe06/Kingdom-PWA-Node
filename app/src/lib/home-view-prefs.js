@@ -37,7 +37,11 @@ export const HOME_VIEWS = ['current', 'lifehub'];
 // AND a second literal in the test reset, which meant a break that flipped the
 // real default was invisible to the gate — the reset put 'current' back. One
 // constant, used by both, and the promise is checkable.
-export const DEFAULT_HOME_VIEW = 'current';
+// THE LIFE HUB IS THE HOME (DR-1046; Darrell's approval, relayed by Christina
+// 2026-10-15). DR-0464 shipped it opt-in; the approval makes it the front door.
+// A device that chose the Current View keeps it, and the Current View stays
+// one tap away on the Hub.
+export const DEFAULT_HOME_VIEW = 'lifehub';
 export const DEFAULT_HUB_DENSITY = 'airy';
 export const HUB_DENSITIES = ['airy', 'photo', 'compact'];
 // How many Quick Actions each of her three looks put on the screen, measured

@@ -7,10 +7,15 @@
 // standard / UiIcon contract). Proven-to-catch (DR-0076): each assert fails
 // if the behavior it guards is broken.
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import {
-  HEADER_COLLAPSED_KEY, nextCollapsed, readHeaderCollapsed, writeHeaderCollapsed,
+  HEADER_COLLAPSED_KEY, nextCollapsed, readHeaderCollapsed, writeHeaderCollapsed, DEFAULT_HEADER_COLLAPSED,
 } from '../lib/header-hideaway.js';
 import { UI_ICON_NAMES } from '../components/UiIcon.jsx';
+
+const HERE = dirname(fileURLToPath(import.meta.url));
 
 // A tiny in-memory localStorage stand-in (Node test env has no DOM storage).
 function makeStore() {
@@ -40,8 +45,20 @@ describe('nextCollapsed', () => {
 });
 
 describe('readHeaderCollapsed', () => {
-  it('defaults to OPEN (false) with no saved preference', () => {
-    expect(readHeaderCollapsed(makeStore())).toBe(false);
+  it('defaults to TUCKED AWAY (true) with no saved preference — the Heritage first run (DR-1046)', () => {
+    expect(readHeaderCollapsed(makeStore())).toBe(true);
+    expect(DEFAULT_HEADER_COLLAPSED).toBe(true);
+  });
+
+  it('a surface may name what ABSENT means: the business doors open with the header shown, a saved choice still wins', () => {
+    expect(readHeaderCollapsed(makeStore(), false)).toBe(false);
+    const s = makeStore();
+    s.setItem(HEADER_COLLAPSED_KEY, '1');
+    expect(readHeaderCollapsed(s, false)).toBe(true);
+    for (const door of ['PropertiesDoor', 'TlcPublicDoor']) {
+      const src = readFileSync(join(HERE, '..', 'components', `${door}.jsx`), 'utf8');
+      expect(src, `${door} opens with the header shown`).toContain('readHeaderCollapsed(undefined, false)');
+    }
   });
 
   it('reads collapsed only for the exact "1" string', () => {
@@ -50,7 +67,7 @@ describe('readHeaderCollapsed', () => {
     expect(readHeaderCollapsed(s)).toBe(true);
   });
 
-  it('treats "0", absent, and garbage as OPEN (safe default)', () => {
+  it('treats "0" and garbage as OPEN — a saved choice is kept, an untrusted value opens', () => {
     const s = makeStore();
     s.setItem(HEADER_COLLAPSED_KEY, '0');
     expect(readHeaderCollapsed(s)).toBe(false);
@@ -58,8 +75,9 @@ describe('readHeaderCollapsed', () => {
     expect(readHeaderCollapsed(s)).toBe(false);
   });
 
-  it('returns false (no throw) when storage throws', () => {
+  it('returns false (no throw) when storage throws — a device that cannot remember never hides the controls', () => {
     expect(readHeaderCollapsed(brokenStore())).toBe(false);
+    expect(readHeaderCollapsed(null)).toBe(typeof localStorage !== 'undefined' ? readHeaderCollapsed(localStorage) : false);
   });
 });
 
@@ -81,13 +99,14 @@ describe('writeHeaderCollapsed', () => {
 
   it('full toggle cycle persists and resumes', () => {
     const s = makeStore();
-    let collapsed = readHeaderCollapsed(s); // open by default
+    let collapsed = readHeaderCollapsed(s); // tucked away by default (DR-1046)
+    expect(collapsed).toBe(true);
     collapsed = nextCollapsed(collapsed);
     writeHeaderCollapsed(collapsed, s);
-    expect(readHeaderCollapsed(s)).toBe(true); // tucked away — survives reload
+    expect(readHeaderCollapsed(s)).toBe(false); // brought back — survives reload
     collapsed = nextCollapsed(collapsed);
     writeHeaderCollapsed(collapsed, s);
-    expect(readHeaderCollapsed(s)).toBe(false); // brought back
+    expect(readHeaderCollapsed(s)).toBe(true); // tucked away again
   });
 });
 
