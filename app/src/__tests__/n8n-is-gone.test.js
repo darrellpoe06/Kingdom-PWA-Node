@@ -83,10 +83,15 @@ function walk(dir, acc = []) {
 
 // Each held piece: the file, the pattern it still carries, and WHY it is held.
 const HELD = [
-  {
-    path: 'scripts/ops-announce.mjs', id: 'webhook-path',
-    why: 'the ops-announce phone bell, now in ONE place instead of two (DR-0970 consolidated the site-health and deploy-cloudflare-pages copies here). Still 404 "webhook POST ops-announce is not registered" — measured 2026-09-03 run 33700716591 and AGAIN 2026-10-11 run 38141832465, so it has delivered nothing for five weeks. What changed is that a dead bell is now DETECTED and written to the incident ledger instead of reported as sent. Held until a sovereign bell replaces it end to end.',
-  },
+  // RELEASED 2026-10-15 (DR-1043), on the condition this entry itself named:
+  // "Held until a sovereign bell replaces it end to end." scripts/ops-announce.mjs
+  // no longer carries an n8n webhook path -- RELAY_URL is the sovereign
+  // /announce road, poetech-announce.service was proven `active` on the box by
+  // nas-health run 38726513614, and install.sh mounts the Funnel path every
+  // services-sync cycle. This test is what forced the removal rather than
+  // letting a stale hold sit: it failed with "scripts/ops-announce.mjs#webhook-path
+  // no longer present -- drop it from HELD". The ledger can only shrink, and
+  // this is it shrinking by one.
   {
     path: 'scripts/nas-update-wf18-bearer-guard.sh', id: 'webhook-path',
     why: 'newly VISIBLE, not newly live: the scan widened to scripts/ on 2026-10-11 and this file has printed the operator its wf18 verification curl all along. The file itself is already held in HELD_PATHS as the rotation control for the possibly-live wf18 bank-PII webhook. Held with it.',
