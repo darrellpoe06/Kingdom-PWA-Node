@@ -202,7 +202,35 @@ describe('the connection is REAL, measured through the live search (DR-0076 §6)
     // RAISING it is the edit this assertion exists to make impossible to do
     // quietly — a connection that regresses out of reach is a product
     // regression, and the honest move is to fix the finder, never the ceiling.
-    const CEILING = 75;
+    //
+    // CLOSED: 75 -> 0 ON 2026-10-15, BY FIXING THE FINDER TWICE, which is the
+    // move this ratchet asked for by name rather than the raised ceiling it
+    // forbids. World Issues issue 20 (DR-1049) pushed `prophetic-voices:
+    // government` out of the window, and nothing about that lesson's prose
+    // could have prevented it -- `government` is declared for the whole World
+    // Issues course, so every one of its lessons matches, exactly the
+    // catalog-growth decay recorded for `work` above. Two defects were under it:
+    //
+    //   1. A plain-word match scored rank 1, behind every title hit, every
+    //      anchor hit and every body hit in the catalog. It now has its OWN
+    //      rank tier (above body, below anchor-reference, every token required
+    //      to be a declared word). That took the debt 75 -> 47.
+    //   2. Inside that tier, ties kept catalog order, so ONE large course
+    //      consumed the window and the next course's promise still never
+    //      surfaced -- `privacy` is declared by sovereign-ai (41 lessons) and
+    //      ai-legal-blueprint (6), so merging one more Sovereign A.I. lesson
+    //      broke a promise belonging to a different course. The tier is now
+    //      dealt ROUND-ROBIN by course, so every course that declared the word
+    //      is reachable within N rows, N being the number of such courses,
+    //      whatever the catalog grows to. That took 48 -> 0.
+    //
+    // MEASURED on the real catalog, not hoped for: all 278 declared
+    // connections now reach their own course inside the window the product
+    // actually passes, and ZERO is the committed number -- a ratchet held at
+    // zero is the only kind that cannot drift. The `re-review: 2026-11-09`
+    // above is ANSWERED: the connection carries weight of its own, and no
+    // registry entry had to be withdrawn to get there.
+    const CEILING = 0;
     let declared = 0;
     const dead = [];
     for (const [key, words] of Object.entries(COURSE_PLAIN_WORDS)) {

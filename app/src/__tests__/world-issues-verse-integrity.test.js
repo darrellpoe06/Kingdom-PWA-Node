@@ -2448,3 +2448,244 @@ describe('Issue 19 — The student in the gap: every fragment verbatim from the 
     expect(issue.levels.child).toMatch(/Only Yahweh knows every heart/);
   });
 });
+
+// =============================================================================
+// ISSUE 20 — The wage that no longer buys the day (wi-the-wage-that-no-longer-
+// buys-the-day, DR-1049). Darrell forwarded the Morning Brew of 2026-10-15 into
+// the lesson lane with one word on it, "Lesson." Every fragment below was
+// fetched from app/public/bible/kjv by script at authoring time and diffed
+// character-for-character against the module — 185 quoted spans across 64
+// references, 90 pinned fragments, zero faults — and the repo's own checkSpan
+// agreed on every one. A drift fails here.
+// =============================================================================
+const WAGE_MEASURE_QUOTES = [
+  { ref: 'Proverbs 11:1', book: 'Proverbs', ch: 11, v: 1, fragments: ['A false balance is abomination to the LORD: but a just weight is his delight.', 'A false balance is abomination to the LORD: but a just weight is his delight', 'A false balance is abomination to the LORD'] },
+  { ref: 'Leviticus 19:36', book: 'Leviticus', ch: 19, v: 36, fragments: ['Just balances, just weights, a just ephah, and a just hin, shall ye have: I am the LORD your God'] },
+  { ref: 'Leviticus 19:13', book: 'Leviticus', ch: 19, v: 13, fragments: ['Thou shalt not defraud thy neighbour, neither rob him: the wages of him that is hired shall not abide with thee all night until the morning.', 'the wages of him that is hired shall not abide with thee all night until the morning'] },
+  { ref: 'Proverbs 27:23', book: 'Proverbs', ch: 27, v: 23, fragments: ['Be thou diligent to know the state of thy flocks, and look well to thy herds.'] },
+  { ref: 'Matthew 6:32', book: 'Matthew', ch: 6, v: 32, fragments: ['your heavenly Father knoweth that ye have need of all these things'] },
+  { ref: 'James 5:4', book: 'James', ch: 5, v: 4, fragments: ['the hire of the labourers who have reaped down your fields, which is of you kept back by fraud, crieth', 'the cries of them which have reaped are entered into the ears of the Lord of sabaoth', 'are entered into the ears of the Lord of sabaoth', 'into the ears of the Lord of sabaoth', 'the ears of the Lord of sabaoth', 'crieth'] },
+  { ref: 'Haggai 1:5', book: 'Haggai', ch: 1, v: 5, fragments: ['Consider your ways'] },
+  { ref: 'Haggai 1:6', book: 'Haggai', ch: 1, v: 6, fragments: ['Ye have sown much, and bring in little; ye eat, but ye have not enough; ye drink, but ye are not filled with drink; ye clothe you, but there is none warm; and he that earneth wages earneth wages to put it into a bag with holes.', 'he that earneth wages earneth wages to put it into a bag with holes', 'into a bag with holes'] },
+  { ref: 'Revelation 6:5', book: 'Revelation', ch: 6, v: 5, fragments: ['a pair of balances in his hand'] },
+  { ref: 'Revelation 6:6', book: 'Revelation', ch: 6, v: 6, fragments: ['A measure of wheat for a penny, and three measures of barley for a penny', 'see thou hurt not the oil and the wine', 'A measure of wheat for a penny'] },
+  { ref: 'Matthew 20:2', book: 'Matthew', ch: 20, v: 2, fragments: ['had agreed with the labourers for a penny a day'] },
+  { ref: 'Leviticus 19:35', book: 'Leviticus', ch: 19, v: 35, fragments: ['Ye shall do no unrighteousness in judgment, in meteyard, in weight, or in measure.', 'Ye shall do no unrighteousness in judgment, in meteyard, in weight, or in measure'] },
+  { ref: 'Deuteronomy 25:15', book: 'Deuteronomy', ch: 25, v: 15, fragments: ['But thou shalt have a perfect and just weight, a perfect and just measure shalt thou have: that thy days may be lengthened in the land', 'that thy days may be lengthened in the land'] },
+  { ref: 'Deuteronomy 25:13', book: 'Deuteronomy', ch: 25, v: 13, fragments: ['Thou shalt not have in thy bag divers weights, a great and a small.'] },
+  { ref: 'Proverbs 20:10', book: 'Proverbs', ch: 20, v: 10, fragments: ['Divers weights, and divers measures, both of them are alike abomination to the LORD.'] },
+  { ref: 'Proverbs 16:11', book: 'Proverbs', ch: 16, v: 11, fragments: ['A just weight and balance are the LORD’s: all the weights of the bag are his work.', 'A just weight and balance are the LORD’s: all the weights of the bag are his work'] },
+  { ref: 'Micah 6:10', book: 'Micah', ch: 6, v: 10, fragments: ['the scant measure that is abominable', 'scant measure that is abominable'] },
+  { ref: 'Micah 6:11', book: 'Micah', ch: 6, v: 11, fragments: ['the bag of deceitful weights'] },
+  { ref: 'Amos 8:5', book: 'Amos', ch: 8, v: 5, fragments: ['making the ephah small, and the shekel great, and falsifying the balances by deceit'] },
+  { ref: 'Deuteronomy 24:14', book: 'Deuteronomy', ch: 24, v: 14, fragments: ['Thou shalt not oppress an hired servant that is poor and needy'] },
+  { ref: 'Deuteronomy 24:15', book: 'Deuteronomy', ch: 24, v: 15, fragments: ['At his day thou shalt give him his hire, neither shall the sun go down upon it; for he is poor, and setteth his heart upon it', 'At his day thou shalt give him his hire, neither shall the sun go down upon it'] },
+  { ref: 'Luke 10:7', book: 'Luke', ch: 10, v: 7, fragments: ['the labourer is worthy of his hire'] },
+  { ref: '1 Timothy 5:18', book: '1Timothy', ch: 5, v: 18, fragments: ['The labourer is worthy of his reward.'] },
+  { ref: 'Matthew 20:8', book: 'Matthew', ch: 20, v: 8, fragments: ['Call the labourers, and give them their hire'] },
+  { ref: 'Jeremiah 22:13', book: 'Jeremiah', ch: 22, v: 13, fragments: ['that useth his neighbour’s service without wages, and giveth him not for his work'] },
+  { ref: 'Luke 12:15', book: 'Luke', ch: 12, v: 15, fragments: ['Take heed, and beware of covetousness: for a man’s life consisteth not in the abundance of the things which he possesseth.'] },
+  { ref: 'Luke 12:18', book: 'Luke', ch: 12, v: 18, fragments: ['This will I do: I will pull down my barns, and build greater', 'I will pull down my barns, and build greater'] },
+  { ref: 'Genesis 41:35', book: 'Genesis', ch: 41, v: 35, fragments: ['let them gather all the food of those good years that come'] },
+  { ref: 'Genesis 41:36', book: 'Genesis', ch: 41, v: 36, fragments: ['And that food shall be for store to the land against the seven years of famine'] },
+  { ref: 'Luke 12:20', book: 'Luke', ch: 12, v: 20, fragments: ['Thou fool, this night thy soul shall be required of thee'] },
+  { ref: 'Luke 12:21', book: 'Luke', ch: 12, v: 21, fragments: ['So is he that layeth up treasure for himself, and is not rich toward God.'] },
+  { ref: '1 Timothy 6:17', book: '1Timothy', ch: 6, v: 17, fragments: ['nor trust in uncertain riches, but in the living God, who giveth us richly all things to enjoy', 'trust in uncertain riches, but in the living God, who giveth us richly all things to enjoy'] },
+  { ref: 'Matthew 6:31', book: 'Matthew', ch: 6, v: 31, fragments: ['Therefore take no thought, saying, What shall we eat? or, What shall we drink? or, Wherewithal shall we be clothed?'] },
+  { ref: 'Matthew 6:33', book: 'Matthew', ch: 6, v: 33, fragments: ['But seek ye first the kingdom of God, and his righteousness; and all these things shall be added unto you.', 'But seek ye first the kingdom of God, and his righteousness; and all these things shall be added unto you', 'seek ye first the kingdom of God'] },
+  { ref: 'Matthew 6:11', book: 'Matthew', ch: 6, v: 11, fragments: ['Give us this day our daily bread.', 'Give us this day our daily bread'] },
+  { ref: '1 Timothy 6:6', book: '1Timothy', ch: 6, v: 6, fragments: ['But godliness with contentment is great gain.', 'But godliness with contentment is great gain'] },
+  { ref: '1 Timothy 6:8', book: '1Timothy', ch: 6, v: 8, fragments: ['And having food and raiment let us be therewith content.'] },
+  { ref: '1 Timothy 6:10', book: '1Timothy', ch: 6, v: 10, fragments: ['For the love of money is the root of all evil'] },
+  { ref: '1 Timothy 6:9', book: '1Timothy', ch: 6, v: 9, fragments: ['But they that will be rich fall into temptation and a snare'] },
+  { ref: 'Philippians 4:11', book: 'Philippians', ch: 4, v: 11, fragments: ['I have learned, in whatsoever state I am, therewith to be content'] },
+  { ref: 'Philippians 4:12', book: 'Philippians', ch: 4, v: 12, fragments: ['I know both how to be abased, and I know how to abound'] },
+  { ref: 'Hebrews 13:5', book: 'Hebrews', ch: 13, v: 5, fragments: ['be content with such things as ye have: for he hath said, I will never leave thee, nor forsake thee'] },
+  { ref: 'Proverbs 30:8', book: 'Proverbs', ch: 30, v: 8, fragments: ['give me neither poverty nor riches; feed me with food convenient for me'] },
+  { ref: 'Proverbs 22:7', book: 'Proverbs', ch: 22, v: 7, fragments: ['The rich ruleth over the poor, and the borrower is servant to the lender.', 'The rich ruleth over the poor, and the borrower is servant to the lender'] },
+  { ref: 'Proverbs 24:3', book: 'Proverbs', ch: 24, v: 3, fragments: ['Through wisdom is an house builded; and by understanding it is established'] },
+  { ref: 'Proverbs 24:4', book: 'Proverbs', ch: 24, v: 4, fragments: ['And by knowledge shall the chambers be filled with all precious and pleasant riches.'] },
+  { ref: '1 Corinthians 13:2', book: '1Corinthians', ch: 13, v: 2, fragments: ['and have not charity, I am nothing'] },
+  { ref: '1 Corinthians 13:3', book: '1Corinthians', ch: 13, v: 3, fragments: ['and have not charity, it profiteth me nothing'] },
+  { ref: 'Deuteronomy 8:18', book: 'Deuteronomy', ch: 8, v: 18, fragments: ['it is he that giveth thee power to get wealth'] },
+  { ref: 'Isaiah 5:20', book: 'Isaiah', ch: 5, v: 20, fragments: ['Woe unto them that call evil good, and good evil'] },
+  { ref: 'Jeremiah 6:14', book: 'Jeremiah', ch: 6, v: 14, fragments: ['healed also the hurt of the daughter of my people slightly, saying, Peace, peace; when there is no peace', 'slightly, saying, Peace, peace; when there is no peace', 'saying, Peace, peace; when there is no peace'] },
+  { ref: 'Isaiah 3:15', book: 'Isaiah', ch: 3, v: 15, fragments: ['What mean ye that ye beat my people to pieces, and grind the faces of the poor?'] },
+  { ref: 'Proverbs 14:23', book: 'Proverbs', ch: 14, v: 23, fragments: ['In all labour there is profit'] },
+  { ref: 'Proverbs 21:5', book: 'Proverbs', ch: 21, v: 5, fragments: ['The thoughts of the diligent tend only to plenteousness; but of every one that is hasty only to want.'] },
+  { ref: '2 Thessalonians 3:10', book: '2Thessalonians', ch: 3, v: 10, fragments: ['if any would not work, neither should he eat'] },
+  { ref: '1 Thessalonians 5:21', book: '1Thessalonians', ch: 5, v: 21, fragments: ['Prove all things; hold fast that which is good.'] },
+  { ref: 'Proverbs 18:13', book: 'Proverbs', ch: 18, v: 13, fragments: ['He that answereth a matter before he heareth it, it is folly and shame unto him.'] },
+  { ref: 'Proverbs 18:17', book: 'Proverbs', ch: 18, v: 17, fragments: ['He that is first in his own cause seemeth just; but his neighbour cometh and searcheth him.'] },
+  { ref: 'Psalms 146:3', book: 'Psalms', ch: 146, v: 3, fragments: ['Put not your trust in princes, nor in the son of man, in whom there is no help.'] },
+  { ref: '1 Timothy 2:1', book: '1Timothy', ch: 2, v: 1, fragments: ['supplications, prayers, intercessions, and giving of thanks, be made for all men'] },
+  { ref: '1 Timothy 2:2', book: '1Timothy', ch: 2, v: 2, fragments: ['For kings, and for all that are in authority'] },
+  { ref: 'Proverbs 31:9', book: 'Proverbs', ch: 31, v: 9, fragments: ['Open thy mouth, judge righteously, and plead the cause of the poor and needy.'] },
+  { ref: 'Ecclesiastes 12:14', book: 'Ecclesiastes', ch: 12, v: 14, fragments: ['For God shall bring every work into judgment, with every secret thing, whether it be good, or whether it be evil.'] },
+  { ref: 'Romans 14:4', book: 'Romans', ch: 14, v: 4, fragments: ['Who art thou that judgest another man’s servant?'] },
+
+];
+
+describe('Issue 20 — The wage that no longer buys the day: every fragment verbatim from the repo KJV', () => {
+  const issue = WORLD_ISSUES.find((i) => i.id === 'wi-the-wage-that-no-longer-buys-the-day');
+  const norm = (s) => s.replace(/[’‘]/g, "'").replace(/\s+/g, ' ');
+
+  it('the issue is published, and the derived count moved with it', () => {
+    expect(issue).toBeTruthy();
+    expect(WORLD_ISSUES.includes(issue)).toBe(true);
+    expect(WORLD_ISSUES_META.weeks).toBe(WORLD_ISSUES.length);
+  });
+
+  it('every quoted fragment is a verbatim substring of the cited KJV verse', () => {
+    const failures = [];
+    for (const q of WAGE_MEASURE_QUOTES) {
+      const text = kjvVerse(q.book, q.ch, q.v);
+      for (const frag of q.fragments) {
+        if (!norm(text).includes(norm(frag))) failures.push(`${q.ref}: NOT VERBATIM — "${frag}" (verse reads: "${text}")`);
+      }
+    }
+    expect(failures).toEqual([]);
+  });
+
+  it('EVERY "..." (Ref) span in the issue, on every field, is verbatim in the verse it names', () => {
+    // The fragment list can hide a tamper when the same words appear twice, so
+    // this reads the issue itself span by span: one changed word anywhere fails.
+    const text = JSON.stringify(issue).replace(/\\"/g, '"');
+    const re = /"([^"]+)"\s*\(([1-3]?\s?[A-Za-z]+(?: of [A-Za-z]+)*)\s+(\d+):(\d+)(?:-(\d+))?\)/g;
+    const bad = [];
+    let n = 0;
+    for (const m of text.matchAll(re)) {
+      const [, span, book, ch, a, b] = m;
+      const vs = [];
+      for (let v = Number(a); v <= Number(b || a); v += 1) vs.push(kjvVerse(book.replace(/ /g, ''), Number(ch), v));
+      n += 1;
+      if (!norm(vs.join(' ')).includes(norm(span))) bad.push(`${book} ${ch}:${a}: "${span}"`);
+    }
+    expect(n, 'a low count means the scan broke').toBeGreaterThan(150);
+    expect(bad).toEqual([]);
+  });
+
+  it('every fragment actually appears in the issue content (no stale list)', () => {
+    const blob = norm(JSON.stringify(issue));
+    const missing = WAGE_MEASURE_QUOTES.flatMap((q) => q.fragments.filter((f) => !blob.includes(norm(f))).map((f) => `${q.ref}: "${f}"`));
+    expect(missing).toEqual([]);
+    expect(WAGE_MEASURE_QUOTES.length).toBeGreaterThan(60);
+  });
+
+  // PROVEN-TO-CATCH (DR-0076 §3): a one-word tamper in either anchor verse must
+  // fail. Both were run RED by actually corrupting the module (holes→handles,
+  // delight→desire) and then restored GREEN — recorded in DR-1049.
+  it('CATCHES a one-word tamper in the two anchor verses', () => {
+    const bag = kjvVerse('Haggai', 1, 6);
+    expect(norm(bag).includes(norm('to put it into a bag with handles'))).toBe(false);
+    expect(norm(bag).includes(norm('to put it into a bag with holes'))).toBe(true);
+    const balance = kjvVerse('Proverbs', 11, 1);
+    expect(norm(balance).includes(norm('but a just weight is his desire'))).toBe(false);
+    expect(norm(balance).includes(norm('but a just weight is his delight'))).toBe(true);
+    // and the pairing the whole lesson reasons from: a penny IS a day's wage
+    const penny = kjvVerse('Matthew', 20, 2);
+    expect(norm(penny).includes(norm('agreed with the labourers for a penny a week'))).toBe(false);
+    expect(norm(penny).includes(norm('agreed with the labourers for a penny a day'))).toBe(true);
+  });
+
+  // DR-0100's three tiers are load-bearing here: the Labor Department figures
+  // and the price moves are DOCUMENTED and said plainly; the AI share, the
+  // market-implied odds and the vendor's 62% are PARTLY documented and flagged
+  // narrowly; the two slogans are OPINION so the Word can correct both while
+  // every figure underneath them stands.
+  it('states the documented plainly, keeps the estimates open, and labels the two slogans as opinion', () => {
+    for (const id of ['f-cpi-september', 'f-energy-and-shipping', 'f-ai-hardware', 'f-cola', 'f-netflix', 'f-bofa-fine']) {
+      expect(issue.verifiable.find((v) => v.id === id).status, id).toBe('documented');
+    }
+    for (const id of ['f-ai-share', 'f-fed-odds', 'f-oyster']) {
+      expect(issue.verifiable.find((v) => v.id === id).status, id).toBe('partly-documented');
+    }
+    expect(issue.claims.find((c) => c.id === 'c-two-slogans').label).toBe('opinion');
+    expect(issue.claims.find((c) => c.id === 'c-rates-wont-touch-the-buildout').label).toBe('opinion');
+    expect(issue.claims.find((c) => c.id === 'c-affordability-decides-midterms').label).toBe('opinion');
+    expect(issue.claims.find((c) => c.id === 'c-outpaced-wages').label).toBe('claim');
+    // the measured figures are IN the text, not softened away
+    expect(issue.verifiable.find((v) => v.id === 'f-cpi-september').statement).toMatch(/3\.7%/);
+    expect(issue.verifiable.find((v) => v.id === 'f-cpi-september').statement).toMatch(/2\.6%/);
+    expect(issue.verifiable.find((v) => v.id === 'f-energy-and-shipping').statement).toMatch(/34%/);
+    expect(issue.verifiable.find((v) => v.id === 'f-energy-and-shipping').statement).toMatch(/74%/);
+    // every source carries the as-of date the audit gate requires
+    for (const v of issue.verifiable) {
+      expect(v.sources.length, v.id).toBeGreaterThan(0);
+      for (const s of v.sources) expect(s.asOf, v.id).toBe('2026-10-15');
+    }
+  });
+
+  it('names the two instruments rather than printing one subtraction (the just weight, turned on us)', () => {
+    expect(issue.verifiable.find((v) => v.id === 'f-cola').statement).toMatch(/CPI-W/);
+    expect(issue.verifiable.find((v) => v.id === 'f-cola').statement).toMatch(/CPI-U/);
+    expect(issue.interpretation.find((n) => n.id === 'n-two-instruments-are-not-one-measure').statement).toMatch(/Proverbs 11:1/);
+    expect(issue.limits.some((l) => /not the same measure/.test(l.text))).toBe(true);
+    // and the unfinished checking is stated, not rounded up to done
+    expect(issue.limits.some((l) => /NOT re-read from the Bureau of Labor Statistics/.test(l.text))).toBe(true);
+    expect(issue.verifiable.find((v) => v.id === 'f-ai-share').note).toMatch(/could confirm neither its size nor its attribution/);
+  });
+
+  it('carries the sponsor material as sponsor material, and discards the newsletter’s filler entirely', () => {
+    expect(issue.source.note).toMatch(/PRESENTED BY A PAID SPONSOR/);
+    expect(issue.source.note).toMatch(/Regulation Crowdfunding/);
+    expect(issue.source.note).toMatch(/EVERY ADVERTISEMENT AND EVERY PRODUCT RECOMMENDATION IS DISCARDED ENTIRELY/);
+    expect(issue.source.note).toMatch(/THE NEWSLETTER IS THE INTERMEDIARY/);
+    expect(issue.claims.find((c) => c.id === 'c-oyster-ai-gap').attribution).toMatch(/LABELED PAID PLACEMENT/);
+    expect(issue.verifiable.find((v) => v.id === 'f-oyster').note).toMatch(/inside an advertisement it paid for/);
+    // the filler never reaches any surface
+    const blob = JSON.stringify(issue);
+    for (const junk of ['Guinness', 'Zuckerberg', 'Three Headlines', 'Reader Poll', 'Legato', 'Brew Mini', 'referral']) {
+      expect(blob, `the newsletter's filler reached a surface: ${junk}`).not.toContain(junk);
+    }
+  });
+
+  it('Word first — the holed bag, the measured bread, the just measure, the paid hire, the barns, both ditches, the Resources, both slogans', () => {
+    const d = issue.lens.fourD.deepSource;
+    expect(d.indexOf('WORD FIRST — THE WAGE IN A BAG WITH HOLES')).toBe(0);
+    for (const head of [
+      'THE MEASURED WAGE AGAINST THE MEASURED BREAD',
+      'A JUST MEASURE IS YAHWEH’S OWN REQUIREMENT',
+      'THE HIRE IS OWED, IN FULL AND ON TIME',
+      'THE BARNS AND THE BUILDOUT',
+      'NEITHER FEAR NOR INDIFFERENCE',
+      'THE RESOURCES BUILD THE HOUSE',
+      'NOW THE WORD CORRECTS THE TWO SLOGANS',
+      'HEAR BOTH, AND TRUST NO PRINCE',
+    ]) expect(d, head).toContain(head);
+    // the Word is REASONED from, not merely cited (DR-0281): the earned wage and
+    // the holed bag are distinguished, and the penny is shown to be a day's wage
+    expect(d).toMatch(/The wage is not stolen/);
+    expect(d).toMatch(/Let the Word explain the Word/);
+    // the Resources are capitalized in OUR voice and left lowercase in His
+    expect(d).toMatch(/Wisdom BUILDS, Understanding ESTABLISHES, Knowledge FILLS/);
+    expect(d).toMatch(/the KJV’s own lowercase/);
+    expect(issue.lens.accountability.scripture).toMatch(/Ecclesiastes 12:14/);
+    expect(issue.lens.benefits.some((b) => /eternal court/.test(b) && /after this life/.test(b))).toBe(true);
+    expect(issue.perspectives.length).toBeGreaterThanOrEqual(5);
+    expect(issue.lens.graceNote).toMatch(/No condemnation of any soul/);
+    expect(issue.lens.graceNote).toMatch(/Lamb of Yahweh and the Eternal Son/);
+  });
+
+  it('keeps our voice on Yahweh, the adversary lowercase, and all four bands safe', () => {
+    const ours = [issue.skill, issue.title, issue.lens.threeD, issue.lens.graceNote, issue.lens.stewardship,
+      issue.lens.accountability.statement, issue.lens.fourD.deepSource, ...issue.lens.benefits,
+      ...issue.reflection.prompts, issue.reflection.skill, issue.reflection.practice,
+      issue.levels.child, issue.levels.youth, issue.levels.teen, issue.levels.senior].join(' ');
+    expect(/\bGod\b/.test(ours.replace(/"[^"]*"/g, ''))).toBe(false);
+    expect(/\b(Satan|Lucifer|Devil|Baal)\b/.test(ours)).toBe(false);
+    // All FOUR bands authored (DR-0697) — this is the first World Issues lesson
+    // to carry them, which is why the band baseline moves in the same commit.
+    for (const band of ['child', 'youth', 'teen', 'senior']) {
+      expect(issue.levels[band], band).toBeTruthy();
+      expect(issue.levels[band].trim().split(/\s+/).length, band).toBeGreaterThan(300);
+    }
+    // and the ladder ascends: a child band is shorter than the senior one
+    expect(issue.levels.child.length).toBeLessThan(issue.levels.youth.length);
+    expect(issue.levels.youth.length).toBeLessThan(issue.levels.teen.length);
+    expect(issue.levels.teen.length).toBeLessThan(issue.levels.senior.length);
+    for (const term of ['racist', 'nazi', 'hitler', 'genocide', 'kill', 'sex', 'slur', 'damn', 'hell ']) {
+      expect(issue.levels.child.toLowerCase(), term).not.toContain(term);
+    }
+  });
+});

@@ -493,6 +493,13 @@ export function buildLessonIndex(courses) {
         hayTitle: title.toLowerCase(),
         hayRef: ref.toLowerCase(),
         hayBody,
+        // The course's DECLARED plain words, kept separately as well as inside
+        // hayBody (which stays whole, so nothing reading it changes). Separate
+        // because a declared word is a course-level promise to the reader —
+        // "money finds Kingdom Economics" — and searchLessons must be able to
+        // tell that promise apart from an incidental body hit. See the rank
+        // tiers there.
+        hayPlain: plain,
       });
     }
   }
@@ -511,20 +518,79 @@ export function searchLessons(index, query, limit = 40) {
   const scored = [];
   for (let i = 0; i < index.length; i++) {
     const e = index[i];
-    let inTitle = 0, inRef = 0, inAny = 0;
+    let inTitle = 0, inRef = 0, inPlain = 0, inAny = 0;
     for (const t of tokens) {
       const hitTitle = e.hayTitle.includes(t);
       const hitRef = e.hayRef.includes(t);
       const hitBody = e.hayBody.includes(t);
+      const hitPlain = e.hayPlain ? e.hayPlain.includes(t) : false;
       if (hitTitle) inTitle++;
       if (hitRef) inRef++;
+      if (hitPlain) inPlain++;
       if (hitTitle || hitRef || hitBody) inAny++;
     }
     if (inAny < tokens.length) continue; // AND semantics: every token must land
-    const rank = inTitle === tokens.length ? 3 : (inRef > 0 ? 2 : 1);
+    // A DECLARED PLAIN WORD CARRIES ITS OWN WEIGHT (2026-10-15, DR-1049).
+    //
+    // Before this, a plain-word match scored the same rank 1 as any incidental
+    // body hit, so a course-level promise to the reader — "government finds the
+    // Prophetic Voices course" — sat behind every title hit, every anchor hit
+    // AND every lesson in the catalog whose big idea happens to mention the
+    // word. The product's window is 40, so those promises died quietly, and
+    // they died FASTER as the catalog grew: adding a twentieth World Issues
+    // issue pushed `prophetic-voices: government` out of reach, and nothing
+    // about that lesson's prose could have prevented it, because `government`
+    // is declared for the whole World Issues course and so every one of its
+    // lessons matches. `course-plain-words.test.js` recorded that defect with a
+    // date and named the fix: "it needs the plain-word connection to carry
+    // weight of its own". This is that fix, and it is the one the ratchet asks
+    // for rather than a raised ceiling.
+    //
+    // The tier sits ABOVE a body match and BELOW an anchor-reference hit, so
+    // typing a verse reference still wins and a reader's own word still finds
+    // the course that declared it. It requires EVERY token to be a declared
+    // word, so a two-word query is never promoted by one incidental overlap.
+    const rank = inTitle === tokens.length ? 4
+      : (inRef > 0 ? 3 : (inPlain === tokens.length ? 2 : 1));
     scored.push({ rank, i, e });
   }
   scored.sort((a, b) => (b.rank - a.rank) || (a.i - b.i));
+
+  // AND IN THE PLAIN-WORD TIER, EVERY COURSE THAT DECLARED THE WORD GETS A TURN
+  // (2026-10-15, DR-1049). Giving the tier its own rank was not enough on its
+  // own: inside the tier, ties keep catalog order, so ONE large course consumes
+  // the window and the next course's promise still never surfaces. Measured —
+  // `privacy` is declared by both sovereign-ai (41 lessons) and
+  // ai-legal-blueprint (6), so all 41 sovereign rows came first and the
+  // ai-legal-blueprint connection died at a window of 40, which is how merging
+  // one more Sovereign A.I. lesson broke a promise belonging to a different
+  // course. A declared word is a COURSE-level promise, so the tier is dealt
+  // round-robin by course (each course's first row, then each course's second,
+  // and so on), courses in catalog order and each course's own rows in catalog
+  // order. Every course that declared the word is therefore reachable within
+  // the first N rows, N being the number of such courses, whatever the catalog
+  // grows to. Nothing else is reordered: title, anchor-reference and body tiers
+  // keep catalog order exactly as before.
+  const PLAIN_TIER = 2;
+  const plain = scored.filter((s) => s.rank === PLAIN_TIER);
+  if (plain.length > 1) {
+    const byCourse = new Map();
+    for (const s of plain) {
+      const k = s.e.courseKey;
+      if (!byCourse.has(k)) byCourse.set(k, []);
+      byCourse.get(k).push(s);
+    }
+    const queues = [...byCourse.values()];
+    const dealt = [];
+    for (let round = 0; dealt.length < plain.length; round += 1) {
+      for (const q of queues) if (round < q.length) dealt.push(q[round]);
+    }
+    let at = 0;
+    for (let i = 0; i < scored.length; i += 1) {
+      if (scored[i].rank === PLAIN_TIER) { scored[i] = dealt[at]; at += 1; }
+    }
+  }
+
   return scored.slice(0, limit).map((s) => s.e);
 }
 
