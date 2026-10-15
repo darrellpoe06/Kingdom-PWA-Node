@@ -77,15 +77,27 @@ jobs:
         run: |
           set -uo pipefail
           exec > >(tee -a /tmp/findings.md) 2>&1
-          # If this is fetchable, Pages is treating the routing config as a file.
-          # That single fact would explain every dark road at once.
+          # CORRECTED 2026-10-15 (run 38696507997 read wrong). The HTTP CODE
+          # decides nothing here: a Pages SPA answers 200 to EVERY unknown path
+          # with the index shell, so 200 is the normal, uninformative case. The
+          # BODY decides. Only JSON means Pages is handing out the routing
+          # config as a file instead of reading it -- that would darken every
+          # road at once. The shell means the asset is not there to serve, which
+          # is what a correctly-consumed _routes.json looks like from outside.
           for host in poetech.us poetech-app.pages.dev; do
             code=$(curl -sS -o /tmp/r.json -w '%{http_code}' -A "$UA" --max-time 25 "https://$host/_routes.json" || echo 000)
             echo "--- https://$host/_routes.json -> HTTP $code"
-            if [ "$code" = "200" ]; then
-              echo "    SERVED AS A STATIC FILE. First 900 bytes:"
+            if [ "$code" != "200" ]; then
+              echo "    NOT 200 - nothing served on this path."
+            elif jq -e . /tmp/r.json >/dev/null 2>&1; then
+              echo "    *** SERVED AS A STATIC FILE (the body is JSON). First 900 bytes:"
               head -c 900 /tmp/r.json
               echo
+            else
+              echo "    200 but the body is NOT JSON - this is the SPA shell"
+              echo "    fallback, the normal answer for a path with no asset."
+              echo "    It neither proves nor disproves anything about routing."
+              echo "    first 160    : $(head -c 160 /tmp/r.json | tr '\n' ' ')"
             fi
           done
 
@@ -166,8 +178,10 @@ jobs:
           echo '  and the outage is narrower than the ledger claims.'
           echo 'Step 1 "the SPA shell" on the pages.dev alias too => the fault is in'
           echo '  the deployment or the project, not in front of the custom domain.'
-          echo 'Step 2 HTTP 200 => _routes.json is being served as an ASSET instead of'
-          echo '  read as routing config. That alone would darken every road.'
+          echo 'Step 2 read the BODY, never the code. 200 + the SPA shell is the'
+          echo '  ordinary fallback and means NOTHING. Only 200 + JSON says'
+          echo '  _routes.json is served as an ASSET instead of read as routing'
+          echo '  config, and that alone would darken every road.'
           echo 'Step 3 a token that cannot verify => every "Cloudflare-side" claim on'
           echo '  #2057 has been unverifiable from CI all along. Its own finding.'
           echo 'Step 5 compare the stages against what wrangler printed. Wrangler said'
