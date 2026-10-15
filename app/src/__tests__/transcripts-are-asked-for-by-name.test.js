@@ -29,7 +29,7 @@
 // These cases pin the saving as a PROPERTY rather than a claim: the set that
 // crosses the wire is exactly what the cheap sources did not answer.
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { videosNeedingTranscript, TRANSCRIPT_BATCH_CAP } from '../lib/sermon-library-sync.js';
@@ -39,6 +39,16 @@ const read = (rel) => readFileSync(join(HERE, '..', rel), 'utf8');
 const LIB = read('lib/sermon-library-sync.js');
 const PULPIT = read('components/Pulpit.jsx');
 const CHOIR = read('components/Choir.jsx');
+const GIVE = read('lib/call-to-give-sync.js');
+
+function walk(dir, acc = []) {
+  for (const name of readdirSync(dir)) {
+    const p = join(dir, name);
+    if (statSync(p).isDirectory()) { if (name !== 'node_modules') walk(p, acc); }
+    else if (/\.(jsx?|mjs)$/.test(name)) acc.push(p);
+  }
+  return acc;
+}
 
 const sermon = (id, videoId) => ({ id, videoId });
 const many = (n) => Array.from({ length: n }, (_, i) => sermon(`s${i}`, `v${i}`));
@@ -61,13 +71,29 @@ describe('the unbounded read is gone, and cannot come back quietly', () => {
     expect(bundle.includes('fetchTranscripts'), 'transcripts are back in the arrival bundle').toBe(false);
   });
 
-  it('both call sites ask by name', () => {
+  it('every call site asks by name', () => {
     expect(PULPIT).toContain('fetchTranscriptsFor(missing)');
     expect(CHOIR).toContain('fetchTranscriptsFor([song.videoId])');
-    // The old whole-archive function is gone from the tree entirely.
-    expect(LIB.includes('fetchTranscriptsByVideo')).toBe(false);
-    expect(PULPIT.includes('fetchTranscriptsByVideo')).toBe(false);
-    expect(CHOIR.includes('fetchTranscriptsByVideo')).toBe(false);
+    expect(GIVE).toContain('fetchTranscriptsFor(ids, { cap: ids.length })');
+  });
+
+  it('PROVEN-TO-CATCH, THE WAY I BROKE IT: no file anywhere still imports the removed function', () => {
+    // THE DEFECT THIS CHECK EXISTS FOR, and it was mine. The first version of
+    // this suite asserted the old name was absent from the lib and the two
+    // components I had edited — and call-to-give-sync.js, which I had not
+    // read, still imported it. Lint passed (ESLint does not resolve a
+    // cross-module named import) and 187 tests passed (nothing imported that
+    // file), and ONLY the production build caught it, as a masked ENOENT three
+    // layers deep in a vite plugin.
+    //
+    // A check scoped to the files its author touched can only confirm what its
+    // author already knew. This one reads the WHOLE tree.
+    const offenders = [];
+    for (const f of walk(join(HERE, '..'))) {
+      if (f.includes('__tests__')) continue;
+      if (readFileSync(f, 'utf8').includes('fetchTranscriptsByVideo')) offenders.push(f);
+    }
+    expect(offenders, 'a file still reaches for the removed whole-archive read').toEqual([]);
   });
 });
 

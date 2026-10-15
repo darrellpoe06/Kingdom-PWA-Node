@@ -119,6 +119,40 @@ over that road **is** real family load, so the slowness he asked about and the
 - Lint clean; 151 cases green across every suite touching Pulpit, The Word,
   the public library, dedupe, Show-the-Word, choir-sync and choir-words.
 
+## The break I shipped into my own PR, and what it changed
+
+The first version of this work **broke the production build**, and neither lint
+nor 187 passing tests noticed.
+
+`call-to-give-sync.js` still imported `fetchTranscriptsByVideo`, the function
+this record removed. I had not read that file. ESLint does not resolve a
+cross-module named import, and no test in the suites I ran imports it — so the
+only thing that caught it was `vite build`, and even there the real message was
+**masked**: this repo's `sw-version-stamp` plugin throws `ENOENT: dist/sw.js`
+from `closeBundle`, which fires after a failed bundle, so the visible error was
+a missing service worker three layers from the actual cause. Seeing the real
+line took a temporary guard on that plugin.
+
+**Two things came out of it, and both are kept:**
+
+1. **The check now reads the WHOLE tree.** My original assertion checked that
+   the old name was absent from the lib and the two components *I had edited* —
+   a check scoped to what its author already knew, which is the same
+   anti-theater failure as a gate that cannot fail. It now walks every
+   `.js/.jsx/.mjs` under `app/src` outside `__tests__`. Proven to catch by
+   mutation: restoring the broken import turns it red and names the file.
+2. **Call-to-Give is the one place that genuinely wants the whole archive, and
+   it now SAYS so.** A call-to-give moment can sit in any service ever
+   recorded, so building that archive across the whole corpus is correct —
+   unlike The Word, which read every transcript to print at most eight lines
+   per message. `fetchTranscriptsFor` gained an explicit `cap`, and this caller
+   passes the corpus's own size. "All of them" is a visible decision in the
+   code rather than the absence of a WHERE clause nobody could see.
+
+So the accurate claim is not "the unbounded read is gone" — it is **"the
+implicit unbounded read is gone; the one deliberate whole-corpus read names
+itself."**
+
 ## What this does NOT do
 
 - **The bytes are not measured, and no number here claims to be one.** The

@@ -48,9 +48,9 @@ export const TRANSCRIPT_BATCH_CAP = 60;
  * transcripts only when somebody taps "draft words", and caches them. The Word
  * fetched eagerly on arrival. Same function, two call sites, opposite habits.
  */
-export async function fetchTranscriptsFor(videoIds = []) {
+export async function fetchTranscriptsFor(videoIds = [], { cap = TRANSCRIPT_BATCH_CAP } = {}) {
   const ids = [...new Set((Array.isArray(videoIds) ? videoIds : [])
-    .filter((v) => typeof v === 'string' && v.trim()))].slice(0, TRANSCRIPT_BATCH_CAP);
+    .filter((v) => typeof v === 'string' && v.trim()))].slice(0, Math.max(0, cap));
   if (!ids.length) return {};
   const { data, error } = await supabase
     .from('video_transcripts').select('video_id,text').in('video_id', ids);
