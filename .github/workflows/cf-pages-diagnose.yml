@@ -1,0 +1,175 @@
+# =============================================================================
+# Ask Cloudflare itself why no Pages Function runs (#2057) — READ-ONLY
+# =============================================================================
+# WHY THIS EXISTS. #2057 has been open since 2026-10-09 with 35 comments, EVERY
+# ONE written by a bot, every one the same observation: "NO PAGES FUNCTION IS
+# RUNNING ... Cloudflare-side ... no code change in this repository reaches it."
+# Five days of re-measuring the symptom, and nobody ever asked Cloudflare what it
+# believes is deployed. The one attempted fix (#2060, 2026-10-09) added an
+# explicit app/public/_routes.json naming 25 routes INCLUDING /automation-status
+# -- and /automation-status is the exact road the probe still finds dark. So the
+# stated remedy is in place AND ineffective, which nothing on the ledger says.
+#
+# Meanwhile every deploy reports success: "Compiled Worker successfully",
+# "Uploading Functions bundle", "Uploading _routes.json", a fresh deployment URL.
+# Both halves cannot be true at once, and the half nobody has read is Cloudflare's.
+#
+# READ-ONLY AND DISPATCH-ONLY. It GETs the live site and the Cloudflare API and
+# prints what comes back. It deploys nothing, changes no setting, writes no file.
+# No schedule, so it spawns nothing on a clock and carries no budget/lock/kill
+# (DR-0247 governs timer-driven compute; this is a person pressing a button).
+#
+# NO SECRET IS PRINTED: the token is only ever a request header. What reaches the
+# log is status codes, content types, names and booleans.
+name: Diagnose the Pages Functions outage (#2057, read-only)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  ask:
+    runs-on: ubuntu-latest
+    env:
+      CF_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      PROJECT: poetech-app
+      UA: "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Mobile Safari/537.36"
+    steps:
+      - name: Start the findings file
+        run: |
+          : > /tmp/findings.md
+          echo "$(date -u +%FT%TZ) — **FIRST ACTUAL DIAGNOSIS.** This ledger has carried 35" >> /tmp/findings.md
+          echo 'comments, every one a bot re-measuring the same symptom. Nobody had asked' >> /tmp/findings.md
+          echo 'Cloudflare what it believes is deployed. This run asks. Read-only.' >> /tmp/findings.md
+          echo '' >> /tmp/findings.md
+          echo '```' >> /tmp/findings.md
+
+      - name: 1. What the LIVE site serves on a Function route
+        run: |
+          set -uo pipefail
+          exec > >(tee -a /tmp/findings.md) 2>&1
+          probe() {
+            label="$1"; url="$2"
+            body=$(mktemp)
+            code=$(curl -sS -o "$body" -w '%{http_code}' -A "$UA" --max-time 25 "$url" 2>/dev/null || echo 000)
+            ctype=$(curl -sSI -A "$UA" --max-time 25 "$url" 2>/dev/null | tr -d '\r' | awk -F': ' 'tolower($1)=="content-type"{print $2}' | tail -1)
+            echo "--- $label"
+            echo "    url          : $url"
+            echo "    http         : $code"
+            echo "    content-type : ${ctype:-<none>}"
+            echo "    first 160    : $(head -c 160 "$body" | tr '\n' ' ')"
+            case "${ctype:-}" in
+              application/json*) echo "    VERDICT      : A FUNCTION ANSWERED" ;;
+              text/html*)        echo "    VERDICT      : the SPA shell - no Function ran" ;;
+              *)                 echo "    VERDICT      : unexpected content type" ;;
+            esac
+            rm -f "$body"
+          }
+          echo "=== /automation-status, the road the incident names ==="
+          probe "custom domain"   "https://poetech.us/automation-status"
+          probe "pages.dev alias" "https://poetech-app.pages.dev/automation-status"
+
+      - name: 2. Is _routes.json being served as a static asset?
+        run: |
+          set -uo pipefail
+          exec > >(tee -a /tmp/findings.md) 2>&1
+          # If this is fetchable, Pages is treating the routing config as a file.
+          # That single fact would explain every dark road at once.
+          for host in poetech.us poetech-app.pages.dev; do
+            code=$(curl -sS -o /tmp/r.json -w '%{http_code}' -A "$UA" --max-time 25 "https://$host/_routes.json" || echo 000)
+            echo "--- https://$host/_routes.json -> HTTP $code"
+            if [ "$code" = "200" ]; then
+              echo "    SERVED AS A STATIC FILE. First 900 bytes:"
+              head -c 900 /tmp/r.json
+              echo
+            fi
+          done
+
+      - name: 3. Can the API token verify at all?
+        run: |
+          set -uo pipefail
+          exec > >(tee -a /tmp/findings.md) 2>&1
+          if [ -z "${CF_API_TOKEN:-}" ] || [ -z "${CF_ACCOUNT_ID:-}" ]; then
+            echo "::error::CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID are not available here"
+            exit 1
+          fi
+          curl -sS --max-time 30 -H "Authorization: Bearer $CF_API_TOKEN" \
+            "https://api.cloudflare.com/client/v4/user/tokens/verify" \
+            | jq -r '"  success: \(.success)  status: \(.result.status // "n/a")", (.errors[]? | "  error: \(.code) \(.message)")'
+
+      - name: 4. The Pages project as Cloudflare holds it
+        run: |
+          set -uo pipefail
+          exec > >(tee -a /tmp/findings.md) 2>&1
+          curl -sS --max-time 30 -H "Authorization: Bearer $CF_API_TOKEN" \
+            "https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT_ID/pages/projects/$PROJECT" \
+            | jq -r '
+              if .success then
+                .result as $r |
+                "  name              : \($r.name)",
+                "  production_branch : \($r.production_branch)",
+                "  domains           : \($r.domains | tostring)",
+                "  build_config      : \($r.build_config | tostring)",
+                ($r.deployment_configs.production // {}) as $p |
+                "  compat_date       : \($p.compatibility_date // "unset")",
+                "  compat_flags      : \($p.compatibility_flags | tostring)",
+                "  usage_model       : \($p.usage_model // "unset")",
+                "  placement         : \($p.placement | tostring)",
+                "  env var names     : \(($p.env_vars // {}) | keys | tostring)",
+                "  bindings kv/d1/r2 : \((($p.kv_namespaces // {}) | length)) / \((($p.d1_databases // {}) | length)) / \((($p.r2_buckets // {}) | length))"
+              else
+                "  FAILED: \(.errors | tostring)"
+              end'
+
+      - name: 5. The last five deployments, stage by stage
+        run: |
+          set -uo pipefail
+          exec > >(tee -a /tmp/findings.md) 2>&1
+          curl -sS --max-time 30 -H "Authorization: Bearer $CF_API_TOKEN" \
+            "https://api.cloudflare.com/client/v4/accounts/$CF_ACCOUNT_ID/pages/projects/$PROJECT/deployments?per_page=5" \
+            | jq -r '
+              if .success then
+                .result[] |
+                "  ---",
+                "   id          : \(.id)",
+                "   url         : \(.url)",
+                "   environment : \(.environment)",
+                "   created_on  : \(.created_on)",
+                "   commit      : \((.deployment_trigger.metadata.commit_hash // "")[0:7])",
+                "   latest_stage: \(.latest_stage.name) \(.latest_stage.status)",
+                (.stages[]? | "     stage     : \(.name) -> \(.status)")
+              else
+                "  FAILED: \(.errors | tostring)"
+              end'
+
+      - name: Post the diagnosis to #2057, once
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -uo pipefail
+          echo '```' >> /tmp/findings.md
+          # ONE comment carrying the whole reading. The ledger's problem is not
+          # too few notes, it is 35 notes that all say the same nothing (P53).
+          gh issue comment 2057 --repo "$GITHUB_REPOSITORY" --body-file /tmp/findings.md
+          echo 'posted to #2057'
+
+      - name: How to read the above
+        if: always()
+        run: |
+          echo "=============================================================="
+          echo 'Step 1 "A FUNCTION ANSWERED" on any host => Functions are alive there'
+          echo '  and the outage is narrower than the ledger claims.'
+          echo 'Step 1 "the SPA shell" on the pages.dev alias too => the fault is in'
+          echo '  the deployment or the project, not in front of the custom domain.'
+          echo 'Step 2 HTTP 200 => _routes.json is being served as an ASSET instead of'
+          echo '  read as routing config. That alone would darken every road.'
+          echo 'Step 3 a token that cannot verify => every "Cloudflare-side" claim on'
+          echo '  #2057 has been unverifiable from CI all along. Its own finding.'
+          echo 'Step 5 compare the stages against what wrangler printed. Wrangler said'
+          echo '  "Compiled Worker successfully / Uploading Functions bundle"; if'
+          echo '  Cloudflare own record disagrees, that disagreement IS the bug.'
