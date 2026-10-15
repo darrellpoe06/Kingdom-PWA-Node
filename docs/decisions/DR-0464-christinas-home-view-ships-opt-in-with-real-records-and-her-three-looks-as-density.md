@@ -28,6 +28,15 @@ Darrell, 2026-09-17, relaying three home-view mockups from his wife Christina �
 
 **g. THE "BOOKS" TILE OPENS LEARN, and the ambiguity is named rather than resolved in silence.** Her tile reads "Books" with the sub-label "Learn & Grow". In this app "Books" is the FINANCIAL surface while "Learn & Grow" plainly describes the Learn door, so the sub-label wins and the money books stay one tap away behind Big Picture. If she meant the money books it is one line. **FYI for Christina, not a blocker.**
 
+> **ANSWERED 2026-10-15 — DR-1055.** Darrell, with a screenshot of the home
+> grid: *"Books doesn't currently go to the Books tab it goes to Church
+> Learn..."* It was one line, and it was taken: the tile now opens the ledger,
+> with the sub-label ("Accounts & Debts") and the icon (stacked coins) moved to
+> match, because pointing the tile at the money while leaving "Learn & Grow"
+> under an open book would be the same lie inverted. Learn loses its home tile
+> and stays at Church → Learn and in the "Open a lesson" Quick Action — a real
+> cost, named rather than hidden. This question is closed; see DR-1055.
+
 **h. IT SHIPPED WITHOUT GROWING THE FROZEN SHELL BY A SINGLE LINE.** The switch is exported from `BigPictureDashboard.jsx` as `Home`, so the shell's existing import line and existing mount line change their component name and pass two more props at zero line growth — measured 5,355 before and after, and `monolith-budget-guard` confirms it holds the frozen budget. The switch is a component rather than an early return inside the dashboard, because an early return above the dashboard's own `useState` calls would change the hook count the moment somebody flipped the preference.
 
 ## Verification (DR-0076)
