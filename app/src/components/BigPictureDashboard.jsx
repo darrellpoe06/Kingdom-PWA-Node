@@ -329,7 +329,7 @@ export function BigPictureDashboard({ data = {}, snowballExtra = 0, totals, pres
               can log a Change / Incident / Project at any time. Empty-state copy
               appears in place of the queue rows when nothing's open. */}
           {(
-            <section aria-labelledby="action-queue-h" className="bg-white border border-[#1A1815] p-4 sm:p-5">
+            <section aria-labelledby="action-queue-h" className="bg-white border border-[#E8E4DC] rounded-2xl p-4 sm:p-5">
               <div className="flex items-baseline justify-between gap-2 flex-wrap mb-3">
                 <div>
                   <h2 id="action-queue-h" className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] font-semibold">Action Queue · what needs you</h2>
@@ -407,7 +407,7 @@ export function BigPictureDashboard({ data = {}, snowballExtra = 0, totals, pres
                   </div>
                 </div>
               )}
-              <div className="bg-white border border-[#E8E4DC]">
+              <div className="space-y-2">
                 {queue.length === 0 && (
                   <div className="p-6 text-center">
                     <div className="text-2xl mb-1" aria-hidden="true">✓</div>
@@ -431,7 +431,7 @@ export function BigPictureDashboard({ data = {}, snowballExtra = 0, totals, pres
                   const jumpLabelMap = { 'real-estate': 'Real Estate', 'projects': 'Projects', 'practice': 'Practice', 'books': 'Books', 'inbound': 'Inbound', 'capex': 'Projects · Inventory' };
                   const jumpLabel = jumpLabelMap[q.jump] || (q.jump ? q.jump.replace(/-/g, ' ') : 'source');
                   return (
-                    <div key={q.id} className={`${i < arr.length - 1 ? 'border-b border-[#E8E4DC]' : ''} ${q.overdue ? 'bg-[#FAF8F4]' : ''}`}>
+                    <div key={q.id} className={`rounded-xl border border-[#E8E4DC] border-l-4 bg-white overflow-hidden ${q.overdue ? 'border-l-[#B85838]' : (q.kind === 'incident' ? 'border-l-[#8A6E1F]' : 'border-l-[#2A5A8E]')}`}>
                       <div className="p-3 flex items-center gap-3 flex-wrap">
                         <span aria-hidden="true" className="inline-block w-6 text-center text-base font-bold" style={{ color: band.accent }} title={band.label}>{band.symbol}</span>
                         {/* The whole left side is one big button — tap anywhere on it

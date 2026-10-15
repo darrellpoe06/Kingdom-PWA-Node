@@ -89,14 +89,18 @@ export default function SectionTabs({
   const sub = variant === 'sub';
 
   const strip = (
-    <TabScroll label={ariaLabel} rowClassName={sub ? 'items-center gap-1.5 py-0.5' : 'items-stretch'} className={sub || trailing ? '' : 'border-b border-[#E8E4DC]'}>
+    <TabScroll label={ariaLabel} rowClassName={sub ? 'items-center gap-1.5 py-0.5' : 'items-center gap-1 px-1'} className={sub ? '' : 'bg-[#E8E4DC] rounded-xl'}>
       {valid.map((s) => {
         const on = s.id === current.id;
         // Sub (3rd-row) tabs are chips — active fills with ink — so a nested
         // strip never reads as a duplicate of the underline row above it.
+        // THE HERITAGE TRAY (DR-1046): the section row is a soft tray of pill
+        // tabs (the selected one filled in the house ink, which the themes
+        // remap — forest on Heritage); the sub row stays chips, now rounded.
+        // Roles, ids, keyboard order and the done mark are unchanged.
         const cls = sub
-          ? `px-2.5 py-1.5 whitespace-nowrap text-[0.6875rem] uppercase tracking-wider border transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] inline-flex items-center gap-1.5 ${on ? 'bg-[#1A1815] border-[#1A1815] text-white font-medium' : 'bg-transparent border-[#C9BFA8] text-[#5A5751] hover:text-[#1A1815] hover:border-[#1A1815]'}`
-          : `px-2.5 sm:px-3 py-2.5 whitespace-nowrap border-b-2 transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] inline-flex items-center gap-1.5 ${on ? 'border-[#B85838] text-[#1A1815] font-medium' : 'border-transparent text-[#5A5751] hover:text-[#1A1815]'}`;
+          ? `px-2.5 py-1.5 whitespace-nowrap text-[0.6875rem] uppercase tracking-wider border rounded-full transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] inline-flex items-center gap-1.5 ${on ? 'bg-[#1A1815] border-[#1A1815] text-white font-medium' : 'bg-transparent border-[#C9BFA8] text-[#5A5751] hover:text-[#1A1815] hover:border-[#1A1815]'}`
+          : `px-3 py-2 my-1 whitespace-nowrap rounded-lg transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] inline-flex items-center gap-1.5 text-sm ${on ? 'bg-[#1A1815] text-white font-medium' : 'text-[#5A5751] hover:text-[#1A1815] hover:bg-white'}`;
         return (
           <button
             key={s.id}
@@ -123,7 +127,7 @@ export default function SectionTabs({
   return (
     <div className={sub ? 'space-y-3' : 'space-y-4'}>
       {trailing ? (
-        <div className={`flex items-center gap-2 ${sub ? '' : 'border-b border-[#E8E4DC]'}`} data-testid={`${idBase}-tab-row`}>
+        <div className="flex items-center gap-2" data-testid={`${idBase}-tab-row`}>
           <div className="min-w-0 flex-1">{strip}</div>
           <div className="shrink-0">{trailing}</div>
         </div>
