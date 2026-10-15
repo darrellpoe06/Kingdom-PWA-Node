@@ -105,7 +105,7 @@ describe('the Reports section: visible, one set of controls, theme tokens only',
   it('every theme the app offers is covered by the checks (enumerated from THEMES)', () => {
     const parsed = parseThemes(THEME_CSS);
     const keys = THEMES.map((t) => t.key);
-    expect(keys).toEqual(['cream', 'white', 'slate', 'sapphire', 'rose', 'midnight']);
+    expect(keys).toEqual(['cream', 'heritage', 'white', 'slate', 'sapphire', 'rose', 'midnight']);
     for (const k of keys.filter((x) => x !== 'cream')) expect(parsed[k], `${k} parsed`).toBeTruthy();
   });
 });
@@ -129,7 +129,7 @@ describe('contrast on every theme (WCAG AA), measured by the guard', () => {
 
   it('the selected chip reads on every theme: AA label, and 3:1 apart from an unselected chip', () => {
     const { violations, rows } = scanSelectedState();
-    expect(rows.map((r) => r.theme).sort()).toEqual(['cream', 'midnight', 'rose', 'sapphire', 'slate', 'white']);
+    expect(rows.map((r) => r.theme).sort()).toEqual(['cream', 'heritage', 'midnight', 'rose', 'sapphire', 'slate', 'white']);
     expect(violations).toEqual([]);
   });
 

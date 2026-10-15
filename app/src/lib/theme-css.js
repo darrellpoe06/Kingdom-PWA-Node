@@ -62,6 +62,7 @@ export const THEME_CSS = `
 [data-theme="slate"]{--form-surface:#FFFFFF;--form-ink:#1B1D1F;--form-line:#DDE3EC;--form-hint:#4A5260;color-scheme:light}
 [data-theme="sapphire"]{--form-surface:#FFFFFF;--form-ink:#1E3A8A;--form-line:#BFDBFE;--form-hint:#1D4ED8;color-scheme:light}
 [data-theme="rose"]{--form-surface:#FFFFFF;--form-ink:#831843;--form-line:#FBCFE8;--form-hint:#9D174D;color-scheme:light}
+[data-theme="heritage"]{--form-surface:#FFFDF9;--form-ink:#1A1D1B;--form-line:#DED5C3;--form-hint:#5E5A52;color-scheme:light}
 [data-theme="midnight"]{--form-surface:#0A0A0A;--form-ink:#E5E5E5;--form-line:#2A2A2A;--form-hint:#7C7C7C;color-scheme:dark}
 
 input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="image"]),
@@ -148,6 +149,63 @@ input::placeholder,textarea::placeholder{color:var(--form-hint)}
 [data-theme="rose"] .text-\\[\\#5A5751\\]{color:#9D174D!important}
 [data-theme="rose"] .border-\\[\\#1A1815\\]{border-color:#831843!important}
 [data-theme="rose"] .bg-\\[\\#1A1815\\]{background-color:#831843!important}
+
+/* ===================================================================
+   THEME: HERITAGE — forest & gold (2026-10-15, DR-1046 Phase 1)
+   The Heritage redesign's finish: forest green for navigation and the
+   dark fill, navy for the selected state, ivory rooms, paper cards with
+   one soft shadow, terracotta where the house rust was, a healthy green
+   where the olive was. Every pairing below was MEASURED with
+   scripts/contrast-guard.mjs's own math before it was written: ink on
+   ivory 15.10, muted on ivory 6.10, terracotta on ivory 5.38 (the old
+   rust needed an allowlist at 4.41; this one does not), healthy green
+   on ivory 5.59, white on forest 12.33, white on navy 14.22. Gold
+   (#C9A227) is a FILL and a rule only — as text on ivory it is 2.07:1 —
+   so its text form is #8A6510 (4.72 on ivory). True red marks nothing
+   (DR-0099). Same mechanism as the five themes above: the base literals
+   are remapped, so all 725 components inherit the finish and nothing
+   they key on changes.
+   =================================================================== */
+[data-theme="heritage"]{background-color:#F6F1E7;color:#1A1D1B;letter-spacing:0}
+[data-theme="heritage"] .bg-\\[\\#FAF8F4\\]{background-color:#F6F1E7!important}
+[data-theme="heritage"] .bg-white{background-color:#FFFDF9!important;border-radius:14px;box-shadow:0 1px 2px rgba(26,29,27,0.04),0 8px 24px rgba(26,29,27,0.05)}
+[data-theme="heritage"] .bg-\\[\\#E8E4DC\\]{background-color:#EDE5D5!important}
+[data-theme="heritage"] .bg-\\[\\#F0EDE6\\]{background-color:#EDE5D5!important}
+[data-theme="heritage"] .bg-\\[\\#F2EFE9\\]{background-color:#EDE5D5!important}
+[data-theme="heritage"] .border-\\[\\#E8E4DC\\]{border-color:#DED5C3!important}
+[data-theme="heritage"] .border-\\[\\#1A1815\\]{border-color:#1F3A2E!important;border-radius:10px}
+[data-theme="heritage"] .border-2{border-radius:14px}
+[data-theme="heritage"] .text-\\[\\#1A1815\\]{color:#1A1D1B!important}
+[data-theme="heritage"] .text-\\[\\#FAF8F4\\]{color:#F6F1E7!important}
+[data-theme="heritage"] .text-\\[\\#5A5751\\]{color:#5E5A52!important}
+[data-theme="heritage"] .text-\\[\\#6B665E\\]{color:#5E5A52!important}
+[data-theme="heritage"] .bg-\\[\\#1A1815\\]{background-color:#1F3A2E!important;border-radius:10px}
+[data-theme="heritage"] .bg-\\[\\#5A5751\\]{background-color:#5E5A52!important}
+[data-theme="heritage"] .border-\\[\\#5A5751\\]{border-color:#5E5A52!important}
+[data-theme="heritage"] .hover\\:bg-\\[\\#1A1815\\]:hover{background-color:#1B2A4A!important;color:#FFFFFF!important}
+[data-theme="heritage"] .hover\\:bg-\\[\\#FAF8F4\\]:hover{background-color:#EDE5D5!important}
+[data-theme="heritage"] .hover\\:bg-\\[\\#E8E4DC\\]:hover{background-color:#DED5C3!important}
+/* the house rust -> terracotta */
+[data-theme="heritage"] .text-\\[\\#B85838\\]{color:#9E4A2A!important}
+[data-theme="heritage"] .border-\\[\\#B85838\\]{border-color:#9E4A2A!important}
+[data-theme="heritage"] .bg-\\[\\#B85838\\]{background-color:#9E4A2A!important;border-radius:10px}
+[data-theme="heritage"] .hover\\:bg-\\[\\#B85838\\]:hover{background-color:#7E3A20!important}
+/* the olive -> healthy green */
+[data-theme="heritage"] .text-\\[\\#5A6E3D\\]{color:#2F6B4F!important}
+[data-theme="heritage"] .border-\\[\\#5A6E3D\\]{border-color:#2F6B4F!important}
+[data-theme="heritage"] .bg-\\[\\#5A6E3D\\]{background-color:#2F6B4F!important}
+[data-theme="heritage"] .text-\\[\\#2F5D50\\]{color:#2F6B4F!important}
+/* the blue -> navy */
+[data-theme="heritage"] .text-\\[\\#2A5A8E\\]{color:#1B2A4A!important}
+[data-theme="heritage"] .border-\\[\\#2A5A8E\\]{border-color:#1B2A4A!important}
+[data-theme="heritage"] .bg-\\[\\#2A5A8E\\]{background-color:#1B2A4A!important}
+/* THE SELECTED CHIP wears navy: navy on paper is 14:1 apart from an unselected
+   chip, and its white label reads at 14.22 (checkSelectedState, DR-0713). */
+[data-theme="heritage"] .poe-selected{background-color:#1B2A4A!important;color:#FFFFFF!important;border-color:#1B2A4A!important}
+/* soft corners on controls, as Snow does */
+[data-theme="heritage"] button{border-radius:10px}
+[data-theme="heritage"] input,[data-theme="heritage"] select,[data-theme="heritage"] textarea{border-radius:8px}
+[data-theme="heritage"] p,[data-theme="heritage"] li{line-height:1.55}
 
 /* ===================================================================
    THEME: MIDNIGHT — OLED-friendly true black + smooth grey gradient
@@ -301,6 +359,42 @@ input::placeholder,textarea::placeholder{color:var(--form-hint)}
    1.12:1 apart, so on black nothing looked selected. poe-selected inverts the
    fill in midnight (#0A0A0A on #E5E5E5). The light themes keep their own dark
    fill. Checked per theme by checkSelectedState in contrast-guard.mjs. DR-0713. */
+/* THE HERITAGE CHROME TOKENS, ON MIDNIGHT (DR-1046). The redesign's shell
+   (sidebar, bottom navigation, hero, tiles) needs colors the six base
+   literals cannot express — forest, navy, gold, terracotta, healthy green,
+   ivory, paper, hairline — so they are literal classes like every other
+   token, and each gets its midnight twin here BEFORE a component uses it, so
+   contrast-guard's token coverage and the legibility guard police them from
+   the first commit. Measured on #141414: #86EFAC 12.4, #93C5FD 10.6,
+   #FB923C 8.2, #FCD34D 12.0, #A3A3A3 6.4. The two bright fills take dark
+   ink (the #B85838 / #5A6E3D pattern above). */
+[data-theme="midnight"] .text-\\[\\#1A1D1B\\]{color:#E5E5E5!important}
+[data-theme="midnight"] .text-\\[\\#5E5A52\\]{color:#A3A3A3!important}
+[data-theme="midnight"] .text-\\[\\#1F3A2E\\]{color:#86EFAC!important}
+[data-theme="midnight"] .text-\\[\\#1B2A4A\\]{color:#93C5FD!important}
+[data-theme="midnight"] .text-\\[\\#9E4A2A\\]{color:#FB923C!important}
+[data-theme="midnight"] .text-\\[\\#2F6B4F\\]{color:#86EFAC!important}
+[data-theme="midnight"] .text-\\[\\#8A6510\\]{color:#FCD34D!important}
+[data-theme="midnight"] .text-\\[\\#F6F1E7\\]{color:#E5E5E5!important}
+[data-theme="midnight"] .bg-\\[\\#F6F1E7\\]{background-color:#000000!important}
+[data-theme="midnight"] .bg-\\[\\#FFFDF9\\]{background-color:#141414!important}
+[data-theme="midnight"] .bg-\\[\\#EDE5D5\\]{background-color:#1A1A1A!important}
+[data-theme="midnight"] .bg-\\[\\#1F3A2E\\]{background-color:#0F1A14!important}
+[data-theme="midnight"] .bg-\\[\\#1B2A4A\\]{background-color:#16213A!important}
+[data-theme="midnight"] .bg-\\[\\#2B2F2D\\]{background-color:#1F1F1F!important}
+[data-theme="midnight"] .bg-\\[\\#9E4A2A\\]{background-color:#FB923C!important}
+[data-theme="midnight"] .bg-\\[\\#9E4A2A\\].text-white{color:#1A1815!important}
+[data-theme="midnight"] .bg-\\[\\#2F6B4F\\]{background-color:#86EFAC!important}
+[data-theme="midnight"] .bg-\\[\\#2F6B4F\\].text-white{color:#1A1815!important}
+[data-theme="midnight"] .bg-\\[\\#C9A227\\]{background-color:#FCD34D!important}
+[data-theme="midnight"] .border-\\[\\#DED5C3\\]{border-color:#2A2A2A!important}
+[data-theme="midnight"] .border-\\[\\#1F3A2E\\]{border-color:#86EFAC!important}
+[data-theme="midnight"] .border-\\[\\#1B2A4A\\]{border-color:#93C5FD!important}
+[data-theme="midnight"] .border-\\[\\#9E4A2A\\]{border-color:#FB923C!important}
+[data-theme="midnight"] .border-\\[\\#C9A227\\]{border-color:#FCD34D!important}
+[data-theme="midnight"] .hover\\:bg-\\[\\#EDE5D5\\]:hover{background-color:#2A2A2A!important}
+[data-theme="midnight"] .hover\\:bg-\\[\\#FFFDF9\\]:hover{background-color:#2A2A2A!important}
+[data-theme="midnight"] .hover\\:bg-\\[\\#DED5C3\\]:hover{background-color:#2A2A2A!important}
 [data-theme="midnight"] .poe-selected{background-color:#E5E5E5!important;color:#0A0A0A!important;border-color:#E5E5E5!important}
 [data-theme="midnight"] input,[data-theme="midnight"] textarea,[data-theme="midnight"] select{color:#E5E5E5;background-color:#0A0A0A!important;border-color:#2A2A2A!important}
 /* #666666 measured 3.45:1 on the #0A0A0A field — below AA. #7C7C7C is 4.74:1
@@ -318,6 +412,7 @@ input::placeholder,textarea::placeholder{color:var(--form-hint)}
 // it, so a reader who chose any other palette could never return to it.
 export const THEMES = [
   { key: 'cream',    color: '#FAF8F4', border: '#1A1815', label: 'Cream · warm light' },
+  { key: 'heritage', color: '#F6F1E7', border: '#1F3A2E', label: 'Heritage · forest & gold' },
   { key: 'white',    color: '#F5F5F7', border: '#1D1D1F', label: 'Snow · clean light' },
   { key: 'slate',    color: '#F2F4F7', border: '#1F6FEB', label: 'Glacier · cool light' },
   { key: 'sapphire', color: '#EFF6FF', border: '#1E3A8A', label: 'Sapphire' },
