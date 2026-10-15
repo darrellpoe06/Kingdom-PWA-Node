@@ -85,8 +85,23 @@ describe('InstallAppButton — the every-tab install control', () => {
   });
 
   it('is mounted in the monolith header beside Subscribe (source pin)', () => {
+    // The GUARANTEE is "there is an install control in the header on every
+    // tab", and it still holds — it just travels one level down since DR-1056,
+    // where AppDoorControls pairs it with the share-the-way-in button Darrell
+    // asked for. So the pin FOLLOWS the indirection rather than being dropped:
+    // either the shell renders it directly, or it renders the component that
+    // does. Deleting the check instead would have left the header free to lose
+    // the install button with nothing failing.
     const src = readFileSync(join(__dir, '..', 'poe-financial-mvp-v28.jsx'), 'utf8');
-    expect(src).toContain("import InstallAppButton from './components/InstallAppButton.jsx'");
-    expect(src).toContain('<InstallAppButton />');
+    const direct = src.includes("import InstallAppButton from './components/InstallAppButton.jsx'")
+      && src.includes('<InstallAppButton />');
+    if (direct) return;
+    expect(src, 'the header mounts neither InstallAppButton nor AppDoorControls')
+      .toContain("import AppDoorControls from './components/AppDoorControls.jsx'");
+    expect(src).toContain('<AppDoorControls');
+    const via = readFileSync(join(__dir, '..', 'components', 'AppDoorControls.jsx'), 'utf8');
+    expect(via, 'AppDoorControls stopped rendering the install control')
+      .toContain("import InstallAppButton from './InstallAppButton.jsx'");
+    expect(via).toContain('<InstallAppButton />');
   });
 });
