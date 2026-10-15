@@ -1,4 +1,4 @@
-# DR-1024: The order names its people and its time, and the actual order shows what took place against the order the Bishop asked for
+# DR-1029: The order names its people and its time, and the actual order shows what took place against the order the Bishop asked for
 
 **Date:** 2026-10-15
 **Status:** accepted

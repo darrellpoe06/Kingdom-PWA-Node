@@ -216,7 +216,7 @@ export function reconcileService(plannedSegments, actualItems, { tolMinutes = DE
   };
 }
 
-// --- Clock the service, and the track record across services (DR-1024) ------
+// --- Clock the service, and the track record across services (DR-1029) ------
 // Darrell 2026-10-15: "a tab that allows us to add the actual times to keep
 // track of times we actually live up to that timeline on each Sunday and
 // Wednesday." One line per planned segment with the minutes it really took,
@@ -657,7 +657,7 @@ export async function captureActualFromYouTube(program, plannedSegments, songs, 
   return { ...res, scope };
 }
 
-// Clock the service in one tap (DR-1024): every line that carries a number is
+// Clock the service in one tap (DR-1029): every line that carries a number is
 // written as its actual (a new row, or the recorded row's minutes updated); a
 // line left blank is written nowhere and reads as skipped once the service is
 // stamped reconciled, which this does at the end with the summed total. The

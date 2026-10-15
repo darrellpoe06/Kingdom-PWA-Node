@@ -39,7 +39,7 @@ const BTN = 'text-xs uppercase tracking-wider px-3 py-2 min-h-[36px] focus:outli
 const FIELD = 'w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]';
 const LABEL = 'text-[0.5625rem] uppercase tracking-wider text-[#5A5751] block mb-1';
 const SECTOR_OPTS = SECTORS.map((s) => [s.key, `${s.emoji} ${s.label}`]);
-// The auxiliaries a church names most; free text takes any other (DR-1024).
+// The auxiliaries a church names most; free text takes any other (DR-1029).
 const AUXILIARIES = ['Choir', 'Praise Team', 'Ushers', 'Deacons', 'Deaconesses', 'Trustees', 'Nurses', 'Media', 'Hospitality', 'Youth', 'Mothers'];
 
 const todayIso = () => new Date().toISOString().slice(0, 10);
@@ -576,7 +576,7 @@ export default function ServiceProgram() {
             </div>
           )}
 
-          {/* Who serves, and for how long (DR-1024): each person and auxiliary
+          {/* Who serves, and for how long (DR-1029): each person and auxiliary
               named on the order, their minutes summed, the lines they carry. */}
           {serving.length > 0 && (
             <div className="bg-[#FAF8F4] border border-[#E8E4DC] p-2 mt-3" data-testid="who-serves">
@@ -606,7 +606,7 @@ export default function ServiceProgram() {
                   <ServiceActuals program={program} plannedSegments={programSegments} actuals={actuals} songs={songs} sermons={sermons} canEdit={access.canEdit} />
                 ),
               } : null,
-              // The track record across every clocked service (DR-1024): how
+              // The track record across every clocked service (DR-1029): how
               // often each Sunday and Wednesday kept its timeline. Whole team.
               {
                 id: 'record',

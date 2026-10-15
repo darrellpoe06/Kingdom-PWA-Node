@@ -161,7 +161,7 @@ describe('deriveSectorView', () => {
 });
 
 describe('seedDefaultOrder + deriveAccess', () => {
-  it('seed is the church\u2019s own order, with the Speaker fixed and the Choir lines carried by the Choir (DR-1024)', () => {
+  it('seed is the church\u2019s own order, with the Speaker fixed and the Choir lines carried by the Choir (DR-1029)', () => {
     // Darrell 2026-10-15: Prayer · Announcements · Choir, 1 song · Special
     // events (if we have one) · Offering / Givers' Creed · Choir, 2 songs ·
     // Speaker · Benediction.
@@ -220,7 +220,7 @@ describe('change log (institutional memory)', () => {
   });
 });
 
-describe('key personnel and auxiliaries on every line (DR-1024; 0292)', () => {
+describe('key personnel and auxiliaries on every line (DR-1029; 0292)', () => {
   // Darrell 2026-10-15: "add the ability to add time to each section so any
   // church can total their time and add key personnel to each task on the
   // order of services list... or add a auxiliary."
@@ -280,7 +280,7 @@ describe('key personnel and auxiliaries on every line (DR-1024; 0292)', () => {
   });
 });
 
-describe('the service window: 75 to 90 minutes (DR-1024)', () => {
+describe('the service window: 75 to 90 minutes (DR-1029)', () => {
   // Darrell 2026-10-15: "Services time needs to be between 1 hour and 15
   // minutes to 1 hour 30 minutes max."
   it('reads a total against the window in the church\u2019s own words', () => {

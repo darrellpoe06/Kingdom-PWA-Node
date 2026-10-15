@@ -149,7 +149,7 @@ function AddedForm({ nextOrder, busy, onSave, onCancel }) {
 }
 
 // -----------------------------------------------------------------------------
-// Clock the service (DR-1024): every planned line with the minutes it really
+// Clock the service (DR-1029): every planned line with the minutes it really
 // took, typed beside the plan and saved in one tap. Prefilled with what is
 // recorded, else the plan ("we did exactly this"); clear a line and it reads
 // as skipped. The deeper reconcile tools below stay for songs, sermon, notes.
@@ -232,7 +232,7 @@ function ClockTheService({ program, plannedSegments, actuals, busy, onSave }) {
 }
 
 // -----------------------------------------------------------------------------
-// The track record (DR-1024): every clocked service, newest first, and how
+// The track record (DR-1029): every clocked service, newest first, and how
 // often each kind of service kept its timeline. Read by the whole team.
 // -----------------------------------------------------------------------------
 const TYPE_LABEL = { sunday: 'Sunday', wednesday: 'Wednesday', rehearsal: 'Rehearsal', special: 'Special', both: 'Both' };
@@ -333,7 +333,7 @@ export default function ServiceActuals({ program, plannedSegments, actuals: allA
 
       {err && <div role="alert" className="bg-[#FAF8F4] border-2 border-[#B85838] p-2 mb-2 text-xs" style={{ fontFamily: '"Fraunces", serif' }}>{err}</div>}
 
-      {/* Clock the service: the minutes each line took, saved in one tap (DR-1024) */}
+      {/* Clock the service: the minutes each line took, saved in one tap (DR-1029) */}
       {canEdit && <ClockTheService program={program} plannedSegments={plannedSegments} actuals={actuals} busy={busy} onSave={onClock} />}
 
       {/* Planned-vs-actual variance summary (visible to the whole team) */}

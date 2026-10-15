@@ -15,7 +15,7 @@
 --   auxiliary  text   -- "Choir" / "Ushers" / "Deacons": the group carrying it
 -- owner_name stays (older views and the email import still write it); a line
 -- that had one owner carries them as its first key person. RLS, realtime and
--- the change trail are unchanged (DR-1024).
+-- the change trail are unchanged (DR-1029).
 
 ALTER TABLE church_service_segments
   ADD COLUMN IF NOT EXISTS personnel jsonb NOT NULL DEFAULT '[]'::jsonb,

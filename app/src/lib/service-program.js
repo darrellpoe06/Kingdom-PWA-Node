@@ -103,7 +103,7 @@ export function toSegmentShape(row) {
     title: row.title ?? '',
     sector: row.sector ?? 'general',
     ownerName: row.owner_name ?? null,
-    // Key personnel + the auxiliary carrying the line (0292, DR-1024). A row
+    // Key personnel + the auxiliary carrying the line (0292, DR-1029). A row
     // from before 0292 names its one owner as its first key person.
     personnel: Array.isArray(row.personnel) && row.personnel.length ? row.personnel.map((x) => String(x).trim()).filter(Boolean)
       : (row.owner_name && String(row.owner_name).trim() ? [String(row.owner_name).trim()] : []),
