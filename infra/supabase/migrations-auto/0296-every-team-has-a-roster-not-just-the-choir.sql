@@ -144,3 +144,25 @@ CREATE POLICY ministry_members_update ON public.ministry_members FOR UPDATE
   WITH CHECK (user_role_in_instance(instance_id) IN ('owner','admin'));
 CREATE POLICY ministry_members_delete ON public.ministry_members FOR DELETE
   USING (user_role_in_instance(instance_id) IN ('owner','admin'));
+
+-- ---------------------------------------------------------------------------
+-- 4. THE OVERLAYS — a new instance-scoped table is not covered until they run.
+-- ---------------------------------------------------------------------------
+-- CAUGHT BY THE GATES, not by me. tenancy-guard and assistant-scope-noleak both
+-- refused this migration on its first CI run:
+--
+--   "0296 creates instance-scoped table ministry_members without re-running
+--    apply_viewer_readonly_overlay() (a viewer could write it)"
+--
+-- That is not a formality. The viewer-readonly and assistant-scope overlays are
+-- what hold a viewer to reading and keep an assistant inside its scope, and
+-- they are applied BY SWEEPING the instance-scoped tables that exist when they
+-- run. A table created after the last sweep is simply not covered — so without
+-- these two lines a viewer at this church could have WRITTEN a team roster,
+-- which is exactly the "a team is seatable by anyone" failure the smoke's
+-- loudest assertions are about. 0212 ends with the same two lines for the same
+-- reason. The gate was right and the migration was wrong (DR-0076 §3).
+SELECT public.apply_assistant_scope_overlay();
+SELECT public.apply_viewer_readonly_overlay();
+
+NOTIFY pgrst, 'reload schema';

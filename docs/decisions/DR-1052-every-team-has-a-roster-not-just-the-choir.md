@@ -149,6 +149,21 @@ why two of the three mutations below are exactly that mistake.
 - **One real omission caught by running it:** the first smoke used
   `SET LOCAL request.jwt.claims = (expr)`, which is not valid SQL. Rewritten on
   the `pg_temp` helper pattern 0294 uses.
+- **TWO MORE GUARDS REFUSED IT IN CI, AND BOTH WERE RIGHT.** `tenancy-guard`
+  and `assistant-scope-noleak` failed the first run: *"0296 creates
+  instance-scoped table `ministry_members` without re-running
+  `apply_viewer_readonly_overlay()` (a viewer could write it)"*. That is not a
+  formality — the overlays are applied by SWEEPING the instance-scoped tables
+  that exist when they run, so a table created after the last sweep is simply
+  not covered, and **a viewer at this church could have written a team
+  roster**: precisely the "a team is seatable by anyone" failure the smoke's
+  loudest assertions are about. 0212 ends with the same two lines for the same
+  reason. Fixed by running both overlays at the end of 0296. Caught by the
+  gates, not by me — which is the gates doing their job (DR-0076 §3).
+- **The committed legibility health was left stale** by the new
+  `MinistryRoster.jsx` page (committed 338, fresh scan 339) and is regenerated
+  with `node scripts/legibility-guard.mjs --health` — the artifact must be the
+  same truth as the gate, never a painted number.
 - **`GRANT EXECUTE ... TO authenticated`** added for the new predicate.
   `user_in_choir` has worked since 0011 with no grant because PostgreSQL grants
   function EXECUTE to PUBLIC by default, but `user_role_in_instance` is granted
