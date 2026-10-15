@@ -9,7 +9,7 @@ amends: []
 tier: B
 entities: [poetech]
 grounds: [WORD-FIRST, TEACH-NOT-DEBATE, SPEAK-ESTABLISHED-FACT, VERIFICATION-DOCTRINE, SPOKEN-TEACHINGS-ARE-BUILD-INPUT]
-source: 2026-10-13 — Darrell forwarded a ByteByteGo article into the lesson lane with one word on it, "Lesson"
+source: 2026-10-13 — Darrell forwarded a ByteByteGo article into the lesson lane with one word on it, "Lesson" (Gmail thread `1a135f165fe391e3`; recorded 2026-10-15 by DR-1051, after this record having no thread id let the intake re-surface the thread as uncaptured two days running)
 ---
 
 ## Context

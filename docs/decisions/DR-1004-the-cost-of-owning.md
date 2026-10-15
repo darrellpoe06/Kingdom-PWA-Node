@@ -9,7 +9,7 @@ amends: []
 tier: B
 entities: [poetech]
 grounds: [WORD-FIRST, VERIFICATION-DOCTRINE, SPEAK-ESTABLISHED-FACT, SPOKEN-TEACHINGS-ARE-BUILD-INPUT, HOLD-THE-HAND-OF-THE-PROCESS]
-source: 2026-10-13 — Darrell forwarded a CFO Dive email into the lesson lane with one word on it, "Lesson"
+source: 2026-10-13 — Darrell forwarded a CFO Dive email into the lesson lane with one word on it, "Lesson" (Gmail thread `1a135b7ba6605c98`, "Fw: 91% of finance AI pilots are failing. Is yours next?", forwarded 14:43 UTC — the only CFO Dive forward in that window, and it carries both Lesson-Captured and Lesson-Published; recorded 2026-10-15 by DR-1051)
 ---
 
 ## Context
