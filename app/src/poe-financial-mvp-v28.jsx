@@ -3514,7 +3514,6 @@ export default function PoeFinancialSystem() {
     // broke color inheritance (dark text on a dark surface — a contrast failure).
     return (
       <div className="min-h-screen overflow-x-clip" style={{ fontFamily: '"DM Sans", system-ui, sans-serif' }}>
-        <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..900&family=DM+Sans:opsz,wght@9..40,300..700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
         {/* Reviewer strip rides the door too — with app chrome gone this Exit is the only way back (DR-0104; REV-0239). Users: flag off, door byte-identical. */}
         {reviewerMode && <ReviewerModeBanner />}
         <SectionBoundary name="TLC">
@@ -3554,7 +3553,6 @@ export default function PoeFinancialSystem() {
           service windows; publishes --lwb-h (read by this root's padding-top and
           the sticky header's `top`, below, so the nav pins under it). */}
       <LiveWorshipBar church={data.church} view={view} churchView={churchView} onOpenChurch={() => { setView('church'); setChurchView('home'); setChurchHomeSection(null); try { window.scrollTo({ top: 0, behavior: motionBehavior() }); } catch (e) {} }} />
-      <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..900&family=DM+Sans:opsz,wght@9..40,300..700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
       <style>{`
 /* Mobile keyboard fix */
 input:focus,textarea:focus,select:focus{scroll-margin-bottom:280px;scroll-margin-top:80px}

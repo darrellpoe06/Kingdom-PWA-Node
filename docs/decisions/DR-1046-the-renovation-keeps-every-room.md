@@ -49,6 +49,7 @@ Because the house already has a theme engine, a real-record home view and a meas
 
 - Before: Chromium captures of home, Books, Real Estate and Projects at 1440 and 390 (attached to the session).
 - After each phase: `npm run verify`; `chrome-layout-probe` at 360 / 768 / 1024 / 1440 and A44; the inventory test (every nav id and second-row id renders); the before/after capture set of all 34 views diffed by view; a real deploy run matching `main` and a `site-health` pass (DR-0107, DR-0125); the live user-review pass (DR-0104).
+- Phase 1 shipped 2026-10-15, before any visible change: `app/public/fonts/` (four latin woff2, two OFL texts), `@font-face` in `index.css`, the two blocked Google Fonts links removed from the shell (5,300 lines, 2 under budget), the `heritage` block and registry entry in `lib/theme-css.js`, its highlight rules, and midnight twins for every chrome token. `heritage-theme-foundation.test.js` (9 tests, proven-to-catch on a missing remap, a gold-as-text rule, a true-red hex, a missing font file, a Google Fonts link); `books-reports-theme.test.jsx` extended to the seventh theme; contrast-guard PASS on every theme, legibility-guard PASS, 20 gates OK, lint clean.
 - `re-review: 2026-10-22` — Phases 1 and 2 merged if approved; otherwise the plan is brought back with the mockup.
 
 ## Links
