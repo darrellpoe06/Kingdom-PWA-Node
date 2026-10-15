@@ -1329,10 +1329,30 @@ jobs:
         env:
           NEEDS: ${{ toJSON(needs) }}
         run: |
+          # A SUPERSEDED RUN IS NOT A FAILURE, AND MUST NOT READ AS ONE (DR-1041).
+          # This used to be one `select(.value.result != "success")`, which lumps
+          # `cancelled` in with `failure` and printed "required legs did not pass"
+          # for both. Measured on #2186: pushing the base merge cancelled the
+          # previous commit's legs mid-run, and the resulting red check woke an
+          # agent that spent a full investigation to find that nothing had broken.
+          # A red that means "something else happened" teaches a reader to discount
+          # red, which is the same lie as a gate that always passes (DR-0076 §3).
+          #
+          # IT STILL EXITS 1 ON CANCELLED, DELIBERATELY. This job's name is what
+          # branch protection requires (DR-0617, below). If a cancelled run could
+          # report success, a superseded run would satisfy the required check with
+          # its tests never having run -- a gate that passes without measuring.
+          # So the exit code does not move; only the words do.
           echo "$NEEDS" | jq -r 'to_entries[] | "\(.key): \(.value.result)"'
-          bad=$(echo "$NEEDS" | jq -r '[to_entries[] | select(.value.result != "success") | .key] | join(", ")')
-          if [ -n "$bad" ]; then
-            echo "::error::required legs did not pass: $bad"
+          failed=$(echo "$NEEDS" | jq -r '[to_entries[] | select(.value.result == "failure") | .key] | join(", ")')
+          stopped=$(echo "$NEEDS" | jq -r '[to_entries[] | select(.value.result != "success" and .value.result != "failure") | .key] | join(", ")')
+          if [ -n "$failed" ]; then
+            echo "::error::required legs FAILED: $failed"
+            [ -n "$stopped" ] && echo "::notice::also did not finish (not counted as failures): $stopped"
+            exit 1
+          fi
+          if [ -n "$stopped" ]; then
+            echo "::error::THIS RUN DID NOT FINISH -- nothing failed. Legs that never completed: $stopped. The usual cause is a newer commit on this branch cancelling this run; that newer commit has its own run, and THAT is the one that counts. Re-read the PR's checks on its current head before treating this as a break."
             exit 1
           fi
           echo "All legs passed."
