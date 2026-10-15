@@ -22,6 +22,8 @@
 // build's `photo` string) migrate transparently into the `photos` array.
 import React, { useRef, useState } from 'react';
 import { compressImageFile } from '../lib/image.js';
+import SpacePhotoConsole from './SpacePhotoConsole.jsx';
+import { photosOf, addPhotos, removePhoto, setCover, movePhoto } from '../lib/space-photos.js';
 import {
   CAMERA_BRANDS, brandLabel, classifyStreamUrl, makeCamera, camerasOf,
   upsertCamera, removeCamera, streamStatus, pickLiveView,
@@ -49,13 +51,6 @@ export const OBSERVATION_SEED = {
   ],
 };
 
-// Normalize a space's photos: prefer the photos[] array; fall back to the
-// first build's single `photo` string so older records still display.
-function photosOf(s) {
-  if (Array.isArray(s.photos)) return s.photos;
-  if (s.photo) return [{ id: `legacy-${s.id}`, src: s.photo, at: s.updatedAt || '' }];
-  return [];
-}
 
 const card = 'bg-white border border-[#1A1815] p-4 sm:p-5';
 const labelCls = 'text-[0.5625rem] uppercase tracking-wider text-[#5A5751]';
@@ -209,6 +204,7 @@ function CameraLiveView({ cam }) {
 
 function CameraRow({ spaceId, cam, onUpsert, onRemoveCam }) {
   const [open, setOpen] = useState(false);
+  const [dropping, setDropping] = useState(false);   // the Remove two-step (DR-1059)
   const [editing, setEditing] = useState(false);
   const status = streamStatus(cam, pageProtocol());
   return (
@@ -225,7 +221,15 @@ function CameraRow({ spaceId, cam, onUpsert, onRemoveCam }) {
       <div className="flex items-center gap-3 flex-wrap">
         <button type="button" onClick={() => { setOpen(v => !v); setEditing(false); }} className={btnGhost}>{open ? 'Hide view' : 'View'}</button>
         <button type="button" onClick={() => { setEditing(v => !v); setOpen(false); }} className={btnGhost}>{editing ? 'Close edit' : 'Edit'}</button>
-        <button type="button" onClick={() => onRemoveCam(spaceId, cam.id)} className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838]">Remove</button>
+        {!dropping ? (
+          <button type="button" onClick={() => setDropping(true)} className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838]">Remove</button>
+        ) : (
+          <span className="flex flex-wrap items-center gap-1.5" role="alert">
+            <span className="text-[0.625rem] text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>Take “{cam.name || 'this camera'}” off this space?</span>
+            <button type="button" onClick={() => onRemoveCam(spaceId, cam.id)} className="text-[0.625rem] uppercase tracking-wider px-2 py-1.5 min-h-[36px] border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">Remove it</button>
+            <button type="button" onClick={() => setDropping(false)} className="text-[0.625rem] uppercase tracking-wider px-2 py-1.5 min-h-[36px] border border-[#E8E4DC] text-[#1A1815] hover:border-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">Keep it</button>
+          </span>
+        )}
       </div>
       {open && <CameraLiveView key={`${cam.streamUrl}|${cam.snapshotUrl}`} cam={cam} />}
       {editing && (
@@ -235,9 +239,10 @@ function CameraRow({ spaceId, cam, onUpsert, onRemoveCam }) {
   );
 }
 
-function SpaceTile({ space, photos, onAddPhotos, onRemovePhoto, onRename, onNote, onRemove, onUpsertCamera, onRemoveCamera }) {
+function SpaceTile({ space, photos, onAddPhotos, onRemovePhoto, onSetCover, onMovePhoto, onRename, onNote, onRemove, onUpsertCamera, onRemoveCamera }) {
   const inputRef = useRef(null);
   const [busy, setBusy] = useState(false);
+  const [killing, setKilling] = useState(false);   // the Delete-space two-step (DR-1059)
   const [err, setErr] = useState('');
   const [addingCam, setAddingCam] = useState(false);
   const cameras = camerasOf(space);
@@ -281,16 +286,11 @@ function SpaceTile({ space, photos, onAddPhotos, onRemovePhoto, onRename, onNote
         )}
       </div>
 
-      {photos.length > 0 && (
-        <div className="flex gap-1 p-2 overflow-x-auto bg-white border-b border-[#E8E4DC]">
-          {photos.map(p => (
-            <div key={p.id} className="relative shrink-0">
-              <img src={p.src} alt="" className="w-12 h-12 object-cover border border-[#E8E4DC]" />
-              <button type="button" onClick={() => onRemovePhoto(space.id, p.id)} aria-label="Remove photo" className="absolute -top-1 -right-1 bg-[#1A1815] text-white w-4 h-4 leading-none text-[0.625rem] flex items-center justify-center hover:bg-[#B85838]">×</button>
-            </div>
-          ))}
-        </div>
-      )}
+      {/* The picture console (DR-1059). A thumbnail OPENS; removal is a
+          two-step inside the open view. The bare 16px × that deleted on one
+          tap -- through a window.confirm that the installed PWA can suppress
+          outright -- is gone. */}
+      <SpacePhotoConsole space={space} onSetCover={onSetCover} onMove={onMovePhoto} onRemovePhoto={onRemovePhoto} />
 
       <div className="p-2.5 space-y-2">
         <div>
@@ -307,7 +307,22 @@ function SpaceTile({ space, photos, onAddPhotos, onRemovePhoto, onRename, onNote
           <label htmlFor={`file-${space.id}`} className={`${btnDark} cursor-pointer inline-flex items-center`} aria-disabled={busy}>
             {busy ? 'Working…' : (photos.length ? '+ Add photos' : '📷 Add photos')}
           </label>
-          {!space.capacity && <button type="button" onClick={() => onRemove(space.id)} className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] ml-auto">Delete space</button>}
+          {/* Two-step, inline, for the same reason the photo removal is
+              (DR-1059): the window.confirm this used to gate on can be
+              suppressed outright in the installed app, which turned a delete
+              into a button that did nothing and said nothing. */}
+          {!space.capacity && !killing && (
+            <button type="button" onClick={() => setKilling(true)} className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] ml-auto">Delete space</button>
+          )}
+          {!space.capacity && killing && (
+            <span className="ml-auto flex flex-wrap items-center gap-1.5" role="alert">
+              <span className="text-[0.625rem] text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
+                Delete “{space.name}” and its {photos.length} photo{photos.length === 1 ? '' : 's'}?
+              </span>
+              <button type="button" onClick={() => onRemove(space.id)} className="text-[0.625rem] uppercase tracking-wider px-2 py-1.5 min-h-[36px] border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">Delete for good</button>
+              <button type="button" onClick={() => setKilling(false)} className="text-[0.625rem] uppercase tracking-wider px-2 py-1.5 min-h-[36px] border border-[#E8E4DC] text-[#1A1815] hover:border-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838]">Keep it</button>
+            </span>
+          )}
         </div>
         {err && <p className="text-[0.625rem] text-[#B85838]" style={{ fontFamily: '"Fraunces", serif' }}>{err}</p>}
 
@@ -349,37 +364,32 @@ export function ChurchObservation({ observation, updateChurchObservation }) {
   const writeSpaces = (next) => updateChurchObservation({ spaces: next });
   const now = () => new Date().toISOString();
   // Strip the legacy single `photo` field whenever we write a photos[] array.
-  const onAddPhotos = (id, dataUrls) => writeSpaces(spaces.map(s => {
-    if (s.id !== id) return s;
-    const next = [...photosOf(s), ...dataUrls.map((src, i) => ({ id: `ph-${Date.now()}-${i}`, src, at: now() }))];
-    const { photo, ...rest } = s;
-    return { ...rest, photos: next, updatedAt: now() };
-  }));
-  const onRemovePhoto = (spaceId, photoId) => {
-    if (!window.confirm('Remove this photo?')) return;
-    writeSpaces(spaces.map(s => {
-      if (s.id !== spaceId) return s;
-      const { photo, ...rest } = s;
-      return { ...rest, photos: photosOf(s).filter(p => p.id !== photoId), updatedAt: now() };
-    }));
-  };
+  const onAddPhotos = (id, dataUrls) =>
+    writeSpaces(spaces.map(s => (s.id === id ? addPhotos(s, dataUrls, now()) : s)));
+  // NO window.confirm HERE ANY MORE (DR-1059). The console asks with an inline
+  // two-step, which the installed PWA cannot suppress -- a dialog it suppresses
+  // returns falsy, so this used to return and delete nothing, with no sign it
+  // had refused. By the time this is called the steward has said it twice.
+  const onRemovePhoto = (spaceId, photoId) =>
+    writeSpaces(spaces.map(s => (s.id === spaceId ? removePhoto(s, photoId, now()) : s)));
+  const onSetCover = (spaceId, photoId) =>
+    writeSpaces(spaces.map(s => (s.id === spaceId ? setCover(s, photoId, now()) : s)));
+  const onMovePhoto = (spaceId, photoId, direction) =>
+    writeSpaces(spaces.map(s => (s.id === spaceId ? movePhoto(s, photoId, direction, now()) : s)));
   const onRename = (id, name) => writeSpaces(spaces.map(s => s.id === id ? { ...s, name } : s));
   const onNote = (id, note) => writeSpaces(spaces.map(s => s.id === id ? { ...s, note } : s));
-  const onRemove = (id) => {
-    if (!window.confirm('Delete this space from the board?')) return;
-    writeSpaces(spaces.filter(s => s.id !== id));
-  };
+  // Same dialog problem, same cure: the tile asks twice, inline (DR-1059).
+  const onRemove = (id) => writeSpaces(spaces.filter(s => s.id !== id));
   const addSpace = () => writeSpaces([...spaces, { id: `sp-${Date.now()}`, name: `Room ${spaces.filter(s => !s.capacity).length + 1}`, photos: [], note: '', updatedAt: '' }]);
 
   // Camera registry writes — metadata only (name/brand/URLs/notes), so unlike
   // the photo bytes these ride the family snapshot with the rest of the board.
   const onUpsertCamera = (spaceId, cam) => writeSpaces(spaces.map(s =>
     s.id === spaceId ? { ...s, cameras: upsertCamera(camerasOf(s), cam), updatedAt: now() } : s));
-  const onRemoveCamera = (spaceId, camId) => {
-    if (!window.confirm('Remove this camera from the space?')) return;
-    writeSpaces(spaces.map(s =>
-      s.id === spaceId ? { ...s, cameras: removeCamera(camerasOf(s), camId), updatedAt: now() } : s));
-  };
+  // The FOURTH dialog on this one surface, found by the whole-file check rather
+  // than by me (DR-1059). Same cure: CameraRow asks twice, inline.
+  const onRemoveCamera = (spaceId, camId) => writeSpaces(spaces.map(s =>
+    s.id === spaceId ? { ...s, cameras: removeCamera(camerasOf(s), camId), updatedAt: now() } : s));
 
   const withPhotos = spaces.filter(s => photosOf(s).length).length;
   const totalPhotos = spaces.reduce((n, s) => n + photosOf(s).length, 0);
@@ -409,7 +419,7 @@ export function ChurchObservation({ observation, updateChurchObservation }) {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-4">
         {spaces.map(s => (
-          <SpaceTile key={s.id} space={s} photos={photosOf(s)} onAddPhotos={onAddPhotos} onRemovePhoto={onRemovePhoto} onRename={onRename} onNote={onNote} onRemove={onRemove} onUpsertCamera={onUpsertCamera} onRemoveCamera={onRemoveCamera} />
+          <SpaceTile key={s.id} space={s} photos={photosOf(s)} onAddPhotos={onAddPhotos} onRemovePhoto={onRemovePhoto} onSetCover={onSetCover} onMovePhoto={onMovePhoto} onRename={onRename} onNote={onNote} onRemove={onRemove} onUpsertCamera={onUpsertCamera} onRemoveCamera={onRemoveCamera} />
         ))}
       </div>
     </section>
