@@ -13,7 +13,7 @@ import { fileURLToPath } from 'node:url';
 import {
   toProgramShape, toSegmentShape, sectorForRole, sectorLabel, STEWARD,
   parseClock, formatClock, computeSchedule, reflowProgram, deriveSectorView,
-  seedDefaultOrder, deriveAccess, summarizeChange, toChangeShape, toFinalizerMemberShape,
+  seedDefaultOrder, deriveAccess, accessDiagnosis, playbookFor, summarizeChange, toChangeShape, toFinalizerMemberShape,
   parsePeople, peopleOf, whoText, whoServes, segmentRow, windowSay, SERVICE_WINDOW,
 } from '../lib/service-program.js';
 
@@ -297,5 +297,70 @@ describe('the service window: 75 to 90 minutes (DR-1029)', () => {
     expect(deriveSectorView({ id: 'p1' }, seed, STEWARD).window.ok).toBe(true); // 81'
     const padded = seed.map((s) => (s.title === 'Speaker' ? { ...s, plannedMinutes: 50 } : s)); // 96'
     expect(deriveSectorView({ id: 'p1' }, padded, STEWARD).window).toMatchObject({ ok: false, over: 6 });
+  });
+});
+
+describe('accessDiagnosis — a refusal names what was read (DR-0076)', () => {
+  it('no church space: says so and how a steward adds you', () => {
+    const lines = accessDiagnosis({ email: 'd@x.com', tenantId: null, role: null, errors: ['no church space answered for this account'] });
+    expect(lines[0]).toBe('Signed in as d@x.com.');
+    expect(lines.some((l) => l.startsWith('No church space answered'))).toBe(true);
+    expect(lines.some((l) => l.includes('no church space answered'))).toBe(true);
+  });
+  it('a member not on the roster: role and roster both named', () => {
+    const lines = accessDiagnosis({ email: 'm@x.com', tenantId: 't', role: 'member', choirRole: null, errors: [] });
+    expect(lines).toContain('Your role in the church space: member.');
+    expect(lines).toContain('Choir roster: not on it.');
+  });
+  it('an owner refused means a read failed, and the screen says so', () => {
+    const lines = accessDiagnosis({ email: 'o@x.com', tenantId: 't', role: 'owner', choirRole: 'director', errors: ['choir read failed: 500'] });
+    expect(lines.some((l) => l.startsWith('An owner or admin always sees'))).toBe(true);
+    expect(lines).toContain('Choir roster: on it as director.');
+    expect(lines).toContain('Read failed \u2014 choir read failed: 500');
+  });
+  it('falls back to the actor name, never an empty subject', () => {
+    expect(accessDiagnosis({ actorName: 'Darrell', tenantId: null })[0]).toBe('Signed in as Darrell.');
+    expect(accessDiagnosis(null)).toEqual([]);
+  });
+});
+
+describe('playbookFor — the Sunday or Wednesday playbook across every sector (Darrell 2026-10-15)', () => {
+  const program = { id: 'p1', title: 'Order of Worship', serviceType: 'sunday', serviceDate: '2026-10-18', startTime: '11:00' };
+  const segs = [
+    { id: 'a', sortOrder: 10, title: 'Prayer', sector: 'pastoral', plannedMinutes: 5, flexible: true, personnel: ['Deacon Lee'], cues: { media: 'house lights down' } },
+    { id: 'b', sortOrder: 20, title: 'Choir \u2014 1 song', sector: 'worship', plannedMinutes: 5, flexible: true, personnel: ['Christina'], auxiliary: 'Choir', cues: {} },
+    { id: 'c', sortOrder: 30, title: 'Speaker', sector: 'pulpit', plannedMinutes: 35, flexible: false, personnel: ['Bishop Gwin'], cues: { media: 'sermon slides' } },
+    { id: 'd', sortOrder: 40, title: 'Benediction', sector: 'pulpit', plannedMinutes: 3, flexible: true, personnel: [], cues: {} },
+  ];
+  const book = playbookFor(program, segs, { members: [{ displayName: 'Keys', isFinalizer: true }, { displayName: 'Alto', isFinalizer: false }] });
+
+  it('clocks every line from the start time and totals the order', () => {
+    expect(book.lines.map((l) => l.startClock)).toEqual(['11:00 AM', '11:05 AM', '11:10 AM', '11:45 AM']);
+    expect(book.endClock).toBe('11:48 AM');
+    expect(book.total).toBe(48);
+    expect(book.window.under).toBe(27);
+  });
+
+  it('names who presides from the fixed pulpit line, and who signs from the roster', () => {
+    expect(book.presiding).toEqual(['Bishop Gwin']);
+    expect(book.finalizers).toEqual(['Keys']);
+  });
+
+  it('gives each team its stops: the lines it owns and the lines that cue it', () => {
+    const media = book.sectors.find((s) => s.key === 'media');
+    expect(media.stops.map((st) => [st.title, st.cue])).toEqual([['Prayer', 'house lights down'], ['Speaker', 'sermon slides']]);
+    const choir = book.sectors.find((s) => s.key === 'worship');
+    expect(choir.stops.map((st) => st.title)).toEqual(['Choir \u2014 1 song']);
+    expect(choir.stops[0].owns).toBe(true);
+    expect(choir.stops[0].who).toBe('Choir \u00b7 Christina');
+    expect(book.sectors.find((s) => s.key === 'ushers')).toBeUndefined();
+  });
+
+  it('an empty order has no window and no presiding, never a painted one', () => {
+    const empty = playbookFor(program, []);
+    expect(empty.lines).toEqual([]);
+    expect(empty.window).toBeNull();
+    expect(empty.presiding).toEqual([]);
+    expect(empty.sectors).toEqual([]);
   });
 });

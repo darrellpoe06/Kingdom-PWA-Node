@@ -112,13 +112,12 @@ describe('the day each lesson was added — a recorded day, and a new lesson joi
     const back = byNum.filter((m, i) => i > 0 && m.added < byNum[i - 1].added).map((m) => m.id);
     expect(back).toEqual([]);
     expect(byNum[0].added).toBe('2026-06-24');
-    // The newest lesson's day, kept current as lessons land. L242 (DR-1018) is
-    // the shyness-can-be-pride remainder of the 2026-08-14 sitting — four
-    // strands Darrell spoke that were absent from the whole series until they
-    // were checked for on 2026-10-14 and built that day — so the
-    // highest-numbered lesson now carries 2026-10-14. (L241, DR-1001, the
-    // finfluencer letter, holds 2026-10-13 one place behind it.)
-    expect(byNum[byNum.length - 1].added).toBe('2026-10-14'); // L242 (DR-1018)
+    // The newest lesson's day, kept current as lessons land. L247 (DR-1036,
+    // "your ways show your god") is the last of three teachings Darrell spoke
+    // into the house on 2026-10-15 (L245–L247, DR-1034–1036), so the
+    // highest-numbered lesson now carries 2026-10-15. (L242, DR-1018, holds
+    // 2026-10-14 behind them.)
+    expect(byNum[byNum.length - 1].added).toBe('2026-10-15'); // L247 (DR-1036)
   });
 
   it('formats a calendar day without a time-zone shift, and months are labels', () => {

@@ -279,4 +279,10 @@ export const LIVING_LESSONS_ADDED = {
   // as ll243's and for the same reason: this sits at the END of the series, so
   // an August day would make ll244 older than ll243 while numbered after it.
   'll244-the-heavens-declare-and-the-timetable-is-held-open': '2026-10-14',
+  // SPOKEN by Darrell on 2026-10-15 (UTC) into the house, in one night, as
+  // three teachings, and built the same session (the standing rule: a spoken
+  // teaching is build input). The commit day is the spoken day.
+  'll245-deductive-reasoning-is-the-words-way-from-what-he-said': '2026-10-15',
+  'll246-doing-the-word-comes-first-and-our-live-situations-are-bread': '2026-10-15',
+  'll247-your-ways-show-your-god-know-yourself-in-number-and-in-kind': '2026-10-15',
 };
