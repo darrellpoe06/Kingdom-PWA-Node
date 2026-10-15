@@ -14,7 +14,7 @@
 // coordinator). RLS is the real gate (0095-bus-ministry.sql); the client mirrors
 // it with getBusAccess() so editor controls only render for the coordinator.
 //
-// Word-first: "Bear ye one another's burdens" (Galatians 6:2); the reminders so
+// Word-first: "Bear ye one another’s burdens" (Galatians 6:2); the reminders so
 // "all things be done decently and in order" (1 Corinthians 14:40).
 // =============================================================================
 import React, { useEffect, useMemo, useState } from 'react';
