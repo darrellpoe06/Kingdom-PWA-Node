@@ -43,7 +43,18 @@
 // header, and never echoed — not in a reason string, not in a debug line.
 import { pathToFileURL } from 'node:url';
 
-export const RELAY_URL = 'https://poetech.tail5a2f35.ts.net/webhook/ops-announce';
+// CUT OVER TO THE SOVEREIGN BELL 2026-10-15 (DR-1047). This was
+// `/webhook/ops-announce` -- the Funnel's n8n root -- which answered 404
+// "webhook not registered" for five weeks while every alarm it carried
+// reached nobody. The n8n-is-gone HELD entry for this file named its own
+// release condition: "Held until a sovereign bell replaces it end to end."
+// That bell is poetech-announce.service, proven `active` on the box by
+// nas-health run 38726513614, and the `/announce` row in
+// infra/nas-transport/RECORDED-STATE.md is its road.
+//
+// Tailscale strips the mount point and the server matches its path by SUFFIX,
+// so this full spelling arrives as `/ops-announce` and is matched either way.
+export const RELAY_URL = 'https://poetech.tail5a2f35.ts.net/announce/ops-announce';
 
 /**
  * Did the bell ring? Pure — no network, no env, no clock.
@@ -78,9 +89,17 @@ export function classifyBellResponse({ code, body = '', transportError = null } 
     return {
       rang: false,
       dead: true,
+      // The n8n branch is kept because its body shape is exact and the history
+      // is real; it only fires on n8n's own words. After the DR-1047 cut-over
+      // the OTHER branch is the one that will fire, so it now names the cause
+      // it will actually have: the Funnel mount. A 404 on the sovereign road
+      // means tailscale is serving nothing at /announce, which is precisely
+      // the built-correct-never-connected class that cost /nas-photos seven
+      // weeks, /taxes seven weeks and /scribe eighteen days — so it says the
+      // one command that fixes it instead of shrugging at the path.
       reason: unregistered
         ? 'THE PHONE ALARM IS NOT REGISTERED — the relay answered HTTP 404 "webhook not registered", which means the n8n workflow holding POST ops-announce is not ACTIVE on the NAS. Every alarm raised while this is true is recorded here and reaches nobody.'
-        : 'the announce relay answered HTTP 404 — the webhook path is wrong or no longer served.',
+        : 'THE BELL HAS NO ROAD — the relay answered HTTP 404, so nothing is mounted at /announce on the Funnel. The service may be running on 127.0.0.1:8796 and still be unreachable. infra/nas-announce/install.sh mounts it on every services-sync cycle; if this persists, the mount is failing and the fix is: sudo /var/packages/Tailscale/target/bin/tailscale funnel --bg --set-path /announce http://127.0.0.1:8796',
     };
   }
   if (n === 401 || n === 403) {
