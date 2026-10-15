@@ -21,15 +21,65 @@ import { toStatsShape } from './sermon-engagement.js';
 
 // --- Points-source data ------------------------------------------------------
 
-// Transcript text keyed by video id. Empty/no-caption rows are skipped. RLS:
-// user_in_choir read; a non-member gets [].
-export async function fetchTranscriptsByVideo() {
-  const { data, error } = await supabase.from('video_transcripts').select('video_id,text');
+// How many transcripts one call may carry. A transcript is the FULL caption
+// text of a service, so this is the only read in this module whose rows are
+// measured in tens of kilobytes rather than bytes — the cap is what keeps a
+// phone from paying for the whole archive to show a few lines of outline.
+export const TRANSCRIPT_BATCH_CAP = 60;
+
+/**
+ * Transcript text for NAMED videos, keyed by video id. RLS: user_in_choir
+ * read; a non-member gets {}.
+ *
+ * WHY THIS TAKES IDS (DR-1057). Until 2026-10-15 this module's transcript read
+ * was `select('video_id,text')` with NO WHERE and NO LIMIT — the full caption
+ * text of every service the church has ever posted, pulled to the phone on
+ * arrival at The Word. Darrell, that day: "We need to find out why it takes
+ * long to populating these tabs."
+ *
+ * What made it worth fixing rather than tuning is what the bytes were FOR. The
+ * transcript is the THIRD precedence in sermon-points.js — BG's prep outline
+ * wins, then the harvest row, and only then is an outline derived from the
+ * captions — and the derivation yields at most 8 short strings
+ * (extractSermonPoints limit: 8). So for every message that already had prep,
+ * the whole transcript was read and discarded.
+ *
+ * The discipline was already in this repo, one call site over: Choir.jsx fetches
+ * transcripts only when somebody taps "draft words", and caches them. The Word
+ * fetched eagerly on arrival. Same function, two call sites, opposite habits.
+ */
+export async function fetchTranscriptsFor(videoIds = []) {
+  const ids = [...new Set((Array.isArray(videoIds) ? videoIds : [])
+    .filter((v) => typeof v === 'string' && v.trim()))].slice(0, TRANSCRIPT_BATCH_CAP);
+  if (!ids.length) return {};
+  const { data, error } = await supabase
+    .from('video_transcripts').select('video_id,text').in('video_id', ids);
   if (error) { console.warn('[sermon-library] transcripts fetch failed:', error); return {}; }
   const out = {};
   for (const r of data || []) {
     const text = r && typeof r.text === 'string' ? r.text : '';
     if (r && r.video_id && text.trim()) out[r.video_id] = { text };
+  }
+  return out;
+}
+
+/**
+ * Pure. WHICH messages actually need a transcript, newest first.
+ *
+ * Only the ones the first two precedences do not already answer. Exported so
+ * the saving is a tested property and not a claim: the set this returns is
+ * exactly what crosses the wire.
+ */
+export function videosNeedingTranscript(sermons = [], { prepBySermon = {}, harvestsByVideo = {}, videoIdOf = (s) => s && s.videoId, cap = TRANSCRIPT_BATCH_CAP } = {}) {
+  const out = [];
+  for (const s of Array.isArray(sermons) ? sermons : []) {
+    if (!s) continue;
+    if (prepBySermon[s.id]) continue;              // BG's own outline wins
+    const vid = videoIdOf(s);
+    if (!vid) continue;                            // nothing to key a transcript by
+    if (harvestsByVideo[vid]) continue;            // the harvest lane already has refs
+    out.push(vid);
+    if (out.length >= cap) break;
   }
   return out;
 }
@@ -94,14 +144,16 @@ export async function fetchPublicPoints() {
   return out;
 }
 
-// All points sources in one shot. Returns { prepBySermon, transcriptsByVideo, harvestsByVideo }.
+// The two CHEAP points sources, in one shot. Returns { prepBySermon,
+// harvestsByVideo }. Transcripts are deliberately NOT here any more (DR-1057):
+// they are the expensive source and the least-preferred one, so they are
+// fetched after these land, only for the messages these two did not answer.
 export async function fetchPointsData() {
-  const [prepBySermon, transcriptsByVideo, harvestsByVideo] = await Promise.all([
+  const [prepBySermon, harvestsByVideo] = await Promise.all([
     fetchPrepBySermon(),
-    fetchTranscriptsByVideo(),
     fetchHarvestsByVideo(),
   ]);
-  return { prepBySermon, transcriptsByVideo, harvestsByVideo };
+  return { prepBySermon, harvestsByVideo };
 }
 
 // --- YouTube stats (secondary display + the "Most viewed" sort) --------------
