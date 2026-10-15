@@ -109,7 +109,7 @@ function GroupsPanel({ session }) {
             key={g.key}
             type="button"
             onClick={() => { setRoster(g.key); setErr(''); }}
-            className={`${BTN} border ${roster === g.key ? 'border-[#1A1815] text-[#1A1815]' : 'border-[#C9BFA8] text-[#5A5751]'}`}
+            className={`${BTN} rounded-full border ${roster === g.key ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'border-[#C9BFA8] text-[#5A5751]'}`}
           >
             {g.label}
           </button>
@@ -119,12 +119,12 @@ function GroupsPanel({ session }) {
         Group threads are private to the roster (server-enforced), not yet end-to-end encrypted — that follow-up is tracked.
       </p>
       {err && <p className="text-xs text-[#991B1B]" role="alert">{err}</p>}
-      <div className="border border-[#E8E4DC] bg-[#FAF8F4] p-3 max-h-72 overflow-y-auto space-y-2" aria-live="polite">
+      <div className="border border-[#E8E4DC] bg-[#FAF8F4] rounded-2xl p-3 max-h-72 overflow-y-auto space-y-2" aria-live="polite">
         {convo.length === 0 && <p className="text-xs text-[#5A5751]">No messages in this thread yet.</p>}
         {convo.map((m) => (
           <div key={m.id} className={`text-sm ${m.mine ? 'text-right' : 'text-left'}`}>
             {!m.mine && <div className="text-[0.5625rem] uppercase tracking-wider text-[#5A5751]">{m.senderName}</div>}
-            <div className={`inline-block px-3 py-1.5 max-w-[85%] ${m.mine ? 'bg-[#1A1815] text-white' : 'bg-white border border-[#E8E4DC] text-[#1A1815]'}`}>
+            <div className={`inline-block px-3 py-1.5 max-w-[85%] rounded-2xl ${m.mine ? 'bg-[#1A1815] text-white rounded-br-md' : 'bg-white border border-[#E8E4DC] text-[#1A1815] rounded-bl-md'}`}>
               {m.body}
             </div>
             <div className="text-[0.5625rem] text-[#5A5751] mt-0.5">{fmtTime(m.atIso)}</div>
@@ -318,7 +318,7 @@ function AddContact({ onInvited, roster = [] }) {
       {msg && <p className="text-xs text-[#1A1815]" role="status">{msg}</p>}
       {share.text && (
         <div className="space-y-1.5">
-          <p className="text-xs text-[#1A1815] bg-white border border-[#E8E4DC] p-2 break-words">{share.text}</p>
+          <p className="text-xs text-[#1A1815] bg-white border border-[#E8E4DC] rounded-xl p-2 break-words">{share.text}</p>
           <div className="flex flex-wrap gap-1.5">
             <a href={smsHrefTo(share.phone, share.text)} className={`${BTN} border border-[#1A1815] text-[#1A1815]`}>{share.phone ? 'Text it to them' : 'Text it'}</a>
             {share.phone && telHref(share.phone) && <a href={telHref(share.phone)} className={`${BTN} border border-[#1A1815] text-[#1A1815]`}>Call</a>}
@@ -355,7 +355,7 @@ function AddContact({ onInvited, roster = [] }) {
             // contact has NO grant until their email is added (review GAP 1).
             const STATUS = { texted: 'texted the app · no access yet', invited: 'invite sent', saved: 'saved' };
             return (
-              <div key={c.id} className="bg-white border border-[#E8E4DC] p-2">
+              <div key={c.id} className="bg-white border border-[#E8E4DC] rounded-xl p-2">
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-xs font-semibold text-[#1A1815]">{c.name || c.phone || c.email || 'Contact'}</span>
                   <span className="text-[0.5625rem] uppercase tracking-wider text-[#5A6E3D]">{STATUS[c.status] || c.status}</span>
@@ -460,7 +460,7 @@ export default function Messages({
             key={id}
             type="button"
             onClick={() => setTab(id)}
-            className={`${BTN} border ${tab === id ? 'border-[#1A1815] text-[#1A1815]' : 'border-[#C9BFA8] text-[#5A5751]'}`}
+            className={`${BTN} rounded-full border ${tab === id ? 'bg-[#1A1815] text-white border-[#1A1815]' : 'border-[#C9BFA8] text-[#5A5751]'}`}
           >
             {label}
           </button>
