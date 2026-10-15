@@ -1,4 +1,4 @@
-# DR-1044: The renovation keeps every room — the Heritage redesign is a theme plus a shell, never a rebuild
+# DR-1045: The renovation keeps every room — the Heritage redesign is a theme plus a shell, never a rebuild
 
 **Date:** 2026-10-15
 **Status:** proposed (awaiting Darrell's approval of the plan and the first design)

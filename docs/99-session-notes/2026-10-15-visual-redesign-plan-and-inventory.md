@@ -2,7 +2,7 @@
 
 **Status:** PROPOSED. No application code changes in this note's PR. Darrell asked for the plan, the affected-surface map and the first design before any code moves; this is that delivery.
 **Mockup:** `docs/99-session-notes/2026-10-15-visual-redesign-mockup.html` (home and Big Picture, desktop and phone, with the measured palette). Published privately at https://claude.ai/artifact/TDi4kG2Ai9sFwr1EKuhByb.
-**Decision record:** DR-1044 (proposed).
+**Decision record:** DR-1045 (proposed).
 **Brief:** Darrell 2026-10-15, with a reference image: *"THIS IS A VISUAL REDESIGN ONLY... Think of this as completely renovating a beautiful home without removing any of its rooms, belongings, or functionality."*
 
 ---
@@ -93,7 +93,7 @@ Theme key `heritage`, label "Heritage · forest & gold". Values and AA measureme
 
 | Phase | Scope | Visible change | Tier |
 |---|---|---|---|
-| 0 (this PR) | plan, mockup, DR-1044 proposed | none | — |
+| 0 (this PR) | plan, mockup, DR-1045 proposed | none | — |
 | 1 Foundation | self-host Fraunces + DM Sans; `heritage` theme block + registry + highlight rule; semantic token remaps; guard coverage extended to every theme | none until a device picks Heritage | B |
 | 2 Shell | `lib/nav-items.js`; SideNav (desktop); five-tab `ChromeDock` mode + More; SettingsPanel; new tagline on the lockup; Heritage becomes the default | the whole app wears the finish | C (`hold`) |
 | 3 Home | Life Hub as the signed-in home; hero; Recent Messages + Recent Activity from records; Big Picture restyled | home and Big Picture | C (`hold`) |
