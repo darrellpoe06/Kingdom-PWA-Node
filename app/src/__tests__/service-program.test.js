@@ -183,6 +183,102 @@ describe('seedDefaultOrder + deriveAccess', () => {
     expect(deriveAccess(null, true)).toEqual({ canSee: true, canEdit: false });
     expect(deriveAccess(null, false)).toEqual({ canSee: false, canEdit: false });
   });
+
+  // =========================================================================
+  // THE ORDER OF SERVICE IS THE CONGREGATION'S TO READ (DR-1037)
+  // =========================================================================
+  // Darrell 2026-10-15: "Christina does not see the order of service!!!!!!!!!
+  // Either!!!!!!!!!" She is a member of the church space and not on the choir
+  // roster, and reading the order required CHOIR membership from 0042 until
+  // 0293. The case below is the exact account that was locked out, and it is
+  // the case this whole describe block never had: every assertion above passes
+  // a role of 'owner', 'admin' or null, so a plain member was never tested.
+  it('a plain member of the church space SEES the order (the Christina case)', () => {
+    expect(deriveAccess('member', false, false)).toEqual({ canSee: true, canEdit: false });
+  });
+
+  it('and an usher or deacon named ON the order can open it (0292 made this absurd)', () => {
+    // 0292 taught every line to name the auxiliary carrying it -- Choir,
+    // Ushers, Deacons -- so a deacon could be printed on the order and unable
+    // to read the page he was printed on.
+    expect(deriveAccess('member', false, false).canSee).toBe(true);
+  });
+
+  it('seeing is NOT editing: a member may read the order and change nothing', () => {
+    // The widening is read-only on purpose. 0293 carries no write policy, and
+    // this is the assertion that keeps it that way.
+    const a = deriveAccess('member', false, false);
+    expect(a.canSee).toBe(true);
+    expect(a.canEdit).toBe(false);
+  });
+
+  it('THE TENANCY WALL DOES NOT MOVE: a non-member still sees nothing', () => {
+    // 'a member of THIS church space', never 'anyone signed in' (DR-0060).
+    // user_role_in_instance returns NULL outside the space, so role is falsy.
+    expect(deriveAccess(null, false, false)).toEqual({ canSee: false, canEdit: false });
+    expect(deriveAccess('', false, false)).toEqual({ canSee: false, canEdit: false });
+    expect(deriveAccess(undefined, false, false)).toEqual({ canSee: false, canEdit: false });
+  });
+
+  it('PROVEN-TO-CATCH: the pre-0293 rule fails the Christina case', () => {
+    // The rule as it stood from 0042 until this change, written out. If someone
+    // narrows canSee back to choir membership, the assertion above goes red and
+    // this one says why in one line.
+    const preFix = (role, inChoir, isFinalizer = false) => {
+      const isAdmin = role === 'owner' || role === 'admin';
+      const canEdit = isAdmin || isFinalizer === true;
+      return { canSee: canEdit || inChoir === true, canEdit };
+    };
+    expect(preFix('member', false, false).canSee).toBe(false);
+    expect(deriveAccess('member', false, false).canSee).toBe(true);
+  });
+});
+
+// ===========================================================================
+// THE OTHER HALF: THE POLICIES (DR-1037)
+// ===========================================================================
+// deriveAccess alone would render the page and the database would hand back
+// zero rows. Three tables are gated, not one, and fixing only the first two
+// leaves yesterday's "Actual times" and "Track record" tabs blank. These read
+// the migration off disk so the UI half can never drift from the SQL half.
+describe('0293 widens READING to the whole house, and nothing else', () => {
+  const sql = readFileSync(
+    join(ROOT, 'infra/supabase/migrations-auto/0293-the-order-of-service-is-the-congregations-to-read.sql'),
+    'utf8',
+  );
+  const TABLES = ['church_service_programs', 'church_service_segments', 'church_service_segment_actuals'];
+  // The EXECUTABLE half only. The header deliberately quotes the three old
+  // policies so a reader can see what changed, so every "this must not appear"
+  // assertion below has to read the statements and not the documentation --
+  // which is exactly what tripped the first cut of this test.
+  const code = sql.split('\n').filter((l) => !l.trim().startsWith('--')).join('\n');
+
+  it('all THREE read policies move, including the actuals that shipped yesterday', () => {
+    // Each POLICY STATEMENT must carry the predicate -- asserted on the
+    // statement, not by counting the file, because the header explains the
+    // predicate in prose too and a whole-file count reads 4 for 3 policies.
+    for (const t of TABLES) {
+      const stmt = new RegExp(
+        `CREATE POLICY ${t}_read ON ${t} FOR SELECT\\s*\\n?\\s*USING \\(user_role_in_instance\\(instance_id\\) IS NOT NULL\\);`,
+      );
+      expect(stmt.test(sql), `${t}_read must SELECT on instance membership`).toBe(true);
+    }
+    // And no choir predicate is left behind on any of them.
+    expect(code).not.toMatch(/USING \(user_in_choir/);
+  });
+
+  it('it carries NO write policy — a member reads, only the old hands change it', () => {
+    expect(code).not.toMatch(/FOR\s+(INSERT|UPDATE|DELETE)/i);
+    expect(code).not.toMatch(/WITH CHECK/i);
+  });
+
+  it('and it is a member of THIS space, never anyone signed in', () => {
+    // The wall is the predicate: user_role_in_instance reads instance_members
+    // and returns NULL outside the space (DR-0060).
+    expect(sql).toContain('instance_members');
+    expect(code).not.toMatch(/USING \(true\)/);
+    expect(code).not.toMatch(/auth\.role\(\)\s*=\s*'authenticated'/);
+  });
 });
 
 describe('finalizer circle (collaborative master edit)', () => {

@@ -409,13 +409,27 @@ export function seedDefaultOrder() {
 
 // --- Access (mirrors getChoirAccess) -----------------------------------------
 // canEdit (FINALIZE the master) = owner/admin OR a designated worship-team
-// finalizer (the keyboardist circle, 0043). canSee (read the master + a per-
-// sector view) = any choir member. The finalizer flag is orthogonal to the
-// musical role: a musician can be a finalizer without being an instance admin.
+// finalizer (the keyboardist circle, 0043). The finalizer flag is orthogonal to
+// the musical role: a musician can be a finalizer without being an instance
+// admin.
+//
+// canSee IS ANY MEMBER OF THE CHURCH SPACE (DR-1037). It used to be any CHOIR
+// member, and Darrell reported the consequence: "Christina does not see the
+// order of service!!!!!!!!! Either!!!!!!!!!" The order of service is what the
+// whole house walks into on Sunday and Wednesday, and since 0292 each line
+// names the auxiliary carrying it -- the Choir, the Ushers, the Deacons -- so an
+// usher could be named ON the order and unable to open it. A truthy `role` means
+// user_role_in_instance returned a row from instance_members, so this is a
+// member of THIS space and never merely someone signed in.
+//
+// The 0293 policies are the other half of this: without them the page renders
+// and the database returns nothing, and without this the tab stays hidden no
+// matter what the policies allow. Neither half works alone.
 export function deriveAccess(role, inChoir, isFinalizer = false) {
   const isAdmin = role === 'owner' || role === 'admin';
   const canEdit = isAdmin || isFinalizer === true;
-  const canSee = canEdit || inChoir === true;
+  const isMember = typeof role === 'string' && role !== '';
+  const canSee = canEdit || inChoir === true || isMember;
   return { canSee, canEdit };
 }
 
