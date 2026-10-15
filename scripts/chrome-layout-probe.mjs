@@ -221,6 +221,11 @@ try {
   for (const view of VIEWS) for (const width of WIDTHS) {
     const url = `${origin}${BASE}/?view=${view}`;
     const page = await browser.newPage({ viewport: { width, height: 900 } });
+    // The full header is what this case measures. Since DR-1046 a fresh
+    // device opens on the slim row (lib/header-hideaway.js, absent = tucked),
+    // so the OPEN state is asked for by name; the hideaway and one-tab cases
+    // below measure the tucked state on their own.
+    await page.addInitScript(() => { try { localStorage.setItem('poe-header-collapsed', '0'); } catch (_) { /* private mode */ } });
     await page.goto(url, { waitUntil: 'networkidle', timeout: CHROME_IDLE_CAP_MS }).catch(() => {});
     await page.waitForSelector('header h1', { timeout: 20000 }).catch(() => {});
     if (SELFTEST) {
@@ -538,7 +543,7 @@ try {
         localStorage.setItem('poetech.help.tour.v1', 'seen');
         if (cfg.sz === 'bigprint') localStorage.setItem('poe-text-size', 'bigprint'); else localStorage.removeItem('poe-text-size');
         // The header hideaway's own per-device key (lib/header-hideaway.js).
-        if (cfg.collapsed) localStorage.setItem('poe-header-collapsed', '1'); else localStorage.removeItem('poe-header-collapsed');
+        if (cfg.collapsed) localStorage.setItem('poe-header-collapsed', '1'); else localStorage.setItem('poe-header-collapsed', '0');
       } catch { /* private mode */ }
     }, { sz: size, collapsed });
     await page.goto(LESSON_URL, { waitUntil: 'networkidle', timeout: 45000 }).catch(() => {});
@@ -846,7 +851,7 @@ try {
       try {
         localStorage.setItem('poetech.help.tour.v1', 'seen');
         localStorage.setItem('poe-text-size', 'largest');
-        localStorage.removeItem('poe-header-collapsed');
+        localStorage.setItem('poe-header-collapsed', '0');
         localStorage.removeItem('poe-comfort-bar-collapsed');
       } catch { /* private mode */ }
     });
@@ -883,7 +888,7 @@ try {
       try {
         localStorage.setItem('poetech.help.tour.v1', 'seen');
         localStorage.setItem('poe-text-size', 'bigprint');
-        localStorage.removeItem('poe-header-collapsed');
+        localStorage.setItem('poe-header-collapsed', '0');
         if (!sessionStorage.getItem('comfort-probe-seeded')) { localStorage.removeItem('poe-comfort-bar-collapsed'); sessionStorage.setItem('comfort-probe-seeded', '1'); }
       } catch { /* private mode */ }
     });
@@ -956,7 +961,7 @@ try {
         localStorage.setItem('poe-text-size', 'bigprint');
         // The header hideaway's own per-device key (lib/header-hideaway.js).
         if (hideHeader) localStorage.setItem('poe-header-collapsed', '1');
-        else localStorage.removeItem('poe-header-collapsed');
+        else localStorage.setItem('poe-header-collapsed', '0');
       } catch { /* private mode */ }
     }, collapsed);
     await page.goto(`${origin}${BASE}${v.path}`, { waitUntil: 'networkidle', timeout: 45000 }).catch(() => {});
