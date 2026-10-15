@@ -139,10 +139,33 @@ export function ledgerIndex(ledger) {
   for (const d of docs) for (const t of d.tokens) df.set(t, (df.get(t) || 0) + 1);
   const n = Math.max(1, docs.length);
   const idf = (t) => Math.log((n + 1) / ((df.get(t) || 0) + 1));
-  // RARE is relative to the ledger's size, so the rule means the same thing on
-  // 448 records and on a test's 13: a word in at most rareShare of records.
-  const rareMax = Math.max(1, Math.floor(docs.length * DECIDED_MATCH.rareShare));
-  const isRare = (t) => (df.get(t) || 0) <= rareMax;
+  // RARE IS AN ABSOLUTE DOCUMENT-FREQUENCY CAP, and it has to be, because any
+  // measure that divides by the ledger's size loosens as the ledger grows.
+  //
+  // MEASURED 2026-10-14, twice, because the first fix was wrong.
+  //
+  // The original form was `df <= floor(n * rareShare)` — a STEP FUNCTION whose
+  // ceiling rose with every tenth decided record. Adding DR-1027 took the
+  // decided count 789 -> 790, rareMax 78 -> 79, and `church` (df 79) crossed
+  // into "rare". That tipped rareShared 2 -> 3 and made matchDecision answer a
+  // REAL bug report — "add the giving link from the church website" — with
+  // "already decided", citing DR-0136.
+  //
+  // THE FIRST FIX WAS A STRICT RATIO, `df / n < rareShare`, on the stated
+  // reasoning that it had "no step to cross". That reasoning was BACKWARDS and
+  // the full suite caught it one record later: adding DR-1028 took n to 791,
+  // and 79/791 = 0.09987 IS below 0.1, so `church` became rare again and the
+  // same note matched again. The floor form loosens by raising the ceiling;
+  // the ratio form loosens by shrinking the quotient. Both are unsafe, for the
+  // same underlying reason — the denominator grows.
+  //
+  // `df` only ever INCREASES as records are added, so a cap on df alone is the
+  // only form where appending records can never promote a token into rareness.
+  // It can only ever demote one, which is the safe direction for a check whose
+  // comment says a wrong "already decided" is worse than carrying the note as
+  // work. RARE_MAX_DOCS is therefore a decided number, not a derived one, and
+  // it is re-reviewable rather than self-adjusting.
+  const isRare = (t) => (df.get(t) || 0) <= DECIDED_MATCH.rareMaxDocs;
   const out = { docs, idf, isRare, n };
   if (ledger && typeof ledger === 'object') indexCache.set(ledger, out);
   return out;
@@ -154,7 +177,31 @@ export function ledgerIndex(ledger) {
 // `newerWithin`: the ledger is append-only (DR-0011), so a NEWER record on the
 // same subject governs the older one it amends (DR-0248 amends DR-0110's kill-
 // switch). A newer candidate within this much coverage of the best one wins.
-export const DECIDED_MATCH = Object.freeze({ minShared: 4, minRareShared: 3, minCoverage: 0.6, minTitleShared: 2, rareShare: 0.1, newerWithin: 0.1 });
+// `rareMaxDocs`: a word in at most this many decided records counts as rare.
+// Absolute on purpose (see isRare): anything divided by the ledger's size
+// loosens the match as the ledger grows.
+//
+// CHOSEN FROM THE MEASURED GAP, 2026-10-14, not fitted to the tests. On the
+// real ledger (791 decided records) the two cases that bracket this are:
+//   · MUST match DR-0248 — "the kill switch should be back on the
+//     deterministic automation loops": automation 15, kill 29,
+//     deterministic 37, loop 51, switch 54. It needs three rare words, so it
+//     works at any cap >= 37.
+//   · MUST NOT match — "add the giving link from the church website":
+//     website 2, giv 19, church 79, link 91. Only two words sit below 79, so
+//     it stays under minRareShared for any cap <= 78.
+// The kill-switch note only reaches three rare words through `loop` (51) and
+// `switch` (54), so the usable window is [54, 78] rather than [40, 78] — a cap
+// of 50 was tried first and dropped DR-0248 out of the candidates entirely,
+// which the suite caught. 65 is taken: 11 clear of the true positive and 14
+// below `church`, the nearest word that must NOT qualify.
+//
+// AS THE LEDGER GROWS, `df` only rises, so matching gets HARDER over time, not
+// easier. That is the intended failure direction, and it is the reason this is
+// a decided number with a re-review rather than a derived one.
+// `rareShare` is kept only so a reader can see what the derived form was;
+// nothing reads it.
+export const DECIDED_MATCH = Object.freeze({ minShared: 4, minRareShared: 3, minCoverage: 0.6, minTitleShared: 2, rareMaxDocs: 65, rareShare: 0.1, newerWithin: 0.1 });
 
 const drNum = (id) => parseInt(String(id || '').replace(/\D/g, ''), 10) || 0;
 
