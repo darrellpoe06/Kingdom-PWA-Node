@@ -257,6 +257,43 @@ jobs:
           BELL_CODE="$CODE"
           note "- \`GET /announce/healthz\` (DIRECT to the Funnel, not via poetech.us) -> **$CODE** (the sovereign phone bell)"
           [ "$BELL_CODE" = "200" ] || echo "::warning::THE BELL IS NOT ANSWERING — /announce/healthz returned HTTP $BELL_CODE direct to the Funnel. Either poetech-announce.service is down on 127.0.0.1:8796 or nothing is mounted at /announce; infra/nas-announce/install.sh does both on every services-sync cycle. While this is true every alarm raised reaches nobody."
+          # AND THE RING ITSELF, because healthz answering proves nothing about
+          # it. MEASURED 2026-10-15: /announce/healthz returned 200 from this
+          # very probe at 18:07 while the real ring had returned **HTTP 502**
+          # at 15:48 — recorded on #2057 by ops-announce's own detector ("the
+          # announce relay failed (HTTP 502)"). Two different things: healthz
+          # is an UNAUTHENTICATED GET, the ring is an AUTHENTICATED POST to a
+          # different path. A green liveness check beside a dead ring is
+          # exactly the built-correct-never-connected class RECORDED-STATE.md
+          # exists for, and it is worse here than for a photo route, because
+          # the bell's failure mode is silence and silence is what a working
+          # bell looks like until the day you need it.
+          #
+          # IT SENDS NOTHING TO ANYBODY'S PHONE. announce_server.py's do_POST
+          # matches the path, reads the bearer, and returns 401 BEFORE it
+          # publishes to ntfy (infra/nas-announce/announce_server.py:164-172),
+          # so a deliberately invalid bearer exercises the whole road -- the
+          # Funnel mount, the POST route, the running handler -- and stops one
+          # line short of the notification. A real ring here would put a false
+          # alarm on the family's phones, which is the opposite of watching.
+          #
+          # 401 is the PASS. Anything else is the finding:
+          #   401/403 -> the road is open and the handler ran. The bell rings.
+          #   404     -> nothing mounted at /announce, or the path moved.
+          #   502/503 -> the measured 15:48 fault: tailscale reached something
+          #              that errored, so the service is not serving the POST.
+          #   000     -> no road at all.
+          BELL_POST_CODE=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 \
+            -X POST -H 'Authorization: Bearer not-a-real-token-probe-only' \
+            -H 'content-type: application/json' \
+            -d '{"title":"probe","message":"auth-only reachability probe; never published"}' \
+            "https://poetech.tail5a2f35.ts.net/announce/ops-announce" 2>/dev/null) || BELL_POST_CODE=000
+          note "- \`POST /announce/ops-announce\` with an INVALID bearer (sends no notification) -> **$BELL_POST_CODE** (401 is the pass: the ring's road is open)"
+          case "$BELL_POST_CODE" in
+            401|403) : ;;
+            404) echo "::warning::THE RING HAS NO ROAD — POST /announce/ops-announce returned 404 while healthz returned $BELL_CODE. Nothing is mounted at /announce for POST, or the path moved. Fix: sudo /var/packages/Tailscale/target/bin/tailscale funnel --bg --set-path /announce http://127.0.0.1:8796" ;;
+            *) echo "::warning::THE RING IS BROKEN WHILE LIVENESS LOOKS FINE — POST /announce/ops-announce returned $BELL_POST_CODE (healthz: $BELL_CODE). This is the fault recorded on #2057 at 2026-10-15T15:48Z as 'the announce relay failed (HTTP 502)'. Every alarm raised while this is true reaches nobody, and healthz will keep saying 200." ;;
+          esac
           # The family camera road (DR-0756): /cams/health passes go2rtc's OWN
           # answer through, so a 200 here proves Pages Function + Funnel +
           # forwarder + go2rtc in one hop. Same v1 scope as the photo path: a
@@ -544,6 +581,11 @@ jobs:
           echo "pages_code=$PAGES_CODE" >> "$GITHUB_OUTPUT"
           echo "photo_code=$PHOTO_CODE" >> "$GITHUB_OUTPUT"
           echo "bell_code=$BELL_CODE" >> "$GITHUB_OUTPUT"
+          # The RING's code rides out too. DR-1042's lesson exactly: on
+          # 2026-10-15 I added the healthz probe and then could not read it,
+          # because it never reached a surface a tail could see. A probe whose
+          # answer stays inside the step is not a witness.
+          echo "bell_post_code=$BELL_POST_CODE" >> "$GITHUB_OUTPUT"
           echo "history_code=$HIST_CODE" >> "$GITHUB_OUTPUT"
           echo "served_sha=${served_sha:-unknown}" >> "$GITHUB_OUTPUT"
           echo "main_sha=${main_sha:-unknown}" >> "$GITHUB_OUTPUT"
@@ -651,6 +693,7 @@ jobs:
           PAGES_CODE: ${{ steps.probe.outputs.pages_code }}
           BACKEND_CODE: ${{ steps.probe.outputs.backend_code }}
           BELL_CODE: ${{ steps.probe.outputs.bell_code }}
+          BELL_POST_CODE: ${{ steps.probe.outputs.bell_post_code }}
           OUTCOME: ${{ steps.probe.outcome }}
           VERDICT: ${{ steps.verdict.outputs.verdict }}
           ANY_NEW: ${{ steps.verdict.outputs.any_new }}
@@ -675,7 +718,7 @@ jobs:
               verdict="DOWN/BROKEN (nothing new, known outage day ${DAYS:-?}) - ${REASONS:-the probe crashed before reporting}"
             fi
           fi
-          line="$(date -u +%FT%TZ) - ${verdict}. Served build: ${SERVED:-unknown} (main: ${MAIN:-unknown}). pages.dev shell: HTTP ${PAGES_CODE:-unknown}. backend auth: HTTP ${BACKEND_CODE:-unknown}. bell (/announce/healthz, direct to the Funnel): HTTP ${BELL_CODE:-unknown}. Run: ${GITHUB_SERVER_URL}/${REPO}/actions/runs/${GITHUB_RUN_ID}"
+          line="$(date -u +%FT%TZ) - ${verdict}. Served build: ${SERVED:-unknown} (main: ${MAIN:-unknown}). pages.dev shell: HTTP ${PAGES_CODE:-unknown}. backend auth: HTTP ${BACKEND_CODE:-unknown}. bell (/announce/healthz, direct to the Funnel): HTTP ${BELL_CODE:-unknown}. bell RING (POST /announce/ops-announce, invalid bearer, 401=open): HTTP ${BELL_POST_CODE:-unknown}. Run: ${GITHUB_SERVER_URL}/${REPO}/actions/runs/${GITHUB_RUN_ID}"
           log_issue=$(gh issue list --repo "$REPO" --state all --search "in:title site-health: the live site, run log" --json number --jq '.[0].number // ""')
           if [ -n "$log_issue" ]; then
             gh issue comment "$log_issue" --repo "$REPO" --body "$line"
@@ -705,6 +748,7 @@ jobs:
           MAIN: ${{ steps.probe.outputs.main_sha }}
           BACKEND_CODE: ${{ steps.probe.outputs.backend_code }}
           BELL_CODE: ${{ steps.probe.outputs.bell_code }}
+          BELL_POST_CODE: ${{ steps.probe.outputs.bell_post_code }}
           N8N_BEARER: ${{ secrets.VITE_N8N_BEARER }}
           VERDICT: ${{ steps.verdict.outputs.verdict }}
           ANY_NEW: ${{ steps.verdict.outputs.any_new }}
