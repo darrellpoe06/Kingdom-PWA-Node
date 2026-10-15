@@ -14,7 +14,7 @@ import {
   toProgramShape, toSegmentShape, sectorForRole, sectorLabel, STEWARD,
   parseClock, formatClock, computeSchedule, reflowProgram, deriveSectorView,
   seedDefaultOrder, deriveAccess, accessDiagnosis, playbookFor, summarizeChange, toChangeShape, toFinalizerMemberShape,
-  parsePeople, peopleOf, whoText, whoServes, segmentRow, windowSay, SERVICE_WINDOW,
+  parsePeople, peopleOf, whoText, whoServes, segmentRow, windowSay, SERVICE_WINDOW, TLC_ENSEMBLE_BAND, MIC_PLAN,
 } from '../lib/service-program.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
@@ -161,20 +161,35 @@ describe('deriveSectorView', () => {
 });
 
 describe('seedDefaultOrder + deriveAccess', () => {
-  it('seed is the church\u2019s own order, with the Speaker fixed and the Choir lines carried by the Choir (DR-1029)', () => {
-    // Darrell 2026-10-15: Prayer · Announcements · Choir, 1 song · Special
-    // events (if we have one) · Offering / Givers' Creed · Choir, 2 songs ·
-    // Speaker · Benediction.
+  it('seed is the order as it last ran: Christina\u2019s 10-11-2026 sheet, people, band and cues (DR-1044)', () => {
     const seed = seedDefaultOrder();
     expect(seed.map((s) => s.title)).toEqual([
-      'Prayer', 'Announcements', 'Choir \u2014 1 song', 'Special events (if we have one)', 'Offering / Givers\u2019 Creed', 'Choir \u2014 2 songs', 'Speaker', 'Benediction',
+      'Call to Worship and Prayer', 'Announcements', 'Special presentation (if we have one)', 'Selection',
+      'The Call to Give', 'Selection', 'Message / Invitation to Christ / Prayer / Benediction', 'Closing',
     ]);
-    const sermon = seed.find((s) => s.title === 'Speaker');
-    expect(sermon.flexible).toBe(false);
-    expect(seed.filter((s) => s.auxiliary === 'Choir')).toHaveLength(2);
-    expect(seed.find((s) => s.title.startsWith('Offering')).auxiliary).toBe('Ushers');
-    expect(seed.reduce((n, s) => n + s.plannedMinutes, 0)).toBe(81);
-    // strictly increasing sortOrder
+    expect(seed[0].personnel).toEqual(['Brother Clifton Reed']);
+    expect(seed[1].personnel).toEqual(['Sister Kristy Reed']);
+    const selections = seed.filter((s) => s.title === 'Selection');
+    expect(selections).toHaveLength(2);
+    for (const sel of selections) {
+      expect(sel.auxiliary).toBe('TLC Ensemble');
+      expect(sel.personnel).toEqual([...TLC_ENSEMBLE_BAND]);
+      expect(sel.cues.media).toMatch(/Check levels in headphones/);
+    }
+    const give = seed.find((s) => s.title === 'The Call to Give');
+    expect(give.personnel).toEqual(['Bishop Gwin']);
+    expect(give.cues.media).toMatch(/Giver\u2019s Creed PowerPoint after The Call to Give/);
+    const message = seed.find((s) => s.title.startsWith('Message'));
+    expect(message.flexible).toBe(false);
+    expect(message.personnel).toEqual(['Bishop Gwin']);
+    expect(seed[0].cues.media).toBe(MIC_PLAN);
+    // The dated items of that Sunday are not repeated.
+    const all = JSON.stringify(seed);
+    expect(all).not.toMatch(/Appreciation|Muriel|Park District|Paino/);
+    const total = seed.reduce((n, s) => n + s.plannedMinutes, 0);
+    expect(total).toBe(84);
+    expect(total).toBeGreaterThanOrEqual(SERVICE_WINDOW.minMinutes);
+    expect(total).toBeLessThanOrEqual(SERVICE_WINDOW.maxMinutes);
     const orders = seed.map((s) => s.sortOrder);
     expect([...orders].sort((a, b) => a - b)).toEqual(orders);
   });
@@ -390,8 +405,8 @@ describe('the service window: 75 to 90 minutes (DR-1029)', () => {
   });
   it('the plan carries its verdict: the church\u2019s own order fits, a padded one does not', () => {
     const seed = seedDefaultOrder().map((s, i) => ({ ...s, id: `s${i}`, programId: 'p1' }));
-    expect(deriveSectorView({ id: 'p1' }, seed, STEWARD).window.ok).toBe(true); // 81'
-    const padded = seed.map((s) => (s.title === 'Speaker' ? { ...s, plannedMinutes: 50 } : s)); // 96'
+    expect(deriveSectorView({ id: 'p1' }, seed, STEWARD).window.ok).toBe(true); // 84'
+    const padded = seed.map((s) => (s.title.startsWith('Message') ? { ...s, plannedMinutes: 50 } : s)); // 96'
     expect(deriveSectorView({ id: 'p1' }, padded, STEWARD).window).toMatchObject({ ok: false, over: 6 });
   });
 });
