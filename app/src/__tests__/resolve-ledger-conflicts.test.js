@@ -120,6 +120,17 @@ describe('resolve-ledger-conflicts — pure pieces, each proven to catch', () =>
     expect(() => normalizeLedger(collision)).toThrow(/two different decisions claim DR-0101/);
     expect(() => normalizeLedger(collision)).toThrow(/b\.md and the-other-lane\.md/);
     expect(() => normalizeLedger(collision)).toThrow(/Renumber the newer file to DR-0102/);
+    // THE ORDER IS PART OF THE CURE (2026-10-15). Naming the free id is not
+    // enough: renumbering MID-MERGE cannot work, because this script reads
+    // git's merge stages and stage 2 is the branch's own commit, so it keeps
+    // seeing the old file name whatever the working tree says. One record hit
+    // this three times in ninety minutes and the order had to be learned by
+    // failing it. The refusal now carries the order, so the next reader does
+    // not pay that again -- and these assertions are what keep it carrying it.
+    expect(() => normalizeLedger(collision)).toThrow(/git merge --abort/);
+    expect(() => normalizeLedger(collision)).toThrow(/renumber-decision-record\.mjs 0101 0102/);
+    expect(() => normalizeLedger(collision)).toThrow(/clean tree/);
+    expect(() => normalizeLedger(collision)).toThrow(/then run this script again/);
     // The same rows with the same link are still an ordinary duplicate, kept once.
     const same = collision.replace('(the-other-lane.md)', '(b.md)');
     expect(normalizeLedger(same).removedRows).toEqual(['DR-0101']);
