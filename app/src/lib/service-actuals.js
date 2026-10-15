@@ -324,6 +324,57 @@ export function trackRecord(programs, segments, actuals, { lineTol = DEFAULT_TOL
   };
 }
 
+/**
+ * By the stream (DR-1045): each Sunday and Wednesday service video the NAS has
+ * read the length of, newest first, read against the service window. Darrell
+ * 2026-10-15: "Did we go over or under time based on the video stream that
+ * day?" A stream's length includes whatever ran before the first line and
+ * after the benediction, so `upperBound` is always true: "over" here means the
+ * stream ran over; the service itself ran no longer than that. A stream inside
+ * the window proves the service was too. Duplicate videos of one service
+ * (a re-upload) are read once, the longest kept.
+ */
+export function streamRecord(sermons, { types = ['sunday', 'wednesday'] } = {}) {
+  const best = new Map();
+  for (const s of sermons || []) {
+    if (!s || !Number.isFinite(s.streamSeconds) || s.streamSeconds <= 0) continue;
+    if (!s.serviceDate || !types.includes(s.serviceType)) continue;
+    if (s.status === 'archived') continue;
+    const key = `${s.serviceDate}|${s.serviceType}`;
+    const prev = best.get(key);
+    if (!prev || s.streamSeconds > prev.streamSeconds) best.set(key, s);
+  }
+  const rows = [...best.values()].map((s) => {
+    const minutes = Math.round(s.streamSeconds / 60);
+    const win = windowSay(minutes);
+    return {
+      serviceDate: s.serviceDate,
+      serviceType: s.serviceType,
+      title: s.title || '',
+      videoId: s.videoId || null,
+      minutes,
+      window: win,
+      verdict: win.ok ? 'inside' : (win.over > 0 ? 'over' : 'under'),
+      upperBound: true,
+    };
+  }).sort((a, b) => String(b.serviceDate).localeCompare(String(a.serviceDate)) || a.serviceType.localeCompare(b.serviceType));
+  const count = rows.length;
+  const inside = rows.filter((r) => r.verdict === 'inside').length;
+  const over = rows.filter((r) => r.verdict === 'over').length;
+  const under = rows.filter((r) => r.verdict === 'under').length;
+  const avgMinutes = count ? Math.round(rows.reduce((n, r) => n + r.minutes, 0) / count) : null;
+  return {
+    rows,
+    count,
+    inside,
+    over,
+    under,
+    insidePct: count ? Math.round((inside / count) * 100) : null,
+    avgMinutes,
+    window: SERVICE_WINDOW,
+  };
+}
+
 // "Ran 8' over plan · 2 ran long · 1 added · 1 skipped" — one honest recap line.
 // Empty-ish input -> a gentle nothing-yet line.
 export function summarizeReconcile(reconcile) {

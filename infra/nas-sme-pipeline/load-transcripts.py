@@ -70,6 +70,7 @@ import random
 import re
 import sys
 import time
+import urllib.error
 import urllib.request
 import urllib.parse
 
@@ -88,6 +89,17 @@ DEFAULT_SECRETS = "/volume1/PoeTech/secrets/supabase.json"
 # couple days for YouTube to process them"). Older than this, a no-caption result
 # is a real verdict about the video -> Whisper-on-NAS fallback.
 CAPTION_GRACE_DAYS = 4
+
+# A NO-CAPTION VERDICT IS RE-ASKED, NEVER FINAL, FOR A MONTH (DR-1045). Darrell
+# 2026-10-15: "YouTube doesn't caption until a day or few later and then there
+# is always captions." Measured the same morning: the 10-11-2026 Sunday
+# (skY8rJWxoZ4) was asked at 2026-10-15 01:45 UTC -- 1.7 hours past the 4-day
+# grace -- answered TranscriptsDisabled, and the verdict was then permanent: it
+# was never asked again, so the service had no words and no timings. Now a
+# verdict on a video up to RECHECK_DAYS old is asked again once its last ask is
+# RECHECK_HOURS old, so a late caption track is picked up the day it lands.
+RECHECK_DAYS = 30
+RECHECK_HOURS = 20
 
 # Exception class names that are durable verdicts about the video itself
 # (mirrors transcript-backfill-ci.py; verified against youtube-transcript-api's
@@ -165,6 +177,45 @@ def within_caption_grace(service_date, now_ms=None, grace_days=CAPTION_GRACE_DAY
         return False
     now = now_ms if now_ms is not None else time.time()
     return (now - vid_epoch) < grace_days * 86400
+
+
+def recheck_due(service_date, fetched_at, now_s=None, days=RECHECK_DAYS, hours=RECHECK_HOURS):
+    """True when a recorded no-caption verdict should be asked again: the video
+    is at most `days` old and the last ask is at least `hours` old (an unknown
+    last ask counts as old). An unknown or unparseable service date is False --
+    an undated video never loops. `now_s` is epoch seconds (tests inject it)."""
+    if not service_date:
+        return False
+    try:
+        vid_epoch = calendar.timegm(time.strptime(str(service_date)[:10], "%Y-%m-%d"))
+    except (ValueError, TypeError):
+        return False
+    now = now_s if now_s is not None else time.time()
+    if now - vid_epoch > days * 86400:
+        return False
+    if not fetched_at:
+        return True
+    try:
+        last = calendar.timegm(time.strptime(str(fetched_at)[:19].replace(" ", "T"), "%Y-%m-%dT%H:%M:%S"))
+    except (ValueError, TypeError):
+        return True
+    return now - last >= hours * 3600
+
+
+def caption_segments(segs):
+    """The caption track with its timings -> [[start_seconds, text], ...] in
+    order, empty lines dropped, the second rounded to a tenth (DR-1045)."""
+    out = []
+    for s in segs or []:
+        text = (getattr(s, "text", "") or "").replace("\n", " ").strip()
+        start = getattr(s, "start", None)
+        if not text or start is None:
+            continue
+        try:
+            out.append([round(float(start), 1), text])
+        except (TypeError, ValueError):
+            continue
+    return out
 
 
 def build_api(YouTubeTranscriptApi):
@@ -263,12 +314,13 @@ def existing_state(url, key, instance_id):
     verdict/transient split) reads as neither -> it gets retried this run.
     """
     rows = rest_all(url, key,
-                    "video_transcripts?select=video_id,words,error&instance_id=eq." + instance_id
+                    "video_transcripts?select=video_id,words,error,fetched_at&instance_id=eq." + instance_id
                     + "&order=video_id.asc")
     out = {}
     for r in rows:
         out[r["video_id"]] = {"has_text": (r.get("words") or 0) > 0,
-                              "has_verdict": is_verdict(r.get("error"))}
+                              "has_verdict": is_verdict(r.get("error")),
+                              "fetched_at": r.get("fetched_at")}
     return out
 
 
@@ -276,10 +328,17 @@ def upsert_transcript(url, key, instance_id, vid, record, dry_run):
     row = {"instance_id": instance_id, "video_id": vid, "fetched_at": _isonow(), **record}
     if dry_run:
         return
-    rest(url, key, "POST",
-         "video_transcripts?on_conflict=instance_id,video_id",
-         body=[row],
-         extra_headers={"Prefer": "resolution=merge-duplicates,return=minimal"})
+    path = "video_transcripts?on_conflict=instance_id,video_id"
+    hdr = {"Prefer": "resolution=merge-duplicates,return=minimal"}
+    try:
+        rest(url, key, "POST", path, body=[row], extra_headers=hdr)
+    except urllib.error.HTTPError:
+        # The timings column lands with migration 0295; a box whose schema has
+        # not caught up yet still gets the words, never a lost write.
+        if "segments" not in row:
+            raise
+        row.pop("segments", None)
+        rest(url, key, "POST", path, body=[row], extra_headers=hdr)
 
 
 def video_ids_from_cloud(url, key, instance_id):
@@ -321,15 +380,16 @@ def ids_from_file(path):
 # --- caption fetch (YouTube auto-captions; no GPU) --------------------------
 
 def fetch_caption(api, vid):
-    """Return (text, words, error). text='' when captions are unavailable."""
+    """Return (text, words, error, segments). text='' when captions are
+    unavailable; segments are the timed captions (caption_segments)."""
     try:
         segs = list(api.fetch(vid, languages=["en"]))
         text = " ".join(s.text.replace("\n", " ").strip() for s in segs if s.text.strip())
         if not text:  # fetch succeeded but the track is empty: a durable verdict
-            return "", 0, "NoTranscriptFound: empty caption track"
-        return text, len(text.split()), None
+            return "", 0, "NoTranscriptFound: empty caption track", []
+        return text, len(text.split()), None, caption_segments(segs)
     except Exception as e:  # noqa: BLE001 -- classified verdict-vs-transient by caller
-        return "", 0, f"{type(e).__name__}: {str(e)[:180]}"
+        return "", 0, f"{type(e).__name__}: {str(e)[:180]}", []
 
 
 def _isonow():
@@ -508,7 +568,11 @@ def main():
             # be premature (YouTube had not generated captions yet). Re-fetching a
             # recent, verdict-marked video is how a mistaken early verdict SELF-HEALS
             # once the captions land (no manual cleanup needed).
-            resolved = prior and (prior["has_text"] or (prior["has_verdict"] and not recent))
+            # A verdict up to RECHECK_DAYS old is asked again once a day (DR-1045):
+            # captions often land days after a service, and an early "none" must
+            # never become the last word on a Sunday.
+            recheck = bool(prior) and prior["has_verdict"] and recheck_due(svc_date.get(vid), prior.get("fetched_at"))
+            resolved = prior and (prior["has_text"] or (prior["has_verdict"] and not recent and not recheck))
             if resolved and not args.refetch:
                 skipped += 1
                 continue
@@ -516,11 +580,11 @@ def main():
                 log(f"--max {args.max} reached; stopping (re-run to continue).")
                 break
             log(f"[{i}/{total}] fetching captions for {vid} ...")
-            text, words, err = fetch_caption(api, vid)
+            text, words, err, segments = fetch_caption(api, vid)
             if text:
                 upsert_transcript(url, key, instance_id, vid,
                                   {"text": text, "words": words, "source": "youtube-asr",
-                                   "lang": "en", "error": None}, args.dry_run)
+                                   "lang": "en", "error": None, "segments": segments}, args.dry_run)
                 fetched += 1
                 log(f"    ok  {words} words -> video_transcripts")
             elif is_verdict(err) and recent:
@@ -535,7 +599,7 @@ def main():
                                   {"text": "", "words": 0, "source": "youtube-asr",
                                    "error": err}, args.dry_run)
                 no_caption += 1
-                log(f"    MISS ({err}) -> verdict recorded; Whisper-on-NAS fallback")
+                log(f"    MISS ({err}) -> verdict recorded; asked again daily for {RECHECK_DAYS}d from the service date, then Whisper-on-NAS")
             else:
                 # Environmental failure (IP block, network). NOT a fact about
                 # the video: write nothing so the next run retries it.
