@@ -28,7 +28,10 @@ import {
   getServiceProgramAccess, accessDiagnosis, playbookFor, subscribePrograms, subscribeSegments, subscribeChanges, subscribeFinalizerMembers,
   saveProgram, deleteProgram, saveSegment, deleteSegment, seedProgramSegments, seedDefaultOrder, setFinalizer,
   importSegmentsFromEmail, parsePeople, peopleOf, whoServes, SERVICE_WINDOW,
+  nextServiceDate, postedStartTimes, dayMismatch, weekdayOf,
+  currentProgram, startOrder, startsFromSay,
 } from '../lib/service-program.js';
+import { COLG_DEFAULT_CHURCH } from '../lib/default-church.js';
 import { parseEmailOrder } from '../lib/order-import.js';
 import UiIcon from './UiIcon.jsx';
 import SectionTabs from './SectionTabs.jsx';
@@ -46,7 +49,6 @@ const SECTOR_OPTS = SECTORS.map((s) => [s.key, `${s.emoji} ${s.label}`]);
 // The auxiliaries a church names most; free text takes any other (DR-1029).
 const AUXILIARIES = ['Choir', 'Praise Team', 'Ushers', 'Deacons', 'Deaconesses', 'Trustees', 'Nurses', 'Media', 'Hospitality', 'Youth', 'Mothers'];
 
-const todayIso = () => new Date().toISOString().slice(0, 10);
 const fmtDate = (d) => {
   if (!d) return '';
   try { return new Date(d + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' }); }
@@ -63,31 +65,68 @@ const STATUS_STYLE = {
 // -----------------------------------------------------------------------------
 // Program (master) metadata form
 // -----------------------------------------------------------------------------
-function ProgramForm({ initial, busy, onSave, onCancel }) {
+// A new order opens on the next day its service meets (local calendar, never
+// UTC) at the church's posted time; changing the service moves the date and
+// time with it until the person sets either one by hand.
+const POSTED = COLG_DEFAULT_CHURCH.services || [];
+function ProgramForm({ initial, busy, onSave, onCancel, programs = [], segments = [] }) {
+  const startType = initial?.serviceType || 'sunday';
+  const startPosted = postedStartTimes(startType, POSTED);
+  const [touched, setTouched] = useState({ date: Boolean(initial?.id), time: Boolean(initial?.id) });
   const [f, setF] = useState({
     id: initial?.id || null,
-    serviceDate: initial?.serviceDate || todayIso(),
-    serviceType: initial?.serviceType || 'sunday',
+    serviceDate: initial?.serviceDate || nextServiceDate(startType),
+    serviceType: startType,
     serviceSlot: initial?.serviceSlot || '',
     title: initial?.title || 'Order of Worship',
     theme: initial?.theme || '',
     scriptureRef: initial?.scriptureRef || '',
-    startTime: initial?.startTime || '11:00',
+    startTime: initial?.startTime || (startPosted.length === 1 ? startPosted[0] : '11:00'),
     targetMinutes: initial?.targetMinutes != null ? String(initial.targetMinutes) : '',
     status: initial?.status || 'draft',
     notes: initial?.notes || '',
   });
   const set = (k) => (e) => setF((p) => ({ ...p, [k]: e.target.value }));
+  const setByHand = (k, mark) => (e) => { setTouched((t) => ({ ...t, [mark]: true })); set(k)(e); };
+  const setType = (e) => {
+    const type = e.target.value;
+    const posted = postedStartTimes(type, POSTED);
+    setF((p) => ({
+      ...p,
+      serviceType: type,
+      serviceDate: touched.date ? p.serviceDate : nextServiceDate(type),
+      startTime: touched.time || posted.length !== 1 ? p.startTime : posted[0],
+    }));
+  };
+  const pickTime = (t) => { setTouched((x) => ({ ...x, time: true })); setF((p) => ({ ...p, startTime: t })); };
+  const posted = postedStartTimes(f.serviceType, POSTED);
+  const offDay = dayMismatch(f.serviceDate, f.serviceType);
+  const startsFrom = f.id ? null : startsFromSay(programs, segments, f.serviceType, f.serviceDate);
   return (
     <form className="bg-white border-2 border-[#1A1815] p-3 mb-3" onSubmit={(e) => { e.preventDefault(); onSave({ ...f, targetMinutes: f.targetMinutes ? Number(f.targetMinutes) : null }); }}>
+      {startsFrom && <p data-testid="sp-starts-from" className="text-xs text-[#5A6E3D] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>{startsFrom.say} Earlier orders are archived, never deleted.</p>}
       <div className="grid grid-cols-2 gap-2">
-        <div><label className={LABEL} htmlFor="sp-date">Service date</label><input id="sp-date" type="date" className={FIELD} value={f.serviceDate} onChange={set('serviceDate')} required /></div>
+        <div><label className={LABEL} htmlFor="sp-date">Service date</label><input id="sp-date" type="date" className={FIELD} value={f.serviceDate} onChange={setByHand('serviceDate', 'date')} required />
+          {offDay && <p data-testid="sp-day-mismatch" className="text-[0.75rem] text-[#B85838] mt-1">That date is a {weekdayOf(f.serviceDate)}, not a {f.serviceType === 'sunday' ? 'Sunday' : 'Wednesday'}.</p>}
+        </div>
         <div><label className={LABEL} htmlFor="sp-type">Service</label>
-          <select id="sp-type" className={FIELD} value={f.serviceType} onChange={set('serviceType')}>
+          <select id="sp-type" className={FIELD} value={f.serviceType} onChange={setType}>
             <option value="sunday">Sunday</option><option value="wednesday">Wednesday</option><option value="special">Special</option>
           </select>
         </div>
-        <div><label className={LABEL} htmlFor="sp-start">Start time (24h)</label><input id="sp-start" type="time" className={FIELD} value={f.startTime} onChange={set('startTime')} /></div>
+        <div><label className={LABEL} htmlFor="sp-start">Start time</label><input id="sp-start" type="time" className={FIELD} value={f.startTime} onChange={setByHand('startTime', 'time')} />
+          {posted.length > 1 && (
+            <div data-testid="sp-posted-times" className="flex flex-wrap gap-1 mt-1">
+              <span className="text-[0.75rem] text-[#5A5751] self-center">Posted:</span>
+              {posted.map((t) => (
+                <button key={t} type="button" onClick={() => pickTime(t)} aria-pressed={f.startTime === t}
+                  className={`text-[0.75rem] px-2 py-0.5 border ${f.startTime === t ? 'border-[#1A1815] font-semibold' : 'border-[#D8D3CB]'}`}>
+                  {formatClock((Number(t.slice(0, 2)) * 60) + Number(t.slice(3, 5)))}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
         <div><label className={LABEL} htmlFor="sp-target">Target length (min)</label><input id="sp-target" type="number" min="0" className={FIELD} value={f.targetMinutes} onChange={set('targetMinutes')} placeholder={`${SERVICE_WINDOW.minMinutes}–${SERVICE_WINDOW.maxMinutes}`} /></div>
         <div className="col-span-2"><label className={LABEL} htmlFor="sp-title">Title</label><input id="sp-title" className={FIELD} value={f.title} onChange={set('title')} /></div>
         <div className="col-span-2"><label className={LABEL} htmlFor="sp-theme">Theme / series</label><input id="sp-theme" className={FIELD} value={f.theme} onChange={set('theme')} placeholder="optional" /></div>
@@ -367,6 +406,7 @@ export default function ServiceProgram() {
   const [manageFinalizers, setManageFinalizers] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
+  const [note, setNote] = useState('');
 
   useEffect(() => {
     let active = true;
@@ -410,7 +450,7 @@ export default function ServiceProgram() {
 
   const isSteward = access.role === 'owner' || access.role === 'admin';
 
-  const program = useMemo(() => programs.find((p) => p.id === selectedId) || programs[0] || null, [programs, selectedId]);
+  const program = useMemo(() => currentProgram(programs, selectedId), [programs, selectedId]);
   const programSegments = useMemo(() => segments.filter((s) => program && s.programId === program.id), [segments, program]);
   const programSongs = useMemo(() => {
     if (!program) return [];
@@ -459,11 +499,28 @@ export default function ServiceProgram() {
     setBusy(false);
   };
 
+  // Editing an order saves it; a new order takes the one road (DR-1044):
+  // opened if that date already has one, else carried forward from the last
+  // order of the same service (or Bishop Gwin's order), earlier ones archived.
   const onSaveProgram = async (f) => {
-    setBusy(true);
-    const res = report(await saveProgram(f));
-    if (res?.id) setSelectedId(res.id);
+    setBusy(true); setNote('');
+    if (f.id) {
+      report(await saveProgram(f));
+    } else {
+      const res = report(await startOrder(f, { programs, segments }));
+      if (res?.id) setSelectedId(res.id);
+      if (res?.opened) setNote(`That ${weekdayOf(f.serviceDate) || 'day'}’s order already exists, so it is open below.`);
+      else if (res?.saved) setNote(`${res.from === 'last' ? 'Carried forward from the last order' : 'Started from Bishop Gwin’s order'}: ${res.lines} lines.${res.archived ? ` ${res.archived} earlier order${res.archived === 1 ? '' : 's'} archived.` : ''}`);
+    }
     setBusy(false); setProgramForm(null);
+  };
+  const onStartFirst = () => {
+    const posted = postedStartTimes('sunday', POSTED);
+    return onSaveProgram({
+      id: null, serviceDate: nextServiceDate('sunday'), serviceType: 'sunday', serviceSlot: '',
+      title: 'Order of Worship', theme: '', scriptureRef: '', startTime: posted[0] || '11:00',
+      targetMinutes: null, status: 'draft', notes: '',
+    });
   };
   const onSaveSegment = async (f) => {
     if (!program) return;
@@ -559,6 +616,7 @@ export default function ServiceProgram() {
       <p className="text-xs text-[#5A5751] mb-3" style={{ fontFamily: '"Fraunces", serif' }}>One master program per Sunday. Every section runs their part from the same source of truth — choose your sector below to see your cues, your songs, and when you're up.</p>
 
       {err && <div role="alert" className="bg-[#FAF8F4] border-2 border-[#B85838] p-2 mb-2 text-xs" style={{ fontFamily: '"Fraunces", serif' }}>{err}</div>}
+      {note && <div role="status" data-testid="sp-note" className="bg-[#FAF8F4] border border-[#5A6E3D] p-2 mb-2 text-xs text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{note}</div>}
 
       {/* Program picker + steward controls */}
       <div className="flex items-end gap-2 flex-wrap mb-3">
@@ -571,18 +629,23 @@ export default function ServiceProgram() {
           </div>
         )}
         {access.canEdit && (
-          <button type="button" onClick={() => setProgramForm({ initial: null })} className={`${BTN} bg-[#1A1815] text-white font-semibold`}>＋ New service</button>
+          <button type="button" onClick={() => setProgramForm({ initial: null })} className={`${BTN} bg-[#1A1815] text-white font-semibold`}>＋ Next service</button>
         )}
       </div>
 
-      {programForm && access.canEdit && <ProgramForm initial={programForm.initial} busy={busy} onSave={onSaveProgram} onCancel={() => setProgramForm(null)} />}
+      {programForm && access.canEdit && <ProgramForm initial={programForm.initial} busy={busy} onSave={onSaveProgram} onCancel={() => setProgramForm(null)} programs={programs} segments={segments} />}
 
       {!program && !programForm && (
         <div className="bg-white border border-[#E8E4DC] p-6 text-center">
           <div className="text-2xl mb-1" aria-hidden="true">📋</div>
           <p className="text-sm text-[#1A1815] font-semibold" style={{ fontFamily: '"Fraunces", serif' }}>No order of service yet.</p>
           {access.canEdit
-            ? <p className="text-xs text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>Create this Sunday's master program, then add segments or start from a standard order.</p>
+            ? (
+              <>
+                <p className="text-xs text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>One tap makes {weekdayOf(nextServiceDate('sunday'))} {nextServiceDate('sunday')}’s order with every line of Bishop Gwin’s order in it. From then on each new service carries the last one forward.</p>
+                <button type="button" data-testid="sp-start-first" disabled={busy} onClick={onStartFirst} className={`${BTN} bg-[#1A1815] text-white font-semibold mt-3`}>Start Sunday’s order from Bishop Gwin’s order</button>
+              </>
+            )
             : <p className="text-xs text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>A steward hasn't published this Sunday's order yet. Check back soon.</p>}
         </div>
       )}
