@@ -1,4 +1,4 @@
-# DR-1030: A refused Order of Service names what it read — the owner's own screen said "ask a steward" and nothing else
+# DR-1032: A refused Order of Service names what it read — the owner's own screen said "ask a steward" and nothing else
 
 **Date:** 2026-10-15
 **Status:** accepted
