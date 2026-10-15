@@ -555,6 +555,42 @@ export function searchLessons(index, query, limit = 40) {
     scored.push({ rank, i, e });
   }
   scored.sort((a, b) => (b.rank - a.rank) || (a.i - b.i));
+
+  // AND IN THE PLAIN-WORD TIER, EVERY COURSE THAT DECLARED THE WORD GETS A TURN
+  // (2026-10-15, DR-1049). Giving the tier its own rank was not enough on its
+  // own: inside the tier, ties keep catalog order, so ONE large course consumes
+  // the window and the next course's promise still never surfaces. Measured —
+  // `privacy` is declared by both sovereign-ai (41 lessons) and
+  // ai-legal-blueprint (6), so all 41 sovereign rows came first and the
+  // ai-legal-blueprint connection died at a window of 40, which is how merging
+  // one more Sovereign A.I. lesson broke a promise belonging to a different
+  // course. A declared word is a COURSE-level promise, so the tier is dealt
+  // round-robin by course (each course's first row, then each course's second,
+  // and so on), courses in catalog order and each course's own rows in catalog
+  // order. Every course that declared the word is therefore reachable within
+  // the first N rows, N being the number of such courses, whatever the catalog
+  // grows to. Nothing else is reordered: title, anchor-reference and body tiers
+  // keep catalog order exactly as before.
+  const PLAIN_TIER = 2;
+  const plain = scored.filter((s) => s.rank === PLAIN_TIER);
+  if (plain.length > 1) {
+    const byCourse = new Map();
+    for (const s of plain) {
+      const k = s.e.courseKey;
+      if (!byCourse.has(k)) byCourse.set(k, []);
+      byCourse.get(k).push(s);
+    }
+    const queues = [...byCourse.values()];
+    const dealt = [];
+    for (let round = 0; dealt.length < plain.length; round += 1) {
+      for (const q of queues) if (round < q.length) dealt.push(q[round]);
+    }
+    let at = 0;
+    for (let i = 0; i < scored.length; i += 1) {
+      if (scored[i].rank === PLAIN_TIER) { scored[i] = dealt[at]; at += 1; }
+    }
+  }
+
   return scored.slice(0, limit).map((s) => s.e);
 }
 
