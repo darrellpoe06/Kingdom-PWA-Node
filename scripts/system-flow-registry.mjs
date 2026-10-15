@@ -700,6 +700,23 @@ const NODES = [
     reads: [{ res: 'db:choir_sermons', token: 'choir_sermons' }, { res: 'db:choir_songs', token: 'choir_songs' }],
     seeds: ['sermon-reader', 'songbook', 'scripture-web', 'library'],
   }),
+  // DR-1052: the church names 23 ministries and exactly ONE of them (the choir)
+  // could seat a person. 0296 gave every team the roster, and this is the room
+  // for it — the surface a director adds Media, ushers or the bus team on, and
+  // the one a member reads their own team from. Without a node here the table
+  // would be a seat in no room, which is the built-correct-never-connected
+  // class the graph exists to refuse.
+  app('app/src/components/MinistryRoster.jsx', {
+    id: 'ministry-roster', name: 'Who is on this team (every ministry)',
+    purpose: 'A director seats people on any of the 23 named ministries; the team reads itself.',
+    writes: [
+      { res: 'db:ministry_members', file: 'app/src/lib/ministry-roster.js', token: "from('ministry_members').insert" },
+    ],
+    reads: [
+      { res: 'db:ministry_members', file: 'app/src/lib/ministry-roster.js', token: "from('ministry_members')" },
+    ],
+    seeds: [],
+  }),
   app('app/src/components/Pulpit.jsx', {
     id: 'sermon-reader', name: 'The Word (Pulpit) — sermons with their words',
     purpose: 'Each service with its transcript, harvest and reach.',
