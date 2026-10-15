@@ -45,6 +45,7 @@
 import supabase from './supabase.js';
 import { churchInstanceId } from './church-instance.js';
 import { varianceCell } from './conference-variance.js';
+import { windowSay, SERVICE_WINDOW } from './service-program.js';
 
 // --- Disposition taxonomy ----------------------------------------------------
 // How a planned segment actually went. 'skipped' is NOT stored — it is DERIVED
@@ -215,6 +216,114 @@ export function reconcileService(plannedSegments, actualItems, { tolMinutes = DE
   };
 }
 
+// --- Clock the service, and the track record across services (DR-1029) ------
+// Darrell 2026-10-15: "a tab that allows us to add the actual times to keep
+// track of times we actually live up to that timeline on each Sunday and
+// Wednesday." One line per planned segment with the minutes it really took,
+// saved in one tap; and, across every clocked service, how close each one kept
+// to its plan. Pure; the surface renders what these return.
+
+/** The plan-vs-actual drift still reported per service; "kept" is the window (SERVICE_WINDOW), not this. */
+export const SERVICE_TOLERANCE_MIN = 5;
+
+/** A section that took place but was not on the order, placed after a planned line (or at the end). */
+export function addedLine({ title, sector = 'general', actualMinutes = null, afterSortOrder = null, lastSortOrder = 0, note = '' } = {}) {
+  const after = Number.isFinite(afterSortOrder) ? afterSortOrder : lastSortOrder;
+  return { added: true, plannedSegmentId: null, actualId: null, title: String(title || '').trim(), sector, actualOrder: after + 5, sortOrder: after + 5, plannedMinutes: null, actualMinutes: Number.isFinite(actualMinutes) ? actualMinutes : null, note, recorded: false };
+}
+
+/** One line per planned segment, in order, with the recorded minutes if any. */
+export function clockLines(plannedSegments, actualItems) {
+  const byPlanned = new Map();
+  for (const a of [...(actualItems || [])].sort((x, y) => (x.actualOrder - y.actualOrder))) {
+    if (a.plannedSegmentId && !byPlanned.has(a.plannedSegmentId)) byPlanned.set(a.plannedSegmentId, a);
+  }
+  return [...(plannedSegments || [])]
+    .sort((a, b) => (a.sortOrder - b.sortOrder) || String(a.id).localeCompare(String(b.id)))
+    .map((p) => {
+      const a = byPlanned.get(p.id) || null;
+      return {
+        plannedSegmentId: p.id,
+        actualId: a?.id || null,
+        title: p.title || '',
+        sector: p.sector || 'general',
+        sortOrder: Number.isFinite(p.sortOrder) ? p.sortOrder : 0,
+        plannedMinutes: Number.isFinite(p.plannedMinutes) ? p.plannedMinutes : null,
+        actualMinutes: a && Number.isFinite(a.actualMinutes) ? a.actualMinutes : null,
+        recorded: !!a,
+      };
+    });
+}
+
+/** Totals for the clock form: planned, the actual so far, how many lines are entered, the delta once every line is. */
+export function clockTotals(lines) {
+  const list = Array.isArray(lines) ? lines : [];
+  const planned = list.reduce((n, l) => n + (Number.isFinite(l.plannedMinutes) ? l.plannedMinutes : 0), 0);
+  const entered = list.filter((l) => Number.isFinite(l.actualMinutes));
+  const actual = entered.reduce((n, l) => n + l.actualMinutes, 0);
+  const complete = list.length > 0 && entered.length === list.length;
+  return { planned, actual, entered: entered.length, total: list.length, complete, delta: complete ? actual - planned : null, window: complete ? windowSay(actual) : null };
+}
+
+/**
+ * The track record: every service that has actual times, newest first, each
+ * with its planned and actual totals, whether it kept the service window (75 to
+ * 90 minutes, SERVICE_WINDOW), how far it drifted from its plan, how many lines
+ * ran on time, and the line that drifted most; then the keep rate per service
+ * type (Sunday, Wednesday) and a streak counted from the newest service back.
+ */
+export function trackRecord(programs, segments, actuals, { lineTol = DEFAULT_TOLERANCE_MIN, serviceTol = SERVICE_TOLERANCE_MIN } = {}) {
+  const segsByProgram = new Map();
+  for (const sgm of segments || []) { if (!segsByProgram.has(sgm.programId)) segsByProgram.set(sgm.programId, []); segsByProgram.get(sgm.programId).push(sgm); }
+  const actsByProgram = new Map();
+  for (const a of actuals || []) { if (!actsByProgram.has(a.programId)) actsByProgram.set(a.programId, []); actsByProgram.get(a.programId).push(a); }
+  const rows = [];
+  for (const pr of programs || []) {
+    const acts = actsByProgram.get(pr.id) || [];
+    const withTimes = acts.filter((a) => Number.isFinite(a.actualMinutes));
+    if (!withTimes.length) continue; // nothing clocked: not a record, not a zero
+    const r = reconcileService(segsByProgram.get(pr.id) || [], acts, { tolMinutes: lineTol, reconciled: true });
+    const timed = r.occurred.filter((o) => Number.isFinite(o.deltaMinutes));
+    const linesOnTime = timed.filter((o) => Math.abs(o.deltaMinutes) <= lineTol).length;
+    const worst = timed.reduce((w, o) => (!w || Math.abs(o.deltaMinutes) > Math.abs(w.deltaMinutes)) ? o : w, null);
+    const delta = r.actualTotalMinutes - r.plannedTotalMinutes;
+    const win = windowSay(r.actualTotalMinutes);
+    rows.push({
+      programId: pr.id,
+      serviceDate: pr.serviceDate || null,
+      serviceType: pr.serviceType || 'sunday',
+      title: pr.title || 'Order of Worship',
+      plannedTotal: r.plannedTotalMinutes,
+      actualTotal: r.actualTotalMinutes,
+      delta,
+      kept: win.ok,
+      window: win,
+      linesOnTime,
+      linesTimed: timed.length,
+      skipped: r.skippedCount,
+      added: r.addedCount,
+      worst: worst && worst.deltaMinutes !== 0 ? { title: worst.title, delta: worst.deltaMinutes } : null,
+      reconciled: !!pr.reconciledAt,
+    });
+  }
+  rows.sort((a, b) => String(b.serviceDate || '').localeCompare(String(a.serviceDate || '')) || String(a.programId).localeCompare(String(b.programId)));
+  const byType = {};
+  for (const row of rows) {
+    const t = byType[row.serviceType] || (byType[row.serviceType] = { serviceType: row.serviceType, services: 0, kept: 0, deltaSum: 0 });
+    t.services += 1; if (row.kept) t.kept += 1; t.deltaSum += row.delta;
+  }
+  const types = Object.values(byType).map((t) => ({ serviceType: t.serviceType, services: t.services, kept: t.kept, keptPct: Math.round((t.kept / t.services) * 100), avgDelta: Math.round((t.deltaSum / t.services) * 10) / 10 }));
+  let streak = 0;
+  for (const row of rows) { if (row.kept) streak += 1; else break; }
+  const services = rows.length;
+  const kept = rows.filter((r) => r.kept).length;
+  return {
+    rows, types,
+    overall: { services, kept, keptPct: services ? Math.round((kept / services) * 100) : 0, avgDelta: services ? Math.round((rows.reduce((n, r) => n + r.delta, 0) / services) * 10) / 10 : 0, streak },
+    serviceTol, lineTol, window: SERVICE_WINDOW,
+  };
+}
+
 // "Ran 8' over plan · 2 ran long · 1 added · 1 skipped" — one honest recap line.
 // Empty-ish input -> a gentle nothing-yet line.
 export function summarizeReconcile(reconcile) {
@@ -351,6 +460,8 @@ export function blueprintFromActual(program, plannedSegments, actualItems, { tol
       title: r.title,
       sector: r.sector,
       ownerName: p?.ownerName || '',
+      personnel: Array.isArray(p?.personnel) ? [...p.personnel] : [], // the people carry forward (0292)
+      auxiliary: p?.auxiliary || null,
       plannedMinutes: minutes,
       flexible: p ? p.flexible !== false : true, // the sermon stays fixed
       sortOrder: (i + 1) * 10,
@@ -416,6 +527,7 @@ export function summarizeActualChange(action, title) {
     case 'delete-actual':   return `Marked${t} skipped`;
     case 'capture-harvest': return 'Captured harvested items from the service video';
     case 'blueprint-seed':  return 'Seeded this service from the last reconciled actual (blueprint)';
+    case 'clock-times':     return 'Clocked the actual time of every line';
     default:                return action;
   }
 }
@@ -545,6 +657,48 @@ export async function captureActualFromYouTube(program, plannedSegments, songs, 
   return { ...res, scope };
 }
 
+// Clock the service in one tap (DR-1029): every line that carries a number is
+// written as its actual (a new row, or the recorded row's minutes updated); a
+// line left blank is written nowhere and reads as skipped once the service is
+// stamped reconciled, which this does at the end with the summed total. The
+// recap fields the service already carries are kept.
+export async function saveActualTimes(program, lines, displayName) {
+  const ctx = await writeContext(displayName);
+  if (ctx.error) return { skipped: ctx.error };
+  let count = 0;
+  for (const l of lines || []) {
+    if (!Number.isFinite(l.actualMinutes)) continue;
+    if (l.added) {
+      // A section that took place but was not on the Bishop's order: an
+      // 'added' row at the place it happened, so the difference reads plainly.
+      const row = actualRow({ plannedSegmentId: null, disposition: 'added', title: l.title, sector: l.sector || 'general', actualOrder: l.actualOrder, actualMinutes: l.actualMinutes, note: l.note || '', source: 'manual' }, ctx);
+      const { error } = await supabase.from('church_service_segment_actuals').insert({ ...row, program_id: program.id, created_by: ctx.userId });
+      if (error) return { skipped: 'insert-error', error, count };
+      count += 1;
+      continue;
+    }
+    if (l.actualId) {
+      const { error } = await supabase.from('church_service_segment_actuals').update({ actual_minutes: l.actualMinutes, updated_by: ctx.userId }).eq('id', l.actualId);
+      if (error) return { skipped: 'update-error', error, count };
+    } else {
+      const row = actualRow({ plannedSegmentId: l.plannedSegmentId, disposition: 'as-planned', title: l.title, sector: l.sector, actualOrder: l.sortOrder, actualMinutes: l.actualMinutes, source: 'manual' }, ctx);
+      const { error } = await supabase.from('church_service_segment_actuals').insert({ ...row, program_id: program.id, created_by: ctx.userId });
+      if (error) return { skipped: 'insert-error', error, count };
+    }
+    count += 1;
+  }
+  const total = (lines || []).reduce((n, l) => n + (Number.isFinite(l.actualMinutes) ? l.actualMinutes : 0), 0);
+  const stamped = await markReconciled(program, {
+    actualStartTime: program.actualStartTime || program.startTime || null,
+    actualTotalMinutes: total,
+    actualNotes: program.actualNotes || null,
+    harvestSource: program.harvestSource || null,
+  }, displayName);
+  if (stamped?.skipped) return { ...stamped, count };
+  await logChange(ctx, program.id, 'clock-times', null);
+  return { saved: true, count, total };
+}
+
 // Mark the program reconciled — stamp the recap (real start/total/notes + the
 // harvest source it was reconciled from). After this, planned segments with no
 // actual read as SKIPPED in reconcileService.
@@ -575,6 +729,7 @@ export async function seedSegmentsFromBlueprint(programId, blueprint, displayNam
   const segs = (blueprint?.segments || []).map((seg) => ({
     instance_id: ctx.tenantId, program_id: programId, created_by: ctx.userId,
     title: seg.title || '', sector: seg.sector || 'general', owner_name: seg.ownerName || null,
+    personnel: Array.isArray(seg.personnel) ? seg.personnel : [], auxiliary: seg.auxiliary || null,
     planned_minutes: Number.isFinite(seg.plannedMinutes) ? seg.plannedMinutes : 5,
     flexible: seg.flexible !== false, scripture_ref: seg.scriptureRef || null,
     sermon_id: seg.sermonId || null, song_ids: Array.isArray(seg.songIds) ? seg.songIds : [],

@@ -99,7 +99,8 @@ describe('ServiceProgram — kept lens strip + new section chips', () => {
     expect(text).toContain('Master');
     // the new chip row
     expect(text).toContain('Run of show');
-    expect(text).toContain('Actuals & blueprint');
+    expect(text).toContain('Actual times');
+    expect(text).toContain('Track record');
     expect(text).toContain('Team & changes');
     // default panel = the real flow (real segment, real reflow control)
     expect(text).toContain('Call to Worship');
@@ -108,10 +109,10 @@ describe('ServiceProgram — kept lens strip + new section chips', () => {
     expect(text).not.toContain('Worship-team finalizers');
   });
 
-  it('opens Actuals & blueprint and Team & changes on click (lazy panels)', async () => {
+  it('opens Actual times and Team & changes on click (lazy panels)', async () => {
     access = { signedIn: true, canSee: true, canEdit: true, isFinalizer: true, role: 'owner', sector: 'worship' };
     await mount();
-    await clickTab('Actuals & blueprint');
+    await clickTab('Actual times');
     // ServiceActuals mounted (its planned-vs-actual reconciliation surface)
     expect((container.textContent || '').toLowerCase()).toContain('actual');
     await clickTab('Team & changes');

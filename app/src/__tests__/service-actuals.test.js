@@ -283,3 +283,88 @@ describe('mmss', () => {
     expect(mmss(null)).toBeNull();
   });
 });
+
+import { clockLines, clockTotals, addedLine, trackRecord } from '../lib/service-actuals.js';
+
+describe('clock the service, and the track record (DR-1029)', () => {
+  // Darrell 2026-10-15: "a tab that allows us to add the actual times to keep
+  // track of times we actually live up to that timeline on each Sunday and
+  // Wednesday"; "add sections to the editable side... so we can show what took
+  // place based on reality... so the difference is obvious."
+  it('clockLines gives one line per planned segment in order, with the recorded minutes when there are any', () => {
+    const lines = clockLines(planned, [{ id: 'a2', programId: 'p', plannedSegmentId: 'p2', actualOrder: 20, actualMinutes: 41 }]);
+    expect(lines.map((l) => `${l.title}:${l.plannedMinutes}:${l.actualMinutes}:${l.recorded}`)).toEqual([
+      'Praise & Worship:20:null:false', 'Sermon:35:41:true', 'Altar Call:8:null:false',
+    ]);
+    expect(lines[1].actualId).toBe('a2');
+  });
+  it('clockTotals sums the plan and what is entered, and only gives a delta once every line has a number', () => {
+    const partial = clockTotals([{ plannedMinutes: 20, actualMinutes: 22 }, { plannedMinutes: 35, actualMinutes: null }]);
+    expect(partial).toMatchObject({ planned: 55, actual: 22, entered: 1, total: 2, complete: false, delta: null });
+    const full = clockTotals([{ plannedMinutes: 20, actualMinutes: 22 }, { plannedMinutes: 35, actualMinutes: 41 }, { plannedMinutes: null, actualMinutes: 6 }]);
+    expect(full).toMatchObject({ planned: 55, actual: 69, complete: true, delta: 14 });
+    expect(full.window).toMatchObject({ ok: false, under: 6 }); // 69' is under the 75' floor
+    expect(partial.window).toBeNull();
+  });
+  it('addedLine is a section that took place but was not on the order, placed after the line it followed', () => {
+    const a = addedLine({ title: ' Testimony ', actualMinutes: 6, afterSortOrder: 20 });
+    expect(a).toMatchObject({ added: true, plannedSegmentId: null, title: 'Testimony', actualMinutes: 6, actualOrder: 25, sortOrder: 25, plannedMinutes: null });
+    expect(addedLine({ title: 'Extra song', actualMinutes: 4, lastSortOrder: 30 }).actualOrder).toBe(35); // the end
+  });
+  it('trackRecord reads every clocked service newest first, kept only inside the 75\u201390\u2032 window, drift against the plan, and totals per service type', () => {
+    // A plan of 80': praise 25, sermon 45 (fixed), altar 10.
+    const order = [
+      { id: 'q1', sortOrder: 10, title: 'Praise & Worship', sector: 'worship', plannedMinutes: 25, flexible: true },
+      { id: 'q2', sortOrder: 20, title: 'Sermon', sector: 'pulpit', plannedMinutes: 45, flexible: false },
+      { id: 'q3', sortOrder: 30, title: 'Altar Call', sector: 'pastoral', plannedMinutes: 10, flexible: true },
+    ];
+    const programs = [
+      { id: 'sun1', serviceDate: '2026-10-04', serviceType: 'sunday', reconciledAt: 'x' },
+      { id: 'sun2', serviceDate: '2026-10-11', serviceType: 'sunday', reconciledAt: 'x' },
+      { id: 'wed1', serviceDate: '2026-10-07', serviceType: 'wednesday', reconciledAt: 'x' },
+      { id: 'plan-only', serviceDate: '2026-10-18', serviceType: 'sunday' },
+    ];
+    const segs = ['sun1', 'sun2', 'wed1', 'plan-only'].flatMap((pid) => order.map((p) => ({ ...p, id: `${pid}-${p.id}`, programId: pid })));
+    const acts = [
+      // sun1: sermon ran 12 long, altar skipped -> 82' (+2 vs plan): inside the window, kept
+      { id: 'x1', programId: 'sun1', plannedSegmentId: 'sun1-q1', actualOrder: 10, actualMinutes: 25 },
+      { id: 'x2', programId: 'sun1', plannedSegmentId: 'sun1-q2', actualOrder: 20, actualMinutes: 57 },
+      // sun2: every line on time, plus a 12' testimony that took place -> 92' (+12): over the limit, missed
+      { id: 'y1', programId: 'sun2', plannedSegmentId: 'sun2-q1', actualOrder: 10, actualMinutes: 25 },
+      { id: 'y2', programId: 'sun2', plannedSegmentId: 'sun2-q2', actualOrder: 20, actualMinutes: 45 },
+      { id: 'y3', programId: 'sun2', plannedSegmentId: null, actualOrder: 25, actualMinutes: 12, title: 'Testimony', disposition: 'added' },
+      { id: 'y4', programId: 'sun2', plannedSegmentId: 'sun2-q3', actualOrder: 30, actualMinutes: 10 },
+      // wed1: praise 2' short -> 78' (-2): kept
+      { id: 'z1', programId: 'wed1', plannedSegmentId: 'wed1-q1', actualOrder: 10, actualMinutes: 23 },
+      { id: 'z2', programId: 'wed1', plannedSegmentId: 'wed1-q2', actualOrder: 20, actualMinutes: 45 },
+      { id: 'z3', programId: 'wed1', plannedSegmentId: 'wed1-q3', actualOrder: 30, actualMinutes: 10 },
+    ];
+    const rec = trackRecord(programs, segs, acts);
+    expect(rec.rows.map((r) => r.programId)).toEqual(['sun2', 'wed1', 'sun1']); // newest first; the plan-only service is not a record
+    const sun1 = rec.rows.find((r) => r.programId === 'sun1');
+    expect(sun1).toMatchObject({ plannedTotal: 80, actualTotal: 82, delta: 2, kept: true, linesOnTime: 1, linesTimed: 2, skipped: 1, worst: { title: 'Sermon', delta: 12 } });
+    expect(sun1.window.say).toBe('within 75\u201390\u2032');
+    const sun2 = rec.rows.find((r) => r.programId === 'sun2');
+    expect(sun2).toMatchObject({ plannedTotal: 80, actualTotal: 92, delta: 12, kept: false, linesOnTime: 3, linesTimed: 3, added: 1, worst: null });
+    expect(sun2.window).toMatchObject({ ok: false, over: 2 });
+    expect(rec.types.find((t) => t.serviceType === 'sunday')).toMatchObject({ services: 2, kept: 1, keptPct: 50, avgDelta: 7 });
+    expect(rec.types.find((t) => t.serviceType === 'wednesday')).toMatchObject({ services: 1, kept: 1, keptPct: 100, avgDelta: -2 });
+    expect(rec.overall).toMatchObject({ services: 3, kept: 2, keptPct: 67, streak: 0 }); // the newest (sun2) missed, so no streak
+    expect(rec.window).toEqual({ minMinutes: 75, maxMinutes: 90 });
+    expect(trackRecord([], [], []).rows).toEqual([]);
+  });
+  it('a short service is not kept: under the 75\u2032 floor reads as missed even when it matched its (short) plan', () => {
+    const programs = [{ id: 'a', serviceDate: '2026-10-04', serviceType: 'sunday' }];
+    const segs = [{ id: 'a1', programId: 'a', sortOrder: 10, title: 'Prayer', plannedMinutes: 60 }];
+    const acts = [{ id: 'x', programId: 'a', plannedSegmentId: 'a1', actualOrder: 10, actualMinutes: 60 }];
+    const r = trackRecord(programs, segs, acts).rows[0];
+    expect(r).toMatchObject({ delta: 0, kept: false });
+    expect(r.window).toMatchObject({ under: 15 });
+  });
+  it('a kept service on the newest date starts a streak', () => {
+    const programs = [{ id: 'a', serviceDate: '2026-10-04', serviceType: 'sunday' }, { id: 'b', serviceDate: '2026-10-11', serviceType: 'sunday' }];
+    const segs = [{ id: 'a1', programId: 'a', sortOrder: 10, title: 'Service', plannedMinutes: 80 }, { id: 'b1', programId: 'b', sortOrder: 10, title: 'Service', plannedMinutes: 80 }];
+    const acts = [{ id: 'x', programId: 'a', plannedSegmentId: 'a1', actualOrder: 10, actualMinutes: 80 }, { id: 'y', programId: 'b', plannedSegmentId: 'b1', actualOrder: 10, actualMinutes: 88 }];
+    expect(trackRecord(programs, segs, acts).overall.streak).toBe(2);
+  });
+});
