@@ -29,6 +29,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
   normalise, distinctiveTerms, dateForms, bareDay, scoreFile, lessonIdsIn, findAlreadyBuilt,
+  provenanceDayHit, isPromiseLine, SOURCE_DAY_WINDOW,
 } from '../../../scripts/lesson-already-built.mjs';
 
 describe('reading the forward', () => {
@@ -168,5 +169,112 @@ describe('the whole search, in a real tree', () => {
     const before = JSON.stringify(findAlreadyBuilt(root, { source: 'ByteByteGo', forwardedAt: '2026-10-13T17:54:58Z' }));
     const after = JSON.stringify(findAlreadyBuilt(root, { source: 'ByteByteGo', forwardedAt: '2026-10-13T17:54:58Z' }));
     expect(after, 'running it twice changes nothing').toBe(before);
+  });
+});
+
+// =============================================================================
+// A `re-review:` date is not a provenance date (DR-1050)
+// =============================================================================
+// MEASURED ON A REAL FORWARD, 2026-10-15. Darrell forwarded a Morning Brew
+// issue ("Piping hot") that was genuinely unbuilt, and this finder answered
+// "LIKELY ALREADY BUILT — the source on that day" — its second-strongest
+// verdict — naming DR-0412, DR-0416 and DR-0437. All three are SEPTEMBER
+// records about a DIFFERENT newsletter. They matched because `2026-10-15`
+// appears in each as a `re-review:` date while "Morning Brew" sits thousands of
+// characters away in the provenance line. Both signals were whole-file
+// `includes()` calls, blind to distance.
+//
+// WHY IT MATTERS MORE THAN AN ORDINARY FALSE POSITIVE. This finder is on
+// purpose biased toward a weak false positive, because a needless read is
+// cheaper than a duplicate lesson. But `re-review:` dates are a DR-0075
+// INSTITUTION — every parked improvement carries one — so the ledger is densely
+// seeded with future days, and a recurring source (Morning Brew has six records
+// and counting) collides with one on almost any day. That turned the verdict
+// most likely to STOP a build into the one that fires hardest on exactly the
+// sources this house uses most. Taken at face value it would have blocked
+// World Issues 20 on the day it was written.
+//
+// THE WINDOW IS MEASURED, NOT CHOSEN. Against the real ledger:
+//   true provenance pairs — 22 chars (DR-1005/ByteByteGo), 26 (DR-0416/Morning
+//     Brew), 107 (DR-0791/Morning Brew)
+//   the false pairs       — 2,859 (INDEX.md), 5,918 (DR-0437), 9,324 (DR-0412),
+//     9,792 (DR-0416)
+// A 27x gap, so 400 sits ~4x above every true pair and ~7x below every false.
+//
+// AND IT IS CHARACTERS, NOT LINES, BECAUSE THE FIRST FIX FAILED. A three-LINE
+// window left the false positive standing: `docs/decisions/INDEX.md` is one row
+// per record, each row a whole paragraph on a single line of 1,600 to 3,200
+// characters, so "within three lines" there spans three entire records.
+describe('a promise about a date is not a record of a forward', () => {
+  it('recognises a re-review marker, in the shapes the ledger actually writes', () => {
+    expect(isPromiseLine('`re-review: 2026-10-15` — fetch the Federal Register notice')).toBe(true);
+    expect(isPromiseLine('- **re-review: 2026-10-15** with the current wage schedule.')).toBe(true);
+    expect(isPromiseLine('  rereview : 2026-10-15')).toBe(true);
+    expect(isPromiseLine('Darrell forwarded a Morning Brew newsletter on 2026-10-15'), 'provenance is not a promise').toBe(false);
+  });
+
+  it('PROVEN-TO-CATCH: the measured false positive, reproduced then dropped', () => {
+    // DR-0412's real shape: the source named in its provenance line, and the
+    // day appearing ~9,300 characters later as a promise to revisit.
+    const far = `Darrell forwarded two items on 2026-09-15, each with the single word "Lesson": the Morning Brew lead.\n${'filler. '.repeat(1200)}\n- The effective date was not verified. \`re-review: 2026-10-15\` — fetch the notice and pin the date.\n`;
+    const opts = {
+      dates: dateForms('2026-10-15T12:44:58Z'),
+      day: bareDay('2026-10-15T12:44:58Z'),
+      source: 'Morning Brew',
+      terms: [],
+    };
+
+    // Scored the OLD way — a whole-file `includes` for the day — the record
+    // reads as "the source on that day" and would stop a legitimate build.
+    const oldDayHit = far.includes('2026-10-15') ? '2026-10-15' : null;
+    const oldStrength = oldDayHit && /morning brew/i.test(far) ? 'source+day' : 'source';
+    expect(oldStrength, 'the defect, reproduced on the real shape').toBe('source+day');
+
+    // Scored the way it works now, the pair is too far apart AND the day is a
+    // promise, so the day contributes nothing and only the source remains.
+    const now = scoreFile(far, opts);
+    expect(now.strength, 'demoted to the weakest useful verdict').toBe('source');
+    expect(now.dayHit, 'a promise thousands of characters away is not provenance').toBeNull();
+    expect(now.sourceHit, 'the source match is still honestly reported').toBe('Morning Brew');
+  });
+
+  it('keeps a TRUE provenance pair at the real measured distance (no regression)', () => {
+    // DR-0791's own distance was 107 characters — the widest true pair in the
+    // ledger. It must still read as source+day.
+    const gap = 'x'.repeat(107 - 'Morning Brew'.length);
+    const text = `Darrell forwarded a Morning Brew newsletter${gap}on 2026-10-07 with one word on it.`;
+    expect(provenanceDayHit(text, '2026-10-07', 'Morning Brew')).toBe('2026-10-07');
+  });
+
+  it('drops the pair once it is past the window, at the real false-positive distance', () => {
+    const text = `Morning Brew${'y'.repeat(2859)}2026-10-15`;
+    expect(provenanceDayHit(text, '2026-10-15', 'Morning Brew'), 'the narrowest measured false pair').toBeNull();
+  });
+
+  it('measures CHARACTERS, not lines — the INDEX.md row that defeated the first fix', () => {
+    // One row per record, each a whole paragraph on ONE line. The source and an
+    // unrelated day share a single line here, so any line-based window — however
+    // tight — reads them as one statement. Only character distance separates them.
+    const row = `| DR-0412 | ${'the record prose. '.repeat(170)} Morning Brew ${'more prose. '.repeat(170)} 2026-10-15 |`;
+    expect(row.split('\n'), 'it really is a single line').toHaveLength(1);
+    expect(row.length, 'and it really is thousands of characters').toBeGreaterThan(3000);
+    expect(provenanceDayHit(row, '2026-10-15', 'Morning Brew')).toBeNull();
+  });
+
+  it('the window is the measured one, so a drift in it is a visible change', () => {
+    expect(SOURCE_DAY_WINDOW).toBe(400);
+  });
+
+  it('a promise is ignored even when the source is right beside it', () => {
+    // The re-review exclusion earns its place independently of the window: a
+    // record may well name its source next to a parked date.
+    const text = 'Morning Brew coverage is carried as reported. `re-review: 2026-10-15` — confirm against primary pages.';
+    expect(provenanceDayHit(text, '2026-10-15', 'Morning Brew'), 'near, but still only a promise').toBeNull();
+  });
+
+  it('needs both a day and a source to say anything', () => {
+    expect(provenanceDayHit('Morning Brew on 2026-10-15', null, 'Morning Brew')).toBeNull();
+    expect(provenanceDayHit('Morning Brew on 2026-10-15', '2026-10-15', null)).toBeNull();
+    expect(provenanceDayHit('', '2026-10-15', 'Morning Brew')).toBeNull();
   });
 });

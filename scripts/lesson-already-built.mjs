@@ -42,6 +42,29 @@
 //     failure this house calls looks-fine-but-isn't, so a bare day no longer
 //     counts as a timestamp at all. It is only a signal ALONGSIDE the source
 //     name, and that pair is its own strength.
+//   · source+day — the source name AND the bare day, but ONLY when they are
+//     NEAR EACH OTHER and the day is not a promise about the future.
+//     FOUND BY USING IT, 2026-10-15, on a real forward: Darrell forwarded a
+//     Morning Brew issue ("Piping hot") that was genuinely unbuilt, and this
+//     finder answered "LIKELY ALREADY BUILT — the source on that day", its
+//     second-strongest verdict, naming DR-0412, DR-0416 and DR-0437. Every one
+//     of those three is a SEPTEMBER record about a DIFFERENT newsletter. They
+//     matched because `2026-10-15` appears in them as a `re-review:` date while
+//     "Morning Brew" sits thirty-odd lines away in the provenance line — two
+//     unrelated facts, in one 50KB file, scored as though they were one
+//     sentence. Both whole-file `includes()` calls were blind to distance.
+//     THE COST RUNS THE WRONG WAY. This finder is deliberately biased toward a
+//     weak false positive, because a needless read is cheaper than a duplicate
+//     lesson. But `re-review:` dates are a DR-0075 INSTITUTION — every parked
+//     improvement in the ledger carries one — so the ledger is densely seeded
+//     with future days, and a recurring source like Morning Brew (six records
+//     and counting) will collide with one on any given day. That turns the
+//     verdict most likely to STOP a build into the one that fires hardest on
+//     exactly the sources this house uses most. Taken at face value it would
+//     have blocked World Issues 20 the day it was written.
+//     So the day must now be PROVENANCE, not a promise: a `re-review:` line is
+//     never the forward's day, and the source must appear within
+//     SOURCE_DAY_WINDOW lines of it.
 //   · source name — a publication or author ("ByteByteGo", "Morning Brew").
 //     Strong, but a publication forwarded twice is two teachings, so a name
 //     match alone is reported as PARTIAL and never as settled.
@@ -110,15 +133,80 @@ function readAll(root, rel, exts) {
  * Score one file against the teaching. Returns null for no signal at all.
  * `strength` is 'timestamp' | 'source' | 'terms', in descending confidence.
  */
+/**
+ * How many CHARACTERS may sit between the source name and the day for the pair
+ * to still read as one provenance statement.
+ *
+ * MEASURED, not chosen by taste. Against the real ledger on 2026-10-15:
+ *   true provenance pairs  — DR-1005/ByteByteGo 22 chars, DR-0416/Morning Brew
+ *                            26, DR-0791/Morning Brew 107.
+ *   the false positives    — DR-0412 2,859, DR-0437 5,918, DR-0412 9,324,
+ *                            DR-0416 9,792, INDEX.md 2,859.
+ * A 27x gap separates the widest true pair from the narrowest false one, so 400
+ * sits about 4x above every true pair and about 7x below every false one.
+ *
+ * CHARACTERS AND NOT LINES, and that is the whole point. The first attempt at
+ * this fix used a three-LINE window and the false positive survived it:
+ * `docs/decisions/INDEX.md` is one row per record, each row a whole paragraph
+ * on a single line of 1,600 to 3,200 characters, so "within three lines" there
+ * spans three entire records. Line distance is not distance in this ledger.
+ */
+export const SOURCE_DAY_WINDOW = 400;
+
+/**
+ * A line that only PROMISES something about a date — a `re-review:` marker — is
+ * not a record of when a teaching arrived. DR-0075 puts one of these on every
+ * parked improvement, so they are the single most common way a future day
+ * appears in the ledger, and counting them as provenance is what produced the
+ * measured false positive.
+ */
+export const isPromiseLine = (line) => /re-?review\s*:/i.test(String(line || ''));
+
+/** The line containing a character offset, for the promise check. */
+function lineAt(text, offset) {
+  const from = text.lastIndexOf('\n', offset) + 1;
+  const to = text.indexOf('\n', offset);
+  return text.slice(from, to === -1 ? text.length : to);
+}
+
+/**
+ * The bare day, but only where it reads as PROVENANCE: within
+ * SOURCE_DAY_WINDOW characters of the source name, and not on a `re-review:`
+ * line. Returns the day, or null.
+ *
+ * Pure — takes its haystack as an argument.
+ */
+export function provenanceDayHit(text, day, source, window = SOURCE_DAY_WINDOW) {
+  if (!day || !source) return null;
+  const hay = String(text || '');
+  const low = hay.toLowerCase();
+  const needle = String(source).toLowerCase();
+  if (!needle) return null;
+  // Every offset at which the source is named, once.
+  const sourceAt = [];
+  for (let j = low.indexOf(needle); j !== -1; j = low.indexOf(needle, j + 1)) sourceAt.push(j);
+  if (!sourceAt.length) return null;
+  for (let i = hay.indexOf(day); i !== -1; i = hay.indexOf(day, i + 1)) {
+    // A promise about a future date is not a record of when a teaching came.
+    if (isPromiseLine(lineAt(hay, i))) continue;
+    if (sourceAt.some((j) => Math.abs(i - j) <= window)) return day;
+  }
+  return null;
+}
+
 export function scoreFile(text, { dates = [], day = null, source = null, terms = [] }) {
   const hay = text;
   const low = hay.toLowerCase();
   const dateHit = dates.find((d) => hay.includes(d)) || null;
-  const dayHit = day && hay.includes(day) ? day : null;
+  // The day is only a signal where it reads as provenance: near the source
+  // name, and not on a `re-review:` line. A whole-file `includes` here scored
+  // a September record's re-review date as "the source on that day".
+  const dayHit = provenanceDayHit(hay, day, source);
   const sourceHit = source && low.includes(source.toLowerCase()) ? source : null;
   const termHits = terms.filter((t) => low.includes(t));
   if (!dateHit && !sourceHit && !termHits.length) return null;
-  // A bare day proves nothing by itself; paired with the source it is strong.
+  // A bare day proves nothing by itself; paired with the source IN ONE PLACE it
+  // is strong.
   const strength = dateHit
     ? 'timestamp'
     : (sourceHit && dayHit ? 'source+day' : (sourceHit ? 'source' : 'terms'));
