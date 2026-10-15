@@ -129,3 +129,20 @@ describe('ServiceProgram — kept lens strip + new section chips', () => {
     expect(text).not.toContain('Worship-team finalizers');
   });
 });
+
+describe('a refused screen says what it read (DR-0076; the owner\u2019s own screenshot, 2026-10-15)', () => {
+  it('names the account, the role and the roster instead of only "ask a steward"', async () => {
+    access = {
+      signedIn: true, canSee: false, canEdit: false, isFinalizer: false, role: 'member', sector: 'worship',
+      tenantId: 't1', choirRole: null, email: 'someone@example.com', errors: ['role read failed: boom'],
+    };
+    await mount();
+    const diag = container.querySelector('[data-testid="order-access-diagnosis"]');
+    expect(diag, 'the diagnosis list renders on a refusal').toBeTruthy();
+    expect(diag.textContent).toContain('Signed in as someone@example.com.');
+    expect(diag.textContent).toContain('Your role in the church space: member.');
+    expect(diag.textContent).toContain('Choir roster: not on it.');
+    expect(diag.textContent).toContain('Read failed \u2014 role read failed: boom');
+    expect([...container.querySelectorAll('button')].some((b) => b.textContent === 'Retry')).toBe(true);
+  });
+});

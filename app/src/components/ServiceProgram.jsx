@@ -25,7 +25,7 @@ import { subscribeSongs, subscribeSermons } from '../lib/choir-sync.js';
 import {
   SECTORS, STEWARD, sectorShort,
   deriveSectorView, reflowProgram, formatClock,
-  getServiceProgramAccess, subscribePrograms, subscribeSegments, subscribeChanges, subscribeFinalizerMembers,
+  getServiceProgramAccess, accessDiagnosis, subscribePrograms, subscribeSegments, subscribeChanges, subscribeFinalizerMembers,
   saveProgram, deleteProgram, saveSegment, deleteSegment, seedProgramSegments, seedDefaultOrder, setFinalizer,
   importSegmentsFromEmail, parsePeople, peopleOf, whoServes, SERVICE_WINDOW,
 } from '../lib/service-program.js';
@@ -34,6 +34,10 @@ import UiIcon from './UiIcon.jsx';
 import SectionTabs from './SectionTabs.jsx';
 import ServiceActuals, { TrackRecord } from './ServiceActuals.jsx';
 import { subscribeActuals, blueprintFromActual, pickBlueprintProgram, seedSegmentsFromBlueprint } from '../lib/service-actuals.js';
+
+// A team check that has not answered by then is reported, never left looking
+// like "not on the team" (the owner's own screenshot, 2026-10-15).
+const ACCESS_DEADLINE_MS = 20000;
 
 const BTN = 'text-xs uppercase tracking-wider px-3 py-2 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]';
 const FIELD = 'w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]';
@@ -273,7 +277,8 @@ function FlowRow({ item, adjustedMin, isStewardLens }) {
 // -----------------------------------------------------------------------------
 export default function ServiceProgram() {
   const [signedIn, setSignedIn] = useState(false);
-  const [access, setAccess] = useState({ canSee: false, canEdit: false, sector: 'worship' });
+  const [access, setAccess] = useState({ canSee: false, canEdit: false, sector: 'worship', loading: true, failed: null });
+  const [reload, setReload] = useState(() => () => {});
   const [programs, setPrograms] = useState([]);
   const [segments, setSegments] = useState([]);
   const [songs, setSongs] = useState([]);
@@ -294,13 +299,25 @@ export default function ServiceProgram() {
   useEffect(() => {
     let active = true;
     const load = async () => {
-      const a = await getServiceProgramAccess();
-      if (!active) return;
-      setSignedIn(a.signedIn);
-      setAccess(a);
-      setLens(a.canEdit ? STEWARD : a.sector);
+      setAccess((prev) => ({ ...prev, loading: true, failed: null }));
+      try {
+        // A hung read never leaves the screen on "ask a steward" forever: after
+        // the deadline it says the check did not finish and offers Retry.
+        const a = await Promise.race([
+          getServiceProgramAccess(),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('the team check did not answer in 20 seconds')), ACCESS_DEADLINE_MS)),
+        ]);
+        if (!active) return;
+        setSignedIn(a.signedIn);
+        setAccess({ ...a, loading: false, failed: null });
+        setLens(a.canEdit ? STEWARD : a.sector);
+      } catch (e) {
+        if (!active) return;
+        setAccess((prev) => ({ ...prev, loading: false, failed: String(e?.message || e) }));
+      }
     };
     load();
+    setReload(() => load);
     const off = onAuthChange(() => load());
     return () => { active = false; try { off && off(); } catch { /* noop */ } };
   }, []);
@@ -421,14 +438,41 @@ export default function ServiceProgram() {
       </div>
     );
   }
+  if (access.loading) {
+    return (
+      <div className="max-w-2xl">
+        <SectionTitle eyebrow="Church · order of service">Order of Service</SectionTitle>
+        <div className="bg-white border border-[#E8E4DC] p-6 text-center" data-testid="order-access-checking">
+          <p className="text-sm text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>Checking your place on the team…</p>
+        </div>
+      </div>
+    );
+  }
+  if (access.failed) {
+    return (
+      <div className="max-w-2xl">
+        <SectionTitle eyebrow="Church · order of service">Order of Service</SectionTitle>
+        <div className="bg-white border border-[#E8E4DC] p-6 text-center" data-testid="order-access-failed">
+          <p className="text-sm text-[#1A1815] font-semibold" style={{ fontFamily: '"Fraunces", serif' }}>The team check did not finish.</p>
+          <p className="text-xs text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{access.failed}</p>
+          <button type="button" onClick={() => reload()} className="mt-3 text-xs px-3 py-1.5 border border-[#1A1815] bg-white text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>Retry</button>
+        </div>
+      </div>
+    );
+  }
   if (!access.canSee) {
     return (
       <div className="max-w-2xl">
         <SectionTitle eyebrow="Church · order of service">Order of Service</SectionTitle>
-        <div className="bg-white border border-[#E8E4DC] p-6 text-center">
+        <div className="bg-white border border-[#E8E4DC] p-6 text-center" data-testid="order-access-refused">
           <div className="text-2xl mb-1" aria-hidden="true">📋</div>
           <p className="text-sm text-[#1A1815] font-semibold" style={{ fontFamily: '"Fraunces", serif' }}>This is the worship team's order of service.</p>
           <p className="text-xs text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>Ask a steward to add you to the team, then Sunday's run-of-show — and your sector's part — will show up here.</p>
+          {/* What was READ, so a refusal is a diagnosis and not a mystery (DR-0076). */}
+          <ul className="mt-3 text-left text-[11px] text-[#5A5751] space-y-0.5" style={{ fontFamily: '"Fraunces", serif' }} data-testid="order-access-diagnosis">
+            {accessDiagnosis(access).map((line) => <li key={line}>{line}</li>)}
+          </ul>
+          <button type="button" onClick={() => reload()} className="mt-3 text-xs px-3 py-1.5 border border-[#1A1815] bg-white text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>Retry</button>
         </div>
       </div>
     );
@@ -541,7 +585,7 @@ export default function ServiceProgram() {
               <button type="button" onClick={() => setSegmentForm({ initial: { sortOrder: (programSegments.length + 1) * 10 } })} className={`${BTN} bg-[#5A6E3D] text-white font-semibold`}>＋ Add segment</button>
               <button type="button" onClick={() => setProgramForm({ initial: program })} className={`${BTN} text-[#5A5751] hover:text-[#1A1815] border border-[#E8E4DC]`}>Edit master</button>
               <button type="button" onClick={() => setEmailImportOpen((o) => !o)} className={`${BTN} text-[#B85838] border border-[#B85838]`} aria-expanded={emailImportOpen}><UiIcon name="mail" /> Paste from church email</button>
-              {programSegments.length === 0 && <button type="button" onClick={onSeed} disabled={busy} className={`${BTN} text-[#B85838] border border-[#B85838] disabled:opacity-50`}>Start from our order ({seedDefaultOrder().length})</button>}
+              {programSegments.length === 0 && <button type="button" onClick={onSeed} disabled={busy} className={`${BTN} text-[#B85838] border border-[#B85838] disabled:opacity-50`}>Start from Bishop Gwin\u2019s order ({seedDefaultOrder().length})</button>}
               {programSegments.length === 0 && blueprint && (
                 <button type="button" onClick={onSeedBlueprint} disabled={busy} className={`${BTN} bg-[#1A1815] text-white font-semibold disabled:opacity-50`}>
                   Start from last {program.serviceType === 'wednesday' ? 'Wednesday' : program.serviceType === 'sunday' ? 'Sunday' : program.serviceType}&apos;s actual ({blueprint.segments.length})

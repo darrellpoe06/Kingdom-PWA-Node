@@ -375,18 +375,50 @@ function resolveActorName(session) {
 
 export async function getServiceProgramAccess(displayName) {
   const session = await currentSession();
-  if (!session) return { signedIn: false, canSee: false, canEdit: false, isFinalizer: false, tenantId: null, role: null, sector: 'worship', actorName: null };
+  if (!session) return { signedIn: false, canSee: false, canEdit: false, isFinalizer: false, tenantId: null, role: null, sector: 'worship', actorName: null, email: null, errors: [] };
+  const email = session.user?.email ?? null;
   const tenantId = await churchInstanceId(displayName);
-  if (!tenantId) return { signedIn: true, canSee: false, canEdit: false, isFinalizer: false, tenantId: null, role: null, sector: 'worship', actorName: resolveActorName(session) };
-  const [{ data: role }, { data: inChoir }, { data: isFinalizer }, member] = await Promise.all([
+  if (!tenantId) return { signedIn: true, canSee: false, canEdit: false, isFinalizer: false, tenantId: null, role: null, choirRole: null, sector: 'worship', actorName: resolveActorName(session), email, errors: ['no church space answered for this account'] };
+  const [roleRes, choirRes, finRes, member] = await Promise.all([
     supabase.rpc('user_role_in_instance', { tenant_uuid: tenantId }),
     supabase.rpc('user_in_choir', { instance_uuid: tenantId }),
     supabase.rpc('user_is_worship_finalizer', { instance_uuid: tenantId }),
     supabase.from('choir_members').select('choir_role').eq('instance_id', tenantId).eq('user_id', session.user.id).maybeSingle(),
   ]);
+  // Every read that failed is NAMED, never swallowed into "not on the team":
+  // a refused screen must say what was read, so the next screenshot is a
+  // diagnosis (DR-0076 — the surface says the truth it measured).
+  const errors = [];
+  if (roleRes?.error) errors.push(`role read failed: ${roleRes.error.message || roleRes.error}`);
+  if (choirRes?.error) errors.push(`choir read failed: ${choirRes.error.message || choirRes.error}`);
+  if (finRes?.error) errors.push(`finalizer read failed: ${finRes.error.message || finRes.error}`);
+  if (member?.error) errors.push(`roster read failed: ${member.error.message || member.error}`);
+  const role = roleRes?.data; const inChoir = choirRes?.data; const isFinalizer = finRes?.data;
   const { canEdit, canSee } = deriveAccess(role, inChoir, isFinalizer);
   const choirRole = member?.data?.choir_role ?? null;
-  return { signedIn: true, canSee, canEdit, isFinalizer: !!isFinalizer, tenantId, role: role ?? null, choirRole, sector: sectorForRole(role, choirRole), actorName: resolveActorName(session) };
+  return { signedIn: true, canSee, canEdit, isFinalizer: !!isFinalizer, tenantId, role: role ?? null, choirRole, sector: sectorForRole(role, choirRole), actorName: resolveActorName(session), email, errors };
+}
+
+/**
+ * The lines a refused Order of Service screen shows, from the access that was
+ * actually read — the account, whether a church space answered, the role it
+ * holds there, the roster, and every read that failed. Pure, so the words are
+ * pinned by test and the screen can never say "ask a steward" to the steward
+ * without also saying what it measured.
+ */
+export function accessDiagnosis(a) {
+  const lines = [];
+  if (!a) return lines;
+  lines.push(`Signed in as ${a.email || a.actorName || 'an unknown account'}.`);
+  if (!a.tenantId) {
+    lines.push('No church space answered for this account. A steward adds you by inviting your email from the Choir tab.');
+  } else {
+    lines.push(`Your role in the church space: ${a.role || 'none recorded'}.`);
+    lines.push(`Choir roster: ${a.choirRole ? `on it as ${a.choirRole}` : 'not on it'}.`);
+    if (a.role === 'owner' || a.role === 'admin') lines.push('An owner or admin always sees and edits the order — if you are reading this, a read above failed; tap Retry.');
+  }
+  for (const e of a.errors || []) lines.push(`Read failed — ${e}`);
+  return lines;
 }
 
 // --- Realtime subscribe (mirrors choir-sync.makeSubscriber) ------------------

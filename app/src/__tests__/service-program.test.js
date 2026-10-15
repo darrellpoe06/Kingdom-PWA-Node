@@ -13,7 +13,7 @@ import { fileURLToPath } from 'node:url';
 import {
   toProgramShape, toSegmentShape, sectorForRole, sectorLabel, STEWARD,
   parseClock, formatClock, computeSchedule, reflowProgram, deriveSectorView,
-  seedDefaultOrder, deriveAccess, summarizeChange, toChangeShape, toFinalizerMemberShape,
+  seedDefaultOrder, deriveAccess, accessDiagnosis, summarizeChange, toChangeShape, toFinalizerMemberShape,
   parsePeople, peopleOf, whoText, whoServes, segmentRow, windowSay, SERVICE_WINDOW,
 } from '../lib/service-program.js';
 
@@ -297,5 +297,29 @@ describe('the service window: 75 to 90 minutes (DR-1029)', () => {
     expect(deriveSectorView({ id: 'p1' }, seed, STEWARD).window.ok).toBe(true); // 81'
     const padded = seed.map((s) => (s.title === 'Speaker' ? { ...s, plannedMinutes: 50 } : s)); // 96'
     expect(deriveSectorView({ id: 'p1' }, padded, STEWARD).window).toMatchObject({ ok: false, over: 6 });
+  });
+});
+
+describe('accessDiagnosis — a refusal names what was read (DR-0076)', () => {
+  it('no church space: says so and how a steward adds you', () => {
+    const lines = accessDiagnosis({ email: 'd@x.com', tenantId: null, role: null, errors: ['no church space answered for this account'] });
+    expect(lines[0]).toBe('Signed in as d@x.com.');
+    expect(lines.some((l) => l.startsWith('No church space answered'))).toBe(true);
+    expect(lines.some((l) => l.includes('no church space answered'))).toBe(true);
+  });
+  it('a member not on the roster: role and roster both named', () => {
+    const lines = accessDiagnosis({ email: 'm@x.com', tenantId: 't', role: 'member', choirRole: null, errors: [] });
+    expect(lines).toContain('Your role in the church space: member.');
+    expect(lines).toContain('Choir roster: not on it.');
+  });
+  it('an owner refused means a read failed, and the screen says so', () => {
+    const lines = accessDiagnosis({ email: 'o@x.com', tenantId: 't', role: 'owner', choirRole: 'director', errors: ['choir read failed: 500'] });
+    expect(lines.some((l) => l.startsWith('An owner or admin always sees'))).toBe(true);
+    expect(lines).toContain('Choir roster: on it as director.');
+    expect(lines).toContain('Read failed \u2014 choir read failed: 500');
+  });
+  it('falls back to the actor name, never an empty subject', () => {
+    expect(accessDiagnosis({ actorName: 'Darrell', tenantId: null })[0]).toBe('Signed in as Darrell.');
+    expect(accessDiagnosis(null)).toEqual([]);
   });
 });
