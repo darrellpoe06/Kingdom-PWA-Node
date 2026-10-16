@@ -202,6 +202,27 @@ input::placeholder,textarea::placeholder{color:var(--form-hint)}
 /* THE SELECTED CHIP wears navy: navy on paper is 14:1 apart from an unselected
    chip, and its white label reads at 14.22 (checkSelectedState, DR-0713). */
 [data-theme="heritage"] .poe-selected{background-color:#1B2A4A!important;color:#FFFFFF!important;border-color:#1B2A4A!important}
+/* THE FULL PALETTE ON EVERY SCREEN (Christina 2026-10-16: "What happened to
+   the multi-faceted colors of the app?!"). Until now Heritage changed near-black
+   to forest and left the rest, so on a phone the navy, gold and terracotta of
+   the reference showed only on the home tiles. Now the chrome itself carries
+   them: the bottom bar is the forest rail with ivory words and a GOLD active
+   tab (ink on gold reads 8.6:1; every bar button but the More menu's own
+   paper items, which keep the paper); the section row's selected pill is NAVY
+   (.poe-selected above); the heading rule under every section title is gold;
+   the top row's active underline is navy; the amber warning tokens read as
+   antique gold ink. The lesson reader's bar is untouched (data-in-reader):
+   DR-0716 / DR-0744 own that row. Gold is never text on paper (the
+   foundation test forbids it); on forest it is an icon tint, 9:1 apart. */
+[data-theme="heritage"] .section-title-wrapper{border-color:#C9A227!important}
+[data-theme="heritage"] [data-testid="top-nav-tabs"] .border-\\[\\#B85838\\]{border-color:#1B2A4A!important}
+[data-theme="heritage"] .text-\\[\\#D97706\\]{color:#8A6510!important}
+[data-theme="heritage"] .text-\\[\\#8A6E1F\\]{color:#8A6510!important}
+[data-theme="heritage"] .chrome-dock[data-in-reader="false"]{background-color:#1F3A2E!important}
+[data-theme="heritage"] .chrome-dock[data-in-reader="false"] .poe-dock-btn:not(.poe-dock-menu *){background-color:transparent!important;border-color:transparent!important;color:#F6F1E7!important}
+[data-theme="heritage"] .chrome-dock[data-in-reader="false"] .poe-dock-btn:not(.poe-dock-menu *):hover{border-color:#C9A227!important}
+[data-theme="heritage"] .chrome-dock[data-in-reader="false"] .poe-dock-btn-on:not(.poe-dock-menu *){background-color:#C9A227!important;border-color:#C9A227!important;color:#1A1D1B!important}
+[data-theme="heritage"] .chrome-dock[data-in-reader="false"] .poe-dock-btn:not(.poe-dock-menu *) .poe-dock-accent{color:#F0D58A!important}
 /* soft corners on controls, as Snow does */
 [data-theme="heritage"] button{border-radius:10px}
 [data-theme="heritage"] input,[data-theme="heritage"] select,[data-theme="heritage"] textarea{border-radius:8px}

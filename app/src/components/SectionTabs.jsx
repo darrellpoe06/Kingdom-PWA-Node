@@ -99,8 +99,8 @@ export default function SectionTabs({
         // remap — forest on Heritage); the sub row stays chips, now rounded.
         // Roles, ids, keyboard order and the done mark are unchanged.
         const cls = sub
-          ? `px-2.5 py-1.5 whitespace-nowrap text-[0.6875rem] uppercase tracking-wider border rounded-full transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] inline-flex items-center gap-1.5 ${on ? 'bg-[#1A1815] border-[#1A1815] text-white font-medium' : 'bg-transparent border-[#C9BFA8] text-[#5A5751] hover:text-[#1A1815] hover:border-[#1A1815]'}`
-          : `px-3 py-2 my-1 whitespace-nowrap rounded-lg transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] inline-flex items-center gap-1.5 text-sm ${on ? 'bg-[#1A1815] text-white font-medium' : 'text-[#5A5751] hover:text-[#1A1815] hover:bg-white'}`;
+          ? `px-2.5 py-1.5 whitespace-nowrap text-[0.6875rem] uppercase tracking-wider border rounded-full transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] inline-flex items-center gap-1.5 ${on ? 'poe-selected bg-[#1A1815] border-[#1A1815] text-white font-medium' : 'bg-transparent border-[#C9BFA8] text-[#5A5751] hover:text-[#1A1815] hover:border-[#1A1815]'}`
+          : `px-3 py-2 my-1 whitespace-nowrap rounded-lg transition-colors focus:outline focus:outline-2 focus:outline-[#B85838] inline-flex items-center gap-1.5 text-sm ${on ? 'poe-selected bg-[#1A1815] text-white font-medium' : 'text-[#5A5751] hover:text-[#1A1815] hover:bg-white'}`;
         return (
           <button
             key={s.id}
