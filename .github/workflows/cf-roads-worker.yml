@@ -1,0 +1,146 @@
+# =============================================================================
+# The same-origin roads as a zone Worker: probe the token and the Funnel, then
+# (on request) deploy poetech-roads (DR-1060; #2057, day 7)
+# =============================================================================
+# DISPATCH-ONLY. No schedule, no loop, no compute spawned on a clock (DR-0247
+# governs timer-driven work; this is a person or the agent pressing a button).
+# One run at a time (P64): a concurrency group holds one running and one
+# pending run, and a deploy must never race another deploy of the same Worker.
+#
+# deploy=no  (default): READ-ONLY. Prints what the repository's Cloudflare
+#   token may do (verify, the poetech.us zone, Workers scripts, the zone's
+#   Workers routes) and how the Funnel answers THE APP'S OWN SHAPE: a
+#   cross-origin OPTIONS + POST to the records road
+#   (/sb/rest/v1/rpc/user_role_in_instance) with Origin: https://poetech.us,
+#   keyless on purpose (kong's own 401 is the healthy answer; a 15 s silence
+#   is the fault Christina and Darrell met), timed, once and then in a burst
+#   of eight, because a throttle shows under load and never on one call.
+#
+# deploy=yes: `wrangler deploy` from infra/cf-roads-worker, then an
+#   outside-in check that the live custom domain answers JSON on two roads
+#   with the Worker's own header. A deploy that leaves the SPA shell in place
+#   FAILS the run (P26 / DR-0107: done means read back from the site, never
+#   inferred from a green upload). Nothing is claimed that poetech.us did
+#   not say.
+#
+# NO SECRET IS PRINTED: the token is only ever a request header.
+name: cf-roads-worker (probe, then deploy on request)
+
+on:
+  workflow_dispatch:
+    inputs:
+      deploy:
+        description: 'Deploy the Worker after the probe? (no = read-only probe)'
+        type: choice
+        options: ['no', 'yes']
+        default: 'no'
+
+concurrency:
+  group: cf-roads-worker
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    name: probe the token and the Funnel (read-only)
+    runs-on: ubuntu-latest
+    env:
+      CF_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      FUNNEL: https://poetech.tail5a2f35.ts.net
+      APP_ORIGIN: https://poetech.us
+    steps:
+      - name: 1. What the token may do
+        run: |
+          set -uo pipefail
+          if [ -z "${CF_API_TOKEN:-}" ] || [ -z "${CF_ACCOUNT_ID:-}" ]; then
+            echo "::error::CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID are not available here"
+            exit 1
+          fi
+          api() { curl -sS --max-time 30 -H "Authorization: Bearer $CF_API_TOKEN" "https://api.cloudflare.com/client/v4$1"; }
+          echo "=== token verify"
+          api /user/tokens/verify | jq -r '"  success: \(.success)  status: \(.result.status // "n/a")", (.errors[]? | "  error: \(.code) \(.message)")'
+          echo "=== the poetech.us zone (needs Zone:Read)"
+          ZJ=$(api "/zones?name=poetech.us")
+          echo "$ZJ" | jq -r '"  success: \(.success)  zones: \(.result | length)", (.errors[]? | "  error: \(.code) \(.message)")'
+          ZID=$(echo "$ZJ" | jq -r '.result[0].id // empty')
+          echo "  zone id present: $([ -n "$ZID" ] && echo yes || echo no)"
+          echo "=== Workers scripts on the account (needs Workers Scripts:Read)"
+          api "/accounts/$CF_ACCOUNT_ID/workers/scripts" | jq -r '"  success: \(.success)  scripts: \((.result // []) | length)", ((.result // [])[] | "   - \(.id)"), (.errors[]? | "  error: \(.code) \(.message)")'
+          if [ -n "$ZID" ]; then
+            echo "=== Workers routes on the zone (needs Workers Routes:Read)"
+            api "/zones/$ZID/workers/routes" | jq -r '"  success: \(.success)  routes: \((.result // []) | length)", ((.result // [])[] | "   - \(.pattern) -> \(.script // "(none)")"), (.errors[]? | "  error: \(.code) \(.message)")'
+          fi
+          echo
+          echo "How to read: a 'success: false' with error 10000/9109 on the zone, scripts or routes"
+          echo "lines means the token is Pages-only. Deploying the Worker then needs a token with"
+          echo "Account > Workers Scripts:Edit and Zone > Workers Routes:Edit for poetech.us, saved"
+          echo "as the repository secret CLOUDFLARE_API_TOKEN (or a second secret this workflow reads)."
+
+      - name: 2. How the Funnel answers the app's own shape (timed, then a burst)
+        run: |
+          set -uo pipefail
+          ROAD="$FUNNEL/sb/rest/v1/rpc/user_role_in_instance"
+          echo "=== GET /sb/auth/v1/health (the probe every ledger line called 'backend auth')"
+          curl -sS -o /dev/null -w '  code %{http_code}  %{time_total}s  %{size_download} bytes\n' --max-time 25 "$FUNNEL/sb/auth/v1/health" || echo "  no answer"
+          echo "=== OPTIONS (the browser's preflight for an RPC) with Origin: $APP_ORIGIN"
+          H=$(mktemp)
+          curl -sS -o /dev/null -D "$H" -w '  code %{http_code}  %{time_total}s\n' --max-time 25 \
+            -X OPTIONS -H "Origin: $APP_ORIGIN" \
+            -H 'Access-Control-Request-Method: POST' \
+            -H 'Access-Control-Request-Headers: apikey,authorization,content-type,x-client-info' \
+            "$ROAD" || echo "  no answer"
+          echo "  allow-origin: $(grep -i '^access-control-allow-origin:' "$H" | head -1 | tr -d '\r' | sed 's/^[^:]*:[[:space:]]*//')"
+          echo "=== POST the RPC, keyless (kong 401 = the road answers; a silence = the fault)"
+          for i in 1 2 3; do
+            curl -sS -o /dev/null -w "  try $i: code %{http_code}  %{time_total}s  %{size_download} bytes\n" --max-time 25 \
+              -X POST -H "Origin: $APP_ORIGIN" -H 'content-type: application/json' -d '{"tenant_uuid":"00000000-0000-0000-0000-000000000000"}' \
+              "$ROAD" || echo "  try $i: no answer within 25 s"
+          done
+          echo "=== a burst of eight in parallel (the app opens many roads at once on arrival)"
+          seq 1 8 | xargs -P 8 -I{} sh -c 'curl -sS -o /dev/null -w "  burst {}: code %{http_code}  %{time_total}s\n" --max-time 25 -X POST -H "Origin: '"$APP_ORIGIN"'" -H "content-type: application/json" -d "{}" "'"$ROAD"'" || echo "  burst {}: no answer within 25 s"'
+          echo
+          echo "How to read: 401 in well under a second on every line = the Funnel road is healthy"
+          echo "from a datacenter; codes 503 or 'no answer' inside the burst = the throttle the"
+          echo "2026-10-09 unlock accepted is firing, and a same-origin door is the cure, not a retry."
+
+  deploy:
+    name: deploy poetech-roads and read it back from poetech.us
+    needs: probe
+    if: ${{ inputs.deploy == 'yes' }}
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: wrangler deploy (the Worker and its zone routes)
+        working-directory: infra/cf-roads-worker
+        run: npx --yes wrangler@3 deploy
+      - name: Read the custom domain back (the deploy is not done until poetech.us answers JSON)
+        run: |
+          set -uo pipefail
+          fail=0
+          check() {
+            url="$1"
+            H=$(mktemp); B=$(mktemp)
+            code=$(curl -sS -o "$B" -D "$H" -w '%{http_code}' --max-time 25 "$url" || echo 000)
+            ctype=$(grep -i '^content-type:' "$H" | head -1 | tr -d '\r' | sed 's/^[^:]*:[[:space:]]*//')
+            road=$(grep -i '^x-poetech-road:' "$H" | head -1 | tr -d '\r' | sed 's/^[^:]*:[[:space:]]*//')
+            echo "--- $url"
+            echo "    code $code  content-type '$ctype'  x-poetech-road '${road:-none}'"
+            echo "    first 120: $(head -c 120 "$B" | tr '\n' ' ')"
+            case "$ctype" in
+              *json*) echo "    A FUNCTION-SHAPED ANSWER through the Worker door" ;;
+              *) echo "::error::$url still answers '$ctype' — the SPA shell, not the road"; fail=1 ;;
+            esac
+          }
+          sleep 20
+          check "https://poetech.us/sb/auth/v1/health"
+          check "https://poetech.us/automation-status"
+          exit $fail

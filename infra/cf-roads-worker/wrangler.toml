@@ -1,0 +1,52 @@
+# poetech-roads — the same-origin roads as a zone Worker (DR-1060; #2057).
+# Deployed by .github/workflows/cf-roads-worker.yml with the repository's
+# CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID. One route per road, on the
+# apex and on www, because the Pages project answers both. The route list
+# is pinned to ROADS in worker.js by the-roads-have-a-second-door test.
+name = "poetech-roads"
+main = "worker.js"
+compatibility_date = "2026-07-05"
+workers_dev = false
+
+routes = [
+  { pattern = "poetech.us/poetech-app/taxes/*", zone_name = "poetech.us" },
+  { pattern = "www.poetech.us/poetech-app/taxes/*", zone_name = "poetech.us" },
+  { pattern = "poetech.us/sb/*", zone_name = "poetech.us" },
+  { pattern = "www.poetech.us/sb/*", zone_name = "poetech.us" },
+  { pattern = "poetech.us/cams/*", zone_name = "poetech.us" },
+  { pattern = "www.poetech.us/cams/*", zone_name = "poetech.us" },
+  { pattern = "poetech.us/nas-photos/*", zone_name = "poetech.us" },
+  { pattern = "www.poetech.us/nas-photos/*", zone_name = "poetech.us" },
+  { pattern = "poetech.us/voice-lite/*", zone_name = "poetech.us" },
+  { pattern = "www.poetech.us/voice-lite/*", zone_name = "poetech.us" },
+  { pattern = "poetech.us/voice/*", zone_name = "poetech.us" },
+  { pattern = "www.poetech.us/voice/*", zone_name = "poetech.us" },
+  { pattern = "poetech.us/taxes/*", zone_name = "poetech.us" },
+  { pattern = "www.poetech.us/taxes/*", zone_name = "poetech.us" },
+  { pattern = "poetech.us/llm/*", zone_name = "poetech.us" },
+  { pattern = "www.poetech.us/llm/*", zone_name = "poetech.us" },
+  { pattern = "poetech.us/reviews/*", zone_name = "poetech.us" },
+  { pattern = "www.poetech.us/reviews/*", zone_name = "poetech.us" },
+  { pattern = "poetech.us/scribe/*", zone_name = "poetech.us" },
+  { pattern = "www.poetech.us/scribe/*", zone_name = "poetech.us" },
+  { pattern = "poetech.us/ways/*", zone_name = "poetech.us" },
+  { pattern = "www.poetech.us/ways/*", zone_name = "poetech.us" },
+  { pattern = "poetech.us/openers/*", zone_name = "poetech.us" },
+  { pattern = "www.poetech.us/openers/*", zone_name = "poetech.us" },
+  { pattern = "poetech.us/interest", zone_name = "poetech.us" },
+  { pattern = "www.poetech.us/interest", zone_name = "poetech.us" },
+  { pattern = "poetech.us/n8n/*", zone_name = "poetech.us" },
+  { pattern = "www.poetech.us/n8n/*", zone_name = "poetech.us" },
+  { pattern = "poetech.us/automation-status", zone_name = "poetech.us" },
+  { pattern = "www.poetech.us/automation-status", zone_name = "poetech.us" },
+  { pattern = "poetech.us/property-history", zone_name = "poetech.us" },
+  { pattern = "www.poetech.us/property-history", zone_name = "poetech.us" },
+  { pattern = "poetech.us/review-action", zone_name = "poetech.us" },
+  { pattern = "www.poetech.us/review-action", zone_name = "poetech.us" },
+  { pattern = "poetech.us/review-feed", zone_name = "poetech.us" },
+  { pattern = "www.poetech.us/review-feed", zone_name = "poetech.us" },
+  { pattern = "poetech.us/wake-orchestrator-control", zone_name = "poetech.us" },
+  { pattern = "www.poetech.us/wake-orchestrator-control", zone_name = "poetech.us" },
+  { pattern = "poetech.us/wake-orchestrator", zone_name = "poetech.us" },
+  { pattern = "www.poetech.us/wake-orchestrator", zone_name = "poetech.us" },
+]
