@@ -35,6 +35,7 @@ import { SIGNUP_SORTS, sortSignupsBy, usageProfile, usageLine } from '../lib/use
 import AppShareQR from './AppShareQR.jsx';
 import FamilyInvitePanel from './FamilyInvitePanel.jsx';
 import EdgeGuard from './EdgeGuard.jsx';
+import VisitorDoors from './VisitorDoors.jsx';
 import { fetchAccessSnapshot, currentBuild } from '../lib/access-metrics-sync.js';
 import {
   summarize, countByRole, groupByScope, newVsReturning, activityRollup,
@@ -539,6 +540,17 @@ export default function AccessUsageMetrics() {
             id: 'signups',
             label: 'Signups',
             render: () => <PlatformSignups />,
+          },
+          {
+            // THE VISITOR STAGE (DR-1070 derived it, DR-1071 disclosed the
+            // counting, this chip is where it is READ). It sits before
+            // "Signups" in the life of a visitor and right after it here,
+            // because the signed-in side is what a steward opens first.
+            // Derived from Cloudflare's own records: no tracker, no cookie, no
+            // beacon, nothing of ours stored about anyone not signed in.
+            id: 'doors',
+            label: 'At the doors',
+            render: () => <VisitorDoors />,
           },
           {
             // THE EDGE GUARD (DR-1067): who and what is hitting the site, by

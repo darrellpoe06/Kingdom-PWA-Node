@@ -4658,7 +4658,7 @@ ${THEME_CSS}
         {view === 'church' && churchView === 'ministries' && <ChurchMinistriesTab onOpen={(s) => s && s.sub && setChurchView(s.sub)} onFeedback={(k) => setFeedbackOpen(k)} />}
         {view === 'church' && churchView === 'bus' && <BusMinistry church={data.church} />}
         {view === 'church' && churchView === 'members' && <ChurchMembers />}
-        {view === 'church' && churchView === 'giving-book' && !reviewerMode && isChurchOfficeRole(churchAccess.role) && <ChurchGivingBook churchName={data.church?.name || ''} instanceId={churchAccess.instanceId} />}
+        {view === 'church' && churchView === 'giving-book' && !reviewerMode && isChurchOfficeRole(churchAccess.role) && <ChurchGivingBook churchName={data.church?.name || ''} instanceId={churchAccess.instanceId} church={data.church || {}} />}
         {view === 'church' && churchView === 'my-record' && <ChurchMemberSpace church={data.church} myUserId={authSession?.user?.id || null} onOpen={(t) => t && t.sub && setChurchView(t.sub)} />}
         {view === 'church' && churchView === 'access' && <AccessRequests instanceId={churchAccess.instanceId} isOffice={['owner','admin'].includes(churchAccess.role)} />}
         {view === 'notes' && <ThinkingSpace notes={data.notes || []} addNote={addNote} patchNote={patchNote} updateNote={updateNote} deleteNote={deleteNote} togglePinNote={togglePinNote} toggleNoteSource={toggleNoteSource} sendToPoeTech={sendNoteToPoeTech} appDirectives={data.appDirectives || []} addPrayerRequest={addPrayerRequest} addChurchVoice={addChurchVoice} addIncident={addIncident} addInquiry={addInquiry} />}

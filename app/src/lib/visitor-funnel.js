@@ -30,11 +30,22 @@
 // person, and nothing of ours to leak. A table would have been a fourth place
 // storing something about people who never signed anything.
 //
-// THAT MATTERS BEYOND TASTE. The covenant a member signs says the church's
-// records are "never sold, never sent to an employer, a lender or an
-// advertiser, never used to decide who is welcome, or ever used to train
-// anything" (DR-1064). Google is an advertiser. And TLC is a therapy practice,
-// where DR-0008 already binds ZERO PHI and no client-level tracking.
+// THAT MATTERS BEYOND TASTE, and the reason has since been CORRECTED. This
+// header first argued it from a covenant clause promising the member's record
+// is "never sent to an employer, a lender or an advertiser" (DR-1064). DR-1071
+// STRUCK that clause as already false: the app has offered a Google sign-in
+// door the whole time (app/src/lib/supabase.js, signInWithOAuth provider
+// 'google'), and Google is an advertiser, so the clause broke on the day each
+// member signed it. Do not cite it here or anywhere else.
+//
+// The argument that survives is stronger, because it is about what EXISTS
+// rather than what was promised: a visitor table would be a fourth place
+// holding something about people who never signed anything, and this derivation
+// creates no such place. The covenant now DISCLOSES the counting in plain words
+// -- "the church counts how its PAGES are used" -- and promises a will rather
+// than a perfection (DR-1071). TLC is unchanged and is the harder line: a
+// therapy practice, where DR-0008 already binds ZERO PHI and no client-level
+// tracking.
 //
 // EVERY FUNCTION HERE IS PURE. The caller passes the payload; nothing fetches,
 // nothing stores, no clock of its own.

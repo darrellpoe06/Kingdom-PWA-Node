@@ -148,6 +148,14 @@ export const PROFILE_FIELDS = [
   { key: 'nickname',     label: 'Also known as',      kind: 'text' },
   { key: 'pastor',       label: 'Pastor',             kind: 'text' },
   { key: 'address',      label: 'Address',            kind: 'text' },
+  // FOR THE CONTRIBUTION STATEMENT (DR-1073). A statement is issued in the
+  // church's LEGAL name, which is often not the name on the sign, and every
+  // preparer who sees one looks for the EIN. `checkIssuer` already prefers
+  // legalName over name and warns when the EIN is absent, so these two fields
+  // are what turn a warned statement into a clean one. Neither is required to
+  // run a church; both are required to hand somebody a tax document.
+  { key: 'legalName',    label: 'Legal name (for tax statements)', kind: 'text' },
+  { key: 'ein',          label: 'EIN (for tax statements)',        kind: 'text' },
   { key: 'phone',        label: 'Phone',              kind: 'text' },
   { key: 'officeHours',  label: 'Office hours',       kind: 'text' },
   { key: 'contactEmail', label: 'Office email',       kind: 'email' },
@@ -191,7 +199,7 @@ export function formFromProfile(profile = {}) {
 export function mergeChurchRecord(base = {}, profile = null) {
   if (!profile || typeof profile !== 'object') return base;
   const out = { ...base };
-  for (const k of ['name', 'nickname', 'site', 'address', 'pastor', 'phone', 'officeHours', 'contactEmail', 'founded', 'youtubeChannelId', 'givingPageHint']) {
+  for (const k of ['name', 'nickname', 'site', 'address', 'pastor', 'phone', 'officeHours', 'contactEmail', 'founded', 'youtubeChannelId', 'givingPageHint', 'legalName', 'ein']) {
     if (profile[k] != null && profile[k] !== '') out[k] = profile[k];
   }
   if (Array.isArray(profile.services) && profile.services.length) out.services = profile.services;
