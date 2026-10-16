@@ -18,6 +18,10 @@ import { createRoot } from 'react-dom/client';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
+// Household sharing (0299) is driven from here per test: what the household
+// "shared", and a record of every share call the surface made.
+const household = vi.hoisted(() => ({ items: [], calls: [] }));
+
 vi.mock('../lib/legal-documents-sync.js', () => ({
   BUCKET: 'legal-documents',
   SIGNED_URL_TTL_SECONDS: 300,
@@ -26,6 +30,8 @@ vi.mock('../lib/legal-documents-sync.js', () => ({
   uploadLegalFile: async () => ({ ok: false, reason: 'signed-out', message: 'Sign in to store the file itself' }),
   signedLegalUrl: async () => null,
   deleteLegalFile: async () => ({ ok: true }),
+  fetchHouseholdLegalDocuments: async () => ({ ok: true, items: household.items }),
+  setLegalDocumentShared: async (uuid, shared) => { household.calls.push([uuid, shared]); return { ok: true, shared }; },
 }));
 
 import { LegalPlaceholder } from '../components/Legal.jsx';
@@ -50,7 +56,7 @@ async function setInput(el, value) {
   });
 }
 
-beforeEach(() => { localStorage.clear(); });
+beforeEach(() => { localStorage.clear(); household.items = []; household.calls = []; });
 afterEach(() => {
   if (root) act(() => root.unmount());
   if (container) container.remove();
@@ -112,5 +118,64 @@ describe('Legal document shelves', () => {
   it('still shows the accounts-in-legal surface it already had (no regression)', async () => {
     await mount({ accounts: [{ id: 'a1', name: 'Frozen checking', inLegal: true, balance: 10, type: 'checking', institution: 'Bank' }] });
     expect(document.body.textContent).toMatch(/Frozen checking/);
+  });
+});
+
+describe('household sharing (0299, DR-1077) — off unless the filer turns it on', () => {
+  const mine = (over = {}) => ({
+    id: 'ld-mine-1', category: 'business', docType: 'Operating agreement', label: 'Our operating agreement',
+    privileged: true, whereFiled: 'fire safe', createdAt: '2026-10-16T12:00:00Z', ...over,
+  });
+  const theirs = (over = {}) => ({
+    id: 'ld-household-1', remoteUuid: 'u-1', category: 'business', docType: 'Reinstatement filing',
+    label: 'Filed reinstatement', privileged: true, whereFiled: 'agent portal', dateOf: '2026-10-20',
+    createdAt: '2026-10-20T12:00:00Z', fromHousehold: true, sharedWithHousehold: true, sharedBy: 'Christina', ...over,
+  });
+
+  it('a synced document starts PRIVATE, and sharing it is one explicit tap by its filer', async () => {
+    localStorage.setItem(DOCS_KEY, JSON.stringify([mine({ remoteUuid: 'r-1' })]));
+    await mount();
+    expect(document.body.textContent).toMatch(/Private to you\./);
+    const toggle = buttons(/^Share with household$/i)[0];
+    expect(toggle).toBeTruthy();
+    expect(toggle.getAttribute('aria-pressed')).toBe('false');
+    await click(toggle);
+    expect(household.calls).toEqual([['r-1', true]]);
+    expect(buttons(/Stop sharing with household/i)[0].getAttribute('aria-pressed')).toBe('true');
+    expect(document.body.textContent).toMatch(/only you can change or remove it/i);
+  });
+
+  it('a document that has not synced cannot be shared, and says why', async () => {
+    localStorage.setItem(DOCS_KEY, JSON.stringify([mine()]));
+    await mount();
+    expect(buttons(/Share with household/i)).toHaveLength(0);
+    expect(document.body.textContent).toMatch(/Sign in and let it sync to be able to share it/i);
+  });
+
+  it('paper the household shared reads as theirs: named, openable, never removable or re-sharable here', async () => {
+    household.items = [theirs({ storagePath: 'u-x/ld.pdf', whereFiled: '' })];
+    await mount();
+    expect(document.body.textContent).toMatch(/Shared by Christina/);
+    expect(document.body.textContent).toMatch(/Filed reinstatement/);
+    expect(buttons(/^Open$/)).toHaveLength(1);
+    expect(buttons(/^Remove$/)).toHaveLength(0);
+    expect(buttons(/share with household/i)).toHaveLength(0);
+    // Never written into this person's own shelf.
+    expect(localStorage.getItem(DOCS_KEY) || '[]').not.toMatch(/Filed reinstatement/);
+  });
+
+  it('a step done on another account moves this checklist once its paper is shared', async () => {
+    await mount();
+    expect(document.body.textContent).toMatch(/0 of 10 steps have their paper on the shelf/);
+    root.unmount(); container.remove(); root = container = null;
+    household.items = [theirs({ docType: 'Entity status check (Secretary of State)', label: 'Standing read' })];
+    await mount();
+    expect(document.body.textContent).toMatch(/1 of 10 steps have their paper on the shelf/);
+  });
+
+  it('the headline no longer claims at-rest encryption is built', async () => {
+    await mount();
+    expect(document.body.textContent).not.toMatch(/Confidentiality is built in/i);
+    expect(document.body.textContent).toMatch(/designed and not built yet/i);
   });
 });

@@ -97,6 +97,15 @@ export const LEGAL_CATEGORIES = [
       'LLC formation / articles',
       'Operating agreement',
       'Annual report / registered agent',
+      // The paper that proves each make-it-official step (lib/make-it-official.js,
+      // DR-1076). Added, never renamed: a rename would orphan shelved rows.
+      'Entity status check (Secretary of State)',
+      'Reinstatement filing',
+      'Engagement letter — counsel',
+      'IP assignment',
+      'Contributor agreement',
+      'Content permission',
+      'Terms of Use / Privacy Policy',
       'Contract — vendor',
       'Contract — contractor',
       'Contract — employment',
@@ -254,6 +263,10 @@ export function documentShape({
   fileSize = null,
   storagePath = null,
   createdAt = null,
+  remoteUuid = null,
+  sharedWithHousehold = false,
+  fromHousehold = false,
+  sharedBy = '',
 } = {}) {
   return {
     id: id || newDocumentId(),
@@ -268,6 +281,14 @@ export function documentShape({
     fileSize: Number.isFinite(Number(fileSize)) && Number(fileSize) >= 0 ? Number(fileSize) : null,
     storagePath: storagePath || null,
     createdAt: createdAt || new Date().toISOString(),
+    // Household sharing (migration 0299, DR-1077). OFF unless the filer turns
+    // it on — a person who never shares keeps exactly the shelf they had.
+    // `fromHousehold` marks a row someone ELSE shared: read-only here, never
+    // stored in this person's own shelf, never uploaded as theirs.
+    ...(remoteUuid ? { remoteUuid } : {}),
+    sharedWithHousehold: sharedWithHousehold === true,
+    fromHousehold: fromHousehold === true,
+    sharedBy: String(sharedBy || '').trim(),
   };
 }
 
