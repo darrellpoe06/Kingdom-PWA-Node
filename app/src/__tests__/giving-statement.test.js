@@ -272,7 +272,7 @@ describe('the membership agreement no longer reads as "no record exists"', () =>
   });
 
   it('...and the giving record is now acknowledged, with the anonymous carve-out', () => {
-    expect(covenant.statement).toMatch(/separately records gifts it receives/i);
+    expect(covenant.statement).toMatch(/separately records the gifts it receives/i);
     expect(covenant.statement).toMatch(/that record is mine to read/i);
     expect(covenant.statement).toMatch(/unless I chose to give anonymously/i);
   });
@@ -280,20 +280,44 @@ describe('the membership agreement no longer reads as "no record exists"', () =>
   it('EVERY original refusal survives the rewrite', () => {
     // The easiest way to do harm here is to lose a protection while adding a
     // sentence. Each one is pinned.
-    for (const promise of [/(never|ever) sold/i, /employer/i, /lender/i, /advertiser/i, /who is welcome/i, /train anything/i, /prayer request goes only as far as I said/i, /mine to read, correct, take a copy of and have removed at any time/i]) {
+    //
+    // ONE was deliberately removed rather than lost, and it is named here so
+    // the removal stays a decision instead of becoming a silent drift: the
+    // "never sent to… an advertiser" clause. DR-1071 struck it because the
+    // app's own sign-in offers a Google door (app/src/lib/supabase.js,
+    // signInWithOAuth provider 'google'), so a member signing that clause was
+    // signing something already untrue. The covenant now names that door
+    // plainly instead, and the pin for it lives in church-member-intake.test.js.
+    for (const promise of [/(never|ever) willingly sell/i, /employer/i, /lender/i, /who is welcome/i, /train anything/i, /prayer request goes only as far as I said/i, /mine to read, correct, take a copy of and have removed at any time/i]) {
       expect(covenant.statement, `a protection was lost: ${promise}`).toMatch(promise);
+    }
+    expect(covenant.statement, 'the advertiser clause must stay struck, not quietly return')
+      .not.toMatch(/advertiser/i);
+  });
+
+  it('the refusals govern the GIVING record too, not only the member card', () => {
+    // The rewrite first turned "never sold, never sent to…" into "NONE OF IT is
+    // ever sold…", and DR-1071 then gave the promise a subject — "THE CHURCH
+    // will never willingly sell my record, my giving or my prayer requests".
+    // Both moves widened the antecedent to cover both records, and that is the
+    // reason the wording moved — pinned so a later tidy-up cannot narrow it
+    // back to the member card alone.
+    const at = covenant.statement.search(/The church will never willingly sell/i);
+    expect(at, 'the refusal clause is gone').toBeGreaterThan(-1);
+    const tail = covenant.statement.slice(at);
+    for (const r of [/my giving/i, /my prayer requests/i, /employer/i, /lender/i, /who is welcome/i, /train anything/i]) {
+      expect(tail, `${r} fell outside the refusal clause`).toMatch(r);
     }
   });
 
-  it('the refusals now govern the GIVING record too, not only the member card', () => {
-    // The rewrite turned "never sold, never sent to…" into "NONE OF IT is ever
-    // sold, ever sent to…", and the antecedent is now both records. That is a
-    // real strengthening and it is the reason the wording moved — pinned so a
-    // later tidy-up cannot narrow it back to the member card alone.
-    expect(covenant.statement).toMatch(/none of it is ever sold/i);
-    const tail = covenant.statement.slice(covenant.statement.indexOf('none of it'));
-    for (const r of [/employer/i, /lender/i, /advertiser/i, /who is welcome/i, /train anything/i]) {
-      expect(tail, `${r} fell outside the "none of it" clause`).toMatch(r);
-    }
+  it('A GIVING RECORD IS THE WORST THING TO OVERPROMISE ABOUT (DR-1071)', () => {
+    // This suite is the one that matters most for this correction. A member
+    // decides whether to give through this app partly on the strength of the
+    // sentence above. If that sentence reads like a guarantee and the church is
+    // still learning how to hold the data, the giver was misled about the one
+    // record that names their money.
+    expect(covenant.statement).toMatch(/still learning/i);
+    expect(covenant.statement).toMatch(/real risk/i);
+    expect(covenant.statement).toMatch(/their will, not their perfection/i);
   });
 });

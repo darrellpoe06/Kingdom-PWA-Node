@@ -152,7 +152,23 @@ export const CHURCH_MEMBER_SECTIONS = Object.freeze([
         // DOES record gifts it receives, because it must, and the member needs
         // that record at tax time. The sentence now says which record it is
         // speaking about, and says the other one exists and is theirs.
-        statement: 'I have read what the church holds about me. I understand that this record is mine to read, correct, take a copy of and have removed at any time; that THIS record holds no giving amount and no giving total, so no one reading the roll can see what I give; that the church separately records gifts it receives — as it must — and that record is mine to read, with my contribution statement issued from it each year unless I chose to give anonymously; that a prayer request goes only as far as I said; and that none of it is ever sold, ever sent to an employer, a lender or an advertiser, ever used to decide who is welcome, or ever used to train anything.',
+        // DR-1071. The old sentence promised the record is "never sent to...
+        // an advertiser", and Darrell's direction is to MEASURE and to TELL
+        // people plainly rather than to abstain: "We will not personally sell
+        // data... we all have Google currently... we will build what we need
+        // to offload from these services... Just tell the users!!! We are
+        // transitioning and need data to have clarity and understanding....
+        // not to prey on our users."
+        //
+        // So the promise is not weakened -- it is made TRUE and SCOPED to what
+        // it was always really about. A measurement service sees that A PAGE
+        // was opened. It never sees the member record, the giving, or the
+        // prayer request. Those keep every protection they had; the page
+        // measurement is disclosed in the member's own words, with the
+        // transition named. A promise a member signs must be true on the day
+        // they sign it (DR-0076), and the no-identifier guard is what keeps
+        // the second half of this sentence honest in code.
+        statement: 'I have read what the church holds about me. My record is mine to read, correct, take a copy of and have removed at any time. THIS record holds no giving amount and no giving total, so no one reading the roll can see what I give; the church separately records the gifts it receives — as it must — and that record is mine to read, with my contribution statement issued from it each year unless I chose to give anonymously; and a prayer request goes only as far as I said. The church will never willingly sell my record, my giving or my prayer requests, never send them to an employer or a lender, never hand them to anyone to train anything, and never use them to decide who is welcome. And so I am told plainly rather than left to assume: the church counts how its PAGES are used, so it can see what helps and make it better, and that counting is being moved onto the church’s own equipment. If I sign in with Google, then Google knows I signed in here — that is what choosing that door means, and I can use the phone-and-PIN door or an email and password instead. And the last part is told to me straight rather than dressed up as a guarantee: the people building this are still learning and still researching, they do not know everything yet, and so there is real risk in it. What they promise is their will, not their perfection — they will never willingly hand over what is mine, they will say so when they find they were wrong, and they will not claim a safety they have not built yet. I can grow with them on those terms, or not.',
         feeds: 'the signed agreement, version-pinned and server-stamped (DR-0356)' },
     ],
   },

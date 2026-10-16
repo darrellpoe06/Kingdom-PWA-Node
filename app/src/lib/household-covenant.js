@@ -14,7 +14,7 @@
 
 export const HOUSEHOLD_COVENANT = Object.freeze({
   title: 'Household Covenant',
-  preamble: 'This is the agreement between this household and the app it keeps its life in. It says what the record holds, who may see it, what we will never do with it, and what we have not built yet.',
+  preamble: 'This is the agreement between this household and the app it keeps its life in. It says what the record holds, who may see it, what we will never do with it, what we DO count, and what we have not built yet. It is a statement of what we will do — not a guarantee that nothing can go wrong.',
   sections: [
     {
       n: 1,
@@ -31,13 +31,19 @@ export const HOUSEHOLD_COVENANT = Object.freeze({
       title: 'What we will never do',
       items: [
         'We do not sell this data. Not to anyone, not ever, in any form.',
-        'We do not send it to an insurer, an employer, a landlord, a lender or an advertiser.',
+        'We do not send it to an insurer, an employer, a landlord or a lender.',
         'We do not use one household’s record to make a decision about another household.',
         'We do not train anything outside this household on this household’s record without the household saying so, in words, first.',
+        'We do not hand this household’s record, its money or its documents to anyone willingly — and where this app uses somebody else’s door, we name the door instead of letting you assume there isn’t one. Signing in with Google tells Google you signed in here. The phone-and-PIN door and the email-and-password door do not.',
       ],
     },
     {
       n: 4,
+      title: 'What we do count',
+      text: 'We count how the app’s own PAGES are used — which screens get opened, which ones get abandoned, how long something takes — because that is how we find what helps and fix what does not. That counting is being moved onto this family’s own equipment, and it never carries who you are, what you hold, or what you owe. We would rather tell you we count than let you find out.',
+    },
+    {
+      n: 5,
       title: 'What the record does not hold',
       items: [
         'No account numbers, no routing numbers, no card numbers, no passwords. The name of a bank is a fact; its numbers are not ours to keep.',
@@ -46,17 +52,17 @@ export const HOUSEHOLD_COVENANT = Object.freeze({
       ],
     },
     {
-      n: 5,
+      n: 6,
       title: 'What we have not built',
-      text: 'Files you upload are held in private storage that only your account can open, and every open is logged. They are NOT encrypted with a key only you hold. This is a private shelf, not a safe deposit box. If a document would be ruinous in the wrong hands, keep the paper and record a pointer to where it is instead of uploading it.',
+      text: 'Files you upload are held in private storage that only your account can open, and every open is logged. They are NOT encrypted with a key only you hold. This is a private shelf, not a safe deposit box. If a document would be ruinous in the wrong hands, keep the paper and record a pointer to where it is instead of uploading it. And the honest frame for all of the above: we are still learning and still researching, and we do not know everything yet — so every line in this document is a statement of what we WILL do, not a guarantee that nothing can go wrong. There is real risk in trusting any system, including this one. When we find we were wrong, we change the words here and say what changed.',
     },
     {
-      n: 6,
+      n: 7,
       title: 'What the app owes you back',
       text: 'Every number this app shows you traces to a real row you can open. Where it does not know something, it says so rather than filling the space. When it draws a conclusion about your household, it shows the rows the conclusion came from. If it cannot do that, it does not show the conclusion.',
     },
     {
-      n: 7,
+      n: 8,
       title: 'Changing this',
       text: 'This household’s owner can change every word of this document from inside the app. Each save is a new version with a note, and a signature records which version was signed. Changing the words does not un-sign what was already signed.',
       after: 'By signing, you are saying you have read this and that the record we keep together is kept on these terms.',

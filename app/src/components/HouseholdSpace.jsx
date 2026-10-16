@@ -407,7 +407,9 @@ export default function HouseholdSpace() {
         <UiIcon name="lock" className="w-3 h-3 mt-0.5 shrink-0" />
         <span>
           This household&apos;s record and shelf live in this household&apos;s own instance and are walled there by the database, not by the screen.
-          Nothing here is sold, sent to an insurer or an employer, or used to train anything outside this household.
+          Nothing here will ever be willingly sold, sent to an insurer or an employer, or used to train anything outside this household.
+          The app does count how its pages are used, so it can see what helps — never who you are or what you hold. We are still learning,
+          so that is a promise about what we will do, not a claim that nothing can go wrong.
         </span>
       </p>
     </div>
