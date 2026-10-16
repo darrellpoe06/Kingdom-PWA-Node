@@ -52,7 +52,7 @@
 -- and nobody would have seen it happen. This file is now 0257's function with
 -- a category added and the counts filtered -- nothing else moves.
 
-CREATE OR REPLACE FUNCTION, same RETURNS shape (jsonb).
+-- CREATE OR REPLACE FUNCTION, same RETURNS shape (jsonb).
 -- =============================================================================
 
 CREATE OR REPLACE FUNCTION public.admin_signup_metrics()
