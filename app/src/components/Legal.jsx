@@ -99,6 +99,7 @@ import {
   BUCKET as LEGAL_DOCS_BUCKET,
 } from '../lib/legal-documents-sync.js';
 import { useDocumentViewer } from './DocumentViewer.jsx';
+import DocumentRenewals from './DocumentRenewals.jsx';
 import { signStorageDocument } from '../lib/document-viewer.js';
 
 function blankForm() {
@@ -613,7 +614,7 @@ export function OfficialStepsPanel({ docs = [] }) {
   );
 }
 
-export function LegalPlaceholder({ tier = 'foundation', setView, accounts = [], entities = [], toggleAccountLegal }) {
+export function LegalPlaceholder({ tier = 'foundation', setView, accounts = [], entities = [], toggleAccountLegal, addEvent }) {
   const unlockedTiers = new Set(['family', 'premium', 'business', 'loved-ones']);
   const unlocked = unlockedTiers.has(tier);
   const legalAccounts = (accounts || []).filter(a => a.inLegal);
@@ -769,6 +770,15 @@ export function LegalPlaceholder({ tier = 'foundation', setView, accounts = [], 
           below. Placed before them so the reader meets the steps, then the
           shelf the paper goes on. */}
       <OfficialStepsPanel docs={[...docs, ...householdDocs]} />
+
+      {/* WHAT THE PAPERS SAY IS COMING (DR-1084). Insurance, licences,
+          registrations and leases stop being true on a date, and until now
+          nothing in the app knew that. Every date here is worked out from the
+          documents themselves and every one is editable before it goes on the
+          calendar — the app proposes, the person decides. */}
+      {typeof addEvent === 'function' && (
+        <DocumentRenewals documents={[...docs, ...householdDocs]} addEvent={addEvent} />
+      )}
 
       {/* THE FOUR SHELVES. These four boxes used to be four hardcoded <ul>
           lists. Every number above a shelf is now computed from real rows, and
