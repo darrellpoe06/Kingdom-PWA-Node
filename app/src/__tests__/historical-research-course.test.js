@@ -421,7 +421,8 @@ describe('it is wired into the school as the History department’s second cours
     expect(row.meta.category).toBe('History');
     expect(row.unitCap).toBe('Lesson');
     const history = LEARN_CATALOG.filter((c) => c.meta && c.meta.category === 'History').map((c) => c.key);
-    expect(history).toEqual(['history-truth', 'historical-research-1619']);
+    // The car course (DR-1083) joined as the department's third, after this one.
+    expect(history).toEqual(['history-truth', 'historical-research-1619', 'car-research-who-invented-the-car']);
   });
 
   it('the department holds two courses', () => {
