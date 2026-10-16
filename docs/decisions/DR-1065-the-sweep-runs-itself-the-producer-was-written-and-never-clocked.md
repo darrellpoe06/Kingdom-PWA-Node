@@ -98,6 +98,62 @@ written.
   services with every other entry byte-identical.
 - workflow-list-order, infra-transport and his-hand guards green.
 
+## Amendment, 2026-10-16 13:08 UTC — the re-review is answered, and it corrects an alarm of mine
+
+**The sweep works.** `nas-health` run 38905454436, the first with a working
+`choir_songs` probe:
+
+```
+choir_songs 9 (harvest-drafts 7, awaiting review 7, newest 2026-10-16)
+```
+
+**Seven grounded drafts, written today, all awaiting a steward.** The rider is
+running on the clock and producing, exactly as this record promised — and the
+yield is LOW, exactly as this record warned: the hook-matcher only catches
+distinctive, song-unique lyric phrases, so a service whose songs are not in
+`REPERTOIRE`, or whose transcript lost the singing, still yields nothing.
+Honest and empty beat confident and invented, and that is what 7-from-hundreds
+looks like in practice. Growing the hook list from what the stewards correct is
+the work this number now justifies.
+
+### TWO CORRECTIONS TO MY OWN CLAIMS, both found by instruments rather than by me
+
+**1. The probe I shipped to measure this read GREEN while measuring NOTHING.**
+Its first version carried an SQL comment containing `"950 songs"`, and that
+double quote **closed the shell's `-c "..."` argument**. psql received a valid
+SELECT ending at the comment and printed the OLD line unchanged; the entire
+`choir_songs` half never ran. Not a crash, not a red check — the exact
+silent-green failure DR-0076 §3 forbids, written one commit after citing that
+rule. Neither the YAML parse nor any guard can see shell quoting; only
+comparing the output to the previous run showed it was identical. The fix moves
+all prose outside the string, and the check that would have caught it now
+exists: **shell-tokenize the command and assert the `-c` value is ONE token
+containing every count, with no embedded quote.**
+
+**2. I raised a starvation alarm on a single sample, and it was wrong.**
+Seeing `services-sync: exit=1 in 542726ms` against a 600 s ceiling — with
+`lesson-voice` burning 480 s — I reported that this rider sits 16th of 22 with
+"58 seconds of slack". The per-rider witness added in the same change then
+showed the steady state:
+
+```
+exit=0 in 70219ms · 68546ms · 69291ms · 68735ms · 68297ms · 68648ms · 69147ms
+```
+
+**~70 s of 600 s, about 12%.** The 542 s run was one bad cycle, not the norm,
+and `services-sync.sh:84` `continue`s past a failure anyway. There is no
+starvation in the normal case. What I should have said is "one sample" — I
+implied a trend from a single outlier, which is the under-measured claim
+DR-0076 §4 exists to prevent, pointed the other way.
+
+The instrument catching its author twice in one change is the argument for
+building instruments.
+
+**`re-review: 2026-10-18` is answered early.** The replacement: read this count
+again once stewards have confirmed some drafts, and grow `REPERTOIRE` from the
+titles they correct — the learning loop `worship-song-harvest.py` already names
+in its header but does not yet close.
+
 ## What this does not do
 
 - **It does not remove the paste box.** The Songbook's `repertoire.json` import
