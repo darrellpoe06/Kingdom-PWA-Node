@@ -100,6 +100,76 @@ so the sweep has a reason rather than a date.
   probe that distinguishes them is shipped. `install.sh`'s own note makes
   never-seeded the leading one; it is labelled a candidate.
 
+## Amendment, 2026-10-16 07:08 UTC — the probe answered, and it ruled out my leading candidate
+
+`nas-health` run 38865201391, the first run carrying the probe this record
+shipped:
+
+```
+realtime tenants: 1 | external_ids: realtime-dev | jwt secret present: true | squatter public.tenants: 0
+```
+
+**None of the three candidates.** The tenant EXISTS, its secret is PRESENT, and
+there is no squatter table. **"Never seeded" — the candidate this record called
+leading, on `install.sh:126`'s own note — is WRONG.** The seed worked. The
+server and the seed simply disagree about the tenant's NAME:
+
+| | |
+|---|---|
+| seeded `external_id` | **`realtime-dev`** |
+| what the server asks for | **`realtime`** (`project=realtime external_id=realtime`) |
+
+A lookup for a name that does not exist returns `TenantNotFound` **exactly as
+if nothing had been seeded**. Two very different causes, one identical symptom
+— and acting on the leading candidate would have re-seeded a tenant that was
+already there while leaving the mismatch untouched. This is the whole argument
+for shipping a probe instead of a repair.
+
+### The mechanism, traced in this repository rather than remembered
+
+`infra/nas-supabase/kong.yml:52` proxies upstream to:
+
+```
+url: http://realtime:4000/socket/
+```
+
+So the Host header realtime receives is **`realtime`**, and realtime resolves
+its tenant from that host's first label. The seed, meanwhile, writes upstream's
+default self-host name `realtime-dev`.
+
+**This is also why upstream names that container `realtime-dev.supabase-realtime`**
+— the first label of the Host is then `realtime-dev`, matching the seed. Our
+compose uses the plain service name `realtime` (`docker-compose.yml:137`), which
+breaks the match that upstream's odd-looking name exists to preserve.
+
+### The repair — one line, and the smaller of the two
+
+Make a tenant exist under the name the server is **measured** to ask for:
+
+```sql
+UPDATE _realtime.tenants SET external_id = 'realtime' WHERE external_id = 'realtime-dev';
+```
+
+Chosen over the alternative (renaming the container / repointing Kong at a
+`realtime-dev.*` host, upstream's approach) because it touches one column of
+one row instead of the proxy every road in the stack goes through, and because
+it keys off the demanded name we measured rather than a theory about where that
+name comes from. **`jwt_secret` is untouched** — it is already present and
+correctly encrypted under `REALTIME_DB_ENC_KEY`, which is the part that is
+expensive to get wrong (`install.sh:122-126`, the "Bad key size" incident).
+Realtime caches tenants, so a `docker restart supabase-realtime` after it makes
+the change certain rather than eventual. Reversible by inverting the statement.
+
+**NOT APPLIED FROM HERE, and not because it is risky — because there is no
+sanctioned write path.** `nas-health` is read-only by design and must stay so;
+turning the witness into a writer to save one SSH command is the wrong trade
+(DR-0108: account for the whole team's reach — Darrell has ConnectBot SSH to
+the NAS from his phone). The command above is the deliverable.
+
+**`re-review: 2026-10-17`** is answered early and replaced by: confirm, after
+the statement runs, that `TenantNotFound` stops and a live update arrives — the
+app's own Campus Rentals tick is the cheapest witness.
+
 ## What this does not do
 
 - **It does not fix realtime.** Nothing in this record makes a live update
