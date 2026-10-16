@@ -113,13 +113,27 @@ what *this* person did.
 
 ## What this does not do
 
-- **It does not prove the WebSocket is down.** The sandbox has no route to the
-  Funnel, so "realtime is not delivering" is the *best-supported* explanation
-  for the symptom, not a measured fact — the ruled-out list is measured, this
-  is inference. The fix makes the surface correct **either way**: if realtime
-  was fine all along, the controls now simply respond faster and say refusals
-  out loud. **`re-review: 2026-10-16`** — once #2057 is cured, confirm whether
-  realtime was the trigger, and record it.
+- **The WebSocket explanation is now WEAKER, measured, and I am correcting it
+  rather than leaving it to stand.** DR-1054's probe merged hours after this
+  record was written and ran against the real road (site-health 38825909008):
+  a cross-origin POST to the sign-in road answered **HTTP 400 with 81 bytes** —
+  healthy, with the Funnel's throttle not firing. So "the road to the NAS is
+  degraded" is **not supported for HTTP**, and the sentence in Context that
+  leans on #2057 to explain the symptom is weaker than it reads.
+
+  What that does and does not change:
+  - **A WebSocket is a different thing** from a REST call — a long-lived
+    upgrade over the Funnel is still unmeasured, so realtime is not ruled out,
+    only no longer propped up by the HTTP evidence.
+  - **The fix is unaffected, and was never contingent on the cause.** The
+    silent-RLS-refusal trap is real on any road: `.update()` filtered by a
+    policy returns no error and zero rows, so `{ ok: true }` meant nothing.
+    And a surface that can only learn its own result from a realtime event is
+    wrong whether or not that event arrives.
+  - **What actually stalled Darrell's checkbox at 15:3x is still unmeasured.**
+    Saying otherwise would be exactly the comfortable story this record exists
+    to remove. **`re-review: 2026-10-22`** — if it recurs on a healthy road,
+    the cause is something I have not found yet.
 - **The same pattern exists elsewhere.** Any surface whose only `setX` is a
   realtime callback has this defect. That sweep is its own change with its own
   proof. **`re-review: 2026-10-22`.**
