@@ -345,6 +345,26 @@ jobs:
                         ||' | video_transcripts '||(SELECT count(*) FROM public.video_transcripts)
                         ||' | sermon_prep '||(SELECT count(*) FROM public.sermon_prep)
                         ||' | instances '||(SELECT count(*) FROM public.instances);" 2>&1 | tail -1
+            # DR-1069: WHY REALTIME IS DEAD, measured instead of guessed. Run
+            # 38859433402 carried "TenantNotFound: Tenant not found: realtime"
+            # every ten seconds, and that string appears NOWHERE in docs/ -- so
+            # nobody knew. The consequence is bounded and worth stating exactly:
+            # makeSubscriber awaits fetchAll() BEFORE it subscribes, so initial
+            # load is fine and only LIVE updates are lost -- a surface shows its
+            # data on open and never changes while you look at it. That is
+            # precisely the Campus Rentals checkbox (DR-1058), whose only
+            # refresh path WAS the realtime callback.
+            # Realtime is itself multi-tenant and seeds its own row from
+            # SEED_SELF_HOST, into _realtime (the search_path pin). These
+            # readings tell a MISSING row from a MIS-KEYED one from a squatter
+            # table in the wrong schema -- three different fixes. Never the
+            # secret itself, only whether one is present.
+            ${SUDO} docker exec -e PGPASSWORD="$SUPA_PW" supabase-db \
+              psql -h 127.0.0.1 -U supabase_admin -d postgres -t -A \
+              -c "SELECT 'realtime tenants: '||COALESCE((SELECT count(*)::text FROM _realtime.tenants),'NO _realtime.tenants TABLE')
+                        ||' | external_ids: '||COALESCE((SELECT string_agg(external_id,',') FROM _realtime.tenants),'none')
+                        ||' | jwt secret present: '||COALESCE((SELECT (jwt_secret IS NOT NULL AND jwt_secret <> '')::text FROM _realtime.tenants LIMIT 1),'n/a')
+                        ||' | squatter public.tenants: '||(SELECT count(*)::text FROM information_schema.tables WHERE table_schema='public' AND table_name='tenants');" 2>&1 | tail -1
           else
             echo "no POSTGRES_PASSWORD readable — ledger not queryable this probe"
           fi
