@@ -35,8 +35,13 @@ import {
 } from '../lib/space-photos.js';
 
 const serif = { fontFamily: '"Fraunces", serif' };
-const ACT = 'text-[0.625rem] uppercase tracking-wider px-2 py-1.5 min-h-[36px] border border-[#E8E4DC] text-[#1A1815] hover:border-[#1A1815] disabled:opacity-40 focus:outline focus:outline-2 focus:outline-[#B85838]';
-const WARN = 'text-[0.625rem] uppercase tracking-wider px-2 py-1.5 min-h-[36px] border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]';
+// The focus ring is written LITERALLY on each button below, not folded into
+// these constants. ui-standards-guard reads the JSX and cannot see through an
+// identifier — and neither can a person reviewing the diff. A ring that is
+// present but unverifiable is the same shape of problem as one that is absent
+// (DR-0314: a standard is kept where it can be checked).
+const ACT = 'text-[0.625rem] uppercase tracking-wider px-2 py-1.5 min-h-[36px] border border-[#E8E4DC] text-[#1A1815] hover:border-[#1A1815] disabled:opacity-40';
+const WARN = 'text-[0.625rem] uppercase tracking-wider px-2 py-1.5 min-h-[36px] border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white';
 
 export default function SpacePhotoConsole({ space, onSetCover, onMove, onRemovePhoto }) {
   const photos = photosOf(space);
@@ -88,21 +93,21 @@ export default function SpacePhotoConsole({ space, onSetCover, onMove, onRemoveP
 
             {!confirming ? (
               <div className="flex flex-wrap gap-1.5">
-                <button type="button" className={ACT} disabled={!at || at.isCover}
+                <button type="button" className={`${ACT} focus:outline focus:outline-2 focus:outline-[#B85838]`} disabled={!at || at.isCover}
                   onClick={() => onSetCover(space.id, open.id)}>
                   {at && at.isCover ? 'Is the cover' : 'Make this the cover'}
                 </button>
                 {/* Disabled at the ends rather than wrapping around — a picture
                     that jumps from last to first on one tap is a surprise. */}
-                <button type="button" className={ACT} disabled={!at || at.index === 0}
+                <button type="button" className={`${ACT} focus:outline focus:outline-2 focus:outline-[#B85838]`} disabled={!at || at.index === 0}
                   onClick={() => onMove(space.id, open.id, 'forward')} aria-label="Move this photo one place earlier">
                   ← Earlier
                 </button>
-                <button type="button" className={ACT} disabled={!at || at.position === at.total}
+                <button type="button" className={`${ACT} focus:outline focus:outline-2 focus:outline-[#B85838]`} disabled={!at || at.position === at.total}
                   onClick={() => onMove(space.id, open.id, 'back')} aria-label="Move this photo one place later">
                   Later →
                 </button>
-                <button type="button" className={`${WARN} ml-auto`} onClick={() => setConfirming(true)}>
+                <button type="button" className={`${WARN} ml-auto focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={() => setConfirming(true)}>
                   Remove
                 </button>
               </div>
@@ -110,8 +115,8 @@ export default function SpacePhotoConsole({ space, onSetCover, onMove, onRemoveP
               <div className="border border-[#B85838] p-2 space-y-2" role="alert">
                 <p className="text-xs text-[#1A1815]" style={serif}>{removeConfirmText(space, open.id)}</p>
                 <div className="flex flex-wrap gap-1.5">
-                  <button type="button" className={WARN} onClick={removeNow}>Remove for good</button>
-                  <button type="button" className={ACT} onClick={() => setConfirming(false)}>Keep it</button>
+                  <button type="button" className={`${WARN} focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={removeNow}>Remove for good</button>
+                  <button type="button" className={`${ACT} focus:outline focus:outline-2 focus:outline-[#B85838]`} onClick={() => setConfirming(false)}>Keep it</button>
                 </div>
               </div>
             )}

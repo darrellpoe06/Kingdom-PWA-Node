@@ -110,6 +110,25 @@ has no second copy to restore from (below).
   being the committed legibility artifact needing regeneration for the new
   page — regenerated (328/341), green. 21 gates.
 
+## A third thing a gate caught, after the tests were green
+
+`ui-standards-guard` failed the console on **five buttons with no focus ring** —
+and it was right in a way worth keeping. The ring *was* present: it was folded
+into the `ACT` and `WARN` class constants at the top of the file. The guard
+reads the JSX and cannot see through an identifier.
+
+The lazy fix is to append the literal to each `className` and leave the
+duplicate in the constant. The honest one is what landed: **the ring is written
+literally on each button and removed from the constants**, because a reader
+reviewing the diff cannot see through the identifier either. A ring that is
+present but unverifiable is the same shape of problem as one that is absent —
+which is DR-0314's whole point about where a standard has to live to be kept.
+
+Three different gates caught three different things in this one change: the
+whole-file check found the camera dialog, `ui-standards-guard` found the focus
+rings, and the production build found nothing because it was run before the
+push this time.
+
 ## What this does not do
 
 - **The other 76 dialogs stand.** `window.confirm` gates **77** destructive
