@@ -31,7 +31,9 @@
 // =============================================================================
 import React, { useEffect, useRef, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
-import { resolveGiveDestination, GIVING_CHANNELS, GIVING_SCRIPTURES, GIVING_DOCTRINE } from '../lib/giving.js';
+import { resolveGiveDestination, GIVING_SCRIPTURES, GIVING_DOCTRINE } from '../lib/giving.js';
+import { resolveChurchGiving, mergeChurchRecord } from '../lib/church-profile.js';
+import { useChurchProfile } from '../lib/use-church-profile.js';
 import { DOCK_BTN, DOCK_ICON, DOCK_LABEL } from '../lib/chrome-dock.js';
 import { callToGiveCoverage, TRANSCRIPT_PIPELINE_NOTE, LINKED_SERVICE_VIDEO } from '../lib/call-to-give.js';
 import { fetchCallToGiveArchive } from '../lib/call-to-give-sync.js';
@@ -452,8 +454,19 @@ function MyGivingRecord() {
   );
 }
 
-export function ChurchGivePanel({ church, onClose }) {
+export function ChurchGivePanel({ church: churchIn, onClose }) {
   const panelRef = useRef(null);
+  // WHOSE channels (0297, DR-1066). The church's own profile row — written by
+  // its office — overrides the record the shell passed; COLG's slide constants
+  // stand only for COLG and only until its office enters rows; another church
+  // with no rows gets an honest line, never a borrowed list. While the row is
+  // loading the panel renders from the record it already has, so COLG never
+  // flashes empty (resolveChurchGiving decides by record when the slug is
+  // unknown). church-profile.test.js pins the decision from every side.
+  const door = useChurchProfile();
+  const profileFacts = door.status === 'ready' && door.profile ? door.profile.profile : null;
+  const church = mergeChurchRecord(churchIn || {}, profileFacts);
+  const giving = resolveChurchGiving({ church, slug: door.status === 'ready' ? door.slug : null, profile: door.status === 'ready' ? door.profile : null });
   const dest = resolveGiveDestination(church);
 
   // Escape closes; focus the panel on open (accessible dialog behavior).
@@ -505,13 +518,19 @@ export function ChurchGivePanel({ church, onClose }) {
             </div>
           </div>
 
-          {/* THE CHURCH'S OWN GIVING CHANNELS (DR-0136) — decoded verbatim from
-              the church's GIVE ONLINE slide. One tap on a phone opens the
-              channel; the QR is there for a second device to scan. Slide order
-              kept: Zelle, Cash App, Givelify, PayPal. */}
+          {/* THE CHURCH'S OWN GIVING CHANNELS (DR-0136 / DR-1066) — COLG's were
+              decoded verbatim from its GIVE ONLINE slide; another church's are
+              the rows its office entered (0297). One tap on a phone opens the
+              channel; the QR is there for a second device to scan. Order kept
+              as published. */}
           <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold mb-2">Where to give</div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
-            {GIVING_CHANNELS.map((ch) => (
+          {giving.source === 'none' && (
+            <p className="text-sm text-[#1A1815] border border-[#E8E4DC] bg-[#FAF8F4] p-3 mb-3 leading-relaxed" data-giving-channels-empty>
+              {giving.line}
+            </p>
+          )}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3" data-giving-channels={giving.source}>
+            {giving.channels.map((ch) => (
               <a
                 key={ch.id}
                 href={ch.url}
@@ -530,10 +549,9 @@ export function ChurchGivePanel({ church, onClose }) {
               </a>
             ))}
           </div>
-          <p className="text-[0.6875rem] text-[#5A5751] mb-3 leading-relaxed">
-            These are the church&rsquo;s own published channels, taken exactly from its GIVE ONLINE slide.
-            The app only opens them — no payment information is collected here.
-          </p>
+          {giving.source !== 'none' && (
+            <p className="text-[0.6875rem] text-[#5A5751] mb-3 leading-relaxed" data-giving-provenance>{giving.line}</p>
+          )}
 
           {/* MY GIVING RECORD — the history Darrell asked for (2026-09-08),
               placed directly under the channels so the flow reads the way a

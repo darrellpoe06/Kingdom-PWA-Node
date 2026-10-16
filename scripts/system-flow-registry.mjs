@@ -731,6 +731,42 @@ const NODES = [
     ],
     seeds: [],
   }),
+  // DR-1066: a church is added by a form, not a migration. 0297 made the three
+  // hardcoded COLG facts rows — who leads a church (church_leaders), what the
+  // church says about itself and where it receives gifts (church_profiles) —
+  // and these are the rooms those rows live in. The steward's card and the
+  // office's editor WRITE them; the ordinary church join READS the leader rows
+  // to seat a leader with no invite; the Give panel READS the profile to show
+  // the church's OWN channels and never another church's. Without these nodes
+  // the tables would be rows in no room — the built-never-connected class.
+  app('app/src/components/ChurchDoorProfile.jsx', {
+    id: 'church-door-profile', name: 'This church’s door, and Add a church',
+    purpose: 'The office publishes its church’s face and giving channels; a platform steward adds a church in one call.',
+    writes: [
+      { res: 'db:church_profiles', file: 'app/src/lib/church-profile-sync.js', token: "rpc('set_church_profile'" },
+      { res: 'db:church_leaders', file: 'app/src/lib/church-profile-sync.js', token: "rpc('provision_church_instance'" },
+    ],
+    reads: [
+      { res: 'db:church_profiles', file: 'app/src/lib/church-profile-sync.js', token: "from('church_profiles')" },
+    ],
+    seeds: ['church-give', 'church-door-join'],
+  }),
+  app('app/src/lib/church-instance.js', {
+    id: 'church-door-join', name: 'The church join (every church surface’s way in)',
+    purpose: 'Seats a person at their church from their own seat, a linked door, a leader row, or a live invite.',
+    reads: [
+      { res: 'db:church_leaders', token: "rpc('join_church_instance'" },
+    ],
+    seeds: [],
+  }),
+  app('app/src/components/ChurchGiving.jsx', {
+    id: 'church-give', name: 'Give to the church (whose channels)',
+    purpose: 'Opens the church’s OWN published channels — the office’s rows, or COLG’s slide constants only for COLG.',
+    reads: [
+      { res: 'db:church_profiles', file: 'app/src/lib/church-profile-sync.js', token: "from('church_profiles')" },
+    ],
+    seeds: [],
+  }),
   app('app/src/components/Pulpit.jsx', {
     id: 'sermon-reader', name: 'The Word (Pulpit) — sermons with their words',
     purpose: 'Each service with its transcript, harvest and reach.',
