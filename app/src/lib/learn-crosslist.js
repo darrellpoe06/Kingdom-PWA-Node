@@ -343,6 +343,13 @@ export const COURSE_CROSS_LISTINGS = [
   // on the Word's shelf as well as at home (measured: 32 distinct Scripture
   // anchors across eight lessons; the course test walks every quoted span).
   { department: 'The Word & The Way', courseKey: 'historical-research-1619', why: 'The historian’s craft taught as the Word commands it — prove all things, go to the record, hear the witnesses in their own words, two or three witnesses, fact against interpretation, the open correction and the quiet edit, the city read as a record, written in order for the children — worked on the 1619 Project as the case (measured: 31 Scripture anchors across eight lessons).' },
+  // The department's third course works the same craft on a second case — hear
+  // before you answer, two or three witnesses, render to all their dues, teach
+  // it diligently to the children — under the Word that names Yahweh as the
+  // Teacher of every invention, so it sits on the Word's shelf as well as at
+  // home (measured: 17 distinct Scripture anchors across four lessons; the
+  // course test walks every quoted span).
+  { department: 'The Word & The Way', courseKey: 'car-research-who-invented-the-car', why: 'The historian’s craft as the Word commands it — hear the whole question before answering, go to the issuing record, establish every word at the mouth of two or three witnesses, render to all their dues, teach it diligently to the children — worked on who invented the car, under the Word that wisdom finds out knowledge of witty inventions (measured: 17 Scripture anchors across four lessons).' },
   // The Business department's second course (DR-0594) teaches the researcher's
   // craft as the Word commands it — count the cost, hear before you answer, two
   // or three witnesses, a just weight, reproof regarded, written plain upon

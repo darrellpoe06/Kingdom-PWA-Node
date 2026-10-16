@@ -42,6 +42,7 @@ import { LEGACY_PROVISIONS_META, LEGACY_PROVISIONS_SESSION_FLOW, buildLegacyProv
 import { PROPERTY_PRINCIPLE_META, PROPERTY_PRINCIPLE_SESSION_FLOW, buildPropertyPrincipleSchedule, propertyPrincipleProgressSummary, exportPropertyPrincipleCurriculumMarkdown, PROPERTY_PRINCIPLE_INTEREST_TAG, PROPERTY_PRINCIPLE_HELPER_TAG, PROPERTY_PRINCIPLE_TUTOR_META } from './property-principle-course.js';
 import { HISTORY_META, HISTORY_SESSION_FLOW, buildHistorySchedule, historyProgressSummary, exportHistoryCurriculumMarkdown, HISTORY_INTEREST_TAG, HISTORY_HELPER_TAG, HISTORY_TUTOR_META } from './history-course.js';
 import { HISTORICAL_RESEARCH_META, HISTORICAL_RESEARCH_SESSION_FLOW, buildHistoricalResearchSchedule, historicalResearchProgressSummary, exportHistoricalResearchCurriculumMarkdown, HISTORICAL_RESEARCH_INTEREST_TAG, HISTORICAL_RESEARCH_HELPER_TAG, HISTORICAL_RESEARCH_TUTOR_META } from './historical-research-course.js';
+import { CAR_RESEARCH_META, CAR_RESEARCH_SESSION_FLOW, buildCarResearchSchedule, carResearchProgressSummary, exportCarResearchCurriculumMarkdown, CAR_RESEARCH_INTEREST_TAG, CAR_RESEARCH_HELPER_TAG, CAR_RESEARCH_TUTOR_META } from './car-research-course.js';
 import { MANAGEMENT_STEWARDSHIP_META, MANAGEMENT_STEWARDSHIP_SESSION_FLOW, buildManagementStewardshipSchedule, managementStewardshipProgressSummary, exportManagementStewardshipCurriculumMarkdown, MANAGEMENT_STEWARDSHIP_INTEREST_TAG, MANAGEMENT_STEWARDSHIP_HELPER_TAG, MANAGEMENT_STEWARDSHIP_TUTOR_META } from './management-stewardship-course.js';
 import { BUYING_TERMS_META, BUYING_TERMS_SESSION_FLOW, buildBuyingTermsSchedule, buyingTermsProgressSummary, exportBuyingTermsCurriculumMarkdown, BUYING_TERMS_INTEREST_TAG, BUYING_TERMS_HELPER_TAG, BUYING_TERMS_TUTOR_META } from './buying-terms-course.js';
 import { LEASING_TENANTS_META, LEASING_TENANTS_SESSION_FLOW, buildLeasingTenantsSchedule, leasingTenantsProgressSummary, exportLeasingTenantsCurriculumMarkdown, LEASING_TENANTS_INTEREST_TAG, LEASING_TENANTS_HELPER_TAG, LEASING_TENANTS_TUTOR_META } from './leasing-tenants-course.js';
@@ -756,6 +757,28 @@ export const LEARN_CATALOG = [
       blurb: 'Tell Darrell you want help working the eight competencies on a real case — a claim to sort, a record to find, a second witness to hunt, a dispute to table, a correction to trace, or the two paragraphs to write with their sources. Teaching, not a substitute for the record: every document this course names can be read in full where it points, and you are meant to check it.',
       cta: 'I want help with mine',
       sent: '✓ Sent — Darrell will reach out. Prove all things; establish every word at the mouth of two or three witnesses.',
+    },
+  },
+  {
+    // COURSE THREE OF THE HISTORY DEPARTMENT (Darrell 2026-10-16: "Lesson...
+    // who invented the driving car? Based on documentation of history etc...
+    // make sure we use all sources inside the app... and research 1 level
+    // context however the Higher Education Yahweh as the foundation of our
+    // comprehension of the world and dimensions" and "1619 historical
+    // events... in context historical accuracy and science of how we
+    // understand as a community"). The Level-1 craft of course two, worked on
+    // a second case; every voice and date read by a runner first (DR-1083).
+    key: 'car-research-who-invented-the-car', wiring: 'self-paced', unitCap: 'Lesson',
+    meta: { ...CAR_RESEARCH_META, key: 'car-research-who-invented-the-car', category: 'History' }, sessionFlow: CAR_RESEARCH_SESSION_FLOW,
+    buildScheduleRows: () => buildCarResearchSchedule(null), progressSummary: (p) => carResearchProgressSummary(p),
+    exportMarkdown: () => exportCarResearchCurriculumMarkdown(null), downloadName: 'historical-research-level-1-who-invented-the-car-curriculum.md',
+    interestTag: CAR_RESEARCH_INTEREST_TAG, helperTag: CAR_RESEARCH_HELPER_TAG, tutorCourseMeta: CAR_RESEARCH_TUTOR_META,
+    interestText: (who) => `${CAR_RESEARCH_INTEREST_TAG} ${who} wants a hand working a famous first through the four competencies.`,
+    interestCopy: {
+      heading: 'Want a hand with a first of your own?',
+      blurb: 'Tell Darrell you want help working the four competencies on a real claim — a first your family, town or country repeats: define what is being counted, find the office that issued the record, name the people one answer leaves out, and write it in order with a record under every sentence. Teaching, not a substitute for the record: every document this course names can be read in full where it points, and you are meant to check it.',
+      cta: 'I want help with mine',
+      sent: '✓ Sent — Darrell will reach out. Hear the whole question; go to the issuing record; render to all their dues.',
     },
   },
   {

@@ -77,6 +77,7 @@ import { BONDS_MODULES as M_bonds_course } from '../lib/bonds-course.js';
 import { BROADCAST_MODULES as M_broadcast_class } from '../lib/broadcast-class.js';
 import { BUSINESS_RESEARCH_MODULES as M_business_research_course } from '../lib/business-research-course.js';
 import { BUYING_TERMS_MODULES as M_buying_terms_course } from '../lib/buying-terms-course.js';
+import { CAR_RESEARCH_MODULES as M_car_research_course } from '../lib/car-research-course.js';
 import { MODULES as M_church_classes } from '../lib/church-classes.js';
 import { CHURCH_OFFICES_MODULES as M_church_offices_course } from '../lib/church-offices-course.js';
 import { DATASYSTEMS_MODULES as M_datasystems_course } from '../lib/datasystems-course.js';
@@ -121,6 +122,7 @@ const MODULES_BY_FILE = {
   'broadcast-class.js': M_broadcast_class,
   'business-research-course.js': M_business_research_course,
   'buying-terms-course.js': M_buying_terms_course,
+  'car-research-course.js': M_car_research_course,
   'church-classes.js': M_church_classes,
   'church-offices-course.js': M_church_offices_course,
   'datasystems-course.js': M_datasystems_course,

@@ -743,6 +743,16 @@ export const HISTORY_RECORD_HOSTS = [
   'www.transportation.gov',       // the Department of Transportation's own Reconnecting Communities program
   'americanarchive.org',          // the American Archive of Public Broadcasting: Baldwin's 1963 conversation, transcribed
   'dsl.richmond.edu',             // Mapping Inequality: the HOLC maps themselves
+  // answered a GitHub runner with HTTP 200 and their text on 2026-10-16 for
+  // the car course (history-voices-witness probe runs 38969635014, 38969913844, DR-1083):
+  'blogs.loc.gov',                // the Library of Congress's own blog: its 2009 answer to how it was misquoted
+  'group.mercedes-benz.com',      // the company history that carries Benz's name: the 1886 patent and Bertha Benz's journey
+  'www.dpma.de',                  // the German Patent and Trade Mark Office, successor to the office that granted patent 37435
+  'germanhistorydocs.org',        // German History in Documents and Images, German Historical Institute: Daimler's 1886 car
+  'news.un.org',                  // UN News: the patent's inscription on the Memory of the World register, 2011
+  'nationalmotormuseum.org.uk',   // the National Motor Museum, Beaulieu: its 2026 anniversary page, quoted as the worked case
+  'www.lindahall.org',            // the Linda Hall Library: Cugnot's steam vehicle of 1769 and 1770
+  'www.thehenryford.org',         // The Henry Ford: the Model T and the moving assembly line
 ];
 const HISTORY_NOT_PROSE = new Set(['stories', 'voices', 'timeline']);
 const walkText = (node, fn) => {
