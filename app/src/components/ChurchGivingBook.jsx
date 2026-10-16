@@ -60,6 +60,7 @@ import {
 } from '../lib/giving-reports.js';
 import { downloadText } from '../lib/report-export.js';
 import { listInstanceMembers } from '../lib/member-roles.js';
+import ContributionStatement from './ContributionStatement.jsx';
 import {
   fetchBatches, fetchClaims, fetchAliases,
   importBatch, confirmClaimGiver, setDeposit, removeBatch,
@@ -152,7 +153,7 @@ function ReportTable({ model, onDownload }) {
   );
 }
 
-export default function ChurchGivingBook({ churchName = '', instanceId = null }) {
+export default function ChurchGivingBook({ churchName = '', instanceId = null, church = {} }) {
   const [view, setView] = useState('import');
   const [loading, setLoading] = useState(true);
   const [reason, setReason] = useState('');
@@ -625,6 +626,19 @@ export default function ChurchGivingBook({ churchName = '', instanceId = null })
               </div>
 
               {personStatement && <ReportTable model={personStatement} onDownload={download} />}
+
+              {/* THE TAX DOCUMENT (DR-1073). The record above is every gift
+                  with its time and note — what the office reads. This is the
+                  annual statement the giver hands their preparer, built from
+                  the same claims through the Pub 1771 rules (DR-1064), which
+                  until now had no caller anywhere in the app. */}
+              <ContributionStatement
+                claims={claims}
+                batches={batches}
+                church={church}
+                giverKey={statementFor || ''}
+                giverLabel={(giverReport.groups.find((g) => g.key === statementFor) || {}).label || ''}
+              />
               <ReportTable model={monthReport} onDownload={download} />
               <ReportTable model={giverReport} onDownload={download} />
             </>
