@@ -34,6 +34,7 @@ import { fetchUserUsage } from '../lib/usage-events.js';
 import { SIGNUP_SORTS, sortSignupsBy, usageProfile, usageLine } from '../lib/user-usage-profile.js';
 import AppShareQR from './AppShareQR.jsx';
 import FamilyInvitePanel from './FamilyInvitePanel.jsx';
+import EdgeGuard from './EdgeGuard.jsx';
 import { fetchAccessSnapshot, currentBuild } from '../lib/access-metrics-sync.js';
 import {
   summarize, countByRole, groupByScope, newVsReturning, activityRollup,
@@ -538,6 +539,15 @@ export default function AccessUsageMetrics() {
             id: 'signups',
             label: 'Signups',
             render: () => <PlatformSignups />,
+          },
+          {
+            // THE EDGE GUARD (DR-1061): who and what is hitting the site, by
+            // agent / network / address / path / country, read from
+            // Cloudflare's own logs through the poetech-roads Worker — and
+            // the blocks and bot protections the stewards set there.
+            id: 'edge',
+            label: 'Bots & blocks',
+            render: () => <EdgeGuard />,
           },
           {
             // THE PEOPLE YOU KNOW, PLACED (DR-0839): the contacts brought in,

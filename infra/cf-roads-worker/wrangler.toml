@@ -49,4 +49,7 @@ routes = [
   { pattern = "www.poetech.us/wake-orchestrator-control", zone_name = "poetech.us" },
   { pattern = "poetech.us/wake-orchestrator", zone_name = "poetech.us" },
   { pattern = "www.poetech.us/wake-orchestrator", zone_name = "poetech.us" },
+  # The Edge Guard (DR-1061) — not a proxied road; answered by edge.js.
+  { pattern = "poetech.us/edge/*", zone_name = "poetech.us" },
+  { pattern = "www.poetech.us/edge/*", zone_name = "poetech.us" },
 ]

@@ -122,6 +122,45 @@ jobs:
       - name: wrangler deploy (the Worker and its zone routes)
         working-directory: infra/cf-roads-worker
         run: npx --yes wrangler@3 deploy
+
+      # THE EDGE GUARD'S TWO KEYS (DR-1061). The Worker's /edge/* road reads
+      # Cloudflare's own logs and sets blocks with the SAME token this job
+      # deploys with, and tells a steward from a stranger by asking the
+      # sovereign auth road with the NAS's anon key — fetched from the NAS
+      # ITSELF over the team's tailnet channel, exactly as the Pages deploy
+      # does (deploy-cloudflare-pages.yml; DR-0108: no human paste). Both land
+      # as Worker secrets, never in the bundle and never in a log; a missing
+      # key fails LOUD here rather than shipping a road that cannot answer.
+      - name: Join the tailnet (for the anon key)
+        uses: tailscale/github-action@v3
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+      - name: Fetch the sovereign anon key from the NAS
+        id: anon
+        env:
+          NAS_SSH_KEY: ${{ secrets.NAS_SSH_KEY }}
+        run: |
+          umask 077
+          printf '%s\n' "$NAS_SSH_KEY" > /tmp/nas_key
+          KEY=$(ssh -i /tmp/nas_key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 \
+            dpoe@poetech.tail5a2f35.ts.net \
+            "sudo -n sed -n 's/^ANON_KEY=//p' /volume1/docker/supabase/.env" | tr -d '[:space:]')
+          rm -f /tmp/nas_key
+          case "$KEY" in
+            eyJ*.eyJ*.*) : ;;
+            *) echo "::error::the sovereign ANON_KEY fetch returned ${#KEY} bytes, not a JWT; the Edge Guard gate cannot be armed (DR-0107)"; exit 1 ;;
+          esac
+          echo "::add-mask::$KEY"
+          echo "key=$KEY" >> "$GITHUB_OUTPUT"
+      - name: Put the Worker secrets (CF_API_TOKEN, SB_ANON_KEY)
+        working-directory: infra/cf-roads-worker
+        env:
+          SB_ANON_KEY: ${{ steps.anon.outputs.key }}
+        run: |
+          set -euo pipefail
+          printf '%s' "$CLOUDFLARE_API_TOKEN" | npx --yes wrangler@3 secret put CF_API_TOKEN
+          printf '%s' "$SB_ANON_KEY" | npx --yes wrangler@3 secret put SB_ANON_KEY
+
       - name: Read the custom domain back (the deploy is not done until poetech.us answers JSON)
         run: |
           set -uo pipefail
@@ -143,4 +182,5 @@ jobs:
           sleep 20
           check "https://poetech.us/sb/auth/v1/health"
           check "https://poetech.us/automation-status"
+          check "https://poetech.us/edge/ping"
           exit $fail

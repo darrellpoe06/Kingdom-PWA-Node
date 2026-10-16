@@ -25,6 +25,8 @@
 // the origin untouched (fetch(request)), so a route pattern wider than the
 // table can never black-hole the app.
 
+import { handleEdge } from './edge.js';
+
 export const FUNNEL_ORIGIN = 'https://poetech.tail5a2f35.ts.net';
 
 // [routePrefix on poetech.us, upstreamPrefix on the Funnel, label]. Order
@@ -129,8 +131,12 @@ async function proxy(request, road) {
 }
 
 export default {
-  async fetch(request) {
-    const road = roadFor(new URL(request.url).pathname);
+  async fetch(request, env = {}) {
+    const { pathname } = new URL(request.url);
+    // The Edge Guard (DR-1061): the stewards see who is hitting the site and
+    // block them, from inside the app, through this same Worker.
+    if (pathname === '/edge' || pathname.startsWith('/edge/')) return handleEdge(request, env);
+    const road = roadFor(pathname);
     if (!road) return fetch(request); // not ours: the origin (Pages) answers as before
     return proxy(request, road);
   },

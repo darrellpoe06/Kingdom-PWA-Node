@@ -66,6 +66,7 @@ describe('the mapping is exact', () => {
     expect(roadFor('/poetech-app/')).toBeNull();
     expect(roadFor('/poetech-app/assets/x.js')).toBeNull();
     expect(roadFor('/api/checkout')).toBeNull();
+    expect(roadFor('/edge/bots')).toBeNull(); // the Edge Guard is answered, never proxied
     expect(targetFor('https://poetech.us/')).toBeNull();
   });
 });
@@ -119,8 +120,10 @@ describe('wrangler.toml binds every road on the apex and on www, and nothing wid
     expect(patterns).toContain(`poetech.us${want}`);
     expect(patterns).toContain(`www.poetech.us${want}`);
   });
-  it('has exactly two patterns per road and no catch-all', () => {
-    expect(patterns).toHaveLength(ROADS.length * 2);
+  it('has exactly two patterns per road, two for the Edge Guard, and no catch-all', () => {
+    expect(patterns).toHaveLength(ROADS.length * 2 + 2);
+    expect(patterns).toContain('poetech.us/edge/*');
+    expect(patterns).toContain('www.poetech.us/edge/*');
     expect(patterns.some((p) => /\/\*$/.test(p) && /^(www\.)?poetech\.us\/\*$/.test(p))).toBe(false);
     expect(toml).toMatch(/zone_name = "poetech\.us"/);
     expect(toml).toMatch(/name = "poetech-roads"/);
