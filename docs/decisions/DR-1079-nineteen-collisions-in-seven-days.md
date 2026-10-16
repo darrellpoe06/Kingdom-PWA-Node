@@ -1,4 +1,4 @@
-# DR-1076: Nineteen collisions in seven days — the next number is the next FREE number
+# DR-1079: Nineteen collisions in seven days — the next number is the next FREE number
 
 **Date:** 2026-10-16
 **Status:** accepted
@@ -45,13 +45,13 @@ real branches:
 ```
 next free decision number: DR-1077
   on disk:   976 record(s), highest DR-1075
-  in flight: 60 number(s) held by unlanded branches, 1 of them at or above DR-1076
-    DR-1076 — origin/ccr-9c70f297-ct1dox
+  in flight: 60 number(s) held by unlanded branches, 1 of them at or above DR-1079
+    DR-1079 — origin/ccr-9c70f297-ct1dox
 
-  Taking DR-1076 would collide. DR-1077 is free on disk AND in flight.
+  Taking DR-1079 would collide. DR-1077 is free on disk AND in flight.
 ```
 
-**DR-1076 — this record's own number — was already claimed by another branch.**
+**DR-1079 — this record's own number — was already claimed by another branch.**
 The pointer would have handed it to me, and the tool caught it on its first
 real run. (This record keeps 1076 deliberately: that branch has not landed, and
 a record about collisions that quietly dodged one would teach the wrong thing.
