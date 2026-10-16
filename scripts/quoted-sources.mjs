@@ -71,6 +71,7 @@ export const CATALOGS = Object.freeze([
   ['broadcast-class.js', 'BROADCAST_MODULES'],
   ['business-research-course.js', 'BUSINESS_RESEARCH_MODULES'],
   ['buying-terms-course.js', 'BUYING_TERMS_MODULES'],
+  ['car-research-course.js', 'CAR_RESEARCH_MODULES'],
   ['church-classes.js', 'MODULES'],
   ['church-offices-course.js', 'CHURCH_OFFICES_MODULES'],
   ['datasystems-course.js', 'DATASYSTEMS_MODULES'],
