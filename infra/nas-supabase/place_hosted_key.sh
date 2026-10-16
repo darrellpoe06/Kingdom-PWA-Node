@@ -133,7 +133,11 @@ TMP=$(mktemp); chmod 600 "$TMP"
 printf 'HOSTED_SERVICE_ROLE_KEY=%s\n' "$K" > "$TMP"
 unset K
 WRITER=""
-[ -w "$AGENT_ENV" ] || WRITER="sudo"
+# NEVER a password prompt (Darrell, 2026-10-16: "No nas passwords!!!!! Cli...
+# ssh.... not a password"). `sudo -n` either runs on the ssh key's standing
+# grant (the same `sudo -n` nas-storage-sync uses on every run) or fails at
+# once; it never stops to ask. DR-1076.
+[ -w "$AGENT_ENV" ] || WRITER="sudo -n"
 if $WRITER grep -q '^HOSTED_SERVICE_ROLE_KEY=' "$AGENT_ENV" 2>/dev/null; then
   $WRITER "$PY" - "$AGENT_ENV" "$TMP" <<'PYEOF'
 import sys
@@ -154,7 +158,7 @@ fi
 rc=$?
 rm -f "$TMP"
 if [ "$rc" -ne 0 ]; then
-  echo "write to $AGENT_ENV failed (exit $rc)"
+  echo "write to $AGENT_ENV failed (exit $rc). If that is sudo refusing without a password, this account's standing grant does not cover it; nothing was written and no password is asked for."
   exit 5
 fi
 COUNT=$($WRITER grep -c '^HOSTED_SERVICE_ROLE_KEY=' "$AGENT_ENV" 2>/dev/null | tail -1)

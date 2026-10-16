@@ -9,6 +9,7 @@
 - `app/src/components/DocumentViewer.jsx` (new — the viewer, on the shared `Modal`, and the `useDocumentViewer()` hook every shelf uses)
 - `app/src/components/Choir.jsx`, `Pulpit.jsx`, `ChurchMemberSpace.jsx`, `HouseholdSpace.jsx`, `Legal.jsx` (each shelf's OPEN now opens the viewer)
 - `app/src/lib/choir-sync.js` (`TEAM_DOCS_BUCKET`, `SERMON_DOCS_BUCKET` exported so the bucket name lives in one place)
+- `infra/nas-supabase/place_hosted_key.sh` (`sudo -n` only: placing the key never asks for a NAS password — Darrell, 2026-10-16: "No nas passwords!!!!! Cli... ssh.... not a password")
 - `app/src/__tests__/documents-open-inside-the-app.test.jsx` (new, 22); `open-document.test.js` (its surface pin now holds the new rule)
 
 **Grounds:** Darrell, 2026-10-16, on Choir → Team Docs, with "could not be opened" under three documents in a row: **"No one of the documents can be opened inside the PoeTech App.... why not!!!!????!!!! Fix it !!!! Make sense.... get a understanding of the system's first..."**, then **"I tried the first 3 documents.... None worked... all had the same results..."**, then **"We are supposed to be a one place to see all types of documents... make sense?!!!!!!!"**
