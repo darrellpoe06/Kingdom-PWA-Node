@@ -100,6 +100,10 @@ export const COURSE_PLAIN_WORDS = {
   // The department's second course (DR-0590): the words a person types when
   // they want to know how to check a claim about the past for themselves.
   'historical-research-1619': ['history', 'truth', 'lies', 'news', 'reading', 'questions'],
+  // The department's third course (DR-1083): the words a person types when
+  // they want to know who built the first tools of the road, or how to check
+  // a famous first against the records.
+  'car-research-who-invented-the-car': ['history', 'records', 'tools', 'building', 'work', 'questions'],
   'insurance-risk': ['insurance', 'fire', 'flood', 'accident', 'house', 'bills'],
   inspections: ['house', 'repairs', 'building', 'fixing', 'plumbing', 'buying'],
   evictions: ['rent', 'landlord', 'tenant', 'debt', 'money', 'home'],

@@ -474,6 +474,12 @@
    "hr1-the-city-they-built": ["2026-09-24", "4ddc92f2"],
    "hr1-write-it-in-order-for-our-children": ["2026-09-24", "4ddc92f2"]
   },
+  "car-research-who-invented-the-car": {
+   "car1-what-is-a-car": ["2026-10-16", "bb476350"],
+   "car2-go-to-the-issuing-record": ["2026-10-16", "bb476350"],
+   "car3-others-laboured": ["2026-10-16", "bb476350"],
+   "car4-for-the-multitude-and-the-giver": ["2026-10-16", "bb476350"]
+  },
   "legacy-provisions": {
    "legacy1-why-it-vanishes": ["2026-09-02", "e4982c64"],
    "legacy2-constitution": ["2026-09-02", "e4982c64"],
