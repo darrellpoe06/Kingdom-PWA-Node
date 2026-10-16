@@ -882,6 +882,23 @@ const NODES = [
     writes: [{ res: 'gh:incident', token: 'gh issue comment 2057' }],
     seeds: ['ops-surface'],
   }),
+  // THE SECOND DOOR (DR-1068). #2057 has held every Pages Function dark since
+  // 2026-10-09 and nothing in this repository reaches that fault; what the
+  // repository CAN do is answer the same paths one layer above Pages. This
+  // workflow is dispatch-only: by default a read-only probe of what the token
+  // may do and how the Funnel answers the app's own request shape; on request
+  // it deploys infra/cf-roads-worker and reads poetech.us back before it says
+  // anything worked.
+  wf('cf-roads-worker.yml', {
+    id: 'cf-roads-worker', name: 'The same-origin roads as a zone Worker (#2057)',
+    purpose: 'Probes the Cloudflare token and the Funnel, and on request deploys the zone Worker that carries /sb and the other roads without Pages Functions.',
+    reads: [
+      { res: 'site:poetech.us', token: 'poetech.us' },
+      { res: 'cf:pages-api', token: 'api.cloudflare.com' },
+    ],
+    writes: [{ res: 'site:poetech.us', token: 'wrangler' }],
+    seeds: ['site-health'],
+  }),
   // THE STRANGER'S SCREEN, BESIDE THE PIPELINE'S (DR-0973). site-health above
   // proves the site is UP and FRESH; it has never had an opinion about whether
   // a listing card tells the truth. This one reads the card, and the door's
