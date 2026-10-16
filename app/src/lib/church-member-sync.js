@@ -36,6 +36,22 @@ export const RPC_TIMEOUT_MS = 15000;
 export const UPLOAD_TIMEOUT_MS = 120000;
 export const SIGNED_URL_TTL_SECONDS = 300;
 
+// ONE ATTEMPT WAS THE DEFECT (DR-1053). Darrell, 2026-10-15, on My Record at The
+// Love Corner: "Your record could not be opened. opening your record timed out
+// after 15000 ms." church_member_record_read (0212) RAISES on every named
+// failure — 'sign in first', 'no church to read', 'that is not your church' —
+// and a RAISE returns as a PostgREST error in milliseconds. So a 15 s timeout
+// is none of those. It is the request never completing: one attempt, on a
+// phone, all or nothing, and a dead end on screen.
+//
+// So the read asks three times instead of once, with the SAME total patience a
+// person already spends: 3 x 5000 ms + 300 + 900 = 16.2 s worst case against
+// the old 15 s single shot. And only a NO-ANSWER is retried — if the server
+// spoke, its answer is the answer, and asking again only doubles the wait.
+export const READ_ATTEMPT_MS = 5000;
+export const READ_TRIES = 3;
+export const READ_BACKOFF_MS = [300, 900];
+
 function withTimeout(promise, ms, what) {
   let t;
   const timer = new Promise((_, rej) => { t = setTimeout(() => rej(new Error(`${what} timed out after ${ms} ms`)), ms); });
@@ -47,14 +63,25 @@ function message(error) {
 }
 function fail(reason, msg) { return { ok: false, reason, message: msg }; }
 
-async function rpc(name, args, what) {
-  try {
-    const { data, error } = await withTimeout(supabase.rpc(name, args), RPC_TIMEOUT_MS, what);
-    if (error) return { ok: false, reason: 'rpc-error', message: message(error) };
-    return { ok: true, data };
-  } catch (e) {
-    return { ok: false, reason: 'network-error', message: message(e) };
+const sleepReal = (ms) => new Promise((r) => { setTimeout(r, ms); });
+
+async function rpc(name, args, what, opts = {}) {
+  const tries = Number.isFinite(opts.tries) ? Math.max(1, opts.tries) : 1;
+  const attemptMs = Number.isFinite(opts.attemptMs) ? opts.attemptMs : RPC_TIMEOUT_MS;
+  const sleep = opts.sleep || sleepReal;
+  let last = { ok: false, reason: 'network-error', message: 'That did not go through.', attempts: 0 };
+  for (let i = 0; i < tries; i += 1) {
+    try {
+      const { data, error } = await withTimeout(supabase.rpc(name, args), attemptMs, what);
+      // The server spoke. Its answer is the answer — never retried.
+      if (error) return { ok: false, reason: 'rpc-error', message: message(error), attempts: i + 1 };
+      return { ok: true, data, attempts: i + 1 };
+    } catch (e) {
+      last = { ok: false, reason: 'network-error', message: message(e), attempts: i + 1 };
+      if (i < tries - 1) await sleep(READ_BACKOFF_MS[Math.min(i, READ_BACKOFF_MS.length - 1)] || 0);
+    }
   }
+  return last;
 }
 
 async function currentUserId() {
@@ -75,10 +102,17 @@ const view = (data, church = null) => ({
 // THE RECORD
 // ---------------------------------------------------------------------------
 
-/** Your own record at your church. Starts itself, empty, the first time. */
-export async function readMyChurchRecord(instanceId = null, church = null) {
-  const res = await rpc('church_member_record_read', { instance_in: instanceId }, 'opening your record');
-  if (!res.ok) return res;
+/**
+ * Your own record at your church. Starts itself, empty, the first time.
+ *
+ * Asked up to READ_TRIES times (DR-1053) — a stalled first attempt on a phone
+ * is not the whole answer. `retryable` tells the surface whether a Try again
+ * button can help: a server that answered will answer the same way again.
+ */
+export async function readMyChurchRecord(instanceId = null, church = null, opts = {}) {
+  const res = await rpc('church_member_record_read', { instance_in: instanceId }, 'opening your record',
+    { tries: READ_TRIES, attemptMs: READ_ATTEMPT_MS, ...opts });
+  if (!res.ok) return { ...res, retryable: res.reason === 'network-error' };
   return { ok: true, view: view(res.data, church) };
 }
 

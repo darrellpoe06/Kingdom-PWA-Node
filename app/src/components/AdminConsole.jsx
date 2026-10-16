@@ -27,6 +27,7 @@
 // =============================================================================
 import React, { useState, useEffect } from 'react';
 import supabase from '../lib/supabase.js';
+import { askRole } from '../lib/church-access.js';
 import { enterReviewerMode } from '../lib/reviewer-mode.jsx';
 import UiIcon from './UiIcon.jsx';
 import QualityProof from './QualityProof.jsx';
@@ -222,7 +223,16 @@ export default function AdminConsole({
     if (!wanted) { setMembers({ status: 'no-instance', list: [], myRole: null, error: null }); return; }
     setMembers((p) => ({ ...p, status: 'loading' }));
     try {
-      const { data: myRole } = await supabase.rpc('user_role_in_instance', { tenant_uuid: wanted });
+      // A read that could not be made is NOT a no (DR-1053). This used to
+      // destructure `{ data: myRole }` and drop the error, so a returned (not
+      // thrown) PostgREST error left myRole undefined and the console reported
+      // status 'ok' with no role — an admin shown as having none.
+      const roleAnswer = await askRole(wanted);
+      if (!roleAnswer.ok) {
+        setMembers({ status: 'error', list: [], myRole: null, error: `your role could not be read (${roleAnswer.message})` });
+        return;
+      }
+      const myRole = roleAnswer.value;
       const list = await listInstanceMembersStrict(wanted);
       setMembers({ status: 'ok', list, myRole: myRole || null, error: null });
       setCapGrants(await listMemberCapabilities(wanted));

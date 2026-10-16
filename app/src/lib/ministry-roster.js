@@ -25,6 +25,7 @@
 // go-stale failure feedback-area-guard exists to catch.
 import supabase from './supabase.js';
 import { churchInstanceId } from './church-instance.js';
+import { ask, askRole } from './church-access.js';
 import { ministryById } from './church-ministries.js';
 
 async function currentSession() {
@@ -72,8 +73,9 @@ export async function myChurchRole() {
   if (!session) return null;
   const tenantId = await churchInstanceId();
   if (!tenantId) return null;
-  const { data, error } = await supabase.rpc('user_role_in_instance', { tenant_uuid: tenantId });
-  return error ? null : (data ?? null);
+  // A read that could not be made is NOT a no (DR-1053).
+  const answer = await askRole(tenantId);
+  return answer.ok ? (answer.value ?? null) : null;
 }
 
 /** Pure. Who may edit a roster — owner/admin, mirroring the 0296 write policy. */
@@ -85,19 +87,26 @@ export const canEditRoster = (role) => role === 'owner' || role === 'admin';
  * or it has nobody yet" — never a silent partial.
  */
 export async function listMinistryMembers(ministry) {
-  if (!isKnownMinistry(ministry)) return [];
+  if (!isKnownMinistry(ministry)) return { ok: true, rows: [], reason: 'unknown-ministry' };
   const session = await currentSession();
-  if (!session) return [];
+  if (!session) return { ok: true, rows: [], reason: 'signed-out' };
   const tenantId = await churchInstanceId();
-  if (!tenantId) return [];
-  const { data, error } = await supabase
+  if (!tenantId) return { ok: true, rows: [], reason: 'no-church' };
+  const answer = await ask(() => supabase
     .from('ministry_members')
     .select('id, ministry, user_id, display_name, team_role, created_at')
     .eq('instance_id', tenantId)
     .eq('ministry', ministry)
-    .order('display_name', { ascending: true });
-  if (error) return [];
-  return (data ?? []).map(toMemberShape);
+    .order('display_name', { ascending: true }));
+  // AN EMPTY ROSTER AND AN UNREAD ROSTER ARE DIFFERENT THINGS (DR-1053).
+  // This returned [] for both until 2026-10-15, and the panel then told the
+  // person "nobody is listed for Media that you can see — ask a director to
+  // add you": a statement about their standing, assembled out of a failed
+  // read. That is the exact defect the Choir tab showed Darrell an hour
+  // before this file was written, reproduced in the surface built for his
+  // own question about Media.
+  if (!answer.ok) return { ok: false, rows: [], reason: answer.reason, message: answer.message };
+  return { ok: true, rows: (answer.value ?? []).map(toMemberShape), reason: 'answered' };
 }
 
 /** Am I on this team? Asks the database's own predicate, not a local guess. */

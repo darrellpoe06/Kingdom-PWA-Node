@@ -13,6 +13,7 @@
 // =============================================================================
 import supabase from './supabase.js';
 import { churchInstanceId } from './church-instance.js';
+import { askRole, askPredicate, knownOrUnavailable } from './church-access.js';
 import { inviteToChurch, isValidInviteEmail } from './choir-sync.js';
 import {
   toDriverShape, toRouteShape, toVanShape, toScheduleShape, toReminderShape, toBusMessageShape, toRequestShape,
@@ -47,12 +48,14 @@ export async function getBusAccess(displayName) {
   if (!session) return { signedIn: false, canSee: false, canEdit: false, tenantId: null, role: null };
   const tenantId = await churchInstanceId(displayName);
   if (!tenantId) return { signedIn: true, canSee: false, canEdit: false, tenantId: null, role: null };
-  const [{ data: role }, { data: inMinistry }] = await Promise.all([
-    supabase.rpc('user_role_in_instance', { tenant_uuid: tenantId }),
-    supabase.rpc('user_in_bus_ministry', { instance_uuid: tenantId }),
+  // A read that could not be made is NOT a no (DR-1053). deriveAccess is
+  // unchanged and still receives exactly the two values it always did.
+  const [roleAnswer, memberAnswer] = await Promise.all([
+    askRole(tenantId),
+    askPredicate('user_in_bus_ministry', { instance_uuid: tenantId }),
   ]);
-  const { canEdit, canSee } = deriveAccess(role, inMinistry);
-  return { signedIn: true, canSee, canEdit, tenantId, role: role ?? null };
+  const verdict = knownOrUnavailable([roleAnswer, memberAnswer], deriveAccess);
+  return { signedIn: true, ...verdict, tenantId, role: roleAnswer.ok ? (roleAnswer.value ?? null) : null };
 }
 
 // --- Generic realtime subscriber (mirror choir-sync.makeSubscriber) ----------
