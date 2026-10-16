@@ -72,7 +72,15 @@ Books → Taxes) had no Help at all. Nothing listed where records live.
 | 0180 read policy | `USING (created_by = auth.uid())`: each shelf is its owner's alone |
 | Mutation check | Removing the date rule in `proofFor` fails `make-it-official.test.jsx` |
 
-## What this is not (DR-0329: say what is not built)
+## Impact
+
+Christina, or anyone helping, can now open Books → Legal and see the order of
+work, who owns each step, and which steps already have their paper. Help can
+answer "where is my X" for every record surface. A reader is no longer told the
+church's name is PoeTech's, or that encryption exists that does not.
+
+What this does not do (DR-0329: say what is not built):
+
 
 - **Family shelves do not sync yet.** Darrell asked for exactly that, with the
   condition that people who do not want it are never made to. That is the next
@@ -88,5 +96,13 @@ Books → Taxes) had no Help at all. Nothing listed where records live.
   moves no money and changes no infrastructure. Closing the hosted Supabase
   mirror and re-billing Claude are Darrell's calls.
 - **Not legal advice.** Counsel drafts every paper the steps name.
+
+## Verification
+
+- `make-it-official.test.jsx` (9): every evidence type is a real Business-picker option; an empty shelf has 0 done and three steps ready; the wrong type, the wrong shelf and pre-plan paper prove nothing; a later step waits and then moves; the panel's headline is derived. Mutation: removing the date rule in `proofFor` fails the suite.
+- `ip-register-render.test.jsx` (11): 0 of 24; seven marks; the not-ours list on screen; no status painted.
+- `help-content.test.js`: the nav mirror carries the five surfaces that were missing; every roadmap stop resolves to a real view.
+- `help-freshness --check`: PASS, Legal included.
+- `legibility-guard --check`: PASS. `eslint`: clean.
 
 **re-review:** 2026-10-30, with the research review, or the day the first step's paper is shelved.
