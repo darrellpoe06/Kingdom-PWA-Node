@@ -1,6 +1,6 @@
 # =============================================================================
 # The same-origin roads as a zone Worker: probe the token and the Funnel, then
-# (on request) deploy poetech-roads (DR-1060; #2057, day 7)
+# (on request) deploy poetech-roads (DR-1066; #2057, day 7)
 # =============================================================================
 # DISPATCH-ONLY. No schedule, no loop, no compute spawned on a clock (DR-0247
 # governs timer-driven work; this is a person or the agent pressing a button).
@@ -123,7 +123,7 @@ jobs:
         working-directory: infra/cf-roads-worker
         run: npx --yes wrangler@3 deploy
 
-      # THE EDGE GUARD'S TWO KEYS (DR-1061). The Worker's /edge/* road reads
+      # THE EDGE GUARD'S TWO KEYS (DR-1067). The Worker's /edge/* road reads
       # Cloudflare's own logs and sets blocks with the SAME token this job
       # deploys with, and tells a steward from a stranger by asking the
       # sovereign auth road with the NAS's anon key — fetched from the NAS

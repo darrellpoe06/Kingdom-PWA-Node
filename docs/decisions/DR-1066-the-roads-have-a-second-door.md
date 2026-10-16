@@ -1,5 +1,5 @@
 ---
-id: DR-1060
+id: DR-1066
 title: The roads have a second door — the same-origin transport as a zone Worker, above the Pages project that stopped invoking its Functions
 date: 2026-10-16
 status: accepted
@@ -11,7 +11,7 @@ grounds: [VERIFICATION-DOCTRINE, PERPETUAL-IMPROVEMENT, DECISION-RECORDS]
 source: session_01UyvwuXazJyx2GG9zw9r67Z — Christina, 2026-10-16, on the Cloudflare dashboard: "You have access to!!!!!! You do it!!!!!"
 ---
 
-# DR-1060: The roads have a second door — the same-origin transport as a zone Worker
+# DR-1066: The roads have a second door — the same-origin transport as a zone Worker
 
 **Date:** 2026-10-16
 **Status:** accepted

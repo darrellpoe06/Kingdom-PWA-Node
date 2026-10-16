@@ -1,5 +1,5 @@
 // =============================================================================
-// The Edge Guard road (DR-1061): /edge/* on the poetech-roads Worker lets a
+// The Edge Guard road (DR-1067): /edge/* on the poetech-roads Worker lets a
 // steward see who is hitting poetech.us and block them — and lets NO ONE else.
 // Every Cloudflare call is stubbed; what is pinned is the gate, the mapping in
 // both directions, the validation, and the words said when a token cannot.

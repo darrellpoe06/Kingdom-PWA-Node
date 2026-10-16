@@ -1,6 +1,6 @@
 // =============================================================================
 // poetech-roads — the same-origin roads as a ZONE WORKER, a second door that
-// does not depend on Cloudflare Pages Functions (DR-1060; #2057, day 7)
+// does not depend on Cloudflare Pages Functions (DR-1066; #2057, day 7)
 // =============================================================================
 // Since 2026-10-09 no Pages Function on poetech-app is invoked (#2057): every
 // request to /sb, /cams, /nas-photos, /taxes and the rest falls through to the
@@ -133,7 +133,7 @@ async function proxy(request, road) {
 export default {
   async fetch(request, env = {}) {
     const { pathname } = new URL(request.url);
-    // The Edge Guard (DR-1061): the stewards see who is hitting the site and
+    // The Edge Guard (DR-1067): the stewards see who is hitting the site and
     // block them, from inside the app, through this same Worker.
     if (pathname === '/edge' || pathname.startsWith('/edge/')) return handleEdge(request, env);
     const road = roadFor(pathname);

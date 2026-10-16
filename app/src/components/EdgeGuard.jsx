@@ -1,6 +1,6 @@
 // =============================================================================
 // EdgeGuard — see who is hitting poetech.us and block them, from the app
-// (DR-1061; Darrell 2026-10-16, Cloudflare showing 930k requests in a day)
+// (DR-1067; Darrell 2026-10-16, Cloudflare showing 930k requests in a day)
 // =============================================================================
 // Three cards, each read from Cloudflare through the same-origin /edge road and
 // each honest when it cannot read (no Worker yet, no token, a token without

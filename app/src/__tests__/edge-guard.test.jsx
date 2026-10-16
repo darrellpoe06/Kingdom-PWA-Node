@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 // =============================================================================
-// The Edge Guard surface (DR-1061): Admin → Users and usage → Bots & blocks.
+// The Edge Guard surface (DR-1067): Admin → Users and usage → Bots & blocks.
 // The client speaks to /edge with the caller's own session and says, in words,
 // when the road is not there; the surface paints nothing it did not read, and
 // every block is a two-step on the page, never a browser dialog.

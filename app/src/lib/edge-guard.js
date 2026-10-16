@@ -1,5 +1,5 @@
 // =============================================================================
-// edge-guard — the app's side of /edge/* (DR-1061): see who is hitting the
+// edge-guard — the app's side of /edge/* (DR-1067): see who is hitting the
 // site and block them, with the caller's own session as the key
 // =============================================================================
 // Pure client over the same-origin Edge Guard road carried by the poetech-roads

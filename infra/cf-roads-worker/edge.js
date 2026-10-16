@@ -1,6 +1,6 @@
 // =============================================================================
 // Edge Guard — see who is hitting poetech.us and block them, from inside the
-// app (DR-1061; Darrell 2026-10-16: "Who or what bot is looking at our site
+// app (DR-1067; Darrell 2026-10-16: "Who or what bot is looking at our site
 // this many times?!!!!!! Blocking users is necessary!!!!!!!!! ... Inside the
 // PoeTech App" / "Build the opportunity to not allow bots!!!!" / "See and block
 // them!!!!!!! Period")

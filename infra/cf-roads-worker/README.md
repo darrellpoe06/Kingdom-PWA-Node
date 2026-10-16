@@ -1,6 +1,6 @@
 # poetech-roads — the same-origin roads as a zone Worker
 
-**Why it exists (DR-1060).** Since 2026-10-09 no Cloudflare Pages Function on
+**Why it exists (DR-1066).** Since 2026-10-09 no Cloudflare Pages Function on
 `poetech-app` is invoked (#2057): `/sb`, `/cams`, `/nas-photos`, `/taxes` and
 every other NAS-backed road answer the SPA shell. The app was unlocked onto the
 absolute Funnel origin the same day, accepting the Funnel's cross-origin
@@ -34,7 +34,7 @@ and error shape. `wrangler.toml` binds one route per road on `poetech.us` and
 proxied Pages route has a row here, every row has both zone routes, the
 mapping is exact, unknown paths pass through, and the workflow is dispatch-only.
 
-## The Edge Guard — `/edge/*` (DR-1061)
+## The Edge Guard — `/edge/*` (DR-1067)
 
 **Why.** Cloudflare's dashboard showed 930k requests and 1.9k unique visitors
 in one day on a family app with 31 accounts. Darrell, 2026-10-16: "Who or what

@@ -541,7 +541,7 @@ export default function AccessUsageMetrics() {
             render: () => <PlatformSignups />,
           },
           {
-            // THE EDGE GUARD (DR-1061): who and what is hitting the site, by
+            // THE EDGE GUARD (DR-1067): who and what is hitting the site, by
             // agent / network / address / path / country, read from
             // Cloudflare's own logs through the poetech-roads Worker — and
             // the blocks and bot protections the stewards set there.

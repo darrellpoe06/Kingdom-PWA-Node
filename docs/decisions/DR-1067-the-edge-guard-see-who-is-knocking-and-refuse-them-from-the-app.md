@@ -1,5 +1,5 @@
 ---
-id: DR-1061
+id: DR-1067
 title: The Edge Guard — see who or what is hitting poetech.us, and refuse them, from inside the app
 date: 2026-10-16
 status: accepted
@@ -11,7 +11,7 @@ grounds: [VERIFICATION-DOCTRINE, PERPETUAL-IMPROVEMENT, DECISION-RECORDS]
 source: session_01UyvwuXazJyx2GG9zw9r67Z — Darrell, 2026-10-16, with the Cloudflare analytics (930k requests, 1.9k visitors, 24 h) and the admin Signups list on his phone
 ---
 
-# DR-1061: The Edge Guard — see who or what is hitting poetech.us, and refuse them, from inside the app
+# DR-1067: The Edge Guard — see who or what is hitting poetech.us, and refuse them, from inside the app
 
 **Date:** 2026-10-16
 **Status:** accepted
@@ -29,13 +29,13 @@ source: session_01UyvwuXazJyx2GG9zw9r67Z — Darrell, 2026-10-16, with the Cloud
 - `app/src/__tests__/edge-guard-road.test.js` (new, 27) and `edge-guard.test.jsx` (new, 18); `the-roads-have-a-second-door.test.js` (the two edge routes)
 
 **Grounds:** Darrell, 2026-10-16, reading Cloudflare's 24-hour analytics for a family app with 31 accounts: **"Who or what bot is looking at our site this many times?!!!!!! Blocking users is necessary!!!!!!!!! Give ne capable of doing this!!!! Inside the PoeTech App"** — then **"Build the opportunity to not allow bots!!!!"**, **"See and block them!!!!!!! Period... unless there are benefits in not seeing"**, **"Our own metrics?!"**, **"We should know everything from logs!!!!!!!"**
-**Principles:** DR-0065 (the app is the primary artifact — a capability that can live in the app does); DR-0076 §1 (no claim without evidence: every card prints what Cloudflare read back, or why it could not), §4 (measure, don't claim: the traffic is Cloudflare's own log, not an estimate), §8 (what is not verified is said so); DR-0061 (a surface is a live view of, and a control for, real state); DR-0060 (the gate is a check, not a hope: 401/403 before any upstream call); DR-1060 (the Worker is the same-origin door this rides); DR-0108; DR-0111.
+**Principles:** DR-0065 (the app is the primary artifact — a capability that can live in the app does); DR-0076 §1 (no claim without evidence: every card prints what Cloudflare read back, or why it could not), §4 (measure, don't claim: the traffic is Cloudflare's own log, not an estimate), §8 (what is not verified is said so); DR-0061 (a surface is a live view of, and a control for, real state); DR-0060 (the gate is a check, not a hope: 401/403 before any upstream call); DR-1066 (the Worker is the same-origin door this rides); DR-0108; DR-0111.
 
 ## Context
 
 Cloudflare's dashboard for `poetech.us`, 2026-10-16: **930k requests, 1.9k unique visitors, in 24 hours.** The admin Signups list showed 31 accounts, most of them family and the church. Nothing in the app could say who or what made those requests, and nothing in the app could refuse any of them. Cloudflare can do both — Bot Fight Mode and AI-crawler blocking on the zone, IP / network / country access rules, and the per-request analytics that name the user agent, the network and the address — but only through its dashboard or its API, and the API token is a secret the GitHub runners hold, not a person.
 
-The same session had just built the zone Worker (DR-1060) as a second same-origin door above Pages. A Worker on the zone can hold that token as a secret, verify a caller's Supabase session against the sovereign auth road, and answer the app on `poetech.us/edge/*` — the shape Layer 0 asks for: one same-origin transport, no token in a browser, and the capability INSIDE the app where the stewards already look (Admin → Users and usage).
+The same session had just built the zone Worker (DR-1066) as a second same-origin door above Pages. A Worker on the zone can hold that token as a secret, verify a caller's Supabase session against the sovereign auth road, and answer the app on `poetech.us/edge/*` — the shape Layer 0 asks for: one same-origin transport, no token in a browser, and the capability INSIDE the app where the stewards already look (Admin → Users and usage).
 
 ## What was measured
 
@@ -69,4 +69,4 @@ The edge is the only place a bot is refused before it costs anything — before 
 
 ## Links
 
-DR-1060, DR-0065, DR-0061, DR-0060, DR-0076, DR-0107, DR-0108; #2057; `.github/workflows/site-health.yml` (the witness named in the agent list); `.github/workflows/deploy-cloudflare-pages.yml` (the anon-key fetch this copies).
+DR-1066, DR-0065, DR-0061, DR-0060, DR-0076, DR-0107, DR-0108; #2057; `.github/workflows/site-health.yml` (the witness named in the agent list); `.github/workflows/deploy-cloudflare-pages.yml` (the anon-key fetch this copies).
