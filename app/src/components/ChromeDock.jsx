@@ -159,7 +159,7 @@ export default function ChromeDock({ onFeedback, feedbackOpen = false, church = 
       data-testid="dock-feedback"
       className={`${DOCK_BTN} ${FOCUS}`}
     >
-      <span aria-hidden="true" className={`text-[#B85838] ${DOCK_ICON}`}><UiIcon name="chat" /></span>
+      <span aria-hidden="true" className={`poe-dock-accent text-[#B85838] ${DOCK_ICON}`}><UiIcon name="chat" /></span>
       <DockLabel>Feedback</DockLabel>
     </button>
   );
@@ -279,7 +279,7 @@ export default function ChromeDock({ onFeedback, feedbackOpen = false, church = 
               data-testid="dock-items"
               role="group"
               aria-label={oneRow ? 'Controls, text size, feedback, giving and status' : 'Feedback, giving and status'}
-              className={`${moreOpen ? 'flex' : 'hidden'} absolute bottom-full left-[4px] right-[4px] mb-[4px] flex-row flex-wrap items-center gap-[4px] p-[4px] bg-[#FAF8F4] border-2 border-[#1A1815] shadow-lg min-w-[144px] max-h-[70vh] overflow-y-auto sm:static sm:flex sm:mb-0 sm:p-0 sm:border-0 sm:shadow-none sm:min-w-0 sm:bg-transparent`}
+              className={`${moreOpen ? 'flex' : 'hidden'} absolute bottom-full left-[4px] right-[4px] mb-[4px] poe-dock-menu flex-row flex-wrap items-center gap-[4px] p-[4px] bg-[#FAF8F4] border-2 border-[#1A1815] shadow-lg min-w-[144px] max-h-[70vh] overflow-y-auto sm:static sm:flex sm:mb-0 sm:p-0 sm:border-0 sm:shadow-none sm:min-w-0 sm:bg-transparent`}
             >
               {tabsMode && nav.groups && nav.groups.map((g) => (
                 <div key={g.key} data-testid={`dock-more-group-${g.key}`} className="w-full flex flex-wrap items-center gap-[4px]">

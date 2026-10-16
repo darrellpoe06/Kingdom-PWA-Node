@@ -64,6 +64,27 @@ describe('the Heritage theme is registered and remaps the base literals', () => 
     expect(block).not.toMatch(/#(?:FF0000|E00000|C8102E|B01E1E|DC2626)/i);
   });
 
+  it('carries the whole palette onto every screen\'s chrome, not only the home tiles (Christina 2026-10-16)', () => {
+    const block = THEME_CSS.split('THEME: HERITAGE')[1].split('THEME: MIDNIGHT')[0];
+    // the forest rail at the bottom of a phone, with a gold active tab of ink,
+    // and the lesson reader's own bar left alone
+    expect(block).toContain('.chrome-dock[data-in-reader="false"]{background-color:#1F3A2E');
+    expect(block).toMatch(/\.poe-dock-btn-on:not\(\.poe-dock-menu \*\)\{background-color:#C9A227!important;border-color:#C9A227!important;color:#1A1D1B/);
+    expect(read('src/components/ChromeDock.jsx')).toContain('poe-dock-menu flex-row');
+    expect(block).not.toMatch(/\.chrome-dock\[data-in-reader="true"\]/);
+    // the gold heading rule, the navy top underline, the antique-gold warning ink
+    expect(block).toContain('.section-title-wrapper{border-color:#C9A227');
+    expect(block).toContain('[data-testid="top-nav-tabs"] .border-\\[\\#B85838\\]{border-color:#1B2A4A');
+    expect(block).toContain('.text-\\[\\#D97706\\]{color:#8A6510');
+    // the hooks the rules dress exist where the chrome is drawn
+    const dock = read('src/lib/chrome-dock.js');
+    expect(dock).toMatch(/DOCK_BTN = `\$\{DOCK_BTN_BASE\} poe-dock-btn /);
+    expect(dock).toMatch(/DOCK_BTN_ON = `\$\{DOCK_BTN_BASE\} poe-dock-btn poe-dock-btn-on /);
+    expect(read('src/components/ChromeDock.jsx')).toContain('poe-dock-accent text-[#B85838]');
+    const tabs = read('src/components/SectionTabs.jsx');
+    expect((tabs.match(/\$\{on \? 'poe-selected bg-\[#1A1815\]/g) || []).length).toBe(2);
+  });
+
   it('gives every Heritage chrome token a midnight twin before any component uses it', () => {
     const midnight = THEME_CSS.split('THEME: MIDNIGHT')[1];
     for (const hex of [H.ink, H.muted, H.forest, H.navy, H.terracotta, H.healthy, H.goldText]) {
