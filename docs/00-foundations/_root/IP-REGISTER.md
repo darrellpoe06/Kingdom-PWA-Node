@@ -26,6 +26,18 @@ Each later test is meaningless without the earlier ones — you cannot transfer 
 
 ---
 
+## Amendment — 2026-10-16
+
+Three corrections, each checked rather than recalled (`docs/99-session-notes/2026-10-16-research-review-what-is-proprietary-and-how-to-make-it-official.md`):
+
+1. **"Love Corner" is removed from the marks. It is not ours.** The Love Corner is the Church of the Living God's own name and emblem, worn since 1946 (DR-1060); DR-0174 gave it a door as "the church's own door." This schedule is what an IP assignment attaches to as Schedule A, so leaving the row in would have swept another body's name into PoeTech's title. **Moore Divahs** (Shay's business) and **TLC Therapy Solutions** (Christina's practice) were never on the register; they are recorded beside it now so no later pass adds them. PoeTech owns the software and the service. Each of them owns its own name, may register it, and licenses the app. In the app: `NOT_OURS` in `app/src/lib/ip-portfolio.js`, pinned by `ip-register-render.test.jsx`.
+2. **The entity is still the first step.** As of the 2026-09-19 record, POE TECH, LLC (IL file 05947103) is in involuntary dissolution since 2024-03-08, and no reinstatement mail has arrived since. The assignment that converts every row's first test cannot be signed until the state returns the LLC to good standing. The in-app surface still states the requirement and never paints the status; the steps on Books → Legal now read as done only when the matching paper is on the Business shelf (DR-1075).
+3. **The README said "Private repository of PoeTech LLC."** It was false on both counts and is corrected. The repository is public; the `LICENSE` reserves all rights to Darrell Poe.
+
+The register now holds **24 rows** (7 marks, 8 works, 9 methods). Portfolio position unchanged: 0 of 24 are assets; every row bottlenecks on **Owned**.
+
+---
+
 ## Register — as of 2026-09-06
 
 Legend — **Auth:** human / mixed (human-directed, AI-expressed) / generated · **Pub:** publicly disclosed · **Prot:** none / planned / filed / registered · **Tests:** passed of 5 · **→** bottleneck.
@@ -40,7 +52,6 @@ Legend — **Auth:** human / mixed (human-directed, AI-expressed) / generated ·
 | **Council Chamber** | 58 | — | human | yes | none | 1/5 | owned |
 | **Quality Gatekeeper** | 40 | — | human | yes | none | 1/5 | owned |
 | **Behavioral Mirror** | 19 | — | human | yes | none | 1/5 | owned |
-| **Love Corner** | 13 | — | human | yes | none | 1/5 | owned |
 | **OpsBoard** | 5 | — | human | yes | none | 1/5 | owned |
 
 *Usage counts measured across `docs/00-foundations/_root/*.md` on 2026-09-06 — evidence of consistent use, which is what trademark rights arise from.*

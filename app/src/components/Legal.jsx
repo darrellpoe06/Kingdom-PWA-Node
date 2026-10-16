@@ -74,7 +74,7 @@ import {
   portfolioScore,
   scoreAsset,
 } from '../lib/ip-register.js';
-import { EXCLUDED_MARKS, IP_PORTFOLIO, REGISTER_AS_OF, STILL_PROTECTABLE } from '../lib/ip-portfolio.js';
+import { EXCLUDED_MARKS, IP_PORTFOLIO, NOT_OURS, REGISTER_AMENDED, REGISTER_AS_OF, STILL_PROTECTABLE } from '../lib/ip-portfolio.js';
 import {
   LEGAL_CATEGORIES,
   MAX_FILE_BYTES,
@@ -87,6 +87,8 @@ import {
   validateFile,
 } from '../lib/legal-documents.js';
 import { loadLegalDocuments, saveLegalDocuments } from '../lib/legal-documents-store.js';
+import { aboutFor } from '../lib/surface-help.js';
+import { PHASES, PLAN_SOURCES, PLAN_STARTED, STEPS_AS_OF, officialProgress } from '../lib/make-it-official.js';
 import {
   deleteLegalFile,
   legalDocumentsSync,
@@ -316,7 +318,7 @@ export function IpRegisterPanel({ assets = IP_PORTFOLIO }) {
   return (
     <div className="bg-white border-2 border-[#1A1815] p-5">
       <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] mb-1 font-semibold">
-        IP Register · PoeTech · as of {REGISTER_AS_OF}
+        IP Register · PoeTech · as of {REGISTER_AS_OF} · amended {REGISTER_AMENDED}
       </div>
       <div className="flex items-baseline justify-between gap-3 flex-wrap">
         <h3 className="text-xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>
@@ -444,6 +446,23 @@ export function IpRegisterPanel({ assets = IP_PORTFOLIO }) {
             </div>
           ))}
 
+          <div>
+            <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold">
+              Not ours · never claimed
+            </div>
+            <p className="text-[0.625rem] text-[#5A5751] italic mb-1.5" style={{ fontFamily: '"Fraunces", serif' }}>
+              PoeTech owns the software and the service. These names belong to the people the app serves; each may register
+              its own, and the app wears it on their door with their permission.
+            </p>
+            <ul className="space-y-1">
+              {NOT_OURS.map((n) => (
+                <li key={n.name} className="text-[0.625rem] leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
+                  · <strong>{n.name}</strong> — {n.whose}. <span className="text-[#5A5751] italic">{n.basis}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
           {EXCLUDED_MARKS.map((ex) => (
             <p key={ex.name} className="text-[0.625rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
               <strong>Excluded on purpose — &ldquo;{ex.name}&rdquo;:</strong> {ex.why}
@@ -456,6 +475,98 @@ export function IpRegisterPanel({ assets = IP_PORTFOLIO }) {
         This is PoeTech&rsquo;s own register, not yours — a tenant&rsquo;s IP would be user data with its own store, and
         that is not built. Source of truth: <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>docs/00-foundations/_root/IP-REGISTER.md</span>.
         Not legal advice; which lanes to pursue is counsel&rsquo;s call.
+      </p>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// OfficialStepsPanel — the order of work that makes PoeTech's IP official
+// (DR-1075). Every state is derived from the shelf rows passed in: a step is
+// done only when its paper is on the Business shelf. The component holds no
+// state of its own except whether it is open.
+// ---------------------------------------------------------------------------
+// The tab's own light summary, from the one registry the Help freshness gate
+// watches (surface-help.js 'books:legal'), so this line and the Help entry
+// cannot drift apart silently.
+const LEGAL_ABOUT = aboutFor('books:legal');
+
+const STATE_LABEL = { done: 'Paper on the shelf', ready: 'Ready now', waiting: 'Waits' };
+const STATE_COLOR = { done: 'text-[#5A6E3D]', ready: 'text-[#B85838]', waiting: 'text-[#5A5751]' };
+
+export function OfficialStepsPanel({ docs = [] }) {
+  const [open, setOpen] = useState(false);
+  const prog = useMemo(() => officialProgress(docs), [docs]);
+  const next = prog.ready[0] || null;
+  return (
+    <div className="bg-white border-2 border-[#B85838] p-5" id="make-it-official">
+      <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] mb-1 font-semibold">
+        Make it official · PoeTech · steps as of {STEPS_AS_OF}
+      </div>
+      <div className="flex items-baseline justify-between gap-3 flex-wrap">
+        <h3 className="text-xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>
+          {prog.done} of {prog.total} steps have their paper on the shelf
+        </h3>
+      </div>
+      <p className="text-sm leading-relaxed mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
+        These are the steps that turn PoeTech&rsquo;s work into something the company owns, so people and companies can
+        join with their share written down. A step reads done only when its paper sits on the <strong>Business</strong> shelf
+        below, dated on or after {PLAN_STARTED}. Nobody ticks a box; the paper is the tick.
+        {next && <> Next to work: <strong>step {next.n}, {next.title.toLowerCase()}</strong>.</>}
+      </p>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className="mt-3 text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]"
+      >
+        {open ? 'Hide the steps' : `Show all ${prog.total} steps`}
+      </button>
+      {open && (
+        <div className="mt-3 space-y-4">
+          {PHASES.map((phase) => {
+            const rows = prog.rows.filter((r) => r.phase === phase.id);
+            if (rows.length === 0) return null;
+            return (
+              <div key={phase.id}>
+                <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold mb-1.5">{phase.label}</div>
+                <ol className="space-y-2">
+                  {rows.map((r) => (
+                    <li key={r.id} className="bg-[#FAF8F4] border border-[#E8E4DC] p-3">
+                      <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                        <span className="text-sm flex-1 min-w-0" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>
+                          {r.n}. {r.title}
+                        </span>
+                        <span className={`text-[0.625rem] uppercase tracking-wider shrink-0 ${STATE_COLOR[r.state]}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                          {STATE_LABEL[r.state]}{r.state === 'waiting' ? ` on step ${r.waitingOn.map((w) => w.n).join(' and ')}` : ''}
+                        </span>
+                      </div>
+                      <p className="text-xs leading-relaxed mt-1" style={{ fontFamily: '"Fraunces", serif' }}><strong>Who:</strong> {r.who}</p>
+                      <p className="text-xs leading-relaxed mt-1" style={{ fontFamily: '"Fraunces", serif' }}><strong>Why:</strong> {r.why}</p>
+                      <p className="text-xs leading-relaxed mt-1" style={{ fontFamily: '"Fraunces", serif' }}><strong>How:</strong> {r.how}</p>
+                      <p className="text-[0.625rem] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+                        {r.proof
+                          ? <>Proof on the shelf: &ldquo;{r.proof.label}&rdquo;{r.proof.dateOf ? `, dated ${r.proof.dateOf}` : ''}.</>
+                          : <>Shelve the paper on <strong>Business</strong> as type &ldquo;{r.evidence}&rdquo;.</>}
+                      </p>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            );
+          })}
+          <p className="text-[0.625rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
+            The full write-up, with costs, sources and the five agreements, lives in the repository:{' '}
+            {PLAN_SOURCES.map((src, i) => (
+              <span key={src}>{i > 0 ? ' · ' : ''}<span style={{ fontFamily: '"JetBrains Mono", monospace' }}>{src}</span></span>
+            ))}.
+          </p>
+        </div>
+      )}
+      <p className="text-[0.625rem] text-[#5A5751] italic mt-3" style={{ fontFamily: '"Fraunces", serif' }}>
+        This reads <strong>your</strong> shelf. Each person&rsquo;s legal shelf is private to their own account, so paper filed
+        on another account shows there, not here. The LLC&rsquo;s standing lives with the Secretary of State, so this screen
+        never claims to know it. Not legal advice.
       </p>
     </div>
   );
@@ -534,6 +645,14 @@ export function LegalPlaceholder({ tier = 'foundation', setView, accounts = [], 
   }, []);
   return (
     <section className="space-y-4">
+      {LEGAL_ABOUT && (
+        <div className="bg-[#FAF8F4] border border-[#E8E4DC] p-3 text-xs leading-relaxed space-y-1" style={{ fontFamily: '"Fraunces", serif' }}>
+          <p><strong>On this tab:</strong> {LEGAL_ABOUT.what}</p>
+          <p><span className="uppercase tracking-wider text-[0.625rem] text-[#5A6E3D]">How it works</span> — {LEGAL_ABOUT.how}</p>
+          <p className="text-[#5A5751] italic">Tap the ? at the top of the screen for the full help, and the map of where every other record lives.</p>
+        </div>
+      )}
+
       {/* Accounts In Legal — surfaced FIRST so the user lands on the actionable
           surface. Empty state is informative, not loud. */}
       <div className="bg-white border-2 border-[#5A6E3D] p-5">
@@ -574,12 +693,17 @@ export function LegalPlaceholder({ tier = 'foundation', setView, accounts = [], 
         <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] mb-1 font-semibold">🔒 Legal Matters · Confidential</div>
         <h2 className="text-2xl mb-2" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>Track legal work the right way</h2>
         <p className="text-sm leading-relaxed mb-3" style={{ fontFamily: '"Fraunces", serif' }}>
-          Sits inside Books because most legal work has a financial dimension — fees, settlements, insurance, tax exposure. Cross-links to your properties, entities, transactions, and calendar so nothing is hand-tracked twice. Confidentiality is built in: separate PIN, at-rest encryption (AES-GCM 256), auto-lock, and mandatory <strong>privileged / not</strong> on every note so the export tool can mechanically strip privileged content before you share with non-counsel.
+          Sits inside Books because most legal work has a financial dimension — fees, settlements, insurance, tax exposure. Cross-links to your properties, entities, transactions, and calendar so nothing is hand-tracked twice. Confidentiality is live where it is built: this tab sits behind the app PIN, files go to a private vault only your account can read, and every document must be marked <strong>privileged / not</strong> so the export tool can strip privileged content before you share with non-counsel. Encryption with your own key at rest (AES-GCM 256) is designed and <strong>not built</strong> yet; the shelf section below says the same.
         </p>
         <p className="text-[0.625rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
           Not legal advice. Have your attorney review the deployed module before storing live matter information.
         </p>
       </div>
+
+      {/* MAKE IT OFFICIAL (DR-1075) — the order of work, read from the shelves
+          below. Placed before them so the reader meets the steps, then the
+          shelf the paper goes on. */}
+      <OfficialStepsPanel docs={docs} />
 
       {/* THE FOUR SHELVES. These four boxes used to be four hardcoded <ul>
           lists. Every number above a shelf is now computed from real rows, and
