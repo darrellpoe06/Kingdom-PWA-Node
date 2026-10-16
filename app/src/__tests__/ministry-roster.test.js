@@ -20,7 +20,7 @@
 // PostgreSQL, by infra/supabase/tests/0296-every-team-smoke.sql.
 import { describe, it, expect } from 'vitest';
 import {
-  toMemberShape, isKnownMinistry, canEditRoster, addMinistryMember,
+  toMemberShape, isKnownMinistry, canEditRoster, addMinistryMember, listMinistryMembers,
 } from '../lib/ministry-roster.js';
 import { CHURCH_MINISTRIES, ministryById } from '../lib/church-ministries.js';
 
@@ -80,6 +80,31 @@ describe('toMemberShape — an unlinked roster row says so', () => {
     expect(m.displayName).toBe('');
     expect(m.teamRole, 'defaults to member, never undefined on a surface').toBe('member');
     expect(m.linked).toBe(false);
+  });
+});
+
+describe('an empty roster and an unread roster are different things (DR-1053)', () => {
+  it('every refusal that is NOT a failed read still answers ok, with rows', async () => {
+    // These three are real answers: this ministry does not exist, nobody is
+    // signed in, this account has no church. Each is a true empty, and the
+    // panel may draw its ordinary empty state for them.
+    for (const m of ['not-a-ministry']) {
+      const r = await listMinistryMembers(m);
+      expect(r.ok, 'a known non-answer must not read as a failed read').toBe(true);
+      expect(r.rows).toEqual([]);
+      expect(r.reason).toBe('unknown-ministry');
+    }
+  });
+
+  it('the shape carries ok, so a caller CANNOT confuse the two', () => {
+    // PROVEN-TO-CATCH, at the shape rather than the value: the old function
+    // returned a bare array for both, so `rows.length === 0` was the only
+    // question a caller could ask and "we could not read it" answered the
+    // same as "nobody is on this team". A caller must now branch on ok.
+    const unread = { ok: false, rows: [], reason: 'no-answer' };
+    const empty = { ok: true, rows: [], reason: 'answered' };
+    expect(unread.rows).toEqual(empty.rows);          // identical, as before
+    expect(unread.ok).not.toBe(empty.ok);             // distinguishable, which is new
   });
 });
 

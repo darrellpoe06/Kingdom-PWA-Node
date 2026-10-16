@@ -28,23 +28,32 @@ import {
   listMinistryMembers, addMinistryMember, removeMinistryMember,
   myChurchRole, canEditRoster,
 } from '../lib/ministry-roster.js';
+import { sentenceFor } from '../lib/church-access.js';
 
 const FIELD = 'w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]';
 const BTN = 'text-xs uppercase tracking-wider px-3 py-2 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]';
 
 export function MinistryRoster({ ministry, ministryName }) {
   const [members, setMembers] = useState(null);   // null = not read yet
+  const [unread, setUnread] = useState(null);     // non-null = we could not ASK
   const [role, setRole] = useState(null);
   const [name, setName] = useState('');
   const [teamRole, setTeamRole] = useState('');
   const [msg, setMsg] = useState('');
   const [busy, setBusy] = useState(false);
 
-  const load = () => listMinistryMembers(ministry).then(setMembers);
+  // A read that could not be made is NOT a no (DR-1053). An empty roster and
+  // an unread roster are different things, and only one of them is a sentence
+  // about whether this person is on the team.
+  const take = (res) => {
+    setMembers(res?.ok ? res.rows : []);
+    setUnread(res?.ok ? null : { unavailable: true, reason: res?.reason === 'refused' ? 'refused' : 'unreachable' });
+  };
+  const load = () => listMinistryMembers(ministry).then(take);
   useEffect(() => {
     let alive = true;
     myChurchRole().then((r) => { if (alive) setRole(r); });
-    listMinistryMembers(ministry).then((rows) => { if (alive) setMembers(rows); });
+    listMinistryMembers(ministry).then((res) => { if (alive) take(res); });
     return () => { alive = false; };
   }, [ministry]);
 
@@ -75,6 +84,23 @@ export function MinistryRoster({ ministry, ministryName }) {
 
   if (members === null) {
     return <p className="text-xs text-[#5A5751]">Reading the roster…</p>;
+  }
+
+  // THE THIRD STATE. Before this, a failed read fell through to the empty
+  // state below and told the person nobody they can see is on this team —
+  // which reads as a verdict on their own standing.
+  if (unread) {
+    return (
+      <div className="space-y-2 border-t border-[#E8E4DC] pt-2" role="alert">
+        <p className="text-xs text-[#B85838]">
+          We could not read the {ministryName} roster just now.
+        </p>
+        <p className="text-xs text-[#5A5751]">{sentenceFor(unread)}</p>
+        <button type="button" onClick={load} className={`${BTN} text-[#1A1815] border border-[#1A1815]`}>
+          Try again
+        </button>
+      </div>
+    );
   }
 
   return (

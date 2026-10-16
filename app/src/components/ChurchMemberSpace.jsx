@@ -326,14 +326,19 @@ function OfficeRoll({ instanceId, church, onOpen }) {
 export default function ChurchMemberSpace({ church = COLG_DEFAULT_CHURCH, myUserId = null, onOpen = null }) {
   const [view, setView] = useState(null);
   const [error, setError] = useState('');
+  const [retryable, setRetryable] = useState(false);
+  const [retrying, setRetrying] = useState(false);
   const [forms, setForms] = useState(() => originalProduct('lovecorner'));
   const [exported, setExported] = useState('');
 
   const refresh = useCallback(async () => {
     const res = await readMyChurchRecord(null, church);
-    if (res.ok) { setView(res.view); setError(''); } else setError(res.message);
+    if (res.ok) { setView(res.view); setError(''); setRetryable(false); }
+    else { setError(res.message); setRetryable(res.retryable === true); }
   }, [church]);
   useEffect(() => { refresh(); }, [refresh]);
+
+  const tryAgain = async () => { setRetrying(true); await refresh(); setRetrying(false); };
 
   useEffect(() => {
     let alive = true;
@@ -350,11 +355,25 @@ export default function ChurchMemberSpace({ church = COLG_DEFAULT_CHURCH, myUser
   const progress = useMemo(() => memberProgress(record, church), [record, church]);
   const isOffice = view ? OFFICE_ROLES.includes(view.myRole) : false;
 
+  // A message with no way forward is a dead end (DR-1053). Darrell photographed
+  // this exact panel on 2026-10-15 reading "timed out after 15000 ms" with
+  // nothing to tap. When nothing came back, a Try again is the whole cure — and
+  // the sentence must say plainly that this is not a verdict about the person.
   if (error) {
     return (
-      <section className="border border-[#E8E4DC] bg-white p-4">
+      <section className="border border-[#E8E4DC] bg-white p-4" role="alert">
         <p className="text-sm text-[#1A1815] font-semibold mb-1">Your record could not be opened.</p>
         <p className="text-xs text-[#5A5751]">{error}</p>
+        {retryable && (
+          <>
+            <p className="text-xs text-[#5A5751] mt-1">
+              We asked three times and nothing came back, so this says nothing about your record or your standing — only that we could not reach it.
+            </p>
+            <button type="button" onClick={tryAgain} disabled={retrying} className={`${BTN} mt-2`}>
+              {retrying ? 'Trying…' : 'Try again'}
+            </button>
+          </>
+        )}
       </section>
     );
   }

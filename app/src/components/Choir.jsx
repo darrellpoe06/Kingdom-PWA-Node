@@ -33,6 +33,7 @@ import {
   inviteToChurch, subscribeChurchInvites, sortInvites, deriveInviteStatus, classifyUpload,
   mintClaimCode, claimChoirMember, getMyChoirMembership, normalizeClaimCode, updateChoirRole,
 } from '../lib/choir-sync.js';
+import { sentenceFor } from '../lib/church-access.js';
 import { listInstanceMembers, setMemberRole, grantableRoles, roleLabel as instanceRoleLabel } from '../lib/member-roles.js';
 import { serviceDayLabel } from '../lib/service-day.js';
 import { extractHeardQuote, draftWordsFromTranscript } from '../lib/choir-words.js';
@@ -992,6 +993,36 @@ export default function Choir() {
       <div className="max-w-2xl">
         <SectionTitle eyebrow="Church · choir">Choir</SectionTitle>
         <p className="text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>Sign in to see the choir's music, schedule, and messages.</p>
+      </div>
+    );
+  }
+  // THE THIRD STATE (DR-1053). "We could not ask" is not "you are not on the
+  // roster", and this surface may not print one as the other. Before this
+  // existed, a stalled read on a phone fell straight through to the empty state
+  // below and told the person they were not on the team.
+  if (access.unavailable) {
+    return (
+      // Full width, no per-surface cap (CONSISTENCY-STANDARD rule 1, DR-0246).
+      // The consistency ratchet refused the first version of this panel for
+      // copying the max-w-2xl wrapper off the state below it, and it was right:
+      // that wrapper is grandfathered debt, not a pattern to extend.
+      <div>
+        <SectionTitle eyebrow="Church · choir">Choir</SectionTitle>
+        <div className="bg-white border border-[#B85838] p-6 text-center" role="alert">
+          <p className="text-sm text-[#1A1815] font-semibold" style={{ fontFamily: '"Fraunces", serif' }}>
+            We could not reach the church records just now.
+          </p>
+          <p className="text-xs text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+            {sentenceFor(access)}
+          </p>
+          <button
+            type="button"
+            onClick={refreshAccess}
+            className="mt-3 min-h-[36px] px-3 py-2 text-sm font-semibold border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]"
+          >
+            Try again
+          </button>
+        </div>
       </div>
     );
   }
