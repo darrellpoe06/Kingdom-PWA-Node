@@ -20,7 +20,7 @@
 He asked for the Word first, so the lesson is built on the sequence the Word itself gives. Isaiah 55:8-9 states the gap: His thoughts and ways are higher than ours as the heavens are higher than the earth. The very next verses answer it: the rain comes down and gives "bread to the eater: So shall my word be that goeth forth out of my mouth" (Isaiah 55:10-11). The higher thought comes down as bread. That is the Word explaining the Word, and it is exactly his sentence about the bread. From there the lesson keeps his order in eleven parts:
 
 1. Higher than the heavens: Isaiah 55:8-9, Romans 11:33, 1 Corinthians 2:14, Proverbs 3:5-6.
-2. That is why there is bread: Isaiah 55:10-11 and 55:2, Deuteronomy 8:3, Matthew 4:4, John 6:35, 6:48 and 6:63, Luke 24:45, 1 Corinthians 2:10.
+2. That is why there is bread: Isaiah 55:10-11, Deuteronomy 8:3, Matthew 4:4, John 6:35, 6:48 and 6:63, Luke 24:45, 1 Corinthians 2:10.
 3. You will go through it and eat it: the manna (Exodus 16:4, 16:15, 16:20; Numbers 21:5) and the hard saying (John 6:53, 6:60, 6:66-68).
 4. Wanting the glory undermines understanding: John 5:44 and 12:43, Proverbs 25:27, 1 Corinthians 1:29 and 1:31, Luke 17:10, Galatians 6:3 with Romans 8:17 beside it, John 15:5, Philippians 2:7-9, Matthew 20:22.
 5. Suffering to reign: 2 Timothy 2:12, Romans 8:17, Hebrews 5:8, 2:10 and 12:11, 1 Peter 4:12, Deuteronomy 8:16, John 12:24.
@@ -35,7 +35,8 @@ Two places needed care so the lesson says what the Word says and no more. He sai
 
 ## What was measured
 
-- Every verse fetched from `app/public/bible/kjv` before a sentence was written. The lesson carries 313 referenced quotations, and every one is word for word in the verse it cites, case included.
+- Every verse fetched from `app/public/bible/kjv` before a sentence was written. The lesson carries 310 referenced quotations, and every one is word for word in the verse it cites, case included.
+- The first CI run caught one collision the local catalog run did not (its suite reads the catalog through the Learn registry, not the lesson file): Isaiah 55:2 is claimed by the appraisal course, which shares no verse with the rest of the catalog. The three Isaiah 55:2 quotations were removed and the gate pins its absence.
 - The checks caught two quotations with the wrong opening case before commit: "humble yourselves" where 1 Peter 5:6 reads "Humble", and "But if it die" where John 12:24 reads "but". Both corrected and pinned.
 - Bands against a 2,590-word adult lesson: first draft child 0.44, youth 0.38, teen 0.35, senior 0.38, all short. Deepened rather than the adult cut: child 0.52, youth 0.62, teen 0.61, senior 0.62 (floors 0.50 / 0.60 / 0.60 / 0.60).
 - Reading level (Flesch-Kincaid, our prose only): child 1.6, youth 4.1, teen 6.5, senior 10.2, rising by more than a grade each step; child under the 5.0 ceiling.

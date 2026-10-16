@@ -26,7 +26,9 @@
 // 0.44, youth 0.38, teen 0.35, senior 0.38). The bands were deepened (the
 // daily manna, the audience that authors your choices, Joseph's long middle,
 // Paul's thorn, meekness at home and in the later decades, Habakkuk's empty
-// fields) rather than the adult lesson cut.
+// fields) rather than the adult lesson cut. The first CI run caught one more:
+// Isaiah 55:2 belongs to the appraisal course, which shares no verse with the
+// rest of the catalog, so L248 does not quote it.
 import { describe, it, expect } from 'vitest';
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
@@ -188,6 +190,12 @@ describe('L248 — every quoted span is the verse', () => {
     for (const u of ['the things which God hath prepared for them that love him', 'God left him, to try him', 'the messenger of satan to buffet me']) {
       expect(whole.includes(u), `drops: ${u}`).toBe(true);
     }
+  });
+  it('leaves Isaiah 55:2 to the appraisal course, which claims it as its own (appraisal-course.test.js)', () => {
+    // CI caught this on the first push: the first draft quoted Isaiah 55:2 in
+    // three places, and the appraisal course shares no verse with the catalog.
+    expect(whole.includes('(Isaiah 55:2)')).toBe(false);
+    expect(JSON.stringify(L).includes('Wherefore do ye spend money for that which is not bread')).toBe(false);
   });
   it('the two case catches stay caught', () => {
     expect(JSON.stringify(L).includes('"humble yourselves therefore')).toBe(false);
