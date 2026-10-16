@@ -74,7 +74,7 @@ The car is taught as the History department's third course, a second case for th
   - at least three voices and a faultless timeline per lesson, every source on a probed and listed host, the two refusing pages read only from the Wayback Machine, and one course timeline from 1769 to 2026;
   - proven to catch: an unlisted host, an unnamed year, an elided voice and a wrong-case verse are each refused;
   - catalog, department of three, shelves with the real count, schedule, progress, export, and tutor posture.
-- `history-voices-witness.yml` runs on the push that carries the course and reads every voice and dated phrase from its page.
+- `history-voices-witness.yml` runs on the push that carries the course and reads every voice and dated phrase from its page. On its first run (38974789389) every car-course voice and dated record was found, 201 of 203 across the department. The two misses were the 1619 course's James Baldwin quotation and its dated entry: the archive had redesigned its catalog page and the transcript had left that page's HTML. The archive's own `/transcripts/cpb-aacip-15-0v89g5gf5r` address carries the same words (probe 38974939553, HTTP 200), so the source now points there. This was a pre-existing break this push only exposed, fixed here because the witness runs on this course's push.
 - The catalog-walking suites (every test that reads `LEARN_CATALOG`, the crosslist or the record hosts) run green with the course mounted; lint and the gates run before the push.
 - `re-review: 2026-10-23`:
   - read the course on the live app in each band;
