@@ -285,4 +285,7 @@ export const LIVING_LESSONS_ADDED = {
   'll245-deductive-reasoning-is-the-words-way-from-what-he-said': '2026-10-15',
   'll246-doing-the-word-comes-first-and-our-live-situations-are-bread': '2026-10-15',
   'll247-your-ways-show-your-god-know-yourself-in-number-and-in-kind': '2026-10-15',
+  // L248, spoken into the house by Darrell on the morning of 2026-10-16 and
+  // built the same session (a spoken teaching is build input).
+  'll248-his-ways-are-higher-so-he-gives-the-bread': '2026-10-16',
 };
