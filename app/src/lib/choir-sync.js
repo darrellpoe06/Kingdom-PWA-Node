@@ -1095,8 +1095,10 @@ async function openDocument(bucket, documentUrl) {
   return data?.signedUrl || null;
 }
 // Sermon docs: owner/admin only (RLS). Team docs: whole choir (RLS).
-export const openSermonDocument = (url) => openDocument('sermon-documents', url);
-export const openTeamDocument = (url) => openDocument('church-team-documents', url);
+export const SERMON_DOCS_BUCKET = 'sermon-documents';
+export const TEAM_DOCS_BUCKET = 'church-team-documents';
+export const openSermonDocument = (url) => openDocument(SERMON_DOCS_BUCKET, url);
+export const openTeamDocument = (url) => openDocument(TEAM_DOCS_BUCKET, url);
 
 export async function saveTeamDocument(doc) {
   const ctx = await writeContext();
