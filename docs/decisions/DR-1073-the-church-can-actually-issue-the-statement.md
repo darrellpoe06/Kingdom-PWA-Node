@@ -157,3 +157,25 @@ required to hand somebody a tax document. The profile is a form, not a migration
   where a person does that, and this surface deliberately makes the cost of not
   doing it visible — a held-back total on the member's own document.
 - **It is not tax advice**, and the document says so in the church's own words.
+
+## Amendment, 2026-10-16 17:46 UTC — the Verification section above did not include the full suite
+
+Same gap as DR-1072's amendment, which holds the full account. In short: the
+10 suites and 244 tests listed above were real, and the **full suite was not
+run before the push**. It was red — 1 of 26,340 — and
+`ContributionStatement.jsx`'s **Download the statement** button was one of the
+two causes:
+
+```
+focus-ring components/ContributionStatement.jsx: <button onClick={download} …>
+  — a keyboard user cannot see where they are; add focus:outline focus:outline-2
+```
+
+A keyboard user could not see focus on the button that hands somebody a tax
+document. That is the one control on this surface where being unable to tell
+where you are matters most, and the frozen UI baseline caught it while I was
+busy asserting the surface was verified. Fixed with the repo's own ring.
+
+The lesson belongs on this record specifically because this record is about a
+document a person relies on: **the gates that cover the whole tree are the ones
+that catch what a careful author cannot see from inside a single change.**

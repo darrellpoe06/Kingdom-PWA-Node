@@ -131,3 +131,39 @@ own `/edge` road — the same live road the chip next to it already uses.
   the real 24-hour mix actually is on poetech.us, and this sandbox has no route
   to the site: that reading comes from a steward opening the chip, or from the
   runner-side witness. I have not seen it and do not claim it.
+
+## Amendment, 2026-10-16 17:46 UTC — this record's Verification section was incomplete, and the gap had a consequence
+
+**What it said:** 8 suites, 79 tests, 23 gates, lint, build. **What it did not say:**
+the FULL suite was never run before the push. It was not run for DR-1073
+either.
+
+**The consequence, measured.** PR #2230 sat `blocked` for an hour and fifty
+minutes and I spent that time theorising about the lane — broken API filters,
+token-opened PRs, pending checks — when the cause was a red test I had not
+run. The full suite found it: **1 failed of 26,340**, and it was
+`ui-standards-set.test.js`, whose frozen baseline covers the WHOLE component
+tree:
+
+```
+focus-ring components/VisitorDoors.jsx: <button onClick={load} …>
+  — a keyboard user cannot see where they are; add focus:outline focus:outline-2
+```
+
+`VisitorDoors.jsx`'s Refresh button shipped with no visible focus. Fixed with
+the ring the Edge Guard chip beside it already uses.
+
+**Why picking suites could never have found it.** I chose the 8 suites by
+searching for files that referenced what I changed. A baseline frozen over the
+whole tree fails in a file that references nothing I touched, so no amount of
+care in that method reaches it. **Picking suites by judgement is a tool for
+retargeting pins, not a substitute for the full run** — and the one standard
+that already said so is the intake routine's own: *"targeted tests while
+building, the full suite + lint once before pushing."*
+
+**And the lane was not at fault.** `ci.yml` runs on `push` to `claude/**`
+precisely because, as its own comment states, *"PRs opened by GITHUB_TOKEN
+don't trigger pull_request workflows."* CI ran on both pushes and was red. My
+earlier claim that the checks were "pending or never started" was an inference
+reported as an observation; the answer was in the repo, reproducible in one
+command, and I went to the API instead.
