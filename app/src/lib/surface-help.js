@@ -38,6 +38,12 @@ export const SURFACE_HELP = {
     how: 'Read the plan, then work the three provisions in turn: attest the articles you have read, answer the wall’s questions honestly, and record what each beneficiary actually produced or received. Nothing here shows a status the records do not support.',
     helpTopic: 'books:plan',
   },
+  'books:legal': {
+    what: 'Your legal papers on four private shelves, the steps that make PoeTech officially owned, and PoeTech’s own IP register.',
+    where: 'Your own legal_documents rows and the private legal vault, plus any document a household member chose to share with you (read-only); each step reads done only when its paper is on the Business shelf. The steps and the register are dated platform content.',
+    how: 'Work the next step named under Make it official, then file its paper on the Business shelf as the type the step names. Mark every document privileged or not.',
+    helpTopic: 'books:legal',
+  },
   'church:harvest': {
     what: 'The coverage ledger — every ingested service recording and what it has (and has not yet) been mined into, so no Sunday or Wednesday is wasted.',
     where: 'The video_harvests ledger joined over your real corpus (choir_sermons + choir_songs); every ✦ is a harvest verified against actual app data, never painted.',

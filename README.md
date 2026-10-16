@@ -1,6 +1,8 @@
 # SKOS — Sovereign Kingdom Operating System / Kingdom-PWA-Node
 
-Private repository of PoeTech LLC.
+Proprietary, publicly viewable repository. Copyright Darrell Poe, all rights reserved; see [`LICENSE`](LICENSE) and [`NOTICE`](NOTICE). Being able to read this repository is not a license to use it.
+
+The intellectual-property position (what is owned, what is not, and what must happen before it is assigned to an entity) lives in [`docs/00-foundations/_root/IP-REGISTER.md`](docs/00-foundations/_root/IP-REGISTER.md) and on the app's Books → Legal screen.
 
 SKOS is a sovereign-mesh human controls system grounded in biblical truth, scientific rigor, and historical accuracy. Its architectural metaphor is drawn from Siemens building automation systems — sensors → controllers → control loops → actuators → continuous tuning — applied to human flourishing.
 

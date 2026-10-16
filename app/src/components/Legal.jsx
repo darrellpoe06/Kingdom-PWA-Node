@@ -74,7 +74,7 @@ import {
   portfolioScore,
   scoreAsset,
 } from '../lib/ip-register.js';
-import { EXCLUDED_MARKS, IP_PORTFOLIO, REGISTER_AS_OF, STILL_PROTECTABLE } from '../lib/ip-portfolio.js';
+import { EXCLUDED_MARKS, IP_PORTFOLIO, NOT_OURS, REGISTER_AMENDED, REGISTER_AS_OF, STILL_PROTECTABLE } from '../lib/ip-portfolio.js';
 import {
   LEGAL_CATEGORIES,
   MAX_FILE_BYTES,
@@ -87,10 +87,14 @@ import {
   validateFile,
 } from '../lib/legal-documents.js';
 import { loadLegalDocuments, saveLegalDocuments } from '../lib/legal-documents-store.js';
+import { aboutFor } from '../lib/surface-help.js';
+import { PHASES, PLAN_SOURCES, PLAN_STARTED, STEPS_AS_OF, officialProgress } from '../lib/make-it-official.js';
 import {
   deleteLegalFile,
+  fetchHouseholdLegalDocuments,
   legalDocumentsSync,
   mergeRemoteLegalDocuments,
+  setLegalDocumentShared,
   uploadLegalFile,
   BUCKET as LEGAL_DOCS_BUCKET,
 } from '../lib/legal-documents-sync.js';
@@ -108,7 +112,7 @@ function blankForm() {
 // document-type vocabulary the picker offers, which is what makes the bullets
 // true rather than illustrative.
 // ---------------------------------------------------------------------------
-function Shelf({ category, docs, counts, onAdd, onOpen, onRemove, notice }) {
+function Shelf({ category, docs, householdDocs = [], counts, onAdd, onOpen, onRemove, onShare, notice }) {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(() => blankForm());
   const [error, setError] = useState('');
@@ -193,8 +197,44 @@ function Shelf({ category, docs, counts, onAdd, onOpen, onRemove, notice }) {
                 {!isPointer(d) && (
                   <button type="button" onClick={() => onOpen(d)} className="text-[0.625rem] uppercase tracking-wider px-3 py-1.5 border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">Open</button>
                 )}
+                {onShare && d.remoteUuid && (
+                  <button type="button" aria-pressed={d.sharedWithHousehold === true} onClick={() => onShare(d, !d.sharedWithHousehold)} className="text-[0.625rem] uppercase tracking-wider px-3 py-1.5 border border-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">
+                    {d.sharedWithHousehold ? 'Stop sharing with household' : 'Share with household'}
+                  </button>
+                )}
                 <button type="button" onClick={() => onRemove(d)} className="text-[0.625rem] uppercase tracking-wider px-3 py-1.5 border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">Remove</button>
               </div>
+              <p className="text-[0.625rem] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+                {d.sharedWithHousehold
+                  ? 'Shared with your household. They can read and open it; only you can change or remove it.'
+                  : d.remoteUuid ? 'Private to you.' : 'Private to you. Sign in and let it sync to be able to share it.'}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* What OTHER members of the household chose to share (0299). Read-only:
+          these rows never enter this person's own shelf or its sync. */}
+      {householdDocs.length > 0 && (
+        <div className="space-y-2 mb-3">
+          {householdDocs.map((d) => (
+            <div key={d.id} className="bg-white border border-dashed border-[#5A6E3D] p-3">
+              <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{d.label}</div>
+              <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mt-0.5">
+                Shared by {d.sharedBy} · {d.docType || 'Document'}{d.dateOf ? ` · ${d.dateOf}` : ''}
+                {d.privileged ? ' · PRIVILEGED' : ' · not privileged'}
+                {isPointer(d) ? ' · pointer' : ` · ${formatBytes(d.fileSize)}`}
+              </div>
+              {isPointer(d) && (
+                <p className="text-xs text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>Where it is: {d.whereFiled}</p>
+              )}
+              {d.note && <p className="text-xs text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{d.note}</p>}
+              {!isPointer(d) && (
+                <div className="mt-2">
+                  <button type="button" onClick={() => onOpen(d)} className="text-[0.625rem] uppercase tracking-wider px-3 py-1.5 border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">Open</button>
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -318,7 +358,7 @@ export function IpRegisterPanel({ assets = IP_PORTFOLIO }) {
   return (
     <div className="bg-white border-2 border-[#1A1815] p-5">
       <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] mb-1 font-semibold">
-        IP Register · PoeTech · as of {REGISTER_AS_OF}
+        IP Register · PoeTech · as of {REGISTER_AS_OF} · amended {REGISTER_AMENDED}
       </div>
       <div className="flex items-baseline justify-between gap-3 flex-wrap">
         <h3 className="text-xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>
@@ -446,6 +486,23 @@ export function IpRegisterPanel({ assets = IP_PORTFOLIO }) {
             </div>
           ))}
 
+          <div>
+            <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold">
+              Not ours · never claimed
+            </div>
+            <p className="text-[0.625rem] text-[#5A5751] italic mb-1.5" style={{ fontFamily: '"Fraunces", serif' }}>
+              PoeTech owns the software and the service. These names belong to the people the app serves; each may register
+              its own, and the app wears it on their door with their permission.
+            </p>
+            <ul className="space-y-1">
+              {NOT_OURS.map((n) => (
+                <li key={n.name} className="text-[0.625rem] leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
+                  · <strong>{n.name}</strong> — {n.whose}. <span className="text-[#5A5751] italic">{n.basis}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
           {EXCLUDED_MARKS.map((ex) => (
             <p key={ex.name} className="text-[0.625rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
               <strong>Excluded on purpose — &ldquo;{ex.name}&rdquo;:</strong> {ex.why}
@@ -458,6 +515,99 @@ export function IpRegisterPanel({ assets = IP_PORTFOLIO }) {
         This is PoeTech&rsquo;s own register, not yours — a tenant&rsquo;s IP would be user data with its own store, and
         that is not built. Source of truth: <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>docs/00-foundations/_root/IP-REGISTER.md</span>.
         Not legal advice; which lanes to pursue is counsel&rsquo;s call.
+      </p>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// OfficialStepsPanel — the order of work that makes PoeTech's IP official
+// (DR-1076). Every state is derived from the shelf rows passed in: a step is
+// done only when its paper is on the Business shelf. The component holds no
+// state of its own except whether it is open.
+// ---------------------------------------------------------------------------
+// The tab's own light summary, from the one registry the Help freshness gate
+// watches (surface-help.js 'books:legal'), so this line and the Help entry
+// cannot drift apart silently.
+const LEGAL_ABOUT = aboutFor('books:legal');
+
+const STATE_LABEL = { done: 'Paper on the shelf', ready: 'Ready now', waiting: 'Waits' };
+const STATE_COLOR = { done: 'text-[#5A6E3D]', ready: 'text-[#B85838]', waiting: 'text-[#5A5751]' };
+
+export function OfficialStepsPanel({ docs = [] }) {
+  const [open, setOpen] = useState(false);
+  const prog = useMemo(() => officialProgress(docs), [docs]);
+  const next = prog.ready[0] || null;
+  return (
+    <div className="bg-white border-2 border-[#B85838] p-5" id="make-it-official">
+      <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] mb-1 font-semibold">
+        Make it official · PoeTech · steps as of {STEPS_AS_OF}
+      </div>
+      <div className="flex items-baseline justify-between gap-3 flex-wrap">
+        <h3 className="text-xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>
+          {prog.done} of {prog.total} steps have their paper on the shelf
+        </h3>
+      </div>
+      <p className="text-sm leading-relaxed mt-2" style={{ fontFamily: '"Fraunces", serif' }}>
+        These are the steps that turn PoeTech&rsquo;s work into something the company owns, so people and companies can
+        join with their share written down. A step reads done only when its paper sits on the <strong>Business</strong> shelf
+        below, dated on or after {PLAN_STARTED}. Nobody ticks a box; the paper is the tick.
+        {next && <> Next to work: <strong>step {next.n}, {next.title.toLowerCase()}</strong>.</>}
+      </p>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className="mt-3 text-[0.625rem] uppercase tracking-wider px-3 py-2 min-h-[36px] border border-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]"
+      >
+        {open ? 'Hide the steps' : `Show all ${prog.total} steps`}
+      </button>
+      {open && (
+        <div className="mt-3 space-y-4">
+          {PHASES.map((phase) => {
+            const rows = prog.rows.filter((r) => r.phase === phase.id);
+            if (rows.length === 0) return null;
+            return (
+              <div key={phase.id}>
+                <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#5A6E3D] font-semibold mb-1.5">{phase.label}</div>
+                <ol className="space-y-2">
+                  {rows.map((r) => (
+                    <li key={r.id} className="bg-[#FAF8F4] border border-[#E8E4DC] p-3">
+                      <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                        <span className="text-sm flex-1 min-w-0" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>
+                          {r.n}. {r.title}
+                        </span>
+                        <span className={`text-[0.625rem] uppercase tracking-wider shrink-0 ${STATE_COLOR[r.state]}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                          {STATE_LABEL[r.state]}{r.state === 'waiting' ? ` on step ${r.waitingOn.map((w) => w.n).join(' and ')}` : ''}
+                        </span>
+                      </div>
+                      <p className="text-xs leading-relaxed mt-1" style={{ fontFamily: '"Fraunces", serif' }}><strong>Who:</strong> {r.who}</p>
+                      <p className="text-xs leading-relaxed mt-1" style={{ fontFamily: '"Fraunces", serif' }}><strong>Why:</strong> {r.why}</p>
+                      <p className="text-xs leading-relaxed mt-1" style={{ fontFamily: '"Fraunces", serif' }}><strong>How:</strong> {r.how}</p>
+                      <p className="text-[0.625rem] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+                        {r.proof
+                          ? <>Proof on the shelf: &ldquo;{r.proof.label}&rdquo;{r.proof.dateOf ? `, dated ${r.proof.dateOf}` : ''}{r.proof.fromHousehold ? `, shared by ${r.proof.sharedBy}` : ''}.</>
+                          : <>Shelve the paper on <strong>Business</strong> as type &ldquo;{r.evidence}&rdquo;.</>}
+                      </p>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            );
+          })}
+          <p className="text-[0.625rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
+            The full write-up, with costs, sources and the five agreements, lives in the repository:{' '}
+            {PLAN_SOURCES.map((src, i) => (
+              <span key={src}>{i > 0 ? ' · ' : ''}<span style={{ fontFamily: '"JetBrains Mono", monospace' }}>{src}</span></span>
+            ))}.
+          </p>
+        </div>
+      )}
+      <p className="text-[0.625rem] text-[#5A5751] italic mt-3" style={{ fontFamily: '"Fraunces", serif' }}>
+        This reads <strong>your</strong> shelf, plus any paper someone in your household chose to share with you. Each
+        document is private to whoever filed it until they tap <strong>Share with household</strong>, so a step done on
+        another account shows here only once its paper is shared. The LLC&rsquo;s standing lives with the Secretary of
+        State, so this screen never claims to know it. Not legal advice.
       </p>
     </div>
   );
@@ -491,6 +641,27 @@ export function LegalPlaceholder({ tier = 'foundation', setView, accounts = [], 
   }, []);
 
   const counts = useMemo(() => categoryCounts(docs), [docs]);
+
+  // What other members of the household chose to share (0299, DR-1077). Held
+  // in component state ONLY: never saved to this device's shelf, never synced,
+  // so nobody else's paper can be re-filed as this person's. Before 0299 is
+  // applied, or signed out, the list is simply empty.
+  const [householdDocs, setHouseholdDocs] = useState([]);
+  const refreshHousehold = useCallback(async () => {
+    const res = await fetchHouseholdLegalDocuments();
+    setHouseholdDocs(res && res.ok ? res.items : []);
+  }, []);
+  useEffect(() => { refreshHousehold(); }, [refreshHousehold]);
+
+  // Sharing is one explicit act per document, by its filer. Off is the default.
+  const shareDocument = useCallback(async (doc, shared) => {
+    const res = await setLegalDocumentShared(doc.remoteUuid, shared);
+    if (!res.ok) { setShelfNotice(res.message); return; }
+    setDocs((cur) => cur.map((d) => (d.id === doc.id ? { ...d, sharedWithHousehold: res.shared } : d)));
+    setShelfNotice(res.shared
+      ? `"${doc.label}" is now shared with your household. Only you can change or remove it.`
+      : `"${doc.label}" is private to you again.`);
+  }, []);
 
   // Returns { ok:false, message } so the shelf can show the real reason inline
   // rather than failing blankly. The FILE goes first: if the bytes cannot be
@@ -539,6 +710,14 @@ export function LegalPlaceholder({ tier = 'foundation', setView, accounts = [], 
   }, []);
   return (
     <section className="space-y-4">
+      {LEGAL_ABOUT && (
+        <div className="bg-[#FAF8F4] border border-[#E8E4DC] p-3 text-xs leading-relaxed space-y-1" style={{ fontFamily: '"Fraunces", serif' }}>
+          <p><strong>On this tab:</strong> {LEGAL_ABOUT.what}</p>
+          <p><span className="uppercase tracking-wider text-[0.625rem] text-[#5A6E3D]">How it works</span> — {LEGAL_ABOUT.how}</p>
+          <p className="text-[#5A5751] italic">Tap the ? at the top of the screen for the full help, and the map of where every other record lives.</p>
+        </div>
+      )}
+
       {/* Accounts In Legal — surfaced FIRST so the user lands on the actionable
           surface. Empty state is informative, not loud. */}
       <div className="bg-white border-2 border-[#5A6E3D] p-5">
@@ -579,12 +758,17 @@ export function LegalPlaceholder({ tier = 'foundation', setView, accounts = [], 
         <div className="text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] mb-1 font-semibold">🔒 Legal Matters · Confidential</div>
         <h2 className="text-2xl mb-2" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>Track legal work the right way</h2>
         <p className="text-sm leading-relaxed mb-3" style={{ fontFamily: '"Fraunces", serif' }}>
-          Sits inside Books because most legal work has a financial dimension — fees, settlements, insurance, tax exposure. Cross-links to your properties, entities, transactions, and calendar so nothing is hand-tracked twice. Confidentiality is built in: separate PIN, at-rest encryption (AES-GCM 256), auto-lock, and mandatory <strong>privileged / not</strong> on every note so the export tool can mechanically strip privileged content before you share with non-counsel.
+          Sits inside Books because most legal work has a financial dimension — fees, settlements, insurance, tax exposure. Cross-links to your properties, entities, transactions, and calendar so nothing is hand-tracked twice. Confidentiality is live where it is built: this tab sits behind the app PIN, files go to a private vault only your account can read, and every document must be marked <strong>privileged / not</strong> so the export tool can strip privileged content before you share with non-counsel. Encryption with your own key at rest (AES-GCM 256) is designed and <strong>not built</strong> yet; the shelf section below says the same.
         </p>
         <p className="text-[0.625rem] text-[#5A5751] italic" style={{ fontFamily: '"Fraunces", serif' }}>
           Not legal advice. Have your attorney review the deployed module before storing live matter information.
         </p>
       </div>
+
+      {/* MAKE IT OFFICIAL (DR-1076) — the order of work, read from the shelves
+          below. Placed before them so the reader meets the steps, then the
+          shelf the paper goes on. */}
+      <OfficialStepsPanel docs={[...docs, ...householdDocs]} />
 
       {/* THE FOUR SHELVES. These four boxes used to be four hardcoded <ul>
           lists. Every number above a shelf is now computed from real rows, and
@@ -610,10 +794,12 @@ export function LegalPlaceholder({ tier = 'foundation', setView, accounts = [], 
               key={category.id}
               category={category}
               docs={documentsInCategory(docs, category.id)}
+              householdDocs={documentsInCategory(householdDocs, category.id)}
               counts={counts}
               onAdd={addDocument}
               onOpen={openDocument}
               onRemove={removeDocument}
+              onShare={shareDocument}
             />
           ))}
         </div>
