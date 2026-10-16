@@ -380,6 +380,92 @@ jobs:
             # One retry, so a single dropped connection is not an outage.
             if [ "$CODE" = "000" ]; then sleep 5; sb_fetch "${SB_URL%/}/auth/v1/health"; fi
             BACKEND_CODE="$CODE"
+          fi
+
+          # ===================================================================
+          # THE WITNESS MUST ASK THE WAY THE APP ASKS (DR-1054)
+          # ===================================================================
+          # Everything above is a GET, from a datacenter, carrying NO Origin
+          # header. The app is a browser on a phone making CROSS-ORIGIN POSTs,
+          # and since 2026-10-09 SB_URL is the absolute Tailscale Funnel origin
+          # rather than same-origin poetech.us/sb, because every Pages Function
+          # is dark (#2057). The repoint's own comment in
+          # deploy-cloudflare-pages.yml records the hazard it accepted:
+          #
+          #   "The throttle is not firing right now. It may begin firing under
+          #    real family load -- that is the risk being accepted, knowingly,
+          #    against a family that is locked out of its own app."
+          #
+          # A GET with no Origin cannot exercise that. So `backend auth: HTTP
+          # 200` -- printed on all 39 of #2057's comments -- has only ever meant
+          # THE ROAD ANSWERS A PROBE, never THE APP CAN USE THE ROAD. On
+          # 2026-10-15 Darrell met the difference three times in one hour, on
+          # the Choir tab, on My Record and on the harvest ledger, while this
+          # step read 200 (run 38811322129, served ef26a33 -- his build).
+          #
+          # P31 one more layer down: deploy-green is not site-up (why this file
+          # exists), site-up is not app-usable (why the backend step exists),
+          # and ANSWERING A PROBE IS NOT ANSWERING THE APP (why this one does).
+          #
+          # THE SHAPE IT ASKS IN, each piece chosen because it is what the
+          # browser actually does and what actually broke:
+          #   1. The CORS preflight the browser sends before any POST. Without
+          #      an allow-origin for this exact origin the browser refuses the
+          #      request before it leaves the phone, and the app sees a
+          #      failure the server never heard about.
+          #   2. A POST to the real sign-in road with a DELIBERATELY WRONG
+          #      credential at an unroutable .invalid address. Nothing is
+          #      signed in and no real credential is sent. A healthy auth road
+          #      answers 400 with a JSON error body.
+          #   3. THE BODY'S LENGTH, which is the whole point. #2057 opened on
+          #      exactly this: "a POST to the app's own auth road returned an
+          #      EMPTY BODY twice. The browser calls .json() on that and fails
+          #      with 'Unexpected end of JSON input', so nobody can sign in."
+          #      An empty body arrives with an ordinary HTTP code, so a probe
+          #      that reads only the code cannot see it.
+          APP_ORIGIN="https://poetech.us"
+          XO_PRE="not-measured"; XO_ALLOW=""; XO_POST="not-measured"; XO_BYTES="0"
+          if [ -n "${SB_URL:-}" ] && [ -n "${SB_ANON:-}" ]; then
+            XO_H=$(mktemp); XO_B=$(mktemp)
+            XO_PRE=$(curl -sS -o /dev/null -D "$XO_H" -w '%{http_code}' --max-time 20 \
+              -X OPTIONS -H "Origin: $APP_ORIGIN" \
+              -H 'Access-Control-Request-Method: POST' \
+              -H 'Access-Control-Request-Headers: apikey,authorization,content-type' \
+              "${SB_URL%/}/auth/v1/token?grant_type=password" 2>/dev/null) || XO_PRE=""
+            if [ -z "$XO_PRE" ]; then XO_PRE="000"; fi
+            XO_ALLOW=$(grep -i '^access-control-allow-origin:' "$XO_H" | head -1 | tr -d '\r' | sed 's/^[^:]*:[[:space:]]*//' || true)
+            XO_POST=$(curl -sS -o "$XO_B" -w '%{http_code}' --max-time 20 \
+              -X POST -H "Origin: $APP_ORIGIN" \
+              -H "apikey: $SB_ANON" -H "Authorization: Bearer $SB_ANON" \
+              -H 'content-type: application/json' \
+              -d '{"email":"site-health-probe@example.invalid","password":"not-a-real-password-probe-only"}' \
+              "${SB_URL%/}/auth/v1/token?grant_type=password" 2>/dev/null) || XO_POST=""
+            if [ -z "$XO_POST" ]; then XO_POST="000"; fi
+            XO_BYTES=$(wc -c < "$XO_B" | tr -d ' ')
+            # THE VERDICT IS NOT DECIDED HERE. The bell taught this the hard
+            # way: `curl -sS ... || echo "::warning::"` could never fire on a
+            # 404 because curl without -f exits 0, and nobody could test a
+            # decision buried in a 36,000-character step. So the measuring
+            # lives here and the deciding lives in a module a vitest feeds
+            # each real failure shape (DR-0076 section 3).
+            set +e
+            XO_OUT=$(node scripts/app-shape-verdict.mjs \
+              --pre="$XO_PRE" --allow="$XO_ALLOW" --post="$XO_POST" --bytes="$XO_BYTES" \
+              --origin="$APP_ORIGIN" --url="${SB_URL%/}/auth/v1/token")
+            XO_RC=$?
+            set -e
+            if [ "$XO_RC" = "3" ]; then
+              add_fail "$(printf '%s' "$XO_OUT" | grep '^APP_SHAPE_REASON=' | head -1 | cut -d= -f2-)"
+            fi
+            note "- the app's shape: preflight **${XO_PRE}** (allow-origin \`${XO_ALLOW:-none}\`), POST **${XO_POST}** with **${XO_BYTES}** bytes"
+          else
+            note "- the app's shape: **NOT MEASURED** (no SB_URL/SB_ANON available to this run)"
+          fi
+          echo "xo_pre=$XO_PRE" >> "$GITHUB_OUTPUT"
+          echo "xo_allow=$XO_ALLOW" >> "$GITHUB_OUTPUT"
+          echo "xo_post=$XO_POST" >> "$GITHUB_OUTPUT"
+          echo "xo_bytes=$XO_BYTES" >> "$GITHUB_OUTPUT"
+          if [ -n "${SB_URL:-}" ] && [ -n "${SB_ANON:-}" ]; then
             # The sovereign /sb transport, measured keyless (the health route
             # answers without an apikey) — DR-0310 §5.
             #
@@ -694,6 +780,10 @@ jobs:
           BACKEND_CODE: ${{ steps.probe.outputs.backend_code }}
           BELL_CODE: ${{ steps.probe.outputs.bell_code }}
           BELL_POST_CODE: ${{ steps.probe.outputs.bell_post_code }}
+          XO_PRE: ${{ steps.probe.outputs.xo_pre }}
+          XO_ALLOW: ${{ steps.probe.outputs.xo_allow }}
+          XO_POST: ${{ steps.probe.outputs.xo_post }}
+          XO_BYTES: ${{ steps.probe.outputs.xo_bytes }}
           OUTCOME: ${{ steps.probe.outcome }}
           VERDICT: ${{ steps.verdict.outputs.verdict }}
           ANY_NEW: ${{ steps.verdict.outputs.any_new }}
@@ -718,7 +808,7 @@ jobs:
               verdict="DOWN/BROKEN (nothing new, known outage day ${DAYS:-?}) - ${REASONS:-the probe crashed before reporting}"
             fi
           fi
-          line="$(date -u +%FT%TZ) - ${verdict}. Served build: ${SERVED:-unknown} (main: ${MAIN:-unknown}). pages.dev shell: HTTP ${PAGES_CODE:-unknown}. backend auth: HTTP ${BACKEND_CODE:-unknown}. bell (/announce/healthz, direct to the Funnel): HTTP ${BELL_CODE:-unknown}. bell RING (POST /announce/ops-announce, invalid bearer, 401=open): HTTP ${BELL_POST_CODE:-unknown}. Run: ${GITHUB_SERVER_URL}/${REPO}/actions/runs/${GITHUB_RUN_ID}"
+          line="$(date -u +%FT%TZ) - ${verdict}. Served build: ${SERVED:-unknown} (main: ${MAIN:-unknown}). pages.dev shell: HTTP ${PAGES_CODE:-unknown}. backend auth: HTTP ${BACKEND_CODE:-unknown} (a GET, no Origin -- the road answers a probe). THE APP'S OWN SHAPE (cross-origin POST to the sign-in road): preflight ${XO_PRE:-unknown} allow-origin '${XO_ALLOW:-none}', POST ${XO_POST:-unknown} with ${XO_BYTES:-unknown} bytes. bell (/announce/healthz, direct to the Funnel): HTTP ${BELL_CODE:-unknown}. bell RING (POST /announce/ops-announce, invalid bearer, 401=open): HTTP ${BELL_POST_CODE:-unknown}. Run: ${GITHUB_SERVER_URL}/${REPO}/actions/runs/${GITHUB_RUN_ID}"
           log_issue=$(gh issue list --repo "$REPO" --state all --search "in:title site-health: the live site, run log" --json number --jq '.[0].number // ""')
           if [ -n "$log_issue" ]; then
             gh issue comment "$log_issue" --repo "$REPO" --body "$line"
@@ -749,6 +839,10 @@ jobs:
           BACKEND_CODE: ${{ steps.probe.outputs.backend_code }}
           BELL_CODE: ${{ steps.probe.outputs.bell_code }}
           BELL_POST_CODE: ${{ steps.probe.outputs.bell_post_code }}
+          XO_PRE: ${{ steps.probe.outputs.xo_pre }}
+          XO_ALLOW: ${{ steps.probe.outputs.xo_allow }}
+          XO_POST: ${{ steps.probe.outputs.xo_post }}
+          XO_BYTES: ${{ steps.probe.outputs.xo_bytes }}
           N8N_BEARER: ${{ secrets.VITE_N8N_BEARER }}
           VERDICT: ${{ steps.verdict.outputs.verdict }}
           ANY_NEW: ${{ steps.verdict.outputs.any_new }}
@@ -774,9 +868,9 @@ jobs:
             # string, and four or more leading spaces make Markdown render it
             # as a code block — so a marker meant to be invisible would be
             # printed in the comment instead.
-            body="$(date -u +%FT%TZ) — 🆕 **A FAULT NOT ALREADY ON RECORD**: ${REASONS:-probe step crashed before reporting — see the run log}. pages.dev shell: HTTP ${PAGES_CODE}. backend auth: HTTP ${BACKEND_CODE}. served=${SERVED} main=${MAIN}. Run: ${GITHUB_SERVER_URL}/${REPO}/actions/runs/${GITHUB_RUN_ID} <!-- site-health: NEW fault -->"
+            body="$(date -u +%FT%TZ) — 🆕 **A FAULT NOT ALREADY ON RECORD**: ${REASONS:-probe step crashed before reporting — see the run log}. pages.dev shell: HTTP ${PAGES_CODE}. backend auth: HTTP ${BACKEND_CODE} (a GET, no Origin). THE APP'S OWN SHAPE: preflight ${XO_PRE:-unknown} allow-origin '${XO_ALLOW:-none}', POST ${XO_POST:-unknown} with ${XO_BYTES:-unknown} bytes. served=${SERVED} main=${MAIN}. Run: ${GITHUB_SERVER_URL}/${REPO}/actions/runs/${GITHUB_RUN_ID} <!-- site-health: NEW fault -->"
           else
-            body="$(date -u +%FT%TZ) — **STILL BROKEN, nothing new.** ${HEADLINE}. pages.dev shell: HTTP ${PAGES_CODE}. backend auth: HTTP ${BACKEND_CODE}. served=${SERVED} main=${MAIN}. This note is written at most once a day while the fault is unchanged, so a genuinely new fault is not buried under repetitions of this one; every run is still recorded on the run log, and every run still FAILS. Run: ${GITHUB_SERVER_URL}/${REPO}/actions/runs/${GITHUB_RUN_ID} <!-- site-health: known outage, still true -->"
+            body="$(date -u +%FT%TZ) — **STILL BROKEN, nothing new.** ${HEADLINE}. pages.dev shell: HTTP ${PAGES_CODE}. backend auth: HTTP ${BACKEND_CODE} (a GET, no Origin). THE APP'S OWN SHAPE: preflight ${XO_PRE:-unknown} allow-origin '${XO_ALLOW:-none}', POST ${XO_POST:-unknown} with ${XO_BYTES:-unknown} bytes. served=${SERVED} main=${MAIN}. This note is written at most once a day while the fault is unchanged, so a genuinely new fault is not buried under repetitions of this one; every run is still recorded on the run log, and every run still FAILS. Run: ${GITHUB_SERVER_URL}/${REPO}/actions/runs/${GITHUB_RUN_ID} <!-- site-health: known outage, still true -->"
           fi
           open_issue=$(gh issue list --repo "$REPO" --label incident --state open --search "in:title site-health" --json number --jq '.[0].number // ""')
           if [ "${WRITE_LEDGER}" != "true" ] && [ -n "$open_issue" ]; then
