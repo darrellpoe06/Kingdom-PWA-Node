@@ -4,6 +4,9 @@
 // real RPC rows into the governor's view, so the shaping is verified
 // independent of Supabase (DR-0076: measure/verify, don't claim).
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import {
   summaryTiles, categoryLabel, categoryTone, maskEmail,
   hasReturned, signupRowView, sortSignups, lastActiveAt, isActiveNow, ownNameOf,
@@ -222,5 +225,119 @@ describe('ownNameOf', () => {
   it('signupRowView uses it, so the contact name fills the gap on the row', () => {
     const v = signupRowView({ user_id: 'u', display_name: '14472209779', email: '14472209779@phone.poetech.us', created_at: iso(DAY) }, NOW);
     expect(v.name).toBeNull();
+  });
+});
+
+// =============================================================================
+// OUR OWN INSTRUMENTS ARE NOT PEOPLE (DR-1075)
+// =============================================================================
+// Darrell found the site-health probe on the Admin roster as an unexplained
+// phone number signing in daily -- "(555) 555-0100 ... Who or what is this
+// account? What is it doing daily?!!! Bot?!!!" -- and had to ask. Two defects
+// in one row: a count that included our own robot, and a roster that could not
+// say what the row was.
+describe('our own probe is named, and counted as nobody', () => {
+  it('the probe row SAYS what it is, on the row', () => {
+    const v = signupRowView({
+      user_id: 'probe', email: '15555550100@phone.poetech.us',
+      category: 'our-probe', created_at: iso(30 * DAY), last_sign_in_at: iso(0),
+    }, Date.now());
+    expect(v.categoryLabel).toBe('Our own probe');
+    expect(v.isOurs).toBe(true);
+    // The sentence has to answer the question that was actually asked: who is
+    // this, and what is it doing daily?
+    expect(v.whatItIs).toMatch(/Not a person/);
+    expect(v.whatItIs).toMatch(/every 6 hours/);
+    expect(v.whatItIs).toMatch(/nas-health\.yml/);
+    expect(v.whatItIs, 'the row must say it is out of the totals').toMatch(/Counted in none of the totals/);
+  });
+
+  it('an ordinary account explains nothing — a real person needs no explaining', () => {
+    const v = signupRowView({ user_id: 'u1', email: 'a@b.com', category: 'self-serve', created_at: iso(DAY) }, Date.now());
+    expect(v.whatItIs).toBe('');
+    expect(v.isOurs).toBe(false);
+  });
+
+  it('EVERY category the server can emit has a label — nothing renders as "Unknown"', () => {
+    // The roster asks a person to recognize a row. A row whose own category
+    // has no label is the same defect in a different coat.
+    for (const cat of ['self-serve', 'family', 'church', 'our-probe', 'other', 'unprovisioned']) {
+      expect(categoryLabel(cat), `${cat} has no label`).not.toBe('Unknown');
+      expect(categoryTone(cat), `${cat} has no tone`).toBeTruthy();
+    }
+  });
+
+  it('THE TILE SAYS THE EXCLUSION HAPPENED — a count that silently drops rows is its own lie', () => {
+    const tiles = summaryTiles({ total_accounts: 30, family_members: 6, church_members: 0, our_probes: 1 });
+    const total = tiles.find((t) => t.label === 'Total accounts');
+    expect(total.value).toBe(30);
+    expect(total.sub).toMatch(/1 of ours not counted/);
+  });
+
+  it('...and says nothing when there is nothing to say', () => {
+    const tiles = summaryTiles({ total_accounts: 30, family_members: 6, church_members: 0, our_probes: 0 });
+    expect(tiles.find((t) => t.label === 'Total accounts').sub).not.toMatch(/not counted/);
+  });
+
+  it('the tile does NOT re-subtract — the server already excluded them', () => {
+    // Two places computing one number is how they drift. The value is the
+    // server's own, carried through untouched.
+    const tiles = summaryTiles({ total_accounts: 30, our_probes: 4 });
+    expect(tiles.find((t) => t.label === 'Total accounts').value).toBe(30);
+  });
+});
+
+describe('the migration excludes the probe from every PEOPLE count (DR-1075)', () => {
+  const raw = readFileSync(
+    join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..',
+      'infra', 'supabase', 'migrations-auto', '0298-our-own-probe-is-not-a-person.sql'), 'utf8');
+  // CODE ONLY. This migration's header NAMES every key it filters, and the
+  // first version of the check below matched that prose instead of the query —
+  // the fourth time in one session a test in this repo has been satisfied by
+  // its own documentation. Comment lines are dropped, and the drop is asserted
+  // not to have emptied the file.
+  const sql = raw.split('\n').filter((l) => !l.trim().startsWith('--')).join('\n');
+  it('the comment-stripper did not blank the migration', () => {
+    expect(sql).toMatch(/CREATE OR REPLACE FUNCTION/);
+    expect(sql.length).toBeGreaterThan(1000);
+  });
+
+  it('names the probe by its exact address, and nothing wider', () => {
+    expect(sql).toContain("'15555550100@phone.poetech.us'");
+    // A "any 555-01xx" rule would swallow a real test account somebody makes.
+    expect(sql).not.toMatch(/LIKE\s+'%555-?01/i);
+  });
+
+  it('EVERY people count reads from `people`, never from `accounts`', () => {
+    // The defect was a count over all rows. If one of these slips back to
+    // `accounts`, the robot is a person again in exactly one tile -- the
+    // hardest kind of wrong number to notice.
+    for (const key of ['total_accounts', 'self_serve_signups', 'family_members', 'church_members',
+      'signups_7d', 'signups_30d', 'active_7d', 'returned', 'never_returned']) {
+      const line = sql.split('\n').find((l) => l.includes(`'${key}'`));
+      expect(line, `${key} is not in the summary`).toBeTruthy();
+      expect(line, `${key} still counts our own probe`).toMatch(/FROM people/);
+    }
+  });
+
+  it('the probe count itself reads from `accounts`, or it would always be zero', () => {
+    const line = sql.split('\n').find((l) => l.includes("'our_probes'"));
+    expect(line).toMatch(/FROM accounts WHERE category = 'our-probe'/);
+  });
+
+  it('the probe is still LISTED — hiding it would restore the unanswered question', () => {
+    // Asserted on the QUERY, not on a comment saying so. The detail list
+    // selects from `accounts` (every row) and never from `people` (the
+    // filtered set), so the probe reaches the roster where the question gets
+    // asked.
+    const detail = sql.slice(sql.indexOf('detail AS'));
+    expect(detail).toMatch(/SELECT \* FROM accounts ORDER BY created_at/);
+    expect(detail, 'the detail list filtered the probe out').not.toMatch(/FROM people/);
+    expect(detail).not.toMatch(/category\s*<>\s*'our-probe'/);
+  });
+
+  it('ours is decided FIRST, so a probe that gains a membership is still ours', () => {
+    const cas = sql.slice(sql.indexOf('CASE'), sql.indexOf('END                                AS category'));
+    expect(cas.indexOf('our-probe')).toBeLessThan(cas.indexOf("'family'"));
   });
 });
