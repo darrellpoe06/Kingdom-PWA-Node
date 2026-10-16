@@ -44,6 +44,14 @@ The same session had just built the zone Worker (DR-1068) as a second same-origi
 - What the repository's token may do beyond Pages is **unmeasured** until the probe job runs; `edge.js` names the four zone permissions it needs when Cloudflare refuses (codes 10000 / 9109 / 9103 / 1000), so a refusal is a sentence, not a blank.
 - `AccessUsageMetrics.jsx` already had a third-row sub-tab bar (Signups · People you know · What's used · When & by whom); the Edge Guard is one more chip, not a new page.
 
+## Impact
+
+- The stewards can answer "who or what" from inside the app, and refuse a network, address or country at the edge, without a Cloudflare login and with no token on a phone. The 930k requests get a breakdown the first time the Traffic card opens after the Worker is deployed.
+- A refused request never reaches the Funnel, Supabase or a family phone; the saving is upstream of every other cost on the roads.
+- Our own witnesses (site-health, the runners' curl) are named in the agent list, so they are never blocked by mistake and "our own metrics" is measured, not guessed.
+- Nothing changes for anyone who is not a steward: `/edge/*` answers 401/403 and the rest of the Worker is untouched. The road costs one GraphQL query and two REST reads per card load, on demand only.
+- Not carried: banning a signed-in account (phase 2), and any automatic blocking; every block is a steward's two taps, read back from Cloudflare before it is shown.
+
 ## Decision
 
 1. **One same-origin road, `/edge/*`, on the poetech-roads Worker.** `ping` (open), `whoami`, `bots` (GET/PUT), `traffic` (GET, 1–72 h), `blocks` (GET/POST/DELETE). JSON always; a 15-second wait on every upstream call; a structured refusal with a reason and a sentence on every failure path.
