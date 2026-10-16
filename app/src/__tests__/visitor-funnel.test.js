@@ -28,8 +28,11 @@ const src = (p) => readFileSync(join(HERE, '..', p), 'utf8');
 describe('NOTHING NEW IS COLLECTED — the whole design, asserted', () => {
   it('the module neither fetches, stores, nor imports a client', () => {
     // If this ever gains a write, the covenant sentence members SIGN is the
-    // thing at stake: "never sold, never sent to an employer, a lender or an
-    // advertiser" (DR-1064). The cheapest guard is that this file stays pure.
+    // thing at stake: "the church will never willingly sell my record, my
+    // giving or my prayer requests" (DR-1071, which struck the old
+    // "or an advertiser" clause as already false — the app has offered a
+    // Google sign-in door all along). The cheapest guard is that this file
+    // stays pure: a derivation cannot leak what it never holds.
     const mod = src('lib/visitor-funnel.js');
     expect(mod).not.toMatch(/from '\.\/supabase\.js'/);
     expect(mod).not.toMatch(/\.insert\(|\.upsert\(|fetch\(|localStorage|document\./);
