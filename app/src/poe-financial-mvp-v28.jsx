@@ -8,7 +8,7 @@ import LockedSurface from './components/LockedSurface.jsx'; import CreateSubNav 
 import HelpButton from './components/HelpButton.jsx'; import ArrivalsBell from './components/ArrivalsBell.jsx'; // every arrival counted (DR-0728)
 import HelpWalkthrough from './components/HelpWalkthrough.jsx';
 import { UpdatePrompt, InstallPrompt } from './components/PwaPrompts.jsx';
-import InstallAppButton from './components/InstallAppButton.jsx';
+import AppDoorControls from './components/AppDoorControls.jsx';
 import { TherapyReminder, AdvisementBanner } from './components/PromoBanners.jsx';
 import Calendar from './components/Calendar.jsx';
 import BooksAccounts from './components/BooksAccounts.jsx';
@@ -4192,11 +4192,11 @@ ${THEME_CSS}
               <button type="button" onClick={() => { setView('about'); try { window.scrollTo({ top: 0, behavior: motionBehavior() }); } catch (e) {} }} className="text-[0.625rem] uppercase tracking-wider px-2 py-1.5 bg-[#1A1815] text-white border border-[#1A1815] hover:bg-[#B85838] hover:border-[#B85838] font-semibold whitespace-nowrap" title="See plans & subscribe">
                 💳 Subscribe
               </button>
-              {/* Install-the-app, on every tab (Darrell 2026-07-10: "add it to
-                  the space that is on each tab top space"). One tap fires the
-                  browser's native install when available; otherwise it opens
-                  this phone's exact steps. Hides itself once installed. */}
-              <InstallAppButton />
+              {/* The two app doors, on every tab: INSTALL on this phone (Darrell
+                  2026-07-10, hides itself once installed) and SHARE the way in
+                  to someone else -- the QR + link he asked for in the header
+                  2026-10-15, the church's own door on a church surface (DR-1056). */}
+              <AppDoorControls church={churchBrand || view === 'church'} />
               {/* Header feedback button removed — replaced by the persistent floating 💬 button bottom-left.
                   Single entry point keeps the header roomy and the loop unambiguous. */}
               {/* Contextual HELP — the discrete "?" Darrell asked for: tap it on any

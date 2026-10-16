@@ -598,9 +598,19 @@ export async function updateBooking(id, patch = {}) {
   if (patch.endTime !== undefined) row.end_time = String(patch.endTime ?? '').trim() || null;
   if (Object.keys(row).length === 0) return { ok: false, error: 'empty-patch' };
   try {
-    const { error } = await supabase.from('venue_bookings').update(row).eq('id', id);
+    // ASK THE DATABASE WHAT IT ACTUALLY DID (DR-1058). Without .select() this
+    // was the quietest failure in the app: a PostgREST update whose row is
+    // filtered out by RLS returns NO ERROR and zero rows, so `ok: true` could
+    // mean "saved" or "nothing happened" and the caller could not tell. With
+    // the rows returned, an empty result is a refusal we can name.
+    const { data, error } = await supabase
+      .from('venue_bookings').update(row).eq('id', id).select();
     if (error) return { ok: false, error };
-    return { ok: true };
+    const rows = Array.isArray(data) ? data : [];
+    if (!rows.length) return { ok: false, error: 'refused' };
+    // Hand the saved row back so a surface can show its own result without
+    // waiting on a realtime event to tell it what it just did.
+    return { ok: true, booking: toBookingShape(rows[0]) };
   } catch (e) {
     return { ok: false, error: e };
   }
@@ -612,6 +622,20 @@ export async function toggleResponsibility(booking, key) {
   const next = { ...current, [key]: !current[key] };
   if (!next[key]) delete next[key];
   return updateBooking(booking.id, { responsibilities: next });
+}
+
+/**
+ * Pure. What the checklist WOULD become, without touching the database.
+ *
+ * Exported so the surface can show the tick the instant it is tapped and then
+ * reconcile with what the server saved — the same arithmetic in both places,
+ * so an optimistic tick can never disagree with the write it predicts.
+ */
+export function nextResponsibilities(booking, key) {
+  const current = (booking?.responsibilities && typeof booking.responsibilities === 'object') ? booking.responsibilities : {};
+  const next = { ...current, [key]: !current[key] };
+  if (!next[key]) delete next[key];
+  return next;
 }
 
 // --- Booking correspondence (0148): the thread the team can carry -----------
@@ -691,8 +715,13 @@ export async function fetchMyVenueRequests() {
 export async function deleteBooking(id) {
   if (!id) return { ok: false, error: 'no-id' };
   try {
-    const { error } = await supabase.from('venue_bookings').delete().eq('id', id);
+    // Same silent-refusal trap as the update (DR-1058): a delete filtered out
+    // by RLS returns no error and removes nothing, so the row must come back
+    // for "deleted" to mean anything.
+    const { data, error } = await supabase
+      .from('venue_bookings').delete().eq('id', id).select();
     if (error) return { ok: false, error };
+    if (!Array.isArray(data) || !data.length) return { ok: false, error: 'refused' };
     return { ok: true };
   } catch (e) {
     return { ok: false, error: e };

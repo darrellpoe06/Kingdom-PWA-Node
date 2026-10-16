@@ -47,7 +47,7 @@ import { subscribeReactions, toggleReaction, fetchReactors } from '../lib/reacti
 import { churchInstanceId } from '../lib/church-instance.js';
 import ReactionBar from './ReactionBar.jsx';
 import HelpButton from './HelpButton.jsx';
-import { fetchPointsData, fetchPublicPoints, fetchVideoStats } from '../lib/sermon-library-sync.js';
+import { fetchPointsData, fetchPublicPoints, fetchVideoStats, fetchTranscriptsFor, videosNeedingTranscript } from '../lib/sermon-library-sync.js';
 import Presenter from './Presenter.jsx';
 import RecordsLog from './RecordsLog.jsx';
 import { wordLibrary, messagePresentable } from '../lib/presentable.js';
@@ -724,8 +724,8 @@ export default function Pulpit() {
     fetchPointsData().then((d) => {
       if (!alive || !d) return;
       setPointsData((cur) => ({
+        ...cur,
         prepBySermon: { ...cur.prepBySermon, ...(d.prepBySermon || {}) },
-        transcriptsByVideo: d.transcriptsByVideo || {},
         harvestsByVideo: d.harvestsByVideo || {},
       }));
     });
@@ -761,6 +761,31 @@ export default function Pulpit() {
   });
   const libraryItems = canManage ? withDocs : publicSermons;
   const tabs = theWordTabs(canManage);
+
+  // THE EXPENSIVE SOURCE, FETCHED ONLY FOR WHAT THE CHEAP ONES DID NOT ANSWER
+  // (DR-1057). A transcript is the full caption text of a service. Until
+  // 2026-10-15 every one of them came down on arrival at this tab, to derive an
+  // outline that BG's prep had usually already supplied — so this now runs
+  // AFTER prep and the harvest rows land, over the messages neither answered,
+  // newest first and capped. Nothing here is a different outline; it is the
+  // same third precedence, asked for by name instead of in bulk.
+  useEffect(() => {
+    let alive = true;
+    if (!signedIn) return undefined;
+    const need = videosNeedingTranscript(libraryItems, {
+      prepBySermon: pointsData.prepBySermon,
+      harvestsByVideo: pointsData.harvestsByVideo,
+      videoIdOf,
+    });
+    // Only ask for what is not already in hand, so a re-render never re-fetches.
+    const missing = need.filter((v) => !pointsData.transcriptsByVideo[v]);
+    if (!missing.length) return undefined;
+    fetchTranscriptsFor(missing).then((t) => {
+      if (!alive || !t || !Object.keys(t).length) return;
+      setPointsData((cur) => ({ ...cur, transcriptsByVideo: { ...cur.transcriptsByVideo, ...t } }));
+    });
+    return () => { alive = false; };
+  }, [signedIn, libraryItems, pointsData.prepBySermon, pointsData.harvestsByVideo, pointsData.transcriptsByVideo]);
 
   // Points per SERMON (keyed by sermon id, not video id — so an email-sourced
   // message with no video still gets its prep points): prefer BG's own prep outline

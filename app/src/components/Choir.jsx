@@ -38,7 +38,7 @@ import { listInstanceMembers, setMemberRole, grantableRoles, roleLabel as instan
 import { serviceDayLabel } from '../lib/service-day.js';
 import { extractHeardQuote, draftWordsFromTranscript } from '../lib/choir-words.js';
 import { isAutoDraft } from '../lib/ari-words-training.js';
-import { fetchTranscriptsByVideo } from '../lib/sermon-library-sync.js';
+import { fetchTranscriptsFor } from '../lib/sermon-library-sync.js';
 import { compressImageFile, fileToDataUrl } from '../lib/image.js';
 
 const ROLE_OPTS = [['member', 'Member'], ['assistant', 'Assistant director'], ['director', 'Director'], ['musician', 'Musician'], ['sound', 'Sound'], ['media', 'Media'], ['tech', 'Tech']];
@@ -975,10 +975,16 @@ export default function Choir() {
   // starting point"). One transcript source, many harvests (DR-0134's recipe);
   // the draft lands in the song's lyrics clearly labeled auto-draft for
   // trimming. Transcripts are fetched once per visit and cached.
-  const transcriptsRef = useRef(null);
+  // ONE SONG WANTS ONE TRANSCRIPT (DR-1057). This call site already had the
+  // right instinct — fetch on the tap, not on arrival, and cache — but it then
+  // pulled EVERY service's caption text to read one of them. Asking by id
+  // keeps the caching and drops the rest of the archive.
+  const transcriptsRef = useRef({});
   const onDraftWords = async (song) => {
     if (!song?.videoId) return { ok: false, reason: 'no-video' };
-    if (!transcriptsRef.current) transcriptsRef.current = await fetchTranscriptsByVideo();
+    if (!transcriptsRef.current[song.videoId]) {
+      Object.assign(transcriptsRef.current, await fetchTranscriptsFor([song.videoId]));
+    }
     const t = transcriptsRef.current[song.videoId];
     const r = draftWordsFromTranscript({ transcriptText: t && t.text, heardQuote: extractHeardQuote(song.notes), title: song.title });
     if (!r.ok) return r;

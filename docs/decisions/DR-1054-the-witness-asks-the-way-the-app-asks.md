@@ -133,5 +133,22 @@ the only step that reaches the cause, and it is Darrell's hand.
   scheduled run. And it is **not claimed here that the Funnel throttle is what
   stalled Darrell's phone** — that is an unmeasured hypothesis the repoint
   named in advance. This change is what makes it measurable.
-  **`re-review: 2026-10-16`** — read the first live run and record what the
-  app's shape actually returns.
+  **`re-review: 2026-10-16` — ANSWERED, same day.** The probe merged and ran
+  twice against the real road (site-health 38821437286 and 38825909008, both on
+  `cd4534740`). The reading:
+
+  ```
+  XO_POST: 400    XO_BYTES: 81
+  ```
+
+  **The app's own shape works.** A cross-origin POST to the real sign-in road,
+  carrying `Origin: https://poetech.us`, answered HTTP 400 with an 81-byte JSON
+  error body — which is exactly what a healthy auth road says to a deliberately
+  wrong credential. And 81 bytes is the *same* figure the 2026-10-09 repoint
+  recorded when it accepted the throttle risk, so the Funnel is behaving as it
+  did then and the throttle is **not** firing on this probe.
+
+  So the instrument now reports two different things instead of one, which was
+  the entire point: the run still FAILS on #2057 (every Pages Function dark),
+  while the app's own road is measured and healthy. Before this change those two
+  facts were indistinguishable behind a single `backend auth: HTTP 200`.
