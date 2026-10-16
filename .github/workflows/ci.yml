@@ -911,6 +911,55 @@ jobs:
           psql -v ON_ERROR_STOP=1 -q -f scripts/vault-ci-smoke.sql | tee "$RUNNER_TEMP/smoke.txt"
           grep -q 'every vault wall held' "$RUNNER_TEMP/smoke.txt"
 
+  # A CHURCH IS ADDED BY A FORM, NOT A MIGRATION (DR-1066). 0297 moves the
+  # church join's leader list out of a VALUES clause into church_leaders rows,
+  # adds church_profiles (the office's own face and PUBLISHED giving channels,
+  # https-only by trigger) and the steward's provision_church_instance(). On a
+  # fresh container: the tenancy schema, 0012/0014/0294 (the join's chain),
+  # then 0297 TWICE (idempotent), then 0294's own smoke (the either-door
+  # contract still holds with the list gone) and 0297's smoke (a stranger
+  # cannot provision; a steward can, once; the named leader joins by the
+  # ordinary join with no hardcoded address; the office alone writes the
+  # profile; http / javascript: channels are refused; a private profile is
+  # invisible to a stranger and anon until the office makes it public).
+  church-onboarding:
+    name: app — church onboarding walls (PostgreSQL)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      PGHOST: localhost
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install postgresql-client
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client > /dev/null
+      - name: 0297 applies, twice (idempotent), and every onboarding wall holds
+        run: |
+          set -euo pipefail
+          psql -v ON_ERROR_STOP=1 -q -f scripts/door-work-ci-bootstrap.sql
+          for f in schema-v1.sql schema-v1.1-tenant-join.sql schema-v2.1-infra.sql; do
+            psql -v ON_ERROR_STOP=1 -q --single-transaction -f "infra/supabase/$f"
+          done
+          psql -v ON_ERROR_STOP=1 -q -f scripts/church-onboarding-ci-bootstrap.sql
+          for f in 0012-church-instance-multi-membership.sql 0014-church-invite-onboarding.sql 0294-the-church-knows-one-person-at-either-door.sql; do
+            psql -v ON_ERROR_STOP=1 -q --single-transaction -f "infra/supabase/migrations-auto/$f"
+          done
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0297-a-church-is-added-by-a-form-not-a-migration.sql; done
+          psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0294-church-either-door-smoke.sql 2>&1 | tee "$RUNNER_TEMP/either.txt"
+          grep -q 'CHURCH EITHER DOOR SMOKE: PASS' "$RUNNER_TEMP/either.txt"
+          psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0297-church-onboarding-smoke.sql 2>&1 | tee "$RUNNER_TEMP/smoke.txt"
+          grep -q 'CHURCH ONBOARDING SMOKE: PASS' "$RUNNER_TEMP/smoke.txt"
+
   # A LEARNER'S RECORD: 0250'S WALLS, ON A REAL POSTGRESQL (DR-0754). 0250
   # applies twice (idempotent), then the smoke proves: a learner keeps and
   # reads his own record, the row lands under his own account even when the
@@ -1338,10 +1387,10 @@ jobs:
   app:
     name: app — lint + vitest
     if: always()
-    needs: [guards, vitest, probes, layout, curriculum, lesson-shares, arrivals-push, contacts-walls, voice-enrollments, dm-device-keys, learner-records, vault-walls, door-work, door-journeys]
+    needs: [guards, vitest, probes, layout, curriculum, lesson-shares, arrivals-push, contacts-walls, voice-enrollments, dm-device-keys, learner-records, vault-walls, church-onboarding, door-work, door-journeys]
     runs-on: ubuntu-latest
     steps:
-      - name: Every leg passed (lint + guards, every vitest shard, build + probes, layout, curriculum, lesson shares, lesson arrival push, contacts walls, voice consent walls, sealed-message device keys walls, learner record walls, door work orders, door journeys end to end)
+      - name: Every leg passed (lint + guards, every vitest shard, build + probes, layout, curriculum, lesson shares, lesson arrival push, contacts walls, voice consent walls, sealed-message device keys walls, learner record walls, church onboarding walls, door work orders, door journeys end to end)
         env:
           NEEDS: ${{ toJSON(needs) }}
         run: |

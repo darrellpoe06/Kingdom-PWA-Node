@@ -85,9 +85,16 @@ jobs:
           - feature: product-forms
             migrations: "0200-one-forms-engine-for-every-product-the-office-of-each-instance-edits-its-own-questions-and-documents.sql 0201-the-household-keeps-its-own-record-and-its-own-shelf-of-documents.sql 0202-what-is-owed-what-was-paid-and-the-document-that-proves-it.sql 0203-a-mortgage-in-line-items-and-what-each-door-costs-against-what-it-collects.sql 0204-the-days-post-and-the-child-who-sorts-it.sql 0205-the-sum-rule-refuses-inside-the-function-not-at-commit.sql 0206-the-plan-becomes-rows-the-dated-bills-import-into-the-ledger.sql 0208-the-bus-runs-on-sunday-and-wednesday.sql 0209-the-church-keeps-each-persons-record-and-their-own-shelf.sql 0210-the-signature-door-and-a-roster-that-says-when.sql 0211-ask-for-a-tab-and-the-office-decides.sql 0212-a-congregant-could-not-open-their-own-record.sql 0213-the-roster-shows-what-the-person-told-us.sql"
             smokes: "0200-product-forms-smoke.sql 0201-household-and-vault-smoke.sql 0202-obligations-smoke.sql 0203-door-economics-smoke.sql 0204-the-days-post-smoke.sql 0206-plan-import-smoke.sql 0138-family-plans-isolation-smoke.sql 0167-family-trust-records-isolation-smoke.sql 0209-church-record-and-shelf-smoke.sql 0210-signature-door-and-roster-smoke.sql 0211-access-request-smoke.sql 0213-roster-declared-contact-smoke.sql"
+          # 2026-10-16 (DR-1066): 0297 re-replaces join_church_instance so the
+          # leader list is ROWS (church_leaders) instead of 0294's VALUES list,
+          # and adds provision_church_instance / set_church_profile. It rides
+          # AFTER 0294 here so a replay of this leg ends in the final shape
+          # (the migration-replay-order rule). Its smoke provisions a test
+          # church inside a rolled-back transaction and asserts every wall,
+          # plus that colg's four leaders are rows the join still honours.
           - feature: choir-claim
-            migrations: "0110-choir-member-self-claim.sql 0131-stale-role-constraint-and-nullsafe-guards.sql 0144-standings-at-will-and-the-sons-wall.sql 0210-the-signature-door-and-a-roster-that-says-when.sql 0212-a-congregant-could-not-open-their-own-record.sql 0213-the-roster-shows-what-the-person-told-us.sql 0294-the-church-knows-one-person-at-either-door.sql"
-            smokes: "0110-choir-claim-smoke.sql 0294-church-either-door-smoke.sql"
+            migrations: "0110-choir-member-self-claim.sql 0131-stale-role-constraint-and-nullsafe-guards.sql 0144-standings-at-will-and-the-sons-wall.sql 0210-the-signature-door-and-a-roster-that-says-when.sql 0212-a-congregant-could-not-open-their-own-record.sql 0213-the-roster-shows-what-the-person-told-us.sql 0294-the-church-knows-one-person-at-either-door.sql 0297-a-church-is-added-by-a-form-not-a-migration.sql"
+            smokes: "0110-choir-claim-smoke.sql 0294-church-either-door-smoke.sql 0297-church-onboarding-smoke.sql"
           # 2026-10-15 (DR-1052): the church runs many teams and exactly ONE of
           # them had a membership model. 0296 gives every team the roster the
           # choir has had since 0011, so the wall that matters is the one

@@ -49,6 +49,8 @@ import { confirmInvite } from '../lib/family-invite.js';
 import {
   loadChurchGovernance, rightsFor, countsByRole, groupByRole, wayInSteps, canRemove,
 } from '../lib/church-members.js';
+import { ChurchDoorProfile, AddAChurch } from './ChurchDoorProfile.jsx';
+import { amPlatformSteward } from '../lib/church-profile-sync.js';
 
 const serif = { fontFamily: '"Fraunces", serif' };
 const LABEL = 'text-[0.625rem] uppercase tracking-wider text-[#5A5751] font-semibold';
@@ -296,9 +298,18 @@ export default function ChurchMembers() {
   const [session, setSession] = useState(null);
   const [state, setState] = useState({ status: 'idle', gov: null, error: null });
   const [note, setNote] = useState('');
+  // The steward's card (0297): shown only when the server says this person is
+  // a platform steward — never inferred from an email on the phone.
+  const [steward, setSteward] = useState(false);
   useEffect(() => onAuthChange((s) => setSession(s)), []);
   const signedIn = !!(session && session.user);
   const myUserId = signedIn ? session.user.id : null;
+  useEffect(() => {
+    let alive = true;
+    if (!signedIn) { setSteward(false); return undefined; }
+    amPlatformSteward().then((r) => { if (alive) setSteward(!!(r && r.steward)); }).catch(() => { if (alive) setSteward(false); });
+    return () => { alive = false; };
+  }, [signedIn]);
 
   const load = useCallback(async () => {
     setState((p) => ({ ...p, status: 'loading', error: null }));
@@ -362,6 +373,10 @@ export default function ChurchMembers() {
     { id: 'way-in', label: 'The way in', icon: 'lock', render: () => <WayIn gov={gov} /> },
     governs && { id: 'people', label: 'People', icon: 'users', render: () => <People gov={gov} myUserId={myUserId} onRole={onRole} onRight={onRight} onRemove={onRemove} /> },
     governs && { id: 'invite', label: 'Invite', icon: 'sparkle', render: () => <Invite gov={gov} onInvite={onInvite} onConfirm={onConfirm} note={note} /> },
+    // The church's own face and published giving channels (0297, DR-1066).
+    governs && { id: 'door', label: 'This church’s door', icon: 'home', render: () => <ChurchDoorProfile gov={gov} /> },
+    // A platform steward adds a church from the same tab — a form, not a migration.
+    steward && { id: 'add-church', label: 'Add a church', icon: 'landmark', render: () => <AddAChurch onAdded={load} /> },
   ];
 
   return (
