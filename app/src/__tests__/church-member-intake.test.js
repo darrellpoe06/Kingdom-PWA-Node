@@ -166,24 +166,75 @@ describe('the record itself', () => {
     // DR-1064 widened the refusals from "never sold, never sent to…" to
     // "NONE OF IT is ever sold, ever sent to…", because the covenant now speaks
     // about TWO records — the member card, which holds no giving figure, and
-    // the church's record of gifts received, which it must keep. The
-    // antecedent changed; the promise did not, and it covers more than before.
-    // Matched on either wording so the check follows the sentence rather than
-    // pinning a word, and the clause itself is pinned below.
-    expect(ack.statement).toMatch(/(never|ever) used to train anything/i);
+    // the church's record of gifts received, which it must keep. DR-1071 then
+    // moved the subject again, to the church itself ("the church will never
+    // willingly sell my record, my giving or my prayer requests"), because a
+    // promise has to name who is making it. The antecedent has changed three
+    // times; the promise has only widened. Matched on the sentence rather than
+    // on a word, and the clause itself is pinned below.
+    expect(ack.statement).toMatch(/(never|ever) (used to|hand them to anyone to) train anything/i);
   });
 
   it('the refusals govern EVERY record the covenant names, not only the member card (DR-1064)', () => {
-    // The easiest way to do harm here is to narrow the "none of it" clause back
-    // to one record while the sentence still reads reassuringly.
+    // The easiest way to do harm here is to narrow the refusal clause back to
+    // one record while the sentence still reads reassuringly. The clause is
+    // found by its own opening rather than by a fixed index, so it survives a
+    // rewrite of the sentences around it (DR-1071 rewrote three of them).
     const { statement } = CHURCH_MEMBER_ALL_FIELDS.find((f) => f.type === 'acknowledgment');
-    expect(statement).toMatch(/separately records gifts it receives/i);
+    expect(statement).toMatch(/separately records the gifts it receives/i);
     expect(statement).toMatch(/that record is mine to read/i);
-    const tail = statement.slice(statement.indexOf('none of it'));
-    expect(tail, 'the "none of it" clause is gone').toBeTruthy();
-    for (const r of [/sold/i, /employer/i, /lender/i, /advertiser/i, /who is welcome/i, /train anything/i]) {
+    const at = statement.search(/The church will never willingly sell/i);
+    expect(at, 'the refusal clause is gone').toBeGreaterThan(-1);
+    const tail = statement.slice(at);
+    for (const r of [/my record, my giving or my prayer requests/i, /employer/i, /lender/i, /who is welcome/i, /train anything/i]) {
       expect(tail, `${r} fell outside the refusals`).toMatch(r);
     }
+  });
+
+  it('IT PROMISES A WILL, NOT A PERFECTION — the risk is disclosed, not papered over (DR-1071)', () => {
+    // Darrell, 2026-10-16: "dont add constraints for fake values... we won't
+    // willingly sell data... period... however we are still learning and
+    // researching and don't know everything yet... so its a risk... period!!!
+    // Grow with us or don't!!!"
+    //
+    // So the harm this case exists to catch is NOT a weak promise. It is a
+    // STRONG one we cannot keep: a covenant that reads like a guarantee of
+    // safety is a lie the moment anything goes wrong, and the member signed it.
+    // Three things therefore have to be in the sentence a member signs.
+    const { statement } = CHURCH_MEMBER_ALL_FIELDS.find((f) => f.type === 'acknowledgment');
+
+    // 1. The promise is about WILL. "Never willingly", not "never possible".
+    expect(statement, 'the promise must name itself as a will, not an impossibility')
+      .toMatch(/never willingly/i);
+    expect(statement).toMatch(/their will, not their perfection/i);
+
+    // 2. The learning, and therefore the risk, is said out loud.
+    expect(statement).toMatch(/still learning/i);
+    expect(statement).toMatch(/do not know everything yet/i);
+    expect(statement).toMatch(/real risk/i);
+    expect(statement, 'a wrong turn must be something we say, not something they discover')
+      .toMatch(/say so when they find they were wrong/i);
+
+    // 3. The measurement that makes the thing better is DISCLOSED rather than
+    //    denied — including the Google sign-in door that already exists
+    //    (app/src/lib/supabase.js, signInWithOAuth provider 'google'), and the
+    //    two doors that do not involve Google at all.
+    expect(statement).toMatch(/counts how its PAGES are used/);
+    expect(statement).toMatch(/sign in with Google, then Google knows/i);
+    expect(statement).toMatch(/phone-and-PIN door or an email and password/i);
+
+    // 4. And the claims we are no longer in a position to make are GONE. An
+    //    "advertiser" clause cannot stand on a surface whose sign-in door is
+    //    an advertiser's, and no sentence may promise a guarantee.
+    expect(statement, 'the advertiser promise was removed; it had become false')
+      .not.toMatch(/advertiser/i);
+    //    The word "guarantee" appears once, and only to refuse the posture:
+    //    "told to me straight rather than dressed up as a guarantee".
+    expect(statement).toMatch(/rather than dressed up as a guarantee/i);
+    expect(statement, 'a covenant may not promise a guarantee of safety')
+      .not.toMatch(/(we|they|the church) (guarantee|ensure)|completely (safe|secure)|fully secure|100%/i);
+    expect(statement, 'and it may not claim a safety that has not been built')
+      .toMatch(/will not claim a safety they have not built yet/i);
   });
 
   it('asks for only three things before it can stand', () => {

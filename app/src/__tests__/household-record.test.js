@@ -81,6 +81,30 @@ describe('the household record asks only what a real surface reads', () => {
     expect(text).toMatch(/do not sell this data/i);
     expect(text).toMatch(/insurer/i);
   });
+  it('...AND what it DOES count, and the risk it cannot promise away (DR-1071)', () => {
+    // Darrell, 2026-10-16: "dont add constraints for fake values... we won't
+    // willingly sell data... period... however we are still learning and
+    // researching and don't know everything yet... so its a risk... period!!!"
+    //
+    // A covenant that only lists refusals reads like a guarantee. Three things
+    // keep it honest: the counting is admitted, the borrowed door is named, and
+    // the limit of the promise is stated in the document itself.
+    const text = JSON.stringify(HOUSEHOLD_COVENANT);
+    expect(text).toMatch(/What we do count/);
+    expect(text).toMatch(/how the app’s own PAGES are used/);
+    expect(text).toMatch(/Signing in with Google tells Google you signed in here/);
+    expect(text).toMatch(/phone-and-PIN door and the email-and-password door do not/);
+    expect(text).toMatch(/still learning and still researching/);
+    expect(text).toMatch(/not a guarantee that nothing can go wrong/);
+    expect(text).toMatch(/real risk in trusting any system, including this one/);
+    // The advertiser clause is struck, not softened: this app's own sign-in
+    // offers a Google door, so the clause was untrue for anyone who used it.
+    expect(text, 'the advertiser clause must stay struck').not.toMatch(/advertiser/i);
+    // And the sections a reader counts through must still be 1..n in order —
+    // inserting one is how a numbered document silently grows a "3.5".
+    const ns = HOUSEHOLD_COVENANT.sections.map((s) => s.n);
+    expect(ns).toEqual(ns.map((_, i) => i + 1));
+  });
   it('the record exports as plain labelled answers a person can read and keep', () => {
     const sections = liveSectionsFor('poetech', 'household-intake', null);
     const out = exportHouseholdRecord({ householdName: 'The Poe household', record: filled() }, sections);

@@ -470,7 +470,10 @@ export default function ChurchMemberSpace({ church = COLG_DEFAULT_CHURCH, myUser
         <UiIcon name="lock" className="w-3 h-3 mt-0.5 shrink-0" />
         <span>
           Your record and your shelf live in your church&apos;s own instance and are walled there by the database, not by this screen.
-          Nothing here is sold, sent to an employer, a lender or an advertiser, used to decide who is welcome, or used to train anything.
+          Nothing here will ever be willingly sold, sent to an employer or a lender, used to decide who is welcome, or used to train anything.
+          The church does count how its pages are used, so it can see what helps — that counting is being moved onto the church&apos;s own
+          equipment, and it never carries who you are or what you gave. We are still learning and still researching, so this is a promise
+          about what we will do, not a claim that nothing can go wrong; when we find we were wrong, we will say so here.
         </span>
       </p>
     </div>
