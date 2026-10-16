@@ -344,7 +344,19 @@ jobs:
                         ||' (newest service '||COALESCE((SELECT max(service_date)::text FROM public.choir_sermons),'none')||')'
                         ||' | video_transcripts '||(SELECT count(*) FROM public.video_transcripts)
                         ||' | sermon_prep '||(SELECT count(*) FROM public.sermon_prep)
-                        ||' | instances '||(SELECT count(*) FROM public.instances);" 2>&1 | tail -1
+                        ||' | instances '||(SELECT count(*) FROM public.instances)
+                        -- DR-1065's own number, which nothing could read. The
+                        -- sweep's whole promise is that choir_songs GROWS on a
+                        -- clock without a human; this line is the only way to
+                        -- tell a rider that is working from one that is merely
+                        -- installed. Split by source and review state, because
+                        -- "950 songs" would hide the thing that matters: the
+                        -- harvester's rows are DRAFTS and the steward's
+                        -- confirmations are what the choir actually sings.
+                        ||' | choir_songs '||(SELECT count(*) FROM public.choir_songs)
+                        ||' (harvest-drafts '||(SELECT count(*) FROM public.choir_songs WHERE source='harvest-transcript')
+                        ||', awaiting review '||(SELECT count(*) FROM public.choir_songs WHERE needs_review)
+                        ||', newest '||COALESCE((SELECT max(created_at)::date::text FROM public.choir_songs),'none')||')';" 2>&1 | tail -1
             # DR-1069: WHY REALTIME IS DEAD, measured instead of guessed. Run
             # 38859433402 carried "TenantNotFound: Tenant not found: realtime"
             # every ten seconds, and that string appears NOWHERE in docs/ -- so
