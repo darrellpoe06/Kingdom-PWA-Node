@@ -13,6 +13,14 @@
 **Grounds:** Darrell, 2026-10-16: **"Make sure this works with Google docs... Excel and other documents to pull lists of songs from Christina and the senior team members in choir and senior media team members... initially Christina and myself"** — then, looking at Choir → Songs: **"Does pasting a link with a list of songs add them to the app like the others that work comprehensively?"** ... **"Fix it..."**
 **Principles:** DR-0076 §5 (characterize before you change); DR-1053 (a thing that did not happen is never reported as success); DR-0709 (one Books upload reads anything); DR-0236 (build it now)
 
+## Context
+
+Choir -> Songs offers "Paste a list" so a member can bring a set list without
+typing each song. Christina and the senior team keep their lists the way
+anyone keeps a list -- in a spreadsheet, in a Google Doc, as a link to a
+playlist. Darrell asked whether pasting one of those links actually brings
+the songs in. It did not, and the surface reported that it had.
+
 ## His question had an answer, and the answer was no
 
 **Pasting a link to a list added one bogus song and reported success.**
@@ -24,7 +32,7 @@ That is the DR-1053 family again — the app reporting a success for a thing tha
 did not happen — and it is the most expensive kind, because the person walks
 away believing their work is in.
 
-## Both halves already existed; the seam did not
+## What was measured: both halves already existed; the seam did not
 
 | already in the repo | what it does |
 |---|---|

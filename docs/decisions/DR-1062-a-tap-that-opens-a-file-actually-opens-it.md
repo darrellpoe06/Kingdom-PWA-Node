@@ -14,6 +14,13 @@
 **Grounds:** Darrell, 2026-10-16, with Choir → Team Docs on screen and the focus ring sitting on an OPEN that had done nothing: **"Can't open team documents!!!!! Fix it please..."**
 **Principles:** DR-0076 §5 (characterize before you change); DR-1053 (a thing that could not be done is not a no); DR-0330 (a control that does nothing is not a control)
 
+## Context
+
+Choir -> Team Docs holds the team's weekly get-ready material -- the order of
+service, the announcements, the calendar -- and every row carries an OPEN
+button. Darrell tapped it on his phone, on the installed app, and nothing
+happened: no document, no error, no sign that anything had been attempted.
+
 ## What was measured
 
 **One line, two independent silent failures** (`Choir.jsx:782` as shipped):

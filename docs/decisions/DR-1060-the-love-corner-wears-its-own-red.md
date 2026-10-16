@@ -13,6 +13,14 @@
 **Grounds:** Darrell, 2026-10-16: **"We want to keep the Love Corner signature colors of red and white and some black... however mostly red and white... also... make that the default color when it shows initially... and have other options that look amazing and meek strength under control... sound and solid... perpetual... intimately intuitive engineering... modern and elegant"** — then, with the church door on screen: **"Make sure you taking care of the Love Corner App"**
 **Principles:** DR-0076 §4 (measure, do not claim); DR-0099 (red is the Blood — the reservation, and its real scope); DR-1046 (Heritage is the family app's first-run theme); DR-0524 (a device that chose keeps its choice)
 
+## Context
+
+The Love Corner has worn a black ring, a white field and a red heart since
+1946, and the app's church door wore none of it. Darrell asked for the
+church's own colors to be what a member sees when the door first opens, with
+two further palettes to the brief. Nothing in the repository declared a brand
+color for that door, so the red had to be found rather than chosen.
+
 ## What was measured
 
 **No brand color existed for that door.** `manifest-lovecorner.webmanifest` ships the

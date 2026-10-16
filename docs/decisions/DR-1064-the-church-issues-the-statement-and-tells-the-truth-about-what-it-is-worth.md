@@ -12,7 +12,16 @@
 **Grounds:** Darrell, 2026-10-16, with the membership agreement open on *"it holds no giving amount and no giving total"*: **"The church has will need to have recorded records for giving for tax purposes..."** — then: **"They will have to accept that we do keep these types of records in the signin for the app when they give something... they can also give anonymous... however we need to know all possible data... make sure people know the tax benefits of their church tithe... make sense?"**
 **Principles:** DR-0100 (state established fact plainly — and do not over-claim it); DR-0076 §8 (honest uncertainty, flagged narrowly); DR-0098 (teach, do not debate); DR-0356 (the signed agreement is version-pinned); Matthew 6:3-4 (giving is not on the roll)
 
-## The gap is exact: not a wrong promise, a missing record
+## Context
+
+The membership agreement a member signs promises, among other things, that
+the church's record of them "holds no giving amount and no giving total".
+Darrell read that sentence back and said the church will need recorded giving
+for tax purposes -- then added that members must accept the church keeps such
+records, that anonymous giving must remain possible, and that people should
+know what their tithe actually does at tax time.
+
+## What was measured: the gap is exact -- not a wrong promise, a missing record
 
 Three giving roads already exist, and **not one of them is the document a member
 needs at tax time.** The two that come close say so themselves:

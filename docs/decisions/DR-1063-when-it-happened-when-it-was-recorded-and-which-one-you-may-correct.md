@@ -13,6 +13,14 @@
 **Grounds:** Darrell, 2026-10-16, with Choir → Resources on screen showing "TLC Song List" and nothing else at all: **"We need to have dates and time stamps... so we can sort out the dates and events over time historical accuracy... make sense?... even system logs... to make sure it can be corrected... make sense?"**
 **Principles:** DR-0076 §4 (measure, do not claim) and §3 (proven-to-catch); DR-0075 (perpetual improvement); DR-0330 (a surface tells the truth about its own state)
 
+## Context
+
+Choir -> Resources showed a row reading "TLC Song List" with a REMOVE button
+and nothing else -- no date, no author, no sign of when it joined the shelf.
+Darrell asked for dates and time stamps across the app so events can be
+ordered over time, and for the system's own logs to be correctable where
+they are wrong.
+
 ## He has asked for this before, and that is the finding
 
 On **2026-09-22**, over a screenshot of his own working document, he said:

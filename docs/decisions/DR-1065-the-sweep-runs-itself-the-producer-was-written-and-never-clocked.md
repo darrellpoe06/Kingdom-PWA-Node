@@ -13,7 +13,14 @@
 **Grounds:** Darrell, 2026-10-16, over the Songbook's own readout of 920 services with 915 still to sweep: **"What?!!!!! Fix it!!!! Make sure humans have to do nothing if possible... just get all of them... we already have it dont we?!!!"**
 **Principles:** DR-0247 (agreed work starts itself through the lane); DR-0248 (the deterministic class carries budget + lock); DR-0076 §3 (proven-to-catch / anti-theatre); DR-0277 (a loop that is enabled but unclocked reads green while nothing runs)
 
-## "We already have it, don't we?" — yes, and that is the finding
+## Context
+
+The Songbook carries a sweep readout: of the service videos the church already
+holds, how many have had their songs harvested. It read 920 services with 915
+still to sweep. Darrell saw that number and asked why, given the capability
+was supposed to already exist and humans were supposed to do nothing.
+
+## What was measured: "we already have it, don't we?" -- yes, and that is the finding
 
 **The producer was written months ago and was never given a clock.**
 `infra/nas-sme-pipeline/worship-song-harvest.py` is 279 lines of pure Python —
