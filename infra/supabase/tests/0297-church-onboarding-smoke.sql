@@ -194,7 +194,16 @@ BEGIN
   PERFORM pg_temp.as_postgres();
   IF got IS DISTINCT FROM t THEN RAISE EXCEPTION 'CHURCH ONBOARDING SMOKE FAIL: the invited member joined %', got; END IF;
 
-  -- The profile is the office's to write, and only with sound links.
+  -- The profile is the office's to write, and only with sound links. A
+  -- STRANGER first: user_role_in_instance is NULL for a non-member, and a
+  -- NULL-blind `NOT IN` guard lets that NULL through (the 0131 class) — this
+  -- case failed against the first draft and is why the guard is coalesced.
+  PERFORM pg_temp.as_user(s);
+  BEGIN
+    j := public.set_church_profile(t, '{"name":"Stranger"}'::jsonb, '[]'::jsonb, NULL);
+    RAISE EXCEPTION 'CHURCH ONBOARDING SMOKE FAIL: a stranger wrote the profile';
+  EXCEPTION WHEN insufficient_privilege THEN NULL;
+  END;
   PERFORM pg_temp.as_user(m);
   BEGIN
     j := public.set_church_profile(t, '{"name":"Hijacked"}'::jsonb, '[]'::jsonb, NULL);

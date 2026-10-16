@@ -279,7 +279,7 @@ BEGIN
   IF v_email = '' OR position('@' in v_email) < 2 THEN
     RAISE EXCEPTION 'provision_church_instance: a valid leader email is required' USING ERRCODE = 'check_violation';
   END IF;
-  IF v_role NOT IN ('owner', 'admin') THEN
+  IF coalesce(v_role, '') NOT IN ('owner', 'admin') THEN
     RAISE EXCEPTION 'provision_church_instance: the first leader is an owner or an admin' USING ERRCODE = 'check_violation';
   END IF;
   v_why := public.church_profile_problem(v_profile);
@@ -348,7 +348,10 @@ BEGIN
   IF v_caller IS NULL THEN
     RAISE EXCEPTION 'set_church_profile: not authenticated' USING ERRCODE = 'insufficient_privilege';
   END IF;
-  IF instance_in IS NULL OR user_role_in_instance(instance_in) NOT IN ('owner','admin') THEN
+  -- NULL-safe on purpose (the 0131 class): user_role_in_instance is NULL for a
+  -- non-member, and `NULL NOT IN (...)` is NULL, which never raises — the smoke
+  -- proved a stranger walked through the first draft of this line.
+  IF instance_in IS NULL OR coalesce(user_role_in_instance(instance_in), '') NOT IN ('owner','admin') THEN
     RAISE EXCEPTION 'set_church_profile: only the church office (owner/admin) edits the profile' USING ERRCODE = 'insufficient_privilege';
   END IF;
   IF NOT EXISTS (SELECT 1 FROM instances WHERE id = instance_in AND instance_type = 'church') THEN

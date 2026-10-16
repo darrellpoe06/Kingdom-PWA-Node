@@ -53,6 +53,12 @@ const rules = {
   provisionGated: (c) => /IF NOT public\.is_platform_steward\(\) THEN\s*\n\s*RAISE EXCEPTION 'provision_church_instance: only a platform steward/.test(c),
   stewardIsFamilyOwnerAdmin: (c) => /WHERE i\.slug = 'poe-family'\s*\n\s*AND im\.role IN \('owner','admin'\)/.test(c),
   provisionNeverRetypes: (c) => /v_type <> 'church' THEN\s*\n\s*RAISE EXCEPTION/.test(c),
+  // The 0131 class, both guards: a non-member's role is NULL and `NULL NOT IN`
+  // never raises. The smoke proved a stranger walked through the first draft of
+  // set_church_profile; both guards are coalesced and pinned here.
+  guardsNullSafe: (c) => /IF coalesce\(v_role, ''\) NOT IN \('owner', 'admin'\) THEN/.test(c)
+    && /IF instance_in IS NULL OR coalesce\(user_role_in_instance\(instance_in\), ''\) NOT IN \('owner','admin'\) THEN/.test(c)
+    && !/IF user_role_in_instance\(instance_in\) NOT IN/.test(c),
   provisionReserved: (c) => /v_slug IN \('poe-family', 'poetech', 'app', 'api', 'admin'\) OR v_slug LIKE 'u-%'/.test(c),
   // The https rule lives in the wall, for channels AND profile links.
   httpsOnly: (c) => (c.match(/\^https:\/\/\[a-z0-9\]/g) || []).length >= 3,
@@ -101,7 +107,7 @@ describe('0297 — the smoke is wired where it is proven', () => {
       'leader L joined', 'a stranger joined', 'a member wrote the profile', 'an http channel was accepted',
       'a javascript: channel was accepted', 'duplicate channel ids were accepted', 'a stranger reads a private profile',
       'anon reads a private profile', 'marking public lost the channels', 'a member reads the leader rows',
-      'the owner wrote a leader row directly', "another church''s owner reads colg''s leaders",
+      'the owner wrote a leader row directly', "another church''s owner reads colg''s leaders", 'a stranger wrote the profile',
     ]) expect(smoke, must).toContain(must);
     // No real address is ever inserted by the smoke.
     expect(smoke).not.toMatch(/darrellpoe06|mrspoe06|tlctherapysolutions|thechurchofthelivinggod/);
