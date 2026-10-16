@@ -1,6 +1,6 @@
 // =============================================================================
 // The same-origin roads have a second door that does not depend on Pages
-// Functions (DR-1066; #2057): the zone Worker carries every proxied Pages
+// Functions (DR-1068; #2057): the zone Worker carries every proxied Pages
 // route, exactly, and nothing else.
 // =============================================================================
 import { describe, it, expect } from 'vitest';

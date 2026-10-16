@@ -1,6 +1,6 @@
 // =============================================================================
 // poetech-roads — the same-origin roads as a ZONE WORKER, a second door that
-// does not depend on Cloudflare Pages Functions (DR-1066; #2057, day 7)
+// does not depend on Cloudflare Pages Functions (DR-1068; #2057, day 7)
 // =============================================================================
 // Since 2026-10-09 no Pages Function on poetech-app is invoked (#2057): every
 // request to /sb, /cams, /nas-photos, /taxes and the rest falls through to the

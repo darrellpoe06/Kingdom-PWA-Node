@@ -1,6 +1,6 @@
 # poetech-roads — the same-origin roads as a zone Worker
 
-**Why it exists (DR-1066).** Since 2026-10-09 no Cloudflare Pages Function on
+**Why it exists (DR-1068).** Since 2026-10-09 no Cloudflare Pages Function on
 `poetech-app` is invoked (#2057): `/sb`, `/cams`, `/nas-photos`, `/taxes` and
 every other NAS-backed road answer the SPA shell. The app was unlocked onto the
 absolute Funnel origin the same day, accepting the Funnel's cross-origin

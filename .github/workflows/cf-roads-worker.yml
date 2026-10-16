@@ -1,6 +1,6 @@
 # =============================================================================
 # The same-origin roads as a zone Worker: probe the token and the Funnel, then
-# (on request) deploy poetech-roads (DR-1066; #2057, day 7)
+# (on request) deploy poetech-roads (DR-1068; #2057, day 7)
 # =============================================================================
 # DISPATCH-ONLY. No schedule, no loop, no compute spawned on a clock (DR-0247
 # governs timer-driven work; this is a person or the agent pressing a button).

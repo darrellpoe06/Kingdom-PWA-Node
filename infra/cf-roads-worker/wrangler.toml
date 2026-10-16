@@ -1,4 +1,4 @@
-# poetech-roads — the same-origin roads as a zone Worker (DR-1066; #2057).
+# poetech-roads — the same-origin roads as a zone Worker (DR-1068; #2057).
 # Deployed by .github/workflows/cf-roads-worker.yml with the repository's
 # CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID. One route per road, on the
 # apex and on www, because the Pages project answers both. The route list
