@@ -26,7 +26,7 @@ import {
   getChoirAccess, youtubeEmbedUrl, youtubeTimedUrl, parseTimecode, formatTimecode,
   sortServices, songsForService, buildPastServices, weekBucket, isOutOnDate, suggestBackups, backupsAreCrossSection, canRespondToBackup,
   subscribeSongs, subscribeSchedule, subscribeSermons, subscribeMembers, subscribeChoirMessages, subscribeAbsences,
-  subscribeResources, subscribeTeamDocuments, saveTeamDocument, deleteTeamDocument, openTeamDocument,
+  subscribeResources, subscribeTeamDocuments, saveTeamDocument, deleteTeamDocument, TEAM_DOCS_BUCKET,
   saveSong, deleteSong, reuseSong, distinctSongCatalog, saveService, deleteService, addMember, removeMember, sendChoirMessage,
   saveAbsence, deleteAbsence, respondToBackup,
   saveResource, deleteResource,
@@ -34,7 +34,8 @@ import {
   mintClaimCode, claimChoirMember, getMyChoirMembership, normalizeClaimCode, updateChoirRole,
 } from '../lib/choir-sync.js';
 import { sentenceFor } from '../lib/church-access.js';
-import { reserveTab, openResolved, openFailureMessage } from '../lib/open-document.js';
+import { useDocumentViewer } from './DocumentViewer.jsx';
+import { signStorageDocument } from '../lib/document-viewer.js';
 import { whenOf } from '../lib/record-stamp.js';
 import { listInstanceMembers, setMemberRole, grantableRoles, roleLabel as instanceRoleLabel } from '../lib/member-roles.js';
 import { serviceDayLabel } from '../lib/service-day.js';
@@ -783,18 +784,16 @@ function TeamDocsPanel({ docs, canEdit, onAdd, onDelete }) {
   const [f, setF] = useState({ docDate: todayIso(), docType: 'order-of-service', title: '', documentUrl: '', documentSource: 'manual', fileName: '' });
   const [uploadErr, setUploadErr] = useState('');
   const [uploading, setUploading] = useState(false);
-  const [openErr, setOpenErr] = useState(null);
   const resetForm = () => { setF({ docDate: todayIso(), docType: 'order-of-service', title: '', documentUrl: '', documentSource: 'manual', fileName: '' }); setUploadErr(''); };
-  // DR-1062. reserveTab() MUST be the first line: window.open is only permitted
-  // while the browser is still handling the tap, and openTeamDocument is a
-  // network round trip. Calling it after the await blocked EVERY open, silently.
-  const open = async (d) => {
-    const tab = reserveTab();
-    setOpenErr(null);
-    const res = await openResolved(tab, () => openTeamDocument(d.documentUrl));
-    if (res.ok) return;
-    setOpenErr({ id: d.id, text: openFailureMessage(res, { what: d.title || 'this document' }), url: res.url || '' });
-  };
+  // DR-1078. A team document opens INSIDE the app (the viewer signs the path,
+  // fetches the bytes and shows them by kind), never in a tab that leaves it.
+  // When the file is not on the church server the viewer says exactly that.
+  const viewer = useDocumentViewer();
+  const open = (d) => viewer.open({
+    title: d.title || 'Team document',
+    name: d.fileName || d.documentUrl || '',
+    resolve: () => signStorageDocument(TEAM_DOCS_BUCKET, d.documentUrl),
+  });
   // Upload a picture or a document (Christina 2026-07-04). Images are compressed;
   // other files ride as a data URL under a size cap. Either becomes documentUrl.
   const onFile = async (e) => {
@@ -817,6 +816,7 @@ function TeamDocsPanel({ docs, canEdit, onAdd, onDelete }) {
   };
   return (
     <div>
+      {viewer.element}
       <p className="text-xs text-[#5A5751] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>The team's weekly get-ready material — order of service, announcements, and the church calendar. Everyone on the roster can open these.</p>
       {canEdit && (adding ? (
         <div className="bg-[#FAF8F4] border-2 border-[#B85838] p-3 space-y-2 mb-2">
@@ -869,15 +869,6 @@ function TeamDocsPanel({ docs, canEdit, onAdd, onDelete }) {
               {/* DR-1063. The document's own date AND the log of when it was
                   filed — both, always, so the history can be checked. */}
               {whenOf(d).line && <div className="text-[0.625rem] text-[#5A5751] mt-0.5" title={whenOf(d).exact}>{whenOf(d).line}</div>}
-              {/* An open that could not be done says so, and when the browser is
-                  the thing refusing, the url rides as a link the person taps
-                  themselves — their tap carries its own gesture. (DR-1062) */}
-              {openErr && openErr.id === d.id && (
-                <p className="text-[0.6875rem] text-[#991B1B] mt-1" style={{ fontFamily: '"Fraunces", serif' }} role="status">
-                  {openErr.text}
-                  {openErr.url && <> <a href={openErr.url} target="_blank" rel="noopener noreferrer" className="underline font-semibold">Open {d.title || 'the document'}</a></>}
-                </p>
-              )}
             </div>
           ))}
         </div>

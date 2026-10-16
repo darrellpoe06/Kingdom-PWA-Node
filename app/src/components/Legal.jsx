@@ -95,9 +95,11 @@ import {
   legalDocumentsSync,
   mergeRemoteLegalDocuments,
   setLegalDocumentShared,
-  signedLegalUrl,
   uploadLegalFile,
+  BUCKET as LEGAL_DOCS_BUCKET,
 } from '../lib/legal-documents-sync.js';
+import { useDocumentViewer } from './DocumentViewer.jsx';
+import { signStorageDocument } from '../lib/document-viewer.js';
 
 function blankForm() {
   // `privileged: null` is the point — see the fieldset below. An undecided
@@ -679,15 +681,18 @@ export function LegalPlaceholder({ tier = 'foundation', setView, accounts = [], 
     return { ok: true };
   }, []);
 
-  const openDocument = useCallback(async (doc) => {
-    const url = await signedLegalUrl(doc.storagePath);
-    if (!url) {
-      setShelfNotice(`"${doc.label}" could not be opened. Sign in on this device, or the file may not have finished uploading.`);
-      return;
-    }
+  // DR-1078. A legal document opens INSIDE the app, in the one viewer every
+  // shelf uses; a file that is not on the server says so there, in words.
+  const viewer = useDocumentViewer();
+  const openViewer = viewer.open;
+  const openDocument = useCallback((doc) => {
     setShelfNotice('');
-    if (typeof window !== 'undefined') window.open(url, '_blank', 'noopener');
-  }, []);
+    openViewer({
+      title: doc.label || 'Legal document',
+      name: doc.fileName || doc.storagePath || '',
+      resolve: () => signStorageDocument(LEGAL_DOCS_BUCKET, doc.storagePath),
+    });
+  }, [openViewer]);
 
   const removeDocument = useCallback(async (doc) => {
     if (typeof confirm === 'function'
@@ -779,6 +784,7 @@ export function LegalPlaceholder({ tier = 'foundation', setView, accounts = [], 
           Upload the file, or record where the paper actually is — both are real records, and a pointer works with no signal.
           Names and notes here are private to this tab: everywhere else in the app, a linked matter shows only a count.
         </p>
+        {viewer.element}
         {shelfNotice && (
           <p className="text-xs text-[#B85838] mb-2" style={{ fontFamily: '"Fraunces", serif' }} role="status">{shelfNotice}</p>
         )}

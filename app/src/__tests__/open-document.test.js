@@ -121,10 +121,13 @@ describe('PROVEN-TO-CATCH: the order is the whole fix', () => {
   });
 });
 
-describe('no surface keeps the old order', () => {
-  // A source pin: four components carried the broken shape, and a fifth
-  // (ColoringSheet) already had the cure. If one regresses, this is what says
-  // so — the lost-gesture bug is invisible to jsdom, which has no popup rules.
+describe('the shelves moved past the reserved tab (DR-1078)', () => {
+  // DR-1062 fixed the lost gesture by reserving a tab before the await. DR-1078
+  // (Darrell, 2026-10-16: "No one of the documents can be opened inside the
+  // PoeTech App") took the next step: a document opens INSIDE the app, so there
+  // is no tab to reserve and no gesture to lose. The pin that every shelf now
+  // uses the in-app viewer lives in documents-open-inside-the-app.test.jsx;
+  // this one only holds that no shelf drifted back to the broken order.
   const SURFACES = [
     'components/Choir.jsx',
     'components/Pulpit.jsx',
@@ -132,17 +135,14 @@ describe('no surface keeps the old order', () => {
     'components/HouseholdSpace.jsx',
   ];
 
-  it.each(SURFACES)('%s reserves its tab instead of opening after an await', (p) => {
+  it.each(SURFACES)('%s never opens a tab after an await', (p) => {
     const text = src(p);
-    expect(text, `${p} does not use the shared opener`).toContain('reserveTab(');
-    // The exact broken shape: an awaited resolve, then window.open on the result.
     expect(/await\s+(?:open|signed)[A-Za-z]*Document[^;]*;\s*(?:if\s*\([^)]*\)\s*)?\{?\s*(?:try\s*\{\s*)?window\.open\(/.test(text),
       `${p} still opens a tab after an await`).toBe(false);
+    expect(text).toContain('useDocumentViewer()');
   });
 
   it('ColoringSheet, which always did it right, is unchanged', () => {
-    // The cure was already in the repo. Named here so the precedent is not
-    // quietly removed by someone "standardising" on the broken shape.
     expect(src('components/ColoringSheet.jsx')).toContain("window.open('', '_blank')");
   });
 });

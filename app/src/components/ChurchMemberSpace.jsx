@@ -28,14 +28,15 @@ import ProductFormEditor from './ProductFormEditor.jsx';
 import { memberProgress } from '../lib/church-member-intake.js';
 import {
   readMyChurchRecord, patchMyChurchRecord, signChurchCovenant, readChurchRoll,
-  listChurchDocuments, saveChurchDocument, shareChurchDocument, signedChurchDocumentUrl,
+  listChurchDocuments, saveChurchDocument, shareChurchDocument, BUCKET as CHURCH_DOCS_BUCKET,
   removeChurchDocument, uploadChurchDocumentFile, exportChurchMemberRecord,
 } from '../lib/church-member-sync.js';
 import { liveSectionsFor, originalProduct } from '../lib/product-forms.js';
 import { readProductForms } from '../lib/product-forms-sync.js';
 import { CHURCH_DOC_KINDS, churchDocKindLabel, churchDocumentSlug, churchShelfSummary, validateChurchDocument } from '../lib/church-shelf.js';
 import { churchInsights } from '../lib/church-insights.js';
-import { reserveTab, openResolved, openFailureMessage } from '../lib/open-document.js';
+import { useDocumentViewer } from './DocumentViewer.jsx';
+import { signStorageDocument } from '../lib/document-viewer.js';
 import { COLG_DEFAULT_CHURCH } from '../lib/default-church.js';
 
 const SERIF = { fontFamily: '"Fraunces", serif' };
@@ -50,19 +51,14 @@ const OFFICE_ROLES = ['owner', 'admin'];
 // THE SHELF
 // ---------------------------------------------------------------------------
 function ShelfRow({ row, mine, onShare, onRemove }) {
-  const [opening, setOpening] = useState(false);
   const [confirm, setConfirm] = useState(false);
-  const [openErr, setOpenErr] = useState(null);
-  // DR-1062. reserveTab() first, before any await: signing the url is a network
-  // round trip, and a browser only permits window.open while the tap it came
-  // from is still being handled.
-  const open = async () => {
-    const tab = reserveTab();
-    setOpening(true); setOpenErr(null);
-    const res = await openResolved(tab, () => signedChurchDocumentUrl(row.storagePath));
-    setOpening(false);
-    if (!res.ok) setOpenErr({ text: openFailureMessage(res, { what: row.title || 'this paper' }), url: res.url || '' });
-  };
+  // DR-1078. A paper opens INSIDE the app, in the one viewer every shelf uses.
+  const viewer = useDocumentViewer();
+  const open = () => viewer.open({
+    title: row.title || 'Paper',
+    name: row.fileName || row.storagePath || '',
+    resolve: () => signStorageDocument(CHURCH_DOCS_BUCKET, row.storagePath),
+  });
   return (
     <li className="py-2 border-t border-[#F0ECE4] first:border-t-0">
       <div className="flex flex-wrap items-start justify-between gap-2">
@@ -77,7 +73,7 @@ function ShelfRow({ row, mine, onShare, onRemove }) {
         </div>
         <div className="flex flex-wrap gap-2">
           {row.storagePath && (
-            <button type="button" onClick={open} disabled={opening} className={`${BTN}`}>{opening ? 'Opening…' : 'Open'}</button>
+            <button type="button" onClick={open} className={`${BTN}`}>Open</button>
           )}
           {mine && (
             <button type="button" onClick={() => onShare(row, !row.sharedWithOffice)} className={`${BTN}`}>
@@ -93,14 +89,7 @@ function ShelfRow({ row, mine, onShare, onRemove }) {
           )}
         </div>
       </div>
-      {/* DR-1062. An open that could not be done says so; when the browser is
-          the thing refusing, the url rides as a link the person taps. */}
-      {openErr && (
-        <p className="text-[0.6875rem] text-[#991B1B] mt-1" role="status">
-          {openErr.text}
-          {openErr.url && <> <a href={openErr.url} target="_blank" rel="noopener noreferrer" className="underline font-semibold">Open it</a></>}
-        </p>
-      )}
+      {viewer.element}
     </li>
   );
 }

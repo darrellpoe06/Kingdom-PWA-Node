@@ -288,4 +288,8 @@ export const LIVING_LESSONS_ADDED = {
   // L248, spoken into the house by Darrell on the morning of 2026-10-16 and
   // built the same session (a spoken teaching is build input).
   'll248-his-ways-are-higher-so-he-gives-the-bread': '2026-10-16',
+  // L249 and L250, both spoken into the house by Darrell later on 2026-10-16
+  // and built the same session (a spoken teaching is build input).
+  'll249-nothing-of-myself-the-way-is-the-word-and-it-works-every-time': '2026-10-16',
+  'll250-they-which-do-hunger-shall-be-filled-and-the-critical-path': '2026-10-16',
 };

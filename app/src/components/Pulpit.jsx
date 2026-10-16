@@ -33,7 +33,7 @@ import { onAuthChange } from '../lib/supabase.js';
 import {
   getChoirAccess, youtubeEmbedUrl, youtubeTimedUrl, parseTimecode, formatTimecode,
   subscribeSermons, subscribeSermonDocuments, subscribeSpeakers, saveSermon, deleteSermon, reuseSermon,
-  saveSermonDocument, importSermonsFromChannel, openSermonDocument, fetchPublicSermons, dedupeSermons,
+  saveSermonDocument, importSermonsFromChannel, SERMON_DOCS_BUCKET, fetchPublicSermons, dedupeSermons,
 } from '../lib/choir-sync.js';
 import { corpusPrep, speakerRoster, theWordTabs } from '../lib/pulpit-prep.js';
 import { extractYoutubeId } from '../lib/youtube-title-parse.js';
@@ -53,7 +53,8 @@ import RecordsLog from './RecordsLog.jsx';
 import { wordLibrary, messagePresentable } from '../lib/presentable.js';
 import { useReadingResume } from '../lib/reading-position.js';
 import { aboutFor } from '../lib/surface-help.js';
-import { reserveTab, openResolved, openFailureMessage } from '../lib/open-document.js';
+import { useDocumentViewer } from './DocumentViewer.jsx';
+import { signStorageDocument } from '../lib/document-viewer.js';
 
 // The stable YouTube id for a message — the row's own video_id, else parsed from
 // its watch URL. Keys the thumbnail, the points, and the engagement counts.
@@ -231,16 +232,14 @@ function PointsBlock({ bundle }) {
 function MessageRow({ sermon, canEdit, onEdit, onDelete, onReuse, points = null, reaction = null, onReact = null, onShowWho = null, views = null, signedIn = false, rank = null }) {
   // Embed the service video INLINE (Darrell: embedding is cleaner than frames).
   const [playing, setPlaying] = useState(false);
-  const [docErr, setDocErr] = useState(null);
-  // DR-1062. The tab is reserved while the tap is still live; the signed-url
-  // round trip that follows would otherwise outlast the user activation and the
-  // open would be blocked every single time, saying nothing.
-  const openDoc = async () => {
-    const tab = reserveTab();
-    setDocErr(null);
-    const res = await openResolved(tab, () => openSermonDocument(sermon.documentUrl));
-    if (!res.ok) setDocErr({ text: openFailureMessage(res, { what: 'this message’s document' }), url: res.url || '' });
-  };
+  // DR-1078. The message's document opens INSIDE the app, in the one viewer
+  // every shelf uses; a file that is not on the church server says so there.
+  const viewer = useDocumentViewer();
+  const openDoc = () => viewer.open({
+    title: sermon.title ? `${sermon.title} — document` : 'Message document',
+    name: sermon.documentUrl || '',
+    resolve: () => signStorageDocument(SERMON_DOCS_BUCKET, sermon.documentUrl),
+  });
   const baseEmbed = youtubeEmbedUrl(sermon.youtubeUrl);
   const embed = baseEmbed && sermon.startSeconds ? `${baseEmbed}?start=${Math.floor(sermon.startSeconds)}` : baseEmbed;
   const watch = youtubeTimedUrl(sermon.youtubeUrl, sermon.startSeconds);
@@ -328,12 +327,7 @@ function MessageRow({ sermon, canEdit, onEdit, onDelete, onReuse, points = null,
             {canEdit && onEdit && <button type="button" onClick={() => onEdit(sermon)} className={`${BTN} text-[#5A5751] hover:text-[#1A1815]`}>Edit</button>}
             {canEdit && onDelete && <button type="button" onClick={() => onDelete(sermon)} className={`${BTN} text-[#991B1B] hover:underline`}>Delete</button>}
           </div>
-          {docErr && (
-            <p className="text-[0.6875rem] text-[#991B1B] mt-1" style={{ fontFamily: '"Fraunces", serif' }} role="status">
-              {docErr.text}
-              {docErr.url && <> <a href={docErr.url} target="_blank" rel="noopener noreferrer" className="underline font-semibold">Open the document</a></>}
-            </p>
-          )}
+          {viewer.element}
         </div>
       </div>
       {playing && embed && (

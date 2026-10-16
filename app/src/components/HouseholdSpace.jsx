@@ -27,9 +27,10 @@ import { readHousehold, patchHousehold, acknowledgeHouseholdDocument, exportHous
 import { liveSectionsFor, originalProduct } from '../lib/product-forms.js';
 import { readProductForms } from '../lib/product-forms-sync.js';
 import { VAULT_CATEGORIES, categoryLabel, documentSlug, validateDocument, shelfSummary, expiringSoon } from '../lib/family-vault.js';
-import { listDocuments, saveDocument, shareDocument, signedDocumentUrl, removeDocument, uploadDocumentFile } from '../lib/family-vault-sync.js';
+import { listDocuments, saveDocument, shareDocument, removeDocument, uploadDocumentFile, BUCKET as FAMILY_DOCS_BUCKET } from '../lib/family-vault-sync.js';
 import { householdInsights, workflowCandidates, WORKFLOW_LADDER } from '../lib/household-insights.js';
-import { reserveTab, openResolved, openFailureMessage } from '../lib/open-document.js';
+import { useDocumentViewer } from './DocumentViewer.jsx';
+import { signStorageDocument } from '../lib/document-viewer.js';
 
 const SERIF = { fontFamily: '"Fraunces", serif' };
 const BTN = 'min-h-[36px] px-3 py-2 text-sm font-semibold border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white disabled:opacity-50 focus:outline focus:outline-2 focus:outline-[#B85838]';
@@ -43,19 +44,15 @@ const bytes = (n) => (!n ? '' : n > 1048576 ? `${(n / 1048576).toFixed(1)} MB` :
 // THE SHELF
 // ---------------------------------------------------------------------------
 function FileRow({ row, onShare, onRemove }) {
-  const [opening, setOpening] = useState(false);
   const [confirm, setConfirm] = useState(false);
-  const [openErr, setOpenErr] = useState(null);
-  // DR-1062. reserveTab() first, before any await: signing the url is a network
-  // round trip, and a browser only permits window.open while the tap it came
-  // from is still being handled.
-  const open = async () => {
-    const tab = reserveTab();
-    setOpening(true); setOpenErr(null);
-    const res = await openResolved(tab, () => signedDocumentUrl(row.storagePath));
-    setOpening(false);
-    if (!res.ok) setOpenErr({ text: openFailureMessage(res, { what: row.label || 'this file' }), url: res.url || '' });
-  };
+  // DR-1078. A household file opens INSIDE the app, in the one viewer every
+  // shelf uses.
+  const viewer = useDocumentViewer();
+  const open = () => viewer.open({
+    title: row.label || 'Household file',
+    name: row.fileName || row.storagePath || '',
+    resolve: () => signStorageDocument(FAMILY_DOCS_BUCKET, row.storagePath),
+  });
   return (
     <li className="py-2 border-t border-[#F0ECE4] first:border-t-0">
       <div className="flex flex-wrap items-start justify-between gap-2">
@@ -70,7 +67,7 @@ function FileRow({ row, onShare, onRemove }) {
           {row.note && <div className="text-xs text-[#5A5751] mt-0.5">{row.note}</div>}
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {row.storagePath && <button type="button" onClick={open} disabled={opening} className={`${BTN}`}>{opening ? 'Opening…' : 'Open'}</button>}
+          {row.storagePath && <button type="button" onClick={open} className={`${BTN}`}>Open</button>}
           <button type="button" onClick={() => onShare(row, !row.sharedWithHousehold)}
             aria-pressed={row.sharedWithHousehold}
             className={row.sharedWithHousehold ? `${BTN_GOOD}` : `${BTN}`}>
@@ -84,14 +81,7 @@ function FileRow({ row, onShare, onRemove }) {
               </span>}
         </div>
       </div>
-      {/* DR-1062. An open that could not be done says so; when the browser is
-          the thing refusing, the url rides as a link the person taps. */}
-      {openErr && (
-        <p className="text-[0.6875rem] text-[#991B1B] mt-1" role="status">
-          {openErr.text}
-          {openErr.url && <> <a href={openErr.url} target="_blank" rel="noopener noreferrer" className="underline font-semibold">Open it</a></>}
-        </p>
-      )}
+      {viewer.element}
     </li>
   );
 }
