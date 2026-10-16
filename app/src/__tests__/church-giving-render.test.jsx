@@ -107,7 +107,13 @@ describe('ChurchGivePanel — the panel', () => {
   });
 
   it('shows a clearly-flagged "needs a giving URL" state — the published channels stay, but no guessed site link', () => {
-    act(() => root.render(createElement(ChurchGivePanel, { church: {}, onClose: () => {} })));
+    // COLG, identified by name, with NO giving link. This case used to pass an
+    // EMPTY church record and still expect COLG's four channels — which was
+    // asserting the leak 0297 removes (another church never inherits COLG's
+    // list; church-door-profile-render.test.jsx pins that side). The purpose
+    // here is unchanged: the site link is missing, so the state is flagged and
+    // the church's OWN published channels remain, with no guessed URL.
+    act(() => root.render(createElement(ChurchGivePanel, { church: { name: 'The Church of the Living God' }, onClose: () => {} })));
     expect(container.textContent).toMatch(/Giving link needed/i);
     // The church's own published channels are independent of the site link and
     // remain; every remaining anchor must be one of them — never a guessed URL.
