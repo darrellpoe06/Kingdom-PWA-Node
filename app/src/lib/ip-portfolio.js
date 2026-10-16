@@ -25,6 +25,10 @@ import { assetShape } from './ip-register.js';
 
 // Recorded so the surface can date itself rather than implying "now".
 export const REGISTER_AS_OF = '2026-09-06';
+// The last dated correction to the rows (see NOT_OURS below). The usage counts
+// and the fixed-on dates still belong to REGISTER_AS_OF; this only says when a
+// row last changed, so the surface never implies the 09-06 schedule is current.
+export const REGISTER_AMENDED = '2026-10-16';
 
 const mark = (name, uses, note = '') => assetShape({
   name,
@@ -70,7 +74,6 @@ export const IP_PORTFOLIO = [
   mark('Council Chamber', 58),
   mark('Quality Gatekeeper', 40, 'Distinctive, and names a real mechanism (DR-0020).'),
   mark('Behavioral Mirror', 19),
-  mark('Love Corner', 13, 'Already has a standalone branded door (DR-0174).'),
   mark('OpsBoard', 5),
 
   // ---- Works. Sorted by authorship, because that is what decides
@@ -140,6 +143,33 @@ export const STILL_PROTECTABLE = [
   {
     name: 'Any future module built private from the outset',
     basis: 'Not yet written — the one category a posture change fully preserves.',
+  },
+];
+
+// NOT OURS — names this app serves and must never claim (amended 2026-10-16).
+// "Love Corner" shipped on 2026-09-06 as a PoeTech mark candidate. It is the
+// church's own name: The Love Corner has worn its black ring, white field and
+// red heart since 1946 (DR-1060), and DR-0174 gave it a door as "the church's
+// own door". An IP assignment carrying this schedule as Schedule A would have
+// swept another body's name into PoeTech's title. The same is true of the two
+// businesses the app serves. PoeTech owns the software and the service; each
+// of these owns its own name and may register it; the app brands their door
+// with their permission. Recorded here so no later pass re-adds them.
+export const NOT_OURS = [
+  {
+    name: 'The Love Corner',
+    whose: 'The Church of the Living God',
+    basis: 'The church’s own name and emblem since 1946 (DR-1060); its door is the church’s own (DR-0174).',
+  },
+  {
+    name: 'Moore Divahs',
+    whose: 'Shay’s business',
+    basis: 'A business this app serves (DR-0113), not one PoeTech owns.',
+  },
+  {
+    name: 'TLC Therapy Solutions',
+    whose: 'Christina’s practice',
+    basis: 'A practice this app serves (DR-0344), not one PoeTech owns.',
   },
 ];
 

@@ -68,6 +68,9 @@ export const legalDocumentsSync = createTableSync({
       storagePath: row.storage_path ?? null,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
+      // Read back so the toggle shows the truth; never written by toRow (a
+      // share is its own explicit action, setLegalDocumentShared below).
+      sharedWithHousehold: row.shared_with_household === true,
     };
   },
 
@@ -168,6 +171,103 @@ export async function deleteLegalFile(storagePath) {
     const { error } = await supabase.storage.from(BUCKET).remove([storagePath]);
     if (error) return { ok: false, reason: 'delete-failed', message: error.message };
     return { ok: true };
+  } catch (e) {
+    return { ok: false, reason: 'network-error', message: (e && e.message) || 'the connection failed' };
+  }
+}
+
+// =============================================================================
+// HOUSEHOLD SHARING (migration 0299, DR-1077)
+// =============================================================================
+// Darrell 2026-10-16: "We are in the same family and need our records to be in
+// sync with what we are doing and also some users will not want that."
+//
+// Two calls, both explicit, neither riding the device sync:
+//   * setLegalDocumentShared — the filer turns sharing on or off for ONE of
+//     their own documents. Off is the default and stays the default.
+//   * fetchHouseholdLegalDocuments — what OTHER members of the household have
+//     shared with me, read through a definer function. The table's own read
+//     stays creator-only, so these rows never enter legalDocumentsSync, never
+//     land in my local shelf, and can never be uploaded as mine.
+// Both return { ok } | { ok:false, reason, message } and never throw. Before
+// 0299 is applied the function is missing; that reads as 'not-available' and
+// the shelf simply shows only the person's own papers, as it always did.
+// =============================================================================
+
+export const HOUSEHOLD_TIMEOUT_MS = 8000;
+
+function withTimeout(promise, ms, what) {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`${what} took longer than ${Math.round(ms / 1000)} seconds`)), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
+function missingFunction(error) {
+  const msg = String((error && error.message) || '').toLowerCase();
+  return (error && (error.code === 'PGRST202' || error.code === '42883'))
+    || msg.includes('could not find the function') || (msg.includes('function') && msg.includes('does not exist'));
+}
+
+export function householdRowToDocument(row) {
+  if (!row) return null;
+  return {
+    id: `ld-household-${row.id}`,
+    remoteUuid: row.id,
+    category: row.category,
+    docType: row.doc_type ?? '',
+    label: row.label ?? '',
+    dateOf: row.date_of ?? null,
+    privileged: row.privileged === true,
+    whereFiled: row.where_filed ?? '',
+    note: row.note ?? '',
+    fileName: row.file_name ?? '',
+    fileSize: row.file_size == null ? null : Number(row.file_size),
+    storagePath: row.storage_path ?? null,
+    createdAt: row.created_at,
+    sharedWithHousehold: true,
+    fromHousehold: true,
+    sharedBy: row.shared_by || 'A member of your household',
+  };
+}
+
+export async function fetchHouseholdLegalDocuments() {
+  try {
+    const { data, error } = await withTimeout(
+      supabase.rpc('household_shared_legal_documents'),
+      HOUSEHOLD_TIMEOUT_MS, 'reading what your household shared');
+    if (error) {
+      if (missingFunction(error)) return { ok: false, reason: 'not-available', message: 'Household sharing is not set up on this backend yet.' };
+      return { ok: false, reason: 'rpc-error', message: error.message || 'The household list could not be read.' };
+    }
+    return { ok: true, items: (data || []).map(householdRowToDocument).filter(Boolean) };
+  } catch (e) {
+    return { ok: false, reason: 'network-error', message: (e && e.message) || 'the connection failed' };
+  }
+}
+
+export async function setLegalDocumentShared(remoteUuid, shared) {
+  if (!remoteUuid) {
+    return { ok: false, reason: 'not-synced', message: 'This document has not reached your account yet. Sign in and let it sync, then share it.' };
+  }
+  try {
+    const { data, error } = await withTimeout(
+      supabase.from('legal_documents')
+        .update({ shared_with_household: shared === true })
+        .eq('id', remoteUuid)
+        .select('id, shared_with_household')
+        .maybeSingle(),
+      HOUSEHOLD_TIMEOUT_MS, 'changing who can see it');
+    if (error) {
+      const msg = String(error.message || '').toLowerCase();
+      if (msg.includes('shared_with_household') && (msg.includes('column') || msg.includes('schema cache'))) {
+        return { ok: false, reason: 'not-available', message: 'Household sharing is not set up on this backend yet. Nothing changed.' };
+      }
+      return { ok: false, reason: 'rpc-error', message: error.message || 'Sharing could not be changed.' };
+    }
+    if (!data) return { ok: false, reason: 'not-found', message: 'Only the person who filed a document can change who sees it.' };
+    return { ok: true, shared: data.shared_with_household === true };
   } catch (e) {
     return { ok: false, reason: 'network-error', message: (e && e.message) || 'the connection failed' };
   }

@@ -19,7 +19,7 @@ globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
 import { IpRegisterPanel } from '../components/Legal.jsx';
 import { assetShape, portfolioScore } from '../lib/ip-register.js';
-import { IP_PORTFOLIO, STILL_PROTECTABLE } from '../lib/ip-portfolio.js';
+import { IP_PORTFOLIO, NOT_OURS, STILL_PROTECTABLE } from '../lib/ip-portfolio.js';
 
 let container, root;
 async function mount(props = {}) {
@@ -40,9 +40,9 @@ const buttons = (re) => [...document.body.querySelectorAll('button')].filter((b)
 async function click(el) { await act(async () => { el.click(); }); }
 
 describe('IpRegisterPanel reports the real position', () => {
-  it('says 0 of 25 are assets, and names the shared bottleneck as the one document that moves it', async () => {
+  it('says 0 of 24 are assets, and names the shared bottleneck as the one document that moves it', async () => {
     await mount();
-    expect(text()).toMatch(/0 of 25 are assets/i);
+    expect(text()).toMatch(/0 of 24 are assets/i);
     expect(text()).toMatch(/one document moves the whole register/i);
     expect(text()).toMatch(/written IP assignment into an entity/i);
   });
@@ -79,7 +79,7 @@ describe('IpRegisterPanel reports the real position', () => {
 
   it('keeps the schedule collapsed until asked, then puts the clearance risk on screen', async () => {
     await mount();
-    const toggle = buttons(/show all 25 rows/i)[0];
+    const toggle = buttons(/show all 24 rows/i)[0];
     expect(toggle).toBeTruthy();
     expect(toggle.getAttribute('aria-expanded')).toBe('false');
     expect(text()).not.toMatch(/collides with the W3C/i);
@@ -93,9 +93,9 @@ describe('IpRegisterPanel reports the real position', () => {
 
   it('shows an empty lane by omission rather than rendering a zero section', async () => {
     await mount();
-    await click(buttons(/show all 25 rows/i)[0]);
-    // 8 marks, 8 works, 6 methods, 0 patents — the patent lane is absent, not "Patent · 0".
-    expect(text()).toMatch(/Trademark · 8/);
+    await click(buttons(/show all 24 rows/i)[0]);
+    // 7 marks, 8 works, 9 methods, 0 patents — the patent lane is absent, not "Patent · 0".
+    expect(text()).toMatch(/Trademark · 7/);
     expect(text()).toMatch(/Copyright · 8/);
     expect(text()).toMatch(/Trade secret · 9/);
     expect(text()).not.toMatch(/Patent · 0/);
@@ -140,6 +140,23 @@ describe('IpRegisterPanel reports the real position', () => {
     expect(text()).not.toMatch(/involuntary dissolution/i);
     expect(text()).not.toMatch(/POE TECH, LLC/);
     expect(text()).not.toMatch(/05947103/);
+  });
+
+  it('never claims a name that belongs to someone the app serves (amended 2026-10-16)', async () => {
+    // The Love Corner shipped on 09-06 as a PoeTech mark candidate. It is the
+    // church's own name (DR-1060: since 1946). A Schedule A carrying it would
+    // have swept another body's name into PoeTech's title.
+    const claimed = IP_PORTFOLIO.map((a) => a.name.toLowerCase()).join(' | ');
+    for (const n of NOT_OURS) {
+      expect(claimed, n.name).not.toContain(n.name.toLowerCase().replace(/^the /, ''));
+      expect(n.whose && n.basis, n.name).toBeTruthy();
+    }
+    expect(NOT_OURS.map((n) => n.name)).toEqual(expect.arrayContaining(['The Love Corner', 'Moore Divahs', 'TLC Therapy Solutions']));
+    await mount();
+    expect(text()).toMatch(/amended 2026-10-16/);
+    await click(buttons(/show all 24 rows/i)[0]);
+    expect(text()).toMatch(/Not ours · never claimed/i);
+    expect(text()).toMatch(/The Love Corner — The Church of the Living God/);
   });
 
   it('says plainly that this is PoeTech’s register and not the tenant’s', async () => {

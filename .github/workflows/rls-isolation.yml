@@ -269,6 +269,20 @@ jobs:
           # the assistant's rows, and the books + membership-gated family data
           # (inquiries) read as ZERO rows for the assistant. Static shape proof
           # runs every merge in scripts/assistant-scope-guard.mjs.
+          # Added 2026-10-16 (DR-1077, "we are in the same family and need our
+          # records to be in sync... and also some users will not want that"):
+          # a legal document is shared with the household ONLY when its filer
+          # flips shared_with_household. The smoke proves, live: a member reads
+          # the shared paper through the definer function and NOT through the
+          # table (the device sync stays blind to it), opens its file, cannot
+          # change or delete it; a viewer and a stranger read nothing; a
+          # stranger cannot aim a share at another household; un-sharing and
+          # leaving the household both close it. 0180 is not re-applied here:
+          # it re-runs both overlays, the lock load poe-properties already
+          # strains (max_locks_per_transaction).
+          - feature: legal-household
+            migrations: "0299-a-household-shares-its-legal-papers-only-when-the-filer-says-so.sql"
+            smokes: "0299-legal-household-share-smoke.sql"
           - feature: assistant-scope
             migrations: "0130-assistant-provisioning-and-office-workspace.sql 0131-stale-role-constraint-and-nullsafe-guards.sql 0144-standings-at-will-and-the-sons-wall.sql 0210-the-signature-door-and-a-roster-that-says-when.sql 0212-a-congregant-could-not-open-their-own-record.sql 0213-the-roster-shows-what-the-person-told-us.sql"
             smokes: "0130-assistant-scope-smoke.sql"

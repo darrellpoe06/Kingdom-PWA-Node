@@ -21,15 +21,15 @@ import { ARI } from '../lib/ari.js';
 const TOP_LEVEL_VIEWS = [
   'overview', 'books', 'inbound', 'rentals', 'projects', 'practice', 'tlc',
   'opportunities', 'about', 'notes', 'create', 'voice', 'library', 'recipes',
-  'study', 'church', 'markets', 'center', 'crm', 'relationships', 'inventory', 'forecast', 'admin',
+  'study', 'church', 'markets', 'center', 'crm', 'relationships', 'inventory', 'forecast', 'admin', 'databack',
 ];
 const CHURCH_SUBS = [
   'home', 'engagement', 'choir', 'program', 'learn', 'eternal-algorithms', 'conference', 'events',
-  'pulpit', 'scripture', 'harvest', 'videowall', 'observe',
+  'pulpit', 'scripture', 'harvest', 'videowall', 'observe', 'my-record', 'giving-book',
 ];
 const BOOKS_SUBS = [
   'entities', 'accounts', 'debts', 'transactions', 'imported', 'cart',
-  'k1099', 'calendar', 'legal',
+  'k1099', 'calendar', 'legal', 'plan', 'taxes',
 ];
 
 const PLACEHOLDER = /\b(todo|tbd|fixme|lorem ipsum|coming soon|placeholder|xxx)\b/i;
