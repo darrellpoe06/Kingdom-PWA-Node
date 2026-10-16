@@ -76,4 +76,40 @@ describe('ChoirSongWorkshop renders the collaborative song pool', () => {
     });
     expect(container.textContent).toMatch(/2 songs detected/i);
   });
+
+  // DR-1061. Darrell: "Does pasting a link with a list of songs add them to the
+  // app like the others that work comprehensively?" — it did not, and the box
+  // said "1 song detected" while one bogus row went in. This is that case,
+  // proven on the real surface rather than only in the classifier.
+  it('a pasted LIST link is not counted as a song, and Add is refused until it is read', async () => {
+    await mount({ access: { canSee: true, canEdit: true } });
+    const listBtn = [...container.querySelectorAll('button')].find((b) => /Paste a list/i.test(b.textContent));
+    await act(async () => { listBtn.click(); });
+    const ta = container.querySelector('textarea');
+    const setVal = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value').set;
+    await act(async () => {
+      setVal.call(ta, 'https://docs.google.com/spreadsheets/d/1pyARuAxQr_y75P1acl-RaKoDYjXgjeg5IIDyD4fmakA/edit');
+      ta.dispatchEvent(new window.Event('input', { bubbles: true }));
+    });
+    const text = container.textContent;
+    expect(text, 'a link to a list is still being counted as a song').not.toMatch(/1 song detected/i);
+    expect(text).toMatch(/a link to a list, not a song/i);
+    expect(text).toMatch(/Google Sheet/i);
+    // The add button cannot fire while the box holds an address rather than songs.
+    const add = [...container.querySelectorAll('button')].find((b) => /Add .*to pool/i.test(b.textContent));
+    expect(add.disabled, 'the bogus one-row insert is still reachable').toBe(true);
+    // ...and the offer to go and read it is right there.
+    expect([...container.querySelectorAll('button')].some((b) => /Read the list/i.test(b.textContent))).toBe(true);
+  });
+
+  it('the file road is offered beside the paste box, for when a site will not let us in', async () => {
+    await mount({ access: { canSee: true, canEdit: true } });
+    const listBtn = [...container.querySelectorAll('button')].find((b) => /Paste a list/i.test(b.textContent));
+    await act(async () => { listBtn.click(); });
+    expect(container.textContent).toMatch(/Upload a list/i);
+    expect(container.textContent).toMatch(/Excel, CSV, a PDF, or a photo/i);
+    const file = container.querySelector('input[type="file"]');
+    expect(file).toBeTruthy();
+    expect(file.getAttribute('accept')).toMatch(/xlsx/);
+  });
 });

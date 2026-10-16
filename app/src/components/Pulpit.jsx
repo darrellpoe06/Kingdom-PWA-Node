@@ -53,6 +53,7 @@ import RecordsLog from './RecordsLog.jsx';
 import { wordLibrary, messagePresentable } from '../lib/presentable.js';
 import { useReadingResume } from '../lib/reading-position.js';
 import { aboutFor } from '../lib/surface-help.js';
+import { reserveTab, openResolved, openFailureMessage } from '../lib/open-document.js';
 
 // The stable YouTube id for a message — the row's own video_id, else parsed from
 // its watch URL. Keys the thumbnail, the points, and the engagement counts.
@@ -230,6 +231,16 @@ function PointsBlock({ bundle }) {
 function MessageRow({ sermon, canEdit, onEdit, onDelete, onReuse, points = null, reaction = null, onReact = null, onShowWho = null, views = null, signedIn = false, rank = null }) {
   // Embed the service video INLINE (Darrell: embedding is cleaner than frames).
   const [playing, setPlaying] = useState(false);
+  const [docErr, setDocErr] = useState(null);
+  // DR-1062. The tab is reserved while the tap is still live; the signed-url
+  // round trip that follows would otherwise outlast the user activation and the
+  // open would be blocked every single time, saying nothing.
+  const openDoc = async () => {
+    const tab = reserveTab();
+    setDocErr(null);
+    const res = await openResolved(tab, () => openSermonDocument(sermon.documentUrl));
+    if (!res.ok) setDocErr({ text: openFailureMessage(res, { what: 'this message’s document' }), url: res.url || '' });
+  };
   const baseEmbed = youtubeEmbedUrl(sermon.youtubeUrl);
   const embed = baseEmbed && sermon.startSeconds ? `${baseEmbed}?start=${Math.floor(sermon.startSeconds)}` : baseEmbed;
   const watch = youtubeTimedUrl(sermon.youtubeUrl, sermon.startSeconds);
@@ -312,11 +323,17 @@ function MessageRow({ sermon, canEdit, onEdit, onDelete, onReuse, points = null,
           <div className="flex gap-2 mt-1 flex-wrap">
             {embed && <button type="button" onClick={play} className={`${BTN} text-[#B85838] hover:text-[#1A1815]`} aria-expanded={playing}>{playing ? '▾ Hide video' : watchLabel}</button>}
             {!embed && watch && <a href={watch} target="_blank" rel="noopener noreferrer" className={`${BTN} text-[#B85838] hover:text-[#1A1815] underline`}>{watchLabel}</a>}
-            {sermon.documentUrl && <button type="button" onClick={async () => { const u = await openSermonDocument(sermon.documentUrl); if (u) window.open(u, '_blank', 'noopener'); }} className={`${BTN} text-[#5A6E3D] hover:text-[#1A1815] underline`}>📄 Document</button>}
+            {sermon.documentUrl && <button type="button" onClick={openDoc} className={`${BTN} text-[#5A6E3D] hover:text-[#1A1815] underline`}>📄 Document</button>}
             {canEdit && onReuse && <button type="button" onClick={() => onReuse(sermon)} className={`${BTN} text-[#5A6E3D] hover:text-[#1A1815]`}>↻ Re-preach this</button>}
             {canEdit && onEdit && <button type="button" onClick={() => onEdit(sermon)} className={`${BTN} text-[#5A5751] hover:text-[#1A1815]`}>Edit</button>}
             {canEdit && onDelete && <button type="button" onClick={() => onDelete(sermon)} className={`${BTN} text-[#991B1B] hover:underline`}>Delete</button>}
           </div>
+          {docErr && (
+            <p className="text-[0.6875rem] text-[#991B1B] mt-1" style={{ fontFamily: '"Fraunces", serif' }} role="status">
+              {docErr.text}
+              {docErr.url && <> <a href={docErr.url} target="_blank" rel="noopener noreferrer" className="underline font-semibold">Open the document</a></>}
+            </p>
+          )}
         </div>
       </div>
       {playing && embed && (

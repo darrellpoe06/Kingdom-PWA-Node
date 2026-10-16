@@ -63,6 +63,9 @@ export const THEME_CSS = `
 [data-theme="sapphire"]{--form-surface:#FFFFFF;--form-ink:#1E3A8A;--form-line:#BFDBFE;--form-hint:#1D4ED8;color-scheme:light}
 [data-theme="rose"]{--form-surface:#FFFFFF;--form-ink:#831843;--form-line:#FBCFE8;--form-hint:#9D174D;color-scheme:light}
 [data-theme="heritage"]{--form-surface:#FFFDF9;--form-ink:#1A1D1B;--form-line:#DED5C3;--form-hint:#5E5A52;color-scheme:light}
+[data-theme="lovecorner"]{--form-surface:#FFFFFF;--form-ink:#1A1012;--form-line:#F2D9D5;--form-hint:#6B4440;color-scheme:light}
+[data-theme="anchor"]{--form-surface:#FFFFFF;--form-ink:#1B1F24;--form-line:#D3D7DD;--form-hint:#555D66;color-scheme:light}
+[data-theme="bedrock"]{--form-surface:#FDFBF7;--form-ink:#211C16;--form-line:#DBD2C2;--form-hint:#5D5346;color-scheme:light}
 [data-theme="midnight"]{--form-surface:#0A0A0A;--form-ink:#E5E5E5;--form-line:#2A2A2A;--form-hint:#7C7C7C;color-scheme:dark}
 
 input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="image"]),
@@ -149,6 +152,89 @@ input::placeholder,textarea::placeholder{color:var(--form-hint)}
 [data-theme="rose"] .text-\\[\\#5A5751\\]{color:#9D174D!important}
 [data-theme="rose"] .border-\\[\\#1A1815\\]{border-color:#831843!important}
 [data-theme="rose"] .bg-\\[\\#1A1815\\]{background-color:#831843!important}
+
+/* ===================================================================
+   THEME: THE LOVE CORNER — the church's own red, white and black
+   (2026-10-16, DR-1060). Darrell: "keep the Love Corner signature
+   colors of red and white and some black... however mostly red and
+   white... make that the default color when it shows initially."
+
+   THE RED IS MEASURED, NOT INVENTED. No brand color was declared
+   anywhere for this door (manifest-lovecorner.webmanifest ships the
+   generic #1A1815), so the church's own emblem was decoded
+   (public/lovecorner-icon-512.png) and its heart sampled: #E43C28.
+   That emblem is the brief in one picture — a black ring, a white
+   field, a red heart over the cross.
+
+   #E43C28 CANNOT CARRY TEXT: 4.22:1 on white, 3.98:1 under white.
+   Both fail AA, so the emblem red is a FILL and a mark only, and a
+   deeper sibling of the SAME hue carries every word: #C03222, which
+   holds the emblem's ratios (G/R 0.260 vs 0.263, B/R 0.177 vs 0.175)
+   and is deliberately 25.9 away in RGB from the Scripture palette's
+   Blood marker #B01E1E, so the church's brand red can never be
+   mistaken for the one red DR-0099 reserves inside Scripture.
+
+   MEASURED with the guard's own math before a line was written:
+   ink 17.77 / 18.64, muted 7.93 / 8.31, white on red 5.32,
+   red text 5.38 / 5.64, green 5.36 / 5.63, blue 6.78 / 7.11.
+   =================================================================== */
+[data-theme="lovecorner"]{background-color:#FFF8F7;color:#1A1012;letter-spacing:0}
+[data-theme="lovecorner"] .bg-\\[\\#FAF8F4\\]{background-color:#FFF8F7!important}
+[data-theme="lovecorner"] .bg-white{background-color:#FFFFFF!important;box-shadow:0 1px 2px rgba(192,50,34,0.06)}
+[data-theme="lovecorner"] .bg-\\[\\#E8E4DC\\]{background-color:#F8E7E4!important}
+[data-theme="lovecorner"] .border-\\[\\#E8E4DC\\]{border-color:#F2D9D5!important}
+[data-theme="lovecorner"] .text-\\[\\#1A1815\\]{color:#1A1012!important}
+[data-theme="lovecorner"] .text-\\[\\#5A5751\\]{color:#6B4440!important}
+[data-theme="lovecorner"] .text-\\[\\#B85838\\]{color:#C03222!important}
+[data-theme="lovecorner"] .text-\\[\\#5A6E3D\\]{color:#5A6E3D!important}
+/* The black of the ring: strong rules stay black, the FILLS go red, which
+   is what "mostly red and white, some black" asks for. */
+[data-theme="lovecorner"] .border-\\[\\#1A1815\\]{border-color:#1A1012!important}
+[data-theme="lovecorner"] .bg-\\[\\#1A1815\\]{background-color:#C03222!important}
+
+/* ===================================================================
+   THEME: ANCHOR — meek strength under control (2026-10-16, DR-1060)
+   Darrell asked for options that are "sound and solid... modern and
+   elegant". Anchor is the restrained one: a cool stone field, pure
+   white cards, deep ink, and a single controlled accent. Nothing
+   raises its voice; the strength is in the weight of the type and the
+   quiet of the surface. MEASURED: ink 14.26 / 16.56, muted 5.75 /
+   6.68, white on the dark fill 11.64, rust 5.53 / 6.43, green 5.17 /
+   6.01, blue 6.13 / 7.11.
+   =================================================================== */
+[data-theme="anchor"]{background-color:#EDEEF0;color:#1B1F24;letter-spacing:-0.003em}
+[data-theme="anchor"] .bg-\\[\\#FAF8F4\\]{background-color:#EDEEF0!important}
+[data-theme="anchor"] .bg-white{background-color:#FFFFFF!important;border-radius:10px;box-shadow:0 1px 2px rgba(27,31,36,0.07)}
+[data-theme="anchor"] .bg-\\[\\#E8E4DC\\]{background-color:#E0E3E7!important}
+[data-theme="anchor"] .border-\\[\\#E8E4DC\\]{border-color:#D3D7DD!important}
+[data-theme="anchor"] .text-\\[\\#1A1815\\]{color:#1B1F24!important}
+[data-theme="anchor"] .text-\\[\\#5A5751\\]{color:#555D66!important}
+[data-theme="anchor"] .text-\\[\\#B85838\\]{color:#9C4426!important}
+[data-theme="anchor"] .text-\\[\\#5A6E3D\\]{color:#4F6B3A!important}
+[data-theme="anchor"] .border-\\[\\#1A1815\\]{border-color:#2B3440!important;border-radius:10px}
+[data-theme="anchor"] .bg-\\[\\#1A1815\\]{background-color:#2B3440!important;border-radius:8px}
+
+/* ===================================================================
+   THEME: BEDROCK — sound, solid, perpetual (2026-10-16, DR-1060)
+   The enduring one: warm stone, paper cards, a deep earth ink and a
+   bronze accent. Where Anchor is cool and precise, Bedrock is warm
+   and settled — the same discipline, a different temperature, so the
+   two are a real choice rather than one palette twice. MEASURED: ink
+   14.50 / 16.35, muted 6.45 / 7.28, white on the dark fill 11.88,
+   bronze 5.33 / 6.01, green 5.25 / 5.92, blue 6.10 / 6.88.
+   =================================================================== */
+[data-theme="bedrock"]{background-color:#F2EDE4;color:#211C16;letter-spacing:0}
+[data-theme="bedrock"] .bg-\\[\\#FAF8F4\\]{background-color:#F2EDE4!important}
+[data-theme="bedrock"] .bg-white{background-color:#FDFBF7!important;box-shadow:0 1px 2px rgba(33,28,22,0.06)}
+[data-theme="bedrock"] .bg-\\[\\#E8E4DC\\]{background-color:#E6DFD2!important}
+[data-theme="bedrock"] .border-\\[\\#E8E4DC\\]{border-color:#DBD2C2!important}
+[data-theme="bedrock"] .text-\\[\\#1A1815\\]{color:#211C16!important}
+[data-theme="bedrock"] .text-\\[\\#5A5751\\]{color:#5D5346!important}
+[data-theme="bedrock"] .text-\\[\\#B85838\\]{color:#9A4A24!important}
+[data-theme="bedrock"] .text-\\[\\#5A6E3D\\]{color:#55683B!important}
+[data-theme="bedrock"] .border-\\[\\#1A1815\\]{border-color:#3A3228!important}
+[data-theme="bedrock"] .bg-\\[\\#1A1815\\]{background-color:#3A3228!important}
+
 
 /* ===================================================================
    THEME: HERITAGE — forest & gold (2026-10-15, DR-1046 Phase 1)
@@ -437,7 +523,15 @@ input::placeholder,textarea::placeholder{color:var(--form-hint)}
 // STAY: it is the first-run default, and the header's inline copy had omitted
 // it, so a reader who chose any other palette could never return to it.
 export const THEMES = [
+  // HERITAGE STAYS FIRST. It is the family app's first-run theme by DR-1046 —
+  // Darrell's own approval, one day before DR-1060 — and a test encodes that
+  // position. The church's palette rides second: the Love Corner door opens in
+  // it by its own fallback (CHURCH_DEFAULT_THEME), which is what "make that the
+  // default when it shows initially" asked for, without moving the family's.
   { key: 'heritage', color: '#F6F1E7', border: '#1F3A2E', label: 'Heritage · forest & gold' },
+  { key: 'lovecorner', color: '#FFF8F7', border: '#C03222', label: 'The Love Corner · red & white' },
+  { key: 'anchor',   color: '#EDEEF0', border: '#2B3440', label: 'Anchor · meek strength' },
+  { key: 'bedrock',  color: '#F2EDE4', border: '#3A3228', label: 'Bedrock · sound & solid' },
   { key: 'cream',    color: '#FAF8F4', border: '#1A1815', label: 'Cream · warm light' },
   { key: 'white',    color: '#F5F5F7', border: '#1D1D1F', label: 'Snow · clean light' },
   { key: 'slate',    color: '#F2F4F7', border: '#1F6FEB', label: 'Glacier · cool light' },
@@ -452,6 +546,20 @@ const THEME_KEYS = new Set(THEMES.map((t) => t.key));
 // picker one tap away. The business doors pass their own fallback ('cream'):
 // they carry their own brands and were not part of the approval.
 export const DEFAULT_THEME = 'heritage';
+
+// THE CHURCH DOOR OPENS IN THE CHURCH'S OWN COLORS (DR-1060). Darrell,
+// 2026-10-16: "keep the Love Corner signature colors of red and white and some
+// black... make that the default color when it shows initially", then "Make
+// sure you taking care of the Love Corner App".
+//
+// This is a DOOR fallback, not a new global default, and that is deliberate:
+// DEFAULT_THEME above is Heritage by DR-1046 — HIS OWN approval, relayed by
+// Christina on 2026-10-15, for the family app. Overturning a decision one day
+// old, silently, to satisfy a sentence about the CHURCH's colors would be the
+// wrong reading of both. The family app keeps Heritage; the Love Corner door
+// opens in the Love Corner's red; every palette stays one tap away on both
+// (DR-0524 — a device that chose keeps its choice).
+export const CHURCH_DEFAULT_THEME = 'lovecorner';
 
 // THE PHONE'S OWN BARS WEAR THE THEME (DR-0744; Darrell 2026-10-01, Midnight
 // on his phone in the installed app, a white strip above the page and a white

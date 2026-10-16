@@ -51,6 +51,7 @@ import os
 import re
 import sys
 import argparse
+import time
 import urllib.request
 import urllib.parse
 
@@ -185,11 +186,78 @@ def rest_insert(base, key, path, rows):
         return r.status
 
 
+def budget_spent(started, chunk, time_budget, seen):
+    """Pure. Has this cycle spent its budget? (DR-1065)
+
+    Deliberately checked BEFORE starting a service rather than after finishing
+    one: a run that starts a service it cannot finish inside the runner's
+    timeout gets killed mid-insert, and a killed insert is the one way this
+    idempotent script could do harm. `0` means no cap, which is the by-hand
+    default -- so adding the brake did not change how a steward runs it.
+    """
+    if chunk and seen >= chunk:
+        return True
+    if time_budget and (time.time() - started) >= time_budget:
+        return True
+    return False
+
+
+def selftest():
+    """CI merge gate. Pure logic only -- no network, no database, no secrets."""
+    checks = []
+
+    def ok(name, cond):
+        checks.append((name, bool(cond)))
+
+    # The budget is a real brake, and 0 really means "no cap" so the by-hand
+    # invocation this script has always had behaves exactly as it did.
+    now = time.time()
+    ok("no cap by default", not budget_spent(now, 0, 0, 10 ** 6))
+    ok("chunk stops at the chunk", budget_spent(now, 5, 0, 5))
+    ok("chunk does not stop early", not budget_spent(now, 5, 0, 4))
+    ok("time budget stops when spent", budget_spent(now - 300, 0, 240, 0))
+    ok("time budget does not stop early", not budget_spent(now, 0, 240, 0))
+    ok("either brake alone is enough", budget_spent(now - 300, 5, 240, 0) and budget_spent(now, 5, 240, 5))
+
+    # The extractor must stay grounded: every draft carries a verbatim phrase
+    # that really appears in the text it was given. A song invented from nothing
+    # is the failure this whole file was written to avoid.
+    heard = ("and then the choir sang way maker miracle worker promise keeper "
+             "light in the darkness my god that is who you are")
+    drafts = extract_songs(heard)
+    ok("a distinctive hook is heard", any(d["title"] == "Way Maker" for d in drafts))
+    ok("every draft is grounded in the text",
+       all(norm(d["evidence"]) in norm(heard) for d in drafts))
+    ok("silence yields nothing", extract_songs("") == [])
+    ok("ordinary preaching yields nothing",
+       extract_songs("turn with me to the book of romans chapter eight verse one") == [])
+
+    bad = [n for n, c in checks if not c]
+    for n, c in checks:
+        print("%s %s" % ("ok  " if c else "FAIL", n))
+    print("worship-song-harvest selftest: %d/%d" % (len(checks) - len(bad), len(checks)))
+    return 1 if bad else 0
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--write", action="store_true", help="insert rows (default: dry-run)")
     ap.add_argument("--instance", default=None, help="limit to one instance_id")
+    # DR-1065 -- THE BUDGET BRAKE. Until this rode a clock it was run by hand and
+    # could take as long as it liked. On the services-sync clock it is a
+    # deterministic loop, and a deterministic loop carries a budget and a lock
+    # (DR-0248); the lock and the outer timeout live in the nas-loops runner, so
+    # these two are this script's half. Newest services first, so each new Sunday
+    # is harvested on the first cycle after its row exists and the backlog drains
+    # behind it.
+    ap.add_argument("--chunk", type=int, default=0,
+                    help="at most N services with a transcript per run (0 = no cap, the by-hand default)")
+    ap.add_argument("--time-budget", type=int, default=0, dest="time_budget",
+                    help="stop starting new services after N seconds (0 = no cap)")
+    ap.add_argument("--selftest", action="store_true", help="pure-logic gate (CI)")
     args = ap.parse_args()
+    if args.selftest:
+        return selftest()
 
     base, key = load_creds()
 
@@ -205,6 +273,7 @@ def main():
 
     grand_rows = 0
     grand_services = 0
+    started = time.time()
     for inst, isms in instances.items():
         trs = rest_get(base, key, "video_transcripts",
                        {"select": "video_id,text", "instance_id": "eq." + inst})
@@ -219,13 +288,18 @@ def main():
 
         new_rows = []
         svc_hit = 0
+        svc_seen = 0
         print("\n=== instance %s : %d services, %d with transcript ==="
               % (inst, len(isms), len(tmap)))
         for s in isms:
+            if budget_spent(started, args.chunk, args.time_budget, svc_seen):
+                print("  -> budget reached; the rest drain on the next cycle")
+                break
             vid = s.get("video_id")
             raw = tmap.get(vid, "")
             if not raw:
                 continue
+            svc_seen += 1
             drafts = extract_songs(raw)
             if not drafts:
                 continue
@@ -276,4 +350,9 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    # DR-1065. main() RETURNS the selftest's exit code, and this line used to
+    # discard it -- so --selftest printed "FAIL" and exited 0. Wired into CI
+    # unchanged, that is a merge gate that can never fail, which is worse than
+    # no gate because it reads green (DR-0076 s3). Found by running the two
+    # mutations rather than by reading the file.
+    sys.exit(main() or 0)
