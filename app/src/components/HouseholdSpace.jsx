@@ -29,6 +29,7 @@ import { readProductForms } from '../lib/product-forms-sync.js';
 import { VAULT_CATEGORIES, categoryLabel, documentSlug, validateDocument, shelfSummary, expiringSoon } from '../lib/family-vault.js';
 import { listDocuments, saveDocument, shareDocument, signedDocumentUrl, removeDocument, uploadDocumentFile } from '../lib/family-vault-sync.js';
 import { householdInsights, workflowCandidates, WORKFLOW_LADDER } from '../lib/household-insights.js';
+import { reserveTab, openResolved, openFailureMessage } from '../lib/open-document.js';
 
 const SERIF = { fontFamily: '"Fraunces", serif' };
 const BTN = 'min-h-[36px] px-3 py-2 text-sm font-semibold border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white disabled:opacity-50 focus:outline focus:outline-2 focus:outline-[#B85838]';
@@ -44,11 +45,16 @@ const bytes = (n) => (!n ? '' : n > 1048576 ? `${(n / 1048576).toFixed(1)} MB` :
 function FileRow({ row, onShare, onRemove }) {
   const [opening, setOpening] = useState(false);
   const [confirm, setConfirm] = useState(false);
+  const [openErr, setOpenErr] = useState(null);
+  // DR-1062. reserveTab() first, before any await: signing the url is a network
+  // round trip, and a browser only permits window.open while the tap it came
+  // from is still being handled.
   const open = async () => {
-    setOpening(true);
-    const url = await signedDocumentUrl(row.storagePath);
+    const tab = reserveTab();
+    setOpening(true); setOpenErr(null);
+    const res = await openResolved(tab, () => signedDocumentUrl(row.storagePath));
     setOpening(false);
-    if (url) { try { window.open(url, '_blank', 'noopener'); } catch { /* the shelf still shows the row */ } }
+    if (!res.ok) setOpenErr({ text: openFailureMessage(res, { what: row.label || 'this file' }), url: res.url || '' });
   };
   return (
     <li className="py-2 border-t border-[#F0ECE4] first:border-t-0">
@@ -78,6 +84,14 @@ function FileRow({ row, onShare, onRemove }) {
               </span>}
         </div>
       </div>
+      {/* DR-1062. An open that could not be done says so; when the browser is
+          the thing refusing, the url rides as a link the person taps. */}
+      {openErr && (
+        <p className="text-[0.6875rem] text-[#991B1B] mt-1" role="status">
+          {openErr.text}
+          {openErr.url && <> <a href={openErr.url} target="_blank" rel="noopener noreferrer" className="underline font-semibold">Open it</a></>}
+        </p>
+      )}
     </li>
   );
 }
