@@ -35,6 +35,7 @@ import {
 } from '../lib/choir-sync.js';
 import { sentenceFor } from '../lib/church-access.js';
 import { reserveTab, openResolved, openFailureMessage } from '../lib/open-document.js';
+import { whenOf } from '../lib/record-stamp.js';
 import { listInstanceMembers, setMemberRole, grantableRoles, roleLabel as instanceRoleLabel } from '../lib/member-roles.js';
 import { serviceDayLabel } from '../lib/service-day.js';
 import { extractHeardQuote, draftWordsFromTranscript } from '../lib/choir-words.js';
@@ -757,6 +758,9 @@ function ResourcesPanel({ resources, canEdit, onAdd, onDelete }) {
                 {r.url ? <a href={r.url} target="_blank" rel="noopener noreferrer" className="underline text-[#B85838] hover:text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{r.title}</a>
                   : <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{r.title}</span>}
                 {r.note && <span className="text-[0.6875rem] text-[#5A5751] ml-2">{r.note}</span>}
+                {/* DR-1063. This row carried no stamp at all, so the shelf could
+                    not be read in order. The data was always on the record. */}
+                {whenOf(r).line && <div className="text-[0.625rem] text-[#5A5751]" title={whenOf(r).exact}>{whenOf(r).line}</div>}
               </div>
               {canEdit && <button type="button" onClick={() => onDelete(r)} className={`${BTN} text-[#991B1B] hover:underline`}>Remove</button>}
             </div>
@@ -856,13 +860,15 @@ function TeamDocsPanel({ docs, canEdit, onAdd, onDelete }) {
                 <div className="flex items-baseline gap-2 flex-wrap">
                   <span className="text-[0.5625rem] uppercase tracking-wider bg-[#E8E4DC] text-[#1A1815] px-1.5 py-0.5">{teamTypeLabel(d.docType)}</span>
                   <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{d.title}</span>
-                  {d.docDate && <span className="text-[0.6875rem] text-[#5A5751]">{fmtDate(d.docDate)}</span>}
                 </div>
                 <div className="flex gap-2">
                   {d.documentUrl && <button type="button" onClick={() => open(d)} className={`${BTN} text-[#5A6E3D] hover:text-[#1A1815] underline`}>📄 Open</button>}
                   {canEdit && <button type="button" onClick={() => onDelete(d)} className={`${BTN} text-[#991B1B] hover:underline`}>Remove</button>}
                 </div>
               </div>
+              {/* DR-1063. The document's own date AND the log of when it was
+                  filed — both, always, so the history can be checked. */}
+              {whenOf(d).line && <div className="text-[0.625rem] text-[#5A5751] mt-0.5" title={whenOf(d).exact}>{whenOf(d).line}</div>}
               {/* An open that could not be done says so, and when the browser is
                   the thing refusing, the url rides as a link the person taps
                   themselves — their tap carries its own gesture. (DR-1062) */}

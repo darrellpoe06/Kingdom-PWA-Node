@@ -33,6 +33,7 @@ import {
 import { looksLikeListLink, readListBehindLink, linkFailureMessage } from '../lib/song-link-list.js';
 import { songsFromDocument, emptyReason } from '../lib/song-list-import.js';
 import { readAnyFile } from '../lib/books-intake-read.js';
+import { stamp, exactStamp } from '../lib/record-stamp.js';
 
 const STATUS_LABEL = { idea: 'Candidate', final: 'Final', pool: 'Pool' };
 
@@ -40,11 +41,11 @@ const BTN = 'text-xs uppercase tracking-wider px-3 py-2 min-h-[36px] focus:outli
 const FIELD = 'w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]';
 const LABEL = 'text-[0.5625rem] uppercase tracking-wider text-[#5A5751] block mb-1';
 
-const fmtWhen = (iso) => {
-  if (!iso) return '';
-  try { return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }); }
-  catch { return ''; }
-};
+// DR-1063. This used to be `{ month: 'short', day: 'numeric' }` — "Sep 6",
+// with no year. A pool that cannot tell last September from this one cannot be
+// read "over time", which is exactly the historical accuracy Darrell asked for.
+// The shared stamp always carries the year; the exact instant rides in a title.
+const fmtWhen = (iso) => stamp(iso, { withTime: false });
 
 // ---------------------------------------------------------------------------
 // Player — lazy YouTube embed, or a safe "Open link" fallback. Never a dead card.
@@ -205,7 +206,7 @@ function SongCard({ idea, comments, vote, leads, members, canEdit, onVote, onCom
             {isFinal && <span className="text-[0.5625rem] uppercase tracking-wider bg-[#5A6E3D] text-white px-1.5 py-0.5">★ Final</span>}
             {iLead && <span className="text-[0.5625rem] uppercase tracking-wider bg-[#B85838] text-white px-1.5 py-0.5">★ Your lead</span>}
           </div>
-          <div className="text-[0.625rem] text-[#5A5751] mt-0.5">
+          <div className="text-[0.625rem] text-[#5A5751] mt-0.5" title={exactStamp(idea.createdAt)}>
             Added by {idea.addedByName}{idea.createdAt ? ` · ${fmtWhen(idea.createdAt)}` : ''}
             {idea.keyLabel ? ` · Key ${idea.keyLabel}` : ''}{idea.arrangement ? ` · ${idea.arrangement}` : ''}
           </div>
