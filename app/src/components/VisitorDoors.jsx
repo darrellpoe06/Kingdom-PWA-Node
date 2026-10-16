@@ -33,6 +33,9 @@ import {
 
 const sectionH = 'text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold';
 const note = 'text-[0.6875rem] text-[#5A5751] leading-relaxed';
+// A keyboard user has to be able to see where they are. Same ring the Edge
+// Guard beside this surface uses, so the two chips feel like one thing.
+const RING = 'focus:outline focus:outline-2 focus:outline-[#B85838]';
 
 /** One door's bar. `share` is of the doors' own total, never of all requests. */
 function DoorRow({ label, requests, share }) {
@@ -95,7 +98,7 @@ export default function VisitorDoors() {
     <div className="space-y-3" data-testid="visitor-doors">
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div className={sectionH}>At the doors — the last 24 hours</div>
-        <button type="button" onClick={load} className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] underline-offset-2 hover:underline" data-testid="visitor-refresh">
+        <button type="button" onClick={load} className={`text-[0.625rem] uppercase tracking-wider text-[#5A5751] underline-offset-2 hover:underline ${RING}`} data-testid="visitor-refresh">
           {res === undefined ? 'Loading…' : 'Refresh'}
         </button>
       </div>

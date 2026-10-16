@@ -26,6 +26,9 @@ import { downloadText } from '../lib/report-export.js';
 const labelCls = 'block text-[0.625rem] uppercase tracking-[0.25em] text-[#5A5751] font-semibold mb-1';
 const fieldCls = 'w-full text-sm p-2 border border-[#1A1815] bg-white';
 const serif = { fontFamily: '"Fraunces", serif' };
+// A keyboard user has to be able to see where they are, and this button hands
+// somebody a tax document — the last place to make it hard to tell.
+const RING = 'focus:outline focus:outline-2 focus:outline-[#B85838]';
 
 /** The years the book actually holds, newest first. Never a guessed range. */
 export function yearsInClaims(claims = []) {
@@ -146,7 +149,7 @@ export default function ContributionStatement({ claims = [], batches = [], churc
             {titheTaxNote(res.statement)}
           </p>
 
-          <button type="button" onClick={download} className="text-[0.625rem] uppercase tracking-wider border border-[#1A1815] px-2 py-1" data-testid="cs-download">
+          <button type="button" onClick={download} className={`text-[0.625rem] uppercase tracking-wider border border-[#1A1815] px-2 py-1 ${RING}`} data-testid="cs-download">
             Download the statement
           </button>
           {res.source.basis === BASIS.sender && (
