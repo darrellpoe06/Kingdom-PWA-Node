@@ -1,4 +1,4 @@
-# DR-1072: His ways are higher, so He gives us the bread — comprehension comes by eating, wanting the glory undermines understanding, and meekness is strength under control (ll248)
+# DR-1074: His ways are higher, so He gives us the bread — comprehension comes by eating, wanting the glory undermines understanding, and meekness is strength under control (ll248)
 
 **Date:** 2026-10-16
 **Status:** accepted
