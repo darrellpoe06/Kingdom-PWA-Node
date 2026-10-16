@@ -145,7 +145,14 @@ export const CHURCH_MEMBER_SECTIONS = Object.freeze([
       // is the point of pinning it there.
       { key: 'churchCovenant', type: 'acknowledgment', required: true, docName: 'What the church holds about you',
         label: 'What the church holds about you, and what it refuses to hold (Signature/Date)',
-        statement: 'I have read what the church holds about me. I understand that this record is mine to read, correct, take a copy of and have removed at any time; that it holds no giving amount and no giving total; that a prayer request goes only as far as I said; and that it is never sold, never sent to an employer, a lender or an advertiser, never used to decide who is welcome, and never used to train anything.',
+        // DR-1064. "it holds no giving amount and no giving total" was TRUE of
+        // this record and AMBIGUOUS about the church. Giving still never
+        // appears on a member card — nobody reading the roll can see what
+        // anyone gives (Matthew 6:3-4, carried in the schema). But the church
+        // DOES record gifts it receives, because it must, and the member needs
+        // that record at tax time. The sentence now says which record it is
+        // speaking about, and says the other one exists and is theirs.
+        statement: 'I have read what the church holds about me. I understand that this record is mine to read, correct, take a copy of and have removed at any time; that THIS record holds no giving amount and no giving total, so no one reading the roll can see what I give; that the church separately records gifts it receives — as it must — and that record is mine to read, with my contribution statement issued from it each year unless I chose to give anonymously; that a prayer request goes only as far as I said; and that none of it is ever sold, ever sent to an employer, a lender or an advertiser, ever used to decide who is welcome, or ever used to train anything.',
         feeds: 'the signed agreement, version-pinned and server-stamped (DR-0356)' },
     ],
   },

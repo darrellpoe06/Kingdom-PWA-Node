@@ -163,7 +163,27 @@ describe('the record itself', () => {
     expect(ack.required).toBe(true);
     expect(ack.statement).toMatch(/no giving amount/i);
     expect(ack.statement).toMatch(/only as far as I said/i);
-    expect(ack.statement).toMatch(/never used to train anything/i);
+    // DR-1064 widened the refusals from "never sold, never sent to…" to
+    // "NONE OF IT is ever sold, ever sent to…", because the covenant now speaks
+    // about TWO records — the member card, which holds no giving figure, and
+    // the church's record of gifts received, which it must keep. The
+    // antecedent changed; the promise did not, and it covers more than before.
+    // Matched on either wording so the check follows the sentence rather than
+    // pinning a word, and the clause itself is pinned below.
+    expect(ack.statement).toMatch(/(never|ever) used to train anything/i);
+  });
+
+  it('the refusals govern EVERY record the covenant names, not only the member card (DR-1064)', () => {
+    // The easiest way to do harm here is to narrow the "none of it" clause back
+    // to one record while the sentence still reads reassuringly.
+    const { statement } = CHURCH_MEMBER_ALL_FIELDS.find((f) => f.type === 'acknowledgment');
+    expect(statement).toMatch(/separately records gifts it receives/i);
+    expect(statement).toMatch(/that record is mine to read/i);
+    const tail = statement.slice(statement.indexOf('none of it'));
+    expect(tail, 'the "none of it" clause is gone').toBeTruthy();
+    for (const r of [/sold/i, /employer/i, /lender/i, /advertiser/i, /who is welcome/i, /train anything/i]) {
+      expect(tail, `${r} fell outside the refusals`).toMatch(r);
+    }
   });
 
   it('asks for only three things before it can stand', () => {

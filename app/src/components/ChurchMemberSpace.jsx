@@ -35,6 +35,7 @@ import { liveSectionsFor, originalProduct } from '../lib/product-forms.js';
 import { readProductForms } from '../lib/product-forms-sync.js';
 import { CHURCH_DOC_KINDS, churchDocKindLabel, churchDocumentSlug, churchShelfSummary, validateChurchDocument } from '../lib/church-shelf.js';
 import { churchInsights } from '../lib/church-insights.js';
+import { reserveTab, openResolved, openFailureMessage } from '../lib/open-document.js';
 import { COLG_DEFAULT_CHURCH } from '../lib/default-church.js';
 
 const SERIF = { fontFamily: '"Fraunces", serif' };
@@ -51,11 +52,16 @@ const OFFICE_ROLES = ['owner', 'admin'];
 function ShelfRow({ row, mine, onShare, onRemove }) {
   const [opening, setOpening] = useState(false);
   const [confirm, setConfirm] = useState(false);
+  const [openErr, setOpenErr] = useState(null);
+  // DR-1062. reserveTab() first, before any await: signing the url is a network
+  // round trip, and a browser only permits window.open while the tap it came
+  // from is still being handled.
   const open = async () => {
-    setOpening(true);
-    const url = await signedChurchDocumentUrl(row.storagePath);
+    const tab = reserveTab();
+    setOpening(true); setOpenErr(null);
+    const res = await openResolved(tab, () => signedChurchDocumentUrl(row.storagePath));
     setOpening(false);
-    if (url) { try { window.open(url, '_blank', 'noopener'); } catch { /* the shelf still shows the row */ } }
+    if (!res.ok) setOpenErr({ text: openFailureMessage(res, { what: row.title || 'this paper' }), url: res.url || '' });
   };
   return (
     <li className="py-2 border-t border-[#F0ECE4] first:border-t-0">
@@ -87,6 +93,14 @@ function ShelfRow({ row, mine, onShare, onRemove }) {
           )}
         </div>
       </div>
+      {/* DR-1062. An open that could not be done says so; when the browser is
+          the thing refusing, the url rides as a link the person taps. */}
+      {openErr && (
+        <p className="text-[0.6875rem] text-[#991B1B] mt-1" role="status">
+          {openErr.text}
+          {openErr.url && <> <a href={openErr.url} target="_blank" rel="noopener noreferrer" className="underline font-semibold">Open it</a></>}
+        </p>
+      )}
     </li>
   );
 }

@@ -1,0 +1,4 @@
+{
+  "note": "DR-1063. Year-less stamps on record timestamps that predate the guard. SHRINK ONLY — this list may lose entries and must never gain one.",
+  "known": []
+}

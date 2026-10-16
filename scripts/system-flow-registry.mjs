@@ -683,6 +683,20 @@ const NODES = [
     writes: [{ res: 'db:choir_sermons', token: 'stream_seconds' }],
     seeds: ['songbook'],
   }),
+  // DR-1065: the historical song sweep. It had no place here because it had no
+  // clock — the producer was written months ago and never ran on its own. It
+  // sits downstream of the trickle (it reads the words that loader fetches) and
+  // upstream of the Songbook, which is where a steward confirms each draft.
+  rider('service:worship-song-harvest', 'infra/nas-sme-pipeline/worship-song-harvest.py', {
+    id: 'worship-song-harvest', name: 'NAS harvests the songs the choir sang',
+    purpose: 'Turns each service’s own words into grounded song drafts, so the historical repertoire is corrected rather than typed from nothing.',
+    reads: [
+      { res: 'db:video_transcripts', token: 'video_transcripts' },
+      { res: 'db:choir_sermons', token: 'choir_sermons' },
+    ],
+    writes: [{ res: 'db:choir_songs', token: 'choir_songs' }],
+    seeds: ['songbook'],
+  }),
   rider('service:transcript-trickle', 'infra/nas-sme-pipeline/load-transcripts.py', {
     id: 'transcript-trickle', name: 'NAS transcript trickle',
     purpose: 'Fetches each service video’s words from the NAS’s own address.',

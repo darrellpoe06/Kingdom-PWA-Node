@@ -34,6 +34,8 @@ import {
   mintClaimCode, claimChoirMember, getMyChoirMembership, normalizeClaimCode, updateChoirRole,
 } from '../lib/choir-sync.js';
 import { sentenceFor } from '../lib/church-access.js';
+import { reserveTab, openResolved, openFailureMessage } from '../lib/open-document.js';
+import { whenOf } from '../lib/record-stamp.js';
 import { listInstanceMembers, setMemberRole, grantableRoles, roleLabel as instanceRoleLabel } from '../lib/member-roles.js';
 import { serviceDayLabel } from '../lib/service-day.js';
 import { extractHeardQuote, draftWordsFromTranscript } from '../lib/choir-words.js';
@@ -756,6 +758,9 @@ function ResourcesPanel({ resources, canEdit, onAdd, onDelete }) {
                 {r.url ? <a href={r.url} target="_blank" rel="noopener noreferrer" className="underline text-[#B85838] hover:text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{r.title}</a>
                   : <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{r.title}</span>}
                 {r.note && <span className="text-[0.6875rem] text-[#5A5751] ml-2">{r.note}</span>}
+                {/* DR-1063. This row carried no stamp at all, so the shelf could
+                    not be read in order. The data was always on the record. */}
+                {whenOf(r).line && <div className="text-[0.625rem] text-[#5A5751]" title={whenOf(r).exact}>{whenOf(r).line}</div>}
               </div>
               {canEdit && <button type="button" onClick={() => onDelete(r)} className={`${BTN} text-[#991B1B] hover:underline`}>Remove</button>}
             </div>
@@ -778,8 +783,18 @@ function TeamDocsPanel({ docs, canEdit, onAdd, onDelete }) {
   const [f, setF] = useState({ docDate: todayIso(), docType: 'order-of-service', title: '', documentUrl: '', documentSource: 'manual', fileName: '' });
   const [uploadErr, setUploadErr] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [openErr, setOpenErr] = useState(null);
   const resetForm = () => { setF({ docDate: todayIso(), docType: 'order-of-service', title: '', documentUrl: '', documentSource: 'manual', fileName: '' }); setUploadErr(''); };
-  const open = async (d) => { const u = await openTeamDocument(d.documentUrl); if (u) window.open(u, '_blank', 'noopener'); };
+  // DR-1062. reserveTab() MUST be the first line: window.open is only permitted
+  // while the browser is still handling the tap, and openTeamDocument is a
+  // network round trip. Calling it after the await blocked EVERY open, silently.
+  const open = async (d) => {
+    const tab = reserveTab();
+    setOpenErr(null);
+    const res = await openResolved(tab, () => openTeamDocument(d.documentUrl));
+    if (res.ok) return;
+    setOpenErr({ id: d.id, text: openFailureMessage(res, { what: d.title || 'this document' }), url: res.url || '' });
+  };
   // Upload a picture or a document (Christina 2026-07-04). Images are compressed;
   // other files ride as a data URL under a size cap. Either becomes documentUrl.
   const onFile = async (e) => {
@@ -840,16 +855,29 @@ function TeamDocsPanel({ docs, canEdit, onAdd, onDelete }) {
       {docs.length ? (
         <div className="bg-white border border-[#1A1815]">
           {docs.map((d) => (
-            <div key={d.id} className="flex items-baseline justify-between gap-2 p-3 border-b border-[#E8E4DC]">
-              <div className="flex items-baseline gap-2 flex-wrap">
-                <span className="text-[0.5625rem] uppercase tracking-wider bg-[#E8E4DC] text-[#1A1815] px-1.5 py-0.5">{teamTypeLabel(d.docType)}</span>
-                <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{d.title}</span>
-                {d.docDate && <span className="text-[0.6875rem] text-[#5A5751]">{fmtDate(d.docDate)}</span>}
+            <div key={d.id} className="p-3 border-b border-[#E8E4DC]">
+              <div className="flex items-baseline justify-between gap-2">
+                <div className="flex items-baseline gap-2 flex-wrap">
+                  <span className="text-[0.5625rem] uppercase tracking-wider bg-[#E8E4DC] text-[#1A1815] px-1.5 py-0.5">{teamTypeLabel(d.docType)}</span>
+                  <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{d.title}</span>
+                </div>
+                <div className="flex gap-2">
+                  {d.documentUrl && <button type="button" onClick={() => open(d)} className={`${BTN} text-[#5A6E3D] hover:text-[#1A1815] underline`}>📄 Open</button>}
+                  {canEdit && <button type="button" onClick={() => onDelete(d)} className={`${BTN} text-[#991B1B] hover:underline`}>Remove</button>}
+                </div>
               </div>
-              <div className="flex gap-2">
-                {d.documentUrl && <button type="button" onClick={() => open(d)} className={`${BTN} text-[#5A6E3D] hover:text-[#1A1815] underline`}>📄 Open</button>}
-                {canEdit && <button type="button" onClick={() => onDelete(d)} className={`${BTN} text-[#991B1B] hover:underline`}>Remove</button>}
-              </div>
+              {/* DR-1063. The document's own date AND the log of when it was
+                  filed — both, always, so the history can be checked. */}
+              {whenOf(d).line && <div className="text-[0.625rem] text-[#5A5751] mt-0.5" title={whenOf(d).exact}>{whenOf(d).line}</div>}
+              {/* An open that could not be done says so, and when the browser is
+                  the thing refusing, the url rides as a link the person taps
+                  themselves — their tap carries its own gesture. (DR-1062) */}
+              {openErr && openErr.id === d.id && (
+                <p className="text-[0.6875rem] text-[#991B1B] mt-1" style={{ fontFamily: '"Fraunces", serif' }} role="status">
+                  {openErr.text}
+                  {openErr.url && <> <a href={openErr.url} target="_blank" rel="noopener noreferrer" className="underline font-semibold">Open {d.title || 'the document'}</a></>}
+                </p>
+              )}
             </div>
           ))}
         </div>

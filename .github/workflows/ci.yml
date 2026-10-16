@@ -350,6 +350,15 @@ jobs:
       - name: stream-length rider selftest
         working-directory: infra/church-media-golive
         run: python3 stream_length_sync.py --selftest
+      # DR-1065: the historical song sweep runs itself. The budget brake that
+      # lets it ride the 15-minute clock, and the groundedness the whole
+      # harvester exists for -- every draft carries a verbatim phrase that
+      # really appears in the transcript, and silence yields nothing. Gates
+      # merge. (It really fails: main()'s exit code was discarded, so
+      # --selftest printed FAIL and exited 0 before this.)
+      - name: worship-song-harvest rider selftest
+        working-directory: infra/nas-sme-pipeline
+        run: python3 worship-song-harvest.py --selftest
       # The NAS's own yt-dlp (DR-0723): pinned version + sha256, a mismatch
       # deleted and never run, a failed download retried at most every 6 h,
       # a binary answering another version refused. Offline (file:// release).
