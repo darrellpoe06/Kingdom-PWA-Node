@@ -105,11 +105,13 @@ const STRANDS = [
 ];
 
 describe('L248 exists, is numbered, and is dated the morning it was spoken', () => {
-  it('is in the catalog exactly once, as the highest number', () => {
+  it('is in the catalog exactly once, at its own number', () => {
     expect(LIVING_LESSONS_MODULES.filter((m) => m.id === ID)).toHaveLength(1);
     const claimed = LIVING_LESSONS_MODULES.map((m) => /^ll(\d+)-/.exec(m.id)).filter(Boolean).map((m) => Number(m[1]));
     expect(claimed.filter((n) => n === 248)).toHaveLength(1);
-    expect(Math.max(...claimed)).toBe(248);
+    // L248 was the highest number the morning it landed; L249 and L250 were
+    // spoken later the same day (DR-1081, DR-1082), so it is no longer the top.
+    expect(Math.max(...claimed)).toBeGreaterThanOrEqual(248);
     for (const n of [79, 211, 212]) expect(claimed.includes(n), `${n} is not this lesson's to fill`).toBe(false);
   });
   it('carries the spoken day, after L247', () => {
