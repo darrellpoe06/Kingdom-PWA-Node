@@ -52,7 +52,7 @@ const OFFICE_ROLES = ['owner', 'admin'];
 // ---------------------------------------------------------------------------
 function ShelfRow({ row, mine, onShare, onRemove }) {
   const [confirm, setConfirm] = useState(false);
-  // DR-1076. A paper opens INSIDE the app, in the one viewer every shelf uses.
+  // DR-1078. A paper opens INSIDE the app, in the one viewer every shelf uses.
   const viewer = useDocumentViewer();
   const open = () => viewer.open({
     title: row.title || 'Paper',

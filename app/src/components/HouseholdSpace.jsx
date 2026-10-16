@@ -45,7 +45,7 @@ const bytes = (n) => (!n ? '' : n > 1048576 ? `${(n / 1048576).toFixed(1)} MB` :
 // ---------------------------------------------------------------------------
 function FileRow({ row, onShare, onRemove }) {
   const [confirm, setConfirm] = useState(false);
-  // DR-1076. A household file opens INSIDE the app, in the one viewer every
+  // DR-1078. A household file opens INSIDE the app, in the one viewer every
   // shelf uses.
   const viewer = useDocumentViewer();
   const open = () => viewer.open({

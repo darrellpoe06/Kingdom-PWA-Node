@@ -136,7 +136,7 @@ WRITER=""
 # NEVER a password prompt (Darrell, 2026-10-16: "No nas passwords!!!!! Cli...
 # ssh.... not a password"). `sudo -n` either runs on the ssh key's standing
 # grant (the same `sudo -n` nas-storage-sync uses on every run) or fails at
-# once; it never stops to ask. DR-1076.
+# once; it never stops to ask. DR-1078.
 [ -w "$AGENT_ENV" ] || WRITER="sudo -n"
 if $WRITER grep -q '^HOSTED_SERVICE_ROLE_KEY=' "$AGENT_ENV" 2>/dev/null; then
   $WRITER "$PY" - "$AGENT_ENV" "$TMP" <<'PYEOF'

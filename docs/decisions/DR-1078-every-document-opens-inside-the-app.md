@@ -1,4 +1,4 @@
-# DR-1076: Every document opens inside the app — one viewer for every shelf, and a missing file is named as missing
+# DR-1078: Every document opens inside the app — one viewer for every shelf, and a missing file is named as missing
 
 **Date:** 2026-10-16
 **Status:** accepted

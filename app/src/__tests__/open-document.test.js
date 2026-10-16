@@ -121,8 +121,8 @@ describe('PROVEN-TO-CATCH: the order is the whole fix', () => {
   });
 });
 
-describe('the shelves moved past the reserved tab (DR-1076)', () => {
-  // DR-1062 fixed the lost gesture by reserving a tab before the await. DR-1076
+describe('the shelves moved past the reserved tab (DR-1078)', () => {
+  // DR-1062 fixed the lost gesture by reserving a tab before the await. DR-1078
   // (Darrell, 2026-10-16: "No one of the documents can be opened inside the
   // PoeTech App") took the next step: a document opens INSIDE the app, so there
   // is no tab to reserve and no gesture to lose. The pin that every shelf now

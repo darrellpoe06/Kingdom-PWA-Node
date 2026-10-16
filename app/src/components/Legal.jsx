@@ -510,7 +510,7 @@ export function LegalPlaceholder({ tier = 'foundation', setView, accounts = [], 
     return { ok: true };
   }, []);
 
-  // DR-1076. A legal document opens INSIDE the app, in the one viewer every
+  // DR-1078. A legal document opens INSIDE the app, in the one viewer every
   // shelf uses; a file that is not on the server says so there, in words.
   const viewer = useDocumentViewer();
   const openViewer = viewer.open;

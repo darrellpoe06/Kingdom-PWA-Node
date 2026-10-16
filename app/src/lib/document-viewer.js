@@ -1,5 +1,5 @@
 // =============================================================================
-// document-viewer — every document opens INSIDE the app (DR-1076)
+// document-viewer — every document opens INSIDE the app (DR-1078)
 // =============================================================================
 // Darrell, 2026-10-16, on Choir → Team Docs, after three OPENs in a row said
 // "could not be opened": **"No one of the documents can be opened inside the

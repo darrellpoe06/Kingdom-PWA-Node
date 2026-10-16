@@ -785,7 +785,7 @@ function TeamDocsPanel({ docs, canEdit, onAdd, onDelete }) {
   const [uploadErr, setUploadErr] = useState('');
   const [uploading, setUploading] = useState(false);
   const resetForm = () => { setF({ docDate: todayIso(), docType: 'order-of-service', title: '', documentUrl: '', documentSource: 'manual', fileName: '' }); setUploadErr(''); };
-  // DR-1076. A team document opens INSIDE the app (the viewer signs the path,
+  // DR-1078. A team document opens INSIDE the app (the viewer signs the path,
   // fetches the bytes and shows them by kind), never in a tab that leaves it.
   // When the file is not on the church server the viewer says exactly that.
   const viewer = useDocumentViewer();

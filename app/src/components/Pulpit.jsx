@@ -232,7 +232,7 @@ function PointsBlock({ bundle }) {
 function MessageRow({ sermon, canEdit, onEdit, onDelete, onReuse, points = null, reaction = null, onReact = null, onShowWho = null, views = null, signedIn = false, rank = null }) {
   // Embed the service video INLINE (Darrell: embedding is cleaner than frames).
   const [playing, setPlaying] = useState(false);
-  // DR-1076. The message's document opens INSIDE the app, in the one viewer
+  // DR-1078. The message's document opens INSIDE the app, in the one viewer
   // every shelf uses; a file that is not on the church server says so there.
   const viewer = useDocumentViewer();
   const openDoc = () => viewer.open({
