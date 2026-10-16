@@ -323,6 +323,14 @@ function PlatformSignups() {
                       <div className="text-[0.625rem] text-[#5A5751]">
                         account created {r.joined} · {r.activeNow ? 'active now' : (r.returned ? `active, last active ${r.lastSeen}` : (r.lastSeen === 'never' ? 'never signed back in' : `last active ${r.lastSeen}`))}
                       </div>
+                      {/* WHAT IT IS, on the row (DR-1075). Darrell found the
+                          site-health probe here as an unexplained phone number
+                          signing in daily and had to ask. A roster that cannot
+                          answer "who is this?" sends a person investigating
+                          their own instruments. */}
+                      {r.whatItIs ? (
+                        <div className="text-[0.625rem] text-[#8A857C] leading-relaxed" data-testid="signup-what-it-is">{r.whatItIs}</div>
+                      ) : null}
                       <div className="flex flex-wrap items-center gap-2">
                         <AddToSpace row={r} spaces={spaces} who={who.shown} onDone={load} />
                         {r.userId ? (
