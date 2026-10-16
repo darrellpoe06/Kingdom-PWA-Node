@@ -91,8 +91,10 @@ import { aboutFor } from '../lib/surface-help.js';
 import { PHASES, PLAN_SOURCES, PLAN_STARTED, STEPS_AS_OF, officialProgress } from '../lib/make-it-official.js';
 import {
   deleteLegalFile,
+  fetchHouseholdLegalDocuments,
   legalDocumentsSync,
   mergeRemoteLegalDocuments,
+  setLegalDocumentShared,
   signedLegalUrl,
   uploadLegalFile,
 } from '../lib/legal-documents-sync.js';
@@ -108,7 +110,7 @@ function blankForm() {
 // document-type vocabulary the picker offers, which is what makes the bullets
 // true rather than illustrative.
 // ---------------------------------------------------------------------------
-function Shelf({ category, docs, counts, onAdd, onOpen, onRemove, notice }) {
+function Shelf({ category, docs, householdDocs = [], counts, onAdd, onOpen, onRemove, onShare, notice }) {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(() => blankForm());
   const [error, setError] = useState('');
@@ -193,8 +195,44 @@ function Shelf({ category, docs, counts, onAdd, onOpen, onRemove, notice }) {
                 {!isPointer(d) && (
                   <button type="button" onClick={() => onOpen(d)} className="text-[0.625rem] uppercase tracking-wider px-3 py-1.5 border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">Open</button>
                 )}
+                {onShare && d.remoteUuid && (
+                  <button type="button" aria-pressed={d.sharedWithHousehold === true} onClick={() => onShare(d, !d.sharedWithHousehold)} className="text-[0.625rem] uppercase tracking-wider px-3 py-1.5 border border-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">
+                    {d.sharedWithHousehold ? 'Stop sharing with household' : 'Share with household'}
+                  </button>
+                )}
                 <button type="button" onClick={() => onRemove(d)} className="text-[0.625rem] uppercase tracking-wider px-3 py-1.5 border border-[#B85838] text-[#B85838] hover:bg-[#B85838] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">Remove</button>
               </div>
+              <p className="text-[0.625rem] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+                {d.sharedWithHousehold
+                  ? 'Shared with your household. They can read and open it; only you can change or remove it.'
+                  : d.remoteUuid ? 'Private to you.' : 'Private to you. Sign in and let it sync to be able to share it.'}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* What OTHER members of the household chose to share (0299). Read-only:
+          these rows never enter this person's own shelf or its sync. */}
+      {householdDocs.length > 0 && (
+        <div className="space-y-2 mb-3">
+          {householdDocs.map((d) => (
+            <div key={d.id} className="bg-white border border-dashed border-[#5A6E3D] p-3">
+              <div style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{d.label}</div>
+              <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mt-0.5">
+                Shared by {d.sharedBy} · {d.docType || 'Document'}{d.dateOf ? ` · ${d.dateOf}` : ''}
+                {d.privileged ? ' · PRIVILEGED' : ' · not privileged'}
+                {isPointer(d) ? ' · pointer' : ` · ${formatBytes(d.fileSize)}`}
+              </div>
+              {isPointer(d) && (
+                <p className="text-xs text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>Where it is: {d.whereFiled}</p>
+              )}
+              {d.note && <p className="text-xs text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>{d.note}</p>}
+              {!isPointer(d) && (
+                <div className="mt-2">
+                  <button type="button" onClick={() => onOpen(d)} className="text-[0.625rem] uppercase tracking-wider px-3 py-1.5 border border-[#5A6E3D] text-[#5A6E3D] hover:bg-[#5A6E3D] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">Open</button>
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -546,7 +584,7 @@ export function OfficialStepsPanel({ docs = [] }) {
                       <p className="text-xs leading-relaxed mt-1" style={{ fontFamily: '"Fraunces", serif' }}><strong>How:</strong> {r.how}</p>
                       <p className="text-[0.625rem] text-[#5A5751] italic mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
                         {r.proof
-                          ? <>Proof on the shelf: &ldquo;{r.proof.label}&rdquo;{r.proof.dateOf ? `, dated ${r.proof.dateOf}` : ''}.</>
+                          ? <>Proof on the shelf: &ldquo;{r.proof.label}&rdquo;{r.proof.dateOf ? `, dated ${r.proof.dateOf}` : ''}{r.proof.fromHousehold ? `, shared by ${r.proof.sharedBy}` : ''}.</>
                           : <>Shelve the paper on <strong>Business</strong> as type &ldquo;{r.evidence}&rdquo;.</>}
                       </p>
                     </li>
@@ -564,9 +602,10 @@ export function OfficialStepsPanel({ docs = [] }) {
         </div>
       )}
       <p className="text-[0.625rem] text-[#5A5751] italic mt-3" style={{ fontFamily: '"Fraunces", serif' }}>
-        This reads <strong>your</strong> shelf. Each person&rsquo;s legal shelf is private to their own account, so paper filed
-        on another account shows there, not here. The LLC&rsquo;s standing lives with the Secretary of State, so this screen
-        never claims to know it. Not legal advice.
+        This reads <strong>your</strong> shelf, plus any paper someone in your household chose to share with you. Each
+        document is private to whoever filed it until they tap <strong>Share with household</strong>, so a step done on
+        another account shows here only once its paper is shared. The LLC&rsquo;s standing lives with the Secretary of
+        State, so this screen never claims to know it. Not legal advice.
       </p>
     </div>
   );
@@ -600,6 +639,27 @@ export function LegalPlaceholder({ tier = 'foundation', setView, accounts = [], 
   }, []);
 
   const counts = useMemo(() => categoryCounts(docs), [docs]);
+
+  // What other members of the household chose to share (0299, DR-1077). Held
+  // in component state ONLY: never saved to this device's shelf, never synced,
+  // so nobody else's paper can be re-filed as this person's. Before 0299 is
+  // applied, or signed out, the list is simply empty.
+  const [householdDocs, setHouseholdDocs] = useState([]);
+  const refreshHousehold = useCallback(async () => {
+    const res = await fetchHouseholdLegalDocuments();
+    setHouseholdDocs(res && res.ok ? res.items : []);
+  }, []);
+  useEffect(() => { refreshHousehold(); }, [refreshHousehold]);
+
+  // Sharing is one explicit act per document, by its filer. Off is the default.
+  const shareDocument = useCallback(async (doc, shared) => {
+    const res = await setLegalDocumentShared(doc.remoteUuid, shared);
+    if (!res.ok) { setShelfNotice(res.message); return; }
+    setDocs((cur) => cur.map((d) => (d.id === doc.id ? { ...d, sharedWithHousehold: res.shared } : d)));
+    setShelfNotice(res.shared
+      ? `"${doc.label}" is now shared with your household. Only you can change or remove it.`
+      : `"${doc.label}" is private to you again.`);
+  }, []);
 
   // Returns { ok:false, message } so the shelf can show the real reason inline
   // rather than failing blankly. The FILE goes first: if the bytes cannot be
@@ -703,7 +763,7 @@ export function LegalPlaceholder({ tier = 'foundation', setView, accounts = [], 
       {/* MAKE IT OFFICIAL (DR-1076) — the order of work, read from the shelves
           below. Placed before them so the reader meets the steps, then the
           shelf the paper goes on. */}
-      <OfficialStepsPanel docs={docs} />
+      <OfficialStepsPanel docs={[...docs, ...householdDocs]} />
 
       {/* THE FOUR SHELVES. These four boxes used to be four hardcoded <ul>
           lists. Every number above a shelf is now computed from real rows, and
@@ -728,10 +788,12 @@ export function LegalPlaceholder({ tier = 'foundation', setView, accounts = [], 
               key={category.id}
               category={category}
               docs={documentsInCategory(docs, category.id)}
+              householdDocs={documentsInCategory(householdDocs, category.id)}
               counts={counts}
               onAdd={addDocument}
               onOpen={openDocument}
               onRemove={removeDocument}
+              onShare={shareDocument}
             />
           ))}
         </div>

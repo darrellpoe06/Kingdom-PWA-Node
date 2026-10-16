@@ -249,7 +249,7 @@ Darrell, later on 2026-10-16: *"How does Christina get information about the IP 
 
 ### 9.3 Constraints that remain
 
-- **Shelves do not sync between family members yet.** Darrell, the same day: *"We are in the same family and need our records to be in sync with what we are doing and also some users will not want that... we want all opinions to be able to be used without any issues."* That is the next change: an opt-in share per document to the household, private by default, modelled on the church shelf's existing `shared_with_office` toggle. It widens who can read privileged paper, so it ships as its own reviewable change with its own database smoke.
+- **Shelves sync between family members only by the filer's choice (DR-1077).** Darrell, the same day: *"We are in the same family and need our records to be in sync with what we are doing and also some users will not want that... we want all opinions to be able to be used without any issues."* Built the same day as DR-1077 (migration 0299): an opt-in share per document to the household, private by default, modelled on the church shelf's existing `shared_with_office` toggle, with its own database smoke because it widens who can read privileged paper.
 - **The repository documents are shown as paths, not links.** The repository is public, but sending a reader to GitHub is not where the work runs. The steps carry the substance in the app; the long write-up stays in the repository.
 - **Not legal advice.** Counsel still drafts every paper.
 

@@ -767,6 +767,22 @@ const NODES = [
     ],
     seeds: [],
   }),
+  // DR-1076 / DR-1077: the legal shelf (0180) and the household share (0299).
+  // A person's legal papers are rows in legal_documents, private to whoever
+  // filed them; the filer may share ONE document with their household, which
+  // the other members read through a definer function, never the table. The
+  // make-it-official steps on the same screen read both to decide what is done.
+  app('app/src/components/Legal.jsx', {
+    id: 'books-legal-shelf', name: 'Books → Legal: the shelves, the household share, and the make-it-official steps',
+    purpose: 'Each person files their legal papers privately; they may share one with the household; a step is done only when its paper is on the shelf.',
+    writes: [
+      { res: 'db:legal_documents', file: 'app/src/lib/legal-documents-sync.js', token: "from('legal_documents')" },
+    ],
+    reads: [
+      { res: 'db:legal_documents', file: 'app/src/lib/legal-documents-sync.js', token: "rpc('household_shared_legal_documents'" },
+    ],
+    seeds: [],
+  }),
   app('app/src/components/Pulpit.jsx', {
     id: 'sermon-reader', name: 'The Word (Pulpit) — sermons with their words',
     purpose: 'Each service with its transcript, harvest and reach.',

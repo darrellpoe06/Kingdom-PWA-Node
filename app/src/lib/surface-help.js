@@ -40,7 +40,7 @@ export const SURFACE_HELP = {
   },
   'books:legal': {
     what: 'Your legal papers on four private shelves, the steps that make PoeTech officially owned, and PoeTech’s own IP register.',
-    where: 'Your own legal_documents rows (private to your account) and the private legal vault; each step reads done only when its paper is on your Business shelf. The steps and the register are dated platform content.',
+    where: 'Your own legal_documents rows and the private legal vault, plus any document a household member chose to share with you (read-only); each step reads done only when its paper is on the Business shelf. The steps and the register are dated platform content.',
     how: 'Work the next step named under Make it official, then file its paper on the Business shelf as the type the step names. Mark every document privileged or not.',
     helpTopic: 'books:legal',
   },

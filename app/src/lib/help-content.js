@@ -201,11 +201,12 @@ export const HELP = {
       'Open Make it official to see each step, who owns it, why it matters and how to do it. The next step to work is named at the top.',
       'File each paper on the right shelf with Add a document. Upload the file, or record where the paper actually is. Pick the type the step names and the step turns done by itself.',
       'Mark every document privileged or not. The export tool can only strip privileged papers if each one has been decided.',
+      'To keep your household in step, tap Share with household on one of your own documents. It stays private until you do, and you can stop sharing at any time.',
       'Open the IP register to see what PoeTech owns, what it does not, and the one document that moves every row.',
     ],
     why: 'Papers you cannot find on the worst day of the year are papers you do not have. Keeping them in one private place, next to the steps they prove, means anyone helping can see what is done and what is next without asking.',
     when: 'Reach for it when a legal paper arrives, when you finish a step toward making PoeTech official, or when someone asks what the company owns.',
-    more: 'Each person’s legal shelf is private to their own account, so paper filed on another account shows there, not here. Files sit in a private vault opened by links that expire in five minutes; encryption with your own key is designed and not built yet. The full write-up behind the steps, with costs and sources, is in the repository at docs/99-session-notes/2026-10-16-research-review-what-is-proprietary-and-how-to-make-it-official.md. Not legal advice.',
+    more: 'Every document is private to whoever filed it. Its filer may share it with the household: then the other owners, admins and members of the household can read and open it, while only the filer can change or remove it. Viewers and assistants never see shared legal paper. A step done on another account counts here once its paper is shared. Files sit in a private vault opened by links that expire in five minutes; encryption with your own key is designed and not built yet. The full write-up behind the steps, with costs and sources, is in the repository at docs/99-session-notes/2026-10-16-research-review-what-is-proprietary-and-how-to-make-it-official.md. Not legal advice.',
     section: 'money',
   },
   'books:taxes': {

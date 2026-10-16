@@ -82,12 +82,13 @@ church's name is PoeTech's, or that encryption exists that does not.
 What this does not do (DR-0329: say what is not built):
 
 
-- **Family shelves do not sync yet.** Darrell asked for exactly that, with the
-  condition that people who do not want it are never made to. That is the next
-  change: an opt-in, per-document share to the household, private by default,
-  modelled on the church shelf's `shared_with_office` toggle. It widens who can
-  read privileged paper, so it ships separately with its own database smoke.
-  Until then the steps panel says plainly that it reads only the viewer's shelf.
+- **Family shelves sync only by the filer's choice.** Darrell asked for exactly
+  that, with the condition that people who do not want it are never made to.
+  It is its own decision, DR-1077 (migration 0299): an opt-in, per-document
+  share to the household, private by default, modelled on the church shelf's
+  `shared_with_office` toggle, with its own database smoke because it widens
+  who can read privileged paper. The steps panel reads the viewer's shelf plus
+  whatever the household chose to share.
 - **Lived records as support.** This change is the first piece of it: the Help
   a person meets is now written from what each surface actually does, and the
   steps are derived from the real paper. Ari answering "where is my X" from the
