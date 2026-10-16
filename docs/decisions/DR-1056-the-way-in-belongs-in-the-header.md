@@ -60,6 +60,32 @@ the way in.*
    **frozen at its line budget and may only shrink** (`monolith-budget-guard`),
    so a new header line would have failed the gate. One line out, one line in.
 
+## A SECOND registry pinned the install button, and CI found it
+
+`install-app-button.test.jsx` was not the only place that pinned
+`<InstallAppButton />` in the shell by source. `app/src/lib/feature-registry.json`
+— the DR-0726 feature-presence gate — carried its own entry, and CI failed with
+exactly the sentence that gate exists to produce: **"Missing: Install the app
+(header bar)."**
+
+That is the gate working. The shell is 5,000+ lines with Supabase and a PIN
+gate, so it cannot be rendered in jsdom and the entry is a *source* pin — which
+means an indirection is invisible to it by design, and it says so rather than
+going quietly green.
+
+The entry now names what the shell really contains (`<AppDoorControls`), with a
+note recording where the stronger guarantee lives: `app-door-controls.test.jsx`
+and `install-app-button.test.jsx` both read **AppDoorControls itself** rather
+than stopping at the shell, so "the install button is still there" is still
+proven, one level down. And the share control — genuinely new, and the whole
+point of this record — gets its own registry line rather than riding in on the
+install button's.
+
+**Twice in two days a second place pinned the same thing and only CI knew.**
+The first was `call-to-give-sync.js` (DR-1057); this is the second. The habit
+that catches it is the one both records now carry: when a name is removed,
+search the whole tree for it, not the files being edited.
+
 ## Verification
 
 - **The shell did not grow: 5193 lines before, 5193 after**, holding the frozen
