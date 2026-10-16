@@ -98,7 +98,7 @@ export const LEGAL_CATEGORIES = [
       'Operating agreement',
       'Annual report / registered agent',
       // The paper that proves each make-it-official step (lib/make-it-official.js,
-      // DR-1075). Added, never renamed: a rename would orphan shelved rows.
+      // DR-1076). Added, never renamed: a rename would orphan shelved rows.
       'Entity status check (Secretary of State)',
       'Reinstatement filing',
       'Engagement letter — counsel',

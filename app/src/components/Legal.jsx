@@ -482,7 +482,7 @@ export function IpRegisterPanel({ assets = IP_PORTFOLIO }) {
 
 // ---------------------------------------------------------------------------
 // OfficialStepsPanel — the order of work that makes PoeTech's IP official
-// (DR-1075). Every state is derived from the shelf rows passed in: a step is
+// (DR-1076). Every state is derived from the shelf rows passed in: a step is
 // done only when its paper is on the Business shelf. The component holds no
 // state of its own except whether it is open.
 // ---------------------------------------------------------------------------
@@ -700,7 +700,7 @@ export function LegalPlaceholder({ tier = 'foundation', setView, accounts = [], 
         </p>
       </div>
 
-      {/* MAKE IT OFFICIAL (DR-1075) — the order of work, read from the shelves
+      {/* MAKE IT OFFICIAL (DR-1076) — the order of work, read from the shelves
           below. Placed before them so the reader meets the steps, then the
           shelf the paper goes on. */}
       <OfficialStepsPanel docs={docs} />

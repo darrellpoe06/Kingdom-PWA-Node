@@ -1,5 +1,5 @@
 // =============================================================================
-// make-it-official — proven-to-catch (DR-0076 §3), DR-1075
+// make-it-official — proven-to-catch (DR-0076 §3), DR-1076
 // =============================================================================
 // The failure that matters is a step reading DONE with no paper behind it. So
 // every rule is fed the case that would break it:

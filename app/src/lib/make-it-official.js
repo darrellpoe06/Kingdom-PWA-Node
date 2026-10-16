@@ -1,6 +1,6 @@
 // =============================================================================
 // make-it-official — the steps that turn PoeTech's work into owned assets, and
-// whether each one has its paper yet (DR-1075)
+// whether each one has its paper yet (DR-1076)
 // =============================================================================
 // Darrell, 2026-10-16: "what should be proprietary and how to get that official
 // so we can include people and companies... My wife is interested in taking care

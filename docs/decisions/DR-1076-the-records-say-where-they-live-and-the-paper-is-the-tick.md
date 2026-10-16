@@ -1,4 +1,4 @@
-# DR-1075: The records say where they live, and the paper is the tick
+# DR-1076: The records say where they live, and the paper is the tick
 
 **Date:** 2026-10-16
 **Status:** accepted
