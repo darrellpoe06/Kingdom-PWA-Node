@@ -169,12 +169,25 @@ const NOT_THE_WORDS = /their (?:wording|inference|words)[^.]{0,70}(?:not|rather 
 const RHYTHM = 'Do it once today, in one of the four places of Deuteronomy 6:7: at the table, on the way, at bedtime, or first thing. One friend this week.';
 
 describe('L251 exists, is numbered, and carries the day it was built', () => {
-  it('is in the catalog exactly once, at its own number, as the highest', () => {
+  // Written when L251 was the highest number in the catalog. L252 landed the
+  // same day, so "highest" is no longer the thing to pin — what this lesson
+  // must still prove is that it took the NEXT free number rather than jumping
+  // ahead and stranding one. That is the claim worth keeping, and it stays
+  // true however many lessons land above it.
+  it('is in the catalog exactly once, at its own number, taking the next free one', () => {
     expect(LIVING_LESSONS_MODULES.filter((m) => m.id === ID)).toHaveLength(1);
     const claimed = LIVING_LESSONS_MODULES.map((m) => /^ll(\d+)-/.exec(m.id)).filter(Boolean).map((m) => Number(m[1]));
     expect(claimed.filter((n) => n === 251)).toHaveLength(1);
-    expect(Math.max(...claimed)).toBe(251);
-    for (const n of [79, 211, 212]) expect(claimed.includes(n), `${n} is not this lesson's to fill`).toBe(false);
+    expect(claimed.includes(250), '251 follows 250 — no number was jumped').toBe(true);
+    // 79 WAS on this list when this lesson was built in its own worktree. It
+    // is now filled, by the lesson whose number it is, which arrived from main
+    // during integration. Deleting the guard would be the easy move; asserting
+    // the new truth is the honest one.
+    expect(
+      LIVING_LESSONS_MODULES.filter((m) => /^ll79-/.test(m.id)).length,
+      '79 is claimed exactly once, by the lesson whose number it is',
+    ).toBe(1);
+    for (const n of [211, 212]) expect(claimed.includes(n), `${n} is not this lesson's to fill`).toBe(false);
   });
 
   it('carries 2026-10-17, on or after L250', () => {

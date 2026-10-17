@@ -171,7 +171,16 @@ describe('L252 exists exactly once, at its own number, dated the day it was spok
   it('claims 252 and only 252, and fills none of the deliberately empty numbers', () => {
     const claimed = LIVING_LESSONS_MODULES.map((m) => /^ll(\d+)-/.exec(m.id)).filter(Boolean).map((m) => Number(m[1]));
     expect(claimed.filter((n) => n === 252)).toHaveLength(1);
-    for (const n of [79, 211, 212]) expect(claimed.includes(n), `${n} is not this lesson’s to fill`).toBe(false);
+    expect(claimed.includes(251), '252 follows 251 — no number was jumped').toBe(true);
+    // 79 was empty in the worktree this lesson was built in. It is filled now,
+    // by the lesson whose number it is, which came in from main at
+    // integration. The guard is kept and pointed at the new truth rather than
+    // dropped.
+    expect(
+      LIVING_LESSONS_MODULES.filter((m) => /^ll79-/.test(m.id)).length,
+      '79 is claimed exactly once, by the lesson whose number it is',
+    ).toBe(1);
+    for (const n of [211, 212]) expect(claimed.includes(n), `${n} is not this lesson’s to fill`).toBe(false);
   });
 
   it('carries the spoken day, on or after L250’s', () => {
