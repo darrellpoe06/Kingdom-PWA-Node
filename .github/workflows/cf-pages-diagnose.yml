@@ -93,12 +93,28 @@ jobs:
             echo "--- $label"
             echo "    url          : $url"
             echo "    http         : $code"
+            # OUR OWN SHELL, IDENTIFIED POSITIVELY. Vite writes every asset of
+            # this app under /poetech-app/assets/ -- eight times in
+            # dist/index.html, and in no page the NAS serves. "Is this OUR
+            # fallback?" is a question with an answer; "is this HTML?" is not.
+            if grep -q '/poetech-app/assets/' "$body" 2>/dev/null; then shell=yes; else shell=no; fi
             echo "    signed by    : ${road:-<unsigned>}"
+            echo "    our SPA shell: ${shell}"
             echo "    content-type : ${ctype:-<none>}   (a note, not the verdict)"
             echo "    first 160    : $(head -c 160 "$body" | tr '\n' ' ')"
             case "${road:-}" in
-              pages-function|worker) echo "    VERDICT      : A FUNCTION ANSWERED (signed ${road})"; RAN=$((RAN+1)) ;;
-              *)                     echo "    VERDICT      : UNSIGNED - no Function ran on this road"; DARK=$((DARK+1)) ;;
+              pages-function|worker)
+                echo "    VERDICT      : A FUNCTION ANSWERED (signed ${road})"; RAN=$((RAN+1)) ;;
+              *)
+                if [ "$shell" = "yes" ]; then
+                  echo "    VERDICT      : DARK - unsigned AND our own SPA shell, so no Function ran"; DARK=$((DARK+1))
+                else
+                  # Both keys must agree before a road is called dark, so that a
+                  # build deployed before the signature existed is never
+                  # mistaken for an outage -- which is the original mistake in a
+                  # new costume, and the whole point of this record.
+                  echo "    VERDICT      : A FUNCTION ANSWERED (unsigned, but NOT our shell - a build older than DR-1090)"; RAN=$((RAN+1))
+                fi ;;
             esac
             rm -f "$body" "$hdr" "$hdr.clean"
           }

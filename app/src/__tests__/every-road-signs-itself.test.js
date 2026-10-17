@@ -105,6 +105,28 @@ describe('the witnesses actually READ the signature (it is not written into the 
     expect(read(path)).toContain(ROAD_HEADER);
   });
 
+  // TWO KEYS, NOT ONE. A missing signature has two causes and only one is an
+  // outage: the road is dark, OR the served build predates the signature. That
+  // second case is guaranteed at least once, in the minutes between this change
+  // merging and its deploy reaching the edge — and a probe that failed then
+  // would raise the identical false alarm for a new reason. So a road is dark
+  // only when it is unsigned AND the body is OUR shell, identified by
+  // /poetech-app/assets/, which Vite writes into dist/index.html eight times
+  // and no page on the NAS carries.
+  it.each([
+    ['.github/workflows/site-health.yml'],
+    ['.github/workflows/cf-pages-diagnose.yml'],
+  ])('%s also fingerprints our own shell before calling a road dark', (path) => {
+    expect(read(path)).toContain('/poetech-app/assets/');
+  });
+
+  it('our built shell really does carry that fingerprint (the key is not imaginary)', () => {
+    // Read the SOURCE index, which is in the tree whether or not dist exists;
+    // the /poetech-app base is the Vite config's, so the built asset paths
+    // inherit it. A fingerprint nothing carries would fail every road open.
+    expect(read('app/vite.config.js')).toContain('/poetech-app/');
+  });
+
   it('site-health no longer calls a text/html answer a dead Function', () => {
     // The exact false headline, retired. If it comes back, so does the
     // eight-day incident it caused.

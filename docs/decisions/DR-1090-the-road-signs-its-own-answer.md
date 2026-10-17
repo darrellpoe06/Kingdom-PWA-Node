@@ -111,7 +111,19 @@ but HTML** is the NAS answering a page where JSON belongs — a real fault with 
 different owner and a different fix. Naming the wrong layer is what cost eight
 days.
 
-**4. One road is never a layer.** `cf-pages-diagnose.yml` probes five roads
+**4. Two keys, never one — because a signature alone repeats the mistake.**
+A missing signature has two causes and only one is an outage: the road is dark,
+**or the served build predates the signature.** That second case is *guaranteed*
+to happen at least once, in the minutes between this change merging and its
+deploy reaching the edge — and an hourly probe that failed then would raise the
+identical false alarm for a brand-new reason. Shipping that would be the same
+mistake in different clothes, and I nearly did. So a road is dark only when it
+is unsigned **and** the body is OUR shell, identified positively by
+`/poetech-app/assets/` — which Vite writes into `dist/index.html` eight times
+and which no page the NAS serves carries. *"Is this our fallback?"* has an
+answer; *"is this HTML?"* never did.
+
+**5. One road is never a layer.** `cf-pages-diagnose.yml` probes five roads
 across both hosts and prints a tally, so `MIXED`, `ALL DARK` and `ALL LIT` can
 never again look the same from outside. Only paths this repository already
 probes are used — an invented health route would read as dark for the wrong
@@ -125,9 +137,10 @@ reason.
   **byte-identical** (`cmp`) and green after restore:
   - the success path stops signing → **3 cases fail**;
   - the unreachable-502 stops signing → **1 case fails**;
-  - site-health goes back to judging by content type → **1 case fails**.
-- **A fourth mutation attempt proved nothing and is recorded rather than
-  hidden**: its anchor text no longer existed, so the file was never changed and
+  - site-health goes back to judging by content type → **1 case fails**;
+  - site-health drops the shell fingerprint and decides on one key → **1 case
+    fails** (6 occurrences mutated, so the mutation could not be vacuous).
+- **A mutation attempt proved nothing and is recorded rather than hidden**: its anchor text no longer existed, so the file was never changed and
   the suite passed. That is DR-1080's "mutation that does not mutate" trap,
   hit again the same week. Every mutation here now `assert`s its anchor before
   writing, and restoration is checked with `cmp`, not `git diff --stat` — which
