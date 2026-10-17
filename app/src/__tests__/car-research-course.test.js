@@ -90,15 +90,19 @@ const REF_PARENS = /\([1-3]?\s?[A-Za-z]+\s+\d+:[\d\-,\s]+\)/g;
 const ours = (text) => String(text || '').replace(ALL_SPANS, ' ').replace(REF_PARENS, ' ');
 const byId = (id) => M.find((m) => m.id === id);
 const lessonText = (m) => [m.bigIdea, m.lesson, ...BANDS.map((b) => m.levels[b])].join('\n');
-const PROBED_HOSTS = ['blogs.loc.gov', 'web.archive.org', 'group.mercedes-benz.com', 'www.dpma.de', 'germanhistorydocs.org', 'news.un.org', 'nationalmotormuseum.org.uk', 'www.lindahall.org', 'www.thehenryford.org'];
+const PROBED_HOSTS = ['blogs.loc.gov', 'web.archive.org', 'group.mercedes-benz.com', 'www.dpma.de', 'germanhistorydocs.org', 'news.un.org', 'nationalmotormuseum.org.uk', 'www.lindahall.org', 'www.thehenryford.org',
+  // lessons 5 and 6, read on 2026-10-17 (DR-1087)
+  'www.energy.gov', 'csd.cmu.edu', 'www.darpa.mil', 'computerhistory.org', 'waymo.com', 'www.sae.org', 'www.nhtsa.gov'];
 
 describe('the course exists, in an order that makes sense, shaped like a course', () => {
-  it('carries four competencies: define, go to the issuing record, give each their due, write it in order', () => {
+  it('carries six competencies: define, go to the issuing record, give each their due, write it in order, read the past in its own day, name the level and who answers', () => {
     expect(M.map((m) => m.id)).toEqual([
       'car1-what-is-a-car',
       'car2-go-to-the-issuing-record',
       'car3-others-laboured',
       'car4-for-the-multitude-and-the-giver',
+      'car5-the-electric-car-came-early',
+      'car6-who-is-driving',
     ]);
   });
   it('gives every lesson the whole shape a reader and a facilitator both need', () => {
@@ -146,9 +150,9 @@ describe('His words, fetched not remembered', () => {
     }
     for (const m of M) for (const b of BANDS) expect(m.levels[b], `${m.id} ${b} never says Yahweh`).toMatch(/Yahweh/);
   });
-  it('cites every anchor it names, and every anchor resolves in the corpus — 17, measured', () => {
+  it('cites every anchor it names, and every anchor resolves in the corpus — 25, measured', () => {
     const refs = carResearchRefs();
-    expect(refs).toHaveLength(17);
+    expect(refs).toHaveLength(25);
     for (const r of refs) {
       const m = r.match(/^([1-3]?\s?[A-Za-z]+)\s+(\d+):([\d\-,\s]+)$/);
       expect(m, r).toBeTruthy();
@@ -224,6 +228,33 @@ describe('the four competencies each teach their own thing — from the fetched 
     const t = lessonText(m);
     for (const ref of ['(Proverbs 8:12)', '(Isaiah 28:26)', '(Hebrews 11:3)', '(Deuteronomy 6:7)']) expect(t, ref).toContain(ref);
   });
+  // Lessons 5 and 6 (DR-1087): the children's next two questions, the same craft.
+  it('lesson 5 reads the electric car in its own day: a third of the road in 1900, the reasons, the prices of 1912, gone by 1935', () => {
+    const m = byId('car5-the-electric-car-came-early');
+    const said = m.voices.map((v) => v.words).join(' ');
+    expect(said).toContain('hard to pinpoint the invention of the electric car to one inventor or country');
+    expect(said).toContain('started instantly without hand cranking');
+    expect(m.workedCase.economics.map((e) => e.figure)).toEqual(expect.arrayContaining(['$650', '$1,750', '$3,730 against $627']));
+    expect(m.timeline.map((t) => t.year)).toEqual(expect.arrayContaining([1890, 1900, 1912, 1935]));
+    const t = lessonText(m);
+    for (const name of ['Morrison', 'Anderson', 'Clara Ford', 'Kettering']) expect(t, name).toContain(name);
+    for (const ref of ['(Ecclesiastes 1:10)', '(Ecclesiastes 1:11)', '(Job 38:35)', '(Psalms 135:7)']) expect(t, ref).toContain(ref);
+    // About 5 years, 11 months: the museum's own figure, and it is what $3,730 over $627 a year measures.
+    expect(3730 / 627).toBeGreaterThan(5.9);
+    expect(3730 / 627).toBeLessThan(6.0);
+  });
+  it('lesson 6 names the level before the first, sets the company claim beside the agency, and asks who answers, by the law of the ox', () => {
+    const m = byId('car6-who-is-driving');
+    expect(m.workedCase.claim.words).toBe('took the world’s first ride in a self-driving car on public roads');
+    expect(m.voices.map((v) => v.words).join(' ')).toContain('requires the full attention of the driver at all times');
+    const t = lessonText(m);
+    for (const b of BANDS) expect(m.levels[b], b).toMatch(/Level 4/);
+    for (const name of ['Navlab', 'DARPA', 'Stanford', 'Steve Mahan', 'Waymo', 'J3016']) expect(t, name).toContain(name);
+    for (const ref of ['(Proverbs 14:15)', '(Exodus 21:29)', '(Jeremiah 10:23)', '(Proverbs 16:9)']) expect(t, ref).toContain(ref);
+    expect(m.timeline.map((x) => x.year)).toEqual(expect.arrayContaining([1995, 2004, 2005, 2015, 2020]));
+    // The one open question here is responsibility, named narrowly.
+    expect(m.workedCase.stillOpen).toMatch(/responsibility/);
+  });
   it('never stages both-sides theatre: the one open question is named narrowly, as a question of definition', () => {
     for (const m of M) {
       expect(/both sides|you decide|pick a side/i.test(lessonText(m)), m.id).toBe(false);
@@ -271,7 +302,7 @@ describe('voices of the time and the record, dated: probed on a runner before th
       expect(PROBED_HOSTS, s.url).toContain(host);
       expect([...HISTORY_SOURCE_HOSTS, ...HISTORY_RECORD_HOSTS], s.url).toContain(host);
     }
-    expect(carResearchSources().length).toBe(12);
+    expect(carResearchSources().length).toBe(21);
   });
   it('reads the two pages that refuse a runner only from the Wayback Machine’s copies', () => {
     for (const s of carResearchSources()) {
@@ -313,14 +344,14 @@ describe('it is wired into the school as the History department’s third course
     expect(coursesWithNoShelfDeclaration(['car-research-who-invented-the-car'])).toEqual([]);
     const x = COURSE_CROSS_LISTINGS.find((c) => c.courseKey === 'car-research-who-invented-the-car');
     expect(x.department).toBe('The Word & The Way');
-    expect(x.why).toContain(`${carResearchRefs().length} Scripture anchors across four lessons`);
+    expect(x.why).toContain(`${carResearchRefs().length} Scripture anchors across six lessons`);
   });
   it('builds a real schedule, summarises progress, and exports its curriculum', () => {
-    expect(buildCarResearchSchedule(null)).toHaveLength(4);
+    expect(buildCarResearchSchedule(null)).toHaveLength(6);
     expect(carResearchProgressSummary({})).toBeTruthy();
     const md = exportCarResearchCurriculumMarkdown(null);
     expect(md).toContain(CAR_RESEARCH_META.title);
-    expect(row.buildScheduleRows()).toHaveLength(4);
+    expect(row.buildScheduleRows()).toHaveLength(6);
   });
   it('offers the tutor a posture that keeps the craft', () => {
     expect(CAR_RESEARCH_TUTOR_META.posture).toMatch(/two or three witnesses/);

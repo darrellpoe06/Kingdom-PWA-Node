@@ -773,10 +773,10 @@ export const LEARN_CATALOG = [
     buildScheduleRows: () => buildCarResearchSchedule(null), progressSummary: (p) => carResearchProgressSummary(p),
     exportMarkdown: () => exportCarResearchCurriculumMarkdown(null), downloadName: 'historical-research-level-1-who-invented-the-car-curriculum.md',
     interestTag: CAR_RESEARCH_INTEREST_TAG, helperTag: CAR_RESEARCH_HELPER_TAG, tutorCourseMeta: CAR_RESEARCH_TUTOR_META,
-    interestText: (who) => `${CAR_RESEARCH_INTEREST_TAG} ${who} wants a hand working a famous first through the four competencies.`,
+    interestText: (who) => `${CAR_RESEARCH_INTEREST_TAG} ${who} wants a hand working a famous first through the six competencies.`,
     interestCopy: {
       heading: 'Want a hand with a first of your own?',
-      blurb: 'Tell Darrell you want help working the four competencies on a real claim — a first your family, town or country repeats: define what is being counted, find the office that issued the record, name the people one answer leaves out, and write it in order with a record under every sentence. Teaching, not a substitute for the record: every document this course names can be read in full where it points, and you are meant to check it.',
+      blurb: 'Tell Darrell you want help working the six competencies on a real claim — a first your family, town or country repeats: define what is being counted, find the office that issued the record, name the people one answer leaves out, write it in order with a record under every sentence, read a past choice in its own day, and name the level of a machine and who answers for it. Teaching, not a substitute for the record: every document this course names can be read in full where it points, and you are meant to check it.',
       cta: 'I want help with mine',
       sent: '✓ Sent — Darrell will reach out. Hear the whole question; go to the issuing record; render to all their dues.',
     },
