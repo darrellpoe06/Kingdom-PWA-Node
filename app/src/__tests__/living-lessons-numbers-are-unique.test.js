@@ -75,7 +75,46 @@ export function unclaimedNumbers(modules) {
 // floors in all four bands, and spliced between ll78 and ll80. The entry comes
 // off the list rather than being left as a passing-but-stale allowance, which
 // is the whole point of a shrink-only ratchet.
+//
+// 211 AND 212 WILL NEVER BE PAID, AND THAT IS NOT A DEBT — ANSWERED
+// 2026-10-17, on #2166's dated re-review "look at 211 and 212 the way 79 was
+// looked at". Looked at the same way, they are the opposite case, and the
+// answer was already in writing on main the day they were built:
+//
+//   · 211 is DR-0760's build label. The brief said "ll211" while naming the
+//     placement "Sovereign A.I." — and those cannot both be literal, because
+//     `ll*` is THIS catalog's scheme while that course requires `sov<week>`.
+//     The placement was the part that was right. The teaching shipped as
+//     **sov34**, and the record says it outright: "No `ll211` exists."
+//   · 212 is DR-0761's, identically: worktree `wt-l212`, branch
+//     `claude/lesson-l212`, teaching shipped as **sov33**.
+//
+// So 79 and these two are different animals wearing one list. 79 was a real
+// lesson whose text sat stranded in an unmergeable PR for two months — a hole
+// in the TEACHING, and it was paid. 211 and 212 are holes in a NUMBER
+// SEQUENCE that never had teaching assigned to them, because the number came
+// from the orchestrator's build-label namespace and not from this catalog at
+// all. Nothing is missing from the app; two labels were simply never minted
+// here.
+//
+// They are kept on the list, not deleted, because the unclaimed-number check
+// must keep accounting for them — but the list is no longer allowed to say
+// only "known". A gap a reader can see (L210 then L213) with no reason
+// written beside it is a standing invitation to investigate it again, which
+// is exactly what today cost. Renumbering the catalog to close the visual
+// skip is deliberately NOT done: it would move every lesson above 212 and
+// invalidate every number pinned anywhere, to cosmetically hide two labels
+// that were never ours. `re-review: 2027-04-17` — only if the orchestrator's
+// label namespace and this catalog's are ever actually unified.
 const KNOWN_GAPS = [211, 212];
+
+// Why each one is allowed to be unclaimed, by record. A number may sit on
+// KNOWN_GAPS only with its reason here, so the next reader gets the answer
+// instead of the investigation.
+const GAP_REASONS = {
+  211: 'DR-0760 — the orchestrator build label `wt-l211`; the teaching shipped as sovereign-ai sov34. No ll211 was ever minted.',
+  212: 'DR-0761 — the orchestrator build label `wt-l212`; the teaching shipped as sovereign-ai sov33. No ll212 was ever minted.',
+};
 
 describe('Living Lessons — the lesson number is unique', () => {
   it('no two modules share a lesson number', () => {
@@ -114,6 +153,17 @@ describe('Living Lessons — the lesson number is unique', () => {
     expect(appeared, 'a lesson number nobody claims is a hole a reader can fall into').toEqual([]);
     expect(gaps.length, 'shrink-only: KNOWN_GAPS may lose entries, never gain them')
       .toBeLessThanOrEqual(KNOWN_GAPS.length);
+  });
+
+  // An allowance with no reason beside it is how 211 and 212 got investigated
+  // twice. A number may be excused from the sequence only with its record.
+  it('every excused number says WHY it is excused, by record', () => {
+    for (const n of KNOWN_GAPS) {
+      expect(GAP_REASONS[n], `${n} is excused from the sequence with no reason written down`)
+        .toMatch(/DR-\d{4}/);
+    }
+    expect(Object.keys(GAP_REASONS).map(Number).sort((a, b) => a - b))
+      .toEqual([...KNOWN_GAPS].sort((a, b) => a - b));
   });
 
   // PROVEN-TO-CATCH on the real shape of the ll79 miss: a catalog that skips a
