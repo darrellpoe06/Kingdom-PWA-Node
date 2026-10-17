@@ -1,6 +1,6 @@
 // @vitest-environment node
 // =============================================================================
-// L253 — "That Rock Was Christ": what Darrell sent into the house on
+// L251 — "That Rock Was Christ": what Darrell sent into the house on
 // 2026-10-17, built the same session (a spoken teaching is build input).
 // DR-1096.
 // =============================================================================
@@ -31,7 +31,7 @@
 // brought them to 0.51 / 0.61 / 0.61 / 0.62 against 2,098 words. The house on
 // the rock (Matthew 7:24-27; Luke 6:46-49) and Isaiah 28:16 belong to the
 // inspections course, and Luke 13:1-5 (the tower of Siloam, the obvious
-// suffering text) to the insurance-risk course, so L253 quotes none of them.
+// suffering text) to the insurance-risk course, so L251 quotes none of them.
 import { describe, it, expect } from 'vitest';
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
@@ -82,7 +82,7 @@ const verbatimFaults = (L) => {
   return bad;
 };
 
-const ID = 'll253-that-rock-was-christ-identity-not-of-blood';
+const ID = 'll251-that-rock-was-christ-identity-not-of-blood';
 const L = LIVING_LESSONS_MODULES.find((m) => m.id === ID);
 const TEXTS = L ? { adult: L.lesson, ...Object.fromEntries(BANDS.map((b) => [b, L.levels[b]])) } : {};
 const ALL = Object.keys(TEXTS);
@@ -143,20 +143,21 @@ const STRANDS = [
   ['every nation before the Lamb', 'Revelation', 7, 9, 'a great multitude, which no man could number, of all nations, and kindreds, and people, and tongues'],
 ];
 
-describe('L253 exists, is numbered, and is dated the day it was sent', () => {
+describe('L251 exists, is numbered, and is dated the day it was sent', () => {
   it('is in the catalog exactly once, and the number is its own', () => {
     expect(LIVING_LESSONS_MODULES.filter((m) => m.id === ID)).toHaveLength(1);
     const claimed = LIVING_LESSONS_MODULES.map((m) => /^ll(\d+)-/.exec(m.id)).filter(Boolean).map((m) => Number(m[1]));
-    expect(claimed.filter((n) => n === 253)).toHaveLength(1);
-    expect(Math.max(...claimed)).toBeGreaterThanOrEqual(253);
+    expect(claimed.filter((n) => n === 251)).toHaveLength(1);
+    expect(Math.max(...claimed)).toBeGreaterThanOrEqual(251);
     // 211 and 212 were never minted in this catalog (DR-0760, DR-0761), so
     // nobody may fill them by accident. ll79 is being paid on another branch,
     // so it is held to "at most once", which is true before and after it lands.
     for (const n of [211, 212]) expect(claimed.includes(n), `${n} is not this lesson's to fill`).toBe(false);
     expect(claimed.filter((n) => n === 79).length).toBeLessThanOrEqual(1);
-    // ll251 and ll252 are held by an unlanded branch; whatever lands, each is
-    // claimed at most once and never by this lesson.
-    for (const n of [251, 252]) expect(claimed.filter((x) => x === n).length).toBeLessThanOrEqual(1);
+    // ll251 is this lesson: the next number on main. A held branch (#2166) had
+    // reserved 251 and 252; the id-collision gate makes it renumber loudly when
+    // it is released, rather than this lesson leaving a gap the ratchet forbids.
+    expect(claimed.filter((x) => x === 252).length).toBeLessThanOrEqual(1);
   });
   it('carries the day it was sent, on or after L250', () => {
     expect(LIVING_LESSONS_ADDED[ID]).toBe('2026-10-17');
@@ -169,7 +170,7 @@ describe('L253 exists, is numbered, and is dated the day it was sent', () => {
   });
 });
 
-describe('L253 carries both of Darrell’s messages in every band', () => {
+describe('L251 carries both of Darrell’s messages in every band', () => {
   it.each(ALL)('%s carries his line, the Rock of Yahweh in the wilderness in Old Testament times', (k) => {
     expect(/Rock of Yahweh in the wilderness in Old Testament times/i.test(TEXTS[k]), `${k} drops his line`).toBe(true);
   });
@@ -198,7 +199,7 @@ describe('L253 carries both of Darrell’s messages in every band', () => {
   });
 });
 
-describe('L253 — the Rock was Christ, not of blood, and Genesis 9 read as written', () => {
+describe('L251 — the Rock was Christ, not of blood, and Genesis 9 read as written', () => {
   it.each(ALL)('%s goes to the wilderness rock (Exodus 17:6) before Paul names it (1 Corinthians 10:4)', (k) => {
     const t = TEXTS[k];
     const rock = t.indexOf('(Exodus 17:6)');
@@ -228,7 +229,7 @@ describe('L253 — the Rock was Christ, not of blood, and Genesis 9 read as writ
   });
 });
 
-describe('L253 — every quoted span is the verse', () => {
+describe('L251 — every quoted span is the verse', () => {
   it.each(STRANDS)('%s — %s %s:%s', (_why, book, ch, n, span) => {
     const v = verse(book, ch, n);
     expect(v, `${book} ${ch}:${n} resolves`).toBeTruthy();
@@ -271,7 +272,7 @@ describe('L253 — every quoted span is the verse', () => {
   });
 });
 
-describe('L253 — four bands, each carrying the whole message', () => {
+describe('L251 — four bands, each carrying the whole message', () => {
   const measured = measureFullness(L);
   it.each(BANDS)('%s clears its floor', (b) => {
     expect(measured.bands[b].share).toBeGreaterThanOrEqual(FULL_FLOOR[b]);
@@ -301,7 +302,7 @@ describe('L253 — four bands, each carrying the whole message', () => {
   });
 });
 
-describe('L253 — two stories, and Yahweh in our voice', () => {
+describe('L251 — two stories, and Yahweh in our voice', () => {
   it('carries two real stories, one light and one solemn, with no double-quoted span', () => {
     const real = (L.stories || []).filter((s) => s.kind === 'parable' || s.kind === 'testimony');
     expect(real.length).toBeGreaterThanOrEqual(2);

@@ -1,19 +1,19 @@
-# DR-1096: That Rock was Christ — identity not of blood, and the search for where we come from (ll253)
+# DR-1096: That Rock was Christ — identity not of blood, and the search for where we come from (ll251)
 
 **Date:** 2026-10-17
 **Status:** accepted
 **Tier:** A (additive curriculum: one new Living Lessons module, dated, with its gate)
 **Type:** curriculum
 **Area:**
-- `app/src/lib/living-lessons-class.js` (`ll253-that-rock-was-christ-identity-not-of-blood`, appended after ll250)
-- `app/src/lib/living-lessons-dates.js` (ll253's line; the day it was sent)
-- `app/src/__tests__/living-lessons-l253-spoken-2026-10-17.test.js` (its gate)
-- `app/src/__tests__/living-lessons-order.test.jsx` (the newest-day pin, kept current: L253 now carries the highest number and 2026-10-17)
+- `app/src/lib/living-lessons-class.js` (`ll251-that-rock-was-christ-identity-not-of-blood`, appended after ll250)
+- `app/src/lib/living-lessons-dates.js` (ll251's line; the day it was sent)
+- `app/src/__tests__/living-lessons-l251-spoken-2026-10-17.test.js` (its gate)
+- `app/src/__tests__/living-lessons-order.test.jsx` (the newest-day pin, kept current: L251 now carries the highest number and 2026-10-17)
 
 **Amends:** nothing. Grounds: DR-0076 (every verse fetched verbatim from the repository's own KJV), DR-0098 (teach the Word, do not debate it), DR-0100 (documented harm stated plainly), DR-0210 (Yahweh in our voice, quotations untouched), DR-0331 (his words rendered for meaning), the standing rule that a spoken teaching is build input.
 **Declared by:** Darrell, 2026-10-17, in two messages. First the word "Lesson" above a summary of an episode of The Deep End with Lecrae (Lecrae hosting Zadok, a Christian hip-hop artist who identifies with the Hebrew Israelite movement, and Jerome Gay Jr., a pastor and theologian: the claim of flesh-and-blood descent, why people come, the Twelve Tribes Chart, the misuse of the curse of Ham, racial idolatry, and the deity of Christ). Then, while it was being built, his own line: "Rock Of Yahweh in the wilderness in Old Testament times etc..."
 
-**Number:** ll251 and ll252 are held by an unlanded branch, so this lesson is ll253. The record was expected to be DR-1092, but `claim-decision-number.mjs` reported DR-1092 through DR-1095 held by `origin/claude/account-backup-storage-purge-xr35o0`; DR-1096 is the next number free on disk and in flight (DR-1079).
+**Number:** ll251, the next number on main. PR #2166 (`origin/claude/account-backup-storage-purge-xr35o0`) had reserved ll251 and ll252, but it carries Darrell's `hold` label. Holding this lesson behind it would have left 251 and 252 as a gap, which the shrink-only ratchet `living-lessons-numbers-are-unique` forbids, and widening that ratchet would let a real skipped number through. So this lesson takes 251. When #2166 is released, `living-lessons-id-collision` makes it renumber its lessons, loudly. The record is DR-1096, because `claim-decision-number.mjs` reported DR-1092 through DR-1095 held by that same branch, and DR-1096 is the next number free on disk and in flight (DR-1079).
 
 ---
 
@@ -52,7 +52,7 @@ The gate pins the spine in every place a reader reads: Exodus 17:6 before 1 Cori
 
 ## Verification
 
-- `living-lessons-l253-spoken-2026-10-17.test.js`: in the catalog once, dated 2026-10-17 on or after L250, names Darrell and carries both messages; his line in every band; the episode attributed with name, host, guests and timestamps, and its "not monolithic" kept; the spine in every band; 51 named strands verbatim; every referenced span verbatim with case, PROVEN TO CATCH an altered quotation ("Cursed be Ham", and "Yahweh" substituted into John 1:1); corpus apostrophes; no elision; "God" untouched inside quotations; the other courses' verses absent; fullness PROVEN TO CATCH a trimmed band, title, differentiation, directions and the reading ladder; two stories that teach this lesson; Yahweh in our voice in every band, with the generic-name check proven to catch; quiz answers not all in one position.
-- The catalog-wide lesson, course and quotation suites (326 files, 10,251 tests) run with L253 in the catalog. Every one is green except two shrink-only number ratchets, `living-lessons-numbers-are-unique` and `living-lessons-id-collision`, which report 251 and 252 as unclaimed. That is true on main alone: those two numbers are held by `origin/claude/account-backup-storage-purge-xr35o0` (ll251 and ll252, DR-1093 and DR-1094). The ratchets were NOT widened to admit the gap (that would let a real skipped number through); instead L253 lands after that branch, and its tree merged with that branch was run to confirm both ratchets go green there. Lint, `help-freshness` and `interconnect-guard` are green.
-- Proven to catch on the real catalog: changing L253's teen quotation of Genesis 9:25 to "Cursed be Ham" fails the gate twice (the spine check and the verbatim check).
-- `re-review: 2026-10-24` — read L253 on the live app in each band, and capture the first reader who reports reading Genesis 9 or 1 Corinthians 10 for themselves.
+- `living-lessons-l251-spoken-2026-10-17.test.js`: in the catalog once, dated 2026-10-17 on or after L250, names Darrell and carries both messages; his line in every band; the episode attributed with name, host, guests and timestamps, and its "not monolithic" kept; the spine in every band; 51 named strands verbatim; every referenced span verbatim with case, PROVEN TO CATCH an altered quotation ("Cursed be Ham", and "Yahweh" substituted into John 1:1); corpus apostrophes; no elision; "God" untouched inside quotations; the other courses' verses absent; fullness PROVEN TO CATCH a trimmed band, title, differentiation, directions and the reading ladder; two stories that teach this lesson; Yahweh in our voice in every band, with the generic-name check proven to catch; quiz answers not all in one position.
+- The catalog-wide lesson, course and quotation suites run with L251 in the catalog. That includes the two shrink-only number ratchets, `living-lessons-numbers-are-unique` and `living-lessons-id-collision`, which pass on main with L251 as the next consecutive number. Lint, `help-freshness` and `interconnect-guard` are green.
+- Proven to catch on the real catalog: changing L251's teen quotation of Genesis 9:25 to "Cursed be Ham" fails the gate twice (the spine check and the verbatim check).
+- `re-review: 2026-10-24` — read L251 on the live app in each band, and capture the first reader who reports reading Genesis 9 or 1 Corinthians 10 for themselves.

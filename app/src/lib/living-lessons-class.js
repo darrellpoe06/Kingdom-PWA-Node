@@ -23696,9 +23696,9 @@ export const LIVING_LESSONS_MODULES = [
       ]
     }
   },
-  // ll253 - That Rock was Christ: identity not of blood, and the search for where we come from (Darrell, 2026-10-17)
+  // ll251 - That Rock was Christ: identity not of blood, and the search for where we come from (Darrell, 2026-10-17)
   {
-    "id": "ll253-that-rock-was-christ-identity-not-of-blood",
+    "id": "ll251-that-rock-was-christ-identity-not-of-blood",
     "stories": [
       {
         "kind": "parable",

@@ -116,9 +116,9 @@ describe('the day each lesson was added — a recorded day, and a new lesson joi
     // "His ways are higher, so He gives us the bread") was spoken into the
     // house on the morning of 2026-10-16, so the highest-numbered lesson now
     // carries 2026-10-16. (L245–L247, DR-1034–1036, hold 2026-10-15 behind it.)
-    // L253 (DR-1096, "That Rock was Christ") was sent into the house on
+    // L251 (DR-1096, "That Rock was Christ") was sent into the house on
     // 2026-10-17 and is now the highest number, so the newest day moves with it.
-    expect(byNum[byNum.length - 1].added).toBe('2026-10-17'); // L253 (DR-1096)
+    expect(byNum[byNum.length - 1].added).toBe('2026-10-17'); // L251 (DR-1096)
   });
 
   it('formats a calendar day without a time-zone shift, and months are labels', () => {
