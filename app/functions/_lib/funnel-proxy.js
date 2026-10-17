@@ -26,7 +26,7 @@
 //
 // This directory is underscore-prefixed, so Pages does NOT route it.
 //
-// EVERY ANSWER FROM HERE SIGNS ITSELF (2026-10-17, DR-1090). From 2026-10-09 to
+// EVERY ANSWER FROM HERE SIGNS ITSELF (2026-10-17, DR-1092). From 2026-10-09 to
 // 2026-10-17 this repository carried an incident — #2057, 38 comments, a zone
 // Worker written to route around it (DR-1068) and an unlock that put the
 // absolute Funnel origin back into the client bundle — all on the claim that NO
