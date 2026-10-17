@@ -21,7 +21,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { SectionTitle, TabScroll } from './shared.jsx';
 import { onAuthChange } from '../lib/supabase.js';
-import { subscribeSongs, subscribeSermons } from '../lib/choir-sync.js';
+import { subscribeSongs, subscribeSermons, subscribeTeamDocuments } from '../lib/choir-sync.js';
 import {
   SECTORS, STEWARD, sectorShort,
   deriveSectorView, reflowProgram, formatClock,
@@ -33,6 +33,7 @@ import {
 } from '../lib/service-program.js';
 import { COLG_DEFAULT_CHURCH } from '../lib/default-church.js';
 import { parseEmailOrder } from '../lib/order-import.js';
+import { orderDocuments, orderReadFailure, readOrderText } from '../lib/order-from-document.js';
 import UiIcon from './UiIcon.jsx';
 import SectionTabs from './SectionTabs.jsx';
 import ServiceActuals, { TrackRecord } from './ServiceActuals.jsx';
@@ -229,12 +230,41 @@ function SegmentForm({ initial, programSongs, programSermons, busy, onSave, onCa
 // nothing drops silently, DR-0076), then inserts. Segments land through the
 // normal lane and stay editable like any hand-entered segment.
 // -----------------------------------------------------------------------------
-function EmailImportForm({ existingCount, busy, onInsert, onCancel }) {
+// DR-1088: or start from an Order of Service already filed on Team Docs — its
+// own words load into the same box, editable, and nothing is written until
+// the steward inserts.
+function EmailImportForm({ existingCount, busy, onInsert, onCancel, orders = [], read = readOrderText }) {
   const [text, setText] = useState('');
+  const [pick, setPick] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [from, setFrom] = useState(null);
+  const [readError, setReadError] = useState('');
   const parsed = useMemo(() => parseEmailOrder(text), [text]);
+  const load = async () => {
+    const doc = orders.find((d) => String(d.id) === pick);
+    if (!doc) return;
+    setLoading(true); setReadError('');
+    const res = await read(doc);
+    setLoading(false);
+    if (res.ok) { setText(res.text); setFrom(doc); } else { setReadError(orderReadFailure(res.reason, res.kind)); }
+  };
   return (
     <div className="bg-white border-2 border-[#B85838] p-3 mb-3">
-      <label className={LABEL} htmlFor="sp-email-paste">Paste the emailed order of service</label>
+      {orders.length > 0 && (
+        <div className="mb-3">
+          <label className={LABEL} htmlFor="sp-order-doc">Start from an Order of Service in Team Docs</label>
+          <div className="flex gap-2 flex-wrap">
+            <select id="sp-order-doc" className={`${FIELD} flex-1 min-w-[12rem]`} value={pick} onChange={(e) => { setPick(e.target.value); setReadError(''); }}>
+              <option value="">Choose a filed order…</option>
+              {orders.map((d) => <option key={d.id} value={String(d.id)}>{d.docDate ? `${d.docDate} · ` : ''}{d.title}</option>)}
+            </select>
+            <button type="button" disabled={!pick || loading} onClick={load} className={`${BTN} border border-[#B85838] text-[#B85838] disabled:opacity-50`}>{loading ? 'Reading…' : 'Load it here'}</button>
+          </div>
+          {readError && <p className="text-[0.6875rem] text-[#B85838] mt-1" role="alert" style={{ fontFamily: '"Fraunces", serif' }}>{readError}</p>}
+          {from && !readError && <p className="text-[0.6875rem] text-[#5A6E3D] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>Loaded from &ldquo;{from.title}&rdquo;{from.docDate ? `, dated ${from.docDate}` : ''}. Edit the lines below, then insert.</p>}
+        </div>
+      )}
+      <label className={LABEL} htmlFor="sp-email-paste">{orders.length > 0 ? 'Or paste the emailed order of service' : 'Paste the emailed order of service'}</label>
       <textarea id="sp-email-paste" rows={8} className={FIELD} value={text} onChange={(e) => setText(e.target.value)}
         placeholder={'Copy the order from the church email (or the attached document) and paste it here, one item per line:\n\nCall to Worship\nPraise & Worship (20 min)\nWelcome & Announcements\nOffering\nSermon — Pastor McCray · 2 Kings 9:30-37\nBenediction'} />
       {text.trim() && (
@@ -403,6 +433,7 @@ export default function ServiceProgram() {
   const [changes, setChanges] = useState([]);
   const [members, setMembers] = useState([]);
   const [actuals, setActuals] = useState([]);
+  const [teamDocs, setTeamDocs] = useState([]);
   const [manageFinalizers, setManageFinalizers] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
@@ -444,6 +475,8 @@ export default function ServiceProgram() {
       subscribeChanges(setChanges),
       subscribeActuals(setActuals),
       ...(access.canEdit ? [subscribeFinalizerMembers(setMembers)] : []),
+      // DR-1088: the filed orders a steward can start from.
+      ...(access.canEdit ? [subscribeTeamDocuments(setTeamDocs)] : []),
     ];
     return () => unsubs.forEach((u) => { try { u && u(); } catch { /* noop */ } });
   }, [signedIn, access.canSee, access.canEdit]);
@@ -719,7 +752,7 @@ export default function ServiceProgram() {
             <div className="flex gap-2 flex-wrap mb-3">
               <button type="button" onClick={() => setSegmentForm({ initial: { sortOrder: (programSegments.length + 1) * 10 } })} className={`${BTN} bg-[#5A6E3D] text-white font-semibold`}>＋ Add segment</button>
               <button type="button" onClick={() => setProgramForm({ initial: program })} className={`${BTN} text-[#5A5751] hover:text-[#1A1815] border border-[#E8E4DC]`}>Edit master</button>
-              <button type="button" onClick={() => setEmailImportOpen((o) => !o)} className={`${BTN} text-[#B85838] border border-[#B85838]`} aria-expanded={emailImportOpen}><UiIcon name="mail" /> Paste from church email</button>
+              <button type="button" onClick={() => setEmailImportOpen((o) => !o)} className={`${BTN} text-[#B85838] border border-[#B85838]`} aria-expanded={emailImportOpen}><UiIcon name="mail" /> From Team Docs or email</button>
               {programSegments.length === 0 && <button type="button" onClick={onSeed} disabled={busy} className={`${BTN} text-[#B85838] border border-[#B85838] disabled:opacity-50`}>Start from Bishop Gwin\u2019s order ({seedDefaultOrder().length})</button>}
               {programSegments.length === 0 && blueprint && (
                 <button type="button" onClick={onSeedBlueprint} disabled={busy} className={`${BTN} bg-[#1A1815] text-white font-semibold disabled:opacity-50`}>
@@ -730,7 +763,7 @@ export default function ServiceProgram() {
             </div>
           )}
           {segmentForm && isStewardEditing && <SegmentForm initial={segmentForm.initial} programSongs={programSongs} programSermons={programSermons} busy={busy} onSave={onSaveSegment} onCancel={() => setSegmentForm(null)} />}
-          {emailImportOpen && isStewardEditing && <EmailImportForm existingCount={programSegments.length} busy={busy} onInsert={onImportEmail} onCancel={() => setEmailImportOpen(false)} />}
+          {emailImportOpen && isStewardEditing && <EmailImportForm existingCount={programSegments.length} busy={busy} onInsert={onImportEmail} onCancel={() => setEmailImportOpen(false)} orders={orderDocuments(teamDocs)} />}
 
           {/* The flow */}
           {view && view.flow.length === 0 && (

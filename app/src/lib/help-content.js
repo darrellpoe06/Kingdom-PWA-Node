@@ -568,7 +568,7 @@ export const HELP = {
     tag: 'One master order of worship, shared to every team.',
     what: 'Order of Service is the single master plan for a Sunday. From that one order, each team — choir, pulpit, music, media, ushers, hospitality — gets its own derived view, and the closing loop reconciles what was planned against what actually happened.',
     how: [
-      'Build the master order for the service.',
+      'Build the master order for the service. A steward can start it from an Order of Service already filed on Choir → Team Docs: tap "From Team Docs or email", choose the order, and its words load into an editable box with a preview of the segments before anything is saved.',
       'Each team reads its own slice, derived automatically.',
       'After the service, reconcile actual against planned to learn for next time.',
     ],
