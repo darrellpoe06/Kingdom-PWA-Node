@@ -397,3 +397,60 @@ export function recordText(record, { title = 'Document', presence = '', fingerpr
   if (fingerprint) lines.push('FINGERPRINT (SHA-256 of the file as opened)', `  ${fingerprint}`, '');
   return lines.join('\n');
 }
+
+// -----------------------------------------------------------------------------
+// The shelf report: every document on a shelf, one line each, in the
+// report-export shape (CSV and Print / PDF). Each cell is read from the SAME
+// record the viewer shows, so the report and the record panel cannot disagree,
+// and an office-only row the record left out cannot reach the report.
+// -----------------------------------------------------------------------------
+const REPORT_COLUMNS = [
+  { key: 'title', label: 'Document', from: ['Title'] },
+  { key: 'type', label: 'Type', from: ['Type'] },
+  { key: 'source', label: 'Came from', from: ['Source', 'Shared by'] },
+  { key: 'dated', label: 'Dated', from: ['Dated', 'Preached', 'Effective', 'Tax year'] },
+  { key: 'filed', label: 'Filed here', from: ['Filed here'] },
+  { key: 'changed', label: 'Last changed', from: ['Last changed'] },
+  { key: 'server', label: 'Where it lives', from: ['Server'] },
+  { key: 'move', label: 'Filed before the move', from: [] },
+];
+
+/** The value a record shows under the first of `labels` it carries; '' if none. */
+export function recordValue(record, labels) {
+  if (!record) return '';
+  for (const label of labels) {
+    for (const s of record.sections) {
+      const hit = s.rows.find(([k]) => k === label);
+      if (hit) return String(hit[1]);
+    }
+  }
+  return '';
+}
+
+/**
+ * A report model (lib/report-export.js) for a shelf, from the records the
+ * shelf's own builder made. `at` is when the report was made.
+ */
+export function shelfReport(records = [], { title = 'Documents', at = new Date().toISOString() } = {}) {
+  const list = records.filter(Boolean);
+  const reportRows = list.map((r) => {
+    const row = {};
+    for (const c of REPORT_COLUMNS) row[c.key] = c.from.length ? recordValue(r, c.from) : '';
+    row.move = r.beforeRepoint ? `Yes (before ${REPOINT_DAY})` : 'No';
+    return row;
+  });
+  const before = list.filter((r) => r.beforeRepoint).length;
+  return {
+    title,
+    subtitle: list[0] ? list[0].shelf : '',
+    meta: [
+      { label: 'Made', value: stamp(at) || at },
+      { label: 'Documents', value: String(list.length) },
+      { label: 'Filed before the move', value: String(before) },
+    ],
+    columns: REPORT_COLUMNS.map(({ key, label }) => ({ key, label })),
+    groups: list.length ? [{ label: list[0].shelf, rows: reportRows }] : [],
+    unit: list.length === 1 ? 'document' : 'documents',
+    note: 'Each line is the document\'s own record, as the app shows it. "not recorded" means the app never kept that fact; nothing here is estimated.',
+  };
+}

@@ -35,7 +35,9 @@ import {
 } from '../lib/choir-sync.js';
 import { sentenceFor } from '../lib/church-access.js';
 import { useDocumentViewer } from './DocumentViewer.jsx';
-import { teamDocRecord } from '../lib/document-record.js';
+import { teamDocRecord, shelfReport } from '../lib/document-record.js';
+import ReportActions from './ReportActions.jsx';
+import ShelfLedger from './ShelfLedger.jsx';
 import { signStorageDocument } from '../lib/document-viewer.js';
 import { whenOf } from '../lib/record-stamp.js';
 import { listInstanceMembers, setMemberRole, grantableRoles, roleLabel as instanceRoleLabel } from '../lib/member-roles.js';
@@ -820,6 +822,15 @@ function TeamDocsPanel({ docs, canEdit, onAdd, onDelete }) {
   return (
     <div>
       {viewer.element}
+      {docs.length > 0 && (() => {
+        const model = () => shelfReport(docs.map((d) => teamDocRecord(d, { admin: !!canEdit })), { title: 'Team documents' });
+        return (
+          <>
+            <ReportActions className="mb-2" label="Every team document" filenameBase="team-documents" buildModel={model} />
+            <ShelfLedger model={model()} items={docs} onOpen={open} label="See every team document, sorted" />
+          </>
+        );
+      })()}
       <p className="text-xs text-[#5A5751] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>The team's weekly get-ready material — order of service, announcements, and the church calendar. Everyone on the roster can open these.</p>
       {canEdit && (adding ? (
         <div className="bg-[#FAF8F4] border-2 border-[#B85838] p-3 space-y-2 mb-2">

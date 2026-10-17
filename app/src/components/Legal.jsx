@@ -99,7 +99,9 @@ import {
   BUCKET as LEGAL_DOCS_BUCKET,
 } from '../lib/legal-documents-sync.js';
 import { useDocumentViewer } from './DocumentViewer.jsx';
-import { legalDocRecord } from '../lib/document-record.js';
+import { legalDocRecord, shelfReport } from '../lib/document-record.js';
+import ReportActions from './ReportActions.jsx';
+import ShelfLedger from './ShelfLedger.jsx';
 import DocumentRenewals from './DocumentRenewals.jsx';
 import { signStorageDocument } from '../lib/document-viewer.js';
 
@@ -799,6 +801,16 @@ export function LegalPlaceholder({ tier = 'foundation', setView, accounts = [], 
           Names and notes here are private to this tab: everywhere else in the app, a linked matter shows only a count.
         </p>
         {viewer.element}
+        {docs.length + householdDocs.length > 0 && (() => {
+          const all = [...docs, ...householdDocs];
+          const model = () => shelfReport(all.map((d) => legalDocRecord(d, { admin: !d.fromHousehold })), { title: 'Legal documents' });
+          return (
+            <>
+              <ReportActions className="mb-2" label="Every legal document" filenameBase="legal-documents" buildModel={model} />
+              <ShelfLedger model={model()} items={all} onOpen={openDocument} label="See every legal document, sorted" />
+            </>
+          );
+        })()}
         {shelfNotice && (
           <p className="text-xs text-[#B85838] mb-2" style={{ fontFamily: '"Fraunces", serif' }} role="status">{shelfNotice}</p>
         )}

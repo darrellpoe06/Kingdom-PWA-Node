@@ -36,7 +36,9 @@ import { readProductForms } from '../lib/product-forms-sync.js';
 import { CHURCH_DOC_KINDS, churchDocKindLabel, churchDocumentSlug, churchShelfSummary, validateChurchDocument } from '../lib/church-shelf.js';
 import { churchInsights } from '../lib/church-insights.js';
 import { useDocumentViewer } from './DocumentViewer.jsx';
-import { memberDocRecord } from '../lib/document-record.js';
+import { memberDocRecord, shelfReport } from '../lib/document-record.js';
+import ReportActions from './ReportActions.jsx';
+import ShelfLedger from './ShelfLedger.jsx';
 import { signStorageDocument } from '../lib/document-viewer.js';
 import { COLG_DEFAULT_CHURCH } from '../lib/default-church.js';
 
@@ -206,6 +208,15 @@ function Shelf({ instanceId, myUserId }) {
             Nothing filed yet. This stays empty rather than showing an example — an example on your own shelf would be a lie about what you have.
           </p>
         )}
+        {rows.length > 0 && (() => {
+          const model = () => shelfReport(rows.map((r) => memberDocRecord({ ...r, kindLabel: churchDocKindLabel(r.kind) }, { admin: true })), { title: 'Church papers' });
+          return (
+            <>
+              <ReportActions className="mb-2" label="Every paper" filenameBase="church-papers" buildModel={model} />
+              <ShelfLedger model={model()} items={rows} label="See every paper, sorted" />
+            </>
+          );
+        })()}
         {rows.length > 0 && (
           <ul>
             {rows.map((r) => (
