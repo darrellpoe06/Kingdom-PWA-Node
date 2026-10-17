@@ -15,6 +15,7 @@ import Modal from './Modal.jsx';
 import {
   documentKind, urlSource, fetchDocument, readDocx, loadPdfjs, viewerFailureText,
 } from '../lib/document-viewer.js';
+import { fingerprintOf, presenceLine, recordText } from '../lib/document-record.js';
 
 const RING = 'focus:outline focus:outline-2 focus:outline-[#B85838]';
 const BTN = 'text-[0.6875rem] uppercase tracking-wider px-3 py-1.5 min-h-[36px] rounded-full border';
@@ -92,8 +93,68 @@ function PdfPage({ pdf, n, title }) {
   return <canvas ref={ref} className="block w-full bg-white border border-[#E8E4DC]" aria-label={`${title}, page ${n}`} />;
 }
 
-export default function DocumentViewer({ title = 'Document', name = '', resolve, onClose }) {
+// ---------------------------------------------------------------------------
+// The document's record (DR-1084): what it is, where it came from, when, and
+// where it lives, beside the document itself. Every value comes from the row
+// the shelf loaded (lib/document-record.js); the presence line comes from what
+// the server just answered; the fingerprint from the bytes just opened.
+// ---------------------------------------------------------------------------
+function RecordPanel({ record, title, state, fingerprint }) {
+  const presence = presenceLine(state, record);
+  const [saveUrl, setSaveUrl] = useState('');
+  useEffect(() => {
+    if (state.phase === 'loading' || typeof Blob !== 'function' || typeof URL === 'undefined' || !URL.createObjectURL) return undefined;
+    const text = recordText(record, { title, presence, fingerprint });
+    const url = URL.createObjectURL(new Blob([text], { type: 'text/plain' }));
+    setSaveUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [record, title, presence, fingerprint, state.phase]);
+  const missing = state.phase === 'failed';
+  return (
+    <section className="bg-[#FAF8F4] border border-[#E8E4DC] p-3 space-y-3" aria-label="About this document" data-testid="document-record">
+      {presence && (
+        <p className={`text-sm leading-relaxed ${missing ? 'text-[#991B1B]' : 'text-[#3F5226]'}`} style={SERIF} data-testid="record-presence">{presence}</p>
+      )}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {record.sections.map((sec) => (
+          <div key={sec.id} data-testid={`record-${sec.id}`}>
+            <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#5A6E3D] font-semibold mb-1">{sec.heading}</div>
+            <dl className="text-xs space-y-0.5" style={SERIF}>
+              {sec.rows.map(([k, v]) => (
+                <div key={k} className="flex gap-2">
+                  <dt className="shrink-0 text-[#5A5751]">{k}:</dt>
+                  <dd className="text-[#1A1815] break-all">{v}</dd>
+                </div>
+              ))}
+            </dl>
+            {sec.card && sec.card.kind === 'email' && (
+              <div className="mt-2 bg-white border border-[#1A1815] p-2 text-xs" style={SERIF} data-testid="record-email-card">
+                <div className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] mb-1">The email it came in</div>
+                <div><span className="text-[#5A5751]">From</span> {sec.card.from}</div>
+                {sec.card.subject && <div><span className="text-[#5A5751]">Subject</span> <strong>{sec.card.subject}</strong></div>}
+                {sec.card.messageId && <div className="break-all"><span className="text-[#5A5751]">Message-ID</span> {sec.card.messageId}</div>}
+                <div className="text-[0.625rem] text-[#5A5751] italic mt-1">Sender as read by the team-documents import, which reads only this address.</div>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+      {fingerprint && (
+        <p className="text-[0.625rem] text-[#5A5751] break-all" style={{ fontFamily: '"JetBrains Mono", monospace' }} data-testid="record-fingerprint">
+          Fingerprint (SHA-256 of the file as opened): {fingerprint}
+        </p>
+      )}
+      {saveUrl && (
+        <a href={saveUrl} download={`${(title || 'document').replace(/[^A-Za-z0-9 ._-]+/g, '').trim() || 'document'} - record.txt`}
+          className={`${QUIET} ${RING} inline-flex items-center`} data-testid="record-save">Save this record</a>
+      )}
+    </section>
+  );
+}
+
+export default function DocumentViewer({ title = 'Document', name = '', resolve, onClose, record = null }) {
   const [state, setState] = useState({ phase: 'loading' });
+  const [fingerprint, setFingerprint] = useState('');
 
   useEffect(() => {
     let alive = true;
@@ -109,6 +170,7 @@ export default function DocumentViewer({ title = 'Document', name = '', resolve,
       if (!alive) return;
       if (!got.ok) { setState({ phase: 'failed', reason: got.reason, url }); return; }
       objectUrl = URL.createObjectURL(got.blob);
+      fingerprintOf(got.blob).then((fp) => { if (alive && fp) setFingerprint(fp); });
       const kind = documentKind({ contentType: got.contentType, name, url });
       if (kind === 'text') {
         const text = await got.blob.text();
@@ -134,6 +196,9 @@ export default function DocumentViewer({ title = 'Document', name = '', resolve,
   let body;
   if (state.phase === 'loading') {
     body = <p className="text-sm text-[#5A5751]" aria-live="polite" style={SERIF} data-testid="viewer-loading">Opening {title}…</p>;
+  } else if (state.phase === 'failed' && record && presenceLine(state, record)) {
+    // The record's presence line already says it, with the reason (DR-1084).
+    body = null;
   } else if (state.phase === 'failed') {
     body = <p className="text-sm text-[#991B1B] leading-relaxed" role="status" style={SERIF} data-testid="viewer-failed" data-reason={state.reason}>{viewerFailureText(state.reason, `“${title}”`)}</p>;
   } else if (state.kind === 'image') {
@@ -165,6 +230,7 @@ export default function DocumentViewer({ title = 'Document', name = '', resolve,
     <Modal open onClose={onClose} label={title} maxWidthClass="max-w-4xl">
       <div className="space-y-4" data-testid="document-viewer">
         <h2 className="pr-12 text-base text-[#1A1815] break-words" style={{ ...SERIF, fontWeight: 600 }}>{title}</h2>
+        {record && <RecordPanel record={record} title={title} state={state} fingerprint={fingerprint} />}
         {body}
         {ways}
       </div>
@@ -181,11 +247,11 @@ export default function DocumentViewer({ title = 'Document', name = '', resolve,
 export function useDocumentViewer() {
   const [open, setOpen] = useState(null);
   const close = useCallback(() => setOpen(null), []);
-  const openDoc = useCallback(({ title, name = '', resolve }) => {
-    setOpen({ title, name, resolve, key: Date.now() });
+  const openDoc = useCallback(({ title, name = '', resolve, record = null }) => {
+    setOpen({ title, name, resolve, record, key: Date.now() });
   }, []);
   const element = open
-    ? <DocumentViewer key={open.key} title={open.title} name={open.name} resolve={open.resolve} onClose={close} />
+    ? <DocumentViewer key={open.key} title={open.title} name={open.name} resolve={open.resolve} record={open.record} onClose={close} />
     : null;
   return { open: openDoc, close, element };
 }

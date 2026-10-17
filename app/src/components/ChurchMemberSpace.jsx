@@ -36,6 +36,7 @@ import { readProductForms } from '../lib/product-forms-sync.js';
 import { CHURCH_DOC_KINDS, churchDocKindLabel, churchDocumentSlug, churchShelfSummary, validateChurchDocument } from '../lib/church-shelf.js';
 import { churchInsights } from '../lib/church-insights.js';
 import { useDocumentViewer } from './DocumentViewer.jsx';
+import { memberDocRecord } from '../lib/document-record.js';
 import { signStorageDocument } from '../lib/document-viewer.js';
 import { COLG_DEFAULT_CHURCH } from '../lib/default-church.js';
 
@@ -58,6 +59,8 @@ function ShelfRow({ row, mine, onShare, onRemove }) {
     title: row.title || 'Paper',
     name: row.fileName || row.storagePath || '',
     resolve: () => signStorageDocument(CHURCH_DOCS_BUCKET, row.storagePath),
+    // The filer, or the office (the only others the database lets see it).
+    record: memberDocRecord({ ...row, kindLabel: churchDocKindLabel(row.kind) }, { admin: true }),
   });
   return (
     <li className="py-2 border-t border-[#F0ECE4] first:border-t-0">

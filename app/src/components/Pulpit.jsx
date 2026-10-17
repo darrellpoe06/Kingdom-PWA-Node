@@ -54,6 +54,7 @@ import { wordLibrary, messagePresentable } from '../lib/presentable.js';
 import { useReadingResume } from '../lib/reading-position.js';
 import { aboutFor } from '../lib/surface-help.js';
 import { useDocumentViewer } from './DocumentViewer.jsx';
+import { sermonDocRecord } from '../lib/document-record.js';
 import { signStorageDocument } from '../lib/document-viewer.js';
 
 // The stable YouTube id for a message — the row's own video_id, else parsed from
@@ -239,6 +240,7 @@ function MessageRow({ sermon, canEdit, onEdit, onDelete, onReuse, points = null,
     title: sermon.title ? `${sermon.title} — document` : 'Message document',
     name: sermon.documentUrl || '',
     resolve: () => signStorageDocument(SERMON_DOCS_BUCKET, sermon.documentUrl),
+    record: sermonDocRecord({ title: sermon.title, documentUrl: sermon.documentUrl, documentSource: sermon.documentSource, serviceDate: sermon.serviceDate }, { admin: !!canEdit }),
   });
   const baseEmbed = youtubeEmbedUrl(sermon.youtubeUrl);
   const embed = baseEmbed && sermon.startSeconds ? `${baseEmbed}?start=${Math.floor(sermon.startSeconds)}` : baseEmbed;

@@ -30,6 +30,7 @@ import { VAULT_CATEGORIES, categoryLabel, documentSlug, validateDocument, shelfS
 import { listDocuments, saveDocument, shareDocument, removeDocument, uploadDocumentFile, BUCKET as FAMILY_DOCS_BUCKET } from '../lib/family-vault-sync.js';
 import { householdInsights, workflowCandidates, WORKFLOW_LADDER } from '../lib/household-insights.js';
 import { useDocumentViewer } from './DocumentViewer.jsx';
+import { householdDocRecord } from '../lib/document-record.js';
 import { signStorageDocument } from '../lib/document-viewer.js';
 
 const SERIF = { fontFamily: '"Fraunces", serif' };
@@ -52,6 +53,8 @@ function FileRow({ row, onShare, onRemove }) {
     title: row.label || 'Household file',
     name: row.fileName || row.storagePath || '',
     resolve: () => signStorageDocument(FAMILY_DOCS_BUCKET, row.storagePath),
+    // This list holds only the viewer's own filings.
+    record: householdDocRecord({ ...row, categoryLabel: categoryLabel(row.category) }, { admin: true }),
   });
   return (
     <li className="py-2 border-t border-[#F0ECE4] first:border-t-0">

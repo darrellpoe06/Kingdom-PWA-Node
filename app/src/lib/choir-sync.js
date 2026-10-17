@@ -138,6 +138,10 @@ export function toTeamDocShape(row) {
     documentUrl: row.document_url ?? null,
     documentSource: row.document_source ?? null,
     createdAt: row.created_at ?? null,
+    // The rest of the row's own record (DR-1084): the email it came in, and
+    // when it last changed. Columns since 0022; the shape simply dropped them.
+    emailId: row.email_id ?? null,
+    updatedAt: row.updated_at ?? null,
   };
 }
 

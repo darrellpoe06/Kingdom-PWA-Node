@@ -99,6 +99,7 @@ import {
   BUCKET as LEGAL_DOCS_BUCKET,
 } from '../lib/legal-documents-sync.js';
 import { useDocumentViewer } from './DocumentViewer.jsx';
+import { legalDocRecord } from '../lib/document-record.js';
 import { signStorageDocument } from '../lib/document-viewer.js';
 
 function blankForm() {
@@ -691,6 +692,9 @@ export function LegalPlaceholder({ tier = 'foundation', setView, accounts = [], 
       title: doc.label || 'Legal document',
       name: doc.fileName || doc.storagePath || '',
       resolve: () => signStorageDocument(LEGAL_DOCS_BUCKET, doc.storagePath),
+      // The filer sees everything about their own paper; a household reader
+      // of someone else's shared paper does not see where it is stored.
+      record: legalDocRecord(doc, { admin: !doc.fromHousehold }),
     });
   }, [openViewer]);
 
