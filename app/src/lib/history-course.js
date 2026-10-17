@@ -753,6 +753,15 @@ export const HISTORY_RECORD_HOSTS = [
   'nationalmotormuseum.org.uk',   // the National Motor Museum, Beaulieu: its 2026 anniversary page, quoted as the worked case
   'www.lindahall.org',            // the Linda Hall Library: Cugnot's steam vehicle of 1769 and 1770
   'www.thehenryford.org',         // The Henry Ford: the Model T and the moving assembly line
+  // answered a GitHub runner with HTTP 200 and their text on 2026-10-17 for
+  // the car course's lessons 5 and 6 (probe runs 38990058537, 38990334741, DR-1085):
+  'www.energy.gov',               // the Department of Energy's own history of the electric car
+  'csd.cmu.edu',                  // Carnegie Mellon's computer science department: Navlab 5, 1995
+  'www.darpa.mil',                // DARPA's own innovation timeline: the Grand Challenges of 2004 and 2005
+  'computerhistory.org',          // the Computer History Museum: its 2014 exhibit on autonomous vehicles
+  'waymo.com',                    // Waymo's own announcement of 2020, dating its first public-road ride
+  'www.sae.org',                  // SAE International: the J3016 levels of driving automation
+  'www.nhtsa.gov',                // the National Highway Traffic Safety Administration: the levels in plain words
 ];
 const HISTORY_NOT_PROSE = new Set(['stories', 'voices', 'timeline']);
 const walkText = (node, fn) => {

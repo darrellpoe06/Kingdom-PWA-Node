@@ -349,7 +349,7 @@ export const COURSE_CROSS_LISTINGS = [
   // Teacher of every invention, so it sits on the Word's shelf as well as at
   // home (measured: 17 distinct Scripture anchors across four lessons; the
   // course test walks every quoted span).
-  { department: 'The Word & The Way', courseKey: 'car-research-who-invented-the-car', why: 'The historian’s craft as the Word commands it — hear the whole question before answering, go to the issuing record, establish every word at the mouth of two or three witnesses, render to all their dues, teach it diligently to the children — worked on who invented the car, under the Word that wisdom finds out knowledge of witty inventions (measured: 17 Scripture anchors across four lessons).' },
+  { department: 'The Word & The Way', courseKey: 'car-research-who-invented-the-car', why: 'The historian’s craft as the Word commands it — hear the whole question before answering, go to the issuing record, establish every word at the mouth of two or three witnesses, render to all their dues, teach it diligently to the children — worked on who invented the car, the electric car and the car that drives itself, under the Word that wisdom finds out knowledge of witty inventions (measured: 25 Scripture anchors across six lessons).' },
   // The Business department's second course (DR-0594) teaches the researcher's
   // craft as the Word commands it — count the cost, hear before you answer, two
   // or three witnesses, a just weight, reproof regarded, written plain upon
