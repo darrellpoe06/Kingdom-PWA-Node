@@ -41,7 +41,9 @@ import { compressImageFile, isLikelyImageFile } from '../../lib/image.js';
 import { useVoiceDictation } from '../../lib/voice-dictation.js';
 import Lightbox from '../../components/Lightbox.jsx';
 import { useDocumentViewer } from '../../components/DocumentViewer.jsx';
-import { propertyDocRecord } from '../../lib/document-record.js';
+import { propertyDocRecord, shelfReport } from '../../lib/document-record.js';
+import ReportActions from '../../components/ReportActions.jsx';
+import ShelfLedger from '../../components/ShelfLedger.jsx';
 
 const ACCENT = '#2F5D50';
 
@@ -2891,6 +2893,15 @@ export function FilesTab({
   return (
     <>
       {viewer.element}
+      {shown.length > 0 && (() => {
+        const model = () => shelfReport(shown.map((d) => propertyDocRecord({ ...d, tenancyName: d.tenancy_id ? (who(d.tenancy_id)?.tenant_name || '') : '' }, { admin: !!canManage })), { title: 'Property documents' });
+        return (
+          <div className="mb-2">
+            <ReportActions className="mb-2" label="Every paper on this door" filenameBase="property-documents" buildModel={model} />
+            <ShelfLedger model={model()} items={shown} onOpen={openDoc} label="See every paper, sorted" />
+          </div>
+        );
+      })()}
       {canManage && (
         <Card title="Add a document">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
