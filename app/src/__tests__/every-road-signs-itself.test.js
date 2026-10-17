@@ -6,7 +6,13 @@
 // comments, a zone Worker written to route around the fault (DR-1068) and an
 // unlock that put the absolute Funnel origin back into the client bundle — all
 // on one sentence: "NO PAGES FUNCTION IS RUNNING ... EVERY NAS-backed road is
-// dark at once". It was false for all eight days.
+// dark at once". It is false, measured 2026-10-17 — and said precisely,
+// because the difference matters: what is proven is that the headline is
+// wrong today and that the probe which produced it CANNOT tell a working road
+// from a dark one at all, so every reading it gave was uninformative. What is
+// NOT proven is that the 2026-10-09 lockout never happened. Claiming the
+// stronger thing here would be the over-claim DR-0076 forbids, in a gate whose
+// whole subject is an unmeasured claim.
 //
 // It came from reading the CONTENT TYPE of /automation-status. text/html was
 // taken to mean the SPA shell answered. But /automation-status is a PROXY and

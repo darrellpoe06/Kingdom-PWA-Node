@@ -8,7 +8,7 @@
 - `app/functions/_lib/funnel-proxy.js` (every Pages road signs its answer `x-poetech-road: pages-function`)
 - `.github/workflows/site-health.yml` (the hourly witness decides on the signature, not the content type)
 - `.github/workflows/cf-pages-diagnose.yml` (a per-road truth table across both hosts, replacing one road generalized to a layer)
-- `app/src/__tests__/every-road-signs-itself.test.js` (new — 9 cases, proven to catch three ways)
+- `app/src/__tests__/every-road-signs-itself.test.js` (new — 15 cases, proven to catch five ways)
 
 **Grounds:** Darrell, 2026-10-17, on being walked through terminal commands for a seventh day: **"I'm not wanting to do 15 thousand moves... get to it.... what ?!!!!"**
 **Principles:** DR-0076 (§4 measure, don't claim; §8 provenance and honest uncertainty); DR-0125 (the site has its own witness); DR-0107 / P26 (a down site is the worst outcome); P53 (a witness that cries wolf drowns out the one that matters); DR-0061 / P15 (reality-trace — name the real data before building)
@@ -144,9 +144,9 @@ reason.
 
 ## Verification
 
-- **9 cases**, weighted at the shape that actually fooled everybody: a proxied
+- **15 cases**, weighted at the shape that actually fooled everybody: a proxied
   `text/html` answer is asserted to carry the signature.
-- **Proven to catch, by three mutations** (DR-0076 §3), each restored
+- **Proven to catch, by five mutations** (DR-0076 §3), each restored
   **byte-identical** (`cmp`) and green after restore:
   - the success path stops signing → **3 cases fail**;
   - the unreachable-502 stops signing → **1 case fails**;
