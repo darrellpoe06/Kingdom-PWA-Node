@@ -503,11 +503,36 @@ jobs:
             # /nas-photos, /ways and /scribe were all dark at the same moment,
             # for one cause. A Function route that answers HTML names that
             # cause directly, without waiting for someone to fail a sign-in.
-            FN_CT=$(curl -sS -o /dev/null -w '%{content_type}' --max-time 20 "https://poetech.us/automation-status" 2>/dev/null) || FN_CT=""
-            note "- \`GET /automation-status\` (is ANY Pages Function alive?) -> \`${FN_CT:-unknown}\`"
-            case "${FN_CT:-}" in
-              *text/html*)
-                add_fail "NO PAGES FUNCTION IS RUNNING — GET poetech.us/automation-status answered with '${FN_CT}', the SPA shell, instead of its Function's JSON. When this is true EVERY NAS-backed road is dark at once: /sb sign-in, /n8n, /cams, /taxes, /openers, /llm, /reviews, /voice, /nas-photos, /ways, /scribe. Measured 2026-10-09 while a deploy logged 'Uploading Functions bundle' and '_routes.json' and the Functions still never ran, on the custom domain, on poetech-app.pages.dev AND on the per-deployment host — so it is Cloudflare-side and no code change reaches it" ;;
+            # READ THE SIGNATURE, NEVER THE CONTENT TYPE (2026-10-17, DR-1090).
+            # The check that used to live here failed poetech.us for EIGHT DAYS
+            # on a false reading. It took text/html on /automation-status to mean
+            # "the SPA shell answered, no Function ran". But /automation-status is
+            # a PROXY and returns the UPSTREAM's content type, and it is not one
+            # of the Funnel's mounts, so it lands on the Funnel root and comes
+            # back as the NAS's own HTML page. The Function ran correctly every
+            # single time. On that misreading #2057 collected 38 comments, a zone
+            # Worker was written to route around a fault that did not exist
+            # (DR-1068), the absolute Funnel origin went back into the client
+            # bundle, and eight days of real faults were buried under an hourly
+            # alarm that was always wrong (P53 — the cost of a witness that cries
+            # wolf is the one it drowns out).
+            #
+            # A content type can never answer "did a Function run", because a
+            # proxy's whole job is to hand back somebody else's content type.
+            # So every road now SIGNS its answer with `x-poetech-road`
+            # (app/functions/_lib/funnel-proxy.js sets pages-function; the zone
+            # Worker sets worker). Only code running at the edge can set a
+            # response header — a static SPA fallback is a file and sets nothing
+            # — so the signature's ABSENCE is the dark road, for any content type
+            # and any status. One GET, headers dumped, no HEAD verb assumed.
+            FN_HDRS=$(curl -sS -o /dev/null -D - -A "$UA" --max-time 20 "https://poetech.us/automation-status" 2>/dev/null | tr -d '\r')
+            FN_ROAD=$(printf '%s' "$FN_HDRS" | awk -F': ' 'tolower($1)=="x-poetech-road"{print $2}' | tail -1)
+            FN_CT=$(printf '%s' "$FN_HDRS" | awk -F': ' 'tolower($1)=="content-type"{print $2}' | tail -1)
+            note "- \`GET /automation-status\` -> signed \`${FN_ROAD:-<unsigned>}\`, content-type \`${FN_CT:-unknown}\` (the content type is a NOTE here, never the verdict — this road is a proxy)"
+            case "${FN_ROAD:-}" in
+              pages-function|worker) : ;;
+              *)
+                add_fail "NO PAGES FUNCTION IS RUNNING — GET poetech.us/automation-status came back with no \`x-poetech-road\` signature. Only code running at the edge can set that header, so its absence means the road is dark and every NAS-backed path is dark with it: /sb sign-in, /n8n, /cams, /taxes, /openers, /llm, /reviews, /voice, /nas-photos, /ways, /scribe. The content type is deliberately NOT the evidence: this road proxies the NAS and returns the NAS's own content type, which is exactly what made the 2026-10-09 reading wrong for eight days" ;;
             esac
 
             # WHICH SIGN-IN DOORS ARE ACTUALLY ON (DR-0900). 2026-10-10, Darrell
@@ -520,11 +545,25 @@ jobs:
             # a known state the app now says out loud, not an outage.
             AUTH_EXT=$(curl -sS --max-time 20 "https://poetech.us/sb/auth/v1/settings" 2>/dev/null | grep -o '"\(google\|email\|phone\)":[a-z]*' | tr '\n' ' ') || AUTH_EXT=""
             note "- sign-in doors GoTrue reports (\`/sb/auth/v1/settings\`): \`${AUTH_EXT:-could not read}\`"
-            SB_SOV_CT=$(curl -sS -o /dev/null -w '%{content_type}' --max-time 20 "https://poetech.us/sb/auth/v1/health" 2>/dev/null) || SB_SOV_CT=""
-            note "- \`GET /sb/auth/v1/health\` content-type -> \`${SB_SOV_CT:-unknown}\`"
-            case "${SB_SOV_CT:-}" in
-              *text/html*)
-                add_fail "THE SOVEREIGN TRANSPORT IS GONE — GET poetech.us/sb/auth/v1/health answered ${SB_SOV:-000} but with content-type '${SB_SOV_CT}', which is the SPA shell, not GoTrue. The /sb Pages Function is not being invoked, so every sign-in POST gets a bodiless 405 and the browser dies on .json() with 'Unexpected end of JSON input'. This is the 2026-10-09 lockout: a 200 here is not proof of anything unless it is JSON" ;;
+            # THE SAME DISCRIMINATION ON THE ROAD THAT CARRIES SIGN-IN. Here a
+            # text/html answer really IS suspect, because GoTrue speaks JSON —
+            # but it does not by itself say WHICH layer failed, and naming the
+            # wrong layer is what cost eight days. The signature splits it: no
+            # signature means the transport is gone (the 2026-10-09 lockout);
+            # signed BUT html means the road is fine and the NAS answered HTML,
+            # which is a real fault with a different owner and a different fix.
+            SB_HDRS=$(curl -sS -o /dev/null -D - -A "$UA" --max-time 20 "https://poetech.us/sb/auth/v1/health" 2>/dev/null | tr -d '\r')
+            SB_ROAD=$(printf '%s' "$SB_HDRS" | awk -F': ' 'tolower($1)=="x-poetech-road"{print $2}' | tail -1)
+            SB_SOV_CT=$(printf '%s' "$SB_HDRS" | awk -F': ' 'tolower($1)=="content-type"{print $2}' | tail -1)
+            note "- \`GET /sb/auth/v1/health\` -> signed \`${SB_ROAD:-<unsigned>}\`, content-type \`${SB_SOV_CT:-unknown}\`"
+            case "${SB_ROAD:-}" in
+              pages-function|worker)
+                case "${SB_SOV_CT:-}" in
+                  *text/html*)
+                    add_fail "THE CHURCH SERVER IS ANSWERING HTML ON THE AUTH ROAD — GET poetech.us/sb/auth/v1/health came back ${SB_SOV:-000} with content-type '${SB_SOV_CT}'. The transport is FINE (the answer is signed \`${SB_ROAD}\`), so this is the NAS, not Cloudflare: kong or GoTrue is serving a page where JSON belongs, and the browser dies on .json() with 'Unexpected end of JSON input'. Look at kong's /sb mirror routes and the auth container, not at Pages" ;;
+                esac ;;
+              *)
+                add_fail "THE SOVEREIGN TRANSPORT IS GONE — GET poetech.us/sb/auth/v1/health answered ${SB_SOV:-000} with no \`x-poetech-road\` signature, so no Function ran and the SPA fallback is answering the sign-in road. Every sign-in POST then gets a bodiless 405 and the browser dies on .json() with 'Unexpected end of JSON input'. This is the 2026-10-09 lockout, and a 200 here proves nothing without the signature" ;;
             esac
             # A GET IS NOT A SIGN-IN. MEASURED 2026-10-09, the day Darrell was
             # locked out of his own app while this probe said "UP. Fresh":
