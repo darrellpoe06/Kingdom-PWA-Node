@@ -2,7 +2,7 @@
 // ShelfLedger — every document on a shelf, at a glance, sorted the way you need
 // =============================================================================
 // Darrell, 2026-10-17: "Can't we find a way to visualize the documents and sort
-// the necessary information as required?" (DR-1087).
+// the necessary information as required?" (DR-1089).
 //
 // It draws the SAME report model the shelf's Download / Print buttons export
 // (shelfReport in lib/document-record.js), so what you see, what you sort and

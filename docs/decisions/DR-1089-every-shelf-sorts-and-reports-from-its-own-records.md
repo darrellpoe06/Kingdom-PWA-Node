@@ -1,4 +1,4 @@
-# DR-1087: Every shelf sorts and reports from its own records
+# DR-1089: Every shelf sorts and reports from its own records
 
 **Date:** 2026-10-17
 **Status:** accepted
