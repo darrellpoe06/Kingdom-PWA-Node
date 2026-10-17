@@ -107,7 +107,7 @@ function RecordPanel({ record, title, state, fingerprint }) {
     const text = recordText(record, { title, presence, fingerprint });
     const url = URL.createObjectURL(new Blob([text], { type: 'text/plain' }));
     setSaveUrl(url);
-    return () => URL.revokeObjectURL(url);
+    return () => { try { if (URL.revokeObjectURL) URL.revokeObjectURL(url); } catch { /* already freed */ } };
   }, [record, title, presence, fingerprint, state.phase]);
   const missing = state.phase === 'failed';
   return (

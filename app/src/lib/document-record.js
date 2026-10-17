@@ -274,6 +274,83 @@ export function sermonDocRecord(d = {}, opts = {}) {
   }, opts);
 }
 
+/** Books → Taxes (the NAS tax archive, tax_ingest.py). The archive records the
+ * year, the entity, the kind and the file name, and no filing time. */
+export function taxDocRecord(d = {}, opts = {}) {
+  return shape({
+    shelf: 'Books → Taxes',
+    createdAt: null,
+    what: [
+      ['Title', d.filename || ''],
+      ['Type', d.kindLabel || d.kind || ''],
+      ['Filed under', d.entityName || d.entityId || ''],
+    ],
+    from: [['Source', 'Uploaded in the app or placed on the NAS']],
+    when: [
+      ['Tax year', d.year ? String(d.year) : ''],
+      ['Filed here', 'not recorded'],
+    ],
+    where: [
+      ['Shelf', 'Books → Taxes'],
+      ['Server', 'Your NAS, the family tax archive (the family key is asked for)'],
+      ['Stored at', d.entityId && d.year && d.filename ? `tax-documents/${d.entityId}/${d.year}/${d.filename}` : ''],
+    ],
+  }, opts);
+}
+
+/** Property → Files (property_documents, 0154/0263). The file is kept in the
+ * row as a data url; the fingerprint 0263 records for signing is the SHA-256 of
+ * that stored entry, so it is shown as recorded and never compared with the
+ * fingerprint of the opened bytes (they hash different things). */
+export function propertyDocRecord(d = {}, opts = {}) {
+  const src = { upload: 'Uploaded in the app', generated: 'Made by the app from a template' }[d.source] || '';
+  return shape({
+    shelf: 'Property → Files',
+    createdAt: null,
+    what: [
+      ['Title', d.title || ''],
+      ['Type', String(d.kind || '').replace(/-/g, ' ')],
+      ['Size', sizeLabel(d.byte_size)],
+    ],
+    from: [
+      ['Source', src],
+      ['Written by', d.author_label || ''],
+      ['For', d.tenancyName || (d.tenancy_id ? 'a household' : 'the property')],
+    ],
+    when: [
+      ['Effective', day(d.effective_on)],
+      ['Filed here', stamp(d.uploaded_at) || 'not recorded'],
+      ['Signatures asked', stamp(d.sign_requested_at)],
+      ['Signing', d.sign_status && d.sign_status !== 'none' ? d.sign_status : ''],
+    ],
+    where: [
+      ['Shelf', 'Property → Files'],
+      ['Server', 'Inside the record itself (the file is kept in the row)'],
+      ['Recorded fingerprint', d.content_hash ? `${d.content_hash} (SHA-256 of the stored entry, taken when signatures were asked)` : ''],
+    ],
+  }, opts);
+}
+
+/** TLC → Onboarding: one file in a colleague's packet (tlc_onboarding_packets, 0187). */
+export function onboardingDocRecord(pointer = {}, label = '', opts = {}) {
+  return shape({
+    shelf: 'TLC → Onboarding',
+    createdAt: null,
+    what: [
+      ['Title', label || ''],
+      ['File', pointer.fileName || fileNameOf(pointer.path)],
+      ['Size', sizeLabel(pointer.fileSize)],
+    ],
+    from: [['Source', 'Uploaded by the colleague with their onboarding packet']],
+    when: [['Uploaded', stamp(pointer.uploadedAt) ? `${stamp(pointer.uploadedAt)} (as the colleague’s device reported)` : 'not recorded']],
+    where: [
+      ['Shelf', 'TLC → Onboarding'],
+      ['Server', 'The church server, onboarding files'],
+      ['Stored at', pointer.path || ''],
+    ],
+  }, opts);
+}
+
 /**
  * The file's present state, said in words, from the viewer's own result.
  * `phase`/`reason` are DocumentViewer's; `fingerprint` is computed from the bytes.

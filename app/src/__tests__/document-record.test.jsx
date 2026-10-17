@@ -21,7 +21,8 @@ import { Blob as NodeBlob } from 'node:buffer';
 
 import {
   REPOINT_DAY, TEAM_IMPORT_SENDER, filedBeforeRepoint, fingerprintOf, householdDocRecord, legalDocRecord,
-  memberDocRecord, presenceLine, recordText, sermonDocRecord, sizeLabel, stamp, teamDocRecord,
+  memberDocRecord, onboardingDocRecord, presenceLine, propertyDocRecord, recordText, sermonDocRecord, sizeLabel, stamp,
+  taxDocRecord, teamDocRecord,
 } from '../lib/document-record.js';
 import DocumentViewer from '../components/DocumentViewer.jsx';
 import { toTeamDocShape } from '../lib/choir-sync.js';
@@ -123,6 +124,27 @@ describe('the other four shelves', () => {
   });
 });
 
+describe('the business and tax shelves (DR-1086)', () => {
+  it('a property paper shows the fingerprint recorded for signing, labelled as what it hashes, and never compares it', () => {
+    const r = propertyDocRecord({ title: 'Lease, Door A', kind: 'lease', source: 'upload', uploaded_at: '2026-10-10T12:00:00Z', content_hash: 'ab'.repeat(32), sign_status: 'awaiting', tenancy_id: 't1', tenancyName: 'Smith' });
+    expect(val(r, 'where', 'Recorded fingerprint')).toMatch(/SHA-256 of the stored entry/);
+    expect(val(r, 'from', 'For')).toBe('Smith');
+    expect(val(r, 'when', 'Filed here')).toBe('2026-10-10 12:00 UTC');
+    expect(val(r, 'when', 'Signing')).toBe('awaiting');
+  });
+  it('an onboarding file says its time is what the colleague’s device reported, and the path is office detail', () => {
+    const p = { path: 'u/abc/license.pdf', fileName: 'license.pdf', uploadedAt: '2026-09-10T15:00:00Z' };
+    expect(val(onboardingDocRecord(p, 'License', { admin: true }), 'when', 'Uploaded')).toMatch(/as the colleague’s device reported/);
+    expect(val(onboardingDocRecord(p, 'License'), 'where', 'Stored at')).toBeUndefined();
+  });
+  it('a tax return says its filing time is not recorded rather than inventing one', () => {
+    const r = taxDocRecord({ filename: '2024-1040.pdf', kind: 'return', kindLabel: 'Return', year: 2024, entityId: 'e1', entityName: 'Poe Family' }, { admin: true });
+    expect(val(r, 'when', 'Filed here')).toBe('not recorded');
+    expect(val(r, 'when', 'Tax year')).toBe('2024');
+    expect(val(r, 'where', 'Stored at')).toBe('tax-documents/e1/2024/2024-1040.pdf');
+  });
+});
+
 describe('small honest helpers', () => {
   it('absent is never zero', () => {
     expect(stamp(null)).toBe('');
@@ -203,5 +225,16 @@ describe('every shelf hands its record to the viewer', () => {
     ['components/Pulpit.jsx', 'record: sermonDocRecord('],
     ['components/ChurchMemberSpace.jsx', 'record: memberDocRecord('],
     ['components/HouseholdSpace.jsx', 'record: householdDocRecord('],
+    ['modules/properties/DoorTabs.jsx', 'record: propertyDocRecord('],
+    ['components/TlcOnboardingReadout.jsx', 'record: onboardingDocRecord('],
+    ['components/BooksTaxes.jsx', 'record: taxDocRecord('],
   ])('%s', (file, needle) => { expect(src(file)).toContain(needle); });
+  it.each(['modules/properties/DoorTabs.jsx', 'components/TlcOnboardingReadout.jsx', 'components/BooksTaxes.jsx'])(
+    '%s no longer sends a document out of the app', (file) => {
+      const text = src(file);
+      expect(text).toContain('{viewer.element}');
+      expect(text).not.toMatch(/window\.open\(u,/);
+      expect(text).not.toMatch(/<a href=\{d\.storage_path\} download/);
+      expect(text).not.toMatch(/<a href=\{url\} target="_blank"/);
+    });
 });
