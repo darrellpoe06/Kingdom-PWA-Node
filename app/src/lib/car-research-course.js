@@ -53,7 +53,7 @@
 // with "were framed by the word of God" (Hebrews 11:3). Every verse verbatim
 // from the repo's KJV, pinned by car-research-course.test.js.
 //
-// LESSONS 5 AND 6 (DR-1085). Darrell, 2026-10-17: "Electric and or driving
+// LESSONS 5 AND 6 (DR-1087). Darrell, 2026-10-17: "Electric and or driving
 // car... meaning it is self driven no human... make sense? The kids asked so we
 // wanted a lesson..." Two more cases on the same craft, from records the runner
 // read first (probe runs 38990058537 and 38990334741): the electric car, read
@@ -134,7 +134,7 @@ const SRC = {
   duryea: { title: '"Duryea Motor Carriage, 1893," National Museum of American History, Smithsonian Institution — archived by the Wayback Machine', url: 'https://web.archive.org/web/2024/https://www.si.edu/object/duryea-motor-carriage-1893:nmah_694756' },
   fordT: { title: 'Bob Casey, "Ford’s Model T: A Car for the Great Multitude," The Henry Ford, January 28, 2015', url: 'https://www.thehenryford.org/explore/blog/fords-model-t' },
   fordLine: { title: 'Matt Anderson, "Ford Methods and the Ford Shops," The Henry Ford, July 22, 2021', url: 'https://www.thehenryford.org/collections/explore/articles/ford-methods-and-the-ford-shops' },
-  // Lessons 5 and 6 (DR-1085): read by the runner on 2026-10-17, probe runs
+  // Lessons 5 and 6 (DR-1087): read by the runner on 2026-10-17, probe runs
   // 38990058537 and 38990334741, every one HTTP 200 with the quoted words.
   doeEv: { title: 'Rebecca Matulka, "The History of the Electric Car," U.S. Department of Energy, September 15, 2014', url: 'https://www.energy.gov/articles/history-electric-car' },
   claraCar: { title: '"1914 Detroit Electric Model 47 Brougham, Personal Car of Clara Ford," Digital Collections, The Henry Ford', url: 'https://www.thehenryford.org/collections/explore/artifact/209957' },
@@ -593,7 +593,7 @@ export const CAR_RESEARCH_MODULES = [
   // ---------------------------------------------------------------------------
   // Darrell, 2026-10-17: "Electric and or driving car... meaning it is self
   // driven no human... make sense? The kids asked so we wanted a lesson..."
-  // Two more cases on the same craft (DR-1085). Every voice and dated phrase
+  // Two more cases on the same craft (DR-1087). Every voice and dated phrase
   // below was read by a runner first (probe runs 38990058537, 38990334741).
   {
     id: 'car5-the-electric-car-came-early',

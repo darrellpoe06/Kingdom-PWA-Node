@@ -1,4 +1,4 @@
-# DR-1085: The electric car and the car that drives itself — the children's next two questions, worked with the same craft
+# DR-1087: The electric car and the car that drives itself — the children's next two questions, worked with the same craft
 
 **Date:** 2026-10-17
 **Status:** accepted

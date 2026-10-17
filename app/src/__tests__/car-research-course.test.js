@@ -91,7 +91,7 @@ const ours = (text) => String(text || '').replace(ALL_SPANS, ' ').replace(REF_PA
 const byId = (id) => M.find((m) => m.id === id);
 const lessonText = (m) => [m.bigIdea, m.lesson, ...BANDS.map((b) => m.levels[b])].join('\n');
 const PROBED_HOSTS = ['blogs.loc.gov', 'web.archive.org', 'group.mercedes-benz.com', 'www.dpma.de', 'germanhistorydocs.org', 'news.un.org', 'nationalmotormuseum.org.uk', 'www.lindahall.org', 'www.thehenryford.org',
-  // lessons 5 and 6, read on 2026-10-17 (DR-1085)
+  // lessons 5 and 6, read on 2026-10-17 (DR-1087)
   'www.energy.gov', 'csd.cmu.edu', 'www.darpa.mil', 'computerhistory.org', 'waymo.com', 'www.sae.org', 'www.nhtsa.gov'];
 
 describe('the course exists, in an order that makes sense, shaped like a course', () => {
@@ -228,7 +228,7 @@ describe('the four competencies each teach their own thing — from the fetched 
     const t = lessonText(m);
     for (const ref of ['(Proverbs 8:12)', '(Isaiah 28:26)', '(Hebrews 11:3)', '(Deuteronomy 6:7)']) expect(t, ref).toContain(ref);
   });
-  // Lessons 5 and 6 (DR-1085): the children's next two questions, the same craft.
+  // Lessons 5 and 6 (DR-1087): the children's next two questions, the same craft.
   it('lesson 5 reads the electric car in its own day: a third of the road in 1900, the reasons, the prices of 1912, gone by 1935', () => {
     const m = byId('car5-the-electric-car-came-early');
     const said = m.voices.map((v) => v.words).join(' ');
