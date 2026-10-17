@@ -264,6 +264,12 @@ jobs:
       - name: family-key publisher proofs
         working-directory: infra/nas-bridge-publish
         run: python3 -m unittest test_publish_family_key -v
+      # DR-1086: the tax archive is on the public Funnel. Every route but the
+      # path-free health probe asks for the bearer, a box with no token lets
+      # nobody in, and the empty bearer never matches the empty token.
+      - name: tax archive asks for the key on every route
+        working-directory: infra/nas-tax-ingest
+        run: python3 -m unittest test_tax_auth -v
       # The NAS lesson builder proofs (DR-0669): the verse re-verification
       # (a one-word change fails the build), the identical prompt to every
       # writer (a writer that alters it is caught), the modes, the budget, the

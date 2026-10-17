@@ -51,9 +51,40 @@ describe('BooksTaxes', () => {
     expect(container.textContent).toMatch(/2024/);
     expect(container.textContent).toMatch(/2024-1040\.pdf/);
     expect(container.textContent).toMatch(/Poe Family/);
-    const link = [...container.querySelectorAll('a')].find((a) => /open\s*\/\s*print/i.test(a.textContent || ''));
-    expect(link, 'the original is printable via a link').toBeTruthy();
-    expect(link.getAttribute('href')).toBe('/taxes/files/e1/2024/2024-1040.pdf');
+    // DR-1086: the original opens INSIDE the app, fetched with the family key.
+    // A bare link cannot carry the key, so no anchor points at the NAS file.
+    const open = [...container.querySelectorAll('button')].find((b) => /open\s*\/\s*print/i.test(b.textContent || ''));
+    expect(open, 'the original opens from a button').toBeTruthy();
+    expect([...container.querySelectorAll('a')].some((a) => /\/taxes\/files\//.test(a.getAttribute('href') || ''))).toBe(false);
+  });
+
+  it('DR-1086: every read carries the family key, a refused read is LOCKED (not empty), and a return opens in the viewer fetched with the key', async () => {
+    keyHeld = true;
+    const seen = [];
+    __setTaxFetcher(async (url, init) => {
+      seen.push({ url, auth: (init && init.headers && init.headers.Authorization) || '' });
+      if (/archive\.json/.test(url)) return { ok: true, status: 200, json: async () => ({ documents: [{ id: 't1', year: 2024, entityId: 'e1', kind: 'return', filename: '2024-1040.pdf', storageRef: '/taxes/files/e1/2024/2024-1040.pdf' }] }) };
+      return { ok: true, status: 200, blob: async () => new Blob(['%PDF-1.4'], { type: 'text/plain' }) };
+    });
+    if (typeof URL.createObjectURL !== 'function') URL.createObjectURL = () => 'blob:test';
+    await mount({ entities: [{ id: 'e1', name: 'Poe Family' }] });
+    expect(seen[0].auth).toBe('Bearer tok-family');
+    const open = [...container.querySelectorAll('button')].find((b) => /open\s*\/\s*print/i.test(b.textContent || ''));
+    await act(async () => { open.click(); });
+    for (let i = 0; i < 6; i += 1) await act(async () => { await new Promise((r) => setTimeout(r, 0)); });
+    const fileRead = seen.find((r) => /\/taxes\/files\//.test(r.url));
+    expect(fileRead && fileRead.auth).toBe('Bearer tok-family');
+    expect(document.body.querySelector('[data-testid="document-viewer"]')).not.toBeNull();
+    expect(document.body.querySelector('[data-testid="document-record"]').textContent).toMatch(/Tax year/);
+  });
+
+  it('DR-1086: a refused read says the NAS kept the returns private, never "no returns"', async () => {
+    keyHeld = false; provisionAnswer = 'none';
+    __setTaxFetcher(async () => ({ ok: false, status: 401, json: async () => ({}) }));
+    await mount({ entities: [{ id: 'e1', name: 'Poe Family' }] });
+    await act(async () => { await Promise.resolve(); });
+    expect(container.textContent).toMatch(/kept your returns private/i);
+    expect(container.textContent).not.toMatch(/No returns indexed yet/i);
   });
 
   it('offers an in-app upload form (Christina never touches Synology), marked not-ready until valid', async () => {

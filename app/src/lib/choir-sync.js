@@ -138,6 +138,10 @@ export function toTeamDocShape(row) {
     documentUrl: row.document_url ?? null,
     documentSource: row.document_source ?? null,
     createdAt: row.created_at ?? null,
+    // The rest of the row's own record (DR-1085): the email it came in, and
+    // when it last changed. Columns since 0022; the shape simply dropped them.
+    emailId: row.email_id ?? null,
+    updatedAt: row.updated_at ?? null,
   };
 }
 
@@ -987,6 +991,14 @@ export async function saveSermonDocument(sermonId, documentUrl, source) {
   const url = (documentUrl || '').trim();
   const ctx = await writeContext();
   if (ctx.error) return { skipped: ctx.error };
+  // DR-1086: every save of a sermon used to delete and re-insert its document,
+  // so editing a title reset when the document was filed, who filed it, and
+  // turned an emailed document's source into 'manual'. A document that has not
+  // changed is now left exactly as it was; only a changed or cleared one moves.
+  const { data: existing } = await supabase.from('choir_sermon_documents')
+    .select('id, document_url').eq('sermon_id', sermonId).limit(1);
+  const current = Array.isArray(existing) && existing[0] ? existing[0] : null;
+  if (current && url && current.document_url === url) return { saved: true, unchanged: true };
   // Clearing the field removes the document; one document per sermon.
   await supabase.from('choir_sermon_documents').delete().eq('sermon_id', sermonId);
   if (!url) return { saved: true, cleared: true };

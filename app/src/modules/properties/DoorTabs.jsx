@@ -40,6 +40,8 @@ import { photoOrder, movePhoto, makeCover, pickCovers } from './photo-order.js';
 import { compressImageFile, isLikelyImageFile } from '../../lib/image.js';
 import { useVoiceDictation } from '../../lib/voice-dictation.js';
 import Lightbox from '../../components/Lightbox.jsx';
+import { useDocumentViewer } from '../../components/DocumentViewer.jsx';
+import { propertyDocRecord } from '../../lib/document-record.js';
 
 const ACCENT = '#2F5D50';
 
@@ -2838,6 +2840,16 @@ export function FilesTab({
   const [error, setError] = useState('');
   const [editing, setEditing] = useState(null);
   const shown = useMemo(() => documents.filter((d) => !d.archived_at), [documents]);
+  // DR-1086: a property's paper opens INSIDE the app, with its record beside it
+  // (DR-1085), like every other shelf; "Save a copy" in the viewer replaces the
+  // old download link.
+  const viewer = useDocumentViewer();
+  const openDoc = (d) => viewer.open({
+    title: d.title || 'Document',
+    name: d.title || '',
+    resolve: () => d.storage_path || null,
+    record: propertyDocRecord({ ...d, tenancyName: d.tenancy_id ? (who(d.tenancy_id)?.tenant_name || '') : '' }, { admin: !!canManage }),
+  });
 
   const pick = (file) => {
     setError('');
@@ -2878,6 +2890,7 @@ export function FilesTab({
 
   return (
     <>
+      {viewer.element}
       {canManage && (
         <Card title="Add a document">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -2935,7 +2948,7 @@ export function FilesTab({
                 ) : (
                   <div className="flex flex-wrap items-baseline justify-between gap-2">
                     <div className="min-w-[12rem] flex-1">
-                      <a href={d.storage_path} download={d.title} className="text-[0.875rem] text-[#1A1815] underline">{d.title}</a>
+                      <button type="button" onClick={() => openDoc(d)} data-testid="property-doc-open" className="text-left text-[0.875rem] text-[#1A1815] underline focus:outline focus:outline-2 focus:outline-[#B85838]">{d.title}</button>
                       <div className="text-[0.6875rem] text-[#6B665E]">
                         {d.kind.replace(/-/g, ' ')}
                         {d.effective_on ? ` · effective ${d.effective_on}` : ''}
