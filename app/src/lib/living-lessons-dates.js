@@ -312,4 +312,7 @@ export const LIVING_LESSONS_ADDED = {
   // Ardavanis and Hank Bowen) that Darrell forwarded, plus his own three words
   // spoken into the build the same day: work is worship.
   'll251-laziness-is-a-character-matter-the-four-domains-and-the-five-marks-of-the-sluggard': '2026-10-17',
+  // L252, spoken into the house by Darrell on 2026-10-17 and sharpened by him
+  // the same day, built the same session (a spoken teaching is build input).
+  'll252-all-things-work-together-the-integrated-system-and-which-way-it-runs': '2026-10-17',
 };
