@@ -4324,7 +4324,7 @@ ${THEME_CSS}
             {booksView === 'k1099' && <Contractors1099 contractors={data.contractors1099 || []} entities={data.entities || []} incidents={data.incidents || []} transactions={data.transactions || []} addContractor={addContractor} updateContractor={updateContractor} deleteContractor={deleteContractor} currentDate={currentDate} />}
             {booksView === 'calendar' && <Calendar data={data} reserves={reserves} addRecurring={addRecurring} addIncident={addIncident} addEvent={addEvent} completeEvent={completeEvent} deleteRecurring={deleteRecurring} deleteIncident={deleteIncident} deleteEvent={deleteEvent} updateRecurring={updateRecurring} updateEvent={updateEvent} notifPermission={notifPermission} requestNotif={requestNotificationPermission} upcomingEvents={upcomingEvents} />}
             {booksView === 'taxes' && <SectionBoundary name="Taxes"><BooksTaxes entities={data.entities || []} /></SectionBoundary>}
-            {booksView === 'legal' && <LegalPlaceholder tier={data.userTier} setView={setView} accounts={data.accounts || []} entities={data.entities || []} toggleAccountLegal={toggleAccountLegal} />}
+            {booksView === 'legal' && <LegalPlaceholder tier={data.userTier} setView={setView} accounts={data.accounts || []} entities={data.entities || []} toggleAccountLegal={toggleAccountLegal} addEvent={addEvent} />}
           </SectionBoundary>
           </PrivateGate>
         )}
