@@ -68,7 +68,7 @@ fi
 # a repo pull that changes tax_upload_server.py or tax_ingest.py (the 60 MB cap,
 # 2026-09-30) would otherwise run the old code until something else restarted it.
 CODE_STAMP=/volume1/PoeTech/venvs/tax-upload/.code-md5
-CODE_MD5="$(cat "$SRC/tax_upload_server.py" "$SRC/tax_ingest.py" | md5sum | cut -d' ' -f1)"
+CODE_MD5="$(cat "$SRC/tax_upload_server.py" "$SRC/tax_ingest.py" "$SRC/tax_auth.py" | md5sum | cut -d' ' -f1)"
 if [ "$(cat "$CODE_STAMP" 2>/dev/null)" != "$CODE_MD5" ]; then
   NEED_RESTART=1
   echo "  service code changed -- restarting to load it"

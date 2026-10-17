@@ -283,6 +283,16 @@ jobs:
           - feature: legal-household
             migrations: "0299-a-household-shares-its-legal-papers-only-when-the-filer-says-so.sql"
             smokes: "0299-legal-household-share-smoke.sql"
+          # Added 2026-10-17 (DR-1086): 0209 let the church office READ a
+          # member's shared paper while its storage policy refused the FILE, so
+          # the office's Open failed. 0300 adds one storage read rule through a
+          # definer function that admits exactly what the row admits. The smoke
+          # proves: the office opens the shared paper and not the private one,
+          # another member and another church's office open nothing, and
+          # un-sharing closes it. 0209 is not re-applied (already live).
+          - feature: church-office-files
+            migrations: "0300-the-office-opens-what-a-member-shared.sql"
+            smokes: "0300-office-opens-shared-smoke.sql"
           - feature: assistant-scope
             migrations: "0130-assistant-provisioning-and-office-workspace.sql 0131-stale-role-constraint-and-nullsafe-guards.sql 0144-standings-at-will-and-the-sons-wall.sql 0210-the-signature-door-and-a-roster-that-says-when.sql 0212-a-congregant-could-not-open-their-own-record.sql 0213-the-roster-shows-what-the-person-told-us.sql"
             smokes: "0130-assistant-scope-smoke.sql"

@@ -35,6 +35,7 @@ import {
 } from '../lib/choir-sync.js';
 import { sentenceFor } from '../lib/church-access.js';
 import { useDocumentViewer } from './DocumentViewer.jsx';
+import { teamDocRecord } from '../lib/document-record.js';
 import { signStorageDocument } from '../lib/document-viewer.js';
 import { whenOf } from '../lib/record-stamp.js';
 import { listInstanceMembers, setMemberRole, grantableRoles, roleLabel as instanceRoleLabel } from '../lib/member-roles.js';
@@ -793,6 +794,8 @@ function TeamDocsPanel({ docs, canEdit, onAdd, onDelete }) {
     title: d.title || 'Team document',
     name: d.fileName || d.documentUrl || '',
     resolve: () => signStorageDocument(TEAM_DOCS_BUCKET, d.documentUrl),
+    // Office detail (stored path, Message-ID) only for those who manage the shelf.
+    record: teamDocRecord(d, { admin: !!canEdit }),
   });
   // Upload a picture or a document (Christina 2026-07-04). Images are compressed;
   // other files ride as a data URL under a size cap. Either becomes documentUrl.

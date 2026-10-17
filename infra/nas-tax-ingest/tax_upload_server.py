@@ -51,6 +51,7 @@ from fastapi import FastAPI, File, Form, UploadFile, Request
 from fastapi.responses import FileResponse, JSONResponse
 
 import tax_ingest  # the deterministic ingest (same directory)
+from tax_auth import bearer_ok  # one rule for every route (DR-1086)
 
 # 60 MB, matching the app's MAX_UPLOAD_MB (lib/tax-upload.js). Raised from 25 MB
 # 2026-09-30 (DR-0708): the road was measured carrying 95 MB to this service.
@@ -58,6 +59,15 @@ MAX_BYTES = 60 * 1024 * 1024
 TOKEN = os.environ.get("TAX_UPLOAD_TOKEN", "")
 
 app = FastAPI()
+
+
+def _refuse_without_bearer(request):
+    """Every route reads the family's tax papers or writes them, so every
+    route asks first (DR-1086). Returns a 401 response to send, or None."""
+    if bearer_ok(request.headers.get("authorization", ""), TOKEN):
+        return None
+    return JSONResponse({"error": "unauthorized"}, status_code=401,
+                        headers={"cache-control": "no-store"})
 
 
 def _safe_segment(s, pattern):
@@ -74,12 +84,12 @@ def _safe_filename(name):
 @app.get("/health")
 @app.get("/taxes/health")
 def health():
-    """Liveness + the two facts a diagnosis actually needs: is anything indexed,
-    and does the published snapshot exist. install.sh probes this."""
+    """Liveness, and whether the published snapshot exists. install.sh probes
+    this on 127.0.0.1. It is the one route that does not ask for the bearer, so
+    it carries nothing about the family: no file names, and (since DR-1086) no
+    filesystem paths either, because the Funnel makes it public."""
     return {
         "ok": True,
-        "src": tax_ingest.SRC,
-        "site": tax_ingest.SITE,
         "archive_published": os.path.isfile(tax_ingest.OUT),
     }
 
@@ -99,11 +109,14 @@ def _published_path(*parts):
 
 @app.get("/taxes/archive.json")
 @app.get("/archive.json")
-def archive():
+def archive(request: Request):
     """The snapshot tax_ingest published. An ABSENT archive is reported as an
     EMPTY archive, never as an error and never as a fabricated year: the app's
     "no returns indexed yet" state is the honest reading of an empty drop
     directory (DR-0076 -- absent is not zero, and it is not a failure either)."""
+    refused = _refuse_without_bearer(request)
+    if refused:
+        return refused
     out = _published_path("archive.json")
     if not out or not os.path.isfile(out):
         return JSONResponse(
@@ -119,12 +132,15 @@ def archive():
 
 @app.get("/taxes/files/{entity}/{year}/{name}")
 @app.get("/files/{entity}/{year}/{name}")
-def served_file(entity: str, year: str, name: str):
+def served_file(request: Request, entity: str, year: str, name: str):
     """The original PDF, so a return stays printable from the phone.
 
     Every segment is validated against the SAME patterns the upload path uses --
     a read route is an equally good traversal target as a write route.
     """
+    refused = _refuse_without_bearer(request)
+    if refused:
+        return refused
     ent = _safe_segment(entity, r"[A-Za-z0-9_-]{1,64}")
     yr = _safe_segment(year, r"\d{4}")
     if not ent or not yr:
@@ -145,10 +161,9 @@ async def upload(
     year: str = Form(...),
     kind: str = Form("return"),
 ):
-    if TOKEN:
-        auth = request.headers.get("authorization", "")
-        if auth != ("Bearer " + TOKEN):
-            return JSONResponse({"error": "unauthorized"}, status_code=401)
+    refused = _refuse_without_bearer(request)
+    if refused:
+        return refused
 
     entity = _safe_segment(entityId, r"[A-Za-z0-9_-]{1,64}")
     yr = _safe_segment(year, r"\d{4}")

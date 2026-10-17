@@ -6,31 +6,38 @@
 // documents as openable pointers (a short-lived signed URL fetched on tap —
 // never a stored public link), banking as the masked view the server returns.
 // Presentation only; who may read a packet is decided in migration 0187.
-import React, { useState } from 'react';
+import React from 'react';
 import { SECTIONS, DAYS, NO_CLIENTS, applicantName, formatDate } from '../lib/tlc-onboarding.js';
 import { signedDocumentUrl } from '../lib/tlc-onboarding-sync.js';
 import UiIcon from './UiIcon.jsx';
+import { useDocumentViewer } from './DocumentViewer.jsx';
+import { onboardingDocRecord } from '../lib/document-record.js';
 
 function DocumentLink({ pointer, label }) {
-  const [url, setUrl] = useState(null);
-  const [state, setState] = useState('idle'); // idle | opening | failed
+  // DR-1086: an onboarding file opens INSIDE the app, in the one viewer every
+  // shelf uses, with its record beside it (DR-1085). The signed url is still
+  // fetched on tap and still short-lived; it is no longer handed to a new tab.
+  // Only the colleague and the office ever reach this readout (0187), so both
+  // see the full record.
+  const viewer = useDocumentViewer();
   if (!pointer || !pointer.path) return <span className="text-xs text-[#8A857C]">not attached</span>;
-  const open = async () => {
-    setState('opening');
-    const u = await signedDocumentUrl(pointer.path);
-    if (!u) { setState('failed'); return; }
-    setUrl(u); setState('idle');
-    try { window.open(u, '_blank', 'noopener'); } catch { /* the link below still works */ }
-  };
+  const open = () => viewer.open({
+    title: label || pointer.fileName || 'Document',
+    name: pointer.fileName || pointer.path,
+    resolve: async () => {
+      const u = await signedDocumentUrl(pointer.path);
+      return u ? { ok: true, url: u } : { ok: false, reason: 'unknown' };
+    },
+    record: onboardingDocRecord(pointer, label, { admin: true }),
+  });
   return (
     <span className="inline-flex flex-wrap items-center gap-2">
+      {viewer.element}
       <span className="text-xs text-[#1A1815] break-all">{pointer.fileName || 'file'}</span>
-      <button type="button" onClick={open} disabled={state === 'opening'} aria-label={`Open ${label}`}
-        className="min-h-[36px] px-2.5 text-xs font-semibold border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white disabled:opacity-50 focus:outline focus:outline-2 focus:outline-[#B85838]">
-        {state === 'opening' ? 'Opening…' : 'Open'}
+      <button type="button" onClick={open} aria-label={`Open ${label}`}
+        className="min-h-[36px] px-2.5 text-xs font-semibold border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">
+        Open
       </button>
-      {url && <a href={url} target="_blank" rel="noopener noreferrer" className="text-xs underline text-[#B85838] focus:outline focus:outline-2 focus:outline-[#B85838]">link (5 min)</a>}
-      {state === 'failed' && <span className="text-xs text-[#B85838]" role="alert">could not open — try again</span>}
     </span>
   );
 }
