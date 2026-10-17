@@ -131,7 +131,8 @@ describe('the day each lesson was added — a recorded day, and a new lesson joi
     // is a character matter). L253 is the highest numbered, so it is the one
     // this pin reads — it was built as 251 and renumbered twice as the other
     // two took the numbers under it. (L248-L250, DR-1074 / DR-1081 /
-    // DR-1082, hold 2026-10-16 behind them.)
+    // DR-1082, hold 2026-10-16 behind them; L245-L247, DR-1034-1036, hold
+    // 2026-10-15 behind those.)
     expect(byNum[byNum.length - 1].added).toBe('2026-10-17'); // L253 (DR-1093)
   });
 

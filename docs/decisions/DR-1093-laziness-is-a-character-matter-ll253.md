@@ -50,7 +50,7 @@ Measured on the tree before commit, not estimated:
 
 ## Impact
 
-Living Lessons gains L253, 248 modules in the catalog, the highest-numbered lesson and the newest day (2026-10-17). A reader who opens one band — the only thing a reader actually does — gets the whole message in that band's register: the provenance said plainly, Darrell's three words attributed and dated, both guards, the correction of the speakers' absolute, all four domains, all five marks on their own Proverbs texts, what it costs others, the field of the slothful, the ant, and the three directions out to a person. The `/n8n`-era pattern is untouched; nothing outside the curriculum moved.
+Living Lessons gains L253 — **251 modules in the catalog, measured after integration**, the highest-numbered lesson and the newest day (2026-10-17). (The count read 248 when this lesson was built alone in its worktree; three more arrived before it landed — ll79 from this branch, ll252 beside it, and main's ll251. The figure is re-measured here rather than left stale, because a count written once and never re-read is how a record starts lying quietly.) A reader who opens one band — the only thing a reader actually does — gets the whole message in that band's register: the provenance said plainly, Darrell's three words attributed and dated, both guards, the correction of the speakers' absolute, all four domains, all five marks on their own Proverbs texts, what it costs others, the field of the slothful, the ant, and the three directions out to a person. The `/n8n`-era pattern is untouched; nothing outside the curriculum moved.
 
 ## Decision
 

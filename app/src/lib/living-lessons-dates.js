@@ -308,11 +308,20 @@ export const LIVING_LESSONS_ADDED = {
   // and built the same session (a spoken teaching is build input).
   'll249-nothing-of-myself-the-way-is-the-word-and-it-works-every-time': '2026-10-16',
   'll250-they-which-do-hunger-shall-be-filled-and-the-critical-path': '2026-10-16',
+  // L251, sent into the house by Darrell on 2026-10-17 (the summary of an
+  // episode of The Deep End with Lecrae, under the word Lesson, then his own
+  // line: the Rock of Yahweh in the wilderness in Old Testament times) and
+  // built the same session. Its own note said "ll251 and ll252 are held by an
+  // unlanded branch" and then took 251 anyway, because the shrink-only gap
+  // ratchet forbids leaving a number empty while a branch waits under a hold.
+  // That is why the laziness lesson below is 253: it was built as 251, and
+  // moved twice as 251 and 252 were taken under it.
+  'll251-that-rock-was-christ-identity-not-of-blood': '2026-10-17',
+  // L252, spoken into the house by Darrell on 2026-10-17 and sharpened by him
+  // the same day, built the same session (a spoken teaching is build input).
+  'll252-all-things-work-together-the-integrated-system-and-which-way-it-runs': '2026-10-17',
   // L253, built 2026-10-17 from a third-party video summary on laziness (Jonny
   // Ardavanis and Hank Bowen) that Darrell forwarded, plus his own three words
   // spoken into the build the same day: work is worship.
   'll253-laziness-is-a-character-matter-the-four-domains-and-the-five-marks-of-the-sluggard': '2026-10-17',
-  // L252, spoken into the house by Darrell on 2026-10-17 and sharpened by him
-  // the same day, built the same session (a spoken teaching is build input).
-  'll252-all-things-work-together-the-integrated-system-and-which-way-it-runs': '2026-10-17',
 };
