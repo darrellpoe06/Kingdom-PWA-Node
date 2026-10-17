@@ -1,4 +1,4 @@
-# DR-1090: The road signs its own answer — eight days of outage that never happened, because a content type was read as a verdict
+# DR-1092: The road signs its own answer — eight days of outage that never happened, because a content type was read as a verdict
 
 **Date:** 2026-10-17
 **Status:** accepted

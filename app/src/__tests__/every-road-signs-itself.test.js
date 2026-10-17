@@ -1,6 +1,6 @@
 // =============================================================================
 // Every answer from a Pages road signs itself, so "did a Function run" is READ
-// and never inferred from a content type (DR-1090; #2057).
+// and never inferred from a content type (DR-1092; #2057).
 // =============================================================================
 // THE FAILURE THIS PINS. From 2026-10-09 to 2026-10-17 #2057 carried 38
 // comments, a zone Worker written to route around the fault (DR-1068) and an

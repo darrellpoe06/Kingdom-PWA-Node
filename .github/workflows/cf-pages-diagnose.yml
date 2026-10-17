@@ -67,7 +67,7 @@ jobs:
           # repository already probes elsewhere are used -- no invented health
           # routes, which would read as dark for the wrong reason.
           #
-          # AND THE VERDICT IS READ, NOT INFERRED (DR-1090). The content type
+          # AND THE VERDICT IS READ, NOT INFERRED (DR-1092). The content type
           # cannot answer "did a Function run" -- a proxy's job is to return
           # somebody else's content type, and taking text/html for "the SPA
           # shell" is precisely the misreading that kept #2057 open for eight
@@ -113,7 +113,7 @@ jobs:
                   # build deployed before the signature existed is never
                   # mistaken for an outage -- which is the original mistake in a
                   # new costume, and the whole point of this record.
-                  echo "    VERDICT      : A FUNCTION ANSWERED (unsigned, but NOT our shell - a build older than DR-1090)"; RAN=$((RAN+1))
+                  echo "    VERDICT      : A FUNCTION ANSWERED (unsigned, but NOT our shell - a build older than DR-1092)"; RAN=$((RAN+1))
                 fi ;;
             esac
             rm -f "$body" "$hdr" "$hdr.clean"

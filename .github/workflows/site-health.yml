@@ -503,7 +503,7 @@ jobs:
             # /nas-photos, /ways and /scribe were all dark at the same moment,
             # for one cause. A Function route that answers HTML names that
             # cause directly, without waiting for someone to fail a sign-in.
-            # READ THE SIGNATURE, NEVER THE CONTENT TYPE (2026-10-17, DR-1090).
+            # READ THE SIGNATURE, NEVER THE CONTENT TYPE (2026-10-17, DR-1092).
             # The check that used to live here failed poetech.us for EIGHT DAYS
             # on a false reading. It took text/html on /automation-status to mean
             # "the SPA shell answered, no Function ran". But /automation-status is
@@ -555,7 +555,7 @@ jobs:
                 if [ "$FN_IS_SHELL" = "yes" ]; then
                   add_fail "NO PAGES FUNCTION IS RUNNING — GET poetech.us/automation-status came back with no \`x-poetech-road\` signature AND the body is our own SPA shell (it carries /poetech-app/assets/). Only code running at the edge can set that header, so the road is dark and every NAS-backed path is dark with it: /sb sign-in, /n8n, /cams, /taxes, /openers, /llm, /reviews, /voice, /nas-photos, /ways, /scribe. Both halves had to agree before this fired: the content type is deliberately NOT the evidence, because this road proxies the NAS and returns the NAS's own content type, which is exactly what made the 2026-10-09 reading wrong"
                 else
-                  note "- /automation-status is **unsigned but is NOT our SPA shell**, so a Function did answer and this build simply predates the signature (DR-1090). Not an outage; it clears on the next deploy."
+                  note "- /automation-status is **unsigned but is NOT our SPA shell**, so a Function did answer and this build simply predates the signature (DR-1092). Not an outage; it clears on the next deploy."
                 fi ;;
             esac
 
@@ -584,7 +584,7 @@ jobs:
             # identified positively, so a build older than the signature cannot
             # be mistaken for a dark sign-in road.
             if grep -q '/poetech-app/assets/' "$SB_BODY" 2>/dev/null; then SB_IS_SHELL=yes; else SB_IS_SHELL=no; fi
-            # READ THE 502'S BODY — IT NAMES ITS OWN CAUSE (2026-10-17, DR-1090).
+            # READ THE 502'S BODY — IT NAMES ITS OWN CAUSE (2026-10-17, DR-1092).
             # At 00:11 UTC poetech.us/sb answered 502 and nobody could say why,
             # because every probe recorded the STATUS and threw the body away.
             # But a 502 on this road is OUR OWN proxy's JSON, and it already
@@ -620,7 +620,7 @@ jobs:
                 elif [ "${SB_SOV_CT:-}" = "" ] || [ "${SB_SOV:-000}" = "000" ]; then
                   add_fail "SIGN-IN IS DOWN — GET poetech.us/sb/auth/v1/health gave neither a signature nor an answer we could read (HTTP ${SB_SOV:-000}, content-type '${SB_SOV_CT:-none}'). Unknown never reads as healthy"
                 else
-                  note "- /sb is **unsigned but is NOT our SPA shell** (HTTP ${SB_SOV:-000}, \`${SB_SOV_CT}\`), so GoTrue answered through a build that predates the signature (DR-1090). Not an outage; it clears on the next deploy."
+                  note "- /sb is **unsigned but is NOT our SPA shell** (HTTP ${SB_SOV:-000}, \`${SB_SOV_CT}\`), so GoTrue answered through a build that predates the signature (DR-1092). Not an outage; it clears on the next deploy."
                 fi ;;
             esac
             # A GET IS NOT A SIGN-IN. MEASURED 2026-10-09, the day Darrell was
