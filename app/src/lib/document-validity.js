@@ -92,13 +92,13 @@ export const EXPIRING_KINDS = Object.freeze([
   { id: 'insurance-workers-comp', match: /workers.? comp/i, label: "Workers' compensation", termMonths: 12, warnDays: 60 },
   { id: 'insurance-vehicle', match: /auto insurance|vehicle insurance|car insurance/i, label: 'Vehicle insurance', termMonths: 6, warnDays: 45 },
 
-  // --- licences and registrations: they renew on a cycle whether we look or not
-  { id: 'business-licence', match: /business licen[cs]e|occupational licen[cs]e/i, label: 'Business licence', termMonths: 12, warnDays: 60 },
+  // --- licenses and registrations: they renew on a cycle whether we look or not
+  { id: 'business-license', match: /business licen[cs]e|occupational licen[cs]e/i, label: 'Business license', termMonths: 12, warnDays: 60 },
   { id: 'rental-registration', match: /rental registration|landlord registration|rental licen[cs]e/i, label: 'Rental registration', termMonths: 12, warnDays: 60 },
   { id: 'registered-agent', match: /annual report|registered agent/i, label: 'Annual report / registered agent', termMonths: 12, warnDays: 45 },
   { id: 'vehicle-registration', match: /vehicle registration|licen[cs]e plate|\btag renewal\b/i, label: 'Vehicle registration', termMonths: 12, warnDays: 45 },
-  { id: 'contractor-licence', match: /contractor.?s? licen[cs]e|trade licen[cs]e/i, label: 'Contractor licence', termMonths: 12, warnDays: 60 },
-  { id: 'professional-licence', match: /professional licen[cs]e|counselor licen[cs]e|clinical licen[cs]e|\bLPC\b|\bLCSW\b/i, label: 'Professional licence', termMonths: 24, warnDays: 90 },
+  { id: 'contractor-license', match: /contractor.?s? licen[cs]e|trade licen[cs]e/i, label: 'Contractor license', termMonths: 12, warnDays: 60 },
+  { id: 'professional-license', match: /professional licen[cs]e|counselor licen[cs]e|clinical licen[cs]e|\bLPC\b|\bLCSW\b/i, label: 'Professional license', termMonths: 24, warnDays: 90 },
 
   // --- inspections and certificates: a building's permission to be used
   { id: 'certificate-of-occupancy', match: /certificate of occupancy|\bC of O\b|\bCO certificate\b/i, label: 'Certificate of occupancy', termMonths: 12, warnDays: 60 },
@@ -112,8 +112,8 @@ export const EXPIRING_KINDS = Object.freeze([
 
   // --- identity papers
   { id: 'passport', match: /\bpassport\b/i, label: 'Passport', termMonths: 120, warnDays: 180 },
-  { id: 'drivers-licence', match: /driver.?s licen[cs]e|state (id|identification) card/i, label: "Driver's licence", termMonths: 48, warnDays: 60 },
-  { id: 'work-authorisation', match: /work authorisation|work authorization|\bEAD\b|visa\b/i, label: 'Work authorisation', termMonths: 12, warnDays: 90 },
+  { id: 'drivers-license', match: /driver.?s licen[cs]e|state (id|identification) card/i, label: "Driver's license", termMonths: 48, warnDays: 60 },
+  { id: 'work-authorization', match: /work authori[sz]ation|\bEAD\b|visa\b/i, label: 'Work authorization', termMonths: 12, warnDays: 90 },
 ]);
 
 /** Kinds that are permanent by nature — a deed does not expire. */

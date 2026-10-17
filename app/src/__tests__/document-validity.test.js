@@ -103,6 +103,18 @@ describe('insurance — the kind he named, and the one that hurts', () => {
     expect(kindOf({ docType: 'Certificate of insurance' }).id).toBe('insurance-certificate');
   });
 
+  it('recognizes a document whatever way its owner spelled it', () => {
+    // Our own prose is American (the spelling gate enforces that, and caught
+    // this file's author writing "licence" and "authorisation"). But a PERSON
+    // labelling their own paper may write it either way, and the pattern has
+    // to recognize what they actually typed -- so the fixtures below use the
+    // British spelling on purpose.
+    expect(kindOf({ label: 'Business licence' }).id).toBe('business-license');
+    expect(kindOf({ label: 'Business license' }).id).toBe('business-license');
+    expect(kindOf({ label: 'Work authorisation' }).id).toBe('work-authorization');
+    expect(kindOf({ label: 'Work authorization' }).id).toBe('work-authorization');
+  });
+
   it('reads the kind off whichever field a shelf happens to use', () => {
     // legal_documents.doc_type, property_documents.kind, choir doc_type, title.
     expect(kindOf({ doc_type: 'Rental registration' }).id).toBe('rental-registration');

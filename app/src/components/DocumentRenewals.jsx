@@ -34,7 +34,7 @@ const serif = { fontFamily: '"Fraunces", serif' };
 const RING = 'focus:outline focus:outline-2 focus:outline-[#B85838]';
 const FIELD = `w-full text-sm p-1.5 border border-[#1A1815] bg-white ${RING}`;
 
-/** The colour of a state. Red is reserved (DR-0099) — urgency uses coral. */
+/** The color of a state. Red is reserved (DR-0099) — urgency uses coral. */
 const TONE = {
   [STATES.expired]: { label: 'Ran out', cls: 'text-[#B85838] font-semibold' },
   [STATES.expiringSoon]: { label: 'Runs out soon', cls: 'text-[#B85838]' },
