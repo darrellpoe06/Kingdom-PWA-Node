@@ -26,11 +26,22 @@
 // it draws public_vacancies(), the same RPC the public Poe Properties shelf
 // already serves to anonymous visitors, which publishes no street, no tenant
 // and no contact (DR-0935).
+//
+// THE HERITAGE FRONT PAGE (DR-1046; Christina 2026-10-15: "definitely the
+// front page of poetech.us"). The page now opens with PoeTech's own welcome —
+// the name, the tagline, what the app is, Sign in and the family sample, the
+// two free-forever lines the landing has always carried — and the homes
+// follow directly under it with everything Darrell's 2026-10-11 rule asked
+// for intact: no account needed to look, the three honest states, sign-in
+// one tap away. The welcome is PAINTED (the same sky and ridgelines as the
+// signed-in home), never a stock photograph (VISUAL-IDENTITY). Both sign-in
+// controls open the same PasswordAuth; nothing about who gets in changed.
 // =============================================================================
 import React, { useEffect, useState } from 'react';
 import PasswordAuth from './PasswordAuth.jsx';
 import { loadPublicVacancies } from '../modules/properties/cloud.js';
 import { VacancyCard } from '../modules/properties/Storefront.jsx';
+import UiIcon from './UiIcon.jsx';
 
 // FULL WIDTH, NO max-w WRAPPER (CONSISTENCY-STANDARD rule 1, DR-0246).
 // The first version centred the shelf in `max-w-5xl mx-auto` and the sign-in
@@ -38,6 +49,99 @@ import { VacancyCard } from '../modules/properties/Storefront.jsx';
 // against a new file's baseline of 0. Content stretches; a prose measure, if
 // one is ever wanted, goes on an element INSIDE this container and never on
 // the wrapper itself.
+
+// What the front page says PoeTech is. One source: the same words the app
+// store card carries (lib/app-store.js), with the family named.
+export const FRONT_DOOR_COPY = {
+  eyebrow: 'PoeTech · Family Operating Systems',
+  tagline: 'Life · Soul · Money · Family',
+  headline: 'One app for the whole house.',
+  blurb: 'Books, debts, real estate, church, lessons and every other room of family life, in one place that the family owns.',
+  free1: 'Free forever · Financial System for Families',
+  free2: 'Free forever · Spiritual Module for the Body',
+  sample: 'See the family sample',
+  sampleHref: '/?demo=family-of-4',
+};
+
+const PILLARS = [
+  { icon: 'coins', label: 'Money', sub: 'Books, debts, the 1st' },
+  { icon: 'cross', label: 'Soul', sub: 'The Word, lessons, church' },
+  { icon: 'home', label: 'Life', sub: 'Home, health, projects' },
+  { icon: 'users', label: 'Family', sub: 'Messages, photos, people' },
+];
+
+function Welcome({ onSignIn }) {
+  return (
+    <section
+      data-testid="front-door-welcome"
+      aria-label="Welcome to PoeTech"
+      className="relative overflow-hidden rounded-2xl text-[#F6F1E7] bg-[#1F3A2E] mb-6"
+    >
+      <svg aria-hidden="true" className="absolute inset-0 w-full h-full" viewBox="0 0 1000 300" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="poe-door-sky" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="#D7B36A" />
+            <stop offset="0.3" stopColor="#B9834A" />
+            <stop offset="0.65" stopColor="#3B4A42" />
+            <stop offset="1" stopColor="#1A2A24" />
+          </linearGradient>
+        </defs>
+        <rect x="0" y="0" width="1000" height="300" fill="url(#poe-door-sky)" />
+        <path d="M0 220 L120 120 L220 180 L330 70 L430 160 L520 110 L640 190 L740 90 L860 170 L1000 100 L1000 300 L0 300Z" fill="#2E4A3E" />
+        <path d="M0 260 L150 200 L280 240 L400 190 L520 230 L650 200 L800 250 L1000 210 L1000 300 L0 300Z" fill="#1F3A2E" />
+        <path d="M0 290 L200 270 L420 285 L640 265 L820 290 L1000 275 L1000 300 L0 300Z" fill="#16291F" />
+      </svg>
+      <div className="relative p-5 sm:p-8 grid grid-cols-1 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] gap-6 items-center">
+        <div className="min-w-0">
+          <div className="flex items-center gap-3">
+            <span aria-hidden="true" className="w-10 h-10 rounded-xl bg-[#F6F1E7] text-[#1F3A2E] border-2 border-[#C9A227] grid place-items-center font-semibold text-2xl" style={{ fontFamily: '"Fraunces", serif' }}>P</span>
+            <span className="leading-tight">
+              <span className="block font-semibold tracking-[0.14em] uppercase text-[1rem]" style={{ fontFamily: '"Fraunces", serif' }}>PoeTech</span>
+              <span className="block text-[0.5625rem] uppercase tracking-[0.24em] text-[#F0D58A] font-semibold">{FRONT_DOOR_COPY.tagline}</span>
+            </span>
+          </div>
+          <h1 className="mt-4 text-[2rem] sm:text-[2.75rem] leading-none break-words" style={{ fontFamily: '"Fraunces", serif', fontWeight: 700, letterSpacing: '-0.02em' }}>
+            {FRONT_DOOR_COPY.headline}
+          </h1>
+          <p className="mt-3 text-[0.9375rem] sm:text-[1.0625rem] leading-snug opacity-95" style={{ fontFamily: '"Fraunces", serif' }}>{FRONT_DOOR_COPY.blurb}</p>
+          <div className="mt-5 flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={onSignIn}
+              data-testid="front-door-sign-in-top"
+              className="inline-flex items-center justify-center min-h-[44px] px-5 rounded-xl bg-[#9E4A2A] text-white text-[0.75rem] uppercase tracking-wider font-semibold hover:bg-[#7E3A20] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#F0D58A]"
+            >
+              Sign in
+            </button>
+            <a
+              href={FRONT_DOOR_COPY.sampleHref}
+              data-testid="front-door-sample"
+              className="inline-flex items-center justify-center min-h-[44px] px-5 rounded-xl border-2 border-[#F6F1E7] text-[#F6F1E7] text-[0.75rem] uppercase tracking-wider font-semibold hover:bg-[#2B2F2D] focus:outline focus:outline-2 focus:outline-offset-2 focus:outline-[#F0D58A]"
+            >
+              {FRONT_DOOR_COPY.sample} <span aria-hidden="true" className="ml-1">→</span>
+            </a>
+          </div>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <span className="inline-block text-[0.5625rem] uppercase tracking-wider border border-[#F0D58A] text-[#F0D58A] px-2 py-1 rounded-full font-semibold">{FRONT_DOOR_COPY.free1}</span>
+            <span className="inline-block text-[0.5625rem] uppercase tracking-wider border border-[#F0D58A] text-[#F0D58A] px-2 py-1 rounded-full font-semibold">{FRONT_DOOR_COPY.free2}</span>
+          </div>
+        </div>
+        <ul className="grid grid-cols-2 gap-2.5 min-w-0" aria-label="What is inside">
+          {PILLARS.map((p) => (
+            <li key={p.label} className="rounded-xl bg-[#1A1D1B]/70 border border-[#2B2F2D] p-3 flex items-center gap-3 min-w-0">
+              <span aria-hidden="true" className="w-9 h-9 rounded-lg bg-[#1F3A2E] border border-[#C9A227] grid place-items-center text-[#F0D58A] text-[1rem] shrink-0"><UiIcon name={p.icon} /></span>
+              <span className="min-w-0 leading-tight">
+                <span className="block text-sm font-semibold" style={{ fontFamily: '"Fraunces", serif' }}>{p.label}</span>
+                <span className="block text-[0.6875rem] opacity-85 truncate">{p.sub}</span>
+              </span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  );
+}
+
 export default function PublicFrontDoor({ brand = null }) {
   // THE CHURCH'S OWN DOOR IS NOT A RENTAL SHELF.
   //
@@ -102,15 +206,17 @@ export default function PublicFrontDoor({ brand = null }) {
 
   return (
     <div className="w-full" data-testid="public-front-door">
+      <Welcome onSignIn={() => setView('auth')} />
+
       <header className="mb-5">
         <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#2F5D50] font-semibold">
           Poe Properties — places to live
         </div>
-        <h1 className="text-[1.5rem] sm:text-[2rem] text-[#1A1815] leading-tight mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+        <h2 className="text-[1.5rem] sm:text-[2rem] text-[#1A1815] leading-tight mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
           {read === 'ok' && count > 0
             ? `${count} ${count === 1 ? 'place' : 'places'} available`
             : 'Places to live in Champaign'}
-        </h1>
+        </h2>
         <p className="text-[0.875rem] text-[#5A5751] mt-1">
           No account needed to look. Champaign, Illinois.
         </p>
@@ -159,7 +265,7 @@ export default function PublicFrontDoor({ brand = null }) {
           type="button"
           onClick={() => setView('auth')}
           data-testid="front-door-sign-in"
-          className="inline-flex items-center justify-center min-h-[44px] px-4 bg-[#2F5D50] text-white text-[0.75rem] uppercase tracking-wider"
+          className="inline-flex items-center justify-center min-h-[44px] px-4 rounded-xl bg-[#2F5D50] text-white text-[0.75rem] uppercase tracking-wider"
         >
           Sign in
         </button>

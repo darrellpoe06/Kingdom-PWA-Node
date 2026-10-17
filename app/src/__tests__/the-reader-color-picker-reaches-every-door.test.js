@@ -54,9 +54,27 @@ describe('every door hears the shared theme, not a copy of it', () => {
     });
   }
 
-  it('the PoeTech shell was already right, and stays right', () => {
+  it('the PoeTech shell was already right, and stays right (its fallback is the family app\'s DEFAULT_THEME, DR-1046)', () => {
+    // RETARGETED, NOT RELAXED (DR-1060). This pinned the exact string
+    // `useThemePref(DEFAULT_THEME)`, and DR-1060 made the fallback depend on
+    // WHICH DOOR is open: the church's door opens in the church's own colors,
+    // the family app still opens in Heritage. The guarantee this case actually
+    // holds — the shell reads the preference through useThemePref and keeps no
+    // private copy, and the FAMILY fallback is still DEFAULT_THEME — is
+    // unchanged, so the check follows the change rather than being deleted.
+    //
+    // THIRD TIME THIS WEEK a second place pinned a line that moved, and only CI
+    // knew: call-to-give-sync.js (DR-1057), feature-registry.json (DR-1056),
+    // and now this. The habit both records name is the one that catches it —
+    // when a line changes, search the whole tree for it, not the files being
+    // edited.
     const shell = readFileSync(join(HERE, '..', 'poe-financial-mvp-v28.jsx'), 'utf8');
-    expect(shell).toContain("useThemePref('cream')");
+    expect(shell).toMatch(/useThemePref\([^)]*DEFAULT_THEME\)/);
+    // The family app's fallback is still Heritage's DEFAULT_THEME, and the
+    // church's is its own — never the other way round.
+    expect(shell).toContain(': DEFAULT_THEME)');
+    expect(shell).toContain('CHURCH_DEFAULT_THEME :');
+    expect(shell).not.toMatch(/useState\(\(\)\s*=>\s*readThemePref\(/);
   });
 });
 

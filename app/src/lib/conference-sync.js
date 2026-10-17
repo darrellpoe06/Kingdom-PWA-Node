@@ -23,6 +23,7 @@
 // =============================================================================
 import supabase from './supabase.js';
 import { churchInstanceId } from './church-instance.js';
+import { askRole, askPredicate, knownOrUnavailable } from './church-access.js';
 import {
   MEAL_TYPES, normalizeMealType, aggregateMeals, mealCountRows,
   isMainService, resolveServiceSermon, resolveServiceSongs, toggleSongId,
@@ -269,12 +270,13 @@ export async function getConferenceAccess(displayName) {
   if (!session) return { signedIn: false, canSee: false, canEdit: false, tenantId: null, role: null };
   const tenantId = await churchInstanceId(displayName);
   if (!tenantId) return { signedIn: true, canSee: false, canEdit: false, tenantId: null, role: null };
-  const [{ data: role }, { data: inInstance }] = await Promise.all([
-    supabase.rpc('user_role_in_instance', { tenant_uuid: tenantId }),
-    supabase.rpc('user_in_instance', { tenant_uuid: tenantId }),
+  // A read that could not be made is NOT a no (DR-1053).
+  const [roleAnswer, memberAnswer] = await Promise.all([
+    askRole(tenantId),
+    askPredicate('user_in_instance', { tenant_uuid: tenantId }),
   ]);
-  const { canEdit, canSee } = deriveAccess(role, inInstance);
-  return { signedIn: true, canSee, canEdit, tenantId, role: role ?? null };
+  const verdict = knownOrUnavailable([roleAnswer, memberAnswer], deriveAccess);
+  return { signedIn: true, ...verdict, tenantId, role: roleAnswer.ok ? (roleAnswer.value ?? null) : null };
 }
 
 // --- Generic fetch + realtime subscribe (identical pattern to choir-sync) -----

@@ -48,7 +48,7 @@ import {
   HOME_VIEWS, HUB_DENSITIES, DENSITY_ACTIONS, HOME_VIEW_KEY,
   getHomeView, setHomeView, setHubDensity, __resetHomePrefs, readPref, DEFAULT_HOME_VIEW,
 } from '../lib/home-view-prefs.js';
-import { HUB_TILES, HOST_VIEWS, hubTiles, actionsFor, hasRealCount, openProjectCount, doorCount } from '../lib/life-hub.js';
+import { HUB_TILES, HUB_ACTIONS, HOST_VIEWS, hubTiles, actionsFor, hasRealCount, openProjectCount, doorCount } from '../lib/life-hub.js';
 import { PROJECT_STATUSES_ACTIVE } from '../lib/opportunity-capacity.js';
 import { DM_UNREAD_EVENT } from '../lib/notify-readiness.js';
 
@@ -86,12 +86,12 @@ const hubProps = (over = {}) => ({ data: world, setData: noop, setView: noop, se
 const render = (el) => { act(() => root.render(el)); };
 const text = () => container.textContent || '';
 
-describe('nobody is moved off the front door they already have', () => {
-  it('defaults to the current view', () => {
+describe('the Life Hub is the front door (DR-1046, Darrell\'s approval 2026-10-15); a chosen view is kept', () => {
+  it('defaults to the Life Hub', () => {
     // Checked at the SINGLE source the module actually reads, because a break
     // that flipped the real default used to hide behind the test reset.
-    expect(DEFAULT_HOME_VIEW).toBe('current');
-    expect(getHomeView()).toBe('current');
+    expect(DEFAULT_HOME_VIEW).toBe('lifehub');
+    expect(getHomeView()).toBe('lifehub');
     const src = readFileSync(join(ROOT, 'app', 'src', 'lib', 'home-view-prefs.js'), 'utf8');
     expect(src).toMatch(/homeView: read\(HOME_VIEW_KEY, HOME_VIEWS, DEFAULT_HOME_VIEW\)/);
   });
@@ -110,15 +110,19 @@ describe('nobody is moved off the front door they already have', () => {
     expect(readPref(() => { throw new Error('blocked'); }, ['a', 'b'], 'z')).toBe('z');
   });
 
-  it('Home renders the existing dashboard until the reader chooses otherwise', () => {
+  it('Home renders the Life Hub by default, and the dashboard when the reader chooses the Current View', () => {
+    render(createElement(Home, { data: world, setView: noop, setData: noop, dismissWelcome: noop, totals: {}, entityRollups: [], reserves: {}, upcomingEvents: [] }));
+    expect(text()).toContain('Life Hub');
+    expect(text()).not.toContain('Try the Life Hub');
+    act(() => setHomeView('current'));
     render(createElement(Home, { data: world, setView: noop, dismissWelcome: noop, totals: {}, entityRollups: [], reserves: {}, upcomingEvents: [] }));
     expect(text()).toContain('Try the Life Hub');
-    expect(text()).not.toContain('Life Hub’s');
   });
 
   it('rides at the end of the Overview tab row, never on a line of its own', () => {
     // Darrell 2026-09-24, of the button alone on a full-width row above the
     // tabs: "Try the hub is taking up a lot of space... why?!"
+    act(() => setHomeView('current'));
     render(createElement(Home, { data: world, setView: noop, dismissWelcome: noop, totals: {}, entityRollups: [], reserves: {}, upcomingEvents: [] }));
     const btn = container.querySelector('[data-testid="try-life-hub"]');
     const row = container.querySelector('[data-testid="overview-tab-row"]');
@@ -168,7 +172,13 @@ describe('the switch passes the wiring through, not just the screen', () => {
     expect(written.dailyFocus[0].label).toBe('Through the switch');
   });
 
-  it('forwards the church setter, so the Learn tile lands both halves', () => {
+  it('forwards the church setter, so a two-half destination lands both halves', () => {
+    // Until 2026-10-15 this rode the Books/"Learn & Grow" tile. Darrell sent
+    // the home grid and said "Books doesn't currently go to the Books tab it
+    // goes to Church Learn...", so that tile now opens the ledger and Learn
+    // travels as the "Open a lesson" Quick Action. The property under test is
+    // unchanged: Home must forward BOTH setters, or a church sub-view opens
+    // the church door and then sits on whatever tab was last shown.
     const calls = [];
     act(() => setHomeView('lifehub'));
     render(createElement(Home, {
@@ -176,7 +186,8 @@ describe('the switch passes the wiring through, not just the screen', () => {
       setView: (v) => calls.push(['view', v]),
       setChurchView: (v) => calls.push(['churchView', v]),
     }));
-    const btn = [...container.querySelectorAll('button')].find((b) => (b.textContent || '').includes('Learn & Grow'));
+    const btn = [...container.querySelectorAll('button')].find((b) => (b.textContent || '').includes('Open a lesson'));
+    expect(btn, 'the "Open a lesson" action did not render').toBeTruthy();
     act(() => btn.dispatchEvent(new MouseEvent('click', { bubbles: true })));
     expect(calls, 'Home did not forward setChurchView').toEqual([['view', 'church'], ['churchView', 'learn']]);
   });
@@ -192,12 +203,34 @@ describe('every tile opens something that exists in this app', () => {
 
   it('ROUTES LEARN THROUGH THE CHURCH DOOR, because there is no learn view', () => {
     // The defect this check exists for: `view === 'learn'` does not exist, and
-    // a Learn tile pointing at it would have opened nothing at all.
+    // anything pointing at it would open nothing at all. It used to guard the
+    // Learn TILE; since DR-1055 that tile opens the ledger and Learn travels as
+    // a Quick Action, so the check moved to the action. The property is the
+    // same one and it is still worth a gate.
     expect(HOST.includes("view === 'learn'")).toBe(false);
-    const learn = HUB_TILES.find((t) => t.key === 'learn');
-    expect(learn.view).toBe('church');
-    expect(learn.churchView).toBe('learn');
+    const lesson = HUB_ACTIONS.find((a) => a.key === 'lesson');
+    expect(lesson, 'Learn must stay reachable from the home screen').toBeTruthy();
+    expect(lesson.view).toBe('church');
+    expect(lesson.churchView).toBe('learn');
     expect(HOST.includes("churchView === 'learn'")).toBe(true);
+    // And no tile may quietly re-acquire the dead route.
+    for (const t of HUB_TILES) expect(t.view).not.toBe('learn');
+  });
+
+  it('THE BOOKS TILE OPENS THE BOOKS, and says so (DR-1055)', () => {
+    // Darrell, 2026-10-15, from the home grid: "Books doesn't currently go to
+    // the Books tab it goes to Church Learn..."
+    const books = HUB_TILES.find((t) => t.key === 'books');
+    expect(books, 'the Books tile is gone').toBeTruthy();
+    expect(books.label).toBe('Books');
+    expect(books.view).toBe('books');
+    expect(books.churchView).toBe(null);
+    // A tile that opens nothing is a lie (DR-0330) — the host must route it.
+    expect(HOST.includes("view === 'books'"), 'the host has no books route').toBe(true);
+    // AND THE SUB-LABEL MOVED WITH IT. Pointing the tile at the ledger while
+    // leaving "Learn & Grow" underneath would be the same lie inverted, and a
+    // worse one: a tile that says it teaches and opens the family's money.
+    expect(books.sub).not.toMatch(/learn/i);
   });
 
   it('drives both setters when a tile needs a sub-view', () => {
@@ -206,8 +239,8 @@ describe('every tile opens something that exists in this app', () => {
       setView: (v) => calls.push(['view', v]),
       setChurchView: (v) => calls.push(['churchView', v]),
     })));
-    const btn = [...container.querySelectorAll('button')].find((b) => (b.textContent || '').includes('Learn & Grow'));
-    expect(btn, 'the Learn tile did not render').toBeTruthy();
+    const btn = [...container.querySelectorAll('button')].find((b) => (b.textContent || '').includes('Open a lesson'));
+    expect(btn, 'the "Open a lesson" action did not render').toBeTruthy();
     act(() => btn.dispatchEvent(new MouseEvent('click', { bubbles: true })));
     expect(calls).toEqual([['view', 'church'], ['churchView', 'learn']]);
   });
@@ -216,8 +249,13 @@ describe('every tile opens something that exists in this app', () => {
 describe('a number appears only when a record produced it', () => {
   it('shows NO count on the tiles this app has no record for', () => {
     const tiles = hubTiles(world, { unread: 0 });
-    for (const key of ['bigPicture', 'learn', 'tlc']) {
-      expect(hasRealCount(tiles.find((t) => t.key === key)), `${key} painted a number`).toBe(false);
+    for (const key of ['bigPicture', 'books', 'tlc']) {
+      const tile = tiles.find((t) => t.key === key);
+      // A renamed key must fail LOUDLY here. Before DR-1055 this list said
+      // 'learn'; when that tile became 'books', find() returned undefined and
+      // the check would have passed vacuously on a tile that no longer exists.
+      expect(tile, `there is no ${key} tile to check`).toBeTruthy();
+      expect(hasRealCount(tile), `${key} painted a number`).toBe(false);
     }
   });
 
@@ -392,16 +430,16 @@ describe('the furniture stays furniture', () => {
 
 describe('the preference is remembered on the device, honestly', () => {
   it('writes the choice under a namespaced key', () => {
-    act(() => setHomeView('lifehub'));
+    act(() => setHomeView('current'));
     let stored = null;
     try { stored = localStorage.getItem(HOME_VIEW_KEY); } catch { /* blocked */ }
     expect(HOME_VIEW_KEY).toBe('poetech:home-view');
-    expect(stored).toBe('lifehub');
+    expect(stored).toBe('current');
   });
 
   it('refuses a value it does not know', () => {
     act(() => setHomeView('whatever'));
-    expect(getHomeView()).toBe('current');
+    expect(getHomeView()).toBe('lifehub');
   });
 
   it('and says out loud that per-person means per-device here', () => {

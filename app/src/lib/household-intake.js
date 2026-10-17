@@ -151,7 +151,11 @@ export const HOUSEHOLD_SECTIONS = Object.freeze([
     id: 'agreements', title: 'The agreement', blurb: 'Read it, then sign by typing your full name.',
     fields: [
       { key: 'householdCovenant', type: 'acknowledgment', required: true, label: 'How this household uses the app, and what the app owes it (Signature/Date)', docName: 'Household Covenant',
-        statement: 'I have read the Household Covenant. I understand what this household’s record holds, that it is ours to read, correct, export and remove at any time, and that it is never sold, never sent to an insurer, an employer or an advertiser, and never used to train anything outside this household without our word.' },
+        // DR-1071. Same correction as the church covenant: the protections on
+        // the RECORD keep their full strength, and the page counting is
+        // disclosed instead of denied. A household record is never handed to
+        // anyone; a web service only ever sees that a page was opened.
+        statement: 'I have read the Household Covenant. I understand what this household’s record holds, that it is ours to read, correct, export and remove at any time, and that it will never be willingly sold, never sent to an insurer, an employer or a lender, and never used to train anything outside this household without our word. And so we are told plainly: the app counts how its PAGES are used so it can be made better, and that counting is being moved onto our own equipment. If we sign in with Google, Google knows we signed in here — that is what choosing that door means, and the phone-and-PIN or email-and-password doors are there instead. And this is said straight rather than dressed up as a guarantee: the people building this are still learning and do not know everything yet, so there is real risk in it. What they promise is their will, not their perfection — they will never willingly hand over our record, our money or our documents, they will say so when they find they were wrong, and they will not claim a safety they have not built yet.' },
     ],
   },
 ]);

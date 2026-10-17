@@ -71,4 +71,11 @@ describe('place_hosted_key.sh — a paste that is proven before it is placed', (
     const readme = readFileSync(README, 'utf8');
     expect(readme).toMatch(/place_hosted_key\.sh/);
   });
+
+  it('never asks for a NAS password: sudo is only ever non-interactive (DR-1078)', () => {
+    // Commands only: comments and the words an echo prints are not a sudo call.
+    const body = readFileSync(SCRIPT, 'utf8').split('\n').filter((l) => !/^\s*#/.test(l) && !/^\s*echo\s/.test(l)).join('\n');
+    expect(body).toMatch(/WRITER="sudo -n"/);
+    expect(/(^|[^-\w])sudo(?! -n)\b/m.test(body.replace(/WRITER="sudo -n"/g, ''))).toBe(false);
+  });
 });

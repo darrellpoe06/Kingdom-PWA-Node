@@ -62,6 +62,10 @@ export const THEME_CSS = `
 [data-theme="slate"]{--form-surface:#FFFFFF;--form-ink:#1B1D1F;--form-line:#DDE3EC;--form-hint:#4A5260;color-scheme:light}
 [data-theme="sapphire"]{--form-surface:#FFFFFF;--form-ink:#1E3A8A;--form-line:#BFDBFE;--form-hint:#1D4ED8;color-scheme:light}
 [data-theme="rose"]{--form-surface:#FFFFFF;--form-ink:#831843;--form-line:#FBCFE8;--form-hint:#9D174D;color-scheme:light}
+[data-theme="heritage"]{--form-surface:#FFFDF9;--form-ink:#1A1D1B;--form-line:#DED5C3;--form-hint:#5E5A52;color-scheme:light}
+[data-theme="lovecorner"]{--form-surface:#FFFFFF;--form-ink:#1A1012;--form-line:#F2D9D5;--form-hint:#6B4440;color-scheme:light}
+[data-theme="anchor"]{--form-surface:#FFFFFF;--form-ink:#1B1F24;--form-line:#D3D7DD;--form-hint:#555D66;color-scheme:light}
+[data-theme="bedrock"]{--form-surface:#FDFBF7;--form-ink:#211C16;--form-line:#DBD2C2;--form-hint:#5D5346;color-scheme:light}
 [data-theme="midnight"]{--form-surface:#0A0A0A;--form-ink:#E5E5E5;--form-line:#2A2A2A;--form-hint:#7C7C7C;color-scheme:dark}
 
 input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not([type="image"]),
@@ -148,6 +152,167 @@ input::placeholder,textarea::placeholder{color:var(--form-hint)}
 [data-theme="rose"] .text-\\[\\#5A5751\\]{color:#9D174D!important}
 [data-theme="rose"] .border-\\[\\#1A1815\\]{border-color:#831843!important}
 [data-theme="rose"] .bg-\\[\\#1A1815\\]{background-color:#831843!important}
+
+/* ===================================================================
+   THEME: THE LOVE CORNER — the church's own red, white and black
+   (2026-10-16, DR-1060). Darrell: "keep the Love Corner signature
+   colors of red and white and some black... however mostly red and
+   white... make that the default color when it shows initially."
+
+   THE RED IS MEASURED, NOT INVENTED. No brand color was declared
+   anywhere for this door (manifest-lovecorner.webmanifest ships the
+   generic #1A1815), so the church's own emblem was decoded
+   (public/lovecorner-icon-512.png) and its heart sampled: #E43C28.
+   That emblem is the brief in one picture — a black ring, a white
+   field, a red heart over the cross.
+
+   #E43C28 CANNOT CARRY TEXT: 4.22:1 on white, 3.98:1 under white.
+   Both fail AA, so the emblem red is a FILL and a mark only, and a
+   deeper sibling of the SAME hue carries every word: #C03222, which
+   holds the emblem's ratios (G/R 0.260 vs 0.263, B/R 0.177 vs 0.175)
+   and is deliberately 25.9 away in RGB from the Scripture palette's
+   Blood marker #B01E1E, so the church's brand red can never be
+   mistaken for the one red DR-0099 reserves inside Scripture.
+
+   MEASURED with the guard's own math before a line was written:
+   ink 17.77 / 18.64, muted 7.93 / 8.31, white on red 5.32,
+   red text 5.38 / 5.64, green 5.36 / 5.63, blue 6.78 / 7.11.
+   =================================================================== */
+[data-theme="lovecorner"]{background-color:#FFF8F7;color:#1A1012;letter-spacing:0}
+[data-theme="lovecorner"] .bg-\\[\\#FAF8F4\\]{background-color:#FFF8F7!important}
+[data-theme="lovecorner"] .bg-white{background-color:#FFFFFF!important;box-shadow:0 1px 2px rgba(192,50,34,0.06)}
+[data-theme="lovecorner"] .bg-\\[\\#E8E4DC\\]{background-color:#F8E7E4!important}
+[data-theme="lovecorner"] .border-\\[\\#E8E4DC\\]{border-color:#F2D9D5!important}
+[data-theme="lovecorner"] .text-\\[\\#1A1815\\]{color:#1A1012!important}
+[data-theme="lovecorner"] .text-\\[\\#5A5751\\]{color:#6B4440!important}
+[data-theme="lovecorner"] .text-\\[\\#B85838\\]{color:#C03222!important}
+[data-theme="lovecorner"] .text-\\[\\#5A6E3D\\]{color:#5A6E3D!important}
+/* The black of the ring: strong rules stay black, the FILLS go red, which
+   is what "mostly red and white, some black" asks for. */
+[data-theme="lovecorner"] .border-\\[\\#1A1815\\]{border-color:#1A1012!important}
+[data-theme="lovecorner"] .bg-\\[\\#1A1815\\]{background-color:#C03222!important}
+
+/* ===================================================================
+   THEME: ANCHOR — meek strength under control (2026-10-16, DR-1060)
+   Darrell asked for options that are "sound and solid... modern and
+   elegant". Anchor is the restrained one: a cool stone field, pure
+   white cards, deep ink, and a single controlled accent. Nothing
+   raises its voice; the strength is in the weight of the type and the
+   quiet of the surface. MEASURED: ink 14.26 / 16.56, muted 5.75 /
+   6.68, white on the dark fill 11.64, rust 5.53 / 6.43, green 5.17 /
+   6.01, blue 6.13 / 7.11.
+   =================================================================== */
+[data-theme="anchor"]{background-color:#EDEEF0;color:#1B1F24;letter-spacing:-0.003em}
+[data-theme="anchor"] .bg-\\[\\#FAF8F4\\]{background-color:#EDEEF0!important}
+[data-theme="anchor"] .bg-white{background-color:#FFFFFF!important;border-radius:10px;box-shadow:0 1px 2px rgba(27,31,36,0.07)}
+[data-theme="anchor"] .bg-\\[\\#E8E4DC\\]{background-color:#E0E3E7!important}
+[data-theme="anchor"] .border-\\[\\#E8E4DC\\]{border-color:#D3D7DD!important}
+[data-theme="anchor"] .text-\\[\\#1A1815\\]{color:#1B1F24!important}
+[data-theme="anchor"] .text-\\[\\#5A5751\\]{color:#555D66!important}
+[data-theme="anchor"] .text-\\[\\#B85838\\]{color:#9C4426!important}
+[data-theme="anchor"] .text-\\[\\#5A6E3D\\]{color:#4F6B3A!important}
+[data-theme="anchor"] .border-\\[\\#1A1815\\]{border-color:#2B3440!important;border-radius:10px}
+[data-theme="anchor"] .bg-\\[\\#1A1815\\]{background-color:#2B3440!important;border-radius:8px}
+
+/* ===================================================================
+   THEME: BEDROCK — sound, solid, perpetual (2026-10-16, DR-1060)
+   The enduring one: warm stone, paper cards, a deep earth ink and a
+   bronze accent. Where Anchor is cool and precise, Bedrock is warm
+   and settled — the same discipline, a different temperature, so the
+   two are a real choice rather than one palette twice. MEASURED: ink
+   14.50 / 16.35, muted 6.45 / 7.28, white on the dark fill 11.88,
+   bronze 5.33 / 6.01, green 5.25 / 5.92, blue 6.10 / 6.88.
+   =================================================================== */
+[data-theme="bedrock"]{background-color:#F2EDE4;color:#211C16;letter-spacing:0}
+[data-theme="bedrock"] .bg-\\[\\#FAF8F4\\]{background-color:#F2EDE4!important}
+[data-theme="bedrock"] .bg-white{background-color:#FDFBF7!important;box-shadow:0 1px 2px rgba(33,28,22,0.06)}
+[data-theme="bedrock"] .bg-\\[\\#E8E4DC\\]{background-color:#E6DFD2!important}
+[data-theme="bedrock"] .border-\\[\\#E8E4DC\\]{border-color:#DBD2C2!important}
+[data-theme="bedrock"] .text-\\[\\#1A1815\\]{color:#211C16!important}
+[data-theme="bedrock"] .text-\\[\\#5A5751\\]{color:#5D5346!important}
+[data-theme="bedrock"] .text-\\[\\#B85838\\]{color:#9A4A24!important}
+[data-theme="bedrock"] .text-\\[\\#5A6E3D\\]{color:#55683B!important}
+[data-theme="bedrock"] .border-\\[\\#1A1815\\]{border-color:#3A3228!important}
+[data-theme="bedrock"] .bg-\\[\\#1A1815\\]{background-color:#3A3228!important}
+
+
+/* ===================================================================
+   THEME: HERITAGE — forest & gold (2026-10-15, DR-1046 Phase 1)
+   The Heritage redesign's finish: forest green for navigation and the
+   dark fill, navy for the selected state, ivory rooms, paper cards with
+   one soft shadow, terracotta where the house rust was, a healthy green
+   where the olive was. Every pairing below was MEASURED with
+   scripts/contrast-guard.mjs's own math before it was written: ink on
+   ivory 15.10, muted on ivory 6.10, terracotta on ivory 5.38 (the old
+   rust needed an allowlist at 4.41; this one does not), healthy green
+   on ivory 5.59, white on forest 12.33, white on navy 14.22. Gold
+   (#C9A227) is a FILL and a rule only — as text on ivory it is 2.07:1 —
+   so its text form is #8A6510 (4.72 on ivory). True red marks nothing
+   (DR-0099). Same mechanism as the five themes above: the base literals
+   are remapped, so all 725 components inherit the finish and nothing
+   they key on changes.
+   =================================================================== */
+[data-theme="heritage"]{background-color:#F6F1E7;color:#1A1D1B;letter-spacing:0}
+[data-theme="heritage"] .bg-\\[\\#FAF8F4\\]{background-color:#F6F1E7!important}
+[data-theme="heritage"] .bg-white{background-color:#FFFDF9!important;border-radius:14px;box-shadow:0 1px 2px rgba(26,29,27,0.04),0 8px 24px rgba(26,29,27,0.05)}
+[data-theme="heritage"] .bg-\\[\\#E8E4DC\\]{background-color:#EDE5D5!important}
+[data-theme="heritage"] .bg-\\[\\#F0EDE6\\]{background-color:#EDE5D5!important}
+[data-theme="heritage"] .bg-\\[\\#F2EFE9\\]{background-color:#EDE5D5!important}
+[data-theme="heritage"] .border-\\[\\#E8E4DC\\]{border-color:#DED5C3!important}
+[data-theme="heritage"] .border-\\[\\#1A1815\\]{border-color:#1F3A2E!important;border-radius:10px}
+[data-theme="heritage"] .border-2{border-radius:14px}
+[data-theme="heritage"] .text-\\[\\#1A1815\\]{color:#1A1D1B!important}
+[data-theme="heritage"] .text-\\[\\#FAF8F4\\]{color:#F6F1E7!important}
+[data-theme="heritage"] .text-\\[\\#5A5751\\]{color:#5E5A52!important}
+[data-theme="heritage"] .text-\\[\\#6B665E\\]{color:#5E5A52!important}
+[data-theme="heritage"] .bg-\\[\\#1A1815\\]{background-color:#1F3A2E!important;border-radius:10px}
+[data-theme="heritage"] .bg-\\[\\#5A5751\\]{background-color:#5E5A52!important}
+[data-theme="heritage"] .border-\\[\\#5A5751\\]{border-color:#5E5A52!important}
+[data-theme="heritage"] .hover\\:bg-\\[\\#1A1815\\]:hover{background-color:#1B2A4A!important;color:#FFFFFF!important}
+[data-theme="heritage"] .hover\\:bg-\\[\\#FAF8F4\\]:hover{background-color:#EDE5D5!important}
+[data-theme="heritage"] .hover\\:bg-\\[\\#E8E4DC\\]:hover{background-color:#DED5C3!important}
+/* the house rust -> terracotta */
+[data-theme="heritage"] .text-\\[\\#B85838\\]{color:#9E4A2A!important}
+[data-theme="heritage"] .border-\\[\\#B85838\\]{border-color:#9E4A2A!important}
+[data-theme="heritage"] .bg-\\[\\#B85838\\]{background-color:#9E4A2A!important;border-radius:10px}
+[data-theme="heritage"] .hover\\:bg-\\[\\#B85838\\]:hover{background-color:#7E3A20!important}
+/* the olive -> healthy green */
+[data-theme="heritage"] .text-\\[\\#5A6E3D\\]{color:#2F6B4F!important}
+[data-theme="heritage"] .border-\\[\\#5A6E3D\\]{border-color:#2F6B4F!important}
+[data-theme="heritage"] .bg-\\[\\#5A6E3D\\]{background-color:#2F6B4F!important}
+[data-theme="heritage"] .text-\\[\\#2F5D50\\]{color:#2F6B4F!important}
+/* the blue -> navy */
+[data-theme="heritage"] .text-\\[\\#2A5A8E\\]{color:#1B2A4A!important}
+[data-theme="heritage"] .border-\\[\\#2A5A8E\\]{border-color:#1B2A4A!important}
+[data-theme="heritage"] .bg-\\[\\#2A5A8E\\]{background-color:#1B2A4A!important}
+/* THE SELECTED CHIP wears navy: navy on paper is 14:1 apart from an unselected
+   chip, and its white label reads at 14.22 (checkSelectedState, DR-0713). */
+[data-theme="heritage"] .poe-selected{background-color:#1B2A4A!important;color:#FFFFFF!important;border-color:#1B2A4A!important}
+/* THE FULL PALETTE ON EVERY SCREEN (Christina 2026-10-16: "What happened to
+   the multi-faceted colors of the app?!"). Until now Heritage changed near-black
+   to forest and left the rest, so on a phone the navy, gold and terracotta of
+   the reference showed only on the home tiles. Now the chrome itself carries
+   them: the bottom bar is the forest rail with ivory words and a GOLD active
+   tab (ink on gold reads 8.6:1; every bar button but the More menu's own
+   paper items, which keep the paper); the section row's selected pill is NAVY
+   (.poe-selected above); the heading rule under every section title is gold;
+   the top row's active underline is navy; the amber warning tokens read as
+   antique gold ink. The lesson reader's bar is untouched (data-in-reader):
+   DR-0716 / DR-0744 own that row. Gold is never text on paper (the
+   foundation test forbids it); on forest it is an icon tint, 9:1 apart. */
+[data-theme="heritage"] .section-title-wrapper{border-color:#C9A227!important}
+[data-theme="heritage"] [data-testid="top-nav-tabs"] .border-\\[\\#B85838\\]{border-color:#1B2A4A!important}
+[data-theme="heritage"] .text-\\[\\#D97706\\]{color:#8A6510!important}
+[data-theme="heritage"] .text-\\[\\#8A6E1F\\]{color:#8A6510!important}
+[data-theme="heritage"] .chrome-dock[data-in-reader="false"]{background-color:#1F3A2E!important}
+[data-theme="heritage"] .chrome-dock[data-in-reader="false"] .poe-dock-btn:not(.poe-dock-menu *){background-color:transparent!important;border-color:transparent!important;color:#F6F1E7!important}
+[data-theme="heritage"] .chrome-dock[data-in-reader="false"] .poe-dock-btn:not(.poe-dock-menu *):hover{border-color:#C9A227!important}
+[data-theme="heritage"] .chrome-dock[data-in-reader="false"] .poe-dock-btn-on:not(.poe-dock-menu *){background-color:#C9A227!important;border-color:#C9A227!important;color:#1A1D1B!important}
+[data-theme="heritage"] .chrome-dock[data-in-reader="false"] .poe-dock-btn:not(.poe-dock-menu *) .poe-dock-accent{color:#F0D58A!important}
+/* soft corners on controls, as Snow does */
+[data-theme="heritage"] button{border-radius:10px}
+[data-theme="heritage"] input,[data-theme="heritage"] select,[data-theme="heritage"] textarea{border-radius:8px}
+[data-theme="heritage"] p,[data-theme="heritage"] li{line-height:1.55}
 
 /* ===================================================================
    THEME: MIDNIGHT — OLED-friendly true black + smooth grey gradient
@@ -301,6 +466,47 @@ input::placeholder,textarea::placeholder{color:var(--form-hint)}
    1.12:1 apart, so on black nothing looked selected. poe-selected inverts the
    fill in midnight (#0A0A0A on #E5E5E5). The light themes keep their own dark
    fill. Checked per theme by checkSelectedState in contrast-guard.mjs. DR-0713. */
+/* THE HERITAGE CHROME TOKENS, ON MIDNIGHT (DR-1046). The redesign's shell
+   (sidebar, bottom navigation, hero, tiles) needs colors the six base
+   literals cannot express — forest, navy, gold, terracotta, healthy green,
+   ivory, paper, hairline — so they are literal classes like every other
+   token, and each gets its midnight twin here BEFORE a component uses it, so
+   contrast-guard's token coverage and the legibility guard police them from
+   the first commit. Measured on #141414: #86EFAC 12.4, #93C5FD 10.6,
+   #FB923C 8.2, #FCD34D 12.0, #A3A3A3 6.4. The two bright fills take dark
+   ink (the #B85838 / #5A6E3D pattern above). */
+[data-theme="midnight"] .text-\\[\\#1A1D1B\\]{color:#E5E5E5!important}
+[data-theme="midnight"] .text-\\[\\#5E5A52\\]{color:#A3A3A3!important}
+[data-theme="midnight"] .text-\\[\\#1F3A2E\\]{color:#86EFAC!important}
+[data-theme="midnight"] .text-\\[\\#1B2A4A\\]{color:#93C5FD!important}
+[data-theme="midnight"] .text-\\[\\#9E4A2A\\]{color:#FB923C!important}
+[data-theme="midnight"] .text-\\[\\#2F6B4F\\]{color:#86EFAC!important}
+[data-theme="midnight"] .text-\\[\\#8A6510\\]{color:#FCD34D!important}
+[data-theme="midnight"] .text-\\[\\#F6F1E7\\]{color:#E5E5E5!important}
+[data-theme="midnight"] .bg-\\[\\#F6F1E7\\]{background-color:#000000!important}
+[data-theme="midnight"] .bg-\\[\\#FFFDF9\\]{background-color:#141414!important}
+[data-theme="midnight"] .bg-\\[\\#EDE5D5\\]{background-color:#1A1A1A!important}
+[data-theme="midnight"] .bg-\\[\\#1F3A2E\\]{background-color:#0F1A14!important}
+[data-theme="midnight"] .bg-\\[\\#1B2A4A\\]{background-color:#16213A!important}
+[data-theme="midnight"] .bg-\\[\\#2B2F2D\\]{background-color:#1F1F1F!important}
+[data-theme="midnight"] .bg-\\[\\#9E4A2A\\]{background-color:#FB923C!important}
+[data-theme="midnight"] .bg-\\[\\#9E4A2A\\].text-white{color:#1A1815!important}
+[data-theme="midnight"] .bg-\\[\\#2F6B4F\\]{background-color:#86EFAC!important}
+[data-theme="midnight"] .bg-\\[\\#2F6B4F\\].text-white{color:#1A1815!important}
+[data-theme="midnight"] .bg-\\[\\#C9A227\\]{background-color:#FCD34D!important}
+[data-theme="midnight"] .bg-\\[\\#1C3F38\\]{background-color:#0F1A14!important}
+[data-theme="midnight"] .bg-\\[\\#8A6510\\]{background-color:#3A2E0E!important}
+[data-theme="midnight"] .text-\\[\\#F0D58A\\]{color:#FCD34D!important}
+[data-theme="midnight"] .bg-\\[\\#1A1D1B\\]{background-color:#000000!important}
+[data-theme="midnight"] .text-\\[\\#C9A227\\]{color:#FCD34D!important}
+[data-theme="midnight"] .border-\\[\\#DED5C3\\]{border-color:#2A2A2A!important}
+[data-theme="midnight"] .border-\\[\\#1F3A2E\\]{border-color:#86EFAC!important}
+[data-theme="midnight"] .border-\\[\\#1B2A4A\\]{border-color:#93C5FD!important}
+[data-theme="midnight"] .border-\\[\\#9E4A2A\\]{border-color:#FB923C!important}
+[data-theme="midnight"] .border-\\[\\#C9A227\\]{border-color:#FCD34D!important}
+[data-theme="midnight"] .hover\\:bg-\\[\\#EDE5D5\\]:hover{background-color:#2A2A2A!important}
+[data-theme="midnight"] .hover\\:bg-\\[\\#FFFDF9\\]:hover{background-color:#2A2A2A!important}
+[data-theme="midnight"] .hover\\:bg-\\[\\#DED5C3\\]:hover{background-color:#2A2A2A!important}
 [data-theme="midnight"] .poe-selected{background-color:#E5E5E5!important;color:#0A0A0A!important;border-color:#E5E5E5!important}
 [data-theme="midnight"] input,[data-theme="midnight"] textarea,[data-theme="midnight"] select{color:#E5E5E5;background-color:#0A0A0A!important;border-color:#2A2A2A!important}
 /* #666666 measured 3.45:1 on the #0A0A0A field — below AA. #7C7C7C is 4.74:1
@@ -317,6 +523,15 @@ input::placeholder,textarea::placeholder{color:var(--form-hint)}
 // STAY: it is the first-run default, and the header's inline copy had omitted
 // it, so a reader who chose any other palette could never return to it.
 export const THEMES = [
+  // HERITAGE STAYS FIRST. It is the family app's first-run theme by DR-1046 —
+  // Darrell's own approval, one day before DR-1060 — and a test encodes that
+  // position. The church's palette rides second: the Love Corner door opens in
+  // it by its own fallback (CHURCH_DEFAULT_THEME), which is what "make that the
+  // default when it shows initially" asked for, without moving the family's.
+  { key: 'heritage', color: '#F6F1E7', border: '#1F3A2E', label: 'Heritage · forest & gold' },
+  { key: 'lovecorner', color: '#FFF8F7', border: '#C03222', label: 'The Love Corner · red & white' },
+  { key: 'anchor',   color: '#EDEEF0', border: '#2B3440', label: 'Anchor · meek strength' },
+  { key: 'bedrock',  color: '#F2EDE4', border: '#3A3228', label: 'Bedrock · sound & solid' },
   { key: 'cream',    color: '#FAF8F4', border: '#1A1815', label: 'Cream · warm light' },
   { key: 'white',    color: '#F5F5F7', border: '#1D1D1F', label: 'Snow · clean light' },
   { key: 'slate',    color: '#F2F4F7', border: '#1F6FEB', label: 'Glacier · cool light' },
@@ -325,6 +540,26 @@ export const THEMES = [
   { key: 'midnight', color: '#000000', border: '#888888', label: 'Midnight · OLED black' },
 ];
 const THEME_KEYS = new Set(THEMES.map((t) => t.key));
+// THE FIRST-RUN THEME OF THE FAMILY APP (DR-1046; Darrell's approval, relayed by
+// Christina 2026-10-15). Heritage is what a device with no saved choice gets;
+// a device that chose a palette keeps it (DR-0524), and Cream stays in the
+// picker one tap away. The business doors pass their own fallback ('cream'):
+// they carry their own brands and were not part of the approval.
+export const DEFAULT_THEME = 'heritage';
+
+// THE CHURCH DOOR OPENS IN THE CHURCH'S OWN COLORS (DR-1060). Darrell,
+// 2026-10-16: "keep the Love Corner signature colors of red and white and some
+// black... make that the default color when it shows initially", then "Make
+// sure you taking care of the Love Corner App".
+//
+// This is a DOOR fallback, not a new global default, and that is deliberate:
+// DEFAULT_THEME above is Heritage by DR-1046 — HIS OWN approval, relayed by
+// Christina on 2026-10-15, for the family app. Overturning a decision one day
+// old, silently, to satisfy a sentence about the CHURCH's colors would be the
+// wrong reading of both. The family app keeps Heritage; the Love Corner door
+// opens in the Love Corner's red; every palette stays one tap away on both
+// (DR-0524 — a device that chose keeps its choice).
+export const CHURCH_DEFAULT_THEME = 'lovecorner';
 
 // THE PHONE'S OWN BARS WEAR THE THEME (DR-0744; Darrell 2026-10-01, Midnight
 // on his phone in the installed app, a white strip above the page and a white
@@ -338,7 +573,7 @@ const THEME_KEYS = new Set(THEMES.map((t) => t.key));
 // the page's color, not the browser's.
 /** The page color of a theme key (cream for an unknown key). Pure. */
 export function themeColorFor(theme) {
-  const t = THEMES.find((x) => x.key === theme);
+  const t = THEMES.find((x) => x.key === theme) || THEMES.find((x) => x.key === DEFAULT_THEME);
   return (t || THEMES[0]).color;
 }
 /**
@@ -369,7 +604,7 @@ export function syncThemeChrome(theme, doc = (typeof document !== 'undefined' ? 
 // picked this returns THAT — so the default follows the last chosen color
 // (Darrell 2026-07-19).
 const THEME_PREF_KEY = 'poe-theme-pref';
-export function readThemePref(fallback = 'cream') {
+export function readThemePref(fallback = DEFAULT_THEME) {
   try {
     const v = typeof localStorage !== 'undefined' ? localStorage.getItem(THEME_PREF_KEY) : null;
     return v && THEME_KEYS.has(v) ? v : fallback;
@@ -415,7 +650,7 @@ export function setThemePref(theme) {
  * React glue: [activeKey, setTheme]. Drop-in for the useState the monolith
  * carried, so every existing setTheme(...) call site is unchanged.
  */
-export function useThemePref(fallback = 'cream') {
+export function useThemePref(fallback = DEFAULT_THEME) {
   const [theme, setTheme] = useState(() => readThemePref(fallback));
   useEffect(() => subscribeThemePref(setTheme), []);
   // VALUE ONLY, deliberately. A functional updater would have to run

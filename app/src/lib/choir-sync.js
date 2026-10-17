@@ -15,7 +15,8 @@
 // =============================================================================
 import supabase from './supabase.js';
 import { publicRpc } from './public-rpc.js';
-import { churchInstanceId } from './church-instance.js';
+import { churchInstanceId, churchInstanceResolve } from './church-instance.js';
+import { askRole, askPredicate, knownOrUnavailable } from './church-access.js';
 
 async function currentSession() {
   const { data } = await supabase.auth.getSession();
@@ -82,6 +83,11 @@ export function toSermonShape(row) {
     youtubeUrl: row.youtube_url ?? null,
     videoId: row.video_id ?? null,
     startSeconds: row.start_seconds ?? null,
+    // How long the service video runs, read by the NAS stream-length rider
+    // (0295, DR-1045): an upper bound on the service, never its clocked length.
+    streamSeconds: Number.isFinite(row.stream_seconds) ? row.stream_seconds : null,
+    streamStartedAt: row.stream_started_at ?? null,
+    streamReadAt: row.stream_read_at ?? null,
     notes: row.notes ?? null,
     status: row.status ?? 'active',
     source: row.source ?? 'manual',
@@ -132,6 +138,10 @@ export function toTeamDocShape(row) {
     documentUrl: row.document_url ?? null,
     documentSource: row.document_source ?? null,
     createdAt: row.created_at ?? null,
+    // The rest of the row's own record (DR-1085): the email it came in, and
+    // when it last changed. Columns since 0022; the shape simply dropped them.
+    emailId: row.email_id ?? null,
+    updatedAt: row.updated_at ?? null,
   };
 }
 
@@ -459,17 +469,35 @@ export function dedupeSermons(rows) {
 
 // --- Access ------------------------------------------------------------------
 
+// A read that could not be made is NOT a no (DR-1053). Until 2026-10-15 this
+// function destructured `{ data: role }` and threw the `error` on the floor, so
+// a stalled read on a phone produced role=undefined, inChoir=undefined,
+// deriveAccess(undefined, undefined) = canSee:false, and the Choir tab told the
+// person to ask the director to add them to the roster. That is not an empty
+// state; it is a false statement about their standing in the church.
+//
+// deriveAccess below is UNCHANGED and is still called with exactly the two
+// values it always received. The only new outcome is `unavailable: true`, for
+// the case where one of the three questions never came back.
 export async function getChoirAccess(displayName) {
   const session = await currentSession();
-  if (!session) return { signedIn: false, canSee: false, canEdit: false, tenantId: null, role: null };
-  const tenantId = await churchInstanceId(displayName);
-  if (!tenantId) return { signedIn: true, canSee: false, canEdit: false, tenantId: null, role: null };
-  const [{ data: role }, { data: inChoir }] = await Promise.all([
-    supabase.rpc('user_role_in_instance', { tenant_uuid: tenantId }),
-    supabase.rpc('user_in_choir', { instance_uuid: tenantId }),
+  if (!session) {
+    return { signedIn: false, canSee: false, canEdit: false, tenantId: null, role: null, unavailable: false, reason: 'signed-out' };
+  }
+  const church = await churchInstanceResolve(displayName);
+  if (!church.ok) {
+    return { signedIn: true, tenantId: null, role: null, ...knownOrUnavailable([church], () => ({})) };
+  }
+  const tenantId = church.value ?? null;
+  if (!tenantId) {
+    return { signedIn: true, canSee: false, canEdit: false, tenantId: null, role: null, unavailable: false, reason: 'no-church' };
+  }
+  const [roleAnswer, choirAnswer] = await Promise.all([
+    askRole(tenantId),
+    askPredicate('user_in_choir', { instance_uuid: tenantId }),
   ]);
-  const { canEdit, canSee } = deriveAccess(role, inChoir);
-  return { signedIn: true, canSee, canEdit, tenantId, role: role ?? null };
+  const verdict = knownOrUnavailable([roleAnswer, choirAnswer], deriveAccess);
+  return { signedIn: true, ...verdict, tenantId, role: roleAnswer.ok ? (roleAnswer.value ?? null) : null };
 }
 
 // --- Generic fetch + realtime subscribe --------------------------------------
@@ -963,6 +991,14 @@ export async function saveSermonDocument(sermonId, documentUrl, source) {
   const url = (documentUrl || '').trim();
   const ctx = await writeContext();
   if (ctx.error) return { skipped: ctx.error };
+  // DR-1086: every save of a sermon used to delete and re-insert its document,
+  // so editing a title reset when the document was filed, who filed it, and
+  // turned an emailed document's source into 'manual'. A document that has not
+  // changed is now left exactly as it was; only a changed or cleared one moves.
+  const { data: existing } = await supabase.from('choir_sermon_documents')
+    .select('id, document_url').eq('sermon_id', sermonId).limit(1);
+  const current = Array.isArray(existing) && existing[0] ? existing[0] : null;
+  if (current && url && current.document_url === url) return { saved: true, unchanged: true };
   // Clearing the field removes the document; one document per sermon.
   await supabase.from('choir_sermon_documents').delete().eq('sermon_id', sermonId);
   if (!url) return { saved: true, cleared: true };
@@ -1071,8 +1107,10 @@ async function openDocument(bucket, documentUrl) {
   return data?.signedUrl || null;
 }
 // Sermon docs: owner/admin only (RLS). Team docs: whole choir (RLS).
-export const openSermonDocument = (url) => openDocument('sermon-documents', url);
-export const openTeamDocument = (url) => openDocument('church-team-documents', url);
+export const SERMON_DOCS_BUCKET = 'sermon-documents';
+export const TEAM_DOCS_BUCKET = 'church-team-documents';
+export const openSermonDocument = (url) => openDocument(SERMON_DOCS_BUCKET, url);
+export const openTeamDocument = (url) => openDocument(TEAM_DOCS_BUCKET, url);
 
 export async function saveTeamDocument(doc) {
   const ctx = await writeContext();

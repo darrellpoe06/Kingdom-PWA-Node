@@ -7,11 +7,17 @@
 // sermon segment is NOT compressed when the service is short — the whole point of
 // the fixed flag. If reflow ever scales fixed segments, that test fails.
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import {
   toProgramShape, toSegmentShape, sectorForRole, sectorLabel, STEWARD,
   parseClock, formatClock, computeSchedule, reflowProgram, deriveSectorView,
-  seedDefaultOrder, deriveAccess, summarizeChange, toChangeShape, toFinalizerMemberShape,
+  seedDefaultOrder, deriveAccess, accessDiagnosis, playbookFor, summarizeChange, toChangeShape, toFinalizerMemberShape,
+  parsePeople, peopleOf, whoText, whoServes, segmentRow, windowSay, SERVICE_WINDOW, TLC_ENSEMBLE_BAND, MIC_PLAN,
 } from '../lib/service-program.js';
+
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 
 describe('mappers', () => {
   it('toProgramShape defaults missing fields', () => {
@@ -155,12 +161,35 @@ describe('deriveSectorView', () => {
 });
 
 describe('seedDefaultOrder + deriveAccess', () => {
-  it('seed is a real ordered run-of-show with a fixed sermon', () => {
+  it('seed is the order as it last ran: Christina\u2019s 10-11-2026 sheet, people, band and cues (DR-1044)', () => {
     const seed = seedDefaultOrder();
-    expect(seed.length).toBeGreaterThanOrEqual(8);
-    const sermon = seed.find((s) => s.title === 'Sermon');
-    expect(sermon.flexible).toBe(false);
-    // strictly increasing sortOrder
+    expect(seed.map((s) => s.title)).toEqual([
+      'Call to Worship and Prayer', 'Announcements', 'Special presentation (if we have one)', 'Selection',
+      'The Call to Give', 'Selection', 'Message / Invitation to Christ / Prayer / Benediction', 'Closing',
+    ]);
+    expect(seed[0].personnel).toEqual(['Brother Clifton Reed']);
+    expect(seed[1].personnel).toEqual(['Sister Kristy Reed']);
+    const selections = seed.filter((s) => s.title === 'Selection');
+    expect(selections).toHaveLength(2);
+    for (const sel of selections) {
+      expect(sel.auxiliary).toBe('TLC Ensemble');
+      expect(sel.personnel).toEqual([...TLC_ENSEMBLE_BAND]);
+      expect(sel.cues.media).toMatch(/Check levels in headphones/);
+    }
+    const give = seed.find((s) => s.title === 'The Call to Give');
+    expect(give.personnel).toEqual(['Bishop Gwin']);
+    expect(give.cues.media).toMatch(/Giver\u2019s Creed PowerPoint after The Call to Give/);
+    const message = seed.find((s) => s.title.startsWith('Message'));
+    expect(message.flexible).toBe(false);
+    expect(message.personnel).toEqual(['Bishop Gwin']);
+    expect(seed[0].cues.media).toBe(MIC_PLAN);
+    // The dated items of that Sunday are not repeated.
+    const all = JSON.stringify(seed);
+    expect(all).not.toMatch(/Appreciation|Muriel|Park District|Paino/);
+    const total = seed.reduce((n, s) => n + s.plannedMinutes, 0);
+    expect(total).toBe(84);
+    expect(total).toBeGreaterThanOrEqual(SERVICE_WINDOW.minMinutes);
+    expect(total).toBeLessThanOrEqual(SERVICE_WINDOW.maxMinutes);
     const orders = seed.map((s) => s.sortOrder);
     expect([...orders].sort((a, b) => a - b)).toEqual(orders);
   });
@@ -168,6 +197,102 @@ describe('seedDefaultOrder + deriveAccess', () => {
     expect(deriveAccess('owner', false)).toEqual({ canSee: true, canEdit: true });
     expect(deriveAccess(null, true)).toEqual({ canSee: true, canEdit: false });
     expect(deriveAccess(null, false)).toEqual({ canSee: false, canEdit: false });
+  });
+
+  // =========================================================================
+  // THE ORDER OF SERVICE IS THE CONGREGATION'S TO READ (DR-1037)
+  // =========================================================================
+  // Darrell 2026-10-15: "Christina does not see the order of service!!!!!!!!!
+  // Either!!!!!!!!!" She is a member of the church space and not on the choir
+  // roster, and reading the order required CHOIR membership from 0042 until
+  // 0293. The case below is the exact account that was locked out, and it is
+  // the case this whole describe block never had: every assertion above passes
+  // a role of 'owner', 'admin' or null, so a plain member was never tested.
+  it('a plain member of the church space SEES the order (the Christina case)', () => {
+    expect(deriveAccess('member', false, false)).toEqual({ canSee: true, canEdit: false });
+  });
+
+  it('and an usher or deacon named ON the order can open it (0292 made this absurd)', () => {
+    // 0292 taught every line to name the auxiliary carrying it -- Choir,
+    // Ushers, Deacons -- so a deacon could be printed on the order and unable
+    // to read the page he was printed on.
+    expect(deriveAccess('member', false, false).canSee).toBe(true);
+  });
+
+  it('seeing is NOT editing: a member may read the order and change nothing', () => {
+    // The widening is read-only on purpose. 0293 carries no write policy, and
+    // this is the assertion that keeps it that way.
+    const a = deriveAccess('member', false, false);
+    expect(a.canSee).toBe(true);
+    expect(a.canEdit).toBe(false);
+  });
+
+  it('THE TENANCY WALL DOES NOT MOVE: a non-member still sees nothing', () => {
+    // 'a member of THIS church space', never 'anyone signed in' (DR-0060).
+    // user_role_in_instance returns NULL outside the space, so role is falsy.
+    expect(deriveAccess(null, false, false)).toEqual({ canSee: false, canEdit: false });
+    expect(deriveAccess('', false, false)).toEqual({ canSee: false, canEdit: false });
+    expect(deriveAccess(undefined, false, false)).toEqual({ canSee: false, canEdit: false });
+  });
+
+  it('PROVEN-TO-CATCH: the pre-0293 rule fails the Christina case', () => {
+    // The rule as it stood from 0042 until this change, written out. If someone
+    // narrows canSee back to choir membership, the assertion above goes red and
+    // this one says why in one line.
+    const preFix = (role, inChoir, isFinalizer = false) => {
+      const isAdmin = role === 'owner' || role === 'admin';
+      const canEdit = isAdmin || isFinalizer === true;
+      return { canSee: canEdit || inChoir === true, canEdit };
+    };
+    expect(preFix('member', false, false).canSee).toBe(false);
+    expect(deriveAccess('member', false, false).canSee).toBe(true);
+  });
+});
+
+// ===========================================================================
+// THE OTHER HALF: THE POLICIES (DR-1037)
+// ===========================================================================
+// deriveAccess alone would render the page and the database would hand back
+// zero rows. Three tables are gated, not one, and fixing only the first two
+// leaves yesterday's "Actual times" and "Track record" tabs blank. These read
+// the migration off disk so the UI half can never drift from the SQL half.
+describe('0293 widens READING to the whole house, and nothing else', () => {
+  const sql = readFileSync(
+    join(ROOT, 'infra/supabase/migrations-auto/0293-the-order-of-service-is-the-congregations-to-read.sql'),
+    'utf8',
+  );
+  const TABLES = ['church_service_programs', 'church_service_segments', 'church_service_segment_actuals'];
+  // The EXECUTABLE half only. The header deliberately quotes the three old
+  // policies so a reader can see what changed, so every "this must not appear"
+  // assertion below has to read the statements and not the documentation --
+  // which is exactly what tripped the first cut of this test.
+  const code = sql.split('\n').filter((l) => !l.trim().startsWith('--')).join('\n');
+
+  it('all THREE read policies move, including the actuals that shipped yesterday', () => {
+    // Each POLICY STATEMENT must carry the predicate -- asserted on the
+    // statement, not by counting the file, because the header explains the
+    // predicate in prose too and a whole-file count reads 4 for 3 policies.
+    for (const t of TABLES) {
+      const stmt = new RegExp(
+        `CREATE POLICY ${t}_read ON ${t} FOR SELECT\\s*\\n?\\s*USING \\(user_role_in_instance\\(instance_id\\) IS NOT NULL\\);`,
+      );
+      expect(stmt.test(sql), `${t}_read must SELECT on instance membership`).toBe(true);
+    }
+    // And no choir predicate is left behind on any of them.
+    expect(code).not.toMatch(/USING \(user_in_choir/);
+  });
+
+  it('it carries NO write policy — a member reads, only the old hands change it', () => {
+    expect(code).not.toMatch(/FOR\s+(INSERT|UPDATE|DELETE)/i);
+    expect(code).not.toMatch(/WITH CHECK/i);
+  });
+
+  it('and it is a member of THIS space, never anyone signed in', () => {
+    // The wall is the predicate: user_role_in_instance reads instance_members
+    // and returns NULL outside the space (DR-0060).
+    expect(sql).toContain('instance_members');
+    expect(code).not.toMatch(/USING \(true\)/);
+    expect(code).not.toMatch(/auth\.role\(\)\s*=\s*'authenticated'/);
   });
 });
 
@@ -203,5 +328,150 @@ describe('change log (institutional memory)', () => {
   it('toFinalizerMemberShape coerces the is_finalizer flag to a real boolean', () => {
     expect(toFinalizerMemberShape({ id: 'm1', user_id: 'u1', display_name: 'Christian', choir_role: 'musician', is_finalizer: true }).isFinalizer).toBe(true);
     expect(toFinalizerMemberShape({ id: 'm2', user_id: 'u2', display_name: 'Member', choir_role: 'member' }).isFinalizer).toBe(false);
+  });
+});
+
+describe('key personnel and auxiliaries on every line (DR-1029; 0292)', () => {
+  // Darrell 2026-10-15: "add the ability to add time to each section so any
+  // church can total their time and add key personnel to each task on the
+  // order of services list... or add a auxiliary."
+  it('parsePeople splits on commas, semicolons and lines, trims, and keeps one of each', () => {
+    expect(parsePeople('Bishop Gwin, Sis. Jones; Bro. Lee\n bishop gwin ,, ')).toEqual(['Bishop Gwin', 'Sis. Jones', 'Bro. Lee']);
+    expect(parsePeople('')).toEqual([]);
+    expect(parsePeople(null)).toEqual([]);
+  });
+  it('toSegmentShape carries personnel and the auxiliary; a row from before 0292 names its one owner', () => {
+    const s = toSegmentShape({ id: 's1', program_id: 'p1', title: 'Offering', personnel: ['Deacon Hill', ' Sis. Ray '], auxiliary: ' Ushers ' });
+    expect(s.personnel).toEqual(['Deacon Hill', 'Sis. Ray']);
+    expect(s.auxiliary).toBe('Ushers');
+    const old = toSegmentShape({ id: 's2', program_id: 'p1', title: 'Speaker', owner_name: 'Bishop Gwin', personnel: [] });
+    expect(old.personnel).toEqual(['Bishop Gwin']);
+    expect(old.auxiliary).toBeNull();
+    expect(toSegmentShape({ id: 's3', program_id: 'p1', title: 'Prayer' }).personnel).toEqual([]);
+  });
+  it('peopleOf and whoText read the line as the card prints it: auxiliary first, then the people', () => {
+    expect(whoText({ auxiliary: 'Choir', personnel: ['Christina'] })).toBe('Choir · Christina');
+    expect(whoText({ personnel: ['Bishop Gwin', 'Sis. Jones'] })).toBe('Bishop Gwin, Sis. Jones');
+    expect(whoText({ ownerName: 'Elder Cole' })).toBe('Elder Cole');
+    expect(whoText({})).toBe('');
+    expect(peopleOf({ personnel: [' '], ownerName: 'Elder Cole' })).toEqual(['Elder Cole']);
+  });
+  it('segmentRow writes personnel and the auxiliary, and the first key person doubles as the legacy owner', () => {
+    const row = segmentRow({ title: 'Choir \u2014 1 song', sector: 'worship', personnel: ['Christina', 'Sis. Jones'], auxiliary: 'Choir', plannedMinutes: 5 });
+    expect(row.personnel).toEqual(['Christina', 'Sis. Jones']);
+    expect(row.auxiliary).toBe('Choir');
+    expect(row.owner_name).toBe('Christina');
+    expect(segmentRow({ title: 'Prayer', personnel: [], auxiliary: '   ' }).auxiliary).toBeNull();
+  });
+  it('whoServes totals the minutes per person and per auxiliary across the order, most first', () => {
+    const segs = [
+      { id: 'a', sortOrder: 10, title: 'Prayer', plannedMinutes: 5, personnel: ['Elder Cole'] },
+      { id: 'b', sortOrder: 30, title: 'Choir \u2014 1 song', plannedMinutes: 5, auxiliary: 'Choir', personnel: ['Christina'] },
+      { id: 'c', sortOrder: 60, title: 'Choir \u2014 2 songs', plannedMinutes: 10, auxiliary: 'choir', personnel: ['Christina'] },
+      { id: 'd', sortOrder: 70, title: 'Speaker', plannedMinutes: 35, ownerName: 'Bishop Gwin' },
+      { id: 'e', sortOrder: 20, title: 'Announcements', plannedMinutes: 5 },
+    ];
+    const who = whoServes(segs);
+    expect(who.map((w) => `${w.kind}:${w.name}:${w.minutes}:${w.count}`)).toEqual([
+      'person:Bishop Gwin:35:1', 'auxiliary:Choir:15:2', 'person:Christina:15:2', 'person:Elder Cole:5:1',
+    ]);
+    expect(who.find((w) => w.name === 'Choir').titles).toEqual(['Choir \u2014 1 song', 'Choir \u2014 2 songs']); // in the order's order
+    expect(whoServes([])).toEqual([]);
+  });
+  it('deriveSectorView hands the flow its people, auxiliary and the who line', () => {
+    const v = deriveSectorView({ id: 'p1', startTime: '11:00' }, [{ id: 's1', programId: 'p1', sortOrder: 10, title: 'Choir \u2014 1 song', sector: 'worship', plannedMinutes: 5, auxiliary: 'Choir', personnel: ['Christina'] }], STEWARD);
+    expect(v.flow[0]).toMatchObject({ personnel: ['Christina'], auxiliary: 'Choir', who: 'Choir · Christina' });
+  });
+  it('0292 adds the two columns additively and backfills the one owner once (idempotent)', () => {
+    const sql = readFileSync(join(ROOT, 'infra/supabase/migrations-auto/0292-every-line-of-the-order-names-its-people.sql'), 'utf8');
+    expect(sql).toMatch(/ADD COLUMN IF NOT EXISTS personnel jsonb NOT NULL DEFAULT '\[\]'::jsonb/);
+    expect(sql).toMatch(/ADD COLUMN IF NOT EXISTS auxiliary text/);
+    expect(sql).toMatch(/WHERE personnel = '\[\]'::jsonb/);
+    expect(sql).not.toMatch(/DROP (TABLE|COLUMN)/);
+  });
+});
+
+describe('the service window: 75 to 90 minutes (DR-1029)', () => {
+  // Darrell 2026-10-15: "Services time needs to be between 1 hour and 15
+  // minutes to 1 hour 30 minutes max."
+  it('reads a total against the window in the church\u2019s own words', () => {
+    expect(SERVICE_WINDOW).toEqual({ minMinutes: 75, maxMinutes: 90 });
+    expect(windowSay(81)).toMatchObject({ ok: true, say: 'within 75\u201390\u2032' });
+    expect(windowSay(75).ok).toBe(true);
+    expect(windowSay(90).ok).toBe(true);
+    expect(windowSay(97)).toMatchObject({ ok: false, over: 7, say: '7\u2032 over the 90\u2032 limit' });
+    expect(windowSay(60)).toMatchObject({ ok: false, under: 15, say: '15\u2032 under the 75\u2032 floor' });
+    expect(windowSay(null).say).toBe('');
+  });
+  it('the plan carries its verdict: the church\u2019s own order fits, a padded one does not', () => {
+    const seed = seedDefaultOrder().map((s, i) => ({ ...s, id: `s${i}`, programId: 'p1' }));
+    expect(deriveSectorView({ id: 'p1' }, seed, STEWARD).window.ok).toBe(true); // 84'
+    const padded = seed.map((s) => (s.title.startsWith('Message') ? { ...s, plannedMinutes: 50 } : s)); // 96'
+    expect(deriveSectorView({ id: 'p1' }, padded, STEWARD).window).toMatchObject({ ok: false, over: 6 });
+  });
+});
+
+describe('accessDiagnosis — a refusal names what was read (DR-0076)', () => {
+  it('no church space: says so and how a steward adds you', () => {
+    const lines = accessDiagnosis({ email: 'd@x.com', tenantId: null, role: null, errors: ['no church space answered for this account'] });
+    expect(lines[0]).toBe('Signed in as d@x.com.');
+    expect(lines.some((l) => l.startsWith('No church space answered'))).toBe(true);
+    expect(lines.some((l) => l.includes('no church space answered'))).toBe(true);
+  });
+  it('a member not on the roster: role and roster both named', () => {
+    const lines = accessDiagnosis({ email: 'm@x.com', tenantId: 't', role: 'member', choirRole: null, errors: [] });
+    expect(lines).toContain('Your role in the church space: member.');
+    expect(lines).toContain('Choir roster: not on it.');
+  });
+  it('an owner refused means a read failed, and the screen says so', () => {
+    const lines = accessDiagnosis({ email: 'o@x.com', tenantId: 't', role: 'owner', choirRole: 'director', errors: ['choir read failed: 500'] });
+    expect(lines.some((l) => l.startsWith('An owner or admin always sees'))).toBe(true);
+    expect(lines).toContain('Choir roster: on it as director.');
+    expect(lines).toContain('Read failed \u2014 choir read failed: 500');
+  });
+  it('falls back to the actor name, never an empty subject', () => {
+    expect(accessDiagnosis({ actorName: 'Darrell', tenantId: null })[0]).toBe('Signed in as Darrell.');
+    expect(accessDiagnosis(null)).toEqual([]);
+  });
+});
+
+describe('playbookFor — the Sunday or Wednesday playbook across every sector (Darrell 2026-10-15)', () => {
+  const program = { id: 'p1', title: 'Order of Worship', serviceType: 'sunday', serviceDate: '2026-10-18', startTime: '11:00' };
+  const segs = [
+    { id: 'a', sortOrder: 10, title: 'Prayer', sector: 'pastoral', plannedMinutes: 5, flexible: true, personnel: ['Deacon Lee'], cues: { media: 'house lights down' } },
+    { id: 'b', sortOrder: 20, title: 'Choir \u2014 1 song', sector: 'worship', plannedMinutes: 5, flexible: true, personnel: ['Christina'], auxiliary: 'Choir', cues: {} },
+    { id: 'c', sortOrder: 30, title: 'Speaker', sector: 'pulpit', plannedMinutes: 35, flexible: false, personnel: ['Bishop Gwin'], cues: { media: 'sermon slides' } },
+    { id: 'd', sortOrder: 40, title: 'Benediction', sector: 'pulpit', plannedMinutes: 3, flexible: true, personnel: [], cues: {} },
+  ];
+  const book = playbookFor(program, segs, { members: [{ displayName: 'Keys', isFinalizer: true }, { displayName: 'Alto', isFinalizer: false }] });
+
+  it('clocks every line from the start time and totals the order', () => {
+    expect(book.lines.map((l) => l.startClock)).toEqual(['11:00 AM', '11:05 AM', '11:10 AM', '11:45 AM']);
+    expect(book.endClock).toBe('11:48 AM');
+    expect(book.total).toBe(48);
+    expect(book.window.under).toBe(27);
+  });
+
+  it('names who presides from the fixed pulpit line, and who signs from the roster', () => {
+    expect(book.presiding).toEqual(['Bishop Gwin']);
+    expect(book.finalizers).toEqual(['Keys']);
+  });
+
+  it('gives each team its stops: the lines it owns and the lines that cue it', () => {
+    const media = book.sectors.find((s) => s.key === 'media');
+    expect(media.stops.map((st) => [st.title, st.cue])).toEqual([['Prayer', 'house lights down'], ['Speaker', 'sermon slides']]);
+    const choir = book.sectors.find((s) => s.key === 'worship');
+    expect(choir.stops.map((st) => st.title)).toEqual(['Choir \u2014 1 song']);
+    expect(choir.stops[0].owns).toBe(true);
+    expect(choir.stops[0].who).toBe('Choir \u00b7 Christina');
+    expect(book.sectors.find((s) => s.key === 'ushers')).toBeUndefined();
+  });
+
+  it('an empty order has no window and no presiding, never a painted one', () => {
+    const empty = playbookFor(program, []);
+    expect(empty.lines).toEqual([]);
+    expect(empty.window).toBeNull();
+    expect(empty.presiding).toEqual([]);
+    expect(empty.sectors).toEqual([]);
   });
 });

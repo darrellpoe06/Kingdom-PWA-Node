@@ -34,6 +34,8 @@ import { fetchUserUsage } from '../lib/usage-events.js';
 import { SIGNUP_SORTS, sortSignupsBy, usageProfile, usageLine } from '../lib/user-usage-profile.js';
 import AppShareQR from './AppShareQR.jsx';
 import FamilyInvitePanel from './FamilyInvitePanel.jsx';
+import EdgeGuard from './EdgeGuard.jsx';
+import VisitorDoors from './VisitorDoors.jsx';
 import { fetchAccessSnapshot, currentBuild } from '../lib/access-metrics-sync.js';
 import {
   summarize, countByRole, groupByScope, newVsReturning, activityRollup,
@@ -321,6 +323,14 @@ function PlatformSignups() {
                       <div className="text-[0.625rem] text-[#5A5751]">
                         account created {r.joined} · {r.activeNow ? 'active now' : (r.returned ? `active, last active ${r.lastSeen}` : (r.lastSeen === 'never' ? 'never signed back in' : `last active ${r.lastSeen}`))}
                       </div>
+                      {/* WHAT IT IS, on the row (DR-1075). Darrell found the
+                          site-health probe here as an unexplained phone number
+                          signing in daily and had to ask. A roster that cannot
+                          answer "who is this?" sends a person investigating
+                          their own instruments. */}
+                      {r.whatItIs ? (
+                        <div className="text-[0.625rem] text-[#8A857C] leading-relaxed" data-testid="signup-what-it-is">{r.whatItIs}</div>
+                      ) : null}
                       <div className="flex flex-wrap items-center gap-2">
                         <AddToSpace row={r} spaces={spaces} who={who.shown} onDone={load} />
                         {r.userId ? (
@@ -538,6 +548,26 @@ export default function AccessUsageMetrics() {
             id: 'signups',
             label: 'Signups',
             render: () => <PlatformSignups />,
+          },
+          {
+            // THE VISITOR STAGE (DR-1070 derived it, DR-1071 disclosed the
+            // counting, this chip is where it is READ). It sits before
+            // "Signups" in the life of a visitor and right after it here,
+            // because the signed-in side is what a steward opens first.
+            // Derived from Cloudflare's own records: no tracker, no cookie, no
+            // beacon, nothing of ours stored about anyone not signed in.
+            id: 'doors',
+            label: 'At the doors',
+            render: () => <VisitorDoors />,
+          },
+          {
+            // THE EDGE GUARD (DR-1067): who and what is hitting the site, by
+            // agent / network / address / path / country, read from
+            // Cloudflare's own logs through the poetech-roads Worker — and
+            // the blocks and bot protections the stewards set there.
+            id: 'edge',
+            label: 'Bots & blocks',
+            render: () => <EdgeGuard />,
           },
           {
             // THE PEOPLE YOU KNOW, PLACED (DR-0839): the contacts brought in,

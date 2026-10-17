@@ -153,7 +153,7 @@ export default function PropertiesDoor() {
   const [theme, setTheme] = useThemePref('cream');
   const [sizeKey, setSizeKey, sizeSteps] = useTextSize();
   const headerHidden = useAutoHideHeader();
-  const [headerCollapsed, setHeaderCollapsed] = useState(() => readHeaderCollapsed());
+  const [headerCollapsed, setHeaderCollapsed] = useState(() => readHeaderCollapsed(undefined, false));
   const toggleHeaderChrome = () => setHeaderCollapsed((prev) => { const next = nextCollapsed(prev); writeHeaderCollapsed(next); return next; });
   const [showShare, setShowShare] = useState(false);
 

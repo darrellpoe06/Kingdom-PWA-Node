@@ -20,6 +20,7 @@
 //                subtotal?: { in, out, net, count } }],
 //     total?: { in, out, net, count },
 //     note?,
+//     unit?,   // what a line counts, in the print heading ('tx' when absent)
 //   }
 // =============================================================================
 
@@ -107,7 +108,7 @@ export function reportToPrintHTML(model) {
     }).join('') + '</tr>').join('');
     const head = '<thead><tr>' + cols.map((c) => `<th${c.align === 'right' || c.type === 'money' ? ' class="num"' : ''}>${esc(c.label)}</th>`).join('') + '</tr></thead>';
     return `<div class="group"><div class="ghead"><span class="lbl">${esc(g.label)}`
-      + ` <span style="color:#5A5751;font-weight:400;font-size:10px">${(g.subtotal?.count ?? g.rows.length)} tx</span></span>${subtotalHTML(g.subtotal)}</div>`
+      + ` <span style="color:#5A5751;font-weight:400;font-size:10px">${(g.subtotal?.count ?? g.rows.length)} ${esc(model.unit || 'tx')}</span></span>${subtotalHTML(g.subtotal)}</div>`
       + `<table>${head}<tbody>${body}</tbody></table></div>`;
   }).join('');
   const metaHTML = (model.meta || []).map((m) => `<span><strong>${esc(m.label)}:</strong> ${esc(m.value)}</span>`).join('');

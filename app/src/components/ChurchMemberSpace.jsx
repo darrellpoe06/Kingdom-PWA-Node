@@ -28,13 +28,18 @@ import ProductFormEditor from './ProductFormEditor.jsx';
 import { memberProgress } from '../lib/church-member-intake.js';
 import {
   readMyChurchRecord, patchMyChurchRecord, signChurchCovenant, readChurchRoll,
-  listChurchDocuments, saveChurchDocument, shareChurchDocument, signedChurchDocumentUrl,
+  listChurchDocuments, saveChurchDocument, shareChurchDocument, BUCKET as CHURCH_DOCS_BUCKET,
   removeChurchDocument, uploadChurchDocumentFile, exportChurchMemberRecord,
 } from '../lib/church-member-sync.js';
 import { liveSectionsFor, originalProduct } from '../lib/product-forms.js';
 import { readProductForms } from '../lib/product-forms-sync.js';
 import { CHURCH_DOC_KINDS, churchDocKindLabel, churchDocumentSlug, churchShelfSummary, validateChurchDocument } from '../lib/church-shelf.js';
 import { churchInsights } from '../lib/church-insights.js';
+import { useDocumentViewer } from './DocumentViewer.jsx';
+import { memberDocRecord, shelfReport } from '../lib/document-record.js';
+import ReportActions from './ReportActions.jsx';
+import ShelfLedger from './ShelfLedger.jsx';
+import { signStorageDocument } from '../lib/document-viewer.js';
 import { COLG_DEFAULT_CHURCH } from '../lib/default-church.js';
 
 const SERIF = { fontFamily: '"Fraunces", serif' };
@@ -49,14 +54,16 @@ const OFFICE_ROLES = ['owner', 'admin'];
 // THE SHELF
 // ---------------------------------------------------------------------------
 function ShelfRow({ row, mine, onShare, onRemove }) {
-  const [opening, setOpening] = useState(false);
   const [confirm, setConfirm] = useState(false);
-  const open = async () => {
-    setOpening(true);
-    const url = await signedChurchDocumentUrl(row.storagePath);
-    setOpening(false);
-    if (url) { try { window.open(url, '_blank', 'noopener'); } catch { /* the shelf still shows the row */ } }
-  };
+  // DR-1078. A paper opens INSIDE the app, in the one viewer every shelf uses.
+  const viewer = useDocumentViewer();
+  const open = () => viewer.open({
+    title: row.title || 'Paper',
+    name: row.fileName || row.storagePath || '',
+    resolve: () => signStorageDocument(CHURCH_DOCS_BUCKET, row.storagePath),
+    // The filer, or the office (the only others the database lets see it).
+    record: memberDocRecord({ ...row, kindLabel: churchDocKindLabel(row.kind) }, { admin: true }),
+  });
   return (
     <li className="py-2 border-t border-[#F0ECE4] first:border-t-0">
       <div className="flex flex-wrap items-start justify-between gap-2">
@@ -71,7 +78,7 @@ function ShelfRow({ row, mine, onShare, onRemove }) {
         </div>
         <div className="flex flex-wrap gap-2">
           {row.storagePath && (
-            <button type="button" onClick={open} disabled={opening} className={`${BTN}`}>{opening ? 'Opening…' : 'Open'}</button>
+            <button type="button" onClick={open} className={`${BTN}`}>Open</button>
           )}
           {mine && (
             <button type="button" onClick={() => onShare(row, !row.sharedWithOffice)} className={`${BTN}`}>
@@ -87,6 +94,7 @@ function ShelfRow({ row, mine, onShare, onRemove }) {
           )}
         </div>
       </div>
+      {viewer.element}
     </li>
   );
 }
@@ -200,6 +208,15 @@ function Shelf({ instanceId, myUserId }) {
             Nothing filed yet. This stays empty rather than showing an example — an example on your own shelf would be a lie about what you have.
           </p>
         )}
+        {rows.length > 0 && (() => {
+          const model = () => shelfReport(rows.map((r) => memberDocRecord({ ...r, kindLabel: churchDocKindLabel(r.kind) }, { admin: true })), { title: 'Church papers' });
+          return (
+            <>
+              <ReportActions className="mb-2" label="Every paper" filenameBase="church-papers" buildModel={model} />
+              <ShelfLedger model={model()} items={rows} label="See every paper, sorted" />
+            </>
+          );
+        })()}
         {rows.length > 0 && (
           <ul>
             {rows.map((r) => (
@@ -326,14 +343,19 @@ function OfficeRoll({ instanceId, church, onOpen }) {
 export default function ChurchMemberSpace({ church = COLG_DEFAULT_CHURCH, myUserId = null, onOpen = null }) {
   const [view, setView] = useState(null);
   const [error, setError] = useState('');
+  const [retryable, setRetryable] = useState(false);
+  const [retrying, setRetrying] = useState(false);
   const [forms, setForms] = useState(() => originalProduct('lovecorner'));
   const [exported, setExported] = useState('');
 
   const refresh = useCallback(async () => {
     const res = await readMyChurchRecord(null, church);
-    if (res.ok) { setView(res.view); setError(''); } else setError(res.message);
+    if (res.ok) { setView(res.view); setError(''); setRetryable(false); }
+    else { setError(res.message); setRetryable(res.retryable === true); }
   }, [church]);
   useEffect(() => { refresh(); }, [refresh]);
+
+  const tryAgain = async () => { setRetrying(true); await refresh(); setRetrying(false); };
 
   useEffect(() => {
     let alive = true;
@@ -350,11 +372,25 @@ export default function ChurchMemberSpace({ church = COLG_DEFAULT_CHURCH, myUser
   const progress = useMemo(() => memberProgress(record, church), [record, church]);
   const isOffice = view ? OFFICE_ROLES.includes(view.myRole) : false;
 
+  // A message with no way forward is a dead end (DR-1053). Darrell photographed
+  // this exact panel on 2026-10-15 reading "timed out after 15000 ms" with
+  // nothing to tap. When nothing came back, a Try again is the whole cure — and
+  // the sentence must say plainly that this is not a verdict about the person.
   if (error) {
     return (
-      <section className="border border-[#E8E4DC] bg-white p-4">
+      <section className="border border-[#E8E4DC] bg-white p-4" role="alert">
         <p className="text-sm text-[#1A1815] font-semibold mb-1">Your record could not be opened.</p>
         <p className="text-xs text-[#5A5751]">{error}</p>
+        {retryable && (
+          <>
+            <p className="text-xs text-[#5A5751] mt-1">
+              We asked three times and nothing came back, so this says nothing about your record or your standing — only that we could not reach it.
+            </p>
+            <button type="button" onClick={tryAgain} disabled={retrying} className={`${BTN} mt-2`}>
+              {retrying ? 'Trying…' : 'Try again'}
+            </button>
+          </>
+        )}
       </section>
     );
   }
@@ -437,7 +473,10 @@ export default function ChurchMemberSpace({ church = COLG_DEFAULT_CHURCH, myUser
         <UiIcon name="lock" className="w-3 h-3 mt-0.5 shrink-0" />
         <span>
           Your record and your shelf live in your church&apos;s own instance and are walled there by the database, not by this screen.
-          Nothing here is sold, sent to an employer, a lender or an advertiser, used to decide who is welcome, or used to train anything.
+          Nothing here will ever be willingly sold, sent to an employer or a lender, used to decide who is welcome, or used to train anything.
+          The church does count how its pages are used, so it can see what helps — that counting is being moved onto the church&apos;s own
+          equipment, and it never carries who you are or what you gave. We are still learning and still researching, so this is a promise
+          about what we will do, not a claim that nothing can go wrong; when we find we were wrong, we will say so here.
         </span>
       </p>
     </div>

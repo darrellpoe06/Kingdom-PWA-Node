@@ -27,6 +27,9 @@ export const ARCHIVE_REASON = Object.freeze({
   OK: 'ok',                 // the NAS answered with its index
   NO_ROAD: 'no-road',       // something answered, but not JSON — the SPA shell
   UNREACHABLE: 'unreachable', // the road is there and the far end did not answer
+  // DR-1086: the NAS answered and kept the returns private, because this
+  // device did not present the family key. Not "unreachable", not "empty".
+  LOCKED: 'locked',
   NONE: 'none',             // nothing was asked (no fetch in this environment)
 });
 
@@ -49,14 +52,18 @@ export function __setTaxFetcher(fn) {
  * Never throws — returns EMPTY on any network/parse error (signed-out or the job
  * not run yet), so the surface degrades to an empty archive rather than breaking.
  */
-export async function fetchTaxArchive() {
+export async function fetchTaxArchive({ token = '' } = {}) {
   if (!fetcher) return { ...EMPTY };
   let res;
   try {
-    res = await fetcher(`${baseHref()}taxes/archive.json`, { cache: 'no-store' });
+    // DR-1086: the archive is the family's tax returns and the route is public,
+    // so the NAS answers only a request carrying the family key.
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    res = await fetcher(`${baseHref()}taxes/archive.json`, { cache: 'no-store', headers });
   } catch {
     return { ...EMPTY, reason: ARCHIVE_REASON.UNREACHABLE };
   }
+  if (res && (res.status === 401 || res.status === 403)) return { ...EMPTY, reason: ARCHIVE_REASON.LOCKED };
   if (!res || !res.ok) return { ...EMPTY, reason: ARCHIVE_REASON.UNREACHABLE };
   // A 200 that is not JSON means the request never reached the NAS: it fell
   // through to the single-page app, which answers any path under its own base
@@ -93,4 +100,36 @@ export function printableUrl(doc) {
     return `${baseHref()}taxes/files/${encodeURIComponent(doc.entityId)}/${doc.year}/${encodeURIComponent(doc.filename)}`;
   }
   return null;
+}
+
+/**
+ * One return's bytes, fetched WITH the family key and handed to the in-app
+ * viewer as a local blob url (DR-1086). A plain link cannot carry the key, so
+ * "Open / print" no longer points the browser at the NAS. Returns the viewer's
+ * resolver shape: { ok:true, url } or { ok:false, reason }. Never throws.
+ */
+export async function fetchTaxFile(doc, { token = '' } = {}) {
+  const url = printableUrl(doc);
+  if (!url) return { ok: false, reason: 'no-file' };
+  if (!fetcher) return { ok: false, reason: 'network' };
+  let res;
+  try {
+    res = await fetcher(url, { cache: 'no-store', headers: token ? { Authorization: `Bearer ${token}` } : {} });
+  } catch {
+    return { ok: false, reason: 'network' };
+  }
+  if (!res) return { ok: false, reason: 'network' };
+  if (res.status === 401 || res.status === 403) return { ok: false, reason: 'no-access' };
+  if (res.status === 404) return { ok: false, reason: 'not-on-server' };
+  if (!res.ok) return { ok: false, reason: 'unknown' };
+  try {
+    const blob = await res.blob();
+    if (typeof URL === 'undefined' || !URL.createObjectURL) return { ok: false, reason: 'unknown' };
+    const local = URL.createObjectURL(blob);
+    // The viewer fetches the url once and keeps its own copy; this one is freed.
+    setTimeout(() => { try { URL.revokeObjectURL(local); } catch { /* gone */ } }, 60000);
+    return { ok: true, url: local };
+  } catch {
+    return { ok: false, reason: 'network' };
+  }
 }

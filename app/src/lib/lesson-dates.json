@@ -74,7 +74,8 @@
    "sov36-the-pile-the-machine-made-and-the-labourers-who-must-prove-it": ["2026-10-07", "52999b07"],
    "sov37-stop-paying-a-model-to-redecide-what-is-already-settled-a-just-weight-answers-the-same-every-time": ["2026-10-08", "0e5fa209"],
    "sov38-ai-lowered-the-cost-of-building-not-the-cost-of-owning": ["2026-10-13", "1c586947"],
-   "sov39-order-carries-meaning-the-same-words-rearranged-say-another-thing": ["2026-10-13", "a53a8de8"]
+   "sov39-order-carries-meaning-the-same-words-rearranged-say-another-thing": ["2026-10-13", "a53a8de8"],
+   "sov40-the-leaders-use-it-more-than-the-led-and-pretending-to-know-is-a-debt": ["2026-10-15", "bdba53ed"]
   },
   "ai-legal-blueprint": {
    "aib1-the-one-rule": ["2026-06-24", "055416e3"],
@@ -257,7 +258,8 @@
    "wi-the-trades-are-hiring-2026": ["2026-09-15", "1ebb70f7"],
    "wi-biology-walked-back-and-the-word-on-the-worlds": ["2026-09-22", "58a536cf"],
    "wi-apa-2021-apology-and-the-one-blood": ["2026-09-29", "67e85cfd"],
-   "wi-higher-ed-aid-2026-and-the-student-in-the-gap": ["2026-09-29", "f499e7c5"]
+   "wi-higher-ed-aid-2026-and-the-student-in-the-gap": ["2026-09-29", "f499e7c5"],
+   "wi-the-wage-that-no-longer-buys-the-day": ["2026-10-15", "41dcb412"]
   },
   "datasystems": {
    "dsi1-what-poetech-is": ["2026-06-29", "c94cec85"],
@@ -471,6 +473,14 @@
    "hr1-the-correction-and-the-quiet-edit": ["2026-09-24", "4ddc92f2"],
    "hr1-the-city-they-built": ["2026-09-24", "4ddc92f2"],
    "hr1-write-it-in-order-for-our-children": ["2026-09-24", "4ddc92f2"]
+  },
+  "car-research-who-invented-the-car": {
+   "car1-what-is-a-car": ["2026-10-16", "bb476350"],
+   "car2-go-to-the-issuing-record": ["2026-10-16", "bb476350"],
+   "car3-others-laboured": ["2026-10-16", "bb476350"],
+   "car4-for-the-multitude-and-the-giver": ["2026-10-16", "bb476350"],
+   "car5-the-electric-car-came-early": ["2026-10-17", "59470ba3"],
+   "car6-who-is-driving": ["2026-10-17", "59470ba3"]
   },
   "legacy-provisions": {
    "legacy1-why-it-vanishes": ["2026-09-02", "e4982c64"],

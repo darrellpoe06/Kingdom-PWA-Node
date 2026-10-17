@@ -344,7 +344,46 @@ jobs:
                         ||' (newest service '||COALESCE((SELECT max(service_date)::text FROM public.choir_sermons),'none')||')'
                         ||' | video_transcripts '||(SELECT count(*) FROM public.video_transcripts)
                         ||' | sermon_prep '||(SELECT count(*) FROM public.sermon_prep)
-                        ||' | instances '||(SELECT count(*) FROM public.instances);" 2>&1 | tail -1
+                        ||' | instances '||(SELECT count(*) FROM public.instances)
+                        ||' | choir_songs '||(SELECT count(*) FROM public.choir_songs)
+                        ||' (harvest-drafts '||(SELECT count(*) FROM public.choir_songs WHERE source='harvest-transcript')
+                        ||', awaiting review '||(SELECT count(*) FROM public.choir_songs WHERE needs_review)
+                        ||', newest '||COALESCE((SELECT max(created_at)::date::text FROM public.choir_songs),'none')||')';" 2>&1 | tail -1
+            # DR-1065's own number lives in the line above: choir_songs split by
+            # source and review state, because a bare total would hide the thing
+            # that matters -- the harvester writes DRAFTS, and the steward's
+            # confirmations are what the choir actually sings. It is the only way
+            # to tell a rider that WORKS from one that is merely installed.
+            #
+            # NO SQL COMMENTS AND NO DOUBLE QUOTES INSIDE THAT -c STRING. The
+            # first version of this probe carried a `-- ... "950 songs" ...`
+            # comment, and the embedded double quote CLOSED the shell's
+            # double-quoted argument: psql received a valid SELECT ending at the
+            # comment, printed the OLD line, and the whole choir_songs half never
+            # ran. A probe that reads green while measuring nothing is the exact
+            # failure DR-0076 s3 forbids, and neither the YAML parse nor any
+            # guard can see shell quoting -- only running it showed the output
+            # was unchanged. Comments go here, outside the string.
+            # DR-1069: WHY REALTIME IS DEAD, measured instead of guessed. Run
+            # 38859433402 carried "TenantNotFound: Tenant not found: realtime"
+            # every ten seconds, and that string appears NOWHERE in docs/ -- so
+            # nobody knew. The consequence is bounded and worth stating exactly:
+            # makeSubscriber awaits fetchAll() BEFORE it subscribes, so initial
+            # load is fine and only LIVE updates are lost -- a surface shows its
+            # data on open and never changes while you look at it. That is
+            # precisely the Campus Rentals checkbox (DR-1058), whose only
+            # refresh path WAS the realtime callback.
+            # Realtime is itself multi-tenant and seeds its own row from
+            # SEED_SELF_HOST, into _realtime (the search_path pin). These
+            # readings tell a MISSING row from a MIS-KEYED one from a squatter
+            # table in the wrong schema -- three different fixes. Never the
+            # secret itself, only whether one is present.
+            ${SUDO} docker exec -e PGPASSWORD="$SUPA_PW" supabase-db \
+              psql -h 127.0.0.1 -U supabase_admin -d postgres -t -A \
+              -c "SELECT 'realtime tenants: '||COALESCE((SELECT count(*)::text FROM _realtime.tenants),'NO _realtime.tenants TABLE')
+                        ||' | external_ids: '||COALESCE((SELECT string_agg(external_id,',') FROM _realtime.tenants),'none')
+                        ||' | jwt secret present: '||COALESCE((SELECT (jwt_secret IS NOT NULL AND jwt_secret <> '')::text FROM _realtime.tenants LIMIT 1),'n/a')
+                        ||' | squatter public.tenants: '||(SELECT count(*)::text FROM information_schema.tables WHERE table_schema='public' AND table_name='tenants');" 2>&1 | tail -1
           else
             echo "no POSTGRES_PASSWORD readable — ledger not queryable this probe"
           fi
@@ -553,4 +592,60 @@ jobs:
               *) echo "--- $c: $ST"; ${SUDO} docker logs --tail 12 "$c" 2>&1 | tail -12;;
             esac
           done
+                    echo ""
+          echo "=================================================================="
+          echo "=== THE VERDICT - read this first; it is LAST on purpose ==="
+          echo "=================================================================="
+          # FIFTH blindness, named 2026-10-15 (DR-1042), and it is the same
+          # shape as the four above with the sign flipped: the MEASUREMENT was
+          # never the problem, its POSITION was.
+          #
+          # From a cloud sandbox none of the output above is readable. The
+          # signed log-blob host is blocked there, so `gh run view --log` and
+          # the API log download both answer Forbidden, and the only reader
+          # left is a TAIL of the job log. The container log tails just above
+          # run to megabytes, so a tail deep enough to reach the service list
+          # is not affordable -- which is exactly how the sovereign bell's
+          # install went unverified on the day it shipped (DR-1040: the one
+          # line that would have proved it sat upstream of every tail I could
+          # take, twice).
+          #
+          # So the handful of facts anyone actually asks this workflow for are
+          # repeated here, compactly, at the END where a short tail reaches
+          # them. Nothing new is measured and nothing is mutated; this is the
+          # same read, printed where it can be read.
+          echo "-- every poetech unit, active state only:"
+          PU=$(systemctl list-unit-files --type=service --no-pager 2>/dev/null | awk '/^poetech-/{print $1}')
+          if [ -n "$PU" ]; then
+            for U in $PU; do
+              printf '   %-36s %s\n' "$U" "$(systemctl is-active "$U" 2>&1)"
+            done
+          else
+            echo "   NO poetech-* units installed on this box"
+          fi
+          echo "-- the mirror services-sync installs FROM (a stale mirror installs yesterday):"
+          if [ -d "$REPO/.git" ]; then
+            echo "   HEAD $(cd "$REPO" && git rev-parse --short HEAD 2>/dev/null) committed $(cd "$REPO" && git log -1 --format=%cI HEAD 2>/dev/null)"
+          else
+            echo "   MIRROR MISSING at $REPO"
+          fi
+          echo "-- services-sync last said:"
+          ${SUDO} tail -1 "$LOOPS/events/cron-services-sync.log" 2>/dev/null || echo "   cron-services-sync.log unreadable"
+          # STARVATION IS INVISIBLE FROM ONE LINE (measured 2026-10-16, run
+          # 38898240642): services-sync reported exit=1 in 542726ms against its
+          # 600s wall-clock ceiling, with ONE rider -- lesson-voice -- burning
+          # 480s of it on a timeout. run.mjs kills the WHOLE loop tree at that
+          # ceiling, and services.json runs 22 riders in order, so everything
+          # from position 16 on (worship-song-harvest, ytzero, voice-lite,
+          # lesson-builder, cameras, openers, announce) sits behind that burn
+          # with a 58-second margin. services-sync.sh:84 `continue`s past a
+          # failure, so ONE slow rider does not stop the rest -- but the SHARED
+          # wall clock can still kill them, and that looks identical to "it ran
+          # and found nothing". The timings below say which riders actually got
+          # their turn, so a starved rider is told apart from an idle one.
+          echo "-- services-sync, per rider (the 600s ceiling is shared):"
+          ${SUDO} tail -40 "$LOOPS/events/cron-services-sync.log" 2>/dev/null \
+            | grep -E "services-sync: (FAILED|[a-z0-9-]+ (exit|ok|skipped))|\[done\]|took [0-9]+" \
+            | tail -14 || echo "   no per-rider lines in the last 40"
+          echo "=== END OF VERDICT ==="
           EOS

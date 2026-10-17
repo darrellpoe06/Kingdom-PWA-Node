@@ -272,7 +272,7 @@ export default function DirectMessages({ roster = [], invited = [], displayName 
               key={t.otherUserId}
               type="button"
               onClick={() => openThread(t.otherUserId)}
-              className="w-full text-left border border-[#E8E4DC] bg-white p-3 hover:border-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838] flex items-center gap-3"
+              className="w-full text-left border border-[#E8E4DC] bg-white rounded-xl shadow-sm p-3 hover:border-[#1A1815] focus:outline focus:outline-2 focus:outline-[#B85838] flex items-center gap-3"
               data-thread={t.otherUserId}
             >
               <span className="shrink-0">{avatarFor(t.otherUserId, 40)}</span>
@@ -315,12 +315,12 @@ export default function DirectMessages({ roster = [], invited = [], displayName 
         </div>
       ) : (
         <div className="space-y-2">
-          <div className="border border-[#E8E4DC] bg-[#FAF8F4] p-3 max-h-72 overflow-y-auto space-y-2" aria-live="polite">
+          <div className="border border-[#E8E4DC] bg-[#FAF8F4] rounded-2xl p-3 max-h-72 overflow-y-auto space-y-2" aria-live="polite">
             {convo.length === 0 && <p className="text-xs text-[#5A5751]">No messages yet — say hello.</p>}
             {convo.map((m) => (
               <div key={m.id} className={`text-sm ${m.mine ? 'text-right' : 'text-left'}`}>
                 {!m.mine && <span className="inline-block align-bottom mr-1.5">{avatarFor(openWith, 20)}</span>}
-                <div className={`inline-block px-3 py-1.5 max-w-[85%] ${m.locked ? 'italic text-[#5A5751] bg-white border border-dashed border-[#C9BFA8]' : m.mine ? 'bg-[#1A1815] text-white' : 'bg-white border border-[#E8E4DC] text-[#1A1815]'}`}>
+                <div className={`inline-block px-3 py-1.5 max-w-[85%] rounded-2xl ${m.locked ? 'italic text-[#5A5751] bg-white border border-dashed border-[#C9BFA8]' : m.mine ? 'bg-[#1A1815] text-white rounded-br-md' : 'bg-white border border-[#E8E4DC] text-[#1A1815] rounded-bl-md'}`}>
                   {m.body}
                 </div>
                 <div className="text-[0.5625rem] text-[#5A5751] mt-0.5">

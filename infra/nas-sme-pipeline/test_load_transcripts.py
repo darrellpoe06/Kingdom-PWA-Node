@@ -235,5 +235,65 @@ class DrainedIsNotAStallTest(unittest.TestCase):
         self.assertEqual(lt.coverage(st, ["x"]), (0, 0, 1))
 
 
+
+class RecheckVerdictTest(unittest.TestCase):
+    """DR-1045 -- Darrell 2026-10-15: "YouTube doesn't caption until a day or few
+    later and then there is always captions." The 10-11-2026 Sunday was asked at
+    2026-10-15 01:45 UTC, 1.7 h past the 4-day grace, got TranscriptsDisabled,
+    and the verdict became permanent. A verdict is now asked again daily for a
+    month."""
+
+    def _epoch(self, iso):
+        return calendar.timegm(time.strptime(iso, "%Y-%m-%dT%H:%M:%S"))
+
+    def test_the_10_11_sunday_is_asked_again(self):
+        # 20 h after its last ask (2026-10-15 01:45 UTC) it is due again.
+        now = self._epoch("2026-10-15T22:00:00")
+        self.assertFalse(lt.within_caption_grace("2026-10-11", now_ms=now))
+        self.assertTrue(lt.recheck_due("2026-10-11", "2026-10-15T01:45:14+00", now_s=now))
+
+    def test_proven_to_catch_the_old_rule_left_it_resolved_forever(self):
+        now = self._epoch("2026-10-16T02:00:00")
+        prior = {"has_text": False, "has_verdict": True, "fetched_at": "2026-10-15T01:45:14+00"}
+        recent = lt.within_caption_grace("2026-10-11", now_ms=now)
+        old_rule = prior["has_text"] or (prior["has_verdict"] and not recent)
+        recheck = lt.recheck_due("2026-10-11", prior["fetched_at"], now_s=now)
+        new_rule = prior["has_text"] or (prior["has_verdict"] and not recent and not recheck)
+        self.assertTrue(old_rule)
+        self.assertFalse(new_rule)
+
+    def test_asked_at_most_once_a_day(self):
+        now = self._epoch("2026-10-15T13:00:00")
+        self.assertFalse(lt.recheck_due("2026-10-11", "2026-10-15T09:00:00", now_s=now))
+        self.assertTrue(lt.recheck_due("2026-10-11", "2026-10-14T16:00:00", now_s=now))
+
+    def test_a_month_old_video_is_not_asked_again(self):
+        now = self._epoch("2026-10-15T13:00:00")
+        self.assertFalse(lt.recheck_due("2026-09-01", "2026-09-10T00:00:00", now_s=now))
+
+    def test_unknown_last_ask_is_old_and_unknown_date_never_loops(self):
+        now = self._epoch("2026-10-15T13:00:00")
+        self.assertTrue(lt.recheck_due("2026-10-11", None, now_s=now))
+        self.assertTrue(lt.recheck_due("2026-10-11", "garbage", now_s=now))
+        self.assertFalse(lt.recheck_due(None, None, now_s=now))
+        self.assertFalse(lt.recheck_due("soon", None, now_s=now))
+
+
+class CaptionTimingsTest(unittest.TestCase):
+    """DR-1045 -- the caption track keeps the second each phrase began."""
+
+    class Seg:
+        def __init__(self, text, start):
+            self.text, self.start = text, start
+
+    def test_timings_kept_in_order_empty_lines_dropped(self):
+        segs = [self.Seg("call to worship", 912.345), self.Seg("  ", 915.0),
+                self.Seg("let us\npray", 918.06), self.Seg("no start", None)]
+        self.assertEqual(lt.caption_segments(segs), [[912.3, "call to worship"], [918.1, "let us pray"]])
+
+    def test_no_track_is_no_timings(self):
+        self.assertEqual(lt.caption_segments(None), [])
+        self.assertEqual(lt.caption_segments([]), [])
+
 if __name__ == "__main__":
     unittest.main()

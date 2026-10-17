@@ -264,6 +264,12 @@ jobs:
       - name: family-key publisher proofs
         working-directory: infra/nas-bridge-publish
         run: python3 -m unittest test_publish_family_key -v
+      # DR-1086: the tax archive is on the public Funnel. Every route but the
+      # path-free health probe asks for the bearer, a box with no token lets
+      # nobody in, and the empty bearer never matches the empty token.
+      - name: tax archive asks for the key on every route
+        working-directory: infra/nas-tax-ingest
+        run: python3 -m unittest test_tax_auth -v
       # The NAS lesson builder proofs (DR-0669): the verse re-verification
       # (a one-word change fails the build), the identical prompt to every
       # writer (a writer that alters it is caught), the modes, the budget, the
@@ -343,6 +349,22 @@ jobs:
       - name: choir-dates drainer selftest
         working-directory: infra/church-media-golive
         run: python3 choir_dates_sync.py --selftest
+      # DR-1045: every service video keeps its length. The parse that turns
+      # yt-dlp's duration + release_timestamp into stream_seconds / started_at,
+      # never writing a missing, zero or absurd length, and the same
+      # gone-vs-refused split choir-dates uses. Gates merge.
+      - name: stream-length rider selftest
+        working-directory: infra/church-media-golive
+        run: python3 stream_length_sync.py --selftest
+      # DR-1065: the historical song sweep runs itself. The budget brake that
+      # lets it ride the 15-minute clock, and the groundedness the whole
+      # harvester exists for -- every draft carries a verbatim phrase that
+      # really appears in the transcript, and silence yields nothing. Gates
+      # merge. (It really fails: main()'s exit code was discarded, so
+      # --selftest printed FAIL and exited 0 before this.)
+      - name: worship-song-harvest rider selftest
+        working-directory: infra/nas-sme-pipeline
+        run: python3 worship-song-harvest.py --selftest
       # The NAS's own yt-dlp (DR-0723): pinned version + sha256, a mismatch
       # deleted and never run, a failed download retried at most every 6 h,
       # a binary answering another version refused. Offline (file:// release).
@@ -895,6 +917,55 @@ jobs:
           psql -v ON_ERROR_STOP=1 -q -f scripts/vault-ci-smoke.sql | tee "$RUNNER_TEMP/smoke.txt"
           grep -q 'every vault wall held' "$RUNNER_TEMP/smoke.txt"
 
+  # A CHURCH IS ADDED BY A FORM, NOT A MIGRATION (DR-1066). 0297 moves the
+  # church join's leader list out of a VALUES clause into church_leaders rows,
+  # adds church_profiles (the office's own face and PUBLISHED giving channels,
+  # https-only by trigger) and the steward's provision_church_instance(). On a
+  # fresh container: the tenancy schema, 0012/0014/0294 (the join's chain),
+  # then 0297 TWICE (idempotent), then 0294's own smoke (the either-door
+  # contract still holds with the list gone) and 0297's smoke (a stranger
+  # cannot provision; a steward can, once; the named leader joins by the
+  # ordinary join with no hardcoded address; the office alone writes the
+  # profile; http / javascript: channels are refused; a private profile is
+  # invisible to a stranger and anon until the office makes it public).
+  church-onboarding:
+    name: app — church onboarding walls (PostgreSQL)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      PGHOST: localhost
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install postgresql-client
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client > /dev/null
+      - name: 0297 applies, twice (idempotent), and every onboarding wall holds
+        run: |
+          set -euo pipefail
+          psql -v ON_ERROR_STOP=1 -q -f scripts/door-work-ci-bootstrap.sql
+          for f in schema-v1.sql schema-v1.1-tenant-join.sql schema-v2.1-infra.sql; do
+            psql -v ON_ERROR_STOP=1 -q --single-transaction -f "infra/supabase/$f"
+          done
+          psql -v ON_ERROR_STOP=1 -q -f scripts/church-onboarding-ci-bootstrap.sql
+          for f in 0012-church-instance-multi-membership.sql 0014-church-invite-onboarding.sql 0294-the-church-knows-one-person-at-either-door.sql; do
+            psql -v ON_ERROR_STOP=1 -q --single-transaction -f "infra/supabase/migrations-auto/$f"
+          done
+          for i in 1 2; do psql -v ON_ERROR_STOP=1 -q --single-transaction -f infra/supabase/migrations-auto/0297-a-church-is-added-by-a-form-not-a-migration.sql; done
+          psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0294-church-either-door-smoke.sql 2>&1 | tee "$RUNNER_TEMP/either.txt"
+          grep -q 'CHURCH EITHER DOOR SMOKE: PASS' "$RUNNER_TEMP/either.txt"
+          psql -v ON_ERROR_STOP=1 -f infra/supabase/tests/0297-church-onboarding-smoke.sql 2>&1 | tee "$RUNNER_TEMP/smoke.txt"
+          grep -q 'CHURCH ONBOARDING SMOKE: PASS' "$RUNNER_TEMP/smoke.txt"
+
   # A LEARNER'S RECORD: 0250'S WALLS, ON A REAL POSTGRESQL (DR-0754). 0250
   # applies twice (idempotent), then the smoke proves: a learner keeps and
   # reads his own record, the row lands under his own account even when the
@@ -1322,17 +1393,37 @@ jobs:
   app:
     name: app — lint + vitest
     if: always()
-    needs: [guards, vitest, probes, layout, curriculum, lesson-shares, arrivals-push, contacts-walls, voice-enrollments, dm-device-keys, learner-records, vault-walls, door-work, door-journeys]
+    needs: [guards, vitest, probes, layout, curriculum, lesson-shares, arrivals-push, contacts-walls, voice-enrollments, dm-device-keys, learner-records, vault-walls, church-onboarding, door-work, door-journeys]
     runs-on: ubuntu-latest
     steps:
-      - name: Every leg passed (lint + guards, every vitest shard, build + probes, layout, curriculum, lesson shares, lesson arrival push, contacts walls, voice consent walls, sealed-message device keys walls, learner record walls, door work orders, door journeys end to end)
+      - name: Every leg passed (lint + guards, every vitest shard, build + probes, layout, curriculum, lesson shares, lesson arrival push, contacts walls, voice consent walls, sealed-message device keys walls, learner record walls, church onboarding walls, door work orders, door journeys end to end)
         env:
           NEEDS: ${{ toJSON(needs) }}
         run: |
+          # A SUPERSEDED RUN IS NOT A FAILURE, AND MUST NOT READ AS ONE (DR-1041).
+          # This used to be one `select(.value.result != "success")`, which lumps
+          # `cancelled` in with `failure` and printed "required legs did not pass"
+          # for both. Measured on #2186: pushing the base merge cancelled the
+          # previous commit's legs mid-run, and the resulting red check woke an
+          # agent that spent a full investigation to find that nothing had broken.
+          # A red that means "something else happened" teaches a reader to discount
+          # red, which is the same lie as a gate that always passes (DR-0076 §3).
+          #
+          # IT STILL EXITS 1 ON CANCELLED, DELIBERATELY. This job's name is what
+          # branch protection requires (DR-0617, below). If a cancelled run could
+          # report success, a superseded run would satisfy the required check with
+          # its tests never having run -- a gate that passes without measuring.
+          # So the exit code does not move; only the words do.
           echo "$NEEDS" | jq -r 'to_entries[] | "\(.key): \(.value.result)"'
-          bad=$(echo "$NEEDS" | jq -r '[to_entries[] | select(.value.result != "success") | .key] | join(", ")')
-          if [ -n "$bad" ]; then
-            echo "::error::required legs did not pass: $bad"
+          failed=$(echo "$NEEDS" | jq -r '[to_entries[] | select(.value.result == "failure") | .key] | join(", ")')
+          stopped=$(echo "$NEEDS" | jq -r '[to_entries[] | select(.value.result != "success" and .value.result != "failure") | .key] | join(", ")')
+          if [ -n "$failed" ]; then
+            echo "::error::required legs FAILED: $failed"
+            [ -n "$stopped" ] && echo "::notice::also did not finish (not counted as failures): $stopped"
+            exit 1
+          fi
+          if [ -n "$stopped" ]; then
+            echo "::error::THIS RUN DID NOT FINISH -- nothing failed. Legs that never completed: $stopped. The usual cause is a newer commit on this branch cancelling this run; that newer commit has its own run, and THAT is the one that counts. Re-read the PR's checks on its current head before treating this as a break."
             exit 1
           fi
           echo "All legs passed."

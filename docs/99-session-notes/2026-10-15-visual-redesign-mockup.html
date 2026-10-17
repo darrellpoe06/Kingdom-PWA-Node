@@ -1,0 +1,557 @@
+<title>PoeTech Heritage Redesign</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=DM+Sans:opsz,wght@9..40,300..700&display=swap">
+<style>
+/* Layout: an approval sheet. A short brief, the measured palette, then each screen in a device frame
+   (desktop and phone) for the home surface and one internal page (Big Picture). */
+:root {
+  /* THE HERITAGE THEME — the exact values the implementation will ship in lib/theme-css.js */
+  --forest: #1F3A2E;       /* navigation and brand */
+  --forest-deep: #16291F;  /* sidebar footer, pressed state */
+  --navy: #1B2A4A;         /* selected section, links, "in progress" */
+  --charcoal: #2B2F2D;     /* contrast panels (quote card) */
+  --ink: #1A1D1B;          /* body text */
+  --muted: #5E5A52;        /* secondary text, 6.1:1 on ivory */
+  --ivory: #F6F1E7;        /* page */
+  --cream: #EDE5D5;        /* mat, hairline fills */
+  --paper: #FFFDF9;        /* cards */
+  --hairline: #DED5C3;
+  --gold: #C9A227;         /* highlight, button fill with dark ink (7.0:1) */
+  --gold-text: #8A6510;    /* gold as TEXT on light (5.2:1) */
+  --rust: #9E4A2A;         /* selected accent, overdue (never true red: DR-0099) */
+  --mint: #2F6B4F;         /* done / healthy */
+  --white: #FFFFFF;
+
+  /* sheet chrome (this page, not the app) */
+  --bg: #EFEAE0; --fg: #1A1D1B; --sheet-muted: #5E5A52; --sheet-line: #D9D1C1; --sheet-card: #FFFDF9;
+  --display: "Fraunces", Georgia, "Times New Roman", serif;
+  --body: "DM Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #141614; --fg: #ECE7DC; --sheet-muted: #A9A49A; --sheet-line: #2E322F; --sheet-card: #1C1F1D; color-scheme: dark; } }
+:root[data-theme="dark"] { --bg: #141614; --fg: #ECE7DC; --sheet-muted: #A9A49A; --sheet-line: #2E322F; --sheet-card: #1C1F1D; color-scheme: dark; }
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--body); line-height: 1.5; }
+.wrap { max-width: 1480px; margin: 0 auto; padding-block: 32px 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+h1, h2, h3 { font-family: var(--display); font-weight: 600; letter-spacing: -0.01em; text-wrap: balance; margin: 0; }
+h1 { font-size: clamp(1.8rem, 3vw, 2.6rem); }
+h2 { font-size: 1.35rem; margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--sheet-line); }
+.lede { max-width: 68ch; color: var(--sheet-muted); margin: 8px 0 0; }
+.eyebrow { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.18em; color: var(--sheet-muted); }
+.note { font-size: 0.85rem; color: var(--sheet-muted); max-width: 80ch; margin: 10px 0 0; }
+.note b { color: var(--fg); font-weight: 600; }
+
+/* palette */
+.swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin-top: 16px; }
+.sw { border: 1px solid var(--sheet-line); border-radius: 10px; overflow: hidden; background: var(--sheet-card); }
+.sw .chip { height: 56px; }
+.sw .lab { padding: 8px 10px; font-size: 0.78rem; }
+.sw .lab code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.72rem; color: var(--sheet-muted); }
+.ratios { margin-top: 14px; overflow-x: auto; }
+.ratios table { border-collapse: collapse; font-size: 0.82rem; min-width: 520px; font-variant-numeric: tabular-nums; }
+.ratios th, .ratios td { text-align: left; padding: 6px 12px 6px 0; border-bottom: 1px solid var(--sheet-line); }
+.ratios th { font-weight: 600; }
+
+/* device frames */
+.frames { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; margin-top: 18px; }
+.frame { border-radius: 18px; background: #0E100F; padding: 10px; box-shadow: 0 18px 50px rgba(0,0,0,0.25); max-width: 100%; }
+.frame.desktop { flex: 1 1 760px; min-width: 0; }
+.frame.phone { flex: 0 0 390px; max-width: 100%; }
+.screen { background: var(--ivory); color: var(--ink); border-radius: 10px; overflow: hidden; font-family: var(--body); font-size: 13px; line-height: 1.4; min-width: 0; }
+.frame.phone .screen { border-radius: 26px; }
+.sample { display: inline-block; font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.14em; border: 1px solid var(--hairline); color: var(--muted); padding: 2px 6px; border-radius: 999px; }
+
+/* ---- app chrome ---- */
+.app { display: grid; grid-template-columns: 232px minmax(0, 1fr); min-height: 760px; }
+.side { background: var(--forest); color: #F3EEE3; display: flex; flex-direction: column; padding: 14px 12px; gap: 6px; }
+.brand { display: flex; align-items: center; gap: 10px; padding: 4px 6px 12px; }
+.mark { width: 34px; height: 34px; border-radius: 9px; background: var(--ivory); color: var(--forest); font-family: var(--display); font-weight: 700; font-size: 20px; display: grid; place-items: center; border: 2px solid var(--gold); }
+.word { font-family: var(--display); font-weight: 700; font-size: 17px; letter-spacing: 0.12em; }
+.tag { font-size: 8.5px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--gold); }
+.group { font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.18em; color: rgba(243,238,227,0.6); padding: 10px 10px 4px; }
+.nav a { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 10px; color: inherit; text-decoration: none; min-height: 36px; }
+.nav a svg { width: 16px; height: 16px; flex: none; }
+.nav a.on { background: var(--ivory); color: var(--forest); font-weight: 600; }
+.nav a.on::after { content: ""; margin-left: auto; width: 6px; height: 6px; border-radius: 50%; background: var(--gold); }
+.nav a .badge { margin-left: auto; background: var(--rust); color: #fff; font-size: 10px; min-width: 18px; height: 18px; border-radius: 9px; display: grid; place-items: center; padding: 0 5px; }
+.side .foot { margin-top: auto; border-top: 1px solid rgba(255,255,255,0.14); padding-top: 10px; font-size: 11px; color: rgba(243,238,227,0.75); }
+.main { min-width: 0; display: flex; flex-direction: column; }
+.topbar { display: flex; align-items: center; gap: 12px; padding: 10px 18px; background: var(--paper); border-bottom: 1px solid var(--hairline); }
+.search { flex: 1; max-width: 360px; display: flex; align-items: center; gap: 8px; background: var(--ivory); border: 1px solid var(--hairline); border-radius: 999px; padding: 7px 12px; color: var(--muted); }
+.topbar .right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+.bell { position: relative; width: 36px; height: 36px; display: grid; place-items: center; border-radius: 10px; border: 1px solid var(--hairline); background: var(--paper); }
+.bell i { position: absolute; top: -5px; right: -5px; background: var(--rust); color: #fff; font-style: normal; font-size: 10px; width: 18px; height: 18px; border-radius: 9px; display: grid; place-items: center; }
+.me { display: flex; align-items: center; gap: 8px; }
+.avatar { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, var(--gold), var(--rust)); border: 2px solid var(--paper); box-shadow: 0 0 0 1px var(--hairline); }
+.me small { display: block; font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold-text); }
+.content { padding: 16px 18px 24px; display: grid; gap: 14px; }
+
+/* hero */
+.hero { position: relative; border-radius: 16px; overflow: hidden; min-height: 190px; display: grid; grid-template-columns: minmax(0, 1fr) 260px; color: #F6F1E7; background: #1A2A24; }
+.hero .sky { position: absolute; inset: 0; background: linear-gradient(180deg, #D7B36A 0%, #B9834A 28%, #3B4A42 62%, #1A2A24 100%); }
+.hero svg.land { position: absolute; left: 0; right: 0; bottom: 0; width: 100%; height: 70%; }
+.hero .copy { position: relative; padding: 22px 26px; display: flex; flex-direction: column; justify-content: center; }
+.hero .copy .script { font-family: var(--display); font-style: italic; font-weight: 400; font-size: 20px; opacity: 0.95; }
+.hero .copy .name { font-family: var(--display); font-weight: 700; font-size: 44px; line-height: 1.05; letter-spacing: -0.02em; }
+.hero .copy .sub { margin-top: 8px; font-size: 9.5px; letter-spacing: 0.26em; text-transform: uppercase; color: #F0D58A; }
+.hero .quote { position: relative; margin: 18px 18px 18px 0; background: rgba(20,24,22,0.78); border-left: 3px solid var(--gold); border-radius: 12px; padding: 14px 16px; font-family: var(--display); font-size: 15px; line-height: 1.4; backdrop-filter: blur(2px); }
+.hero .quote cite { display: block; margin-top: 8px; font-family: var(--body); font-style: normal; font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; color: #F0D58A; }
+
+/* tiles */
+.tiles { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; }
+.tile { position: relative; border-radius: 14px; padding: 16px 12px 12px; color: #F6F1E7; min-height: 104px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 4px; box-shadow: 0 6px 16px rgba(27,42,74,0.12); }
+.tile svg { width: 26px; height: 26px; margin-bottom: 4px; }
+.tile b { font-family: var(--display); font-weight: 600; font-size: 15px; }
+.tile span { font-size: 10px; opacity: 0.85; }
+.tile .count { position: absolute; top: 8px; right: 8px; background: var(--rust); color: #fff; font-size: 10px; min-width: 18px; height: 18px; border-radius: 9px; display: grid; place-items: center; padding: 0 5px; }
+.t1 { background: var(--forest); } .t2 { background: var(--navy); } .t3 { background: #1C3F38; } .t4 { background: #8A6510; } .t5 { background: #2B2F2D; } .t6 { background: var(--rust); }
+
+/* cards */
+.grid3 { display: grid; grid-template-columns: 1.15fr 1fr 1fr; gap: 14px; }
+.card { background: var(--paper); border: 1px solid var(--hairline); border-radius: 14px; padding: 14px; box-shadow: 0 1px 2px rgba(26,29,27,0.04), 0 8px 24px rgba(26,29,27,0.05); min-width: 0; }
+.card h4 { margin: 0; font-family: var(--display); font-weight: 600; font-size: 15px; display: flex; align-items: center; gap: 8px; }
+.card h4 svg { width: 16px; height: 16px; color: var(--forest); }
+.card .hd { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.link { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--navy); font-weight: 600; }
+.chips { display: flex; gap: 6px; margin: 10px 0 6px; flex-wrap: wrap; }
+.chip { border: 1px solid var(--hairline); border-radius: 999px; padding: 4px 10px; font-size: 10.5px; background: var(--ivory); }
+.chip.on { background: var(--gold); border-color: var(--gold); color: var(--ink); font-weight: 600; }
+.row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-top: 1px solid var(--cream); }
+.row:first-of-type { border-top: 0; }
+.row .av { width: 32px; height: 32px; border-radius: 50%; flex: none; background: var(--cream); display: grid; place-items: center; color: var(--forest); font-weight: 700; font-family: var(--display); }
+.row .txt { min-width: 0; flex: 1; }
+.row .txt b { display: block; font-size: 12.5px; }
+.row .txt span { display: block; font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.row time { font-size: 10px; color: var(--muted); white-space: nowrap; }
+.row .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--navy); flex: none; }
+.focus li { list-style: none; display: flex; align-items: center; gap: 10px; padding: 7px 0; border-top: 1px solid var(--cream); font-size: 12.5px; }
+.focus { margin: 6px 0 0; padding: 0; }
+.focus li:first-child { border-top: 0; }
+.box { width: 16px; height: 16px; border: 1.5px solid var(--forest); border-radius: 4px; flex: none; }
+.box.done { background: var(--mint); border-color: var(--mint); }
+.quotecard { margin-top: 12px; border-radius: 12px; background: var(--charcoal); color: #F6F1E7; padding: 16px; font-family: var(--display); font-style: italic; font-size: 17px; line-height: 1.35; position: relative; overflow: hidden; }
+.quotecard::before { content: ""; position: absolute; inset: auto -30px -40px auto; width: 160px; height: 160px; border-radius: 50%; background: radial-gradient(circle, rgba(201,162,39,0.35), transparent 70%); }
+.quotecard cite { display: block; margin-top: 10px; font-family: var(--body); font-style: normal; font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; color: #F0D58A; }
+.actions { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 10px; }
+.act { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 10px; text-align: center; color: var(--ink); }
+.act i { width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center; color: #fff; }
+.act i svg { width: 18px; height: 18px; }
+.a1 { background: var(--forest); } .a2 { background: var(--navy); } .a3 { background: var(--gold); color: var(--ink) !important; } .a4 { background: var(--rust); } .a5 { background: var(--mint); } .a6 { background: #4A3E6B; } .a7 { background: var(--charcoal); } .a8 { background: #8A6510; }
+.act { }
+.activity .row .av { background: var(--ivory); border: 1px solid var(--hairline); }
+.activity .row .av svg { width: 14px; height: 14px; }
+
+/* phone */
+.ph { display: flex; flex-direction: column; min-height: 780px; }
+.ph .top { display: flex; align-items: center; gap: 10px; padding: 12px 14px 10px; background: var(--forest); color: #F3EEE3; }
+.ph .top .word { font-size: 15px; }
+.ph .top .tag { font-size: 7.5px; }
+.ph .top .icons { margin-left: auto; display: flex; gap: 10px; align-items: center; }
+.ph .top .icons svg { width: 18px; height: 18px; }
+.ph .body { padding: 12px 12px 72px; display: grid; gap: 12px; }
+.ph .hero { grid-template-columns: 1fr; min-height: 150px; }
+.ph .hero .copy .name { font-size: 30px; }
+.ph .tiles { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.ph .tile { min-height: 88px; padding: 12px 8px 10px; }
+.ph .tile b { font-size: 13px; }
+.ph .tile span { font-size: 9px; }
+.ph .actions { grid-template-columns: repeat(4, 1fr); }
+.bottomnav { position: sticky; bottom: 0; margin-top: auto; background: var(--paper); border-top: 1px solid var(--hairline); display: grid; grid-template-columns: repeat(5, 1fr); padding: 6px 4px 10px; }
+.bottomnav a { display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 9.5px; color: var(--muted); text-decoration: none; min-height: 44px; justify-content: center; position: relative; }
+.bottomnav a svg { width: 20px; height: 20px; }
+.bottomnav a.on { color: var(--forest); font-weight: 600; }
+.bottomnav a.on::before { content: ""; position: absolute; top: -7px; width: 28px; height: 3px; border-radius: 2px; background: var(--gold); }
+.bottomnav a .badge { position: absolute; top: 0; right: calc(50% - 20px); background: var(--rust); color: #fff; font-size: 9px; min-width: 16px; height: 16px; border-radius: 8px; display: grid; place-items: center; padding: 0 4px; }
+
+/* big picture page */
+.pagehd { display: flex; align-items: center; gap: 12px; }
+.pagehd .ic { width: 44px; height: 44px; border-radius: 12px; background: var(--forest); color: #F6F1E7; display: grid; place-items: center; }
+.pagehd .ic svg { width: 22px; height: 22px; }
+.pagehd h3 { font-size: 22px; font-weight: 600; }
+.pagehd p { margin: 0; font-size: 11px; color: var(--muted); }
+.tabs { display: flex; gap: 4px; background: var(--cream); padding: 4px; border-radius: 12px; width: max-content; max-width: 100%; overflow-x: auto; }
+.tabs span { padding: 6px 14px; border-radius: 9px; font-size: 11.5px; white-space: nowrap; }
+.tabs span.on { background: var(--forest); color: #F6F1E7; font-weight: 600; }
+.subtabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.pill { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--hairline); background: var(--paper); border-radius: 999px; padding: 5px 10px; font-size: 10.5px; }
+.pill i { width: 8px; height: 8px; border-radius: 50%; }
+.pill b { background: var(--cream); border-radius: 999px; padding: 0 6px; font-weight: 600; }
+.qrow { display: flex; gap: 12px; align-items: flex-start; }
+.qrow .st { width: 12px; height: 12px; border-radius: 50%; flex: none; margin-top: 5px; }
+.qrow .txt { flex: 1; min-width: 0; }
+.qrow .txt b { display: block; font-size: 13px; }
+.qrow .txt small { display: block; font-size: 10.5px; color: var(--muted); margin-top: 2px; }
+.status { display: inline-block; font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; padding: 2px 7px; border-radius: 999px; font-weight: 600; margin-right: 6px; }
+.s-over { background: #F3DED3; color: var(--rust); }
+.s-inc { background: #F3E8C9; color: var(--gold-text); }
+.s-prog { background: #DDE3EF; color: var(--navy); }
+.s-done { background: #DCEBE2; color: var(--mint); }
+.btn { display: inline-flex; align-items: center; justify-content: center; min-height: 32px; padding: 0 12px; border-radius: 9px; font-size: 11px; font-weight: 600; border: 1px solid var(--hairline); background: var(--paper); color: var(--ink); }
+.btn.primary { background: var(--gold); border-color: var(--gold); color: var(--ink); }
+.btn.forest { background: var(--forest); border-color: var(--forest); color: #F6F1E7; }
+.kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.kpi { background: var(--paper); border: 1px solid var(--hairline); border-radius: 12px; padding: 12px; }
+.kpi .eyebrow { color: var(--muted); font-size: 9px; }
+.kpi b { display: block; font-family: var(--display); font-size: 22px; font-weight: 600; margin-top: 2px; font-variant-numeric: tabular-nums; }
+.kpi small { color: var(--muted); font-size: 10px; }
+.two { display: grid; grid-template-columns: 1.4fr 1fr; gap: 14px; }
+
+/* legend */
+.legend { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; margin-top: 14px; }
+.legend .card { font-size: 0.85rem; }
+.legend .card h4 { font-size: 0.95rem; margin-bottom: 6px; }
+.legend ul { margin: 0; padding-left: 18px; }
+.legend li { margin: 3px 0; }
+
+@media (max-width: 1100px) {
+  .app { grid-template-columns: 200px minmax(0,1fr); }
+  .tiles { grid-template-columns: repeat(3, 1fr); }
+  .grid3 { grid-template-columns: 1fr; }
+  .hero { grid-template-columns: 1fr; }
+}
+@media (max-width: 760px) {
+  .frame.desktop { display: none; }
+  h2 { margin-top: 36px; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .tile, .btn, .act i { transition: transform 180ms ease, box-shadow 180ms ease; }
+  .tile:hover, .act i:hover { transform: translateY(-2px); }
+}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-home" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" d="M3 11.5 12 4l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></symbol>
+  <symbol id="i-mountain" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" d="M3 19 9.5 7l3.5 6 2-3L21 19z"/><circle cx="17" cy="6" r="2" fill="none" stroke="currentColor" stroke-width="1.8"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path fill="none" stroke="currentColor" stroke-width="1.8" d="M4 18.5A2.5 2.5 0 0 1 6.5 16H20"/></symbol>
+  <symbol id="i-chat" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" d="M4 5h16v11H9l-5 4z"/></symbol>
+  <symbol id="i-house" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" d="M4 10.5 12 4l8 6.5V20H4z"/><path fill="none" stroke="currentColor" stroke-width="1.8" d="M10 20v-6h4v6"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M4 20h16M7 16v-5M12 16V6M17 16v-8"/></symbol>
+  <symbol id="i-heart" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.5-7 10-7 10z"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M3 20a6 6 0 0 1 12 0M16 4.5a3.5 3.5 0 0 1 0 7M21 20a6 6 0 0 0-4-5.6"/></symbol>
+  <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M3.5 10h17M8 3v4M16 3v4"/></symbol>
+  <symbol id="i-bell" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path fill="none" stroke="currentColor" stroke-width="1.8" d="M10 20a2 2 0 0 0 4 0"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6" fill="none" stroke="currentColor" stroke-width="1.8"/><path stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="m16 16 4 4"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-more" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M4 7h16M4 12h16M4 17h16"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="m5 12 4 4 10-10"/></symbol>
+  <symbol id="i-coins" viewBox="0 0 24 24"><ellipse cx="12" cy="7" rx="7" ry="3" fill="none" stroke="currentColor" stroke-width="1.8"/><path fill="none" stroke="currentColor" stroke-width="1.8" d="M5 7v5c0 1.7 3.1 3 7 3s7-1.3 7-3V7M5 12v5c0 1.7 3.1 3 7 3s7-1.3 7-3v-5"/></symbol>
+  <symbol id="i-pencil" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" d="m4 20 4-1L19 8l-3-3L5 16z"/></symbol>
+  <symbol id="i-camera" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5" fill="none" stroke="currentColor" stroke-width="1.8"/></symbol>
+  <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.8"/></symbol>
+  <symbol id="i-bolt" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" d="M13 3 5 13h6l-1 8 9-12h-6z"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.8"/><path stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M12 8v4l3 2"/></symbol>
+  <symbol id="i-church" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" d="M12 3v4M10 5h4M6 21v-8l6-4 6 4v8zM10 21v-4h4v4"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path fill="none" stroke="currentColor" stroke-width="1.8" d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M4 7h10M18 7h2M4 12h3M11 12h9M4 17h12M20 17h0"/><circle cx="15" cy="7" r="2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="8" cy="12" r="2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="17" cy="17" r="2" fill="none" stroke="currentColor" stroke-width="1.8"/></symbol>
+</svg>
+
+<div class="wrap">
+  <div class="eyebrow">PoeTech Family Operating Systems · Proposal for approval · 2026-10-15</div>
+  <h1>The Heritage Redesign</h1>
+  <p class="lede">The same application, every room intact, wearing a new finish: forest green navigation, navy selection, ivory rooms, gold and terracotta trim. Below are the proposed home surface and one internal page (Big Picture), each at desktop and phone width. Every screen is drawn from records the app already holds; rows marked <span class="sample">sample</span> come from the app's own <em>family-of-4</em> working scenario, never from the live database.</p>
+
+  <h2>1 · The palette, measured</h2>
+  <p class="note">These are the exact values that will ship as the new <b>Heritage</b> theme. Every text-on-surface pairing was measured against WCAG 2.1 AA (4.5:1) with the repository's own contrast math. Gold is a fill and a rule, never body text on a light ground; where gold must read as text it darkens to the gold-text value. True red is reserved for the Blood of Jesus (DR-0099), so "overdue" wears terracotta.</p>
+  <div class="swatches">
+    <div class="sw"><div class="chip" style="background:#1F3A2E"></div><div class="lab">Forest<br><code>#1F3A2E</code></div></div>
+    <div class="sw"><div class="chip" style="background:#1B2A4A"></div><div class="lab">Navy<br><code>#1B2A4A</code></div></div>
+    <div class="sw"><div class="chip" style="background:#2B2F2D"></div><div class="lab">Charcoal<br><code>#2B2F2D</code></div></div>
+    <div class="sw"><div class="chip" style="background:#F6F1E7;border-bottom:1px solid #DED5C3"></div><div class="lab">Ivory (page)<br><code>#F6F1E7</code></div></div>
+    <div class="sw"><div class="chip" style="background:#FFFDF9;border-bottom:1px solid #DED5C3"></div><div class="lab">Paper (cards)<br><code>#FFFDF9</code></div></div>
+    <div class="sw"><div class="chip" style="background:#C9A227"></div><div class="lab">Antique gold<br><code>#C9A227</code></div></div>
+    <div class="sw"><div class="chip" style="background:#8A6510"></div><div class="lab">Gold as text<br><code>#8A6510</code></div></div>
+    <div class="sw"><div class="chip" style="background:#9E4A2A"></div><div class="lab">Terracotta<br><code>#9E4A2A</code></div></div>
+    <div class="sw"><div class="chip" style="background:#2F6B4F"></div><div class="lab">Healthy / done<br><code>#2F6B4F</code></div></div>
+    <div class="sw"><div class="chip" style="background:#1A1D1B"></div><div class="lab">Ink<br><code>#1A1D1B</code></div></div>
+    <div class="sw"><div class="chip" style="background:#5E5A52"></div><div class="lab">Muted text<br><code>#5E5A52</code></div></div>
+    <div class="sw"><div class="chip" style="background:#DED5C3"></div><div class="lab">Hairline<br><code>#DED5C3</code></div></div>
+  </div>
+  <div class="ratios">
+    <table>
+      <thead><tr><th>Pairing</th><th>Ratio</th><th>Where it is used</th></tr></thead>
+      <tbody>
+        <tr><td>White on forest</td><td>12.33</td><td>sidebar, phone header, tile labels</td></tr>
+        <tr><td>Gold on forest</td><td>5.10</td><td>tagline in the sidebar</td></tr>
+        <tr><td>White on navy</td><td>14.22</td><td>selected section, "in progress"</td></tr>
+        <tr><td>Ink on ivory</td><td>15.10</td><td>body text on the page</td></tr>
+        <tr><td>Muted on ivory</td><td>6.10</td><td>secondary text on the page</td></tr>
+        <tr><td>Ink on paper</td><td>16.73</td><td>body text on cards</td></tr>
+        <tr><td>Ink on gold</td><td>7.03</td><td>primary button</td></tr>
+        <tr><td>White on terracotta</td><td>6.06</td><td>badges, selected accent</td></tr>
+        <tr><td>Terracotta on paper</td><td>5.96</td><td>overdue text</td></tr>
+        <tr><td>Gold-text on ivory</td><td>4.72</td><td>small gold labels</td></tr>
+        <tr><td>Healthy green on ivory</td><td>5.59</td><td>done / fresh</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>2 · Home, desktop</h2>
+  <p class="note">Sidebar replaces the scrolling tab row at laptop width and holds every one of the 34 sections, grouped. The welcome banner is page content, not chrome, so the text-size rules that cap the header are untouched. The six navigation cards, Today's Focus, Quick Actions and the unread count are the Life Hub's existing real-record tiles (lib/life-hub.js, lib/daily-focus.js). Recent Messages reads the Messages threads; Recent Activity reads the records log and the build stamp.</p>
+  <div class="frames">
+    <div class="frame desktop"><div class="screen app">
+      <aside class="side">
+        <div class="brand"><div class="mark">P</div><div><div class="word">POETECH</div><div class="tag">Life · Soul · Money · Family</div></div></div>
+        <nav class="nav">
+          <a class="on" href="#"><svg><use href="#i-home"/></svg>Home</a>
+          <a href="#"><svg><use href="#i-mountain"/></svg>Big Picture</a>
+          <a href="#"><svg><use href="#i-book"/></svg>Books</a>
+          <a href="#"><svg><use href="#i-chat"/></svg>Messages<span class="badge">live</span></a>
+          <a href="#"><svg><use href="#i-house"/></svg>Real Estate</a>
+          <a href="#"><svg><use href="#i-house"/></svg>Properties</a>
+          <a href="#"><svg><use href="#i-chart"/></svg>Projects</a>
+          <a href="#"><svg><use href="#i-heart"/></svg>TLC</a>
+          <div class="group">Soul</div>
+          <a href="#"><svg><use href="#i-church"/></svg>Church</a>
+          <a href="#"><svg><use href="#i-book"/></svg>Study · Library · Academy</a>
+          <div class="group">Life</div>
+          <a href="#"><svg><use href="#i-pencil"/></svg>Notes · Create · Voice</a>
+          <a href="#"><svg><use href="#i-users"/></svg>Chef's Corner · Games · TV Time</a>
+          <div class="group">Business</div>
+          <a href="#"><svg><use href="#i-users"/></svg>CRM · Relationships · Inbound</a>
+          <a href="#"><svg><use href="#i-coins"/></svg>Inventory · Forecast · Markets</a>
+          <div class="group">System</div>
+          <a href="#"><svg><use href="#i-sliders"/></svg>Center · Cameras · Vault</a>
+          <a href="#"><svg><use href="#i-lock"/></svg>Admin · Dev/Ops · About</a>
+        </nav>
+        <div class="foot">Settings · A A+ A++ A+++ A44 · Voice · Colors</div>
+      </aside>
+      <div class="main">
+        <div class="topbar">
+          <div class="search"><svg width="16" height="16"><use href="#i-search"/></svg>Search across PoeTech…</div>
+          <div class="right">
+            <div class="bell"><svg width="18" height="18"><use href="#i-bell"/></svg><i>2</i></div>
+            <div class="me"><div class="avatar"></div><div><b>Hi Christina</b><small>Build · Plan · Live · Grow</small></div></div>
+          </div>
+        </div>
+        <div class="content">
+          <div class="hero">
+            <div class="sky"></div>
+            <svg class="land" viewBox="0 0 1000 300" preserveAspectRatio="none" aria-hidden="true">
+              <path d="M0 220 L120 120 L220 180 L330 70 L430 160 L520 110 L640 190 L740 90 L860 170 L1000 100 L1000 300 L0 300Z" fill="#2E4A3E"/>
+              <path d="M0 260 L150 200 L280 240 L400 190 L520 230 L650 200 L800 250 L1000 210 L1000 300 L0 300Z" fill="#1F3A2E"/>
+              <path d="M0 290 L200 270 L420 285 L640 265 L820 290 L1000 275 L1000 300 L0 300Z" fill="#16291F"/>
+            </svg>
+            <div class="copy">
+              <div class="script">Welcome back,</div>
+              <div class="name">Christina</div>
+              <div class="sub">Same vision · A brighter tomorrow</div>
+            </div>
+            <blockquote class="quote">Keep thy heart with all diligence; for out of it are the issues of life.<cite>KJV — Proverbs 4:23</cite></blockquote>
+          </div>
+
+          <div class="tiles">
+            <div class="tile t1"><svg><use href="#i-mountain"/></svg><b>Big Picture</b><span>My Life Overview</span></div>
+            <div class="tile t2"><svg><use href="#i-book"/></svg><b>Books</b><span>Learn &amp; Grow</span></div>
+            <div class="tile t3"><svg><use href="#i-chat"/></svg><b>Messages</b><span>Stay Connected</span><em class="count">live</em></div>
+            <div class="tile t4"><svg><use href="#i-house"/></svg><b>Real Estate</b><span>Properties</span></div>
+            <div class="tile t5"><svg><use href="#i-chart"/></svg><b>Projects</b><span>Ideas to Reality</span></div>
+            <div class="tile t6"><svg><use href="#i-heart"/></svg><b>TLC</b><span>People &amp; Purpose</span></div>
+          </div>
+
+          <div class="grid3">
+            <div class="card">
+              <div class="hd"><h4><svg><use href="#i-chat"/></svg>Recent Messages</h4><span class="link">View all →</span></div>
+              <div class="chips"><span class="chip on">Direct</span><span class="chip">Groups</span><span class="chip">Voicemail</span></div>
+              <div class="row"><div class="av">D</div><div class="txt"><b>Darrell</b><span>Latest direct message preview <span class="sample">sample</span></span></div><time>5:18 PM</time><span class="dot"></span></div>
+              <div class="row"><div class="av">F</div><div class="txt"><b>Family thread</b><span>Latest group message preview <span class="sample">sample</span></span></div><time>Yesterday</time></div>
+              <div class="row"><div class="av">P</div><div class="txt"><b>Property Management</b><span>Maintenance request update <span class="sample">sample</span></span></div><time>Yesterday</time></div>
+              <div class="quotecard">Discipline today creates the freedom tomorrow.<cite>Our own voice · not Scripture</cite></div>
+            </div>
+            <div class="card">
+              <div class="hd"><h4><svg><use href="#i-check"/></svg>Today's Focus</h4><span class="link">Edit</span></div>
+              <ul class="focus">
+                <li><span class="box done"></span>Move my body</li>
+                <li><span class="box"></span>Take care of business</li>
+                <li><span class="box"></span>Be present with my family</li>
+                <li><span class="box"></span>Celebrate progress</li>
+              </ul>
+              <p class="note" style="font-size:10.5px;margin-top:8px">1 of 4 done · your own list, kept in your records</p>
+              <div class="hd" style="margin-top:14px"><h4><svg><use href="#i-target"/></svg>My Goals</h4><span class="link">Set a goal</span></div>
+              <div class="row"><div class="txt"><b>Finish the lesson series</b><span>active · 12 days</span></div></div>
+            </div>
+            <div class="card">
+              <div class="hd"><h4><svg><use href="#i-bolt"/></svg>Quick Actions</h4><span class="link">Edit</span></div>
+              <div class="actions">
+                <div class="act"><i class="a1"><svg><use href="#i-check"/></svg></i>Add today's focus</div>
+                <div class="act"><i class="a2"><svg><use href="#i-target"/></svg></i>Set a goal</div>
+                <div class="act"><i class="a3"><svg><use href="#i-chat"/></svg></i>Send a message</div>
+                <div class="act"><i class="a4"><svg><use href="#i-book"/></svg></i>Open a lesson</div>
+                <div class="act"><i class="a5"><svg><use href="#i-chart"/></svg></i>Start a project</div>
+                <div class="act"><i class="a6"><svg><use href="#i-house"/></svg></i>Check a property</div>
+                <div class="act"><i class="a7"><svg><use href="#i-coins"/></svg></i>Open the books</div>
+                <div class="act"><i class="a8"><svg><use href="#i-camera"/></svg></i>Add a photo</div>
+              </div>
+              <div class="hd" style="margin-top:14px"><h4><svg><use href="#i-clock"/></svg>Recent Activity</h4><span class="link">View all →</span></div>
+              <div class="activity">
+                <div class="row"><div class="av"><svg><use href="#i-check"/></svg></div><div class="txt"><b>Build F5298B4 deployed</b><span>from the live build stamp</span></div><time>today</time></div>
+                <div class="row"><div class="av"><svg><use href="#i-book"/></svg></div><div class="txt"><b>Lesson walked</b><span>from Lessons Walked <span class="sample">sample</span></span></div><time>2d</time></div>
+                <div class="row"><div class="av"><svg><use href="#i-coins"/></svg></div><div class="txt"><b>Bank file imported</b><span>from Ledger Freshness <span class="sample">sample</span></span></div><time>4d</time></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div></div>
+
+    <div class="frame phone"><div class="screen ph">
+      <div class="top"><div class="mark" style="width:28px;height:28px;font-size:16px">P</div><div><div class="word">POETECH</div><div class="tag">Life · Soul · Money · Family</div></div>
+        <div class="icons"><svg><use href="#i-search"/></svg><svg><use href="#i-bell"/></svg><div class="avatar" style="width:26px;height:26px"></div></div></div>
+      <div class="body">
+        <div class="hero">
+          <div class="sky"></div>
+          <svg class="land" viewBox="0 0 1000 300" preserveAspectRatio="none" aria-hidden="true">
+            <path d="M0 220 L120 120 L220 180 L330 70 L430 160 L520 110 L640 190 L740 90 L860 170 L1000 100 L1000 300 L0 300Z" fill="#2E4A3E"/>
+            <path d="M0 260 L150 200 L280 240 L400 190 L520 230 L650 200 L800 250 L1000 210 L1000 300 L0 300Z" fill="#1F3A2E"/>
+          </svg>
+          <div class="copy"><div class="script">Welcome back,</div><div class="name">Christina</div><div class="sub">Same vision · A brighter tomorrow</div></div>
+        </div>
+        <div class="tiles">
+          <div class="tile t1"><svg><use href="#i-mountain"/></svg><b>Big Picture</b><span>My Life Overview</span></div>
+          <div class="tile t2"><svg><use href="#i-book"/></svg><b>Books</b><span>Learn &amp; Grow</span></div>
+          <div class="tile t3"><svg><use href="#i-chat"/></svg><b>Messages</b><span>Stay Connected</span></div>
+          <div class="tile t4"><svg><use href="#i-house"/></svg><b>Real Estate</b><span>Properties</span></div>
+          <div class="tile t5"><svg><use href="#i-chart"/></svg><b>Projects</b><span>Ideas to Reality</span></div>
+          <div class="tile t6"><svg><use href="#i-heart"/></svg><b>TLC</b><span>People &amp; Purpose</span></div>
+        </div>
+        <div class="card">
+          <div class="hd"><h4><svg><use href="#i-check"/></svg>Today's Focus</h4><span class="link">Edit</span></div>
+          <ul class="focus">
+            <li><span class="box done"></span>Move my body</li>
+            <li><span class="box"></span>Take care of business</li>
+            <li><span class="box"></span>Be present with my family</li>
+            <li><span class="box"></span>Celebrate progress</li>
+          </ul>
+        </div>
+        <div class="card">
+          <div class="hd"><h4><svg><use href="#i-bolt"/></svg>Quick Actions</h4></div>
+          <div class="actions">
+            <div class="act"><i class="a1"><svg><use href="#i-check"/></svg></i>Focus</div>
+            <div class="act"><i class="a2"><svg><use href="#i-target"/></svg></i>Goal</div>
+            <div class="act"><i class="a3"><svg><use href="#i-chat"/></svg></i>Message</div>
+            <div class="act"><i class="a4"><svg><use href="#i-book"/></svg></i>Lesson</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="hd"><h4><svg><use href="#i-chat"/></svg>Recent Messages</h4><span class="link">View all →</span></div>
+          <div class="row"><div class="av">D</div><div class="txt"><b>Darrell</b><span>Latest direct message <span class="sample">sample</span></span></div><time>5:18 PM</time><span class="dot"></span></div>
+          <div class="row"><div class="av">F</div><div class="txt"><b>Family thread</b><span>Latest group message <span class="sample">sample</span></span></div><time>Yesterday</time></div>
+        </div>
+      </div>
+      <nav class="bottomnav">
+        <a class="on" href="#"><svg><use href="#i-home"/></svg>Home</a>
+        <a href="#"><svg><use href="#i-mountain"/></svg>Big Picture</a>
+        <a href="#"><svg><use href="#i-book"/></svg>Books</a>
+        <a href="#"><svg><use href="#i-chat"/></svg>Messages<span class="badge">live</span></a>
+        <a href="#"><svg><use href="#i-more"/></svg>More</a>
+      </nav>
+    </div></div>
+  </div>
+  <p class="note"><b>What "More" holds on a phone:</b> every other section in the same groups as the desktop sidebar, plus Feedback, Give (in Church), network status, Top, Controls, and the text-size steps that live in the bottom bar today. Inside a lesson the bottom bar stays exactly the one-row reader bar it is now (DR-0716 / DR-0744); the five-tab navigation is for every surface outside the reader.</p>
+
+  <h2>3 · Big Picture, the first internal page</h2>
+  <p class="note">The existing Big Picture dashboard keeps its four tabs (Now, Money, Ahead, Big Picture) and the Now sub-tabs (What needs you, Capacity). The Action Queue rows become cards with a status stripe; the full detail, lifecycle log and jump-link still open in place when a row is tapped, exactly as they do now. Figures shown are the <span class="sample">sample</span> scenario's shape; the live page reads your incidents, projects and reserves.</p>
+  <div class="frames">
+    <div class="frame desktop"><div class="screen app">
+      <aside class="side">
+        <div class="brand"><div class="mark">P</div><div><div class="word">POETECH</div><div class="tag">Life · Soul · Money · Family</div></div></div>
+        <nav class="nav">
+          <a href="#"><svg><use href="#i-home"/></svg>Home</a>
+          <a class="on" href="#"><svg><use href="#i-mountain"/></svg>Big Picture</a>
+          <a href="#"><svg><use href="#i-book"/></svg>Books</a>
+          <a href="#"><svg><use href="#i-chat"/></svg>Messages</a>
+          <a href="#"><svg><use href="#i-house"/></svg>Real Estate</a>
+          <a href="#"><svg><use href="#i-house"/></svg>Properties</a>
+          <a href="#"><svg><use href="#i-chart"/></svg>Projects</a>
+          <a href="#"><svg><use href="#i-heart"/></svg>TLC</a>
+          <div class="group">Soul</div>
+          <a href="#"><svg><use href="#i-church"/></svg>Church</a>
+          <a href="#"><svg><use href="#i-book"/></svg>Study · Library · Academy</a>
+          <div class="group">Life</div>
+          <a href="#"><svg><use href="#i-pencil"/></svg>Notes · Create · Voice</a>
+          <a href="#"><svg><use href="#i-users"/></svg>Chef's Corner · Games · TV Time</a>
+          <div class="group">Business</div>
+          <a href="#"><svg><use href="#i-users"/></svg>CRM · Relationships · Inbound</a>
+          <a href="#"><svg><use href="#i-coins"/></svg>Inventory · Forecast · Markets</a>
+          <div class="group">System</div>
+          <a href="#"><svg><use href="#i-sliders"/></svg>Center · Cameras · Vault</a>
+          <a href="#"><svg><use href="#i-lock"/></svg>Admin · Dev/Ops · About</a>
+        </nav>
+        <div class="foot">Settings · A A+ A++ A+++ A44 · Voice · Colors</div>
+      </aside>
+      <div class="main">
+        <div class="topbar">
+          <div class="search"><svg width="16" height="16"><use href="#i-search"/></svg>Search across PoeTech…</div>
+          <div class="right"><div class="bell"><svg width="18" height="18"><use href="#i-bell"/></svg><i>2</i></div><div class="me"><div class="avatar"></div><div><b>Hi Christina</b><small>Build · Plan · Live · Grow</small></div></div></div>
+        </div>
+        <div class="content">
+          <div class="pagehd"><div class="ic"><svg><use href="#i-mountain"/></svg></div><div><h3>Big Picture</h3><p>My Life Overview · Projections, not promises · Verify with licensed professionals</p></div>
+            <div style="margin-left:auto;display:flex;gap:8px"><span class="btn">Try the Life Hub</span><span class="btn primary">+ Add incident</span></div></div>
+          <div class="tabs"><span class="on">Now</span><span>Money</span><span>Ahead</span><span>Big Picture</span></div>
+          <div class="subtabs">
+            <span class="pill" style="border-color:var(--forest)"><i style="background:var(--forest)"></i>What needs you <b>5</b></span>
+            <span class="pill"><i style="background:var(--navy)"></i>Capacity</span>
+            <span class="pill" style="margin-left:auto"><i style="background:var(--rust)"></i>Overdue <b>2</b></span>
+            <span class="pill"><i style="background:var(--gold)"></i>Incidents <b>2</b></span>
+            <span class="pill"><i style="background:var(--navy)"></i>In progress <b>1</b></span>
+          </div>
+          <div class="two">
+            <div style="display:grid;gap:10px">
+              <div class="card qrow"><span class="st" style="background:var(--rust)"></span><div class="txt"><span class="status s-over">Overdue</span><span class="status s-inc">Incident</span><b>Kitchen plumbing needed</b><small>plumbing · opened 117 days ago · due 2026-06-23 · crew: 2 workers <span class="sample">sample</span></small></div><span class="btn">Details</span></div>
+              <div class="card qrow"><span class="st" style="background:var(--rust)"></span><div class="txt"><span class="status s-over">Overdue</span><span class="status s-inc">Incident</span><b>HVAC testing</b><small>hvac · opened 115 days ago · due 2026-06-24 <span class="sample">sample</span></small></div><span class="btn">Details</span></div>
+              <div class="card qrow"><span class="st" style="background:var(--navy)"></span><div class="txt"><span class="status s-prog">In progress</span><b>Schema v2 deployment</b><small>project · opened 142 days ago · due 2026-05-31 <span class="sample">sample</span></small></div><span class="btn">Details</span></div>
+              <div class="card qrow"><span class="st" style="background:var(--gold)"></span><div class="txt"><span class="status s-inc">Needs a decision</span><b>In-person Q&amp;A at church</b><small>opened 3 days ago · Church projects <span class="sample">sample</span></small></div><span class="btn">Details</span></div>
+              <div class="card qrow"><span class="st" style="background:var(--mint)"></span><div class="txt"><span class="status s-done">Resolved</span><b>Riverside Duplex lease renewed</b><small>resolved yesterday · Real Estate <span class="sample">sample</span></small></div><span class="btn">Details</span></div>
+            </div>
+            <div style="display:grid;gap:10px;align-content:start">
+              <div class="kpis">
+                <div class="kpi"><div class="eyebrow">Open</div><b>5</b><small>on the queue</small></div>
+                <div class="kpi"><div class="eyebrow">Overdue</div><b>2</b><small>past due date</small></div>
+                <div class="kpi"><div class="eyebrow">Capacity</div><b>68%</b><small>hours committed · from skill profiles</small></div>
+              </div>
+              <div class="card">
+                <div class="hd"><h4><svg><use href="#i-calendar"/></svg>Ahead · next 30 days</h4><span class="link">Calendar →</span></div>
+                <div class="row"><div class="av"><svg><use href="#i-coins"/></svg></div><div class="txt"><b>Rent</b><span>monthly · due 2026-06-01 <span class="sample">sample</span></span></div><time>$1,800</time></div>
+                <div class="row"><div class="av"><svg><use href="#i-coins"/></svg></div><div class="txt"><b>Auto insurance</b><span>monthly · due 2026-06-06 <span class="sample">sample</span></span></div><time>$150</time></div>
+                <div class="row"><div class="av"><svg><use href="#i-heart"/></svg></div><div class="txt"><b>Tithe &amp; charitable giving</b><span>monthly · due 2026-06-15 <span class="sample">sample</span></span></div><time>$200</time></div>
+              </div>
+              <div class="quotecard" style="margin-top:0">Your word is a lamp unto my feet, and a light unto my path.<cite>KJV — Psalm 119:105</cite></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div></div>
+
+    <div class="frame phone"><div class="screen ph">
+      <div class="top"><div class="mark" style="width:28px;height:28px;font-size:16px">P</div><div><div class="word">POETECH</div><div class="tag">Life · Soul · Money · Family</div></div>
+        <div class="icons"><svg><use href="#i-search"/></svg><svg><use href="#i-bell"/></svg><div class="avatar" style="width:26px;height:26px"></div></div></div>
+      <div class="body">
+        <div class="pagehd"><div class="ic"><svg><use href="#i-mountain"/></svg></div><div><h3 style="font-size:19px">Big Picture</h3><p>My Life Overview</p></div></div>
+        <div class="tabs"><span class="on">Now</span><span>Money</span><span>Ahead</span><span>Big Picture</span></div>
+        <div class="subtabs">
+          <span class="pill"><i style="background:var(--forest)"></i>Open <b>5</b></span>
+          <span class="pill"><i style="background:var(--rust)"></i>Overdue <b>2</b></span>
+          <span class="pill"><i style="background:var(--navy)"></i>In progress <b>1</b></span>
+        </div>
+        <div class="card qrow"><span class="st" style="background:var(--rust)"></span><div class="txt"><span class="status s-over">Overdue</span><b>Kitchen plumbing needed</b><small>plumbing · due 2026-06-23 · crew: 2 workers <span class="sample">sample</span></small><span class="btn" style="margin-top:8px">Details</span></div></div>
+        <div class="card qrow"><span class="st" style="background:var(--rust)"></span><div class="txt"><span class="status s-over">Overdue</span><b>HVAC testing</b><small>hvac · due 2026-06-24 <span class="sample">sample</span></small><span class="btn" style="margin-top:8px">Details</span></div></div>
+        <div class="card qrow"><span class="st" style="background:var(--navy)"></span><div class="txt"><span class="status s-prog">In progress</span><b>Schema v2 deployment</b><small>project · due 2026-05-31 <span class="sample">sample</span></small><span class="btn" style="margin-top:8px">Details</span></div></div>
+        <div class="card qrow"><span class="st" style="background:var(--gold)"></span><div class="txt"><span class="status s-inc">Needs a decision</span><b>In-person Q&amp;A at church</b><small>opened 3 days ago <span class="sample">sample</span></small><span class="btn" style="margin-top:8px">Details</span></div></div>
+      </div>
+      <nav class="bottomnav">
+        <a href="#"><svg><use href="#i-home"/></svg>Home</a>
+        <a class="on" href="#"><svg><use href="#i-mountain"/></svg>Big Picture</a>
+        <a href="#"><svg><use href="#i-plus"/></svg>Add</a>
+        <a href="#"><svg><use href="#i-bell"/></svg>Alerts</a>
+        <a href="#"><svg><use href="#i-more"/></svg>More</a>
+      </nav>
+    </div></div>
+  </div>
+
+  <h2>4 · What stays exactly as it is</h2>
+  <div class="legend">
+    <div class="card"><h4>Every section and sub-tab</h4><ul><li>34 top-level sections, all their second-row tabs (Books ×12, Church ×20, TLC ×8, Create ×8) and ~60 in-page tab rows keep their ids and their order.</li><li>Nothing is merged or removed. Grouping in the sidebar and in More is presentation only.</li></ul></div>
+    <div class="card"><h4>Accessibility</h4><ul><li>Text size A to A44, read-aloud, voice, the five existing color themes and the comfort bar all stay, gathered under Settings and still one tap away in the bottom bar.</li><li>Chrome never grows with the text size; the words do (DR-0438, DR-1011).</li></ul></div>
+    <div class="card"><h4>Data and logic</h4><ul><li>No schema, formula, permission, integration, authentication or payment change. Components are restyled; libraries and records are untouched.</li><li>Nothing on a surface shows a number that is not read from a record.</li></ul></div>
+    <div class="card"><h4>Color theology</h4><ul><li>True red stays reserved for the Blood of Jesus (DR-0099). Overdue and alert states wear terracotta and amber.</li><li>The existing themes (Cream, Snow, Glacier, Sapphire, Rose, Midnight) remain choices; Heritage becomes the first-run default.</li></ul></div>
+  </div>
+</div>

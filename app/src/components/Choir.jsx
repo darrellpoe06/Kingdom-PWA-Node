@@ -26,18 +26,25 @@ import {
   getChoirAccess, youtubeEmbedUrl, youtubeTimedUrl, parseTimecode, formatTimecode,
   sortServices, songsForService, buildPastServices, weekBucket, isOutOnDate, suggestBackups, backupsAreCrossSection, canRespondToBackup,
   subscribeSongs, subscribeSchedule, subscribeSermons, subscribeMembers, subscribeChoirMessages, subscribeAbsences,
-  subscribeResources, subscribeTeamDocuments, saveTeamDocument, deleteTeamDocument, openTeamDocument,
+  subscribeResources, subscribeTeamDocuments, saveTeamDocument, deleteTeamDocument, TEAM_DOCS_BUCKET,
   saveSong, deleteSong, reuseSong, distinctSongCatalog, saveService, deleteService, addMember, removeMember, sendChoirMessage,
   saveAbsence, deleteAbsence, respondToBackup,
   saveResource, deleteResource,
   inviteToChurch, subscribeChurchInvites, sortInvites, deriveInviteStatus, classifyUpload,
   mintClaimCode, claimChoirMember, getMyChoirMembership, normalizeClaimCode, updateChoirRole,
 } from '../lib/choir-sync.js';
+import { sentenceFor } from '../lib/church-access.js';
+import { useDocumentViewer } from './DocumentViewer.jsx';
+import { teamDocRecord, shelfReport } from '../lib/document-record.js';
+import ReportActions from './ReportActions.jsx';
+import ShelfLedger from './ShelfLedger.jsx';
+import { signStorageDocument } from '../lib/document-viewer.js';
+import { whenOf } from '../lib/record-stamp.js';
 import { listInstanceMembers, setMemberRole, grantableRoles, roleLabel as instanceRoleLabel } from '../lib/member-roles.js';
 import { serviceDayLabel } from '../lib/service-day.js';
 import { extractHeardQuote, draftWordsFromTranscript } from '../lib/choir-words.js';
 import { isAutoDraft } from '../lib/ari-words-training.js';
-import { fetchTranscriptsByVideo } from '../lib/sermon-library-sync.js';
+import { fetchTranscriptsFor } from '../lib/sermon-library-sync.js';
 import { compressImageFile, fileToDataUrl } from '../lib/image.js';
 
 const ROLE_OPTS = [['member', 'Member'], ['assistant', 'Assistant director'], ['director', 'Director'], ['musician', 'Musician'], ['sound', 'Sound'], ['media', 'Media'], ['tech', 'Tech']];
@@ -755,6 +762,9 @@ function ResourcesPanel({ resources, canEdit, onAdd, onDelete }) {
                 {r.url ? <a href={r.url} target="_blank" rel="noopener noreferrer" className="underline text-[#B85838] hover:text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{r.title}</a>
                   : <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{r.title}</span>}
                 {r.note && <span className="text-[0.6875rem] text-[#5A5751] ml-2">{r.note}</span>}
+                {/* DR-1063. This row carried no stamp at all, so the shelf could
+                    not be read in order. The data was always on the record. */}
+                {whenOf(r).line && <div className="text-[0.625rem] text-[#5A5751]" title={whenOf(r).exact}>{whenOf(r).line}</div>}
               </div>
               {canEdit && <button type="button" onClick={() => onDelete(r)} className={`${BTN} text-[#991B1B] hover:underline`}>Remove</button>}
             </div>
@@ -778,7 +788,17 @@ function TeamDocsPanel({ docs, canEdit, onAdd, onDelete }) {
   const [uploadErr, setUploadErr] = useState('');
   const [uploading, setUploading] = useState(false);
   const resetForm = () => { setF({ docDate: todayIso(), docType: 'order-of-service', title: '', documentUrl: '', documentSource: 'manual', fileName: '' }); setUploadErr(''); };
-  const open = async (d) => { const u = await openTeamDocument(d.documentUrl); if (u) window.open(u, '_blank', 'noopener'); };
+  // DR-1078. A team document opens INSIDE the app (the viewer signs the path,
+  // fetches the bytes and shows them by kind), never in a tab that leaves it.
+  // When the file is not on the church server the viewer says exactly that.
+  const viewer = useDocumentViewer();
+  const open = (d) => viewer.open({
+    title: d.title || 'Team document',
+    name: d.fileName || d.documentUrl || '',
+    resolve: () => signStorageDocument(TEAM_DOCS_BUCKET, d.documentUrl),
+    // Office detail (stored path, Message-ID) only for those who manage the shelf.
+    record: teamDocRecord(d, { admin: !!canEdit }),
+  });
   // Upload a picture or a document (Christina 2026-07-04). Images are compressed;
   // other files ride as a data URL under a size cap. Either becomes documentUrl.
   const onFile = async (e) => {
@@ -801,6 +821,16 @@ function TeamDocsPanel({ docs, canEdit, onAdd, onDelete }) {
   };
   return (
     <div>
+      {viewer.element}
+      {docs.length > 0 && (() => {
+        const model = () => shelfReport(docs.map((d) => teamDocRecord(d, { admin: !!canEdit })), { title: 'Team documents' });
+        return (
+          <>
+            <ReportActions className="mb-2" label="Every team document" filenameBase="team-documents" buildModel={model} />
+            <ShelfLedger model={model()} items={docs} onOpen={open} label="See every team document, sorted" />
+          </>
+        );
+      })()}
       <p className="text-xs text-[#5A5751] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>The team's weekly get-ready material — order of service, announcements, and the church calendar. Everyone on the roster can open these.</p>
       {canEdit && (adding ? (
         <div className="bg-[#FAF8F4] border-2 border-[#B85838] p-3 space-y-2 mb-2">
@@ -839,16 +869,20 @@ function TeamDocsPanel({ docs, canEdit, onAdd, onDelete }) {
       {docs.length ? (
         <div className="bg-white border border-[#1A1815]">
           {docs.map((d) => (
-            <div key={d.id} className="flex items-baseline justify-between gap-2 p-3 border-b border-[#E8E4DC]">
-              <div className="flex items-baseline gap-2 flex-wrap">
-                <span className="text-[0.5625rem] uppercase tracking-wider bg-[#E8E4DC] text-[#1A1815] px-1.5 py-0.5">{teamTypeLabel(d.docType)}</span>
-                <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{d.title}</span>
-                {d.docDate && <span className="text-[0.6875rem] text-[#5A5751]">{fmtDate(d.docDate)}</span>}
+            <div key={d.id} className="p-3 border-b border-[#E8E4DC]">
+              <div className="flex items-baseline justify-between gap-2">
+                <div className="flex items-baseline gap-2 flex-wrap">
+                  <span className="text-[0.5625rem] uppercase tracking-wider bg-[#E8E4DC] text-[#1A1815] px-1.5 py-0.5">{teamTypeLabel(d.docType)}</span>
+                  <span style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{d.title}</span>
+                </div>
+                <div className="flex gap-2">
+                  {d.documentUrl && <button type="button" onClick={() => open(d)} className={`${BTN} text-[#5A6E3D] hover:text-[#1A1815] underline`}>📄 Open</button>}
+                  {canEdit && <button type="button" onClick={() => onDelete(d)} className={`${BTN} text-[#991B1B] hover:underline`}>Remove</button>}
+                </div>
               </div>
-              <div className="flex gap-2">
-                {d.documentUrl && <button type="button" onClick={() => open(d)} className={`${BTN} text-[#5A6E3D] hover:text-[#1A1815] underline`}>📄 Open</button>}
-                {canEdit && <button type="button" onClick={() => onDelete(d)} className={`${BTN} text-[#991B1B] hover:underline`}>Remove</button>}
-              </div>
+              {/* DR-1063. The document's own date AND the log of when it was
+                  filed — both, always, so the history can be checked. */}
+              {whenOf(d).line && <div className="text-[0.625rem] text-[#5A5751] mt-0.5" title={whenOf(d).exact}>{whenOf(d).line}</div>}
             </div>
           ))}
         </div>
@@ -974,10 +1008,16 @@ export default function Choir() {
   // starting point"). One transcript source, many harvests (DR-0134's recipe);
   // the draft lands in the song's lyrics clearly labeled auto-draft for
   // trimming. Transcripts are fetched once per visit and cached.
-  const transcriptsRef = useRef(null);
+  // ONE SONG WANTS ONE TRANSCRIPT (DR-1057). This call site already had the
+  // right instinct — fetch on the tap, not on arrival, and cache — but it then
+  // pulled EVERY service's caption text to read one of them. Asking by id
+  // keeps the caching and drops the rest of the archive.
+  const transcriptsRef = useRef({});
   const onDraftWords = async (song) => {
     if (!song?.videoId) return { ok: false, reason: 'no-video' };
-    if (!transcriptsRef.current) transcriptsRef.current = await fetchTranscriptsByVideo();
+    if (!transcriptsRef.current[song.videoId]) {
+      Object.assign(transcriptsRef.current, await fetchTranscriptsFor([song.videoId]));
+    }
     const t = transcriptsRef.current[song.videoId];
     const r = draftWordsFromTranscript({ transcriptText: t && t.text, heardQuote: extractHeardQuote(song.notes), title: song.title });
     if (!r.ok) return r;
@@ -992,6 +1032,36 @@ export default function Choir() {
       <div className="max-w-2xl">
         <SectionTitle eyebrow="Church · choir">Choir</SectionTitle>
         <p className="text-sm text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>Sign in to see the choir's music, schedule, and messages.</p>
+      </div>
+    );
+  }
+  // THE THIRD STATE (DR-1053). "We could not ask" is not "you are not on the
+  // roster", and this surface may not print one as the other. Before this
+  // existed, a stalled read on a phone fell straight through to the empty state
+  // below and told the person they were not on the team.
+  if (access.unavailable) {
+    return (
+      // Full width, no per-surface cap (CONSISTENCY-STANDARD rule 1, DR-0246).
+      // The consistency ratchet refused the first version of this panel for
+      // copying the max-w-2xl wrapper off the state below it, and it was right:
+      // that wrapper is grandfathered debt, not a pattern to extend.
+      <div>
+        <SectionTitle eyebrow="Church · choir">Choir</SectionTitle>
+        <div className="bg-white border border-[#B85838] p-6 text-center" role="alert">
+          <p className="text-sm text-[#1A1815] font-semibold" style={{ fontFamily: '"Fraunces", serif' }}>
+            We could not reach the church records just now.
+          </p>
+          <p className="text-xs text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
+            {sentenceFor(access)}
+          </p>
+          <button
+            type="button"
+            onClick={refreshAccess}
+            className="mt-3 min-h-[36px] px-3 py-2 text-sm font-semibold border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]"
+          >
+            Try again
+          </button>
+        </div>
       </div>
     );
   }

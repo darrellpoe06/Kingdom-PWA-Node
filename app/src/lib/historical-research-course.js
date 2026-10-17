@@ -157,7 +157,11 @@ const SRC = {
   fed: { title: "\"Redlining,\" Federal Reserve History, published June 2, 2023", url: "https://www.federalreservehistory.org/essays/redlining" },
   fhwa: { title: "\"History of the Interstate Highway System,\" Federal Highway Administration", url: "https://www.fhwa.dot.gov/interstate/history.cfm" },
   rcp: { title: "Reconnecting Communities Pilot Grant Program, U.S. Department of Transportation", url: "https://www.transportation.gov/grants/rcnprogram" },
-  baldwin: { title: "\"A Conversation with James Baldwin,\" WGBH, broadcast June 24, 1963 — American Archive of Public Broadcasting, transcript", url: "https://americanarchive.org/catalog/cpb-aacip_15-0v89g5gf5r" },
+  baldwin: { title: "\"A Conversation with James Baldwin,\" WGBH, broadcast June 24, 1963 — American Archive of Public Broadcasting, transcript", url: "https://americanarchive.org/transcripts/cpb-aacip-15-0v89g5gf5r" },
+  // 2026-10-16: the archive redesigned its catalog page and the transcript left
+  // its HTML (the witness, run 38974789389, found none of the words there); the
+  // archive now serves the same transcript at its /transcripts/ address, which
+  // answered a runner with HTTP 200 and the quoted words (probe run 38974939553).
   dunmore: { title: "Dunmore’s Proclamation, November 7, 1775 — Wikisource", url: "https://en.wikisource.org/wiki/Dunmore%27s_Proclamation" },
   declaration: { title: "The Declaration of Independence, July 4, 1776 — the Avalon Project, Yale Law School", url: "https://avalon.law.yale.edu/18th_century/declare.asp" },
   lincoln2: { title: "Abraham Lincoln, Second Inaugural Address, March 4, 1865 — the Avalon Project, Yale Law School", url: "https://avalon.law.yale.edu/19th_century/lincoln2.asp" },

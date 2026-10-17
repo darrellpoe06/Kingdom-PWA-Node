@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback, Suspense } from 'react';
-import { SectionTitle, MetricCell, TabScroll, DmUnreadBadge } from './components/shared.jsx';
+import { SectionTitle, MetricCell, TabScroll } from './components/shared.jsx';
 // Contextual help — the discrete "?" that explains the current tab/tool (Ari's
 // voice) + the optional first-run roadmap tour. lib/help-content.js is the one
 // help registry every surface reads from. Small + always-present chrome, so it
@@ -8,7 +8,7 @@ import LockedSurface from './components/LockedSurface.jsx'; import CreateSubNav 
 import HelpButton from './components/HelpButton.jsx'; import ArrivalsBell from './components/ArrivalsBell.jsx'; // every arrival counted (DR-0728)
 import HelpWalkthrough from './components/HelpWalkthrough.jsx';
 import { UpdatePrompt, InstallPrompt } from './components/PwaPrompts.jsx';
-import InstallAppButton from './components/InstallAppButton.jsx';
+import AppDoorControls from './components/AppDoorControls.jsx';
 import { TherapyReminder, AdvisementBanner } from './components/PromoBanners.jsx';
 import Calendar from './components/Calendar.jsx';
 import BooksAccounts from './components/BooksAccounts.jsx';
@@ -90,7 +90,7 @@ import { projectsSync, mergeRemoteProjects } from './lib/projects-sync.js';
 import { discussionsSync, mergeRemoteDiscussions, DISCUSSION_COLUMN_OF } from './lib/discussions-sync.js';
 import { workspacesSync, mergeRemoteWorkspaces, WORKSPACE_COLUMN_OF } from './lib/workspaces-sync.js';
 import { recipesSync, mergeRemoteRecipes, RECIPE_COLUMN_OF } from './lib/recipes-sync.js';
-import { makeHealthActions, canSeeHealthTab, healthProgramsSync, weightEntriesSync, waterEntriesSync, foodEntriesSync, foodLibrarySync, healthRails } from './lib/health-actions.js';
+import { makeHealthActions, healthProgramsSync, weightEntriesSync, waterEntriesSync, foodEntriesSync, foodLibrarySync, healthRails } from './lib/health-actions.js';
 import { inquiriesSync } from './lib/inquiries-sync.js';
 import { practiceLeadsSync, mergeRemoteLeads, LEAD_COLUMN_OF } from './lib/practice-leads-sync.js';
 import { rentalsSync, mergeRemoteRentals } from './lib/rentals-sync.js';
@@ -142,6 +142,9 @@ import ComfortBarToggle from './components/ComfortBarToggle.jsx';
 import LiveWorshipBar from './components/LiveWorshipBar.jsx';
 import SectionBoundary from './components/SectionBoundary.jsx';
 import UiIcon from './components/UiIcon.jsx';
+import SideNav from './components/shell/SideNav.jsx';
+import { navItems, navGroups } from './lib/nav-items.jsx';
+import { useHomePrefs, setHomeView } from './lib/home-view-prefs.js';
 import { BooksUploadButton, BooksUploadMount } from './components/BooksUploadButton.jsx';
 // Scroll-anchor primitive (same mechanism that powers reading-resume + the
 // font-size whiplash fix): capture the content element the reader is looking at,
@@ -168,7 +171,7 @@ import { unionPreservingLocal, getInstanceId } from './lib/table-sync.js';
 import { useInstanceRole } from './lib/instance-role.js';
 import { TIER_ORDER, TIER_LABEL, effectiveTier, tierMeets } from './lib/tiers.js';
 import TierSwitcher from './components/TierSwitcher.jsx';
-import { THEME_CSS, THEMES, useThemePref } from './lib/theme-css.js';
+import { THEME_CSS, THEMES, useThemePref, DEFAULT_THEME, CHURCH_DEFAULT_THEME } from './lib/theme-css.js';
 import { mergeTransactionsPreferCloud } from './lib/txn-dedupe.js';
 import { syncIdentityKey } from './lib/sync-identity.js';
 import { fetchSnapshot, pushSnapshot, buildSnapshotPayload, mergeKeepingLocalRoomPhotos } from './lib/snapshot-sync.js';
@@ -1079,7 +1082,7 @@ export default function PoeFinancialSystem() {
   // not move it. useThemePref publishes from lib/theme-css.js and persists on
   // set, so the separate saveThemePref effect is no longer needed and every
   // setTheme(...) call site below is unchanged.
-  const [theme, setTheme] = useThemePref('cream');
+  const [theme, setTheme] = useThemePref(churchDoorOnly ? CHURCH_DEFAULT_THEME : DEFAULT_THEME);
   // One-click HEADER HIDEAWAY (Darrell 2026-06-29): collapse the top chrome —
   // date/time, build line, account/business/subscribe row, voice picker, font
   // controls, theme swatches, the Sample banner — to ALL the room for the
@@ -1246,6 +1249,11 @@ export default function PoeFinancialSystem() {
   // any other view (deep-links included) steers back to the workspace.
   const instanceRoleState = useInstanceRole();
   const isAssistantAcct = !reviewerMode && !isFamilyMember && !!authSession && instanceRoleState.role === 'assistant';
+  // ONE LIST, THREE PLACES (DR-1046): the tab strip, the sidebar and the phone's bottom bar all draw lib/nav-items.jsx.
+  const navTabs = navItems({ isAssistantAcct, isFamilyMember, authSession, isStudyCircle, healthPrograms: data.healthPrograms, userTier: data.userTier, reviewerMode, churchDoorOnly });
+  const { homeView } = useHomePrefs();
+  const navForDock = { groups: navGroups(navTabs), view, homeView, onNavigate: (v, home) => { if (home) setHomeView(home); setView(v); } };
+  const showSideNav = !churchDoorOnly;
   const surfaceViewer = { signedIn: !!authSession, isFamilyMember, isChurchStaff, isStudyCircle, capabilities: churchAccess.capabilities, instanceRole: instanceRoleState.role || '', reviewerMode };  // lib/surface-access.js
   useEffect(() => {
     if (isAssistantAcct && !['tlc-assistant', 'messages', 'about'].includes(view)) setView('tlc-assistant');
@@ -3514,7 +3522,6 @@ export default function PoeFinancialSystem() {
     // broke color inheritance (dark text on a dark surface — a contrast failure).
     return (
       <div className="min-h-screen overflow-x-clip" style={{ fontFamily: '"DM Sans", system-ui, sans-serif' }}>
-        <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..900&family=DM+Sans:opsz,wght@9..40,300..700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
         {/* Reviewer strip rides the door too — with app chrome gone this Exit is the only way back (DR-0104; REV-0239). Users: flag off, door byte-identical. */}
         {reviewerMode && <ReviewerModeBanner />}
         <SectionBoundary name="TLC">
@@ -3554,7 +3561,6 @@ export default function PoeFinancialSystem() {
           service windows; publishes --lwb-h (read by this root's padding-top and
           the sticky header's `top`, below, so the nav pins under it). */}
       <LiveWorshipBar church={data.church} view={view} churchView={churchView} onOpenChurch={() => { setView('church'); setChurchView('home'); setChurchHomeSection(null); try { window.scrollTo({ top: 0, behavior: motionBehavior() }); } catch (e) {} }} />
-      <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..900&family=DM+Sans:opsz,wght@9..40,300..700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
       <style>{`
 /* Mobile keyboard fix */
 input:focus,textarea:focus,select:focus{scroll-margin-bottom:280px;scroll-margin-top:80px}
@@ -4126,6 +4132,10 @@ ${THEME_CSS}
           positions (fixed); placed once near the app root. */}
       <HelpWalkthrough setView={setView} setChurchView={setChurchView} setBooksView={setBooksView} />
 
+      {/* THE RAIL AND THE PAGE (DR-1046 Phase 2): from `lg` the sidebar stands beside the header and the page; below `lg` this wrapper is a plain block and nothing moves. */}
+      <div className="lg:flex lg:items-start">
+      {showSideNav && <SideNav items={navTabs} view={view} setView={setView} brandName={churchBrand ? 'The Love Corner' : 'PoeTech'} brandTagline={churchBrand ? 'The Church of the Living God' : 'Life · Soul · Money · Family'} onSettings={toggleHeaderChrome} settingsOpen={!headerCollapsed} />}
+      <div className="min-w-0 flex-1">
       <header className="ts-safe-sticky border-b border-[#1A1815] bg-[#FAF8F4] sticky z-20 print:hidden" style={{ top: 'var(--lwb-h, 0px)' }} data-read-skip>
         {/* Header vertical padding is CHROME: pinned to fixed px so it does not
             scale with the root multiplier (text-size scope split) — keeps the bar
@@ -4153,7 +4163,7 @@ ${THEME_CSS}
                 <span className="hidden sm:inline lg:hidden">{churchBrand ? 'The Love Corner' : 'Family Operating Systems'}</span>
                 <span className="sm:hidden lg:inline">{churchBrand ? 'The Love Corner' : 'PoeTech'}</span>
               </h1>
-              <div className="ts-chrome-region text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">{churchBrand ? 'The Church of the Living God' : 'PoeTech · Life, Soul & Money'} <span className="text-[0.5rem] tracking-[0.15em] text-[#5A5751] ml-2 sm:hidden inline-flex items-center gap-1.5" title={`Build time: ${typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : 'unknown'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>build {typeof __BUILD_SHA__ !== 'undefined' ? __BUILD_SHA__ : '????'}<FreshnessDot compact /></span></div>
+              <div className="ts-chrome-region text-[0.625rem] uppercase tracking-[0.3em] text-[#B85838] font-semibold">{churchBrand ? 'The Church of the Living God' : 'Life · Soul · Money · Family'} <span className="text-[0.5rem] tracking-[0.15em] text-[#5A5751] ml-2 sm:hidden inline-flex items-center gap-1.5" title={`Build time: ${typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : 'unknown'}`} style={{ fontFamily: '"JetBrains Mono", monospace' }}>build {typeof __BUILD_SHA__ !== 'undefined' ? __BUILD_SHA__ : '????'}<FreshnessDot compact /></span></div>
             </div>
             <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-end min-w-0 ts-chrome-region ts-escape-hatch header-comfort-row bg-[#FAF8F4]">
               {/* "Hide ▾" / "Show controls ▴" when this row is the A44 bottom block (DR-0716; components/ComfortBarToggle.jsx). */}
@@ -4182,11 +4192,11 @@ ${THEME_CSS}
               <button type="button" onClick={() => { setView('about'); try { window.scrollTo({ top: 0, behavior: motionBehavior() }); } catch (e) {} }} className="text-[0.625rem] uppercase tracking-wider px-2 py-1.5 bg-[#1A1815] text-white border border-[#1A1815] hover:bg-[#B85838] hover:border-[#B85838] font-semibold whitespace-nowrap" title="See plans & subscribe">
                 💳 Subscribe
               </button>
-              {/* Install-the-app, on every tab (Darrell 2026-07-10: "add it to
-                  the space that is on each tab top space"). One tap fires the
-                  browser's native install when available; otherwise it opens
-                  this phone's exact steps. Hides itself once installed. */}
-              <InstallAppButton />
+              {/* The two app doors, on every tab: INSTALL on this phone (Darrell
+                  2026-07-10, hides itself once installed) and SHARE the way in
+                  to someone else -- the QR + link he asked for in the header
+                  2026-10-15, the church's own door on a church surface (DR-1056). */}
+              <AppDoorControls church={churchBrand || view === 'church'} />
               {/* Header feedback button removed — replaced by the persistent floating 💬 button bottom-left.
                   Single entry point keeps the header roomy and the loop unambiguous. */}
               {/* Contextual HELP — the discrete "?" Darrell asked for: tap it on any
@@ -4244,127 +4254,10 @@ ${THEME_CSS}
             Darrell built it. DR-0276 rule 3 — always reversible. */}
         {/* The nav row, the header chevron, and on a one-tab door the brand row
             (components/TopNavRow.jsx, DR-0640: "Both places are good... why not"). */}
-        <TopNavRow navHistory={navHistory} collapsed={headerCollapsed} onToggleHeader={toggleHeaderChrome} brandName={churchBrand ? 'The Love Corner' : 'Family Operating Systems'} brandTagline={churchBrand ? 'The Church of the Living God' : 'PoeTech · Life, Soul & Money'}
+        <TopNavRow navHistory={navHistory} tabsHidden={showSideNav} collapsed={headerCollapsed} onToggleHeader={toggleHeaderChrome} brandName={churchBrand ? 'The Love Corner' : 'Family Operating Systems'} brandTagline={churchBrand ? 'The Church of the Living God' : 'Life · Soul · Money · Family'}
           home={churchDoorOnly && isFamilyMember ? { href: '/poetech-app/?view=overview', label: 'PoeTech app', title: 'Open the whole PoeTech app (every tab)' } : null}
-          hatch={<TextSizeEscapeHatch collapsed={headerCollapsed} onShowHeader={toggleHeaderChrome} siteName={churchBrand ? 'The Love Corner' : 'Family Operating Systems'} siteTagline={churchBrand ? 'The Church of the Living God' : 'PoeTech · Life, Soul & Money'} />}>
-              {[
-                ['overview','Big Picture'],
-                ['books','Books'],
-                ['inbound', <><UiIcon name="phone" /> Inbound</>],
-                ['rentals','Real Estate'],
-                ['properties','Properties'],
-                ['projects','Projects'],
-                // TLC — the unified TLC Therapy Solutions office. Operators
-                // (family/Governor or a business-tier account) get ONE entry that
-                // holds all three TLC surfaces (Practice, Intake, Assistant) as
-                // sub-tabs; a plain premium user still reaches standalone Practice.
-                // The individual routes stay valid for deep-links either way.
-                // A granted ASSISTANT (DR-0271) gets the standalone Assistant
-                // entry instead — its whole reach.
-                ...(isAssistantAcct ? [['tlc-assistant', <><UiIcon name="heart" /> Assistant</>]]
-                  : (isFamilyMember || tierMeets(data.userTier, 'business')) ? [['tlc', <><UiIcon name="heart" /> TLC</>]]
-                  : [['practice','Practice']]),
-                ['opportunities','Dev/Ops'],
-                ['about','About'],
-                ['__sep__', null],
-                // Messages — encrypted 1:1 + roster group threads, app-wide
-                // (Darrell 2026-07-25: "how can he message me whenever
-                // encrypted?"). Open to every signed-in user.
-                ['messages', <><UiIcon name="chat" /> Messages<DmUnreadBadge /></>],
-                ['notes', <><UiIcon name="dove" /> Notes</>],
-                // Create — the document / image creation workspace (Notes group:
-                // capture (Notes) -> reflect (Study) -> compose/produce (Create)).
-                // Available to every signed-in user; persistence is instance-scoped.
-                ['create', <><UiIcon name="palette" /> Create</>],
-                // Voice — "listen to anything" in a chosen voice; consent-gated
-                // personal (cloned) voices as a subscriber feature. Notes group
-                // sibling (capture -> reflect -> compose -> hear).
-                ['voice', <><UiIcon name="volume" /> Voice</>],
-                // Scribe — record workflows on screen + meetings (2026-07-27 review); steward-only Phase 1, no-leak spread.
-                ...(isFamilyMember ? [['scribe', <><UiIcon name="monitor" /> Scribe</>]] : []),
-                // Library — books assembled from the house's own corpus, with an
-                // in-app reader whose chapters deep-link back into the live app
-                // (the books<->app flywheel). Reading is open to every signed-in
-                // user; the build Studio is family/Governor-gated inside.
-                ['library', <><UiIcon name="bookOpen" /> Library</>],
-                // Chef's Corner — the recipe surface (starts with the Poe Family
-                // Vegan Recipes by Chef Mario). Open to every signed-in user;
-                // persistence is instance-scoped (family-private).
-                ['recipes', <><UiIcon name="chefHat" /> Chef's Corner</>],
-                ...(canSeeHealthTab(isFamilyMember, data.healthPrograms) ? [['health', <><UiIcon name="chart" /> Road to 150</>]] : []),
-                // Games — the family games hub ("our games"). Open to everyone
-                // (the children most of all); the first game walks an African
-                // American life journey, measured by Yahweh. Persistence is
-                // instance-scoped and local-first.
-                ['games', <><UiIcon name="dice" /> Games</>],
-                // TV Time — the friend-group show tracker + discussion (Darrell
-                // 2026-07-04). Open to everyone; a PWA-native home for the circle
-                // when their old app shut down. Local-first, private to the device.
-                ['tvtime', <><UiIcon name="monitor" /> TV Time</>],
-                // Advocacy — the Case File: dated documentation of a student's
-                // (or anyone's) situations with an institution, so the family
-                // asks for help with the data already in hand (2026-08-04).
-                ['advocacy', <><UiIcon name="landmark" /> Advocacy</>],
-                ['databack', <><UiIcon name="landmark" /> Your Data</>],
-                ...(isFamilyMember ? [['cameras', <><UiIcon name="eye" /> Cameras</>]] : []),
-                ...(authSession?.user ? [['vault', <><UiIcon name="lock" /> Vault</>]] : []),
-                // Darrell's Study — private to the circle (Darrell/Christina/BG).
-                // Spread so the entry is absent from the DOM entirely for everyone
-                // else (no-leak); the feedback-area-guard still sees the literal
-                // pair below and requires its 'study' feedback area.
-                ...(isStudyCircle ? [['study', <><UiIcon name="book" /> Study</>]] : []),
-                ['church','Church'],
-                ['markets','Markets'],
-                // Command, Control & Serve Center — the steward's seat (the
-                // cockpit from which the app is built + observed). Family/Governor
-                // only; spread so the entry is absent from the DOM entirely for
-                // everyone else (no-leak), like Study. The component carries a
-                // defense-in-depth locked fallback for any deep-link.
-                ...(isFamilyMember ? [['center', <><UiIcon name="sliders" /> Center</>]] : []),
-                // CRM — the one shared acquisition backbone every funnel rides.
-                // Family/Governor only (steward tooling across all businesses);
-                // spread so the entry is absent from the DOM for everyone else.
-                ...(isFamilyMember ? [['crm', <><UiIcon name="users" /> CRM</>]] : []),
-                // Relationships — the relationship permission model (guardian<->
-                // child, family, landlord<->tenant/manager). Family/Governor AND
-                // the Business tier (Darrell 2026-07-08, DR-0128: the delegation
-                // matrix IS a business feature; RLS keeps the boundary). No-leak.
-                ...((isFamilyMember || tierMeets(data.userTier, 'business')) ? [['relationships', <><UiIcon name="users" /> Relationships</>]] : []),
-                // Inventory — a real inventory-control system of record (derived
-                // on-hand over an immutable movement ledger). Family/Governor only
-                // (operations tooling); spread so the entry is absent from the DOM
-                // for everyone else, like Center / CRM.
-                ...(isFamilyMember ? [['inventory', <><UiIcon name="tools" /> Inventory</>]] : []),
-                // Moore Divahs — Shay's fashion business system (DR-0113 board;
-                // discovery 2026-07-07). The steward door: orders + the 3-week
-                // clock + change-order ladder. Family/Governor only for now (the
-                // customer-facing door ships separately as the branded /moore
-                // boot); spread so the entry is absent from the DOM for everyone
-                // else (no-leak), like Center / CRM.
-                ...(isFamilyMember ? [['moore', <><UiIcon name="palette" /> Moore Divahs</>]] : []),
-                // Forecast — the financial-engineering / forward-projection layer.
-                // Family/Governor only (it models the family's real money); spread
-                // so the entry is absent from the DOM for everyone else (no-leak),
-                // and the component carries a locked fallback for any deep-link.
-                ...(isFamilyMember ? [['forecast', <><UiIcon name="chart" /> Forecast</>]] : []),
-                // Academy — the PoeTech Academy. Open to everyone as a parent-facing
-                // INVITE (the value/ROI pitch + register-interest): prospective
-                // families must be able to see it to decide. The operations CONSOLE
-                // inside (enroll, tuition, team, week-4 retro) stays operator-gated —
-                // the component renders the invite for non-operators and the console
-                // only for family/Governor or a business-tier operator.
-                ['cohorts', <><UiIcon name="bookOpen" /> Academy</>],
-                // Assistant is folded into the unified TLC workspace (above) as a
-                // sub-tab — no standalone top-nav entry. The 'tlc-assistant' route
-                // stays valid for deep-links; the render block below still serves it.
-                // Admin — same gate as the render below (tab and surface never
-                // disagree): family stewards anywhere; home host only in the
-                // OPEN no-session state — a signed-in guest on the house WiFi
-                // gets no Admin (DR-0241: the network trusts devices, not sessions).
-                ...((!reviewerMode && (isFamilyMember || (!isPublicHost() && !authSession))) ? [['admin', <><UiIcon name="lock" /> Admin</>]] : []),
-              ].filter(([id]) => (!churchDoorOnly || id === 'church')
-                 && (!isAssistantAcct || ['tlc-assistant', 'messages', 'about'].includes(id)))
-               .map(([id, label]) => {
+          hatch={<TextSizeEscapeHatch collapsed={headerCollapsed} onShowHeader={toggleHeaderChrome} siteName={churchBrand ? 'The Love Corner' : 'Family Operating Systems'} siteTagline={churchBrand ? 'The Church of the Living God' : 'Life · Soul · Money · Family'} />}>
+              {navTabs.map(([id, label]) => {
                 if (id === '__sep__') {
                   return <span key="sep" aria-hidden="true" className="self-center mx-1 sm:mx-3 h-5 border-l border-[#1A1815] opacity-40" />;
                 }
@@ -4410,12 +4303,7 @@ ${THEME_CSS}
 
       <main className="w-full px-3 sm:px-6 lg:px-8 py-4 sm:py-6 pb-24">
         <Suspense fallback={<div role="status" aria-live="polite" className="py-16 text-center text-sm opacity-60">Loading...</div>}>
-        {view === 'overview' && (data.userTier === 'foundation' || !data.userTier) && (
-          <div className="mb-6">
-            <AdvisementBanner />
-          </div>
-        )}
-        {view === 'overview' && <SectionBoundary name="Overview"><Home setData={setData} setChurchView={setChurchView} data={data} addNote={addNote} snowballExtra={snowballExtra} totals={totals} pressure={pressure} setPressure={setPressure} pressureCalc={pressureCalc} projection={projection} rentalSnowball={rentalSnowball} flaggedRentals={flaggedRentals} flaggedOpportunities={flaggedOpportunities} entityRollups={entityRollups} reserves={reserves} upcomingEvents={upcomingEvents} welcomeDismissed={data.welcomeDismissed} dismissWelcome={dismissWelcome} setView={setView} setFeedbackOpen={setFeedbackOpen} bufferTarget={data.meta?.bufferTarget || 0} bufferCurrent={bufferCurrentReal} capexItems={data.capexItems || []} watchlist={data.watchlist || []} rentals={data.inflows?.rentals || []} incidents={data.incidents || []} projects={data.projects || []} resolveIncident={resolveIncident} skillProfiles={data.skillProfiles || []} addIncident={addIncident} addProject={addProject} entities={data.entities || []} ingestData={ingestData} setBooksView={setBooksView} contractors={data.contractors1099 || []} workerOps={workerOps} lifePhotos={data.lifePhotos || []} addLifePhotos={addLifePhotos} updateLifePhoto={updateLifePhoto} deleteLifePhoto={deleteLifePhoto} /></SectionBoundary>}
+        {view === 'overview' && <SectionBoundary name="Overview"><Home welcomeName={(PROFILES.find((p) => p.id === currentProfile) || {}).name || ''} setData={setData} setChurchView={setChurchView} data={data} addNote={addNote} snowballExtra={snowballExtra} totals={totals} pressure={pressure} setPressure={setPressure} pressureCalc={pressureCalc} projection={projection} rentalSnowball={rentalSnowball} flaggedRentals={flaggedRentals} flaggedOpportunities={flaggedOpportunities} entityRollups={entityRollups} reserves={reserves} upcomingEvents={upcomingEvents} welcomeDismissed={data.welcomeDismissed} dismissWelcome={dismissWelcome} setView={setView} setFeedbackOpen={setFeedbackOpen} bufferTarget={data.meta?.bufferTarget || 0} bufferCurrent={bufferCurrentReal} capexItems={data.capexItems || []} watchlist={data.watchlist || []} rentals={data.inflows?.rentals || []} incidents={data.incidents || []} projects={data.projects || []} resolveIncident={resolveIncident} skillProfiles={data.skillProfiles || []} addIncident={addIncident} addProject={addProject} entities={data.entities || []} ingestData={ingestData} setBooksView={setBooksView} contractors={data.contractors1099 || []} workerOps={workerOps} lifePhotos={data.lifePhotos || []} addLifePhotos={addLifePhotos} updateLifePhoto={updateLifePhoto} deleteLifePhoto={deleteLifePhoto} /></SectionBoundary>}
         {view === 'books' && (
           <PrivateGate area="Financial" onCancel={() => setView('overview')} onForgot={handleForgotPin}>
           {/* Router-level backstop (2026-06-25): each Books sub-tab degrades to an inline card, keyed by booksView so a crash never sticks to the next tab. */}
@@ -4436,7 +4324,7 @@ ${THEME_CSS}
             {booksView === 'k1099' && <Contractors1099 contractors={data.contractors1099 || []} entities={data.entities || []} incidents={data.incidents || []} transactions={data.transactions || []} addContractor={addContractor} updateContractor={updateContractor} deleteContractor={deleteContractor} currentDate={currentDate} />}
             {booksView === 'calendar' && <Calendar data={data} reserves={reserves} addRecurring={addRecurring} addIncident={addIncident} addEvent={addEvent} completeEvent={completeEvent} deleteRecurring={deleteRecurring} deleteIncident={deleteIncident} deleteEvent={deleteEvent} updateRecurring={updateRecurring} updateEvent={updateEvent} notifPermission={notifPermission} requestNotif={requestNotificationPermission} upcomingEvents={upcomingEvents} />}
             {booksView === 'taxes' && <SectionBoundary name="Taxes"><BooksTaxes entities={data.entities || []} /></SectionBoundary>}
-            {booksView === 'legal' && <LegalPlaceholder tier={data.userTier} setView={setView} accounts={data.accounts || []} entities={data.entities || []} toggleAccountLegal={toggleAccountLegal} />}
+            {booksView === 'legal' && <LegalPlaceholder tier={data.userTier} setView={setView} accounts={data.accounts || []} entities={data.entities || []} toggleAccountLegal={toggleAccountLegal} addEvent={addEvent} />}
           </SectionBoundary>
           </PrivateGate>
         )}
@@ -4770,7 +4658,7 @@ ${THEME_CSS}
         {view === 'church' && churchView === 'ministries' && <ChurchMinistriesTab onOpen={(s) => s && s.sub && setChurchView(s.sub)} onFeedback={(k) => setFeedbackOpen(k)} />}
         {view === 'church' && churchView === 'bus' && <BusMinistry church={data.church} />}
         {view === 'church' && churchView === 'members' && <ChurchMembers />}
-        {view === 'church' && churchView === 'giving-book' && !reviewerMode && isChurchOfficeRole(churchAccess.role) && <ChurchGivingBook churchName={data.church?.name || ''} instanceId={churchAccess.instanceId} />}
+        {view === 'church' && churchView === 'giving-book' && !reviewerMode && isChurchOfficeRole(churchAccess.role) && <ChurchGivingBook churchName={data.church?.name || ''} instanceId={churchAccess.instanceId} church={data.church || {}} />}
         {view === 'church' && churchView === 'my-record' && <ChurchMemberSpace church={data.church} myUserId={authSession?.user?.id || null} onOpen={(t) => t && t.sub && setChurchView(t.sub)} />}
         {view === 'church' && churchView === 'access' && <AccessRequests instanceId={churchAccess.instanceId} isOffice={['owner','admin'].includes(churchAccess.role)} />}
         {view === 'notes' && <ThinkingSpace notes={data.notes || []} addNote={addNote} patchNote={patchNote} updateNote={updateNote} deleteNote={deleteNote} togglePinNote={togglePinNote} toggleNoteSource={toggleNoteSource} sendToPoeTech={sendNoteToPoeTech} appDirectives={data.appDirectives || []} addPrayerRequest={addPrayerRequest} addChurchVoice={addChurchVoice} addIncident={addIncident} addInquiry={addInquiry} />}
@@ -5118,7 +5006,8 @@ ${THEME_CSS}
           {isAnyDemoMode && (<button type="button" onClick={resetToSeed} className="text-[0.625rem] uppercase tracking-wider text-[#5A5751] hover:text-[#B85838] underline underline-offset-4">Reset to seed data</button>)}
         </footer>
         )}
-        {!churchDoorOnly && view !== 'overview' && !(view === 'books' && booksView === 'debts') && (data.userTier === 'foundation' || !data.userTier) && (
+        {/* The free-tier advisement follows the page on every surface, the home included (DR-1046: the welcome and the cards come first). */}
+        {!churchDoorOnly && !(view === 'books' && booksView === 'debts') && (data.userTier === 'foundation' || !data.userTier) && (
           <div className="mt-6">
             <AdvisementBanner />
           </div>
@@ -5126,6 +5015,8 @@ ${THEME_CSS}
         {view === 'books' && booksView === 'debts' && <TherapyReminder />}
         </Suspense>
       </main>
+      </div>
+      </div>
       <TTSControl isOwner={isFamilyMember} view={view} churchView={churchView} booksView={booksView} onOpenLearn={() => { setView('church'); setChurchView('learn'); }} />
       <FloatingPlayer />
       <InstallPrompt />
@@ -5134,7 +5025,7 @@ ${THEME_CSS}
       {/* THE BOTTOM BAR (DR-0716): Feedback, Give (Church only), the network
           dot, Top and the read-aloud controls, in one bar; nothing floats over
           the Word. See components/ChromeDock.jsx. */}
-      <ChromeDock onFeedback={() => setFeedbackOpen(true)} feedbackOpen={!!feedbackOpen} church={data.church} showGive={view === 'church'} />
+      <ChromeDock onFeedback={() => setFeedbackOpen(true)} feedbackOpen={!!feedbackOpen} church={data.church} showGive={view === 'church'} nav={navForDock} />
     </div>
   );
 }

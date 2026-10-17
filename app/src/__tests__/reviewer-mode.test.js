@@ -177,11 +177,15 @@ describe('shell wiring — every narrowing + suppression point is present', () =
     // but a signed-in non-steward — an invited guest on the house WiFi — never
     // gets Admin. The gate must carry the !authSession term at both sites.
     const gate = '!reviewerMode && (isFamilyMember || (!isPublicHost() && !authSession))';
-    const count = shell.split(gate).length - 1;
+    // The nav tab moved to lib/nav-items.jsx with the Heritage rail (DR-1046);
+    // the console gate stays in the shell. Both sites are counted together.
+    const navItems = readFileSync(join(SRC, 'lib', 'nav-items.jsx'), 'utf8');
+    const count = (shell + navItems).split(gate).length - 1;
     expect(count, 'nav tab AND AdminConsole isGovernor must both carry the gate').toBeGreaterThanOrEqual(2);
     // The old host-only form must be gone (it granted Admin UI to any signed-in
     // user on the LAN).
     expect(shell.includes('(isFamilyMember || !isPublicHost())')).toBe(false);
+    expect(navItems.includes('(isFamilyMember || !isPublicHost())')).toBe(false);
   });
 
   it('proven-to-catch: the same checks FAIL on a shell without the wiring', () => {

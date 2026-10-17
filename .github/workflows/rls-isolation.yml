@@ -85,9 +85,30 @@ jobs:
           - feature: product-forms
             migrations: "0200-one-forms-engine-for-every-product-the-office-of-each-instance-edits-its-own-questions-and-documents.sql 0201-the-household-keeps-its-own-record-and-its-own-shelf-of-documents.sql 0202-what-is-owed-what-was-paid-and-the-document-that-proves-it.sql 0203-a-mortgage-in-line-items-and-what-each-door-costs-against-what-it-collects.sql 0204-the-days-post-and-the-child-who-sorts-it.sql 0205-the-sum-rule-refuses-inside-the-function-not-at-commit.sql 0206-the-plan-becomes-rows-the-dated-bills-import-into-the-ledger.sql 0208-the-bus-runs-on-sunday-and-wednesday.sql 0209-the-church-keeps-each-persons-record-and-their-own-shelf.sql 0210-the-signature-door-and-a-roster-that-says-when.sql 0211-ask-for-a-tab-and-the-office-decides.sql 0212-a-congregant-could-not-open-their-own-record.sql 0213-the-roster-shows-what-the-person-told-us.sql"
             smokes: "0200-product-forms-smoke.sql 0201-household-and-vault-smoke.sql 0202-obligations-smoke.sql 0203-door-economics-smoke.sql 0204-the-days-post-smoke.sql 0206-plan-import-smoke.sql 0138-family-plans-isolation-smoke.sql 0167-family-trust-records-isolation-smoke.sql 0209-church-record-and-shelf-smoke.sql 0210-signature-door-and-roster-smoke.sql 0211-access-request-smoke.sql 0213-roster-declared-contact-smoke.sql"
+          # 2026-10-16 (DR-1066): 0297 re-replaces join_church_instance so the
+          # leader list is ROWS (church_leaders) instead of 0294's VALUES list,
+          # and adds provision_church_instance / set_church_profile. It rides
+          # AFTER 0294 here so a replay of this leg ends in the final shape
+          # (the migration-replay-order rule). Its smoke provisions a test
+          # church inside a rolled-back transaction and asserts every wall,
+          # plus that colg's four leaders are rows the join still honours.
           - feature: choir-claim
-            migrations: "0110-choir-member-self-claim.sql 0131-stale-role-constraint-and-nullsafe-guards.sql 0144-standings-at-will-and-the-sons-wall.sql 0210-the-signature-door-and-a-roster-that-says-when.sql 0212-a-congregant-could-not-open-their-own-record.sql 0213-the-roster-shows-what-the-person-told-us.sql"
-            smokes: "0110-choir-claim-smoke.sql"
+            migrations: "0110-choir-member-self-claim.sql 0131-stale-role-constraint-and-nullsafe-guards.sql 0144-standings-at-will-and-the-sons-wall.sql 0210-the-signature-door-and-a-roster-that-says-when.sql 0212-a-congregant-could-not-open-their-own-record.sql 0213-the-roster-shows-what-the-person-told-us.sql 0294-the-church-knows-one-person-at-either-door.sql 0297-a-church-is-added-by-a-form-not-a-migration.sql"
+            smokes: "0110-choir-claim-smoke.sql 0294-church-either-door-smoke.sql 0297-church-onboarding-smoke.sql"
+          # 2026-10-15 (DR-1052): the church runs many teams and exactly ONE of
+          # them had a membership model. 0296 gives every team the roster the
+          # choir has had since 0011, so the wall that matters is the one
+          # BETWEEN teams: a generic roster whose predicate ignored its own
+          # ministry column would silently make every team one team, which is a
+          # worse failure than the gap it closes. The smoke asserts that in both
+          # directions (media is not bus, bus is not media), asserts a plain
+          # church seat is not a team seat, and asserts the CHOIR is unchanged —
+          # choir_members still answers user_in_choir, and a media seat grants
+          # no choir. Only 0296 is listed: this leg runs against the real
+          # database, which already carries the choir chain the smoke reads.
+          - feature: church-teams
+            migrations: "0296-every-team-has-a-roster-not-just-the-choir.sql"
+            smokes: "0296-every-team-smoke.sql"
           # 2026-08-24: 0143/0144 legitimately RE-CREATED list_instance_members
           # with new columns (classification, relationship), and CREATE OR
           # REPLACE cannot change a return type — 0111 alone now fails with
@@ -102,7 +123,7 @@ jobs:
           # reason; the guard (checkReplayShapes) now names this class.
           - feature: role-control
             pre: "DROP FUNCTION IF EXISTS public.list_instance_members(uuid); DROP FUNCTION IF EXISTS public.list_my_admin_instances();"
-            migrations: "0111-set-member-role.sql 0112-list-my-admin-instances.sql 0130-assistant-provisioning-and-office-workspace.sql 0131-stale-role-constraint-and-nullsafe-guards.sql 0143-member-worker-classification.sql 0144-standings-at-will-and-the-sons-wall.sql 0210-the-signature-door-and-a-roster-that-says-when.sql 0212-a-congregant-could-not-open-their-own-record.sql 0213-the-roster-shows-what-the-person-told-us.sql 0221-the-space-picker-can-name-the-door-it-belongs-to.sql 0255-make-an-account-that-already-exists-family-by-the-governors-hand.sql 0257-the-family-outranks-the-persons-own-space-on-the-signups-list.sql 0259-when-and-by-whom-the-apps-are-used.sql"
+            migrations: "0111-set-member-role.sql 0112-list-my-admin-instances.sql 0130-assistant-provisioning-and-office-workspace.sql 0131-stale-role-constraint-and-nullsafe-guards.sql 0143-member-worker-classification.sql 0144-standings-at-will-and-the-sons-wall.sql 0210-the-signature-door-and-a-roster-that-says-when.sql 0212-a-congregant-could-not-open-their-own-record.sql 0213-the-roster-shows-what-the-person-told-us.sql 0221-the-space-picker-can-name-the-door-it-belongs-to.sql 0255-make-an-account-that-already-exists-family-by-the-governors-hand.sql 0257-the-family-outranks-the-persons-own-space-on-the-signups-list.sql 0259-when-and-by-whom-the-apps-are-used.sql 0298-our-own-probe-is-not-a-person.sql"
             smokes: "0111-role-control-smoke.sql 0255-add-user-to-instance-smoke.sql 0257-signups-family-outranks-own-space-smoke.sql 0259-usage-calendar-smoke.sql"
           - feature: support-door
             migrations: "0114-governed-support-door.sql 0115-support-user-initiated-self-grant.sql 0131-stale-role-constraint-and-nullsafe-guards.sql 0144-standings-at-will-and-the-sons-wall.sql 0210-the-signature-door-and-a-roster-that-says-when.sql 0212-a-congregant-could-not-open-their-own-record.sql 0213-the-roster-shows-what-the-person-told-us.sql"
@@ -248,6 +269,30 @@ jobs:
           # the assistant's rows, and the books + membership-gated family data
           # (inquiries) read as ZERO rows for the assistant. Static shape proof
           # runs every merge in scripts/assistant-scope-guard.mjs.
+          # Added 2026-10-16 (DR-1077, "we are in the same family and need our
+          # records to be in sync... and also some users will not want that"):
+          # a legal document is shared with the household ONLY when its filer
+          # flips shared_with_household. The smoke proves, live: a member reads
+          # the shared paper through the definer function and NOT through the
+          # table (the device sync stays blind to it), opens its file, cannot
+          # change or delete it; a viewer and a stranger read nothing; a
+          # stranger cannot aim a share at another household; un-sharing and
+          # leaving the household both close it. 0180 is not re-applied here:
+          # it re-runs both overlays, the lock load poe-properties already
+          # strains (max_locks_per_transaction).
+          - feature: legal-household
+            migrations: "0299-a-household-shares-its-legal-papers-only-when-the-filer-says-so.sql"
+            smokes: "0299-legal-household-share-smoke.sql"
+          # Added 2026-10-17 (DR-1086): 0209 let the church office READ a
+          # member's shared paper while its storage policy refused the FILE, so
+          # the office's Open failed. 0300 adds one storage read rule through a
+          # definer function that admits exactly what the row admits. The smoke
+          # proves: the office opens the shared paper and not the private one,
+          # another member and another church's office open nothing, and
+          # un-sharing closes it. 0209 is not re-applied (already live).
+          - feature: church-office-files
+            migrations: "0300-the-office-opens-what-a-member-shared.sql"
+            smokes: "0300-office-opens-shared-smoke.sql"
           - feature: assistant-scope
             migrations: "0130-assistant-provisioning-and-office-workspace.sql 0131-stale-role-constraint-and-nullsafe-guards.sql 0144-standings-at-will-and-the-sons-wall.sql 0210-the-signature-door-and-a-roster-that-says-when.sql 0212-a-congregant-could-not-open-their-own-record.sql 0213-the-roster-shows-what-the-person-told-us.sql"
             smokes: "0130-assistant-scope-smoke.sql"

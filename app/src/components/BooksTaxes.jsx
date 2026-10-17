@@ -14,7 +14,11 @@
 // =============================================================================
 
 import React, { useEffect, useState } from 'react';
-import { fetchTaxArchive, printableUrl } from '../lib/tax-archive.js';
+import { fetchTaxArchive, fetchTaxFile, printableUrl } from '../lib/tax-archive.js';
+import { useDocumentViewer } from './DocumentViewer.jsx';
+import { taxDocRecord, shelfReport } from '../lib/document-record.js';
+import ReportActions from './ReportActions.jsx';
+import ShelfLedger from './ShelfLedger.jsx';
 import { groupByYear, buildTaxHistory, hasFigures, TAX_FIGURE_KEYS, TAX_DOC_KINDS } from '../lib/tax-documents.js';
 import { ARCHIVE_REASON } from '../lib/tax-archive.js';
 import { uploadTaxDocWithFreshKey, uploadFailureMessage, validateUpload } from '../lib/tax-upload.js';
@@ -78,20 +82,41 @@ export default function BooksTaxes({ entities = [] }) {
   const say = (text, tone) => { setNotice(text); setNoticeTone(tone); };
   const [keyState, setKeyState] = useState(() => (hasBridgeToken() ? 'present' : 'unknown'));
 
+  // DR-1086. The archive is the family's tax returns on a public route, so the
+  // NAS answers only a request carrying the family key. Read with the key this
+  // device holds (asking the family for it first if it holds none); a refusal
+  // fetches the key again once, since a device can hold an older key.
+  const currentToken = () => { try { return resolveBridgeBearer(typeof window !== 'undefined' ? window : undefined); } catch { return ''; } };
+  const readArchive = async () => {
+    // One ask for the key per read, never two (the key line and the archive
+    // read share it).
+    if (hasBridgeToken()) setKeyState('present');
+    else { setKeyState('asking'); const r = await provisionBridgeToken(supabase); setKeyState(r || 'none'); }
+    let a = await fetchTaxArchive({ token: currentToken() });
+    if (a.reason === ARCHIVE_REASON.LOCKED && currentToken()) {
+      try { setBridgeToken(''); } catch { /* storage blocked */ }
+      const r = await provisionBridgeToken(supabase);
+      setKeyState(r || 'none');
+      a = await fetchTaxArchive({ token: currentToken() });
+    }
+    return a;
+  };
+  const refresh = () => readArchive().then((a) => setArchive(a));
   useEffect(() => {
     let live = true;
-    if (hasBridgeToken()) { setKeyState('present'); return () => { live = false; }; }
-    setKeyState('asking');
-    provisionBridgeToken(supabase).then((r) => { if (live) setKeyState(r || 'none'); });
+    readArchive().then((a) => { if (live) setArchive(a); });
     return () => { live = false; };
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const refresh = () => fetchTaxArchive().then((a) => setArchive(a));
-  useEffect(() => {
-    let live = true;
-    fetchTaxArchive().then((a) => { if (live) setArchive(a); });
-    return () => { live = false; };
-  }, []);
+  // A return opens INSIDE the app, fetched with the family key (a plain link
+  // cannot carry it), with its record beside it (DR-1085).
+  const viewer = useDocumentViewer();
+  const openReturn = (d) => viewer.open({
+    title: d.filename || `${d.year} return`,
+    name: d.filename || '',
+    resolve: () => fetchTaxFile(d, { token: currentToken() }),
+    record: taxDocRecord({ ...d, kindLabel: KIND_LABEL[d.kind] || d.kind, entityName: entityName(d.entityId) }, { admin: true }),
+  });
 
   const setF = (k, v) => { setForm((f) => ({ ...f, [k]: v })); if (noticeTone === 'error') say('', 'info'); };
   const uploadReq = { file: form.file, entityId: form.entityId, year: form.year, kind: form.kind };
@@ -149,6 +174,16 @@ export default function BooksTaxes({ entities = [] }) {
 
   return (
     <section className="space-y-5">
+      {viewer.element}
+      {docs.length > 0 && (() => {
+        const model = () => shelfReport(docs.map((d) => taxDocRecord({ ...d, kindLabel: KIND_LABEL[d.kind] || d.kind, entityName: entityName(d.entityId) }, { admin: true })), { title: 'Tax returns' });
+        return (
+          <div>
+            <ReportActions className="mb-2" label="Every return" filenameBase="tax-returns" buildModel={model} />
+            <ShelfLedger model={model()} items={docs} onOpen={openReturn} label="See every return, sorted" />
+          </div>
+        );
+      })()}
       <div>
         <h3 className="text-lg font-semibold text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>Taxes — your filed returns, by year</h3>
         <p className="text-xs text-[#5A5751] mt-1" style={{ fontFamily: '"Fraunces", serif' }}>
@@ -220,7 +255,9 @@ export default function BooksTaxes({ entities = [] }) {
         <div className="border-2 border-[#B85838] bg-[#FAF8F4] p-4 mb-3" data-testid="tax-archive-unreachable">
           <div className="text-[0.625rem] uppercase tracking-[0.2em] text-[#B85838] font-semibold mb-2">This screen could not reach your returns</div>
           <p className="text-xs text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>
-            {archive.reason === ARCHIVE_REASON.NO_ROAD
+ {archive.reason === ARCHIVE_REASON.LOCKED
+              ? 'Your NAS kept your returns private because this device does not hold the family key. Nothing is missing. Sign in as a family member and reopen this screen; the key arrives on its own once a steward has published it (Real Estate → Photos).'
+              : archive.reason === ARCHIVE_REASON.NO_ROAD
               ? 'The request for the index never reached your NAS — the app itself answered instead. Nothing here is missing from the NAS; this screen simply could not read it, and an upload from this screen would not arrive either. Open the app from your usual door and try again, or tell Darrell this page says the index road is missing.'
               : 'Your NAS did not answer the request for the index. Your returns are untouched on it; this screen cannot read them right now. Try again when the NAS is awake.'}
           </p>
@@ -321,10 +358,10 @@ export default function BooksTaxes({ entities = [] }) {
                     )}
                   </span>
                   {url ? (
-                    <a href={url} target="_blank" rel="noopener noreferrer"
+                    <button type="button" onClick={() => openReturn(d)} data-testid="tax-open"
                       className="shrink-0 text-[0.5625rem] uppercase tracking-wider px-2 py-1 min-h-[32px] border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">
                       Open / print
-                    </a>
+                    </button>
                   ) : (
                     <span className="shrink-0 text-[0.5625rem] text-[#B85838]">no file</span>
                   )}

@@ -103,6 +103,11 @@ export function toSegmentShape(row) {
     title: row.title ?? '',
     sector: row.sector ?? 'general',
     ownerName: row.owner_name ?? null,
+    // Key personnel + the auxiliary carrying the line (0292, DR-1029). A row
+    // from before 0292 names its one owner as its first key person.
+    personnel: Array.isArray(row.personnel) && row.personnel.length ? row.personnel.map((x) => String(x).trim()).filter(Boolean)
+      : (row.owner_name && String(row.owner_name).trim() ? [String(row.owner_name).trim()] : []),
+    auxiliary: row.auxiliary && String(row.auxiliary).trim() ? String(row.auxiliary).trim() : null,
     plannedMinutes: Number.isFinite(row.planned_minutes) ? row.planned_minutes : 5,
     flexible: row.flexible !== false,
     scriptureRef: row.scripture_ref ?? null,
@@ -134,7 +139,254 @@ export function formatClock(mins) {
   return `${h12}:${String(min).padStart(2, '0')} ${ampm}`;
 }
 
+// --- The service day and its posted times (pure) ----------------------------
+// Darrell's Fold, 2026-10-15: a new Sunday order opened dated that Thursday,
+// and its "today" was read in UTC, so after 7 PM Central it was tomorrow.
+// A new order now opens on the next day its service meets, in local time,
+// and offers the times the church posts for that service.
+const SERVICE_WEEKDAY = Object.freeze({ sunday: 0, wednesday: 3 });
+
+// A Date -> 'YYYY-MM-DD' on the device's own calendar, never UTC.
+export function localIsoDate(d = new Date()) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+// The next date the service meets, today included. A special service has no
+// fixed day, so it opens on today.
+export function nextServiceDate(serviceType, now = new Date()) {
+  const want = SERVICE_WEEKDAY[serviceType];
+  const d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  if (want != null) d.setDate(d.getDate() + ((want - d.getDay() + 7) % 7));
+  return localIsoDate(d);
+}
+
+// The weekday a stored 'YYYY-MM-DD' falls on, or '' when it is not a date.
+export function weekdayOf(iso) {
+  const m = typeof iso === 'string' && iso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return '';
+  const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  return ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][d.getDay()];
+}
+
+// True when a Sunday or Wednesday order is dated on another day of the week.
+export function dayMismatch(iso, serviceType) {
+  const want = SERVICE_WEEKDAY[serviceType];
+  const day = weekdayOf(iso);
+  if (want == null || !day) return false;
+  return day.toLowerCase() !== serviceType;
+}
+
+// '1:00 PM' -> '13:00'; anything else -> null.
+export function clockTo24(text) {
+  const m = typeof text === 'string' && text.trim().match(/^(\d{1,2}):(\d{2})\s*([AaPp])[Mm]$/);
+  if (!m) return null;
+  let h = Number(m[1]) % 12;
+  if (/p/i.test(m[3])) h += 12;
+  return `${String(h).padStart(2, '0')}:${m[2]}`;
+}
+
+// The start times a church posts for a service type, as 'HH:MM', in posted
+// order. Reads the church's own posted schedule; never invents a time.
+export function postedStartTimes(serviceType, services = []) {
+  const day = { sunday: 'Sunday', wednesday: 'Wednesday' }[serviceType];
+  if (!day) return [];
+  return services.filter((s) => s && s.day === day).map((s) => clockTo24(s.time)).filter(Boolean);
+}
+
+// --- One live order, carried forward (pure) ---------------------------------
+// Darrell 2026-10-15: "We need to edit the last one or update the last one and
+// archive the previous ones... We should not have repeated start from scratch
+// situations." A new service starts from the last order of the same service,
+// its lines, people and minutes carried; the earlier orders are archived, never
+// deleted; and a date that already has an order opens that order instead.
+
+// The order a page opens on: the one chosen, else the newest that is not
+// archived, else the newest of all. `programs` arrive newest first.
+export function currentProgram(programs, selectedId = null) {
+  const list = programs || [];
+  return list.find((p) => p.id === selectedId) || list.find((p) => p.status !== 'archived') || list[0] || null;
+}
+
+// The order already holding this date and service, if one exists.
+export function existingOrderFor(programs, serviceDate, serviceType) {
+  return (programs || []).find((p) => p.serviceDate === serviceDate && p.serviceType === serviceType) || null;
+}
+
+// The last order of this service before the given date, any status.
+export function lastOrderOf(programs, serviceType, beforeDate) {
+  return (programs || [])
+    .filter((p) => p.serviceType === serviceType && (!beforeDate || String(p.serviceDate || '') < String(beforeDate)))
+    .sort((a, b) => String(b.serviceDate || '').localeCompare(String(a.serviceDate || '')))[0] || null;
+}
+
+// The lines of an order, ready to be a new order's lines: title, team, people,
+// auxiliary, minutes, cues and notes carry; the scripture, sermon and songs are
+// that day's and are chosen fresh. Kept in their order.
+export function carryForwardSegments(segments) {
+  return [...(segments || [])].sort(bySortOrder).map((s, i) => ({
+    title: s.title || '',
+    sector: s.sector || 'general',
+    personnel: peopleOf(s),
+    auxiliary: s.auxiliary || null,
+    plannedMinutes: Number.isFinite(s.plannedMinutes) ? s.plannedMinutes : 5,
+    flexible: s.flexible !== false,
+    cues: (s.cues && typeof s.cues === 'object') ? { ...s.cues } : {},
+    notes: s.notes || '',
+    scriptureRef: '',
+    sermonId: null,
+    songIds: [],
+    sortOrder: (i + 1) * 10,
+  }));
+}
+
+// The orders a new one dated `newDate` retires: every earlier one not already
+// archived, never the new one itself.
+export function ordersToArchive(programs, newDate, keepId = null) {
+  return (programs || [])
+    .filter((p) => p.id !== keepId && p.status !== 'archived' && String(p.serviceDate || '') < String(newDate || ''))
+    .map((p) => p.id);
+}
+
+// What a new order will start from, in words the form can show.
+export function startsFromSay(programs, segments, serviceType, serviceDate) {
+  const last = lastOrderOf(programs, serviceType, serviceDate);
+  const lines = last ? (segments || []).filter((s) => s.programId === last.id).length : 0;
+  if (last && lines > 0) return { from: 'last', programId: last.id, lines, say: `Starts from the ${last.serviceDate} order, ${lines} lines carried forward.` };
+  return { from: 'standard', programId: null, lines: seedDefaultOrder().length, say: `Starts from Bishop Gwin’s order, ${seedDefaultOrder().length} lines.` };
+}
+
+const bySortOrder = (a, b) => ((a.sortOrder ?? 0) - (b.sortOrder ?? 0)) || String(a.id ?? '').localeCompare(String(b.id ?? ''));
+
 const bySort = (a, b) => (a.sortOrder - b.sortOrder) || String(a.id).localeCompare(String(b.id));
+
+// --- The service window (pure) ----------------------------------------------
+// Darrell 2026-10-15: "Services time needs to be between 1 hour and 15 minutes
+// to 1 hour 30 minutes max." Both orders are read against it: the plan's total
+// says whether the order fits, the clocked total whether the service did, and
+// the track record counts a service kept only inside it.
+export const SERVICE_WINDOW = Object.freeze({ minMinutes: 75, maxMinutes: 90 });
+
+/** Where a total stands against the window: { ok, over, under, say }. */
+export function windowSay(minutes, w = SERVICE_WINDOW) {
+  if (!Number.isFinite(minutes)) return { ok: false, over: 0, under: 0, say: '' };
+  if (minutes > w.maxMinutes) return { ok: false, over: minutes - w.maxMinutes, under: 0, say: `${minutes - w.maxMinutes}\u2032 over the ${w.maxMinutes}\u2032 limit` };
+  if (minutes < w.minMinutes) return { ok: false, over: 0, under: w.minMinutes - minutes, say: `${w.minMinutes - minutes}\u2032 under the ${w.minMinutes}\u2032 floor` };
+  return { ok: true, over: 0, under: 0, say: `within ${w.minMinutes}\u2013${w.maxMinutes}\u2032` };
+}
+
+// --- People (pure) -----------------------------------------------------------
+// Darrell 2026-10-15: "add key personnel to each task on the order of services
+// list... or add a auxiliary." A line names the people carrying it (several,
+// not one) and, when a whole group carries it, the auxiliary (Choir, Ushers,
+// Deacons). The names are the church's own words; nothing is looked up.
+
+/** "Bishop Gwin, Sis. Jones; Bro. Lee" -> ['Bishop Gwin', 'Sis. Jones', 'Bro. Lee'] (deduped, order kept). */
+export function parsePeople(text) {
+  const seen = new Set();
+  const out = [];
+  for (const raw of String(text || '').split(/[,;\n]/)) {
+    const name = raw.replace(/\s+/g, ' ').trim();
+    if (!name) continue;
+    const key = name.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key); out.push(name);
+  }
+  return out;
+}
+
+/** The key people on a segment: its personnel, or its one legacy owner. */
+export function peopleOf(seg) {
+  const list = Array.isArray(seg?.personnel) ? seg.personnel.map((x) => String(x).trim()).filter(Boolean) : [];
+  if (list.length) return list;
+  const owner = seg?.ownerName ? String(seg.ownerName).trim() : '';
+  return owner ? [owner] : [];
+}
+
+/** "Choir · Bishop Gwin, Sis. Jones" — the auxiliary first, then the people; '' when none. */
+export function whoText(seg) {
+  const aux = seg?.auxiliary ? String(seg.auxiliary).trim() : '';
+  const people = peopleOf(seg);
+  return [aux, people.join(', ')].filter(Boolean).join(' · ');
+}
+
+/**
+ * Who serves, and for how long: one row per person and per auxiliary across the
+ * order, with their minutes summed and the lines they carry, most minutes first.
+ * A church reads its people's load from this; the header still totals the whole.
+ */
+/**
+ * The PLAYBOOK for a Sunday or a Wednesday (Darrell, 2026-10-15: "Governance
+ * comes from a team and is distributed; BG is the key figure in the process and
+ * Christina is also; everyone else follows these processes, so we need that as
+ * a playbook for that Sunday or Wednesday"). One read across EVERY sector of
+ * the one master order: the clock of each line from the start time, who
+ * carries it, and what each team does and when — the Media team's stops, the
+ * Choir's stops, the ushers', each with its cue. Pure; the view reads it and
+ * prints it. `presiding` is the people on the fixed pulpit line (the Speaker —
+ * Bishop Gwin on this order); `finalizers` the roster members who sign the
+ * master, beside the stewards who always do.
+ */
+export function playbookFor(program, segments, { members = [] } = {}) {
+  const scheduled = computeSchedule(segments, program?.startTime);
+  const lines = scheduled.map((s) => ({
+    id: s.id,
+    order: s.sortOrder,
+    startClock: s.startClock,
+    endClock: s.endClock,
+    minutes: Number.isFinite(s.plannedMinutes) ? s.plannedMinutes : 0,
+    title: s.title,
+    sector: s.sector,
+    sectorLabel: sectorLabel(s.sector),
+    who: whoText(s),
+    personnel: peopleOf(s),
+    auxiliary: s.auxiliary || null,
+    cues: s.cues || {},
+    flexible: s.flexible !== false,
+    scriptureRef: s.scriptureRef || null,
+    notes: s.notes || null,
+  }));
+  const total = lines.reduce((n, l) => n + l.minutes, 0);
+  const pulpit = scheduled.find((s) => s.sector === 'pulpit' && s.flexible === false) || scheduled.find((s) => s.sector === 'pulpit') || null;
+  const presiding = pulpit ? peopleOf(pulpit) : [];
+  const finalizers = (members || []).filter((m) => m && m.isFinalizer && m.displayName).map((m) => m.displayName);
+  const sectors = SECTORS.filter((sec) => sec.key !== 'general').map((sec) => {
+    const stops = lines
+      .filter((l) => l.sector === sec.key || l.sector === 'general' || !!l.cues[sec.key])
+      .map((l) => ({ ...l, cue: l.cues[sec.key] || null, owns: l.sector === sec.key }));
+    return { key: sec.key, label: sec.label, short: sec.short, stops };
+  }).filter((sec) => sec.stops.some((st) => st.owns || st.cue));
+  return {
+    title: program?.title || 'Order of Worship',
+    serviceDate: program?.serviceDate || null,
+    serviceType: program?.serviceType || 'sunday',
+    startTime: program?.startTime || null,
+    endClock: lines.length ? lines[lines.length - 1].endClock : null,
+    lines,
+    total,
+    window: lines.length ? windowSay(total) : null,
+    presiding,
+    finalizers,
+    sectors,
+  };
+}
+
+export function whoServes(segments) {
+  const acc = new Map();
+  const add = (name, kind, seg) => {
+    const key = `${kind}:${name.toLowerCase()}`;
+    const row = acc.get(key) || { name, kind, minutes: 0, count: 0, titles: [] };
+    row.minutes += Number.isFinite(seg.plannedMinutes) ? seg.plannedMinutes : 0;
+    row.count += 1;
+    row.titles.push(seg.title || '');
+    acc.set(key, row);
+  };
+  for (const seg of [...(segments || [])].sort(bySort)) {
+    for (const name of peopleOf(seg)) add(name, 'person', seg);
+    const aux = seg?.auxiliary ? String(seg.auxiliary).trim() : '';
+    if (aux) add(aux, 'auxiliary', seg);
+  }
+  return [...acc.values()].sort((a, b) => (b.minutes - a.minutes) || a.name.localeCompare(b.name));
+}
 
 // Attach a running clock to each segment from the program start time. Pure: each
 // segment gets startMin/endMin (minutes-since-midnight) + startClock label.
@@ -199,6 +451,9 @@ export function deriveSectorView(program, segments, sector, { songs = [], sermon
       ownerSector: s.sector,
       ownerSectorLabel: sectorLabel(s.sector),
       ownerName: s.ownerName || null,
+      personnel: peopleOf(s),
+      auxiliary: s.auxiliary || null,
+      who: whoText(s),
       plannedMinutes: s.plannedMinutes,
       flexible: s.flexible,
       startClock: s.startClock,
@@ -231,50 +486,81 @@ export function deriveSectorView(program, segments, sector, { songs = [], sermon
     myStops: isSteward ? flow : flow.filter((f) => f.isOwner),
     mineCount: isSteward ? flow.length : flow.filter((f) => f.isOwner).length,
     plannedTotalMinutes,
+    window: windowSay(plannedTotalMinutes),
   };
 }
 
 // A one-tap starting order so a steward's first build is a real run-of-show, not
-// a blank page (SEED-DATA-AS-ASPIRATION: the starter state shows what a faithful,
-// well-ordered service looks like). Returns template segment shapes (no ids /
-// no DB) the surface inserts. The sermon is FIXED (flexible:false) so a reflow
-// never compresses the Word.
+// a blank page (SEED-DATA-AS-ASPIRATION). It is the church's own order as it
+// last ran: Christina's Order of Service for 10-11-2026, which Darrell sent on
+// 2026-10-15 ("From Christina this is the most recent one"). Every line carries
+// the people named on it, the TLC Ensemble carries both selections with the
+// band, and the media cues are the sheet's own (headphone levels, the Giver's
+// Creed PowerPoint after the Call to Give, the mic plan). The two items that
+// belonged to that Sunday alone (the Pastor's Appreciation Presentation and the
+// Park District signatures) are not repeated; the special line stays open for
+// whatever a Sunday brings. The Message is FIXED (flexible:false) so a reflow
+// never compresses the Word. Returns template segment shapes (no ids / no DB).
+export const TLC_ENSEMBLE_BAND = Object.freeze([
+  'Brother Fontaine Love (organ)',
+  'Brother Christian Cunningham (piano)',
+  'Brother Pancho Moore (drums)',
+  'Brother Charles Wilson (bass)',
+  'Brother Kenneth Odom (saxophone)',
+]);
+const LEVELS_CUE = 'Check levels in headphones (soloist, singers and instruments)';
+export const MIC_PLAN = 'Speakers\u2019 and lead singers\u2019 mics HOT until the message, then mute. Singers\u2019 mics HOT until the message, then mute. Bishop Gwin\u2019s mic HOT the entire service.';
 export function seedDefaultOrder() {
   const t = [
-    { title: 'Call to Worship',        sector: 'pulpit',      planned: 5,  flexible: true,  owner: '' },
-    { title: 'Praise & Worship',       sector: 'worship',     planned: 20, flexible: true,  owner: '' },
-    { title: 'Welcome & Announcements',sector: 'hospitality', planned: 5,  flexible: true,  owner: '' },
-    { title: 'Offering',               sector: 'ushers',      planned: 7,  flexible: true,  owner: '' },
-    { title: 'Choir Selection',        sector: 'worship',     planned: 6,  flexible: true,  owner: '' },
-    { title: 'Scripture Reading',      sector: 'pulpit',      planned: 4,  flexible: true,  owner: '' },
-    { title: 'Sermon',                 sector: 'pulpit',      planned: 35, flexible: false, owner: '' },
-    { title: 'Altar Call',             sector: 'pastoral',    planned: 8,  flexible: true,  owner: '' },
-    { title: 'Benediction',            sector: 'pulpit',      planned: 3,  flexible: true,  owner: '' },
+    { title: 'Call to Worship and Prayer', sector: 'pastoral', planned: 5, flexible: true, people: ['Brother Clifton Reed'], auxiliary: '', cues: { media: MIC_PLAN } },
+    { title: 'Announcements', sector: 'hospitality', planned: 5, flexible: true, people: ['Sister Kristy Reed'], auxiliary: '', cues: {} },
+    { title: 'Special presentation (if we have one)', sector: 'general', planned: 10, flexible: true, people: [], auxiliary: '', cues: {} },
+    { title: 'Selection', sector: 'worship', planned: 5, flexible: true, people: [...TLC_ENSEMBLE_BAND], auxiliary: 'TLC Ensemble', cues: { media: LEVELS_CUE } },
+    { title: 'The Call to Give', sector: 'ushers', planned: 8, flexible: true, people: ['Bishop Gwin'], auxiliary: 'Ushers', cues: { media: 'Play The Giver\u2019s Creed PowerPoint after The Call to Give' } },
+    { title: 'Selection', sector: 'worship', planned: 10, flexible: true, people: [...TLC_ENSEMBLE_BAND], auxiliary: 'TLC Ensemble', cues: { media: LEVELS_CUE } },
+    { title: 'Message / Invitation to Christ / Prayer / Benediction', sector: 'pulpit', planned: 38, flexible: false, people: ['Bishop Gwin'], auxiliary: '', cues: { media: 'Mute the speakers\u2019 and singers\u2019 mics at the message; Bishop Gwin\u2019s mic stays HOT' } },
+    { title: 'Closing', sector: 'music', planned: 3, flexible: true, people: ['Musicians'], auxiliary: '', cues: {} },
   ];
   return t.map((x, i) => ({
     title: x.title,
     sector: x.sector,
-    ownerName: x.owner,
+    ownerName: x.people[0] || '',
+    personnel: [...x.people],
+    auxiliary: x.auxiliary || null,
     plannedMinutes: x.planned,
     flexible: x.flexible,
     sortOrder: (i + 1) * 10,
     scriptureRef: '',
     sermonId: null,
     songIds: [],
-    cues: {},
+    cues: { ...x.cues },
     notes: '',
   }));
 }
 
 // --- Access (mirrors getChoirAccess) -----------------------------------------
 // canEdit (FINALIZE the master) = owner/admin OR a designated worship-team
-// finalizer (the keyboardist circle, 0043). canSee (read the master + a per-
-// sector view) = any choir member. The finalizer flag is orthogonal to the
-// musical role: a musician can be a finalizer without being an instance admin.
+// finalizer (the keyboardist circle, 0043). The finalizer flag is orthogonal to
+// the musical role: a musician can be a finalizer without being an instance
+// admin.
+//
+// canSee IS ANY MEMBER OF THE CHURCH SPACE (DR-1037). It used to be any CHOIR
+// member, and Darrell reported the consequence: "Christina does not see the
+// order of service!!!!!!!!! Either!!!!!!!!!" The order of service is what the
+// whole house walks into on Sunday and Wednesday, and since 0292 each line
+// names the auxiliary carrying it -- the Choir, the Ushers, the Deacons -- so an
+// usher could be named ON the order and unable to open it. A truthy `role` means
+// user_role_in_instance returned a row from instance_members, so this is a
+// member of THIS space and never merely someone signed in.
+//
+// The 0293 policies are the other half of this: without them the page renders
+// and the database returns nothing, and without this the tab stays hidden no
+// matter what the policies allow. Neither half works alone.
 export function deriveAccess(role, inChoir, isFinalizer = false) {
   const isAdmin = role === 'owner' || role === 'admin';
   const canEdit = isAdmin || isFinalizer === true;
-  const canSee = canEdit || inChoir === true;
+  const isMember = typeof role === 'string' && role !== '';
+  const canSee = canEdit || inChoir === true || isMember;
   return { canSee, canEdit };
 }
 
@@ -290,18 +576,50 @@ function resolveActorName(session) {
 
 export async function getServiceProgramAccess(displayName) {
   const session = await currentSession();
-  if (!session) return { signedIn: false, canSee: false, canEdit: false, isFinalizer: false, tenantId: null, role: null, sector: 'worship', actorName: null };
+  if (!session) return { signedIn: false, canSee: false, canEdit: false, isFinalizer: false, tenantId: null, role: null, sector: 'worship', actorName: null, email: null, errors: [] };
+  const email = session.user?.email ?? null;
   const tenantId = await churchInstanceId(displayName);
-  if (!tenantId) return { signedIn: true, canSee: false, canEdit: false, isFinalizer: false, tenantId: null, role: null, sector: 'worship', actorName: resolveActorName(session) };
-  const [{ data: role }, { data: inChoir }, { data: isFinalizer }, member] = await Promise.all([
+  if (!tenantId) return { signedIn: true, canSee: false, canEdit: false, isFinalizer: false, tenantId: null, role: null, choirRole: null, sector: 'worship', actorName: resolveActorName(session), email, errors: ['no church space answered for this account'] };
+  const [roleRes, choirRes, finRes, member] = await Promise.all([
     supabase.rpc('user_role_in_instance', { tenant_uuid: tenantId }),
     supabase.rpc('user_in_choir', { instance_uuid: tenantId }),
     supabase.rpc('user_is_worship_finalizer', { instance_uuid: tenantId }),
     supabase.from('choir_members').select('choir_role').eq('instance_id', tenantId).eq('user_id', session.user.id).maybeSingle(),
   ]);
+  // Every read that failed is NAMED, never swallowed into "not on the team":
+  // a refused screen must say what was read, so the next screenshot is a
+  // diagnosis (DR-0076 — the surface says the truth it measured).
+  const errors = [];
+  if (roleRes?.error) errors.push(`role read failed: ${roleRes.error.message || roleRes.error}`);
+  if (choirRes?.error) errors.push(`choir read failed: ${choirRes.error.message || choirRes.error}`);
+  if (finRes?.error) errors.push(`finalizer read failed: ${finRes.error.message || finRes.error}`);
+  if (member?.error) errors.push(`roster read failed: ${member.error.message || member.error}`);
+  const role = roleRes?.data; const inChoir = choirRes?.data; const isFinalizer = finRes?.data;
   const { canEdit, canSee } = deriveAccess(role, inChoir, isFinalizer);
   const choirRole = member?.data?.choir_role ?? null;
-  return { signedIn: true, canSee, canEdit, isFinalizer: !!isFinalizer, tenantId, role: role ?? null, choirRole, sector: sectorForRole(role, choirRole), actorName: resolveActorName(session) };
+  return { signedIn: true, canSee, canEdit, isFinalizer: !!isFinalizer, tenantId, role: role ?? null, choirRole, sector: sectorForRole(role, choirRole), actorName: resolveActorName(session), email, errors };
+}
+
+/**
+ * The lines a refused Order of Service screen shows, from the access that was
+ * actually read — the account, whether a church space answered, the role it
+ * holds there, the roster, and every read that failed. Pure, so the words are
+ * pinned by test and the screen can never say "ask a steward" to the steward
+ * without also saying what it measured.
+ */
+export function accessDiagnosis(a) {
+  const lines = [];
+  if (!a) return lines;
+  lines.push(`Signed in as ${a.email || a.actorName || 'an unknown account'}.`);
+  if (!a.tenantId) {
+    lines.push('No church space answered for this account. A steward adds you by inviting your email from the Choir tab.');
+  } else {
+    lines.push(`Your role in the church space: ${a.role || 'none recorded'}.`);
+    lines.push(`Choir roster: ${a.choirRole ? `on it as ${a.choirRole}` : 'not on it'}.`);
+    if (a.role === 'owner' || a.role === 'admin') lines.push('An owner or admin always sees and edits the order — if you are reading this, a read above failed; tap Retry.');
+  }
+  for (const e of a.errors || []) lines.push(`Read failed — ${e}`);
+  return lines;
 }
 
 // --- Realtime subscribe (mirrors choir-sync.makeSubscriber) ------------------
@@ -384,6 +702,8 @@ export function summarizeChange(action, title) {
     case 'delete-segment': return `Removed segment${t}`;
     case 'seed-order':     return 'Started from the standard order';
     case 'import-email':   return `Imported the order from the church email${t}`;
+    case 'carry-forward':  return `Carried the order forward from${t}`;
+    case 'archive-program': return `Archived the earlier order${t}`;
     default:               return action;
   }
 }
@@ -437,11 +757,16 @@ export async function deleteProgram(id) {
   return error ? { skipped: 'delete-error', error } : { deleted: true };
 }
 
-function segmentRow(seg) {
+export function segmentRow(seg) {
+  const personnel = peopleOf(seg);
   return {
     title: seg.title || '',
     sector: seg.sector || 'general',
-    owner_name: seg.ownerName || null,
+    // The first key person doubles as the legacy owner so older readers
+    // (the email import's preview, the blueprint) keep a name to show.
+    owner_name: personnel[0] || seg.ownerName || null,
+    personnel,
+    auxiliary: seg.auxiliary && String(seg.auxiliary).trim() ? String(seg.auxiliary).trim().slice(0, 80) : null,
     planned_minutes: Number.isFinite(seg.plannedMinutes) ? seg.plannedMinutes : 5,
     flexible: seg.flexible !== false,
     scripture_ref: seg.scriptureRef || null,
@@ -497,6 +822,45 @@ async function insertTemplateSegments(programId, templateSegments, action, title
 
 export async function seedProgramSegments(programId, displayName) {
   return insertTemplateSegments(programId, seedDefaultOrder(), 'seed-order', null, displayName);
+}
+
+// A new order takes the last order's lines (carryForwardSegments), recorded in
+// the change trail as carried forward from that date.
+export async function carryForwardOrder(programId, sourceSegments, fromDate, displayName) {
+  return insertTemplateSegments(programId, carryForwardSegments(sourceSegments), 'carry-forward', fromDate || null, displayName);
+}
+
+// Archive the earlier orders: a status change, never a delete, so every past
+// order and its actual times stay on the record and can be reopened.
+export async function archivePrograms(ids, displayName) {
+  const list = (ids || []).filter(Boolean);
+  if (!list.length) return { saved: true, count: 0 };
+  const ctx = await writeContext(displayName);
+  if (ctx.error) return { skipped: ctx.error };
+  const { error } = await supabase.from('church_service_programs')
+    .update({ status: 'archived', updated_by: ctx.userId }).in('id', list);
+  if (error) return { skipped: 'update-error', error };
+  for (const id of list) await logChange(ctx, id, null, 'archive-program', null);
+  return { saved: true, count: list.length };
+}
+
+// The one road a new order takes (DR-1044): an order already on that date and
+// service is opened, never doubled; otherwise the order is made, its lines come
+// from the last order of the same service (or Bishop Gwin's order when there is
+// none), and the earlier orders are archived.
+export async function startOrder(form, { programs = [], segments = [] } = {}, displayName) {
+  const dup = existingOrderFor(programs, form.serviceDate, form.serviceType);
+  if (dup) return { opened: true, id: dup.id };
+  const made = await saveProgram({ ...form, id: null }, displayName);
+  if (!made?.id) return made;
+  const last = lastOrderOf(programs, form.serviceType, form.serviceDate);
+  const lastSegs = last ? segments.filter((s) => s.programId === last.id) : [];
+  const lines = lastSegs.length
+    ? await carryForwardOrder(made.id, lastSegs, last.serviceDate, displayName)
+    : await seedProgramSegments(made.id, displayName);
+  if (lines?.skipped) return { ...lines, id: made.id };
+  const archived = await archivePrograms(ordersToArchive(programs, form.serviceDate, made.id), displayName);
+  return { saved: true, id: made.id, from: lastSegs.length ? 'last' : 'standard', lines: lines?.count || 0, archived: archived?.count || 0, skipped: archived?.skipped };
 }
 
 // The paste-from-email import lands its parsed segments through the same lane,

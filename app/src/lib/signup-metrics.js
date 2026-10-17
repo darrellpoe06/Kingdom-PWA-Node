@@ -61,9 +61,16 @@ export async function fetchSignupMetrics() {
 export function summaryTiles(summary) {
   const s = summary || {};
   const n = (k) => (typeof s[k] === 'number' ? s[k] : 0);
+  // OUR OWN INSTRUMENTS ARE NOT PEOPLE (DR-1075). The counts arrive already
+  // excluding them, so the tile is right by construction rather than by a
+  // subtraction here — two places computing one number is how they drift. The
+  // sub-line SAYS the exclusion happened, because a number that silently drops
+  // rows is its own kind of lie.
+  const probes = n('our_probes');
+  const ours = probes ? ` · ${probes} of ours not counted` : '';
   return [
     { label: 'Total accounts', value: n('total_accounts'),
-      sub: `${n('family_members')} family · ${n('church_members')} church` },
+      sub: `${n('family_members')} family · ${n('church_members')} church${ours}` },
     { label: 'Public signups', value: n('self_serve_signups'),
       sub: 'own private space' },
     { label: 'New (7d)', value: n('signups_7d'),
@@ -79,10 +86,24 @@ const CATEGORY_META = {
   'self-serve':    { label: 'Public signup', tone: 'new' },
   family:          { label: 'Family',        tone: 'trusted' },
   church:          { label: 'Church',        tone: 'church' },
+  // OURS (DR-1075). The site-health witness's own account, which signs in every
+  // 6 hours forever. It is on the roster, labelled, and counted in none of the
+  // people tiles — because the question "who is this and what is it doing
+  // daily?" should be answered by the row, not by an investigation.
+  'our-probe':     { label: 'Our own probe', tone: 'neutral' },
   other:           { label: 'Other',         tone: 'neutral' },
   unprovisioned:   { label: 'No space yet',  tone: 'pending' },
   unknown:         { label: 'Unknown',       tone: 'neutral' },
 };
+
+/**
+ * What a row IS, in one sentence, for the rows a person cannot identify by
+ * looking. Empty for an ordinary account — a real person needs no explaining.
+ */
+export function whatItIs(category) {
+  if (category !== 'our-probe') return '';
+  return 'Not a person — the site-health check. It signs up and signs in every 6 hours to prove a real person still can (.github/workflows/nas-health.yml). Counted in none of the totals above.';
+}
 
 export function categoryLabel(cat) {
   return (CATEGORY_META[cat] || CATEGORY_META.unknown).label;
@@ -191,6 +212,9 @@ export function signupRowView(row, nowMs, mask = false) {
     category: r.category || 'unknown',
     categoryLabel: categoryLabel(r.category),
     categoryTone: categoryTone(r.category),
+    // Says on the row what it is, when a person could not otherwise tell.
+    whatItIs: whatItIs(r.category),
+    isOurs: r.category === 'our-probe',
     instanceType: r.instance_type || null,
     role: r.role || null,
     joined: relativeTime(r.created_at, nowMs),

@@ -221,6 +221,11 @@ try {
   for (const view of VIEWS) for (const width of WIDTHS) {
     const url = `${origin}${BASE}/?view=${view}`;
     const page = await browser.newPage({ viewport: { width, height: 900 } });
+    // The full header is what this case measures. Since DR-1046 a fresh
+    // device opens on the slim row (lib/header-hideaway.js, absent = tucked),
+    // so the OPEN state is asked for by name; the hideaway and one-tab cases
+    // below measure the tucked state on their own.
+    await page.addInitScript(() => { try { localStorage.setItem('poe-header-collapsed', '0'); } catch (_) { /* private mode */ } });
     await page.goto(url, { waitUntil: 'networkidle', timeout: CHROME_IDLE_CAP_MS }).catch(() => {});
     await page.waitForSelector('header h1', { timeout: 20000 }).catch(() => {});
     if (SELFTEST) {
@@ -538,7 +543,7 @@ try {
         localStorage.setItem('poetech.help.tour.v1', 'seen');
         if (cfg.sz === 'bigprint') localStorage.setItem('poe-text-size', 'bigprint'); else localStorage.removeItem('poe-text-size');
         // The header hideaway's own per-device key (lib/header-hideaway.js).
-        if (cfg.collapsed) localStorage.setItem('poe-header-collapsed', '1'); else localStorage.removeItem('poe-header-collapsed');
+        if (cfg.collapsed) localStorage.setItem('poe-header-collapsed', '1'); else localStorage.setItem('poe-header-collapsed', '0');
       } catch { /* private mode */ }
     }, { sz: size, collapsed });
     await page.goto(LESSON_URL, { waitUntil: 'networkidle', timeout: 45000 }).catch(() => {});
@@ -651,7 +656,19 @@ try {
             h: Math.round(r.height),
             w: Math.round(r.width),
             font: Math.round(parseFloat(getComputedStyle(b).fontSize) * 10) / 10,
-            filled: getComputedStyle(b).backgroundColor.replace(/\s/g, '') === 'rgb(26,24,21)',
+            // FILLED means a dark ground under light words, not one literal
+            // color: the way out is bg-[#1A1815], which every theme remaps
+            // (Heritage, the first-run theme since DR-1046, paints it forest
+            // #1F3A2E; Midnight #1F1F1F). Pinning rgb(26,24,21) measured the
+            // cream palette, not the control. An outline button has a
+            // transparent or paper ground, which this reads as not filled.
+            filled: (() => {
+              const m = /rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/.exec(getComputedStyle(b).backgroundColor || '');
+              if (!m) return false;
+              if (m[4] !== undefined && parseFloat(m[4]) === 0) return false;
+              const lin = (v) => { const c = Number(v) / 255; return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); };
+              return (0.2126 * lin(m[1]) + 0.7152 * lin(m[2]) + 0.0722 * lin(m[3])) < 0.2;
+            })(),
             says: /all/i.test(b.textContent || ''),
           };
         })(),
@@ -834,7 +851,7 @@ try {
       try {
         localStorage.setItem('poetech.help.tour.v1', 'seen');
         localStorage.setItem('poe-text-size', 'largest');
-        localStorage.removeItem('poe-header-collapsed');
+        localStorage.setItem('poe-header-collapsed', '0');
         localStorage.removeItem('poe-comfort-bar-collapsed');
       } catch { /* private mode */ }
     });
@@ -871,7 +888,7 @@ try {
       try {
         localStorage.setItem('poetech.help.tour.v1', 'seen');
         localStorage.setItem('poe-text-size', 'bigprint');
-        localStorage.removeItem('poe-header-collapsed');
+        localStorage.setItem('poe-header-collapsed', '0');
         if (!sessionStorage.getItem('comfort-probe-seeded')) { localStorage.removeItem('poe-comfort-bar-collapsed'); sessionStorage.setItem('comfort-probe-seeded', '1'); }
       } catch { /* private mode */ }
     });
@@ -944,7 +961,7 @@ try {
         localStorage.setItem('poe-text-size', 'bigprint');
         // The header hideaway's own per-device key (lib/header-hideaway.js).
         if (hideHeader) localStorage.setItem('poe-header-collapsed', '1');
-        else localStorage.removeItem('poe-header-collapsed');
+        else localStorage.setItem('poe-header-collapsed', '0');
       } catch { /* private mode */ }
     }, collapsed);
     await page.goto(`${origin}${BASE}${v.path}`, { waitUntil: 'networkidle', timeout: 45000 }).catch(() => {});

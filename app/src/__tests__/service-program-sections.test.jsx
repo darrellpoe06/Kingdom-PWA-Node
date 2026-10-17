@@ -37,13 +37,14 @@ const SEGMENT = {
 };
 
 let access = { signedIn: true, canSee: true, canEdit: true, isFinalizer: true, role: 'owner', sector: 'worship' };
+let programsFixture = null; // null = [PROGRAM]
 
 vi.mock('../lib/service-program.js', async (importOriginal) => {
   const real = await importOriginal();
   return {
     ...real,
     getServiceProgramAccess: vi.fn(async () => access),
-    subscribePrograms: (cb) => { cb([PROGRAM]); return () => {}; },
+    subscribePrograms: (cb) => { cb(programsFixture || [PROGRAM]); return () => {}; },
     subscribeSegments: (cb) => { cb([SEGMENT]); return () => {}; },
     subscribeChanges: (cb) => { cb([{ id: 'c1', programId: 'p1', actorName: 'Darrell', summary: 'added Call to Worship', createdAt: '2026-07-07T10:00:00Z' }]); return () => {}; },
     subscribeFinalizerMembers: (cb) => { cb([]); return () => {}; },
@@ -99,7 +100,8 @@ describe('ServiceProgram — kept lens strip + new section chips', () => {
     expect(text).toContain('Master');
     // the new chip row
     expect(text).toContain('Run of show');
-    expect(text).toContain('Actuals & blueprint');
+    expect(text).toContain('Actual times');
+    expect(text).toContain('Track record');
     expect(text).toContain('Team & changes');
     // default panel = the real flow (real segment, real reflow control)
     expect(text).toContain('Call to Worship');
@@ -108,10 +110,10 @@ describe('ServiceProgram — kept lens strip + new section chips', () => {
     expect(text).not.toContain('Worship-team finalizers');
   });
 
-  it('opens Actuals & blueprint and Team & changes on click (lazy panels)', async () => {
+  it('opens Actual times and Team & changes on click (lazy panels)', async () => {
     access = { signedIn: true, canSee: true, canEdit: true, isFinalizer: true, role: 'owner', sector: 'worship' };
     await mount();
-    await clickTab('Actuals & blueprint');
+    await clickTab('Actual times');
     // ServiceActuals mounted (its planned-vs-actual reconciliation surface)
     expect((container.textContent || '').toLowerCase()).toContain('actual');
     await clickTab('Team & changes');
@@ -128,3 +130,60 @@ describe('ServiceProgram — kept lens strip + new section chips', () => {
     expect(text).not.toContain('Worship-team finalizers');
   });
 });
+
+describe('a refused screen says what it read (DR-0076; the owner\u2019s own screenshot, 2026-10-15)', () => {
+  it('names the account, the role and the roster instead of only "ask a steward"', async () => {
+    access = {
+      signedIn: true, canSee: false, canEdit: false, isFinalizer: false, role: 'member', sector: 'worship',
+      tenantId: 't1', choirRole: null, email: 'someone@example.com', errors: ['role read failed: boom'],
+    };
+    await mount();
+    const diag = container.querySelector('[data-testid="order-access-diagnosis"]');
+    expect(diag, 'the diagnosis list renders on a refusal').toBeTruthy();
+    expect(diag.textContent).toContain('Signed in as someone@example.com.');
+    expect(diag.textContent).toContain('Your role in the church space: member.');
+    expect(diag.textContent).toContain('Choir roster: not on it.');
+    expect(diag.textContent).toContain('Read failed \u2014 role read failed: boom');
+    expect([...container.querySelectorAll('button')].some((b) => b.textContent === 'Retry')).toBe(true);
+  });
+});
+
+describe('the Playbook chip (Darrell 2026-10-15: a playbook for that Sunday or Wednesday)', () => {
+  it('renders the whole order with its clock, who presides, and each team\u2019s stops, with Print', async () => {
+    access = { signedIn: true, canSee: true, canEdit: false, isFinalizer: false, role: 'member', sector: 'media' };
+    await mount();
+    await clickTab('Playbook');
+    const book = container.querySelector('[data-testid="playbook"]');
+    expect(book, 'the playbook panel renders').toBeTruthy();
+    expect(container.querySelector('[data-testid="playbook-order"]')).toBeTruthy();
+    expect(container.querySelector('[data-testid="playbook-governance"]').textContent).toContain('The order is signed by');
+    expect([...container.querySelectorAll('button')].some((b) => b.textContent === 'Print')).toBe(true);
+  });
+});
+
+describe('never a blank start (DR-1044; Darrell 2026-10-15: "We should not have repeated start from scratch situations")', () => {
+  afterEach(() => { programsFixture = null; });
+  beforeEach(() => { access = { signedIn: true, canSee: true, canEdit: true, isFinalizer: true, role: 'owner', sector: 'worship' }; });
+
+  it('with no order yet, the owner gets one tap that starts Sunday\u2019s order from Bishop Gwin\u2019s order', async () => {
+    programsFixture = [];
+    await mount();
+    const start = container.querySelector('[data-testid="sp-start-first"]');
+    expect(start).not.toBeNull();
+    expect(start.textContent).toContain('Bishop Gwin');
+    expect(container.textContent).toContain('carries the last one forward');
+  });
+
+  it('the new-order button says Next service, and its form says what it starts from', async () => {
+    await mount();
+    const next = [...container.querySelectorAll('button')].find((b) => (b.textContent || '').includes('Next service'));
+    expect(next).toBeDefined();
+    expect([...container.querySelectorAll('button')].some((b) => /New service/.test(b.textContent || ''))).toBe(false);
+    await act(async () => { next.dispatchEvent(new window.MouseEvent('click', { bubbles: true })); });
+    const says = container.querySelector('[data-testid="sp-starts-from"]');
+    expect(says).not.toBeNull();
+    expect(says.textContent).toMatch(/archived, never deleted/);
+    expect(container.querySelector('label[for="sp-start"]').textContent).toBe('Start time');
+  });
+});
+

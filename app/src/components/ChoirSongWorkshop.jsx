@@ -30,6 +30,10 @@ import {
   ideaEmbedUrl, splitByStatus, groupCommentsBySong, tallyVotes, parseSongList,
   groupLeadsBySong, myLeadSongIds,
 } from '../lib/song-workshop-sync.js';
+import { looksLikeListLink, readListBehindLink, linkFailureMessage } from '../lib/song-link-list.js';
+import { songsFromDocument, emptyReason } from '../lib/song-list-import.js';
+import { readAnyFile } from '../lib/books-intake-read.js';
+import { stamp, exactStamp } from '../lib/record-stamp.js';
 
 const STATUS_LABEL = { idea: 'Candidate', final: 'Final', pool: 'Pool' };
 
@@ -37,11 +41,11 @@ const BTN = 'text-xs uppercase tracking-wider px-3 py-2 min-h-[36px] focus:outli
 const FIELD = 'w-full p-2 border border-[#E8E4DC] text-sm bg-white focus:outline focus:outline-2 focus:outline-[#B85838]';
 const LABEL = 'text-[0.5625rem] uppercase tracking-wider text-[#5A5751] block mb-1';
 
-const fmtWhen = (iso) => {
-  if (!iso) return '';
-  try { return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }); }
-  catch { return ''; }
-};
+// DR-1063. This used to be `{ month: 'short', day: 'numeric' }` — "Sep 6",
+// with no year. A pool that cannot tell last September from this one cannot be
+// read "over time", which is exactly the historical accuracy Darrell asked for.
+// The shared stamp always carries the year; the exact instant rides in a title.
+const fmtWhen = (iso) => stamp(iso, { withTime: false });
 
 // ---------------------------------------------------------------------------
 // Player — lazy YouTube embed, or a safe "Open link" fallback. Never a dead card.
@@ -202,7 +206,7 @@ function SongCard({ idea, comments, vote, leads, members, canEdit, onVote, onCom
             {isFinal && <span className="text-[0.5625rem] uppercase tracking-wider bg-[#5A6E3D] text-white px-1.5 py-0.5">★ Final</span>}
             {iLead && <span className="text-[0.5625rem] uppercase tracking-wider bg-[#B85838] text-white px-1.5 py-0.5">★ Your lead</span>}
           </div>
-          <div className="text-[0.625rem] text-[#5A5751] mt-0.5">
+          <div className="text-[0.625rem] text-[#5A5751] mt-0.5" title={exactStamp(idea.createdAt)}>
             Added by {idea.addedByName}{idea.createdAt ? ` · ${fmtWhen(idea.createdAt)}` : ''}
             {idea.keyLabel ? ` · Key ${idea.keyLabel}` : ''}{idea.arrangement ? ` · ${idea.arrangement}` : ''}
           </div>
@@ -254,9 +258,48 @@ function AddBar({ busy, onAddOne, onAddList }) {
   const [mode, setMode] = useState(null);              // null | 'one' | 'list'
   const [f, setF] = useState({ title: '', url: '', note: '', keyLabel: '', arrangement: '' });
   const [listText, setListText] = useState('');
+  const [reading, setReading] = useState('');          // '' | 'link' | 'file'
+  const [readNote, setReadNote] = useState('');        // what just happened, in words
   const previewCount = useMemo(() => parseSongList(listText).length, [listText]);
+  // DR-1061. A link TO a list is not a song. Until this existed, pasting a
+  // Google Sheet or a YouTube playlist address added exactly ONE idea titled
+  // after the link and reported success — the list never arrived.
+  const listLink = useMemo(() => looksLikeListLink(listText), [listText]);
 
-  const reset = () => { setF({ title: '', url: '', note: '', keyLabel: '', arrangement: '' }); setListText(''); setMode(null); };
+  const reset = () => {
+    setF({ title: '', url: '', note: '', keyLabel: '', arrangement: '' });
+    setListText(''); setReading(''); setReadNote(''); setMode(null);
+  };
+
+  // Both roads end the SAME way: the songs land in the box as lines, the count
+  // updates, and the person sees exactly what will be added before they add it.
+  // Nothing is inserted on their behalf by either reader.
+  const fillFrom = (songs) => {
+    const lines = songs.map((s) => (s.url ? `${s.title} ${s.url}` : s.title));
+    setListText(lines.join('\n'));
+    setReadNote(`${lines.length} song${lines.length === 1 ? '' : 's'} read in. Check the list, then add.`);
+  };
+
+  const readLink = async () => {
+    setReading('link'); setReadNote('');
+    const res = await readListBehindLink(listText);
+    setReading('');
+    if (res.ok) fillFrom(res.songs); else setReadNote(linkFailureMessage(res));
+  };
+
+  // DR-1061. The file road is the one that always works: Excel, CSV, a PDF, or
+  // a photograph of a page — read on our own equipment, no Google sign-in.
+  const readFile = async (e) => {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    setReading('file'); setReadNote('');
+    let text;
+    try { ({ text } = await readAnyFile(file)); } catch { text = ''; }
+    const songs = text ? songsFromDocument(text) : [];
+    setReading('');
+    if (songs.length) fillFrom(songs); else setReadNote(emptyReason(file, text));
+  };
 
   if (!mode) {
     return (
@@ -272,11 +315,38 @@ function AddBar({ busy, onAddOne, onAddList }) {
       <div className="bg-[#FAF8F4] border border-[#1A1815] p-3 mb-3 space-y-2">
         <div>
           <label className={LABEL} htmlFor="sw-list">Paste links or lines — one song per line</label>
-          <textarea id="sw-list" rows={5} className={FIELD} value={listText} onChange={(e) => setListText(e.target.value)} placeholder={'Total Praise - https://youtu.be/...\nhttps://youtube.com/watch?v=...\nWay Maker'} />
+          <textarea id="sw-list" rows={5} className={FIELD} value={listText} onChange={(e) => { setListText(e.target.value); setReadNote(''); }} placeholder={'Total Praise - https://youtu.be/...\nhttps://youtube.com/watch?v=...\nWay Maker'} />
         </div>
-        <p className="text-[0.6875rem] text-[#5A5751]">{previewCount} song{previewCount === 1 ? '' : 's'} detected.</p>
+
+        {/* A pasted address of a list is NOT one song, and must not be counted
+            as one. The count is replaced by the offer to go and read it. */}
+        {listLink ? (
+          <div className="bg-white border border-[#B85838] p-2">
+            <p className="text-[0.6875rem] text-[#1A1815] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>
+              That is <strong>{listLink.label}</strong> — a link to a list, not a song. Read it in and every song it holds comes across.
+            </p>
+            <button type="button" disabled={busy || !!reading} onClick={readLink}
+              className={`${BTN} bg-[#B85838] text-white font-semibold disabled:opacity-50 focus:outline focus:outline-2 focus:outline-[#B85838]`}>
+              {reading === 'link' ? 'Reading…' : 'Read the list'}
+            </button>
+          </div>
+        ) : (
+          <p className="text-[0.6875rem] text-[#5A5751]">{previewCount} song{previewCount === 1 ? '' : 's'} detected.</p>
+        )}
+
+        {/* The road that never depends on another site letting us in. */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <label className={`${BTN} border border-[#5A6E3D] text-[#5A6E3D] hover:bg-white cursor-pointer focus-within:outline focus-within:outline-2 focus-within:outline-[#B85838]`}>
+            {reading === 'file' ? 'Reading…' : 'Upload a list'}
+            <input type="file" accept=".csv,.tsv,.txt,.md,.xlsx,.xlsm,.xlsb,.xls,.pdf,image/*" className="sr-only" onChange={readFile} disabled={busy || !!reading} />
+          </label>
+          <span className="text-[0.625rem] text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>Excel, CSV, a PDF, or a photo of the page.</span>
+        </div>
+
+        {readNote && <p className="text-[0.6875rem] text-[#1A1815] bg-white border border-[#E8E4DC] p-2" style={{ fontFamily: '"Fraunces", serif' }} role="status">{readNote}</p>}
+
         <div className="flex gap-2">
-          <button type="button" disabled={busy || !previewCount} onClick={async () => { await onAddList(listText); reset(); }} className={`${BTN} bg-[#1A1815] text-white font-semibold disabled:opacity-50`}>Add {previewCount || ''} to pool</button>
+          <button type="button" disabled={busy || !!reading || !previewCount || !!listLink} onClick={async () => { await onAddList(listText); reset(); }} className={`${BTN} bg-[#1A1815] text-white font-semibold disabled:opacity-50`}>Add {previewCount || ''} to pool</button>
           <button type="button" onClick={reset} className={`${BTN} border border-[#5A5751] text-[#5A5751]`}>Cancel</button>
         </div>
       </div>

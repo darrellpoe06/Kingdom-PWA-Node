@@ -37,6 +37,11 @@ import { aboutFor } from '../lib/surface-help.js';
 // Help-freshness gate can verify the deep Help entry stays current with it.
 const HARVEST_ABOUT = aboutFor('church:harvest');
 
+// How long the ledger waits on the church's records before it says the road
+// is not answering. The same wait the member record gives (church-member-sync's
+// RPC_TIMEOUT_MS), so the two surfaces tell the same truth at the same moment.
+export const LEDGER_WAIT_MS = 15000;
+
 // Which harvests are mined from the service transcript (now auto-sourced from the
 // video's YouTube captions, no GPU) vs. derived from the row the instant it lands.
 const FROM_TRANSCRIPT = new Set(TRANSCRIPT_DERIVED_KEYS);
@@ -286,23 +291,35 @@ export default function HarvestLedger() {
   const [access, setAccess] = useState(null);
   const [ledger, setLedger] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [stalled, setStalled] = useState(false);
+  const [attempt, setAttempt] = useState(0);
   const [busy, setBusy] = useState('');
 
   useEffect(() => {
     let unsub = null;
+    let cancelled = false;
+    // NEVER A SILENT HANG (Christina's phone, 2026-10-15: "Loading the harvest
+    // ledger…" with no end while the /sb road was dark, #2057). The access
+    // check and the first ledger read both go through the church's records;
+    // when that road does not answer, this surface says so after the same
+    // wait the member record gives (LEDGER_WAIT_MS) and offers the retry,
+    // instead of a loading line that is indistinguishable from progress.
+    const timer = setTimeout(() => { if (!cancelled) setStalled(true); }, LEDGER_WAIT_MS);
     const start = async () => {
       const a = await getChoirAccess();
+      if (cancelled) return;
       setAccess(a);
       if (a.canSee) {
-        unsub = subscribeLedger((l) => { setLedger(l); setLoading(false); });
+        unsub = subscribeLedger((l) => { if (cancelled) return; setLedger(l); setLoading(false); clearTimeout(timer); });
       } else {
         setLoading(false);
+        clearTimeout(timer);
       }
     };
     start();
-    const off = onAuthChange(() => { if (unsub) unsub(); setLoading(true); start(); });
-    return () => { if (unsub) unsub(); if (off) off(); };
-  }, []);
+    const off = onAuthChange(() => { if (unsub) unsub(); setLoading(true); setStalled(false); start(); });
+    return () => { cancelled = true; clearTimeout(timer); if (unsub) unsub(); if (off) off(); };
+  }, [attempt]);
 
   const onRecord = useCallback(async (video, typeKey, status) => {
     setBusy(`${video.videoId}:${typeKey}`);
@@ -315,6 +332,15 @@ export default function HarvestLedger() {
     setBusy('');
   }, []);
 
+  if (loading && stalled) {
+    return (
+      <div className="bg-white border border-[#E8E4DC] rounded-2xl p-5 text-sm text-[#5A5751]" role="status" data-testid="harvest-ledger-stalled" style={{ fontFamily: '"Fraunces", serif' }}>
+        <p className="text-[#1A1815] font-semibold mb-1">The harvest ledger could not be opened.</p>
+        <p>The church&apos;s records did not answer within {Math.round(LEDGER_WAIT_MS / 1000)} seconds. The road this app takes to them is not answering right now; sign-in and your record travel the same road, so they will be slow or stopped too. This is not something your phone or your account caused.</p>
+        <button type="button" onClick={() => { setStalled(false); setLoading(true); setAttempt((n) => n + 1); }} className="mt-3 text-xs uppercase tracking-wider px-4 py-2 min-h-[36px] rounded-full border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white focus:outline focus:outline-2 focus:outline-[#B85838]">Try again</button>
+      </div>
+    );
+  }
   if (loading) {
     return <div className="bg-white border border-[#E8E4DC] p-5 text-sm text-[#5A5751]" aria-live="polite" style={{ fontFamily: '"Fraunces", serif' }}>Loading the harvest ledger…</div>;
   }

@@ -282,4 +282,30 @@ export const LIVING_LESSONS_ADDED = {
   // Spoken 2026-08-14 in the same sitting as ll77 and ll78; these four strands
   // were absent from the whole series and were built 2026-10-14 (DR-1018).
   'll242-shyness-can-be-pride-the-omitted-term-and-the-hidden-talent': '2026-10-14', // commit day and slot day are the same here
+  // WRITTEN 2026-08-16 on PR #1255's branch as that branch's own "L80", against
+  // a catalog of 81 modules; mined out and rebuilt here on 2026-10-14. The day
+  // recorded is the COMMIT day, which is the opposite call from ll79's — and
+  // for the same reason. ll79 fills a HOLE inside the series, so its slot day
+  // keeps "by number, oldest first" a single order; this lesson sits at the END
+  // of the series, so an August day would make ll243 older than ll242 while
+  // numbered after it, and split that one order into two.
+  'll243-the-stork-knows-her-appointed-times': '2026-10-14',
+  // WRITTEN 2026-08-15 on PR #1255's branch as that branch's own "L79" — the
+  // LAST unmined teaching in that PR — and rebuilt here 2026-10-14. Same call
+  // as ll243's and for the same reason: this sits at the END of the series, so
+  // an August day would make ll244 older than ll243 while numbered after it.
+  'll244-the-heavens-declare-and-the-timetable-is-held-open': '2026-10-14',
+  // SPOKEN by Darrell on 2026-10-15 (UTC) into the house, in one night, as
+  // three teachings, and built the same session (the standing rule: a spoken
+  // teaching is build input). The commit day is the spoken day.
+  'll245-deductive-reasoning-is-the-words-way-from-what-he-said': '2026-10-15',
+  'll246-doing-the-word-comes-first-and-our-live-situations-are-bread': '2026-10-15',
+  'll247-your-ways-show-your-god-know-yourself-in-number-and-in-kind': '2026-10-15',
+  // L248, spoken into the house by Darrell on the morning of 2026-10-16 and
+  // built the same session (a spoken teaching is build input).
+  'll248-his-ways-are-higher-so-he-gives-the-bread': '2026-10-16',
+  // L249 and L250, both spoken into the house by Darrell later on 2026-10-16
+  // and built the same session (a spoken teaching is build input).
+  'll249-nothing-of-myself-the-way-is-the-word-and-it-works-every-time': '2026-10-16',
+  'll250-they-which-do-hunger-shall-be-filled-and-the-critical-path': '2026-10-16',
 };

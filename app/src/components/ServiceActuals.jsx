@@ -24,6 +24,7 @@ import {
   dispositionMeta,
   reconcileService, summarizeReconcile, harvestActualsForService,
   saveActual, deleteActual, seedActualsFromPlan, captureActualFromYouTube, markReconciled,
+  clockLines, clockTotals, trackRecord, streamRecord, saveActualTimes, addedLine,
 } from '../lib/service-actuals.js';
 
 const BTN = 'text-xs uppercase tracking-wider px-3 py-2 min-h-[36px] focus:outline focus:outline-2 focus:outline-[#B85838]';
@@ -147,6 +148,185 @@ function AddedForm({ nextOrder, busy, onSave, onCancel }) {
   );
 }
 
+// -----------------------------------------------------------------------------
+// Clock the service (DR-1029): every planned line with the minutes it really
+// took, typed beside the plan and saved in one tap. Prefilled with what is
+// recorded, else the plan ("we did exactly this"); clear a line and it reads
+// as skipped. The deeper reconcile tools below stay for songs, sermon, notes.
+// -----------------------------------------------------------------------------
+function ClockTheService({ program, plannedSegments, actuals, busy, onSave }) {
+  const base = useMemo(() => clockLines(plannedSegments, actuals), [plannedSegments, actuals]);
+  const [edits, setEdits] = useState({});
+  const [added, setAdded] = useState([]);           // sections that took place but were not on the order
+  const [addForm, setAddForm] = useState(null);     // { title, minutes, after }
+  const planned = useMemo(() => base.map((l) => ({
+    ...l,
+    actualMinutes: Object.prototype.hasOwnProperty.call(edits, l.plannedSegmentId)
+      ? (edits[l.plannedSegmentId] === '' ? null : Number(edits[l.plannedSegmentId]))
+      : (Number.isFinite(l.actualMinutes) ? l.actualMinutes : l.plannedMinutes),
+  })), [base, edits]);
+  const lines = useMemo(() => [...planned, ...added].sort((a, b) => a.sortOrder - b.sortOrder), [planned, added]);
+  const totals = clockTotals(lines);
+  const lastSort = base.reduce((n, l) => Math.max(n, l.sortOrder), 0);
+  if (!base.length) return null;
+  const commitAdd = () => {
+    if (!addForm || !addForm.title.trim()) return;
+    const after = addForm.after === '' ? null : Number(addForm.after);
+    setAdded((p) => [...p, addedLine({ title: addForm.title, actualMinutes: addForm.minutes === '' ? null : Number(addForm.minutes), afterSortOrder: after, lastSortOrder: lastSort + (p.length * 5) })]);
+    setAddForm(null);
+  };
+  return (
+    <form className="bg-white border-2 border-[#1A1815] p-3 mb-3" onSubmit={(e) => { e.preventDefault(); onSave(lines); }} data-testid="clock-the-service">
+      <p className="text-xs text-[#1A1815] font-semibold" style={{ fontFamily: '"Fraunces", serif' }}>Clock the service: what took place, against the order the Bishop asked for</p>
+      <p className="text-[0.6875rem] text-[#5A5751] mb-2" style={{ fontFamily: '"Fraunces", serif' }}>Type the minutes each line really took. A line left blank did not happen. Something happened that was not on the order? Add it where it took place.</p>
+      <div className="space-y-1">
+        {lines.map((l) => l.added ? (
+          <div key={`added-${l.sortOrder}-${l.title}`} className="flex items-center gap-2 border-b border-[#E8E4DC] py-1 bg-[#FAF8F4]" data-testid="clock-added-line">
+            <span className="flex-1 text-sm text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif' }}>{l.title}<span className="text-[0.6875rem] text-[#B85838]"> · not on the order</span></span>
+            <span className="w-20 text-right text-sm tabular-nums text-[#1A1815]">{Number.isFinite(l.actualMinutes) ? `${l.actualMinutes}′` : '—'}</span>
+            <button type="button" onClick={() => setAdded((p) => p.filter((x) => x !== l))} className="w-14 text-right text-[0.625rem] uppercase tracking-wider text-[#991B1B] hover:underline">Remove</button>
+          </div>
+        ) : (() => {
+          const v = Object.prototype.hasOwnProperty.call(edits, l.plannedSegmentId) ? edits[l.plannedSegmentId] : String(Number.isFinite(l.actualMinutes) ? l.actualMinutes : '');
+          const d = Number.isFinite(l.actualMinutes) && Number.isFinite(l.plannedMinutes) ? l.actualMinutes - l.plannedMinutes : null;
+          return (
+            <div key={l.plannedSegmentId} className="flex items-center gap-2 border-b border-[#E8E4DC] py-1">
+              <label className="flex-1 text-sm text-[#1A1815]" htmlFor={`ct-${l.plannedSegmentId}`} style={{ fontFamily: '"Fraunces", serif' }}>{l.title}<span className="text-[0.6875rem] text-[#8A857C]"> · plan {l.plannedMinutes ?? '—'}′</span></label>
+              <input id={`ct-${l.plannedSegmentId}`} type="number" min="0" inputMode="numeric" className={`${FIELD} w-20 text-right tabular-nums`} value={v}
+                onChange={(e) => setEdits((p) => ({ ...p, [l.plannedSegmentId]: e.target.value }))} aria-label={`Actual minutes for ${l.title}`} />
+              <span className={`w-14 text-right text-[0.6875rem] tabular-nums ${d == null ? 'text-[#8A857C]' : d === 0 ? 'text-[#5A6E3D]' : 'text-[#B85838]'}`}>{d == null ? 'skipped' : d === 0 ? 'on time' : `${d > 0 ? '+' : ''}${d}′`}</span>
+            </div>
+          );
+        })())}
+      </div>
+      {addForm ? (
+        <div className="grid grid-cols-2 gap-2 mt-2 bg-[#FAF8F4] border border-[#E8E4DC] p-2" data-testid="clock-add-form">
+          <div className="col-span-2"><label className={LABEL} htmlFor="ct-add-title">What took place (not on the order)</label><input id="ct-add-title" className={FIELD} value={addForm.title} onChange={(e) => setAddForm((p) => ({ ...p, title: e.target.value }))} placeholder="Testimony, extra song, a word from the Bishop…" /></div>
+          <div><label className={LABEL} htmlFor="ct-add-min">Minutes</label><input id="ct-add-min" type="number" min="0" inputMode="numeric" className={FIELD} value={addForm.minutes} onChange={(e) => setAddForm((p) => ({ ...p, minutes: e.target.value }))} /></div>
+          <div><label className={LABEL} htmlFor="ct-add-after">After</label>
+            <select id="ct-add-after" className={FIELD} value={addForm.after} onChange={(e) => setAddForm((p) => ({ ...p, after: e.target.value }))}>
+              <option value="">— the end —</option>
+              {base.map((l) => <option key={l.plannedSegmentId} value={l.sortOrder}>{l.title}</option>)}
+            </select>
+          </div>
+          <div className="col-span-2 flex gap-2">
+            <button type="button" onClick={commitAdd} disabled={!addForm.title.trim()} className={`${BTN} bg-[#B85838] text-white font-semibold disabled:opacity-50`}>Add it</button>
+            <button type="button" onClick={() => setAddForm(null)} className={`${BTN} text-[#5A5751] hover:text-[#1A1815]`}>Cancel</button>
+          </div>
+        </div>
+      ) : (
+        <button type="button" onClick={() => setAddForm({ title: '', minutes: '5', after: '' })} className={`${BTN} text-[#B85838] border border-[#B85838] mt-2`}>＋ Add a line that took place</button>
+      )}
+      <p className="text-xs text-[#1A1815] tabular-nums mt-2" style={{ fontFamily: '"Fraunces", serif' }} data-testid="clock-totals">
+        <span className="font-semibold">Planned {totals.planned}′</span> · actual {totals.actual}′
+        {totals.delta != null && totals.delta !== 0 && <span className="text-[#B85838]"> · {totals.delta > 0 ? '+' : ''}{totals.delta}′</span>}
+        {totals.delta === 0 && <span className="text-[#5A6E3D]"> · on time</span>}
+        {totals.window && <span className={totals.window.ok ? 'text-[#5A6E3D]' : 'text-[#B85838]'}> · {totals.window.say}</span>}
+        {!totals.complete && <span className="text-[#8A857C]"> · {totals.total - totals.entered} line{totals.total - totals.entered === 1 ? '' : 's'} blank</span>}
+      </p>
+      <div className="flex gap-2 mt-2">
+        <button type="submit" disabled={busy} className={`${BTN} bg-[#1A1815] text-white font-semibold disabled:opacity-50`}>{busy ? 'Saving…' : `Save actual times${program?.reconciledAt ? '' : ' (marks reconciled)'}`}</button>
+      </div>
+    </form>
+  );
+}
+
+// -----------------------------------------------------------------------------
+// The track record (DR-1029): every clocked service, newest first, and how
+// often each kind of service kept its timeline. Read by the whole team.
+// -----------------------------------------------------------------------------
+const TYPE_LABEL = { sunday: 'Sunday', wednesday: 'Wednesday', rehearsal: 'Rehearsal', special: 'Special', both: 'Both' };
+function ClockedRecord({ programs = [], segments = [], actuals = [] }) {
+  const rec = useMemo(() => trackRecord(programs, segments, actuals), [programs, segments, actuals]);
+  const fmt = (d) => { try { return new Date(d + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }); } catch { return d || ''; } };
+  if (!rec.rows.length) {
+    return (
+      <p className="text-xs text-[#5A5751] bg-white border border-[#E8E4DC] p-3" style={{ fontFamily: '"Fraunces", serif' }} data-testid="track-record-empty">
+        No service clocked yet. After a service, open Actual times and save the minutes each line took; every clocked Sunday and Wednesday lands here, read against the 75–90′ window the service is to run.
+      </p>
+    );
+  }
+  return (
+    <div data-testid="track-record">
+      <div className="bg-[#FAF8F4] border border-[#E8E4DC] p-2 mb-2">
+        <p className="text-xs text-[#1A1815] tabular-nums" style={{ fontFamily: '"Fraunces", serif' }}>
+          <span className="font-semibold">Kept the {rec.window.minMinutes}–{rec.window.maxMinutes}′ window {rec.overall.kept} of {rec.overall.services}</span> ({rec.overall.keptPct}%)
+          {rec.overall.avgDelta !== 0 && <span> · on average {rec.overall.avgDelta > 0 ? '+' : ''}{rec.overall.avgDelta}′</span>}
+          {rec.overall.streak > 1 && <span className="text-[#5A6E3D]"> · {rec.overall.streak} in a row</span>}
+        </p>
+        <ul className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
+          {rec.types.map((t) => (
+            <li key={t.serviceType} className="text-[0.6875rem] text-[#5A5751] tabular-nums">{TYPE_LABEL[t.serviceType] || t.serviceType}: {t.kept} of {t.services} kept{t.avgDelta !== 0 ? ` · ${t.avgDelta > 0 ? '+' : ''}${t.avgDelta}′ avg` : ''}</li>
+          ))}
+        </ul>
+      </div>
+      <div className="space-y-1">
+        {rec.rows.map((r) => (
+          <div key={r.programId} className={`border-l-4 pl-3 py-2 ${r.kept ? 'border-[#5A6E3D]' : 'border-[#B85838]'} bg-white`}>
+            <div className="flex items-baseline justify-between gap-2 flex-wrap">
+              <span className="text-sm text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{fmt(r.serviceDate)} <span className="text-[0.6875rem] text-[#8A857C] font-normal">· {TYPE_LABEL[r.serviceType] || r.serviceType}</span></span>
+              <span className={`text-[0.6875rem] tabular-nums ${r.kept ? 'text-[#5A6E3D]' : 'text-[#B85838]'}`}>{r.actualTotal}′ of {r.plannedTotal}′ planned{r.delta !== 0 ? ` (${r.delta > 0 ? '+' : ''}${r.delta}′)` : ''} · {r.window.say}</span>
+            </div>
+            <p className="text-[0.6875rem] text-[#5A5751] tabular-nums mt-0.5">
+              {r.linesOnTime} of {r.linesTimed} line{r.linesTimed === 1 ? '' : 's'} on time
+              {r.skipped ? ` · ${r.skipped} skipped` : ''}{r.added ? ` · ${r.added} added` : ''}
+              {r.worst ? ` · ${r.worst.title} ${r.worst.delta > 0 ? 'ran ' + r.worst.delta + '′ long' : 'ran ' + Math.abs(r.worst.delta) + '′ short'}` : ''}
+            </p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// By the stream (DR-1045): how long each Sunday and Wednesday stream ran, from
+// the NAS stream-length rider, read against the service window. An upper bound:
+// the stream carries pre-service and closing time the service did not.
+const hms = (minutes) => `${Math.floor(minutes / 60)}:${String(minutes % 60).padStart(2, '0')}`;
+function StreamRecord({ sermons = [] }) {
+  const st = useMemo(() => streamRecord(sermons), [sermons]);
+  const fmt = (d) => { try { return new Date(d + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }); } catch { return d || ''; } };
+  return (
+    <div data-testid="stream-record" className="mt-3">
+      <p className="text-[0.6875rem] uppercase tracking-wide text-[#8A857C] mb-1">By the stream</p>
+      {!st.count ? (
+        <p className="text-xs text-[#5A5751] bg-white border border-[#E8E4DC] p-3" style={{ fontFamily: '"Fraunces", serif' }} data-testid="stream-record-empty">
+          No service video has its length yet. The NAS reads how long each Sunday and Wednesday stream ran once it is posted, and every one lands here against the {st.window.minMinutes}–{st.window.maxMinutes}′ window.
+        </p>
+      ) : (
+        <>
+          <div className="bg-[#FAF8F4] border border-[#E8E4DC] p-2 mb-2">
+            <p className="text-xs text-[#1A1815] tabular-nums" style={{ fontFamily: '"Fraunces", serif' }}>
+              <span className="font-semibold">Streams inside the {st.window.minMinutes}–{st.window.maxMinutes}′ window: {st.inside} of {st.count}</span> ({st.insidePct}%) · average {hms(st.avgMinutes)}
+              {st.over ? <span> · {st.over} over</span> : null}{st.under ? <span> · {st.under} under</span> : null}
+            </p>
+            <p className="text-[0.6875rem] text-[#5A5751] mt-0.5" data-testid="stream-upper-bound">A stream runs from before the first line to after the benediction, so its length is the most the service could have taken. Inside the window means the service was too; over means the stream ran over.</p>
+          </div>
+          <div className="space-y-1">
+            {st.rows.slice(0, 26).map((r) => (
+              <div key={`${r.serviceDate}-${r.serviceType}`} className={`border-l-4 pl-3 py-1.5 bg-white ${r.verdict === 'inside' ? 'border-[#5A6E3D]' : 'border-[#B85838]'}`}>
+                <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                  <span className="text-sm text-[#1A1815]" style={{ fontFamily: '"Fraunces", serif', fontWeight: 600 }}>{fmt(r.serviceDate)} <span className="text-[0.6875rem] text-[#8A857C] font-normal">· {TYPE_LABEL[r.serviceType] || r.serviceType}{r.title ? ` · ${r.title}` : ''}</span></span>
+                  <span className={`text-[0.6875rem] tabular-nums ${r.verdict === 'inside' ? 'text-[#5A6E3D]' : 'text-[#B85838]'}`}>stream {hms(r.minutes)} · {r.window.say}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+export function TrackRecord({ programs = [], segments = [], actuals = [], sermons = [] }) {
+  return (
+    <>
+      <ClockedRecord programs={programs} segments={segments} actuals={actuals} />
+      <StreamRecord sermons={sermons} />
+    </>
+  );
+}
+
 export default function ServiceActuals({ program, plannedSegments, actuals: allActuals = [], songs = [], sermons = [], canEdit = false }) {
   const [adding, setAdding] = useState(false);
   const [recapOpen, setRecapOpen] = useState(false);
@@ -182,6 +362,7 @@ export default function ServiceActuals({ program, plannedSegments, actuals: allA
     setBusy(true); report(await deleteActual(row.actual.id, { programId: program.id, title: row.title })); setBusy(false);
   };
   const onAdd = async (item) => { setBusy(true); report(await saveActual(program.id, item)); setBusy(false); setAdding(false); };
+  const onClock = async (lines) => { setBusy(true); report(await saveActualTimes(program, lines)); setBusy(false); };
 
   if (!program) return null;
   const hasActuals = actuals.length > 0;
@@ -199,6 +380,9 @@ export default function ServiceActuals({ program, plannedSegments, actuals: allA
       </p>
 
       {err && <div role="alert" className="bg-[#FAF8F4] border-2 border-[#B85838] p-2 mb-2 text-xs" style={{ fontFamily: '"Fraunces", serif' }}>{err}</div>}
+
+      {/* Clock the service: the minutes each line took, saved in one tap (DR-1029) */}
+      {canEdit && <ClockTheService program={program} plannedSegments={plannedSegments} actuals={actuals} busy={busy} onSave={onClock} />}
 
       {/* Planned-vs-actual variance summary (visible to the whole team) */}
       {(hasActuals || reconciled) && (

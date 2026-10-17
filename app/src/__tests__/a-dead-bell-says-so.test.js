@@ -43,12 +43,39 @@ describe('classifyBellResponse — the measured failure', () => {
     expect(classifyBellResponse({ code: 404, body: REAL_404 }).reason).toMatch(/reaches nobody/i);
   });
 
-  it('a 404 without that body is still dead, with a narrower reason', () => {
+  it('a 404 without that body is still dead, and now names the MOUNT (DR-1047)', () => {
+    // RE-PINNED 2026-10-15. This asserted /webhook path is wrong/, which was
+    // true while the road was n8n's. After the cut-over a bare 404 on the
+    // sovereign road means one specific thing: tailscale is serving nothing at
+    // /announce, so the service can be `active` on 127.0.0.1:8796 and still be
+    // unreachable. That is the built-correct-never-connected class that cost
+    // /nas-photos seven weeks, /taxes seven weeks and /scribe eighteen days,
+    // so the reason must name the mount and the one command that fixes it --
+    // a reader who gets this line should not have to go diagnose it.
     const r = classifyBellResponse({ code: 404, body: 'Not Found' });
     expect(r.rang).toBe(false);
     expect(r.dead).toBe(true);
     expect(r.reason).not.toMatch(/NOT REGISTERED/);
-    expect(r.reason).toMatch(/webhook path is wrong/);
+    expect(r.reason).toMatch(/nothing is mounted at \/announce/);
+    expect(r.reason).toMatch(/127\.0\.0\.1:8796/);
+    expect(r.reason).toMatch(/funnel --bg --set-path \/announce/);
+  });
+
+  it('the n8n branch still fires on n8n’s own words, and only on them', () => {
+    // The history is real and the body shape is exact, so that branch stays.
+    // Proven-to-catch in BOTH directions: n8n's wording takes the n8n reason,
+    // anything else takes the mount reason. If these ever cross, one of the
+    // two causes is being reported as the other.
+    expect(classifyBellResponse({ code: 404, body: REAL_404 }).reason).toMatch(/NOT REGISTERED/);
+    expect(classifyBellResponse({ code: 404, body: REAL_404 }).reason).not.toMatch(/nothing is mounted/);
+    expect(classifyBellResponse({ code: 404, body: '{}' }).reason).not.toMatch(/NOT REGISTERED/);
+  });
+
+  it('the caller points at the sovereign road, not the n8n root (DR-1047)', () => {
+    // The cut-over itself, pinned: the n8n hop is gone from the live path, and
+    // the full spelling is what tailscale's mount-point stripping expects.
+    expect(RELAY_URL).toBe('https://poetech.tail5a2f35.ts.net/announce/ops-announce');
+    expect(RELAY_URL).not.toMatch(/\/webhook\//);
   });
 });
 

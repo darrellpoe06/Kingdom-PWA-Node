@@ -1,0 +1,14 @@
+[Unit]
+Description=PoeTech sovereign ops-announce relay (DR-0156, DR-0218)
+After=network-online.target
+
+[Service]
+Type=simple
+Environment=ANNOUNCE_TOKEN=REPLACED_BY_INSTALLER
+Environment=NTFY_URL=http://ntfy:80
+ExecStart=/usr/bin/python3 /volume1/PoeTech/repos/Kingdom-PWA-Node/infra/nas-announce/announce_server.py --serve --host 127.0.0.1 --port 8796
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

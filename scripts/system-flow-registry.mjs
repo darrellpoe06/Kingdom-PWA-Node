@@ -676,6 +676,27 @@ const NODES = [
     writes: [{ res: 'db:choir_sermons', token: 'service_date' }],
     seeds: ['sermon-reader', 'transcript-trickle'],
   }),
+  rider('service:stream-length', 'infra/church-media-golive/stream_length_sync.py', {
+    id: 'stream-length', name: 'NAS reads how long each service ran',
+    purpose: 'Gives each service video its length, so the order can be read against the 75\u201390 window.',
+    reads: [{ res: 'db:choir_sermons', token: 'choir_sermons' }, { res: 'yt:channel', token: 'yt-dlp' }],
+    writes: [{ res: 'db:choir_sermons', token: 'stream_seconds' }],
+    seeds: ['songbook'],
+  }),
+  // DR-1065: the historical song sweep. It had no place here because it had no
+  // clock — the producer was written months ago and never ran on its own. It
+  // sits downstream of the trickle (it reads the words that loader fetches) and
+  // upstream of the Songbook, which is where a steward confirms each draft.
+  rider('service:worship-song-harvest', 'infra/nas-sme-pipeline/worship-song-harvest.py', {
+    id: 'worship-song-harvest', name: 'NAS harvests the songs the choir sang',
+    purpose: 'Turns each service’s own words into grounded song drafts, so the historical repertoire is corrected rather than typed from nothing.',
+    reads: [
+      { res: 'db:video_transcripts', token: 'video_transcripts' },
+      { res: 'db:choir_sermons', token: 'choir_sermons' },
+    ],
+    writes: [{ res: 'db:choir_songs', token: 'choir_songs' }],
+    seeds: ['songbook'],
+  }),
   rider('service:transcript-trickle', 'infra/nas-sme-pipeline/load-transcripts.py', {
     id: 'transcript-trickle', name: 'NAS transcript trickle',
     purpose: 'Fetches each service video’s words from the NAS’s own address.',
@@ -692,6 +713,75 @@ const NODES = [
     ],
     reads: [{ res: 'db:choir_sermons', token: 'choir_sermons' }, { res: 'db:choir_songs', token: 'choir_songs' }],
     seeds: ['sermon-reader', 'songbook', 'scripture-web', 'library'],
+  }),
+  // DR-1052: the church names 23 ministries and exactly ONE of them (the choir)
+  // could seat a person. 0296 gave every team the roster, and this is the room
+  // for it — the surface a director adds Media, ushers or the bus team on, and
+  // the one a member reads their own team from. Without a node here the table
+  // would be a seat in no room, which is the built-correct-never-connected
+  // class the graph exists to refuse.
+  app('app/src/components/MinistryRoster.jsx', {
+    id: 'ministry-roster', name: 'Who is on this team (every ministry)',
+    purpose: 'A director seats people on any of the 23 named ministries; the team reads itself.',
+    writes: [
+      { res: 'db:ministry_members', file: 'app/src/lib/ministry-roster.js', token: "from('ministry_members').insert" },
+    ],
+    reads: [
+      { res: 'db:ministry_members', file: 'app/src/lib/ministry-roster.js', token: "from('ministry_members')" },
+    ],
+    seeds: [],
+  }),
+  // DR-1066: a church is added by a form, not a migration. 0297 made the three
+  // hardcoded COLG facts rows — who leads a church (church_leaders), what the
+  // church says about itself and where it receives gifts (church_profiles) —
+  // and these are the rooms those rows live in. The steward's card and the
+  // office's editor WRITE them; the ordinary church join READS the leader rows
+  // to seat a leader with no invite; the Give panel READS the profile to show
+  // the church's OWN channels and never another church's. Without these nodes
+  // the tables would be rows in no room — the built-never-connected class.
+  app('app/src/components/ChurchDoorProfile.jsx', {
+    id: 'church-door-profile', name: 'This church’s door, and Add a church',
+    purpose: 'The office publishes its church’s face and giving channels; a platform steward adds a church in one call.',
+    writes: [
+      { res: 'db:church_profiles', file: 'app/src/lib/church-profile-sync.js', token: "rpc('set_church_profile'" },
+      { res: 'db:church_leaders', file: 'app/src/lib/church-profile-sync.js', token: "rpc('provision_church_instance'" },
+    ],
+    reads: [
+      { res: 'db:church_profiles', file: 'app/src/lib/church-profile-sync.js', token: "from('church_profiles')" },
+    ],
+    seeds: ['church-give', 'church-door-join'],
+  }),
+  app('app/src/lib/church-instance.js', {
+    id: 'church-door-join', name: 'The church join (every church surface’s way in)',
+    purpose: 'Seats a person at their church from their own seat, a linked door, a leader row, or a live invite.',
+    reads: [
+      { res: 'db:church_leaders', token: "rpc('join_church_instance'" },
+    ],
+    seeds: [],
+  }),
+  app('app/src/components/ChurchGiving.jsx', {
+    id: 'church-give', name: 'Give to the church (whose channels)',
+    purpose: 'Opens the church’s OWN published channels — the office’s rows, or COLG’s slide constants only for COLG.',
+    reads: [
+      { res: 'db:church_profiles', file: 'app/src/lib/church-profile-sync.js', token: "from('church_profiles')" },
+    ],
+    seeds: [],
+  }),
+  // DR-1076 / DR-1077: the legal shelf (0180) and the household share (0299).
+  // A person's legal papers are rows in legal_documents, private to whoever
+  // filed them; the filer may share ONE document with their household, which
+  // the other members read through a definer function, never the table. The
+  // make-it-official steps on the same screen read both to decide what is done.
+  app('app/src/components/Legal.jsx', {
+    id: 'books-legal-shelf', name: 'Books → Legal: the shelves, the household share, and the make-it-official steps',
+    purpose: 'Each person files their legal papers privately; they may share one with the household; a step is done only when its paper is on the shelf.',
+    writes: [
+      { res: 'db:legal_documents', file: 'app/src/lib/legal-documents-sync.js', token: "from('legal_documents')" },
+    ],
+    reads: [
+      { res: 'db:legal_documents', file: 'app/src/lib/legal-documents-sync.js', token: "rpc('household_shared_legal_documents'" },
+    ],
+    seeds: [],
   }),
   app('app/src/components/Pulpit.jsx', {
     id: 'sermon-reader', name: 'The Word (Pulpit) — sermons with their words',
@@ -729,6 +819,8 @@ const NODES = [
     reads: [
       { res: 'db:choir_songs', file: 'app/src/components/Choir.jsx', token: 'subscribeSongs' },
       { res: 'db:church_service_segments', file: 'app/src/lib/service-program.js' },
+      // DR-1045: Track record reads each service video's stream length.
+      { res: 'db:choir_sermons', file: 'app/src/components/ServiceActuals.jsx', token: 'streamRecord' },
     ],
     writes: [
       { res: 'db:choir_songs', file: 'app/src/lib/choir-songbook-sync.js', token: "from('choir_songs').insert" },
@@ -787,6 +879,41 @@ const NODES = [
     reads: [{ res: 'site:poetech.us', token: 'poetech.us' }],
     writes: [{ res: 'gh:incident', token: '--label incident' }, { res: 'gh:deploy-heal', token: 'gh workflow run deploy-cloudflare-pages.yml' }],
     seeds: ['ops-surface', 'deploy'],
+  }),
+  // THE FIRST THING THAT ASKS CLOUDFLARE (#2057). site-health above proves the
+  // site is up and fresh and has correctly said, 35 times, that no Pages
+  // Function runs -- but it can only re-measure the symptom. Nothing in this
+  // repository had ever asked Cloudflare what it believes is deployed, so a
+  // five-day outage carried five days of identical notes and no diagnosis. This
+  // is dispatch-only and read-only: it GETs the live roads and the Pages API and
+  // writes ONE comment with the whole reading, because a finding nobody reads is
+  // the P53 failure, and 35 notes that say the same nothing is how it looks.
+  wf('cf-pages-diagnose.yml', {
+    id: 'cf-pages-diagnose', name: 'Pages Functions diagnosis (#2057)',
+    purpose: 'Asks the live site and the Cloudflare Pages API why no Function is invoked, and records the answer.',
+    reads: [
+      { res: 'site:poetech.us', token: 'poetech.us' },
+      { res: 'cf:pages-api', token: 'api.cloudflare.com' },
+    ],
+    writes: [{ res: 'gh:incident', token: 'gh issue comment 2057' }],
+    seeds: ['ops-surface'],
+  }),
+  // THE SECOND DOOR (DR-1068). #2057 has held every Pages Function dark since
+  // 2026-10-09 and nothing in this repository reaches that fault; what the
+  // repository CAN do is answer the same paths one layer above Pages. This
+  // workflow is dispatch-only: by default a read-only probe of what the token
+  // may do and how the Funnel answers the app's own request shape; on request
+  // it deploys infra/cf-roads-worker and reads poetech.us back before it says
+  // anything worked.
+  wf('cf-roads-worker.yml', {
+    id: 'cf-roads-worker', name: 'The same-origin roads as a zone Worker (#2057)',
+    purpose: 'Probes the Cloudflare token and the Funnel, and on request deploys the zone Worker that carries /sb and the other roads without Pages Functions.',
+    reads: [
+      { res: 'site:poetech.us', token: 'poetech.us' },
+      { res: 'cf:pages-api', token: 'api.cloudflare.com' },
+    ],
+    writes: [{ res: 'site:poetech.us', token: 'wrangler' }],
+    seeds: ['site-health'],
   }),
   // THE STRANGER'S SCREEN, BESIDE THE PIPELINE'S (DR-0973). site-health above
   // proves the site is UP and FRESH; it has never had an opinion about whether
@@ -1351,6 +1478,18 @@ const NODES = [
     id: 'voice-lite-probe', name: 'Voice-lite probe (a real clip, end to end)', purpose: 'Asks /voice-lite for a paragraph the way the app does and keeps the clip.',
     reads: [{ res: 'http:voice-lite', token: 'voice-lite' }], writes: [], seeds: [],
   }),
+  // THE BELL, SOVEREIGN (DR-1040). It reads only its manifest entry and writes
+  // only the push, and it deliberately declares NO http: resource: the caller
+  // (scripts/ops-announce.mjs) still posts to the retired n8n relay and is NOT
+  // cut over in this change, so declaring a route would paint a connection that
+  // is not live (P15). The cut-over adds it, once a runner has proved /healthz.
+  rider('service:announce', 'infra/nas-announce/announce_server.py', {
+    id: 'announce-bell', name: 'The bell (sovereign ops-announce)',
+    purpose: 'Pushes an incident to the family\u2019s phones through our own ntfy, with the topic pinned server-side so a leaked bearer can only ring the family\u2019s own bell; replaces the retired n8n wf-ops-announce (DR-0218).',
+    reads: [{ res: 'nas:services', file: 'infra/nas-loops/services.json', token: 'announce' }],
+    writes: [{ res: 'push:phone', token: 'TOPIC' }],
+    seeds: [],
+  }),
   rider('service:cameras', 'infra/nas-cameras/cams_forwarder.py', {
     id: 'cameras-road', name: 'Camera road (go2rtc behind the locked door)', purpose: 'Restreams the family’s cameras from the NAS to the app as frames and live video; the forwarder is the lock on the public Funnel (DR-0756).',
     reads: [{ res: 'nas:services', file: 'infra/nas-loops/services.json', token: 'cameras' }], writes: [{ res: 'http:cams', token: '/cams' }], seeds: ['cameras'],
@@ -1627,6 +1766,10 @@ const RESOURCES = {
   'gh:release': { label: 'the app release' },
   'gh:review-issue': { label: 'due re-review items', sink: 'A due re-review opens an issue a steward works; the ledger itself is the record.' },
   'site:poetech.us': { label: 'the live site' },
+  // Cloudflare's own record of what it believes is deployed. Nothing here can
+  // write it, which is exactly why #2057 ran five days on inference: the
+  // ledger re-measured the symptom 35 times and never asked the authority.
+  'cf:pages-api': { label: "Cloudflare's Pages API", source: 'Cloudflare holds the deployment and routing state; this repository can only ask it, and until #2057 nothing ever did.' },
   'hosted:db': { label: 'the retired hosted database' },
   'http:nas-photos': { label: 'photo server on the NAS', route: '/nas-photos' },
   'http:voice': { label: 'the reading voice studio', route: '/voice' },

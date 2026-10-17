@@ -20,7 +20,14 @@
 #      stale sync is SEEN (DR-0333: a stale sync is a defect to raise, never a
 #      reason to skip the second pass);
 #   2. every choir_sermons row for the date asked, with its video id;
-#   3. for each, whether a transcript exists (length, words, source, verdict);
+#   3. for each, whether a transcript exists (length, words, source, verdict),
+#      how many timed caption lines it keeps, and how long its stream ran
+#      (DR-1045: stream_seconds, stream_started_at, stream_read_at -- the NAS
+#      stream-length rider writes them; NULL until its first read);
+#   3b. the stream record: the newest Sundays and Wednesdays with a stream
+#      length, each read against the 75 to 90 minute window as an UPPER BOUND
+#      (a stream carries pre-service and closing time), and how many services
+#      since 2026-01-01 still wait for the rider;
 #   4. only when print_text is true and exactly one video of that date carries
 #      words: the words, as base64 with a '.' after every 2 characters and an
 #      md5 round-trip (P63), so secret masking cannot alter them. A church
@@ -74,7 +81,7 @@ jobs:
           SQL="SELECT service_date, service_type, source, coalesce(video_id,''), created_at::date, left(title, 90) FROM public.choir_sermons WHERE video_id IS NOT NULL ORDER BY service_date DESC NULLS LAST, created_at DESC LIMIT 6;"
           printf '%s' "$SQL" | bash scripts/live-sql.sh '|' || { echo "::error::could not read the live database"; exit 1; }
           echo "----- rows for $SERVICE_DATE, and their transcripts -----"
-          SQL="SELECT s.service_date, s.service_type, coalesce(s.video_id,''), left(s.title, 120), coalesce(s.speaker,''), coalesce(length(t.text),0), coalesce(t.words,0), coalesce(t.source,''), coalesce(t.error,''), coalesce(t.fetched_at::text,'') FROM public.choir_sermons s LEFT JOIN public.video_transcripts t ON t.video_id = s.video_id WHERE s.service_date = '$SERVICE_DATE'::date ORDER BY s.created_at;"
+          SQL="SELECT s.service_date, s.service_type, coalesce(s.video_id,''), left(s.title, 120), coalesce(s.speaker,''), coalesce(length(t.text),0), coalesce(t.words,0), coalesce(t.source,''), coalesce(t.error,''), coalesce(t.fetched_at::text,''), coalesce(jsonb_array_length(t.segments)::text,''), coalesce(s.stream_seconds::text,''), coalesce(s.stream_started_at::text,''), coalesce(s.stream_read_at::text,'') FROM public.choir_sermons s LEFT JOIN public.video_transcripts t ON t.video_id = s.video_id WHERE s.service_date = '$SERVICE_DATE'::date ORDER BY s.created_at;"
           rows=$(printf '%s' "$SQL" | bash scripts/live-sql.sh '|') || { echo "::error::could not read the live database"; exit 1; }
           n=$(printf '%s' "$rows" | grep -c . || true)
           printf '%s\n' "$rows"
@@ -83,6 +90,18 @@ jobs:
             echo "### Church video witness for $SERVICE_DATE"
             echo "rows: $n"
             echo '```'; printf '%s\n' "$rows"; echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "(columns: date|type|video|title|speaker|text length|words|source|verdict|fetched|timed lines|stream seconds|stream started|stream read)"
+          echo "----- by the stream (DR-1045): newest Sundays and Wednesdays, an upper bound on the 75-90 window -----"
+          SQL="SELECT service_date, service_type, coalesce(video_id,''), stream_seconds, (stream_seconds / 60) || ':' || lpad((stream_seconds % 60)::text, 2, '0'), CASE WHEN round(stream_seconds / 60.0) > 90 THEN 'over by ' || (round(stream_seconds / 60.0) - 90) || ' min' WHEN round(stream_seconds / 60.0) < 75 THEN 'under by ' || (75 - round(stream_seconds / 60.0)) || ' min' ELSE 'inside' END, left(title, 60) FROM public.choir_sermons WHERE stream_seconds IS NOT NULL AND service_type IN ('sunday','wednesday') ORDER BY service_date DESC LIMIT 10;"
+          rec=$(printf '%s' "$SQL" | bash scripts/live-sql.sh '|') || { echo "::error::could not read the live database"; exit 1; }
+          printf '%s\n' "${rec:-(no stream length read yet)}"
+          SQL="SELECT count(*) FILTER (WHERE stream_seconds IS NOT NULL), count(*) FILTER (WHERE stream_seconds IS NULL) FROM public.choir_sermons WHERE video_id IS NOT NULL AND service_date >= '2026-01-01';"
+          cov=$(printf '%s' "$SQL" | bash scripts/live-sql.sh '|') || { echo "::error::could not read the live database"; exit 1; }
+          echo "since 2026-01-01: read|waiting for the rider = $cov"
+          {
+            echo "#### By the stream (upper bound on 75-90)"
+            echo '```'; printf '%s\n' "${rec:-(no stream length read yet)}"; echo "read|waiting since 2026-01-01: $cov"; echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
           if [ "$n" = "0" ]; then
             echo "::notice::no channel row for $SERVICE_DATE yet: the video is not posted, or the channel sync has not pulled it in (see the freshness list above)"

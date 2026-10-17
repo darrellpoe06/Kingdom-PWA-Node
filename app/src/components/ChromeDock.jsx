@@ -44,6 +44,7 @@ import UiIcon from './UiIcon.jsx';
 import { useTextSize } from '../lib/text-size.js';
 import { useComfortCollapsed, useInReader } from '../lib/comfort-bar.js';
 import { useDeviceClass } from '../lib/use-device-class.js';
+import { BOTTOM_NAV, NAV_ICONS, NAV_WORDS } from '../lib/nav-items.jsx';
 import { pageBy, showsPageChips } from '../lib/tv-paging.js';
 import { motionBehavior } from '../lib/gentle-motion.js';
 import {
@@ -55,7 +56,7 @@ export function DockLabel({ children }) {
   return <span className={DOCK_LABEL}>{children}</span>;
 }
 
-export default function ChromeDock({ onFeedback, feedbackOpen = false, church = null, showGive = false }) {
+export default function ChromeDock({ onFeedback, feedbackOpen = false, church = null, showGive = false, nav = null }) {
   const [moreOpen, setMoreOpen] = useState(false);
   const [netHealthy, setNetHealthy] = useState(true);
   const deep = useScrolledDeep();
@@ -125,6 +126,20 @@ export default function ChromeDock({ onFeedback, feedbackOpen = false, church = 
   const phone = usePhoneWidth();
   const readerLive = useReaderLive(slotEl);
   const oneRow = inReader && phone && readerLive;
+  // THE FIVE-TAB BAR ON A PHONE, OUTSIDE THE READER (DR-1046, Phase 2).
+  // Christina 2026-10-15: "On mobile, use a clean bottom navigation system
+  // with access to all additional features through a More menu." The shell
+  // hands the bar `nav` ({ groups, view, homeView, onNavigate }); on a phone
+  // and off a lesson, the bar's left group is Home · Big Picture · Books ·
+  // Messages and More holds every other section, grouped as the sidebar
+  // groups them, above the buttons More always held (Feedback, Give, status,
+  // Top). Inside a lesson NOTHING here changes: the one-row reader bar is
+  // measured law (DR-0716 / DR-0744). Wider than a phone the tab strip or the
+  // sidebar is the nav and the bar stays what it was.
+  const tabsMode = !!nav && phone && !inReader;
+  const tabActive = (t) => nav && nav.view === t.view && (!t.home || (nav.homeView || 'current') === t.home);
+  const goTab = (t) => { setMoreOpen(false); if (nav && nav.onNavigate) nav.onNavigate(t.view, t.home); };
+  const goSection = (id) => { setMoreOpen(false); if (nav && nav.onNavigate) nav.onNavigate(id, null); };
   const [comfortCollapsed, setComfortCollapsed] = useComfortCollapsed();
   const [size, setSize, steps] = useTextSize();
   const sizeAt = Math.max(0, steps.findIndex((st) => st.key === size));
@@ -144,7 +159,7 @@ export default function ChromeDock({ onFeedback, feedbackOpen = false, church = 
       data-testid="dock-feedback"
       className={`${DOCK_BTN} ${FOCUS}`}
     >
-      <span aria-hidden="true" className={`text-[#B85838] ${DOCK_ICON}`}><UiIcon name="chat" /></span>
+      <span aria-hidden="true" className={`poe-dock-accent text-[#B85838] ${DOCK_ICON}`}><UiIcon name="chat" /></span>
       <DockLabel>Feedback</DockLabel>
     </button>
   );
@@ -185,7 +200,9 @@ export default function ChromeDock({ onFeedback, feedbackOpen = false, church = 
   );
   const moreLabel = oneRow
     ? `More: Controls, text size, Feedback, Give, network status${netHealthy ? '' : ' (a connection check is failing)'}, back to top`
-    : `More: Feedback, Give, network status${netHealthy ? '' : ' (a connection check is failing)'}, back to top`;
+    : tabsMode
+      ? `More: every other section, Feedback, Give, network status${netHealthy ? '' : ' (a connection check is failing)'}, back to top`
+      : `More: Feedback, Give, network status${netHealthy ? '' : ' (a connection check is failing)'}, back to top`;
 
   return (
     <>
@@ -216,6 +233,24 @@ export default function ChromeDock({ onFeedback, feedbackOpen = false, church = 
               {comfortButtons}
             </div>
           )}
+          {tabsMode && (
+            <div className="flex items-center gap-[3px] shrink-0" data-testid="dock-tabs" role="group" aria-label="Sections">
+              {BOTTOM_NAV.map((t) => (
+                <button
+                  key={t.key}
+                  type="button"
+                  data-testid={`dock-tab-${t.key}`}
+                  onClick={() => goTab(t)}
+                  aria-current={tabActive(t) ? 'page' : undefined}
+                  title={t.words}
+                  className={`${tabActive(t) ? DOCK_BTN_ON : DOCK_BTN} ${FOCUS}`}
+                >
+                  <span aria-hidden="true" className={DOCK_ICON}><UiIcon name={t.icon} /></span>
+                  <DockLabel>{t.words}</DockLabel>
+                </button>
+              ))}
+            </div>
+          )}
           <div ref={moreRef} className="dock-more-wrap flex items-center gap-[3px] shrink-0">
             {/* Below 640px: ONE button holds the rest, so a 360px phone keeps
                 the read-aloud mini-bar on the same line. A mark on it when the
@@ -244,8 +279,27 @@ export default function ChromeDock({ onFeedback, feedbackOpen = false, church = 
               data-testid="dock-items"
               role="group"
               aria-label={oneRow ? 'Controls, text size, feedback, giving and status' : 'Feedback, giving and status'}
-              className={`${moreOpen ? 'flex' : 'hidden'} absolute bottom-full left-0 mb-[4px] flex-row flex-wrap items-center gap-[4px] p-[4px] bg-[#FAF8F4] border-2 border-[#1A1815] shadow-lg min-w-[144px] sm:static sm:flex sm:mb-0 sm:p-0 sm:border-0 sm:shadow-none sm:min-w-0 sm:bg-transparent`}
+              className={`${moreOpen ? 'flex' : 'hidden'} absolute bottom-full left-[4px] right-[4px] mb-[4px] poe-dock-menu flex-row flex-wrap items-center gap-[4px] p-[4px] bg-[#FAF8F4] border-2 border-[#1A1815] shadow-lg min-w-[144px] max-h-[70vh] overflow-y-auto sm:static sm:flex sm:mb-0 sm:p-0 sm:border-0 sm:shadow-none sm:min-w-0 sm:bg-transparent`}
             >
+              {tabsMode && nav.groups && nav.groups.map((g) => (
+                <div key={g.key} data-testid={`dock-more-group-${g.key}`} className="w-full flex flex-wrap items-center gap-[4px]">
+                  {g.label && <span className="w-full text-[0.5625rem] uppercase tracking-[0.18em] text-[#5A5751] px-[2px] pt-[2px]">{g.label}</span>}
+                  {g.items.map(([id]) => (
+                    <button
+                      key={id}
+                      type="button"
+                      data-testid={`dock-more-${id}`}
+                      onClick={() => goSection(id)}
+                      aria-current={nav.view === id ? 'page' : undefined}
+                      title={NAV_WORDS[id] || id}
+                      className={`${nav.view === id ? DOCK_BTN_ON : DOCK_BTN} ${FOCUS}`}
+                    >
+                      <span aria-hidden="true" className={DOCK_ICON}><UiIcon name={NAV_ICONS[id] || 'folder'} /></span>
+                      <DockLabel>{NAV_WORDS[id] || id}</DockLabel>
+                    </button>
+                  ))}
+                </div>
+              ))}
               {oneRow && comfortButtons}
               {!inReader && feedbackBtn}
               {!inReader && giveBtn}

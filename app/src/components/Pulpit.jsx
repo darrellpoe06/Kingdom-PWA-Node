@@ -33,7 +33,7 @@ import { onAuthChange } from '../lib/supabase.js';
 import {
   getChoirAccess, youtubeEmbedUrl, youtubeTimedUrl, parseTimecode, formatTimecode,
   subscribeSermons, subscribeSermonDocuments, subscribeSpeakers, saveSermon, deleteSermon, reuseSermon,
-  saveSermonDocument, importSermonsFromChannel, openSermonDocument, fetchPublicSermons, dedupeSermons,
+  saveSermonDocument, importSermonsFromChannel, SERMON_DOCS_BUCKET, fetchPublicSermons, dedupeSermons,
 } from '../lib/choir-sync.js';
 import { corpusPrep, speakerRoster, theWordTabs } from '../lib/pulpit-prep.js';
 import { extractYoutubeId } from '../lib/youtube-title-parse.js';
@@ -47,12 +47,15 @@ import { subscribeReactions, toggleReaction, fetchReactors } from '../lib/reacti
 import { churchInstanceId } from '../lib/church-instance.js';
 import ReactionBar from './ReactionBar.jsx';
 import HelpButton from './HelpButton.jsx';
-import { fetchPointsData, fetchPublicPoints, fetchVideoStats } from '../lib/sermon-library-sync.js';
+import { fetchPointsData, fetchPublicPoints, fetchVideoStats, fetchTranscriptsFor, videosNeedingTranscript } from '../lib/sermon-library-sync.js';
 import Presenter from './Presenter.jsx';
 import RecordsLog from './RecordsLog.jsx';
 import { wordLibrary, messagePresentable } from '../lib/presentable.js';
 import { useReadingResume } from '../lib/reading-position.js';
 import { aboutFor } from '../lib/surface-help.js';
+import { useDocumentViewer } from './DocumentViewer.jsx';
+import { sermonDocRecord } from '../lib/document-record.js';
+import { signStorageDocument } from '../lib/document-viewer.js';
 
 // The stable YouTube id for a message — the row's own video_id, else parsed from
 // its watch URL. Keys the thumbnail, the points, and the engagement counts.
@@ -230,6 +233,15 @@ function PointsBlock({ bundle }) {
 function MessageRow({ sermon, canEdit, onEdit, onDelete, onReuse, points = null, reaction = null, onReact = null, onShowWho = null, views = null, signedIn = false, rank = null }) {
   // Embed the service video INLINE (Darrell: embedding is cleaner than frames).
   const [playing, setPlaying] = useState(false);
+  // DR-1078. The message's document opens INSIDE the app, in the one viewer
+  // every shelf uses; a file that is not on the church server says so there.
+  const viewer = useDocumentViewer();
+  const openDoc = () => viewer.open({
+    title: sermon.title ? `${sermon.title} — document` : 'Message document',
+    name: sermon.documentUrl || '',
+    resolve: () => signStorageDocument(SERMON_DOCS_BUCKET, sermon.documentUrl),
+    record: sermonDocRecord({ title: sermon.title, documentUrl: sermon.documentUrl, documentSource: sermon.documentSource, serviceDate: sermon.serviceDate }, { admin: !!canEdit }),
+  });
   const baseEmbed = youtubeEmbedUrl(sermon.youtubeUrl);
   const embed = baseEmbed && sermon.startSeconds ? `${baseEmbed}?start=${Math.floor(sermon.startSeconds)}` : baseEmbed;
   const watch = youtubeTimedUrl(sermon.youtubeUrl, sermon.startSeconds);
@@ -312,11 +324,12 @@ function MessageRow({ sermon, canEdit, onEdit, onDelete, onReuse, points = null,
           <div className="flex gap-2 mt-1 flex-wrap">
             {embed && <button type="button" onClick={play} className={`${BTN} text-[#B85838] hover:text-[#1A1815]`} aria-expanded={playing}>{playing ? '▾ Hide video' : watchLabel}</button>}
             {!embed && watch && <a href={watch} target="_blank" rel="noopener noreferrer" className={`${BTN} text-[#B85838] hover:text-[#1A1815] underline`}>{watchLabel}</a>}
-            {sermon.documentUrl && <button type="button" onClick={async () => { const u = await openSermonDocument(sermon.documentUrl); if (u) window.open(u, '_blank', 'noopener'); }} className={`${BTN} text-[#5A6E3D] hover:text-[#1A1815] underline`}>📄 Document</button>}
+            {sermon.documentUrl && <button type="button" onClick={openDoc} className={`${BTN} text-[#5A6E3D] hover:text-[#1A1815] underline`}>📄 Document</button>}
             {canEdit && onReuse && <button type="button" onClick={() => onReuse(sermon)} className={`${BTN} text-[#5A6E3D] hover:text-[#1A1815]`}>↻ Re-preach this</button>}
             {canEdit && onEdit && <button type="button" onClick={() => onEdit(sermon)} className={`${BTN} text-[#5A5751] hover:text-[#1A1815]`}>Edit</button>}
             {canEdit && onDelete && <button type="button" onClick={() => onDelete(sermon)} className={`${BTN} text-[#991B1B] hover:underline`}>Delete</button>}
           </div>
+          {viewer.element}
         </div>
       </div>
       {playing && embed && (
@@ -724,8 +737,8 @@ export default function Pulpit() {
     fetchPointsData().then((d) => {
       if (!alive || !d) return;
       setPointsData((cur) => ({
+        ...cur,
         prepBySermon: { ...cur.prepBySermon, ...(d.prepBySermon || {}) },
-        transcriptsByVideo: d.transcriptsByVideo || {},
         harvestsByVideo: d.harvestsByVideo || {},
       }));
     });
@@ -761,6 +774,31 @@ export default function Pulpit() {
   });
   const libraryItems = canManage ? withDocs : publicSermons;
   const tabs = theWordTabs(canManage);
+
+  // THE EXPENSIVE SOURCE, FETCHED ONLY FOR WHAT THE CHEAP ONES DID NOT ANSWER
+  // (DR-1057). A transcript is the full caption text of a service. Until
+  // 2026-10-15 every one of them came down on arrival at this tab, to derive an
+  // outline that BG's prep had usually already supplied — so this now runs
+  // AFTER prep and the harvest rows land, over the messages neither answered,
+  // newest first and capped. Nothing here is a different outline; it is the
+  // same third precedence, asked for by name instead of in bulk.
+  useEffect(() => {
+    let alive = true;
+    if (!signedIn) return undefined;
+    const need = videosNeedingTranscript(libraryItems, {
+      prepBySermon: pointsData.prepBySermon,
+      harvestsByVideo: pointsData.harvestsByVideo,
+      videoIdOf,
+    });
+    // Only ask for what is not already in hand, so a re-render never re-fetches.
+    const missing = need.filter((v) => !pointsData.transcriptsByVideo[v]);
+    if (!missing.length) return undefined;
+    fetchTranscriptsFor(missing).then((t) => {
+      if (!alive || !t || !Object.keys(t).length) return;
+      setPointsData((cur) => ({ ...cur, transcriptsByVideo: { ...cur.transcriptsByVideo, ...t } }));
+    });
+    return () => { alive = false; };
+  }, [signedIn, libraryItems, pointsData.prepBySermon, pointsData.harvestsByVideo, pointsData.transcriptsByVideo]);
 
   // Points per SERMON (keyed by sermon id, not video id — so an email-sourced
   // message with no video still gets its prep points): prefer BG's own prep outline

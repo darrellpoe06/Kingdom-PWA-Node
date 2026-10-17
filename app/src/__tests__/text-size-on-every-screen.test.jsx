@@ -149,8 +149,10 @@ describe('every route carries it', () => {
     const shell = SRC('poe-financial-mvp-v28.jsx');
     const i = shell.indexOf('<TTSControl isOwner=');
     expect(i).toBeGreaterThan(-1);
-    // Right after </main>, not inside any `view === ...` condition.
+    // Right after </main>, not inside any `view === ...` condition. The
+    // Heritage rail wraps header + main in two plain divs (DR-1046); their
+    // closing tags may sit between </main> and the control, nothing else.
     const before = shell.slice(Math.max(0, i - 200), i);
-    expect(before).toMatch(/<\/main>\s*$/);
+    expect(before).toMatch(/<\/main>(\s*<\/div>){0,2}\s*$/);
   });
 });

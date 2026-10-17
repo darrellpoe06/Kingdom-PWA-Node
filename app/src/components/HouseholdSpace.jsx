@@ -27,8 +27,13 @@ import { readHousehold, patchHousehold, acknowledgeHouseholdDocument, exportHous
 import { liveSectionsFor, originalProduct } from '../lib/product-forms.js';
 import { readProductForms } from '../lib/product-forms-sync.js';
 import { VAULT_CATEGORIES, categoryLabel, documentSlug, validateDocument, shelfSummary, expiringSoon } from '../lib/family-vault.js';
-import { listDocuments, saveDocument, shareDocument, signedDocumentUrl, removeDocument, uploadDocumentFile } from '../lib/family-vault-sync.js';
+import { listDocuments, saveDocument, shareDocument, removeDocument, uploadDocumentFile, BUCKET as FAMILY_DOCS_BUCKET } from '../lib/family-vault-sync.js';
 import { householdInsights, workflowCandidates, WORKFLOW_LADDER } from '../lib/household-insights.js';
+import { useDocumentViewer } from './DocumentViewer.jsx';
+import { householdDocRecord, shelfReport } from '../lib/document-record.js';
+import ReportActions from './ReportActions.jsx';
+import ShelfLedger from './ShelfLedger.jsx';
+import { signStorageDocument } from '../lib/document-viewer.js';
 
 const SERIF = { fontFamily: '"Fraunces", serif' };
 const BTN = 'min-h-[36px] px-3 py-2 text-sm font-semibold border border-[#1A1815] text-[#1A1815] hover:bg-[#1A1815] hover:text-white disabled:opacity-50 focus:outline focus:outline-2 focus:outline-[#B85838]';
@@ -42,14 +47,17 @@ const bytes = (n) => (!n ? '' : n > 1048576 ? `${(n / 1048576).toFixed(1)} MB` :
 // THE SHELF
 // ---------------------------------------------------------------------------
 function FileRow({ row, onShare, onRemove }) {
-  const [opening, setOpening] = useState(false);
   const [confirm, setConfirm] = useState(false);
-  const open = async () => {
-    setOpening(true);
-    const url = await signedDocumentUrl(row.storagePath);
-    setOpening(false);
-    if (url) { try { window.open(url, '_blank', 'noopener'); } catch { /* the shelf still shows the row */ } }
-  };
+  // DR-1078. A household file opens INSIDE the app, in the one viewer every
+  // shelf uses.
+  const viewer = useDocumentViewer();
+  const open = () => viewer.open({
+    title: row.label || 'Household file',
+    name: row.fileName || row.storagePath || '',
+    resolve: () => signStorageDocument(FAMILY_DOCS_BUCKET, row.storagePath),
+    // This list holds only the viewer's own filings.
+    record: householdDocRecord({ ...row, categoryLabel: categoryLabel(row.category) }, { admin: true }),
+  });
   return (
     <li className="py-2 border-t border-[#F0ECE4] first:border-t-0">
       <div className="flex flex-wrap items-start justify-between gap-2">
@@ -64,7 +72,7 @@ function FileRow({ row, onShare, onRemove }) {
           {row.note && <div className="text-xs text-[#5A5751] mt-0.5">{row.note}</div>}
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {row.storagePath && <button type="button" onClick={open} disabled={opening} className={`${BTN}`}>{opening ? 'Opening…' : 'Open'}</button>}
+          {row.storagePath && <button type="button" onClick={open} className={`${BTN}`}>Open</button>}
           <button type="button" onClick={() => onShare(row, !row.sharedWithHousehold)}
             aria-pressed={row.sharedWithHousehold}
             className={row.sharedWithHousehold ? `${BTN_GOOD}` : `${BTN}`}>
@@ -78,6 +86,7 @@ function FileRow({ row, onShare, onRemove }) {
               </span>}
         </div>
       </div>
+      {viewer.element}
     </li>
   );
 }
@@ -189,6 +198,15 @@ function Shelf({ instanceId }) {
         {state.message && <p className="text-xs text-[#B85838] mb-2" role="alert">The shelf could not be read: {state.message}</p>}
         {!state.loaded && <p className="text-xs text-[#5A5751]">Opening…</p>}
         {state.loaded && rows.length === 0 && <p className="text-xs text-[#5A5751]">Nothing filed yet. The first document you add shows up here.</p>}
+        {rows.length > 0 && (() => {
+          const model = () => shelfReport(rows.map((r) => householdDocRecord({ ...r, categoryLabel: categoryLabel(r.category) }, { admin: true })), { title: 'Household documents' });
+          return (
+            <>
+              <ReportActions className="mb-2" label="Every household document" filenameBase="household-documents" buildModel={model} />
+              <ShelfLedger model={model()} items={rows} label="See every household document, sorted" />
+            </>
+          );
+        })()}
         {VAULT_CATEGORIES.map((c) => {
           const mine = rows.filter((r) => r.category === c.id);
           if (!mine.length) return null;
@@ -393,7 +411,9 @@ export default function HouseholdSpace() {
         <UiIcon name="lock" className="w-3 h-3 mt-0.5 shrink-0" />
         <span>
           This household&apos;s record and shelf live in this household&apos;s own instance and are walled there by the database, not by the screen.
-          Nothing here is sold, sent to an insurer or an employer, or used to train anything outside this household.
+          Nothing here will ever be willingly sold, sent to an insurer or an employer, or used to train anything outside this household.
+          The app does count how its pages are used, so it can see what helps — never who you are or what you hold. We are still learning,
+          so that is a promise about what we will do, not a claim that nothing can go wrong.
         </span>
       </p>
     </div>

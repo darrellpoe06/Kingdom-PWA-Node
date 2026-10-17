@@ -895,7 +895,7 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
 
   return (
     <div className="space-y-6">
-      <section className="bg-white border border-[#1A1815] p-5 sm:p-6">
+      <section className="bg-white border border-[#1A1815] rounded-2xl p-5 sm:p-6">
         <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] mb-2 font-medium">Projects · Timeline · Workload</div>
         <h2 className="text-2xl mb-3" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>See your whole life at once.</h2>
         <p className="text-base leading-relaxed" style={{ fontFamily: '"Fraunces", serif' }}>
@@ -946,7 +946,7 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
       {scoped.length > 0 && (
         <section>
           <SectionTitle eyebrow="Coordination">12-Month Workload Forecast · Hours / Week</SectionTitle>
-          <div className="bg-white border border-[#1A1815] p-5">
+          <div className="bg-white border border-[#1A1815] rounded-2xl p-5">
             <div className="space-y-1.5">
               {Object.entries(monthlyWorkload).map(([key, m], i) => {
                 const pct = (m.hours / peakWorkload) * 100;
@@ -1177,7 +1177,7 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
               const daysElapsed = start ? Math.max(0, Math.ceil((now - start) / (1000 * 60 * 60 * 24))) : 0;
               const progressPct = totalDays && totalDays > 0 ? Math.min(100, (daysElapsed / totalDays) * 100) : 0;
               return (
-                <div key={p.id} className="bg-white border-l-4 border border-[#E8E4DC] p-4" style={{ borderLeftColor: domainColor(p.domain) }}>
+                <div key={p.id} className="bg-white border-l-4 border border-[#E8E4DC] rounded-xl shadow-sm p-4" style={{ borderLeftColor: domainColor(p.domain) }}>
                   <div className="flex items-center justify-between gap-3 flex-wrap mb-1">
                     <div className="flex items-center gap-2 min-w-0">
                       {canReorder && (
@@ -1191,7 +1191,7 @@ function Projects({ projects, entities, contractors = [], addProject, updateProj
                     </div>
                     {/* Round 7 — properly-sized Edit / Delete tap targets, divider between them. */}
                     <div className="flex items-center gap-1 text-[0.625rem] uppercase tracking-wider">
-                      <span style={{ color: statusColor(p.status) }} className="font-medium px-2">{p.status}{p.status === 'tbd' && ' · parked'}</span>
+                      <span style={{ color: statusColor(p.status), borderColor: statusColor(p.status) }} className="font-medium px-2 py-0.5 rounded-full border">{p.status}{p.status === 'tbd' && ' · parked'}</span>
                       {/* Round 11 — TBD projects show a "Promote → Active" button so the user
                           can flip them when capacity opens up. Plain text-only edit otherwise. */}
                       {p.status === 'tbd' && (
@@ -1447,7 +1447,7 @@ function ProjectInventory({ projects = [], entities = [], capexItems = [], addCa
   return (
     <div className="space-y-6">
       {!compact && (
-        <section className="bg-white border border-[#1A1815] p-5">
+        <section className="bg-white border border-[#1A1815] rounded-2xl p-5">
           <div className="text-[0.625rem] uppercase tracking-[0.25em] text-[#B85838] mb-1 font-medium">Project Inventory · Capital Forecast</div>
           <h2 className="text-2xl" style={{ fontFamily: '"Fraunces", serif', fontWeight: 500 }}>Tools you need · when you'll buy them · whether the money will be there.</h2>
           <p className="text-sm leading-relaxed mt-2 text-[#5A5751]" style={{ fontFamily: '"Fraunces", serif' }}>

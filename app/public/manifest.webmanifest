@@ -7,8 +7,8 @@
   "scope": "/poetech-app/",
   "display": "standalone",
   "orientation": "portrait-primary",
-  "background_color": "#FAF8F4",
-  "theme_color": "#FAF8F4",
+  "background_color": "#F6F1E7",
+  "theme_color": "#F6F1E7",
   "categories": ["finance", "productivity", "lifestyle"],
   "icons": [
     {
