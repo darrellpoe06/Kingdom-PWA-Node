@@ -168,6 +168,7 @@ jobs:
                   if j.get("kvs_signal") is not None: line+=" | wyze webrtc says: %s" % str(j.get("kvs_signal"))[:60]
                   if j.get("alt"): line+=" | %s=%s" % (j.get("alt"), p(j.get("alt_probe")))
                   line+=" -> kept %s%s" % (j.get("kept"), " (DARK ON BOTH)" if j.get("dark") else "")
+                  if j.get("go2rtc_said"): line+=" | go2rtc said: %s" % str(j["go2rtc_said"][-1])[:160]
               else:
                   line+=" (not judged yet)"
               print(line)

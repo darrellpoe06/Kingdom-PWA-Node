@@ -87,3 +87,24 @@ The cameras reach the app over one road: poetech.us `/cams` → the Funnel → `
   - services-sync installs the forwarder; its code sha restarts it.
   - Within 15 minutes the first judge pass runs.
   - cams-diag's judge section and the next every-camera camera-health pass give the measured count. That count is the proof, or the reason for the fork.
+
+## Second field read (2026-10-17 22:02 UTC, cams-diag 39073414169)
+
+The forwarder (`29adca738b9715e5`, running and on disk) judged every dark camera within 15 minutes of services-sync installing it. The judge is the reason this was seen at all: each verdict is measured and named.
+
+- **26 cameras: Wyze's signaling answered "cam not found".** The cause is ours. The bridge lists every camera twice under one MAC, for example `back-yard-north` and `back-yard-north-sub`. The road sync matched by MAC and kept the last name, so 26 main streams rode a `-sub` substream, which DR-0979 had already measured timing out on every camera. Wyze's signaling knows no camera by a `-sub` name.
+- **3 cameras answered "ok" but carried no video in 30 s:** east_north_cam, kitchen_cam and north_east_cam. These are the cameras with no `-sub` twin. Wyze's peer service reports the same three `IOTC_ER_DEVICE_OFFLINE`.
+- **The bridge carried video on 2 cameras, which were kept there:** great_room (4077 ms) and kitchen_2 (3810 ms).
+
+**The change, same record:**
+
+- `by_mac_main` matches a MAC to the bridge's main name, never its `-sub`.
+- Every camera recorded on a `-sub` is moved to its main stream once.
+- The judge asks Wyze by the main name.
+- Judge version 2 re-judges every version-1 verdict at once, rather than after the hour.
+- A camera dark on both roads keeps go2rtc's own log lines about it (`go2rtc_said`), never the bridge's timeout wall. The three "ok but no video" cameras will say why.
+
+**Verification:**
+
+- Selftest 410 passing. Section 8q is proven to catch: with the old lines restored, the `-sub` re-sign check and the main-name check both fail.
+- The next cams-diag reads the second sweep.

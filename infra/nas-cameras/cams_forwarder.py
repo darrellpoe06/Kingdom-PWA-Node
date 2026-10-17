@@ -1461,6 +1461,28 @@ def bridge_source(uri):
     return "%s/%s%s" % (base, uri, BRIDGE_ROAD_OPTS)
 
 
+def main_uri(uri):
+    """The bridge's MAIN name for a camera: its `-sub` substream's name without the suffix.
+    DR-1097 second read (cams-diag 39073414169): the bridge lists every camera twice under one
+    MAC ("back-yard-north" and "back-yard-north-sub"); the MAC match kept the last, so 26 main
+    streams rode a substream (every one IOTC_ER_TIMEOUT) and Wyze's signaling answered
+    "cam not found" for a name that is not a camera."""
+    u = str(uri or "")
+    return u[: -len(BRIDGE_SUB_SUFFIX)] if u.endswith(BRIDGE_SUB_SUFFIX) and len(u) > len(BRIDGE_SUB_SUFFIX) else u
+
+
+def by_mac_main(bridge_cams):
+    """{MAC: the bridge's main name}, never a `-sub` while the main is listed."""
+    out = {}
+    for c in bridge_cams or []:
+        mac, uri = c.get("mac"), c.get("uri")
+        if not (mac and uri):
+            continue
+        if mac not in out or (out[mac].endswith(BRIDGE_SUB_SUFFIX) and not uri.endswith(BRIDGE_SUB_SUFFIX)):
+            out[mac] = uri
+    return out
+
+
 # WYZE'S OWN WEBRTC ROAD (DR-1097; Darrell 2026-10-17: "Cameras never work!!!!!!!!!!!
 # Fix it!!!!!"). camera-health 39068529374 with probe_all: 3 of 31 cameras gave a
 # frame. cams-diag 39068531141: 60 of go2rtc's 62 streams ride the bridge, and the
@@ -1818,7 +1840,7 @@ def ensure_bridge_roads(upstream, streams, bridge_cams, lans=None, roads=None, l
     roads = roads_load(roads_path) if roads is None else roads
     failing = failing or {}
     unreachable = unreachable or {}
-    by_mac = dict((c["mac"], c["uri"]) for c in (bridge_cams or []) if c.get("mac") and c.get("uri"))
+    by_mac = by_mac_main(bridge_cams)
     by_mac_ip = dict((c["mac"], c["ip"]) for c in (bridge_cams or []) if c.get("mac") and c.get("ip"))
     out = {"to_bridge": [], "to_direct": [], "resigned": [], "readdressed": [], "retried": [], "unknown": [], "kept": 0, "known": len(by_mac)}
     if not isinstance(streams, dict):
@@ -1849,6 +1871,7 @@ def ensure_bridge_roads(upstream, streams, bridge_cams, lans=None, roads=None, l
                 uri = rec.get("uri") or urllib.parse.urlsplit(url.partition("#")[0]).path.rsplit("/", 1)[-1]
             else:
                 uri = rec.get("uri") or by_mac.get(mac_of(url), "")
+            uri = main_uri(uri)
             on_kvs = is_kvs_source(url)
             if on_kvs and forced == "bridge" and uri:
                 target, road = bridge_source(uri), "bridge"
@@ -1940,7 +1963,7 @@ def ensure_bridge_roads(upstream, streams, bridge_cams, lans=None, roads=None, l
                 # sync "kept" it and go2rtc kept answering "user/pass not provided".
                 # Compared against the RECORD, not the producer URL go2rtc echoes,
                 # so a sync re-signs once and never loops.
-                uri = rec.get("uri") or urllib.parse.urlsplit(url).path.rsplit("/", 1)[-1]
+                uri = main_uri(rec.get("uri") or urllib.parse.urlsplit(url.partition("#")[0]).path.rsplit("/", 1)[-1])
                 want = bridge_source(uri) if uri else None
                 if want and rec.get("bridge") != want:
                     if not set_stream_source(upstream, sid, want, config_path, log):
@@ -2024,8 +2047,25 @@ KVS_JUDGE_PER_PASS = max(1, int(os.environ.get("CAMS_KVS_JUDGE_PER_PASS", "3")))
 KVS_DARK_SECONDS = float(os.environ.get("CAMS_KVS_DARK_SECONDS", "900"))
 KVS_REJUDGE_SECONDS = float(os.environ.get("CAMS_KVS_REJUDGE_SECONDS", "3600"))
 KVS_PASS_SECONDS = float(os.environ.get("CAMS_KVS_PASS_SECONDS", "240"))
+# A verdict taken by an older judge is not trusted for the hour: version 2 asks
+# Wyze by the camera's main name (version 1 asked by its `-sub` and heard
+# "cam not found"), so every version-1 verdict is judged again at once.
+JUDGE_VERSION = 2
 _JUDGE_LOCK = threading.Lock()
 JUDGE_LAST = {}  # the last pass, for /health: {at, judged, moved, dark, kept}
+
+
+def go2rtc_said(upstream, stream_id, limit=3):
+    """go2rtc's own last log lines naming this stream, scrubbed (why a road carried nothing); [] when none."""
+    try:
+        with urllib.request.urlopen(upstream.rstrip("/") + "/api/log", timeout=HEALTH_TIMEOUT) as r:
+            text = r.read(2 * 1024 * 1024).decode("utf-8", "replace")
+    except (urllib.error.URLError, OSError, ValueError):
+        return []
+    # Only lines that are about THIS stream or the WebRTC road: the bridge's
+    # i/o-timeout wall names no stream and would bury the one line that says why.
+    keep = [l for l in log_lines_for(text, stream_id, limit=400) if stream_id.lower() in l.lower() or "webrtc" in l.lower() or "kinesis" in l.lower()]
+    return [l[:240] for l in keep[-limit:]]
 
 
 def current_source(upstream, stream_id, timeout=None):
@@ -2057,7 +2097,7 @@ def judge_candidates(streams, roads, health=None, now=None, dark=None, rejudge=N
         if rec.get("forced"):
             continue
         j = rec.get("judged") if isinstance(rec.get("judged"), dict) else {}
-        if j.get("at") and now - float(j["at"]) < rejudge:
+        if j.get("at") and now - float(j["at"]) < rejudge and int(j.get("v") or 1) >= JUDGE_VERSION:
             continue
         last = health.last_bytes_at(sid)
         if last is not None and now - last < dark:
@@ -2068,11 +2108,11 @@ def judge_candidates(streams, roads, health=None, now=None, dark=None, rejudge=N
 
 def _uri_from(url, rec):
     if rec.get("uri"):
-        return rec["uri"]
+        return main_uri(rec["uri"])
     if is_kvs_source(url):
-        return kvs_uri_of(url)
+        return main_uri(kvs_uri_of(url))
     if is_bridge_source(url):
-        return urllib.parse.urlsplit(url.partition("#")[0]).path.rsplit("/", 1)[-1]
+        return main_uri(urllib.parse.urlsplit(url.partition("#")[0]).path.rsplit("/", 1)[-1])
     return ""
 
 
@@ -2085,7 +2125,7 @@ def judge_camera(upstream, sid, log=print, now=None, probe=None, signal=None, co
     if not cur or not (is_bridge_source(cur) or is_kvs_source(cur)):
         return {"at": now, "skipped": "not on the bridge or Wyze's WebRTC road"}
     cur_road = "kvs" if is_kvs_source(cur) else "bridge"
-    verdict = {"at": now, "current": cur_road, "current_probe": probe(upstream, sid)}
+    verdict = {"at": now, "v": JUDGE_VERSION, "current": cur_road, "current_probe": probe(upstream, sid)}
 
     def keep(rec_update=None, line=None):
         with ROADS_LOCK:
@@ -2146,6 +2186,9 @@ def judge_camera(upstream, sid, log=print, now=None, probe=None, signal=None, co
         return keep(upd, "judge: %s now rides %s: %d bytes in %d ms (the %s road gave %s)" % (
             sid, "Wyze's own WebRTC road" if alt_road == "kvs" else "the Wyze bridge", verdict["alt_probe"].get("bytes", 0),
             verdict["alt_probe"].get("ms", 0), cur_road, verdict["current_probe"].get("error") or "nothing"))
+    said = go2rtc_said(upstream, sid)
+    if said:
+        verdict["go2rtc_said"] = said
     back = (rec.get("bridge") if cur_road == "bridge" else rec.get("kvs")) or cur
     set_stream_source(upstream, sid, back, config_path, log)
     verdict["kept"] = cur_road
@@ -4993,6 +5036,12 @@ def _selftest():
             if path == "/api/streams":
                 body = json.dumps(dict((k, {"producers": [{"url": v}]}) for k, v in self.state["src"].items())).encode("utf-8")
                 self.send_response(200); self.send_header("Content-Length", str(len(body))); self.end_headers(); self.wfile.write(body); return
+            if path == "/api/log":
+                body = ("\n".join([
+                    json.dumps({"level": "error", "error": "streams: read tcp 127.0.0.1:1->127.0.0.1:8555: i/o timeout", "time": 1}),
+                    json.dumps({"level": "warn", "error": "webrtc/wyze: kinesis: ice connection failed", "stream": "805_north", "time": 2}),
+                ])).encode("utf-8")
+                self.send_response(200); self.send_header("Content-Length", str(len(body))); self.end_headers(); self.wfile.write(body); return
             if path == "/api/stream.mp4":
                 name = urllib.parse.parse_qs(query).get("src", [""])[0]
                 src = self.state["src"].get(name, "")
@@ -5084,7 +5133,7 @@ def _selftest():
     js = {"a": {"producers": [{"url": bridge_source("a")}]}, "b": {"producers": [{"url": ksrc}]}, "c": {"producers": [{"url": bridge_source("c")}]},
           "d": {"producers": [{"url": bridge_source("d")}]}, "e": {"producers": [{"url": "wyze://192.168.1.15?uid=A&enr=S"}]}, "f": {"producers": [{"url": bridge_source("f")}]},
           "a_sd": {"producers": [{"url": bridge_source("a")}]}}
-    jr = {"c": {"forced": "bridge"}, "d": {"judged": {"at": 9500.0}}, "f": {"judged": {"at": 1000.0}}}
+    jr = {"c": {"forced": "bridge"}, "d": {"judged": {"at": 9500.0, "v": JUDGE_VERSION}}, "f": {"judged": {"at": 1000.0, "v": JUDGE_VERSION}}}
     cands = judge_candidates(js, jr, health=FakeHealth({"b": 9990.0}), now=10000.0, dark=900, rejudge=3600)
     check(cands == ["a", "f"], "judged: dark cameras on the bridge or Kinesis road, never judged first; not the one carrying bytes, not the owner's pinned one, not one judged within the hour, not a direct or twin stream (%r)" % cands)
     G["live"] = {("805_north", "bridge")}
@@ -5126,6 +5175,32 @@ def _selftest():
     check(fk4["to_bridge"] == ["805_north"] and G["src"]["805_north"] == bridge_source("805-north") and roads_load(kv_roads)["805_north"]["road"] == "bridge", "the owner's 'bridge' takes it back off Wyze's WebRTC road")
     check(camera_list({"x": {"producers": [{"url": ksrc}]}})[0]["road"] == "kvs" and camera_list({"x": {"producers": [{"url": ksrc}]}})[0]["kind"] == "wyze", "/list names the Kinesis road and still calls it a Wyze camera")
     check("web-pw" not in scrub_text("go2rtc said: " + kvs_source("805-north") + " failed"), "a Kinesis line quoted in a diagnostic loses its web password")
+    print("=== 8q. the bridge's MAIN name, never its -sub, and the judge asks Wyze by it (DR-1097, second read) ===")
+    both = [{"uri": "back-yard-north", "mac": "AA01"}, {"uri": "back-yard-north-sub", "mac": "AA01"}, {"uri": "kitchen-cam", "mac": "AA02"}]
+    check(by_mac_main(both) == {"AA01": "back-yard-north", "AA02": "kitchen-cam"} and by_mac_main(list(reversed(both))) == {"AA01": "back-yard-north", "AA02": "kitchen-cam"}, "a MAC listed as a camera and its -sub matches the camera, in either order")
+    check(by_mac_main([{"uri": "lone-sub", "mac": "AA03"}]) == {"AA03": "lone-sub"} and main_uri("back-yard-north-sub") == "back-yard-north" and main_uri("kitchen-cam") == "kitchen-cam" and main_uri("-sub") == "-sub", "a -sub alone is still matched; main_uri strips only the suffix")
+    G["src"] = {"back_yard_north": bridge_source("back-yard-north-sub"), "back_yard_north_sd": bridge_source("back-yard-north-sub")}
+    G["puts"] = []
+    roads_save({"back_yard_north": {"road": "bridge", "bridge": bridge_source("back-yard-north-sub"), "uri": "back-yard-north-sub", "reason": "direct-unreachable", "since": 1.0}}, kv_roads)
+    s1 = ensure_bridge_roads(kup, {"back_yard_north": {"producers": [{"url": bridge_source("back-yard-north-sub")}]}}, both, lans=lans, roads=roads_load(kv_roads), log=lambda *_a: None, config_path=kv_cfg, roads_path=kv_roads, now=12000.0)
+    check(s1["resigned"] == ["back_yard_north"] and G["src"]["back_yard_north"] == bridge_source("back-yard-north") and roads_load(kv_roads)["back_yard_north"]["uri"] == "back-yard-north", "PROVEN TO CATCH: a camera recorded on the bridge's -sub (26 of them, live) is moved to its main stream once (%r)" % s1)
+    s2 = ensure_bridge_roads(kup, {"back_yard_north": {"producers": [{"url": G["src"]["back_yard_north"]}]}}, both, lans=lans, roads=roads_load(kv_roads), log=lambda *_a: None, config_path=kv_cfg, roads_path=kv_roads, now=12100.0)
+    check(s2["resigned"] == [] and s2["kept"] == 1, "and a second sync leaves it alone")
+    asked = []
+    G["live"] = {("back_yard_north", "kvs")}
+    G["src"]["back_yard_north"] = bridge_source("back-yard-north-sub")
+    rk = roads_load(kv_roads); rk["back_yard_north"]["uri"] = "back-yard-north-sub"; roads_save(rk, kv_roads)
+    vq = judge_camera(kup, "back_yard_north", log=lambda *_a: None, now=12200.0, probe=fast, signal=lambda u: (asked.append(u), {"result": "ok"})[1], config_path=kv_cfg, roads_path=kv_roads)
+    check(asked == ["back-yard-north"] and vq["kept"] == "kvs" and G["src"]["back_yard_north"] == kvs_source("back-yard-north") and vq["v"] == JUDGE_VERSION, "the judge asks Wyze by the main name, never the -sub that answered 'cam not found', and the Kinesis line names it (%r)" % asked)
+    cq = judge_candidates({"a": {"producers": [{"url": bridge_source("a")}]}, "b": {"producers": [{"url": bridge_source("b")}]}},
+                          {"a": {"judged": {"at": 9900.0}}, "b": {"judged": {"at": 9900.0, "v": JUDGE_VERSION}}}, health=FakeHealth({}), now=10000.0, dark=900, rejudge=3600)
+    check(cq == ["a"], "a verdict an older judge took within the hour is judged again; one this judge took is not (%r)" % cq)
+    G["live"] = set()
+    G["src"]["805_north"] = bridge_source("805-north")
+    rk = roads_load(kv_roads); rk["805_north"] = {"road": "bridge", "bridge": bridge_source("805-north"), "uri": "805-north"}; roads_save(rk, kv_roads)
+    vd = judge_camera(kup, "805_north", log=lambda *_a: None, now=12300.0, probe=fast, signal=lambda u: {"result": "ok"}, config_path=kv_cfg, roads_path=kv_roads)
+    check(vd.get("dark") is True and vd.get("go2rtc_said") and all("805_north" in l or "webrtc" in l.lower() for l in vd["go2rtc_said"]) and not any("8555: i/o timeout" in l and "webrtc" not in l.lower() for l in vd["go2rtc_said"]), "a camera dark on both keeps go2rtc's own words about it, never the bridge's timeout wall (%r)" % vd.get("go2rtc_said"))
+
     saved_roads = BRIDGE_ROADS_FILE
     BRIDGE_ROADS_FILE = kv_roads
     rk = roads_load(kv_roads); rk["805_north"]["judged"] = {"current": "bridge", "current_probe": {"ok": False, "error": "no byte in 30 s"}, "kvs_signal": "Camera does not support WebRTC", "kept": "bridge", "dark": True}; roads_save(rk, kv_roads)
