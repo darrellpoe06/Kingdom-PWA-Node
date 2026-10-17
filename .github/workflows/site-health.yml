@@ -584,7 +584,29 @@ jobs:
             # identified positively, so a build older than the signature cannot
             # be mistaken for a dark sign-in road.
             if grep -q '/poetech-app/assets/' "$SB_BODY" 2>/dev/null; then SB_IS_SHELL=yes; else SB_IS_SHELL=no; fi
+            # READ THE 502'S BODY — IT NAMES ITS OWN CAUSE (2026-10-17, DR-1090).
+            # At 00:11 UTC poetech.us/sb answered 502 and nobody could say why,
+            # because every probe recorded the STATUS and threw the body away.
+            # But a 502 on this road is OUR OWN proxy's JSON, and it already
+            # distinguishes the two failures it can have: a `code` of
+            # upstream-unreachable with an `upstreamStatus` means the Funnel
+            # ANSWERED with an HTML 5xx (Cloudflare could not reach the NAS, or
+            # the NAS returned an error page), while a bare `error` + `detail`
+            # with no `code` means fetch() itself threw and the Funnel was not
+            # reachable at all. Those have different causes and different fixes,
+            # and the difference was being discarded on every single run.
+            #
+            # Note what this also proves: a 502 here is the Function RUNNING and
+            # correctly reporting trouble behind it. It is never evidence of a
+            # dead transport, which is the confusion this whole record is about.
+            SB_ERR=$(grep -o '"error":"[^"]*"' "$SB_BODY" 2>/dev/null | head -1 | cut -d'"' -f4)
+            SB_ERRCODE=$(grep -o '"code":"[^"]*"' "$SB_BODY" 2>/dev/null | head -1 | cut -d'"' -f4)
+            SB_UPSTATUS=$(grep -o '"upstreamStatus":[0-9]*' "$SB_BODY" 2>/dev/null | head -1 | cut -d: -f2)
+            SB_DETAIL=$(grep -o '"detail":"[^"]*"' "$SB_BODY" 2>/dev/null | head -1 | cut -d'"' -f4)
             rm -f "$SB_BODY"
+            if [ -n "${SB_ERR:-}" ]; then
+              note "- the /sb answer carries our proxy's own diagnosis: \`${SB_ERR}\`${SB_ERRCODE:+ · code \`${SB_ERRCODE}\`}${SB_UPSTATUS:+ · the Funnel answered HTTP ${SB_UPSTATUS}}${SB_DETAIL:+ · \`${SB_DETAIL}\`}. A 502 here is the Function RUNNING and reporting trouble BEHIND it — never a dead transport."
+            fi
             note "- \`GET /sb/auth/v1/health\` -> signed \`${SB_ROAD:-<unsigned>}\`, our own SPA shell: **${SB_IS_SHELL}**, content-type \`${SB_SOV_CT:-unknown}\`"
             case "${SB_ROAD:-}" in
               pages-function|worker)

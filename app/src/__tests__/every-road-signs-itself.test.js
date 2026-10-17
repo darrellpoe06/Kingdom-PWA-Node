@@ -86,6 +86,36 @@ describe('a Pages road signs every answer it gives', () => {
   });
 });
 
+describe('a 502 names its own cause, in the field names the witness greps for', () => {
+  // At 00:11 UTC on 2026-10-17 /sb answered 502 and nobody could say why,
+  // because every probe kept the status and threw the body away. The body
+  // already distinguishes the two failures, and site-health now reads it — so
+  // these pin the exact key names, because the witness matches them as text
+  // and a rename here would silently blind it.
+  it('fetch() throwing gives error + detail and NO code', async () => {
+    const body = await (await callRoad(() => { throw new Error('connect ECONNREFUSED'); })).json();
+    expect(body).toHaveProperty('error');
+    expect(body).toHaveProperty('detail');
+    expect(body.code).toBeUndefined();
+  });
+
+  it('an HTML 5xx from the edge gives code + upstreamStatus as well', async () => {
+    const body = await (await callRoad(() => new Response('<html><title>Origin DNS error</title></html>', {
+      status: 530, headers: { 'content-type': 'text/html' },
+    }))).json();
+    expect(body.code).toBe('upstream-unreachable');
+    expect(body.upstreamStatus).toBe(530);
+    expect(body.detail).toBe('Origin DNS error');
+  });
+
+  it('site-health greps for those exact keys', () => {
+    const yml = read('.github/workflows/site-health.yml');
+    for (const key of ['"error":', '"code":', '"upstreamStatus":', '"detail":']) {
+      expect(yml).toContain(key);
+    }
+  });
+});
+
 describe('the two doors sign themselves differently, so a probe can tell which answered', () => {
   it('the zone Worker says worker, the Pages road says pages-function', () => {
     expect(ROAD_VALUE).toBe('pages-function');
