@@ -27,7 +27,20 @@ On that headline a zone Worker was written to route around the fault (DR-1068),
 the absolute Funnel origin went back into the client bundle with its written
 cross-origin hazard, and eight days of real faults sat under an hourly alarm.
 
-**The headline was false for all eight days. No Pages Function was ever down.**
+**The headline is false, measured today. And the probe that produced it cannot
+tell a working road from a dark one at all, so every reading it gave for eight
+days is unreliable — including, possibly, a real one.**
+
+**Said precisely, because the difference matters.** What is proven here is
+2026-10-17: the Functions are running and the headline is wrong. What is NOT
+proven is that the **2026-10-09 lockout never happened.** Darrell and Christina
+were really locked out that night, really photographed `Unexpected end of JSON
+input`, and that event may have had a genuine cause that was then fixed — or
+may not. This measurement cannot say, because the instrument that watched it
+was incapable of telling the two apart. That is the honest shape of it: the
+alarm has been **uninformative** since 2026-10-09, not provably false on the
+first night. Claiming otherwise would be the over-claim DR-0076 forbids, in a
+record whose whole subject is an unmeasured claim.
 
 ## What was measured
 
