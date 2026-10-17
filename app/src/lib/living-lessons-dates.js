@@ -292,4 +292,9 @@ export const LIVING_LESSONS_ADDED = {
   // and built the same session (a spoken teaching is build input).
   'll249-nothing-of-myself-the-way-is-the-word-and-it-works-every-time': '2026-10-16',
   'll250-they-which-do-hunger-shall-be-filled-and-the-critical-path': '2026-10-16',
+  // L253, sent into the house by Darrell on 2026-10-17 (the summary of an
+  // episode of The Deep End with Lecrae, under the word Lesson, then his own
+  // line: the Rock of Yahweh in the wilderness in Old Testament times) and
+  // built the same session. ll251 and ll252 are held by an unlanded branch.
+  'll253-that-rock-was-christ-identity-not-of-blood': '2026-10-17',
 };
