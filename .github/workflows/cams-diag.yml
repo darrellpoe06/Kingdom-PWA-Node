@@ -149,6 +149,30 @@ jobs:
               print("%-36s connected=%-5s enabled=%-5s status=%-12s on_demand=%s" % (k, c.get("connected"), c.get("enabled"), c.get("status"), c.get("on_demand")))
           '
           else echo "(bridge env unreadable by this user)"; fi
+          echo "=== the road judge, per camera (DR-1097): which road carried video, measured; never a line or a password ==="
+          $SUDO cat "$DATA/bridge-roads.json" 2>/dev/null | python3 -c '
+          import json,sys
+          try: d=json.load(sys.stdin)
+          except Exception as e: print("(no roads record readable: %s)" % e); sys.exit(0)
+          def p(x):
+              if not isinstance(x,dict): return "-"
+              return ("ok %d B in %d ms" % (x.get("bytes",0), x.get("ms",0))) if x.get("ok") else ("dark: %s" % str(x.get("error") or "")[:70])
+          roads={}
+          for sid in sorted(d):
+              r=d[sid] if isinstance(d[sid],dict) else {}
+              roads[r.get("road") or "direct"]=roads.get(r.get("road") or "direct",0)+1
+              j=r.get("judged") if isinstance(r.get("judged"),dict) else {}
+              line="%-32s road=%-6s reason=%-18s" % (sid, r.get("road") or "direct", r.get("reason") or "-")
+              if j:
+                  line+=" judged: %s=%s" % (j.get("current"), p(j.get("current_probe")))
+                  if j.get("kvs_signal") is not None: line+=" | wyze webrtc says: %s" % str(j.get("kvs_signal"))[:60]
+                  if j.get("alt"): line+=" | %s=%s" % (j.get("alt"), p(j.get("alt_probe")))
+                  line+=" -> kept %s%s" % (j.get("kept"), " (DARK ON BOTH)" if j.get("dark") else "")
+              else:
+                  line+=" (not judged yet)"
+              print(line)
+          print("roads: %s" % ", ".join("%s=%d" % kv for kv in sorted(roads.items())))
+          ' 2>&1 | scrub
           echo "=== forwarder journal (last 40 lines) ==="
           $SUDO journalctl -u poetech-cams -n 40 --no-pager 2>&1 | scrub || true
           echo "=== NAS network: which LAN is this box on (the restreamer reaches only THIS LAN) ==="
