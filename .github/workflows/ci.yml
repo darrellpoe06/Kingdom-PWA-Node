@@ -270,6 +270,12 @@ jobs:
       - name: tax archive asks for the key on every route
         working-directory: infra/nas-tax-ingest
         run: python3 -m unittest test_tax_auth -v
+      # The church mail reader (DR-1091): path parity with the PC import
+      # script's JavaScript safe(), file/refill/leave-alone, the message and
+      # time budgets, and a failing message set aside instead of looped.
+      - name: church mail reader files, refills and stays within its budget
+        working-directory: infra/nas-church-mail
+        run: python3 -m unittest test_church_mail -v
       # The NAS lesson builder proofs (DR-0669): the verse re-verification
       # (a one-word change fails the build), the identical prompt to every
       # writer (a writer that alters it is caught), the modes, the budget, the

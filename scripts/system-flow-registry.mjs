@@ -697,6 +697,30 @@ const NODES = [
     writes: [{ res: 'db:choir_songs', token: 'choir_songs' }],
     seeds: ['songbook'],
   }),
+  // DR-1091: the church office's emails become the app's documents on the
+  // NAS, by themselves — filed when new, refilled where a row's file was left
+  // on the old server, read on Choir → Team Docs and the Pulpit.
+  rider('service:church-mail', 'infra/nas-church-mail/church_mail.py', {
+    id: 'church-mail', name: 'The church office’s emails, filed',
+    purpose: 'Files each emailed team document and puts back any file a row names but the server lacks.',
+    reads: [
+      { res: 'mail:church-office', token: 'imaplib' },
+      { res: 'db:choir_team_documents', token: 'choir_team_documents' },
+      { res: 'db:choir_sermon_documents', token: 'choir_sermon_documents' },
+    ],
+    writes: [{ res: 'db:choir_team_documents', token: 'insert_team' }],
+    seeds: ['team-docs'],
+  }),
+  app('app/src/lib/choir-sync.js', {
+    id: 'team-docs', name: 'Team Docs and sermon documents',
+    purpose: 'The choir opens the week’s documents; a steward starts the order of service from one.',
+    reads: [
+      { res: 'db:choir_team_documents', token: 'subscribeTeamDocuments' },
+      { res: 'db:choir_sermon_documents', token: 'subscribeSermonDocuments' },
+    ],
+    writes: [{ res: 'db:choir_sermon_documents', token: "from('choir_sermon_documents').insert" }],
+    seeds: ['church-mail'],
+  }),
   rider('service:transcript-trickle', 'infra/nas-sme-pipeline/load-transcripts.py', {
     id: 'transcript-trickle', name: 'NAS transcript trickle',
     purpose: 'Fetches each service video’s words from the NAS’s own address.',
@@ -1747,6 +1771,7 @@ const RESOURCES = {
   'file:decision-ledger': { label: 'the decision ledger', source: 'The decision records in docs/decisions, written by the sessions that decide.' },
   'file:app/src/lib/lesson-sources.json': { label: 'the sources behind a lesson’s researched figures', source: 'Written by the research pass that follows a NAS lesson build (the session that reads the public record and names each publisher, url and the strings its page must say; DR-0750); the witness reads it back from the publishers on a GitHub runner.' },
 
+  'mail:church-office': { label: 'the church office’s emails', source: 'The church office (bg@thechurchofthelivinggod.com) emails the order of service, announcements, the calendar and PROCLAIM to the church mailbox.' },
   'mail:lesson': { label: 'forwarded “Lesson.” mail', source: 'Darrell forwards a lesson from his own mailbox.' },
   'yt:channel': { label: 'the church’s YouTube channel', source: 'The church publishes each service on its channel.' },
   'gh:branch': { label: 'a pushed branch', source: 'An agent session or a person pushes a branch.' },

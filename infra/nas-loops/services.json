@@ -9,6 +9,12 @@
       "description": "Drain the transcript backlog (2026-08-05 harvest review: 81/858 transcribed, loader parked on a manual app button while the CI path is YouTube-IP-blocked). Rides the ALREADY-ARMED services-sync clock (choir-dates pattern, zero new DSM entries): stamp-gated to ~8 fires/day x 4 captions from the NAS's residential IP (~32 videos/day = ~64-96 HTTP calls against the measured ~180/day IpBlocked ceiling), draining ~770 gaps in ~4 weeks then keeping pace with the channel. Registered FIRST so a slow sibling (docker pull, the choir-dates drain) can never starve it before the cycle-wide timeout. Loader carries --max budget + single-flight lock + a TIME-DECAYED backoff that clears itself (DR-0248; the 2026-08-06 fix -- the previous human-cleared pause pointed at ops-runner.py, which nothing installs, so it would have stopped the drain permanently and silently). Witness: harvest-health.yml probes the count from OUTSIDE the NAS and files an incident when it stops advancing."
     },
     {
+      "name": "church-mail",
+      "install": "infra/nas-church-mail/install.sh",
+      "enabled": true,
+      "description": "The church office's emails become the app's documents, on the NAS, by themselves (DR-1091). Rides the ALREADY-ARMED services-sync clock (the transcript-trickle pattern, zero new DSM entries). Each 15-min cycle: one pass of church_mail.py reads bg@thechurchofthelivinggod.com's emails from the church mailbox over IMAP, read-only (BODY.PEEK); a team document (order of service, announcements, calendar) with no row is FILED at the PC import script's own path, a row whose file is missing is REFILLED at the path the row names, and a PROCLAIM sermon document whose row exists but whose file is missing is REFILLED - so the files the 2026-08-19 move left on the old hosted server come back from their original source, with no hosted key, and each new week lands without anyone running a script. Brakes (DR-0248): 25 messages + 360 s per pass inside the 480 s installer ceiling, single-flight PID lock, progress saved per message, a message that fails 3 times set aside with its reason (the pass exits 3 so the cycle reds). No mailbox credential = named quiet no-op; place_church_mail_key.sh proves the credential against Gmail before writing it."
+    },
+    {
       "name": "family-key",
       "install": "infra/nas-bridge-publish/install.sh",
       "enabled": true,
