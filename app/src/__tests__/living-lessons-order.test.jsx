@@ -112,11 +112,12 @@ describe('the day each lesson was added — a recorded day, and a new lesson joi
     const back = byNum.filter((m, i) => i > 0 && m.added < byNum[i - 1].added).map((m) => m.id);
     expect(back).toEqual([]);
     expect(byNum[0].added).toBe('2026-06-24');
-    // The newest lesson's day, kept current as lessons land. L248 (DR-1074,
-    // "His ways are higher, so He gives us the bread") was spoken into the
-    // house on the morning of 2026-10-16, so the highest-numbered lesson now
-    // carries 2026-10-16. (L245–L247, DR-1034–1036, hold 2026-10-15 behind it.)
-    expect(byNum[byNum.length - 1].added).toBe('2026-10-16'); // L248 (DR-1074)
+    // The newest lesson's day, kept current as lessons land. L252 (DR-1092,
+    // "All things work together — the integrated system, and which way it
+    // runs") was spoken into the house on 2026-10-17 and sharpened by Darrell
+    // the same day, so the highest-numbered lesson now carries 2026-10-17.
+    // (L248–L250, DR-1074/1081/1082, hold 2026-10-16 behind it.)
+    expect(byNum[byNum.length - 1].added).toBe('2026-10-17'); // L252 (DR-1092)
   });
 
   it('formats a calendar day without a time-zone shift, and months are labels', () => {

@@ -292,4 +292,7 @@ export const LIVING_LESSONS_ADDED = {
   // and built the same session (a spoken teaching is build input).
   'll249-nothing-of-myself-the-way-is-the-word-and-it-works-every-time': '2026-10-16',
   'll250-they-which-do-hunger-shall-be-filled-and-the-critical-path': '2026-10-16',
+  // L252, spoken into the house by Darrell on 2026-10-17 and sharpened by him
+  // the same day, built the same session (a spoken teaching is build input).
+  'll252-all-things-work-together-the-integrated-system-and-which-way-it-runs': '2026-10-17',
 };
