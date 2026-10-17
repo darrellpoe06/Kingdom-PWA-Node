@@ -151,11 +151,23 @@ describe('L243 exists, is numbered, and is dated', () => {
     expect(claimed.filter((n) => n === 243)).toHaveLength(1);
   });
 
-  it('does NOT take 79, 211 or 212 — those holes are other work', () => {
-    // 79 is #2166's held lesson; 211 and 212 are still open and recorded as
-    // KNOWN_GAPS. Filling one by accident here would disarm those checks.
+  it('does NOT take 211 or 212, and leaves 79 to the lesson that fills it', () => {
+    // 211 and 212 are still open and recorded as KNOWN_GAPS. Filling one by
+    // accident here would disarm those checks.
     const claimed = new Set(LIVING_LESSONS_MODULES.map((m) => (/^ll(\d+)-/.exec(m.id) || [])[1]).map(Number));
-    for (const n of [79, 211, 212]) expect(claimed.has(n), `${n} is not this lesson's to fill`).toBe(false);
+    for (const n of [211, 212]) expect(claimed.has(n), `${n} is not this lesson's to fill`).toBe(false);
+    // 79 IS NO LONGER A HOLE. It was one when this check was written -- the
+    // comment on the original said so: "79 is #2166's held lesson". That
+    // lesson (DR-1025) is on this branch and fills it, so asserting 79 is
+    // UNCLAIMED now fails for a reason that has nothing to do with this
+    // lesson. The question the check actually means is still asked, and more
+    // strictly: 211 and 212 are still open holes nobody may fill by
+    // accident, and 79 is claimed EXACTLY ONCE, by the lesson whose number
+    // it is. A lesson that drifted onto 79 would make that count 2.
+    expect(
+        LIVING_LESSONS_MODULES.filter((m) => /^ll79-/.test(m.id)).length,
+        '79 is claimed exactly once, by the lesson whose number it is',
+    ).toBe(1);
   });
 
   it('carries a day, and it is the COMMIT day rather than the August writing day', () => {
@@ -186,7 +198,7 @@ describe('every strand that was missing from the whole series is here, and is Hi
 
   it('carries Jeremiah 8:7 in EVERY place, because the rebuke is the lesson', () => {
     for (const k of ALL) {
-      expect(/appointed times/i.test(TEXTS[k]), `${k} drops the appointed times`).toBe(true);
+    expect(/appointed times/i.test(TEXTS[k]), `${k} drops the appointed times`).toBe(true);
     }
   });
 });
@@ -230,7 +242,7 @@ describe('every quoted span is the verse, with no elision anywhere', () => {
     // straight apostrophe where the corpus carries U+2019, three and one time
     // over. My own walk normalises both sides and could not see it.
     for (const s of spans) {
-      expect(/'/.test(s.quoted), `${s.path} carries a straight apostrophe inside a quotation`).toBe(false);
+    expect(/'/.test(s.quoted), `${s.path} carries a straight apostrophe inside a quotation`).toBe(false);
     }
     // And the same text with the curly form swapped back out stops matching.
     const real = verse('Psalms', 24, 1);
@@ -314,9 +326,9 @@ describe('it carries its two stories, which the mined module had none of', () =>
 
   it('every story says truthfully what it is, and carries a title and a body', () => {
     for (const s of L.stories) {
-      expect(['parable', 'testimony']).toContain(s.kind);
-      expect(String(s.title).length).toBeGreaterThan(8);
-      expect(String(s.body).trim().split(/\s+/).length).toBeGreaterThan(120);
+    expect(['parable', 'testimony']).toContain(s.kind);
+    expect(String(s.title).length).toBeGreaterThan(8);
+    expect(String(s.body).trim().split(/\s+/).length).toBeGreaterThan(120);
     }
   });
 
@@ -363,15 +375,15 @@ describe('the mining hazards this module actually carried', () => {
 
   it('keeps the three buckets apart rather than claiming a prediction', () => {
     for (const k of ['adult', 'teen', 'senior', 'youth']) {
-      expect(/STATES|states/.test(TEXTS[k]), `${k} drops the bucket sort`).toBe(true);
-      expect(/MEASURED|measured/.test(TEXTS[k])).toBe(true);
-      expect(/REASONED|reasoned/.test(TEXTS[k])).toBe(true);
+    expect(/STATES|states/.test(TEXTS[k]), `${k} drops the bucket sort`).toBe(true);
+    expect(/MEASURED|measured/.test(TEXTS[k])).toBe(true);
+    expect(/REASONED|reasoned/.test(TEXTS[k])).toBe(true);
     }
   });
 
   it('refuses the proof-text reading out loud, in every band that can carry it', () => {
     for (const k of ['adult', 'teen', 'senior', 'youth']) {
-      expect(/not\b[^.]{0,60}(predicted|anticipated|science book)/i.test(TEXTS[k]), `${k} never refuses the proof-text`).toBe(true);
+    expect(/not\b[^.]{0,60}(predicted|anticipated|science book)/i.test(TEXTS[k]), `${k} never refuses the proof-text`).toBe(true);
     }
   });
 
@@ -381,28 +393,28 @@ describe('the mining hazards this module actually carried', () => {
       // first version of this check said "seventy years" and failed the senior
       // band, which preaches the ledger in the hyphenated form. The regex was
       // narrower than the prose, so the regex was wrong, not the band.
-      expect(/threescore and ten|seventy[- ]year/i.test(TEXTS[k]), `${k} drops the exile ledger`).toBe(true);
+    expect(/threescore and ten|seventy[- ]year/i.test(TEXTS[k]), `${k} drops the exile ledger`).toBe(true);
     }
   });
 
   it('keeps BOTH verbs of the garden mandate in every place', () => {
     for (const k of ALL) {
-      expect(/dress/i.test(TEXTS[k]), `${k} drops "dress it"`).toBe(true);
-      expect(/keep it/i.test(TEXTS[k]), `${k} drops "keep it"`).toBe(true);
+    expect(/dress/i.test(TEXTS[k]), `${k} drops "dress it"`).toBe(true);
+    expect(/keep it/i.test(TEXTS[k]), `${k} drops "keep it"`).toBe(true);
     }
   });
 
   it('says the timing hinge, which is the transferable half', () => {
     for (const k of ALL) {
-      expect(/due season/i.test(TEXTS[k]), `${k} drops the due season`).toBe(true);
+    expect(/due season/i.test(TEXTS[k]), `${k} drops the due season`).toBe(true);
     }
   });
 
   it('names Yahweh in our own voice and leaves the quotations alone (DR-0210)', () => {
     for (const k of ALL) {
       const ours = ourProseOnly(TEXTS[k]);
-      expect(/\bYahweh\b/.test(ours), `${k} never names Him by covenant name`).toBe(true);
-      expect(/\bGod(?:'s|’s)?\b/.test(ours), `${k} uses the generic "God" in our own voice`).toBe(false);
+    expect(/\bYahweh\b/.test(ours), `${k} never names Him by covenant name`).toBe(true);
+    expect(/\bGod(?:'s|’s)?\b/.test(ours), `${k} uses the generic "God" in our own voice`).toBe(false);
     }
     // And the quoted text is untouched: Leviticus 19:10 ends "I am the LORD
     // your God", and it stays exactly that.

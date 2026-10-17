@@ -42,14 +42,27 @@ describe('the number is the lesson’s own, read from its id', () => {
     expect(lessonNumber(null)).toBe(null);
   });
 
-  it('MEASURED: the authored array is not in number order and has no L79, so a position would mislabel', () => {
+  it('MEASURED: the authored array is not in number order and still has holes, so a position would mislabel', () => {
+    // 79 was the hole this test used as its evidence until 2026-10-14, when the
+    // lesson was mined out of #1255 and the number was claimed. The CLAIM is
+    // unchanged and is what matters: a lesson's number is its own, never its
+    // position in the array. The evidence moves to the holes that are still
+    // open (211 and 212, recorded in living-lessons-numbers-are-unique), plus
+    // the renumberings that leave the array itself out of order.
     const nums = LIVING_LESSONS_MODULES.map(lessonNumber);
-    expect(nums).not.toContain(79);
+    expect(nums).toContain(79);
+    expect(nums).not.toContain(211);
+    expect(nums.length, 'a position cannot be the number while a hole is open').toBeLessThan(Math.max(...nums));
     expect(ascending(LIVING_LESSONS_MODULES)).toBe(false);
+    // L192 was the worked example here until 2026-10-14. Filling the 79 hole
+    // moved every lesson after it up one, and L192's POSITION became 192 — so
+    // at L192 the defect this test exists to catch is now invisible. That is
+    // the whole reason the example is found rather than pinned: a hole closing
+    // must not quietly disarm the check.
     const sched = buildLivingLessonsSchedule();
-    const l192 = sched.find((m) => m.id.startsWith('ll192-'));
-    expect(l192.week, 'the position the old rows printed').not.toBe(192);
-    expect(ownNumber(l192, sched)).toBe(192);
+    const drifted = sched.filter((m) => m.week !== lessonNumber(m));
+    expect(drifted.length, 'no lesson left where position differs from number').toBeGreaterThan(0);
+    for (const m of drifted) expect(ownNumber(m, sched), `${m.id} position ${m.week}`).toBe(lessonNumber(m));
   });
 
   it('a course is numbered only when every lesson has its own, unshared number', () => {
@@ -112,13 +125,15 @@ describe('the day each lesson was added — a recorded day, and a new lesson joi
     const back = byNum.filter((m, i) => i > 0 && m.added < byNum[i - 1].added).map((m) => m.id);
     expect(back).toEqual([]);
     expect(byNum[0].added).toBe('2026-06-24');
-    // The newest lesson's day, kept current as lessons land. L248 (DR-1074,
-    // "His ways are higher, so He gives us the bread") was spoken into the
-    // house on the morning of 2026-10-16, so the highest-numbered lesson now
-    // carries 2026-10-16. (L245–L247, DR-1034–1036, hold 2026-10-15 behind it.)
-    // L251 (DR-1096, "That Rock was Christ") was sent into the house on
-    // 2026-10-17 and is now the highest number, so the newest day moves with it.
-    expect(byNum[byNum.length - 1].added).toBe('2026-10-17'); // L251 (DR-1096)
+    // The newest lesson's day, kept current as lessons land. THREE lessons
+    // landed on 2026-10-17: main's L251 (That Rock Was Christ, DR-1096),
+    // L252 (DR-1094, all things work together) and L253 (DR-1093, laziness
+    // is a character matter). L253 is the highest numbered, so it is the one
+    // this pin reads — it was built as 251 and renumbered twice as the other
+    // two took the numbers under it. (L248-L250, DR-1074 / DR-1081 /
+    // DR-1082, hold 2026-10-16 behind them; L245-L247, DR-1034-1036, hold
+    // 2026-10-15 behind those.)
+    expect(byNum[byNum.length - 1].added).toBe('2026-10-17'); // L253 (DR-1093)
   });
 
   it('formats a calendar day without a time-zone shift, and months are labels', () => {
