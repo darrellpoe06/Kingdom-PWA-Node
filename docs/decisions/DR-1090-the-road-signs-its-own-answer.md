@@ -123,7 +123,20 @@ is unsigned **and** the body is OUR shell, identified positively by
 and which no page the NAS serves carries. *"Is this our fallback?"* has an
 answer; *"is this HTML?"* never did.
 
-**5. One road is never a layer.** `cf-pages-diagnose.yml` probes five roads
+**5. A 502 names its own cause, and the witness reads it.** At 00:11 UTC
+`/sb` answered 502 and nobody could say why, because every probe kept the
+status and threw the body away. But a 502 on these roads is **our own proxy's
+JSON**, and it already separates the two failures it can have: `code:
+upstream-unreachable` with an `upstreamStatus` means the Funnel *answered* with
+an HTML 5xx, while a bare `error` + `detail` and **no** `code` means `fetch()`
+threw and the Funnel was not reachable at all. Different causes, different
+fixes, discarded on every run. site-health now reports whichever it was. The
+key names are pinned by test, because the witness matches them as text and a
+rename would silently blind it — and the note says the thing that matters most
+here: **a 502 on this road is the Function RUNNING and reporting trouble behind
+it, never a dead transport.** That confusion is what kept #2057 open.
+
+**6. One road is never a layer.** `cf-pages-diagnose.yml` probes five roads
 across both hosts and prints a tally, so `MIXED`, `ALL DARK` and `ALL LIT` can
 never again look the same from outside. Only paths this repository already
 probes are used — an invented health route would read as dark for the wrong
@@ -139,7 +152,9 @@ reason.
   - the unreachable-502 stops signing → **1 case fails**;
   - site-health goes back to judging by content type → **1 case fails**;
   - site-health drops the shell fingerprint and decides on one key → **1 case
-    fails** (6 occurrences mutated, so the mutation could not be vacuous).
+    fails** (6 occurrences mutated, so the mutation could not be vacuous);
+  - `upstreamStatus` is renamed in the proxy → **1 case fails**, which is the
+    whole point of pinning a key the witness matches as text.
 - **A mutation attempt proved nothing and is recorded rather than hidden**: its anchor text no longer existed, so the file was never changed and
   the suite passed. That is DR-1080's "mutation that does not mutate" trap,
   hit again the same week. Every mutation here now `assert`s its anchor before
@@ -156,7 +171,9 @@ reason.
 
 ## What this does not do
 
-- **It does not explain the 502 seen at 00:11 UTC on `/sb`.** A 502 from that
+- **It does not explain the 502 seen at 00:11 UTC on `/sb` — but the next one
+  will explain itself**, because the witness now prints the proxy's own
+  diagnosis of it rather than only its status. A 502 from that
   road is *our own proxy's JSON*, which means the Function ran and the Funnel
   was briefly unreachable — a transient, not a dead transport. It is not
   reproducible now (11 direct calls, all healthy) and is **not** claimed to be
