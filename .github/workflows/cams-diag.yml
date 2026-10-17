@@ -144,9 +144,16 @@ jobs:
           except Exception as e: print("(bridge /api unreadable: %s)" % e); sys.exit(0)
           cams=d.get("cameras") if isinstance(d,dict) else None
           if not isinstance(cams,dict): print("(no cameras key; keys=%s; error=%r)" % (list(d)[:8], d.get("error")) if isinstance(d,dict) else "(not an object)"); sys.exit(0)
+          # The model and firmware say which road a camera can ride (DR-1097, third read):
+          # only named, non-secret fields are printed; every other key by its name alone.
+          SAFE=("model_name","product_model","firmware_ver","webrtc","webrtc_support","is_battery","dtls","is_gwell")
+          keys=set()
           for k in sorted(cams):
               c=cams[k] if isinstance(cams[k],dict) else {}
-              print("%-36s connected=%-5s enabled=%-5s status=%-12s on_demand=%s" % (k, c.get("connected"), c.get("enabled"), c.get("status"), c.get("on_demand")))
+              keys.update(c.keys())
+              extra=" ".join("%s=%s" % (f, str(c.get(f))[:28]) for f in SAFE if f in c)
+              print("%-36s connected=%-5s enabled=%-5s status=%-12s on_demand=%-5s %s" % (k, c.get("connected"), c.get("enabled"), c.get("status"), c.get("on_demand"), extra))
+          print("fields the bridge reports per camera (names only): %s" % ", ".join(sorted(keys)))
           '
           else echo "(bridge env unreadable by this user)"; fi
           echo "=== the road judge, per camera (DR-1097): which road carried video, measured; never a line or a password ==="
@@ -174,6 +181,8 @@ jobs:
               print(line)
           print("roads: %s" % ", ".join("%s=%d" % kv for kv in sorted(roads.items())))
           ' 2>&1 | scrub
+          echo "=== Kinesis offers Wyze never answered (go2rtc gives up when Amazon closes the idle socket, 10 min later) ==="
+          curl -s -m 10 "http://127.0.0.1:1984/api/log" | grep -c 'close 1001 (going away)' || true
           echo "=== forwarder journal (last 40 lines) ==="
           $SUDO journalctl -u poetech-cams -n 40 --no-pager 2>&1 | scrub || true
           echo "=== NAS network: which LAN is this box on (the restreamer reaches only THIS LAN) ==="
