@@ -1,7 +1,7 @@
 // @vitest-environment node
 // =============================================================================
 // L251 — "Laziness Is a Character Matter": the four domains, the five marks of
-// the sluggard, and Darrell's own three words — work is worship. DR-1091.
+// the sluggard, and Darrell's own three words — work is worship. DR-1093.
 // =============================================================================
 // WHERE IT CAME FROM, AND WHY THE GATE PINS THAT. Darrell forwarded a summary
 // of a video on laziness by Jonny Ardavanis and Hank Bowen. It is a THIRD-PARTY

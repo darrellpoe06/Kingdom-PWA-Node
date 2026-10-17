@@ -1,4 +1,4 @@
-# DR-1091: Laziness is a character matter — the four domains, the five marks of the sluggard, and work is worship (ll251)
+# DR-1093: Laziness is a character matter — the four domains, the five marks of the sluggard, and work is worship (ll251)
 
 **Date:** 2026-10-17
 **Status:** accepted
@@ -56,7 +56,7 @@ Living Lessons gains L251, 248 modules in the catalog, the highest-numbered less
 
 - Ship `ll251-…` appended after ll250, dated 2026-10-17 in `living-lessons-dates.js` (the day it was built; the forwarded summary and Darrell's three words both arrived the same day).
 - **Twelve movements**, the same order in all five places: the image of a working Yahweh · **work is worship** (Darrell's, with both guards) · work as neighbour-love · what the speakers said and what the Word says · the four domains · the five marks, one movement each · what it costs and what it costs others · the remedy and the practice.
-- **DR-1091 is this record's number.** DR-1090 and DR-1094 belong to other lanes in flight and are not taken here; `scripts/resolve-ledger-conflicts.mjs` was run from the worktree root after the INDEX row landed and reported the ledger whole.
+- **DR-1093 is this record's number.** DR-1090 and DR-1094 belong to other lanes in flight and are not taken here; `scripts/resolve-ledger-conflicts.mjs` was run from the worktree root after the INDEX row landed and reported the ledger whole.
 - The newest-lesson day pinned in `living-lessons-order.test.jsx` moves from 2026-10-16 to 2026-10-17. That line is a live pin by design — it is how a new lesson proves it joined in order — and moving it is the only edit this record makes to an existing test.
 
 ## Verification
