@@ -119,7 +119,10 @@ jobs:
           for cid in sorted(targets):
               t0 = time.time()
               try:
-                  with urllib.request.urlopen("http://127.0.0.1:1984/api/frame.jpeg?src=" + urllib.parse.quote(cid), timeout=12) as r:
+                  # 20 s, the forwarder's own clock for a camera on Wyze's WebRTC road (DR-1097, third
+                  # read): its frame waits for the Kinesis dial (6-10 s) and a key frame, and 12 s
+                  # counted 4 cameras dark that the judge had just watched carry video.
+                  with urllib.request.urlopen("http://127.0.0.1:1984/api/frame.jpeg?src=" + urllib.parse.quote(cid), timeout=20) as r:
                       body = r.read(2 * 1024 * 1024)
                   ok = len(body) > 0
                   out["probed"].append({"id": cid, "ok": ok, "ms": int((time.time() - t0) * 1000), "bytes": len(body)})

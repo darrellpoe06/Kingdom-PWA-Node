@@ -1846,6 +1846,7 @@ def ensure_bridge_roads(upstream, streams, bridge_cams, lans=None, roads=None, l
     if not isinstance(streams, dict):
         return out
     ids = set(streams.keys())
+    judging = judging_now()
     for sid, entry in sorted(streams.items()):
         if only and sid != only:
             continue
@@ -1859,6 +1860,9 @@ def ensure_bridge_roads(upstream, streams, bridge_cams, lans=None, roads=None, l
         if not url:
             continue
         rec = roads.get(sid) if isinstance(roads.get(sid), dict) else {}
+        if sid in judging:
+            out["kept"] += 1
+            continue
         forced = rec.get("forced") if rec.get("forced") in ("bridge", "direct", "kvs") else None
         # WYZE'S OWN WEBRTC ROAD (DR-1097). A camera on it belongs to the judge
         # (judge_pass); here it is only re-signed when the bridge's web sign-in
@@ -1981,6 +1985,12 @@ def ensure_bridge_roads(upstream, streams, bridge_cams, lans=None, roads=None, l
                     if set_stream_source(upstream, sd_of(sid), sd_source(rec.get("bridge") or want or sd_url), config_path, log):
                         out.setdefault("sd_main", []).append(sid)
                         log("bridge-road: %s's SD twin moved off the bridge's -sub stream to its main stream (DR-0979)" % sid)
+                # The record follows the line go2rtc holds: a record that says
+                # "kvs" over a bridge line would tell the app the wrong road.
+                if rec.get("road") != "bridge":
+                    roads[sid] = dict(roads.get(sid) or rec, road="bridge")
+                    out.setdefault("healed", []).append(sid)
+                    log("bridge-road: %s's record said %s while go2rtc holds the bridge line; the record now says bridge" % (sid, rec.get("road")))
                 out["kept"] += 1
                 continue
             if not set_stream_source(upstream, sid, direct, config_path, log):
@@ -2007,7 +2017,7 @@ def bridge_snapshot():
     with BRIDGE_LOCK:
         last = dict(BRIDGE_LAST)
     return {"configured": bridge_configured(), "api": BRIDGE_API, "rtsp": BRIDGE_RTSP, "last": last,
-            "kvs_on": KVS_ON, "judge": judge_snapshot()}
+            "kvs_on": KVS_ON, "judge": judge_snapshot(), "kvs_hold": KVS_HOLD.snapshot()}
 
 
 def sync_bridge_roads(upstream, streams=None, log=print, config_path=None, roads_path=None, only=None):
@@ -2053,6 +2063,16 @@ KVS_PASS_SECONDS = float(os.environ.get("CAMS_KVS_PASS_SECONDS", "240"))
 JUDGE_VERSION = 2
 _JUDGE_LOCK = threading.Lock()
 JUDGE_LAST = {}  # the last pass, for /health: {at, judged, moved, dark, kept}
+# The camera the judge has put on its other road to read it. The road sync
+# leaves it alone until the judge is done: the third field read found the sync
+# writing "kvs" into the record of a camera the judge was only trying, and the
+# judge putting the bridge line back under a record that still said "kvs".
+JUDGING = set()
+
+
+def judging_now():
+    with BRIDGE_LOCK:
+        return set(JUDGING)
 
 
 def go2rtc_said(upstream, stream_id, limit=3):
@@ -2167,10 +2187,24 @@ def judge_camera(upstream, sid, log=print, now=None, probe=None, signal=None, co
         if current_source(upstream, sid) != cur:
             verdict["skipped"] = "the road changed while it was judged"
             return verdict
+        with BRIDGE_LOCK:
+            JUDGING.add(sid)
         if not set_stream_source(upstream, sid, alt, config_path, log):
+            with BRIDGE_LOCK:
+                JUDGING.discard(sid)
             verdict["kept"] = cur_road
             verdict["why"] = "go2rtc would not take the %s line" % alt_road
             return keep()
+    try:
+        return _judge_alt(upstream, sid, verdict, cur, cur_road, alt, alt_road, uri, rec, keep, log, probe, config_path)
+    finally:
+        with BRIDGE_LOCK:
+            JUDGING.discard(sid)
+
+
+def _judge_alt(upstream, sid, verdict, cur, cur_road, alt, alt_road, uri, rec, keep, log, probe, config_path):
+    """The second half of judge_camera: the other road is on the stream; read it and keep what carried video."""
+    now = verdict["at"]
     verdict["alt"] = alt_road
     verdict["alt_probe"] = probe(upstream, sid)
     if verdict["alt_probe"].get("ok"):
@@ -2193,7 +2227,8 @@ def judge_camera(upstream, sid, log=print, now=None, probe=None, signal=None, co
     set_stream_source(upstream, sid, back, config_path, log)
     verdict["kept"] = cur_road
     verdict["dark"] = True
-    return keep(line="judge: %s is dark on both roads: the bridge gave %s; Wyze's WebRTC gave %s" % (
+    # The record names the road go2rtc holds again, whatever was written meanwhile.
+    return keep({"road": cur_road}, line="judge: %s is dark on both roads: the bridge gave %s; Wyze's WebRTC gave %s" % (
         sid, (verdict["current_probe"] if cur_road == "bridge" else verdict["alt_probe"]).get("error"),
         (verdict["alt_probe"] if cur_road == "bridge" else verdict["current_probe"]).get("error")))
 
@@ -2251,6 +2286,198 @@ def start_judge(upstream, log=print, config_path=None):
 def judge_snapshot():
     with BRIDGE_LOCK:
         return dict(JUDGE_LAST)
+
+
+# THE HELD SESSION (DR-1097, third field read). go2rtc dials a camera when its
+# first viewer arrives and hangs up when the last one leaves, so on Wyze's
+# WebRTC road every tile frame (the app asks each camera every 5 s) was a fresh
+# Kinesis offer. cams-diag 39077312135 measured what that costs: a camera
+# answers an offer in 6-10 s and can leave the next one unanswered, and
+# go2rtc's Kinesis dial keeps no clock of its own -- it waits until Amazon
+# closes the idle signaling socket, ten minutes to the second ("websocket:
+# close 1001 (going away)"), and every viewer of that camera waits behind it.
+# So a Kinesis camera someone is looking at keeps ONE session: a holder reads
+# its live MP4 (the bytes are dropped) until nobody has asked for it for
+# KVS_HOLD_SECONDS, and every frame and live view joins that session. A dial
+# with no byte in KVS_DIAL_SECONDS is abandoned: the camera's own line is put
+# again (a PUT gives go2rtc a fresh stream, so the next dial is a fresh offer),
+# at most once per KVS_REARM_GAP.
+# BRAKES (deterministic class, DR-0248): a budget (KVS_HOLD_MAX holders; each
+# ends KVS_HOLD_SECONDS after the last ask and never outlives
+# KVS_HOLD_LIFE_SECONDS; one dial per KVS_REDIAL_SECONDS), a lock (one holder
+# per camera, under one table lock), and the stop-paths CAMS_KVS=0 or
+# CAMS_KVS_HOLD_MAX=0.
+KVS_HOLD_SECONDS = float(os.environ.get("CAMS_KVS_HOLD_SECONDS", "60"))
+# 16: every camera the judge kept on Kinesis (14 tonight) is held while the tab is open.
+KVS_HOLD_MAX = max(0, int(os.environ.get("CAMS_KVS_HOLD_MAX", "16")))
+KVS_HOLD_LIFE_SECONDS = float(os.environ.get("CAMS_KVS_HOLD_LIFE_SECONDS", "3600"))
+KVS_DIAL_SECONDS = float(os.environ.get("CAMS_KVS_DIAL_SECONDS", "20"))
+KVS_REARM_GAP = float(os.environ.get("CAMS_KVS_REARM_GAP", "30"))
+KVS_REDIAL_SECONDS = float(os.environ.get("CAMS_KVS_REDIAL_SECONDS", "5"))
+# A frame on the Kinesis road waits for the dial and a whole key frame: the
+# judge measured 16 KB of video at 6.3-9.5 s, which the 12 s frame clock
+# missed on 4 of 14 cameras the judge had just watched carry video.
+KVS_SNAP_TIMEOUT = float(os.environ.get("CAMS_KVS_SNAP_TIMEOUT", "20"))
+
+_KVS_IDS = {"path": None, "mtime": None, "ids": frozenset()}
+
+
+def kvs_road_ids(roads_path=None):
+    """The cameras the roads record keeps on Wyze's WebRTC road (re-read only when the file changes)."""
+    path = roads_path or BRIDGE_ROADS_FILE
+    try:
+        mtime = os.stat(path).st_mtime_ns
+    except OSError:
+        return frozenset()
+    if _KVS_IDS["path"] != path or _KVS_IDS["mtime"] != mtime:
+        with ROADS_LOCK:
+            roads = roads_load(path)
+        _KVS_IDS.update(path=path, mtime=mtime, ids=frozenset(
+            sid for sid, r in roads.items() if isinstance(r, dict) and r.get("road") == "kvs"))
+    return _KVS_IDS["ids"]
+
+
+def kvs_rearm(upstream, sid, config_path=None, log=print):
+    """Put a Kinesis camera's own line again so go2rtc drops a dial Wyze never
+    answered. Answers True when the line was put; never touches another road."""
+    if sid in judging_now():
+        return False  # the judge has this camera on a road it is reading; it is the judge's
+    line = current_source(upstream, sid)
+    if not is_kvs_source(line):
+        return False
+    return set_stream_source(upstream, sid, line, config_path, log=lambda *_a: None)
+
+
+class KvsHold:
+    """One Kinesis session per watched camera (see THE HELD SESSION). Pure on
+    the inside: the clock, the opener, the re-arm and the thread start are
+    injectable, so it is proven in plain Python."""
+
+    def __init__(self, clock=time.time, opener=None, rearm=None, spawn=None, sleep=None, log=print,
+                 max_holds=None, hold=None, life=None, dial=None, gap=None, redial=None):
+        self.clock = clock
+        self.opener = opener or urllib.request.urlopen
+        self.rearm = rearm or kvs_rearm
+        self.spawn = spawn or (lambda fn, name: threading.Thread(target=fn, name=name, daemon=True).start())
+        self.sleep = sleep or time.sleep
+        self.log = log
+        self.max_holds = KVS_HOLD_MAX if max_holds is None else int(max_holds)
+        self.hold = KVS_HOLD_SECONDS if hold is None else float(hold)
+        self.life = KVS_HOLD_LIFE_SECONDS if life is None else float(life)
+        self.dial = KVS_DIAL_SECONDS if dial is None else float(dial)
+        self.gap = KVS_REARM_GAP if gap is None else float(gap)
+        self.redial = KVS_REDIAL_SECONDS if redial is None else float(redial)
+        self.lock = threading.Lock()
+        self.holds = {}
+        self.last_rearm = {}
+        self.counts = {"started": 0, "rearmed": 0, "full": 0}
+
+    def touch(self, upstream, sid, config_path=None):
+        """Someone looked at `sid`. Answers "held", "started", "full" or "off"."""
+        if not KVS_ON or self.max_holds <= 0:
+            return "off"
+        now = self.clock()
+        with self.lock:
+            h = self.holds.get(sid)
+            if h is not None:
+                h["touched"] = now
+                return "held"
+            if len(self.holds) >= self.max_holds:
+                self.counts["full"] += 1
+                return "full"
+            self.holds[sid] = {"touched": now, "started": now, "state": "dialing", "dials": 0, "bytes": 0, "last_bytes": None}
+            self.counts["started"] += 1
+        self.spawn(lambda: self._run(upstream, sid, config_path), "cams-kvs-hold-%s" % sid)
+        return "started"
+
+    def _alive(self, sid):
+        now = self.clock()
+        with self.lock:
+            h = self.holds.get(sid)
+            return h is not None and now - h["touched"] < self.hold and now - h["started"] < self.life
+
+    def _note(self, sid, **kw):
+        with self.lock:
+            h = self.holds.get(sid)
+            if h is not None:
+                h.update(kw)
+
+    def _run(self, upstream, sid, config_path):
+        try:
+            while self._alive(sid):
+                t0 = self.clock()
+                with self.lock:
+                    self.holds[sid]["dials"] += 1
+                got = self._read(upstream, sid)
+                if got:
+                    continue
+                # No byte on this dial: Wyze left the offer unanswered (or go2rtc
+                # refused). The next viewer gets a fresh offer, never the hung one.
+                self._note(sid, state="unanswered")
+                now = self.clock()
+                if now - self.last_rearm.get(sid, -1e18) >= self.gap:
+                    self.last_rearm[sid] = now
+                    if self.rearm(upstream, sid, config_path):
+                        with self.lock:
+                            self.counts["rearmed"] += 1
+                        self.log("kvs-hold: %s gave no byte in %d s on Wyze's WebRTC road; its line was put again for a fresh offer" % (sid, int(self.dial)))
+                wait = self.redial - (self.clock() - t0)
+                if wait > 0 and self._alive(sid):
+                    self.sleep(wait)
+        finally:
+            with self.lock:
+                self.holds.pop(sid, None)
+
+    def _read(self, upstream, sid):
+        """One connection to the camera's live MP4; answers the bytes it carried."""
+        got = 0
+        try:
+            r = self.opener(upstream.rstrip("/") + "/api/stream.mp4?src=" + urllib.parse.quote(sid), timeout=self.dial)
+        except (urllib.error.URLError, OSError, ValueError):
+            return 0
+        try:
+            read = getattr(r, "read1", None) or r.read
+            while self._alive(sid):
+                try:
+                    chunk = read(65536)
+                except (socket.timeout, OSError):
+                    break
+                if not chunk:
+                    break
+                got += len(chunk)
+                with self.lock:
+                    h = self.holds.get(sid)
+                    if h is not None:
+                        h["bytes"] += len(chunk)
+                        h["last_bytes"] = self.clock()
+                        h["state"] = "held"
+        finally:
+            try:
+                r.close()
+            except Exception:  # noqa: BLE001
+                pass
+        return got
+
+    def snapshot(self):
+        now = self.clock()
+        with self.lock:
+            return {"max": self.max_holds, "hold_s": self.hold, "dial_s": self.dial,
+                    "holding": dict((sid, {"state": h["state"], "dials": h["dials"], "bytes": h["bytes"],
+                                           "for_s": int(now - h["started"])}) for sid, h in sorted(self.holds.items())),
+                    "counts": dict(self.counts)}
+
+
+KVS_HOLD = KvsHold()
+
+
+def kvs_viewed(upstream, cam, roads_path=None, hold=None, config_path=None):
+    """A viewer asked for `cam` (or its twin): when the camera rides Wyze's
+    WebRTC road its session is held. Answers True for a Kinesis camera."""
+    base = base_of(cam)
+    if base not in kvs_road_ids(roads_path):
+        return False
+    (hold or KVS_HOLD).touch(upstream, base, config_path)
+    return True
 
 
 _BRIDGE_TICK = {"n": 0}
@@ -3474,20 +3701,23 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
                     v = q.get(key, [""])[0]
                     if v.isdigit() and 16 <= int(v) <= 1920:
                         params.append((key, v))
+                # A camera on Wyze's WebRTC road keeps one held session while it
+                # is looked at, and its first frame waits for the dial (DR-1097).
+                frame_timeout = max(snap_timeout, KVS_SNAP_TIMEOUT) if kvs_viewed(upstream, cam) else snap_timeout
                 try:
-                    status, ctype, body = self._get_upstream("/api/frame.jpeg?" + urllib.parse.urlencode(params), snap_timeout)
+                    status, ctype, body = self._get_upstream("/api/frame.jpeg?" + urllib.parse.urlencode(params), frame_timeout)
                 except urllib.error.HTTPError as e:
                     # go2rtc answered, and said why (its body is the error text).
                     detail = scrub_text(e.read(2048).decode("utf-8", "replace").strip(), 300)
                     breaker_note(cam, False, detail)
                     return self._json(e.code if 400 <= e.code < 600 else 502, {"error": "no-frame", "upstream_status": e.code, "detail": detail})
                 except socket.timeout:
-                    breaker_note(cam, False, "no answer in %d s" % int(snap_timeout))
-                    return self._json(504, {"error": "frame-timeout", "after_s": int(snap_timeout)})
+                    breaker_note(cam, False, "no answer in %d s" % int(frame_timeout))
+                    return self._json(504, {"error": "frame-timeout", "after_s": int(frame_timeout)})
                 except urllib.error.URLError as e:
                     if isinstance(getattr(e, "reason", None), socket.timeout):
-                        breaker_note(cam, False, "no answer in %d s" % int(snap_timeout))
-                        return self._json(504, {"error": "frame-timeout", "after_s": int(snap_timeout)})
+                        breaker_note(cam, False, "no answer in %d s" % int(frame_timeout))
+                        return self._json(504, {"error": "frame-timeout", "after_s": int(frame_timeout)})
                     return self._json(502, {"error": "go2rtc-unreachable", "detail": scrub_text(getattr(e, "reason", e), 200)})
                 except (OSError, ValueError) as e:
                     return self._json(502, {"error": "go2rtc-unreachable", "detail": scrub_text(e, 200)})
@@ -3723,6 +3953,7 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
             if not live_gate.acquire(blocking=False):
                 return self._json(503, {"error": "busy", "max_live": max_live})
             try:
+                kvs_viewed(upstream, cam)
                 req = urllib.request.Request(upstream + "/api/stream.mp4?src=" + urllib.parse.quote(cam))
                 try:
                     r = urllib.request.urlopen(req, timeout=LIVE_CONNECT_TIMEOUT)
@@ -5209,6 +5440,129 @@ def _selftest():
     check(s == 200 and jw.get("road", {}).get("road") == "bridge" and jw["road"]["judged"]["kvs_signal"] == "Camera does not support WebRTC" and jw["road"]["judged"]["dark"] is True, "/why carries the camera's road and the judge's last measurement, so the tile can say why (%r)" % jw.get("road"))
     check(b"rtsp://" not in d and b"webrtc:" not in d and b"web-pw" not in d and b"BRKEY" not in d, "and never a line, a key or a password")
     BRIDGE_ROADS_FILE = saved_roads
+
+    print("=== 8r. one held Kinesis session per watched camera; an unanswered offer is abandoned (DR-1097, third read) ===")
+    quiet = lambda *_a: None  # noqa: E731
+    kc = [{"uri": "kitchen-cam", "mac": "AA21"}]
+    G["src"] = {"kitchen_cam": kvs_source("kitchen-cam")}
+    G["puts"] = []
+    roads_save({"kitchen_cam": {"road": "bridge", "bridge": bridge_source("kitchen-cam"), "uri": "kitchen-cam", "reason": "other-network"}}, kv_roads)
+    with BRIDGE_LOCK:
+        JUDGING.add("kitchen_cam")
+    s3 = ensure_bridge_roads(kup, {"kitchen_cam": {"producers": [{"url": kvs_source("kitchen-cam")}]}}, kc, lans=lans, roads=roads_load(kv_roads), log=quiet, config_path=kv_cfg, roads_path=kv_roads, now=13000.0)
+    check(G["puts"] == [] and roads_load(kv_roads)["kitchen_cam"]["road"] == "bridge" and s3["kept"] == 1, "while the judge tries Wyze's WebRTC on a camera, the road sync neither re-signs it nor writes 'kvs' into its record (%r)" % s3)
+    with BRIDGE_LOCK:
+        JUDGING.discard("kitchen_cam")
+    ensure_bridge_roads(kup, {"kitchen_cam": {"producers": [{"url": kvs_source("kitchen-cam")}]}}, kc, lans=lans, roads=roads_load(kv_roads), log=quiet, config_path=kv_cfg, roads_path=kv_roads, now=13001.0)
+    check(roads_load(kv_roads)["kitchen_cam"]["road"] == "kvs", "PROVEN TO CATCH: without that guard the same sync writes 'kvs' over a camera the judge was only trying (the live record of back_yard_south, front_yard, north_east_cam)")
+
+    def racing_probe(up, s_):
+        if is_kvs_source(G["src"].get(s_, "")):
+            rr = roads_load(kv_roads); rr[s_]["road"] = "kvs"; roads_save(rr, kv_roads)
+        return {"ok": False, "bytes": 0, "ms": 1, "error": "timed out"}
+    G["src"] = {"front_yard": bridge_source("front-yard")}
+    roads_save({"front_yard": {"road": "bridge", "bridge": bridge_source("front-yard"), "uri": "front-yard"}}, kv_roads)
+    vr = judge_camera(kup, "front_yard", log=quiet, now=13100.0, probe=racing_probe, signal=lambda u: {"result": "ok"}, config_path=kv_cfg, roads_path=kv_roads)
+    check(vr.get("dark") is True and G["src"]["front_yard"] == bridge_source("front-yard") and roads_load(kv_roads)["front_yard"]["road"] == "bridge" and "front_yard" not in judging_now(),
+          "a camera dark on both goes back to the bridge line AND its record says bridge, whatever was written while it was tried (%r)" % roads_load(kv_roads)["front_yard"].get("road"))
+    G["src"] = {"back_yard_south": bridge_source("back-yard-south")}
+    roads_save({"back_yard_south": {"road": "kvs", "bridge": bridge_source("back-yard-south"), "kvs": kvs_source("back-yard-south"), "uri": "back-yard-south", "reason": "direct-unreachable", "since": 1.0}}, kv_roads)
+    s5 = ensure_bridge_roads(kup, {"back_yard_south": {"producers": [{"url": bridge_source("back-yard-south")}]}}, [{"uri": "back-yard-south", "mac": "AA22"}], lans=lans, roads=roads_load(kv_roads), log=quiet, config_path=kv_cfg, roads_path=kv_roads, now=13200.0)
+    check(s5.get("healed") == ["back_yard_south"] and roads_load(kv_roads)["back_yard_south"]["road"] == "bridge", "a record that already says 'kvs' over a bridge line is healed by the next sync: the record follows the line (%r)" % s5)
+
+    roads_save({"a_cam": {"road": "kvs"}, "b_cam": {"road": "bridge"}}, kv_roads)
+    check(kvs_road_ids(kv_roads) == frozenset({"a_cam"}), "the Kinesis cameras are read from the roads record")
+    roads_save({"a_cam": {"road": "bridge"}, "b_cam": {"road": "kvs"}}, kv_roads)
+    st_ = os.stat(kv_roads)
+    os.utime(kv_roads, ns=(st_.st_atime_ns, st_.st_mtime_ns + 1000000))
+    check(kvs_road_ids(kv_roads) == frozenset({"b_cam"}), "and read again when the record changes")
+    G["src"] = {"a_cam": kvs_source("a-cam"), "b_cam": bridge_source("b-cam")}
+    G["puts"] = []
+    check(kvs_rearm(kup, "a_cam", kv_cfg) is True and G["puts"] == [("a_cam", kvs_source("a-cam"))], "a re-arm puts the camera's own Kinesis line again (a PUT is a fresh go2rtc stream, so the next dial is a fresh offer)")
+    check(kvs_rearm(kup, "b_cam", kv_cfg) is False and len(G["puts"]) == 1, "and never touches a camera on another road")
+    with BRIDGE_LOCK:
+        JUDGING.add("a_cam")
+    check(kvs_rearm(kup, "a_cam", kv_cfg) is False and len(G["puts"]) == 1, "nor a camera the judge is reading")
+    with BRIDGE_LOCK:
+        JUDGING.discard("a_cam")
+
+    clk = [1000.0]
+    reads = {"n": 0}
+    script = []
+    pending = []
+    rearmed = []
+    slept = []
+    retouch = {"on": None}
+
+    class FakeHoldResp:
+        def __init__(self, n):
+            self.n = n
+
+        def read1(self, _size):
+            clk[0] += 10.0
+            reads["n"] += 1
+            if retouch["on"]:
+                hold.touch(kup, retouch["on"])
+            if self.n <= 0:
+                return b""
+            self.n -= 1
+            return b"x" * 1000
+
+        def close(self):
+            pass
+
+    def fopen(url, timeout=None):
+        step = script.pop(0) if script else "refuse"
+        if step == "hang":
+            clk[0] += float(timeout)
+            raise socket.timeout("timed out")
+        if step == "refuse":
+            raise urllib.error.URLError("refused")
+        return FakeHoldResp(step)
+
+    hold = KvsHold(clock=lambda: clk[0], opener=fopen, rearm=lambda up, s_, cp: (rearmed.append(s_), True)[1],
+                   spawn=lambda fn, name: pending.append(fn), sleep=lambda w: (slept.append(w), clk.__setitem__(0, clk[0] + w)),
+                   log=quiet, max_holds=2, hold=60, life=600, dial=20, gap=30, redial=5)
+    check(hold.touch(kup, "a_cam") == "started" and hold.touch(kup, "a_cam") == "held" and len(pending) == 1, "a watched Kinesis camera gets one holder; a second look joins it (the lock)")
+    check(hold.touch(kup, "b_cam") == "started" and hold.touch(kup, "c_cam") == "full" and hold.snapshot()["counts"]["full"] == 1, "the budget: no more holders than KVS_HOLD_MAX")
+    script[:] = ["hang", 3]
+    pending[0]()
+    check(rearmed == ["a_cam"] and hold.counts["rearmed"] == 1 and "a_cam" not in hold.holds and not script,
+          "PROVEN TO CATCH: an offer Wyze leaves unanswered is abandoned after the dial clock and the camera re-armed; the next dial carries video; the holder ends KVS_HOLD_SECONDS after the last look (%r)" % rearmed)
+    hold.touch(kup, "b_cam")
+    script[:] = ["hang", "hang", "hang"]
+    pending[1]()
+    check(rearmed == ["a_cam", "b_cam", "b_cam"] and not script, "three unanswered offers in 60 s re-arm twice, never closer than KVS_REARM_GAP (%r)" % rearmed)
+    slept[:] = []
+    reads["n"] = 0
+    pending[:] = []
+    hold.touch(kup, "c_cam")
+    script[:] = []
+    n_before = len(rearmed)
+    pending[0]()
+    check(slept and all(abs(w - 5) < 1e-6 for w in slept) and len(slept) <= 12 and len(rearmed) - n_before <= 2, "a go2rtc that refuses at once is redialled once per KVS_REDIAL_SECONDS, never in a tight loop (%d dials)" % len(slept))
+    big = KvsHold(clock=lambda: clk[0], opener=fopen, rearm=lambda *_a: True, spawn=lambda fn, name: pending.append(fn), sleep=lambda w: None,
+                  log=quiet, max_holds=2, hold=60, life=100, dial=20, gap=30, redial=5)
+    hold = big
+    pending[:] = []
+    reads["n"] = 0
+    big.touch(kup, "d_cam")
+    retouch["on"] = "d_cam"
+    script[:] = [50]
+    pending[0]()
+    retouch["on"] = None
+    check(10 <= reads["n"] <= 11 and "d_cam" not in big.holds, "a holder never outlives KVS_HOLD_LIFE_SECONDS, however often it is looked at (%d reads of 10 s)" % reads["n"])
+    off = KvsHold(clock=lambda: clk[0], opener=fopen, spawn=lambda fn, name: pending.append(fn), max_holds=0)
+    check(off.touch(kup, "a_cam") == "off", "the stop-path: CAMS_KVS_HOLD_MAX=0 holds nothing")
+    pending[:] = []
+    vh = KvsHold(clock=lambda: clk[0], opener=fopen, spawn=lambda fn, name: pending.append(fn), max_holds=4)
+    roads_save({"a_cam": {"road": "kvs"}, "b_cam": {"road": "bridge"}}, kv_roads)
+    st_ = os.stat(kv_roads)
+    os.utime(kv_roads, ns=(st_.st_atime_ns, st_.st_mtime_ns + 2000000))
+    check(kvs_viewed(kup, "a_cam_sd", roads_path=kv_roads, hold=vh) is True and list(vh.holds) == ["a_cam"], "a frame of a Kinesis camera's twin holds the camera's own session")
+    check(kvs_viewed(kup, "b_cam", roads_path=kv_roads, hold=vh) is False and list(vh.holds) == ["a_cam"], "a camera on the bridge is never held")
+    snap_ = vh.snapshot()
+    check(set(snap_) == {"max", "hold_s", "dial_s", "holding", "counts"} and "webrtc:" not in json.dumps(snap_) and "web-pw" not in json.dumps(snap_), "/health names the held cameras and their counts, never a line")
     BRIDGE_ENV, BRIDGE_API = saved_env, saved_api
     fkb.shutdown(); fgk.shutdown()
 

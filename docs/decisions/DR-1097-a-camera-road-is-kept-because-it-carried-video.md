@@ -108,3 +108,44 @@ The forwarder (`29adca738b9715e5`, running and on disk) judged every dark camera
 
 - Selftest 410 passing. Section 8q is proven to catch: with the old lines restored, the `-sub` re-sign check and the main-name check both fail.
 - The next cams-diag reads the second sweep.
+
+## Third field read (2026-10-17 23:00 UTC, cams-diag 39077312135 and camera-health 39077314118)
+
+The forwarder (`12adef08468784da`, running and on disk) judged every Wyze camera again under its main name.
+
+- **14 cameras carry video on Wyze's WebRTC road and were kept there**, 16 KB of video in 6.2 to 9.5 s each: 805 Back Door, 805 Basement, 805 Front Office View, 805 Hallway North East, 805 North, 805 North East, 805 Upper Hallway South West, Basement North, Basketball, Front, Front Door View, Garage Front Yard, Outside 7, PoeBasement. Every one of them was dark on the bridge's TUTK road.
+- **The bridge still carries great_room and kitchen_2. front_cam rides the direct road.**
+- **13 cameras are dark on both roads:** 805 Apt 4, 805 Front Outside, Back Yard North, Back Yard South, Basement Living Room, East North, Front Driveway Door, Front Yard, Garage Doors, Kitchen Cam, Living Room, North East Cam, Outside Front Door. 805 Porch is not judged yet. For each of the 13, Wyze issued a signaling channel ("ok"), go2rtc sent its offer, and the camera never answered. go2rtc's log closes each of those offers with `websocket: close 1001 (going away)` ten minutes and one second after it was sent (13 offers read, every one 10:01): that is Amazon closing an idle signaling socket. Wyze's peer service separately calls Kitchen Cam, Living Room, Front Yard, Outside Front Door and North East `IOTC_ER_DEVICE_OFFLINE`. For those cameras two separate Wyze services agree that the camera is not answering anyone tonight. That points to the camera's power or Wi-Fi, which no road on the NAS can reach.
+- **The witness: 13 of 31 cameras gave a frame**, up from 3 of 31 this afternoon. Four Kinesis cameras the judge had just watched carry video (805 Back Door, Basement North, Front, Garage Front Yard) timed out at the witness's 12 s frame clock.
+
+**Three defects of ours, measured in the same read:**
+
+1. **Every tile frame was a fresh Kinesis offer.** go2rtc hangs up a camera when its last viewer leaves, and the app asks each camera for a frame every 5 s. go2rtc's Kinesis dial has no clock of its own (`kinesisClient` in `internal/webrtc/kinesis.go`, v1.9.14). An offer a camera leaves unanswered therefore holds that camera, and every viewer behind it, for ten minutes. The log shows it: Basement North carried video for the judge at 17:23:18, and the next offer at 17:23:35 hung until 17:33:36.
+2. **The record told the app the wrong road.** While the judge had a camera on Kinesis to read it, the road sync saw the Kinesis line and wrote "kvs" into the record. The judge then put the bridge line back under a record that still said "kvs". The cams-diag rows for back_yard_south, front_yard and north_east_cam read `road=kvs` beside "kept bridge (DARK ON BOTH)".
+3. **The frame clocks were shorter than the road.** A Kinesis frame waits for the dial and a whole key frame. The forwarder's and the app's 12 s, and the witness's 12 s, cut off cameras that work.
+
+**The change, same record:**
+
+- **The held session (`KvsHold`).** A Kinesis camera someone is looking at keeps one session: a holder reads its live stream until nobody has asked for it for 60 s, and every frame and live view joins that session. A dial with no byte in 20 s is abandoned: the camera's own line is put again (a PUT gives go2rtc a fresh stream, so the next dial is a fresh offer), at most once every 30 s.
+  - **Brakes (DR-0248):**
+    - **budget:** 16 holders; each one ends 60 s after the last look and never outlives an hour; one dial every 5 s.
+    - **lock:** one holder per camera, under one table lock.
+    - **stop-paths:** `CAMS_KVS=0` or `CAMS_KVS_HOLD_MAX=0`.
+  - `/health` and `/streams/roads` name the held cameras and their counts, never a line.
+- **The judge's camera is the judge's.** The sync leaves a camera alone while the judge tries its other road. A camera dark on both is written back as the road go2rtc holds. A record that already says "kvs" over a bridge line is healed by the next sync.
+- **Clocks:**
+  - a Kinesis frame gets 20 s on the NAS and 22 s in the app;
+  - the witness probes every camera for 20 s.
+- **cams-diag** prints each camera's model and firmware from the bridge's own list (named fields only). It also counts the Kinesis offers Wyze never answered.
+
+**Verification:**
+
+- **Selftest:** 429 passing; section 8r is new. Each fix was mutated out once, and each mutation fails its checks:
+  - with no re-arm, 2 checks fail;
+  - with no judge guard, 1 fails;
+  - with no record heal, 1 fails;
+  - with no road written back on dark, 1 fails.
+- **App camera tests:** 226 passing.
+- **Live after merge (DR-0107):** the next cams-diag and the next every-camera pass of the witness.
+
+**What is left, by name:** the 13 cameras dark on both roads. The next step needs Darrell's hand, with no code: open the Wyze app on the Fold and look at those 13. A camera the Wyze app also shows offline needs power or Wi-Fi at the camera. A camera the Wyze app shows live while Kinesis stays unanswered is the case the IDisposable fork exists for. Its model and firmware in the next cams-diag decide it. `re-review: 2026-10-20`, unchanged.

@@ -42,7 +42,7 @@ import { enterFullScreen, exitFullScreen, leavesFullScreen } from '../lib/reader
 import { useScreenAwake } from '../lib/screen-awake.js';
 import { noteUse } from '../lib/usage-events.js';
 import {
-  SNAPSHOT_INTERVAL_MS, FETCH_TIMEOUT_MS, LIVE_FIRST_FRAME_TIMEOUT_MS,
+  SNAPSHOT_INTERVAL_MS, FETCH_TIMEOUT_MS, FRAME_TIMEOUT_MS, LIVE_FIRST_FRAME_TIMEOUT_MS,
   healthUrl, listUrl, ticketUrl, snapUrl, liveUrl,
   parseCameraList, groupByKind, KINDS, classifyServiceState,
   formatAge, formatBytes, fetchWithTimeout, authHeaders, setupCommands,
@@ -1590,7 +1590,7 @@ export default function Cameras() {
       if (stop) return;
       const t0 = (typeof performance !== 'undefined' ? performance.now() : Date.now());
       try {
-        const r = await fetchWithTimeout(snapUrl(cam.id), { headers: authHeaders(token) }, FETCH_TIMEOUT_MS);
+        const r = await fetchWithTimeout(snapUrl(cam.id), { headers: authHeaders(token) }, FRAME_TIMEOUT_MS);
         if (!r.ok) {
           let body = null;
           try { body = await r.json(); } catch { body = null; }
