@@ -292,4 +292,8 @@ export const LIVING_LESSONS_ADDED = {
   // and built the same session (a spoken teaching is build input).
   'll249-nothing-of-myself-the-way-is-the-word-and-it-works-every-time': '2026-10-16',
   'll250-they-which-do-hunger-shall-be-filled-and-the-critical-path': '2026-10-16',
+  // L251, built 2026-10-17 from a third-party video summary on laziness (Jonny
+  // Ardavanis and Hank Bowen) that Darrell forwarded, plus his own three words
+  // spoken into the build the same day: work is worship.
+  'll251-laziness-is-a-character-matter-the-four-domains-and-the-five-marks-of-the-sluggard': '2026-10-17',
 };
