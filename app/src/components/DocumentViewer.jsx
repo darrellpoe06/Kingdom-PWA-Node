@@ -94,7 +94,7 @@ function PdfPage({ pdf, n, title }) {
 }
 
 // ---------------------------------------------------------------------------
-// The document's record (DR-1084): what it is, where it came from, when, and
+// The document's record (DR-1085): what it is, where it came from, when, and
 // where it lives, beside the document itself. Every value comes from the row
 // the shelf loaded (lib/document-record.js); the presence line comes from what
 // the server just answered; the fingerprint from the bytes just opened.
@@ -197,7 +197,7 @@ export default function DocumentViewer({ title = 'Document', name = '', resolve,
   if (state.phase === 'loading') {
     body = <p className="text-sm text-[#5A5751]" aria-live="polite" style={SERIF} data-testid="viewer-loading">Opening {title}…</p>;
   } else if (state.phase === 'failed' && record && presenceLine(state, record)) {
-    // The record's presence line already says it, with the reason (DR-1084).
+    // The record's presence line already says it, with the reason (DR-1085).
     body = null;
   } else if (state.phase === 'failed') {
     body = <p className="text-sm text-[#991B1B] leading-relaxed" role="status" style={SERIF} data-testid="viewer-failed" data-reason={state.reason}>{viewerFailureText(state.reason, `“${title}”`)}</p>;

@@ -1,4 +1,4 @@
-# DR-1084: Every document carries its own record — what it is, where it came from, when, and where it lives
+# DR-1085: Every document carries its own record — what it is, where it came from, when, and where it lives
 
 **Date:** 2026-10-17
 **Status:** accepted

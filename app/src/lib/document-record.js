@@ -1,6 +1,6 @@
 // =============================================================================
 // document-record — every document carries its own record: what it is, where
-// it came from, when, and where it lives (DR-1084)
+// it came from, when, and where it lives (DR-1085)
 // =============================================================================
 // Darrell, 2026-10-17, on Choir → Team Docs, over "06 JUNE 2026 CALENDAR is
 // listed, but the file itself is not on the church server": "We also need the
