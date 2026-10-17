@@ -56,7 +56,7 @@ Living Lessons gains L251, 248 modules in the catalog, the highest-numbered less
 
 - Ship `ll251-…` appended after ll250, dated 2026-10-17 in `living-lessons-dates.js` (the day it was built; the forwarded summary and Darrell's three words both arrived the same day).
 - **Twelve movements**, the same order in all five places: the image of a working Yahweh · **work is worship** (Darrell's, with both guards) · work as neighbour-love · what the speakers said and what the Word says · the four domains · the five marks, one movement each · what it costs and what it costs others · the remedy and the practice.
-- **DR-1091 is this record's number.** DR-1090 and DR-1092 belong to other lanes in flight and are not taken here; `scripts/resolve-ledger-conflicts.mjs` was run from the worktree root after the INDEX row landed and reported the ledger whole.
+- **DR-1091 is this record's number.** DR-1090 and DR-1094 belong to other lanes in flight and are not taken here; `scripts/resolve-ledger-conflicts.mjs` was run from the worktree root after the INDEX row landed and reported the ledger whole.
 - The newest-lesson day pinned in `living-lessons-order.test.jsx` moves from 2026-10-16 to 2026-10-17. That line is a live pin by design — it is how a new lesson proves it joined in order — and moving it is the only edit this record makes to an existing test.
 
 ## Verification
@@ -79,5 +79,5 @@ Also green in this tree: `living-lessons-numbers-are-unique.test.js` and `living
 - It does not adopt the video as a source of authority. Ardavanis and Bowen are credited and tested; nothing in the lesson rests on their standing, and no teacher of ours is claimed for it.
 - It does not assert a Greek or Hebrew word study for *service* in Romans 12:1. The English text carries the point and no lexical claim is made, because none could be verified from a source on disk (DR-0076 §8).
 - It does not regenerate `lesson-dates.json` or the course-band baseline; those are generated files and the integrating lane regenerates them once.
-- It does not touch any other lesson's content, any workflow, `infra/**`, the feature registry, or DR-1090 / DR-1092.
+- It does not touch any other lesson's content, any workflow, `infra/**`, the feature registry, or DR-1090 / DR-1094.
 - It does not settle how a lesson should treat a third-party video summary in general. This one names the source, credits it and tests it; whether that convention should be written into the builder brief is open. **re-review: 2026-10-24** — read L251 in the live app on a phone, in the child and senior bands, and check that the two guards land as mercy rather than as a disclaimer.

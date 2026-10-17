@@ -127,10 +127,10 @@ describe('the day each lesson was added — a recorded day, and a new lesson joi
     expect(byNum[0].added).toBe('2026-06-24');
     // The newest lesson's day, kept current as lessons land. TWO lessons
     // landed on 2026-10-17: L251 (DR-1091, laziness is a character matter)
-    // and L252 (DR-1092, all things work together). L252 is the highest
+    // and L252 (DR-1094, all things work together). L252 is the highest
     // numbered, so it is the one this pin reads. (L248-L250, DR-1074 /
     // DR-1081 / DR-1082, hold 2026-10-16 behind them.)
-    expect(byNum[byNum.length - 1].added).toBe('2026-10-17'); // L252 (DR-1092)
+    expect(byNum[byNum.length - 1].added).toBe('2026-10-17'); // L252 (DR-1094)
   });
 
   it('formats a calendar day without a time-zone shift, and months are labels', () => {

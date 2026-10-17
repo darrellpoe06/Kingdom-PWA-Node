@@ -1,4 +1,4 @@
-# DR-1092: All things work together — the integrated system, and which way it runs (ll252)
+# DR-1094: All things work together — the integrated system, and which way it runs (ll252)
 
 **Date:** 2026-10-17
 **Status:** accepted
