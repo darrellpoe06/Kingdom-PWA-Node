@@ -23871,7 +23871,7 @@ export const LIVING_LESSONS_MODULES = [
     }
   },
   {
-    "id": "ll251-laziness-is-a-character-matter-the-four-domains-and-the-five-marks-of-the-sluggard",
+    "id": "ll253-laziness-is-a-character-matter-the-four-domains-and-the-five-marks-of-the-sluggard",
     "stories": [
       {
         "kind": "parable",

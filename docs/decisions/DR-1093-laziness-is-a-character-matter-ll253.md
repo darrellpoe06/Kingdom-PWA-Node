@@ -1,15 +1,15 @@
-# DR-1093: Laziness is a character matter — the four domains, the five marks of the sluggard, and work is worship (ll251)
+# DR-1093: Laziness is a character matter — the four domains, the five marks of the sluggard, and work is worship (ll253)
 
 **Date:** 2026-10-17
 **Status:** accepted
 **Tier:** A (additive curriculum: one new Living Lessons module, dated, with its own pinned gate; no data, no money, no new door)
 **Type:** curriculum
 **Area:**
-- `app/src/lib/living-lessons-class.js` (`ll251-laziness-is-a-character-matter-the-four-domains-and-the-five-marks-of-the-sluggard`, appended after ll250)
+- `app/src/lib/living-lessons-class.js` (`ll253-laziness-is-a-character-matter-the-four-domains-and-the-five-marks-of-the-sluggard`, appended after ll250)
 - `app/src/lib/living-lessons-dates.js` (ll251's line, 2026-10-17)
-- `app/src/__tests__/living-lessons-ll251-laziness.test.js` (its gate, new)
+- `app/src/__tests__/living-lessons-ll253-laziness.test.js` (its gate, new)
 - `app/src/__tests__/living-lessons-order.test.jsx` (the newest-lesson day moves 2026-10-16 → 2026-10-17)
-- `docs/99-session-notes/2026-10-17-ll251-laziness.md`
+- `docs/99-session-notes/2026-10-17-ll253-laziness.md`
 
 **Amends:** nothing.
 
@@ -50,7 +50,7 @@ Measured on the tree before commit, not estimated:
 
 ## Impact
 
-Living Lessons gains L251, 248 modules in the catalog, the highest-numbered lesson and the newest day (2026-10-17). A reader who opens one band — the only thing a reader actually does — gets the whole message in that band's register: the provenance said plainly, Darrell's three words attributed and dated, both guards, the correction of the speakers' absolute, all four domains, all five marks on their own Proverbs texts, what it costs others, the field of the slothful, the ant, and the three directions out to a person. The `/n8n`-era pattern is untouched; nothing outside the curriculum moved.
+Living Lessons gains L253, 248 modules in the catalog, the highest-numbered lesson and the newest day (2026-10-17). A reader who opens one band — the only thing a reader actually does — gets the whole message in that band's register: the provenance said plainly, Darrell's three words attributed and dated, both guards, the correction of the speakers' absolute, all four domains, all five marks on their own Proverbs texts, what it costs others, the field of the slothful, the ant, and the three directions out to a person. The `/n8n`-era pattern is untouched; nothing outside the curriculum moved.
 
 ## Decision
 
@@ -61,7 +61,7 @@ Living Lessons gains L251, 248 modules in the catalog, the highest-numbered less
 
 ## Verification
 
-`living-lessons-ll251-laziness.test.js`, **198 of 198 green**: the module exists exactly once at number 251 and is the highest; the schema fields are all present; the provenance is asserted per place (Ardavanis and Bowen named, a video, not Bishop Gwin, no teacher of ours identified); "work is worship" is attributed to Darrell and dated the seventeenth of October in all five places, with "worship withheld" said plainly and Romans 12:11 quoted under it; **both guards asserted per place**; the Genesis 2:15 → 3:19 order asserted; no Greek or Hebrew word study claimed for *service*; the speakers' absolute asserted to be **attributed inside the sentence that carries it** and explicitly disclaimed as the Word's, with Hebrews 6:12 and the call to repentance beside it in every place; the four domains, the five marks on their own references, and the twelve movements in order, in all five places; the 74 pinned strands each verbatim in the verse they cite and present in the lesson; **every one of the 386 referenced spans verbatim**, no elision, no recited record, no straight apostrophe; `God` / `the LORD` left as the verses carry them; Yahweh in our voice with the generic absent; `anchor.ref` naming every strand's book and chapter plus Deuteronomy 6:7; the three TALK directions, the rhythm and the skill per place; the band floors, the title near each band's start, the differentiation ceiling and the rising ladder; and the measured numbers in the file's own header asserted against what the corpus reports, so a stale claim fails the build.
+`living-lessons-ll253-laziness.test.js`, **198 of 198 green**: the module exists exactly once at number 251 and is the highest; the schema fields are all present; the provenance is asserted per place (Ardavanis and Bowen named, a video, not Bishop Gwin, no teacher of ours identified); "work is worship" is attributed to Darrell and dated the seventeenth of October in all five places, with "worship withheld" said plainly and Romans 12:11 quoted under it; **both guards asserted per place**; the Genesis 2:15 → 3:19 order asserted; no Greek or Hebrew word study claimed for *service*; the speakers' absolute asserted to be **attributed inside the sentence that carries it** and explicitly disclaimed as the Word's, with Hebrews 6:12 and the call to repentance beside it in every place; the four domains, the five marks on their own references, and the twelve movements in order, in all five places; the 74 pinned strands each verbatim in the verse they cite and present in the lesson; **every one of the 386 referenced spans verbatim**, no elision, no recited record, no straight apostrophe; `God` / `the LORD` left as the verses carry them; Yahweh in our voice with the generic absent; `anchor.ref` naming every strand's book and chapter plus Deuteronomy 6:7; the three TALK directions, the rhythm and the skill per place; the band floors, the title near each band's start, the differentiation ceiling and the rising ladder; and the measured numbers in the file's own header asserted against what the corpus reports, so a stale claim fails the build.
 
 **Proven to catch (DR-0076 §3), four mutations, each run, each restored and each restoration verified byte-identical with `cmp`:**
 
@@ -80,4 +80,4 @@ Also green in this tree: `living-lessons-numbers-are-unique.test.js` and `living
 - It does not assert a Greek or Hebrew word study for *service* in Romans 12:1. The English text carries the point and no lexical claim is made, because none could be verified from a source on disk (DR-0076 §8).
 - It does not regenerate `lesson-dates.json` or the course-band baseline; those are generated files and the integrating lane regenerates them once.
 - It does not touch any other lesson's content, any workflow, `infra/**`, the feature registry, or DR-1092 / DR-1094.
-- It does not settle how a lesson should treat a third-party video summary in general. This one names the source, credits it and tests it; whether that convention should be written into the builder brief is open. **re-review: 2026-10-24** — read L251 in the live app on a phone, in the child and senior bands, and check that the two guards land as mercy rather than as a disclaimer.
+- It does not settle how a lesson should treat a third-party video summary in general. This one names the source, credits it and tests it; whether that convention should be written into the builder brief is open. **re-review: 2026-10-24** — read L253 in the live app on a phone, in the child and senior bands, and check that the two guards land as mercy rather than as a disclaimer.

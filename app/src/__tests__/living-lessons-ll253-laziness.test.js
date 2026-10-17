@@ -1,6 +1,6 @@
 // @vitest-environment node
 // =============================================================================
-// L251 — "Laziness Is a Character Matter": the four domains, the five marks of
+// L253 — "Laziness Is a Character Matter": the four domains, the five marks of
 // the sluggard, and Darrell's own three words — work is worship. DR-1093.
 // =============================================================================
 // WHERE IT CAME FROM, AND WHY THE GATE PINS THAT. Darrell forwarded a summary
@@ -74,7 +74,7 @@ const spansOf = (L) => {
   return spans;
 };
 
-const ID = 'll251-laziness-is-a-character-matter-the-four-domains-and-the-five-marks-of-the-sluggard';
+const ID = 'll253-laziness-is-a-character-matter-the-four-domains-and-the-five-marks-of-the-sluggard';
 const L = LIVING_LESSONS_MODULES.find((m) => m.id === ID);
 const TEXTS = L ? { adult: L.lesson, ...Object.fromEntries(BANDS.map((b) => [b, L.levels[b]])) } : {};
 const ALL = Object.keys(TEXTS);
@@ -168,17 +168,22 @@ const TALK_FRIENDS = /Share with a friend (?:of many years )?the/i;
 const NOT_THE_WORDS = /their (?:wording|inference|words)[^.]{0,70}(?:not|rather than)[^.]{0,50}(?:Word|Scripture)/i;
 const RHYTHM = 'Do it once today, in one of the four places of Deuteronomy 6:7: at the table, on the way, at bedtime, or first thing. One friend this week.';
 
-describe('L251 exists, is numbered, and carries the day it was built', () => {
-  // Written when L251 was the highest number in the catalog. L252 landed the
-  // same day, so "highest" is no longer the thing to pin — what this lesson
-  // must still prove is that it took the NEXT free number rather than jumping
-  // ahead and stranding one. That is the claim worth keeping, and it stays
-  // true however many lessons land above it.
+describe('L253 exists, is numbered, and carries the day it was built', () => {
+  // THIS LESSON HAS BEEN NUMBERED THREE TIMES, and the history is the reason
+  // the assertion below is shaped the way it is. Built as 251 in its own
+  // worktree; "highest" stopped being true when L252 landed the same day; and
+  // 251 itself stopped being ours when main merged #2243, whose own commit
+  // message says it took ll251 BECAUSE this branch's 251 and 252 were sitting
+  // under a `hold` and the shrink-only gap ratchet forbids leaving a number
+  // empty. So this lesson is 253 — and what it must still prove is not a
+  // position but a property: it took the NEXT free number rather than jumping
+  // ahead and stranding one. That claim survives every renumber, which is
+  // exactly why it is the one worth pinning.
   it('is in the catalog exactly once, at its own number, taking the next free one', () => {
     expect(LIVING_LESSONS_MODULES.filter((m) => m.id === ID)).toHaveLength(1);
     const claimed = LIVING_LESSONS_MODULES.map((m) => /^ll(\d+)-/.exec(m.id)).filter(Boolean).map((m) => Number(m[1]));
-    expect(claimed.filter((n) => n === 251)).toHaveLength(1);
-    expect(claimed.includes(250), '251 follows 250 — no number was jumped').toBe(true);
+    expect(claimed.filter((n) => n === 253)).toHaveLength(1);
+    expect(claimed.includes(252), '253 follows 252 — no number was jumped').toBe(true);
     // 79 WAS on this list when this lesson was built in its own worktree. It
     // is now filled, by the lesson whose number it is, which arrived from main
     // during integration. Deleting the guard would be the easy move; asserting
@@ -209,7 +214,7 @@ describe('L251 exists, is numbered, and carries the day it was built', () => {
   });
 });
 
-describe('L251 — the provenance is said plainly, and no teacher of ours is claimed', () => {
+describe('L253 — the provenance is said plainly, and no teacher of ours is claimed', () => {
   it.each(ALL)('%s names Jonny Ardavanis and Hank Bowen as the source', (k) => {
     expect(/Jonny Ardavanis/.test(TEXTS[k]), `${k} does not name Ardavanis`).toBe(true);
     expect(/Hank Bowen/.test(TEXTS[k]), `${k} does not name Bowen`).toBe(true);
@@ -227,7 +232,7 @@ describe('L251 — the provenance is said plainly, and no teacher of ours is cla
   });
 });
 
-describe('L251 — work is worship: Darrell’s own three words, attributed and dated', () => {
+describe('L253 — work is worship: Darrell’s own three words, attributed and dated', () => {
   it.each(ALL)('%s carries the sentence, named as Darrell’s and dated the seventeenth of October', (k) => {
     const t = TEXTS[k];
     expect(/[Ww]ork is worship/.test(t), `${k} drops "work is worship"`).toBe(true);
@@ -268,7 +273,7 @@ describe('L251 — work is worship: Darrell’s own three words, attributed and 
   });
 });
 
-describe('L251 — the speakers’ absolute is attributed, never asserted', () => {
+describe('L253 — the speakers’ absolute is attributed, never asserted', () => {
   it.each(ALL)('%s names the antonym framing as the speakers’ own', (k) => {
     expect(/(?:Ardavanis and Bowen|two men|speakers)/.test(TEXTS[k]), `${k} does not name whose framing it is`).toBe(true);
     expect(/antonym|opposite|opposites/i.test(TEXTS[k]), `${k} drops the antonym framing`).toBe(true);
@@ -298,7 +303,7 @@ describe('L251 — the speakers’ absolute is attributed, never asserted', () =
   });
 });
 
-describe('L251 — the four domains and the five marks, in all five places', () => {
+describe('L253 — the four domains and the five marks, in all five places', () => {
   it.each(ALL)('%s names all four domains', (k) => {
     for (const d of ['physical', 'mental', 'spiritual', 'vocational']) {
       expect(new RegExp(d, 'i').test(TEXTS[k]), `${k} drops the ${d} domain`).toBe(true);
@@ -350,7 +355,7 @@ describe('L251 — the four domains and the five marks, in all five places', () 
   });
 });
 
-describe('L251 — every quoted span is the verse, byte for byte', () => {
+describe('L253 — every quoted span is the verse, byte for byte', () => {
   it.each(STRANDS)('%s — %s %s:%s', (_why, book, ch, n, span) => {
     const v = verse(book, ch, n);
     expect(v, `${book} ${ch}:${n} resolves`).toBeTruthy();
@@ -411,7 +416,7 @@ describe('L251 — every quoted span is the verse, byte for byte', () => {
   });
 });
 
-describe('L251 — TALK ABOUT IT TOGETHER, in the lesson AND in every band (DR-0733 / DR-0795)', () => {
+describe('L253 — TALK ABOUT IT TOGETHER, in the lesson AND in every band (DR-0733 / DR-0795)', () => {
   it('the catalog measure finds all three directions in every place', () => {
     expect(placesMissingDirections(L)).toEqual([]);
   });
@@ -450,7 +455,7 @@ describe('L251 — TALK ABOUT IT TOGETHER, in the lesson AND in every band (DR-0
   });
 });
 
-describe('L251 — four bands, each carrying the whole message', () => {
+describe('L253 — four bands, each carrying the whole message', () => {
   const measured = measureFullness(L);
 
   it.each(BANDS)('%s clears its floor', (b) => {
@@ -488,7 +493,7 @@ describe('L251 — four bands, each carrying the whole message', () => {
   });
 });
 
-describe('L251 — two stories that teach it, and a quiz that works', () => {
+describe('L253 — two stories that teach it, and a quiz that works', () => {
   it('carries two real stories, one light and one solemn, with no double-quoted span', () => {
     const real = (L.stories || []).filter((s) => s.kind === 'parable' || s.kind === 'testimony');
     expect(real.length).toBeGreaterThanOrEqual(2);
