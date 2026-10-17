@@ -173,6 +173,7 @@
 # NAS python is 3.8: no 3.9+ syntax here.
 # =============================================================================
 import argparse
+import base64
 import hashlib
 import hmac
 import json
@@ -680,7 +681,7 @@ def kind_of(url):
         return "unknown"
     scheme = url.split(":", 1)[0].lower()
     scheme = scheme.split("#", 1)[0]
-    if scheme == "wyze" or is_bridge_source(url):
+    if scheme == "wyze" or is_bridge_source(url) or is_kvs_source(url):
         return "wyze"
     if scheme == "ring":
         return "ring"
@@ -721,6 +722,9 @@ def camera_list(streams_json):
             for p in producers:
                 if isinstance(p, dict) and is_bridge_source(p.get("url")):
                     road = "bridge"
+                    break
+                if isinstance(p, dict) and is_kvs_source(p.get("url")):
+                    road = "kvs"
                     break
         out.append({"id": sid, "name": sid.replace("_", " ").replace("-", " "), "kind": kind, "road": road})
     return out
@@ -1215,6 +1219,8 @@ def sd_source(url):
     connected, while the Wyze app showed all of them live (Darrell, 2026-10-12).
     A second substream is a second session to the camera; the main stream is the
     session the bridge already holds. The tile is small either way."""
+    if is_kvs_source(url):
+        return None  # the twin of a Kinesis camera is go2rtc's restream of it (DR-1097), set where the road is
     if is_bridge_source(url):
         base, _, frag = str(url).partition("#")
         if base.endswith(BRIDGE_SUB_SUFFIX):
@@ -1262,8 +1268,11 @@ BRIDGE_ROADS_FILE = os.environ.get("CAMS_BRIDGE_ROADS", os.path.join(os.path.dir
 BRIDGE_SYNC_EVERY = max(1, int(os.environ.get("CAMS_BRIDGE_SYNC_EVERY", "4")))  # samples between road syncs (4 x 15 s)
 BRIDGE_TIMEOUT = float(os.environ.get("CAMS_BRIDGE_TIMEOUT", "6"))
 BRIDGE_SUB_SUFFIX = "-sub"
-BRIDGE_ROADS = ("bridge", "direct", "auto")
+BRIDGE_ROADS = ("bridge", "direct", "kvs", "auto")
 BRIDGE_LOCK = threading.Lock()
+# One writer of the roads record at a time: the sampler's sync, the road judge
+# (DR-1097) and the owner's road pick each load, change and save it.
+ROADS_LOCK = threading.RLock()
 BRIDGE_LAST = {}  # the last sync, for /health: {at, reachable, known, bridged, unknown, moved}
 _LAN_CACHE = {"at": 0.0, "nets": None}
 LAN_CACHE_SECONDS = 600.0
@@ -1452,6 +1461,143 @@ def bridge_source(uri):
     return "%s/%s%s" % (base, uri, BRIDGE_ROAD_OPTS)
 
 
+# WYZE'S OWN WEBRTC ROAD (DR-1097; Darrell 2026-10-17: "Cameras never work!!!!!!!!!!!
+# Fix it!!!!!"). camera-health 39068529374 with probe_all: 3 of 31 cameras gave a
+# frame. cams-diag 39068531141: 60 of go2rtc's 62 streams ride the bridge, and the
+# bridge's TUTK peer road answers IOTC_ER_DEVICE_OFFLINE or IOTC_ER_TIMEOUT for
+# every camera but great-room and kitchen-2, while the Wyze app shows them live.
+# That is not ours alone: mrlt8/docker-wyze-bridge issue #1544 (2026-07-07, the
+# same 2.10.3 we pin) reads the same two errors on every stream with the cameras
+# live in the Wyze app, and the IDisposable fork's README says Wyze disabled TUTK
+# on newer firmware in 2025 and falls back to WebRTC. The Wyze app and its web
+# view watch through Wyze's WebRTC (AWS Kinesis Video Streams), which needs no
+# road to the camera's LAN and no TUTK. The bridge we already run serves that
+# road's signaling (`/signaling/<cam>?kvs`, app/frontend.py -> get_kvs_signal ->
+# wyzecam.api.get_cam_webrtc), and go2rtc consumes it as
+# `webrtc:http://.../signaling/<cam>?kvs#format=wyze` (internal/webrtc/README.md).
+# The route sits behind the bridge's WEB sign-in (HTTPBasicAuth, WB_USERNAME +
+# WB_PASSWORD; the API key opens only its API paths), so the line go2rtc holds
+# carries those two. They stay where the stream key and the Wyze account already
+# are: root-only go2rtc.yaml and roads file, scrubbed wherever a URL is quoted,
+# the bridge itself bound to loopback.
+KVS_ON = os.environ.get("CAMS_KVS", "1") != "0"
+GO2RTC_RTSP = os.environ.get("CAMS_GO2RTC_RTSP", "rtsp://127.0.0.1:8554")
+
+
+def bridge_web_auth(path=None):
+    """The bridge's WEB sign-in (user, password): WB_USERNAME (the bridge's default
+    is wbadmin) and WB_PASSWORD from its env file; ("", "") when either is missing."""
+    env = read_env_pairs(path or BRIDGE_ENV)
+    user, pw = env.get("WB_USERNAME") or "wbadmin", env.get("WB_PASSWORD", "")
+    return (user, pw) if pw else ("", "")
+
+
+def _bridge_api_netloc():
+    try:
+        u = urllib.parse.urlsplit(BRIDGE_API)
+        return (u.hostname or "", u.port or 80)
+    except ValueError:
+        return ("", 0)
+
+
+def kvs_source(uri, path=None):
+    """go2rtc's line for Wyze's WebRTC road through the bridge's signaling; None without the web sign-in."""
+    user, pw = bridge_web_auth(path)
+    host, port = _bridge_api_netloc()
+    if not (user and pw and host and uri):
+        return None
+    return "webrtc:http://%s:%s@%s:%d/signaling/%s?kvs#format=wyze" % (
+        urllib.parse.quote(user, safe=""), urllib.parse.quote(pw, safe=""), host, port, urllib.parse.quote(str(uri), safe=""))
+
+
+def is_kvs_source(url):
+    """A webrtc: line asking the bridge's signaling for Wyze's Kinesis road (credentials or none)."""
+    if not isinstance(url, str) or not url.startswith("webrtc:"):
+        return False
+    try:
+        u = urllib.parse.urlsplit(url[len("webrtc:"):].partition("#")[0])
+    except ValueError:
+        return False
+    return (u.hostname or "", u.port or 80) == _bridge_api_netloc() and u.path.startswith("/signaling/") and "kvs" in urllib.parse.parse_qs(u.query, keep_blank_values=True)
+
+
+def kvs_uri_of(url):
+    try:
+        return urllib.parse.unquote(urllib.parse.urlsplit(url[len("webrtc:"):].partition("#")[0]).path.rsplit("/", 1)[-1])
+    except (ValueError, TypeError):
+        return ""
+
+
+def restream_source(stream_id):
+    """go2rtc's own RTSP restream of a stream: an SD twin that shares the main stream's one session."""
+    return "%s/%s" % (GO2RTC_RTSP.rstrip("/"), stream_id)
+
+
+def bridge_kvs_signal(uri, api=None, auth=None, timeout=15.0):
+    """Ask the bridge whether Wyze offers its WebRTC road for this camera -> {"result": str}.
+    "ok" means Wyze answered with a signaling channel; anything else is Wyze's or the
+    bridge's own word ("Camera does not support WebRTC", "cam not found", HTTP 401).
+    Never returns the signaling URL or its credentials."""
+    api = (api or BRIDGE_API).rstrip("/")
+    user, pw = auth if auth is not None else bridge_web_auth()
+    if not (user and pw):
+        return {"result": "no-web-sign-in"}
+    req = urllib.request.Request(api + "/signaling/%s?kvs" % urllib.parse.quote(str(uri), safe=""),
+                                 headers={"Authorization": "Basic " + base64.b64encode(("%s:%s" % (user, pw)).encode("utf-8")).decode("ascii")})
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            doc = json.loads(r.read(256 * 1024).decode("utf-8"))
+    except urllib.error.HTTPError as e:
+        return {"result": "bridge answered HTTP %d" % e.code}
+    except (urllib.error.URLError, OSError, ValueError) as e:
+        return {"result": "bridge-unreachable: %s" % scrub_text(getattr(e, "reason", e), 120)}
+    if not isinstance(doc, dict):
+        return {"result": "bridge answered no object"}
+    return {"result": scrub_text(doc.get("result") or "no result", 160)}
+
+
+KVS_PROBE_SECONDS = float(os.environ.get("CAMS_KVS_PROBE_SECONDS", "30"))
+KVS_PROBE_BYTES = int(os.environ.get("CAMS_KVS_PROBE_BYTES", "16384"))
+
+
+def stream_bytes(upstream, stream_id, seconds=None, want=None, opener=None):
+    """Read the camera's live MP4 from go2rtc (the stream the app's live view
+    opens) until `want` bytes or `seconds` pass -> {ok, bytes, ms, error?}.
+    ms is the time to `want` bytes when ok. Bounded: never longer than seconds."""
+    seconds = KVS_PROBE_SECONDS if seconds is None else float(seconds)
+    want = KVS_PROBE_BYTES if want is None else int(want)
+    opener = opener or urllib.request.urlopen
+    t0 = time.time()
+    got = 0
+    try:
+        # go2rtc holds the answer until the producer has dialled the camera, and a
+        # Kinesis connect (signaling, ICE, DTLS, the first key frame) can take most
+        # of the window: the connect gets the whole probe, not a slice of it.
+        r = opener(upstream.rstrip("/") + "/api/stream.mp4?src=" + urllib.parse.quote(stream_id), timeout=seconds)
+    except urllib.error.HTTPError as e:
+        return {"ok": False, "bytes": 0, "ms": int((time.time() - t0) * 1000), "error": scrub_text(e.read(1024).decode("utf-8", "replace").strip() or ("HTTP %d" % e.code), 200)}
+    except (urllib.error.URLError, OSError, ValueError) as e:
+        return {"ok": False, "bytes": 0, "ms": int((time.time() - t0) * 1000), "error": scrub_text(getattr(e, "reason", e), 200)}
+    try:
+        while got < want and time.time() - t0 < seconds:
+            try:
+                chunk = r.read(min(65536, want - got))
+            except (socket.timeout, OSError):
+                break
+            if not chunk:
+                break
+            got += len(chunk)
+    finally:
+        try:
+            r.close()
+        except Exception:  # noqa: BLE001
+            pass
+    ms = int((time.time() - t0) * 1000)
+    if got >= want:
+        return {"ok": True, "bytes": got, "ms": ms}
+    return {"ok": False, "bytes": got, "ms": ms, "error": "%d bytes in %d s" % (got, int(seconds)) if got else "no byte in %d s" % int(seconds)}
+
+
 def _query_of(url):
     try:
         return urllib.parse.parse_qs(urllib.parse.urlsplit(str(url)).query)
@@ -1498,7 +1644,7 @@ def readdress(url, ip):
     """The same wyze:// line at the address Wyze reports today. The line itself
     when the address is the same, missing or not an address, or the line is
     not a direct Wyze line. Pure."""
-    if kind_of(url) != "wyze" or is_bridge_source(url) or not ip:
+    if kind_of(url) != "wyze" or is_bridge_source(url) or is_kvs_source(url) or not ip:
         return url
     try:
         ipaddress.ip_address(str(ip))
@@ -1565,7 +1711,7 @@ def lan_networks(now=None, runner=None, env=None):
 
 def bridge_road_wanted(url, lans):
     """Does this wyze:// source need the bridge? (wanted, reason). Pure."""
-    if kind_of(url) != "wyze" or is_bridge_source(url):
+    if kind_of(url) != "wyze" or is_bridge_source(url) or is_kvs_source(url):
         return False, ""
     host = host_of(url)
     if host and lans:
@@ -1611,7 +1757,8 @@ def roads_public(doc):
         if isinstance(rec, dict):
             out[sid] = {"road": rec.get("road") or "direct", "uri": rec.get("uri"), "reason": rec.get("reason"),
                         "since": rec.get("since"), "forced": rec.get("forced"),
-                        "readdressed": rec.get("readdressed"), "why": rec.get("why")}
+                        "readdressed": rec.get("readdressed"), "why": rec.get("why"),
+                        "judged": rec.get("judged")}
     return out
 
 
@@ -1690,7 +1837,49 @@ def ensure_bridge_roads(upstream, streams, bridge_cams, lans=None, roads=None, l
         if not url:
             continue
         rec = roads.get(sid) if isinstance(roads.get(sid), dict) else {}
-        forced = rec.get("forced") if rec.get("forced") in ("bridge", "direct") else None
+        forced = rec.get("forced") if rec.get("forced") in ("bridge", "direct", "kvs") else None
+        # WYZE'S OWN WEBRTC ROAD (DR-1097). A camera on it belongs to the judge
+        # (judge_pass); here it is only re-signed when the bridge's web sign-in
+        # changed, moved off when the owner picks another road, and put on it
+        # when the owner picks "kvs".
+        if is_kvs_source(url) or forced == "kvs":
+            if is_kvs_source(url):
+                uri = rec.get("uri") or kvs_uri_of(url)
+            elif is_bridge_source(url):
+                uri = rec.get("uri") or urllib.parse.urlsplit(url.partition("#")[0]).path.rsplit("/", 1)[-1]
+            else:
+                uri = rec.get("uri") or by_mac.get(mac_of(url), "")
+            on_kvs = is_kvs_source(url)
+            if on_kvs and forced == "bridge" and uri:
+                target, road = bridge_source(uri), "bridge"
+            elif on_kvs and forced == "direct" and rec.get("direct"):
+                target, road = rec["direct"], "direct"
+            else:
+                target, road = (kvs_source(uri) if uri else None), "kvs"
+            if not target or (road == "kvs" and on_kvs and rec.get("kvs") == target):
+                out["kept"] += 1
+                continue
+            if not set_stream_source(upstream, sid, target, config_path, log):
+                continue
+            twin = restream_source(sid) if road == "kvs" else sd_source(target)
+            if twin:
+                set_stream_source(upstream, sd_of(sid), twin, config_path, log)
+            if road == "kvs":
+                roads[sid] = dict(rec, road="kvs", kvs=target, uri=uri, forced=forced,
+                                  since=rec.get("since") if on_kvs else now, reason=rec.get("reason") if on_kvs else "forced",
+                                  bridge=rec.get("bridge") or (url if is_bridge_source(url) else None),
+                                  direct=rec.get("direct") or (url if not on_kvs and not is_bridge_source(url) else None))
+                (out["resigned"] if on_kvs else out.setdefault("to_kvs", [])).append(sid)
+                log("bridge-road: %s %s Wyze's own WebRTC road (Kinesis, through the bridge's signaling)" % (sid, "re-signed on" if on_kvs else "now rides"))
+            elif road == "bridge":
+                roads[sid] = dict(rec, road="bridge", bridge=target, uri=uri, since=now, forced=forced, reason="forced")
+                out["to_bridge"].append(sid)
+                log("bridge-road: %s now rides the Wyze bridge as %s (forced)" % (sid, uri))
+            else:
+                roads[sid] = dict(rec, road="direct", since=now, forced=forced, reason="forced")
+                out["to_direct"].append(sid)
+                log("bridge-road: %s is back on go2rtc's direct road (forced)" % sid)
+            continue
         if kind_of(url) == "wyze" and not is_bridge_source(url):
             # THE ADDRESS WYZE REPORTS TODAY (DR-0835): a direct line dialling
             # an address the camera no longer holds is re-addressed first, twin
@@ -1786,6 +1975,7 @@ def ensure_bridge_roads(upstream, streams, bridge_cams, lans=None, roads=None, l
         BRIDGE_LAST.clear()
         BRIDGE_LAST.update({"at": now, "reachable": bridge_cams is not None, "known": len(by_mac),
                             "bridged": sum(1 for r in roads.values() if isinstance(r, dict) and r.get("road") == "bridge"),
+                            "kvs": sum(1 for r in roads.values() if isinstance(r, dict) and r.get("road") == "kvs"),
                             "unknown": list(out["unknown"]), "moved": len(out["to_bridge"]) + len(out["to_direct"])})
     return out
 
@@ -1793,7 +1983,8 @@ def ensure_bridge_roads(upstream, streams, bridge_cams, lans=None, roads=None, l
 def bridge_snapshot():
     with BRIDGE_LOCK:
         last = dict(BRIDGE_LAST)
-    return {"configured": bridge_configured(), "api": BRIDGE_API, "rtsp": BRIDGE_RTSP, "last": last}
+    return {"configured": bridge_configured(), "api": BRIDGE_API, "rtsp": BRIDGE_RTSP, "last": last,
+            "kvs_on": KVS_ON, "judge": judge_snapshot()}
 
 
 def sync_bridge_roads(upstream, streams=None, log=print, config_path=None, roads_path=None, only=None):
@@ -1809,8 +2000,214 @@ def sync_bridge_roads(upstream, streams=None, log=print, config_path=None, roads
         with BRIDGE_LOCK:
             BRIDGE_LAST.update({"at": time.time(), "reachable": False})
         return None
-    return ensure_bridge_roads(upstream, streams, cams, log=log, config_path=config_path, roads_path=roads_path, only=only,
-                               failing=failing_cameras(), unreachable=STREAM_HEALTH.unreachable_cameras())
+    with ROADS_LOCK:
+        return ensure_bridge_roads(upstream, streams, cams, log=log, config_path=config_path, roads_path=roads_path, only=only,
+                                   failing=failing_cameras(), unreachable=STREAM_HEALTH.unreachable_cameras())
+
+
+# THE ROAD JUDGE (DR-1097). A road is kept because it carried video, never
+# because of its address or its name. A Wyze camera on the bridge or on Wyze's
+# WebRTC road that gave no byte for KVS_DARK_SECONDS (or none the sampler
+# remembers) is judged: its current road is read the way the app's live view
+# reads it (stream_bytes); when that carries nothing, the other road is put on
+# the same stream and read the same way; the road that carried video stays,
+# and when neither did the camera is put back where it was and named dark on
+# both. Every verdict is kept in the roads record (`judged`) and printed by
+# cams-diag and /streams/roads, so "why is this tile blank" has a measured
+# answer per camera.
+# BRAKES (deterministic class, DR-0248): a budget (KVS_JUDGE_PER_PASS cameras,
+# each probe bounded by KVS_PROBE_SECONDS, the pass by KVS_PASS_SECONDS), a
+# lock (one pass at a time, in its own thread, so the sampler never waits on
+# Wyze), and a camera judged is not judged again for KVS_REJUDGE_SECONDS.
+# Stop-path: CAMS_KVS=0. A camera the owner pinned to a road is never judged.
+KVS_JUDGE_PER_PASS = max(1, int(os.environ.get("CAMS_KVS_JUDGE_PER_PASS", "3")))
+KVS_DARK_SECONDS = float(os.environ.get("CAMS_KVS_DARK_SECONDS", "900"))
+KVS_REJUDGE_SECONDS = float(os.environ.get("CAMS_KVS_REJUDGE_SECONDS", "3600"))
+KVS_PASS_SECONDS = float(os.environ.get("CAMS_KVS_PASS_SECONDS", "240"))
+_JUDGE_LOCK = threading.Lock()
+JUDGE_LAST = {}  # the last pass, for /health: {at, judged, moved, dark, kept}
+
+
+def current_source(upstream, stream_id, timeout=None):
+    """The source go2rtc holds for one stream right now; None when it has none or does not answer."""
+    try:
+        with urllib.request.urlopen(upstream.rstrip("/") + "/api/streams", timeout=timeout or HEALTH_TIMEOUT) as r:
+            streams = json.loads(r.read(4 * 1024 * 1024).decode("utf-8"))
+    except (urllib.error.URLError, OSError, ValueError):
+        return None
+    return stream_source_url(streams.get(stream_id)) if isinstance(streams, dict) else None
+
+
+def judge_candidates(streams, roads, health=None, now=None, dark=None, rejudge=None):
+    """The Wyze cameras to judge, in order (never judged first, then the longest
+    since judged): on the bridge or Wyze's WebRTC road, not pinned by the owner,
+    not judged within `rejudge`, and no byte for `dark` seconds."""
+    health = health or STREAM_HEALTH
+    now = time.time() if now is None else now
+    dark = KVS_DARK_SECONDS if dark is None else float(dark)
+    rejudge = KVS_REJUDGE_SECONDS if rejudge is None else float(rejudge)
+    out = []
+    for sid, entry in (streams or {}).items():
+        if not CAMERA_ID.match(str(sid)) or is_twin(sid) or not isinstance(entry, dict):
+            continue
+        url = stream_source_url(entry)
+        if not url or not (is_bridge_source(url) or is_kvs_source(url)):
+            continue
+        rec = roads.get(sid) if isinstance(roads.get(sid), dict) else {}
+        if rec.get("forced"):
+            continue
+        j = rec.get("judged") if isinstance(rec.get("judged"), dict) else {}
+        if j.get("at") and now - float(j["at"]) < rejudge:
+            continue
+        last = health.last_bytes_at(sid)
+        if last is not None and now - last < dark:
+            continue
+        out.append((float(j.get("at") or 0), sid))
+    return [sid for _, sid in sorted(out)]
+
+
+def _uri_from(url, rec):
+    if rec.get("uri"):
+        return rec["uri"]
+    if is_kvs_source(url):
+        return kvs_uri_of(url)
+    if is_bridge_source(url):
+        return urllib.parse.urlsplit(url.partition("#")[0]).path.rsplit("/", 1)[-1]
+    return ""
+
+
+def judge_camera(upstream, sid, log=print, now=None, probe=None, signal=None, config_path=None, roads_path=None):
+    """Judge one camera's road by the video it carries (see THE ROAD JUDGE). Answers the verdict kept in the record."""
+    now = time.time() if now is None else now
+    probe = probe or (lambda up, s: stream_bytes(up, s))
+    signal = signal or bridge_kvs_signal
+    cur = current_source(upstream, sid)
+    if not cur or not (is_bridge_source(cur) or is_kvs_source(cur)):
+        return {"at": now, "skipped": "not on the bridge or Wyze's WebRTC road"}
+    cur_road = "kvs" if is_kvs_source(cur) else "bridge"
+    verdict = {"at": now, "current": cur_road, "current_probe": probe(upstream, sid)}
+
+    def keep(rec_update=None, line=None):
+        with ROADS_LOCK:
+            roads = roads_load(roads_path)
+            rec = roads.get(sid) if isinstance(roads.get(sid), dict) else {}
+            rec = dict(rec, **(rec_update or {}))
+            rec["judged"] = verdict
+            roads[sid] = rec
+            roads_save(roads, roads_path)
+        if line:
+            log(line)
+        return verdict
+
+    if verdict["current_probe"].get("ok"):
+        verdict["kept"] = cur_road
+        return keep()
+    with ROADS_LOCK:
+        rec = roads_load(roads_path).get(sid) or {}
+    uri = _uri_from(cur, rec)
+    if not uri:
+        verdict["kept"] = cur_road
+        verdict["why"] = "the bridge's name for this camera is unknown"
+        return keep()
+    if cur_road == "bridge":
+        sig = signal(uri)
+        verdict["kvs_signal"] = sig.get("result")
+        if sig.get("result") != "ok":
+            verdict["kept"] = cur_road
+            verdict["dark"] = True
+            return keep(line="judge: %s gives no video on the bridge (%s), and Wyze offers no WebRTC road for it: %s" % (sid, verdict["current_probe"].get("error"), sig.get("result")))
+        alt, alt_road = kvs_source(uri), "kvs"
+    else:
+        alt, alt_road = bridge_source(uri), "bridge"
+    if not alt:
+        verdict["kept"] = cur_road
+        verdict["why"] = "no line for the %s road (the bridge's sign-in is missing)" % alt_road
+        return keep()
+    with ROADS_LOCK:
+        if current_source(upstream, sid) != cur:
+            verdict["skipped"] = "the road changed while it was judged"
+            return verdict
+        if not set_stream_source(upstream, sid, alt, config_path, log):
+            verdict["kept"] = cur_road
+            verdict["why"] = "go2rtc would not take the %s line" % alt_road
+            return keep()
+    verdict["alt"] = alt_road
+    verdict["alt_probe"] = probe(upstream, sid)
+    if verdict["alt_probe"].get("ok"):
+        twin = restream_source(sid) if alt_road == "kvs" else sd_source(alt)
+        if twin:
+            set_stream_source(upstream, sd_of(sid), twin, config_path, log)
+        verdict["kept"] = alt_road
+        upd = {"road": alt_road, "uri": uri, "since": now}
+        if alt_road == "kvs":
+            upd.update({"kvs": alt, "bridge": rec.get("bridge") or cur, "reason": "tutk-dark"})
+        else:
+            upd.update({"bridge": alt, "reason": "kvs-dark"})
+        return keep(upd, "judge: %s now rides %s: %d bytes in %d ms (the %s road gave %s)" % (
+            sid, "Wyze's own WebRTC road" if alt_road == "kvs" else "the Wyze bridge", verdict["alt_probe"].get("bytes", 0),
+            verdict["alt_probe"].get("ms", 0), cur_road, verdict["current_probe"].get("error") or "nothing"))
+    back = (rec.get("bridge") if cur_road == "bridge" else rec.get("kvs")) or cur
+    set_stream_source(upstream, sid, back, config_path, log)
+    verdict["kept"] = cur_road
+    verdict["dark"] = True
+    return keep(line="judge: %s is dark on both roads: the bridge gave %s; Wyze's WebRTC gave %s" % (
+        sid, (verdict["current_probe"] if cur_road == "bridge" else verdict["alt_probe"]).get("error"),
+        (verdict["alt_probe"] if cur_road == "bridge" else verdict["current_probe"]).get("error")))
+
+
+def judge_pass(upstream, log=print, config_path=None, roads_path=None, now=None, probe=None, signal=None, health=None, clock=None):
+    """One bounded pass of the road judge. Answers the summary kept for /health."""
+    clock = clock or time.time
+    t0 = clock()
+    now = t0 if now is None else now
+    try:
+        with urllib.request.urlopen(upstream.rstrip("/") + "/api/streams", timeout=HEALTH_TIMEOUT) as r:
+            streams = json.loads(r.read(4 * 1024 * 1024).decode("utf-8"))
+    except (urllib.error.URLError, OSError, ValueError):
+        return None
+    with ROADS_LOCK:
+        roads = roads_load(roads_path)
+    todo = judge_candidates(streams, roads, health=health, now=now)
+    summary = {"at": now, "waiting": len(todo), "judged": [], "moved": [], "dark": [], "kept": []}
+    for sid in todo[:KVS_JUDGE_PER_PASS]:
+        if clock() - t0 > KVS_PASS_SECONDS:
+            break
+        v = judge_camera(upstream, sid, log=log, now=clock(), probe=probe, signal=signal, config_path=config_path, roads_path=roads_path)
+        summary["judged"].append(sid)
+        if v.get("alt") and v.get("kept") == v.get("alt"):
+            summary["moved"].append(sid)
+        elif v.get("dark"):
+            summary["dark"].append(sid)
+        elif v.get("kept"):
+            summary["kept"].append(sid)
+    with BRIDGE_LOCK:
+        JUDGE_LAST.clear()
+        JUDGE_LAST.update(summary)
+    return summary
+
+
+def start_judge(upstream, log=print, config_path=None):
+    """Start one judge pass in its own thread unless one is running. Answers whether it started."""
+    if not KVS_ON or not bridge_configured():
+        return False
+    if not _JUDGE_LOCK.acquire(blocking=False):
+        return False
+
+    def run():
+        try:
+            judge_pass(upstream, log=log, config_path=config_path)
+        except Exception as e:  # noqa: BLE001 -- one surprise never stops the next pass
+            log("judge: %s" % scrub_text(e, 200))
+        finally:
+            _JUDGE_LOCK.release()
+
+    threading.Thread(target=run, name="cams-road-judge", daemon=True).start()
+    return True
+
+
+def judge_snapshot():
+    with BRIDGE_LOCK:
+        return dict(JUDGE_LAST)
 
 
 _BRIDGE_TICK = {"n": 0}
@@ -2004,6 +2401,18 @@ class StreamHealth:
         return {"tries": tries, "since_bytes": now - (last_bytes_at if last_bytes_at is not None else c["first"]),
                 "since_try": (now - last_try) if last_try is not None else None}
 
+    def last_bytes_at(self, sid):
+        """When this camera last carried bytes in the sampler's memory; None when never."""
+        with self.lock:
+            c = self.cams.get(sid)
+            if not c:
+                return None
+            last = None
+            for x in c["samples"]:
+                if x["present"] and x["kbps"] is not None and x["kbps"] > 0:
+                    last = x["t"]
+            return last
+
     def unreachable_cameras(self, now=None, dead=None, dry=None):
         """The cameras somebody has been trying to watch that gave no byte for
         the dead window over at least `dry` tries, the last try recent."""
@@ -2102,6 +2511,8 @@ def sample_streams_once(upstream, health=None, log=print, health_file=None, twin
                 sync_bridge_roads(upstream, streams=streams, log=log, config_path=config_path)
             except Exception as e:  # noqa: BLE001 -- the sampler outlives any one surprise
                 log("bridge-road: %s" % e)
+            # The road judge (DR-1097) runs beside the sampler, never inside it.
+            start_judge(upstream, log=log, config_path=config_path)
         ensure_h264_twins(upstream, streams.keys(), summary, log=log, config_path=config_path)
         if SD_TWINS:
             ensure_sd_twins(upstream, streams, log=log, config_path=config_path)
@@ -2653,12 +3064,15 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
             road = str(body.get("road") or "").strip().lower()
             if road not in BRIDGE_ROADS:
                 return self._json(400, {"error": "bad-road", "roads": list(BRIDGE_ROADS)})
-            roads = roads_load()
-            rec = roads.get(cam) if isinstance(roads.get(cam), dict) else {}
-            rec["forced"] = None if road == "auto" else road
-            roads[cam] = rec
-            roads_save(roads)
-            if road == "bridge" and not bridge_configured():
+            with ROADS_LOCK:
+                roads = roads_load()
+                rec = roads.get(cam) if isinstance(roads.get(cam), dict) else {}
+                rec["forced"] = None if road == "auto" else road
+                if road == "auto":
+                    rec.pop("judged", None)  # "let the NAS choose" asks the judge again at once
+                roads[cam] = rec
+                roads_save(roads)
+            if road in ("bridge", "kvs") and not bridge_configured():
                 return self._json(409, {"error": "bridge-not-configured", "detail": "sign in to Wyze in the Cameras tab first; the bridge takes the same sign-in"})
             res = sync_bridge_roads(upstream, only=cam)
             if res is None:
@@ -3234,6 +3648,10 @@ def make_handler(upstream, token, max_live=MAX_LIVE, live_max_seconds=LIVE_MAX_S
                     out["probe"] = {"status": 0, "ok": False, "error": scrub_text(getattr(e, "reason", e), 200), "ms": int((time.time() - t0) * 1000)}
             except (OSError, ValueError) as e:
                 out["probe"] = {"status": 0, "ok": False, "error": scrub_text(e, 200), "ms": int((time.time() - t0) * 1000)}
+            # The road this camera takes and the judge's last measurement of it (DR-1097); never a line.
+            rec = roads_load().get(cam)
+            if isinstance(rec, dict):
+                out["road"] = roads_public({cam: rec}).get(cam)
             return self._json(200, out)
 
         def _playlist(self, cam, query, up, at_root):
@@ -4509,6 +4927,215 @@ def _selftest():
     check(s == 409 and b"bridge-not-configured" in d, "forcing the bridge before the sign-in says what is missing")
     BRIDGE_ENV = br_env
     fb.shutdown(); fr.shutdown()
+
+    print("=== 8p. Wyze's own WebRTC road: a road is kept because it carried video (DR-1097) ===")
+    kv_env = os.path.join(br_tmp, "kvs-bridge.env")
+    with open(kv_env, "w") as fh:
+        fh.write('WB_API="BRKEY"\nWB_PASSWORD="web-pw"\nWB_USERNAME="poetech"\n')
+    saved_env, saved_api = BRIDGE_ENV, BRIDGE_API
+    BRIDGE_ENV = kv_env
+
+    class FakeKvsBridge(BaseHTTPRequestHandler):
+        answers = {"805-north": "ok", "garage-doors": "Camera does not support WebRTC"}
+
+        def log_message(self, *a):
+            pass
+
+        def do_GET(self):
+            path, _, query = self.path.partition("?")
+            want = "Basic " + base64.b64encode(b"poetech:web-pw").decode("ascii")
+            if self.headers.get("Authorization") != want:
+                self.send_response(401); self.end_headers(); return
+            m = re.match(r"^/signaling/([^/]+)$", path)
+            if not m or "kvs" not in urllib.parse.parse_qs(query, keep_blank_values=True):
+                self.send_response(404); self.end_headers(); return
+            cam = urllib.parse.unquote(m.group(1))
+            res = self.answers.get(cam, "cam not found")
+            doc = {"result": res, "cam": cam}
+            if res == "ok":
+                doc.update({"signalingUrl": "wss://kinesis.example/?X-Amz-Signature=SECRET", "ClientId": "c1", "servers": [{"urls": "turn:x", "username": "u", "credential": "SECRET"}]})
+            body = json.dumps(doc).encode("utf-8")
+            self.send_response(200); self.send_header("Content-Type", "application/json"); self.send_header("Content-Length", str(len(body))); self.end_headers(); self.wfile.write(body)
+
+    fkb = ThreadingHTTPServer(("127.0.0.1", 0), FakeKvsBridge)
+    fkb.daemon_threads = True
+    threading.Thread(target=fkb.serve_forever, daemon=True).start()
+    BRIDGE_API = "http://127.0.0.1:%d" % fkb.server_address[1]
+    ksrc = kvs_source("805-north")
+    check(ksrc == "webrtc:http://poetech:web-pw@127.0.0.1:%d/signaling/805-north?kvs#format=wyze" % fkb.server_address[1], "the Kinesis line is go2rtc's documented webrtc:...?kvs#format=wyze, signed with the bridge's WEB sign-in (%r)" % ksrc)
+    check(is_kvs_source(ksrc) and is_kvs_source(ksrc.replace("poetech:web-pw@", "")) and not is_kvs_source(bridge_source("805-north")) and not is_kvs_source("webrtc:http://192.168.1.9:%d/signaling/x?kvs#format=wyze" % fkb.server_address[1]) and not is_kvs_source("webrtc:http://127.0.0.1:%d/signaling/x#format=wyze" % fkb.server_address[1]), "only a ?kvs signaling line on the bridge's own address is the Kinesis road")
+    check(kvs_uri_of(ksrc) == "805-north" and kind_of(ksrc) == "wyze" and sd_source(ksrc) is None and bridge_road_wanted(ksrc, lans) == (False, "") and readdress(ksrc, "192.168.1.10") == ksrc, "a Kinesis camera is still a Wyze camera; no twin is derived from it, no road wanted, never re-addressed")
+    check(restream_source("805_north") == "rtsp://127.0.0.1:8554/805_north" and not is_bridge_source(restream_source("805_north")), "its SD twin is go2rtc's own restream of it: one Kinesis session, not two")
+    BRIDGE_ENV = os.path.join(br_tmp, "absent.env")
+    check(kvs_source("805-north") is None and bridge_kvs_signal("805-north") == {"result": "no-web-sign-in"}, "without the bridge's web sign-in there is no Kinesis line and nothing is asked")
+    BRIDGE_ENV = kv_env
+    sig = bridge_kvs_signal("805-north")
+    check(sig == {"result": "ok"}, "Wyze's answer is read as its result alone: the signed signaling URL and TURN credential never leave the function (%r)" % sig)
+    check(bridge_kvs_signal("garage-doors") == {"result": "Camera does not support WebRTC"} and bridge_kvs_signal("nope") == {"result": "cam not found"}, "a camera Wyze gives no WebRTC road is named in Wyze's own words")
+    check(bridge_kvs_signal("805-north", auth=("poetech", "wrong")) == {"result": "bridge answered HTTP 401"}, "a wrong web sign-in is named, not hidden")
+
+    class FakeGo2rtcKvs(BaseHTTPRequestHandler):
+        state = {"src": {}, "puts": [], "live": set(), "hang": False}
+
+        def log_message(self, *a):
+            pass
+
+        def do_PUT(self):
+            path, _, query = self.path.partition("?")
+            q = urllib.parse.parse_qs(query)
+            name, src = q.get("name", [""])[0], q.get("src", [""])[0]
+            self.state["puts"].append((name, src))
+            self.state["src"][name] = src
+            self.send_response(200); self.send_header("Content-Length", "2"); self.end_headers(); self.wfile.write(b"{}")
+
+        def do_GET(self):
+            path, _, query = self.path.partition("?")
+            if path == "/api/streams":
+                body = json.dumps(dict((k, {"producers": [{"url": v}]}) for k, v in self.state["src"].items())).encode("utf-8")
+                self.send_response(200); self.send_header("Content-Length", str(len(body))); self.end_headers(); self.wfile.write(body); return
+            if path == "/api/stream.mp4":
+                name = urllib.parse.parse_qs(query).get("src", [""])[0]
+                src = self.state["src"].get(name, "")
+                road = "kvs" if is_kvs_source(src) else ("bridge" if is_bridge_source(src) else "other")
+                if (name, road) not in self.state["live"]:
+                    if self.state["hang"]:
+                        self.send_response(200); self.end_headers(); time.sleep(2.5); return
+                    self.send_response(500); self.end_headers(); self.wfile.write(b"streams: read tcp 127.0.0.1:1->127.0.0.1:8555: i/o timeout"); return
+                self.send_response(200); self.end_headers()
+                for _i in range(4):
+                    self.wfile.write(b"\0" * 8192)
+                return
+            self.send_response(404); self.end_headers()
+
+    fgk = ThreadingHTTPServer(("127.0.0.1", 0), FakeGo2rtcKvs)
+    fgk.daemon_threads = True
+    fgk.handle_error = lambda *_a: None  # a probe that hangs up after its bytes is the point, not an error
+    threading.Thread(target=fgk.serve_forever, daemon=True).start()
+    kup = "http://127.0.0.1:%d" % fgk.server_address[1]
+    G = FakeGo2rtcKvs.state
+    G["live"] = {("cam_a", "kvs")}
+    G["src"] = {"cam_a": bridge_source("805-north")}
+    sb = stream_bytes(kup, "cam_a", seconds=2)
+    check(sb["ok"] is False and sb["bytes"] == 0 and "i/o timeout" in sb["error"], "the byte probe reads the stream the app opens and names go2rtc's own failure (%r)" % sb)
+    G["src"]["cam_a"] = ksrc
+    sb = stream_bytes(kup, "cam_a", seconds=2)
+    check(sb["ok"] is True and sb["bytes"] >= KVS_PROBE_BYTES, "a road carrying video reads as ok with its byte count (%r)" % sb)
+    G["hang"] = True
+    G["src"]["cam_a"] = bridge_source("805-north")
+    t_h = time.time()
+    sb = stream_bytes(kup, "cam_a", seconds=1)
+    check(sb["ok"] is False and time.time() - t_h < 5 and sb["error"].startswith("no byte in"), "a stream that answers and sends nothing is bounded by the probe's own clock (%r)" % sb)
+    G["hang"] = False
+
+    kv_roads = os.path.join(br_tmp, "kvs-roads.json")
+    kv_cfg = os.path.join(br_tmp, "kvs-go2rtc.yaml")
+    with open(kv_cfg, "w") as fh:
+        fh.write('streams:\n  805_north: "%s"\n  805_north_sd: "%s"\n  garage_doors: "%s"\n' % (bridge_source("805-north"), bridge_source("805-north"), bridge_source("garage-doors")))
+    roads_save({"805_north": {"road": "bridge", "bridge": bridge_source("805-north"), "uri": "805-north", "reason": "direct-unreachable", "direct": "wyze://10.0.0.180?uid=A&enr=S1&mac=AA:BB:CC:DD:EE:01"},
+                "garage_doors": {"road": "bridge", "bridge": bridge_source("garage-doors"), "uri": "garage-doors", "reason": "no-dtls"}}, kv_roads)
+    G["src"] = {"805_north": bridge_source("805-north"), "805_north_sd": bridge_source("805-north"), "garage_doors": bridge_source("garage-doors")}
+    G["puts"] = []
+    G["live"] = {("805_north", "kvs")}  # Wyze's WebRTC carries 805 North; the bridge's TUTK does not
+    # PROVEN TO CATCH: the road sync alone (what ran before this record) leaves a camera dark on the bridge dark.
+    kv_streams = dict((k, {"producers": [{"url": v}]}) for k, v in G["src"].items())
+    before = ensure_bridge_roads(kup, kv_streams, [{"uri": "805-north", "mac": "AABBCCDDEE01", "ip": "10.0.0.180"}], lans=lans, roads=roads_load(kv_roads), log=lambda *_a: None, config_path=kv_cfg, roads_path=kv_roads, now=5000.0)
+    check(not before.get("to_kvs") and is_bridge_source(G["src"]["805_north"]), "PROVEN TO CATCH: the road sync alone keeps 805_north on the dark bridge; nothing before this record ever tried Wyze's WebRTC road")
+    kv_log = []
+    fast = lambda up, s: stream_bytes(up, s, seconds=2)
+    v = judge_camera(kup, "805_north", log=kv_log.append, now=6000.0, probe=fast, config_path=kv_cfg, roads_path=kv_roads)
+    rec = roads_load(kv_roads)["805_north"]
+    check(v["current"] == "bridge" and v["current_probe"]["ok"] is False and v["kvs_signal"] == "ok" and v["alt"] == "kvs" and v["kept"] == "kvs" and v["alt_probe"]["ok"] is True, "a camera dark on the bridge that Wyze offers WebRTC for is read on that road and kept there because it carried video (%r)" % v)
+    check(G["src"]["805_north"] == ksrc and G["src"]["805_north_sd"] == restream_source("805_north"), "go2rtc now holds the Kinesis line, and the SD twin restreams it")
+    check(rec["road"] == "kvs" and rec["reason"] == "tutk-dark" and rec["bridge"] == bridge_source("805-north") and rec["direct"].startswith("wyze://10.0.0.180") and rec["judged"]["kept"] == "kvs", "the record keeps the road, why, the bridge line to fall back to and the direct line, with the verdict")
+    cfg_kv = open(kv_cfg).read()
+    check('  805_north: "%s"' % ksrc in cfg_kv and '  805_north_sd: "%s"' % restream_source("805_north") in cfg_kv, "the config says what memory says")
+    check(any("now rides Wyze's own WebRTC road" in l and "bytes in" in l for l in kv_log), "the forwarder's log says which road the camera now rides and what it carried")
+    v2 = judge_camera(kup, "garage_doors", log=kv_log.append, now=6000.0, probe=fast, config_path=kv_cfg, roads_path=kv_roads)
+    check(v2["kvs_signal"] == "Camera does not support WebRTC" and v2["kept"] == "bridge" and v2["dark"] is True and "alt" not in v2 and G["src"]["garage_doors"] == bridge_source("garage-doors"), "a camera Wyze gives no WebRTC road is left on the bridge, named dark, in Wyze's own words, and nothing is switched (%r)" % v2)
+    # Dark on both roads: tried, then put back where it was.
+    G["live"] = set()
+    G["src"]["805_north"] = bridge_source("805-north")
+    roads_save(dict(roads_load(kv_roads), **{"805_north": {"road": "bridge", "bridge": bridge_source("805-north"), "uri": "805-north", "reason": "direct-unreachable"}}), kv_roads)
+    G["puts"] = []
+    v3 = judge_camera(kup, "805_north", log=kv_log.append, now=7000.0, probe=fast, config_path=kv_cfg, roads_path=kv_roads)
+    check(v3["kept"] == "bridge" and v3["dark"] is True and v3["alt_probe"]["ok"] is False and G["src"]["805_north"] == bridge_source("805-north") and ("805_north", ksrc) in G["puts"], "dark on both roads: the Kinesis road is tried, then the camera is put back on the bridge line it had (%r)" % v3)
+    check(any("dark on both roads" in l for l in kv_log), "and the log says so, with both roads' own failure")
+    # The bridge carries video: nothing is switched.
+    G["live"] = {("805_north", "bridge")}
+    G["puts"] = []
+    v4 = judge_camera(kup, "805_north", log=kv_log.append, now=8000.0, probe=fast, config_path=kv_cfg, roads_path=kv_roads)
+    check(v4["kept"] == "bridge" and v4["current_probe"]["ok"] is True and G["puts"] == [], "a camera the bridge carries is kept on the bridge and nothing is touched (a working peer road is never traded for the cloud)")
+    # A Kinesis camera that goes dark goes back to the bridge when the bridge carries it.
+    G["src"]["805_north"] = ksrc
+    roads_save(dict(roads_load(kv_roads), **{"805_north": {"road": "kvs", "kvs": ksrc, "bridge": bridge_source("805-north"), "uri": "805-north", "reason": "tutk-dark"}}), kv_roads)
+    v5 = judge_camera(kup, "805_north", log=kv_log.append, now=9000.0, probe=fast, config_path=kv_cfg, roads_path=kv_roads)
+    check(v5["current"] == "kvs" and v5["alt"] == "bridge" and v5["kept"] == "bridge" and G["src"]["805_north"] == bridge_source("805-north") and roads_load(kv_roads)["805_north"]["road"] == "bridge", "a Kinesis camera gone dark is read on the bridge and moved back when the bridge carries it")
+    pub_kv = json.dumps(roads_public(roads_load(kv_roads)))
+    check("web-pw" not in pub_kv and "SECRET" not in pub_kv and "webrtc:" not in pub_kv and "rtsp://" not in pub_kv and "judged" in pub_kv, "the public roads carry each verdict and no line, password or Wyze credential")
+
+    # Who is judged, and the brakes.
+    class FakeHealth:
+        def __init__(self, last):
+            self.last = last
+
+        def last_bytes_at(self, sid):
+            return self.last.get(sid)
+
+    js = {"a": {"producers": [{"url": bridge_source("a")}]}, "b": {"producers": [{"url": ksrc}]}, "c": {"producers": [{"url": bridge_source("c")}]},
+          "d": {"producers": [{"url": bridge_source("d")}]}, "e": {"producers": [{"url": "wyze://192.168.1.15?uid=A&enr=S"}]}, "f": {"producers": [{"url": bridge_source("f")}]},
+          "a_sd": {"producers": [{"url": bridge_source("a")}]}}
+    jr = {"c": {"forced": "bridge"}, "d": {"judged": {"at": 9500.0}}, "f": {"judged": {"at": 1000.0}}}
+    cands = judge_candidates(js, jr, health=FakeHealth({"b": 9990.0}), now=10000.0, dark=900, rejudge=3600)
+    check(cands == ["a", "f"], "judged: dark cameras on the bridge or Kinesis road, never judged first; not the one carrying bytes, not the owner's pinned one, not one judged within the hour, not a direct or twin stream (%r)" % cands)
+    G["live"] = {("805_north", "bridge")}
+    G["src"] = dict(("cam%d" % i, bridge_source("cam%d" % i)) for i in range(5))
+    tick = {"t": 20000.0}
+
+    def clk():
+        tick["t"] += 1.0
+        return tick["t"]
+
+    summ = judge_pass(kup, log=lambda *_a: None, roads_path=os.path.join(br_tmp, "kvs-roads-pass.json"), config_path=kv_cfg, probe=fast, signal=lambda u: {"result": "Camera does not support WebRTC"}, health=FakeHealth({}), clock=clk)
+    check(summ["waiting"] == 5 and len(summ["judged"]) == KVS_JUDGE_PER_PASS and summ["dark"] == summ["judged"], "a pass judges at most KVS_JUDGE_PER_PASS cameras of those waiting and names the dark ones (%r)" % summ)
+    tick["t"] = 30000.0
+    late = {"n": 0}
+
+    def clk_late():
+        late["n"] += 1
+        return 30000.0 if late["n"] == 1 else 30000.0 + KVS_PASS_SECONDS + 1
+
+    summ2 = judge_pass(kup, log=lambda *_a: None, roads_path=os.path.join(br_tmp, "kvs-roads-pass2.json"), config_path=kv_cfg, probe=fast, signal=lambda u: {"result": "x"}, health=FakeHealth({}), clock=clk_late)
+    check(summ2["judged"] == [], "a pass past its own clock stops before the next camera (the budget)")
+    check(_JUDGE_LOCK.acquire(blocking=False), "the judge's lock is free between passes")
+    check(start_judge(kup) is False, "while a pass holds the lock no second pass starts (the lock)")
+    _JUDGE_LOCK.release()
+    # The owner's hand: "kvs" puts a camera there; "bridge" takes it back.
+    G["src"] = {"805_north": bridge_source("805-north")}
+    G["puts"] = []
+    roads_save({"805_north": {"road": "bridge", "bridge": bridge_source("805-north"), "uri": "805-north", "forced": "kvs"}}, kv_roads)
+    fk = ensure_bridge_roads(kup, {"805_north": {"producers": [{"url": bridge_source("805-north")}]}}, [{"uri": "805-north", "mac": "AABBCCDDEE01"}], lans=lans, roads=roads_load(kv_roads), log=lambda *_a: None, config_path=kv_cfg, roads_path=kv_roads, now=11000.0)
+    check(fk.get("to_kvs") == ["805_north"] and G["src"]["805_north"] == ksrc and G["src"].get("805_north_sd") == restream_source("805_north"), "the owner's 'kvs' puts the camera on Wyze's WebRTC road with its restreamed twin (%r)" % fk)
+    fk2 = ensure_bridge_roads(kup, {"805_north": {"producers": [{"url": ksrc}]}}, [{"uri": "805-north", "mac": "AABBCCDDEE01"}], lans=lans, roads=roads_load(kv_roads), log=lambda *_a: None, config_path=kv_cfg, roads_path=kv_roads, now=11100.0)
+    check(fk2["kept"] == 1 and not fk2.get("to_kvs") and not fk2["resigned"], "a second sync leaves it alone")
+    with open(kv_env, "w") as fh:
+        fh.write('WB_API="BRKEY"\nWB_PASSWORD="new-web-pw"\nWB_USERNAME="poetech"\n')
+    fk3 = ensure_bridge_roads(kup, {"805_north": {"producers": [{"url": ksrc}]}}, [{"uri": "805-north", "mac": "AABBCCDDEE01"}], lans=lans, roads=roads_load(kv_roads), log=lambda *_a: None, config_path=kv_cfg, roads_path=kv_roads, now=11200.0)
+    check(fk3["resigned"] == ["805_north"] and "new-web-pw" in G["src"]["805_north"], "a changed web sign-in re-signs the Kinesis line once")
+    rk = roads_load(kv_roads); rk["805_north"]["forced"] = "bridge"; roads_save(rk, kv_roads)
+    fk4 = ensure_bridge_roads(kup, {"805_north": {"producers": [{"url": G["src"]["805_north"]}]}}, [{"uri": "805-north", "mac": "AABBCCDDEE01"}], lans=lans, roads=roads_load(kv_roads), log=lambda *_a: None, config_path=kv_cfg, roads_path=kv_roads, now=11300.0)
+    check(fk4["to_bridge"] == ["805_north"] and G["src"]["805_north"] == bridge_source("805-north") and roads_load(kv_roads)["805_north"]["road"] == "bridge", "the owner's 'bridge' takes it back off Wyze's WebRTC road")
+    check(camera_list({"x": {"producers": [{"url": ksrc}]}})[0]["road"] == "kvs" and camera_list({"x": {"producers": [{"url": ksrc}]}})[0]["kind"] == "wyze", "/list names the Kinesis road and still calls it a Wyze camera")
+    check("web-pw" not in scrub_text("go2rtc said: " + kvs_source("805-north") + " failed"), "a Kinesis line quoted in a diagnostic loses its web password")
+    saved_roads = BRIDGE_ROADS_FILE
+    BRIDGE_ROADS_FILE = kv_roads
+    rk = roads_load(kv_roads); rk["805_north"]["judged"] = {"current": "bridge", "current_probe": {"ok": False, "error": "no byte in 30 s"}, "kvs_signal": "Camera does not support WebRTC", "kept": "bridge", "dark": True}; roads_save(rk, kv_roads)
+    s, _h, d = call("GET", "/why/805_north", auth=B)
+    jw = json.loads(d.decode("utf-8"))
+    check(s == 200 and jw.get("road", {}).get("road") == "bridge" and jw["road"]["judged"]["kvs_signal"] == "Camera does not support WebRTC" and jw["road"]["judged"]["dark"] is True, "/why carries the camera's road and the judge's last measurement, so the tile can say why (%r)" % jw.get("road"))
+    check(b"rtsp://" not in d and b"webrtc:" not in d and b"web-pw" not in d and b"BRKEY" not in d, "and never a line, a key or a password")
+    BRIDGE_ROADS_FILE = saved_roads
+    BRIDGE_ENV, BRIDGE_API = saved_env, saved_api
+    fkb.shutdown(); fgk.shutdown()
 
     print("=== 8m. any camera from the app, tested on the spot (DR-0805): add, probe, remove; Ring signs in through go2rtc ===")
     check(source_check("rtsp://admin:pw@192.168.1.60/live") == (True, "") and source_check("onvif://u:p@192.168.1.5") == (True, "") and source_check("http://192.168.1.9/snap.jpg") == (True, ""), "rtsp, onvif and http sources pass the check")

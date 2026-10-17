@@ -8,7 +8,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import {
   CAMS_BASE, SNAPSHOT_INTERVAL_MS, FETCH_TIMEOUT_MS,
-  healthUrl, listUrl, ticketUrl, snapUrl, liveUrl, pickLiveMode, cameraRoadLine, bridgeLine, setStreamRoad, streamRoadUrl, ROAD_REASONS,
+  healthUrl, listUrl, ticketUrl, snapUrl, liveUrl, pickLiveMode, cameraRoadLine, judgedLine, bridgeLine, setStreamRoad, streamRoadUrl, ROAD_REASONS,
   parseCameraList, kindLabel, groupByKind, KINDS, classifyServiceState,
   formatAge, formatBytes, fetchWithTimeout, authHeaders, setupCommands, isAscii,
   validateWyzeSetup, classifySetupResult, setupWyze,
@@ -1180,9 +1180,30 @@ describe('the Wyze bridge road (DR-0809)', () => {
     expect(out.map((c) => [c.id, c.road])).toEqual([['805_north', 'bridge'], ['front', 'direct'], ['odd', 'direct']]);
   });
   it('cameraRoadLine says which road and why, in plain words', () => {
-    expect(cameraRoadLine({ road: 'bridge' }, { reason: 'other-network' })).toBe(`Reaches the NAS through the Wyze bridge (Wyze's relay, the road the Wyze app itself uses): ${ROAD_REASONS['other-network']}.`);
+    expect(cameraRoadLine({ road: 'bridge' }, { reason: 'other-network' })).toBe(`Reaches the NAS through the Wyze bridge on the NAS (Wyze's peer-to-peer road): ${ROAD_REASONS['other-network']}.`);
     expect(cameraRoadLine({ road: 'direct' })).toBe('Reaches the NAS on its own network, straight from the camera.');
     expect(cameraRoadLine({ road: 'bridge' }, { reason: 'something-new' })).toContain(': something-new.');
+  });
+  // DR-1097. Darrell 2026-10-17: "Cameras never work!!!!!!!!!!! Fix it!!!!!" -- 3 of 31 gave a frame;
+  // the bridge's peer road was dark for 28 while the Wyze app showed them, through Wyze's WebRTC.
+  it('the Kinesis road: carried through the list, named truthfully, and the bridge no longer claims the Wyze app\'s road (DR-1097)', () => {
+    const out = parseCameraList({ cameras: [{ id: '805_north', kind: 'wyze', road: 'kvs' }, { id: 'great_room', kind: 'wyze', road: 'bridge' }] });
+    expect(out.map((c) => [c.id, c.road])).toEqual([['805_north', 'kvs'], ['great_room', 'bridge']]);
+    expect(cameraRoadLine({ road: 'kvs' }, { reason: 'tutk-dark' })).toBe("Reaches the NAS through Wyze's own WebRTC relay, the road the Wyze app watches through: the bridge's peer-to-peer road gave no picture; Wyze's WebRTC did.");
+    expect(cameraRoadLine({ road: 'bridge' })).not.toMatch(/Wyze app/);
+    expect(cameraRoadLine({ road: 'bridge' }, { reason: 'direct-unreachable' })).toMatch(/its own network gave no picture/);
+  });
+  it('judgedLine says what the NAS measured, and says plainly when neither road carried video (DR-1097)', () => {
+    expect(judgedLine(null)).toBe('');
+    expect(judgedLine({ judged: null })).toBe('');
+    expect(judgedLine({ judged: { current: 'bridge', current_probe: { ok: false }, alt: 'kvs', alt_probe: { ok: true, ms: 4200 }, kept: 'kvs' } }))
+      .toBe("Last checked: the bridge gave no picture; Wyze's WebRTC gave a picture in 4 s.");
+    expect(judgedLine({ judged: { current: 'bridge', current_probe: { ok: false }, kvs_signal: 'Camera does not support WebRTC', kept: 'bridge', dark: true } }))
+      .toBe('Last checked: the bridge gave no picture; Wyze says: Camera does not support WebRTC. Neither road carried video, so it is off or out of reach at the camera.');
+    expect(judgedLine({ judged: { current: 'bridge', current_probe: { ok: true, ms: 900 }, kept: 'bridge' } })).toBe('Last checked: the bridge gave a picture in 1 s.');
+  });
+  it('bridgeLine counts the cameras on Wyze\'s WebRTC road when there are any (DR-1097)', () => {
+    expect(bridgeLine({ bridge: { configured: true, last: { at: 1, reachable: true, known: 33, bridged: 4, kvs: 24, unknown: [] } } })).toBe("Wyze bridge: up, knows 33 cameras, 4 ride it. 24 ride Wyze's own WebRTC.");
   });
   it('bridgeLine reads /health.bridge honestly: unreported, unconfigured, unsynced, unreachable, up', () => {
     expect(bridgeLine({})).toMatch(/not reported one yet/);

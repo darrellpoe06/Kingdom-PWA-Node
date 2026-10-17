@@ -1201,6 +1201,9 @@ describe('Cameras surface', () => {
       health: { ok: true, go2rtc: '1.9.14', streams: 2, live_max_seconds: 0, max_live: 32, wyze_cloud: 'ready', bridge: { configured: true, api: 'http://127.0.0.1:8597', last: { at: 1700000000, reachable: true, known: 22, bridged: 12, unknown: ['east_north'] } } },
       list: { cameras: [{ id: '805_north', name: '805 north', kind: 'wyze', road: 'bridge' }, { id: 'front', name: 'front', kind: 'wyze', road: 'direct' }], count: 2 },
       snapFail: { '805_north': { status: 504, body: { error: 'frame-timeout', after_s: 12 } } },
+      // DR-1097: /why carries the road record and the judge's measurement, never a line.
+      why: { id: '805_north', producers: [{ kind: 'wyze', host: '127.0.0.1', state: '' }], probe: { status: 500, ok: false, error: 'streams: read tcp 127.0.0.1:1->127.0.0.1:8555: i/o timeout', ms: 5000 }, log: [],
+        road: { road: 'bridge', uri: '805-north', reason: 'other-network', judged: { current: 'bridge', current_probe: { ok: false, error: 'no byte in 30 s' }, kvs_signal: 'Camera does not support WebRTC', kept: 'bridge', dark: true } } },
     });
     vi.stubGlobal('fetch', fetchImpl);
     await mount();
@@ -1214,7 +1217,9 @@ describe('Cameras surface', () => {
     expect(why).toBeTruthy();
     await click(why);
     await act(async () => { await new Promise((r) => setTimeout(r, 30)); });
-    expect(container.querySelector('[data-testid="why-road-805_north"]').textContent).toMatch(/through the Wyze bridge/);
+    expect(container.querySelector('[data-testid="why-road-805_north"]').textContent).toMatch(/through the Wyze bridge on the NAS .*: it sits on a network the NAS cannot reach\./);
+    expect(container.querySelector('[data-testid="why-judged-805_north"]').textContent).toBe('Last checked: the bridge gave no picture; Wyze says: Camera does not support WebRTC. Neither road carried video, so it is off or out of reach at the camera.');
+    expect(container.querySelector('[data-testid="road-kvs-805_north"]')).toBeTruthy();
     await click(container.querySelector('[data-testid="road-direct-805_north"]'));
     await act(async () => { await new Promise((r) => setTimeout(r, 30)); });
     const roadCall = calls.find((c) => /\/road$/.test(c.url));
