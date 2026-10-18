@@ -119,6 +119,11 @@ export const MANAGER_TABS = [
   // Every property, our own home included \u2014 "keeping a mechanical history of
   // the system's and issues like all our properties" (Darrell, 2026-08-28).
   TAB('systems', 'Systems', 'The furnace, the roof, the water heater \u2014 how old each one is and everything that has happened to it.'),
+  // THE METER (DR-1098): what this door's utility meter recorded, from the
+  // utility's own Green Button file, home and rentals alike. The owner's
+  // record: hourly reads show when a house stands empty, so 0302 lets no
+  // viewer, assistant or delegate read them.
+  TAB('energy', 'Energy', 'What this door\u2019s meter recorded: how much, when, the always-on draw and the rate, from the utility\u2019s own file.'),
   // Turning a unit into a listing is its own body of work — construction,
   // furnishing, supplies, safety, the listing itself — and it belongs to the
   // door, not to a side note. Darrell, 2026-09-12.

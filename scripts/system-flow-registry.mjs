@@ -1256,6 +1256,21 @@ const NODES = [
     ],
     seeds: ['record-clock'],
   }),
+  // A door's meter (DR-1098): the owner files the utility's own Green Button
+  // file on a door; the readings are upserted on their identity so a newer
+  // download replaces an hour and never doubles it; the Energy tab reads them
+  // folded to the hour and counts every figure it shows.
+  app('app/src/modules/properties/EnergyTab.jsx', {
+    id: 'door-meter', name: 'What a door\u2019s meter recorded (Energy tab)', purpose: 'The owner files the utility\u2019s Green Button file on a door, home or rental; the tab counts what it used, when, the always-on draw, the busiest hour and the rate, and keeps which file said each hour.',
+    writes: [
+      { res: 'db:property_energy_imports', file: 'app/src/modules/properties/cloud.js', token: "from('property_energy_imports')\n      .insert" },
+      { res: 'db:property_energy_readings', file: 'app/src/modules/properties/cloud.js', token: "from('property_energy_readings')\n        .upsert" },
+    ],
+    reads: [
+      { res: 'db:property_energy_imports', file: 'app/src/modules/properties/cloud.js', token: "from('property_energy_imports').select" },
+      { res: 'db:property_energy_readings', file: 'app/src/modules/properties/cloud.js', token: "rpc('property_energy_hourly'" },
+    ],
+  }),
   // A door's cameras, asked for and given (DR-0938): the family offers names
   // on a door; anyone on it asks; the family gives (the NAS mints the grant),
   // gives a guest a link, and takes back; each move is on the clock.

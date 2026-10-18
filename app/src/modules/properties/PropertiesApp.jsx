@@ -42,6 +42,7 @@ import { stageFromRecord, confirmDraft, tenancyRowFromDraft, vacantUnitRow } fro
 import { availableDocuments, buildDocument } from './documents.js';
 import { TimelineTab, RoomsTab, DoorsBoard, GalleryTab, FilesTab, FULL_MAX_WIDTH, FULL_QUALITY } from './DoorTabs.jsx';
 import { SystemsTab } from './SystemsTab.jsx';
+import { EnergyTab } from './EnergyTab.jsx';
 import { GuestLinkCard } from './GuestReport.jsx';
 import { PayRent, PayeeCard } from './RentPay.jsx';
 import { PapersPanel } from './DocSigning.jsx';
@@ -1399,6 +1400,19 @@ export default function PropertiesApp({ surface = 'poetech', books = null, recor
             )}
             </>
           );
+          case 'energy':
+            // THE METER (DR-1098). The owner's record only: a delegated manager
+            // is not an instance member, so RLS would hand them an empty list
+            // that reads like "no readings". Saying so is the honest state.
+            return role === 'owner'
+              ? <EnergyTab door={{ id: rentalId, instance_id: activeRental?.instance_id || activeDoor?.instance_id }}
+                  canManage canTakeBack
+                  doorLabel={activeRental?.display_name || activeRental?.address || activeDoor?.property_label || ''} />
+              : (
+                <section className="bg-white border border-[#E8E4DC] p-3 sm:p-4 mb-3">
+                  <p className="text-[0.875rem] text-[#1A1815]">This door{'\u2019'}s meter record belongs to its owner and is not shared with a delegated manager.</p>
+                </section>
+              );
           case 'systems': return (
             <SystemsTab
               door={{ id: rentalId, instance_id: activeRental?.instance_id || activeDoor?.instance_id }}
