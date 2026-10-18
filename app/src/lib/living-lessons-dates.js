@@ -297,4 +297,7 @@ export const LIVING_LESSONS_ADDED = {
   // line: the Rock of Yahweh in the wilderness in Old Testament times) and
   // built the same session. ll251 and ll252 are held by an unlanded branch.
   'll251-that-rock-was-christ-identity-not-of-blood': '2026-10-17',
+  // L252 (DR-1100): Darrell's fifty-three messages of 2026-10-18, sent while
+  // it was being built, carried in one lesson the same session.
+  'll252-this-life-is-the-curriculum-made-to-be-his-temple': '2026-10-18',
 };
