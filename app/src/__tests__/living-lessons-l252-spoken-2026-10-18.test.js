@@ -4,7 +4,7 @@
 // 2026-10-18, built the same session (a spoken teaching is build input).
 // DR-1100.
 // =============================================================================
-// He sent forty-nine messages, one after another, while it was being built.
+// He sent fifty-two messages, one after another, while it was being built.
 // The first began and ended with the word "Lesson": existing is Yahweh's Way
 // of authoring our lives; this life is the curriculum; made in an image that
 // lets a person be His temple, as the angels were not; humble yourself to His
@@ -33,7 +33,11 @@
 // and not hiding; reading the Word His Way is the skill; Love covers a
 // multitude of sins because it has to, if we are to survive sanctification;
 // humans receive no glory; the Godhead did all the work; a mind full of
-// souls; He just wants community; profitable community, His Way of life.
+// souls; He just wants community; profitable community, His Way of life; and
+// the rod: take the rod and speak (Numbers 20:8), the rod is the Word and the
+// canon the standard, the rod of iron against this one, spare the rod (a
+// poet's line; Proverbs 13:24 is the Word), and the rod of discipline beside
+// the others: one sceptre (Hebrews 1:8), comfort, correction, iron.
 // Rendered for meaning, not for his capitals (DR-0331).
 //
 // THE WORD EXPLAINS THE WORD (DR-0098), and this gate pins the spine in every
@@ -243,6 +247,22 @@ const ELSEWHERE = [
   ['He will dwell with them', 'Revelation', 21, 3, 'he will dwell with them, and they shall be his people'],
   ['two are better than one', 'Ecclesiastes', 4, 9, 'Two are better than one; because they have a good reward for their labour'],
   ['none that lacked', 'Acts', 4, 34, 'Neither was there any among them that lacked'],
+  // messages 50-52, the rod
+  ['take the rod and speak', 'Numbers', 20, 8, 'and speak ye unto the rock before their eyes'],
+  ['smote the rock twice', 'Numbers', 20, 11, 'with his rod he smote the rock twice'],
+  ['because ye believed Me not', 'Numbers', 20, 12, 'Because ye believed me not'],
+  ['a reed like unto a rod', 'Revelation', 11, 1, 'And there was given me a reed like unto a rod'],
+  ['the rod of His mouth', 'Isaiah', 11, 4, 'and he shall smite the earth with the rod of his mouth'],
+  ['He that spareth his rod', 'Proverbs', 13, 24, 'He that spareth his rod hateth his son'],
+  ['the rod and reproof', 'Proverbs', 29, 15, 'The rod and reproof give wisdom'],
+  ['thy rod and thy staff', 'Psalms', 23, 4, 'thy rod and thy staff they comfort me'],
+  ['whom the LORD loveth He correcteth', 'Proverbs', 3, 12, 'For whom the LORD loveth he correcteth'],
+  ['whom the Lord loveth He chasteneth', 'Hebrews', 12, 6, 'For whom the Lord loveth he chasteneth'],
+  ['the peaceable fruit', 'Hebrews', 12, 11, 'the peaceable fruit of righteousness unto them which are exercised thereby'],
+  ['provoke not to wrath', 'Ephesians', 6, 4, 'bring them up in the nurture and admonition of the Lord'],
+  ['lest they be discouraged', 'Colossians', 3, 21, 'Fathers, provoke not your children to anger, lest they be discouraged'],
+  ['a rod of iron', 'Psalms', 2, 9, 'Thou shalt break them with a rod of iron'],
+  ['the sceptre of righteousness', 'Hebrews', 1, 8, 'a sceptre of righteousness is the sceptre of thy kingdom'],
 ];
 
 describe('L252 exists, is numbered, and is dated the day it was sent', () => {
@@ -257,13 +277,13 @@ describe('L252 exists, is numbered, and is dated the day it was sent', () => {
     expect(LIVING_LESSONS_ADDED[ID]).toBe('2026-10-18');
     expect(LIVING_LESSONS_ADDED['ll251-that-rock-was-christ-identity-not-of-blood'] <= LIVING_LESSONS_ADDED[ID]).toBe(true);
   });
-  it('names Darrell as the one who brought it, with all forty-nine messages', () => {
+  it('names Darrell as the one who brought it, with all fifty-two messages', () => {
     expect(L.lesson).toContain('This lesson was brought into this house by Darrell on the eighteenth of October');
-    expect(L.lesson).toContain('in forty-nine messages sent one after another while it was being built');
+    expect(L.lesson).toContain('in fifty-two messages sent one after another while it was being built');
     expect(L.lesson).toContain('The first began and ended with the word Lesson');
   });
   it('the adult lesson walks eighteen sections, in order, the later messages in their own section before the practice', () => {
-    const order = ['ONE. THIS LIFE IS THE CURRICULUM', 'TWO. THE WORD THAT WAS KEPT', 'THREE.', 'FOUR. THE BEAUTY OF THE ONE WHO FRAMED THE WORLDS', 'FIVE.', 'SIX.', 'SEVEN.', 'EIGHT.', 'NINE.', 'TEN.', 'ELEVEN.', 'TWELVE.', 'THIRTEEN.', 'FOURTEEN.', 'FIFTEEN.', 'SIXTEEN.', 'SEVENTEEN. WHAT CAME WHILE IT WAS BEING BUILT', 'The twenty-third keeps all study humble', 'profitable community, His Way of life', 'EIGHTEEN. THE PRACTICE'];
+    const order = ['ONE. THIS LIFE IS THE CURRICULUM', 'TWO. THE WORD THAT WAS KEPT', 'THREE.', 'FOUR. THE BEAUTY OF THE ONE WHO FRAMED THE WORLDS', 'FIVE.', 'SIX.', 'SEVEN.', 'EIGHT.', 'NINE.', 'TEN.', 'ELEVEN.', 'TWELVE.', 'THIRTEEN.', 'FOURTEEN.', 'FIFTEEN.', 'SIXTEEN.', 'SEVENTEEN. WHAT CAME WHILE IT WAS BEING BUILT', 'The twenty-third keeps all study humble', 'profitable community, His Way of life', 'Three more came about the rod', 'a sceptre of righteousness is the sceptre of thy kingdom', 'EIGHTEEN. THE PRACTICE'];
     let at = -1;
     for (const h of order) {
       const i = L.lesson.indexOf(h, at + 1);
@@ -276,7 +296,10 @@ describe('L252 exists, is numbered, and is dated the day it was sent', () => {
 describe('L252 carries Darrell’s messages in every band', () => {
   it.each([
     [/Darrell/, 'Darrell by name'],
-    [/forty-nine/, 'the count of his messages'],
+    [/fifty-two/, 'the count of his messages'],
+    [/rod/, 'the rod'],
+    [/rod of iron/, 'the rod of iron against this one'],
+    [/not in the Bible|not the Bible|not from Scripture|rather than to Scripture/, 'spare the rod is not a verse'],
     [/hairs/, 'the hairs numbered'],
     [/metanoia/, 'metanoia, the way The Way says'],
     [/choose/, 'made to hear, free to choose'],
@@ -325,7 +348,7 @@ describe('L252 carries Darrell’s messages in every band', () => {
     for (const k of ALL) expect(re.test(TEXTS[k]), `${k} drops ${what}`).toBe(true);
   });
   it.each(['adult', 'youth', 'teen', 'senior'])('%s carries the strands the child band tells in plainer words', (k) => {
-    for (const [re, what] of [[/Godhead/, 'the Godhead'], [/Qumran/, 'Qumran'], [/contract/i, 'deeper than a contract'], [/strength under control/i, 'strength under control'], [/all authority/i, 'all authority'], [/documentation/i, 'the documentation of His skills'], [/deterministic/i, 'his word, deterministic'], [/husband/i, 'the healthy family'], [/soul/i, 'the soul decides'], [/seated/i, 'seated now']]) {
+    for (const [re, what] of [[/Godhead/, 'the Godhead'], [/Qumran/, 'Qumran'], [/contract/i, 'deeper than a contract'], [/strength under control/i, 'strength under control'], [/all authority/i, 'all authority'], [/documentation/i, 'the documentation of His skills'], [/deterministic/i, 'his word, deterministic'], [/husband/i, 'the healthy family'], [/soul/i, 'the soul decides'], [/seated/i, 'seated now'], [/canon/, 'the canon is the standard']]) {
       expect(re.test(TEXTS[k]), `${k} drops ${what}`).toBe(true);
     }
   });
