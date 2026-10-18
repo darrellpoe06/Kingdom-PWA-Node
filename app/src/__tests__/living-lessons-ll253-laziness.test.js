@@ -171,7 +171,8 @@ const RHYTHM = 'Do it once today, in one of the four places of Deuteronomy 6:7: 
 describe('L253 exists, is numbered, and carries the day it was built', () => {
   // THIS LESSON HAS BEEN NUMBERED THREE TIMES, and the history is the reason
   // the assertion below is shaped the way it is. Built as 251 in its own
-  // worktree; "highest" stopped being true when L252 landed the same day; and
+  // worktree; "highest" stopped being true when its sibling landed the same
+  // day; and
   // 251 itself stopped being ours when main merged #2243, whose own commit
   // message says it took ll251 BECAUSE this branch's 251 and 252 were sitting
   // under a `hold` and the shrink-only gap ratchet forbids leaving a number
@@ -195,8 +196,14 @@ describe('L253 exists, is numbered, and carries the day it was built', () => {
     for (const n of [211, 212]) expect(claimed.includes(n), `${n} is not this lesson's to fill`).toBe(false);
   });
 
-  it('carries 2026-10-17, on or after L250', () => {
-    expect(LIVING_LESSONS_ADDED[ID]).toBe('2026-10-17');
+  // The CATALOG day, which is not the day the teaching came in: this lesson
+  // was built 2026-10-17, and the id `ll253-` first exists in a commit of
+  // 2026-10-18, because 251 and 252 were taken out from under it while its
+  // branch was held. The dates file records the day an id lands; the lesson's
+  // own prose and DR-1093 hold 2026-10-17, and the next case pins that the
+  // spoken day is still said in the lesson.
+  it('carries 2026-10-18, the day its id landed, at or after L250', () => {
+    expect(LIVING_LESSONS_ADDED[ID]).toBe('2026-10-18');
     expect(LIVING_LESSONS_ADDED['ll250-they-which-do-hunger-shall-be-filled-and-the-critical-path'] <= LIVING_LESSONS_ADDED[ID]).toBe(true);
   });
 

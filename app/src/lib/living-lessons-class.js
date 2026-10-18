@@ -24178,7 +24178,7 @@ export const LIVING_LESSONS_MODULES = [
   },
   // ll252 - All things work together: the integrated system, and which way it runs (Darrell, 2026-10-17)
   {
-    "id": "ll252-all-things-work-together-the-integrated-system-and-which-way-it-runs",
+    "id": "ll254-all-things-work-together-the-integrated-system-and-which-way-it-runs",
     "stories": [
       {
         "kind": "parable",

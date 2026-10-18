@@ -125,15 +125,16 @@ describe('the day each lesson was added — a recorded day, and a new lesson joi
     const back = byNum.filter((m, i) => i > 0 && m.added < byNum[i - 1].added).map((m) => m.id);
     expect(back).toEqual([]);
     expect(byNum[0].added).toBe('2026-06-24');
-    // The newest lesson's day, kept current as lessons land. THREE lessons
-    // landed on 2026-10-17: main's L251 (That Rock Was Christ, DR-1096),
-    // L252 (DR-1094, all things work together) and L253 (DR-1093, laziness
-    // is a character matter). L253 is the highest numbered, so it is the one
-    // this pin reads — it was built as 251 and renumbered twice as the other
-    // two took the numbers under it. (L248-L250, DR-1074 / DR-1081 /
-    // DR-1082, hold 2026-10-16 behind them; L245-L247, DR-1034-1036, hold
-    // 2026-10-15 behind those.)
-    expect(byNum[byNum.length - 1].added).toBe('2026-10-17'); // L253 (DR-1093)
+    // The newest lesson's day, kept current as lessons land. The highest
+    // number is L254 (DR-1094, all things work together), and it carries
+    // 2026-10-18 — the day its id landed, not the day Darrell spoke it
+    // (2026-10-17). It and L253 were built as 251 and 252 and renumbered as
+    // main took those numbers while this branch was held; dating them by the
+    // day their ids landed is what keeps THIS check true, so "By number,
+    // oldest first" stays one order and not two. (Main's L252, This Life Is
+    // the Curriculum, also carries 2026-10-18; L251 and L248-L250 hold
+    // 2026-10-17 and 2026-10-16 behind them.)
+    expect(byNum[byNum.length - 1].added).toBe('2026-10-18'); // L254 (DR-1094)
   });
 
   it('formats a calendar day without a time-zone shift, and months are labels', () => {

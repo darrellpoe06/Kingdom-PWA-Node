@@ -317,11 +317,22 @@ export const LIVING_LESSONS_ADDED = {
   // That is why the laziness lesson below is 253: it was built as 251, and
   // moved twice as 251 and 252 were taken under it.
   'll251-that-rock-was-christ-identity-not-of-blood': '2026-10-17',
-  // L252, spoken into the house by Darrell on 2026-10-17 and sharpened by him
-  // the same day, built the same session (a spoken teaching is build input).
-  'll252-all-things-work-together-the-integrated-system-and-which-way-it-runs': '2026-10-17',
-  // L253, built 2026-10-17 from a third-party video summary on laziness (Jonny
-  // Ardavanis and Hank Bowen) that Darrell forwarded, plus his own three words
-  // spoken into the build the same day: work is worship.
-  'll253-laziness-is-a-character-matter-the-four-domains-and-the-five-marks-of-the-sluggard': '2026-10-17',
+  // L253 AND L254 CARRY 2026-10-18, NOT THE DAY THEY WERE SPOKEN, AND THIS IS
+  // THE RULE AT THE HEAD OF THIS FILE RATHER THAN AN EXCEPTION TO IT. The day
+  // here is "the day the commit that FIRST carried the lesson's id landed",
+  // never the day a teaching was spoken — the lesson's own prose and its
+  // decision record hold that. Both of these were spoken and built on
+  // 2026-10-17 as ll251 and ll252; both ids were taken out from under them
+  // while their branch sat under a `hold` (main's #2243 took 251, #2251 took
+  // 252), so the ids `ll253-` and `ll254-` first exist in commits of
+  // 2026-10-18.
+  //
+  // It also keeps the promise the app makes to a reader. Main's ll252 landed
+  // 2026-10-18; dating these two 2026-10-17 would put a newer lesson BELOW an
+  // older one, and "By number, oldest first" — offered as ONE order, not two
+  // (DR-0686) — would be false at the end of the list. The same reasoning
+  // dated L79 by its slot day: keep number order and date order the same list.
+  // Nothing about when Darrell spoke is changed or lost by this.
+  'll253-laziness-is-a-character-matter-the-four-domains-and-the-five-marks-of-the-sluggard': '2026-10-18',
+  'll254-all-things-work-together-the-integrated-system-and-which-way-it-runs': '2026-10-18',
 };

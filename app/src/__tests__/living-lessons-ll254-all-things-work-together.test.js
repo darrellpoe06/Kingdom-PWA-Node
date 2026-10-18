@@ -1,6 +1,6 @@
 // @vitest-environment node
 // =============================================================================
-// L252 — "All Things Work Together": the teaching Darrell SPOKE into the house
+// L254 — "All Things Work Together": the teaching Darrell SPOKE into the house
 // on 2026-10-17 and sharpened the same day, built the same session (a spoken
 // teaching is build input). DR-1094.
 // =============================================================================
@@ -54,7 +54,7 @@ import { measureDifferentiation, duplicatedBands, DIFF_CEILING } from '../../../
 import { elidedQuotations, recitedRecords } from '../../../scripts/quotation-integrity.mjs';
 import { placesMissingDirections, hasAllThree, missingDirections } from '../lib/talk-together.js';
 
-const ID = 'll252-all-things-work-together-the-integrated-system-and-which-way-it-runs';
+const ID = 'll254-all-things-work-together-the-integrated-system-and-which-way-it-runs';
 const KJV = join(process.cwd(), 'public', 'bible', 'kjv');
 const norm = (s) => String(s).replace(/\s+/g, ' ').trim();
 
@@ -162,16 +162,22 @@ const anchoredRefs = (module) => {
 };
 
 // (a) THE MODULE EXISTS ONCE, AT ITS NUMBER
-describe('L252 exists exactly once, at its own number, dated the day it was spoken', () => {
+describe('L254 exists exactly once, at its own number, dated the day it was spoken', () => {
   it('is in the catalog exactly once', () => {
     expect(LIVING_LESSONS_MODULES.filter((m) => m.id === ID)).toHaveLength(1);
     expect(Object.keys(L.levels).sort()).toEqual(['child', 'senior', 'teen', 'youth']);
   });
 
-  it('claims 252 and only 252, and fills none of the deliberately empty numbers', () => {
+  // BUILT AS 252, NOW 254. Main took 251 (That Rock Was Christ, #2243) and
+  // then 252 (This Life Is the Curriculum, #2251) while this branch sat under
+  // a `hold`, each time because the shrink-only gap ratchet forbids leaving a
+  // number empty. So the pin is not a position but a property: this lesson
+  // took the NEXT free number and stranded none. That survives every
+  // renumber, which is why it is the claim worth keeping.
+  it('claims 254 and only 254, and fills none of the deliberately empty numbers', () => {
     const claimed = LIVING_LESSONS_MODULES.map((m) => /^ll(\d+)-/.exec(m.id)).filter(Boolean).map((m) => Number(m[1]));
-    expect(claimed.filter((n) => n === 252)).toHaveLength(1);
-    expect(claimed.includes(251), '252 follows 251 — no number was jumped').toBe(true);
+    expect(claimed.filter((n) => n === 254)).toHaveLength(1);
+    expect(claimed.includes(253), '254 follows 253 — no number was jumped').toBe(true);
     // 79 was empty in the worktree this lesson was built in. It is filled now,
     // by the lesson whose number it is, which came in from main at
     // integration. The guard is kept and pointed at the new truth rather than
@@ -183,8 +189,11 @@ describe('L252 exists exactly once, at its own number, dated the day it was spok
     for (const n of [211, 212]) expect(claimed.includes(n), `${n} is not this lesson’s to fill`).toBe(false);
   });
 
-  it('carries the spoken day, on or after L250’s', () => {
-    expect(LIVING_LESSONS_ADDED[ID]).toBe('2026-10-17');
+  // Same as its sibling: 2026-10-18 is the day the id `ll254-` landed, after
+  // main took 251 and then 252 from under this branch. Darrell spoke it on
+  // 2026-10-17 and the next case holds the lesson to saying so.
+  it('carries 2026-10-18, the day its id landed, at or after L250’s', () => {
+    expect(LIVING_LESSONS_ADDED[ID]).toBe('2026-10-18');
     expect(LIVING_LESSONS_ADDED['ll250-they-which-do-hunger-shall-be-filled-and-the-critical-path'] <= LIVING_LESSONS_ADDED[ID]).toBe(true);
   });
 
@@ -197,7 +206,7 @@ describe('L252 exists exactly once, at its own number, dated the day it was spok
 });
 
 // (b) EVERY QUOTED VERSE IS THE CORPUS, BYTE FOR BYTE
-describe('L252 — every verse it stands on is the corpus, verbatim', () => {
+describe('L254 — every verse it stands on is the corpus, verbatim', () => {
   for (const [ref, text] of Object.entries(PINNED)) {
     it(`${ref} is quoted exactly as the corpus on disk has it`, () => {
       const { book, ch, n } = splitRef(ref);
@@ -256,7 +265,7 @@ describe('L252 — every verse it stands on is the corpus, verbatim', () => {
 });
 
 // (c) THE THREE DIRECTIONS, ON THE MODULE AND ON EACH BAND SEPARATELY
-describe('L252 — TALK ABOUT IT TOGETHER, in all three directions, in every place', () => {
+describe('L254 — TALK ABOUT IT TOGETHER, in all three directions, in every place', () => {
   it('the lesson and every band send the reader all three ways in the lesson’s own words', () => {
     expect(placesMissingDirections(L)).toEqual([]);
     expect(hasAllThree(L)).toBe(true);
@@ -284,7 +293,7 @@ describe('L252 — TALK ABOUT IT TOGETHER, in all three directions, in every pla
 });
 
 // (d) HIS THREE MOVES, IN HIS ORDER, IN ALL FIVE PLACES
-describe('L252 — Darrell’s three moves, kept distinct and in his order, everywhere', () => {
+describe('L254 — Darrell’s three moves, kept distinct and in his order, everywhere', () => {
   // The movement markers carry his order. ONE is "all things work together",
   // TWO is "like integrated systems", THREE is "for or against". A band may
   // say them in its own register but may not reorder his thought.
@@ -340,7 +349,7 @@ describe('L252 — Darrell’s three moves, kept distinct and in his order, ever
 });
 
 // (e) THE PROMISE IS NEVER PRINTED WITHOUT WHO IT IS FOR
-describe('L252 — Romans 8:28 is never quoted without its condition', () => {
+describe('L254 — Romans 8:28 is never quoted without its condition', () => {
   const PROMISE = 'all things work together for good';
   const CONDITION = 'to them that love God';
 
@@ -383,7 +392,7 @@ describe('L252 — Romans 8:28 is never quoted without its condition', () => {
 });
 
 // (f) THE KNOWN AND THE UNKNOWN TRAVEL TOGETHER
-describe('L252 — "The Way is known" and "our own path is not" travel together', () => {
+describe('L254 — "The Way is known" and "our own path is not" travel together', () => {
   const KNOWN = 'The Way is known';
   const NOT_OURS = 'our own path is not';
 
@@ -435,7 +444,7 @@ describe('L252 — "The Way is known" and "our own path is not" travel together'
 });
 
 // (g) FOUR BANDS, EACH CARRYING THE WHOLE MESSAGE (P60)
-describe('L252 — four bands, each carrying the whole message', () => {
+describe('L254 — four bands, each carrying the whole message', () => {
   const measured = measureFullness(L);
 
   it.each(BANDS)('%s clears its floor share of the adult lesson’s prose', (b) => {
@@ -475,7 +484,7 @@ describe('L252 — four bands, each carrying the whole message', () => {
 });
 
 // (h) TWO STORIES, A WORKING QUIZ, AND NO DOUBLE-QUOTED SPAN IN A STORY
-describe('L252 — two stories that teach this lesson, and a quiz that works', () => {
+describe('L254 — two stories that teach this lesson, and a quiz that works', () => {
   it('carries two real stories, one light and one solemn, with no double-quoted span', () => {
     const real = (L.stories || []).filter((s) => s.kind === 'parable' || s.kind === 'testimony');
     expect(real.length).toBeGreaterThanOrEqual(2);

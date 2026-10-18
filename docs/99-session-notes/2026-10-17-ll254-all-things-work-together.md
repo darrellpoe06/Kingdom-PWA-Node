@@ -1,7 +1,7 @@
-# 2026-10-17 — L252: All things work together, the integrated system, and which way it runs
+# 2026-10-17 — L254: All things work together, the integrated system, and which way it runs
 
-**Module id:** `ll252-all-things-work-together-the-integrated-system-and-which-way-it-runs`
-**Record:** [DR-1094](../decisions/DR-1094-all-things-work-together-the-integrated-system-and-which-way-it-runs-ll252.md)
+**Module id:** `ll254-all-things-work-together-the-integrated-system-and-which-way-it-runs`
+**Record:** [DR-1094](../decisions/DR-1094-all-things-work-together-the-integrated-system-and-which-way-it-runs-ll254.md)
 **Spoken by:** Darrell, 2026-10-17, into the house — and sharpened by him the same day, mid-build.
 **Built:** same session (a spoken teaching is build input).
 
@@ -79,7 +79,7 @@ Recorded because it proves the rule rather than the lesson: the **first** attemp
 
 - `app/src/lib/living-lessons-class.js` — the module, appended after ll250
 - `app/src/lib/living-lessons-dates.js` — ll252's line, 2026-10-17 (the spoken day)
-- `app/src/__tests__/living-lessons-ll252-all-things-work-together.test.js` — 114 cases
+- `app/src/__tests__/living-lessons-ll254-all-things-work-together.test.js` — 114 cases
 - `app/src/__tests__/living-lessons-order.test.jsx` — the newest-lesson day pin, refreshed 2026-10-16 → 2026-10-17 (its own comment says it is kept current as lessons land)
 - `docs/decisions/DR-1094-…` and its INDEX row
 
