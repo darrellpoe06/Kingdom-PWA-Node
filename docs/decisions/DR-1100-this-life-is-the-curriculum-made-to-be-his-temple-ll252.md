@@ -11,7 +11,7 @@
 - `app/src/__tests__/living-lessons-order.test.jsx` (the newest-day pin, kept current: L252 now carries the highest number and 2026-10-18)
 
 **Amends:** nothing. Grounds: DR-0076 (every verse fetched verbatim from the repository's own KJV), DR-0097 (the Word capitalized), DR-0098 (teach the Word, do not debate it), DR-0100 (fact stated plainly), DR-0210 (Yahweh in our voice, quotations untouched), DR-0331 (his words rendered for meaning), DR-0530 (the Resources capitalized in our voice), the standing rule that a spoken teaching is build input.
-**Declared by:** Darrell, 2026-10-18, in fifty-two messages sent one after another while the lesson was being built. The first began and ended with the word "Lesson".
+**Declared by:** Darrell, 2026-10-18, in fifty-three messages sent one after another while the lesson was being built. The first began and ended with the word "Lesson".
 
 ## Context
 
@@ -19,7 +19,7 @@ The first message carried most of the spine: existing is Yahweh's Way of authori
 
 The next twenty-one followed within the hour: your life is the evidence; seated in heavenly places now; opposition on His path is bread; the Godhead has never not agreed; one, like a healthy family; the curriculum of families, so the soul can decide about the Son; a warning before destruction is honourable; let Yahweh be Himself and every man a liar, because He cannot lie; start with the Word; study to show yourself, with the Word and with creation; the beauty of the One who framed the worlds, whom no one has seen but the Son; same nature, Ways and skills; not robbery; before Abraham was, I AM; the I AM family adopts us; eternal and never less; humble, meek, strength under control, all authority, power, mighty.
 
-Thirty more arrived while it was being written, and they are taught in their own section (SEVENTEEN in the adult lesson; before the practice in every band), in the order he sent them:
+Thirty-one more arrived while it was being written, and they are taught in their own section (SEVENTEEN in the adult lesson; before the practice in every band), in the order he sent them:
 - His Way is so high, and collectively we are not competent to agree on what He said.
 - The Truth is talking to us; obey and win in this life and the next; die once, not twice.
 - The second death is our own fault, and no man can say He did not draw him.
@@ -45,9 +45,10 @@ Thirty more arrived while it was being written, and they are taught in their own
 - Take the rod and speak (Numbers 20:8); the rod is the Word, the canon the standard, set against the rod of iron.
 - Spare the rod, spoil the child?
 - How do we see a rod of discipline beside the others?
+- Children out of stones: a stony heart turned to flesh by knowing Yahweh; life hardens hearts, and He gives hearts of flesh for community with Him.
 
 Three lines needed care, and each was settled by the Word, not by a school:
-- **Message 26: "all humans that metanoia themselves the Way The Way Says will die the 2nd death."** Read literally, it says the opposite of the surrounding messages and of Acts 3:19. It is rendered for meaning (DR-0331): every human who will *not* turn, metanoia, the way The Way says, will die the second death. It is taught from Acts 17:30, Acts 3:19, 2 Corinthians 7:10 and Acts 4:12, and Darrell is asked to confirm the reading.
+- **Message 26: "all humans that metanoia themselves the Way The Way Says will die the 2nd death."** Read literally, it says the opposite of the surrounding messages and of Acts 3:19. It is rendered for meaning (DR-0331): every human who will *not* turn, metanoia, the way The Way says, will die the second death. It is taught from Acts 17:30, Acts 3:19, 2 Corinthians 7:10 and Acts 4:12. **Darrell confirmed the reading the same day: "Yes... those who will not turn... of course..."**
 - **Message 29: the ancestors watch in the cloud of witnesses.** The Word says "compassed about with so great a cloud of witnesses" (Hebrews 12:1) and names who they are (Hebrews 11:4, 11:39-40). It says no more about how they see, so the lesson says so in plain words and stops there. Message 30 then supplies the boundary from the Word: no worship, consultation or prayer to the dead (Leviticus 19:31; Isaiah 8:19; Deuteronomy 18:12; Matthew 4:10; Revelation 22:9; Acts 10:26). Looking unto Jesus (Hebrews 12:2) is the direction of the gaze.
 - **Messages 42-44: Love covers a multitude of sins.** Proverbs 28:13 keeps the Word's own distinction. Love covers another's sin by forgiving it and not repeating it (Proverbs 17:9 in sense; 1 Peter 4:8). It never hides our own.
 
@@ -58,19 +59,19 @@ Works and grace were held in the Word's own order (Ephesians 2:8-10; James 2:17-
 ## What was measured
 
 - Every verse fetched from `app/public/bible/kjv` before a sentence was written:
-  - 1,162 referenced quotations across the lesson, the four bands, the big idea, 34 benefits, the quiz and the talking points;
+  - 1,190 referenced quotations across the lesson, the four bands, the big idea, 35 benefits, the quiz and the talking points;
   - every one word for word in the verse it cites, case included (Exodus 15:11, Isaiah 8:19 and Luke 16:15 open mid-verse in lower case and are kept so);
-  - 363 distinct verses.
+  - 369 distinct verses.
 - Checked against the course-exclusive anchors L251 recorded. The house on the rock (Matthew 7:24-27; Luke 6:46-49) and Isaiah 28:16 belong to inspections, and Luke 13:1-5 to insurance-risk, so none is quoted. Luke 14:28 was left to the business-research and appraisal courses.
 - Bands against the adult lesson, our prose only:
 
   | Band | Words | Share (floor) | FK grade |
   |---|---|---|---|
-  | Adult | 12,386 | — | 5.45 |
-  | Child | 4,233 | 0.51 (0.5) | 2.22 |
-  | Youth | 6,055 | 0.61 (0.6) | 4.90 |
-  | Teen | 7,559 | 0.64 (0.6) | 6.78 |
-  | Senior | 8,450 | 0.70 (0.6) | 8.22 |
+  | Adult | 12,748 | — | 5.47 |
+  | Child | 4,349 | 0.51 (0.5) | 2.23 |
+  | Youth | 6,218 | 0.61 (0.6) | 4.90 |
+  | Teen | 7,801 | 0.64 (0.6) | 6.82 |
+  | Senior | 8,743 | 0.70 (0.6) | 8.27 |
 
   Each band ran close to its floor as messages kept arriving. The youth band was written fuller from message 45 on to hold above 0.60. After the rod messages, the child and youth bands measured exactly at their floors, so each was given a few more plain sentences.
 - Reading level (Flesch-Kincaid): the ladder rises by more than a grade at each step, and the child band sits under the 5.0 ceiling. After message 39 the senior band measured 7.31, under teen + 1 (7.63). Its connective sentences were lengthened to restore the ladder.
@@ -85,16 +86,16 @@ A reader meets their own life as His curriculum, written in His book before it b
 
 The gate pins the spine in every place a reader reads:
 - 34 strands quoted in every band, among them Acts 17:28, Colossians 1:17, Genesis 1:27, Hebrews 2:16, 1 Peter 1:12, Romans 3:4, Matthew 11:29, Matthew 28:18 and Revelation 3:20;
-- 143 named strands verbatim across the lesson (the 34 above and 109 more);
-- 49 of Darrell's lines carried in every band, and eleven more in every band except the child, which tells them in plainer words;
+- 148 named strands verbatim across the lesson (the 34 above and 114 more);
+- 51 of Darrell's lines carried in every band, and eleven more in every band except the child, which tells them in plainer words;
 - the eighteen sections in order, with the later messages in their own section before the practice;
 - every band closing on Revelation 3:20.
 
 ## Verification
 
-- `living-lessons-l252-spoken-2026-10-18.test.js`, 235 tests. It checks that the lesson:
+- `living-lessons-l252-spoken-2026-10-18.test.js`, 242 tests. It checks that the lesson:
   - is in the catalog once, dated 2026-10-18 on or after L251;
-  - names Darrell and carries all fifty-two messages, with his lines in every band;
+  - names Darrell and carries all fifty-three messages, with his lines in every band;
   - has every referenced span verbatim with case. This is PROVEN TO CATCH three alterations: "meek" changed to "gentle" in Matthew 11:29, "Yahweh" substituted into Romans 3:4, and a capitalised "Who" at Exodus 15:11;
   - clears the fullness floors, again proven to catch, against a teen band trimmed to 600 characters;
   - passes the ladder, naming, differentiation and directions checks;
@@ -105,5 +106,4 @@ The gate pins the spine in every place a reader reads:
 - The full Vitest suite and lint run with L252 in the catalog, including the shrink-only number ratchets (`living-lessons-numbers-are-unique`, `living-lessons-id-collision`).
 - `re-review: 2026-10-25`:
   - read L252 on the live app in each band;
-  - have Darrell confirm the reading of message 26;
   - capture the first reader who reports taking the beam out with the Word.

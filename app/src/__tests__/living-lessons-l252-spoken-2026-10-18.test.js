@@ -4,7 +4,7 @@
 // 2026-10-18, built the same session (a spoken teaching is build input).
 // DR-1100.
 // =============================================================================
-// He sent fifty-two messages, one after another, while it was being built.
+// He sent fifty-three messages, one after another, while it was being built.
 // The first began and ended with the word "Lesson": existing is Yahweh's Way
 // of authoring our lives; this life is the curriculum; made in an image that
 // lets a person be His temple, as the angels were not; humble yourself to His
@@ -37,7 +37,8 @@
 // the rod: take the rod and speak (Numbers 20:8), the rod is the Word and the
 // canon the standard, the rod of iron against this one, spare the rod (a
 // poet's line; Proverbs 13:24 is the Word), and the rod of discipline beside
-// the others: one sceptre (Hebrews 1:8), comfort, correction, iron.
+// the others: one sceptre (Hebrews 1:8), comfort, correction, iron; and
+// children out of stones, the stony heart made flesh by knowing Him.
 // Rendered for meaning, not for his capitals (DR-0331).
 //
 // THE WORD EXPLAINS THE WORD (DR-0098), and this gate pins the spine in every
@@ -263,6 +264,12 @@ const ELSEWHERE = [
   ['lest they be discouraged', 'Colossians', 3, 21, 'Fathers, provoke not your children to anger, lest they be discouraged'],
   ['a rod of iron', 'Psalms', 2, 9, 'Thou shalt break them with a rod of iron'],
   ['the sceptre of righteousness', 'Hebrews', 1, 8, 'a sceptre of righteousness is the sceptre of thy kingdom'],
+  // message 53, children out of stones
+  ['children of these stones', 'Matthew', 3, 9, 'God is able of these stones to raise up children unto Abraham'],
+  ['an heart of flesh', 'Ezekiel', 36, 26, 'I will take away the stony heart out of your flesh, and I will give you an heart of flesh'],
+  ['an heart to know Me', 'Jeremiah', 24, 7, 'And I will give them an heart to know me'],
+  ['hardened through deceitfulness', 'Hebrews', 3, 13, 'lest any of you be hardened through the deceitfulness of sin'],
+  ['hearts as an adamant stone', 'Zechariah', 7, 12, 'Yea, they made their hearts as an adamant stone'],
 ];
 
 describe('L252 exists, is numbered, and is dated the day it was sent', () => {
@@ -277,13 +284,13 @@ describe('L252 exists, is numbered, and is dated the day it was sent', () => {
     expect(LIVING_LESSONS_ADDED[ID]).toBe('2026-10-18');
     expect(LIVING_LESSONS_ADDED['ll251-that-rock-was-christ-identity-not-of-blood'] <= LIVING_LESSONS_ADDED[ID]).toBe(true);
   });
-  it('names Darrell as the one who brought it, with all fifty-two messages', () => {
+  it('names Darrell as the one who brought it, with all fifty-three messages', () => {
     expect(L.lesson).toContain('This lesson was brought into this house by Darrell on the eighteenth of October');
-    expect(L.lesson).toContain('in fifty-two messages sent one after another while it was being built');
+    expect(L.lesson).toContain('in fifty-three messages sent one after another while it was being built');
     expect(L.lesson).toContain('The first began and ended with the word Lesson');
   });
   it('the adult lesson walks eighteen sections, in order, the later messages in their own section before the practice', () => {
-    const order = ['ONE. THIS LIFE IS THE CURRICULUM', 'TWO. THE WORD THAT WAS KEPT', 'THREE.', 'FOUR. THE BEAUTY OF THE ONE WHO FRAMED THE WORLDS', 'FIVE.', 'SIX.', 'SEVEN.', 'EIGHT.', 'NINE.', 'TEN.', 'ELEVEN.', 'TWELVE.', 'THIRTEEN.', 'FOURTEEN.', 'FIFTEEN.', 'SIXTEEN.', 'SEVENTEEN. WHAT CAME WHILE IT WAS BEING BUILT', 'The twenty-third keeps all study humble', 'profitable community, His Way of life', 'Three more came about the rod', 'a sceptre of righteousness is the sceptre of thy kingdom', 'EIGHTEEN. THE PRACTICE'];
+    const order = ['ONE. THIS LIFE IS THE CURRICULUM', 'TWO. THE WORD THAT WAS KEPT', 'THREE.', 'FOUR. THE BEAUTY OF THE ONE WHO FRAMED THE WORLDS', 'FIVE.', 'SIX.', 'SEVEN.', 'EIGHT.', 'NINE.', 'TEN.', 'ELEVEN.', 'TWELVE.', 'THIRTEEN.', 'FOURTEEN.', 'FIFTEEN.', 'SIXTEEN.', 'SEVENTEEN. WHAT CAME WHILE IT WAS BEING BUILT', 'The twenty-third keeps all study humble', 'profitable community, His Way of life', 'Three more came about the rod', 'a sceptre of righteousness is the sceptre of thy kingdom', 'children out of stones', 'EIGHTEEN. THE PRACTICE'];
     let at = -1;
     for (const h of order) {
       const i = L.lesson.indexOf(h, at + 1);
@@ -296,7 +303,9 @@ describe('L252 exists, is numbered, and is dated the day it was sent', () => {
 describe('L252 carries Darrell’s messages in every band', () => {
   it.each([
     [/Darrell/, 'Darrell by name'],
-    [/fifty-two/, 'the count of his messages'],
+    [/fifty-three/, 'the count of his messages'],
+    [/stones/, 'children out of stones'],
+    [/heart of flesh/, 'the stony heart made flesh'],
     [/rod/, 'the rod'],
     [/rod of iron/, 'the rod of iron against this one'],
     [/not in the Bible|not the Bible|not from Scripture|rather than to Scripture/, 'spare the rod is not a verse'],
