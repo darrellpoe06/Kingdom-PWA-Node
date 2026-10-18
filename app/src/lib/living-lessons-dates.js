@@ -317,6 +317,9 @@ export const LIVING_LESSONS_ADDED = {
   // That is why the laziness lesson below is 253: it was built as 251, and
   // moved twice as 251 and 252 were taken under it.
   'll251-that-rock-was-christ-identity-not-of-blood': '2026-10-17',
+  // L252 (DR-1100): Darrell's fifty-three messages of 2026-10-18, sent while
+  // it was being built, carried in one lesson the same session.
+  'll252-this-life-is-the-curriculum-made-to-be-his-temple': '2026-10-18',
   // L253 AND L254 CARRY 2026-10-18, NOT THE DAY THEY WERE SPOKEN, AND THIS IS
   // THE RULE AT THE HEAD OF THIS FILE RATHER THAN AN EXCEPTION TO IT. The day
   // here is "the day the commit that FIRST carried the lesson's id landed",
