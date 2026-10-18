@@ -43,7 +43,11 @@ export const CAMS_BASE = (import.meta.env?.VITE_CAMS_BASE || '/cams').replace(/\
 
 // Cadence + ceilings (the surface's brakes, mirrored from the forwarder's).
 export const SNAPSHOT_INTERVAL_MS = 5000;   // one frame per camera per 5 s while the tab is visible
-export const FETCH_TIMEOUT_MS = 12000;      // any single call (list / ticket / frame)
+export const FETCH_TIMEOUT_MS = 12000;      // any single call (list / ticket)
+// A frame waits longer: a camera on Wyze's WebRTC road answers its first frame
+// after the Kinesis dial (6-10 s measured) and a whole key frame; the NAS gives
+// it 20 s (DR-1097, third read), so the tab waits a little past that.
+export const FRAME_TIMEOUT_MS = 22000;
 export const LIVE_FIRST_FRAME_TIMEOUT_MS = 20000; // a live view that shows nothing by then is reported, not left spinning
 export const SNAPSHOT_WIDTH = 640;
 
