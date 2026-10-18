@@ -46,6 +46,10 @@ SOVEREIGN_MOUNTS = [
     # with nothing pointing at the transport. Healing it here is what makes the
     # route durable rather than merely once-correct.
     ("/taxes", "http://127.0.0.1:8790"),
+    # /research added 2026-10-18 (DR-1101): the same reason as /taxes -- a
+    # Funnel reset drops the mount and the only symptom is a question that
+    # never answers.
+    ("/research", "http://127.0.0.1:8797"),
 ]
 
 TS_CANDIDATES = ["/var/packages/Tailscale/target/bin/tailscale", "tailscale"]

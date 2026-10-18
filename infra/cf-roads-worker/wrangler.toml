@@ -27,6 +27,8 @@ routes = [
   { pattern = "www.poetech.us/llm/*", zone_name = "poetech.us" },
   { pattern = "poetech.us/reviews/*", zone_name = "poetech.us" },
   { pattern = "www.poetech.us/reviews/*", zone_name = "poetech.us" },
+  { pattern = "poetech.us/research/*", zone_name = "poetech.us" },
+  { pattern = "www.poetech.us/research/*", zone_name = "poetech.us" },
   { pattern = "poetech.us/scribe/*", zone_name = "poetech.us" },
   { pattern = "www.poetech.us/scribe/*", zone_name = "poetech.us" },
   { pattern = "poetech.us/ways/*", zone_name = "poetech.us" },

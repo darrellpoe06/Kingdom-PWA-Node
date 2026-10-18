@@ -1,0 +1,23 @@
+# PoeTech research forwarder -- the locked door in front of Vane (DR-1101).
+# Request-driven (no timers): it does no work until the app asks a question.
+# The Funnel mounts /research here. The family bridge bearer is read from
+# /volume1/PoeTech/secrets/chat-bridge-token.txt at start (never a second
+# token). Installed + kept running by infra/nas-research/install.sh via
+# services-sync; the @...@ values are filled in by the installer.
+[Unit]
+Description=PoeTech research forwarder (/research -> Vane on 127.0.0.1:3017)
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+Environment=PORT=@PORT@
+Environment=VANE_UPSTREAM=http://127.0.0.1:3017
+WorkingDirectory=@SRC@
+ExecStart=@PYTHON@ -u @SRC@/research_forwarder.py --port @PORT@
+Restart=on-failure
+RestartSec=5
+Nice=10
+
+[Install]
+WantedBy=multi-user.target
