@@ -20,7 +20,9 @@ Darrell, 2026-10-18: *"I want my home energy system to be incorporated into the 
 
 Before this record the repo held no energy data. A search of `app/`, `infra/`, `backend/` and `scripts/` for enphase, powerwall, emporia, kwh, green button, inverter and smart meter found only lesson prose (L221 in DR-0821, L236 in DR-0860) and test fixtures.
 
-**What the house actually has, measured from the family inbox on 2026-10-18.** Nothing below is assumed from a product category.
+## What was measured
+
+**What the house actually has, read from the family inbox on 2026-10-18.** Nothing below is assumed from a product category.
 
 | System | What the inbox shows |
 |---|---|

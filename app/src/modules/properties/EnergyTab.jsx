@@ -27,11 +27,14 @@ import {
   loadEnergyImports, loadEnergyHours, saveEnergyImport, deleteEnergyImport,
 } from './cloud.js';
 
+// Looked up when called, not when this module loads: the Properties app
+// imports this tab eagerly, and a module that only renders when the Energy tab
+// is open should not touch the cloud layer before then.
 const DEFAULT_API = {
-  loadImports: loadEnergyImports,
-  loadHours: loadEnergyHours,
-  save: saveEnergyImport,
-  remove: deleteEnergyImport,
+  loadImports: (...a) => loadEnergyImports(...a),
+  loadHours: (...a) => loadEnergyHours(...a),
+  save: (...a) => saveEnergyImport(...a),
+  remove: (...a) => deleteEnergyImport(...a),
 };
 
 const WHY = {

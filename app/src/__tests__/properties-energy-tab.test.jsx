@@ -53,6 +53,12 @@ async function mount(props) {
   await act(async () => { await Promise.resolve(); });
 }
 const text = () => host.textContent.replace(/\s+/g, ' ');
+async function settle(done, ms = 5000) {
+  const end = Date.now() + ms;
+  while (!done() && Date.now() < end) {
+    await act(async () => { await new Promise((r) => setTimeout(r, 10)); });
+  }
+}
 
 async function pickFile(name, content) {
   const input = host.querySelector('input[type="file"]');
@@ -60,7 +66,7 @@ async function pickFile(name, content) {
   if (typeof file.text !== 'function') file.text = async () => content;
   Object.defineProperty(input, 'files', { value: [file], configurable: true });
   await act(async () => { input.dispatchEvent(new Event('change', { bubbles: true })); });
-  await act(async () => { await Promise.resolve(); await Promise.resolve(); });
+  await settle(() => host.textContent.includes(name));
 }
 
 describe('the Energy tab', () => {
@@ -98,7 +104,8 @@ describe('the Energy tab', () => {
     expect(api.save).not.toHaveBeenCalled();
     const fileBtn = [...host.querySelectorAll('button')].find((b) => /File on this door/.test(b.textContent));
     await act(async () => { fileBtn.click(); });
-    await act(async () => { await Promise.resolve(); await Promise.resolve(); });
+    // The digest resolves off the main thread, so wait for the answer, not a tick count.
+    await settle(() => /Filed|were saved|Not filed/.test(text()));
     expect(api.save).toHaveBeenCalledTimes(1);
     const { importRow, buildRows } = api.save.mock.calls[0][0];
     expect(importRow).toMatchObject({ rental_ref: DOOR.id, instance_id: DOOR.instance_id, file_name: 'ameren.csv', source_format: 'csv', reading_count: 2 });
@@ -122,7 +129,8 @@ describe('the Energy tab', () => {
     await pickFile('a.csv', 'DATE,START TIME,END TIME,USAGE (kWh)\n2026-09-01,00:00,00:59,0.5');
     const fileBtn = [...host.querySelectorAll('button')].find((b) => /File on this door/.test(b.textContent));
     await act(async () => { fileBtn.click(); });
-    await act(async () => { await Promise.resolve(); await Promise.resolve(); });
+    // The digest resolves off the main thread, so wait for the answer, not a tick count.
+    await settle(() => /Filed|were saved|Not filed/.test(text()));
     expect(text()).toMatch(/500 of 1,200 were saved/);
     expect(text()).toMatch(/nothing will be doubled/);
   });
