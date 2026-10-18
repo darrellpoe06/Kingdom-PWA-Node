@@ -183,3 +183,19 @@ The forwarder `0972e334d36d20e1` is running and on disk. Deploy 39079706218 is g
 - **Darrell's hand:** look at the 13 cameras in the Wyze app, and start with the seven on old firmware.
 - **The next read:** the next every-camera pass of the witness, now made the app's way.
 - `re-review: 2026-10-20`, unchanged. The fork comes next if Kinesis, asked the app's way, still carries fewer than half.
+
+## Fifth field read (2026-10-18 00:44 UTC, camera-health 39083442780, the app's way)
+
+The witness now asks for each frame the way the app does: through the forwarder's `/snap`, and once more after 30 s.
+
+- **15 of 31 cameras give a frame, up from 12 on the direct ask.** 12 answered on the first ask.
+- **The held session is proven live.** Back Yard South, Basement North and Garage Front Yard left the first offer unanswered and timed out at 20 s (504). On the second ask, each gave a frame in 3.3 s. Between the two asks, the holder had re-armed the offer.
+- **Three Kinesis cameras timed out on both asks:** 805 Back Door, Front Door View and Outside 7. All three are V3 Pro on firmware 4.58.17.21. Two other V3 Pro cameras on the same firmware answer in 5.8 s (805 Hallway North East, 805 North East). The model therefore does not explain it. In the app, the tab keeps asking every 30 s and the holder keeps re-arming, so a tile appears on whichever offer one of these cameras answers.
+- **The 13 cameras dark on both roads are unchanged.** go2rtc answers an empty frame for each of them within 5 s on either ask.
+
+The floor is half, 16 of 31, so the pass is still an incident: one camera short.
+
+**What is left:**
+
+- **Darrell's hand:** the 13 cameras dark on both roads, in the Wyze app; the seven on old firmware first.
+- `re-review: 2026-10-20`, unchanged.
