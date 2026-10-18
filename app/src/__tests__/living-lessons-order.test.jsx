@@ -119,6 +119,7 @@ describe('the day each lesson was added — a recorded day, and a new lesson joi
     // L251 (DR-1096, "That Rock was Christ") was sent into the house on
     // 2026-10-17 and is now the highest number, so the newest day moves with it.
     // L252 (DR-1100, "This Life Is the Curriculum") was sent on 2026-10-18.
+    // L253 (DR-1102, "Benefiters or Underminers of the Eternal Kingdom") the same day.
     expect(byNum[byNum.length - 1].added).toBe('2026-10-18'); // L252 (DR-1100)
   });
 
