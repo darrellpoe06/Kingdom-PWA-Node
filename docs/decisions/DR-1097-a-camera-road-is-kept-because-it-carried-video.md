@@ -149,3 +149,37 @@ The forwarder (`12adef08468784da`, running and on disk) judged every Wyze camera
 - **Live after merge (DR-0107):** the next cams-diag and the next every-camera pass of the witness.
 
 **What is left, by name:** the 13 cameras dark on both roads. The next step needs Darrell's hand, with no code: open the Wyze app on the Fold and look at those 13. A camera the Wyze app also shows offline needs power or Wi-Fi at the camera. A camera the Wyze app shows live while Kinesis stays unanswered is the case the IDisposable fork exists for. Its model and firmware in the next cams-diag decide it. `re-review: 2026-10-20`, unchanged.
+
+## Fourth field read (2026-10-18 00:22 UTC, cams-diag 39082506292 and camera-health 39082507944)
+
+The forwarder `0972e334d36d20e1` is running and on disk. Deploy 39079706218 is green for d7a3f6b03.
+
+**What is proven live:**
+
+- At install, the record heal corrected four rows at once: basement_living_room, east_north_cam, front_yard and north_east_cam. Each record said "kvs" while go2rtc held the bridge line. No row now reads `road=kvs` beside "kept bridge".
+- The judge's re-tries win cameras back. Back Yard South had two unanswered offers and then carried video on the third (16 KB in 9.2 s). It now rides Kinesis.
+- No viewer opened the app between the install and the read, so the holder has not run yet (`started 0`). The witness reached go2rtc directly and never touched it.
+
+**What the read shows:**
+
+- **A Kinesis offer is answered by some cameras on one try and not the next.**
+  - Four cameras that carried video at 23:00 left their next offer unanswered: 805 Upper Hallway South West, Basement North, Front Door View, Garage Front Yard.
+  - The witness's single 20 s ask timed out on six cameras on the Kinesis road, the same unanswered dial each time: 805 Back Door, Back Yard South, Basement North, Front, Garage Front Yard, Outside 7.
+  - go2rtc's log holds 37 unanswered offers.
+  - The witness read 12 of 31.
+- **The model does not decide it.** Cameras with the same model and firmware (V2 4.9.9.3006, V3 4.36.17.21, V3 Pro 4.58.17.21) appear among the cameras that carry video and among the dark ones. Wyze marks every camera `webrtc=True`.
+- **Firmware age does line up with the dark cameras.** Seven of the 13 run firmware older than their siblings: East North and North East Cam (V3 4.36.3.18), 805 Front Outside (V3 Pro 4.58.16.6114), Outside Front Door (V3 Pro 4.58.13.1321), Front Driveway Door and Front Yard (V2 4.9.9.1851), Kitchen Cam (V2 4.28.4.49). A camera that has been off its network misses the updates its siblings took. The other six run current firmware: 805 Apt 4, Back Yard North, Basement Living Room, Living Room (V2), Garage Doors (V3).
+
+**The change, same record: the witness asks the way the app asks.** Every frame now goes through the forwarder's `/snap`, the road the Cameras tab takes, with its breaker, its held Kinesis session and its 20 s clock. A camera silent on the first ask is asked once more after 30 s, as the tab does (`SNAP_RETRY_FAILED_MS`). The pass now reports two numbers: cameras that gave a frame on either ask, and how many did so on the first ask. The floor of half holds against the first number. A harness against a fake forwarder confirmed it:
+
+- a camera that answers only on the second ask counts;
+- a camera that never answers stays dark;
+- the first-ask count is kept.
+
+`timeout-minutes` is now 25, for the second pass.
+
+**What is left:**
+
+- **Darrell's hand:** look at the 13 cameras in the Wyze app, and start with the seven on old firmware.
+- **The next read:** the next every-camera pass of the witness, now made the app's way.
+- `re-review: 2026-10-20`, unchanged. The fork comes next if Kinesis, asked the app's way, still carries fewer than half.
