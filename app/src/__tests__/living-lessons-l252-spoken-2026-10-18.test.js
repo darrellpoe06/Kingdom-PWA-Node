@@ -333,7 +333,7 @@ describe('L252 carries Darrell’s messages in every band', () => {
     expect(TEXTS[k].trim().endsWith(CLOSING), `${k} does not close on Revelation 3:20`).toBe(true);
   });
   it.each(ALL)('%s quotes every strand that every band carries', (k) => {
-    for (const [why, book, ch, n, span] of IN_EVERY_BAND) {
+    for (const [why, book, ch, n] of IN_EVERY_BAND) {
       expect(TEXTS[k].includes(`(${book} ${ch}:${n}`), `${k} drops ${why} (${book} ${ch}:${n})`).toBe(true);
     }
   });
