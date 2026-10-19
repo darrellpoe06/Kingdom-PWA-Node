@@ -73,9 +73,14 @@
 // A ROW MAY STILL BE PARKED, but only the way DR-0075 permits anything to be
 // parked: `strandedUntil` is a DATE, and it is the promise the placement gets
 // made. No date, no parking -- the row fails until the passage leaves the
-// lesson that introduced it. Job 31:1 is parked to 2026-10-19 because the
-// hosts discussing its subject all carry full-levels debt today, and placing
-// into those deepens debt instead of paying it.
+// lesson that introduced it.
+//
+// NO ROW IS PARKED TODAY. Job 31:1 was the last one, parked to 2026-10-19, and
+// the date did its whole job: the gate failed the build on 2026-10-19 with
+// "its parking expired", the parking's stated reason was re-measured and found
+// no longer true, and the passage was placed rather than re-parked (DR-1102).
+// That is the mechanism working exactly as DR-0075 intends -- the date is the
+// promise, and a promise that comes due is paid, not renewed by default.
 
 export const PASSAGES_THAT_MUST_REACH = Object.freeze([
   {
@@ -117,9 +122,8 @@ export const PASSAGES_THAT_MUST_REACH = Object.freeze([
     ref: 'Job 31:1',
     subject: 'a covenant with your eyes',
     introducedBy: 'll183-',
-    minLessons: 1,
-    strandedUntil: '2026-10-19',
-    why: 'The concrete discipline behind every lesson on lust, the flesh and guarding the gate of the eye. STRANDED in the lesson that introduced it: every lesson discussing its subject carries full-levels debt today, and placing into those deepens debt instead of paying it. Parked with a date, not with a floor of 1 — re-review: 2026-10-19.',
+    minLessons: 2,
+    why: 'The concrete discipline behind every lesson on lust, the flesh and guarding the gate of the eye. PARKED TO 2026-10-19 AND PAID ON IT: the parking said every host discussing its subject carried full-levels debt, so placing would deepen debt instead of paying it. Measured on the date, that premise no longer held — ll113 (the spirit willing, the flesh weak) carries all five bands, and its CUT THE SUPPLY LINE movement already teaches intake decided in advance from Romans 13:14 with James 1:14, which is the same discipline Job bound on one faculty with its reason in the same breath. Placed there in all five registers, in each register\'s own voice, and the floor raised from 1 to 2 so the placement cannot regress quietly.',
   },
   {
     ref: 'Luke 4:19',
