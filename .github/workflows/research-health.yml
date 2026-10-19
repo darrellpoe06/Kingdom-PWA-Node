@@ -154,6 +154,21 @@ jobs:
           DATA=/volume1/docker/research
           OLLAMA="$(sed -n 's/^OLLAMA_BASE_URL=//p' "$DATA/vane.env" 2>/dev/null || sudo -n sed -n 's/^OLLAMA_BASE_URL=//p' "$DATA/vane.env" 2>/dev/null)"
           export OLLAMA
+          # Where the install stands: is the box on the code we think, which
+          # tower did the installer choose, and does each tower answer from HERE.
+          REPO=/volume1/PoeTech/repos/Kingdom-PWA-Node
+          rd() { cat "$1" 2>/dev/null || sudo -n cat "$1" 2>/dev/null; }
+          echo "---- where the install stands ----"
+          echo "repo checkout: $(git -C "$REPO" rev-parse --short HEAD 2>/dev/null || sudo -n git -C "$REPO" rev-parse --short HEAD 2>/dev/null || echo unknown)"
+          if [ -e "$DATA/ollama.url" ]; then echo "chosen tower (ollama.url): [$(rd "$DATA/ollama.url")]"; else echo "chosen tower: ollama.url absent -- the GPU-only installer has not run yet"; fi
+          echo "forwarder running code: $(rd "$DATA/.forwarder.code.sha" || echo none) / repo code: $(sha256sum < "$REPO/infra/nas-research/research_forwarder.py" 2>/dev/null | cut -c1-16)"
+          for T in 100.69.19.13 100.72.5.90; do
+            TAGS="$(curl -sS -m 6 "http://$T:11434/api/tags" 2>&1 || true)"
+            echo "tower $T:11434 -> $(printf '%s' "$TAGS" | python3 -c 'import json,sys
+          raw=sys.stdin.read()
+          try: print("models: " + ", ".join(m.get("name","") for m in json.loads(raw).get("models",[])) or "answering, no models")
+          except Exception: print("not answering: " + raw[:120].replace(chr(10)," "))')"
+          done
           python3 - <<'PY'
           import json, os, time, urllib.request, urllib.error
           def call(method, url, body=None, timeout=10):

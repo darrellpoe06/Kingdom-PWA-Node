@@ -179,6 +179,17 @@ describe('the road is wired end to end', () => {
     expect(s.indexOf('"$HCODE" != "200"')).toBeLessThan(s.indexOf('funnel --bg --set-path /research'));
     expect(s).toMatch(/TOKEN_FILE[\s\S]*refuses to start an unlocked door/);
   });
+  it('with no GPU tower, the installer still restarts the forwarder onto the new code before it stops', () => {
+    // 2026-10-19, measured: the restart sat after the tower check, so "no tower"
+    // exited first and the OLD forwarder kept hanging 180 s on every question.
+    const s = read('infra/nas-research/install.sh');
+    const noTower = s.indexOf('if [ -z "$OLLAMA" ]; then');
+    const exitAfter = s.indexOf('exit 0', noTower);
+    expect(noTower).toBeGreaterThan(0);
+    expect(s.slice(noTower, exitAfter)).toContain('forwarder_follows_code');
+    expect(s.indexOf('forwarder_follows_code() {')).toBeLessThan(noTower);
+    expect(s.slice(s.indexOf('forwarder_follows_code() {'), noTower)).toMatch(/CODE_SHA[\s\S]*systemctl restart poetech-research/);
+  });
   it('CI runs the forwarder’s selftest', () => {
     expect(read('.github/workflows/ci.yml')).toMatch(/working-directory: infra\/nas-research\n\s+run: python3 research_forwarder\.py --selftest/);
   });
