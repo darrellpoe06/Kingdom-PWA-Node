@@ -259,6 +259,45 @@ that actually covers all 1,600 files and the lane is what decides this change.
 It is recorded because repeating somebody else's number as if it were my own
 measurement is the habit DR-0076 §4 exists to break.
 
+### A third defect, found by checking the gate pm13's CI had just caught
+
+pm13's first CI run failed shard 4/4 alone on `title-in-narrative` — a band's
+first 200 characters must carry at least half the title's distinctive words. That
+is not a gate the Sovereign A.I. course is wired into (it runs for
+`project-management` and the group-A and group-C courses), so nothing here would
+have failed on it. **It was measured anyway, and the child band was short:** 5 of
+this title's 13 distinctive words in its opening window, where 7 are needed, and
+`unnamedBands(module)` returned `["child"]`.
+
+Fixed in the child's own register rather than with a mechanical title prefix —
+the opening now names counting the years, the debt everybody wants to get away
+from, and the stranger at the gate, in short sentences using words a small child
+already owns. Re-measured: **11 of 13** words in the window, `unnamedBands` now
+`[]`, and the child reading grade moved 3.6 → **3.7 authored**, well under the
+5.0 new-lesson child ceiling, with the ladder intact (child 3.7 < youth 7.4 <
+teen 12.2). Three cases were added to the lesson's own file to pin it — including
+a proven-to-catch that prepends a title-blind opening and requires `child` to be
+named, while asserting the real band clean — so the class cannot return
+silently. The lesson's own file is now **35 cases**.
+
+**The generator was taught to rebuild rather than being bypassed.** Editing the
+catalog by hand for this would have made the file drift from the generator that
+is supposed to be its source, so `scripts/sov42-fill.mjs` gained `--rebuild`: it
+excises the existing block (a module's own close is the only `\n  },` at exactly
+two spaces, which is what makes the end findable without a parser), asserts the
+excised block held exactly one id and that the id did not survive the excision,
+and then re-splices under the same arithmetic as the first build. **The rebuilt
+catalog differed from the committed one by exactly one line** — the child band —
+which is the evidence that the generator, and not a hand, is still the author of
+this page.
+
+**One shape noted rather than silently passed:** the senior band reads at 8.4,
+below the teen band's 12.2, so this lesson's ladder is not monotonic to the top.
+That is deliberate and is the register sov41 shipped too — the senior band is a
+facilitator's frame-by-frame outline to teach FROM, not a harder essay to read —
+and no ladder gate covers this course. Named here so it is a decision on the
+record rather than an oversight. `re-review: 2026-11-16` with the rest.
+
 ### What I got wrong, caught by the gate rather than by my confidence
 
 Two of my own assertions failed on their first run, and both are recorded

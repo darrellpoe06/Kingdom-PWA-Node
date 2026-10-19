@@ -42,6 +42,8 @@ import { hasAllThree, placesMissingDirections } from '../lib/talk-together.js';
 import { anchorRefs } from '../lib/search-it-out.js';
 import { scanQuotedVerses, describeFault, loweredHolyNames, ourVoice, SPAN_WITH_REFERENCE } from '../../../scripts/quoted-verse-is-the-verse.mjs';
 import { quotedTexts } from '../../../scripts/quotation-integrity.mjs';
+import { unnamedBands, namesItsLesson, titleKeywords } from '../../../scripts/title-in-narrative.mjs';
+import { measureLesson } from '../../../scripts/reading-level.mjs';
 
 const CORPUS = join(process.cwd(), 'public', 'bible', 'kjv');
 const bookCache = new Map();
@@ -372,6 +374,42 @@ describe('sov42 — the gates are proven to catch, and neither catch is stuck', 
     expect(hasAllThree(stripped)).toBe(true);
     // ...and the real module is clean, so this catch is not a stuck failure
     expect(placesMissingDirections(m)).toEqual([]);
+  });
+});
+
+// -----------------------------------------------------------------------------
+// Every band names its own lesson in its opening, and the child band reads like
+// a child's. This section exists because the FIRST draft failed it: the child
+// band's opening 200 characters carried 5 of the title's 13 distinctive words
+// and needed 7, so `unnamedBands` named `child`. It was fixed in the child's own
+// register -- short sentences, words a small child already owns -- never a
+// mechanical title prefix, and the reading grade was re-measured afterwards.
+// Pinned here so the class cannot come back silently.
+// -----------------------------------------------------------------------------
+describe('sov42 — every band names its lesson, and the child band reads like one', () => {
+  it('no band is unnamed in its opening window', () => {
+    expect(unnamedBands(L())).toEqual([]);
+    for (const band of ['child', 'youth', 'teen', 'senior']) {
+      expect(namesItsLesson(L().title, L().levels[band]), `${band} does not name its lesson`).toBe(true);
+    }
+  });
+
+  it('PROVEN-TO-CATCH: an opening that drops the title is named, and the real child band is not', () => {
+    const m = L();
+    const drift = 'Here we begin somewhere else entirely. Nothing in these first lines says what we study today. We talk about the weather, the drive over, the snack table, the chairs, and the long slow week now behind us. ';
+    expect(drift.length).toBeGreaterThan(200);
+    const blind = { ...m, levels: { ...m.levels, child: drift + m.levels.child } };
+    expect(unnamedBands(blind)).toContain('child');
+    // ...and the real module is clean, so this catch is not a stuck failure
+    expect(unnamedBands(m)).toEqual([]);
+  });
+
+  it('the child band stays under the new-lesson child ceiling, and the title is measurable', () => {
+    expect(titleKeywords(L().title).length).toBeGreaterThanOrEqual(8);
+    const rl = measureLesson(L());
+    expect(rl.bands.child.authored, 'the child band reads above the 5.0 new-lesson ceiling').toBeLessThanOrEqual(5.0);
+    expect(rl.bands.child.authored).toBeLessThan(rl.bands.youth.authored);
+    expect(rl.bands.youth.authored).toBeLessThan(rl.bands.teen.authored);
   });
 });
 

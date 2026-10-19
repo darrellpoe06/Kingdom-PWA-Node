@@ -123,6 +123,31 @@ as a failure nobody is allowed to fix.
   the **adult** lesson, which says it in its own words. Now two assertions, each
   against the place that actually says it.
 
+## A third defect, found by checking the gate pm13's CI had just caught
+
+pm13's first CI run failed shard 4/4 alone on `title-in-narrative`: a band's
+first 200 characters must carry at least half the title's distinctive words. The
+Sovereign A.I. course is not wired into that gate, so nothing here would have
+failed on it — it was measured anyway, and **the child band was short**: 5 of 13
+words where 7 are needed, `unnamedBands` returning `["child"]`.
+
+Fixed in the child's own register, not with a mechanical title prefix: the
+opening now names counting the years, the debt everybody wants to get away from,
+and the stranger at the gate, in short sentences a small child already owns.
+Re-measured — **11 of 13**, `unnamedBands` `[]`, child reading grade 3.6 → 3.7
+authored, under the 5.0 new-lesson ceiling, ladder intact (3.7 < 7.4 < 12.2).
+Three cases pin it, one of them proven-to-catch.
+
+The generator was taught to **rebuild** (`--rebuild`) rather than bypassed, so
+the page keeps a single author: it excises the old block, asserts it held exactly
+one id and that the id did not survive, then re-splices. The rebuilt catalog
+differed from the committed one by **exactly one line**.
+
+Noted rather than silently passed: the senior band reads at 8.4, below teen's
+12.2, so the ladder is not monotonic to the top. Deliberate, and the register
+sov41 shipped — the senior band is a facilitator's outline to teach from, not a
+harder essay — and no ladder gate covers this course.
+
 ## The newcomer yielded
 
 Three courses hold their verses exclusively — `appraisal`, `insurance-risk`,

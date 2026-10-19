@@ -134,7 +134,13 @@ const LESSON = [
 // letter at a child's level; the three older bands weigh the claims and name
 // what we did not check.
 // -----------------------------------------------------------------------------
-const CHILD = `THE THREE-YEAR DEGREE AND THE WORK THAT TEACHES - some things you cannot get in a hurry. Have you ever tried to grow a plant faster by pulling on it? It does not work. It only hurts the plant. Some things take the time they take.
+// The child band's opening names its own lesson (title-in-narrative): the first
+// 200 characters must carry at least half the title's distinctive words, and the
+// first draft carried 5 of 13. The fix is in a child's register -- short
+// sentences, words a small child already owns ("get away from", "the gate") --
+// never a mechanical title prefix, and the reading grade was re-measured
+// against the 5.0 new-lesson child ceiling afterwards.
+const CHILD = `THE THREE-YEAR DEGREE AND THE WORK THAT TEACHES - counting the years, the debt everybody wants to get away from, and the stranger at the gate. Some things you cannot get in a hurry. Have you ever tried to grow a plant faster by pulling on it? It does not work. It only hurts the plant. Some things take the time they take.
 
 Darrell read a letter about schools. It said that school costs a lot of money. Families have to borrow money to pay for it. Borrowing money is scary, because then you owe it back for years and years. So some schools said, what if school was three years instead of four? Then it would cost less.
 
@@ -417,16 +423,42 @@ if (firstClose === end) {
 if (!/\n {2}\},$/.test(src.slice(start, end))) {
   throw new Error('sov42: the array does not end with a comma-terminated module literal; refusing to splice');
 }
-if (src.includes(ID)) throw new Error(`sov42: ${ID} is already in the catalog`);
+// REBUILD. The first build spliced; a later pass that changes our own prose
+// has to be able to re-splice, or the generator stops being the source of the
+// page and the file starts drifting from it by hand. `--rebuild` excises the
+// existing block first. A module's own close is the only `\n  },` in the file
+// at exactly two spaces (JSON.stringify's nested objects close at four or
+// more), which is what makes the end of the block findable without a parser.
+const REBUILD = process.argv.includes('--rebuild');
+let src2 = src;
+let end2 = end;
+if (src2.includes(ID)) {
+  if (!REBUILD) throw new Error(`sov42: ${ID} is already in the catalog; pass --rebuild to replace it`);
+  const marker = `\n  {\n    "id": "${ID}"`;
+  const from = src2.indexOf(marker);
+  if (from < 0) throw new Error('sov42: the id is in the file but not as a module literal; refusing to rebuild');
+  const closeAt = src2.indexOf('\n  },', from);
+  if (closeAt < 0 || closeAt >= end2) throw new Error('sov42: could not find the end of the existing block; refusing to rebuild');
+  const excised = src2.slice(from, closeAt + '\n  },'.length);
+  if (excised.split('"id":').length - 1 !== 1) {
+    throw new Error(`sov42: the block to excise holds ${excised.split('"id":').length - 1} ids, expected 1; refusing to rebuild`);
+  }
+  src2 = src2.slice(0, from) + src2.slice(closeAt + '\n  },'.length);
+  end2 = src2.indexOf('\n];', src2.indexOf(OPEN));
+  if (end2 < 0) throw new Error('sov42: the array is not closed after excising; refusing to rebuild');
+  if (src2.includes(ID)) throw new Error('sov42: the id survived the excision; refusing to rebuild');
+}
 
 const block = JSON.stringify(filled, null, 2).split('\n').map((l) => `  ${l}`).join('\n');
-const next = `${src.slice(0, end)}\n${block},${src.slice(end)}`;
+const next = `${src2.slice(0, end2)}\n${block},${src2.slice(end2)}`;
 
 // ONE numeric regex over the whole file, numerically sorted. Two different
 // regexes gave a wrong maximum once and nearly placed a new lesson on top of an
 // existing one, so there is exactly one instrument here and it counts ids.
 const weeks = (text) => [...new Set([...text.matchAll(/sov(\d+)-/g)].map((m) => Number(m[1])))].sort((a, b) => a - b);
-const before = weeks(src);
+// Measured against src2, the tree WITHOUT this module, so a rebuild is held to
+// exactly the same arithmetic as the first build.
+const before = weeks(src2);
 const after = weeks(next);
 if (after.length !== before.length + 1) throw new Error(`sov42: week count went ${before.length} -> ${after.length}, expected exactly one more`);
 if (before.includes(42)) throw new Error('sov42: week 42 is already taken');
