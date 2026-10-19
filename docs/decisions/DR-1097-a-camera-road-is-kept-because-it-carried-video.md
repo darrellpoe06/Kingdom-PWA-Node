@@ -265,3 +265,36 @@ The sixth read's code is live: the forwarder runs `da48692dea4950bc`, the same a
 **Live, after merge:** services-sync restarts go2rtc once, and the forwarder restarts on its new code. Then the next every-camera pass of camera-health is read against the 22 cameras Wyze calls online, and cams-diag against the sampler's consumer counts, which should be 0 with nobody watching.
 
 - `re-review: 2026-10-20`, unchanged.
+
+## Eighth field read (2026-10-19 04:29 UTC; cams-diag 39199689871): the release took every camera down
+
+**Stated plainly: the one go2rtc restart this record shipped took every camera in the app down.**
+
+- The forwarder runs the seventh read's code (`733cfd6749f8936e`), and the installer released go2rtc for epoch `2026-10-19.frozen-frames` at 23:02 CDT.
+- go2rtc came back with **zero streams**, on its default listeners (`rtsp :8554`, not `127.0.0.1:8554`).
+- Its own log at start: `yaml: line 96: could not find expected ':'`. `go2rtc.yaml` would not parse, so go2rtc ran without it.
+
+**The cause is older than the release, and it explains a second mystery.**
+
+- The file was last written at 22:55 CDT by the old forwarder's direct line rewrite (the judge's road try on Front). go2rtc had refused every PUT with HTTP 400 for hours before that.
+- A PUT runs `streams.New` (the stream goes live in memory) and then `app.PatchConfig`, which must parse the file. An unreadable file fails the second step every time. The 400s were never the stream: they were the file.
+- The old go2rtc kept running only because it had read the file before it broke. The restart was the first moment anything had to read it again.
+- The self-heal then tried to re-add the cameras from the Wyze sign-in and was refused (HTTP 502) every ten minutes.
+
+**The change, same record:**
+
+- **A go2rtc that lists no streams gets back every stream its own file defines, before anything else** (`restore_streams_from_config`, on the self-heal's clock: 20 s after start, then every 10 min).
+  - The file is read by shape, the way `config_stream_names` reads it, with every source of a list. Each stream is PUT with its own sources.
+  - The expected 400 is ignored: the stream is in memory all the same.
+- **cams-diag prints the shape of every line that is not a key, a list item, a comment or blank, and of the last six lines.** That is the indent, the class, the quote counts, the length and how the line ends. Never a value, and a key name only under `streams:`. This finds line 96 without reading a secret.
+
+**Verification:**
+
+- Selftest: 448 passing.
+- PROVEN TO CATCH: with the restore removed from the self-heal, its check fails.
+
+**What is left:**
+
+- **Repair line 96 itself,** once cams-diag names its shape. Until then the streams live in go2rtc's memory and the next go2rtc restart empties it again, though the self-heal puts them back within ten minutes.
+- **No go2rtc release without proving the file parses first:** a restart is a config load. The installer's epoch step gains that check before any new epoch.
+- `re-review: 2026-10-20`, unchanged.
