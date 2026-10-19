@@ -53,13 +53,36 @@ run() {
   printf '%s' "$SQL_B64" | base64 -d | "$@" exec -i -e PGPASSWORD="$PW" supabase-db \
     psql -h 127.0.0.1 -U supabase_admin -d postgres -v ON_ERROR_STOP=1 -q -At -F "$SEP" -f -
 }
-run "$DOCKER" && exit 0
+# Both attempts are BUFFERED, for two reasons. (1) A reader must not be shown
+# a failure that did not happen: docker on DSM answers the unprivileged call
+# with "permission denied ... /var/run/docker.sock", the sudo retry then
+# succeeds, and that stderr line sat in the log of all 14 lanes that share this
+# road looking exactly like a broken run. Only a losing attempt's stderr is
+# released now. (2) stdout cannot be emitted twice: the old form streamed the
+# first attempt's rows straight out and then let the retry print the same rows
+# again, so a docker that died PART WAY through a result set would have handed
+# its caller a doubled answer with exit 0 -- unparseable by the monitors and
+# indistinguishable from real data. Rows are released only by the attempt that
+# finished them.
+#
+# mktemp is not ASSUMED here. This road is shared by 14 lanes, so a DSM without
+# it must not take all of them down: the fallback is a pid-suffixed path under
+# TMPDIR. I could not verify mktemp on the Synology from this sandbox -- it has
+# no route to the NAS, only the runners join the tailnet -- so the fallback is
+# the honest answer rather than a guess that happens to hold.
+TMPD="${TMPDIR:-/tmp}"
+OUT="$(mktemp 2>/dev/null || echo "$TMPD/live-sql-out.$$")"
+ERR="$(mktemp 2>/dev/null || echo "$TMPD/live-sql-err.$$")"
+trap 'rm -f "$OUT" "$ERR"' EXIT
+run "$DOCKER" >"$OUT" 2>"$ERR"
 rc=$?
 # Docker on DSM can need root; retry once with sudo before calling it a failure.
 if [ "$rc" -eq 1 ] && ! "$DOCKER" ps >/dev/null 2>&1; then
-  run sudo -n "$DOCKER"
-  exit $?
+  run sudo -n "$DOCKER" >"$OUT" 2>"$ERR"
+  rc=$?
 fi
+[ "$rc" -eq 0 ] && { cat "$OUT"; exit 0; }
+cat "$ERR" >&2
 exit "$rc"
 REMOTE_EOF
 
