@@ -1,10 +1,38 @@
 # The system, inside and out — 2026-10-19
 
-Darrell, 2026-10-19: "Comprehensive understanding of the system...", "What is outside of the 10 dimensions... give me the full understanding of the system", "Inside and out...".
+Darrell, 2026-10-19: "Comprehensive understanding of the system...", "What is outside of the 10 dimensions... give me the full understanding of the system", "Inside and out...", then: "Comprehensive meaning whatever we have currently... what changed and when exactly like logs... and also the ability to reverse any undermining processes because every system is interdependent... and our overall system goals so the vision is clear and we alignment is very effective and deliberate and intuitive", and: "Standard code and sequences and jobs and workflows and critical paths wrapped with a systemic incentive structure and foundation placeholders for allowing flexibility in the development process for all necessary factors."
+
+So this ledger has eleven parts: goals (§0), inventory (§1–3), what the review dimensions miss (§4), the live work queue (§5), standards (§6), sequences and critical paths (§7), jobs and workflows (§8), the incentive structure (§9), placeholders (§10), the change log (§11), and reversal with interdependency (§12). The standard that names these parts is `docs/00-foundations/_root/SYSTEM-UNDERSTANDING-STANDARD.md` (DR-1111).
 
 **How this was built.** Three read-only traces of the repository were made, one each for transport, data and delivery, and every claim is cited to `file:line` in those traces. Live readings came from GitHub Actions runs and issue #2057. The four defects marked *verified* below were re-read in the code before anything was changed. Anything not measured is labelled. Repo state: `main` at `fc23337` plus the day's merges.
 
 ---
+
+## 0. The goals — what every part exists to serve
+
+These are the repository's own words, each quoted from its source, so alignment is measured against what was written rather than against memory.
+
+**The root.** *"When any product feature is built, the question is: does this help a person walk The Way?"* (`THE-WAY.md:128`). Systems *"exist to make the person more able to follow The Way, not to extract from them"* (`CLAUDE.md`, The Source of Answers).
+
+| Goal | Its own words | How it is measured today |
+|---|---|---|
+| G1 Quality of life is the senior test | *"does this measurably improve quality of life for the family or community using it?"* (`QUALITY-OF-LIFE-AS-NORTH-STAR.md:7`) | **No measure is built.** The named `qol-impact` feedback tag appears nowhere in `app/src`. |
+| G2 Community first, COLG first | *"exists to serve communities the mainstream tech industry has overlooked"* (`COMMUNITY-FIRST-MISSION.md:11`) | WCAG-AA contrast gate (`scripts/contrast-guard.mjs`); install-health on four doors |
+| G3 Serve, never extract | *"The platform is a TOOL, not a casino."* (`DATA-AS-EMPOWERMENT-NOT-EXTRACTION.md:47`) | Tenancy guard and RLS matrix (246 instance-scoped tables, all under RLS); `rls-isolation.yml` |
+| G4 Sovereign, never locked in | *"We are never locked in"* (`DR-0013:24`) | DR-0013's phases. **None is marked done**, and the GPU tower that Phase 4 needs is not answering today |
+| G5 Verifiably right | *"The AI's job is not to sound right — it is to be verifiably right"* (`CLAUDE.md`, Verification Doctrine) | Gates that are proven to catch; verbatim-Scripture gates; the runner witnesses |
+| G6 The app is the primary artifact, showing live real data | *"a surface is a live view of — and a control for — real system state"* (`CLAUDE.md`, Reality-Trace) | Reality-trace rule; OpsBoard and SystemFlowProof read live data |
+| G7 One engine, clarity at rest | *"One system manages and organizes ALL types of work"* (`ARCHITECTURE-PRINCIPLES-COMPOSABLE-SPINE.md:26`) | `module-boundary-guard`, `monolith-budget-guard` |
+| G8 Motion by default, but uptime first | *"Uptime outranks delivery velocity, always."* (`CLAUDE.md`, Streamlined Delivery Loop) | site-health every 10 minutes; the `incident` ledger; deploy proof |
+
+**Where the goals pull against each other, in the docs' own words:**
+- **Sovereignty vs. a hosted database.** *"There is no central database of family data anywhere except the family's own infrastructure"* (`DATA-AS-EMPOWERMENT:21`), yet hosted Supabase still holds tables.
+- **"Every action reversible"** (`COMMUNITY-FIRST:31`) vs. *"PIN loss = data loss. This is intentional"* (`LEGAL-PRIVACY-BOUNDARY:188`).
+- **Three different "senior" tests:**
+  - quality of life (`QUALITY-OF-LIFE:67`);
+  - the Want-To-Use Bar (DR-0033);
+  - the two architecture anchors (`ARCHITECTURE:22`).
+- **Stale roadmaps.** `BUILD-ROADMAP.md` (June) still plans n8n timers that DR-0218 retired. DR-0013's dated phases have passed with none marked done. A goal with no live measure (G1) or a passed date (G4) cannot steer alignment.
 
 ## 1. What the system is, in one paragraph
 
@@ -84,7 +112,7 @@ Also:
 | The home internet and power at the NAS | everything private | not measured from here |
 | The Synology NAS hardware | everything private | services answer through the Funnel |
 | Two GPU towers | Vane, local AI | **no tower answering** (research-health, 04:04 UTC) |
-| Wyze (cameras), Kinesis/WebRTC | cameras | 9 of 33 cameras working at the last camera-health read (DR-1097) |
+| Wyze (cameras), Kinesis/WebRTC | cameras | 18 of 33 cameras at the latest read (DR-1097 eleventh read, 2026-10-19 07:39 UTC), up from 9 |
 | Search engines behind SearxNG | Vane's sources | DuckDuckGo returning a CAPTCHA; Brave rate-limiting us for 180 s (429) |
 | Stripe, Replicate, YouTube, Stooq, Census and Nominatim | checkout, cloud voice, church feed, quotes, geocoding | not measured here |
 | A hosted Supabase project (the "hosted key") | the documents copy-down (task #3) | waiting on Darrell's ConnectBot step |
@@ -122,6 +150,136 @@ The ten dimensions (`COMPREHENSIVE-REVIEW-STANDARD.md`) review **a surface and i
 | 8 | Vane: no GPU tower answering; search engines throttled | Blocked on a physical step: power on and wake the left tower |
 | 9 | Proxy without a timeout | Open: needs per-road budgets, from 6 s to 180 s, not one number |
 | 10 | Watchdog heals 3 of 9 sovereign mounts | Open: next in the queue |
-| 11 | Cameras 9 of 33 | **CARRIED** by DR-1097's live reads (another session, seven reads so far) |
+| 11 | Cameras 18 of 33 | **CARRIED** by DR-1097's live reads (another session, eleven reads so far, rising) |
 | 12 | Documents copy-down (task #3) | Blocked on Darrell placing the hosted key from ConnectBot |
 | 13 | roads Worker token | Blocked on Darrell's Cloudflare token permission edit |
+| 14 | **No backup of the sovereign database** | **Next build**: a braked nightly dump on the NAS, with retention, a witness and a restore proven on a copy |
+| 15 | No Cloudflare rollback; revert-button branches ignored by the lane | Open: a dispatch-a-past-deployment rollback workflow, and the lane accepting `revert-` branches |
+| 16 | No outcome measure for G1 (quality of life) | Open: the incentive gap in §9 |
+
+## 6. Standards — what all code is written to
+
+| Standard | Where it is written | What enforces it |
+|---|---|---|
+| Typographic and Color Theology; Yahweh in our voice; verbatim KJV | `CLAUDE.md`; `SCRIPTURE-REFERENCE-STANDARD.md` | every-catalog quotation gate, per-course gates, `scripture-inference-guard` (with a must-fail selftest) |
+| No claim without evidence; proven to catch | `CLAUDE.md` Verification Doctrine (DR-0076) | the ari-guard stop hook; each gate's selftest |
+| Module boundaries and monolith budgets | `ARCHITECTURE-PRINCIPLES-COMPOSABLE-SPINE.md` | `module-boundary-guard`, `monolith-budget-guard` (ci.yml guards) |
+| Tenancy: every instance table under RLS | DR-0060 | `tenancy-guard.mjs`, `rls-isolation-matrix-guard`, `rls-isolation.yml` |
+| Migrations replay in order and return what they claim | DR-0309, DR-1075 | `migration-replay-order-guard`, `replay-completeness-guard`, `migration-return-type-guard`, `smoke-sql-language-guard` |
+| One decision per record; numbers never reused | DR-0011, DR-0644 | `business-systems-guard`, `decision-citation-guard`, `resolve-ledger-conflicts`, `claim-decision-number` |
+| No `window.confirm`/`prompt` dialogs | (house rule) | `no-prompt-guard` |
+| Same-origin roads, never the absolute Funnel URL | `CLAUDE.md` memory, `project_app_to_nas_transport` | `infra-transport-guard`; **currently overridden** by the 2026-10-09 unlock (§5 item 7) |
+| Commits: plain subjects, Darrell as author | `feedback_no_coauthor_trailer` | the stop hook checks the committer |
+
+## 7. Sequences and critical paths — the chains that must hold end to end
+
+Each chain is listed hop by hop, and a chain is only as strong as its weakest hop. "Witness" is what watches it from outside.
+
+1. **Sign-in:**
+   - Hops: browser → (today) `poetech.tail5a2f35.ts.net/sb` → Funnel → Kong 127.0.0.1:8800 → GoTrue.
+   - Witness: site-health's real POST.
+   - Weakest hop: the cross-origin Funnel origin the bundle uses since 10-09, which CLAUDE.md records as throttled under load.
+2. **A change reaching the family:**
+   - Hops: branch push → auto-open-pr → 15 CI legs (about 17 min, measured) → auto-merge squash → heal-deploy dispatches the deploy → build, asset guard, wrangler → boot-check in a browser → site-health served = main.
+   - Weakest hop: merges made by the GitHub token do not trigger the deploy. Ten missed-deploy incidents are recorded in `auto-merge.yml`, and deploy-freshness's schedule fires only 7.7% of the time.
+3. **A NAS change reaching the box:**
+   - Hops: merge → `services-sync` every 15 minutes (`git pull --ff-only`) → each enabled `install.sh` → restart on code checksum → Funnel mount.
+   - Weakest hops:
+     - a 120-run daily cap, which once left the cameras on 13-hour-old code;
+     - three services (nas-agent, bridge-publish, ytzero) that do not restart on changed code;
+     - six mounts the watchdog does not heal.
+4. **An alarm reaching Darrell:**
+   - Hops: witness fails → `ops-announce.mjs` → Funnel `/announce` → relay :8796 → ntfy :8081 → phone.
+   - Weakest hop: fixed in part today (DR-1110). The relay's HTTP 400 is still unexplained.
+5. **A lesson reaching a reader:**
+   - Hops: course file → quotation, band, voice and witness gates → merge → deploy → `lessons-sync` → curriculum tables (written only while `REPOINT-ARMED`) → device. The device is bundle-first, with an IndexedDB copy.
+   - Weakest hop: preview rows are never withdrawn automatically, and a failed fetch keeps the stale copy.
+6. **A schema change reaching both databases:**
+   - Hops: migration file → replay and RLS guards → `db-migrate` (hosted, then sovereign, single-flight) → `migrate-freshness`.
+   - Weakest hops:
+     - forward-only migrations;
+     - **no backup of the sovereign database** (§12);
+     - a `BASELINE-REFRESH` nonce that runs `DROP SCHEMA public CASCADE` and restores from a hosted dump that has been stale since 2026-08-19.
+7. **A research question (new):**
+   - Hops: app → `/research` Function → Funnel → forwarder → Vane → tower Ollama and SearxNG.
+   - Weakest hops: no tower answering today, and search engines throttling us.
+
+## 8. Jobs and workflows
+
+- **Counts:** 73 workflow files, 23 live schedules and 17 CI gate commands.
+- **Brakes:**
+  - Schedules without a timeout: `deploy-freshness`, `daily-review` and `corpus-reconcile`.
+  - Without a concurrency lock: `nas-health`.
+  - With no kill-switch variable:
+    - `keep-prs-current` (it has a PR budget and honours `hold`);
+    - `camera-health`, `lesson-mail-watch` and `nas-health`;
+    - `sovereign-content-sync` and `corpus-reconcile`.
+- **Kill-switch variables in use:**
+  - **Opt-in:** `CF_PAGES_ENABLED`, `PUSH_OUTBOX_DRAIN_ENABLED`.
+  - **Opt-out:** `DEPLOY_FRESHNESS`, `FEEDBACK_FIXED`, `HARVEST_HEALTH`, `LEVEL_WITNESS`, `LIVE_LINK_PROBE`, `MIGRATE_FRESHNESS`, `NODE_AVAILABILITY`, `OPS_QUEUE_HEALTH`, `PLACE_DOORS`, `PUBLIC_SHELF_WITNESS`, `SITE_HEALTH`, `SYSTEM_FLOW_PROOF` and `VIDEO_STATS` (each `*_ENABLED`), plus `LESSON_BELL`.
+- **NAS fleet:**
+  - It is armed by `ARMED-BY-RECORD` **or** by `LOOPS_ARMED` in the NAS `.env`, so deleting the record alone may not stop it.
+  - `run.sh` still tells you to touch a `KILL_SWITCH` that no longer does anything.
+  - The fleet-wide stop DR-0248 promised was never rebuilt.
+
+## 9. The incentive structure — what makes the right way the easy way
+
+The house's incentives reward correct process:
+- **A green gate ships at once.** Auto-merge on green makes passing the gates the fastest path to the family.
+- **A red gate stops everything.** It cannot be talked past, and a gate must prove it catches before it counts.
+- **Ratchets only move one way:**
+  - band coverage (`allFour`, "a course may only add to this number");
+  - the talk-together baseline;
+  - the monolith budget;
+  - the `KNOWN_GAPS` lists.
+- **Not improving costs something.** It needs a written why and a `re-review:` date (DR-0075), swept by the review-watcher.
+- **Asking costs something.** The ari-guard hook blocks a re-ask of settled work (DR-0111) and a hollow claim of "comprehensive" (DR-0239).
+- **Failure is visible.** Every witness writes to an `incident` ledger and the OpsBoard.
+
+**What the incentives do not reward yet: outcomes.**
+- Nothing pays out for higher sign-in success, more lessons read, or better family quality of life. G1 has no measure at all.
+- Nothing penalises a witness that cries wolf. #2057 ran for eight days on a false headline.
+- So the system is strongly aligned to *process correctness* and only weakly aligned to *the goals in §0*. The next incentive to build is a measured outcome per goal, shown where the gates are.
+
+## 10. Placeholders — slots declared so development can flex without losing the plan
+
+| Placeholder | Where | State |
+|---|---|---|
+| Five flow loops marked "building (declared)" | `interconnect-guard` output | declared; not yet wired |
+| Four open resources | `db:agent_inbox#poetech`, `nas:wf18-bearer`, `db:push_outbox#sent`, `http:openers` | open by declaration |
+| 237 tables with no place in the flow graph | `system-flow-graph.mjs` | printed as a number, deliberately never green |
+| Eleven Function roads with no Funnel mount | `RECORDED-STATE.md:52-62` | declared gaps |
+| `enabled:false` services | `services.json` (openers) | skipped, **not stopped or uninstalled** |
+| `ARMED-BY-RECORD` files (nas-loops, intake-autofix, openclaw-tower) | `infra/*` | arm on merge |
+| `re-review:` dates on decision records | the ledger | the slot to revisit; review-watcher sweeps them |
+| `KNOWN_OUTAGES` carve-outs in site-health | `scripts/site-health-verdict.mjs:77-94` | one entry, **expires 2026-10-26**, and it is the false one |
+
+Placeholders work only while each one has an owner and a date. The 237-table count and the stale roadmaps (§0) are where flexibility is turning into drift.
+
+## 11. The change log — what changed, and when, exactly
+
+`node scripts/system-change-log.mjs --since=YYYY-MM-DD` (DR-1111) prints every merged change from main's own history. Each entry carries:
+- the time to the second;
+- the PR number and the decision records;
+- the layers it touched, derived from its paths;
+- how to reverse it in each of those layers.
+
+For 2026-10-12 to 2026-10-19 it reads **127 merged changes**. They touched the ledger 108 times, tests 86, the factory 69, the app 63, the NAS 25, data 23, docs 22, content 21 and transport 2. **22 of them carry a schema migration**, and the log marks each one as forward-only.
+
+The newest entries are the camera road's eleventh read (`32cfea2bf`, 07:39:04 UTC) and its tenth (`42799ab6b`, 06:40:14 UTC). Run the command for any window; nothing is stored, so the log cannot go stale.
+
+## 12. Reversal and interdependency — how to undo what undermines
+
+| Layer | How it is undone today | The limit |
+|---|---|---|
+| App, content, Functions | `git revert` on a `claude/` or `ccr-` branch → the lane → deploy | GitHub's Revert button makes `revert-NNNN`, which the lane ignores. There is **no Cloudflare rollback** in the repo (`INFRASTRUCTURE-PIPELINE.md:77` says "one command"; no such command exists), so a revert waits on CI (about 17 minutes). `CF_PAGES_ENABLED=false` blocks the revert's deploy too. |
+| NAS services | Revert; services-sync fast-forwards within 15 minutes and restarts on changed code | Three services do not restart on changed code; `enabled:false` skips a service but does not stop it; there is no uninstall path. |
+| Database | A **new** migration that undoes the change | Migrations are forward-only. **No backup of the sovereign database exists** (`infra/nas-supabase/README.md:105`: *"it is not optional for the family's data"*), and there is no point-in-time restore. The `BASELINE-REFRESH` path drops the schema and restores from a dump that has been stale since 2026-08-19. |
+| Workflows | The kill-switch variables (§8), the `hold` label, the PAUSED files | Six schedules have no variable. |
+| NAS loop fleet | `enabled:false` in the registry, or delete `ARMED-BY-RECORD`, or the DSM toggle | `.env` can still arm the fleet; the documented `KILL_SWITCH` is dead. |
+| Secrets | `nas-rotate-bearer`, VAPID rotation (signs every device out), `mint_keys --force` | There is **no rotation or leak runbook** for `CLOUDFLARE_API_TOKEN`, `NAS_SSH_KEY`, `TS_AUTHKEY` or `SUPABASE_DB_URL`. |
+| Lessons | Revert → deploy → `lessons-sync` deletes the rows no longer carried | Preview rows are not withdrawn, and the device keeps a stale IndexedDB copy if a fetch fails. |
+
+**Interdependency.** The flow graph has every edge as `{from, to, res}`, with `writers` and `readers` maps (`system-flow-graph.mjs:149-166`). **No "what depends on X" query exists yet.** The blast radius of any change is a breadth-first walk from its node over those edges, and building it into the change log is the next step for reversal. Then every entry would name not only its layers but everything downstream of what it touched.
+
+**The single largest risk to reversibility is the missing backup of the sovereign database.** Every other layer can be rebuilt from git; the family's data cannot. It is carried as the next build (§5, item 14).

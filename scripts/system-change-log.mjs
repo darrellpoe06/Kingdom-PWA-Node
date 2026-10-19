@@ -72,9 +72,14 @@ export function migrationsOf(paths) {
 export function reversalOf({ sha, paths }) {
   const layers = layersOf(paths);
   const short = String(sha || '').slice(0, 9);
-  const steps = [`git revert ${short} on a branch; the lane opens, gates and merges the revert like any change`];
+  // The lane only opens and arms branches named feat/ fix/ merge/ docs/
+  // claude/ or ccr- (auto-open-pr.yml, auto-merge.yml). GitHub's own Revert
+  // button makes revert-NNNN-..., which the lane never picks up.
+  const steps = [`git revert ${short} on a claude/ or ccr- branch (not GitHub's Revert button, whose revert-NNNN branch the lane ignores); the lane opens, gates and merges it like any change`];
   if (layers.includes('app') || layers.includes('content') || layers.includes('transport')) {
-    steps.push('the revert redeploys Pages on merge (deploy-freshness heals a missed deploy within 5 min); open devices pick up the reverted build at their next update check');
+    // deploy-freshness's own measurement: its cron fired 7.7% of the time, with
+    // gaps up to 11.3 h, so it is a backstop and never a promised time.
+    steps.push('the revert redeploys Pages on merge, dispatched by auto-merge\'s heal-deploy; deploy-freshness is only a backstop, since its schedule fires irregularly (measured 7.7% of fires, gaps up to 11.3 h), so confirm a deploy run for the revert\'s SHA; open devices pick up the reverted build at their next update check')
   }
   if (layers.includes('nas')) {
     steps.push('the NAS follows main: services-sync applies the reverted code on its next 15-minute cycle');

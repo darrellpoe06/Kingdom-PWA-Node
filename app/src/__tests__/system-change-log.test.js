@@ -31,7 +31,7 @@ describe('every path lands in exactly one named layer', () => {
   });
   it('places every path main has changed in the last week — nothing falls into "other"', () => {
     const root = join(process.cwd(), '..');
-    let shas = [];
+    let shas;
     try {
       shas = execFileSync('git', ['log', 'HEAD', '--first-parent', '-n', '60', '--format=%H'], { cwd: root, encoding: 'utf8' }).trim().split('\n').filter(Boolean);
     } catch { return; } // a checkout without history cannot be measured here; CI has history
@@ -54,6 +54,12 @@ describe('reversal says what each layer can really undo', () => {
   it('PROVEN TO CATCH: a change with no migration never claims to be forward-only, and one with a migration always does', () => {
     expect(reversalOf({ sha: 'a', paths: ['app/src/x.jsx'] }).join(' ')).not.toMatch(/FORWARD-ONLY/);
     expect(reversalOf({ sha: 'a', paths: ['infra/supabase/migrations-auto/0001-a.sql'] }).join(' ')).toMatch(/FORWARD-ONLY/);
+  });
+  it('never promises a deploy time the backstop cannot keep, and names the branch the lane will pick up', () => {
+    const r = reversalOf({ sha: 'a', paths: ['app/src/x.jsx'] }).join(' ');
+    expect(r).not.toMatch(/within 5 min/);
+    expect(r).toMatch(/7\.7% of fires/);
+    expect(r).toMatch(/not GitHub's Revert button/);
   });
   it('app and transport changes say they redeploy; NAS changes say they ride services-sync; workflows name their brakes', () => {
     expect(reversalOf({ sha: 'a', paths: ['app/functions/sb/[[path]].js'] }).join(' ')).toMatch(/redeploys Pages/);
